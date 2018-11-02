@@ -695,14 +695,16 @@ ewmWalletCreateTransfer(BREthereumEWM ewm,
 
     pthread_mutex_unlock(&ewm->lock);
 
-    ewmClientSignalTransferEvent(ewm, wid, tid, TRANSFER_EVENT_CREATED, SUCCESS, NULL);
+    // Transfer DOES NOT have a hash yet because it is not signed; but it is inserted in the
+    // wallet and can be display, in order, w/o the hash
+    ewmClientSignalTransferEvent (ewm, wid, tid, TRANSFER_EVENT_CREATED, SUCCESS, NULL);
 
     return tid;
 }
 
 extern BREthereumTransferId
 ewmWalletCreateTransferWithFeeBasis (BREthereumEWM ewm,
-                                    BREthereumWallet wallet,
+                                     BREthereumWallet wallet,
                                      const char *recvAddress,
                                      BREthereumAmount amount,
                                      BREthereumFeeBasis feeBasis) {
@@ -710,19 +712,37 @@ ewmWalletCreateTransferWithFeeBasis (BREthereumEWM ewm,
     BREthereumWalletId wid = -1;
 
     pthread_mutex_lock(&ewm->lock);
-
-    BREthereumTransfer transaction = walletCreateTransferWithFeeBasis (wallet, addressCreate(recvAddress), amount, feeBasis);
-
-    tid = ewmInsertTransfer(ewm, transaction);
-    wid = ewmLookupWalletId(ewm, wallet);
-
+    {
+        BREthereumTransfer transaction = walletCreateTransferWithFeeBasis (wallet, addressCreate(recvAddress), amount, feeBasis);
+        tid = ewmInsertTransfer(ewm, transaction);
+        wid = ewmLookupWalletId(ewm, wallet);
+    }
     pthread_mutex_unlock(&ewm->lock);
 
-    ewmClientSignalTransferEvent(ewm, wid, tid, TRANSFER_EVENT_CREATED, SUCCESS, NULL);
+    // Transfer DOES NOT have a hash yet because it is not signed; but it is inserted in the
+    // wallet and can be display, in order, w/o the hash
+    ewmClientSignalTransferEvent (ewm, wid, tid, TRANSFER_EVENT_CREATED, SUCCESS, NULL);
 
     return tid;
 }
 
+
+static void
+ewmWalletSignTransferAnnounce (BREthereumEWM ewm,
+                               BREthereumWallet wallet,
+                               BREthereumTransfer transfer) {
+    BREthereumTransferId tid = -1;
+    BREthereumWalletId wid = -1;
+
+    pthread_mutex_lock(&ewm->lock);
+    {
+        tid = ewmLookupTransferId (ewm, transfer);
+        wid = ewmLookupWalletId(ewm, wallet);
+    }
+    pthread_mutex_unlock(&ewm->lock);
+
+    ewmClientSignalTransferEvent (ewm, wid, tid, TRANSFER_EVENT_SIGNED,  SUCCESS, NULL);
+}
 
 extern void // status, error
 ewmWalletSignTransfer(BREthereumEWM ewm,
@@ -730,12 +750,7 @@ ewmWalletSignTransfer(BREthereumEWM ewm,
                       BREthereumTransfer transfer,
                       BRKey privateKey) {
     walletSignTransferWithPrivateKey (wallet, transfer, privateKey);
-    ewmClientSignalTransferEvent (ewm,
-                                  ewmLookupWalletId(ewm, wallet),
-                                  ewmLookupTransferId(ewm, transfer),
-                                  TRANSFER_EVENT_SIGNED,
-                                  SUCCESS,
-                                  NULL);
+    ewmWalletSignTransferAnnounce (ewm, wallet, transfer);
 }
 
 extern void // status, error
@@ -744,12 +759,7 @@ ewmWalletSignTransferWithPaperKey(BREthereumEWM ewm,
                                   BREthereumTransfer transfer,
                                   const char *paperKey) {
     walletSignTransfer (wallet, transfer, paperKey);
-    ewmClientSignalTransferEvent (ewm,
-                                  ewmLookupWalletId(ewm, wallet),
-                                  ewmLookupTransferId(ewm, transfer),
-                                  TRANSFER_EVENT_SIGNED,
-                                  SUCCESS,
-                                  NULL);
+    ewmWalletSignTransferAnnounce (ewm, wallet, transfer);
 }
 
 extern BREthereumTransferId *
@@ -979,9 +989,11 @@ ewmHandleTransaction (BREthereumEWM ewm,
     }
     else {
         tid = ewmLookupTransferId(ewm, transfer);
-        if (transaction != transferGetBasisTransaction(transfer))
-            transactionRelease(transaction);
+//        if (transaction != transferGetBasisTransaction(transfer))
+//            transactionRelease(transaction);
     }
+
+    transferUpdateStatus (transfer, transactionGetStatus(transaction));
 
     if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatusType (transfer, TRANSFER_STATUS_INCLUDED)))
         ewmClientSignalTransferEvent(ewm, wid, tid,

@@ -301,6 +301,21 @@ public struct EthereumTransfer : EthereumReferenceWithDefaultUnit {
         return number > 0 ? number : nil
     }
 
+    public var state : State {
+        return State (ethereumTransferGetStatus(self.ewm!.core, self.identifier))
+    }
+
+    public var stateErrorReason : String? {
+        if let coreReason = ethereumTransferStatusGetError(self.ewm!.core, self.identifier) {
+            return asUTF8String(coreReason, true)
+        }
+        return nil
+    }
+
+    public var nonce : UInt64 {
+        return ethereumTransferGetNonce(self.ewm!.core, self.identifier)
+    }
+    
     //    var gasPrice : EthereumAmount {
     //        let price : BREthereumAmount = ethereumTransferGetGasPriceToo (self.ewm!.core, self.identifier)
     //        return EthereumAmount.ether (price.u.ether.valueInWEI, WEI)
@@ -323,6 +338,34 @@ public struct EthereumTransfer : EthereumReferenceWithDefaultUnit {
     //    }
 
     // State
+    public enum State : CustomStringConvertible {
+        case created
+        case signed
+        case submitted
+        case included
+        case errored
+
+        init (_ event: BREthereumTransferStatusType) {
+            switch (event) {
+            case TRANSFER_STATUS_CREATED: self = .created
+            case TRANSFER_STATUS_SIGNED: self = .signed
+            case TRANSFER_STATUS_SUBMITTED: self = .submitted
+            case TRANSFER_STATUS_INCLUDED: self = .included
+            case TRANSFER_STATUS_ERRORED: self = .errored
+            default: self = .created
+            }
+        }
+
+        public var description: String {
+            switch self {
+            case .created: return "created"
+            case .signed:  return "signed"
+            case .submitted: return "submitted"
+            case .included:  return "included"
+            case .errored:   return "errored"
+            }
+        }
+    }
 }
 
 ///
@@ -823,7 +866,7 @@ public class EthereumWalletManager {
         return findWallet (identifier: ethereumGetWalletHoldingToken (core, token.core))
     }
 
-    internal func findWallet (identifier: EthereumWalletId) -> EthereumWallet {
+    public func findWallet (identifier: EthereumWalletId) -> EthereumWallet {
         let token = ethereumWalletGetToken (core, identifier)
         return (nil == token
             ? EthereumWallet (ewm: self, wid: identifier)
@@ -1223,6 +1266,7 @@ public enum EthereumAmountUnit {
     static public let defaultUnitToken = EthereumAmountUnit.token (TOKEN_QUANTITY_TYPE_DECIMAL)
 
     static public let etherGWEI = EthereumAmountUnit.ether (GWEI);
+    static public let etherWEI  = EthereumAmountUnit.ether (WEI);
 
     static func defaultUnit (_ forEther : Bool) -> EthereumAmountUnit {
         return forEther ? defaultUnitEther : defaultUnitToken

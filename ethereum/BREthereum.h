@@ -739,6 +739,10 @@ extern uint64_t
 ethereumTransferGetBlockConfirmations(BREthereumEWM ewm,
                                       BREthereumTransferId tid);
 
+extern BREthereumTransferStatusType
+ethereumTransferGetStatus (BREthereumEWM ewm,
+                           BREthereumTransferId tid);
+
 extern BREthereumBoolean
 ethereumTransferIsConfirmed(BREthereumEWM ewm,
                             BREthereumTransferId tid);
@@ -746,6 +750,10 @@ ethereumTransferIsConfirmed(BREthereumEWM ewm,
 extern BREthereumBoolean
 ethereumTransferIsSubmitted(BREthereumEWM ewm,
                             BREthereumTransferId tid);
+
+extern char *
+ethereumTransferStatusGetError (BREthereumEWM ewm,
+                                BREthereumTransferId tid);
 
 extern BREthereumBoolean
 ethereumTransferHoldsToken(BREthereumEWM ewm,

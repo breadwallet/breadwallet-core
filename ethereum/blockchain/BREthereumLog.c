@@ -457,7 +457,7 @@ logRlpDecode (BRRlpItem item,
     if (RLP_TYPE_ARCHIVE == type) {
         log->identifier.transactionHash = hashRlpDecode(items[3], coder);
         log->identifier.transactionReceiptIndex = rlpDecodeUInt64(coder, items[4], 0);
-        log->status = transactionStatusRLPDecode(items[5], coder);
+        log->status = transactionStatusRLPDecode(items[5], NULL, coder);
     }
     return log;
 }

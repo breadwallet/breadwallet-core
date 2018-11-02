@@ -422,7 +422,7 @@ extern void
 bcsSendTransaction (BREthereumBCS bcs,
                     BREthereumTransaction transaction) {
     assert (BRD_ONLY != bcs->mode);
-    bcsSignalSubmitTransaction (bcs, transaction);
+    bcsSignalSubmitTransaction (bcs, transactionCopy (transaction));
 }
 
 extern void
@@ -469,7 +469,7 @@ bcsReportInterestingBlocks (BREthereumBCS bcs,
 
 extern void
 bcsHandleSubmitTransaction (BREthereumBCS bcs,
-                            BREthereumTransaction transaction) {
+                            OwnershipGiven BREthereumTransaction transaction) {
     // Signal a create/signed/submitted transaction.
     bcsSignalTransaction(bcs, transactionCopy (transaction));
 
@@ -1741,7 +1741,7 @@ bcsHandleTransactionStatus (BREthereumBCS bcs,
 
     switch (oldStatus.type) {
         case TRANSACTION_STATUS_INCLUDED:
-            // Case 'b': the transaction is already in the chain.  We are only interested in
+            // Case 'a': the transaction is already in the chain.  We are only interested in
             // updating the gasUsed status.  We can only update gasUsed if `status` is also
             // included and the block hashes match.
             if (TRANSACTION_STATUS_INCLUDED == status.type) {
@@ -1759,27 +1759,47 @@ bcsHandleTransactionStatus (BREthereumBCS bcs,
                 }
             }
             break;
-
+  
         case TRANSACTION_STATUS_ERRORED:
-            // We should never be here... just remove the transaction from pending
+            // Case 'b': the transaction has already errored.  Remove from pending.
+            // TODO: What if one node says 'error' and another says 'pending'?
             if (-1 != pendingIndex) array_rm(bcs->pendingTransactions, pendingIndex);
             pendingIndex = -1;
             break;
 
         default:
-            // Case 'a': the transaction is in any other state.  We'll keep looking unless
-            // the new state is ERRORRED.  The transaction might leave this state if the
-            // transaction is included in another block - which will be handled above.
-            if (TRANSACTION_STATUS_ERRORED == status.type) {
+            // Case 'c': the transaction is in any other state.
+
+            // Case 'c.1' If the newStatus is now INCLUDED or ERRORRED, we'll remove from
+            // pending and updata the transaction's status.
+            if (TRANSACTION_STATUS_ERRORED  == status.type ||
+                TRANSACTION_STATUS_INCLUDED == status.type) {
                 transactionSetStatus(transaction, status);
                 if (-1 != pendingIndex) array_rm(bcs->pendingTransactions, pendingIndex);
                 needSignal = 1;
                 pendingIndex = -1;
             }
+
+            // Case 'c.2': If the newStatus is UNKNONW and the oldStatus was not - then the
+            // transaction got unceremoniously dropped.
+            // https://github.com/ethereum/go-ethereum/issues/18013
+            else if (TRANSACTION_STATUS_UNKNOWN == status.type &&
+                     TRANSACTION_STATUS_UNKNOWN != oldStatus.type) {
+                transactionSetStatus (transaction, transactionStatusCreateErrored (TRANSACTION_ERROR_DROPPED,
+                                                                                   "unceremoniously dropped"));
+                if (-1 != pendingIndex) array_rm(bcs->pendingTransactions, pendingIndex);
+                needSignal = 1;
+                pendingIndex = -1;
+            }
+
+            // Case 'c.3': If the oldStatus and newStatus differ, update the transaction and
+            // report the 'progress'
+            else if (status.type != oldStatus.type) {
+                transactionSetStatus(transaction, status);
+                needSignal = 1;
+            }
             break;
     }
-
-    if (needSignal) bcsSignalTransaction(bcs, transaction);
 
     BREthereumHashString hashString;
     hashFillString(transactionHash, hashString);
@@ -1789,7 +1809,11 @@ bcsHandleTransactionStatus (BREthereumBCS bcs,
             status.type,
             -1 != pendingIndex,
             (TRANSACTION_STATUS_ERRORED == status.type ? ", Error: " : ""),
-            (TRANSACTION_STATUS_ERRORED == status.type ? status.u.errored.reason : ""));
+            (TRANSACTION_STATUS_ERRORED == status.type ? transactionGetErrorName(status.u.errored.type) : "")
+//            (TRANSACTION_STATUS_ERRORED == status.type ? status.u.errored.detail : ""));
+            );
+
+    if (needSignal) bcsSignalTransaction(bcs, transactionCopy(transaction));
 }
 
 static void
@@ -1881,9 +1905,16 @@ bcsHandleTransaction (BREthereumBCS bcs,
             }
             break;
 
-        default:
-            array_add (bcs->pendingTransactions, transactionGetHash(transaction));
+        default: {
+            BREthereumHash hash = transactionGetHash (transaction);
+            // This should not be needed - transaction should already be in `pending`.  Note:
+            // before checking for existence in pending, we did see the hash added multiple
+            // times - as it's state transition: UNKNONW, QUEUED, ...
+            int pendingIndex = bcsLookupPendingTransaction(bcs, hash);
+            if (-1 == pendingIndex)
+                array_add (bcs->pendingTransactions, hash);
             break;
+        }
     }
 
     // Announce as `UPDATED` (unless we announced ADDED)
