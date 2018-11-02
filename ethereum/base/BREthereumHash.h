@@ -139,6 +139,12 @@ extern void
 hashFillString (BREthereumHash hash,
                 BREthereumHashString string);
 
+//
+// Hash Array
+//
+extern BRArrayOf(BREthereumHash)
+hashesCopy (BRArrayOf(BREthereumHash) hashes);
+
 #ifdef __cplusplus
 }
 #endif

@@ -102,16 +102,6 @@ static inline int minimum (int a, int b) { return a < b ? a : b; }
 
 #define LES_PREFERRED_NODE_INDEX     0
 
-// For a request with a nodeIndex that is not LES_PREFERRED_NODE_INDEX, the intention is to send
-// the same message multiple times.  If the message was to be sent to 3 nodes, but only two are
-// connected, how many times should the message be sent and to what nodes?  If the following,
-// LES_WRAP_SEND_WHEN_MULTIPLE_INDEX, is '1' when we'll send 3 times, including multiple times.  If
-// the following is '0' then we'll multiple times up to the number of connected nodes.
-#define LES_WRAP_SEND_WHEN_MULTIPLE_INDEX    1
-
-// Submit a transaction multiple times.
-#define LES_SUBMIT_TRANSACTION_COUNT 3
-
 // Iterate over LES nodes...
 #define FOR_SET(type,var,set) \
   for (type var = BRSetIterate(set, NULL); \
@@ -1208,7 +1198,7 @@ lesThread (BREthereumLES les) {
             // upcoming `nodeConnect()` needs a new `status` - but how do we update the status as
             // only BCS knows where we are?
 
-            if (array_count(les->activeNodesByRoute[NODE_ROUTE_TCP]) < 5 &&
+            if (array_count(les->activeNodesByRoute[NODE_ROUTE_TCP]) < LES_ACTIVE_NODE_COUNT &&
                 array_count(les->availableNodes) > 0) {
                 BREthereumNode node = les->availableNodes[0];
 

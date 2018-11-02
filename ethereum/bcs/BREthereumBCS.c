@@ -29,7 +29,7 @@
 #include "BRSet.h"
 #include "BREthereumBCSPrivate.h"
 
-#define BCS_TRANSACTION_CHECK_STATUS_SECONDS   (3)
+#define BCS_TRANSACTION_CHECK_STATUS_SECONDS   (7)
 
 #define BCS_BLOCKS_INITIAL_CAPACITY (1024)
 #define BCS_ORPHAN_BLOCKS_INITIAL_CAPACITY (10)
@@ -2105,7 +2105,7 @@ bcsHandleProvision (BREthereumBCS bcs,
                     bcsHandleTransactionStatuses (bcs, node, hashes, statuses);
                     break;
                 }
-                    
+
                 case PROVISION_SUBMIT_TRANSACTION: {
                     BREthereumTransaction transaction;
                     BREthereumTransactionStatus status;
