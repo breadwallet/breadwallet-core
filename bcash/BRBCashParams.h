@@ -25,9 +25,9 @@
 #ifndef BRBCashParams_h
 #define BRBCashParams_h
 
-#include "BRChainParams.h"
-#include "BRPeer.h"
-#include "BRInt.h"
+#include "../BRChainParams.h"
+#include "../BRPeer.h"
+#include "../BRInt.h"
 
 static const char *BRBCashDNSSeeds[] = {
     "seed-abc.breadwallet.com.", "seed.bitcoinabc.org.", "seed-abc.bitcoinforks.org.", "seed.bitcoinunlimited.info.",

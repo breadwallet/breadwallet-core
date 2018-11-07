@@ -121,6 +121,9 @@ const BRChainParams *BRPeerManagerChainParams (BRPeerManager *manager);
 // frees memory allocated for manager (call BRPeerManagerDisconnect() first if connected)
 void BRPeerManagerFree(BRPeerManager *manager);
 
+const BRChainParams *bitcoinParams (int mainnet);
+const BRChainParams *bitcashParams (int mainnet);
+
 #ifdef __cplusplus
 }
 #endif

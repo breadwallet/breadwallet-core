@@ -187,7 +187,7 @@ struct BREthereumAccountRecord {
     BREthereumAddressDetail primaryAddress;
 };
 
-static BREthereumAccount
+extern BREthereumAccount
 createAccountWithBIP32Seed (UInt512 seed) {
     BREthereumAccount account = (BREthereumAccount) calloc (1, sizeof (struct BREthereumAccountRecord));
     

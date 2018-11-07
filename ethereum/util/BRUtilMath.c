@@ -281,4 +281,11 @@ compareUInt256 (UInt256 x, UInt256 y) {
                : -1));
 }
 
+extern uint64_t
+coerceUInt64 (UInt256 value, int *overflow) {
+    *overflow = (0 != value.u64[3] ||
+                 0 != value.u64[2] ||
+                 0 != value.u64[1]);
+    return *overflow ? 0 : value.u64[0];
+}
 

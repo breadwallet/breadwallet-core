@@ -30,8 +30,8 @@
 extern "C" {
 #endif
 
-#include "BRKey.h"
-#include "BRInt.h"
+#include "../../BRKey.h"
+#include "../../BRInt.h"
 #include "../base/BREthereumBase.h"
 
 //
@@ -67,6 +67,9 @@ createAccount(const char *paperKey);
  */
 extern BREthereumAccount
 createAccountWithPublicKey (const BRKey publicKey);
+
+extern BREthereumAccount
+createAccountWithBIP32Seed (UInt512 seed);
 
 /**
  * Create a new account using paperKey and the provided wordList

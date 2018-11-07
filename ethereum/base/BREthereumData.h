@@ -26,8 +26,8 @@
 #ifndef BR_Ethereum_Data_H
 #define BR_Ethereum_Data_H
 
-#include "BRArray.h"
-#include "BRSet.h"
+#include "../../BRArray.h"
+#include "../../BRSet.h"
 
 #if !defined (BRArrayOf)
 #define BRArrayOf(type)    type*
