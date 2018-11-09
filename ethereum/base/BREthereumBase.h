@@ -30,8 +30,8 @@
 extern "C" {
 #endif
 
-#include "BRArray.h"
-#include "BRSet.h"
+#include "../../BRArray.h"
+#include "../../BRSet.h"
 
 #define BRArrayOf(type)    type*
 #define BRSetOf(type)      BRSet*
@@ -73,7 +73,7 @@ BRSetFreeAll (BRSet *set, BRSetItemFree itemFree) {
 #include "BREthereumSignature.h"
 
 typedef uint64_t BREthereumTimestamp;  // A Unix time
-#define ETHEREUM_TIMESTAMP_UNKNOWN    (0)
+#define ETHEREUM_TIMESTAMP_UNKNOWN    ((uint64_t) 0)
 
 typedef enum {
     RLP_TYPE_NETWORK,

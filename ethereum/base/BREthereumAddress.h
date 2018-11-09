@@ -27,7 +27,7 @@
 #define BR_Ethereum_Address_H
 
 #include <stdlib.h>
-#include "BRKey.h"
+#include "../../BRKey.h"
 #include "../rlp/BRRlp.h"
 #include "BREthereumLogic.h"
 #include "BREthereumHash.h"

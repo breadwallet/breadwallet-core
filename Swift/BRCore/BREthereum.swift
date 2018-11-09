@@ -248,7 +248,7 @@ public struct EthereumBlock : EthereumReference {
 ///
 public struct EthereumTransfer : EthereumReferenceWithDefaultUnit {
     public weak var ewm : EthereumWalletManager?
-    public let identifier : EthereumWalletId
+    public let identifier : EthereumTransferId
     public let unit : EthereumAmountUnit
 
     internal init (ewm : EthereumWalletManager, identifier : EthereumTransferId) {
@@ -890,16 +890,16 @@ public class EthereumWalletManager {
                              logs: Dictionary<String,String>) {
         let anyClient = AnyEthereumClient (base: client)
         var core : BREthereumEWM
-
+        
         switch key {
         case let .paperKey(key):
-            core = ethereumCreate (network.core, key, timestamp,
-                                   mode.core,
-                                   EthereumWalletManager.createCoreClient(client: client),
-                                   EthereumWalletManager.asPairs (peers),
-                                   EthereumWalletManager.asPairs (blocks),
-                                   EthereumWalletManager.asPairs (transactions),
-                                   EthereumWalletManager.asPairs (logs))
+            core = ethereumCreateWithPaperKey (network.core, key, timestamp,
+                                               mode.core,
+                                               EthereumWalletManager.createCoreClient(client: client),
+                                               EthereumWalletManager.asPairs (peers),
+                                               EthereumWalletManager.asPairs (blocks),
+                                               EthereumWalletManager.asPairs (transactions),
+                                               EthereumWalletManager.asPairs (logs))
         case let .publicKey(key):
             core = ethereumCreateWithPublicKey (network.core, key, timestamp,
                                                 mode.core,
@@ -909,7 +909,7 @@ public class EthereumWalletManager {
                                                 EthereumWalletManager.asPairs (transactions),
                                                 EthereumWalletManager.asPairs (logs))
         }
-
+        
         self.init (core: core,
                    client: anyClient,
                    network: network)

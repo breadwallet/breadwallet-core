@@ -37,7 +37,7 @@
 //
 extern BREthereumEWM
 ethereumCreate(BREthereumNetwork network,
-               const char *paperKey,
+               BREthereumAccount account,
                BREthereumTimestamp paperKeyTimestamp,
                BREthereumMode mode,
                BREthereumClient client,
@@ -45,7 +45,7 @@ ethereumCreate(BREthereumNetwork network,
                BRSetOf(BREthereumHashDataPair) blocks,
                BRSetOf(BREthereumHashDataPair) transactions,
                BRSetOf(BREthereumHashDataPair) logs) {
-    return createEWM (network, createAccount(paperKey), paperKeyTimestamp,
+    return createEWM (network, account, paperKeyTimestamp,
                       mode,
                       client,
                       peers,
@@ -65,6 +65,25 @@ ethereumCreateWithPublicKey(BREthereumNetwork network,
                             BRSetOf(BREthereumHashDataPair) transactions,
                             BRSetOf(BREthereumHashDataPair) logs) {
     return createEWM (network, createAccountWithPublicKey (publicKey), publicKeyTimestamp,
+                      mode,
+                      client,
+                      peers,
+                      blocks,
+                      transactions,
+                      logs);
+}
+
+extern BREthereumEWM
+ethereumCreateWithPaperKey (BREthereumNetwork network,
+                            const char *paperKey,
+                            BREthereumTimestamp paperKeyTimestamp,
+                            BREthereumMode mode,
+                            BREthereumClient client,
+                            BRSetOf(BREthereumHashDataPair) peers,
+                            BRSetOf(BREthereumHashDataPair) blocks,
+                            BRSetOf(BREthereumHashDataPair) transactions,
+                            BRSetOf(BREthereumHashDataPair) logs) {
+    return createEWM (network, createAccount(paperKey), paperKeyTimestamp,
                       mode,
                       client,
                       peers,
@@ -382,11 +401,25 @@ ethereumTransferGetRecvAddress(BREthereumEWM ewm,
     return addressGetEncodedString(transferGetTargetAddress(transaction), 1);
 }
 
+extern BREthereumAddress
+ethereumTransferGetTarget (BREthereumEWM ewm,
+                           BREthereumTransferId tid) {
+    BREthereumTransfer transfer = ewmLookupTransfer(ewm, tid);
+    return transferGetTargetAddress(transfer);
+}
+
 extern char * // sender, source
 ethereumTransferGetSendAddress(BREthereumEWM ewm,
                                   BREthereumTransferId tid) {
     BREthereumTransfer transaction = ewmLookupTransfer(ewm, tid);
     return addressGetEncodedString(transferGetSourceAddress(transaction), 1);
+}
+
+extern BREthereumAddress
+ethereumTransferGetSource (BREthereumEWM ewm,
+                           BREthereumTransferId tid) {
+    BREthereumTransfer transfer = ewmLookupTransfer(ewm, tid);
+    return transferGetSourceAddress(transfer);
 }
 
 extern char *
@@ -467,6 +500,16 @@ ethereumTransferGetGasUsed(BREthereumEWM ewm,
             : 0);
 }
 
+extern uint64_t
+ethereumTransferGetTransactionIndex(BREthereumEWM ewm,
+                                    BREthereumTransferId tid) {
+    BREthereumTransfer transfer = ewmLookupTransfer(ewm, tid);
+    uint64_t transactionIndex;
+    return (transferExtractStatusIncluded(transfer, NULL, NULL, NULL, &transactionIndex)
+            ? transactionIndex
+            : 0);
+}
+
 extern BREthereumHash
 ethereumTransferGetBlockHash(BREthereumEWM ewm,
                                 BREthereumTransferId tid) {
@@ -506,14 +549,14 @@ ethereumTransferGetStatus (BREthereumEWM ewm,
 
 extern BREthereumBoolean
 ethereumTransferIsConfirmed(BREthereumEWM ewm,
-                               BREthereumTransferId tid) {
+                            BREthereumTransferId tid) {
     BREthereumTransfer transaction = ewmLookupTransfer(ewm, tid);
     return transferHasStatusType (transaction, TRANSFER_STATUS_INCLUDED);
 }
 
 extern BREthereumBoolean
 ethereumTransferIsSubmitted(BREthereumEWM ewm,
-                               BREthereumTransferId tid) {
+                            BREthereumTransferId tid) {
     BREthereumTransfer transaction = ewmLookupTransfer(ewm, tid);
     return AS_ETHEREUM_BOOLEAN(ETHEREUM_BOOLEAN_IS_TRUE(transferHasStatusType(transaction, TRANSFER_STATUS_SUBMITTED)) ||
                                ETHEREUM_BOOLEAN_IS_TRUE(transferHasStatusTypeOrTwo(transaction,

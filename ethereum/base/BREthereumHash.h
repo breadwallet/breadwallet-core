@@ -28,8 +28,8 @@
 
 #include <stdlib.h>
 #include <memory.h>
-#include "BRInt.h"
-#include "BRArray.h"
+#include "../../BRInt.h"
+#include "../../BRArray.h"
 #if ! defined (BRArrayOf)
 #define BRArrayOf( type )     type*
 #endif

@@ -27,9 +27,10 @@
 #define BR_Ethereum_H
 
 #include <stdint.h>
-#include "BRKey.h"
+#include "../BRKey.h"
 #include "base/BREthereumBase.h"
 #include "ewm/BREthereumAmount.h"
+#include "ewm/BREthereumAccount.h"
 #include "blockchain/BREthereumNetwork.h"
 
 #ifdef __cplusplus
@@ -369,15 +370,15 @@ installSharedWordList (const char *wordList[], int wordListLength);
  * this EWM's account.
  */
 extern BREthereumEWM
-ethereumCreate(BREthereumNetwork network,
-               const char *paperKey,
-               BREthereumTimestamp paperKeyTimestamp,
-               BREthereumMode mode,
-               BREthereumClient client,
-               BRSetOf(BREthereumPersistData) peers,
-               BRSetOf(BREthereumPersistData) blocks,
-               BRSetOf(BREthereumPersistData) transactions,
-               BRSetOf(BREthereumPersistData) logs);
+ethereumCreateWithPaperKey (BREthereumNetwork network,
+                            const char *paperKey,
+                            BREthereumTimestamp paperKeyTimestamp,
+                            BREthereumMode mode,
+                            BREthereumClient client,
+                            BRSetOf(BREthereumPersistData) peers,
+                            BRSetOf(BREthereumPersistData) blocks,
+                            BRSetOf(BREthereumPersistData) transactions,
+                            BRSetOf(BREthereumPersistData) logs);
 
 /**
  * Create a EWM managing the account associated with the publicKey.  Public key is a
@@ -385,15 +386,26 @@ ethereumCreate(BREthereumNetwork network,
  * ethereumGetAccountPrimaryAddressPublicKey().
  */
 extern BREthereumEWM
-ethereumCreateWithPublicKey(BREthereumNetwork network,
-                            const BRKey publicKey,
-                            BREthereumTimestamp publicKeyTimestamp,
-                            BREthereumMode syncMode,
-                            BREthereumClient client,
-                            BRSetOf(BREthereumPersistData) peers,
-                            BRSetOf(BREthereumPersistData) blocks,
-                            BRSetOf(BREthereumPersistData) transactions,
-                            BRSetOf(BREthereumPersistData) logs);
+ethereumCreateWithPublicKey (BREthereumNetwork network,
+                             const BRKey publicKey,
+                             BREthereumTimestamp publicKeyTimestamp,
+                             BREthereumMode syncMode,
+                             BREthereumClient client,
+                             BRSetOf(BREthereumPersistData) peers,
+                             BRSetOf(BREthereumPersistData) blocks,
+                             BRSetOf(BREthereumPersistData) transactions,
+                             BRSetOf(BREthereumPersistData) logs);
+
+extern BREthereumEWM
+ethereumCreate(BREthereumNetwork network,
+               BREthereumAccount account,
+               BREthereumTimestamp paperKeyTimestamp,
+               BREthereumMode mode,
+               BREthereumClient client,
+               BRSetOf(BREthereumHashDataPair) peers,
+               BRSetOf(BREthereumHashDataPair) blocks,
+               BRSetOf(BREthereumHashDataPair) transactions,
+               BRSetOf(BREthereumHashDataPair) logs);
 
 /**
  * Create an Ethereum Account using `paperKey` for BIP-32 generation of keys.  The same paper key
@@ -711,6 +723,10 @@ extern char * // receiver, target
 ethereumTransferGetRecvAddress(BREthereumEWM ewm,
                                BREthereumTransferId tid);
 
+extern BREthereumAddress
+ethereumTransferGetTarget (BREthereumEWM ewm,
+                           BREthereumTransferId tid);
+
 extern char * // sender, source
 ethereumTransferGetSendAddress(BREthereumEWM ewm,
                                BREthereumTransferId tid);
@@ -718,6 +734,10 @@ ethereumTransferGetSendAddress(BREthereumEWM ewm,
 extern char *
 ethereumTransferGetHash(BREthereumEWM ewm,
                         BREthereumTransferId tid);
+
+extern BREthereumAddress
+ethereumTransferGetSource (BREthereumEWM ewm,
+                           BREthereumTransferId tid);
 
 extern char *
 ethereumTransferGetAmountEther(BREthereumEWM ewm,
@@ -753,6 +773,10 @@ ethereumTransferGetGasUsed(BREthereumEWM ewm,
 extern uint64_t
 ethereumTransferGetNonce(BREthereumEWM ewm,
                          BREthereumTransferId transaction);
+
+extern uint64_t
+ethereumTransferGetTransactionIndex(BREthereumEWM ewm,
+                                    BREthereumTransferId tid);
 
 extern BREthereumHash
 ethereumTransferGetBlockHash(BREthereumEWM ewm,
@@ -1011,6 +1035,11 @@ ethereumHashDataPairGetHash (BREthereumHashDataPair pair);
 
 extern char *
 ethereumHashDataPairGetData (BREthereumHashDataPair pair);
+
+static inline UInt512
+zeroUInt512 (void) {
+    return UINT512_ZERO;
+}
 
 #ifdef __cplusplus
 }
