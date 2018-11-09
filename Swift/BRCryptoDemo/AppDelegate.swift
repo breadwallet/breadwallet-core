@@ -35,7 +35,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
         navigationController.topViewController!.navigationItem.leftBarButtonItem = splitViewController.displayModeButtonItem
         splitViewController.delegate = self
 
-        let account = Account (phrase: "boring head harsh green empty clip fatal typical found crane dinner timber")
+        let paperKey = (CommandLine.argc > 1
+            ? CommandLine.arguments[1]
+            : "0xa9de3dbd7d561e67527bc1ecb025c59d53b9f7ef");
+        //                                         paperKey: "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62")
+        //                                         paperKey: "0x8975dbc1b8f25ec994815626d070899dda896511")
+        //                                         paperKey: "0xb302B06FDB1348915599D21BD54A06832637E5E8")
+
+        let account = Account (phrase: paperKey)
 
         self.listener = CoreXDemoListener ()
 
