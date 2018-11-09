@@ -726,6 +726,95 @@ ewmWalletCreateTransferWithFeeBasis (BREthereumEWM ewm,
     return tid;
 }
 
+extern BREthereumTransferId // status, error
+ewmWalletCreateTransferToCancel(BREthereumEWM ewm,
+                                BREthereumWalletId wid,
+                                BREthereumTransferId tid) {
+    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
+    BREthereumTransfer oldTransfer = ewmLookupTransfer(ewm, tid);
+    BREthereumTransaction oldTransaction = transferGetOriginatingTransaction(oldTransfer);
+
+    assert (NULL != oldTransaction);
+
+    int overflow;
+    BREthereumEther oldGasPrice = transactionGetGasPrice(oldTransaction).etherPerGas;
+    BREthereumEther newGasPrice = etherAdd (oldGasPrice, oldGasPrice, &overflow);
+
+    // Create a new transaction with: a) targetAddress to self (sourceAddress), b) 0 ETH, c)
+    // gasPrice increased (to replacement value).
+    BREthereumTransaction transaction =
+    transactionCreate (transactionGetSourceAddress(oldTransaction),
+                       transactionGetSourceAddress(oldTransaction),
+                       etherCreateZero(),
+                       gasPriceCreate(newGasPrice),
+                       transactionGetGasLimit(oldTransaction),
+                       strdup (transactionGetData(oldTransaction)),
+                       transactionGetNonce(oldTransaction));
+
+    // Delete transfer??  Update transfer??
+    BREthereumTransfer transfer = transferCreateWithTransactionOriginating (transaction);
+    walletHandleTransfer(wallet, transfer);
+    return ewmInsertTransfer(ewm, transfer);
+}
+
+extern BREthereumTransferId // status, error
+ewmWalletCreateTransferToReplace (BREthereumEWM ewm,
+                                  BREthereumWalletId wid,
+                                  BREthereumTransferId tid,
+                                  // ...
+                                  BREthereumBoolean updateGasPrice,
+                                  BREthereumBoolean updateGasLimit,
+                                  BREthereumBoolean updateNonce) {
+    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
+    BREthereumTransfer oldTransfer = ewmLookupTransfer(ewm, tid);
+    BREthereumTransaction oldTransaction = transferGetOriginatingTransaction(oldTransfer);
+
+    assert (NULL != oldTransaction);
+
+    BREthereumAccount account =  ewmGetAccount(ewm);
+    BREthereumAddress address = transactionGetSourceAddress(oldTransaction);
+
+    int overflow = 0;
+
+    // The old nonce
+    uint64_t nonce = transactionGetNonce(oldTransaction);
+    if (ETHEREUM_BOOLEAN_IS_TRUE(updateNonce)) {     // The old nonce is known to be low.
+
+        // The current nonce
+        uint64_t curNonce = accountGetAddressNonce(account, address);
+
+        assert (nonce <= curNonce);
+
+        nonce = (nonce == curNonce
+                 ? accountGetThenIncrementAddressNonce (account, address)
+                 : curNonce);
+    }
+
+    BREthereumGasPrice gasPrice = transactionGetGasPrice(oldTransaction);
+    if (ETHEREUM_BOOLEAN_IS_TRUE (updateGasPrice)) {
+        gasPrice = gasPriceCreate (etherAdd (gasPrice.etherPerGas, gasPrice.etherPerGas, &overflow)); // double
+        assert (0 == overflow);
+    }
+
+    BREthereumGas gasLimit = transactionGetGasLimit (oldTransaction);
+    if (ETHEREUM_BOOLEAN_IS_TRUE (updateGasLimit))
+        gasLimit = gasCreate (gasLimit.amountOfGas + gasLimit.amountOfGas); // double
+
+    BREthereumTransaction transaction =
+    transactionCreate (transactionGetSourceAddress(oldTransaction),
+                       transactionGetTargetAddress(oldTransaction),
+                       transactionGetAmount(oldTransaction),
+                       gasPrice,
+                       gasLimit,
+                       strdup (transactionGetData(oldTransaction)),
+                       nonce);
+
+    // Delete transfer??  Update transfer??
+    BREthereumTransfer transfer = transferCreateWithTransactionOriginating (transaction);
+    walletHandleTransfer(wallet, transfer);
+    return ewmInsertTransfer(ewm, transfer);
+}
+
 
 static void
 ewmWalletSignTransferAnnounce (BREthereumEWM ewm,

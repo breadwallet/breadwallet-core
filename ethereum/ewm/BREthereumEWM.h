@@ -149,6 +149,8 @@ ewmWalletCreateTransferToReplace(BREthereumEWM ewm,
                                  BREthereumWalletId wid,
                                  BREthereumTransferId tid,
                                  // ...
+                                 BREthereumBoolean updateGasPrice,
+                                 BREthereumBoolean updateGasLimit,
                                  BREthereumBoolean updateNonce);
 
 

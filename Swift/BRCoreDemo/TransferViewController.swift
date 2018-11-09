@@ -79,54 +79,76 @@ class TransferViewController: UIViewController {
     @IBAction func doResubmit(_ sender: UIButton) {
         NSLog ("Want to Resubmit")
         if let error = transfer.stateError {
+            var alertMessage: String = "Okay to resubmit?"
+            var alertAction: UIAlertAction?
+            var alert: UIAlertController!
+
             switch error {
             case .nonceTooLow:
-                let alert = UIAlertController (title: "Resubmit",
-                                               message: "Okay to update nonce and resubmit?",
-                                               preferredStyle: UIAlertController.Style.alert)
-                alert.addAction (UIAlertAction (title: "Yes", style: UIAlertAction.Style.default) { (action) in
+                alertMessage = "Okay to update nonce and resubmit?"
+                alertAction = UIAlertAction (title: "Yes", style: UIAlertAction.Style.default) { (action) in
                     let replacement = self.wallet.createTransferToReplace (transfer: self.transfer,
                                                                            updateNonce: true)
-
                     self.wallet.sign(transfer: replacement,
                                      paperKey: UIApplication.sharedClient.paperKey);
-
                     self.wallet.submit(transfer: replacement);
-
                     alert.dismiss(animated: true) {}
-               })
+                }
 
-                alert.addAction(UIAlertAction (title: "No", style: UIAlertAction.Style.cancel) { (action) in
-                })
+            case .gasPriceTooLow:
+                alertMessage = "Okay to double gasPrice (fee doubles) and resubmit?"
+                alertAction = UIAlertAction (title: "Yes", style: UIAlertAction.Style.default) { (action) in
+                    let replacement = self.wallet.createTransferToReplace (transfer: self.transfer,
+                                                                           updateGasPrice: true)
+                    self.wallet.sign(transfer: replacement,
+                                     paperKey: UIApplication.sharedClient.paperKey);
+                    self.wallet.submit(transfer: replacement);
+                    alert.dismiss(animated: true) {}
+                }
 
-                self.present (alert, animated: true) {}
-                break;
+            case .gasTooLow:
+                alertMessage = "Okay to double gasLimit (fee doubles) and resubmit?"
+                alertAction = UIAlertAction (title: "Yes", style: UIAlertAction.Style.default) { (action) in
+                    let replacement = self.wallet.createTransferToReplace (transfer: self.transfer,
+                                                                           updateGasLimit: true)
+                    self.wallet.sign(transfer: replacement,
+                                     paperKey: UIApplication.sharedClient.paperKey);
+                    self.wallet.submit(transfer: replacement);
+                    alert.dismiss(animated: true) {}
+                }
+
 
             case .invalidSignature,
-                 .gasPriceTooLow,
-                 .gasTooLow,
                  .replacementUnderPriced:
-                let alert = UIAlertController (title: "Resubmit",
-                                               message: "Unsupported error",
-                                               preferredStyle: UIAlertController.Style.alert)
-                alert.addAction (UIAlertAction (title: "Okay", style: UIAlertAction.Style.default) { (action) in
+                alertMessage = "Unsupported error";
+                alertAction = UIAlertAction (title: "Okay", style: UIAlertAction.Style.default) { (action) in
                     alert.dismiss(animated: true) {}
-                })
-
-                self.present (alert, animated: true) {}
-                break;
+                }
 
             case .balanceTooLow,  // money arrived?
                  .dropped,
                  .unknown:
+                alertMessage = "Okay to double fee and resubmit?"
+                alertAction = UIAlertAction (title: "Yes", style: UIAlertAction.Style.default) { (action) in
+                    let replacement = self.wallet.createTransferToReplace (transfer: self.transfer,
+                                                                           updateGasPrice: true)
+                    self.wallet.sign(transfer: replacement,
+                                     paperKey: UIApplication.sharedClient.paperKey);
+                    self.wallet.submit(transfer: replacement);
+                    alert.dismiss(animated: true) {}
+                }
+            }
 
+            if let actionOnOkay = alertAction {
+                alert = UIAlertController (title: "Resubmit",
+                                           message: alertMessage,
+                                           preferredStyle: UIAlertController.Style.alert)
+                alert.addAction (actionOnOkay)
+                alert.addAction(UIAlertAction (title: "No", style: UIAlertAction.Style.cancel))
 
-                // simply resubmit
-                self.wallet.submit(transfer: transfer);
+                self.present (alert, animated: true) {}
             }
         }
-//        wallet.submitAgain (transfer: transfer,
-//                            paperKey: UIApplication.sharedClient.paperKey);
     }
 
     /*
@@ -148,14 +170,10 @@ class TransferViewController: UIViewController {
 
             self.wallet.submit(transfer: replacement);
 
-//            self.wallet.submitCancel (transfer: self.transfer,
-//                                      paperKey: UIApplication.sharedClient.paperKey);
-
             self.dismiss(animated: true) {}
         })
 
-        alert.addAction(UIAlertAction (title: "No", style: UIAlertAction.Style.cancel) { (action) in
-        })
+        alert.addAction(UIAlertAction (title: "No", style: UIAlertAction.Style.cancel))
         self.present(alert, animated: true) {}
     }
 

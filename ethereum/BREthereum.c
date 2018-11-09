@@ -275,10 +275,10 @@ ethereumWalletCreateTransferToReplace (BREthereumEWM ewm,
                                        BREthereumTransferId tid,
 //                                       const char *recvAddress,
 //                                       BREthereumAmount amount,
-//                                       BREthereumGasPrice gasPrice,
-//                                       BREthereumGas gasLimit,
+                                       BREthereumBoolean updateGasPrice,
+                                       BREthereumBoolean updateGasLimit,
                                        BREthereumBoolean updateNonce) {
-    return ewmWalletCreateTransferToReplace (ewm, wid, tid, updateNonce);
+    return ewmWalletCreateTransferToReplace (ewm, wid, tid, updateGasPrice, updateGasLimit, updateNonce);
 }
 
 extern void // status, error

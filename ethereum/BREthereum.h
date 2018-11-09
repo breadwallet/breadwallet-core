@@ -623,8 +623,8 @@ ethereumWalletCreateTransferToReplace (BREthereumEWM ewm,
                                        BREthereumTransferId tid,
 //                                       const char *recvAddress,
 //                                       BREthereumAmount amount,
-//                                       BREthereumGasPrice gasPrice,
-//                                       BREthereumGas gasLimit,
+                                       BREthereumBoolean updateGasPrice,
+                                       BREthereumBoolean updateGasLimit,
                                        BREthereumBoolean updateNonce);
 
 /**

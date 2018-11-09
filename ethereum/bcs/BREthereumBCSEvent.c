@@ -152,7 +152,7 @@ typedef struct {
 
 static void
 bcsHandleProvisionDispatcher (BREventHandler ignore,
-                                BREthereumHandleProvisionEvent *event) {
+                              BREthereumHandleProvisionEvent *event) {
     bcsHandleProvision(event->bcs, event->les, event->node, event->result);
 }
 

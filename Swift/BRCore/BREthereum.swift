@@ -559,17 +559,18 @@ public struct EthereumWallet : EthereumReferenceWithDefaultUnit, Hashable {
                                          updateNonce: Bool = false,
                                          updateRecvAddress: String? = nil,
                                          updateAmount: EthereumAmount? = nil,
-                                         updateGasPrice: EthereumAmount? = nil,
-                                         updateGasLimit: UInt64? = nil) -> EthereumTransfer {
+                                         updateGasPrice: Bool = false,
+                                         updateGasLimit: Bool = false) -> EthereumTransfer {
 
-        let tid = ethereumWalletCreateTransferToReplace (self.ewm!.core,
-                                                         self.identifier,
-                                                         transfer.identifier,
-//                                                         updateRecvAddress ?? transfer.targetAddress,
-//                                                         updateAmount ?? transfer.amount,
-//                                                         updateGasPrice ?? transfer.gasPrice,
-//                                                         updateGasLimit ?? transfer.gasLimit,
-                                                         (updateNonce ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE))
+        let tid = ethereumWalletCreateTransferToReplace (
+            self.ewm!.core,
+            self.identifier,
+            transfer.identifier,
+            //   updateRecvAddress ?? transfer.targetAddress,
+            //   updateAmount ?? transfer.amount,
+            (updateGasPrice ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE),
+            (updateGasLimit ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE),
+            (updateNonce ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE))
         return EthereumTransfer (ewm: self.ewm!, identifier: tid)
     }
 
