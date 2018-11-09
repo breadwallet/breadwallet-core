@@ -501,7 +501,7 @@
 		3C9025F82106511700143B69 /* testEwm.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testEwm.c; sourceTree = "<group>"; };
 		3C9025FA2106613600143B69 /* testContract.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testContract.c; sourceTree = "<group>"; };
 		3C9025FC2108DDAE00143B69 /* BREthereumBCSSync.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumBCSSync.c; sourceTree = "<group>"; };
-		3C902602210A30F100143B69 /* CoreDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CoreDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3C902602210A30F100143B69 /* BRCoreDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BRCoreDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3C902604210A30F100143B69 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		3C902606210A30F100143B69 /* SummaryViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummaryViewController.swift; sourceTree = "<group>"; };
 		3C902608210A30F100143B69 /* WalletViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletViewController.swift; sourceTree = "<group>"; };
@@ -920,7 +920,7 @@
 				3CAB60A620AF8C8500810CE4 /* CoreTests.xctest */,
 				3CAB60EF20AF936200810CE4 /* BRCore.framework */,
 				3CAB60F720AF936200810CE4 /* BRCoreTests.xctest */,
-				3C902602210A30F100143B69 /* CoreDemo.app */,
+				3C902602210A30F100143B69 /* BRCoreDemo.app */,
 				3C6B172C2131CB5B003C313B /* CoreExplore */,
 				3C6B17792131CE12003C313B /* libCoreMacOS.a */,
 				3CEE8EEA216FAFF7008540C8 /* CorePerf */,
@@ -1207,9 +1207,9 @@
 			productReference = 3C6B17792131CE12003C313B /* libCoreMacOS.a */;
 			productType = "com.apple.product-type.library.static";
 		};
-		3C902601210A30F100143B69 /* CoreDemo */ = {
+		3C902601210A30F100143B69 /* BRCoreDemo */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 3C902615210A30F400143B69 /* Build configuration list for PBXNativeTarget "CoreDemo" */;
+			buildConfigurationList = 3C902615210A30F400143B69 /* Build configuration list for PBXNativeTarget "BRCoreDemo" */;
 			buildPhases = (
 				3C9025FE210A30F100143B69 /* Sources */,
 				3C9025FF210A30F100143B69 /* Frameworks */,
@@ -1222,9 +1222,9 @@
 				3C902617210A312500143B69 /* PBXTargetDependency */,
 				3C902619210A312500143B69 /* PBXTargetDependency */,
 			);
-			name = CoreDemo;
+			name = BRCoreDemo;
 			productName = CoreDemo;
-			productReference = 3C902602210A30F100143B69 /* CoreDemo.app */;
+			productReference = 3C902602210A30F100143B69 /* BRCoreDemo.app */;
 			productType = "com.apple.product-type.application";
 		};
 		3CAB609A20AF8C5D00810CE4 /* Core */ = {
@@ -1382,7 +1382,7 @@
 				3C18F8AE21950746006F738F /* BRCryptoDemo */,
 				3CAB60EE20AF936200810CE4 /* BRCore */,
 				3CAB60F620AF936200810CE4 /* BRCoreTests */,
-				3C902601210A30F100143B69 /* CoreDemo */,
+				3C902601210A30F100143B69 /* BRCoreDemo */,
 				3CAB609A20AF8C5D00810CE4 /* Core */,
 				3C6B17362131CE12003C313B /* CoreMacOS */,
 				3CAB60A520AF8C8500810CE4 /* CoreTests */,
@@ -2151,13 +2151,13 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
-				INFOPLIST_FILE = CoreDemo/Info.plist;
+				INFOPLIST_FILE = BRCoreDemo/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.CoreDemo;
+				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.BRCoreDemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 4.2;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -2171,13 +2171,13 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
-				INFOPLIST_FILE = CoreDemo/Info.plist;
+				INFOPLIST_FILE = BRCoreDemo/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.CoreDemo;
+				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.BRCoreDemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 4.2;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -2455,7 +2455,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		3C902615210A30F400143B69 /* Build configuration list for PBXNativeTarget "CoreDemo" */ = {
+		3C902615210A30F400143B69 /* Build configuration list for PBXNativeTarget "BRCoreDemo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				3C902613210A30F400143B69 /* Debug */,
