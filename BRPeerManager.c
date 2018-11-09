@@ -39,6 +39,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+#include "bcash/BRBCashParams.h"
+
 #define PROTOCOL_TIMEOUT      20.0
 #define MAX_CONNECT_FAILURES  20 // notify user of network problems after this many connect failures in a row
 #define PEER_FLAG_SYNCED      0x01
@@ -2007,3 +2009,12 @@ void BRPeerManagerFree(BRPeerManager *manager)
     pthread_mutex_destroy(&manager->lock);
     free(manager);
 }
+
+const BRChainParams *bitcoinParams (int mainnet) {
+    return mainnet ? &BRMainNetParams : &BRTestNetParams;
+}
+
+const BRChainParams *bitcashParams (int mainnet) {
+    return mainnet ? &BRBCashParams : &BRBCashTestNetParams;
+}
+
