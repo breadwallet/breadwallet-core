@@ -191,20 +191,17 @@ struct BREthereumBCSStruct {
     BRArrayOf(BREthereumHash) pendingLogs;
 
     /**
-     * A BRSet of transactions for account.
-     *
-     * TODO: Clarify what transactions are here and specifically can a transaction ever be deleted.
-     * Are included, errored and pending transactions in this set?
-     *
-     * A transacion is deleted if a) we didn't submit it and b) it appeared in a block that is
-     * an orphan?
+     * A BRSet of transactions for account.  This includes any and all transactions that we've
+     * ever identified/created for account no matter the transaction's status.  Specifically,
+     * transactions that have ERRORRED, transactions that have been replaced, transactions that
+     * have been created but never signed nor submitted - they are all on the list.  The User of
+     * this set is responsible for filtering the transactions as needed.
      */
     BRSetOf(BREthereumTransaction) transactions;
 
     /**
-     * A BRSet of logs for account.
-     *
-     * TODO: See above comment for `transactions`.
+     * A BRSet of logs for account.  This includes any and all logs that we've ever
+     * identified/created for account no matter the log's status.  [See above for `transactions`]
      */
     BRSetOf(BREtherumLog) logs;
 
