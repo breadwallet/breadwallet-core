@@ -192,11 +192,19 @@ struct BREthereumBCSStruct {
 
     /**
      * A BRSet of transactions for account.
+     *
+     * TODO: Clarify what transactions are here and specifically can a transaction ever be deleted.
+     * Are included, errored and pending transactions in this set?
+     *
+     * A transacion is deleted if a) we didn't submit it and b) it appeared in a block that is
+     * an orphan?
      */
     BRSetOf(BREthereumTransaction) transactions;
 
     /**
      * A BRSet of logs for account.
+     *
+     * TODO: See above comment for `transactions`.
      */
     BRSetOf(BREtherumLog) logs;
 

@@ -1286,7 +1286,7 @@ blockReportStatusHeaderProofRequest (BREthereumBlock block,
 
 extern void
 blockReportStatusHeaderProof (BREthereumBlock block,
-                              BREthereumBlockHeaderProof proof) {
+                              OwnershipGiven BREthereumBlockHeaderProof proof) {
     assert (block->status.headerProofRequest == BLOCK_REQUEST_PENDING);
     block->status.headerProofRequest = BLOCK_REQUEST_COMPLETE;
     block->status.headerProof = proof;
@@ -1320,8 +1320,8 @@ blockReleaseStatus (BREthereumBlock block,
         array_free (block->status.gasUsed);
     block->status.gasUsed = NULL;
 
-    // Account State
-    // Header Proof
+    // Account State - nothing to do
+    // Header Proof  - nothing to do
 }
 
 static BRRlpItem
