@@ -81,10 +81,13 @@ void BRWalletSetCallbacks(BRWallet *wallet, void *info,
 // the internal chain is used for change addresses and the external chain for receive addresses
 // addrs may be NULL to only generate addresses for BRWalletContainsAddress()
 // returns the number addresses written to addrs
-size_t BRWalletUnusedAddrs(BRWallet *wallet, BRAddress addrs[], uint32_t gapLimit, int internal);
+size_t BRWalletUnusedAddrs(BRWallet *wallet, BRAddress addrs[], uint32_t gapLimit, uint32_t internal);
 
-// returns the first unused external address
+// returns the first unused external address (bech32 pay-to-witness-pubkey-hash)
 BRAddress BRWalletReceiveAddress(BRWallet *wallet);
+
+// returns the first unused external address (legacy pay-to-pubkey-hash)
+BRAddress BRWalletLegacyAddress(BRWallet *wallet);
 
 // writes all addresses previously genereated with BRWalletUnusedAddrs() to addrs
 // returns the number addresses written, or total number available if addrs is NULL

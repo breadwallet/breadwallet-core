@@ -293,9 +293,21 @@ UInt160 BRKeyHash160(BRKey *key)
     return hash;
 }
 
-// writes the pay-to-pubkey-hash bitcoin address for key to addr
+// writes the bech32 pay-to-witness-pubkey-hash address for key to addr
 // returns the number of bytes written, or addrLen needed if addr is NULL
 size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen)
+{
+    UInt160 hash;
+    
+    assert(key != NULL);
+    
+    hash = BRKeyHash160(key);
+    return (! UInt160IsZero(hash)) ? BRAddressFromHash160(addr, addrLen, &hash) : 0;
+}
+
+// writes the legacy pay-to-pubkey-hash bitcoin address for key to addr
+// returns the number of bytes written, or addrLen needed if addr is NULL
+size_t BRKeyLegacyAddr(BRKey *key, char *addr, size_t addrLen)
 {
     UInt160 hash;
     uint8_t data[21];

@@ -1141,7 +1141,7 @@ int BRKeyTests()
 
     printf("\n");
     BRKeySetPrivKey(&key, "S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy");
-    BRKeyAddress(&key, addr.s, sizeof(addr));
+    BRKeyLegacyAddr(&key, addr.s, sizeof(addr));
     printf("privKey:S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy = %s\n", addr.s);
 #if BITCOIN_TESTNET
     if (! BRAddressEq(&addr, "ms8fwvXzrCoyatnGFRaLbepSqwGRxVJQF1"))
@@ -1156,7 +1156,7 @@ int BRKeyTests()
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPrivKeyIsValid() test 2\n", __func__);
 
     BRKeySetPrivKey(&key, "SzavMBLoXU6kDrqtUVmffv");
-    BRKeyAddress(&key, addr.s, sizeof(addr));
+    BRKeyLegacyAddr(&key, addr.s, sizeof(addr));
     printf("privKey:SzavMBLoXU6kDrqtUVmffv = %s\n", addr.s);
 #if BITCOIN_TESTNET
     if (! BRAddressEq(&addr, "mrhzp5mstA4Midx85EeCjuaUAAGANMFmRP"))
@@ -1172,7 +1172,7 @@ int BRKeyTests()
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPrivKeyIsValid() test 3\n", __func__);
     
     BRKeySetPrivKey(&key, "5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF");
-    BRKeyAddress(&key, addr.s, sizeof(addr));
+    BRKeyLegacyAddr(&key, addr.s, sizeof(addr));
     printf("privKey:5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF = %s\n", addr.s);
     if (! BRAddressEq(&addr, "1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj"))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetPrivKey() test 3\n", __func__);
@@ -1190,7 +1190,7 @@ int BRKeyTests()
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPrivKeyIsValid() test 4\n", __func__);
     
     BRKeySetPrivKey(&key, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
-    BRKeyAddress(&key, addr.s, sizeof(addr));
+    BRKeyLegacyAddr(&key, addr.s, sizeof(addr));
     printf("privKey:KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL = %s\n", addr.s);
     if (! BRAddressEq(&addr, "1JMsC6fCtYWkTjPPdDrYX3we2aBrewuEM3"))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetPrivKey() test 4\n", __func__);
@@ -1751,7 +1751,7 @@ int BRBIP32SequenceTests()
     BRBIP39DeriveKey(dk.u8, "inhale praise target steak garlic cricket paper better evil almost sadness crawl city "
                      "banner amused fringe fox insect roast aunt prefer hollow basic ladder", NULL);
     BRBIP32BitIDKey(&key, dk.u8, sizeof(dk), 0, "http://bitid.bitcoin.blue/callback");
-    BRKeyAddress(&key, addr.s, sizeof(addr));
+    BRKeyLegacyAddr(&key, addr.s, sizeof(addr));
 #if BITCOIN_TESTNET
     if (strncmp(addr.s, "mxZ2Dn9vcyNeKh9DNHZw6d6NrxeYCVNjc2", sizeof(addr)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRBIP32BitIDKey() test\n", __func__);
@@ -1823,13 +1823,13 @@ int BRTransactionTests()
     
     memset(&k[0], 0, sizeof(k[0])); // test with array of keys where first key is empty/invalid
     BRKeySetSecret(&k[1], &secret, 1);
-    BRKeyAddress(&k[1], address.s, sizeof(address));
+    BRKeyLegacyAddr(&k[1], address.s, sizeof(address));
 
     uint8_t script[BRAddressScriptPubKey(NULL, 0, address.s)];
     size_t scriptLen = BRAddressScriptPubKey(script, sizeof(script), address.s);
     BRTransaction *tx = BRTransactionNew();
     
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
     BRTransactionAddOutput(tx, 100000000, script, scriptLen);
     BRTransactionAddOutput(tx, 4900000000, script, scriptLen);
     
@@ -1867,16 +1867,16 @@ int BRTransactionTests()
     BRTransactionFree(tx);
     
     tx = BRTransactionNew();
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
     BRTransactionAddOutput(tx, 1000000, script, scriptLen);
     BRTransactionAddOutput(tx, 1000000, script, scriptLen);
     BRTransactionAddOutput(tx, 1000000, script, scriptLen);
@@ -1909,27 +1909,114 @@ int BRTransactionTests()
         r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionSerialize() test 2", __func__);
     BRTransactionFree(tx);
 
-    BRTransaction *src = BRTransactionNew ();
-    BRTransactionAddInput(src, inHash, 0, 1, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(src, inHash, 0, 1, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRKeyAddress(&k[1], addr.s, sizeof(addr));
+    
+    uint8_t wscript[BRAddressScriptPubKey(NULL, 0, addr.s)];
+    size_t wscriptLen = BRAddressScriptPubKey(wscript, sizeof(wscript), addr.s);
+
+    tx = BRTransactionNew();
+    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, 1, wscript, wscriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, 1, wscript, wscriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, 1, wscript, wscriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, 1, wscript, wscriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, 1, wscript, wscriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
+    BRTransactionSign(tx, 0, k, 2);
+    BRAddressFromScriptSig(addr.s, sizeof(addr), tx->inputs[tx->inCount - 1].signature,
+                           tx->inputs[tx->inCount - 1].sigLen);
+    if (! BRTransactionIsSigned(tx) || ! BRAddressEq(&address, &addr) || tx->inputs[1].sigLen > 0 ||
+        tx->inputs[1].witLen == 0) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionSign() test 3", __func__);
+    
+    uint8_t buf6[BRTransactionSerialize(tx, NULL, 0)];
+    size_t len6 = BRTransactionSerialize(tx, buf6, sizeof(buf6));
+    
+    BRTransactionFree(tx);
+    tx = BRTransactionParse(buf6, len6);
+    if (! tx || ! BRTransactionIsSigned(tx))
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionParse() test 3", __func__);
+    if (! tx) return r;
+    
+    uint8_t buf7[BRTransactionSerialize(tx, NULL, 0)];
+    size_t len7 = BRTransactionSerialize(tx, buf7, sizeof(buf7));
+    
+    if (len6 != len7 || memcmp(buf6, buf7, len6) != 0)
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionSerialize() test 3", __func__);
+    BRTransactionFree(tx);
+    
+    tx = BRTransactionNew();
+    BRTransactionAddInput(tx, uint256("fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f"), 0, 625000000,
+                          (uint8_t *)"\x21\x03\xc9\xf4\x83\x6b\x9a\x4f\x77\xfc\x0d\x81\xf7\xbc\xb0\x1b\x7f\x1b\x35\x91"
+                          "\x68\x64\xb9\x47\x6c\x24\x1c\xe9\xfc\x19\x8b\xd2\x54\x32\xac", 35,
+                          (uint8_t *)"\x48\x30\x45\x02\x21\x00\x8b\x9d\x1d\xc2\x6b\xa6\xa9\xcb\x62\x12\x7b\x02\x74\x2f"
+                          "\xa9\xd7\x54\xcd\x3b\xeb\xf3\x37\xf7\xa5\x5d\x11\x4c\x8e\x5c\xdd\x30\xbe\x02\x20\x40\x52\x9b"
+                          "\x19\x4b\xa3\xf9\x28\x1a\x99\xf2\xb1\xc0\xa1\x9c\x04\x89\xbc\x22\xed\xe9\x44\xcc\xf4\xec\xba"
+                          "\xb4\xcc\x61\x8e\xf3\xed\x01", 73, (uint8_t *)"", 0, 0xffffffee);
+    BRTransactionAddInput(tx, uint256("ef51e1b804cc89d182d279655c3aa89e815b1b309fe287d9b2b55d57b90ec68a"), 1, 600000000,
+                          (uint8_t *)"\x00\x14\x1d\x0f\x17\x2a\x0e\xcb\x48\xae\xe1\xbe\x1f\x26\x87\xd2\x96\x3a\xe3\x3f"
+                          "\x71\xa1", 22, NULL, 0, NULL, 0, 0xffffffff);
+    BRTransactionAddOutput(tx, 0x06b22c20, (uint8_t *)"\x76\xa9\x14\x82\x80\xb3\x7d\xf3\x78\xdb\x99\xf6\x6f\x85\xc9"
+                           "\x5a\x78\x3a\x76\xac\x7a\x6d\x59\x88\xac", 25);
+    BRTransactionAddOutput(tx, 0x0d519390, (uint8_t *)"\x76\xa9\x14\x3b\xde\x42\xdb\xee\x7e\x4d\xbe\x6a\x21\xb2\xd5"
+                           "\x0c\xe2\xf0\x16\x7f\xaa\x81\x59\x88\xac", 25);
+    tx->lockTime = 0x00000011;
+    BRKeySetSecret(k, &uint256("619c335025c7f4012e556c2a58b2506e30b8511b53ade95ea316fd8c3286feb9"), 1);
+    BRTransactionSign(tx, 0, k, 1);
+    
+    uint8_t buf8[BRTransactionSerialize(tx, NULL, 0)];
+    size_t len8 = BRTransactionSerialize(tx, buf8, sizeof(buf8));
+    char buf9[] = "\x01\x00\x00\x00\x00\x01\x02\xff\xf7\xf7\x88\x1a\x80\x99\xaf\xa6\x94\x0d\x42\xd1\xe7\xf6\x36\x2b\xec"
+    "\x38\x17\x1e\xa3\xed\xf4\x33\x54\x1d\xb4\xe4\xad\x96\x9f\x00\x00\x00\x00\x49\x48\x30\x45\x02\x21\x00\x8b\x9d\x1d"
+    "\xc2\x6b\xa6\xa9\xcb\x62\x12\x7b\x02\x74\x2f\xa9\xd7\x54\xcd\x3b\xeb\xf3\x37\xf7\xa5\x5d\x11\x4c\x8e\x5c\xdd\x30"
+    "\xbe\x02\x20\x40\x52\x9b\x19\x4b\xa3\xf9\x28\x1a\x99\xf2\xb1\xc0\xa1\x9c\x04\x89\xbc\x22\xed\xe9\x44\xcc\xf4\xec"
+    "\xba\xb4\xcc\x61\x8e\xf3\xed\x01\xee\xff\xff\xff\xef\x51\xe1\xb8\x04\xcc\x89\xd1\x82\xd2\x79\x65\x5c\x3a\xa8\x9e"
+    "\x81\x5b\x1b\x30\x9f\xe2\x87\xd9\xb2\xb5\x5d\x57\xb9\x0e\xc6\x8a\x01\x00\x00\x00\x00\xff\xff\xff\xff\x02\x20\x2c"
+    "\xb2\x06\x00\x00\x00\x00\x19\x76\xa9\x14\x82\x80\xb3\x7d\xf3\x78\xdb\x99\xf6\x6f\x85\xc9\x5a\x78\x3a\x76\xac\x7a"
+    "\x6d\x59\x88\xac\x90\x93\x51\x0d\x00\x00\x00\x00\x19\x76\xa9\x14\x3b\xde\x42\xdb\xee\x7e\x4d\xbe\x6a\x21\xb2\xd5"
+    "\x0c\xe2\xf0\x16\x7f\xaa\x81\x59\x88\xac\x00\x02\x47\x30\x44\x02\x20\x36\x09\xe1\x7b\x84\xf6\xa7\xd3\x0c\x80\xbf"
+    "\xa6\x10\xb5\xb4\x54\x2f\x32\xa8\xa0\xd5\x44\x7a\x12\xfb\x13\x66\xd7\xf0\x1c\xc4\x4a\x02\x20\x57\x3a\x95\x4c\x45"
+    "\x18\x33\x15\x61\x40\x6f\x90\x30\x0e\x8f\x33\x58\xf5\x19\x28\xd4\x3c\x21\x2a\x8c\xae\xd0\x2d\xe6\x7e\xeb\xee\x01"
+    "\x21\x02\x54\x76\xc2\xe8\x31\x88\x36\x8d\xa1\xff\x3e\x29\x2e\x7a\xca\xfc\xdb\x35\x66\xbb\x0a\xd2\x53\xf6\x2f\xc7"
+    "\x0f\x07\xae\xee\x63\x57\x11\x00\x00\x00";
+    
+    BRTransactionFree(tx);
+    
+    if (len8 != sizeof(buf9) - 1 || memcmp(buf8, buf9, len8))
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionSign() test 4", __func__);
+
+    BRTransaction *src = BRTransactionNew();
+    BRTransactionAddInput(src, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(src, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
     BRTransactionAddOutput(src, 1000000, script, scriptLen);
     BRTransactionAddOutput(src, 1000000, script, scriptLen);
     BRTransactionAddOutput(src, 1000000, script, scriptLen);
 
     BRTransaction *tgt = BRTransactionCopy(src);
-    if (!BRTransactionEqual(tgt, src))
+    if (! BRTransactionEqual(tgt, src))
         r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionCopy() test 1", __func__);
 
     tgt->blockHeight++;
     if (BRTransactionEqual(tgt, src)) // fail if equal
         r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionCopy() test 2", __func__);
-
     BRTransactionFree(tgt);
     BRTransactionFree(src);
 
     src = BRTransactionParse(buf4, len4);
     tgt = BRTransactionCopy(src);
-    if (!BRTransactionEqual(tgt, src))
+    if (! BRTransactionEqual(tgt, src))
         r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionCopy() test 3", __func__);
     BRTransactionFree(tgt);
     BRTransactionFree(src);
@@ -1970,11 +2057,10 @@ static void walletTxDeleted(void *info, UInt256 txHash, int notifyUser, int reco
 int BRWalletTests()
 {
     int r = 1;
-    const char *phrase = "a random seed";                     // ""
+    const char *phrase = "a random seed";
     UInt512 seed;
 
-    BRBIP39DeriveKey(&seed, phrase, NULL); //
-
+    BRBIP39DeriveKey(&seed, phrase, NULL);
 
     BRMasterPubKey mpk = BRBIP32MasterPubKey(&seed, sizeof(seed));
     BRWallet *w = BRWalletNew(NULL, 0, mpk);
@@ -2002,7 +2088,7 @@ int BRWalletTests()
     size_t outScriptLen = BRAddressScriptPubKey(outScript, sizeof(outScript), recvAddr.s);
     
     tx = BRTransactionNew();
-    BRTransactionAddInput(tx, inHash, 0, 1, inScript, inScriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, 1, inScript, inScriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
     BRTransactionAddOutput(tx, SATOSHIS, outScript, outScriptLen);
 //    BRWalletRegisterTransaction(w, tx); // test adding unsigned tx
 //    if (BRWalletBalance(w) != 0)
@@ -2024,7 +2110,7 @@ int BRWalletTests()
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletRegisterTransaction() test 3\n", __func__);
 
     tx = BRTransactionNew();
-    BRTransactionAddInput(tx, inHash, 1, 1, inScript, inScriptLen, NULL, 0, TXIN_SEQUENCE - 1);
+    BRTransactionAddInput(tx, inHash, 1, 1, inScript, inScriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE - 1);
     BRTransactionAddOutput(tx, SATOSHIS, outScript, outScriptLen);
     tx->lockTime = 1000;
     BRTransactionSign(tx, 0, &k, 1);
@@ -2042,7 +2128,7 @@ int BRWalletTests()
 
     BRWalletFree(w);
     tx = BRTransactionNew();
-    BRTransactionAddInput(tx, inHash, 0, 1, inScript, inScriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, 1, inScript, inScriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
     BRTransactionAddOutput(tx, SATOSHIS, outScript, outScriptLen);
     BRTransactionSign(tx, 0, &k, 1);
     tx->timestamp = 1;
@@ -2103,7 +2189,7 @@ int BRWalletTests()
     int64_t amt;
     
     tx = BRTransactionNew();
-    BRTransactionAddInput(tx, inHash, 0, 1, inScript, inScriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, 1, inScript, inScriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
     BRTransactionAddOutput(tx, 740000, outScript, outScriptLen);
     BRTransactionSign(tx, 0, &k, 1);
     w = BRWalletNew(&tx, 1, mpk);

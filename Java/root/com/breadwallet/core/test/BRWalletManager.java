@@ -530,7 +530,7 @@ public class BRWalletManager extends BRCoreWalletManager {
 
         BRCoreTransaction transaction = new BRCoreTransaction();
         transaction.addInput(
-                new BRCoreTransactionInput(inHash, 0, 1, script, new byte[]{}, 4294967295L));
+                new BRCoreTransactionInput(inHash, 0, 1, script, new byte[]{}, new byte[]{}, 4294967295L));
         transaction.addOutput(
                 new BRCoreTransactionOutput(100000000L, script));
         transaction.addOutput(
@@ -569,15 +569,15 @@ public class BRWalletManager extends BRCoreWalletManager {
 
         transaction = new BRCoreTransaction();
         transaction.addInput(
-                new BRCoreTransactionInput(inHash, 0, 1, script, new byte[]{}, 4294967295L));
+                new BRCoreTransactionInput(inHash, 0, 1, script, new byte[]{}, new byte[]{}, 4294967295L));
         transaction.addInput(
-                new BRCoreTransactionInput(inHash, 0, 1, script, new byte[]{}, 4294967295L));
+                new BRCoreTransactionInput(inHash, 0, 1, script, new byte[]{}, new byte[]{}, 4294967295L));
         transaction.addInput(
-                new BRCoreTransactionInput(inHash, 0, 1, script, new byte[]{}, 4294967295L));
+                new BRCoreTransactionInput(inHash, 0, 1, script, new byte[]{}, new byte[]{}, 4294967295L));
         transaction.addInput(
-                new BRCoreTransactionInput(inHash, 0, 1, script, new byte[]{}, 4294967295L));
+                new BRCoreTransactionInput(inHash, 0, 1, script, new byte[]{}, new byte[]{}, 4294967295L));
         transaction.addInput(
-                new BRCoreTransactionInput(inHash, 0, 1, script, new byte[]{}, 4294967295L));
+                new BRCoreTransactionInput(inHash, 0, 1, script, new byte[]{}, new byte[]{}, 4294967295L));
 
         transaction.addOutput(
                 new BRCoreTransactionOutput(4900000000L, script));
@@ -737,7 +737,7 @@ public class BRWalletManager extends BRCoreWalletManager {
 
         tx = new BRCoreTransaction();
         tx.addInput(
-                new BRCoreTransactionInput(inHash, 0, 1, inScript, new byte[]{}, 4294967295L));
+                new BRCoreTransactionInput(inHash, 0, 1, inScript, new byte[]{}, new byte[]{}, 4294967295L));
         tx.addOutput(
                 new BRCoreTransactionOutput(SATOSHIS, outScript));
         w.signTransaction(tx, 0x00, phrase);
@@ -755,7 +755,7 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println("        LockTime");
         tx = new BRCoreTransaction();
         tx.addInput(
-                new BRCoreTransactionInput(inHash, 1, 1, inScript, new byte[]{}, 4294967295L - 1));
+                new BRCoreTransactionInput(inHash, 1, 1, inScript, new byte[]{}, new byte[]{}, 4294967295L - 1));
         tx.addOutput(
                 new BRCoreTransactionOutput(SATOSHIS, outScript));
         tx.setLockTime(1000);
@@ -780,7 +780,7 @@ public class BRWalletManager extends BRCoreWalletManager {
 
         tx = new BRCoreTransaction();
         tx.addInput (
-                new BRCoreTransactionInput(inHash, 0, 1, inScript, new byte[] {}, 4294967295L));
+                new BRCoreTransactionInput(inHash, 0, 1, inScript, new byte[]{}, new byte[]{}, 4294967295L));
         tx.addOutput(
                 new BRCoreTransactionOutput(SATOSHIS, outScript));
         tx.sign(k, 0x00);
@@ -836,7 +836,7 @@ public class BRWalletManager extends BRCoreWalletManager {
 
         tx = new BRCoreTransaction();
         tx.addInput(
-                new BRCoreTransactionInput(inHash, 0, 1, inScript, new byte[]{}, 4294967295L));
+                new BRCoreTransactionInput(inHash, 0, 1, inScript, new byte[]{}, new byte[]{}, 4294967295L));
         tx.addOutput(
                 new BRCoreTransactionOutput(SATOSHIS, outScript));
         w.signTransaction(tx, 0x00, phrase);
@@ -904,7 +904,7 @@ public class BRWalletManager extends BRCoreWalletManager {
 
         BRCoreTransaction tx = new BRCoreTransaction();
         tx.addInput(
-                new BRCoreTransactionInput(inHash, 0, 1, inScript, new byte[]{}, 4294967295L));
+                new BRCoreTransactionInput(inHash, 0, 1, inScript, new byte[]{}, new byte[]{}, 4294967295L));
         tx.addOutput(
                 new BRCoreTransactionOutput(SATOSHIS, outScript));
 
