@@ -2063,7 +2063,7 @@ int BRWalletTests()
     BRBIP39DeriveKey(&seed, phrase, NULL);
 
     BRMasterPubKey mpk = BRBIP32MasterPubKey(&seed, sizeof(seed));
-    BRWallet *w = BRWalletNew(NULL, 0, mpk);
+    BRWallet *w = BRWalletNew(NULL, 0, mpk, 0);
     UInt256 secret = uint256("0000000000000000000000000000000000000000000000000000000000000001"),
             inHash = uint256("0000000000000000000000000000000000000000000000000000000000000001");
     BRKey k;
@@ -2132,7 +2132,7 @@ int BRWalletTests()
     BRTransactionAddOutput(tx, SATOSHIS, outScript, outScriptLen);
     BRTransactionSign(tx, 0, &k, 1);
     tx->timestamp = 1;
-    w = BRWalletNew(&tx, 1, mpk);
+    w = BRWalletNew(&tx, 1, mpk, 0);
     if (BRWalletBalance(w) != SATOSHIS)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletNew() test\n", __func__);
 
@@ -2150,7 +2150,7 @@ int BRWalletTests()
     tx = BRWalletCreateTransaction(w, SATOSHIS/2, addr.s);
     if (! tx) r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletCreateTransaction() test 4\n", __func__);
 
-    if (tx) BRWalletSignTransaction(w, tx, 0, &seed, sizeof(seed));
+    if (tx) BRWalletSignTransaction(w, tx, &seed, sizeof(seed));
     if (tx && ! BRTransactionIsSigned(tx))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletSignTransaction() test\n", __func__);
     
@@ -2192,7 +2192,7 @@ int BRWalletTests()
     BRTransactionAddInput(tx, inHash, 0, 1, inScript, inScriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
     BRTransactionAddOutput(tx, 740000, outScript, outScriptLen);
     BRTransactionSign(tx, 0, &k, 1);
-    w = BRWalletNew(&tx, 1, mpk);
+    w = BRWalletNew(&tx, 1, mpk, 0);
     BRWalletSetCallbacks(w, w, walletBalanceChanged, walletTxAdded, walletTxUpdated, walletTxDeleted);
     BRWalletSetFeePerKb(w, 65000);
     amt = BRWalletMaxOutputAmount(w);

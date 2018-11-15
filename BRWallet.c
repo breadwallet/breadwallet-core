@@ -71,6 +71,7 @@ struct BRWalletStruct {
     BRUTXO *utxos;
     BRTransaction **transactions;
     BRMasterPubKey masterPubKey;
+    int forkId;
     UInt160 *internalChain, *externalChain;
     BRSet *allTx, *invalidTx, *pendingTx, *spentOutputs, *usedPKH, *allPKH;
     void *callbackInfo;
@@ -80,6 +81,18 @@ struct BRWalletStruct {
     void (*txDeleted)(void *info, UInt256 txHash, int notifyUser, int recommendRescan);
     pthread_mutex_t lock;
 };
+
+inline static void _BRWalletAddressFromHash160(BRWallet *wallet, char *addr, size_t addrLen, UInt160 h)
+{
+    if (wallet->forkId != 0) {
+        const uint8_t script[] = { OP_DUP, OP_HASH160, 20, h.u8[0], h.u8[1], h.u8[2], h.u8[3], h.u8[4], h.u8[5],
+                                   h.u8[6], h.u8[7], h.u8[8], h.u8[9], h.u8[10], h.u8[11], h.u8[12], h.u8[13], h.u8[14],
+                                   h.u8[15], h.u8[16], h.u8[17], h.u8[18], h.u8[19], OP_EQUALVERIFY, OP_CHECKSIG };
+        
+        BRAddressFromScriptPubKey(addr, addrLen, script, sizeof(script));
+    }
+    else BRAddressFromHash160(addr, addrLen, &h);
+}
 
 inline static int _BRWalletTxIsAscending(BRWallet *wallet, const BRTransaction *tx1, const BRTransaction *tx2)
 {
@@ -247,7 +260,8 @@ static void _BRWalletUpdateBalance(BRWallet *wallet)
 }
 
 // allocates and populates a BRWallet struct which must be freed by calling BRWalletFree()
-BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPubKey mpk)
+// forkId is 0 for bitcoin, 0x40 for b-cash
+BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPubKey mpk, int forkId)
 {
     BRWallet *wallet = NULL;
     BRTransaction *tx;
@@ -260,6 +274,7 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
     array_new(wallet->transactions, txCount + 100);
     wallet->feePerKb = DEFAULT_FEE_PER_KB;
     wallet->masterPubKey = mpk;
+    wallet->forkId = forkId;
     array_new(wallet->internalChain, 100);
     array_new(wallet->externalChain, 100);
     array_new(wallet->balanceHist, txCount + 100);
@@ -355,7 +370,7 @@ size_t BRWalletUnusedAddrs(BRWallet *wallet, BRAddress addrs[], uint32_t gapLimi
 
     if (addrs && i + gapLimit <= count) {
         for (j = 0; j < gapLimit; j++) {
-            BRAddressFromHash160(addrs[j].s, sizeof(*addrs), &chain[i + j]);
+            _BRWalletAddressFromHash160(wallet, addrs[j].s, sizeof(*addrs), chain[i + j]);
         }
     }
     
@@ -525,14 +540,14 @@ size_t BRWalletAllAddrs(BRWallet *wallet, BRAddress addrs[], size_t addrsCount)
                     array_count(wallet->internalChain) : addrsCount;
 
     for (i = 0; addrs && i < internalCount; i++) {
-        BRAddressFromHash160(addrs[i].s, sizeof(*addrs), &wallet->internalChain[i]);
+        _BRWalletAddressFromHash160(wallet, addrs[i].s, sizeof(*addrs), wallet->internalChain[i]);
     }
 
     externalCount = (! addrs || array_count(wallet->externalChain) < addrsCount - internalCount) ?
                     array_count(wallet->externalChain) : addrsCount - internalCount;
 
     for (i = 0; addrs && i < externalCount; i++) {
-        BRAddressFromHash160(addrs[internalCount + i].s, sizeof(*addrs), &wallet->externalChain[i]);
+        _BRWalletAddressFromHash160(wallet, addrs[internalCount + i].s, sizeof(*addrs), wallet->externalChain[i]);
     }
 
     pthread_mutex_unlock(&wallet->lock);
@@ -678,18 +693,18 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
 }
 
 // signs any inputs in tx that can be signed using private keys from the wallet
-// forkId is 0 for bitcoin, 0x40 for b-cash
 // seed is the master private key (wallet seed) corresponding to the master public key given when the wallet was created
 // returns true if all inputs were signed, or false if there was an error or not all inputs were able to be signed
-int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, int forkId, const void *seed, size_t seedLen)
+int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const void *seed, size_t seedLen)
 {
     uint32_t j, internalIdx[tx->inCount], externalIdx[tx->inCount];
     size_t i, internalCount = 0, externalCount = 0;
-    int r = 0;
+    int forkId, r = 0;
     
     assert(wallet != NULL);
     assert(tx != NULL);
     pthread_mutex_lock(&wallet->lock);
+    forkId = wallet->forkId;
     
     for (i = 0; tx && i < tx->inCount; i++) {
         const uint8_t *pkh = BRScriptPKH(tx->inputs[i].script, tx->inputs[i].scriptLen);
