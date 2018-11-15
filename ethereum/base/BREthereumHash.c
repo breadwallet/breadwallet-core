@@ -139,3 +139,12 @@ hashesCopy (BRArrayOf(BREthereumHash) hashes) {
     array_add_array (result, hashes, array_count(hashes));
     return result;
 }
+
+extern ssize_t
+hashesIndex (BRArrayOf(BREthereumHash) hashes,
+              BREthereumHash hash) {
+    for (size_t index = 0; index < array_count(hashes); index++)
+        if (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual (hash, hashes[index])))
+            return index;
+    return -1;
+}

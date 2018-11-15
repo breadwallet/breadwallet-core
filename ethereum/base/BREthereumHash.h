@@ -145,6 +145,10 @@ hashFillString (BREthereumHash hash,
 extern BRArrayOf(BREthereumHash)
 hashesCopy (BRArrayOf(BREthereumHash) hashes);
 
+extern ssize_t
+hashesIndex (BRArrayOf(BREthereumHash) hashes,
+             BREthereumHash hash);
+
 #ifdef __cplusplus
 }
 #endif

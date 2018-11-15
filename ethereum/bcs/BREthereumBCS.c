@@ -521,6 +521,33 @@ bcsUnpendLog (BREthereumBCS bcs,
         array_rm (bcs->pendingLogs, index);
 }
 
+static BREthereumLog
+bcsPendFindLogByLogHash (BREthereumBCS bcs,
+                         BREthereumHash hash) {
+    return (-1 != bcsLookupPendingLog(bcs, hash)
+            ? BRSetGet (bcs->logs, &hash)
+            : NULL);
+}
+
+static BRArrayOf(BREthereumLog)
+bcsPendFindLogsByTransactionHash (BREthereumBCS bcs,
+                                  BREthereumHash hash) {
+    BRArrayOf(BREthereumLog) logs = NULL;
+    for (int i = 0; i < array_count(bcs->pendingLogs); i++) {
+        BREthereumHash logHash = bcs->pendingLogs[i];
+        BREthereumLog  log     = BRSetGet (bcs->logs, &logHash);
+        if (NULL != log) {
+            BREthereumHash txHash;
+            logExtractIdentifier (log, &txHash, NULL);
+            if (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(txHash, hash))) {
+                if (NULL == logs) array_new (logs, 1);
+                array_add (logs, log);
+            }
+        }
+    }
+    return logs;
+}
+
 /**
  * Submit a new transaction to the Ethereum network.  The transaction will be submitted to all
  * connected nodes and once submitted the nodes will be repeatedly queried for the transaction's
@@ -1873,9 +1900,6 @@ bcsHandleTransactionStatus (BREthereumBCS bcs,
     // Get the current (aka 'old') status.
     BREthereumTransactionStatus oldStatus = transactionGetStatus(transaction);
 
-    // Get the pendingIndex; surely there should be one.
-    int pendingIndex = bcsLookupPendingTransaction(bcs, transactionHash);
-
     // Process the current status; compare to `oldStatus` as appropriate.
     switch (status.type) {
 
@@ -1915,6 +1939,7 @@ bcsHandleTransactionStatus (BREthereumBCS bcs,
     }
 
     if (needStatus) {
+        // Update the transaction status and signal
         transactionSetStatus (transaction, status);
         eth_log("BCS", "Transaction: \"%s\", Status: %d, Pending: %s%s%s",
                 hashString,
@@ -1924,6 +1949,23 @@ bcsHandleTransactionStatus (BREthereumBCS bcs,
                 (TRANSACTION_STATUS_ERRORED == status.type ? transactionGetErrorName(status.u.errored.type) : ""));
 
         bcsSignalTransaction(bcs, transactionCopy(transaction));
+
+        // Update any logs depending on transaction
+        BRArrayOf(BREthereumLog) logs = bcsPendFindLogsByTransactionHash (bcs, transactionHash);
+        if (NULL != logs) {
+            for (size_t index = 0; index < array_count(logs); index++) {
+                logSetStatus (logs[index], status);
+                hashFillString (logGetHash(logs[index]), hashString);
+                eth_log("BCS", "Log: \"%s\", Status: %d, Pending: %s%s%s",
+                        hashString,
+                        status.type,
+                        (-1 != bcsLookupPendingTransaction (bcs, transactionHash) ? "Yes" : "No"),
+                        (TRANSACTION_STATUS_ERRORED == status.type ? ", Error: " : ""),
+                        (TRANSACTION_STATUS_ERRORED == status.type ? transactionGetErrorName(status.u.errored.type) : ""));
+                bcsSignalLog (bcs, logs[index]);
+            }
+            array_free (logs);
+        }
     }
 }
 
@@ -1946,21 +1988,32 @@ bcsPeriodicDispatcher (BREventHandler handler,
                        BREventTimeout *event) {
     BREthereumBCS bcs = (BREthereumBCS) event->context;
 
-    // If nothing to do; simply skip out.
-    if (NULL == bcs->pendingTransactions || 0 == array_count(bcs->pendingTransactions))
-        return;
-
     // TODO: Avoid-ish a race condition on bcsRelease. This is the wrong approach.
     if (NULL == bcs->les) return;
 
-    // We'll request status for each `pendingTransaction`.  Because lesProvideTransactionStatus
-    // takes ownership of the transaction hashes, we'll need a copy.
+    // If nothing to do; simply skip out.
+    if ((NULL == bcs->pendingTransactions || 0 == array_count (bcs->pendingTransactions)) &&
+        (NULL == bcs->pendingLogs         || 0 == array_count (bcs->pendingLogs)))
+        return;
+
+    // We'll request status for each `pendingTransaction`.
     BRArrayOf(BREthereumHash) hashes;
-    array_new (hashes, array_count(bcs->pendingTransactions));
+    array_new (hashes, array_count(bcs->pendingTransactions) + array_count(bcs->pendingLogs));
     array_add_array (hashes, bcs->pendingTransactions, array_count(bcs->pendingTransactions));
 
-    // TODO: Something for pendingLogs?  Add `log->identifier.transactionHash` to `hashes`?
+    // Add in hashes for each transaction referenced by `pendingLogs`
+    for (size_t index = 0; index < array_count(bcs->pendingLogs); index++) {
+        BREthereumHash logHash = bcs->pendingLogs[index];
+        BREthereumLog  log     = BRSetGet (bcs->logs, &logHash);
+        if (NULL != log) {
+            BREthereumHash hash;
+            logExtractIdentifier (log, &hash, NULL);
+            if (-1 == hashesIndex(hashes, hash))
+                array_add (hashes, hash);
+        }
+    }
 
+    // OwnershipGiven for `hashes` (hence, above, `hashes` is a new array).
     lesProvideTransactionStatus (bcs->les,
                                  NODE_REFERENCE_ALL,
                                  (BREthereumLESProvisionContext) bcs,
