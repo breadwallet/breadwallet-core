@@ -62,10 +62,11 @@ public class BRCoreWallet extends BRCoreJniReference
     //
     public BRCoreWallet(BRCoreTransaction[] transactions,
                         BRCoreMasterPubKey masterPubKey,
+                        int forkId,
                         Listener listener)
         throws WalletExecption
     {
-        super (createJniCoreWallet(transactions, masterPubKey));
+        super (createJniCoreWallet(transactions, masterPubKey, forkId));
 
         // If we don't have a proper Core Wallet, raise an exception
         if (0 == this.jniReferenceAddress)
@@ -81,8 +82,9 @@ public class BRCoreWallet extends BRCoreJniReference
             transaction.isRegistered = true;
     }
 
-    protected static native long createJniCoreWallet (BRCoreTransaction[] transactions,
-                                                      BRCoreMasterPubKey masterPubKey);
+    protected static native long createJniCoreWallet(BRCoreTransaction[] transactions,
+                                                     BRCoreMasterPubKey masterPubKey,
+                                                     int forkId);
 
     protected native void installListener (Listener listener);
 
@@ -168,18 +170,15 @@ public class BRCoreWallet extends BRCoreJniReference
      */
     public native BRCoreTransaction createTransactionForOutputs (BRCoreTransactionOutput[] outputs);
 
-    // Need to remove 'forkId' - should be derived from the chainParams leading to this wallet.
-
     /**
-     * Sign `transaction` for the provided `forkId` (BTC or BCH) using `phrase`.  The `phrase` must
-     * be the 'paper key' used when the wallet's MasterPubKey was originally created.
+     * Sign `transaction` using `phrase`.  The `phrase` must be the 'paper key' used when the
+     * wallet's MasterPubKey was originally created.
      *
      * @param transaction
-     * @param forkId
      * @param phrase
      * @return
      */
-    public native boolean signTransaction (BRCoreTransaction transaction, int forkId, byte[] phrase);
+    public native boolean signTransaction (BRCoreTransaction transaction, byte[] phrase);
 
     public native boolean containsTransaction (BRCoreTransaction transaction);
 

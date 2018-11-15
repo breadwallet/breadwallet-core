@@ -83,7 +83,7 @@ public class BRCoreWalletManager implements
 
     protected BRCoreWallet createWallet () {
         try {
-            return new BRCoreWallet(loadTransactions(), masterPubKey,
+            return new BRCoreWallet(loadTransactions(), masterPubKey, getForkId(),
                     createWalletListener());
         }
         catch (BRCoreWallet.WalletExecption ex) {
@@ -170,7 +170,7 @@ public class BRCoreWalletManager implements
      * @return the transaction hash
      */
     public byte[] signAndPublishTransaction (BRCoreTransaction transaction, byte[] phrase) {
-        getWallet().signTransaction(transaction, getForkId(), phrase);
+        getWallet().signTransaction(transaction, phrase);
         getPeerManager().publishTransaction(transaction);
         return transaction.getHash();
     }
