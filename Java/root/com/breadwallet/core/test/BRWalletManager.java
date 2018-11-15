@@ -542,7 +542,13 @@ public class BRWalletManager extends BRCoreWalletManager {
 
         asserting (transactionSerialized.length != 0);
 
-        BRCoreTransaction transactionFromSerialized = new BRCoreTransaction(transactionSerialized);
+        BRCoreTransaction transactionFromSerialized = null;
+        try {
+            transactionFromSerialized = new BRCoreTransaction(transactionSerialized);
+        }
+        catch (BRCoreTransaction.FailedToParse ex) {
+            asserting (false);
+        }
 
         asserting (transactionFromSerialized.getInputs().length == 1
                 && transactionFromSerialized.getOutputs().length == 2);
@@ -560,7 +566,11 @@ public class BRWalletManager extends BRCoreWalletManager {
 //        asserting (address.stringify().equals(sigAddress.stringify()));
 
         transactionSerialized = transaction.serialize();
-        transactionFromSerialized = new BRCoreTransaction (transactionSerialized);
+        try {
+            transactionFromSerialized = new BRCoreTransaction(transactionSerialized);
+        } catch (BRCoreTransaction.FailedToParse ex) {
+                asserting (false);
+        }
         asserting (transactionFromSerialized.isSigned());
 
         asserting (Arrays.equals(transactionSerialized, transactionFromSerialized.serialize()));
