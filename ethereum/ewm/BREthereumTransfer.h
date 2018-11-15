@@ -64,6 +64,11 @@ feeBasisGetGasPrice (BREthereumFeeBasis basis) {
     return (FEE_BASIS_GAS == basis.type ? basis.u.gas.price : gasPriceCreate(etherCreateZero()));
 }
 
+typedef enum  {
+    TRANSFER_BASIS_TRANSACTION,
+    TRANSFER_BASIS_LOG
+} BREthereumTransferBasisType;
+
 /**
  * Transfer Create
  */
@@ -71,10 +76,12 @@ extern BREthereumTransfer
 transferCreate (BREthereumAddress sourceAddress,
                 BREthereumAddress targetAddress,
                 BREthereumAmount amount,
-                BREthereumFeeBasis feeBasis);
+                BREthereumFeeBasis feeBasis,
+                BREthereumTransferBasisType transferBasisType);
 
 extern BREthereumTransfer
-transferCreateWithTransactionOriginating (OwnershipGiven BREthereumTransaction transaction);
+transferCreateWithTransactionOriginating (OwnershipGiven BREthereumTransaction transaction,
+                                          BREthereumTransferBasisType transferBasisType);
 
 extern BREthereumTransfer
 transferCreateWithTransaction (OwnershipGiven BREthereumTransaction transaction);
@@ -171,24 +178,36 @@ extern BREthereumComparison
 transferCompare (BREthereumTransfer t1,
                  BREthereumTransfer t2);
 
+extern void
+transferSetBasisForTransaction (BREthereumTransfer transfer,
+                                BREthereumTransaction transaction);
+
+extern void
+transferSetBasisForLog (BREthereumTransfer transfer,
+                        BREthereumLog log);
+
 //
 //
 //
 extern void
-transferUpdateStatus (BREthereumTransfer transfer,
-                      BREthereumTransactionStatus status);
+transferSetStatusForBasis (BREthereumTransfer transfer,
+                           BREthereumTransactionStatus status);
 
-extern BREthereumTransferStatusType
-transferGetStatusType (BREthereumTransfer transfer);
+extern void
+transferSetStatus (BREthereumTransfer transfer,
+                   BREthereumTransferStatus status);
+
+extern BREthereumTransferStatus
+transferGetStatus (BREthereumTransfer transfer);
 
 extern BREthereumBoolean
-transferHasStatusType (BREthereumTransfer transfer,
-                       BREthereumTransferStatusType type);
+transferHasStatus (BREthereumTransfer transfer,
+                       BREthereumTransferStatus type);
 
 extern BREthereumBoolean
-transferHasStatusTypeOrTwo (BREthereumTransfer transfer,
-                            BREthereumTransferStatusType type1,
-                            BREthereumTransferStatusType type2);
+transferHasStatusOrTwo (BREthereumTransfer transfer,
+                            BREthereumTransferStatus type1,
+                            BREthereumTransferStatus type2);
 
 
 extern int

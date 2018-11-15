@@ -345,18 +345,22 @@ public struct EthereumTransfer : EthereumReferenceWithDefaultUnit {
     // State
     public enum State : CustomStringConvertible {
         case created
-        case signed
         case submitted
         case included
         case errored
+        case cancelled
+        case replaced
+        case deleted
 
-        init (_ event: BREthereumTransferStatusType) {
+        init (_ event: BREthereumTransferStatus) {
             switch (event) {
             case TRANSFER_STATUS_CREATED: self = .created
-            case TRANSFER_STATUS_SIGNED: self = .signed
             case TRANSFER_STATUS_SUBMITTED: self = .submitted
             case TRANSFER_STATUS_INCLUDED: self = .included
             case TRANSFER_STATUS_ERRORED: self = .errored
+            case TRANSFER_STATUS_CANCELLED: self = .cancelled
+            case TRANSFER_STATUS_REPLACED: self = .replaced
+            case TRANSFER_STATUS_DELETED: self = .deleted
             default: self = .created
             }
         }
@@ -364,10 +368,12 @@ public struct EthereumTransfer : EthereumReferenceWithDefaultUnit {
         public var description: String {
             switch self {
             case .created: return "created"
-            case .signed:  return "signed"
             case .submitted: return "submitted"
             case .included:  return "included"
             case .errored:   return "errored"
+            case .cancelled: return "cancelled"
+            case .replaced: return "replaced"
+            case .deleted: return "deleted"
             }
         }
     }
@@ -417,7 +423,7 @@ public struct EthereumWallet : EthereumReferenceWithDefaultUnit, Hashable {
 
     let account : EthereumAccount
     let network : EthereumNetwork
-    let token   : EthereumToken?
+    public let token   : EthereumToken?
 
     public var name : String {
         return token?.symbol ?? "ETH"
@@ -550,9 +556,17 @@ public struct EthereumWallet : EthereumReferenceWithDefaultUnit, Hashable {
 //        ethereumWalletSubmitTransferAgain(self.ewm!.core, self.identifier, transfer.identifier, paperKey)
 //    }
 
+    public func canCancelTransfer (transfer: EthereumTransfer) -> Bool {
+        return ETHEREUM_BOOLEAN_TRUE == ethereumWalletCanCancelTransfer (self.ewm!.core, self.identifier, transfer.identifier)
+    }
+
     public func createTransferToCancel (transfer: EthereumTransfer) -> EthereumTransfer {
         let tid = ethereumWalletCreateTransferToCancel (self.ewm!.core, self.identifier, transfer.identifier);
         return EthereumTransfer (ewm: self.ewm!, identifier: tid)
+    }
+
+    public func canReplaceTransfer (transfer: EthereumTransfer) -> Bool {
+        return ETHEREUM_BOOLEAN_TRUE == ethereumWalletCanReplaceTransfer (self.ewm!.core, self.identifier, transfer.identifier)
     }
 
     public func createTransferToReplace (transfer: EthereumTransfer,

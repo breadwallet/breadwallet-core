@@ -33,10 +33,12 @@ class TransferViewController: UIViewController {
         guard let state = transfer?.state else { return UIColor.black }
         switch state {
         case .created: return UIColor.gray
-        case .signed: return UIColor.blue
         case .submitted: return UIColor.yellow
         case .included: return UIColor.green
         case .errored:  return UIColor.red
+        case .cancelled: return UIColor.blue
+        case .replaced: return UIColor.blue
+        case .deleted: return UIColor.black
         }
     }
 
@@ -50,13 +52,14 @@ class TransferViewController: UIViewController {
 
     func updateView () {
         let address = UIApplication.sharedClient.node.address
+        let hash = transfer.hash
 
         amountLabel.text = canonicalAmount(transfer.amount, sign: (address == transfer.sourceAddress ? "-" : "+"), symbol: transfer.amount.symbol);
-        feeLabel.text = canonicalAmount(transfer.fee, sign: "", symbol: "ETH")
+        feeLabel.text  = canonicalAmount(transfer.fee, sign: "", symbol: "ETH")
         dateLabel.text = "TBD"
         sendLabel.text = transfer.sourceAddress
         recvLabel.text = transfer.targetAddress
-        identifierLabel.text = transfer.hash
+        identifierLabel.text = hash.hasPrefix("0x000") ? "<pending>" : hash
         confLabel.text = transfer.confirmationBlockNumber.map { "Yes @ \($0.description)" } ?? "No"
         if let errorReason = transfer.stateErrorReason {
             stateLabel.text = "\(transfer.state.description): \(errorReason)"
@@ -65,10 +68,10 @@ class TransferViewController: UIViewController {
 
         switch transfer.state {
         case .errored:
-            cancelButton.isEnabled = true
-            resubmitButton.isEnabled = true
+            cancelButton.isEnabled   = wallet.canCancelTransfer(transfer: transfer)
+            resubmitButton.isEnabled = wallet.canReplaceTransfer(transfer: transfer)
         default:
-            cancelButton.isEnabled = false
+            cancelButton.isEnabled   = false
             resubmitButton.isEnabled = false
        }
 

@@ -51,7 +51,7 @@ typedef struct {
     uint8_t bytes[ETHEREUM_HASH_BYTES];
 } BREthereumHash;
 
-#define EMPTY_HASH_INIT   { \
+#define EMPTY_HASH_INIT   (BREthereumHash) { \
 0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0, \
 0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0  \
 }

@@ -1521,13 +1521,14 @@ bcsHandleBlockBody (BREthereumBCS bcs,
             eth_log("BCS", "Bodies %" PRIu64 " Found Transaction at %d",
                     blockGetNumber(block), i);
 
-            // We'll need a copy of the transation as this transaction will be added to the
-            // transaction status - which must be distinct from the block transactions.
+            // We'll need a copy of the transaction as the orginal transaction is held in `block`
+            // and this transaction (the copy) will go into `needTransactions` for 'block status'
+            // reporting.
             tx = transactionCopy(tx);
 
             // Fill-out the status.  Note that gasUsed is zero.  When this block is chained
             // we'll request the TxStatus so we can get a valid gasUsed value.
-            transactionSetStatus(tx, transactionStatusCreateIncluded (gasCreate(0),
+            transactionSetStatus(tx, transactionStatusCreateIncluded (transactionGetGasLimit(tx), // gasCreate(0),
                                                                       blockGetHash(block),
                                                                       blockGetNumber(block),
                                                                       i));

@@ -32,10 +32,12 @@ class TransferTableViewCell: UITableViewCell {
         guard let state = transfer?.state else { return UIColor.black }
         switch state {
         case .created: return UIColor.gray
-        case .signed: return UIColor.blue
         case .submitted: return UIColor.yellow
         case .included: return UIColor.green
         case .errored:  return UIColor.red
+        case .cancelled: return UIColor.blue
+        case .replaced: return UIColor.blue
+        case .deleted: return UIColor.black
         }
     }
     func canonicalAmount (_ amount: EthereumAmount, sign: String, symbol: String) -> String {
@@ -49,12 +51,14 @@ class TransferTableViewCell: UITableViewCell {
     func updateView () {
         if let transfer = transfer {
             let source = transfer.sourceAddress
-            let target = transfer.targetAddress
+//          let target = transfer.targetAddress
             let address = UIApplication.sharedClient.node.address
             let date = "... 2018 ..."
+            let hash = transfer.hash
             dateLabel.text = "\(address == source ? "Send" : "Recv"): \(date)"
 //            addrLabel.text = "Addr: \(address == source ? target : source)"
-            addrLabel.text = "Hash: \(transfer.hash)"
+
+            addrLabel.text = "Hash: \(hash.hasPrefix("0x000") ? "<pending>" : hash)"
             amountLabel.text = canonicalAmount(transfer.amount, sign: (address == source ? "-" : "+"), symbol: transfer.amount.symbol);
             feeLabel.text = "Fee: \(canonicalAmount(transfer.fee, sign: "", symbol: "ETH"))"
             dotView.mainColor = colorForState()

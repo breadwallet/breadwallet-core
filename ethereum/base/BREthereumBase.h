@@ -143,9 +143,6 @@ typedef enum {
     // Created: transfer created in local memory
     TRANSFER_STATUS_CREATED,
 
-    // Signed: transfer signed
-    TRANSFER_STATUS_SIGNED,
-
     // Submitted: transfer submitted
     TRANSFER_STATUS_SUBMITTED,
 
@@ -154,9 +151,18 @@ typedef enum {
     TRANSFER_STATUS_INCLUDED,
 
     // Error: transfer sending failed. data contains a text error message
-    TRANSFER_STATUS_ERRORED
+    TRANSFER_STATUS_ERRORED,
 
-} BREthereumTransferStatusType;
+    // Cancelled
+    TRANSFER_STATUS_CANCELLED,
+
+    // Replaced
+    TRANSFER_STATUS_REPLACED,
+
+    //
+    TRANSFER_STATUS_DELETED
+
+} BREthereumTransferStatus;
 
 
 #ifdef __cplusplus

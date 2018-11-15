@@ -1184,7 +1184,7 @@ blockReportStatusTransactionsRequest (BREthereumBlock block,
 
 extern void
 blockReportStatusTransactions (BREthereumBlock block,
-                               BREthereumTransaction *transactions) {
+                               OwnershipGiven BRArrayOf(BREthereumTransaction) transactions) {
     assert (block->status.transactionRequest == BLOCK_REQUEST_PENDING);
     block->status.transactionRequest = BLOCK_REQUEST_COMPLETE;
     block->status.transactions = transactions;

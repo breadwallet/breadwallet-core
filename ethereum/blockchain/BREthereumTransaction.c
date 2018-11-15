@@ -528,6 +528,11 @@ transactionHasStatus(BREthereumTransaction transaction,
 extern BREthereumComparison
 transactionCompare(BREthereumTransaction t1,
                    BREthereumTransaction t2) {
+
+    if (  t1 == t2) return ETHEREUM_COMPARISON_EQ;
+    if (NULL == t2) return ETHEREUM_COMPARISON_LT;
+    if (NULL == t1) return ETHEREUM_COMPARISON_GT;
+
     int t1Blocked = transactionHasStatus(t1, TRANSACTION_STATUS_INCLUDED);
     int t2Blocked = transactionHasStatus(t2, TRANSACTION_STATUS_INCLUDED);
 

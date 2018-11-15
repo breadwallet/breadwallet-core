@@ -25,6 +25,10 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated);
+
+        oneEtherButton.setEnabled (wallet.token == nil, forSegmentAt: 0)
+        oneEtherButton.selectedSegmentIndex = 1
+
         amountSlider.minimumValue = 0.0
         amountSlider.maximumValue = 0.001  //  Float (wallet.balance.amount)!
         amountSlider.value = 0.0
@@ -51,14 +55,14 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
             ? "1"
             : self.amountSlider.value.description)
 
-        let alert = UIAlertController (title: "Submit Transaction for \(amount) ETH",
+        let alert = UIAlertController (title: "Submit Transaction for \(amount) \(wallet.name)",
             message: "Are you sure?",
             preferredStyle: UIAlertController.Style.actionSheet)
 
         alert.addAction(UIAlertAction (title: "Yes", style: UIAlertAction.Style.destructive) { (action) in
             let transfer = self.wallet.createTransfer(recvAddress: self.recvField.text!,
                                                       amount: amount,
-                                                      unit: EthereumAmountUnit.defaultUnitEther,
+                                                      unit: self.wallet.unit, //  EthereumAmountUnit.defaultUnitEther,
                                                       gasPrice: self.gasPrice(),
                                                       gasPriceUnit: EthereumAmountUnit.etherWEI,
                                                       gasLimit: self.gasLimit())
@@ -129,7 +133,7 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
 
     func gasLimit () -> UInt64 {
         switch (gasLimitSegmentedController.selectedSegmentIndex) {
-        case 0: return 42000
+        case 0: return 92000
         case 1: return 21000
         case 2: return  1000
         default: return 21000

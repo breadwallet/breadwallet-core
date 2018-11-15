@@ -223,7 +223,10 @@ walletCreateTransferWithFeeBasis (BREthereumWallet wallet,
                                   BREthereumAddress recvAddress,
                                   BREthereumAmount amount,
                                   BREthereumFeeBasis feeBasis) {
-    BREthereumTransfer transfer = transferCreate (wallet->address, recvAddress, amount, feeBasis);
+    BREthereumTransfer transfer = transferCreate (wallet->address, recvAddress, amount, feeBasis,
+                                                  (NULL == wallet->token
+                                                   ? TRANSFER_BASIS_TRANSACTION
+                                                   : TRANSFER_BASIS_LOG));
     walletHandleTransfer(wallet, transfer);
     return transfer;
 }
@@ -442,10 +445,10 @@ transferPredicateAny (void *ignore,
 }
 
 extern int
-transferPredicateStatus (BREthereumTransferStatusType type,
+transferPredicateStatus (BREthereumTransferStatus status,
                             BREthereumTransfer transfer,
                             unsigned int index) {
-    return transferHasStatusType(transfer, type);
+    return transferHasStatus(transfer, status);
 }
 
 extern void
@@ -464,6 +467,17 @@ walletGetTransferByHash (BREthereumWallet wallet,
     for (int i = 0; i < array_count(wallet->transfers); i++) {
         BREthereumHash transferHash = transferGetHash(wallet->transfers[i]);
         if (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(hash, transferHash)))
+            return wallet->transfers[i];
+    }
+    return NULL;
+}
+
+extern BREthereumTransfer
+walletGetTransferByOriginatingHash (BREthereumWallet wallet,
+                                    BREthereumHash hash) {
+    for (int i = 0; i < array_count(wallet->transfers); i++) {
+        BREthereumTransaction transaction = transferGetOriginatingTransaction(wallet->transfers[i]);
+        if (NULL != transaction && ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(hash, transactionGetHash(transaction))))
             return wallet->transfers[i];
     }
     return NULL;
@@ -500,7 +514,7 @@ walletLookupTransferIndex (BREthereumWallet wallet,
 static void
 walletInsertTransferSorted (BREthereumWallet wallet,
                                BREthereumTransfer transfer) {
-    size_t index = array_count(wallet->transfers);  // if empty (unsigned int) index == 0
+    size_t index = array_count(wallet->transfers);
     for (; index > 0; index--)
         // quit if transfer is not-less-than the next in wallet
         if (ETHEREUM_COMPARISON_LT != transferCompare(transfer, wallet->transfers[index - 1]))

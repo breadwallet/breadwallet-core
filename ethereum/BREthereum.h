@@ -612,17 +612,26 @@ ethereumWalletCreateTransferWithFeeBasis (BREthereumEWM ewm,
                                           BREthereumGasPrice gasPrice,
                                           BREthereumGas gasLimit);
 
+extern BREthereumBoolean
+ethereumWalletCanCancelTransfer (BREthereumEWM ewm,
+                                 BREthereumWalletId wid,
+                                 BREthereumTransferId tid);
 extern BREthereumTransferId
 ethereumWalletCreateTransferToCancel (BREthereumEWM ewm,
                                       BREthereumWalletId wid,
                                       BREthereumTransferId tid);
 
+extern BREthereumBoolean
+ethereumWalletCanReplaceTransfer (BREthereumEWM ewm,
+                                  BREthereumWalletId wid,
+                                  BREthereumTransferId tid);
+
 extern BREthereumTransferId
 ethereumWalletCreateTransferToReplace (BREthereumEWM ewm,
                                        BREthereumWalletId wid,
                                        BREthereumTransferId tid,
-//                                       const char *recvAddress,
-//                                       BREthereumAmount amount,
+                                       //                                       const char *recvAddress,
+                                       //                                       BREthereumAmount amount,
                                        BREthereumBoolean updateGasPrice,
                                        BREthereumBoolean updateGasLimit,
                                        BREthereumBoolean updateNonce);
@@ -790,7 +799,7 @@ extern uint64_t
 ethereumTransferGetBlockConfirmations(BREthereumEWM ewm,
                                       BREthereumTransferId tid);
 
-extern BREthereumTransferStatusType
+extern BREthereumTransferStatus
 ethereumTransferGetStatus (BREthereumEWM ewm,
                            BREthereumTransferId tid);
 

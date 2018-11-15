@@ -438,8 +438,7 @@ ewmClientHandleAnnounceLog (BREthereumEWM ewm,
         case BRD_ONLY:
         case BRD_WITH_P2P_SEND: {
             // This 'announce' call is coming from the guaranteed BRD endpoint; thus we don't need to
-            // worry about the validity of the transaction - is is surely confirmed.  Is that true
-            // if newly submitted?
+            // worry about the validity of the transaction - it is surely confirmed.
 
             BREthereumLogTopic topics [bundle->topicCount];
             for (size_t index = 0; index < bundle->topicCount; index++)
@@ -451,7 +450,7 @@ ewmClientHandleAnnounceLog (BREthereumEWM ewm,
             logInitializeIdentifier(log, bundle->hash, bundle->logIndex);
 
             BREthereumTransactionStatus status =
-            transactionStatusCreateIncluded(gasCreate(0),
+            transactionStatusCreateIncluded(gasCreate(0),  // fee is in associated transaction
                                             hashCreateEmpty(),
                                             bundle->blockNumber,
                                             bundle->blockTransactionIndex);
@@ -484,18 +483,32 @@ ewmClientHandleAnnounceLog (BREthereumEWM ewm,
 // Submit Transaction
 //
 
+
+/**
+ * Submit the specfied transfer.  The transfer may represent the exchange of ETH or of TOK (an
+ * ERC20 token).  In the former the transfer's basis is a transaction; in the later a log.
+ *
+ * @param ewm ewm
+ * @param wid wid
+ & @param tid tid
+ */
 extern void // status, error
 ewmWalletSubmitTransfer(BREthereumEWM ewm,
                         BREthereumWalletId wid,
                         BREthereumTransferId tid) {
     BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
     BREthereumTransfer transfer = ewmLookupTransfer(ewm, tid);
-    // assert wallet-has-transfer
-    // assert signed
+    // assert: wallet-has-transfer
+    // assert: signed
+    // assert: originatingTransaction
 
     BREthereumTransaction transaction = transferGetOriginatingTransaction(transfer);
     BREthereumBoolean isSigned = transactionIsSigned (transaction);
 
+    // NOTE: If the transfer is for TOK, we (likely) don't have a log.  Therefore we can't tell BCS
+    // to pend on a Log.  As perhaps a function `bcsSendLog(bcs, log)` might do.  Instead on
+    // transaction callbacks we'll need to find the transfer with the log for transaction and then
+    // update the transfer's status.
 
     switch (ewm->mode) {
         case BRD_ONLY: {
@@ -618,39 +631,56 @@ ewmClientHandleTransferEvent (BREthereumEWM ewm,
                               BREthereumStatus status,
                               const char *errorDescription) {
 
+    // If `transfer` represents a token transfer that we've created/submitted, then we won't have
+    // the actual `log` until the corresponding originating transaction is included.  We won't
+    // have a hash (the log hash - based on the transaction hash + transaction index) and
+    // we won't have data (the RLP encoding of the log).  Therefore there is literally nothing
+    // to callback with `funcChangeLog`.
+    //
+    // Either we must a) create a log from the transaction (perhaps being willing to replace it
+    // once the included log exists or b) avoid announcing `funcChangeLog:CREATED` until the
+    // log is actually created....
+
     if (TRANSFER_EVENT_GAS_ESTIMATE_UPDATED != event &&
         TRANSFER_EVENT_BLOCK_CONFIRMATIONS_UPDATED != event) {
         BREthereumTransfer transfer = ewm->transfers[tid];
+
         BREthereumTransaction transaction = transferGetBasisTransaction (transfer);
         BREthereumLog log = transferGetBasisLog(transfer);
+
+        // One of `transaction` or `log` will always be null
         assert (NULL == transaction || NULL == log);
 
-        BREthereumClientChangeType type = (event == TRANSFER_EVENT_CREATED
-                                           ? CLIENT_CHANGE_ADD
-                                           : (event == TRANSFER_EVENT_DELETED
-                                              ? CLIENT_CHANGE_REM
-                                              : CLIENT_CHANGE_UPD));
+        // If both are null (typically a NULL log w/ a logBasis), do no more.
+        if (NULL != transaction || NULL != log) {
+            BREthereumClientChangeType type = (event == TRANSFER_EVENT_CREATED
+                                               ? CLIENT_CHANGE_ADD
+                                               : (event == TRANSFER_EVENT_DELETED
+                                                  ? CLIENT_CHANGE_REM
+                                                  : CLIENT_CHANGE_UPD));
 
-        BRRlpItem item = (NULL != transaction
-                          ? transactionRlpEncode (transaction, ewm->network, RLP_TYPE_ARCHIVE, ewm->coder)
-                          : logRlpEncode(log, RLP_TYPE_ARCHIVE, ewm->coder));
+            BRRlpItem item = (NULL != transaction
+                              ? transactionRlpEncode (transaction, ewm->network, RLP_TYPE_ARCHIVE, ewm->coder)
+                              : logRlpEncode(log, RLP_TYPE_ARCHIVE, ewm->coder));
 
-        BREthereumHash hash = (NULL != transaction
-                               ? transactionGetHash(transaction)
-                               : logGetHash(log));
+            BREthereumHash hash = (NULL != transaction
+                                   ? transactionGetHash(transaction)
+                                   : logGetHash(log));
 
-        // Notice the final '1' - don't release `data`...
-        BREthereumHashDataPair pair = hashDataPairCreate (hash,
-                                                          dataCreateFromRlpData(rlpGetData(ewm->coder, item), 1));
+            // Notice the final '1' - don't release `data`...
+            BREthereumHashDataPair pair =
+            hashDataPairCreate (hash, dataCreateFromRlpData(rlpGetData(ewm->coder, item), 1));
 
-        rlpReleaseItem(ewm->coder, item);
+            rlpReleaseItem(ewm->coder, item);
 
-        if (NULL != transaction)
-            ewm->client.funcChangeTransaction (ewm->client.context, ewm, type, pair);
-        else
-            ewm->client.funcChangeLog (ewm->client.context, ewm, type, pair);
+            if (NULL != transaction)
+                ewm->client.funcChangeTransaction (ewm->client.context, ewm, type, pair);
+            else
+                ewm->client.funcChangeLog (ewm->client.context, ewm, type, pair);
+        }
     }
 
+    // We will always announce the transfer
     ewm->client.funcTransferEvent (ewm->client.context,
                                    ewm,
                                    wid,
