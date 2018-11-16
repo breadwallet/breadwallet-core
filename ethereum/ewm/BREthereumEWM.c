@@ -688,9 +688,9 @@ ewmWalletCreateTransfer(BREthereumEWM ewm,
 
     pthread_mutex_lock(&ewm->lock);
 
-    BREthereumTransfer transaction = walletCreateTransfer(wallet, addressCreate(recvAddress), amount);
+    BREthereumTransfer transfer = walletCreateTransfer(wallet, addressCreate(recvAddress), amount);
 
-    tid = ewmInsertTransfer(ewm, transaction);
+    tid = ewmInsertTransfer(ewm, transfer);
     wid = ewmLookupWalletId(ewm, wallet);
 
     pthread_mutex_unlock(&ewm->lock);
@@ -724,6 +724,126 @@ ewmWalletCreateTransferWithFeeBasis (BREthereumEWM ewm,
     ewmClientSignalTransferEvent (ewm, wid, tid, TRANSFER_EVENT_CREATED, SUCCESS, NULL);
 
     return tid;
+}
+
+extern BREthereumBoolean
+ewmWalletCanCancelTransfer (BREthereumEWM ewm,
+                            BREthereumWalletId wid,
+                            BREthereumTransferId tid) {
+    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
+    BREthereumTransfer oldTransfer = ewmLookupTransfer(ewm, tid);
+    BREthereumTransaction oldTransaction = transferGetOriginatingTransaction(oldTransfer);
+
+    // TODO: Something about the 'status' (not already cancelled, etc)
+    return AS_ETHEREUM_BOOLEAN (NULL != oldTransaction);
+}
+
+extern BREthereumTransferId // status, error
+ewmWalletCreateTransferToCancel(BREthereumEWM ewm,
+                                BREthereumWalletId wid,
+                                BREthereumTransferId tid) {
+    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
+    BREthereumTransfer oldTransfer = ewmLookupTransfer(ewm, tid);
+    BREthereumTransaction oldTransaction = transferGetOriginatingTransaction(oldTransfer);
+
+    assert (NULL != oldTransaction);
+
+    int overflow;
+    BREthereumEther oldGasPrice = transactionGetGasPrice(oldTransaction).etherPerGas;
+    BREthereumEther newGasPrice = etherAdd (oldGasPrice, oldGasPrice, &overflow);
+
+    // Create a new transaction with: a) targetAddress to self (sourceAddress), b) 0 ETH, c)
+    // gasPrice increased (to replacement value).
+    BREthereumTransaction transaction =
+    transactionCreate (transactionGetSourceAddress(oldTransaction),
+                       transactionGetSourceAddress(oldTransaction),
+                       etherCreateZero(),
+                       gasPriceCreate(newGasPrice),
+                       transactionGetGasLimit(oldTransaction),
+                       strdup (transactionGetData(oldTransaction)),
+                       transactionGetNonce(oldTransaction));
+
+    transferSetStatus(oldTransfer, TRANSFER_STATUS_REPLACED);
+
+    // Delete transfer??  Update transfer??
+    BREthereumTransfer transfer = transferCreateWithTransactionOriginating (transaction,
+                                                                            (NULL == walletGetToken(wallet)
+                                                                             ? TRANSFER_BASIS_TRANSACTION
+                                                                             : TRANSFER_BASIS_LOG));
+    walletHandleTransfer(wallet, transfer);
+    return ewmInsertTransfer(ewm, transfer);
+}
+
+extern BREthereumBoolean
+ewmWalletCanReplaceTransfer (BREthereumEWM ewm,
+                             BREthereumWalletId wid,
+                             BREthereumTransferId tid) {
+    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
+    BREthereumTransfer oldTransfer = ewmLookupTransfer(ewm, tid);
+    BREthereumTransaction oldTransaction = transferGetOriginatingTransaction(oldTransfer);
+
+    // TODO: Something about the 'status' (not already replaced, etc)
+    return AS_ETHEREUM_BOOLEAN (NULL != oldTransaction);
+}
+
+extern BREthereumTransferId // status, error
+ewmWalletCreateTransferToReplace (BREthereumEWM ewm,
+                                  BREthereumWalletId wid,
+                                  BREthereumTransferId tid,
+                                  // ...
+                                  BREthereumBoolean updateGasPrice,
+                                  BREthereumBoolean updateGasLimit,
+                                  BREthereumBoolean updateNonce) {
+    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
+    BREthereumTransfer oldTransfer = ewmLookupTransfer(ewm, tid);
+    BREthereumTransaction oldTransaction = transferGetOriginatingTransaction(oldTransfer);
+
+    assert (NULL != oldTransaction);
+
+    BREthereumAccount account =  ewmGetAccount(ewm);
+    BREthereumAddress address = transactionGetSourceAddress(oldTransaction);
+
+    int overflow = 0;
+
+    // The old nonce
+    uint64_t nonce = transactionGetNonce(oldTransaction);
+    if (ETHEREUM_BOOLEAN_IS_TRUE(updateNonce)) {
+        // Nonce is 100% low.  Update the account's nonce to be at least nonce.
+        if (nonce <= accountGetAddressNonce (account, address))
+            accountSetAddressNonce (account, address, nonce + 1, ETHEREUM_BOOLEAN_TRUE);
+
+        // Nonce is surely 1 larger or more (if nonce was behind the account's nonce)
+        nonce = accountGetThenIncrementAddressNonce (account, address);
+    }
+
+    BREthereumGasPrice gasPrice = transactionGetGasPrice(oldTransaction);
+    if (ETHEREUM_BOOLEAN_IS_TRUE (updateGasPrice)) {
+        gasPrice = gasPriceCreate (etherAdd (gasPrice.etherPerGas, gasPrice.etherPerGas, &overflow)); // double
+        assert (0 == overflow);
+    }
+
+    BREthereumGas gasLimit = transactionGetGasLimit (oldTransaction);
+    if (ETHEREUM_BOOLEAN_IS_TRUE (updateGasLimit))
+        gasLimit = gasCreate (gasLimit.amountOfGas + gasLimit.amountOfGas); // double
+
+    BREthereumTransaction transaction =
+    transactionCreate (transactionGetSourceAddress(oldTransaction),
+                       transactionGetTargetAddress(oldTransaction),
+                       transactionGetAmount(oldTransaction),
+                       gasPrice,
+                       gasLimit,
+                       strdup (transactionGetData(oldTransaction)),
+                       nonce);
+
+    transferSetStatus(oldTransfer, TRANSFER_STATUS_REPLACED);
+
+    // Delete transfer??  Update transfer??
+    BREthereumTransfer transfer = transferCreateWithTransactionOriginating (transaction,
+                                                                            (NULL == walletGetToken(wallet)
+                                                                             ? TRANSFER_BASIS_TRANSACTION
+                                                                             : TRANSFER_BASIS_LOG));
+    walletHandleTransfer(wallet, transfer);
+    return ewmInsertTransfer(ewm, transfer);
 }
 
 
@@ -950,6 +1070,47 @@ ewmHandleBalance (BREthereumEWM ewm,
     pthread_mutex_unlock(&ewm->lock);
 }
 
+static void
+ewmHandleTransactionOriginatingLog (BREthereumEWM ewm,
+                                     BREthereumBCSCallbackTransactionType type,
+                                    OwnershipKept BREthereumTransaction transaction) {
+    BREthereumHash hash = transactionGetHash(transaction);
+    for (BREthereumWalletId wid = 0; wid < array_count(ewm->wallets); wid++) {
+        BREthereumWallet wallet = ewm->wallets[wid];
+        BREthereumTransfer transfer = walletGetTransferByOriginatingHash (wallet, hash);
+        if (NULL != transfer) {
+            // If this transaction is the transfer's originatingTransaction, then update the
+            // originatingTransaction's status.
+            BREthereumTransaction original = transferGetOriginatingTransaction (transfer);
+            if (NULL != original && ETHEREUM_BOOLEAN_IS_TRUE(hashEqual (transactionGetHash(original),
+                                                                        transactionGetHash(transaction))))
+                transactionSetStatus (original, transactionGetStatus(transaction));
+
+            //
+            transferSetStatusForBasis (transfer, transactionGetStatus(transaction));
+
+            // NOTE: So `transaction` applies to `transfer`.  If the transfer's basis is 'log'
+            // then we'd like to update the log's identifier.... alas, we cannot because we need
+            // the 'logIndex' and no way to get that from the originating transaction's status.
+
+            BREthereumTransferId tid = ewmLookupTransferId (ewm, transfer);
+            if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_INCLUDED)))
+                ewmClientSignalTransferEvent(ewm, wid, tid,
+                                             TRANSFER_EVENT_INCLUDED,
+                                             SUCCESS, NULL);
+
+            else if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_ERRORED))) {
+                char *reason = NULL;
+                transferExtractStatusError (transfer, &reason);
+                ewmClientSignalTransferEvent(ewm, wid, tid,
+                                             TRANSFER_EVENT_ERRORED,
+                                             ERROR_TRANSACTION_SUBMISSION,
+                                             (NULL == reason ? "" : reason));
+            }
+        }
+    }
+}
+
 extern void
 ewmHandleTransaction (BREthereumEWM ewm,
                       BREthereumBCSCallbackTransactionType type,
@@ -989,18 +1150,22 @@ ewmHandleTransaction (BREthereumEWM ewm,
     }
     else {
         tid = ewmLookupTransferId(ewm, transfer);
-//        if (transaction != transferGetBasisTransaction(transfer))
-//            transactionRelease(transaction);
+        // If this transaction is the transfer's originatingTransaction, then update the
+        // originatingTransaction's status.
+        BREthereumTransaction original = transferGetOriginatingTransaction (transfer);
+        if (NULL != original && ETHEREUM_BOOLEAN_IS_TRUE(hashEqual (transactionGetHash(original),
+                                                                    transactionGetHash(transaction))))
+            transactionSetStatus (original, transactionGetStatus(transaction));
+
+        transferSetBasisForTransaction (transfer, transaction);
     }
 
-    transferUpdateStatus (transfer, transactionGetStatus(transaction));
-
-    if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatusType (transfer, TRANSFER_STATUS_INCLUDED)))
+    if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_INCLUDED)))
         ewmClientSignalTransferEvent(ewm, wid, tid,
                                      TRANSFER_EVENT_INCLUDED,
                                      SUCCESS, NULL);
 
-    else if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatusType (transfer, TRANSFER_STATUS_ERRORED))) {
+    else if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_ERRORED))) {
         char *reason = NULL;
         transferExtractStatusError (transfer, &reason);
         ewmClientSignalTransferEvent(ewm, wid, tid,
@@ -1009,6 +1174,8 @@ ewmHandleTransaction (BREthereumEWM ewm,
                                      (NULL == reason ? "" : reason));
         // free (reason)
     }
+
+    ewmHandleTransactionOriginatingLog (ewm, type, transaction);
 }
 
 extern void
@@ -1057,17 +1224,15 @@ ewmHandleLog (BREthereumEWM ewm,
     }
     else {
         tid = ewmLookupTransferId(ewm, transfer);
-        if (log != transferGetBasisLog(transfer))
-            logRelease(log);
+        transferSetBasisForLog (transfer, log);
     }
 
-
-    if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatusType (transfer, TRANSFER_STATUS_INCLUDED)))
+    if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_INCLUDED)))
         ewmClientSignalTransferEvent(ewm, wid, tid,
                                      TRANSFER_EVENT_INCLUDED,
                                      SUCCESS, NULL);
 
-    else if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatusType (transfer, TRANSFER_STATUS_ERRORED))) {
+    else if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_ERRORED))) {
         char *reason = NULL;
         transferExtractStatusError (transfer, &reason);
         ewmClientSignalTransferEvent(ewm, wid, tid,

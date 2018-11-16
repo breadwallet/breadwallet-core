@@ -62,7 +62,8 @@ class WalletViewController: UITableViewController, TransferListener {
             if let indexPath = tableView.indexPathForSelectedRow {
                 let transfer = transfers[indexPath.row]
                 let controller = (segue.destination as! UINavigationController).topViewController as! TransferViewController
-                controller.transfer = transfer;
+                controller.wallet = wallet
+                controller.transfer = transfer
                 controller.navigationItem.leftBarButtonItem = splitViewController?.displayModeButtonItem
                 controller.navigationItem.leftItemsSupplementBackButton = true
             }
@@ -78,7 +79,7 @@ class WalletViewController: UITableViewController, TransferListener {
 
      override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TransferCell", for: indexPath) as! TransferTableViewCell
-        let transfer = transfers[indexPath.row];
+        let transfer = transfers[indexPath.row]
 
         cell.transfer = transfer
         cell.updateView()

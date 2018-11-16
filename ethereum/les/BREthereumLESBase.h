@@ -96,6 +96,22 @@
  */
 #define P2P_MESSAGE_VERSION     0x04
 
+// The number of nodes the should be maintained as 'active' (aka 'connected').  Once connected we
+// will get announcements of new blocks.  When a transaction is submitted we'll submit it to *all*
+// active nodes.  We will need multiple active nodes for submissions as we *routinely* see nodes
+// simply dropping submission outright, quietly.
+#define LES_ACTIVE_NODE_COUNT 4
+
+// For a request with a nodeIndex that is not LES_PREFERRED_NODE_INDEX, the intention is to send
+// the same message multiple times.  If the message was to be sent to 3 nodes, but only two are
+// connected, how many times should the message be sent and to what nodes?  If the following,
+// LES_WRAP_SEND_WHEN_MULTIPLE_INDEX, is '1' when we'll send 3 times, including multiple times.  If
+// the following is '0' then we'll multiple times up to the number of connected nodes.
+//
+// TODO: Unused
+#define LES_WRAP_SEND_WHEN_MULTIPLE_INDEX    1
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -612,6 +612,30 @@ ethereumWalletCreateTransferWithFeeBasis (BREthereumEWM ewm,
                                           BREthereumGasPrice gasPrice,
                                           BREthereumGas gasLimit);
 
+extern BREthereumBoolean
+ethereumWalletCanCancelTransfer (BREthereumEWM ewm,
+                                 BREthereumWalletId wid,
+                                 BREthereumTransferId tid);
+extern BREthereumTransferId
+ethereumWalletCreateTransferToCancel (BREthereumEWM ewm,
+                                      BREthereumWalletId wid,
+                                      BREthereumTransferId tid);
+
+extern BREthereumBoolean
+ethereumWalletCanReplaceTransfer (BREthereumEWM ewm,
+                                  BREthereumWalletId wid,
+                                  BREthereumTransferId tid);
+
+extern BREthereumTransferId
+ethereumWalletCreateTransferToReplace (BREthereumEWM ewm,
+                                       BREthereumWalletId wid,
+                                       BREthereumTransferId tid,
+                                       //                                       const char *recvAddress,
+                                       //                                       BREthereumAmount amount,
+                                       BREthereumBoolean updateGasPrice,
+                                       BREthereumBoolean updateGasLimit,
+                                       BREthereumBoolean updateNonce);
+
 /**
  * Sign the transaction using the wallet's account (for the sender's address).  The paperKey
  * is used to 'lookup' the private key.
@@ -637,6 +661,18 @@ extern void
 ethereumWalletSubmitTransfer(BREthereumEWM ewm,
                              BREthereumWalletId wid,
                              BREthereumTransferId tid);
+
+//extern void
+//ethereumWalletSubmitTransferCancel (BREthereumEWM ewm,
+//                                    BREthereumWalletId wid,
+//                                    BREthereumTransferId tid,
+//                                    const char *paperKey);
+//
+//extern void
+//ethereumWalletSubmitTransferAgain (BREthereumEWM ewm,
+//                                   BREthereumWalletId wid,
+//                                   BREthereumTransferId tid,
+//                                   const char *paperKey);
 
 /**
  * Returns a -1 terminated array of treansfer identifiers.
@@ -763,7 +799,7 @@ extern uint64_t
 ethereumTransferGetBlockConfirmations(BREthereumEWM ewm,
                                       BREthereumTransferId tid);
 
-extern BREthereumTransferStatusType
+extern BREthereumTransferStatus
 ethereumTransferGetStatus (BREthereumEWM ewm,
                            BREthereumTransferId tid);
 
@@ -778,6 +814,10 @@ ethereumTransferIsSubmitted(BREthereumEWM ewm,
 extern char *
 ethereumTransferStatusGetError (BREthereumEWM ewm,
                                 BREthereumTransferId tid);
+
+extern int
+ethereumTransferStatusGetErrorType (BREthereumEWM ewm,
+                                    BREthereumTransferId tid);
 
 extern BREthereumBoolean
 ethereumTransferHoldsToken(BREthereumEWM ewm,

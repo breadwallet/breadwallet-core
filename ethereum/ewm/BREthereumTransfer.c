@@ -37,70 +37,50 @@ transferProvideOriginatingTransaction (BREthereumTransfer transfer);
 //
 // MARK: - Status
 //
-#define TRANSFER_STATUS_DETAIL_BYTES   \
-(sizeof (BREthereumGas) + sizeof (BREthereumHash) + 2 * sizeof(uint64_t))
-
-typedef struct BREthereumTransferStatusRecord {
-    BREthereumTransferStatusType type;
-    union {
-        struct {
-            BREthereumGas gasUsed;      // Internal
-            BREthereumHash blockHash;
-            uint64_t blockNumber;
-            uint64_t transactionIndex;
-        } included;
-        
-        struct {
-            BREthereumTransactionErrorType type;
-            char detail[TRANSFER_STATUS_DETAIL_BYTES + 1];
-        } errored;
-    } u;
-} BREthereumTransferStatus;
+//#define TRANSFER_STATUS_DETAIL_BYTES   \
+//(sizeof (BREthereumGas) + sizeof (BREthereumHash) + 2 * sizeof(uint64_t))
+//
+//typedef struct BREthereumTransferStatusRecord {
+//    BREthereumTransferStatusType type;
+//    union {
+//        struct {
+//            BREthereumGas gasUsed;      // Internal
+//            BREthereumHash blockHash;
+//            uint64_t blockNumber;
+//            uint64_t transactionIndex;
+//        } included;
+//
+//        struct {
+//            BREthereumTransactionErrorType type;
+//            char detail[TRANSFER_STATUS_DETAIL_BYTES + 1];
+//        } errored;
+//    } u;
+//} BREthereumTransferStatus;
 
 extern BREthereumTransferStatus
 transferStatusCreate (BREthereumTransactionStatus status) {
-    BREthereumTransferStatus result;
-
     switch (status.type) {
         case TRANSACTION_STATUS_UNKNOWN:
-            result.type = TRANSFER_STATUS_CREATED;
-            break;
+            return TRANSFER_STATUS_CREATED;
 
         case TRANSACTION_STATUS_QUEUED:
         case TRANSACTION_STATUS_PENDING:
-            result.type = TRANSFER_STATUS_SUBMITTED;
-            break;
+            return TRANSFER_STATUS_SUBMITTED;
 
         case TRANSACTION_STATUS_INCLUDED:
-            result.type = TRANSFER_STATUS_INCLUDED;
-            result.u.included.gasUsed = status.u.included.gasUsed;
-            result.u.included.blockHash = status.u.included.blockHash;
-            result.u.included.blockNumber = status.u.included.blockNumber;
-            result.u.included.transactionIndex = status.u.included.transactionIndex;
-            break;
+            return TRANSFER_STATUS_INCLUDED;
 
         case TRANSACTION_STATUS_ERRORED:
-            result.type = TRANSFER_STATUS_ERRORED;
-            result.u.errored.type = status.u.errored.type;
-            memset (result.u.errored.detail, 0, TRANSFER_STATUS_DETAIL_BYTES + 1);
-            strncpy (result.u.errored.detail, status.u.errored.detail, TRANSFER_STATUS_DETAIL_BYTES);
-            break;
+            return TRANSFER_STATUS_ERRORED;
 
         default:
-            result.type = TRANSFER_STATUS_CREATED;
-            break;
+            return TRANSFER_STATUS_CREATED;
     }
-    return result;
 }
 
 //
 // MARK: Basis
 //
-typedef enum  {
-    TRANSFER_BASIS_TRANSACTION,
-    TRANSFER_BASIS_LOG
-} BREthereumTransferBasisType;
-
 typedef struct {
     BREthereumTransferBasisType type;
     union {
@@ -163,6 +143,9 @@ transferCreateDetailed (BREthereumAddress sourceAddress,
     transfer->feeBasis = feeBasis;
     transfer->gasEstimate = gasCreate(0);
     transfer->originatingTransaction = originatingTransaction;
+    transfer->status = TRANSFER_STATUS_CREATED;
+
+    // NOTE: transfer->basis is unassigned; hence this function is 'static'.
 
     return transfer;
 }
@@ -171,7 +154,8 @@ extern BREthereumTransfer
 transferCreate (BREthereumAddress sourceAddress,
                 BREthereumAddress targetAddress,
                 BREthereumAmount amount,
-                BREthereumFeeBasis feeBasis) {
+                BREthereumFeeBasis feeBasis,
+                BREthereumTransferBasisType transferBasisType) {
     BREthereumTransfer transfer = transferCreateDetailed(sourceAddress,
                                                          targetAddress,
                                                          amount,
@@ -181,11 +165,69 @@ transferCreate (BREthereumAddress sourceAddress,
     transferProvideOriginatingTransaction(transfer);
 
     // Basis
-    transfer->basis.type = TRANSFER_BASIS_TRANSACTION;
-    transfer->basis.u.transaction = transfer->originatingTransaction;
+    switch (transferBasisType) {
+        case TRANSFER_BASIS_TRANSACTION:
+            transfer->basis = (BREthereumTransferBasis) {
+                TRANSFER_BASIS_TRANSACTION,
+                { .transaction = transfer->originatingTransaction }
+            };
+            break;
+        case TRANSFER_BASIS_LOG:
+            // We cannot possibly know what the log is; knowing would require us to implement
+            // the Ethereum virtual machine.  Granted we are only creating ERC20 transfers and
+            // thus could compute the log?
+            transfer->basis = (BREthereumTransferBasis) {
+                TRANSFER_BASIS_LOG,
+                { .log = NULL }
+            };
+            break;
+    }
 
     // Status
     transfer->status = transferStatusCreate(transactionGetStatus(transfer->originatingTransaction));
+    return transfer;
+}
+
+// TODO: Is this `transaction` the basis?  Used for 'cancel' - how to cancel a token transfer?
+extern BREthereumTransfer
+transferCreateWithTransactionOriginating (OwnershipGiven BREthereumTransaction transaction,
+                                          BREthereumTransferBasisType transferBasisType) {
+    BREthereumFeeBasis feeBasis = {
+        FEE_BASIS_GAS,
+        { .gas = {
+            transactionGetGasLimit(transaction),
+            transactionGetGasPrice(transaction)
+        }}
+    };
+
+    // No originating transaction
+    BREthereumTransfer transfer = transferCreateDetailed (transactionGetSourceAddress(transaction),
+                                                          transactionGetTargetAddress(transaction),
+                                                          amountCreateEther (transactionGetAmount(transaction)),
+                                                          feeBasis,
+                                                          transaction);
+    // Basis
+    switch (transferBasisType) {
+        case TRANSFER_BASIS_TRANSACTION:
+            transfer->basis = (BREthereumTransferBasis) {
+                TRANSFER_BASIS_TRANSACTION,
+                { .transaction = transaction}
+            };
+            break;
+        case TRANSFER_BASIS_LOG:
+            // We cannot possibly know what the log is; knowing would require us to implement
+            // the Ethereum virtual machine.  Granted we are only creating ERC20 transfers and
+            // thus could compute the log?
+           transfer->basis = (BREthereumTransferBasis) {
+                TRANSFER_BASIS_LOG,
+                { .log = NULL}
+            };
+            break;
+    }
+
+    // Status
+    transfer->status = transferStatusCreate(transactionGetStatus(transaction));
+
     return transfer;
 }
 
@@ -206,8 +248,7 @@ transferCreateWithTransaction (OwnershipGiven BREthereumTransaction transaction)
                                                           feeBasis,
                                                           NULL);
     // Basis
-    transfer->basis.type = TRANSFER_BASIS_TRANSACTION;
-    transfer->basis.u.transaction = transaction;
+    transfer->basis = (BREthereumTransferBasis) { TRANSFER_BASIS_TRANSACTION, { .transaction = transaction }};
 
     // Status
     transfer->status = transferStatusCreate(transactionGetStatus(transaction));
@@ -242,8 +283,7 @@ transferCreateWithLog (OwnershipGiven BREthereumLog log,
                                                           feeBasis,
                                                           NULL);
     // Basis
-    transfer->basis.type = TRANSFER_BASIS_LOG;
-    transfer->basis.u.log = log;
+    transfer->basis = (BREthereumTransferBasis) { TRANSFER_BASIS_LOG, { .log = log }};
 
     // Status
     transfer->status = transferStatusCreate(logGetStatus(log));
@@ -408,9 +448,9 @@ extern const BREthereumHash
 transferGetHash (BREthereumTransfer transfer) {
     switch (transfer->basis.type) {
         case TRANSFER_BASIS_TRANSACTION:
-            return transactionGetHash(transfer->basis.u.transaction);
+            return (NULL == transfer->basis.u.transaction ? EMPTY_HASH_INIT : transactionGetHash(transfer->basis.u.transaction));
         case TRANSFER_BASIS_LOG:
-            return logGetHash(transfer->basis.u.log);
+            return (NULL == transfer->basis.u.log ? EMPTY_HASH_INIT : logGetHash(transfer->basis.u.log));
     }
 }
 
@@ -435,40 +475,99 @@ transferGetFee (BREthereumTransfer transfer, int *overflow) {
 }
 
 ///
-/// MARK: - Status
+/// MARK: - Basis
 ///
-extern void
-transferUpdateStatus (BREthereumTransfer transfer,
-                      BREthereumTransactionStatus status) {
-    switch (transfer->basis.type){
+static void
+transferReleaseBasis (BREthereumTransfer transfer) {
+    switch (transfer->basis.type) {
+
         case TRANSFER_BASIS_TRANSACTION:
-            transactionSetStatus (transfer->basis.u.transaction, status);
+//            if (NULL != transfer->basis.u.transaction)
+//                transactionRelease (transfer->basis.u.transaction);
             break;
+
         case TRANSFER_BASIS_LOG:
-            logSetStatus (transfer->basis.u.log, status);
+//            if (NULL != transfer->basis.u.log)
+//                logRelease (transfer->basis.u.log);
             break;
     }
+}
 
+extern void
+transferSetBasisForTransaction (BREthereumTransfer transfer,
+                                OwnershipGiven BREthereumTransaction transaction) {
+    if (TRANSFER_BASIS_TRANSACTION == transfer->basis.type && transfer->basis.u.transaction != transaction)
+        transferReleaseBasis (transfer);
+
+    transfer->basis = (BREthereumTransferBasis) {
+        TRANSFER_BASIS_TRANSACTION,
+        { .transaction = transaction }
+    };
+    transfer->status = transferStatusCreate (transactionGetStatus(transaction));
+}
+
+extern void
+transferSetBasisForLog (BREthereumTransfer transfer,
+                        OwnershipGiven BREthereumLog log) {
+    if (TRANSFER_BASIS_LOG == transfer->basis.type && transfer->basis.u.log != log)
+        transferReleaseBasis (transfer);
+
+    transfer->basis = (BREthereumTransferBasis) {
+        TRANSFER_BASIS_LOG,
+        { .log = log }
+    };
+    transfer->status = transferStatusCreate (logGetStatus(log));
+}
+
+///
+/// MARK: - Status
+///
+static BREthereumTransactionStatus
+transferGetStatusForBasis (BREthereumTransfer transfer) {
+    switch (transfer->basis.type) {
+        case TRANSFER_BASIS_TRANSACTION:
+            assert (NULL != transfer->basis.u.transaction || NULL != transfer->originatingTransaction);
+            return (NULL != transfer->basis.u.transaction
+                    ? transactionGetStatus (transfer->basis.u.transaction)
+                    : transactionGetStatus (transfer->originatingTransaction));
+
+        case TRANSFER_BASIS_LOG:
+            assert (NULL != transfer->basis.u.log || NULL != transfer->originatingTransaction);
+            return (NULL != transfer->basis.u.log
+                    ? logGetStatus (transfer->basis.u.log)
+                    : transactionGetStatus (transfer->originatingTransaction));
+    }
+}
+
+extern void
+transferSetStatusForBasis (BREthereumTransfer transfer,
+                           BREthereumTransactionStatus status) {
     transfer->status = transferStatusCreate(status);
 }
 
-extern BREthereumTransferStatusType
-transferGetStatusType (BREthereumTransfer transfer) {
-    return transfer->status.type;
+extern void
+transferSetStatus (BREthereumTransfer transfer,
+                   BREthereumTransferStatus status) {
+    transfer->status = status;
+}
+
+extern BREthereumTransferStatus
+transferGetStatus (BREthereumTransfer transfer) {
+    return transfer->status;
 }
 
 extern BREthereumBoolean
-transferHasStatusType (BREthereumTransfer transfer,
-                       BREthereumTransferStatusType type) {
-    return AS_ETHEREUM_BOOLEAN(transfer->status.type == type);
+transferHasStatus (BREthereumTransfer transfer,
+                       BREthereumTransferStatus type) {
+    return AS_ETHEREUM_BOOLEAN(transfer->status == type);
 }
 
 extern BREthereumBoolean
-transferHasStatusTypeOrTwo (BREthereumTransfer transfer,
-                            BREthereumTransferStatusType type1,
-                            BREthereumTransferStatusType type2) {
-    return AS_ETHEREUM_BOOLEAN(transfer->status.type == type1 ||
-                               transfer->status.type == type2);
+transferHasStatusOrTwo (BREthereumTransfer transfer,
+                            BREthereumTransferStatus type1,
+                            BREthereumTransferStatus type2) {
+    return AS_ETHEREUM_BOOLEAN(transfer->status == type1 ||
+                               transfer->status == type2);
 }
 
 extern int
@@ -477,12 +576,13 @@ transferExtractStatusIncluded (BREthereumTransfer transfer,
                                BREthereumHash *blockHash,
                                uint64_t *blockNumber,
                                uint64_t *transactionIndex) {
-    if (TRANSFER_STATUS_INCLUDED != transfer->status.type) return 0;
+    if (TRANSFER_STATUS_INCLUDED != transfer->status) return 0;
 
-    if (NULL != gasUsed) *gasUsed = transfer->status.u.included.gasUsed;
-    if (NULL != blockHash) *blockHash = transfer->status.u.included.blockHash;
-    if (NULL != blockNumber) *blockNumber = transfer->status.u.included.blockNumber;
-    if (NULL != transactionIndex) *transactionIndex = transfer->status.u.included.transactionIndex;
+    BREthereumTransactionStatus status = transferGetStatusForBasis (transfer);
+    if (NULL != gasUsed) *gasUsed = status.u.included.gasUsed;
+    if (NULL != blockHash) *blockHash = status.u.included.blockHash;
+    if (NULL != blockNumber) *blockNumber = status.u.included.blockNumber;
+    if (NULL != transactionIndex) *transactionIndex = status.u.included.transactionIndex;
     
     return 1;
 }
@@ -490,10 +590,22 @@ transferExtractStatusIncluded (BREthereumTransfer transfer,
 extern int
 transferExtractStatusError (BREthereumTransfer transfer,
                             char **reason) {
-    if (TRANSFER_STATUS_ERRORED != transfer->status.type) return 0;
+    if (TRANSFER_STATUS_ERRORED != transfer->status) return 0;
+
+    BREthereumTransactionStatus status = transferGetStatusForBasis (transfer);
+    if (NULL != reason) *reason = strdup (transactionGetErrorName (status.u.errored.type));
     
-    if (NULL != reason) *reason = strdup (transactionGetErrorName (transfer->status.u.errored.type));
-    
+    return 1;
+}
+
+extern int
+transferExtractStatusErrorType (BREthereumTransfer transfer,
+                                BREthereumTransactionErrorType *type) {
+    if (TRANSFER_STATUS_ERRORED != transfer->status) return 0;
+
+    BREthereumTransactionStatus status = transferGetStatusForBasis (transfer);
+    if (NULL != type) *type = status.u.errored.type;
+
     return 1;
 }
 

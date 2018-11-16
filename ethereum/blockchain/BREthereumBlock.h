@@ -408,7 +408,7 @@ blockReportStatusTransactionsRequest (BREthereumBlock block,
  */
 extern void
 blockReportStatusTransactions (BREthereumBlock block,
-                               BRArrayOf(BREthereumTransaction) transactions);
+                               OwnershipGiven BRArrayOf(BREthereumTransaction) transactions);
 
 extern void
 blockReportStatusGasUsed (BREthereumBlock block,
@@ -431,7 +431,7 @@ blockReportStatusLogsRequest (BREthereumBlock block,
  */
 extern void
 blockReportStatusLogs (BREthereumBlock block,
-                       BRArrayOf(BREthereumLog) log);
+                       OwnershipGiven  BRArrayOf(BREthereumLog) log);
 
 
 //

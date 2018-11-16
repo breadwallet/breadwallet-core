@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="14313.18" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="H1p-Uh-vWS">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="14460.31" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="H1p-Uh-vWS">
     <device id="retina4_7" orientation="portrait">
         <adaptation id="fullscreen"/>
     </device>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="14283.14"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="14460.20"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -29,7 +29,7 @@
         <!--Transfer Detail-->
         <scene sceneID="fFB-71-wSO">
             <objects>
-                <viewController id="hSS-q9-i3e" customClass="TransferViewController" customModule="CoreDemo" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController id="hSS-q9-i3e" customClass="TransferViewController" customModule="BRCoreDemo" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="c0y-oq-P0d">
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
@@ -154,13 +154,13 @@
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <label opaque="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" lineBreakMode="middleTruncation" baselineAdjustment="alignBaselines" adjustsLetterSpacingToFitWidth="YES" adjustsFontForContentSizeCategory="YES" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="jEO-JG-dSf" customClass="CopyableLabel" customModule="CoreDemo" customModuleProvider="target">
+                            <label opaque="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" lineBreakMode="middleTruncation" baselineAdjustment="alignBaselines" adjustsLetterSpacingToFitWidth="YES" adjustsFontForContentSizeCategory="YES" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="jEO-JG-dSf" customClass="CopyableLabel" customModule="BRCoreDemo" customModuleProvider="target">
                                 <rect key="frame" x="16" y="260" width="343" height="17"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="14"/>
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <label opaque="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" lineBreakMode="middleTruncation" baselineAdjustment="alignBaselines" adjustsLetterSpacingToFitWidth="YES" adjustsFontForContentSizeCategory="YES" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="GIl-9T-fPm" customClass="CopyableLabel" customModule="CoreDemo" customModuleProvider="target">
+                            <label opaque="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" lineBreakMode="middleTruncation" baselineAdjustment="alignBaselines" adjustsLetterSpacingToFitWidth="YES" adjustsFontForContentSizeCategory="YES" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="GIl-9T-fPm" customClass="CopyableLabel" customModule="BRCoreDemo" customModuleProvider="target">
                                 <rect key="frame" x="16" y="311" width="343" height="17"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="14"/>
                                 <nil key="textColor"/>
@@ -218,7 +218,7 @@
                                     <action selector="doResubmit:" destination="hSS-q9-i3e" eventType="touchUpInside" id="mVK-Zi-SZz"/>
                                 </connections>
                             </button>
-                            <view contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="rRL-RR-uWP" customClass="Dot" customModule="CoreDemo" customModuleProvider="target">
+                            <view contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="rRL-RR-uWP" customClass="Dot" customModule="BRCoreDemo" customModuleProvider="target">
                                 <rect key="frame" x="334" y="439" width="25" height="25"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
@@ -317,13 +317,13 @@
         <!--Summary Table View (Wallets)-->
         <scene sceneID="smW-Zh-WAh">
             <objects>
-                <tableViewController title="Summary Table View (Wallets)" clearsSelectionOnViewWillAppear="NO" id="7bK-jq-Zjz" customClass="SummaryViewController" customModule="CoreDemo" customModuleProvider="target" sceneMemberID="viewController">
+                <tableViewController title="Summary Table View (Wallets)" clearsSelectionOnViewWillAppear="NO" id="7bK-jq-Zjz" customClass="SummaryViewController" customModule="BRCoreDemo" customModuleProvider="target" sceneMemberID="viewController">
                     <tableView key="view" clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="28" sectionFooterHeight="28" id="r7i-6Z-zg0">
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <prototypes>
-                            <tableViewCell contentMode="scaleToFill" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="WalletCell" textLabel="gH9-Vu-gaM" detailTextLabel="uWa-Qg-EAH" style="IBUITableViewCellStyleValue1" id="WCw-Qf-5nD" customClass="WalletTableViewCell" customModule="CoreDemo" customModuleProvider="target">
+                            <tableViewCell contentMode="scaleToFill" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="WalletCell" textLabel="gH9-Vu-gaM" detailTextLabel="uWa-Qg-EAH" style="IBUITableViewCellStyleValue1" id="WCw-Qf-5nD" customClass="WalletTableViewCell" customModule="BRCoreDemo" customModuleProvider="target">
                                 <rect key="frame" x="0.0" y="28" width="375" height="44"/>
                                 <autoresizingMask key="autoresizingMask"/>
                                 <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" tableViewCell="WCw-Qf-5nD" id="37f-cq-3Eg">
@@ -383,16 +383,16 @@
         <!--Wallet Table View (Transfers)-->
         <scene sceneID="cnH-6q-gf9">
             <objects>
-                <tableViewController title="Wallet Table View (Transfers)" id="me2-V4-1s1" customClass="WalletViewController" customModule="CoreDemo" customModuleProvider="target" sceneMemberID="viewController">
+                <tableViewController title="Wallet Table View (Transfers)" id="me2-V4-1s1" customClass="WalletViewController" customModule="BRCoreDemo" customModuleProvider="target" sceneMemberID="viewController">
                     <tableView key="view" clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="28" sectionFooterHeight="28" id="Emw-QA-mhh">
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <prototypes>
-                            <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" accessoryType="disclosureIndicator" indentationWidth="10" reuseIdentifier="TransferCell" rowHeight="100" id="rTY-o4-StW" customClass="TransferTableViewCell" customModule="CoreDemo" customModuleProvider="target">
+                            <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" accessoryType="disclosureIndicator" indentationWidth="10" reuseIdentifier="TransferCell" rowHeight="100" id="rTY-o4-StW" customClass="TransferTableViewCell" customModule="BRCoreDemo" customModuleProvider="target">
                                 <rect key="frame" x="0.0" y="28" width="375" height="100"/>
                                 <autoresizingMask key="autoresizingMask"/>
-                                <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="rTY-o4-StW" id="HLA-Me-cLB" customClass="WalletTableViewCell" customModule="CoreDemo" customModuleProvider="target">
+                                <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="rTY-o4-StW" id="HLA-Me-cLB" customClass="WalletTableViewCell" customModule="BRCoreDemo" customModuleProvider="target">
                                     <rect key="frame" x="0.0" y="0.0" width="341" height="99.5"/>
                                     <autoresizingMask key="autoresizingMask"/>
                                     <subviews>
@@ -424,7 +424,7 @@
                                             <nil key="textColor"/>
                                             <nil key="highlightedColor"/>
                                         </label>
-                                        <view contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Mg6-h1-KR3" customClass="Dot" customModule="CoreDemo" customModuleProvider="target">
+                                        <view contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Mg6-h1-KR3" customClass="Dot" customModule="BRCoreDemo" customModuleProvider="target">
                                             <rect key="frame" x="308" y="37" width="25" height="25"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                             <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
@@ -461,7 +461,7 @@
         <!--Create Transfer-->
         <scene sceneID="cud-6N-Xv9">
             <objects>
-                <viewController id="G47-GP-HJH" customClass="TransferCreateController" customModule="CoreDemo" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController id="G47-GP-HJH" customClass="TransferCreateController" customModule="BRCoreDemo" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="KcT-fy-UcC">
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
@@ -567,7 +567,7 @@
                             <segmentedControl opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="top" segmentControlStyle="plain" selectedSegmentIndex="1" translatesAutoresizingMaskIntoConstraints="NO" id="Ei5-pP-B3a">
                                 <rect key="frame" x="16" y="386" width="343" height="29"/>
                                 <segments>
-                                    <segment title="42000"/>
+                                    <segment title="92000"/>
                                     <segment title="21000"/>
                                     <segment title="1000"/>
                                 </segments>
@@ -585,6 +585,20 @@
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
+                            <segmentedControl opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="top" segmentControlStyle="plain" selectedSegmentIndex="1" translatesAutoresizingMaskIntoConstraints="NO" id="bB9-1V-BAr">
+                                <rect key="frame" x="127" y="196" width="121" height="29"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="121" id="196-Pn-gZQ"/>
+                                    <constraint firstAttribute="height" constant="28" id="Nzf-Sk-sQf"/>
+                                </constraints>
+                                <segments>
+                                    <segment title="1 ETH"/>
+                                    <segment title="Slider"/>
+                                </segments>
+                                <connections>
+                                    <action selector="amountOneEther:" destination="G47-GP-HJH" eventType="valueChanged" id="xuQ-Hi-Ayq"/>
+                                </connections>
+                            </segmentedControl>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <constraints>
@@ -594,8 +608,10 @@
                             <constraint firstItem="yp6-WN-DAw" firstAttribute="top" secondItem="7yV-yu-opg" secondAttribute="bottom" constant="1" id="CnH-GZ-J66"/>
                             <constraint firstItem="bXx-vx-ztK" firstAttribute="leading" secondItem="tAg-Bh-B64" secondAttribute="leading" constant="16" id="DmM-xn-b3o"/>
                             <constraint firstItem="xan-Ll-ueq" firstAttribute="top" secondItem="OwR-mh-elN" secondAttribute="bottom" constant="45" id="EuX-As-9j3"/>
+                            <constraint firstItem="bB9-1V-BAr" firstAttribute="top" secondItem="7yV-yu-opg" secondAttribute="bottom" constant="1" id="G1K-hs-UyJ"/>
                             <constraint firstItem="o0n-ua-kSq" firstAttribute="top" secondItem="KQa-c8-4Vd" secondAttribute="bottom" constant="2" id="Hw9-sn-LMM"/>
                             <constraint firstItem="tAg-Bh-B64" firstAttribute="trailing" secondItem="7yV-yu-opg" secondAttribute="trailing" constant="16" id="K3d-ZX-Ib4"/>
+                            <constraint firstItem="bB9-1V-BAr" firstAttribute="centerX" secondItem="tAg-Bh-B64" secondAttribute="centerX" id="KJM-88-f5j"/>
                             <constraint firstItem="tAg-Bh-B64" firstAttribute="trailing" secondItem="AgX-H5-eTy" secondAttribute="trailing" constant="16" id="L3t-Re-n7U"/>
                             <constraint firstItem="o0n-ua-kSq" firstAttribute="leading" secondItem="tAg-Bh-B64" secondAttribute="leading" constant="16" id="LE0-kV-Wv5"/>
                             <constraint firstItem="Pmn-IU-P5U" firstAttribute="leading" secondItem="rOL-bT-Hlg" secondAttribute="trailing" constant="8" id="LZE-sU-R8P"/>
@@ -643,6 +659,7 @@
                         <outlet property="feeLabel" destination="o0n-ua-kSq" id="qcX-Yd-biB"/>
                         <outlet property="gasLimitSegmentedController" destination="Ei5-pP-B3a" id="LhE-90-DQR"/>
                         <outlet property="gasPriceSegmentedController" destination="bXx-vx-ztK" id="9SQ-29-uN6"/>
+                        <outlet property="oneEtherButton" destination="bB9-1V-BAr" id="l4b-Xp-Y8T"/>
                         <outlet property="recvField" destination="VoM-Ph-d6j" id="ynX-HL-dCh"/>
                         <outlet property="submitButton" destination="z7e-Wy-2UJ" id="z3E-lh-cRu"/>
                     </connections>

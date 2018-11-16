@@ -25,6 +25,10 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated);
+
+        oneEtherButton.setEnabled (wallet.token == nil, forSegmentAt: 0)
+        oneEtherButton.selectedSegmentIndex = 1
+
         amountSlider.minimumValue = 0.0
         amountSlider.maximumValue = 0.001  //  Float (wallet.balance.amount)!
         amountSlider.value = 0.0
@@ -33,6 +37,8 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
             : "0xbDFdAd139440D2Db9BA2aa3B7081C2dE39291508");
         updateView()
     }
+
+    var oneEtherSelected = false
 
     /*
     // MARK: - Navigation
@@ -45,12 +51,18 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
     */
     @IBAction func submit(_ sender: UIBarButtonItem) {
         NSLog ("Want to submit")
+        let amount = (self.oneEtherSelected
+            ? "1"
+            : self.amountSlider.value.description)
 
-        let alert = UIAlertController (title: "Submit Transaction", message: "Are you sure?", preferredStyle: UIAlertController.Style.actionSheet)
+        let alert = UIAlertController (title: "Submit Transaction for \(amount) \(wallet.name)",
+            message: "Are you sure?",
+            preferredStyle: UIAlertController.Style.actionSheet)
+
         alert.addAction(UIAlertAction (title: "Yes", style: UIAlertAction.Style.destructive) { (action) in
             let transfer = self.wallet.createTransfer(recvAddress: self.recvField.text!,
-                                                      amount: self.amountSlider.value.description,
-                                                      unit: EthereumAmountUnit.defaultUnitEther,
+                                                      amount: amount,
+                                                      unit: self.wallet.unit, //  EthereumAmountUnit.defaultUnitEther,
                                                       gasPrice: self.gasPrice(),
                                                       gasPriceUnit: EthereumAmountUnit.etherWEI,
                                                       gasLimit: self.gasLimit())
@@ -81,7 +93,6 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
     }
 
     func updateView () {
-        let amount = amountSlider.value
 
         let fee = Double (gasPrice() * gasLimit()) / 1e18
         feeLabel.text = "\(fee) ETH"
@@ -89,13 +100,16 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
         amountMinLabel.text = amountSlider.minimumValue.description
         amountMaxLabel.text = amountSlider.maximumValue.description
         amountLabel.text = amountSlider.value.description
+        amountSlider.isEnabled = !oneEtherSelected
 
-        submitButton.isEnabled = (0.0 != amountSlider.value && recvField.text != "")
+        submitButton.isEnabled = (recvField.text != "" &&
+            (0.0 != amountSlider.value || oneEtherSelected ))
     }
 
     @IBAction func amountChanged(_ sender: Any) {
         amountLabel.text = amountSlider.value.description
-        submitButton.isEnabled = (0.0 != amountSlider.value && recvField.text != "")
+        submitButton.isEnabled = (recvField.text != "" &&
+            (0.0 != amountSlider.value || oneEtherSelected))
     }
 
     // In WEI
@@ -108,13 +122,18 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
         }
     }
 
+    @IBAction func amountOneEther(_ sender: UISegmentedControl) {
+        oneEtherSelected = 0 == oneEtherButton.selectedSegmentIndex
+        updateView()
+    }
+
     @IBAction func gasPriceChanged(_ sender: UISegmentedControl) {
         updateView()
     }
 
     func gasLimit () -> UInt64 {
         switch (gasLimitSegmentedController.selectedSegmentIndex) {
-        case 0: return 42000
+        case 0: return 92000
         case 1: return 21000
         case 2: return  1000
         default: return 21000
@@ -134,4 +153,5 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
     @IBOutlet var amountLabel: UILabel!
     @IBOutlet var gasPriceSegmentedController: UISegmentedControl!
     @IBOutlet var gasLimitSegmentedController: UISegmentedControl!
+    @IBOutlet var oneEtherButton: UISegmentedControl!
 }

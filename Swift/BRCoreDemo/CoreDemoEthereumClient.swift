@@ -294,7 +294,7 @@ class CoreDemoEthereumClient : EthereumClient {
     }
 
     func getNonce(ewm: EthereumWalletManager, address: String, rid: Int32) {
-        ewm.announceNonce(address: address, nonce: "8", rid: rid)
+        ewm.announceNonce(address: address, nonce: "41", rid: rid)
     }
 
     func saveNodes(ewm: EthereumWalletManager,

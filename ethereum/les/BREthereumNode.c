@@ -63,9 +63,6 @@ nodeStateAnnounce (BREthereumNode node,
                    BREthereumNodeEndpointRoute route,
                    BREthereumNodeState state);
 
-static BREthereumNodeType
-nodeGetType (BREthereumNode node);
-
 static uint64_t
 nodeGetThenIncrementMessageIdentifier (BREthereumNode node,
                                        size_t byIncrement);
@@ -538,11 +535,6 @@ struct BREthereumNodeRecord {
     pthread_mutex_t lock;
 };
 
-static BREthereumNodeType
-nodeGetType (BREthereumNode node) {
-    return node->type;
-}
-
 extern void
 nodeShow (BREthereumNode node) {
     char descUDP[128], descTCP[128];
@@ -779,6 +771,11 @@ nodeUpdatedLocalStatus (BREthereumNode node,
         return ETHEREUM_BOOLEAN_TRUE;
         }
     return ETHEREUM_BOOLEAN_FALSE;
+}
+
+extern BREthereumNodeType
+nodeGetType (BREthereumNode node) {
+    return node->type;
 }
 
 extern BREthereumNodePriority
