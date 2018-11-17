@@ -54,11 +54,12 @@ inline static uint64_t _txFee(uint64_t feePerKb, size_t size)
 // chain position of first tx output address that appears in chain
 inline static size_t _txChainIndex(const BRTransaction *tx, const UInt160 *chain)
 {
-    UInt160 pkh;
+    const uint8_t *pkh;
     
     for (size_t i = array_count(chain); i > 0; i--) {
         for (size_t j = 0; j < tx->outCount; j++) {
-            if (BRAddressHash160(&pkh, tx->outputs[j].address) && _pkhEq(&pkh, &chain[i - 1])) return i - 1;
+            pkh = BRScriptPKH(tx->outputs[j].script, tx->outputs[j].scriptLen);
+            if (pkh && _pkhEq(pkh, &chain[i - 1])) return i - 1;
         }
     }
     
@@ -146,18 +147,19 @@ inline static void _BRWalletInsertTx(BRWallet *wallet, BRTransaction *tx)
 static int _BRWalletContainsTx(BRWallet *wallet, const BRTransaction *tx)
 {
     int r = 0;
-    UInt160 pkh;
+    const uint8_t *pkh;
     
     for (size_t i = 0; ! r && i < tx->outCount; i++) {
-        if (BRAddressHash160(&pkh, tx->outputs[i].address) && BRSetContains(wallet->allPKH, &pkh)) r = 1;
+        pkh = BRScriptPKH(tx->outputs[i].script, tx->outputs[i].scriptLen);
+        if (pkh && BRSetContains(wallet->allPKH, pkh)) r = 1;
     }
     
     for (size_t i = 0; ! r && i < tx->inCount; i++) {
         BRTransaction *t = BRSetGet(wallet->allTx, &tx->inputs[i].txHash);
         uint32_t n = tx->inputs[i].index;
         
-        if (t && n < t->outCount && BRAddressHash160(&pkh, t->outputs[n].address) &&
-            BRSetContains(wallet->allPKH, &pkh)) r = 1;
+        pkh = (t && n < t->outCount) ? BRScriptPKH(t->outputs[n].script, t->outputs[n].scriptLen) : NULL;
+        if (pkh && BRSetContains(wallet->allPKH, pkh)) r = 1;
     }
     
     return r;
@@ -170,7 +172,7 @@ static void _BRWalletUpdateBalance(BRWallet *wallet)
     time_t now = time(NULL);
     size_t i, j;
     BRTransaction *tx, *t;
-    UInt160 pkh;
+    const uint8_t *pkh;
     
     array_clear(wallet->utxos);
     array_clear(wallet->balanceHist);
@@ -233,8 +235,10 @@ static void _BRWalletUpdateBalance(BRWallet *wallet)
         // NOTE: balance/UTXOs will then need to be recalculated when last block changes
         for (j = 0; j < tx->outCount; j++) {
             if (tx->outputs[j].address[0] != '\0') {
-                if (BRAddressHash160(&pkh, tx->outputs[j].address) && BRSetContains(wallet->allPKH, &pkh)) {
-                    BRSetAdd(wallet->usedPKH, BRSetGet(wallet->allPKH, &pkh));
+                pkh = BRScriptPKH(tx->outputs[j].script, tx->outputs[j].scriptLen);
+
+                if (pkh && BRSetContains(wallet->allPKH, pkh)) {
+                    BRSetAdd(wallet->usedPKH, (void *)pkh);
                     array_add(wallet->utxos, ((BRUTXO) { tx->txHash, (uint32_t)j }));
                     balance += tx->outputs[j].amount;
                 }
