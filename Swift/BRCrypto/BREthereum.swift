@@ -8,7 +8,7 @@
 
 import Core.Ethereum
 
-public typealias EthereumReferenceId = Int32
+public typealias EthereumReferenceId = Optional<OpaquePointer>
 public typealias EthereumWalletId = EthereumReferenceId
 public typealias EthereumTransferId = EthereumReferenceId
 public typealias EthereumAccountId = EthereumReferenceId
@@ -205,7 +205,7 @@ public class EthereumBlock {
 ///
 public class EthereumTransfer: Transfer {
     
-    internal let identifier: BREthereumTransferId
+    internal let identifier: BREthereumTransfer
     
     public unowned let _wallet: EthereumWallet
     
@@ -218,15 +218,15 @@ public class EthereumTransfer: Transfer {
     }
     
     public private(set) lazy var source: Address? = {
-        return Address.ethereum (ethereumTransferGetSource (self.core, self.identifier))
+        return Address.ethereum (ewmTransferGetSource (self.core, self.identifier))
     }()
     
     public private(set) lazy var target: Address? = {
-        return Address.ethereum (ethereumTransferGetTarget(self.core, self.identifier))
+        return Address.ethereum (ewmTransferGetTarget(self.core, self.identifier))
     }()
     
     public private(set) lazy var amount: Amount = {
-        let amount: BREthereumAmount = ethereumTransferGetAmount (self.core, self.identifier)
+        let amount: BREthereumAmount = ewmTransferGetAmount (self.core, self.identifier)
         return (AMOUNT_ETHER == amount.type
             ? Amount (value: amount.u.ether.valueInWEI,
                       unit: wallet.currency.defaultUnit,
@@ -238,7 +238,7 @@ public class EthereumTransfer: Transfer {
     
     public private(set) lazy var fee: Amount = {
         var overflow: Int32 = 0;
-        let fee: BREthereumEther = ethereumTransferGetFee (self.core, self.identifier, &overflow)
+        let fee: BREthereumEther = ewmTransferGetFee (self.core, self.identifier, &overflow)
         return Amount (value: fee.valueInWEI,
                        unit: Currency.ethereum.defaultUnit,
                        negative: false)
@@ -246,38 +246,39 @@ public class EthereumTransfer: Transfer {
     
     public private(set) lazy var feeBasis: TransferFeeBasis = {
         var status: BRCoreParseStatus = CORE_PARSE_OK
-        let priceStr = ethereumTransferGetGasPrice (self.core, self.identifier, GWEI)
-        let price = createUInt256Parse (priceStr, 10, &status)
+        let price = ewmTransferGetGasPrice (self.core, self.identifier, GWEI)
+//        let price = createUInt256Parse (priceStr, 10, &status)
         
         return TransferFeeBasis.ethereum(
-            gasPrice: Amount (value: price, unit: Unit.Ethereum.GWEI, negative: false),
-            gasLimit: ethereumTransferGetGasLimit (self.core, self.identifier))
+            gasPrice: Amount (value: price.etherPerGas.valueInWEI, unit: Unit.Ethereum.GWEI, negative: false),
+            gasLimit: ewmTransferGetGasLimit (self.core, self.identifier).amountOfGas)
     }()
     
     public var confirmation: TransferConfirmation? {
-        guard ETHEREUM_BOOLEAN_TRUE == ethereumTransferIsConfirmed (self.core, self.identifier)
+        guard ETHEREUM_BOOLEAN_TRUE == ewmTransferIsConfirmed (self.core, self.identifier)
             else { return nil }
         
         var overflow: Int32 = 0
-        let fee = ethereumTransferGetFee (self.core, self.identifier, &overflow)
+        let fee = ewmTransferGetFee (self.core, self.identifier, &overflow)
         return TransferConfirmation (
-            blockNumber: ethereumTransferGetBlockNumber (self.core, self.identifier),
-            transactionIndex: ethereumTransferGetTransactionIndex (self.core, self.identifier),
+            blockNumber: ewmTransferGetBlockNumber (self.core, self.identifier),
+            transactionIndex: ewmTransferGetTransactionIndex (self.core, self.identifier),
             timestamp: 0,
             fee: Amount (value: fee.valueInWEI, unit: Unit.Ethereum.ETHER, negative: false))
     }
     
     public var hash: TransferHash? {
-        guard ETHEREUM_BOOLEAN_TRUE == ethereumTransferIsSubmitted (self.core, self.identifier)
+        guard ETHEREUM_BOOLEAN_TRUE == ewmTransferIsSubmitted (self.core, self.identifier)
             else { return nil }
+        let hash = ewmTransferGetHash(self.core, self.identifier)
         return TransferHash (
-            asUTF8String (ethereumTransferGetHash(self.core, self.identifier), true))
+            asUTF8String (hashAsString(hash), true))
     }
     
     public private(set) var state: TransferState
     
     init (wallet: EthereumWallet,
-          tid: BREthereumTransferId) {
+          tid: BREthereumTransfer) {
         self._wallet = wallet
         self.identifier = tid
         
@@ -296,15 +297,17 @@ public class EthereumTransfer: Transfer {
         
         let gasPrice = gasPriceCreate (etherCreate (gasPriceBasis.value))
         let gasLImit = gasCreate (gasLImitBasis)
-        let amount = ethereumCreateEtherAmountUnit (core, 1, ETHER)
-        
+
+        guard let asEther = amount.asEther else { return nil }
+
+        let feeBasis = feeBasisCreate(gasLImit, gasPrice);
+
         self.init (wallet: wallet,
-                   tid:  ethereumWalletCreateTransferWithFeeBasis (wallet._manager.core,
-                                                                   wallet.identifier,
-                                                                   target.description,
-                                                                   amount,
-                                                                   gasPrice,
-                                                                   gasLImit))
+                   tid:  ewmWalletCreateTransferWithFeeBasis (core,
+                                                              wallet.identifier,
+                                                              target.description,
+                                                              asEther,
+                                                              feeBasis))
     }
 }
 
@@ -322,7 +325,7 @@ public class EthereumTransferFactory: TransferFactory {
 ///
 
 public class EthereumWallet: Wallet {
-    internal let identifier: BREthereumWalletId
+    internal let identifier: EthereumWalletId
     
     public unowned let _manager: EthereumWalletManager
     
@@ -337,7 +340,7 @@ public class EthereumWallet: Wallet {
     internal let currency: Currency
     
     public var balance: Amount {
-        let amount: BREthereumAmount = ethereumTransferGetAmount (self.core, self.identifier)
+        let amount: BREthereumAmount = ewmTransferGetAmount (self.core, self.identifier)
         return Amount (value: (AMOUNT_ETHER == amount.type ?  amount.u.ether.valueInWEI : amount.u.tokenQuantity.valueAsInteger),
                        unit: currency.defaultUnit,
                        negative: false)
@@ -359,11 +362,11 @@ public class EthereumWallet: Wallet {
     
     public var defaultFeeBasis: TransferFeeBasis {
         get {
-            let gasLimit = ethereumWalletGetDefaultGasLimit (self.core, self.identifier)
-            let gasPrice = ethereumWalletGetDefaultGasPrice (self.core, self.identifier)
+            let gasLimit = ewmWalletGetDefaultGasLimit (self.core, self.identifier)
+            let gasPrice = ewmWalletGetDefaultGasPrice (self.core, self.identifier)
             return TransferFeeBasis.ethereum(
-                gasPrice: Amount (value: gasPrice, unit: Unit.Ethereum.GWEI),
-                gasLimit: gasLimit)
+                gasPrice: Amount (value: gasPrice.etherPerGas.valueInWEI, unit: Unit.Ethereum.GWEI, negative: false),
+                gasLimit: gasLimit.amountOfGas)
         }
         set (basis) {
             guard case let .ethereum (gasPriceBasis, gasLimitBasis) = basis else { precondition(false) }
@@ -371,8 +374,9 @@ public class EthereumWallet: Wallet {
             var overflow: Int32 = 0
             let gasPrice = coerceUInt64 (gasPriceBasis.value, &overflow)
             
-            ethereumWalletSetDefaultGasLimit (self.core, self.identifier, gasLimitBasis)
-            ethereumWalletSetDefaultGasPrice (self.core, self.identifier, WEI, gasPrice)
+            ewmWalletSetDefaultGasLimit (self.core, self.identifier, gasCreate(gasLimitBasis))
+            ewmWalletSetDefaultGasPrice (self.core, self.identifier,
+                                         gasPriceCreate(etherCreateNumber(gasPrice, WEI)))
         }
     }
     
@@ -429,7 +433,7 @@ public class EthereumWalletManager: WalletManager {
     
     public lazy var primaryWallet: Wallet = {
         return EthereumWallet (manager: self,
-                               wid: ethereumGetWallet(self.core))
+                               wid: ewmGetWallet(self.core))
     }()
     
     public lazy var wallets: [Wallet] = {
@@ -451,11 +455,11 @@ public class EthereumWalletManager: WalletManager {
     #endif
     
     public func connect() {
-        ethereumConnect (self.core)
+        ewmConnect (self.core)
     }
     
     public func disconnect() {
-        ethereumDisconnect (self.core)
+        ewmDisconnect (self.core)
     }
     
     public init (listener: WalletManagerListener,
@@ -485,15 +489,15 @@ public class EthereumWalletManager: WalletManager {
         let transactions: Dictionary<String,String> = [:]
         let logs:         Dictionary<String,String> = [:]
         
-        self.core = ethereumCreate (coreNetwork,
-                                    account.ethereumAccount,
-                                    timestamp,
-                                    EthereumWalletManager.coreMode (mode),
-                                    coreEthereumClient,
-                                    EthereumWalletManager.asPairs(peers),
-                                    EthereumWalletManager.asPairs(blocks),
-                                    EthereumWalletManager.asPairs(transactions),
-                                    EthereumWalletManager.asPairs(logs))
+        self.core = ewmCreate (coreNetwork,
+                               account.ethereumAccount,
+                               timestamp,
+                               EthereumWalletManager.coreMode (mode),
+                               coreEthereumClient,
+                               EthereumWalletManager.asPairs(peers),
+                               EthereumWalletManager.asPairs(blocks),
+                               EthereumWalletManager.asPairs(transactions),
+                               EthereumWalletManager.asPairs(logs))
     }
     
     /// All known managers
@@ -602,8 +606,8 @@ public class EthereumWalletManager: WalletManager {
             funcChangeTransaction: { (coreClient, coreEWM, change, data) in
                 if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
                     
-                    let cStrHash = ethereumHashDataPairGetHash (data)!
-                    let cStrData = ethereumHashDataPairGetData (data)!
+                    let cStrHash = hashDataPairGetHashAsString (data)!
+                    let cStrData = hashDataPairGetDataAsString (data)!
                     
                     ewm.persistenceClient.changeTransaction (manager: ewm,
                                                              change: WalletManagerPersistenceChangeType(change),
@@ -616,9 +620,9 @@ public class EthereumWalletManager: WalletManager {
             funcChangeLog: { (coreClient, coreEWM, change, data) in
                 if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
                     
-                    let cStrHash = ethereumHashDataPairGetHash (data)!
-                    let cStrData = ethereumHashDataPairGetData (data)!
-                    
+                    let cStrHash = hashDataPairGetHashAsString (data)!
+                    let cStrData = hashDataPairGetDataAsString (data)!
+
                     ewm.persistenceClient.changeLog (manager: ewm,
                                                      change: WalletManagerPersistenceChangeType(change),
                                                      hash: String (cString: cStrHash),
@@ -649,13 +653,13 @@ public class EthereumWalletManager: WalletManager {
                                                    event: WalletEvent (event))
                 }},
             
-            funcBlockEvent: { (coreClient, coreEWM, bid, event, status, message) in
-                if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    //                    ewm.listener.handleBlockEvent(ewm: ewm,
-                    //                                                 block: ewm.findBlock(identifier: bid),
-                    //                                                 event: EthereumBlockEvent (event))
-                }},
-            
+//            funcBlockEvent: { (coreClient, coreEWM, bid, event, status, message) in
+//                if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
+//                    //                    ewm.listener.handleBlockEvent(ewm: ewm,
+//                    //                                                 block: ewm.findBlock(identifier: bid),
+//                    //                                                 event: EthereumBlockEvent (event))
+//                }},
+
             funcTransferEvent: { (coreClient, coreEWM, wid, tid, event, status, message) in
                 if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
                     let wallet = ewm.findWallet(identifier: wid)
@@ -682,9 +686,9 @@ public class EthereumWalletManager: WalletManager {
     
     
     private static func asPairs (_ set: Dictionary<String,String>) -> OpaquePointer {
-        let pairs = ethereumHashDataPairSetCreate()!
+        let pairs = hashDataPairSetCreateEmpty(set.count)!
         set.forEach { (hash: String, data: String) in
-            ethereumHashDataPairAdd (pairs, hash, data)
+            hashDataPairAdd (pairs, hash, data)
         }
         return pairs
     }
@@ -694,8 +698,8 @@ public class EthereumWalletManager: WalletManager {
         
         var pair : BREthereumHashDataPair? = nil
         while let p = OpaquePointer.init (BRSetIterate (set, &pair)) {
-            let cStrHash = ethereumHashDataPairGetHash (p)!
-            let cStrData = ethereumHashDataPairGetData (p)!
+            let cStrHash = hashDataPairGetHashAsString (p)!
+            let cStrData = hashDataPairGetDataAsString (p)!
             
             dict [String (cString: cStrHash)] = String (cString: cStrData)
             
@@ -711,19 +715,19 @@ public class EthereumWalletManager: WalletManager {
     /// Ethereum Backend Announce Interface
     ///
     public func announceBalance (wid: EthereumWalletId, balance: String, rid: Int32) {
-        ethereumClientAnnounceBalance (core, wid, balance, rid)
+        ewmAnnounceWalletBalance (core, wid, balance, rid)
     }
     
     public func announceGasPrice (wid: EthereumWalletId, gasPrice: String, rid: Int32) {
-        ethereumClientAnnounceGasPrice (core, wid, gasPrice, rid)
+        ewmAnnounceGasPrice (core, wid, gasPrice, rid)
     }
     
     public func announceGasEstimate (wid: EthereumWalletId, tid: EthereumTransferId, gasEstimate: String, rid: Int32) {
-        ethereumClientAnnounceGasEstimate (core, wid, tid, gasEstimate, rid)
+        ewmAnnounceGasEstimate (core, wid, tid, gasEstimate, rid)
     }
     
     public func announceSubmitTransaction (wid: EthereumWalletId, tid: EthereumTransferId, hash: String, rid: Int32) {
-        ethereumClientAnnounceSubmitTransfer (core, wid, tid, hash, rid)
+        ewmAnnounceSubmitTransfer (core, wid, tid, hash, rid)
     }
     
     public func announceTransaction (rid: Int32,
@@ -743,7 +747,7 @@ public class EthereumWalletManager: WalletManager {
                                      blockTransactionIndex: String,
                                      blockTimestamp: String,
                                      isError: String) {
-        ethereumClientAnnounceTransaction (core, rid,
+        ewmAnnounceTransaction (core, rid,
                                            hash, sourceAddr, targetAddr, contractAddr,
                                            amount, gasLimit, gasPrice,
                                            data, nonce, gasUsed,
@@ -765,7 +769,7 @@ public class EthereumWalletManager: WalletManager {
                              blockTimestamp: String) {
         var cTopics = topics.map { UnsafePointer<Int8>(strdup($0)) }
         
-        ethereumClientAnnounceLog (core, rid,
+        ewmAnnounceLog (core, rid,
                                    hash, contract, Int32(topics.count), &cTopics,
                                    data, gasPrice, gasUsed,
                                    logIndex,
@@ -776,7 +780,7 @@ public class EthereumWalletManager: WalletManager {
     public func announceBlocks (rid: Int32,
                                 blockNumbers: [UInt64]) {
         // TODO: blocks must be BRArrayOf(uint64_t) - change to add `count`
-        ethereumClientAnnounceBlocks (core, rid,
+        ewmAnnounceBlocks (core, rid,
                                       Int32(blockNumbers.count),
                                       UnsafeMutablePointer<UInt64>(mutating: blockNumbers))
     }
@@ -787,16 +791,16 @@ public class EthereumWalletManager: WalletManager {
                                name: String,
                                description: String,
                                decimals: UInt32) {
-        ethereumClientAnnounceToken(core,
+        ewmAnnounceToken(core,
                                     address, symbol, name, description, decimals, nil, nil, rid)
     }
     
     public func announceBlockNumber (blockNumber: String, rid: Int32) {
-        ethereumClientAnnounceBlockNumber(core, blockNumber, rid)
+        ewmAnnounceBlockNumber(core, blockNumber, rid)
     }
     
     public func announceNonce (address: String, nonce: String, rid: Int32) {
-        ethereumClientAnnounceNonce(core, address, nonce, rid)
+        ewmAnnounceNonce(core, address, nonce, rid)
     }
     
 }

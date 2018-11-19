@@ -294,7 +294,9 @@ transferCreateWithLog (OwnershipGiven BREthereumLog log,
 
 extern void
 transferRelease (BREthereumTransfer transfer) {
-    if (NULL != transfer->originatingTransaction)
+    if (NULL != transfer->originatingTransaction &&
+        TRANSFER_BASIS_TRANSACTION != transfer->basis.type &&
+        transfer->basis.u.transaction != transfer->originatingTransaction)
         transactionRelease(transfer->originatingTransaction);
     transferBasisRelease(&transfer->basis);
     free (transfer);

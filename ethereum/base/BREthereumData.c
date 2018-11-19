@@ -160,16 +160,16 @@ hashDataPairHashEqual (const void *t1,
 /// MARK: - Hash Data Pair Set
 ///
 extern BRSetOf (BREthereumHashDataPair)
-hashDataPairSetCreateEmpty (size_t capacity) {
+hashDataPairSetCreateEmpty(size_t count) {
     return BRSetNew (hashDataPairHashValue,
                      hashDataPairHashEqual,
-                     capacity);
+                     count);
 }
 
 extern BRSetOf (BREthereumHashDataPair)
 hashDataPairSetCreate (BRArrayOf(BREthereumHashDataPair) pairs) {
     size_t count = array_count (pairs);
-    BRSetOf(BREthereumHashDataPair) set = hashDataPairSetCreateEmpty(count);
+    BRSetOf(BREthereumHashDataPair) set = hashDataPairSetCreateEmpty (count);
 
     for (size_t index = 0; index < count; index++)
         BRSetAdd (set, pairs[index]);
@@ -189,4 +189,11 @@ hashDataPairSetRelease (BRSetOf (BREthereumHashDataPair) set) {
     
     BRSetClear (set);
     BRSetFree  (set);
+}
+
+extern void
+hashDataPairAdd (BRSetOf(BREthereumHashDataPair) set,
+                 const char *hash,
+                 const char *data) {
+    BRSetAdd (set, hashDataPairCreateFromString(hash, data));
 }

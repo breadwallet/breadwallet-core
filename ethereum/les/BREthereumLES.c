@@ -676,9 +676,10 @@ lesGetNodePrefer (BREthereumLES les) {
 extern void
 lesSetNodePrefer (BREthereumLES les,
                BREthereumNodeReference nodeReference) {
-    BREthereumNode node = (BREthereumNode) nodeReference;
+    // BREthereumNode node = (BREthereumNode) nodeReference;
 
     pthread_mutex_lock (&les->lock);
+
 //
 //    // Only think about using `node` if it is connected.
 //    FOR_CONNECTED_NODES_INDEX(les, index) {
