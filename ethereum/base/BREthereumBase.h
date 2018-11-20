@@ -138,6 +138,33 @@ syncInterestMatch(BREthereumSyncInterestSet interests,
     return interests & interest;
 }
 
+
+typedef enum {
+    // Created: transfer created in local memory
+    TRANSFER_STATUS_CREATED,
+
+    // Submitted: transfer submitted
+    TRANSFER_STATUS_SUBMITTED,
+
+    // Included: transfer is already included in the canonical chain. data contains an
+    // RLP-encoded [blockHash: B_32, blockNumber: P, txIndex: P] structure.
+    TRANSFER_STATUS_INCLUDED,
+
+    // Error: transfer sending failed. data contains a text error message
+    TRANSFER_STATUS_ERRORED,
+
+    // Cancelled
+    TRANSFER_STATUS_CANCELLED,
+
+    // Replaced
+    TRANSFER_STATUS_REPLACED,
+
+    //
+    TRANSFER_STATUS_DELETED
+
+} BREthereumTransferStatus;
+
+
 #ifdef __cplusplus
 }
 #endif

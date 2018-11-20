@@ -80,6 +80,17 @@ messagePIPGetIdentifierName (BREthereumPIPMessage message) {
     }
 }
 
+const char *pipTransactionErrorPreface[] = {
+    "Transaction has invalid signature",
+    "No longer valid",
+    "Insufficient balance for transaction.",
+    "Insufficient gas price.",
+    "Insufficient gas.",
+    "Gas price too low to replace",
+    "____",  // dropped
+    "Unknown"
+};
+
 /// MARK: PIP Status
 
 extern void

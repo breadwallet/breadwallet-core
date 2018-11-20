@@ -248,7 +248,7 @@ transferPredicateAny (void *ignore,
                          unsigned int index);
 
 extern int
-transferPredicateStatus (BREthereumTransferStatusType type,
+transferPredicateStatus (BREthereumTransferStatus status,
                             BREthereumTransfer transfer,
                             unsigned int index);
 
@@ -262,6 +262,10 @@ extern BREthereumTransfer
 walletGetTransferByHash (BREthereumWallet wallet,
                             BREthereumHash hash);
 
+extern BREthereumTransfer
+walletGetTransferByOriginatingHash (BREthereumWallet wallet,
+                                    BREthereumHash hash);
+    
 extern BREthereumTransfer
 walletGetTransferByNonce(BREthereumWallet wallet,
                             BREthereumAddress sourceAddress,

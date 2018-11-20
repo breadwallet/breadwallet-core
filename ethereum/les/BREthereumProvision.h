@@ -63,6 +63,9 @@ provisionGetMessageLESIdentifier (BREthereumProvisionType type);
 extern BREthereumPIPRequestType
 provisionGetMessagePIPIdentifier (BREthereumProvisionType type);
 
+extern const char *
+provisionGetTypeName (BREthereumProvisionType type);
+    
 /**
  * Headers
  */
@@ -197,16 +200,20 @@ typedef struct {
     } u;
 } BREthereumProvision;
 
+extern BREthereumProvision
+provisionCopy (BREthereumProvision *provision,
+               BREthereumBoolean copyResults);
+
+extern void
+provisionRelease (BREthereumProvision *provision,
+                  BREthereumBoolean releaseResults);
+
 extern BREthereumMessage
 provisionCreateMessage (BREthereumProvision *provision,
                         BREthereumMessageIdentifier type,
                         size_t messageContentLimit,
                         uint64_t messageIdBase,
                         size_t index);
-
-extern void
-provisionRelease (BREthereumProvision *provision,
-                  BREthereumBoolean releaseResults);
 
 extern void
 provisionHandleMessage (BREthereumProvision *provision,

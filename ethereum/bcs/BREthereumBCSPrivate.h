@@ -191,12 +191,17 @@ struct BREthereumBCSStruct {
     BRArrayOf(BREthereumHash) pendingLogs;
 
     /**
-     * A BRSet of transactions for account.
+     * A BRSet of transactions for account.  This includes any and all transactions that we've
+     * ever identified/created for account no matter the transaction's status.  Specifically,
+     * transactions that have ERRORRED, transactions that have been replaced, transactions that
+     * have been created but never signed nor submitted - they are all on the list.  The User of
+     * this set is responsible for filtering the transactions as needed.
      */
     BRSetOf(BREthereumTransaction) transactions;
 
     /**
-     * A BRSet of logs for account.
+     * A BRSet of logs for account.  This includes any and all logs that we've ever
+     * identified/created for account no matter the log's status.  [See above for `transactions`]
      */
     BRSetOf(BREtherumLog) logs;
 
@@ -226,11 +231,11 @@ extern const unsigned int bcsEventTypesCount;
 //
 extern void
 bcsHandleSubmitTransaction (BREthereumBCS bcs,
-                            BREthereumTransaction transaction);
+                            OwnershipGiven BREthereumTransaction transaction);
 
 extern void
 bcsSignalSubmitTransaction (BREthereumBCS bcs,
-                            BREthereumTransaction transaction);
+                            OwnershipGiven BREthereumTransaction transaction);
 
 //
 // Announce (New Chain Head)
@@ -286,11 +291,11 @@ bcsSignalProvision (BREthereumBCS bcs,
 //
 extern void
 bcsHandleTransaction (BREthereumBCS bcs,
-                      BREthereumTransaction transaction);
+                      OwnershipGiven BREthereumTransaction transaction);
 
 extern void
 bcsSignalTransaction (BREthereumBCS bcs,
-                      BREthereumTransaction transaction);
+                      OwnershipGiven BREthereumTransaction transaction);
 
 //
 // Logs

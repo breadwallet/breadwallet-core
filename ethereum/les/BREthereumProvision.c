@@ -53,6 +53,21 @@ provisionGetMessagePIPIdentifier (BREthereumProvisionType type) {
     }
 }
 
+extern const char *
+provisionGetTypeName (BREthereumProvisionType type) {
+    static const char *names[] = {
+        "Headers",
+        "Proofs",
+        "Bodies",
+        "Receipts",
+        "Accounts",
+        "Statuses",
+        "Submit"
+    };
+
+    return names[type];
+}
+
 /// MARK: - LES
 
 static BREthereumMessage
@@ -842,6 +857,88 @@ provisionCreateMessage (BREthereumProvision *provision,
         case MESSAGE_PIP:
             return provisionCreateMessagePIP (provision, messageContentLimit, messageIdBase, index);
             break;
+    }
+}
+
+static BRArrayOf(uint64_t)
+numbersCopy (BRArrayOf(uint64_t) numbers) {
+    BRArrayOf(uint64_t) result;
+    array_new (result, array_count(numbers));
+    array_add_array(result, numbers, array_count(numbers));
+    return result;
+}
+
+extern BREthereumProvision
+provisionCopy (BREthereumProvision *provision,
+               BREthereumBoolean copyResults) {
+    assert (ETHEREUM_BOOLEAN_FALSE == copyResults); // for now,
+    switch (provision->type) {
+        case PROVISION_BLOCK_HEADERS:
+            return (BREthereumProvision) {
+                provision->identifier,
+                provision->type,
+                { .headers = {
+                    provision->u.headers.start,
+                    provision->u.headers.skip,
+                    provision->u.headers.limit,
+                    provision->u.headers.reverse,
+                    NULL }}
+            };
+
+        case PROVISION_BLOCK_PROOFS:
+            return (BREthereumProvision) {
+                provision->identifier,
+                provision->type,
+                { .proofs = {
+                    numbersCopy(provision->u.proofs.numbers),
+                    NULL }}
+            };
+
+        case PROVISION_BLOCK_BODIES:
+            return (BREthereumProvision) {
+                provision->identifier,
+                provision->type,
+                { .bodies = {
+                    hashesCopy(provision->u.bodies.hashes),
+                    NULL }}
+            };
+
+       case PROVISION_TRANSACTION_RECEIPTS:
+            return (BREthereumProvision) {
+                provision->identifier,
+                provision->type,
+                { .receipts = {
+                    hashesCopy(provision->u.receipts.hashes),
+                    NULL }}
+            };
+
+        case PROVISION_ACCOUNTS:
+            return (BREthereumProvision) {
+                provision->identifier,
+                provision->type,
+                { .accounts = {
+                    provision->u.accounts.address,
+                    hashesCopy(provision->u.accounts.hashes),
+                    NULL }}
+            };
+
+        case PROVISION_TRANSACTION_STATUSES:
+            return (BREthereumProvision) {
+                provision->identifier,
+                provision->type,
+                { .statuses = {
+                    hashesCopy(provision->u.statuses.hashes),
+                    NULL }}
+            };
+
+        case PROVISION_SUBMIT_TRANSACTION:
+            return (BREthereumProvision) {
+                provision->identifier,
+                provision->type,
+                { .submission = {
+                    transactionCopy (provision->u.submission.transaction),
+                    (BREthereumTransactionStatus) {} }}
+            };
     }
 }
 

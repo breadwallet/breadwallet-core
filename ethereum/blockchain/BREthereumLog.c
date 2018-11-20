@@ -241,6 +241,11 @@ logHasStatus (BREthereumLog log,
 extern BREthereumComparison
 logCompare (BREthereumLog l1,
             BREthereumLog l2) {
+
+    if (  l1 == l2) return ETHEREUM_COMPARISON_EQ;
+    if (NULL == l2) return ETHEREUM_COMPARISON_LT;
+    if (NULL == l1) return ETHEREUM_COMPARISON_GT;
+
     int t1Blocked = logHasStatus(l1, TRANSACTION_STATUS_INCLUDED);
     int t2Blocked = logHasStatus(l2, TRANSACTION_STATUS_INCLUDED);
 
@@ -457,7 +462,7 @@ logRlpDecode (BRRlpItem item,
     if (RLP_TYPE_ARCHIVE == type) {
         log->identifier.transactionHash = hashRlpDecode(items[3], coder);
         log->identifier.transactionReceiptIndex = rlpDecodeUInt64(coder, items[4], 0);
-        log->status = transactionStatusRLPDecode(items[5], coder);
+        log->status = transactionStatusRLPDecode(items[5], NULL, coder);
     }
     return log;
 }

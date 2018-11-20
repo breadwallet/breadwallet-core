@@ -244,6 +244,9 @@ extern BREthereumBoolean
 nodeUpdatedLocalStatus (BREthereumNode node,
                         BREthereumNodeEndpointRoute route);
 
+extern BREthereumNodeType
+nodeGetType (BREthereumNode node);
+
 extern BREthereumNodePriority
 nodeGetPriority (BREthereumNode node);
 

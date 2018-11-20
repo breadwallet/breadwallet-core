@@ -352,6 +352,14 @@ extension Amount: CustomStringConvertible {
     }
 }
 
+extension Amount {
+    public var asEther: BREthereumAmount? {
+        return self.currency != Currency.ethereum
+            ? nil
+            : amountCreateEther (etherCreate (self.value))
+    }
+}
+
 ///
 /// MARK: - Currency Pair
 ///

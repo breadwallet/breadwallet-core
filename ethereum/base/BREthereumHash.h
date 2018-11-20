@@ -51,7 +51,7 @@ typedef struct {
     uint8_t bytes[ETHEREUM_HASH_BYTES];
 } BREthereumHash;
 
-#define EMPTY_HASH_INIT   { \
+#define EMPTY_HASH_INIT   (BREthereumHash) { \
 0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0, \
 0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0  \
 }
@@ -138,6 +138,16 @@ typedef char BREthereumHashString[2 * ETHEREUM_HASH_BYTES + 3];
 extern void
 hashFillString (BREthereumHash hash,
                 BREthereumHashString string);
+
+//
+// Hash Array
+//
+extern BRArrayOf(BREthereumHash)
+hashesCopy (BRArrayOf(BREthereumHash) hashes);
+
+extern ssize_t
+hashesIndex (BRArrayOf(BREthereumHash) hashes,
+             BREthereumHash hash);
 
 #ifdef __cplusplus
 }
