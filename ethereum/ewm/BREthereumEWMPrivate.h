@@ -116,15 +116,9 @@ struct BREthereumEWMRecord {
     unsigned int requestId;
 
     /**
-     * An EventHandler for Client.  All callbacks to/from the Client interface occur on a
-     * separate thread.
-     */
-    BREventHandler handlerForClient;
-
-    /**
      * An EventHandler for Main.  All 'announcements' (via LES (or BRD) hit here.
      */
-    BREventHandler handlerForMain;
+    BREventHandler handler;
 
     /**
      * The Lock ensuring single thread access to EWM state.
@@ -284,18 +278,6 @@ ewmSignalGetBlocks (BREthereumEWM ewm,
                     BREthereumSyncInterestSet interests,
                     uint64_t blockStart,
                     uint64_t blockStop);
-
-///
-/// MARK: - Handler For Main
-///
-
-//
-// Handle For Main Event Types
-//
-extern const BREventType *handlerForMainEventTypes[];
-extern const unsigned int handlerForMainEventTypesCount;
-
-
 
 ///
 /// MARK: - (Wallet) Balance
@@ -590,11 +572,11 @@ ewmClientHandleEWMEvent(BREthereumEWM ewm,
                         BREthereumStatus status,
                         const char *errorDescription);
 
-//
-// Handle For Client Event Types
-//
-extern const BREventType *handlerForClientEventTypes[];
-extern const unsigned int handlerForClientEventTypesCount;
+///
+/// MARK: - Handler For Main
+///
+extern const BREventType *ewmEventTypes[];
+extern const unsigned int ewmEventTypesCount;
 
 #ifdef __cplusplus
 }

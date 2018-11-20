@@ -67,7 +67,7 @@ ewmSignalBlockChain (BREthereumEWM ewm,
         headBlockHash,
         headBlockNumber,
         headBlockTimestamp };
-    eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
+    eventHandlerSignalEvent(ewm->handler, (BREvent*) &event);
 }
 
 
@@ -97,7 +97,7 @@ extern void
 ewmSignalAccountState (BREthereumEWM ewm,
                   BREthereumAccountState accountState) {
     BREthereumHandleAccountStateEvent event = { { NULL, &handleAccountStateEventType }, ewm, accountState };
-    eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
+    eventHandlerSignalEvent(ewm->handler, (BREvent*) &event);
 }
 
 // ==============================================================================================
@@ -126,7 +126,7 @@ extern void
 ewmSignalBalance (BREthereumEWM ewm,
                   BREthereumAmount amount) {
     BREthereumHandleBalanceEvent event = { { NULL, &handleBalanceEventType }, ewm, amount };
-    eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
+    eventHandlerSignalEvent(ewm->handler, (BREvent*) &event);
 }
 
 // ==============================================================================================
@@ -157,7 +157,7 @@ ewmSignalGasPrice (BREthereumEWM ewm,
                    BREthereumWallet wallet,
                    BREthereumGasPrice gasPrice) {
     BREthereumHandleGasPriceEvent event = { { NULL, &handleGasPriceEventType }, ewm, wallet, gasPrice };
-    eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
+    eventHandlerSignalEvent(ewm->handler, (BREvent*) &event);
 }
 
 // ==============================================================================================
@@ -190,7 +190,7 @@ ewmSignalGasEstimate (BREthereumEWM ewm,
                       BREthereumTransfer transfer,
                       BREthereumGas gasEstimate) {
     BREthereumHandleGasEstimateEvent event = { { NULL, &handleGasEstimateEventType }, ewm, wallet, transfer, gasEstimate };
-    eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
+    eventHandlerSignalEvent(ewm->handler, (BREvent*) &event);
 }
 
 // ==============================================================================================
@@ -221,7 +221,7 @@ ewmSignalTransaction (BREthereumEWM ewm,
                       BREthereumBCSCallbackTransactionType type,
                       OwnershipGiven BREthereumTransaction transaction) {
     BREthereumHandleTransactionEvent event = { { NULL, &handleTransactionEventType }, ewm, type, transaction };
-    eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
+    eventHandlerSignalEvent(ewm->handler, (BREvent*) &event);
 }
 
 // ==============================================================================================
@@ -252,7 +252,7 @@ ewmSignalLog (BREthereumEWM ewm,
               BREthereumBCSCallbackLogType type,
               OwnershipGiven BREthereumLog log) {
     BREthereumHandleLogEvent event = { { NULL, &handleLogEventType }, ewm, type, log };
-    eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
+    eventHandlerSignalEvent(ewm->handler, (BREvent*) &event);
 }
 
 // ==============================================================================================
@@ -288,7 +288,7 @@ extern void
 ewmSignalSaveBlocks (BREthereumEWM ewm,
                      OwnershipGiven BRArrayOf(BREthereumBlock) blocks) {
     BREthereumHandleSaveBlocksEvent event = { { NULL, &handleSaveBlocksEventType }, ewm, blocks };
-    eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
+    eventHandlerSignalEvent(ewm->handler, (BREvent*) &event);
 }
 
 // ==============================================================================================
@@ -317,7 +317,7 @@ extern void
 ewmSignalSaveNodes (BREthereumEWM ewm,
                     OwnershipGiven BRArrayOf(BREthereumNodeConfig) nodes) {
     BREthereumHandleSaveNodesEvent event = { { NULL, &handleSaveNodesEventType }, ewm, nodes };
-    eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
+    eventHandlerSignalEvent(ewm->handler, (BREvent*) &event);
 }
 
 // ==============================================================================================
@@ -360,7 +360,7 @@ ewmSignalSync (BREthereumEWM ewm,
         blockNumberStart,
         blockNumberCurrent,
         blockNumberStop };
-    eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
+    eventHandlerSignalEvent(ewm->handler, (BREvent*) &event);
 }
 
 // ==============================================================================================
@@ -395,28 +395,8 @@ ewmSignalGetBlocks (BREthereumEWM ewm,
                     uint64_t blockStart,
                     uint64_t blockStop) {
     BREthereumHandleGetBlocksEvent event = { { NULL, &handleGetBlocksEventType }, ewm, address, interests, blockStart, blockStop };
-    eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
+    eventHandlerSignalEvent(ewm->handler, (BREvent*) &event);
 }
-
-// ==============================================================================================
-//
-// All Handler Event Types
-//
-const BREventType *handlerForMainEventTypes[] = {
-    &handleBlockChainEventType,
-    &handleAccountStateEventType,
-    &handleBalanceEventType,
-    &handleGasPriceEventType,
-    &handleGasEstimateEventType,
-    &handleTransactionEventType,
-    &handleLogEventType,
-    &handleSaveBlocksEventType,
-    &handleSaveNodesEventType,
-    &handleSyncEventType,
-    &handleGetBlocksEventType,
-
-};
-const unsigned int handlerForMainEventTypesCount = 10;
 
 ///
 /// MARK: - Client
@@ -461,7 +441,7 @@ ewmClientSignalWalletEvent(BREthereumEWM ewm,
                            const char *errorDescription) {
     BREthereumEWMClientWalletEvent message =
     CLIENT_WALLET_EVENT_INITIALIZER (ewm, wid, event, status, errorDescription);
-    eventHandlerSignalEvent(ewm->handlerForClient, (BREvent*) &message);
+    eventHandlerSignalEvent(ewm->handler, (BREvent*) &message);
 }
 
 //
@@ -504,7 +484,7 @@ ewmClientSignalBlockEvent(BREthereumEWM ewm,
                           const char *errorDescription) {
     BREthereumEWMClientBlockEvent message =
     CLIENT_BLOCK_EVENT_INITIALIZER (ewm, bid, event, status, errorDescription);
-    eventHandlerSignalEvent(ewm->handlerForClient, (BREvent*) &message);
+    eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &message);
 }
 #endif
 
@@ -550,7 +530,7 @@ ewmClientSignalTransferEvent(BREthereumEWM ewm,
                              const char *errorDescription) {
     BREthereumEWMClientTransactionEvent message =
     CLIENT_TRANSACTION_EVENT_INITIALIZER (ewm, wid, tid, event, status, errorDescription);
-    eventHandlerSignalEvent(ewm->handlerForClient, (BREvent*) &message);
+    eventHandlerSignalEvent(ewm->handler, (BREvent*) &message);
 }
 
 //
@@ -590,7 +570,7 @@ ewmClientSignalPeerEvent(BREthereumEWM ewm,
                          const char *errorDescription) {
     BREthereumEWMClientPeerEvent message =
     CLIENT_PEER_EVENT_INITIALIZER (ewm, /* wid, tid,*/ event, status, errorDescription);
-    eventHandlerSignalEvent(ewm->handlerForClient, (BREvent*) &message);
+    eventHandlerSignalEvent(ewm->handler, (BREvent*) &message);
 }
 
 //
@@ -630,7 +610,7 @@ ewmClientSignalEWMEvent(BREthereumEWM ewm,
                         const char *errorDescription) {
     BREthereumEWMClientEWMEvent message =
     CLIENT_EWM_EVENT_INITIALIZER (ewm, /* wid, tid,*/ event, status, errorDescription);
-    eventHandlerSignalEvent(ewm->handlerForClient, (BREvent*) &message);
+    eventHandlerSignalEvent(ewm->handler, (BREvent*) &message);
 }
 
 //
@@ -661,7 +641,7 @@ ewmClientSignalAnnounceBlockNumber (BREthereumEWM ewm,
                                     int rid) {
     BREthereumEWMClientAnnounceBlockNumberEvent message =
     { { NULL, &ewmClientAnnounceBlockNumberEventType}, ewm, blockNumber, rid};
-    eventHandlerSignalEvent (ewm->handlerForClient, (BREvent*) &message);
+    eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
 }
 
 //
@@ -694,7 +674,7 @@ ewmClientSignalAnnounceNonce (BREthereumEWM ewm,
                               int rid) {
     BREthereumEWMClientAnnounceNonceEvent message =
     { { NULL, &ewmClientAnnounceNonceEventType}, ewm, address, nonce, rid};
-    eventHandlerSignalEvent (ewm->handlerForClient, (BREvent*) &message);
+    eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
 }
 
 //
@@ -727,7 +707,7 @@ ewmClientSignalAnnounceBalance (BREthereumEWM ewm,
                                 int rid) {
     BREthereumEWMClientAnnounceBalanceEvent message =
     { { NULL, &ewmClientAnnounceBalanceEventType}, ewm, wallet, value, rid};
-    eventHandlerSignalEvent (ewm->handlerForClient, (BREvent*) &message);
+    eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
 }
 
 //
@@ -760,7 +740,7 @@ ewmClientSignalAnnounceGasPrice (BREthereumEWM ewm,
                                  int rid) {
     BREthereumEWMClientAnnounceGasPriceEvent message =
     { { NULL, &ewmClientAnnounceGasPriceEventType}, ewm, wallet, amount, rid};
-    eventHandlerSignalEvent (ewm->handlerForClient, (BREvent*) &message);
+    eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
 }
 
 //
@@ -795,7 +775,7 @@ ewmClientSignalAnnounceGasEstimate (BREthereumEWM ewm,
                                     int rid) {
     BREthereumEWMClientAnnounceGasEstimateEvent message =
     { { NULL, &ewmClientAnnounceGasEstimateEventType}, ewm, wallet, transfer, value, rid};
-    eventHandlerSignalEvent (ewm->handlerForClient, (BREvent*) &message);
+    eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
 }
 
 //
@@ -828,7 +808,7 @@ ewmClientSignalAnnounceSubmitTransfer (BREthereumEWM ewm,
                                        int rid) {
     BREthereumEWMClientAnnounceSubmitTransferEvent message =
     { { NULL, &ewmClientAnnounceSubmitTransferEventType}, ewm, wallet, transfer, rid};
-    eventHandlerSignalEvent (ewm->handlerForClient, (BREvent*) &message);
+    eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
 }
 
 //
@@ -865,7 +845,7 @@ ewmClientSignalAnnounceTransaction(BREthereumEWM ewm,
                                    int rid) {
     BREthereumEWMClientAnnounceTransactionEvent message =
     { { NULL, &ewmClientAnnounceTransactionEventType}, ewm, bundle, rid};
-    eventHandlerSignalEvent (ewm->handlerForClient, (BREvent*) &message);
+    eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
 }
 
 //
@@ -902,7 +882,7 @@ ewmClientSignalAnnounceLog (BREthereumEWM ewm,
                             int rid) {
     BREthereumEWMClientAnnounceLogEvent message =
     { { NULL, &ewmClientAnnounceLogEventType}, ewm, bundle, rid};
-    eventHandlerSignalEvent (ewm->handlerForClient, (BREvent*) &message);
+    eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
 }
 
 //
@@ -939,14 +919,26 @@ ewmClientSignalAnnounceToken (BREthereumEWM ewm,
                               int rid) {
     BREthereumEWMClientAnnounceTokenEvent message =
     { { NULL, &ewmClientAnnounceTokenEventType}, ewm, bundle, rid};
-    eventHandlerSignalEvent (ewm->handlerForClient, (BREvent*) &message);
+    eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
 }
 
+// ==============================================================================================
 //
-// All Listener Event Types
+// All Event Types
 //
-const BREventType *
-handlerForClientEventTypes[] = {
+const BREventType *ewmEventTypes[] = {
+    &handleBlockChainEventType,
+    &handleAccountStateEventType,
+    &handleBalanceEventType,
+    &handleGasPriceEventType,
+    &handleGasEstimateEventType,
+    &handleTransactionEventType,
+    &handleLogEventType,
+    &handleSaveBlocksEventType,
+    &handleSaveNodesEventType,
+    &handleSyncEventType,
+    &handleGetBlocksEventType,
+
     &ewmClientWalletEventType,
     //    &ewmClientBlockEventType,
     &ewmClientTransactionEventType,
@@ -963,5 +955,5 @@ handlerForClientEventTypes[] = {
     &ewmClientAnnounceTokenEventType,
 };
 const unsigned int
-handlerForClientEventTypesCount = (sizeof (handlerForClientEventTypes) / sizeof (BREventType*)); // 14;
+ewmEventTypesCount = (sizeof (ewmEventTypes) / sizeof (BREventType*)); // 14;
 

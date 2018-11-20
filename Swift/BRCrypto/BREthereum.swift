@@ -6,6 +6,7 @@
 //  Copyright © 2018 breadwallet. All rights reserved.
 //
 
+import Foundation
 import Core.Ethereum
 
 public typealias EthereumReferenceId = Optional<OpaquePointer>
@@ -422,7 +423,11 @@ public class EthereumWalletManager: WalletManager {
     internal let persistenceClient: EthereumPersistenceClient
     
     public let listener : WalletManagerListener
-    
+
+    lazy var queue : DispatchQueue = {
+        return DispatchQueue (label: "Ethereum")
+    }()
+
     public let account: Account
     
     //    public var address: EthereumAddress {
@@ -518,156 +523,193 @@ public class EthereumWalletManager: WalletManager {
             
             funcGetBalance: { (coreClient, coreEWM, wid, address, rid) in
                 if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    ewm.backendClient.getBalance(ewm: ewm,
-                                                 wid: wid,
-                                                 address: asUTF8String(address!),
-                                                 rid: rid)
+                    ewm.queue.async {
+                        ewm.backendClient.getBalance(ewm: ewm,
+                                                     wid: wid,
+                                                     address: asUTF8String(address!),
+                                                     rid: rid)
+                    }
                 }},
             
             funcGetGasPrice: { (coreClient, coreEWM, wid, rid) in
                 if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    ewm.backendClient.getGasPrice (ewm: ewm,
-                                                   wid: wid,
-                                                   rid: rid)
+                    ewm.queue.async {
+                        ewm.backendClient.getGasPrice (ewm: ewm,
+                                                       wid: wid,
+                                                       rid: rid)
+                    }
                 }},
             
             funcEstimateGas: { (coreClient, coreEWM, wid, tid, to, amount, data, rid)  in
                 if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    ewm.backendClient.getGasEstimate(ewm: ewm,
-                                                     wid: wid,
-                                                     tid: tid,
-                                                     to: asUTF8String(to!),
-                                                     amount: asUTF8String(amount!),
-                                                     data: asUTF8String(data!),
-                                                     rid: rid)
+                    ewm.queue.async {
+                        ewm.backendClient.getGasEstimate(ewm: ewm,
+                                                         wid: wid,
+                                                         tid: tid,
+                                                         to: asUTF8String(to!),
+                                                         amount: asUTF8String(amount!),
+                                                         data: asUTF8String(data!),
+                                                         rid: rid)
+                    }
                 }},
             
             funcSubmitTransaction: { (coreClient, coreEWM, wid, tid, transaction, rid)  in
                 if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    ewm.backendClient.submitTransaction(ewm: ewm,
-                                                        wid: wid,
-                                                        tid: tid,
-                                                        rawTransaction: asUTF8String(transaction!),
-                                                        rid: rid)
+                    ewm.queue.async {
+                        ewm.backendClient.submitTransaction(ewm: ewm,
+                                                            wid: wid,
+                                                            tid: tid,
+                                                            rawTransaction: asUTF8String(transaction!),
+                                                            rid: rid)
+                    }
                 }},
             
             funcGetTransactions: { (coreClient, coreEWM, address, rid) in
                 if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    ewm.backendClient.getTransactions(ewm: ewm,
-                                                      address: asUTF8String(address!),
-                                                      rid: rid)
+                    ewm.queue.async {
+                        ewm.backendClient.getTransactions(ewm: ewm,
+                                                          address: asUTF8String(address!),
+                                                          rid: rid)
+                    }
                 }},
             
             funcGetLogs: { (coreClient, coreEWM, contract, address, event, rid) in
                 if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    ewm.backendClient.getLogs (ewm: ewm,
-                                               address: asUTF8String(address!),
-                                               event: asUTF8String(event!),
-                                               rid: rid)
+                    ewm.queue.async {
+                        ewm.backendClient.getLogs (ewm: ewm,
+                                                   address: asUTF8String(address!),
+                                                   event: asUTF8String(event!),
+                                                   rid: rid)
+                    }
                 }},
             
             funcGetBlocks: { (coreClient, coreEWM, address, interests, blockStart, blockStop, rid) in
                 if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    ewm.backendClient.getBlocks (ewm: ewm,
-                                                 address: asUTF8String (address!),
-                                                 interests: interests,
-                                                 blockStart: blockStart,
-                                                 blockStop: blockStop,
-                                                 rid: rid)
+                    ewm.queue.async {
+                        ewm.backendClient.getBlocks (ewm: ewm,
+                                                     address: asUTF8String (address!),
+                                                     interests: interests,
+                                                     blockStart: blockStart,
+                                                     blockStop: blockStop,
+                                                     rid: rid)
+                    }
                 }},
             
             funcGetTokens: { (coreClient, coreEWM, rid) in
                 if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    ewm.backendClient.getTokens (ewm: ewm, rid: rid)
+                    ewm.queue.async {
+                        ewm.backendClient.getTokens (ewm: ewm, rid: rid)
+                    }
                 }},
             
             funcGetBlockNumber: { (coreClient, coreEWM, rid) in
                 if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    ewm.backendClient.getBlockNumber(ewm: ewm, rid: rid)
+                    ewm.queue.async {
+                        ewm.backendClient.getBlockNumber(ewm: ewm, rid: rid)
+                    }
                 }},
             
             funcGetNonce: { (coreClient, coreEWM, address, rid) in
                 if  let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    ewm.backendClient.getNonce(ewm: ewm,
-                                               address: asUTF8String(address!),
-                                               rid: rid)
+                    ewm.queue.async {
+                        ewm.backendClient.getNonce(ewm: ewm,
+                                                   address: asUTF8String(address!),
+                                                   rid: rid)
+                    }
                 }},
             
             funcSaveNodes: { (coreClient, coreEWM, data) in
                 if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    ewm.persistenceClient.savePeers(manager: ewm, data: EthereumWalletManager.asDictionary(data!))
+                    ewm.queue.async {
+                        ewm.persistenceClient.savePeers(manager: ewm, data: EthereumWalletManager.asDictionary(data!))
+                    }
                 }},
             
             funcSaveBlocks: { (coreClient, coreEWM, data) in
                 if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    ewm.persistenceClient.saveBlocks(manager: ewm, data: EthereumWalletManager.asDictionary(data!))
+                    ewm.queue.async {
+                        ewm.persistenceClient.saveBlocks(manager: ewm, data: EthereumWalletManager.asDictionary(data!))
+                    }
                 }},
             
             funcChangeTransaction: { (coreClient, coreEWM, change, data) in
                 if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    
-                    let cStrHash = hashDataPairGetHashAsString (data)!
-                    let cStrData = hashDataPairGetDataAsString (data)!
-                    
-                    ewm.persistenceClient.changeTransaction (manager: ewm,
-                                                             change: WalletManagerPersistenceChangeType(change),
-                                                             hash: String (cString: cStrHash),
-                                                             data: String (cString: cStrData))
-                    
-                    free (cStrHash); free (cStrData)
+                    ewm.queue.async {
+                        
+                        let cStrHash = hashDataPairGetHashAsString (data)!
+                        let cStrData = hashDataPairGetDataAsString (data)!
+                        
+                        ewm.persistenceClient.changeTransaction (manager: ewm,
+                                                                 change: WalletManagerPersistenceChangeType(change),
+                                                                 hash: String (cString: cStrHash),
+                                                                 data: String (cString: cStrData))
+                        
+                        free (cStrHash); free (cStrData)
+                    }
                 }},
             
             funcChangeLog: { (coreClient, coreEWM, change, data) in
                 if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    
-                    let cStrHash = hashDataPairGetHashAsString (data)!
-                    let cStrData = hashDataPairGetDataAsString (data)!
-
-                    ewm.persistenceClient.changeLog (manager: ewm,
-                                                     change: WalletManagerPersistenceChangeType(change),
-                                                     hash: String (cString: cStrHash),
-                                                     data: String (cString: cStrData))
-                    
-                    free (cStrHash); free (cStrData)
+                    ewm.queue.async {
+                        
+                        let cStrHash = hashDataPairGetHashAsString (data)!
+                        let cStrData = hashDataPairGetDataAsString (data)!
+                        
+                        ewm.persistenceClient.changeLog (manager: ewm,
+                                                         change: WalletManagerPersistenceChangeType(change),
+                                                         hash: String (cString: cStrHash),
+                                                         data: String (cString: cStrData))
+                        
+                        free (cStrHash); free (cStrData)
+                    }
                 }},
             
             funcEWMEvent: { (coreClient, coreEWM, event, status, message) in
                 if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    ewm.listener.handleManagerEvent (manager: ewm,
-                                                     event: WalletManagerEvent(event))
+                    ewm.queue.async {
+                        ewm.listener.handleManagerEvent (manager: ewm,
+                                                         event: WalletManagerEvent(event))
+                    }
                 }},
             
             funcPeerEvent: { (coreClient, coreEWM, event, status, message) in
                 if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    //                    ewm.listener.handlePeerEvent (ewm: ewm, event: EthereumPeerEvent (event))
+                    ewm.queue.async {
+                        //                    ewm.listener.handlePeerEvent (ewm: ewm, event: EthereumPeerEvent (event))
+                    }
                 }},
             
             funcWalletEvent: { (coreClient, coreEWM, wid, event, status, message) in
                 if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    
-                    //                    let event = WalletManagerEvent.created
-                    //                    ewm.listener.handleManagerEvent(manager: ewm,
-                    //                                                       event: event)
-                    ewm.listener.handleWalletEvent(manager: ewm,
-                                                   wallet: ewm.findWallet(identifier: wid),
-                                                   event: WalletEvent (event))
+                    ewm.queue.async {
+                        
+                        //                    let event = WalletManagerEvent.created
+                        //                    ewm.listener.handleManagerEvent(manager: ewm,
+                        //                                                       event: event)
+                        ewm.listener.handleWalletEvent(manager: ewm,
+                                                       wallet: ewm.findWallet(identifier: wid),
+                                                       event: WalletEvent (event))
+                    }
                 }},
             
-//            funcBlockEvent: { (coreClient, coreEWM, bid, event, status, message) in
-//                if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-//                    //                    ewm.listener.handleBlockEvent(ewm: ewm,
-//                    //                                                 block: ewm.findBlock(identifier: bid),
-//                    //                                                 event: EthereumBlockEvent (event))
-//                }},
-
+            //            funcBlockEvent: { (coreClient, coreEWM, bid, event, status, message) in
+            //                if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
+            //                    //                    ewm.listener.handleBlockEvent(ewm: ewm,
+            //                    //                                                 block: ewm.findBlock(identifier: bid),
+            //                    //                                                 event: EthereumBlockEvent (event))
+            //                }},
+            
             funcTransferEvent: { (coreClient, coreEWM, wid, tid, event, status, message) in
                 if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    let wallet = ewm.findWallet(identifier: wid)
-                    let transfer = wallet.findTransfer(identifier: tid)
-                    ewm.listener.handleTransferEvent(manager: ewm,
-                                                     wallet: wallet,
-                                                     transfer: transfer,
-                                                     event: TransferEvent (event))
+                    ewm.queue.async {
+                        
+                        let wallet = ewm.findWallet(identifier: wid)
+                        let transfer = wallet.findTransfer(identifier: tid)
+                        ewm.listener.handleTransferEvent(manager: ewm,
+                                                         wallet: wallet,
+                                                         transfer: transfer,
+                                                         event: TransferEvent (event))
+                    }
                 }})
     }()
     

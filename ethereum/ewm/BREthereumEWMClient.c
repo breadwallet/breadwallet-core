@@ -120,7 +120,7 @@ ewmAnnounceWalletBalance (BREthereumEWM ewm,
 // Default Wallet Gas Price
 //
 extern void
-ewmUpdateWalletDefaultGasPrice (BREthereumEWM ewm,
+ewmUpdateGasPrice (BREthereumEWM ewm,
                                 BREthereumWallet wallet) {
 
     if (NULL == wallet) {
@@ -180,7 +180,7 @@ ewmAnnounceGasPrice(BREthereumEWM ewm,
 //
 
 extern void
-ewmUpdateTransferGasEstimate (BREthereumEWM ewm,
+ewmUpdateGasEstimate (BREthereumEWM ewm,
                                  BREthereumWallet wallet,
                                  BREthereumTransfer transfer) {
     if (NULL == transfer) {

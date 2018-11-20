@@ -181,18 +181,11 @@ ewmCreate (BREthereumNetwork network,
     // Our one and only coder
     ewm->coder = rlpCoderCreate();
 
-    // Create the `listener` and `main` event handlers.  Do this early so that queues exist
-    // for any events/callbacks generated during initialization.  The queues won't be handled
-    // until ewmConnect().
-    ewm->handlerForClient = eventHandlerCreate ("Core Ethereum EWM Client",
-                                                handlerForClientEventTypes,
-                                                handlerForClientEventTypesCount);
-
     // The `main` event handler has a periodic wake-up.  Used, perhaps, if the mode indicates
     // that we should/might query the BRD backend services.
-    ewm->handlerForMain = eventHandlerCreate ("Core Ethereum EWM",
-                                              handlerForMainEventTypes,
-                                              handlerForMainEventTypesCount);
+    ewm->handler = eventHandlerCreate ("Core Ethereum EWM",
+                                              ewmEventTypes,
+                                              ewmEventTypesCount);
 
     array_new(ewm->wallets, DEFAULT_WALLET_CAPACITY);
 
@@ -276,7 +269,7 @@ ewmCreate (BREthereumNetwork network,
             BRSetFree (logs);
 
             // Add ewmPeriodicDispatcher to handlerForMain.
-            eventHandlerSetTimeoutDispatcher(ewm->handlerForMain,
+            eventHandlerSetTimeoutDispatcher(ewm->handler,
                                              1000 * EWM_SLEEP_SECONDS,
                                              (BREventDispatcher)ewmPeriodicDispatcher,
                                              (void*) ewm);
@@ -354,8 +347,7 @@ ewmDestroy (BREthereumEWM ewm) {
     walletsRelease (ewm->wallets);
     ewm->wallets = NULL;
 
-    eventHandlerDestroy(ewm->handlerForClient);
-    eventHandlerDestroy(ewm->handlerForMain);
+    eventHandlerDestroy(ewm->handler);
     rlpCoderRelease(ewm->coder);
     
     free (ewm);
@@ -390,8 +382,7 @@ ewmConnect(BREthereumEWM ewm) {
             break;
     }
 
-    eventHandlerStart(ewm->handlerForClient);
-    eventHandlerStart(ewm->handlerForMain);
+    eventHandlerStart(ewm->handler);
 
     return ETHEREUM_BOOLEAN_TRUE;
 }
@@ -421,8 +412,7 @@ ewmDisconnect (BREthereumEWM ewm) {
             break;
     }
 
-    eventHandlerStop(ewm->handlerForMain);
-    eventHandlerStop(ewm->handlerForClient);
+    eventHandlerStop(ewm->handler);
 
     return ETHEREUM_BOOLEAN_TRUE;
 }
