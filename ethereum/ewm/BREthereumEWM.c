@@ -515,7 +515,7 @@ ewmInsertBlock (BREthereumEWM ewm,
     array_add(ewm->blocks, block);
     bid = (BREthereumBlockId) (array_count(ewm->blocks) - 1);
     pthread_mutex_unlock(&ewm->lock);
-    ewmClientSignalBlockEvent(ewm, bid, BLOCK_EVENT_CREATED, SUCCESS, NULL);
+    ewmSignalBlockEvent(ewm, bid, BLOCK_EVENT_CREATED, SUCCESS, NULL);
     return bid;
 }
 #endif
@@ -602,7 +602,7 @@ ewmDeleteTransfer (BREthereumEWM ewm,
     for (int wid = 0; wid < array_count(ewm->wallets); wid++)
         if (walletHasTransfer(ewm->wallets[wid], transfer)) {
             walletUnhandleTransfer(ewm->wallets[wid], transfer);
-            ewmClientSignalTransferEvent(ewm, wid, tid, TRANSFER_EVENT_DELETED, SUCCESS, NULL);
+            ewmSignalTransferEvent(ewm, wid, tid, TRANSFER_EVENT_DELETED, SUCCESS, NULL);
         }
 
     // Null the ewm's `tid` - MUST NOT array_rm() as all `tid` holders will be dead.
@@ -663,7 +663,7 @@ ewmInsertWallet (BREthereumEWM ewm,
     pthread_mutex_lock(&ewm->lock);
     array_add (ewm->wallets, wallet);
     pthread_mutex_unlock(&ewm->lock);
-    ewmClientSignalWalletEvent(ewm, wallet, WALLET_EVENT_CREATED, SUCCESS, NULL);
+    ewmSignalWalletEvent(ewm, wallet, WALLET_EVENT_CREATED, SUCCESS, NULL);
 }
 
 //
@@ -733,7 +733,7 @@ ewmWalletCreateTransfer(BREthereumEWM ewm,
 
     // Transfer DOES NOT have a hash yet because it is not signed; but it is inserted in the
     // wallet and can be display, in order, w/o the hash
-    ewmClientSignalTransferEvent (ewm, wallet, transfer, TRANSFER_EVENT_CREATED, SUCCESS, NULL);
+    ewmSignalTransferEvent (ewm, wallet, transfer, TRANSFER_EVENT_CREATED, SUCCESS, NULL);
 
     return transfer;
 }
@@ -754,7 +754,7 @@ ewmWalletCreateTransferWithFeeBasis (BREthereumEWM ewm,
 
     // Transfer DOES NOT have a hash yet because it is not signed; but it is inserted in the
     // wallet and can be display, in order, w/o the hash
-    ewmClientSignalTransferEvent (ewm, wallet, transfer, TRANSFER_EVENT_CREATED, SUCCESS, NULL);
+    ewmSignalTransferEvent (ewm, wallet, transfer, TRANSFER_EVENT_CREATED, SUCCESS, NULL);
 
     return transfer;
 }
@@ -884,7 +884,7 @@ static void
 ewmWalletSignTransferAnnounce (BREthereumEWM ewm,
                                BREthereumWallet wallet,
                                BREthereumTransfer transfer) {
-    ewmClientSignalTransferEvent (ewm, wallet, transfer, TRANSFER_EVENT_SIGNED,  SUCCESS, NULL);
+    ewmSignalTransferEvent (ewm, wallet, transfer, TRANSFER_EVENT_SIGNED,  SUCCESS, NULL);
 }
 
 extern void // status, error
@@ -966,7 +966,7 @@ ewmWalletSetDefaultGasLimit(BREthereumEWM ewm,
                             BREthereumWallet wallet,
                             BREthereumGas gasLimit) {
     walletSetDefaultGasLimit(wallet, gasLimit);
-    ewmClientSignalWalletEvent(ewm,
+    ewmSignalWalletEvent(ewm,
                                wallet,
                                WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED,
                                SUCCESS,
@@ -984,7 +984,7 @@ ewmWalletSetDefaultGasPrice(BREthereumEWM ewm,
                             BREthereumWallet wallet,
                             BREthereumGasPrice gasPrice) {
     walletSetDefaultGasPrice(wallet, gasPrice);
-    ewmClientSignalWalletEvent(ewm,
+    ewmSignalWalletEvent(ewm,
                                wallet,
                                WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
                                SUCCESS,
@@ -1010,7 +1010,7 @@ ewmHandleGasPrice (BREthereumEWM ewm,
     
     walletSetDefaultGasPrice(wallet, gasPrice);
     
-    ewmClientSignalWalletEvent(ewm,
+    ewmSignalWalletEvent(ewm,
                                  wallet,
                                  WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
                                  SUCCESS, NULL);
@@ -1036,7 +1036,7 @@ ewmHandleGasEstimate (BREthereumEWM ewm,
     
     transferSetGasEstimate(transfer, gasEstimate);
     
-    ewmClientSignalTransferEvent(ewm,
+    ewmSignalTransferEvent(ewm,
                                       wallet,
                                       transfer,
                                       TRANSFER_EVENT_GAS_ESTIMATE_UPDATED,
@@ -1079,7 +1079,7 @@ ewmHandleBlockChain (BREthereumEWM ewm,
 
 #if defined (NEVER_DEFINED)
     // TODO: Need a 'block id' - or axe the need of 'block id'?
-    ewmClientSignalBlockEvent (ewm,
+    ewmSignalBlockEvent (ewm,
                                (BREthereumBlockId) 0,
                                BLOCK_EVENT_CHAINED,
                                SUCCESS,
@@ -1119,7 +1119,7 @@ ewmHandleBalance (BREthereumEWM ewm,
                                : ewmGetWalletHoldingToken(ewm, amountGetToken (amount)));
     walletSetBalance(wallet, amount);
 
-    ewmClientSignalWalletEvent(ewm,
+    ewmSignalWalletEvent(ewm,
                                wallet,
                                WALLET_EVENT_BALANCE_UPDATED,
                                SUCCESS,
@@ -1152,14 +1152,14 @@ ewmHandleTransactionOriginatingLog (BREthereumEWM ewm,
             // the 'logIndex' and no way to get that from the originating transaction's status.
 
             if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_INCLUDED)))
-                ewmClientSignalTransferEvent(ewm, wallet, transfer,
+                ewmSignalTransferEvent(ewm, wallet, transfer,
                                              TRANSFER_EVENT_INCLUDED,
                                              SUCCESS, NULL);
 
             else if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_ERRORED))) {
                 char *reason = NULL;
                 transferExtractStatusError (transfer, &reason);
-                ewmClientSignalTransferEvent(ewm, wallet, transfer,
+                ewmSignalTransferEvent(ewm, wallet, transfer,
                                              TRANSFER_EVENT_ERRORED,
                                              ERROR_TRANSACTION_SUBMISSION,
                                              (NULL == reason ? "" : reason));
@@ -1193,11 +1193,11 @@ ewmHandleTransaction (BREthereumEWM ewm,
         walletHandleTransfer(wallet, transfer);
         walletUpdateBalance (wallet);
 
-        ewmClientSignalTransferEvent(ewm, wallet, transfer,
+        ewmSignalTransferEvent(ewm, wallet, transfer,
                                      TRANSFER_EVENT_CREATED,
                                      SUCCESS, NULL);
 
-        ewmClientSignalWalletEvent(ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
+        ewmSignalWalletEvent(ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
                                    SUCCESS,
                                    NULL);
 
@@ -1214,14 +1214,14 @@ ewmHandleTransaction (BREthereumEWM ewm,
     }
 
     if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_INCLUDED)))
-        ewmClientSignalTransferEvent(ewm, wallet, transfer,
+        ewmSignalTransferEvent(ewm, wallet, transfer,
                                      TRANSFER_EVENT_INCLUDED,
                                      SUCCESS, NULL);
 
     else if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_ERRORED))) {
         char *reason = NULL;
         transferExtractStatusError (transfer, &reason);
-        ewmClientSignalTransferEvent(ewm, wallet, transfer,
+        ewmSignalTransferEvent(ewm, wallet, transfer,
                                      TRANSFER_EVENT_ERRORED,
                                      ERROR_TRANSACTION_SUBMISSION,
                                      (NULL == reason ? "" : reason));
@@ -1264,11 +1264,11 @@ ewmHandleLog (BREthereumEWM ewm,
         walletHandleTransfer(wallet, transfer);
         walletUpdateBalance (wallet);
 
-        ewmClientSignalTransferEvent(ewm, wallet, transfer,
+        ewmSignalTransferEvent(ewm, wallet, transfer,
                                      TRANSFER_EVENT_CREATED,
                                      SUCCESS, NULL);
 
-        ewmClientSignalWalletEvent(ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
+        ewmSignalWalletEvent(ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
                                    SUCCESS,
                                    NULL);
     }
@@ -1277,14 +1277,14 @@ ewmHandleLog (BREthereumEWM ewm,
     }
 
     if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_INCLUDED)))
-        ewmClientSignalTransferEvent(ewm, wallet, transfer,
+        ewmSignalTransferEvent(ewm, wallet, transfer,
                                      TRANSFER_EVENT_INCLUDED,
                                      SUCCESS, NULL);
 
     else if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_ERRORED))) {
         char *reason = NULL;
         transferExtractStatusError (transfer, &reason);
-        ewmClientSignalTransferEvent(ewm, wallet, transfer,
+        ewmSignalTransferEvent(ewm, wallet, transfer,
                                      TRANSFER_EVENT_ERRORED,
                                      ERROR_TRANSACTION_SUBMISSION,
                                      (NULL == reason ? "" : reason));
@@ -1358,7 +1358,7 @@ ewmHandleSync (BREthereumEWM ewm,
                                    : EWM_EVENT_SYNC_CONTINUES));
     double syncCompletePercent = 100.0 * (blockNumberCurrent - blockNumberStart) / (blockNumberStop - blockNumberStart);
     
-    ewmClientSignalEWMEvent (ewm, event, SUCCESS, NULL);
+    ewmSignalEWMEvent (ewm, event, SUCCESS, NULL);
 
     eth_log ("EWM", "Sync: %d, %.2f%%", type, syncCompletePercent);
 }
@@ -1708,7 +1708,7 @@ ewmTransferDelete (BREthereumEWM ewm,
         BREthereumWallet wallet = ewm->wallets[wid];
         if (walletHasTransfer(wallet, transfer)) {
             walletUnhandleTransfer(wallet, transfer);
-            ewmClientSignalTransferEvent(ewm, wallet, transfer, TRANSFER_EVENT_DELETED, SUCCESS, NULL);
+            ewmSignalTransferEvent(ewm, wallet, transfer, TRANSFER_EVENT_DELETED, SUCCESS, NULL);
         }
     }
     // Null the ewm's `tid` - MUST NOT array_rm() as all `tid` holders will be dead.

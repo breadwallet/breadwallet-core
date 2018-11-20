@@ -283,13 +283,13 @@ ewmSignalGetBlocks (BREthereumEWM ewm,
 /// MARK: - (Wallet) Balance
 ///
 extern void
-ewmClientHandleAnnounceBalance (BREthereumEWM ewm,
+ewmHandleAnnounceBalance (BREthereumEWM ewm,
                                 BREthereumWallet wallet,
                                 UInt256 amount,
                                 int rid);
 
 extern void
-ewmClientSignalAnnounceBalance (BREthereumEWM ewm,
+ewmSignalAnnounceBalance (BREthereumEWM ewm,
                                 BREthereumWallet wallet,
                                 UInt256 amount,
                                 int rid);
@@ -298,13 +298,13 @@ ewmClientSignalAnnounceBalance (BREthereumEWM ewm,
 /// MARK: - GasPrice
 ///
 extern void
-ewmClientSignalAnnounceGasPrice (BREthereumEWM ewm,
+ewmSignalAnnounceGasPrice (BREthereumEWM ewm,
                                  BREthereumWallet wallet,
                                  UInt256 value,
                                  int rid);
 
 extern void
-ewmClientHandleAnnounceGasPrice (BREthereumEWM ewm,
+ewmHandleAnnounceGasPrice (BREthereumEWM ewm,
                                  BREthereumWallet wallet,
                                  UInt256 value,
                                  int rid);
@@ -314,14 +314,14 @@ ewmClientHandleAnnounceGasPrice (BREthereumEWM ewm,
 ///
 
 extern void
-ewmClientHandleAnnounceGasEstimate (BREthereumEWM ewm,
+ewmHandleAnnounceGasEstimate (BREthereumEWM ewm,
                                     BREthereumWallet wallet,
                                     BREthereumTransfer transfer,
                                     UInt256 value,
                                     int rid);
 
 extern void
-ewmClientSignalAnnounceGasEstimate (BREthereumEWM ewm,
+ewmSignalAnnounceGasEstimate (BREthereumEWM ewm,
                                     BREthereumWallet wallet,
                                     BREthereumTransfer transfer,
                                     UInt256 value,
@@ -331,13 +331,13 @@ ewmClientSignalAnnounceGasEstimate (BREthereumEWM ewm,
 /// MARK: - Submit Transaction
 ///
 extern void
-ewmClientSignalAnnounceSubmitTransfer (BREthereumEWM ewm,
+ewmSignalAnnounceSubmitTransfer (BREthereumEWM ewm,
                                        BREthereumWallet wallet,
                                        BREthereumTransfer transfer,
                                        int rid);
 
 extern void
-ewmClientHandleAnnounceSubmitTransfer (BREthereumEWM ewm,
+ewmHandleAnnounceSubmitTransfer (BREthereumEWM ewm,
                                        BREthereumWallet wallet,
                                        BREthereumTransfer transfer,
                                        int rid);
@@ -371,12 +371,12 @@ ewmClientAnnounceTransactionBundleRelease (BREthereumEWMClientAnnounceTransactio
 }
 
 extern void
-ewmClientHandleAnnounceTransaction(BREthereumEWM ewm,
+ewmHandleAnnounceTransaction(BREthereumEWM ewm,
                                    BREthereumEWMClientAnnounceTransactionBundle *bundle,
                                    int id);
 
 extern void
-ewmClientSignalAnnounceTransaction(BREthereumEWM ewm,
+ewmSignalAnnounceTransaction(BREthereumEWM ewm,
                                    BREthereumEWMClientAnnounceTransactionBundle *bundle,
                                    int id);
 
@@ -407,12 +407,12 @@ ewmClientAnnounceLogBundleRelease (BREthereumEWMClientAnnounceLogBundle *bundle)
 }
 
 extern void
-ewmClientSignalAnnounceLog (BREthereumEWM ewm,
+ewmSignalAnnounceLog (BREthereumEWM ewm,
                             BREthereumEWMClientAnnounceLogBundle *bundle,
                             int id);
 
 extern void
-ewmClientHandleAnnounceLog (BREthereumEWM ewm,
+ewmHandleAnnounceLog (BREthereumEWM ewm,
                             BREthereumEWMClientAnnounceLogBundle *bundle,
                             int id);
 
@@ -439,11 +439,11 @@ ewmClientAnnounceTokenBundleRelease (BREthereumEWMClientAnnounceTokenBundle *bun
 }
 
 extern void
-ewmClientHandleAnnounceToken (BREthereumEWM ewm,
+ewmHandleAnnounceToken (BREthereumEWM ewm,
                               BREthereumEWMClientAnnounceTokenBundle *bundle,
                               int id);
 extern void
-ewmClientSignalAnnounceToken (BREthereumEWM ewm,
+ewmSignalAnnounceToken (BREthereumEWM ewm,
                               BREthereumEWMClientAnnounceTokenBundle *bundle,
                               int id);
 
@@ -451,12 +451,12 @@ ewmClientSignalAnnounceToken (BREthereumEWM ewm,
 // MARK: - BlockNumber
 ///
 extern void
-ewmClientHandleAnnounceBlockNumber (BREthereumEWM ewm,
+ewmHandleAnnounceBlockNumber (BREthereumEWM ewm,
                                     uint64_t blockNumber,
                                     int rid);
 
 extern void
-ewmClientSignalAnnounceBlockNumber (BREthereumEWM ewm,
+ewmSignalAnnounceBlockNumber (BREthereumEWM ewm,
                                     uint64_t blockNumber,
                                     int rid);
 
@@ -464,13 +464,13 @@ ewmClientSignalAnnounceBlockNumber (BREthereumEWM ewm,
 /// MARK: - Nonce
 ///
 extern void
-ewmClientHandleAnnounceNonce (BREthereumEWM ewm,
+ewmHandleAnnounceNonce (BREthereumEWM ewm,
                               BREthereumAddress address,
                               uint64_t nonce,
                               int rid);
 
 extern void
-ewmClientSignalAnnounceNonce (BREthereumEWM ewm,
+ewmSignalAnnounceNonce (BREthereumEWM ewm,
                               BREthereumAddress address,
                               uint64_t nonce,
                               int rid);
@@ -484,14 +484,14 @@ ewmClientSignalAnnounceNonce (BREthereumEWM ewm,
 //
 
 extern void
-ewmClientHandleWalletEvent(BREthereumEWM ewm,
+ewmHandleWalletEvent(BREthereumEWM ewm,
                            BREthereumWallet wid,
                            BREthereumWalletEvent event,
                            BREthereumStatus status,
                            const char *errorDescription);
 
 extern void
-ewmClientSignalWalletEvent(BREthereumEWM ewm,
+ewmSignalWalletEvent(BREthereumEWM ewm,
                            BREthereumWallet wid,
                            BREthereumWalletEvent event,
                            BREthereumStatus status,
@@ -502,14 +502,14 @@ ewmClientSignalWalletEvent(BREthereumEWM ewm,
 //
 #if defined (NEVER_DEFINED)
 extern void
-ewmClientSignalBlockEvent(BREthereumEWM ewm,
+ewmSignalBlockEvent(BREthereumEWM ewm,
                           BREthereumBlock bid,
                           BREthereumBlockEvent event,
                           BREthereumStatus status,
                           const char *errorDescription);
 
 extern void
-ewmClientHandleBlockEvent(BREthereumEWM ewm,
+ewmHandleBlockEvent(BREthereumEWM ewm,
                           BREthereumBlock bid,
                           BREthereumBlockEvent event,
                           BREthereumStatus status,
@@ -520,7 +520,7 @@ ewmClientHandleBlockEvent(BREthereumEWM ewm,
 //
 
 extern void
-ewmClientSignalTransferEvent(BREthereumEWM ewm,
+ewmSignalTransferEvent(BREthereumEWM ewm,
                              BREthereumWallet wid,
                              BREthereumTransfer tid,
                              BREthereumTransferEvent event,
@@ -528,7 +528,7 @@ ewmClientSignalTransferEvent(BREthereumEWM ewm,
                              const char *errorDescription);
 
 extern void
-ewmClientHandleTransferEvent(BREthereumEWM ewm,
+ewmHandleTransferEvent(BREthereumEWM ewm,
                              BREthereumWallet wid,
                              BREthereumTransfer tid,
                              BREthereumTransferEvent event,
@@ -538,7 +538,7 @@ ewmClientHandleTransferEvent(BREthereumEWM ewm,
 // Peer Event
 //
 extern void
-ewmClientSignalPeerEvent(BREthereumEWM ewm,
+ewmSignalPeerEvent(BREthereumEWM ewm,
                          // BREthereumWallet wid,
                          // BREthereumTransaction tid,
                          BREthereumPeerEvent event,
@@ -546,7 +546,7 @@ ewmClientSignalPeerEvent(BREthereumEWM ewm,
                          const char *errorDescription);
 
 extern void
-ewmClientHandlePeerEvent(BREthereumEWM ewm,
+ewmHandlePeerEvent(BREthereumEWM ewm,
                          // BREthereumWallet wid,
                          // BREthereumTransaction tid,
                          BREthereumPeerEvent event,
@@ -557,7 +557,7 @@ ewmClientHandlePeerEvent(BREthereumEWM ewm,
 // EWM Event
 //
 extern void
-ewmClientSignalEWMEvent(BREthereumEWM ewm,
+ewmSignalEWMEvent(BREthereumEWM ewm,
                         // BREthereumWallet wid,
                         // BREthereumTransaction tid,
                         BREthereumEWMEvent event,
@@ -565,7 +565,7 @@ ewmClientSignalEWMEvent(BREthereumEWM ewm,
                         const char *errorDescription);
 
 extern void
-ewmClientHandleEWMEvent(BREthereumEWM ewm,
+ewmHandleEWMEvent(BREthereumEWM ewm,
                         // BREthereumWallet wid,
                         // BREthereumTransaction tid,
                         BREthereumEWMEvent event,
