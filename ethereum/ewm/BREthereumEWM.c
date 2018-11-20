@@ -33,8 +33,8 @@
 #include "BRArray.h"
 #include "BRBIP39Mnemonic.h"
 
-#include "BREthereumEWMPrivate.h"
 #include "../event/BREvent.h"
+#include "BREthereumEWMPrivate.h"
 
 #define EWM_SLEEP_SECONDS (5)
 
@@ -157,7 +157,7 @@ createEWMEnsureLogs (OwnershipGiven BRSetOf(BREthereumHashDataPair) logsPersistD
 }
 
 extern BREthereumEWM
-createEWM (BREthereumNetwork network,
+ewmCreate (BREthereumNetwork network,
            BREthereumAccount account,
            BREthereumTimestamp accountTimestamp,
            BREthereumMode mode,
@@ -181,22 +181,13 @@ createEWM (BREthereumNetwork network,
     // Our one and only coder
     ewm->coder = rlpCoderCreate();
 
-    // Create the `listener` and `main` event handlers.  Do this early so that queues exist
-    // for any events/callbacks generated during initialization.  The queues won't be handled
-    // until ewmConnect().
-    ewm->handlerForClient = eventHandlerCreate ("Core Ethereum EWM Client",
-                                                handlerForClientEventTypes,
-                                                handlerForClientEventTypesCount);
-
     // The `main` event handler has a periodic wake-up.  Used, perhaps, if the mode indicates
     // that we should/might query the BRD backend services.
-    ewm->handlerForMain = eventHandlerCreate ("Core Ethereum EWM",
-                                              handlerForMainEventTypes,
-                                              handlerForMainEventTypesCount);
+    ewm->handler = eventHandlerCreate ("Core Ethereum EWM",
+                                              ewmEventTypes,
+                                              ewmEventTypesCount);
 
     array_new(ewm->wallets, DEFAULT_WALLET_CAPACITY);
-    array_new(ewm->transfers, DEFAULT_TRANSACTION_CAPACITY);
-    array_new(ewm->blocks, DEFAULT_BLOCK_CAPACITY);
 
     {
         pthread_mutexattr_t attr;
@@ -278,7 +269,7 @@ createEWM (BREthereumNetwork network,
             BRSetFree (logs);
 
             // Add ewmPeriodicDispatcher to handlerForMain.
-            eventHandlerSetTimeoutDispatcher(ewm->handlerForMain,
+            eventHandlerSetTimeoutDispatcher(ewm->handler,
                                              1000 * EWM_SLEEP_SECONDS,
                                              (BREventDispatcher)ewmPeriodicDispatcher,
                                              (void*) ewm);
@@ -305,6 +296,48 @@ createEWM (BREthereumNetwork network,
     return ewm;
 }
 
+extern BREthereumEWM
+ewmCreateWithPaperKey (BREthereumNetwork network,
+                       const char *paperKey,
+                       BREthereumTimestamp accountTimestamp,
+                       BREthereumMode mode,
+                       BREthereumClient client,
+                       BRSetOf(BREthereumHashDataPair) nodesPersistData,
+                       BRSetOf(BREthereumHashDataPair) blocksPersistData,
+                       BRSetOf(BREthereumHashDataPair) transactionsPersistData,
+                       BRSetOf(BREthereumHashDataPair) logsPersistData) {
+    return ewmCreate (network,
+                      createAccount (paperKey),
+                      accountTimestamp,
+                      mode,
+                      client,
+                      nodesPersistData,
+                      blocksPersistData,
+                      transactionsPersistData,
+                      logsPersistData);
+}
+
+extern BREthereumEWM
+ewmCreateWithPublicKey (BREthereumNetwork network,
+                        BRKey publicKey,
+                        BREthereumTimestamp accountTimestamp,
+                        BREthereumMode mode,
+                        BREthereumClient client,
+                        BRSetOf(BREthereumHashDataPair) nodesPersistData,
+                        BRSetOf(BREthereumHashDataPair) blocksPersistData,
+                        BRSetOf(BREthereumHashDataPair) transactionsPersistData,
+                        BRSetOf(BREthereumHashDataPair) logsPersistData) {
+    return ewmCreate (network,
+                      createAccountWithPublicKey(publicKey),
+                      accountTimestamp,
+                      mode,
+                      client,
+                      nodesPersistData,
+                      blocksPersistData,
+                      transactionsPersistData,
+                      logsPersistData);
+}
+
 extern void
 ewmDestroy (BREthereumEWM ewm) {
     ewmDisconnect(ewm);
@@ -314,14 +347,7 @@ ewmDestroy (BREthereumEWM ewm) {
     walletsRelease (ewm->wallets);
     ewm->wallets = NULL;
 
-    // All `ewm->transfers` are in `emw->wallets`; they are released there.
-    array_free (ewm->transfers);
-
-    //
-    blocksRelease(ewm->blocks);
-
-    eventHandlerDestroy(ewm->handlerForClient);
-    eventHandlerDestroy(ewm->handlerForMain);
+    eventHandlerDestroy(ewm->handler);
     rlpCoderRelease(ewm->coder);
     
     free (ewm);
@@ -356,8 +382,7 @@ ewmConnect(BREthereumEWM ewm) {
             break;
     }
 
-    eventHandlerStart(ewm->handlerForClient);
-    eventHandlerStart(ewm->handlerForMain);
+    eventHandlerStart(ewm->handler);
 
     return ETHEREUM_BOOLEAN_TRUE;
 }
@@ -387,8 +412,7 @@ ewmDisconnect (BREthereumEWM ewm) {
             break;
     }
 
-    eventHandlerStop(ewm->handlerForMain);
-    eventHandlerStop(ewm->handlerForClient);
+    eventHandlerStop(ewm->handler);
 
     return ETHEREUM_BOOLEAN_TRUE;
 }
@@ -408,20 +432,38 @@ ewmIsConnected (BREthereumEWM ewm) {
     }
 }
 
-extern BREthereumAccount
-ewmGetAccount (BREthereumEWM ewm) {
-    return ewm->account;
-}
-
 extern BREthereumNetwork
 ewmGetNetwork (BREthereumEWM ewm) {
     return ewm->network;
 }
 
+extern BREthereumAccount
+ewmGetAccount (BREthereumEWM ewm) {
+    return ewm->account;
+}
+
+extern char *
+ewmGetAccountPrimaryAddress(BREthereumEWM ewm) {
+    return accountGetPrimaryAddressString(ewmGetAccount(ewm));
+}
+
+extern BRKey // key.pubKey
+ewmGetAccountPrimaryAddressPublicKey(BREthereumEWM ewm) {
+    return accountGetPrimaryAddressPublicKey(ewmGetAccount(ewm));
+}
+
+extern BRKey
+ewmGetAccountPrimaryAddressPrivateKey(BREthereumEWM ewm,
+                                           const char *paperKey) {
+    return accountGetPrimaryAddressPrivateKey (ewmGetAccount(ewm), paperKey);
+
+}
+
+
 ///
 /// MARK: - Blocks
 ///
-
+#if defined (NEVER_DEFINED)
 extern BREthereumBlock
 ewmLookupBlockByHash(BREthereumEWM ewm,
                      const BREthereumHash hash) {
@@ -473,9 +515,10 @@ ewmInsertBlock (BREthereumEWM ewm,
     array_add(ewm->blocks, block);
     bid = (BREthereumBlockId) (array_count(ewm->blocks) - 1);
     pthread_mutex_unlock(&ewm->lock);
-    ewmClientSignalBlockEvent(ewm, bid, BLOCK_EVENT_CREATED, SUCCESS, NULL);
+    ewmSignalBlockEvent(ewm, bid, BLOCK_EVENT_CREATED, SUCCESS, NULL);
     return bid;
 }
+#endif
 
 extern uint64_t
 ewmGetBlockHeight(BREthereumEWM ewm) {
@@ -492,10 +535,10 @@ ewmUpdateBlockHeight(BREthereumEWM ewm,
 ///
 /// MARK: - Transfers
 ///
-
+#if defined (NEVER_DEFINED)
 extern BREthereumTransfer
 ewmLookupTransfer (BREthereumEWM ewm,
-                   BREthereumTransferId tid) {
+                   BREthereumTransfer transfer) {
     BREthereumTransfer transfer = NULL;
 
     pthread_mutex_lock(&ewm->lock);
@@ -524,7 +567,7 @@ ewmLookupTransferByHash (BREthereumEWM ewm,
 extern BREthereumTransferId
 ewmLookupTransferId (BREthereumEWM ewm,
                      BREthereumTransfer transfer) {
-    BREthereumTransferId tid = -1;
+    BREthereumTransfer transfer = -1;
 
     pthread_mutex_lock(&ewm->lock);
     for (int i = 0; i < array_count(ewm->transfers); i++)
@@ -539,7 +582,7 @@ ewmLookupTransferId (BREthereumEWM ewm,
 extern BREthereumTransferId
 ewmInsertTransfer (BREthereumEWM ewm,
                    BREthereumTransfer transfer) {
-    BREthereumTransferId tid;
+    BREthereumTransfer transfer;
 
     pthread_mutex_lock(&ewm->lock);
     array_add (ewm->transfers, transfer);
@@ -551,7 +594,7 @@ ewmInsertTransfer (BREthereumEWM ewm,
 
 extern void
 ewmDeleteTransfer (BREthereumEWM ewm,
-                   BREthereumTransferId tid) {
+                   BREthereumTransfer transfer) {
     BREthereumTransfer transfer = ewm->transfers[tid];
     if (NULL == transfer) return;
 
@@ -559,18 +602,19 @@ ewmDeleteTransfer (BREthereumEWM ewm,
     for (int wid = 0; wid < array_count(ewm->wallets); wid++)
         if (walletHasTransfer(ewm->wallets[wid], transfer)) {
             walletUnhandleTransfer(ewm->wallets[wid], transfer);
-            ewmClientSignalTransferEvent(ewm, wid, tid, TRANSFER_EVENT_DELETED, SUCCESS, NULL);
+            ewmSignalTransferEvent(ewm, wid, tid, TRANSFER_EVENT_DELETED, SUCCESS, NULL);
         }
 
     // Null the ewm's `tid` - MUST NOT array_rm() as all `tid` holders will be dead.
     ewm->transfers[tid] = NULL;
     transferRelease(transfer);
 }
+#endif
 
 ///
 /// MARK: Wallets
 ///
-
+#if defined (NEVER_DEFINED)
 extern BREthereumWallet
 ewmLookupWallet(BREthereumEWM ewm,
                 BREthereumWalletId wid) {
@@ -612,33 +656,30 @@ ewmLookupWalletByTransfer (BREthereumEWM ewm,
     pthread_mutex_unlock(&ewm->lock);
     return wallet;
 }
-
-extern BREthereumWalletId
+#endif
+extern void
 ewmInsertWallet (BREthereumEWM ewm,
                  BREthereumWallet wallet) {
-    BREthereumWalletId wid = -1;
     pthread_mutex_lock(&ewm->lock);
     array_add (ewm->wallets, wallet);
-    wid = (BREthereumWalletId) (array_count(ewm->wallets) - 1);
     pthread_mutex_unlock(&ewm->lock);
-    ewmClientSignalWalletEvent(ewm, wid, WALLET_EVENT_CREATED, SUCCESS, NULL);
-    return wid;
+    ewmSignalWalletEvent(ewm, wallet, WALLET_EVENT_CREATED, SUCCESS, NULL);
 }
 
 //
 // Wallet (Actions)
 //
-extern BREthereumWalletId *
+extern BREthereumWallet *
 ewmGetWallets (BREthereumEWM ewm) {
     pthread_mutex_lock(&ewm->lock);
 
     unsigned long count = array_count(ewm->wallets);
-    BREthereumWalletId *wallets = calloc (count + 1, sizeof (BREthereumWalletId));
+    BREthereumWallet *wallets = calloc (count + 1, sizeof (BREthereumWallet));
 
-    for (BREthereumWalletId index = 0; index < count; index++) {
-        wallets [index] = index;
+    for (size_t index = 0; index < count; index++) {
+        wallets [index] = ewm->wallets[index];
     }
-    wallets[count] = -1;
+    wallets[count] = NULL;
 
     pthread_mutex_unlock(&ewm->lock);
     return wallets;
@@ -649,101 +690,97 @@ ewmGetWalletsCount (BREthereumEWM ewm) {
     return (unsigned int) array_count(ewm->wallets);
 }
 
-extern BREthereumWalletId
+extern BREthereumWallet
 ewmGetWallet(BREthereumEWM ewm) {
-    return ewmLookupWalletId (ewm, ewm->walletHoldingEther);
+    return ewm->walletHoldingEther;
 }
 
-extern BREthereumWalletId
+extern BREthereumWallet
 ewmGetWalletHoldingToken(BREthereumEWM ewm,
                          BREthereumToken token) {
-    BREthereumWalletId wid = -1;
+    BREthereumWallet wallet = NULL;
 
     pthread_mutex_lock(&ewm->lock);
     for (int i = 0; i < array_count(ewm->wallets); i++)
         if (token == walletGetToken(ewm->wallets[i])) {
-            wid = i;
+            wallet = ewm->wallets[i];
             break;
         }
 
-    if (-1 == wid) {
-        BREthereumWallet wallet = walletCreateHoldingToken(ewm->account,
-                                                           ewm->network,
-                                                           token);
-        wid = ewmInsertWallet(ewm, wallet);
+    if (NULL == wallet) {
+        wallet = walletCreateHoldingToken(ewm->account,
+                                          ewm->network,
+                                          token);
+        ewmInsertWallet(ewm, wallet);
     }
-
     pthread_mutex_unlock(&ewm->lock);
-    return wid;
+    return wallet;
 }
 
 
-extern BREthereumTransferId
+extern BREthereumTransfer
 ewmWalletCreateTransfer(BREthereumEWM ewm,
                         BREthereumWallet wallet,
                         const char *recvAddress,
                         BREthereumAmount amount) {
-    BREthereumTransferId tid = -1;
-    BREthereumWalletId wid = -1;
+    BREthereumTransfer transfer = NULL;
 
     pthread_mutex_lock(&ewm->lock);
 
-    BREthereumTransfer transfer = walletCreateTransfer(wallet, addressCreate(recvAddress), amount);
-
-    tid = ewmInsertTransfer(ewm, transfer);
-    wid = ewmLookupWalletId(ewm, wallet);
+    transfer = walletCreateTransfer(wallet, addressCreate(recvAddress), amount);
 
     pthread_mutex_unlock(&ewm->lock);
 
     // Transfer DOES NOT have a hash yet because it is not signed; but it is inserted in the
     // wallet and can be display, in order, w/o the hash
-    ewmClientSignalTransferEvent (ewm, wid, tid, TRANSFER_EVENT_CREATED, SUCCESS, NULL);
+    ewmSignalTransferEvent (ewm, wallet, transfer, TRANSFER_EVENT_CREATED, SUCCESS, NULL);
 
-    return tid;
+    return transfer;
 }
 
-extern BREthereumTransferId
+extern BREthereumTransfer
 ewmWalletCreateTransferWithFeeBasis (BREthereumEWM ewm,
                                      BREthereumWallet wallet,
                                      const char *recvAddress,
                                      BREthereumAmount amount,
                                      BREthereumFeeBasis feeBasis) {
-    BREthereumTransferId tid = -1;
-    BREthereumWalletId wid = -1;
+    BREthereumTransfer transfer = NULL;
 
     pthread_mutex_lock(&ewm->lock);
     {
-        BREthereumTransfer transaction = walletCreateTransferWithFeeBasis (wallet, addressCreate(recvAddress), amount, feeBasis);
-        tid = ewmInsertTransfer(ewm, transaction);
-        wid = ewmLookupWalletId(ewm, wallet);
+        transfer = walletCreateTransferWithFeeBasis (wallet, addressCreate(recvAddress), amount, feeBasis);
     }
     pthread_mutex_unlock(&ewm->lock);
 
     // Transfer DOES NOT have a hash yet because it is not signed; but it is inserted in the
     // wallet and can be display, in order, w/o the hash
-    ewmClientSignalTransferEvent (ewm, wid, tid, TRANSFER_EVENT_CREATED, SUCCESS, NULL);
+    ewmSignalTransferEvent (ewm, wallet, transfer, TRANSFER_EVENT_CREATED, SUCCESS, NULL);
 
-    return tid;
+    return transfer;
+}
+
+extern BREthereumEther
+ewmWalletEstimateTransferFee(BREthereumEWM ewm,
+                             BREthereumWallet wallet,
+                             BREthereumAmount amount,
+                             int *overflow) {
+    return walletEstimateTransferFee(wallet, amount, overflow);
 }
 
 extern BREthereumBoolean
 ewmWalletCanCancelTransfer (BREthereumEWM ewm,
-                            BREthereumWalletId wid,
-                            BREthereumTransferId tid) {
-    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
-    BREthereumTransfer oldTransfer = ewmLookupTransfer(ewm, tid);
+                            BREthereumWallet wallet,
+                            BREthereumTransfer oldTransfer) {
     BREthereumTransaction oldTransaction = transferGetOriginatingTransaction(oldTransfer);
 
     // TODO: Something about the 'status' (not already cancelled, etc)
     return AS_ETHEREUM_BOOLEAN (NULL != oldTransaction);
 }
 
-extern BREthereumTransferId // status, error
+extern BREthereumTransfer // status, error
 ewmWalletCreateTransferToCancel(BREthereumEWM ewm,
-                                BREthereumWalletId wid,
-                                BREthereumTransferId tid) {
-    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
-    BREthereumTransfer oldTransfer = ewmLookupTransfer(ewm, tid);
+                                BREthereumWallet wallet,
+                                BREthereumTransfer oldTransfer) {
     BREthereumTransaction oldTransaction = transferGetOriginatingTransaction(oldTransfer);
 
     assert (NULL != oldTransaction);
@@ -771,31 +808,27 @@ ewmWalletCreateTransferToCancel(BREthereumEWM ewm,
                                                                              ? TRANSFER_BASIS_TRANSACTION
                                                                              : TRANSFER_BASIS_LOG));
     walletHandleTransfer(wallet, transfer);
-    return ewmInsertTransfer(ewm, transfer);
+    return transfer;
 }
 
 extern BREthereumBoolean
 ewmWalletCanReplaceTransfer (BREthereumEWM ewm,
-                             BREthereumWalletId wid,
-                             BREthereumTransferId tid) {
-    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
-    BREthereumTransfer oldTransfer = ewmLookupTransfer(ewm, tid);
+                             BREthereumWallet wid,
+                             BREthereumTransfer oldTransfer) {
     BREthereumTransaction oldTransaction = transferGetOriginatingTransaction(oldTransfer);
 
     // TODO: Something about the 'status' (not already replaced, etc)
     return AS_ETHEREUM_BOOLEAN (NULL != oldTransaction);
 }
 
-extern BREthereumTransferId // status, error
+extern BREthereumTransfer // status, error
 ewmWalletCreateTransferToReplace (BREthereumEWM ewm,
-                                  BREthereumWalletId wid,
-                                  BREthereumTransferId tid,
+                                  BREthereumWallet wallet,
+                                  BREthereumTransfer oldTransfer,
                                   // ...
                                   BREthereumBoolean updateGasPrice,
                                   BREthereumBoolean updateGasLimit,
                                   BREthereumBoolean updateNonce) {
-    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
-    BREthereumTransfer oldTransfer = ewmLookupTransfer(ewm, tid);
     BREthereumTransaction oldTransaction = transferGetOriginatingTransaction(oldTransfer);
 
     assert (NULL != oldTransaction);
@@ -843,7 +876,7 @@ ewmWalletCreateTransferToReplace (BREthereumEWM ewm,
                                                                              ? TRANSFER_BASIS_TRANSACTION
                                                                              : TRANSFER_BASIS_LOG));
     walletHandleTransfer(wallet, transfer);
-    return ewmInsertTransfer(ewm, transfer);
+    return transfer;
 }
 
 
@@ -851,17 +884,7 @@ static void
 ewmWalletSignTransferAnnounce (BREthereumEWM ewm,
                                BREthereumWallet wallet,
                                BREthereumTransfer transfer) {
-    BREthereumTransferId tid = -1;
-    BREthereumWalletId wid = -1;
-
-    pthread_mutex_lock(&ewm->lock);
-    {
-        tid = ewmLookupTransferId (ewm, transfer);
-        wid = ewmLookupWalletId(ewm, wallet);
-    }
-    pthread_mutex_unlock(&ewm->lock);
-
-    ewmClientSignalTransferEvent (ewm, wid, tid, TRANSFER_EVENT_SIGNED,  SUCCESS, NULL);
+    ewmSignalTransferEvent (ewm, wallet, transfer, TRANSFER_EVENT_SIGNED,  SUCCESS, NULL);
 }
 
 extern void // status, error
@@ -882,21 +905,20 @@ ewmWalletSignTransferWithPaperKey(BREthereumEWM ewm,
     ewmWalletSignTransferAnnounce (ewm, wallet, transfer);
 }
 
-extern BREthereumTransferId *
+extern BREthereumTransfer *
 ewmWalletGetTransfers(BREthereumEWM ewm,
                       BREthereumWallet wallet) {
     pthread_mutex_lock(&ewm->lock);
 
     unsigned long count = walletGetTransferCount(wallet);
-    BREthereumTransferId *transactions = calloc (count + 1, sizeof (BREthereumTransferId));
+    BREthereumTransfer *transfers = calloc (count + 1, sizeof (BREthereumTransfer));
 
-    for (unsigned long index = 0; index < count; index++) {
-        transactions [index] = ewmLookupTransferId(ewm, walletGetTransferByIndex(wallet, index));
-    }
-    transactions[count] = -1;
+    for (unsigned long index = 0; index < count; index++)
+        transfers [index] = walletGetTransferByIndex (wallet, index);
+    transfers[count] = NULL;
 
     pthread_mutex_unlock(&ewm->lock);
-    return transactions;
+    return transfers;
 }
 
 extern int
@@ -911,16 +933,50 @@ ewmWalletGetTransferCount(BREthereumEWM ewm,
     return count;
 }
 
+extern BREthereumToken
+ewmWalletGetToken (BREthereumEWM ewm,
+                   BREthereumWallet wallet) {
+    return walletGetToken(wallet);
+}
+
+extern BREthereumAmount
+ewmWalletGetBalance(BREthereumEWM ewm,
+                    BREthereumWallet wallet) {
+    return walletGetBalance(wallet);
+}
+
+
+extern BREthereumGas
+ewmWalletGetGasEstimate(BREthereumEWM ewm,
+                        BREthereumWallet wallet,
+                        BREthereumTransfer transfer) {
+    return transferGetGasEstimate(transfer);
+
+}
+
+extern BREthereumGas
+ewmWalletGetDefaultGasLimit(BREthereumEWM ewm,
+                            BREthereumWallet wallet) {
+    return walletGetDefaultGasLimit(wallet);
+}
+
+
 extern void
 ewmWalletSetDefaultGasLimit(BREthereumEWM ewm,
                             BREthereumWallet wallet,
                             BREthereumGas gasLimit) {
     walletSetDefaultGasLimit(wallet, gasLimit);
-    ewmClientSignalWalletEvent(ewm,
-                               ewmLookupWalletId(ewm, wallet),
+    ewmSignalWalletEvent(ewm,
+                               wallet,
                                WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED,
                                SUCCESS,
                                NULL);
+}
+
+extern BREthereumGasPrice
+ewmWalletGetDefaultGasPrice(BREthereumEWM ewm,
+                                 BREthereumWallet wallet) {
+    return walletGetDefaultGasPrice(wallet);
 }
 
 extern void
@@ -928,8 +984,8 @@ ewmWalletSetDefaultGasPrice(BREthereumEWM ewm,
                             BREthereumWallet wallet,
                             BREthereumGasPrice gasPrice) {
     walletSetDefaultGasPrice(wallet, gasPrice);
-    ewmClientSignalWalletEvent(ewm,
-                               ewmLookupWalletId(ewm, wallet),
+    ewmSignalWalletEvent(ewm,
+                               wallet,
                                WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
                                SUCCESS,
                                NULL);
@@ -954,8 +1010,8 @@ ewmHandleGasPrice (BREthereumEWM ewm,
     
     walletSetDefaultGasPrice(wallet, gasPrice);
     
-    ewmClientSignalWalletEvent(ewm,
-                                 ewmLookupWalletId(ewm, wallet),
+    ewmSignalWalletEvent(ewm,
+                                 wallet,
                                  WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
                                  SUCCESS, NULL);
     
@@ -980,9 +1036,9 @@ ewmHandleGasEstimate (BREthereumEWM ewm,
     
     transferSetGasEstimate(transfer, gasEstimate);
     
-    ewmClientSignalTransferEvent(ewm,
-                                      ewmLookupWalletId(ewm, wallet),
-                                      ewmLookupTransferId (ewm, transfer),
+    ewmSignalTransferEvent(ewm,
+                                      wallet,
+                                      transfer,
                                       TRANSFER_EVENT_GAS_ESTIMATE_UPDATED,
                                       SUCCESS, NULL);
     
@@ -1021,12 +1077,14 @@ ewmHandleBlockChain (BREthereumEWM ewm,
     // At least this - allows for: ewmGetBlockHeight
     ewm->blockHeight = headBlockNumber;
 
+#if defined (NEVER_DEFINED)
     // TODO: Need a 'block id' - or axe the need of 'block id'?
-    ewmClientSignalBlockEvent (ewm,
+    ewmSignalBlockEvent (ewm,
                                (BREthereumBlockId) 0,
                                BLOCK_EVENT_CHAINED,
                                SUCCESS,
                                NULL);
+#endif
 }
 
 
@@ -1056,16 +1114,16 @@ ewmHandleBalance (BREthereumEWM ewm,
                   BREthereumAmount amount) {
     pthread_mutex_lock(&ewm->lock);
 
-    BREthereumWalletId wid = (AMOUNT_ETHER == amountGetType(amount)
-                              ? ewmGetWallet(ewm)
-                              : ewmGetWalletHoldingToken(ewm, amountGetToken (amount)));
-    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
-
+    BREthereumWallet wallet = (AMOUNT_ETHER == amountGetType(amount)
+                               ? ewmGetWallet(ewm)
+                               : ewmGetWalletHoldingToken(ewm, amountGetToken (amount)));
     walletSetBalance(wallet, amount);
 
-    ewmClientSignalWalletEvent(ewm, wid, WALLET_EVENT_BALANCE_UPDATED,
-                                 SUCCESS,
-                                 NULL);
+    ewmSignalWalletEvent(ewm,
+                               wallet,
+                               WALLET_EVENT_BALANCE_UPDATED,
+                               SUCCESS,
+                               NULL);
 
     pthread_mutex_unlock(&ewm->lock);
 }
@@ -1075,7 +1133,7 @@ ewmHandleTransactionOriginatingLog (BREthereumEWM ewm,
                                      BREthereumBCSCallbackTransactionType type,
                                     OwnershipKept BREthereumTransaction transaction) {
     BREthereumHash hash = transactionGetHash(transaction);
-    for (BREthereumWalletId wid = 0; wid < array_count(ewm->wallets); wid++) {
+    for (size_t wid = 0; wid < array_count(ewm->wallets); wid++) {
         BREthereumWallet wallet = ewm->wallets[wid];
         BREthereumTransfer transfer = walletGetTransferByOriginatingHash (wallet, hash);
         if (NULL != transfer) {
@@ -1093,16 +1151,15 @@ ewmHandleTransactionOriginatingLog (BREthereumEWM ewm,
             // then we'd like to update the log's identifier.... alas, we cannot because we need
             // the 'logIndex' and no way to get that from the originating transaction's status.
 
-            BREthereumTransferId tid = ewmLookupTransferId (ewm, transfer);
             if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_INCLUDED)))
-                ewmClientSignalTransferEvent(ewm, wid, tid,
+                ewmSignalTransferEvent(ewm, wallet, transfer,
                                              TRANSFER_EVENT_INCLUDED,
                                              SUCCESS, NULL);
 
             else if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_ERRORED))) {
                 char *reason = NULL;
                 transferExtractStatusError (transfer, &reason);
-                ewmClientSignalTransferEvent(ewm, wid, tid,
+                ewmSignalTransferEvent(ewm, wallet, transfer,
                                              TRANSFER_EVENT_ERRORED,
                                              ERROR_TRANSACTION_SUBMISSION,
                                              (NULL == reason ? "" : reason));
@@ -1123,33 +1180,29 @@ ewmHandleTransaction (BREthereumEWM ewm,
              hashString, BCS_CALLBACK_TRANSACTION_TYPE_NAME(type));
 
     // Find the wallet
-    BREthereumWalletId wid = ewmGetWallet(ewm);
-    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
+    BREthereumWallet wallet = ewmGetWallet(ewm);
     assert (NULL != wallet);
 
     // Find a preexisting transfer
     BREthereumTransfer transfer = walletGetTransferByHash(wallet, hash);
-    BREthereumTransferId tid = -1;
 
     // If we've no transfer, then create one and save `transaction` as the basis
     if (NULL == transfer) {
         transfer = transferCreateWithTransaction(transaction);
-        tid      = ewmInsertTransfer(ewm, transfer);
 
         walletHandleTransfer(wallet, transfer);
         walletUpdateBalance (wallet);
 
-        ewmClientSignalTransferEvent(ewm, wid, tid,
+        ewmSignalTransferEvent(ewm, wallet, transfer,
                                      TRANSFER_EVENT_CREATED,
                                      SUCCESS, NULL);
 
-        ewmClientSignalWalletEvent(ewm, wid, WALLET_EVENT_BALANCE_UPDATED,
+        ewmSignalWalletEvent(ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
                                    SUCCESS,
                                    NULL);
 
     }
     else {
-        tid = ewmLookupTransferId(ewm, transfer);
         // If this transaction is the transfer's originatingTransaction, then update the
         // originatingTransaction's status.
         BREthereumTransaction original = transferGetOriginatingTransaction (transfer);
@@ -1161,14 +1214,14 @@ ewmHandleTransaction (BREthereumEWM ewm,
     }
 
     if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_INCLUDED)))
-        ewmClientSignalTransferEvent(ewm, wid, tid,
+        ewmSignalTransferEvent(ewm, wallet, transfer,
                                      TRANSFER_EVENT_INCLUDED,
                                      SUCCESS, NULL);
 
     else if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_ERRORED))) {
         char *reason = NULL;
         transferExtractStatusError (transfer, &reason);
-        ewmClientSignalTransferEvent(ewm, wid, tid,
+        ewmSignalTransferEvent(ewm, wallet, transfer,
                                      TRANSFER_EVENT_ERRORED,
                                      ERROR_TRANSACTION_SUBMISSION,
                                      (NULL == reason ? "" : reason));
@@ -1199,43 +1252,39 @@ ewmHandleLog (BREthereumEWM ewm,
     // TODO: Confirm LogTopic[0] is 'transfer'
     if (3 != logGetTopicsCount(log)) return;
 
-    BREthereumWalletId wid = ewmGetWalletHoldingToken(ewm, token);
-    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
+    BREthereumWallet wallet = ewmGetWalletHoldingToken(ewm, token);
     assert (NULL != wallet);
 
     BREthereumTransfer transfer = walletGetTransferByHash(wallet, logHash);
-    BREthereumTransferId tid = -1;
 
     // If we've no transfer, then create one and save `log` as the basis
     if (NULL == transfer) {
         transfer = transferCreateWithLog (log, token);
-        tid      = ewmInsertTransfer(ewm, transfer);
 
         walletHandleTransfer(wallet, transfer);
         walletUpdateBalance (wallet);
 
-        ewmClientSignalTransferEvent(ewm, wid, tid,
+        ewmSignalTransferEvent(ewm, wallet, transfer,
                                      TRANSFER_EVENT_CREATED,
                                      SUCCESS, NULL);
 
-        ewmClientSignalWalletEvent(ewm, wid, WALLET_EVENT_BALANCE_UPDATED,
+        ewmSignalWalletEvent(ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
                                    SUCCESS,
                                    NULL);
     }
     else {
-        tid = ewmLookupTransferId(ewm, transfer);
         transferSetBasisForLog (transfer, log);
     }
 
     if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_INCLUDED)))
-        ewmClientSignalTransferEvent(ewm, wid, tid,
+        ewmSignalTransferEvent(ewm, wallet, transfer,
                                      TRANSFER_EVENT_INCLUDED,
                                      SUCCESS, NULL);
 
     else if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_ERRORED))) {
         char *reason = NULL;
         transferExtractStatusError (transfer, &reason);
-        ewmClientSignalTransferEvent(ewm, wid, tid,
+        ewmSignalTransferEvent(ewm, wallet, transfer,
                                      TRANSFER_EVENT_ERRORED,
                                      ERROR_TRANSACTION_SUBMISSION,
                                      (NULL == reason ? "" : reason));
@@ -1309,7 +1358,7 @@ ewmHandleSync (BREthereumEWM ewm,
                                    : EWM_EVENT_SYNC_CONTINUES));
     double syncCompletePercent = 100.0 * (blockNumberCurrent - blockNumberStart) / (blockNumberStop - blockNumberStart);
     
-    ewmClientSignalEWMEvent (ewm, event, SUCCESS, NULL);
+    ewmSignalEWMEvent (ewm, event, SUCCESS, NULL);
 
     eth_log ("EWM", "Sync: %d, %.2f%%", type, syncCompletePercent);
 }
@@ -1356,24 +1405,22 @@ ewmPeriodicDispatcher (BREventHandler handler,
     
     // Similarly, we'll query all logs for this ewm's account.  We'll process these into
     // (token) transactions and associate with their wallet.
-    ewmUpdateLogs(ewm, -1, eventERC20Transfer);
+    ewmUpdateLogs(ewm, NULL, eventERC20Transfer);
     
     // For all the known wallets, get their balance.
     for (int i = 0; i < array_count(ewm->wallets); i++)
-        ewmUpdateWalletBalance (ewm, i);
+        ewmUpdateWalletBalance (ewm, ewm->wallets[i]);
 }
 
 #if 1 // defined(SUPPORT_JSON_RPC)
 
 extern void
-ethereumTransferFillRawData (BREthereumEWM ewm,
-                             BREthereumWalletId wid,
-                             BREthereumTransferId transferId,
+ewmTransferFillRawData (BREthereumEWM ewm,
+                             BREthereumWallet wallet,
+                             BREthereumTransfer transfer,
                              uint8_t **bytesPtr, size_t *bytesCountPtr) {
     assert (NULL != bytesCountPtr && NULL != bytesPtr);
 
-    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
-    BREthereumTransfer transfer = ewmLookupTransfer(ewm, transferId);
     assert (walletHasTransfer(wallet, transfer));
 
     BREthereumTransaction transaction = transferGetOriginatingTransaction (transfer);
@@ -1395,12 +1442,10 @@ ethereumTransferFillRawData (BREthereumEWM ewm,
 }
 
 extern const char *
-ethereumTransferGetRawDataHexEncoded(BREthereumEWM ewm,
-                                        BREthereumWalletId wid,
-                                        BREthereumTransferId transferId,
+ewmTransferGetRawDataHexEncoded(BREthereumEWM ewm,
+                                        BREthereumWallet wallet,
+                                        BREthereumTransfer transfer,
                                         const char *prefix) {
-    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
-    BREthereumTransfer transfer = ewmLookupTransfer(ewm, transferId);
     assert (walletHasTransfer(wallet, transfer));
 
     BREthereumTransaction transaction = transferGetOriginatingTransaction (transfer);
@@ -1412,6 +1457,271 @@ ethereumTransferGetRawDataHexEncoded(BREthereumEWM ewm,
                                  ? RLP_TYPE_TRANSACTION_SIGNED
                                  : RLP_TYPE_TRANSACTION_UNSIGNED),
                                 prefix);
+}
+
+
+///
+/// MARK: - Transfer
+///
+extern BREthereumAddress
+ewmTransferGetTarget (BREthereumEWM ewm,
+                           BREthereumTransfer transfer) {
+    return transferGetTargetAddress(transfer);
+}
+
+extern BREthereumAddress
+ewmTransferGetSource (BREthereumEWM ewm,
+                           BREthereumTransfer transfer) {
+    return transferGetSourceAddress(transfer);
+}
+
+extern BREthereumHash
+ewmTransferGetHash(BREthereumEWM ewm,
+                        BREthereumTransfer transfer) {
+    return transferGetHash(transfer);
+}
+
+extern char *
+ewmTransferGetAmountEther(BREthereumEWM ewm,
+                               BREthereumTransfer transfer,
+                               BREthereumEtherUnit unit) {
+    BREthereumAmount amount = transferGetAmount(transfer);
+    return (AMOUNT_ETHER == amountGetType(amount)
+            ? etherGetValueString(amountGetEther(amount), unit)
+            : "");
+}
+
+extern char *
+ewmTransferGetAmountTokenQuantity(BREthereumEWM ewm,
+                                       BREthereumTransfer transfer,
+                                       BREthereumTokenQuantityUnit unit) {
+    BREthereumAmount amount = transferGetAmount(transfer);
+    return (AMOUNT_TOKEN == amountGetType(amount)
+            ? tokenQuantityGetValueString(amountGetTokenQuantity(amount), unit)
+            : "");
+}
+
+extern BREthereumAmount
+ewmTransferGetAmount(BREthereumEWM ewm,
+                          BREthereumTransfer transfer) {
+    return transferGetAmount(transfer);
+}
+
+extern BREthereumGasPrice
+ewmTransferGetGasPrice(BREthereumEWM ewm,
+                            BREthereumTransfer transfer,
+                            BREthereumEtherUnit unit) {
+    return feeBasisGetGasPrice (transferGetFeeBasis(transfer));
+}
+
+extern BREthereumGas
+ewmTransferGetGasLimit(BREthereumEWM ewm,
+                            BREthereumTransfer transfer) {
+    return feeBasisGetGasLimit(transferGetFeeBasis(transfer));
+}
+
+extern uint64_t
+ewmTransferGetNonce(BREthereumEWM ewm,
+                         BREthereumTransfer transfer) {
+    return transferGetNonce(transfer);
+}
+
+extern BREthereumGas
+ewmTransferGetGasUsed(BREthereumEWM ewm,
+                           BREthereumTransfer transfer) {
+    BREthereumGas gasUsed;
+    return (transferExtractStatusIncluded(transfer, &gasUsed, NULL, NULL, NULL)
+            ? gasUsed
+            : gasCreate(0));
+}
+
+extern uint64_t
+ewmTransferGetTransactionIndex(BREthereumEWM ewm,
+                                    BREthereumTransfer transfer) {
+    uint64_t transactionIndex;
+    return (transferExtractStatusIncluded(transfer, NULL, NULL, NULL, &transactionIndex)
+            ? transactionIndex
+            : 0);
+}
+
+extern BREthereumHash
+ewmTransferGetBlockHash(BREthereumEWM ewm,
+                             BREthereumTransfer transfer) {
+    BREthereumHash blockHash;
+    return (transferExtractStatusIncluded(transfer, NULL, &blockHash, NULL, NULL)
+            ? blockHash
+            : hashCreateEmpty());
+}
+
+extern uint64_t
+ewmTransferGetBlockNumber(BREthereumEWM ewm,
+                               BREthereumTransfer transfer) {
+    uint64_t blockNumber;
+    return (transferExtractStatusIncluded(transfer, NULL, NULL, &blockNumber, NULL)
+            ? blockNumber
+            : 0);
+}
+
+extern uint64_t
+ewmTransferGetBlockConfirmations(BREthereumEWM ewm,
+                                      BREthereumTransfer transfer) {
+    uint64_t blockNumber = 0;
+    return (transferExtractStatusIncluded(transfer, NULL, NULL, &blockNumber, NULL)
+            ? (ewmGetBlockHeight(ewm) - blockNumber)
+            : 0);
+}
+
+extern BREthereumTransferStatus
+ewmTransferGetStatus (BREthereumEWM ewm,
+                           BREthereumTransfer transfer) {
+    return transferGetStatus (transfer);
+}
+
+extern BREthereumBoolean
+ewmTransferIsConfirmed(BREthereumEWM ewm,
+                            BREthereumTransfer transfer) {
+    return transferHasStatus (transfer, TRANSFER_STATUS_INCLUDED);
+}
+
+extern BREthereumBoolean
+ewmTransferIsSubmitted(BREthereumEWM ewm,
+                            BREthereumTransfer transfer) {
+    return AS_ETHEREUM_BOOLEAN(ETHEREUM_BOOLEAN_IS_TRUE(transferHasStatus(transfer, TRANSFER_STATUS_SUBMITTED)) ||
+                               ETHEREUM_BOOLEAN_IS_TRUE(transferHasStatusOrTwo(transfer,
+                                                                               TRANSFER_STATUS_INCLUDED,
+                                                                               TRANSFER_STATUS_ERRORED)));
+}
+
+extern char *
+ewmTransferStatusGetError (BREthereumEWM ewm,
+                                BREthereumTransfer transfer) {
+    if (TRANSFER_STATUS_ERRORED == transferGetStatus(transfer)) {
+        char *reason;
+        transferExtractStatusError (transfer, &reason);
+        return reason;
+    }
+    else return NULL;
+}
+
+extern int
+ewmTransferStatusGetErrorType (BREthereumEWM ewm,
+                                    BREthereumTransfer transfer) {
+    BREthereumTransactionErrorType type;
+
+    return (transferExtractStatusErrorType (transfer, &type)
+            ? type
+            : (int ) -1);
+}
+
+extern BREthereumBoolean
+ewmTransferHoldsToken(BREthereumEWM ewm,
+                           BREthereumTransfer transfer,
+                           BREthereumToken token) {
+    assert (NULL != transfer);
+    return (token == transferGetToken(transfer)
+            ? ETHEREUM_BOOLEAN_TRUE
+            : ETHEREUM_BOOLEAN_FALSE);
+}
+
+extern BREthereumToken
+ewmTransferGetToken(BREthereumEWM ewm,
+                         BREthereumTransfer transfer) {
+    assert (NULL !=  transfer);
+    return transferGetToken(transfer);
+}
+
+extern BREthereumEther
+ewmTransferGetFee(BREthereumEWM ewm,
+                       BREthereumTransfer transfer,
+                       int *overflow) {
+    assert (NULL != transfer);
+    return transferGetFee(transfer, overflow);
+}
+
+///
+/// MARK: - Amount
+///
+extern BREthereumAmount
+ewmCreateEtherAmountString(BREthereumEWM ewm,
+                                const char *number,
+                                BREthereumEtherUnit unit,
+                                BRCoreParseStatus *status) {
+    return amountCreateEther (etherCreateString(number, unit, status));
+}
+
+extern BREthereumAmount
+ewmCreateEtherAmountUnit(BREthereumEWM ewm,
+                              uint64_t amountInUnit,
+                              BREthereumEtherUnit unit) {
+    return amountCreateEther (etherCreateNumber(amountInUnit, unit));
+}
+
+extern BREthereumAmount
+ewmCreateTokenAmountString(BREthereumEWM ewm,
+                                BREthereumToken token,
+                                const char *number,
+                                BREthereumTokenQuantityUnit unit,
+                                BRCoreParseStatus *status) {
+    return amountCreateTokenQuantityString(token, number, unit, status);
+}
+
+extern char *
+ewmCoerceEtherAmountToString(BREthereumEWM ewm,
+                                  BREthereumEther ether,
+                                  BREthereumEtherUnit unit) {
+    return etherGetValueString(ether, unit);
+}
+
+extern char *
+ewmCoerceTokenAmountToString(BREthereumEWM ewm,
+                                  BREthereumTokenQuantity token,
+                                  BREthereumTokenQuantityUnit unit) {
+    return tokenQuantityGetValueString(token, unit);
+}
+
+///
+/// MARK: - Gas Price / Limit
+///
+extern BREthereumGasPrice
+ewmCreateGasPrice (uint64_t value,
+                        BREthereumEtherUnit unit) {
+    return gasPriceCreate(etherCreateNumber(value, unit));
+}
+
+extern BREthereumGas
+ewmCreateGas (uint64_t value) {
+    return gasCreate(value);
+}
+
+
+
+
+
+
+extern void
+ewmTransferDelete (BREthereumEWM ewm,
+                   BREthereumTransfer transfer) {
+    if (NULL == transfer) return;
+
+    // Remove from any (and all - should be but one) wallet
+    for (int wid = 0; wid < array_count(ewm->wallets); wid++) {
+        BREthereumWallet wallet = ewm->wallets[wid];
+        if (walletHasTransfer(wallet, transfer)) {
+            walletUnhandleTransfer(wallet, transfer);
+            ewmSignalTransferEvent(ewm, wallet, transfer, TRANSFER_EVENT_DELETED, SUCCESS, NULL);
+        }
+    }
+    // Null the ewm's `tid` - MUST NOT array_rm() as all `tid` holders will be dead.
+    transferRelease(transfer);
+}
+
+extern BREthereumFeeBasis
+feeBasisCreate (BREthereumGas limit,
+                BREthereumGasPrice price) {
+    return (BREthereumFeeBasis) {
+        FEE_BASIS_GAS,
+        { .gas = { limit, price }}
+    };
 }
 
 #endif // ETHEREUM_LIGHT_NODE_USE_JSON_RPC

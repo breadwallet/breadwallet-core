@@ -30,6 +30,8 @@
 #include "../blockchain/BREthereumNetwork.h"
 #include "../blockchain/BREthereumTransaction.h"
 #include "../blockchain/BREthereumLog.h"
+
+#include "BREthereumBase.h"
 #include "BREthereumAmount.h"
 #include "BREthereumAccount.h"
 
@@ -38,21 +40,6 @@ extern "C" {
 #endif
 
 typedef struct BREthereumTransferRecord *BREthereumTransfer;
-
-typedef enum {
-    FEE_BASIS_NONE,
-    FEE_BASIS_GAS
-} BREthereumFeeBasisType;
-
-typedef struct {
-    BREthereumFeeBasisType type;
-    union {
-        struct {
-            BREthereumGas limit;
-            BREthereumGasPrice price;
-        } gas;
-    } u;
-} BREthereumFeeBasis;
 
 static inline BREthereumGas
 feeBasisGetGasLimit (BREthereumFeeBasis basis) {

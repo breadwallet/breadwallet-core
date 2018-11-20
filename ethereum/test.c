@@ -508,6 +508,8 @@ void testTransactionCodingEther () {
     walletSetDefaultGasPrice(wallet, txGasPrice);
     walletSetDefaultGasLimit(wallet, txGas);
     BREthereumTransfer transfer = walletCreateTransfer(wallet, txRecvAddr, txAmount);
+
+    // NOTE: Owned by `transfer`
     BREthereumTransaction transaction = transferGetOriginatingTransaction(transfer);
     transactionSetNonce(transaction, NODE_NONCE);
 
@@ -565,7 +567,6 @@ void testTransactionCodingEther () {
 
     walletUnhandleTransfer(wallet, transfer);
     transferRelease(transfer);
-    transactionRelease(transaction);
     transactionRelease(decodedTransaction);
     rlpCoderRelease(coder);
 }
@@ -585,6 +586,7 @@ void testTransactionCodingToken () {
     walletSetDefaultGasPrice(wallet, txGasPrice);
     walletSetDefaultGasLimit(wallet, txGas);
     BREthereumTransfer transfer = walletCreateTransfer(wallet, txRecvAddr, txAmount);
+    // NOTE: Owned by `transfer`
     BREthereumTransaction transaction = transferGetOriginatingTransaction(transfer);
     transactionSetNonce(transaction, NODE_NONCE);
 
@@ -622,7 +624,6 @@ void testTransactionCodingToken () {
 
     walletUnhandleTransfer(wallet, transfer);
     transferRelease(transfer);
-    transactionRelease(transaction);
     transactionRelease(decodedTransaction);
     rlpCoderRelease(coder);
 }

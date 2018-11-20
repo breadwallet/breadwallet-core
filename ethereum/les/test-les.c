@@ -48,6 +48,8 @@
 #include "BREthereum.h"
 #include "../ewm/BREthereumEWM.h"
 #include "BREthereumLESRandom.h"
+#include "../ewm/BREthereumAccount.h"
+
 #include "test-les.h"
 
 #define TST_LOG_TOPIC    "TST"
@@ -964,8 +966,8 @@ _SendTransaction_Callback_Test1 (BREthereumLESProvisionContext context,
     assert (PROVISION_SUCCESS == result.status);
     assert (PROVISION_SUBMIT_TRANSACTION == result.u.success.provision.type);
 
-    BREthereumTransaction transaction  = result.u.success.provision.u.submission.transaction;
-    BREthereumTransactionStatus status = result.u.success.provision.u.submission.status;
+    // BREthereumTransaction transaction  = result.u.success.provision.u.submission.transaction;
+    // BREthereumTransactionStatus status = result.u.success.provision.u.submission.status;
 
     _signalTestComplete();
 }
@@ -1205,4 +1207,8 @@ runLEStests(void) {
     lesStop(les);
     lesRelease(les);
     printf ("Done\n");
+}
+
+extern void
+runNodeTests (void) {
 }

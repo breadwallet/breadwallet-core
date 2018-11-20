@@ -51,10 +51,7 @@ class CoreTests: XCTestCase {
 
     func testLES () {
         runLEStests()
-    }
-
-    func testLESNode () {
-//        runNodeTests()
+        runNodeTests()
     }
 
     func testEthereumBasics() {
