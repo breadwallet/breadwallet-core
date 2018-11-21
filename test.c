@@ -42,6 +42,7 @@
 #include "BRArray.h"
 #include "BRSet.h"
 #include "BRTransaction.h"
+#include "BRWalletManager.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -2840,6 +2841,7 @@ static void testSyncSaveBlocks (void *ignore1, int replace, BRMerkleBlock *block
                 block->version == 0x20000007 ||
                 block->version == 0x2000e000 ||
                 block->version == 0x20FFF000 ||
+                block->version == 0x7fffe000 ||
                 0);
         assert (BRMerkleBlockIsValid(block, unixTime));
     }
@@ -2896,6 +2898,87 @@ extern int BRRunTestsSync (int randomKey) {
     return 1;
 }
 
+///
+///
+///
+
+static void
+_testTransactionEventCallback (BRWalletManager manager,
+                                BRWallet *wallet,
+                                BRTransaction *transaction,
+                                BRTransactionEvent event) {
+    printf ("TST: TransactionEvent: %d\n", event.type);
+}
+
+static void
+_testWalletEventCallback (BRWalletManager manager,
+                          BRWallet *wallet,
+                          BRWalletEvent event) {
+    printf ("TST: WalletEvent: %d\n", event.type);
+}
+
+static void
+_testWalletManagerEventCallback (BRWalletManager manager,
+                                 BRWalletManagerEvent event) {
+    printf ("TST: WalletManagerEvent: %d\n", event.type);
+    switch (event.type) {
+
+        case BITCOIN_WALLET_MANAGER_CONNECTED:
+             break;
+        case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
+             break;
+        case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
+            syncDone = 1;
+            break;
+    }
+}
+
+
+extern int BRRunTestWalletManagerSync (const char *paperKey,
+                                       const char *storagePath) {
+    const BRChainParams *params = &BRMainNetParams;
+
+    uint32_t epoch = 1483228800; // 1/1/17
+    epoch += (365 + 365/2) * 24 * 60 * 60;
+
+    printf ("***\n***\nPaperKey (Start): \"%s\"\n***\n***\n", paperKey);
+    UInt512 seed = UINT512_ZERO;
+    BRBIP39DeriveKey (seed.u8, paperKey, NULL);
+    BRMasterPubKey mpk = BRBIP32MasterPubKey(&seed, sizeof (seed));
+
+    BRWalletManagerClient client = {
+        _testTransactionEventCallback,
+        _testWalletEventCallback,
+        _testWalletManagerEventCallback
+    };
+
+    BRWalletManager manager = BRWalletManagerNew (client, WALLET_FORKID_BITCOIN,
+                                                  mpk, params, epoch, storagePath);
+
+    BRPeerManager *pm = BRWalletManagerGetPeerManager(manager);
+
+    syncDone = 0;
+    BRPeerManagerConnect (pm);
+
+    int err = 0;
+    while (err == 0 && BRPeerManagerPeerCount(pm) > 0) {
+        if (syncDone) break;
+        err = sleep(1);
+    }
+    err = 0;
+
+    int seconds = 120;
+    while (err == 0 && seconds-- > 0) {
+        err = sleep(1);
+    }
+
+    printf ("***\n***\nPaperKey (Done): \"%s\"\n***\n***\n", paperKey);
+    BRPeerManagerDisconnect(pm);
+    sleep (2);
+    BRWalletManagerFree (manager);
+    return 1;
+}
+
 #ifndef BITCOIN_TEST_NO_MAIN
 void syncStarted(void *info)
 {
@@ -2915,7 +2998,8 @@ void txStatusUpdate(void *info)
 int main(int argc, const char *argv[])
 {
     int r = BRRunTests();
-    
+
+
 //    int err = 0;
 //    UInt512 seed = UINT512_ZERO;
 //    BRMasterPubKey mpk = BR_MASTER_PUBKEY_NONE;
