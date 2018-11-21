@@ -8,18 +8,38 @@
 
 import Core
 
+struct Bitcoin {
+    public static let currency = Currency (code: "BTC", symbol:  "₿", name: "Bitcoin", decimals: 8,
+                                           baseUnit: (name: "SAT", symbol: "sat"))
+    struct Units {
+        public static let SATOSHI = Bitcoin.currency.baseUnit!
+        public static let BITCOIN = Bitcoin.currency.defaultUnit!
+    }
+
+    struct Netwoks {
+        public static let mainnet = Network.bitcoin (name: "BTC Mainnet", forkId: 0x00, chainParams: bitcoinParams (1))
+        public static let testnet = Network.bitcoin (name: "BTC Testnet", forkId: 0x40, chainParams: bitcoinParams (0))
+    }
+}
+
+struct Bitcash {
+    public static let currency = Currency (code: "BCH", symbol:  "₿", name: "Bitcash", decimals: 8,
+                                           baseUnit: (name: "SAT", symbol: "sat"))
+    struct Units {
+        public static let SATOSHI = Bitcoin.currency.baseUnit!
+        public static let BITCASH = Bitcoin.currency.defaultUnit!
+    }
+
+    struct Networks {
+        public static let mainnet = Network.bitcash (name: "BCH Mainnet", forkId: 0x00, chainParams: bitcashParams (1))
+        public static let testnet = Network.bitcash (name: "BCH Testnet", forkId: 0x40, chainParams: bitcashParams (0))
+    }
+}
+
+
 typealias BRCoreWallet = OpaquePointer
 typealias BRCorePeerManager = OpaquePointer
 
-extension Network {
-    var chainParams: UnsafePointer<BRChainParams>? {
-        switch self {
-        case let .bitcoin (main, _): return bitcoinParams (main ? 1 : 0) // main ?  mainnetParams : mainnetParams // &BRTestNetParams
-        case let .bitcash (main, _): return bitcashParams (main ? 1 : 0) // main ? mainnetParams : mainnetParams // &BRBCashParams : &BRBCashTestNetParams
-        case .ethereum: return nil
-        }
-    }
-}
 
 public protocol BitcoinBackendClient: WalletManagerBackendClient {
 }
@@ -46,14 +66,14 @@ public class BitcoinTransfer: Transfer {
         let send = BRWalletAmountSentByTx (_wallet.core, &transaction)
         let fees = BRWalletFeeForTx (_wallet.core, &transaction)
         return Amount (value: recv + fees - send,
-                       unit: Unit.Bitcoin.SATOSHI)
+                       unit: Bitcoin.Units.SATOSHI)
     }
     
     public var fee: Amount {
         var transaction = core
         let fee = BRWalletFeeForTx (_wallet.core, &transaction)
         return Amount (value: (fee == UINT64_MAX ? 0 : fee),
-                       unit: Unit.Bitcoin.SATOSHI)
+                       unit: Bitcoin.Units.SATOSHI)
     }
     
     public var feeBasis: TransferFeeBasis {
@@ -125,7 +145,7 @@ public class BitcoinWallet: Wallet {
     
     public var balance: Amount {
         return Amount (value: BRWalletBalance (core),
-                       unit: Unit.Bitcoin.BITCOIN)
+                       unit: Bitcoin.Units.BITCOIN)
         
     }
     
@@ -151,7 +171,7 @@ public class BitcoinWallet: Wallet {
     
     public var transferFactory: TransferFactory = BitcoinTransferFactory()
     
-    internal let currency: Currency = Currency.bitcoin
+    internal let currency: Currency = Bitcoin.currency
     
     public var target: Address {
         return Address.bitcoin (BRWalletReceiveAddress(core))
@@ -225,7 +245,7 @@ public class BitcoinWalletManager: WalletManager {
                  timestamp: UInt64,
                  persistenceClient: BitcoinPersistenceClient = DefaultBitcoinPersistenceClient(),
                  backendClient: BitcoinBackendClient = DefaultBitcoinBackendClient()) {
-        guard let params = network.chainParams else { precondition(false) }
+        guard let params = network.bitcoinChainParams else { precondition(false) }
         
         self.backendClient = backendClient
         self.persistenceClient = persistenceClient
@@ -249,7 +269,7 @@ public class BitcoinWalletManager: WalletManager {
             // balanceChanged
             { (this, balance) in
                 if let bwm  = BitcoinWalletManager.lookup (ptr: this) {
-                    let event = WalletEvent.balanceUpdated(amount: Amount (value: balance, unit: Unit.Bitcoin.SATOSHI))
+                    let event = WalletEvent.balanceUpdated(amount: Amount (value: balance, unit: Bitcoin.Units.SATOSHI))
                     bwm.listener.handleWalletEvent (manager: bwm,
                                                     wallet: bwm.primaryWallet,
                                                     event: event)

@@ -9,6 +9,37 @@
 import Foundation
 import Core.Ethereum
 
+struct Ethereum {
+    public static let currency = Currency (code: "ETH", symbol:  "Ξ", name: "Ethereum", decimals: 18,
+                                           baseUnit: (name: "WEI",symbol: "wei"))
+     struct Units {
+        public static let WEI: Unit = Ethereum.currency.baseUnit!
+        public static let ETHER: Unit = Ethereum.currency.defaultUnit!
+        // others
+        public static let GWEI: Unit = Unit ("GWEI",  "gwei",          1000000000, base: WEI)
+    }
+
+    struct Networks {
+        public static let mainnet = Network.ethereum (name: "ETH Mainnet", chainId: 1, core: ethereumMainnet)
+        public static let ropsten = Network.ethereum (name: "ETH Ropsten", chainId: 3, core: ethereumTestnet)
+        public static let rinkeby = Network.ethereum (name: "ETH Rinkeby", chainId: 4, core: ethereumRinkeby)
+        public static let foundation = mainnet
+    }
+
+    public struct ERC20 {
+        /// TODO: Contract Address
+        /// TODO: Dictionary<String,Currency>
+        static let BRD = Currency (code: "BRD", symbol: "BRD", name: "Bread", decimals: 18,
+                                   baseUnit: (name: "BRDInteger", symbol: "BRDInteger"))
+        public struct BRDUnits {
+            static let BRDInteger = BRD.baseUnit
+            static let BRDDecimal = BRD.defaultUnit
+        }
+    }
+}
+
+    /// TODO: ERC20 - w/ contract address and currency
+    
 public typealias EthereumReferenceId = Optional<OpaquePointer>
 public typealias EthereumWalletId = EthereumReferenceId
 public typealias EthereumTransferId = EthereumReferenceId
@@ -241,7 +272,7 @@ public class EthereumTransfer: Transfer {
         var overflow: Int32 = 0;
         let fee: BREthereumEther = ewmTransferGetFee (self.core, self.identifier, &overflow)
         return Amount (value: fee.valueInWEI,
-                       unit: Currency.ethereum.defaultUnit,
+                       unit: Ethereum.currency.defaultUnit,
                        negative: false)
     }()
     
@@ -251,7 +282,7 @@ public class EthereumTransfer: Transfer {
 //        let price = createUInt256Parse (priceStr, 10, &status)
         
         return TransferFeeBasis.ethereum(
-            gasPrice: Amount (value: price.etherPerGas.valueInWEI, unit: Unit.Ethereum.GWEI, negative: false),
+            gasPrice: Amount (value: price.etherPerGas.valueInWEI, unit: Ethereum.Units.GWEI, negative: false),
             gasLimit: ewmTransferGetGasLimit (self.core, self.identifier).amountOfGas)
     }()
     
@@ -265,7 +296,7 @@ public class EthereumTransfer: Transfer {
             blockNumber: ewmTransferGetBlockNumber (self.core, self.identifier),
             transactionIndex: ewmTransferGetTransactionIndex (self.core, self.identifier),
             timestamp: 0,
-            fee: Amount (value: fee.valueInWEI, unit: Unit.Ethereum.ETHER, negative: false))
+            fee: Amount (value: fee.valueInWEI, unit: Ethereum.Units.ETHER, negative: false))
     }
     
     public var hash: TransferHash? {
@@ -366,7 +397,7 @@ public class EthereumWallet: Wallet {
             let gasLimit = ewmWalletGetDefaultGasLimit (self.core, self.identifier)
             let gasPrice = ewmWalletGetDefaultGasPrice (self.core, self.identifier)
             return TransferFeeBasis.ethereum(
-                gasPrice: Amount (value: gasPrice.etherPerGas.valueInWEI, unit: Unit.Ethereum.GWEI, negative: false),
+                gasPrice: Amount (value: gasPrice.etherPerGas.valueInWEI, unit: Ethereum.Units.GWEI, negative: false),
                 gasLimit: gasLimit.amountOfGas)
         }
         set (basis) {
@@ -392,7 +423,7 @@ public class EthereumWallet: Wallet {
         self._manager = manager
         self.identifier = wid
         
-        self.currency = Currency.ethereum
+        self.currency = Ethereum.currency
         self.state = WalletState.created
     }
     
@@ -475,7 +506,7 @@ public class EthereumWalletManager: WalletManager {
                  persistenceClient: EthereumPersistenceClient = DefaultEthereumPersistenceClient(),
                  backendClient: EthereumBackendClient = DefaultEthereumBackendClient()) {
         
-        guard case let .ethereum (main, _, _) = network else { precondition(false) }
+        guard case let .ethereum (_, _, coreNetwork) = network else { precondition(false) }
         
         self.backendClient = backendClient
         self.persistenceClient = persistenceClient
@@ -487,7 +518,7 @@ public class EthereumWalletManager: WalletManager {
         self.path = ""
         self.state = WalletManagerState.created
         
-        let coreNetwork = (main ? ethereumMainnet : ethereumTestnet)
+//        let coreNetwork = (main ? ethereumMainnet : ethereumTestnet)
         
         let peers:        Dictionary<String,String> = [:]
         let blocks:       Dictionary<String,String> = [:]
@@ -895,7 +926,7 @@ public class DefaultEthereumBackendClient: EthereumBackendClient {
     public func getLogs(ewm: EthereumWalletManager, address: String, event: String, rid: Int32) {
         ewm.announceLog(rid: rid,
                         hash: "0xa37bd8bd8b1fa2838ef65aec9f401f56a6279f99bb1cfb81fa84e923b1b60f2b",
-                        contract: (ewm.network == Network.Ethereum.mainnet
+                        contract: (ewm.network == Ethereum.Networks.mainnet
                             ? "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"
                             : "0x7108ca7c4718efa810457f228305c9c71390931a"),
                         topics: ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
@@ -982,7 +1013,7 @@ public class DefaultEthereumBackendClient: EthereumBackendClient {
     
     public func getTokens(ewm: EthereumWalletManager, rid: Int32) {
         ewm.announceToken (rid: rid,
-                           address: (ewm.network == Network.Ethereum.mainnet
+                           address: (ewm.network == Ethereum.Networks.mainnet
                             ? "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"
                             : "0x7108ca7c4718efa810457f228305c9c71390931a"),
                            symbol: "BRD",
@@ -991,7 +1022,7 @@ public class DefaultEthereumBackendClient: EthereumBackendClient {
                            decimals: 18)
         
         ewm.announceToken (rid: rid,
-                           address: (ewm.network == Network.Ethereum.mainnet
+                           address: (ewm.network == Ethereum.Networks.mainnet
                             ? "0x9e3359f862b6c7f5c660cfd6d1aa6909b1d9504d"
                             : "0x6e67ccd648244b3b8e2f56149b40ba8de9d79b09"),
                            symbol: "CCC",
