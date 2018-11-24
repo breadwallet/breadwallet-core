@@ -83,6 +83,8 @@ static void directoryClear (const char *base, const char *offset) {
     while (NULL != (dirEntry = readdir(dir)))
         if (dirEntry->d_type == DT_REG)
             remove (dirEntry->d_name);
+
+    closedir(dir);
 }
 
 static int directoryMake (const char *path) {
@@ -309,6 +311,7 @@ _BRWalletManagerLoadTransactions (BRWalletManager manager, int *error) {
 
     closedir(dir);
     free (dirPath);
+    free (buffer);
 
     return transactions;
 }
@@ -422,9 +425,10 @@ _BRWalletManagerLoadBlocks (BRWalletManager manager, int *error) {
             array_add (blocks, block);
         }
 
-    free (dirPath);
     closedir(dir);
-
+    free (dirPath);
+    free (buffer);
+    
     return blocks;
 }
 
