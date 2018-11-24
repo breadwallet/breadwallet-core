@@ -99,7 +99,7 @@ void BRAESECBDecrypt(void *buf16, const void *key, size_t keyLen);
 
 // aes-ctr stream cipher encrypt/decrypt
 void BRAESCTR(void *out, const void *key, size_t keyLen, const void *iv16, const void *data, size_t dataLen);
-void BRAESCTR_OFFSET(void *out, size_t outLen, const void *key, size_t keyLen, void *iv16, const void *data, size_t dataLen); 
+void BRAESCTR_OFFSET(void *out, size_t outLen, const void *key, size_t keyLen, void *iv16, const void *data, size_t dataLen);
     
 void BRPBKDF2(void *dk, size_t dkLen, void (*hash)(void *, const void *, size_t), size_t hashLen,
               const void *pw, size_t pwLen, const void *salt, size_t saltLen, unsigned rounds);

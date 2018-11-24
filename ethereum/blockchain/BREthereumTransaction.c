@@ -107,6 +107,7 @@ transactionCreate(BREthereumAddress sourceAddress,
     transaction->nonce = nonce;
     transaction->chainId = 0;
     transaction->hash = hashCreateEmpty();
+    transaction->gasEstimate = gasLimit;
 
 #if defined (TRANSACTION_LOG_ALLOC_COUNT)
     eth_log ("MEM", "TX Create - Count: %d", ++transactionAllocCount);
@@ -205,6 +206,30 @@ extern void
 transactionSetGasLimit (BREthereumTransaction transaction,
                         BREthereumGas gasLimit) {
     transaction->gasLimit = gasLimit;
+}
+
+static BREthereumGas
+gasLimitApplyMargin (BREthereumGas gas) {
+    return gasCreate(((100 + GAS_LIMIT_MARGIN_PERCENT) * gas.amountOfGas) / 100);
+}
+
+extern BREthereumGas
+transactionGetGasEstimate (BREthereumTransaction transaction) {
+    return transaction->gasEstimate;
+}
+
+extern void
+transactionSetGasEstimate (BREthereumTransaction transaction,
+                           BREthereumGas gasEstimate) {
+    transaction->gasEstimate = gasEstimate;
+
+    // Ensure that the gasLimit is at least 20% more than gasEstimate
+    // unless the gasEstimate is 21000 (special case for ETH transfers).
+    BREthereumGas gasLimitWithMargin = (21000 != gasEstimate.amountOfGas
+                                        ? gasLimitApplyMargin (gasEstimate)
+                                        : gasCreate(21000));
+    if (gasLimitWithMargin.amountOfGas > transaction->gasLimit.amountOfGas)
+        transaction->gasLimit = gasLimitWithMargin;
 }
 
 extern uint64_t
@@ -483,9 +508,6 @@ transactionGetRlpHexEncoded (BREthereumTransaction transaction,
     return result;
 }
 
-//
-// Private
-//
 extern BREthereumTransactionStatus
 transactionGetStatus (BREthereumTransaction transaction) {
     return transaction->status;

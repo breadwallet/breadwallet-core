@@ -27,6 +27,7 @@
 
 #include "BRMerkleBlock.h"
 #include "BRSet.h"
+#include "BRPeer.h"
 #include <assert.h>
 
 typedef struct {
@@ -85,7 +86,8 @@ static const BRCheckPoint BRMainNetCheckpoints[] = {
     { 463680, uint256("000000000000000000431a2f4619afe62357cd16589b638bb638f2992058d88e"), 1493259601, 0x18021b3e },
     { 483840, uint256("0000000000000000008e5d72027ef42ca050a0776b7184c96d0d4b300fa5da9e"), 1504704195, 0x1801310b },
     { 504000, uint256("0000000000000000006cd44d7a940c79f94c7c272d159ba19feb15891aa1ea54"), 1515827554, 0x177e578c },
-    { 524160, uint256("00000000000000000009d1e9bee76d334347060c6a2985d6cbc5c22e48f14ed2"), 1527168053, 0x17415a49 }
+    { 524160, uint256("00000000000000000009d1e9bee76d334347060c6a2985d6cbc5c22e48f14ed2"), 1527168053, 0x17415a49 },
+    //{ 544320, , , }
 };
 
 static const BRCheckPoint BRTestNetCheckpoints[] = {
@@ -129,9 +131,9 @@ static int BRTestNetVerifyDifficulty(const BRMerkleBlock *block, const BRSet *bl
 
 static const BRChainParams BRMainNetParams = {
     BRMainNetDNSSeeds,
-    8333,       // standardPort
-    0xd9b4bef9, // magicNumber
-    0,          // services
+    8333,                  // standardPort
+    0xd9b4bef9,            // magicNumber
+    SERVICES_NODE_WITNESS, // services
     BRMainNetVerifyDifficulty,
     BRMainNetCheckpoints,
     sizeof(BRMainNetCheckpoints)/sizeof(*BRMainNetCheckpoints)
@@ -139,9 +141,9 @@ static const BRChainParams BRMainNetParams = {
 
 static const BRChainParams BRTestNetParams = {
     BRTestNetDNSSeeds,
-    18333,      // standardPort
-    0x0709110b, // magicNumber
-    0,          // services
+    18333,                 // standardPort
+    0x0709110b,            // magicNumber
+    SERVICES_NODE_WITNESS, // services
     BRTestNetVerifyDifficulty,
     BRTestNetCheckpoints,
     sizeof(BRTestNetCheckpoints)/sizeof(*BRTestNetCheckpoints)
