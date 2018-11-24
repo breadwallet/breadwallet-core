@@ -270,7 +270,7 @@ public class BREthereumWallet extends BREthereumEWM.ReferenceWithDefaultUnit {
                         amountUnit.jniValue),
                 amountUnit);
     }
-
+/*
     public BREthereumTransaction createTransactionGeneric(String targetAddress,
                                                           String amount, Unit amountUnit,
                                                           String gasPrice, Unit gasPriceUnit,
@@ -293,7 +293,7 @@ public class BREthereumWallet extends BREthereumEWM.ReferenceWithDefaultUnit {
                         data),
                 amountUnit);
     }
-
+*/
       /**
      * Sign a transaction with `paperKey`
      *

@@ -68,6 +68,8 @@ struct BREthereumTransactionRecord {
     BREthereumEther amount;
     BREthereumGasPrice gasPrice;
     BREthereumGas gasLimit;
+    BREthereumGas gasEstimate;
+    
     uint64_t nonce;
     BREthereumChainId chainId;   // EIP-135 - chainId - "Since EIP-155 use chainId for v"
 

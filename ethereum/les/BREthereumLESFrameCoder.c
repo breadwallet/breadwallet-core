@@ -176,6 +176,8 @@ static void _BRAES256ECBEncrypt(const void *key32, void *buf16)
     mem_clean(buf, sizeof(buf));
 }
 
+#pragma clang diagnostic push
+#pragma GCC diagnostic push
 #pragma clang diagnostic ignored "-Wunused-function"
 #pragma GCC diagnostic ignored "-Wunused-function"
 static void _BRAES256ECBDecrypt(const void *key32, void *buf16)

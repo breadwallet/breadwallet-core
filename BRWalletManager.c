@@ -37,7 +37,7 @@ static BRArrayOf(BRTransaction*) _BRWalletManagerLoadTransactions (BRWalletManag
 static BRArrayOf(BRMerkleBlock*) _BRWalletManagerLoadBlocks (BRWalletManager manager, int *error);
 static BRArrayOf(BRPeer)         _BRWalletManagerLoadPeers  (BRWalletManager manager, int *error);
 
-extern void
+static void
 decodeHex (uint8_t *target, size_t targetLen, const char *source, size_t sourceLen) {
     //
     assert (0 == sourceLen % 2);
@@ -48,7 +48,7 @@ decodeHex (uint8_t *target, size_t targetLen, const char *source, size_t sourceL
     }
 }
 
-extern void
+static void
 encodeHex (char *target, size_t targetLen, const uint8_t *source, size_t sourceLen) {
     assert (targetLen == 2 * sourceLen  + 1);
 
@@ -178,7 +178,7 @@ BRWalletManagerNew (BRWalletManagerClient client,
     BRArrayOf(BRTransaction*) transactions = _BRWalletManagerLoadTransactions(manager, &error);
     if (error) return NULL;
 
-    manager->wallet = BRWalletNew (transactions, array_count(transactions), mpk);
+    manager->wallet = BRWalletNew (transactions, array_count(transactions), mpk, fork);
     BRWalletSetCallbacks (manager->wallet, manager,
                           _BRWalletManagerBalanceChanged,
                           _BRWalletManagerTxAdded,

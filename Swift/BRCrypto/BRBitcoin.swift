@@ -237,7 +237,7 @@ public class BitcoinWalletManager: WalletManager {
         self.mode = mode
         self.state = WalletManagerState.created
         
-        self.coreWallet      = BRWalletNew (nil, 0, account.masterPublicKey)
+        self.coreWallet      = BRWalletNew (nil, 0, account.masterPublicKey, 0x00)
         self.corePeerManager = BRPeerManagerNew (params, coreWallet, UInt32(timestamp),
                                                  nil, 0,
                                                  nil, 0)

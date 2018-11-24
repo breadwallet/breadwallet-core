@@ -2958,7 +2958,7 @@ extern int BRRunTestsSync (int randomKey) {
     BRBIP39DeriveKey (seed.u8, paperKey, NULL);
     BRMasterPubKey mpk = BRBIP32MasterPubKey(&seed, sizeof (seed));
 
-    BRWallet *wallet = BRWalletNew (NULL, 0, mpk);
+    BRWallet *wallet = BRWalletNew (NULL, 0, mpk, 0x00);
     // BRWalletSetCallbacks
 
     BRPeerManager *pm = BRPeerManagerNew (params, wallet, epoch, NULL, 0, NULL, 0);

@@ -214,7 +214,7 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
         if (null != l)
             l.announceTransferEvent(this.ewm, wallet, transaction, event);
     }
-
+/*
     protected void runTest() {
         // Create the node; reference through this.node
         node = new BREthereumLightNode (this, BREthereumNetwork.testnet, USABLE_PAPER_KEY, words);
@@ -372,16 +372,16 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
         
         this.node = null;
     }
-    
+ */
     private static boolean runMain = true;
     
     public static void main(String[] args) {
         if (!runMain)return;
         runMain = false;
-        
+ /*
         new BREthereumLightNodeClientTest()
         .runTest();
-        
+ */
         System.out.println("Success");
         System.exit(0);
     }
