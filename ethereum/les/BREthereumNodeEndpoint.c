@@ -34,6 +34,19 @@
 #include <sys/time.h>
 #include <netinet/in.h>
 #include <assert.h>
+#include <limits.h>
+
+#ifndef HOST_NAME_MAX
+# if defined(_POSIX_HOST_NAME_MAX)
+#  define HOST_NAME_MAX _POSIX_HOST_NAME_MAX
+# elif defined(MAXHOSTNAMELEN)
+#  define HOST_NAME_MAX MAXHOSTNAMELEN
+# elif defined(_SC_HOST_NAME_MAX)
+#  define HOST_NAME_MAX _SC_HOST_NAME_MAX
+# else
+#  error HOST_NAME_MAX is undefined
+# endif
+#endif /* HOST_NAME_MAX */
 
 #include "../util/BRUtil.h"
 #include "BREthereumNodeEndpoint.h"
@@ -54,7 +67,7 @@ struct BREthereumNodeEndpointRecord {
     BREthereumHash hash;
 
     /** An optional hostname - if not provided this will be a IP addr string */
-    char hostname[_POSIX_HOST_NAME_MAX + 1];
+    char hostname[HOST_NAME_MAX + 1];
 
     /** The 'Discovery Endpoint' */
     BREthereumDISNeighbor dis;
@@ -105,7 +118,7 @@ nodeEndpointCreateDetailed (BREthereumDISNeighbor dis,
     endpoint->nonce = nonce;
     endpoint->ephemeralKey = ephemeralKey;
 
-    inet_ntop (dis.node.domain, (void *) &dis.node.addr, endpoint->hostname, _POSIX_HOST_NAME_MAX + 1);
+    inet_ntop (dis.node.domain, (void *) &dis.node.addr, endpoint->hostname, HOST_NAME_MAX + 1);
 
     endpoint->discovered = ETHEREUM_BOOLEAN_FALSE;
     return endpoint;

@@ -215,6 +215,7 @@ Java_com_breadwallet_core_BRCoreTransaction_addInput
     BRTransactionAddInput (transaction, input->txHash, input->index, input->amount,
                            input->script, input->scriptLen,
                            input->signature, input->sigLen,
+                           input->witness, input->witLen,
                            input->sequence);
 }
 

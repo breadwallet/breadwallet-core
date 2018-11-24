@@ -79,6 +79,9 @@ const uint8_t *BRScriptData(const uint8_t *elem, size_t *dataLen);
 // returns the number of bytes written, or scriptLen needed if script is NULL
 size_t BRScriptPushData(uint8_t *script, size_t scriptLen, const uint8_t *data, size_t dataLen);
 
+// returns a pointer to the 20byte pubkey hash, or NULL if none
+const uint8_t *BRScriptPKH(const uint8_t *script, size_t scriptLen);
+    
 typedef struct {
     char s[75];
 } BRAddress;
@@ -98,15 +101,19 @@ size_t BRAddressFromScriptSig(char *addr, size_t addrLen, const uint8_t *script,
 // returns the number of bytes written, or addrLen needed if addr is NULL
 size_t BRAddressFromWitness(char *addr, size_t addrLen, const uint8_t *witness, size_t witLen);
 
+// writes the bech32 pay-to-witness-pubkey-hash address for a hash160 to addr
+// returns the number of bytes written, or addrLen needed if addr is NULL
+size_t BRAddressFromHash160(char *addr, size_t addrLen, const void *md20);
+
 // writes the scriptPubKey for addr to script
 // returns the number of bytes written, or scriptLen needed if script is NULL
 size_t BRAddressScriptPubKey(uint8_t *script, size_t scriptLen, const char *addr);
 
-// returns true if addr is a valid bitcoin address
-int BRAddressIsValid(const char *addr);
-
 // writes the 20 byte hash160 of addr to md20 and returns true on success
 int BRAddressHash160(void *md20, const char *addr);
+
+// returns true if addr is a valid bitcoin address
+int BRAddressIsValid(const char *addr);
 
 // returns a hash value for addr suitable for use in a hashtable
 inline static size_t BRAddressHash(const void *addr)

@@ -50,6 +50,11 @@ public class BREthereumToken extends BRCoreJniReference {
     protected static native long[] jniTokenAll ();
 
     @Override
+    public void dispose() {
+        // avoid 'super.dispose()' and thus 'native.dispose()'
+    }
+
+    @Override
     public int hashCode() {
         return getAddress().toLowerCase().hashCode();
     }

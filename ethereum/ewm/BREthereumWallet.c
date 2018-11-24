@@ -522,6 +522,8 @@ walletInsertTransferSorted (BREthereumWallet wallet,
     array_insert(wallet->transfers, index, transfer);
 }
 
+#pragma clang diagnostic push
+#pragma GCC diagnostic push
 #pragma clang diagnostic ignored "-Wunused-function"
 #pragma GCC diagnostic ignored "-Wunused-function"
 static void

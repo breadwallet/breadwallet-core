@@ -31,17 +31,6 @@
 // ecies-aes128-sha256 as specified in SEC 1, 5.1: http://www.secg.org/SEC1-Ver-1.0.pdf
 // NOTE: these are not implemented using constant time algorithms
 
-static void _BRECDH(void *out32, const BRKey *privKey, BRKey *pubKey)
-{
-    uint8_t p[65];
-    size_t pLen = BRKeyPubKey(pubKey, p, sizeof(p));
-    
-    if (pLen == 65) p[0] = (p[64] % 2) ? 0x03 : 0x02; // convert to compressed pubkey format
-    BRSecp256k1PointMul((BRECPoint *)p, &privKey->secret); // calculate shared secret ec-point
-    memcpy(out32, &p[1], 32); // unpack the x coordinate
-    mem_clean(p, sizeof(p));
-}
-
 size_t BRKeyECIESAES128SHA256Encrypt(BRKey *pubKey, void *out, size_t outLen, BRKey *ephemKey,
                                      const void *data, size_t dataLen)
 {
@@ -55,7 +44,7 @@ size_t BRKeyECIESAES128SHA256Encrypt(BRKey *pubKey, void *out, size_t outLen, BR
     assert(data != NULL || dataLen == 0);
 
     // shared-secret = kdf(ecdh(ephemKey, pubKey))
-    _BRECDH(&buf[4], ephemKey, pubKey);
+    BRKeyECDH(ephemKey, &buf[4], pubKey);
     BRSHA256(shared, buf, sizeof(buf));
     mem_clean(buf, sizeof(buf));
     encKey = shared;
@@ -92,7 +81,7 @@ size_t BRKeyECIESAES128SHA256Decrypt(BRKey *privKey, void *out, size_t outLen, c
     assert(privKey != NULL && BRKeyPrivKey(privKey, NULL, 0) > 0);
 
     // shared-secret = kdf(ecdh(privKey, pubKey))
-    _BRECDH(&buf[4], privKey, &pubKey);
+    BRKeyECDH(privKey, &buf[4], &pubKey);
     BRSHA256(shared, buf, sizeof(buf));
     mem_clean(buf, sizeof(buf));
     encKey = shared;
@@ -110,4 +99,49 @@ size_t BRKeyECIESAES128SHA256Decrypt(BRKey *privKey, void *out, size_t outLen, c
     BRAESCTR(out, encKey, 16, iv, &data[pkLen + sizeof(iv)], dataLen - (pkLen + sizeof(iv) + 32));
     mem_clean(shared, sizeof(shared));
     return dataLen - (pkLen + sizeof(iv) + 32);
+}
+
+// Pigeon Encrypted Message Exchange
+
+static void BRKeyPigeonSharedKey(BRKey *privKey, uint8_t *out32, BRKey *pubKey)
+{
+    uint8_t x[32];
+    BRKeyECDH(privKey, x, pubKey);
+    BRSHA256(out32, x, sizeof(x));
+    mem_clean(x, sizeof(x));
+}
+
+void BRKeyPigeonPairingKey(BRKey *privKey, BRKey *pairingKey, const void *identifier, size_t identifierSize)
+{
+    uint8_t nonce[32], K[32], V[32];
+    UInt256 secret;
+    
+    BRSHA256(nonce, identifier, identifierSize);
+    BRHMACDRBG(&secret, sizeof(secret), K, V, BRSHA256, 32, privKey->secret.u8, 32, nonce, sizeof(nonce), NULL, 0);
+    mem_clean(nonce, sizeof(nonce));
+    mem_clean(K, sizeof(K));
+    mem_clean(V, sizeof(V));
+    BRKeySetSecret(pairingKey, &secret, 1);
+}
+
+size_t BRKeyPigeonEncrypt(BRKey *privKey, void *out, size_t outLen, BRKey *pubKey, const void *nonce12, const void *data, size_t dataLen)
+{
+    if (! out) return dataLen + 16;
+    
+    uint8_t sharedKey[32];
+    BRKeyPigeonSharedKey(privKey, sharedKey, pubKey);
+    size_t outSize = BRChacha20Poly1305AEADEncrypt(out, outLen, sharedKey, nonce12, data, dataLen, NULL, 0);
+    mem_clean(sharedKey, sizeof(sharedKey));
+    return outSize;
+}
+
+size_t BRKeyPigeonDecrypt(BRKey *privKey, void *out, size_t outLen, BRKey *pubKey, const void *nonce12, const void *data, size_t dataLen)
+{
+    if (! out) return (dataLen < 16) ? 0 : dataLen - 16;
+    
+    uint8_t sharedKey[32];
+    BRKeyPigeonSharedKey(privKey, sharedKey, pubKey);
+    size_t outSize = BRChacha20Poly1305AEADDecrypt(out, outLen, sharedKey, nonce12, data, dataLen, NULL, 0);
+    mem_clean(sharedKey, sizeof(sharedKey));
+    return outSize;
 }
