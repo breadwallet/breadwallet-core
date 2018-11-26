@@ -380,7 +380,7 @@ public protocol KeyPair {
 
 /// The Network
 public enum Network : Hashable {   // hashable
-    case bitcoin  (name: String, forkId: UInt8, chainParams: UnsafePointer<BRChainParams>)      // OpaquePointer: BRMainNetParams, BRTestNetParams
+    case bitcoin  (name: String, forkId: UInt8, chainParams: UnsafePointer<BRChainParams>)
     case bitcash  (name: String, forkId: UInt8, chainParams: UnsafePointer<BRChainParams>)
     case ethereum (name: String, chainId: UInt, core: BREthereumNetwork)
     //    case fiat?? currency by 'locale'
@@ -439,8 +439,8 @@ public enum Address: /* Hashable */ CustomStringConvertible {
 
     public var description: String {
         switch self {
-        case var .bitcoin (addr):
-            return "abc" //  asUTF8String(addr.s, false)
+        case let .bitcoin (addr):
+            return asUTF8String (UnsafeRawPointer([addr.s]).assumingMemoryBound(to: CChar.self))
         case let .ethereum (addr):
             return asUTF8String (addressGetEncodedString (addr, 1), true)
         }

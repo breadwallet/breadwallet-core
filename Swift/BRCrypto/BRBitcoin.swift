@@ -22,30 +22,12 @@ struct Bitcoin {
     }
 }
 
-struct Bitcash {
-    public static let currency = Currency (code: "BCH", symbol:  "₿", name: "Bitcash", decimals: 8,
-                                           baseUnit: (name: "SAT", symbol: "sat"))
-    struct Units {
-        public static let SATOSHI = Bitcoin.currency.baseUnit!
-        public static let BITCASH = Bitcoin.currency.defaultUnit!
-    }
-
-    struct Networks {
-        public static let mainnet = Network.bitcash (name: "BCH Mainnet", forkId: 0x00, chainParams: bitcashParams (1))
-        public static let testnet = Network.bitcash (name: "BCH Testnet", forkId: 0x40, chainParams: bitcashParams (0))
-    }
-}
-
-
 typealias BRCoreWallet = OpaquePointer
 typealias BRCorePeerManager = OpaquePointer
 
-
-public protocol BitcoinBackendClient: WalletManagerBackendClient {
-}
-
-public protocol BitcoinPersistenceClient: WalletManagerPersistenceClient {
-}
+public protocol BitcoinListener: WalletManagerListener {}
+public protocol BitcoinBackendClient: WalletManagerBackendClient {}
+public protocol BitcoinPersistenceClient: WalletManagerPersistenceClient {}
 
 public class BitcoinTransfer: Transfer {
     internal let core: BRTransaction
@@ -55,17 +37,48 @@ public class BitcoinTransfer: Transfer {
     public var wallet: Wallet {
         return _wallet
     }
+
+    /// Flag to determine if the wallet's owner sent this transfer
+    internal lazy var isSent: Bool = {
+        var transaction = core
+        let fee = BRWalletFeeForTx (_wallet.core, &transaction)
+        return fee != UINT64_MAX && fee != 0
+    }()
+
+    public private(set) lazy var source: Address? = {
+        // The source address is in a TxInput; if sent it is our address, otherwise anothers
+        let inputs = [BRTxInput](UnsafeBufferPointer(start: self.core.inputs, count: self.core.outCount))
+        return inputs
+            .first { (self.isSent ? 1 : 0) == BRWalletContainsAddress(_wallet.core, UnsafeRawPointer([$0.address]).assumingMemoryBound(to: CChar.self)) }
+            .map { Address.bitcoin (BRAddress (s: $0.address))}
+    }()
+
+    /// The addresses for all TxInputs
+    public var sources: [Address] {
+        let inputs = [BRTxInput](UnsafeBufferPointer(start: self.core.inputs, count: self.core.outCount))
+        return inputs.map { Address.bitcoin (BRAddress (s: $0.address)) }
+    }
     
-    public var source: Address?
-    
-    public var target: Address?
-    
+    public private(set) lazy var target: Address? = {
+        // The target address is in a TxOutput; if not sent is it out address, otherwise anothers
+        let outputs = [BRTxOutput](UnsafeBufferPointer(start: self.core.outputs, count: self.core.outCount))
+        return outputs
+            .first { (!self.isSent ? 1 : 0) == BRWalletContainsAddress(_wallet.core, UnsafeRawPointer([$0.address]).assumingMemoryBound(to: CChar.self)) }
+            .map { Address.bitcoin (BRAddress (s: $0.address)) }
+    }()
+
+    /// The addresses for all TxOutputs
+    public var targets: [Address] {
+        let outputs = [BRTxOutput](UnsafeBufferPointer(start: self.core.outputs, count: self.core.outCount))
+        return outputs.map { Address.bitcoin (BRAddress (s: $0.address)) }
+    }
+
     public var amount: Amount {
         var transaction = core
         let recv = BRWalletAmountReceivedFromTx(_wallet.core, &transaction)
         let send = BRWalletAmountSentByTx (_wallet.core, &transaction)
         let fees = BRWalletFeeForTx (_wallet.core, &transaction)
-        return Amount (value: recv + fees - send,
+        return Amount (value: recv + fees - send,  // recv - (fees + send)
                        unit: Bitcoin.Units.SATOSHI)
     }
     
@@ -195,7 +208,11 @@ public class BitcoinWalletManager: WalletManager {
     internal let backendClient: BitcoinBackendClient
     internal let persistenceClient: BitcoinPersistenceClient
     
-    public let listener : WalletManagerListener
+    public let _listener : BitcoinListener
+
+    public var listener: WalletManagerListener {
+        return _listener
+    }
     
     public let account: Account
     
@@ -238,7 +255,7 @@ public class BitcoinWalletManager: WalletManager {
         return ptr.map { Unmanaged<BitcoinWalletManager>.fromOpaque($0).takeUnretainedValue() }
     }
     
-    public init (listener: WalletManagerListener,
+    public init (listener: BitcoinListener,
                  account: Account,
                  network: Network,
                  mode: WalletManagerMode,
@@ -250,7 +267,7 @@ public class BitcoinWalletManager: WalletManager {
         self.backendClient = backendClient
         self.persistenceClient = persistenceClient
         
-        self.listener = listener
+        self._listener = listener
         self.network = network
         self.account = account
         self.path = ""
@@ -358,7 +375,7 @@ public class BitcoinWalletManager: WalletManager {
                     return 0
                 }},
             
-            { (this) in
+            { (this) in // threadCleanup
                 if let bwm  = BitcoinWalletManager.lookup (ptr: this) {
                 }})
     }
