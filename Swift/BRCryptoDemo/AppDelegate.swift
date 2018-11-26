@@ -10,11 +10,11 @@ import UIKit
 import BRCrypto
 
 protocol SharedListener {
-    static var sharedListener : CoreXDemoListener { get }
+    static var sharedListener : CoreDemoListener { get }
 }
 
 extension UIApplication : SharedListener {
-    static var sharedListener : CoreXDemoListener {
+    static var sharedListener : CoreDemoListener {
         return (UIApplication.shared.delegate as! AppDelegate).listener
     }
 }
@@ -23,7 +23,7 @@ extension UIApplication : SharedListener {
 class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDelegate {
 
     var window: UIWindow?
-    var listener: CoreXDemoListener!
+    var listener: CoreDemoListener!
     var btcManager: BitcoinWalletManager!
     var ethManager: EthereumWalletManager!
     var bchManager: BitcoinWalletManager!
@@ -31,9 +31,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         let splitViewController = window!.rootViewController as! UISplitViewController
-        let navigationController = splitViewController.viewControllers[splitViewController.viewControllers.count-1] as! UINavigationController
-        navigationController.topViewController!.navigationItem.leftBarButtonItem = splitViewController.displayModeButtonItem
+
+        let summaryNavigationController = splitViewController.viewControllers[0] as! UINavigationController
+        let walletNavigationController  = splitViewController.viewControllers[1] as! UINavigationController
+
+        walletNavigationController.topViewController!.navigationItem.leftBarButtonItem = splitViewController.displayModeButtonItem
         splitViewController.delegate = self
+
+        let summaryController = summaryNavigationController.topViewController as! SummaryViewController
 
         let paperKey = (CommandLine.argc > 1
             ? CommandLine.arguments[1]
@@ -44,7 +49,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
 
         let account = Account (phrase: paperKey)
 
-        self.listener = CoreXDemoListener ()
+        self.listener = CoreDemoListener ()
 
         self.btcManager = BitcoinWalletManager (listener: listener,
                                                 account: account,
@@ -61,8 +66,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
        self.ethManager = EthereumWalletManager (listener: listener,
                                                  account: account,
                                                  network: Ethereum.Networks.mainnet,
-                                                 mode: WalletManagerMode.p2p_only, // api_with_p2p_submit,
+                                                 mode: WalletManagerMode.api_with_p2p_submit, // api_with_p2p_submit,
                                                  timestamp: 0)
+
+        UIApplication.sharedListener.addWalletListener(listener: summaryController)
 
         return true
     }
@@ -85,6 +92,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
         // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
         DispatchQueue.global().async {
             sleep (5)
+            self.ethManager.updateTokens()
             self.btcManager.connect();
             self.bchManager.connect();
             self.ethManager.connect();
@@ -99,8 +107,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
 
     func splitViewController(_ splitViewController: UISplitViewController, collapseSecondary secondaryViewController:UIViewController, onto primaryViewController:UIViewController) -> Bool {
         guard let secondaryAsNavController = secondaryViewController as? UINavigationController else { return false }
-        guard let topAsDetailController = secondaryAsNavController.topViewController as? DetailViewController else { return false }
-        if topAsDetailController.detailItem == nil {
+        guard let topAsDetailController = secondaryAsNavController.topViewController as? WalletViewController else { return false }
+        if topAsDetailController.wallet == nil {
             // Return true to indicate that we have handled the collapse by doing nothing; the secondary controller will be discarded.
             return true
         }

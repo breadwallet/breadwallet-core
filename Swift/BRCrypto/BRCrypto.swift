@@ -12,7 +12,7 @@ import Core.Ethereum // BREthereum{Account,Address}
 ///
 /// MARK: Currency
 ///
-public struct Currency: Equatable {
+public class Currency: Equatable {
     public let code: String
     public let symbol: String
     public let name: String
@@ -27,7 +27,7 @@ public struct Currency: Equatable {
         self.symbol = symbol
         self.name = name
         self.decimals = decimals
-        self.baseUnit = Unit (baseUnit.name, baseUnit.symbol, self)
+        self.baseUnit = Unit (baseUnit.name, baseUnit.symbol, self) // self has 'nil' for baseUnit
 
         let scale = pow (10.0, Double(decimals))
         self.defaultUnit = Unit (code, symbol, UInt64(scale),
@@ -35,10 +35,11 @@ public struct Currency: Equatable {
     }
 
     public static func == (lhs: Currency, rhs: Currency) -> Bool {
-        return (lhs.code  == rhs.code &&
-            lhs.symbol == rhs.symbol &&
-            lhs.name == rhs.name &&
-            lhs.decimals == rhs.decimals)
+        return lhs === rhs ||
+            (lhs.code  == rhs.code &&
+                lhs.symbol == rhs.symbol &&
+                lhs.name == rhs.name &&
+                lhs.decimals == rhs.decimals)
     }
 }
 
@@ -46,15 +47,14 @@ public struct Currency: Equatable {
 /// Unit
 ///
 public class Unit {
-    let currency: Currency
+    public let currency: Currency
     let base: Unit!
-    let name: String
-    let symbol: String
+    public let name: String
+    public let symbol: String
     let scale: UInt64
 
     func isCompatible (_ that: Unit) -> Bool {
-        return (self === that ||
-            (self.base != nil && that.base != nil && self.base === that.base))
+        return (self === that || self.currency == that.currency)
     }
 
     init (_ name: String, _ symbol: String, _ currency: Currency) {
@@ -94,11 +94,11 @@ public struct Amount {
     internal let value: UInt256
 
     // If negative
-    internal let negative: Bool
+    public let negative: Bool
 
     // The unit.  This is used for 'display' purposes only.  For example, if Amount is 10 GWEI
     // then value is 10 * 10^9 and `double` produces `10.0`.
-    let unit: Unit
+    public let unit: Unit
 
     // The value in `unit` as a Double, if representable
     public var double: Double? {
@@ -385,6 +385,14 @@ public enum Network : Hashable {   // hashable
     case ethereum (name: String, chainId: UInt, core: BREthereumNetwork)
     //    case fiat?? currency by 'locale'
 
+    public var name: String {
+        switch self {
+        case .bitcoin  (let name, _, _): return name
+        case .bitcash  (let name, _, _): return name
+        case .ethereum (let name, _, _): return name
+        }
+    }
+
     public var hashValue: Int {
         switch self {
         case .bitcoin  (let name, _, _): return name.hashValue
@@ -421,6 +429,12 @@ public enum Network : Hashable {   // hashable
     public var ethereumCore: BREthereumNetwork? {
         if case .ethereum (_, _, let core) = self { return core }
         else { return nil }
+    }
+}
+
+extension Network: CustomStringConvertible {
+    public var description: String {
+        return name
     }
 }
 
@@ -483,6 +497,9 @@ public protocol Transfer : class {
 
     /// The current state
     var state: TransferState { get }
+
+    // var isSent: Bool { get }
+    // var originator: Bool { get }
 }
 
 /// A TransferFeeBasis is use to estimate the fee to complete a transfer
@@ -493,15 +510,15 @@ public enum TransferFeeBasis {
 
 /// A TransferConfirmation holds confirmation information.
 public struct TransferConfirmation {
-    var blockNumber: UInt64
-    var transactionIndex: UInt64
-    var timestamp: UInt64
-    var fee: Amount
+    public let blockNumber: UInt64
+    public let transactionIndex: UInt64
+    public let timestamp: UInt64
+    public let fee: Amount
 }
 
 /// A TransferHash uniquely identifies a transfer *among* the owning wallet's transfers.
 public struct TransferHash: Hashable, CustomStringConvertible {
-    let string: String
+    public let string: String
 
     init (_ string: String) {
         self.string = string
@@ -531,6 +548,19 @@ public enum TransferState {
     case deleted
 }
 
+extension TransferState: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case .created:   return "Created"
+        case .signed:    return "Signed"
+        case .submitted: return "Submitted"
+        case .pending:   return "Pending"
+        case .included:  return "Included"
+        case .failed:    return "Failed"
+        case .deleted:   return "Deleted"
+        }
+    }
+}
 /// A TransferEvent represents a asynchronous announcment of a transfer's state change.
 public enum TransferEvent {
     case created
@@ -677,6 +707,20 @@ public enum WalletEvent {
     case deleted
 }
 
+extension WalletEvent: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case .created:         return "Created"
+        case .transferAdded:   return "TransferAdded"
+        case .transferChanged: return "TransferChanged"
+        case .transferDeleted: return "TransferDeleted"
+        case .balanceUpdated:  return "BalanceUpdated"
+        case .feeBasisUpdated: return "FeeBasisUpdated"
+        case .deleted:         return "Deleted"
+        }
+    }
+}
+
 ///
 /// A WalletFactory is a customization point for Wallet creation.
 /// TODO: ?? AND HOW DOES THIS FIT WITH CoreWallet w/ REQUIRED INTERFACE TO Core ??
@@ -809,8 +853,7 @@ public enum WalletManagerEvent {
     case syncEnded
 }
 
-/// The WalletManager's mode determines how the account and associated wallets are managed on
-/// network.
+/// The WalletManager's mode determines how the account and associated wallets are managed.
 ///
 /// - api_only: Use only the defined 'Cloud-Based API' to synchronize the account's transfers.
 ///
@@ -831,7 +874,7 @@ public enum WalletManagerMode {
 
 
 ///
-/// A WalletManagerClient recieves asynchronous events announcing state changes to Managers, to
+/// A WalletManagerListener recieves asynchronous events announcing state changes to Managers, to
 /// Wallets and to Transfers.  This is an application's sole mechanism to learn of asynchronous
 /// state changes.
 ///
@@ -879,12 +922,14 @@ public protocol WalletManagerListener : class {
     // TODO: handleBlockEvent ()
 }
 
-
 ///
+/// The Wallet Manager Persistence Chage Type identifes the type of wallet manager change for
+/// persistent entities.  Such entityes include: peers, blocks, transactions and (Ethereum) logs.
 ///
-/// - added:
-/// - updated:
-/// - deleted:
+/// - added: A Persistent entity was added
+/// - updated: A Persistent entitye has chnaged
+/// - deleted: A persistent entity was deleted
+///
 public enum WalletManagerPersistenceChangeType {
     case added
     case updated
@@ -898,13 +943,12 @@ public enum WalletManagerPersistenceChangeType {
         default: self = .added
         }
     }
-
-    // init - bitcoin
 }
 
-
+///
 /// The WalletManagerPersistenceClient defines the interface for persistent storage of internal
 /// wallet manager state - such as peers, block, and transactions
+///
 public protocol WalletManagerPersistenceClient: class {
 
     func savePeers (manager: WalletManager,
@@ -919,7 +963,9 @@ public protocol WalletManagerPersistenceClient: class {
                             data: String) -> Void
 }
 
+///
 /// The WalletManagerBackendClient defines the interface for backend support to the
 /// wallet manager modes of API_ONLY, API_WITH_P2P_SUBMIT and P2P_WITH_API_SYNC.
+///
 public protocol WalletManagerBackendClient: class {
 }

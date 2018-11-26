@@ -22,15 +22,13 @@
 		3C0EAE26219349CD000577A6 /* BREthereum.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C0EAE25219349CD000577A6 /* BREthereum.swift */; };
 		3C0EAE2921935388000577A6 /* BRBitcoin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C0EAE2821935388000577A6 /* BRBitcoin.swift */; };
 		3C18F8B221950746006F738F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C18F8B121950746006F738F /* AppDelegate.swift */; };
-		3C18F8B421950746006F738F /* MasterViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C18F8B321950746006F738F /* MasterViewController.swift */; };
-		3C18F8B621950746006F738F /* DetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C18F8B521950746006F738F /* DetailViewController.swift */; };
 		3C18F8B921950746006F738F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3C18F8B721950746006F738F /* Main.storyboard */; };
 		3C18F8BB21950748006F738F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3C18F8BA21950748006F738F /* Assets.xcassets */; };
 		3C18F8BE21950748006F738F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3C18F8BC21950748006F738F /* LaunchScreen.storyboard */; };
 		3C18F8C721950781006F738F /* libCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CAB609B20AF8C5D00810CE4 /* libCore.a */; };
 		3C18F8C821950797006F738F /* BRCrypto.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3C0EADEB2188D91F000577A6 /* BRCrypto.framework */; };
 		3C18F8C921950797006F738F /* BRCrypto.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3C0EADEB2188D91F000577A6 /* BRCrypto.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		3C18F8CC219507E2006F738F /* CoreXDemoBitcoinClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C18F8CB219507E2006F738F /* CoreXDemoBitcoinClient.swift */; };
+		3C18F8CC219507E2006F738F /* CoreDemoListener.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C18F8CB219507E2006F738F /* CoreDemoListener.swift */; };
 		3C1CD3C8216FD015001709A3 /* testEwm.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C9025F82106511700143B69 /* testEwm.c */; };
 		3C2FEE00212E1544004BE30A /* TransferCreateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C2FEDFF212E1544004BE30A /* TransferCreateController.swift */; };
 		3C386DC720C6F4AF0065E355 /* BREthereumLESRandom.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C386DC120C6F4AE0065E355 /* BREthereumLESRandom.c */; };
@@ -194,6 +192,12 @@
 		3CCD36B221A5BB8D0032637A /* BRWalletManager.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36B021A5BB8D0032637A /* BRWalletManager.c */; };
 		3CCD36B421AA11CC0032637A /* BRFiat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36B321AA11CB0032637A /* BRFiat.swift */; };
 		3CCD36B621AC65690032637A /* BRBitcash.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36B521AC65690032637A /* BRBitcash.swift */; };
+		3CCD36BD21AC90860032637A /* WalletViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36B721AC90850032637A /* WalletViewController.swift */; };
+		3CCD36C021AC90860032637A /* SummaryViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36BA21AC90850032637A /* SummaryViewController.swift */; };
+		3CCD36C121AC90860032637A /* TransferTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36BB21AC90850032637A /* TransferTableViewCell.swift */; };
+		3CCD36C221AC90860032637A /* WalletTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36BC21AC90850032637A /* WalletTableViewCell.swift */; };
+		3CCD36C421AC92220032637A /* Support.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36C321AC92210032637A /* Support.swift */; };
+		3CCD36C521ACB3930032637A /* TransferViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36B921AC90850032637A /* TransferViewController.swift */; };
 		3CD30494213B222A00A0CCED /* BREthereumMessagePIP.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CD30493213B222A00A0CCED /* BREthereumMessagePIP.c */; };
 		3CD30496213B226B00A0CCED /* BREthereumMessageP2P.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CD30495213B226B00A0CCED /* BREthereumMessageP2P.c */; };
 		3CD30498213B228900A0CCED /* BREthereumMessageDIS.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CD30497213B228900A0CCED /* BREthereumMessageDIS.c */; };
@@ -354,13 +358,11 @@
 		3C0EAE2821935388000577A6 /* BRBitcoin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRBitcoin.swift; sourceTree = "<group>"; };
 		3C18F8AF21950746006F738F /* BRCryptoDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BRCryptoDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3C18F8B121950746006F738F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		3C18F8B321950746006F738F /* MasterViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MasterViewController.swift; sourceTree = "<group>"; };
-		3C18F8B521950746006F738F /* DetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailViewController.swift; sourceTree = "<group>"; };
 		3C18F8B821950746006F738F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		3C18F8BA21950748006F738F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		3C18F8BD21950748006F738F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		3C18F8BF21950748006F738F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		3C18F8CB219507E2006F738F /* CoreXDemoBitcoinClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreXDemoBitcoinClient.swift; sourceTree = "<group>"; };
+		3C18F8CB219507E2006F738F /* CoreDemoListener.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDemoListener.swift; sourceTree = "<group>"; };
 		3C2A537720AF595400C430F6 /* BREthereumAccount.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BREthereumAccount.c; sourceTree = "<group>"; };
 		3C2A537920AF595400C430F6 /* BRUtilMath.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRUtilMath.h; sourceTree = "<group>"; };
 		3C2A537A20AF595400C430F6 /* BRUtilHex.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRUtilHex.h; sourceTree = "<group>"; };
@@ -543,6 +545,13 @@
 		3CCD36B021A5BB8D0032637A /* BRWalletManager.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = BRWalletManager.c; path = ../../BRWalletManager.c; sourceTree = "<group>"; };
 		3CCD36B321AA11CB0032637A /* BRFiat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRFiat.swift; sourceTree = "<group>"; };
 		3CCD36B521AC65690032637A /* BRBitcash.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRBitcash.swift; sourceTree = "<group>"; };
+		3CCD36B721AC90850032637A /* WalletViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WalletViewController.swift; sourceTree = "<group>"; };
+		3CCD36B821AC90850032637A /* TransferCreateController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TransferCreateController.swift; sourceTree = "<group>"; };
+		3CCD36B921AC90850032637A /* TransferViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TransferViewController.swift; sourceTree = "<group>"; };
+		3CCD36BA21AC90850032637A /* SummaryViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SummaryViewController.swift; sourceTree = "<group>"; };
+		3CCD36BB21AC90850032637A /* TransferTableViewCell.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TransferTableViewCell.swift; sourceTree = "<group>"; };
+		3CCD36BC21AC90850032637A /* WalletTableViewCell.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WalletTableViewCell.swift; sourceTree = "<group>"; };
+		3CCD36C321AC92210032637A /* Support.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Support.swift; sourceTree = "<group>"; };
 		3CD3048D213B12AE00A0CCED /* BREthereumLESBase.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumLESBase.h; sourceTree = "<group>"; };
 		3CD3048E213B13D400A0CCED /* BREthereumMessageP2P.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumMessageP2P.h; sourceTree = "<group>"; };
 		3CD3048F213B145600A0CCED /* BREthereumMessageLES.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumMessageLES.h; sourceTree = "<group>"; };
@@ -683,9 +692,14 @@
 			isa = PBXGroup;
 			children = (
 				3C18F8B121950746006F738F /* AppDelegate.swift */,
-				3C18F8CB219507E2006F738F /* CoreXDemoBitcoinClient.swift */,
-				3C18F8B321950746006F738F /* MasterViewController.swift */,
-				3C18F8B521950746006F738F /* DetailViewController.swift */,
+				3C18F8CB219507E2006F738F /* CoreDemoListener.swift */,
+				3CCD36BA21AC90850032637A /* SummaryViewController.swift */,
+				3CCD36B821AC90850032637A /* TransferCreateController.swift */,
+				3CCD36BB21AC90850032637A /* TransferTableViewCell.swift */,
+				3CCD36B921AC90850032637A /* TransferViewController.swift */,
+				3CCD36BC21AC90850032637A /* WalletTableViewCell.swift */,
+				3CCD36B721AC90850032637A /* WalletViewController.swift */,
+				3CCD36C321AC92210032637A /* Support.swift */,
 				3C18F8B721950746006F738F /* Main.storyboard */,
 				3C18F8BA21950748006F738F /* Assets.xcassets */,
 				3C18F8BC21950748006F738F /* LaunchScreen.storyboard */,
@@ -1482,10 +1496,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3C18F8CC219507E2006F738F /* CoreXDemoBitcoinClient.swift in Sources */,
-				3C18F8B621950746006F738F /* DetailViewController.swift in Sources */,
-				3C18F8B421950746006F738F /* MasterViewController.swift in Sources */,
+				3C18F8CC219507E2006F738F /* CoreDemoListener.swift in Sources */,
+				3CCD36C021AC90860032637A /* SummaryViewController.swift in Sources */,
+				3CCD36C221AC90860032637A /* WalletTableViewCell.swift in Sources */,
+				3CCD36C521ACB3930032637A /* TransferViewController.swift in Sources */,
+				3CCD36C121AC90860032637A /* TransferTableViewCell.swift in Sources */,
 				3C18F8B221950746006F738F /* AppDelegate.swift in Sources */,
+				3CCD36BD21AC90860032637A /* WalletViewController.swift in Sources */,
+				3CCD36C421AC92220032637A /* Support.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

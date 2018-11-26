@@ -158,7 +158,7 @@ public class BitcoinWallet: Wallet {
     
     public var balance: Amount {
         return Amount (value: BRWalletBalance (core),
-                       unit: Bitcoin.Units.BITCOIN)
+                       unit: currency.baseUnit)
         
     }
     
@@ -184,15 +184,17 @@ public class BitcoinWallet: Wallet {
     
     public var transferFactory: TransferFactory = BitcoinTransferFactory()
     
-    internal let currency: Currency = Bitcoin.currency
+    internal let currency: Currency
     
     public var target: Address {
         return Address.bitcoin (BRWalletReceiveAddress(core))
     }
     
     internal init (manager: BitcoinWalletManager,
+                   currency: Currency,
                    core:   BRCoreWallet) {
         self._manager = manager
+        self.currency = currency
         self.core = core
         
         //        self.currency = Currency.ethereum
@@ -201,7 +203,7 @@ public class BitcoinWallet: Wallet {
 }
 
 public class BitcoinWalletManager: WalletManager {
-    
+
     internal let corePeerManager: BRCorePeerManager
     internal let coreWallet: BRCoreWallet
     
@@ -222,11 +224,13 @@ public class BitcoinWalletManager: WalletManager {
     
     public var network: Network
     
-    public lazy var primaryWallet: Wallet = {
-        return BitcoinWallet (manager: self,
-                              core: coreWallet)
+    public private(set) lazy var primaryWallet: Wallet = {
+        let wallet = BitcoinWallet (manager: self, currency: network.currency, core: coreWallet)
+        self.listener.handleWalletEvent(manager: self, wallet: wallet, event: WalletEvent.created)
+        self.listener.handleManagerEvent(manager: self, event: WalletManagerEvent.walletAdded(wallet: wallet))
+        return wallet
     }()
-    
+
     public lazy var wallets: [Wallet] = {
         return [primaryWallet]
     } ()
@@ -245,7 +249,7 @@ public class BitcoinWalletManager: WalletManager {
     public var walletFactory: WalletFactory = EthereumWalletFactory()
     #endif
     
-    internal static var managers: [BitcoinWalletManager] = []
+    internal static var managers: [BitcoinWalletManager] = [] // Weak<>
     
     internal static func lookup (wallet: OpaquePointer) -> BitcoinWalletManager? {
         return managers.first { wallet == $0.coreWallet }
@@ -378,6 +382,11 @@ public class BitcoinWalletManager: WalletManager {
             { (this) in // threadCleanup
                 if let bwm  = BitcoinWalletManager.lookup (ptr: this) {
                 }})
+
+
+        BitcoinWalletManager.managers.append(self)
+        self.listener.handleManagerEvent(manager: self, event: WalletManagerEvent.created)
+        let _ = self.primaryWallet
     }
     
     public func connect() {
