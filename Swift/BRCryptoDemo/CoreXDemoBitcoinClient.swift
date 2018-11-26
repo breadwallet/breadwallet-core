@@ -9,7 +9,7 @@
 import Foundation
 import BRCrypto
 
-class CoreXDemoListener : WalletManagerListener {
+class CoreXDemoListener : WalletManagerListener, BitcoinListener, EthereumListener {
 
     public func handleManagerEvent(manager: WalletManager,
                                    event: WalletManagerEvent) {
@@ -27,5 +27,9 @@ class CoreXDemoListener : WalletManagerListener {
                                      transfer: Transfer,
                                      event: TransferEvent) -> Void {
         print ("TST: UI Handling Transfer Event")
+    }
+
+    func handleTokenEvent(manager: WalletManager, token: EthereumToken, event: EthereumTokenEvent) {
+        print ("TST: UI Handling Token Event")
     }
 }

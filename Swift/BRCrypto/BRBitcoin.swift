@@ -8,15 +8,15 @@
 
 import Core
 
-struct Bitcoin {
+public struct Bitcoin {
     public static let currency = Currency (code: "BTC", symbol:  "₿", name: "Bitcoin", decimals: 8,
                                            baseUnit: (name: "SAT", symbol: "sat"))
-    struct Units {
+    public struct Units {
         public static let SATOSHI = Bitcoin.currency.baseUnit!
         public static let BITCOIN = Bitcoin.currency.defaultUnit!
     }
 
-    struct Netwoks {
+    public struct Networks {
         public static let mainnet = Network.bitcoin (name: "BTC Mainnet", forkId: 0x00, chainParams: bitcoinParams (1))
         public static let testnet = Network.bitcoin (name: "BTC Testnet", forkId: 0x40, chainParams: bitcoinParams (0))
     }

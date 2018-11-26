@@ -48,19 +48,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
 
         self.btcManager = BitcoinWalletManager (listener: listener,
                                                 account: account,
-                                                network: Network.Bitcoin.mainnet,
+                                                network: Bitcoin.Networks.mainnet,
                                                 mode: WalletManagerMode.p2p_only,
                                                 timestamp: 0)
 
         self.bchManager = BitcoinWalletManager (listener: listener,
                                                 account: account,
-                                                network: Network.Bitcash.testnet,
+                                                network: Bitcash.Networks.testnet,
                                                 mode: WalletManagerMode.p2p_only,
                                                 timestamp: 0)
 
        self.ethManager = EthereumWalletManager (listener: listener,
                                                  account: account,
-                                                 network: Network.Ethereum.mainnet,
+                                                 network: Ethereum.Networks.mainnet,
                                                  mode: WalletManagerMode.p2p_only, // api_with_p2p_submit,
                                                  timestamp: 0)
 

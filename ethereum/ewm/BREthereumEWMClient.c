@@ -773,6 +773,14 @@ ewmHandleAnnounceToken (BREthereumEWM ewm,
                   bundle->gasLimit,
                   bundle->gasPrice);
 
+    BREthereumToken token = tokenLookup(bundle->address);
+    assert (NULL != token);
+
+    ewm->client.funcTokenEvent (ewm->client.context,
+                                ewm,
+                                token,
+                                TOKEN_EVENT_CREATED);
+
     ewmClientAnnounceTokenBundleRelease(bundle);
 }
 

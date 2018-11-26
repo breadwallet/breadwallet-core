@@ -9,17 +9,17 @@
 import Foundation
 import Core.Ethereum
 
-struct Ethereum {
+public struct Ethereum {
     public static let currency = Currency (code: "ETH", symbol:  "Ξ", name: "Ethereum", decimals: 18,
                                            baseUnit: (name: "WEI",symbol: "wei"))
-    struct Units {
+    public struct Units {
         public static let WEI: Unit = Ethereum.currency.baseUnit!
         public static let ETHER: Unit = Ethereum.currency.defaultUnit!
         // others
         public static let GWEI: Unit = Unit ("GWEI",  "gwei",          1000000000, base: WEI)
     }
 
-    struct Networks {
+    public struct Networks {
         public static let mainnet = Network.ethereum (name: "ETH Mainnet", chainId: 1, core: ethereumMainnet)
         public static let ropsten = Network.ethereum (name: "ETH Ropsten", chainId: 3, core: ethereumTestnet)
         public static let rinkeby = Network.ethereum (name: "ETH Rinkeby", chainId: 4, core: ethereumRinkeby)
@@ -67,6 +67,22 @@ extension TransferEvent {
             
         case TRANSFER_EVENT_GAS_ESTIMATE_UPDATED: self = .created
         case TRANSFER_EVENT_BLOCK_CONFIRMATIONS_UPDATED: self = .created
+        default:
+            self = .created
+        }
+    }
+}
+
+public enum EthereumTokenEvent {
+    case created
+    case deleted
+}
+
+extension EthereumTokenEvent {
+    init (_ core: BREthereumTokenEvent) {
+        switch core {
+        case TOKEN_EVENT_CREATED: self = .created
+        case TOKEN_EVENT_DELETED: self = .deleted
         default:
             self = .created
         }
@@ -168,11 +184,6 @@ public class EthereumToken {
                                   decimals: UInt8(tokenGetDecimals(identifier)),
                                   baseUnit: (name: name, symbol: symb))
     }
-}
-
-public enum EthereumTokenEvent {
-    case created
-    case deleted
 }
 
 public protocol EthereumListener: WalletManagerListener {
@@ -685,7 +696,18 @@ public class EthereumWalletManager: WalletManager {
                                                        event: WalletEvent (event))
                     }
                 }},
-            
+
+            funcTokenEvent: { (coreClient, coreEWM, token, event) in
+                if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
+                    ewm.queue.async {
+                        if let token = ewm.findToken(identifier: token!) {
+                            ewm._listener.handleTokenEvent (manager: ewm,
+                                                            token: token,
+                                                            event: EthereumTokenEvent(event))
+                        }
+                    }
+                }},
+
             //            funcBlockEvent: { (coreClient, coreEWM, bid, event, status, message) in
             //                if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
             //                    //                    ewm.listener.handleBlockEvent(ewm: ewm,
@@ -827,8 +849,7 @@ public class EthereumWalletManager: WalletManager {
                                name: String,
                                description: String,
                                decimals: UInt32) {
-        ewmAnnounceToken(core,
-                         address, symbol, name, description, decimals, nil, nil, rid)
+        ewmAnnounceToken(core, address, symbol, name, description, decimals, nil, nil, rid)
     }
     
     public func announceBlockNumber (blockNumber: String, rid: Int32) {
