@@ -1259,7 +1259,7 @@ ewmHandleLog (BREthereumEWM ewm,
 
     // If we've no transfer, then create one and save `log` as the basis
     if (NULL == transfer) {
-        transfer = transferCreateWithLog (log, token);
+        transfer = transferCreateWithLog (log, token, ewm->coder);
 
         walletHandleTransfer(wallet, transfer);
         walletUpdateBalance (wallet);

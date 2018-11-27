@@ -75,7 +75,8 @@ transferCreateWithTransaction (OwnershipGiven BREthereumTransaction transaction)
 
 extern BREthereumTransfer
 transferCreateWithLog (OwnershipGiven BREthereumLog log,
-                       BREthereumToken token);
+                       BREthereumToken token,
+                       BRRlpCoder coder);           // For decoding log->data into UInt256
 
 extern void
 transferRelease (BREthereumTransfer transfer);
