@@ -45,12 +45,14 @@ class TransferTableViewCell: UITableViewCell {
         }
     }
 
-    func canonicalAmount (_ amount: Amount, sign: String, symbol: String) -> String {
+    func canonicalAmount (_ amount: Amount, sign: String) -> String {
+        let amount = amount.coerce(unit: amount.currency.defaultUnit)
+
         var result = amount.double?.description.trimmingCharacters(in: CharacterSet (charactersIn: "0 ")) ?? ""
         if result == "." || result == "" || result == "0." || result == ".0" {
             result = "0.0"
         }
-        return sign + result + " " + symbol
+        return sign + result + " " + amount.unit.symbol
     }
     
     func updateView () {
@@ -62,9 +64,9 @@ class TransferTableViewCell: UITableViewCell {
             dateLabel.text = "Send?Recv: \(date)"   // "\(address == source ? "Send" : "Recv"): \(date)"
 //            addrLabel.text = "Addr: \(address == source ? target : source)"
 
-            addrLabel.text = "Hash: \(hash.map { $0.string} ?? "<pending>")"
-            amountLabel.text = canonicalAmount(transfer.amount, sign: "?" /* (address == source ? "-" : "+") */, symbol: transfer.amount.unit.symbol);
-            feeLabel.text = "Fee: \(canonicalAmount(transfer.fee, sign: "", symbol: "ETH"))"
+            addrLabel.text = "Hash: \(hash.map { $0.description } ?? "<pending>")"
+            amountLabel.text = canonicalAmount(transfer.amount, sign: "?" /* (address == source ? "-" : "+") */);
+            feeLabel.text = "Fee: \(canonicalAmount(transfer.fee, sign: ""))"
             dotView.mainColor = colorForState()
             dotView.setNeedsDisplay()
         }

@@ -47,21 +47,22 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
         //                                         paperKey: "0x8975dbc1b8f25ec994815626d070899dda896511")
         //                                         paperKey: "0xb302B06FDB1348915599D21BD54A06832637E5E8")
 
+        let timestamp:UInt64 = 1543274121 // Tue, 26 Nov 2018 23:15:21 GMT
         let account = Account (phrase: paperKey)
 
         self.listener = CoreDemoListener ()
 
         self.btcManager = BitcoinWalletManager (listener: listener,
                                                 account: account,
-                                                network: Bitcoin.Networks.mainnet,
+                                                network: Bitcoin.Networks.testnet,
                                                 mode: WalletManagerMode.p2p_only,
-                                                timestamp: 0)
+                                                timestamp: timestamp)
 
         self.bchManager = BitcoinWalletManager (listener: listener,
                                                 account: account,
                                                 network: Bitcash.Networks.testnet,
                                                 mode: WalletManagerMode.p2p_only,
-                                                timestamp: 0)
+                                                timestamp: timestamp)
 
        self.ethManager = EthereumWalletManager (listener: listener,
                                                  account: account,

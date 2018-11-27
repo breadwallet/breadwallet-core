@@ -6,6 +6,7 @@
 //  Copyright © 2018 breadwallet. All rights reserved.
 //
 import Foundation
+import SystemConfiguration // SCSystemReachability
 import Core  // UInt256, UInt512, MasterPubKey
 import Core.Ethereum // BREthereum{Account,Address}
 
@@ -502,6 +503,13 @@ public protocol Transfer : class {
     // var originator: Bool { get }
 }
 
+extension Transfer {
+    public var confirmation: TransferConfirmation? {
+        if case .included (let confirmation) = state { return confirmation }
+        else { return nil }
+    }
+}
+
 /// A TransferFeeBasis is use to estimate the fee to complete a transfer
 public enum TransferFeeBasis {
     case bitcoin  (feePerKB: UInt64) // in satoshi
@@ -517,23 +525,40 @@ public struct TransferConfirmation {
 }
 
 /// A TransferHash uniquely identifies a transfer *among* the owning wallet's transfers.
-public struct TransferHash: Hashable, CustomStringConvertible {
-    public let string: String
-
-    init (_ string: String) {
-        self.string = string
-    }
-    
-    public var description: String {
-        return string
-    }
+public enum TransferHash: Hashable, CustomStringConvertible {
+    case bitcoin (UInt256)
+    case ethereum (BREthereumHash)
 
     public var hashValue: Int {
-        return description.hashValue
+        switch self {
+        case .bitcoin (let core):
+            return Int(core.u32.0)
+        case .ethereum(let core):
+            var core = core
+            return Int(hashSetValue(&core))
+        }
     }
 
     public static func == (lhs: TransferHash, rhs: TransferHash) -> Bool {
-        return lhs.description == rhs.description
+        switch (lhs, rhs) {
+        case (.bitcoin(let c1), .bitcoin(let c2)):
+            return 1 == eqUInt256 (c1, c2)
+        case (.ethereum(let c1), .ethereum(let c2)):
+            var c1 = c1
+            var c2 = c2
+            return 1 == hashSetEqual(&c1, &c2)
+        default:
+            return false
+        }
+    }
+
+    public var description: String {
+        switch self {
+        case .bitcoin (let core):
+            return asUTF8String (u256HashToString(core), true)
+        case .ethereum(let core):
+            return asUTF8String (hashAsString(core))
+        }
     }
 }
 
@@ -850,7 +875,7 @@ public enum WalletManagerEvent {
 
     case syncStarted
     case syncProgress (percentComplete: Double)
-    case syncEnded
+    case syncEnded (error: String?)
 }
 
 /// The WalletManager's mode determines how the account and associated wallets are managed.
@@ -968,4 +993,21 @@ public protocol WalletManagerPersistenceClient: class {
 /// wallet manager modes of API_ONLY, API_WITH_P2P_SUBMIT and P2P_WITH_API_SYNC.
 ///
 public protocol WalletManagerBackendClient: class {
+    func networkIsReachable () -> Bool
+}
+
+extension WalletManagerBackendClient {
+    public func networkIsReachable() -> Bool {
+        var zeroAddress = sockaddr()
+        zeroAddress.sa_len = UInt8(MemoryLayout<sockaddr>.size)
+        zeroAddress.sa_family = sa_family_t(AF_INET)
+
+        guard let reachability = SCNetworkReachabilityCreateWithAddress (nil, &zeroAddress)
+            else { return false }
+
+        var flags: SCNetworkReachabilityFlags = []
+        return SCNetworkReachabilityGetFlags(reachability, &flags) &&
+            flags.contains(.reachable) &&
+            !flags.contains(.connectionRequired)
+    }
 }

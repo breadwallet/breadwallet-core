@@ -47,27 +47,27 @@ class TransferViewController: UIViewController {
     }
 
 
-    func canonicalAmount (_ amount: Amount, sign: String, symbol: String) -> String {
+    func canonicalAmount (_ amount: Amount, sign: String) -> String {
         let amount = amount.coerce(unit: amount.currency.defaultUnit)
 
         var result = amount.double?.description.trimmingCharacters(in: CharacterSet (charactersIn: "0 ")) ?? ""
         if result == "." || result == "" || result == "0." || result == ".0" {
             result = "0.0"
         }
-        return sign + result + " " + symbol
+        return sign + result + " " + amount.unit.symbol
     }
 
     func updateView () {
 //        let address = UIApplication.sharedClient.node.address
         let hash = transfer.hash
 
-        amountLabel.text = canonicalAmount(transfer.amount, sign:"?" /* (address == transfer.sourceAddress ? "-" : "+")*/, symbol: transfer.amount.unit.symbol);
-        feeLabel.text  = canonicalAmount(transfer.fee, sign: "", symbol: "ETH")
+        amountLabel.text = canonicalAmount(transfer.amount, sign:"?" /* (address == transfer.sourceAddress ? "-" : "+")*/)
+        feeLabel.text  = canonicalAmount(transfer.fee, sign: "")
         dateLabel.text = "TBD"
         sendLabel.text = transfer.source?.description ?? "<unknown>"
         recvLabel.text = transfer.target?.description ?? "<unknown>"
 
-        identifierLabel.text = hash.map { $0.string} ?? "<pending>"
+        identifierLabel.text = hash.map { $0.description } ?? "<pending>"
 
         confLabel.text = transfer.confirmation.map { "Yes @ \($0.blockNumber)" } ?? "No"
         switch transfer.state {
