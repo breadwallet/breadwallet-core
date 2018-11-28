@@ -569,6 +569,23 @@ Java_com_breadwallet_core_BRCoreKey_address
 
 /*
  * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    addressLegacy
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL
+Java_com_breadwallet_core_BRCoreKey_addressLegacy
+        (JNIEnv *env, jobject thisObject) {
+    BRKey *key = (BRKey *) getJNIReference(env, thisObject);
+
+    BRAddress address = BR_ADDRESS_NONE;
+    BRKeyLegacyAddr (key, address.s, sizeof(address));
+    assert(address.s[0] != '\0');
+
+    return (*env)->NewStringUTF(env, address.s);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
  * Method:    isValidBitcoinPrivateKey
  * Signature: (Ljava/lang/String;)Z
  */

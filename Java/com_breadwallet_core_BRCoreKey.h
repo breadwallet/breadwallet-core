@@ -169,6 +169,14 @@ JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreKey_address
 
 /*
  * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    addressLegacy
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreKey_addressLegacy
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
  * Method:    isValidBitcoinPrivateKey
  * Signature: (Ljava/lang/String;)Z
  */
