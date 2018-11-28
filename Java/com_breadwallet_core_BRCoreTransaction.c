@@ -397,7 +397,8 @@ Java_com_breadwallet_core_BRCoreTransaction_createJniCoreTransaction
     const uint8_t *transactionData = (const uint8_t *) (*env)->GetByteArrayElements (env, transactionByteArray, 0);
 
     BRTransaction *transaction = BRTransactionParse(transactionData, transactionSize);
-    assert (NULL != transaction);
+    if (NULL == transaction)
+        return (jlong) NULL;
 
     transaction->blockHeight = (uint32_t) blockHeight;
     transaction->timestamp =(uint32_t) timestamp;
@@ -418,9 +419,7 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreTransaction_createJniCor
     const uint8_t *transactionData = (const uint8_t *) (*env)->GetByteArrayElements (env, transactionByteArray, 0);
 
     BRTransaction *transaction = BRTransactionParse(transactionData, transactionSize);
-    assert (NULL != transaction);
-
-    return (jlong) transaction;
+    return (jlong) transaction; // may be NULL
 }
 
 /*
