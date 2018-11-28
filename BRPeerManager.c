@@ -2001,6 +2001,8 @@ void BRPeerManagerFree(BRPeerManager *manager)
         if (tx && tx != BRWalletTransactionForHash(manager->wallet, tx->txHash)) BRTransactionFree(tx);
     }
 
+    if (manager->bloomFilter) BRBloomFilterFree(manager->bloomFilter);
+
     array_free(manager->publishedTx);
     array_free(manager->publishedTxHashes);
     pthread_mutex_unlock(&manager->lock);
