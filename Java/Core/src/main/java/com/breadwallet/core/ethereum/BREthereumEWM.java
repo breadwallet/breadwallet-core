@@ -80,6 +80,16 @@ public class BREthereumEWM extends BRCoreJniReference {
     static int NUMBER_OF_WALLET_EVENTS = 5;
 
     //
+    // Token Event
+    //
+    public enum TokenEvent {
+        CREATED,
+        DELETED
+    }
+
+    static int NUMBER_OF_TOKEN_EVENTS = 2;
+
+    //
     // Block Event
     //
     public enum BlockEvent {
@@ -139,7 +149,7 @@ public class BREthereumEWM extends BRCoreJniReference {
         //                                    BREthereumEWM ewm,
         //                                    BREthereumWalletId wid,
         //                                    int rid);
-        void getGasPrice(int wid, int rid);
+        void getGasPrice(long wid, int rid);
 
         //        typedef void (*BREthereumClientHandlerEstimateGas) (BREthereumClientContext context,
         //                                    BREthereumEWM ewm,
@@ -150,14 +160,14 @@ public class BREthereumEWM extends BRCoreJniReference {
         //                                    const char *data,
         //                                    int rid);
 
-        void getGasEstimate(int wid, int tid, String to, String amount, String data, int rid);
+        void getGasEstimate(long wid, long tid, String to, String amount, String data, int rid);
 
         //        typedef void (*BREthereumClientHandlerGetBalance) (BREthereumClientContext context,
         //                                   BREthereumEWM ewm,
         //                                   BREthereumWalletId wid,
         //                                   const char *address,
         //                                   int rid);
-        void getBalance(int wid, String address, int rid);
+        void getBalance(long wid, String address, int rid);
 
         //        typedef void (*BREthereumClientHandlerSubmitTransaction) (BREthereumClientContext context,
         //                                          BREthereumEWM ewm,
@@ -165,7 +175,7 @@ public class BREthereumEWM extends BRCoreJniReference {
         //                                          BREthereumTransactionId tid,
         //                                          const char *transaction,
         //                                          int rid);
-        void submitTransaction(int wid, int tid, String rawTransaction, int rid);
+        void submitTransaction(long wid, long tid, String rawTransaction, int rid);
 
         //        typedef void (*BREthereumClientHandlerGetTransactions) (BREthereumClientContext context,
         //                                        BREthereumEWM ewm,
@@ -230,6 +240,8 @@ public class BREthereumEWM extends BRCoreJniReference {
                                Status status,
                                String errorDescription);
 
+        void handleTokenEvent(BREthereumToken token, TokenEvent event);
+
         void handleBlockEvent(BREthereumBlock block, BlockEvent event,
                               Status status,
                               String errorDescription);
@@ -245,19 +257,19 @@ public class BREthereumEWM extends BRCoreJniReference {
     // Client Announcers
     //
 
-    public void announceBalance(int wid, String balance, int rid) {
+    public void announceBalance(long wid, String balance, int rid) {
         jniAnnounceBalance(wid, balance, rid);
     }
 
-    public void announceGasPrice(int wid, String gasPrice, int rid) {
+    public void announceGasPrice(long wid, String gasPrice, int rid) {
         jniAnnounceGasPrice(wid, gasPrice, rid);
     }
 
-    public void announceGasEstimate(int wid, int tid, String gasEstimate, int rid) {
+    public void announceGasEstimate(long wid, long tid, String gasEstimate, int rid) {
         jniAnnounceGasEstimate(wid, tid, gasEstimate, rid);
     }
 
-    public void announceSubmitTransaction(int wid, int tid, String hash, int rid) {
+    public void announceSubmitTransaction(long wid, long tid, String hash, int rid) {
         jniAnnounceSubmitTransaction(wid, tid, hash, rid);
     }
 
@@ -570,13 +582,13 @@ public class BREthereumEWM extends BRCoreJniReference {
                                          String blockTransactionIndex,
                                          String blockTimestamp);
 
-    protected native void jniAnnounceBalance(int wid, String balance, int rid);
+    protected native void jniAnnounceBalance(long wid, String balance, int rid);
 
-    protected native void jniAnnounceGasPrice(int wid, String gasPrice, int rid);
+    protected native void jniAnnounceGasPrice(long wid, String gasPrice, int rid);
 
-    protected native void jniAnnounceGasEstimate(int wid, int tid, String gasEstimate, int rid);
+    protected native void jniAnnounceGasEstimate(long wid, long tid, String gasEstimate, int rid);
 
-    protected native void jniAnnounceSubmitTransaction(int wid, int tid, String hash, int rid);
+    protected native void jniAnnounceSubmitTransaction(long wid, long tid, String hash, int rid);
 
     protected native void jniAnnounceBlockNumber(String blockNumber, int rid);
 
@@ -697,10 +709,9 @@ public class BREthereumEWM extends BRCoreJniReference {
     //
     protected native long jniEWMGetBlockHeight();
 
-    protected native long jniBlockGetNumber(long bid);
-
-    //    protected native long jniBlockGetTimestamp (long bid);
-    protected native String jniBlockGetHash(long bid);
+//    protected native long jniBlockGetNumber(long bid);
+//    //    protected native long jniBlockGetTimestamp (long bid);
+//    protected native String jniBlockGetHash(long bid);
 
     //
     // JNI: Connect & Disconnect
@@ -798,7 +809,7 @@ public class BREthereumEWM extends BRCoreJniReference {
     //
     // These methods also give us a chance to convert the `event`, as a `long`, to the Event.
     //
-    static protected void trampolineGetGasPrice(long eid, int wid, int rid) {
+    static protected void trampolineGetGasPrice(long eid, long wid, int rid) {
         BREthereumEWM ewm = lookupEWM(eid);
         Client client = lookupClient (ewm);
         if (null == client) return;
@@ -806,7 +817,7 @@ public class BREthereumEWM extends BRCoreJniReference {
         client.getGasPrice(wid, rid);
     }
 
-    static protected void trampolineGetGasEstimate(long eid, int wid, int tid, String to, String amount, String data, int rid) {
+    static protected void trampolineGetGasEstimate(long eid, long wid, long tid, String to, String amount, String data, int rid) {
         BREthereumEWM ewm = lookupEWM(eid);
         Client client = lookupClient (ewm);
         if (null == client) return;
@@ -814,7 +825,7 @@ public class BREthereumEWM extends BRCoreJniReference {
         client.getGasEstimate(wid, tid, to, amount, data, rid);
     }
 
-    static protected void trampolineGetBalance(long eid, int wid, String address, int rid) {
+    static protected void trampolineGetBalance(long eid, long wid, String address, int rid) {
         BREthereumEWM ewm = lookupEWM(eid);
         Client client = lookupClient (ewm);
         if (null == client) return;
@@ -822,7 +833,7 @@ public class BREthereumEWM extends BRCoreJniReference {
         client.getBalance(wid, address, rid);
     }
 
-    static protected void trampolineSubmitTransaction(long eid, int wid, int tid, String rawTransaction, int rid) {
+    static protected void trampolineSubmitTransaction(long eid, long wid, long tid, String rawTransaction, int rid) {
         BREthereumEWM ewm = lookupEWM(eid);
         Client client = lookupClient (ewm);
         if (null == client) return;
@@ -929,7 +940,7 @@ public class BREthereumEWM extends BRCoreJniReference {
                 errorDescription);
     }
 
-    static protected void trampolineWalletEvent(long eid, int wid, int event, int status, String errorDescription) {
+    static protected void trampolineWalletEvent(long eid, long wid, int event, int status, String errorDescription) {
         BREthereumEWM ewm = lookupEWM(eid);
         Client client = lookupClient (ewm);
         if (null == client) return;
@@ -950,6 +961,21 @@ public class BREthereumEWM extends BRCoreJniReference {
                 errorDescription);
     }
 
+    static protected void trampolineTokenEvent(long eid, long tokenId, int event) {
+        BREthereumEWM ewm = lookupEWM(eid);
+        Client client = lookupClient (ewm);
+        if (null == client) return;
+
+        // TODO: Resolve Bug
+        if (event < 0 || event >= NUMBER_OF_TOKEN_EVENTS) return;
+
+        BREthereumToken token = ewm.lookupTokenByReference(tokenId);
+
+        // Invoke handler
+        client.handleTokenEvent(token, TokenEvent.values()[(int) event]);
+    }
+
+/*
     static protected void trampolineBlockEvent(long eid, int bid, int event, int status, String errorDescription) {
         BREthereumEWM ewm = lookupEWM(eid);
         Client client = lookupClient (ewm);
@@ -967,8 +993,8 @@ public class BREthereumEWM extends BRCoreJniReference {
                 Status.values()[(int) status],
                 errorDescription);
     }
-
-    static protected void trampolineTransferEvent(long eid, int wid, int tid, int event, int status, String errorDescription) {
+*/
+    static protected void trampolineTransferEvent(long eid, long wid, long tid, int event, int status, String errorDescription) {
         BREthereumEWM ewm = lookupEWM(eid);
         Client client = lookupClient (ewm);
         if (null == client) return;

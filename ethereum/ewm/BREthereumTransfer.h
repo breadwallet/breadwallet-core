@@ -39,7 +39,7 @@
 extern "C" {
 #endif
 
-typedef struct BREthereumTransferRecord *BREthereumTransfer;
+//typedef struct BREthereumTransferRecord *BREthereumTransfer;
 
 static inline BREthereumGas
 feeBasisGetGasLimit (BREthereumFeeBasis basis) {
