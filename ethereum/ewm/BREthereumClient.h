@@ -393,6 +393,18 @@ extern "C" {
                                                       const char *errorDescription);
 
     typedef enum {
+        TOKEN_EVENT_CREATED = 0,
+        TOKEN_EVENT_DELETED
+    } BREthereumTokenEvent;
+
+#define TOKEN_NUMBER_OF_EVENTS  (1 + TOKEN_EVENT_DELETED)
+
+    typedef void (*BREthereumClientHandlerTokenEvent) (BREthereumClientContext context,
+                                                       BREthereumEWM ewm,
+                                                       BREthereumToken token,
+                                                       BREthereumTokenEvent event);
+
+    typedef enum {
         EWM_EVENT_CREATED = 0,
         EWM_EVENT_SYNC_STARTED,
         EWM_EVENT_SYNC_CONTINUES,
@@ -446,6 +458,7 @@ extern "C" {
         BREthereumClientHandlerEWMEvent funcEWMEvent;
         BREthereumClientHandlerPeerEvent funcPeerEvent;
         BREthereumClientHandlerWalletEvent funcWalletEvent;
+        BREthereumClientHandlerTokenEvent funcTokenEvent;
         //       BREthereumClientHandlerBlockEvent funcBlockEvent;
         BREthereumClientHandlerTransferEvent funcTransferEvent;
 

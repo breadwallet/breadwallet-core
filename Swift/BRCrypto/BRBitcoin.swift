@@ -6,26 +6,29 @@
 //  Copyright © 2018 breadwallet. All rights reserved.
 //
 
+import Foundation // DispatchQueue
 import Core
+
+public struct Bitcoin {
+    public static let currency = Currency (code: "BTC", symbol:  "₿", name: "Bitcoin", decimals: 8,
+                                           baseUnit: (name: "SAT", symbol: "sat"))
+    public struct Units {
+        public static let SATOSHI = Bitcoin.currency.baseUnit!
+        public static let BITCOIN = Bitcoin.currency.defaultUnit!
+    }
+
+    public struct Networks {
+        public static let mainnet = Network.bitcoin (name: "BTC Mainnet", forkId: 0x00, chainParams: bitcoinParams (1))
+        public static let testnet = Network.bitcoin (name: "BTC Testnet", forkId: 0x40, chainParams: bitcoinParams (0))
+    }
+}
 
 typealias BRCoreWallet = OpaquePointer
 typealias BRCorePeerManager = OpaquePointer
 
-extension Network {
-    var chainParams: UnsafePointer<BRChainParams>? {
-        switch self {
-        case let .bitcoin (main, _): return bitcoinParams (main ? 1 : 0) // main ?  mainnetParams : mainnetParams // &BRTestNetParams
-        case let .bitcash (main, _): return bitcashParams (main ? 1 : 0) // main ? mainnetParams : mainnetParams // &BRBCashParams : &BRBCashTestNetParams
-        case .ethereum: return nil
-        }
-    }
-}
-
-public protocol BitcoinBackendClient: WalletManagerBackendClient {
-}
-
-public protocol BitcoinPersistenceClient: WalletManagerPersistenceClient {
-}
+public protocol BitcoinListener: WalletManagerListener {}
+public protocol BitcoinBackendClient: WalletManagerBackendClient {}
+public protocol BitcoinPersistenceClient: WalletManagerPersistenceClient {}
 
 public class BitcoinTransfer: Transfer {
     internal let core: BRTransaction
@@ -35,25 +38,59 @@ public class BitcoinTransfer: Transfer {
     public var wallet: Wallet {
         return _wallet
     }
+
+    /// Flag to determine if the wallet's owner sent this transfer
+    internal lazy var isSent: Bool = {
+        var transaction = core
+        let fee = BRWalletFeeForTx (_wallet.core, &transaction)
+        return fee != UINT64_MAX && fee != 0
+    }()
+
+    public private(set) lazy var source: Address? = {
+        // The source address is in a TxInput; if sent it is our address, otherwise anothers
+        let inputs = [BRTxInput](UnsafeBufferPointer(start: self.core.inputs, count: self.core.outCount))
+        return inputs
+            .first { (self.isSent ? 1 : 0) == BRWalletContainsAddress(_wallet.core, UnsafeRawPointer([$0.address]).assumingMemoryBound(to: CChar.self)) }
+            .map { Address.bitcoin (BRAddress (s: $0.address))}
+    }()
+
+    /// The addresses for all TxInputs
+    public var sources: [Address] {
+        let inputs = [BRTxInput](UnsafeBufferPointer(start: self.core.inputs, count: self.core.outCount))
+        return inputs.map { Address.bitcoin (BRAddress (s: $0.address)) }
+    }
     
-    public var source: Address?
-    
-    public var target: Address?
-    
+    public private(set) lazy var target: Address? = {
+        // The target address is in a TxOutput; if not sent is it out address, otherwise anothers
+        let outputs = [BRTxOutput](UnsafeBufferPointer(start: self.core.outputs, count: self.core.outCount))
+        return outputs
+            .first { (!self.isSent ? 1 : 0) == BRWalletContainsAddress(_wallet.core, UnsafeRawPointer([$0.address]).assumingMemoryBound(to: CChar.self)) }
+            .map { Address.bitcoin (BRAddress (s: $0.address)) }
+    }()
+
+    /// The addresses for all TxOutputs
+    public var targets: [Address] {
+        let outputs = [BRTxOutput](UnsafeBufferPointer(start: self.core.outputs, count: self.core.outCount))
+        return outputs.map { Address.bitcoin (BRAddress (s: $0.address)) }
+    }
+
     public var amount: Amount {
         var transaction = core
         let recv = BRWalletAmountReceivedFromTx(_wallet.core, &transaction)
         let send = BRWalletAmountSentByTx (_wallet.core, &transaction)
-        let fees = BRWalletFeeForTx (_wallet.core, &transaction)
-        return Amount (value: recv + fees - send,
-                       unit: Unit.Bitcoin.SATOSHI)
+
+        var fees = BRWalletFeeForTx (_wallet.core, &transaction)
+        if (fees == UINT64_MAX) { fees = 0 }
+
+        return Amount (value: recv + fees - send,  // recv - (fees + send)
+                       unit: Bitcoin.Units.SATOSHI)
     }
     
     public var fee: Amount {
         var transaction = core
         let fee = BRWalletFeeForTx (_wallet.core, &transaction)
         return Amount (value: (fee == UINT64_MAX ? 0 : fee),
-                       unit: Unit.Bitcoin.SATOSHI)
+                       unit: Bitcoin.Units.SATOSHI)
     }
     
     public var feeBasis: TransferFeeBasis {
@@ -66,10 +103,10 @@ public class BitcoinTransfer: Transfer {
             }
         }
     }
-    
-    public var confirmation: TransferConfirmation?
-    
-    public var hash: TransferHash?
+        
+    public var hash: TransferHash? {
+        return TransferHash.bitcoin (core.txHash)
+    }
     
     public var state: TransferState
     
@@ -125,7 +162,7 @@ public class BitcoinWallet: Wallet {
     
     public var balance: Amount {
         return Amount (value: BRWalletBalance (core),
-                       unit: Unit.Bitcoin.BITCOIN)
+                       unit: currency.baseUnit)
         
     }
     
@@ -133,7 +170,7 @@ public class BitcoinWallet: Wallet {
     
     public func lookup (transfer: TransferHash) -> Transfer? {
         return transfers
-            .first  { $0.hash.map { $0.string == transfer.string } ?? false }
+            .first  { $0.hash.map { $0 == transfer } ?? false }
     }
     
     public var state: WalletState
@@ -151,15 +188,17 @@ public class BitcoinWallet: Wallet {
     
     public var transferFactory: TransferFactory = BitcoinTransferFactory()
     
-    internal let currency: Currency = Currency.bitcoin
+    internal let currency: Currency
     
     public var target: Address {
         return Address.bitcoin (BRWalletReceiveAddress(core))
     }
     
     internal init (manager: BitcoinWalletManager,
+                   currency: Currency,
                    core:   BRCoreWallet) {
         self._manager = manager
+        self.currency = currency
         self.core = core
         
         //        self.currency = Currency.ethereum
@@ -168,15 +207,24 @@ public class BitcoinWallet: Wallet {
 }
 
 public class BitcoinWalletManager: WalletManager {
-    
+
     internal let corePeerManager: BRCorePeerManager
     internal let coreWallet: BRCoreWallet
     
     internal let backendClient: BitcoinBackendClient
     internal let persistenceClient: BitcoinPersistenceClient
     
-    public let listener : WalletManagerListener
-    
+    public let _listener : BitcoinListener
+
+    public var listener: WalletManagerListener {
+        return _listener
+    }
+
+    lazy var queue : DispatchQueue = {
+        return DispatchQueue (label: "\(network.currency.symbol) WalletManager")
+    }()
+
+
     public let account: Account
     
     //    public var address: BitcoinAddress {
@@ -185,11 +233,13 @@ public class BitcoinWalletManager: WalletManager {
     
     public var network: Network
     
-    public lazy var primaryWallet: Wallet = {
-        return BitcoinWallet (manager: self,
-                              core: coreWallet)
+    public private(set) lazy var primaryWallet: Wallet = {
+        let wallet = BitcoinWallet (manager: self, currency: network.currency, core: coreWallet)
+        self.listener.handleWalletEvent(manager: self, wallet: wallet, event: WalletEvent.created)
+        self.listener.handleManagerEvent(manager: self, event: WalletManagerEvent.walletAdded(wallet: wallet))
+        return wallet
     }()
-    
+
     public lazy var wallets: [Wallet] = {
         return [primaryWallet]
     } ()
@@ -208,7 +258,7 @@ public class BitcoinWalletManager: WalletManager {
     public var walletFactory: WalletFactory = EthereumWalletFactory()
     #endif
     
-    internal static var managers: [BitcoinWalletManager] = []
+    internal static var managers: [BitcoinWalletManager] = [] // Weak<>
     
     internal static func lookup (wallet: OpaquePointer) -> BitcoinWalletManager? {
         return managers.first { wallet == $0.coreWallet }
@@ -218,19 +268,19 @@ public class BitcoinWalletManager: WalletManager {
         return ptr.map { Unmanaged<BitcoinWalletManager>.fromOpaque($0).takeUnretainedValue() }
     }
     
-    public init (listener: WalletManagerListener,
+    public init (listener: BitcoinListener,
                  account: Account,
                  network: Network,
                  mode: WalletManagerMode,
                  timestamp: UInt64,
                  persistenceClient: BitcoinPersistenceClient = DefaultBitcoinPersistenceClient(),
                  backendClient: BitcoinBackendClient = DefaultBitcoinBackendClient()) {
-        guard let params = network.chainParams else { precondition(false) }
+        guard let params = network.bitcoinChainParams else { precondition(false) }
         
         self.backendClient = backendClient
         self.persistenceClient = persistenceClient
         
-        self.listener = listener
+        self._listener = listener
         self.network = network
         self.account = account
         self.path = ""
@@ -249,44 +299,92 @@ public class BitcoinWalletManager: WalletManager {
             // balanceChanged
             { (this, balance) in
                 if let bwm  = BitcoinWalletManager.lookup (ptr: this) {
-                    let event = WalletEvent.balanceUpdated(amount: Amount (value: balance, unit: Unit.Bitcoin.SATOSHI))
-                    bwm.listener.handleWalletEvent (manager: bwm,
-                                                    wallet: bwm.primaryWallet,
-                                                    event: event)
+                    bwm.queue.async {
+                        if let wallet = bwm.primaryWallet as? BitcoinWallet {
+                            let amount = Amount (value: balance, unit: Bitcoin.Units.SATOSHI)
+                            bwm.listener.handleWalletEvent (manager: bwm,
+                                                            wallet: wallet,
+                                                            event: WalletEvent.balanceUpdated(amount: amount))
+                        }
+                    }
                 }},
             
             // txAdded
             { (this, tx) in
                 if let bwm  = BitcoinWalletManager.lookup (ptr: this), let tx = tx {
-                    let transfer = BitcoinTransfer (wallet: bwm.primaryWallet as! BitcoinWallet,
-                                                    core: tx.pointee)
-                    bwm.listener.handleTransferEvent (manager: bwm,
-                                                      wallet: bwm.primaryWallet,
-                                                      transfer: transfer,
-                                                      event: TransferEvent.created)
-                    bwm.listener.handleWalletEvent (manager: bwm,
-                                                    wallet: bwm.primaryWallet,
-                                                    event: WalletEvent.transferAdded(transfer: transfer))
+                    bwm.queue.async {
+                        if let wallet = bwm.primaryWallet as? BitcoinWallet {
+                            let transfer = BitcoinTransfer (wallet: wallet,
+                                                            core: tx.pointee)
+                            wallet.transfers.append(transfer)
+
+                            bwm.listener.handleTransferEvent (manager: bwm,
+                                                              wallet: bwm.primaryWallet,
+                                                              transfer: transfer,
+                                                              event: TransferEvent.created)
+
+                            bwm.listener.handleWalletEvent (manager: bwm,
+                                                            wallet: bwm.primaryWallet,
+                                                            event: WalletEvent.transferAdded(transfer: transfer))
+                        }
+                    }
                 }},
-            
+
             // txUpdated
             { (this, txHashes, txCount, blockHeight, timestamp) in
                 if let bwm  = BitcoinWalletManager.lookup (ptr: this) {
-                    // let hashes = [UInt256](UnsafeBufferPointer(start: txHashes, count: txCount))
-                    // for hash in hashes { }
-                    //                    // bwm.listener.handleTransferEvent (manager: bwm)
+                    // Copy `txHashes`; they'll disappear.
+                    let coreHashes = [UInt256](UnsafeBufferPointer(start: txHashes, count: txCount)).map { $0 }
+                    bwm.queue.async {
+                        if let wallet = bwm.primaryWallet as? BitcoinWallet {
+                            for coreHash in coreHashes {
+                                if let transfer = wallet.lookup(transfer: TransferHash.bitcoin(coreHash)) as? BitcoinTransfer {
+                                    let confirmation =  TransferConfirmation (
+                                        blockNumber: UInt64(blockHeight),
+                                        transactionIndex: 0,
+                                        timestamp: UInt64(timestamp),
+                                        fee: transfer.fee)
+
+                                    let oldState = transfer.state
+                                    let newState = TransferState.included (confirmation: confirmation)
+
+                                    transfer.state = newState
+
+                                    bwm.listener.handleTransferEvent(manager: bwm,
+                                                                     wallet: wallet,
+                                                                     transfer: transfer,
+                                                                     event: TransferEvent.changed(old: oldState, new: newState))
+
+                                    bwm.listener.handleWalletEvent(manager: bwm,
+                                                                   wallet: wallet,
+                                                                   event: WalletEvent.transferChanged(transfer: transfer))
+                                }
+                            }
+                        }
+                    }
                 }},
             
             // txDeleted
             { (this, txHash, notify, rescan) in
                 if let bwm  = BitcoinWalletManager.lookup (ptr: this) {
-                    //                    let transferHash = TransferHash()
-                    //                    if let transfer = self.primaryWallet.lookup (transfer: transferHash) {
-                    //                        bwm.listener.handleTransferEvent (manager: bwm,
-                    //                                                         wallet: primaryWallet,
-                    //                                                         transfer: transfer,
-                    //                                                         event: TransferEvent.deleted)
-                    //                    }
+                    bwm.queue.async {
+                        if let wallet = bwm.primaryWallet as? BitcoinWallet {
+                            let hash = TransferHash.bitcoin (txHash)
+                            if let transfer = wallet.lookup(transfer: hash),
+                                let index = wallet.transfers.firstIndex (where: { $0.hash == hash }) {
+                                wallet.transfers.remove(at: index)
+
+                                bwm.listener.handleTransferEvent(manager: bwm,
+                                                                 wallet: wallet,
+                                                                 transfer: transfer,
+                                                                 event: TransferEvent.deleted)
+
+                                bwm.listener.handleWalletEvent(manager: bwm,
+                                                               wallet: wallet,
+                                                               event: WalletEvent.transferDeleted(transfer: transfer))
+                            }
+                        }
+                    }
                 }}
         )
         
@@ -302,15 +400,13 @@ public class BitcoinWalletManager: WalletManager {
             
             { (this, error) in // syncStopped
                 if let bwm  = BitcoinWalletManager.lookup (ptr: this) {
-                    // let err = BRPeerManagerError.posixError(errorCode: error, description: String(cString: strerror(error)))
-                    // error != 0 ? err : nil
+                    let reason = 0 == error ? nil : asUTF8String(strerror(error))
                     bwm.listener.handleManagerEvent (manager: bwm,
-                                                     event: WalletManagerEvent.syncEnded)
+                                                     event: WalletManagerEvent.syncEnded(error: reason))
                 }},
             
             { (this) in // txStatusUpdate
-                if let bwm  = BitcoinWalletManager.lookup (ptr: this) {
-                    
+                if let _  = BitcoinWalletManager.lookup (ptr: this) {
                 }},
             
             { (this, replace, blocks, blocksCount) in // saveBlocks
@@ -330,17 +426,22 @@ public class BitcoinWalletManager: WalletManager {
                     bwm.persistenceClient.savePeers (manager: bwm, data: peersDictionary)
                 }},
             
-            { (this) -> Int32 in // networkIsReachable
+            { (this) -> Int32 in  // networkIsReachable
                 if let bwm  = BitcoinWalletManager.lookup (ptr: this) {
-                    return 1
+                    return bwm.backendClient.networkIsReachable() ? 1 : 0
                 }
                 else {
                     return 0
                 }},
-            
-            { (this) in
-                if let bwm  = BitcoinWalletManager.lookup (ptr: this) {
+
+            { (this) in // threadCleanup
+                if let _  = BitcoinWalletManager.lookup (ptr: this) {
                 }})
+
+
+        BitcoinWalletManager.managers.append(self)
+        self.listener.handleManagerEvent(manager: self, event: WalletManagerEvent.created)
+        let _ = self.primaryWallet
     }
     
     public func connect() {
@@ -366,27 +467,3 @@ public class BitcoinWalletManager: WalletManager {
     let l = BRTestNetVerifyDifficulty
 }
 
-public class DefaultBitcoinBackendClient: BitcoinBackendClient {
-    public init () {}
-}
-
-public class DefaultBitcoinPersistenceClient: BitcoinPersistenceClient {
-    public func savePeers (manager: WalletManager,
-                           data: Dictionary<String, String>) {
-        print ("TST: BTC: savePeers")
-    }
-    
-    public func saveBlocks(manager: WalletManager,
-                           data: Dictionary<String, String>) {
-        print ("TST: BTC: saveBlocks")
-    }
-    
-    public func changeTransaction (manager: WalletManager,
-                                   change: WalletManagerPersistenceChangeType,
-                                   hash: String,
-                                   data: String) {
-        print ("TST: BTC: changeTransaction")
-    }
-    
-    public init () {}
-}

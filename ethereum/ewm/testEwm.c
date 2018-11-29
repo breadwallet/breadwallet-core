@@ -469,6 +469,14 @@ clientEventWallet (BREthereumClientContext context,
     }
 }
 
+static void
+clientEventToken (BREthereumClientContext context,
+                   BREthereumEWM ewm,
+                   BREthereumToken token,
+                   BREthereumTokenEvent event) {
+    fprintf (stdout, "ETH: TST: TokenEvent: wid=%p, ev=%d\n", token, event);
+}
+
 #if defined (NEVER_DEFINED)
 static void
 clientEventBlock (BREthereumClientContext context,
@@ -551,6 +559,7 @@ static BREthereumClient client = {
     clientEventEWM,
     clientEventPeer,
     clientEventWallet,
+    clientEventToken,
  //   clientEventBlock,
     clientEventTransfer
 };

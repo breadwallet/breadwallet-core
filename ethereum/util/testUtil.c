@@ -199,6 +199,12 @@ runMathMulDoubleTests () {
     assert (0 == strcmp ("0", coerceString(r, 10)));
     assert (0.123 == rem);
 
+    ai = createUInt256Parse("2000000000000000000", 10, &status);  // Output
+    ao = createUInt256 (2);
+    r  = mulUInt256_Double(ai, 1e-18, &over, &neg, &rem);
+    assert (over == 0 && eqUInt256(r, ao));
+    assert (0 == strcmp ("2", coerceString(r, 10)));
+
     // overflow...
 }
 

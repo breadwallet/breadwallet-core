@@ -260,6 +260,10 @@ class TestLightClient : EthereumClient {
         }
     }
 
+    func handleTokenEvent(ewm: EthereumWalletManager, token: EthereumToken, event: EthereumTokenEvent) {
+        print ("TST: TokenEvent: \(event)\n")
+    }
+
     func handleBlockEvent(ewm: EthereumWalletManager,
                           block: EthereumBlock,
                           event: EthereumBlockEvent) {

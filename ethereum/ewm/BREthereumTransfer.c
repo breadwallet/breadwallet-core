@@ -258,7 +258,8 @@ transferCreateWithTransaction (OwnershipGiven BREthereumTransaction transaction)
 
 extern BREthereumTransfer
 transferCreateWithLog (OwnershipGiven BREthereumLog log,
-                       BREthereumToken token) {
+                       BREthereumToken token,
+                       BRRlpCoder coder) {
     BREthereumFeeBasis feeBasis = {
         FEE_BASIS_NONE
     };
@@ -271,8 +272,10 @@ transferCreateWithLog (OwnershipGiven BREthereumLog log,
     BREthereumAddress sourceAddress = logTopicAsAddress(logGetTopic(log, 1));
     BREthereumAddress targetAddress = logTopicAsAddress(logGetTopic(log, 2));
 
-    BRRlpData amountData = logGetDataShared(log);
-    UInt256 value = rlpDataDecodeUInt256(amountData);
+    // Only at this point do we know that log->data is a number.
+    BRRlpItem  item  = rlpGetItem (coder, logGetDataShared(log));
+    UInt256 value = rlpDecodeUInt256(coder, item, 1);
+    rlpReleaseItem (coder, item);
 
     BREthereumAmount  amount = amountCreateToken (createTokenQuantity(token, value));
 

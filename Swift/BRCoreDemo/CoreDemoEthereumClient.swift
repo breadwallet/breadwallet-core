@@ -351,6 +351,10 @@ class CoreDemoEthereumClient : EthereumClient {
         }
     }
 
+    func handleTokenEvent(ewm: EthereumWalletManager, token: EthereumToken, event: EthereumTokenEvent) {
+        print ("TST: TokenEvent: \(event)\n")
+    }
+
     //
     // Block Event
     //

@@ -124,6 +124,8 @@ void BRPeerManagerFree(BRPeerManager *manager);
 const BRChainParams *bitcoinParams (int mainnet);
 const BRChainParams *bitcashParams (int mainnet);
 
+char *u256HashToString (UInt256 hash);
+
 #ifdef __cplusplus
 }
 #endif

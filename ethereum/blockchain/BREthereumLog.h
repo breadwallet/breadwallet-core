@@ -81,7 +81,8 @@ typedef struct BREthereumLogRecord *BREthereumLog;
 extern BREthereumLog
 logCreate (BREthereumAddress address,
            unsigned int topicsCount,
-           BREthereumLogTopic *topics);
+           BREthereumLogTopic *topics,
+           BRRlpData data);
 
 extern void
 logInitializeIdentifier (BREthereumLog log,
