@@ -65,13 +65,14 @@ static jmethodID transactionConstructor;
 /*
  * Class:     com_breadwallet_core_BRCoreWallet
  * Method:    createJniCoreWallet
- * Signature: ([Lcom/breadwallet/core/BRCoreTransaction;Lcom/breadwallet/core/BRCoreMasterPubKey;Lcom/breadwallet/core/BRCoreWallet/Listener;)J
+ * Signature: ([Lcom/breadwallet/core/BRCoreTransaction;Lcom/breadwallet/core/BRCoreMasterPubKey;I)J
  */
 JNIEXPORT jlong JNICALL
 Java_com_breadwallet_core_BRCoreWallet_createJniCoreWallet
         (JNIEnv *env, jclass thisClass,
          jobjectArray objTransactionsArray,
-         jobject objMasterPubKey) {
+         jobject objMasterPubKey,
+         jint forkId) {
 
     BRMasterPubKey *masterPubKey = (BRMasterPubKey *) getJNIReference(env, objMasterPubKey);
 
@@ -86,7 +87,7 @@ Java_com_breadwallet_core_BRCoreWallet_createJniCoreWallet
         (*env)->DeleteLocalRef (env, objTransaction);
     }
 
-    BRWallet *wallet = BRWalletNew(transactions, transactionsCount, *masterPubKey);
+    BRWallet *wallet = BRWalletNew(transactions, transactionsCount, *masterPubKey, forkId);
 
     if (NULL != transactions) free (transactions);
 
@@ -127,6 +128,21 @@ Java_com_breadwallet_core_BRCoreWallet_getReceiveAddress
 
     BRAddress *address = (BRAddress *) malloc (sizeof (BRAddress));
     *address = BRWalletReceiveAddress (wallet);
+
+    return (*env)->NewObject (env, addressClass, addressConstructor, (jlong) address);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreWallet
+ * Method:    getLegacyAddress
+ * Signature: ()Lcom/breadwallet/core/BRCoreAddress;
+ */
+JNIEXPORT jobject JNICALL Java_com_breadwallet_core_BRCoreWallet_getLegacyAddress
+        (JNIEnv *env, jobject thisObject) {
+    BRWallet *wallet = (BRWallet *) getJNIReference (env, thisObject);
+
+    BRAddress *address = (BRAddress *) malloc (sizeof (BRAddress));
+    *address = BRWalletLegacyAddress (wallet);
 
     return (*env)->NewObject (env, addressClass, addressConstructor, (jlong) address);
 }
@@ -391,13 +407,12 @@ JNIEXPORT jobject JNICALL Java_com_breadwallet_core_BRCoreWallet_createTransacti
 /*
  * Class:     com_breadwallet_core_BRCoreWallet
  * Method:    signTransaction
- * Signature: (Lcom/breadwallet/core/BRCoreTransaction;I[B)Z
+ * Signature: (Lcom/breadwallet/core/BRCoreTransaction;[B)Z
  */
 JNIEXPORT jboolean JNICALL
 Java_com_breadwallet_core_BRCoreWallet_signTransaction
         (JNIEnv *env, jobject thisObject,
          jobject transactionObject,
-         jint forkId,
          jbyteArray phraseByteArray) {
     BRWallet *wallet = (BRWallet *) getJNIReference(env, thisObject);
     BRTransaction *transaction = (BRTransaction *) getJNIReference(env, transactionObject);
@@ -415,7 +430,7 @@ Java_com_breadwallet_core_BRCoreWallet_signTransaction
     BRBIP39DeriveKey (&seed, phrase, NULL);
 
     // Sign with the seed
-    return (jboolean) (1 == BRWalletSignTransaction(wallet, transaction, forkId, &seed, sizeof(seed))
+    return (jboolean) (1 == BRWalletSignTransaction(wallet, transaction, &seed, sizeof(seed))
                        ? JNI_TRUE
                        : JNI_FALSE);
 }

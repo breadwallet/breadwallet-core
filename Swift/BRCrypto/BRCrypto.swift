@@ -6,105 +6,41 @@
 //  Copyright © 2018 breadwallet. All rights reserved.
 //
 import Foundation
+import SystemConfiguration // SCSystemReachability
 import Core  // UInt256, UInt512, MasterPubKey
 import Core.Ethereum // BREthereum{Account,Address}
 
 ///
 /// MARK: Currency
 ///
-public enum Currency: Equatable, CustomStringConvertible  {
-    case bitcoin
-    case bitcash
-    case ethereum
-    case token (code: String, symbol: String, name: String, description: String, unit: Unit!)
-    // Note: 'fiat' is a token, albeit a "Gov't issued token".
+public class Currency: Equatable {
+    public let code: String
+    public let symbol: String
+    public let name: String
+    public let decimals: UInt8
 
-    public var code: String {
-        switch self {
-        case .bitcoin:  return "BTC"
-        case .bitcash:  return "BCH"
-        case .ethereum: return "ETH"
-        case .token(let code, _, _, _, _): return code
-        }
-    }
+    public private(set) var baseUnit: Unit! = nil
+    public private(set) var defaultUnit: Unit! = nil
 
-    public var symbol: String {
-        switch self {
-        case .bitcoin,
-             .bitcash:
-            if  #available(iOS 10, *) {
-                return "₿"
-            }
-            else {
-                return "Ƀ"
-            }
-        case .ethereum: return "Ξ"
-        case .token(_, let symbol, _, _, _): return symbol
-        }
-    }
+    internal init (code: String, symbol: String, name: String, decimals: UInt8,
+                   baseUnit: (name: String, symbol: String)) {
+        self.code = code
+        self.symbol = symbol
+        self.name = name
+        self.decimals = decimals
+        self.baseUnit = Unit (baseUnit.name, baseUnit.symbol, self) // self has 'nil' for baseUnit
 
-    public var name: String {
-        switch self {
-        case .bitcoin: return "Bitcoin"
-        case .bitcash: return "Bitcash"
-        case .ethereum: return "Ethereum"
-        case .token(_, _, let name, _, _): return name
-        }
-    }
-
-    public var description : String {
-        switch self {
-        case .bitcoin:  return "BTC"
-        case .bitcash:  return "BCH"
-        case .ethereum: return "ETH"
-        case .token(_, _, _, let description, _): return description
-        }
-    }
-
-    public var baseUnit: Unit {
-        switch self {
-        case .bitcoin:  return Unit.Bitcoin.SATOSHI
-        case .bitcash:  return Unit.Bitcoin.SATOSHI
-        case .ethereum: return Unit.Ethereum.WEI
-        case .token (_, _, _, _, let unit): return unit!
-        }
-    }
-
-    public var defaultUnit: Unit {
-        switch self {
-        case .bitcoin:  return Unit.Bitcoin.BITCOIN
-        case .bitcash:  return Unit.Bitcoin.BITCOIN
-        case .ethereum: return Unit.Ethereum.ETHER
-        case .token(_, _, _, _, let unit): return unit!
-        }
+        let scale = pow (10.0, Double(decimals))
+        self.defaultUnit = Unit (code, symbol, UInt64(scale),
+                                 base: self.baseUnit)
     }
 
     public static func == (lhs: Currency, rhs: Currency) -> Bool {
-        switch (lhs, rhs) {
-        case (.bitcoin, .bitcoin):   return true
-        case (.bitcash, .bitcash):   return true
-        case (.ethereum, .ethereum): return true
-        case (.token(let s1, _, _, _, _), .token(let s2, _, _, _, _)): return s1 == s2
-        default: return false
-        }
-    }
-
-    /// Initialize a Currency.token() and create the 'integer' unit in the process
-    public init (code: String, symbol: String, name: String, description: String,
-                 unit: (name:String, symbol:String)) {
-        self = .token (code: code, symbol: symbol, name: name, description: description, unit: nil)
-        // Really?
-        self = .token (code: code, symbol: symbol, name: name, description: description,
-                       unit: Unit (unit.name, unit.symbol, self))
-    }
-
-    // Create a 'decimal' unit for token
-    public func tokenDecimalUnit (name: String, symbol: String, decimals: UInt8) -> Unit? {
-        switch self {
-        case .bitcoin, .bitcash, .ethereum: return nil
-        case .token(_, _, _, _, let unit):
-            return Unit (name, symbol, UInt64(10).pow(decimals), base: unit!)
-        }
+        return lhs === rhs ||
+            (lhs.code  == rhs.code &&
+                lhs.symbol == rhs.symbol &&
+                lhs.name == rhs.name &&
+                lhs.decimals == rhs.decimals)
     }
 }
 
@@ -112,15 +48,14 @@ public enum Currency: Equatable, CustomStringConvertible  {
 /// Unit
 ///
 public class Unit {
-    let currency: Currency
+    public let currency: Currency
     let base: Unit!
-    let name: String
-    let symbol: String
+    public let name: String
+    public let symbol: String
     let scale: UInt64
 
     func isCompatible (_ that: Unit) -> Bool {
-        return (self === that ||
-            (self.base != nil && that.base != nil && self.base === that.base))
+        return (self === that || self.currency == that.currency)
     }
 
     init (_ name: String, _ symbol: String, _ currency: Currency) {
@@ -138,43 +73,6 @@ public class Unit {
         self.name = name
         self.symbol = symbol
         self.scale = scale
-    }
-
-    public struct Bitcoin {
-        static let SATOSHI = Unit ("sat",     "X", Currency.bitcoin)
-        // TODO: ...
-        static let BITCOIN = Unit ("BTC", "B", 100000000, base: SATOSHI)
-    }
-
-    public struct Ethereum {
-        public static let WEI   = Unit ("WEI",   "X", Currency.ethereum)
-        // TODO: ...
-        public static let GWEI  = Unit ("GWEI",  "X",          1000000000, base: WEI)
-        public static let ETHER = Unit ("Ether", "X", 1000000000000000000, base: WEI)
-    }
-
-    public struct ERC20 {
-        static let BRD = Currency (code: "BRD", symbol: "BRD", name: "Bread", description: "Bread",
-                                   unit: (name: "BRDInteger", symbol: "BRDInteger"))
-        public struct BRDUnits {
-            static let BRDDecimal = BRD.tokenDecimalUnit(name: "BRD", symbol: "BRD", decimals: 18)!
-        }
-    }
-
-    public struct Fiat {
-        public static let US = Currency (code: "USD", symbol: "USD", name: "dollar", description: "US Currency",
-                                         unit: (name: "cents", symbol: "c"))
-        // TODO: Fill unit - better create default.
-        public struct USD {
-            public static let Cent   = US.defaultUnit
-            public static let Dollar = US.tokenDecimalUnit(name: "USD", symbol: "$", decimals: 2)!
-        }
-
-        public static let JP = Currency (code: "JPY", symbol: "JPY", name: "yen", description: "JP currency",
-                                         unit: (name: "Yen", symbol: "Y"))
-        public struct JPY {
-            public static let Yen = JP.defaultUnit
-        }
     }
 }
 
@@ -197,11 +95,11 @@ public struct Amount {
     internal let value: UInt256
 
     // If negative
-    internal let negative: Bool
+    public let negative: Bool
 
     // The unit.  This is used for 'display' purposes only.  For example, if Amount is 10 GWEI
     // then value is 10 * 10^9 and `double` produces `10.0`.
-    let unit: Unit
+    public let unit: Unit
 
     // The value in `unit` as a Double, if representable
     public var double: Double? {
@@ -354,7 +252,7 @@ extension Amount: CustomStringConvertible {
 
 extension Amount {
     public var asEther: BREthereumAmount? {
-        return self.currency != Currency.ethereum
+        return self.currency != Ethereum.currency
             ? nil
             : amountCreateEther (etherCreate (self.value))
     }
@@ -483,52 +381,61 @@ public protocol KeyPair {
 
 /// The Network
 public enum Network : Hashable {   // hashable
-    case bitcoin  (main: Bool, name: String)      // OpaquePointer: BRMainNetParams, BRTestNetParams
-    case bitcash  (main: Bool, name: String)
-    case ethereum (main: Bool, name: String, chainId: UInt)
+    case bitcoin  (name: String, forkId: UInt8, chainParams: UnsafePointer<BRChainParams>)
+    case bitcash  (name: String, forkId: UInt8, chainParams: UnsafePointer<BRChainParams>)
+    case ethereum (name: String, chainId: UInt, core: BREthereumNetwork)
     //    case fiat?? currency by 'locale'
+
+    public var name: String {
+        switch self {
+        case .bitcoin  (let name, _, _): return name
+        case .bitcash  (let name, _, _): return name
+        case .ethereum (let name, _, _): return name
+        }
+    }
 
     public var hashValue: Int {
         switch self {
-        case .bitcoin( _, let name): return name.hashValue
-        case .bitcash( _, let name): return name.hashValue
-        case .ethereum(_, let name, _): return name.hashValue
+        case .bitcoin  (let name, _, _): return name.hashValue
+        case .bitcash  (let name, _, _): return name.hashValue
+        case .ethereum (let name, _, _): return name.hashValue
         }
     }
 
     public static func == (lhs: Network, rhs: Network) -> Bool {
         switch (lhs, rhs) {
-        case (.bitcoin(_, let n1), .bitcoin(_, let n2)): return n1 == n2
-        case (.bitcash(_, let n1), .bitcash(_, let n2)): return n1 == n2
-        case (.ethereum (_, let n1, _), .ethereum (_, let n2, _)): return n1 == n2
+        case (.bitcoin  (let n1, _, _), .bitcoin  (let n2, _, _)): return n1 == n2
+        case (.bitcash  (let n1, _, _), .bitcash  (let n2, _, _)): return n1 == n2
+        case (.ethereum (let n1, _, _), .ethereum (let n2, _, _)): return n1 == n2
         default: return false
         }
     }
 
     public var currency: Currency {
         switch self {
-        case .bitcoin: return Currency.bitcoin
-        case .bitcash: return Currency.bitcash
-        case .ethereum: return Currency.ethereum
+        case .bitcoin: return Bitcoin.currency
+        case .bitcash: return Bitcash.currency
+        case .ethereum: return Ethereum.currency
+        }
+    }
+    
+    public var bitcoinChainParams: UnsafePointer<BRChainParams>? {
+        switch self {
+        case let .bitcoin (_, _, params): return params
+        case let .bitcash (_, _, params): return params
+        case .ethereum: return nil
         }
     }
 
-    public struct Bitcoin {
-        public static let mainnet = Network.bitcoin (main: true,  name: "BTC Mainnet")
-        public static let testnet = Network.bitcoin (main: false, name: "BTC Testnet")
+    public var ethereumCore: BREthereumNetwork? {
+        if case .ethereum (_, _, let core) = self { return core }
+        else { return nil }
     }
+}
 
-    public struct Bitcash {
-        public static let mainnet = Network.bitcash(main: true,  name: "BCH Mainnet")
-        public static let testnet = Network.bitcash(main: false, name: "BCH Testnet")
-    }
-
-    public struct Ethereum {
-        public static let mainnet = Network.ethereum (main: true,  name: "ETH Mainnet", chainId: 1)
-        public static let ropsten = Network.ethereum (main: false, name: "ETH Ropsten", chainId: 3)
-        public static let rinkeby = Network.ethereum (main: false, name: "ETH Rinkeby", chainId: 4)
-        public static let foundation = mainnet
-        // ...
+extension Network: CustomStringConvertible {
+    public var description: String {
+        return name
     }
 }
 
@@ -547,8 +454,8 @@ public enum Address: /* Hashable */ CustomStringConvertible {
 
     public var description: String {
         switch self {
-        case var .bitcoin (addr):
-            return "abc" //  asUTF8String(addr.s, false)
+        case let .bitcoin (addr):
+            return asUTF8String (UnsafeRawPointer([addr.s]).assumingMemoryBound(to: CChar.self))
         case let .ethereum (addr):
             return asUTF8String (addressGetEncodedString (addr, 1), true)
         }
@@ -591,6 +498,16 @@ public protocol Transfer : class {
 
     /// The current state
     var state: TransferState { get }
+
+    // var isSent: Bool { get }
+    // var originator: Bool { get }
+}
+
+extension Transfer {
+    public var confirmation: TransferConfirmation? {
+        if case .included (let confirmation) = state { return confirmation }
+        else { return nil }
+    }
 }
 
 /// A TransferFeeBasis is use to estimate the fee to complete a transfer
@@ -601,30 +518,47 @@ public enum TransferFeeBasis {
 
 /// A TransferConfirmation holds confirmation information.
 public struct TransferConfirmation {
-    var blockNumber: UInt64
-    var transactionIndex: UInt64
-    var timestamp: UInt64
-    var fee: Amount
+    public let blockNumber: UInt64
+    public let transactionIndex: UInt64
+    public let timestamp: UInt64
+    public let fee: Amount
 }
 
 /// A TransferHash uniquely identifies a transfer *among* the owning wallet's transfers.
-public struct TransferHash: Hashable, CustomStringConvertible {
-    let string: String
-
-    init (_ string: String) {
-        self.string = string
-    }
-    
-    public var description: String {
-        return string
-    }
+public enum TransferHash: Hashable, CustomStringConvertible {
+    case bitcoin (UInt256)
+    case ethereum (BREthereumHash)
 
     public var hashValue: Int {
-        return description.hashValue
+        switch self {
+        case .bitcoin (let core):
+            return Int(core.u32.0)
+        case .ethereum(let core):
+            var core = core
+            return Int(hashSetValue(&core))
+        }
     }
 
     public static func == (lhs: TransferHash, rhs: TransferHash) -> Bool {
-        return lhs.description == rhs.description
+        switch (lhs, rhs) {
+        case (.bitcoin(let c1), .bitcoin(let c2)):
+            return 1 == eqUInt256 (c1, c2)
+        case (.ethereum(let c1), .ethereum(let c2)):
+            var c1 = c1
+            var c2 = c2
+            return 1 == hashSetEqual(&c1, &c2)
+        default:
+            return false
+        }
+    }
+
+    public var description: String {
+        switch self {
+        case .bitcoin (let core):
+            return asUTF8String (u256HashToString(core), true)
+        case .ethereum(let core):
+            return asUTF8String (hashAsString(core))
+        }
     }
 }
 
@@ -639,6 +573,19 @@ public enum TransferState {
     case deleted
 }
 
+extension TransferState: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case .created:   return "Created"
+        case .signed:    return "Signed"
+        case .submitted: return "Submitted"
+        case .pending:   return "Pending"
+        case .included:  return "Included"
+        case .failed:    return "Failed"
+        case .deleted:   return "Deleted"
+        }
+    }
+}
 /// A TransferEvent represents a asynchronous announcment of a transfer's state change.
 public enum TransferEvent {
     case created
@@ -785,6 +732,20 @@ public enum WalletEvent {
     case deleted
 }
 
+extension WalletEvent: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case .created:         return "Created"
+        case .transferAdded:   return "TransferAdded"
+        case .transferChanged: return "TransferChanged"
+        case .transferDeleted: return "TransferDeleted"
+        case .balanceUpdated:  return "BalanceUpdated"
+        case .feeBasisUpdated: return "FeeBasisUpdated"
+        case .deleted:         return "Deleted"
+        }
+    }
+}
+
 ///
 /// A WalletFactory is a customization point for Wallet creation.
 /// TODO: ?? AND HOW DOES THIS FIT WITH CoreWallet w/ REQUIRED INTERFACE TO Core ??
@@ -914,11 +875,10 @@ public enum WalletManagerEvent {
 
     case syncStarted
     case syncProgress (percentComplete: Double)
-    case syncEnded
+    case syncEnded (error: String?)
 }
 
-/// The WalletManager's mode determines how the account and associated wallets are managed on
-/// network.
+/// The WalletManager's mode determines how the account and associated wallets are managed.
 ///
 /// - api_only: Use only the defined 'Cloud-Based API' to synchronize the account's transfers.
 ///
@@ -939,7 +899,7 @@ public enum WalletManagerMode {
 
 
 ///
-/// A WalletManagerClient recieves asynchronous events announcing state changes to Managers, to
+/// A WalletManagerListener recieves asynchronous events announcing state changes to Managers, to
 /// Wallets and to Transfers.  This is an application's sole mechanism to learn of asynchronous
 /// state changes.
 ///
@@ -987,12 +947,14 @@ public protocol WalletManagerListener : class {
     // TODO: handleBlockEvent ()
 }
 
-
 ///
+/// The Wallet Manager Persistence Chage Type identifes the type of wallet manager change for
+/// persistent entities.  Such entityes include: peers, blocks, transactions and (Ethereum) logs.
 ///
-/// - added:
-/// - updated:
-/// - deleted:
+/// - added: A Persistent entity was added
+/// - updated: A Persistent entitye has chnaged
+/// - deleted: A persistent entity was deleted
+///
 public enum WalletManagerPersistenceChangeType {
     case added
     case updated
@@ -1006,13 +968,12 @@ public enum WalletManagerPersistenceChangeType {
         default: self = .added
         }
     }
-
-    // init - bitcoin
 }
 
-
+///
 /// The WalletManagerPersistenceClient defines the interface for persistent storage of internal
 /// wallet manager state - such as peers, block, and transactions
+///
 public protocol WalletManagerPersistenceClient: class {
 
     func savePeers (manager: WalletManager,
@@ -1027,7 +988,26 @@ public protocol WalletManagerPersistenceClient: class {
                             data: String) -> Void
 }
 
+///
 /// The WalletManagerBackendClient defines the interface for backend support to the
 /// wallet manager modes of API_ONLY, API_WITH_P2P_SUBMIT and P2P_WITH_API_SYNC.
+///
 public protocol WalletManagerBackendClient: class {
+    func networkIsReachable () -> Bool
+}
+
+extension WalletManagerBackendClient {
+    public func networkIsReachable() -> Bool {
+        var zeroAddress = sockaddr()
+        zeroAddress.sa_len = UInt8(MemoryLayout<sockaddr>.size)
+        zeroAddress.sa_family = sa_family_t(AF_INET)
+
+        guard let reachability = SCNetworkReachabilityCreateWithAddress (nil, &zeroAddress)
+            else { return false }
+
+        var flags: SCNetworkReachabilityFlags = []
+        return SCNetworkReachabilityGetFlags(reachability, &flags) &&
+            flags.contains(.reachable) &&
+            !flags.contains(.connectionRequired)
+    }
 }

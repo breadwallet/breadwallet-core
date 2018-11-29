@@ -76,6 +76,21 @@ class CoreTests: XCTestCase {
         }
     }
 
+    func testBitcoinWalletManagerSync () {
+        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let coreDataDir = documents.appendingPathComponent("Core").path
+
+        do {
+            try FileManager.default.createDirectory (atPath: coreDataDir,
+                                                     withIntermediateDirectories: true,
+                                                     attributes: nil)
+            BRRunTestWalletManagerSync(CommandLine.arguments[1], coreDataDir);
+        }
+        catch let error as NSError {
+            print("Error: \(error.localizedDescription)")
+        }
+    }
+
     func testPerformanceExample() {
 //        runTests(0);
         self.measure {

@@ -199,6 +199,8 @@ createBlockHeaderMinimal (BREthereumHash hash, uint64_t number, uint64_t timesta
     return header;
 }
 
+#pragma clang diagnostic push
+#pragma GCC diagnostic push
 #pragma clang diagnostic ignored "-Wunused-function"
 #pragma GCC diagnostic ignored "-Wunused-function"
 static BREthereumBlockHeader

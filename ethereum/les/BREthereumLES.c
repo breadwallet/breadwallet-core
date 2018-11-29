@@ -87,6 +87,7 @@ typedef void* (*ThreadRoutine) (void*);
 static void *
 lesThread (BREthereumLES les);
 
+#pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-function"
 static inline int maximum (int a, int b) { return a > b ? a : b; }
 #pragma clang diagnostic ignored "-Wunused-function"

@@ -18,8 +18,8 @@ class BRCoreXTests: XCTestCase {
     }
 
     func testCurrency() {
-        let btc = Currency.bitcoin
-        let eth = Currency.ethereum
+        let btc = Bitcoin.currency
+        let eth = Ethereum.currency
 
         XCTAssert ("BTC" == btc.code)
         XCTAssert (btc == btc)
@@ -27,13 +27,13 @@ class BRCoreXTests: XCTestCase {
     }
 
     func testUnit () {
-        XCTAssertFalse(Unit.Ethereum.ETHER.isCompatible(Unit.Bitcoin.SATOSHI))
+        XCTAssertFalse(Ethereum.Units.ETHER.isCompatible(Bitcoin.Units.SATOSHI))
     }
 
     func testAmount () {
-        let ETHER = Unit.Ethereum.ETHER
-        let WEI = Unit.Ethereum.WEI
-        let GWEI = Unit.Ethereum.GWEI
+        let ETHER = Ethereum.Units.ETHER
+        let WEI   = Ethereum.Units.WEI
+        let GWEI  = Ethereum.Units.GWEI
 
         XCTAssert (nil != Amount (exactly: 1.5, unit: ETHER))
         XCTAssert (nil != Amount (exactly: 1.0, unit: ETHER))
@@ -60,11 +60,11 @@ class BRCoreXTests: XCTestCase {
         XCTAssert(Amount (value: 0.5, unit: ETHER) == Amount (value: 1.5, unit: ETHER) - Amount (value: 1.0, unit: ETHER))
 
         let a1 = Amount (value: 1, unit: ETHER)
-        let a2 = Amount (value: 1, unit: Unit.Bitcoin.SATOSHI)
+        let a2 = Amount (value: 1, unit: Bitcoin.Units.SATOSHI)
         XCTAssertTrue  (a1.isCompatible(a1))
         XCTAssertFalse (a1.isCompatible(a2))
 
-        XCTAssertEqual(a1.description, "1.0 \(Currency.ethereum.symbol)")
+        XCTAssertEqual(a1.description, "1.0 \(Ethereum.currency.symbol)")
 
         XCTAssertEqual    ("9.123", Amount (value: 9.12345, unit: ETHER).describe(decimals: 3, withSymbol: false))
         XCTAssertNotEqual ("9.123", Amount (value: 9.12345, unit: ETHER).describe(decimals: 4, withSymbol: false))
@@ -72,8 +72,8 @@ class BRCoreXTests: XCTestCase {
     }
 
     func testCurrencyPair () {
-        let BTC = Unit.Bitcoin.BITCOIN
-        let USD = Unit.Fiat.USD.Dollar
+        let BTC = Bitcoin.currency.defaultUnit!
+        let USD = Fiat.US.defaultUnit!
 
         let pair = CurrencyPair (baseCurrency: BTC, quoteCurrency: USD, exchangeRate: 6000)
 

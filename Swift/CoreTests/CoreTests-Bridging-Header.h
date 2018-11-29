@@ -6,6 +6,8 @@
 // Bitcoin
 extern int BRRunTests();
 extern int BRRunTestsSync (int randomKey);
+extern int BRRunTestWalletManagerSync (const char *paperKey,
+                                       const char *storagePath);
 
 // Util
 extern void runUtilTests (void);

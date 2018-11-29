@@ -53,8 +53,10 @@
 
 #undef BCS_SHOW_ORPHANS
 
+#pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-function"
 static inline uint64_t maximum (uint64_t a, uint64_t b) { return a > b ? a : b; }
+#pragma clang diagnostic pop
 
 /* Forward Declarations */
 static void

@@ -556,9 +556,24 @@ ewmHandleAnnounceLog (BREthereumEWM ewm,
             for (size_t index = 0; index < bundle->topicCount; index++)
                 topics[index] = logTopicCreateFromString(bundle->arrayTopics[index]);
 
+            // In general, log->data is arbitrary data.  In the case of an ERC20 token, log->data
+            // is a numeric value - for the transfer amount.  When parsing in logRlpDecode(),
+            // log->data is assigned with rlpDecodeBytes(coder, items[2]); we'll need the same
+            // thing, somehow
+
+            BRCoreParseStatus parseStatus = CORE_PARSE_OK;
+            UInt256 value = createUInt256Parse(bundle->data, 0, &parseStatus);
+            assert (CORE_PARSE_OK == parseStatus);
+
+            BRRlpItem  item  = rlpEncodeUInt256 (ewm->coder, value, 1);
+
             BREthereumLog log = logCreate(bundle->contract,
                                           bundle->topicCount,
-                                          topics);
+                                          topics,
+                                          rlpGetDataSharedDontRelease(ewm->coder, item));
+            rlpReleaseItem (ewm->coder, item);
+
+            // Given {hash,logIndex}, initialize the log's identifier
             logInitializeIdentifier(log, bundle->hash, bundle->logIndex);
 
             BREthereumTransactionStatus status =
@@ -772,6 +787,14 @@ ewmHandleAnnounceToken (BREthereumEWM ewm,
                   bundle->decimals,
                   bundle->gasLimit,
                   bundle->gasPrice);
+
+    BREthereumToken token = tokenLookup(bundle->address);
+    assert (NULL != token);
+
+    ewm->client.funcTokenEvent (ewm->client.context,
+                                ewm,
+                                token,
+                                TOKEN_EVENT_CREATED);
 
     ewmClientAnnounceTokenBundleRelease(bundle);
 }
