@@ -25,6 +25,17 @@ public struct Ethereum {
         public static let rinkeby = Network.ethereum (name: "ETH Rinkeby", chainId: 4, core: ethereumRinkeby)
         public static let foundation = mainnet
     }
+
+    public struct AddressSchemes {
+        public static let `default` = EthereumAddressScheme()
+    }
+}
+
+public struct EthereumAddressScheme: AddressScheme {
+    public func getAddress(for wallet: EthereumWallet) -> Address {
+        let account = ewmGetAccount(wallet._manager.core)
+        return Address.ethereum(accountGetPrimaryAddress (account))
+    }
 }
 
 ///
@@ -329,7 +340,7 @@ public class EthereumWallet: Wallet {
     public var transferFactory: TransferFactory = EthereumTransferFactory()
     
     public var target: Address {
-        return Address.ethereum (accountGetPrimaryAddress (_manager.account.ethereumAccount))
+        return Ethereum.AddressSchemes.`default`.getAddress(for: self)
     }
     
     internal init (manager:EthereumWalletManager,

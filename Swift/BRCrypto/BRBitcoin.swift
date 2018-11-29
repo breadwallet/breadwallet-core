@@ -21,6 +21,25 @@ public struct Bitcoin {
         public static let mainnet = Network.bitcoin (name: "BTC Mainnet", forkId: 0x00, chainParams: bitcoinParams (1))
         public static let testnet = Network.bitcoin (name: "BTC Testnet", forkId: 0x40, chainParams: bitcoinParams (0))
     }
+
+    public struct AddressSchemes {
+        public static let segwit = BitcoinSegwitAddressScheme()
+        public static let legacy = BitcoinLegacyAddressScheme()
+
+        public static let `default` = segwit
+    }
+}
+
+public struct BitcoinLegacyAddressScheme: AddressScheme {
+    public func getAddress(for wallet: BitcoinWallet) -> Address {
+        return Address.bitcoin (BRWalletLegacyAddress(wallet.core))
+    }
+}
+
+public struct BitcoinSegwitAddressScheme: AddressScheme {
+    public func getAddress(for wallet: BitcoinWallet) -> Address {
+        return Address.bitcoin (BRWalletReceiveAddress(wallet.core))
+    }
 }
 
 typealias BRCoreWallet = OpaquePointer
@@ -191,9 +210,9 @@ public class BitcoinWallet: Wallet {
     internal let currency: Currency
     
     public var target: Address {
-        return Address.bitcoin (BRWalletReceiveAddress(core))
+        return Bitcoin.AddressSchemes.`default`.getAddress(for: self)
     }
-    
+
     internal init (manager: BitcoinWalletManager,
                    currency: Currency,
                    core:   BRCoreWallet) {
@@ -206,30 +225,32 @@ public class BitcoinWallet: Wallet {
     }
 }
 
+///
+/// A BitcoinWalletManager implements WalletManager using the Core's BRCoreWallet and
+/// BRCorePeerManager.
+///
 public class BitcoinWalletManager: WalletManager {
 
+    /// The Core's BRCorePeerManager
     internal let corePeerManager: BRCorePeerManager
+
+    /// The Core's BRCoreWallet
     internal let coreWallet: BRCoreWallet
-    
+
+    /// The bitcoin-specific backend client.
     internal let backendClient: BitcoinBackendClient
+
+    /// The bitcoin-specific persistence client
     internal let persistenceClient: BitcoinPersistenceClient
-    
+
+    /// The bitcon-specific listener
     public let _listener : BitcoinListener
 
     public var listener: WalletManagerListener {
         return _listener
     }
 
-    lazy var queue : DispatchQueue = {
-        return DispatchQueue (label: "\(network.currency.symbol) WalletManager")
-    }()
-
-
     public let account: Account
-    
-    //    public var address: BitcoinAddress {
-    //        return BitcoinAddress ("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62")
-    //    }
     
     public var network: Network
     
@@ -244,10 +265,6 @@ public class BitcoinWalletManager: WalletManager {
         return [primaryWallet]
     } ()
     
-    //    internal func findWallet (identifier: EthereumWalletId) -> EthereumWallet {
-    //        return wallets.first { identifier == ($0 as! EthereumWallet).identifier } as! EthereumWallet
-    //    }
-    
     public var mode: WalletManagerMode
     
     public var path: String
@@ -257,11 +274,15 @@ public class BitcoinWalletManager: WalletManager {
     #if false
     public var walletFactory: WalletFactory = EthereumWalletFactory()
     #endif
-    
+
+    lazy var queue : DispatchQueue = {
+        return DispatchQueue (label: "\(network.currency.symbol) WalletManager")
+    }()
+
     internal static var managers: [BitcoinWalletManager] = [] // Weak<>
     
-    internal static func lookup (wallet: OpaquePointer) -> BitcoinWalletManager? {
-        return managers.first { wallet == $0.coreWallet }
+    internal static func lookup (manager: OpaquePointer?) -> BitcoinWalletManager? {
+        return nil == manager ? nil :  managers.first { manager! == $0.coreWallet }
     }
     
     internal static func lookup (ptr: UnsafeMutableRawPointer?) -> BitcoinWalletManager? {
@@ -286,8 +307,37 @@ public class BitcoinWalletManager: WalletManager {
         self.path = ""
         self.mode = mode
         self.state = WalletManagerState.created
-        
-        self.coreWallet      = BRWalletNew (nil, 0, account.masterPublicKey, 0x00)
+
+        guard let forkId = network.forkId else { precondition(false) }
+
+#if false
+        let client = BRWalletManagerClient (
+            funcTransactionEvent: { (this, coreWallet, coreTransaction, event) in
+                if let bwm  = BitcoinWalletManager.lookup (manager: this) {
+                    bwm.queue.async {
+                    }
+                }},
+            funcWalletEvent: { (this, coreWallet, event) in
+                if let bwm = BitcoinWalletManager.lookup(manager: this) {
+                    bwm.queue.async {
+
+                    }
+                }},
+            funcWalletManagerEvent: { (this, event) in
+                if let bwm = BitcoinWalletManager.lookup(manager: this) {
+                    bwm.queue.async {
+                    }
+                }})
+
+        let coreWalletManager = BRWalletManagerNew(client,
+                                                   forkId,
+                                                   account.masterPublicKey,
+                                                   params,
+                                                   UInt32 (timestamp),
+                                                   "")
+#endif
+
+        self.coreWallet      = BRWalletNew (nil, 0, account.masterPublicKey, Int32(forkId.rawValue))
         self.corePeerManager = BRPeerManagerNew (params, coreWallet, UInt32(timestamp),
                                                  nil, 0,
                                                  nil, 0)

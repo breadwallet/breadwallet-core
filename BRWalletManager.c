@@ -465,6 +465,15 @@ _BRWalletManagerReplaceBlocks (BRWalletManager manager) {
     directoryClear(manager->storagePath, "blocks");
 }
 
+static void
+_BRWalletManagerSaveBlocks (void *info, int replace, BRMerkleBlock **blocks, size_t count) {
+    BRWalletManager manager = (BRWalletManager) info;
+
+    if (replace) _BRWalletManagerReplaceBlocks(manager);
+    for (size_t index = 0; index < count; index++)
+        _BRWalletManagerSaveBlock (manager, blocks[index]);
+}
+
 ///
 /// Peers
 ///
@@ -540,6 +549,17 @@ static void
 _BRWalletManagerReplacePeers (BRWalletManager manager) {
     directoryClear(manager->storagePath, "peers");
 }
+
+static void
+_BRWalletManagerSavePeers  (void *info, int replace, const BRPeer *peers, size_t count) {
+    BRWalletManager manager = (BRWalletManager) info;
+
+    if (replace) _BRWalletManagerReplacePeers(manager);
+    for (size_t index = 0; index < count; index++)
+        _BRWalletManagerSavePeer (manager, peers[index]);
+}
+
+
 
 ///
 /// MARK: Wallet Callbacks
@@ -627,24 +647,6 @@ _BRWalletManagerTxStatusUpdate (void *info) {
 
     // event
 
-}
-
-static void
-_BRWalletManagerSaveBlocks (void *info, int replace, BRMerkleBlock **blocks, size_t count) {
-    BRWalletManager manager = (BRWalletManager) info;
-
-    if (replace) _BRWalletManagerReplaceBlocks(manager);
-    for (size_t index = 0; index < count; index++)
-        _BRWalletManagerSaveBlock (manager, blocks[index]);
-}
-
-static void
-_BRWalletManagerSavePeers  (void *info, int replace, const BRPeer *peers, size_t count) {
-    BRWalletManager manager = (BRWalletManager) info;
-
-    if (replace) _BRWalletManagerReplacePeers(manager);
-    for (size_t index = 0; index < count; index++)
-        _BRWalletManagerSavePeer (manager, peers[index]);
 }
 
 static int

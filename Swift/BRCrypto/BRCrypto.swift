@@ -431,6 +431,14 @@ public enum Network : Hashable {   // hashable
         if case .ethereum (_, _, let core) = self { return core }
         else { return nil }
     }
+
+    public var forkId: BRWalletForkId? {
+        switch self {
+        case let .bitcoin(_, forkId, _): return BRWalletForkId (UInt32(forkId))
+        case let .bitcash(_, forkId, _): return BRWalletForkId (UInt32(forkId))
+        case .ethereum: return nil
+        }
+    }
 }
 
 extension Network: CustomStringConvertible {
@@ -652,7 +660,7 @@ public protocol Wallet: class {
     // submit
     // ... cancel, replace - if appropriate
 
-    /// An address suitable for a transfer target (receiving).
+    /// An address suitable for a transfer target (receiving).  Use the default Address Scheme
     var target: Address { get }
 }
 
@@ -744,6 +752,13 @@ extension WalletEvent: CustomStringConvertible {
         case .deleted:         return "Deleted"
         }
     }
+}
+
+public protocol AddressScheme {
+    associatedtype W: Wallet
+
+    // Generate a 'receive' (aka target') address for wallet.
+    func getAddress (for wallet: W) -> Address
 }
 
 ///

@@ -20,4 +20,12 @@ public struct Bitcash {
         public static let mainnet = Network.bitcash (name: "BCH Mainnet", forkId: 0x00, chainParams: bitcashParams (1))
         public static let testnet = Network.bitcash (name: "BCH Testnet", forkId: 0x40, chainParams: bitcashParams (0))
     }
+
+    public struct AddressSchemes {
+        public static let segwit = BitcoinSegwitAddressScheme()
+        public static let legacy = BitcoinLegacyAddressScheme()
+
+        public static let `default` = segwit
+    }
 }
+
