@@ -32,7 +32,7 @@ extern "C" {
 
 #include "../../BRKey.h"
 #include "../../BRInt.h"
-#include "../base/BREthereumBase.h"
+#include "BREthereumBase.h"
 
 //
 // Account
@@ -50,7 +50,7 @@ extern "C" {
  * EthereumWallet - all transactions for that wallet will use the same address.
  *
  */
-typedef struct BREthereumAccountRecord *BREthereumAccount;
+// typedef struct BREthereumAccountRecord *BREthereumAccount;
 
 /**
  * Create a new account using paperKey and the sharedWordList (see installSharedWordList).

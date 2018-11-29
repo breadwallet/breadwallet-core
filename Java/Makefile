@@ -5,70 +5,104 @@ CINC_DIR=/usr/include
 
 JNI_LIB=libCore.jnilib
 
-JNI_SRCS=com_breadwallet_core_BRCoreAddress.c \
-	com_breadwallet_core_BRCoreChainParams.c \
-	com_breadwallet_core_BRCoreJniReference.c \
-	com_breadwallet_core_BRCoreKey.c \
-	com_breadwallet_core_BRCoreMasterPubKey.c \
-	com_breadwallet_core_BRCoreMerkleBlock.c \
-	com_breadwallet_core_BRCorePaymentProtocol.c \
-	com_breadwallet_core_BRCorePeer.c \
-	com_breadwallet_core_BRCorePeerManager.c \
-	com_breadwallet_core_BRCoreTransaction.c \
-	com_breadwallet_core_BRCoreTransactionInput.c \
-	com_breadwallet_core_BRCoreTransactionOutput.c \
-	com_breadwallet_core_BRCoreWallet.c \
-	BRCoreJni.c
+JNI_SDIR=Core/src/main/cpp/jni
+
+JNI_SRCS=$(JNI_SDIR)/BRCoreJni.c \
+	$(JNI_SDIR)/com_breadwallet_core_BRCoreAddress.c \
+	$(JNI_SDIR)/com_breadwallet_core_BRCoreChainParams.c \
+	$(JNI_SDIR)/com_breadwallet_core_BRCoreJniReference.c \
+	$(JNI_SDIR)/com_breadwallet_core_BRCoreKey.c \
+	$(JNI_SDIR)/com_breadwallet_core_BRCoreMasterPubKey.c \
+	$(JNI_SDIR)/com_breadwallet_core_BRCoreMerkleBlock.c \
+	$(JNI_SDIR)/com_breadwallet_core_BRCorePaymentProtocol.c \
+	$(JNI_SDIR)/com_breadwallet_core_BRCorePeer.c \
+	$(JNI_SDIR)/com_breadwallet_core_BRCorePeerManager.c \
+	$(JNI_SDIR)/com_breadwallet_core_BRCoreTransaction.c \
+	$(JNI_SDIR)/com_breadwallet_core_BRCoreTransactionInput.c \
+	$(JNI_SDIR)/com_breadwallet_core_BRCoreTransactionOutput.c \
+	$(JNI_SDIR)/com_breadwallet_core_BRCoreWallet.c \
+	$(JNI_SDIR)/com_breadwallet_core_BRCoreWallet.c \
+	$(JNI_SDIR)/ethereum/com_breadwallet_core_ethereum_BREthereumEWM.c \
+	$(JNI_SDIR)/ethereum/com_breadwallet_core_ethereum_BREthereumNetwork.c \
+	$(JNI_SDIR)/ethereum/com_breadwallet_core_ethereum_BREthereumToken.c
 
 JNI_OBJS=$(JNI_SRCS:.c=.o)
 
-# JNI Header Files that we are interest in keeping (that are not empty)
+# JNI Header Files that we are interest in keeping (because they are not empty)
 JNI_HDRS=$(JNI_SRCS:.c=.h)
 
-JAVA_SRCS=root/com/breadwallet/core/BRCoreAddress.java \
-	root/com/breadwallet/core/BRCoreChainParams.java \
-	root/com/breadwallet/core/BRCoreJniReference.java \
-	root/com/breadwallet/core/BRCoreKey.java \
-	root/com/breadwallet/core/BRCoreMasterPubKey.java \
-	root/com/breadwallet/core/BRCoreMerkleBlock.java \
-	root/com/breadwallet/core/BRCorePaymentProtocolEncryptedMessage.java \
-	root/com/breadwallet/core/BRCorePaymentProtocolInvoiceRequest.java \
-	root/com/breadwallet/core/BRCorePaymentProtocolMessage.java \
-	root/com/breadwallet/core/BRCorePaymentProtocolPayment.java \
-	root/com/breadwallet/core/BRCorePaymentProtocolACK.java \
-	root/com/breadwallet/core/BRCorePaymentProtocolRequest.java \
-	root/com/breadwallet/core/BRCorePeer.java \
-	root/com/breadwallet/core/BRCorePeerManager.java \
-	root/com/breadwallet/core/BRCoreTransaction.java \
-	root/com/breadwallet/core/BRCoreTransactionInput.java \
-	root/com/breadwallet/core/BRCoreTransactionOutput.java \
-	root/com/breadwallet/core/BRCoreWallet.java \
-	root/com/breadwallet/core/BRCoreWalletManager.java \
-	root/com/breadwallet/core/test/BRWalletManager.java
+JAVA_SDIR=Core/src/main/java/com/breadwallet/core
+
+JAVA_SRCS=$(JAVA_SDIR)/BRCoreAddress.java \
+	$(JAVA_SDIR)/BRCoreChainParams.java \
+	$(JAVA_SDIR)/BRCoreJniReference.java \
+	$(JAVA_SDIR)/BRCoreKey.java \
+	$(JAVA_SDIR)/BRCoreMasterPubKey.java \
+	$(JAVA_SDIR)/BRCoreMerkleBlock.java \
+	$(JAVA_SDIR)/BRCorePaymentProtocolEncryptedMessage.java \
+	$(JAVA_SDIR)/BRCorePaymentProtocolInvoiceRequest.java \
+	$(JAVA_SDIR)/BRCorePaymentProtocolMessage.java \
+	$(JAVA_SDIR)/BRCorePaymentProtocolPayment.java \
+	$(JAVA_SDIR)/BRCorePaymentProtocolACK.java \
+	$(JAVA_SDIR)/BRCorePaymentProtocolRequest.java \
+	$(JAVA_SDIR)/BRCorePeer.java \
+	$(JAVA_SDIR)/BRCorePeerManager.java \
+	$(JAVA_SDIR)/BRCoreTransaction.java \
+	$(JAVA_SDIR)/BRCoreTransactionInput.java \
+	$(JAVA_SDIR)/BRCoreTransactionOutput.java \
+	$(JAVA_SDIR)/BRCoreWallet.java \
+	$(JAVA_SDIR)/BRCoreWalletManager.java \
+	$(JAVA_SDIR)/ethereum/BREthereumAccount.java \
+	$(JAVA_SDIR)/ethereum/BREthereumAmount.java \
+	$(JAVA_SDIR)/ethereum/BREthereumBlock.java \
+	$(JAVA_SDIR)/ethereum/BREthereumEWM.java \
+	$(JAVA_SDIR)/ethereum/BREthereumNetwork.java \
+	$(JAVA_SDIR)/ethereum/BREthereumToken.java \
+	$(JAVA_SDIR)/ethereum/BREthereumTransfer.java \
+	$(JAVA_SDIR)/ethereum/BREthereumWallet.java
+#	$(JAVA_SDIR)/test/BRWalletManager.java
 
 JAVA_OBJS=$(JAVA_SRCS:.java=.class)
 
-CORE_SRCS=../BRAddress.c \
-	../BRBIP32Sequence.c \
-	../BRBIP38Key.c \
-	../BRBIP39Mnemonic.c \
-	../BRBase58.c \
-	../BRBech32.c \
-	../BRBloomFilter.c \
-	../BRCrypto.c \
-	../BRKey.c \
-	../BRKeyECIES.c \
-	../BRMerkleBlock.c \
-	../BRPaymentProtocol.c \
-	../BRPeer.c \
-	../BRPeerManager.c \
-	../BRSet.c \
-	../BRTransaction.c \
-	../BRWallet.c \
-	../bcash/BRBCashAddr.c
+#
+# Core (Bitcoin)
+#
+CORE_SDIR=Core/src/main/cpp/core
+
+CORE_SRCS=$(CORE_SDIR)/BRAddress.c \
+	$(CORE_SDIR)/BRBIP32Sequence.c \
+	$(CORE_SDIR)/BRBIP38Key.c \
+	$(CORE_SDIR)/BRBIP39Mnemonic.c \
+	$(CORE_SDIR)/BRBase58.c \
+	$(CORE_SDIR)/BRBech32.c \
+	$(CORE_SDIR)/BRBloomFilter.c \
+	$(CORE_SDIR)/BRCrypto.c \
+	$(CORE_SDIR)/BRKey.c \
+	$(CORE_SDIR)/BRKeyECIES.c \
+	$(CORE_SDIR)/BRMerkleBlock.c \
+	$(CORE_SDIR)/BRPaymentProtocol.c \
+	$(CORE_SDIR)/BRPeer.c \
+	$(CORE_SDIR)/BRPeerManager.c \
+	$(CORE_SDIR)/BRSet.c \
+	$(CORE_SDIR)/BRTransaction.c \
+	$(CORE_SDIR)/BRWallet.c \
+	$(CORE_SDIR)/bcash/BRBCashAddr.c
 
 CORE_OBJS=$(CORE_SRCS:.c=.o)
 
+#
+# Core (Ethereum)
+#
+ETH_SRCS=$(CORE_SDIR)/ethereum/util/BRKeccak.c \
+	$(CORE_SDIR)/ethereum/util/BRUtilHex.c \
+	$(CORE_SDIR)/ethereum/util/BRUtilMath.c \
+	$(CORE_SDIR)/ethereum/util/BRUtilMathParse.c
+
+ETH_OBJS=$(ETH_SRCS:.c=.o)
+
+#
+#
+#
 CFLAGS=-I$(JAVA_HOME)/include \
 	-I$(JAVA_HOME)/include/darwin \
 	-I$(CINC_DIR) \
@@ -93,14 +127,28 @@ $(JNI_LIB): $(JNI_OBJS) $(CORE_OBJS)
 
 java_comp:	FORCE
 	@mkdir -p build
-	javac -d build $(JAVA_SRCS)
+	@echo "Core & Ethereum Java"
+	@javac -d build $(JAVA_SRCS)
 
-jni_hdr: java_comp
+jni_hdr_core: 	FORCE
+	@echo Core JNI Headers
 	@(cd build/com/breadwallet/core; \
 	  for class in BRCore*.class; do \
-	      javah -jni -d $(DIR) -classpath $(DIR)/build com.breadwallet.core.$${class%%.class}; \
+	      javah -jni -d $(DIR)/$(JNI_SDIR) -classpath $(DIR)/build com.breadwallet.core.$${class%%.class}; \
 	  done)
-	@rm -f com_breadwallet_core_BRCoreWalletManager.h com_breadwallet_core_BRCore*_*.h .h
+	@(cd $(JNI_SDIR); \
+	  rm -f .h com_breadwallet_core_BRCoreWalletManager.h com_breadwallet_core_BRCore*_*.h)
+
+jni_hdr_eth: 	FORCE
+	@echo Ethereum JNI Headers
+	@(cd build/com/breadwallet/core/ethereum; \
+	  for class in BREthereum*.class; do \
+	      javah -jni -d $(DIR)/$(JNI_SDIR)/ethereum -classpath $(DIR)/build com.breadwallet.core.ethereum.$${class%%.class}; \
+	  done)
+	@(cd $(JNI_SDIR)/ethereum; \
+	  rm -f .h com_breadwallet_core_ethereum_BREthereum*_*.h)
+
+jni_hdr: java_comp jni_hdr_core jni_hdr_eth
 
 #            if [[ "$${class}" != "*\"$\"*" ]]; then
 #           fi

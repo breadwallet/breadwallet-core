@@ -26,8 +26,8 @@
 #ifndef BR_Ethereum_Wallet_H
 #define BR_Ethereum_Wallet_H
 
-#include "../base/BREthereumBase.h"
 #include "../blockchain/BREthereumBlockChain.h"
+#include "BREthereumBase.h"
 #include "BREthereumAccount.h"
 #include "BREthereumTransfer.h"
 
@@ -46,7 +46,7 @@ extern "C" {
  * SetLocalCurrencyPerHolding
  * GetHoldingValueInLocalCurrency
  */
-typedef struct BREthereumWalletRecord *BREthereumWallet;
+//typedef struct BREthereumWalletRecord *BREthereumWallet;
 
 /**
  * Create a wallet holding ETH; will use the account's primary address.

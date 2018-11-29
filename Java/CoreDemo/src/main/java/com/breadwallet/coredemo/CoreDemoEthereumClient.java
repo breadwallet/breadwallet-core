@@ -3,6 +3,7 @@ package com.breadwallet.coredemo;
 import com.breadwallet.core.ethereum.BREthereumBlock;
 import com.breadwallet.core.ethereum.BREthereumEWM;
 import com.breadwallet.core.ethereum.BREthereumNetwork;
+import com.breadwallet.core.ethereum.BREthereumToken;
 import com.breadwallet.core.ethereum.BREthereumTransfer;
 import com.breadwallet.core.ethereum.BREthereumWallet;
 
@@ -35,23 +36,23 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
     }
 
     @Override
-    public void getGasPrice(int wid, int rid) {
+    public void getGasPrice(long wid, int rid) {
         ewm.announceGasPrice(wid, "0x77", rid);
     }
 
     @Override
-    public void getGasEstimate(int wid, int tid, String to, String amount, String data, int rid) {
+    public void getGasEstimate(long wid, long tid, String to, String amount, String data, int rid) {
         ewm.announceGasEstimate (wid, tid, "21000", rid);
     }
 
     @Override
-    public void getBalance(int wid, String address, int rid) {
+    public void getBalance(long wid, String address, int rid) {
         ewm.announceBalance (wid, "0xffc0", rid);
 
     }
 
     @Override
-    public void submitTransaction(int wid, int tid, String rawTransaction, int rid) {
+    public void submitTransaction(long wid, long tid, String rawTransaction, int rid) {
         ewm.announceSubmitTransaction (wid, tid, "0xffaabb", rid);
     }
 
@@ -187,6 +188,11 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
         System.out.println ("TST: WalletEvent: " + event.name());
         for (WalletListener l : walletListeners)
             l.announceWalletEvent(this.ewm, wallet, event);
+    }
+
+    @Override
+    public void handleTokenEvent(BREthereumToken token, BREthereumEWM.TokenEvent event) {
+        System.out.println ("TST: TokenEvent: " + event.name());
     }
 
     //

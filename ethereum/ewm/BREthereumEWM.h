@@ -116,6 +116,13 @@ ewmDisconnect (BREthereumEWM ewm);
 extern BREthereumBoolean
 ewmIsConnected (BREthereumEWM ewm);
 
+extern uint64_t
+ewmGetBlockHeight (BREthereumEWM ewm);
+
+extern void
+ewmUpdateBlockHeight(BREthereumEWM ewm,
+                     uint64_t blockHeight);
+
 ///
 /// MARK: - Wallets
 ///
