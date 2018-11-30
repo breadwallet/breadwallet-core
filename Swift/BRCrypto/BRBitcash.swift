@@ -25,7 +25,7 @@ public struct Bitcash {
         public static let segwit = BitcoinSegwitAddressScheme()
         public static let legacy = BitcoinLegacyAddressScheme()
 
-        public static let `default` = segwit
+        public static let `default` = legacy
     }
 }
 

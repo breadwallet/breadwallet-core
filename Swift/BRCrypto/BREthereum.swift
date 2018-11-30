@@ -389,7 +389,8 @@ public class EthereumWalletManager: WalletManager {
     }
 
     lazy var queue : DispatchQueue = {
-        return DispatchQueue (label: "Ethereum")
+        return DispatchQueue (label: "\(network.currency.code) WalletManager")
+
     }()
 
     public let account: Account

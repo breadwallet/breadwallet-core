@@ -79,29 +79,36 @@ public class BitcoinTransfer: Transfer {
     /// Flag to determine if the wallet's owner sent this transfer
     internal lazy var isSent: Bool = {
         var transaction = core
+        // Returns a 'fee' if 'all inputs are from wallet' (meaning, the bitcoin transaction is
+        // composed of UTXOs from wallet)
         let fee = BRWalletFeeForTx (_wallet.core, &transaction)
-        return fee != UINT64_MAX && fee != 0
+        return fee != UINT64_MAX // && fee != 0
     }()
 
     public private(set) lazy var source: Address? = {
-        // The source address is in a TxInput; if sent it is our address, otherwise anothers
-        let inputs = [BRTxInput](UnsafeBufferPointer(start: self.core.inputs, count: self.core.outCount))
+        let inputs = [BRTxInput](UnsafeBufferPointer(start: self.core.inputs, count: self.core.inCount))
+        let inputsContain = (isSent ? 1 : 0)
         return inputs
-            .first { (self.isSent ? 1 : 0) == BRWalletContainsAddress(_wallet.core, UnsafeRawPointer([$0.address]).assumingMemoryBound(to: CChar.self)) }
+            // If we sent the transaction then we expect our wallet to include one or more inputs.
+            // But if we didn't send it, then the inputs will be the sender's inputs.
+            .first { inputsContain == BRWalletContainsAddress(_wallet.core, UnsafeRawPointer([$0.address]).assumingMemoryBound(to: CChar.self)) }
             .map { Address.bitcoin (BRAddress (s: $0.address))}
     }()
 
     /// The addresses for all TxInputs
     public var sources: [Address] {
-        let inputs = [BRTxInput](UnsafeBufferPointer(start: self.core.inputs, count: self.core.outCount))
+        let inputs = [BRTxInput](UnsafeBufferPointer(start: self.core.inputs, count: self.core.inCount))
         return inputs.map { Address.bitcoin (BRAddress (s: $0.address)) }
     }
     
     public private(set) lazy var target: Address? = {
         // The target address is in a TxOutput; if not sent is it out address, otherwise anothers
         let outputs = [BRTxOutput](UnsafeBufferPointer(start: self.core.outputs, count: self.core.outCount))
+        let outputsContain = (!self.isSent ? 1 : 0)
         return outputs
-            .first { (!self.isSent ? 1 : 0) == BRWalletContainsAddress(_wallet.core, UnsafeRawPointer([$0.address]).assumingMemoryBound(to: CChar.self)) }
+            // If we did not send the transaction then we expect our wallet to include one or more
+            // outputs.  But if we did send it, then the outpus witll be the targets outputs.
+            .first { outputsContain == BRWalletContainsAddress(_wallet.core, UnsafeRawPointer([$0.address]).assumingMemoryBound(to: CChar.self)) }
             .map { Address.bitcoin (BRAddress (s: $0.address)) }
     }()
 
@@ -119,7 +126,7 @@ public class BitcoinTransfer: Transfer {
         var fees = BRWalletFeeForTx (_wallet.core, &transaction)
         if (fees == UINT64_MAX) { fees = 0 }
 
-        return Amount (value: recv + fees - send,  // recv - (fees + send)
+        return Amount (value: recv - (send + fees),  // recv - (fees + send)
                        unit: Bitcoin.Units.SATOSHI)
     }
     
@@ -163,8 +170,9 @@ public class BitcoinTransfer: Transfer {
         
         self._wallet = wallet
         
-        let addr = target.description
-        guard let transaction = BRWalletCreateTransaction (_wallet.core, amount.value.u64.0, addr)?.pointee
+        guard let transaction = BRWalletCreateTransaction (_wallet.core,
+                                                           amount.value.u64.0,
+                                                           target.description)?.pointee
             else { return nil}
         
         self.core = transaction
@@ -293,7 +301,7 @@ public class BitcoinWalletManager: WalletManager {
     #endif
 
     lazy var queue : DispatchQueue = {
-        return DispatchQueue (label: "\(network.currency.symbol) WalletManager")
+        return DispatchQueue (label: "\(network.currency.code) WalletManager")
     }()
 
     internal static var managers: [BitcoinWalletManager] = [] // Weak<>

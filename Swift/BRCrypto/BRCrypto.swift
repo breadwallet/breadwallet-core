@@ -498,13 +498,28 @@ extension Network: CustomStringConvertible {
 /// - ethereum: An ethereum-specific address
 ///
 public enum Address {
+    case raw (String)
     case bitcoin  (BRAddress)
     case ethereum (BREthereumAddress)
+
+    public init (raw string: String) {
+        self = .raw (string)
+    }
+
+//    public init (bitcoin string: String) {
+//        self = .bitcoin(BRAddress (s: string))
+//    }
+//
+    public init (ethereum string: String) {
+        self = .ethereum(addressCreate(string))
+    }
 }
 
 extension Address: Hashable {
     public var hashValue: Int {
         switch self {
+        case let .raw (addr):
+            return addr.hashValue
         case var .bitcoin (addr):
             return BRAddressHash (&addr)
         case let .ethereum (addr):
@@ -514,6 +529,8 @@ extension Address: Hashable {
 
     public static func == (lhs: Address, rhs: Address) -> Bool {
         switch (lhs, rhs) {
+        case (.raw (let addr1), .raw (let addr2)):
+            return addr1 == addr2
         case (.bitcoin (var addr1), .bitcoin (var addr2)):
             return 1 == BRAddressEq (&addr1, &addr2)
         case (.ethereum (let addr1), .ethereum (let addr2)):
@@ -527,13 +544,14 @@ extension Address: Hashable {
 extension Address: CustomStringConvertible {
     public var description: String {
         switch self {
+        case let .raw (addr):
+            return addr
         case let .bitcoin (addr):
             return asUTF8String (UnsafeRawPointer([addr.s]).assumingMemoryBound(to: CChar.self))
         case let .ethereum (addr):
             return asUTF8String (addressGetEncodedString (addr, 1), true)
         }
     }
-
 }
 
 ///
