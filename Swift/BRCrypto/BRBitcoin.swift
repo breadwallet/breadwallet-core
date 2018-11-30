@@ -42,6 +42,24 @@ public struct BitcoinSegwitAddressScheme: AddressScheme {
     }
 }
 
+extension Network {
+    var bitcoinChainParams: UnsafePointer<BRChainParams>? {
+        switch self {
+        case let .bitcoin (_, _, params): return params
+        case let .bitcash (_, _, params): return params
+        case .ethereum: return nil
+        }
+    }
+
+    var forkId: BRWalletForkId? {
+        switch self {
+        case let .bitcoin(_, forkId, _): return BRWalletForkId (UInt32(forkId))
+        case let .bitcash(_, forkId, _): return BRWalletForkId (UInt32(forkId))
+        case .ethereum: return nil
+        }
+    }
+}
+
 typealias BRCoreWallet = OpaquePointer
 typealias BRCorePeerManager = OpaquePointer
 
@@ -230,7 +248,6 @@ public class BitcoinWallet: Wallet {
 /// BRCorePeerManager.
 ///
 public class BitcoinWalletManager: WalletManager {
-
     /// The Core's BRCorePeerManager
     internal let corePeerManager: BRCorePeerManager
 
@@ -288,7 +305,37 @@ public class BitcoinWalletManager: WalletManager {
     internal static func lookup (ptr: UnsafeMutableRawPointer?) -> BitcoinWalletManager? {
         return ptr.map { Unmanaged<BitcoinWalletManager>.fromOpaque($0).takeUnretainedValue() }
     }
-    
+
+    public func sign(transfer: Transfer, paperKey: String) {
+        guard let transfer = transfer as? BitcoinTransfer else { precondition(false) }
+        var seed = Account.deriveSeed (phrase: paperKey)
+        var transaction = transfer.core
+        BRWalletSignTransaction(coreWallet, &transaction, &seed, MemoryLayout<UInt512>.size)
+    }
+
+    public func submit(transfer: Transfer) {
+        guard let transfer = transfer as? BitcoinTransfer else { precondition(false) }
+        var transaction = transfer.core
+        let  closure = CLangClosure { (error: Int32) in
+            let event = TransferEvent.changed (
+                old: transfer.state,
+                new: (0 == error
+                    ? TransferState.submitted
+                    : TransferState.failed(reason: asUTF8String(strerror(error)))))
+            self.listener.handleTransferEvent (manager: self,
+                                               wallet: self.primaryWallet,
+                                               transfer: transfer,
+                                               event: event)
+        }
+        BRPeerManagerPublishTx (corePeerManager, &transaction,
+                                Unmanaged<CLangClosure<(Int32)>>.passRetained(closure).toOpaque(),
+                                { (info, error) in
+                                    guard let info = info else { return }
+                                    let closure = Unmanaged<CLangClosure<(Int32)>>.fromOpaque(info).takeRetainedValue()
+                                    closure.function (error)
+        })
+    }
+
     public init (listener: BitcoinListener,
                  account: Account,
                  network: Network,

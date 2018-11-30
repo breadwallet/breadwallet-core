@@ -38,6 +38,21 @@ public struct EthereumAddressScheme: AddressScheme {
     }
 }
 
+extension Amount {
+    var asEther: BREthereumAmount? {
+        return self.currency != Ethereum.currency
+            ? nil
+            : amountCreateEther (etherCreate (self.value))
+    }
+}
+
+extension Network {
+    var ethereumCore: BREthereumNetwork? {
+        if case .ethereum (_, _, let core) = self { return core }
+        else { return nil }
+    }
+}
+
 ///
 /// An Ethereum Persistence Client adds the `changeLog()` interface to a Wallet Manager
 /// Persistence Client.
@@ -363,7 +378,6 @@ public class EthereumWalletFactory: WalletFactory {
 #endif
 
 public class EthereumWalletManager: WalletManager {
-
     internal var core: BREthereumEWM! = nil
     
     internal let backendClient: EthereumBackendClient
@@ -428,7 +442,19 @@ public class EthereumWalletManager: WalletManager {
     public func disconnect() {
         ewmDisconnect (self.core)
     }
-    
+
+    public func sign (transfer: Transfer, paperKey: String) {
+        guard let wallet = primaryWallet as? EthereumWallet,
+            let transfer = transfer as? EthereumTransfer else { precondition(false) }
+        ewmWalletSignTransferWithPaperKey(core, wallet.identifier, transfer.identifier, paperKey)
+    }
+
+    public func submit (transfer: Transfer) {
+        guard let wallet = primaryWallet as? EthereumWallet,
+            let transfer = transfer as? EthereumTransfer else { precondition(false) }
+       ewmWalletSubmitTransfer(core, wallet.identifier, transfer.identifier)
+    }
+
     public init (listener: EthereumListener,
                  account: Account,
                  network: Network,

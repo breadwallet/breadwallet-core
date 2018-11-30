@@ -6,20 +6,38 @@
 //  Copyright © 2018 breadwallet. All rights reserved.
 //
 import Foundation
-import SystemConfiguration // SCSystemReachability
-import Core  // UInt256, UInt512, MasterPubKey
-import Core.Ethereum // BREthereum{Account,Address}
+import SystemConfiguration  // SCSystemReachability
+import Core                 // UInt256, UInt512, MasterPubKey, BRAddress, ...
+import Core.Ethereum        // BREthereum{Account,Address}, ...
 
 ///
-/// MARK: Currency
+/// A currency is a medium for exchange.
 ///
-public class Currency: Equatable {
+/// Each currency has a `baseUnit` and a `defaultUnit`.  Because a `Unit` holds a Currency this
+/// sets up recursive definition for both `Currency` and `Unit` - thus these abstractions must be
+/// represented as reference types using `class`
+///
+/// A Currency has a number of decimals which define the currency's defaultUnit relative to the
+/// baseUnit.
+///
+public class Currency {
+
+    /// The code
     public let code: String
+
+    /// The symbol
     public let symbol: String
+
+    /// The name
     public let name: String
+
+    /// The decimals in the defaultUnit
     public let decimals: UInt8
 
+    /// The baseUnit
     public private(set) var baseUnit: Unit! = nil
+
+    /// The defaultUnit
     public private(set) var defaultUnit: Unit! = nil
 
     internal init (code: String, symbol: String, name: String, decimals: UInt8,
@@ -28,13 +46,21 @@ public class Currency: Equatable {
         self.symbol = symbol
         self.name = name
         self.decimals = decimals
+
+        // Note that `Unit` holds a `Currency` and `Currency
+        /// The baseUnit.
+        ///
+        /// @Note: akdfja;dl
+        ///
         self.baseUnit = Unit (baseUnit.name, baseUnit.symbol, self) // self has 'nil' for baseUnit
 
         let scale = pow (10.0, Double(decimals))
         self.defaultUnit = Unit (code, symbol, UInt64(scale),
                                  base: self.baseUnit)
     }
+}
 
+extension Currency: Equatable {
     public static func == (lhs: Currency, rhs: Currency) -> Bool {
         return lhs === rhs ||
             (lhs.code  == rhs.code &&
@@ -45,19 +71,41 @@ public class Currency: Equatable {
 }
 
 ///
-/// Unit
+/// A unit of measure for a currency.  There can be multiple units for a given currency (analogous
+/// to 'System International' units of (meters, kilometers, miles, ...) for a dimension of
+/// 'length').  For example, Ethereum has units of: WEI, GWEI, ETHER, METHER, ... and Bitcoin of:
+/// BTC, SATOSHI, ...
+///
+/// Each Currency has a 'baseUnit' - which is defined as the 'integer-ish' unit - such as SATOSHI
+/// ane WEI for Bitcoin and Ethereum, respectively.  There can be multiple 'derivedUnits' - which
+/// are derived by scaling off of a baseUnit.
 ///
 public class Unit {
     public let currency: Currency
-    let base: Unit!
     public let name: String
     public let symbol: String
-    let scale: UInt64
 
+    let scale: UInt64
+    let base: Unit!
+
+    ///
+    /// Two units are compatible if they share the same currency
+    ///
+    /// - Parameter that: the other unit to compare
+    /// - Returns: true if compatible, false otherwise
+    ///
     func isCompatible (_ that: Unit) -> Bool {
         return (self === that || self.currency == that.currency)
     }
 
+    ///
+    /// Initialize as a 'baseUnit'
+    ///
+    /// - Parameters:
+    ///   - name: The name, such as SATOSHI
+    ///   - symbol: The symbol, such as 'sat'
+    ///   - currency: The currency
+    ///
     init (_ name: String, _ symbol: String, _ currency: Currency) {
         self.currency = currency
         self.base = nil
@@ -66,6 +114,15 @@ public class Unit {
         self.scale = 1
     }
 
+
+    /// Initilize as a 'derivedUnit'
+    ///
+    /// - Parameters:
+    ///   - name: The name, such a BTC
+    ///   - symbol: The symbol, such as "B"
+    ///   - scale: The scale, such as 10_000_000
+    ///   - base: The base Unit
+    ///
     init (_ name: String, _ symbol: String,  _ scale: UInt64, base: Unit) {
         precondition (nil == base.base)
         self.currency = base.currency
@@ -75,12 +132,6 @@ public class Unit {
         self.scale = scale
     }
 }
-
-
-///
-/// MARK: - Amount
-///
-
 
 ///
 /// An amount of currency.  This can be negative (as in, 'currency owed' rather then 'currency
@@ -211,7 +262,7 @@ public struct Amount {
 
 extension Amount {
     public static func + (lhs: Amount, rhs: Amount) -> Amount? {
-        precondition(lhs.isCompatible(rhs))
+        guard lhs.isCompatible(rhs) else { return nil }
 
         var overflow: Int32 = 0
         let value = addUInt256_Overflow(lhs.value, rhs.value, &overflow)
@@ -219,7 +270,7 @@ extension Amount {
     }
 
     public static func - (lhs: Amount, rhs: Amount) -> Amount? {
-        precondition(lhs.isCompatible(rhs))
+        guard lhs.isCompatible(rhs) else { return nil }
 
         var negative: Int32 = 0
         let value = subUInt256_Negative (lhs.value, rhs.value, &negative)
@@ -227,19 +278,23 @@ extension Amount {
     }
 }
 
+///
+/// Note that incompatible units may return 'false' for all comparisons.  This violates the
+/// expectation that `lhs` and `rhs` satisfy one of: ==, >, and <.  Caution.
+///
 extension Amount: Comparable {
     public static func == (lhs: Amount, rhs: Amount) -> Bool {
-        precondition(lhs.isCompatible(rhs))
+        guard lhs.isCompatible(rhs) else { return false }
         return 1 == eqUInt256 (lhs.value, rhs.value)
     }
 
     public static func < (lhs: Amount, rhs: Amount) -> Bool {
-        precondition(lhs.isCompatible(rhs))
+        guard lhs.isCompatible(rhs) else { return false }
         return 1 == ltUInt256 (lhs.value, rhs.value)
     }
 
     public static func <= (lhs: Amount, rhs: Amount) -> Bool {
-        precondition(lhs.isCompatible(rhs))
+        guard lhs.isCompatible(rhs) else { return false }
         return 1 == leUInt256 (lhs.value, rhs.value)
     }
 }
@@ -250,35 +305,37 @@ extension Amount: CustomStringConvertible {
     }
 }
 
-extension Amount {
-    public var asEther: BREthereumAmount? {
-        return self.currency != Ethereum.currency
-            ? nil
-            : amountCreateEther (etherCreate (self.value))
-    }
-}
-
 ///
-/// MARK: - Currency Pair
+/// "A currency pair is the quotation of the relative value of a currency unit against the unit of
+/// another currency in the foreign exchange market. The currency that is used as the reference is
+/// called the counter currency, quote currency or currency and the currency that is quoted in
+/// relation is called the base currency or transaction currency.
 ///
-
-/*
- * Ref: https://en.wikipedia.org/wiki/Currency_pair
- * A currency pair is the quotation of the relative value of a currency unit against the unit of
- * another currency in the foreign exchange market. The currency that is used as the reference is
- * called the counter currency, quote currency or currency and the currency that is quoted in
- * relation is called the base currency or transaction currency.
- *
- * The quotation EUR/USD 1.2500 means that one euro is exchanged for 1.2500 US dollars. Here, EUR
- * is the base currency and USD is the quote currency(counter currency).
- */
-public struct CurrencyPair: CustomStringConvertible {
+/// "The quotation EUR/USD 1.2500 means that one euro is exchanged for 1.2500 US dollars. Here, EUR
+/// is the base currency and USD is the quote currency(counter currency)."
+///
+/// Ref: https://en.wikipedia.org/wiki/Currency_pair
+///
+/// Thus BTC/USD=1000 means that one BTC is changed for $1,000.  Here, BTC is the base currency
+/// and USD is the quote currency.  You would create such an exchange with:
+///
+///    let BTC_USD_Pair = CurrencyPair (baseUnit:  Bitcoin.Units.BTC,
+///                                     quoteUnit: Fiat.USD.Dollar,
+///                                     exchangeRate: 1000.0)
+///
+/// and then use it to find the value of 2 BTC with:
+///
+///    BTC_USD_Pair.exchange (asBase: Amount (value: 2.0, unit: Bitcoin.Units.BTC))
+///
+/// which would return: $2,000  (as Amount of 2000.0 in Fiat.USD.Dollar)
+///
+public struct CurrencyPair {
 
     /// In EUR/USD=1.2500, the `baseCurrecny` is EUR.
-    let baseCurrency: Unit
+    let baseUnit: Unit
 
     /// In EUR/USD=1.250, the `quoteCurrecny` is USD.
-    let quoteCurrency: Unit
+    let quoteUnit: Unit
 
     /// In EUR/USD=1.2500, the `exchangeRate` is 1.2500 which represents the number of USD that
     /// one EUR can be exchanged for.
@@ -293,10 +350,9 @@ public struct CurrencyPair: CustomStringConvertible {
     /// - Returns: the amount as `quoteCurrency`
     ///
     public func exchange(asBase amount: Amount) -> Amount? {
-        guard let amountValue = amount.coerce(unit: baseCurrency).double else { return nil }
-        return Amount (value: amountValue * exchangeRate, unit: quoteCurrency)
+        guard let amountValue = amount.coerce(unit: baseUnit).double else { return nil }
+        return Amount (value: amountValue * exchangeRate, unit: quoteUnit)
     }
-
 
     ///
     /// Apply `self` CurrencyPair to convert `asQuote` (in `quoteCurrency`) to `baseCurrency`.  This
@@ -307,84 +363,91 @@ public struct CurrencyPair: CustomStringConvertible {
     /// - Returns: the amount as `baseCurrency`
     ///
     public func exchange(asQuote amount: Amount) -> Amount? {
-        guard let amountValue = amount.coerce(unit: quoteCurrency).double else { return nil }
-        return Amount (value: amountValue / exchangeRate, unit: baseCurrency)
+        guard let amountValue = amount.coerce(unit: quoteUnit).double else { return nil }
+        return Amount (value: amountValue / exchangeRate, unit: baseUnit)
     }
 }
 
-extension CurrencyPair {
+extension CurrencyPair: CustomStringConvertible {
     public var description: String {
-        return "\(baseCurrency.name)/\(quoteCurrency.name)=\(exchangeRate)"
+        return "\(baseUnit.name)/\(quoteUnit.name)=\(exchangeRate)"
     }
 }
 
-
 ///
-/// MARK: - Account
-///
-
 /// An `Accouint` represents the User's paperKey.  An App generally has one instace of an
 /// account; that account generates bitcoin, ethereum, ... addresses
+///
 public struct Account {
 
+    /// The Bitcoin masterPublicKey - publically-accessible.
     let masterPublicKey: BRMasterPubKey
+
+    /// The Ethereum account - publically-accessible
     let ethereumAccount: BREthereumAccount
 
-    // conceptually - for security reasaons, not stored.
-    //    var paperKey : String { get }
-    //    var keyPair : KeyPair { get }
-
+    ///
+    /// Initialize an Account from a paperKey pharse
+    ///
+    /// - Parameter phrase: The paperKey
+    ///
     public init (phrase: String) {
         self.init (seed: Account.deriveSeed (phrase: phrase))
     }
 
+    ///
+    /// Initialize an Account from a seed.  The seed is not stored, only publically-accessible
+    /// values, derived from the seed, are stored.
+    ///
+    /// - Parameter seed: The UInt512 seed
+    ///
     internal init (seed: UInt512) {
         var seed = seed
         self.masterPublicKey = BRBIP32MasterPubKey (&seed, MemoryLayout<UInt512>.size)
         self.ethereumAccount = createAccountWithBIP32Seed (seed)
     }
 
-    private static func deriveSeed (phrase: String) -> UInt512 {
+    ///
+    /// Derive a 'seed' from a paperKey phrase.  Used when signing (Bitcoin) transactions.
+    ///
+    /// - Parameter phrase: The PaperKey
+    /// - Returns: The UInt512 seed.
+    ///
+    internal static func deriveSeed (phrase: String) -> UInt512 {
         var seed: UInt512 = zeroUInt512()
         BRBIP39DeriveKey (&seed.u8, phrase, nil); // no passphrase
         return seed
     }
 
-    //    public static func generate (entropy: UInt128, words: [String]) -> String? {
-    //        assert (words.count == 2048)
-    //        var entropy = entropy
-    //        var words = words.map { $0.utf8CString }
-    //
-    //        let phraseLen = BRBIP39Encode (nil, 0, &words, &entropy, MemoryLayout<UInt128>.size)
-    //        var phrase = Data (count: phraseLen)
-    //
-    //        phrase.withUnsafeMutableBytes {
-    //            BRBIP39Encode ($0, phraseLen, &words, &entropy, MemoryLayout<UInt128>.size)
-    //        }
-    //        return String (data: phrase, encoding: String.Encoding.utf8)
-    //    }
+
+    // func serialize() -> Data
+    // init (serialization: Data)
 }
 
 ///
-/// MARK: - Key
+/// A Key (unused)
 ///
 public protocol Key {}
 
+///
+/// A KeyPair (unused)
+///
 public protocol KeyPair {
     var privateKey : Key { get }
     var publicKey : Key { get }
 }
 
 ///
-/// MARK: - Network
+/// A Blockchain Network
 ///
-
-/// The Network
-public enum Network : Hashable {   // hashable
+/// - bitcoin: A bitcoin-specific network (mainnet, testnet)
+/// - bitcash: A bitcash-specific network (mainnet, testnet)
+/// - ethereum: An ethereum-specific network (mainnet/foundation, ropsten, rinkeby, ...)
+///
+public enum Network {
     case bitcoin  (name: String, forkId: UInt8, chainParams: UnsafePointer<BRChainParams>)
     case bitcash  (name: String, forkId: UInt8, chainParams: UnsafePointer<BRChainParams>)
     case ethereum (name: String, chainId: UInt, core: BREthereumNetwork)
-    //    case fiat?? currency by 'locale'
 
     public var name: String {
         switch self {
@@ -394,6 +457,16 @@ public enum Network : Hashable {   // hashable
         }
     }
 
+    public var currency: Currency {
+        switch self {
+        case .bitcoin: return Bitcoin.currency
+        case .bitcash: return Bitcash.currency
+        case .ethereum: return Ethereum.currency
+        }
+    }
+}
+
+extension Network: Hashable {
     public var hashValue: Int {
         switch self {
         case .bitcoin  (let name, _, _): return name.hashValue
@@ -410,35 +483,6 @@ public enum Network : Hashable {   // hashable
         default: return false
         }
     }
-
-    public var currency: Currency {
-        switch self {
-        case .bitcoin: return Bitcoin.currency
-        case .bitcash: return Bitcash.currency
-        case .ethereum: return Ethereum.currency
-        }
-    }
-    
-    public var bitcoinChainParams: UnsafePointer<BRChainParams>? {
-        switch self {
-        case let .bitcoin (_, _, params): return params
-        case let .bitcash (_, _, params): return params
-        case .ethereum: return nil
-        }
-    }
-
-    public var ethereumCore: BREthereumNetwork? {
-        if case .ethereum (_, _, let core) = self { return core }
-        else { return nil }
-    }
-
-    public var forkId: BRWalletForkId? {
-        switch self {
-        case let .bitcoin(_, forkId, _): return BRWalletForkId (UInt32(forkId))
-        case let .bitcash(_, forkId, _): return BRWalletForkId (UInt32(forkId))
-        case .ethereum: return nil
-        }
-    }
 }
 
 extension Network: CustomStringConvertible {
@@ -448,18 +492,39 @@ extension Network: CustomStringConvertible {
 }
 
 ///
-/// MARK: - Address
+/// An Address for transferring an amount.
 ///
-
-
-public enum Address: /* Hashable */ CustomStringConvertible {
+/// - bitcoin: A bitcon-specific address
+/// - ethereum: An ethereum-specific address
+///
+public enum Address {
     case bitcoin  (BRAddress)
     case ethereum (BREthereumAddress)
+}
 
+extension Address: Hashable {
+    public var hashValue: Int {
+        switch self {
+        case var .bitcoin (addr):
+            return BRAddressHash (&addr)
+        case let .ethereum (addr):
+            return Int(addressHashValue(addr))
+        }
+    }
 
-    // network
-    // currency: bitcoin, bitcash, ethereum
+    public static func == (lhs: Address, rhs: Address) -> Bool {
+        switch (lhs, rhs) {
+        case (.bitcoin (var addr1), .bitcoin (var addr2)):
+            return 1 == BRAddressEq (&addr1, &addr2)
+        case (.ethereum (let addr1), .ethereum (let addr2)):
+            return 1 == addressHashEqual (addr1, addr2)
+            default:
+            return false
+        }
+    }
+}
 
+extension Address: CustomStringConvertible {
     public var description: String {
         switch self {
         case let .bitcoin (addr):
@@ -468,16 +533,16 @@ public enum Address: /* Hashable */ CustomStringConvertible {
             return asUTF8String (addressGetEncodedString (addr, 1), true)
         }
     }
+
 }
 
 ///
-/// MARK: - Transfer
-///
-
-
 /// A Transfer represents the transfer of an `amount` of currency from `source` to `target`.  A
 /// Transfer is held in a `Wallet` (holding the amount's currency); the Transfer requires a `fee`
 /// to complete.  Once the transfer is signed/submitted it can be identified by a `TransferHash`.
+/// Once the transfer has been included in the currency's blockchain it will have a
+/// `TransferConfirmation`.
+///
 public protocol Transfer : class {
 
     /// The owning wallet
@@ -518,13 +583,17 @@ extension Transfer {
     }
 }
 
+///
 /// A TransferFeeBasis is use to estimate the fee to complete a transfer
+///
 public enum TransferFeeBasis {
     case bitcoin  (feePerKB: UInt64) // in satoshi
     case ethereum (gasPrice: Amount, gasLimit: UInt64)
 }
 
+///
 /// A TransferConfirmation holds confirmation information.
+///
 public struct TransferConfirmation {
     public let blockNumber: UInt64
     public let transactionIndex: UInt64
@@ -532,7 +601,9 @@ public struct TransferConfirmation {
     public let fee: Amount
 }
 
+///
 /// A TransferHash uniquely identifies a transfer *among* the owning wallet's transfers.
+///
 public enum TransferHash: Hashable, CustomStringConvertible {
     case bitcoin (UInt256)
     case ethereum (BREthereumHash)
@@ -541,8 +612,7 @@ public enum TransferHash: Hashable, CustomStringConvertible {
         switch self {
         case .bitcoin (let core):
             return Int(core.u32.0)
-        case .ethereum(let core):
-            var core = core
+        case .ethereum (var core):
             return Int(hashSetValue(&core))
         }
     }
@@ -551,9 +621,7 @@ public enum TransferHash: Hashable, CustomStringConvertible {
         switch (lhs, rhs) {
         case (.bitcoin(let c1), .bitcoin(let c2)):
             return 1 == eqUInt256 (c1, c2)
-        case (.ethereum(let c1), .ethereum(let c2)):
-            var c1 = c1
-            var c2 = c2
+        case (.ethereum(var c1), .ethereum(var c2)):
             return 1 == hashSetEqual(&c1, &c2)
         default:
             return false
@@ -570,7 +638,9 @@ public enum TransferHash: Hashable, CustomStringConvertible {
     }
 }
 
+///
 /// A TransferState represents the states in Transfer's 'life-cycle'
+///
 public enum TransferState {
     case created
     case signed
@@ -594,7 +664,10 @@ extension TransferState: CustomStringConvertible {
         }
     }
 }
+
+///
 /// A TransferEvent represents a asynchronous announcment of a transfer's state change.
+///
 public enum TransferEvent {
     case created
     case changed (old: TransferState, new: TransferState)
@@ -622,10 +695,6 @@ public protocol TransferFactory {
                          amount: Amount,
                          feeBasis: TransferFeeBasis) -> Transfer? // T
 }
-
-///
-/// MARK: - Wallet
-///
 
 ///
 /// A Wallet holds the transfers and a balance for a single currency.
@@ -656,11 +725,7 @@ public protocol Wallet: class {
     /// The default TransferFactory for creating transfers.
     var transferFactory: TransferFactory { get set }
 
-    // func sign (transfer: Transfer)
-    // submit
-    // ... cancel, replace - if appropriate
-
-    /// An address suitable for a transfer target (receiving).  Use the default Address Scheme
+    /// An address suitable for a transfer target (receiving).  Uses the default Address Scheme
     var target: Address { get }
 }
 
@@ -754,6 +819,11 @@ extension WalletEvent: CustomStringConvertible {
     }
 }
 
+///
+/// An AddressScheme generates addresses for a wallet.  Depending on the scheme, a given wallet may
+/// generate different address.  For example, a Bitcoin wallet can have a 'Segwit/BECH32' address
+/// scheme or a 'Legacy' address scheme.
+///
 public protocol AddressScheme {
     associatedtype W: Wallet
 
@@ -782,10 +852,6 @@ public protocol WalletFactory {
                        currency: Currency) -> Wallet
 }
 #endif
-
-///
-/// MARK: -  WalletManager
-///
 
 ///
 /// A WallettManager manages one or more wallets one of which is designated the `primaryWallet`.
@@ -832,12 +898,13 @@ public protocol WalletManager : class {
     /// Disconnect from the network.
     func disconnect ()
 
-    /// isConnected
+     /// isConnected
     /// sync(...)
     /// isSyncing
 
-    /// sign(transfer)
-    /// submit(transfer)
+    func sign (transfer: Transfer, paperKey: String)
+
+    func submit (transfer: Transfer)
 }
 
 extension WalletManager {
@@ -866,9 +933,16 @@ extension WalletManager {
     var isActive: Bool {
         return state == .connected || state == .syncing
     }
+
+    func signAndSubmit (transfer: Transfer, paperKey: String) {
+        sign(transfer: transfer, paperKey: paperKey)
+        submit(transfer: transfer)
+    }
 }
 
+///
 /// The WalletManager state.
+///
 public enum WalletManagerState {
     case created
     case disconnected
@@ -893,6 +967,7 @@ public enum WalletManagerEvent {
     case syncEnded (error: String?)
 }
 
+///
 /// The WalletManager's mode determines how the account and associated wallets are managed.
 ///
 /// - api_only: Use only the defined 'Cloud-Based API' to synchronize the account's transfers.
@@ -911,7 +986,6 @@ public enum WalletManagerMode {
     case p2p_with_api_sync
     case p2p_only
 }
-
 
 ///
 /// A WalletManagerListener recieves asynchronous events announcing state changes to Managers, to
@@ -963,7 +1037,7 @@ public protocol WalletManagerListener : class {
 }
 
 ///
-/// The Wallet Manager Persistence Chage Type identifes the type of wallet manager change for
+/// The Wallet Manager Persistence Chagne Type identifes the type of wallet manager change for
 /// persistent entities.  Such entityes include: peers, blocks, transactions and (Ethereum) logs.
 ///
 /// - added: A Persistent entity was added
