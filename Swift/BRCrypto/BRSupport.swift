@@ -36,3 +36,10 @@ extension UInt64 {
         return recurse (self, y, 1)
     }
 }
+
+public class CLangClosure<Args> {
+    public let function: (Args) -> ()
+    init (_ function: @escaping (Args) -> ()) {
+        self.function = function
+    }
+}

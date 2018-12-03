@@ -199,6 +199,7 @@
 		3CCD36C421AC92220032637A /* Support.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36C321AC92210032637A /* Support.swift */; };
 		3CCD36C521ACB3930032637A /* TransferViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36B921AC90850032637A /* TransferViewController.swift */; };
 		3CCD36C721AF25660032637A /* BRDefaultClients.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36C621AF25650032637A /* BRDefaultClients.swift */; };
+		3CCD36C921B1DC9E0032637A /* TransferCreateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36B821AC90850032637A /* TransferCreateController.swift */; };
 		3CD30494213B222A00A0CCED /* BREthereumMessagePIP.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CD30493213B222A00A0CCED /* BREthereumMessagePIP.c */; };
 		3CD30496213B226B00A0CCED /* BREthereumMessageP2P.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CD30495213B226B00A0CCED /* BREthereumMessageP2P.c */; };
 		3CD30498213B228900A0CCED /* BREthereumMessageDIS.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CD30497213B228900A0CCED /* BREthereumMessageDIS.c */; };
@@ -1508,6 +1509,7 @@
 				3C18F8B221950746006F738F /* AppDelegate.swift in Sources */,
 				3CCD36BD21AC90860032637A /* WalletViewController.swift in Sources */,
 				3CCD36C421AC92220032637A /* Support.swift in Sources */,
+				3CCD36C921B1DC9E0032637A /* TransferCreateController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2228,6 +2230,7 @@
 				OTHER_CFLAGS = (
 					"-DBITCOIN_DEBUG",
 					"-DDEBUG",
+					"-DBITCOIN_TESTNET",
 				);
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";

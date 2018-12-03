@@ -25,6 +25,32 @@ public struct Ethereum {
         public static let rinkeby = Network.ethereum (name: "ETH Rinkeby", chainId: 4, core: ethereumRinkeby)
         public static let foundation = mainnet
     }
+
+    public struct AddressSchemes {
+        public static let `default` = EthereumAddressScheme()
+    }
+}
+
+public struct EthereumAddressScheme: AddressScheme {
+    public func getAddress(for wallet: EthereumWallet) -> Address {
+        let account = ewmGetAccount(wallet._manager.core)
+        return Address.ethereum(accountGetPrimaryAddress (account))
+    }
+}
+
+extension Amount {
+    var asEther: BREthereumAmount? {
+        return self.currency != Ethereum.currency
+            ? nil
+            : amountCreateEther (etherCreate (self.value))
+    }
+}
+
+extension Network {
+    var ethereumCore: BREthereumNetwork? {
+        if case .ethereum (_, _, let core) = self { return core }
+        else { return nil }
+    }
 }
 
 ///
@@ -329,7 +355,7 @@ public class EthereumWallet: Wallet {
     public var transferFactory: TransferFactory = EthereumTransferFactory()
     
     public var target: Address {
-        return Address.ethereum (accountGetPrimaryAddress (_manager.account.ethereumAccount))
+        return Ethereum.AddressSchemes.`default`.getAddress(for: self)
     }
     
     internal init (manager:EthereumWalletManager,
@@ -352,7 +378,6 @@ public class EthereumWalletFactory: WalletFactory {
 #endif
 
 public class EthereumWalletManager: WalletManager {
-
     internal var core: BREthereumEWM! = nil
     
     internal let backendClient: EthereumBackendClient
@@ -364,7 +389,8 @@ public class EthereumWalletManager: WalletManager {
     }
 
     lazy var queue : DispatchQueue = {
-        return DispatchQueue (label: "Ethereum")
+        return DispatchQueue (label: "\(network.currency.code) WalletManager")
+
     }()
 
     public let account: Account
@@ -417,7 +443,19 @@ public class EthereumWalletManager: WalletManager {
     public func disconnect() {
         ewmDisconnect (self.core)
     }
-    
+
+    public func sign (transfer: Transfer, paperKey: String) {
+        guard let wallet = primaryWallet as? EthereumWallet,
+            let transfer = transfer as? EthereumTransfer else { precondition(false) }
+        ewmWalletSignTransferWithPaperKey(core, wallet.identifier, transfer.identifier, paperKey)
+    }
+
+    public func submit (transfer: Transfer) {
+        guard let wallet = primaryWallet as? EthereumWallet,
+            let transfer = transfer as? EthereumTransfer else { precondition(false) }
+       ewmWalletSubmitTransfer(core, wallet.identifier, transfer.identifier)
+    }
+
     public init (listener: EthereumListener,
                  account: Account,
                  network: Network,

@@ -10,12 +10,18 @@ import UIKit
 import BRCrypto
 
 protocol SharedListener {
-    static var sharedListener : CoreDemoListener { get }
+    static var sharedListener: CoreDemoListener { get }
 }
 
-extension UIApplication : SharedListener {
+extension UIApplication: SharedListener {
     static var sharedListener : CoreDemoListener {
         return (UIApplication.shared.delegate as! AppDelegate).listener
+    }
+}
+
+extension UIApplication {
+    static var paperKey: String {
+        return (UIApplication.shared.delegate as! AppDelegate).paperKey
     }
 }
 
@@ -27,6 +33,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
     var btcManager: BitcoinWalletManager!
     var ethManager: EthereumWalletManager!
     var bchManager: BitcoinWalletManager!
+
+    var paperKey: String!
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
@@ -40,7 +48,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
 
         let summaryController = summaryNavigationController.topViewController as! SummaryViewController
 
-        let paperKey = (CommandLine.argc > 1
+        paperKey = (CommandLine.argc > 1
             ? CommandLine.arguments[1]
             : "0xa9de3dbd7d561e67527bc1ecb025c59d53b9f7ef");
         //                                         paperKey: "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62")

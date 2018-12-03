@@ -18,6 +18,7 @@ module Core [system] [extern_c] {
     header "../../BRPaymentProtocol.h"
     header "../../BRAddress.h"
     header "../../BRWallet.h"
+    header "../../BRWalletManager.h"
     header "../../BRPeerManager.h"
     header "../../BRChainParams.h"
     header "../../bcash/BRBCashParams.h"

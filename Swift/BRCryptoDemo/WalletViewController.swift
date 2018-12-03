@@ -70,8 +70,8 @@ class WalletViewController: UITableViewController, TransferListener {
             break
             
         case "createTransfer":
-//            let controller = (segue.destination as! UINavigationController).topViewController as! TransferCreateController
-//            controller.wallet = wallet
+            let controller = (segue.destination as! UINavigationController).topViewController as! TransferCreateController
+            controller.wallet = wallet
             break
 
         default:
