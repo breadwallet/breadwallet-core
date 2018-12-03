@@ -270,19 +270,33 @@ public class BREthereumWallet extends BREthereumEWM.ReferenceWithDefaultUnit {
                         amountUnit.jniValue),
                 amountUnit);
     }
-/*
-    public BREthereumTransaction createTransactionGeneric(String targetAddress,
+
+    /**
+     * Create a transfer from a detailed specification.  Note: the `amountUnit` *must* be an
+     * Ether unit.
+     *
+     * @param targetAddress
+     * @param amount
+     * @param amountUnit
+     * @param gasPrice
+     * @param gasPriceUnit
+     * @param gasLimit
+     * @param data
+     *
+     * @return
+     */
+    public BREthereumTransfer createTransactionGeneric(String targetAddress,
                                                           String amount, Unit amountUnit,
                                                           String gasPrice, Unit gasPriceUnit,
                                                           String gasLimit,
                                                           String data) {
-        BREthereumLightNode.ensureValidAddress (targetAddress);
+        BREthereumEWM.ensureValidAddress (targetAddress);
 
-        BREthereumLightNode lightNode = node.get();
+        BREthereumEWM lightNode = ewm.get();
 
         assert (!amountUnit.isTokenUnit() && !gasPriceUnit.isTokenUnit());
 
-        return new BREthereumTransaction(lightNode,
+        return new BREthereumTransfer(lightNode,
                 lightNode.jniCreateTransactionGeneric(identifier,
                         targetAddress,
                         amount,
@@ -293,8 +307,8 @@ public class BREthereumWallet extends BREthereumEWM.ReferenceWithDefaultUnit {
                         data),
                 amountUnit);
     }
-*/
-      /**
+
+    /**
      * Sign a transaction with `paperKey`
      *
      * @param transaction

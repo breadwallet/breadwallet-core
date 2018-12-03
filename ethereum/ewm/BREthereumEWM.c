@@ -739,6 +739,34 @@ ewmWalletCreateTransfer(BREthereumEWM ewm,
 }
 
 extern BREthereumTransfer
+ewmWalletCreateTransferGeneric(BREthereumEWM ewm,
+                               BREthereumWallet wallet,
+                               const char *recvAddress,
+                               BREthereumEther amount,
+                               BREthereumGasPrice gasPrice,
+                               BREthereumGas gasLimit,
+                               const char *data) {
+    BREthereumTransfer transfer = NULL;
+
+    pthread_mutex_lock(&ewm->lock);
+
+    transfer = walletCreateTransferGeneric(wallet,
+                                              addressCreate(recvAddress),
+                                              amount,
+                                              gasPrice,
+                                              gasLimit,
+                                              data);
+
+    pthread_mutex_unlock(&ewm->lock);
+
+    // Transfer DOES NOT have a hash yet because it is not signed; but it is inserted in the
+    // wallet and can be display, in order, w/o the hash
+    ewmSignalTransferEvent(ewm, wallet, transfer, TRANSFER_EVENT_CREATED, SUCCESS, NULL);
+
+    return transfer;
+}
+
+extern BREthereumTransfer
 ewmWalletCreateTransferWithFeeBasis (BREthereumEWM ewm,
                                      BREthereumWallet wallet,
                                      const char *recvAddress,

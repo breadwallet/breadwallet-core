@@ -29,8 +29,6 @@
 #include "../blockchain/BREthereumTransaction.h"
 #include "../blockchain/BREthereumLog.h"
 
-#define TRANSACTION_NONCE_IS_NOT_ASSIGNED   UINT64_MAX
-
 static void
 transferProvideOriginatingTransaction (BREthereumTransfer transfer);
 

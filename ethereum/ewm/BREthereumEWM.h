@@ -190,6 +190,15 @@ ewmWalletCreateTransfer(BREthereumEWM ewm,
                         BREthereumAmount amount);
 
 extern BREthereumTransfer
+ewmWalletCreateTransferGeneric(BREthereumEWM ewm,
+                               BREthereumWallet wallet,
+                               const char *recvAddress,
+                               BREthereumEther amount,
+                               BREthereumGasPrice gasPrice,
+                               BREthereumGas gasLimit,
+                               const char *data);
+
+extern BREthereumTransfer
 ewmWalletCreateTransferWithFeeBasis (BREthereumEWM ewm,
                                      BREthereumWallet wallet,
                                      const char *recvAddress,

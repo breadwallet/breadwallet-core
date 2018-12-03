@@ -41,6 +41,8 @@ extern "C" {
 
 //typedef struct BREthereumTransferRecord *BREthereumTransfer;
 
+#define TRANSACTION_NONCE_IS_NOT_ASSIGNED   UINT64_MAX
+
 static inline BREthereumGas
 feeBasisGetGasLimit (BREthereumFeeBasis basis) {
     return (FEE_BASIS_GAS == basis.type ? basis.u.gas.limit : gasCreate(0));

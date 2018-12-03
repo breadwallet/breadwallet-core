@@ -539,12 +539,24 @@ public class BREthereumEWM extends BRCoreJniReference {
         return jniEWMDisconnect();
     }
 
+    public static boolean addressIsValid (String address) {
+        assert (null != address);
+        return jniAddressIsValid(address);
+    }
+
+    static void ensureValidAddress (String address) {
+        if (!addressIsValid(address))
+            throw new RuntimeException ("Invalid Ethereum Address");
+    }
+
     //
     // JNI: Constructors
     //
     protected static native long jniCreateEWM(Client client, long network, String paperKey, String[] wordList);
 
     protected static native long jniCreateEWM_PublicKey(Client client, long network, byte[] publicKey);
+
+    protected static native boolean jniAddressIsValid (String address);
 
     //
     // JNI: Announcements
@@ -642,6 +654,15 @@ public class BREthereumEWM extends BRCoreJniReference {
                                                String to,
                                                String amount,
                                                long amountUnit);
+
+    protected native long jniCreateTransactionGeneric(long walletId,
+                                                      String to,
+                                                      String amount,
+                                                      long amountUnit,
+                                                      String gasPrice,
+                                                      long gasPriceUnit,
+                                                      String gasLimit,
+                                                      String data);
 
     protected native void jniSignTransaction(long walletId,
                                              long transactionId,

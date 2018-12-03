@@ -389,6 +389,24 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM_1PublicKey
 }
 
 /*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniAddressIsValid
+ * Signature: (Ljava/lang/String;)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAddressIsValid
+        (JNIEnv *env, jclass thisClass, jstring addressObject) {
+
+    const char *address = (*env)->GetStringUTFChars(env, addressObject, 0);
+
+    jboolean result = ETHEREUM_BOOLEAN_IS_TRUE (addressValidateString(address))
+                      ? JNI_TRUE
+                      : JNI_FALSE;
+
+    (*env)->ReleaseStringUTFChars(env, addressObject, address);
+    return result;
+}
+
+/*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniEWMGetAccount
  * Signature: ()J
@@ -839,7 +857,7 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnou
          jint rid) {
     BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
     const char *strBlockNumber = (*env)->GetStringUTFChars(env, blockNumber, 0);
-    ethereumClientAnnounceBlockNumber(node, strBlockNumber, rid);
+    ewmAnnounceBlockNumber(node, strBlockNumber, rid);
     (*env)->ReleaseStringUTFChars(env, blockNumber, strBlockNumber);
 }
 
@@ -938,6 +956,57 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateTransaction
     (*env)->ReleaseStringUTFChars(env, toObject, to);
     return (jlong) tid;
 }
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniCreateTransactionGeneric
+ * Signature: (JLjava/lang/String;Ljava/lang/String;JLjava/lang/String;JLjava/lang/String;Ljava/lang/String;)J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateTransactionGeneric
+        (JNIEnv *env, jobject thisObject,
+         jlong wid,
+         jstring toObject,
+         jstring amountObject,
+         jlong amountUnit,
+         jstring gasPriceObject,
+         jlong gasPriceUnit,
+         jstring gasLimitObject,
+         jstring dataObject) {
+    BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
+    BRCoreParseStatus status = CORE_PARSE_OK;
+
+    const char *to = (*env)->GetStringUTFChars(env, toObject, 0);
+    const char *data = (*env)->GetStringUTFChars(env, dataObject, 0);
+
+    // Get an actual Amount
+    const char *amountChars = (*env)->GetStringUTFChars(env, amountObject, 0);
+    BREthereumEther amount = etherCreateString(amountChars, amountUnit, &status);
+    (*env)->ReleaseStringUTFChars(env, amountObject, amountChars);
+
+    const char *gasPriceChars = (*env)->GetStringUTFChars(env, gasPriceObject, 0);
+    BREthereumGasPrice gasPrice = gasPriceCreate(
+            etherCreateString(gasPriceChars, gasPriceUnit, &status));
+    (*env)->ReleaseStringUTFChars(env, gasPriceObject, gasPriceChars);
+
+    const char *gasLimitChars = (*env)->GetStringUTFChars(env, gasLimitObject, 0);
+    BREthereumGas gasLimit = gasCreate(strtoull(gasLimitChars, NULL, 0));
+    (*env)->ReleaseStringUTFChars(env, gasLimitObject, gasLimitChars);
+
+    BREthereumTransfer tid =
+            ewmWalletCreateTransferGeneric(node,
+                                           (BREthereumWallet) wid,
+                                           to,
+                                           amount,
+                                           gasPrice,
+                                           gasLimit,
+                                           data);
+    (*env)->ReleaseStringUTFChars(env, toObject, to);
+    (*env)->ReleaseStringUTFChars(env, dataObject, data);
+
+    return (jlong) tid;
+}
+
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM

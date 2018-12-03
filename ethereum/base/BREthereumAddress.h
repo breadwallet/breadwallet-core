@@ -61,6 +61,9 @@ typedef struct {
 extern BREthereumAddress
 addressCreate (const char *address);
 
+extern BREthereumBoolean
+addressValidateString(const char *string);
+
 /**
  * Create an EtherumAddress from a `key` - a BRKey that already has the PubKey provided!
  */
