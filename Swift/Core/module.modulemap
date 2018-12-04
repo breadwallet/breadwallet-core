@@ -27,9 +27,7 @@ module Core [system] [extern_c] {
 
     explicit module Ethereum {
         header "../../ethereum/BREthereum.h"
-        #        header "../../ethereum/base/BREthereumEther.h"
         header "../../ethereum/contract/BREthereumToken.h"
-        #        header "../../ethereum/ewm/BREthereumAccount.h"
         export *
     }
 }

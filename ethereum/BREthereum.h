@@ -29,6 +29,7 @@
 //#include <stdint.h>
 #include "base/BREthereumBase.h"
 #include "ewm/BREthereumEWM.h"
+#include "ewm/BREthereumAccount.h"
 
 #ifdef __cplusplus
 extern "C" {
