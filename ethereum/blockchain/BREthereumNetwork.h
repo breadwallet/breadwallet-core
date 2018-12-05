@@ -36,6 +36,9 @@ extern "C" {
 typedef struct BREthereumNetworkRecord *BREthereumNetwork;
 typedef int BREthereumChainId;  // 'Officially' UInt256
 
+extern const char *
+networkGetName (BREthereumNetwork network);
+
 extern BREthereumChainId
 networkGetChainId (BREthereumNetwork network);
 

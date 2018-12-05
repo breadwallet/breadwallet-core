@@ -73,6 +73,14 @@ ewmCreateWithPublicKey (BREthereumNetwork network,
                         BRSetOf(BREthereumPersistData) transactions,
                         BRSetOf(BREthereumPersistData) logs);
 
+extern BREthereumEWM
+ewmCreateWithStoragePath (BREthereumNetwork network,
+                          BREthereumAccount account,
+                          BREthereumTimestamp accountTimestamp,
+                          BREthereumMode mode,
+                          BREthereumClient client,
+                          const char *storagePath);
+
 extern void
 ewmDestroy (BREthereumEWM ewm);
 
@@ -142,9 +150,9 @@ ewmGetWalletHoldingToken(BREthereumEWM ewm,
 ///
 /// MARK: - Wallet
 ///
-    extern BREthereumToken
-    ewmWalletGetToken (BREthereumEWM ewm,
-                       BREthereumWallet wallet);
+extern BREthereumToken
+ewmWalletGetToken (BREthereumEWM ewm,
+                   BREthereumWallet wallet);
 
 extern BREthereumAmount
 ewmWalletGetBalance(BREthereumEWM ewm,
@@ -420,15 +428,13 @@ extern void
 ewmUpdateBlockHeight(BREthereumEWM ewm,
                      uint64_t blockHeight);
 
+extern const char *
+ewmTransferGetRawDataHexEncoded(BREthereumEWM ewm,
+                                BREthereumWallet wallet,
+                                BREthereumTransfer transfer,
+                                const char *prefix);
 
 
-    extern const char *
-    ewmTransferGetRawDataHexEncoded(BREthereumEWM ewm,
-                                    BREthereumWallet wallet,
-                                    BREthereumTransfer transfer,
-                                    const char *prefix);
-
-    
 #ifdef __cplusplus
 }
 #endif
