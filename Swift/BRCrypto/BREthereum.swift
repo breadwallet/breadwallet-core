@@ -461,6 +461,7 @@ public class EthereumWalletManager: WalletManager {
                  network: Network,
                  mode: WalletManagerMode,
                  timestamp: BREthereumTimestamp,
+                 storagePath: String,
                  persistenceClient: EthereumPersistenceClient = DefaultEthereumPersistenceClient(),
                  backendClient: EthereumBackendClient = DefaultEthereumBackendClient()) {
         
@@ -473,7 +474,7 @@ public class EthereumWalletManager: WalletManager {
         self.account = account
         self.network = network
         self.mode = mode
-        self.path = ""
+        self.path = storagePath
         self.state = WalletManagerState.created
         
         //        let coreNetwork = (main ? ethereumMainnet : ethereumTestnet)

@@ -974,6 +974,7 @@ public enum WalletManagerState {
 ///
 public enum WalletManagerEvent {
     case created
+    case changed (oldState: WalletManagerState, newState: WalletManagerState)
     case deleted
 
     case walletAdded (wallet: Wallet)
