@@ -49,6 +49,7 @@ typedef enum {
  */
 typedef enum {
     PROVISION_BLOCK_HEADERS,
+    PROVISION_BLOCK_PROOFS,
     PROVISION_BLOCK_BODIES,
     PROVISION_TRANSACTION_RECEIPTS,
     PROVISION_ACCOUNTS,
@@ -62,6 +63,9 @@ provisionGetMessageLESIdentifier (BREthereumProvisionType type);
 extern BREthereumPIPRequestType
 provisionGetMessagePIPIdentifier (BREthereumProvisionType type);
 
+extern const char *
+provisionGetTypeName (BREthereumProvisionType type);
+    
 /**
  * Headers
  */
@@ -78,6 +82,21 @@ typedef struct {
 extern void
 provisionHeadersConsume (BREthereumProvisionHeaders *provision,
                          BRArrayOf(BREthereumBlockHeader) *headers);
+
+/**
+ * Proofs
+ */
+typedef struct {
+    // Request
+    BRArrayOf(uint64_t) numbers;
+    // Response
+    BRArrayOf(BREthereumBlockHeaderProof) proofs;
+} BREthereumProvisionProofs;
+
+extern void
+provisionProofsConsume (BREthereumProvisionProofs *provision,
+                        BRArrayOf(uint64_t) *numbers,
+                        BRArrayOf(BREthereumBlockHeaderProof) *proofs);
 
 /**
  * Bodies
@@ -172,6 +191,7 @@ typedef struct {
     BREthereumProvisionType type;
     union {
         BREthereumProvisionHeaders headers;
+        BREthereumProvisionProofs proofs;
         BREthereumProvisionBodies bodies;
         BREthereumProvisionReceipts receipts;
         BREthereumProvisionAccounts accounts;
@@ -180,16 +200,20 @@ typedef struct {
     } u;
 } BREthereumProvision;
 
+extern BREthereumProvision
+provisionCopy (BREthereumProvision *provision,
+               BREthereumBoolean copyResults);
+
+extern void
+provisionRelease (BREthereumProvision *provision,
+                  BREthereumBoolean releaseResults);
+
 extern BREthereumMessage
 provisionCreateMessage (BREthereumProvision *provision,
                         BREthereumMessageIdentifier type,
                         size_t messageContentLimit,
                         uint64_t messageIdBase,
                         size_t index);
-
-extern void
-provisionRelease (BREthereumProvision *provision,
-                  BREthereumBoolean releaseResults);
 
 extern void
 provisionHandleMessage (BREthereumProvision *provision,

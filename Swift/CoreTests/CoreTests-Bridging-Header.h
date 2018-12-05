@@ -6,6 +6,8 @@
 // Bitcoin
 extern int BRRunTests();
 extern int BRRunTestsSync (int randomKey);
+extern int BRRunTestWalletManagerSync (const char *paperKey,
+                                       const char *storagePath);
 
 // Util
 extern void runUtilTests (void);
@@ -23,11 +25,13 @@ extern void runBcTests (void);
 extern void runContractTests (void);
 
 // EWM
-extern void runEWMTests (void);
+extern void runEWMTests (const char *paperKey);
 
-extern void runSyncTest (BREthereumType type,
-                         BREthereumSyncMode mode,
+extern void runSyncTest (BREthereumAccount account,
+                         BREthereumMode mode,
+                         BREthereumTimestamp accountTimestamp,
                          unsigned int durationInSeconds,
+                         const char *storagePath,
                          int restart);
 
 // LES

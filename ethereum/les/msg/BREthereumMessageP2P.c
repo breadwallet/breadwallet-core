@@ -380,8 +380,8 @@ messageP2PStatusShow(BREthereumP2PMessageStatus *message) {
             if (NULL != label) {
                 eth_log (LES_LOG_TOPIC, "      %2d", (BREthereumLESMessageIdentifier) message->flowControlMRC[index].msgCode);
                 eth_log (LES_LOG_TOPIC, "        Request : %s", label);
-                eth_log (LES_LOG_TOPIC, "        BaseCost: %llu", message->flowControlMRC[index].baseCost);
-                eth_log (LES_LOG_TOPIC, "        ReqCost : %llu", message->flowControlMRC[index].reqCost);
+                eth_log (LES_LOG_TOPIC, "        BaseCost: %" PRIu64, message->flowControlMRC[index].baseCost);
+                eth_log (LES_LOG_TOPIC, "        ReqCost : %" PRIu64, message->flowControlMRC[index].reqCost);
             }
         }
     }

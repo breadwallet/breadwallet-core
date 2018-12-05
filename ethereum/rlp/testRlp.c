@@ -72,7 +72,7 @@ void rlpCheckString (BRRlpCoder coder, const char *string, uint8_t *result, size
 }
 
 void rlpCheckInt (BRRlpCoder coder, uint64_t value, uint8_t *result, size_t resultSize) {
-    printf ("  %llu", value);
+    printf ("  %" PRIu64, value);
     BRRlpItem item = rlpEncodeUInt64(coder, value, 0);
     rlpCheck(coder, item, result, resultSize);
     rlpReleaseItem(coder, item);

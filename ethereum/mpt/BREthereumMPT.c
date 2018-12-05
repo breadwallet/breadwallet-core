@@ -25,6 +25,8 @@
 
 #include "BREthereumMPT.h"
 
+#undef MPT_SHOW_PROOF_NODES
+
 ///
 /// MARK: - MPT Node
 ///
@@ -60,6 +62,7 @@ mptNodeCreate (BREthereumMPTNodeType type) {
 
 static void
 mptNodeRelease (BREthereumMPTNode node) {
+    if (NULL == node) return;  // On RLP coding error during 'nodes' processing
     switch (node->type) {
         case MPT_NODE_LEAF:
             dataRelease(node->u.leaf.path);
@@ -129,7 +132,7 @@ mptNodeConsume (BREthereumMPTNode node, uint8_t *key) {
 #define NIBBLE_UPPER(x)     (0x0f & ((x) >> 4))
 #define NIBBLE_LOWER(x)     (0x0f & ((x) >> 0))
 
-#define NIBBLE_GET(x, upper) (0x0f & ((x) >> (upper ? 4 : 0)))
+#define NIBBLE_GET(x, upper) (0x0f & ((x) >> ((upper) ? 4 : 0)))
 
 static BREthereumMPTNode
 mptNodeDecode (BRRlpItem item,
@@ -152,6 +155,7 @@ mptNodeDecode (BRRlpItem item,
             BREthereumMPTNodeType type = (nodeTypeNibble < 2
                                           ? MPT_NODE_EXTENSION
                                           : MPT_NODE_LEAF);
+            // we are 'padded' if the nodeTypeNibble is even
             int padded = 0 == (nodeTypeNibble & 0x01);
 
             // Fill the encoded path
@@ -171,12 +175,12 @@ mptNodeDecode (BRRlpItem item,
              '3f 1c b8'
              */
 
-            if (!padded) *pathBytes++ = NIBBLE_GET(pathData.bytes[0], 0);
+            if (!padded) *pathBytes++ = NIBBLE_LOWER(pathData.bytes[0]);
 
             for (size_t index = 1; index < pathData.bytesCount; index++) {
                 uint8_t byte = pathData.bytes[index];
-                *pathBytes++ = NIBBLE_GET (byte, padded);
-                *pathBytes++ = NIBBLE_GET (byte, !padded);
+                *pathBytes++ = NIBBLE_UPPER (byte); // padded);
+                *pathBytes++ = NIBBLE_LOWER (byte); // !padded);
             }
 
             node = mptNodeCreate(type);
@@ -247,7 +251,7 @@ mptNodePathsRelease (BRArrayOf(BREthereumMPTNodePath) paths) {
 
 extern BREthereumMPTNodePath
 mptNodePathDecode (BRRlpItem item,
-                    BRRlpCoder coder) {
+                   BRRlpCoder coder) {
     size_t itemsCount;
     const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
 
@@ -259,43 +263,39 @@ mptNodePathDecode (BRRlpItem item,
     return mptNodePathCreate(nodes);
 }
 
-extern BRRlpData
-mptNodePathGetValueX (BREthereumMPTNodePath path,
-                     BREthereumBoolean *found) {
-    if (0 == array_count(path->nodes)) { *found = ETHEREUM_BOOLEAN_FALSE; return (BRRlpData) { 0, NULL };}
+extern BREthereumMPTNodePath
+mptNodePathDecodeFromBytes (BRRlpItem item,
+                            BRRlpCoder coder) {
+    size_t itemsCount = 0;
+    BRRlpItem *items = (BRRlpItem *) rlpDecodeList(coder, item, &itemsCount);
 
-    BREthereumMPTNode node = path->nodes[array_count(path->nodes) - 1];
-    *found = ETHEREUM_BOOLEAN_TRUE;
-
-    switch (node->type) {
-        case MPT_NODE_LEAF:
-            return rlpDataCopy (node->u.leaf.value);
-
-        case MPT_NODE_EXTENSION:
-            *found = ETHEREUM_BOOLEAN_FALSE;
-            return (BRRlpData) { 0, NULL };
-
-        case MPT_NODE_BRANCH:
-            return rlpDataCopy (node->u.branch.value);
+    BRArrayOf (BREthereumMPTNode) nodes;
+    array_new (nodes, itemsCount);
+    for (size_t index = 0; index < itemsCount; index++) {
+        // items[index] holds bytes as the RLP encoding of MPT nodes.  We'll decode the bytes
+        // and then RLP encode the bytes (but this time as RLP items.... got it??).
+        BRRlpData data = rlpDecodeBytesSharedDontRelease (coder, items[index]);
+        BRRlpItem item = rlpGetItem(coder, data);
+        array_add (nodes, mptNodeDecode (item, coder));
+#if defined (MPT_SHOW_PROOF_NODES)
+        rlpShowItem (coder, item, "MPTN");
+#endif
+        rlpReleaseItem (coder, item);
     }
+
+    // TODO: If any above item is decoded improperly, then `nodes` will have NULL values.
+
+    return mptNodePathCreate(nodes);
 }
 
-extern BREthereumBoolean
-mptNodePathIsValid (BREthereumMPTNodePath path,
-                    BREthereumHash key) {
-    // TODO: Well, do this.
-    return ETHEREUM_BOOLEAN_TRUE;
-}
-
-extern BRRlpData
-mptNodePathGetValue (BREthereumMPTNodePath path,
-                      BREthereumHash key,
-                      BREthereumBoolean *found) {
-    size_t  keyEncodedCount = 2 * sizeof(key.bytes);
+extern BREthereumMPTNode
+mptNodePathGetNode (BREthereumMPTNodePath path,
+                    BREthereumData key) {
+    size_t  keyEncodedCount = 2 * key.count;
     uint8_t keyEncoded [keyEncodedCount];
 
     // Fill the key
-    for (size_t index = 0; index < sizeof (key.bytes); index++) {
+    for (size_t index = 0; index < key.count; index++) {
         uint8_t byte = key.bytes[index];
         keyEncoded [2 * index + 0] = NIBBLE_UPPER(byte);
         keyEncoded [2 * index + 1] = NIBBLE_LOWER(byte);
@@ -303,23 +303,76 @@ mptNodePathGetValue (BREthereumMPTNodePath path,
 
     uint8_t keyEncodedIndex = 0;
 
+    // Walk the nodes, consuming the key if possible.
     for (size_t index = 0; index < array_count (path->nodes); index++) {
         BREthereumMPTNode node = path->nodes[index];
         size_t keyEncodedIncrement = mptNodeConsume (node, &keyEncoded[keyEncodedIndex]);
 
-        // // definitively node found
+        // nothing consumed, definitively node missed
         if (0 == keyEncodedIncrement)
             break;
 
         keyEncodedIndex += keyEncodedIncrement;
 
         // If all of key is consumed, then done.
-        if (keyEncodedCount == keyEncodedIndex)
-            return mptNodeGetValue (node, found);
+        if (keyEncodedCount == keyEncodedIndex) {
+            // We have a screwy case here... we've seen a subsequent 'leaf' node, without any
+            // path, holding the 'value'.  Not sure why (Parity bug submitted); we'll try to
+            // pick out that node
+            if (index + 1 + 1 == array_count(path->nodes) &&       // one node remains...
+                MPT_NODE_LEAF == path->nodes[index + 1]->type &&   // it is a leaf node
+                0 == path->nodes[index + 1]->u.leaf.path.count)    // it has no path
+                return path->nodes[index + 1];
+
+            return node;
+        }
     }
 
-    *found = ETHEREUM_BOOLEAN_FALSE;
-    return (BRRlpData) { 0, NULL };
+    return NULL;
+}
+
+extern BREthereumBoolean
+mptNodePathIsValid (BREthereumMPTNodePath path,
+                    BREthereumData key) {
+    return AS_ETHEREUM_BOOLEAN (NULL != mptNodePathGetNode (path, key));
+}
+
+extern BRRlpData
+mptNodePathGetValue (BREthereumMPTNodePath path,
+                      BREthereumData key,
+                      BREthereumBoolean *found) {
+    BREthereumMPTNode node = mptNodePathGetNode (path, key);
+    if (NULL == node) {
+        *found = ETHEREUM_BOOLEAN_FALSE;
+        return (BRRlpData) { 0, NULL };
+    }
+    else return mptNodeGetValue (node, found);
+}
+
+extern BREthereumData
+mptNodePathGetKeyFragment (BREthereumMPTNodePath path) {
+    BREthereumData result = { 64, malloc(64) };
+    size_t index = 0;
+
+    for (size_t n = 0; n < array_count (path->nodes); n++) {
+        BREthereumMPTNode node = path->nodes[n];
+        switch (node->type) {
+            case MPT_NODE_LEAF:
+            case MPT_NODE_EXTENSION: {
+                BREthereumData key = mptNodeGetPath (node);
+                memcpy (&result.bytes[index], key.bytes, key.count);
+                index += key.count;
+                break;
+            }
+
+            case MPT_NODE_BRANCH:
+                result.bytes[index] = 0xf;
+                index++;
+                break;
+        }
+    }
+
+    return result;
 }
 
 /*
@@ -542,4 +595,51 @@ mptNodePathGetValue (BREthereumMPTNodePath path,
  ETH: RECV:     ]
  ETH: RECV:   ]
  ETH: RECV: ]
+
+
+ // A Parity 'Header Proof' - for block 1; final I40 is { hash, totalDifficulty }
+ ETH: LES: Send: [ PIP,   Headers Proof ] =>       127.0.0.1
+ ETH: FOOX: L 17: [
+ ETH: FOOX:   I 32: 0x42e9f16674b57980d3e657390d0f64c2060a0c0000f2a7675d313d0ea1fe5c17
+ ETH: FOOX:   I 32: 0x5ac1707c14c15b3b984a4d0c10fdebef16d31098b394452415ae8b3cc67c6313
+ ETH: FOOX:   I 32: 0x1fc07f6ec3a5926b306a43140eb8d54a4e287228cedec15936b27ad77e60bb04
+ ETH: FOOX:   I 32: 0x64c6dfce6ffc9bd6fdbcc1cc61bd26ae6fade0526b8118f39c7a2a90e730342c
+ ETH: FOOX:   I 32: 0x08e6df959ec5870b0d6d0027dfe497a15de4e83b6bec33fffd2c26e069cf3cc8
+ ETH: FOOX:   I 32: 0xd8d1245ff88b155755f3e6528f3850b94ac283f75eec9739edfef9eb6d301970
+ ETH: FOOX:   I 32: 0x24f3745f31f6deaed927993d333cf051d3a2c6c2e13c86a755c61f55c1151a40
+ ETH: FOOX:   I 32: 0xb4bb66c1ad532011950cbe833a5ea12f726f9a2f11c57d6b9cd2a84bd0a8c36c
+ ETH: FOOX:   I 32: 0xba62252ec55c99cdbdc6f576e6e439584cca6377e751634d491713cea924464d
+ ETH: FOOX:   I  0: 0x
+ ETH: FOOX:   I  0: 0x
+ ETH: FOOX:   I  0: 0x
+ ETH: FOOX:   I  0: 0x
+ ETH: FOOX:   I  0: 0x
+ ETH: FOOX:   I  0: 0x
+ ETH: FOOX:   I  0: 0x
+ ETH: FOOX:   I  0: 0x
+ ETH: FOOX: ]
+ ETH: FOOX: L 17: [
+ ETH: FOOX:   I  0: 0x
+ ETH: FOOX:   I 32: 0x93322c467bf396006f3b161c8a21faf0e00e50f5ac35509909cc17bd85cde0ce
+ ETH: FOOX:   I 32: 0x07ff24d776f04ba0f19b341d8e340d448bdd904694a28815439480d85edb0d09
+ ETH: FOOX:   I 32: 0x432ea5591b2a0caa79c18c26ea71f52fcbef1c550faa6ef1229ed287bc77197f
+ ETH: FOOX:   I 32: 0x21154043173bbabb8cb62fce4bb8a5d6542740aa10cffae70ec429b9a06c4e64
+ ETH: FOOX:   I 32: 0x21d4ab9191f31bcba179e09f9ddddd6dbce0b5d13c902ce0dd9378de507113dc
+ ETH: FOOX:   I 32: 0xbeb321608575d939442596f7a56f6e7c1d08a0d7595cb76a5014f92a7980d168
+ ETH: FOOX:   I 32: 0x2d00dcea0ef53c662163da7d28d46d4aa3a06c7a64a4cecdceccb0d8e2ae6b58
+ ETH: FOOX:   I 32: 0x65862ba895316f6c4f086f538b7f4d7a41c552a977d6be4cc749650683a70d7d
+ ETH: FOOX:   I 32: 0xa90d17716cb50b1e873b3197a63079616d1ebdbc919b6987d8ad739c0b0a7d77
+ ETH: FOOX:   I 32: 0xb6cf627115b49cbc1013c4282b6e461bf12449c1fdadf6370c7c1b50caa35d0a
+ ETH: FOOX:   I 32: 0x1d8a109ecdd3c9601aa72f7334fc99f90457fbf920749951901913477bb535e0
+ ETH: FOOX:   I 32: 0xd898872aa68c6e9ff48cd49f4d33189a4cff460065f0d1f1131125d640946b05
+ ETH: FOOX:   I 32: 0x4bd3c6211cc0884ca8932a733541c8216cccf02ae9938cac60ed5472b97832be
+ ETH: FOOX:   I 32: 0x2a83819af52f371a2b9a458dae4c6d5655eac5ff2e368715dd98a43699172e02
+ ETH: FOOX:   I 32: 0x3a08d8b339727ffdfe0f377aaa394e136d2377549bf0f602eaae6a2caba7efef
+ ETH: FOOX:   I  0: 0x
+ ETH: FOOX: ]
+ ETH: FOOX: L  2: [
+ ETH: FOOX:   I  1: 0x20
+ ETH: FOOX:   I 40: 0xe7a088e96d4537bea4d9c05d12549907b32561d3bf31f45aae734cdc119f13406cb68507ff800000
+ ETH: FOOX: ]
+
 */

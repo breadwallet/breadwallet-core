@@ -39,6 +39,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+#include "bcash/BRBCashParams.h"
+
 #define PROTOCOL_TIMEOUT      20.0
 #define MAX_CONNECT_FAILURES  20 // notify user of network problems after this many connect failures in a row
 #define PEER_FLAG_SYNCED      0x01
@@ -1352,8 +1354,8 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
     j = (i > 0) ? saveBlocks[i - 1]->height % BLOCK_DIFFICULTY_INTERVAL : 0;
     if (j > 0) i -= (i > BLOCK_DIFFICULTY_INTERVAL - j) ? BLOCK_DIFFICULTY_INTERVAL - j : i;
     assert(i == 0 || (saveBlocks[i - 1]->height % BLOCK_DIFFICULTY_INTERVAL) == 0);
-    pthread_mutex_unlock(&manager->lock);
     if (i > 0 && manager->saveBlocks) manager->saveBlocks(manager->info, (i > 1 ? 1 : 0), saveBlocks, i);
+    pthread_mutex_unlock(&manager->lock);
     
     if (block && block->height != BLOCK_UNKNOWN_HEIGHT && block->height >= BRPeerLastBlock(peer) &&
         manager->txStatusUpdate) {
@@ -2007,3 +2009,21 @@ void BRPeerManagerFree(BRPeerManager *manager)
     pthread_mutex_destroy(&manager->lock);
     free(manager);
 }
+
+const BRChainParams *bitcoinParams (int mainnet) {
+    return mainnet ? &BRMainNetParams : &BRTestNetParams;
+}
+
+const BRChainParams *bitcashParams (int mainnet) {
+
+    return mainnet ? &BRBCashParams : &BRBCashTestNetParams;
+}
+
+char *u256HashToString (UInt256 hash) {
+    char result[67];
+    result[0] = '0';
+    result[1] = 'x';
+    strcpy (&result[2], u256hex(hash));
+    return strdup (result);
+}
+

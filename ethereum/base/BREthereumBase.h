@@ -30,8 +30,8 @@
 extern "C" {
 #endif
 
-#include "BRArray.h"
-#include "BRSet.h"
+#include "../../BRArray.h"
+#include "../../BRSet.h"
 
 #define BRArrayOf(type)    type*
 #define BRSetOf(type)      BRSet*
@@ -72,6 +72,9 @@ BRSetFreeAll (BRSet *set, BRSetItemFree itemFree) {
 #include "BREthereumAddress.h"
 #include "BREthereumSignature.h"
 
+typedef uint64_t BREthereumTimestamp;  // A Unix time
+#define ETHEREUM_TIMESTAMP_UNKNOWN    ((uint64_t) 0)
+
 typedef enum {
     RLP_TYPE_NETWORK,
     RLP_TYPE_ARCHIVE,
@@ -85,20 +88,33 @@ typedef enum {
 //
 typedef enum {
     //
-    // We'll be willing to do a complete block chain sync, even starting at block zero.  We'll
-    // use our 'N-ary Search on Account Changes' to perform the sync effectively.  We'll use the
-    // BRD endpoint to augment the 'N-Ary Search' to find TOK transfers where our address is the
-    // SOURCE.
+    // Use the BRD backend for all Core blockchain state.  The BRD backend provides: account state
+    // (balance + nonce), transactions, logs, block chain head number, etc.  (The BRD backend
+    // offers an etherscan.io-like HTTP interface).  The BRD backend includes a 'submit transaction'
+    // interface.
     //
-    SYNC_MODE_FULL_BLOCKCHAIN,
-    
+    BRD_ONLY,
+
+    //
+    // Use the BRD backend for everything other than 'submit transaction'
+    //
+    BRD_WITH_P2P_SEND,
+
     //
     // We'll use the BRD endpoint to identiy blocks of interest based on ETH and TOK transfer
     // where our addres is the SOURCE or TARGET. We'll only process blocks from the last N (~ 2000)
     // blocks in the chain.
     //
-    SYNC_MODE_PRIME_WITH_ENDPOINT
-} BREthereumSyncMode;
+    P2P_WITH_BRD_SYNC,
+
+    //
+    // We'll be willing to do a complete block chain sync, even starting at block zero.  We'll
+    // use our 'N-ary Search on Account Changes' to perform the sync effectively.  We'll use the
+    // BRD endpoint to augment the 'N-Ary Search' to find TOK transfers where our address is the
+    // SOURCE.
+    //
+    P2P_ONLY
+} BREthereumMode;
 
 //
 // Sync Interest
@@ -121,6 +137,33 @@ syncInterestMatch(BREthereumSyncInterestSet interests,
                   BREthereumSyncInterest interest) {
     return interests & interest;
 }
+
+
+typedef enum {
+    // Created: transfer created in local memory
+    TRANSFER_STATUS_CREATED,
+
+    // Submitted: transfer submitted
+    TRANSFER_STATUS_SUBMITTED,
+
+    // Included: transfer is already included in the canonical chain. data contains an
+    // RLP-encoded [blockHash: B_32, blockNumber: P, txIndex: P] structure.
+    TRANSFER_STATUS_INCLUDED,
+
+    // Error: transfer sending failed. data contains a text error message
+    TRANSFER_STATUS_ERRORED,
+
+    // Cancelled
+    TRANSFER_STATUS_CANCELLED,
+
+    // Replaced
+    TRANSFER_STATUS_REPLACED,
+
+    //
+    TRANSFER_STATUS_DELETED
+
+} BREthereumTransferStatus;
+
 
 #ifdef __cplusplus
 }

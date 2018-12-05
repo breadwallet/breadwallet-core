@@ -53,12 +53,12 @@ createUInt256Power (uint8_t digits, int *overflow) {
 }
 
 extern UInt256
-createUInt256Power2 (uint8_t power) {
+createUInt256Power2 (uint8_t power) {  // always power < 256, as it must be.
     uint8_t word  = power / 64;
     uint8_t shift = power % 64;
 
     UInt256 z = UINT256_ZERO;
-    z.u64[word] = (1 << shift);
+    z.u64[word] = (((uint64_t) 1) << shift);
 
     return z;
 }
@@ -281,4 +281,11 @@ compareUInt256 (UInt256 x, UInt256 y) {
                : -1));
 }
 
+extern uint64_t
+coerceUInt64 (UInt256 value, int *overflow) {
+    *overflow = (0 != value.u64[3] ||
+                 0 != value.u64[2] ||
+                 0 != value.u64[1]);
+    return *overflow ? 0 : value.u64[0];
+}
 

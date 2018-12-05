@@ -24,6 +24,7 @@
 //  THE SOFTWARE.
 
 #include "BREthereumMessagePIP.h"
+#include "../../mpt/BREthereumMPT.h"
 
 extern const char *
 messagePIPGetRequestName (BREthereumPIPRequestType type) {
@@ -78,6 +79,17 @@ messagePIPGetIdentifierName (BREthereumPIPMessage message) {
         }
     }
 }
+
+const char *pipTransactionErrorPreface[] = {
+    "Transaction has invalid signature",
+    "No longer valid",
+    "Insufficient balance for transaction.",
+    "Insufficient gas price.",
+    "Insufficient gas.",
+    "Gas price too low to replace",
+    "____",  // dropped
+    "Unknown"
+};
 
 /// MARK: PIP Status
 
@@ -278,8 +290,25 @@ messagePIPRequestOutputDecode (BRRlpItem item,
                 { .headers = { blockOmmersRlpDecode (items[1], coder.network, RLP_TYPE_NETWORK, coder.rlp) } }
             };
 
-        case PIP_REQUEST_HEADER_PROOF:
-            assert (0);
+        case PIP_REQUEST_HEADER_PROOF: {
+            size_t outputsCount;
+            const BRRlpItem *outputItems = rlpDecodeList (coder.rlp, items[1], &outputsCount);
+            if (3 != outputsCount) { rlpCoderSetFailed (coder.rlp); return (BREthereumPIPRequestOutput) {}; }
+
+            // The MerkleProof, in outputItems[0] is an RLP list of bytes w/ the bytes being
+            // individual RLP encodings of a MPT (w/ leafs, extensions, and branches).  [The
+            // format is different between Partiy & Geth - here we 'DecodeFromBytes']
+            BREthereumMPTNodePath path = mptNodePathDecodeFromBytes (outputItems[0], coder.rlp);
+
+            return (BREthereumPIPRequestOutput) {
+                PIP_REQUEST_HEADER_PROOF,
+                { .headerProof = {
+                    path,
+                    hashRlpDecode(outputItems[1], coder.rlp),
+                    rlpDecodeUInt256 (coder.rlp, outputItems[2], 1)
+                }}
+            };
+        }
 
         case PIP_REQUEST_TRANSACTION_INDEX: {
             size_t outputsCount;
@@ -350,6 +379,8 @@ messagePIPRequestOutputRelease (BREthereumPIPRequestOutput *output) {
             break;
 
         case PIP_REQUEST_HEADER_PROOF:
+            if (NULL != output->u.headerProof.path)
+                mptNodePathRelease (output->u.headerProof.path);
             break;
 
         case PIP_REQUEST_TRANSACTION_INDEX:
@@ -425,6 +456,18 @@ extern void // special case - only 'output' with allocated memory.
 messagePIPRequestHeadersOutputConsume (BREthereumPIPRequestHeadersOutput *output,
                                        BRArrayOf(BREthereumBlockHeader) *headers) {
     if (NULL != headers) { *headers = output->headers; output->headers = NULL; }
+}
+
+extern void // special case - only 'output' with allocated memory.
+messagePIPRequestHeadersProofOutputConsume (BREthereumPIPRequestHeadersOutput *output,
+                                       BRArrayOf(BREthereumBlockHeader) *headers) {
+    if (NULL != headers) { *headers = output->headers; output->headers = NULL; }
+}
+
+extern void
+messagePIPRequestHeaderProofOutputConsume (BREthereumPIPRequestHeaderProofOutput *output,
+                                           BREthereumMPTNodePath *path) {
+    if (NULL != path) { *path = output->path; output->path = NULL; }
 }
 
 /// MARK: Update Credit Parameters

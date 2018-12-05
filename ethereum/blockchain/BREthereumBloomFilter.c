@@ -164,6 +164,8 @@ bloomFilterSetBit (BREthereumBloomFilter *filter, unsigned int index) {
     filter->bytes[byteIndex] |= (1 << bitIndex);
 }
 
+#pragma clang diagnostic push
+#pragma GCC diagnostic push
 #pragma clang diagnostic ignored "-Wunused-function"
 #pragma GCC diagnostic ignored "-Wunused-function"
 static void

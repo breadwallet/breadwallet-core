@@ -3,6 +3,7 @@ package com.breadwallet.coredemo;
 import com.breadwallet.core.ethereum.BREthereumBlock;
 import com.breadwallet.core.ethereum.BREthereumEWM;
 import com.breadwallet.core.ethereum.BREthereumNetwork;
+import com.breadwallet.core.ethereum.BREthereumToken;
 import com.breadwallet.core.ethereum.BREthereumTransfer;
 import com.breadwallet.core.ethereum.BREthereumWallet;
 
@@ -35,23 +36,23 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
     }
 
     @Override
-    public void getGasPrice(int wid, int rid) {
+    public void getGasPrice(long wid, int rid) {
         ewm.announceGasPrice(wid, "0x77", rid);
     }
 
     @Override
-    public void getGasEstimate(int wid, int tid, String to, String amount, String data, int rid) {
+    public void getGasEstimate(long wid, long tid, String to, String amount, String data, int rid) {
         ewm.announceGasEstimate (wid, tid, "21000", rid);
     }
 
     @Override
-    public void getBalance(int wid, String address, int rid) {
+    public void getBalance(long wid, String address, int rid) {
         ewm.announceBalance (wid, "0xffc0", rid);
 
     }
 
     @Override
-    public void submitTransaction(int wid, int tid, String rawTransaction, int rid) {
+    public void submitTransaction(long wid, long tid, String rawTransaction, int rid) {
         ewm.announceSubmitTransaction (wid, tid, "0xffaabb", rid);
     }
 
@@ -189,6 +190,11 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
             l.announceWalletEvent(this.ewm, wallet, event);
     }
 
+    @Override
+    public void handleTokenEvent(BREthereumToken token, BREthereumEWM.TokenEvent event) {
+        System.out.println ("TST: TokenEvent: " + event.name());
+    }
+
     //
     // Block Event
     //
@@ -213,6 +219,183 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
         TransferListener l = transferListenersMap.get(wallet);
         if (null != l)
             l.announceTransferEvent(this.ewm, wallet, transaction, event);
+    }
+/*
+    protected void runTest() {
+        // Create the node; reference through this.node
+        node = new BREthereumLightNode (this, BREthereumNetwork.testnet, USABLE_PAPER_KEY, words);
+        node.addListener(this);
+        
+        node.announceToken("0x558ec3152e2eb2174905cd19aea4e34a23de9ad6",
+                           "BRD",
+                           "BRD Token",
+                           "",
+                           18,
+                           null,
+                           null,
+                           0);
+        
+        //
+        // Test body
+        //
+        
+        BREthereumWallet walletEther = node.getWallet();
+        walletEther.setDefaultUnit(BREthereumAmount.Unit.ETHER_WEI);
+        
+        asserting("0".equals(walletEther.getBalance()));
+        
+        BREthereumWallet walletToken = node.getWallet(node.getBRDToken());
+        asserting(null != walletToken.getToken()
+                  && walletToken.getToken().getSymbol().equals("BRD"));
+        walletToken.setDefaultUnit(BREthereumAmount.Unit.TOKEN_DECIMAL);
+        
+        
+        System.out.println("Connect");
+        //        node.connect();
+        
+        System.out.println("\n==== Generic & Eth Transaction ====");
+        System.out.println("Trans0");
+        BREthereumTransaction trans0 = walletEther.createTransactionGeneric(
+                                                                            "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
+                                                                            "1111300000000",
+                                                                            BREthereumAmount.Unit.ETHER_WEI,
+                                                                            "20",
+                                                                            BREthereumAmount.Unit.ETHER_GWEI,
+                                                                            "100000",
+                                                                            "0x0000000000000000000000005375b3b214efb202c93d0aa4c6270eefe7aacfd300000000000000000000000000000000000000000000010c6729f52fdb1e2000");
+        asserting(-1 == trans0.getNonce());
+        asserting ("0x0000000000000000000000000000000000000000000000000000000000000000".equals(trans0.getHash()));
+        
+        System.out.println("Trans1");
+        BREthereumTransaction trans1 = walletEther.createTransaction(
+                                                                     "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
+                                                                     "11113000000000",
+                                                                     BREthereumAmount.Unit.ETHER_WEI);
+        asserting(-1 == trans1.getNonce());
+        asserting ("0x0000000000000000000000000000000000000000000000000000000000000000".equals(trans1.getHash()));
+        
+        walletEther.sign(trans1, USABLE_PAPER_KEY);
+        //        walletEther.submit(trans1);
+        
+        asserting("11113000000000".equals(trans1.getAmount()));
+        asserting("11113.000000000".equals(trans1.getAmount(ETHER_GWEI)));
+        
+        asserting(21000 == trans1.getGasLimit());
+        asserting("0.500000000".equals(trans1.getGasPrice(ETHER_GWEI)));
+        asserting("10500.000000000".equals(trans1.getFee(ETHER_GWEI)));
+        
+        // Fee for 1 WEI is 840000 GWEI
+        asserting("10500000000000".equals(walletEther.transactionEstimatedFee("1")));
+        asserting("10500.000000000".equals(walletEther.transactionEstimatedFee("1", ETHER_ETHER, ETHER_GWEI)));
+        
+        System.out.println("\n==== Ether ====");
+        for (BREthereumTransaction transaction : walletEther.getTransactions()) {
+            System.out.println("Transaction:" +
+                               "\n        from: " + transaction.getSourceAddress() +
+                               "\n          to: " + transaction.getTargetAddress() +
+                               "\n    gasPrice: " + transaction.getGasPrice(BREthereumAmount.Unit.ETHER_WEI) +
+                               "\n    gasLimit: " + transaction.getGasLimit() +
+                               "\n     gasUsed: " + transaction.getGasUsed() +
+                               "\n       nonce: " + transaction.getNonce() +
+                               "\n   blkNumber: " + transaction.getBlockNumber() +
+                               "\n     blkTime: " + transaction.getBlockTimestamp() +
+                               "\n\n");
+        }
+        
+        System.out.println("\n==== Block ====");
+        long currentBlockHeight = node.getBlockHeight();
+        //        asserting (2966234 == currentBlockHeight);  // Set getTransactions() above.
+        
+        System.out.println("\n==== Token Transaction ====");
+        
+        BREthereumTransaction tokenTransaction1 =
+        walletToken.createTransaction(
+                                      "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
+                                      "1.2",
+                                      BREthereumAmount.Unit.TOKEN_DECIMAL);
+        walletToken.sign(tokenTransaction1, USABLE_PAPER_KEY);
+        //        walletToken.submit(tokenTransaction1);
+        
+        System.out.println("\n==== Token ====");
+        for (BREthereumTransaction transaction : walletToken.getTransactions()) {
+            System.out.println("Transaction:" +
+                               "\n    from: " + transaction.getSourceAddress() +
+                               "\n      to: " + transaction.getTargetAddress() +
+                               "\n   nonce: " + transaction.getNonce() +
+                               "\n\n");
+        }
+        BREthereumToken t1 = node.lookupToken(node.getBRDToken().getAddress());
+        asserting (t1.getSymbol().equals(node.getBRDToken().getSymbol()));
+        
+        // Wait until balance updates.
+        String etherBalanceWEI = "4671"; // 0x123f
+        String etherBalanceGWEI = "0.000004671"; // 0x123f
+        asserting(etherBalanceWEI.equals(walletEther.getBalance()));
+        asserting(etherBalanceWEI.equals(walletEther.getBalance(BREthereumAmount.Unit.ETHER_WEI)));
+        asserting(etherBalanceGWEI.equals(walletEther.getBalance(BREthereumAmount.Unit.ETHER_GWEI)));
+        
+        String tokenBalanceInteger = "4671";
+        String tokenBalanceDecimal18 = "0.000000000000004671";
+        asserting(tokenBalanceInteger.equals(walletToken.getBalance(BREthereumAmount.Unit.TOKEN_INTEGER)));
+        asserting(tokenBalanceDecimal18.equals(walletToken.getBalance(BREthereumAmount.Unit.TOKEN_DECIMAL)));
+        
+        walletEther.estimateGasPrice();
+        walletEther.estimateGas(trans1);
+        //
+        // Private Key
+        //
+        System.out.println("PrivateKey");
+        byte[] privateKey = node.getAccount().getPrimaryAddressPrivateKey(USABLE_PAPER_KEY);
+        BREthereumTransaction tokenTransaction2 =
+        walletToken.createTransaction(
+                                      "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
+                                      "1.2",
+                                      BREthereumAmount.Unit.TOKEN_DECIMAL);
+        walletToken.signWithPrivateKey(tokenTransaction1, privateKey);
+        
+        // Tokens
+        //
+        for (BREthereumToken token : node.getTokens())
+            System.out.println("Token: " + token.getSymbol() + ", " + token.getName() +
+                               ", " + token.getAddress() +
+                               ", " + token.getDecimals());
+        
+        //
+        // Disconnect
+        //
+        System.out.println ("Disconnect (wait...)");
+        //        node.disconnect();
+        
+        //
+        // Public Key
+        //
+        byte[] publicKey = node.getAddressPublicKey();
+        asserting(65 == publicKey.length);
+        
+        BREthereumLightNode node1 = this.node;
+        BREthereumLightNode node2 = new BREthereumLightNode (this, BREthereumNetwork.testnet, publicKey);
+        asserting (node1.getAddress().equals(node2.getAddress()));
+        
+        this.node = null;
+    }
+ */
+    private static boolean runMain = true;
+    
+    public static void main(String[] args) {
+        if (!runMain)return;
+        runMain = false;
+ /*
+        new BREthereumLightNodeClientTest()
+        .runTest();
+ */
+        System.out.println("Success");
+        System.exit(0);
+    }
+    
+    private static void asserting (boolean assertion) {
+        if (!assertion) {
+            throw new AssertionError();
+        }
     }
 
     private static String[] words = {

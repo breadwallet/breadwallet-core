@@ -30,7 +30,7 @@
 extern "C" {
 #endif
 
-#include "BRInt.h"
+#include "../../BRInt.h"
 
 #if LITTLE_ENDIAN != BYTE_ORDER
 #error "Must be a `LITTLE ENDIAN` cpu architecture"
@@ -157,6 +157,13 @@ extern UInt256
 coerceUInt256 (UInt512  x, int *overflow);
 
 /**
+ * Coerce `x`, a UInt256, to a uint64_t.  If `x` is too big then overflow is set to 1 and
+ * zero is returned.
+ */
+extern uint64_t
+coerceUInt64 (UInt256 x, int *overflow);
+
+/**
  * Returns the string representation of `x` in `base`.  No matter the base, the returned string
  * will be in big-endian format.
  *
@@ -238,9 +245,9 @@ leUInt256 (UInt256 x, UInt256 y) {
 extern int
 compareUInt256 (UInt256 x, UInt256 y);
 
-  //
-  // Parsing
-  //
+//
+// Parsing
+//
 extern BRCoreParseStatus
 parseIsInteger (const char *number);
 

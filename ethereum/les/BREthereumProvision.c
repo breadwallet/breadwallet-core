@@ -31,6 +31,7 @@ extern BREthereumLESMessageIdentifier
 provisionGetMessageLESIdentifier (BREthereumProvisionType type) {
     switch (type) {
         case PROVISION_BLOCK_HEADERS:        return LES_MESSAGE_GET_BLOCK_HEADERS;
+        case PROVISION_BLOCK_PROOFS:         return -1;
         case PROVISION_BLOCK_BODIES:         return LES_MESSAGE_GET_BLOCK_BODIES;
         case PROVISION_TRANSACTION_RECEIPTS: return LES_MESSAGE_GET_RECEIPTS;
         case PROVISION_ACCOUNTS:             return LES_MESSAGE_GET_PROOFS_V2;
@@ -43,12 +44,28 @@ extern BREthereumPIPRequestType
 provisionGetMessagePIPIdentifier (BREthereumProvisionType type) {
     switch (type) {
         case PROVISION_BLOCK_HEADERS:        return PIP_REQUEST_HEADERS;
+        case PROVISION_BLOCK_PROOFS:         return PIP_REQUEST_HEADER_PROOF;
         case PROVISION_BLOCK_BODIES:         return PIP_REQUEST_BLOCK_BODY;
         case PROVISION_TRANSACTION_RECEIPTS: return PIP_REQUEST_BLOCK_RECEIPTS;
         case PROVISION_ACCOUNTS:             return PIP_REQUEST_ACCOUNT;
         case PROVISION_TRANSACTION_STATUSES: return PIP_REQUEST_TRANSACTION_INDEX;
         case PROVISION_SUBMIT_TRANSACTION:   assert (0); return -1;
     }
+}
+
+extern const char *
+provisionGetTypeName (BREthereumProvisionType type) {
+    static const char *names[] = {
+        "Headers",
+        "Proofs",
+        "Bodies",
+        "Receipts",
+        "Accounts",
+        "Statuses",
+        "Submit"
+    };
+
+    return names[type];
 }
 
 /// MARK: - LES
@@ -84,6 +101,10 @@ provisionCreateMessageLES (BREthereumProvision *provisionMulti,
                         ETHEREUM_BOOLEAN_IS_TRUE (provision->reverse)
                     }}}}
             };
+        }
+
+        case PROVISION_BLOCK_PROOFS: {
+            assert (0);
         }
 
         case PROVISION_BLOCK_BODIES: {
@@ -208,12 +229,15 @@ provisionCreateMessageLES (BREthereumProvision *provisionMulti,
                 case 0: {
                     BRArrayOf(BREthereumTransaction) transactions;
                     array_new (transactions, 1);
-                    array_add (transactions, provision->transaction);
+
+                    // TODO: We don't have a way to avoid consuming 'transactions' - so copy
+                    // the transaction thereby allow a complete release.
+                    array_add (transactions, transactionCopy (provision->transaction));
 
                     return (BREthereumMessage) {
                         MESSAGE_LES,
                         { .les = {
-                            LES_MESSAGE_SEND_TX,
+                            LES_MESSAGE_SEND_TX2,
                             { .sendTx2 = { messageId, transactions }}}}
                     };
                 }
@@ -261,6 +285,10 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
             break;
         }
 
+        case PROVISION_BLOCK_PROOFS: {
+            assert (0);
+        }
+
         case PROVISION_BLOCK_BODIES: {
             assert (LES_MESSAGE_BLOCK_BODIES == message.identifier);
 
@@ -302,7 +330,8 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
         case PROVISION_ACCOUNTS: {
             assert (LES_MESSAGE_PROOFS == message.identifier);
             BREthereumProvisionAccounts *provision = &provisionMulti->u.accounts;
-            BREthereumHash key = addressGetHash(provision->address);
+            BREthereumHash hash = addressGetHash(provision->address);
+            BREthereumData key  = { sizeof(BREthereumHash), hash.bytes };
 
             // We'll fill this - at the proper index if a multiple provision.
             BRArrayOf(BREthereumAccountState) provisionAccounts = provision->accounts;
@@ -314,8 +343,8 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
 
             // We need a coder to RLP decode the proof's RLP data into an AccountState.  We could,
             // and probably should, pass the coder for LES all the way down here.  It is a long
-            // way done... so we'll create one.  In fact, this is insufficient, because the LES
-            // coder has network and perhaps other context.
+            // way down... so we'll create one.  In fact, this is insufficient, because the LES
+            // coder has network and perhaps other context - although that is not needed here.
             //
             // We could add a coder to the BREthereumProvisionAccounts... yes, probably should.
             BRRlpCoder coder = rlpCoderCreate();
@@ -405,6 +434,38 @@ provisionCreateMessagePIP (BREthereumProvision *provisionMulti,
             BRArrayOf(BREthereumPIPRequestInput) inputs;
             array_new (inputs, 1);
             array_add (inputs, input);
+
+            return (BREthereumMessage) {
+                MESSAGE_PIP,
+                { .pip = {
+                    PIP_MESSAGE_REQUEST,
+                    { .request = { messageId, inputs }}}}
+            };
+        }
+
+        case PROVISION_BLOCK_PROOFS: {
+            BREthereumProvisionProofs *provision = &provisionMulti->u.proofs;
+
+            BRArrayOf(uint64_t) numbers = provision->numbers;
+            size_t numbersCount = array_count(numbers);
+
+            if (NULL == provision->proofs) {
+                array_new (provision->proofs, numbersCount);
+                array_set_count (provision->proofs, numbersCount);
+            }
+
+            size_t numbersOffset = index * messageContentLimit;
+
+            BRArrayOf(BREthereumPIPRequestInput) inputs;
+            array_new (inputs, messageContentLimit);
+
+            for (size_t i = 0; i < minimum (messageContentLimit, numbersCount - numbersOffset); i++) {
+                BREthereumPIPRequestInput input = {
+                    PIP_REQUEST_HEADER_PROOF,
+                    { .headerProof = { numbers[numbersOffset + i]}}
+                };
+                array_add (inputs, input);
+            }
 
             return (BREthereumMessage) {
                 MESSAGE_PIP,
@@ -542,11 +603,16 @@ provisionCreateMessagePIP (BREthereumProvision *provisionMulti,
         case PROVISION_SUBMIT_TRANSACTION: {
             BREthereumProvisionSubmission *provision = &provisionMulti->u.submission;
 
+            // We have two messages to submit a transaction, but only one response.  The response
+            // needs the proper messageIdentifier in order to be pair with this provision.
             switch (index) {
                 case 0: {
                     BRArrayOf(BREthereumTransaction) transactions;
                     array_new (transactions, 1);
-                    array_add (transactions, provision->transaction);
+
+                    // TODO: We don't have a way to avoid consuming 'transactions' - so copy
+                    // the transaction thereby allow a complete release.
+                    array_add (transactions, transactionCopy (provision->transaction));
 
                     return (BREthereumMessage) {
                         MESSAGE_PIP,
@@ -610,6 +676,47 @@ provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
 
             array_free (messageHeaders);
             array_free (outputs);
+            break;
+        }
+
+        case PROVISION_BLOCK_PROOFS: {
+            BREthereumProvisionProofs *provision = &provisionMulti->u.proofs;
+            BRArrayOf(BREthereumBlockHeaderProof) provisionProofs = provision->proofs;
+
+            BREthereumProvisionIdentifier identifier = messagePIPGetRequestId(&message);
+
+            BRArrayOf(BREthereumPIPRequestOutput) outputs = NULL;
+            messagePIPResponseConsume (&message.u.response, &outputs);
+
+            BRRlpCoder coder = rlpCoderCreate();
+
+            size_t offset = messageContentLimit * (identifier - messageIdBase);
+            for (size_t index = 0; index < array_count(outputs); index++) {
+                assert (PIP_REQUEST_HEADER_PROOF == outputs[index].identifier);
+
+                // The MPT 'key' is the RLP encoding of the block number
+                BRRlpItem item = rlpEncodeUInt64(coder, provision->numbers[index], 0);
+                BRRlpData data = rlpGetDataSharedDontRelease (coder, item);
+                BREthereumData key = { data.bytesCount, data.bytes };
+
+                BREthereumMPTNodePath path; // = outputs[index].u.headerProof.path;
+
+                messagePIPRequestHeaderProofOutputConsume (&outputs[index].u.headerProof, &path);
+
+                if (ETHEREUM_BOOLEAN_IS_TRUE (mptNodePathIsValid (path, key))) {
+                    provisionProofs[offset + index].hash = outputs[index].u.headerProof.blockHash;
+                    provisionProofs[offset + index].totalDifficulty = outputs[index].u.headerProof.blockTotalDifficulty;
+                }
+                else {
+                    provisionProofs[offset + index].hash = (BREthereumHash) EMPTY_HASH_INIT;
+                    provisionProofs[offset + index].totalDifficulty = UINT256_ZERO;
+                }
+
+                rlpReleaseItem (coder, item);
+                mptNodePathRelease (path);
+            }
+            array_free (outputs);
+            rlpCoderRelease(coder);
             break;
         }
 
@@ -702,6 +809,28 @@ provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
         }
 
         case PROVISION_SUBMIT_TRANSACTION: {
+            BREthereumProvisionSubmission *provision = &provisionMulti->u.submission;
+
+            BRArrayOf(BREthereumPIPRequestOutput) outputs = NULL;
+            messagePIPResponseConsume(&message.u.response, &outputs);
+
+            switch (array_count(outputs)) {
+                case 0:
+                    // TODO: probably 'unknown'
+                    provision->status = transactionStatusCreate (TRANSACTION_STATUS_QUEUED);
+                    break;
+
+                case 1:
+                    provision->status =
+                    transactionStatusCreateIncluded (gasCreate(0),
+                                                     outputs[0].u.transactionIndex.blockHash,
+                                                     outputs[0].u.transactionIndex.blockNumber,
+                                                     outputs[0].u.transactionIndex.transactionIndex);
+                default:
+                    assert(0);
+            }
+
+            array_free (outputs);
             break;
         }
     }
@@ -731,6 +860,88 @@ provisionCreateMessage (BREthereumProvision *provision,
     }
 }
 
+static BRArrayOf(uint64_t)
+numbersCopy (BRArrayOf(uint64_t) numbers) {
+    BRArrayOf(uint64_t) result;
+    array_new (result, array_count(numbers));
+    array_add_array(result, numbers, array_count(numbers));
+    return result;
+}
+
+extern BREthereumProvision
+provisionCopy (BREthereumProvision *provision,
+               BREthereumBoolean copyResults) {
+    assert (ETHEREUM_BOOLEAN_FALSE == copyResults); // for now,
+    switch (provision->type) {
+        case PROVISION_BLOCK_HEADERS:
+            return (BREthereumProvision) {
+                provision->identifier,
+                provision->type,
+                { .headers = {
+                    provision->u.headers.start,
+                    provision->u.headers.skip,
+                    provision->u.headers.limit,
+                    provision->u.headers.reverse,
+                    NULL }}
+            };
+
+        case PROVISION_BLOCK_PROOFS:
+            return (BREthereumProvision) {
+                provision->identifier,
+                provision->type,
+                { .proofs = {
+                    numbersCopy(provision->u.proofs.numbers),
+                    NULL }}
+            };
+
+        case PROVISION_BLOCK_BODIES:
+            return (BREthereumProvision) {
+                provision->identifier,
+                provision->type,
+                { .bodies = {
+                    hashesCopy(provision->u.bodies.hashes),
+                    NULL }}
+            };
+
+       case PROVISION_TRANSACTION_RECEIPTS:
+            return (BREthereumProvision) {
+                provision->identifier,
+                provision->type,
+                { .receipts = {
+                    hashesCopy(provision->u.receipts.hashes),
+                    NULL }}
+            };
+
+        case PROVISION_ACCOUNTS:
+            return (BREthereumProvision) {
+                provision->identifier,
+                provision->type,
+                { .accounts = {
+                    provision->u.accounts.address,
+                    hashesCopy(provision->u.accounts.hashes),
+                    NULL }}
+            };
+
+        case PROVISION_TRANSACTION_STATUSES:
+            return (BREthereumProvision) {
+                provision->identifier,
+                provision->type,
+                { .statuses = {
+                    hashesCopy(provision->u.statuses.hashes),
+                    NULL }}
+            };
+
+        case PROVISION_SUBMIT_TRANSACTION:
+            return (BREthereumProvision) {
+                provision->identifier,
+                provision->type,
+                { .submission = {
+                    transactionCopy (provision->u.submission.transaction),
+                    (BREthereumTransactionStatus) {} }}
+            };
+    }
+}
+
 extern void
 provisionRelease (BREthereumProvision *provision,
                   BREthereumBoolean releaseResults) {
@@ -742,6 +953,13 @@ provisionRelease (BREthereumProvision *provision,
                 blockHeadersRelease(provision->u.headers.headers);
             break;
 
+        case PROVISION_BLOCK_PROOFS:
+            if (NULL != provision->u.proofs.numbers)
+                array_free (provision->u.proofs.numbers);
+            if (ETHEREUM_BOOLEAN_IS_TRUE(releaseResults) && NULL != provision->u.proofs.proofs)
+                array_free (provision->u.proofs.proofs);
+            break;
+            
         case PROVISION_BLOCK_BODIES:
             if (NULL != provision->u.bodies.hashes)
                 array_free (provision->u.bodies.hashes);
@@ -788,6 +1006,14 @@ provisionHeadersConsume (BREthereumProvisionHeaders *provision,
         *headers = provision->headers;
         provision->headers = NULL;
     }
+}
+
+extern void
+provisionProofsConsume (BREthereumProvisionProofs *provision,
+                        BRArrayOf(uint64_t) *numbers,
+                        BRArrayOf(BREthereumBlockHeaderProof) *proofs) {
+    if (NULL != numbers) { *numbers = provision->numbers; provision->numbers = NULL; }
+    if (NULL != proofs ) { *proofs  = provision->proofs ; provision->proofs  = NULL; }
 }
 
 extern void

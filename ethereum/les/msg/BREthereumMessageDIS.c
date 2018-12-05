@@ -382,8 +382,10 @@ typedef struct {
 } BREthereumDISMessagePacket;
 
 #if defined (__ANDROID__)
-#else
+#elif defined (static_assert)
 static_assert (98 == sizeof (BREthereumDISMessagePacket), "BREthereumDISMessagePacket must be 98 bytes");
+#else
+#warning "Missed static_assert()"
 #endif
 
 extern BREthereumDISMessage

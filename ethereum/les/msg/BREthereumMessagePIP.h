@@ -29,6 +29,7 @@
 #include "../BREthereumLESBase.h"
 #include "../../blockchain/BREthereumBlockChain.h"
 #include "BREthereumMessageP2P.h"       // BREthereumP2PMessageStatus
+#include "../../mpt/BREthereumMPT.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -83,9 +84,14 @@ typedef struct {
 
 typedef struct {
     // [U8](U8) // merkle inclusion proof from CHT
+    BREthereumMPTNodePath path;
     BREthereumHash blockHash;
     UInt256 blockTotalDifficulty;
 } BREthereumPIPRequestHeaderProofOutput;
+
+extern void
+messagePIPRequestHeaderProofOutputConsume (BREthereumPIPRequestHeaderProofOutput *output,
+                                           BREthereumMPTNodePath *path);
 
 /// Transaction Index
 

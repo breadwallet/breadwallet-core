@@ -131,3 +131,20 @@ hashFillString (BREthereumHash hash,
     string[1] = 'x';
     encodeHex(&string[2], 2 * ETHEREUM_HASH_BYTES + 1, hash.bytes, ETHEREUM_HASH_BYTES);
 }
+
+extern BRArrayOf(BREthereumHash)
+hashesCopy (BRArrayOf(BREthereumHash) hashes) {
+    BRArrayOf(BREthereumHash) result;
+    array_new (result, array_count(hashes));
+    array_add_array (result, hashes, array_count(hashes));
+    return result;
+}
+
+extern ssize_t
+hashesIndex (BRArrayOf(BREthereumHash) hashes,
+              BREthereumHash hash) {
+    for (size_t index = 0; index < array_count(hashes); index++)
+        if (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual (hash, hashes[index])))
+            return index;
+    return -1;
+}

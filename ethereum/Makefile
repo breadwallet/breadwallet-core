@@ -1,4 +1,3 @@
-
 CORE_SRCS=../BRAddress.c \
 	../BRBIP32Sequence.c \
 	../BRBIP38Key.c \
@@ -20,18 +19,21 @@ CORE_SRCS=../BRAddress.c \
 
 CORE_OBJS=$(CORE_SRCS:.c=.o)
 
-ETH_SRCS=./BREthereum.c \
-	./BREthereumAccount.c \
-	./BREthereumWallet.c \
+ETH_SRCS=./rlp/BRRlpCoder.c \
+	./util/BRKeccak.c \
+	./util/BRUtilHex.c \
+	./util/BRUtilMath.c \
+	./util/BRUtilMathParse.c \
+	./event/BREvent.c \
+	./event/BREventAlarm.c \
+	./event/BREventQueue.c \
 	./base/BREthereumAddress.c \
+	./base/BREthereumData.c \
 	./base/BREthereumEther.c \
 	./base/BREthereumGas.c \
 	./base/BREthereumHash.c \
 	./base/BREthereumSignature.c \
-	./bcs/BREthereumBCS.c \
-	./bcs/BREthereumBCSEvent.c \
 	./blockchain/BREthereumAccountState.c \
-	./blockchain/BREthereumAmount.c \
 	./blockchain/BREthereumBlock.c \
 	./blockchain/BREthereumBloomFilter.c \
 	./blockchain/BREthereumLog.c \
@@ -39,33 +41,30 @@ ETH_SRCS=./BREthereum.c \
 	./blockchain/BREthereumTransaction.c \
 	./blockchain/BREthereumTransactionReceipt.c \
 	./blockchain/BREthereumTransactionStatus.c \
+	./mpt/BREthereumMPT.c \
 	./contract/BREthereumContract.c \
 	./contract/BREthereumToken.c \
-	./les/BREthereumEndpoint.c \
-	./les/BREthereumFrameCoder.c \
-	./les/BREthereumHandshake.c \
 	./les/BREthereumLES.c \
-	./les/BREthereumLESBase.c \
-	./les/BREthereumLESCoder.c \
+	./les/BREthereumLESFrameCoder.c \
+	./les/BREthereumLESRandom.c \
+	./les/BREthereumMessage.c \
 	./les/BREthereumNode.c \
-	./les/BREthereumNodeDiscovery.c \
-	./les/BREthereumNodeEventHandler.c \
-	./les/BREthereumNodeManager.c \
-	./les/BREthereumP2PCoder.c \
-	./les/BREthereumRandom.c \
+	./les/BREthereumNodeEndpoint.c \
+	./les/BREthereumProvision.c \
+	./les/msg/BREthereumMessageDIS.c \
+	./les/msg/BREthereumMessageLES.c \
+	./les/msg/BREthereumMessageP2P.c \
+	./les/msg/BREthereumMessagePIP.c \
+	./bcs/BREthereumBCS.c \
+	./bcs/BREthereumBCSEvent.c \
+	./bcs/BREthereumBCSSync.c \
+	./ewm/BREthereumAccount.c \
+	./ewm/BREthereumAmount.c \
 	./ewm/BREthereumEWM.c \
 	./ewm/BREthereumEWMClient.c \
-	./ewm/BREthereumEWMClientEvent.c \
 	./ewm/BREthereumEWMEvent.c \
-	./event/BREvent.c \
-	./event/BREventQueue.c \
-	./event/BREventAlarm.c \
-	./rlp/BRRlpCoder.c \
-	./util/BRUtilHex.c \
-	./util/BRUtilMath.c \
-	./util/BRUtilMathParse.c \
-	./util/BRKeccak.c
-
+	./ewm/BREthereumTransfer.c \
+	./ewm/BREthereumWallet.c
 
 ETH_OBJS=$(ETH_SRCS:.c=.o)
 
@@ -85,7 +84,7 @@ test:	build
 	./test
 
 build: clean
-	cc -o test -Wno-format-extra-args -Wno-nullability-completeness -Wno-unknown-warning-option \
+	gcc -o test -Wno-format-extra-args -Wno-nullability-completeness -Wno-unknown-warning-option \
 		-I/usr/include -I/usr/include/malloc -I/usr/include/machine -I../secp256k1 -I.. \
 		-I. -I../secp256k1/include \
 		-DDEBUG -DBITCOIN_DEBUG=1 -DTEST_ETHEREUM_NEED_MAIN \

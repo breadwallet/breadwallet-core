@@ -40,14 +40,13 @@ public class BRCoreTransaction extends BRCoreJniReference {
      */
     protected boolean isRegistered = false;
 
-    public BRCoreTransaction (byte[] buffer) {
-        this (createJniCoreTransactionSerialized (buffer));
-        // ...
+
+    public BRCoreTransaction (byte[] buffer) throws FailedToParse {
+        this (createJniCoreTransactionSerializedOrError (buffer));
     }
 
-    public BRCoreTransaction (byte[] buffer, long blockHeight, long timeStamp ) {
-        this (createJniCoreTransaction (buffer, blockHeight, timeStamp));
-        // ...
+    public BRCoreTransaction (byte[] buffer, long blockHeight, long timeStamp) throws FailedToParse {
+        this (createJniCoreTransactionOrError (buffer, blockHeight, timeStamp));
     }
 
     public BRCoreTransaction () {
@@ -230,4 +229,27 @@ public class BRCoreTransaction extends BRCoreJniReference {
     private static native long createJniCoreTransactionSerialized (byte[] buffer);
 
     private static native long createJniCoreTransactionEmpty ();
+
+    private static long createJniCoreTransactionOrError(byte[] buffer, long blockHeight, long timeStamp)
+            throws FailedToParse {
+        long jniReferenceAddress = createJniCoreTransaction(buffer, blockHeight, timeStamp);
+        if (0 == jniReferenceAddress)
+            throw new FailedToParse();
+        return jniReferenceAddress;
+    }
+
+    private static long createJniCoreTransactionSerializedOrError(byte[] buffer)
+            throws FailedToParse {
+        long jniReferenceAddress = createJniCoreTransactionSerialized (buffer);
+        if (0 == jniReferenceAddress)
+            throw new FailedToParse();
+        return jniReferenceAddress;
+    }
+
+    /**
+     * A Transaction-specific failure to parse.  A `byte[] buffer` could not be parsed into
+     * a transaction.  If recovering from persistently stored data, a sync must be started which
+     * will discard existing apparently-corrupted transactions and recreate new ones.
+     */
+    public static class FailedToParse extends Exception {}
 }

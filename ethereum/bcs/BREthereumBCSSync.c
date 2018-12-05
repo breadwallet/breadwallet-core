@@ -956,6 +956,9 @@ bcsSyncHandleProvision (BREthereumBCSSyncRange range,
                     break;
                 }
 
+                case PROVISION_BLOCK_PROOFS:
+                    assert (0);
+                    
                 case PROVISION_BLOCK_BODIES:
                     assert (0);
 
