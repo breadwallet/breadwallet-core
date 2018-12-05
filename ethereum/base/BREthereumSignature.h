@@ -99,6 +99,10 @@ signatureExtractAddress (const BREthereumSignature signature,
 extern BREthereumBoolean
 signatureEqual (BREthereumSignature s1, BREthereumSignature s2);
 
+extern void
+signatureClear (BREthereumSignature *s,
+                BREthereumSignatureType type);
+
 #ifdef __cplusplus
 }
 #endif
