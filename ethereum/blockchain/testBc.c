@@ -476,7 +476,7 @@ runBlockTests (void) {
 
 extern void
 runBcTests (void) {
-    runBloomTests();
+//    runBloomTests();
     runBlockHeaderTests ();
     runBlockTests();
     runLogTests();
