@@ -30,6 +30,7 @@ static void
 networkInitilizeAllIfAppropriate (void);
 
 struct BREthereumNetworkRecord {
+    const char *name;
     int chainId;
     BREthereumHash genesisBlockHeaderHash;
     BREthereumHash trustedCheckpointBlockHeaderHash;
@@ -53,6 +54,10 @@ networkGetTrustedCheckpointBlockHeaderHash (BREthereumNetwork network) {
     return network->trustedCheckpointBlockHeaderHash;
 }
 
+extern const char *
+networkGetName (BREthereumNetwork network) {
+    return network->name;
+}
 //
 // MARK: - Static Network Definitions
 //
@@ -61,6 +66,7 @@ networkGetTrustedCheckpointBlockHeaderHash (BREthereumNetwork network) {
 // Mainnet
 //
 static struct BREthereumNetworkRecord ethereumMainnetRecord = {
+    "Mainnet",
     1,
     EMPTY_HASH_INIT,
     EMPTY_HASH_INIT
@@ -87,6 +93,7 @@ MainnetChainConfig = &ChainConfig{
 // Testnet
 //
 static struct BREthereumNetworkRecord ethereumTestnetRecord = {
+    "Testnet",
     3,
     EMPTY_HASH_INIT,
     EMPTY_HASH_INIT
@@ -112,6 +119,7 @@ TestnetChainConfig = &ChainConfig{
 // Rinkeby
 //
 static struct BREthereumNetworkRecord ethereumRinkebyRecord = {
+    "Rinkeby",
     4,
     EMPTY_HASH_INIT,
     EMPTY_HASH_INIT

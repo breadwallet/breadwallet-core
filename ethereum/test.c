@@ -67,12 +67,13 @@ extern void runContractTests (void);
 extern void runLEStests(void);
 
 // EWM
-extern void runEWMTests (void);
+extern void runEWMTests (const char *paperKey);
 
-extern void runSyncTest (const char *paperKey,
+extern void runSyncTest (BREthereumAccount account,
                          BREthereumMode mode,
                          BREthereumTimestamp accountTimestamp,
                          unsigned int durationInSeconds,
+                         const char *storagePath,
                          int restart);
 
 extern const char *tokenBRDAddress;

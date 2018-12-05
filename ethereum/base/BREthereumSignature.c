@@ -140,3 +140,10 @@ signatureExtractAddress(const BREthereumSignature signature,
             ? (BREthereumAddress) EMPTY_ADDRESS_INIT
             : addressCreateKey(&key));
 }
+
+extern void
+signatureClear (BREthereumSignature *s,
+                BREthereumSignatureType type) {
+    memset (s, 0, sizeof (BREthereumSignature));
+    s->type = type;
+}

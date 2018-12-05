@@ -25,12 +25,13 @@ extern void runBcTests (void);
 extern void runContractTests (void);
 
 // EWM
-extern void runEWMTests (void);
+extern void runEWMTests (const char *paperKey);
 
-extern void runSyncTest (const char *paperKey,
+extern void runSyncTest (BREthereumAccount account,
                          BREthereumMode mode,
-                         uint64_t timestamp,
+                         BREthereumTimestamp accountTimestamp,
                          unsigned int durationInSeconds,
+                         const char *storagePath,
                          int restart);
 
 // LES
