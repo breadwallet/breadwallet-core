@@ -888,7 +888,8 @@ nodeHandleProvisionerMessage (BREthereumNode node,
                                    provisioner->provision.identifier,
                                    provisioner->provision.type,
                                    PROVISION_SUCCESS,
-                                   { .success = { provisioner->provision }}
+                                   provisioner->provision,
+                                   { .success = { }}
                                });
         // ... and remove the provisioner
         for (size_t index = 0; index < array_count (node->provisioners); index++)

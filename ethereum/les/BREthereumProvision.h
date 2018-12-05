@@ -232,10 +232,11 @@ typedef struct {
     BREthereumProvisionIdentifier identifier;
     BREthereumProvisionType type;
     BREthereumProvisionStatus status;
+    BREthereumProvision provision;
+
     union {
         // success - the provision
         struct {
-            BREthereumProvision provision;
         } success;
 
         // error - the error reason

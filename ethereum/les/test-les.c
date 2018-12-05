@@ -269,7 +269,7 @@ _checkBlockHeaderWithTest (BREthereumLESProvisionContext context,
     assert (PROVISION_BLOCK_HEADERS == result.type);
     assert (PROVISION_SUCCESS == result.status);
 
-    BRArrayOf(BREthereumBlockHeader) headers = result.u.success.provision.u.headers.headers;
+    BRArrayOf(BREthereumBlockHeader) headers = result.provision.u.headers.headers;
     assert (count == array_count (headers));
 
     assert(ETHEREUM_BOOLEAN_IS_TRUE(_checkBlockHeader (headers[0], expectedHash, expectedBlockNumber, expectedDifficulty, expectedGasUsed, expectedParenthash)));
@@ -290,7 +290,7 @@ void _GetBlockHeaders_Calllback_Test5 (BREthereumLESProvisionContext context,
     _checkBlockHeaderWithTest (context, result, &_blockHeaderTestData[_GetBlockHeaders_Context4], 200);
 
     // Monotonically increasing header block number.
-    BRArrayOf(BREthereumBlockHeader) headers = result.u.success.provision.u.headers.headers;
+    BRArrayOf(BREthereumBlockHeader) headers = result.provision.u.headers.headers;
     for (size_t index = 0; index < 200; index++)
         assert (index == (blockHeaderGetNumber(headers[index]) - blockHeaderGetNumber(headers[0])));
 
@@ -417,7 +417,7 @@ void _GetBlockProofs_Calllback_Test1 (BREthereumLESProvisionContext context,
 
     assert (PROVISION_BLOCK_PROOFS == result.type);
     assert (PROVISION_SUCCESS == result.status);
-    BRArrayOf(BREthereumBlockHeaderProof) proofs = result.u.success.provision.u.proofs.proofs;
+    BRArrayOf(BREthereumBlockHeaderProof) proofs = result.provision.u.proofs.proofs;
 
     assert (1 == array_count (proofs));
 
@@ -461,10 +461,10 @@ _GetTxStatus_Test2_Callback (BREthereumLESProvisionContext context,
                                         BREthereumNodeReference node,
                                         BREthereumProvisionResult result) {
     assert (PROVISION_SUCCESS == result.status);
-    assert (PROVISION_TRANSACTION_STATUSES == result.u.success.provision.type);
+    assert (PROVISION_TRANSACTION_STATUSES == result.provision.type);
 
-    BRArrayOf(BREthereumHash) hashes = result.u.success.provision.u.statuses.hashes;
-    BRArrayOf(BREthereumTransactionStatus) statusesByHash = result.u.success.provision.u.statuses.statuses;
+    BRArrayOf(BREthereumHash) hashes = result.provision.u.statuses.hashes;
+    BRArrayOf(BREthereumTransactionStatus) statusesByHash = result.provision.u.statuses.statuses;
 
     assert (2 == array_count(hashes));
     assert (2 == array_count(statusesByHash));
@@ -520,10 +520,10 @@ _GetTxStatus_Test1_Callback (BREthereumLESProvisionContext context,
     // BREthereumTransactionStatus status){
 
     assert (PROVISION_SUCCESS == result.status);
-    assert (PROVISION_TRANSACTION_STATUSES == result.u.success.provision.type);
+    assert (PROVISION_TRANSACTION_STATUSES == result.provision.type);
 
-    BRArrayOf(BREthereumHash) hashes = result.u.success.provision.u.statuses.hashes;
-    BRArrayOf(BREthereumTransactionStatus) statusesByHash = result.u.success.provision.u.statuses.statuses;
+    BRArrayOf(BREthereumHash) hashes = result.provision.u.statuses.hashes;
+    BRArrayOf(BREthereumTransactionStatus) statusesByHash = result.provision.u.statuses.statuses;
 
     assert (1 == array_count(hashes));
     assert (1 == array_count(statusesByHash));
@@ -609,10 +609,10 @@ _GetBlockBodies_Callback_Test1 (BREthereumLESProvisionContext context,
                                            BREthereumNodeReference node,
                                            BREthereumProvisionResult result) {
     assert (PROVISION_SUCCESS == result.status);
-    assert (PROVISION_BLOCK_BODIES == result.u.success.provision.type);
+    assert (PROVISION_BLOCK_BODIES == result.provision.type);
 
-    BRArrayOf(BREthereumHash) hashes = result.u.success.provision.u.bodies.hashes;
-    BRArrayOf(BREthereumBlockBodyPair) pairs = result.u.success.provision.u.bodies.pairs;
+    BRArrayOf(BREthereumHash) hashes = result.provision.u.bodies.hashes;
+    BRArrayOf(BREthereumBlockBodyPair) pairs = result.provision.u.bodies.pairs;
 
     assert (1 == array_count(hashes));
     assert (1 == array_count(pairs));
@@ -639,10 +639,10 @@ _GetBlockBodies_Callback_Test2 (BREthereumLESProvisionContext context,
                                 BREthereumNodeReference node,
                                 BREthereumProvisionResult result) {
     assert (PROVISION_SUCCESS == result.status);
-    assert (PROVISION_BLOCK_BODIES == result.u.success.provision.type);
+    assert (PROVISION_BLOCK_BODIES == result.provision.type);
 
-    BRArrayOf(BREthereumHash) hashes = result.u.success.provision.u.bodies.hashes;
-    BRArrayOf(BREthereumBlockBodyPair) pairs = result.u.success.provision.u.bodies.pairs;
+    BRArrayOf(BREthereumHash) hashes = result.provision.u.bodies.hashes;
+    BRArrayOf(BREthereumBlockBodyPair) pairs = result.provision.u.bodies.pairs;
 
     assert (2 == array_count(hashes));
     assert (2 == array_count(pairs));
@@ -708,10 +708,10 @@ _GetReceipts_Callback_Test1 (BREthereumLESProvisionContext context,
                              BREthereumNodeReference node,
                              BREthereumProvisionResult result) {
     assert (PROVISION_SUCCESS == result.status);
-    assert (PROVISION_TRANSACTION_RECEIPTS == result.u.success.provision.type);
+    assert (PROVISION_TRANSACTION_RECEIPTS == result.provision.type);
 
-    BRArrayOf(BREthereumHash) hashes = result.u.success.provision.u.receipts.hashes;
-    BRArrayOf(BRArrayOf(BREthereumTransactionReceipt)) receiptsByHash = result.u.success.provision.u.receipts.receipts;
+    BRArrayOf(BREthereumHash) hashes = result.provision.u.receipts.hashes;
+    BRArrayOf(BRArrayOf(BREthereumTransactionReceipt)) receiptsByHash = result.provision.u.receipts.receipts;
 
     assert (1 == array_count(hashes));
     assert (1 == array_count(receiptsByHash));
@@ -738,10 +738,10 @@ _GetReceipts_Callback_Test2 (BREthereumLESProvisionContext context,
                              BREthereumProvisionResult result) {
 
     assert (PROVISION_SUCCESS == result.status);
-    assert (PROVISION_TRANSACTION_RECEIPTS == result.u.success.provision.type);
+    assert (PROVISION_TRANSACTION_RECEIPTS == result.provision.type);
 
-    BRArrayOf(BREthereumHash) hashes = result.u.success.provision.u.receipts.hashes;
-    BRArrayOf(BRArrayOf(BREthereumTransactionReceipt)) receiptsByHash = result.u.success.provision.u.receipts.receipts;
+    BRArrayOf(BREthereumHash) hashes = result.provision.u.receipts.hashes;
+    BRArrayOf(BRArrayOf(BREthereumTransactionReceipt)) receiptsByHash = result.provision.u.receipts.receipts;
 
     assert (2 == array_count(hashes));
     assert (2 == array_count(receiptsByHash));
@@ -866,13 +866,13 @@ static void _GetAccountState_Callback_Test1 (BREthereumLESProvisionContext conte
                                              BREthereumProvisionResult result) {
 
     assert (PROVISION_SUCCESS == result.status);
-    assert (PROVISION_ACCOUNTS == result.u.success.provision.type);
+    assert (PROVISION_ACCOUNTS == result.provision.type);
 
-    BRArrayOf(BREthereumHash) hashes = result.u.success.provision.u.accounts.hashes;
-    BRArrayOf(BREthereumAccountState) accountsByHash = result.u.success.provision.u.accounts.accounts;
+    BRArrayOf(BREthereumHash) hashes = result.provision.u.accounts.hashes;
+    BRArrayOf(BREthereumAccountState) accountsByHash = result.provision.u.accounts.accounts;
 
-    //    BREthereumAddress address = result.u.success.provision.u.accounts.address;
-    //    BRArrayOf(uint64_t) numbers = result.u.success.provision.u.accounts.numbers;
+    //    BREthereumAddress address = result.provision.u.accounts.address;
+    //    BRArrayOf(uint64_t) numbers = result.provision.u.accounts.numbers;
 
     assert (1 == array_count(hashes));
     assert (1 == array_count(accountsByHash));
@@ -894,13 +894,13 @@ static void _GetAccountState_Callback_Test2 (BREthereumLESProvisionContext conte
 
 
     assert (PROVISION_SUCCESS == result.status);
-    assert (PROVISION_ACCOUNTS == result.u.success.provision.type);
+    assert (PROVISION_ACCOUNTS == result.provision.type);
 
-    BRArrayOf(BREthereumHash) hashes = result.u.success.provision.u.accounts.hashes;
-    BRArrayOf(BREthereumAccountState) accountsByHash = result.u.success.provision.u.accounts.accounts;
+    BRArrayOf(BREthereumHash) hashes = result.provision.u.accounts.hashes;
+    BRArrayOf(BREthereumAccountState) accountsByHash = result.provision.u.accounts.accounts;
 
-    //    BREthereumAddress address = result.u.success.provision.u.accounts.address;
-    //    BRArrayOf(uint64_t) numbers = result.u.success.provision.u.accounts.numbers;
+    //    BREthereumAddress address = result.provision.u.accounts.address;
+    //    BRArrayOf(uint64_t) numbers = result.provision.u.accounts.numbers;
 
     assert (2 == array_count(hashes));
     assert (2 == array_count(accountsByHash));
@@ -966,10 +966,10 @@ _SendTransaction_Callback_Test1 (BREthereumLESProvisionContext context,
                                              BREthereumProvisionResult result) {
     assert (NULL == context);
     assert (PROVISION_SUCCESS == result.status);
-    assert (PROVISION_SUBMIT_TRANSACTION == result.u.success.provision.type);
+    assert (PROVISION_SUBMIT_TRANSACTION == result.provision.type);
 
-    // BREthereumTransaction transaction  = result.u.success.provision.u.submission.transaction;
-    // BREthereumTransactionStatus status = result.u.success.provision.u.submission.status;
+    // BREthereumTransaction transaction  = result.provision.u.submission.transaction;
+    // BREthereumTransactionStatus status = result.provision.u.submission.status;
 
     _signalTestComplete();
 }
@@ -1055,7 +1055,7 @@ void _GetBlockHeaders_0_1 (BREthereumLESProvisionContext context,
                                        BREthereumProvisionResult result) {
     assert (PROVISION_SUCCESS == result.status);
 
-    BRArrayOf(BREthereumBlockHeader) headers = result.u.success.provision.u.headers.headers;
+    BRArrayOf(BREthereumBlockHeader) headers = result.provision.u.headers.headers;
     assert (2 == array_count(headers));
 
     BREthereumBlockHeader header_0 = headers[0];
@@ -1111,8 +1111,8 @@ _GetSomeBlocks_Bodies (BREthereumLESProvisionContext context,
     SomeHeaderData *data = (SomeHeaderData*) context;
     assert (PROVISION_SUCCESS == result.status);
 
-    data->ommwers = result.u.success.provision.u.bodies.pairs[0].uncles;
-    data->transactions = result.u.success.provision.u.bodies.pairs[0].transactions;
+    data->ommwers = result.provision.u.bodies.pairs[0].uncles;
+    data->transactions = result.provision.u.bodies.pairs[0].transactions;
 
     _signalTestComplete();
 }
@@ -1125,7 +1125,7 @@ _GetSomeBlocks_Header (BREthereumLESProvisionContext context,
     SomeHeaderData *data = (SomeHeaderData*) context;
 
     assert (PROVISION_SUCCESS == result.status);
-    data->header = result.u.success.provision.u.headers.headers[0];
+    data->header = result.provision.u.headers.headers[0];
 
     lesProvideBlockBodiesOne (les, NODE_REFERENCE_ANY,
                               context,

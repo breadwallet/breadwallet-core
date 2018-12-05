@@ -1065,9 +1065,9 @@ lesThread (BREthereumLES les) {
                                   request.provision.identifier,
                                   request.provision.type,
                                   PROVISION_ERROR,
+                                  request.provision,
                                   { .error = { PROVISION_ERROR_NODE_INACTIVE }}
                               });
-            provisionRelease (&request.provision, ETHEREUM_BOOLEAN_FALSE);
             array_rm (les->requests, requestsToFail[index]);
         }
 
@@ -1505,6 +1505,15 @@ lesSubmitTransaction (BREthereumLES les,
                        PROVISION_SUBMIT_TRANSACTION,
                        { .submission = { transaction, {} }}
                    });
+}
+
+extern void
+lesRetryProvision (BREthereumLES les,
+                   BREthereumNodeReference node,
+                   BREthereumLESProvisionContext context,
+                   BREthereumLESProvisionCallback callback,
+                   BREthereumProvision *provision) {
+    lesAddRequest (les, node, context, callback, *provision);
 }
 
 //static void

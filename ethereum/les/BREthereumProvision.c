@@ -1090,12 +1090,5 @@ provisionMatches (BREthereumProvision *provision1,
 
 extern void
 provisionResultRelease (BREthereumProvisionResult *result) {
-    switch (result->status) {
-        case PROVISION_SUCCESS:
-            provisionRelease (&result->u.success.provision, ETHEREUM_BOOLEAN_TRUE);
-            break;
-
-        case PROVISION_ERROR:
-             break;
-    }
+    provisionRelease (&result->provision, ETHEREUM_BOOLEAN_TRUE);
 }
