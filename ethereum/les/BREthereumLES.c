@@ -175,6 +175,8 @@ nodeConfigDecode (BRRlpItem item,
     config->state    = nodeStateDecode (items[2], coder);
     config->priority = (BREthereumNodePriority) rlpDecodeUInt64(coder, items[3], 0);
 
+    config->hash = hashCreateFromData((BRRlpData) { 64, &config->key.pubKey[1] });
+
     return config;
 }
 
