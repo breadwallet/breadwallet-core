@@ -2251,6 +2251,10 @@ bcsHandleProvision (BREthereumBCS bcs,
                                        (BREthereumLESProvisionCallback) bcsSignalProvision,
                                        provision);
                     needProvisionRelease = 0;
+
+                    eth_log ("BCS", "Resubmitted Provision: %" PRIu64 ": %s",
+                             provision->identifier,
+                             provisionGetTypeName(provision->type));
                     break;
 
                 default: break;

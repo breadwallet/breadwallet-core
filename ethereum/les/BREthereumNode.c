@@ -783,6 +783,18 @@ nodeGetPriority (BREthereumNode node) {
     return node->priority;
 }
 
+static inline void
+nodeUpdateTimeout (BREthereumNode node,
+                   time_t now) {
+    node->timeout = now + DEFAULT_NODE_TIMEOUT_IN_SECONDS;
+}
+
+static inline void
+nodeUpdateTimeoutRecv (BREthereumNode node,
+                       time_t now) {
+    node->timeout = now + DEFAULT_NODE_TIMEOUT_IN_SECONDS_RECV;
+}
+
 static BREthereumNodeState
 nodeProcessFailure (BREthereumNode node,
                     BREthereumNodeEndpointRoute route,
@@ -803,7 +815,8 @@ nodeProcessSuccess (BREthereumNode node,
 
 extern BREthereumNodeState
 nodeConnect (BREthereumNode node,
-             BREthereumNodeEndpointRoute route) {
+             BREthereumNodeEndpointRoute route,
+             time_t now) {
     int error;
 
     // Nothing if not AVAILABLE
@@ -822,6 +835,7 @@ nodeConnect (BREthereumNode node,
         return nodeProcessFailure (node, route, NULL, nodeStateCreateErrorUnix(error));
 
     // Move to the next state.
+    nodeUpdateTimeout(node, now);
     return nodeStateAnnounce(node, route, nodeStateCreateConnecting (NODE_ROUTE_TCP == route
                                                                      ? NODE_CONNECT_AUTH
                                                                      : NODE_CONNECT_PING));
@@ -1134,18 +1148,6 @@ nodeProcessRecvPIP (BREthereumNode node,
     }
 
     if (mustReleaseMessage) messagePIPRelease (&message);
-}
-
-static inline void
-nodeUpdateTimeout (BREthereumNode node,
-                   time_t now) {
-    node->timeout = now + DEFAULT_NODE_TIMEOUT_IN_SECONDS;
-}
-
-static inline void
-nodeUpdateTimeoutRecv (BREthereumNode node,
-                   time_t now) {
-    node->timeout = now + DEFAULT_NODE_TIMEOUT_IN_SECONDS_RECV;
 }
 
 static uint64_t

@@ -1190,7 +1190,7 @@ lesThread (BREthereumLES les) {
                 BREthereumNode node = lesNodeFindDiscovery(les);
 
                 // Try to connect...
-                nodeConnect (node, NODE_ROUTE_UDP);
+                nodeConnect (node, NODE_ROUTE_UDP, now);
 
                 // On success, make active
                 switch (nodeGetState(node, NODE_ROUTE_UDP).type) {
@@ -1218,7 +1218,7 @@ lesThread (BREthereumLES les) {
                 array_count(les->availableNodes) > 0) {
                 BREthereumNode node = les->availableNodes[0];
 
-                nodeConnect (node, NODE_ROUTE_TCP);
+                nodeConnect (node, NODE_ROUTE_TCP, now);
 
                 switch (nodeGetState(node, NODE_ROUTE_TCP).type) {
                     case NODE_AVAILABLE:
@@ -1512,7 +1512,8 @@ lesRetryProvision (BREthereumLES les,
                    BREthereumNodeReference node,
                    BREthereumLESProvisionContext context,
                    BREthereumLESProvisionCallback callback,
-                   BREthereumProvision *provision) {
+                   OwnershipGiven BREthereumProvision *provision) {
+    provision->identifier = PROVISION_IDENTIFIER_UNDEFINED;
     lesAddRequest (les, node, context, callback, *provision);
 }
 

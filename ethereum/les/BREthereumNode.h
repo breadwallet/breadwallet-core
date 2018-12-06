@@ -252,7 +252,8 @@ nodeGetPriority (BREthereumNode node);
 
 extern BREthereumNodeState
 nodeConnect (BREthereumNode node,
-             BREthereumNodeEndpointRoute route);
+             BREthereumNodeEndpointRoute route,
+             time_t now);
 
 extern BREthereumNodeState
 nodeDisconnect (BREthereumNode node,
