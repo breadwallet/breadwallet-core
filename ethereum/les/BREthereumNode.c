@@ -172,7 +172,7 @@ nodeProtocolReasonDescription (BREthereumNodeProtocolReason reason) {
     protocolReasonDescriptions [] = {
         "Exhausted",
         "Non-Standard Port",
-        "UDP Ping_Pong Missed",
+        "Ping_Pong Missed",
         "UDP Excessive Byte Count",
         "TCP Authentication",
         "TCP Hello Missed",
@@ -987,7 +987,7 @@ nodeProcessRecvDIS (BREthereumNode node,
                     nodeEndpointGetDISNeighbor(node->local).key }}
             };
             if (NODE_STATUS_ERROR == nodeSend (node, NODE_ROUTE_UDP, pong))
-                nodeStateAnnounce(node, NODE_ROUTE_TCP, nodeStateCreateErrorProtocol(NODE_PROTOCOL_PING_PONG_MISSED));
+                nodeStateAnnounce(node, NODE_ROUTE_UDP, nodeStateCreateErrorProtocol(NODE_PROTOCOL_PING_PONG_MISSED));
 
             break;
         }

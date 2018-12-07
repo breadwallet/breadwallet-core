@@ -1054,22 +1054,31 @@ lesThread (BREthereumLES les) {
 
         // We've requests to fail because the requested node is not connected.  Invoke the
         // request's callback with PROVISION_ERROR.
+        //
+        // NOTE: `requestsToFail` holds an index - in increasing order - we need to be careful
+        // about removing requests which may invalidate a saved index.  The save approach is to
+        // iterate through the indices in reverse order.
+        //
+        // We want to fail the provision, with the callback, in the proper order...
         for (size_t index = 0; index < requestsToFailCount; index++) {
-            size_t reqeustIndex = requestsToFail[index];
-            BREthereumLESRequest request = les->requests[reqeustIndex];
+            size_t requestIndex = requestsToFail[index];
+            BREthereumLESRequest *request = &les->requests[requestIndex];
 
-            request.callback (request.context,
-                              les,
-                              request.nodeReference,
-                              (BREthereumProvisionResult) {
-                                  request.provision.identifier,
-                                  request.provision.type,
-                                  PROVISION_ERROR,
-                                  request.provision,
-                                  { .error = { PROVISION_ERROR_NODE_INACTIVE }}
-                              });
-            array_rm (les->requests, requestsToFail[index]);
+            request->callback (request->context,
+                               les,
+                               request->nodeReference,
+                               (BREthereumProvisionResult) {
+                                   request->provision.identifier,
+                                   request->provision.type,
+                                   PROVISION_ERROR,
+                                   request->provision,
+                                   { .error = { PROVISION_ERROR_NODE_INACTIVE }}
+                               });
         }
+
+        // ... and then remove them in reverse order.
+        for (ssize_t index = requestsToFailCount - 1; index >= 0; index--)
+            array_rm (les->requests, requestsToFail[index]);
 
         // Just do it, always.
         updateDesciptors = 1;

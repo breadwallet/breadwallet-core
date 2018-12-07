@@ -1633,7 +1633,10 @@ bcsHandleBlockProof (BREthereumBCS bcs,
         eth_log ("BCS", "Block %" PRIu64 " Overwrite Difficulty (Proof)", number);
         blockSetTotalDifficulty (block, proof.totalDifficulty);
     }
-    // ... otherwise, nothing to do
+
+    // In the following, 'if appropriate' means complete and chained.
+    bcsExtendTransactionsAndLogsForBlockIfAppropriate (bcs, block);
+
 }
 
 static void

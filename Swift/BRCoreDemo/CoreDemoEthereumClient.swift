@@ -178,6 +178,13 @@ class CoreDemoEthereumClient : EthereumClient {
     func getBlocks(ewm: EthereumWalletManager, address: String, interests: UInt32, blockStart: UInt64, blockStop: UInt64, rid: Int32) {
         var blockNumbers : [UInt64] = []
         switch address.lowercased() {
+        case "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62".lowercased():
+            if 0 != interests & UInt32 (1 << 3) /* CLIENT_GET_BLOCKS_LOGS_AS_TARGET */ {
+                blockNumbers += [5732521]
+            }
+
+            // Others - ignored (too many)
+
         case "0xb302B06FDB1348915599D21BD54A06832637E5E8".lowercased():
             if 0 != interests & UInt32 (1 << 3) /* CLIENT_GET_BLOCKS_LOGS_AS_TARGET */ {
                 blockNumbers += [4847049,
@@ -352,7 +359,7 @@ class CoreDemoEthereumClient : EthereumClient {
     }
 
     func handleTokenEvent(ewm: EthereumWalletManager, token: EthereumToken, event: EthereumTokenEvent) {
-        print ("TST: TokenEvent: \(event)\n")
+        print ("TST: TokenEvent: \(event)")
     }
 
     //

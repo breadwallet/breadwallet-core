@@ -107,11 +107,11 @@ class CoreTests: XCTestCase {
     }
 
     func testEthereumSyncStorage () throws {
-        let mode = BRD_WITH_P2P_SEND
+        let mode = P2P_ONLY; // P2P_WITH_BRD_SYNC,  BRD_WITH_P2P_SEND
         let timestamp : UInt64 = 0
 
         coreDirClear()
-        runSyncTest(account, mode, timestamp, 2 * 60, coreDataDir, 0);
+        runSyncTest(account, mode, timestamp, 5 * 60, coreDataDir, 0);
         runSyncTest(account, mode, timestamp, 1 * 60, coreDataDir, 1);
     }
     
