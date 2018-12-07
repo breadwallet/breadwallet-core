@@ -268,8 +268,25 @@ clientGetBlocks (BREthereumClientContext context,
                  int rid) {
     BRArrayOf(uint64_t) blockNumbers;
     array_new (blockNumbers, 10);
-    
-    if (0 == strcasecmp (address, "0xb302B06FDB1348915599D21BD54A06832637E5E8")) {
+
+    if (0 == strcasecmp (address, "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62")) {
+        if (syncInterestMatch(interests, CLIENT_GET_BLOCKS_LOGS_AS_TARGET)) {
+            array_add (blockNumbers, 5732521);
+        }
+
+        if (syncInterestMatch(interests, CLIENT_GET_BLOCKS_LOGS_AS_SOURCE)) {
+            // ~8 blocks
+        }
+
+        if (syncInterestMatch(interests, CLIENT_GET_BLOCKS_TRANSACTIONS_AS_TARGET)) {
+            // ~5 blocks
+        }
+
+        if (syncInterestMatch(interests, CLIENT_GET_BLOCKS_TRANSACTIONS_AS_SOURCE)) {
+            // ~ 45 blocks
+        }
+    }
+    else if (0 == strcasecmp (address, "0xb302B06FDB1348915599D21BD54A06832637E5E8")) {
         if (syncInterestMatch(interests, CLIENT_GET_BLOCKS_LOGS_AS_TARGET)) {
             array_add (blockNumbers, 4847049);
             array_add (blockNumbers, 4847152);

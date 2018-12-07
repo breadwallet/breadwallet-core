@@ -211,7 +211,7 @@ provisionCreateMessageLES (BREthereumProvision *provisionMulti,
 
             for (size_t i = 0; i < minimum (messageContentLimit, hashesCount - hashesOffset); i++) {
                 BREthereumLESMessageGetProofsSpec spec = {
-                    hashes[index],
+                    hashes[hashesOffset + i],
                     address,
                     0,
                 };
