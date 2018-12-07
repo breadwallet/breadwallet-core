@@ -274,6 +274,10 @@ nodeProcess (BREthereumNode node,
              fd_set *recv,   // read
              fd_set *send);  // write
 
+extern BREthereumBoolean
+nodeCanHandleProvision (BREthereumNode node,
+                        BREthereumProvision provision);
+
 extern void
 nodeHandleProvision (BREthereumNode node,
                      BREthereumProvision provision);

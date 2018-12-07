@@ -59,7 +59,7 @@
  * We can optionally only bootstrap from a BRD server.  Setting this overrides the subsequent
  * LES_BOOTSTRAP_LCL_ONLY
  */
-#undef LES_BOOTSTRAP_BRD_ONLY
+#define LES_BOOTSTRAP_BRD_ONLY
 
 /**
  * For debugging only, we can optionally only bootstrap from a LCL (local) server.

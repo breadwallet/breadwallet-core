@@ -867,6 +867,19 @@ nodeDisconnect (BREthereumNode node,
 ///
 /// MARK: - Node Process
 ///
+extern BREthereumBoolean
+nodeCanHandleProvision (BREthereumNode node,
+                        BREthereumProvision provision) {
+    switch (node->type) {
+        case NODE_TYPE_UNKNOWN:
+            return ETHEREUM_BOOLEAN_FALSE;
+        case NODE_TYPE_GETH:
+            return AS_ETHEREUM_BOOLEAN(((BREthereumLESMessageIdentifier) -1) != provisionGetMessageLESIdentifier (provision.type));
+        case NODE_TYPE_PARITY:
+            return AS_ETHEREUM_BOOLEAN(((BREthereumPIPRequestType) -1) != provisionGetMessagePIPIdentifier(provision.type));
+    }
+}
+
 extern void
 nodeHandleProvision (BREthereumNode node,
                      BREthereumProvision provision) {
@@ -1035,7 +1048,6 @@ nodeProcessRecvLES (BREthereumNode node,
             break;
 
         case LES_MESSAGE_CONTRACT_CODES:
-        case LES_MESSAGE_HEADER_PROOFS:
         case LES_MESSAGE_HELPER_TRIE_PROOFS:;
             eth_log (LES_LOG_TOPIC, "Recv: [ LES, %15s ] Unexpected Response",
                      messageLESGetIdentifierName (message.identifier));
@@ -1047,6 +1059,7 @@ nodeProcessRecvLES (BREthereumNode node,
         case LES_MESSAGE_PROOFS:
         case LES_MESSAGE_PROOFS_V2:
         case LES_MESSAGE_TX_STATUS:
+        case LES_MESSAGE_HEADER_PROOFS:
             // Find the provisioner applicable to `message`...
             for (size_t index = 0; index < array_count (node->provisioners); index++) {
                 BREthereumNodeProvisioner *provisioner = &node->provisioners[index];
@@ -1065,7 +1078,6 @@ nodeProcessRecvLES (BREthereumNode node,
             break;
     }
     if (mustReleaseMessage) messageLESRelease (&message);
-
 }
 
 static void

@@ -922,13 +922,6 @@ lesHandleSelectError (BREthereumLES les,
     }
 }
 
-static int
-lesNodeHandlesProvisionType (BREthereumLES les,
-                             BREthereumNode node,
-                             BREthereumProvisionType type) {
-    return 1;
-}
-
 static void *
 lesThread (BREthereumLES les) {
 #if defined (__ANDROID__)
@@ -1014,19 +1007,24 @@ lesThread (BREthereumLES les) {
                 // Sadly, not all nodes handle all provisions.  This owing to differences in the
                 // LESv2 and PIPv1 interfaces or the server, Geth or Parity, implementations.
                 if (NULL != nodeToUse &&
-                    !lesNodeHandlesProvisionType (les, nodeToUse, les->requests[index].provision.type)) {
-                    // TODO: ?? Fail the request - but we shouldn't mark the node is failed...
+                    nodeHasState (nodeToUse, NODE_ROUTE_TCP, NODE_CONNECTED) &&
+                    ETHEREUM_BOOLEAN_IS_FALSE (nodeCanHandleProvision(nodeToUse, les->requests[index].provision))) {
                     eth_log (LES_LOG_TOPIC, "Node is Insufficient: %s, Type: %s, Provision: %s",
                              nodeEndpointGetHostname (nodeGetRemoteEndpoint(nodeToUse)),
                              nodeTypeGetName(nodeGetType(nodeToUse)),
                              provisionGetTypeName(les->requests[index].provision.type));
+
+                    requestsToFail[requestsToFailCount++] = index;
                 }
 
                 // Only handle the request if `nodeToUse` is connected.
-                if (NULL != nodeToUse && nodeHasState (nodeToUse, NODE_ROUTE_TCP, NODE_CONNECTED)) {
+                else if (NULL != nodeToUse &&
+                         nodeHasState (nodeToUse, NODE_ROUTE_TCP, NODE_CONNECTED)) {
 
                     les->requests[index].node = nodeToUse;
 
+                    // Regarding memory-management of the provision:
+                    //
                     // We hold the requests[index]'s provision in requests.  In the following call
                     // we pass of copy of that provision - both provisions share memory pointers
                     // to, for example, BRArrayOf(BREthereumHash).
@@ -1049,7 +1047,7 @@ lesThread (BREthereumLES les) {
 
                 // ... but if `nodeToUse` is not connected and it was explicitly requested, then
                 // we must fail the request.  This is the case whereby: node 'X' announced a new
-                // block; we requested bodes; the node got disconnected - literally nothing to do.
+                // block; we requested bodies; the node got disconnected - literally nothing to do.
                 else if (nodeToUse == (BREthereumNode) les->requests[index].nodeReference)
                     requestsToFail[requestsToFailCount++] = index;
             }
