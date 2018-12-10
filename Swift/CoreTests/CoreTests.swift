@@ -13,6 +13,29 @@ class CoreTests: XCTestCase {
     var account: BREthereumAccount!
     var paperKey: String!
 
+    func coreDirClear () {
+        do {
+            if FileManager.default.fileExists(atPath: coreDataDir) {
+                try FileManager.default.removeItem(atPath: coreDataDir)
+            }
+        }
+        catch {
+            print ("Error: \(error)")
+            XCTAssert(false)
+        }
+    }
+
+    func coreDirCreate () {
+        do {
+            try FileManager.default.createDirectory (atPath: coreDataDir,
+                                                     withIntermediateDirectories: true,
+                                                     attributes: nil)
+        }
+        catch {
+            XCTAssert(false)
+        }
+
+    }
     override func setUp() {
         super.setUp()
 
@@ -26,14 +49,9 @@ class CoreTests: XCTestCase {
             .urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Core").path
 
-        do {
-            try FileManager.default.createDirectory (atPath: coreDataDir,
-                                                     withIntermediateDirectories: true,
-                                                     attributes: nil)
-        }
-        catch {
-            XCTAssert(false)
-        }
+        coreDirClear()
+        coreDirClear()
+
     }
     
     override func tearDown() {
@@ -81,24 +99,19 @@ class CoreTests: XCTestCase {
     }
 
     func testEthereumSync ()  throws{
-         let mode = BRD_WITH_P2P_SEND
+        let mode = P2P_ONLY //  BRD_WITH_P2P_SEND
         let timestamp : UInt64 = 0
 
-        try FileManager.default.contentsOfDirectory(atPath: coreDataDir)
-            .forEach { try FileManager.default.removeItem(atPath: $0) }
-
-        runSyncTest (account, mode, timestamp,  2 * 60, nil, 0);
+        runSyncTest (account, mode, timestamp, 10 * 60, nil, 0);
         runSyncTest (account, mode, timestamp,  1 * 60, nil, 1);
     }
 
     func testEthereumSyncStorage () throws {
-        let mode = BRD_WITH_P2P_SEND
+        let mode = P2P_ONLY; // P2P_WITH_BRD_SYNC,  BRD_WITH_P2P_SEND
         let timestamp : UInt64 = 0
 
-        try FileManager.default.contentsOfDirectory(atPath: coreDataDir)
-            .forEach { try FileManager.default.removeItem(atPath: $0) }
-
-        runSyncTest(account, mode, timestamp, 2 * 60, coreDataDir, 0);
+        coreDirClear()
+        runSyncTest(account, mode, timestamp, 5 * 60, coreDataDir, 0);
         runSyncTest(account, mode, timestamp, 1 * 60, coreDataDir, 1);
     }
     

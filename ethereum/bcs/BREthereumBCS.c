@@ -1633,7 +1633,10 @@ bcsHandleBlockProof (BREthereumBCS bcs,
         eth_log ("BCS", "Block %" PRIu64 " Overwrite Difficulty (Proof)", number);
         blockSetTotalDifficulty (block, proof.totalDifficulty);
     }
-    // ... otherwise, nothing to do
+
+    // In the following, 'if appropriate' means complete and chained.
+    bcsExtendTransactionsAndLogsForBlockIfAppropriate (bcs, block);
+
 }
 
 static void
@@ -2232,12 +2235,36 @@ bcsHandleProvision (BREthereumBCS bcs,
                     BREthereumNodeReference node,
                     OwnershipGiven BREthereumProvisionResult result) {
     assert (bcs->les == les);
+
+    int needProvisionRelease = 1;
+    BREthereumProvision *provision = &result.provision;
     switch (result.status) {
         case PROVISION_ERROR:
-            assert (0);
+
+            // Try to handle the specific error.
+            switch (result.u.error.reason) {
+                case PROVISION_ERROR_NODE_INACTIVE:
+                    // The node went inactive, we'll submit again.
+                    //
+                    // This can cause problems... as in, we are queryng a node based on a recent
+                    // block but upon resubmission the other node is behind.
+                    lesRetryProvision (bcs->les,
+                                       NODE_REFERENCE_ANY,
+                                       (BREthereumLESProvisionContext) bcs,
+                                       (BREthereumLESProvisionCallback) bcsSignalProvision,
+                                       provision);
+                    needProvisionRelease = 0;
+
+                    eth_log ("BCS", "Resubmitted Provision: %" PRIu64 ": %s",
+                             provision->identifier,
+                             provisionGetTypeName(provision->type));
+                    break;
+
+                default: break;
+            }
             break;
+
         case PROVISION_SUCCESS: {
-            BREthereumProvision *provision = &result.u.success.provision;
             assert (result.type == provision->type);
             switch (result.type) {
                 case PROVISION_BLOCK_HEADERS: {
@@ -2306,8 +2333,9 @@ bcsHandleProvision (BREthereumBCS bcs,
         }
     }
 
-    // We won result and have finished with it.  Must release - which will release the
+    // We have one result and have finished with it.  Must release - which will release the
     // included provision.
-    provisionResultRelease (&result);
+    if (needProvisionRelease)
+        provisionResultRelease (&result);
 }
 

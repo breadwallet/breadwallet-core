@@ -413,6 +413,23 @@ lesSubmitTransaction (BREthereumLES les,
                       BREthereumLESProvisionCallback callback,
                       OwnershipGiven BREthereumTransaction transaction);
 
+
+/**
+ * Retry a provision
+ *
+ * @param les les
+ * @param node node
+ * @param context context
+ * @param callback callback
+ * @param provision provision
+ */
+extern void
+lesRetryProvision (BREthereumLES les,
+                   BREthereumNodeReference node,
+                   BREthereumLESProvisionContext context,
+                   BREthereumLESProvisionCallback callback,
+                   OwnershipGiven BREthereumProvision *provision);
+
 #ifdef __cplusplus
 }
 #endif

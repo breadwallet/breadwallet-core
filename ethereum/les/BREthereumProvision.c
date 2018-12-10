@@ -31,7 +31,7 @@ extern BREthereumLESMessageIdentifier
 provisionGetMessageLESIdentifier (BREthereumProvisionType type) {
     switch (type) {
         case PROVISION_BLOCK_HEADERS:        return LES_MESSAGE_GET_BLOCK_HEADERS;
-        case PROVISION_BLOCK_PROOFS:         return -1;
+        case PROVISION_BLOCK_PROOFS:         return LES_MESSAGE_GET_HEADER_PROOFS;;
         case PROVISION_BLOCK_BODIES:         return LES_MESSAGE_GET_BLOCK_BODIES;
         case PROVISION_TRANSACTION_RECEIPTS: return LES_MESSAGE_GET_RECEIPTS;
         case PROVISION_ACCOUNTS:             return LES_MESSAGE_GET_PROOFS_V2;
@@ -104,7 +104,38 @@ provisionCreateMessageLES (BREthereumProvision *provisionMulti,
         }
 
         case PROVISION_BLOCK_PROOFS: {
-            assert (0);
+            BREthereumProvisionProofs *provision = &provisionMulti->u.proofs;
+
+            BRArrayOf(uint64_t) numbers = provision->numbers;
+            size_t numbersCount = array_count(numbers);
+
+            if (NULL == provision->proofs) {
+                array_new (provision->proofs, numbersCount);
+                array_set_count(provision->proofs, numbersCount);
+            }
+
+            BRArrayOf(uint64_t) messageBlkNumbers;
+            array_new (messageBlkNumbers, messageContentLimit);
+
+            BRArrayOf(uint64_t) messageChtNumbers;
+            array_new (messageChtNumbers, messageContentLimit);
+
+            size_t numbersOffset = index * messageContentLimit;
+
+            for (size_t i = 0; i < minimum (messageContentLimit, numbersCount - numbersOffset); i++) {
+                uint64_t blkNumber = numbers[(numbersOffset + i)];
+                uint64_t chtNumber = messageLESGetChtNumber(blkNumber);
+
+                array_add (messageBlkNumbers, blkNumber);
+                array_add (messageChtNumbers, chtNumber);
+            }
+
+            return (BREthereumMessage) {
+                MESSAGE_LES,
+                { .les = {
+                    LES_MESSAGE_GET_HEADER_PROOFS,
+                    { .getHeaderProofs = { messageId, messageChtNumbers, messageBlkNumbers }}}}
+            };
         }
 
         case PROVISION_BLOCK_BODIES: {
@@ -180,7 +211,7 @@ provisionCreateMessageLES (BREthereumProvision *provisionMulti,
 
             for (size_t i = 0; i < minimum (messageContentLimit, hashesCount - hashesOffset); i++) {
                 BREthereumLESMessageGetProofsSpec spec = {
-                    hashes[index],
+                    hashes[hashesOffset + i],
                     address,
                     0,
                 };
@@ -286,7 +317,59 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
         }
 
         case PROVISION_BLOCK_PROOFS: {
-            assert (0);
+            assert (LES_MESSAGE_HEADER_PROOFS == message.identifier);
+
+            BREthereumProvisionProofs *provision = &provisionMulti->u.proofs;
+            BRArrayOf(BREthereumBlockHeaderProof) provisionProofs = provision->proofs;
+
+            BREthereumProvisionIdentifier identifier = messageLESGetRequestId(&message);
+
+            BRArrayOf(BREthereumBlockHeader) messageHeaders;
+            BRArrayOf(BREthereumMPTNodePath) messagePaths;
+
+            messageLESHeaderProofsConsume (&message.u.headerProofs, &messageHeaders, &messagePaths);
+
+            BRRlpCoder coder = rlpCoderCreate();
+
+            size_t offset = messageContentLimit * (identifier - messageIdBase);
+            for (size_t index = 0; index < array_count(messageHeaders); index++) {
+                //BREthereumBlockHeader header = messageHeaders[index];
+                BREthereumMPTNodePath path   = messagePaths[index];
+
+                // Result location
+                BREthereumBlockHeaderProof *proof = &provisionProofs[offset + index];
+
+                // Key for MPT proof
+                BREthereumData key = mptKeyGetFromUInt64 (provision->numbers[offset + index]);
+
+                BREthereumBoolean isValid = ETHEREUM_BOOLEAN_FALSE;
+                BRRlpData data = mptNodePathGetValue (path, key, &isValid);
+
+                if (ETHEREUM_BOOLEAN_IS_TRUE (isValid)) {
+                    // When valid extract [hash, totalDifficulty] from the MPT proof's value
+                    BRRlpItem item = rlpGetItem(coder, data);
+
+                    size_t itemsCount = 0;
+                    const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
+                    assert (2 == itemsCount);
+
+                    proof->hash = hashRlpDecode(items[0], coder);
+                    proof->totalDifficulty = rlpDecodeUInt256 (coder, items[1], 1);
+
+                    rlpReleaseItem(coder, item);
+                    rlpDataRelease(data);
+                }
+                else {
+                    proof->hash = EMPTY_HASH_INIT;
+                    proof->totalDifficulty = UINT256_ZERO;
+                }
+                dataRelease(key);
+            }
+
+            blockHeadersRelease(messageHeaders);
+            mptNodePathsRelease(messagePaths);
+            rlpCoderRelease(coder);
+            break;
         }
 
         case PROVISION_BLOCK_BODIES: {
@@ -1090,12 +1173,5 @@ provisionMatches (BREthereumProvision *provision1,
 
 extern void
 provisionResultRelease (BREthereumProvisionResult *result) {
-    switch (result->status) {
-        case PROVISION_SUCCESS:
-            provisionRelease (&result->u.success.provision, ETHEREUM_BOOLEAN_TRUE);
-            break;
-
-        case PROVISION_ERROR:
-             break;
-    }
+    provisionRelease (&result->provision, ETHEREUM_BOOLEAN_TRUE);
 }

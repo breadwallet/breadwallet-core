@@ -175,6 +175,8 @@ nodeConfigDecode (BRRlpItem item,
     config->state    = nodeStateDecode (items[2], coder);
     config->priority = (BREthereumNodePriority) rlpDecodeUInt64(coder, items[3], 0);
 
+    config->hash = hashCreateFromData((BRRlpData) { 64, &config->key.pubKey[1] });
+
     return config;
 }
 
@@ -920,13 +922,6 @@ lesHandleSelectError (BREthereumLES les,
     }
 }
 
-static int
-lesNodeHandlesProvisionType (BREthereumLES les,
-                             BREthereumNode node,
-                             BREthereumProvisionType type) {
-    return 1;
-}
-
 static void *
 lesThread (BREthereumLES les) {
 #if defined (__ANDROID__)
@@ -1012,19 +1007,24 @@ lesThread (BREthereumLES les) {
                 // Sadly, not all nodes handle all provisions.  This owing to differences in the
                 // LESv2 and PIPv1 interfaces or the server, Geth or Parity, implementations.
                 if (NULL != nodeToUse &&
-                    !lesNodeHandlesProvisionType (les, nodeToUse, les->requests[index].provision.type)) {
-                    // TODO: ?? Fail the request - but we shouldn't mark the node is failed...
+                    nodeHasState (nodeToUse, NODE_ROUTE_TCP, NODE_CONNECTED) &&
+                    ETHEREUM_BOOLEAN_IS_FALSE (nodeCanHandleProvision(nodeToUse, les->requests[index].provision))) {
                     eth_log (LES_LOG_TOPIC, "Node is Insufficient: %s, Type: %s, Provision: %s",
                              nodeEndpointGetHostname (nodeGetRemoteEndpoint(nodeToUse)),
                              nodeTypeGetName(nodeGetType(nodeToUse)),
                              provisionGetTypeName(les->requests[index].provision.type));
+
+                    requestsToFail[requestsToFailCount++] = index;
                 }
 
                 // Only handle the request if `nodeToUse` is connected.
-                if (NULL != nodeToUse && nodeHasState (nodeToUse, NODE_ROUTE_TCP, NODE_CONNECTED)) {
+                else if (NULL != nodeToUse &&
+                         nodeHasState (nodeToUse, NODE_ROUTE_TCP, NODE_CONNECTED)) {
 
                     les->requests[index].node = nodeToUse;
 
+                    // Regarding memory-management of the provision:
+                    //
                     // We hold the requests[index]'s provision in requests.  In the following call
                     // we pass of copy of that provision - both provisions share memory pointers
                     // to, for example, BRArrayOf(BREthereumHash).
@@ -1047,29 +1047,38 @@ lesThread (BREthereumLES les) {
 
                 // ... but if `nodeToUse` is not connected and it was explicitly requested, then
                 // we must fail the request.  This is the case whereby: node 'X' announced a new
-                // block; we requested bodes; the node got disconnected - literally nothing to do.
+                // block; we requested bodies; the node got disconnected - literally nothing to do.
                 else if (nodeToUse == (BREthereumNode) les->requests[index].nodeReference)
                     requestsToFail[requestsToFailCount++] = index;
             }
 
         // We've requests to fail because the requested node is not connected.  Invoke the
         // request's callback with PROVISION_ERROR.
+        //
+        // NOTE: `requestsToFail` holds an index - in increasing order - we need to be careful
+        // about removing requests which may invalidate a saved index.  The save approach is to
+        // iterate through the indices in reverse order.
+        //
+        // We want to fail the provision, with the callback, in the proper order...
         for (size_t index = 0; index < requestsToFailCount; index++) {
-            size_t reqeustIndex = requestsToFail[index];
-            BREthereumLESRequest request = les->requests[reqeustIndex];
+            size_t requestIndex = requestsToFail[index];
+            BREthereumLESRequest *request = &les->requests[requestIndex];
 
-            request.callback (request.context,
-                              les,
-                              request.nodeReference,
-                              (BREthereumProvisionResult) {
-                                  request.provision.identifier,
-                                  request.provision.type,
-                                  PROVISION_ERROR,
-                                  { .error = { PROVISION_ERROR_NODE_INACTIVE }}
-                              });
-            provisionRelease (&request.provision, ETHEREUM_BOOLEAN_FALSE);
-            array_rm (les->requests, requestsToFail[index]);
+            request->callback (request->context,
+                               les,
+                               request->nodeReference,
+                               (BREthereumProvisionResult) {
+                                   request->provision.identifier,
+                                   request->provision.type,
+                                   PROVISION_ERROR,
+                                   request->provision,
+                                   { .error = { PROVISION_ERROR_NODE_INACTIVE }}
+                               });
         }
+
+        // ... and then remove them in reverse order.
+        for (ssize_t index = requestsToFailCount - 1; index >= 0; index--)
+            array_rm (les->requests, requestsToFail[index]);
 
         // Just do it, always.
         updateDesciptors = 1;
@@ -1190,7 +1199,7 @@ lesThread (BREthereumLES les) {
                 BREthereumNode node = lesNodeFindDiscovery(les);
 
                 // Try to connect...
-                nodeConnect (node, NODE_ROUTE_UDP);
+                nodeConnect (node, NODE_ROUTE_UDP, now);
 
                 // On success, make active
                 switch (nodeGetState(node, NODE_ROUTE_UDP).type) {
@@ -1218,7 +1227,7 @@ lesThread (BREthereumLES les) {
                 array_count(les->availableNodes) > 0) {
                 BREthereumNode node = les->availableNodes[0];
 
-                nodeConnect (node, NODE_ROUTE_TCP);
+                nodeConnect (node, NODE_ROUTE_TCP, now);
 
                 switch (nodeGetState(node, NODE_ROUTE_TCP).type) {
                     case NODE_AVAILABLE:
@@ -1505,6 +1514,16 @@ lesSubmitTransaction (BREthereumLES les,
                        PROVISION_SUBMIT_TRANSACTION,
                        { .submission = { transaction, {} }}
                    });
+}
+
+extern void
+lesRetryProvision (BREthereumLES les,
+                   BREthereumNodeReference node,
+                   BREthereumLESProvisionContext context,
+                   BREthereumLESProvisionCallback callback,
+                   OwnershipGiven BREthereumProvision *provision) {
+    provision->identifier = PROVISION_IDENTIFIER_UNDEFINED;
+    lesAddRequest (les, node, context, callback, *provision);
 }
 
 //static void
