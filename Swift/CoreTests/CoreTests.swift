@@ -115,10 +115,21 @@ class CoreTests: XCTestCase {
         runSyncTest(account, mode, timestamp, 1 * 60, coreDataDir, 1);
     }
     
-    func testBitcoinSync () {
-        for _ in 1...10 {
-            BRRunTestsSync (1);
+    func testBitcoinSyncMany () {
+        let group = DispatchGroup.init()
+        for i in 1...25 {
+            DispatchQueue.init(label: "Sync \(i)")
+                .async {
+                    group.enter()
+                    BRRunTestsSync (1);
+                    group.leave()
+            }
         }
+        group.wait()
+    }
+
+    func testBitcoinSyncOne() {
+        BRRunTestsSync (1);
     }
 
     func testBitcoinWalletManagerSync () {
