@@ -55,7 +55,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
         //                                         paperKey: "0x8975dbc1b8f25ec994815626d070899dda896511")
         //                                         paperKey: "0xb302B06FDB1348915599D21BD54A06832637E5E8")
 
-        let timestamp:UInt64 = 1543274121 // Tue, 26 Nov 2018 23:15:21 GMT
+        let timestamp:UInt64 = 1543190400 // Tue, 26 Nov 2018 00:00:00 GMT
         let account = Account (phrase: paperKey)
 
         let storagePath = FileManager.default

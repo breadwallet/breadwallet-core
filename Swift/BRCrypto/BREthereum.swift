@@ -245,6 +245,14 @@ public class EthereumTransfer: Transfer {
     }
     
     public private(set) var state: TransferState
+
+    public var isSent: Bool {
+        let account = _wallet._manager.account.ethereumAccount
+        if let source = source,  case .ethereum (let address) = source {
+            return ETHEREUM_BOOLEAN_TRUE == addressEqual ( accountGetPrimaryAddress (account), address)
+        }
+        else { return false }
+    }
     
     init (wallet: EthereumWallet,
           tid: BREthereumTransfer) {

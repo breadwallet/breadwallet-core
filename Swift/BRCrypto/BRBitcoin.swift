@@ -79,7 +79,7 @@ public class BitcoinTransfer: Transfer {
     }
 
     /// Flag to determine if the wallet's owner sent this transfer
-    internal lazy var isSent: Bool = {
+    public private(set) lazy var isSent: Bool = {
           // Returns a 'fee' if 'all inputs are from wallet' (meaning, the bitcoin transaction is
         // composed of UTXOs from wallet)
         let fee = BRWalletFeeForTx (_wallet.core, core)
@@ -120,14 +120,18 @@ public class BitcoinTransfer: Transfer {
     }
 
     public var amount: Amount {
-        let recv = BRWalletAmountReceivedFromTx(_wallet.core, core)
-        let send = BRWalletAmountSentByTx (_wallet.core, core)
-
-        var fees = BRWalletFeeForTx (_wallet.core, core)
+        var fees = UInt64(BRWalletFeeForTx (_wallet.core, core))
         if (fees == UINT64_MAX) { fees = 0 }
 
-        return Amount (value: recv - (send + fees),  // recv - (fees + send)
-                       unit: Bitcoin.Units.SATOSHI)
+        let recv = Int64(BRWalletAmountReceivedFromTx(_wallet.core, core))
+        let send = Int64(BRWalletAmountSentByTx (_wallet.core, core))   // includes fees
+
+        // The value is always positive; it is the value sent from source to target.
+        let value = (0 == fees
+            ? recv - send
+            : (send - Int64(fees)) - recv)
+
+        return Amount (value: value, unit: Bitcoin.Units.SATOSHI)
     }
     
     public var fee: Amount {

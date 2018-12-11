@@ -590,7 +590,7 @@ public protocol Transfer : class {
     /// The current state
     var state: TransferState { get }
 
-    // var isSent: Bool { get }
+    var isSent: Bool { get }
     // var originator: Bool { get }
 }
 

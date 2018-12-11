@@ -14,9 +14,15 @@ class TransferViewController: UIViewController {
     var transfer : Transfer!
     var wallet  : Wallet!
 
+    var dateFormatter : DateFormatter!
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        if nil == dateFormatter {
+            dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        }
         // Do any additional setup after loading the view.
     }
 
@@ -59,11 +65,13 @@ class TransferViewController: UIViewController {
 
     func updateView () {
 //        let address = UIApplication.sharedClient.node.address
+        let date: Date? = (nil == transfer.confirmation ? nil
+            : Date (timeIntervalSince1970: TimeInterval(transfer.confirmation!.timestamp)))
         let hash = transfer.hash
 
-        amountLabel.text = canonicalAmount(transfer.amount, sign:"?" /* (address == transfer.sourceAddress ? "-" : "+")*/)
+        amountLabel.text = canonicalAmount(transfer.amount, sign: (transfer.isSent ? "-" : "+"))
         feeLabel.text  = canonicalAmount(transfer.fee, sign: "")
-        dateLabel.text = "TBD"
+        dateLabel.text = date.map { dateFormatter.string(from: $0) } ?? "<pending>"
         sendLabel.text = transfer.source?.description ?? "<unknown>"
         recvLabel.text = transfer.target?.description ?? "<unknown>"
 

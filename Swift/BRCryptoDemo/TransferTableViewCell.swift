@@ -17,9 +17,15 @@ class TransferTableViewCell: UITableViewCell {
         }
     }
 
+    var dateFormatter : DateFormatter!
+
     override func awakeFromNib() {
         super.awakeFromNib()
         // Initialization code
+        if nil == dateFormatter {
+            dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        }
     }
 
     override func setSelected(_ selected: Bool, animated: Bool) {
@@ -57,15 +63,13 @@ class TransferTableViewCell: UITableViewCell {
     
     func updateView () {
         if let transfer = transfer {
-//            let source = transfer.source
-//            let target = transfer.target
-            let date = "... 2018 ..."
+            let date: Date? = (nil == transfer.confirmation ? nil
+                : Date (timeIntervalSince1970: TimeInterval(transfer.confirmation!.timestamp)))
             let hash = transfer.hash
-            dateLabel.text = "Send?Recv: \(date)"   // "\(address == source ? "Send" : "Recv"): \(date)"
-//            addrLabel.text = "Addr: \(address == source ? target : source)"
 
+            dateLabel.text = date.map { dateFormatter.string(from: $0) } ?? "<pending>"
             addrLabel.text = "Hash: \(hash.map { $0.description } ?? "<pending>")"
-            amountLabel.text = canonicalAmount(transfer.amount, sign: "?" /* (address == source ? "-" : "+") */);
+            amountLabel.text = canonicalAmount(transfer.amount, sign: (transfer.isSent ? "-" : "+"))
             feeLabel.text = "Fee: \(canonicalAmount(transfer.fee, sign: ""))"
             dotView.mainColor = colorForState()
             dotView.setNeedsDisplay()
