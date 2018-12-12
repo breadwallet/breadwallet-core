@@ -109,7 +109,7 @@ static size_t _BRTxPeerListAddPeer(BRTxPeerList **list, UInt256 txHash, const BR
         return array_count((*list)[i - 1].peers);
     }
 
-    array_add(*list, ((BRTxPeerList) { txHash, NULL }));
+    array_add(*list, ((const BRTxPeerList) { txHash, NULL }));
     array_new((*list)[array_count(*list) - 1].peers, PEER_MAX_CONNECTIONS);
     array_add((*list)[array_count(*list) - 1].peers, *peer);
     return 1;
@@ -228,7 +228,7 @@ static void _BRPeerManagerAddTxToPublishList(BRPeerManager *manager, BRTransacti
             if (BRTransactionEq(manager->publishedTx[i - 1].tx, tx)) return;
         }
         
-        array_add(manager->publishedTx, ((BRPublishedTx) { tx, info, callback }));
+        array_add(manager->publishedTx, ((const BRPublishedTx) { tx, info, callback }));
         array_add(manager->publishedTxHashes, tx->txHash);
 
         for (size_t i = 0; i < tx->inCount; i++) {
@@ -659,7 +659,7 @@ static void *_findPeersThreadRoutine(void *arg)
     
     for (addr = addrList; addr && ! UInt128IsZero(*addr); addr++) {
         age = 24*60*60 + BRRand(2*24*60*60); // add between 1 and 3 days
-        array_add(manager->peers, ((BRPeer) { *addr, manager->params->standardPort, services, now - age, 0 }));
+        array_add(manager->peers, ((const BRPeer) { *addr, manager->params->standardPort, services, now - age, 0 }));
     }
 
     manager->dnsThreadCount--;
@@ -698,7 +698,7 @@ static void _BRPeerManagerFindPeers(BRPeerManager *manager)
         }
 
         for (addr = addrList = _addressLookup(manager->params->dnsSeeds[0]); addr && ! UInt128IsZero(*addr); addr++) {
-            array_add(manager->peers, ((BRPeer) { *addr, manager->params->standardPort, services, now, 0 }));
+            array_add(manager->peers, ((const BRPeer) { *addr, manager->params->standardPort, services, now, 0 }));
         }
 
         if (addrList) free(addrList);
@@ -1558,7 +1558,7 @@ void BRPeerManagerSetFixedPeer(BRPeerManager *manager, UInt128 address, uint16_t
     BRPeerManagerDisconnect(manager);
     pthread_mutex_lock(&manager->lock);
     manager->maxConnectCount = UInt128IsZero(address) ? PEER_MAX_CONNECTIONS : 1;
-    manager->fixedPeer = ((BRPeer) { address, port, 0, 0, 0 });
+    manager->fixedPeer = ((const BRPeer) { address, port, 0, 0, 0 });
     array_clear(manager->peers);
     pthread_mutex_unlock(&manager->lock);
 }
@@ -1647,7 +1647,6 @@ void BRPeerManagerConnect(BRPeerManager *manager)
     }
     
     if (array_count(manager->connectedPeers) == 0) {
-        peer_log(&BR_PEER_NONE, "sync failed");
         _BRPeerManagerSyncStopped(manager);
         pthread_mutex_unlock(&manager->lock);
         if (manager->syncStopped) manager->syncStopped(manager->info, ENETUNREACH);
