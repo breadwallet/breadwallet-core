@@ -51,10 +51,10 @@ typedef struct {
     uint8_t bytes[ETHEREUM_HASH_BYTES];
 } BREthereumHash;
 
-#define EMPTY_HASH_INIT   (BREthereumHash) { \
+#define EMPTY_HASH_INIT   ((const BREthereumHash) { \
 0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0, \
 0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0  \
-}
+})
 
 #define HASH_INIT(s) ((BREthereumHash) { .bytes = {\
 (_hexu((s)[ 0]) << 4) | _hexu((s)[ 1]), (_hexu((s)[ 2]) << 4) | _hexu((s)[ 3]),\

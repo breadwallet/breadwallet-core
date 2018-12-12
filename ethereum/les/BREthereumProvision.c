@@ -791,7 +791,7 @@ provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
                     provisionProofs[offset + index].totalDifficulty = outputs[index].u.headerProof.blockTotalDifficulty;
                 }
                 else {
-                    provisionProofs[offset + index].hash = (BREthereumHash) EMPTY_HASH_INIT;
+                    provisionProofs[offset + index].hash = EMPTY_HASH_INIT;
                     provisionProofs[offset + index].totalDifficulty = UINT256_ZERO;
                 }
 

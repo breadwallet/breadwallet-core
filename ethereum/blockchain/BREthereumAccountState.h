@@ -56,9 +56,9 @@ typedef struct {
     BREthereumHash codeHash;
 } BREthereumAccountState;
 
-#define EMPTY_ACCOUNT_STATE_INIT    { \
+#define EMPTY_ACCOUNT_STATE_INIT    ((BREthereumAccountState) { \
     0, EMPTY_ETHER_INIT, EMPTY_HASH_INIT, EMPTY_HASH_INIT \
-}
+})
 
 extern BREthereumAccountState
 accountStateCreate (uint64_t nonce,

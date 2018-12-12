@@ -42,7 +42,7 @@ typedef struct {
     uint8_t bytes[ADDRESS_BYTES];
 } BREthereumAddress;
 
-#define EMPTY_ADDRESS_INIT   ((BREthereumAddress) { \
+#define EMPTY_ADDRESS_INIT   ((const BREthereumAddress) { \
 0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0 \
 })
 
