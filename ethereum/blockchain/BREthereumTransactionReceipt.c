@@ -90,11 +90,13 @@ transactionReceiptMatchAddress (BREthereumTransactionReceipt receipt,
 
 extern void
 transactionReceiptRelease (BREthereumTransactionReceipt receipt) {
-    for (size_t index = 0; index < array_count(receipt->logs); index++)
-        logRelease(receipt->logs[index]);
-    array_free(receipt->logs);
-    rlpDataRelease(receipt->stateRoot);
-    free (receipt);
+    if (NULL != receipt) {
+        for (size_t index = 0; index < array_count(receipt->logs); index++)
+            logRelease(receipt->logs[index]);
+        array_free(receipt->logs);
+        rlpDataRelease(receipt->stateRoot);
+        free (receipt);
+    }
 }
 
 //
@@ -164,6 +166,29 @@ transactionReceiptRlpEncode(BREthereumTransactionReceipt receipt,
     items[3] = transactionReceiptLogsRlpEncode(receipt, coder);
     
     return rlpEncodeListItems(coder, items, 4);
+}
+
+extern BRArrayOf (BREthereumTransactionReceipt)
+transactionReceiptDecodeList (BRRlpItem item,
+                              BRRlpCoder coder) {
+    size_t itemCount;
+    const BRRlpItem *items = rlpDecodeList (coder, item, &itemCount);
+
+    BRArrayOf (BREthereumTransactionReceipt) receipts;
+    array_new (receipts, itemCount);
+    for (size_t index = 0; index < itemCount; index++)
+        array_add (receipts, transactionReceiptRlpDecode (items[index], coder));
+    return receipts;
+}
+
+extern void
+transactionReceiptsRelease (BRArrayOf(BREthereumTransactionReceipt) receipts) {
+    if (NULL != receipts) {
+        size_t count = array_count(receipts);
+        for (size_t index = 0; index < count; index++)
+            transactionReceiptRelease (receipts[index]);
+        array_free (receipts);
+    }
 }
 
 /*  Transaction Receipts (184)

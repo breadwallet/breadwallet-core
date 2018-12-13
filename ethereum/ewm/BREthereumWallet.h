@@ -26,8 +26,8 @@
 #ifndef BR_Ethereum_Wallet_H
 #define BR_Ethereum_Wallet_H
 
-#include "../base/BREthereumBase.h"
 #include "../blockchain/BREthereumBlockChain.h"
+#include "BREthereumBase.h"
 #include "BREthereumAccount.h"
 #include "BREthereumTransfer.h"
 
@@ -46,7 +46,7 @@ extern "C" {
  * SetLocalCurrencyPerHolding
  * GetHoldingValueInLocalCurrency
  */
-typedef struct BREthereumWalletRecord *BREthereumWallet;
+//typedef struct BREthereumWalletRecord *BREthereumWallet;
 
 /**
  * Create a wallet holding ETH; will use the account's primary address.
@@ -72,7 +72,10 @@ walletCreateHoldingToken(BREthereumAccount account,
 
 extern void
 walletRelease (BREthereumWallet wallet);
-    
+
+extern void
+walletsRelease (OwnershipGiven BRArrayOf(BREthereumWallet) wallets);
+
 /**
  * Estimate the transfer fee (in Ether) for transferring amount.  The estimate uses
  * the wallet's default gasPrice and the amount's default gas.
@@ -104,33 +107,19 @@ walletCreateTransfer(BREthereumWallet wallet,
                         BREthereumAddress recvAddress,
                         BREthereumAmount amount);
 
-/**
- *
- * You will have all sorts of problems with `nonce`...
- 
- *   1) It needs to be derived from and consistent with the wallet's address nonce.
- *         walletSignTransfer() - the first point where the nonce is used - will fatal.
- *   2) If you create a transfer, thereby using/incrementing a nonce, but then don't submit
- *         the transfer, then *all* subsequent transfer will be pended *forever*.
- *
- * @warn If you create it, you must submit it.
- *
- * @param wallet
- * @param recvAddress
- * @param amount
- * @param gasPrice
- * @param gasLimit
- * @param nonce
- * @return
- */
 extern BREthereumTransfer
-walletCreateTransferDetailed(BREthereumWallet wallet,
-                                BREthereumAddress recvAddress,
-                                BREthereumEther amount,
-                                BREthereumGasPrice gasPrice,
-                                BREthereumGas gasLimit,
-                                const char *data,
-                                uint64_t nonce);
+walletCreateTransferWithFeeBasis (BREthereumWallet wallet,
+                                  BREthereumAddress recvAddress,
+                                  BREthereumAmount amount,
+                                  BREthereumFeeBasis feeBasis);
+
+extern BREthereumTransfer
+walletCreateTransferGeneric(BREthereumWallet wallet,
+                            BREthereumAddress recvAddress,
+                            BREthereumEther amount,
+                            BREthereumGasPrice gasPrice,
+                            BREthereumGas gasLimit,
+                            const char *data);
 
 extern void
 walletSignTransfer(BREthereumWallet wallet,
@@ -239,7 +228,7 @@ transferPredicateAny (void *ignore,
                          unsigned int index);
 
 extern int
-transferPredicateStatus (BREthereumTransferStatusType type,
+transferPredicateStatus (BREthereumTransferStatus status,
                             BREthereumTransfer transfer,
                             unsigned int index);
 
@@ -254,6 +243,10 @@ walletGetTransferByHash (BREthereumWallet wallet,
                             BREthereumHash hash);
 
 extern BREthereumTransfer
+walletGetTransferByOriginatingHash (BREthereumWallet wallet,
+                                    BREthereumHash hash);
+    
+extern BREthereumTransfer
 walletGetTransferByNonce(BREthereumWallet wallet,
                             BREthereumAddress sourceAddress,
                             uint64_t nonce);
@@ -264,6 +257,54 @@ walletGetTransferByIndex(BREthereumWallet wallet,
 
 extern unsigned long
 walletGetTransferCount (BREthereumWallet wallet);
+
+//
+// Private
+// TODO: Make 'static'
+//
+
+// Returns Ether appropriate for encoding a transaction.  If the transaction is for a TOKEN,
+// then the returned Ether is zero (because the amount of a TOKEN transfer is encoded in the
+// contract's function call, in the transaction.data field).
+private_extern BREthereumEther
+transferGetEffectiveAmountInEther (BREthereumTransfer transfer);
+
+private_extern void
+walletSetBalance (BREthereumWallet wallet,
+                  BREthereumAmount balance);
+
+private_extern void
+walletUpdateBalance (BREthereumWallet wallet);
+
+private_extern void
+walletTransferSubmitted (BREthereumWallet wallet,
+                         BREthereumTransfer transaction,
+                         const BREthereumHash hash); // ....
+
+private_extern void
+walletTransferIncluded(BREthereumWallet wallet,
+                       BREthereumTransfer transaction,
+                       BREthereumGas gasUsed,
+                       BREthereumHash blockHash,
+                       uint64_t blockNumber,
+                       uint64_t blockTransactionIndex);
+
+private_extern void
+walletTransferErrored (BREthereumWallet wallet,
+                       BREthereumTransfer transaction,
+                       const char *reason);
+
+private_extern void
+walletHandleTransfer (BREthereumWallet wallet,
+                      BREthereumTransfer transfer);
+
+private_extern void
+walletUnhandleTransfer (BREthereumWallet wallet,
+                        BREthereumTransfer transaction);
+
+private_extern int
+walletHasTransfer (BREthereumWallet wallet,
+                   BREthereumTransfer transaction);
 
 #ifdef __cplusplus
 }

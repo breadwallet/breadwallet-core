@@ -39,11 +39,11 @@
 #include "BRInt.h"
 #include "BRArray.h"
 #include "BRSet.h"
-//#include "BRKey.h"
 #include "BRBIP39WordsEn.h"
 #include "BREthereum.h"
-#include "BREthereumPrivate.h"
-#include "BREthereumAccount.h"
+#include "ewm/BREthereumAccount.h"
+#include "ewm/BREthereumWallet.h"
+#include "ewm/BREthereumTransfer.h"
 #include "blockchain/BREthereumBlockChain.h"
 #include "event/BREventAlarm.h"
 #include "les/test-les.h"
@@ -67,11 +67,16 @@ extern void runContractTests (void);
 extern void runLEStests(void);
 
 // EWM
-extern void runEWMTests (void);
-extern void runSyncTest (unsigned int durationInSeconds,
+extern void runEWMTests (const char *paperKey);
+
+extern void runSyncTest (BREthereumAccount account,
+                         BREthereumMode mode,
+                         BREthereumTimestamp accountTimestamp,
+                         unsigned int durationInSeconds,
+                         const char *storagePath,
                          int restart);
 
-
+extern const char *tokenBRDAddress;
 //
 // Ether & Token Parse
 //
@@ -391,7 +396,7 @@ void runTransactionTests3 (BREthereumAccount account, BREthereumNetwork network)
     printf ("     TEST 3\n");
     
     BRCoreParseStatus status;
-    BREthereumToken token = tokenGet(0);
+    BREthereumToken token = tokenLookup(tokenBRDAddress);
     BREthereumWallet wallet = walletCreateHoldingToken (account, network, token);
     UInt256 value = createUInt256Parse ("5968770000000000000000", 10, &status);
     BREthereumAmount amount = amountCreateToken(createTokenQuantity (token, value));
@@ -504,6 +509,8 @@ void testTransactionCodingEther () {
     walletSetDefaultGasPrice(wallet, txGasPrice);
     walletSetDefaultGasLimit(wallet, txGas);
     BREthereumTransfer transfer = walletCreateTransfer(wallet, txRecvAddr, txAmount);
+
+    // NOTE: Owned by `transfer`
     BREthereumTransaction transaction = transferGetOriginatingTransaction(transfer);
     transactionSetNonce(transaction, NODE_NONCE);
 
@@ -561,7 +568,6 @@ void testTransactionCodingEther () {
 
     walletUnhandleTransfer(wallet, transfer);
     transferRelease(transfer);
-    transactionRelease(transaction);
     transactionRelease(decodedTransaction);
     rlpCoderRelease(coder);
 }
@@ -569,7 +575,7 @@ void testTransactionCodingEther () {
 void testTransactionCodingToken () {
     printf ("     Coding Transaction\n");
 
-    BREthereumToken token = tokenGet(0);
+    BREthereumToken token = tokenLookup(tokenBRDAddress);
     BREthereumAccount account = createAccount (NODE_PAPER_KEY);
     BREthereumWallet wallet = walletCreateHoldingToken(account, ethereumMainnet, token);
 
@@ -581,6 +587,7 @@ void testTransactionCodingToken () {
     walletSetDefaultGasPrice(wallet, txGasPrice);
     walletSetDefaultGasLimit(wallet, txGas);
     BREthereumTransfer transfer = walletCreateTransfer(wallet, txRecvAddr, txAmount);
+    // NOTE: Owned by `transfer`
     BREthereumTransaction transaction = transferGetOriginatingTransaction(transfer);
     transactionSetNonce(transaction, NODE_NONCE);
 
@@ -618,7 +625,6 @@ void testTransactionCodingToken () {
 
     walletUnhandleTransfer(wallet, transfer);
     transferRelease(transfer);
-    transactionRelease(transaction);
     transactionRelease(decodedTransaction);
     rlpCoderRelease(coder);
 }
@@ -658,9 +664,15 @@ runPerfTestsCoder (int repeat, int many) {
     rlpCoderRelease(coderSaved);
 }
 
+
+extern void
+installTokensForTest (void);
+
 extern void
 runTests (int reallySend) {
     installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);
+    installTokensForTest ();
+
     // Initialize tokens
 //    tokenGet(0);
     runAccountTests();
@@ -671,8 +683,12 @@ runTests (int reallySend) {
     printf ("Done\n");
 }
 
+extern void
+installTokensForTest (void);
+
 #if defined (TEST_ETHEREUM_NEED_MAIN)
 int main(int argc, const char *argv[]) {
+    installTokensForTest ();
     runUtilTests();
     runRlpTests();
     runEventTests();

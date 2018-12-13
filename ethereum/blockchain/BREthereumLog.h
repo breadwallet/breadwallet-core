@@ -30,10 +30,6 @@
 #include "BREthereumBloomFilter.h"
 #include "BREthereumTransactionStatus.h"
 
-#if ! defined (BRArrayOf)
-#define BRArrayOf(type)     type*
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -85,7 +81,8 @@ typedef struct BREthereumLogRecord *BREthereumLog;
 extern BREthereumLog
 logCreate (BREthereumAddress address,
            unsigned int topicsCount,
-           BREthereumLogTopic *topics);
+           BREthereumLogTopic *topics,
+           BRRlpData data);
 
 extern void
 logInitializeIdentifier (BREthereumLog log,
@@ -163,6 +160,9 @@ logRlpEncode(BREthereumLog log,
 
 extern void
 logRelease (BREthereumLog log);
+
+extern void
+logsRelease (BRArrayOf(BREthereumLog) logs);
 
 extern void
 logReleaseForSet (void *ignore, void *item);

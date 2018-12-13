@@ -26,18 +26,62 @@
 #ifndef BR_Ethereum_BCS_Private_h
 #define BR_Ethereum_BCS_Private_h
 
-#include "BRSet.h"
-#include "BRArray.h"
 #include "BREthereumBCS.h"
 #include "../blockchain/BREthereumBlockChain.h"
-#include "../les/BREthereumNode.h"
 #include "../event/BREvent.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+///
+/// MARK: - Sync Defines
+///
+
+#define LES_GET_HEADERS_MAXIMUM        (192)
+
+/**
+ * For a 'N_ARY sync' we'll split the range (of needed blockNumbers) into sub-ranges.  We'll find
+ * the optimum number of subranges (such that the subranges exactly span the parent range). We'll
+ * limit the number of subranges to between MINIMUM and MAXIMUM (below).  The maximum is determined
+ * by the maximum in LES GetBlockHeaders; the minimum is arbitrary.
+ *
+ * Say we have 6,000,0xx headers and the request minimum/maximum are 100/200.  We'll find the
+ * highest request count with the minimum remainder.  For 100 and 200 the remainder is 'xx'; we'd
+ * choose 200 as it is the highest.  (The actual request count will depend on 'xx' - e.g for
+ * headers of 6083022, the optimal count is 159).  For the remainder, we'll do a SYNC_LINEAR_SMALL.
+ *
+ * With 200, we'll issue GetAccountState at the 201 headers, each header 30,000 apart.  If the
+ * AccountState change, we'll recurse.  The highest minimal remainder is again 200 with blocks
+ * spaced 150 apart.
+ */
+#define SYNC_N_ARY_REQUEST_MINIMUM     (100)
+#define SYNC_N_ARY_REQUEST_MAXIMUM     (LES_GET_HEADERS_MAXIMUM - 1)
+
+/**
+ * For a 'linear sync' we'll request at most MAXIMUM headers.  The maximum is determined by the
+ * maximum in LES GetBlockHeaders.
+ *
+ * We'll favor a 'linear sync' over a 'N_ARY sync' if the range (of needed blockNumbers) is less
+ * than LIMIT (below)
+ */
+#define SYNC_LINEAR_REQUEST_MAXIMUM     (LES_GET_HEADERS_MAXIMUM - 1)
+#define SYNC_LINEAR_LIMIT               (10 * SYNC_LINEAR_REQUEST_MAXIMUM)
+#define SYNC_LINEAR_LIMIT_IF_N_ARY      (100) // 3 * SYNC_LINEAR_REQUEST_MAXIMUM)
+
+/**
+ * As the sync find results (block headers, at least) we'll report them every PERIOD results.
+ */
+#define BCS_SYNC_RESULT_PERIOD  250
+
+/**
+ *
+ */
 typedef struct BREthereumBCSSyncStruct *BREthereumBCSSync;
+
+///
+/// MARK: - typedef BCS
+///
 
 /**
  *
@@ -55,12 +99,17 @@ struct BREthereumBCSStruct {
     BREthereumAddress address;
 
     /**
+     * The sync mode
+     */
+    BREthereumMode mode;
+    
+    /**
      * A BloomFilter with address for application to transactions
      */
     BREthereumBloomFilter filterForAddressOnTransactions;
 
     /**
-     * A BlookFilter with address for application to logs.  For logs, the bloom filter is based
+     * A BloomFilter with address for application to logs.  For logs, the bloom filter is based
      * on matching `LogTopic` data.
      */
     BREthereumBloomFilter filterForAddressOnLogs;
@@ -114,8 +163,10 @@ struct BREthereumBCSStruct {
 
     /**
      * A BRSet of orphaned block headers.  These are block headers that 'conflict' with
-     * chained headers.  Typically (Exclusively) an orphan is a previously chained header
-     * that was replaced by a subsequently accounced header.
+     * chained headers.  An orphan is a previously chained header that was replaced by a
+     * subsequently accounced header or, importantly, a header beyond `chain` such as when
+     * a new header is announced but a sync is in progress.  Such 'beyond' headers will get chained
+     * once the sync is up-to-date.
      */
     BRSetOf(BREthereumBlock) orphans;
 
@@ -140,12 +191,17 @@ struct BREthereumBCSStruct {
     BRArrayOf(BREthereumHash) pendingLogs;
 
     /**
-     * A BRSet of transactions for account.
+     * A BRSet of transactions for account.  This includes any and all transactions that we've
+     * ever identified/created for account no matter the transaction's status.  Specifically,
+     * transactions that have ERRORRED, transactions that have been replaced, transactions that
+     * have been created but never signed nor submitted - they are all on the list.  The User of
+     * this set is responsible for filtering the transactions as needed.
      */
     BRSetOf(BREthereumTransaction) transactions;
 
     /**
-     * A BRSet of logs for account.
+     * A BRSet of logs for account.  This includes any and all logs that we've ever
+     * identified/created for account no matter the log's status.  [See above for `transactions`]
      */
     BRSetOf(BREtherumLog) logs;
 
@@ -155,27 +211,13 @@ struct BREthereumBCSStruct {
     BREthereumAccountState accountState;
 
     /**
-     * The Array of Active Blocks
-     */
-    BRArrayOf(BREthereumBlock) activeBlocks;
-
-    /**
      * Sync state
      */
     BREthereumBCSSync sync;
-//    int syncActive;
-//    uint64_t syncTail;
-//    uint64_t syncNext;
-//    uint64_t syncHead;
 };
 
 extern const BREventType *bcsEventTypes[];
 extern const unsigned int bcsEventTypesCount;
-
-#define FOR_SET(type,var,set) \
-    for (type var = BRSetIterate(set, NULL); \
-         NULL != var; \
-         var = BRSetIterate(set, var))
 
 #define BCS_FOR_BLOCK(block)  FOR_SET(BREthereumBlock, block, bcs->blocks)
 
@@ -187,19 +229,20 @@ extern const unsigned int bcsEventTypesCount;
 //
 // Submit Transaction
 //
-    extern void
-    bcsHandleSubmitTransaction (BREthereumBCS bcs,
-                                BREthereumTransaction transaction);
+extern void
+bcsHandleSubmitTransaction (BREthereumBCS bcs,
+                            OwnershipGiven BREthereumTransaction transaction);
 
 extern void
 bcsSignalSubmitTransaction (BREthereumBCS bcs,
-                            BREthereumTransaction transaction);
+                            OwnershipGiven BREthereumTransaction transaction);
 
 //
 // Announce (New Chain Head)
 //
 extern void
 bcsHandleAnnounce (BREthereumBCS bcs,
+                   BREthereumNodeReference node,
                    BREthereumHash headHash,
                    uint64_t headNumber,
                    UInt256 headTotalDifficulty,
@@ -207,97 +250,52 @@ bcsHandleAnnounce (BREthereumBCS bcs,
 
 extern void
 bcsSignalAnnounce (BREthereumBCS bcs,
+                   BREthereumNodeReference node,
                    BREthereumHash headHash,
                    uint64_t headNumber,
                    UInt256 headTotalDifficulty,
                    uint64_t reorgDepth);
 
 //
-// Status
+// Status (of a LES Node)
 //
 extern void
 bcsHandleStatus (BREthereumBCS bcs,
+                 BREthereumNodeReference node,
                  BREthereumHash headHash,
                  uint64_t headNumber);
 
 extern void
 bcsSignalStatus (BREthereumBCS bcs,
+                 BREthereumNodeReference node,
                  BREthereumHash headHash,
                  uint64_t headNumber);
 
 //
-// Block Headers
+// Provision (Result Data)
 //
 extern void
-bcsHandleBlockHeader (BREthereumBCS bcs,
-                      BREthereumBlockHeader header);
+bcsHandleProvision (BREthereumBCS bcs,
+                    BREthereumLES les,
+                    BREthereumNodeReference node,
+                    BREthereumProvisionResult result);
 
 extern void
-bcsSignalBlockHeader (BREthereumBCS bcs,
-                      BREthereumBlockHeader header);
-
-//
-// Block Bodies
-//
-extern void
-bcsHandleBlockBodies (BREthereumBCS bcs,
-                      BREthereumHash blockHash,
-                      BREthereumTransaction transactions[],
-                      BREthereumBlockHeader ommers[]);
-
-extern void
-bcsSignalBlockBodies (BREthereumBCS bcs,
-                      BREthereumHash blockHash,
-                      BREthereumTransaction transactions[],
-                      BREthereumBlockHeader ommers[]);
-
-//
-// Transaction Status
-//
-extern void
-bcsHandleTransactionStatus (BREthereumBCS bcs,
-                            BREthereumHash transactionHash,
-                            BREthereumTransactionStatus status);
-
-extern void
-bcsSignalTransactionStatus (BREthereumBCS bcs,
-                            BREthereumHash transactionHash,
-                            BREthereumTransactionStatus status);
-
-//
-// Transaction Receipt
-//
-extern void
-bcsHandleTransactionReceipts (BREthereumBCS bcs,
-                              BREthereumHash blockHash,
-                              BREthereumTransactionReceipt receipts[]);
-
-extern void
-bcsSignalTransactionReceipts (BREthereumBCS bcs,
-                              BREthereumHash blockHash,
-                              BREthereumTransactionReceipt receipts[]);
-
-//
-// Account State
-//
-extern void
-bcsHandleAccountState (BREthereumBCS bcs,
-                       BREthereumLESAccountStateResult result);
-
-extern void
-bcsSignalAccountState (BREthereumBCS bcs,
-                   BREthereumLESAccountStateResult result);
+bcsSignalProvision (BREthereumBCS bcs,
+                    BREthereumLES les,
+                    BREthereumNodeReference node,
+                    BREthereumProvisionResult result);
 
 //
 // Transactions
 //
 extern void
 bcsHandleTransaction (BREthereumBCS bcs,
-                      BREthereumTransaction transaction);
+                      OwnershipGiven BREthereumTransaction transaction);
 
 extern void
 bcsSignalTransaction (BREthereumBCS bcs,
-                      BREthereumTransaction transaction);
+                      OwnershipGiven BREthereumTransaction transaction);
 
 //
 // Logs
@@ -314,24 +312,12 @@ bcsSignalLog (BREthereumBCS bcs,
 // Peers
 //
 extern void
-bcsHandlePeers (BREthereumBCS bcs,
-                BRArrayOf(BREthereumLESPeerConfig) peers);
+bcsHandleNodes (BREthereumBCS bcs,
+                BRArrayOf(BREthereumNodeConfig) peers);
 
 extern void
-bcsSignalPeers (BREthereumBCS bcs,
-                BRArrayOf(BREthereumLESPeerConfig) peers);
-
-////
-//// Active Block
-////
-//extern BREthereumBlock
-//bcsLookupActiveBlock (BREthereumBCS bcs,
-//                      BREthereumHash hash);
-//
-//extern void
-//bcsReleaseActiveBlock (BREthereumBCS bcs,
-//                       BREthereumHash hash);
-
+bcsSignalNodes (BREthereumBCS bcs,
+                BRArrayOf(BREthereumNodeConfig) peers);
 
 //
 // Sync
@@ -353,11 +339,13 @@ typedef void* BREthereumBCSSyncContext;
 typedef void
 (*BREthereumBCSSyncReportBlocks) (BREthereumBCSSyncContext context,
                                   BREthereumBCSSync sync,
+                                  BREthereumNodeReference node,
                                   BRArrayOf(BREthereumBCSSyncResult) blocks);
 
 typedef void
 (*BREthereumBCSSyncReportProgress) (BREthereumBCSSyncContext context,
                                     BREthereumBCSSync sync,
+                                    BREthereumNodeReference node,
                                     uint64_t blockNumberBeg,
                                     uint64_t blockNumberNow,
                                     uint64_t blockNumberEnd);
@@ -381,25 +369,22 @@ bcsSyncStop (BREthereumBCSSync sync);
 
 extern void
 bcsSyncStart (BREthereumBCSSync sync,
+              BREthereumNodeReference node,
               uint64_t thisBlockNumber,
               uint64_t needBlockNumber);
 
 extern void
-bcsSyncHandleBlockHeader (BREthereumBCSSyncRange request,
-                          BREthereumBlockHeader header);
+bcsSyncHandleProvision (BREthereumBCSSyncRange range,
+                        BREthereumLES les,
+                        BREthereumNodeReference node,
+                        BREthereumProvisionResult result);
 
 extern void
-bcsSyncSignalBlockHeader (BREthereumBCSSyncRange request,
-                          BREthereumBlockHeader header);
+bcsSyncSignalProvision (BREthereumBCSSyncRange range,
+                        BREthereumLES les,
+                        BREthereumNodeReference node,
+                        BREthereumProvisionResult result);
 
-
-extern void
-bcsSyncHandleAccountState (BREthereumBCSSyncRange request,
-                           BREthereumLESAccountStateResult result);
-
-extern void
-bcsSyncSignalAccountState (BREthereumBCSSyncRange request,
-                           BREthereumLESAccountStateResult result);
 
 #ifdef __cplusplus
 }

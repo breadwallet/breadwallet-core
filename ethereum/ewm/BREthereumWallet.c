@@ -27,7 +27,6 @@
 #include <string.h>
 #include <assert.h>
 #include "BRArray.h"
-#include "BREthereumPrivate.h"
 #include "BREthereumWallet.h"
 #include "BREthereumTransfer.h"
 
@@ -171,9 +170,21 @@ walletCreateHoldingToken(BREthereumAccount account,
 
 extern void
 walletRelease (BREthereumWallet wallet) {
-    // TODO: Release 'transfers' - tell EWM?
+    // TODO: Announce to EWM listener/client?
+    for (size_t index = 0; index < array_count(wallet->transfers); index++)
+        transferRelease (wallet->transfers[index]);
     array_free(wallet->transfers);
     free (wallet);
+}
+
+extern void
+walletsRelease (OwnershipGiven BRArrayOf(BREthereumWallet) wallets) {
+    if (NULL != wallets) {
+        size_t count = array_count(wallets);
+        for (size_t index = 0; index < count; index++)
+            walletRelease(wallets[index]);
+        array_free(wallets);
+    }
 }
 
 //
@@ -208,47 +219,60 @@ walletEstimateTransferFeeDetailed (BREthereumWallet wallet,
 // Transfer Creation
 //
 extern BREthereumTransfer
+walletCreateTransferWithFeeBasis (BREthereumWallet wallet,
+                                  BREthereumAddress recvAddress,
+                                  BREthereumAmount amount,
+                                  BREthereumFeeBasis feeBasis) {
+    BREthereumTransfer transfer = transferCreate (wallet->address, recvAddress, amount, feeBasis,
+                                                  (NULL == wallet->token
+                                                   ? TRANSFER_BASIS_TRANSACTION
+                                                   : TRANSFER_BASIS_LOG));
+    walletHandleTransfer(wallet, transfer);
+    return transfer;
+}
+
+extern BREthereumTransfer
 walletCreateTransfer(BREthereumWallet wallet,
                         BREthereumAddress recvAddress,
                         BREthereumAmount amount) {
 
-    BREthereumFeeBasis feeBasis = {
-        FEE_BASIS_GAS,
-        { .gas = {
-        wallet->defaultGasLimit,
-        wallet->defaultGasPrice
-        }}
-    };
-
-    BREthereumTransfer transfer = transferCreate (wallet->address, recvAddress, amount, feeBasis);
-    walletHandleTransfer(wallet, transfer);
-    return transfer;
+    return walletCreateTransferWithFeeBasis(wallet, recvAddress, amount,
+                                            (BREthereumFeeBasis) {
+                                                FEE_BASIS_GAS,
+                                                { .gas = {
+                                                    wallet->defaultGasLimit,
+                                                    wallet->defaultGasPrice
+                                                }}});
 }
 
-#ifdef WALLET_CREATE_TRANSACTION_DIRECTLY
 extern BREthereumTransfer
-walletCreateTransferDetailed(BREthereumWallet wallet,
-                                BREthereumAddress recvAddress,
-                                BREthereumEther amount,
-                                BREthereumGasPrice gasPrice,
-                                BREthereumGas gasLimit,
-                                const char *data,
-                                uint64_t nonce) {
-    assert (walletGetAmountType(wallet) == amountGetType(amount));
-    assert (AMOUNT_ETHER == amountGetType(amount)
-            || (wallet->token == tokenQuantityGetToken (amountGetTokenQuantity(amount))));
-    
-    BREthereumTransfer transfer = transferCreate(wallet->address,
-                                                          recvAddress,
-                                                          amount,
-                                                          gasPrice,
-                                                          gasLimit,
-                                                          data,
-                                                          nonce);
+walletCreateTransferGeneric(BREthereumWallet wallet,
+                             BREthereumAddress recvAddress,
+                             BREthereumEther amount,
+                             BREthereumGasPrice gasPrice,
+                             BREthereumGas gasLimit,
+                             const char *data) {
+//    assert (walletGetAmountType(wallet) == amountGetType(amount));
+//    assert (AMOUNT_ETHER == amountGetType(amount)
+//            || (wallet->token == tokenQuantityGetToken (amountGetTokenQuantity(amount))));
+
+        BREthereumTransaction originatingTransaction = transactionCreate(walletGetAddress(wallet),
+                                                                         recvAddress,
+                                                                         amount,
+                                                                         gasPrice,
+                                                                         gasLimit,
+                                                                         data,
+                                                                         TRANSACTION_NONCE_IS_NOT_ASSIGNED);
+
+    BREthereumTransfer transfer =
+            transferCreateWithTransactionOriginating (originatingTransaction,
+                                                      (NULL == walletGetToken(wallet)
+                                                      ? TRANSFER_BASIS_TRANSACTION
+                                                      : TRANSFER_BASIS_LOG));
+
     walletHandleTransfer(wallet, transfer);
     return transfer;
 }
-#endif // WALLET_CREATE_TRANSACTION_DIRECTLY
 
 private_extern void
 walletHandleTransfer(BREthereumWallet wallet,
@@ -425,10 +449,10 @@ transferPredicateAny (void *ignore,
 }
 
 extern int
-transferPredicateStatus (BREthereumTransferStatusType type,
+transferPredicateStatus (BREthereumTransferStatus status,
                             BREthereumTransfer transfer,
                             unsigned int index) {
-    return transferHasStatusType(transfer, type);
+    return transferHasStatus(transfer, status);
 }
 
 extern void
@@ -447,6 +471,17 @@ walletGetTransferByHash (BREthereumWallet wallet,
     for (int i = 0; i < array_count(wallet->transfers); i++) {
         BREthereumHash transferHash = transferGetHash(wallet->transfers[i]);
         if (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(hash, transferHash)))
+            return wallet->transfers[i];
+    }
+    return NULL;
+}
+
+extern BREthereumTransfer
+walletGetTransferByOriginatingHash (BREthereumWallet wallet,
+                                    BREthereumHash hash) {
+    for (int i = 0; i < array_count(wallet->transfers); i++) {
+        BREthereumTransaction transaction = transferGetOriginatingTransaction(wallet->transfers[i]);
+        if (NULL != transaction && ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(hash, transactionGetHash(transaction))))
             return wallet->transfers[i];
     }
     return NULL;
@@ -483,7 +518,7 @@ walletLookupTransferIndex (BREthereumWallet wallet,
 static void
 walletInsertTransferSorted (BREthereumWallet wallet,
                                BREthereumTransfer transfer) {
-    size_t index = array_count(wallet->transfers);  // if empty (unsigned int) index == 0
+    size_t index = array_count(wallet->transfers);
     for (; index > 0; index--)
         // quit if transfer is not-less-than the next in wallet
         if (ETHEREUM_COMPARISON_LT != transferCompare(transfer, wallet->transfers[index - 1]))
@@ -491,6 +526,10 @@ walletInsertTransferSorted (BREthereumWallet wallet,
     array_insert(wallet->transfers, index, transfer);
 }
 
+#pragma clang diagnostic push
+#pragma GCC diagnostic push
+#pragma clang diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wunused-function"
 static void
 walletUpdateTransferSorted (BREthereumWallet wallet,
                                BREthereumTransfer transfer) {
@@ -500,6 +539,8 @@ walletUpdateTransferSorted (BREthereumWallet wallet,
     array_rm(wallet->transfers, index);
     walletInsertTransferSorted(wallet, transfer);
 }
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
 
 extern unsigned long
 walletGetTransferCount (BREthereumWallet wallet) {

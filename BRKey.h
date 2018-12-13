@@ -87,9 +87,13 @@ size_t BRKeyPubKey(BRKey *key, void *pubKey, size_t pkLen);
 // returns the ripemd160 hash of the sha256 hash of the public key, or UINT160_ZERO on error
 UInt160 BRKeyHash160(BRKey *key);
 
-// writes the pay-to-pubkey-hash bitcoin address for key to addr
+// writes the bech32 pay-to-witness-pubkey-hash bitcoin address for key to addr
 // returns the number of bytes written, or addrLen needed if addr is NULL
 size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen);
+
+// writes the legacy pay-to-pubkey-hash address for key to addr
+// returns the number of bytes written, or addrLen needed if addr is NULL
+size_t BRKeyLegacyAddr(BRKey *key, char *addr, size_t addrLen);
 
 // signs md with key and writes signature to sig
 // returns the number of bytes written, or sigLen needed if sig is NULL
@@ -108,6 +112,9 @@ size_t BRKeyCompactSign(const BRKey *key, void *compactSig, size_t sigLen, UInt2
 
 // assigns pubKey recovered from compactSig to key and returns true on success
 int BRKeyRecoverPubKey(BRKey *key, UInt256 md, const void *compactSig, size_t sigLen);
+
+// write a 'shared secret' for key w/ pubKey to out32
+void BRKeyECDH(const BRKey *privKey, uint8_t *out32, BRKey *pubKey);
 
 size_t BRKeyCompactSignEthereum(const BRKey *key, void *compactSig, size_t sigLen, UInt256 md);
 int BRKeyRecoverPubKeyEthereum(BRKey *key, UInt256 md, const void *compactSig, size_t sigLen);

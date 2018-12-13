@@ -39,7 +39,7 @@ typedef struct {
     uint8_t bytes[ETHEREUM_BLOOM_FILTER_BYTES];
 } BREthereumBloomFilter;
 
-#define EMPTY_BLOOM_FILTER_INIT   { \
+#define EMPTY_BLOOM_FILTER_INIT   ((const  BREthereumBloomFilter) { \
 0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0, \
 0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0, \
 0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0, \
@@ -56,7 +56,7 @@ typedef struct {
 0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0, \
 0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0, \
 0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0, \
-}
+})
 
 /**
  * Create an empty BloomFilter

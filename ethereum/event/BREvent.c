@@ -23,6 +23,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#include <string.h>
 #include <errno.h>
 #include <pthread.h>
 #include <sys/time.h>
@@ -34,13 +35,13 @@
 #include "pthread_android.h"
 #endif
 
-#include "../util/BRUtil.h"
 #include "BREvent.h"
 #include "BREventQueue.h"
 #include "BREventAlarm.h"
 
 #define PTHREAD_STACK_SIZE (512 * 1024)
 
+#define PTHREAD_NAME_SIZE   (33)
 /* Forward Declarations */
 static void *
 eventHandlerThread (BREventHandler handler);
@@ -49,6 +50,8 @@ eventHandlerThread (BREventHandler handler);
 // Event Handler
 //
 struct BREventHandlerRecord {
+    char name[PTHREAD_NAME_SIZE];
+
     // Types
     size_t typesCount;
     const BREventType **types;
@@ -84,7 +87,8 @@ struct BREventHandlerRecord {
 };
 
 extern BREventHandler
-eventHandlerCreate (const BREventType *types[],
+eventHandlerCreate (const char *name,
+                    const BREventType *types[],
                     unsigned int typesCount) {
     BREventHandler handler = calloc (1, sizeof (struct BREventHandlerRecord));
 
@@ -97,6 +101,8 @@ eventHandlerCreate (const BREventType *types[],
     handler->typesCount = typesCount;
     handler->types = types;
     handler->eventSize = handler->timeoutEventType.eventSize;
+
+    strlcpy (handler->name, name, PTHREAD_NAME_SIZE);
 
     // Update `eventSize` with the largest sized event
     for (int i = 0; i < handler->typesCount; i++) {
@@ -174,9 +180,9 @@ static void *
 eventHandlerThread (BREventHandler handler) {
 
 #if defined (__ANDROID__)
-    pthread_setname_np(handler->thread, "Core Ethereum Event");
+    pthread_setname_np(handler->thread, handler->name);
 #else
-    pthread_setname_np("Core Ethereum Event");
+    pthread_setname_np(handler->name);
 #endif
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
     pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);

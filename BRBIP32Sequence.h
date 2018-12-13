@@ -51,7 +51,7 @@ typedef struct {
     uint8_t pubKey[33];
 } BRMasterPubKey;
 
-#define BR_MASTER_PUBKEY_NONE ((BRMasterPubKey) { 0, UINT256_ZERO, \
+#define BR_MASTER_PUBKEY_NONE ((const BRMasterPubKey) { 0, UINT256_ZERO, \
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } })
 
 // returns the master public key for the default BIP32 wallet layout - derivation path N(m/0H)

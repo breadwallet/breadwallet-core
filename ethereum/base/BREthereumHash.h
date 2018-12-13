@@ -28,10 +28,14 @@
 
 #include <stdlib.h>
 #include <memory.h>
-#include "BRInt.h"
+#include "../../BRInt.h"
+#include "../../BRArray.h"
+#if ! defined (BRArrayOf)
+#define BRArrayOf( type )     type*
+#endif
+
 #include "../rlp/BRRlp.h"
 #include "BREthereumLogic.h"
-#include "BREthereumHash.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,10 +51,10 @@ typedef struct {
     uint8_t bytes[ETHEREUM_HASH_BYTES];
 } BREthereumHash;
 
-#define EMPTY_HASH_INIT   { \
+#define EMPTY_HASH_INIT   ((const BREthereumHash) { \
 0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0, \
 0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0  \
-}
+})
 
 #define HASH_INIT(s) ((BREthereumHash) { .bytes = {\
 (_hexu((s)[ 0]) << 4) | _hexu((s)[ 1]), (_hexu((s)[ 2]) << 4) | _hexu((s)[ 3]),\
@@ -110,6 +114,9 @@ hashRlpEncode(BREthereumHash hash, BRRlpCoder coder);
 extern BREthereumHash
 hashRlpDecode (BRRlpItem item, BRRlpCoder coder);
 
+extern BRRlpItem
+hashEncodeList (BRArrayOf(BREthereumHash) hashes, BRRlpCoder coder);
+
 // BRSet Support
 inline static int
 hashSetValue (const BREthereumHash *hash) {
@@ -131,6 +138,16 @@ typedef char BREthereumHashString[2 * ETHEREUM_HASH_BYTES + 3];
 extern void
 hashFillString (BREthereumHash hash,
                 BREthereumHashString string);
+
+//
+// Hash Array
+//
+extern BRArrayOf(BREthereumHash)
+hashesCopy (BRArrayOf(BREthereumHash) hashes);
+
+extern ssize_t
+hashesIndex (BRArrayOf(BREthereumHash) hashes,
+             BREthereumHash hash);
 
 #ifdef __cplusplus
 }

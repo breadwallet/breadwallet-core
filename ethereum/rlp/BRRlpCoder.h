@@ -28,7 +28,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include "BRInt.h"
+#include "../../BRInt.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -45,6 +45,22 @@ rlpCoderCreate (void);
 extern void
 rlpCoderRelease (BRRlpCoder coder);
 
+/**
+ * Reclaim coder memory. A coder can hold memory to avoid repeated free/malloc calls.  If
+ * desired one can reclaim coder memory that is unused.
+ */
+extern void
+rlpCoderReclaim (BRRlpCoder coder);
+
+extern void
+rlpCoderSetFailed (BRRlpCoder coder);
+
+extern void
+rlpCoderClrFailed (BRRlpCoder coder);
+
+extern int
+rlpCoderHasFailed (BRRlpCoder coder);
+
 //
 // RLP Data
 //
@@ -54,7 +70,7 @@ typedef struct {
 } BRRlpData;
 
 extern BRRlpData
-createRlpDataEmpty (void);
+rlpDataCopy (BRRlpData data);
 
 extern void
 rlpDataRelease (BRRlpData data);
@@ -135,6 +151,9 @@ rlpDecodeBytes (BRRlpCoder coder, BRRlpItem item);
 
 extern BRRlpData
 rlpDecodeBytesSharedDontRelease (BRRlpCoder coder, BRRlpItem item);
+
+extern BRRlpData
+rlpDecodeListSharedDontRelease (BRRlpCoder coder, BRRlpItem item);
 
 //
 // String

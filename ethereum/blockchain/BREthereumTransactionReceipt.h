@@ -66,10 +66,17 @@ transactionReceiptRlpDecode (BRRlpItem item,
 extern BRRlpItem
 transactionReceiptRlpEncode(BREthereumTransactionReceipt receipt,
                             BRRlpCoder coder);
-    
+
+extern BRArrayOf (BREthereumTransactionReceipt)
+transactionReceiptDecodeList (BRRlpItem item,
+                              BRRlpCoder coder);
+
 extern void
 transactionReceiptRelease (BREthereumTransactionReceipt receipt);
-    
+
+extern void
+transactionReceiptsRelease (BRArrayOf(BREthereumTransactionReceipt) receipts);
+
 #ifdef __cplusplus
 }
 #endif

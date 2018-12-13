@@ -110,6 +110,10 @@ transactionSetGasLimit (BREthereumTransaction transaction,
 extern uint64_t
 transactionGetNonce (BREthereumTransaction transaction);
 
+private_extern void
+transactionSetNonce (BREthereumTransaction transaction,
+                     uint64_t nonce);
+
 extern const BREthereumHash
 transactionGetHash (BREthereumTransaction transaction);
 
@@ -197,6 +201,12 @@ transactionIsSubmitted (BREthereumTransaction transaction);
 
 extern BREthereumBoolean
 transactionIsErrored (BREthereumTransaction transaction);
+
+extern void
+transactionShow (BREthereumTransaction transaction, const char *topic);
+
+extern void
+transactionsRelease (BRArrayOf(BREthereumTransaction) transactions);
 
 //
 // Transaction Result

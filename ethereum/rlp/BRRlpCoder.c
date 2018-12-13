@@ -31,13 +31,16 @@
 #include "BRRlpCoder.h"
 #include "../util/BRUtil.h"
 
+static void
+rlpCoderReclaimInternal (BRRlpCoder coder) ;
+
 static int
 rlpDecodeStringEmptyCheck (BRRlpCoder coder, BRRlpItem item);
 
 static void
 encodeLengthIntoBytes (uint64_t length, uint8_t baseline, uint8_t *bytes9, uint8_t *bytes9Count);
 
-#define CODER_DEFAULT_ITEMS     (20)
+#define CODER_DEFAULT_ITEMS     (2000)
 
 /**
  * An RLP Encoding is comprised of two types: an ITEM and a LIST (of ITEM).
@@ -49,7 +52,7 @@ typedef enum {
 } BRRlpItemType;
 
 #define ITEM_DEFAULT_BYTES_COUNT  1024
-#define ITEM_DEFAULT_ITEMS_COUNT    25
+#define ITEM_DEFAULT_ITEMS_COUNT    15
 
 struct  BRRlpItemRecord {
     BRRlpItemType type;
@@ -64,32 +67,59 @@ struct  BRRlpItemRecord {
     BRRlpItem *items;
     BRRlpItem  itemsArray [ITEM_DEFAULT_ITEMS_COUNT];
 
-    // Chain of free/busy items.
-    BRRlpItem next;
+    // double linked-list of free/busy items.
+    BRRlpItem next, prev;
 };
 
 static void
 itemReleaseMemory (BRRlpItem item) {
     if (item->bytesArray != item->bytes && NULL != item->bytes) free (item->bytes);
     if (item->itemsArray != item->items && NULL != item->items) free (item->items);
-    
-    BRRlpItem next = item->next;
+
     memset (item, 0, sizeof (struct BRRlpItemRecord));
-    item->next = next;
 }
 
 /**
  *
  */
 struct BRRlpCoderRecord {
+    /**
+     * A boolean to indicate that some coder failed.
+     */
+    int failed;
+
+    /**
+     * A singly-link list of available RLP items.  When a RLP item is released we'll clear out
+     * the RLP item and then add it to `free`.
+     */
     BRRlpItem free;
+
+    /**
+     * A doubly-linked list of busy RLP items.  Fact is, we don't need to keep this list - you
+     * acquire an item and you best be sure to release it and if you don't you've leaked memory.
+     *
+     * Well, in order to ensure that memory is not leaked, we keep a `busy` list and then on
+     * `rlpCoderRelease()` we assert that there a no busy items - ensuring all are releaded.
+     *
+     * This busy list caused a problem (see bugfix/CORE-152).  It was singly linked and thus to
+     * remove an item we were forced to traverse the list to find the just-prior item and then
+     * set prev->next = item->next.  When we had an RLP item with ~300,000 sub-items the
+     * traversal was computationally unmanageable.  Thus we changed to a doubly-linked list.  Fact
+     * is we probaby don't need `busy`.
+     */
     BRRlpItem busy;
+
+    /**
+     * It is not likely that this lock is actually needed, base on current `BRRlpCoder` use - coders
+     * are only used in one thread.  However, that use my not be generally true - so lock/unlock.
+     */
     pthread_mutex_t lock;
 };
 
 extern BRRlpCoder
 rlpCoderCreate (void) {
     BRRlpCoder coder = malloc (sizeof (struct BRRlpCoderRecord));
+    coder->failed = 0;
     coder->free = NULL;
     coder->busy = NULL;
 
@@ -100,31 +130,54 @@ rlpCoderCreate (void) {
         pthread_mutex_init (&coder->lock, &attr);
         pthread_mutexattr_destroy(&attr);
     }
-
+#if 0
     for (size_t index = 0; index < CODER_DEFAULT_ITEMS; index++) {
         BRRlpItem item = calloc (1, sizeof (struct BRRlpItemRecord));
         item->next = coder->free;
         coder->free = item;
     }
-
+#endif
     return coder;
 }
 
 extern void
 rlpCoderRelease (BRRlpCoder coder) {
-    BRRlpItem item;
     pthread_mutex_lock(&coder->lock);
-    assert (NULL == coder->busy);
 
-    item = coder->free;
-    while (item != NULL) {
-        BRRlpItem next = item->next;
-        itemReleaseMemory (item);
-        item = next;
-    }
+    // Every single Item must be returned!
+    assert (NULL == coder->busy);
+    rlpCoderReclaimInternal (coder);
 
     pthread_mutex_unlock(&coder->lock);
+    pthread_mutex_destroy(&coder->lock);
     free (coder);
+}
+
+static void
+rlpCoderReclaimInternal (BRRlpCoder coder) {
+    BRRlpItem item = coder->free;
+    while (item != NULL) {
+        BRRlpItem next = item->next;   // save 'next' before release...
+        itemReleaseMemory (item);
+        free (item);
+        item = next;
+    }
+    coder->free = NULL;
+}
+
+extern void
+rlpCoderReclaim (BRRlpCoder coder) {
+    pthread_mutex_lock(&coder->lock);
+    rlpCoderReclaimInternal (coder);
+    pthread_mutex_unlock(&coder->lock);
+}
+
+extern int
+rlpCoderBusyCount (BRRlpCoder coder) {
+    int count = 0;
+    for (BRRlpItem found = coder->busy; NULL != found; found = found->next)
+        count++;
+    return count;
 }
 
 static BRRlpItem
@@ -132,14 +185,22 @@ rlpCoderAcquireItem (BRRlpCoder coder) {
     BRRlpItem item = NULL;
     pthread_mutex_lock(&coder->lock);
 
-    if (NULL == coder->free)
-        item = calloc (1, sizeof (struct BRRlpItemRecord));
-    else {
+    // Get `item` from `coder->free` or `calloc`
+    if (NULL != coder->free) {
         item = coder->free;
         coder->free = item->next;
+        item->next = NULL;
     }
+    else item = calloc (1, sizeof (struct BRRlpItemRecord));
 
+    assert (NULL == item->next       && NULL == item->prev &&
+            0    == item->bytesCount && 0    == item->itemsCount);
+
+    // Doubly-link `item` to `busy`
+    if (NULL != coder->busy) coder->busy->prev = item;
     item->next = coder->busy;
+
+    // Update `coder` to show `item` as busy.
     coder->busy = item;
 
     pthread_mutex_unlock(&coder->lock);
@@ -147,35 +208,39 @@ rlpCoderAcquireItem (BRRlpCoder coder) {
 }
 
 static void
-rlpCoderReturnItem (BRRlpCoder coder, BRRlpItem item) {
+rlpCoderReturnItem (BRRlpCoder coder, BRRlpItem prev, BRRlpItem item, BRRlpItem next) {
     pthread_mutex_lock(&coder->lock);
+    assert (NULL == item->next       && NULL == item->prev &&
+            0    == item->bytesCount && 0    == item->itemsCount);
+
+    // If `item` is a the head of our `busy` list, then just move `busy`
     if (item == coder->busy)
-        coder->busy = item->next;
+        coder->busy = next;
+
+    // If `item` is not at the head of our `busy` list, then splice out `item` by
+    // linking as `prev` <==> `next`
     else {
-        BRRlpItem found = coder->busy;
-        while (item != found->next)
-            found = found->next;
-        found->next = item->next;
+        if (NULL != prev) prev->next = next;
+        if (NULL != next) next->prev = prev;
     }
 
+    // The `item` is no longer busy.  Singlely link to `free`.
+    item->prev = NULL;
     item->next = coder->free;
+
+    // Update `coder` to show `item` as free.
     coder->free = item;
+
     pthread_mutex_unlock(&coder->lock);
 }
 
-/**
- * An RLP Context holds encoding results for each of the encoding types, either ITEM or LIST.
- * The ITEM type holds the bytes directly; the LIST type holds a list/array of ITEMS.
- *
- * The upcoming RLP Coder is going to hold multiple Contexts.  The public interface for RLP Item
- * holds an 'indexer' which is the index to a Context in the Coder.
- */
-//static BRRlpContext contextEmpty = { NULL, CODER_ITEM, 0, NULL, 0, NULL };
-//
 static void
 itemRelease (BRRlpCoder coder, BRRlpItem item) {
+    BRRlpItem prev = item->prev;
+    BRRlpItem next = item->next;
+
     itemReleaseMemory(item);
-    rlpCoderReturnItem(coder, item);
+    rlpCoderReturnItem(coder, prev, item, next);
 }
 
 static int
@@ -210,6 +275,21 @@ itemFillList (BRRlpCoder coder, BRRlpItem item, BRRlpItem *items, size_t itemsCo
     for (int i = 0; i < itemsCount; i++)
         item->items[i] = items[i];
     return item;
+}
+
+extern void
+rlpCoderSetFailed (BRRlpCoder coder) {
+    coder->failed = 1;
+}
+
+extern void
+rlpCoderClrFailed (BRRlpCoder coder) {
+    coder->failed = 0;
+}
+
+extern int
+rlpCoderHasFailed (BRRlpCoder coder) {
+    return coder->failed;
 }
 
 #if 0
@@ -492,7 +572,7 @@ static BRRlpItem
 coderEncodeNumber (BRRlpCoder coder, uint8_t *source, size_t sourceCount) {
     // Encode a number by converting the number to a big_endian representation and then simply
     // encoding those bytes.
-    uint8_t bytes [sourceCount]; // big_endian representation of the bytes in 'length'
+    uint8_t bytes [sourceCount]; // big_endian representation of the bytes in 'source'
     size_t bytesIndex;           // Index of the first non-zero byte
     size_t bytesCount;           // The number of bytes to encode
     
@@ -640,18 +720,29 @@ rlpDecodeBytes (BRRlpCoder coder, BRRlpItem item) {
     return result;
 }
 
-extern BRRlpData
-rlpDecodeBytesSharedDontRelease (BRRlpCoder coder, BRRlpItem item) {
+static BRRlpData
+rlpDecodeBytesSharedDontReleaseBaseline (BRRlpCoder coder, BRRlpItem item, uint8_t baseline) {
     assert (itemIsValid (coder, item));
 
     uint8_t offset = 0;
-    uint64_t length = decodeLength(item->bytes, RLP_PREFIX_BYTES, &offset);
+    uint64_t length = decodeLength(item->bytes, baseline, &offset);
 
     BRRlpData result;
     result.bytesCount = length;
     result.bytes = &item->bytes[offset];
 
     return result;
+
+}
+
+extern BRRlpData
+rlpDecodeBytesSharedDontRelease (BRRlpCoder coder, BRRlpItem item) {
+    return rlpDecodeBytesSharedDontReleaseBaseline(coder, item, RLP_PREFIX_BYTES);
+}
+
+extern BRRlpData
+rlpDecodeListSharedDontRelease (BRRlpCoder coder, BRRlpItem item) {
+    return rlpDecodeBytesSharedDontReleaseBaseline(coder, item, RLP_PREFIX_LIST);
 }
 
 //
@@ -699,8 +790,8 @@ rlpDecodeStringEmptyCheck (BRRlpCoder coder, BRRlpItem item) {
 //
 extern BRRlpItem
 rlpEncodeHexString (BRRlpCoder coder, char *string) {
-    if (NULL == string)
-        return rlpEncodeString(coder, string);
+    if (NULL == string || string[0] == '\0')
+        return rlpEncodeString(coder, "");
     
     // Strip off "0x" if it exists
     if (0 == strncmp (string, "0x", 2))
@@ -801,14 +892,17 @@ rlpDecodeList (BRRlpCoder coder, BRRlpItem item, size_t *itemsCount) {
 }
 
 //
-// Data
+// RLP Data
 //
 extern BRRlpData
-createRlpDataEmpty (void) {
-    BRRlpData data;
-    data.bytesCount = 0;
-    data.bytes = NULL;
-    return data;
+rlpDataCopy (BRRlpData data) {
+    uint8_t *bytesCopy = NULL;
+    if (NULL != data.bytes) {
+        bytesCopy = malloc (data.bytesCount);
+        memcpy (bytesCopy, data.bytes, data.bytesCount);
+    }
+
+    return (BRRlpData) { data.bytesCount, bytesCopy };
 }
 
 extern void
@@ -971,7 +1065,7 @@ rlpShowItemInternal (BRRlpCoder coder, BRRlpItem context, const char *topic, int
             char string[1024 + 1];
             encodeHex(string, 2 * bytesCount + 1, &context->bytes[offset], bytesCount);
 
-            eth_log(topic, "%sI%3llu: 0x%s%s", spaces, length, string,
+            eth_log(topic, "%sI%3" PRIu64 ": 0x%s%s", spaces, length, string,
                     (bytesCount == length ? "" : "..."));
             break;
         }

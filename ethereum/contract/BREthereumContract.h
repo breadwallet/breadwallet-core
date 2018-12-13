@@ -77,6 +77,35 @@ contractLookupFunctionForEncoding (BREthereumContract contract, const char *enco
 extern BREthereumContractEvent
 contractLookupEventForTopic (BREthereumContract contract, const char *topic);
 
+
+//
+// Contract / Function
+//
+#include "../base/BREthereumLogic.h"
+#include "../util/BRUtil.h"
+
+private_extern UInt256
+functionERC20TransferDecodeAmount (BREthereumContractFunction function,
+                                   const char *data,
+                                   BRCoreParseStatus *status);
+
+private_extern char *
+functionERC20TransferDecodeAddress (BREthereumContractFunction function,
+                                    const char *data);
+
+private_extern char *
+eventERC20TransferDecodeAddress (BREthereumContractEvent event,
+                                 const char *topic);
+
+private_extern char *
+eventERC20TransferEncodeAddress (BREthereumContractEvent event,
+                                 const char *address);
+
+private_extern UInt256
+eventERC20TransferDecodeUInt256 (BREthereumContractEvent event,
+                                 const char *number,
+                                 BRCoreParseStatus *status);
+
 #ifdef __cplusplus
 }
 #endif

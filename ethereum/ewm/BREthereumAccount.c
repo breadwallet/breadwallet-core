@@ -36,6 +36,10 @@
 #include "../base/BREthereumBase.h"
 #include "BREthereumAccount.h"
 
+#if defined(DEBUG)
+#define DEBUG_PAPER_KEY  "boring head harsh green empty clip fatal typical found crane dinner timber"
+#endif
+
 // BIP39 test vectors
 // https://github.com/trezor/python-mnemonic/blob/master/vectors.json
 
@@ -159,6 +163,13 @@ addressDetailFillSeed (BREthereumAddressDetail *address, UInt512 seed, uint32_t 
     addressDetailFillKey(address, &key, index);
 }
 
+static void
+addressDetailFillRaw (BREthereumAddressDetail *address, const char *string) {
+    address->index = 0;
+    address->nonce = 0;
+    strlcpy (&address->string[0], string, 43);
+    address->raw = addressCreate(string);
+}
 
 // BRSet HashValue, HashEqual
 
@@ -176,7 +187,7 @@ struct BREthereumAccountRecord {
     BREthereumAddressDetail primaryAddress;
 };
 
-static BREthereumAccount
+extern BREthereumAccount
 createAccountWithBIP32Seed (UInt512 seed) {
     BREthereumAccount account = (BREthereumAccount) calloc (1, sizeof (struct BREthereumAccountRecord));
     
@@ -208,8 +219,20 @@ createAccountDetailed(const char *paperKey, const char *wordList[], const int wo
     
     // Validate paperKey
     if (0 == BRBIP39Decode(NULL, 0, wordList, paperKey))
+#if ! defined (DEBUG)
         return NULL;
-    
+#else
+    {
+        // For a debug build, with an invalid paperKey, see if paperKey is actually a public address
+        if (NULL == paperKey || 42 != strlen (paperKey) || 0 != strncmp (paperKey, "0x", 2)) return NULL;
+
+        // Use a well-known public paper key, but overwrite the address.  This won't work for
+        // signing, but will work for viewing.
+        BREthereumAccount account = createAccountWithBIP32Seed(deriveSeedFromPaperKey(DEBUG_PAPER_KEY));
+        addressDetailFillRaw (&account->primaryAddress, paperKey);
+        return account;
+    }
+#endif
     // Generate the 512bit private key using a BIP39 paperKey
     return createAccountWithBIP32Seed(deriveSeedFromPaperKey(paperKey));
 }

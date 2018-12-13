@@ -28,10 +28,6 @@
 
 #include "../base/BREthereumBase.h"
 #include "../les/BREthereumLES.h"
-#include "../les/BREthereumNode.h"
-
-#define BRSetOf(type)     BRSet*
-#define BRArrayOf(type)   type*
 
 #ifdef __cplusplus
 extern "C" {
@@ -80,7 +76,7 @@ typedef enum {
 typedef void
 (*BREthereumBCSCallbackTransaction) (BREthereumBCSCallbackContext context,
                                      BREthereumBCSCallbackTransactionType event,
-                                     BREthereumTransaction transaction);
+                                     OwnershipGiven BREthereumTransaction transaction);
 
 /**
  * A BCS Log (for `account`) has been updated.
@@ -94,21 +90,21 @@ typedef enum {
 typedef void
 (*BREthereumBCSCallbackLog) (BREthereumBCSCallbackContext context,
                              BREthereumBCSCallbackLogType event,
-                             BREthereumLog log);
+                             OwnershipGiven BREthereumLog log);
 
 /**
  * Save Blocks
  */
 typedef void
 (*BREthereumBCSCallbackSaveBlocks) (BREthereumBCSCallbackContext context,
-                                    BRArrayOf(BREthereumBlock) blocks);
+                                    OwnershipGiven BRArrayOf(BREthereumBlock) blocks);
 
 /**
  * Save Peers
  */
 typedef void
 (*BREthereumBCSCallbackSavePeers) (BREthereumBCSCallbackContext context,
-                                   BRArrayOf(BREthereumLESPeerConfig) peers);
+                                   OwnershipGiven BRArrayOf(BREthereumNodeConfig) peers);
 
 /**
  * Sync
@@ -126,6 +122,17 @@ typedef void
                               uint64_t blockNumberCurrent,
                               uint64_t blockNumberStop);
 
+/**
+ * Get (Interesting) Blocks.  Depending on the sync-mode we may ask the BRD endpoint for blocks
+ * that contain transactions or logs of interest.
+ */
+typedef void
+(*BREthereumBCSCallbackGetBlocks) (BREthereumBCSCallbackContext context,
+                                   BREthereumAddress address,
+                                   BREthereumSyncInterestSet interests,
+                                   uint64_t blockStart,
+                                   uint64_t blockStop);
+
 typedef struct {
     BREthereumBCSCallbackContext context;
     BREthereumBCSCallbackBlockchain blockChainCallback;
@@ -135,9 +142,8 @@ typedef struct {
     BREthereumBCSCallbackSaveBlocks saveBlocksCallback;
     BREthereumBCSCallbackSavePeers savePeersCallback;
     BREthereumBCSCallbackSync syncCallback;
-    // ...
+    BREthereumBCSCallbackGetBlocks getBlocksCallback;
 } BREthereumBCSListener;
-
 
 /**
  * Create BCS (a 'BlockChain Slice`) providing a view of the Ethereum blockchain for `network`
@@ -151,12 +157,11 @@ extern BREthereumBCS
 bcsCreate (BREthereumNetwork network,
            BREthereumAddress address,
            BREthereumBCSListener listener,
-           BRArrayOf(BREthereumLESPeerConfig) peers,
-           BRArrayOf(BREthereumBlock) blocks,
-           BRArrayOf(BREthereumTransaction) transactions,
-           BRArrayOf(BREthereumLog) logs
-           // peers
-           );
+           BREthereumMode syncMode,
+           BRSetOf(BREthereumNodeConfig) peers,
+           BRSetOf(BREthereumBlock) blocks,
+           BRSetOf(BREthereumTransaction) transactions,
+           BRSetOf(BREthereumLog) logs);
 
 extern void
 bcsStart (BREthereumBCS bcs);
@@ -214,6 +219,12 @@ bcsSendLogRequest (BREthereumBCS bcs,
                    BREthereumHash transactionHash,
                    uint64_t blockNumber,
                    uint64_t blockTransactionIndex);
+
+extern void
+bcsReportInterestingBlocks (BREthereumBCS bcs,
+                            // interest
+                            // request id
+                            BRArrayOf(uint64_t) blockNumbers);
 
 #ifdef __cplusplus
 }

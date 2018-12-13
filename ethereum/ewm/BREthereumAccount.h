@@ -30,9 +30,9 @@
 extern "C" {
 #endif
 
-#include "BRKey.h"
-#include "BRInt.h"
-#include "../base/BREthereumBase.h"
+#include "../../BRKey.h"
+#include "../../BRInt.h"
+#include "BREthereumBase.h"
 
 //
 // Account
@@ -50,7 +50,7 @@ extern "C" {
  * EthereumWallet - all transactions for that wallet will use the same address.
  *
  */
-typedef struct BREthereumAccountRecord *BREthereumAccount;
+// typedef struct BREthereumAccountRecord *BREthereumAccount;
 
 /**
  * Create a new account using paperKey and the sharedWordList (see installSharedWordList).
@@ -67,6 +67,9 @@ createAccount(const char *paperKey);
  */
 extern BREthereumAccount
 createAccountWithPublicKey (const BRKey publicKey);
+
+extern BREthereumAccount
+createAccountWithBIP32Seed (UInt512 seed);
 
 /**
  * Create a new account using paperKey and the provided wordList
@@ -162,6 +165,19 @@ accountGetAddressIndex (BREthereumAccount account,
 extern uint64_t
 accountGetAddressNonce (BREthereumAccount account,
                         BREthereumAddress address);
+
+//
+// Private
+//
+private_extern void
+accountSetAddressNonce(BREthereumAccount account,
+                       BREthereumAddress address,
+                       uint64_t nonce,
+                       BREthereumBoolean force);
+
+private_extern uint64_t
+accountGetThenIncrementAddressNonce(BREthereumAccount account,
+                                    BREthereumAddress address);
 
 #ifdef __cplusplus
 }

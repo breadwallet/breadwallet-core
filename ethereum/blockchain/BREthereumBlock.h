@@ -40,6 +40,8 @@ extern "C" {
 typedef struct BREthereumBlockHeaderRecord *BREthereumBlockHeader;
 typedef struct BREthereumBlockRecord *BREthereumBlock;
 
+/// MARK: - Block Header
+
 //
 // Block Header
 //
@@ -56,6 +58,12 @@ blockHeaderRelease (BREthereumBlockHeader header);
 extern BREthereumBoolean
 blockHeaderIsValid (BREthereumBlockHeader header);
 
+extern BREthereumBoolean
+blockHeaderIsValidFull (BREthereumBlockHeader header,
+                        BREthereumBlockHeader parent,
+                        size_t parentOmmersCount,
+                        BREthereumBlockHeader genesis,
+                        void *d);
 
 /**
  * Check if the block header is consistent with the parent.  If `parent` is NULL, then
@@ -101,6 +109,9 @@ blockHeaderGetTimestamp (BREthereumBlockHeader header);
 extern BREthereumHash
 blockHeaderGetParentHash (BREthereumBlockHeader header);
 
+extern BREthereumBoolean
+blockHeaderIsCHTRoot (BREthereumBlockHeader header);
+
 // ...
 
 extern uint64_t
@@ -129,14 +140,48 @@ blockHeaderReleaseForSet (void *ignore, void *item);
 extern BREthereumComparison
 blockHeaderCompare (BREthereumBlockHeader h1,
                     BREthereumBlockHeader h2);
-    
+
+extern BREthereumBlockHeader
+blockHeaderCopy (BREthereumBlockHeader source);
+
+extern void
+blockHeadersRelease (BRArrayOf(BREthereumBlockHeader) headers);
+
+    ///
+    /// MARK: CHT Root (Number)
+    ///
+/**
+ * From Parity:
+
+ * " Get the nth CHT root, if it's been computed.
+ *
+ *  CHT root 0 is from block `1..2048`.
+ *  CHT root 1 is from block `2049..4096`
+ *  and so on.
+ *
+ *  This is because it's assumed that the genesis hash is known,
+ *  so including it within a CHT would be redundant."
+ */
+extern uint64_t
+blockHeaderGetCHTRootNumber (BREthereumBlockHeader header);
+
+extern uint64_t
+chtRootNumberGetFromNumber (uint64_t number);
+
+
+#define BLOCK_HEADER_CHT_ROOT_INTERVAL          (2048)
+#define BLOCK_HEADER_CHT_ROOT_INTERVAL_SHIFT    (11)          // 2048 == (1 << 11)
+
+/// MARK: Block
+
 //
 // Block
 //
 extern BREthereumBlock
 blockCreateMinimal(BREthereumHash hash,
                    uint64_t number,
-                   uint64_t timestamp);
+                   uint64_t timestamp,
+                   UInt256 difficulty);
 
 extern BREthereumBlock
 blockCreateFull (BREthereumBlockHeader header,
@@ -148,11 +193,8 @@ blockCreate (BREthereumBlockHeader header);
 
 extern void
 blockUpdateBody (BREthereumBlock block,
-                 BREthereumBlockHeader *ommers,
-                 BREthereumTransaction *transactions);
-
-extern BREthereumBlockHeader
-blockHeaderCopy (BREthereumBlockHeader source);
+                 BRArrayOf(BREthereumBlockHeader) ommers,
+                 BRArrayOf(BREthereumTransaction) transactions);
 
 extern void
 blockRelease (BREthereumBlock block);
@@ -191,6 +233,41 @@ blockGetConfirmations (BREthereumBlock block);
 extern uint64_t
 blockGetTimestamp (BREthereumBlock block);
 
+extern UInt256
+blockGetDifficulty (BREthereumBlock block);
+
+/*!
+ * The total difficulty is computed as an emergent property of the entire chain by summing up
+ * the difficulty for each block.  That implies, as of 2018, >6,000,000 block to sum.  However,
+ * if we can rely on checkpoints (blocks with a pre-computed totalDifficulty) then we only
+ * need to sum back to the checkpoint - but still need all the blocks to the checkpoint.
+ *
+ * Currently, we don't have enough blocks to compute the total difficulty.
+ */
+extern UInt256
+blockGetTotalDifficulty (BREthereumBlock block);
+
+extern  void
+blockSetTotalDifficulty (BREthereumBlock block,
+                         UInt256 totalDifficulty);
+
+extern void
+blockClrTotalDifficulty (BREthereumBlock block);
+
+extern BREthereumBoolean
+blockHasTotalDifficulty (BREthereumBlock block);
+
+/**
+ * Update the totalDifficulty for `block` by recusively updating the totalDifficutly for
+ * block->next until block->next is NULL or block->next already has a totalDifficulty.
+ *
+ * Note: this is not a tail recursive algorithm and may overflow stack memory.  In practice we
+ * never have block chains more than several thousand (and would never be updating the entire
+ * chain all at once anyways) and thus *will* be okay.
+ */
+extern UInt256
+blockRecursivelyPropagateTotalDifficulty (BREthereumBlock block);
+
 extern void
 blockLinkLogsWithTransactions (BREthereumBlock block);
     
@@ -217,6 +294,9 @@ blockHashEqual (const void *h1, const void *h2);
 extern void
 blockReleaseForSet (void *ignore, void *item);
 
+extern void
+blocksRelease (OwnershipGiven BRArrayOf(BREthereumBlock) blocks);
+
 
 //
 // MARK: - Block Next (Chaining)
@@ -239,13 +319,38 @@ blockClrNext (BREthereumBlock block) {
     return blockSetNext(block, BLOCK_NEXT_NONE);
 }
 
-//
-// MARK: - Block Status
-//
+/// MARK: - Block Body Pair
+
+/**
+ * A Block Body Pair ...
+ */
+typedef struct {
+    BRArrayOf(BREthereumTransaction) transactions;
+    BRArrayOf(BREthereumBlockHeader) uncles;
+} BREthereumBlockBodyPair;
+
+extern void
+blockBodyPairRelease (BREthereumBlockBodyPair *pair);
+
+extern void
+blockBodyPairsRelease (BRArrayOf(BREthereumBlockBodyPair) pairs);
+
+///
+/// MARK: - Block Header Proof
+///
+
+typedef struct {
+    BREthereumHash hash;
+    UInt256 totalDifficulty;
+} BREthereumBlockHeaderProof;
+
+///
+/// MARK: - Block Status
+///
 
 typedef enum {
     BLOCK_REQUEST_NOT_NEEDED,
-    BLOCK_REQEUST_PENDING,
+    BLOCK_REQUEST_PENDING,
     BLOCK_REQUEST_COMPLETE,
     BLOCK_REQUEST_ERROR
 } BREthereumBlockRequestState;
@@ -254,13 +359,17 @@ typedef struct {
     BREthereumHash hash;
 
     BREthereumBlockRequestState transactionRequest;
-    BREthereumTransaction *transactions;
+    BRArrayOf (BREthereumTransaction) transactions;
+    BRArrayOf (BREthereumGas) gasUsed;
 
     BREthereumBlockRequestState logRequest;
-    BREthereumLog *logs;
+    BRArrayOf(BREthereumLog) logs;
 
     BREthereumBlockRequestState accountStateRequest;
     BREthereumAccountState accountState;
+
+    BREthereumBlockRequestState headerProofRequest;
+    BREthereumBlockHeaderProof headerProof;
 
     BREthereumBoolean error;
 } BREthereumBlockStatus;
@@ -299,7 +408,11 @@ blockReportStatusTransactionsRequest (BREthereumBlock block,
  */
 extern void
 blockReportStatusTransactions (BREthereumBlock block,
-                               BREthereumTransaction *transactions);
+                               OwnershipGiven BRArrayOf(BREthereumTransaction) transactions);
+
+extern void
+blockReportStatusGasUsed (BREthereumBlock block,
+                          BRArrayOf(BREthereumGas) gasUsed);
 
 //
 // Log Request
@@ -318,7 +431,7 @@ blockReportStatusLogsRequest (BREthereumBlock block,
  */
 extern void
 blockReportStatusLogs (BREthereumBlock block,
-                       BREthereumLog *log);
+                       OwnershipGiven  BRArrayOf(BREthereumLog) log);
 
 
 //
@@ -339,6 +452,21 @@ extern void
 blockReportStatusAccountState (BREthereumBlock block,
                                BREthereumAccountState accountState);
 
+//
+// Header Proof Request
+//
+extern BREthereumBoolean
+blockHasStatusHeaderProofRequest (BREthereumBlock block,
+                                  BREthereumBlockRequestState request);
+
+extern void
+blockReportStatusHeaderProofRequest (BREthereumBlock block,
+                                     BREthereumBlockRequestState request);
+
+extern void
+blockReportStatusHeaderProof (BREthereumBlock block,
+                              BREthereumBlockHeaderProof proof);
+    
     //
     //
     //
@@ -350,6 +478,11 @@ extern BREthereumBoolean
 blockHasStatusLog (BREthereumBlock block,
                    BREthereumLog log);
 
+extern void
+blockReleaseStatus (BREthereumBlock block,
+                    BREthereumBoolean releaseTransactions,
+                    BREthereumBoolean releaseLogs);
+
 //
 // MARK: - Block Decoding for LES
 //
@@ -357,7 +490,7 @@ blockHasStatusLog (BREthereumBlock block,
 /**
  * Return BRArrayOf(BREthereumBlockHeader) w/ array owned by caller.
  */
-extern BREthereumBlockHeader *
+extern BRArrayOf(BREthereumBlockHeader)
 blockOmmersRlpDecode (BRRlpItem item,
                       BREthereumNetwork network,
                       BREthereumRlpType type,
@@ -366,14 +499,13 @@ blockOmmersRlpDecode (BRRlpItem item,
 /**
  * Return BRArrayOf(BREthereumTransaction) w/ array owned by caller
  */
-extern BREthereumTransaction *
+extern BRArrayOf(BREthereumTransaction)
 blockTransactionsRlpDecode (BRRlpItem item,
                             BREthereumNetwork network,
                             BREthereumRlpType type,
                             BRRlpCoder coder);
-//
-// MARK: Genesis Blocks
-//
+
+/// MARK: - Genesis Blocks
 
 /**
  * Return a newly-allocaed block header duplicating the genesis block header for `network`.
@@ -387,9 +519,7 @@ networkGetGenesisBlockHeader (BREthereumNetwork network);
 extern BREthereumBlock
 networkGetGenesisBlock (BREthereumNetwork network);
 
-//
-// MARK: Block Checkpoint
-//
+/// MARK: - Block Checkpoint
 
 /**
  * A Block Checkpoint ...
@@ -397,6 +527,10 @@ networkGetGenesisBlock (BREthereumNetwork network);
 typedef struct {
     uint64_t number;
     BREthereumHash hash;
+    union {
+        char *std;
+        UInt256 td;
+    } u;
     uint64_t timestamp;
 } BREthereumBlockCheckpoint;
 
@@ -416,6 +550,12 @@ blockCheckpointLookupByTimestamp (BREthereumNetwork network,
 
 extern BREthereumBlockHeader
 blockCheckpointCreatePartialBlockHeader (const BREthereumBlockCheckpoint *checkpoint);
+
+//
+// Private
+//
+private_extern void
+blockFree (BREthereumBlock block);
 
 #ifdef __cplusplus
 }

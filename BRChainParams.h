@@ -27,6 +27,7 @@
 
 #include "BRMerkleBlock.h"
 #include "BRSet.h"
+#include "BRPeer.h"
 #include <assert.h>
 
 typedef struct {
@@ -85,7 +86,9 @@ static const BRCheckPoint BRMainNetCheckpoints[] = {
     { 463680, uint256("000000000000000000431a2f4619afe62357cd16589b638bb638f2992058d88e"), 1493259601, 0x18021b3e },
     { 483840, uint256("0000000000000000008e5d72027ef42ca050a0776b7184c96d0d4b300fa5da9e"), 1504704195, 0x1801310b },
     { 504000, uint256("0000000000000000006cd44d7a940c79f94c7c272d159ba19feb15891aa1ea54"), 1515827554, 0x177e578c },
-    { 524160, uint256("00000000000000000009d1e9bee76d334347060c6a2985d6cbc5c22e48f14ed2"), 1527168053, 0x17415a49 }
+    { 524160, uint256("00000000000000000009d1e9bee76d334347060c6a2985d6cbc5c22e48f14ed2"), 1527168053, 0x17415a49 },
+    { 544320, uint256("0000000000000000000a5e9b5e4fbee51f3d53f31f40cd26b8e59ef86acb2ebd"), 1538639362, 0x1725c191 }
+    //{ 564480,
 };
 
 static const BRCheckPoint BRTestNetCheckpoints[] = {
@@ -100,7 +103,11 @@ static const BRCheckPoint BRTestNetCheckpoints[] = {
     {  806400, uint256("0000000000000faf114ff29df6dbac969c6b4a3b407cd790d3a12742b50c2398"), 1462006183, 0x1a34e280 },
     {  907200, uint256("0000000000166938e6f172a21fe69fe335e33565539e74bf74eeb00d2022c226"), 1469705562, 0x1c00ffff },
     { 1008000, uint256("000000000000390aca616746a9456a0d64c1bd73661fd60a51b5bf1c92bae5a0"), 1476926743, 0x1a52ccc0 },
-    { 1108800, uint256("00000000000288d9a219419d0607fb67cc324d4b6d2945ca81eaa5e739fab81e"), 1490751239, 0x1b09ecf0 }
+    { 1108800, uint256("00000000000288d9a219419d0607fb67cc324d4b6d2945ca81eaa5e739fab81e"), 1490751239, 0x1b09ecf0 },
+    { 1209600, uint256("0000000000000026b4692a26f1651bec8e9d4905640bd8e56056c9a9c53badf8"), 1507328506, 0x1973e180 },
+    { 1310400, uint256("0000000000013b434bbe5668293c92ef26df6d6d4843228e8958f6a3d8101709"), 1527038604, 0x1b0ffff0 },
+    { 1411200, uint256("00000000000000008b3baea0c3de24b9333c169e1543874f4202397f5b8502cb"), 1535535770, 0x194ac105 }
+    //{ 1512000, 
 };
 
 static int BRMainNetVerifyDifficulty(const BRMerkleBlock *block, const BRSet *blockSet)
@@ -129,9 +136,9 @@ static int BRTestNetVerifyDifficulty(const BRMerkleBlock *block, const BRSet *bl
 
 static const BRChainParams BRMainNetParams = {
     BRMainNetDNSSeeds,
-    8333,       // standardPort
-    0xd9b4bef9, // magicNumber
-    0,          // services
+    8333,                  // standardPort
+    0xd9b4bef9,            // magicNumber
+    SERVICES_NODE_WITNESS, // services
     BRMainNetVerifyDifficulty,
     BRMainNetCheckpoints,
     sizeof(BRMainNetCheckpoints)/sizeof(*BRMainNetCheckpoints)
@@ -139,9 +146,9 @@ static const BRChainParams BRMainNetParams = {
 
 static const BRChainParams BRTestNetParams = {
     BRTestNetDNSSeeds,
-    18333,      // standardPort
-    0x0709110b, // magicNumber
-    0,          // services
+    18333,                 // standardPort
+    0x0709110b,            // magicNumber
+    SERVICES_NODE_WITNESS, // services
     BRTestNetVerifyDifficulty,
     BRTestNetCheckpoints,
     sizeof(BRTestNetCheckpoints)/sizeof(*BRTestNetCheckpoints)

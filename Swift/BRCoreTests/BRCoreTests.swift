@@ -7,7 +7,7 @@
 //
 
 import XCTest
-@testable import BRCore
+import BRCore
 
 class BRCoreTests: XCTestCase {
     
@@ -30,8 +30,9 @@ class BRCoreTests: XCTestCase {
 
     func testEthereum () {
         let client = TestLightClient (network: EthereumNetwork.mainnet,
-                                      paperKey: "ginger settle marine tissue robot crane night number ramp coast roast critic")
+                                      paperKey: "ginger ...")
 
+        client.node.updateTokens()
         client.node.connect()
 
         sleep(1 * 60)
@@ -62,16 +63,10 @@ class TestLightClient : EthereumClient {
         self.network = network
         self.node = EthereumWalletManager (client: self,
                                            network: network,
-                                           paperKey: paperKey)
+                                           mode: EthereumMode.p2p_only,
+                                           key: EthereumKey.paperKey (paperKey),
+                                           timestamp: 0)
     }
-
-    //    required init(network: EthereumNetwork, publicKey: Data) {
-    //        self.network = network
-    //        self.node = EthereumEWM.JSON_RPC (client: self,
-    //                                                listener: self,
-    //                                                network: network,
-    //                                                publicKey: publicKey)
-    //    }
 
     //
     // Client Protocol - JSON_RPC
@@ -86,12 +81,12 @@ class TestLightClient : EthereumClient {
         ewm.announceGasPrice (wid: wid, gasPrice: "0x77", rid: rid)
     }
 
-    func getGasEstimate(ewm: EthereumWalletManager, wid: EthereumWalletId, tid: EthereumTransactionId, to: String, amount: String, data: String, rid: Int32) {
+    func getGasEstimate(ewm: EthereumWalletManager, wid: EthereumWalletId, tid: EthereumTransferId, to: String, amount: String, data: String, rid: Int32) {
         // JSON_RPC -> JSON -> Result -> announceGasEstimate()
         ewm.announceGasEstimate (wid: wid, tid: tid, gasEstimate: "0x21000", rid: rid)
     }
 
-    func submitTransaction(ewm: EthereumWalletManager, wid: EthereumWalletId, tid: EthereumTransactionId, rawTransaction: String, rid: Int32) {
+    func submitTransaction(ewm: EthereumWalletManager, wid: EthereumWalletId, tid: EthereumTransferId, rawTransaction: String, rid: Int32) {
         // JSON_RPC -> JSON -> Result -> announceSubmitTransaction()
         ewm.announceSubmitTransaction (wid: wid, tid: tid, hash: "0xffaabb", rid: rid)
         return
@@ -122,7 +117,9 @@ class TestLightClient : EthereumClient {
     func getLogs(ewm: EthereumWalletManager, address: String, event: String, rid: Int32) {
         ewm.announceLog(rid: rid,
                                hash: "0xa37bd8bd8b1fa2838ef65aec9f401f56a6279f99bb1cfb81fa84e923b1b60f2b",
-                               contract: "0x722dd3f80bac40c951b51bdd28dd19d435762180",
+                               contract: (ewm.network == EthereumNetwork.mainnet
+                                ? "0x3efd578b271d034a69499e4a2d933c631d44b9ad"
+                                : "0x722dd3f80bac40c951b51bdd28dd19d435762180"),
                                topics: ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
                                         "0x0000000000000000000000000000000000000000000000000000000000000000",
                                         "0x000000000000000000000000bdfdad139440d2db9ba2aa3b7081c2de39291508"],
@@ -136,9 +133,54 @@ class TestLightClient : EthereumClient {
         return
     }
 
+    func getBlocks(ewm: EthereumWalletManager, address: String, interests: UInt32, blockStart: UInt64, blockStop: UInt64, rid: Int32) {
+        var blockNumbers : [UInt64] = []
+        if "0xb302B06FDB1348915599D21BD54A06832637E5E8" == address {
+            if 0 != interests & UInt32 (1 << 3) /* CLIENT_GET_BLOCKS_LOGS_AS_TARGET */ {
+                blockNumbers += [4847049,
+                                 4847152,
+                                 4894677,
+                                 4965538,
+                                 4999850,
+                                 5029844]
+            }
+
+            if 0 != interests & UInt32 (1 << 2) /* CLIENT_GET_BLOCKS_LOGS_AS_SOURCE */ {
+                blockNumbers += [5705175]
+            }
+
+            if 0 != interests & UInt32 (1 << 1) /* CLIENT_GET_BLOCKS_TRANSACTIONS_AS_TARGET */ {
+                blockNumbers += [4894027,
+                                 4908682,
+                                 4991227]
+            }
+
+            if 0 != interests & UInt32 (1 << 0) /* CLIENT_GET_BLOCKS_TRANSACTIONS_AS_SOURCE */ {
+                blockNumbers += [4894330,
+                                 4894641,
+                                 4894677,
+                                 4903993,
+                                 4906377,
+                                 4997449,
+                                 4999850,
+                                 4999875,
+                                 5000000,
+                                 5705175]
+            }
+        }
+        else {
+            blockNumbers.append(contentsOf: [blockStart,
+                                             (blockStart + blockStop) / 2,
+                                             blockStop])
+        }
+        ewm.announceBlocks(rid: rid, blockNumbers: blockNumbers)
+    }
+
     func getTokens(ewm: EthereumWalletManager, rid: Int32) {
         ewm.announceToken (rid: rid,
-                           address: "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6",
+                           address: (ewm.network == EthereumNetwork.mainnet
+                            ? "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"
+                            : "0x7108ca7c4718efa810457f228305c9c71390931a"),
                            symbol: "BRD",
                            name: "BRD Token",
                            description: "The BRD Token",
@@ -146,10 +188,18 @@ class TestLightClient : EthereumClient {
 
         ewm.announceToken (rid: rid,
                            address: (ewm.network == EthereumNetwork.mainnet
-                                ? "0x9e3359f862b6c7f5c660cfd6d1aa6909b1d9504d"
-                                : "0x6e67ccd648244b3b8e2f56149b40ba8de9d79b09"),
+                            ? "0x9e3359f862b6c7f5c660cfd6d1aa6909b1d9504d"
+                            : "0x6e67ccd648244b3b8e2f56149b40ba8de9d79b09"),
                            symbol: "CCC",
                            name: "Container Crypto Coin",
+                           description: "",
+                           decimals: 18)
+        ewm.announceToken (rid: rid,
+                           address: (ewm.network == EthereumNetwork.mainnet
+                            ? "0x3efd578b271d034a69499e4a2d933c631d44b9ad"
+                            : "0x722dd3f80bac40c951b51bdd28dd19d435762180"),
+                           symbol: "TST",
+                           name: "Test Standad Token",
                            description: "",
                            decimals: 18)
     }
@@ -161,23 +211,31 @@ class TestLightClient : EthereumClient {
 
     func getNonce(ewm: EthereumWalletManager, address: String, rid: Int32) {
         ewm.announceNonce(address: address, nonce: "17", rid: rid)
-        }
+    }
 
-        func savePeers(ewm: EthereumWalletManager) {
-            print ("TST: savePeers\n")
-        }
+    func saveNodes (ewm: EthereumWalletManager,
+                    data: Dictionary<String, String>) {
+        print ("TST: savePeers\n")
+    }
 
-        func saveBlocks(ewm: EthereumWalletManager) {
-            print ("TST: saveBlocks\n")
-        }
+    func saveBlocks (ewm: EthereumWalletManager,
+                     data: Dictionary<String, String>) {
+        print ("TST: saveBlocks\n")
+    }
 
-        func changeTransaction(ewm: EthereumWalletManager, change: EthereumClientChangeType) {
-            print ("TST: changeTransaction\n")
-        }
+    func changeTransaction (ewm: EthereumWalletManager,
+                            change: EthereumClientChangeType,
+                            hash: String,
+                            data: String) {
+        print ("TST: changeTransactionXXX\n")
+    }
 
-        func changeLog(ewm: EthereumWalletManager, change: EthereumClientChangeType) {
-            print ("TST: changeLog\n")
-        }
+    func changeLog (ewm: EthereumWalletManager,
+                    change: EthereumClientChangeType,
+                    hash: String,
+                    data: String) {
+        print ("TST: changeLogXXX\n")
+    }
 
 
     //
@@ -200,6 +258,10 @@ class TestLightClient : EthereumClient {
         default: // Never here
             break;
         }
+    }
+
+    func handleTokenEvent(ewm: EthereumWalletManager, token: EthereumToken, event: EthereumTokenEvent) {
+        print ("TST: TokenEvent: \(event)\n")
     }
 
     func handleBlockEvent(ewm: EthereumWalletManager,

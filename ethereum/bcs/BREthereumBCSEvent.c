@@ -51,7 +51,7 @@ static BREventType handleSubmitTransactionEventType = {
 
 extern void
 bcsSignalSubmitTransaction (BREthereumBCS bcs,
-                            BREthereumTransaction transaction) {
+                            OwnershipGiven BREthereumTransaction transaction) {
     BREthereumHandleSubmitTransactionEvent event =
     { { NULL, &handleSubmitTransactionEventType}, bcs, transaction };
     eventHandlerSignalEvent(bcs->handler, (BREvent *) &event);
@@ -65,6 +65,7 @@ bcsSignalSubmitTransaction (BREthereumBCS bcs,
 typedef struct {
     BREvent base;
     BREthereumBCS bcs;
+    BREthereumNodeReference node;
     BREthereumHash headHash;
     uint64_t headNumber;
     UInt256  headTotalDifficulty;
@@ -75,6 +76,7 @@ static void
 bcsHandleAnnounceDispatcher (BREventHandler ignore,
                              BREthereumHandleAnnounceEvent *event) {
     bcsHandleAnnounce(event->bcs,
+                      event->node,
                       event->headHash,
                       event->headNumber,
                       event->headTotalDifficulty,
@@ -89,32 +91,35 @@ static BREventType handleAnnounceEventType = {
 
 extern void
 bcsSignalAnnounce (BREthereumBCS bcs,
+                   BREthereumNodeReference node,
                    BREthereumHash headHash,
                    uint64_t headNumber,
                    UInt256 headTotalDifficulty,
                    uint64_t reorgDepth) {
     BREthereumHandleAnnounceEvent event =
-    { { NULL, &handleAnnounceEventType}, bcs, headHash, headNumber, headTotalDifficulty, reorgDepth };
+    { { NULL, &handleAnnounceEventType}, bcs, node, headHash, headNumber, headTotalDifficulty, reorgDepth };
     eventHandlerSignalEvent(bcs->handler, (BREvent *) &event);
 }
 
 // ==============================================================================================
 //
-// Signal/Handle Announce
+// Signal/Handle Status
 //
 typedef struct {
     BREvent base;
     BREthereumBCS bcs;
+    BREthereumNodeReference node;
     BREthereumHash headHash;
     uint64_t headNumber;
 } BREthereumHandleStatusEvent;
 
 static void
 bcsHandleStatusDispatcher (BREventHandler ignore,
-                             BREthereumHandleStatusEvent *event) {
-    bcsHandleStatus(event->bcs,
-                      event->headHash,
-                      event->headNumber);
+                           BREthereumHandleStatusEvent *event) {
+    bcsHandleStatus (event->bcs,
+                     event->node,
+                     event->headHash,
+                     event->headNumber);
 }
 
 static BREventType handleStatusEventType = {
@@ -125,207 +130,53 @@ static BREventType handleStatusEventType = {
 
 extern void
 bcsSignalStatus (BREthereumBCS bcs,
-                   BREthereumHash headHash,
-                   uint64_t headNumber) {
+                 BREthereumNodeReference node,
+                 BREthereumHash headHash,
+                 uint64_t headNumber) {
     BREthereumHandleStatusEvent event =
-    { { NULL, &handleStatusEventType}, bcs, headHash, headNumber };
+    { { NULL, &handleStatusEventType}, bcs, node, headHash, headNumber };
     eventHandlerSignalEvent(bcs->handler, (BREvent *) &event);
 }
 
 // ==============================================================================================
 //
-// Signal/Handle Block Header
+// Signal/Handle Provision
 //
 typedef struct {
     BREvent base;
     BREthereumBCS bcs;
-    BREthereumBlockHeader header;
-} BREthereumHandleBlockHeaderEvent;
+    BREthereumLES les;
+    BREthereumNodeReference node;
+    BREthereumProvisionResult result;
+} BREthereumHandleProvisionEvent;
 
 static void
-bcsHandleBlockHeaderDispatcher (BREventHandler ignore,
-                                BREthereumHandleBlockHeaderEvent *event) {
-    bcsHandleBlockHeader(event->bcs, event->header);
+bcsHandleProvisionDispatcher (BREventHandler ignore,
+                              BREthereumHandleProvisionEvent *event) {
+    bcsHandleProvision(event->bcs, event->les, event->node, event->result);
 }
 
 static void
-bcsHandleBlockHeaderDestroyer (BREthereumHandleBlockHeaderEvent *event) {
-    blockHeaderRelease(event->header);
+bcsHandleProvisionDestroyer (BREthereumHandleProvisionEvent *event) {
+    // provisionResultRelease(event->result);
 }
 
-static BREventType handleBlockHeaderEventType = {
-    "BCS: Handle Block Header Event",
-    sizeof (BREthereumHandleBlockHeaderEvent),
-    (BREventDispatcher) bcsHandleBlockHeaderDispatcher,
-    (BREventDestroyer) bcsHandleBlockHeaderDestroyer
+static BREventType handleProvisionEventType = {
+    "BCS: Handle Provision Event",
+    sizeof (BREthereumHandleProvisionEvent),
+    (BREventDispatcher) bcsHandleProvisionDispatcher,
+    (BREventDestroyer) bcsHandleProvisionDestroyer
 };
 
 extern void
-bcsSignalBlockHeader (BREthereumBCS bcs,
-                      BREthereumBlockHeader header) {
-    BREthereumHandleBlockHeaderEvent event =
-    { { NULL, &handleBlockHeaderEventType}, bcs, header };
+bcsSignalProvision (BREthereumBCS bcs,
+                    BREthereumLES les,
+                    BREthereumNodeReference node,
+                    OwnershipGiven BREthereumProvisionResult result) {
+    BREthereumHandleProvisionEvent event =
+    { { NULL, &handleProvisionEventType}, bcs, les, node, result };
     eventHandlerSignalEvent(bcs->handler, (BREvent *) &event);
 }
-
-// ==============================================================================================
-//
-// Signal/Handle Block Bodies
-//
-typedef struct {
-    BREvent base;
-    BREthereumBCS bcs;
-    BREthereumHash blockHash;
-    BREthereumTransaction *transactions;
-    BREthereumBlockHeader *ommers;
-} BREthereumHandleBlockBodiesEvent;
-
-static void
-bcsHandleBlockBodiesDispatcher (BREventHandler ignore,
-                                BREthereumHandleBlockBodiesEvent *event) {
-    bcsHandleBlockBodies(event->bcs,
-                         event->blockHash,
-                         event->transactions,
-                         event->ommers);
-}
-
-static void
-bcsHandleBlockBodiesDestroyer (BREthereumHandleBlockBodiesEvent *event) {
-    if (NULL != event->transactions) {
-        for (size_t index = 0; index < array_count(event->transactions); index++)
-            transactionRelease(event->transactions[index]);
-        array_free(event->transactions);
-    }
-
-    if (NULL != event->ommers) {
-        for (size_t index = 0; index < array_count(event->ommers); index++)
-            blockHeaderRelease(event->ommers[index]);
-        array_free (event->ommers);
-    }
-}
-
-static BREventType handleBlockBodiesEventType = {
-    "BCS: Handle Block Bodies Event",
-    sizeof (BREthereumHandleBlockBodiesEvent),
-    (BREventDispatcher) bcsHandleBlockBodiesDispatcher,
-    (BREventDestroyer) bcsHandleBlockBodiesDestroyer
-};
-
-extern void
-bcsSignalBlockBodies (BREthereumBCS bcs,
-                      BREthereumHash blockHash,
-                      BREthereumTransaction transactions[],
-                      BREthereumBlockHeader ommers[]) {
-    BREthereumHandleBlockBodiesEvent event =
-    { { NULL, &handleBlockBodiesEventType}, bcs, blockHash, transactions, ommers };
-    eventHandlerSignalEvent(bcs->handler, (BREvent *) &event);
-}
-
-// ==============================================================================================
-//
-// Handle Transaction Status
-//
-typedef struct {
-    BREvent base;
-    BREthereumBCS bcs;
-    BREthereumHash transactionHash;
-    BREthereumTransactionStatus status;
-} BREthereumHandleTransactionStatusEvent;
-
-static void
-bcsHandleTransactionStatusDispatcher(BREventHandler ignore,
-                                     BREthereumHandleTransactionStatusEvent *event) {
-    bcsHandleTransactionStatus(event->bcs, event->transactionHash, event->status);
-}
-
-static BREventType handleTransactionStatusEventType = {
-    "BCS: Handle TransactionStatus Event",
-    sizeof (BREthereumHandleTransactionStatusEvent),
-    (BREventDispatcher) bcsHandleTransactionStatusDispatcher
-};
-
-extern void
-bcsSignalTransactionStatus (BREthereumBCS bcs,
-                            BREthereumHash transactionHash,
-                            BREthereumTransactionStatus status) {
-    BREthereumHandleTransactionStatusEvent event =
-    { { NULL, &handleTransactionStatusEventType }, bcs, transactionHash, status };
-    eventHandlerSignalEvent(bcs->handler, (BREvent*) &event);
-}
-
-
-// ==============================================================================================
-//
-// Handle Transaction Receipt
-//
-typedef struct {
-    BREvent base;
-    BREthereumBCS bcs;
-    BREthereumHash blockHash;
-    BREthereumTransactionReceipt *receipts;
-} BREthereumHandleTransactionReceiptEvent;
-
-static void
-bcsHandleTransactionReceiptsDispatcher(BREventHandler ignore,
-                                       BREthereumHandleTransactionReceiptEvent *event) {
-    bcsHandleTransactionReceipts(event->bcs, event->blockHash, event->receipts);
-}
-
-static void
-bcsHandleTransactionReceiptsDestroyer (BREthereumHandleTransactionReceiptEvent *event) {
-    if (NULL != event->receipts) {
-        for (size_t index = 0; index < array_count(event->receipts); index++)
-            transactionReceiptRelease(event->receipts[index]);
-        array_free(event->receipts);
-    }
-}
-
-static BREventType handleTransactionReceiptEventType = {
-    "BCS: Handle TransactionReceipt Event",
-    sizeof (BREthereumHandleTransactionReceiptEvent),
-    (BREventDispatcher) bcsHandleTransactionReceiptsDispatcher,
-    (BREventDestroyer) bcsHandleTransactionReceiptsDestroyer
-};
-
-extern void
-bcsSignalTransactionReceipts (BREthereumBCS bcs,
-                              BREthereumHash blockHash,
-                              BREthereumTransactionReceipt *receipts) {
-    BREthereumHandleTransactionReceiptEvent event =
-    { { NULL, &handleTransactionReceiptEventType }, bcs, blockHash, receipts };
-    eventHandlerSignalEvent(bcs->handler, (BREvent*) &event);
-}
-
-// ==============================================================================================
-//
-// Handle Account State
-//
-typedef struct {
-    BREvent base;
-    BREthereumBCS bcs;
-    BREthereumLESAccountStateResult result;
-} BREthereumHandleAccountStateEvent;
-
-static void
-bcsHandleAccountStateDispatcher(BREventHandler ignore,
-                                BREthereumHandleAccountStateEvent *event) {
-    bcsHandleAccountState(event->bcs, event->result);
-}
-
-static BREventType handleAccountStateEventType = {
-    "BCS: Handle AccountState Event",
-    sizeof (BREthereumHandleAccountStateEvent),
-    (BREventDispatcher) bcsHandleAccountStateDispatcher
-};
-
-extern void
-bcsSignalAccountState (BREthereumBCS bcs,
-                       BREthereumLESAccountStateResult result) {
-    BREthereumHandleAccountStateEvent event =
-    { { NULL, &handleAccountStateEventType }, bcs, result };
-    eventHandlerSignalEvent(bcs->handler, (BREvent*) &event);
-}
-
 
 // ==============================================================================================
 //
@@ -343,15 +194,21 @@ bcsHandleTransactionDispatcher (BREventHandler ignore,
     bcsHandleTransaction(event->bcs, event->transaction);
 }
 
+static void
+bcsHandleTransactionDestroyer (BREthereumHandleTransactionEvent *event) {
+    transactionRelease(event->transaction);
+}
+
 static BREventType handleTransactionEventType = {
     "BCS: Handle Transaction Event",
     sizeof (BREthereumHandleTransactionEvent),
-    (BREventDispatcher) bcsHandleTransactionDispatcher
+    (BREventDispatcher) bcsHandleTransactionDispatcher,
+    (BREventDestroyer) bcsHandleTransactionDestroyer
 };
 
 extern void
 bcsSignalTransaction (BREthereumBCS bcs,
-                      BREthereumTransaction transaction) {
+                      OwnershipGiven BREthereumTransaction transaction) {
     BREthereumHandleTransactionEvent event =
     { { NULL, &handleTransactionEventType}, bcs, transaction };
     eventHandlerSignalEvent(bcs->handler, (BREvent *) &event);
@@ -374,10 +231,16 @@ bcsHandleLogDispatcher (BREventHandler ignore,
                  event->log);
 }
 
+static void
+bcsHandleLogDestroyer (BREthereumHandleLogEvent *event) {
+    logRelease(event->log);
+}
+
 static BREventType handleLogEventType = {
     "BCS: Handle Log Event",
     sizeof (BREthereumHandleLogEvent),
-    (BREventDispatcher) bcsHandleLogDispatcher
+    (BREventDispatcher) bcsHandleLogDispatcher,
+    (BREventDestroyer) bcsHandleLogDestroyer
 };
 
 extern void
@@ -395,106 +258,82 @@ bcsSignalLog (BREthereumBCS bcs,
 typedef struct {
     BREvent base;
     BREthereumBCS bcs;
-    BRArrayOf(BREthereumLESPeerConfig) peers;
-} BREthereumHandlePeersEvent;
+    BRArrayOf(BREthereumNodeConfig) nodes;
+} BREthereumHandleNodesEvent;
 
 static void
-bcsHandlePeersDispatcher (BREventHandler ignore,
-                          BREthereumHandlePeersEvent *event) {
-    bcsHandlePeers(event->bcs, event->peers);
+bcsHandleNodesDispatcher (BREventHandler ignore,
+                          BREthereumHandleNodesEvent *event) {
+    bcsHandleNodes(event->bcs, event->nodes);
 }
 
 static void
-bcsHandlePeersDestroyer (BREthereumHandlePeersEvent *event) {
-    if (NULL != event->peers) {
-        for (size_t index = 0; index < array_count(event->peers); index++)
-            ; // peersRelease(event->peers[index]);
-        array_free(event->peers);
+bcsHandleNodesDestroyer (BREthereumHandleNodesEvent *event) {
+    if (NULL != event->nodes) {
+        for (size_t index = 0; index < array_count(event->nodes); index++)
+            nodeConfigRelease(event->nodes[index]);
+        array_free(event->nodes);
     }
 }
 
-static BREventType handlePeersEventType = {
-    "BCS: Handle Peers Event",
-    sizeof (BREthereumHandlePeersEvent),
-    (BREventDispatcher) bcsHandlePeersDispatcher,
-    (BREventDestroyer) bcsHandlePeersDestroyer
+static BREventType handleNodesEventType = {
+    "BCS: Handle Nodes Event",
+    sizeof (BREthereumHandleNodesEvent),
+    (BREventDispatcher) bcsHandleNodesDispatcher,
+    (BREventDestroyer) bcsHandleNodesDestroyer
 };
 
 extern void
-bcsSignalPeers (BREthereumBCS bcs,
-                BRArrayOf(BREthereumLESPeerConfig) peers) {
-    BREthereumHandlePeersEvent event =
-    { { NULL, &handlePeersEventType}, bcs, peers};
+bcsSignalNodes (BREthereumBCS bcs,
+                BRArrayOf(BREthereumNodeConfig) nodes) {
+    BREthereumHandleNodesEvent event =
+    { { NULL, &handleNodesEventType}, bcs, nodes};
     eventHandlerSignalEvent (bcs->handler, (BREvent *) &event);
 }
 
 //
 // MARK: - SyncProgress
 //
-// ==============================================================================================
+
+/// ==============================================================================================
 //
-// Sync Signal/Handle Block Header
-//
-typedef struct {
-    BREvent base;
-    BREthereumBCSSyncRange range;
-    BREthereumBlockHeader header;
-} BREthereumBCSSyncHandleBlockHeaderEvent;
-
-static void
-bcsSyncHandleBlockHeaderDispatcher (BREventHandler ignore,
-                                    BREthereumBCSSyncHandleBlockHeaderEvent *event) {
-    bcsSyncHandleBlockHeader(event->range, event->header);
-}
-
-static void
-bcsSyncHandleBlockHeaderDestroyer (BREthereumBCSSyncHandleBlockHeaderEvent *event) {
-//    blockHeaderRelease(event->header);
-}
-
-static BREventType handleSyncBlockHeaderEventType = {
-    "BCS: Sync Handle Block Header Event",
-    sizeof (BREthereumBCSSyncHandleBlockHeaderEvent),
-    (BREventDispatcher) bcsSyncHandleBlockHeaderDispatcher,
-    (BREventDestroyer) bcsSyncHandleBlockHeaderDestroyer
-};
-
-extern void
-bcsSyncSignalBlockHeader (BREthereumBCSSyncRange range,
-                          BREthereumBlockHeader header) {
-    BREthereumBCSSyncHandleBlockHeaderEvent event =
-    { { NULL, &handleSyncBlockHeaderEventType}, range, header };
-    eventHandlerSignalEvent (bcsSyncRangeGetHandler(range), (BREvent *) &event);
-}
-
-// ==============================================================================================
-//
-// Suync Handle Account State
+// Sync Signal/Handle Provision
 //
 typedef struct {
     BREvent base;
     BREthereumBCSSyncRange range;
-    BREthereumLESAccountStateResult result;
-} BREthereumBCSSyncHandleAccountStateEvent;
+    BREthereumLES les;
+    BREthereumNodeReference node;
+    BREthereumProvisionResult result;
+} BREthereumBCSSyncHandleProvisionEvent;
 
 static void
-bcsSyncHandleAccountStateDispatcher(BREventHandler ignore,
-                                    BREthereumBCSSyncHandleAccountStateEvent *event) {
-    bcsSyncHandleAccountState(event->range, event->result);
+bcsSyncHandleProvisionDispatcher (BREventHandler ignore,
+                                  BREthereumBCSSyncHandleProvisionEvent *event) {
+    bcsSyncHandleProvision(event->range, event->les, event->node, event->result);
 }
 
-static BREventType handleSyncAccountStateEventType = {
-    "BCS: Sync Handle AccountState Event",
-    sizeof (BREthereumBCSSyncHandleAccountStateEvent),
-    (BREventDispatcher) bcsSyncHandleAccountStateDispatcher
+static void
+bcsSyncHandleProvisionDestroyer (BREthereumHandleProvisionEvent *event) {
+    // syncRangeRelease (event->range);
+    // provisionResultRelease(event->result);
+}
+
+static BREventType handleSyncProvisionEventType = {
+    "BCS: Sync Handle Provision Event",
+    sizeof (BREthereumBCSSyncHandleProvisionEvent),
+    (BREventDispatcher) bcsSyncHandleProvisionDispatcher,
+    (BREventDestroyer) bcsSyncHandleProvisionDestroyer
 };
 
 extern void
-bcsSyncSignalAccountState (BREthereumBCSSyncRange range,
-                           BREthereumLESAccountStateResult result) {
-    BREthereumBCSSyncHandleAccountStateEvent event =
-    { { NULL, &handleSyncAccountStateEventType }, range, result };
-    eventHandlerSignalEvent (bcsSyncRangeGetHandler(range), (BREvent*) &event);
+bcsSyncSignalProvision (BREthereumBCSSyncRange range,
+                    BREthereumLES les,
+                    BREthereumNodeReference node,
+                    BREthereumProvisionResult result) {
+    BREthereumBCSSyncHandleProvisionEvent event =
+    { { NULL, &handleSyncProvisionEventType }, range, les, node, result };
+    eventHandlerSignalEvent(bcsSyncRangeGetHandler(range), (BREvent *) &event);
 }
 
 // ==============================================================================================
@@ -506,16 +345,11 @@ bcsEventTypes[] = {
     &handleSubmitTransactionEventType,
     &handleAnnounceEventType,
     &handleStatusEventType,
-    &handleBlockHeaderEventType,
-    &handleBlockBodiesEventType,
-    &handleTransactionStatusEventType,
-    &handleTransactionReceiptEventType,
-    &handleAccountStateEventType,
+    &handleProvisionEventType,
     &handleTransactionEventType,
     &handleLogEventType,
-    &handlePeersEventType,
-    &handleSyncBlockHeaderEventType,
-    &handleSyncAccountStateEventType
+    &handleNodesEventType,
+    &handleSyncProvisionEventType
 };
 
 const unsigned int

@@ -5,13 +5,53 @@
 //  Created by Ed Gamble on 5/18/18.
 //  Copyright © 2018 breadwallet. All rights reserved.
 //
-
 import XCTest
 
 class CoreTests: XCTestCase {
-    
+
+    var coreDataDir: String!
+    var account: BREthereumAccount!
+    var paperKey: String!
+
+    func coreDirClear () {
+        do {
+            if FileManager.default.fileExists(atPath: coreDataDir) {
+                try FileManager.default.removeItem(atPath: coreDataDir)
+            }
+        }
+        catch {
+            print ("Error: \(error)")
+            XCTAssert(false)
+        }
+    }
+
+    func coreDirCreate () {
+        do {
+            try FileManager.default.createDirectory (atPath: coreDataDir,
+                                                     withIntermediateDirectories: true,
+                                                     attributes: nil)
+        }
+        catch {
+            XCTAssert(false)
+        }
+
+    }
     override func setUp() {
         super.setUp()
+
+        paperKey = (CommandLine.argc > 1 && !CommandLine.arguments[1].starts(with: "-")
+            ? CommandLine.arguments[1]
+            : "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62");
+
+        account = createAccount (paperKey)
+
+        coreDataDir = FileManager.default
+            .urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Core").path
+
+        coreDirClear()
+        coreDirClear()
+
     }
     
     override func tearDown() {
@@ -46,22 +86,58 @@ class CoreTests: XCTestCase {
     }
     
     func testEWM () {
-        runEWMTests();
+        runEWMTests(paperKey);
     }
 
     func testLES () {
         runLEStests()
+        runNodeTests()
     }
 
     func testEthereumBasics() {
         runTests(0)
     }
 
-    func testEthereumSync () {
-        runSyncTest (2 * 60, 0);
-        runSyncTest (1 * 60, 1);
+    func testEthereumSync ()  throws{
+        let mode = P2P_ONLY //  BRD_WITH_P2P_SEND
+        let timestamp : UInt64 = 0
+
+        runSyncTest (account, mode, timestamp, 10 * 60, nil, 0);
+        runSyncTest (account, mode, timestamp,  1 * 60, nil, 1);
+    }
+
+    func testEthereumSyncStorage () throws {
+        let mode = P2P_ONLY; // P2P_WITH_BRD_SYNC,  BRD_WITH_P2P_SEND
+        let timestamp : UInt64 = 0
+
+        coreDirClear()
+        runSyncTest(account, mode, timestamp, 5 * 60, coreDataDir, 0);
+        runSyncTest(account, mode, timestamp, 1 * 60, coreDataDir, 1);
     }
     
+    func testBitcoinSyncMany () {
+        BRRandInit()
+        let group = DispatchGroup.init()
+        for i in 1...25 {
+            DispatchQueue.init(label: "Sync \(i)")
+                .async {
+                    group.enter()
+                    BRRunTestsSync (i == 1 ? CommandLine.arguments[i] : nil);
+                    group.leave()
+            }
+        }
+        group.wait()
+    }
+
+    func testBitcoinSyncOne() {
+        BRRandInit()
+        BRRunTestsSync (CommandLine.argc >= 2 ? CommandLine.arguments[1] : nil);
+    }
+
+    func testBitcoinWalletManagerSync () {
+        BRRunTestWalletManagerSync(CommandLine.arguments[1], coreDataDir);
+    }
+
     func testPerformanceExample() {
 //        runTests(0);
         self.measure {

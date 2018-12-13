@@ -32,9 +32,41 @@
 #include "../base/BREthereumBase.h"
 #include "../blockchain/BREthereumBlockChain.h"
 
+#include "BREthereumProvision.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/// MARK:  LES Node Config
+
+/**
+ * A LES Node Config is used to save a node for use when reestablishing LES.  See the typedef
+ * BREthereumLESCallbackSaveNodes.  (NO: Note: these interfaces are implemented in BREthereumNode.c)
+ */
+typedef struct BREthereumNodeConfigRecord *BREthereumNodeConfig;
+
+extern void
+nodeConfigRelease (BREthereumNodeConfig config);
+
+extern BREthereumHash
+nodeConfigGetHash (BREthereumNodeConfig config);
+
+extern BRRlpItem
+nodeConfigEncode (BREthereumNodeConfig config,
+                  BRRlpCoder coder);
+
+extern BREthereumNodeConfig
+nodeConfigDecode (BRRlpItem item,
+                  BRRlpCoder coder);
+
+// Support BRSet
+extern size_t
+nodeConfigHashValue (const void *h);
+
+// Support BRSet
+extern int
+nodeConfigHashEqual (const void *h1, const void *h2);
 
 
 /*!
@@ -43,7 +75,44 @@ extern "C" {
  * @abstract
  * An instance to handle LES functionalty.
  */
-typedef struct BREthereumLESContext *BREthereumLES;
+typedef struct BREthereumLESRecord *BREthereumLES;
+
+/**
+ * An opaque type for a Node.  Only used in the announce callback to identify what node produced
+ * the result.  This NodeReference is actually a pointer but we override that with some specific
+ * values, see NODE_REFERENCE_* below, to represent some special behaviors.
+ */
+typedef void *BREthereumNodeReference;
+
+/** Reserved reference range */
+#define NODE_REFERENCE_BASE   ((BREthereumNodeReference)  0)
+#define NODE_REFERENCE_LIMIT  ((BREthereumNodeReference) 20)
+
+/** References to select a specific node index */
+#define NODE_REFERENCE_0      ((BREthereumNodeReference) 0)
+#define NODE_REFERENCE_1      ((BREthereumNodeReference) 1)
+#define NODE_REFERENCE_2      ((BREthereumNodeReference) 2)
+#define NODE_REFERENCE_3      ((BREthereumNodeReference) 3)
+#define NODE_REFERENCE_4      ((BREthereumNodeReference) 4)
+
+#if 5 < LES_ACTIVE_NODE_COUNT  // 5 <= 1 + NODE_REFERENCE_4
+#error Not enough NODE_REFERENCE declarations
+#endif
+
+/** References to select an arbitrary index */
+#define NODE_REFERENCE_NIL    ((BREthereumNodeReference) 10)
+#define NODE_REFERENCE_ANY    ((BREthereumNodeReference) 11)
+#define NODE_REFERENCE_ALL    ((BREthereumNodeReference) 12)
+
+/** Predicate to check if `n` is a 'generic' reference */
+#define NODE_REFERENCE_IS_GENERIC(n)                        \
+  (NODE_REFERENCE_BASE <= ((BREthereumNodeReference) n) &&  \
+   ((BREthereumNodeReference) n) < NODE_REFERENCE_LIMIT)
+
+/** Predicate to check if `n` is an 'arbitrary' node */
+#define NODE_REFERENCE_IS_ARBITRARY(n)                       \
+    (NODE_REFERENCE_NIL <= ((BREthereumNodeReference) n) &&  \
+    ((BREthereumNodeReference) n) <= NODE_REFERENCE_ALL)
 
 /*!
  *@typedef BREthereumLESStatus
@@ -52,33 +121,33 @@ typedef struct BREthereumLESContext *BREthereumLES;
  * An enumeration for deteremining the error that occured when submitting messages using LES
  */
 typedef enum {
-    LES_SUCCESS  = 0x00,            // No error was generated after submtting a message using LES
-    LES_NETWORK_UNREACHABLE = 0x01, // Error is thrown when the LES context can not connect to the ethereum network
-    LES_UNKNOWN_ERROR = 0x02        // Error is thrown but it's unknown what caused it.
+    LES_SUCCESS                   = 0x00,  // No error was generated after submtting a message using LES
+    LES_ERROR_NETWORK_UNREACHABLE = 0x01,  // Error is thrown when the LES context can not connect to the ethereum network
+    LES_ERROR_UNKNOWN             = 0x02   // Error is thrown but it's unknown what caused it.
+                                           // NOT_CONNECTED?
 } BREthereumLESStatus;
 
-
 /*!
- * @typedef BREthereumLESAnnounceContext
+ * @typedef BREthereumLESCallbackContext
  *
  * @abstract
- * The context to use for handling a LES 'Announce' message
+ * The context to use for handling LES callbacks, such as 'announce' and 'status'
  */
-typedef void* BREthereumLESAnnounceContext;
+typedef void* BREthereumLESCallbackContext;
 
 /*!
- * @typedef BREthereumLESAnnounceCallback
+ * @typedef BREthereumLESCallbackAnnounce
  *
  * @abstract
  * The callback to use for handling a LES 'Announce' message.
  */
 typedef void
-(*BREthereumLESAnnounceCallback) (BREthereumLESAnnounceContext context,
+(*BREthereumLESCallbackAnnounce) (BREthereumLESCallbackContext context,
+                                  BREthereumNodeReference node,
                                   BREthereumHash headHash,
                                   uint64_t headNumber,
                                   UInt256 headTotalDifficulty,
                                   uint64_t reorgDepth);
-
 
 /**
  * The callback to use for Node/Peer status message - announces the headHash and headNumber for
@@ -88,9 +157,17 @@ typedef void
  *
  */
 typedef void
-(*BREthereumLESStatusCallback) (BREthereumLESAnnounceContext context,
+(*BREthereumLESCallbackStatus) (BREthereumLESCallbackContext context,
+                                BREthereumNodeReference node,
                                 BREthereumHash headHash,
                                 uint64_t headNumber);
+
+/**
+ * The callback to use for saving nodes
+ */
+typedef void
+(*BREthereumLESCallbackSaveNodes) (BREthereumLESCallbackContext context,
+                                   BRArrayOf(BREthereumNodeConfig) nodes);
 
 /*!
  * @function lesCreate
@@ -115,13 +192,15 @@ typedef void
  */
 extern BREthereumLES
 lesCreate (BREthereumNetwork network,
-           BREthereumLESAnnounceContext announceContext,
-           BREthereumLESAnnounceCallback announceCallback,
-           BREthereumLESStatusCallback statusCallback,
+           BREthereumLESCallbackContext callbackContext,
+           BREthereumLESCallbackAnnounce callbackAnnounce,
+           BREthereumLESCallbackStatus callbackStatus,
+           BREthereumLESCallbackSaveNodes callbackSaveNodes,
            BREthereumHash headHash,
            uint64_t headNumber,
            UInt256 headTotalDifficulty,
-           BREthereumHash genesisHash);
+           BREthereumHash genesisHash,
+           BRSetOf(BREthereumNodeConfig) configs);
 
 /*!
  * @function lesRelease
@@ -138,44 +217,41 @@ lesStart (BREthereumLES les);
 extern void
 lesStop (BREthereumLES les);
 
-///////
-//
-// LES Message functions
-//
-////
+extern void
+lesClean (BREthereumLES les);
 
+extern void
+lesUpdateBlockHead (BREthereumLES les,
+                    BREthereumHash headHash,
+                    uint64_t headNumber,
+                    UInt256 headTotalDifficulty);
 
-//
-// LES GetBlockHeaders
-//
+extern void
+lesSetNodePrefer (BREthereumLES les,
+               BREthereumNodeReference nodeReference);
 
-/*!
- * @typedef BREthereumLESBlockHeadersContext
- *
- * @abstract
- * A context for the BlockHeaders callback
- */
-typedef void* BREthereumLESBlockHeadersContext;
+extern BREthereumNodeReference
+lesGetNodePrefer (BREthereumLES les);
 
-/*!
- * @typedef BREthereumLESBlockHeadersCallback
- *
- * @abstract
- * A callback for handling a BlockHeaders result.  Passed the `context` and `header`.
- */
+extern const char *
+lesGetNodeHostname (BREthereumLES les,
+                    BREthereumNodeReference node);
+
+/// MARK: LES Provision Callbacks
+
+typedef void *BREthereumLESProvisionContext;
+
 typedef void
-(*BREthereumLESBlockHeadersCallback) (BREthereumLESBlockHeadersContext context,
-                                      BREthereumBlockHeader header);
-
-
-
+(*BREthereumLESProvisionCallback) (BREthereumLESProvisionContext context,
+                                   BREthereumLES les,
+                                   BREthereumNodeReference node,
+                                   BREthereumProvisionResult result);
 
 /*!
- * @function lesGetBlockHeaders
+ * @function lesProvideBlockHeaders
  *
  * @abstract
- * Make a LES GetBlockHeaders requests.  The result will be an array of BREthereumBlockHeader;
- * the callback will be applied one-by-one to each header.
+ * Make a LES Block Headers requests.
  *
  * @param context
  * The context to use for the callback.
@@ -197,153 +273,162 @@ typedef void
  * If ETHEREUM_BOOLEAN_TRUE the returned headers will be in reverse order; otherwise the
  * first header will have `blockNumber`.
  */
-extern BREthereumLESStatus
-lesGetBlockHeaders (BREthereumLES les,
-                    BREthereumLESBlockHeadersContext context,
-                    BREthereumLESBlockHeadersCallback callback,
-                    uint64_t blockNumber,
-                    size_t maxBlockCount,
-                    uint64_t skip,
-                    BREthereumBoolean reverse);
+extern void
+lesProvideBlockHeaders (BREthereumLES les,
+                        BREthereumNodeReference node,
+                        BREthereumLESProvisionContext context,
+                        BREthereumLESProvisionCallback callback,
+                        uint64_t blockNumber,
+                        uint32_t maxBlockCount,
+                        uint64_t skip,
+                        BREthereumBoolean reverse);
 
-//
-// LES GetBlockBodies
-//
-typedef void* BREthereumLESBlockBodiesContext;
-
-typedef void
-(*BREthereumLESBlockBodiesCallback) (BREthereumLESBlockBodiesContext context,
-                                     BREthereumHash block,
-                                     BREthereumTransaction transactions[],
-                                     BREthereumBlockHeader ommers[]);
-
-extern BREthereumLESStatus
-lesGetBlockBodies (BREthereumLES les,
-                   BREthereumLESBlockBodiesContext context,
-                   BREthereumLESBlockBodiesCallback callback,
-                   BREthereumHash blocks[]);
-
-extern BREthereumLESStatus
-lesGetBlockBodiesOne (BREthereumLES les,
-                      BREthereumLESBlockBodiesContext context,
-                      BREthereumLESBlockBodiesCallback callback,
-                      BREthereumHash block);
-
-
-
-//
-// LES GetReceipts
-//
-typedef void* BREthereumLESReceiptsContext;
-
-typedef void
-(*BREthereumLESReceiptsCallback) (BREthereumLESBlockBodiesContext context,
-                                  BREthereumHash block,
-                                  BREthereumTransactionReceipt receipts[]);
-
-extern BREthereumLESStatus
-lesGetReceipts (BREthereumLES les,
-                BREthereumLESReceiptsContext context,
-                BREthereumLESReceiptsCallback callback,
-                BREthereumHash blocks[]);
-
-extern BREthereumLESStatus
-lesGetReceiptsOne (BREthereumLES les,
-                   BREthereumLESReceiptsContext context,
-                   BREthereumLESReceiptsCallback callback,
-                   BREthereumHash block);
-
-//
-// Account State
-//
-typedef enum  {
-    ACCOUNT_STATE_SUCCCESS,
-    ACCOUNT_STATE_ERROR_X,
-    ACCOUNT_STATE_ERROR_Y
-} BREthereumLESAccountStateStatus;
-
-#define ACCOUNT_STATE_REASON_CHARS \
-(sizeof (BREthereumHash) + sizeof (BREthereumAddress) + sizeof (BREthereumAccountState))
-
-typedef struct {
-    BREthereumLESAccountStateStatus status;
-    union {
-        struct {
-            BREthereumHash block;
-            BREthereumAddress address;
-            BREthereumAccountState accountState;
-        } success;
-        struct {
-            char reason[ACCOUNT_STATE_REASON_CHARS];
-        } error;
-    } u;
-} BREthereumLESAccountStateResult;
-
-typedef void* BREthereumLESAccountStateContext;
-
-typedef void
-(*BREthereumLESAccountStateCallback) (BREthereumLESAccountStateContext context,
-                                      BREthereumLESAccountStateResult result);
+/**
+ * @function lesProvideBlockProofs
+ *
+ * @param les
+ * @param context
+ * @param callback
+ * @param uint64_t
+ */
+extern void
+lesProvideBlockProofs (BREthereumLES les,
+                       BREthereumNodeReference node,
+                       BREthereumLESProvisionContext context,
+                       BREthereumLESProvisionCallback callback,
+                       OwnershipGiven BRArrayOf(uint64_t) blockNumbers);
 
 extern void
-lesGetAccountState (BREthereumLES les,
-                    BREthereumLESAccountStateContext context,
-                    BREthereumLESAccountStateCallback callback,
-                    uint64_t blockNumber,  // temporary?
-                    BREthereumHash blockHash,
-                    BREthereumAddress address);
+lesProvideBlockProofsOne (BREthereumLES les,
+                          BREthereumNodeReference node,
+                          BREthereumLESProvisionContext context,
+                          BREthereumLESProvisionCallback callback,
+                          uint64_t blockNumber);
 
-//
-// Proofs
-//
-//
-typedef void* BREthereumLESProofsV2Context;
+/*!
+ * @function lesProvdeBlockBodies
+ *
+ * @abstract
+ * Make a LES Block Bodies requests.
+ *
+ * @param les
+ * @param context
+ * @param callback
+ * @param blockHashes - OwnershipGiven
+ */
+extern void
+lesProvideBlockBodies (BREthereumLES les,
+                       BREthereumNodeReference node,
+                       BREthereumLESProvisionContext context,
+                       BREthereumLESProvisionCallback callback,
+                       OwnershipGiven BRArrayOf(BREthereumHash) blockHashes);
 
-typedef void
-(*BREthereumLESProofsV2Callback) (BREthereumLESProofsV2Context context,
-                                  BREthereumHash blockHash,
-                                  BREthereumHash key,
-                                  BREthereumHash key2);
+extern void
+lesProvideBlockBodiesOne (BREthereumLES les,
+                          BREthereumNodeReference node,
+                          BREthereumLESProvisionContext context,
+                          BREthereumLESProvisionCallback callback,
+                          BREthereumHash blockHash);
 
-extern BREthereumLESStatus
-lesGetGetProofsV2One (BREthereumLES les,
-                     BREthereumLESProofsV2Context context,
-                     BREthereumLESProofsV2Callback callback,
-                     BREthereumHash blockHash,
-                      BRRlpData key1,
-                      BRRlpData key2,
-                      //                     BREthereumHash  key,
-                      //                     BREthereumHash key2,
-                     uint64_t fromLevel);
-                     
-//
-// LES GetTxStatus
-//
-typedef void* BREthereumLESTransactionStatusContext;
+/**
+ * @function lesProvideReceipts
+ *
+ * @param les
+ * @param context
+ * @param callback
+ * @param BREthereumHash
+ */
+extern void
+lesProvideReceipts (BREthereumLES les,
+                    BREthereumNodeReference node,
+                    BREthereumLESProvisionContext context,
+                    BREthereumLESProvisionCallback callback,
+                    OwnershipGiven BRArrayOf(BREthereumHash) blockHashes);
+extern void
+lesProvideReceiptsOne (BREthereumLES les,
+                       BREthereumNodeReference node,
+                       BREthereumLESProvisionContext context,
+                       BREthereumLESProvisionCallback callback,
+                       BREthereumHash blockHash);
 
-typedef void
-(*BREthereumLESTransactionStatusCallback) (BREthereumLESTransactionStatusContext context,
-                                          BREthereumHash transaction,
-                                          BREthereumTransactionStatus status);
+/**
+ * @function lesProvideAccountStates
+ *
+ * @param les
+ * @param context
+ * @param callback
+ * @param address
+ * @param BREthereumHash
+ */
+extern void
+lesProvideAccountStates (BREthereumLES les,
+                         BREthereumNodeReference node,
+                         BREthereumLESProvisionContext context,
+                         BREthereumLESProvisionCallback callback,
+                         BREthereumAddress address,
+                         OwnershipGiven BRArrayOf(BREthereumHash) blockHashes);
 
-extern BREthereumLESStatus
-lesGetTransactionStatus (BREthereumLES les,
-                         BREthereumLESTransactionStatusContext context,
-                         BREthereumLESTransactionStatusCallback callback,
-                         BREthereumHash transactions[]);
+extern void
+lesProvideAccountStatesOne (BREthereumLES les,
+                            BREthereumNodeReference node,
+                            BREthereumLESProvisionContext context,
+                            BREthereumLESProvisionCallback callback,
+                            BREthereumAddress address,
+                            BREthereumHash blockHash);
 
-extern BREthereumLESStatus
-lesGetTransactionStatusOne (BREthereumLES les,
-                            BREthereumLESTransactionStatusContext context,
-                            BREthereumLESTransactionStatusCallback callback,
-                            BREthereumHash transaction);
+/**
+ * @function lesProvideTransactionStauts
+ *
+ * @param les
+ * @param context
+ * @param callback
+ * @param BREthereumHash
+ */
+extern void
+lesProvideTransactionStatus (BREthereumLES les,
+                             BREthereumNodeReference node,
+                             BREthereumLESProvisionContext context,
+                             BREthereumLESProvisionCallback callback,
+                             OwnershipGiven BRArrayOf(BREthereumHash) transactionHashes);
 
-extern BREthereumLESStatus
+extern void
+lesProvideTransactionStatusOne (BREthereumLES les,
+                                BREthereumNodeReference node,
+                                BREthereumLESProvisionContext context,
+                                BREthereumLESProvisionCallback callback,
+                                BREthereumHash transactionHash);
+
+/**
+ * @function lesSubmitTransaction
+ *
+ * @param les
+ * @param context
+ * @param callback
+ * @param transaction
+ */
+extern void
 lesSubmitTransaction (BREthereumLES les,
-                      BREthereumLESTransactionStatusContext context,
-                      BREthereumLESTransactionStatusCallback callback,
-                      BREthereumTransaction transaction);
+                      BREthereumNodeReference node,
+                      BREthereumLESProvisionContext context,
+                      BREthereumLESProvisionCallback callback,
+                      OwnershipGiven BREthereumTransaction transaction);
 
+
+/**
+ * Retry a provision
+ *
+ * @param les les
+ * @param node node
+ * @param context context
+ * @param callback callback
+ * @param provision provision
+ */
+extern void
+lesRetryProvision (BREthereumLES les,
+                   BREthereumNodeReference node,
+                   BREthereumLESProvisionContext context,
+                   BREthereumLESProvisionCallback callback,
+                   OwnershipGiven BREthereumProvision *provision);
 
 #ifdef __cplusplus
 }

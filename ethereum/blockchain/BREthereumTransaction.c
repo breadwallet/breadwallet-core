@@ -27,7 +27,6 @@
 #include <string.h>
 #include <assert.h>
 #include "BREthereumTransaction.h"
-#include "../BREthereumPrivate.h"
 
 // #define TRANSACTION_LOG_ALLOC_COUNT
 
@@ -36,10 +35,6 @@
 #if defined (TRANSACTION_LOG_ALLOC_COUNT)
 static unsigned int transactionAllocCount = 0;
 #endif
-
-// Forward Declarations
-static void
-provideData (BREthereumTransaction transaction);
 
 /**
  * An Ethereum Transaction ...
@@ -73,6 +68,8 @@ struct BREthereumTransactionRecord {
     BREthereumEther amount;
     BREthereumGasPrice gasPrice;
     BREthereumGas gasLimit;
+    BREthereumGas gasEstimate;
+    
     uint64_t nonce;
     BREthereumChainId chainId;   // EIP-135 - chainId - "Since EIP-155 use chainId for v"
 
@@ -112,6 +109,10 @@ transactionCreate(BREthereumAddress sourceAddress,
     transaction->nonce = nonce;
     transaction->chainId = 0;
     transaction->hash = hashCreateEmpty();
+    transaction->gasEstimate = gasLimit;
+
+    // Ensure that `transactionIsSigned()` returns FALSE.
+    signatureClear (&transaction->signature, SIGNATURE_TYPE_RECOVERABLE_VRS_EIP);
 
 #if defined (TRANSACTION_LOG_ALLOC_COUNT)
     eth_log ("MEM", "TX Create - Count: %d", ++transactionAllocCount);
@@ -134,11 +135,13 @@ transactionCopy (BREthereumTransaction transaction) {
 
 extern void
 transactionRelease (BREthereumTransaction transaction) {
-    if (NULL != transaction->data) free (transaction->data);
+    if (NULL != transaction) {
+        if (NULL != transaction->data) free (transaction->data);
 #if defined (TRANSACTION_LOG_ALLOC_COUNT)
-    eth_log ("MEM", "TX Release - Count: %d", --transactionAllocCount);
+        eth_log ("MEM", "TX Release - Count: %d", --transactionAllocCount);
 #endif
-    free (transaction);
+        free (transaction);
+    }
 }
 
 extern void
@@ -210,6 +213,30 @@ transactionSetGasLimit (BREthereumTransaction transaction,
     transaction->gasLimit = gasLimit;
 }
 
+static BREthereumGas
+gasLimitApplyMargin (BREthereumGas gas) {
+    return gasCreate(((100 + GAS_LIMIT_MARGIN_PERCENT) * gas.amountOfGas) / 100);
+}
+
+extern BREthereumGas
+transactionGetGasEstimate (BREthereumTransaction transaction) {
+    return transaction->gasEstimate;
+}
+
+extern void
+transactionSetGasEstimate (BREthereumTransaction transaction,
+                           BREthereumGas gasEstimate) {
+    transaction->gasEstimate = gasEstimate;
+
+    // Ensure that the gasLimit is at least 20% more than gasEstimate
+    // unless the gasEstimate is 21000 (special case for ETH transfers).
+    BREthereumGas gasLimitWithMargin = (21000 != gasEstimate.amountOfGas
+                                        ? gasLimitApplyMargin (gasEstimate)
+                                        : gasCreate(21000));
+    if (gasLimitWithMargin.amountOfGas > transaction->gasLimit.amountOfGas)
+        transaction->gasLimit = gasLimitWithMargin;
+}
+
 extern uint64_t
 transactionGetNonce (BREthereumTransaction transaction) {
     return transaction->nonce;
@@ -253,17 +280,17 @@ transactionSign(BREthereumTransaction transaction,
     // The signature algorithm does not account for EIP-155 and thus the chainID.  We are signing
     // transactions according to EIP-155.  Thus v = CHAIN_ID * 2 + 35 or v = CHAIN_ID * 2 + 36
     // whereas the non-EIP-155 value of v is { 27, 28 }
-    assert (SIGNATURE_TYPE_RECOVERABLE == signature.type);
-    assert (27 == signature.sig.recoverable.v || 28 == signature.sig.recoverable.v);
+    assert (SIGNATURE_TYPE_RECOVERABLE_VRS_EIP == signature.type);
+    assert (27 == signature.sig.vrs.v || 28 == signature.sig.vrs.v);
 }
 
 extern BREthereumBoolean
 transactionIsSigned (BREthereumTransaction transaction) {
     switch (transaction->signature.type) {
-        case SIGNATURE_TYPE_FOO:
-            return AS_ETHEREUM_BOOLEAN (transaction->signature.sig.foo.ignore != 0);
-        case SIGNATURE_TYPE_RECOVERABLE:
-            return AS_ETHEREUM_BOOLEAN (transaction->signature.sig.recoverable.v != 0);
+        case SIGNATURE_TYPE_RECOVERABLE_VRS_EIP:
+            return AS_ETHEREUM_BOOLEAN (transaction->signature.sig.vrs.v != 0);
+        case SIGNATURE_TYPE_RECOVERABLE_RSV:
+            return AS_ETHEREUM_BOOLEAN (transaction->signature.sig.rsv.v != 0);
     }
 }
 
@@ -315,7 +342,7 @@ transactionRlpEncode(BREthereumTransaction transaction,
                      BREthereumNetwork network,
                      BREthereumRlpType type,
                      BRRlpCoder coder) {
-    BRRlpItem items[12]; // more than enough
+    BRRlpItem items[13]; // more than enough
     size_t itemsCount = 0;
 
     items[0] = rlpEncodeUInt64(coder, transaction->nonce, 1);
@@ -348,23 +375,24 @@ transactionRlpEncode(BREthereumTransaction transaction,
         case RLP_TYPE_TRANSACTION_SIGNED: // aka NETWORK
         case RLP_TYPE_ARCHIVE:
             // For EIP-155, encode v with the chainID.
-            items[6] = rlpEncodeUInt64(coder, transaction->signature.sig.recoverable.v + 8 +
+            items[6] = rlpEncodeUInt64(coder, transaction->signature.sig.vrs.v + 8 +
                                            2 * transaction->chainId, 1);
 
             items[7] = rlpEncodeBytes (coder,
-                                           transaction->signature.sig.recoverable.r,
-                                           sizeof (transaction->signature.sig.recoverable.r));
+                                           transaction->signature.sig.vrs.r,
+                                           sizeof (transaction->signature.sig.vrs.r));
 
             items[8] = rlpEncodeBytes (coder,
-                                           transaction->signature.sig.recoverable.s,
-                                           sizeof (transaction->signature.sig.recoverable.s));
+                                           transaction->signature.sig.vrs.s,
+                                           sizeof (transaction->signature.sig.vrs.s));
             itemsCount += 3;
 
             // For ARCHIVE add in a few things beyond 'SIGNED / NETWORK'
             if (RLP_TYPE_ARCHIVE == type) {
-                items[9] = hashRlpEncode(transaction->hash, coder);
-                items[10] = transactionStatusRLPEncode(transaction->status, coder);
-                itemsCount += 2;
+                items[ 9] = addressRlpEncode(transaction->sourceAddress, coder);
+                items[10] = hashRlpEncode(transaction->hash, coder);
+                items[11] = transactionStatusRLPEncode(transaction->status, coder);
+                itemsCount += 3;
             }
             break;
     }
@@ -393,7 +421,7 @@ transactionRlpDecode (BRRlpItem item,
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
     assert (( 9 == itemsCount && (RLP_TYPE_TRANSACTION_SIGNED == type || RLP_TYPE_TRANSACTION_UNSIGNED == type)) ||
-            (11 == itemsCount && RLP_TYPE_ARCHIVE == type));
+            (12 == itemsCount && RLP_TYPE_ARCHIVE == type));
 
     // Encoded as:
     //    items[0] = transactionEncodeNonce(transaction, transaction->nonce, coder);
@@ -415,42 +443,51 @@ transactionRlpDecode (BRRlpItem item,
 
     uint64_t eipChainId = rlpDecodeUInt64(coder, items[6], 1);
 
-    if (eipChainId == transaction->chainId) {
-        // RLP_TYPE_TRANSACTION_UNSIGNED
-        transaction->signature.type = SIGNATURE_TYPE_RECOVERABLE;
-    }
-    else {
+    // By default, ensure `transacdtionIsSigned()` returns FALSE.
+    signatureClear (&transaction->signature, SIGNATURE_TYPE_RECOVERABLE_VRS_EIP);
+
+    // We have a signature - is this the proper logic?
+    if (eipChainId != transaction->chainId) {
         // RLP_TYPE_TRANSACTION_SIGNED
-        transaction->signature.type = SIGNATURE_TYPE_RECOVERABLE;
+        transaction->signature.type = SIGNATURE_TYPE_RECOVERABLE_VRS_EIP;
 
         // If we are RLP decoding a transactino prior to EIP-xxx, then the eipChainId will
         // not be encoded with the chainId.  In that case, just use the eipChainId
-        transaction->signature.sig.recoverable.v = (eipChainId > 30
+        transaction->signature.sig.vrs.v = (eipChainId > 30
                                                     ? eipChainId - 8 - 2 * transaction->chainId
                                                     : eipChainId);
 
         BRRlpData rData = rlpDecodeBytesSharedDontRelease (coder, items[7]);
         assert (32 >= rData.bytesCount);
-        memcpy (&transaction->signature.sig.recoverable.r[32 - rData.bytesCount],
+        memcpy (&transaction->signature.sig.vrs.r[32 - rData.bytesCount],
                 rData.bytes, rData.bytesCount);
 
         BRRlpData sData = rlpDecodeBytesSharedDontRelease (coder, items[8]);
         assert (32 >= sData.bytesCount);
-        memcpy (&transaction->signature.sig.recoverable.s[32 - sData.bytesCount],
+        memcpy (&transaction->signature.sig.vrs.s[32 - sData.bytesCount],
                 sData.bytes, sData.bytesCount);
 
-        // :fingers-crossed:
-        transaction->sourceAddress = transactionExtractAddress(transaction, network, coder);
     }
 
-    if (RLP_TYPE_ARCHIVE == type) {
-        transaction->hash = hashRlpDecode(items[9], coder);
-        transaction->status = transactionStatusRLPDecode(items[10], coder);
-    }
-    // With a SIGNED RLP encoding, we can compute the hash.
-    else if (RLP_TYPE_TRANSACTION_SIGNED == type) {
-        BRRlpData result = rlpGetDataSharedDontRelease(coder, item);
-        transaction->hash = hashCreateFromData(result);
+    switch (type) {
+        case RLP_TYPE_ARCHIVE:
+            // Extract the archive-specific data
+            transaction->sourceAddress = addressRlpDecode(items[9], coder);
+            transaction->hash = hashRlpDecode(items[10], coder);
+            transaction->status = transactionStatusRLPDecode(items[11], NULL, coder);
+            break;
+
+        case RLP_TYPE_TRANSACTION_SIGNED: {
+            // With a SIGNED RLP encoding, we can extract the source address and compute the hash.
+            BRRlpData result = rlpGetDataSharedDontRelease(coder, item);
+            transaction->hash = hashCreateFromData(result);
+
+            // :fingers-crossed:
+            transaction->sourceAddress = transactionExtractAddress (transaction, network, coder);
+            break;
+        }
+
+        default: break;
     }
 
 #if defined (TRANSACTION_LOG_ALLOC_COUNT)
@@ -486,9 +523,6 @@ transactionGetRlpHexEncoded (BREthereumTransaction transaction,
     return result;
 }
 
-//
-// Private
-//
 extern BREthereumTransactionStatus
 transactionGetStatus (BREthereumTransaction transaction) {
     return transaction->status;
@@ -531,6 +565,11 @@ transactionHasStatus(BREthereumTransaction transaction,
 extern BREthereumComparison
 transactionCompare(BREthereumTransaction t1,
                    BREthereumTransaction t2) {
+
+    if (  t1 == t2) return ETHEREUM_COMPARISON_EQ;
+    if (NULL == t2) return ETHEREUM_COMPARISON_LT;
+    if (NULL == t1) return ETHEREUM_COMPARISON_GT;
+
     int t1Blocked = transactionHasStatus(t1, TRANSACTION_STATUS_INCLUDED);
     int t2Blocked = transactionHasStatus(t2, TRANSACTION_STATUS_INCLUDED);
 
@@ -559,6 +598,65 @@ transactionCompare(BREthereumTransaction t1,
                    : ETHEREUM_COMPARISON_EQ));
 }
 
+extern void
+transactionShow (BREthereumTransaction transaction, const char *topic) {
+    int overflow;
+
+    char *hash = hashAsString (transaction->hash);
+    char *source = addressGetEncodedString(transaction->sourceAddress, 1);
+    char *target = addressGetEncodedString(transactionGetTargetAddress(transaction), 1);
+    char *amount = etherGetValueString (transactionGetAmount(transaction), ETHER);
+    char *gasP   = etherGetValueString (transactionGetGasPrice(transaction).etherPerGas, GWEI);
+    char *fee    = etherGetValueString (transactionGetFee(transaction, &overflow), ETHER);
+
+    BREthereumEther totalEth = etherCreate(addUInt256_Overflow(transaction->amount.valueInWEI, transactionGetFee(transaction, &overflow).valueInWEI, &overflow));
+    char *total  = etherGetValueString (totalEth, ETHER);
+    char *totalWEI = etherGetValueString (totalEth, WEI);
+
+    eth_log (topic, "=== Transaction%s", "");
+    eth_log (topic, "    Hash  : %s", hash);
+    eth_log (topic, "    Nonce : %" PRIu64, transactionGetNonce(transaction));
+    eth_log (topic, "    Source: %s", source);
+    eth_log (topic, "    Target: %s", target);
+    eth_log (topic, "    Amount: %s ETHER", amount);
+    eth_log (topic, "    GasPrc: %s GWEI", gasP);
+    eth_log (topic, "    GasLmt: %" PRIu64, transactionGetGasLimit(transaction).amountOfGas);
+    eth_log (topic, "    Fee   : %s ETHER", fee);
+    eth_log (topic, "    Total : %s ETHER", total);
+    eth_log (topic, "    Total : %s WEI", totalWEI);
+    eth_log (topic, "    Data  : %s", transaction->data);
+
+    BREthereumContractFunction function = contractLookupFunctionForEncoding (contractERC20, transaction->data);
+    if (NULL != function && functionERC20Transfer == function) {
+        BRCoreParseStatus status;
+        UInt256 funcAmount = functionERC20TransferDecodeAmount(function, transaction->data, &status);
+        char *funcAddr   = functionERC20TransferDecodeAddress (function, transaction->data);
+        char *funcAmt    = coerceString(funcAmount, 10);
+
+        BREthereumToken token = tokenLookup(target);
+
+        eth_log (topic, "    Token : %s", (NULL == token ? "???" : tokenGetSymbol(token)));
+        eth_log (topic, "    TokFnc: %s", "erc20 transfer");
+        eth_log (topic, "    TokAmt: %s", funcAmt);
+        eth_log (topic, "    TokAdr: %s", funcAddr);
+
+        free (funcAmt); free (funcAddr);
+
+    }
+    free (totalWEI); free (total); free (fee); free (gasP);
+    free (amount); free (target); free (source); free (hash);
+
+}
+
+extern void
+transactionsRelease (BRArrayOf(BREthereumTransaction) transactions) {
+    if (NULL != transactions) {
+        size_t count = array_count(transactions);
+        for (size_t index = 0; index < count; index++)
+            transactionRelease(transactions[index]);
+        array_free (transactions);
+    }
+}
 
 /*
      https://github.com/ethereum/pyethereum/blob/develop/ethereum/transactions.py#L22
