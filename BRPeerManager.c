@@ -1658,9 +1658,15 @@ void BRPeerManagerDisconnect(BRPeerManager *manager)
 {
     struct timespec ts;
     size_t peerCount, dnsThreadCount;
-    
+    int savedMaxConnectCount;
+
     assert(manager != NULL);
     pthread_mutex_lock(&manager->lock);
+
+    // Prevent new peers from being spawned
+    savedMaxConnectCount = manager->maxConnectCount;
+    manager->maxConnectCount = 0;
+
     peerCount = array_count(manager->connectedPeers);
     dnsThreadCount = manager->dnsThreadCount;
     
@@ -1680,6 +1686,10 @@ void BRPeerManagerDisconnect(BRPeerManager *manager)
         dnsThreadCount = manager->dnsThreadCount;
         pthread_mutex_unlock(&manager->lock);
     }
+
+    pthread_mutex_lock(&manager->lock);
+    manager->maxConnectCount = savedMaxConnectCount;
+    pthread_mutex_unlock(&manager->lock);
 }
 
 static int _BRPeerManagerRescan (BRPeerManager *manager, BRMerkleBlock *newLastBlock) {
