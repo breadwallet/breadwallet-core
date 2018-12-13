@@ -421,10 +421,11 @@ ewmHandleAnnounceTransaction(BREthereumEWM ewm,
             // TODO: Confirm that BRPersistData does not overwrite the transaction's hash
             transactionSetHash (transaction, bundle->hash);
 
-            BREthereumTransactionStatus status = transactionStatusCreateIncluded (gasCreate(bundle->gasUsed),
-                                                                                  bundle->blockHash,
+            BREthereumTransactionStatus status = transactionStatusCreateIncluded (bundle->blockHash,
                                                                                   bundle->blockNumber,
-                                                                                  bundle->blockTransactionIndex);
+                                                                                  bundle->blockTransactionIndex,
+                                                                                  bundle->blockTimestamp,
+                                                                                  gasCreate(bundle->gasUsed));
             transactionSetStatus (transaction, status);
 
             // If we had a `bcs` we might think about `bcsSignalTransaction(ewm->bcs, transaction);`
@@ -577,10 +578,11 @@ ewmHandleAnnounceLog (BREthereumEWM ewm,
             logInitializeIdentifier(log, bundle->hash, bundle->logIndex);
 
             BREthereumTransactionStatus status =
-            transactionStatusCreateIncluded(gasCreate(0),  // fee is in associated transaction
-                                            hashCreateEmpty(),
-                                            bundle->blockNumber,
-                                            bundle->blockTransactionIndex);
+            transactionStatusCreateIncluded (hashCreateEmpty(),
+                                             bundle->blockNumber,
+                                             bundle->blockTransactionIndex,
+                                             bundle->blockTimestamp,
+                                             gasCreate(0));
             logSetStatus(log, status);
 
             // If we had a `bcs` we might think about `bcsSignalLog(ewm->bcs, log);`

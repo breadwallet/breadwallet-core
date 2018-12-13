@@ -881,10 +881,12 @@ provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
             for (size_t index = 0; index < array_count(outputs); index++) {
                 assert (PIP_REQUEST_TRANSACTION_INDEX == outputs[index].identifier);
                provisionStatuses[offset + index] =
-                transactionStatusCreateIncluded (gasCreate(0),
-                                                 outputs[index].u.transactionIndex.blockHash,
+                transactionStatusCreateIncluded (outputs[index].u.transactionIndex.blockHash,
                                                  outputs[index].u.transactionIndex.blockNumber,
-                                                 outputs[index].u.transactionIndex.transactionIndex);
+                                                 outputs[index].u.transactionIndex.transactionIndex,
+                                                 TRANSACTION_STATUS_BLOCK_TIMESTAMP_UNKNOWN,
+                                                 gasCreate(0));
+
             }
 
             array_free (outputs);
@@ -905,10 +907,11 @@ provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
 
                 case 1:
                     provision->status =
-                    transactionStatusCreateIncluded (gasCreate(0),
-                                                     outputs[0].u.transactionIndex.blockHash,
+                    transactionStatusCreateIncluded (outputs[0].u.transactionIndex.blockHash,
                                                      outputs[0].u.transactionIndex.blockNumber,
-                                                     outputs[0].u.transactionIndex.transactionIndex);
+                                                     outputs[0].u.transactionIndex.transactionIndex,
+                                                     TRANSACTION_STATUS_BLOCK_TIMESTAMP_UNKNOWN,
+                                                     gasCreate (0));
                 default:
                     assert(0);
             }

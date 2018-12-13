@@ -1037,7 +1037,7 @@ extension TransferState {
             let confirmation =  TransferConfirmation (
                 blockNumber: ewmTransferGetBlockNumber (ewm, tid),
                 transactionIndex: ewmTransferGetTransactionIndex (ewm, tid),
-                timestamp: 0,
+                timestamp: ewmTransferGetBlockTimestamp (ewm, tid),
                 fee: Amount (value: fee.valueInWEI, unit: Ethereum.Units.ETHER, negative: false))
 
             self = .included(confirmation: confirmation)

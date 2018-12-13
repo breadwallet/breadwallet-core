@@ -52,17 +52,19 @@ transactionStatusCreate (BREthereumTransactionStatusType type) {
 }
 
 extern BREthereumTransactionStatus
-transactionStatusCreateIncluded (BREthereumGas gasUsed,
-                                 BREthereumHash blockHash,
+transactionStatusCreateIncluded (BREthereumHash blockHash,
                                  uint64_t blockNumber,
-                                 uint64_t blockTransactionIndex) {
-    BREthereumTransactionStatus status;
-    status.type = TRANSACTION_STATUS_INCLUDED;
-    status.u.included.gasUsed = gasUsed;
-    status.u.included.blockHash = blockHash;
-    status.u.included.blockNumber = blockNumber;
-    status.u.included.transactionIndex = blockTransactionIndex;
-    return status;
+                                 uint64_t transactionIndex,
+                                 uint64_t blockTimestamp,
+                                 BREthereumGas gasUsed) {
+    return (BREthereumTransactionStatus) {
+        TRANSACTION_STATUS_INCLUDED,
+        blockHash,
+        blockNumber,
+        transactionIndex,
+        blockTimestamp,
+        gasUsed
+    };
 }
 
 extern BREthereumTransactionStatus
@@ -77,17 +79,20 @@ transactionStatusCreateErrored (BREthereumTransactionErrorType type,
 
 extern int
 transactionStatusExtractIncluded(const BREthereumTransactionStatus *status,
-                                 BREthereumGas *gas,
                                  BREthereumHash *blockHash,
                                  uint64_t *blockNumber,
-                                 uint64_t *blockTransactionIndex) {
+                                 uint64_t *blockTransactionIndex,
+                                 uint64_t *blockTimestamp,
+                                 BREthereumGas *gas) {
     if (status->type != TRANSACTION_STATUS_INCLUDED)
         return 0;
 
-    if (NULL != gas) *gas = status->u.included.gasUsed;
     if (NULL != blockHash) *blockHash = status->u.included.blockHash;
     if (NULL != blockNumber) *blockNumber = status->u.included.blockNumber;
     if (NULL != blockTransactionIndex) *blockTransactionIndex = status->u.included.transactionIndex;
+    if (NULL != blockTimestamp) *blockTimestamp = status->u.included.blockTimestamp;
+    if (NULL != gas) *gas = status->u.included.gasUsed;
+
 
     return 1;
 }
@@ -156,10 +161,11 @@ transactionStatusRLPDecode (BRRlpItem item,
             const BRRlpItem *others = rlpDecodeList(coder, items[1], &othersCount);
             assert (3 == othersCount);
 
-            return transactionStatusCreateIncluded(gasCreate(0),
-                                                   hashRlpDecode(others[0], coder),
-                                                   rlpDecodeUInt64(coder, others[1], 0),
-                                                   rlpDecodeUInt64(coder, others[2], 0));
+            return transactionStatusCreateIncluded (hashRlpDecode(others[0], coder),
+                                                    rlpDecodeUInt64(coder, others[1], 0),
+                                                    rlpDecodeUInt64(coder, others[2], 0),
+                                                    TRANSACTION_STATUS_BLOCK_TIMESTAMP_UNKNOWN,
+                                                    gasCreate(0));
         }
         
         case TRANSACTION_STATUS_ERRORED: {

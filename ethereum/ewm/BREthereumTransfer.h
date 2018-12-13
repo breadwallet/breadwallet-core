@@ -202,14 +202,16 @@ transferHasStatusOrTwo (BREthereumTransfer transfer,
 
 extern int
 transferExtractStatusIncluded (BREthereumTransfer transfer,
-                               BREthereumGas *gasUsed,
                                BREthereumHash *blockHash,
                                uint64_t *blockNumber,
-                               uint64_t *transactionIndex);
+                               uint64_t *transactionIndex,
+                               uint64_t *blockTimestamp,
+                               BREthereumGas *gasUsed);
+
 extern int
 transferExtractStatusError (BREthereumTransfer transfer,
                             char **reason);
-    
+
 extern int
 transferExtractStatusErrorType (BREthereumTransfer transfer,
                                 BREthereumTransactionErrorType *type);

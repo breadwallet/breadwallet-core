@@ -912,8 +912,9 @@ blockLinkLogsWithTransactions (BREthereumBlock block) {
         BREthereumTransactionStatus status =transactionGetStatus(transaction);
 
         uint64_t transactionIndex, blockNumber;
-        if (transactionStatusExtractIncluded(&status, NULL, NULL, &blockNumber, &transactionIndex)) {
+        if (transactionStatusExtractIncluded(&status, NULL, &blockNumber, &transactionIndex, NULL, NULL)) {
             status.u.included.gasUsed = block->status.gasUsed[transactionIndex];
+            status.u.included.blockTimestamp = blockGetTimestamp(block);
             transactionSetStatus(transaction, status);
         }
     }
@@ -924,7 +925,7 @@ blockLinkLogsWithTransactions (BREthereumBlock block) {
         BREthereumLog log = block->status.logs[index];
         BREthereumTransactionStatus status = logGetStatus(log);
         uint64_t transactionIndex; size_t logIndex;
-        assert (transactionStatusExtractIncluded(&status, NULL, NULL, NULL, &transactionIndex));
+        assert (transactionStatusExtractIncluded(&status, NULL, NULL, &transactionIndex, NULL, NULL));
 
         BREthereumTransaction transaction = block->transactions[transactionIndex];
         logExtractIdentifier(log, NULL, &logIndex);
