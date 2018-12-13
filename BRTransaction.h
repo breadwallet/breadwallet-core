@@ -49,6 +49,9 @@ extern "C" {
 
 #define BR_RAND_MAX          ((RAND_MAX > 0x7fffffff) ? 0x7fffffff : RAND_MAX)
 
+// seed the random number generator (see below); call once.
+void BRRandInit (void);
+
 // returns a random number less than upperBound (for non-cryptographic use only)
 uint32_t BRRand(uint32_t upperBound);
 

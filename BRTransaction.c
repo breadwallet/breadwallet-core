@@ -40,15 +40,18 @@
 #define SIGHASH_ANYONECANPAY 0x80 // let other people add inputs, I don't care where the rest of the bitcoins come from
 #define SIGHASH_FORKID       0x40 // use BIP143 digest method (for b-cash/b-gold signatures)
 
-// returns a random number less than upperBound, for non-cryptographic use only
-uint32_t BRRand(uint32_t upperBound)
-{
+void BRRandInit (void) {
     static int first = 1;
-    uint32_t r;
-    
     // seed = (((FNV_OFFSET xor time)*FNV_PRIME) xor pid)*FNV_PRIME
     if (first) srand((((0x811C9dc5 ^ (unsigned)time(NULL))*0x01000193) ^ (unsigned)getpid())*0x01000193);
     first = 0;
+}
+
+// returns a random number less than upperBound, for non-cryptographic use only
+uint32_t BRRand(uint32_t upperBound)
+{
+    uint32_t r;
+    
     if (upperBound == 0 || upperBound > BR_RAND_MAX) upperBound = BR_RAND_MAX;
     
     do { // to avoid modulo bias, find a rand value not less than 0x100000000 % upperBound
