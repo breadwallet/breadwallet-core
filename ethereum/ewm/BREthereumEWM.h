@@ -316,6 +316,10 @@ ewmTransferGetBlockNumber(BREthereumEWM ewm,
                           BREthereumTransfer transfer);
 
 extern uint64_t
+ewmTransferGetBlockTimestamp (BREthereumEWM ewm,
+                              BREthereumTransfer transfer);
+
+extern uint64_t
 ewmTransferGetBlockConfirmations(BREthereumEWM ewm,
                                  BREthereumTransfer transfer);
 

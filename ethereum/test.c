@@ -552,10 +552,11 @@ void testTransactionCodingEther () {
 
     // Archive
     BREthereumHash someBlockHash = HASH_INIT("fc45a8c5ebb5f920931e3d5f48992f3a89b544b4e21dc2c11c5bf8165a7245d6");
-    BREthereumTransactionStatus status = transactionStatusCreateIncluded(gasCreate(0),
-                                                                         someBlockHash,
+    BREthereumTransactionStatus status = transactionStatusCreateIncluded(someBlockHash,
                                                                          11592,
-                                                                         21);
+                                                                         21,
+                                                                         0,
+                                                                         gasCreate(0));
     transactionSetStatus(transaction, status);
     item = transactionRlpEncode(transaction, ethereumMainnet, RLP_TYPE_ARCHIVE, coder);
     BREthereumTransaction archivedTransaction = transactionRlpDecode(item, ethereumMainnet, RLP_TYPE_ARCHIVE, coder);

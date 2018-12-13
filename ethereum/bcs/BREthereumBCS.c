@@ -922,7 +922,7 @@ bcsPendOrphanedTransactionsAndLogs (BREthereumBCS bcs) {
     // requesting status and expect some node to offer up a different block.
     FOR_SET(BREthereumTransaction, transaction, bcs->transactions) {
         status = transactionGetStatus(transaction);
-        if (transactionStatusExtractIncluded(&status, NULL, &blockHash, NULL, NULL) &&
+        if (transactionStatusExtractIncluded(&status, &blockHash, NULL, NULL, NULL, NULL) &&
             NULL != BRSetGet (bcs->orphans, &blockHash)) {
             bcsPendTransaction(bcs, transaction);
         }
@@ -932,7 +932,7 @@ bcsPendOrphanedTransactionsAndLogs (BREthereumBCS bcs) {
     // in a block; see if that block is now an orphan and if so make the log pending.
     FOR_SET(BREthereumLog, log, bcs->logs) {
         status = logGetStatus(log);
-        if (transactionStatusExtractIncluded(&status, NULL, &blockHash, NULL, NULL) &&
+        if (transactionStatusExtractIncluded(&status, &blockHash, NULL, NULL, NULL, NULL) &&
             NULL != BRSetGet (bcs->orphans, &blockHash)) {
             bcsPendLog (bcs, log);
         }
@@ -1530,10 +1530,11 @@ bcsHandleBlockBody (BREthereumBCS bcs,
 
             // Fill-out the status.  Note that gasUsed is zero.  When this block is chained
             // we'll request the TxStatus so we can get a valid gasUsed value.
-            transactionSetStatus(tx, transactionStatusCreateIncluded (transactionGetGasLimit(tx), // gasCreate(0),
-                                                                      blockGetHash(block),
+            transactionSetStatus(tx, transactionStatusCreateIncluded (blockGetHash(block),
                                                                       blockGetNumber(block),
-                                                                      i));
+                                                                      i,
+                                                                      blockGetTimestamp(block),
+                                                                      transactionGetGasLimit(tx)));
 
             if (NULL == neededTransactions) array_new (neededTransactions, 3);
             array_add(neededTransactions, tx);
@@ -1739,10 +1740,11 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
                     // We won't have the transaction hash so we'll use an empty one.
                     logInitializeIdentifier(log, emptyHash, li);
 
-                    logSetStatus (log, transactionStatusCreateIncluded (gasCreate(0),
-                                                                        blockGetHash(block),
+                    logSetStatus (log, transactionStatusCreateIncluded (blockGetHash(block),
                                                                         blockGetNumber(block),
-                                                                        ti));
+                                                                        ti,
+                                                                        blockGetTimestamp(block),
+                                                                        gasCreate(0)));
                     
                     if (NULL == neededLogs) array_new(neededLogs, 3);
                     array_add(neededLogs, log);

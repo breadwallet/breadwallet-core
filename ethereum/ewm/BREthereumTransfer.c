@@ -575,18 +575,20 @@ transferHasStatusOrTwo (BREthereumTransfer transfer,
 
 extern int
 transferExtractStatusIncluded (BREthereumTransfer transfer,
-                               BREthereumGas *gasUsed,
                                BREthereumHash *blockHash,
                                uint64_t *blockNumber,
-                               uint64_t *transactionIndex) {
+                               uint64_t *transactionIndex,
+                               uint64_t *blockTimestamp,
+                               BREthereumGas *gasUsed) {
     if (TRANSFER_STATUS_INCLUDED != transfer->status) return 0;
 
     BREthereumTransactionStatus status = transferGetStatusForBasis (transfer);
-    if (NULL != gasUsed) *gasUsed = status.u.included.gasUsed;
     if (NULL != blockHash) *blockHash = status.u.included.blockHash;
     if (NULL != blockNumber) *blockNumber = status.u.included.blockNumber;
     if (NULL != transactionIndex) *transactionIndex = status.u.included.transactionIndex;
-    
+    if (NULL != blockTimestamp) *blockTimestamp = status.u.included.blockTimestamp;
+    if (NULL != gasUsed) *gasUsed = status.u.included.gasUsed;
+
     return 1;
 }
 

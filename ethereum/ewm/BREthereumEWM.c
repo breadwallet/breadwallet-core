@@ -2046,7 +2046,7 @@ extern BREthereumGas
 ewmTransferGetGasUsed(BREthereumEWM ewm,
                            BREthereumTransfer transfer) {
     BREthereumGas gasUsed;
-    return (transferExtractStatusIncluded(transfer, &gasUsed, NULL, NULL, NULL)
+    return (transferExtractStatusIncluded(transfer, NULL, NULL, NULL, NULL, &gasUsed)
             ? gasUsed
             : gasCreate(0));
 }
@@ -2055,7 +2055,7 @@ extern uint64_t
 ewmTransferGetTransactionIndex(BREthereumEWM ewm,
                                     BREthereumTransfer transfer) {
     uint64_t transactionIndex;
-    return (transferExtractStatusIncluded(transfer, NULL, NULL, NULL, &transactionIndex)
+    return (transferExtractStatusIncluded(transfer, NULL, NULL, &transactionIndex, NULL, NULL)
             ? transactionIndex
             : 0);
 }
@@ -2064,7 +2064,7 @@ extern BREthereumHash
 ewmTransferGetBlockHash(BREthereumEWM ewm,
                              BREthereumTransfer transfer) {
     BREthereumHash blockHash;
-    return (transferExtractStatusIncluded(transfer, NULL, &blockHash, NULL, NULL)
+    return (transferExtractStatusIncluded(transfer, &blockHash, NULL, NULL, NULL, NULL)
             ? blockHash
             : hashCreateEmpty());
 }
@@ -2073,16 +2073,25 @@ extern uint64_t
 ewmTransferGetBlockNumber(BREthereumEWM ewm,
                                BREthereumTransfer transfer) {
     uint64_t blockNumber;
-    return (transferExtractStatusIncluded(transfer, NULL, NULL, &blockNumber, NULL)
+    return (transferExtractStatusIncluded(transfer, NULL, &blockNumber, NULL, NULL, NULL)
             ? blockNumber
             : 0);
+}
+
+extern uint64_t
+ewmTransferGetBlockTimestamp (BREthereumEWM ewm,
+                              BREthereumTransfer transfer) {
+    uint64_t blockTimestamp;
+    return (transferExtractStatusIncluded(transfer, NULL, NULL, NULL, &blockTimestamp, NULL)
+            ? blockTimestamp
+            : TRANSACTION_STATUS_BLOCK_TIMESTAMP_UNKNOWN);
 }
 
 extern uint64_t
 ewmTransferGetBlockConfirmations(BREthereumEWM ewm,
                                       BREthereumTransfer transfer) {
     uint64_t blockNumber = 0;
-    return (transferExtractStatusIncluded(transfer, NULL, NULL, &blockNumber, NULL)
+    return (transferExtractStatusIncluded(transfer, NULL, &blockNumber, NULL, NULL, NULL)
             ? (ewmGetBlockHeight(ewm) - blockNumber)
             : 0);
 }
