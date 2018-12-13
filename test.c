@@ -3006,7 +3006,9 @@ extern int BRRunTestsSync (const char *paperKey) {
 
     int err = 0;
     while (err == 0 &&  !contextSyncDone(&context)) {
-        err = sleep(1);
+        if (0.05 == BRPeerManagerSyncProgress (pm, 0))
+            usleep(1);
+        err = usleep(100000);
     }
 
     printf ("***\n***\nPaperKey (Done): \"%s\"\n***\n***\n", paperKey);
