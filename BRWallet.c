@@ -239,7 +239,7 @@ static void _BRWalletUpdateBalance(BRWallet *wallet)
 
                 if (pkh && BRSetContains(wallet->allPKH, pkh)) {
                     BRSetAdd(wallet->usedPKH, (void *)pkh);
-                    array_add(wallet->utxos, ((BRUTXO) { tx->txHash, (uint32_t)j }));
+                    array_add(wallet->utxos, ((const BRUTXO) { tx->txHash, (uint32_t)j }));
                     balance += tx->outputs[j].amount;
                 }
             }

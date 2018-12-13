@@ -24,8 +24,6 @@
  */
 package com.breadwallet.core;
 
-import java.util.Arrays;
-
 /**
  *
  */
@@ -39,7 +37,6 @@ public class BRCoreTransaction extends BRCoreJniReference {
      * call BRTransactionFree (<jni reference>)
      */
     protected boolean isRegistered = false;
-
 
     public BRCoreTransaction (byte[] buffer) throws FailedToParse {
         this (createJniCoreTransactionSerializedOrError (buffer));
@@ -73,13 +70,13 @@ public class BRCoreTransaction extends BRCoreJniReference {
     /**
      * The transaction's version
      *
-     * @return the version is a long (from a uint32_t)
+     * @return the version as a long (from a uint32_t)
      */
     public native long getVersion ();
 
     /**
      *
-     * @return
+     * @return an array of transaction inputs
      */
     public native BRCoreTransactionInput[] getInputs ();
 
@@ -95,7 +92,7 @@ public class BRCoreTransaction extends BRCoreJniReference {
 
     /**
      *
-     * @return
+     * @return an array of transaction outputs
      */
     public native BRCoreTransactionOutput[] getOutputs ();
 

@@ -173,7 +173,7 @@ JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreKey_address
  * Signature: ()Ljava/lang/String;
  */
 JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreKey_addressLegacy
-        (JNIEnv *, jobject);
+  (JNIEnv *, jobject);
 
 /*
  * Class:     com_breadwallet_core_BRCoreKey

@@ -78,7 +78,7 @@ typedef struct {
     size_t scriptLen;
 } BRTxOutput;
 
-#define BR_TX_OUTPUT_NONE ((BRTxOutput) { "", 0, NULL, 0 })
+#define BR_TX_OUTPUT_NONE ((const BRTxOutput) { "", 0, NULL, 0 })
 
 // when creating a BRTxOutput struct outside of a BRTransaction, set address or script to NULL when done to free memory
 void BRTxOutputSetAddress(BRTxOutput *output, const char *address);
