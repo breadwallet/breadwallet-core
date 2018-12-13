@@ -116,12 +116,13 @@ class CoreTests: XCTestCase {
     }
     
     func testBitcoinSyncMany () {
+        BRRandInit()
         let group = DispatchGroup.init()
         for i in 1...25 {
             DispatchQueue.init(label: "Sync \(i)")
                 .async {
                     group.enter()
-                    BRRunTestsSync (1);
+                    BRRunTestsSync (i == 1 ? CommandLine.arguments[i] : nil);
                     group.leave()
             }
         }
@@ -129,7 +130,8 @@ class CoreTests: XCTestCase {
     }
 
     func testBitcoinSyncOne() {
-        BRRunTestsSync (1);
+        BRRandInit()
+        BRRunTestsSync (CommandLine.argc >= 2 ? CommandLine.arguments[1] : nil);
     }
 
     func testBitcoinWalletManagerSync () {

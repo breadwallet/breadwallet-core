@@ -37,6 +37,7 @@
 #include "BRPeer.h"
 #include "BRPeerManager.h"
 #include "BRChainParams.h"
+#include "bcash/BRBCashParams.h"
 #include "BRPaymentProtocol.h"
 #include "BRInt.h"
 #include "BRArray.h"
@@ -51,6 +52,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <pthread.h>
 
 #define SKIP_BIP38 1
 
@@ -2902,14 +2904,39 @@ int BRRunTests()
 //
 // Rescan // Sync Test
 //
-static int syncDone = 0;
+typedef struct {
+    int syncDone;
+    BRPeerManager *pm;
+    pthread_mutex_t lock;
+} BRRunTestContext;
 
-static void testSyncStoppedX(void *info, int error) {
-    if (error) printf ("Sync: Error: %d\n", error);
-    syncDone = 1;
+static void contextSyncInit (BRRunTestContext *context,
+                             BRPeerManager *pm) {
+    context->syncDone = 0;
+    context->pm = pm;
+    pthread_mutex_init(&context->lock, NULL);
 }
 
-static void testSyncSaveBlocks (void *ignore1, int replace, BRMerkleBlock *blocks[], size_t blocksCount) {
+static int contextSyncDone (BRRunTestContext *context) {
+    int done;
+
+    pthread_mutex_lock (&context->lock);
+    done = context->syncDone;
+    pthread_mutex_unlock (&context->lock);
+
+    return done;
+}
+
+static void testSyncStoppedX(void *c, int error) {
+    BRRunTestContext *context = (BRRunTestContext*) c;
+    if (error) printf ("Sync: Error: %d\n", error);
+    pthread_mutex_lock (&context->lock);
+    context->syncDone = 1;
+    pthread_mutex_unlock (&context->lock);
+}
+
+static void testSyncSaveBlocks (void *c, int replace, BRMerkleBlock *blocks[], size_t blocksCount) {
+    BRRunTestContext *context = (BRRunTestContext*) c;
     printf ("Sync: saveBlock: %zu, Replace: %s\n", blocksCount, (replace ? "Yes" : "No"));
     uint32_t unixTime =  (uint32_t) time (NULL);
 
@@ -2935,13 +2962,13 @@ static void testSyncSaveBlocks (void *ignore1, int replace, BRMerkleBlock *block
     }
 }
 
-extern int BRRunTestsSync (int randomKey) {
-    const BRChainParams *params = &BRTestNetParams;
+extern int BRRunTestsSync (const char *paperKey) {
+    const BRChainParams *params = /* &BRTestNetParams; */ &BRBCashTestNetParams;
 
-    char *paperKey;
     uint32_t epoch;
+    int needPaperKey = NULL == paperKey;
 
-    if (randomKey) {
+    if (needPaperKey) {
         UInt128 entropy;
         arc4random_buf(entropy.u64, sizeof (entropy));
 
@@ -2952,8 +2979,10 @@ extern int BRRunTestsSync (int randomKey) {
         epoch = (uint32_t) (time (NULL) - (14 * 24 * 60 * 60));
     }
     else {
-        paperKey = strdup ("blush ...");
-        epoch = 1483228800;  // 1/1/2017 // BIP39_CREATION_TIME
+//        epoch = 1483228800;  // 1/1/2017 // BIP39_CREATION_TIME
+//        epoch = 1527811200;  // 06/01/2018
+//        epoch = 1541030400;  // 11/01/2018
+        epoch = 1543190400;  // 11/26/2018
     }
 
 //    epoch = 0;
@@ -2967,24 +2996,24 @@ extern int BRRunTestsSync (int randomKey) {
     // BRWalletSetCallbacks
 
     BRPeerManager *pm = BRPeerManagerNew (params, wallet, epoch, NULL, 0, NULL, 0);
-    BRPeerManagerSetCallbacks(pm, NULL, NULL, testSyncStoppedX, NULL, testSyncSaveBlocks, NULL, NULL, NULL);
 
-    syncDone = 0;
+    BRRunTestContext context;
+    contextSyncInit (&context, pm);
+
+    BRPeerManagerSetCallbacks (pm, &context, NULL, testSyncStoppedX, NULL, testSyncSaveBlocks, NULL, NULL, NULL);
+
     BRPeerManagerConnect (pm);
 
     int err = 0;
-    while (err == 0 &&  !syncDone) {
+    while (err == 0 &&  !contextSyncDone(&context)) {
         err = sleep(1);
     }
 
     printf ("***\n***\nPaperKey (Done): \"%s\"\n***\n***\n", paperKey);
     BRPeerManagerDisconnect(pm);
-    sleep (2);
     BRPeerManagerFree(pm);
-    sleep (2);
     BRWalletFree(wallet);
-    sleep (2);
-    free (paperKey);
+    if (needPaperKey) free ((char *) paperKey);
     return 1;
 }
 
@@ -3007,6 +3036,8 @@ _testWalletEventCallback (BRWalletManager manager,
     printf ("TST: WalletEvent: %d\n", event.type);
 }
 
+static int syncDone = 0;
+
 static void
 _testWalletManagerEventCallback (BRWalletManager manager,
                                  BRWalletManagerEvent event) {
@@ -3019,6 +3050,8 @@ _testWalletManagerEventCallback (BRWalletManager manager,
              break;
         case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
             syncDone = 1;
+            break;
+        default:
             break;
     }
 }
