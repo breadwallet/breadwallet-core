@@ -79,11 +79,6 @@ extern "C" {
  */
 typedef struct BREthereumBCSSyncStruct *BREthereumBCSSync;
 
-/**
- *
- */
-typedef struct BREthereumBCSProofOfWorkStruct *BREthereumBCSProofOfWork;
-
 ///
 /// MARK: - typedef BCS
 ///
@@ -223,7 +218,7 @@ struct BREthereumBCSStruct {
     /**
      * Proof of Work
      */
-    BREthereumBCSProofOfWork pow;
+    BREthereumProofOfWork pow;
 };
 
 extern const BREventType *bcsEventTypes[];
@@ -394,18 +389,6 @@ bcsSyncSignalProvision (BREthereumBCSSyncRange range,
                         BREthereumLES les,
                         BREthereumNodeReference node,
                         BREthereumProvisionResult result);
-
-extern BREthereumBCSProofOfWork
-bcsProofOfWorkCreate (void);
-
-extern void
-bcsProofOfWorkRelease (BREthereumBCSProofOfWork pow);
-
-extern void
-bcsProofOfWorkUpdate (BREthereumBCSProofOfWork pow,
-                      BREthereumBlockHeader header,
-                      UInt256 *n,
-                      BREthereumHash *m);
 
 #ifdef __cplusplus
 }

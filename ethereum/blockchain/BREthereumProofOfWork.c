@@ -1,5 +1,5 @@
 //
-//  BREthereumBCSProofOfWork.c
+//  BREthereumProofOfWork.c
 //  Core
 //
 //  Created by Ed Gamble on 12/14/18.
@@ -42,13 +42,13 @@
 #define POW_CACHE_ROUNDS          (3)
 #define POW_ACCESSES              (64)
 
-struct BREthereumBCSProofOfWorkStruct {
+struct BREthereumProofOfWorkStruct {
     int foo;
 };
 
-extern BREthereumBCSProofOfWork
-bcsProofOfWorkCreate (void) {
-    BREthereumBCSProofOfWork pow = calloc (1, sizeof (struct BREthereumBCSProofOfWorkStruct));
+extern BREthereumProofOfWork
+proofOfWorkCreate (void) {
+    BREthereumProofOfWork pow = calloc (1, sizeof (struct BREthereumProofOfWorkStruct));
 
     pow->foo = 0;
 
@@ -56,7 +56,7 @@ bcsProofOfWorkCreate (void) {
 }
 
 extern void
-bcsProofOfWorkRelease (BREthereumBCSProofOfWork pow) {
+proofOfWorkRelease (BREthereumProofOfWork pow) {
     free (pow);
 }
 
@@ -156,14 +156,23 @@ powDatasetItem (BREthereumData c,
 // On and On and On....
 
 extern void
-bcsProofOfWorkUpdate (BREthereumBCSProofOfWork pow,
-                      BREthereumBlockHeader header,
-                      UInt256 *n,
-                      BREthereumHash *m) {
+proofOfWorkGenerate(BREthereumProofOfWork pow,
+                       BREthereumBlockHeader header) {
+    //
+}
+
+extern void
+proofOfWorkCompute (BREthereumProofOfWork pow,
+                       BREthereumBlockHeader header,
+                       UInt256 *n,
+                       BREthereumHash *m) {
     assert (NULL != n && NULL != m);
 
     // On and on and on
 
+    // TODO: Actually compute something.
+
+    // For now, return values that allow subsequent use to succeed
     *n = UINT256_ZERO;
-    *m = EMPTY_HASH_INIT;
+    *m = blockHeaderGetMixHash (header);
 }
