@@ -214,6 +214,11 @@ struct BREthereumBCSStruct {
      * Sync state
      */
     BREthereumBCSSync sync;
+
+    /**
+     * Proof of Work
+     */
+    BREthereumProofOfWork pow;
 };
 
 extern const BREventType *bcsEventTypes[];
@@ -384,7 +389,6 @@ bcsSyncSignalProvision (BREthereumBCSSyncRange range,
                         BREthereumLES les,
                         BREthereumNodeReference node,
                         BREthereumProvisionResult result);
-
 
 #ifdef __cplusplus
 }
