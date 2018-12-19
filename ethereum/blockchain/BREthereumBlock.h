@@ -39,6 +39,7 @@ extern "C" {
 
 typedef struct BREthereumBlockHeaderRecord *BREthereumBlockHeader;
 typedef struct BREthereumBlockRecord *BREthereumBlock;
+typedef struct BREthereumProofOfWorkStruct *BREthereumProofOfWork;
 
 /// MARK: - Block Header
 
@@ -48,7 +49,6 @@ typedef struct BREthereumBlockRecord *BREthereumBlock;
 extern void
 blockHeaderRelease (BREthereumBlockHeader header);
 
-
 /**
  * Check if the block header is internally consistent
  *
@@ -56,30 +56,30 @@ blockHeaderRelease (BREthereumBlockHeader header);
  * @return ETHEREUM_BOOLEAN_TRUE if valid
  */
 extern BREthereumBoolean
-blockHeaderIsValid (BREthereumBlockHeader header);
-
-extern BREthereumBoolean
-blockHeaderIsValidFull (BREthereumBlockHeader header,
-                        BREthereumBlockHeader parent,
-                        size_t parentOmmersCount,
-                        BREthereumBlockHeader genesis,
-                        void *d);
+blockHeaderIsInternallyValid (BREthereumBlockHeader header);
 
 /**
- * Check if the block header is consistent with the parent.  If `parent` is NULL, then
- * `header` is consisder consistent
+ * Check if the block header is valid.  If `parent` is NULL, then `header` is consisder
+ * consistent (we'll check again at some point once we have the parent).  If `pow` is provided
+ * then ProofOfWork is computed and used in validity.
+ *
+ * @note Section 4.3.3 'Block Header Validity in https://ethereum.github.io/yellowpaper/paper.pdf
  *
  * @param header
  * @param parent
  * @param parentOmmersCount
  * @parem genesis
+ * @param pow
+ *
  * @return ETHEREUM_BOOLEAN_TRUE if consistent
  */
 extern BREthereumBoolean
-blockHeaderIsConsistent (BREthereumBlockHeader header,
-                         BREthereumBlockHeader parent,
-                         size_t parentOmmersCount,
-                         BREthereumBlockHeader genesis);
+blockHeaderIsValid (BREthereumBlockHeader header,
+                    BREthereumBlockHeader parent,
+                    size_t parentOmmersCount,
+                    BREthereumBlockHeader genesis,
+                    BREthereumProofOfWork pow);
+
 extern BREthereumBlockHeader
 blockHeaderRlpDecode (BRRlpItem item,
                       BREthereumRlpType type,
@@ -108,6 +108,9 @@ blockHeaderGetTimestamp (BREthereumBlockHeader header);
 
 extern BREthereumHash
 blockHeaderGetParentHash (BREthereumBlockHeader header);
+
+extern BREthereumHash
+blockHeaderGetMixHash (BREthereumBlockHeader header);
 
 extern BREthereumBoolean
 blockHeaderIsCHTRoot (BREthereumBlockHeader header);
@@ -199,10 +202,6 @@ blockUpdateBody (BREthereumBlock block,
 extern void
 blockRelease (BREthereumBlock block);
 
-extern BREthereumBoolean
-blockIsValid (BREthereumBlock block,
-              BREthereumBoolean skipHeaderValidation);
-
 extern BREthereumBlockHeader
 blockGetHeader (BREthereumBlock block);
 
@@ -242,7 +241,7 @@ blockGetDifficulty (BREthereumBlock block);
  * if we can rely on checkpoints (blocks with a pre-computed totalDifficulty) then we only
  * need to sum back to the checkpoint - but still need all the blocks to the checkpoint.
  *
- * Currently, we don't have enough blocks to compute the total difficulty.
+ * Additionally, both Parity and Geth support a 'header proof' which provides the total difficulty.
  */
 extern UInt256
 blockGetTotalDifficulty (BREthereumBlock block);
@@ -267,6 +266,18 @@ blockHasTotalDifficulty (BREthereumBlock block);
  */
 extern UInt256
 blockRecursivelyPropagateTotalDifficulty (BREthereumBlock block);
+
+/**
+ * A block is valid if and only if it has a total difficulty.
+ *
+ * @param block the block
+ *
+ * @return true if valid; false otherwise.
+ */
+static inline BREthereumBoolean
+blockIsValid (BREthereumBlock block) {
+    return blockHasTotalDifficulty (block);
+}
 
 extern void
 blockLinkLogsWithTransactions (BREthereumBlock block);
@@ -556,6 +567,26 @@ blockCheckpointCreatePartialBlockHeader (const BREthereumBlockCheckpoint *checkp
 //
 private_extern void
 blockFree (BREthereumBlock block);
+
+///
+/// MARK: - Proof of Work
+///
+extern BREthereumProofOfWork
+proofOfWorkCreate (void);
+
+extern void
+proofOfWorkRelease (BREthereumProofOfWork pow);
+
+extern void
+proofOfWorkGenerate (BREthereumProofOfWork pow,
+                     BREthereumBlockHeader header);
+
+extern void
+proofOfWorkCompute (BREthereumProofOfWork pow,
+                    BREthereumBlockHeader header,
+                    UInt256 *n,
+                    BREthereumHash *m);
+
 
 #ifdef __cplusplus
 }
