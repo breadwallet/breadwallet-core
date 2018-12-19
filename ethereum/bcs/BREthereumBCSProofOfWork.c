@@ -1,0 +1,169 @@
+//
+//  BREthereumBCSProofOfWork.c
+//  Core
+//
+//  Created by Ed Gamble on 12/14/18.
+//  Copyright © 2018 breadwallet. All rights reserved.//  Copyright (c) 2018 breadwallet LLC
+//
+//  Permission is hereby granted, free of charge, to any person obtaining a copy
+//  of this software and associated documentation files (the "Software"), to deal
+//  in the Software without restriction, including without limitation the rights
+//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+//  copies of the Software, and to permit persons to whom the Software is
+//  furnished to do so, subject to the following conditions:
+//
+//  The above copyright notice and this permission notice shall be included in
+//  all copies or substantial portions of the Software.
+//
+//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+//  THE SOFTWARE.
+
+#include <stdlib.h>
+#include <stdarg.h>
+#include "BRArray.h"
+#include "BRSet.h"
+#include "BREthereumBCSPrivate.h"
+#include "../rlp/BRRlp.h"
+
+#define POW_WORD_BYTES            (4)
+#define POW_DATA_SET_INIT         (1 << 30)
+#define POW_DATA_SET_GROWTH       (1 << 23)
+#define POW_CACHE_INIT            (1 << 24)
+#define POW_CACHE_GROWTH          (1 << 17)
+#define POW_EPOCH                 (30000)
+#define POW_MIX_BYTES             (128)
+#define POW_HASH_BYTES            (64)
+#define POW_PARENTS               (256)
+#define POW_CACHE_ROUNDS          (3)
+#define POW_ACCESSES              (64)
+
+struct BREthereumBCSProofOfWorkStruct {
+    int foo;
+};
+
+extern BREthereumBCSProofOfWork
+bcsProofOfWorkCreate (void) {
+    BREthereumBCSProofOfWork pow = calloc (1, sizeof (struct BREthereumBCSProofOfWorkStruct));
+
+    pow->foo = 0;
+
+    return pow;
+}
+
+extern void
+bcsProofOfWorkRelease (BREthereumBCSProofOfWork pow) {
+    free (pow);
+}
+
+static uint64_t
+powEpoch (BREthereumBlockHeader header) {
+    return blockHeaderGetNonce(header) / POW_EPOCH;
+}
+
+static uint64_t
+powPrime (uint64_t x, uint64_t y) {
+    return (0 == x % y
+            ? x
+            : powPrime (x - 2 * y, y));
+}
+
+static uint64_t
+powDatasetSize (BREthereumBlockHeader header) {
+    return powPrime (POW_DATA_SET_INIT + POW_DATA_SET_GROWTH * powEpoch(header) - POW_MIX_BYTES,
+                     POW_MIX_BYTES);
+}
+
+static uint64_t
+powCacheSize (BREthereumBlockHeader header) {
+    return powPrime (POW_CACHE_INIT + POW_CACHE_GROWTH * powEpoch(header) - POW_HASH_BYTES,
+                     POW_HASH_BYTES);
+}
+
+static BREthereumHash
+powSeedHashInternal (uint64_t number) {
+    BREthereumHash bytes;
+
+    if (0 == number)
+        memset (bytes.bytes, 0, 32);
+    else
+        bytes = powSeedHashInternal(number - POW_EPOCH);
+
+    return hashCreateFromData ((BRRlpData) { 32, bytes.bytes });
+}
+
+static BREthereumHash
+powSeedHash (BREthereumBlockHeader header) {
+    return powSeedHashInternal(blockHeaderGetNumber(header));
+}
+
+static BREthereumData
+powLittleRMH (BREthereumData x, uint64_t i, uint64_t n) {
+    return x;
+}
+static BREthereumData
+powBigRMH (BREthereumData x, uint64_t n) {
+    for (uint64_t i = 0; i < n; i++)
+        powLittleRMH(x, i, n);
+    return x;
+}
+
+static BREthereumData
+powCacheRounds (BREthereumData x, uint64_t y, uint64_t n) {
+    return (0 == y
+            ? x
+            : (1 == y
+               ? powBigRMH (x, n)
+               : powCacheRounds (powBigRMH (x, n), y - 1, n)));
+}
+
+static void
+powBigFNV (BREthereumData x,
+           BREthereumData y) {
+
+}
+
+static BREthereumData
+powMix (BREthereumData m,
+        BREthereumData c,
+        uint64_t i,
+        uint64_t p) {
+    return (0 == p
+            ? m
+            : m);
+}
+
+static BREthereumData
+powParents (BREthereumData c,
+            uint64_t i,
+            uint64_t p,
+            BREthereumData m) {
+    return (p < POW_PARENTS - 1
+            ? powParents(c, i, p + 1, powMix (m, c, i, p + 1))
+            : powMix (m, c, i, p + 1));
+}
+
+
+static BREthereumData
+powDatasetItem (BREthereumData c,
+                uint64_t i) {
+    return powParents(c, i, -i, (BREthereumData) { 0, NULL });
+}
+// On and On and On....
+
+extern void
+bcsProofOfWorkUpdate (BREthereumBCSProofOfWork pow,
+                      BREthereumBlockHeader header,
+                      UInt256 *n,
+                      BREthereumHash *m) {
+    assert (NULL != n && NULL != m);
+
+    // On and on and on
+
+    *n = UINT256_ZERO;
+    *m = EMPTY_HASH_INIT;
+}

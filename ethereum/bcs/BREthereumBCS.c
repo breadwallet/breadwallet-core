@@ -293,6 +293,8 @@ bcsCreate (BREthereumNetwork network,
                                bcs->les,
                                bcs->handler);
 
+    bcs->pow = bcsProofOfWorkCreate();
+
     return bcs;
 }
 
@@ -321,6 +323,7 @@ bcsDestroy (BREthereumBCS bcs) {
 
     lesRelease (bcs->les);
     bcsSyncRelease(bcs->sync);
+    bcsProofOfWorkRelease(bcs->pow);
 
     // TODO: We'll need to announce things to our `listener`
 
