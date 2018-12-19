@@ -2331,7 +2331,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.BRCore;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
-				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/Core/";
+				SWIFT_INCLUDE_PATHS = "$(PROJECT_DIR)/Core";
 				SWIFT_VERSION = 4.2;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -2358,7 +2358,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.BRCore;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
-				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/Core/";
+				SWIFT_INCLUDE_PATHS = "$(PROJECT_DIR)/Core";
 				SWIFT_VERSION = 4.2;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
