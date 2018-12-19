@@ -26,8 +26,8 @@
 #ifndef BR_Ethereum_Data_H
 #define BR_Ethereum_Data_H
 
-#include "BRArray.h"
-#include "BRSet.h"
+#include "../../BRArray.h"
+#include "../../BRSet.h"
 
 #if !defined (BRArrayOf)
 #define BRArrayOf(type)    type*
@@ -142,7 +142,7 @@ hashDataPairHashEqual (const void *t1,
 ///
 
 extern BRSetOf (BREthereumHashDataPair)
-hashDataPairSetCreateEmpty (size_t capacity);
+hashDataPairSetCreateEmpty (size_t count);
 
 /**
  * Create a BRSet of BREthereumHashDataPair.
@@ -158,6 +158,11 @@ hashDataPairSetCreate (BRArrayOf(BREthereumHashDataPair) pairs);;
 
 extern void
 hashDataPairSetRelease (BRSetOf (BREthereumHashDataPair) set);
+
+extern void
+hashDataPairAdd (BRSetOf(BREthereumHashDataPair) set,
+                 const char *hash,
+                 const char *data);
 
 #ifdef __cplusplus
 }

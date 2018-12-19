@@ -465,14 +465,93 @@ messageLESSendTxEncode (BREthereumLESMessageSendTx message, BREthereumMessageCod
                                             RLP_TYPE_TRANSACTION_SIGNED,
                                             coder.rlp);
 
-    return rlpEncodeList2 (coder.rlp,
-                           rlpEncodeUInt64 (coder.rlp, message.reqId, 1),
-                           rlpEncodeListItems (coder.rlp, items, itemsCount));
+    // SEND_TX is like no other 'request' - there is no `requestId`,
+    return rlpEncodeListItems (coder.rlp, items, itemsCount);
 }
 
 /// MARK: LES GetHeaderProofs
 
+static BRRlpItem
+headerProofNumbersEncodeList (BRArrayOf(uint64_t) chtNumbers,
+                              BRArrayOf(uint64_t) blkNumbers,
+                              BREthereumMessageCoder coder) {
+    size_t itemsCount = array_count(blkNumbers);
+    BRRlpItem items[itemsCount];
+
+    for (size_t index = 0; index < itemsCount; index++) {
+        items[index] = rlpEncodeList (coder.rlp, 3,
+                                      rlpEncodeUInt64 (coder.rlp, chtNumbers[index], 1),
+                                      rlpEncodeUInt64 (coder.rlp, blkNumbers[index], 1),
+                                      rlpEncodeUInt64 (coder.rlp, 0, 1));  // level
+    }
+
+    return rlpEncodeListItems (coder.rlp, items, itemsCount);
+}
+
+static BRRlpItem
+messageLESGetHeaderProofsEncode (BREthereumLESMessageGetHeaderProofs message, BREthereumMessageCoder coder) {
+    // [[chtNumber: P, blockNumber: P, fromLevel: P] ...]
+    return rlpEncodeList2 (coder.rlp,
+                           rlpEncodeUInt64 (coder.rlp, message.reqId, 1),
+                           headerProofNumbersEncodeList (message.chtNumbers, message.blkNumbers, coder));
+}
+
 /// MARK: LES HeaderProofs
+
+static void
+headerProofsDecode (BRRlpItem item,
+                    BREthereumMessageCoder coder,
+                    BRArrayOf(BREthereumBlockHeader) *headers,
+                    BRArrayOf(BREthereumMPTNodePath) *paths) {
+    size_t itemsCount = 0;
+    const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
+
+    array_new (*headers, itemsCount);
+    array_new (*paths,   itemsCount);
+
+    for (size_t index = 0; index < itemsCount; index++) {
+        size_t headerItemsCount = 0;
+        const BRRlpItem *headerItems = rlpDecodeList (coder.rlp, items[index], &headerItemsCount);
+        assert (2 == headerItemsCount);
+
+        BREthereumBlockHeader header = blockHeaderRlpDecode (headerItems[0], RLP_TYPE_NETWORK, coder.rlp);
+        BREthereumMPTNodePath path   = mptNodePathDecode (headerItems[1], coder.rlp);
+
+        array_add (*headers, header);
+        array_add (*paths,   path);
+    }
+}
+
+static BREthereumLESMessageHeaderProofs
+messageLESHeaderProofsDecode (BRRlpItem item,
+                              BREthereumMessageCoder coder) {
+    size_t itemsCount = 0;
+    const BRRlpItem *items = rlpDecodeList(coder.rlp, item, &itemsCount);
+    assert (3 == itemsCount);
+
+    uint64_t reqId = rlpDecodeUInt64 (coder.rlp, items[0], 1);
+    uint64_t bv    = rlpDecodeUInt64 (coder.rlp, items[1], 1);
+
+    BRArrayOf(BREthereumBlockHeader) headers;
+    BRArrayOf(BREthereumMPTNodePath) paths;
+
+    headerProofsDecode (items[2], coder, &headers, &paths);
+
+    return (BREthereumLESMessageHeaderProofs) {
+        reqId,
+        bv,
+        headers,
+        paths
+    };
+}
+
+extern void
+messageLESHeaderProofsConsume (BREthereumLESMessageHeaderProofs *message,
+                               BRArrayOf(BREthereumBlockHeader) *headers,
+                               BRArrayOf(BREthereumMPTNodePath) *paths) {
+    if (NULL != headers) { *headers = message->headers; message->headers = NULL; };
+    if (NULL != paths)   { *paths   = message->paths;   message->paths   = NULL; }
+}
 
 /// MARK: LES GetProofsV2
 
@@ -543,6 +622,18 @@ messageLESTxStatusConsume (BREthereumLESMessageTxStatus *message,
     if (NULL != stati) { *stati = message->stati; message->stati = NULL; }
 }
 
+const char *lesTransactionErrorPreface[] = {
+    "invalid sender",
+    "nonce too low",
+    "insufficient funds for gas * price + value",
+    "transaction underpriced",
+    "intrinsic gas too low",
+    "replacement transaction underpriced",
+    "____", // dropped
+    "unknown"
+};
+
+
 static BREthereumLESMessageTxStatus
 messageLESTxStatusDecode (BRRlpItem item,
                           BREthereumMessageCoder coder) {
@@ -556,7 +647,7 @@ messageLESTxStatusDecode (BRRlpItem item,
     return (BREthereumLESMessageTxStatus) {
         reqId,
         bv,
-        transactionStatusDecodeList (items[2], coder.rlp)
+        transactionStatusDecodeList (items[2], lesTransactionErrorPreface, coder.rlp)
     };
 }
 
@@ -593,6 +684,11 @@ messageLESDecode (BRRlpItem item,
             return (BREthereumLESMessage) {
                 LES_MESSAGE_RECEIPTS,
                 { .receipts = messageLESReceiptsDecode (item, coder)} };
+
+        case LES_MESSAGE_HEADER_PROOFS:
+            return (BREthereumLESMessage) {
+                LES_MESSAGE_HEADER_PROOFS,
+                { .headerProofs = messageLESHeaderProofsDecode (item, coder)} };
 
         case LES_MESSAGE_PROOFS:
             return (BREthereumLESMessage) {
@@ -642,7 +738,18 @@ messageLESEncode (BREthereumLESMessage message,
             break;
 
         case LES_MESSAGE_SEND_TX:
+            // SEND_TX is like no other 'request' - there is no `requestId`, there is no response,
+            // the message is encoded as follows:
+            //      SendTx [+0x0c, txdata_1, txdata_2, ...]
+            // as a straight list prepended with the message id.  However, in fact, the
+            // accepted encoding is:
+            //      SendTx [+0x0c, [txdata_1, txdata_2, ...]]
+            // See: https://github.com/ethereum/go-ethereum/issues/18006
             body = messageLESSendTxEncode (message.u.sendTx, coder);
+            break;
+
+        case LES_MESSAGE_GET_HEADER_PROOFS:
+            body = messageLESGetHeaderProofsEncode (message.u.getHeaderProofs, coder);
             break;
 
         case LES_MESSAGE_GET_PROOFS_V2:
@@ -728,7 +835,17 @@ messageLESRelease (BREthereumLESMessage *message) {
             break;
 
         case LES_MESSAGE_GET_HEADER_PROOFS:
+            if (NULL != message->u.getHeaderProofs.chtNumbers)
+                array_free(message->u.getHeaderProofs.chtNumbers);
+            if (NULL != message->u.getHeaderProofs.blkNumbers)
+                array_free(message->u.getHeaderProofs.blkNumbers);
+            break;
+
         case LES_MESSAGE_HEADER_PROOFS:
+            if (NULL != message->u.headerProofs.paths)
+                mptNodePathsRelease(message->u.headerProofs.paths);
+            if (NULL != message->u.headerProofs.headers)
+                blockHeadersRelease(message->u.headerProofs.headers);
             break;
 
         case LES_MESSAGE_GET_PROOFS_V2:
@@ -830,4 +947,12 @@ messageLESGetRequestId (const BREthereumLESMessage *message) {
         case LES_MESSAGE_GET_TX_STATUS: return message->u.getTxStatus.reqId;
         case LES_MESSAGE_TX_STATUS: return message->u.txStatus.reqId;
     }
+}
+
+#define LES_MESSAGE_CHT_PERIOD     (4096)
+
+extern uint64_t
+messageLESGetChtNumber (uint64_t blkNumber) {
+    assert (0 != blkNumber);
+    return 1 + blkNumber / LES_MESSAGE_CHT_PERIOD;
 }

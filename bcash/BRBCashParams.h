@@ -25,9 +25,9 @@
 #ifndef BRBCashParams_h
 #define BRBCashParams_h
 
-#include "BRChainParams.h"
-#include "BRPeer.h"
-#include "BRInt.h"
+#include "../BRChainParams.h"
+#include "../BRPeer.h"
+#include "../BRInt.h"
 
 static const char *BRBCashDNSSeeds[] = {
     "seed-abc.breadwallet.com.", "seed.bitcoinabc.org.", "seed-abc.bitcoinforks.org.", "seed.bitcoinunlimited.info.",
@@ -83,7 +83,9 @@ static const BRCheckPoint BRBCashCheckpoints[] = {
     { 463680, uint256("000000000000000000431a2f4619afe62357cd16589b638bb638f2992058d88e"), 1493259601, 0x18021b3e },
     { 483840, uint256("00000000000000000098963251fcfc19d0fa2ef05cf22936a182609f8d650346"), 1503802540, 0x1803c5d5 },
     { 504000, uint256("0000000000000000006cdeece5716c9c700f34ad98cb0ed0ad2c5767bbe0bc8c"), 1510516839, 0x18021abd },
-    { 524160, uint256("0000000000000000003f40db0a3ed4b4d82b105e212166b2db498d5688bac60f"), 1522711454, 0x18033b64 }
+    { 524160, uint256("0000000000000000003f40db0a3ed4b4d82b105e212166b2db498d5688bac60f"), 1522711454, 0x18033b64 },
+    { 544320, uint256("000000000000000001619f65f7d5ef7a06ee50d2b459cdf727d74b2a7a762268"), 1534794998, 0x18022f7e }
+    //{ 564480, 
 };
 
 static const BRMerkleBlock *_medianBlock(const BRMerkleBlock *b, const BRSet *blockSet)

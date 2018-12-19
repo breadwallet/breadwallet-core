@@ -26,8 +26,8 @@
 #ifndef BR_Ethereum_Wallet_H
 #define BR_Ethereum_Wallet_H
 
-#include "../base/BREthereumBase.h"
 #include "../blockchain/BREthereumBlockChain.h"
+#include "BREthereumBase.h"
 #include "BREthereumAccount.h"
 #include "BREthereumTransfer.h"
 
@@ -46,7 +46,7 @@ extern "C" {
  * SetLocalCurrencyPerHolding
  * GetHoldingValueInLocalCurrency
  */
-typedef struct BREthereumWalletRecord *BREthereumWallet;
+//typedef struct BREthereumWalletRecord *BREthereumWallet;
 
 /**
  * Create a wallet holding ETH; will use the account's primary address.
@@ -107,33 +107,19 @@ walletCreateTransfer(BREthereumWallet wallet,
                         BREthereumAddress recvAddress,
                         BREthereumAmount amount);
 
-/**
- *
- * You will have all sorts of problems with `nonce`...
- 
- *   1) It needs to be derived from and consistent with the wallet's address nonce.
- *         walletSignTransfer() - the first point where the nonce is used - will fatal.
- *   2) If you create a transfer, thereby using/incrementing a nonce, but then don't submit
- *         the transfer, then *all* subsequent transfer will be pended *forever*.
- *
- * @warn If you create it, you must submit it.
- *
- * @param wallet
- * @param recvAddress
- * @param amount
- * @param gasPrice
- * @param gasLimit
- * @param nonce
- * @return
- */
 extern BREthereumTransfer
-walletCreateTransferDetailed(BREthereumWallet wallet,
-                                BREthereumAddress recvAddress,
-                                BREthereumEther amount,
-                                BREthereumGasPrice gasPrice,
-                                BREthereumGas gasLimit,
-                                const char *data,
-                                uint64_t nonce);
+walletCreateTransferWithFeeBasis (BREthereumWallet wallet,
+                                  BREthereumAddress recvAddress,
+                                  BREthereumAmount amount,
+                                  BREthereumFeeBasis feeBasis);
+
+extern BREthereumTransfer
+walletCreateTransferGeneric(BREthereumWallet wallet,
+                            BREthereumAddress recvAddress,
+                            BREthereumEther amount,
+                            BREthereumGasPrice gasPrice,
+                            BREthereumGas gasLimit,
+                            const char *data);
 
 extern void
 walletSignTransfer(BREthereumWallet wallet,
@@ -242,7 +228,7 @@ transferPredicateAny (void *ignore,
                          unsigned int index);
 
 extern int
-transferPredicateStatus (BREthereumTransferStatusType type,
+transferPredicateStatus (BREthereumTransferStatus status,
                             BREthereumTransfer transfer,
                             unsigned int index);
 
@@ -256,6 +242,10 @@ extern BREthereumTransfer
 walletGetTransferByHash (BREthereumWallet wallet,
                             BREthereumHash hash);
 
+extern BREthereumTransfer
+walletGetTransferByOriginatingHash (BREthereumWallet wallet,
+                                    BREthereumHash hash);
+    
 extern BREthereumTransfer
 walletGetTransferByNonce(BREthereumWallet wallet,
                             BREthereumAddress sourceAddress,

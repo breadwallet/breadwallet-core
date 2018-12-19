@@ -244,12 +244,16 @@ extern BREthereumBoolean
 nodeUpdatedLocalStatus (BREthereumNode node,
                         BREthereumNodeEndpointRoute route);
 
+extern BREthereumNodeType
+nodeGetType (BREthereumNode node);
+
 extern BREthereumNodePriority
 nodeGetPriority (BREthereumNode node);
 
 extern BREthereumNodeState
 nodeConnect (BREthereumNode node,
-             BREthereumNodeEndpointRoute route);
+             BREthereumNodeEndpointRoute route,
+             time_t now);
 
 extern BREthereumNodeState
 nodeDisconnect (BREthereumNode node,
@@ -269,6 +273,10 @@ nodeProcess (BREthereumNode node,
              time_t now,
              fd_set *recv,   // read
              fd_set *send);  // write
+
+extern BREthereumBoolean
+nodeCanHandleProvision (BREthereumNode node,
+                        BREthereumProvision provision);
 
 extern void
 nodeHandleProvision (BREthereumNode node,

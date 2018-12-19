@@ -15,6 +15,12 @@ libcore.jnilib
 
 # Android Studio
 local.properties
+Java.iml
+Core.iml
+CoreDemo.iml
+.idea/misc.xml
+.idea/vcs.xml
+
 # Created by https://www.gitignore.io/api/jetbrains
 
 ### JetBrains ###

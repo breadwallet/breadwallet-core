@@ -58,6 +58,12 @@ blockHeaderRelease (BREthereumBlockHeader header);
 extern BREthereumBoolean
 blockHeaderIsValid (BREthereumBlockHeader header);
 
+extern BREthereumBoolean
+blockHeaderIsValidFull (BREthereumBlockHeader header,
+                        BREthereumBlockHeader parent,
+                        size_t parentOmmersCount,
+                        BREthereumBlockHeader genesis,
+                        void *d);
 
 /**
  * Check if the block header is consistent with the parent.  If `parent` is NULL, then
@@ -102,6 +108,9 @@ blockHeaderGetTimestamp (BREthereumBlockHeader header);
 
 extern BREthereumHash
 blockHeaderGetParentHash (BREthereumBlockHeader header);
+
+extern BREthereumBoolean
+blockHeaderIsCHTRoot (BREthereumBlockHeader header);
 
 // ...
 
@@ -171,7 +180,8 @@ chtRootNumberGetFromNumber (uint64_t number);
 extern BREthereumBlock
 blockCreateMinimal(BREthereumHash hash,
                    uint64_t number,
-                   uint64_t timestamp);
+                   uint64_t timestamp,
+                   UInt256 difficulty);
 
 extern BREthereumBlock
 blockCreateFull (BREthereumBlockHeader header,
@@ -235,7 +245,28 @@ blockGetDifficulty (BREthereumBlock block);
  * Currently, we don't have enough blocks to compute the total difficulty.
  */
 extern UInt256
-blockGetTotalDifficulty (BREthereumBlock block, int *valid);
+blockGetTotalDifficulty (BREthereumBlock block);
+
+extern  void
+blockSetTotalDifficulty (BREthereumBlock block,
+                         UInt256 totalDifficulty);
+
+extern void
+blockClrTotalDifficulty (BREthereumBlock block);
+
+extern BREthereumBoolean
+blockHasTotalDifficulty (BREthereumBlock block);
+
+/**
+ * Update the totalDifficulty for `block` by recusively updating the totalDifficutly for
+ * block->next until block->next is NULL or block->next already has a totalDifficulty.
+ *
+ * Note: this is not a tail recursive algorithm and may overflow stack memory.  In practice we
+ * never have block chains more than several thousand (and would never be updating the entire
+ * chain all at once anyways) and thus *will* be okay.
+ */
+extern UInt256
+blockRecursivelyPropagateTotalDifficulty (BREthereumBlock block);
 
 extern void
 blockLinkLogsWithTransactions (BREthereumBlock block);
@@ -304,7 +335,18 @@ blockBodyPairRelease (BREthereumBlockBodyPair *pair);
 extern void
 blockBodyPairsRelease (BRArrayOf(BREthereumBlockBodyPair) pairs);
 
+///
+/// MARK: - Block Header Proof
+///
+
+typedef struct {
+    BREthereumHash hash;
+    UInt256 totalDifficulty;
+} BREthereumBlockHeaderProof;
+
+///
 /// MARK: - Block Status
+///
 
 typedef enum {
     BLOCK_REQUEST_NOT_NEEDED,
@@ -325,6 +367,9 @@ typedef struct {
 
     BREthereumBlockRequestState accountStateRequest;
     BREthereumAccountState accountState;
+
+    BREthereumBlockRequestState headerProofRequest;
+    BREthereumBlockHeaderProof headerProof;
 
     BREthereumBoolean error;
 } BREthereumBlockStatus;
@@ -363,7 +408,7 @@ blockReportStatusTransactionsRequest (BREthereumBlock block,
  */
 extern void
 blockReportStatusTransactions (BREthereumBlock block,
-                               BRArrayOf(BREthereumTransaction) transactions);
+                               OwnershipGiven BRArrayOf(BREthereumTransaction) transactions);
 
 extern void
 blockReportStatusGasUsed (BREthereumBlock block,
@@ -386,7 +431,7 @@ blockReportStatusLogsRequest (BREthereumBlock block,
  */
 extern void
 blockReportStatusLogs (BREthereumBlock block,
-                       BRArrayOf(BREthereumLog) log);
+                       OwnershipGiven  BRArrayOf(BREthereumLog) log);
 
 
 //
@@ -407,6 +452,21 @@ extern void
 blockReportStatusAccountState (BREthereumBlock block,
                                BREthereumAccountState accountState);
 
+//
+// Header Proof Request
+//
+extern BREthereumBoolean
+blockHasStatusHeaderProofRequest (BREthereumBlock block,
+                                  BREthereumBlockRequestState request);
+
+extern void
+blockReportStatusHeaderProofRequest (BREthereumBlock block,
+                                     BREthereumBlockRequestState request);
+
+extern void
+blockReportStatusHeaderProof (BREthereumBlock block,
+                              BREthereumBlockHeaderProof proof);
+    
     //
     //
     //

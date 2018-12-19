@@ -30,6 +30,8 @@
 #include "../blockchain/BREthereumNetwork.h"
 #include "../blockchain/BREthereumTransaction.h"
 #include "../blockchain/BREthereumLog.h"
+
+#include "BREthereumBase.h"
 #include "BREthereumAmount.h"
 #include "BREthereumAccount.h"
 
@@ -37,41 +39,9 @@
 extern "C" {
 #endif
 
-typedef struct BREthereumTransferRecord *BREthereumTransfer;
+//typedef struct BREthereumTransferRecord *BREthereumTransfer;
 
-typedef enum {
-    // Created: transfer created in local memory
-    TRANSFER_STATUS_CREATED,
-
-    // Signed: transfer signed
-    TRANSFER_STATUS_SIGNED,
-
-    // Submitted: transfer submitted
-    TRANSFER_STATUS_SUBMITTED,
-
-    // Included: transfer is already included in the canonical chain. data contains an
-    // RLP-encoded [blockHash: B_32, blockNumber: P, txIndex: P] structure.
-    TRANSFER_STATUS_INCLUDED,
-
-    // Error: transfer sending failed. data contains a text error message
-    TRANSFER_STATUS_ERRORED
-
-} BREthereumTransferStatusType;
-
-typedef enum {
-    FEE_BASIS_NONE,
-    FEE_BASIS_GAS
-} BREthereumFeeBasisType;
-
-typedef struct {
-    BREthereumFeeBasisType type;
-    union {
-        struct {
-            BREthereumGas limit;
-            BREthereumGasPrice price;
-        } gas;
-    } u;
-} BREthereumFeeBasis;
+#define TRANSACTION_NONCE_IS_NOT_ASSIGNED   UINT64_MAX
 
 static inline BREthereumGas
 feeBasisGetGasLimit (BREthereumFeeBasis basis) {
@@ -83,6 +53,11 @@ feeBasisGetGasPrice (BREthereumFeeBasis basis) {
     return (FEE_BASIS_GAS == basis.type ? basis.u.gas.price : gasPriceCreate(etherCreateZero()));
 }
 
+typedef enum  {
+    TRANSFER_BASIS_TRANSACTION,
+    TRANSFER_BASIS_LOG
+} BREthereumTransferBasisType;
+
 /**
  * Transfer Create
  */
@@ -90,14 +65,20 @@ extern BREthereumTransfer
 transferCreate (BREthereumAddress sourceAddress,
                 BREthereumAddress targetAddress,
                 BREthereumAmount amount,
-                BREthereumFeeBasis feeBasis);
+                BREthereumFeeBasis feeBasis,
+                BREthereumTransferBasisType transferBasisType);
+
+extern BREthereumTransfer
+transferCreateWithTransactionOriginating (OwnershipGiven BREthereumTransaction transaction,
+                                          BREthereumTransferBasisType transferBasisType);
 
 extern BREthereumTransfer
 transferCreateWithTransaction (OwnershipGiven BREthereumTransaction transaction);
 
 extern BREthereumTransfer
 transferCreateWithLog (OwnershipGiven BREthereumLog log,
-                       BREthereumToken token);
+                       BREthereumToken token,
+                       BRRlpCoder coder);           // For decoding log->data into UInt256
 
 extern void
 transferRelease (BREthereumTransfer transfer);
@@ -187,29 +168,53 @@ extern BREthereumComparison
 transferCompare (BREthereumTransfer t1,
                  BREthereumTransfer t2);
 
+extern void
+transferSetBasisForTransaction (BREthereumTransfer transfer,
+                                BREthereumTransaction transaction);
+
+extern void
+transferSetBasisForLog (BREthereumTransfer transfer,
+                        BREthereumLog log);
+
 //
 //
 //
+extern void
+transferSetStatusForBasis (BREthereumTransfer transfer,
+                           BREthereumTransactionStatus status);
+
+extern void
+transferSetStatus (BREthereumTransfer transfer,
+                   BREthereumTransferStatus status);
+
+extern BREthereumTransferStatus
+transferGetStatus (BREthereumTransfer transfer);
 
 extern BREthereumBoolean
-transferHasStatusType (BREthereumTransfer transfer,
-                       BREthereumTransferStatusType type);
+transferHasStatus (BREthereumTransfer transfer,
+                       BREthereumTransferStatus type);
 
 extern BREthereumBoolean
-transferHasStatusTypeOrTwo (BREthereumTransfer transfer,
-                            BREthereumTransferStatusType type1,
-                            BREthereumTransferStatusType type2);
+transferHasStatusOrTwo (BREthereumTransfer transfer,
+                            BREthereumTransferStatus type1,
+                            BREthereumTransferStatus type2);
 
 
 extern int
 transferExtractStatusIncluded (BREthereumTransfer transfer,
-                               BREthereumGas *gasUsed,
                                BREthereumHash *blockHash,
                                uint64_t *blockNumber,
-                               uint64_t *transactionIndex);
+                               uint64_t *transactionIndex,
+                               uint64_t *blockTimestamp,
+                               BREthereumGas *gasUsed);
+
 extern int
 transferExtractStatusError (BREthereumTransfer transfer,
                             char **reason);
+
+extern int
+transferExtractStatusErrorType (BREthereumTransfer transfer,
+                                BREthereumTransactionErrorType *type);
 
 extern void
 transfersRelease (OwnershipGiven BRArrayOf(BREthereumTransfer) transfers);

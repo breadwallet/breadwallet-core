@@ -171,8 +171,7 @@ struct BREthereumLogRecord {
     BRArrayOf(BREthereumLogTopic) topics;
 
     // and some number of bytes of data, Od
-    uint8_t *data;
-    uint8_t dataCount;
+    BRRlpData data;
 
     // A unique identifer - derived from the transactionHash and the transactionReceiptIndex
     struct {
@@ -197,7 +196,8 @@ struct BREthereumLogRecord {
 extern BREthereumLog
 logCreate (BREthereumAddress address,
            unsigned int topicsCount,
-           BREthereumLogTopic *topics) {
+           BREthereumLogTopic *topics,
+           BRRlpData data) {
     BREthereumLog log = calloc (1, sizeof(struct BREthereumLogRecord));
 
     log->hash = hashCreateEmpty();
@@ -207,8 +207,10 @@ logCreate (BREthereumAddress address,
     for (size_t index = 0; index < topicsCount; index++)
         array_add (log->topics, topics[index]);
 
-    log->data = NULL;
-    log->dataCount = 0;
+    // RLP Decoded (see below) performs: log->data = rlpDecodeBytes(coder, items[2]);
+    // We'll assume `data` has the proper form....
+
+    log->data = rlpDataCopy(data);
 
     return log;
 }
@@ -241,6 +243,11 @@ logHasStatus (BREthereumLog log,
 extern BREthereumComparison
 logCompare (BREthereumLog l1,
             BREthereumLog l2) {
+
+    if (  l1 == l2) return ETHEREUM_COMPARISON_EQ;
+    if (NULL == l2) return ETHEREUM_COMPARISON_LT;
+    if (NULL == l1) return ETHEREUM_COMPARISON_GT;
+
     int t1Blocked = logHasStatus(l1, TRANSACTION_STATUS_INCLUDED);
     int t2Blocked = logHasStatus(l2, TRANSACTION_STATUS_INCLUDED);
 
@@ -310,18 +317,12 @@ logGetTopic (BREthereumLog log, size_t index) {
 
 extern BRRlpData
 logGetData (BREthereumLog log) {
-    BRRlpData data;
-
-    data.bytesCount = log->dataCount;
-    data.bytes = malloc (data.bytesCount);
-    memcpy (data.bytes, log->data, data.bytesCount);
-
-    return data;
+    return rlpDataCopy(log->data);
 }
 
 extern BRRlpData
 logGetDataShared (BREthereumLog log) {
-    return (BRRlpData) { log->dataCount, log->data };
+    return log->data;
 }
 
 extern BREthereumBoolean
@@ -397,7 +398,7 @@ logTopicsRlpDecode (BRRlpItem item,
 extern void
 logRelease (BREthereumLog log) {
     array_free(log->topics);
-    if (NULL != log->data) free (log->data);
+    rlpDataRelease(log->data);
     free (log);
 }
 
@@ -425,10 +426,7 @@ logCopy (BREthereumLog log) {
     copy->topics = logTopicsCopy(log->topics);
 
     // Copy the data
-    BRRlpData oldData = (BRRlpData) { log->dataCount, log->data };
-    BRRlpData newData = rlpDataCopy(oldData);
-    copy->data = newData.bytes;
-    copy->dataCount = newData.bytesCount;
+    copy->data = rlpDataCopy(log->data);
 
     return copy;
 }
@@ -450,14 +448,13 @@ logRlpDecode (BRRlpItem item,
     log->address = addressRlpDecode(items[0], coder);
     log->topics = logTopicsRlpDecode (items[1], coder);
 
-    BRRlpData data = rlpDecodeBytes(coder, items[2]);
-    log->data = data.bytes;
-    log->dataCount = data.bytesCount;
+    log->data = rlpGetData (coder, items[2]); //  rlpDecodeBytes(coder, items[2]);
 
     if (RLP_TYPE_ARCHIVE == type) {
-        log->identifier.transactionHash = hashRlpDecode(items[3], coder);
-        log->identifier.transactionReceiptIndex = rlpDecodeUInt64(coder, items[4], 0);
-        log->status = transactionStatusRLPDecode(items[5], coder);
+        logInitializeIdentifier (log,
+                                 hashRlpDecode(items[3], coder),
+                                 rlpDecodeUInt64(coder, items[4], 0));
+        log->status = transactionStatusRLPDecode(items[5], NULL, coder);
     }
     return log;
 }
@@ -474,7 +471,7 @@ logRlpEncode(BREthereumLog log,
 
     items[0] = addressRlpEncode(log->address, coder);
     items[1] = logTopicsRlpEncode(log, coder);
-    items[2] = rlpEncodeBytes(coder, log->data, log->dataCount);
+    items[2] = rlpGetItem(coder, log->data); //  rlpEncodeBytes(coder, log->data.bytes, log->data.bytesCount);
 
     if (RLP_TYPE_ARCHIVE == type) {
         items[3] = hashRlpEncode(log->identifier.transactionHash, coder);

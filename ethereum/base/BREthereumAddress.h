@@ -27,7 +27,7 @@
 #define BR_Ethereum_Address_H
 
 #include <stdlib.h>
-#include "BRKey.h"
+#include "../../BRKey.h"
 #include "../rlp/BRRlp.h"
 #include "BREthereumLogic.h"
 #include "BREthereumHash.h"
@@ -42,7 +42,7 @@ typedef struct {
     uint8_t bytes[ADDRESS_BYTES];
 } BREthereumAddress;
 
-#define EMPTY_ADDRESS_INIT   ((BREthereumAddress) { \
+#define EMPTY_ADDRESS_INIT   ((const BREthereumAddress) { \
 0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0 \
 })
 
@@ -60,6 +60,9 @@ typedef struct {
 
 extern BREthereumAddress
 addressCreate (const char *address);
+
+extern BREthereumBoolean
+addressValidateString(const char *string);
 
 /**
  * Create an EtherumAddress from a `key` - a BRKey that already has the PubKey provided!

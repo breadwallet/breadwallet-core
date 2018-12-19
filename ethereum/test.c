@@ -41,9 +41,9 @@
 #include "BRSet.h"
 #include "BRBIP39WordsEn.h"
 #include "BREthereum.h"
-#include "BREthereumAccount.h"
-#include "BREthereumWallet.h"
-#include "BREthereumTransfer.h"
+#include "ewm/BREthereumAccount.h"
+#include "ewm/BREthereumWallet.h"
+#include "ewm/BREthereumTransfer.h"
 #include "blockchain/BREthereumBlockChain.h"
 #include "event/BREventAlarm.h"
 #include "les/test-les.h"
@@ -67,11 +67,13 @@ extern void runContractTests (void);
 extern void runLEStests(void);
 
 // EWM
-extern void runEWMTests (void);
+extern void runEWMTests (const char *paperKey);
 
-extern void runSyncTest (BREthereumType type,
-                         BREthereumSyncMode mode,
+extern void runSyncTest (BREthereumAccount account,
+                         BREthereumMode mode,
+                         BREthereumTimestamp accountTimestamp,
                          unsigned int durationInSeconds,
+                         const char *storagePath,
                          int restart);
 
 extern const char *tokenBRDAddress;
@@ -507,6 +509,8 @@ void testTransactionCodingEther () {
     walletSetDefaultGasPrice(wallet, txGasPrice);
     walletSetDefaultGasLimit(wallet, txGas);
     BREthereumTransfer transfer = walletCreateTransfer(wallet, txRecvAddr, txAmount);
+
+    // NOTE: Owned by `transfer`
     BREthereumTransaction transaction = transferGetOriginatingTransaction(transfer);
     transactionSetNonce(transaction, NODE_NONCE);
 
@@ -548,10 +552,11 @@ void testTransactionCodingEther () {
 
     // Archive
     BREthereumHash someBlockHash = HASH_INIT("fc45a8c5ebb5f920931e3d5f48992f3a89b544b4e21dc2c11c5bf8165a7245d6");
-    BREthereumTransactionStatus status = transactionStatusCreateIncluded(gasCreate(0),
-                                                                         someBlockHash,
+    BREthereumTransactionStatus status = transactionStatusCreateIncluded(someBlockHash,
                                                                          11592,
-                                                                         21);
+                                                                         21,
+                                                                         0,
+                                                                         gasCreate(0));
     transactionSetStatus(transaction, status);
     item = transactionRlpEncode(transaction, ethereumMainnet, RLP_TYPE_ARCHIVE, coder);
     BREthereumTransaction archivedTransaction = transactionRlpDecode(item, ethereumMainnet, RLP_TYPE_ARCHIVE, coder);
@@ -564,7 +569,6 @@ void testTransactionCodingEther () {
 
     walletUnhandleTransfer(wallet, transfer);
     transferRelease(transfer);
-    transactionRelease(transaction);
     transactionRelease(decodedTransaction);
     rlpCoderRelease(coder);
 }
@@ -584,6 +588,7 @@ void testTransactionCodingToken () {
     walletSetDefaultGasPrice(wallet, txGasPrice);
     walletSetDefaultGasLimit(wallet, txGas);
     BREthereumTransfer transfer = walletCreateTransfer(wallet, txRecvAddr, txAmount);
+    // NOTE: Owned by `transfer`
     BREthereumTransaction transaction = transferGetOriginatingTransaction(transfer);
     transactionSetNonce(transaction, NODE_NONCE);
 
@@ -621,7 +626,6 @@ void testTransactionCodingToken () {
 
     walletUnhandleTransfer(wallet, transfer);
     transferRelease(transfer);
-    transactionRelease(transaction);
     transactionRelease(decodedTransaction);
     rlpCoderRelease(coder);
 }

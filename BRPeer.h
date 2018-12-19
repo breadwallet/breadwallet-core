@@ -54,6 +54,7 @@ extern "C" {
 
 #define SERVICES_NODE_NETWORK 0x01 // services value indicating a node carries full blocks, not just headers
 #define SERVICES_NODE_BLOOM   0x04 // BIP111: https://github.com/bitcoin/bips/blob/master/bip-0111.mediawiki
+#define SERVICES_NODE_WITNESS 0x08 // BIP144: https://github.com/bitcoin/bips/blob/master/bip-0144.mediawiki
 #define SERVICES_NODE_BCASH   0x20 // https://github.com/Bitcoin-UAHF/spec/blob/master/uahf-technical-spec.md
     
 #define BR_VERSION "2.1"
@@ -103,7 +104,7 @@ typedef struct {
     uint8_t flags; // scratch variable
 } BRPeer;
 
-#define BR_PEER_NONE ((BRPeer) { UINT128_ZERO, 0, 0, 0, 0 })
+#define BR_PEER_NONE ((const BRPeer) { UINT128_ZERO, 0, 0, 0, 0 })
 
 // NOTE: BRPeer functions are not thread-safe
 

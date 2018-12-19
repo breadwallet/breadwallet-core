@@ -68,6 +68,8 @@ struct BREthereumTransactionRecord {
     BREthereumEther amount;
     BREthereumGasPrice gasPrice;
     BREthereumGas gasLimit;
+    BREthereumGas gasEstimate;
+    
     uint64_t nonce;
     BREthereumChainId chainId;   // EIP-135 - chainId - "Since EIP-155 use chainId for v"
 
@@ -107,6 +109,10 @@ transactionCreate(BREthereumAddress sourceAddress,
     transaction->nonce = nonce;
     transaction->chainId = 0;
     transaction->hash = hashCreateEmpty();
+    transaction->gasEstimate = gasLimit;
+
+    // Ensure that `transactionIsSigned()` returns FALSE.
+    signatureClear (&transaction->signature, SIGNATURE_TYPE_RECOVERABLE_VRS_EIP);
 
 #if defined (TRANSACTION_LOG_ALLOC_COUNT)
     eth_log ("MEM", "TX Create - Count: %d", ++transactionAllocCount);
@@ -205,6 +211,30 @@ extern void
 transactionSetGasLimit (BREthereumTransaction transaction,
                         BREthereumGas gasLimit) {
     transaction->gasLimit = gasLimit;
+}
+
+static BREthereumGas
+gasLimitApplyMargin (BREthereumGas gas) {
+    return gasCreate(((100 + GAS_LIMIT_MARGIN_PERCENT) * gas.amountOfGas) / 100);
+}
+
+extern BREthereumGas
+transactionGetGasEstimate (BREthereumTransaction transaction) {
+    return transaction->gasEstimate;
+}
+
+extern void
+transactionSetGasEstimate (BREthereumTransaction transaction,
+                           BREthereumGas gasEstimate) {
+    transaction->gasEstimate = gasEstimate;
+
+    // Ensure that the gasLimit is at least 20% more than gasEstimate
+    // unless the gasEstimate is 21000 (special case for ETH transfers).
+    BREthereumGas gasLimitWithMargin = (21000 != gasEstimate.amountOfGas
+                                        ? gasLimitApplyMargin (gasEstimate)
+                                        : gasCreate(21000));
+    if (gasLimitWithMargin.amountOfGas > transaction->gasLimit.amountOfGas)
+        transaction->gasLimit = gasLimitWithMargin;
 }
 
 extern uint64_t
@@ -312,7 +342,7 @@ transactionRlpEncode(BREthereumTransaction transaction,
                      BREthereumNetwork network,
                      BREthereumRlpType type,
                      BRRlpCoder coder) {
-    BRRlpItem items[12]; // more than enough
+    BRRlpItem items[13]; // more than enough
     size_t itemsCount = 0;
 
     items[0] = rlpEncodeUInt64(coder, transaction->nonce, 1);
@@ -359,9 +389,10 @@ transactionRlpEncode(BREthereumTransaction transaction,
 
             // For ARCHIVE add in a few things beyond 'SIGNED / NETWORK'
             if (RLP_TYPE_ARCHIVE == type) {
-                items[9] = hashRlpEncode(transaction->hash, coder);
-                items[10] = transactionStatusRLPEncode(transaction->status, coder);
-                itemsCount += 2;
+                items[ 9] = addressRlpEncode(transaction->sourceAddress, coder);
+                items[10] = hashRlpEncode(transaction->hash, coder);
+                items[11] = transactionStatusRLPEncode(transaction->status, coder);
+                itemsCount += 3;
             }
             break;
     }
@@ -390,7 +421,7 @@ transactionRlpDecode (BRRlpItem item,
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
     assert (( 9 == itemsCount && (RLP_TYPE_TRANSACTION_SIGNED == type || RLP_TYPE_TRANSACTION_UNSIGNED == type)) ||
-            (11 == itemsCount && RLP_TYPE_ARCHIVE == type));
+            (12 == itemsCount && RLP_TYPE_ARCHIVE == type));
 
     // Encoded as:
     //    items[0] = transactionEncodeNonce(transaction, transaction->nonce, coder);
@@ -412,11 +443,11 @@ transactionRlpDecode (BRRlpItem item,
 
     uint64_t eipChainId = rlpDecodeUInt64(coder, items[6], 1);
 
-    if (eipChainId == transaction->chainId) {
-        // RLP_TYPE_TRANSACTION_UNSIGNED
-        transaction->signature.type = SIGNATURE_TYPE_RECOVERABLE_VRS_EIP;
-    }
-    else {
+    // By default, ensure `transacdtionIsSigned()` returns FALSE.
+    signatureClear (&transaction->signature, SIGNATURE_TYPE_RECOVERABLE_VRS_EIP);
+
+    // We have a signature - is this the proper logic?
+    if (eipChainId != transaction->chainId) {
         // RLP_TYPE_TRANSACTION_SIGNED
         transaction->signature.type = SIGNATURE_TYPE_RECOVERABLE_VRS_EIP;
 
@@ -436,18 +467,27 @@ transactionRlpDecode (BRRlpItem item,
         memcpy (&transaction->signature.sig.vrs.s[32 - sData.bytesCount],
                 sData.bytes, sData.bytesCount);
 
-        // :fingers-crossed:
-        transaction->sourceAddress = transactionExtractAddress(transaction, network, coder);
     }
 
-    if (RLP_TYPE_ARCHIVE == type) {
-        transaction->hash = hashRlpDecode(items[9], coder);
-        transaction->status = transactionStatusRLPDecode(items[10], coder);
-    }
-    // With a SIGNED RLP encoding, we can compute the hash.
-    else if (RLP_TYPE_TRANSACTION_SIGNED == type) {
-        BRRlpData result = rlpGetDataSharedDontRelease(coder, item);
-        transaction->hash = hashCreateFromData(result);
+    switch (type) {
+        case RLP_TYPE_ARCHIVE:
+            // Extract the archive-specific data
+            transaction->sourceAddress = addressRlpDecode(items[9], coder);
+            transaction->hash = hashRlpDecode(items[10], coder);
+            transaction->status = transactionStatusRLPDecode(items[11], NULL, coder);
+            break;
+
+        case RLP_TYPE_TRANSACTION_SIGNED: {
+            // With a SIGNED RLP encoding, we can extract the source address and compute the hash.
+            BRRlpData result = rlpGetDataSharedDontRelease(coder, item);
+            transaction->hash = hashCreateFromData(result);
+
+            // :fingers-crossed:
+            transaction->sourceAddress = transactionExtractAddress (transaction, network, coder);
+            break;
+        }
+
+        default: break;
     }
 
 #if defined (TRANSACTION_LOG_ALLOC_COUNT)
@@ -483,9 +523,6 @@ transactionGetRlpHexEncoded (BREthereumTransaction transaction,
     return result;
 }
 
-//
-// Private
-//
 extern BREthereumTransactionStatus
 transactionGetStatus (BREthereumTransaction transaction) {
     return transaction->status;
@@ -528,6 +565,11 @@ transactionHasStatus(BREthereumTransaction transaction,
 extern BREthereumComparison
 transactionCompare(BREthereumTransaction t1,
                    BREthereumTransaction t2) {
+
+    if (  t1 == t2) return ETHEREUM_COMPARISON_EQ;
+    if (NULL == t2) return ETHEREUM_COMPARISON_LT;
+    if (NULL == t1) return ETHEREUM_COMPARISON_GT;
+
     int t1Blocked = transactionHasStatus(t1, TRANSACTION_STATUS_INCLUDED);
     int t2Blocked = transactionHasStatus(t2, TRANSACTION_STATUS_INCLUDED);
 

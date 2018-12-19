@@ -48,7 +48,9 @@
 #pragma clang diagnostic ignored "-Wunused-function"
 #pragma GCC diagnostic ignored "-Wunused-function"
 #pragma clang diagnostic ignored "-Wconditional-uninitialized"
+#ifndef __clang__
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
 #include "secp256k1/src/basic-config.h"
 #include "secp256k1/src/secp256k1.c"
 #pragma clang diagnostic pop
@@ -114,6 +116,18 @@ int BRSecp256k1PointMul(BRECPoint *p, const UInt256 *i)
     return (secp256k1_ec_pubkey_parse(_ctx, &pubkey, (const unsigned char *)p, sizeof(*p)) &&
             secp256k1_ec_pubkey_tweak_mul(_ctx, &pubkey, (const unsigned char *)i) &&
             secp256k1_ec_pubkey_serialize(_ctx, (unsigned char *)p, &pLen, &pubkey, SECP256K1_EC_COMPRESSED));
+}
+
+// write a 'shared secret' for key w/ pubKey using ECDH to out32
+void BRKeyECDH(const BRKey *privKey, uint8_t *out32, BRKey *pubKey)
+{
+    uint8_t p[65];
+    size_t pLen = BRKeyPubKey(pubKey, p, sizeof(p));
+    
+    if (pLen == 65) p[0] = (p[64] % 2) ? 0x03 : 0x02; // convert to compressed pubkey format
+    BRSecp256k1PointMul((BRECPoint *)p, &privKey->secret); // calculate shared secret ec-point
+    memcpy(out32, &p[1], 32); // unpack the x coordinate
+    mem_clean(p, sizeof(p));
 }
 
 // returns true if privKey is a valid private key
@@ -281,9 +295,21 @@ UInt160 BRKeyHash160(BRKey *key)
     return hash;
 }
 
-// writes the pay-to-pubkey-hash bitcoin address for key to addr
+// writes the bech32 pay-to-witness-pubkey-hash address for key to addr
 // returns the number of bytes written, or addrLen needed if addr is NULL
 size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen)
+{
+    UInt160 hash;
+    
+    assert(key != NULL);
+    
+    hash = BRKeyHash160(key);
+    return (! UInt160IsZero(hash)) ? BRAddressFromHash160(addr, addrLen, &hash) : 0;
+}
+
+// writes the legacy pay-to-pubkey-hash bitcoin address for key to addr
+// returns the number of bytes written, or addrLen needed if addr is NULL
+size_t BRKeyLegacyAddr(BRKey *key, char *addr, size_t addrLen)
 {
     UInt160 hash;
     uint8_t data[21];

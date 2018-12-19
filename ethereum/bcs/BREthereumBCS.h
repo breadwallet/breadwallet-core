@@ -157,7 +157,7 @@ extern BREthereumBCS
 bcsCreate (BREthereumNetwork network,
            BREthereumAddress address,
            BREthereumBCSListener listener,
-           BREthereumSyncMode syncMode,
+           BREthereumMode syncMode,
            BRSetOf(BREthereumNodeConfig) peers,
            BRSetOf(BREthereumBlock) blocks,
            BRSetOf(BREthereumTransaction) transactions,

@@ -79,16 +79,41 @@ typedef struct BREthereumLESRecord *BREthereumLES;
 
 /**
  * An opaque type for a Node.  Only used in the announce callback to identify what node produced
- * the hea
+ * the result.  This NodeReference is actually a pointer but we override that with some specific
+ * values, see NODE_REFERENCE_* below, to represent some special behaviors.
  */
 typedef void *BREthereumNodeReference;
-#define NODE_REFERENCE_NIL    ((BREthereumNodeReference) 0)
-#define NODE_REFERENCE_ANY    ((BREthereumNodeReference) 1)
-#define NODE_REFERENCE_ALL    ((BREthereumNodeReference) 2)
 
-#define NODE_REFERENCE_IS_GENERIC(n)                       \
-  (NODE_REFERENCE_NIL <= ((BREthereumNodeReference) n) &&  \
-   ((BREthereumNodeReference) n) <= NODE_REFERENCE_ALL)
+/** Reserved reference range */
+#define NODE_REFERENCE_BASE   ((BREthereumNodeReference)  0)
+#define NODE_REFERENCE_LIMIT  ((BREthereumNodeReference) 20)
+
+/** References to select a specific node index */
+#define NODE_REFERENCE_0      ((BREthereumNodeReference) 0)
+#define NODE_REFERENCE_1      ((BREthereumNodeReference) 1)
+#define NODE_REFERENCE_2      ((BREthereumNodeReference) 2)
+#define NODE_REFERENCE_3      ((BREthereumNodeReference) 3)
+#define NODE_REFERENCE_4      ((BREthereumNodeReference) 4)
+
+#if 5 < LES_ACTIVE_NODE_COUNT  // 5 <= 1 + NODE_REFERENCE_4
+#error Not enough NODE_REFERENCE declarations
+#endif
+
+/** References to select an arbitrary index */
+#define NODE_REFERENCE_NIL    ((BREthereumNodeReference) 10)
+#define NODE_REFERENCE_ANY    ((BREthereumNodeReference) 11)
+#define NODE_REFERENCE_ALL    ((BREthereumNodeReference) 12)
+
+/** Predicate to check if `n` is a 'generic' reference */
+#define NODE_REFERENCE_IS_GENERIC(n)                        \
+  (NODE_REFERENCE_BASE <= ((BREthereumNodeReference) n) &&  \
+   ((BREthereumNodeReference) n) < NODE_REFERENCE_LIMIT)
+
+/** Predicate to check if `n` is an 'arbitrary' node */
+#define NODE_REFERENCE_IS_ARBITRARY(n)                       \
+    (NODE_REFERENCE_NIL <= ((BREthereumNodeReference) n) &&  \
+    ((BREthereumNodeReference) n) <= NODE_REFERENCE_ALL)
+
 /*!
  *@typedef BREthereumLESStatus
  *
@@ -208,6 +233,10 @@ lesSetNodePrefer (BREthereumLES les,
 extern BREthereumNodeReference
 lesGetNodePrefer (BREthereumLES les);
 
+extern const char *
+lesGetNodeHostname (BREthereumLES les,
+                    BREthereumNodeReference node);
+
 /// MARK: LES Provision Callbacks
 
 typedef void *BREthereumLESProvisionContext;
@@ -253,6 +282,28 @@ lesProvideBlockHeaders (BREthereumLES les,
                         uint32_t maxBlockCount,
                         uint64_t skip,
                         BREthereumBoolean reverse);
+
+/**
+ * @function lesProvideBlockProofs
+ *
+ * @param les
+ * @param context
+ * @param callback
+ * @param uint64_t
+ */
+extern void
+lesProvideBlockProofs (BREthereumLES les,
+                       BREthereumNodeReference node,
+                       BREthereumLESProvisionContext context,
+                       BREthereumLESProvisionCallback callback,
+                       OwnershipGiven BRArrayOf(uint64_t) blockNumbers);
+
+extern void
+lesProvideBlockProofsOne (BREthereumLES les,
+                          BREthereumNodeReference node,
+                          BREthereumLESProvisionContext context,
+                          BREthereumLESProvisionCallback callback,
+                          uint64_t blockNumber);
 
 /*!
  * @function lesProvdeBlockBodies
@@ -361,6 +412,23 @@ lesSubmitTransaction (BREthereumLES les,
                       BREthereumLESProvisionContext context,
                       BREthereumLESProvisionCallback callback,
                       OwnershipGiven BREthereumTransaction transaction);
+
+
+/**
+ * Retry a provision
+ *
+ * @param les les
+ * @param node node
+ * @param context context
+ * @param callback callback
+ * @param provision provision
+ */
+extern void
+lesRetryProvision (BREthereumLES les,
+                   BREthereumNodeReference node,
+                   BREthereumLESProvisionContext context,
+                   BREthereumLESProvisionCallback callback,
+                   OwnershipGiven BREthereumProvision *provision);
 
 #ifdef __cplusplus
 }

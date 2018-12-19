@@ -48,6 +48,8 @@
 #include "BREthereum.h"
 #include "../ewm/BREthereumEWM.h"
 #include "BREthereumLESRandom.h"
+#include "../ewm/BREthereumAccount.h"
+
 #include "test-les.h"
 
 #define TST_LOG_TOPIC    "TST"
@@ -62,6 +64,8 @@
 
 /// MARK: Node Test
 
+#pragma clang diagnostic push
+#pragma GCC diagnostic push
 #pragma clang diagnostic ignored "-Wunused-function"
 #pragma GCC diagnostic ignored "-Wunused-function"
 static void
@@ -139,7 +143,7 @@ _announceCallback (BREthereumLESCallbackContext context,
                    uint64_t headNumber,
                    UInt256 headTotalDifficulty,
                    uint64_t reorgDepth) {
-    eth_log(TST_LOG_TOPIC, "Block: %llu", headNumber);
+    eth_log(TST_LOG_TOPIC, "Block: %" PRIu64, headNumber);
 }
 
 static void
@@ -147,7 +151,7 @@ _statusCallback (BREthereumLESCallbackContext context,
                  BREthereumNodeReference node,
                  BREthereumHash headHash,
                  uint64_t headNumber) {
-    eth_log(TST_LOG_TOPIC, "Status: %llu", headNumber);
+    eth_log(TST_LOG_TOPIC, "Status: %" PRIu64, headNumber);
 }
 
 static void
@@ -157,94 +161,6 @@ _saveNodesCallback (BREthereumLESCallbackContext context,
     array_free(nodes);
 }
 
-//
-//  Testing SendTx and SendTxV2 message
-//
-#if 0
-#define GAS_PRICE_20_GWEI       2000000000
-#define GAS_PRICE_10_GWEI       1000000000
-#define GAS_PRICE_5_GWEI         500000000
-#define GAS_LIMIT_DEFAULT 21000
-
-static void _transactionStatus(BREthereumLESTransactionStatusContext context,
-                               BREthereumHash transaction,
-                               BREthereumTransactionStatus status){
-    
-    printf("RECEIVED AN TRANSACTION STATUS");
-}
-void prepareLESTransaction (BREthereumLES les, const char *paperKey, const char *recvAddr, const uint64_t gasPrice, const uint64_t gasLimit, const uint64_t amount) {
-    printf ("     Prepare Transaction\n");
-    
-    BREthereumClient client = {};
-    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, EWM_USE_LES, SYNC_MODE_FULL_BLOCKCHAIN, client, NULL, NULL, NULL, NULL);
-    // A wallet amount Ether
-    BREthereumWalletId wallet = ethereumGetWallet(ewm);
-    // END - One Time Code Block
-    
-    // Optional - will provide listNodeWalletCreateTransactionDetailed.
-    ethereumWalletSetDefaultGasPrice(ewm, wallet, WEI, gasPrice);
-    ethereumWalletSetDefaultGasLimit(ewm, wallet, gasLimit);
-    
-    BREthereumAmount amountAmountInEther =
-    ethereumCreateEtherAmountUnit(ewm, amount, WEI);
-    
-    BREthereumTransferId tx1 =
-    ethereumWalletCreateTransfer
-    (ewm,
-     wallet,
-     recvAddr,
-     amountAmountInEther);
-    
-    ethereumWalletSignTransfer (ewm, wallet, tx1, paperKey);
-    
-    const char *rawTransactionHexEncoded =
-    ethereumTransferGetRawDataHexEncoded(ewm, wallet, tx1, "0x");
-    
-    printf ("        Raw Transaction: %s\n", rawTransactionHexEncoded);
-    
-    char *fromAddr = ethereumGetAccountPrimaryAddress(ewm);
-    BREthereumTransferId *tids = ethereumWalletGetTransfers(ewm, wallet);
-    
-    assert (NULL != tids && -1 != tids[0]);
-    
-    BREthereumTransferId tid = tids[0];
-    assert (0 == strcmp (fromAddr, ethereumTransferGetSendAddress(ewm, tid)) &&
-            0 == strcmp (recvAddr, ethereumTransferGetRecvAddress(ewm, tid)));
-    
-    BREthereumTransfer actualTransfer = ewmLookupTransfer(ewm, tid);
-    BREthereumTransaction actualTransaction = transferGetOriginatingTransaction(actualTransfer);
-    
-    //Initilize testing state
-    _initTest(1);
-    
-    lesSubmitTransaction(les, NULL, _transactionStatus, actualTransaction);
-    
-    sleep(600);
-    
-    free (fromAddr);
-    ethereumDestroy(ewm);
-}
-
-extern void
-reallySendLESTransaction(BREthereumLES les) {
-    
-    char paperKey[] = "biology just ridge kidney random donkey master employ poverty remind panel twenty";
-    char recvAddress[] = "0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF";
-    /*
-     fputs("PaperKey: ", stdout);
-     fgets (paperKey, 1024, stdin);
-     paperKey[strlen(paperKey) - 1] = '\0';
-     
-     fputs("Address: ", stdout);
-     fgets (recvAddress, 1024, stdin);
-     recvAddress[strlen(recvAddress) - 1] = '\0';
-     */
-    printf ("PaperKey: '%s'\nAddress: '%s'\n", paperKey, recvAddress);
-    
-    // 0.001/2 ETH
-    prepareLESTransaction(les, paperKey, recvAddress, GAS_PRICE_5_GWEI, GAS_LIMIT_DEFAULT, 1000000000000000000 / 1000 / 2);
-}
-#endif
 
 //
 //  Testing BlockHeaders message
@@ -353,7 +269,7 @@ _checkBlockHeaderWithTest (BREthereumLESProvisionContext context,
     assert (PROVISION_BLOCK_HEADERS == result.type);
     assert (PROVISION_SUCCESS == result.status);
 
-    BRArrayOf(BREthereumBlockHeader) headers = result.u.success.provision.u.headers.headers;
+    BRArrayOf(BREthereumBlockHeader) headers = result.provision.u.headers.headers;
     assert (count == array_count (headers));
 
     assert(ETHEREUM_BOOLEAN_IS_TRUE(_checkBlockHeader (headers[0], expectedHash, expectedBlockNumber, expectedDifficulty, expectedGasUsed, expectedParenthash)));
@@ -374,7 +290,7 @@ void _GetBlockHeaders_Calllback_Test5 (BREthereumLESProvisionContext context,
     _checkBlockHeaderWithTest (context, result, &_blockHeaderTestData[_GetBlockHeaders_Context4], 200);
 
     // Monotonically increasing header block number.
-    BRArrayOf(BREthereumBlockHeader) headers = result.u.success.provision.u.headers.headers;
+    BRArrayOf(BREthereumBlockHeader) headers = result.provision.u.headers.headers;
     for (size_t index = 0; index < 200; index++)
         assert (index == (blockHeaderGetNumber(headers[index]) - blockHeaderGetNumber(headers[0])));
 
@@ -488,6 +404,52 @@ run_GetBlockHeaders_Tests (BREthereumLES les){
 }
 
 //
+// Testing GetBlockProofs message
+//
+static const int _GetBlockProofs_Context1 = 1;
+
+void _GetBlockProofs_Calllback_Test1 (BREthereumLESProvisionContext context,
+                                      BREthereumLES les,
+                                      BREthereumNodeReference node,
+                                      BREthereumProvisionResult result) {
+    assert(context != NULL);
+    int* context1 = (int *)context;
+
+    assert (PROVISION_BLOCK_PROOFS == result.type);
+    assert (PROVISION_SUCCESS == result.status);
+    BRArrayOf(BREthereumBlockHeaderProof) proofs = result.provision.u.proofs.proofs;
+
+    assert (1 == array_count (proofs));
+
+    BREthereumHash hash = proofs[0].hash;
+    UInt256 totalDifficulty = proofs[0].totalDifficulty;
+
+    if (*context1 == _GetBlockProofs_Context1) {  // 6000000
+        BRCoreParseStatus status;
+        assert (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual(hash, HASH_INIT("be847be2bceb74e660daf96b3f0669d58f59dc9101715689a00ef864a5408f43"))));
+        assert (UInt256Eq (totalDifficulty, createUInt256Parse ("5484495551037046114587", 0, &status)));
+    }
+
+    //    assert(context1 == &_GetBlockHeaders_Context1); //Check to make sure the context is correct
+//
+//    _checkBlockHeaderWithTest (context, result, &_blockHeaderTestData[_GetBlockHeaders_Context1], 3);
+    _signalTestComplete();
+}
+
+static void
+run_GetBlookProofs_Tests (BREthereumLES les) {
+    _initTest(1);
+
+    lesProvideBlockProofsOne (les, NODE_REFERENCE_ANY,
+                              (void*)&_GetBlockProofs_Context1,
+                              _GetBlockProofs_Calllback_Test1,
+                              6000000);
+    _waitForTests();
+
+    eth_log(TST_LOG_TOPIC, "GetBlockProofs: %s", "Tests Successful");
+}
+
+//
 // Testing GetTxtStatus message
 //
 static const int _GetTxStatus_Context1 = 1;
@@ -499,10 +461,10 @@ _GetTxStatus_Test2_Callback (BREthereumLESProvisionContext context,
                                         BREthereumNodeReference node,
                                         BREthereumProvisionResult result) {
     assert (PROVISION_SUCCESS == result.status);
-    assert (PROVISION_TRANSACTION_STATUSES == result.u.success.provision.type);
+    assert (PROVISION_TRANSACTION_STATUSES == result.provision.type);
 
-    BRArrayOf(BREthereumHash) hashes = result.u.success.provision.u.statuses.hashes;
-    BRArrayOf(BREthereumTransactionStatus) statusesByHash = result.u.success.provision.u.statuses.statuses;
+    BRArrayOf(BREthereumHash) hashes = result.provision.u.statuses.hashes;
+    BRArrayOf(BREthereumTransactionStatus) statusesByHash = result.provision.u.statuses.statuses;
 
     assert (2 == array_count(hashes));
     assert (2 == array_count(statusesByHash));
@@ -558,10 +520,10 @@ _GetTxStatus_Test1_Callback (BREthereumLESProvisionContext context,
     // BREthereumTransactionStatus status){
 
     assert (PROVISION_SUCCESS == result.status);
-    assert (PROVISION_TRANSACTION_STATUSES == result.u.success.provision.type);
+    assert (PROVISION_TRANSACTION_STATUSES == result.provision.type);
 
-    BRArrayOf(BREthereumHash) hashes = result.u.success.provision.u.statuses.hashes;
-    BRArrayOf(BREthereumTransactionStatus) statusesByHash = result.u.success.provision.u.statuses.statuses;
+    BRArrayOf(BREthereumHash) hashes = result.provision.u.statuses.hashes;
+    BRArrayOf(BREthereumTransactionStatus) statusesByHash = result.provision.u.statuses.statuses;
 
     assert (1 == array_count(hashes));
     assert (1 == array_count(statusesByHash));
@@ -647,10 +609,10 @@ _GetBlockBodies_Callback_Test1 (BREthereumLESProvisionContext context,
                                            BREthereumNodeReference node,
                                            BREthereumProvisionResult result) {
     assert (PROVISION_SUCCESS == result.status);
-    assert (PROVISION_BLOCK_BODIES == result.u.success.provision.type);
+    assert (PROVISION_BLOCK_BODIES == result.provision.type);
 
-    BRArrayOf(BREthereumHash) hashes = result.u.success.provision.u.bodies.hashes;
-    BRArrayOf(BREthereumBlockBodyPair) pairs = result.u.success.provision.u.bodies.pairs;
+    BRArrayOf(BREthereumHash) hashes = result.provision.u.bodies.hashes;
+    BRArrayOf(BREthereumBlockBodyPair) pairs = result.provision.u.bodies.pairs;
 
     assert (1 == array_count(hashes));
     assert (1 == array_count(pairs));
@@ -677,10 +639,10 @@ _GetBlockBodies_Callback_Test2 (BREthereumLESProvisionContext context,
                                 BREthereumNodeReference node,
                                 BREthereumProvisionResult result) {
     assert (PROVISION_SUCCESS == result.status);
-    assert (PROVISION_BLOCK_BODIES == result.u.success.provision.type);
+    assert (PROVISION_BLOCK_BODIES == result.provision.type);
 
-    BRArrayOf(BREthereumHash) hashes = result.u.success.provision.u.bodies.hashes;
-    BRArrayOf(BREthereumBlockBodyPair) pairs = result.u.success.provision.u.bodies.pairs;
+    BRArrayOf(BREthereumHash) hashes = result.provision.u.bodies.hashes;
+    BRArrayOf(BREthereumBlockBodyPair) pairs = result.provision.u.bodies.pairs;
 
     assert (2 == array_count(hashes));
     assert (2 == array_count(pairs));
@@ -746,10 +708,10 @@ _GetReceipts_Callback_Test1 (BREthereumLESProvisionContext context,
                              BREthereumNodeReference node,
                              BREthereumProvisionResult result) {
     assert (PROVISION_SUCCESS == result.status);
-    assert (PROVISION_TRANSACTION_RECEIPTS == result.u.success.provision.type);
+    assert (PROVISION_TRANSACTION_RECEIPTS == result.provision.type);
 
-    BRArrayOf(BREthereumHash) hashes = result.u.success.provision.u.receipts.hashes;
-    BRArrayOf(BRArrayOf(BREthereumTransactionReceipt)) receiptsByHash = result.u.success.provision.u.receipts.receipts;
+    BRArrayOf(BREthereumHash) hashes = result.provision.u.receipts.hashes;
+    BRArrayOf(BRArrayOf(BREthereumTransactionReceipt)) receiptsByHash = result.provision.u.receipts.receipts;
 
     assert (1 == array_count(hashes));
     assert (1 == array_count(receiptsByHash));
@@ -776,10 +738,10 @@ _GetReceipts_Callback_Test2 (BREthereumLESProvisionContext context,
                              BREthereumProvisionResult result) {
 
     assert (PROVISION_SUCCESS == result.status);
-    assert (PROVISION_TRANSACTION_RECEIPTS == result.u.success.provision.type);
+    assert (PROVISION_TRANSACTION_RECEIPTS == result.provision.type);
 
-    BRArrayOf(BREthereumHash) hashes = result.u.success.provision.u.receipts.hashes;
-    BRArrayOf(BRArrayOf(BREthereumTransactionReceipt)) receiptsByHash = result.u.success.provision.u.receipts.receipts;
+    BRArrayOf(BREthereumHash) hashes = result.provision.u.receipts.hashes;
+    BRArrayOf(BRArrayOf(BREthereumTransactionReceipt)) receiptsByHash = result.provision.u.receipts.receipts;
 
     assert (2 == array_count(hashes));
     assert (2 == array_count(receiptsByHash));
@@ -904,13 +866,13 @@ static void _GetAccountState_Callback_Test1 (BREthereumLESProvisionContext conte
                                              BREthereumProvisionResult result) {
 
     assert (PROVISION_SUCCESS == result.status);
-    assert (PROVISION_ACCOUNTS == result.u.success.provision.type);
+    assert (PROVISION_ACCOUNTS == result.provision.type);
 
-    BRArrayOf(BREthereumHash) hashes = result.u.success.provision.u.accounts.hashes;
-    BRArrayOf(BREthereumAccountState) accountsByHash = result.u.success.provision.u.accounts.accounts;
+    BRArrayOf(BREthereumHash) hashes = result.provision.u.accounts.hashes;
+    BRArrayOf(BREthereumAccountState) accountsByHash = result.provision.u.accounts.accounts;
 
-    //    BREthereumAddress address = result.u.success.provision.u.accounts.address;
-    //    BRArrayOf(uint64_t) numbers = result.u.success.provision.u.accounts.numbers;
+    //    BREthereumAddress address = result.provision.u.accounts.address;
+    //    BRArrayOf(uint64_t) numbers = result.provision.u.accounts.numbers;
 
     assert (1 == array_count(hashes));
     assert (1 == array_count(accountsByHash));
@@ -932,13 +894,13 @@ static void _GetAccountState_Callback_Test2 (BREthereumLESProvisionContext conte
 
 
     assert (PROVISION_SUCCESS == result.status);
-    assert (PROVISION_ACCOUNTS == result.u.success.provision.type);
+    assert (PROVISION_ACCOUNTS == result.provision.type);
 
-    BRArrayOf(BREthereumHash) hashes = result.u.success.provision.u.accounts.hashes;
-    BRArrayOf(BREthereumAccountState) accountsByHash = result.u.success.provision.u.accounts.accounts;
+    BRArrayOf(BREthereumHash) hashes = result.provision.u.accounts.hashes;
+    BRArrayOf(BREthereumAccountState) accountsByHash = result.provision.u.accounts.accounts;
 
-    //    BREthereumAddress address = result.u.success.provision.u.accounts.address;
-    //    BRArrayOf(uint64_t) numbers = result.u.success.provision.u.accounts.numbers;
+    //    BREthereumAddress address = result.provision.u.accounts.address;
+    //    BRArrayOf(uint64_t) numbers = result.provision.u.accounts.numbers;
 
     assert (2 == array_count(hashes));
     assert (2 == array_count(accountsByHash));
@@ -988,6 +950,217 @@ static void run_GetAccountState_Tests (BREthereumLES les){
     eth_log(TST_LOG_TOPIC, "GetAccopuntState: %s", "Tests Successful");
 }
 
+
+//
+//  Testing SendTx and SendTxV2 message
+//
+#define GAS_PRICE_20_GWEI       2000000000
+#define GAS_PRICE_10_GWEI       1000000000
+#define GAS_PRICE_5_GWEI         500000000
+#define GAS_LIMIT_DEFAULT 21000
+
+static void
+_SendTransaction_Callback_Test1 (BREthereumLESProvisionContext context,
+                                             BREthereumLES les,
+                                             BREthereumNodeReference node,
+                                             BREthereumProvisionResult result) {
+    assert (NULL == context);
+    assert (PROVISION_SUCCESS == result.status);
+    assert (PROVISION_SUBMIT_TRANSACTION == result.provision.type);
+
+    // BREthereumTransaction transaction  = result.provision.u.submission.transaction;
+    // BREthereumTransactionStatus status = result.provision.u.submission.status;
+
+    _signalTestComplete();
+}
+
+static void
+run_SendTransaction_Tests(BREthereumLES les) {
+
+    char *paperKey   = "boring ...";
+    char *sourceAddr = "0xa9de3dbd7d561e67527bc1ecb025c59d53b9f7ef";
+    char *targetAddr = "0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF";
+
+    _initTest(1);
+
+
+    BRCoreParseStatus status;
+    BREthereumEther amount = etherCreateString("0.001", ETHER, &status);
+    BREthereumGasPrice gasPrice = gasPriceCreate (etherCreateString("5.0", GWEI, &status));
+    BREthereumGas gasLimit = gasCreate(21000);
+
+    uint64_t nonce = 9;
+
+    BREthereumTransaction transaction = transactionCreate (addressCreate(sourceAddr),
+                                                           addressCreate(targetAddr),
+                                                           amount,
+                                                           gasPrice,
+                                                           gasLimit,
+                                                           "",
+                                                           nonce);
+
+    // Sign the transaction
+    BREthereumAccount account = createAccount (paperKey);
+
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem item = transactionRlpEncode (transaction,
+                                           ethereumMainnet,
+                                           RLP_TYPE_TRANSACTION_UNSIGNED,
+                                           coder);
+    BRRlpData data = rlpGetData(coder, item);
+
+    // Sign the RLP Encoded bytes.
+    BREthereumSignature signature = accountSignBytes (account,
+                                                      addressCreate(sourceAddr),
+                                                      SIGNATURE_TYPE_RECOVERABLE_VRS_EIP,
+                                                      data.bytes,
+                                                      data.bytesCount,
+                                                      paperKey);
+
+    transactionSign (transaction, signature);
+    rlpReleaseItem(coder, item);
+    rlpDataRelease(data);
+
+    item = transactionRlpEncode (transaction,
+                                           ethereumMainnet,
+                                           RLP_TYPE_TRANSACTION_SIGNED,
+                                           coder);
+    rlpReleaseItem(coder, item);
+
+    //Request block headers 4732522, 4732523, 4732524
+    lesSubmitTransaction (les, NODE_REFERENCE_ANY,
+                          NULL,
+                          _SendTransaction_Callback_Test1,
+                          transaction);
+
+    /*
+     fputs("PaperKey: ", stdout);
+     fgets (paperKey, 1024, stdin);
+     paperKey[strlen(paperKey) - 1] = '\0';
+
+     fputs("Address: ", stdout);
+     fgets (recvAddress, 1024, stdin);
+     recvAddress[strlen(recvAddress) - 1] = '\0';
+     */
+    //printf ("PaperKey: '%s'\nAddress: '%s'\n", paperKey, recvAddress);
+
+    _waitForTests();
+    eth_log(TST_LOG_TOPIC, "SendTransaction: %s", "Tests Successful");
+
+}
+
+void _GetBlockHeaders_0_1 (BREthereumLESProvisionContext context,
+                                       BREthereumLES les,
+                                       BREthereumNodeReference node,
+                                       BREthereumProvisionResult result) {
+    assert (PROVISION_SUCCESS == result.status);
+
+    BRArrayOf(BREthereumBlockHeader) headers = result.provision.u.headers.headers;
+    assert (2 == array_count(headers));
+
+    BREthereumBlockHeader header_0 = headers[0];
+    BREthereumBlockHeader header_1 = headers[1];
+
+    BRRlpCoder coder = rlpCoderCreate();
+
+    BRRlpItem item;
+    BRRlpData data;
+    char *hex;
+
+    item = blockHeaderRlpEncode (header_0, ETHEREUM_BOOLEAN_TRUE, RLP_TYPE_NETWORK, coder);
+    data = rlpGetDataSharedDontRelease(coder, item);
+    hex = encodeHexCreate(NULL, data.bytes, data.bytesCount);
+    rlpShowItem(coder, item, "BLOCK_0");
+    printf ("Block_0: %s\n", hex);
+
+    free (hex); rlpReleaseItem (coder, item);
+
+    item = blockHeaderRlpEncode (header_1, ETHEREUM_BOOLEAN_TRUE, RLP_TYPE_NETWORK, coder);
+    data = rlpGetDataSharedDontRelease(coder, item);
+    hex = encodeHexCreate(NULL, data.bytes, data.bytesCount);
+    rlpShowItem(coder, item, "BLOCK_1");
+    printf ("Block_1: %s\n", hex);
+
+    free (hex); rlpReleaseItem (coder, item);
+
+    _signalTestComplete();
+}
+
+static void
+run_GetSomeHeaders (BREthereumLES les) {
+    _initTest(1);
+    lesProvideBlockHeaders (les, NODE_REFERENCE_ANY,
+                            (void*)NULL,
+                            _GetBlockHeaders_0_1,
+                            1,
+                            2, 0, ETHEREUM_BOOLEAN_FALSE);
+    _waitForTests();
+}
+
+typedef struct {
+    BREthereumBlockHeader header;
+    BRArrayOf (BREthereumTransaction) transactions;
+    BRArrayOf (BREthereumBlockHeader) ommwers;
+} SomeHeaderData;
+
+static void
+_GetSomeBlocks_Bodies (BREthereumLESProvisionContext context,
+                       BREthereumLES les,
+                       BREthereumNodeReference node,
+                       BREthereumProvisionResult result) {
+    SomeHeaderData *data = (SomeHeaderData*) context;
+    assert (PROVISION_SUCCESS == result.status);
+
+    data->ommwers = result.provision.u.bodies.pairs[0].uncles;
+    data->transactions = result.provision.u.bodies.pairs[0].transactions;
+
+    _signalTestComplete();
+}
+
+static void
+_GetSomeBlocks_Header (BREthereumLESProvisionContext context,
+                       BREthereumLES les,
+                       BREthereumNodeReference node,
+                       BREthereumProvisionResult result) {
+    SomeHeaderData *data = (SomeHeaderData*) context;
+
+    assert (PROVISION_SUCCESS == result.status);
+    data->header = result.provision.u.headers.headers[0];
+
+    lesProvideBlockBodiesOne (les, NODE_REFERENCE_ANY,
+                              context,
+                              _GetSomeBlocks_Bodies,
+                              blockHeaderGetHash (data->header));
+
+    _signalTestComplete();
+
+}
+static void
+run_GetSomeBlocks (BREthereumLES les) {
+    SomeHeaderData block_data;
+
+    _initTest(2);
+
+    lesProvideBlockHeaders (les, NODE_REFERENCE_ALL,
+                            (void*) &block_data,
+                            _GetSomeBlocks_Header,
+                            6000000, 1, 0, ETHEREUM_BOOLEAN_FALSE);
+
+    _waitForTests();
+
+    BREthereumBlock block = blockCreate(block_data.header);
+    blockUpdateBody (block, block_data.ommwers, block_data.transactions);
+
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem item = blockRlpEncode (block, ethereumMainnet, RLP_TYPE_NETWORK, coder);
+    BRRlpData data = rlpGetDataSharedDontRelease(coder, item);
+    char      *hex = encodeHexCreate(NULL, data.bytes, data.bytesCount);
+    printf ("Block: %s\n", hex);
+    rlpShowItem(coder, item, "BLOCK");
+
+    free (hex); rlpReleaseItem (coder, item);
+}
+
 extern void
 runLEStests(void) {
     
@@ -1017,15 +1190,27 @@ runLEStests(void) {
     
     // Run Tests on the LES messages
     run_GetBlockHeaders_Tests(les);
+    run_GetBlookProofs_Tests(les);
     run_GetBlockBodies_Tests(les);
     run_GetReceipts_Tests(les);
     run_GetAccountState_Tests(les);
     run_GetTxStatus_Tests(les);
+
     //    run_GetProofsV2_Tests(les); //NOTE: The callback function won't be called.
-    //    reallySendLESTransaction(les);
+
+    // Requires paperKey
+    //    run_SendTransaction_Tests(les);
+
+    //
+    // run_GetSomeHeaders (les);
+    // run_GetSomeBlocks(les);
     
     //    sleep (60);
     lesStop(les);
     lesRelease(les);
     printf ("Done\n");
+}
+
+extern void
+runNodeTests (void) {
 }

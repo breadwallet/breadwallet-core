@@ -30,7 +30,7 @@ class BRCoreTests: XCTestCase {
 
     func testEthereum () {
         let client = TestLightClient (network: EthereumNetwork.mainnet,
-                                      paperKey: "ginger settle marine tissue robot crane night number ramp coast roast critic")
+                                      paperKey: "ginger ...")
 
         client.node.updateTokens()
         client.node.connect()
@@ -63,9 +63,9 @@ class TestLightClient : EthereumClient {
         self.network = network
         self.node = EthereumWalletManager (client: self,
                                            network: network,
-                                           type: EthereumType.brd,
-                                           mode: EthereumSyncMode.blockchain,
-                                           key: EthereumKey.paperKey (paperKey))
+                                           mode: EthereumMode.p2p_only,
+                                           key: EthereumKey.paperKey (paperKey),
+                                           timestamp: 0)
     }
 
     //
@@ -258,6 +258,10 @@ class TestLightClient : EthereumClient {
         default: // Never here
             break;
         }
+    }
+
+    func handleTokenEvent(ewm: EthereumWalletManager, token: EthereumToken, event: EthereumTokenEvent) {
+        print ("TST: TokenEvent: \(event)\n")
     }
 
     func handleBlockEvent(ewm: EthereumWalletManager,

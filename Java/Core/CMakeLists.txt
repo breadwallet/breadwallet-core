@@ -112,7 +112,6 @@ target_sources (core
 
                 #
                 src/main/cpp/core/ethereum/BREthereum.h
-                src/main/cpp/core/ethereum/BREthereum.c
 
                 # Util
                 src/main/cpp/core/ethereum/util/BRKeccak.c
@@ -237,6 +236,7 @@ target_sources (core
                 src/main/cpp/core/ethereum/bcs/BREthereumBlockChainSlice.h
 
                 #EWM
+                src/main/cpp/core/ethereum/ewm/BREthereumBase.h
                 src/main/cpp/core/ethereum/ewm/BREthereumAccount.c
                 src/main/cpp/core/ethereum/ewm/BREthereumAccount.h
                 src/main/cpp/core/ethereum/ewm/BREthereumAmount.c
@@ -245,10 +245,10 @@ target_sources (core
                 src/main/cpp/core/ethereum/ewm/BREthereumTransfer.h
                 src/main/cpp/core/ethereum/ewm/BREthereumWallet.c
                 src/main/cpp/core/ethereum/ewm/BREthereumWallet.h
+                src/main/cpp/core/ethereum/ewm/BREthereumClient.h
                 src/main/cpp/core/ethereum/ewm/BREthereumEWM.c
                 src/main/cpp/core/ethereum/ewm/BREthereumEWM.h
                 src/main/cpp/core/ethereum/ewm/BREthereumEWMClient.c
-                src/main/cpp/core/ethereum/ewm/BREthereumEWMClientEvent.c
                 src/main/cpp/core/ethereum/ewm/BREthereumEWMEvent.c
                 src/main/cpp/core/ethereum/ewm/BREthereumEWMPrivate.h
 #                src/main/cpp/core/ethereum/ewm/testEwm.c
