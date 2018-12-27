@@ -2917,7 +2917,7 @@ void txStatusUpdate(void *info)
 int main(int argc, const char *argv[])
 {
     int r = BRRunTests();
-
+    
 //    int err = 0;
 //    UInt512 seed = UINT512_ZERO;
 //    BRMasterPubKey mpk = BR_MASTER_PUBKEY_NONE;
