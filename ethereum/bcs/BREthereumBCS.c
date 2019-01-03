@@ -625,11 +625,20 @@ bcsHandleAnnounce (BREthereumBCS bcs,
                    uint64_t headNumber,
                    UInt256 headTotalDifficulty,
                    uint64_t reorgDepth) {
-    // If we are not a P2P_* node, we won't handle announcements
-    if (BRD_ONLY == bcs->mode || BRD_WITH_P2P_SEND == bcs->mode) {
+    // If we are in BRD_ONLY mode, we won't handle announcements
+    if (BRD_ONLY == bcs->mode) {
         eth_log ("BCS", "Block %" PRIu64 " Ignored (not P2P) <== %s",
                  headNumber,
                  lesGetNodeHostname (bcs->les, node));
+        return;
+    }
+    // If we are in BRD_WITH_P2P_SEND mode, just pass on the announcement
+    else if (BRD_WITH_P2P_SEND == bcs->mode) {
+        // TODO: No timestamp; no head validation.
+        bcs->listener.blockChainCallback (bcs->listener.context,
+                                          headHash,
+                                          headNumber,
+                                          -1);
         return;
     }
 

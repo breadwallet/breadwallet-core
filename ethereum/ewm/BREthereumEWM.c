@@ -577,6 +577,8 @@ ewmCreateInternal (BREthereumNetwork network,
             FOR_SET (BREthereumBlock, block, blocks)
             if (NULL == lastBlock || blockGetNumber(lastBlock) < blockGetNumber(block))
                 lastBlock = block;
+
+            // This will hit the BRD Services which will update us with everything after lastBlock.
             ewmSignalBlockChain (ewm,
                                  blockGetHash( lastBlock),
                                  blockGetNumber (lastBlock),
@@ -590,11 +592,15 @@ ewmCreateInternal (BREthereumNetwork network,
             BRSetFree (transactions);
             BRSetFree (logs);
 
-            // Add ewmPeriodicDispatcher to handlerForMain.
-            eventHandlerSetTimeoutDispatcher(ewm->handler,
-                                             1000 * EWM_SLEEP_SECONDS,
-                                             (BREventDispatcher)ewmPeriodicDispatcher,
-                                             (void*) ewm);
+            // Add ewmPeriodicDispatcher to handlerForMain.  We'll only add this if the
+            // mode is BRD_ONLY - on all other modes the EWM state will be updated from a) full
+            // peer-to-peer processing or b) calling ewmPeriodicDispatcher when a new block is
+            // announced.
+            if (BRD_ONLY == ewm->mode)
+                eventHandlerSetTimeoutDispatcher(ewm->handler,
+                                                 1000 * EWM_SLEEP_SECONDS,
+                                                 (BREventDispatcher)ewmPeriodicDispatcher,
+                                                 (void*) ewm);
 
             break;
         }
@@ -800,6 +806,36 @@ ewmIsConnected (BREthereumEWM ewm) {
         case P2P_ONLY:
             return bcsIsStarted (ewm->bcs);
     }
+}
+
+
+/**
+ * Update the EWM state using the BRD services
+ *
+ * @param ewm the ewm
+ */
+static void
+ewmUpdateState (BREthereumEWM ewm) {
+    if (ewm->state != LIGHT_NODE_CONNECTED) return;
+
+    // We don't use this in P2P modes, so skip out.
+    if (P2P_ONLY == ewm->mode || P2P_WITH_BRD_SYNC == ewm->mode) return;
+
+    ewmUpdateBlockNumber(ewm);
+    ewmUpdateNonce(ewm);
+
+    // We'll query all transactions for this ewm's account.  That will give us a shot at
+    // getting the nonce for the account's address correct.  We'll save all the transactions and
+    // then process them into wallet as wallets exist.
+    ewmUpdateTransactions(ewm);
+
+    // Similarly, we'll query all logs for this ewm's account.  We'll process these into
+    // (token) transactions and associate with their wallet.
+    ewmUpdateLogs(ewm, NULL, eventERC20Transfer);
+
+    // For all the known wallets, get their balance.
+    for (int i = 0; i < array_count(ewm->wallets); i++)
+        ewmUpdateWalletBalance (ewm, ewm->wallets[i]);
 }
 
 extern BREthereumNetwork
@@ -1468,20 +1504,29 @@ ewmHandleBlockChain (BREthereumEWM ewm,
                      BREthereumHash headBlockHash,
                      uint64_t headBlockNumber,
                      uint64_t headBlockTimestamp) {
-    // Don't report during BCS sync.
-    if (BRD_ONLY == ewm->mode || ETHEREUM_BOOLEAN_IS_FALSE(bcsSyncInProgress (ewm->bcs)))
-        eth_log ("EWM", "BlockChain: %" PRIu64, headBlockNumber);
+    // Don't report during BCS sync but always report during an BRD mode.
+    if (BRD_ONLY == ewm->mode || BRD_WITH_P2P_SEND == ewm->mode ||
+        ETHEREUM_BOOLEAN_IS_FALSE(bcsSyncInProgress (ewm->bcs)))
+        eth_log ("EWM", "BlockChain: %" PRIu64 "%s", headBlockNumber,
+                 (BRD_WITH_P2P_SEND == ewm->mode ? " via BRD Services" : ""));
+
+    // 
+    uint64_t lastBlockNumber = ewm->blockHeight;
 
     // At least this - allows for: ewmGetBlockHeight
     ewm->blockHeight = headBlockNumber;
 
+    // If we are in BRD_WITH_P2P_SEND mode, then trigger a EWM state update using BRD services.
+    if (BRD_WITH_P2P_SEND == ewm->mode)
+        ewmUpdateState (ewm);
+
 #if defined (NEVER_DEFINED)
     // TODO: Need a 'block id' - or axe the need of 'block id'?
     ewmSignalBlockEvent (ewm,
-                               (BREthereumBlockId) 0,
-                               BLOCK_EVENT_CHAINED,
-                               SUCCESS,
-                               NULL);
+                         (BREthereumBlockId) 0,
+                         BLOCK_EVENT_CHAINED,
+                         SUCCESS,
+                         NULL);
 #endif
 }
 
@@ -1902,31 +1947,11 @@ ewmHandleGetBlocks (BREthereumEWM ewm,
 //
 // Periodic Dispatcher
 //
-
 static void
 ewmPeriodicDispatcher (BREventHandler handler,
                        BREventTimeout *event) {
-    BREthereumEWM ewm = (BREthereumEWM) event->context;
-    
-    if (ewm->state != LIGHT_NODE_CONNECTED) return;
-    if (P2P_ONLY == ewm->mode || P2P_WITH_BRD_SYNC == ewm->mode) return;
-
-    ewmUpdateBlockNumber(ewm);
-    ewmUpdateNonce(ewm);
-    
-    // We'll query all transactions for this ewm's account.  That will give us a shot at
-    // getting the nonce for the account's address correct.  We'll save all the transactions and
-    // then process them into wallet as wallets exist.
-    ewmUpdateTransactions(ewm);
-    
-    // Similarly, we'll query all logs for this ewm's account.  We'll process these into
-    // (token) transactions and associate with their wallet.
-    ewmUpdateLogs(ewm, NULL, eventERC20Transfer);
-    
-    // For all the known wallets, get their balance.
-    for (int i = 0; i < array_count(ewm->wallets); i++)
-        ewmUpdateWalletBalance (ewm, ewm->wallets[i]);
-}
+    ewmUpdateState ((BREthereumEWM) event->context);
+ }
 
 #if 1 // defined(SUPPORT_JSON_RPC)
 
