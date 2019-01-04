@@ -287,7 +287,7 @@ static size_t _BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t 
 {
     BRTxInput input;
     int anyoneCanPay = (hashType & SIGHASH_ANYONECANPAY), sigHash = (hashType & 0x1f), witnessFlag = 0;
-    size_t count, i, off = 0;
+    size_t i, count, len, woff, off = 0;
     
     if (hashType & SIGHASH_FORKID) return _BRTransactionWitnessData(tx, data, dataLen, index, hashType);
     if (anyoneCanPay && index >= tx->inCount) return 0;
@@ -350,7 +350,12 @@ static size_t _BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t 
     
     for (i = 0; witnessFlag && i < tx->inCount; i++) {
         input = tx->inputs[i];
-        count = BRScriptElements(NULL, 0, input.witness, input.witLen);
+
+        for (count = 0, woff = 0; woff < input.witLen; count++) {
+            woff += BRVarInt(&input.witness[woff], input.witLen - woff, &len);
+            woff += len;
+        }
+        
         off += BRVarIntSet((data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0), count);
         if (data && off + input.witLen <= dataLen) memcpy(&data[off], input.witness, input.witLen);
         off += input.witLen;
