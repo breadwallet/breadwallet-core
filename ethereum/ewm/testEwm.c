@@ -879,7 +879,8 @@ runEWM_PUBLIC_KEY_test (BREthereumNetwork network, const char *paperKey) {
 }
 
 extern void
-runSyncTest (BREthereumAccount account,
+runSyncTest (BREthereumNetwork network,
+             BREthereumAccount account,
              BREthereumMode mode,
              BREthereumTimestamp accountTimestamp,
              unsigned int durationInSeconds,
@@ -913,7 +914,7 @@ runSyncTest (BREthereumAccount account,
             }
         }
 
-        ewm = ewmCreate (ethereumMainnet, account, accountTimestamp,
+        ewm = ewmCreate (network, account, accountTimestamp,
                                      mode, client,
                                      nodes,
                                      blocks,

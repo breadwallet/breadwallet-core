@@ -9,9 +9,23 @@ import XCTest
 
 class CoreTests: XCTestCase {
 
-    var coreDataDir: String!
+    static let PAPER_KEY_MAINNET = "paperKeysMainnet"
+    static let PAPER_KEY_TESTNET = "paperKeysTestnet"
+
+    var isMainnet: Int32! = 1
+    var isBTC: Int32! = 1
+
+    var paperKeys: [String] = []
+
+    var paperKey: String! {
+        return (paperKeys.count > 0
+            ? paperKeys[0]
+            : nil)
+    }
+
     var account: BREthereumAccount!
-    var paperKey: String!
+
+    var coreDataDir: String!
 
     func coreDirClear () {
         do {
@@ -36,20 +50,37 @@ class CoreTests: XCTestCase {
         }
 
     }
+
     override func setUp() {
         super.setUp()
 
-        paperKey = (CommandLine.argc > 1 && !CommandLine.arguments[1].starts(with: "-")
-            ? CommandLine.arguments[1]
-            : "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62");
+        #if TESTNET
+        isMainnet = 0
+        #endif
 
-        account = createAccount (paperKey)
+        let configPath = (CommandLine.argc > 1 && !CommandLine.arguments[1].starts(with: "-")
+            ? CommandLine.arguments[1]
+            : "/Users/ebg/.brdCoreTestConfig.plist")
+
+        if FileManager.default.fileExists(atPath: configPath) {
+            let configFile = URL(fileURLWithPath: configPath)
+            let configData = try! Data.init(contentsOf: configFile)
+            let configPropertyList = try! PropertyListSerialization.propertyList(from: configData, options: [], format: nil) as! [String: [String]]
+
+            #if TESTNET
+            paperKeys = configPropertyList [CoreTests.PAPER_KEY_TESTNET]!
+            #else
+            paperKeys = configPropertyList [CoreTests.PAPER_KEY_MAINNET]!
+            #endif
+        }
+
+        account = createAccount (nil != paperKey ? paperKey : "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62")
 
         coreDataDir = FileManager.default
             .urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Core").path
 
-        coreDirClear()
+        coreDirCreate()
         coreDirClear()
 
     }
@@ -85,6 +116,10 @@ class CoreTests: XCTestCase {
         runContractTests ();
     }
     
+    func testEthereumBasics() {
+        runTests(0)
+    }
+
     func testEWM () {
         runEWMTests(paperKey);
     }
@@ -94,27 +129,52 @@ class CoreTests: XCTestCase {
         runNodeTests()
     }
 
-    func testEthereumBasics() {
-        runTests(0)
-    }
 
+    /// Run an Etheruem Sync.  Two syncs are run back-to-back with the second sync meant to
+    /// start from the saved state of the first sync.
+    ///
+    /// Note: The first sync saves state in memory.
+    ///
+    /// - Throws: something
+    ///
     func testEthereumSync ()  throws{
         let mode = P2P_ONLY //  BRD_WITH_P2P_SEND
         let timestamp : UInt64 = 0
 
-        runSyncTest (account, mode, timestamp, 10 * 60, nil, 0);
-        runSyncTest (account, mode, timestamp,  1 * 60, nil, 1);
+        let network = (isMainnet == 1 ? ethereumMainnet : ethereumTestnet)
+
+        runSyncTest (network, account, mode, timestamp, 10 * 60, nil, 0);
+        runSyncTest (network, account, mode, timestamp,  1 * 60, nil, 1);
     }
 
+    /// Run an Etheruem Sync.  Two syncs are run back-to-back with the second sync meant to
+    /// start from the saved state of the first sync.
+    ///
+    /// Note: The first sync saves state to the file system..
+    ///
+    /// - Throws: something
+    ///
     func testEthereumSyncStorage () throws {
         let mode = P2P_ONLY; // P2P_WITH_BRD_SYNC,  BRD_WITH_P2P_SEND
         let timestamp : UInt64 = 0
 
+        let network = (isMainnet == 1 ? ethereumMainnet : ethereumTestnet)
+
         coreDirClear()
-        runSyncTest(account, mode, timestamp, 5 * 60, coreDataDir, 0);
-        runSyncTest(account, mode, timestamp, 1 * 60, coreDataDir, 1);
+        runSyncTest(network, account, mode, timestamp, 5 * 60, coreDataDir, 0);
+        runSyncTest(network, account, mode, timestamp, 1 * 60, coreDataDir, 1);
     }
-    
+
+    /// Run a single bitcoin sync using the provided paperKey
+    ///
+    func testBitcoinSyncOne() {
+        BRRandInit()
+        BRRunTestsSync (paperKey, isBTC, isMainnet);
+    }
+
+    /// Run 25 simultaneous bitcoin syncs using the provided paperKeys and random keys after
+    /// that.
+    ///
     func testBitcoinSyncMany () {
         BRRandInit()
         let group = DispatchGroup.init()
@@ -122,20 +182,20 @@ class CoreTests: XCTestCase {
             DispatchQueue.init(label: "Sync \(i)")
                 .async {
                     group.enter()
-                    BRRunTestsSync (i == 1 ? CommandLine.arguments[i] : nil);
+                    let paperKey = i <= self.paperKeys.count ? self.paperKeys[i - 1] : nil
+                    BRRunTestsSync (paperKey, self.isBTC, self.isMainnet);
                     group.leave()
             }
         }
         group.wait()
     }
 
-    func testBitcoinSyncOne() {
-        BRRandInit()
-        BRRunTestsSync (CommandLine.argc >= 2 ? CommandLine.arguments[1] : nil);
-    }
-
+    ///
+    /// Run a bitcoin sync using the (new) BRWalletManager which encapsulates BRWallet and
+    /// BRPeerManager with 'save' callbacks using the file system.
+    ///
     func testBitcoinWalletManagerSync () {
-        BRRunTestWalletManagerSync(CommandLine.arguments[1], coreDataDir);
+        BRRunTestWalletManagerSync (paperKey, coreDataDir, isBTC, isMainnet);
     }
 
     func testPerformanceExample() {
