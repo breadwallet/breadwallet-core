@@ -58,6 +58,9 @@ class CoreTests: XCTestCase {
         isMainnet = 0
         #endif
 
+        // Eth Account for the non-compromised, mainnet paperKey "e...a"
+        var fakeEthAccount: String = "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62"
+
         let configPath = (CommandLine.argc > 1 && !CommandLine.arguments[1].starts(with: "-")
             ? CommandLine.arguments[1]
             : "/Users/ebg/.brdCoreTestConfig.plist")
@@ -73,8 +76,13 @@ class CoreTests: XCTestCase {
             paperKeys = configPropertyList [CoreTests.PAPER_KEY_MAINNET]!
             #endif
         }
+        else if 0 == isMainnet /* testnet */ {
+            // This is a compromised testnet paperkey
+            paperKeys = ["ginger settle marine tissue robot crane night number ramp coast roast critic"]
+            fakeEthAccount = "0x8fB4CB96F7C15F9C39B3854595733F728E1963Bc"
+        }
 
-        account = createAccount (nil != paperKey ? paperKey : "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62")
+        account = createAccount (nil != paperKey ? paperKey : fakeEthAccount)
 
         coreDataDir = FileManager.default
             .urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -195,8 +203,10 @@ class CoreTests: XCTestCase {
     /// BRPeerManager with 'save' callbacks using the file system.
     ///
     func testBitcoinWalletManagerSync () {
+        coreDirClear()
         BRRunTestWalletManagerSync (paperKey, coreDataDir, isBTC, isMainnet);
-    }
+        BRRunTestWalletManagerSync (paperKey, coreDataDir, isBTC, isMainnet);
+   }
 
     func testPerformanceExample() {
 //        runTests(0);

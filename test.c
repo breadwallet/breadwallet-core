@@ -3090,8 +3090,12 @@ _testWalletManagerEventCallback (BRWalletManager manager,
 
 
 extern int BRRunTestWalletManagerSync (const char *paperKey,
-                                       const char *storagePath) {
-    const BRChainParams *params = &BRMainNetParams;
+                                       const char *storagePath,
+                                       int isBTC,
+                                       int isMainnet) {
+    const BRChainParams *params = (isBTC & isMainnet ? &BRMainNetParams
+                                   : (isBTC & !isMainnet ? &BRTestNetParams
+                                      : (isMainnet ? &BRBCashParams : &BRBCashTestNetParams)));
 
     uint32_t epoch = 1483228800; // 1/1/17
     epoch += (365 + 365/2) * 24 * 60 * 60;
