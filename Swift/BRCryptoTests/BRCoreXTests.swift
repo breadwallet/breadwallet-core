@@ -75,7 +75,7 @@ class BRCoreXTests: XCTestCase {
         let BTC = Bitcoin.currency.defaultUnit!
         let USD = Fiat.US.defaultUnit!
 
-        let pair = CurrencyPair (baseCurrency: BTC, quoteCurrency: USD, exchangeRate: 6000)
+        let pair = CurrencyPair (baseUnit: BTC, quoteUnit: USD, exchangeRate: 6000)
 
         // BTC -> USD
         let inUSD = pair.exchange(asBase: Amount (value: 1.0, unit: BTC))

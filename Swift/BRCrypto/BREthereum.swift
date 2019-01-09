@@ -53,6 +53,13 @@ extension Network {
     }
 }
 
+extension TransferFeeBasis {
+    var ethereumValues: (gasPrice: Amount, gasLimit: UInt64)? {
+        if case let .ethereum (gasPrice, gasLimit) = self { return (gasPrice: gasPrice, gasLimit: gasLimit) }
+        else { return nil }
+    }
+}
+
 ///
 /// An Ethereum Persistence Client adds the `changeLog()` interface to a Wallet Manager
 /// Persistence Client.
@@ -265,8 +272,8 @@ public class EthereumTransfer: Transfer {
                        target: Address,
                        amount: Amount,
                        feeBasis: TransferFeeBasis) {
-        
-        guard case let .ethereum(gasPriceBasis, gasLImitBasis) = feeBasis else { precondition(false) }
+
+        guard case let .ethereum(gasPriceBasis, gasLImitBasis) = feeBasis else { return nil }
         
         let core = wallet._manager.core!
         
@@ -275,14 +282,14 @@ public class EthereumTransfer: Transfer {
 
         guard let asEther = amount.asEther else { return nil }
 
-        let feeBasis = feeBasisCreate(gasLImit, gasPrice);
+        let coreFeeBasis = feeBasisCreate(gasLImit, gasPrice);
 
         self.init (wallet: wallet,
                    tid:  ewmWalletCreateTransferWithFeeBasis (core,
                                                               wallet.identifier,
                                                               target.description,
                                                               asEther,
-                                                              feeBasis))
+                                                              coreFeeBasis))
     }
 }
 
@@ -349,7 +356,7 @@ public class EthereumWallet: Wallet {
                 gasLimit: gasLimit.amountOfGas)
         }
         set (basis) {
-            guard case let .ethereum (gasPriceBasis, gasLimitBasis) = basis else { precondition(false) }
+            guard case let .ethereum (gasPriceBasis, gasLimitBasis) = basis else { precondition(false); return }
             
             var overflow: Int32 = 0
             let gasPrice = coerceUInt64 (gasPriceBasis.value, &overflow)
@@ -423,7 +430,7 @@ public class EthereumWalletManager: WalletManager {
         guard case .none = findWallet(identifier: identifier) else { return }
 
         if let tokenId = ewmWalletGetToken (core, identifier) {
-            guard let token = findToken (identifier: tokenId) else { precondition(false) }
+            guard let token = findToken (identifier: tokenId) else { precondition(false); return }
             wallets.append (EthereumWallet (manager: self,
                                             currency: token.currency,
                                             wid: identifier))
@@ -454,13 +461,13 @@ public class EthereumWalletManager: WalletManager {
 
     public func sign (transfer: Transfer, paperKey: String) {
         guard let wallet = primaryWallet as? EthereumWallet,
-            let transfer = transfer as? EthereumTransfer else { precondition(false) }
+            let transfer = transfer as? EthereumTransfer else { precondition(false); return }
         ewmWalletSignTransferWithPaperKey(core, wallet.identifier, transfer.identifier, paperKey)
     }
 
     public func submit (transfer: Transfer) {
         guard let wallet = primaryWallet as? EthereumWallet,
-            let transfer = transfer as? EthereumTransfer else { precondition(false) }
+            let transfer = transfer as? EthereumTransfer else { precondition(false); return }
        ewmWalletSubmitTransfer(core, wallet.identifier, transfer.identifier)
     }
 
@@ -472,9 +479,10 @@ public class EthereumWalletManager: WalletManager {
                  storagePath: String,
                  persistenceClient: EthereumPersistenceClient = DefaultEthereumPersistenceClient(),
                  backendClient: EthereumBackendClient = DefaultEthereumBackendClient()) {
-        
-        guard case let .ethereum (_, _, coreNetwork) = network else { precondition(false) }
-        
+
+        let coreNetwork: BREthereumNetwork! = network.ethereumCore
+        precondition (nil != coreNetwork)
+
         self.backendClient = backendClient
         self.persistenceClient = persistenceClient
         
@@ -956,17 +964,18 @@ extension WalletEvent {
             var amount: Amount?
 
             switch amountGetType(coreBalance) {
-            case AMOUNT_ETHER:
-                amount = Amount (value: coreBalance.u.ether.valueInWEI,
-                                 unit:  Ethereum.currency.baseUnit,
-                                 negative: false)
             case AMOUNT_TOKEN:
-                guard let token = ewm.findToken (identifier: coreBalance.u.tokenQuantity.token)
-                    else { precondition(false) }
+                let token: EthereumToken! = ewm.findToken (identifier: coreBalance.u.tokenQuantity.token)
+                precondition (nil != token)
+
                 amount = Amount (value: coreBalance.u.tokenQuantity.valueAsInteger,
                                  unit:  token.currency.baseUnit,
                                  negative: false)
-            default: precondition(false)
+            case AMOUNT_ETHER: fallthrough
+            default:
+                amount = Amount (value: coreBalance.u.ether.valueInWEI,
+                                 unit:  Ethereum.currency.baseUnit,
+                                 negative: false)
             }
 
             self = .balanceUpdated (amount: amount!)
