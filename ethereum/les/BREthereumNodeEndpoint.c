@@ -751,15 +751,20 @@ const char *bootstrapBRDEnodes[] = {
     // -- Digital Ocean
     "enode://9babde23c90a3f948b2a0fd8d5216a03cab5d75e351eac75831b0f41c58ab404d34b8ce9893071a09df0f3005a928c1de0ca1de9e3db5914d8750d183db9210d@104.248.185.124:8888",
     // -- GCP
-    "enode://3d0bce4775635c65733b7534f1bccd48720632f5d66a44030c1d13e2e5883262d9d22cdb8365c03137e8d5fbbf5355772acf35b08d6f9b5ad69bb24ad52a20cc@35.184.255.33:30303"
+    "enode://3d0bce4775635c65733b7534f1bccd48720632f5d66a44030c1d13e2e5883262d9d22cdb8365c03137e8d5fbbf5355772acf35b08d6f9b5ad69bb24ad52a20cc@35.184.255.33:30303",
 
     // Full
     // -- Digital Ocean
     "enode://b9040af88f88a5b5e2864b2e98630d58579aab0649a90fff5b5b544f0aaf97a2a084651ca5a2b2f358abd215bda4494e7a350ab126915abd559d6da7b539b6ca@138.68.12.85:8888",
-    "enode://ae1e2d1f4c17203e17a9cc8bffd5a2f9ad4cf081fa966caa643e32bdbd31f483d5ecb515113df4c9e9a6673eed25033d3031836260053bbd2f00c0d5a00cc319@167.99.108.130:8888",
+    "enode://ae1e2d1f4c17203e17a9cc8bffd5a2f9ad4cf081fa966caa643e32bdbd31f483d5ecb515113df4c9e9a6673eed25033d3031836260053bbd2f00c0d5a00cc319@206.189.78.132:8888",
     // -- GCP
-    "enode://efce5bdeeba0688fcb0f8a05d53d783f17ba8926b2b4663e7334f050f27661ef802248fe51cc198b7618551d9e76b4de5dbf8407726f2dc9dfaeaefb95748843@35.193.192.189:30303",
-    "enode://e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851@104.197.99.24:30303",
+#endif
+    NULL
+};
+
+const char *bootstrapBRDEnodesTestnet[] = {
+#if defined (LES_SUPPORT_GETH)
+    "enode://87ef58b88a9c7574eb870097675e26f78dcd958834bd768b678aa01eabd316c74df1ff01bfbe030c5b75878646df4108554434df61de591a2c6859e329bbacde@138.68.6.252:8888",
 #endif
     NULL
 };
@@ -910,7 +915,7 @@ const char **bootstrapMainnetEnodeSets[] = {
     bootstrapLCLEnodes,
 #endif
 };
-size_t NUMBER_OF_NODE_ENDPOINT_SETS = (sizeof (bootstrapMainnetEnodeSets) / sizeof (char **));
+size_t NUMBER_OF_MAINNET_ENDPOINT_SETS = (sizeof (bootstrapMainnetEnodeSets) / sizeof (char **));
 
 // TODO: Known bad enodes - really the code should find and disable on the fly, based on the node's behavior.
 const char *bootstrapDisableEnodes[] = {
@@ -921,3 +926,21 @@ const char *bootstrapDisableEnodes[] = {
     NULL
 };
 
+const char **bootstrapTestnetEnodeSets[] = {
+#if defined (LES_BOOTSTRAP_COMMON)
+#endif
+
+#if defined (LES_BOOTSTRAP_PARITY)
+#endif
+
+#if defined (LES_BOOTSTRAP_GETH)
+#endif
+
+#if defined (LES_BOOTSTRAP_BRD)
+    bootstrapBRDEnodesTestnet,
+#endif
+
+#if defined (LES_BOOTSTRAP_LCL)
+#endif
+};
+size_t NUMBER_OF_TESTNET_ENDPOINT_SETS = (sizeof (bootstrapTestnetEnodeSets) / sizeof (char **));

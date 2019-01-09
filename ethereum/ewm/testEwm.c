@@ -925,7 +925,7 @@ runSyncTest (BREthereumNetwork network,
         if (restart) {
 
         }
-        ewm = ewmCreateWithStoragePath(ethereumMainnet, account, accountTimestamp, mode, client, storagePath);
+        ewm = ewmCreateWithStoragePath(network, account, accountTimestamp, mode, client, storagePath);
     }
     
     char *address = ewmGetAccountPrimaryAddress(ewm);

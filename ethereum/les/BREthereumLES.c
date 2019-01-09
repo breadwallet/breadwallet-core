@@ -390,6 +390,23 @@ lesEnsureNodeForEndpoint (BREthereumLES les,
     return node;
 }
 
+static size_t
+lesBootstrapEndpointsSetCount (BREthereumNetwork network) {
+    if (ethereumMainnet == network) return NUMBER_OF_MAINNET_ENDPOINT_SETS;
+    if (ethereumTestnet == network) return NUMBER_OF_TESTNET_ENDPOINT_SETS;
+    return 0;
+}
+
+
+
+static const char **
+lesBootstrapEndpoints (BREthereumNetwork network,
+                       size_t set) {
+    if (ethereumMainnet == network) return bootstrapMainnetEnodeSets[set];
+    if (ethereumTestnet == network) return bootstrapTestnetEnodeSets[set];
+    return NULL;
+}
+
 //
 // Public functions
 //
@@ -522,19 +539,30 @@ lesCreate (BREthereumNetwork network,
     // ... and then add in bootstrap endpoints for good measure.  Note that in practice after the
     // first boot, *none* of these nodes will be added as they would already be in 'configs' above.
     size_t bootstrappedEndpointsCount = 0;
-    BREthereumBoolean bootstrappedEndpointsAdded;
-    for (size_t set = 0; set < NUMBER_OF_NODE_ENDPOINT_SETS; set++) {
-        const char **enodes = bootstrapMainnetEnodeSets[set];
-        for (size_t index = 0; NULL != enodes[index]; index++) {
-            lesEnsureNodeForEndpoint(les,
-                                     nodeEndpointCreateEnode(enodes[index]),
-                                     (BREthereumNodeState) { NODE_AVAILABLE },
-                                     (enodes == bootstrapLCLEnodes
-                                      ? NODE_PRIORITY_LCL
-                                      : (enodes == bootstrapBRDEnodes
-                                         ? NODE_PRIORITY_BRD
-                                         : NODE_PRIORITY_DIS)),
-                                     &bootstrappedEndpointsAdded);
+    size_t bootstrappedEndpointSetCount = lesBootstrapEndpointsSetCount (network);
+    BREthereumBoolean bootstrappedEndpointsAdded = ETHEREUM_BOOLEAN_FALSE;
+
+    for (size_t set = 0; set < bootstrappedEndpointSetCount; set++) {
+        const char **enodes = lesBootstrapEndpoints (network, set);
+        for (size_t index = 0; NULL != enodes && NULL != enodes[index]; index++) {
+            if (ethereumMainnet == network)
+                lesEnsureNodeForEndpoint(les,
+                                         nodeEndpointCreateEnode(enodes[index]),
+                                         (BREthereumNodeState) { NODE_AVAILABLE },
+                                         (enodes == bootstrapLCLEnodes
+                                          ? NODE_PRIORITY_LCL
+                                          : (enodes == bootstrapBRDEnodes
+                                             ? NODE_PRIORITY_BRD
+                                             : NODE_PRIORITY_DIS)),
+                                         &bootstrappedEndpointsAdded);
+            else if (ethereumTestnet == network)
+                lesEnsureNodeForEndpoint (les,
+                                          nodeEndpointCreateEnode(enodes[index]),
+                                          (BREthereumNodeState) { NODE_AVAILABLE },
+                                          (enodes == bootstrapBRDEnodesTestnet
+                                           ? NODE_PRIORITY_BRD
+                                           : NODE_PRIORITY_DIS),
+                                          &bootstrappedEndpointsAdded);
             if (ETHEREUM_BOOLEAN_IS_TRUE(bootstrappedEndpointsAdded))
                 bootstrappedEndpointsCount++;
         }
