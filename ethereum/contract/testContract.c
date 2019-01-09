@@ -91,16 +91,18 @@ void runTokenLookupTests () {
 
     BREthereumToken token;
 
-    token = tokenLookup ("0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"); // BRD
+    token = tokenLookup (tokenBRDAddress); // BRD
     assert (NULL != token);
 
 #if defined (BITCOIN_DEBUG)
-    token = tokenLookup("0x3efd578b271d034a69499e4a2d933c631d44b9ad"); // TST: mainnet
+    token = tokenLookup(tokenTSTAddress); // TST: mainnet
     assert (NULL != token);
 #endif
 
+#if 0 == BITCOIN_TESTNET
     token = tokenLookup("0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0"); // EOI
     assert (NULL != token);
+#endif
 }
 
 
