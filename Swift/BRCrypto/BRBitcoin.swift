@@ -328,13 +328,13 @@ public class BitcoinWalletManager: WalletManager {
     }
 
     public func sign(transfer: Transfer, paperKey: String) {
-        guard let transfer = transfer as? BitcoinTransfer else { precondition(false) }
+        guard let transfer = transfer as? BitcoinTransfer else { precondition(false); return }
         var seed = Account.deriveSeed (phrase: paperKey)
         BRWalletSignTransaction(coreWallet, transfer.core, &seed, MemoryLayout<UInt512>.size)
     }
 
     public func submit(transfer: Transfer) {
-        guard let transfer = transfer as? BitcoinTransfer else { precondition(false) }
+        guard let transfer = transfer as? BitcoinTransfer else { precondition(false); return }
         let  closure = CLangClosure { (error: Int32) in
             let event = TransferEvent.changed (
                 old: transfer.state,
@@ -363,8 +363,12 @@ public class BitcoinWalletManager: WalletManager {
                  storagePath: String,
                  persistenceClient: BitcoinPersistenceClient = DefaultBitcoinPersistenceClient(),
                  backendClient: BitcoinBackendClient = DefaultBitcoinBackendClient()) {
-        guard let params = network.bitcoinChainParams else { precondition(false) }
-        
+        let params: UnsafePointer<BRChainParams>! = network.bitcoinChainParams
+        precondition (nil != params)
+
+        let forkId: BRWalletForkId! = network.forkId
+        precondition (nil != forkId);
+
         self.backendClient = backendClient
         self.persistenceClient = persistenceClient
         
@@ -374,8 +378,6 @@ public class BitcoinWalletManager: WalletManager {
         self.path = storagePath
         self.mode = mode
         self.state = WalletManagerState.created
-
-        guard let forkId = network.forkId else { precondition(false) }
 
 #if false
         let client = BRWalletManagerClient (
