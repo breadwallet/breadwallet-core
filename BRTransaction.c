@@ -30,7 +30,6 @@
 #include <inttypes.h>
 #include <limits.h>
 #include <time.h>
-#include <unistd.h>
 
 #define TX_VERSION           0x00000001
 #define TX_LOCKTIME          0x00000000
@@ -39,27 +38,6 @@
 #define SIGHASH_SINGLE       0x03 // sign one of the outputs, I don't care where the other outputs go
 #define SIGHASH_ANYONECANPAY 0x80 // let other people add inputs, I don't care where the rest of the bitcoins come from
 #define SIGHASH_FORKID       0x40 // use BIP143 digest method (for b-cash/b-gold signatures)
-
-void BRRandInit (void) {
-    static int first = 1;
-    // seed = (((FNV_OFFSET xor time)*FNV_PRIME) xor pid)*FNV_PRIME
-    if (first) srand((((0x811C9dc5 ^ (unsigned)time(NULL))*0x01000193) ^ (unsigned)getpid())*0x01000193);
-    first = 0;
-}
-
-// returns a random number less than upperBound, for non-cryptographic use only
-uint32_t BRRand(uint32_t upperBound)
-{
-    uint32_t r;
-    
-    if (upperBound == 0 || upperBound > BR_RAND_MAX) upperBound = BR_RAND_MAX;
-    
-    do { // to avoid modulo bias, find a rand value not less than 0x100000000 % upperBound
-        r = rand();
-    } while (r < ((0xffffffff - upperBound*2) + 1) % upperBound); // (((0xffffffff - x*2) + 1) % x) == (0x100000000 % x)
-
-    return r % upperBound;
-}
 
 void BRTxInputSetAddress(BRTxInput *input, const char *address)
 {

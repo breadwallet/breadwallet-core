@@ -176,7 +176,6 @@ class CoreTests: XCTestCase {
     /// Run a single bitcoin sync using the provided paperKey
     ///
     func testBitcoinSyncOne() {
-        BRRandInit()
         BRRunTestsSync (paperKey, isBTC, isMainnet);
     }
 
@@ -184,7 +183,6 @@ class CoreTests: XCTestCase {
     /// that.
     ///
     func testBitcoinSyncMany () {
-        BRRandInit()
         let group = DispatchGroup.init()
         for i in 1...25 {
             DispatchQueue.init(label: "Sync \(i)")
