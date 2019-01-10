@@ -284,6 +284,8 @@ struct BREthereumLESRecord {
     /** RLP Coder */
     BRRlpCoder coder;
 
+    BREthereumBoolean discoverNodes;
+    
     /** Callbacks */
     BREthereumLESCallbackContext callbackContext;
     BREthereumLESCallbackAnnounce callbackAnnounce;
@@ -420,7 +422,8 @@ lesCreate (BREthereumNetwork network,
            uint64_t headNumber,
            UInt256 headTotalDifficulty,
            BREthereumHash genesisHash,
-           OwnershipGiven BRSetOf(BREthereumNodeConfig) configs) {
+           OwnershipGiven BRSetOf(BREthereumNodeConfig) configs,
+           BREthereumBoolean discoverNodes) {
     
     BREthereumLES les = (BREthereumLES) calloc (1, sizeof(struct BREthereumLESRecord));
     assert (NULL != les);
@@ -437,6 +440,8 @@ lesCreate (BREthereumNetwork network,
 
     // Get our shared rlpCoder.
     les->coder = rlpCoderCreate();
+
+    les->discoverNodes = discoverNodes;
 
     // Save callbacks.
     les->callbackContext = callbackContext;
@@ -1217,9 +1222,12 @@ lesThread (BREthereumLES les) {
         //
         else if (selectCount == 0) {
 
-#if !defined (LES_DISABLE_DISCOVERY)
-            // If we don't have enough availableNodes, try to find some
-            if (array_count(les->availableNodes) < 100 && array_count(les->activeNodesByRoute[NODE_ROUTE_UDP]) < 3) {
+            // If we don't have enough availableNodes, try to discover some
+            if (ETHEREUM_BOOLEAN_IS_TRUE(les->discoverNodes) &&
+                array_count(les->availableNodes) < LES_AVAILABLE_NODES_COUNT &&
+                // We won't look any more if we we have enough nodes already looking.  Upon
+                // discovery, the UPD node will will go inactive and we'll look again.
+                array_count(les->activeNodesByRoute[NODE_ROUTE_UDP]) < LES_ACTIVE_NODE_UDP_LIMIT) {
 
                 // Find a 'discovery' node by looking in: activeNodesByRoute[NODE_ROUTE_TCP],
                 // availableNodes and then finally allNodes.  If that fails, try harder (see
@@ -1244,7 +1252,7 @@ lesThread (BREthereumLES les) {
                         assert (0);  // how?
                 }
             }
-#endif
+
             // If we don't have enough connectedNodes, try to add one.  Note: when we created
             // the node (as part of UDP discovery) we give it our endpoint info (like headNum).
             // But now that is likely out of date as we've synced/progressed/chained.  I think the
