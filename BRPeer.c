@@ -1185,6 +1185,7 @@ void BRPeerDisconnect(BRPeer *peer)
 
     if (socket >= 0) {
         ctx->socket = -1;
+        ctx->status = BRPeerStatusDisconnected;
         if (shutdown(socket, SHUT_RDWR) < 0) peer_log(peer, "%s", strerror(errno));
         close(socket);
     }
