@@ -535,7 +535,7 @@ extension Address: Hashable {
             return 1 == BRAddressEq (&addr1, &addr2)
         case (.ethereum (let addr1), .ethereum (let addr2)):
             return 1 == addressHashEqual (addr1, addr2)
-            default:
+        default:
             return false
         }
     }

@@ -169,8 +169,8 @@ class CoreTests: XCTestCase {
         let network = (isMainnet == 1 ? ethereumMainnet : ethereumTestnet)
 
         coreDirClear()
-        runSyncTest(network, account, mode, timestamp, 5 * 60, coreDataDir, 0);
-        runSyncTest(network, account, mode, timestamp, 1 * 60, coreDataDir, 1);
+        runSyncTest (network, account, mode, timestamp, 5 * 60, coreDataDir, 0);
+        runSyncTest (network, account, mode, timestamp, 1 * 60, coreDataDir, 1);
     }
 
     /// Run a single bitcoin sync using the provided paperKey
