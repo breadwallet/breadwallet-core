@@ -17,6 +17,7 @@ libcore.jnilib
 local.properties
 Java.iml
 Core.iml
+CoreLibrary.iml
 CoreDemo.iml
 .idea/misc.xml
 .idea/vcs.xml
