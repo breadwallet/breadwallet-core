@@ -330,14 +330,14 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
     };
 
     BREthereumEWM node = ewmCreateWithPaperKey((BREthereumNetwork) network,
-                                        paperKey,
-                                        ETHEREUM_TIMESTAMP_UNKNOWN,
-                                        P2P_ONLY,
-                                        client,
-                                        NULL,
-                                        NULL,
-                                        NULL,
-                                        NULL);
+                                               paperKey,
+                                               ETHEREUM_TIMESTAMP_UNKNOWN,
+                                               BRD_WITH_P2P_SEND, // P2P_ONLY
+                                               client,
+                                               NULL,
+                                               NULL,
+                                               NULL,
+                                               NULL);
 
     (*env)->ReleaseStringUTFChars (env, paperKeyString, paperKey);
     return (jlong) node;
@@ -909,7 +909,7 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnou
  * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;I)V
  */
 JNIEXPORT void JNICALL
-Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceToken
+Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnounceToken
         (JNIEnv *env, jobject thisObject,
          jstring address,
          jstring symbol,
@@ -1490,10 +1490,6 @@ JNIEXPORT jboolean JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumEWM_jniEWMDisconnect
         (JNIEnv *env, jobject thisObject) {
     BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
-
-    // TODO: Hopefully
-    (*env)->DeleteGlobalRef (env, thisObject);
-
     return (jboolean) (ETHEREUM_BOOLEAN_TRUE == ewmDisconnect(node) ? JNI_TRUE : JNI_FALSE);
 }
 
@@ -1898,7 +1894,7 @@ clientTokenEventHandler(BREthereumClientContext context,
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineWalletEvent,
+    (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineTokenEvent,
                                  (jlong) ewm,
                                  (jint) token,
                                  (jint) event);

@@ -531,7 +531,7 @@ lesCreate (BREthereumNetwork network,
         array_new (les->activeNodesByRoute[route], LES_NODE_INITIAL_SIZE);
 
     // Identify a set of initial nodes; first, use all the endpoints provided (based on `configs`)
-    eth_log(LES_LOG_TOPIC, "Nodes Provided    : %lu", (NULL == configs ? 0 : BRSetCount(configs)));
+    eth_log(LES_LOG_TOPIC, "Nodes Provided    : %zu", (NULL == configs ? 0 : BRSetCount(configs)));
     if (NULL != configs)
         FOR_SET (BREthereumNodeConfig, config, configs) {
             lesEnsureNodeForEndpoint (les,
@@ -572,7 +572,7 @@ lesCreate (BREthereumNetwork network,
                 bootstrappedEndpointsCount++;
         }
     }
-    eth_log(LES_LOG_TOPIC, "Nodes Bootstrapped: %lu", bootstrappedEndpointsCount);
+    eth_log(LES_LOG_TOPIC, "Nodes Bootstrapped: %zu", bootstrappedEndpointsCount);
     for (size_t index = 0; index < 5 && index < array_count(les->availableNodes); index++) {
         BREthereumDISNeighborEnode enode = neighborDISAsEnode (nodeEndpointGetDISNeighbor (nodeGetRemoteEndpoint (les->availableNodes[index])), 1);
         eth_log (LES_LOG_TOPIC, "  @ %zu: %s", index, enode.chars);

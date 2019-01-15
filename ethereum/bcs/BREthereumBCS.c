@@ -1495,7 +1495,7 @@ bcsHandleBlockBody (BREthereumBCS bcs,
     // We must be in a 'bodies needed' status
     assert (ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusTransactionsRequest(block, BLOCK_REQUEST_PENDING)));
 
-    eth_log("BCS", "Bodies %" PRIu64 " O:%2lu, T:%3lu",
+    eth_log("BCS", "Bodies %" PRIu64 " O:%2zu, T:%3zu",
             blockGetNumber(block),
             array_count(ommers),
             array_count(transactions));
@@ -1708,7 +1708,7 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
     // We must be in a 'receipts needed' status
     assert (ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusLogsRequest(block, BLOCK_REQUEST_PENDING)));
 
-    eth_log("BCS", "Receipts %" PRIu64 " Count %lu",
+    eth_log("BCS", "Receipts %" PRIu64 " Count %zu",
             blockGetNumber(block),
             array_count(receipts));
 
@@ -1727,7 +1727,7 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
 
                 // If `log` topics match our address....
                 if (ETHEREUM_BOOLEAN_IS_TRUE (logMatchesAddress(log, bcs->address, ETHEREUM_BOOLEAN_TRUE))) {
-                    eth_log("BCS", "Receipts %" PRIu64 " Found Log at (%lu, %lu)",
+                    eth_log("BCS", "Receipts %" PRIu64 " Found Log at (%zu, %zu)",
                             blockGetNumber(block), ti, li);
 
                     // We'll need a copy of the log as this log will be added to the
