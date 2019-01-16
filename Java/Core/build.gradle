@@ -1,7 +1,7 @@
 apply plugin: 'com.android.library'
 
 android {
-    publishNonDefault  true // something about debug symbols
+    //publishNonDefault  true // something about debug symbols
     compileSdkVersion 28
 
     // Link Gradle to the CMake script
@@ -10,6 +10,7 @@ android {
             path "CMakeLists.txt"  //path can only be set outside (in android block)
         }
     }
+
 
     // https://developer.android.com/studio/build/build-variants
     //    "defaultConfig actually belongs to the ProductFlavor class."
@@ -30,6 +31,19 @@ android {
             abiFilters 'x86', 'x86_64', 'armeabi-v7a', 'arm64-v8a'
         }
     }
+
+//    flavorDimensions "network"
+//    productFlavors {
+//        onMainnet {
+//            dimension "network"
+//            minSdkVersion 23
+//        }
+//        onTestnet {
+//            dimension "network"
+//            minSdkVersion 23
+//        }
+//    }
+
     // http://google.github.io/android-gradle-dsl/current/com.android.build.gradle.BaseExtension.html#com.android.build.gradle.BaseExtension:buildTypes(org.gradle.api.Action)
     // "Encapsulates all build type configurations for this project"
     buildTypes {
@@ -37,12 +51,13 @@ android {
         // Default: required
         release {
             minifyEnabled false
-            debuggable false
-            jniDebuggable false
+            debuggable true
+            jniDebuggable true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             externalNativeBuild {
                 cmake {
-                    cFlags "-DRELEASE"  // unused, actually
+                    cFlags "-DDEBUG", "-DBITCOIN_DEBUG"
+//                    cFlags "-DRELEASE"  // unused, actually
                 }
             }
         }
@@ -55,30 +70,19 @@ android {
             externalNativeBuild {
                 cmake {
                     cFlags "-DDEBUG", "-DBITCOIN_DEBUG"
-                }
-            }
-        }
-
-        // Consistent with IOS
-        debugMainnet {
-            initWith debug
-        }
-
-        // Consistent with IOS
-        debugTestnet {
-            initWith debug
-            externalNativeBuild {
-                cmake {
-                    cFlags "-DDEBUG", "-DBITCOIN_DEBUG", "-DBITCOIN_TESTNET"
+//                    cFlags "-DDEBUG", "-DBITCOIN_DEBUG", "-DBITCOIN_TESTNET"
                 }
             }
         }
     }
 }
 
-dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+//configurations {
+//    onMainnetDebug
+//}
 
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation 'com.android.support:appcompat-v7:28.0.0'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
