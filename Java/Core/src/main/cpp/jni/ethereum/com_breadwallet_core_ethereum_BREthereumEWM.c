@@ -388,7 +388,7 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM_1PublicKey
     BREthereumEWM node = ewmCreateWithPublicKey((BREthereumNetwork) network,
                                                      key,
                                                      ETHEREUM_TIMESTAMP_UNKNOWN,
-                                                     P2P_ONLY,
+                                                     BRD_WITH_P2P_SEND,
                                                      client,
                                                      NULL,
                                                      NULL,

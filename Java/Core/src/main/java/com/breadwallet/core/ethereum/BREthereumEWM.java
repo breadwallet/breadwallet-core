@@ -94,28 +94,28 @@ public class BREthereumEWM extends BRCoreJniReference {
     //
     public enum BlockEvent {
         CREATED,
+        CHAINED,
+        ORPHANED,
         DELETED
     }
 
-    static int NUMBER_OF_BLOCK_EVENT = 2;
+    static int NUMBER_OF_BLOCK_EVENT = 4;
 
     //
     // Transaction Event
     //
     public enum TransactionEvent {
-        ADDED,
-        REMOVED,
-
         CREATED,
         SIGNED,
         SUBMITTED,
-        BLOCKED,  // aka confirmed
+        INCLUDED,  // aka confirmed
         ERRORED,
         GAS_ESTIMATE_UPDATED,
-        BLOCK_CONFIRMATIONS_UPDATED
+        BLOCK_CONFIRMATIONS_UPDATED,
+        DELETED
     }
 
-    static int NUMBER_OF_TRANSACTION_EVENTS = 9;
+    static int NUMBER_OF_TRANSACTION_EVENTS = 8;
 
     //
     // EWM Event

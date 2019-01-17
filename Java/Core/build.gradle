@@ -1,7 +1,6 @@
 apply plugin: 'com.android.library'
 
 android {
-    //publishNonDefault  true // something about debug symbols
     compileSdkVersion 28
 
     // Link Gradle to the CMake script
@@ -32,17 +31,17 @@ android {
         }
     }
 
-//    flavorDimensions "network"
-//    productFlavors {
-//        onMainnet {
-//            dimension "network"
-//            minSdkVersion 23
-//        }
-//        onTestnet {
-//            dimension "network"
-//            minSdkVersion 23
-//        }
-//    }
+    flavorDimensions "network"
+    productFlavors {
+        onMainnet {
+            dimension "network"
+            minSdkVersion 23
+        }
+        onTestnet {
+            dimension "network"
+            minSdkVersion 23
+        }
+    }
 
     // http://google.github.io/android-gradle-dsl/current/com.android.build.gradle.BaseExtension.html#com.android.build.gradle.BaseExtension:buildTypes(org.gradle.api.Action)
     // "Encapsulates all build type configurations for this project"
@@ -76,10 +75,6 @@ android {
         }
     }
 }
-
-//configurations {
-//    onMainnetDebug
-//}
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
