@@ -401,7 +401,7 @@ ewmHandleAnnounceTransaction(BREthereumEWM ewm,
         case BRD_WITH_P2P_SEND: {
             //
             // This 'annouce' call is coming from the guaranteed BRD endpoint; thus we don't need to
-            // worry about the validity of the transaction - is is surely confirmed.  Is that true
+            // worry about the validity of the transaction - it is surely confirmed.  Is that true
             // if newly submitted?
 
             // TODO: Confirm we are not repeatedly creating transactions
@@ -421,10 +421,11 @@ ewmHandleAnnounceTransaction(BREthereumEWM ewm,
             // TODO: Confirm that BRPersistData does not overwrite the transaction's hash
             transactionSetHash (transaction, bundle->hash);
 
-            BREthereumTransactionStatus status = transactionStatusCreateIncluded (gasCreate(bundle->gasUsed),
-                                                                                  bundle->blockHash,
+            BREthereumTransactionStatus status = transactionStatusCreateIncluded (bundle->blockHash,
                                                                                   bundle->blockNumber,
-                                                                                  bundle->blockTransactionIndex);
+                                                                                  bundle->blockTransactionIndex,
+                                                                                  bundle->blockTimestamp,
+                                                                                  gasCreate(bundle->gasUsed));
             transactionSetStatus (transaction, status);
 
             // If we had a `bcs` we might think about `bcsSignalTransaction(ewm->bcs, transaction);`
@@ -577,10 +578,11 @@ ewmHandleAnnounceLog (BREthereumEWM ewm,
             logInitializeIdentifier(log, bundle->hash, bundle->logIndex);
 
             BREthereumTransactionStatus status =
-            transactionStatusCreateIncluded(gasCreate(0),  // fee is in associated transaction
-                                            hashCreateEmpty(),
-                                            bundle->blockNumber,
-                                            bundle->blockTransactionIndex);
+            transactionStatusCreateIncluded (hashCreateEmpty(),
+                                             bundle->blockNumber,
+                                             bundle->blockTransactionIndex,
+                                             bundle->blockTimestamp,
+                                             gasCreate(0));
             logSetStatus(log, status);
 
             // If we had a `bcs` we might think about `bcsSignalLog(ewm->bcs, log);`
@@ -886,6 +888,13 @@ ewmHandleBlockEvent(BREthereumEWM ewm,
 }
 #endif
 
+static int
+ewmNeedTransferSave (BREthereumEWM ewm,
+                     BREthereumTransferEvent event) {
+    return (TRANSFER_EVENT_GAS_ESTIMATE_UPDATED != event &&
+            TRANSFER_EVENT_BLOCK_CONFIRMATIONS_UPDATED != event);
+}
+
 extern void
 ewmHandleTransferEvent (BREthereumEWM ewm,
                               BREthereumWallet wallet,
@@ -904,45 +913,27 @@ ewmHandleTransferEvent (BREthereumEWM ewm,
     // once the included log exists or b) avoid announcing `funcChangeLog:CREATED` until the
     // log is actually created....
 
-    if (TRANSFER_EVENT_GAS_ESTIMATE_UPDATED != event &&
-        TRANSFER_EVENT_BLOCK_CONFIRMATIONS_UPDATED != event) {
-
+    if (ewmNeedTransferSave (ewm, event)) {
         BREthereumTransaction transaction = transferGetBasisTransaction (transfer);
-        BREthereumLog log = transferGetBasisLog(transfer);
+        BREthereumLog         log         = transferGetBasisLog(transfer);
 
         // One of `transaction` or `log` will always be null
         assert (NULL == transaction || NULL == log);
 
-        // If both are null (typically a NULL log w/ a logBasis), do no more.
-        if (NULL != transaction || NULL != log) {
-            BREthereumClientChangeType type = (event == TRANSFER_EVENT_CREATED
-                                               ? CLIENT_CHANGE_ADD
-                                               : (event == TRANSFER_EVENT_DELETED
-                                                  ? CLIENT_CHANGE_REM
-                                                  : CLIENT_CHANGE_UPD));
+        BREthereumClientChangeType type = (event == TRANSFER_EVENT_CREATED
+                                           ? CLIENT_CHANGE_ADD
+                                           : (event == TRANSFER_EVENT_DELETED
+                                              ? CLIENT_CHANGE_REM
+                                              : CLIENT_CHANGE_UPD));
 
-            BRRlpItem item = (NULL != transaction
-                              ? transactionRlpEncode (transaction, ewm->network, RLP_TYPE_ARCHIVE, ewm->coder)
-                              : logRlpEncode(log, RLP_TYPE_ARCHIVE, ewm->coder));
+        if (NULL != transaction)
+            ewmHandleSaveTransaction(ewm, transaction, type);
 
-            BREthereumHash hash = (NULL != transaction
-                                   ? transactionGetHash(transaction)
-                                   : logGetHash(log));
-
-            // Notice the final '1' - don't release `data`...
-            BREthereumHashDataPair pair =
-            hashDataPairCreate (hash, dataCreateFromRlpData(rlpGetData(ewm->coder, item), 1));
-
-            rlpReleaseItem(ewm->coder, item);
-
-            if (NULL != transaction)
-                ewm->client.funcChangeTransaction (ewm->client.context, ewm, type, pair);
-            else
-                ewm->client.funcChangeLog (ewm->client.context, ewm, type, pair);
-        }
+        if (NULL != log)
+            ewmHandleSaveLog(ewm, log, type);
     }
 
-    // We will always announce the transfer
+    // Announce the transfer
     ewm->client.funcTransferEvent (ewm->client.context,
                                    ewm,
                                    wallet,

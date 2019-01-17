@@ -200,7 +200,8 @@ lesCreate (BREthereumNetwork network,
            uint64_t headNumber,
            UInt256 headTotalDifficulty,
            BREthereumHash genesisHash,
-           BRSetOf(BREthereumNodeConfig) configs);
+           BRSetOf(BREthereumNodeConfig) configs,
+           BREthereumBoolean discoverNodes);
 
 /*!
  * @function lesRelease
@@ -412,6 +413,23 @@ lesSubmitTransaction (BREthereumLES les,
                       BREthereumLESProvisionContext context,
                       BREthereumLESProvisionCallback callback,
                       OwnershipGiven BREthereumTransaction transaction);
+
+
+/**
+ * Retry a provision
+ *
+ * @param les les
+ * @param node node
+ * @param context context
+ * @param callback callback
+ * @param provision provision
+ */
+extern void
+lesRetryProvision (BREthereumLES les,
+                   BREthereumNodeReference node,
+                   BREthereumLESProvisionContext context,
+                   BREthereumLESProvisionCallback callback,
+                   OwnershipGiven BREthereumProvision *provision);
 
 #ifdef __cplusplus
 }

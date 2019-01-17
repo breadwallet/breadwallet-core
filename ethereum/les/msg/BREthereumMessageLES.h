@@ -292,15 +292,32 @@ typedef struct {
 } BREthereumLESMessageSendTx;
 
 /// MARK: LES GetHeaderProofs
+
+    /**
+     * GetHeaderProofs [+0x0d, reqID: P, [ [chtNumber: P, blockNumber: P, fromLevel: P], ...]]
+     */
 typedef struct {
     uint64_t reqId;
+    BRArrayOf(uint64_t) chtNumbers;
+    BRArrayOf(uint64_t) blkNumbers;;
 } BREthereumLESMessageGetHeaderProofs;
 
 /// MARK: LES HeaderProofs
+
+    /**
+     * HeaderProofs [+0x0e, reqID: P, BV: P, [ [blockHeader, [node_1, node_2...]], ...]]
+     */
 typedef struct {
     uint64_t reqId;
     uint64_t bv;
+    BRArrayOf(BREthereumBlockHeader) headers;
+    BRArrayOf(BREthereumMPTNodePath) paths;
 } BREthereumLESMessageHeaderProofs;
+
+extern void
+messageLESHeaderProofsConsume (BREthereumLESMessageHeaderProofs *message,
+                               BRArrayOf(BREthereumBlockHeader) *headers,
+                               BRArrayOf(BREthereumMPTNodePath) *paths);
 
 /// MARK: LES GetProofsV2
 typedef struct {
@@ -470,6 +487,12 @@ messageLESGetCreditsCount (const BREthereumLESMessage *message);
 #define LES_MESSAGE_NO_REQUEST_ID    (-1)
 extern uint64_t
 messageLESGetRequestId (const BREthereumLESMessage *message);
+
+extern uint64_t
+messageLESGetChtNumber (uint64_t blkNumber);
+
+//    extern int
+//    messageLESIsChtBlockNumber (uint64_t blkNumber);
 
 #ifdef __cplusplus
 }

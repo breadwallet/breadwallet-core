@@ -32,10 +32,62 @@
 
 #define GAS_LIMIT_DEFAULT 21000
 
-extern const char *tokenBRDAddress;
+static const char *
+getTokenBRDAddress (BREthereumNetwork network) {
+    return (network == ethereumMainnet
+            ? "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"
+            : "0x7108ca7c4718efa810457f228305c9c71390931a");
+}
+
+#if defined (BITCOIN_DEBUG)
+static const char *
+getTokenTSTAddress (BREthereumNetwork network) {
+    return (network == ethereumMainnet
+            ? "0x3efd578b271d034a69499e4a2d933c631d44b9ad"
+            : "0x722dd3f80bac40c951b51bdd28dd19d435762180");
+}
+#endif
 
 extern void
-installTokensForTest (void);
+installTokensForTestOnNetwork (BREthereumNetwork network) {
+    static int needInstall = 1;
+    if (!needInstall) return;
+    needInstall = 0;
+
+    BREthereumGas defaultGasLimit = gasCreate(TOKEN_BRD_DEFAULT_GAS_LIMIT);
+    BREthereumGasPrice defaultGasPrice = gasPriceCreate(etherCreateNumber(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, WEI));
+    tokenInstall (getTokenBRDAddress(network),
+                  "BRD",
+                  "BRD Token",
+                  "",
+                  18,
+                  defaultGasLimit,
+                  defaultGasPrice);
+#if defined (BITCOIN_DEBUG)
+    tokenInstall (getTokenTSTAddress(network),
+                  "TST",
+                  "Test Standard Token",
+                  "TeST Standard Token (TST) for TeSTing (TST)",
+                  18,
+                  defaultGasLimit,
+                  defaultGasPrice);
+#endif
+    tokenInstall ("0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0",
+                  "EOS",
+                  "EOS Token",
+                  "",
+                  18,
+                  defaultGasLimit,
+                  defaultGasPrice);
+
+    tokenInstall ("0xdd974d5c2e2928dea5f71b9825b8b646686bd200",
+                  "KNC",
+                  "KNC token",
+                  "",
+                  18,
+                  defaultGasLimit,
+                  defaultGasPrice);
+}
 
 //
 // EWM CONNECT
@@ -192,17 +244,17 @@ clientGetLogs (BREthereumClientContext context,
         "0x000000000000000000000000bdfdad139440d2db9ba2aa3b7081c2de39291508"
     };
     ewmAnnounceLog (ewm, rid,
-                               "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220", // random hash...
-                               "0x722dd3f80bac40c951b51bdd28dd19d435762180",
-                               3,
-                               topics,
-                               "0x0000000000000000000000000000000000000000000000000000000000002328",
-                               "0xba43b7400",
-                               "0xc64e",
-                               "0x",
-                               "0x1e487e",
-                               "0x",
-                               "0x59fa1ac9");
+                    "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220", // random hash...
+                    getTokenBRDAddress(ewm->network),
+                    3,
+                    topics,
+                    "0x0000000000000000000000000000000000000000000000000000000000002328",
+                    "0xba43b7400",
+                    "0xc64e",
+                    "0x",
+                    "0x1e487e",
+                    "0x",
+                    "0x59fa1ac9");
     free (address);
 }
 
@@ -216,8 +268,25 @@ clientGetBlocks (BREthereumClientContext context,
                  int rid) {
     BRArrayOf(uint64_t) blockNumbers;
     array_new (blockNumbers, 10);
-    
-    if (0 == strcasecmp (address, "0xb302B06FDB1348915599D21BD54A06832637E5E8")) {
+
+    if (0 == strcasecmp (address, "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62")) {
+        if (syncInterestMatch(interests, CLIENT_GET_BLOCKS_LOGS_AS_TARGET)) {
+            array_add (blockNumbers, 5732521);
+        }
+
+        if (syncInterestMatch(interests, CLIENT_GET_BLOCKS_LOGS_AS_SOURCE)) {
+            // ~8 blocks
+        }
+
+        if (syncInterestMatch(interests, CLIENT_GET_BLOCKS_TRANSACTIONS_AS_TARGET)) {
+            // ~5 blocks
+        }
+
+        if (syncInterestMatch(interests, CLIENT_GET_BLOCKS_TRANSACTIONS_AS_SOURCE)) {
+            // ~ 45 blocks
+        }
+    }
+    else if (0 == strcasecmp (address, "0xb302B06FDB1348915599D21BD54A06832637E5E8")) {
         if (syncInterestMatch(interests, CLIENT_GET_BLOCKS_LOGS_AS_TARGET)) {
             array_add (blockNumbers, 4847049);
             array_add (blockNumbers, 4847152);
@@ -317,55 +386,65 @@ clientGetTokens (BREthereumClientContext context,
                  BREthereumEWM ewm,
                  int rid) {
     ewmAnnounceToken(ewm,
-                                "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6",
-                                "BRD",
-                                "BRD Token",
-                                "BRD Token Description",
-                                18,
-                                NULL,
-                                NULL,
-                                0);
-    
+                     getTokenBRDAddress(ewm->network),
+                     "BRD",
+                     "BRD Token",
+                     "BRD Token Description",
+                     18,
+                     NULL,
+                     NULL,
+                     0);
+#if defined (BITCOIN_DEBUG)
+    ewmAnnounceToken(ewm,
+                     getTokenTSTAddress(ewm->network),
+                     "TST",
+                     "Test Standard Token",
+                     "TeST Standard Token (TST) for TeSTing (TST)",
+                     18,
+                     NULL,
+                     NULL,
+                     0);
+#endif
     // For 0xb302B06FDB1348915599D21BD54A06832637E5E8
     ewmAnnounceToken(ewm,
-                                "0x68e14bb5a45b9681327e16e528084b9d962c1a39",
-                                "CAT",
-                                "CAT Token",
-                                "",
-                                18,
-                                NULL,
-                                NULL,
-                                0);
+                     "0x68e14bb5a45b9681327e16e528084b9d962c1a39",
+                     "CAT",
+                     "CAT Token",
+                     "",
+                     18,
+                     NULL,
+                     NULL,
+                     0);
     
     ewmAnnounceToken(ewm,
-                                "0x1234567461d3f8db7496581774bd869c83d51c93",
-                                "bitclave",
-                                "bitclave",
-                                "",
-                                18,
-                                NULL,
-                                NULL,
-                                0);
+                     "0x1234567461d3f8db7496581774bd869c83d51c93",
+                     "bitclave",
+                     "bitclave",
+                     "",
+                     18,
+                     NULL,
+                     NULL,
+                     0);
     
     ewmAnnounceToken(ewm,
-                                "0xb3bd49e28f8f832b8d1e246106991e546c323502",
-                                "GMT",
-                                "GMT",
-                                "",
-                                18,
-                                NULL,
-                                NULL,
-                                0);
+                     "0xb3bd49e28f8f832b8d1e246106991e546c323502",
+                     "GMT",
+                     "GMT",
+                     "",
+                     18,
+                     NULL,
+                     NULL,
+                     0);
     
     ewmAnnounceToken(ewm,
-                                "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0",
-                                "EOS",
-                                "EOS",
-                                "",
-                                18,
-                                NULL,
-                                NULL,
-                                0);
+                     "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0",
+                     "EOS",
+                     "EOS",
+                     "",
+                     18,
+                     NULL,
+                     NULL,
+                     0);
     
 }
 
@@ -746,7 +825,7 @@ runEWM_TOKEN_test (const char *paperKey) {
     
     BRCoreParseStatus status;
     
-    BREthereumToken token = tokenLookup(tokenBRDAddress);
+    BREthereumToken token = tokenLookup(getTokenBRDAddress(ethereumMainnet));
     BREthereumEWM ewm = ewmCreateWithPaperKey (ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
                                                     P2P_ONLY,
                                                     client, NULL, NULL, NULL, NULL);
@@ -800,42 +879,54 @@ runEWM_PUBLIC_KEY_test (BREthereumNetwork network, const char *paperKey) {
 }
 
 extern void
-runSyncTest (const char *paperKey,
+runSyncTest (BREthereumNetwork network,
+             BREthereumAccount account,
              BREthereumMode mode,
              BREthereumTimestamp accountTimestamp,
              unsigned int durationInSeconds,
+             const char *storagePath,
              int restart) {
+    BREthereumEWM ewm;
+
     eth_log("TST", "SyncTest%s", "");
     
-    installTokensForTest();
+//    installTokensForTestOnNetwork(ethereumMainnet);
     
     client.context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
     
     alarmClockCreateIfNecessary (1);
-    
-    BRSetOf(BREthereumHashDataPair) blocks = (restart ? savedBlocks : NULL);
-    BRSetOf(BREthereumHashDataPair) nodes = (restart ? savedNodes : NULL);
-    BRSetOf(BREthereumHashDataPair) transactions = NULL;
-    BRSetOf(BREthereumHashDataPair) logs = NULL;
-    
-    if (restart) {
-        if (NULL != savedTransactions) {
-            transactions = BRSetNew (transactionHashValue, transactionHashEqual, BRSetCount (savedTransactions));
-            BRSetUnion (transactions, savedTransactions); // copy
-        }
-        
-        if (NULL != savedLogs) {
-            logs = BRSetNew (logHashValue, logHashEqual, BRSetCount(savedLogs));
-            BRSetUnion (logs, savedLogs); // copy
-        }
-    }
 
-    BREthereumEWM ewm = ewmCreateWithPaperKey (ethereumMainnet, paperKey, accountTimestamp,
-                                                    mode, client,
-                                                    nodes,
-                                                    blocks,
-                                                    transactions,
-                                                    logs);
+    if (NULL == storagePath) {
+        BRSetOf(BREthereumHashDataPair) blocks = (restart ? savedBlocks : NULL);
+        BRSetOf(BREthereumHashDataPair) nodes = (restart ? savedNodes : NULL);
+        BRSetOf(BREthereumHashDataPair) transactions = NULL;
+        BRSetOf(BREthereumHashDataPair) logs = NULL;
+
+        if (restart) {
+            if (NULL != savedTransactions) {
+                transactions = BRSetNew (transactionHashValue, transactionHashEqual, BRSetCount (savedTransactions));
+                BRSetUnion (transactions, savedTransactions); // copy
+            }
+
+            if (NULL != savedLogs) {
+                logs = BRSetNew (logHashValue, logHashEqual, BRSetCount(savedLogs));
+                BRSetUnion (logs, savedLogs); // copy
+            }
+        }
+
+        ewm = ewmCreate (network, account, accountTimestamp,
+                                     mode, client,
+                                     nodes,
+                                     blocks,
+                                     transactions,
+                                     logs);
+    }
+    else {
+        if (restart) {
+
+        }
+        ewm = ewmCreateWithStoragePath(network, account, accountTimestamp, mode, client, storagePath);
+    }
     
     char *address = ewmGetAccountPrimaryAddress(ewm);
     printf ("ETH: TST:\nETH: TST: Address: %s\nETH: TST:\n", address);
@@ -844,7 +935,8 @@ runSyncTest (const char *paperKey,
     // We passed on { node, block, etc } - we no longer own the memory.  Thus:
     savedBlocks = NULL;
     savedNodes  = NULL;
-    
+
+    ewmUpdateTokens(ewm);
     ewmConnect(ewm);
     
     unsigned int remaining = durationInSeconds;
@@ -861,11 +953,13 @@ runSyncTest (const char *paperKey,
 }
 
 extern void
-runEWMTests (void) {
-    installTokensForTest();
+runEWMTests (const char *paperKey) {
+    installTokensForTestOnNetwork(ethereumMainnet);
     printf ("==== EWM\n");
     // prepareTransaction(NODE_PAPER_KEY, NODE_RECV_ADDR, TEST_TRANS2_GAS_PRICE_VALUE, GAS_LIMIT_DEFAULT, NODE_ETHER_AMOUNT);
-    runEWM_CONNECT_test(NODE_PAPER_KEY);
-    runEWM_TOKEN_test (NODE_PAPER_KEY);
-    runEWM_PUBLIC_KEY_test (ethereumMainnet, NODE_PAPER_KEY);
+    if (NULL == paperKey) paperKey = NODE_PAPER_KEY;
+
+    runEWM_CONNECT_test(paperKey);
+    runEWM_TOKEN_test (paperKey);
+    runEWM_PUBLIC_KEY_test (ethereumMainnet, paperKey);
 }

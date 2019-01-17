@@ -272,6 +272,12 @@ bcsCreate (BREthereumNetwork network,
         chainHeader = blockCheckpointCreatePartialBlockHeader(checkpoint);
     }
 
+    // There is no need to discover nodes if we are in BRD_ONLY mode.
+    BREthereumBoolean discoverNodes = AS_ETHEREUM_BOOLEAN (mode != BRD_ONLY);
+#if defined (LES_DISABLE_DISCOVERY)
+    discoverNodes = ETHEREUM_BOOLEAN_FALSE;
+#endif
+
     bcs->les = lesCreate (bcs->network,
                           (BREthereumLESCallbackContext) bcs,
                           (BREthereumLESCallbackAnnounce) bcsSignalAnnounce,
@@ -281,7 +287,8 @@ bcsCreate (BREthereumNetwork network,
                           blockHeaderGetNumber(chainHeader),
                           totalDifficulty,
                           blockGetHash (bcs->genesis),
-                          peers);
+                          peers,
+                          discoverNodes);
 
     if (chainHeader != blockGetHeader(bcs->chain))
         blockHeaderRelease(chainHeader);
@@ -292,6 +299,8 @@ bcsCreate (BREthereumNetwork network,
                                bcs->address,
                                bcs->les,
                                bcs->handler);
+
+    bcs->pow = proofOfWorkCreate();
 
     return bcs;
 }
@@ -321,6 +330,7 @@ bcsDestroy (BREthereumBCS bcs) {
 
     lesRelease (bcs->les);
     bcsSyncRelease(bcs->sync);
+    proofOfWorkRelease(bcs->pow);
 
     // TODO: We'll need to announce things to our `listener`
 
@@ -922,7 +932,7 @@ bcsPendOrphanedTransactionsAndLogs (BREthereumBCS bcs) {
     // requesting status and expect some node to offer up a different block.
     FOR_SET(BREthereumTransaction, transaction, bcs->transactions) {
         status = transactionGetStatus(transaction);
-        if (transactionStatusExtractIncluded(&status, NULL, &blockHash, NULL, NULL) &&
+        if (transactionStatusExtractIncluded(&status, &blockHash, NULL, NULL, NULL, NULL) &&
             NULL != BRSetGet (bcs->orphans, &blockHash)) {
             bcsPendTransaction(bcs, transaction);
         }
@@ -932,7 +942,7 @@ bcsPendOrphanedTransactionsAndLogs (BREthereumBCS bcs) {
     // in a block; see if that block is now an orphan and if so make the log pending.
     FOR_SET(BREthereumLog, log, bcs->logs) {
         status = logGetStatus(log);
-        if (transactionStatusExtractIncluded(&status, NULL, &blockHash, NULL, NULL) &&
+        if (transactionStatusExtractIncluded(&status, &blockHash, NULL, NULL, NULL, NULL) &&
             NULL != BRSetGet (bcs->orphans, &blockHash)) {
             bcsPendLog (bcs, log);
         }
@@ -1022,6 +1032,12 @@ bcsHasBlockInChain (BREthereumBCS bcs,
             blockGetNumber(block) <= blockGetNumber(bcs->chainTail));
 }
 
+static int
+bcsIsBlockValid (BREthereumBCS bcs,
+                 BREthereumBlock block) {
+    return ETHEREUM_BOOLEAN_IS_TRUE (blockIsValid (block));
+}
+
 /**
  * Extends `bcs->transactions` and `bcs->logs` with the tranactions and logs within `block`.
  * Requires `block` to be in 'complete' and in `bcs->chain`.
@@ -1029,9 +1045,9 @@ bcsHasBlockInChain (BREthereumBCS bcs,
 static void
 bcsExtendTransactionsAndLogsForBlock (BREthereumBCS bcs,
                                       BREthereumBlock block) {
-    assert (bcsHasBlockInChain(bcs, block) && ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusComplete(block)));
+    assert (bcsIsBlockValid (bcs, block) && ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusComplete(block)));
 
-    // `block` is chained and complete, we can process its status transactions and logs.
+    // `block` is valid and complete, we can process its status transactions and logs.
     BREthereumBlockStatus blockStatus = blockGetStatus(block);
 
     // Process each transaction...
@@ -1051,16 +1067,13 @@ bcsExtendTransactionsAndLogsForBlock (BREthereumBCS bcs,
     // If not in chain and not an orphan, then reclaim
     if (bcs->chainTail != block && NULL == blockGetNext(block) && NULL == BRSetGet(bcs->orphans, block))
         bcsReclaimBlock(bcs, block, 0);
+}
 
-//    if (purgeOrphans) bcsPendOrphanedTransactionsAndLogs(bcs);
-
-#if 0
-    // Get the status explicitly; apparently this is the *only* way to get the gasUsed.
-    lesGetTransactionStatusOne(bcs->les,
-                               (BREthereumLESTransactionStatusContext) bcs,
-                               (BREthereumLESTransactionStatusCallback) bcsSignalTransactionStatus,
-                               transactionGetHash(tx));
-#endif
+static int
+bcsWantToHandleTransactionsAndLogs (BREthereumBCS bcs,
+                                    BREthereumBlock block) {
+    BREthereumBlockStatus blockStatus = blockGetStatus(block);
+    return (NULL != blockStatus.transactions || NULL != blockStatus.logs);
 }
 
 /**
@@ -1069,18 +1082,10 @@ bcsExtendTransactionsAndLogsForBlock (BREthereumBCS bcs,
 static void
 bcsExtendTransactionsAndLogsForBlockIfAppropriate (BREthereumBCS bcs,
                                                    BREthereumBlock block) {
-    if (ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusComplete(block))) {
-        if (bcsHasBlockInChain(bcs, block))
-            bcsExtendTransactionsAndLogsForBlock (bcs, block);
-        else {
-            // TODO: Are we about to loose this block?
-
-            // The block is complete, but it is not linked.  What happens next?  This is not
-            // some random block as having STATUS_COMPLETE means the block has something
-            // interesting in it.  Do we 'orphan' it and then get it linked/handled as part
-            // of chaining?
-            eth_log ("BCS", "Block %" PRIu64 " completed, not chained", blockGetNumber(block));
-        }
+    if (ETHEREUM_BOOLEAN_IS_TRUE (blockHasStatusComplete(block))) {
+        if (bcsIsBlockValid(bcs, block)) bcsExtendTransactionsAndLogsForBlock (bcs, block);
+        else if (bcsWantToHandleTransactionsAndLogs (bcs, block))
+            eth_log ("BCS", "Block %" PRIu64 " completed, not valid", blockGetNumber(block));
     }
 }
 
@@ -1098,12 +1103,13 @@ bcsExtendChainIfPossible (BREthereumBCS bcs,
     BREthereumHash blockParentHash = blockHeaderGetParentHash(blockGetHeader(block));
     BREthereumBlock blockParent = BRSetGet(bcs->blocks, &blockParentHash);
 
-    // If we have a parent, but `header` is inconsitent with its parent, then ignore `header`
+    // If we have a parent, but `header` is inconsistent with its parent, then ignore `header`
     if (NULL != blockParent &&
-        ETHEREUM_BOOLEAN_IS_FALSE(blockHeaderIsConsistent(blockGetHeader(block),
-                                                          blockGetHeader(blockParent),
-                                                          blockGetOmmersCount(blockParent),
-                                                          blockGetHeader(bcs->genesis)))) {
+        ETHEREUM_BOOLEAN_IS_FALSE (blockHeaderIsValid (blockGetHeader(block),
+                                                       blockGetHeader(blockParent),
+                                                       blockGetOmmersCount(blockParent),
+                                                       blockGetHeader(bcs->genesis),
+                                                       bcs->pow))) {
 
         eth_log("BCS", "Block %" PRIu64 " Inconsistent", blockGetNumber(block));
         // TODO: Can we release `block`?
@@ -1211,10 +1217,7 @@ bcsExtendChainIfPossible (BREthereumBCS bcs,
     // It is now time to extend `transactions` and `logs` based on the extended chain and orphans
     BCS_FOR_CHAIN(bcs, block) {
         if (block == blockParent) break; // done
-
-        // If Block is 'complete' - find transaction and logs of interest.
-        if (ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusComplete(block)))
-            bcsExtendTransactionsAndLogsForBlock (bcs, block);
+        bcsExtendTransactionsAndLogsForBlockIfAppropriate (bcs, block);
     }
 
     // And finally purge any transactions and logs for orphaned blocks
@@ -1276,7 +1279,7 @@ bcsHandleBlockHeaderInternal (BREthereumBCS bcs,
     }
 
     // Ignore the header if it is not valid.
-    if (ETHEREUM_BOOLEAN_IS_FALSE(blockHeaderIsValid (header))) {
+    if (ETHEREUM_BOOLEAN_IS_FALSE(blockHeaderIsInternallyValid (header))) {
         eth_log("BCS", "Block %" PRIu64 " Invalid", blockHeaderGetNumber(header));
         blockHeaderRelease(header);
         return;
@@ -1492,7 +1495,7 @@ bcsHandleBlockBody (BREthereumBCS bcs,
     // We must be in a 'bodies needed' status
     assert (ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusTransactionsRequest(block, BLOCK_REQUEST_PENDING)));
 
-    eth_log("BCS", "Bodies %" PRIu64 " O:%2lu, T:%3lu",
+    eth_log("BCS", "Bodies %" PRIu64 " O:%2zu, T:%3zu",
             blockGetNumber(block),
             array_count(ommers),
             array_count(transactions));
@@ -1501,14 +1504,10 @@ bcsHandleBlockBody (BREthereumBCS bcs,
     // these are not used.... but we take full ownership of the memory for ommers and transactions.
     blockUpdateBody (block, ommers, transactions);
 
-    // Having filled out `block`, ensure that it is valid.  If invalid, change the status
-    // to 'error' and skip out.  Don't release anything as other handlers (receipts, account) may
-    // still be pending.
-    if (ETHEREUM_BOOLEAN_IS_FALSE(blockIsValid(block, ETHEREUM_BOOLEAN_TRUE))) {
-        blockReportStatusError(block, ETHEREUM_BOOLEAN_TRUE);
-        eth_log ("BCS", "Block %" PRIu64 " Invalid (Bodies)", blockGetNumber(block));
-        return;
-    }
+    // Having filled out `block`, we'll now look for transactions.  The block might be invalid but
+    // we won't know that until we attempt a 'header proof' or to extend the chain.  If this block
+    // proves to be invalid, any transactions we find will be dumped at that point.  [In the
+    // meantime we won't be reporting the transactions (nor logs) to anybody.]
 
     // Find transactions of interest.
     BREthereumTransaction *neededTransactions = NULL;
@@ -1530,10 +1529,11 @@ bcsHandleBlockBody (BREthereumBCS bcs,
 
             // Fill-out the status.  Note that gasUsed is zero.  When this block is chained
             // we'll request the TxStatus so we can get a valid gasUsed value.
-            transactionSetStatus(tx, transactionStatusCreateIncluded (transactionGetGasLimit(tx), // gasCreate(0),
-                                                                      blockGetHash(block),
+            transactionSetStatus(tx, transactionStatusCreateIncluded (blockGetHash(block),
                                                                       blockGetNumber(block),
-                                                                      i));
+                                                                      i,
+                                                                      blockGetTimestamp(block),
+                                                                      transactionGetGasLimit(tx)));
 
             if (NULL == neededTransactions) array_new (neededTransactions, 3);
             array_add(neededTransactions, tx);
@@ -1623,17 +1623,19 @@ bcsHandleBlockProof (BREthereumBCS bcs,
     // logs, etc) are complete and then process
 
     // If block has no totalDifficulty, assign it...
-    if (0 == eqUInt256 (blockGetTotalDifficulty (block), UINT256_ZERO)) {
-        eth_log ("BCS", "Block %" PRIu64 " Assign Difficulty (Proof)", number);
+    if (1 == eqUInt256 (blockGetTotalDifficulty (block), UINT256_ZERO))
         blockSetTotalDifficulty (block, proof.totalDifficulty);
-    }
+
     // ... otherwise, if the difficulties do not match
-    else if (0 != eqUInt256 (blockGetTotalDifficulty (block), proof.totalDifficulty)) {
+    else if (0 == eqUInt256 (blockGetTotalDifficulty (block), proof.totalDifficulty)) {
         // TODO: This SHOULD indicate a problem...
         eth_log ("BCS", "Block %" PRIu64 " Overwrite Difficulty (Proof)", number);
         blockSetTotalDifficulty (block, proof.totalDifficulty);
     }
-    // ... otherwise, nothing to do
+
+    // In the following, 'if appropriate' means complete and chained.
+    bcsExtendTransactionsAndLogsForBlockIfAppropriate (bcs, block);
+
 }
 
 static void
@@ -1706,7 +1708,7 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
     // We must be in a 'receipts needed' status
     assert (ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusLogsRequest(block, BLOCK_REQUEST_PENDING)));
 
-    eth_log("BCS", "Receipts %" PRIu64 " Count %lu",
+    eth_log("BCS", "Receipts %" PRIu64 " Count %zu",
             blockGetNumber(block),
             array_count(receipts));
 
@@ -1725,7 +1727,7 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
 
                 // If `log` topics match our address....
                 if (ETHEREUM_BOOLEAN_IS_TRUE (logMatchesAddress(log, bcs->address, ETHEREUM_BOOLEAN_TRUE))) {
-                    eth_log("BCS", "Receipts %" PRIu64 " Found Log at (%lu, %lu)",
+                    eth_log("BCS", "Receipts %" PRIu64 " Found Log at (%zu, %zu)",
                             blockGetNumber(block), ti, li);
 
                     // We'll need a copy of the log as this log will be added to the
@@ -1736,10 +1738,11 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
                     // We won't have the transaction hash so we'll use an empty one.
                     logInitializeIdentifier(log, emptyHash, li);
 
-                    logSetStatus (log, transactionStatusCreateIncluded (gasCreate(0),
-                                                                        blockGetHash(block),
+                    logSetStatus (log, transactionStatusCreateIncluded (blockGetHash(block),
                                                                         blockGetNumber(block),
-                                                                        ti));
+                                                                        ti,
+                                                                        blockGetTimestamp(block),
+                                                                        gasCreate(0)));
                     
                     if (NULL == neededLogs) array_new(neededLogs, 3);
                     array_add(neededLogs, log);
@@ -2232,12 +2235,36 @@ bcsHandleProvision (BREthereumBCS bcs,
                     BREthereumNodeReference node,
                     OwnershipGiven BREthereumProvisionResult result) {
     assert (bcs->les == les);
+
+    int needProvisionRelease = 1;
+    BREthereumProvision *provision = &result.provision;
     switch (result.status) {
         case PROVISION_ERROR:
-            assert (0);
+
+            // Try to handle the specific error.
+            switch (result.u.error.reason) {
+                case PROVISION_ERROR_NODE_INACTIVE:
+                    // The node went inactive, we'll submit again.
+                    //
+                    // This can cause problems... as in, we are queryng a node based on a recent
+                    // block but upon resubmission the other node is behind.
+                    lesRetryProvision (bcs->les,
+                                       NODE_REFERENCE_ANY,
+                                       (BREthereumLESProvisionContext) bcs,
+                                       (BREthereumLESProvisionCallback) bcsSignalProvision,
+                                       provision);
+                    needProvisionRelease = 0;
+
+                    eth_log ("BCS", "Resubmitted Provision: %" PRIu64 ": %s",
+                             provision->identifier,
+                             provisionGetTypeName(provision->type));
+                    break;
+
+                default: break;
+            }
             break;
+
         case PROVISION_SUCCESS: {
-            BREthereumProvision *provision = &result.u.success.provision;
             assert (result.type == provision->type);
             switch (result.type) {
                 case PROVISION_BLOCK_HEADERS: {
@@ -2306,8 +2333,9 @@ bcsHandleProvision (BREthereumBCS bcs,
         }
     }
 
-    // We won result and have finished with it.  Must release - which will release the
+    // We have one result and have finished with it.  Must release - which will release the
     // included provision.
-    provisionResultRelease (&result);
+    if (needProvisionRelease)
+        provisionResultRelease (&result);
 }
 

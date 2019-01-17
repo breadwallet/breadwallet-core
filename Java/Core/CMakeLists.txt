@@ -175,6 +175,7 @@ target_sources (core
                 src/main/cpp/core/ethereum/blockchain/BREthereumTransactionReceipt.h
                 src/main/cpp/core/ethereum/blockchain/BREthereumTransactionStatus.c
                 src/main/cpp/core/ethereum/blockchain/BREthereumTransactionStatus.h
+                src/main/cpp/core/ethereum/blockchain/BREthereumProofOfWork.c
 #                src/main/cpp/core/ethereum/blockchain/testBc.c
 
                 # Contract
@@ -248,6 +249,7 @@ target_sources (core
                 src/main/cpp/core/ethereum/ewm/BREthereumClient.h
                 src/main/cpp/core/ethereum/ewm/BREthereumEWM.c
                 src/main/cpp/core/ethereum/ewm/BREthereumEWM.h
+                src/main/cpp/core/ethereum/ewm/BREthereumEWMClient.c
                 src/main/cpp/core/ethereum/ewm/BREthereumEWMEvent.c
                 src/main/cpp/core/ethereum/ewm/BREthereumEWMPrivate.h
 #                src/main/cpp/core/ethereum/ewm/testEwm.c

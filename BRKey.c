@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <unistd.h>             // getpid()
 #include <pthread.h>
 
 #define BITCOIN_PRIVKEY      128
@@ -48,11 +49,36 @@
 #pragma clang diagnostic ignored "-Wunused-function"
 #pragma GCC diagnostic ignored "-Wunused-function"
 #pragma clang diagnostic ignored "-Wconditional-uninitialized"
+#ifndef __clang__
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
 #include "secp256k1/src/basic-config.h"
 #include "secp256k1/src/secp256k1.c"
 #pragma clang diagnostic pop
 #pragma GCC diagnostic pop
+
+static pthread_once_t _rand_once = PTHREAD_ONCE_INIT;
+
+static void _rand_init (void) {
+    srand((((0x811C9dc5 ^ (unsigned)time(NULL))*0x01000193) ^ (unsigned)getpid())*0x01000193);
+}
+
+// returns a random number less than upperBound, for non-cryptographic use only
+uint32_t BRRand(uint32_t upperBound)
+{
+    uint32_t r;
+
+    pthread_once(&_rand_once, _rand_init);
+
+    if (upperBound == 0 || upperBound > BR_RAND_MAX) upperBound = BR_RAND_MAX;
+
+    do { // to avoid modulo bias, find a rand value not less than 0x100000000 % upperBound
+        r = rand();
+    } while (r < ((0xffffffff - upperBound*2) + 1) % upperBound); // (((0xffffffff - x*2) + 1) % x) == (0x100000000 % x)
+
+    return r % upperBound;
+}
+
 
 static secp256k1_context *_ctx = NULL;
 static pthread_once_t _ctx_once = PTHREAD_ONCE_INIT;

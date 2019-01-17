@@ -99,6 +99,7 @@ typedef void
 ///
 typedef enum {
     BITCOIN_WALLET_MANAGER_CONNECTED,
+    BITCOIN_WALLET_MANAGER_DISCONNECTED,
     BITCOIN_WALLET_MANAGER_SYNC_STARTED,
     BITCOIN_WALLET_MANAGER_SYNC_STOPPED
 } BRWalletManagerEventType;
@@ -132,6 +133,12 @@ BRWalletManagerNew (BRWalletManagerClient client,
 
 extern void
 BRWalletManagerFree (BRWalletManager manager);
+
+extern void
+BRWalletManagerConnect (BRWalletManager manager);
+
+extern void
+BRWalletManagerDisconnect (BRWalletManager manager);
 
 //
 // These should not be needed if the events are sufficient

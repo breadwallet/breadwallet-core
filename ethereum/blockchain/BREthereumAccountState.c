@@ -29,7 +29,7 @@
 
 extern BREthereumAccountState
 accountStateCreateEmpty (void) {
-    return (BREthereumAccountState) EMPTY_ACCOUNT_STATE_INIT;
+    return EMPTY_ACCOUNT_STATE_INIT;
 }
 
 extern uint64_t

@@ -104,7 +104,7 @@ runBlockHeaderTests (void) {
     BREthereumBlockHeader header_6500000 = testGetBlockHeader(BLOCK_HEADER_6500000_RLP); // networkGetGenesisBlockHeader (ethereumMainnet);
     BREthereumBlockHeader header_6500001 = testGetBlockHeader(BLOCK_HEADER_6500001_RLP);
 
-    assert (ETHEREUM_BOOLEAN_IS_TRUE (blockHeaderIsValidFull (header_6500001,
+    assert (ETHEREUM_BOOLEAN_IS_TRUE (blockHeaderIsValid (header_6500001,
                                                               header_6500000,
                                                               0,
                                                               header_0,
@@ -113,7 +113,7 @@ runBlockHeaderTests (void) {
     BREthereumBlockHeader header_6000000 = testGetBlockHeader(BLOCK_HEADER_6000000_RLP); // networkGetGenesisBlockHeader (ethereumMainnet);
     BREthereumBlockHeader header_6000001 = testGetBlockHeader(BLOCK_HEADER_6000001_RLP);
 
-    assert (ETHEREUM_BOOLEAN_IS_TRUE (blockHeaderIsValidFull (header_6000001,
+    assert (ETHEREUM_BOOLEAN_IS_TRUE (blockHeaderIsValid (header_6000001,
                                                               header_6000000,
                                                               0,
                                                               header_0,
@@ -123,7 +123,7 @@ runBlockHeaderTests (void) {
     BREthereumBlockHeader header_4000000 = testGetBlockHeader(BLOCK_HEADER_4000000_RLP); // networkGetGenesisBlockHeader (ethereumMainnet);
     BREthereumBlockHeader header_4000001 = testGetBlockHeader(BLOCK_HEADER_4000001_RLP);
 
-    assert (ETHEREUM_BOOLEAN_IS_TRUE (blockHeaderIsValidFull (header_4000001,
+    assert (ETHEREUM_BOOLEAN_IS_TRUE (blockHeaderIsValid (header_4000001,
                                                               header_4000000,
                                                               0,
                                                               header_0,
@@ -355,7 +355,9 @@ runLogTests (void) {
 
     logInitializeIdentifier(log, someTxHash, someTxIndex);
 
-    logSetStatus(log, transactionStatusCreateIncluded(gasCreate(0), someBlockHash, someBlockNumber, 0));
+    logSetStatus(log, transactionStatusCreateIncluded(someBlockHash, someBlockNumber, 0,
+                                                      TRANSACTION_STATUS_BLOCK_TIMESTAMP_UNKNOWN,
+                                                      gasCreate(0)));
     BREthereumTransactionStatus status = logGetStatus(log);
 
     BRRlpItem item = logRlpEncode(log, RLP_TYPE_ARCHIVE, coder);
@@ -476,7 +478,7 @@ runBlockTests (void) {
 
 extern void
 runBcTests (void) {
-    runBloomTests();
+//    runBloomTests();
     runBlockHeaderTests ();
     runBlockTests();
     runLogTests();

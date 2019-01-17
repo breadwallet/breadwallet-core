@@ -245,30 +245,34 @@ walletCreateTransfer(BREthereumWallet wallet,
                                                 }}});
 }
 
-#ifdef WALLET_CREATE_TRANSACTION_DIRECTLY
 extern BREthereumTransfer
-walletCreateTransferDetailed(BREthereumWallet wallet,
+walletCreateTransferGeneric(BREthereumWallet wallet,
                              BREthereumAddress recvAddress,
                              BREthereumEther amount,
                              BREthereumGasPrice gasPrice,
                              BREthereumGas gasLimit,
-                             const char *data,
-                             uint64_t nonce) {
-    assert (walletGetAmountType(wallet) == amountGetType(amount));
-    assert (AMOUNT_ETHER == amountGetType(amount)
-            || (wallet->token == tokenQuantityGetToken (amountGetTokenQuantity(amount))));
-    
-    BREthereumTransfer transfer = transferCreate(wallet->address,
-                                                 recvAddress,
-                                                 amount,
-                                                 gasPrice,
-                                                 gasLimit,
-                                                 data,
-                                                 nonce);
+                             const char *data) {
+//    assert (walletGetAmountType(wallet) == amountGetType(amount));
+//    assert (AMOUNT_ETHER == amountGetType(amount)
+//            || (wallet->token == tokenQuantityGetToken (amountGetTokenQuantity(amount))));
+
+        BREthereumTransaction originatingTransaction = transactionCreate(walletGetAddress(wallet),
+                                                                         recvAddress,
+                                                                         amount,
+                                                                         gasPrice,
+                                                                         gasLimit,
+                                                                         data,
+                                                                         TRANSACTION_NONCE_IS_NOT_ASSIGNED);
+
+    BREthereumTransfer transfer =
+            transferCreateWithTransactionOriginating (originatingTransaction,
+                                                      (NULL == walletGetToken(wallet)
+                                                      ? TRANSFER_BASIS_TRANSACTION
+                                                      : TRANSFER_BASIS_LOG));
+
     walletHandleTransfer(wallet, transfer);
     return transfer;
 }
-#endif // WALLET_CREATE_TRANSACTION_DIRECTLY
 
 private_extern void
 walletHandleTransfer(BREthereumWallet wallet,

@@ -180,6 +180,7 @@ public class BRCoreKey extends BRCoreJniReference {
     //
     //
     public native String address();
+    public native String addressLegacy();
 
     //
     //

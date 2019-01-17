@@ -172,7 +172,7 @@ nodeProtocolReasonDescription (BREthereumNodeProtocolReason reason) {
     protocolReasonDescriptions [] = {
         "Exhausted",
         "Non-Standard Port",
-        "UDP Ping_Pong Missed",
+        "Ping_Pong Missed",
         "UDP Excessive Byte Count",
         "TCP Authentication",
         "TCP Hello Missed",
@@ -783,6 +783,18 @@ nodeGetPriority (BREthereumNode node) {
     return node->priority;
 }
 
+static inline void
+nodeUpdateTimeout (BREthereumNode node,
+                   time_t now) {
+    node->timeout = now + DEFAULT_NODE_TIMEOUT_IN_SECONDS;
+}
+
+static inline void
+nodeUpdateTimeoutRecv (BREthereumNode node,
+                       time_t now) {
+    node->timeout = now + DEFAULT_NODE_TIMEOUT_IN_SECONDS_RECV;
+}
+
 static BREthereumNodeState
 nodeProcessFailure (BREthereumNode node,
                     BREthereumNodeEndpointRoute route,
@@ -803,7 +815,8 @@ nodeProcessSuccess (BREthereumNode node,
 
 extern BREthereumNodeState
 nodeConnect (BREthereumNode node,
-             BREthereumNodeEndpointRoute route) {
+             BREthereumNodeEndpointRoute route,
+             time_t now) {
     int error;
 
     // Nothing if not AVAILABLE
@@ -822,6 +835,7 @@ nodeConnect (BREthereumNode node,
         return nodeProcessFailure (node, route, NULL, nodeStateCreateErrorUnix(error));
 
     // Move to the next state.
+    nodeUpdateTimeout(node, now);
     return nodeStateAnnounce(node, route, nodeStateCreateConnecting (NODE_ROUTE_TCP == route
                                                                      ? NODE_CONNECT_AUTH
                                                                      : NODE_CONNECT_PING));
@@ -853,6 +867,19 @@ nodeDisconnect (BREthereumNode node,
 ///
 /// MARK: - Node Process
 ///
+extern BREthereumBoolean
+nodeCanHandleProvision (BREthereumNode node,
+                        BREthereumProvision provision) {
+    switch (node->type) {
+        case NODE_TYPE_UNKNOWN:
+            return ETHEREUM_BOOLEAN_FALSE;
+        case NODE_TYPE_GETH:
+            return AS_ETHEREUM_BOOLEAN(((BREthereumLESMessageIdentifier) -1) != provisionGetMessageLESIdentifier (provision.type));
+        case NODE_TYPE_PARITY:
+            return AS_ETHEREUM_BOOLEAN(((BREthereumPIPRequestType) -1) != provisionGetMessagePIPIdentifier(provision.type));
+    }
+}
+
 extern void
 nodeHandleProvision (BREthereumNode node,
                      BREthereumProvision provision) {
@@ -888,7 +915,8 @@ nodeHandleProvisionerMessage (BREthereumNode node,
                                    provisioner->provision.identifier,
                                    provisioner->provision.type,
                                    PROVISION_SUCCESS,
-                                   { .success = { provisioner->provision }}
+                                   provisioner->provision,
+                                   { .success = { }}
                                });
         // ... and remove the provisioner
         for (size_t index = 0; index < array_count (node->provisioners); index++)
@@ -959,7 +987,7 @@ nodeProcessRecvDIS (BREthereumNode node,
                     nodeEndpointGetDISNeighbor(node->local).key }}
             };
             if (NODE_STATUS_ERROR == nodeSend (node, NODE_ROUTE_UDP, pong))
-                nodeStateAnnounce(node, NODE_ROUTE_TCP, nodeStateCreateErrorProtocol(NODE_PROTOCOL_PING_PONG_MISSED));
+                nodeStateAnnounce(node, NODE_ROUTE_UDP, nodeStateCreateErrorProtocol(NODE_PROTOCOL_PING_PONG_MISSED));
 
             break;
         }
@@ -1020,7 +1048,6 @@ nodeProcessRecvLES (BREthereumNode node,
             break;
 
         case LES_MESSAGE_CONTRACT_CODES:
-        case LES_MESSAGE_HEADER_PROOFS:
         case LES_MESSAGE_HELPER_TRIE_PROOFS:;
             eth_log (LES_LOG_TOPIC, "Recv: [ LES, %15s ] Unexpected Response",
                      messageLESGetIdentifierName (message.identifier));
@@ -1032,6 +1059,7 @@ nodeProcessRecvLES (BREthereumNode node,
         case LES_MESSAGE_PROOFS:
         case LES_MESSAGE_PROOFS_V2:
         case LES_MESSAGE_TX_STATUS:
+        case LES_MESSAGE_HEADER_PROOFS:
             // Find the provisioner applicable to `message`...
             for (size_t index = 0; index < array_count (node->provisioners); index++) {
                 BREthereumNodeProvisioner *provisioner = &node->provisioners[index];
@@ -1050,7 +1078,6 @@ nodeProcessRecvLES (BREthereumNode node,
             break;
     }
     if (mustReleaseMessage) messageLESRelease (&message);
-
 }
 
 static void
@@ -1133,18 +1160,6 @@ nodeProcessRecvPIP (BREthereumNode node,
     }
 
     if (mustReleaseMessage) messagePIPRelease (&message);
-}
-
-static inline void
-nodeUpdateTimeout (BREthereumNode node,
-                   time_t now) {
-    node->timeout = now + DEFAULT_NODE_TIMEOUT_IN_SECONDS;
-}
-
-static inline void
-nodeUpdateTimeoutRecv (BREthereumNode node,
-                   time_t now) {
-    node->timeout = now + DEFAULT_NODE_TIMEOUT_IN_SECONDS_RECV;
 }
 
 static uint64_t

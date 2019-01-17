@@ -31,13 +31,13 @@ public class BREthereumBlock extends BREthereumEWM.Reference {
         super (ewm, identifier);
     }
 
-    public String getHash () {
-        return ewm.get().jniBlockGetHash(identifier);
-    }
-
-    public long getNumber () {
-        return ewm.get().jniBlockGetNumber(identifier);
-    }
+//    public String getHash () {
+//        return ewm.get().jniBlockGetHash(identifier);
+//    }
+//
+//    public long getNumber () {
+//        return ewm.get().jniBlockGetNumber(identifier);
+//    }
 
 //    public long getTimestamp () {
 //        return node.get().jniBlockGetTimestamp(identifier);

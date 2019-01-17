@@ -10,7 +10,7 @@
 
 import Core
 
-struct Fiat {
+public struct Fiat {
     /// TODO: Dicionary<String,Currency> w/ ISO<abcd> currencies
 
     public static let US = Currency (code: "USD", symbol: "$", name: "dollar", decimals: 2,

@@ -53,7 +53,8 @@ typedef struct {
 // a bloom filter that matches everything is useful if a full node wants to use the filtered block protocol, which
 // doesn't send transactions with blocks if the receiving node already received the tx prior to its inclusion in the
 // block, allowing a full node to operate while using about half the network traffic
-#define BR_BLOOM_FILTER_FULL ((BRBloomFilter) { &((struct { uint8_t u; }) { 0xff }).u, 1, 0, 0, 0, BLOOM_UPDATE_NONE })
+#define BR_BLOOM_FILTER_FULL ((const BRBloomFilter) { &((struct { uint8_t u; }) { 0xff }).u, 1, 0, 0, 0,\
+                                                      BLOOM_UPDATE_NONE })
 
 // returns a newly allocated bloom filter struct that must be freed by calling BRBloomFilterFree()
 BRBloomFilter *BRBloomFilterNew(double falsePositiveRate, size_t elemCount, uint32_t tweak, uint8_t flags);

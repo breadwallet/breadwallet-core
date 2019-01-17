@@ -55,8 +55,21 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
         //                                         paperKey: "0x8975dbc1b8f25ec994815626d070899dda896511")
         //                                         paperKey: "0xb302B06FDB1348915599D21BD54A06832637E5E8")
 
-        let timestamp:UInt64 = 1543274121 // Tue, 26 Nov 2018 23:15:21 GMT
+        let timestamp:UInt64 = 1543190400 // Tue, 26 Nov 2018 00:00:00 GMT
         let account = Account (phrase: paperKey)
+
+        let storagePath = FileManager.default
+            .urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Core").path
+
+        do {
+            try FileManager.default.createDirectory (atPath: storagePath,
+                                                     withIntermediateDirectories: true,
+                                                     attributes: nil)
+        }
+        catch let error as NSError {
+            print("Error: \(error.localizedDescription)")
+        }
 
         self.listener = CoreDemoListener ()
 
@@ -64,19 +77,22 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
                                                 account: account,
                                                 network: Bitcoin.Networks.testnet,
                                                 mode: WalletManagerMode.p2p_only,
-                                                timestamp: timestamp)
+                                                timestamp: timestamp,
+                                                storagePath: storagePath)
 
         self.bchManager = BitcoinWalletManager (listener: listener,
                                                 account: account,
                                                 network: Bitcash.Networks.testnet,
                                                 mode: WalletManagerMode.p2p_only,
-                                                timestamp: timestamp)
+                                                timestamp: timestamp,
+                                                storagePath: storagePath)
 
-       self.ethManager = EthereumWalletManager (listener: listener,
+        self.ethManager = EthereumWalletManager (listener: listener,
                                                  account: account,
                                                  network: Ethereum.Networks.mainnet,
-                                                 mode: WalletManagerMode.api_with_p2p_submit, // api_with_p2p_submit,
-                                                 timestamp: 0)
+                                                 mode: WalletManagerMode.api_with_p2p_submit,
+                                                 timestamp: 0,
+                                                 storagePath: storagePath)
 
         UIApplication.sharedListener.addWalletListener(listener: summaryController)
 

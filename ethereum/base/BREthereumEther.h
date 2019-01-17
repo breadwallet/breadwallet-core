@@ -69,8 +69,7 @@ typedef struct BREthereumEtherStruct {
     UInt256 valueInWEI;
 } BREthereumEther;
 
-#define EMPTY_ETHER_INIT \
-{ UINT256_ZERO }
+#define EMPTY_ETHER_INIT  ((const BREthereumEther) { UINT256_ZERO })
     
 extern BREthereumEther
 etherCreateZero (void);

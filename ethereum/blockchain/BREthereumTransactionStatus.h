@@ -71,16 +71,17 @@ transactionGetErrorName (BREthereumTransactionErrorType type);
 
 /** In `Status` we'll include a 'reason' string; limit the string to filling out the union. */
 #define TRANSACTION_STATUS_DETAIL_BYTES   \
-    (sizeof (BREthereumGas) + sizeof (BREthereumHash) + 2 * sizeof(uint64_t) - sizeof (BREthereumTransactionErrorType))
+    (sizeof (BREthereumGas) + sizeof (BREthereumHash) + 3 * sizeof(uint64_t) - sizeof (BREthereumTransactionErrorType))
 
 typedef struct BREthereumTransactionStatusLESRecord {
     BREthereumTransactionStatusType type;
     union {
         struct {
-            BREthereumGas gasUsed;      // Internal
             BREthereumHash blockHash;
             uint64_t blockNumber;
             uint64_t transactionIndex;
+            uint64_t blockTimestamp;
+            BREthereumGas gasUsed;      // Internal
         } included;
 
         struct {
@@ -90,14 +91,17 @@ typedef struct BREthereumTransactionStatusLESRecord {
     } u;
 } BREthereumTransactionStatus;
 
+#define TRANSACTION_STATUS_BLOCK_TIMESTAMP_UNKNOWN      (0)
+
 extern BREthereumTransactionStatus
 transactionStatusCreate (BREthereumTransactionStatusType type);
 
 extern BREthereumTransactionStatus
-transactionStatusCreateIncluded (BREthereumGas gasUsed,
-                                 BREthereumHash blockHash,
+transactionStatusCreateIncluded (BREthereumHash blockHash,
                                  uint64_t blockNumber,
-                                 uint64_t transactionIndex);
+                                 uint64_t transactionIndex,
+                                 uint64_t blockTimestamp,
+                                 BREthereumGas gasUsed);
 
 extern BREthereumTransactionStatus
 transactionStatusCreateErrored (BREthereumTransactionErrorType type,
@@ -111,10 +115,11 @@ transactionStatusHasType (const BREthereumTransactionStatus *status,
 
 extern int
 transactionStatusExtractIncluded(const BREthereumTransactionStatus *status,
-                                 BREthereumGas *gas,
                                  BREthereumHash *blockHash,
                                  uint64_t *blockNumber,
-                                 uint64_t *blockTransactionIndex);
+                                 uint64_t *blockTransactionIndex,
+                                 uint64_t *blockTimestamp,
+                                 BREthereumGas *gas);
 
 extern BREthereumBoolean
 transactionStatusEqual (BREthereumTransactionStatus ts1,

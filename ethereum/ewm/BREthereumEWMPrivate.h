@@ -129,6 +129,11 @@ struct BREthereumEWMRecord {
      * The RLP Coder
      */
     BRRlpCoder coder;
+
+    /**
+     * The path for persistent storage or NULL
+     */
+    const char *storagePath;
 };
 
 ///
@@ -245,6 +250,21 @@ extern void
 ewmSignalSaveNodes (BREthereumEWM ewm,
                     OwnershipGiven BRArrayOf(BREthereumNodeConfig) peers);
 
+//
+// Handle Save Transaction
+//
+extern void
+ewmHandleSaveTransaction (BREthereumEWM ewm,
+                          BREthereumTransaction transaction,
+                          BREthereumClientChangeType type);
+
+//
+// Handle Save Log
+//
+extern void
+ewmHandleSaveLog (BREthereumEWM ewm,
+                  BREthereumLog log,
+                  BREthereumClientChangeType type);
 
 //
 // Signal/Handle Sync (BCS Callback)

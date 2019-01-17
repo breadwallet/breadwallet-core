@@ -36,10 +36,22 @@
 //
 extern BREthereumAddress
 addressCreate (const char *address) {
+    if (ETHEREUM_BOOLEAN_IS_FALSE(addressValidateString(address))) return EMPTY_ADDRESS_INIT;
+
     BREthereumAddress raw;
     if (0 == strncmp ("0x", address, 2)) address = &address[2];
     decodeHex(raw.bytes, sizeof(raw.bytes), address, strlen(address));
     return raw;
+}
+
+extern BREthereumBoolean
+addressValidateString(const char *string) {
+    return 42 == strlen(string)
+           && '0' == string[0]
+           && 'x' == string[1]
+           && encodeHexValidate (&string[2])
+           ? ETHEREUM_BOOLEAN_TRUE
+           : ETHEREUM_BOOLEAN_FALSE;
 }
 
 extern BREthereumAddress

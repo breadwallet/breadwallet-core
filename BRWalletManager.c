@@ -234,6 +234,23 @@ BRWalletManagerGetPeerManager (BRWalletManager manager) {
     return manager->peerManager;
 }
 
+extern void
+BRWalletManagerConnect (BRWalletManager manager) {
+    BRPeerManagerConnect(manager->peerManager);
+    manager->client.funcWalletManagerEvent (manager,
+                                            (BRWalletManagerEvent) {
+                                                BITCOIN_WALLET_MANAGER_CONNECTED
+                                            });
+}
+
+extern void
+BRWalletManagerDisconnect (BRWalletManager manager) {
+    BRPeerManagerDisconnect(manager->peerManager);
+    manager->client.funcWalletManagerEvent (manager,
+                                            (BRWalletManagerEvent) {
+                                                BITCOIN_WALLET_MANAGER_DISCONNECTED
+                                            });
+}
 
 ///
 /// MARK: Storage

@@ -1,5 +1,5 @@
 import UIKit
-import BRCoreX
+import BRCrypto
 
 var str = "Hello, playground"
 

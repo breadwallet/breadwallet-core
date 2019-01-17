@@ -47,11 +47,6 @@ extern "C" {
 #define SATOSHIS             100000000LL
 #define MAX_MONEY            (21000000LL*SATOSHIS)
 
-#define BR_RAND_MAX          ((RAND_MAX > 0x7fffffff) ? 0x7fffffff : RAND_MAX)
-
-// returns a random number less than upperBound (for non-cryptographic use only)
-uint32_t BRRand(uint32_t upperBound);
-
 typedef struct {
     UInt256 txHash;
     uint32_t index;
@@ -78,7 +73,7 @@ typedef struct {
     size_t scriptLen;
 } BRTxOutput;
 
-#define BR_TX_OUTPUT_NONE ((BRTxOutput) { "", 0, NULL, 0 })
+#define BR_TX_OUTPUT_NONE ((const BRTxOutput) { "", 0, NULL, 0 })
 
 // when creating a BRTxOutput struct outside of a BRTransaction, set address or script to NULL when done to free memory
 void BRTxOutputSetAddress(BRTxOutput *output, const char *address);

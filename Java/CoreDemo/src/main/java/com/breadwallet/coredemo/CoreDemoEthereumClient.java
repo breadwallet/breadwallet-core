@@ -3,6 +3,7 @@ package com.breadwallet.coredemo;
 import com.breadwallet.core.ethereum.BREthereumBlock;
 import com.breadwallet.core.ethereum.BREthereumEWM;
 import com.breadwallet.core.ethereum.BREthereumNetwork;
+import com.breadwallet.core.ethereum.BREthereumToken;
 import com.breadwallet.core.ethereum.BREthereumTransfer;
 import com.breadwallet.core.ethereum.BREthereumWallet;
 
@@ -35,28 +36,32 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
     }
 
     @Override
-    public void getGasPrice(int wid, int rid) {
+    public void getGasPrice(long wid, int rid) {
+        System.out.println ("TST: getGasPrice");
         ewm.announceGasPrice(wid, "0x77", rid);
     }
 
     @Override
-    public void getGasEstimate(int wid, int tid, String to, String amount, String data, int rid) {
+    public void getGasEstimate(long wid, long tid, String to, String amount, String data, int rid) {
+        System.out.println ("TST: getGasEstimate");
         ewm.announceGasEstimate (wid, tid, "21000", rid);
     }
 
     @Override
-    public void getBalance(int wid, String address, int rid) {
+    public void getBalance(long wid, String address, int rid) {
+        System.out.println ("TST: getBalance");
         ewm.announceBalance (wid, "0xffc0", rid);
-
     }
 
     @Override
-    public void submitTransaction(int wid, int tid, String rawTransaction, int rid) {
+    public void submitTransaction(long wid, long tid, String rawTransaction, int rid) {
+        System.out.println ("TST: submitTransaction");
         ewm.announceSubmitTransaction (wid, tid, "0xffaabb", rid);
     }
 
     @Override
     public void getTransactions(String address, int rid) {
+        System.out.println ("TST: getTransactions");
         ewm.announceTransaction(rid,
                 "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
                 ewm.getAddress(),
@@ -78,6 +83,7 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
 
     @Override
     public void getLogs(String contract, String address, String event, int rid) {
+        System.out.println ("TST: getLogs");
         ewm.announceLog(rid,
                 "0xa37bd8bd8b1fa2838ef65aec9f401f56a6279f99bb1cfb81fa84e923b1b60f2b",
                 "0x722dd3f80bac40c951b51bdd28dd19d435762180",
@@ -96,11 +102,12 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
 
     @Override
     public void getBlocks (String address, int interests, long blockNumberStart, long blockNumberStop, int rid) {
-
+        System.out.println ("TST: getBlocks");
     }
 
     @Override
     public void getTokens(int rid) {
+        System.out.println ("TST: getTokens");
         ewm.announceToken(
                 "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6",
                 "BRD",
@@ -125,11 +132,13 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
 
     @Override
     public void getBlockNumber(int rid) {
+        System.out.println ("TST: getBlockNumber");
         ewm.announceBlockNumber("5900000", rid);
     }
 
     @Override
     public void getNonce(String address, int rid) {
+        System.out.println ("TST: getNonce");
         ewm.announceNonce(address, "17", rid);
     }
 
@@ -189,6 +198,11 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
             l.announceWalletEvent(this.ewm, wallet, event);
     }
 
+    @Override
+    public void handleTokenEvent(BREthereumToken token, BREthereumEWM.TokenEvent event) {
+        System.out.println ("TST: TokenEvent: " + event.name());
+    }
+
     //
     // Block Event
     //
@@ -209,7 +223,7 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
 
     @Override
     public void handleTransferEvent(BREthereumWallet wallet, BREthereumTransfer transaction, BREthereumEWM.TransactionEvent event, BREthereumEWM.Status status, String errorDescription) {
-        System.out.println ("TST: WalletEvent: " + event.name());
+        System.out.println ("TST: TransferEvent: " + event.name());
         TransferListener l = transferListenersMap.get(wallet);
         if (null != l)
             l.announceTransferEvent(this.ewm, wallet, transaction, event);

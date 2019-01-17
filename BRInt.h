@@ -110,10 +110,10 @@ inline static UInt256 UInt256Reverse(UInt256 u)
                                 u.u8[ 7], u.u8[ 6], u.u8[5],  u.u8[ 4], u.u8[ 3], u.u8[ 2], u.u8[ 1], u.u8[ 0] } });
 }
 
-#define UINT128_ZERO ((UInt128) { .u64 = { 0, 0 } })
-#define UINT160_ZERO ((UInt160) { .u32 = { 0, 0, 0, 0, 0 } })
-#define UINT256_ZERO ((UInt256) { .u64 = { 0, 0, 0, 0 } })
-#define UINT512_ZERO ((UInt512) { .u64 = { 0, 0, 0, 0, 0, 0, 0, 0 } })
+#define UINT128_ZERO ((const UInt128) { .u64 = { 0, 0 } })
+#define UINT160_ZERO ((const UInt160) { .u32 = { 0, 0, 0, 0, 0 } })
+#define UINT256_ZERO ((const UInt256) { .u64 = { 0, 0, 0, 0 } })
+#define UINT512_ZERO ((const UInt512) { .u64 = { 0, 0, 0, 0, 0, 0, 0, 0 } })
 
 // hex encoding/decoding
 
@@ -135,7 +135,7 @@ inline static UInt256 UInt256Reverse(UInt256 u)
     _hexc((u).u8[28] >> 4), _hexc((u).u8[28]), _hexc((u).u8[29] >> 4), _hexc((u).u8[29]),\
     _hexc((u).u8[30] >> 4), _hexc((u).u8[30]), _hexc((u).u8[31] >> 4), _hexc((u).u8[31]), '\0' })
 
-#define uint256(s) ((UInt256) { .u8 = {\
+#define uint256(s) ((const UInt256) { .u8 = {\
     (_hexu((s)[ 0]) << 4) | _hexu((s)[ 1]), (_hexu((s)[ 2]) << 4) | _hexu((s)[ 3]),\
     (_hexu((s)[ 4]) << 4) | _hexu((s)[ 5]), (_hexu((s)[ 6]) << 4) | _hexu((s)[ 7]),\
     (_hexu((s)[ 8]) << 4) | _hexu((s)[ 9]), (_hexu((s)[10]) << 4) | _hexu((s)[11]),\

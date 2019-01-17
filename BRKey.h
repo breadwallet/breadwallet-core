@@ -33,6 +33,12 @@
 extern "C" {
 #endif
 
+#define BR_RAND_MAX          ((RAND_MAX > 0x7fffffff) ? 0x7fffffff : RAND_MAX)
+
+// returns a random number less than upperBound (for non-cryptographic use only)
+uint32_t BRRand(uint32_t upperBound);
+
+    
 typedef struct {
     uint8_t p[33];
 } BRECPoint;

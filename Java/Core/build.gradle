@@ -1,45 +1,84 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 27
+    compileSdkVersion 28
 
+    // Link Gradle to the CMake script
+    externalNativeBuild {
+        cmake {
+            path "CMakeLists.txt"  //path can only be set outside (in android block)
+        }
+    }
+
+
+    // https://developer.android.com/studio/build/build-variants
+    //    "defaultConfig actually belongs to the ProductFlavor class."
+    //
+    // http://google.github.io/android-gradle-dsl/current/com.android.build.gradle.BaseExtension.html#com.android.build.gradle.BaseExtension:defaultConfig(org.gradle.api.Action)
+    //    "Specifies defaults for variant properties that the Android plugin applies to all build variants.
+    //    "You can override any defaultConfig property when configuring product flavors."
     defaultConfig {
         minSdkVersion 23
-        targetSdkVersion 27
+        targetSdkVersion 28
         versionCode 1
         versionName "1.0"
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
+        // Specify ABI configuration for the Core native Libraries
         ndk {
-            // Specifies the ABI configurations of your native
-            // libraries Gradle should build and package with your APK.
             abiFilters 'x86', 'x86_64', 'armeabi-v7a', 'arm64-v8a'
-            //, 'armeabi' (not supported by NDK 17.0.4754217)
         }
     }
 
+    flavorDimensions "network"
+    productFlavors {
+        onMainnet {
+            dimension "network"
+            minSdkVersion 23
+        }
+        onTestnet {
+            dimension "network"
+            minSdkVersion 23
+        }
+    }
+
+    // http://google.github.io/android-gradle-dsl/current/com.android.build.gradle.BaseExtension.html#com.android.build.gradle.BaseExtension:buildTypes(org.gradle.api.Action)
+    // "Encapsulates all build type configurations for this project"
     buildTypes {
+
+        // Default: required
         release {
             minifyEnabled false
+            debuggable true
+            jniDebuggable true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            externalNativeBuild {
+                cmake {
+                    cFlags "-DDEBUG", "-DBITCOIN_DEBUG"
+//                    cFlags "-DRELEASE"  // unused, actually
+                }
+            }
         }
-    }
-    externalNativeBuild {
-        cmake {
-            // When you specify a version of CMake, as shown below,
-            // the Android plugin searches for its binary within your
-            // PATH environmental variable.
-            path "CMakeLists.txt"  //path can only be set outside (in android block)
 
+        // Default: created on demand with 'debuggable true'
+        debug {
+            debuggable true
+            jniDebuggable true
+            minifyEnabled false
+            externalNativeBuild {
+                cmake {
+                    cFlags "-DDEBUG", "-DBITCOIN_DEBUG"
+//                    cFlags "-DDEBUG", "-DBITCOIN_DEBUG", "-DBITCOIN_TESTNET"
+                }
+            }
         }
     }
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
-
-    implementation 'com.android.support:appcompat-v7:27.1.1'
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation 'com.android.support:appcompat-v7:28.0.0'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'

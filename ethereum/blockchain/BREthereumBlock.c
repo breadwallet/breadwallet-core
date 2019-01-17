@@ -288,6 +288,11 @@ blockHeaderGetGasUsed (BREthereumBlockHeader header) {
     return header->gasUsed;
 }
 
+extern BREthereumHash
+blockHeaderGetMixHash (BREthereumBlockHeader header) {
+    return header->mixHash;
+}
+
 extern uint64_t
 blockHeaderGetNonce (BREthereumBlockHeader header) {
     return header->nonce;
@@ -426,21 +431,6 @@ blockHeaderCanonicalDifficulty (BREthereumBlockHeader header,
     return gtUInt256 (r, Dzero) ? r : Dzero;
 }
 
-static void
-blockHeaderProofOfWork (BREthereumBlockHeader this,
-                        void *d,
-                        uint64_t *nonceResult,
-                        BREthereumHash *mixHashResult) {
-    assert (NULL != nonceResult && NULL != mixHashResult);
-
-    // H-mixless is H less nonce and maxHash
-
-
-    // TODO: Faked, totally; actually implement?
-    *nonceResult = this->nonce;
-    *mixHashResult = this->mixHash;
-}
-
 static int
 blockHeaderValidateTimestamp (BREthereumBlockHeader this,
                               BREthereumBlockHeader parent) {
@@ -483,30 +473,29 @@ blockHeaderValidateDifficulty (BREthereumBlockHeader this,
 }
 
 static int
-blockHeaderValidateNonceWithDifficulty (uint64_t nonce,
-                                        UInt256 difficulty) {
-    // validate as nonce <= 2^256 / difficulty
-
-    // We'll compute as: `nonce * difficulty <= 2^256` and notice that 2^256 is the smallest
-    // 512-bit number.  Thus we'll just multiple nonce and difficulty and look for overflow.
-
-    int overflow = 0;
-    mulUInt256_Overflow (createUInt256(nonce), difficulty, &overflow);
-    return 0 == overflow;
+blockHeaderValidatePoWMixHash (BREthereumBlockHeader this,
+                               BREthereumHash mixHash) {
+    return (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual (mixHash, EMPTY_HASH_INIT)) || // no POW
+            ETHEREUM_BOOLEAN_IS_TRUE (hashEqual (mixHash, this->mixHash)));
 }
 
 static int
-blockHeaderValidateNonce (BREthereumBlockHeader this,
-                          BREthereumBlockHeader parent,
-                          void *d) {
-    uint64_t nonce;
-    BREthereumHash mixHash;
+blockHeaderValidatePoWNFactor (BREthereumBlockHeader this,
+                               UInt256 powNFactor) {
 
-    blockHeaderProofOfWork (this, d, &nonce, &mixHash);
+    // Special case for no POW
+    if (1 == UInt256Eq (powNFactor, UINT256_ZERO)) return 1;
 
-    // n <= 2^256/Hd && m == Hm
-    return (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual(mixHash, this->mixHash)) &&
-            blockHeaderValidateNonceWithDifficulty (nonce, this->difficulty));
+    // validate as n_factor <= 2^256 / difficulty
+    //
+    // We'll compute as: `n_factor * difficulty <= 2^256` and notice that 2^256 is the smallest
+    // 512-bit number.  Thus we'll just multiple nonce and difficulty and look for overflow.
+    //
+    // TODO: Does this account for '='?  What are the odds? (guaranteed to 'hit them')
+
+    int overflow = 0;
+    mulUInt256_Overflow (powNFactor, this->difficulty, &overflow);
+    return 0 == overflow; /* || result == 2^256 */
 }
 
 static int
@@ -514,39 +503,45 @@ blockHeaderValidateAll (BREthereumBlockHeader this,
                         BREthereumBlockHeader parent,
                         size_t parentOmmersCount,
                         BREthereumBlockHeader genesis,
-                        void *d) {
+                        BREthereumProofOfWork pow) {
+    assert (NULL != parent);
+
+    UInt256 n = UINT256_ZERO;
+    BREthereumHash m = EMPTY_HASH_INIT;
+
+    if (NULL != pow)
+        proofOfWorkCompute (pow, this, &n, &m);
+
     return (blockHeaderValidateTimestamp  (this, parent) &&
             blockHeaderValidateNumber     (this, parent) &&
             blockHeaderValidateGasLimit   (this, parent) &&
             blockHeaderValidateGasUsed    (this, parent) &&
             blockHeaderValidateExtraData  (this, parent) &&
-            blockHeaderValidateDifficulty (this, parent, parentOmmersCount, genesis) &&
-            blockHeaderValidateNonce      (this, parent, d));
+            // TODO: Disabled, see CORE-203 (parentOmmersCount isn't correct if non-zero).
+            // blockHeaderValidateDifficulty (this, parent, parentOmmersCount, genesis) &&
+            (NULL == pow || blockHeaderValidatePoWMixHash (this, m)) &&
+            (NULL == pow || blockHeaderValidatePoWNFactor (this, n)));
 }
 
 extern BREthereumBoolean
-blockHeaderIsValid (BREthereumBlockHeader header) {
+blockHeaderIsInternallyValid (BREthereumBlockHeader header) {
     return ETHEREUM_BOOLEAN_TRUE;
 }
 
 extern BREthereumBoolean
-blockHeaderIsValidFull (BREthereumBlockHeader header,
-                        BREthereumBlockHeader parent,
-                        size_t parentOmmersCount,
-                        BREthereumBlockHeader genesis,
-                        void *d) {
-    return AS_ETHEREUM_BOOLEAN (blockHeaderValidateAll (header, parent, parentOmmersCount, genesis, d));
-}
+blockHeaderIsValid (BREthereumBlockHeader header,
+                    BREthereumBlockHeader parent,
+                    size_t parentOmmersCount,
+                    BREthereumBlockHeader genesis,
+                    BREthereumProofOfWork pow) {
 
-// See https://ethereum.github.io/yellowpaper/paper.pdf Section 4.3.3 'Block Header Validity
-extern BREthereumBoolean
-blockHeaderIsConsistent (BREthereumBlockHeader header,
-                         BREthereumBlockHeader parent,
-                         size_t parentOmmersCount,
-                         BREthereumBlockHeader genesis) {
-    // TODO: Use blockHeaderValidateAll
-    if (NULL == parent) return ETHEREUM_BOOLEAN_TRUE;
-    return ETHEREUM_BOOLEAN_TRUE;
+//    // Hah! See CORE-203
+//    while (0 == blockHeaderValidateAll (header, parent, parentOmmersCount, genesis, pow))
+//        parentOmmersCount += 1;
+
+    // See https://ethereum.github.io/yellowpaper/paper.pdf Section 4.3.3 'Block Header Validity
+    return AS_ETHEREUM_BOOLEAN (NULL == parent ||
+                                blockHeaderValidateAll (header, parent, parentOmmersCount, genesis, pow));
 }
 
 //
@@ -738,17 +733,6 @@ blockRelease (BREthereumBlock block) {
     free (block);
 }
 
-extern BREthereumBoolean
-blockIsValid (BREthereumBlock block,
-              BREthereumBoolean skipHeaderValidation) {
-    if (ETHEREUM_BOOLEAN_IS_FALSE(skipHeaderValidation)
-        && ETHEREUM_BOOLEAN_IS_FALSE(blockHeaderIsValid(blockGetHeader(block))))
-        return ETHEREUM_BOOLEAN_FALSE;
-
-    // TODO: Validate transactions - Merkle Root
-    return ETHEREUM_BOOLEAN_TRUE;
-}
-
 extern BREthereumBlockHeader
 blockGetHeader (BREthereumBlock block) {
     return block->header;
@@ -912,8 +896,9 @@ blockLinkLogsWithTransactions (BREthereumBlock block) {
         BREthereumTransactionStatus status =transactionGetStatus(transaction);
 
         uint64_t transactionIndex, blockNumber;
-        if (transactionStatusExtractIncluded(&status, NULL, NULL, &blockNumber, &transactionIndex)) {
+        if (transactionStatusExtractIncluded(&status, NULL, &blockNumber, &transactionIndex, NULL, NULL)) {
             status.u.included.gasUsed = block->status.gasUsed[transactionIndex];
+            status.u.included.blockTimestamp = blockGetTimestamp(block);
             transactionSetStatus(transaction, status);
         }
     }
@@ -924,7 +909,7 @@ blockLinkLogsWithTransactions (BREthereumBlock block) {
         BREthereumLog log = block->status.logs[index];
         BREthereumTransactionStatus status = logGetStatus(log);
         uint64_t transactionIndex; size_t logIndex;
-        assert (transactionStatusExtractIncluded(&status, NULL, NULL, NULL, &transactionIndex));
+        assert (transactionStatusExtractIncluded(&status, NULL, NULL, &transactionIndex, NULL, NULL));
 
         BREthereumTransaction transaction = block->transactions[transactionIndex];
         logExtractIdentifier(log, NULL, &logIndex);

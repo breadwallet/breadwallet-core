@@ -122,7 +122,7 @@ mptNodeConsume (BREthereumMPTNode node, uint8_t *key) {
         case MPT_NODE_BRANCH: {
             // We'll consume one byte if the node's key is not an empty hash
             return (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual (node->u.branch.keys[key[0]],
-                                                         (BREthereumHash) EMPTY_HASH_INIT))
+                                                         EMPTY_HASH_INIT))
                     ? 0
                     : 1);
         }
@@ -207,7 +207,7 @@ mptNodeDecode (BRRlpItem item,
                 BRRlpData data = rlpGetDataSharedDontRelease (coder, items[index]);
                 // Either a hash (0x<32 bytes>) or empty (0x)
                 node->u.branch.keys[index] = (0 == data.bytesCount || 1 == data.bytesCount
-                                              ? (BREthereumHash) EMPTY_HASH_INIT
+                                              ? EMPTY_HASH_INIT
                                               : hashRlpDecode(items[index], coder));
             }
             node->u.branch.value = rlpGetData (coder, items[16]);
@@ -346,7 +346,7 @@ mptNodePathGetValue (BREthereumMPTNodePath path,
         *found = ETHEREUM_BOOLEAN_FALSE;
         return (BRRlpData) { 0, NULL };
     }
-    else return mptNodeGetValue (node, found);
+    else return rlpDataCopy (mptNodeGetValue (node, found));
 }
 
 extern BREthereumData
@@ -373,6 +373,31 @@ mptNodePathGetKeyFragment (BREthereumMPTNodePath path) {
     }
 
     return result;
+}
+
+extern BREthereumData
+mptKeyGetFromUInt64 (uint64_t value) {
+    size_t count = sizeof (uint64_t);
+    BREthereumData data = { count, malloc (count) };
+
+    // TODO: Assumes Little Endian
+    uint8_t *valueBytes = (uint8_t *) &value;
+
+    // TODO: Not swapping nibbles??
+    for (size_t index = 0; index < count; index++)
+        data.bytes[index] = valueBytes[count - 1 - index];
+
+    return data;
+}
+
+extern BREthereumData
+mptKeyGetFromHash (BREthereumHash hash) {
+    size_t count = sizeof (hash.bytes);
+    BREthereumData data = { count, malloc(count) };
+
+    memcpy (data.bytes, hash.bytes, count);
+
+    return data;
 }
 
 /*
@@ -570,6 +595,27 @@ mptNodePathGetKeyFragment (BREthereumMPTNodePath path) {
  ETH: RLP::   I 32: 0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421
  ETH: RLP::   I 32: 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470
  ETH: RLP:: ]
+
+ // GETH Header Proof
+
+ ETH: RECV: L  3: [
+ ETH: RECV:   I  0: 0x
+ ETH: RECV:   I  4: 0x11e1a300
+ ETH: RECV:   L  1: [
+ ETH: RECV:     L  2: [
+ ETH: RECV:       L 15: [
+ ETH: RECV:         <block header>
+  ETH: RECV:       ]
+ ETH: RECV:       L  1: [
+ ETH: RECV:         L  2: [
+ ETH: RECV:           I  7: 0x10000000000000
+ ETH: RECV:           I 32: 0x2c9e6cb3b3c7f7b2d4550bfae250bcadd40addedece6859f2a6ef2936afdec1f
+ ETH: RECV:         ]
+ ETH: RECV:       ]
+ ETH: RECV:     ]
+ ETH: RECV:   ]
+ ETH: RECV: ]
+ ETH: LES: Recv: [ LES,    HeaderProofs ] <=   35.184.255.33
 
  */
 /*

@@ -94,7 +94,7 @@ public class Unit {
     /// - Parameter that: the other unit to compare
     /// - Returns: true if compatible, false otherwise
     ///
-    func isCompatible (_ that: Unit) -> Bool {
+    public func isCompatible (_ that: Unit) -> Bool {
         return (self === that || self.currency == that.currency)
     }
 
@@ -332,14 +332,14 @@ extension Amount: CustomStringConvertible {
 public struct CurrencyPair {
 
     /// In EUR/USD=1.2500, the `baseCurrecny` is EUR.
-    let baseUnit: Unit
+    public let baseUnit: Unit
 
     /// In EUR/USD=1.250, the `quoteCurrecny` is USD.
-    let quoteUnit: Unit
+    public let quoteUnit: Unit
 
     /// In EUR/USD=1.2500, the `exchangeRate` is 1.2500 which represents the number of USD that
     /// one EUR can be exchanged for.
-    let exchangeRate: Double
+    public let exchangeRate: Double
 
     ///
     /// Apply `self` CurrencyPair to convert `asBase` (in `baseCurrency`) to `quoteCurrency`.  This
@@ -535,7 +535,7 @@ extension Address: Hashable {
             return 1 == BRAddressEq (&addr1, &addr2)
         case (.ethereum (let addr1), .ethereum (let addr2)):
             return 1 == addressHashEqual (addr1, addr2)
-            default:
+        default:
             return false
         }
     }
@@ -590,7 +590,7 @@ public protocol Transfer : class {
     /// The current state
     var state: TransferState { get }
 
-    // var isSent: Bool { get }
+    var isSent: Bool { get }
     // var originator: Bool { get }
 }
 
@@ -974,6 +974,7 @@ public enum WalletManagerState {
 ///
 public enum WalletManagerEvent {
     case created
+    case changed (oldState: WalletManagerState, newState: WalletManagerState)
     case deleted
 
     case walletAdded (wallet: Wallet)

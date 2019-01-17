@@ -73,6 +73,14 @@ ewmCreateWithPublicKey (BREthereumNetwork network,
                         BRSetOf(BREthereumPersistData) transactions,
                         BRSetOf(BREthereumPersistData) logs);
 
+extern BREthereumEWM
+ewmCreateWithStoragePath (BREthereumNetwork network,
+                          BREthereumAccount account,
+                          BREthereumTimestamp accountTimestamp,
+                          BREthereumMode mode,
+                          BREthereumClient client,
+                          const char *storagePath);
+
 extern void
 ewmDestroy (BREthereumEWM ewm);
 
@@ -116,6 +124,13 @@ ewmDisconnect (BREthereumEWM ewm);
 extern BREthereumBoolean
 ewmIsConnected (BREthereumEWM ewm);
 
+extern uint64_t
+ewmGetBlockHeight (BREthereumEWM ewm);
+
+extern void
+ewmUpdateBlockHeight(BREthereumEWM ewm,
+                     uint64_t blockHeight);
+
 ///
 /// MARK: - Wallets
 ///
@@ -135,9 +150,9 @@ ewmGetWalletHoldingToken(BREthereumEWM ewm,
 ///
 /// MARK: - Wallet
 ///
-    extern BREthereumToken
-    ewmWalletGetToken (BREthereumEWM ewm,
-                       BREthereumWallet wallet);
+extern BREthereumToken
+ewmWalletGetToken (BREthereumEWM ewm,
+                   BREthereumWallet wallet);
 
 extern BREthereumAmount
 ewmWalletGetBalance(BREthereumEWM ewm,
@@ -181,6 +196,15 @@ ewmWalletCreateTransfer(BREthereumEWM ewm,
                         BREthereumWallet wallet,
                         const char *recvAddress,
                         BREthereumAmount amount);
+
+extern BREthereumTransfer
+ewmWalletCreateTransferGeneric(BREthereumEWM ewm,
+                               BREthereumWallet wallet,
+                               const char *recvAddress,
+                               BREthereumEther amount,
+                               BREthereumGasPrice gasPrice,
+                               BREthereumGas gasLimit,
+                               const char *data);
 
 extern BREthereumTransfer
 ewmWalletCreateTransferWithFeeBasis (BREthereumEWM ewm,
@@ -290,6 +314,10 @@ ewmTransferGetBlockHash(BREthereumEWM ewm,
 extern uint64_t
 ewmTransferGetBlockNumber(BREthereumEWM ewm,
                           BREthereumTransfer transfer);
+
+extern uint64_t
+ewmTransferGetBlockTimestamp (BREthereumEWM ewm,
+                              BREthereumTransfer transfer);
 
 extern uint64_t
 ewmTransferGetBlockConfirmations(BREthereumEWM ewm,
@@ -404,15 +432,13 @@ extern void
 ewmUpdateBlockHeight(BREthereumEWM ewm,
                      uint64_t blockHeight);
 
+extern const char *
+ewmTransferGetRawDataHexEncoded(BREthereumEWM ewm,
+                                BREthereumWallet wallet,
+                                BREthereumTransfer transfer,
+                                const char *prefix);
 
 
-    extern const char *
-    ewmTransferGetRawDataHexEncoded(BREthereumEWM ewm,
-                                    BREthereumWallet wallet,
-                                    BREthereumTransfer transfer,
-                                    const char *prefix);
-
-    
 #ifdef __cplusplus
 }
 #endif
