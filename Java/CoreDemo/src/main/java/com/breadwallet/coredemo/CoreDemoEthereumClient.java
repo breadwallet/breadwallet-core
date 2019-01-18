@@ -32,7 +32,8 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
     public CoreDemoEthereumClient(BREthereumNetwork network,
                                   String paperKey) {
         this.network = network;
-        this.ewm = new BREthereumEWM (this, network, paperKey, words);
+        this.ewm = new BREthereumEWM (this, network, paperKey, words,
+                null, null, null, null);
     }
 
     @Override
@@ -165,8 +166,6 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
                     String data) {
         System.out.println ("TST: changeLog");
     }
-
-
 
     @Override
     public void handleEWMEvent(BREthereumEWM.EWMEvent event, BREthereumEWM.Status status, String errorDescription) {

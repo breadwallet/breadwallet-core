@@ -505,13 +505,43 @@ public class BREthereumEWM extends BRCoreJniReference {
     // Constructor
     //
 
-    public BREthereumEWM(Client client, BREthereumNetwork network, String paperKey, String[] wordList) {
-        this(BREthereumEWM.jniCreateEWM(client, network.getIdentifier(), paperKey, wordList),
+    private static String[][] mapToPairs (HashMap<String, String> map) {
+        if (null == map) return null;
+
+        String[][] pairs = new String[2][map.size()];
+
+        int index = 0;
+        for (Map.Entry<String, String> entry : map.entrySet()) {
+            pairs[0][index] = entry.getKey();
+            pairs[1][index] = entry.getValue();
+            index += 1;
+        }
+        return pairs;
+    }
+
+    public BREthereumEWM(Client client, BREthereumNetwork network, String paperKey, String[] wordList,
+                         HashMap<String, String> peers,
+                         HashMap<String, String> blocks,
+                         HashMap<String, String> transactions,
+                         HashMap<String, String> logs) {
+        this(BREthereumEWM.jniCreateEWM(client, network.getIdentifier(), paperKey, wordList,
+                mapToPairs(peers),
+                mapToPairs(blocks),
+                mapToPairs(transactions),
+                mapToPairs(logs)),
                 client, network);
     }
 
-    public BREthereumEWM(Client client, BREthereumNetwork network, byte[] publicKey) {
-        this(BREthereumEWM.jniCreateEWM_PublicKey(client, network.getIdentifier(), publicKey),
+    public BREthereumEWM(Client client, BREthereumNetwork network, byte[] publicKey,
+                         HashMap<String, String> peers,
+                         HashMap<String, String> blocks,
+                         HashMap<String, String> transactions,
+                         HashMap<String, String> logs) {
+        this(BREthereumEWM.jniCreateEWM_PublicKey(client, network.getIdentifier(), publicKey,
+                mapToPairs(peers),
+                mapToPairs(blocks),
+                mapToPairs(transactions),
+                mapToPairs(logs)),
                 client, network);
     }
 
@@ -531,6 +561,8 @@ public class BREthereumEWM extends BRCoreJniReference {
     //
     // Connect // Disconnect
     //
+    public void updateTokens () { jniUpdateTokens(); }
+
     public boolean connect() {
         return jniEWMConnect();
     }
@@ -552,9 +584,17 @@ public class BREthereumEWM extends BRCoreJniReference {
     //
     // JNI: Constructors
     //
-    protected static native long jniCreateEWM(Client client, long network, String paperKey, String[] wordList);
+    protected static native long jniCreateEWM(Client client, long network, String paperKey, String[] wordList,
+                                              String[][] peers,
+                                              String[][] blocks,
+                                              String[][] transactions,
+                                              String[][] logs);
 
-    protected static native long jniCreateEWM_PublicKey(Client client, long network, byte[] publicKey);
+    protected static native long jniCreateEWM_PublicKey(Client client, long network, byte[] publicKey,
+                                                        String[][] peers,
+                                                        String[][] blocks,
+                                                        String[][] transactions,
+                                                        String[][] logs);
 
     protected static native boolean jniAddressIsValid (String address);
 
@@ -724,6 +764,7 @@ public class BREthereumEWM extends BRCoreJniReference {
     // JNI: Tokens
     //
     // protected native String jniTokenGetAddress (long tokenId);
+    protected native void jniUpdateTokens();
 
     //
     // JNI: Block

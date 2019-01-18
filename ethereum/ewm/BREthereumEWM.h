@@ -57,10 +57,10 @@ ewmCreateWithPaperKey (BREthereumNetwork network,
                        BREthereumTimestamp accountTimestamp,
                        BREthereumMode mode,
                        BREthereumClient client,
-                       BRSetOf(BREthereumPersistData) peers,
-                       BRSetOf(BREthereumPersistData) blocks,
-                       BRSetOf(BREthereumPersistData) transactions,
-                       BRSetOf(BREthereumPersistData) logs);
+                       BRSetOf(BREthereumHashDataPair) peers,
+                       BRSetOf(BREthereumHashDataPair) blocks,
+                       BRSetOf(BREthereumHashDataPair) transactions,
+                       BRSetOf(BREthereumHashDataPair) logs);
 
 extern BREthereumEWM
 ewmCreateWithPublicKey (BREthereumNetwork network,
@@ -68,10 +68,10 @@ ewmCreateWithPublicKey (BREthereumNetwork network,
                         BREthereumTimestamp accountTimestamp,
                         BREthereumMode mode,
                         BREthereumClient client,
-                        BRSetOf(BREthereumPersistData) peers,
-                        BRSetOf(BREthereumPersistData) blocks,
-                        BRSetOf(BREthereumPersistData) transactions,
-                        BRSetOf(BREthereumPersistData) logs);
+                        BRSetOf(BREthereumHashDataPair) peers,
+                        BRSetOf(BREthereumHashDataPair) blocks,
+                        BRSetOf(BREthereumHashDataPair) transactions,
+                        BRSetOf(BREthereumHashDataPair) logs);
 
 extern BREthereumEWM
 ewmCreateWithStoragePath (BREthereumNetwork network,
