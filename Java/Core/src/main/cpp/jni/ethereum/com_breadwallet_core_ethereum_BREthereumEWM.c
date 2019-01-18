@@ -986,9 +986,9 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnounceToken
                               : (*env)->GetStringUTFChars (env, defaultGasPrice, 0);
 
     ewmAnnounceToken(node,
-                               strAddress, strSymbol, strName, strDescription,
-                            decimals, strGasLimit, strGasPrice,
-                            rid);
+                     strAddress, strSymbol, strName, strDescription,
+                     decimals, strGasLimit, strGasPrice,
+                     rid);
 
     (*env)->ReleaseStringUTFChars (env, address, strAddress);
     (*env)->ReleaseStringUTFChars (env, symbol, strSymbol);
@@ -1960,7 +1960,7 @@ clientTokenEventHandler(BREthereumClientContext context,
 
     (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineTokenEvent,
                                  (jlong) ewm,
-                                 (jint) token,
+                                 (jlong) token,
                                  (jint) event);
 }
 
