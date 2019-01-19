@@ -219,9 +219,9 @@ public class BREthereumWallet extends BREthereumEWM.ReferenceWithDefaultUnit {
      * @param resultUnit
      * @return
      */
-    public String transactionEstimatedFee (String amount,
-                                           Unit amountUnit,
-                                           Unit resultUnit) {
+    public String transferEstimatedFee(String amount,
+                                       Unit amountUnit,
+                                       Unit resultUnit) {
         return ewm.get().jniTransactionEstimateFee(identifier, amount,
                 amountUnit.jniValue,
                 resultUnit.jniValue);
@@ -233,8 +233,8 @@ public class BREthereumWallet extends BREthereumEWM.ReferenceWithDefaultUnit {
      * @param amount
      * @return
      */
-    public String transactionEstimatedFee (String amount) {
-        return transactionEstimatedFee(amount, defaultUnit, defaultUnit);
+    public String transferEstimatedFee (String amount) {
+        return transferEstimatedFee(amount, defaultUnit, defaultUnit);
     }
 
     /**
@@ -256,9 +256,9 @@ public class BREthereumWallet extends BREthereumEWM.ReferenceWithDefaultUnit {
      * @param amountUnit
      * @return
      */
-    public BREthereumTransfer createTransaction(String targetAddress,
-                                                String amount,
-                                                Unit amountUnit) {
+    public BREthereumTransfer createTransfer(String targetAddress,
+                                             String amount,
+                                             Unit amountUnit) {
         BREthereumEWM lightNode = ewm.get();
 
         // Note: The created transaction's unit will be `amountUnit`.  This unit may differ
@@ -285,11 +285,11 @@ public class BREthereumWallet extends BREthereumEWM.ReferenceWithDefaultUnit {
      *
      * @return
      */
-    public BREthereumTransfer createTransactionGeneric(String targetAddress,
-                                                          String amount, Unit amountUnit,
-                                                          String gasPrice, Unit gasPriceUnit,
-                                                          String gasLimit,
-                                                          String data) {
+    public BREthereumTransfer createTransferGeneric(String targetAddress,
+                                                    String amount, Unit amountUnit,
+                                                    String gasPrice, Unit gasPriceUnit,
+                                                    String gasLimit,
+                                                    String data) {
         BREthereumEWM.ensureValidAddress (targetAddress);
 
         BREthereumEWM lightNode = ewm.get();
@@ -344,7 +344,7 @@ public class BREthereumWallet extends BREthereumEWM.ReferenceWithDefaultUnit {
      *
      * @return
      */
-    public BREthereumTransfer[] getTransactions () {
+    public BREthereumTransfer[] getTransfers () {
         long[] transactionIds = ewm.get().jniGetTransactions(identifier);
 
         // We don't know the length just yet; otherwise ...

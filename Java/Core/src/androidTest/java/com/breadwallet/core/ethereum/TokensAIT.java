@@ -29,8 +29,7 @@ import static org.junit.Assert.assertTrue;
 public class TokensAIT extends CoreLibraryLoad {
     @Test
     public void testTokenOne () {
-        ClientAIT client = new ClientAIT(BREthereumNetwork.mainnet,
-                "boring head harsh green empty clip fatal typical found crane dinner timber");
+        ClientAIT client = new ClientAIT(BREthereumNetwork.mainnet, paperKey);
 
         assertEquals (0, client.ewm.getTokens().length);
 
@@ -79,5 +78,7 @@ public class TokensAIT extends CoreLibraryLoad {
         assertEquals (2, client.ewm.getTokens().length);
         assertNotNull(client.ewm.lookupToken ("0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"));
         assertNotNull(client.ewm.lookupToken ("0x9e3359f862b6c7f5c660cfd6d1aa6909b1d9504d"));
+
+        client.ewm.disconnect();
     }
 }
