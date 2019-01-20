@@ -1,18 +1,14 @@
 package com.breadwallet.core.ethereum;
 
-import android.content.Context;
-import android.support.test.InstrumentationRegistry;
 import android.support.test.runner.AndroidJUnit4;
 
-import com.breadwallet.core.CoreLibraryLoad;
+import com.breadwallet.core.BaseAIT;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.Set;
 
 import static java.lang.Thread.sleep;
 import static org.junit.Assert.assertEquals;
@@ -26,7 +22,7 @@ import static org.junit.Assert.assertTrue;
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
  */
 @RunWith(AndroidJUnit4.class)
-public class TokensAIT extends CoreLibraryLoad {
+public class TokenAIT extends BaseAIT {
     @Test
     public void testTokenOne () {
         ClientAIT client = new ClientAIT(BREthereumNetwork.mainnet, paperKey);

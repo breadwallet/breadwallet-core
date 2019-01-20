@@ -29,6 +29,8 @@ package com.breadwallet.core;
  */
 public abstract class BRCoreJniReference {
 
+    static { System.loadLibrary("core"); }
+
     protected static boolean SHOW_FINALIZE = false;
     /**
      * C Pointer (as a Java long) to the underlying Breadwallet Core entity allocated from the

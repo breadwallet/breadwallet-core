@@ -1,7 +1,6 @@
 package com.breadwallet.core;
 
-public class CoreLibraryLoad {
-    static { System.loadLibrary("core"); }
+public class BaseAIT {
 
     // This is a compromised mainnet paper key.
     protected static final String paperKey =
