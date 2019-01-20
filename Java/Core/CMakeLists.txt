@@ -137,7 +137,6 @@ target_sources (core
                 src/main/cpp/core/ethereum/event/BREventAlarm.h
                 src/main/cpp/core/ethereum/event/BREventQueue.c
                 src/main/cpp/core/ethereum/event/BREventQueue.h
-                src/main/cpp/core/ethereum/event/pthread_android.h
 #                src/main/cpp/core/ethereum/event/testEvent.c
 
                 # Base

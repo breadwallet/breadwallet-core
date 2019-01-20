@@ -29,11 +29,6 @@
 #include <errno.h>
 #include <pthread.h>
 #include <sys/time.h>
-
-#if defined (__ANDROID__)
-#include "pthread_android.h"
-#endif
-
 #include "BRArray.h"
 #include "BREvent.h"
 #include "BREventAlarm.h"
@@ -184,6 +179,8 @@ struct BREventAlarmClock {
     pthread_cond_t cond;
     pthread_mutex_t lock;
     pthread_mutex_t lockOnStartStop;
+
+    int threadQuit;
 };
 
 extern void
@@ -274,12 +271,12 @@ alarmClockThread (BREventAlarmClock clock) {
 #else
     pthread_setname_np("Core Ethereum Alarm Clock");
 #endif
-    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
-    pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
 
     pthread_mutex_lock(&clock->lock);
 
-    while (1) {
+    clock->threadQuit = 0;
+
+    while (!clock->threadQuit) {
         // Set the next timeout - based on an existing alarm or 'forever in the future'
         clock->timeout = (array_count(clock->alarms) > 0
                           ? clock->alarms[0].expiration
@@ -309,6 +306,8 @@ alarmClockThread (BREventAlarmClock clock) {
                 break;
         }
     }
+
+    return NULL;
 }
 
 extern void
@@ -331,10 +330,11 @@ extern void
 alarmClockStop (BREventAlarmClock clock) {
     pthread_mutex_lock(&clock->lockOnStartStop);
     if (PTHREAD_NULL != clock->thread) {
-        pthread_cancel(clock->thread);
+        pthread_mutex_lock(&clock->lock);  // ensure this for restart.
+        clock->threadQuit = 1;
         pthread_cond_signal(&clock->cond);
-        pthread_join(clock->thread, NULL);
         pthread_mutex_unlock(&clock->lock);  // ensure this for restart.
+        pthread_join(clock->thread, NULL);
         // A mini-race here?
         clock->thread = PTHREAD_NULL;
     }

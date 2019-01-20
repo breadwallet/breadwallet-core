@@ -42,10 +42,6 @@
 #include "BREthereumMessage.h"
 #include "BREthereumNode.h"
 
-#if defined (__ANDROID__)
-#include "../event/pthread_android.h"
-#endif
-
 /** Forward Declarations */
 
 static void
@@ -962,9 +958,6 @@ lesThread (BREthereumLES les) {
 #else
     pthread_setname_np (LES_THREAD_NAME);
 #endif
-    pthread_setcancelstate (PTHREAD_CANCEL_DISABLE, NULL);
-    // pthread_setcanceltype  (PTHREAD_CANCEL_DEFERRED, NULL);
-
     // TODO: Don't timeout pselect(); get some 'wakeup descriptor'
     struct timespec timeout = { 0, 250000000 }; // .250 seconds
 
