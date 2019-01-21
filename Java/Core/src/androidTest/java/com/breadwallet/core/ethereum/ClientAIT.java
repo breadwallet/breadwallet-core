@@ -1,36 +1,29 @@
-package com.breadwallet.coredemo;
-
-import com.breadwallet.core.ethereum.BREthereumBlock;
-import com.breadwallet.core.ethereum.BREthereumEWM;
-import com.breadwallet.core.ethereum.BREthereumNetwork;
-import com.breadwallet.core.ethereum.BREthereumToken;
-import com.breadwallet.core.ethereum.BREthereumTransfer;
-import com.breadwallet.core.ethereum.BREthereumWallet;
+package com.breadwallet.core.ethereum;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class CoreDemoEthereumClient implements BREthereumEWM.Client {
+public class ClientAIT implements BREthereumEWM.Client {
     interface WalletListener {
-        void announceWalletEvent (BREthereumEWM ewm,
-                                  BREthereumWallet wallet,
-                                  BREthereumEWM.WalletEvent event);
+        void announceWalletEvent(BREthereumEWM ewm,
+                                 BREthereumWallet wallet,
+                                 BREthereumEWM.WalletEvent event);
     }
 
     interface TransferListener {
-        void announceTransferEvent (BREthereumEWM ewm,
-                                    BREthereumWallet wallet,
-                                    BREthereumTransfer transfer,
-                                    BREthereumEWM.TransactionEvent event);
+        void announceTransferEvent(BREthereumEWM ewm,
+                                   BREthereumWallet wallet,
+                                   BREthereumTransfer transfer,
+                                   BREthereumEWM.TransactionEvent event);
     }
 
     protected BREthereumNetwork network;
     protected BREthereumEWM ewm;
 
-    public CoreDemoEthereumClient(BREthereumNetwork network,
-                                  String paperKey) {
+    public ClientAIT(BREthereumNetwork network,
+                     String paperKey) {
         this.network = network;
         this.ewm = new BREthereumEWM (this, network, paperKey, words,
                 null, null, null, null);

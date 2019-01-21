@@ -29,6 +29,14 @@ package com.breadwallet.core;
  */
 public abstract class BRCoreJniReference {
 
+    static {
+        try { System.loadLibrary("core"); }
+        catch (UnsatisfiedLinkError e) {
+            e.printStackTrace();
+            System.err.println ("Native code library failed to load.\\n\" + " + e);
+        }
+    }
+
     protected static boolean SHOW_FINALIZE = false;
     /**
      * C Pointer (as a Java long) to the underlying Breadwallet Core entity allocated from the

@@ -31,17 +31,13 @@
 
 #define PTHREAD_NULL   ((pthread_t) NULL)
 
-#if defined (__ANDROID__)
-#include "pthread_android.h"
-#endif
-
 #include "BREvent.h"
 #include "BREventQueue.h"
 #include "BREventAlarm.h"
 
 #define PTHREAD_STACK_SIZE (512 * 1024)
-
 #define PTHREAD_NAME_SIZE   (33)
+
 /* Forward Declarations */
 static void *
 eventHandlerThread (BREventHandler handler);
@@ -84,6 +80,8 @@ struct BREventHandlerRecord {
     pthread_cond_t cond;
     pthread_mutex_t lock;
     pthread_mutex_t lockOnStartStop;
+
+    int threadQuit;
 };
 
 extern BREventHandler
@@ -184,8 +182,6 @@ eventHandlerThread (BREventHandler handler) {
 #else
     pthread_setname_np(handler->name);
 #endif
-    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
-    pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
 
     pthread_mutex_lock(&handler->lock);
 
@@ -197,7 +193,9 @@ eventHandlerThread (BREventHandler handler) {
                                       handler->timeout);
     }
 
-    while (1) {
+    handler->threadQuit = 0;
+
+    while (!handler->threadQuit) {
         // Check for a queued event
         switch (eventQueueDequeue(handler->queue, handler->scratch)) {
             case EVENT_STATUS_SUCCESS: {
@@ -264,10 +262,11 @@ extern void
 eventHandlerStop (BREventHandler handler) {
     pthread_mutex_lock(&handler->lockOnStartStop);
     if (PTHREAD_NULL != handler->thread) {
-        pthread_cancel(handler->thread);
+        pthread_mutex_lock(&handler->lock);  // ensure this for restart.
+        handler->threadQuit = 1;
         pthread_cond_signal(&handler->cond);
-        pthread_join(handler->thread, NULL);
         pthread_mutex_unlock(&handler->lock);  // ensure this for restart.
+        pthread_join(handler->thread, NULL);
         // A mini-race here?
         handler->thread = PTHREAD_NULL;
     }

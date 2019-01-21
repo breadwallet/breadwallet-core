@@ -26,6 +26,8 @@
 #include <assert.h>
 #include <string.h>
 #include <ethereum/ewm/BREthereumAmount.h>
+#include <ethereum/base/BREthereumHash.h>
+#include <ethereum/base/BREthereumData.h>
 #include "BRBIP39Mnemonic.h"
 #include "BRKey.h"
 #include "BREthereum.h"
@@ -272,10 +274,54 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_initializeNative
     assert (NULL != hashMapInit && NULL != hashMapPut);
 }
 
+static BRSetOf(BREthereumHashDataPair)
+mapToHashDataPair (JNIEnv *env, jobject arrayObject) {
+    if ((*env)->IsSameObject(env, arrayObject, NULL)) { return NULL; }
+
+    size_t pairsCount = (*env)->GetArrayLength (env, arrayObject);
+
+    BRSetOf(BREthereumHashDataPair) pairs = hashDataPairSetCreateEmpty (pairsCount);
+
+    for (size_t index = 0; index < pairsCount; index++) {
+        jobject item = (*env)->GetObjectArrayElement (env, arrayObject, index);
+        jstring itemHash = (*env)->GetObjectArrayElement (env, item, 0);
+        jstring itemData = (*env)->GetObjectArrayElement (env, item, 1);
+
+        const char *stringHash = (*env)->GetStringUTFChars (env, itemHash, 0);
+        const char *stringData = (*env)->GetStringUTFChars (env, itemData, 0);
+
+        if ((2*ETHEREUM_HASH_BYTES) != strlen (stringHash)) {
+            assert (0);
+            (*env)->ReleaseStringUTFChars (env, itemHash, stringHash);
+            (*env)->ReleaseStringUTFChars (env, itemData, stringData);
+            (*env)->DeleteLocalRef (env, itemData);
+            (*env)->DeleteLocalRef (env, itemHash);
+            (*env)->DeleteLocalRef (env, item);
+            return NULL;
+        }
+
+        BREthereumHash hash;
+        BREthereumData data;
+
+        decodeHex(hash.bytes, ETHEREUM_HASH_BYTES, stringHash, 2 * ETHEREUM_HASH_BYTES);
+        data.bytes = decodeHexCreate(&data.count, stringData, strlen(stringData));
+
+        (*env)->ReleaseStringUTFChars (env, itemHash, stringHash);
+        (*env)->ReleaseStringUTFChars (env, itemData, stringData);
+        (*env)->DeleteLocalRef (env, itemData);
+        (*env)->DeleteLocalRef (env, itemHash);
+        (*env)->DeleteLocalRef (env, item);
+
+        BREthereumHashDataPair pair = hashDataPairCreate(hash, data);
+        BRSetAdd (pairs, pair);
+    }
+    return pairs;
+}
+
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniCreateEWM
- * Signature: (Lcom/breadwallet/core/ethereum/BREthereumEWM/Client;JLjava/lang/String;[Ljava/lang/String;)J
+ * Signature:  (Lcom/breadwallet/core/ethereum/BREthereumEWM/Client;JLjava/lang/String;[Ljava/lang/String;[[Ljava/lang/String;[[Ljava/lang/String;[[Ljava/lang/String;[[Ljava/lang/String;)J
  */
 JNIEXPORT jlong JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
@@ -283,7 +329,11 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
          jobject clientObject,
          jlong network,
          jstring paperKeyString,
-         jobjectArray wordsArrayObject) {
+         jobjectArray wordsArrayObject,
+         jobject peersObject,
+         jobject blocksObject,
+         jobject transactionsObject,
+         jobject logsObject) {
 
     // Install the wordList
     int wordsCount = (*env)->GetArrayLength(env, wordsArrayObject);
@@ -334,10 +384,10 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
                                                ETHEREUM_TIMESTAMP_UNKNOWN,
                                                BRD_WITH_P2P_SEND, // P2P_ONLY
                                                client,
-                                               NULL,
-                                               NULL,
-                                               NULL,
-                                               NULL);
+                                               mapToHashDataPair (env, peersObject),
+                                               mapToHashDataPair (env, blocksObject),
+                                               mapToHashDataPair (env, transactionsObject),
+                                               mapToHashDataPair (env, logsObject));
 
     (*env)->ReleaseStringUTFChars (env, paperKeyString, paperKey);
     return (jlong) node;
@@ -346,11 +396,15 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniCreateEWM_PublicKey
- * Signature: (Lcom/breadwallet/core/ethereum/BREthereumEWM/Client;J[B)J
+ * Signature:  (Lcom/breadwallet/core/ethereum/BREthereumEWM/Client;JLjava/lang/String;[Ljava/lang/String;[[Ljava/lang/String;[[Ljava/lang/String;[[Ljava/lang/String;[[Ljava/lang/String;)J
  */
 JNIEXPORT jlong JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM_1PublicKey
-    (JNIEnv *env, jclass thisClass, jobject clientObject, jlong network, jbyteArray publicKey) {
+    (JNIEnv *env, jclass thisClass, jobject clientObject, jlong network, jbyteArray publicKey,
+     jobject peersObject,
+     jobject blocksObject,
+     jobject transactionsObject,
+     jobject logsObject) {
 
     assert (65 == (*env)->GetArrayLength(env, publicKey));
 
@@ -386,15 +440,14 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM_1PublicKey
     };
 
     BREthereumEWM node = ewmCreateWithPublicKey((BREthereumNetwork) network,
-                                                     key,
-                                                     ETHEREUM_TIMESTAMP_UNKNOWN,
-                                                     BRD_WITH_P2P_SEND,
-                                                     client,
-                                                     NULL,
-                                                     NULL,
-                                                     NULL,
-                                                     NULL);
-
+                                                key,
+                                                ETHEREUM_TIMESTAMP_UNKNOWN,
+                                                BRD_WITH_P2P_SEND,
+                                                client,
+                                                mapToHashDataPair(env, peersObject),
+                                                mapToHashDataPair(env, blocksObject),
+                                                mapToHashDataPair(env, transactionsObject),
+                                                mapToHashDataPair(env, logsObject));
 
     (*env)->ReleaseByteArrayElements(env, publicKey, publicKeyBytes, 0);
     return (jlong) node;
@@ -933,9 +986,9 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnounceToken
                               : (*env)->GetStringUTFChars (env, defaultGasPrice, 0);
 
     ewmAnnounceToken(node,
-                               strAddress, strSymbol, strName, strDescription,
-                            decimals, strGasLimit, strGasPrice,
-                            rid);
+                     strAddress, strSymbol, strName, strDescription,
+                     decimals, strGasLimit, strGasPrice,
+                     rid);
 
     (*env)->ReleaseStringUTFChars (env, address, strAddress);
     (*env)->ReleaseStringUTFChars (env, symbol, strSymbol);
@@ -1420,6 +1473,17 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionIsSubmitted
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
+ * Method:    jniUpdateTokens
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniUpdateTokens
+        (JNIEnv *env, jobject thisObject) {
+    BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
+    ewmUpdateTokens(node);
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniEWMGetBlockHeight
  * Signature: ()J
  */
@@ -1896,7 +1960,7 @@ clientTokenEventHandler(BREthereumClientContext context,
 
     (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineTokenEvent,
                                  (jlong) ewm,
-                                 (jint) token,
+                                 (jlong) token,
                                  (jint) event);
 }
 
