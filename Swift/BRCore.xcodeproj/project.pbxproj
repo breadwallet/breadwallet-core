@@ -444,7 +444,6 @@
 		3C386DD220C6F6070065E355 /* BREthereumEWMEvent.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BREthereumEWMEvent.c; sourceTree = "<group>"; };
 		3C3B37FB20D82335004F9928 /* BREventAlarm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BREventAlarm.c; sourceTree = "<group>"; };
 		3C3B37FC20D82335004F9928 /* BREventAlarm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BREventAlarm.h; sourceTree = "<group>"; };
-		3C3B37FE20DAAD55004F9928 /* pthread_android.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = pthread_android.h; sourceTree = "<group>"; };
 		3C42EF512095143D000E58E0 /* module.modulemap */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = "sourcecode.module-map"; path = module.modulemap; sourceTree = "<group>"; };
 		3C42EF8D209763AB000E58E0 /* BRDcoreTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "BRDcoreTests-Bridging-Header.h"; sourceTree = "<group>"; };
 		3C42EF8E209763AB000E58E0 /* test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = test.c; path = ../../test.c; sourceTree = "<group>"; };
@@ -793,7 +792,6 @@
 				3C2A539520AF595400C430F6 /* BREventQueue.c */,
 				3C3B37FC20D82335004F9928 /* BREventAlarm.h */,
 				3C3B37FB20D82335004F9928 /* BREventAlarm.c */,
-				3C3B37FE20DAAD55004F9928 /* pthread_android.h */,
 				3C9025F221064B6700143B69 /* testEvent.c */,
 			);
 			name = event;

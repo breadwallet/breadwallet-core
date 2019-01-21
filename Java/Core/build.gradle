@@ -33,13 +33,18 @@ android {
 
     flavorDimensions "network"
     productFlavors {
+
         onMainnet {
             dimension "network"
-            minSdkVersion 23
         }
+
         onTestnet {
             dimension "network"
-            minSdkVersion 23
+            externalNativeBuild {
+                cmake {
+                    cFlags "-DBITCOIN_TESTNET"
+                }
+            }
         }
     }
 
@@ -50,15 +55,7 @@ android {
         // Default: required
         release {
             minifyEnabled false
-            debuggable true
-            jniDebuggable true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            externalNativeBuild {
-                cmake {
-                    cFlags "-DDEBUG", "-DBITCOIN_DEBUG"
-//                    cFlags "-DRELEASE"  // unused, actually
-                }
-            }
+            //proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
 
         // Default: created on demand with 'debuggable true'
@@ -69,7 +66,6 @@ android {
             externalNativeBuild {
                 cmake {
                     cFlags "-DDEBUG", "-DBITCOIN_DEBUG"
-//                    cFlags "-DDEBUG", "-DBITCOIN_DEBUG", "-DBITCOIN_TESTNET"
                 }
             }
         }
