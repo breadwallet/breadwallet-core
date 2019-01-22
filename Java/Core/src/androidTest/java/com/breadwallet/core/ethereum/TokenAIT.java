@@ -29,8 +29,10 @@ public class TokenAIT extends BaseAIT {
 
         assertEquals (0, client.ewm.getTokens().length);
 
+        final String brdContract = "0x558EC3152e2eb2174905cd19AeA4e34A23DE9aD6";
+
         client.ewm.announceToken(
-                "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6",
+                brdContract,
                 "BRD",
                 "BRD Token",
                 "The BRD Token",
@@ -50,7 +52,9 @@ public class TokenAIT extends BaseAIT {
         BREthereumToken tokenBRD = client.ewm.getTokenBRD();
 
         assertNotNull(tokenBRD);
-        assertNotNull(client.ewm.lookupToken ("0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"));
+        assertNotNull(client.ewm.lookupToken (brdContract));
+        assertNotNull(client.ewm.lookupToken (brdContract.toLowerCase()));
+        assertNotNull(client.ewm.lookupToken (brdContract.toUpperCase()));
 
         assertTrue(new HashSet<BREthereumToken> (Arrays.asList (client.ewm.getTokens())).contains(tokenBRD));
 
@@ -72,7 +76,7 @@ public class TokenAIT extends BaseAIT {
         client.ewm.updateTokens();
         try { sleep (1 * 1000); } catch (Exception ex) { assertTrue(false); }
         assertEquals (2, client.ewm.getTokens().length);
-        assertNotNull(client.ewm.lookupToken ("0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"));
+        assertNotNull(client.ewm.lookupToken (brdContract));
         assertNotNull(client.ewm.lookupToken ("0x9e3359f862b6c7f5c660cfd6d1aa6909b1d9504d"));
 
         client.ewm.disconnect();

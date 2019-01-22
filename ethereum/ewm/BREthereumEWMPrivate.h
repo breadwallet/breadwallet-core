@@ -106,7 +106,8 @@ struct BREthereumEWMRecord {
 
     /**
      * The BlockHeight is the largest block number seen or computed.  [Note: the blockHeight may
-     * be computed from a Log event as (log block number + log confirmations).
+     * be computed from a Log event as (log block number + log confirmations).  This is the block
+     * number for the block at the head of the blockchain.
      */
     uint64_t blockHeight;
 
@@ -134,6 +135,22 @@ struct BREthereumEWMRecord {
      * The path for persistent storage or NULL
      */
     const char *storagePath;
+
+    /**
+     * If we are syncing with BRD, instead of as P2P with BCS, then we'll keep a record to
+     * ensure we've successfully completed the getTransactions() and getLogs() callbacks to
+     * the client.
+     */
+    struct {
+        uint64_t begBlockNumber;
+        uint64_t endBlockNumber;
+
+        int ridTransaction;
+        int ridLog;
+
+        int completedTransaction:1;
+        int completedLog:1;
+    } brdSync;
 };
 
 ///
@@ -436,6 +453,20 @@ ewmHandleAnnounceLog (BREthereumEWM ewm,
                             BREthereumEWMClientAnnounceLogBundle *bundle,
                             int id);
 
+///
+/// MARK: - Account Complete
+///
+extern void
+ewmSignalAnnounceComplete (BREthereumEWM ewm,
+                           BREthereumBoolean isTransaction,
+                           BREthereumBoolean success,
+                           int rid);
+
+extern void
+ewmHandleAnnounceComplete (BREthereumEWM ewm,
+                           BREthereumBoolean isTransaction,
+                           BREthereumBoolean success,
+                           int rid);
 ///
 /// MARK: - Tokens
 ///

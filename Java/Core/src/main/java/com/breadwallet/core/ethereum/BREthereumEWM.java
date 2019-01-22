@@ -183,7 +183,7 @@ public class BREthereumEWM extends BRCoreJniReference {
         //                                        BREthereumEWM ewm,
         //                                        const char *address,
         //                                        int rid);
-        void getTransactions(String address, int rid);
+        void getTransactions(String address, long begBlockNumber, long endBlockNumber, int rid);
 
         //        typedef void (*BREthereumClientHandlerGetLogs) (BREthereumClientContext context,
         //                                BREthereumEWM ewm,
@@ -191,7 +191,7 @@ public class BREthereumEWM extends BRCoreJniReference {
         //                                const char *address,
         //                                const char *event,
         //                                int rid);
-        void getLogs(String contract, String address, String event, int rid);
+        void getLogs(String contract, String address, String event, long begBlockNumber, long endBlockNumber, int rid);
 
 
         //typedef void
@@ -300,6 +300,10 @@ public class BREthereumEWM extends BRCoreJniReference {
                 isError);
     }
 
+    public void announceTransactionComplete (int id, boolean success) {
+        jniAnnounceTransactionComplete(id, success);
+    }
+
     public void announceLog(int id,
                             String hash,
                             String contract,
@@ -313,6 +317,10 @@ public class BREthereumEWM extends BRCoreJniReference {
                             String blockTimestamp) {
         jniAnnounceLog(id, hash, contract, topics, data, gasPrice, gasUsed, logIndex,
                 blockNumber, blockTransactionIndex, blockTimestamp);
+    }
+
+    public void announceLogComplete (int id, boolean success) {
+        jniAnnounceLogComplete(id, success);
     }
 
     public void announceBlockNumber(String blockNumber, int rid) {
@@ -628,6 +636,8 @@ public class BREthereumEWM extends BRCoreJniReference {
                                                  // txreceipt_status
                                                  String isError);
 
+    protected native void jniAnnounceTransactionComplete (int id, boolean success);
+
     protected native void jniAnnounceLog(int id,
                                          String hash,
                                          String contract,
@@ -639,6 +649,8 @@ public class BREthereumEWM extends BRCoreJniReference {
                                          String blockNumber,
                                          String blockTransactionIndex,
                                          String blockTimestamp);
+
+    protected native void jniAnnounceLogComplete (int id, boolean success);
 
     protected native void jniAnnounceBalance(long wid, String balance, int rid);
 
@@ -909,20 +921,20 @@ public class BREthereumEWM extends BRCoreJniReference {
         client.submitTransaction(wid, tid, rawTransaction, rid);
     }
 
-    static protected void trampolineGetTransactions(long eid, String address, int rid) {
+    static protected void trampolineGetTransactions(long eid, String address, long begBlockNumber, long endBlockNumber, int rid) {
         BREthereumEWM ewm = lookupEWM(eid);
         Client client = lookupClient (ewm);
         if (null == client) return;
 
-        client.getTransactions(address, rid);
+        client.getTransactions(address, begBlockNumber, endBlockNumber, rid);
     }
 
-    static protected void trampolineGetLogs(long eid, String contract, String address, String event, int rid) {
+    static protected void trampolineGetLogs(long eid, String contract, String address, String event, long begBlockNumber, long endBlockNumber, int rid) {
         BREthereumEWM ewm = lookupEWM(eid);
         Client client = lookupClient (ewm);
         if (null == client) return;
 
-        client.getLogs(contract, address, event, rid);
+        client.getLogs(contract, address, event, begBlockNumber, endBlockNumber, rid);
     }
 
     static protected void trampolineGetBlocks (long eid, String address, int interests, long blockNumberStart, long blockNumberStop, int rid) {

@@ -134,7 +134,10 @@ extern "C" {
     (*BREthereumClientHandlerGetTransactions) (BREthereumClientContext context,
                                                BREthereumEWM ewm,
                                                const char *address,
+                                               uint64_t begBlockNumber,
+                                               uint64_t endBlockNumber,
                                                int rid);
+    
     extern BREthereumStatus
     ewmAnnounceTransaction (BREthereumEWM ewm,
                             int id,
@@ -158,6 +161,11 @@ extern "C" {
                             // txreceipt_status
                             const char *isError);
 
+    extern void
+    ewmAnnounceTransactionComplete (BREthereumEWM ewm,
+                                    int id,
+                                    BREthereumBoolean success);
+
     /**
      * Update the transactions for the ewm's account.  A JSON_RPC EWM will call out to
      * BREthereumClientHandlerGetTransactions which is expected to query all transactions associated with the
@@ -176,6 +184,8 @@ extern "C" {
                                        const char *contract,
                                        const char *address,
                                        const char *event,
+                                       uint64_t begBlockNumber,
+                                       uint64_t endBlockNumber,
                                        int rid);
 
     extern BREthereumStatus
@@ -192,6 +202,11 @@ extern "C" {
                     const char *strBlockNumber,
                     const char *strBlockTransactionIndex,
                     const char *strBlockTimestamp);
+
+    extern void
+    ewmAnnounceLogComplete (BREthereumEWM ewm,
+                            int id,
+                            BREthereumBoolean success);
 
     extern void
     ewmUpdateLogs (BREthereumEWM ewm,

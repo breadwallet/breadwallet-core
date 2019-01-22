@@ -186,47 +186,51 @@ static void
 clientGetTransactions (BREthereumClientContext context,
                        BREthereumEWM ewm,
                        const char *account,
-                       int id) {
+                       uint64_t begBlockNumber,
+                       uint64_t endBlockNumber,
+                       int rid) {
     // Get all the transaction, then one by one call 'announce'
     char *address = ewmGetAccountPrimaryAddress(ewm);
     // Two transactions with an identical 'nonce' and the first one with a
     // target that is `address` - confirms a bugfix for CORE-71.
-    ewmAnnounceTransaction(ewm, id,
-                                      "0x5f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
-                                      "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
-                                      address,   // required
-                                      "",
-                                      "11113000000000",
-                                      "21000",
-                                      "21000000000",
-                                      "",
-                                      "118",
-                                      "21000",
-                                      "1627184",
-                                      "0x0ef0110d68ee3af220e0d7c10d644fea98252180dbfc8a94cab9f0ea8b1036af",
-                                      "339050",
-                                      "3",
-                                      "1516477482",
-                                      "0");
-    ewmAnnounceTransaction(ewm, id,
-                                      "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
-                                      address,   // required
-                                      "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
-                                      "",
-                                      "11113000000000",
-                                      "21000",
-                                      "21000000000",
-                                      "",
-                                      "118",
-                                      "21000",
-                                      "1627184",
-                                      "0x0ef0110d68ee3af220e0d7c10d644fea98252180dbfc8a94cab9f0ea8b1036af",
-                                      "339050",
-                                      "3",
-                                      "1516477482",
-                                      "0");
-    
-    
+    if (begBlockNumber <= 1627184 && 1627184 <= endBlockNumber) {
+        ewmAnnounceTransaction(ewm, rid,
+                               "0x5f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
+                               "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
+                               address,   // required
+                               "",
+                               "11113000000000",
+                               "21000",
+                               "21000000000",
+                               "",
+                               "118",
+                               "21000",
+                               "1627184",
+                               "0x0ef0110d68ee3af220e0d7c10d644fea98252180dbfc8a94cab9f0ea8b1036af",
+                               "339050",
+                               "3",
+                               "1516477482",
+                               "0");
+
+        ewmAnnounceTransaction(ewm, rid,
+                               "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
+                               address,   // required
+                               "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
+                               "",
+                               "11113000000000",
+                               "21000",
+                               "21000000000",
+                               "",
+                               "118",
+                               "21000",
+                               "1627184",
+                               "0x0ef0110d68ee3af220e0d7c10d644fea98252180dbfc8a94cab9f0ea8b1036af",
+                               "339050",
+                               "3",
+                               "1516477482",
+                               "0");
+    }
+    ewmAnnounceTransactionComplete(ewm, rid, ETHEREUM_BOOLEAN_TRUE);
     free (address);
 }
 
@@ -236,6 +240,8 @@ clientGetLogs (BREthereumClientContext context,
                const char *contract,
                const char *addressIgnore,
                const char *event,
+               uint64_t begBlockNumber,
+               uint64_t endBlockNumber,
                int rid) {
     char *address = ewmGetAccountPrimaryAddress(ewm);
     const char *topics[] = {
@@ -243,18 +249,22 @@ clientGetLogs (BREthereumClientContext context,
         "0x0000000000000000000000000000000000000000000000000000000000000000",
         "0x000000000000000000000000bdfdad139440d2db9ba2aa3b7081c2de39291508"
     };
-    ewmAnnounceLog (ewm, rid,
-                    "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220", // random hash...
-                    getTokenBRDAddress(ewm->network),
-                    3,
-                    topics,
-                    "0x0000000000000000000000000000000000000000000000000000000000002328",
-                    "0xba43b7400",
-                    "0xc64e",
-                    "0x",
-                    "0x1e487e",
-                    "0x",
-                    "0x59fa1ac9");
+
+    if (begBlockNumber <= 0x1e487e && 0x1e487e <= endBlockNumber)
+        ewmAnnounceLog (ewm, rid,
+                        "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220", // random hash...
+                        getTokenBRDAddress(ewm->network),
+                        3,
+                        topics,
+                        "0x0000000000000000000000000000000000000000000000000000000000002328",
+                        "0xba43b7400",
+                        "0xc64e",
+                        "0x",
+                        "0x1e487e",
+                        "0x",
+                        "0x59fa1ac9");
+    ewmAnnounceLogComplete(ewm, rid, ETHEREUM_BOOLEAN_TRUE);
+
     free (address);
 }
 
@@ -369,7 +379,7 @@ static void
 clientGetBlockNumber (BREthereumClientContext context,
                       BREthereumEWM ewm,
                       int rid) {
-    ewmAnnounceBlockNumber(ewm, "0x1e487e", rid);
+    ewmAnnounceBlockNumber(ewm, "0x2e487e", rid);
 }
 
 static void
