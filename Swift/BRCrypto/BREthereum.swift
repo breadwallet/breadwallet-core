@@ -102,12 +102,16 @@ public protocol EthereumBackendClient: WalletManagerBackendClient {
     // ...
     func getTransactions (ewm: EthereumWalletManager,
                           address: String,
+                          begBlockNumber: UInt64,
+                          endBlockNumber: UInt64,
                           rid: Int32) -> Void
     
     func getLogs (ewm: EthereumWalletManager,
                   address: String,
                   event: String,
-                  rid: Int32) -> Void
+                  begBlockNumber: UInt64,
+                  endBlockNumber: UInt64,
+                rid: Int32) -> Void
     
     func getBlocks (ewm: EthereumWalletManager,
                     address: String,
@@ -599,23 +603,27 @@ public class EthereumWalletManager: WalletManager {
                     }
                 }},
             
-            funcGetTransactions: { (coreClient, coreEWM, address, rid) in
+            funcGetTransactions: { (coreClient, coreEWM, address, begBlockNumber, endBlockNumber, rid) in
                 if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
                     let address = asUTF8String(address!)
                     ewm.queue.async {
                         ewm.backendClient.getTransactions(ewm: ewm,
                                                           address: address,
+                                                          begBlockNumber: begBlockNumber,
+                                                          endBlockNumber: endBlockNumber,
                                                           rid: rid)
                     }
                 }},
             
-            funcGetLogs: { (coreClient, coreEWM, contract, address, event, rid) in
+            funcGetLogs: { (coreClient, coreEWM, contract, address, event, begBlockNumber, endBlockNumber, rid) in
                 if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
                     let address = asUTF8String(address!)
                    ewm.queue.async {
                         ewm.backendClient.getLogs (ewm: ewm,
                                                    address: address,
                                                    event: asUTF8String(event!),
+                                                   begBlockNumber: begBlockNumber,
+                                                   endBlockNumber: endBlockNumber,
                                                    rid: rid)
                     }
                 }},
@@ -877,7 +885,12 @@ public class EthereumWalletManager: WalletManager {
                                 blockTransactionIndex, blockTimestamp,
                                 isError)
     }
-    
+
+    public func announceTransactionComplete (rid: Int32,
+                                             success: Bool) {
+        ewmAnnounceTransactionComplete(core, rid, (success ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE));
+    }
+
     public func announceLog (rid: Int32,
                              hash: String,
                              contract: String,
@@ -898,7 +911,12 @@ public class EthereumWalletManager: WalletManager {
                         blockNumber, blockTransactionIndex, blockTimestamp)
         cTopics.forEach { free (UnsafeMutablePointer(mutating: $0)) }
     }
-    
+
+    public func announceLogComplete (rid: Int32,
+                                     success: Bool) {
+        ewmAnnounceLogComplete(core, rid, (success ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE));
+    }
+
     public func announceBlocks (rid: Int32,
                                 blockNumbers: [UInt64]) {
         // TODO: blocks must be BRArrayOf(uint64_t) - change to add `count`

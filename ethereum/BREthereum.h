@@ -35,20 +35,20 @@
 extern "C" {
 #endif
 
-    /**
-     * Install 'wordList' as the default BIP39 Word List.  THIS IS SHARED MEMORY; DO NOT FREE wordList.
-     *
-     * @param wordList
-     * @param wordListLength
-     * @return
-     */
-    extern int
-    installSharedWordList (const char *wordList[], int wordListLength);
+/**
+ * Install 'wordList' as the default BIP39 Word List.  THIS IS SHARED MEMORY; DO NOT FREE wordList.
+ *
+ * @param wordList
+ * @param wordListLength
+ * @return
+ */
+extern int
+installSharedWordList (const char *wordList[], int wordListLength);
 
-    static inline UInt512
-    zeroUInt512 (void) {
-        return UINT512_ZERO;
-    }
+static inline UInt512
+zeroUInt512 (void) {
+    return UINT512_ZERO;
+}
 
 #ifdef __cplusplus
 }

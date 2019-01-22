@@ -2,6 +2,9 @@ DIR=$(shell pwd)
 JAVA_DIR=${JAVA_HOME}
 CINC_DIR=/usr/include
 
+# @nullable in android.support.annocations
+ANNOTATIONS=${HOME}/Library/Android/sdk/extras/android/m2repository/com/android/support/support-annotations/25.1.1/support-annotations-25.1.1.jar
+
 JNI_LIB=libCore.jnilib
 
 JNI_SRCS=com_breadwallet_core_ethereum_BREthereumEWM.c \
@@ -124,7 +127,7 @@ $(JNI_LIB): $(JNI_OBJS) $(CORE_OBJS)
 
 java_comp:	FORCE
 	@mkdir -p build
-	javac -d build $(JAVA_SRCS)
+	javac -cp $(ANNOTATIONS) -d build $(JAVA_SRCS)
 
 jni_hdr: java_comp
 	@(cd build/com/breadwallet/core/ethereum; \

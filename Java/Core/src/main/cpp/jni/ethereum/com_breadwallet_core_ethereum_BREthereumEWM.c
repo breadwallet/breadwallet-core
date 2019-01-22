@@ -84,6 +84,8 @@ static void
 clientGetTransactions(BREthereumClientContext context,
                       BREthereumEWM node,
                       const char *account,
+                      uint64_t begBlockNumber,
+                      uint64_t endBlockNumber,
                       int id);
 
 static void
@@ -92,6 +94,8 @@ clientGetLogs(BREthereumClientContext context,
               const char *contract,
               const char *address,
               const char *event,
+              uint64_t begBlockNumber,
+              uint64_t endBlockNumber,
               int rid);
 
 static void
@@ -248,8 +252,8 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_initializeNative
     trampolineGetGasEstimate    = trampolineOrFatal (env, "trampolineGetGasEstimate",    "(JJJLjava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V");
     trampolineGetBalance        = trampolineOrFatal (env, "trampolineGetBalance",        "(JJLjava/lang/String;I)V");
     trampolineSubmitTransaction = trampolineOrFatal (env, "trampolineSubmitTransaction", "(JJJLjava/lang/String;I)V");
-    trampolineGetTransactions   = trampolineOrFatal (env, "trampolineGetTransactions",   "(JLjava/lang/String;I)V");
-    trampolineGetLogs           = trampolineOrFatal (env, "trampolineGetLogs",           "(JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V");
+    trampolineGetTransactions   = trampolineOrFatal (env, "trampolineGetTransactions",   "(JLjava/lang/String;JJI)V");
+    trampolineGetLogs           = trampolineOrFatal (env, "trampolineGetLogs",           "(JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;JJI)V");
     trampolineGetBlocks         = trampolineOrFatal (env, "trampolineGetBlocks",         "(JLjava/lang/String;IJJI)V");
     trampolineGetTokens         = trampolineOrFatal (env, "trampolineGetTokens",         "(JI)V");
     trampolineGetBlockNumber    = trampolineOrFatal (env, "trampolineGetBlockNumber",    "(JI)V");
@@ -776,6 +780,17 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnounceTransaction
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
+ * Method:    jniAnnounceTransactionComplete
+ * Signature: (IZ)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnounceTransactionComplete
+        (JNIEnv *env, jobject thisObject, jint id, jboolean success) {
+    BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
+
+    ewmAnnounceTransactionComplete (node, id, AS_ETHEREUM_BOOLEAN(success));
+}
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniAnnounceLog
  * Signature: (ILjava/lang/String;Ljava/lang/String;[Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
  */
@@ -838,6 +853,19 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnounceLog
         (*env)->DeleteLocalRef(env, topic);
     }
 }
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumEWM
+ * Method:    jniAnnounceLogComplete
+ * Signature: (IZ)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnounceLogComplete
+        (JNIEnv *env, jobject thisObject, jint id, jboolean success) {
+    BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
+
+    ewmAnnounceLogComplete (node, id, AS_ETHEREUM_BOOLEAN(success));
+}
+
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
@@ -1662,6 +1690,8 @@ static void
 clientGetTransactions(BREthereumClientContext context,
                       BREthereumEWM node,
                       const char *addressStr,
+                      uint64_t begBlockNumber,
+                      uint64_t endBlockNumber,
                       int id) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
@@ -1671,6 +1701,8 @@ clientGetTransactions(BREthereumClientContext context,
     (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineGetTransactions,
                                  (jlong) node,
                                  address,
+                                 (jlong) begBlockNumber,
+                                 (jlong) endBlockNumber,
                                  (jint) id);
 
     (*env)->DeleteLocalRef(env, address);
@@ -1682,6 +1714,8 @@ clientGetLogs(BREthereumClientContext context,
               const char *contract,
               const char *address,
               const char *event,
+              uint64_t begBlockNumber,
+              uint64_t endBlockNumber,
               int rid) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
@@ -1695,6 +1729,8 @@ clientGetLogs(BREthereumClientContext context,
                                  contractObject,
                                  addressObject,
                                  eventObject,
+                                 (jlong) begBlockNumber,
+                                 (jlong) endBlockNumber,
                                  (jint) rid);
 
     (*env)->DeleteLocalRef(env, eventObject);
