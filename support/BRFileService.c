@@ -196,10 +196,6 @@ fileServiceLoad (BRFileService fs,
     BRFileServiceEntityHandler *entityHandlerCurrent = fileServiceEntityTypeLookupHandler(entityType, entityType->currentVersion);
     if (NULL == entityHandlerCurrent) return;
 
-    // Allocate some storage for entity bytes;
-    size_t bufferSize = 8 * 1024;
-    uint8_t *buffer = malloc (bufferSize);
-
     DIR *dir;
     struct dirent *dirEntry;
 
@@ -212,6 +208,10 @@ fileServiceLoad (BRFileService fs,
         //*error = errno;
         return;
     }
+
+    // Allocate some storage for entity bytes;
+    size_t bufferSize = 8 * 1024;
+    uint8_t *buffer = malloc (bufferSize);
 
     // Process each directory entry.
     while (NULL != (dirEntry = readdir(dir)))
