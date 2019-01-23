@@ -26,7 +26,10 @@
 #ifndef BRFileService_h
 #define BRFileService_h
 
-#if defined (TASK_DESCRIPTION)
+#include <stdlib.h>
+#include "../BRSet.h"
+#include "../BRInt.h"
+
 //Both Bitcoin and Ethereum Wallet Managers include the ability to save and load peers, block,
 //transactions and logs (for Ethereum) to the file system.  But, they both implement the file
 //operations independently.  Pull out the implementation into BRFileService.
@@ -37,26 +40,34 @@
 // a versioning system (at least on read; everything gets written/saved w/ the latest version).
 // Allow an upgrade path from existing IOS/Andriod Sqlite3 databases.
 //
-// Candidate interface:
-
-//{code:C}
 typedef struct BRFileServiceRecord *BRFileService;
 
+/// This *must* be the same fixed size type forever.  It is uint8_t.
+typedef uint8_t BRFileServiceVersion;
+
 extern BRFileService
-fileServiceCreate(/* args (w/ 'currency' as BTC, BCH, ETH and 'network' and ???) */);
+fileServiceCreate (const char *basePath,
+                   const char *network,
+                   const char *currency);
 
 extern void
-fileServiceRelese (BRFileService fs);
+fileServiceRelease (BRFileService fs);
 
 extern void /* error code? or return 'results' (instead of filling `results`) */
 fileServiceLoad (BRFileService fs,
                  BRSet *results,
-                 const char *type);        /* blocks, peers, transactions, logs, ... */
+                 const char *type,   /* blocks, peers, transactions, logs, ... */
+                 int updateVersion);
 
 extern void /* error code? */
 fileServiceSave (BRFileService fs,
                  const char *type,  /* block, peers, transactions, logs, ... */
-                 void *entity);     /* BRMerkleBlock*, BRTransaction, BREthereumTransaction, ... */
+                 const void *entity);     /* BRMerkleBlock*, BRTransaction, BREthereumTransaction, ... */
+
+extern void
+fileServiceRemove (BRFileService fs,
+                   const char *type,
+                   UInt256 identifier);
 
 extern void
 fileServiceClear (BRFileService fs,
@@ -65,19 +76,41 @@ fileServiceClear (BRFileService fs,
 extern void
 fileServiceClearAll (BRFileService fs);
 
+typedef void* BRFileServiceContext;
+
+typedef UInt256
+(*BRFileServiceIdentifier) (BRFileServiceContext context,
+                            BRFileService fs,
+                            const void* entity);
+
+typedef void*
+(*BRFileServiceReader) (BRFileServiceContext context,
+                        BRFileService fs,
+                        uint8_t *bytes,
+                        uint32_t bytesCount);
+
+typedef uint8_t*
+(*BRFileServiceWriter) (BRFileServiceContext context,
+                        BRFileService fs,
+                        const void* entity,
+                        uint32_t *bytesCount);
+
 extern void
 fileServiceDefineType (BRFileService fs,
                        const char *type,
-                       /* VersionType */ version,
-                       /* ReadFunction */ reader,
-                       /* WriteFunction */ writer);
+                       BRFileServiceContext context,
+                       BRFileServiceVersion version,
+                       BRFileServiceIdentifier identifier,
+                       BRFileServiceReader reader,
+                       BRFileServiceWriter writer);
 
 extern void
 fileServiceDefineCurrentVersion (BRFileService fs,
                                  const char *type,
-                                 /* VersionType */ version);
+                                 BRFileServiceVersion version);
 //{code}
 
+#if defined (NEVER_DEFINED)
 //Example use:
 
 //{code:C}
