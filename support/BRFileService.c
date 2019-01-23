@@ -124,13 +124,13 @@ fileServiceCreate (const char *basePath,
     if (NULL == dir) return NULL;
 
     // Create the directory hierarchy
-    size_t pathToTypeSize = strlen(basePath) + 1 + strlen(network) + 1 + strlen(currency) + 1;
+    size_t pathToTypeSize = strlen(basePath) + 1 + strlen(currency) + 1 + strlen(network) + 1;
     char dirPath[pathToTypeSize];
 
-    sprintf (dirPath, "%s/%s", basePath, network);
+    sprintf (dirPath, "%s/%s", basePath, currency);
     if (-1 == directoryMake(dirPath)) return NULL;
 
-    sprintf(dirPath, "%s/%s/%s", basePath, network, currency);
+    sprintf(dirPath, "%s/%s/%s", basePath, currency, network);
     if (-1 == directoryMake(dirPath)) return NULL;
 
     BRFileService fs = calloc (1, sizeof (struct BRFileServiceRecord));

@@ -36,6 +36,9 @@
 #include "BREthereumWallet.h"
 #include "BREthereumTransfer.h"
 
+#include "../../support/BRFileService.h"
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -131,9 +134,9 @@ struct BREthereumEWMRecord {
     BRRlpCoder coder;
 
     /**
-     * The path for persistent storage or NULL
+     * The File Service
      */
-    const char *storagePath;
+    BRFileService fs;
 };
 
 ///

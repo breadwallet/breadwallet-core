@@ -48,173 +48,10 @@ ewmPeriodicDispatcher (BREventHandler handler,
                        BREventTimeout *event);
 
 /* Forward Implementation */
-static char *
-directoryPathAppend (const char *base, const char *offset) {
-    size_t length = strlen(base) + 1 + strlen(offset) + 1;
-    char *path = malloc (length);
-
-    strlcpy (path, base, length);
-    strlcat (path, "/", length);
-    strlcat (path, offset, length);
-
-    return path;
-}
-
-static void directoryClear (const char *base, const char *offset) {
-    char path [strlen(base) + 1 + strlen(offset) + 1];
-    sprintf (path, "%s/%s", base, offset);
-
-    struct dirent *dirEntry;
-    DIR  *dir     = opendir(path);
-    if (NULL == dir) {
-        return;
-    }
-    while (NULL != (dirEntry = readdir(dir)))
-        if (dirEntry->d_type == DT_REG)
-            remove (dirEntry->d_name);
-
-    closedir(dir);
-}
-
-static int directoryMake (const char *path) {
-    struct stat dirStat;
-    if (0 == stat  (path, &dirStat)) return 0;
-    if (0 == mkdir (path, 0700)) return 0;
-    return -1;
-}
-
-static char *
-directoryForEthereum (const char *base) {
-    return directoryPathAppend(base, "ETH");
-}
-
-static char *
-filePathFromHash (const char *base, const char *offset, const UInt256 *hash) {
-
-    size_t filenameSize = 2 * sizeof(UInt256) + 1;
-    char filename [filenameSize];
-    encodeHex (filename, filenameSize, hash->u8, sizeof(UInt256));
-
-    size_t length = strlen(base) + 1 + strlen(offset) + 1 + filenameSize + 1;
-    char *path = malloc (length);
-
-    sprintf (path, "%s/%s", base, offset);
-    if (-1 == directoryMake(path)) { free (path); return NULL; }
-
-    sprintf (path, "%s/%s/%s", base, offset, filename);
-    return path;
-}
-
-static char *
-directoryForNetwork (const char *base, BREthereumNetwork network) {
-    //    const char *net = (8333 == port ? "main" : (18333 == port ? "test" : "none"));
-
-    if (-1 == directoryMake(base)) return NULL;
-
-    char *forkPath = directoryForEthereum(base);
-    if (-1 == directoryMake(forkPath)) { free (forkPath); return NULL; }
-
-    char *path = directoryPathAppend (forkPath, networkGetName(network));
-    if (-1 == directoryMake(path)) { free (path); free (forkPath); return NULL; }
-
-    free (forkPath);
-    return path;
-}
-
-static DIR *
-directoryOpenWithSize (const char *dirPath, size_t *size, int *error) {
-
-    DIR *dir;
-
-    if (-1 == directoryMake(dirPath) || NULL == (dir = opendir(dirPath))) {
-        *error = errno;
-        return NULL;
-    }
-
-    if (NULL != size) {
-        struct dirent *dirEntry;
-
-        long dirStart = telldir(dir);
-
-        // Determine the number of entries
-        while (NULL != (dirEntry = readdir(dir)))
-            if (dirEntry->d_type == DT_REG)
-                *size += 1;
-
-        // Recover each block
-        seekdir(dir, dirStart);
-    }
-
-    return dir;
-}
-
-static DIR *
-directoryOpen (const char *dirPath, int *error) {
-    return directoryOpenWithSize(dirPath, NULL, error);
-}
-
-static void
-directoryRemoveItem (DIR *dir,
-                     const char *dirPath,
-                     BREthereumHash hash) {
-    BREthereumHashString filename;
-    hashFillString (hash, filename);
-
-    char *filePath = directoryPathAppend (dirPath, filename);
-
-    remove (filePath);
-    free (filePath);
-}
-
-static void
-directorySaveItem (DIR *dir,
-                   const char *dirPath,
-                   BREthereumHash hash,
-                   OwnershipGiven BRRlpItem rlpItem,
-                   BRRlpCoder coder) {
-    BREthereumHashString filename;
-    hashFillString(hash, filename);
-
-    char *filePath = directoryPathAppend (dirPath, filename);
-    FILE *file = fopen (filePath, "w");
-
-    BRRlpData rlpData = rlpGetDataSharedDontRelease(coder, rlpItem);
-
-    // Write the number of bytes - don't use `size_t`; use fixed-size `uint64_t`
-    uint64_t count = rlpData.bytesCount;
-
-    fwrite (&count, sizeof (uint64_t), 1, file);
-
-    // Write the bytes themselves
-    fwrite (rlpData.bytes, 1, count, file);
-
-    rlpReleaseItem (coder, rlpItem);
-    free (filePath);
-    fclose (file);
-}
-
-static BRRlpData
-directoryReadData (const char *dirPath,
-                   const char *fileName) {
-    char *filepath = directoryPathAppend (dirPath, fileName);
-    FILE *file = fopen (filepath, "r");
-
-    uint64_t count;
-    fread (&count, sizeof (uint64_t), 1, file);
-
-    BRRlpData data = { count, malloc (count) };
-    fread (data.bytes, 1, count, file);
-
-    free (filepath);
-    fclose (file);
-
-    return data;
-}
 
 ///
-/// MARK: - Ensure / Restore
+/// MARK: - Ensure
 ///
-
 
 static BRSetOf(BREthereumBlock)
 createEWMEnsureBlocks (OwnershipGiven BRSetOf(BREthereumHashDataPair) blocksPersistData,
@@ -248,51 +85,6 @@ createEWMEnsureBlocks (OwnershipGiven BRSetOf(BREthereumHashDataPair) blocksPers
     return blocks;
 }
 
-static BRSetOf(BREthereumBlock)
-createEWMRestoreBlocks (const char *storagePath,
-                        BREthereumNetwork network,
-                        BREthereumTimestamp timestamp,
-                        BRRlpCoder coder) {
-    int error = 0;
-    size_t size = 0;
-    struct dirent *dirEntry;
-
-    char *dirPath = directoryPathAppend(storagePath, "blocks");
-    DIR *dir = directoryOpenWithSize(dirPath, &size, &error);
-
-    if (NULL == dir ) {
-        return NULL;
-    }
-
-    BRSetOf(BREthereumBlock) blocks = BRSetNew (blockHashValue,
-                                                blockHashEqual,
-                                                size);
-
-    if (0 == size) {
-        const BREthereumBlockCheckpoint *checkpoint = blockCheckpointLookupByTimestamp (network, timestamp);
-        BREthereumBlock block = blockCreate (blockCheckpointCreatePartialBlockHeader (checkpoint));
-        blockSetTotalDifficulty (block, checkpoint->u.td);
-        BRSetAdd (blocks, block);
-    }
-    else {
-        while (NULL != (dirEntry = readdir(dir)))
-            if (dirEntry->d_type == DT_REG) {
-                BRRlpData data = directoryReadData(dirPath, dirEntry->d_name);
-                BRRlpItem item = rlpGetItem(coder, data);
-
-                BREthereumBlock block = blockRlpDecode(item, network, RLP_TYPE_ARCHIVE, coder);
-                BRSetAdd(blocks, block);
-
-                rlpReleaseItem (coder, item);
-                rlpDataRelease(data);
-            }
-
-        free (dirPath);
-        closedir (dir);
-    }
-    return blocks;
-}
-
 static BRSetOf(BREthereumNodeConfig)
 createEWMEnsureNodes (OwnershipGiven BRSetOf(BREthereumHashDataPair) nodesPersistData,
                       BRRlpCoder coder) {
@@ -315,42 +107,6 @@ createEWMEnsureNodes (OwnershipGiven BRSetOf(BREthereumHashDataPair) nodesPersis
 
     return nodes;
 }
-
-static BRSetOf(BREthereumNodeConfig)
-createEWMRestoreNodes (const char *storagePath,
-                       BRRlpCoder coder) {
-    int error = 0;
-    size_t size = 0;
-    struct dirent *dirEntry;
-
-    char *dirPath = directoryPathAppend(storagePath, "nodes");
-    DIR *dir = directoryOpenWithSize(dirPath, &size, &error);
-
-    if (NULL == dir ) {
-        return NULL;
-    }
-
-    BRSetOf (BREthereumNodeConfig) nodes = BRSetNew (nodeConfigHashValue,
-                                                     nodeConfigHashEqual,
-                                                     size);
-    while (NULL != (dirEntry = readdir(dir)))
-        if (dirEntry->d_type == DT_REG) {
-            BRRlpData data = directoryReadData(dirPath, dirEntry->d_name);
-            BRRlpItem item = rlpGetItem(coder, data);
-
-            BREthereumNodeConfig node = nodeConfigDecode(item, coder);
-            BRSetAdd (nodes, node);
-
-            rlpReleaseItem (coder, item);
-            rlpDataRelease(data);
-        }
-
-    free (dirPath);
-    closedir (dir);
-
-    return nodes;
-}
-
 
 static BRSetOf(BREthereumTransaction)
 createEWMEnsureTransactions (OwnershipGiven BRSetOf(BREthereumHashDataPair) transactionsPersistData,
@@ -375,43 +131,6 @@ createEWMEnsureTransactions (OwnershipGiven BRSetOf(BREthereumHashDataPair) tran
     }
 
     return transactions;
-}
-
-static BRSetOf(BREthereumTransaction)
-createEWMRestoreTransactions (const char *storagePath,
-                              BREthereumNetwork network,
-                              BRRlpCoder coder) {
-    int error = 0;
-    size_t size = 0;
-    struct dirent *dirEntry;
-
-    char *dirPath = directoryPathAppend(storagePath, "transactions");
-    DIR *dir = directoryOpenWithSize(dirPath, &size, &error);
-
-    if (NULL == dir ) {
-        return NULL;
-    }
-
-    BRSetOf(BREthereumTransaction) transactions = BRSetNew (transactionHashValue,
-                                                            transactionHashEqual,
-                                                            size);
-
-    while (NULL != (dirEntry = readdir(dir)))
-        if (dirEntry->d_type == DT_REG) {
-            BRRlpData data = directoryReadData(dirPath, dirEntry->d_name);
-            BRRlpItem item = rlpGetItem(coder, data);
-
-            BREthereumTransaction transaction = transactionRlpDecode (item, network, RLP_TYPE_ARCHIVE, coder);
-            BRSetAdd (transactions, transaction);
-
-            rlpReleaseItem (coder, item);
-            rlpDataRelease(data);
-        }
-
-    free (dirPath);
-    closedir (dir);
-
-   return transactions;
 }
 
 static BRSetOf(BREthereumLog)
@@ -440,40 +159,246 @@ createEWMEnsureLogs (OwnershipGiven BRSetOf(BREthereumHashDataPair) logsPersistD
     return logs;
 }
 
+
+
+///
+/// MARK: Transaction File Service
+///
+static const char *fileServiceTypeTransactions = "transactions";
+
+enum {
+    EWM_TRANSACTION_VERSION_1
+};
+
+static UInt256
+fileServiceTypeTransactionV1Identifier (BRFileServiceContext context,
+                                        BRFileService fs,
+                                        const void *entity) {
+    BREthereumTransaction transaction = (BREthereumTransaction) entity;
+    BREthereumHash hash = transactionGetHash(transaction);
+
+    UInt256 result;
+    memcpy (result.u8, hash.bytes, ETHEREUM_HASH_BYTES);
+    return result;
+}
+
+static uint8_t *
+fileServiceTypeTransactionV1Writer (BRFileServiceContext context,
+                                    BRFileService fs,
+                                    const void* entity,
+                                    uint32_t *bytesCount) {
+    BREthereumEWM ewm = context;
+    BREthereumTransaction transaction = (BREthereumTransaction) entity;
+
+    BRRlpItem item = transactionRlpEncode(transaction, ewm->network, RLP_TYPE_ARCHIVE, ewm->coder);
+    BRRlpData data = rlpGetData (ewm->coder, item);
+    rlpReleaseItem (ewm->coder, item);
+
+    *bytesCount = (uint32_t) data.bytesCount;
+    return data.bytes;
+}
+
+static void *
+fileServiceTypeTransactionV1Reader (BRFileServiceContext context,
+                                    BRFileService fs,
+                                    uint8_t *bytes,
+                                    uint32_t bytesCount) {
+    BREthereumEWM ewm = context;
+
+    BRRlpData data = { bytesCount, bytes };
+    BRRlpItem item = rlpGetItem (ewm->coder, data);
+
+    BREthereumTransaction transaction = transactionRlpDecode(item, ewm->network, RLP_TYPE_ARCHIVE, ewm->coder);
+    rlpReleaseItem (ewm->coder, item);
+
+    return transaction;
+}
+
+static BRSetOf(BREthereumTransaction)
+initialTransactionsLoad (BREthereumEWM ewm) {
+    BRSetOf(BREthereumTransaction) transactions = BRSetNew(transactionHashValue, transactionHashEqual, 100);
+    fileServiceLoad (ewm->fs, transactions, fileServiceTypeTransactions, 1);
+    return transactions;
+}
+
+///
+/// MARK: Log File Service
+///
+static const char *fileServiceTypeLogs = "logs";
+
+enum {
+    EWM_LOG_VERSION_1
+};
+
+static UInt256
+fileServiceTypeLogV1Identifier (BRFileServiceContext context,
+                                        BRFileService fs,
+                                        const void *entity) {
+    const BREthereumLog log = (BREthereumLog) entity;
+    BREthereumHash hash = logGetHash( log);
+
+    UInt256 result;
+    memcpy (result.u8, hash.bytes, ETHEREUM_HASH_BYTES);
+    return result;
+}
+
+static uint8_t *
+fileServiceTypeLogV1Writer (BRFileServiceContext context,
+                                    BRFileService fs,
+                                    const void* entity,
+                                    uint32_t *bytesCount) {
+    BREthereumEWM ewm = context;
+    BREthereumLog log = (BREthereumLog) entity;
+
+    BRRlpItem item = logRlpEncode (log, RLP_TYPE_ARCHIVE, ewm->coder);
+    BRRlpData data = rlpGetData (ewm->coder, item);
+    rlpReleaseItem (ewm->coder, item);
+
+    *bytesCount = (uint32_t) data.bytesCount;
+    return data.bytes;
+}
+
+static void *
+fileServiceTypeLogV1Reader (BRFileServiceContext context,
+                                    BRFileService fs,
+                                    uint8_t *bytes,
+                                    uint32_t bytesCount) {
+    BREthereumEWM ewm = context;
+
+    BRRlpData data = { bytesCount, bytes };
+    BRRlpItem item = rlpGetItem (ewm->coder, data);
+
+    BREthereumLog log = logRlpDecode(item, RLP_TYPE_ARCHIVE, ewm->coder);
+    rlpReleaseItem (ewm->coder, item);
+
+    return log;
+}
+
 static BRSetOf(BREthereumLog)
-createEWMRestoreLogs (const char *storagePath,
-                      BREthereumNetwork network,
-                      BRRlpCoder coder) {
-    int error = 0;
-    size_t size = 0;
-    struct dirent *dirEntry;
-
-    char *dirPath = directoryPathAppend(storagePath, "logs");
-    DIR *dir = directoryOpenWithSize(dirPath, &size, &error);
-
-    if (NULL == dir ) {
-        return NULL;
-    }
-
-    BRSetOf(BREthereumLog) logs = BRSetNew (logHashValue,
-                                            logHashEqual,
-                                            size);
-    while (NULL != (dirEntry = readdir(dir)))
-        if (dirEntry->d_type == DT_REG) {
-            BRRlpData data = directoryReadData(dirPath, dirEntry->d_name);
-            BRRlpItem item = rlpGetItem(coder, data);
-
-            BREthereumLog log = logRlpDecode(item, RLP_TYPE_ARCHIVE, coder);
-            BRSetAdd (logs, log);
-
-            rlpReleaseItem (coder, item);
-            rlpDataRelease(data);
-        }
-
-    free (dirPath);
-    closedir (dir);
-
+initialLogsLoad (BREthereumEWM ewm) {
+    BRSetOf(BREthereumLog) logs = BRSetNew(logHashValue, logHashEqual, 100);
+    fileServiceLoad (ewm->fs, logs, fileServiceTypeLogs, 1);
     return logs;
+}
+
+
+///
+/// MARK: Block File Service
+///
+static const char *fileServiceTypeBlocks = "blocks";
+enum {
+    EWM_BLOCK_VERSION_1
+};
+
+static UInt256
+fileServiceTypeBlockV1Identifier (BRFileServiceContext context,
+                                  BRFileService fs,
+                                  const void *entity) {
+    const BREthereumBlock block = (BREthereumBlock) entity;
+    BREthereumHash hash = blockGetHash(block);
+
+    UInt256 result;
+    memcpy (result.u8, hash.bytes, ETHEREUM_HASH_BYTES);
+    return result;
+}
+
+static uint8_t *
+fileServiceTypeBlockV1Writer (BRFileServiceContext context,
+                              BRFileService fs,
+                              const void* entity,
+                              uint32_t *bytesCount) {
+    BREthereumEWM ewm = context;
+    BREthereumBlock block = (BREthereumBlock) entity;
+
+    BRRlpItem item = blockRlpEncode(block, ewm->network, RLP_TYPE_ARCHIVE, ewm->coder);
+    BRRlpData data = rlpGetData (ewm->coder, item);
+    rlpReleaseItem (ewm->coder, item);
+
+    *bytesCount = (uint32_t) data.bytesCount;
+    return data.bytes;
+}
+
+static void *
+fileServiceTypeBlockV1Reader (BRFileServiceContext context,
+                              BRFileService fs,
+                              uint8_t *bytes,
+                              uint32_t bytesCount) {
+    BREthereumEWM ewm = context;
+
+    BRRlpData data = { bytesCount, bytes };
+    BRRlpItem item = rlpGetItem (ewm->coder, data);
+
+    BREthereumBlock block = blockRlpDecode (item, ewm->network, RLP_TYPE_ARCHIVE, ewm->coder);
+    rlpReleaseItem (ewm->coder, item);
+
+    return block;
+}
+
+static BRSetOf(BREthereumBlock)
+initialBlocksLoad (BREthereumEWM ewm) {
+    BRSetOf(BREthereumBlock) blocks = BRSetNew(blockHashValue, blockHashEqual, 100);
+    fileServiceLoad (ewm->fs, blocks, fileServiceTypeBlocks, 1);
+    return blocks;
+}
+
+///
+/// MARK: Node File Service
+///
+static const char *fileServiceTypeNodes = "nodes";
+enum {
+    EWM_NODE_VERSION_1
+};
+
+static UInt256
+fileServiceTypeNodeV1Identifier (BRFileServiceContext context,
+                                 BRFileService fs,
+                                 const void *entity) {
+    const BREthereumNodeConfig node = (BREthereumNodeConfig) entity;
+
+    BREthereumHash hash = nodeConfigGetHash(node);
+
+    UInt256 result;
+    memcpy (result.u8, hash.bytes, ETHEREUM_HASH_BYTES);
+    return result;
+}
+
+static uint8_t *
+fileServiceTypeNodeV1Writer (BRFileServiceContext context,
+                             BRFileService fs,
+                             const void* entity,
+                             uint32_t *bytesCount) {
+    BREthereumEWM ewm = context;
+    const BREthereumNodeConfig node = (BREthereumNodeConfig) entity;
+
+    BRRlpItem item = nodeConfigEncode (node, ewm->coder);
+    BRRlpData data = rlpGetData (ewm->coder, item);
+    rlpReleaseItem (ewm->coder, item);
+
+    *bytesCount = (uint32_t) data.bytesCount;
+    return data.bytes;
+}
+
+static void *
+fileServiceTypeNodeV1Reader (BRFileServiceContext context,
+                             BRFileService fs,
+                             uint8_t *bytes,
+                             uint32_t bytesCount) {
+    BREthereumEWM ewm = context;
+
+    BRRlpData data = { bytesCount, bytes };
+    BRRlpItem item = rlpGetItem (ewm->coder, data);
+
+    BREthereumNodeConfig node = nodeConfigDecode (item, ewm->coder);
+    rlpReleaseItem (ewm->coder, item);
+
+    return node;
+}
+
+static BRSetOf(BREthereumNodeConfig)
+initialNodesLoad (BREthereumEWM ewm) {
+    BRSetOf(BREthereumNodeConfig) nodes = BRSetNew(nodeConfigHashValue, nodeConfigHashEqual, 100);
+    fileServiceLoad (ewm->fs, nodes, fileServiceTypeNodes, 1);
+    return nodes;
 }
 
 ///
@@ -507,8 +432,65 @@ ewmCreateInternal (BREthereumNetwork network,
     // Our one and only coder
     ewm->coder = coder;
 
-    // The storage path, if it exists
-    ewm->storagePath = (NULL == storagePath ? NULL : strdup (storagePath));
+    // The storage path, if it exists, provides the EWM's fileService
+    ewm->fs = (NULL == storagePath ? NULL : fileServiceCreate (storagePath, networkGetName(network), "eth"));
+    if (NULL != ewm->fs) {
+        assert (NULL == nodes && NULL == blocks && NULL == transactions && NULL == logs);
+
+        /// Transaction
+        fileServiceDefineType (ewm->fs, fileServiceTypeTransactions,
+                               (BRFileServiceContext) ewm,
+                               EWM_TRANSACTION_VERSION_1,
+                               fileServiceTypeTransactionV1Identifier,
+                               fileServiceTypeTransactionV1Reader,
+                               fileServiceTypeTransactionV1Writer);
+        fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeTransactions,
+                                         EWM_TRANSACTION_VERSION_1);
+
+        /// Log
+        fileServiceDefineType (ewm->fs, fileServiceTypeLogs,
+                               (BRFileServiceContext) ewm,
+                               EWM_LOG_VERSION_1,
+                               fileServiceTypeLogV1Identifier,
+                               fileServiceTypeLogV1Reader,
+                               fileServiceTypeLogV1Writer);
+        fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeLogs,
+                                         EWM_LOG_VERSION_1);
+
+        /// Block
+        fileServiceDefineType (ewm->fs, fileServiceTypeBlocks,
+                               (BRFileServiceContext) ewm,
+                               EWM_BLOCK_VERSION_1,
+                               fileServiceTypeBlockV1Identifier,
+                               fileServiceTypeBlockV1Reader,
+                               fileServiceTypeBlockV1Writer);
+        fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeBlocks,
+                                         EWM_BLOCK_VERSION_1);
+
+        /// Peer
+        fileServiceDefineType (ewm->fs, fileServiceTypeNodes,
+                               (BRFileServiceContext) ewm,
+                               EWM_NODE_VERSION_1,
+                               fileServiceTypeNodeV1Identifier,
+                               fileServiceTypeNodeV1Reader,
+                               fileServiceTypeNodeV1Writer);
+        fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeNodes,
+                                         EWM_NODE_VERSION_1);
+
+        // Initialize {nodes, blocks, transactions and logs} from the FileService
+        nodes = initialNodesLoad(ewm);
+        blocks = initialBlocksLoad(ewm);
+        transactions = initialTransactionsLoad(ewm);
+        logs = initialLogsLoad(ewm);
+
+        // If we have no blocks; then add a checkpoint
+        if (0 == BRSetCount(blocks)) {
+            const BREthereumBlockCheckpoint *checkpoint = blockCheckpointLookupByTimestamp (network, accountTimestamp);
+            BREthereumBlock block = blockCreate (blockCheckpointCreatePartialBlockHeader (checkpoint));
+            blockSetTotalDifficulty (block, checkpoint->u.td);
+            BRSetAdd (blocks, block);
+        }
+    }
 
     // The `main` event handler has a periodic wake-up.  Used, perhaps, if the mode indicates
     // that we should/might query the BRD backend services.
@@ -694,18 +676,17 @@ ewmCreateWithStoragePath (BREthereumNetwork network,
                           BREthereumClient client,
                           const char *storagePath) {
     BRRlpCoder coder = rlpCoderCreate();
-    const char *fullStoragePath = directoryForNetwork (storagePath, network);
     return ewmCreateInternal (network,
                               account,
                               accountTimestamp,
                               mode,
                               client,
-                              createEWMRestoreNodes(fullStoragePath, coder),
-                              createEWMRestoreBlocks (fullStoragePath, network, accountTimestamp, coder),
-                              createEWMRestoreTransactions(fullStoragePath, network, coder),
-                              createEWMRestoreLogs(fullStoragePath, network, coder),
+                              NULL,
+                              NULL,
+                              NULL,
+                              NULL,
                               coder,
-                              fullStoragePath);
+                              storagePath);
 }
 
 extern void
@@ -1694,23 +1675,12 @@ extern void
 ewmHandleSaveBlocks (BREthereumEWM ewm,
                      OwnershipGiven BRArrayOf(BREthereumBlock) blocks) {
     size_t count = array_count(blocks);
-    if (NULL != ewm->storagePath) {
+    if (NULL != ewm->fs) {
         eth_log("EWM", "Save Blocks (Storage): %zu", count);
-        directoryClear(ewm->storagePath, "blocks");
+        fileServiceClear(ewm->fs, fileServiceTypeBlocks);
 
-        int error = 0;
-        char *dirPath = directoryPathAppend(ewm->storagePath, "blocks");
-        DIR *dir = directoryOpen(dirPath, &error);
-
-        for (size_t index = 0; index < count; index++) {
-            BREthereumBlock block = blocks[index];
-            directorySaveItem (dir, dirPath,
-                               blockGetHash(block),
-                               blockRlpEncode(block, ewm->network, RLP_TYPE_ARCHIVE, ewm->coder),
-                               ewm->coder);
-        }
-        free (dirPath);
-        closedir (dir);
+        for (size_t index = 0; index < count; index++)
+            fileServiceSave (ewm->fs, fileServiceTypeBlocks, blocks[index]);
     }
     else {
         eth_log("EWM", "Save Blocks (Client): %zu", array_count(blocks));
@@ -1737,23 +1707,12 @@ extern void
 ewmHandleSaveNodes (BREthereumEWM ewm,
                     OwnershipGiven BRArrayOf(BREthereumNodeConfig) nodes) {
     size_t count = array_count(nodes);
-    if (NULL != ewm->storagePath) {
+    if (NULL != ewm->fs) {
         eth_log("EWM", "Save Nodes (Storage): %zu", count);
-        directoryClear(ewm->storagePath, "nodes");
+        fileServiceClear(ewm->fs, fileServiceTypeNodes);
 
-        int error = 0;
-        char *dirPath = directoryPathAppend(ewm->storagePath, "nodes");
-        DIR *dir = directoryOpen(dirPath, &error);
-
-        for (size_t index = 0; index < count; index++) {
-            BREthereumNodeConfig config = nodes[index];
-            directorySaveItem (dir, dirPath,
-                               nodeConfigGetHash(config),
-                               nodeConfigEncode(config, ewm->coder),
-                               ewm->coder);
-        }
-        free (dirPath);
-        closedir (dir);
+        for (size_t index = 0; index < count; index++)
+            fileServiceSave(ewm->fs, fileServiceTypeNodes, nodes[index]);
     }
     else {
         eth_log("EWM", "Save nodes (client): %zu", count);
@@ -1789,23 +1748,15 @@ ewmHandleSaveTransaction (BREthereumEWM ewm,
     BREthereumHashString fileName;
     hashFillString(hash, fileName);
 
-    if (NULL != ewm->storagePath) {
+    if (NULL != ewm->fs) {
         eth_log("EWM", "Save Transaction (Storage): %s", fileName);
 
-        int error = 0;
-        char *dirPath = directoryPathAppend(ewm->storagePath, "transactions");
-        DIR *dir = directoryOpen(dirPath, &error);
-
         if (CLIENT_CHANGE_REM == type || CLIENT_CHANGE_UPD == type)
-            directoryRemoveItem (dir, dirPath, hash);
+            fileServiceRemove (ewm->fs, fileServiceTypeTransactions,
+                               fileServiceTypeTransactionV1Identifier (ewm, ewm->fs, transaction));
 
         if (CLIENT_CHANGE_ADD == type || CLIENT_CHANGE_UPD == type)
-            directorySaveItem (dir, dirPath, hash,
-                               transactionRlpEncode(transaction, ewm->network, RLP_TYPE_ARCHIVE, ewm->coder),
-                               ewm->coder);
-
-        free (dirPath);
-        closedir(dir);
+            fileServiceSave (ewm->fs, fileServiceTypeTransactions, transaction);
     }
     else {
         BRRlpItem item = transactionRlpEncode (transaction, ewm->network, RLP_TYPE_ARCHIVE, ewm->coder);
@@ -1828,23 +1779,15 @@ ewmHandleSaveLog (BREthereumEWM ewm,
     BREthereumHashString filename;
     hashFillString(hash, filename);
 
-    if (NULL != ewm->storagePath) {
+    if (NULL != ewm->fs) {
         eth_log("EWM", "Save Log (Storage): %s", filename);
 
-        int error = 0;
-        char *dirPath = directoryPathAppend(ewm->storagePath, "logs");
-        DIR *dir = directoryOpen(dirPath, &error);
-
         if (CLIENT_CHANGE_REM == type || CLIENT_CHANGE_UPD == type)
-            directoryRemoveItem (dir, dirPath, hash);
+            fileServiceRemove (ewm->fs, fileServiceTypeLogs,
+                               fileServiceTypeLogV1Identifier(ewm, ewm->fs, log));
 
         if (CLIENT_CHANGE_ADD == type || CLIENT_CHANGE_UPD == type)
-            directorySaveItem (dir, dirPath, hash,
-                               logRlpEncode(log, RLP_TYPE_ARCHIVE, ewm->coder),
-                               ewm->coder);
-
-        free (dirPath);
-        closedir(dir);
+            fileServiceSave (ewm->fs, fileServiceTypeLogs, log);
     }
     else {
         BRRlpItem item = logRlpEncode(log, RLP_TYPE_ARCHIVE, ewm->coder);
