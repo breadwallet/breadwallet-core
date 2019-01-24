@@ -75,44 +75,50 @@ public class DefaultEthereumBackendClient: EthereumBackendClient {
         return
     }
 
-    public func getTransactions(ewm: EthereumWalletManager, address: String, rid: Int32) {
+    public func getTransactions(ewm: EthereumWalletManager, address: String, begBlockNumber: UInt64, endBlockNumber: UInt64, rid: Int32) {
         // JSON_RPC -> [JSON] -> forEach {Result -> announceSubmitTransaction()}
-        ewm.announceTransaction(rid: rid,
-                                hash: "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
-                                sourceAddr: ewm.primaryWallet.target.description,
-                                targetAddr: "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
-                                contractAddr: "",
-                                amount: "11113000000000",
-                                gasLimit: "21000",
-                                gasPrice: "21000000000",
-                                data: "0x",
-                                nonce: "118",
-                                gasUsed: "21000",
-                                blockNumber: "1627184",
-                                blockHash: "0x0ef0110d68ee3af220e0d7c10d644fea98252180dbfc8a94cab9f0ea8b1036af",
-                                blockConfirmations: "339050",
-                                blockTransactionIndex: "3",
-                                blockTimestamp: "1516477482",
-                                isError: "0")
+        if (begBlockNumber <= 1627184 && 1627184 <= endBlockNumber) {
+            ewm.announceTransaction(rid: rid,
+                                    hash: "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
+                                    sourceAddr: ewm.primaryWallet.target.description,
+                                    targetAddr: "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
+                                    contractAddr: "",
+                                    amount: "11113000000000",
+                                    gasLimit: "21000",
+                                    gasPrice: "21000000000",
+                                    data: "0x",
+                                    nonce: "118",
+                                    gasUsed: "21000",
+                                    blockNumber: "1627184",
+                                    blockHash: "0x0ef0110d68ee3af220e0d7c10d644fea98252180dbfc8a94cab9f0ea8b1036af",
+                                    blockConfirmations: "339050",
+                                    blockTransactionIndex: "3",
+                                    blockTimestamp: "1516477482",
+                                    isError: "0")
+        }
+        ewm.announceTransactionComplete(rid: rid, success: true)
         return
     }
 
-    public func getLogs(ewm: EthereumWalletManager, address: String, event: String, rid: Int32) {
-        ewm.announceLog(rid: rid,
-                        hash: "0xa37bd8bd8b1fa2838ef65aec9f401f56a6279f99bb1cfb81fa84e923b1b60f2b",
-                        contract: (ewm.network == Ethereum.Networks.mainnet
-                            ? "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"
-                            : "0x7108ca7c4718efa810457f228305c9c71390931a"),
-                        topics: ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
-                                 "0x00000000000000000000000000000000000000000000000000000000000000aa",
-                                 "0x000000000000000000000000bdfdad139440d2db9ba2aa3b7081c2de39291508"],
-                        data: "2500000000000000000", // 2.5e18 // "0x0000000000000000000000000000000000000000000000002328000000000000",
-            gasPrice: "0xba43b7400",
-            gasUsed: "0xc64e",
-            logIndex: "0x",
-            blockNumber: "0x1e487e",
-            blockTransactionIndex: "0x",
-            blockTimestamp: "0x59fa1ac9")
+    public func getLogs(ewm: EthereumWalletManager, address: String, event: String, begBlockNumber: UInt64, endBlockNumber: UInt64, rid: Int32) {
+        if (begBlockNumber <= 0x1e487e) {
+            ewm.announceLog(rid: rid,
+                            hash: "0xa37bd8bd8b1fa2838ef65aec9f401f56a6279f99bb1cfb81fa84e923b1b60f2b",
+                            contract: (ewm.network == Ethereum.Networks.mainnet
+                                ? "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"
+                                : "0x7108ca7c4718efa810457f228305c9c71390931a"),
+                            topics: ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+                                     "0x00000000000000000000000000000000000000000000000000000000000000aa",
+                                     "0x000000000000000000000000bdfdad139440d2db9ba2aa3b7081c2de39291508"],
+                            data: "2500000000000000000", // 2.5e18 // "0x0000000000000000000000000000000000000000000000002328000000000000",
+                gasPrice: "0xba43b7400",
+                gasUsed: "0xc64e",
+                logIndex: "0x",
+                blockNumber: "0x1e487e",
+                blockTransactionIndex: "0x",
+                blockTimestamp: "0x59fa1ac9")
+        }
+        ewm.announceLogComplete(rid: rid, success: true)
         return
     }
 

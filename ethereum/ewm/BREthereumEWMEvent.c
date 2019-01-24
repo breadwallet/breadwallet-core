@@ -886,6 +886,39 @@ ewmSignalAnnounceLog (BREthereumEWM ewm,
 }
 
 //
+// Announce {Transaction, Log} Complete
+//
+typedef struct {
+    struct BREventRecord base;
+    BREthereumEWM ewm;
+    BREthereumBoolean isTransaction;
+    BREthereumBoolean success;
+    int rid;
+} BREthereumEWMClientAnnounceCompleteEvent;
+
+static void
+ewmSignalAnnounceCompleteDispatcher (BREventHandler ignore,
+                                     BREthereumEWMClientAnnounceCompleteEvent *event) {
+    ewmHandleAnnounceComplete(event->ewm, event->isTransaction, event->success, event->rid);
+}
+
+static BREventType ewmClientAnnounceCompleteEventType = {
+    "EWM: Client Announce Complete Event",
+    sizeof (BREthereumEWMClientAnnounceCompleteEvent),
+    (BREventDispatcher) ewmSignalAnnounceCompleteDispatcher
+};
+
+extern void
+ewmSignalAnnounceComplete (BREthereumEWM ewm,
+                           BREthereumBoolean isTransaction,
+                           BREthereumBoolean success,
+                           int rid) {
+    BREthereumEWMClientAnnounceCompleteEvent message =
+    { { NULL, &ewmClientAnnounceCompleteEventType}, ewm, isTransaction, success, rid };
+    eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
+}
+
+//
 // Announce Token
 //
 typedef struct {
@@ -952,8 +985,9 @@ const BREventType *ewmEventTypes[] = {
     &ewmClientAnnounceSubmitTransferEventType,
     &ewmClientAnnounceTransactionEventType,
     &ewmClientAnnounceLogEventType,
+    &ewmClientAnnounceCompleteEventType,
     &ewmClientAnnounceTokenEventType,
 };
 const unsigned int
-ewmEventTypesCount = (sizeof (ewmEventTypes) / sizeof (BREventType*)); // 14;
+ewmEventTypesCount = (sizeof (ewmEventTypes) / sizeof (BREventType*));
 

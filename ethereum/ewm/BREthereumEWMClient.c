@@ -379,6 +379,8 @@ ewmUpdateTransactions (BREthereumEWM ewm) {
             ewm->client.funcGetTransactions (ewm->client.context,
                                              ewm,
                                              address,
+                                             ewm->brdSync.begBlockNumber,
+                                             ewm->brdSync.endBlockNumber,
                                              ++ewm->requestId);
 
             free (address);
@@ -496,6 +498,13 @@ ewmAnnounceTransaction(BREthereumEWM ewm,
     return SUCCESS;
 }
 
+extern void
+ewmAnnounceTransactionComplete (BREthereumEWM ewm,
+                                int id,
+                                BREthereumBoolean success) {
+    ewmSignalAnnounceComplete (ewm, ETHEREUM_BOOLEAN_TRUE, success, id);
+}
+
 // ==============================================================================================
 //
 // Get Logs
@@ -522,13 +531,15 @@ ewmUpdateLogs (BREthereumEWM ewm,
             char *address = addressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
             char *encodedAddress =
             eventERC20TransferEncodeAddress (event, address);
-            const char *contract =ewmGetWalletContractAddress(ewm, wid);
+            const char *contract = ewmGetWalletContractAddress(ewm, wid);
 
             ewm->client.funcGetLogs (ewm->client.context,
                                      ewm,
                                      contract,
                                      encodedAddress,
                                      eventGetSelector(event),
+                                     ewm->brdSync.begBlockNumber,
+                                     ewm->brdSync.endBlockNumber,
                                      ++ewm->requestId);
 
             free (encodedAddress);
@@ -545,8 +556,8 @@ ewmUpdateLogs (BREthereumEWM ewm,
 
 extern void
 ewmHandleAnnounceLog (BREthereumEWM ewm,
-                            BREthereumEWMClientAnnounceLogBundle *bundle,
-                            int id) {
+                      BREthereumEWMClientAnnounceLogBundle *bundle,
+                      int id) {
     switch (ewm->mode) {
         case BRD_ONLY:
         case BRD_WITH_P2P_SEND: {
@@ -641,6 +652,32 @@ ewmAnnounceLog (BREthereumEWM ewm,
 
     ewmSignalAnnounceLog(ewm, bundle, id);
     return SUCCESS;
+}
+
+extern void
+ewmAnnounceLogComplete (BREthereumEWM ewm,
+                        int id,
+                        BREthereumBoolean success) {
+    ewmSignalAnnounceComplete (ewm, ETHEREUM_BOOLEAN_FALSE, success, id);
+}
+
+// ==============================================================================================
+//
+// Announce {Transactions, Logs} Complete
+//
+extern void
+ewmHandleAnnounceComplete (BREthereumEWM ewm,
+                           BREthereumBoolean isTransaction,
+                           BREthereumBoolean success,
+                           int rid) {
+    if (ETHEREUM_BOOLEAN_IS_TRUE(isTransaction)) {
+        if (rid == ewm->brdSync.ridTransaction)
+            ewm->brdSync.completedTransaction = ETHEREUM_BOOLEAN_IS_TRUE(success);
+    }
+    else {
+        if (rid == ewm->brdSync.ridLog)
+            ewm->brdSync.completedLog = ETHEREUM_BOOLEAN_IS_TRUE(success);
+    }
 }
 
 // ==============================================================================================

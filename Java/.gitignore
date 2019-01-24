@@ -17,7 +17,9 @@ libcore.jnilib
 local.properties
 Java.iml
 Core.iml
+CoreLibrary.iml
 CoreDemo.iml
+Crypto.iml
 .idea/misc.xml
 .idea/vcs.xml
 
@@ -90,6 +92,7 @@ fabric.properties
 
 # Android studio 3.1+ serialized cache file
 .idea/caches/build_file_checksums.ser
+.idea/caches/gradle_models.ser
 
 ### JetBrains Patch ###
 # Comment Reason: https://github.com/joeblau/gitignore.io/issues/186#issuecomment-215987721

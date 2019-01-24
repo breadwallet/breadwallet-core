@@ -26,7 +26,25 @@
       buildConfiguration = "DebugMainnet"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      codeCoverageEnabled = "YES"
+      onlyGenerateCoverageForSpecifiedTargets = "YES"
       shouldUseLaunchSchemeArgsEnv = "YES">
+      <CodeCoverageTargets>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "3C0EADEA2188D91F000577A6"
+            BuildableName = "BRCrypto.framework"
+            BlueprintName = "BRCrypto"
+            ReferencedContainer = "container:BRCore.xcodeproj">
+         </BuildableReference>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "3CAB609A20AF8C5D00810CE4"
+            BuildableName = "libCore.a"
+            BlueprintName = "Core"
+            ReferencedContainer = "container:BRCore.xcodeproj">
+         </BuildableReference>
+      </CodeCoverageTargets>
       <Testables>
          <TestableReference
             skipped = "NO">

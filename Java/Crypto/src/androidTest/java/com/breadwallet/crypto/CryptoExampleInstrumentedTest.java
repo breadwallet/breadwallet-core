@@ -1,4 +1,4 @@
-package com.breadwallet.core;
+package com.breadwallet.crypto;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
@@ -15,12 +15,17 @@ import static org.junit.Assert.*;
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
  */
 @RunWith(AndroidJUnit4.class)
-public class ExampleInstrumentedTest {
+public class CryptoExampleInstrumentedTest {
     @Test
     public void useAppContext() {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getTargetContext();
 
-        assertEquals("com.breadwallet.core.test", appContext.getPackageName());
+        assertEquals("com.breadwallet.crypto.test", appContext.getPackageName());
+    }
+
+    @Test
+    public void sure_to_fail () {
+        assertTrue(false);
     }
 }

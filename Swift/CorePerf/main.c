@@ -17,7 +17,6 @@ extern void runSyncTest (const char *paperKey,
                          int restart);
 
 int main(int argc, const char * argv[]) {
-    BREthereumAccount account = accountCreate (paperKey);
     BREthereumMode mode = BRD_WITH_P2P_SEND;
     BREthereumTimestamp timestamp = 1539330275; // ETHEREUM_TIMESTAMP_UNKNOWN;
 

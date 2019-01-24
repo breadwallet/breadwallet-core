@@ -22,24 +22,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.breadwallet.core.test;
-
-import com.breadwallet.core.BRCoreAddress;
-import com.breadwallet.core.BRCoreChainParams;
-import com.breadwallet.core.BRCoreKey;
-import com.breadwallet.core.BRCoreMasterPubKey;
-import com.breadwallet.core.BRCoreMerkleBlock;
-import com.breadwallet.core.BRCorePaymentProtocolACK;
-import com.breadwallet.core.BRCorePaymentProtocolInvoiceRequest;
-import com.breadwallet.core.BRCorePaymentProtocolMessage;
-import com.breadwallet.core.BRCorePaymentProtocolRequest;
-import com.breadwallet.core.BRCorePeer;
-import com.breadwallet.core.BRCorePeerManager;
-import com.breadwallet.core.BRCoreTransaction;
-import com.breadwallet.core.BRCoreTransactionInput;
-import com.breadwallet.core.BRCoreTransactionOutput;
-import com.breadwallet.core.BRCoreWallet;
-import com.breadwallet.core.BRCoreWalletManager;
+package com.breadwallet.core;
 
 import java.security.SecureRandom;
 import java.util.Arrays;

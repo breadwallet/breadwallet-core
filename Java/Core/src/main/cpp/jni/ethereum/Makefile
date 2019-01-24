@@ -2,6 +2,9 @@ DIR=$(shell pwd)
 JAVA_DIR=${JAVA_HOME}
 CINC_DIR=/usr/include
 
+# @nullable in android.support.annocations
+ANNOTATIONS=${HOME}/Library/Android/sdk/extras/android/m2repository/com/android/support/support-annotations/25.1.1/support-annotations-25.1.1.jar
+
 JNI_LIB=libCore.jnilib
 
 JNI_SRCS=com_breadwallet_core_ethereum_BREthereumEWM.c \
@@ -14,83 +17,87 @@ JNI_OBJS=$(JNI_SRCS:.c=.o)
 # JNI Header Files that we are interest in keeping (that are not empty)
 JNI_HDRS=$(JNI_SRCS:.c=.h)
 
-JAVA_SRCS=../../Java/root/com/breadwallet/core/BRCoreJniReference.java \
-	root/com/breadwallet/core/ethereum/BREthereumAccount.java \
-	root/com/breadwallet/core/ethereum/BREthereumAmount.java \
-	root/com/breadwallet/core/ethereum/BREthereumEWM.java \
-	root/com/breadwallet/core/ethereum/BREthereumNetwork.java \
-	root/com/breadwallet/core/ethereum/BREthereumToken.java \
-	root/com/breadwallet/core/ethereum/BREthereumTransaction.java \
-	root/com/breadwallet/core/ethereum/BREthereumBlock.java \
-	root/com/breadwallet/core/ethereum/BREthereumWallet.java \
-	root/com/breadwallet/core/ethereum/test/BREthereumEWMClientTest.java \
+JAVA_SRCS=../../../java/com/breadwallet/core/BRCoreJniReference.java \
+	../../../java/com/breadwallet/core/ethereum/BREthereumAccount.java \
+	../../../java/com/breadwallet/core/ethereum/BREthereumAmount.java \
+	../../../java/com/breadwallet/core/ethereum/BREthereumEWM.java \
+	../../../java/com/breadwallet/core/ethereum/BREthereumNetwork.java \
+	../../../java/com/breadwallet/core/ethereum/BREthereumToken.java \
+	../../../java/com/breadwallet/core/ethereum/BREthereumTransfer.java \
+	../../../java/com/breadwallet/core/ethereum/BREthereumBlock.java \
+	../../../java/com/breadwallet/core/ethereum/BREthereumWallet.java
+#	../../../java/com/breadwallet/core/ethereum/test/BREthereumEWMClientTest.java \
 
 JAVA_OBJS=$(JAVA_SRCS:.java=.class)
 
-CORE_SRCS=../../BRAddress.c \
-	../../BRBIP32Sequence.c \
-	../../BRBIP38Key.c \
-	../../BRBIP39Mnemonic.c \
-	../../BRBase58.c \
-	../../BRBloomFilter.c \
-	../../BRCrypto.c \
-	../../BRKey.c \
-	../../BRKeyECIES.c \
-	../../BRMerkleBlock.c \
-	../../BRPaymentProtocol.c \
-	../../BRBech32.c \
-	../../BRPeer.c \
-	../../BRPeerManager.c \
-	../../BRSet.c \
-	../../BRTransaction.c \
-	../../BRWallet.c \
-	../../bcash/BRBCashAddr.c \
-	../../Java/BRCoreJni.c \
-	../../Java/com_breadwallet_core_BRCoreJniReference.c \
-	../BREthereum.c \
-	../BREthereumAccount.c \
-	../BREthereumWallet.c \
-	../base/BREthereumAddress.c \
-	../base/BREthereumEther.c \
-	../base/BREthereumGas.c \
-	../base/BREthereumHash.c \
-	../base/BREthereumSignature.c \
-	../bcs/BREthereumBCS.c \
-	../bcs/BREthereumBCSEvent.c \
-	../blockchain/BREthereumAccountState.c \
-	../blockchain/BREthereumAmount.c \
-	../blockchain/BREthereumBlock.c \
-	../blockchain/BREthereumBloomFilter.c \
-	../blockchain/BREthereumLog.c \
-	../blockchain/BREthereumNetwork.c \
-	../blockchain/BREthereumTransaction.c \
-	../blockchain/BREthereumTransactionReceipt.c \
-	../blockchain/BREthereumTransactionStatus.c \
-	../contract/BREthereumContract.c \
-	../contract/BREthereumToken.c \
-	../les/BREthereumEndpoint.c \
-	../les/BREthereumFrameCoder.c \
-	../les/BREthereumHandshake.c \
-	../les/BREthereumLES.c \
-	../les/BREthereumLESBase.c \
-	../les/BREthereumLESCoder.c \
-	../les/BREthereumNode.c \
-	../les/BREthereumNodeDiscovery.c \
-	../les/BREthereumNodeEventHandler.c \
-	../les/BREthereumNodeManager.c \
-	../les/BREthereumP2PCoder.c \
-	../les/BREthereumRandom.c \
-	../ewm/BREthereumEWM.c \
-	../ewm/BREthereumEWMClient.c \
-	../ewm/BREthereumEWMEvent.c \
-	../event/BREvent.c \
-	../event/BREventQueue.c \
-	../event/BREventAlarm.c \
-	../rlp/BRRlpCoder.c \
-	../util/BRUtilHex.c \
-	../util/BRUtilMath.c \
-	../util/BRUtilMathParse.c
+CORE_DIR=../../../../../../../
 
+CORE_SRCS=$(CORE_DIR)/BRAddress.c \
+	$(CORE_DIR)/BRBIP32Sequence.c \
+	$(CORE_DIR)/BRBIP38Key.c \
+	$(CORE_DIR)/BRBIP39Mnemonic.c \
+	$(CORE_DIR)/BRBase58.c \
+	$(CORE_DIR)/BRBloomFilter.c \
+	$(CORE_DIR)/BRCrypto.c \
+	$(CORE_DIR)/BRKey.c \
+	$(CORE_DIR)/BRKeyECIES.c \
+	$(CORE_DIR)/BRMerkleBlock.c \
+	$(CORE_DIR)/BRPaymentProtocol.c \
+	$(CORE_DIR)/BRBech32.c \
+	$(CORE_DIR)/BRPeer.c \
+	$(CORE_DIR)/BRPeerManager.c \
+	$(CORE_DIR)/BRSet.c \
+	$(CORE_DIR)/BRTransaction.c \
+	$(CORE_DIR)/BRWallet.c \
+	$(CORE_DIR)/bcash/BRBCashAddr.c \
+	../../jni/BRCoreJni.c \
+	../../jni/com_breadwallet_core_BRCoreJniReference.c \
+	$(CORE_DIR)/ethereum/rlp/BRRlpCoder.c \
+	$(CORE_DIR)/ethereum/util/BRKeccak.c \
+	$(CORE_DIR)/ethereum/util/BRUtilHex.c \
+	$(CORE_DIR)/ethereum/util/BRUtilMath.c \
+	$(CORE_DIR)/ethereum/util/BRUtilMathParse.c \
+	$(CORE_DIR)/ethereum/event/BREvent.c \
+	$(CORE_DIR)/ethereum/event/BREventAlarm.c \
+	$(CORE_DIR)/ethereum/event/BREventQueue.c \
+	$(CORE_DIR)/ethereum/base/BREthereumAddress.c \
+	$(CORE_DIR)/ethereum/base/BREthereumData.c \
+	$(CORE_DIR)/ethereum/base/BREthereumEther.c \
+	$(CORE_DIR)/ethereum/base/BREthereumGas.c \
+	$(CORE_DIR)/ethereum/base/BREthereumHash.c \
+	$(CORE_DIR)/ethereum/base/BREthereumSignature.c \
+	$(CORE_DIR)/ethereum/blockchain/BREthereumAccountState.c \
+	$(CORE_DIR)/ethereum/blockchain/BREthereumBlock.c \
+	$(CORE_DIR)/ethereum/blockchain/BREthereumBloomFilter.c \
+	$(CORE_DIR)/ethereum/blockchain/BREthereumLog.c \
+	$(CORE_DIR)/ethereum/blockchain/BREthereumNetwork.c \
+	$(CORE_DIR)/ethereum/blockchain/BREthereumTransaction.c \
+	$(CORE_DIR)/ethereum/blockchain/BREthereumTransactionReceipt.c \
+	$(CORE_DIR)/ethereum/blockchain/BREthereumTransactionStatus.c \
+	$(CORE_DIR)/ethereum/mpt/BREthereumMPT.c \
+	$(CORE_DIR)/ethereum/contract/BREthereumContract.c \
+	$(CORE_DIR)/ethereum/contract/BREthereumToken.c \
+	$(CORE_DIR)/ethereum/les/BREthereumLES.c \
+	$(CORE_DIR)/ethereum/les/BREthereumLESFrameCoder.c \
+	$(CORE_DIR)/ethereum/les/BREthereumLESRandom.c \
+	$(CORE_DIR)/ethereum/les/BREthereumMessage.c \
+	$(CORE_DIR)/ethereum/les/BREthereumNode.c \
+	$(CORE_DIR)/ethereum/les/BREthereumNodeEndpoint.c \
+	$(CORE_DIR)/ethereum/les/BREthereumProvision.c \
+	$(CORE_DIR)/ethereum/les/msg/BREthereumMessageDIS.c \
+	$(CORE_DIR)/ethereum/les/msg/BREthereumMessageLES.c \
+	$(CORE_DIR)/ethereum/les/msg/BREthereumMessageP2P.c \
+	$(CORE_DIR)/ethereum/les/msg/BREthereumMessagePIP.c \
+	$(CORE_DIR)/ethereum/bcs/BREthereumBCS.c \
+	$(CORE_DIR)/ethereum/bcs/BREthereumBCSEvent.c \
+	$(CORE_DIR)/ethereum/bcs/BREthereumBCSSync.c \
+	$(CORE_DIR)/ethereum/ewm/BREthereumAccount.c \
+	$(CORE_DIR)/ethereum/ewm/BREthereumAmount.c \
+	$(CORE_DIR)/ethereum/ewm/BREthereumEWM.c \
+	$(CORE_DIR)/ethereum/ewm/BREthereumEWMClient.c \
+	$(CORE_DIR)/ethereum/ewm/BREthereumEWMEvent.c \
+	$(CORE_DIR)/ethereum/ewm/BREthereumTransfer.c \
+	$(CORE_DIR)/ethereum/ewm/BREthereumWallet.c
 
 CORE_OBJS=$(CORE_SRCS:.c=.o)
 
@@ -120,7 +127,7 @@ $(JNI_LIB): $(JNI_OBJS) $(CORE_OBJS)
 
 java_comp:	FORCE
 	@mkdir -p build
-	javac -d build $(JAVA_SRCS)
+	javac -cp $(ANNOTATIONS) -d build $(JAVA_SRCS)
 
 jni_hdr: java_comp
 	@(cd build/com/breadwallet/core/ethereum; \

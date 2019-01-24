@@ -1,39 +1,32 @@
-package com.breadwallet.coredemo;
-
-import com.breadwallet.core.ethereum.BREthereumBlock;
-import com.breadwallet.core.ethereum.BREthereumEWM;
-import com.breadwallet.core.ethereum.BREthereumNetwork;
-import com.breadwallet.core.ethereum.BREthereumToken;
-import com.breadwallet.core.ethereum.BREthereumTransfer;
-import com.breadwallet.core.ethereum.BREthereumWallet;
+package com.breadwallet.core.ethereum;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class CoreDemoEthereumClient implements BREthereumEWM.Client {
+public class ClientAIT implements BREthereumEWM.Client {
     interface WalletListener {
-        void announceWalletEvent (BREthereumEWM ewm,
-                                  BREthereumWallet wallet,
-                                  BREthereumEWM.WalletEvent event);
+        void announceWalletEvent(BREthereumEWM ewm,
+                                 BREthereumWallet wallet,
+                                 BREthereumEWM.WalletEvent event);
     }
 
     interface TransferListener {
-        void announceTransferEvent (BREthereumEWM ewm,
-                                    BREthereumWallet wallet,
-                                    BREthereumTransfer transfer,
-                                    BREthereumEWM.TransactionEvent event);
+        void announceTransferEvent(BREthereumEWM ewm,
+                                   BREthereumWallet wallet,
+                                   BREthereumTransfer transfer,
+                                   BREthereumEWM.TransactionEvent event);
     }
 
     protected BREthereumNetwork network;
     protected BREthereumEWM ewm;
 
-    public CoreDemoEthereumClient(BREthereumNetwork network,
-                                  String storagePath,
-                                  String paperKey) {
+    public ClientAIT(BREthereumNetwork network,
+                     String paperKey) {
         this.network = network;
-        this.ewm = new BREthereumEWM (this, network, storagePath, paperKey, words);
+        this.ewm = new BREthereumEWM (this, network, paperKey, words,
+                null, null, null, null);
     }
 
     @Override
@@ -63,7 +56,7 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
     @Override
     public void getTransactions(String address, long begBlockNumber, long endBlockNumber, int rid) {
         System.out.println("TST: getTransactions");
-        if (endBlockNumber <= 1627184 && 1627184 <= endBlockNumber)
+        if (begBlockNumber <= 1627184 && 1627184 <= endBlockNumber)
             ewm.announceTransaction(rid,
                     "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
                     ewm.getAddress(),
@@ -81,7 +74,7 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
                     "3",
                     "1516477482",
                     "0");
-        ewm.announceTransactionComplete(rid, true);
+        ewm.announceLogComplete (rid, true);
     }
 
     @Override
@@ -102,7 +95,7 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
                     "0x1e487e",
                     "0x",
                     "0x59fa1ac9");
-        ewm.announceLogComplete(rid, true);
+        ewm.announceLogComplete (rid, true);
     }
 
     @Override
@@ -145,6 +138,30 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
     public void getNonce(String address, int rid) {
         System.out.println ("TST: getNonce");
         ewm.announceNonce(address, "17", rid);
+    }
+
+    @Override
+    public void saveNodes (Map<String,String> data) {
+        System.out.println ("TST: saveNodes");
+    }
+
+    @Override
+    public void saveBlocks(Map<String,String> data) {
+        System.out.println ("TST: saveBlocks");
+    }
+
+    @Override
+    public void changeTransaction(int changeType,
+                           String hash,
+                           String data) {
+        System.out.println ("TST: changeTransaction");
+    }
+
+    @Override
+    public void changeLog (int changeType,
+                    String hash,
+                    String data) {
+        System.out.println ("TST: changeLog");
     }
 
     @Override

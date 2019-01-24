@@ -768,12 +768,16 @@ public protocol EthereumClient : class {
     // ...
     func getTransactions (ewm: EthereumWalletManager,
                           address: String,
+                          begBlockNumber: UInt64,
+                          endBlockNumber: UInt64,
                           rid: Int32) -> Void
 
     func getLogs (ewm: EthereumWalletManager,
                   address: String,
                   event: String,
-                  rid: Int32) -> Void
+                  begBlockNumber: UInt64,
+                  endBlockNumber: UInt64,
+                 rid: Int32) -> Void
 
     func getBlocks (ewm: EthereumWalletManager,
                     address: String,
@@ -993,6 +997,11 @@ public class EthereumWalletManager {
                                            isError)
     }
 
+    public func announceTransactionComplete (rid: Int32,
+                                             success: Bool) {
+        ewmAnnounceTransactionComplete(core, rid, (success ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE));
+    }
+
     public func announceLog (rid: Int32,
                              hash: String,
                              contract: String,
@@ -1012,6 +1021,11 @@ public class EthereumWalletManager {
                                    logIndex,
                                    blockNumber, blockTransactionIndex, blockTimestamp)
         cTopics.forEach { free (UnsafeMutablePointer(mutating: $0)) }
+    }
+
+    public func announceLogComplete (rid: Int32,
+                                     success: Bool) {
+        ewmAnnounceLogComplete(core, rid, (success ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE));
     }
 
     public func announceBlocks (rid: Int32,
@@ -1104,18 +1118,20 @@ public class EthereumWalletManager {
                     }
                 }},
 
-            funcGetTransactions: { (coreClient, coreEWM, address, rid) in
+            funcGetTransactions: { (coreClient, coreEWM, address, begBlockNumber, endBlockNumber, rid) in
                 if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeUnretainedValue() }),
                     let ewm = EthereumWalletManager.lookup(core: coreEWM) {
                     let address = asUTF8String(address!)
                    ewm.queue.async {
                         client.getTransactions(ewm: ewm,
                                                address: address,
+                                               begBlockNumber: begBlockNumber,
+                                               endBlockNumber: endBlockNumber,
                                                rid: rid)
                     }
                 }},
 
-            funcGetLogs: { (coreClient, coreEWM, contract, address, event, rid) in
+            funcGetLogs: { (coreClient, coreEWM, contract, address, event, begBlockNumber, endBlockNumber, rid) in
                 if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeUnretainedValue() }),
                     let ewm = EthereumWalletManager.lookup(core: coreEWM) {
                     let address = asUTF8String(address!)
@@ -1124,6 +1140,8 @@ public class EthereumWalletManager {
                         client.getLogs (ewm: ewm,
                                         address: address,
                                         event: event,
+                                        begBlockNumber: begBlockNumber,
+                                        endBlockNumber: endBlockNumber,
                                         rid: rid)
                     }
                 }},
@@ -1451,12 +1469,12 @@ class AnyEthereumClient : EthereumClient {
         base.submitTransaction(ewm: ewm, wid: wid, tid: tid, rawTransaction: rawTransaction, rid: rid)
     }
 
-    func getTransactions(ewm: EthereumWalletManager, address: String, rid: Int32) {
-        base.getTransactions(ewm: ewm, address: address, rid: rid)
+    func getTransactions(ewm: EthereumWalletManager, address: String, begBlockNumber: UInt64, endBlockNumber: UInt64, rid: Int32) {
+        base.getTransactions(ewm: ewm, address: address, begBlockNumber: begBlockNumber, endBlockNumber: endBlockNumber, rid: rid)
     }
 
-    func getLogs(ewm: EthereumWalletManager, address: String, event: String, rid: Int32) {
-        base.getLogs(ewm: ewm, address: address, event: event, rid: rid)
+    func getLogs(ewm: EthereumWalletManager, address: String, event: String, begBlockNumber: UInt64, endBlockNumber: UInt64, rid: Int32) {
+        base.getLogs(ewm: ewm, address: address, event: event, begBlockNumber: begBlockNumber, endBlockNumber: endBlockNumber, rid: rid)
     }
 
     func getBlocks (ewm: EthereumWalletManager, address: String, interests: UInt32, blockStart: UInt64, blockStop: UInt64,  rid: Int32) {

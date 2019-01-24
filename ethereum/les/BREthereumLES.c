@@ -42,10 +42,6 @@
 #include "BREthereumMessage.h"
 #include "BREthereumNode.h"
 
-#if defined (__ANDROID__)
-#include "../event/pthread_android.h"
-#endif
-
 /** Forward Declarations */
 
 static void
@@ -284,6 +280,8 @@ struct BREthereumLESRecord {
     /** RLP Coder */
     BRRlpCoder coder;
 
+    BREthereumBoolean discoverNodes;
+    
     /** Callbacks */
     BREthereumLESCallbackContext callbackContext;
     BREthereumLESCallbackAnnounce callbackAnnounce;
@@ -390,6 +388,23 @@ lesEnsureNodeForEndpoint (BREthereumLES les,
     return node;
 }
 
+static size_t
+lesBootstrapEndpointsSetCount (BREthereumNetwork network) {
+    if (ethereumMainnet == network) return NUMBER_OF_MAINNET_ENDPOINT_SETS;
+    if (ethereumTestnet == network) return NUMBER_OF_TESTNET_ENDPOINT_SETS;
+    return 0;
+}
+
+
+
+static const char **
+lesBootstrapEndpoints (BREthereumNetwork network,
+                       size_t set) {
+    if (ethereumMainnet == network) return bootstrapMainnetEnodeSets[set];
+    if (ethereumTestnet == network) return bootstrapTestnetEnodeSets[set];
+    return NULL;
+}
+
 //
 // Public functions
 //
@@ -403,7 +418,8 @@ lesCreate (BREthereumNetwork network,
            uint64_t headNumber,
            UInt256 headTotalDifficulty,
            BREthereumHash genesisHash,
-           OwnershipGiven BRSetOf(BREthereumNodeConfig) configs) {
+           OwnershipGiven BRSetOf(BREthereumNodeConfig) configs,
+           BREthereumBoolean discoverNodes) {
     
     BREthereumLES les = (BREthereumLES) calloc (1, sizeof(struct BREthereumLESRecord));
     assert (NULL != les);
@@ -420,6 +436,8 @@ lesCreate (BREthereumNetwork network,
 
     // Get our shared rlpCoder.
     les->coder = rlpCoderCreate();
+
+    les->discoverNodes = discoverNodes;
 
     // Save callbacks.
     les->callbackContext = callbackContext;
@@ -522,19 +540,30 @@ lesCreate (BREthereumNetwork network,
     // ... and then add in bootstrap endpoints for good measure.  Note that in practice after the
     // first boot, *none* of these nodes will be added as they would already be in 'configs' above.
     size_t bootstrappedEndpointsCount = 0;
-    BREthereumBoolean bootstrappedEndpointsAdded;
-    for (size_t set = 0; set < NUMBER_OF_NODE_ENDPOINT_SETS; set++) {
-        const char **enodes = bootstrapMainnetEnodeSets[set];
-        for (size_t index = 0; NULL != enodes[index]; index++) {
-            lesEnsureNodeForEndpoint(les,
-                                     nodeEndpointCreateEnode(enodes[index]),
-                                     (BREthereumNodeState) { NODE_AVAILABLE },
-                                     (enodes == bootstrapLCLEnodes
-                                      ? NODE_PRIORITY_LCL
-                                      : (enodes == bootstrapBRDEnodes
-                                         ? NODE_PRIORITY_BRD
-                                         : NODE_PRIORITY_DIS)),
-                                     &bootstrappedEndpointsAdded);
+    size_t bootstrappedEndpointSetCount = lesBootstrapEndpointsSetCount (network);
+    BREthereumBoolean bootstrappedEndpointsAdded = ETHEREUM_BOOLEAN_FALSE;
+
+    for (size_t set = 0; set < bootstrappedEndpointSetCount; set++) {
+        const char **enodes = lesBootstrapEndpoints (network, set);
+        for (size_t index = 0; NULL != enodes && NULL != enodes[index]; index++) {
+            if (ethereumMainnet == network)
+                lesEnsureNodeForEndpoint(les,
+                                         nodeEndpointCreateEnode(enodes[index]),
+                                         (BREthereumNodeState) { NODE_AVAILABLE },
+                                         (enodes == bootstrapLCLEnodes
+                                          ? NODE_PRIORITY_LCL
+                                          : (enodes == bootstrapBRDEnodes
+                                             ? NODE_PRIORITY_BRD
+                                             : NODE_PRIORITY_DIS)),
+                                         &bootstrappedEndpointsAdded);
+            else if (ethereumTestnet == network)
+                lesEnsureNodeForEndpoint (les,
+                                          nodeEndpointCreateEnode(enodes[index]),
+                                          (BREthereumNodeState) { NODE_AVAILABLE },
+                                          (enodes == bootstrapBRDEnodesTestnet
+                                           ? NODE_PRIORITY_BRD
+                                           : NODE_PRIORITY_DIS),
+                                          &bootstrappedEndpointsAdded);
             if (ETHEREUM_BOOLEAN_IS_TRUE(bootstrappedEndpointsAdded))
                 bootstrappedEndpointsCount++;
         }
@@ -929,9 +958,6 @@ lesThread (BREthereumLES les) {
 #else
     pthread_setname_np (LES_THREAD_NAME);
 #endif
-    pthread_setcancelstate (PTHREAD_CANCEL_DISABLE, NULL);
-    // pthread_setcanceltype  (PTHREAD_CANCEL_DEFERRED, NULL);
-
     // TODO: Don't timeout pselect(); get some 'wakeup descriptor'
     struct timespec timeout = { 0, 250000000 }; // .250 seconds
 
@@ -1189,9 +1215,12 @@ lesThread (BREthereumLES les) {
         //
         else if (selectCount == 0) {
 
-#if !defined (LES_DISABLE_DISCOVERY)
-            // If we don't have enough availableNodes, try to find some
-            if (array_count(les->availableNodes) < 100 && array_count(les->activeNodesByRoute[NODE_ROUTE_UDP]) < 3) {
+            // If we don't have enough availableNodes, try to discover some
+            if (ETHEREUM_BOOLEAN_IS_TRUE(les->discoverNodes) &&
+                array_count(les->availableNodes) < LES_AVAILABLE_NODES_COUNT &&
+                // We won't look any more if we we have enough nodes already looking.  Upon
+                // discovery, the UPD node will will go inactive and we'll look again.
+                array_count(les->activeNodesByRoute[NODE_ROUTE_UDP]) < LES_ACTIVE_NODE_UDP_LIMIT) {
 
                 // Find a 'discovery' node by looking in: activeNodesByRoute[NODE_ROUTE_TCP],
                 // availableNodes and then finally allNodes.  If that fails, try harder (see
@@ -1216,7 +1245,7 @@ lesThread (BREthereumLES les) {
                         assert (0);  // how?
                 }
             }
-#endif
+
             // If we don't have enough connectedNodes, try to add one.  Note: when we created
             // the node (as part of UDP discovery) we give it our endpoint info (like headNum).
             // But now that is likely out of date as we've synced/progressed/chained.  I think the

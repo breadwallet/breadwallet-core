@@ -42,6 +42,9 @@
 
 #define EWM_SLEEP_SECONDS (5)
 
+// When using a BRD sync offset the start block by 3 days of Ethereum blocks
+#define EWM_BRD_SYNC_START_BLOCK_OFFSET        (3 * 24 * 60 * 4)   /* 4 per minute, every 15 seconds */
+
 /* Forward Declaration */
 static void
 ewmPeriodicDispatcher (BREventHandler handler,
@@ -307,6 +310,15 @@ ewmCreate (BREthereumNetwork network,
     ewm->network = network;
     ewm->account = account;
     ewm->bcs = NULL;
+    ewm->blockHeight = 0;
+
+    // Initialize the `brdSync` struct
+    ewm->brdSync.ridTransaction = -1;
+    ewm->brdSync.ridLog = -1;
+    ewm->brdSync.begBlockNumber = 0;
+    ewm->brdSync.endBlockNumber = 0;
+    ewm->brdSync.completedTransaction = 0;
+    ewm->brdSync.completedLog = 0;
 
     // Get the client assigned early; callbacks as EWM/BCS state is re-establish, regarding
     // blocks, peers, transactions and logs, will be invoked.
@@ -1611,15 +1623,35 @@ ewmPeriodicDispatcher (BREventHandler handler,
 
     ewmUpdateBlockNumber(ewm);
     ewmUpdateNonce(ewm);
-    
-    // We'll query all transactions for this ewm's account.  That will give us a shot at
+
+    // Handle a BRD Sync:
+
+    // 1) check if the prior sync has completed.
+    if (ewm->brdSync.completedTransaction && ewm->brdSync.completedLog) {
+        // 1a) if so, advance the sync range by updating `begBlockNumber`
+        ewm->brdSync.begBlockNumber = (ewm->brdSync.endBlockNumber >=  EWM_BRD_SYNC_START_BLOCK_OFFSET
+                                       ? ewm->brdSync.endBlockNumber - EWM_BRD_SYNC_START_BLOCK_OFFSET
+                                       : 0);
+    }
+    // 2) completed or not, update the `endBlockNumber` to the current block height.
+    ewm->brdSync.endBlockNumber = ewmGetBlockHeight(ewm);
+
+    // 3) We'll query all transactions for this ewm's account.  That will give us a shot at
     // getting the nonce for the account's address correct.  We'll save all the transactions and
     // then process them into wallet as wallets exist.
     ewmUpdateTransactions(ewm);
+    // Note: we don't do the following  `ewmUpdateTransactions` because that is `extern`
+    ewm->brdSync.ridTransaction = ewm->requestId;
+    ewm->brdSync.completedTransaction = 0;
     
-    // Similarly, we'll query all logs for this ewm's account.  We'll process these into
+    // 4) Similarly, we'll query all logs for this ewm's account.  We'll process these into
     // (token) transactions and associate with their wallet.
     ewmUpdateLogs(ewm, NULL, eventERC20Transfer);
+    // Note: we don't do the following  `ewmUpdateLogs because that is `extern`
+    ewm->brdSync.ridLog = ewm->requestId;
+    ewm->brdSync.completedLog = 0;
+
+    // End handling a BRD Sync
     
     // For all the known wallets, get their balance.
     for (int i = 0; i < array_count(ewm->wallets); i++)

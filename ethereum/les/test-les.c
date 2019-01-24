@@ -1177,7 +1177,8 @@ runLEStests(void) {
     BREthereumLES les = lesCreate (ethereumMainnet,
                                    NULL, _announceCallback, _statusCallback, _saveNodesCallback,
                                    headHash, headNumber, headTD, genesisHash,
-                                   NULL);
+                                   NULL,
+                                   ETHEREUM_BOOLEAN_FALSE);
     lesStart(les);
     // Sleep for a little bit to allow the context to connect to the network
     sleep(2);

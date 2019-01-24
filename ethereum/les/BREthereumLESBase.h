@@ -74,11 +74,12 @@
  * For debugging only, we can optionally disable P2P Node Discovery.  This is very useful for
  * performance and memory allocation/leak analysis
  */
-#define LES_DISABLE_DISCOVERY
+// #define LES_DISABLE_DISCOVERY
 
 #if defined (NDEBUG) || !defined (DEBUG)
 #undef LES_DISABLE_DISCOVERY
 #endif
+
 
 /**
  * We we attempt to open a socket to a node endpoint and the socket reports EINPROGRESS, we'll
@@ -101,6 +102,13 @@
 // active nodes.  We will need multiple active nodes for submissions as we *routinely* see nodes
 // simply dropping submission outright, quietly.
 #define LES_ACTIVE_NODE_COUNT 4
+
+// When discovering nodes (on UDP) don't allow more then LES_ACTIVE_NODE_UDP_LIMIT nodes to be
+// actively discovering at once.
+#define LES_ACTIVE_NODE_UDP_LIMIT 3
+
+// The numver of nodes that should be available.
+#define LES_AVAILABLE_NODES_COUNT     (100)
 
 // For a request with a nodeIndex that is not LES_PREFERRED_NODE_INDEX, the intention is to send
 // the same message multiple times.  If the message was to be sent to 3 nodes, but only two are

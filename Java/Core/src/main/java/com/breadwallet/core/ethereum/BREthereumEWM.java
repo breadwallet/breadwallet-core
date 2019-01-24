@@ -24,6 +24,8 @@
  */
 package com.breadwallet.core.ethereum;
 
+import android.support.annotation.Nullable;
+
 import com.breadwallet.core.BRCoreJniReference;
 
 import java.lang.ref.WeakReference;
@@ -94,28 +96,28 @@ public class BREthereumEWM extends BRCoreJniReference {
     //
     public enum BlockEvent {
         CREATED,
+        CHAINED,
+        ORPHANED,
         DELETED
     }
 
-    static int NUMBER_OF_BLOCK_EVENT = 2;
+    static int NUMBER_OF_BLOCK_EVENT = 4;
 
     //
     // Transaction Event
     //
     public enum TransactionEvent {
-        ADDED,
-        REMOVED,
-
         CREATED,
         SIGNED,
         SUBMITTED,
-        BLOCKED,  // aka confirmed
+        INCLUDED,  // aka confirmed
         ERRORED,
         GAS_ESTIMATE_UPDATED,
-        BLOCK_CONFIRMATIONS_UPDATED
+        BLOCK_CONFIRMATIONS_UPDATED,
+        DELETED
     }
 
-    static int NUMBER_OF_TRANSACTION_EVENTS = 9;
+    static int NUMBER_OF_TRANSACTION_EVENTS = 8;
 
     //
     // EWM Event
@@ -181,7 +183,7 @@ public class BREthereumEWM extends BRCoreJniReference {
         //                                        BREthereumEWM ewm,
         //                                        const char *address,
         //                                        int rid);
-        void getTransactions(String address, int rid);
+        void getTransactions(String address, long begBlockNumber, long endBlockNumber, int rid);
 
         //        typedef void (*BREthereumClientHandlerGetLogs) (BREthereumClientContext context,
         //                                BREthereumEWM ewm,
@@ -189,7 +191,7 @@ public class BREthereumEWM extends BRCoreJniReference {
         //                                const char *address,
         //                                const char *event,
         //                                int rid);
-        void getLogs(String contract, String address, String event, int rid);
+        void getLogs(String contract, String address, String event, long begBlockNumber, long endBlockNumber, int rid);
 
 
         //typedef void
@@ -286,6 +288,10 @@ public class BREthereumEWM extends BRCoreJniReference {
                 isError);
     }
 
+    public void announceTransactionComplete (int id, boolean success) {
+        jniAnnounceTransactionComplete(id, success);
+    }
+
     public void announceLog(int id,
                             String hash,
                             String contract,
@@ -299,6 +305,10 @@ public class BREthereumEWM extends BRCoreJniReference {
                             String blockTimestamp) {
         jniAnnounceLog(id, hash, contract, topics, data, gasPrice, gasUsed, logIndex,
                 blockNumber, blockTransactionIndex, blockTimestamp);
+    }
+
+    public void announceLogComplete (int id, boolean success) {
+        jniAnnounceLogComplete(id, success);
     }
 
     public void announceBlockNumber(String blockNumber, int rid) {
@@ -320,7 +330,6 @@ public class BREthereumEWM extends BRCoreJniReference {
         jniAnnounceToken(address, symbol, name, description, decimals,
                 defaultGasLimit, defaultGasPrice,
                 rid);
-        tokens = null;
     }
 
     //
@@ -460,34 +469,37 @@ public class BREthereumEWM extends BRCoreJniReference {
     //
     // Tokens
     //
-    protected final HashMap<String, BREthereumToken> tokensByAddress = new HashMap<>();
-    protected final HashMap<Long, BREthereumToken> tokensByReference = new HashMap<>();
-    public BREthereumToken[] tokens = null;
-    public BREthereumToken tokenBRD;
+    protected final HashMap<String, BREthereumToken> tokensByAddress   = new HashMap<>();
+    protected final HashMap<Long,   BREthereumToken> tokensByReference = new HashMap<>();
 
-    protected void initializeTokens() {
-        long[] references = jniTokenAll();
-        tokens = new BREthereumToken[references.length];
+    public synchronized BREthereumToken[] getTokens() {
+        BREthereumToken[] tokens = new BREthereumToken [tokensByAddress.size()];
 
-        for (int i = 0; i < references.length; i++)
-            tokens[i] = new BREthereumToken(references[i]);
-
-        for (BREthereumToken token : tokens) {
-            // System.err.println ("Token: " + token.getSymbol());
-            tokensByReference.put(token.getIdentifier(), token);
-            tokensByAddress.put(token.getAddress().toLowerCase(), token);
-        }
-
-        tokenBRD = lookupTokenByReference(jniGetTokenBRD());
+        int i = 0;
+        for (BREthereumToken token : tokensByAddress.values())
+            tokens[i++] = token;
+        return tokens;
     }
 
-    public BREthereumToken lookupToken(String address) {
+    protected synchronized BREthereumToken lookupTokenByReference(long reference) {
+        return tokensByReference.get(reference);
+    }
+
+    protected BREthereumToken addTokenByReference (long reference) {
+        BREthereumToken token = new BREthereumToken (reference);
+        tokensByReference.put (token.getIdentifier(),            token);
+        tokensByAddress.put   (token.getAddress().toLowerCase(), token);
+        return token;
+    }
+    public @Nullable synchronized BREthereumToken getTokenBRD () {
+        return lookupTokenByReference(jniGetTokenBRD());
+    }
+
+    public @Nullable synchronized BREthereumToken lookupToken(String address) {
         return tokensByAddress.get(address.toLowerCase());
     }
 
-    protected BREthereumToken lookupTokenByReference(long reference) {
-        return tokensByReference.get(reference);
-    }
+    public void updateTokens () { jniUpdateTokens(); }
 
     //
     // Constructor
@@ -506,14 +518,13 @@ public class BREthereumEWM extends BRCoreJniReference {
 
     private BREthereumEWM(long identifier, Client client, BREthereumNetwork network) {
         super(identifier);
+
+        // Map identifier->this - for use in statically-declared trampoline functions.
         ewmMap.put(identifier, new WeakReference<BREthereumEWM> (this));
 
-        // `this` is the JNI listener, using the `trampoline` functions to invoke
-        // the installed `Listener`.
         this.client = new WeakReference<>(client);
         this.network = network;
         this.account = new BREthereumAccount(this, jniEWMGetAccount());
-        initializeTokens();
     }
 
     //
@@ -570,6 +581,8 @@ public class BREthereumEWM extends BRCoreJniReference {
                                                  // txreceipt_status
                                                  String isError);
 
+    protected native void jniAnnounceTransactionComplete (int id, boolean success);
+
     protected native void jniAnnounceLog(int id,
                                          String hash,
                                          String contract,
@@ -581,6 +594,8 @@ public class BREthereumEWM extends BRCoreJniReference {
                                          String blockNumber,
                                          String blockTransactionIndex,
                                          String blockTimestamp);
+
+    protected native void jniAnnounceLogComplete (int id, boolean success);
 
     protected native void jniAnnounceBalance(long wid, String balance, int rid);
 
@@ -712,6 +727,7 @@ public class BREthereumEWM extends BRCoreJniReference {
     // JNI: Tokens
     //
     // protected native String jniTokenGetAddress (long tokenId);
+    protected native void jniUpdateTokens();
 
     //
     // JNI: Block
@@ -850,20 +866,20 @@ public class BREthereumEWM extends BRCoreJniReference {
         client.submitTransaction(wid, tid, rawTransaction, rid);
     }
 
-    static protected void trampolineGetTransactions(long eid, String address, int rid) {
+    static protected void trampolineGetTransactions(long eid, String address, long begBlockNumber, long endBlockNumber, int rid) {
         BREthereumEWM ewm = lookupEWM(eid);
         Client client = lookupClient (ewm);
         if (null == client) return;
 
-        client.getTransactions(address, rid);
+        client.getTransactions(address, begBlockNumber, endBlockNumber, rid);
     }
 
-    static protected void trampolineGetLogs(long eid, String contract, String address, String event, int rid) {
+    static protected void trampolineGetLogs(long eid, String contract, String address, String event, long begBlockNumber, long endBlockNumber, int rid) {
         BREthereumEWM ewm = lookupEWM(eid);
         Client client = lookupClient (ewm);
         if (null == client) return;
 
-        client.getLogs(contract, address, event, rid);
+        client.getLogs(contract, address, event, begBlockNumber, endBlockNumber, rid);
     }
 
     static protected void trampolineGetBlocks (long eid, String address, int interests, long blockNumberStart, long blockNumberStop, int rid) {
@@ -941,15 +957,17 @@ public class BREthereumEWM extends BRCoreJniReference {
     static protected void trampolineTokenEvent(long eid, long tokenId, int event) {
         BREthereumEWM ewm = lookupEWM(eid);
         Client client = lookupClient (ewm);
-        if (null == client) return;
+        if (null == client)
+            return;
 
         // TODO: Resolve Bug
-        if (event < 0 || event >= NUMBER_OF_TOKEN_EVENTS) return;
+        if (event < 0 || event >= NUMBER_OF_TOKEN_EVENTS)
+            return;
 
-        BREthereumToken token = ewm.lookupTokenByReference(tokenId);
+        BREthereumToken token = ewm.addTokenByReference(tokenId);
 
         // Invoke handler
-        client.handleTokenEvent(token, TokenEvent.values()[(int) event]);
+        client.handleTokenEvent (token, TokenEvent.values()[(int) event]);
     }
 
 /*

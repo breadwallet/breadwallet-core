@@ -9,7 +9,7 @@
 import XCTest
 @testable import BRCrypto
 
-class BRCoreXTests: XCTestCase {
+class BRCryptoBaseTests: XCTestCase {
 
     override func setUp() {
     }
@@ -88,7 +88,69 @@ class BRCoreXTests: XCTestCase {
         XCTAssertEqual("\(BTC.name)/\(USD.name)=\(6000.0)", pair.description)
     }
 
-    
+    func testAccount () {
+        let _ = Account (phrase: "ginger settle marine tissue robot crane night number ramp coast roast critic")
+        let s1 = Account.deriveSeed(phrase: "ginger settle marine tissue robot crane night number ramp coast roast critic")
+        let _ = Account (seed: s1)
+    }
+
+    func testNetwork () {
+        // ==
+        XCTAssertEqual (Bitcoin.Networks.mainnet, Bitcoin.Networks.mainnet)
+        XCTAssertEqual (Ethereum.Networks.rinkeby, Ethereum.Networks.rinkeby)
+        XCTAssertNotEqual(Bitcoin.Networks.mainnet, Bitcoin.Networks.testnet)
+        XCTAssertNotEqual(Bitcoin.Networks.mainnet, Ethereum.Networks.mainnet)
+        XCTAssertNotEqual(Bitcoin.Networks.mainnet, Ethereum.Networks.ropsten)
+        XCTAssertNotEqual (Ethereum.Networks.rinkeby, Ethereum.Networks.ropsten)
+
+        // name
+        XCTAssertEqual("BTC Mainnet", Bitcoin.Networks.mainnet.name)
+        XCTAssertEqual("BCH Mainnet", Bitcash.Networks.mainnet.name)
+        XCTAssertEqual("ETH Mainnet", Ethereum.Networks.mainnet.name)
+
+        // description
+        XCTAssertEqual(Bitcoin.Networks.mainnet.description, Bitcoin.Networks.mainnet.name)
+
+        // currency
+        XCTAssertEqual(Bitcoin.currency, Bitcoin.Networks.mainnet.currency)
+        XCTAssertEqual(Bitcoin.currency, Bitcoin.Networks.testnet.currency)
+        XCTAssertEqual(Bitcash.currency, Bitcash.Networks.mainnet.currency)
+        XCTAssertEqual(Ethereum.currency, Ethereum.Networks.mainnet.currency)
+        XCTAssertEqual(Ethereum.currency, Ethereum.Networks.foundation.currency)
+
+
+        // hashable
+        let networks = Set (arrayLiteral: Bitcoin.Networks.mainnet,
+                                            Bitcash.Networks.mainnet,
+                                           Ethereum.Networks.mainnet)
+        XCTAssertTrue(networks.contains(Bitcash.Networks.mainnet))
+        XCTAssertFalse(networks.contains(Bitcoin.Networks.testnet))
+    }
+
+    func testAddress () {
+        let r1 = Address (raw: "foo")
+        let r2 = Address (raw: "bar")
+        let r3 = Address (raw: "foo")
+
+        XCTAssertEqual (r1, r3)
+        XCTAssertNotEqual (r1, r2)
+
+        let e1 = Address (ethereum: "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62")
+        let e2 = Address (ethereum: "0xd3CFBA03Fc13dc01F0C67B88CBEbE776D8F3DE8f")
+
+        XCTAssertEqual(e1, e1)
+        XCTAssertNotEqual (e1, e2)
+        XCTAssertNotEqual (r1, e1)
+
+        // hashable
+        XCTAssertEqual (r1.hashValue, r1.hashValue);
+        XCTAssertEqual (e1.hashValue, e1.hashValue);
+
+        XCTAssertNotEqual (e1.hashValue, e2.hashValue);
+
+        XCTAssertEqual("foo", r1.description)
+        XCTAssertEqual("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", e1.description)
+    }
 //    func testPerformanceExample() {
 //        self.measure {
 //        }
