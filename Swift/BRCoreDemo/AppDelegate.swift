@@ -24,7 +24,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
 
     var window: UIWindow?
     var client : CoreDemoEthereumClient!
-
+    var storagePath: String!
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
@@ -38,6 +38,26 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
 
         let summaryController = summaryNavigationController.topViewController as! SummaryViewController
 
+        // Create a storage path.
+        do {
+            let documentsDir = try FileManager.default.url (for: .documentDirectory,
+                                                            in: .userDomainMask,
+                                                            appropriateFor: nil,
+                                                            create: false)
+            storagePath = documentsDir.appendingPathComponent("core").path
+
+            // Empty the storage path
+            if FileManager.default.fileExists(atPath: storagePath) {
+                try FileManager.default.removeItem(atPath: storagePath)
+            }
+
+            // Create it (not empty)
+            try FileManager.default.createDirectory (atPath: storagePath,
+                                                     withIntermediateDirectories: true,
+                                                     attributes: nil)
+
+        } catch { assertionFailure(); return false }
+
         let paperKey = (CommandLine.argc > 1
             ? CommandLine.arguments[1]
             : "0xa9de3dbd7d561e67527bc1ecb025c59d53b9f7ef");
@@ -47,7 +67,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
 
         client = CoreDemoEthereumClient (network: EthereumNetwork.mainnet,
                                          mode: EthereumMode.p2p_only, // brd_with_p2p_send,
-                                         paperKey:  paperKey)
+                                         paperKey:  paperKey,
+                                         storagePath: storagePath)
 
         // Mini-race - on ETH wallet create event
         UIApplication.sharedClient.addWalletListener(listener: summaryController)

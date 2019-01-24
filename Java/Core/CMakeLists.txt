@@ -65,6 +65,9 @@ target_sources (core
                 src/main/cpp/core/BRWallet.c
                 src/main/cpp/core/BRWallet.h
 
+                src/main/cpp/core/support/BRFileService.c
+                src/main/cpp/core/support/BRFileService.h
+
                 # BCash files
                 src/main/cpp/core/bcash/BRBCashAddr.c
                 src/main/cpp/core/bcash/BRBCashAddr.h

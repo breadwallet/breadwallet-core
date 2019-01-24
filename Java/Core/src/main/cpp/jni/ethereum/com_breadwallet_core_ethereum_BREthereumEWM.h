@@ -10,18 +10,18 @@ extern "C" {
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniCreateEWM
- * Signature: (Lcom/breadwallet/core/ethereum/BREthereumEWM/Client;JLjava/lang/String;[Ljava/lang/String;[[Ljava/lang/String;[[Ljava/lang/String;[[Ljava/lang/String;[[Ljava/lang/String;)J
+ * Signature: (Lcom/breadwallet/core/ethereum/BREthereumEWM/Client;JLjava/lang/String;Ljava/lang/String;[Ljava/lang/String;)J
  */
 JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
-  (JNIEnv *, jclass, jobject, jlong, jstring, jobjectArray, jobjectArray, jobjectArray, jobjectArray, jobjectArray);
+  (JNIEnv *, jclass, jobject, jlong, jstring, jstring, jobjectArray);
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniCreateEWM_PublicKey
- * Signature: (Lcom/breadwallet/core/ethereum/BREthereumEWM/Client;J[B[[Ljava/lang/String;[[Ljava/lang/String;[[Ljava/lang/String;[[Ljava/lang/String;)J
+ * Signature: (Lcom/breadwallet/core/ethereum/BREthereumEWM/Client;JLjava/lang/String;[B)J
  */
 JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM_1PublicKey
-  (JNIEnv *, jclass, jobject, jlong, jbyteArray, jobjectArray, jobjectArray, jobjectArray, jobjectArray);
+  (JNIEnv *, jclass, jobject, jlong, jstring, jbyteArray);
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM

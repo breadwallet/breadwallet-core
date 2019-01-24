@@ -497,22 +497,12 @@ public class EthereumWalletManager: WalletManager {
         self.path = storagePath
         self.state = WalletManagerState.created
         
-        //        let coreNetwork = (main ? ethereumMainnet : ethereumTestnet)
-        
-        let peers:        Dictionary<String,String> = [:]
-        let blocks:       Dictionary<String,String> = [:]
-        let transactions: Dictionary<String,String> = [:]
-        let logs:         Dictionary<String,String> = [:]
-        
         self.core = ewmCreate (coreNetwork,
                                account.ethereumAccount,
                                timestamp,
                                EthereumWalletManager.coreMode (mode),
                                coreEthereumClient,
-                               EthereumWalletManager.asPairs(peers),
-                               EthereumWalletManager.asPairs(blocks),
-                               EthereumWalletManager.asPairs(transactions),
-                               EthereumWalletManager.asPairs(logs))
+                                storagePath)
 
         EthereumWalletManager.managers.append(Weak (value: self))
         self.listener.handleManagerEvent(manager: self, event: WalletManagerEvent.created)
@@ -662,51 +652,6 @@ public class EthereumWalletManager: WalletManager {
                         ewm.backendClient.getNonce(ewm: ewm,
                                                    address: address,
                                                    rid: rid)
-                    }
-                }},
-            
-            funcSaveNodes: { (coreClient, coreEWM, data) in
-                if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    ewm.queue.async {
-                        ewm.persistenceClient.savePeers(manager: ewm, data: EthereumWalletManager.asDictionary(data!))
-                    }
-                }},
-            
-            funcSaveBlocks: { (coreClient, coreEWM, data) in
-                if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    ewm.queue.async {
-                        ewm.persistenceClient.saveBlocks(manager: ewm, data: EthereumWalletManager.asDictionary(data!))
-                    }
-                }},
-            
-            funcChangeTransaction: { (coreClient, coreEWM, change, data) in
-                if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    let cStrHash = hashDataPairGetHashAsString (data)!
-                    let cStrData = hashDataPairGetDataAsString (data)!
-
-                    ewm.queue.async {
-                        ewm.persistenceClient.changeTransaction (manager: ewm,
-                                                                 change: WalletManagerPersistenceChangeType(change),
-                                                                 hash: String (cString: cStrHash),
-                                                                 data: String (cString: cStrData))
-                        
-                        free (cStrHash); free (cStrData)
-                    }
-                }},
-            
-            funcChangeLog: { (coreClient, coreEWM, change, data) in
-                if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-
-                    let cStrHash = hashDataPairGetHashAsString (data)!
-                    let cStrData = hashDataPairGetDataAsString (data)!
-
-                   ewm.queue.async {
-                        ewm.persistenceClient.changeLog (manager: ewm,
-                                                         change: WalletManagerPersistenceChangeType(change),
-                                                         hash: String (cString: cStrHash),
-                                                         data: String (cString: cStrData))
-                        
-                        free (cStrHash); free (cStrData)
                     }
                 }},
             

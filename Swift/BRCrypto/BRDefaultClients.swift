@@ -231,7 +231,7 @@ public class DefaultEthereumBackendClient: EthereumBackendClient {
 }
 
 ///
-/// A default implementation for EthereumPersistenceClient.
+/// A default implementation for EthereumPersistenceClient.  Note: never called.
 ///
 public class DefaultEthereumPersistenceClient: EthereumPersistenceClient {
     public func savePeers(manager: WalletManager,

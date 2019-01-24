@@ -30,7 +30,8 @@ class BRCoreTests: XCTestCase {
 
     func testEthereum () {
         let client = TestLightClient (network: EthereumNetwork.mainnet,
-                                      paperKey: "ginger ...")
+                                      paperKey: "ginger ...",
+                                      storagePath: "/tmp/core")
 
         client.node.updateTokens()
         client.node.connect()
@@ -59,13 +60,16 @@ class TestLightClient : EthereumClient {
     //
     // Constructors
     //
-    init(network: EthereumNetwork, paperKey: String) {
+    init(network: EthereumNetwork,
+         paperKey: String,
+         storagePath: String) {
         self.network = network
         self.node = EthereumWalletManager (client: self,
                                            network: network,
                                            mode: EthereumMode.p2p_only,
                                            key: EthereumKey.paperKey (paperKey),
-                                           timestamp: 0)
+                                           timestamp: 0,
+                                           storagePath: storagePath)
     }
 
     //
@@ -218,31 +222,6 @@ class TestLightClient : EthereumClient {
     func getNonce(ewm: EthereumWalletManager, address: String, rid: Int32) {
         ewm.announceNonce(address: address, nonce: "17", rid: rid)
     }
-
-    func saveNodes (ewm: EthereumWalletManager,
-                    data: Dictionary<String, String>) {
-        print ("TST: savePeers\n")
-    }
-
-    func saveBlocks (ewm: EthereumWalletManager,
-                     data: Dictionary<String, String>) {
-        print ("TST: saveBlocks\n")
-    }
-
-    func changeTransaction (ewm: EthereumWalletManager,
-                            change: EthereumClientChangeType,
-                            hash: String,
-                            data: String) {
-        print ("TST: changeTransactionXXX\n")
-    }
-
-    func changeLog (ewm: EthereumWalletManager,
-                    change: EthereumClientChangeType,
-                    hash: String,
-                    data: String) {
-        print ("TST: changeLogXXX\n")
-    }
-
 
     //
     // Listener Protocol

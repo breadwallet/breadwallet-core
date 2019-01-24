@@ -3111,8 +3111,7 @@ extern int BRRunTestWalletManagerSync (const char *paperKey,
         _testWalletManagerEventCallback
     };
 
-    BRWalletManager manager = BRWalletManagerNew (client, WALLET_FORKID_BITCOIN,
-                                                  mpk, params, epoch, storagePath);
+    BRWalletManager manager = BRWalletManagerNew (client, mpk, params, epoch, storagePath);
 
     BRPeerManager *pm = BRWalletManagerGetPeerManager(manager);
 

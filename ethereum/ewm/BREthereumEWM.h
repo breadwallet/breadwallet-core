@@ -46,10 +46,7 @@ ewmCreate (BREthereumNetwork network,
            BREthereumTimestamp accountTimestamp,
            BREthereumMode mode,
            BREthereumClient client,
-           BRSetOf(BREthereumHashDataPair) nodesPersistData,
-           BRSetOf(BREthereumHashDataPair) blocksPersistData,
-           BRSetOf(BREthereumHashDataPair) transactionsPersistData,
-           BRSetOf(BREthereumHashDataPair) logsPersistData);
+           const char *storagePath);
 
 extern BREthereumEWM
 ewmCreateWithPaperKey (BREthereumNetwork network,
@@ -57,10 +54,7 @@ ewmCreateWithPaperKey (BREthereumNetwork network,
                        BREthereumTimestamp accountTimestamp,
                        BREthereumMode mode,
                        BREthereumClient client,
-                       BRSetOf(BREthereumHashDataPair) peers,
-                       BRSetOf(BREthereumHashDataPair) blocks,
-                       BRSetOf(BREthereumHashDataPair) transactions,
-                       BRSetOf(BREthereumHashDataPair) logs);
+                       const char *storagePath);
 
 extern BREthereumEWM
 ewmCreateWithPublicKey (BREthereumNetwork network,
@@ -68,18 +62,7 @@ ewmCreateWithPublicKey (BREthereumNetwork network,
                         BREthereumTimestamp accountTimestamp,
                         BREthereumMode mode,
                         BREthereumClient client,
-                        BRSetOf(BREthereumHashDataPair) peers,
-                        BRSetOf(BREthereumHashDataPair) blocks,
-                        BRSetOf(BREthereumHashDataPair) transactions,
-                        BRSetOf(BREthereumHashDataPair) logs);
-
-extern BREthereumEWM
-ewmCreateWithStoragePath (BREthereumNetwork network,
-                          BREthereumAccount account,
-                          BREthereumTimestamp accountTimestamp,
-                          BREthereumMode mode,
-                          BREthereumClient client,
-                          const char *storagePath);
+                        const char *storagePath);
 
 extern void
 ewmDestroy (BREthereumEWM ewm);

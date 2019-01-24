@@ -37,6 +37,7 @@
 		3C386DD320C6F6070065E355 /* BREthereumEWMClient.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C386DD120C6F6060065E355 /* BREthereumEWMClient.c */; };
 		3C386DD420C6F6070065E355 /* BREthereumEWMEvent.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C386DD220C6F6070065E355 /* BREthereumEWMEvent.c */; };
 		3C3B37FD20D82335004F9928 /* BREventAlarm.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C3B37FB20D82335004F9928 /* BREventAlarm.c */; };
+		3C3DC5BB21DFCA7C004188BD /* BRFileService.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C3DC5BA21DFCA7C004188BD /* BRFileService.c */; };
 		3C54A7FF2121F1D200C57B1B /* BREthereumMessage.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C54A7FE2121F1D200C57B1B /* BREthereumMessage.c */; };
 		3C54A8022122284900C57B1B /* BREthereumNode.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C54A8012122284900C57B1B /* BREthereumNode.c */; };
 		3C54A80521234C9700C57B1B /* BREthereumNodeEndpoint.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C54A80421234C9700C57B1B /* BREthereumNodeEndpoint.c */; };
@@ -445,6 +446,9 @@
 		3C386DD220C6F6070065E355 /* BREthereumEWMEvent.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BREthereumEWMEvent.c; sourceTree = "<group>"; };
 		3C3B37FB20D82335004F9928 /* BREventAlarm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BREventAlarm.c; sourceTree = "<group>"; };
 		3C3B37FC20D82335004F9928 /* BREventAlarm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BREventAlarm.h; sourceTree = "<group>"; };
+		3C3B37FE20DAAD55004F9928 /* pthread_android.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = pthread_android.h; sourceTree = "<group>"; };
+		3C3DC5B921DFCA7C004188BD /* BRFileService.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRFileService.h; sourceTree = "<group>"; };
+		3C3DC5BA21DFCA7C004188BD /* BRFileService.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRFileService.c; sourceTree = "<group>"; };
 		3C42EF512095143D000E58E0 /* module.modulemap */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = "sourcecode.module-map"; path = module.modulemap; sourceTree = "<group>"; };
 		3C42EF8D209763AB000E58E0 /* BRDcoreTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "BRDcoreTests-Bridging-Header.h"; sourceTree = "<group>"; };
 		3C42EF8E209763AB000E58E0 /* test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = test.c; path = ../../test.c; sourceTree = "<group>"; };
@@ -737,6 +741,7 @@
 				3C386DC920C6F5E40065E355 /* bcs */,
 				3C2A539E20AF595400C430F6 /* ewm */,
 				3C2A539620AF595400C430F6 /* BREthereum.h */,
+				3C2A53A620AF595400C430F6 /* test.c */,
 			);
 			name = ethereum;
 			sourceTree = "<group>";
@@ -928,6 +933,16 @@
 			path = msg;
 			sourceTree = "<group>";
 		};
+		3C3DC5B821DFCA39004188BD /* support */ = {
+			isa = PBXGroup;
+			children = (
+				3C3DC5B921DFCA7C004188BD /* BRFileService.h */,
+				3C3DC5BA21DFCA7C004188BD /* BRFileService.c */,
+			);
+			name = support;
+			path = ../../support;
+			sourceTree = "<group>";
+		};
 		3C590F0D20950C160005597B = {
 			isa = PBXGroup;
 			children = (
@@ -967,8 +982,8 @@
 		3C590F3120950C470005597B /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				3C3DC5B821DFCA39004188BD /* support */,
 				3C2A537620AF592300C430F6 /* ethereum */,
-				3C2A53A620AF595400C430F6 /* test.c */,
 				3C42EF512095143D000E58E0 /* module.modulemap */,
 				3C590F3B20950C720005597B /* bcash */,
 				3C590F3420950C720005597B /* BRAddress.c */,
@@ -1648,6 +1663,7 @@
 				3CAB60BD20AF8D1A00810CE4 /* BREthereumBlock.c in Sources */,
 				3CAB60BE20AF8D1A00810CE4 /* BREthereumAmount.c in Sources */,
 				3CAB60C020AF8D1A00810CE4 /* BREthereumAccount.c in Sources */,
+				3C3DC5BB21DFCA7C004188BD /* BRFileService.c in Sources */,
 				3CAB60C120AF8D1A00810CE4 /* BREthereumWallet.c in Sources */,
 				3C386DCF20C6F5E40065E355 /* BREthereumBCS.c in Sources */,
 				3CAB60C220AF8D1A00810CE4 /* BREthereumToken.c in Sources */,

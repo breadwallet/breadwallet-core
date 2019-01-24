@@ -36,9 +36,22 @@
 #include "BREthereumWallet.h"
 #include "BREthereumTransfer.h"
 
+#include "../../support/BRFileService.h"
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef enum {
+    CLIENT_CHANGE_ADD,
+    CLIENT_CHANGE_REM,
+    CLIENT_CHANGE_UPD
+} BREthereumClientChangeType;
+
+#define CLIENT_CHANGE_TYPE_NAME( ev ) \
+(CLIENT_CHANGE_ADD == (ev) ? "Add" \
+: (CLIENT_CHANGE_REM == (ev) ? "Rem" : "Upd"))
 
 //
 // EWM
@@ -132,9 +145,9 @@ struct BREthereumEWMRecord {
     BRRlpCoder coder;
 
     /**
-     * The path for persistent storage or NULL
+     * The File Service
      */
-    const char *storagePath;
+    BRFileService fs;
 
     /**
      * If we are syncing with BRD, instead of as P2P with BCS, then we'll keep a record to

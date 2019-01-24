@@ -288,42 +288,7 @@ extern "C" {
                        int blockNumbersCount,
                        uint64_t *blockNumbers);
 
-    ///
-    /// MARK: - Persistent Changes
-    ///
-    typedef enum {
-        CLIENT_CHANGE_ADD,
-        CLIENT_CHANGE_REM,
-        CLIENT_CHANGE_UPD
-    } BREthereumClientChangeType;
-
-#define CLIENT_CHANGE_TYPE_NAME( ev ) \
-(CLIENT_CHANGE_ADD == (ev) ? "Add" \
-: (CLIENT_CHANGE_REM == (ev) ? "Rem" : "Upd"))
-
-    typedef void
-    (*BREthereumClientHandlerSaveBlocks) (BREthereumClientContext context,
-                                          BREthereumEWM ewm,
-                                          OwnershipGiven BRSetOf(BREthereumHashDataPair) data);
-
-    typedef void
-    (*BREthereumClientHandlerSaveNodes) (BREthereumClientContext context,
-                                         BREthereumEWM ewm,
-                                         OwnershipGiven BRSetOf(BREthereumHashDataPair) data);
-
-    typedef void
-    (*BREthereumClientHandlerChangeTransaction) (BREthereumClientContext context,
-                                                 BREthereumEWM ewm,
-                                                 BREthereumClientChangeType type,
-                                                 OwnershipGiven  BREthereumHashDataPair data);
-
-    typedef void
-    (*BREthereumClientHandlerChangeLog) (BREthereumClientContext context,
-                                         BREthereumEWM ewm,
-                                         BREthereumClientChangeType type,
-                                         OwnershipGiven  BREthereumHashDataPair data);
-
-    ///
+     ///
     /// MARK: - Events
     ///
     typedef enum {
@@ -461,13 +426,6 @@ extern "C" {
         BREthereumClientHandlerGetTokens funcGetTokens; // announce one-by-one
         BREthereumClientHandlerGetBlockNumber funcGetBlockNumber;
         BREthereumClientHandlerGetNonce funcGetNonce;
-
-        // Save Sync (and other) State - required as Core does not maintain and is not configured to
-        // use persistent storage (aka an sqlite DB or simply disk)
-        BREthereumClientHandlerSaveNodes funcSaveNodes;
-        BREthereumClientHandlerSaveBlocks funcSaveBlocks;
-        BREthereumClientHandlerChangeTransaction funcChangeTransaction;
-        BREthereumClientHandlerChangeLog funcChangeLog;
 
         // Events - Announce changes to entities that normally impact the UI.
         BREthereumClientHandlerEWMEvent funcEWMEvent;

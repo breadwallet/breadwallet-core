@@ -28,7 +28,7 @@
 
 #include <stdio.h>
 #include "BRBIP32Sequence.h"        // BRMasterPubKey
-#include "BRChainParams.h"          // BRChainParams
+#include "BRChainParams.h"          // BRChainParams (*NOT THE STATIC DECLARATIONS*)
 
 #include "BRTransaction.h"
 #include "BRWallet.h"
@@ -40,6 +40,7 @@ extern "C" {
 
 typedef struct BRWalletManagerStruct *BRWalletManager;
 
+// Likely unneeded.
 typedef enum {
     WALLET_FORKID_BITCOIN = 0x00,
     WALLET_FORKID_BITCASH = 0x40,
@@ -125,7 +126,6 @@ typedef struct {
 
 extern BRWalletManager
 BRWalletManagerNew (BRWalletManagerClient client,
-                    BRWalletForkId fork,
                     BRMasterPubKey mpk,
                     const BRChainParams *params,
                     uint32_t earliestKeyTime,
