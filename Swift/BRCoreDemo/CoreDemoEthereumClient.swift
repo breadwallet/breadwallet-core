@@ -31,14 +31,18 @@ class CoreDemoEthereumClient : EthereumClient {
     //
     // Constructors
     //
-    init(network: EthereumNetwork, mode: EthereumMode, paperKey: String) {
+    init(network: EthereumNetwork,
+         mode: EthereumMode,
+         paperKey: String,
+         storagePath: String) {
         self.network = network
         self.paperKey = paperKey
         self.node = EthereumWalletManager (client: self,
                                            network: network,
                                            mode: mode,
                                            key: EthereumKey.paperKey(paperKey),
-                                           timestamp: 0)
+                                           timestamp: 0,
+                                           storagePath: storagePath)
     }
 
     func getBalance(ewm: EthereumWalletManager, wid: EthereumWalletId, address: String, rid: Int32) {
@@ -303,31 +307,6 @@ class CoreDemoEthereumClient : EthereumClient {
     func getNonce(ewm: EthereumWalletManager, address: String, rid: Int32) {
         ewm.announceNonce(address: address, nonce: "41", rid: rid)
     }
-
-    func saveNodes(ewm: EthereumWalletManager,
-                   data: Dictionary<String, String>) {
-        print ("TST: saveNodes")
-    }
-
-    func saveBlocks(ewm: EthereumWalletManager,
-                    data: Dictionary<String, String>) {
-        print ("TST: saveBlocks")
-    }
-
-    func changeTransaction (ewm: EthereumWalletManager,
-                            change: EthereumClientChangeType,
-                            hash: String,
-                            data: String) {
-        print ("TST: changeTransaction")
-    }
-
-    func changeLog (ewm: EthereumWalletManager,
-                    change: EthereumClientChangeType,
-                    hash: String,
-                    data: String) {
-        print ("TST: changeLog")
-    }
-
 
     //
     // Listener Protocol

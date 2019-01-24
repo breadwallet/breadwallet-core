@@ -74,8 +74,7 @@ extern void runSyncTest (BREthereumNetwork network,
                          BREthereumMode mode,
                          BREthereumTimestamp accountTimestamp,
                          unsigned int durationInSeconds,
-                         const char *storagePath,
-                         int restart);
+                         const char *storagePath);
 
 extern const char *tokenBRDAddress;
 //

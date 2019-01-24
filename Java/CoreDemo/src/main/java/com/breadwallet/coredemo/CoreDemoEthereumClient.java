@@ -30,9 +30,10 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
     protected BREthereumEWM ewm;
 
     public CoreDemoEthereumClient(BREthereumNetwork network,
+                                  String storagePath,
                                   String paperKey) {
         this.network = network;
-        this.ewm = new BREthereumEWM (this, network, paperKey, words);
+        this.ewm = new BREthereumEWM (this, network, storagePath, paperKey, words);
     }
 
     @Override
@@ -133,32 +134,6 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
     public void getNonce(String address, int rid) {
         ewm.announceNonce(address, "17", rid);
     }
-
-    @Override
-    public void saveNodes (Map<String,String> data) {
-        System.out.println ("TST: saveNodes");
-    }
-
-    @Override
-    public void saveBlocks(Map<String,String> data) {
-        System.out.println ("TST: saveBlocks");
-    }
-
-    @Override
-    public void changeTransaction(int changeType,
-                           String hash,
-                           String data) {
-        System.out.println ("TST: changeTransaction");
-    }
-
-    @Override
-    public void changeLog (int changeType,
-                    String hash,
-                    String data) {
-        System.out.println ("TST: changeLog");
-    }
-
-
 
     @Override
     public void handleEWMEvent(BREthereumEWM.EWMEvent event, BREthereumEWM.Status status, String errorDescription) {

@@ -27,7 +27,7 @@
 #include <stdarg.h>
 #include "BRArray.h"
 #include "BRSet.h"
-#include "BREthereumBCSPrivate.h"
+#include "BREthereumBlock.h"
 #include "../rlp/BRRlp.h"
 
 #define POW_WORD_BYTES            (4)

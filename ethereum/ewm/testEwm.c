@@ -448,89 +448,6 @@ clientGetTokens (BREthereumClientContext context,
     
 }
 
-//
-// Save Blocks
-//
-BRSetOf(BREthereumHashDataPair) savedBlocks = NULL;
-
-static void
-clientSaveBlocks (BREthereumClientContext context,
-                  BREthereumEWM ewm,
-                  BRSetOf(BREthereumHashDataPair) blocksToSave) {
-    static int count = 0;
-    static int total = 0;
-    total += BRSetCount(blocksToSave);
-    eth_log("TST", "Save Blocks (%d): %d", (++count), total);
-    
-    if (NULL == savedBlocks)
-        savedBlocks = hashDataPairSetCreateEmpty (BRSetCount(blocksToSave));
-    
-    BRSetUnion (savedBlocks, blocksToSave);
-    BRSetFree (blocksToSave);
-}
-
-//
-// Save Peers
-//
-BRSetOf(BREthereumHashDataPair) savedNodes = NULL;
-
-static void
-clientSaveNodes (BREthereumClientContext context,
-                 BREthereumEWM ewm,
-                 OwnershipGiven BRSetOf(BREthereumHashDataPair) nodesToSave) {
-    if (NULL == savedNodes)
-        savedNodes = hashDataPairSetCreateEmpty (BRSetCount(nodesToSave));
-    
-    BRSetUnion (savedNodes, nodesToSave);
-    BRSetFree (nodesToSave);
-}
-
-//
-// Update Transactions
-//
-BRSetOf(BREthereumHashDataPair) savedTransactions = NULL;
-
-static void
-clientUpdateTransaction (BREthereumClientContext context,
-                         BREthereumEWM ewm,
-                         BREthereumClientChangeType type,
-                         OwnershipGiven BREthereumHashDataPair new) {
-    fprintf (stdout, "ETH: TST: UpdateTransaction: ev=%s @ %p\n",
-             CLIENT_CHANGE_TYPE_NAME(type),
-             hashDataPairGetData(new).bytes);
-    
-    if (NULL == savedTransactions)
-        savedTransactions = hashDataPairSetCreateEmpty (100);
-    
-    BREthereumHashDataPair old = BRSetRemove (savedTransactions, new);
-    if (NULL != old) hashDataPairRelease(old);
-    
-    BRSetAdd(savedTransactions, new);
-}
-
-//
-// Update Log
-//
-BRSetOf(BREthereumHashDataPair) savedLogs = NULL;
-
-static void
-clientUpdateLog (BREthereumClientContext context,
-                 BREthereumEWM ewm,
-                 BREthereumClientChangeType type,
-                 OwnershipGiven BREthereumHashDataPair new) {
-    fprintf (stdout, "ETH: TST: UpdateLog: ev=%s @ %p\n",
-             CLIENT_CHANGE_TYPE_NAME(type),
-             hashDataPairGetData(new).bytes);
-    
-    if (NULL == savedLogs)
-        savedLogs = hashDataPairSetCreateEmpty (100);
-    
-    BREthereumHashDataPair old = BRSetRemove (savedLogs, new);
-    if (NULL != old) hashDataPairRelease(old);
-    
-    BRSetAdd (savedLogs, new);
-}
-
 static void
 clientEventWallet (BREthereumClientContext context,
                    BREthereumEWM ewm,
@@ -603,17 +520,6 @@ clientEventEWM (BREthereumClientContext context,
 
 static void
 clientRelease (void) {
-    BRSetApply(savedBlocks, NULL, hashDataPairReleaseForSet);
-    BRSetFree(savedBlocks);
-    
-    BRSetApply(savedNodes, NULL, hashDataPairReleaseForSet);
-    BRSetFree(savedNodes);
-    
-    BRSetApply(savedTransactions, NULL, hashDataPairReleaseForSet);
-    BRSetFree(savedTransactions);
-    
-    BRSetApply(savedLogs, NULL, hashDataPairReleaseForSet);
-    BRSetFree(savedLogs);
 }
 
 static BREthereumClient client = {
@@ -629,12 +535,7 @@ static BREthereumClient client = {
     clientGetTokens,
     clientGetBlockNumber,
     clientGetNonce,
-    
-    clientSaveNodes,
-    clientSaveBlocks,
-    clientUpdateTransaction,
-    clientUpdateLog,
-    
+
     clientEventEWM,
     clientEventPeer,
     clientEventWallet,
@@ -651,15 +552,17 @@ static BREthereumClient client = {
 //
 //
 static void
-runEWM_CONNECT_test (const char *paperKey) {
+runEWM_CONNECT_test (const char *paperKey,
+                     const char *storagePath) {
     printf ("     JSON_RCP\n");
     
     BRCoreParseStatus status;
     client.context = testContextCreate();
     
     BREthereumEWM ewm = ewmCreateWithPaperKey (ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
-                                                    P2P_ONLY,
-                                                    client, NULL, NULL, NULL, NULL);
+                                               P2P_ONLY,
+                                               client,
+                                               storagePath);
     
     BREthereumWallet wallet = ewmGetWallet(ewm);
     
@@ -690,15 +593,21 @@ runEWM_CONNECT_test (const char *paperKey) {
 //
 //
 //
-void prepareTransaction (const char *paperKey, const char *recvAddr, const uint64_t gasPrice, const uint64_t gasLimit, const uint64_t amount) {
+void prepareTransaction (const char *paperKey,
+                         const char *storagePath,
+                         const char *recvAddr,
+                         const uint64_t gasPrice,
+                         const uint64_t gasLimit,
+                         const uint64_t amount) {
     printf ("     Prepare Transaction\n");
     
     // START - One Time Code Block
     client.context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
     
     BREthereumEWM ewm = ewmCreateWithPaperKey (ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
-                                                    P2P_ONLY,
-                                                    client, NULL, NULL, NULL, NULL);
+                                               P2P_ONLY,
+                                               client,
+                                               storagePath);
     // A wallet amount Ether
     BREthereumWallet wallet = ewmGetWallet(ewm);
     // END - One Time Code Block
@@ -741,7 +650,7 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
 // eth.sendRawTran ('0xf86a01841dcd65008252089422583f6c7dae5032f4d72a10b9e9fa977cbfc5f68701c6bf52634000801ca05d27cbd6a84e5d34bb20ce7dade4a21efb4da7507958c17d7f92cfa99a4a9eb6a005fcb9a61e729b3c6b0af3bad307ef06cdf5c5578615fedcc4163a2aa2812260', function (err, hash) { if (!err) console.log(hash); });
 
 extern void
-testReallySend (void) {
+testReallySend (const char *storagePath) {
     client.context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
     
     char *paperKey = "boring ...";
@@ -756,8 +665,9 @@ testReallySend (void) {
     
     alarmClockCreateIfNecessary (1);
     BREthereumEWM ewm = ewmCreateWithPaperKey (ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
-                                                    P2P_ONLY,
-                                                    client, NULL, NULL, NULL, NULL);
+                                               P2P_ONLY,
+                                               client,
+                                               storagePath);
     BREthereumAccount account = ewmGetAccount(ewm);
     
     // A wallet amount Ether
@@ -820,25 +730,27 @@ testReallySend (void) {
 // Unsigned Result: 0xf864010082c35094558ec3152e2eb2174905cd19aea4e34a23de9ad680b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c0000000000000000000000000000000000000000000000000000000000000000018080
 //   Signed Result: 0xf8a4010082c35094558ec3152e2eb2174905cd19aea4e34a23de9ad680b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c000000000000000000000000000000000000000000000000000000000000000025a0b729de661448a377bee9ef3f49f8ec51f6c5810cf177a8162d31e9611a940a18a030b44adbe0253fe6176ccd8b585745e60f411b009ec73815f201fff0f540fc4d
 static void
-runEWM_TOKEN_test (const char *paperKey) {
+runEWM_TOKEN_test (const char *paperKey,
+                   const char *storagePath) {
     printf ("     TOKEN\n");
     
     BRCoreParseStatus status;
     
     BREthereumToken token = tokenLookup(getTokenBRDAddress(ethereumMainnet));
     BREthereumEWM ewm = ewmCreateWithPaperKey (ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
-                                                    P2P_ONLY,
-                                                    client, NULL, NULL, NULL, NULL);
+                                               P2P_ONLY,
+                                               client,
+                                               storagePath);
     BREthereumWallet wid = ewmGetWalletHoldingToken(ewm, token);
     
     BREthereumAmount amount = ewmCreateTokenAmountString(ewm, token,
-                                                              TEST_TRANS3_DECIMAL_AMOUNT,
-                                                              TOKEN_QUANTITY_TYPE_DECIMAL,
-                                                              &status);
+                                                         TEST_TRANS3_DECIMAL_AMOUNT,
+                                                         TOKEN_QUANTITY_TYPE_DECIMAL,
+                                                         &status);
     BREthereumTransfer tid =
     ewmWalletCreateTransfer (ewm, wid,
-                                  TEST_TRANS3_TARGET_ADDRESS,
-                                  amount);
+                             TEST_TRANS3_TARGET_ADDRESS,
+                             amount);
     
     const char *rawTxUnsigned = ewmTransferGetRawDataHexEncoded(ewm, wid, tid, "0x");
     printf ("        RawTx Unsigned: %s\n", rawTxUnsigned);
@@ -855,18 +767,22 @@ runEWM_TOKEN_test (const char *paperKey) {
 }
 
 static void
-runEWM_PUBLIC_KEY_test (BREthereumNetwork network, const char *paperKey) {
+runEWM_PUBLIC_KEY_test (BREthereumNetwork network,
+                        const char *paperKey,
+                        const char *storagePath) {
     printf ("     PUBLIC KEY\n");
 
     BREthereumEWM ewm1 = ewmCreateWithPaperKey (ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
-                                                     P2P_ONLY,
-                                                     client, NULL, NULL, NULL, NULL);
+                                                P2P_ONLY,
+                                                client,
+                                                storagePath);
     BRKey publicKey = ewmGetAccountPrimaryAddressPublicKey (ewm1);
     char *addr1 = ewmGetAccountPrimaryAddress (ewm1);
     
     BREthereumEWM ewm2 = ewmCreateWithPublicKey (ethereumMainnet, publicKey, ETHEREUM_TIMESTAMP_UNKNOWN,
-                                                      P2P_ONLY,
-                                                      client, NULL, NULL, NULL, NULL);
+                                                 P2P_ONLY,
+                                                 client,
+                                                 storagePath);
     char *addr2 = ewmGetAccountPrimaryAddress (ewm2);
     
     
@@ -884,57 +800,23 @@ runSyncTest (BREthereumNetwork network,
              BREthereumMode mode,
              BREthereumTimestamp accountTimestamp,
              unsigned int durationInSeconds,
-             const char *storagePath,
-             int restart) {
+             const char *storagePath) {
     BREthereumEWM ewm;
 
     eth_log("TST", "SyncTest%s", "");
     
-//    installTokensForTestOnNetwork(ethereumMainnet);
+    //    installTokensForTestOnNetwork(ethereumMainnet);
     
     client.context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
     
     alarmClockCreateIfNecessary (1);
 
-    if (NULL == storagePath) {
-        BRSetOf(BREthereumHashDataPair) blocks = (restart ? savedBlocks : NULL);
-        BRSetOf(BREthereumHashDataPair) nodes = (restart ? savedNodes : NULL);
-        BRSetOf(BREthereumHashDataPair) transactions = NULL;
-        BRSetOf(BREthereumHashDataPair) logs = NULL;
+    ewm = ewmCreate (ethereumMainnet, account, accountTimestamp, mode, client, storagePath);
 
-        if (restart) {
-            if (NULL != savedTransactions) {
-                transactions = BRSetNew (transactionHashValue, transactionHashEqual, BRSetCount (savedTransactions));
-                BRSetUnion (transactions, savedTransactions); // copy
-            }
-
-            if (NULL != savedLogs) {
-                logs = BRSetNew (logHashValue, logHashEqual, BRSetCount(savedLogs));
-                BRSetUnion (logs, savedLogs); // copy
-            }
-        }
-
-        ewm = ewmCreate (network, account, accountTimestamp,
-                                     mode, client,
-                                     nodes,
-                                     blocks,
-                                     transactions,
-                                     logs);
-    }
-    else {
-        if (restart) {
-
-        }
-        ewm = ewmCreateWithStoragePath(ethereumMainnet, account, accountTimestamp, mode, client, storagePath);
-    }
     
     char *address = ewmGetAccountPrimaryAddress(ewm);
     printf ("ETH: TST:\nETH: TST: Address: %s\nETH: TST:\n", address);
     free (address);
-    
-    // We passed on { node, block, etc } - we no longer own the memory.  Thus:
-    savedBlocks = NULL;
-    savedNodes  = NULL;
 
     ewmUpdateTokens(ewm);
     ewmConnect(ewm);
@@ -953,13 +835,14 @@ runSyncTest (BREthereumNetwork network,
 }
 
 extern void
-runEWMTests (const char *paperKey) {
+runEWMTests (const char *paperKey,
+             const char *storagePath) {
     installTokensForTestOnNetwork(ethereumMainnet);
     printf ("==== EWM\n");
     // prepareTransaction(NODE_PAPER_KEY, NODE_RECV_ADDR, TEST_TRANS2_GAS_PRICE_VALUE, GAS_LIMIT_DEFAULT, NODE_ETHER_AMOUNT);
     if (NULL == paperKey) paperKey = NODE_PAPER_KEY;
 
-    runEWM_CONNECT_test(paperKey);
-    runEWM_TOKEN_test (paperKey);
-    runEWM_PUBLIC_KEY_test (ethereumMainnet, paperKey);
+    runEWM_CONNECT_test(paperKey, storagePath);
+    runEWM_TOKEN_test (paperKey, storagePath);
+    runEWM_PUBLIC_KEY_test (ethereumMainnet, paperKey, storagePath);
 }

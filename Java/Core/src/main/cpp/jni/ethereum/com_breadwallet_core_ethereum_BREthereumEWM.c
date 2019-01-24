@@ -106,28 +106,6 @@ clientGetBlocks (BREthereumClientContext context,
                  int rid);
 
 static void
-clientSaveNodes (BREthereumClientContext context,
-                 BREthereumEWM ewm,
-                 BRSetOf(BREthereumHashDataPair) data);
-
-static void
-clientSaveBlocks (BREthereumClientContext context,
-                  BREthereumEWM ewm,
-                  BRSetOf(BREthereumHashDataPair) data);
-
-static void
-clientChangeTransaction (BREthereumClientContext context,
-                         BREthereumEWM ewm,
-                         BREthereumClientChangeType type,
-                         BREthereumHashDataPair dagta);
-
-static void
-clientChangeLog (BREthereumClientContext context,
-                 BREthereumEWM ewm,
-                 BREthereumClientChangeType type,
-                 BREthereumHashDataPair data);
-
-static void
 clientEWMEventHandler (BREthereumClientContext context,
                        BREthereumEWM ewm,
                        BREthereumEWMEvent event,
@@ -194,10 +172,6 @@ static jmethodID trampolineGetBlocks = NULL;
 static jmethodID trampolineGetTokens = NULL;
 static jmethodID trampolineGetBlockNumber = NULL;
 static jmethodID trampolineGetNonce = NULL;
-static jmethodID trampolineSaveNodes = NULL;
-static jmethodID trampolineSaveBlocks = NULL;
-static jmethodID trampolineChangeTransaction = NULL;
-static jmethodID trampolineChangeLog = NULL;
 static jmethodID trampolineEWMEvent = NULL;
 static jmethodID trampolinePeerEvent = NULL;
 static jmethodID trampolineWalletEvent = NULL;
@@ -211,13 +185,6 @@ trampolineOrFatal (JNIEnv *env, const char *name, const char *signature) {
     assert (NULL != method);
     return method;
 }
-
-//
-// Hash Map
-//
-static jclass hashMapClass = NULL;
-static jmethodID hashMapInit = NULL;
-static jmethodID hashMapPut  = NULL;
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
@@ -240,36 +207,25 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_initializeNative
     trampolineGetTokens         = trampolineOrFatal (env, "trampolineGetTokens",         "(JI)V");
     trampolineGetBlockNumber    = trampolineOrFatal (env, "trampolineGetBlockNumber",    "(JI)V");
     trampolineGetNonce          = trampolineOrFatal (env, "trampolineGetNonce",          "(JLjava/lang/String;I)V");
-    trampolineSaveNodes         = trampolineOrFatal (env, "trampolineSaveNodes",         "(JLjava/util/Map;)V");
-    trampolineSaveBlocks        = trampolineOrFatal (env, "trampolineSaveBlocks",        "(JLjava/util/Map;)V");
-    trampolineChangeTransaction = trampolineOrFatal (env, "trampolineChangeTransaction", "(JILjava/lang/String;Ljava/lang/String;)V");
-    trampolineChangeLog         = trampolineOrFatal (env, "trampolineChangeLog",         "(JILjava/lang/String;Ljava/lang/String;)V");
     trampolineEWMEvent          = trampolineOrFatal (env, "trampolineEWMEvent",          "(JIILjava/lang/String;)V");
     trampolinePeerEvent         = trampolineOrFatal (env, "trampolinePeerEvent",         "(JIILjava/lang/String;)V");
     trampolineWalletEvent       = trampolineOrFatal (env, "trampolineWalletEvent",       "(JJIILjava/lang/String;)V");
     trampolineTokenEvent        = trampolineOrFatal (env, "trampolineTokenEvent",        "(JJI)V");
 //    trampolineBlockEvent        = trampolineOrFatal (env, "trampolineBlockEvent",        "(JIIILjava/lang/String;)V");
     trampolineTransferEvent     = trampolineOrFatal (env, "trampolineTransferEvent",     "(JJJIILjava/lang/String;)V");
-
-    jclass mapClass = (*env)->FindClass(env, "java/util/HashMap");
-    assert (NULL != mapClass);
-
-    hashMapClass = (*env)->NewGlobalRef (env, mapClass);
-    hashMapInit  = (*env)->GetMethodID(env, hashMapClass, "<init>", "(I)V");
-    hashMapPut   = (*env)->GetMethodID(env, hashMapClass, "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
-    assert (NULL != hashMapInit && NULL != hashMapPut);
 }
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniCreateEWM
- * Signature: (Lcom/breadwallet/core/ethereum/BREthereumEWM/Client;JLjava/lang/String;[Ljava/lang/String;)J
+ * Signature: (Lcom/breadwallet/core/ethereum/BREthereumEWM/Client;JLjava/lang/String;Ljava/lang/String;[Ljava/lang/String;)J
  */
 JNIEXPORT jlong JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
         (JNIEnv *env, jclass thisClass,
          jobject clientObject,
          jlong network,
+         jstring storagePathString,
          jstring paperKeyString,
          jobjectArray wordsArrayObject) {
 
@@ -290,7 +246,8 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
 
     installSharedWordList((const char **) wordList, BIP39_WORDLIST_COUNT);
 
-    const char *paperKey = (*env)->GetStringUTFChars (env, paperKeyString, 0);
+    const char *paperKey    = (*env)->GetStringUTFChars (env, paperKeyString, 0);
+    const char *storagePath = (*env)->GetStringUTFChars (env, storagePathString, 0);
 
     BREthereumClient client = {
             NULL,
@@ -305,11 +262,6 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
             clientGetBlockNumber,
             clientGetNonce,
 
-            clientSaveNodes,
-            clientSaveBlocks,
-            clientChangeTransaction,
-            clientChangeLog,
-
             clientEWMEventHandler,
             clientPeerEventHandler,
             clientWalletEventHandler,
@@ -322,23 +274,25 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
                                         ETHEREUM_TIMESTAMP_UNKNOWN,
                                         P2P_ONLY,
                                         client,
-                                        NULL,
-                                        NULL,
-                                        NULL,
-                                        NULL);
+                                        storagePath);
 
-    (*env)->ReleaseStringUTFChars (env, paperKeyString, paperKey);
+    (*env)->ReleaseStringUTFChars (env, paperKeyString,    paperKey);
+    (*env)->ReleaseStringUTFChars (env, storagePathString, storagePath);
     return (jlong) node;
 }
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniCreateEWM_PublicKey
- * Signature: (Lcom/breadwallet/core/ethereum/BREthereumEWM/Client;J[B)J
+ * Signature: (Lcom/breadwallet/core/ethereum/BREthereumEWM/Client;JLjava/lang/String;[B)J
  */
 JNIEXPORT jlong JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM_1PublicKey
-    (JNIEnv *env, jclass thisClass, jobject clientObject, jlong network, jbyteArray publicKey) {
+    (JNIEnv *env, jclass thisClass,
+     jobject clientObject,
+     jlong network,
+     jstring storagePathString,
+     jbyteArray publicKey) {
 
     assert (65 == (*env)->GetArrayLength(env, publicKey));
 
@@ -360,11 +314,6 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM_1PublicKey
             clientGetBlockNumber,
             clientGetNonce,
 
-            clientSaveNodes,
-            clientSaveBlocks,
-            clientChangeTransaction,
-            clientChangeLog,
-
             clientEWMEventHandler,
             clientPeerEventHandler,
             clientWalletEventHandler,
@@ -373,18 +322,18 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM_1PublicKey
             clientTransferEventHandler
     };
 
+    const char *storagePath = (*env)->GetStringUTFChars (env, storagePathString, 0);
+
     BREthereumEWM node = ewmCreateWithPublicKey((BREthereumNetwork) network,
                                                      key,
                                                      ETHEREUM_TIMESTAMP_UNKNOWN,
                                                      P2P_ONLY,
                                                      client,
-                                                     NULL,
-                                                     NULL,
-                                                     NULL,
-                                                     NULL);
+                                                     storagePath);
 
 
     (*env)->ReleaseByteArrayElements(env, publicKey, publicKeyBytes, 0);
+    (*env)->ReleaseStringUTFChars (env, storagePathString, storagePath);
     return (jlong) node;
 }
 
@@ -1690,113 +1639,6 @@ clientGetNonce(BREthereumClientContext context,
     (*env)->DeleteLocalRef(env, addressObject);
 }
 
-static jobject
-createHashDataPairMap (JNIEnv *env,
-                       BRSetOf(BREthereumHashDataPair) pairSet) {
-    char *hashStr, *dataStr;
-
-    jobject map = (*env)->NewObject (env, hashMapClass, hashMapInit, BRSetCount (pairSet));
-    FOR_SET (BREthereumHashDataPair, pair, pairSet){
-        hashDataPairExtractStrings (pair, &hashStr, &dataStr);
-
-        jstring hash = (*env)->NewStringUTF(env, hashStr);
-        jstring data = (*env)->NewStringUTF(env, dataStr);
-
-        (*env)->CallObjectMethod (env, map, hashMapPut, hash, data);
-
-        (*env)->DeleteLocalRef(env, data);
-        (*env)->DeleteLocalRef(env, hash);
-
-        free(dataStr);
-        free(hashStr);
-    }
-
-    return map;
-}
-
-static void
-clientSaveNodes(BREthereumClientContext context,
-                BREthereumEWM ewm,
-                BRSetOf(BREthereumHashDataPair) pairSet) {
-    JNIEnv *env = getEnv();
-    if (NULL == env) return;
-
-    jobject map = createHashDataPairMap (env, pairSet);
-
-    (*env)->CallStaticVoidMethod (env, trampolineClass, trampolineSaveNodes,
-                                  (jlong) ewm,
-                                  map);
-
-    (*env)->DeleteLocalRef(env, map);
-}
-
-static void
-clientSaveBlocks(BREthereumClientContext context,
-                 BREthereumEWM ewm,
-                 BRSetOf(BREthereumHashDataPair) pairSet) {
-    JNIEnv *env = getEnv();
-    if (NULL == env) return;
-
-    jobject map = createHashDataPairMap (env, pairSet);
-
-    (*env)->CallStaticVoidMethod (env, trampolineClass, trampolineSaveBlocks,
-                                  (jlong) ewm,
-                                  map);
-
-    (*env)->DeleteLocalRef(env, map);
-}
-
-static void
-clientChangeTransaction(BREthereumClientContext context,
-                        BREthereumEWM ewm,
-                        BREthereumClientChangeType type,
-                        BREthereumHashDataPair pair) {
-    JNIEnv *env = getEnv();
-    if (NULL == env) return;
-
-    char *hashStr = hashDataPairGetHashAsString(pair);
-    jstring hash = (*env)->NewStringUTF(env, hashStr);
-
-    char *dataStr = hashDataPairGetHashAsString(pair);
-    jstring data = (*env)->NewStringUTF(env, dataStr);
-
-    (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineChangeTransaction,
-                                 (jlong) ewm,
-                                 (jint) type,
-                                 hash,
-                                 data);
-
-    (*env)->DeleteLocalRef(env, data);
-    free(dataStr);
-    (*env)->DeleteLocalRef(env, hash);
-    free(hashStr);
-}
-
-static void
-clientChangeLog(BREthereumClientContext context,
-                BREthereumEWM ewm,
-                BREthereumClientChangeType type,
-                BREthereumHashDataPair pair) {
-    JNIEnv *env = getEnv();
-    if (NULL == env) return;
-
-    char *hashStr = hashDataPairGetHashAsString(pair);
-    jstring hash = (*env)->NewStringUTF(env, hashStr);
-
-    char *dataStr = hashDataPairGetHashAsString(pair);
-    jstring data = (*env)->NewStringUTF(env, dataStr);
-
-    (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineChangeLog,
-                                 (jlong) ewm,
-                                 (jint) type,
-                                 hash,
-                                 data);
-
-    (*env)->DeleteLocalRef(env, data);
-    free(dataStr);
-    (*env)->DeleteLocalRef(env, hash);
-    free(hashStr);
-}
 
 static void
 clientEWMEventHandler(BREthereumClientContext context,

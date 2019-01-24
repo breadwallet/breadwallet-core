@@ -737,20 +737,6 @@ public enum EthereumEWMEvent : Int {
     }
 }
 
-public enum EthereumClientChangeType {
-    case added
-    case updated
-    case deleted
-
-    init (_ event: BREthereumClientChangeType) {
-        switch (event) {
-        case CLIENT_CHANGE_ADD: self = .added
-        case CLIENT_CHANGE_UPD: self = .updated
-        case CLIENT_CHANGE_REM: self = .deleted
-        default: self = .added
-        }
-    }
-}
 ///
 /// An `EthereumClient` is a protocol defined with a set of functions that support an
 /// EthereumEWM.
@@ -805,22 +791,6 @@ public protocol EthereumClient : class {
     func getNonce (ewm: EthereumWalletManager,
                    address: String,
                    rid: Int32) -> Void
-
-    func saveNodes (ewm: EthereumWalletManager,
-                    data: Dictionary<String, String>) -> Void
-
-    func saveBlocks (ewm: EthereumWalletManager,
-                     data: Dictionary<String, String>) -> Void
-
-    func changeTransaction (ewm: EthereumWalletManager,
-                            change: EthereumClientChangeType,
-                            hash: String,
-                            data: String) -> Void
-
-    func changeLog (ewm: EthereumWalletManager,
-                    change: EthereumClientChangeType,
-                    hash: String,
-                    data: String) -> Void
 
     // ...
     func handleEWMEvent (ewm: EthereumWalletManager,
@@ -888,65 +858,32 @@ public class EthereumWalletManager {
         return DispatchQueue (label: "Ethereum")
     }()
 
-    private init (core: BREthereumEWM,
-                  client : EthereumClient,
-                  network : EthereumNetwork) {
-        self.core = core
-        self.client = client
-        self.network = network
-        EthereumWalletManager.add(self)
-    }
-
-    public convenience init (client : EthereumClient,
-                             network : EthereumNetwork,
-                             mode: EthereumMode,
-                             key: EthereumKey,
-                             timestamp: UInt64) {
-        self.init (client: client,
-                   network: network,
-                   mode: mode,
-                   key: key,
-                   timestamp: timestamp,
-                   peers: [:],
-                   blocks: [:],
-                   transactions: [:],
-                   logs: [:])
-    }
-
-    public convenience init (client : EthereumClient,
-                             network : EthereumNetwork,
-                             mode: EthereumMode,
-                             key: EthereumKey,
-                             timestamp: UInt64,
-                             peers: Dictionary<String,String>,
-                             blocks: Dictionary<String,String>,
-                             transactions: Dictionary<String,String>,
-                             logs: Dictionary<String,String>) {
-        let anyClient = AnyEthereumClient (base: client)
+    public init (client : EthereumClient,
+                 network : EthereumNetwork,
+                 mode: EthereumMode,
+                 key: EthereumKey,
+                 timestamp: UInt64,
+                 storagePath: String) {
+ //       let anyClient = AnyEthereumClient (base: client)
         var core : BREthereumEWM
 
         switch key {
         case let .paperKey(key):
             core = ewmCreateWithPaperKey (network.core, key, timestamp,
-                              mode.core,
-                              EthereumWalletManager.createCoreClient(client: client),
-                              EthereumWalletManager.asPairs (peers),
-                              EthereumWalletManager.asPairs (blocks),
-                              EthereumWalletManager.asPairs (transactions),
-                              EthereumWalletManager.asPairs (logs))
+                                          mode.core,
+                                          EthereumWalletManager.createCoreClient(client: client),
+                                          storagePath)
         case let .publicKey(key):
             core = ewmCreateWithPublicKey (network.core, key, timestamp,
-                              mode.core,
-                              EthereumWalletManager.createCoreClient(client: client),
-                              EthereumWalletManager.asPairs (peers),
-                              EthereumWalletManager.asPairs (blocks),
-                              EthereumWalletManager.asPairs (transactions),
-                              EthereumWalletManager.asPairs (logs))
+                                           mode.core,
+                                           EthereumWalletManager.createCoreClient(client: client),
+                                           storagePath)
         }
         
-        self.init (core: core,
-                   client: anyClient,
-                   network: network)
+        self.core = core
+        self.client = client
+        self.network = network
+        EthereumWalletManager.add(self)
     }
 
     //
@@ -1229,56 +1166,6 @@ public class EthereumWalletManager {
                         client.getNonce(ewm: ewm,
                                         address: address,
                                         rid: rid)
-                    }
-                }},
-
-            funcSaveNodes: { (coreClient, coreEWM, data) in
-                if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeUnretainedValue() }),
-                    let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    let data = EthereumWalletManager.asDictionary(data!)
-                   ewm.queue.async {
-                        client.saveNodes(ewm: ewm, data: data)
-                    }
-                }},
-
-            funcSaveBlocks: { (coreClient, coreEWM, data) in
-                if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeUnretainedValue() }),
-                    let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    let data = EthereumWalletManager.asDictionary(data!)
-                    ewm.queue.async {
-                        client.saveBlocks(ewm: ewm, data: data)
-                    }
-                }},
-
-            funcChangeTransaction: { (coreClient, coreEWM, change, data) in
-                if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeUnretainedValue() }),
-                    let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    let cStrHash = hashDataPairGetHashAsString (data)!
-                    let cStrData = hashDataPairGetDataAsString (data)!
-
-                    ewm.queue.async {
-                        client.changeTransaction (ewm: ewm,
-                                                  change: EthereumClientChangeType(change),
-                                                  hash: String (cString: cStrHash),
-                                                  data: String (cString: cStrData))
-
-                        free (cStrHash); free (cStrData)
-                    }
-                }},
-
-            funcChangeLog: { (coreClient, coreEWM, change, data) in
-                if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeUnretainedValue() }),
-                    let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    let cStrHash = hashDataPairGetHashAsString (data)!
-                    let cStrData = hashDataPairGetDataAsString (data)!
-
-                    ewm.queue.async {
-                        client.changeLog (ewm: ewm,
-                                          change: EthereumClientChangeType(change),
-                                          hash: String (cString: cStrHash),
-                                          data: String (cString: cStrData))
-
-                        free (cStrHash); free (cStrData)
                     }
                 }},
 
@@ -1586,30 +1473,6 @@ class AnyEthereumClient : EthereumClient {
 
     func getNonce(ewm: EthereumWalletManager, address: String, rid: Int32) {
         base.getNonce(ewm: ewm, address: address, rid: rid)
-    }
-
-    func saveNodes(ewm: EthereumWalletManager,
-                   data: Dictionary<String, String>) {
-        base.saveNodes(ewm: ewm, data: data)
-    }
-
-    func saveBlocks(ewm: EthereumWalletManager,
-                    data: Dictionary<String, String>) {
-        base.saveBlocks(ewm: ewm, data: data)
-    }
-
-    func changeTransaction(ewm: EthereumWalletManager,
-                           change: EthereumClientChangeType,
-                           hash: String,
-                           data: String) {
-        base.changeTransaction(ewm: ewm, change: change, hash: hash, data: data)
-    }
-
-    func changeLog(ewm: EthereumWalletManager,
-                   change: EthereumClientChangeType,
-                   hash: String,
-                   data: String) {
-        base.changeLog (ewm: ewm, change: change, hash: hash, data: data)
     }
 
     func handleEWMEvent(ewm: EthereumWalletManager, event: EthereumEWMEvent) {

@@ -1067,15 +1067,6 @@ public enum WalletManagerPersistenceChangeType {
     case added
     case updated
     case deleted
-
-    init (_ event: BREthereumClientChangeType) {
-        switch (event) {
-        case CLIENT_CHANGE_ADD: self = .added
-        case CLIENT_CHANGE_UPD: self = .updated
-        case CLIENT_CHANGE_REM: self = .deleted
-        default: self = .added
-        }
-    }
 }
 
 ///

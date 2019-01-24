@@ -43,6 +43,16 @@
 extern "C" {
 #endif
 
+typedef enum {
+    CLIENT_CHANGE_ADD,
+    CLIENT_CHANGE_REM,
+    CLIENT_CHANGE_UPD
+} BREthereumClientChangeType;
+
+#define CLIENT_CHANGE_TYPE_NAME( ev ) \
+(CLIENT_CHANGE_ADD == (ev) ? "Add" \
+: (CLIENT_CHANGE_REM == (ev) ? "Rem" : "Upd"))
+
 //
 // EWM
 //

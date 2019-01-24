@@ -215,18 +215,6 @@ public class BREthereumEWM extends BRCoreJniReference {
         //                                                        int rid);
         void getNonce(String address, int rid);
 
-        void saveNodes (Map<String,String> data);
-
-        void saveBlocks(Map<String,String> data);
-
-        void changeTransaction(int changeType,
-                               String hash,
-                               String data);
-
-        void changeLog (int changeType,
-                        String hash,
-                        String data);
-
         //
         void handleEWMEvent(EWMEvent event,
                             Status status,
@@ -505,13 +493,13 @@ public class BREthereumEWM extends BRCoreJniReference {
     // Constructor
     //
 
-    public BREthereumEWM(Client client, BREthereumNetwork network, String paperKey, String[] wordList) {
-        this(BREthereumEWM.jniCreateEWM(client, network.getIdentifier(), paperKey, wordList),
+    public BREthereumEWM(Client client, BREthereumNetwork network, String storagePath, String paperKey, String[] wordList) {
+        this(BREthereumEWM.jniCreateEWM(client, network.getIdentifier(), storagePath, paperKey, wordList),
                 client, network);
     }
 
-    public BREthereumEWM(Client client, BREthereumNetwork network, byte[] publicKey) {
-        this(BREthereumEWM.jniCreateEWM_PublicKey(client, network.getIdentifier(), publicKey),
+    public BREthereumEWM(Client client, BREthereumNetwork network, String storagePath, byte[] publicKey) {
+        this(BREthereumEWM.jniCreateEWM_PublicKey(client, network.getIdentifier(), storagePath, publicKey),
                 client, network);
     }
 
@@ -552,9 +540,9 @@ public class BREthereumEWM extends BRCoreJniReference {
     //
     // JNI: Constructors
     //
-    protected static native long jniCreateEWM(Client client, long network, String paperKey, String[] wordList);
+    protected static native long jniCreateEWM(Client client, long network, String storagePath, String paperKey, String[] wordList);
 
-    protected static native long jniCreateEWM_PublicKey(Client client, long network, byte[] publicKey);
+    protected static native long jniCreateEWM_PublicKey(Client client, long network, String storagePath, byte[] publicKey);
 
     protected static native boolean jniAddressIsValid (String address);
 
@@ -907,38 +895,6 @@ public class BREthereumEWM extends BRCoreJniReference {
         if (null == client) return;
 
         client.getNonce(address, rid);
-    }
-
-    static protected void trampolineSaveNodes(long eid, Map<String, String> data) {
-        BREthereumEWM ewm = lookupEWM(eid);
-        Client client = lookupClient (ewm);
-        if (null == client) return;
-
-        client.saveNodes(data);
-    }
-
-    static protected void trampolineSaveBlocks(long eid, Map<String, String> data) {
-        BREthereumEWM ewm = lookupEWM(eid);
-        Client client = lookupClient (ewm);
-        if (null == client) return;
-
-        client.saveBlocks(data);
-    }
-
-    static protected void trampolineChangeTransaction (long eid, int changeType, String hash, String data) {
-        BREthereumEWM ewm = lookupEWM(eid);
-        Client client = lookupClient (ewm);
-        if (null == client) return;
-
-        client.changeTransaction(changeType, hash, data);
-    }
-
-    static protected void trampolineChangeLog (long eid, int changeType, String hash, String data) {
-        BREthereumEWM ewm = lookupEWM(eid);
-        Client client = lookupClient (ewm);
-        if (null == client) return;
-
-        client.changeLog (changeType, hash, data);
     }
 
     static protected void trampolineEWMEvent (long eid, int event, int status, String errorDescription) {

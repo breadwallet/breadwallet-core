@@ -50,118 +50,6 @@ ewmPeriodicDispatcher (BREventHandler handler,
 /* Forward Implementation */
 
 ///
-/// MARK: - Ensure
-///
-
-static BRSetOf(BREthereumBlock)
-createEWMEnsureBlocks (OwnershipGiven BRSetOf(BREthereumHashDataPair) blocksPersistData,
-                       BREthereumNetwork network,
-                       BREthereumTimestamp timestamp,
-                       BRRlpCoder coder) {
-    size_t blocksCount = (NULL == blocksPersistData ? 0 : BRSetCount (blocksPersistData));
-
-    BRSetOf(BREthereumBlock) blocks = BRSetNew (blockHashValue,
-                                                blockHashEqual,
-                                                blocksCount);
-
-    if (0 == blocksCount) {
-        const BREthereumBlockCheckpoint *checkpoint = blockCheckpointLookupByTimestamp (network, timestamp);
-        BREthereumBlock block = blockCreate (blockCheckpointCreatePartialBlockHeader (checkpoint));
-        blockSetTotalDifficulty (block, checkpoint->u.td);
-        BRSetAdd (blocks, block);
-    }
-    else {
-        FOR_SET (BREthereumHashDataPair, pair, blocksPersistData) {
-            BRRlpItem item = rlpGetItem (coder, dataAsRlpData (hashDataPairGetData (pair)));
-            BREthereumBlock block = blockRlpDecode (item, network, RLP_TYPE_ARCHIVE, coder);
-            rlpReleaseItem(coder, item);
-            BRSetAdd (blocks, block);
-        }
-
-        if (NULL != blocksPersistData)
-            hashDataPairSetRelease(blocksPersistData);
-    }
-
-    return blocks;
-}
-
-static BRSetOf(BREthereumNodeConfig)
-createEWMEnsureNodes (OwnershipGiven BRSetOf(BREthereumHashDataPair) nodesPersistData,
-                      BRRlpCoder coder) {
-
-    BRSetOf (BREthereumNodeConfig) nodes =
-    BRSetNew (nodeConfigHashValue,
-              nodeConfigHashEqual,
-              (NULL == nodesPersistData ? 0 : BRSetCount(nodesPersistData)));
-
-    if (NULL != nodesPersistData) {
-        FOR_SET (BREthereumHashDataPair, pair, nodesPersistData) {
-            BRRlpItem item = rlpGetItem (coder, dataAsRlpData (hashDataPairGetData (pair)));
-            BREthereumNodeConfig node = nodeConfigDecode(item, coder);
-            rlpReleaseItem(coder, item);
-            BRSetAdd (nodes, node);
-        }
-
-        hashDataPairSetRelease(nodesPersistData);
-    }
-
-    return nodes;
-}
-
-static BRSetOf(BREthereumTransaction)
-createEWMEnsureTransactions (OwnershipGiven BRSetOf(BREthereumHashDataPair) transactionsPersistData,
-                             BREthereumNetwork network,
-                             BRRlpCoder coder) {
-    BRSetOf(BREthereumTransaction) transactions =
-    BRSetNew (transactionHashValue,
-              transactionHashEqual,
-              (NULL == transactionsPersistData ? 0 : BRSetCount (transactionsPersistData)));
-
-    if (NULL != transactionsPersistData) {
-        FOR_SET (BREthereumHashDataPair, pair, transactionsPersistData) {
-            fprintf (stdout, "ETH: TST: EnsureTrans @ %p\n", hashDataPairGetData(pair).bytes);
-
-            BRRlpItem item = rlpGetItem (coder, dataAsRlpData (hashDataPairGetData (pair)));
-            BREthereumTransaction transaction = transactionRlpDecode(item, network, RLP_TYPE_ARCHIVE, coder);
-            rlpReleaseItem (coder, item);
-            BRSetAdd (transactions, transaction);
-        }
-
-        hashDataPairSetRelease(transactionsPersistData);
-    }
-
-    return transactions;
-}
-
-static BRSetOf(BREthereumLog)
-createEWMEnsureLogs (OwnershipGiven BRSetOf(BREthereumHashDataPair) logsPersistData,
-                     BREthereumNetwork network,
-                     BRRlpCoder coder) {
-    BRSetOf(BREthereumLog) logs =
-    BRSetNew (logHashValue,
-              logHashEqual,
-              (NULL == logsPersistData ? 0 : BRSetCount(logsPersistData)));
-
-    if (NULL != logsPersistData) {
-
-        FOR_SET (BREthereumHashDataPair, pair, logsPersistData) {
-            fprintf (stdout, "ETH: TST: EnsureLogs @ %p\n", hashDataPairGetData(pair).bytes);
-            BRRlpItem item = rlpGetItem (coder, dataAsRlpData (hashDataPairGetData (pair)));
-            BREthereumLog log = logRlpDecode(item, RLP_TYPE_ARCHIVE, coder);
-            rlpReleaseItem(coder, item);
-
-            BRSetAdd (logs, log);
-        }
-
-        hashDataPairSetRelease (logsPersistData);
-    }
-
-    return logs;
-}
-
-
-
-///
 /// MARK: Transaction File Service
 ///
 static const char *fileServiceTypeTransactions = "transactions";
@@ -405,18 +293,13 @@ initialNodesLoad (BREthereumEWM ewm) {
 /// MARK: Ethereum Wallet Manager
 ///
 
-static BREthereumEWM
-ewmCreateInternal (BREthereumNetwork network,
-                   BREthereumAccount account,
-                   BREthereumTimestamp accountTimestamp,
-                   BREthereumMode mode,
-                   BREthereumClient client,
-                   OwnershipGiven BRSetOf(BREthereumNodeConfig)  nodes,
-                   OwnershipGiven BRSetOf(BREthereumBlock)       blocks,
-                   OwnershipGiven BRSetOf(BREthereumTransaction) transactions,
-                   OwnershipGiven BRSetOf(BREthereumLog)         logs,
-                   OwnershipGiven BRRlpCoder coder,
-                   const char *storagePath) {
+extern BREthereumEWM
+ewmCreate (BREthereumNetwork network,
+           BREthereumAccount account,
+           BREthereumTimestamp accountTimestamp,
+           BREthereumMode mode,
+           BREthereumClient client,
+           const char *storagePath) {
     BREthereumEWM ewm = (BREthereumEWM) calloc (1, sizeof (struct BREthereumEWMRecord));
 
     ewm->state = LIGHT_NODE_CREATED;
@@ -430,67 +313,65 @@ ewmCreateInternal (BREthereumNetwork network,
     ewm->client = client;
 
     // Our one and only coder
-    ewm->coder = coder;
+    ewm->coder = rlpCoderCreate();
 
-    // The storage path, if it exists, provides the EWM's fileService
-    ewm->fs = (NULL == storagePath ? NULL : fileServiceCreate (storagePath, networkGetName(network), "eth"));
-    if (NULL != ewm->fs) {
-        assert (NULL == nodes && NULL == blocks && NULL == transactions && NULL == logs);
+    // The file service.  Initialize {nodes, blocks, transactions and logs} from the FileService
 
-        /// Transaction
-        fileServiceDefineType (ewm->fs, fileServiceTypeTransactions,
-                               (BRFileServiceContext) ewm,
-                               EWM_TRANSACTION_VERSION_1,
-                               fileServiceTypeTransactionV1Identifier,
-                               fileServiceTypeTransactionV1Reader,
-                               fileServiceTypeTransactionV1Writer);
-        fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeTransactions,
-                                         EWM_TRANSACTION_VERSION_1);
+    ewm->fs = fileServiceCreate (storagePath, networkGetName(network), "eth");
+    if (NULL == ewm->fs) { free (ewm); return NULL; }
 
-        /// Log
-        fileServiceDefineType (ewm->fs, fileServiceTypeLogs,
-                               (BRFileServiceContext) ewm,
-                               EWM_LOG_VERSION_1,
-                               fileServiceTypeLogV1Identifier,
-                               fileServiceTypeLogV1Reader,
-                               fileServiceTypeLogV1Writer);
-        fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeLogs,
-                                         EWM_LOG_VERSION_1);
+    /// Transaction
+    fileServiceDefineType (ewm->fs, fileServiceTypeTransactions,
+                           (BRFileServiceContext) ewm,
+                           EWM_TRANSACTION_VERSION_1,
+                           fileServiceTypeTransactionV1Identifier,
+                           fileServiceTypeTransactionV1Reader,
+                           fileServiceTypeTransactionV1Writer);
+    fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeTransactions,
+                                     EWM_TRANSACTION_VERSION_1);
+    BRSetOf(BREthereumTransaction) transactions = initialTransactionsLoad(ewm);
 
-        /// Block
-        fileServiceDefineType (ewm->fs, fileServiceTypeBlocks,
-                               (BRFileServiceContext) ewm,
-                               EWM_BLOCK_VERSION_1,
-                               fileServiceTypeBlockV1Identifier,
-                               fileServiceTypeBlockV1Reader,
-                               fileServiceTypeBlockV1Writer);
-        fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeBlocks,
-                                         EWM_BLOCK_VERSION_1);
+    /// Log
+    fileServiceDefineType (ewm->fs, fileServiceTypeLogs,
+                           (BRFileServiceContext) ewm,
+                           EWM_LOG_VERSION_1,
+                           fileServiceTypeLogV1Identifier,
+                           fileServiceTypeLogV1Reader,
+                           fileServiceTypeLogV1Writer);
+    fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeLogs,
+                                     EWM_LOG_VERSION_1);
+    BRSetOf(BREthereumLog) logs = initialLogsLoad(ewm);
 
-        /// Peer
-        fileServiceDefineType (ewm->fs, fileServiceTypeNodes,
-                               (BRFileServiceContext) ewm,
-                               EWM_NODE_VERSION_1,
-                               fileServiceTypeNodeV1Identifier,
-                               fileServiceTypeNodeV1Reader,
-                               fileServiceTypeNodeV1Writer);
-        fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeNodes,
-                                         EWM_NODE_VERSION_1);
+    /// Peer
+    fileServiceDefineType (ewm->fs, fileServiceTypeNodes,
+                           (BRFileServiceContext) ewm,
+                           EWM_NODE_VERSION_1,
+                           fileServiceTypeNodeV1Identifier,
+                           fileServiceTypeNodeV1Reader,
+                           fileServiceTypeNodeV1Writer);
+    fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeNodes,
+                                     EWM_NODE_VERSION_1);
+    BRSetOf(BREthereumNodeConfig) nodes = initialNodesLoad(ewm);
 
-        // Initialize {nodes, blocks, transactions and logs} from the FileService
-        nodes = initialNodesLoad(ewm);
-        blocks = initialBlocksLoad(ewm);
-        transactions = initialTransactionsLoad(ewm);
-        logs = initialLogsLoad(ewm);
+   /// Block
+    fileServiceDefineType (ewm->fs, fileServiceTypeBlocks,
+                           (BRFileServiceContext) ewm,
+                           EWM_BLOCK_VERSION_1,
+                           fileServiceTypeBlockV1Identifier,
+                           fileServiceTypeBlockV1Reader,
+                           fileServiceTypeBlockV1Writer);
+    fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeBlocks,
+                                     EWM_BLOCK_VERSION_1);
+    BRSetOf(BREthereumBlock) blocks = initialBlocksLoad(ewm);
 
-        // If we have no blocks; then add a checkpoint
-        if (0 == BRSetCount(blocks)) {
-            const BREthereumBlockCheckpoint *checkpoint = blockCheckpointLookupByTimestamp (network, accountTimestamp);
-            BREthereumBlock block = blockCreate (blockCheckpointCreatePartialBlockHeader (checkpoint));
-            blockSetTotalDifficulty (block, checkpoint->u.td);
-            BRSetAdd (blocks, block);
-        }
+    // If we have no blocks; then add a checkpoint
+    if (0 == BRSetCount(blocks)) {
+        const BREthereumBlockCheckpoint *checkpoint = blockCheckpointLookupByTimestamp (network, accountTimestamp);
+        BREthereumBlock block = blockCreate (blockCheckpointCreatePartialBlockHeader (checkpoint));
+        blockSetTotalDifficulty (block, checkpoint->u.td);
+        BRSetAdd (blocks, block);
     }
+
 
     // The `main` event handler has a periodic wake-up.  Used, perhaps, if the mode indicates
     // that we should/might query the BRD backend services.
@@ -602,49 +483,18 @@ ewmCreateInternal (BREthereumNetwork network,
 }
 
 extern BREthereumEWM
-ewmCreate (BREthereumNetwork network,
-           BREthereumAccount account,
-           BREthereumTimestamp accountTimestamp,
-           BREthereumMode mode,
-           BREthereumClient client,
-           BRSetOf(BREthereumHashDataPair) nodesPersistData,
-           BRSetOf(BREthereumHashDataPair) blocksPersistData,
-           BRSetOf(BREthereumHashDataPair) transactionsPersistData,
-           BRSetOf(BREthereumHashDataPair) logsPersistData) {
-    BRRlpCoder coder = rlpCoderCreate();
-
-    return ewmCreateInternal (network,
-                              account,
-                              accountTimestamp,
-                              mode,
-                              client,
-                              createEWMEnsureNodes(nodesPersistData, coder),
-                              createEWMEnsureBlocks (blocksPersistData, network, accountTimestamp, coder),
-                              createEWMEnsureTransactions(transactionsPersistData, network, coder),
-                              createEWMEnsureLogs(logsPersistData, network, coder),
-                              coder,
-                              NULL);
-}
-
-extern BREthereumEWM
 ewmCreateWithPaperKey (BREthereumNetwork network,
                        const char *paperKey,
                        BREthereumTimestamp accountTimestamp,
                        BREthereumMode mode,
                        BREthereumClient client,
-                       BRSetOf(BREthereumHashDataPair) nodesPersistData,
-                       BRSetOf(BREthereumHashDataPair) blocksPersistData,
-                       BRSetOf(BREthereumHashDataPair) transactionsPersistData,
-                       BRSetOf(BREthereumHashDataPair) logsPersistData) {
+                       const char *storagePath) {
     return ewmCreate (network,
                       createAccount (paperKey),
                       accountTimestamp,
                       mode,
                       client,
-                      nodesPersistData,
-                      blocksPersistData,
-                      transactionsPersistData,
-                      logsPersistData);
+                      storagePath);
 }
 
 extern BREthereumEWM
@@ -653,40 +503,13 @@ ewmCreateWithPublicKey (BREthereumNetwork network,
                         BREthereumTimestamp accountTimestamp,
                         BREthereumMode mode,
                         BREthereumClient client,
-                        BRSetOf(BREthereumHashDataPair) nodesPersistData,
-                        BRSetOf(BREthereumHashDataPair) blocksPersistData,
-                        BRSetOf(BREthereumHashDataPair) transactionsPersistData,
-                        BRSetOf(BREthereumHashDataPair) logsPersistData) {
+                        const char *storagePath) {
     return ewmCreate (network,
                       createAccountWithPublicKey(publicKey),
                       accountTimestamp,
                       mode,
                       client,
-                      nodesPersistData,
-                      blocksPersistData,
-                      transactionsPersistData,
-                      logsPersistData);
-}
-
-extern BREthereumEWM
-ewmCreateWithStoragePath (BREthereumNetwork network,
-                          BREthereumAccount account,
-                          BREthereumTimestamp accountTimestamp,
-                          BREthereumMode mode,
-                          BREthereumClient client,
-                          const char *storagePath) {
-    BRRlpCoder coder = rlpCoderCreate();
-    return ewmCreateInternal (network,
-                              account,
-                              accountTimestamp,
-                              mode,
-                              client,
-                              NULL,
-                              NULL,
-                              NULL,
-                              NULL,
-                              coder,
-                              storagePath);
+                      storagePath);
 }
 
 extern void
@@ -1675,31 +1498,12 @@ extern void
 ewmHandleSaveBlocks (BREthereumEWM ewm,
                      OwnershipGiven BRArrayOf(BREthereumBlock) blocks) {
     size_t count = array_count(blocks);
-    if (NULL != ewm->fs) {
-        eth_log("EWM", "Save Blocks (Storage): %zu", count);
-        fileServiceClear(ewm->fs, fileServiceTypeBlocks);
 
-        for (size_t index = 0; index < count; index++)
-            fileServiceSave (ewm->fs, fileServiceTypeBlocks, blocks[index]);
-    }
-    else {
-        eth_log("EWM", "Save Blocks (Client): %zu", array_count(blocks));
+    eth_log("EWM", "Save Blocks (Storage): %zu", count);
+    fileServiceClear(ewm->fs, fileServiceTypeBlocks);
 
-        BRSetOf(BREthereumHashDataPair) blocksToSave = hashDataPairSetCreateEmpty (array_count (blocks));
-
-        for (size_t index = 0; index < array_count(blocks); index++) {
-            BRRlpItem item = blockRlpEncode(blocks[index], ewm->network, RLP_TYPE_ARCHIVE, ewm->coder);
-            BRSetAdd (blocksToSave,
-                      hashDataPairCreate (blockGetHash(blocks[index]), // notice '1'; don't relese data
-                                          dataCreateFromRlpData (rlpGetData (ewm->coder, item), 1)));
-            rlpReleaseItem(ewm->coder, item);
-        }
-
-        // TODO: ewmSignalSaveBlocks(ewm, blocks)
-        ewm->client.funcSaveBlocks (ewm->client.context,
-                                    ewm,
-                                    blocksToSave);
-    }
+    for (size_t index = 0; index < count; index++)
+        fileServiceSave (ewm->fs, fileServiceTypeBlocks, blocks[index]);
     array_free (blocks);
 }
 
@@ -1707,37 +1511,14 @@ extern void
 ewmHandleSaveNodes (BREthereumEWM ewm,
                     OwnershipGiven BRArrayOf(BREthereumNodeConfig) nodes) {
     size_t count = array_count(nodes);
-    if (NULL != ewm->fs) {
-        eth_log("EWM", "Save Nodes (Storage): %zu", count);
-        fileServiceClear(ewm->fs, fileServiceTypeNodes);
 
-        for (size_t index = 0; index < count; index++)
-            fileServiceSave(ewm->fs, fileServiceTypeNodes, nodes[index]);
-    }
-    else {
-        eth_log("EWM", "Save nodes (client): %zu", count);
+    eth_log("EWM", "Save Nodes (Storage): %zu", count);
+    fileServiceClear(ewm->fs, fileServiceTypeNodes);
 
-        BRSetOf(BREthereumHashDataPair) nodesToSave = hashDataPairSetCreateEmpty (count);
+    for (size_t index = 0; index < count; index++)
+        fileServiceSave(ewm->fs, fileServiceTypeNodes, nodes[index]);
 
-        for (size_t index = 0; index < count; index++) {
-            BRRlpItem item = nodeConfigEncode(nodes[index], ewm->coder);
-
-            BRSetAdd (nodesToSave,
-                      hashDataPairCreate (nodeConfigGetHash(nodes[index]), // notice '1'; don't relese data
-                                          dataCreateFromRlpData (rlpGetData (ewm->coder, item), 1)));
-
-            rlpReleaseItem (ewm->coder, item);
-
-            nodeConfigRelease(nodes[index]);
-        }
-
-        // TODO: ewmSignalSavenodes(ewm, nodes);
-        ewm->client.funcSaveNodes (ewm->client.context,
-                                   ewm,
-                                   nodesToSave);
-
-        array_free (nodes);
-    }
+    array_free (nodes);
 }
 
 extern void
@@ -1748,27 +1529,14 @@ ewmHandleSaveTransaction (BREthereumEWM ewm,
     BREthereumHashString fileName;
     hashFillString(hash, fileName);
 
-    if (NULL != ewm->fs) {
-        eth_log("EWM", "Save Transaction (Storage): %s", fileName);
+    eth_log("EWM", "Save Transaction: %s", fileName);
 
-        if (CLIENT_CHANGE_REM == type || CLIENT_CHANGE_UPD == type)
-            fileServiceRemove (ewm->fs, fileServiceTypeTransactions,
-                               fileServiceTypeTransactionV1Identifier (ewm, ewm->fs, transaction));
+    if (CLIENT_CHANGE_REM == type || CLIENT_CHANGE_UPD == type)
+        fileServiceRemove (ewm->fs, fileServiceTypeTransactions,
+                           fileServiceTypeTransactionV1Identifier (ewm, ewm->fs, transaction));
 
-        if (CLIENT_CHANGE_ADD == type || CLIENT_CHANGE_UPD == type)
-            fileServiceSave (ewm->fs, fileServiceTypeTransactions, transaction);
-    }
-    else {
-        BRRlpItem item = transactionRlpEncode (transaction, ewm->network, RLP_TYPE_ARCHIVE, ewm->coder);
-
-        // Notice the final '1' - don't release `data`...
-        BREthereumHashDataPair pair =
-        hashDataPairCreate (hash, dataCreateFromRlpData(rlpGetData(ewm->coder, item), 1));
-
-        rlpReleaseItem(ewm->coder, item);
-
-        ewm->client.funcChangeTransaction (ewm->client.context, ewm, type, pair);
-    }
+    if (CLIENT_CHANGE_ADD == type || CLIENT_CHANGE_UPD == type)
+        fileServiceSave (ewm->fs, fileServiceTypeTransactions, transaction);
 }
 
 extern void
@@ -1779,27 +1547,14 @@ ewmHandleSaveLog (BREthereumEWM ewm,
     BREthereumHashString filename;
     hashFillString(hash, filename);
 
-    if (NULL != ewm->fs) {
-        eth_log("EWM", "Save Log (Storage): %s", filename);
+    eth_log("EWM", "Save Log: %s", filename);
 
-        if (CLIENT_CHANGE_REM == type || CLIENT_CHANGE_UPD == type)
-            fileServiceRemove (ewm->fs, fileServiceTypeLogs,
-                               fileServiceTypeLogV1Identifier(ewm, ewm->fs, log));
+    if (CLIENT_CHANGE_REM == type || CLIENT_CHANGE_UPD == type)
+        fileServiceRemove (ewm->fs, fileServiceTypeLogs,
+                           fileServiceTypeLogV1Identifier(ewm, ewm->fs, log));
 
-        if (CLIENT_CHANGE_ADD == type || CLIENT_CHANGE_UPD == type)
-            fileServiceSave (ewm->fs, fileServiceTypeLogs, log);
-    }
-    else {
-        BRRlpItem item = logRlpEncode(log, RLP_TYPE_ARCHIVE, ewm->coder);
-
-        // Notice the final '1' - don't release `data`...
-        BREthereumHashDataPair pair =
-        hashDataPairCreate (hash, dataCreateFromRlpData(rlpGetData(ewm->coder, item), 1));
-
-        rlpReleaseItem(ewm->coder, item);
-
-        ewm->client.funcChangeLog (ewm->client.context, ewm, type, pair);
-    }
+    if (CLIENT_CHANGE_ADD == type || CLIENT_CHANGE_UPD == type)
+        fileServiceSave (ewm->fs, fileServiceTypeLogs, log);
 }
 
 extern void

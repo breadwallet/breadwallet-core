@@ -141,23 +141,6 @@ class CoreTests: XCTestCase {
     /// Run an Etheruem Sync.  Two syncs are run back-to-back with the second sync meant to
     /// start from the saved state of the first sync.
     ///
-    /// Note: The first sync saves state in memory.
-    ///
-    /// - Throws: something
-    ///
-    func testEthereumSync ()  throws{
-        let mode = P2P_ONLY //  BRD_WITH_P2P_SEND
-        let timestamp : UInt64 = 0
-
-        let network = (isMainnet == 1 ? ethereumMainnet : ethereumTestnet)
-
-        runSyncTest (network, account, mode, timestamp, 10 * 60, nil, 0);
-        runSyncTest (network, account, mode, timestamp,  1 * 60, nil, 1);
-    }
-
-    /// Run an Etheruem Sync.  Two syncs are run back-to-back with the second sync meant to
-    /// start from the saved state of the first sync.
-    ///
     /// Note: The first sync saves state to the file system..
     ///
     /// - Throws: something
