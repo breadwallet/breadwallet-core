@@ -467,7 +467,7 @@ JNIEXPORT jstring JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumEWM_jniGetWalletBalance
         (JNIEnv *env, jobject thisObject, jlong wid, jlong unit) {
     BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
-    BREthereumAmount balance = ewmWalletGetBalance(node, wid);
+    BREthereumAmount balance = ewmWalletGetBalance(node, (BREthereumWallet) wid);
 
     char *number = (AMOUNT_ETHER == amountGetType(balance)
                     ? etherGetValueString(balance.u.ether, unit)
@@ -518,7 +518,7 @@ JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniWalletGetDefaultGasP
         (JNIEnv *env, jobject thisObject,
          jlong wid) {
     BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
-    BREthereumGasPrice price = ewmWalletGetDefaultGasPrice(node, wid);
+    BREthereumGasPrice price = ewmWalletGetDefaultGasPrice(node, (BREthereumWallet) wid);
     return price.etherPerGas.valueInWEI.u64[0];
 
 }
@@ -730,7 +730,7 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnounceBalance
     BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
 
     const char *balance = (*env)->GetStringUTFChars(env, balanceString, 0);
-    ewmAnnounceWalletBalance(node, wid, balance, rid);
+    ewmAnnounceWalletBalance(node, (BREthereumWallet) wid, balance, rid);
 
     (*env)->ReleaseStringUTFChars (env, balanceString, balance);
 }
@@ -770,10 +770,10 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnounceGasEstimate
     BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
     const char *strGasEstimate = (*env)->GetStringUTFChars(env, gasEstimate, 0);
     ewmAnnounceGasEstimate(node,
-                                 wid,
-                                 tid,
-                                 strGasEstimate,
-                                 rid);
+                           (BREthereumWallet) wid,
+                           (BREthereumTransfer) tid,
+                           strGasEstimate,
+                           rid);
     (*env)->ReleaseStringUTFChars(env, gasEstimate, strGasEstimate);
 }
 
@@ -791,7 +791,7 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnounceSubmitTransaction
          jint rid) {
     BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
     const char *hashStr = (*env)->GetStringUTFChars (env, hash, 0);
-    ewmAnnounceSubmitTransfer(node, wid, tid, hashStr, rid);
+    ewmAnnounceSubmitTransfer(node, (BREthereumWallet) wid, (BREthereumTransfer) tid, hashStr, rid);
     (*env)->ReleaseStringUTFChars (env, hash, hashStr);
 }
 
@@ -885,7 +885,7 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateTransaction
          jstring amountObject,
          jlong amountUnit) {
     BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
-    BREthereumToken token = ewmWalletGetToken(node, wid);
+    BREthereumToken token = ewmWalletGetToken(node, (BREthereumWallet) wid);
 
     // Get an actual Amount
     BRCoreParseStatus status = CORE_PARSE_OK;
@@ -1012,12 +1012,12 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniSignTransactionWithPrivateKe
 JNIEXPORT void JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumEWM_jniSubmitTransaction
         (JNIEnv *env, jobject thisObject,
-         jlong walletId,
-         jlong transactionId) {
+         jlong wid,
+         jlong tid) {
     BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
     ewmWalletSubmitTransfer(node,
-                                    (BREthereumWallet) walletId,
-                                    (BREthereumTransfer) transactionId);
+                                    (BREthereumWallet) wid,
+                                    (BREthereumTransfer) tid);
 }
 
 
@@ -1031,7 +1031,7 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniGetTransactions
         (JNIEnv *env, jobject thisObject,
          jlong wid) {
     BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
-    int count = ewmWalletGetTransferCount(node, wid);
+    int count = ewmWalletGetTransferCount(node, (BREthereumWallet) wid);
     assert (-1 != count);
 
     // uint32_t array - need a long
@@ -1063,7 +1063,7 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionGetAmount
 
 
     return asJniString(env,
-                       (ETHEREUM_BOOLEAN_TRUE == ewmTransferHoldsToken(node, tid, NULL)
+                       (ETHEREUM_BOOLEAN_TRUE == ewmTransferHoldsToken(node, (BREthereumTransfer) tid, NULL)
                         ? ewmCoerceEtherAmountToString(node, amount.u.ether, (BREthereumEtherUnit) unit)
                         : ewmCoerceTokenAmountToString(node, amount.u.tokenQuantity, (BREthereumTokenQuantityUnit) unit)));
 }
@@ -1107,7 +1107,7 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionHasToken
         (JNIEnv *env, jobject thisObject,
          jlong tid) {
     BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
-    return (jboolean) (ETHEREUM_BOOLEAN_FALSE == ewmTransferHoldsToken(node, tid, NULL)
+    return (jboolean) (ETHEREUM_BOOLEAN_FALSE == ewmTransferHoldsToken(node, (BREthereumTransfer) tid, NULL)
                        ? JNI_TRUE
                        : JNI_FALSE);
 }
@@ -1120,14 +1120,14 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionHasToken
 JNIEXPORT void JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionEstimateGas
         (JNIEnv *env, jobject thisObject,
-         jlong walletId,
-         jlong transactionId) {
+         jlong wid,
+         jlong tid) {
     BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
 
     ewmUpdateGasEstimate
             (node,
-             (BREthereumWallet) walletId,
-             (BREthereumTransfer) transactionId);
+             (BREthereumWallet) wid,
+             (BREthereumTransfer) tid);
 }
 
 /*
@@ -1309,7 +1309,7 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionGetBlockConfirmat
 JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionGetToken
         (JNIEnv *env, jobject thisObject, jlong tid) {
     BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
-    return (jlong) ewmTransferGetToken(node, tid);
+    return (jlong) ewmTransferGetToken(node, (BREthereumTransfer) tid);
 }
 
 /*
