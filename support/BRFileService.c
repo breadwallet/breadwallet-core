@@ -201,10 +201,10 @@ fileServiceLookupEntityHandler (const BRFileService fs,
 }
 
 ///
-/// MARK: Load
+/// MARK: Failure Reporting
 ///
 static int
-fileServiceLoadFailedInternal (BRFileService fs,
+fileServiceFailedInternal (BRFileService fs,
                                void* bufferToFree,
                                FILE* fileToClose,
                                BRFileServiceError error) {
@@ -218,11 +218,11 @@ fileServiceLoadFailedInternal (BRFileService fs,
 }
 
 static int
-fileServiceLoadFailedImpl(BRFileService fs,
+fileServiceFailedImpl(BRFileService fs,
                           void* bufferToFree,
                           FILE* fileToClose,
                           const char *reason) {
-    return fileServiceLoadFailedInternal (fs, bufferToFree, fileToClose,
+    return fileServiceFailedInternal (fs, bufferToFree, fileToClose,
                                           (BRFileServiceError) {
                                               FILE_SERVICE_IMPL,
                                               { .impl = { reason }}
@@ -230,11 +230,11 @@ fileServiceLoadFailedImpl(BRFileService fs,
 }
 
 static int
-fileServiceLoadFailedUnix(BRFileService fs,
+fileServiceFailedUnix(BRFileService fs,
                           void* bufferToFree,
                           FILE* fileToClose,
                           int error) {
-    return fileServiceLoadFailedInternal (fs, bufferToFree, fileToClose,
+    return fileServiceFailedInternal (fs, bufferToFree, fileToClose,
                                           (BRFileServiceError) {
                                               FILE_SERVICE_UNIX,
                                               { .unix = { error }}
@@ -242,28 +242,31 @@ fileServiceLoadFailedUnix(BRFileService fs,
 }
 
 static int
-fileServiceLoadFailedEntity(BRFileService fs,
+fileServiceFailedEntity(BRFileService fs,
                             void* bufferToFree,
                             FILE* fileToClose,
                             const char *type,
                             const char *reason) {
-    return fileServiceLoadFailedInternal (fs, bufferToFree, fileToClose,
+    return fileServiceFailedInternal (fs, bufferToFree, fileToClose,
                                           (BRFileServiceError) {
                                               FILE_SERVICE_ENTITY,
                                               { .entity = { type, reason }}
                                           });
 }
 
+///
+/// MARK: Load
+///
 extern int
 fileServiceLoad (BRFileService fs,
                  BRSet *results,
                  const char *type,
                  int updateVersion) {
     BRFileServiceEntityType *entityType = fileServiceLookupType (fs, type);
-    if (NULL == entityType) return fileServiceLoadFailedImpl (fs, NULL, NULL, "missed type");
+    if (NULL == entityType) return fileServiceFailedImpl (fs, NULL, NULL, "missed type");
 
     BRFileServiceEntityHandler *entityHandlerCurrent = fileServiceEntityTypeLookupHandler(entityType, entityType->currentVersion);
-    if (NULL == entityHandlerCurrent) return fileServiceLoadFailedImpl (fs,  NULL, NULL, "missed type handler");
+    if (NULL == entityHandlerCurrent) return fileServiceFailedImpl (fs,  NULL, NULL, "missed type handler");
 
     DIR *dir;
     struct dirent *dirEntry;
@@ -274,7 +277,7 @@ fileServiceLoad (BRFileService fs,
     char filename[strlen(dirPath) + 1 + 2 * sizeof(UInt256) + 1];
 
     if (-1 == directoryMake(dirPath) || NULL == (dir = opendir(dirPath)))
-        return fileServiceLoadFailedUnix (fs, NULL, NULL, errno);
+        return fileServiceFailedUnix (fs, NULL, NULL, errno);
 
     // Allocate some storage for entity bytes;
     size_t bufferSize = 8 * 1024;
@@ -285,7 +288,7 @@ fileServiceLoad (BRFileService fs,
         if (dirEntry->d_type == DT_REG) {
             sprintf (filename, "%s/%s", dirPath, dirEntry->d_name);
             FILE *file = fopen (filename, "rb");
-            if (NULL == file) return fileServiceLoadFailedUnix (fs, buffer, NULL, errno);
+            if (NULL == file) return fileServiceFailedUnix (fs, buffer, NULL, errno);
 
 
             BRFileServiceVersion version;
@@ -294,7 +297,7 @@ fileServiceLoad (BRFileService fs,
             // read the header version
             BRFileServiceHeaderFormatVersion headerVersion;
             if (1 != fread (&headerVersion, sizeof(BRFileServiceHeaderFormatVersion), 1, file))
-                return fileServiceLoadFailedUnix (fs, buffer, file, errno);
+                return fileServiceFailedUnix (fs, buffer, file, errno);
 
             // read the header
             switch (headerVersion) {
@@ -304,7 +307,7 @@ fileServiceLoad (BRFileService fs,
                         // read the checksum
                         // read the bytesCount
                         1 != fread (&bytesCount, sizeof(uint32_t), 1, file))
-                        return fileServiceLoadFailedUnix (fs, buffer, file, errno);
+                        return fileServiceFailedUnix (fs, buffer, file, errno);
 
                     break;
                 }
@@ -318,13 +321,13 @@ fileServiceLoad (BRFileService fs,
 
             // read the bytes - multiple might be required
             if (bytesCount != fread (buffer, 1, bytesCount, file))
-                return fileServiceLoadFailedUnix (fs, buffer, file, errno);
+                return fileServiceFailedUnix (fs, buffer, file, errno);
 
             // All file reading is complete; next read should be EOF.
 
             // Done with file.
             if (0 != fclose (file))
-                return fileServiceLoadFailedUnix (fs, buffer, NULL, errno);
+                return fileServiceFailedUnix (fs, buffer, NULL, errno);
 
             // We now have everything
 
@@ -341,11 +344,11 @@ fileServiceLoad (BRFileService fs,
 
             // Look up the entity handler
             BRFileServiceEntityHandler *handler = fileServiceEntityTypeLookupHandler(entityType, version);
-            if (NULL == handler) return fileServiceLoadFailedImpl (fs,  buffer, NULL, "missed type handler");
+            if (NULL == handler) return fileServiceFailedImpl (fs,  buffer, NULL, "missed type handler");
 
             // Read the entity from buffer and add to results.
             void *entity = handler->reader (handler->context, fs, buffer, bytesCount);
-            if (NULL == entity) return fileServiceLoadFailedEntity (fs, buffer, NULL, type, "reader");
+            if (NULL == entity) return fileServiceFailedEntity (fs, buffer, NULL, type, "reader");
 
             // Update restuls with the newly restored entity
             BRSetAdd (results, entity);
@@ -363,15 +366,18 @@ fileServiceLoad (BRFileService fs,
     return 1;
 }
 
+///
+/// MARK: Save
+///
 extern void /* error code? */
 fileServiceSave (BRFileService fs,
                  const char *type,  /* block, peers, transactions, logs, ... */
                  const void *entity) {     /* BRMerkleBlock*, BRTransaction, BREthereumTransaction, ... */
     BRFileServiceEntityType *entityType = fileServiceLookupType (fs, type);
-    if (NULL == entityType) return;
+    if (NULL == entityType) { fileServiceFailedImpl (fs, NULL, NULL, "missed type"); return; };
 
     BRFileServiceEntityHandler *handler = fileServiceEntityTypeLookupHandler(entityType, entityType->currentVersion);
-    if (NULL == handler) return;
+    if (NULL == handler) { fileServiceFailedImpl (fs,  NULL, NULL, "missed type handler"); return; };
 
     UInt256 identifier = handler->identifier (handler->context, fs, entity);
 
@@ -382,9 +388,8 @@ fileServiceSave (BRFileService fs,
     sprintf (filename, "%s/%s/%s", fs->pathToType, type, u256hex(identifier));
 
     FILE *file = fopen (filename, "wb");
-    if (NULL == file) {
+    if (NULL == file) { fileServiceFailedUnix (fs, bytes, NULL, errno); return; }
 
-    }
 
     // Always, always write the header for the currentHeaderFormatVersion
 
@@ -395,30 +400,35 @@ fileServiceSave (BRFileService fs,
         // then the checksum?
         // write the bytesCount
         1 != fwrite(&bytesCount, sizeof (uint32_t), 1, file)) {
-
+        fileServiceFailedUnix (fs, bytes, file, errno);
+        return;
     }
 
     // write the bytes.
     if (bytesCount != fwrite(bytes, 1, bytesCount, file)) {
-
+        fileServiceFailedUnix (fs, bytes, file, errno);
+        return;
     }
 
-    if (0 != fclose (file)) {
+    if (0 != fclose (file)) {  fileServiceFailedUnix (fs, bytes, NULL, errno); return; }
 
-    }
     free (bytes);
 }
 
+///
+/// MARK: Remve, Clear
+///
 extern void
 fileServiceRemove (BRFileService fs,
                    const char *type,
                    UInt256 identifier) {
     BRFileServiceEntityType *entityType = fileServiceLookupType (fs, type);
-    if (NULL == entityType) return;
+    if (NULL == entityType) { fileServiceFailedImpl (fs, NULL, NULL, "missed type"); return; };
 
     char filename[strlen(fs->pathToType) + 1 + strlen(type) + 1 + 2*sizeof(UInt256) + 1];
     sprintf (filename, "%s/%s/%s", fs->pathToType, type, u256hex(identifier));
 
+    // If failed, then what?
     remove (filename);
 }
 
@@ -432,13 +442,13 @@ fileServiceClearForType (BRFileService fs,
     sprintf (dirPath, "%s/%s", fs->pathToType, entityType->type);
 
     if (-1 == directoryMake(dirPath) || NULL == (dir = opendir(dirPath))) {
-        //*error = errno;
+        fileServiceFailedUnix (fs, NULL, NULL, errno);
         return;
     }
 
     while (NULL != (dirEntry = readdir(dir)))
         if (dirEntry->d_type == DT_REG)
-            remove (dirEntry->d_name);
+            remove (dirEntry->d_name); // If failed, then what?
 
     closedir(dir);
 }
@@ -447,7 +457,8 @@ extern void
 fileServiceClear (BRFileService fs,
                   const char *type) {
     BRFileServiceEntityType *entityType = fileServiceLookupType (fs, type);
-    if (NULL == type) return;
+    if (NULL == entityType) { fileServiceFailedImpl (fs, NULL, NULL, "missed type"); return; };
+
     fileServiceClearForType(fs, entityType);
 }
 
@@ -459,11 +470,11 @@ fileServiceClearAll (BRFileService fs) {
 
 }
 
-extern void
+extern int
 fileServiceDefineType (BRFileService fs,
                        const char *type,
-                       BRFileServiceContext context,
                        BRFileServiceVersion version,
+                       BRFileServiceContext context,
                        BRFileServiceIdentifier identifier,
                        BRFileServiceReader reader,
                        BRFileServiceWriter writer) {
@@ -497,22 +508,27 @@ fileServiceDefineType (BRFileService fs,
         char dirPath[strlen(fs->pathToType) + 1 + strlen(type) + 1];
         sprintf (dirPath, "%s/%s", fs->pathToType, type);
 
-        if (-1 == directoryMake(dirPath)) return;
+        if (-1 == directoryMake(dirPath))
+            return fileServiceFailedUnix (fs, NULL, NULL, errno);
     }
+
+    return 1;
 }
 
-extern void
+extern int
 fileServiceDefineCurrentVersion (BRFileService fs,
                                  const char *type,
                                  BRFileServiceVersion version) {
     // Find the entityType for `type`
     BRFileServiceEntityType *entityType = fileServiceLookupType (fs, type);
-    if (NULL == entityType) return;
+    if (NULL == entityType) return fileServiceFailedImpl (fs, NULL, NULL, "missed type");
 
     // Find the entityHandler, for version.
     BRFileServiceEntityHandler *entityHandler = fileServiceEntityTypeLookupHandler (entityType, version);
-    if (NULL == entityHandler) return;
+    if (NULL == entityHandler) return fileServiceFailedImpl (fs,  NULL, NULL, "missed type handler");
 
     // We have a handler, therefore it can be the current one.
     entityType->currentVersion = version;
+
+    return 1;
 }

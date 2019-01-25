@@ -128,33 +128,58 @@ fileServiceClear (BRFileService fs,
 extern void
 fileServiceClearAll (BRFileService fs);
 
+/**
+ * A function type to produce an identifer from an entity.  The identifer must be constant for
+ * a particulary entity through time.  The identifier is used to derive a filename (more generally
+ * a path and filename).
+ */
 typedef UInt256
 (*BRFileServiceIdentifier) (BRFileServiceContext context,
                             BRFileService fs,
                             const void* entity);
 
+/**
+ * A function type to read an entity from a byte array.  You own the entity.
+ */
 typedef void*
 (*BRFileServiceReader) (BRFileServiceContext context,
                         BRFileService fs,
                         uint8_t *bytes,
                         uint32_t bytesCount);
 
+/**
+ * A function type to write an entity to a byte array.  You own the byte array.
+ */
 typedef uint8_t*
 (*BRFileServiceWriter) (BRFileServiceContext context,
                         BRFileService fs,
                         const void* entity,
                         uint32_t *bytesCount);
 
-extern void
+/**
+ * Define a 'type', such as {block, peer, transaction, logs, etc}, that is to be stored in the
+ * file system.
+ *
+ * @param fs the file service
+ * @param type the type
+ * @param context an arbitrary value to be passed to the type-specific functions.
+ * @param version the entity version handled by the type-specific functions.
+ * @param identifier the function that produces the identifier
+ * @param reader the function the produces an entity from a byte array
+ * @param writer the function that produces a byte array from an entity.
+ *
+ * @return true (1) if success, false (0) otherwise
+ */
+extern int
 fileServiceDefineType (BRFileService fs,
                        const char *type,
-                       BRFileServiceContext context,
                        BRFileServiceVersion version,
+                       BRFileServiceContext context,
                        BRFileServiceIdentifier identifier,
                        BRFileServiceReader reader,
                        BRFileServiceWriter writer);
 
-extern void
+extern int
 fileServiceDefineCurrentVersion (BRFileService fs,
                                  const char *type,
                                  BRFileServiceVersion version);

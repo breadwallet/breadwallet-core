@@ -357,6 +357,17 @@ bwmFileServiceErrorHandler (BRFileServiceContext context,
 ///
 /// MARK: Wallet Manager
 ///
+static BRWalletManager
+bwmCreateErrorHandler (BRWalletManager bwm, int fileService, const char* reason) {
+    if (NULL != bwm) free (bwm);
+    if (fileService)
+        _peer_log ("bread: on ewmCreate: FileService Error: %s", reason);
+    else
+        _peer_log ("bread: on ewmCreate: Error: %s", reason);
+
+    return NULL;
+}
+
 extern BRWalletManager
 BRWalletManagerNew (BRWalletManagerClient client,
                     BRMasterPubKey mpk,
@@ -364,7 +375,7 @@ BRWalletManagerNew (BRWalletManagerClient client,
                     uint32_t earliestKeyTime,
                     const char *baseStoragePath) {
     BRWalletManager manager = malloc (sizeof (struct BRWalletManagerStruct));
-    if (NULL == manager) return NULL;
+    if (NULL == manager) return bwmCreateErrorHandler (NULL, 0, "allocate");
 
 //    manager->walletForkId = fork;
     manager->client = client;
@@ -379,37 +390,37 @@ BRWalletManagerNew (BRWalletManagerClient client,
     manager->fileService = fileServiceCreate (baseStoragePath, networkName, currencyName,
                                               manager,
                                               bwmFileServiceErrorHandler);
-    if (NULL == manager->fileService) { free (manager); return NULL; }
+    if (NULL == manager->fileService) return bwmCreateErrorHandler (manager, 1, "create");
 
     /// Transaction
-    fileServiceDefineType (manager->fileService, fileServiceTypeTransactions,
-                           (BRFileServiceContext) manager,
-                           WALLET_MANAGER_TRANSACTION_VERSION_1,
-                           fileServiceTypeTransactionV1Identifier,
-                           fileServiceTypeTransactionV1Reader,
-                           fileServiceTypeTransactionV1Writer);
-    fileServiceDefineCurrentVersion (manager->fileService, fileServiceTypeTransactions,
-                                     WALLET_MANAGER_TRANSACTION_VERSION_1);
+    if (1 != fileServiceDefineType (manager->fileService, fileServiceTypeTransactions, WALLET_MANAGER_TRANSACTION_VERSION_1,
+                                    (BRFileServiceContext) manager,
+                                    fileServiceTypeTransactionV1Identifier,
+                                    fileServiceTypeTransactionV1Reader,
+                                    fileServiceTypeTransactionV1Writer) ||
+        1 != fileServiceDefineCurrentVersion (manager->fileService, fileServiceTypeTransactions,
+                                              WALLET_MANAGER_TRANSACTION_VERSION_1))
+        return bwmCreateErrorHandler (manager, 1, fileServiceTypeTransactions);
 
     /// Block
-    fileServiceDefineType (manager->fileService, fileServiceTypeBlocks,
-                           (BRFileServiceContext) manager,
-                           WALLET_MANAGER_BLOCK_VERSION_1,
-                           fileServiceTypeBlockV1Identifier,
-                           fileServiceTypeBlockV1Reader,
-                           fileServiceTypeBlockV1Writer);
-    fileServiceDefineCurrentVersion (manager->fileService, fileServiceTypeBlocks,
-                                     WALLET_MANAGER_BLOCK_VERSION_1);
+    if (1 != fileServiceDefineType (manager->fileService, fileServiceTypeBlocks, WALLET_MANAGER_BLOCK_VERSION_1,
+                                    (BRFileServiceContext) manager,
+                                    fileServiceTypeBlockV1Identifier,
+                                    fileServiceTypeBlockV1Reader,
+                                    fileServiceTypeBlockV1Writer) ||
+        1 != fileServiceDefineCurrentVersion (manager->fileService, fileServiceTypeBlocks,
+                                              WALLET_MANAGER_BLOCK_VERSION_1))
+        return bwmCreateErrorHandler (manager, 1, fileServiceTypeBlocks);
 
     /// Peer
-    fileServiceDefineType (manager->fileService, fileServiceTypePeers,
-                           (BRFileServiceContext) manager,
-                           WALLET_MANAGER_PEER_VERSION_1,
-                           fileServiceTypePeerV1Identifier,
-                           fileServiceTypePeerV1Reader,
-                           fileServiceTypePeerV1Writer);
-    fileServiceDefineCurrentVersion (manager->fileService, fileServiceTypePeers,
-                                     WALLET_MANAGER_PEER_VERSION_1);
+    if (1 != fileServiceDefineType (manager->fileService, fileServiceTypePeers, WALLET_MANAGER_PEER_VERSION_1,
+                                    (BRFileServiceContext) manager,
+                                    fileServiceTypePeerV1Identifier,
+                                    fileServiceTypePeerV1Reader,
+                                    fileServiceTypePeerV1Writer) ||
+        1 != fileServiceDefineCurrentVersion (manager->fileService, fileServiceTypePeers,
+                                              WALLET_MANAGER_PEER_VERSION_1))
+        return bwmCreateErrorHandler (manager, 1, fileServiceTypePeers);
 
     /// Load transactions for the wallet manager.
     BRArrayOf(BRTransaction*) transactions = initialTransactionsLoad(manager);

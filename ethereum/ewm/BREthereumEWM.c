@@ -342,6 +342,16 @@ ewmFileServiceErrorHandler (BRFileServiceContext context,
 ///
 /// MARK: Ethereum Wallet Manager
 ///
+static BREthereumEWM
+ewmCreateErrorHandler (BREthereumEWM ewm, int fileService, const char* reason) {
+    if (NULL != ewm) free (ewm);
+    if (fileService)
+        eth_log ("EWM", "on ewmCreate: FileService Error: %s", reason);
+    else
+        eth_log ("EWM", "on ewmCreate: Error: %s", reason);
+
+    return NULL;
+}
 
 extern BREthereumEWM
 ewmCreate (BREthereumNetwork network,
@@ -379,47 +389,48 @@ ewmCreate (BREthereumNetwork network,
     ewm->fs = fileServiceCreate (storagePath, networkGetName(network), "eth",
                                  ewm,
                                  ewmFileServiceErrorHandler);
-    if (NULL == ewm->fs) { free (ewm); return NULL; }
+    if (NULL == ewm->fs) return ewmCreateErrorHandler(ewm, 1, "create");
 
     /// Transaction
-    fileServiceDefineType (ewm->fs, fileServiceTypeTransactions,
-                           (BRFileServiceContext) ewm,
-                           EWM_TRANSACTION_VERSION_1,
-                           fileServiceTypeTransactionV1Identifier,
-                           fileServiceTypeTransactionV1Reader,
-                           fileServiceTypeTransactionV1Writer);
-    fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeTransactions,
-                                     EWM_TRANSACTION_VERSION_1);
+    if (1 != fileServiceDefineType (ewm->fs, fileServiceTypeTransactions, EWM_TRANSACTION_VERSION_1,
+                                    (BRFileServiceContext) ewm,
+                                    fileServiceTypeTransactionV1Identifier,
+                                    fileServiceTypeTransactionV1Reader,
+                                    fileServiceTypeTransactionV1Writer) ||
+        1 != fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeTransactions,
+                                              EWM_TRANSACTION_VERSION_1))
+        return ewmCreateErrorHandler(ewm, 1, fileServiceTypeTransactions);
 
     /// Log
-    fileServiceDefineType (ewm->fs, fileServiceTypeLogs,
-                           (BRFileServiceContext) ewm,
-                           EWM_LOG_VERSION_1,
-                           fileServiceTypeLogV1Identifier,
-                           fileServiceTypeLogV1Reader,
-                           fileServiceTypeLogV1Writer);
-    fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeLogs,
-                                     EWM_LOG_VERSION_1);
+    if (1 != fileServiceDefineType (ewm->fs, fileServiceTypeLogs, EWM_LOG_VERSION_1,
+                                    (BRFileServiceContext) ewm,
+                                    fileServiceTypeLogV1Identifier,
+                                    fileServiceTypeLogV1Reader,
+                                    fileServiceTypeLogV1Writer) ||
+        1 != fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeLogs,
+                                              EWM_LOG_VERSION_1))
+        return ewmCreateErrorHandler(ewm, 1, fileServiceTypeLogs);
 
     /// Peer
-    fileServiceDefineType (ewm->fs, fileServiceTypeNodes,
-                           (BRFileServiceContext) ewm,
-                           EWM_NODE_VERSION_1,
-                           fileServiceTypeNodeV1Identifier,
-                           fileServiceTypeNodeV1Reader,
-                           fileServiceTypeNodeV1Writer);
-    fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeNodes,
-                                     EWM_NODE_VERSION_1);
+    if (1 != fileServiceDefineType (ewm->fs, fileServiceTypeNodes, EWM_NODE_VERSION_1,
+                                    (BRFileServiceContext) ewm,
+                                    fileServiceTypeNodeV1Identifier,
+                                    fileServiceTypeNodeV1Reader,
+                                    fileServiceTypeNodeV1Writer) ||
+        1 != fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeNodes,
+                                              EWM_NODE_VERSION_1))
+        return ewmCreateErrorHandler(ewm, 1, fileServiceTypeNodes);
+
 
    /// Block
-    fileServiceDefineType (ewm->fs, fileServiceTypeBlocks,
-                           (BRFileServiceContext) ewm,
-                           EWM_BLOCK_VERSION_1,
-                           fileServiceTypeBlockV1Identifier,
-                           fileServiceTypeBlockV1Reader,
-                           fileServiceTypeBlockV1Writer);
-    fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeBlocks,
-                                     EWM_BLOCK_VERSION_1);
+    if (1 != fileServiceDefineType (ewm->fs, fileServiceTypeBlocks, EWM_BLOCK_VERSION_1,
+                                    (BRFileServiceContext) ewm,
+                                    fileServiceTypeBlockV1Identifier,
+                                    fileServiceTypeBlockV1Reader,
+                                    fileServiceTypeBlockV1Writer) ||
+        1 != fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeBlocks,
+                                              EWM_BLOCK_VERSION_1))
+        return ewmCreateErrorHandler(ewm, 1, fileServiceTypeBlocks);
 
     // Load all the persistent entities
     BRSetOf(BREthereumTransaction) transactions = initialTransactionsLoad(ewm);
