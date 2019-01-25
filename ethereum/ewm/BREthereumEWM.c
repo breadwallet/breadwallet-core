@@ -45,6 +45,8 @@
 // When using a BRD sync offset the start block by 3 days of Ethereum blocks
 #define EWM_BRD_SYNC_START_BLOCK_OFFSET        (3 * 24 * 60 * 4)   /* 4 per minute, every 15 seconds */
 
+#define EWM_INITIAL_SET_SIZE_DEFAULT         (25)
+
 /* Forward Declaration */
 static void
 ewmPeriodicDispatcher (BREventHandler handler,
@@ -107,8 +109,11 @@ fileServiceTypeTransactionV1Reader (BRFileServiceContext context,
 
 static BRSetOf(BREthereumTransaction)
 initialTransactionsLoad (BREthereumEWM ewm) {
-    BRSetOf(BREthereumTransaction) transactions = BRSetNew(transactionHashValue, transactionHashEqual, 100);
-    fileServiceLoad (ewm->fs, transactions, fileServiceTypeTransactions, 1);
+    BRSetOf(BREthereumTransaction) transactions = BRSetNew(transactionHashValue, transactionHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
+    if (1 != fileServiceLoad (ewm->fs, transactions, fileServiceTypeTransactions, 1)) {
+        BRSetFree(transactions);
+        return NULL;
+    }
     return transactions;
 }
 
@@ -167,8 +172,11 @@ fileServiceTypeLogV1Reader (BRFileServiceContext context,
 
 static BRSetOf(BREthereumLog)
 initialLogsLoad (BREthereumEWM ewm) {
-    BRSetOf(BREthereumLog) logs = BRSetNew(logHashValue, logHashEqual, 100);
-    fileServiceLoad (ewm->fs, logs, fileServiceTypeLogs, 1);
+    BRSetOf(BREthereumLog) logs = BRSetNew(logHashValue, logHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
+    if (1 != fileServiceLoad (ewm->fs, logs, fileServiceTypeLogs, 1)) {
+        BRSetFree(logs);
+        return NULL;
+    }
     return logs;
 }
 
@@ -227,8 +235,11 @@ fileServiceTypeBlockV1Reader (BRFileServiceContext context,
 
 static BRSetOf(BREthereumBlock)
 initialBlocksLoad (BREthereumEWM ewm) {
-    BRSetOf(BREthereumBlock) blocks = BRSetNew(blockHashValue, blockHashEqual, 100);
-    fileServiceLoad (ewm->fs, blocks, fileServiceTypeBlocks, 1);
+    BRSetOf(BREthereumBlock) blocks = BRSetNew(blockHashValue, blockHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
+    if (1 != fileServiceLoad (ewm->fs, blocks, fileServiceTypeBlocks, 1)) {
+        BRSetFree(blocks);
+        return NULL;
+    }
     return blocks;
 }
 
@@ -287,11 +298,47 @@ fileServiceTypeNodeV1Reader (BRFileServiceContext context,
 
 static BRSetOf(BREthereumNodeConfig)
 initialNodesLoad (BREthereumEWM ewm) {
-    BRSetOf(BREthereumNodeConfig) nodes = BRSetNew(nodeConfigHashValue, nodeConfigHashEqual, 100);
-    fileServiceLoad (ewm->fs, nodes, fileServiceTypeNodes, 1);
+    BRSetOf(BREthereumNodeConfig) nodes = BRSetNew(nodeConfigHashValue, nodeConfigHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
+    if (1 != fileServiceLoad (ewm->fs, nodes, fileServiceTypeNodes, 1)) {
+        BRSetFree(nodes);
+        return NULL;
+    }
     return nodes;
 }
 
+
+/**
+ *
+ *
+ * @param context The EthereumWalletManager (EWM)
+ * @param fs the FileSerice
+ * @param error A BRFileServiceError
+ */
+static void
+ewmFileServiceErrorHandler (BRFileServiceContext context,
+                            BRFileService fs,
+                            BRFileServiceError error) {
+    //BREthereumEWM ewm = (BREthereumEWM) context;
+
+    switch (error.type) {
+        case FILE_SERVICE_IMPL:
+            // This actually a FATAL - an unresolvable coding error.
+            eth_log ("EWM", "FileService Error: IMPL: %s", error.u.impl.reason);
+            break;
+        case FILE_SERVICE_UNIX:
+            eth_log ("EWM", "FileService Error: UNIX: %s", strerror(error.u.unix.error));
+            break;
+        case FILE_SERVICE_ENTITY:
+            // This is likely a coding error too.
+            eth_log ("EWM", "FileService Error: ENTITY (%s): %s",
+                     error.u.entity.type,
+                     error.u.entity.reason);
+            break;
+    }
+    eth_log ("EWM", "FileService Error: FORCED SYNC%s", "");
+
+    // TODO: Actually force a resync.
+}
 ///
 /// MARK: Ethereum Wallet Manager
 ///
@@ -329,7 +376,9 @@ ewmCreate (BREthereumNetwork network,
 
     // The file service.  Initialize {nodes, blocks, transactions and logs} from the FileService
 
-    ewm->fs = fileServiceCreate (storagePath, networkGetName(network), "eth");
+    ewm->fs = fileServiceCreate (storagePath, networkGetName(network), "eth",
+                                 ewm,
+                                 ewmFileServiceErrorHandler);
     if (NULL == ewm->fs) { free (ewm); return NULL; }
 
     /// Transaction
@@ -341,7 +390,6 @@ ewmCreate (BREthereumNetwork network,
                            fileServiceTypeTransactionV1Writer);
     fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeTransactions,
                                      EWM_TRANSACTION_VERSION_1);
-    BRSetOf(BREthereumTransaction) transactions = initialTransactionsLoad(ewm);
 
     /// Log
     fileServiceDefineType (ewm->fs, fileServiceTypeLogs,
@@ -352,7 +400,6 @@ ewmCreate (BREthereumNetwork network,
                            fileServiceTypeLogV1Writer);
     fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeLogs,
                                      EWM_LOG_VERSION_1);
-    BRSetOf(BREthereumLog) logs = initialLogsLoad(ewm);
 
     /// Peer
     fileServiceDefineType (ewm->fs, fileServiceTypeNodes,
@@ -363,7 +410,6 @@ ewmCreate (BREthereumNetwork network,
                            fileServiceTypeNodeV1Writer);
     fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeNodes,
                                      EWM_NODE_VERSION_1);
-    BRSetOf(BREthereumNodeConfig) nodes = initialNodesLoad(ewm);
 
    /// Block
     fileServiceDefineType (ewm->fs, fileServiceTypeBlocks,
@@ -374,7 +420,30 @@ ewmCreate (BREthereumNetwork network,
                            fileServiceTypeBlockV1Writer);
     fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeBlocks,
                                      EWM_BLOCK_VERSION_1);
+
+    // Load all the persistent entities
+    BRSetOf(BREthereumTransaction) transactions = initialTransactionsLoad(ewm);
+    BRSetOf(BREthereumLog) logs = initialLogsLoad(ewm);
+    BRSetOf(BREthereumNodeConfig) nodes = initialNodesLoad(ewm);
     BRSetOf(BREthereumBlock) blocks = initialBlocksLoad(ewm);
+
+    // If any are NULL, then we have an error and a full sync is required.  The sync will be
+    // started automatically, as part of the normal processing, of 'blocks' (we'll use a checkpoint,
+    // before the `accountTimestamp, which will be well in the past and we'll sync up to the
+    // head of the blockchain).
+    if (NULL == transactions || NULL == logs || NULL == nodes || NULL == blocks) {
+        if (NULL == transactions) transactions = BRSetNew(transactionHashValue, transactionHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
+        else BRSetClear(transactions);
+
+        if (NULL == logs) logs = BRSetNew(logHashValue, logHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
+        else BRSetClear(logs);
+
+        if (NULL == blocks) blocks = BRSetNew(blockHashValue, blockHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
+        else BRSetClear(blocks);
+
+        if (NULL == nodes) nodes = BRSetNew(nodeConfigHashValue, nodeConfigHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
+        else BRSetClear(nodes);
+    }
 
     // If we have no blocks; then add a checkpoint
     if (0 == BRSetCount(blocks)) {
@@ -457,10 +526,9 @@ ewmCreate (BREthereumNetwork network,
                                  blockGetNumber (lastBlock),
                                  blockGetTimestamp (lastBlock));
 
-            // ... and then ignore nodes
+            // ... and then just ignore nodes
 
-            // TODO: What items to free?
-            BRSetFree (nodes);
+            // Free sets... BUT DO NOT free 'nodes' as those had 'OwnershipGiven' in bcsCreate()
             BRSetFree (blocks);
             BRSetFree (transactions);
             BRSetFree (logs);
@@ -474,7 +542,7 @@ ewmCreate (BREthereumNetwork network,
             break;
         }
 
-        case P2P_WITH_BRD_SYNC:
+        case P2P_WITH_BRD_SYNC:  // 
         case P2P_ONLY: {
             ewm->bcs = bcsCreate (network,
                                   accountGetPrimaryAddress (account),

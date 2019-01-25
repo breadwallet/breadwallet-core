@@ -155,7 +155,10 @@ fileServiceTypeTransactionV1Reader (BRFileServiceContext context,
 static BRArrayOf(BRTransaction*)
 initialTransactionsLoad (BRWalletManager manager) {
     BRSetOf(BRTransaction*) transactionSet = BRSetNew(BRTransactionHash, BRTransactionEq, 100);
-    fileServiceLoad (manager->fileService, transactionSet, fileServiceTypeTransactions, 1);
+    if (1 != fileServiceLoad (manager->fileService, transactionSet, fileServiceTypeTransactions, 1)) {
+        BRSetFree(transactionSet);
+        return NULL;
+    }
 
     size_t transactionsCount = BRSetCount(transactionSet);
 
@@ -235,7 +238,10 @@ fileServiceTypeBlockV1Reader (BRFileServiceContext context,
 static BRArrayOf(BRMerkleBlock*)
 initialBlocksLoad (BRWalletManager manager) {
     BRSetOf(BRTransaction*) blockSet = BRSetNew(BRMerkleBlockHash, BRMerkleBlockEq, 100);
-    fileServiceLoad (manager->fileService, blockSet, fileServiceTypeBlocks, 1);
+    if (1 != fileServiceLoad (manager->fileService, blockSet, fileServiceTypeBlocks, 1)) {
+        BRSetFree (blockSet);
+        return NULL;
+    }
 
     size_t blocksCount = BRSetCount(blockSet);
 
@@ -301,7 +307,10 @@ static BRArrayOf(BRPeer)
 initialPeersLoad (BRWalletManager manager) {
     /// Load peers for the wallet manager.
     BRSetOf(BRPeer*) peerSet = BRSetNew(BRPeerHash, BRPeerEq, 100);
-    fileServiceLoad (manager->fileService, peerSet, fileServiceTypePeers, 1);
+    if (1 != fileServiceLoad (manager->fileService, peerSet, fileServiceTypePeers, 1)) {
+        BRSetFree(peerSet);
+        return NULL;
+    }
 
     size_t peersCount = BRSetCount(peerSet);
     BRPeer *peersRefs[peersCount];
@@ -319,6 +328,32 @@ initialPeersLoad (BRWalletManager manager) {
     return peers;
 }
 
+static void
+bwmFileServiceErrorHandler (BRFileServiceContext context,
+                            BRFileService fs,
+                            BRFileServiceError error) {
+    BRWalletManager bwm = (BRWalletManager) context;
+
+    switch (error.type) {
+        case FILE_SERVICE_IMPL:
+            // This actually a FATAL - an unresolvable coding error.
+            _peer_log ("bread: FileService Error: IMPL: %s", error.u.impl.reason);
+            break;
+        case FILE_SERVICE_UNIX:
+            _peer_log ("bread: FileService Error: UNIX: %s", strerror(error.u.unix.error));
+            break;
+        case FILE_SERVICE_ENTITY:
+            // This is likely a coding error too.
+            _peer_log ("bread: FileService Error: ENTITY (%s); %s",
+                     error.u.entity.type,
+                     error.u.entity.reason);
+            break;
+    }
+    _peer_log ("bread: FileService Error: FORCED SYNC%s", "");
+
+    if (NULL != bwm->peerManager)
+        BRPeerManagerRescan (bwm->peerManager);
+}
 ///
 /// MARK: Wallet Manager
 ///
@@ -341,7 +376,9 @@ BRWalletManagerNew (BRWalletManagerClient client,
     //
     // Create the File Service w/ associated types.
     //
-    manager->fileService = fileServiceCreate (baseStoragePath, networkName, currencyName);
+    manager->fileService = fileServiceCreate (baseStoragePath, networkName, currencyName,
+                                              manager,
+                                              bwmFileServiceErrorHandler);
     if (NULL == manager->fileService) { free (manager); return NULL; }
 
     /// Transaction
@@ -376,6 +413,22 @@ BRWalletManagerNew (BRWalletManagerClient client,
 
     /// Load transactions for the wallet manager.
     BRArrayOf(BRTransaction*) transactions = initialTransactionsLoad(manager);
+    /// Load blocks and peers for the peer manager.
+    BRArrayOf(BRMerkleBlock*) blocks = initialBlocksLoad(manager);
+    BRArrayOf(BRPeer) peers = initialPeersLoad(manager);
+
+    // If any of these are NULL, then there was a failure; on a failure they all need to be cleared
+    // which will cause a *FULL SYNC*
+    if (NULL == transactions || NULL == blocks || NULL == peers) {
+        if (NULL == transactions) array_new (transactions, 1);
+        else array_clear(transactions);
+
+        if (NULL == blocks) array_new (blocks, 1);
+        else array_clear(blocks);
+
+        if (NULL == peers) array_new (peers, 1);
+        else array_clear(peers);
+    }
 
     manager->wallet = BRWalletNew (transactions, array_count(transactions), mpk, fork);
     BRWalletSetCallbacks (manager->wallet, manager,
@@ -384,17 +437,12 @@ BRWalletManagerNew (BRWalletManagerClient client,
                           _BRWalletManagerTxUpdated,
                           _BRWalletManagerTxDeleted);
     
-    array_free(transactions);
 
     client.funcWalletEvent (manager,
                             manager->wallet,
                             (BRWalletEvent) {
                                 BITCOIN_WALLET_CREATED
                             });
-
-    /// Load blocks and peers for the peer manager.
-    BRArrayOf(BRMerkleBlock*) blocks = initialBlocksLoad(manager);
-    BRArrayOf(BRPeer) peers = initialPeersLoad(manager);
 
     manager->peerManager = BRPeerManagerNew (params, manager->wallet, earliestKeyTime,
                                              blocks, array_count(blocks),
@@ -409,7 +457,7 @@ BRWalletManagerNew (BRWalletManagerClient client,
                                _BRWalletManagerNetworkIsReachabele,
                                _BRWalletManagerThreadCleanup);
 
-    array_free(blocks); array_free(peers);
+    array_free(transactions); array_free(blocks); array_free(peers);
 
     return manager;
 }

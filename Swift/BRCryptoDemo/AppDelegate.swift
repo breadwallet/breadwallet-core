@@ -63,6 +63,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
             .appendingPathComponent("Core").path
 
         do {
+            if FileManager.default.fileExists(atPath: storagePath) {
+                try FileManager.default.removeItem(atPath: storagePath)
+            }
+
             try FileManager.default.createDirectory (atPath: storagePath,
                                                      withIntermediateDirectories: true,
                                                      attributes: nil)
@@ -70,6 +74,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
         catch let error as NSError {
             print("Error: \(error.localizedDescription)")
         }
+
+        NSLog ("StoragePath: \(storagePath)");
 
         self.listener = CoreDemoListener ()
 

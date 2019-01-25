@@ -265,7 +265,7 @@ public class BitcoinWallet: Wallet {
 /// BRCorePeerManager.
 ///
 public class BitcoinWalletManager: WalletManager {
-    #if false
+    #if true
     internal let coreWalletManager: BRCoreWalletManager
     #endif
     
@@ -379,7 +379,7 @@ public class BitcoinWalletManager: WalletManager {
         self.mode = mode
         self.state = WalletManagerState.created
 
-#if false
+#if true
         let client = BRWalletManagerClient (
             funcTransactionEvent: { (this, coreWallet, coreTransaction, event) in
                 if let bwm  = BitcoinWalletManager.lookup (manager: this),
@@ -505,12 +505,14 @@ public class BitcoinWalletManager: WalletManager {
                 }})
 
         self.coreWalletManager = BRWalletManagerNew (client,
-                                                    forkId,
                                                     account.masterPublicKey,
                                                     params,
                                                     UInt32 (timestamp),
                                                     path)
-#endif
+
+        self.corePeerManager = BRWalletManagerGetPeerManager (self.coreWalletManager)
+        self.coreWallet = BRWalletManagerGetWallet(self.coreWalletManager)
+#else
 
         self.coreWallet      = BRWalletNew (nil, 0, account.masterPublicKey, Int32(forkId.rawValue))
         self.corePeerManager = BRPeerManagerNew (params, coreWallet, UInt32(timestamp),
@@ -662,7 +664,7 @@ public class BitcoinWalletManager: WalletManager {
             { (this) in // threadCleanup
                 if let _  = BitcoinWalletManager.lookup (ptr: this) {
                 }})
-
+        #endif
 
         BitcoinWalletManager.managers.append(self)
         self.listener.handleManagerEvent(manager: self, event: WalletManagerEvent.created)
@@ -670,14 +672,14 @@ public class BitcoinWalletManager: WalletManager {
     }
     
     public func connect() {
-        #if false
+        #if true
         BRWalletManagerConnect(self.coreWalletManager)
         #endif
         BRPeerManagerConnect (self.corePeerManager)
     }
     
     public func disconnect() {
-        #if false
+        #if true
         BRWalletManagerDisconnect(self.coreWalletManager)
         #endif
         BRPeerManagerDisconnect (self.corePeerManager)

@@ -42,18 +42,70 @@
 //
 typedef struct BRFileServiceRecord *BRFileService;
 
+/// A context used in callbacks
+typedef void* BRFileServiceContext;
+
+typedef enum {
+    FILE_SERVICE_IMPL,              // generally a fatal condition
+    FILE_SERVICE_UNIX,              // something in the file system (fopen, fwrite, ... errorred)
+    FILE_SERVICE_ENTITY             // entity read/write (parse/serialize) error
+} BRFileServiceErrorType;
+
+typedef struct {
+    BRFileServiceErrorType type;
+    union {
+        struct {
+            const char *reason;
+        } impl;
+
+        struct {
+            int error;
+        } unix;
+
+        struct {
+            const char *type;
+            const char *reason;
+        } entity;
+    } u;
+} BRFileServiceError;
+
+typedef void
+(*BRFileServiceErrorHandler) (BRFileServiceContext context,
+                              BRFileService fs,
+                              BRFileServiceError error);
+
+
 /// This *must* be the same fixed size type forever.  It is uint8_t.
 typedef uint8_t BRFileServiceVersion;
 
 extern BRFileService
 fileServiceCreate (const char *basePath,
                    const char *network,
-                   const char *currency);
+                   const char *currency,
+                   BRFileServiceContext context,
+                   BRFileServiceErrorHandler handler);
 
 extern void
 fileServiceRelease (BRFileService fs);
 
-extern void /* error code? or return 'results' (instead of filling `results`) */
+extern void
+fileServiceSetErrorHandler (BRFileService fs,
+                            BRFileServiceContext context,
+                            BRFileServiceErrorHandler handler);
+
+/**
+ * Load all entities of `type` adding each to `results`.  If there is an error then the
+ * fileServices' error handler is invoked and 0 is returned
+ *
+ * @param fs The fileServie
+ * @param results A BRSet within which to store the results.  The type stored in the BRSet must
+ *     be consistent with type recovered from the file system.
+ * @param type The type to restore
+ * @param updateVersion If true (1) update old versions with newer ones.
+ *
+ * @return true (1) if success, false (0) otherwise;
+ */
+extern int
 fileServiceLoad (BRFileService fs,
                  BRSet *results,
                  const char *type,   /* blocks, peers, transactions, logs, ... */
@@ -75,8 +127,6 @@ fileServiceClear (BRFileService fs,
 
 extern void
 fileServiceClearAll (BRFileService fs);
-
-typedef void* BRFileServiceContext;
 
 typedef UInt256
 (*BRFileServiceIdentifier) (BRFileServiceContext context,
