@@ -38,11 +38,13 @@
 #define FILE_SERVICE_INITIAL_TYPE_COUNT    (5)
 #define FILE_SERVICE_INITIAL_HANDLER_COUNT    (2)
 
+/// Return 0 on success, -1 otherwise
 static int directoryMake (const char *path) {
     struct stat dirStat;
-    if (0 == stat  (path, &dirStat)) return 0;
-    if (0 == mkdir (path, 0700)) return 0;
-    return -1;
+    if (0 == stat  (path, &dirStat)) return 0;  // if exists, success
+    if (0 != mkdir (path, 0700))     return -1; // if can't create, error
+    if (0 == stat  (path, &dirStat)) return 0;  // if exists, success
+    return -1; // otherwise error
 }
 
 // This must be coercible to/from a uint8_t forever.
