@@ -380,12 +380,14 @@ static void _updateFilterLoadDone(void *info, int success)
         peer->flags &= ~PEER_FLAG_NEEDSUPDATE;
         
         if (manager->lastBlock->height < manager->estimatedHeight) { // if syncing, rerequest blocks
-            peerInfo = calloc(1, sizeof(*peerInfo));
-            assert(peerInfo != NULL);
-            peerInfo->peer = peer;
-            peerInfo->manager = manager;
-            BRPeerRerequestBlocks(manager->downloadPeer, manager->lastBlock->blockHash);
-            BRPeerSendPing(manager->downloadPeer, peerInfo, _updateFilterRerequestDone);
+            if (manager->downloadPeer) {
+                peerInfo = calloc(1, sizeof(*peerInfo));
+                assert(peerInfo != NULL);
+                peerInfo->peer = peer;
+                peerInfo->manager = manager;
+                BRPeerRerequestBlocks(manager->downloadPeer, manager->lastBlock->blockHash);
+                BRPeerSendPing(manager->downloadPeer, peerInfo, _updateFilterRerequestDone);
+            }
         }
         else BRPeerSendMempool(peer, NULL, 0, NULL, NULL); // if not syncing, request mempool
         
