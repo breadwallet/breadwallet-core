@@ -58,8 +58,8 @@ static BRFileServiceHeaderFormatVersion currentHeaderFormatVersion = HEADER_FORM
 /// The handlers for a particular entity's version
 ///
 typedef struct {
-    BRFileServiceContext context;
     BRFileServiceVersion version;
+    BRFileServiceContext context;
     BRFileServiceIdentifier identifier;
     BRFileServiceReader reader;
     BRFileServiceWriter writer;
@@ -115,8 +115,8 @@ struct BRFileServiceRecord {
 
 extern BRFileService
 fileServiceCreate (const char *basePath,
-                   const char *network,
                    const char *currency,
+                   const char *network,
                    BRFileServiceContext context,
                    BRFileServiceErrorHandler handler) {
     // Reasonable limits on `network` and `currency` (ensure subsequent stack allocation works).
@@ -489,8 +489,8 @@ fileServiceDefineType (BRFileService fs,
 
     // Create a handler for the entity
     BRFileServiceEntityHandler newEntityHander = {
-        context,
         version,
+        context,
         identifier,
         reader,
         writer
@@ -505,13 +505,14 @@ fileServiceDefineType (BRFileService fs,
     
     // otherwise add one
     else {
-        fileServiceEntityTypeAddHandler (entityType, &newEntityHander);
-
+        // Confirm that the directory can be made.
         char dirPath[strlen(fs->pathToType) + 1 + strlen(type) + 1];
         sprintf (dirPath, "%s/%s", fs->pathToType, type);
 
         if (-1 == directoryMake(dirPath))
             return fileServiceFailedUnix (fs, NULL, NULL, errno);
+
+        fileServiceEntityTypeAddHandler (entityType, &newEntityHander);
     }
 
     return 1;

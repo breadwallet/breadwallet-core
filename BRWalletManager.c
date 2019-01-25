@@ -387,7 +387,7 @@ BRWalletManagerNew (BRWalletManagerClient client,
     //
     // Create the File Service w/ associated types.
     //
-    manager->fileService = fileServiceCreate (baseStoragePath, networkName, currencyName,
+    manager->fileService = fileServiceCreate (baseStoragePath, currencyName, networkName, 
                                               manager,
                                               bwmFileServiceErrorHandler);
     if (NULL == manager->fileService) return bwmCreateErrorHandler (manager, 1, "create");

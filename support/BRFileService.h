@@ -80,8 +80,8 @@ typedef uint8_t BRFileServiceVersion;
 
 extern BRFileService
 fileServiceCreate (const char *basePath,
-                   const char *network,
                    const char *currency,
+                   const char *network,
                    BRFileServiceContext context,
                    BRFileServiceErrorHandler handler);
 
@@ -183,51 +183,5 @@ extern int
 fileServiceDefineCurrentVersion (BRFileService fs,
                                  const char *type,
                                  BRFileServiceVersion version);
-//{code}
-
-#if defined (NEVER_DEFINED)
-//Example use:
-
-//{code:C}
-
-//
-// In BRWalletManager.c
-// ...
-manager->fileService = fileServiceCreate (/* BTC or BCH, Mainnet or Testnet, ...*/);
-fileServiceDefineType (manager->fileService,
-                       "transaction",
-                       SomeVersion
-                       BRTransactionFileReaderForSomeVersion,     /* TBD */
-                       BRTransactionFileWriter);    /* TBD */
-// ... transaction, other versions ...
-fileServiceDefineCurrentVersion (manager->fileService, "transaction", CurrentVersion);
-
-// ... block ...
-// ... peer ...
-
-BRSetOf(BRTransaction) transactions;
-manager->transactions = BRSetNew (/* ... */);
-
-fileServiceLoad (manager->fileService,
-                 manager->transactions,
-                 "transaction");
-
-
-manager->wallet = BRWalletNew (transactionsAsArray, array_count(transactionsAsArray), mpk, fork);
-// ...
-
-//
-// In _BRWalletManagerTxAdded.
-//
-static void
-_BRWalletManagerTxAdded (void *info, BRTransaction *tx) {
-    BRWalletManager manager = (BRWalletManager) info;
-    fileServiceSave (manager->fs,
-                     "transaction",
-                     tx);
-    // ...
-}
-//{code}
-#endif /* defined (TASK_DESCRIPTION) */
 
 #endif /* BRFileService_h */
