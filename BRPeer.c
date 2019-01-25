@@ -1623,7 +1623,6 @@ void BRPeerRerequestBlocks(BRPeer *peer, UInt256 fromBlock)
         peer_log(peer, "re-requesting %zu block(s)", array_count(ctx->knownBlockHashes));
         BRPeerSendGetdata(peer, NULL, 0, ctx->knownBlockHashes, array_count(ctx->knownBlockHashes));
     }
-    pthread_mutex_destroy(&ctx->lock);
 }
 
 void BRPeerFree(BRPeer *peer)
@@ -1637,6 +1636,8 @@ void BRPeerFree(BRPeer *peer)
     if (ctx->knownTxHashSet) BRSetFree(ctx->knownTxHashSet);
     if (ctx->pongCallback) array_free(ctx->pongCallback);
     if (ctx->pongInfo) array_free(ctx->pongInfo);
+    
+    pthread_mutex_destroy(&ctx->lock);
     free(ctx);
 }
 
