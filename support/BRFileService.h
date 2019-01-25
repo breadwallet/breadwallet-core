@@ -42,18 +42,70 @@
 //
 typedef struct BRFileServiceRecord *BRFileService;
 
+/// A context used in callbacks
+typedef void* BRFileServiceContext;
+
+typedef enum {
+    FILE_SERVICE_IMPL,              // generally a fatal condition
+    FILE_SERVICE_UNIX,              // something in the file system (fopen, fwrite, ... errorred)
+    FILE_SERVICE_ENTITY             // entity read/write (parse/serialize) error
+} BRFileServiceErrorType;
+
+typedef struct {
+    BRFileServiceErrorType type;
+    union {
+        struct {
+            const char *reason;
+        } impl;
+
+        struct {
+            int error;
+        } unix;
+
+        struct {
+            const char *type;
+            const char *reason;
+        } entity;
+    } u;
+} BRFileServiceError;
+
+typedef void
+(*BRFileServiceErrorHandler) (BRFileServiceContext context,
+                              BRFileService fs,
+                              BRFileServiceError error);
+
+
 /// This *must* be the same fixed size type forever.  It is uint8_t.
 typedef uint8_t BRFileServiceVersion;
 
 extern BRFileService
 fileServiceCreate (const char *basePath,
+                   const char *currency,
                    const char *network,
-                   const char *currency);
+                   BRFileServiceContext context,
+                   BRFileServiceErrorHandler handler);
 
 extern void
 fileServiceRelease (BRFileService fs);
 
-extern void /* error code? or return 'results' (instead of filling `results`) */
+extern void
+fileServiceSetErrorHandler (BRFileService fs,
+                            BRFileServiceContext context,
+                            BRFileServiceErrorHandler handler);
+
+/**
+ * Load all entities of `type` adding each to `results`.  If there is an error then the
+ * fileServices' error handler is invoked and 0 is returned
+ *
+ * @param fs The fileServie
+ * @param results A BRSet within which to store the results.  The type stored in the BRSet must
+ *     be consistent with type recovered from the file system.
+ * @param type The type to restore
+ * @param updateVersion If true (1) update old versions with newer ones.
+ *
+ * @return true (1) if success, false (0) otherwise;
+ */
+extern int
 fileServiceLoad (BRFileService fs,
                  BRSet *results,
                  const char *type,   /* blocks, peers, transactions, logs, ... */
@@ -76,83 +128,60 @@ fileServiceClear (BRFileService fs,
 extern void
 fileServiceClearAll (BRFileService fs);
 
-typedef void* BRFileServiceContext;
-
+/**
+ * A function type to produce an identifer from an entity.  The identifer must be constant for
+ * a particulary entity through time.  The identifier is used to derive a filename (more generally
+ * a path and filename).
+ */
 typedef UInt256
 (*BRFileServiceIdentifier) (BRFileServiceContext context,
                             BRFileService fs,
                             const void* entity);
 
+/**
+ * A function type to read an entity from a byte array.  You own the entity.
+ */
 typedef void*
 (*BRFileServiceReader) (BRFileServiceContext context,
                         BRFileService fs,
                         uint8_t *bytes,
                         uint32_t bytesCount);
 
+/**
+ * A function type to write an entity to a byte array.  You own the byte array.
+ */
 typedef uint8_t*
 (*BRFileServiceWriter) (BRFileServiceContext context,
                         BRFileService fs,
                         const void* entity,
                         uint32_t *bytesCount);
 
-extern void
+/**
+ * Define a 'type', such as {block, peer, transaction, logs, etc}, that is to be stored in the
+ * file system.
+ *
+ * @param fs the file service
+ * @param type the type
+ * @param context an arbitrary value to be passed to the type-specific functions.
+ * @param version the entity version handled by the type-specific functions.
+ * @param identifier the function that produces the identifier
+ * @param reader the function the produces an entity from a byte array
+ * @param writer the function that produces a byte array from an entity.
+ *
+ * @return true (1) if success, false (0) otherwise
+ */
+extern int
 fileServiceDefineType (BRFileService fs,
                        const char *type,
-                       BRFileServiceContext context,
                        BRFileServiceVersion version,
+                       BRFileServiceContext context,
                        BRFileServiceIdentifier identifier,
                        BRFileServiceReader reader,
                        BRFileServiceWriter writer);
 
-extern void
+extern int
 fileServiceDefineCurrentVersion (BRFileService fs,
                                  const char *type,
                                  BRFileServiceVersion version);
-//{code}
-
-#if defined (NEVER_DEFINED)
-//Example use:
-
-//{code:C}
-
-//
-// In BRWalletManager.c
-// ...
-manager->fileService = fileServiceCreate (/* BTC or BCH, Mainnet or Testnet, ...*/);
-fileServiceDefineType (manager->fileService,
-                       "transaction",
-                       SomeVersion
-                       BRTransactionFileReaderForSomeVersion,     /* TBD */
-                       BRTransactionFileWriter);    /* TBD */
-// ... transaction, other versions ...
-fileServiceDefineCurrentVersion (manager->fileService, "transaction", CurrentVersion);
-
-// ... block ...
-// ... peer ...
-
-BRSetOf(BRTransaction) transactions;
-manager->transactions = BRSetNew (/* ... */);
-
-fileServiceLoad (manager->fileService,
-                 manager->transactions,
-                 "transaction");
-
-
-manager->wallet = BRWalletNew (transactionsAsArray, array_count(transactionsAsArray), mpk, fork);
-// ...
-
-//
-// In _BRWalletManagerTxAdded.
-//
-static void
-_BRWalletManagerTxAdded (void *info, BRTransaction *tx) {
-    BRWalletManager manager = (BRWalletManager) info;
-    fileServiceSave (manager->fs,
-                     "transaction",
-                     tx);
-    // ...
-}
-//{code}
-#endif /* defined (TASK_DESCRIPTION) */
 
 #endif /* BRFileService_h */

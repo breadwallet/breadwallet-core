@@ -212,6 +212,7 @@
 		3CE48BF921E938370067BFC9 /* BRCryptoWalletTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CE48BF821E938370067BFC9 /* BRCryptoWalletTests.swift */; };
 		3CEE8EED216FAFF7008540C8 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CEE8EEC216FAFF7008540C8 /* main.c */; };
 		3CEE8EF3216FB025008540C8 /* libCoreMacOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3C6B17792131CE12003C313B /* libCoreMacOS.a */; };
+		3CEF5FB121FB972B0010A811 /* testSup.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CEF5FB021FB972B0010A811 /* testSup.c */; };
 		3CF0FC9021657D7B000DE3FE /* BREthereumData.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CF0FC8F21657D7A000DE3FE /* BREthereumData.c */; };
 		3CF0FC9121657D7B000DE3FE /* BREthereumData.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CF0FC8F21657D7A000DE3FE /* BREthereumData.c */; };
 		3CF38E4821C4421600B771E6 /* BREthereumProofOfWork.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CF38E4721C4421600B771E6 /* BREthereumProofOfWork.c */; };
@@ -446,7 +447,6 @@
 		3C386DD220C6F6070065E355 /* BREthereumEWMEvent.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BREthereumEWMEvent.c; sourceTree = "<group>"; };
 		3C3B37FB20D82335004F9928 /* BREventAlarm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BREventAlarm.c; sourceTree = "<group>"; };
 		3C3B37FC20D82335004F9928 /* BREventAlarm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BREventAlarm.h; sourceTree = "<group>"; };
-		3C3B37FE20DAAD55004F9928 /* pthread_android.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = pthread_android.h; sourceTree = "<group>"; };
 		3C3DC5B921DFCA7C004188BD /* BRFileService.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRFileService.h; sourceTree = "<group>"; };
 		3C3DC5BA21DFCA7C004188BD /* BRFileService.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRFileService.c; sourceTree = "<group>"; };
 		3C42EF512095143D000E58E0 /* module.modulemap */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = "sourcecode.module-map"; path = module.modulemap; sourceTree = "<group>"; };
@@ -580,6 +580,7 @@
 		3CE48BF821E938370067BFC9 /* BRCryptoWalletTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRCryptoWalletTests.swift; sourceTree = "<group>"; };
 		3CEE8EEA216FAFF7008540C8 /* CorePerf */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = CorePerf; sourceTree = BUILT_PRODUCTS_DIR; };
 		3CEE8EEC216FAFF7008540C8 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		3CEF5FB021FB972B0010A811 /* testSup.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testSup.c; sourceTree = "<group>"; };
 		3CF0FC8E21657D7A000DE3FE /* BREthereumData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumData.h; sourceTree = "<group>"; };
 		3CF0FC8F21657D7A000DE3FE /* BREthereumData.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumData.c; sourceTree = "<group>"; };
 		3CF38E4721C4421600B771E6 /* BREthereumProofOfWork.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumProofOfWork.c; sourceTree = "<group>"; };
@@ -938,6 +939,7 @@
 			children = (
 				3C3DC5B921DFCA7C004188BD /* BRFileService.h */,
 				3C3DC5BA21DFCA7C004188BD /* BRFileService.c */,
+				3CEF5FB021FB972B0010A811 /* testSup.c */,
 			);
 			name = support;
 			path = ../../support;
@@ -1719,6 +1721,7 @@
 			files = (
 				3CAB613320B3536000810CE4 /* test-les.c in Sources */,
 				3C9025F321064B6700143B69 /* testEvent.c in Sources */,
+				3CEF5FB121FB972B0010A811 /* testSup.c in Sources */,
 				3C9025FB2106613600143B69 /* testContract.c in Sources */,
 				3CAB60E820AF8EE000810CE4 /* test.c in Sources */,
 				3C9025F92106511700143B69 /* testEwm.c in Sources */,

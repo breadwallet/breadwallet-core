@@ -4,6 +4,8 @@
 #include "BREthereum.h"
 
 // Bitcoin
+extern int BRRunSupTests (void);
+
 extern int BRRunTests();
 
 extern int BRRunTestsSync (const char *paperKey,

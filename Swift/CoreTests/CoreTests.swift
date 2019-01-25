@@ -97,8 +97,12 @@ class CoreTests: XCTestCase {
         super.tearDown()
     }
 
+    func testBitcoinSupport () {
+        XCTAssert(1 == BRRunSupTests ())
+    }
+    
     func testBitcoin () {
-        BRRunTests()
+        XCTAssert(1 == BRRunTests())
     }
 
     //
