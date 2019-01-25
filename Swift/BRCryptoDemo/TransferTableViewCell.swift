@@ -63,8 +63,9 @@ class TransferTableViewCell: UITableViewCell {
     
     func updateView () {
         if let transfer = transfer {
-            let date: Date? = (nil == transfer.confirmation ? nil
-                : Date (timeIntervalSince1970: TimeInterval(transfer.confirmation!.timestamp)))
+            let date: Date? = transfer.confirmation.map {
+                Date (timeIntervalSince1970: TimeInterval ($0.timestamp))
+            }
             let hash = transfer.hash
 
             dateLabel.text = date.map { dateFormatter.string(from: $0) } ?? "<pending>"
