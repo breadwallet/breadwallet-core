@@ -65,16 +65,10 @@
                   Identifier = "CoreTests/testEWM()">
                </Test>
                <Test
-                  Identifier = "CoreTests/testEthereumBasics()">
-               </Test>
-               <Test
                   Identifier = "CoreTests/testEthereumSync()">
                </Test>
                <Test
                   Identifier = "CoreTests/testEthereumSyncStorage()">
-               </Test>
-               <Test
-                  Identifier = "CoreTests/testLES()">
                </Test>
                <Test
                   Identifier = "CoreTests/testLESNode()">
