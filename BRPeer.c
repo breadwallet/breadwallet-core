@@ -1086,7 +1086,6 @@ static void *_peerThreadRoutine(void *arg)
 
     pthread_mutex_lock(&ctx->lock);
     socket = ctx->socket;
-    ctx->socket = -1;
     ctx->status = BRPeerStatusDisconnected;
     pthread_mutex_unlock(&ctx->lock);
 
@@ -1265,7 +1264,6 @@ void BRPeerDisconnect(BRPeer *peer)
 
     if (_peerCheckAndGetSocket(ctx, &socket)) {
         pthread_mutex_lock(&ctx->lock);
-        ctx->socket = -1;
         ctx->status = BRPeerStatusDisconnected;
         pthread_mutex_unlock(&ctx->lock);
 
