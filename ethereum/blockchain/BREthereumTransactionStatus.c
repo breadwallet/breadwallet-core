@@ -113,7 +113,7 @@ transactionStatusEqual (BREthereumTransactionStatus ts1,
 }
 
 
-static BREthereumTransactionErrorType
+extern BREthereumTransactionErrorType
 lookupTransactionErrorType (const char *reasons[],
                             const char *reason) {
     for (BREthereumTransactionErrorType type = TRANSACTION_ERROR_INVALID_SIGNATURE;

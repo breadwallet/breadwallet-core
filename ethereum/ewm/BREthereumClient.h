@@ -120,12 +120,27 @@ extern "C" {
                                                  const char *transaction,
                                                  int rid);
 
+    /**
+     * Announce the result of a submitted transaction
+     *
+     * @param ewm the ewm
+     * @param wid the wallet
+     * @param tid the transfer
+     * @param hash the hash result of the submit, or NULL
+     * @param errorCode the error code result of a failed submit, or -1
+     * @param errorMessage the error message of a failed submit, or NULL
+     * @param rid the rid
+     *
+     * @return <#return value description#>
+     */
     extern BREthereumStatus
-    ewmAnnounceSubmitTransfer(BREthereumEWM ewm,
-                              BREthereumWallet wid,
-                              BREthereumTransfer tid,
-                              const char *hash,
-                              int rid);
+    ewmAnnounceSubmitTransfer (BREthereumEWM ewm,
+                               BREthereumWallet wid,
+                               BREthereumTransfer tid,
+                               const char *hash,
+                               int errorCode,
+                               const char *errorMessage,
+                               int rid);
 
     ///
     /// MARK: Get Transactions

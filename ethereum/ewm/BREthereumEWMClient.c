@@ -763,42 +763,61 @@ ewmWalletSubmitTransfer(BREthereumEWM ewm,
 
 extern void
 ewmHandleAnnounceSubmitTransfer (BREthereumEWM ewm,
-                                       BREthereumWallet wallet,
-                                       BREthereumTransfer transfer,
-                                       int rid) {
+                                 BREthereumWallet wallet,
+                                 BREthereumTransfer transfer,
+                                 int errorCode,
+                                 const char *errorMessage,
+                                 int rid) {
     BREthereumTransaction transaction = transferGetOriginatingTransaction (transfer);
     assert (NULL != transaction);
 
+    BREthereumTransactionStatus status = transactionStatusCreate(TRANSACTION_STATUS_PENDING);
+
     switch (ewm->mode) {
         case BRD_ONLY:
-            assert (0);
+            // NODE: For BRD_ONLY the BRD endpoint is a GETH node.  Hence lesTransactionErrorPreface,
+            if (NULL != errorMessage) {
+                BREthereumTransactionErrorType type = lookupTransactionErrorType (lesTransactionErrorPreface, errorMessage);
+                status = transactionStatusCreateErrored (type, errorMessage);
+            }
+            else if (-1 != errorCode) // -32000
+                status = transactionStatusCreateErrored (TRANSACTION_ERROR_UNKNOWN, transactionGetErrorName(TRANSACTION_ERROR_UNKNOWN));
+            break;
 
         case BRD_WITH_P2P_SEND:
         case P2P_WITH_BRD_SYNC:
         case P2P_ONLY:
-            transactionSetStatus (transaction, transactionStatusCreate(TRANSACTION_STATUS_PENDING));
-
-            // If we had a `bcs` we might think about `bcsSignalTransaction(ewm->bcs, transaction);`
-            ewmSignalTransaction (ewm, BCS_CALLBACK_TRANSACTION_ADDED, transaction);
+            // TODO: Is this anything besides PENDING?
+            // Is this even called outside of BRD_ONLY?  If so, why did BRD_ONLY have assert(0)?
             break;
     }
+
+    transactionSetStatus (transaction, status);
+
+    // If we had a `bcs` we might think about `bcsSignalTransaction(ewm->bcs, transaction);`
+    ewmSignalTransaction (ewm, BCS_CALLBACK_TRANSACTION_ADDED, transaction);
+
 }
 
 extern BREthereumStatus
 ewmAnnounceSubmitTransfer(BREthereumEWM ewm,
-                                     BREthereumWallet wallet,
-                                     BREthereumTransfer transfer,
-                                     const char *strHash,
-                                     int id) {
+                          BREthereumWallet wallet,
+                          BREthereumTransfer transfer,
+                          const char *strHash,
+                          int errorCode,
+                          const char *errorMessage,
+                          int id) {
     if (NULL == wallet) { return ERROR_UNKNOWN_WALLET; }
     if (NULL == transfer) { return ERROR_UNKNOWN_TRANSACTION; }
 
-    BREthereumHash hash = hashCreate(strHash);
-    if (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(transferGetHash(transfer), hashCreateEmpty()))
-        || ETHEREUM_BOOLEAN_IS_FALSE (hashEqual(transferGetHash(transfer), hash)))
-        return ERROR_TRANSACTION_HASH_MISMATCH;
+    if (NULL != strHash) {
+        BREthereumHash hash = hashCreate(strHash);
+        if (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(transferGetHash(transfer), hashCreateEmpty()))
+            || ETHEREUM_BOOLEAN_IS_FALSE (hashEqual(transferGetHash(transfer), hash)))
+            return ERROR_TRANSACTION_HASH_MISMATCH;
+    }
 
-    ewmSignalAnnounceSubmitTransfer (ewm, wallet, transfer, id);
+    ewmSignalAnnounceSubmitTransfer (ewm, wallet, transfer, errorCode, errorMessage, id);
     return SUCCESS;
 }
 

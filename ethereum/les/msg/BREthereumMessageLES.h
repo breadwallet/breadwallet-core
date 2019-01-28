@@ -491,6 +491,8 @@ messageLESGetRequestId (const BREthereumLESMessage *message);
 extern uint64_t
 messageLESGetChtNumber (uint64_t blkNumber);
 
+extern const char *lesTransactionErrorPreface[];
+    
 //    extern int
 //    messageLESIsChtBlockNumber (uint64_t blkNumber);
 
