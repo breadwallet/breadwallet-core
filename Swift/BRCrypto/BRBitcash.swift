@@ -6,7 +6,7 @@
 //  Copyright © 2018 breadwallet. All rights reserved.
 //
 
-import Core
+import BRCore
 
 public struct Bitcash {
     public static let currency = Currency (code: "BCH", symbol:  "₿", name: "Bitcash", decimals: 8,

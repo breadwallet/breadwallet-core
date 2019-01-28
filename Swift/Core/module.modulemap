@@ -1,4 +1,4 @@
-module Core [system] [extern_c] {
+module BRCore [system] [extern_c] {
     textual header "../../secp256k1/src/basic-config.h"
     textual header "../../secp256k1/src/secp256k1.c"
     header "../../BRInt.h"

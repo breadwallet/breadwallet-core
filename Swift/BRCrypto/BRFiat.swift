@@ -8,7 +8,7 @@
 //  Copyright © 2018 breadwallet. All rights reserved.
 //
 
-import Core
+import BRCore
 
 public struct Fiat {
     /// TODO: Dicionary<String,Currency> w/ ISO<abcd> currencies

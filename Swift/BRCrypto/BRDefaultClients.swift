@@ -7,8 +7,8 @@
 //
 
 import Foundation
-import Core
-import Core.Ethereum
+import BRCore
+import BRCore.Ethereum
 
 ///
 /// Bitcoin Stubbed Clients

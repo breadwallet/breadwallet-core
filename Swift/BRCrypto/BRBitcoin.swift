@@ -7,7 +7,7 @@
 //
 
 import Foundation // DispatchQueue
-import Core
+import BRCore
 
 public struct Bitcoin {
     public static let currency = Currency (code: "BTC", symbol:  "₿", name: "Bitcoin", decimals: 8,

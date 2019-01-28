@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import Core.Ethereum
+import BRCore.Ethereum
 
 public struct Ethereum {
     public static let currency = Currency (code: "ETH", symbol:  "Ξ", name: "Ethereum", decimals: 18,
