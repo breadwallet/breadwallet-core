@@ -723,7 +723,7 @@ const char *bootstrapLCLEnodes[] = {
 #if defined (LES_SUPPORT_PARITY)
     // Localhost - Parity
 //  "enode://4483ac6134c85ecbd31d14168f1c97b82bdc45c442e81277f52428968de41add46549f8d6c9c8c3432f3b8834b018c350ac37d87d70d67e599f42f68a96717fc@127.0.0.1:30303",     // SSD Archive
-    "enode://4483ac6134c85ecbd31d14168f1c97b82bdc45c442e81277f52428968de41add46549f8d6c9c8c3432f3b8834b018c350ac37d87d70d67e599f42f68a96717fc@192.168.1.126:30303", // SSD Archive
+    "enode://74b31b97f646b206dd01d8f20d080b97e502483a55ee64ea02cbf0c6df4263ff33bee61ba940113db36a4cfd1e1e8f2fe66cf91e6a1925f63860fb6bc5671c87@192.168.1.200:8888",  // SSD Archive
     // 192.168.1.126
 #endif
 
