@@ -497,7 +497,11 @@ static int _BRPeerAcceptHeadersMessage(BRPeer *peer, const uint8_t *msg, size_t 
             for (size_t i = 0; r && i < count; i++) {
                 BRMerkleBlock *block = BRMerkleBlockParse(&msg[off + 81*i], 81);
                 
-                if (! BRMerkleBlockIsValid(block, (uint32_t)now)) {
+                if (! block) {
+                    peer_log(peer, "malformed headers message with length: %zu", msgLen);
+                    r = 0;
+                }
+                else if (! BRMerkleBlockIsValid(block, (uint32_t)now)) {
                     peer_log(peer, "invalid block header: %s", u256hex(block->blockHash));
                     BRMerkleBlockFree(block);
                     r = 0;
@@ -1086,7 +1090,6 @@ static void *_peerThreadRoutine(void *arg)
 
     pthread_mutex_lock(&ctx->lock);
     socket = ctx->socket;
-    ctx->socket = -1;
     ctx->status = BRPeerStatusDisconnected;
     pthread_mutex_unlock(&ctx->lock);
 
@@ -1265,7 +1268,6 @@ void BRPeerDisconnect(BRPeer *peer)
 
     if (_peerCheckAndGetSocket(ctx, &socket)) {
         pthread_mutex_lock(&ctx->lock);
-        ctx->socket = -1;
         ctx->status = BRPeerStatusDisconnected;
         pthread_mutex_unlock(&ctx->lock);
 
