@@ -179,7 +179,7 @@ clientSubmitTransaction (BREthereumClientContext context,
                          const char *transaction,
                          int rid) {
     // The transaction hash
-    ewmAnnounceSubmitTransfer(ewm, wid, tid, "0x123abc456def", rid);
+    ewmAnnounceSubmitTransfer(ewm, wid, tid, "0x123abc456def", -1, NULL, rid);
 }
 
 static void

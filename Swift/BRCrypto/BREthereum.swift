@@ -801,8 +801,8 @@ public class EthereumWalletManager: WalletManager {
         ewmAnnounceGasEstimate (core, wid, tid, gasEstimate, rid)
     }
     
-    public func announceSubmitTransaction (wid: BREthereumWallet, tid: BREthereumTransfer, hash: String, rid: Int32) {
-        ewmAnnounceSubmitTransfer (core, wid, tid, hash, rid)
+    public func announceSubmitTransaction (wid: BREthereumWallet, tid: BREthereumTransfer, hash: String?, errorCode: Int32, errorMessage: String?, rid: Int32) {
+        ewmAnnounceSubmitTransfer (core, wid, tid, hash, errorCode, errorMessage, rid)
     }
     
     public func announceTransaction (rid: Int32,

@@ -786,28 +786,43 @@ typedef struct {
     BREthereumEWM ewm;
     BREthereumWallet wallet;
     BREthereumTransfer transfer;
+    int errorCode;
+    char *errorMessage;
     int rid;
 } BREthereumEWMClientAnnounceSubmitTransferEvent;
 
 static void
 ewmSignalAnnounceSubmitTransferDispatcher (BREventHandler ignore,
                                                  BREthereumEWMClientAnnounceSubmitTransferEvent *event) {
-    ewmHandleAnnounceSubmitTransfer(event->ewm, event->wallet, event->transfer, event->rid);
+    ewmHandleAnnounceSubmitTransfer (event->ewm, event->wallet, event->transfer, event->errorCode, event->errorMessage, event->rid);
+    free (event->errorMessage);
 }
+
+static void
+ewmSignalAnnounceSubmitTransferDestroyer (BREthereumEWMClientAnnounceSubmitTransferEvent *event) {
+    free (event->errorMessage);
+}
+
 
 static BREventType ewmClientAnnounceSubmitTransferEventType = {
     "EWM: Client Announce SubmitTransfer Event",
     sizeof (BREthereumEWMClientAnnounceSubmitTransferEvent),
-    (BREventDispatcher) ewmSignalAnnounceSubmitTransferDispatcher
+    (BREventDispatcher) ewmSignalAnnounceSubmitTransferDispatcher,
+    (BREventDestroyer) ewmSignalAnnounceSubmitTransferDestroyer
 };
 
 extern void
 ewmSignalAnnounceSubmitTransfer (BREthereumEWM ewm,
-                                       BREthereumWallet wallet,
-                                       BREthereumTransfer transfer,
-                                       int rid) {
+                                 BREthereumWallet wallet,
+                                 BREthereumTransfer transfer,
+                                 int errorCode,
+                                 const char *errorMessage,
+                                 int rid) {
     BREthereumEWMClientAnnounceSubmitTransferEvent message =
-    { { NULL, &ewmClientAnnounceSubmitTransferEventType}, ewm, wallet, transfer, rid};
+    { { NULL, &ewmClientAnnounceSubmitTransferEventType}, ewm, wallet, transfer,
+        errorCode,
+        strdup (NULL == errorMessage ? "" : errorMessage),
+        rid};
     eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
 }
 

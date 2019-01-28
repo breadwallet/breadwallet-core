@@ -105,7 +105,7 @@ transactionCreate(BREthereumAddress sourceAddress,
     transaction->amount = amount;
     transaction->gasPrice = gasPrice;
     transaction->gasLimit = gasLimit;           // Must not be changed.
-    transaction->data = strdup (data);
+    transaction->data = (NULL == data ? NULL : strdup (data));
     transaction->nonce = nonce;
     transaction->chainId = 0;
     transaction->hash = hashCreateEmpty();

@@ -139,6 +139,11 @@ transactionStatusDecodeList (BRRlpItem item,
                              const char *reasons[],
                              BRRlpCoder coder);
 
+/* Quasi-Statis - used when the BRD endpoint returns an error */
+extern BREthereumTransactionErrorType
+lookupTransactionErrorType (const char *reasons[],
+                            const char *reason);
+
 #ifdef __cplusplus
 }
 #endif

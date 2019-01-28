@@ -382,15 +382,19 @@ ewmSignalAnnounceGasEstimate (BREthereumEWM ewm,
 ///
 extern void
 ewmSignalAnnounceSubmitTransfer (BREthereumEWM ewm,
-                                       BREthereumWallet wallet,
-                                       BREthereumTransfer transfer,
-                                       int rid);
+                                 BREthereumWallet wallet,
+                                 BREthereumTransfer transfer,
+                                 int errorCode,
+                                 const char *errorMessage,
+                                 int rid);
 
 extern void
 ewmHandleAnnounceSubmitTransfer (BREthereumEWM ewm,
-                                       BREthereumWallet wallet,
-                                       BREthereumTransfer transfer,
-                                       int rid);
+                                 BREthereumWallet wallet,
+                                 BREthereumTransfer transfer,
+                                 int errorCode,
+                                 const char *errorMessage,
+                                 int rid);
 
 ///
 /// MARK: - Transactions

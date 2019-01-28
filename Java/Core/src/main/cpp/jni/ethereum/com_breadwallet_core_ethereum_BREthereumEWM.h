@@ -90,10 +90,10 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnou
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniAnnounceSubmitTransaction
- * Signature: (JJLjava/lang/String;I)V
+ * Signature: (JJLjava/lang/String;ILjava/lang/String;I)V
  */
 JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnounceSubmitTransaction
-  (JNIEnv *, jobject, jlong, jlong, jstring, jint);
+  (JNIEnv *, jobject, jlong, jlong, jstring, jint, jstring, jint);
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM

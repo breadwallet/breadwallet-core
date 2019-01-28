@@ -259,8 +259,8 @@ public class BREthereumEWM extends BRCoreJniReference {
         jniAnnounceGasEstimate(wid, tid, gasEstimate, rid);
     }
 
-    public void announceSubmitTransaction(long wid, long tid, String hash, int rid) {
-        jniAnnounceSubmitTransaction(wid, tid, hash, rid);
+    public void announceSubmitTransaction(long wid, long tid, String hash, int errorCode, String errorMessage, int rid) {
+        jniAnnounceSubmitTransaction(wid, tid, hash, errorCode, errorMessage, rid);
     }
 
     public void announceTransaction(int id,
@@ -603,7 +603,7 @@ public class BREthereumEWM extends BRCoreJniReference {
 
     protected native void jniAnnounceGasEstimate(long wid, long tid, String gasEstimate, int rid);
 
-    protected native void jniAnnounceSubmitTransaction(long wid, long tid, String hash, int rid);
+    protected native void jniAnnounceSubmitTransaction(long wid, long tid, String hash, int errorCode, String errorMessage, int rid);
 
     protected native void jniAnnounceBlockNumber(String blockNumber, int rid);
 

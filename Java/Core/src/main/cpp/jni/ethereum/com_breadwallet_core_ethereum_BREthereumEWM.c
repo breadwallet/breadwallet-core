@@ -289,11 +289,7 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
          jlong network,
          jstring storagePathString,
          jstring paperKeyString,
-         jobjectArray wordsArrayObject,
-         jobject peersObject,
-         jobject blocksObject,
-         jobject transactionsObject,
-         jobject logsObject) {
+         jobjectArray wordsArrayObject) {
 
     // Install the wordList
     int wordsCount = (*env)->GetArrayLength(env, wordsArrayObject);
@@ -880,7 +876,7 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnounceGasEstimate
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniAnnounceSubmitTransaction
- * Signature: (JJLjava/lang/String;I)V
+ * Signature: (JJLjava/lang/String;ILjava/lang/String;I)V
  */
 JNIEXPORT void JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnounceSubmitTransaction
@@ -888,13 +884,21 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnounceSubmitTransaction
          jlong wid,
          jlong tid,
          jstring hash,
+         jint errorCode,
+         jstring errorMessage,
          jint rid) {
     BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
-    BREthereumWallet wallet = getWallet (env, wid);
-    BREthereumTransfer transfer = getTransfer (env, tid);
-    const char *hashStr = (*env)->GetStringUTFChars (env, hash, 0);
-    ewmAnnounceSubmitTransfer(node, wallet, transfer, hashStr, rid);
-    (*env)->ReleaseStringUTFChars (env, hash, hashStr);
+    BREthereumWallet wallet = getWallet(env, wid);
+    BREthereumTransfer transfer = getTransfer(env, tid);
+    const char *hashStr = ((*env)->IsSameObject(env, hash, NULL)
+                           ? NULL
+                           : (*env)->GetStringUTFChars(env, hash, 0));
+    const char *errStr = ((*env)->IsSameObject(env, errorMessage, NULL)
+                          ? NULL
+                          : (*env)->GetStringUTFChars(env, errorMessage, 0));
+    ewmAnnounceSubmitTransfer(node, wallet, transfer, hashStr, errorCode, errStr, rid);
+    if (NULL != hashStr) (*env)->ReleaseStringUTFChars(env, errorMessage, errStr);
+    if (NULL != errStr)  (*env)->ReleaseStringUTFChars(env, hash, hashStr);
 }
 
 /*

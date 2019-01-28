@@ -50,7 +50,7 @@ public class ClientAIT implements BREthereumEWM.Client {
     @Override
     public void submitTransaction(long wid, long tid, String rawTransaction, int rid) {
         System.out.println ("TST: submitTransaction");
-        ewm.announceSubmitTransaction (wid, tid, "0xffaabb", rid);
+        ewm.announceSubmitTransaction (wid, tid, "0xffaabb", -1, null, rid);
     }
 
     @Override

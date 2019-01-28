@@ -71,7 +71,7 @@ public class DefaultEthereumBackendClient: EthereumBackendClient {
 
     public func submitTransaction(ewm: EthereumWalletManager, wid: BREthereumWallet, tid: BREthereumTransfer, rawTransaction: String, rid: Int32) {
         // JSON_RPC -> JSON -> Result -> announceSubmitTransaction()
-        ewm.announceSubmitTransaction (wid: wid, tid: tid, hash: "0xffaabb", rid: rid)
+        ewm.announceSubmitTransaction (wid: wid, tid: tid, hash: "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220", errorCode: -1, errorMessage: nil, rid: rid)
         return
     }
 
