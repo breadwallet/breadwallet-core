@@ -181,6 +181,7 @@ nodeEndpointCreateEnode (const char *enode) {
     inet_pton (disEndpoint.domain, ip, &disEndpoint.addr);
 
     BRKey key;
+    memset (&key, 0, sizeof(BRKey));
     key.pubKey[0] = 0x04;
     key.compressed = 0;
     decodeHex(&key.pubKey[1], 64, id, 128);
