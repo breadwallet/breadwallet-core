@@ -721,10 +721,9 @@ main(int argc, const char **argv) {
 //
 const char *bootstrapLCLEnodes[] = {
 #if defined (LES_SUPPORT_PARITY)
-    // Localhost - Parity
-//  "enode://4483ac6134c85ecbd31d14168f1c97b82bdc45c442e81277f52428968de41add46549f8d6c9c8c3432f3b8834b018c350ac37d87d70d67e599f42f68a96717fc@127.0.0.1:30303",     // SSD Archive
+    // Localhost/Office - Parity
+    "enode://4483ac6134c85ecbd31d14168f1c97b82bdc45c442e81277f52428968de41add46549f8d6c9c8c3432f3b8834b018c350ac37d87d70d67e599f42f68a96717fc@127.0.0.1:30303",     // SSD Archive
     "enode://74b31b97f646b206dd01d8f20d080b97e502483a55ee64ea02cbf0c6df4263ff33bee61ba940113db36a4cfd1e1e8f2fe66cf91e6a1925f63860fb6bc5671c87@192.168.1.200:8888",  // SSD Archive
-    // 192.168.1.126
 #endif
 
 #if defined (LES_SUPPORT_GETH)
@@ -743,7 +742,6 @@ const char *bootstrapBRDEnodes[] = {
     // -- Digital Ocean
     "enode://6b3d1d0d0830f399167af983585a671e433e2080c1c3ebe4f859ee31aebcac88dbad59495155b01ed5b6b292df86b48e2302d896238671893faee60b5a47dda2@167.99.160.105:8888",
     // -- GCP
-    "enode://b253e581a0d9e515164c9bf9a62db85ccc8893fd9a2b6968fac4910bd7dfe334072d4d9eb5a14a53d4647b87c0164e32d80c2f387d6d2c54e8437062a2a5855d@35.239.120.179:30303",
 #endif
 
 #if defined (LES_SUPPORT_GETH)
@@ -751,12 +749,11 @@ const char *bootstrapBRDEnodes[] = {
     // -- Digital Ocean
     "enode://9babde23c90a3f948b2a0fd8d5216a03cab5d75e351eac75831b0f41c58ab404d34b8ce9893071a09df0f3005a928c1de0ca1de9e3db5914d8750d183db9210d@104.248.185.124:8888",
     // -- GCP
-    "enode://3d0bce4775635c65733b7534f1bccd48720632f5d66a44030c1d13e2e5883262d9d22cdb8365c03137e8d5fbbf5355772acf35b08d6f9b5ad69bb24ad52a20cc@35.184.255.33:30303",
 
     // Full
     // -- Digital Ocean
-//    "enode://b9040af88f88a5b5e2864b2e98630d58579aab0649a90fff5b5b544f0aaf97a2a084651ca5a2b2f358abd215bda4494e7a350ab126915abd559d6da7b539b6ca@138.68.12.85:8888",
-//    "enode://ae1e2d1f4c17203e17a9cc8bffd5a2f9ad4cf081fa966caa643e32bdbd31f483d5ecb515113df4c9e9a6673eed25033d3031836260053bbd2f00c0d5a00cc319@206.189.78.132:8888",
+    "enode://b9040af88f88a5b5e2864b2e98630d58579aab0649a90fff5b5b544f0aaf97a2a084651ca5a2b2f358abd215bda4494e7a350ab126915abd559d6da7b539b6ca@138.68.12.85:8888",
+    "enode://ae1e2d1f4c17203e17a9cc8bffd5a2f9ad4cf081fa966caa643e32bdbd31f483d5ecb515113df4c9e9a6673eed25033d3031836260053bbd2f00c0d5a00cc319@206.189.78.132:8888",
     // -- GCP
 #endif
     NULL
