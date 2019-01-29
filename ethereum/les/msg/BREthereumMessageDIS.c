@@ -86,7 +86,12 @@ uint512BitCount (UInt512 val) {
 }
 #endif
 
-static const char *messageDISNames[] = { NULL, "Ping", "Pong", "FindNeighbors", "Neighbors" };
+static const char *messageDISNames[] = {
+    NULL,
+    "Ping",
+    "Pong",
+    "FindNeighbors",
+    "Neighbors" };
 
 extern const char *
 messageDISGetIdentifierName (BREthereumDISMessageIdentifier identifier) {

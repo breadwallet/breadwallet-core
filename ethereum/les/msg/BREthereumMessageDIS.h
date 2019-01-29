@@ -40,6 +40,7 @@ extern "C" {
  * UDP route (and PIP identifiers are use don the TCP route).
  */
 typedef enum {
+    /* No 0x00 value; caution on indexing */
     DIS_MESSAGE_PING           = 0x01,
     DIS_MESSAGE_PONG           = 0x02,
     DIS_MESSAGE_FIND_NEIGHBORS = 0x03,

@@ -1674,7 +1674,7 @@ nodeProcess (BREthereumNode node,
                     // Finally, CONNECTED
                     nodeProcessSuccess (node, NODE_ROUTE_TCP, NULL, nodeStateCreateConnected());
 
-                    // 'Announce' the STATUS message.  Pass owership of 'mesage'
+                    // 'Announce' the STATUS message.  Pass owership of 'message'
                     switch (node->type) {
                         case NODE_TYPE_UNKNOWN:
                             assert (0);

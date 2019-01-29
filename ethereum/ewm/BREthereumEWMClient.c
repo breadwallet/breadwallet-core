@@ -296,11 +296,11 @@ ewmHandleAnnounceBlockNumber (BREthereumEWM ewm,
 
 extern BREthereumStatus
 ewmAnnounceBlockNumber (BREthereumEWM ewm,
-                    const char *strBlockNumber,
-                    int rid) {
-uint64_t blockNumber = strtoull(strBlockNumber, NULL, 0);
-ewmSignalAnnounceBlockNumber (ewm, blockNumber, rid);
-return SUCCESS;
+                        const char *strBlockNumber,
+                        int rid) {
+    uint64_t blockNumber = strtoull(strBlockNumber, NULL, 0);
+    ewmSignalAnnounceBlockNumber (ewm, blockNumber, rid);
+    return SUCCESS;
 }
 
 // ==============================================================================================
@@ -333,13 +333,13 @@ ewmUpdateNonce (BREthereumEWM ewm) {
 
 extern BREthereumStatus
 ewmAnnounceNonce (BREthereumEWM ewm,
-              const char *strAddress,
-              const char *strNonce,
-              int rid) {
-BREthereumAddress address = addressCreate(strAddress);
-uint64_t nonce = strtoull (strNonce, NULL, 0);
-ewmSignalAnnounceNonce(ewm, address, nonce, rid);
-return SUCCESS;
+                  const char *strAddress,
+                  const char *strNonce,
+                  int rid) {
+    BREthereumAddress address = addressCreate(strAddress);
+    uint64_t nonce = strtoull (strNonce, NULL, 0);
+    ewmSignalAnnounceNonce(ewm, address, nonce, rid);
+    return SUCCESS;
 }
 
 /**
