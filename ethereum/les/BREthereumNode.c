@@ -296,7 +296,7 @@ nodeStateDecode (BRRlpItem item,
 
 /**
  * A Node Provisioner completes a Provision by dispatching messages, possibly multiple
- * messages, to fill the provision.  The number of messages dispatched depends on type of the
+ * messages, to fill the provision.  The number of messages dispatched depends on the type of the
  * message and the content requests.  For example, if 192 block bodies are requested but a block
  * bodies' LES message only accepts at most 64 hashes, then 3 messages will be created, each with
  * 64 hashes, to complete the provision of 192 headers.  Only when all 192 headers are received
@@ -330,6 +330,8 @@ typedef struct {
 
     /** Time of creation */
     long timestamp;
+
+    BREthereumProvisionStatus status;
 
     /** The messages needed to complete the provision.  These may be LES (for GETH) or PIP (for
      * Parity) messages. */
@@ -429,6 +431,8 @@ provisionerEstablish (BREthereumNodeProvisioner *provisioner,
                                            ? 1
                                            : 0);
 
+    provisioner->status = PROVISION_SUCCESS;
+
     // Create the messages, or just one, needed to complete the provision
     array_new (provisioner->messages, provisioner->messagesCount);
 
@@ -446,10 +450,13 @@ provisionerEstablish (BREthereumNodeProvisioner *provisioner,
 static void
 provisionerHandleMessage (BREthereumNodeProvisioner *provisioner,
                           OwnershipGiven BREthereumMessage message) {
-    provisionHandleMessage (&provisioner->provision,
-                            message,
-                            provisioner->messageContentLimit,
-                            provisioner->messageIdentifier);
+    BREthereumProvisionStatus status = provisionHandleMessage (&provisioner->provision,
+                                                               message,
+                                                               provisioner->messageContentLimit,
+                                                               provisioner->messageIdentifier);
+    // Update the provision status on error
+    if (PROVISION_ERROR == status)
+        provisioner->status = PROVISION_ERROR;
 
     // We've processed another message;
     provisioner->messagesReceivedCount++;
@@ -909,15 +916,24 @@ nodeHandleProvisionerMessage (BREthereumNode node,
     // If all messages have been received...
     if (!provisionerRecvMessagesPending(provisioner)) {
         // ... callback the result,
-        node->callbackProvide (node->callbackContext,
-                               node,
-                               (BREthereumProvisionResult) {
-                                   provisioner->provision.identifier,
-                                   provisioner->provision.type,
-                                   PROVISION_SUCCESS,
-                                   provisioner->provision,
-                                   { .success = { }}
-                               });
+        BREthereumProvisionResult result = {
+            provisioner->provision.identifier,
+            provisioner->provision.type,
+            provisioner->status,
+            provisioner->provision,
+            { .success = {}}
+        };
+
+        if (PROVISION_ERROR == provisioner->status) {
+            result.u.error.reason = PROVISION_ERROR_NODE_DATA;
+            eth_log (LES_LOG_TOPIC, "Recv: [ %3s, %15s ] => %15s (data error)",
+                     messageGetIdentifierName(&message),
+                     messageGetAnyIdentifierName(&message),
+                     nodeEndpointGetHostname(node->remote));
+        }
+
+        node->callbackProvide (node->callbackContext, node, result);
+
         // ... and remove the provisioner
         for (size_t index = 0; index < array_count (node->provisioners); index++)
             if (provisioner == &node->provisioners[index]) {

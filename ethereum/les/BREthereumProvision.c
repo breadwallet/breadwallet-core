@@ -27,6 +27,15 @@
 
 static size_t minimum (size_t x, size_t  y) { return x < y ? x : y; }
 
+extern const char *
+provisionErrorGetReasonName (BREthereumProvisionErrorReason reason) {
+    static const char *names[] = {
+        "Node Inactive",
+        "Node Data"
+    };
+    return names[reason];
+}
+
 extern BREthereumLESMessageIdentifier
 provisionGetMessageLESIdentifier (BREthereumProvisionType type) {
     switch (type) {
@@ -291,11 +300,13 @@ provisionCreateMessageLES (BREthereumProvision *provisionMulti,
     }
 }
 
-static void
+static BREthereumProvisionStatus
 provisionHandleMessageLES (BREthereumProvision *provisionMulti,
                            OwnershipGiven BREthereumLESMessage message,
                            size_t messageContentLimit,
                            uint64_t messageIdBase) {
+    BREthereumProvisionStatus status = PROVISION_SUCCESS;
+
     switch (provisionMulti->type) {
         case PROVISION_BLOCK_HEADERS: {
             assert (LES_MESSAGE_BLOCK_HEADERS == message.identifier);
@@ -308,10 +319,13 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
             BRArrayOf(BREthereumBlockHeader) messageHeaders;
             messageLESBlockHeadersConsume(&message.u.blockHeaders, &messageHeaders);
 
-            size_t offset = messageContentLimit * (identifier - messageIdBase);
-            for (size_t index = 0; index < array_count(messageHeaders); index++)
-                provisionHeaders[offset + index] = messageHeaders[index];
-
+            if (0 == array_count(messageHeaders))
+                status = PROVISION_ERROR;
+            else {
+                size_t offset = messageContentLimit * (identifier - messageIdBase);
+                for (size_t index = 0; index < array_count(messageHeaders); index++)
+                    provisionHeaders[offset + index] = messageHeaders[index];
+            }
             array_free (messageHeaders);
             break;
         }
@@ -329,46 +343,49 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
 
             messageLESHeaderProofsConsume (&message.u.headerProofs, &messageHeaders, &messagePaths);
 
-            BRRlpCoder coder = rlpCoderCreate();
+            if (0 == array_count(messageHeaders))
+                status = PROVISION_ERROR;
+            else {
+                BRRlpCoder coder = rlpCoderCreate();
 
-            size_t offset = messageContentLimit * (identifier - messageIdBase);
-            for (size_t index = 0; index < array_count(messageHeaders); index++) {
-                //BREthereumBlockHeader header = messageHeaders[index];
-                BREthereumMPTNodePath path   = messagePaths[index];
+                size_t offset = messageContentLimit * (identifier - messageIdBase);
+                for (size_t index = 0; index < array_count(messageHeaders); index++) {
+                    //BREthereumBlockHeader header = messageHeaders[index];
+                    BREthereumMPTNodePath path   = messagePaths[index];
 
-                // Result location
-                BREthereumBlockHeaderProof *proof = &provisionProofs[offset + index];
+                    // Result location
+                    BREthereumBlockHeaderProof *proof = &provisionProofs[offset + index];
 
-                // Key for MPT proof
-                BREthereumData key = mptKeyGetFromUInt64 (provision->numbers[offset + index]);
+                    // Key for MPT proof
+                    BREthereumData key = mptKeyGetFromUInt64 (provision->numbers[offset + index]);
 
-                BREthereumBoolean isValid = ETHEREUM_BOOLEAN_FALSE;
-                BRRlpData data = mptNodePathGetValue (path, key, &isValid);
+                    BREthereumBoolean isValid = ETHEREUM_BOOLEAN_FALSE;
+                    BRRlpData data = mptNodePathGetValue (path, key, &isValid);
 
-                if (ETHEREUM_BOOLEAN_IS_TRUE (isValid)) {
-                    // When valid extract [hash, totalDifficulty] from the MPT proof's value
-                    BRRlpItem item = rlpGetItem(coder, data);
+                    if (ETHEREUM_BOOLEAN_IS_TRUE (isValid)) {
+                        // When valid extract [hash, totalDifficulty] from the MPT proof's value
+                        BRRlpItem item = rlpGetItem(coder, data);
 
-                    size_t itemsCount = 0;
-                    const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
-                    assert (2 == itemsCount);
+                        size_t itemsCount = 0;
+                        const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
+                        assert (2 == itemsCount);
 
-                    proof->hash = hashRlpDecode(items[0], coder);
-                    proof->totalDifficulty = rlpDecodeUInt256 (coder, items[1], 1);
+                        proof->hash = hashRlpDecode(items[0], coder);
+                        proof->totalDifficulty = rlpDecodeUInt256 (coder, items[1], 1);
 
-                    rlpReleaseItem(coder, item);
-                    rlpDataRelease(data);
+                        rlpReleaseItem(coder, item);
+                        rlpDataRelease(data);
+                    }
+                    else {
+                        proof->hash = EMPTY_HASH_INIT;
+                        proof->totalDifficulty = UINT256_ZERO;
+                    }
+                    dataRelease(key);
                 }
-                else {
-                    proof->hash = EMPTY_HASH_INIT;
-                    proof->totalDifficulty = UINT256_ZERO;
-                }
-                dataRelease(key);
+                rlpCoderRelease(coder);
             }
-
-            blockHeadersRelease(messageHeaders);
             mptNodePathsRelease(messagePaths);
-            rlpCoderRelease(coder);
+            blockHeadersRelease(messageHeaders);
             break;
         }
 
@@ -383,10 +400,13 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
             BRArrayOf(BREthereumBlockBodyPair) messagePairs;
             messageLESBlockBodiesConsume (&message.u.blockBodies, &messagePairs);
 
-            size_t offset = messageContentLimit * (identifier - messageIdBase);
-            for (size_t index = 0; index < array_count(messagePairs); index++)
-                provisionPairs[offset + index] = messagePairs[index];
-
+            if (0 == array_count(messagePairs))
+                status = PROVISION_ERROR;
+            else {
+                size_t offset = messageContentLimit * (identifier - messageIdBase);
+                for (size_t index = 0; index < array_count(messagePairs); index++)
+                    provisionPairs[offset + index] = messagePairs[index];
+            }
             array_free (messagePairs);
             break;
         }
@@ -402,10 +422,13 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
             BRArrayOf(BREthereumLESMessageReceiptsArray) messagePairs;
             messageLESReceiptsConsume (&message.u.receipts, &messagePairs);
 
-            size_t offset = messageContentLimit * (identifier - messageIdBase);
-            for (size_t index = 0; index < array_count(messagePairs); index++)
-                provisionPairs[offset + index] = messagePairs[index].receipts;
-
+            if (0 == array_count(messagePairs))
+                status = PROVISION_ERROR;
+            else {
+                size_t offset = messageContentLimit * (identifier - messageIdBase);
+                for (size_t index = 0; index < array_count(messagePairs); index++)
+                    provisionPairs[offset + index] = messagePairs[index].receipts;
+            }
             array_free (messagePairs);
             break;
         }
@@ -424,32 +447,35 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
             BRArrayOf(BREthereumMPTNodePath) messagePaths;
             messageLESProofsConsume(&message.u.proofs, &messagePaths);
 
-            // We need a coder to RLP decode the proof's RLP data into an AccountState.  We could,
-            // and probably should, pass the coder for LES all the way down here.  It is a long
-            // way down... so we'll create one.  In fact, this is insufficient, because the LES
-            // coder has network and perhaps other context - although that is not needed here.
-            //
-            // We could add a coder to the BREthereumProvisionAccounts... yes, probably should.
-            BRRlpCoder coder = rlpCoderCreate();
+            if (0 == array_count(messagePaths))
+                status = PROVISION_ERROR;
+            else {
+                // We need a coder to RLP decode the proof's RLP data into an AccountState.  We could,
+                // and probably should, pass the coder for LES all the way down here.  It is a long
+                // way down... so we'll create one.  In fact, this is insufficient, because the LES
+                // coder has network and perhaps other context - although that is not needed here.
+                //
+                // We could add a coder to the BREthereumProvisionAccounts... yes, probably should.
+                BRRlpCoder coder = rlpCoderCreate();
 
-            size_t offset = messageContentLimit * (identifier - messageIdBase);
-            for (size_t index = 0; index < array_count(messagePaths); index++) {
-                // We expect, require, one path for each index.  A common 'GetProofs' error
-                // is be have an empty array for messagePaths - that is, no proofs and no
-                // non-proofs.  That is surely an error (boot the node), but...
-                BREthereumMPTNodePath path = messagePaths[index];
-                BREthereumBoolean foundValue = ETHEREUM_BOOLEAN_FALSE;
-                BRRlpData data = mptNodePathGetValue (path, key, &foundValue);
-                if (ETHEREUM_BOOLEAN_IS_TRUE(foundValue)) {
-                    BRRlpItem item = rlpGetItem (coder, data);
-                    provisionAccounts[offset + index] = accountStateRlpDecode (item, coder);
-                    rlpReleaseItem (coder, item);
+                size_t offset = messageContentLimit * (identifier - messageIdBase);
+                for (size_t index = 0; index < array_count(messagePaths); index++) {
+                    // We expect, require, one path for each index.  A common 'GetProofs' error
+                    // is be have an empty array for messagePaths - that is, no proofs and no
+                    // non-proofs.  That is surely an error (boot the node), but...
+                    BREthereumMPTNodePath path = messagePaths[index];
+                    BREthereumBoolean foundValue = ETHEREUM_BOOLEAN_FALSE;
+                    BRRlpData data = mptNodePathGetValue (path, key, &foundValue);
+                    if (ETHEREUM_BOOLEAN_IS_TRUE(foundValue)) {
+                        BRRlpItem item = rlpGetItem (coder, data);
+                        provisionAccounts[offset + index] = accountStateRlpDecode (item, coder);
+                        rlpReleaseItem (coder, item);
+                    }
+                    else provisionAccounts[offset + index] = accountStateCreateEmpty();
+                    rlpDataRelease(data);
                 }
-                else provisionAccounts[offset + index] = accountStateCreateEmpty();
-                rlpDataRelease(data);
+                rlpCoderRelease(coder);
             }
-            rlpCoderRelease(coder);
-
             mptNodePathsRelease(messagePaths);
             break;
         }
@@ -465,10 +491,13 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
             BRArrayOf(BREthereumTransactionStatus) messagePairs = message.u.txStatus.stati;
             messageLESTxStatusConsume (&message.u.txStatus, &messagePairs);
 
-            size_t offset = messageContentLimit * (identifier - messageIdBase);
-            for (size_t index = 0; index < array_count(messagePairs); index++)
-                provisionPairs[offset + index] = messagePairs[index];
-
+            if (0 == array_count(messagePairs))
+                status = PROVISION_ERROR;
+            else {
+                size_t offset = messageContentLimit * (identifier - messageIdBase);
+                for (size_t index = 0; index < array_count(messagePairs); index++)
+                    provisionPairs[offset + index] = messagePairs[index];
+            }
             array_free (messagePairs);
             break;
         }
@@ -481,6 +510,7 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
           }
     }
     messageLESRelease(&message);
+    return status;
 }
 
 /// MARK: PIP
@@ -730,11 +760,13 @@ provisionCreateMessagePIP (BREthereumProvision *provisionMulti,
     }
 }
 
-static void
+static BREthereumProvisionStatus
 provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
                            OwnershipGiven BREthereumPIPMessage message,
                            size_t messageContentLimit,
                            uint64_t messageIdBase) {
+    BREthereumProvisionStatus status = PROVISION_SUCCESS;
+
     switch (provisionMulti->type) {
         case PROVISION_BLOCK_HEADERS: {
             assert (PIP_MESSAGE_RESPONSE == message.type);
@@ -753,9 +785,14 @@ provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
 
             assert (PIP_REQUEST_HEADERS == output.identifier);
             BRArrayOf(BREthereumBlockHeader) messageHeaders = output.u.headers.headers;
-            size_t offset = messageContentLimit * (identifier - messageIdBase);
-            for (size_t index = 0; index < array_count(messageHeaders); index++)
-                provisionHeaders[offset + index] = messageHeaders[index];
+
+            if (0 == array_count(messageHeaders))
+                status = PROVISION_ERROR;
+            else {
+                size_t offset = messageContentLimit * (identifier - messageIdBase);
+                for (size_t index = 0; index < array_count(messageHeaders); index++)
+                    provisionHeaders[offset + index] = messageHeaders[index];
+            }
 
             array_free (messageHeaders);
             array_free (outputs);
@@ -771,36 +808,40 @@ provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
             BRArrayOf(BREthereumPIPRequestOutput) outputs = NULL;
             messagePIPResponseConsume (&message.u.response, &outputs);
 
-            BRRlpCoder coder = rlpCoderCreate();
+            if (0 == array_count(outputs))
+                status = PROVISION_ERROR;
+            else {
+                BRRlpCoder coder = rlpCoderCreate();
 
-            size_t offset = messageContentLimit * (identifier - messageIdBase);
-            for (size_t index = 0; index < array_count(outputs); index++) {
-                assert (PIP_REQUEST_HEADER_PROOF == outputs[index].identifier);
+                size_t offset = messageContentLimit * (identifier - messageIdBase);
+                for (size_t index = 0; index < array_count(outputs); index++) {
+                    assert (PIP_REQUEST_HEADER_PROOF == outputs[index].identifier);
 
-                // The MPT 'key' is the RLP encoding of the block number
-                BRRlpItem item = rlpEncodeUInt64(coder, provision->numbers[index], 0);
-                BRRlpData data = rlpGetDataSharedDontRelease (coder, item);
-                BREthereumData key = { data.bytesCount, data.bytes };
+                    // The MPT 'key' is the RLP encoding of the block number
+                    BRRlpItem item = rlpEncodeUInt64(coder, provision->numbers[index], 0);
+                    BRRlpData data = rlpGetDataSharedDontRelease (coder, item);
+                    BREthereumData key = { data.bytesCount, data.bytes };
 
-                BREthereumMPTNodePath path; // = outputs[index].u.headerProof.path;
+                    BREthereumMPTNodePath path; // = outputs[index].u.headerProof.path;
 
-                messagePIPRequestHeaderProofOutputConsume (&outputs[index].u.headerProof, &path);
+                    messagePIPRequestHeaderProofOutputConsume (&outputs[index].u.headerProof, &path);
 
-                if (ETHEREUM_BOOLEAN_IS_TRUE (mptNodePathIsValid (path, key))) {
-                    provisionProofs[offset + index].hash = outputs[index].u.headerProof.blockHash;
-                    provisionProofs[offset + index].totalDifficulty = outputs[index].u.headerProof.blockTotalDifficulty;
+                    if (ETHEREUM_BOOLEAN_IS_TRUE (mptNodePathIsValid (path, key))) {
+                        provisionProofs[offset + index].hash = outputs[index].u.headerProof.blockHash;
+                        provisionProofs[offset + index].totalDifficulty = outputs[index].u.headerProof.blockTotalDifficulty;
+                    }
+                    else {
+                        provisionProofs[offset + index].hash = EMPTY_HASH_INIT;
+                        provisionProofs[offset + index].totalDifficulty = UINT256_ZERO;
+                    }
+
+                    rlpReleaseItem (coder, item);
+                    mptNodePathRelease (path);
                 }
-                else {
-                    provisionProofs[offset + index].hash = EMPTY_HASH_INIT;
-                    provisionProofs[offset + index].totalDifficulty = UINT256_ZERO;
-                }
-
-                rlpReleaseItem (coder, item);
-                mptNodePathRelease (path);
+                rlpCoderRelease(coder);
             }
             array_free (outputs);
-            rlpCoderRelease(coder);
-            break;
+           break;
         }
 
         case PROVISION_BLOCK_BODIES: {
@@ -812,16 +853,17 @@ provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
             BRArrayOf(BREthereumPIPRequestOutput) outputs = NULL;
             messagePIPResponseConsume(&message.u.response, &outputs);
 
-            //assert (array_count(provisionPairs) == array_count(messageOutputs));
-
-            size_t offset = messageContentLimit * (identifier - messageIdBase);
-            for (size_t index = 0; index < array_count(outputs); index++) {
-                assert (PIP_REQUEST_BLOCK_BODY == outputs[index].identifier);
-                // This 'consumes' outputs[index] by taking {transactions, headers}
-                provisionPairs[offset + index].transactions = outputs[index].u.blockBody.transactions;
-                provisionPairs[offset + index].uncles = outputs[index].u.blockBody.headers;
+            if (0 == array_count(outputs))
+                status = PROVISION_ERROR;
+            else {
+                size_t offset = messageContentLimit * (identifier - messageIdBase);
+                for (size_t index = 0; index < array_count(outputs); index++) {
+                    assert (PIP_REQUEST_BLOCK_BODY == outputs[index].identifier);
+                    // This 'consumes' outputs[index] by taking {transactions, headers}
+                    provisionPairs[offset + index].transactions = outputs[index].u.blockBody.transactions;
+                    provisionPairs[offset + index].uncles = outputs[index].u.blockBody.headers;
+                }
             }
-
             array_free (outputs);
             break;
         }
@@ -835,12 +877,15 @@ provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
             BRArrayOf(BREthereumPIPRequestOutput) outputs = NULL;
             messagePIPResponseConsume(&message.u.response, &outputs);
 
-            size_t offset = messageContentLimit * (identifier - messageIdBase);
-            for (size_t index = 0; index < array_count(outputs); index++) {
-                assert (PIP_REQUEST_BLOCK_RECEIPTS == outputs[index].identifier);
-                provisionReceiptsArray[offset + index] = outputs[index].u.blockReceipt.receipts;
+            if (0 == array_count(outputs))
+                status = PROVISION_ERROR;
+            else {
+                size_t offset = messageContentLimit * (identifier - messageIdBase);
+                for (size_t index = 0; index < array_count(outputs); index++) {
+                    assert (PIP_REQUEST_BLOCK_RECEIPTS == outputs[index].identifier);
+                    provisionReceiptsArray[offset + index] = outputs[index].u.blockReceipt.receipts;
+                }
             }
-
             array_free (outputs);
             break;
         }
@@ -854,16 +899,19 @@ provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
             BRArrayOf(BREthereumPIPRequestOutput) outputs = NULL;
             messagePIPResponseConsume(&message.u.response, &outputs);
 
-            size_t offset = messageContentLimit * (identifier - messageIdBase);
-            for (size_t index = 0; index < array_count(outputs); index++) {
-                assert (PIP_REQUEST_ACCOUNT == outputs[index].identifier);
-                provisionAccounts[offset + index] =
-                accountStateCreate (outputs[index].u.account.nonce,
-                                    etherCreate(outputs[index].u.account.balance),
-                                    outputs[index].u.account.storageRootHash,
-                                    outputs[index].u.account.codeHash);
+            if (0 == array_count(outputs))
+                status = PROVISION_ERROR;
+            else {
+                size_t offset = messageContentLimit * (identifier - messageIdBase);
+                for (size_t index = 0; index < array_count(outputs); index++) {
+                    assert (PIP_REQUEST_ACCOUNT == outputs[index].identifier);
+                    provisionAccounts[offset + index] =
+                    accountStateCreate (outputs[index].u.account.nonce,
+                                        etherCreate(outputs[index].u.account.balance),
+                                        outputs[index].u.account.storageRootHash,
+                                        outputs[index].u.account.codeHash);
+                }
             }
-
             array_free (outputs);
             break;
         }
@@ -877,18 +925,21 @@ provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
             BRArrayOf(BREthereumPIPRequestOutput) outputs = NULL;
             messagePIPResponseConsume(&message.u.response, &outputs);
 
-            size_t offset = messageContentLimit * (identifier - messageIdBase);
-            for (size_t index = 0; index < array_count(outputs); index++) {
-                assert (PIP_REQUEST_TRANSACTION_INDEX == outputs[index].identifier);
-               provisionStatuses[offset + index] =
-                transactionStatusCreateIncluded (outputs[index].u.transactionIndex.blockHash,
-                                                 outputs[index].u.transactionIndex.blockNumber,
-                                                 outputs[index].u.transactionIndex.transactionIndex,
-                                                 TRANSACTION_STATUS_BLOCK_TIMESTAMP_UNKNOWN,
-                                                 gasCreate(0));
+            if (0 == array_count(outputs))
+                status = PROVISION_ERROR;
+            else {
+                size_t offset = messageContentLimit * (identifier - messageIdBase);
+                for (size_t index = 0; index < array_count(outputs); index++) {
+                    assert (PIP_REQUEST_TRANSACTION_INDEX == outputs[index].identifier);
+                    provisionStatuses[offset + index] =
+                    transactionStatusCreateIncluded (outputs[index].u.transactionIndex.blockHash,
+                                                     outputs[index].u.transactionIndex.blockNumber,
+                                                     outputs[index].u.transactionIndex.transactionIndex,
+                                                     TRANSACTION_STATUS_BLOCK_TIMESTAMP_UNKNOWN,
+                                                     gasCreate(0));
 
+                }
             }
-
             array_free (outputs);
             break;
         }
@@ -921,6 +972,7 @@ provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
         }
     }
     messagePIPRelease(&message);
+    return status;
 }
 
 /// MARK: - Create / Handle
@@ -1143,7 +1195,7 @@ provisionSubmissionConsume (BREthereumProvisionSubmission *provision,
     if (NULL != status)      { *status      = provision->status; }
 }
 
-extern void
+extern BREthereumProvisionStatus
 provisionHandleMessage (BREthereumProvision *provision,
                         OwnershipGiven BREthereumMessage message,
                         size_t messageContentLimit,
@@ -1153,15 +1205,13 @@ provisionHandleMessage (BREthereumProvision *provision,
         case MESSAGE_DIS:
         case MESSAGE_ETH:
             messageRelease(&message);
-            break;
+            return PROVISION_SUCCESS;
 
         case MESSAGE_LES:
-            provisionHandleMessageLES (provision, message.u.les, messageContentLimit, messageIdBase);
-            break;
+            return provisionHandleMessageLES (provision, message.u.les, messageContentLimit, messageIdBase);
 
         case MESSAGE_PIP:
-            provisionHandleMessagePIP (provision, message.u.pip, messageContentLimit, messageIdBase);
-            break;
+            return provisionHandleMessagePIP (provision, message.u.pip, messageContentLimit, messageIdBase);
     }
 }
 

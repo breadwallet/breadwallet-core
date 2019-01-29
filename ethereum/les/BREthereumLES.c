@@ -831,9 +831,9 @@ lesHandleProvision (BREthereumLES les,
                     // be reassigned to another node.
 
                     char explanation[256];
-                    sprintf (explanation, "Provision Error: %d, Type: %d",
-                             result.u.error.reason,
-                             result.type);
+                    sprintf (explanation, "Provision Error: %s, Type: %s",
+                             provisionErrorGetReasonName(result.u.error.reason),
+                             provisionGetTypeName(result.type));
                     lesDeactivateNode (les, NODE_ROUTE_TCP, node, explanation);
                     return;
                 }
