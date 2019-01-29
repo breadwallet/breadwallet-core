@@ -39,7 +39,11 @@ typedef enum {
 
 typedef enum {
     PROVISION_ERROR_NODE_INACTIVE,
+    PROVISION_ERROR_NODE_DATA,
 } BREthereumProvisionErrorReason;
+
+extern const char *
+provisionErrorGetReasonName (BREthereumProvisionErrorReason reason);
 
 /// MARK: Provision
 
@@ -215,7 +219,7 @@ provisionCreateMessage (BREthereumProvision *provision,
                         uint64_t messageIdBase,
                         size_t index);
 
-extern void
+extern BREthereumProvisionStatus
 provisionHandleMessage (BREthereumProvision *provision,
                         BREthereumMessage message,
                         size_t messageContentLimit,
