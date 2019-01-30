@@ -201,7 +201,8 @@ lesCreate (BREthereumNetwork network,
            UInt256 headTotalDifficulty,
            BREthereumHash genesisHash,
            BRSetOf(BREthereumNodeConfig) configs,
-           BREthereumBoolean discoverNodes);
+           BREthereumBoolean discoverNodes,
+           BREthereumBoolean handleSync);
 
 /*!
  * @function lesRelease
