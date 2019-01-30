@@ -198,6 +198,7 @@ bcsCreate (BREthereumNetwork network,
 
     bcs->network = network;
     bcs->address = address;
+    bcs->accountStateBlockNumber = 0;
     bcs->accountState = accountStateCreateEmpty ();
     bcs->mode = mode;
     bcs->filterForAddressOnTransactions = bloomFilterCreateAddress(bcs->address);
@@ -1427,17 +1428,20 @@ bcsHandleAccountState (BREthereumBCS bcs,
     // Report the block status - we'll flag as HAS_ACCOUNT_STATE.
     blockReportStatusAccountState(block, account);
 
-//    // TODO: How to update the overall, bcs account state?
-//    // If block is bcs->chain then block is the latest and we should update the bcs state;
-//    // however, most often, at least during a sync, the chain will have moved on by the time
-//    // this account state result is available - particularly during a sync
-//    //
-//    // Well, eventually, we'll catch up, so ...
-//    if (block == bcs->chain) {
-//        bcs->accountState = state;
-//        bcs->listener.accountStateCallback (bcs->listener.context,
-//                                            bcs->accountState);
-//    }
+    // TODO: On a sync this needs to be cleared, I think
+    //
+    // Think about if this should be handled one and only one time when the full chain is synced.
+    // Until then no data (=> never a wrong, intermediate nonce).  On once at the very beginning
+    // using the 'announced block head'. and then there after if a log or transaction is found.
+    // Sort of: don't announce here if in a sync?
+    if (blockGetNumber(block) > bcs->accountStateBlockNumber) {
+        bcs->accountStateBlockNumber = blockGetNumber(block);
+        bcs->accountState = account;
+
+        // Can we do this right here?
+        bcs->listener.accountStateCallback (bcs->listener.context,
+                                            bcs->accountState);
+    }
 
     bcsExtendTransactionsAndLogsForBlockIfAppropriate (bcs, block);
 }
@@ -1564,6 +1568,17 @@ bcsHandleBlockBody (BREthereumBCS bcs,
                                       (BREthereumLESProvisionContext) bcs,
                                       (BREthereumLESProvisionCallback) bcsSignalProvision,
                                       blockGetNumber(block));
+        }
+
+        // 3) We want the account state too - because we've found a transaction for bcs->address
+        // and the account changed (instead of computing the account, we'll query definitively).
+        if (ETHEREUM_BOOLEAN_IS_TRUE (blockHasStatusAccountStateRequest (block, BLOCK_REQUEST_NOT_NEEDED))) {
+            blockReportStatusAccountStateRequest(block, BLOCK_REQUEST_PENDING);
+            lesProvideAccountStatesOne (bcs->les, node,
+                                        (BREthereumLESProvisionContext) bcs,
+                                        (BREthereumLESProvisionCallback) bcsSignalProvision,
+                                        bcs->address,
+                                        blockGetHash(block));
         }
     }
 
