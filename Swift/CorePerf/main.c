@@ -10,6 +10,8 @@
 #include <unistd.h>
 #include "BREthereum.h"
 
+#include "BRBIP39WordsEn.h"
+
 //extern void runSyncTest (const char *paperKey,
 //                         BREthereumMode mode,
 //                         BREthereumTimestamp timestamp,
@@ -24,6 +26,71 @@ runSyncTest (BREthereumNetwork network,
              unsigned int durationInSeconds,
              const char *storagePath);
 
+extern BREthereumClient
+runEWM_createClient (void);
+
+extern void
+runEWM_freeClient (BREthereumClient client);
+
+static void
+runSyncMany (BREthereumNetwork newtork,
+             BREthereumMode mode,
+             unsigned int durationInSeconds,
+             unsigned int accounts) {
+
+    BREthereumEWM ewms[accounts];
+    BREthereumClient clients[accounts];
+    BREthereumTimestamp timestamp = 1539330275; // ETHEREUM_TIMESTAMP_UNKNOWN;
+
+    for (int i = 0; i < accounts; i++) {
+        UInt128 entropy;
+        arc4random_buf(entropy.u64, sizeof (entropy));
+
+        size_t phraseLen = BRBIP39Encode(NULL, 0, BRBIP39WordsEn, entropy.u8, sizeof(entropy));
+        char phrase[phraseLen];
+
+        assert (phraseLen == BRBIP39Encode(phrase, sizeof(phrase), BRBIP39WordsEn, entropy.u8, sizeof(entropy)));
+
+        BREthereumAccount account = createAccount(phrase);
+
+        char storagePath[100];
+        sprintf (storagePath, "many%d", i);
+
+        BREthereumEWM ewm;
+
+        eth_log("TST", "SyncTest: PaperKey: %s", phrase);
+
+
+//        alarmClockCreateIfNecessary (1);
+
+        clients[i] = runEWM_createClient();
+
+        ewm = ewmCreate (ethereumMainnet, account, timestamp, mode, clients[i], storagePath);
+        ewms[i] = ewm;
+
+        char *address = ewmGetAccountPrimaryAddress(ewm);
+        printf ("ETH: TST:\nETH: TST: Address: %s\nETH: TST:\n", address);
+        free (address);
+
+        ewmUpdateTokens(ewm);
+        ewmConnect(ewm);
+    }
+
+    unsigned int remaining = durationInSeconds;
+    while (remaining) {
+        printf ("ETH: TST:\nETH: TST: sleeping: %d\nETH: TST:\n", remaining);
+        remaining = sleep(remaining);
+    }
+
+    for (size_t i = 0; i < accounts; i++) {
+        ewmDisconnect(ewms[i]);
+        ewmDestroy(ewms[i]);
+        runEWM_freeClient(clients[i]);
+    }
+//    alarmClockDestroy(alarmClock);
+}
+
+
 int main(int argc, const char * argv[]) {
     BREthereumMode mode = BRD_WITH_P2P_SEND;
 
@@ -34,6 +101,8 @@ int main(int argc, const char * argv[]) {
 
 
     runSyncTest (ethereumMainnet,  account, mode, timestamp,  5 * 60, path);
+
+//    runSyncMany(ethereumMainnet, mode, 10 * 60, 1000);
 
     return 0;
 }

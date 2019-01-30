@@ -743,6 +743,10 @@ const char *bootstrapBRDEnodes[] = {
     // -- Digital Ocean
     "enode://6b3d1d0d0830f399167af983585a671e433e2080c1c3ebe4f859ee31aebcac88dbad59495155b01ed5b6b292df86b48e2302d896238671893faee60b5a47dda2@167.99.160.105:8888",
     // -- GCP
+
+    // Full
+    // -- Digital Ocean
+    "enode://16e59b1305340bf33546b218dcdb393c7ff8791a6c1cd059ece918fd6b57877e053d26b58bf5f6daa67e5de201057c6297bcab76fa8ec4bc1af15b4642892fd9@159.203.9.180:8888",
 #endif
 
 #if defined (LES_SUPPORT_GETH)

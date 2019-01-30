@@ -554,6 +554,18 @@ static BREthereumClient client = {
     clientEventTransfer
 };
 
+extern BREthereumClient
+runEWM_createClient (void) {
+    BREthereumClient newClient = client;
+    newClient.context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
+    return newClient;
+}
+
+extern void
+runEWM_freeClient (BREthereumClient client) {
+    free (client.context);
+}
+
 //
 // Listener
 //
