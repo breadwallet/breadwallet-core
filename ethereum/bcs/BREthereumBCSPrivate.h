@@ -208,6 +208,7 @@ struct BREthereumBCSStruct {
     /**
      * The Account State
      */
+    uint64_t accountStateBlockNumber;
     BREthereumAccountState accountState;
 
     /**
