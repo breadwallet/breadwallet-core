@@ -1778,7 +1778,7 @@ ewmTransferGetRawDataHexEncoded(BREthereumEWM ewm,
 
     return transactionGetRlpHexEncoded(transaction,
                                 ewm->network,
-                                (transactionIsSigned(transaction)
+                                (ETHEREUM_BOOLEAN_IS_TRUE (transactionIsSigned(transaction))
                                  ? RLP_TYPE_TRANSACTION_SIGNED
                                  : RLP_TYPE_TRANSACTION_UNSIGNED),
                                 prefix);
