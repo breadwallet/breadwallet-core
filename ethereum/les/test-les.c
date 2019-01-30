@@ -1178,7 +1178,8 @@ runLEStests(void) {
                                    NULL, _announceCallback, _statusCallback, _saveNodesCallback,
                                    headHash, headNumber, headTD, genesisHash,
                                    NULL,
-                                   ETHEREUM_BOOLEAN_FALSE);
+                                   ETHEREUM_BOOLEAN_FALSE,
+                                   ETHEREUM_BOOLEAN_TRUE);  // handle sync
     lesStart(les);
     // Sleep for a little bit to allow the context to connect to the network
     sleep(2);

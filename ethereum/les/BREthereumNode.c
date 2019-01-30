@@ -499,6 +499,10 @@ struct BREthereumNodeRecord {
     // The DIS distance between local <==> remote.
     UInt256 distance;
 
+    /** When connecting to a remote node, we'll have some additional requirements on the remote's
+     * status if we will be syncing (rather than just submitting transactions). */
+    BREthereumBoolean handleSync;
+
     /** The message specs by identifier.  Includes credit params and message count limits */
     // TODO: This should not be LES specific; applies to PIP too.
     BREthereumLESMessageSpec specs [NUMBER_OF_LES_MESSAGE_IDENTIFIERS];
@@ -665,7 +669,8 @@ nodeCreate (BREthereumNodePriority priority,
             BREthereumNodeCallbackStatus callbackStatus,
             BREthereumNodeCallbackAnnounce callbackAnnounce,
             BREthereumNodeCallbackProvide callbackProvide,
-            BREthereumNodeCallbackNeighbor callbackNeighbor) {
+            BREthereumNodeCallbackNeighbor callbackNeighbor,
+            BREthereumBoolean handleSync) {
     BREthereumNode node = calloc (1, sizeof (struct BREthereumNodeRecord));
 
     // Identify this `node` with the remote hash.
@@ -689,6 +694,9 @@ nodeCreate (BREthereumNodePriority priority,
     // remote endpoint that is closer to our local endpoint.
     node->distance = neighborDISDistance (nodeEndpointGetDISNeighbor(node->local),
                                           nodeEndpointGetDISNeighbor(node->remote));
+
+    // Place additional constraints when connecting to a remote node.
+    node->handleSync = handleSync;
 
     // Fill in the specs with default values (for GETH)
     for (int i = 0; i < NUMBER_OF_LES_MESSAGE_IDENTIFIERS; i++)
@@ -1259,28 +1267,6 @@ nodeStatusIsSufficient (BREthereumNode node) {
     BREthereumP2PMessageStatus locStatus = nodeEndpointGetStatus (node->local);
     BREthereumP2PMessageStatus remStatus = nodeEndpointGetStatus (node->remote);
 
-    // Both LES or both PIP
-    //    assert (node->remote.status.identifier == node->local.status.identifier);
-    //
-    //    // Remote is STATUS if LES or PIP
-    //    assert (MESSAGE_LES != node->remote.status.identifier ||
-    //            LES_MESSAGE_STATUS == node->remote.status.u.les.identifier);
-    //    assert (MESSAGE_PIP != node->remote.status.identifier ||
-    //            PIP_MESSAGE_STATUS == node->remote.status.u.pip.type);
-    //
-    //    // Local is STATUS if LES or PIP
-    //    assert (MESSAGE_LES != node->local.status.identifier ||
-    //            LES_MESSAGE_STATUS == node->local.status.u.les.identifier);
-    //    assert (MESSAGE_PIP != node->local.status.identifier ||
-    //            PIP_MESSAGE_STATUS == node->local.status.u.pip.type);
-    //    BREthereumP2PMessageStatus *locStatus = (MESSAGE_LES != node->local.status.identifier
-    //                                              ? &node->local.status.u.les.u.status.p2p
-    //                                              : &node->local.status.u.pip.u.status.p2p);
-    //
-    //    BREthereumP2PMessageStatus *remStatus = (MESSAGE_LES != node->remote.status.identifier
-    //                                              ? &node->remote.status.u.les.u.status.p2p
-    //                                              : &node->remote.status.u.pip.u.status.p2p);
-
     // Must be our network
     if (remStatus.chainId != locStatus.chainId)
         return 0;
@@ -1295,25 +1281,30 @@ nodeStatusIsSufficient (BREthereumNode node) {
     if (remStatus.headNum <= locStatus.headNum)
         return 0;
 
-    // Must serve headers
-    if (!messageP2PStatusExtractValue (&remStatus, P2P_MESSAGE_STATUS_SERVE_HEADERS, &remValue) ||
-        ETHEREUM_BOOLEAN_IS_FALSE(remValue.u.boolean))
-        return 0;
+    // If we are (potentially) syncing from this node, compare remStatus to locStatus
+    if (ETHEREUM_BOOLEAN_IS_TRUE(node->handleSync)) {
+
+        // Must serve headers
+        if (!messageP2PStatusExtractValue (&remStatus, P2P_MESSAGE_STATUS_SERVE_HEADERS, &remValue) ||
+            ETHEREUM_BOOLEAN_IS_FALSE(remValue.u.boolean))
+            return 0;
+
+        // Must serve state (archival node is '0') from no later than locStatus.headNum
+        if (!messageP2PStatusExtractValue (&remStatus, P2P_MESSAGE_STATUS_SERVE_STATE_SINCE, &remValue) ||
+            remValue.u.integer > locStatus.headNum)
+            return 0;
+
+        // Must serve chain (archival node is '1' Parity or '0' Geth) from no later then locStatus.headNum
+        if (!messageP2PStatusExtractValue (&remStatus, P2P_MESSAGE_STATUS_SERVE_CHAIN_SINCE, &remValue) ||
+            remValue.u.integer - (node->type == NODE_TYPE_PARITY ? 1 : 0) > locStatus.headNum)
+            return 0;
+    }
 
     // Must Relay Tranactions
     if (!messageP2PStatusExtractValue( &remStatus, P2P_MESSAGE_STATUS_TX_RELAY, &remValue) ||
         ETHEREUM_BOOLEAN_IS_FALSE(remValue.u.boolean))
         return 0;
 
-    // Must serve state (archival node is '0') from no later than locStatus.headNum
-    if (!messageP2PStatusExtractValue (&remStatus, P2P_MESSAGE_STATUS_SERVE_STATE_SINCE, &remValue) ||
-        remValue.u.integer > locStatus.headNum)
-        return 0;
-
-    // Must serve chain (archival node is '1') from no later then locStatus.headNum
-    if (!messageP2PStatusExtractValue (&remStatus, P2P_MESSAGE_STATUS_SERVE_CHAIN_SINCE, &remValue) ||
-        remValue.u.integer - (node->type == NODE_TYPE_PARITY ? 1 : 0) > locStatus.headNum)
-        return 0;
     return 1;
 }
 

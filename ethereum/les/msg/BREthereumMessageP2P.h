@@ -167,7 +167,9 @@ typedef enum {
     P2P_MESSAGE_STATUS_FLOW_CONTROL_MRC,    // (optional): Cost table,
     P2P_MESSAGE_STATUS_FLOW_CONTROL_MRR,    // (optional): Rate of recharge
     P2P_MESSAGE_STATUS_ANNOUNCE_TYPE        // LESv2
-} BREthereumP2MessageStatusKey;
+} BREthereumP2PMessageStatusKey;
+
+#define NUMBER_OF_P2P_MESSAGE_STATUS_KEYS     (1 + P2P_MESSAGE_STATUS_ANNOUNCE_TYPE)
 
 typedef enum {
     P2P_MESSAGE_STATUS_VALUE_INTEGER,
@@ -188,9 +190,18 @@ typedef struct {
 } BREthereumP2PMessageStatusValue;
 
 typedef struct {
-    BREthereumP2MessageStatusKey key;
+    BREthereumP2PMessageStatusKey key;
     BREthereumP2PMessageStatusValue value;
 } BREthereumP2PMessageStatusKeyValuePair;
+
+extern int
+messageP2PStatusKeyValuePairsExtractValue (BRArrayOf(BREthereumP2PMessageStatusKeyValuePair) pairs,
+                                           BREthereumP2PMessageStatusKey key,
+                                           BREthereumP2PMessageStatusValue *value);
+extern void
+messageP2PStatusKeyValuePairsUpdateValue (BRArrayOf(BREthereumP2PMessageStatusKeyValuePair) pairs,
+                                          BREthereumP2PMessageStatusKey key,
+                                          BREthereumP2PMessageStatusValue value);
 
 typedef struct {
     // Required key-value pairs
@@ -220,7 +231,7 @@ messageP2PStatusCopy (BREthereumP2PMessageStatus *status);
 
 extern int
 messageP2PStatusExtractValue (BREthereumP2PMessageStatus *status,
-                              BREthereumP2MessageStatusKey key,
+                              BREthereumP2PMessageStatusKey key,
                               BREthereumP2PMessageStatusValue *value);
 
 extern void

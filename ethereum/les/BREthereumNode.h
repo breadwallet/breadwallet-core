@@ -227,7 +227,8 @@ nodeCreate (BREthereumNodePriority priority,
             BREthereumNodeCallbackStatus callbackStatus,
             BREthereumNodeCallbackAnnounce callbackAnnounce,
             BREthereumNodeCallbackProvide callbackProvide,
-            BREthereumNodeCallbackNeighbor callbackNeighbor);
+            BREthereumNodeCallbackNeighbor callbackNeighbor,
+            BREthereumBoolean handleSync);
 
 extern void
 nodeRelease (BREthereumNode node);

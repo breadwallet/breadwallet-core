@@ -279,6 +279,9 @@ bcsCreate (BREthereumNetwork network,
     discoverNodes = ETHEREUM_BOOLEAN_FALSE;
 #endif
 
+    BREthereumBoolean handleSync = AS_ETHEREUM_BOOLEAN (P2P_ONLY == mode ||
+                                                        P2P_WITH_BRD_SYNC == mode);
+
     bcs->les = lesCreate (bcs->network,
                           (BREthereumLESCallbackContext) bcs,
                           (BREthereumLESCallbackAnnounce) bcsSignalAnnounce,
@@ -289,7 +292,8 @@ bcsCreate (BREthereumNetwork network,
                           totalDifficulty,
                           blockGetHash (bcs->genesis),
                           peers,
-                          discoverNodes);
+                          discoverNodes,
+                          handleSync);
 
     if (chainHeader != blockGetHeader(bcs->chain))
         blockHeaderRelease(chainHeader);

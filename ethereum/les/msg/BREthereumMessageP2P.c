@@ -275,6 +275,32 @@ messageP2PRelease (BREthereumP2PMessage *message) {
 ///
 /// MARK: - P2P Message Status Faker
 ///
+extern int
+messageP2PStatusKeyValuePairsExtractValue (BRArrayOf(BREthereumP2PMessageStatusKeyValuePair) pairs,
+                                           BREthereumP2PMessageStatusKey key,
+                                           BREthereumP2PMessageStatusValue *value) {
+    if (NULL != pairs && NULL != value)
+        for (size_t index = 0; index < array_count (pairs); index++)
+            if (key == pairs[index].key) {
+                *value = pairs[index].value;
+                return 1;
+            }
+    return 0;
+}
+
+extern void
+messageP2PStatusKeyValuePairsUpdateValue (BRArrayOf(BREthereumP2PMessageStatusKeyValuePair) pairs,
+                                          BREthereumP2PMessageStatusKey key,
+                                          BREthereumP2PMessageStatusValue value) {
+
+    for (size_t index = 0; index < array_count (pairs); index++)
+        if (key == pairs[index].key) {
+            pairs[index].value = value;
+            return;
+        }
+    array_add (pairs, ((BREthereumP2PMessageStatusKeyValuePair) { key, value }));
+}
+
 extern BREthereumP2PMessageStatus
 messageP2PStatusCreate (uint64_t protocolVersion,
                         uint64_t chainId,
@@ -317,15 +343,9 @@ messageP2PStatusCopy (BREthereumP2PMessageStatus *status) {
 
 extern int
 messageP2PStatusExtractValue (BREthereumP2PMessageStatus *status,
-                              BREthereumP2MessageStatusKey key,
+                              BREthereumP2PMessageStatusKey key,
                               BREthereumP2PMessageStatusValue *value) {
-    if (NULL != status->pairs && NULL != value)
-        for (size_t index = 0; index < array_count (status->pairs); index++)
-            if (key == status->pairs[index].key) {
-                *value = status->pairs[index].value;
-                return 1;
-            }
-    return 0;
+    return messageP2PStatusKeyValuePairsExtractValue (status->pairs, key, value);
 }
 
 extern void

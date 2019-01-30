@@ -320,6 +320,10 @@ struct BREthereumLESRecord {
 
     BREthereumHash genesisHash;
 
+    /** If we handle sync or not; if not, we'll only relay transactions and won't require
+     * connected nodes to SERVE_{HEADERS,BLOCK,STATE} */
+    BREthereumBoolean handleSync;
+
     /** Thread */
     pthread_t thread;
     pthread_mutex_t lock;
@@ -373,7 +377,8 @@ lesEnsureNodeForEndpoint (BREthereumLES les,
                            (BREthereumNodeCallbackStatus) lesHandleStatus,
                            (BREthereumNodeCallbackAnnounce) lesHandleAnnounce,
                            (BREthereumNodeCallbackProvide) lesHandleProvision,
-                           (BREthereumNodeCallbackNeighbor) lesHandleNeighbor);
+                           (BREthereumNodeCallbackNeighbor) lesHandleNeighbor,
+                           les->handleSync);
         nodeSetStateInitial (node, NODE_ROUTE_TCP, state);
 
         // ... add it to 'all nodes'
@@ -419,7 +424,8 @@ lesCreate (BREthereumNetwork network,
            UInt256 headTotalDifficulty,
            BREthereumHash genesisHash,
            OwnershipGiven BRSetOf(BREthereumNodeConfig) configs,
-           BREthereumBoolean discoverNodes) {
+           BREthereumBoolean discoverNodes,
+           BREthereumBoolean handleSync) {
     
     BREthereumLES les = (BREthereumLES) calloc (1, sizeof(struct BREthereumLESRecord));
     assert (NULL != les);
@@ -450,6 +456,8 @@ lesCreate (BREthereumNetwork network,
     les->head.totalDifficulty = headTotalDifficulty;
     les->genesisHash = genesisHash;
 
+    les->handleSync = handleSync;
+    
     // Our P2P capabilities - support subprotocols: LESv2 and/or PIPv1
     BRArrayOf (BREthereumP2PCapability) capabilities;
     array_new (capabilities, 2);
