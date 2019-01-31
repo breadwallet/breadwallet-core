@@ -975,13 +975,13 @@ _SendTransaction_Callback_Test1 (BREthereumLESProvisionContext context,
 }
 
 static void
-run_SendTransaction_Tests(BREthereumLES les) {
-
-    char *paperKey   = "boring ...";
-    char *sourceAddr = "0xa9de3dbd7d561e67527bc1ecb025c59d53b9f7ef";
-    char *targetAddr = "0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF";
+run_SendTransaction_Tests(BREthereumLES les, const char *paperKey) {
 
     _initTest(1);
+
+    BREthereumAccount account = createAccount (paperKey);
+    BREthereumAddress sourceAddr = accountGetPrimaryAddress (account);
+    BREthereumAddress targetAddr = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
 
 
     BRCoreParseStatus status;
@@ -991,8 +991,8 @@ run_SendTransaction_Tests(BREthereumLES les) {
 
     uint64_t nonce = 9;
 
-    BREthereumTransaction transaction = transactionCreate (addressCreate(sourceAddr),
-                                                           addressCreate(targetAddr),
+    BREthereumTransaction transaction = transactionCreate (sourceAddr,
+                                                           targetAddr,
                                                            amount,
                                                            gasPrice,
                                                            gasLimit,
@@ -1000,7 +1000,6 @@ run_SendTransaction_Tests(BREthereumLES les) {
                                                            nonce);
 
     // Sign the transaction
-    BREthereumAccount account = createAccount (paperKey);
 
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem item = transactionRlpEncode (transaction,
@@ -1011,7 +1010,7 @@ run_SendTransaction_Tests(BREthereumLES les) {
 
     // Sign the RLP Encoded bytes.
     BREthereumSignature signature = accountSignBytes (account,
-                                                      addressCreate(sourceAddr),
+                                                      sourceAddr,
                                                       SIGNATURE_TYPE_RECOVERABLE_VRS_EIP,
                                                       data.bytes,
                                                       data.bytesCount,
@@ -1162,7 +1161,7 @@ run_GetSomeBlocks (BREthereumLES les) {
 }
 
 extern void
-runLEStests(void) {
+runLESTests (const char *paperKey) {
     
     //Prepare values to be given to a LES context
     char headHashStr[] = "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3";
@@ -1195,6 +1194,7 @@ runLEStests(void) {
     run_GetBlookProofs_Tests(les);
     run_GetBlockBodies_Tests(les);
     run_GetReceipts_Tests(les);
+    run_SendTransaction_Tests(les, paperKey);
     run_GetAccountState_Tests(les);
     run_GetTxStatus_Tests(les);
 

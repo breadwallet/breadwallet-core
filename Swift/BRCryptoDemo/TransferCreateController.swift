@@ -107,7 +107,7 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
                 ? self.wallet.createTransfer(target: target, amount: amount)
                 : self.wallet.createTransfer(target: target,
                                              amount: amount,
-                                             feeBasis: TransferFeeBasis.ethereum (gasPrice: Amount (value: self.gasPrice(), unit: Ethereum.Units.GWEI),
+                                             feeBasis: TransferFeeBasis.ethereum (gasPrice: Amount (value: self.gasPrice(), unit: Ethereum.Units.WEI),
                                                                                   gasLimit: self.gasLimit())))
                 else {
                     let alert = UIAlertController (title: "Submit Transfer",

@@ -45,7 +45,7 @@ extern void runSyncTest (BREthereumNetwork network,
 
 // LES
 extern void
-runLEStests (void);
+runLESTests (const char *paperKey);
 
 extern void
 runNodeTests (void);

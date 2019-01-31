@@ -35,10 +35,10 @@
 #include <assert.h>
 #include <pthread.h>
 
-#include "BRCrypto.h"
 #include "BRInt.h"
 #include "BRArray.h"
 #include "BRSet.h"
+#include "BRCrypto.h"
 #include "BRBIP39WordsEn.h"
 #include "BREthereum.h"
 #include "ewm/BREthereumAccount.h"
@@ -64,7 +64,7 @@ extern void runBcTests (void);
 extern void runContractTests (void);
 
 // LES
-extern void runLEStests(void);
+extern void runLESTests(const char *paperKey);
 
 // EWM
 extern void runEWMTests (const char *paperKey);

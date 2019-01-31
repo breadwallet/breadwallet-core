@@ -717,7 +717,7 @@ provisionCreateMessagePIP (BREthereumProvision *provisionMulti,
             BREthereumProvisionSubmission *provision = &provisionMulti->u.submission;
 
             // We have two messages to submit a transaction, but only one response.  The response
-            // needs the proper messageIdentifier in order to be pair with this provision.
+            // needs the proper messageIdentifier in order to be paired with this provision.
             switch (index) {
                 case 0: {
                     BRArrayOf(BREthereumTransaction) transactions;
@@ -918,17 +918,35 @@ provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
 
         case PROVISION_TRANSACTION_STATUSES: {
             BREthereumProvisionStatuses *provision = &provisionMulti->u.statuses;
-            BRArrayOf(BREthereumTransactionStatus) provisionStatuses= provision->statuses;
+            BRArrayOf(BREthereumTransactionStatus) provisionStatuses = provision->statuses;
 
             BREthereumProvisionIdentifier identifier = messagePIPGetRequestId(&message);
 
             BRArrayOf(BREthereumPIPRequestOutput) outputs = NULL;
             messagePIPResponseConsume(&message.u.response, &outputs);
 
-            if (0 == array_count(outputs))
-                status = PROVISION_ERROR;
+            // Parity will utterly drop transaction requests for transactions that have errors,
+            // it seems.  If we submit a status request for N transaction, is is possible to
+            // only get back M (< N)?
+            //
+            // Consequently, we'll take a different approach, from the above code, when filling
+            // out the `provisionStatuses`.  We'll look at each provision status hash (these are
+            // the expected ones) and match it up with some output.  If we don't find an output
+            // then we'll label it queued/unknown something.  Except...
+            //
+            // ...there is a problem.  The PIPReqeustOutput (of subtype PIPTransactionIndex) does
+            // not include the transaction hash used in the input.  So we have no way of matching
+            // up the 
+
+            size_t offset = messageContentLimit * (identifier - messageIdBase);
+            size_t remaining = array_count(provisionStatuses) - offset;
+            size_t limit = minimum (remaining, messageContentLimit);
+
+            if (limit != array_count(outputs)) {
+                for (size_t index = 0; index < limit; index++)
+                    provisionStatuses[offset + index] = transactionStatusCreate(TRANSACTION_STATUS_UNKNOWN);
+            }
             else {
-                size_t offset = messageContentLimit * (identifier - messageIdBase);
                 for (size_t index = 0; index < array_count(outputs); index++) {
                     assert (PIP_REQUEST_TRANSACTION_INDEX == outputs[index].identifier);
                     provisionStatuses[offset + index] =
@@ -963,6 +981,8 @@ provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
                                                      outputs[0].u.transactionIndex.transactionIndex,
                                                      TRANSACTION_STATUS_BLOCK_TIMESTAMP_UNKNOWN,
                                                      gasCreate (0));
+                    break;
+
                 default:
                     assert(0);
             }
