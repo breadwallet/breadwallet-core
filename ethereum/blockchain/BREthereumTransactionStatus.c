@@ -116,12 +116,13 @@ transactionStatusEqual (BREthereumTransactionStatus ts1,
 extern BREthereumTransactionErrorType
 lookupTransactionErrorType (const char *reasons[],
                             const char *reason) {
-    for (BREthereumTransactionErrorType type = TRANSACTION_ERROR_INVALID_SIGNATURE;
-         type <= TRANSACTION_ERROR_UNKNOWN;
-         type++) {
-        if (0 == strncmp (reason, reasons[type], strlen(reasons[type])))
-            return type;
-    }
+    if (NULL != reasons)
+        for (BREthereumTransactionErrorType type = TRANSACTION_ERROR_INVALID_SIGNATURE;
+             type <= TRANSACTION_ERROR_UNKNOWN;
+             type++) {
+            if (0 == strncmp (reason, reasons[type], strlen(reasons[type])))
+                return type;
+        }
     return TRANSACTION_ERROR_UNKNOWN;
 }
 
@@ -170,10 +171,8 @@ transactionStatusRLPDecode (BRRlpItem item,
         
         case TRANSACTION_STATUS_ERRORED: {
             // We should not be here....
-            char *reason = rlpDecodeString(coder, items[2]);
-            BREthereumTransactionErrorType type = lookupTransactionErrorType (reasons, reason);
-            BREthereumTransactionStatus status = transactionStatusCreateErrored (type, reason);
-            free (reason);
+            BREthereumTransactionErrorType type = (BREthereumTransactionErrorType) rlpDecodeUInt64 (coder, items[2], 0);
+            BREthereumTransactionStatus status = transactionStatusCreateErrored (type, transactionGetErrorName (type));
             return status;
         }
     }
@@ -208,7 +207,7 @@ transactionStatusRLPEncode (BREthereumTransactionStatus status,
 
         case TRANSACTION_STATUS_ERRORED:
             items[1] = rlpEncodeList(coder, 0);
-            items[2] = rlpEncodeString(coder, status.u.errored.detail);
+            items[2] = rlpEncodeUInt64 (coder, status.u.errored.type, 0);
             break;
     }
 
