@@ -483,7 +483,7 @@ messagePIPUpdateCreditParametersDecode (BRRlpItem item,
 extern BRRlpItem
 messagePIPAcknowledgeUpdateEncode (BREthereumPIPMessageAcknowledgeUpdate *message,
                                    BREthereumMessageCoder coder) {
-    return rlpEncodeList (coder.rlp, 0);
+    return NULL;
 }
 
 /// MARK: Relay Transaction
@@ -577,9 +577,10 @@ messagePIPEncode (BREthereumPIPMessage message,
             break;
     }
 
-    return rlpEncodeList2 (coder.rlp,
-                           rlpEncodeUInt64 (coder.rlp, message.type + coder.messageIdOffset, 1),
-                           body);
+    BRRlpItem typeItem = rlpEncodeUInt64 (coder.rlp, message.type + coder.messageIdOffset, 1);
+    return (NULL == body
+            ? rlpEncodeList1 (coder.rlp, typeItem)
+            : rlpEncodeList2 (coder.rlp, typeItem, body));
 }
 
 extern void

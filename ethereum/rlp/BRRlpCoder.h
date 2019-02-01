@@ -141,6 +141,9 @@ rlpDecodeUInt256(BRRlpCoder coder, BRRlpItem item, int zeroAsEmptyString);
 extern BRRlpItem
 rlpEncodeBytes (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount);
 
+extern BRRlpItem
+rlpEncodeBytesPurgeLeadingZeros (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount);
+
 /**
  * Extract the `data` for `item` as the item's bytes w/o the RLP encoding of length.  Thus, if
  * you used rlpEncodeItemBytes() to encode `bytes` and `bytesCount`, then the result of
