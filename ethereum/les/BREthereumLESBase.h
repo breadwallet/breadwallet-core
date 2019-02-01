@@ -47,7 +47,7 @@
 #define LES_LOG_TOPIC "LES"
 
 /** */
-#define LES_SUPPORT_PARITY
+//#define LES_SUPPORT_PARITY
 #define LES_SUPPORT_PARITY_VERSION      (1)
 
 /** */
