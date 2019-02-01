@@ -1422,6 +1422,33 @@ ewmHandleBalance (BREthereumEWM ewm,
 }
 
 static void
+ewmReportTransferStatusAsEvent (BREthereumEWM ewm,
+                                BREthereumWallet wallet,
+                                BREthereumTransfer transfer) {
+    if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_SUBMITTED)))
+        ewmSignalTransferEvent(ewm, wallet, transfer,
+                               TRANSFER_EVENT_SUBMITTED,
+                               SUCCESS, NULL);
+
+    else if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_INCLUDED)))
+        ewmSignalTransferEvent(ewm, wallet, transfer,
+                               TRANSFER_EVENT_INCLUDED,
+                               SUCCESS, NULL);
+
+    else if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_ERRORED))) {
+        char *reason = NULL;
+        transferExtractStatusError (transfer, &reason);
+        ewmSignalTransferEvent(ewm, wallet, transfer,
+                               TRANSFER_EVENT_ERRORED,
+                               ERROR_TRANSACTION_SUBMISSION,
+                               (NULL == reason ? "" : reason));
+        // TODO: free(reason)?
+        // Note: ewmSignalTransferEvent expects the 'reason' to stick around an never frees it.
+        // If we free here, the string will be gone by the time it is handled.
+    }
+}
+
+static void
 ewmHandleTransactionOriginatingLog (BREthereumEWM ewm,
                                      BREthereumBCSCallbackTransactionType type,
                                     OwnershipKept BREthereumTransaction transaction) {
@@ -1444,19 +1471,7 @@ ewmHandleTransactionOriginatingLog (BREthereumEWM ewm,
             // then we'd like to update the log's identifier.... alas, we cannot because we need
             // the 'logIndex' and no way to get that from the originating transaction's status.
 
-            if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_INCLUDED)))
-                ewmSignalTransferEvent(ewm, wallet, transfer,
-                                             TRANSFER_EVENT_INCLUDED,
-                                             SUCCESS, NULL);
-
-            else if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_ERRORED))) {
-                char *reason = NULL;
-                transferExtractStatusError (transfer, &reason);
-                ewmSignalTransferEvent(ewm, wallet, transfer,
-                                             TRANSFER_EVENT_ERRORED,
-                                             ERROR_TRANSACTION_SUBMISSION,
-                                             (NULL == reason ? "" : reason));
-            }
+            ewmReportTransferStatusAsEvent(ewm, wallet, transfer);
         }
     }
 }
@@ -1506,20 +1521,7 @@ ewmHandleTransaction (BREthereumEWM ewm,
         transferSetBasisForTransaction (transfer, transaction);
     }
 
-    if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_INCLUDED)))
-        ewmSignalTransferEvent(ewm, wallet, transfer,
-                                     TRANSFER_EVENT_INCLUDED,
-                                     SUCCESS, NULL);
-
-    else if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_ERRORED))) {
-        char *reason = NULL;
-        transferExtractStatusError (transfer, &reason);
-        ewmSignalTransferEvent(ewm, wallet, transfer,
-                                     TRANSFER_EVENT_ERRORED,
-                                     ERROR_TRANSACTION_SUBMISSION,
-                                     (NULL == reason ? "" : reason));
-        // free (reason)
-    }
+    ewmReportTransferStatusAsEvent(ewm, wallet, transfer);
 
     ewmHandleTransactionOriginatingLog (ewm, type, transaction);
 }
@@ -1569,20 +1571,8 @@ ewmHandleLog (BREthereumEWM ewm,
         transferSetBasisForLog (transfer, log);
     }
 
-    if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_INCLUDED)))
-        ewmSignalTransferEvent(ewm, wallet, transfer,
-                                     TRANSFER_EVENT_INCLUDED,
-                                     SUCCESS, NULL);
+    ewmReportTransferStatusAsEvent(ewm, wallet, transfer);
 
-    else if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_ERRORED))) {
-        char *reason = NULL;
-        transferExtractStatusError (transfer, &reason);
-        ewmSignalTransferEvent(ewm, wallet, transfer,
-                                     TRANSFER_EVENT_ERRORED,
-                                     ERROR_TRANSACTION_SUBMISSION,
-                                     (NULL == reason ? "" : reason));
-        // free (reason)
-    }
 }
 
 extern void
