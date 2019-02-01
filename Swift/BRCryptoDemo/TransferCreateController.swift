@@ -100,6 +100,7 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
 
             guard let unit = self.wallet!.currency.defaultUnit else { self.dismiss(animated: true) {}; return }
             let amount = Amount (value: Double(value), unit: unit)
+            print ("ETH: Submit Amount: \(amount)");
 
             // let amount = Amount (value: value, unit: self.wallet.currency.defaultUnit)
 

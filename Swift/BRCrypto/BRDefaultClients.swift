@@ -224,7 +224,7 @@ public class DefaultEthereumBackendClient: EthereumBackendClient {
     }
 
     public func getNonce(ewm: EthereumWalletManager, address: String, rid: Int32) {
-        ewm.announceNonce(address: address, nonce: "47", rid: rid)
+        ewm.announceNonce(address: address, nonce: "48", rid: rid)
     }
 
     public init () {}

@@ -58,7 +58,7 @@ provisionGetMessagePIPIdentifier (BREthereumProvisionType type) {
         case PROVISION_TRANSACTION_RECEIPTS: return PIP_REQUEST_BLOCK_RECEIPTS;
         case PROVISION_ACCOUNTS:             return PIP_REQUEST_ACCOUNT;
         case PROVISION_TRANSACTION_STATUSES: return PIP_REQUEST_TRANSACTION_INDEX;
-        case PROVISION_SUBMIT_TRANSACTION:   assert (0); return -1;
+        case PROVISION_SUBMIT_TRANSACTION:   return -1; /*assert (0); */
     }
 }
 

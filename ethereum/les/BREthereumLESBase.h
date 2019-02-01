@@ -59,12 +59,12 @@
  * We can optionally only bootstrap from a BRD server.  Setting this overrides the subsequent
  * LES_BOOTSTRAP_LCL_ONLY
  */
-#define LES_BOOTSTRAP_BRD_ONLY
+// #define LES_BOOTSTRAP_BRD_ONLY
 
 /**
  * For debugging only, we can optionally only bootstrap from a LCL (local) server.
  */
-#define LES_BOOTSTRAP_LCL_ONLY
+//#define LES_BOOTSTRAP_LCL_ONLY
 
 #if defined (LES_BOOTSTRAP_BRD_ONLY) || defined (NDEBUG) || !defined (DEBUG)
 #undef LES_BOOTSTRAP_LCL_ONLY
@@ -79,7 +79,6 @@
 #if defined (NDEBUG) || !defined (DEBUG)
 #undef LES_DISABLE_DISCOVERY
 #endif
-
 
 /**
  * We we attempt to open a socket to a node endpoint and the socket reports EINPROGRESS, we'll
