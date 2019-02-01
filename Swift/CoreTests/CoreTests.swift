@@ -137,7 +137,7 @@ class CoreTests: XCTestCase {
     }
 
     func testLES () {
-        runLEStests()
+        runLESTests(paperKey)
         runNodeTests()
     }
 

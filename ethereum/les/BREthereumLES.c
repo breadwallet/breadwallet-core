@@ -1038,22 +1038,7 @@ lesThread (BREthereumLES les) {
                                             : (BREthereumNode) les->requests[index].nodeReference);
 #undef ACTIVE_NODE
 
-                // Sadly, not all nodes handle all provisions.  This owing to differences in the
-                // LESv2 and PIPv1 interfaces or the server, Geth or Parity, implementations.
-                if (NULL != nodeToUse &&
-                    nodeHasState (nodeToUse, NODE_ROUTE_TCP, NODE_CONNECTED) &&
-                    ETHEREUM_BOOLEAN_IS_FALSE (nodeCanHandleProvision(nodeToUse, les->requests[index].provision))) {
-                    eth_log (LES_LOG_TOPIC, "Node is Insufficient: %s, Type: %s, Provision: %s",
-                             nodeEndpointGetHostname (nodeGetRemoteEndpoint(nodeToUse)),
-                             nodeTypeGetName(nodeGetType(nodeToUse)),
-                             provisionGetTypeName(les->requests[index].provision.type));
-
-                    requestsToFail[requestsToFailCount++] = index;
-                }
-
-                // Only handle the request if `nodeToUse` is connected.
-                else if (NULL != nodeToUse &&
-                         nodeHasState (nodeToUse, NODE_ROUTE_TCP, NODE_CONNECTED)) {
+                if (NULL != nodeToUse && nodeHasState (nodeToUse, NODE_ROUTE_TCP, NODE_CONNECTED)) {
 
                     les->requests[index].node = nodeToUse;
 

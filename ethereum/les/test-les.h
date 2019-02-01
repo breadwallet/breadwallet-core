@@ -26,6 +26,6 @@
 #ifndef test_les_h
 #define test_les_h
 
-extern void runLEStests(void);
+extern void runLESTests(const char *paperKey);
 
 #endif /* test_les_h */

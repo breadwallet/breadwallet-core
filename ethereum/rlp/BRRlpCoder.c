@@ -705,6 +705,14 @@ rlpEncodeBytes(BRRlpCoder coder, uint8_t *bytes, size_t bytesCount) {
     return coderEncodeBytes(coder, bytes, bytesCount);
 }
 
+extern BRRlpItem
+rlpEncodeBytesPurgeLeadingZeros (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount) {
+    size_t offset = 0;
+    for (; offset < bytesCount; offset++)
+        if (0 != bytes[offset]) break;
+    return rlpEncodeBytes (coder, &bytes[offset], bytesCount - offset);
+}
+
 extern BRRlpData
 rlpDecodeBytes (BRRlpCoder coder, BRRlpItem item) {
     assert (itemIsValid(coder, item));

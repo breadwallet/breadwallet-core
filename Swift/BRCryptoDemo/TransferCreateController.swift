@@ -100,6 +100,7 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
 
             guard let unit = self.wallet!.currency.defaultUnit else { self.dismiss(animated: true) {}; return }
             let amount = Amount (value: Double(value), unit: unit)
+            print ("ETH: Submit Amount: \(amount)");
 
             // let amount = Amount (value: value, unit: self.wallet.currency.defaultUnit)
 
@@ -107,7 +108,7 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
                 ? self.wallet.createTransfer(target: target, amount: amount)
                 : self.wallet.createTransfer(target: target,
                                              amount: amount,
-                                             feeBasis: TransferFeeBasis.ethereum (gasPrice: Amount (value: self.gasPrice(), unit: Ethereum.Units.GWEI),
+                                             feeBasis: TransferFeeBasis.ethereum (gasPrice: Amount (value: self.gasPrice(), unit: Ethereum.Units.WEI),
                                                                                   gasLimit: self.gasLimit())))
                 else {
                     let alert = UIAlertController (title: "Submit Transfer",
