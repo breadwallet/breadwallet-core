@@ -48,6 +48,19 @@ networkGetGenesisBlockHeaderHash (BREthereumNetwork network);
 extern BREthereumHash
 networkGetTrustedCheckpointBlockHeaderHash (BREthereumNetwork network);
 
+
+/**
+ * Get an array of DNS seeds, with TXT records, for network
+ *
+ * @param network the network
+ * @return A NULL terminated array of strings
+ */
+extern const char**
+networkGetSeeds (BREthereumNetwork network);
+
+extern size_t
+networkGetSeedsCount (BREthereumNetwork network);
+    
 extern const BREthereumNetwork ethereumMainnet;
 extern const BREthereumNetwork ethereumTestnet;
 extern const BREthereumNetwork ethereumRinkeby;
