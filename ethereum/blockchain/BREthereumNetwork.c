@@ -26,6 +26,8 @@
 #include <stdlib.h>
 #include "BREthereumNetwork.h"
 
+#define NUMBER_OF_SEEDS_LIMIT       5
+
 static void
 networkInitilizeAllIfAppropriate (void);
 
@@ -34,6 +36,7 @@ struct BREthereumNetworkRecord {
     int chainId;
     BREthereumHash genesisBlockHeaderHash;
     BREthereumHash trustedCheckpointBlockHeaderHash;
+    const char *seeds[NUMBER_OF_SEEDS_LIMIT + 1];
 };
 
 extern BREthereumChainId
@@ -58,6 +61,19 @@ extern const char *
 networkGetName (BREthereumNetwork network) {
     return network->name;
 }
+
+extern const char**
+networkGetSeeds (BREthereumNetwork network) {
+    return network->seeds;
+}
+
+extern size_t
+networkGetSeedsCount (BREthereumNetwork network) {
+    size_t i = 0;
+    while (NULL != network->seeds[i]) i++;
+    return i;
+}
+
 //
 // MARK: - Static Network Definitions
 //
@@ -69,7 +85,10 @@ static struct BREthereumNetworkRecord ethereumMainnetRecord = {
     "Mainnet",
     1,
     EMPTY_HASH_INIT,
-    EMPTY_HASH_INIT
+    EMPTY_HASH_INIT,
+    { "seed.mainnet.eth.brd.breadwallet.com",
+        "seed.mainnet.eth.community.breadwallet.com",
+        NULL }
 };
 const BREthereumNetwork ethereumMainnet = &ethereumMainnetRecord;
 
@@ -96,7 +115,10 @@ static struct BREthereumNetworkRecord ethereumTestnetRecord = {
     "Testnet",
     3,
     EMPTY_HASH_INIT,
-    EMPTY_HASH_INIT
+    EMPTY_HASH_INIT,
+    { "seed.ropsten.eth.brd.breadwallet.com",
+        "seed.ropsten.eth.community..breadwallet.com",
+        NULL }
 };
 const BREthereumNetwork ethereumTestnet = &ethereumTestnetRecord;
 
@@ -122,7 +144,8 @@ static struct BREthereumNetworkRecord ethereumRinkebyRecord = {
     "Rinkeby",
     4,
     EMPTY_HASH_INIT,
-    EMPTY_HASH_INIT
+    EMPTY_HASH_INIT,
+    { NULL }
 };
 const BREthereumNetwork ethereumRinkeby = &ethereumRinkebyRecord;
 

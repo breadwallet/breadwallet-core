@@ -194,19 +194,6 @@ nodeEndpointHashEqual (const void *h1, const void *h2);
 
 // Mainnet
 extern const char *bootstrapLCLEnodes[];
-extern const char *bootstrapBRDEnodes[];
-extern const char *bootstrapLESEnodes[];
-extern const char *bootstrapParityEnodes[];
-extern const char *bootstrapGethEnodes[];
-
-extern const char **bootstrapMainnetEnodeSets[];
-extern size_t NUMBER_OF_MAINNET_ENDPOINT_SETS;
-
-// Ropsten
-extern const char *bootstrapBRDEnodesTestnet[];
-
-extern const char **bootstrapTestnetEnodeSets[];
-extern size_t NUMBER_OF_TESTNET_ENDPOINT_SETS;
 
 #ifdef __cplusplus
 }

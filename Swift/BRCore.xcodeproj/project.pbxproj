@@ -185,6 +185,8 @@
 		3CEE8EF3216FB025008540C8 /* libCoreMacOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3C6B17792131CE12003C313B /* libCoreMacOS.a */; };
 		3CEF5FB121FB972B0010A811 /* testSup.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CEF5FB021FB972B0010A811 /* testSup.c */; };
 		3CEF5FB221FF9DC30010A811 /* BRFileService.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C3DC5BA21DFCA7C004188BD /* BRFileService.c */; };
+		3CEF5FD0220521DC0010A811 /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CEF5FC9220513FC0010A811 /* libresolv.tbd */; };
+		3CEF5FD1220521EC0010A811 /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CEF5FC9220513FC0010A811 /* libresolv.tbd */; };
 		3CF0FC9021657D7B000DE3FE /* BREthereumData.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CF0FC8F21657D7A000DE3FE /* BREthereumData.c */; };
 		3CF0FC9121657D7B000DE3FE /* BREthereumData.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CF0FC8F21657D7A000DE3FE /* BREthereumData.c */; };
 		3CF38E4821C4421600B771E6 /* BREthereumProofOfWork.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CF38E4721C4421600B771E6 /* BREthereumProofOfWork.c */; };
@@ -482,6 +484,8 @@
 		3CEE8EEA216FAFF7008540C8 /* CorePerf */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = CorePerf; sourceTree = BUILT_PRODUCTS_DIR; };
 		3CEE8EEC216FAFF7008540C8 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		3CEF5FB021FB972B0010A811 /* testSup.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testSup.c; sourceTree = "<group>"; };
+		3CEF5FC9220513FC0010A811 /* libresolv.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libresolv.tbd; path = usr/lib/libresolv.tbd; sourceTree = SDKROOT; };
+		3CEF5FCB220514340010A811 /* libresolv.9.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libresolv.9.tbd; path = usr/lib/libresolv.9.tbd; sourceTree = SDKROOT; };
 		3CF0FC8E21657D7A000DE3FE /* BREthereumData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumData.h; sourceTree = "<group>"; };
 		3CF0FC8F21657D7A000DE3FE /* BREthereumData.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumData.c; sourceTree = "<group>"; };
 		3CF38E4721C4421600B771E6 /* BREthereumProofOfWork.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumProofOfWork.c; sourceTree = "<group>"; };
@@ -534,6 +538,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3CEF5FD0220521DC0010A811 /* libresolv.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -542,6 +547,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				3CAB60AB20AF8C8500810CE4 /* libCore.a in Frameworks */,
+				3CEF5FD1220521EC0010A811 /* libresolv.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -946,6 +952,8 @@
 		3CAB610A20AF938E00810CE4 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				3CEF5FCB220514340010A811 /* libresolv.9.tbd */,
+				3CEF5FC9220513FC0010A811 /* libresolv.tbd */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
