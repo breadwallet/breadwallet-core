@@ -154,10 +154,9 @@ bcsCreateInitializeTransactions (BREthereumBCS bcs,
     FOR_SET (BREthereumTransaction, transaction, transactions) {
         BREthereumTransactionStatus status = transactionGetStatus(transaction);
 
-        // For now, assume all provided transactions are in a 'final state'.
-        assert (TRANSACTION_STATUS_INCLUDED == status.type ||
-                TRANSACTION_STATUS_ERRORED  == status.type ||
-                TRANSACTION_STATUS_PENDING  == status.type);
+        // For now, assume all provided transactions are not in CREATED - because there
+        // won't be a HASH until 'signed'
+        assert (TRANSFER_STATUS_CREATED != status.type);
 
         bcsSignalTransaction (bcs, transaction);
     }
@@ -173,10 +172,9 @@ bcsCreateInitializeLogs (BREthereumBCS bcs,
     FOR_SET (BREthereumLog, log, logs) {
         BREthereumTransactionStatus status = logGetStatus(log);
 
-        // For now, assume all provided logs are in a 'final state'.
-        assert (TRANSACTION_STATUS_INCLUDED == status.type ||
-                TRANSACTION_STATUS_ERRORED  == status.type ||
-                TRANSACTION_STATUS_PENDING  == status.type);
+        // For now, assume all provided logs are not in CREATED - because there
+        // won't be a HASH until 'signed'
+        assert (TRANSFER_STATUS_CREATED != status.type);
 
         bcsSignalLog (bcs, log);
     }
