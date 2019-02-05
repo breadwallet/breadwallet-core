@@ -155,6 +155,7 @@ class CoreTests: XCTestCase {
 
         let network = (isMainnet == 1 ? ethereumMainnet : ethereumTestnet)
 
+        print ("ETH: TST: Core Dir: \(coreDataDir!)")
         coreDirClear()
         runSyncTest (network, account, mode, timestamp, 5 * 60, coreDataDir, 0);
         runSyncTest (network, account, mode, timestamp, 1 * 60, coreDataDir, 1);
@@ -188,6 +189,7 @@ class CoreTests: XCTestCase {
     /// BRPeerManager with 'save' callbacks using the file system.
     ///
     func testBitcoinWalletManagerSync () {
+        print ("ETH: TST: Core Dir: \(coreDataDir!)")
         coreDirClear()
         BRRunTestWalletManagerSync (paperKey, coreDataDir, isBTC, isMainnet);
         BRRunTestWalletManagerSync (paperKey, coreDataDir, isBTC, isMainnet);
