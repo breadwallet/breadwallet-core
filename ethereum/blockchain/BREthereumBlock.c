@@ -354,6 +354,7 @@ blockHeaderIsCHTRoot (BREthereumBlockHeader header) {
     return AS_ETHEREUM_BOOLEAN (0 == (header->number - 1) % BLOCK_HEADER_CHT_ROOT_INTERVAL);
 }
 
+#if defined (INCLUDE_UNUSED_FUNCTION)
 static int64_t max(int64_t x, int64_t y) { return x >= y ? x : y; }
 static uint64_t xbs(int64_t x) { return x < 0 ? -x : x; }
 
@@ -382,6 +383,7 @@ blockHeaderCanonicalDifficulty_GetFakeBlockNumber (uint64_t number) {
             ? (number > 3000000 ? (number - 3000000) : 0)
             : number);
 }
+
 // See https://ethereum.github.io/yellowpaper/paper.pdf Section 4.3.3 'Block Header Validity
 static UInt256
 blockHeaderCanonicalDifficulty (BREthereumBlockHeader header,
@@ -430,6 +432,7 @@ blockHeaderCanonicalDifficulty (BREthereumBlockHeader header,
 
     return gtUInt256 (r, Dzero) ? r : Dzero;
 }
+#endif
 
 static int
 blockHeaderValidateTimestamp (BREthereumBlockHeader this,
@@ -463,6 +466,7 @@ blockHeaderValidateExtraData (BREthereumBlockHeader this,
     return this->extraDataCount <= 32;
 }
 
+#if defined (INCLUDE_UNUSED_FUNCTION)
 static int
 blockHeaderValidateDifficulty (BREthereumBlockHeader this,
                                BREthereumBlockHeader parent,
@@ -471,6 +475,7 @@ blockHeaderValidateDifficulty (BREthereumBlockHeader this,
     return eqUInt256 (this->difficulty,
                       blockHeaderCanonicalDifficulty (this, parent, parentOmmersCount, genesis));
 }
+#endif
 
 static int
 blockHeaderValidatePoWMixHash (BREthereumBlockHeader this,
@@ -750,6 +755,7 @@ blockGetTransaction (BREthereumBlock block, size_t index) {
             : NULL);
 }
 
+#if defined (INCLUDE_UNUSED_FUNCTION)
 // This has minimal bearing on Ethereum
 static BREthereumHash
 blockGetTransactionMerkleRootRecurse (BREthereumHash *hashes,
@@ -787,7 +793,7 @@ blockGetTransactionMerkleRootRecurse (BREthereumHash *hashes,
     return blockGetTransactionMerkleRootRecurse(hashes, count / 2);
 }
 
-// This has minimal bearing on Ethereum
+// This has no/minimal bearing on Ethereum
 static BREthereumHash
 blockGetTransactionMerkleRoot (BREthereumBlock block) {
     size_t count = array_count (block->transactions);
@@ -802,6 +808,7 @@ blockGetTransactionMerkleRoot (BREthereumBlock block) {
 
     return blockGetTransactionMerkleRootRecurse (hashes, count);
 }
+#endif
 
 static BREthereumHash
 blockGetTransactionTrieRoot (BREthereumBlock block) {

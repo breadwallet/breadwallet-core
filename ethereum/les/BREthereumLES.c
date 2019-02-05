@@ -44,10 +44,12 @@
 #include "BREthereumMessage.h"
 #include "BREthereumNode.h"
 
-#if defined (LES_BOOTSTRAP_BRD_ONLY)
+#if !defined(LES_BOOTSTRAP_LCL_ONLY)
+#   if defined (LES_BOOTSTRAP_BRD_ONLY)
 static int bootstrapBRDOnly = 1;
-#else
+#   else
 static int bootstrapBRDOnly = 0;
+#   endif
 #endif
 
 /** Forward Declarations */
@@ -200,10 +202,12 @@ nodeConfigCreate (BREthereumNode node) {
     return config;
 }
 
+#if defined (INCLUDE_UNUSED_FUNCTION)
 static BREthereumNodeEndpoint
 nodeConfigCreateEndpoint (BREthereumNodeConfig config) {
     return nodeEndpointCreate ((BREthereumDISNeighbor) { config->endpoint, config->key });
 }
+#endif
 
 extern size_t
 nodeConfigHashValue (const void *t)
@@ -217,10 +221,12 @@ nodeConfigHashEqual (const void *t1, const void *t2) {
                                      &((BREthereumNodeConfig) t2)->hash);
 }
 
+#if defined (INCLUDE_UNUSED_FUNCTION)
 static inline void
 nodeConfigReleaseForSet (void *ignore, void *item) {
     nodeConfigRelease ((BREthereumNodeConfig) item);
 }
+#endif
 
 /**
  * A LES Request is a LES Message with associated callbacks.  We'll send the message (once we have
