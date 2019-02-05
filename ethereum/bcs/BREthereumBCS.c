@@ -530,6 +530,7 @@ bcsPendLog (BREthereumBCS bcs,
         array_add (bcs->pendingLogs, hash);
 }
 
+#if defined (INCLUDE_UNUSED_FUNCTION)
 static void
 bcsUnpendLog (BREthereumBCS bcs,
               OwnershipKept BREthereumLog log) {
@@ -545,6 +546,7 @@ bcsPendFindLogByLogHash (BREthereumBCS bcs,
             ? BRSetGet (bcs->logs, &hash)
             : NULL);
 }
+#endif
 
 static BRArrayOf(BREthereumLog)
 bcsPendFindLogsByTransactionHash (BREthereumBCS bcs,
@@ -1007,7 +1009,7 @@ bcsOrphansShow (BREthereumBCS bcs,
         bcsShowBlockForChain (bcs, orphan, "Orphan");
 }
 
-#if defined UNUSED
+#if defined (INCLUDE_UNUSED_FUNCTION)
 /*!
  * Check if `blockHash` and `blockNumber` are in the chain.  They will be in the chain if:
  *   a) blockNumber is smaller than the chain's earliest maintained block number, or
@@ -1024,7 +1026,6 @@ bcsChainHasBlock (BREthereumBCS bcs,
              NULL == BRSetGet(bcs->orphans, &blockHash) &&
              NULL != BRSetGet(bcs->blocks, &blockHash)));
 }
-#endif // UNUSED
 
 /**
  * Check if `block` is in `bcs->chain` (which include `block` being so old as to have a block
@@ -1036,6 +1037,7 @@ bcsHasBlockInChain (BREthereumBCS bcs,
     return (ETHEREUM_BOOLEAN_IS_TRUE (blockHasNext(block)) ||
             blockGetNumber(block) <= blockGetNumber(bcs->chainTail));
 }
+#endif
 
 static int
 bcsIsBlockValid (BREthereumBCS bcs,
@@ -1673,6 +1675,7 @@ bcsHandleBlockProofs (BREthereumBCS bcs,
 ///
 
 
+#if defined (INCLUDE_UNUSED_FUNCTION)
 static BREthereumBoolean
 bcsHandleLogExtractInterest (BREthereumBCS bcs,
                              BREthereumLog log,
@@ -1695,6 +1698,7 @@ bcsHandleLogExtractInterest (BREthereumBCS bcs,
 
     return ETHEREUM_BOOLEAN_TRUE;
 }
+#endif
 
 /*!
  */

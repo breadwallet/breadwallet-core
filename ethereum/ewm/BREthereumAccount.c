@@ -163,6 +163,7 @@ addressDetailFillSeed (BREthereumAddressDetail *address, UInt512 seed, uint32_t 
     addressDetailFillKey(address, &key, index);
 }
 
+#if defined (DEBUG)
 static void
 addressDetailFillRaw (BREthereumAddressDetail *address, const char *string) {
     address->index = 0;
@@ -170,6 +171,7 @@ addressDetailFillRaw (BREthereumAddressDetail *address, const char *string) {
     strlcpy (&address->string[0], string, 43);
     address->raw = addressCreate(string);
 }
+#endif
 
 // BRSet HashValue, HashEqual
 
