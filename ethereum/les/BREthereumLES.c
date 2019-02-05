@@ -202,7 +202,7 @@ nodeConfigCreate (BREthereumNode node) {
     return config;
 }
 
-#if defined (INCLUDE_UNUSED_FUNCTION)
+#if !defined(LES_BOOTSTRAP_LCL_ONLY)
 static BREthereumNodeEndpoint
 nodeConfigCreateEndpoint (BREthereumNodeConfig config) {
     return nodeEndpointCreate ((BREthereumDISNeighbor) { config->endpoint, config->key });

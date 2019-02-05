@@ -480,6 +480,23 @@ coderEncodeLength (BRRlpCoder coder, uint64_t length, uint8_t baseline) {
 }
 #endif
 
+/**
+ * The value of `length` is used throughout for memcpy() and releated functions; it must
+ * be a valid `size_t` type.  Ethereum RLP defines a length as a maximum of 8 bytes which
+ * for some (32-bit) architures will be larger then size_t.  On such an architecute,
+ * which is becoming ever rarer, we'll uncerimoniously fatal if `length` is too big.
+ *
+ * SIZE_MAX is 4294967295UL on a 32bit arch - no way this ever fails...
+ *
+ *@param length
+ *@return length as size_t
+ */
+static size_t
+confirmLength (uint64_t length) {
+    assert (length <= (uint64_t) SIZE_MAX);   // never return
+    return (size_t) length;
+}
+
 static size_t
 decodeLength (uint8_t *bytes, uint8_t baseline, uint8_t *offset) {
     uint8_t prefix = bytes[0];
@@ -502,21 +519,7 @@ decodeLength (uint8_t *bytes, uint8_t baseline, uint8_t *offset) {
         assert (lengthByteCount <= lengthSize);
 
         convertFromBigEndian((uint8_t*)&length, lengthSize, &bytes[1], lengthByteCount);
-        //        // A big-endian byte array.
-        //        uint8_t bytesValue [lengthSize];
-        //        memset (bytesValue, 0, lengthSize);
-        //        memcpy (&bytesValue[8 - lengthByteCount], &bytes[1], lengthByteCount);
-        //
-        //        coderSwapBytesIfLittleEndian((uint8_t*)&length, bytesValue, lengthSize);
-
-        // The value of `length` is used throughout for memcpy() and releated functions; it must
-        // be a valid `size_t` type.  Ethereum RLP defines a length as a maximum of 8 bytes which
-        // for some (32-bit) architures will be larger then size_t.  On such an architecute,
-        // which is becoming ever rarer, we'll uncerimoniously fatal if `length` is too big.
-        //
-        // SIZE_MAX is 4294967295UL on a 32bit arch - no way this ever fails...
-        assert (length <= (uint64_t) SIZE_MAX);
-        return length;
+        return confirmLength(length);
     }
 }
 
@@ -733,7 +736,7 @@ rlpDecodeBytesSharedDontReleaseBaseline (BRRlpCoder coder, BRRlpItem item, uint8
     assert (itemIsValid (coder, item));
 
     uint8_t offset = 0;
-    uint64_t length = decodeLength(item->bytes, baseline, &offset);
+    size_t length = decodeLength(item->bytes, baseline, &offset);
 
     BRRlpData result;
     result.bytesCount = length;
@@ -990,8 +993,8 @@ rlpGetItem (BRRlpCoder coder, BRRlpData data) {
         // We can have an arbitrary number of sub-times.  Assume we have DEFAULT_ITEM_INCREMENT
         // but be willing to increase the number if needed.
         BRRlpItem itemsArray[DEFAULT_ITEM_INCREMENT];
-        uint64_t itemsIndex = 0;
-        uint64_t itemsCount = DEFAULT_ITEM_INCREMENT;
+        size_t itemsIndex = 0;
+        size_t itemsCount = DEFAULT_ITEM_INCREMENT;
 
         // We'll use this to accumulate subitems.
         BRRlpItem *items = itemsArray;
@@ -1066,14 +1069,14 @@ rlpShowItemInternal (BRRlpCoder coder, BRRlpItem context, const char *topic, int
             // We'll display this as hex-encoded bytes; we could use rlpDecodeItemBytes() but
             // that allocates memory, which we don't need so critically herein.
             uint8_t offset = 0;
-            uint64_t length = decodeLength(context->bytes, RLP_PREFIX_BYTES, &offset);
+            size_t length = decodeLength(context->bytes, RLP_PREFIX_BYTES, &offset);
 
             // We'll limit the display to a string of 1024 characters.
             size_t bytesCount = length > 512 ? 512 : length;
             char string[1024 + 1];
             encodeHex(string, 2 * bytesCount + 1, &context->bytes[offset], bytesCount);
 
-            eth_log(topic, "%sI%3" PRIu64 ": 0x%s%s", spaces, length, string,
+            eth_log(topic, "%sI%3zu: 0x%s%s", spaces, length, string,
                     (bytesCount == length ? "" : "..."));
             break;
         }

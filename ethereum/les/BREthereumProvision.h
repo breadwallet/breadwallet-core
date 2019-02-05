@@ -183,7 +183,7 @@ provisionSubmissionConsume (BREthereumProvisionSubmission *provision,
 /**
  * A Provision Identifer.
  */
-typedef uint64_t BREthereumProvisionIdentifier;
+typedef size_t BREthereumProvisionIdentifier;
 
 #define PROVISION_IDENTIFIER_UNDEFINED  ((BREthereumProvisionIdentifier) -1)
 
@@ -216,14 +216,14 @@ extern BREthereumMessage
 provisionCreateMessage (BREthereumProvision *provision,
                         BREthereumMessageIdentifier type,
                         size_t messageContentLimit,
-                        uint64_t messageIdBase,
+                        size_t messageIdBase,
                         size_t index);
 
 extern BREthereumProvisionStatus
 provisionHandleMessage (BREthereumProvision *provision,
                         BREthereumMessage message,
                         size_t messageContentLimit,
-                        uint64_t messageIdBase);
+                        size_t messageIdBase);
 
 extern BREthereumBoolean
 provisionMatches (BREthereumProvision *provision1,

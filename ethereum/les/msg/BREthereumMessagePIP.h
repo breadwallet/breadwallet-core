@@ -310,7 +310,7 @@ extern uint64_t
 messagePIPGetCreditsCount (const BREthereumPIPMessage *message);
 
 #define PIP_MESSAGE_NO_REQUEST_ID    (-1)
-extern uint64_t
+extern size_t
 messagePIPGetRequestId (const BREthereumPIPMessage *message);
 
 extern const char *
