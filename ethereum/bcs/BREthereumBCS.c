@@ -1736,6 +1736,7 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
 
     // We do not ever necessarily have corresponding transactions at this point.  We'll process
     // the logs as best we can and then, in blockLinkLogsWithTransactions(), complete processing.
+    size_t logIndexInBlock = 0;
     size_t receiptsCount = array_count(receipts);
     for (size_t ti = 0; ti < receiptsCount; ti++) { // transactionIndex
         BREthereumTransactionReceipt receipt = receipts[ti];
@@ -1755,7 +1756,7 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
 
                     // We must save `li`, it identifies this log amoung other logs in transaction.
                     // We won't have the transaction hash so we'll use an empty one.
-                    logInitializeIdentifier(log, emptyHash, li);
+                    logInitializeIdentifier(log, emptyHash, logIndexInBlock);
 
                     logSetStatus (log, transactionStatusCreateIncluded (blockGetHash(block),
                                                                         blockGetNumber(block),
@@ -1767,10 +1768,13 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
                     array_add(neededLogs, log);
                 }
 
+                logIndexInBlock += 1;
+
                 // else are we intereted in contract matches?  To 'estimate Gas'?  If so, check
                 // logic elsewhere to avoid excluding logs.
             }
         }
+        else logIndexInBlock += transactionReceiptGetLogsCount (receipt);
     }
 
     // Use the cummulative gasUsed, in each receipt, to compute the gasUsed for each transaction.
