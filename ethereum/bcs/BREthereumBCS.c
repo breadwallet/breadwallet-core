@@ -422,10 +422,16 @@ extern void
 bcsSync (BREthereumBCS bcs,
          uint64_t blockNumber) {
     assert (P2P_ONLY == bcs->mode || P2P_WITH_BRD_SYNC == bcs->mode);
+
+    // Stop a sync that is currently in progress.
+    if (ETHEREUM_BOOLEAN_IS_TRUE(bcsSyncInProgress(bcs)))
+        bcsSyncStop(bcs->sync);
+
+    // Start a new sync from the provided `blockNumber` up to the block at the head.
     bcsSyncRange (bcs,
                   NODE_REFERENCE_ANY,
-                  blockGetNumber(bcs->chain),
-                  blockNumber);
+                  blockNumber,
+                  blockGetNumber(bcs->chain));
 }
 
 extern BREthereumBoolean

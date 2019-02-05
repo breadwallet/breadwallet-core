@@ -197,6 +197,19 @@ bcsIsStarted (BREthereumBCS bcs);
 extern void
 bcsDestroy (BREthereumBCS bcs);
 
+
+/**
+ * Start a sync from block number.  If a sync is in progress, then it is stopped.  This function
+ * is typically invoked due to a) a User initiated re-sync, or b) the addition of a token - both
+ * invocations are through ewmSync().
+ *
+ * Any sync that is started with a range that contains an included transfer (transaction or log)
+ * will force transfer to 'pending'.  Then, as the sync progresses, the transfer will, presumably,
+ * get re-included.
+ *
+ * @param bcs
+ * @param blockNumber the block number (>= 0) to sync from
+ */
 extern void
 bcsSync (BREthereumBCS bcs,
          uint64_t blockNumber);
