@@ -586,7 +586,8 @@ ewmHandleAnnounceLog (BREthereumEWM ewm,
             rlpReleaseItem (ewm->coder, item);
 
             // Given {hash,logIndex}, initialize the log's identifier
-            logInitializeIdentifier(log, bundle->hash, bundle->logIndex);
+            assert (bundle->logIndex <= (uint64_t) SIZE_MAX);
+            logInitializeIdentifier(log, bundle->hash, (size_t) bundle->logIndex);
 
             BREthereumTransactionStatus status =
             transactionStatusCreateIncluded (hashCreateEmpty(),

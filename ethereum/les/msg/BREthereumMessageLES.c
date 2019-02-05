@@ -142,8 +142,9 @@ messageLESStatusDecode (BRRlpItem item,
             if (3 != elementCount) break;
 
             // fill in status.
-            size_t msgCode = rlpDecodeUInt64(coder.rlp, elements[0], 1);
-            status.costs[msgCode].msgCode = msgCode;
+            uint64_t  msgCode = rlpDecodeUInt64(coder.rlp, elements[0], 1);
+            assert (msgCode <= (uint64_t) SIZE_MAX);
+            status.costs[msgCode].msgCode = (size_t) msgCode;
             status.costs[msgCode].baseCost = rlpDecodeUInt64(coder.rlp, elements[1], 1);
             status.costs[msgCode].reqCost  = rlpDecodeUInt64(coder.rlp, elements[2], 1);
         }
@@ -921,8 +922,8 @@ messageLESGetCreditsCount (const BREthereumLESMessage *lm) {
     }
 }
 
-extern uint64_t
-messageLESGetRequestId (const BREthereumLESMessage *message) {
+static uint64_t
+messageLESGetRequestIdInternal (const BREthereumLESMessage *message) {
     switch (message->identifier) {
         case LES_MESSAGE_STATUS: return LES_MESSAGE_NO_REQUEST_ID;
         case LES_MESSAGE_ANNOUNCE: return LES_MESSAGE_NO_REQUEST_ID;
@@ -947,6 +948,14 @@ messageLESGetRequestId (const BREthereumLESMessage *message) {
         case LES_MESSAGE_GET_TX_STATUS: return message->u.getTxStatus.reqId;
         case LES_MESSAGE_TX_STATUS: return message->u.txStatus.reqId;
     }
+}
+
+extern size_t
+messageLESGetRequestId (const BREthereumLESMessage *message) {
+    uint64_t reqId = messageLESGetRequestIdInternal (message);
+    if (LES_MESSAGE_NO_REQUEST_ID == reqId) return LES_MESSAGE_NO_REQUEST_ID;
+    assert (reqId <= (uint64_t) SIZE_MAX);
+    return (size_t) reqId;
 }
 
 #define LES_MESSAGE_CHT_PERIOD     (4096)

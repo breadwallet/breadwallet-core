@@ -451,9 +451,12 @@ logRlpDecode (BRRlpItem item,
     log->data = rlpGetData (coder, items[2]); //  rlpDecodeBytes(coder, items[2]);
 
     if (RLP_TYPE_ARCHIVE == type) {
-        logInitializeIdentifier (log,
-                                 hashRlpDecode(items[3], coder),
-                                 rlpDecodeUInt64(coder, items[4], 0));
+        BREthereumHash hash = hashRlpDecode(items[3], coder);
+
+        uint64_t transactionReceiptIndex = rlpDecodeUInt64(coder, items[4], 0);
+        assert (transactionReceiptIndex <= (uint64_t) SIZE_MAX);
+
+        logInitializeIdentifier (log, hash, (size_t) transactionReceiptIndex);
         log->status = transactionStatusRLPDecode(items[5], NULL, coder);
     }
     return log;

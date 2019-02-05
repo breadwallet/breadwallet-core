@@ -82,7 +82,7 @@ provisionGetTypeName (BREthereumProvisionType type) {
 static BREthereumMessage
 provisionCreateMessageLES (BREthereumProvision *provisionMulti,
                            size_t messageContentLimit,
-                           uint64_t messageIdBase,
+                           size_t messageIdBase,
                            size_t index) {
     uint64_t messageId = messageIdBase + index;
     switch (provisionMulti->type) {
@@ -95,7 +95,7 @@ provisionCreateMessageLES (BREthereumProvision *provisionMulti,
             }
 
             uint64_t start = provision->start + index * messageContentLimit;
-            uint64_t count = provision->limit - index * messageContentLimit;
+            size_t  count = provision->limit - index * messageContentLimit;
 
             return (BREthereumMessage) {
                 MESSAGE_LES,
@@ -304,7 +304,7 @@ static BREthereumProvisionStatus
 provisionHandleMessageLES (BREthereumProvision *provisionMulti,
                            OwnershipGiven BREthereumLESMessage message,
                            size_t messageContentLimit,
-                           uint64_t messageIdBase) {
+                           size_t messageIdBase) {
     BREthereumProvisionStatus status = PROVISION_SUCCESS;
 
     switch (provisionMulti->type) {
@@ -518,7 +518,7 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
 static BREthereumMessage
 provisionCreateMessagePIP (BREthereumProvision *provisionMulti,
                            size_t messageContentLimit,
-                           uint64_t messageIdBase,
+                           size_t messageIdBase,
                            size_t index) {
     uint64_t messageId = messageIdBase + index;
 
@@ -532,7 +532,7 @@ provisionCreateMessagePIP (BREthereumProvision *provisionMulti,
             }
 
             uint64_t start = provision->start + index * messageContentLimit;
-            uint64_t count = provision->limit - index * messageContentLimit;
+            size_t   count = provision->limit - index * messageContentLimit;
 
             BREthereumPIPRequestInput input = {
                 PIP_REQUEST_HEADERS,
@@ -764,7 +764,7 @@ static BREthereumProvisionStatus
 provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
                            OwnershipGiven BREthereumPIPMessage message,
                            size_t messageContentLimit,
-                           uint64_t messageIdBase) {
+                           size_t messageIdBase) {
     BREthereumProvisionStatus status = PROVISION_SUCCESS;
 
     switch (provisionMulti->type) {
@@ -1001,7 +1001,7 @@ extern BREthereumMessage
 provisionCreateMessage (BREthereumProvision *provision,
                         BREthereumMessageIdentifier type,
                         size_t messageContentLimit,
-                        uint64_t messageIdBase,
+                        size_t messageIdBase,
                         size_t index) {
     switch (type) {
         case MESSAGE_P2P:
@@ -1219,7 +1219,7 @@ extern BREthereumProvisionStatus
 provisionHandleMessage (BREthereumProvision *provision,
                         OwnershipGiven BREthereumMessage message,
                         size_t messageContentLimit,
-                        uint64_t messageIdBase) {
+                        size_t messageIdBase) {
     switch (message.identifier) {
         case MESSAGE_P2P:
         case MESSAGE_DIS:

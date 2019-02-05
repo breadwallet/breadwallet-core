@@ -693,7 +693,9 @@ bcsReclaimBlock (BREthereumBCS bcs,
 static void
 bcsSaveBlocks (BREthereumBCS bcs) {
     // We'll save everything between bcs->chain->next and bcs->chainTail
-    unsigned long long blockCount = blockGetNumber(bcs->chain) - blockGetNumber(bcs->chainTail);
+    uint64_t blockCountRaw = blockGetNumber(bcs->chain) - blockGetNumber(bcs->chainTail);
+    assert (blockCountRaw <= (uint64_t) SIZE_MAX);
+    size_t blockCount = (size_t) blockCountRaw;
 
     // We'll pass long the blocks directly, for now.  This will likely need to change because
     // this code will lose control of the block memory.
@@ -701,12 +703,12 @@ bcsSaveBlocks (BREthereumBCS bcs) {
     // For example, we quickly hit another 'ReclaimAndSaveBlocks' point prior the the
     // `saveBlocksCallback` completing - we'll then release memory needed by the callback handler.
     BRArrayOf(BREthereumBlock) blocks;
-    array_new(blocks, blockCount);
-    array_set_count(blocks, blockCount);
+    array_new (blocks, blockCount);
+    array_set_count (blocks, blockCount);
 
     BREthereumBlock next = blockGetNext (bcs->chain);
     BREthereumBlock last = bcs->chainTail;
-    unsigned long long blockIndex = blockCount - 1;
+    size_t blockIndex = blockCount - 1;
 
     while (next != last) {
         blocks[blockIndex--] = next;
@@ -2282,7 +2284,7 @@ bcsHandleProvision (BREthereumBCS bcs,
                                        provision);
                     needProvisionRelease = 0;
 
-                    eth_log ("BCS", "Resubmitted Provision: %" PRIu64 ": %s",
+                    eth_log ("BCS", "Resubmitted Provision: %zu: %s",
                              provision->identifier,
                              provisionGetTypeName(provision->type));
                     break;
