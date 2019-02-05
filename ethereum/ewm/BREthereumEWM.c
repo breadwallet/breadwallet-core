@@ -1181,11 +1181,13 @@ ewmWalletSignTransferAnnounce (BREthereumEWM ewm,
 }
 
 extern void // status, error
-ewmWalletSignTransfer(BREthereumEWM ewm,
-                      BREthereumWallet wallet,
-                      BREthereumTransfer transfer,
-                      BRKey privateKey) {
+ewmWalletSignTransfer (BREthereumEWM ewm,
+                       BREthereumWallet wallet,
+                       BREthereumTransfer transfer,
+                       BRKey privateKey) {
+    pthread_mutex_lock(&ewm->lock);
     walletSignTransferWithPrivateKey (wallet, transfer, privateKey);
+    pthread_mutex_unlock(&ewm->lock);
     ewmWalletSignTransferAnnounce (ewm, wallet, transfer);
 }
 
@@ -1194,7 +1196,9 @@ ewmWalletSignTransferWithPaperKey(BREthereumEWM ewm,
                                   BREthereumWallet wallet,
                                   BREthereumTransfer transfer,
                                   const char *paperKey) {
+    pthread_mutex_lock(&ewm->lock);
     walletSignTransfer (wallet, transfer, paperKey);
+    pthread_mutex_unlock(&ewm->lock);
     ewmWalletSignTransferAnnounce (ewm, wallet, transfer);
 }
 
