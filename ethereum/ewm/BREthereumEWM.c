@@ -1455,6 +1455,10 @@ ewmHandleTransactionOriginatingLog (BREthereumEWM ewm,
     BREthereumHash hash = transactionGetHash(transaction);
     for (size_t wid = 0; wid < array_count(ewm->wallets); wid++) {
         BREthereumWallet wallet = ewm->wallets[wid];
+
+        // We already handle the ETH wallet.  See ewmHandleTransaction.
+        if (wallet == ewm->walletHoldingEther) continue;
+
         BREthereumTransfer transfer = walletGetTransferByOriginatingHash (wallet, hash);
         if (NULL != transfer) {
             // If this transaction is the transfer's originatingTransaction, then update the
@@ -1536,10 +1540,14 @@ ewmHandleLog (BREthereumEWM ewm,
     size_t logIndex;
     logExtractIdentifier(log, &transactionHash, &logIndex);
 
-    BREthereumHashString hashString;
-    hashFillString(transactionHash, hashString);
-    eth_log ("EWM", "Log: \"%s\" @ %zu, Change: %s",
-             hashString, logIndex, BCS_CALLBACK_TRANSACTION_TYPE_NAME(type));
+    BREthereumHashString logHashString;
+    hashFillString(logHash, logHashString);
+
+    BREthereumHashString transactionHashString;
+    hashFillString(transactionHash, transactionHashString);
+
+    eth_log ("EWM", "Log: %s { %8s @ %zu }, Change: %s",
+             logHashString, transactionHashString, logIndex, BCS_CALLBACK_TRANSACTION_TYPE_NAME(type));
 
     BREthereumToken token = tokenLookupByAddress(logGetAddress(log));
     if (NULL == token) return;
@@ -1572,7 +1580,6 @@ ewmHandleLog (BREthereumEWM ewm,
     }
 
     ewmReportTransferStatusAsEvent(ewm, wallet, transfer);
-
 }
 
 extern void
@@ -1610,7 +1617,9 @@ ewmHandleSaveTransaction (BREthereumEWM ewm,
     BREthereumHashString fileName;
     hashFillString(hash, fileName);
 
-    eth_log("EWM", "Save Transaction: %s", fileName);
+    eth_log("EWM", "Transaction: Save: %s: %s",
+            CLIENT_CHANGE_TYPE_NAME (type),
+            fileName);
 
     if (CLIENT_CHANGE_REM == type || CLIENT_CHANGE_UPD == type)
         fileServiceRemove (ewm->fs, fileServiceTypeTransactions,
@@ -1628,7 +1637,9 @@ ewmHandleSaveLog (BREthereumEWM ewm,
     BREthereumHashString filename;
     hashFillString(hash, filename);
 
-    eth_log("EWM", "Save Log: %s", filename);
+    eth_log("EWM", "Log: Save: %s: %s",
+            CLIENT_CHANGE_TYPE_NAME (type),
+            filename);
 
     if (CLIENT_CHANGE_REM == type || CLIENT_CHANGE_UPD == type)
         fileServiceRemove (ewm->fs, fileServiceTypeLogs,
