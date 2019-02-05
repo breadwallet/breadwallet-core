@@ -1,5 +1,9 @@
 package com.breadwallet.core.ethereum;
 
+import android.content.Context;
+import android.support.test.InstrumentationRegistry;
+
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -19,14 +23,31 @@ public class ClientAIT implements BREthereumEWM.Client {
                                    BREthereumEWM.TransactionEvent event);
     }
 
+    private void deleteRecursively (File file) {
+        if (file.isDirectory())
+            for (File child : file.listFiles()) {
+                deleteRecursively(child);
+            }
+        file.delete();
+    }
+
+
     protected BREthereumNetwork network;
     protected BREthereumEWM ewm;
+    protected String storagePath;
 
     public ClientAIT(BREthereumNetwork network,
                      String paperKey) {
+        Context context = InstrumentationRegistry.getInstrumentation().getContext();
+
+        File storageFile = new File (context.getFilesDir(), "core");
+        if (storageFile.exists()) deleteRecursively(storageFile);
+        storageFile.mkdirs();
+
+        storagePath = storageFile.getAbsolutePath();
+
         this.network = network;
-        this.ewm = new BREthereumEWM (this, network, paperKey, words,
-                null, null, null, null);
+        this.ewm = new BREthereumEWM (this, network, storagePath, paperKey, words);
     }
 
     @Override
@@ -140,31 +161,7 @@ public class ClientAIT implements BREthereumEWM.Client {
         ewm.announceNonce(address, "17", rid);
     }
 
-    @Override
-    public void saveNodes (Map<String,String> data) {
-        System.out.println ("TST: saveNodes");
-    }
-
-    @Override
-    public void saveBlocks(Map<String,String> data) {
-        System.out.println ("TST: saveBlocks");
-    }
-
-    @Override
-    public void changeTransaction(int changeType,
-                           String hash,
-                           String data) {
-        System.out.println ("TST: changeTransaction");
-    }
-
-    @Override
-    public void changeLog (int changeType,
-                    String hash,
-                    String data) {
-        System.out.println ("TST: changeLog");
-    }
-
-    @Override
+     @Override
     public void handleEWMEvent(BREthereumEWM.EWMEvent event, BREthereumEWM.Status status, String errorDescription) {
         System.out.println ("TST: EWMEvent: " + event.name());
 

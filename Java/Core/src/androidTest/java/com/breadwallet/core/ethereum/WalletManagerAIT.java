@@ -18,7 +18,7 @@ public class WalletManagerAIT extends BaseAIT {
 //        client.ewm.updateTokens();
         client.ewm.connect();
 
-        try { sleep (120 * 1000); } catch (Exception ex) { assertTrue(false); }
+        try { sleep (10 * 1000); } catch (Exception ex) { assertTrue(false); }
 
         client.ewm.disconnect();
     }
