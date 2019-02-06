@@ -420,6 +420,8 @@ typedef struct {
 
 static void *
 lesSeedQueryThread (BREthereumLESSeedContext *context) {
+    BREthereumLES les = context->les;
+
     char threadName[1024];
     sprintf (threadName, "Core Ethereum LES Seed: %s", context->seed);
 
@@ -441,8 +443,6 @@ lesSeedQueryThread (BREthereumLESSeedContext *context) {
     ns_msg msg;
     ns_initparse (msgData, msgCount, &msg);
     msgCount = ns_msg_count(msg, ns_s_an);
-
-    BREthereumLES les = context->les;
 
     if (!bootstrapBRDOnly || NODE_PRIORITY_BRD == context->priority) {
         pthread_mutex_lock (&les->lock);
