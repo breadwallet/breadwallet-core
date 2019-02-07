@@ -261,7 +261,7 @@ int main(int argc, const char * argv[]) {
     pthread_attr_destroy(&attr);
 
     pthread_join(asserter, NULL);
-    BRAssertDisconnect ();
+    BRAssertUninstall ();
     printf ("main: Paused\n");
     sleep (5);
     printf ("main: Done\n");
