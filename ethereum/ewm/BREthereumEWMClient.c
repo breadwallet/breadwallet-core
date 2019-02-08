@@ -586,7 +586,8 @@ ewmHandleAnnounceLog (BREthereumEWM ewm,
             rlpReleaseItem (ewm->coder, item);
 
             // Given {hash,logIndex}, initialize the log's identifier
-            logInitializeIdentifier(log, bundle->hash, bundle->logIndex);
+            assert (bundle->logIndex <= (uint64_t) SIZE_MAX);
+            logInitializeIdentifier(log, bundle->hash, (size_t) bundle->logIndex);
 
             BREthereumTransactionStatus status =
             transactionStatusCreateIncluded (hashCreateEmpty(),
@@ -953,11 +954,11 @@ ewmNeedTransferSave (BREthereumEWM ewm,
 
 extern void
 ewmHandleTransferEvent (BREthereumEWM ewm,
-                              BREthereumWallet wallet,
-                              BREthereumTransfer transfer,
-                              BREthereumTransferEvent event,
-                              BREthereumStatus status,
-                              const char *errorDescription) {
+                        BREthereumWallet wallet,
+                        BREthereumTransfer transfer,
+                        BREthereumTransferEvent event,
+                        BREthereumStatus status,
+                        const char *errorDescription) {
 
     // If `transfer` represents a token transfer that we've created/submitted, then we won't have
     // the actual `log` until the corresponding originating transaction is included.  We won't
@@ -973,20 +974,29 @@ ewmHandleTransferEvent (BREthereumEWM ewm,
         BREthereumTransaction transaction = transferGetBasisTransaction (transfer);
         BREthereumLog         log         = transferGetBasisLog(transfer);
 
-        // One of `transaction` or `log` will always be null
-        assert (NULL == transaction || NULL == log);
+        // If we have a hash, then we've got something to save.
+        BREthereumHash hash = transferGetHash(transfer);
+        if (ETHEREUM_BOOLEAN_IS_FALSE (hashCompare (hash, EMPTY_HASH_INIT))) {
 
-        BREthereumClientChangeType type = (event == TRANSFER_EVENT_CREATED
-                                           ? CLIENT_CHANGE_ADD
-                                           : (event == TRANSFER_EVENT_DELETED
-                                              ? CLIENT_CHANGE_REM
-                                              : CLIENT_CHANGE_UPD));
+            // One of `transaction` or `log` will always be null
+            assert (NULL == transaction || NULL == log);
 
-        if (NULL != transaction)
-            ewmHandleSaveTransaction(ewm, transaction, type);
+            // We know that only on SIGNED do we have a transaction hash.  Only on
+            // included do we have a log hash.  Thus we might see CHANGE_UPD w/o a
+            // CHANGE_ADD - and that is NOT a problem.
+            BREthereumClientChangeType type = ((event == TRANSFER_EVENT_CREATED ||
+                                                event == TRANSFER_EVENT_SIGNED)
+                                               ? CLIENT_CHANGE_ADD
+                                               : (event == TRANSFER_EVENT_DELETED
+                                                  ? CLIENT_CHANGE_REM
+                                                  : CLIENT_CHANGE_UPD));
 
-        if (NULL != log)
-            ewmHandleSaveLog(ewm, log, type);
+            if (NULL != transaction)
+                ewmHandleSaveTransaction(ewm, transaction, type);
+
+            if (NULL != log)
+                ewmHandleSaveLog(ewm, log, type);
+        }
     }
 
     // Announce the transfer

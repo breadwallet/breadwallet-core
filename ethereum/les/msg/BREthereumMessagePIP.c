@@ -671,8 +671,8 @@ messagePIPGetCreditsCount (const BREthereumPIPMessage *message) {
     }
 }
 
-extern uint64_t
-messagePIPGetRequestId (const BREthereumPIPMessage *message) {
+static uint64_t
+messagePIPGetRequestIdInternal (const BREthereumPIPMessage *message) {
     switch (message->type) {
         case PIP_MESSAGE_STATUS:   return PIP_MESSAGE_NO_REQUEST_ID;
         case PIP_MESSAGE_ANNOUNCE: return PIP_MESSAGE_NO_REQUEST_ID;
@@ -682,4 +682,12 @@ messagePIPGetRequestId (const BREthereumPIPMessage *message) {
         case PIP_MESSAGE_ACKNOWLEDGE_UPDATE:       return PIP_MESSAGE_NO_REQUEST_ID;
         case PIP_MESSAGE_RELAY_TRANSACTIONS:       return PIP_MESSAGE_NO_REQUEST_ID;
     }
+}
+
+extern size_t
+messagePIPGetRequestId (const BREthereumPIPMessage *message) {
+    uint64_t reqId = messagePIPGetRequestIdInternal (message);
+    if (PIP_MESSAGE_NO_REQUEST_ID == reqId) return PIP_MESSAGE_NO_REQUEST_ID;
+    assert (reqId <= (uint64_t) SIZE_MAX);
+    return (size_t) reqId;
 }

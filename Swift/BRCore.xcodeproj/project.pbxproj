@@ -21,6 +21,7 @@
 		3C0EAE1A2191145A000577A6 /* BRSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C0EAE192191145A000577A6 /* BRSupport.swift */; };
 		3C0EAE26219349CD000577A6 /* BREthereum.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C0EAE25219349CD000577A6 /* BREthereum.swift */; };
 		3C0EAE2921935388000577A6 /* BRBitcoin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C0EAE2821935388000577A6 /* BRBitcoin.swift */; };
+		3C0FF5332209243B0068A0AE /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CEF5FC9220513FC0010A811 /* libresolv.tbd */; };
 		3C18F8B221950746006F738F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C18F8B121950746006F738F /* AppDelegate.swift */; };
 		3C18F8B921950746006F738F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3C18F8B721950746006F738F /* Main.storyboard */; };
 		3C18F8BB21950748006F738F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3C18F8BA21950748006F738F /* Assets.xcassets */; };
@@ -518,6 +519,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3C0FF5332209243B0068A0AE /* libresolv.tbd in Frameworks */,
 				3C18F8C821950797006F738F /* BRCrypto.framework in Frameworks */,
 				3C18F8C721950781006F738F /* libCore.a in Frameworks */,
 			);

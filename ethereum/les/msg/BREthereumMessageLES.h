@@ -403,7 +403,7 @@ typedef struct {
     BREthereumLESMessageUse use;
     
     /** Maximum number of messages that can be sent/requested */
-    uint64_t limit;
+    size_t limit;
     
     /** Cost for 0 messages */
     uint64_t baseCost;
@@ -485,7 +485,7 @@ extern uint64_t
 messageLESGetCreditsCount (const BREthereumLESMessage *message);
 
 #define LES_MESSAGE_NO_REQUEST_ID    (-1)
-extern uint64_t
+extern size_t
 messageLESGetRequestId (const BREthereumLESMessage *message);
 
 extern uint64_t

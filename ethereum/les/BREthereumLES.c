@@ -44,10 +44,12 @@
 #include "BREthereumMessage.h"
 #include "BREthereumNode.h"
 
-#if defined (LES_BOOTSTRAP_BRD_ONLY)
+#if !defined(LES_BOOTSTRAP_LCL_ONLY)
+#   if defined (LES_BOOTSTRAP_BRD_ONLY)
 static int bootstrapBRDOnly = 1;
-#else
+#   else
 static int bootstrapBRDOnly = 0;
+#   endif
 #endif
 
 /** Forward Declarations */
@@ -200,10 +202,12 @@ nodeConfigCreate (BREthereumNode node) {
     return config;
 }
 
+#if !defined(LES_BOOTSTRAP_LCL_ONLY)
 static BREthereumNodeEndpoint
 nodeConfigCreateEndpoint (BREthereumNodeConfig config) {
     return nodeEndpointCreate ((BREthereumDISNeighbor) { config->endpoint, config->key });
 }
+#endif
 
 extern size_t
 nodeConfigHashValue (const void *t)
@@ -217,10 +221,12 @@ nodeConfigHashEqual (const void *t1, const void *t2) {
                                      &((BREthereumNodeConfig) t2)->hash);
 }
 
+#if defined (INCLUDE_UNUSED_FUNCTION)
 static inline void
 nodeConfigReleaseForSet (void *ignore, void *item) {
     nodeConfigRelease ((BREthereumNodeConfig) item);
 }
+#endif
 
 /**
  * A LES Request is a LES Message with associated callbacks.  We'll send the message (once we have
@@ -414,6 +420,8 @@ typedef struct {
 
 static void *
 lesSeedQueryThread (BREthereumLESSeedContext *context) {
+    BREthereumLES les = context->les;
+
     char threadName[1024];
     sprintf (threadName, "Core Ethereum LES Seed: %s", context->seed);
 
@@ -435,8 +443,6 @@ lesSeedQueryThread (BREthereumLESSeedContext *context) {
     ns_msg msg;
     ns_initparse (msgData, msgCount, &msg);
     msgCount = ns_msg_count(msg, ns_s_an);
-
-    BREthereumLES les = context->les;
 
     if (!bootstrapBRDOnly || NODE_PRIORITY_BRD == context->priority) {
         pthread_mutex_lock (&les->lock);

@@ -63,7 +63,7 @@ nodeStateAnnounce (BREthereumNode node,
                    BREthereumNodeEndpointRoute route,
                    BREthereumNodeState state);
 
-static uint64_t
+static size_t
 nodeGetThenIncrementMessageIdentifier (BREthereumNode node,
                                        size_t byIncrement);
 
@@ -312,7 +312,7 @@ typedef struct {
 
     /** The base message identifier.  If the provision applies to multiple messages, then
      * the messages identifers will be sequential starting at this identifier */
-    uint64_t messageIdentifier;
+    size_t messageIdentifier;
 
     /** The count of messages */
     size_t messagesCount;
@@ -366,7 +366,7 @@ provisionerMessageSend (BREthereumNodeProvisioner *provisioner) {
     return status;
 }
 
-static uint64_t
+static size_t
 provisionerGetCount (BREthereumNodeProvisioner *provisioner) {
     switch (provisioner->provision.type) {
         case PROVISION_BLOCK_HEADERS:
@@ -538,7 +538,7 @@ struct BREthereumNodeRecord {
     uint8_t ackBufCipher[ackCipherBufLen];
 
     // Provision
-    uint64_t messageIdentifier;
+    size_t messageIdentifier;
 
     BRArrayOf(BREthereumNodeProvisioner) provisioners;
 
@@ -592,10 +592,10 @@ nodeCompare (BREthereumNode node1,
                : nodeNeighborCompare(node1, node2)));
 }
 
-static uint64_t
+static size_t
 nodeGetThenIncrementMessageIdentifier (BREthereumNode node,
                                        size_t byIncrement) {
-    uint64_t identifier;
+    size_t identifier;
     pthread_mutex_lock(&node->lock);
     identifier = node->messageIdentifier;
     node->messageIdentifier += byIncrement;

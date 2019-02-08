@@ -60,6 +60,7 @@ proofOfWorkRelease (BREthereumProofOfWork pow) {
     free (pow);
 }
 
+#if defined (INCLUDE_UNUSED_FUNCTIONS)
 static uint64_t
 powEpoch (BREthereumBlockHeader header) {
     return blockHeaderGetNonce(header) / POW_EPOCH;
@@ -105,6 +106,7 @@ static BREthereumData
 powLittleRMH (BREthereumData x, uint64_t i, uint64_t n) {
     return x;
 }
+
 static BREthereumData
 powBigRMH (BREthereumData x, uint64_t n) {
     for (uint64_t i = 0; i < n; i++)
@@ -124,7 +126,6 @@ powCacheRounds (BREthereumData x, uint64_t y, uint64_t n) {
 static void
 powBigFNV (BREthereumData x,
            BREthereumData y) {
-
 }
 
 static BREthereumData
@@ -147,13 +148,13 @@ powParents (BREthereumData c,
             : powMix (m, c, i, p + 1));
 }
 
-
 static BREthereumData
 powDatasetItem (BREthereumData c,
                 uint64_t i) {
     return powParents(c, i, -i, (BREthereumData) { 0, NULL });
 }
 // On and On and On....
+#endif
 
 extern void
 proofOfWorkGenerate(BREthereumProofOfWork pow,

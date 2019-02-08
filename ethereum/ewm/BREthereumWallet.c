@@ -298,16 +298,16 @@ walletHasTransfer (BREthereumWallet wallet,
 //
 
 /**
- * Sign the transfer.
+ * Sign the transfer with a paper key.
  *
  * @param wallet
  * @param transfer
  * @param paperKey
  */
 extern void
-walletSignTransfer(BREthereumWallet wallet,
-                      BREthereumTransfer transfer,
-                      const char *paperKey) {
+walletSignTransfer (BREthereumWallet wallet,
+                    BREthereumTransfer transfer,
+                    const char *paperKey) {
     transferSign (transfer,
                   wallet->network,
                   wallet->account,
@@ -315,16 +315,22 @@ walletSignTransfer(BREthereumWallet wallet,
                   paperKey);
 }
 
-// For now.
+/**
+ * Sign the transfer with a private key
+ *
+ * @param wallet
+ * @param transfer
+ * @param privateKey
+ */
 extern void
-walletSignTransferWithPrivateKey(BREthereumWallet wallet,
-                                 BREthereumTransfer transfer,
-                                 BRKey privateKey) {
-    transferSignWithKey(transfer,
-                        wallet->network,
-                        wallet->account,
-                        wallet->address,
-                        privateKey);
+walletSignTransferWithPrivateKey (BREthereumWallet wallet,
+                                  BREthereumTransfer transfer,
+                                  BRKey privateKey) {
+    transferSignWithKey (transfer,
+                         wallet->network,
+                         wallet->account,
+                         wallet->address,
+                         privateKey);
 }
 
 //

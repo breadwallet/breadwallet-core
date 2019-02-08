@@ -154,10 +154,9 @@ bcsCreateInitializeTransactions (BREthereumBCS bcs,
     FOR_SET (BREthereumTransaction, transaction, transactions) {
         BREthereumTransactionStatus status = transactionGetStatus(transaction);
 
-        // For now, assume all provided transactions are in a 'final state'.
-        assert (TRANSACTION_STATUS_INCLUDED == status.type ||
-                TRANSACTION_STATUS_ERRORED  == status.type ||
-                TRANSACTION_STATUS_PENDING  == status.type);
+        // For now, assume all provided transactions are not in CREATED - because there
+        // won't be a HASH until 'signed'
+        assert (TRANSFER_STATUS_CREATED != status.type);
 
         bcsSignalTransaction (bcs, transaction);
     }
@@ -173,10 +172,9 @@ bcsCreateInitializeLogs (BREthereumBCS bcs,
     FOR_SET (BREthereumLog, log, logs) {
         BREthereumTransactionStatus status = logGetStatus(log);
 
-        // For now, assume all provided logs are in a 'final state'.
-        assert (TRANSACTION_STATUS_INCLUDED == status.type ||
-                TRANSACTION_STATUS_ERRORED  == status.type ||
-                TRANSACTION_STATUS_PENDING  == status.type);
+        // For now, assume all provided logs are not in CREATED - because there
+        // won't be a HASH until 'signed'
+        assert (TRANSFER_STATUS_CREATED != status.type);
 
         bcsSignalLog (bcs, log);
     }
@@ -530,6 +528,7 @@ bcsPendLog (BREthereumBCS bcs,
         array_add (bcs->pendingLogs, hash);
 }
 
+#if defined (INCLUDE_UNUSED_FUNCTION)
 static void
 bcsUnpendLog (BREthereumBCS bcs,
               OwnershipKept BREthereumLog log) {
@@ -545,6 +544,7 @@ bcsPendFindLogByLogHash (BREthereumBCS bcs,
             ? BRSetGet (bcs->logs, &hash)
             : NULL);
 }
+#endif
 
 static BRArrayOf(BREthereumLog)
 bcsPendFindLogsByTransactionHash (BREthereumBCS bcs,
@@ -691,7 +691,9 @@ bcsReclaimBlock (BREthereumBCS bcs,
 static void
 bcsSaveBlocks (BREthereumBCS bcs) {
     // We'll save everything between bcs->chain->next and bcs->chainTail
-    unsigned long long blockCount = blockGetNumber(bcs->chain) - blockGetNumber(bcs->chainTail);
+    uint64_t blockCountRaw = blockGetNumber(bcs->chain) - blockGetNumber(bcs->chainTail);
+    assert (blockCountRaw <= (uint64_t) SIZE_MAX);
+    size_t blockCount = (size_t) blockCountRaw;
 
     // We'll pass long the blocks directly, for now.  This will likely need to change because
     // this code will lose control of the block memory.
@@ -699,12 +701,12 @@ bcsSaveBlocks (BREthereumBCS bcs) {
     // For example, we quickly hit another 'ReclaimAndSaveBlocks' point prior the the
     // `saveBlocksCallback` completing - we'll then release memory needed by the callback handler.
     BRArrayOf(BREthereumBlock) blocks;
-    array_new(blocks, blockCount);
-    array_set_count(blocks, blockCount);
+    array_new (blocks, blockCount);
+    array_set_count (blocks, blockCount);
 
     BREthereumBlock next = blockGetNext (bcs->chain);
     BREthereumBlock last = bcs->chainTail;
-    unsigned long long blockIndex = blockCount - 1;
+    size_t blockIndex = blockCount - 1;
 
     while (next != last) {
         blocks[blockIndex--] = next;
@@ -1007,7 +1009,7 @@ bcsOrphansShow (BREthereumBCS bcs,
         bcsShowBlockForChain (bcs, orphan, "Orphan");
 }
 
-#if defined UNUSED
+#if defined (INCLUDE_UNUSED_FUNCTION)
 /*!
  * Check if `blockHash` and `blockNumber` are in the chain.  They will be in the chain if:
  *   a) blockNumber is smaller than the chain's earliest maintained block number, or
@@ -1024,7 +1026,6 @@ bcsChainHasBlock (BREthereumBCS bcs,
              NULL == BRSetGet(bcs->orphans, &blockHash) &&
              NULL != BRSetGet(bcs->blocks, &blockHash)));
 }
-#endif // UNUSED
 
 /**
  * Check if `block` is in `bcs->chain` (which include `block` being so old as to have a block
@@ -1036,6 +1037,7 @@ bcsHasBlockInChain (BREthereumBCS bcs,
     return (ETHEREUM_BOOLEAN_IS_TRUE (blockHasNext(block)) ||
             blockGetNumber(block) <= blockGetNumber(bcs->chainTail));
 }
+#endif
 
 static int
 bcsIsBlockValid (BREthereumBCS bcs,
@@ -1673,6 +1675,7 @@ bcsHandleBlockProofs (BREthereumBCS bcs,
 ///
 
 
+#if defined (INCLUDE_UNUSED_FUNCTION)
 static BREthereumBoolean
 bcsHandleLogExtractInterest (BREthereumBCS bcs,
                              BREthereumLog log,
@@ -1695,6 +1698,7 @@ bcsHandleLogExtractInterest (BREthereumBCS bcs,
 
     return ETHEREUM_BOOLEAN_TRUE;
 }
+#endif
 
 /*!
  */
@@ -1736,6 +1740,7 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
 
     // We do not ever necessarily have corresponding transactions at this point.  We'll process
     // the logs as best we can and then, in blockLinkLogsWithTransactions(), complete processing.
+    size_t logIndexInBlock = 0;
     size_t receiptsCount = array_count(receipts);
     for (size_t ti = 0; ti < receiptsCount; ti++) { // transactionIndex
         BREthereumTransactionReceipt receipt = receipts[ti];
@@ -1755,7 +1760,7 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
 
                     // We must save `li`, it identifies this log amoung other logs in transaction.
                     // We won't have the transaction hash so we'll use an empty one.
-                    logInitializeIdentifier(log, emptyHash, li);
+                    logInitializeIdentifier(log, emptyHash, logIndexInBlock);
 
                     logSetStatus (log, transactionStatusCreateIncluded (blockGetHash(block),
                                                                         blockGetNumber(block),
@@ -1767,10 +1772,13 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
                     array_add(neededLogs, log);
                 }
 
+                logIndexInBlock += 1;
+
                 // else are we intereted in contract matches?  To 'estimate Gas'?  If so, check
                 // logic elsewhere to avoid excluding logs.
             }
         }
+        else logIndexInBlock += transactionReceiptGetLogsCount (receipt);
     }
 
     // Use the cummulative gasUsed, in each receipt, to compute the gasUsed for each transaction.
@@ -2274,7 +2282,7 @@ bcsHandleProvision (BREthereumBCS bcs,
                                        provision);
                     needProvisionRelease = 0;
 
-                    eth_log ("BCS", "Resubmitted Provision: %" PRIu64 ": %s",
+                    eth_log ("BCS", "Resubmitted Provision: %zu: %s",
                              provision->identifier,
                              provisionGetTypeName(provision->type));
                     break;
