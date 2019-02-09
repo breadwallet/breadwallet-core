@@ -23,11 +23,13 @@
       </BuildActionEntries>
    </BuildAction>
    <TestAction
-      buildConfiguration = "Release"
+      buildConfiguration = "DebugMainnet"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      enableASanStackUseAfterReturn = "YES"
       enableThreadSanitizer = "YES"
-      disableMainThreadChecker = "YES"
+      enableUBSanitizer = "YES"
+      systemAttachmentLifetime = "keepNever"
       codeCoverageEnabled = "YES"
       shouldUseLaunchSchemeArgsEnv = "NO">
       <CodeCoverageTargets>
@@ -96,6 +98,11 @@
          </CommandLineArgument>
       </CommandLineArguments>
       <AdditionalOptions>
+         <AdditionalOption
+            key = "NSZombieEnabled"
+            value = "YES"
+            isEnabled = "YES">
+         </AdditionalOption>
       </AdditionalOptions>
    </TestAction>
    <LaunchAction

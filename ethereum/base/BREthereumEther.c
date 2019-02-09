@@ -28,6 +28,7 @@
 #include <string.h>
 #include <assert.h>
 #include "BREthereumEther.h"
+#include "BRAssert.h"
 
 #if LITTLE_ENDIAN != BYTE_ORDER
 #error "Must be a `LITTLE ENDIAN` cpu architecture"
@@ -183,6 +184,6 @@ etherCompare (BREthereumEther e1, BREthereumEther e2) {
         case -1: return ETHEREUM_COMPARISON_LT;
         case  0: return ETHEREUM_COMPARISON_EQ;
         case +1: return ETHEREUM_COMPARISON_GT;
-        default: assert (0);
+        default: BRFail();
     }
 }

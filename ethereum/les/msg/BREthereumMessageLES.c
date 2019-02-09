@@ -25,6 +25,7 @@
 
 #include "../../blockchain/BREthereumBlockChain.h"
 #include "BREthereumMessageLES.h"
+#include "BRAssert.h"
 
 // GETH Limits
 // MaxHeaderFetch           = 192 // Amount of block headers to be fetched per retrieval request
@@ -253,7 +254,7 @@ messageLESGetBlockHeadersEncode (BREthereumLESMessageGetBlockHeaders message,
 extern BREthereumLESMessageGetBlockHeaders
 messageLESGetBlockHeadersDecode (BRRlpItem item,
                                  BREthereumMessageCoder coder) {
-    assert (0);
+    BRFail();
 }
 
 /// MARK: BlockHeaders
@@ -708,7 +709,7 @@ messageLESDecode (BRRlpItem item,
                 { .txStatus = messageLESTxStatusDecode (item, coder)} };
 
         default:
-            assert (0);
+            BRFail();
     }
 }
 
@@ -767,7 +768,7 @@ messageLESEncode (BREthereumLESMessage message,
             break;
 
         default:
-            assert (0);
+            BRFail();
     }
 
     return rlpEncodeList2 (coder.rlp,

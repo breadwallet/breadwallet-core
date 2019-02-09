@@ -118,7 +118,10 @@ static void
 BRAssertInit (void) {
     context->info = NULL;
     context->handler = NULL;
-    if (NULL != context->recoveries) array_free(context->recoveries);
+    if (NULL != context->recoveries) {
+        array_free(context->recoveries);
+        context->recoveries = NULL;
+    }
     context->thread = NULL;
     // lock - do not touch
     // cond
@@ -218,7 +221,7 @@ __BRFail (const char *file, int line, const char *exp) {
 
     pthread_cond_signal (&context->cond);
 #if defined(DEBUG)
-    assert (0);
+//    assert (0);
 #endif
     pthread_exit (NULL);
 }

@@ -25,6 +25,7 @@
 
 #include "BREthereumMessagePIP.h"
 #include "../../mpt/BREthereumMPT.h"
+#include "BRAssert.h"
 
 extern const char *
 messagePIPGetRequestName (BREthereumPIPRequestType type) {
@@ -361,13 +362,9 @@ messagePIPRequestOutputDecode (BRRlpItem item,
         }
 
         case PIP_REQUEST_STORAGE:
-            assert (0);
-
         case PIP_REQUEST_CODE:
-            assert (0);
-
         case PIP_REQUEST_EXECUTION:
-            assert (0);
+            BRFail();
     }
 }
 
@@ -523,7 +520,7 @@ messagePIPDecode (BRRlpItem item,
             };
 
         case PIP_MESSAGE_REQUEST:
-            assert (0);
+            BRFail();
 
         case PIP_MESSAGE_RESPONSE:
             return (BREthereumPIPMessage) {
@@ -538,10 +535,8 @@ messagePIPDecode (BRRlpItem item,
             };
 
         case PIP_MESSAGE_ACKNOWLEDGE_UPDATE:
-            assert (0);
-
         case PIP_MESSAGE_RELAY_TRANSACTIONS:
-            assert (0);
+            BRFail();
     }
 }
 
@@ -556,17 +551,17 @@ messagePIPEncode (BREthereumPIPMessage message,
             break;
 
         case PIP_MESSAGE_ANNOUNCE:
-            assert (0);
+            BRFail();
 
         case PIP_MESSAGE_REQUEST:
             body = messagePIPRequestEncode (&message.u.request, coder);
             break;
 
         case PIP_MESSAGE_RESPONSE:
-            assert (0);
+            BRFail();
 
         case PIP_MESSAGE_UPDATE_CREDIT_PARAMETERS:
-            assert (0);
+            BRFail();
 
         case PIP_MESSAGE_ACKNOWLEDGE_UPDATE:
             body = messagePIPAcknowledgeUpdateEncode (&message.u.acknowledgeUpdate, coder);
