@@ -24,6 +24,7 @@
 //  THE SOFTWARE.
 
 #include "BREthereumMPT.h"
+#include "BRAssert.h"
 
 #undef MPT_SHOW_PROOF_NODES
 
@@ -103,7 +104,7 @@ mptNodeGetPath (BREthereumMPTNode node) {
     switch (node->type) {
         case MPT_NODE_LEAF:      return node->u.leaf.path;
         case MPT_NODE_EXTENSION: return node->u.extension.path;
-        case MPT_NODE_BRANCH:    assert (0);
+        case MPT_NODE_BRANCH:    BRFail();
     }
 }
 

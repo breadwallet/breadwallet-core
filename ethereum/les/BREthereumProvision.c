@@ -24,6 +24,7 @@
 //  THE SOFTWARE.
 
 #include "BREthereumProvision.h"
+#include "BRAssert.h"
 
 static size_t minimum (size_t x, size_t  y) { return x < y ? x : y; }
 
@@ -294,7 +295,7 @@ provisionCreateMessageLES (BREthereumProvision *provisionMulti,
                     };
                 }
                 default:
-                    assert (0);
+                    BRFail();
             }
         }
     }
@@ -754,7 +755,7 @@ provisionCreateMessagePIP (BREthereumProvision *provisionMulti,
                 }
 
                 default:
-                    assert (0);
+                    BRFail();
             }
         }
     }

@@ -29,6 +29,7 @@
 #include "BRInt.h"
 #include "../../base/BREthereumSignature.h"
 #include "BREthereumMessageDIS.h"
+#include "BRAssert.h"
 
 // #define NEED_TO_PRINT_DIS_NEIGHBOR_DETAILS
 
@@ -460,7 +461,7 @@ messageDISEncode (BREthereumDISMessage message,
             break;
 
         case DIS_MESSAGE_NEIGHBORS:
-            assert (0);
+            BRFail();
     }
     BRKey key = message.privateKeyForSigning;
 

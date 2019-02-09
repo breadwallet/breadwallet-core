@@ -34,6 +34,7 @@
 #include "BRKeyECIES.h"
 #include "BREthereumNode.h"
 #include "BREthereumLESFrameCoder.h"
+#include "BRAssert.h"
 
 ///
 /// MARK: - Forward Declarations
@@ -578,7 +579,7 @@ nodeNeighborCompare (BREthereumNode n1,
         case -1: return ETHEREUM_COMPARISON_LT;
         case  0: return ETHEREUM_COMPARISON_EQ;
         case +1: return ETHEREUM_COMPARISON_GT;
-        default: assert (0);
+        default: BRFail();
     }
 }
 

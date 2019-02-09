@@ -7,6 +7,9 @@
 //
 
 #include <stdio.h>
+#include <unistd.h>         // sleep
+#include <pthread.h>
+
 #include "BREthereum.h"
 #include "BRRlp.h"
 #include "BRUtil.h"
@@ -14,6 +17,8 @@
 #include "BREthereumAccount.h"
 
 #include "BRTransaction.h"
+#include "BRAssert.h"
+
 
 #define TEST_TRANS_ETH      "0xf86a75843b9aca00825208943d7eefb552b7d633e7f9eb48cd82cd098ecd5b4687038d7ea4c68000802aa045827725970e3c9729c9450b3ff04f98f10e231ebdeec5d522585a9a57bab1b4a025547970f9bedbef17d4aadd38f4263955633507689a9d7598c9e9bc38438d03"
 #define TEST_TRANS_BRD      "0xf8a976841dcd65008301676094722dd3f80bac40c951b51bdd28dd19d43576218080b844a9059cbb0000000000000000000000003d7eefb552b7d633e7f9eb48cd82cd098ecd5b46000000000000000000000000000000000000000000000000000000e8d4a5100029a02604f887d60d438d29c73b69ade7208ced970d5c74b1bf5b2f156e56c785f15da03b56daa107f678fee099347af966093081e3ef87dc6040a1ce0113452e37f664"
@@ -180,6 +185,42 @@ handleBitcoinTransactionParse (const char *chars) {
     assert (NULL != tx);
 }
 
+//
+// BRAssert
+//
+typedef void* (*ThreadRoutine) (void*);
+
+pthread_t asserter;
+
+void assertHandle(void *info) {
+    printf ("AssertHandle\n");
+}
+
+void assertRecover (void *info) {
+    printf ("AssertRecover: %d\n", (int) info);
+}
+
+int work (int option) {
+    if (0 == option % 2) {
+        printf ("Assert\n");
+        BRAssert(0);
+    }
+    else {
+        printf ("Fail\n");
+        BRFail();
+    }
+    return 1;
+}
+
+void *assertThread (void *ignore) {
+    pthread_setname_np ("Asserter");
+    sleep (2);
+    work ((int) ignore);
+
+    return NULL;
+}
+
+
 int main(int argc, const char * argv[]) {
     BRRlpCoder coder = rlpCoderCreate();
 
@@ -189,16 +230,42 @@ int main(int argc, const char * argv[]) {
         input = argv[1];
     }
 
+#if 0
     handleBitconTransactionHashReverse(BITCOIN_TX_HASH_1);
     handleBitcoinTransactionParse(BITCOIN_TX_PARSE_N);
+#endif
 
-//    handlePaperKeyToAccount();
-//    handleRLPHuge(coder, "/Users/ebg/les-item-2.txt");
-//    handleRLP (coder, SOME_RLP);
-//    handleTrans(coder, TEST_TRANS_ETH);
-//    eth_log ("EXP", "\n\n\n%s", "");
-//    handleTrans(coder, TEST_TRANS_BRD);
+#if 0
+    handlePaperKeyToAccount();
+    handleRLPHuge(coder, "/Users/ebg/les-item-2.txt");
+    handleRLP (coder, SOME_RLP);
+    handleTrans(coder, TEST_TRANS_ETH);
+    eth_log ("EXP", "\n\n\n%s", "");
+    handleTrans(coder, TEST_TRANS_BRD);
+#endif
 
+#if 1
+    BRAssertInstall (SIGUSR1, NULL, assertHandle);
+    BRAssertDefineRecovery((BRAssertRecoveryInfo) 1, assertRecover);
+    BRAssertDefineRecovery((BRAssertRecoveryInfo) 2, assertRecover);
+    BRAssertConnect();
+
+    printf ("AssertConnect\n");
+    pthread_attr_t attr;
+    pthread_attr_init (&attr);
+    pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_JOINABLE);
+    pthread_attr_setstacksize (&attr, 1024 * 1024);
+    pthread_create (&asserter, &attr, (ThreadRoutine) assertThread, (void*) 0);
+    sleep (1);
+    pthread_create (&asserter, &attr, (ThreadRoutine) assertThread, (void*) 1);
+    pthread_attr_destroy(&attr);
+
+    pthread_join(asserter, NULL);
+    BRAssertUninstall ();
+    printf ("main: Paused\n");
+    sleep (5);
+    printf ("main: Done\n");
+#endif
     rlpCoderRelease(coder);
     return 0;
 }

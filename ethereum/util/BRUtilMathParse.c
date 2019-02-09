@@ -29,6 +29,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "BRUtil.h"
+#include "BRAssert.h"
 
 //
 // Parsing
@@ -140,7 +141,7 @@ parseMaximumDigitsForUInt64InBase (int base) {
         case 2:  return 64;
         case 10: return 19;
         case 16: return 16;
-        default: assert (0);
+        default: BRFail();
     }
 }
 
@@ -150,7 +151,7 @@ parseMaximumDigitsForUInt256InBase (int base) {
         case 2:  return 256;
         case 10: return 78;
         case 16: return 64;
-        default: assert(0);
+        default: BRFail();
     }
 }
 
@@ -333,7 +334,7 @@ coerceString (UInt256 x, int base) {
             return r;
         }
         default:
-            assert (0);
+            BRFail();
     }
 }
 

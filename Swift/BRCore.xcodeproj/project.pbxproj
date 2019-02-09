@@ -188,6 +188,8 @@
 		3CEF5FB221FF9DC30010A811 /* BRFileService.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C3DC5BA21DFCA7C004188BD /* BRFileService.c */; };
 		3CEF5FD0220521DC0010A811 /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CEF5FC9220513FC0010A811 /* libresolv.tbd */; };
 		3CEF5FD1220521EC0010A811 /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CEF5FC9220513FC0010A811 /* libresolv.tbd */; };
+		3CEF5FD42208C6E40010A811 /* BRAssert.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CEF5FD32208C6E30010A811 /* BRAssert.c */; };
+		3CEF5FD52208C6E40010A811 /* BRAssert.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CEF5FD32208C6E30010A811 /* BRAssert.c */; };
 		3CF0FC9021657D7B000DE3FE /* BREthereumData.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CF0FC8F21657D7A000DE3FE /* BREthereumData.c */; };
 		3CF0FC9121657D7B000DE3FE /* BREthereumData.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CF0FC8F21657D7A000DE3FE /* BREthereumData.c */; };
 		3CF38E4821C4421600B771E6 /* BREthereumProofOfWork.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CF38E4721C4421600B771E6 /* BREthereumProofOfWork.c */; };
@@ -487,6 +489,8 @@
 		3CEF5FB021FB972B0010A811 /* testSup.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testSup.c; sourceTree = "<group>"; };
 		3CEF5FC9220513FC0010A811 /* libresolv.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libresolv.tbd; path = usr/lib/libresolv.tbd; sourceTree = SDKROOT; };
 		3CEF5FCB220514340010A811 /* libresolv.9.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libresolv.9.tbd; path = usr/lib/libresolv.9.tbd; sourceTree = SDKROOT; };
+		3CEF5FD22208C6E30010A811 /* BRAssert.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRAssert.h; sourceTree = "<group>"; };
+		3CEF5FD32208C6E30010A811 /* BRAssert.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRAssert.c; sourceTree = "<group>"; };
 		3CF0FC8E21657D7A000DE3FE /* BREthereumData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumData.h; sourceTree = "<group>"; };
 		3CF0FC8F21657D7A000DE3FE /* BREthereumData.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumData.c; sourceTree = "<group>"; };
 		3CF38E4721C4421600B771E6 /* BREthereumProofOfWork.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumProofOfWork.c; sourceTree = "<group>"; };
@@ -824,6 +828,8 @@
 			children = (
 				3C3DC5B921DFCA7C004188BD /* BRFileService.h */,
 				3C3DC5BA21DFCA7C004188BD /* BRFileService.c */,
+				3CEF5FD22208C6E30010A811 /* BRAssert.h */,
+				3CEF5FD32208C6E30010A811 /* BRAssert.c */,
 				3CEF5FB021FB972B0010A811 /* testSup.c */,
 			);
 			name = support;
@@ -863,9 +869,9 @@
 		3C590F3120950C470005597B /* Core */ = {
 			isa = PBXGroup;
 			children = (
-				3C3DC5B821DFCA39004188BD /* support */,
 				3C2A537620AF592300C430F6 /* ethereum */,
 				3C42EF512095143D000E58E0 /* module.modulemap */,
+				3C3DC5B821DFCA39004188BD /* support */,
 				3C590F3B20950C720005597B /* bcash */,
 				3C590F3420950C720005597B /* BRAddress.c */,
 				3C590F3720950C720005597B /* BRAddress.h */,
@@ -1315,6 +1321,7 @@
 				3C0D297B216FD0DB003838E9 /* BREthereumMessageLES.c in Sources */,
 				3C6B17592131CE12003C313B /* BRAddress.c in Sources */,
 				3C6B175A2131CE12003C313B /* BRBase58.c in Sources */,
+				3CEF5FD52208C6E40010A811 /* BRAssert.c in Sources */,
 				3C6B175B2131CE12003C313B /* BREthereumBCSSync.c in Sources */,
 				3C6B175C2131CE12003C313B /* BRBech32.c in Sources */,
 				3C6B175D2131CE12003C313B /* BRBIP32Sequence.c in Sources */,
@@ -1389,6 +1396,7 @@
 				3CAB60D420AF8D1A00810CE4 /* BRUtilHex.c in Sources */,
 				3CAB60D520AF8D1A00810CE4 /* BRBCashAddr.c in Sources */,
 				3CAB60D620AF8D1A00810CE4 /* BRAddress.c in Sources */,
+				3CEF5FD42208C6E40010A811 /* BRAssert.c in Sources */,
 				3CAB60D720AF8D1A00810CE4 /* BRBase58.c in Sources */,
 				3C9025FD2108DDAE00143B69 /* BREthereumBCSSync.c in Sources */,
 				3CAB60D820AF8D1A00810CE4 /* BRBech32.c in Sources */,
