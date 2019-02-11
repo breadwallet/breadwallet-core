@@ -179,6 +179,9 @@ transferSetBasisForLog (BREthereumTransfer transfer,
 //
 //
 //
+extern BREthereumTransactionStatus
+transferGetStatusForBasis (BREthereumTransfer transfer);
+
 extern void
 transferSetStatusForBasis (BREthereumTransfer transfer,
                            BREthereumTransactionStatus status);
@@ -218,7 +221,17 @@ transferExtractStatusErrorType (BREthereumTransfer transfer,
 
 extern void
 transfersRelease (OwnershipGiven BRArrayOf(BREthereumTransfer) transfers);
-    
+
+//
+// Transfer Status
+//
+extern BREthereumBoolean
+transferStatusEqual (BREthereumTransferStatus status1,
+                     BREthereumTransferStatus status2);
+
+extern BREthereumTransferStatus
+transferStatusCreate (BREthereumTransactionStatus status);
+
 #ifdef __cplusplus
 }
 #endif
