@@ -30,6 +30,7 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include "BRArray.h"
+#include "BRAssert.h"
 #include "BREvent.h"
 #include "BREventAlarm.h"
 
@@ -164,6 +165,9 @@ alarmExpire (BREventAlarm *alarm, BREventAlarmClock clock) {
 
 /**
  */
+static void
+alarmClockAssertRecovery (BREventAlarmClock clock);
+
 struct BREventAlarmClock {
     /// Identifier of the next alarm created.
     BREventAlarmId identifier;
@@ -228,6 +232,9 @@ alarmClockCreate (void) {
 
     // No thread.
     clock->thread = PTHREAD_NULL;
+
+    BRAssertDefineRecovery ((BRAssertRecoveryInfo) clock,
+                            (BRAssertRecoveryHandler) alarmClockAssertRecovery);
 
     return clock;
 }
@@ -302,7 +309,8 @@ alarmClockThread (BREventAlarmClock clock) {
             }
 
             default:
-                // Update the timeout (presumably an alarm was added) and wait again.
+                // Update clock->timeout (above, presumably an alarm was added) and wait again.
+                // Or clock->threadQuit is set.
                 break;
         }
     }
@@ -344,6 +352,14 @@ alarmClockStop (BREventAlarmClock clock) {
 extern int
 alarmClockIsRunning (BREventAlarmClock clock) {
     return PTHREAD_NULL != clock->thread;
+}
+
+static void
+alarmClockAssertRecovery (BREventAlarmClock clock) {
+    alarmClockStop(clock);
+    pthread_mutex_lock(&clock->lockOnStartStop);
+    array_clear(clock->alarms);
+    pthread_mutex_unlock(&clock->lockOnStartStop);
 }
 
 extern BREventAlarmId

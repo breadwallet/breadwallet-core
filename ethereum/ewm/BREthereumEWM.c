@@ -36,6 +36,7 @@
 
 #include "BRArray.h"
 #include "BRBIP39Mnemonic.h"
+#include "BRAssert.h"
 
 #include "../event/BREvent.h"
 #include "BREthereumEWMPrivate.h"
@@ -339,6 +340,7 @@ ewmFileServiceErrorHandler (BRFileServiceContext context,
 
     // TODO: Actually force a resync.
 }
+
 ///
 /// MARK: Ethereum Wallet Manager
 ///
@@ -352,6 +354,9 @@ ewmCreateErrorHandler (BREthereumEWM ewm, int fileService, const char* reason) {
 
     return NULL;
 }
+
+static void
+ewmAssertRecovery (BREthereumEWM ewm);
 
 extern BREthereumEWM
 ewmCreate (BREthereumNetwork network,
@@ -499,6 +504,9 @@ ewmCreate (BREthereumNetwork network,
         (BREthereumBCSCallbackSync) ewmSignalSync,
         (BREthereumBCSCallbackGetBlocks) ewmSignalGetBlocks
     };
+
+    BRAssertDefineRecovery ((BRAssertRecoveryInfo) ewm,
+                            (BRAssertRecoveryHandler) ewmAssertRecovery);
 
     // Create BCS - note: when BCS processes blocks, peers, transactions, and logs there
     // will be callbacks made to the EWM client.  Because we've defined `handlerForMain`
@@ -695,6 +703,12 @@ ewmIsConnected (BREthereumEWM ewm) {
         case P2P_ONLY:
             return bcsIsStarted (ewm->bcs);
     }
+}
+
+static void
+ewmAssertRecovery (BREthereumEWM ewm) {
+    eth_log ("EWM", "Recovery%s", "");
+    ewmDisconnect (ewm);
 }
 
 extern BREthereumNetwork
