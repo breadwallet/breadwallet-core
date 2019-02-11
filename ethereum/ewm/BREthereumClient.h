@@ -131,7 +131,7 @@ extern "C" {
      * @param errorMessage the error message of a failed submit, or NULL
      * @param rid the rid
      *
-     * @return <#return value description#>
+     * @return 
      */
     extern BREthereumStatus
     ewmAnnounceSubmitTransfer (BREthereumEWM ewm,

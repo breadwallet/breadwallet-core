@@ -525,7 +525,7 @@ transferSetBasisForLog (BREthereumTransfer transfer,
 ///
 /// MARK: - Status
 ///
-static BREthereumTransactionStatus
+extern BREthereumTransactionStatus
 transferGetStatusForBasis (BREthereumTransfer transfer) {
     switch (transfer->basis.type) {
         case TRANSFER_BASIS_TRANSACTION:
@@ -561,14 +561,14 @@ transferGetStatus (BREthereumTransfer transfer) {
 
 extern BREthereumBoolean
 transferHasStatus (BREthereumTransfer transfer,
-                       BREthereumTransferStatus type) {
+                   BREthereumTransferStatus type) {
     return AS_ETHEREUM_BOOLEAN(transfer->status == type);
 }
 
 extern BREthereumBoolean
 transferHasStatusOrTwo (BREthereumTransfer transfer,
-                            BREthereumTransferStatus type1,
-                            BREthereumTransferStatus type2) {
+                        BREthereumTransferStatus type1,
+                        BREthereumTransferStatus type2) {
     return AS_ETHEREUM_BOOLEAN(transfer->status == type1 ||
                                transfer->status == type2);
 }
@@ -707,5 +707,11 @@ transfersRelease (OwnershipGiven BRArrayOf(BREthereumTransfer) transfers) {
             transferRelease(transfers[index]);
         array_free (transfers);
     }
+}
+
+extern BREthereumBoolean
+transferStatusEqual (BREthereumTransferStatus status1,
+                     BREthereumTransferStatus status2) {
+    return AS_ETHEREUM_BOOLEAN (status1 == status2);
 }
 
