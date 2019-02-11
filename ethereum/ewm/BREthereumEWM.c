@@ -1414,15 +1414,29 @@ ewmHandleBalance (BREthereumEWM ewm,
     BREthereumWallet wallet = (AMOUNT_ETHER == amountGetType(amount)
                                ? ewmGetWallet(ewm)
                                : ewmGetWalletHoldingToken(ewm, amountGetToken (amount)));
-    walletSetBalance(wallet, amount);
-
-    ewmSignalWalletEvent(ewm,
-                               wallet,
-                               WALLET_EVENT_BALANCE_UPDATED,
-                               SUCCESS,
-                               NULL);
-
+    
+    int amountTypeMismatch;
+    
+    if (ETHEREUM_COMPARISON_EQ != amountCompare(amount, walletGetBalance(wallet), &amountTypeMismatch)) {
+        walletSetBalance(wallet, amount);
+        ewmSignalWalletEvent (ewm,
+                              wallet,
+                              WALLET_EVENT_BALANCE_UPDATED,
+                              SUCCESS,
+                              NULL);
+    }
     pthread_mutex_unlock(&ewm->lock);
+}
+
+static int
+ewmReportTransferStatusAsEventIsNeeded (BREthereumEWM ewm,
+                                        BREthereumWallet wallet,
+                                        BREthereumTransfer transfer,
+                                        BREthereumTransactionStatus status) {
+    return (// If the status differs from the transfer's basis status...
+            ETHEREUM_BOOLEAN_IS_FALSE (transactionStatusEqual (status, transferGetStatusForBasis(transfer))) ||
+            // Otherwise, if the transfer's status differs.
+            ETHEREUM_BOOLEAN_IS_FALSE (transferHasStatus (transfer, transferStatusCreate(status))));
 }
 
 static void
@@ -1502,9 +1516,11 @@ ewmHandleTransaction (BREthereumEWM ewm,
     // Find a preexisting transfer
     BREthereumTransfer transfer = walletGetTransferByHash(wallet, hash);
 
+    int needStatusEvent = 0;
+
     // If we've no transfer, then create one and save `transaction` as the basis
     if (NULL == transfer) {
-        transfer = transferCreateWithTransaction(transaction);
+        transfer = transferCreateWithTransaction(transaction); // transaction ownership given
 
         walletHandleTransfer(wallet, transfer);
         walletUpdateBalance (wallet);
@@ -1517,8 +1533,13 @@ ewmHandleTransaction (BREthereumEWM ewm,
                                    SUCCESS,
                                    NULL);
 
+        needStatusEvent = 1;
     }
     else {
+        needStatusEvent = ewmReportTransferStatusAsEventIsNeeded (ewm, wallet, transfer,
+                                                                  transactionGetStatus(transaction));
+
+
         // If this transaction is the transfer's originatingTransaction, then update the
         // originatingTransaction's status.
         BREthereumTransaction original = transferGetOriginatingTransaction (transfer);
@@ -1526,10 +1547,11 @@ ewmHandleTransaction (BREthereumEWM ewm,
                                                                     transactionGetHash(transaction))))
             transactionSetStatus (original, transactionGetStatus(transaction));
 
-        transferSetBasisForTransaction (transfer, transaction);
+        transferSetBasisForTransaction (transfer, transaction); // transaction ownership given
     }
 
-    ewmReportTransferStatusAsEvent(ewm, wallet, transfer);
+    if (needStatusEvent)
+        ewmReportTransferStatusAsEvent(ewm, wallet, transfer);
 
     ewmHandleTransactionOriginatingLog (ewm, type, transaction);
 }
@@ -1564,9 +1586,11 @@ ewmHandleLog (BREthereumEWM ewm,
 
     BREthereumTransfer transfer = walletGetTransferByHash(wallet, logHash);
 
+    int needStatusEvent = 0;
+
     // If we've no transfer, then create one and save `log` as the basis
     if (NULL == transfer) {
-        transfer = transferCreateWithLog (log, token, ewm->coder);
+        transfer = transferCreateWithLog (log, token, ewm->coder); // log ownership given
 
         walletHandleTransfer(wallet, transfer);
         walletUpdateBalance (wallet);
@@ -1578,12 +1602,23 @@ ewmHandleLog (BREthereumEWM ewm,
         ewmSignalWalletEvent(ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
                                    SUCCESS,
                                    NULL);
-    }
-    else {
-        transferSetBasisForLog (transfer, log);
+
+        needStatusEvent = 1;
     }
 
-    ewmReportTransferStatusAsEvent(ewm, wallet, transfer);
+    // We've got a transfer for log.  We'll update the transfer's basis and check if we need
+    // to report a transfer status event.  We'll strive to only report events when the status has
+    // actually changed.
+    else {
+        needStatusEvent = ewmReportTransferStatusAsEventIsNeeded (ewm, wallet, transfer,
+                                                                  logGetStatus (log));
+
+        // Log becomes the new basis for transfer
+        transferSetBasisForLog (transfer, log);  // log ownership given
+    }
+
+    if (needStatusEvent)
+        ewmReportTransferStatusAsEvent(ewm, wallet, transfer);
 }
 
 extern void

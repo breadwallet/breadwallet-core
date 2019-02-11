@@ -690,7 +690,7 @@ typedef struct {
 
 static void
 ewmSignalAnnounceBalanceDispatcher (BREventHandler ignore,
-                                          BREthereumEWMClientAnnounceBalanceEvent *event) {
+                                    BREthereumEWMClientAnnounceBalanceEvent *event) {
     ewmHandleAnnounceBalance(event->ewm, event->wallet, event->value, event->rid);
 }
 
@@ -702,9 +702,9 @@ static BREventType ewmClientAnnounceBalanceEventType = {
 
 extern void
 ewmSignalAnnounceBalance (BREthereumEWM ewm,
-                                BREthereumWallet wallet,
-                                UInt256 value,
-                                int rid) {
+                          BREthereumWallet wallet,
+                          UInt256 value,
+                          int rid) {
     BREthereumEWMClientAnnounceBalanceEvent message =
     { { NULL, &ewmClientAnnounceBalanceEventType}, ewm, wallet, value, rid};
     eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
