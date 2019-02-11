@@ -172,6 +172,7 @@ typedef void (*BREthereumListenerTransactionEventHandler)(BREthereumListenerCont
                                            BREthereumLightNode node,
                                            BREthereumWalletId wid,
                                            BREthereumTransactionId tid,
+                                           const char *from,
                                            const char *to,
                                            const char *amount,
                                            const char *data,

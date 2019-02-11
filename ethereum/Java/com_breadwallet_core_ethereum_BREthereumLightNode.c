@@ -53,6 +53,7 @@ clientEstimateGas(BREthereumClientContext context,
                   BREthereumLightNode node,
                   BREthereumWalletId wid,
                   BREthereumTransactionId tid,
+                  const char *from,
                   const char *to,
                   const char *amount,
                   const char *data,
@@ -1498,6 +1499,7 @@ static void
 clientEstimateGas(BREthereumClientContext context, BREthereumLightNode node,
                   BREthereumWalletId wid,
                   BREthereumTransactionId tid,
+                  const char *from,
                   const char *to,
                   const char *amount,
                   const char *data,
@@ -1512,9 +1514,10 @@ clientEstimateGas(BREthereumClientContext context, BREthereumLightNode node,
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
                                  "trampolineGetGasEstimate",
-                                 "(IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V");
+                                 "(IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V");
     assert (NULL != listenerMethod);
 
+    jobject fromObject = (*env)->NewStringUTF (env, from);
     jobject toObject = (*env)->NewStringUTF(env, to);
     jobject amountObject = (*env)->NewStringUTF(env, amount);
     jobject dataObject = (*env)->NewStringUTF(env, data);
@@ -1522,6 +1525,7 @@ clientEstimateGas(BREthereumClientContext context, BREthereumLightNode node,
     (*env)->CallVoidMethod(env, listener, listenerMethod,
                            (jint) wid,
                            (jint) tid,
+                           fromObject,
                            toObject,
                            amountObject,
                            dataObject,
@@ -1530,6 +1534,7 @@ clientEstimateGas(BREthereumClientContext context, BREthereumLightNode node,
     (*env)->DeleteLocalRef(env, dataObject);
     (*env)->DeleteLocalRef(env, amountObject);
     (*env)->DeleteLocalRef(env, toObject);
+    (*env)->DeleteLocalRef(env, fromObject);
     (*env)->DeleteLocalRef(env, listener);
 }
 

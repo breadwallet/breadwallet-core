@@ -58,12 +58,13 @@ public class BREthereumLightNode extends BRCoreJniReference {
         //                                    BREthereumLightNode node,
         //                                    BREthereumWalletId wid,
         //                                    BREthereumTransactionId tid,
+        //                                    const char *from,
         //                                    const char *to,
         //                                    const char *amount,
         //                                    const char *data,
         //                                    int rid);
 
-        void getGasEstimate(int wid, int tid, String to, String amount, String data, int rid);
+        void getGasEstimate(int wid, int tid, String from, String to, String amount, String data, int rid);
 
         //        typedef void (*BREthereumClientHandlerSubmitTransaction) (BREthereumClientContext context,
         //                                          BREthereumLightNode node,
@@ -576,8 +577,8 @@ public class BREthereumLightNode extends BRCoreJniReference {
         client.get().getGasPrice(wid, rid);
     }
 
-    protected void trampolineGetGasEstimate(int wid, int tid, String to, String amount, String data, int rid) {
-        client.get().getGasEstimate(wid, tid, to, amount, data, rid);
+    protected void trampolineGetGasEstimate(int wid, int tid, String from, String to, String amount, String data, int rid) {
+        client.get().getGasEstimate(wid, tid, from, to, amount, data, rid);
     }
 
     protected void trampolineSubmitTransaction(int wid, int tid, String rawTransaction, int rid) {

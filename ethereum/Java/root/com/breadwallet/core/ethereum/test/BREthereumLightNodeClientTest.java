@@ -70,7 +70,7 @@ public class BREthereumLightNodeClientTest implements
     }
 
     @Override
-    public void getGasEstimate(int wid, int tid, String to, String amount, String data, int rid) {
+    public void getGasEstimate(int wid, int tid, String from, String to, String amount, String data, int rid) {
         node.announceGasEstimate(wid, tid, "0x77", rid); // NON-NLS
     }
 

@@ -834,6 +834,9 @@ lightNodeUpdateTransactionGasEstimate (BREthereumLightNode node,
             case NODE_TYPE_JSON_RPC: {
                 // This will be ZERO if transaction amount is in TOKEN.
                 BREthereumEther amountInEther = transactionGetEffectiveAmountInEther(transaction);
+                BREthereumAddress fromAddress = transactionGetSourceAddress(transaction);
+
+                char *from = addressAsString(fromAddress);
                 char *to =  transactionGetEffectiveAddress(transaction);
                 char *amount = coerceString(amountInEther.valueInWEI, 16);
                 char *data = (char *) transactionGetData(transaction);
@@ -852,11 +855,13 @@ lightNodeUpdateTransactionGasEstimate (BREthereumLightNode node,
                          node,
                          wid,
                          tid,
+                         from,
                          to,
                          canonicalAmount,
                          canonicalData,
                          ++node->requestId);
 
+                free(from);
                 free(to);
                 free(amount);
                 free(canonicalAmount);
@@ -867,7 +872,6 @@ lightNodeUpdateTransactionGasEstimate (BREthereumLightNode node,
 
                 break;
             }
-                assert (0);
 
             case NODE_TYPE_NONE:
                 break;
