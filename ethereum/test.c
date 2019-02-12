@@ -1201,6 +1201,7 @@ clientEstimateGas (BREthereumClientContext context,
                     BREthereumLightNode node,
                     BREthereumWalletId wid,
                     BREthereumTransactionId tid,
+                    const char *from,
                     const char *to,
                     const char *amount,
                     const char *data,
@@ -1360,6 +1361,13 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
     assert (0 == strcmp (fromAddr, ethereumTransactionGetSendAddress(node, transaction)) &&
             0 == strcmp (recvAddr, ethereumTransactionGetRecvAddress(node, transaction)));
 
+    ethereumConnect(node, client);
+
+    lightNodeUpdateTransactionGasEstimate (node, wallet, tx1);
+    sleep (2);
+
+    ethereumDisconnect(node);
+
     free (fromAddr);
 }
 
@@ -1398,6 +1406,7 @@ runLightNode_JSON_RPC_test (const char *paperKey) {
 
     int count = ethereumWalletGetTransactionCount(node, wallet);
     assert (2 == count);
+
 
 //    lightNodeUpdateTransactions(node);
     ethereumDisconnect(node);
@@ -1582,7 +1591,8 @@ runLightNode_PUBLIC_KEY_test (BREthereumNetwork network, const char *paperKey) {
 
 void runLightNodeTests () {
     printf ("==== Light Node\n");
-//    prepareTransaction(NODE_PAPER_KEY, NODE_RECV_ADDR, TEST_TRANS2_GAS_PRICE_VALUE, GAS_LIMIT_DEFAULT, NODE_ETHER_AMOUNT);
+
+    prepareTransaction(NODE_PAPER_KEY, NODE_RECV_ADDR, TEST_TRANS2_GAS_PRICE_VALUE, GAS_LIMIT_DEFAULT, NODE_ETHER_AMOUNT);
     testTransactionCodingEther ();
     testTransactionCodingToken ();
     runLightNode_JSON_RPC_test(NODE_PAPER_KEY);
