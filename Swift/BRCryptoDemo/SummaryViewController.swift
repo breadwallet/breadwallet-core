@@ -53,6 +53,10 @@ class SummaryViewController: UITableViewController, WalletListener {
         }
     }
 
+    @IBAction func doSync(_ sender: Any) {
+        UIApplication.sync()
+    }
+    
     // MARK: - Table View
 
     override func numberOfSections(in tableView: UITableView) -> Int {

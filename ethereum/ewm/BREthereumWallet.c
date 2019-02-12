@@ -276,13 +276,13 @@ walletCreateTransferGeneric(BREthereumWallet wallet,
 
 private_extern void
 walletHandleTransfer(BREthereumWallet wallet,
-                        BREthereumTransfer transfer) {
+                     BREthereumTransfer transfer) {
     walletInsertTransferSorted(wallet, transfer);
 }
 
 private_extern void
 walletUnhandleTransfer (BREthereumWallet wallet,
-                           BREthereumTransfer transfer) {
+                        BREthereumTransfer transfer) {
     int index = walletLookupTransferIndex(wallet, transfer);
     assert (-1 != index);
     array_rm(wallet->transfers, index);
@@ -290,9 +290,10 @@ walletUnhandleTransfer (BREthereumWallet wallet,
 
 private_extern int
 walletHasTransfer (BREthereumWallet wallet,
-                      BREthereumTransfer transfer) {
+                   BREthereumTransfer transfer) {
     return -1 != walletLookupTransferIndex(wallet, transfer);
 }
+
 //
 // Transfer Signing and Encoding
 //
@@ -410,7 +411,8 @@ walletGetDefaultGasLimit(BREthereumWallet wallet) {
 }
 
 extern void
-walletSetDefaultGasLimit(BREthereumWallet wallet, BREthereumGas gasLimit) {
+walletSetDefaultGasLimit(BREthereumWallet wallet,
+                         BREthereumGas gasLimit) {
     wallet->defaultGasLimit = gasLimit;
 }
 
@@ -427,7 +429,8 @@ walletGetDefaultGasPrice(BREthereumWallet wallet) {
 }
 
 extern void
-walletSetDefaultGasPrice(BREthereumWallet wallet, BREthereumGasPrice gasPrice) {
+walletSetDefaultGasPrice(BREthereumWallet wallet,
+                         BREthereumGasPrice gasPrice) {
     wallet->defaultGasPrice = gasPrice;
 }
 
@@ -449,23 +452,23 @@ walletCreateDefaultGasPrice (BREthereumWallet wallet) {
 
 extern int
 transferPredicateAny (void *ignore,
-                         BREthereumTransfer transfer,
-                         unsigned int index) {
+                      BREthereumTransfer transfer,
+                      unsigned int index) {
     return 1;
 }
 
 extern int
 transferPredicateStatus (BREthereumTransferStatus status,
-                            BREthereumTransfer transfer,
-                            unsigned int index) {
+                         BREthereumTransfer transfer,
+                         unsigned int index) {
     return transferHasStatus(transfer, status);
 }
 
 extern void
 walletWalkTransfers (BREthereumWallet wallet,
-                        void *context,
-                        BREthereumTransferPredicate predicate,
-                        BREthereumTransferWalker walker) {
+                     void *context,
+                     BREthereumTransferPredicate predicate,
+                     BREthereumTransferWalker walker) {
     for (int i = 0; i < array_count(wallet->transfers); i++)
         if (predicate (context, wallet->transfers[i], i))
             walker (context, wallet->transfers[i], i);
@@ -473,7 +476,7 @@ walletWalkTransfers (BREthereumWallet wallet,
 
 extern BREthereumTransfer
 walletGetTransferByHash (BREthereumWallet wallet,
-                            BREthereumHash hash) {
+                         BREthereumHash hash) {
     for (int i = 0; i < array_count(wallet->transfers); i++) {
         BREthereumHash transferHash = transferGetHash(wallet->transfers[i]);
         if (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(hash, transferHash)))

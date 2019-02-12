@@ -369,6 +369,12 @@ ewmCreate (BREthereumNetwork network,
     ewm->bcs = NULL;
     ewm->blockHeight = 0;
 
+    {
+        char address [ADDRESS_ENCODED_CHARS];
+        addressFillEncodedString (accountGetPrimaryAddress(account), 1, address);
+        eth_log ("EWM", "Account: %s", address);
+    }
+
     // Initialize the `brdSync` struct
     ewm->brdSync.ridTransaction = -1;
     ewm->brdSync.ridLog = -1;

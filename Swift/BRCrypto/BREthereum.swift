@@ -475,6 +475,10 @@ public class EthereumWalletManager: WalletManager {
        ewmWalletSubmitTransfer(core, wallet.identifier, transfer.identifier)
     }
 
+    public func sync() {
+        ewmSync (core);
+    }
+
     public init (listener: EthereumListener,
                  account: Account,
                  network: Network,

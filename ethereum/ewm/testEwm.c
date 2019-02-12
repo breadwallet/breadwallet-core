@@ -576,7 +576,7 @@ runEWM_freeClient (BREthereumClient client) {
 static void
 runEWM_CONNECT_test (const char *paperKey,
                      const char *storagePath) {
-    printf ("     JSON_RCP\n");
+    printf ("====   JSON_RPC\n");
     
     BRCoreParseStatus status;
     client.context = testContextCreate();
@@ -590,7 +590,7 @@ runEWM_CONNECT_test (const char *paperKey,
     
     ewmConnect(ewm);
     
-    printf ("       Waiting for Balance\n");
+    printf ("====     Waiting for Balance\n");
     waitForBalance(client.context);
     //    sleep (20);  // let connect 'take'
     
@@ -621,7 +621,7 @@ void prepareTransaction (const char *paperKey,
                          const uint64_t gasPrice,
                          const uint64_t gasLimit,
                          const uint64_t amount) {
-    printf ("     Prepare Transaction\n");
+    printf ("====   Prepare Transaction\n");
     
     // START - One Time Code Block
     client.context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
@@ -754,7 +754,7 @@ testReallySend (const char *storagePath) {
 static void
 runEWM_TOKEN_test (const char *paperKey,
                    const char *storagePath) {
-    printf ("     TOKEN\n");
+    printf ("====   TOKEN\n");
     
     BRCoreParseStatus status;
     
@@ -792,7 +792,7 @@ static void
 runEWM_PUBLIC_KEY_test (BREthereumNetwork network,
                         const char *paperKey,
                         const char *storagePath) {
-    printf ("     PUBLIC KEY\n");
+    printf ("====   PUBLIC KEY\n");
 
     BREthereumEWM ewm1 = ewmCreateWithPaperKey (ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
                                                 P2P_ONLY,

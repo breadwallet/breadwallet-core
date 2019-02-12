@@ -23,6 +23,13 @@ extension UIApplication {
     static var paperKey: String {
         return (UIApplication.shared.delegate as! AppDelegate).paperKey
     }
+
+    static func sync () {
+        guard let app = UIApplication.shared.delegate as? AppDelegate else { return }
+        app.ethManager.sync()
+//        app.btcManager.sync()
+//        app.bchManager.sync()
+    }
 }
 
 @UIApplicationMain
@@ -96,7 +103,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
         self.ethManager = EthereumWalletManager (listener: listener,
                                                  account: account,
                                                  network: Ethereum.Networks.mainnet,
-                                                 mode: WalletManagerMode.api_with_p2p_submit,
+                                                 mode: WalletManagerMode.api_only,
                                                  timestamp: 0,
                                                  storagePath: storagePath)
 
