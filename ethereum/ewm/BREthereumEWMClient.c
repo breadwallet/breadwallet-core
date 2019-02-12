@@ -777,7 +777,7 @@ ewmHandleAnnounceSubmitTransfer (BREthereumEWM ewm,
     switch (ewm->mode) {
         case BRD_ONLY:
             // NODE: For BRD_ONLY the BRD endpoint is a GETH node.  Hence lesTransactionErrorPreface,
-            if (NULL != errorMessage && '\0' != errorMessage[0]) {
+            if (NULL != errorMessage) {
                 BREthereumTransactionErrorType type = lookupTransactionErrorType (lesTransactionErrorPreface, errorMessage);
                 status = transactionStatusCreateErrored (type, errorMessage);
             }

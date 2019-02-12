@@ -795,12 +795,12 @@ static void
 ewmSignalAnnounceSubmitTransferDispatcher (BREventHandler ignore,
                                                  BREthereumEWMClientAnnounceSubmitTransferEvent *event) {
     ewmHandleAnnounceSubmitTransfer (event->ewm, event->wallet, event->transfer, event->errorCode, event->errorMessage, event->rid);
-    free (event->errorMessage);
+    if (NULL != event->errorMessage) free (event->errorMessage);
 }
 
 static void
 ewmSignalAnnounceSubmitTransferDestroyer (BREthereumEWMClientAnnounceSubmitTransferEvent *event) {
-    free (event->errorMessage);
+    if (NULL != event->errorMessage) free (event->errorMessage);
 }
 
 
@@ -821,7 +821,7 @@ ewmSignalAnnounceSubmitTransfer (BREthereumEWM ewm,
     BREthereumEWMClientAnnounceSubmitTransferEvent message =
     { { NULL, &ewmClientAnnounceSubmitTransferEventType}, ewm, wallet, transfer,
         errorCode,
-        strdup (NULL == errorMessage ? "" : errorMessage),
+        (NULL == errorMessage ? NULL : strdup (errorMessage)),
         rid};
     eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
 }
