@@ -407,37 +407,35 @@ lesEnsureNodeForEndpoint (BREthereumLES les,
     return node;
 }
 
+///
 /// MARK: - DNS Seeds
+///
 #if !defined (LES_BOOTSTRAP_LCL_ONLY)
 typedef struct {
     BREthereumLES les;
     const char *seed;
-    pthread_t thread;
     BREthereumNodePriority priority;
     size_t tried;
     size_t added;
 } BREthereumLESSeedContext;
 
-static void *
-lesSeedQueryThread (BREthereumLESSeedContext *context) {
+static int
+lesSeedQuery (BREthereumLESSeedContext *context) {
     BREthereumLES les = context->les;
 
-    char threadName[1024];
-    sprintf (threadName, "Core Ethereum LES Seed: %s", context->seed);
-
-#if defined (__ANDROID__)
-    pthread_setname_np (les->thread, LES_THREAD_NAME);
-#else
-    pthread_setname_np (LES_THREAD_NAME);
-#endif
-
-    size_t msgDataLength = 16 * 1024;
+    size_t msgDataLength = 1024 * 1024;
     u_char msgData [msgDataLength + 1];
+    memset (msgData, 0, msgDataLength);
+
+    if (0 != res_init()) {
+        eth_log(LES_LOG_TOPIC, "Nodes '%s' Error: res_init(): %s", context->seed, strerror(errno));
+        return 1;
+    }
 
     int msgCount = res_query (context->seed, ns_c_in, ns_t_txt, msgData, msgDataLength);
     if (msgCount < 0) {
-        eth_log(LES_LOG_TOPIC, "Nodes '%s' Error: %s", context->seed, strerror(errno));
-        pthread_exit((void*)1);
+        eth_log(LES_LOG_TOPIC, "Nodes '%s' Error: res_query(): %s", context->seed, strerror(errno));
+        return 1;
     }
 
     ns_msg msg;
@@ -474,7 +472,7 @@ lesSeedQueryThread (BREthereumLESSeedContext *context) {
     else
         eth_log(LES_LOG_TOPIC, "Nodes '%s': Required BRD Only: Added: 0", context->seed);
 
-    pthread_exit (0);
+    return 0;
 }
 #endif
 
@@ -613,8 +611,7 @@ lesCreate (BREthereumNetwork network,
                                           config->state,
                                           config->priority,
                                           NULL);
-
-#endif
+#endif // !defined(LES_BOOTSTRAP_LCL_ONLY)
 
     size_t bootstrappedEndpointsCount = 0;
 
@@ -632,41 +629,22 @@ lesCreate (BREthereumNetwork network,
             if (ETHEREUM_BOOLEAN_IS_TRUE(added))
                 bootstrappedEndpointsCount += 1;
         }
-#endif
+#endif // defined (LES_BOOTSTRAP_LCL_ONLY)
 
 #if !defined (LES_BOOTSTRAP_LCL_ONLY)
     // Create nodes from our network seeds.
     const char **seeds = networkGetSeeds (network);
     size_t seedsCount  = networkGetSeedsCount(network);
 
-    BRArrayOf(BREthereumLESSeedContext) seedContexts;
-    array_new(seedContexts, seedsCount);
-
-    pthread_mutex_lock (&les->lock);
     for (size_t i = 0; i < seedsCount; i++) {
-        BREthereumLESSeedContext context = { les, seeds[i], NULL,
+        BREthereumLESSeedContext context = { les, seeds[i],
             (0 == i ? NODE_PRIORITY_BRD : NODE_PRIORITY_DIS),
             0, 0
         };
-        array_add (seedContexts, context);
 
-        pthread_attr_t attr;
-        pthread_attr_init (&attr);
-        pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_JOINABLE);
-        pthread_attr_setstacksize (&attr, 1024 * 1024);
-        pthread_create(&seedContexts[i].thread, &attr, (ThreadRoutine) lesSeedQueryThread, &seedContexts[i]);
-        pthread_attr_destroy(&attr);
+        lesSeedQuery(&context);
     }
-    pthread_mutex_unlock (&les->lock);
-
-
-    // Join all threads.
-    for (size_t i = 0; i < seedsCount; i++) {
-        void *result;
-        pthread_join(seedContexts[i].thread, &result);
-        bootstrappedEndpointsCount += seedContexts[i].added;
-    }
-#endif
+#endif // !defined (LES_BOOTSTRAP_LCL_ONLY)
 
     eth_log(LES_LOG_TOPIC, "Nodes Bootstrapped: %zu", bootstrappedEndpointsCount);
     for (size_t index = 0; index < 5 && index < array_count(les->availableNodes); index++) {
