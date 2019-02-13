@@ -1060,18 +1060,28 @@ lesThread (BREthereumLES les) {
         // node that we are actively communicating with.  In such a case the `pselect()` might
         // never timeout but all other nodes could be dead.  Catch the dead nodes up front.
         //
+        // When an individual node times out we will attempt a PING/PONG pair.  If the node
+        // responds with a PONG in a reasonable time, then we won't boot the node.  It is important
+        // to keep nodes connected (they are hard to find in the first place); if a node is
+        // syncing its block chain it won't produce 'announce' messages and thus will timeout
+        // eventually - but when syncing it will still relay transactions.
+        //
         FOR_EACH_ROUTE (route) {
             BRArrayOf(BREthereumNode) nodes = les->activeNodesByRoute[route];
-            for (size_t index = 0; index < array_count(nodes); index++)
-                if (ETHEREUM_BOOLEAN_IS_TRUE (nodeHandleTime (nodes[index], route, now))) {
+            for (size_t index = 0; index < array_count(nodes); index++) {
+                BREthereumNode node = nodes[index];
+                BREthereumBoolean tryPing = AS_ETHEREUM_BOOLEAN (NODE_ROUTE_TCP == route &&
+                                                                 nodeHasState (node, NODE_ROUTE_TCP, NODE_CONNECTED));
+                if (ETHEREUM_BOOLEAN_IS_TRUE (nodeHandleTime (node, route, now, tryPing))) {
                     // Note: `nodeHandleTime()` will have disconnected.
-                    array_add (nodesToRemove, nodes[index]);
+                    array_add (nodesToRemove, node);
                     // TODO: Reassign provisions
                 }
-            lesDeactivateNodes(les, route, nodesToRemove, "TIMEDOUT");
-            array_clear (nodesToRemove);
+                lesDeactivateNodes(les, route, nodesToRemove, "TIMEDOUT");
+                array_clear (nodesToRemove);
+            }
         }
-
+        
         //
         // Handle any/all pending requests by 'establishing a provision' in the requested node.  If
         // the requested node is not connected the request must fail.

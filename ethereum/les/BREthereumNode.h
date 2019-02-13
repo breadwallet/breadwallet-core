@@ -321,7 +321,8 @@ nodeSetDiscovered (BREthereumNode node,
 extern BREthereumBoolean
 nodeHandleTime (BREthereumNode node,
                 BREthereumNodeEndpointRoute route,
-                time_t now);
+                time_t now,
+                BREthereumBoolean tryPing);
 
 extern size_t
 nodeHashValue (const void *node);
