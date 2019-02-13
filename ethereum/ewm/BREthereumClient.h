@@ -248,6 +248,11 @@ extern "C" {
                      int rid);
 
     extern void
+    ewmAnnounceTokenComplete (BREthereumEWM ewm,
+                              BREthereumBoolean success,
+                              int rid);
+    
+    extern void
     ewmUpdateTokens (BREthereumEWM ewm);
 
     ///

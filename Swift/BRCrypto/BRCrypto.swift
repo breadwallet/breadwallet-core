@@ -923,6 +923,8 @@ public protocol WalletManager : class {
     func sign (transfer: Transfer, paperKey: String)
 
     func submit (transfer: Transfer)
+
+    func sync ()
 }
 
 extension WalletManager {

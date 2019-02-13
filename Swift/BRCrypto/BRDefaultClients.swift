@@ -79,7 +79,7 @@ public class DefaultEthereumBackendClient: EthereumBackendClient {
         // JSON_RPC -> [JSON] -> forEach {Result -> announceSubmitTransaction()}
         if (begBlockNumber <= 1627184 && 1627184 <= endBlockNumber) {
             ewm.announceTransaction(rid: rid,
-                                    hash: "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
+                                    hash: "0xa37bd8bd8b1fa2838ef65aec9f401f56a6279f99bb1cfb81fa84e923b1b60f2b",
                                     sourceAddr: ewm.primaryWallet.target.description,
                                     targetAddr: "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
                                     contractAddr: "",
@@ -217,6 +217,7 @@ public class DefaultEthereumBackendClient: EthereumBackendClient {
                            description: "",
                            decimals: 18)
 
+        ewm.announceTokenComplete(rid: rid, success: true)
     }
 
     public func getBlockNumber(ewm: EthereumWalletManager, rid: Int32) {

@@ -908,6 +908,20 @@ ewmAnnounceToken(BREthereumEWM ewm,
     ewmSignalAnnounceToken (ewm, bundle, rid);
 }
 
+extern void
+ewmHandleAnnounceTokenComplete (BREthereumEWM ewm,
+                                BREthereumBoolean success,
+                                int rid) {
+    if (ETHEREUM_BOOLEAN_IS_TRUE (success))
+        ewmSync (ewm);
+}
+
+extern void
+ewmAnnounceTokenComplete (BREthereumEWM ewm,
+                          BREthereumBoolean success,
+                          int rid) {
+    ewmSignalAnnounceTokenComplete (ewm, success, rid);
+}
 
 // ==============================================================================================
 //
