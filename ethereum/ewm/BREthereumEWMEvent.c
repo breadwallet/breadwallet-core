@@ -970,6 +970,37 @@ ewmSignalAnnounceToken (BREthereumEWM ewm,
     eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
 }
 
+//
+// Announce Token Complete
+//
+typedef struct {
+    struct BREventRecord base;
+    BREthereumEWM ewm;
+    BREthereumBoolean success;
+    int rid;
+} BREthereumEWMClientAnnounceTokenCompleteEvent;
+
+static void
+ewmSignalAnnounceTokenCompleteDispatcher (BREventHandler ignore,
+                                          BREthereumEWMClientAnnounceTokenCompleteEvent *event) {
+    ewmHandleAnnounceTokenComplete(event->ewm, event->success, event->rid);
+}
+
+static BREventType ewmClientAnnounceTokenCompleteEventType = {
+    "EWM: Client Announce Complete Token Event",
+    sizeof (BREthereumEWMClientAnnounceTokenCompleteEvent),
+    (BREventDispatcher) ewmSignalAnnounceTokenCompleteDispatcher
+};
+
+extern void
+ewmSignalAnnounceTokenComplete (BREthereumEWM ewm,
+                                BREthereumBoolean success,
+                                int rid) {
+    BREthereumEWMClientAnnounceTokenCompleteEvent message =
+    { { NULL, &ewmClientAnnounceTokenCompleteEventType}, ewm, success, rid };
+    eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
+}
+
 // ==============================================================================================
 //
 // All Event Types
@@ -1002,6 +1033,7 @@ const BREventType *ewmEventTypes[] = {
     &ewmClientAnnounceLogEventType,
     &ewmClientAnnounceCompleteEventType,
     &ewmClientAnnounceTokenEventType,
+    &ewmClientAnnounceTokenCompleteEventType,
 };
 const unsigned int
 ewmEventTypesCount = (sizeof (ewmEventTypes) / sizeof (BREventType*));

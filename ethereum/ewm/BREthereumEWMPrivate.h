@@ -515,6 +515,15 @@ ewmSignalAnnounceToken (BREthereumEWM ewm,
                               BREthereumEWMClientAnnounceTokenBundle *bundle,
                               int id);
 
+extern void
+ewmHandleAnnounceTokenComplete (BREthereumEWM ewm,
+                                BREthereumBoolean success,
+                                int rid);
+extern void
+ewmSignalAnnounceTokenComplete (BREthereumEWM ewm,
+                                BREthereumBoolean success,
+                                int rid);
+
 ///
 // MARK: - BlockNumber
 ///
