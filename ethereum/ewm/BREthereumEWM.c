@@ -1582,8 +1582,9 @@ ewmHandleTransaction (BREthereumEWM ewm,
 
     BREthereumHashString hashString;
     hashFillString(hash, hashString);
-    eth_log ("EWM", "Transaction: \"%s\", Change: %s",
-             hashString, BCS_CALLBACK_TRANSACTION_TYPE_NAME(type));
+    eth_log ("EWM", "Transaction: \"%s\", Change: %s, Status: %d", hashString,
+             BCS_CALLBACK_TRANSACTION_TYPE_NAME(type),
+             transactionGetStatus(transaction).type);
 
     // Find the wallet
     BREthereumWallet wallet = ewmGetWallet(ewm);

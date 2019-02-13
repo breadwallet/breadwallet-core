@@ -28,7 +28,7 @@ class CoreDemoListener : WalletManagerListener, BitcoinListener, EthereumListene
 
     public func handleManagerEvent(manager: WalletManager,
                                    event: WalletManagerEvent) {
-        print ("TST: UI Handling WalletManager Event")
+        print ("TST: UI Handling WalletManager Event: \(manager.network): \(event)")
     }
 
     var walletListeners = [WalletListener]()
@@ -40,18 +40,23 @@ class CoreDemoListener : WalletManagerListener, BitcoinListener, EthereumListene
     public func handleWalletEvent (manager: WalletManager,
                                    wallet: Wallet,
                                    event: WalletEvent) -> Void {
-        print ("TST: UI Handling Wallet Event: \(wallet.currency.code): \(event)")
+        switch event {
+        case .balanceUpdated: break
+        default: print ("TST: UI Handling Wallet Event: \(wallet.currency.code): \(event)")
+        }
+
         switch event {
         case .created:
             wallets.append (wallet)
+        case .balanceUpdated(let amount):
+            print("TST: UI Handling Wallet Event: BalanceUpdated: \(amount)")
+            break
             /*
         case .transferAdded(let transfer):
             break
         case .transferChanged(let transfer):
             break
         case .transferDeleted(let transfer):
-            break
-        case .balanceUpdated(let amount):
             break
         case .feeBasisUpdated(let feeBasis):
             break
@@ -73,7 +78,7 @@ class CoreDemoListener : WalletManagerListener, BitcoinListener, EthereumListene
                                      wallet: Wallet,
                                      transfer: Transfer,
                                      event: TransferEvent) -> Void {
-        print ("TST: UI Handling Transfer Event")
+        print ("TST: UI Handling Transfer Event: \(wallet.currency.code) Hash: \(transfer.hash.map { $0.description} ?? "<none>") Status: \(transfer.state)")
     }
 
     func handleTokenEvent(manager: WalletManager,

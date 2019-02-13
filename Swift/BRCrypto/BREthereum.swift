@@ -255,7 +255,7 @@ public class EthereumTransfer: Transfer {
         return TransferHash.ethereum (hash)
     }
     
-    public private(set) var state: TransferState
+    public internal(set) var state: TransferState
 
     public var isSent: Bool {
         let account = _wallet._manager.account.ethereumAccount
@@ -719,17 +719,66 @@ public class EthereumWalletManager: WalletManager {
                 if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
                     ewm.queue.async {
                         if let wallet = ewm.findWallet(identifier: wid!) {
-                            let event  = TransferEvent (event)
-                            if case .created = event,
-                                case .none = wallet.findTransfer(identifier: tid!) {
+                            // Create a transfer, if needed.
+                            if (TRANSFER_EVENT_CREATED == event) {
+                                if case .none = wallet.findTransfer(identifier: tid!) {
                                 wallet.addTransfer (identifier: tid!)
+                                }
                             }
 
+                            // Prepare a default transferEvent; we'll update this for `event`
+                            var transferEvent: TransferEvent?
+
+                            // Lookup the transfer
                             if let transfer = wallet.findTransfer(identifier: tid!) {
+                                let oldTransferState = transfer.state
+                                var newTransferState = TransferState.created
+
+                                switch (event) {
+                                case TRANSFER_EVENT_CREATED:
+                                    transferEvent = TransferEvent.created
+                                    break
+
+                                    // Transfer State
+                                case TRANSFER_EVENT_SIGNED:
+                                    newTransferState = TransferState.signed
+                                    break
+                                case TRANSFER_EVENT_SUBMITTED:
+                                    newTransferState = TransferState.submitted
+                                    break
+
+                                case TRANSFER_EVENT_INCLUDED:
+                                    let confirmation = TransferConfirmation.init(
+                                        blockNumber: 0,
+                                        transactionIndex: 0,
+                                        timestamp: 0,
+                                        fee: Amount (value: Int(0), unit: wallet.currency.baseUnit))
+                                    newTransferState = TransferState.included(confirmation: confirmation)
+                                    break
+
+                                case TRANSFER_EVENT_ERRORED:
+                                    newTransferState = TransferState.failed(reason: "foo")
+                                    break
+
+                                case TRANSFER_EVENT_GAS_ESTIMATE_UPDATED: break
+                                case TRANSFER_EVENT_BLOCK_CONFIRMATIONS_UPDATED: break
+
+                                case TRANSFER_EVENT_DELETED:
+                                    transferEvent = TransferEvent.deleted
+                                    break
+
+                                default:
+                                    break
+                                }
+
+                                transfer.state = newTransferState
+                                transferEvent = transferEvent ?? TransferEvent.changed(old: oldTransferState, new: newTransferState)
+
+                                // Announce updated transfer
                                 ewm.listener.handleTransferEvent(manager: ewm,
                                                                  wallet: wallet,
                                                                  transfer: transfer,
-                                                                 event: event)
+                                                                 event: transferEvent!)
                             }
                         }
                     }
