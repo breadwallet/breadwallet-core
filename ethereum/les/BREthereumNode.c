@@ -81,7 +81,7 @@ nodeSend (BREthereumNode node,
 #define DEFAULT_RECV_DATA_BUFFER_SIZE    (1 * 1024 * 1024)
 
 #define DEFAULT_NODE_TIMEOUT_IN_SECONDS       (10)
-#define DEFAULT_NODE_TIMEOUT_IN_SECONDS_RECV  (60)
+#define DEFAULT_NODE_TIMEOUT_IN_SECONDS_RECV  (60)      // 1 minute
 
 //
 // Frame Coder Stuff
@@ -531,6 +531,9 @@ struct BREthereumNodeRecord {
     /** When waiting to receive a message, timeout when time exceeds `timeout`. */
     time_t timeout;
 
+    /** But, in some cases try a ping on a timeout. */
+    BREthereumBoolean timeoutPingAllowed;
+
     /** Frame Coder */
     BREthereumLESFrameCoder frameCoder;
     uint8_t authBuf[authBufLen];
@@ -735,6 +738,7 @@ nodeCreate (BREthereumNodePriority priority,
         nodeSetStateErrorProtocol (node, NODE_ROUTE_UDP, NODE_PROTOCOL_NONSTANDARD_PORT);
 
     node->timeout = (time_t) -1;
+    node->timeoutPingAllowed = ETHEREUM_BOOLEAN_TRUE;
     
     {
         // The cacheLock is a normal, non-recursive lock
@@ -983,6 +987,10 @@ nodeProcessRecvP2P (BREthereumNode node,
         }
 
         case P2P_MESSAGE_PONG:
+            // On a PONG perhaps we 'reenable' PING?  (See nodeHandleTimeout()).  But, nothing to
+            // do here as it is.
+            break;
+
         case P2P_MESSAGE_HELLO:
             eth_log (LES_LOG_TOPIC, "Recv: [ P2P, %15s ] Unexpected",
                      messageP2PGetIdentifierName (message.identifier));
@@ -1334,8 +1342,9 @@ nodeProcess (BREthereumNode node,
             // Note: both FD SETS (send and recv) apply when CONNECTED.
             //
             // If we are just waiting to receive (typically an 'ANNOUNCE' message with a new
-            // block header), then we are willing to wait for 10 minutes; otherwise if we sent
-            // a request, then we are only willing to wait for 10 seconds.
+            // block header), then we are willing to wait for 1DEFAULT_NODE_TIMEOUT_IN_SECONDS_RECV;
+            // otherwise if we sent a request, then we are only willing to wait for
+            // DEFAULT_NODE_TIMEOUT_IN_SECONDS seconds.
             //
         case NODE_CONNECTED:
             if (FD_ISSET (socket, recv)) {
@@ -2289,14 +2298,43 @@ nodeDiscover (BREthereumNode node,
 extern BREthereumBoolean
 nodeHandleTime (BREthereumNode node,
                 BREthereumNodeEndpointRoute route,
-                time_t now) {
+                time_t now,
+                BREthereumBoolean tryPing) {
     if (now != (time_t) -1 &&
         node->timeout != (time_t) -1 &&
         now >= node->timeout) {
+        // The node has timed out.
 
-        nodeDisconnect (node, route, nodeStateCreateErrorDisconnect (P2P_MESSAGE_DISCONNECT_TIMEOUT), ETHEREUM_BOOLEAN_FALSE);
-        return ETHEREUM_BOOLEAN_TRUE;
+        if (ETHEREUM_BOOLEAN_IS_FALSE (tryPing) ||
+            ETHEREUM_BOOLEAN_IS_FALSE (node->timeoutPingAllowed)) {
+            nodeDisconnect (node, route, nodeStateCreateErrorDisconnect (P2P_MESSAGE_DISCONNECT_TIMEOUT), ETHEREUM_BOOLEAN_FALSE);
+            return ETHEREUM_BOOLEAN_TRUE;
+        }
+
+        // Try a ping
+        BREthereumMessage ping = {
+            MESSAGE_P2P,
+            { .p2p = {
+                P2P_MESSAGE_PING, {}}}
+        };
+
+        if (NODE_STATUS_SUCCESS != nodeSend (node, route, ping)) {
+            nodeDisconnect (node, route, nodeStateCreateErrorDisconnect (P2P_MESSAGE_DISCONNECT_TIMEOUT), ETHEREUM_BOOLEAN_FALSE);
+            return ETHEREUM_BOOLEAN_TRUE;
+        }
+
+        // On another timeout, don't allow a ping.
+        node->timeoutPingAllowed = ETHEREUM_BOOLEAN_FALSE;
+
+        // Must respond w/i a shorter 'recv' time.
+        nodeUpdateTimeoutRecv (node, now);
+
     }
+
+    // When not a timeout, we'll enable ping.
+    else node->timeoutPingAllowed = ETHEREUM_BOOLEAN_TRUE;
+
+    //
     return ETHEREUM_BOOLEAN_FALSE;
 }
 
