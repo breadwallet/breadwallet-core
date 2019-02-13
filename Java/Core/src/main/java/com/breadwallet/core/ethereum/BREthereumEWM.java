@@ -332,6 +332,9 @@ public class BREthereumEWM extends BRCoreJniReference {
                 rid);
     }
 
+    public void announceTokenComplete (int rid, boolean success) {
+        jniAnnounceTokenComplete (rid, success);
+    }
     //
     // EWM
     //
@@ -617,6 +620,8 @@ public class BREthereumEWM extends BRCoreJniReference {
                                             String defaultGasLimit,
                                             String defaultGasPrice,
                                             int rid);
+
+    protected native void jniAnnounceTokenComplete (int rid, boolean success);
 
     // JNI: Account & Address
     protected native long jniEWMGetAccount();

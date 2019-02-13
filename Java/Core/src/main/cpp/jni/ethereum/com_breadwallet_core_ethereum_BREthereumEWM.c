@@ -980,6 +980,21 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnounceToken
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
+ * Method:    jniAnnounceTokenComplete
+ * Signature: (IZ)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnounceTokenComplete
+        (JNIEnv *env, jobject thisObject,
+         jint rid,
+         jboolean success) {
+    BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
+
+    ewmAnnounceTokenComplete(node, rid, AS_ETHEREUM_BOOLEAN(success));
+}
+
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniCreateTransaction
  * Signature: (JLjava/lang/String;Ljava/lang/String;J)J
  */

@@ -3,6 +3,9 @@ JAVA_DIR=${JAVA_HOME}
 #CINC_DIR=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include
 CINC_DIR=/usr/include
 
+JAVA_LIB=/Users/ebg/Library/Android//sdk/extras/android/m2repository/com/android/support/support-annotations/25.3.1/support-annotations-25.3.1.jar
+
+
 JNI_LIB=libCore.jnilib
 
 JNI_SDIR=Core/src/main/cpp/jni
@@ -128,7 +131,7 @@ $(JNI_LIB): $(JNI_OBJS) $(CORE_OBJS)
 java_comp:	FORCE
 	@mkdir -p build
 	@echo "Core & Ethereum Java"
-	@javac -d build $(JAVA_SRCS)
+	@javac -cp $(JAVA_LIB) -d build $(JAVA_SRCS)
 
 jni_hdr_core: 	FORCE
 	@echo Core JNI Headers
