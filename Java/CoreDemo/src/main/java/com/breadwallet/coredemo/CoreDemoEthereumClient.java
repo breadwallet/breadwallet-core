@@ -133,6 +133,8 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
                 null,
                 null,
                 rid);
+
+        ewm.announceTokenComplete(rid, true);
     }
 
     @Override

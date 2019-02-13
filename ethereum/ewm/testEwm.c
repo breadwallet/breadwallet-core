@@ -455,6 +455,8 @@ clientGetTokens (BREthereumClientContext context,
                      NULL,
                      NULL,
                      0);
+
+    ewmAnnounceTokenComplete(ewm, ETHEREUM_BOOLEAN_TRUE, rid);
     
 }
 

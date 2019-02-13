@@ -882,7 +882,11 @@ public class EthereumWalletManager: WalletManager {
                                decimals: UInt32) {
         ewmAnnounceToken(core, address, symbol, name, description, decimals, nil, nil, rid)
     }
-    
+
+    public func announceTokenComplete (rid: Int32, success: Bool) {
+        ewmAnnounceTokenComplete(core, (success ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE), rid);
+    }
+
     public func announceBlockNumber (blockNumber: String, rid: Int32) {
         ewmAnnounceBlockNumber(core, blockNumber, rid)
     }

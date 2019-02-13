@@ -121,6 +121,14 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnou
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
+ * Method:    jniAnnounceTokenComplete
+ * Signature: (IZ)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnounceTokenComplete
+  (JNIEnv *, jobject, jint, jboolean);
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniEWMGetAccount
  * Signature: ()J
  */

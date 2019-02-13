@@ -217,6 +217,7 @@ public class DefaultEthereumBackendClient: EthereumBackendClient {
                            description: "",
                            decimals: 18)
 
+        ewm.announceTokenComplete(rid: rid, success: true)
     }
 
     public func getBlockNumber(ewm: EthereumWalletManager, rid: Int32) {
