@@ -27,9 +27,9 @@
 #include <assert.h>
 #include "BRKey.h"
 #include "BRInt.h"
+#include "support/BRAssert.h"
 #include "../../base/BREthereumSignature.h"
 #include "BREthereumMessageDIS.h"
-#include "BRAssert.h"
 
 // #define NEED_TO_PRINT_DIS_NEIGHBOR_DETAILS
 

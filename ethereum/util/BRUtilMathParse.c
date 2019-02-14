@@ -28,8 +28,8 @@
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
+#include "support/BRAssert.h"
 #include "BRUtil.h"
-#include "BRAssert.h"
 
 //
 // Parsing

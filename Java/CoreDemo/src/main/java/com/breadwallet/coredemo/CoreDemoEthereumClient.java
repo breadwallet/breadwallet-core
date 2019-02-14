@@ -43,7 +43,7 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
     }
 
     @Override
-    public void getGasEstimate(long wid, long tid, String to, String amount, String data, int rid) {
+    public void getGasEstimate(long wid, long tid, String from, String to, String amount, String data, int rid) {
         System.out.println ("TST: getGasEstimate");
         ewm.announceGasEstimate (wid, tid, "21000", rid);
     }
@@ -133,6 +133,8 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
                 null,
                 null,
                 rid);
+
+        ewm.announceTokenComplete(rid, true);
     }
 
     @Override

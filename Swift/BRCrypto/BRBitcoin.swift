@@ -357,6 +357,10 @@ public class BitcoinWalletManager: WalletManager {
         })
     }
 
+    public func sync () {
+        BRPeerManagerRescan (corePeerManager)
+    }
+
     public init (listener: BitcoinListener,
                  account: Account,
                  network: Network,

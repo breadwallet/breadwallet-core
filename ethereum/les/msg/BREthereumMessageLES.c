@@ -23,9 +23,9 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#include "support/BRAssert.h"
 #include "../../blockchain/BREthereumBlockChain.h"
 #include "BREthereumMessageLES.h"
-#include "BRAssert.h"
 
 // GETH Limits
 // MaxHeaderFetch           = 192 // Amount of block headers to be fetched per retrieval request

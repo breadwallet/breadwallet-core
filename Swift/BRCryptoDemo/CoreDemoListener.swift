@@ -78,7 +78,7 @@ class CoreDemoListener : WalletManagerListener, BitcoinListener, EthereumListene
                                      wallet: Wallet,
                                      transfer: Transfer,
                                      event: TransferEvent) -> Void {
-        print ("TST: UI Handling Transfer Event: \(wallet.currency.code)")
+        print ("TST: UI Handling Transfer Event: \(wallet.currency.code) Hash: \(transfer.hash.map { $0.description} ?? "<none>") Status: \(transfer.state)")
     }
 
     func handleTokenEvent(manager: WalletManager,

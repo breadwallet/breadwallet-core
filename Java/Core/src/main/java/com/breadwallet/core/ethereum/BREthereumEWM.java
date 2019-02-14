@@ -157,12 +157,13 @@ public class BREthereumEWM extends BRCoreJniReference {
         //                                    BREthereumEWM ewm,
         //                                    BREthereumWalletId wid,
         //                                    BREthereumTransactionId tid,
+        //                                    const char *from,
         //                                    const char *to,
         //                                    const char *amount,
         //                                    const char *data,
         //                                    int rid);
 
-        void getGasEstimate(long wid, long tid, String to, String amount, String data, int rid);
+        void getGasEstimate(long wid, long tid, String from,  String to, String amount, String data, int rid);
 
         //        typedef void (*BREthereumClientHandlerGetBalance) (BREthereumClientContext context,
         //                                   BREthereumEWM ewm,
@@ -332,6 +333,9 @@ public class BREthereumEWM extends BRCoreJniReference {
                 rid);
     }
 
+    public void announceTokenComplete (int rid, boolean success) {
+        jniAnnounceTokenComplete (rid, success);
+    }
     //
     // EWM
     //
@@ -618,6 +622,8 @@ public class BREthereumEWM extends BRCoreJniReference {
                                             String defaultGasPrice,
                                             int rid);
 
+    protected native void jniAnnounceTokenComplete (int rid, boolean success);
+
     // JNI: Account & Address
     protected native long jniEWMGetAccount();
 
@@ -842,12 +848,12 @@ public class BREthereumEWM extends BRCoreJniReference {
         client.getGasPrice(wid, rid);
     }
 
-    static protected void trampolineGetGasEstimate(long eid, long wid, long tid, String to, String amount, String data, int rid) {
+    static protected void trampolineGetGasEstimate(long eid, long wid, long tid, String from, String to, String amount, String data, int rid) {
         BREthereumEWM ewm = lookupEWM(eid);
         Client client = lookupClient (ewm);
         if (null == client) return;
 
-        client.getGasEstimate(wid, tid, to, amount, data, rid);
+        client.getGasEstimate(wid, tid, from, to, amount, data, rid);
     }
 
     static protected void trampolineGetBalance(long eid, long wid, String address, int rid) {

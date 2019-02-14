@@ -107,6 +107,9 @@ ewmDisconnect (BREthereumEWM ewm);
 extern BREthereumBoolean
 ewmIsConnected (BREthereumEWM ewm);
 
+extern BREthereumBoolean
+ewmSync (BREthereumEWM ewm);
+
 extern uint64_t
 ewmGetBlockHeight (BREthereumEWM ewm);
 

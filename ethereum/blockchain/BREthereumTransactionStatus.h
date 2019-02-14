@@ -66,7 +66,7 @@ typedef enum {
     TRANSACTION_ERROR_UNKNOWN,
 } BREthereumTransactionErrorType;
 
-const char *
+extern const char *
 transactionGetErrorName (BREthereumTransactionErrorType type);
 
 /** In `Status` we'll include a 'reason' string; limit the string to filling out the union. */

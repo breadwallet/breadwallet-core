@@ -60,6 +60,7 @@ clientEstimateGas(BREthereumClientContext context,
                   BREthereumEWM node,
                   BREthereumWallet wid,
                   BREthereumTransfer tid,
+                  const char *from,
                   const char *to,
                   const char *amount,
                   const char *data,
@@ -216,7 +217,7 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_initializeNative
     trampolineClass = (*env)->NewGlobalRef(env, thisClass);
 
     trampolineGetGasPrice       = trampolineOrFatal (env, "trampolineGetGasPrice",       "(JJI)V");
-    trampolineGetGasEstimate    = trampolineOrFatal (env, "trampolineGetGasEstimate",    "(JJJLjava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V");
+    trampolineGetGasEstimate    = trampolineOrFatal (env, "trampolineGetGasEstimate",    "(JJJLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V");
     trampolineGetBalance        = trampolineOrFatal (env, "trampolineGetBalance",        "(JJLjava/lang/String;I)V");
     trampolineSubmitTransaction = trampolineOrFatal (env, "trampolineSubmitTransaction", "(JJJLjava/lang/String;I)V");
     trampolineGetTransactions   = trampolineOrFatal (env, "trampolineGetTransactions",   "(JLjava/lang/String;JJI)V");
@@ -980,6 +981,21 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnounceToken
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
+ * Method:    jniAnnounceTokenComplete
+ * Signature: (IZ)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnounceTokenComplete
+        (JNIEnv *env, jobject thisObject,
+         jint rid,
+         jboolean success) {
+    BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
+
+    ewmAnnounceTokenComplete(node, rid, AS_ETHEREUM_BOOLEAN(success));
+}
+
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniCreateTransaction
  * Signature: (JLjava/lang/String;Ljava/lang/String;J)J
  */
@@ -1570,6 +1586,7 @@ static void
 clientEstimateGas(BREthereumClientContext context, BREthereumEWM node,
                   BREthereumWallet wid,
                   BREthereumTransfer tid,
+                  const char *fromStr,
                   const char *toStr,
                   const char *amountStr,
                   const char *dataStr,
@@ -1577,6 +1594,7 @@ clientEstimateGas(BREthereumClientContext context, BREthereumEWM node,
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
+    jobject from = (*env)->NewStringUTF(env, fromStr);
     jobject to = (*env)->NewStringUTF(env, toStr);
     jobject amount = (*env)->NewStringUTF(env, amountStr);
     jobject data = (*env)->NewStringUTF(env, dataStr);
@@ -1584,6 +1602,7 @@ clientEstimateGas(BREthereumClientContext context, BREthereumEWM node,
     (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineGetGasEstimate,
                                  (jlong) wid,
                                  (jlong) tid,
+                                 from,
                                  to,
                                  amount,
                                  data,
@@ -1592,6 +1611,7 @@ clientEstimateGas(BREthereumClientContext context, BREthereumEWM node,
     (*env)->DeleteLocalRef(env, data);
     (*env)->DeleteLocalRef(env, amount);
     (*env)->DeleteLocalRef(env, to);
+    (*env)->DeleteLocalRef(env, from);
 }
 
 static void

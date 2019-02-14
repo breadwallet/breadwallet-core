@@ -91,6 +91,7 @@ extern "C" {
                                            BREthereumEWM ewm,
                                            BREthereumWallet wid,
                                            BREthereumTransfer tid,
+                                           const char *from,
                                            const char *to,
                                            const char *amount,
                                            const char *data,
@@ -247,6 +248,11 @@ extern "C" {
                      const char *strDefaultGasPrice,
                      int rid);
 
+    extern void
+    ewmAnnounceTokenComplete (BREthereumEWM ewm,
+                              BREthereumBoolean success,
+                              int rid);
+    
     extern void
     ewmUpdateTokens (BREthereumEWM ewm);
 

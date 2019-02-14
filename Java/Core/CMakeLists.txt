@@ -67,6 +67,8 @@ target_sources (core
 
                 src/main/cpp/core/support/BRFileService.c
                 src/main/cpp/core/support/BRFileService.h
+                src/main/cpp/core/support/BRAssert.c
+                src/main/cpp/core/support/BRAssert.h
 
                 # BCash files
                 src/main/cpp/core/bcash/BRBCashAddr.c

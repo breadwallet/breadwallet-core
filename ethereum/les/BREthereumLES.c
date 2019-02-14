@@ -407,37 +407,35 @@ lesEnsureNodeForEndpoint (BREthereumLES les,
     return node;
 }
 
+///
 /// MARK: - DNS Seeds
+///
 #if !defined (LES_BOOTSTRAP_LCL_ONLY)
 typedef struct {
     BREthereumLES les;
     const char *seed;
-    pthread_t thread;
     BREthereumNodePriority priority;
     size_t tried;
     size_t added;
 } BREthereumLESSeedContext;
 
-static void *
-lesSeedQueryThread (BREthereumLESSeedContext *context) {
+static int
+lesSeedQuery (BREthereumLESSeedContext *context) {
     BREthereumLES les = context->les;
 
-    char threadName[1024];
-    sprintf (threadName, "Core Ethereum LES Seed: %s", context->seed);
-
-#if defined (__ANDROID__)
-    pthread_setname_np (les->thread, LES_THREAD_NAME);
-#else
-    pthread_setname_np (LES_THREAD_NAME);
-#endif
-
-    size_t msgDataLength = 16 * 1024;
+    size_t msgDataLength = 1024 * 1024;
     u_char msgData [msgDataLength + 1];
+    memset (msgData, 0, msgDataLength);
+
+    if (0 != res_init()) {
+        eth_log(LES_LOG_TOPIC, "Nodes '%s' Error: res_init(): %s", context->seed, strerror(errno));
+        return 1;
+    }
 
     int msgCount = res_query (context->seed, ns_c_in, ns_t_txt, msgData, msgDataLength);
     if (msgCount < 0) {
-        eth_log(LES_LOG_TOPIC, "Nodes '%s' Error: %s", context->seed, strerror(errno));
-        pthread_exit((void*)1);
+        eth_log(LES_LOG_TOPIC, "Nodes '%s' Error: res_query(): %s", context->seed, strerror(errno));
+        return 1;
     }
 
     ns_msg msg;
@@ -474,7 +472,7 @@ lesSeedQueryThread (BREthereumLESSeedContext *context) {
     else
         eth_log(LES_LOG_TOPIC, "Nodes '%s': Required BRD Only: Added: 0", context->seed);
 
-    pthread_exit (0);
+    return 0;
 }
 #endif
 
@@ -613,8 +611,7 @@ lesCreate (BREthereumNetwork network,
                                           config->state,
                                           config->priority,
                                           NULL);
-
-#endif
+#endif // !defined(LES_BOOTSTRAP_LCL_ONLY)
 
     size_t bootstrappedEndpointsCount = 0;
 
@@ -632,41 +629,22 @@ lesCreate (BREthereumNetwork network,
             if (ETHEREUM_BOOLEAN_IS_TRUE(added))
                 bootstrappedEndpointsCount += 1;
         }
-#endif
+#endif // defined (LES_BOOTSTRAP_LCL_ONLY)
 
 #if !defined (LES_BOOTSTRAP_LCL_ONLY)
     // Create nodes from our network seeds.
     const char **seeds = networkGetSeeds (network);
     size_t seedsCount  = networkGetSeedsCount(network);
 
-    BRArrayOf(BREthereumLESSeedContext) seedContexts;
-    array_new(seedContexts, seedsCount);
-
-    pthread_mutex_lock (&les->lock);
     for (size_t i = 0; i < seedsCount; i++) {
-        BREthereumLESSeedContext context = { les, seeds[i], NULL,
+        BREthereumLESSeedContext context = { les, seeds[i],
             (0 == i ? NODE_PRIORITY_BRD : NODE_PRIORITY_DIS),
             0, 0
         };
-        array_add (seedContexts, context);
 
-        pthread_attr_t attr;
-        pthread_attr_init (&attr);
-        pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_JOINABLE);
-        pthread_attr_setstacksize (&attr, 1024 * 1024);
-        pthread_create(&seedContexts[i].thread, &attr, (ThreadRoutine) lesSeedQueryThread, &seedContexts[i]);
-        pthread_attr_destroy(&attr);
+        lesSeedQuery(&context);
     }
-    pthread_mutex_unlock (&les->lock);
-
-
-    // Join all threads.
-    for (size_t i = 0; i < seedsCount; i++) {
-        void *result;
-        pthread_join(seedContexts[i].thread, &result);
-        bootstrappedEndpointsCount += seedContexts[i].added;
-    }
-#endif
+#endif // !defined (LES_BOOTSTRAP_LCL_ONLY)
 
     eth_log(LES_LOG_TOPIC, "Nodes Bootstrapped: %zu", bootstrappedEndpointsCount);
     for (size_t index = 0; index < 5 && index < array_count(les->availableNodes); index++) {
@@ -1082,18 +1060,28 @@ lesThread (BREthereumLES les) {
         // node that we are actively communicating with.  In such a case the `pselect()` might
         // never timeout but all other nodes could be dead.  Catch the dead nodes up front.
         //
+        // When an individual node times out we will attempt a PING/PONG pair.  If the node
+        // responds with a PONG in a reasonable time, then we won't boot the node.  It is important
+        // to keep nodes connected (they are hard to find in the first place); if a node is
+        // syncing its block chain it won't produce 'announce' messages and thus will timeout
+        // eventually - but when syncing it will still relay transactions.
+        //
         FOR_EACH_ROUTE (route) {
             BRArrayOf(BREthereumNode) nodes = les->activeNodesByRoute[route];
-            for (size_t index = 0; index < array_count(nodes); index++)
-                if (ETHEREUM_BOOLEAN_IS_TRUE (nodeHandleTime (nodes[index], route, now))) {
+            for (size_t index = 0; index < array_count(nodes); index++) {
+                BREthereumNode node = nodes[index];
+                BREthereumBoolean tryPing = AS_ETHEREUM_BOOLEAN (NODE_ROUTE_TCP == route &&
+                                                                 nodeHasState (node, NODE_ROUTE_TCP, NODE_CONNECTED));
+                if (ETHEREUM_BOOLEAN_IS_TRUE (nodeHandleTime (node, route, now, tryPing))) {
                     // Note: `nodeHandleTime()` will have disconnected.
-                    array_add (nodesToRemove, nodes[index]);
+                    array_add (nodesToRemove, node);
                     // TODO: Reassign provisions
                 }
-            lesDeactivateNodes(les, route, nodesToRemove, "TIMEDOUT");
-            array_clear (nodesToRemove);
+                lesDeactivateNodes(les, route, nodesToRemove, "TIMEDOUT");
+                array_clear (nodesToRemove);
+            }
         }
-
+        
         //
         // Handle any/all pending requests by 'establishing a provision' in the requested node.  If
         // the requested node is not connected the request must fail.

@@ -1811,9 +1811,9 @@
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
 				HEADER_SEARCH_PATHS = (
-					./,
-					../,
-					../secp256k1/,
+					"$(SRCROOT)/..",
+					"$(SRCROOT)/../ethereum",
+					"$(SRCROOT)/../secp256k1",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 10.3;
 				MODULEMAP_FILE = "$(PROJECT_DIR)/Core/module.modulemap";
@@ -2122,9 +2122,9 @@
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
 				HEADER_SEARCH_PATHS = (
-					./,
-					../,
-					../secp256k1/,
+					"$(SRCROOT)/..",
+					"$(SRCROOT)/../ethereum",
+					"$(SRCROOT)/../secp256k1",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 10.3;
 				MODULEMAP_FILE = "$(PROJECT_DIR)/Core/module.modulemap";
@@ -2149,9 +2149,9 @@
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = 4R7S6N88W9;
 				HEADER_SEARCH_PATHS = (
-					./,
-					../,
-					../secp256k1/,
+					"$(SRCROOT)/..",
+					"$(SRCROOT)/../ethereum",
+					"$(SRCROOT)/../secp256k1",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 10.3;
 				MODULEMAP_FILE = "$(PROJECT_DIR)/Core/module.modulemap";

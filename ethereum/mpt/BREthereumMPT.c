@@ -23,8 +23,8 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#include "support/BRAssert.h"
 #include "BREthereumMPT.h"
-#include "BRAssert.h"
 
 #undef MPT_SHOW_PROOF_NODES
 
