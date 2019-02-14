@@ -181,26 +181,30 @@ ewmAnnounceGasPrice(BREthereumEWM ewm,
 
 extern void
 ewmUpdateGasEstimate (BREthereumEWM ewm,
-                                 BREthereumWallet wallet,
-                                 BREthereumTransfer transfer) {
+                      BREthereumWallet wallet,
+                      BREthereumTransfer transfer) {
     if (NULL == transfer) {
         ewmSignalTransferEvent(ewm, wallet, transfer,
-                                          TRANSFER_EVENT_GAS_ESTIMATE_UPDATED,
-                                          ERROR_UNKNOWN_WALLET,
-                                          NULL);
+                               TRANSFER_EVENT_GAS_ESTIMATE_UPDATED,
+                               ERROR_UNKNOWN_WALLET,
+                               NULL);
         
     } else if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) {
         ewmSignalTransferEvent(ewm, wallet, transfer,
-                                          TRANSFER_EVENT_GAS_ESTIMATE_UPDATED,
-                                          ERROR_NODE_NOT_CONNECTED,
-                                          NULL);
+                               TRANSFER_EVENT_GAS_ESTIMATE_UPDATED,
+                               ERROR_NODE_NOT_CONNECTED,
+                               NULL);
     } else {
         switch (ewm->mode) {
             case BRD_ONLY:
             case BRD_WITH_P2P_SEND: {
                 // This will be ZERO if transaction amount is in TOKEN.
                 BREthereumEther amountInEther = transferGetEffectiveAmountInEther(transfer);
+                BREthereumAddress fromAddress = transferGetSourceAddress(transfer);
+
                 BREthereumTransaction transaction = transferGetOriginatingTransaction(transfer);
+
+                char *from = addressGetEncodedString(fromAddress, 1);
                 char *to = (char *) addressGetEncodedString(transactionGetTargetAddress(transaction), 0);
                 char *amount = coerceString(amountInEther.valueInWEI, 16);
 
@@ -208,11 +212,13 @@ ewmUpdateGasEstimate (BREthereumEWM ewm,
                                              ewm,
                                              wallet,
                                              transfer,
+                                             from,
                                              to,
                                              amount,
                                              transactionGetData(transaction),
                                              ++ewm->requestId);
 
+                free (from);
                 free(to);
                 free(amount);
                 break;
@@ -224,7 +230,6 @@ ewmUpdateGasEstimate (BREthereumEWM ewm,
                 break;
         }
     }
-
 }
 
 extern void

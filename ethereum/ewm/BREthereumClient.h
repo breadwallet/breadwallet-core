@@ -91,6 +91,7 @@ extern "C" {
                                            BREthereumEWM ewm,
                                            BREthereumWallet wid,
                                            BREthereumTransfer tid,
+                                           const char *from,
                                            const char *to,
                                            const char *amount,
                                            const char *data,
