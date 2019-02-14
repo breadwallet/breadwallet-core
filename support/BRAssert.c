@@ -83,23 +83,34 @@ typedef struct {
 /**
  * Allocate a singleton instance of BRAssertContext
  */
-static BRAssertContext context_record = {
+static BRAssertContext context = {
     NULL, NULL, NULL,
-    PTHREAD_NULL, PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER,
+    PTHREAD_NULL,
+    PTHREAD_MUTEX_INITIALIZER,
+    PTHREAD_COND_INITIALIZER,
     0
 };
-static BRAssertContext *context = &context_record;
 
 static void
 BRAssertEnsureRecoveries (BRAssertContext *context) {
     if (NULL == context->recoveries)
         array_new (context->recoveries, ASSERT_DEFAULT_RECOVERIES_COUNT);
 }
+
+static void
+BRAssertReleaseRecoveries (BRAssertContext *context) {
+    if (NULL != context->recoveries) {
+        array_free (context->recoveries);
+        context->recoveries = NULL;
+    }
+}
+
 /**
  * Invoke all the context's recoveries.
  */
 static void
 BRAssertInvokeRecoveries (BRAssertContext *context) {
+    BRAssertEnsureRecoveries(context);
     size_t count = array_count(context->recoveries);
     for (size_t index = 0; index < count; index++)
         BRAssertRecoveryInvoke (&context->recoveries[index]);
@@ -112,23 +123,12 @@ static void
 BRAssertInvokeHandler (BRAssertContext *context, int exitIfNoHandler) {
     if (NULL != context->handler)
         context->handler (context->info);
-    else if (exitIfNoHandler)
+    else if (exitIfNoHandler) {
+        assert_log ("AssertThread: no handler - will exit()\n");
         exit (EXIT_FAILURE);
+    }
 }
 
-static void
-BRAssertInit (void) {
-    context->info = NULL;
-    context->handler = NULL;
-    if (NULL != context->recoveries) {
-        array_free(context->recoveries);
-        context->recoveries = NULL;
-    }
-    context->thread = PTHREAD_NULL;
-    // lock - do not touch
-    // cond
-    // timeToQuit - do not touch (see comment in BRFail)
-}
 
 typedef void* (*ThreadRoutine) (void*);         // pthread_create
 
@@ -141,29 +141,34 @@ BRAssertThread (BRAssertContext *context) {
 #endif
 
     pthread_mutex_lock(&context->lock);
+
+    // Handle an immediate BRAssertUnintall if it happens before we even 'cond wait'
+    if (!context->timeToQuit)
+        // Wait forever on a 'cond signal'
+        while (0 == pthread_cond_wait(&context->cond, &context->lock)) {
+            if (context->timeToQuit) break;
+
+            assert_log ("AssertThread: Caught\n");
+
+            // Invoke recovery methods
+            BRAssertInvokeRecoveries (context);
+
+            // Invoke (top-level) handler.  If there is no handler, we will exit()
+            BRAssertInvokeHandler(context, 1);
+        }
+
+    assert_log ("AssertThread: Quit\n");
+
+    context->info = NULL;
+    context->handler = NULL;
+    BRAssertReleaseRecoveries(context);
     context->timeToQuit = 0;
-
-    while (0 == pthread_cond_wait(&context->cond, &context->lock)) {
-        if (context->timeToQuit) break;
-
-        assert_log ("AssertThread Caught\n");
-
-        // Invoke recovery methods
-        BRAssertInvokeRecoveries (context);
-
-        // Invoke (top-level) handler.  If there is no handler, we will exit()
-        BRAssertInvokeHandler(context, 1);
-
-        // We run once and only once.  Another BRAssertInstall() is required to get going.
-        // Afterall, the point is that BRFail() fails core and *no* threads should be running
-        break;
-    }
-
-    // Clear out the context.
-    BRAssertInit();
+    // Note: We must not clear context->thread; otherwise a pthread_join() won't have the thread.
 
     // Required as pthread_cont_wait() takes the lock.
     pthread_mutex_unlock(&context->lock);
+
+    // Leave 'lock' and 'cond' untouched.  At pthread_join() we'll destroy them.
 
     // done
     pthread_exit(0);
@@ -171,48 +176,80 @@ BRAssertThread (BRAssertContext *context) {
 
 extern void
 BRAssertInstall (BRAssertInfo info, BRAssertHandler handler) {
-    pthread_mutex_lock (&context->lock);
-    if (PTHREAD_NULL == context->thread) {
-        context->info = info;
-        context->handler = handler;
+    pthread_mutex_lock (&context.lock);
+    if (PTHREAD_NULL != context.thread) { pthread_mutex_unlock(&context.lock); return; }
 
-        BRAssertEnsureRecoveries (context);
+    context.info = info;
+    context.handler = handler;
+    BRAssertEnsureRecoveries (&context);
+    context.timeToQuit = 0;
 
-        context->timeToQuit = 0;
-
-        {
-            pthread_attr_t attr;
-            pthread_attr_init (&attr);
-            pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_DETACHED);
-            pthread_attr_setstacksize (&attr, 1024 * 1024);
-            pthread_create (&context->thread, &attr, (ThreadRoutine) BRAssertThread, context);
-            pthread_attr_destroy(&attr);
-        }
+    {
+        pthread_condattr_t attr;
+        pthread_condattr_init(&attr);
+        pthread_cond_init(&context.cond, &attr);
+        pthread_condattr_destroy(&attr);
     }
-    pthread_mutex_unlock(&context->lock);
+
+    {
+        // The cacheLock is a normal, non-recursive lock
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+        pthread_mutex_init(&context.lock, &attr);
+        pthread_mutexattr_destroy(&attr);
+    }
+
+
+    {
+        pthread_attr_t attr;
+        pthread_attr_init (&attr);
+        pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_JOINABLE);
+        pthread_attr_setstacksize (&attr, 1024 * 1024);
+        pthread_create (&context.thread, &attr, (ThreadRoutine) BRAssertThread, &context);
+        pthread_attr_destroy(&attr);
+    }
+
+    pthread_mutex_unlock(&context.lock);
 }
 
 extern void
 BRAssertUninstall (void) {
-    pthread_mutex_lock (&context->lock);
-    if (PTHREAD_NULL != context->thread) {
-         // Set this flag so that the assert handler thread *will avoid* running recoveries.
-        context->timeToQuit = 1;
-
-        // Signal the assert handler thread; it will wakeup, observe `timeToQuit` and then exit.
-        pthread_cond_signal (&context->cond);
+    pthread_mutex_lock (&context.lock);
+    if (PTHREAD_NULL == context.thread) { pthread_mutex_unlock (&context.lock); return; }
+    if (pthread_self() == context.thread) {
+        assert_log ("%s:%u: BRAssertUninstall called within assert handler or assert recovery: exiting.\n",
+                    __FILE__, __LINE__);
+        exit (0);
     }
+
+    // Keep
+    pthread_t thread = context.thread;
+
+    // Set this flag so that the assert handler thread *will avoid* running recoveries.
+    context.timeToQuit = 1;
+
+    // Signal the assert handler thread; it will wakeup, observe `timeToQuit` and then exit.
+    pthread_cond_signal (&context.cond);
+
     // Allow the assert handler to run and quit.
-    pthread_mutex_unlock (&context->lock);
+    pthread_mutex_unlock (&context.lock);
+
+    pthread_join (thread, NULL);
+
+    // Only now are these safe to destroy and, for context.thread, safe to clear.
+    pthread_mutex_destroy(&context.lock);
+    pthread_cond_destroy (&context.cond);
+    context.thread = PTHREAD_NULL;
 }
 
 extern int
 BRAssertIsInstalled (void) {
     int isConnected = 0;
 
-    pthread_mutex_lock (&context->lock);
-    isConnected = PTHREAD_NULL != context->thread;
-    pthread_mutex_unlock (&context->lock);
+    pthread_mutex_lock (&context.lock);
+    isConnected = PTHREAD_NULL != context.thread;
+    pthread_mutex_unlock (&context.lock);
 
     return isConnected;
 }
@@ -221,10 +258,19 @@ extern void
 __BRFail (const char *file, int line, const char *exp) {
     assert_log ("%s:%u: failed assertion `%s'\n", file, line, exp);
 
-    pthread_cond_signal (&context->cond);
+    // If BRAssertInstall() has not been called, then there is no thread and we should exit().
+    // But that requires testing context state (like context->thread), which requires a lock and
+    // which results in a deadlock.
+    //
+    // The the mutex/lock defined to be recursive? Or just simple?
+
+    // Signal the handler thread.
+    pthread_cond_signal (&context.cond);
 #if defined(DEBUG)
 //    assert (0);
 #endif
+
+    // This thread is dead.
     pthread_exit (NULL);
 }
 
@@ -233,36 +279,36 @@ BRAssertDefineRecovery (BRAssertRecoveryInfo info,
                         BRAssertRecoveryHandler handler) {
     int needRecovery = 1;
 
-    pthread_mutex_lock (&context->lock);
-    BRAssertEnsureRecoveries (context);
+    pthread_mutex_lock (&context.lock);
+    BRAssertEnsureRecoveries (&context);
 
-    for (size_t index = 0; index < array_count(context->recoveries); index++)
-        if (info == context->recoveries[index].info) {
-            context->recoveries[index].handler = handler;
+    for (size_t index = 0; index < array_count(context.recoveries); index++)
+        if (info == context.recoveries[index].info) {
+            context.recoveries[index].handler = handler;
             needRecovery = 0;
             break; // for
         }
 
     if (needRecovery) {
         BRAssertRecoveryContext recovery = { info, handler };
-        array_add (context->recoveries, recovery);
+        array_add (context.recoveries, recovery);
     }
-    pthread_mutex_unlock(&context->lock);
+    pthread_mutex_unlock(&context.lock);
 }
 
 extern int
 BRAssertRemoveRecovery (BRAssertRecoveryInfo info) {
     int removedRecovery = 0;
 
-    pthread_mutex_lock (&context->lock);
-    BRAssertEnsureRecoveries (context);
+    pthread_mutex_lock (&context.lock);
+    BRAssertEnsureRecoveries (&context);
 
-    for (size_t index = 0; index < array_count(context->recoveries); index++)
-        if (info == context->recoveries[index].info) {
-            array_rm(context->recoveries, index);
+    for (size_t index = 0; index < array_count(context.recoveries); index++)
+        if (info == context.recoveries[index].info) {
+            array_rm(context.recoveries, index);
             removedRecovery = 1;
             break; // for
         }
-    pthread_mutex_unlock (&context->lock);
+    pthread_mutex_unlock (&context.lock);
     return removedRecovery;
 }
