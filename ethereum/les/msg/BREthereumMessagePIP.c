@@ -23,9 +23,9 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#include "support/BRAssert.h"
 #include "BREthereumMessagePIP.h"
 #include "../../mpt/BREthereumMPT.h"
-#include "BRAssert.h"
 
 extern const char *
 messagePIPGetRequestName (BREthereumPIPRequestType type) {

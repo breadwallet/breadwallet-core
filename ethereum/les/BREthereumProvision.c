@@ -23,8 +23,8 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#include "support/BRAssert.h"
 #include "BREthereumProvision.h"
-#include "BRAssert.h"
 
 static size_t minimum (size_t x, size_t  y) { return x < y ? x : y; }
 

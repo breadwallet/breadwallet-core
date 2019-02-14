@@ -32,9 +32,9 @@
 #include <limits.h>
 #include "BRCrypto.h"
 #include "BRKeyECIES.h"
+#include "support/BRAssert.h"
 #include "BREthereumNode.h"
 #include "BREthereumLESFrameCoder.h"
-#include "BRAssert.h"
 
 ///
 /// MARK: - Forward Declarations

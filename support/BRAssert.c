@@ -34,6 +34,8 @@
 
 #define BRArrayOf(type)             type*
 
+#define PTHREAD_NULL            ((pthread_t) NULL)
+
 #if defined(TARGET_OS_MAC)
 #include <Foundation/Foundation.h>
 #define assert_log(...) NSLog(__VA_ARGS__)
@@ -83,7 +85,7 @@ typedef struct {
  */
 static BRAssertContext context_record = {
     NULL, NULL, NULL,
-    NULL, PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER,
+    PTHREAD_NULL, PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER,
     0
 };
 static BRAssertContext *context = &context_record;
@@ -122,7 +124,7 @@ BRAssertInit (void) {
         array_free(context->recoveries);
         context->recoveries = NULL;
     }
-    context->thread = NULL;
+    context->thread = PTHREAD_NULL;
     // lock - do not touch
     // cond
     // timeToQuit - do not touch (see comment in BRFail)
@@ -133,7 +135,7 @@ typedef void* (*ThreadRoutine) (void*);         // pthread_create
 static void *
 BRAssertThread (BRAssertContext *context) {
 #if defined (__ANDROID__)
-    pthread_setname_np (assert_thread, ASSERT_THREAD_NAME);
+    pthread_setname_np (context->thread, ASSERT_THREAD_NAME);
 #else
     pthread_setname_np (ASSERT_THREAD_NAME);
 #endif
@@ -170,7 +172,7 @@ BRAssertThread (BRAssertContext *context) {
 extern void
 BRAssertInstall (BRAssertInfo info, BRAssertHandler handler) {
     pthread_mutex_lock (&context->lock);
-    if (NULL == context->thread) {
+    if (PTHREAD_NULL == context->thread) {
         context->info = info;
         context->handler = handler;
 
@@ -193,7 +195,7 @@ BRAssertInstall (BRAssertInfo info, BRAssertHandler handler) {
 extern void
 BRAssertUninstall (void) {
     pthread_mutex_lock (&context->lock);
-    if (NULL != context->thread) {
+    if (PTHREAD_NULL != context->thread) {
          // Set this flag so that the assert handler thread *will avoid* running recoveries.
         context->timeToQuit = 1;
 
@@ -209,7 +211,7 @@ BRAssertIsInstalled (void) {
     int isConnected = 0;
 
     pthread_mutex_lock (&context->lock);
-    isConnected = NULL != context->thread;
+    isConnected = PTHREAD_NULL != context->thread;
     pthread_mutex_unlock (&context->lock);
 
     return isConnected;
