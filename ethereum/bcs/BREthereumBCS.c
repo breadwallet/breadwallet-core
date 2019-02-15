@@ -53,6 +53,8 @@
 
 #undef BCS_SHOW_ORPHANS
 
+#undef BCS_REPORT_IGNORED_ANNOUNCE
+
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-function"
 static inline uint64_t maximum (uint64_t a, uint64_t b) { return a > b ? a : b; }
@@ -629,9 +631,11 @@ bcsHandleStatus (BREthereumBCS bcs,
                  uint64_t headNumber) {
     // If we are not a P2P_* node, we won't handle announcements
     if (BRD_ONLY == bcs->mode || BRD_WITH_P2P_SEND == bcs->mode) {
+#if defined (BCS_REPORT_IGNORED_ANNOUNCE)
         eth_log ("BCS", "Status %" PRIu64 " Ignored (not P2P) <== %s",
                  headNumber,
                  lesGetNodeHostname (bcs->les, node));
+#endif
         return;
     }
 
@@ -653,9 +657,11 @@ bcsHandleAnnounce (BREthereumBCS bcs,
                    uint64_t reorgDepth) {
     // If we are not a P2P_* node, we won't handle announcements
     if (BRD_ONLY == bcs->mode || BRD_WITH_P2P_SEND == bcs->mode) {
+#if defined (BCS_REPORT_IGNORED_ANNOUNCE)
         eth_log ("BCS", "Block %" PRIu64 " Ignored (not P2P) <== %s",
                  headNumber,
                  lesGetNodeHostname (bcs->les, node));
+#endif
         return;
     }
 
