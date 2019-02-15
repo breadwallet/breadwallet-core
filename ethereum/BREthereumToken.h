@@ -32,7 +32,7 @@
 
 // For tokenBRD define defaults for Gas Limit and Price.  These are arguably never up to date
 // and thus should be changed in programmatically using walletSetDefaultGas{Price,Limit}().
-#define TOKEN_BRD_DEFAULT_GAS_LIMIT  92000
+#define TOKEN_BRD_DEFAULT_GAS_LIMIT  112000
 #define TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64 (2000000000) // 2.0 GWEI
 
 #ifdef __cplusplus
