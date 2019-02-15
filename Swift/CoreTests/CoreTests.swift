@@ -133,7 +133,7 @@ class CoreTests: XCTestCase {
     }
 
     func testEWM () {
-        runEWMTests(paperKey);
+        runEWMTests(paperKey, coreDataDir);
     }
 
     func testLES () {
@@ -157,8 +157,8 @@ class CoreTests: XCTestCase {
 
         print ("ETH: TST: Core Dir: \(coreDataDir!)")
         coreDirClear()
-        runSyncTest (network, account, mode, timestamp, 5 * 60, coreDataDir, 0);
-        runSyncTest (network, account, mode, timestamp, 1 * 60, coreDataDir, 1);
+        runSyncTest (network, account, mode, timestamp, 5 * 60, coreDataDir);
+        runSyncTest (network, account, mode, timestamp, 1 * 60, coreDataDir);
     }
 
     /// Run a single bitcoin sync using the provided paperKey

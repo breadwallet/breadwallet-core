@@ -12,19 +12,7 @@
 
 #include "BRBIP39WordsEn.h"
 
-//extern void runSyncTest (const char *paperKey,
-//                         BREthereumMode mode,
-//                         BREthereumTimestamp timestamp,
-//                         unsigned int durationInSeconds,
-//                         int restart);
-
-extern void
-runSyncTest (BREthereumNetwork network,
-             BREthereumAccount account,
-             BREthereumMode mode,
-             BREthereumTimestamp accountTimestamp,
-             unsigned int durationInSeconds,
-             const char *storagePath);
+#include "test.h"  // runSyncTest
 
 extern BREthereumClient
 runEWM_createClient (void);

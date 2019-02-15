@@ -1,9 +1,9 @@
 //
-//  test-les.h
-//  breadwallet-core Ethereum
+//  test.h
+//  CoreTests
 //
-//  Created by Lamont Samuels on 4/16/18.
-//  Copyright (c) 2018 breadwallet LLC
+//  Created by Ed Gamble on 2/14/19.
+//  Copyright © 2019 breadwallet. All rights reserved.
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -23,9 +23,59 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef test_les_h
-#define test_les_h
+#ifndef BR_Ethereum_Test_H
+#define BR_Ethereum_Test_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// Util
+extern void runUtilTests (void);
+
+// RLP
+extern void runRlpTests (void);
+
+// Event
+extern void runEventTests (void);
+
+// Block Chain
+extern void runBcTests (void);
+
+// Contract
+extern void runContractTests (void);
+
+// LES
 extern void runLESTests(const char *paperKey);
 
-#endif /* test_les_h */
+extern void
+runNodeTests (void);
+
+// EWM
+extern void
+runEWMTests (const char *paperKey,
+             const char *storagePath);
+    
+extern void
+runSyncTest (BREthereumNetwork network,
+             BREthereumAccount account,
+             BREthereumMode mode,
+             BREthereumTimestamp accountTimestamp,
+             unsigned int durationInSeconds,
+             const char *storagePath);
+
+//
+extern void
+installTokensForTest (void);
+
+extern void
+runTests (int reallySend);
+
+extern void
+runPerfTestsCoder (int repeat, int many);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* BR_Ethereum_Test_H */

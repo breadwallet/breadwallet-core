@@ -61,7 +61,7 @@ public class DefaultEthereumBackendClient: EthereumBackendClient {
         ewm.announceGasPrice (wid: wid, gasPrice: "5000000000", rid: rid) // 5 GWEI
     }
 
-    public func getGasEstimate(ewm: EthereumWalletManager, wid: BREthereumWallet, tid: BREthereumTransfer, to: String, amount: String, data: String, rid: Int32) {
+    public func getGasEstimate(ewm: EthereumWalletManager, wid: BREthereumWallet, tid: BREthereumTransfer, from: String, to: String, amount: String, data: String, rid: Int32) {
         // JSON_RPC -> JSON -> Result -> announceGasEstimate()
         let gasEstimate = nil == ewmWalletGetToken(ewm.core, wid)
             ? "21000" // 0.2 ETH

@@ -50,8 +50,6 @@
 #include "BREthereumLESRandom.h"
 #include "../ewm/BREthereumAccount.h"
 
-#include "test-les.h"
-
 #define TST_LOG_TOPIC    "TST"
 
 #define DEFAULT_UDPPORT     (30303)

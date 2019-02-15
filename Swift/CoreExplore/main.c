@@ -245,10 +245,9 @@ int main(int argc, const char * argv[]) {
 #endif
 
 #if 1
-    BRAssertInstall (SIGUSR1, NULL, assertHandle);
+    BRAssertInstall (NULL, assertHandle);
     BRAssertDefineRecovery((BRAssertRecoveryInfo) 1, assertRecover);
     BRAssertDefineRecovery((BRAssertRecoveryInfo) 2, assertRecover);
-    BRAssertConnect();
 
     printf ("AssertConnect\n");
     pthread_attr_t attr;
