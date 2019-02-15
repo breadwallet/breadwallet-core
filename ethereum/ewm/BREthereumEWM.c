@@ -39,6 +39,7 @@
 #include "BRAssert.h"
 
 #include "../event/BREvent.h"
+#include "../event/BREventAlarm.h"
 #include "BREthereumEWMPrivate.h"
 
 #define EWM_SLEEP_SECONDS (10)
@@ -476,6 +477,9 @@ ewmCreate (BREthereumNetwork network,
     }
 
 
+    // Create the alarm clock, but don't start it.
+    alarmClockCreateIfNecessary(0);
+
     // The `main` event handler has a periodic wake-up.  Used, perhaps, if the mode indicates
     // that we should/might query the BRD backend services.
     ewm->handler = eventHandlerCreate ("Core Ethereum EWM",
@@ -667,6 +671,9 @@ ewmConnect(BREthereumEWM ewm) {
     // with `ewmPeriodicDispatcher`.
     ewm->state = LIGHT_NODE_CONNECTED;
 
+    // Start the alarm clock, if needed.
+    alarmClockStart(alarmClock);
+
     switch (ewm->mode) {
         case BRD_ONLY:
             break;
@@ -698,6 +705,7 @@ ewmDisconnect (BREthereumEWM ewm) {
     ewm->state = LIGHT_NODE_DISCONNECTED;
 
     // What order for these stop functions?  See comment in `bcsStop()`.
+    alarmClockStop (alarmClock);
 
     switch (ewm->mode) {
         case BRD_ONLY:
