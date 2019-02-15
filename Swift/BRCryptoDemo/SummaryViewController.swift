@@ -53,8 +53,25 @@ class SummaryViewController: UITableViewController, WalletListener {
         }
     }
 
-    @IBAction func doSync(_ sender: Any) {
+    @IBAction func doAct(_ sender: Any) {
         UIApplication.sync()
+        let alert = UIAlertController (title: "Act",
+                                       message: nil,
+                                       preferredStyle: UIAlertController.Style.alert)
+
+        alert.addAction (UIAlertAction (title: "Sync", style: UIAlertAction.Style.default) { (action) in
+            UIApplication.sync()
+            alert.dismiss(animated: true) {}
+        })
+
+        alert.addAction (UIAlertAction (title: "Sleep Eth", style: UIAlertAction.Style.default) { (action) in
+            UIApplication.sleep()
+            alert.dismiss(animated: true) {}
+        })
+
+        alert.addAction(UIAlertAction (title: "Cancel", style: UIAlertAction.Style.cancel))
+
+        self.present (alert, animated: true) {}
     }
     
     // MARK: - Table View

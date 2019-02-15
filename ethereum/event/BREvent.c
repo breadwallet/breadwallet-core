@@ -217,6 +217,9 @@ eventHandlerThread (BREventHandler handler) {
         }
     }
 
+    // Requires as `cond_wait` takes its mutex when signalled.
+    pthread_mutex_unlock(&handler->lock);
+
     return NULL;
 }
 

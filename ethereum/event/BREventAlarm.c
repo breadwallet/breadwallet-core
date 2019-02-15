@@ -317,6 +317,9 @@ alarmClockThread (BREventAlarmClock clock) {
         }
     }
 
+    // Requires as `cond_wait` takes its mutex when signalled.
+    pthread_mutex_unlock(&clock->lock);
+
     return NULL;
 }
 

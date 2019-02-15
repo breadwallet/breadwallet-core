@@ -30,6 +30,16 @@ extension UIApplication {
 //        app.btcManager.sync()
 //        app.bchManager.sync()
     }
+
+    static func sleep() {
+        guard let app = UIApplication.shared.delegate as? AppDelegate else { return }
+        NSLog ("ETH: Disconnecting")
+        app.ethManager.disconnect()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 15.0) {
+            NSLog ("ETH: Connecting")
+            app.ethManager.connect()
+        }
+    }
 }
 
 @UIApplicationMain
@@ -103,7 +113,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
         self.ethManager = EthereumWalletManager (listener: listener,
                                                  account: account,
                                                  network: Ethereum.Networks.mainnet,
-                                                 mode: WalletManagerMode.api_only,
+                                                 mode: WalletManagerMode.api_with_p2p_submit,
                                                  timestamp: 0,
                                                  storagePath: storagePath)
 
