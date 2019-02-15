@@ -41,10 +41,10 @@
 #include "../event/BREvent.h"
 #include "BREthereumEWMPrivate.h"
 
-#define EWM_SLEEP_SECONDS (5)
+#define EWM_SLEEP_SECONDS (10)
 
-// When using a BRD sync offset the start block by 3 days of Ethereum blocks
-#define EWM_BRD_SYNC_START_BLOCK_OFFSET        (3 * 24 * 60 * 4)   /* 4 per minute, every 15 seconds */
+// When using a BRD sync, offset the start block by N days of Ethereum blocks
+#define EWM_BRD_SYNC_START_BLOCK_OFFSET        (3 * 24 * 60 * 4)   /* 4 per minute (every 15 seconds) */
 
 #define EWM_INITIAL_SET_SIZE_DEFAULT         (25)
 
@@ -563,6 +563,11 @@ ewmCreate (BREthereumNetwork network,
             // This may not be the right thing to do.  Imagine that EWM is blocked somehow (doing
             // a time consuming calculation) and two 'timeout events' occur - the events will be
             // queued in the wrong order (second before first).
+            //
+            // The function `ewmPeriodcDispatcher()` will be installed as a periodic alarm
+            // on the event handler.  It will only trigger when the event handler is running (
+            // the time between `eventHandlerStart()` and `eventHandlerStop()`)
+
             eventHandlerSetTimeoutDispatcher(ewm->handler,
                                              1000 * EWM_SLEEP_SECONDS,
                                              (BREventDispatcher) ewmPeriodicDispatcher,

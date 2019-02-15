@@ -199,7 +199,7 @@ extern BREventAlarmClock
 alarmClockCreate (void) {
     BREventAlarmClock clock = calloc (1, sizeof (struct BREventAlarmClock));
 
-    clock->identifier = 1;
+    clock->identifier = ALARM_ID_NONE;
     array_new(clock->alarms, 5);
 
     // Create the PTHREAD CONDition variable
@@ -242,6 +242,8 @@ alarmClockCreate (void) {
 extern void
 alarmClockDestroy (BREventAlarmClock clock) {
     alarmClockStop(clock);
+
+    BRAssertRemoveRecovery((BRAssertRecoveryInfo) clock);
 
     assert (PTHREAD_NULL == clock->thread);
     pthread_cond_destroy(&clock->cond);
@@ -368,8 +370,9 @@ alarmClockAddAlarmPeriodic (BREventAlarmClock clock,
                             BREventAlarmCallback callback,
                             struct timespec period) {
     pthread_mutex_lock(&clock->lock);
-    BREventAlarmId identifier = clock->identifier++;
+    BREventAlarmId identifier = ++clock->identifier;
     alarmClockInsertAlarm(clock, alarmCreatePeriodic(context, callback, getTime(), period, identifier));
+    // Having modified `alarms` we need to compute a new 'next expiration'
     pthread_cond_signal(&clock->cond);
     pthread_mutex_unlock(&clock->lock);
     return identifier;
@@ -381,8 +384,9 @@ alarmClockAddAlarm (BREventAlarmClock clock,
                     BREventAlarmCallback callback,
                     struct timespec expiration) {
     pthread_mutex_lock(&clock->lock);
-    BREventAlarmId identifier = clock->identifier++;
+    BREventAlarmId identifier = ++clock->identifier;
     alarmClockInsertAlarm(clock, alarmCreate(context, callback, expiration, identifier));
+    // Having modified `alarms` we need to compute a new 'next expiration'
     pthread_cond_signal(&clock->cond);
     pthread_mutex_unlock(&clock->lock);
     return identifier;
@@ -397,6 +401,23 @@ alarmClockRemAlarm (BREventAlarmClock clock,
             array_rm(clock->alarms, index);
             break;
         }
+    // Having modified `alarms` we need to compute a new 'next expiration'
     pthread_cond_signal(&clock->cond);
     pthread_mutex_unlock(&clock->lock);
+}
+
+extern int
+alarmClockHasAlarm (BREventAlarmClock clock,
+                    BREventAlarmId identifier) {
+    int hasAlarm = 0;
+
+    pthread_mutex_lock(&clock->lock);
+    for (int index = 0; index < array_count (clock->alarms); index++)
+        if (identifier == clock->alarms[index].identifier) {
+            hasAlarm = 1;
+            break;
+        }
+    pthread_mutex_unlock(&clock->lock);
+
+    return hasAlarm;
 }

@@ -33,7 +33,9 @@ extern "C" {
 #endif
 
 typedef struct BREventAlarmClock *BREventAlarmClock;
-typedef int BREventAlarmId;
+typedef unsigned int BREventAlarmId;
+
+#define ALARM_ID_NONE       ((BREventAlarmId) 0)
 
 typedef void* BREventAlarmContext;
 typedef void (*BREventAlarmCallback) (BREventAlarmContext context,
@@ -43,7 +45,7 @@ typedef void (*BREventAlarmCallback) (BREventAlarmContext context,
 extern BREventAlarmClock alarmClock;
 
 /**
- * Create `alarmClock` the default, and only one needed, clock.  Optionally start it.
+ * Create `alarmClock` the default, and the only one needed, clock.  Optionally start it.
  */
 extern void
 alarmClockCreateIfNecessary (int start);
@@ -77,6 +79,18 @@ alarmClockAddAlarm  (BREventAlarmClock clock,
 
 extern void
 alarmClockRemAlarm (BREventAlarmClock clock,
+                    BREventAlarmId identifier);
+
+/**
+ * Check if `identifier` is an alarm in `clock`.
+ *
+ * @param clock the clock
+ * @param identifier the alarm id
+ *
+ * @return Return true (1) if `clock` has an alarm `identifier`; false (0) otherwise.
+ */
+extern int
+alarmClockHasAlarm (BREventAlarmClock clock,
                     BREventAlarmId identifier);
 
 #ifdef __cplusplus

@@ -242,7 +242,10 @@ bcsCreate (BREthereumNetwork network,
     bcs->handler = eventHandlerCreate ("Core Ethereum BCS",
                                        bcsEventTypes,
                                        bcsEventTypesCount);
-    
+
+    // For the event Handler install a periodic alarm; when the alarm triggers, BCS will check
+    // on the status of any pending transactions.  This event will only trigger when the
+    // event handler is running (the time between `eventHandlerStart()` and `eventHandlerStop()`)
     eventHandlerSetTimeoutDispatcher (bcs->handler,
                                       1000 * BCS_TRANSACTION_CHECK_STATUS_SECONDS,
                                       (BREventDispatcher)bcsPeriodicDispatcher,
