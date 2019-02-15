@@ -241,6 +241,13 @@ eventHandlerDestroy (BREventHandler handler) {
 //
 // Start / Stop
 //
+
+/**
+ * Start the handler.  It is possible that events will already be queued; they will all be
+ * dispatched, in FIFO order.
+ *
+ * @param handler
+ */
 extern void
 eventHandlerStart (BREventHandler handler) {
     alarmClockCreateIfNecessary(1);
@@ -258,6 +265,17 @@ eventHandlerStart (BREventHandler handler) {
     pthread_mutex_unlock(&handler->lockOnStartStop);
 }
 
+
+/**
+ * Stop the handler.  This will clear all pending events.
+ *
+ * @note There is a tiny race here, I think.  Before this function returns and after the queue
+ * has been cleared, another event can be added.  This is prevented by stopping the threads that
+ * submit to this queue before stopping this queue's thread.  Or prior to a subsequent start,
+ * clear this handler (But, `eventHandlerStart()` does not clear the thread on start.)
+ *
+ * @param handler
+ */
 extern void
 eventHandlerStop (BREventHandler handler) {
     pthread_mutex_lock(&handler->lockOnStartStop);
@@ -269,6 +287,9 @@ eventHandlerStop (BREventHandler handler) {
         pthread_join(handler->thread, NULL);
         // A mini-race here?
         handler->thread = PTHREAD_NULL;
+
+        // Empty the queue completely.
+        eventQueueClear(handler->queue);
     }
     pthread_mutex_unlock(&handler->lockOnStartStop);
 }
@@ -292,4 +313,9 @@ eventHandlerSignalEventOOB (BREventHandler handler,
     eventQueueEnqueueHead(handler->queue, event);
     pthread_cond_signal(&handler->cond);
     return EVENT_STATUS_SUCCESS;
+}
+
+extern void
+eventHandlerClear (BREventHandler handler) {
+    eventQueueClear(handler->queue);
 }

@@ -59,6 +59,9 @@ eventQueueDequeue (BREventQueue queue,
 extern int
 eventQueueHasPending (BREventQueue queue);
 
+extern void
+eventQueueClear (BREventQueue queue);
+
 #ifdef __cplusplus
 }
 #endif

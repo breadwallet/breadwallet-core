@@ -364,9 +364,9 @@ alarmClockAssertRecovery (BREventAlarmClock clock) {
 
 extern BREventAlarmId
 alarmClockAddAlarmPeriodic (BREventAlarmClock clock,
-                               BREventAlarmContext context,
-                               BREventAlarmCallback callback,
-                               struct timespec period) {
+                            BREventAlarmContext context,
+                            BREventAlarmCallback callback,
+                            struct timespec period) {
     pthread_mutex_lock(&clock->lock);
     BREventAlarmId identifier = clock->identifier++;
     alarmClockInsertAlarm(clock, alarmCreatePeriodic(context, callback, getTime(), period, identifier));
@@ -376,10 +376,10 @@ alarmClockAddAlarmPeriodic (BREventAlarmClock clock,
 }
 
 extern BREventAlarmId
-alarmClockAddAlarm  (BREventAlarmClock clock,
-                               BREventAlarmContext context,
-                               BREventAlarmCallback callback,
-                               struct timespec expiration) {
+alarmClockAddAlarm (BREventAlarmClock clock,
+                    BREventAlarmContext context,
+                    BREventAlarmCallback callback,
+                    struct timespec expiration) {
     pthread_mutex_lock(&clock->lock);
     BREventAlarmId identifier = clock->identifier++;
     alarmClockInsertAlarm(clock, alarmCreate(context, callback, expiration, identifier));

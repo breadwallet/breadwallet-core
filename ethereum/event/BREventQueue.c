@@ -97,16 +97,22 @@ eventFreeAll (BREvent *event,
 }
 
 extern void
-eventQueueDestroy (BREventQueue queue) {
+eventQueueClear (BREventQueue queue) {
     pthread_mutex_lock(&queue->lock);
 
-    eventFreeAll (queue->pending, 1);
-    eventFreeAll (queue->available, 0);
+    eventFreeAll(queue->pending, 1);
+    eventFreeAll(queue->available, 0);
 
     queue->pending = NULL;
     queue->available = NULL;
 
     pthread_mutex_unlock(&queue->lock);
+}
+
+extern void
+eventQueueDestroy (BREventQueue queue) {
+    // Clear the pending and available queues.
+    eventQueueClear (queue);
 
     if (queue->lockOwner)
         pthread_mutex_destroy(&queue->lock);

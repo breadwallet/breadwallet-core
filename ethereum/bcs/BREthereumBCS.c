@@ -316,6 +316,11 @@ bcsStart (BREthereumBCS bcs) {
 
 extern void
 bcsStop (BREthereumBCS bcs) {
+    //
+    // What order for these stop functions?
+    //   a) If we stop LES first, then the BCS thread might add an event to LES
+    //   b) If we stop BCS first, then the LES thread might add an event to BCS, as a callback.
+    //
     lesStop (bcs->les);
     eventHandlerStop (bcs->handler);
 }
@@ -2020,7 +2025,8 @@ bcsHandleTransactionStatuses (BREthereumBCS bcs,
 }
 
 //
-// Periodicaly get the transaction status for all pending transaction
+// Periodicaly get the transaction status for all pending transaction.  The event will be NULL
+// (as specified for a 'period dispatcher' - See `eventHandlerSetTimeoutDispatcher()`)
 //
 static void
 bcsPeriodicDispatcher (BREventHandler handler,
