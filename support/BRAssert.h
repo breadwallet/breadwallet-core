@@ -32,21 +32,27 @@ extern "C" {
 #endif
 
 /**
- * BRAssert() is meant to replace assert() so as to provide a meaningful 'release' assert. Normally
- * assert() is disabled except in -DDEBUG modes; however, in Core code a failed assertion is truely
- * fatal.  BRAssert() handles the failure for all build types.
+ * BRAssert() is meant to replace assert() so as to provide a meaningful assert in 'release'
+ * builds. Normally assert() is disabled in a 'release' build - the condition is evaluated and a
+ * log message is produce, but the program doesn't exit.  Thus to program continues only to fail
+ * later, unceremoniously killing the App in some way.  In Core code a failed assertion is truely
+ * fatal - it is not meaningful for Core to continue.
  *
- * When `condition` is false(0), BRAssert() invokes BRFail().
+ * When `condition` is false(0), BRAssert() invokes __BRFail().
  *
  * @param condition if false, assert.
  */
 #define BRAssert(condition)   \
     do { if (!(condition)) { __BRFail(__FILE__, __LINE__, #condition); } } while (0)
 
+/**
+ * BRFail() calls BRAssert(0) to surely fail Core.  (See above for BRAssert(condition)
+ */
 #define BRFail()              BRAssert(0)
 
-    /**
- * Fail
+/**
+ * (__BRFail is effectively internal) Fail Core and provide some log output with the location.
+ * This function is annotated to 'never return'
  */
 extern void
 __BRFail (const char *file, int line, const char *exp) __attribute__((__noreturn__));
@@ -67,7 +73,15 @@ typedef void (*BRAssertHandler) (BRAssertInfo info);
  * wallet managers, etc are created.
  *
  * If BRAssertInstall() is not called before BRFail() is invoked, then Core will fail and the App
- * will crash, as if `exit()` where invoked.
+ * will crash, as if `exit()` were invoked.
+ *
+ * Once BRAssertInstall() is called, it runs continuously - no matter how many failures and no
+ * matter how many recoveries.  It thus need not be called again.  When the App will quit, a call
+ * to BRAssertUninstall() should be made to cleanly stop.  If BRAssertInstall() needs to be called
+ * again, say to install a different 'handler', then BRAssertUninstall() should be called.
+ *
+ * The `handle` CAN NOT call BRAssertUninstall() any of BRAssertRemoveRecovery().  Consequences
+ * are undetermined (an exit(), a deadlock).
  *
  * @param info some handler context
  * @param handler some handler
@@ -118,6 +132,18 @@ typedef void (*BRAssertRecoveryHandler) (BRAssertRecoveryInfo info);
  *
  * Once all recoveries run there should be no Core threads running.
  *
+ * The 'handler' cannot call BRAssertRemoveRecovery(); the consequences are undetermined.  If a
+ * remove is necessary, do it in the clean up part of the pthread routine as:
+ *
+ * void *someThread (void *ignore) {
+ *   BRAssertDefineRecovery (...)
+ *
+ *   while (!quit) { }
+ *
+ *   BRAssertRemoveRecovery (...)
+ *   pthread_exit(0);
+ * }
+ *
  * @param info some handler context.
  * @param handler some handler
  */
@@ -126,7 +152,8 @@ BRAssertDefineRecovery (BRAssertRecoveryInfo info,
                         BRAssertRecoveryHandler handler);
 
 /**
- * Remove the recovery handler associated with `info`.
+ * Remove the recovery handler associated with `info`.  This function CAN NOT be called by a
+ * recovery handler.  See `BRAssertDefineRecover()` description.
  *
  * @param info
  *

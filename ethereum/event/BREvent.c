@@ -74,6 +74,11 @@ struct BREventHandlerRecord {
     ///
     struct timespec timeout;
 
+    ///
+    /// The timeout alarm id, if one exists
+    ///
+    BREventAlarmId timeoutAlarmId;
+
     // Pthread
 
     pthread_t thread;
@@ -109,6 +114,8 @@ eventHandlerCreate (const char *name,
         if (handler->eventSize < type->eventSize)
             handler->eventSize = type->eventSize;
     }
+
+    handler->timeoutAlarmId = ALARM_ID_NONE;
 
     // Create the PTHREAD CONDition variable
     {
@@ -185,14 +192,6 @@ eventHandlerThread (BREventHandler handler) {
 
     pthread_mutex_lock(&handler->lock);
 
-    // If we have an timeout event dispatcher, then add an alarm.
-    if (NULL != handler->timeoutEventType.eventDispatcher) {
-        alarmClockAddAlarmPeriodic(alarmClock,
-                                      (BREventAlarmContext) handler,
-                                      (BREventAlarmCallback) eventHandlerAlarmCallback,
-                                      handler->timeout);
-    }
-
     handler->threadQuit = 0;
 
     while (!handler->threadQuit) {
@@ -218,6 +217,9 @@ eventHandlerThread (BREventHandler handler) {
         }
     }
 
+    // Requires as `cond_wait` takes its mutex when signalled.
+    pthread_mutex_unlock(&handler->lock);
+
     return NULL;
 }
 
@@ -241,34 +243,74 @@ eventHandlerDestroy (BREventHandler handler) {
 //
 // Start / Stop
 //
+
+/**
+ * Start the handler.  It is possible that events will already be queued; they will all be
+ * dispatched, in FIFO order.  If there is a periodic alarm; it will be added to the alarmClock.
+ *
+ * @param handler
+ */
 extern void
 eventHandlerStart (BREventHandler handler) {
     alarmClockCreateIfNecessary(1);
     pthread_mutex_lock(&handler->lockOnStartStop);
     if (PTHREAD_NULL == handler->thread) {
-        // if (0 != pthread_attr_t (...) && 0 != pthread_attr_...() && ...
-        pthread_attr_t attr;
-        pthread_attr_init(&attr);
-        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-        pthread_attr_setstacksize(&attr, PTHREAD_STACK_SIZE);
+        // If we have an timeout event dispatcher, then add an alarm.
+        if (NULL != handler->timeoutEventType.eventDispatcher) {
+            handler->timeoutAlarmId = alarmClockAddAlarmPeriodic (alarmClock,
+                                                                  (BREventAlarmContext) handler,
+                                                                  (BREventAlarmCallback) eventHandlerAlarmCallback,
+                                                                  handler->timeout);
+        }
 
-        pthread_create(&handler->thread, &attr, (ThreadRoutine) eventHandlerThread, handler);
-        pthread_attr_destroy(&attr);
+        // Spawn the eventHandlerThread
+        {
+            pthread_attr_t attr;
+            pthread_attr_init(&attr);
+            pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+            pthread_attr_setstacksize(&attr, PTHREAD_STACK_SIZE);
+
+            pthread_create(&handler->thread, &attr, (ThreadRoutine) eventHandlerThread, handler);
+            pthread_attr_destroy(&attr);
+        }
     }
     pthread_mutex_unlock(&handler->lockOnStartStop);
 }
 
+
+/**
+ * Stop the handler.  This will clear all pending events.  If there is a periodic alarm, it will
+ * be removed from the alarmClock.
+ *
+ * @note There is a tiny race here, I think.  Before this function returns and after the queue
+ * has been cleared, another event can be added.  This is prevented by stopping the threads that
+ * submit to this queue before stopping this queue's thread.  Or prior to a subsequent start,
+ * clear this handler (But, `eventHandlerStart()` does not clear the thread on start.)
+ *
+ * @param handler
+ */
 extern void
 eventHandlerStop (BREventHandler handler) {
     pthread_mutex_lock(&handler->lockOnStartStop);
     if (PTHREAD_NULL != handler->thread) {
-        pthread_mutex_lock(&handler->lock);  // ensure this for restart.
+        pthread_mutex_lock(&handler->lock);
+
+        // Remove a timeout alarm, if it exists.
+        if (ALARM_ID_NONE != handler->timeoutAlarmId) {
+            alarmClockRemAlarm (alarmClock, handler->timeoutAlarmId);
+            handler->timeoutAlarmId = ALARM_ID_NONE;
+        }
+
+        // Quit the thread.
         handler->threadQuit = 1;
         pthread_cond_signal(&handler->cond);
-        pthread_mutex_unlock(&handler->lock);  // ensure this for restart.
+        pthread_mutex_unlock(&handler->lock);
         pthread_join(handler->thread, NULL);
         // A mini-race here?
         handler->thread = PTHREAD_NULL;
+
+        // Empty the queue completely.
+        eventHandlerClear (handler);
     }
     pthread_mutex_unlock(&handler->lockOnStartStop);
 }
@@ -292,4 +334,9 @@ eventHandlerSignalEventOOB (BREventHandler handler,
     eventQueueEnqueueHead(handler->queue, event);
     pthread_cond_signal(&handler->cond);
     return EVENT_STATUS_SUCCESS;
+}
+
+extern void
+eventHandlerClear (BREventHandler handler) {
+    eventQueueClear(handler->queue);
 }

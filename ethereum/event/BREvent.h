@@ -114,7 +114,8 @@ eventHandlerCreate (const char *name,
 
 /**
  * Optional specify a periodic TimeoutDispatcher.  The `dispatcher` will run every
- * `timeInMilliseconds` (and passed a NULL event).
+ * `timeInMilliseconds` (and will be passed a NULL event).  The event will be delivered OOB (out-of-band)
+ * and placed on the front of the event queue.
  */
 extern void
 eventHandlerSetTimeoutDispatcher (BREventHandler handler,
@@ -160,7 +161,16 @@ eventHandlerSignalEvent (BREventHandler handler,
 extern BREventStatus
 eventHandlerSignalEventOOB (BREventHandler handler,
                             BREvent *event);
-    
+
+
+/**
+ * Clean the handlers' event queue.
+ *
+ * @param handler
+ */
+extern void
+eventHandlerClear (BREventHandler handler);
+
 #ifdef __cplusplus
 }
 #endif

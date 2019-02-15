@@ -229,10 +229,12 @@ supMainCreate (void) {
 static void
 supMainRelease (SupMain main) {
     printf ("Main (%p): Release Workers\n", main);
-    for (size_t index = 0; index < DEFAULT_WORKERS; index++)
+    for (size_t index = 0; index < DEFAULT_WORKERS; index++) {
         supWorkerRelease(main->workers[index]);
+        main->workers[index] = NULL;
+    }
     printf ("Main (%p): Release Self\n", main);
-   free (main);
+    free (main);
 }
 
 static void
@@ -293,6 +295,7 @@ supMainThread (SupMain main) {
     printf ("Main (%p): Job\n", main);
     supMainDoWork(main);
 
+//    BRAssertRemoveRecovery(main);
     pthread_exit(NULL);
 }
 
@@ -352,32 +355,42 @@ supRunOnce (SupMain *mains) {
 
 static int
 runSupAssertTests (void) {
-    printf ("==== SUP:Assert\n");
+    printf ("==== SUP: Assert\n");
 
     SupMain mains[SUP_MAIN_COUNT];
     int success = 1;
 
-    // Try once...
+    if (0 != BRAssertIsInstalled())
+        return 0;
     BRAssertInstall(mains, (BRAssertHandler) supAssertHandler);
+    if (1 != BRAssertIsInstalled())
+        return 0;
+    BRAssertUninstall();
+    if (0 != BRAssertIsInstalled())
+        return 0;
+
+    if (0 != BRAssertRemoveRecovery((BRAssertRecoveryInfo) 1)) return 0;
+    BRAssertDefineRecovery((BRAssertRecoveryInfo) 1, NULL);
+    if (1 != BRAssertRemoveRecovery((BRAssertRecoveryInfo) 1)) return 0;
+    if (0 != BRAssertRemoveRecovery((BRAssertRecoveryInfo) 1)) return 0;
+
+    // Try once...
+   BRAssertInstall(mains, (BRAssertHandler) supAssertHandler);
     for (size_t index = 0; index < SUP_MAIN_COUNT; index++)
         mains[index] = supMainCreate();
 
+    printf ("==== SUP: Assert Run Once\n");
     success = supRunOnce(mains);
-    for (size_t index = 0; index < SUP_MAIN_COUNT; index++)
-        supMainRelease (mains[index]);
-    if (!success) return 0;
     // We have fully recovered
 
     // Try again...
-    BRAssertInstall(mains, (BRAssertHandler) supAssertHandler);
-    for (size_t index = 0; index < SUP_MAIN_COUNT; index++)
-        mains[index] = supMainCreate();
-
-    success &= supRunOnce(mains);
+    printf ("==== SUP:Assert Run Twice\n");
+   success &= supRunOnce(mains);
     for (size_t index = 0; index < SUP_MAIN_COUNT; index++)
         supMainRelease (mains[index]);
 
     BRAssertUninstall();
+    printf ("==== SUP:Assert Donen");
     return success;
 }
 

@@ -53,6 +53,8 @@
 
 #undef BCS_SHOW_ORPHANS
 
+#undef BCS_REPORT_IGNORED_ANNOUNCE
+
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-function"
 static inline uint64_t maximum (uint64_t a, uint64_t b) { return a > b ? a : b; }
@@ -242,7 +244,10 @@ bcsCreate (BREthereumNetwork network,
     bcs->handler = eventHandlerCreate ("Core Ethereum BCS",
                                        bcsEventTypes,
                                        bcsEventTypesCount);
-    
+
+    // For the event Handler install a periodic alarm; when the alarm triggers, BCS will check
+    // on the status of any pending transactions.  This event will only trigger when the
+    // event handler is running (the time between `eventHandlerStart()` and `eventHandlerStop()`)
     eventHandlerSetTimeoutDispatcher (bcs->handler,
                                       1000 * BCS_TRANSACTION_CHECK_STATUS_SECONDS,
                                       (BREventDispatcher)bcsPeriodicDispatcher,
@@ -316,6 +321,11 @@ bcsStart (BREthereumBCS bcs) {
 
 extern void
 bcsStop (BREthereumBCS bcs) {
+    //
+    // What order for these stop functions?
+    //   a) If we stop LES first, then the BCS thread might add an event to LES
+    //   b) If we stop BCS first, then the LES thread might add an event to BCS, as a callback.
+    //
     lesStop (bcs->les);
     eventHandlerStop (bcs->handler);
 }
@@ -621,9 +631,11 @@ bcsHandleStatus (BREthereumBCS bcs,
                  uint64_t headNumber) {
     // If we are not a P2P_* node, we won't handle announcements
     if (BRD_ONLY == bcs->mode || BRD_WITH_P2P_SEND == bcs->mode) {
+#if defined (BCS_REPORT_IGNORED_ANNOUNCE)
         eth_log ("BCS", "Status %" PRIu64 " Ignored (not P2P) <== %s",
                  headNumber,
                  lesGetNodeHostname (bcs->les, node));
+#endif
         return;
     }
 
@@ -645,9 +657,11 @@ bcsHandleAnnounce (BREthereumBCS bcs,
                    uint64_t reorgDepth) {
     // If we are not a P2P_* node, we won't handle announcements
     if (BRD_ONLY == bcs->mode || BRD_WITH_P2P_SEND == bcs->mode) {
+#if defined (BCS_REPORT_IGNORED_ANNOUNCE)
         eth_log ("BCS", "Block %" PRIu64 " Ignored (not P2P) <== %s",
                  headNumber,
                  lesGetNodeHostname (bcs->les, node));
+#endif
         return;
     }
 
@@ -2020,7 +2034,8 @@ bcsHandleTransactionStatuses (BREthereumBCS bcs,
 }
 
 //
-// Periodicaly get the transaction status for all pending transaction
+// Periodicaly get the transaction status for all pending transaction.  The event will be NULL
+// (as specified for a 'period dispatcher' - See `eventHandlerSetTimeoutDispatcher()`)
 //
 static void
 bcsPeriodicDispatcher (BREventHandler handler,

@@ -874,8 +874,8 @@
 		3C590F3120950C470005597B /* Core */ = {
 			isa = PBXGroup;
 			children = (
-				3C2A537620AF592300C430F6 /* ethereum */,
 				3C42EF512095143D000E58E0 /* module.modulemap */,
+				3C2A537620AF592300C430F6 /* ethereum */,
 				3C3DC5B821DFCA39004188BD /* support */,
 				3C590F3B20950C720005597B /* bcash */,
 				3C590F3420950C720005597B /* BRAddress.c */,

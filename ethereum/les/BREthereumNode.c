@@ -877,6 +877,8 @@ nodeDisconnect (BREthereumNode node,
     nodeEndpointClose (node->remote, route, !nodeHasErrorState (node, route));
 #endif
 
+    // Clear any pending timeout.
+    node->timeout = -1;
 
     if (ETHEREUM_BOOLEAN_IS_TRUE(returnToAvailable))
         nodeStateAnnounce(node, route, nodeStateCreate (NODE_AVAILABLE));

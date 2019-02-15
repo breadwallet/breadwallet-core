@@ -228,6 +228,21 @@ nodeConfigReleaseForSet (void *ignore, void *item) {
 }
 #endif
 
+extern BREthereumNodeState
+nodeGetPreferredState (BREthereumNodeState state) {
+    // If `state` is an error state with an error of NODE_PROTOCOL_RLP_PARSE or
+    // NODE_PROTOCOL_CAPABILITIES_MISMATCH, then DO NOT return a preferred state of
+    // NODE_AVAILABLE.  A 'RLP_PARSE' error is serious; a 'CAPABILITIES_MISMATCH' will *never* be
+    // corrected (that node id will change - I think - if the capabilities change - hmm, maybe not)
+    return ((NODE_ERROR == state.type &&
+             NODE_ERROR_PROTOCOL == state.u.error.type &&
+             (NODE_PROTOCOL_RLP_PARSE == state.u.error.u.protocol ||
+              NODE_PROTOCOL_CAPABILITIES_MISMATCH == state.u.error.u.protocol))
+            ? state
+            : ((BREthereumNodeState) { NODE_AVAILABLE }));
+}
+
+
 /**
  * A LES Request is a LES Message with associated callbacks.  We'll send the message (once we have
  * connected to a LES node) and then wait for a response with the corresponding `requestId`.  Once
@@ -607,8 +622,8 @@ lesCreate (BREthereumNetwork network,
         FOR_SET (BREthereumNodeConfig, config, configs)
             if (!bootstrapBRDOnly || NODE_PRIORITY_BRD == config->priority)
                 lesEnsureNodeForEndpoint (les,
-                                          nodeConfigCreateEndpoint(config),
-                                          config->state,
+                                          nodeConfigCreateEndpoint (config),
+                                          nodeGetPreferredState (config->state),
                                           config->priority,
                                           NULL);
 #endif // !defined(LES_BOOTSTRAP_LCL_ONLY)
@@ -980,28 +995,38 @@ lesLogNodeActivate (BREthereumLES les,
 }
 
 static void
+lesDeactivateNodeAtIndex (BREthereumLES les,
+                          BREthereumNodeEndpointRoute route,
+                          BREthereumNode node,
+                          size_t index,
+                          const char *explain) {
+    BRArrayOf(BREthereumNode) nodes = les->activeNodesByRoute[route];
+
+    array_rm (nodes, index);
+    lesLogNodeActivate(les, node, route, explain, "<=|=>");
+
+    // Reassign provisions back as requests if this is a TCP route
+    if (NODE_ROUTE_TCP == route) {
+        BRArrayOf(BREthereumProvision) provisions = nodeUnhandleProvisions(node);
+        for (size_t pi = 0; pi < array_count(provisions); pi++) {
+            ssize_t requestIndex = lesFindRequestForProvision (les, &provisions[pi]);
+            assert (-1 != requestIndex);
+
+            // This reestablishes the provision as needing to be assigned.
+            les->requests[requestIndex].node = NULL;
+        }
+    }
+
+}
+static void
 lesDeactivateNode (BREthereumLES les,
                    BREthereumNodeEndpointRoute route,
                    BREthereumNode node,
                    const char *explain) {
     BRArrayOf(BREthereumNode) nodes = les->activeNodesByRoute[route];
     for (size_t ni = 0; ni < array_count(nodes); ni++) // NodeIndex
-        if (node== nodes[ni]) {
-            array_rm (nodes, ni);
-            lesLogNodeActivate(les, node, route, explain, "<=|=>");
-
-            // Reassign provisions back as requests if this is a TCP route
-            if (NODE_ROUTE_TCP == route) {
-                BRArrayOf(BREthereumProvision) provisions = nodeUnhandleProvisions(node);
-                for (size_t pi = 0; pi < array_count(provisions); pi++) {
-                    ssize_t requestIndex = lesFindRequestForProvision (les, &provisions[pi]);
-                    assert (-1 != requestIndex);
-
-                    // This reestablishes the provision as needing to be assigned.
-                    les->requests[requestIndex].node = NULL;
-                }
-            }
-
+        if (node == nodes[ni]) {
+            lesDeactivateNodeAtIndex (les, route, node, ni, explain);
             // A node was deactiviated (and `nodes` modified); skip out.
             break;
         }
@@ -1370,8 +1395,6 @@ lesThread (BREthereumLES les) {
 
     } // end while (!les->theTimeToQuitIsNow)
 
-    pthread_mutex_unlock (&les->lock);
-
     array_free (nodesToRemove);
 
     eth_log (LES_LOG_TOPIC, "Stop: Nodes: %zu, Available: %zu, Connected: [%zu, %zu]",
@@ -1380,19 +1403,54 @@ lesThread (BREthereumLES les) {
              array_count (les->activeNodesByRoute[NODE_ROUTE_UDP]),
              array_count (les->activeNodesByRoute[NODE_ROUTE_TCP]));
 
-    // Callback on Node Config
+    // Callback on Node Config.  Create the set of configs based on the current node -in
+    // particular the node's state.  When we load these configs (see lesCreate()) many of the
+    // node states will be remapped to 'NODE_AVAILABLE'
     BRArrayOf(BREthereumNodeConfig) configs;
     array_new (configs, BRSetCount(les->nodes));
-    FOR_NODES (les, node) {
+    FOR_NODES (les, node)
         array_add (configs, nodeConfigCreate(node));
-    }
     les->callbackSaveNodes (les->callbackContext, configs);
+
+    // Disconnect all active nodes
+    FOR_EACH_ROUTE(route) {
+        BRArrayOf(BREthereumNode) nodes = les->activeNodesByRoute[route];
+        // In reverse as `nodes` will have `array_rm()` called
+        for (size_t index = array_count(nodes); index > 0; index--)
+            lesDeactivateNodeAtIndex (les, route, nodes[index - 1], index - 1, "LES Disconnect");
+        array_clear(nodes);
+    }
+
+    // Available nodes...
 
     FOR_NODES (les, node) {
         nodeShow (node);
         nodeDisconnect (node, NODE_ROUTE_UDP, (BREthereumNodeState) { NODE_AVAILABLE }, ETHEREUM_BOOLEAN_FALSE);
-        nodeDisconnect (node, NODE_ROUTE_TCP, (BREthereumNodeState) { NODE_AVAILABLE }, ETHEREUM_BOOLEAN_FALSE);
+
+        // For the TCP route, reset the node with its preferred state.  This will change many nodes
+        // that are in an error state, back to NODE_AVAILABLE - when LES connects again we'll then
+        // attempt to connect to that node.  That connection might be futile; we'll try anyways.
+        BREthereumNodeState oldState = nodeGetState(node, NODE_ROUTE_TCP);
+        BREthereumNodeState newState = nodeGetPreferredState(oldState);
+        nodeDisconnect (node, NODE_ROUTE_TCP, newState, ETHEREUM_BOOLEAN_FALSE);
+        if (NODE_AVAILABLE != oldState.type && NODE_AVAILABLE == newState.type)
+            lesInsertNodeAsAvailable (les, node);
     }
+
+    // Clear all requests - with provisions. Don't change the request identifier.  Note: don't
+    // release les->requests as we need the memory at les->requests
+    for (size_t index = 0; index < array_count(les->requests); index++)
+        requestRelease(&les->requests[index]);
+    array_clear(les->requests);
+
+    // Something with 'head {hash, number, totalDifficulty}'?
+
+    les->theTimeToQuitIsNow = 0;
+    les->theTimeToCleanIsNow = 0;
+    les->theTimeToUpdateBlockHeadIsNow = 0;
+
+    // exit
+    pthread_mutex_unlock (&les->lock);
 
     pthread_exit (0);
 }
