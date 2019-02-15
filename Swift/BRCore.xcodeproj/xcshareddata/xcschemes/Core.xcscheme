@@ -26,8 +26,8 @@
       buildConfiguration = "DebugMainnet"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      enableAddressSanitizer = "YES"
       enableASanStackUseAfterReturn = "YES"
-      enableThreadSanitizer = "YES"
       enableUBSanitizer = "YES"
       systemAttachmentLifetime = "keepNever"
       codeCoverageEnabled = "YES"
@@ -101,6 +101,11 @@
          <AdditionalOption
             key = "NSZombieEnabled"
             value = "YES"
+            isEnabled = "YES">
+         </AdditionalOption>
+         <AdditionalOption
+            key = "MallocScribble"
+            value = ""
             isEnabled = "YES">
          </AdditionalOption>
       </AdditionalOptions>

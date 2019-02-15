@@ -83,6 +83,7 @@ public protocol EthereumBackendClient: WalletManagerBackendClient {
     func getGasEstimate (ewm: EthereumWalletManager,
                          wid: BREthereumWallet,
                          tid: BREthereumTransfer,
+                         from: String,
                          to: String,
                          amount: String,
                          data:  String,
@@ -569,8 +570,9 @@ public class EthereumWalletManager: WalletManager {
                     }
                 }},
             
-            funcEstimateGas: { (coreClient, coreEWM, wid, tid, to, amount, data, rid)  in
+            funcEstimateGas: { (coreClient, coreEWM, wid, tid, from, to, amount, data, rid)  in
                 if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
+                    let from = asUTF8String(from!)
                     let to = asUTF8String(to!)
                     let amount = asUTF8String(amount!)
                     let data = asUTF8String(data!)
@@ -578,6 +580,7 @@ public class EthereumWalletManager: WalletManager {
                         ewm.backendClient.getGasEstimate(ewm: ewm,
                                                          wid: wid!,
                                                          tid: tid!,
+                                                         from: from,
                                                          to: to,
                                                          amount: amount,
                                                          data: data,
