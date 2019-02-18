@@ -2014,7 +2014,6 @@ nodeSend (BREthereumNode node,
           BREthereumMessage message) {
 
     int error = 0;
-    size_t bytesCount = 0;
 
     assert ((NODE_ROUTE_UDP == route && MESSAGE_DIS == message.identifier) ||
             (NODE_ROUTE_UDP != route && MESSAGE_DIS != message.identifier));
@@ -2040,7 +2039,6 @@ nodeSend (BREthereumNode node,
             pthread_mutex_lock (&node->lock);
             error = nodeEndpointSendData (node->remote, route, data.bytes, data.bytesCount);
             pthread_mutex_unlock (&node->lock);
-            bytesCount = data.bytesCount;
             break;
         }
 
@@ -2064,7 +2062,6 @@ nodeSend (BREthereumNode node,
 
             error = nodeEndpointSendData (node->remote, route, encryptedData.bytes, encryptedData.bytesCount);
             pthread_mutex_unlock (&node->lock);
-            bytesCount = encryptedData.bytesCount;
             rlpDataRelease(encryptedData);
             break;
         }
@@ -2157,7 +2154,7 @@ nodeRecv (BREthereumNode node,
                 node->recvDataBuffer.bytesCount = bytesCount;
                 node->recvDataBuffer.bytes = realloc(node->recvDataBuffer.bytes, bytesCount);
                 bytes = node->recvDataBuffer.bytes;
-                bytesLimit = bytesCount;
+                // bytesLimit = bytesCount;
             }
             pthread_mutex_unlock (&node->lock);
 
@@ -2392,17 +2389,17 @@ _sendAuthInitiator(BREthereumNode node) {
     memset(xorStaticNonce.u8, 0, 32);
     bytesXOR(staticSharedSecret.u8, localNonce->u8, xorStaticNonce.u8, sizeof(localNonce->u8));
 
-
     // S(ephemeral-privk, static-shared-secret ^ nonce)
     // Determine the signature length
-    size_t signatureLen = 65; BRKeyCompactSignEthereum(localEphemeral,
-                                                       NULL, 0,
-                                                       xorStaticNonce);
-
+    size_t signatureLen = BRKeyCompactSignEthereum (localEphemeral,
+                                                    NULL, 0,
+                                                    xorStaticNonce);
+    assert (65 == signatureLen);
+    
     // Fill the signature
-    signatureLen = BRKeyCompactSignEthereum(localEphemeral,
-                                            signature, signatureLen,
-                                            xorStaticNonce);
+    BRKeyCompactSignEthereum (localEphemeral,
+                              signature, signatureLen,
+                              xorStaticNonce);
 
     // || H(ephemeral-pubk)||
     memset(&hPubKey[32], 0, 32);
