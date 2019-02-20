@@ -457,6 +457,11 @@ transferGetHash (BREthereumTransfer transfer) {
     }
 }
 
+extern const BREthereumHash
+transferGetOriginatingTransactionHash (BREthereumTransfer transfer) {
+    return (NULL == transfer->originatingTransaction ? EMPTY_HASH_INIT : transactionGetHash(transfer->originatingTransaction));
+}
+
 extern uint64_t
 transferGetNonce (BREthereumTransfer transfer) {
     return (NULL != transfer->originatingTransaction
