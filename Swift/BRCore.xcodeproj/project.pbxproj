@@ -1109,10 +1109,11 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 3CAB60AE20AF8C8500810CE4 /* Build configuration list for PBXNativeTarget "CoreTests" */;
 			buildPhases = (
-				3CC48D4D221CD7E000067EFC /* ShellScript */,
+				3CC48D4D221CD7E000067EFC /* Ensure CoreTestsConfig.plist */,
 				3CAB60A220AF8C8500810CE4 /* Sources */,
 				3CAB60A320AF8C8500810CE4 /* Frameworks */,
 				3CAB60A420AF8C8500810CE4 /* Resources */,
+				3CC48D4E221DB9CD00067EFC /* Remove CoreTestsConfig.plist */,
 			);
 			buildRules = (
 			);
@@ -1238,7 +1239,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		3CC48D4D221CD7E000067EFC /* ShellScript */ = {
+		3CC48D4D221CD7E000067EFC /* Ensure CoreTestsConfig.plist */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -1247,6 +1248,7 @@
 			);
 			inputPaths = (
 			);
+			name = "Ensure CoreTestsConfig.plist";
 			outputFileListPaths = (
 			);
 			outputPaths = (
@@ -1254,6 +1256,25 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "#cp \"${HOME}/.brdCoreTestsConfig.plist\" \"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\"\n\nif [ -f \"${HOME}/.brdCoreTestsConfig.plist\" ]; then \n  cp \"${HOME}/.brdCoreTestsConfig.plist\" \"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\"\nelse\n  echo \"Missing file ~/.brdCoreTestConfig.plist - You must provide the this file with a form like:\"\n  echo \"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\"\n  echo \"  <!DOCTYPE plist PUBLIC \\\"-//Apple//DTD PLIST 1.0//EN\\\" \\\"http://www.apple.com/DTDs/PropertyList-1.0.dtd\\\">\"\n  echo \"  <plist version=\\\"1.0\\\">\"\n  echo \"  <dict>\"\n  echo \"    <key>paperKeysTestnet</key>\"\n  echo \"    <array>\"\n  echo \"      <string>\\\"some paper key\\\"</string>\"\n  echo \"      ...\"\n  echo \"    </array>\"\n  echo \"    <key>paperKeysMainnet</key>\"\n  echo \"    <array>\"\n  echo \"      <string>\\\"some other paper key\\\"</string>\"\n  echo \"      ...\"\n  echo \"     </array>\"\n  echo \"    </dict>\"\n  echo \"  </plist>\"\n  exit 1\nfi\n";
+			showEnvVarsInLog = 0;
+		};
+		3CC48D4E221DB9CD00067EFC /* Remove CoreTestsConfig.plist */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Remove CoreTestsConfig.plist";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\nif [ -f \"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\" ]; then \n  rm \"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\"\nfi\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
