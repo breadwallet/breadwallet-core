@@ -36,7 +36,7 @@
 
 #include "BRArray.h"
 #include "BRBIP39Mnemonic.h"
-#include "BRAssert.h"
+#include "support/BRAssert.h"
 
 #include "../event/BREvent.h"
 #include "../event/BREventAlarm.h"
