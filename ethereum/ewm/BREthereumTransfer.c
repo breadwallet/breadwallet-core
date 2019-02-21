@@ -91,17 +91,13 @@ static void
 transferBasisRelease (BREthereumTransferBasis *basis) {
     switch (basis->type) {
         case TRANSFER_BASIS_TRANSACTION:
-            if (NULL != basis->u.transaction) {
-                transactionRelease (basis->u.transaction);
-                basis->u.transaction = NULL;
-            }
+            transactionRelease (basis->u.transaction);
+            basis->u.transaction = NULL;
             break;
 
         case TRANSFER_BASIS_LOG:
-            if (NULL != basis->u.log) {
-                logRelease (basis->u.log);
-                basis->u.log = NULL;
-            }
+            logRelease (basis->u.log);
+            basis->u.log = NULL;
             break;
     }
 }
@@ -110,29 +106,67 @@ transferBasisRelease (BREthereumTransferBasis *basis) {
 //
 //
 struct BREthereumTransferRecord {
+
+    /**
+     * The source
+     */
     BREthereumAddress sourceAddress;
-    
+
+    /*
+     * The target
+     */
     BREthereumAddress targetAddress;
-    
+
+    /**
+     * The amount - which includes a 'currency' and will/must be consistent with the
+     * wallet holding this transfer
+     */
     BREthereumAmount amount;
     
     BREthereumFeeBasis feeBasis;
     
     BREthereumGas gasEstimate;
-    
+
+    /**
+     * The transaction that originated this transfer.  For a transfer representing an ERC20
+     * transfer, the originatingTransaction will be the transaction the produces a Log event
+     * for the transfer.
+     *
+     * If a transfer is newly created, the originatingTransfer will exist but will not have been
+     * submitted to the Ethereum network.  It won't have an assigned 'nonce' until the transfer
+     * is signed.
+     *
+     * An originatingTransaction will ONLY EXIST if the User created the transaction.  Transactions
+     * that are found (in the P2P network or via the BRD endpoint) that target User, will not
+     * have an originatingTransaction.
+     *
+     * For a transfer representing an ERC20 transfer originated by User, the Log transfer will
+     * have an originatingTransaction and, once confirmed in the blockchain, the transfer
+     * representing the ETH fee WILL NOT have an originating transaction.
+     *
+     * Note: The originatingTransaction might be idential ('eq?') to the basis transaction.
+     */
     BREthereumTransaction originatingTransaction;
-    
+
+    /**
+     * The basis - either a transaction or a log.
+     */
     BREthereumTransferBasis basis;
     
     BREthereumTransferStatus status;
 };
 
+/**
+ * Create a transfer of `amount` from `source` to `target.  The `originatingTransaction` can be
+ * provided but may be NULL.  There will be no `basis` (but this function is static and all
+ * public function should provide the basis).
+ */
 static BREthereumTransfer
 transferCreateDetailed (BREthereumAddress sourceAddress,
                         BREthereumAddress targetAddress,
                         BREthereumAmount amount,
                         BREthereumFeeBasis feeBasis,
-                        BREthereumTransaction originatingTransaction) {
+                        OwnershipGiven BREthereumTransaction originatingTransaction) {
     BREthereumTransfer transfer = calloc (1, sizeof(struct BREthereumTransferRecord));
 
     transfer->sourceAddress = sourceAddress;
@@ -154,12 +188,13 @@ transferCreate (BREthereumAddress sourceAddress,
                 BREthereumAmount amount,
                 BREthereumFeeBasis feeBasis,
                 BREthereumTransferBasisType transferBasisType) {
-    BREthereumTransfer transfer = transferCreateDetailed(sourceAddress,
-                                                         targetAddress,
-                                                         amount,
-                                                         feeBasis,
-                                                         NULL);
+    BREthereumTransfer transfer = transferCreateDetailed (sourceAddress,
+                                                          targetAddress,
+                                                          amount,
+                                                          feeBasis,
+                                                          NULL);
 
+    // Assigns originatingTransaction
     transferProvideOriginatingTransaction(transfer);
 
     // Basis
@@ -167,7 +202,7 @@ transferCreate (BREthereumAddress sourceAddress,
         case TRANSFER_BASIS_TRANSACTION:
             transfer->basis = (BREthereumTransferBasis) {
                 TRANSFER_BASIS_TRANSACTION,
-                { .transaction = transfer->originatingTransaction }
+                { .transaction = transactionCopy (transfer->originatingTransaction) }
             };
             break;
         case TRANSFER_BASIS_LOG:
@@ -198,7 +233,7 @@ transferCreateWithTransactionOriginating (OwnershipGiven BREthereumTransaction t
         }}
     };
 
-    // No originating transaction
+    // Use `transaction` as the `originatingTransaction`; takes ownership
     BREthereumTransfer transfer = transferCreateDetailed (transactionGetSourceAddress(transaction),
                                                           transactionGetTargetAddress(transaction),
                                                           amountCreateEther (transactionGetAmount(transaction)),
@@ -209,7 +244,7 @@ transferCreateWithTransactionOriginating (OwnershipGiven BREthereumTransaction t
         case TRANSFER_BASIS_TRANSACTION:
             transfer->basis = (BREthereumTransferBasis) {
                 TRANSFER_BASIS_TRANSACTION,
-                { .transaction = transaction}
+                { .transaction = transactionCopy (transaction) }
             };
             break;
         case TRANSFER_BASIS_LOG:
@@ -245,8 +280,11 @@ transferCreateWithTransaction (OwnershipGiven BREthereumTransaction transaction)
                                                           amountCreateEther (transactionGetAmount(transaction)),
                                                           feeBasis,
                                                           NULL);
-    // Basis
-    transfer->basis = (BREthereumTransferBasis) { TRANSFER_BASIS_TRANSACTION, { .transaction = transaction }};
+    // Basis - the transfer now owns the transaction.
+    transfer->basis = (BREthereumTransferBasis) {
+        TRANSFER_BASIS_TRANSACTION,
+        { .transaction = transaction }
+    };
 
     // Status
     transfer->status = transferStatusCreate(transactionGetStatus(transaction));
@@ -283,8 +321,11 @@ transferCreateWithLog (OwnershipGiven BREthereumLog log,
                                                           amount,
                                                           feeBasis,
                                                           NULL);
-    // Basis
-    transfer->basis = (BREthereumTransferBasis) { TRANSFER_BASIS_LOG, { .log = log }};
+    // Basis - the transfer now owns the log
+    transfer->basis = (BREthereumTransferBasis) {
+        TRANSFER_BASIS_LOG,
+        { .log = log }
+    };
 
     // Status
     transfer->status = transferStatusCreate(logGetStatus(log));
@@ -292,14 +333,10 @@ transferCreateWithLog (OwnershipGiven BREthereumLog log,
     return transfer;
 }
 
-
 extern void
 transferRelease (BREthereumTransfer transfer) {
-    if (NULL != transfer->originatingTransaction &&
-        TRANSFER_BASIS_TRANSACTION != transfer->basis.type &&
-        transfer->basis.u.transaction != transfer->originatingTransaction)
-        transactionRelease(transfer->originatingTransaction);
-    transferBasisRelease(&transfer->basis);
+    transactionRelease (transfer->originatingTransaction);
+    transferBasisRelease (&transfer->basis);
     free (transfer);
 }
 
@@ -460,7 +497,7 @@ transferGetHash (BREthereumTransfer transfer) {
 extern uint64_t
 transferGetNonce (BREthereumTransfer transfer) {
     return (NULL != transfer->originatingTransaction
-            ? transactionGetNonce(transfer->originatingTransaction)
+            ? transactionGetNonce (transfer->originatingTransaction)
             : (TRANSFER_BASIS_TRANSACTION == transfer->basis.type && NULL != transfer->basis.u.transaction
                ? transactionGetNonce(transfer->basis.u.transaction)
                : TRANSACTION_NONCE_IS_NOT_ASSIGNED));
@@ -480,27 +517,12 @@ transferGetFee (BREthereumTransfer transfer, int *overflow) {
 ///
 /// MARK: - Basis
 ///
-static void
-transferReleaseBasis (BREthereumTransfer transfer) {
-    switch (transfer->basis.type) {
-
-        case TRANSFER_BASIS_TRANSACTION:
-//            if (NULL != transfer->basis.u.transaction)
-//                transactionRelease (transfer->basis.u.transaction);
-            break;
-
-        case TRANSFER_BASIS_LOG:
-//            if (NULL != transfer->basis.u.log)
-//                logRelease (transfer->basis.u.log);
-            break;
-    }
-}
-
 extern void
 transferSetBasisForTransaction (BREthereumTransfer transfer,
                                 OwnershipGiven BREthereumTransaction transaction) {
+    // Release a pre-existing transaction
     if (TRANSFER_BASIS_TRANSACTION == transfer->basis.type && transfer->basis.u.transaction != transaction)
-        transferReleaseBasis (transfer);
+        transferBasisRelease (&transfer->basis);
 
     transfer->basis = (BREthereumTransferBasis) {
         TRANSFER_BASIS_TRANSACTION,
@@ -512,8 +534,9 @@ transferSetBasisForTransaction (BREthereumTransfer transfer,
 extern void
 transferSetBasisForLog (BREthereumTransfer transfer,
                         OwnershipGiven BREthereumLog log) {
+    // Release a pre-existing log
     if (TRANSFER_BASIS_LOG == transfer->basis.type && transfer->basis.u.log != log)
-        transferReleaseBasis (transfer);
+        transferBasisRelease (&transfer->basis);
 
     transfer->basis = (BREthereumTransferBasis) {
         TRANSFER_BASIS_LOG,
@@ -662,7 +685,7 @@ transferProvideOriginatingTransactionAmount (BREthereumTransfer transfer) {
 static void
 transferProvideOriginatingTransaction (BREthereumTransfer transfer) {
     if (NULL != transfer->originatingTransaction)
-        transactionRelease(transfer->originatingTransaction);
+        transactionRelease (transfer->originatingTransaction);
     
     char *data = transferProvideOriginatingTransactionData(transfer);
     
@@ -692,7 +715,7 @@ transferCompare (BREthereumTransfer t1,
     assert (t1->basis.type == t2->basis.type);
     switch (t1->basis.type) {
         case TRANSFER_BASIS_TRANSACTION:
-            return transactionCompare(t1->basis.u.transaction, t2->basis.u.transaction);
+            return transactionCompare (t1->basis.u.transaction, t2->basis.u.transaction);
         case TRANSFER_BASIS_LOG:
             return logCompare (t1->basis.u.log, t2->basis.u.log);
     }
