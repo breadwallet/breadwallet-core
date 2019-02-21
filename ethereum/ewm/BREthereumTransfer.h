@@ -154,6 +154,9 @@ transferSetGasLimit (BREthereumTransfer transfer,
 extern const BREthereumHash
 transferGetHash (BREthereumTransfer transfer);
 
+extern const BREthereumHash
+transferGetOriginatingTransactionHash (BREthereumTransfer transfer);
+
 // TODO: Needed?
 extern uint64_t
 transferGetNonce (BREthereumTransfer transfer);
