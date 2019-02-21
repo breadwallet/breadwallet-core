@@ -72,9 +72,26 @@ addressCreateKey (const BRKey *keyWithPubKeyProvided);
 
 #define ADDRESS_ENCODED_CHARS    (2*ADDRESS_BYTES + 2 + 1)  // "0x" prefaced
 
+/**
+ * Return a string encoding of `address`.  You own the returned string and must free it.
+ *
+ * @param address
+ * @param useChecksum if true(1) return an address with checksummed characters.
+ * 
+ * @return newly allocated memory of char*
+ */
 extern char *
 addressGetEncodedString (BREthereumAddress address, int useChecksum);
 
+
+/**
+ * Fill `string` with the string encoding of `address`.  The `string` must be 43 characters in
+ * length and will be `0x` prefaces.
+ *
+ * @param address address to encode
+ * @param useChecksum if true(1) fill in string with checksummed characters
+ * @param string target to fill
+ */
 extern void
 addressFillEncodedString (BREthereumAddress address,
                           int useChecksum,

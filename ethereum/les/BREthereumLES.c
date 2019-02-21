@@ -1021,9 +1021,10 @@ lesDeactivateNodeAtIndex (BREthereumLES les,
             // This reestablishes the provision as needing to be assigned.
             les->requests[requestIndex].node = NULL;
         }
+        array_free(provisions);
     }
-
 }
+
 static void
 lesDeactivateNode (BREthereumLES les,
                    BREthereumNodeEndpointRoute route,
