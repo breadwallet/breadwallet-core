@@ -78,7 +78,7 @@ nodeSend (BREthereumNode node,
           BREthereumMessage message);   // BRRlpData/BRRlpItem *optionalMessageData/Item
 
 #define DEFAULT_SEND_DATA_BUFFER_SIZE    (16 * 1024)
-#define DEFAULT_RECV_DATA_BUFFER_SIZE    (1 * 1024 * 1024)
+#define DEFAULT_RECV_DATA_BUFFER_SIZE    (64 * 1024)
 
 #define DEFAULT_NODE_TIMEOUT_IN_SECONDS       (10)
 #define DEFAULT_NODE_TIMEOUT_IN_SECONDS_RECV  (60)      // 1 minute
@@ -2154,6 +2154,7 @@ nodeRecv (BREthereumNode node,
             // Given bytesCount, update recvDataBuffer if too small
             pthread_mutex_lock (&node->lock);
             if (bytesCount > bytesLimit) {
+                bytesCount = 2 * bytesCount; // margin
                 node->recvDataBuffer.bytesCount = bytesCount;
                 node->recvDataBuffer.bytes = realloc(node->recvDataBuffer.bytes, bytesCount);
                 bytes = node->recvDataBuffer.bytes;
