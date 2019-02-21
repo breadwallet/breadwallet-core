@@ -438,18 +438,23 @@ static int
 lesSeedQuery (BREthereumLESSeedContext *context) {
     BREthereumLES les = context->les;
 
-    size_t msgDataLength = 1024 * 1024;
-    u_char msgData [msgDataLength + 1];
-    memset (msgData, 0, msgDataLength);
-
     if (0 != res_init()) {
         eth_log(LES_LOG_TOPIC, "Nodes '%s' Error: res_init(): %s", context->seed, strerror(errno));
+        return 1;
+    }
+
+    size_t msgDataLength = 1024 * 1024;
+    u_char *msgData = calloc (1, msgDataLength + 1);
+
+    if (NULL == msgData) {
+        eth_log(LES_LOG_TOPIC, "Nodes '%s' Error: calloc", context->seed);
         return 1;
     }
 
     int msgCount = res_query (context->seed, ns_c_in, ns_t_txt, msgData, msgDataLength);
     if (msgCount < 0) {
         eth_log(LES_LOG_TOPIC, "Nodes '%s' Error: res_query(): %s", context->seed, strerror(errno));
+        free (msgData);
         return 1;
     }
 
@@ -487,6 +492,7 @@ lesSeedQuery (BREthereumLESSeedContext *context) {
     else
         eth_log(LES_LOG_TOPIC, "Nodes '%s': Required BRD Only: Added: 0", context->seed);
 
+    free (msgData);
     return 0;
 }
 #endif

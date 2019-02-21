@@ -1600,7 +1600,7 @@ ewmReportTransferStatusAsEvent (BREthereumEWM ewm,
 
 static void
 ewmHandleTransactionOriginatingLog (BREthereumEWM ewm,
-                                     BREthereumBCSCallbackTransactionType type,
+                                    BREthereumBCSCallbackTransactionType type,
                                     OwnershipKept BREthereumTransaction transaction) {
     BREthereumHash hash = transactionGetHash(transaction);
     for (size_t wid = 0; wid < array_count(ewm->wallets); wid++) {
@@ -1616,7 +1616,7 @@ ewmHandleTransactionOriginatingLog (BREthereumEWM ewm,
             BREthereumTransaction original = transferGetOriginatingTransaction (transfer);
             if (NULL != original && ETHEREUM_BOOLEAN_IS_TRUE(hashEqual (transactionGetHash(original),
                                                                         transactionGetHash(transaction))))
-                transactionSetStatus (original, transactionGetStatus(transaction));
+            transactionSetStatus (original, transactionGetStatus(transaction));
 
             //
             transferSetStatusForBasis (transfer, transactionGetStatus(transaction));
