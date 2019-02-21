@@ -168,6 +168,16 @@ ewmWalletSetDefaultGasPrice(BREthereumEWM ewm,
                             BREthereumWallet wallet,
                             BREthereumGasPrice gasPrice);
 
+
+/**
+ * Return a newly allocated array of transfers in wallet.  (You own the array and  must call free
+ * on it - but not on its elements).
+ *
+ * @param ewm
+ * @param wallet
+ *
+ * @return array of transfers, will be NULL terminated.
+ */
 extern BREthereumTransfer *
 ewmWalletGetTransfers(BREthereumEWM ewm,
                       BREthereumWallet wallet);
