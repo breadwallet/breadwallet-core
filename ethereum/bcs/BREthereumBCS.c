@@ -108,7 +108,8 @@ syncInterestsCreate (int count, /* BREthereumSyncInterest*/ ...) {
 static void
 bcsCreateInitializeBlocks (BREthereumBCS bcs,
                            OwnershipGiven BRSetOf(BREthereumBlock) blocks) {
-    if (NULL == blocks || 0 == BRSetCount(blocks)) return;
+    if (NULL == blocks) return;
+    else if (0 == BRSetCount(blocks)) { BRSetFree(blocks); return; }
 
     bcs->chain = bcs->chainTail = NULL;
 
@@ -151,7 +152,8 @@ bcsCreateInitializeBlocks (BREthereumBCS bcs,
 static void
 bcsCreateInitializeTransactions (BREthereumBCS bcs,
                                  BRSetOf(BREthereumTransaction) transactions) {
-    if (NULL == transactions || 0 == BRSetCount(transactions)) return;
+    if (NULL == transactions) return;
+    else if (0 == BRSetCount(transactions)) { BRSetFree (transactions); return; }
 
     FOR_SET (BREthereumTransaction, transaction, transactions) {
         BREthereumTransactionStatus status = transactionGetStatus(transaction);
@@ -169,7 +171,8 @@ bcsCreateInitializeTransactions (BREthereumBCS bcs,
 static void
 bcsCreateInitializeLogs (BREthereumBCS bcs,
                          BRSetOf(BREthereumLog) logs) {
-    if (NULL == logs || 0 == BRSetCount(logs)) return;
+    if (NULL == logs) return;
+    else if (0 == BRSetCount(logs)) { BRSetFree (logs); return; }
 
     FOR_SET (BREthereumLog, log, logs) {
         BREthereumTransactionStatus status = logGetStatus(log);
