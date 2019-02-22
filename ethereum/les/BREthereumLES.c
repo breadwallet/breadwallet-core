@@ -417,6 +417,7 @@ lesEnsureNodeForEndpoint (BREthereumLES les,
         if (nodeHasState(node, NODE_ROUTE_TCP, NODE_AVAILABLE))
             lesInsertNodeAsAvailable(les, node);
     }
+    else nodeEndpointRelease(endpoint);  // we own it; release if not passed to nodeCreate()
 
     pthread_mutex_unlock (&les->lock);
     return node;
@@ -624,7 +625,7 @@ lesCreate (BREthereumNetwork network,
 #if !defined(LES_BOOTSTRAP_LCL_ONLY)
     // Identify a set of initial nodes; first, use all the endpoints provided (based on `configs`)
     eth_log(LES_LOG_TOPIC, "Nodes Provided    : %zu", (NULL == configs ? 0 : BRSetCount(configs)));
-    if (NULL != configs)
+    if (NULL != configs) {
         FOR_SET (BREthereumNodeConfig, config, configs)
             if (!bootstrapBRDOnly || NODE_PRIORITY_BRD == config->priority)
                 lesEnsureNodeForEndpoint (les,
@@ -632,6 +633,8 @@ lesCreate (BREthereumNetwork network,
                                           nodeGetPreferredState (config->state),
                                           config->priority,
                                           NULL);
+        BRSetFreeAll(configs, (BRSetItemFree) nodeConfigRelease);
+    }
 #endif // !defined(LES_BOOTSTRAP_LCL_ONLY)
 
     size_t bootstrappedEndpointsCount = 0;
