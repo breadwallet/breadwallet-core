@@ -2154,11 +2154,13 @@ nodeRecv (BREthereumNode node,
             // Given bytesCount, update recvDataBuffer if too small
             pthread_mutex_lock (&node->lock);
             if (bytesCount > bytesLimit) {
-                bytesCount = 2 * bytesCount; // margin
-                node->recvDataBuffer.bytesCount = bytesCount;
-                node->recvDataBuffer.bytes = realloc(node->recvDataBuffer.bytes, bytesCount);
+                // Expand recvDataBuffer, with some margin
+                node->recvDataBuffer = (BRRlpData) {
+                    2 * bytesCount,
+                    realloc(node->recvDataBuffer.bytes, 2 * bytesCount)
+                };
                 bytes = node->recvDataBuffer.bytes;
-                bytesLimit = bytesCount;
+                bytesLimit = node->recvDataBuffer.bytesCount;
             }
             pthread_mutex_unlock (&node->lock);
 
