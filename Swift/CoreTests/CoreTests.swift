@@ -23,6 +23,8 @@ class CoreTests: XCTestCase {
             : nil)
     }
 
+    let configPath = Bundle(for: CoreTests.self).path(forResource: "CoreTestsConfig", ofType: "plist")!
+
     var account: BREthereumAccount!
 
     var coreDataDir: String!
@@ -60,10 +62,6 @@ class CoreTests: XCTestCase {
 
         // Eth Account for the non-compromised, mainnet paperKey "e...a"
         var fakeEthAccount: String = "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62"
-
-        let configPath = (CommandLine.argc > 1 && !CommandLine.arguments[1].starts(with: "-")
-            ? CommandLine.arguments[1]
-            : "/Users/ebg/.brdCoreTestConfig.plist")
 
         if FileManager.default.fileExists(atPath: configPath) {
             let configFile = URL(fileURLWithPath: configPath)

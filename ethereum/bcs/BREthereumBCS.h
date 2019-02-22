@@ -197,6 +197,12 @@ bcsIsStarted (BREthereumBCS bcs);
 extern void
 bcsDestroy (BREthereumBCS bcs);
 
+/**
+ * Scavenge BCS memory
+ */
+extern void
+bcsClean (BREthereumBCS bcs);
+
 
 /**
  * Start a sync from block number.  If a sync is in progress, then it is stopped.  This function

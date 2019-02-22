@@ -407,7 +407,7 @@ ewmHandleAnnounceTransaction(BREthereumEWM ewm,
         case BRD_ONLY:
         case BRD_WITH_P2P_SEND: {
             //
-            // This 'annouce' call is coming from the guaranteed BRD endpoint; thus we don't need to
+            // This 'announce' call is coming from the guaranteed BRD endpoint; thus we don't need to
             // worry about the validity of the transaction - it is surely confirmed.  Is that true
             // if newly submitted?
 

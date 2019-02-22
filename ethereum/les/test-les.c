@@ -1193,7 +1193,8 @@ runLESTests (const char *paperKey) {
     run_GetBlockBodies_Tests(les);
     run_GetReceipts_Tests(les);
     run_SendTransaction_Tests(les, paperKey);
-    run_GetAccountState_Tests(les);
+    // Disable until CORE-164
+    // run_GetAccountState_Tests(les);
     run_GetTxStatus_Tests(les);
 
     //    run_GetProofsV2_Tests(les); //NOTE: The callback function won't be called.

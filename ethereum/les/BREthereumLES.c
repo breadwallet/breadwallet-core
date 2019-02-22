@@ -417,6 +417,7 @@ lesEnsureNodeForEndpoint (BREthereumLES les,
         if (nodeHasState(node, NODE_ROUTE_TCP, NODE_AVAILABLE))
             lesInsertNodeAsAvailable(les, node);
     }
+    else nodeEndpointRelease(endpoint);  // we own it; release if not passed to nodeCreate()
 
     pthread_mutex_unlock (&les->lock);
     return node;
@@ -438,18 +439,23 @@ static int
 lesSeedQuery (BREthereumLESSeedContext *context) {
     BREthereumLES les = context->les;
 
-    size_t msgDataLength = 1024 * 1024;
-    u_char msgData [msgDataLength + 1];
-    memset (msgData, 0, msgDataLength);
-
     if (0 != res_init()) {
         eth_log(LES_LOG_TOPIC, "Nodes '%s' Error: res_init(): %s", context->seed, strerror(errno));
+        return 1;
+    }
+
+    size_t msgDataLength = 1024 * 1024;
+    u_char *msgData = calloc (1, msgDataLength + 1);
+
+    if (NULL == msgData) {
+        eth_log(LES_LOG_TOPIC, "Nodes '%s' Error: calloc", context->seed);
         return 1;
     }
 
     int msgCount = res_query (context->seed, ns_c_in, ns_t_txt, msgData, msgDataLength);
     if (msgCount < 0) {
         eth_log(LES_LOG_TOPIC, "Nodes '%s' Error: res_query(): %s", context->seed, strerror(errno));
+        free (msgData);
         return 1;
     }
 
@@ -487,6 +493,7 @@ lesSeedQuery (BREthereumLESSeedContext *context) {
     else
         eth_log(LES_LOG_TOPIC, "Nodes '%s': Required BRD Only: Added: 0", context->seed);
 
+    free (msgData);
     return 0;
 }
 #endif
@@ -618,7 +625,7 @@ lesCreate (BREthereumNetwork network,
 #if !defined(LES_BOOTSTRAP_LCL_ONLY)
     // Identify a set of initial nodes; first, use all the endpoints provided (based on `configs`)
     eth_log(LES_LOG_TOPIC, "Nodes Provided    : %zu", (NULL == configs ? 0 : BRSetCount(configs)));
-    if (NULL != configs)
+    if (NULL != configs) {
         FOR_SET (BREthereumNodeConfig, config, configs)
             if (!bootstrapBRDOnly || NODE_PRIORITY_BRD == config->priority)
                 lesEnsureNodeForEndpoint (les,
@@ -626,6 +633,8 @@ lesCreate (BREthereumNetwork network,
                                           nodeGetPreferredState (config->state),
                                           config->priority,
                                           NULL);
+        BRSetFreeAll(configs, (BRSetItemFree) nodeConfigRelease);
+    }
 #endif // !defined(LES_BOOTSTRAP_LCL_ONLY)
 
     size_t bootstrappedEndpointsCount = 0;
@@ -1015,9 +1024,10 @@ lesDeactivateNodeAtIndex (BREthereumLES les,
             // This reestablishes the provision as needing to be assigned.
             les->requests[requestIndex].node = NULL;
         }
+        array_free(provisions);
     }
-
 }
+
 static void
 lesDeactivateNode (BREthereumLES les,
                    BREthereumNodeEndpointRoute route,

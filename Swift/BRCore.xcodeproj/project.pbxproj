@@ -163,6 +163,7 @@
 		3CAB60E720AF8ED800810CE4 /* test.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53A620AF595400C430F6 /* test.c */; };
 		3CAB60E820AF8EE000810CE4 /* test.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C42EF8E209763AB000E58E0 /* test.c */; };
 		3CAB613320B3536000810CE4 /* test-les.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A538920AF595400C430F6 /* test-les.c */; };
+		3CC48D4A221CD1F200067EFC /* CoreTestsConfig.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3CC48D49221CD1F200067EFC /* CoreTestsConfig.plist */; };
 		3CCD36B121A5BB8D0032637A /* BRWalletManager.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36B021A5BB8D0032637A /* BRWalletManager.c */; };
 		3CCD36B221A5BB8D0032637A /* BRWalletManager.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36B021A5BB8D0032637A /* BRWalletManager.c */; };
 		3CCD36B421AA11CC0032637A /* BRFiat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36B321AA11CB0032637A /* BRFiat.swift */; };
@@ -458,6 +459,7 @@
 		3CAB60A820AF8C8500810CE4 /* CoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTests.swift; sourceTree = "<group>"; };
 		3CAB60AA20AF8C8500810CE4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		3CAB60E920AF8F3E00810CE4 /* CoreTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CoreTests-Bridging-Header.h"; sourceTree = "<group>"; };
+		3CC48D49221CD1F200067EFC /* CoreTestsConfig.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = CoreTestsConfig.plist; sourceTree = "<group>"; };
 		3CCD36AA21A36B590032637A /* BREthereumBase.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumBase.h; sourceTree = "<group>"; };
 		3CCD36AE21A4B1EB0032637A /* BREthereumClient.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumClient.h; sourceTree = "<group>"; };
 		3CCD36AF21A5BB8D0032637A /* BRWalletManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = BRWalletManager.h; path = ../../BRWalletManager.h; sourceTree = "<group>"; };
@@ -958,6 +960,7 @@
 				3CAB60E920AF8F3E00810CE4 /* CoreTests-Bridging-Header.h */,
 				3CAB60A820AF8C8500810CE4 /* CoreTests.swift */,
 				3CAB60AA20AF8C8500810CE4 /* Info.plist */,
+				3CC48D49221CD1F200067EFC /* CoreTestsConfig.plist */,
 			);
 			path = CoreTests;
 			sourceTree = "<group>";
@@ -1106,6 +1109,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 3CAB60AE20AF8C8500810CE4 /* Build configuration list for PBXNativeTarget "CoreTests" */;
 			buildPhases = (
+				3CC48D4D221CD7E000067EFC /* Ensure CoreTestsConfig.plist */,
 				3CAB60A220AF8C8500810CE4 /* Sources */,
 				3CAB60A320AF8C8500810CE4 /* Frameworks */,
 				3CAB60A420AF8C8500810CE4 /* Resources */,
@@ -1227,10 +1231,33 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3CC48D4A221CD1F200067EFC /* CoreTestsConfig.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		3CC48D4D221CD7E000067EFC /* Ensure CoreTestsConfig.plist */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Ensure CoreTestsConfig.plist";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "#cp \"${HOME}/.brdCoreTestsConfig.plist\" \"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\"\nenv\n\nif [ -f \"${HOME}/.brdCoreTestsConfig.plist\" ]; then \n  cp \"${HOME}/.brdCoreTestsConfig.plist\" \"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\"\n  if [ ! -f \"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\" ]; then\n    echo \"Copy to  \\\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\\\" failed.\"\n  else\n    echo \"Copied \\\"${HOME}/.brdCoreTestsConfig.plist\\\" to \\\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\\\"\"\n  fi\nelse\n  echo \"Missing file ~/.brdCoreTestConfig.plist - You must provide the this file with a form like:\"\n  echo \"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\"\n  echo \"  <!DOCTYPE plist PUBLIC \\\"-//Apple//DTD PLIST 1.0//EN\\\" \\\"http://www.apple.com/DTDs/PropertyList-1.0.dtd\\\">\"\n  echo \"  <plist version=\\\"1.0\\\">\"\n  echo \"  <dict>\"\n  echo \"    <key>paperKeysTestnet</key>\"\n  echo \"    <array>\"\n  echo \"      <string>\\\"some paper key\\\"</string>\"\n  echo \"      ...\"\n  echo \"    </array>\"\n  echo \"    <key>paperKeysMainnet</key>\"\n  echo \"    <array>\"\n  echo \"      <string>\\\"some other paper key\\\"</string>\"\n  echo \"      ...\"\n  echo \"     </array>\"\n  echo \"    </dict>\"\n  echo \"  </plist>\"\n  exit 1\nfi\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		3C0EADE72188D91F000577A6 /* Sources */ = {

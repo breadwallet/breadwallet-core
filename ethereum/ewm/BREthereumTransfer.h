@@ -68,6 +68,14 @@ transferCreate (BREthereumAddress sourceAddress,
                 BREthereumFeeBasis feeBasis,
                 BREthereumTransferBasisType transferBasisType);
 
+/**
+ * Create a transfer from a pre-existing transaction which is to be used as the
+ * originatingTransaction.  Generally this function is used to cancel/replace a failed
+ * transfer.  The `basisType` is provided - either TRANSACTION or LOG - and must be consistent
+ * with the provided transaction.
+ *
+ * Note: presumably the basis could be derived from the transaction.  Later...
+ */
 extern BREthereumTransfer
 transferCreateWithTransactionOriginating (OwnershipGiven BREthereumTransaction transaction,
                                           BREthereumTransferBasisType transferBasisType);
@@ -153,6 +161,9 @@ transferSetGasLimit (BREthereumTransfer transfer,
 // TODO: If not signed? submitted?
 extern const BREthereumHash
 transferGetHash (BREthereumTransfer transfer);
+
+extern const BREthereumHash
+transferGetOriginatingTransactionHash (BREthereumTransfer transfer);
 
 // TODO: Needed?
 extern uint64_t

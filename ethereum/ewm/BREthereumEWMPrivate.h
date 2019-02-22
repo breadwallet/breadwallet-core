@@ -235,6 +235,10 @@ ewmSignalGasEstimate (BREthereumEWM ewm,
 //
 // Signal/Handle Transaction (BCS Callback)
 //
+// This *MUST BE* the single point-of-entry for injecting a transaction into EWM.  It will be
+// called by BCS as the P2P modes find blocks w/ transactions and it will be called by EWM as the
+// BRD modes query transactions from the BRD endpoing.
+//
 extern void
 ewmHandleTransaction (BREthereumEWM ewm,
                       BREthereumBCSCallbackTransactionType type,
@@ -247,6 +251,8 @@ ewmSignalTransaction (BREthereumEWM ewm,
 
 //
 // Signal/Handle Log (BCS Callback)
+//
+// See the comments for ewm{Handle,Signal}Transaction() above
 //
 extern void
 ewmHandleLog (BREthereumEWM ewm,

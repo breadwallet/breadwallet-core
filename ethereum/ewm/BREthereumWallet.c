@@ -246,29 +246,26 @@ walletCreateTransfer(BREthereumWallet wallet,
 }
 
 extern BREthereumTransfer
-walletCreateTransferGeneric(BREthereumWallet wallet,
+walletCreateTransferGeneric (BREthereumWallet wallet,
                              BREthereumAddress recvAddress,
                              BREthereumEther amount,
                              BREthereumGasPrice gasPrice,
                              BREthereumGas gasLimit,
                              const char *data) {
-//    assert (walletGetAmountType(wallet) == amountGetType(amount));
-//    assert (AMOUNT_ETHER == amountGetType(amount)
-//            || (wallet->token == tokenQuantityGetToken (amountGetTokenQuantity(amount))));
 
-        BREthereumTransaction originatingTransaction = transactionCreate(walletGetAddress(wallet),
-                                                                         recvAddress,
-                                                                         amount,
-                                                                         gasPrice,
-                                                                         gasLimit,
-                                                                         data,
-                                                                         TRANSACTION_NONCE_IS_NOT_ASSIGNED);
+    BREthereumTransaction originatingTransaction = transactionCreate (walletGetAddress(wallet),
+                                                                      recvAddress,
+                                                                      amount,
+                                                                      gasPrice,
+                                                                      gasLimit,
+                                                                      data,
+                                                                      TRANSACTION_NONCE_IS_NOT_ASSIGNED);
 
     BREthereumTransfer transfer =
-            transferCreateWithTransactionOriginating (originatingTransaction,
-                                                      (NULL == walletGetToken(wallet)
-                                                      ? TRANSFER_BASIS_TRANSACTION
-                                                      : TRANSFER_BASIS_LOG));
+    transferCreateWithTransactionOriginating (originatingTransaction,
+                                              (NULL == walletGetToken(wallet)
+                                               ? TRANSFER_BASIS_TRANSACTION
+                                               : TRANSFER_BASIS_LOG));
 
     walletHandleTransfer(wallet, transfer);
     return transfer;

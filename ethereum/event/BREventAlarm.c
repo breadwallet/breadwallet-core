@@ -30,7 +30,7 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include "BRArray.h"
-#include "BRAssert.h"
+#include "support/BRAssert.h"
 #include "BREvent.h"
 #include "BREventAlarm.h"
 
