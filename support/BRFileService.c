@@ -129,6 +129,7 @@ fileServiceCreate (const char *basePath,
     // Require `basePath` to be an existing directory.
     DIR *dir = opendir(basePath);
     if (NULL == dir) return NULL;
+    closedir(dir);
 
     // Create the directory hierarchy
     size_t pathToTypeSize = strlen(basePath) + 1 + strlen(currency) + 1 + strlen(network) + 1;
