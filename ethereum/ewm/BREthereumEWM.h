@@ -276,6 +276,10 @@ extern BREthereumHash
 ewmTransferGetHash(BREthereumEWM ewm,
                    BREthereumTransfer transfer);
 
+extern BREthereumHash
+ewmTransferGetOriginatingTransactionHash(BREthereumEWM ewm,
+                                         BREthereumTransfer transfer);
+
 
 extern BREthereumAmount
 ewmTransferGetAmount(BREthereumEWM ewm,

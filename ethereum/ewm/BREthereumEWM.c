@@ -1992,6 +1992,12 @@ ewmTransferGetHash(BREthereumEWM ewm,
     return transferGetHash(transfer);
 }
 
+extern BREthereumHash
+ewmTransferGetOriginatingTransactionHash(BREthereumEWM ewm,
+                                         BREthereumTransfer transfer) {
+    return transferGetOriginatingTransactionHash(transfer);
+}
+
 extern char *
 ewmTransferGetAmountEther(BREthereumEWM ewm,
                           BREthereumTransfer transfer,
