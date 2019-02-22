@@ -397,9 +397,11 @@ logTopicsRlpDecode (BRRlpItem item,
 
 extern void
 logRelease (BREthereumLog log) {
-    array_free(log->topics);
-    rlpDataRelease(log->data);
-    free (log);
+    if (NULL != log) {
+        array_free(log->topics);
+        rlpDataRelease(log->data);
+        free (log);
+    }
 }
 
 extern void

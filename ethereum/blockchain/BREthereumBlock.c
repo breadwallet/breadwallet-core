@@ -918,6 +918,8 @@ blockLinkLogsWithTransactions (BREthereumBlock block) {
         uint64_t transactionIndex; size_t logIndex;
         assert (transactionStatusExtractIncluded(&status, NULL, NULL, &transactionIndex, NULL, NULL));
 
+        // Importantly, note that the log has no reference to the transaction itself.  And, if only
+        // implicitly, we assume that `block` has the correct transaction at transactionIndex.
         BREthereumTransaction transaction = block->transactions[transactionIndex];
         logExtractIdentifier(log, NULL, &logIndex);
         logInitializeIdentifier(log, transactionGetHash(transaction), logIndex);

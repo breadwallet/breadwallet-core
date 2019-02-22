@@ -539,17 +539,17 @@ ewmCreate (BREthereumNetwork network,
 
             // Announce all the provided transactions...
             FOR_SET (BREthereumTransaction, transaction, transactions)
-            ewmSignalTransaction (ewm, BCS_CALLBACK_TRANSACTION_ADDED, transaction);
+                ewmSignalTransaction (ewm, BCS_CALLBACK_TRANSACTION_ADDED, transaction);
 
             // ... as well as the provided logs...
             FOR_SET (BREthereumLog, log, logs)
-            ewmSignalLog (ewm, BCS_CALLBACK_LOG_ADDED, log);
+                ewmSignalLog (ewm, BCS_CALLBACK_LOG_ADDED, log);
 
             // ... and then the latest block.
             BREthereumBlock lastBlock = NULL;
             FOR_SET (BREthereumBlock, block, blocks)
-            if (NULL == lastBlock || blockGetNumber(lastBlock) < blockGetNumber(block))
-                lastBlock = block;
+                if (NULL == lastBlock || blockGetNumber(lastBlock) < blockGetNumber(block))
+                    lastBlock = block;
             ewmSignalBlockChain (ewm,
                                  blockGetHash( lastBlock),
                                  blockGetNumber (lastBlock),
@@ -1598,6 +1598,14 @@ ewmReportTransferStatusAsEvent (BREthereumEWM ewm,
     }
 }
 
+//
+// We have `transaction` but we don't know if it originated a log.  If it did originate a log then
+// we need to update that log's status.  We don't know what logs the transaction originated so
+// we'll look through all wallets and all their transfers for any one transfer that matches the
+// provided transaction.
+//
+// Note: that `transaction` is owned by another; thus we won't hold it.
+//
 static void
 ewmHandleTransactionOriginatingLog (BREthereumEWM ewm,
                                     BREthereumBCSCallbackTransactionType type,
@@ -1647,24 +1655,24 @@ ewmHandleTransaction (BREthereumEWM ewm,
     assert (NULL != wallet);
 
     // Find a preexisting transfer
-    BREthereumTransfer transfer = walletGetTransferByHash(wallet, hash);
+    BREthereumTransfer transfer = walletGetTransferByHash (wallet, hash);
 
     int needStatusEvent = 0;
 
     // If we've no transfer, then create one and save `transaction` as the basis
     if (NULL == transfer) {
-        transfer = transferCreateWithTransaction(transaction); // transaction ownership given
+        transfer = transferCreateWithTransaction (transaction); // transaction ownership given
 
-        walletHandleTransfer(wallet, transfer);
+        walletHandleTransfer (wallet, transfer);
         walletUpdateBalance (wallet);
+        
+        ewmSignalTransferEvent (ewm, wallet, transfer,
+                                TRANSFER_EVENT_CREATED,
+                                SUCCESS, NULL);
 
-        ewmSignalTransferEvent(ewm, wallet, transfer,
-                                     TRANSFER_EVENT_CREATED,
-                                     SUCCESS, NULL);
-
-        ewmSignalWalletEvent(ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
-                                   SUCCESS,
-                                   NULL);
+        ewmSignalWalletEvent (ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
+                              SUCCESS,
+                              NULL);
 
         needStatusEvent = 1;
     }
@@ -1678,7 +1686,7 @@ ewmHandleTransaction (BREthereumEWM ewm,
         BREthereumTransaction original = transferGetOriginatingTransaction (transfer);
         if (NULL != original && ETHEREUM_BOOLEAN_IS_TRUE(hashEqual (transactionGetHash(original),
                                                                     transactionGetHash(transaction))))
-            transactionSetStatus (original, transactionGetStatus(transaction));
+        transactionSetStatus (original, transactionGetStatus(transaction));
 
         transferSetBasisForTransaction (transfer, transaction); // transaction ownership given
     }
@@ -1714,10 +1722,10 @@ ewmHandleLog (BREthereumEWM ewm,
     // TODO: Confirm LogTopic[0] is 'transfer'
     if (3 != logGetTopicsCount(log)) return;
 
-    BREthereumWallet wallet = ewmGetWalletHoldingToken(ewm, token);
+    BREthereumWallet wallet = ewmGetWalletHoldingToken (ewm, token);
     assert (NULL != wallet);
 
-    BREthereumTransfer transfer = walletGetTransferByHash(wallet, logHash);
+    BREthereumTransfer transfer = walletGetTransferByHash (wallet, logHash);
 
     int needStatusEvent = 0;
 
@@ -1725,16 +1733,16 @@ ewmHandleLog (BREthereumEWM ewm,
     if (NULL == transfer) {
         transfer = transferCreateWithLog (log, token, ewm->coder); // log ownership given
 
-        walletHandleTransfer(wallet, transfer);
+        walletHandleTransfer (wallet, transfer);
         walletUpdateBalance (wallet);
 
-        ewmSignalTransferEvent(ewm, wallet, transfer,
-                                     TRANSFER_EVENT_CREATED,
-                                     SUCCESS, NULL);
+        ewmSignalTransferEvent (ewm, wallet, transfer,
+                                TRANSFER_EVENT_CREATED,
+                                SUCCESS, NULL);
 
-        ewmSignalWalletEvent(ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
-                                   SUCCESS,
-                                   NULL);
+        ewmSignalWalletEvent (ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
+                              SUCCESS,
+                              NULL);
 
         needStatusEvent = 1;
     }
@@ -1751,7 +1759,7 @@ ewmHandleLog (BREthereumEWM ewm,
     }
 
     if (needStatusEvent)
-        ewmReportTransferStatusAsEvent(ewm, wallet, transfer);
+        ewmReportTransferStatusAsEvent (ewm, wallet, transfer);
 }
 
 extern void
@@ -1913,6 +1921,8 @@ ewmPeriodicDispatcher (BREventHandler handler,
     // For all the known wallets, get their balance.
     for (int i = 0; i < array_count(ewm->wallets); i++)
         ewmUpdateWalletBalance (ewm, ewm->wallets[i]);
+
+    if (NULL != ewm->bcs) bcsClean (ewm->bcs);
 }
 
 extern void

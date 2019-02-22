@@ -373,6 +373,11 @@ bcsDestroy (BREthereumBCS bcs) {
     free (bcs);
 }
 
+extern void
+bcsClean (BREthereumBCS bcs) {
+    if (NULL != bcs->les) lesClean (bcs->les);
+}
+
 static void
 bcsSyncRange (BREthereumBCS bcs,
               BREthereumNodeReference node,
