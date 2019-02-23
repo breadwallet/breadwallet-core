@@ -528,7 +528,7 @@ messageDISRelease (BREthereumDISMessage *message) {
         case DIS_MESSAGE_FIND_NEIGHBORS:
             break;
         case DIS_MESSAGE_NEIGHBORS:
-            if (NULL != message->u.neighbors.neighbors) free (message->u.neighbors.neighbors);
+            if (NULL != message->u.neighbors.neighbors) array_free (message->u.neighbors.neighbors);
             break;
     }
 }
