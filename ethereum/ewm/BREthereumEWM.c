@@ -396,6 +396,16 @@ ewmCreate (BREthereumNetwork network,
     // Our one and only coder
     ewm->coder = rlpCoderCreate();
 
+    // Create the EWM lock - do this early in case any `init` functions use it.
+    {
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+
+        pthread_mutex_init(&ewm->lock, &attr);
+        pthread_mutexattr_destroy(&attr);
+    }
+
     // The file service.  Initialize {nodes, blocks, transactions and logs} from the FileService
 
     ewm->fs = fileServiceCreate (storagePath, "eth", networkGetName(network),
@@ -476,7 +486,6 @@ ewmCreate (BREthereumNetwork network,
         BRSetAdd (blocks, block);
     }
 
-
     // Create the alarm clock, but don't start it.
     alarmClockCreateIfNecessary(0);
 
@@ -487,15 +496,6 @@ ewmCreate (BREthereumNetwork network,
                                        ewmEventTypesCount);
 
     array_new(ewm->wallets, DEFAULT_WALLET_CAPACITY);
-
-    {
-        pthread_mutexattr_t attr;
-        pthread_mutexattr_init(&attr);
-        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-
-        pthread_mutex_init(&ewm->lock, &attr);
-        pthread_mutexattr_destroy(&attr);
-    }
 
     // Create a default ETH wallet; other wallets will be created 'on demand'
     ewm->walletHoldingEther = walletCreate(ewm->account,
@@ -854,6 +854,16 @@ ewmSync (BREthereumEWM ewm) {
             bcsSync (ewm->bcs, 0);
             return ETHEREUM_BOOLEAN_TRUE;
     }
+}
+
+extern void
+ewmLock (BREthereumEWM ewm) {
+    pthread_mutex_lock (&ewm->lock);
+}
+
+extern void
+ewmUnlock (BREthereumEWM ewm) {
+    pthread_mutex_unlock (&ewm->lock);
 }
 
 ///
