@@ -60,7 +60,29 @@ networkGetSeeds (BREthereumNetwork network);
 
 extern size_t
 networkGetSeedsCount (BREthereumNetwork network);
-    
+
+/**
+ * BRD Enodes - backup to a failed 'seeds' query
+ */
+extern const char**
+networkGetEnodesBRD (BREthereumNetwork network);
+
+/**
+ * Community Enocdes - backup to a failed 'seeds' query
+ */
+extern const char**
+networkGetEnodesCommunity (BREthereumNetwork network);
+
+/**
+ * Local Enodes
+ */
+extern const char**
+networkGetEnodesLocal (BREthereumNetwork network, int parity);
+
+///
+/// MARK: Networks
+///
+
 extern const BREthereumNetwork ethereumMainnet;
 extern const BREthereumNetwork ethereumTestnet;
 extern const BREthereumNetwork ethereumRinkeby;

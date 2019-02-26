@@ -31,6 +31,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <resolv.h>
+#include <netdb.h>
 
 #include "BRInt.h"
 #include "BRArray.h"
@@ -440,7 +441,9 @@ lesSeedQuery (BREthereumLESSeedContext *context) {
     BREthereumLES les = context->les;
 
     if (0 != res_init()) {
-        eth_log(LES_LOG_TOPIC, "Nodes '%s' Error: res_init(): %s", context->seed, strerror(errno));
+        eth_log (LES_LOG_TOPIC, "Nodes '%s' Error: res_init(): '%s' / '%s'", context->seed,
+                 strerror (errno),
+                 hstrerror (h_errno));
         return 1;
     }
 
@@ -454,7 +457,9 @@ lesSeedQuery (BREthereumLESSeedContext *context) {
 
     int msgCount = res_query (context->seed, ns_c_in, ns_t_txt, msgData, msgDataLength);
     if (msgCount < 0) {
-        eth_log(LES_LOG_TOPIC, "Nodes '%s' Error: res_query(): %s", context->seed, strerror(errno));
+        eth_log (LES_LOG_TOPIC, "Nodes '%s' Error: res_query(): '%s' / '%s'", context->seed,
+                 strerror (errno),
+                 hstrerror (h_errno));
         free (msgData);
         return 1;
     }
@@ -622,9 +627,15 @@ lesCreate (BREthereumNetwork network,
     FOR_EACH_ROUTE (route)
         array_new (les->activeNodesByRoute[route], LES_NODE_INITIAL_SIZE);
 
+    les->theTimeToQuitIsNow = 0;
+    les->theTimeToCleanIsNow = 0;
+    les->theTimeToUpdateBlockHeadIsNow = 0;
+
+    size_t bootstrappedEndpointsCount = 0;
+
 #if !defined(LES_BOOTSTRAP_LCL_ONLY)
     // Identify a set of initial nodes; first, use all the endpoints provided (based on `configs`)
-    eth_log(LES_LOG_TOPIC, "Nodes Provided    : %zu", (NULL == configs ? 0 : BRSetCount(configs)));
+    eth_log (LES_LOG_TOPIC, "Nodes Provided    : %zu", (NULL == configs ? 0 : BRSetCount(configs)));
     if (NULL != configs)
         FOR_SET (BREthereumNodeConfig, config, configs)
             if (!bootstrapBRDOnly || NODE_PRIORITY_BRD == config->priority)
@@ -636,24 +647,6 @@ lesCreate (BREthereumNetwork network,
 #endif // !defined(LES_BOOTSTRAP_LCL_ONLY)
 
     if (NULL != configs) BRSetFreeAll(configs, (BRSetItemFree) nodeConfigRelease);
-
-    size_t bootstrappedEndpointsCount = 0;
-
-    // If required, add in local nodes (testing only)
-#if defined (LES_BOOTSTRAP_LCL_ONLY)
-    const char **enodes= (ethereumMainnet == network ? bootstrapLCLEnodes : NULL);
-    if (NULL != enodes)
-        for (size_t index = 0; NULL != enodes[index]; index++) {
-            BREthereumBoolean added = ETHEREUM_BOOLEAN_FALSE;
-            lesEnsureNodeForEndpoint(les,
-                                     nodeEndpointCreateEnode(enodes[index]),
-                                     (BREthereumNodeState) { NODE_AVAILABLE },
-                                     NODE_PRIORITY_LCL,
-                                     &added);
-            if (ETHEREUM_BOOLEAN_IS_TRUE(added))
-                bootstrappedEndpointsCount += 1;
-        }
-#endif // defined (LES_BOOTSTRAP_LCL_ONLY)
 
 #if !defined (LES_BOOTSTRAP_LCL_ONLY)
     // Create nodes from our network seeds.
@@ -670,15 +663,58 @@ lesCreate (BREthereumNetwork network,
     }
 #endif // !defined (LES_BOOTSTRAP_LCL_ONLY)
 
-    eth_log(LES_LOG_TOPIC, "Nodes Bootstrapped: %zu", bootstrappedEndpointsCount);
+    // Create nodes from compiled-in nodes; this is done in case the 'seed' query fails - which
+    // it currently does for Android.  Take the opportunity to add in LCL nodes, if debugging.
+    struct {
+        BREthereumNodeType type;
+        BREthereumNodePriority priority;
+        const char **enodes;
+    } enodesDecl[] = {
+#if defined (LES_BOOTSTRAP_LCL_ONLY)
+        { NODE_TYPE_PARITY,  NODE_PRIORITY_LCL, networkGetEnodesLocal (network, 1) },
+        { NODE_TYPE_GETH,    NODE_PRIORITY_LCL, networkGetEnodesLocal (network, 0) },
+#else
+        { NODE_TYPE_UNKNOWN, NODE_PRIORITY_BRD, networkGetEnodesBRD (network) },
+        { NODE_TYPE_UNKNOWN, NODE_PRIORITY_DIS, networkGetEnodesCommunity (network) },
+#endif
+        { NODE_TYPE_UNKNOWN, NODE_PRIORITY_DIS, NULL }
+    };
+
+    int useParity = 0;
+    int useGeth   = 0;
+#if defined (LES_SUPPORT_PARITY)
+    useParity = 1;
+#endif
+#if defined (LES_SUPPORT_GETH)
+    useGeth = 1;
+#endif
+
+    for (size_t indexDecl = 0; NULL != enodesDecl[indexDecl].enodes; indexDecl++) {
+        const char **enodes = enodesDecl[indexDecl].enodes;
+        for (size_t index = 0; NULL != enodes[index]; index++) {
+            BREthereumBoolean added = ETHEREUM_BOOLEAN_FALSE;
+            BREthereumNodeType type = enodesDecl[indexDecl].type;
+
+            if (type == NODE_TYPE_UNKNOWN ||
+                (useParity && type == NODE_TYPE_PARITY) ||
+                (useGeth   && type == NODE_TYPE_GETH))
+                lesEnsureNodeForEndpoint (les,
+                                          nodeEndpointCreateEnode(enodes[index]),
+                                          (BREthereumNodeState) { NODE_AVAILABLE },
+                                          enodesDecl[indexDecl].priority,
+                                          &added);
+
+            if (ETHEREUM_BOOLEAN_IS_TRUE(added))
+                bootstrappedEndpointsCount += 1;
+        }
+    }
+
+    // Report on the bootstrap results.
+    eth_log (LES_LOG_TOPIC, "Nodes Bootstrapped: %zu", bootstrappedEndpointsCount);
     for (size_t index = 0; index < 5 && index < array_count(les->availableNodes); index++) {
         BREthereumDISNeighborEnode enode = neighborDISAsEnode (nodeEndpointGetDISNeighbor (nodeGetRemoteEndpoint (les->availableNodes[index])), 1);
         eth_log (LES_LOG_TOPIC, "  @ %zu: %s", index, enode.chars);
     }
-
-    les->theTimeToQuitIsNow = 0;
-    les->theTimeToCleanIsNow = 0;
-    les->theTimeToUpdateBlockHeadIsNow = 0;
 
     return les;
 }

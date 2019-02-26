@@ -712,24 +712,3 @@ main(int argc, const char **argv) {
 //utun3       30                fe80::2d34:ab2e:f86b:f077
 
 #endif // defined (GET_WIFI_ADDRESS)
-
-///
-/// MARK: - Local/Bootstrap Enodes
-///
-
-//
-// LES/PIP Nodes hosted locally, when enabled (these are my NodeId; not yours).
-//
-const char *bootstrapLCLEnodes[] = {
-#if defined (LES_SUPPORT_PARITY)
-    // Localhost/Office - Parity
-    "enode://4483ac6134c85ecbd31d14168f1c97b82bdc45c442e81277f52428968de41add46549f8d6c9c8c3432f3b8834b018c350ac37d87d70d67e599f42f68a96717fc@127.0.0.1:30303",     // SSD Archive
-    "enode://74b31b97f646b206dd01d8f20d080b97e502483a55ee64ea02cbf0c6df4263ff33bee61ba940113db36a4cfd1e1e8f2fe66cf91e6a1925f63860fb6bc5671c87@192.168.1.200:8888",  // SSD Archive
-#endif
-
-#if defined (LES_SUPPORT_GETH)
-    // Localhost - GETH
-    "enode://654580048e9de8f7743ca38035c7ab7fbf2d59b6acd5b92cc031e4571b2c441fe9fc5bb261ada112fb39ca32c1ac7716d91a211b992693c9472ad6af42c5302a@127.0.0.1:30304",
-#endif
-    NULL
-};
