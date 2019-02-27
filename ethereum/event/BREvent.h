@@ -107,10 +107,23 @@ typedef struct {
 //
 // Create / Destroy
 //
+
+
+/**
+ * Craete an event handler.
+ *
+ * @param name the pthread name
+ * @param types an array of event types
+ * @param typesCount the size of the array of event types
+ * @param lock an optional lock.  If not provided, a NORMAL pthread mutex is created.
+ *
+ * @return the event handler
+ */
 extern BREventHandler
 eventHandlerCreate (const char *name,
                     const BREventType *types[],
-                    unsigned int typesCount);
+                    unsigned int typesCount,
+                    pthread_mutex_t *lock);
 
 /**
  * Optional specify a periodic TimeoutDispatcher.  The `dispatcher` will run every
