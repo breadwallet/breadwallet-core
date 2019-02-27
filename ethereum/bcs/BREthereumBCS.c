@@ -246,7 +246,8 @@ bcsCreate (BREthereumNetwork network,
     // can signal events (by queuing; they won't be handled until the event queue is started).
     bcs->handler = eventHandlerCreate ("Core Ethereum BCS",
                                        bcsEventTypes,
-                                       bcsEventTypesCount);
+                                       bcsEventTypesCount,
+                                       NULL);
 
     // For the event Handler install a periodic alarm; when the alarm triggers, BCS will check
     // on the status of any pending transactions.  This event will only trigger when the
