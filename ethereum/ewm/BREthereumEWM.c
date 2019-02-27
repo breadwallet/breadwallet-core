@@ -396,6 +396,16 @@ ewmCreate (BREthereumNetwork network,
     // Our one and only coder
     ewm->coder = rlpCoderCreate();
 
+    // Create the EWM lock - do this early in case any `init` functions use it.
+    {
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+
+        pthread_mutex_init(&ewm->lock, &attr);
+        pthread_mutexattr_destroy(&attr);
+    }
+
     // The file service.  Initialize {nodes, blocks, transactions and logs} from the FileService
 
     ewm->fs = fileServiceCreate (storagePath, "eth", networkGetName(network),
@@ -476,7 +486,6 @@ ewmCreate (BREthereumNetwork network,
         BRSetAdd (blocks, block);
     }
 
-
     // Create the alarm clock, but don't start it.
     alarmClockCreateIfNecessary(0);
 
@@ -484,18 +493,10 @@ ewmCreate (BREthereumNetwork network,
     // that we should/might query the BRD backend services.
     ewm->handler = eventHandlerCreate ("Core Ethereum EWM",
                                        ewmEventTypes,
-                                       ewmEventTypesCount);
+                                       ewmEventTypesCount,
+                                       &ewm->lock);
 
     array_new(ewm->wallets, DEFAULT_WALLET_CAPACITY);
-
-    {
-        pthread_mutexattr_t attr;
-        pthread_mutexattr_init(&attr);
-        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-
-        pthread_mutex_init(&ewm->lock, &attr);
-        pthread_mutexattr_destroy(&attr);
-    }
 
     // Create a default ETH wallet; other wallets will be created 'on demand'
     ewm->walletHoldingEther = walletCreate(ewm->account,
@@ -632,6 +633,7 @@ ewmCreateWithPublicKey (BREthereumNetwork network,
 
 extern void
 ewmDestroy (BREthereumEWM ewm) {
+    pthread_mutex_lock(&ewm->lock);
     ewmDisconnect(ewm);
 
     bcsDestroy(ewm->bcs);
@@ -645,6 +647,8 @@ ewmDestroy (BREthereumEWM ewm) {
     // Finally remove the assert recovery handler
     BRAssertRemoveRecovery((BRAssertRecoveryInfo) ewm);
 
+    pthread_mutex_unlock (&ewm->lock);
+    pthread_mutex_destroy (&ewm->lock);
     free (ewm);
 }
 
@@ -662,31 +666,37 @@ ewmDestroy (BREthereumEWM ewm) {
  */
 extern BREthereumBoolean
 ewmConnect(BREthereumEWM ewm) {
+    BREthereumBoolean result = ETHEREUM_BOOLEAN_FALSE;
+
+    ewmLock (ewm);
 
     // Nothing to do if already connected
-    if (ETHEREUM_BOOLEAN_IS_TRUE (ewmIsConnected(ewm)))
-        return ETHEREUM_BOOLEAN_FALSE;
+    if (ETHEREUM_BOOLEAN_IS_FALSE (ewmIsConnected(ewm))) {
+        // Set ewm {client,state} prior to bcs/event start.  Avoid race conditions, particularly
+        // with `ewmPeriodicDispatcher`.
+        ewm->state = LIGHT_NODE_CONNECTED;
 
-    // Set ewm {client,state} prior to bcs/event start.  Avoid race conditions, particularly
-    // with `ewmPeriodicDispatcher`.
-    ewm->state = LIGHT_NODE_CONNECTED;
+        // Start the alarm clock, if needed.
+        alarmClockStart(alarmClock);
 
-    // Start the alarm clock, if needed.
-    alarmClockStart(alarmClock);
+        switch (ewm->mode) {
+            case BRD_ONLY:
+                break;
+            case BRD_WITH_P2P_SEND:
+            case P2P_WITH_BRD_SYNC:
+            case P2P_ONLY:
+                bcsStart(ewm->bcs);
+                break;
+        }
 
-    switch (ewm->mode) {
-        case BRD_ONLY:
-            break;
-        case BRD_WITH_P2P_SEND:
-        case P2P_WITH_BRD_SYNC:
-        case P2P_ONLY:
-            bcsStart(ewm->bcs);
-            break;
+        eventHandlerStart(ewm->handler);
+
+        result = ETHEREUM_BOOLEAN_TRUE;
     }
 
-    eventHandlerStart(ewm->handler);
+    ewmUnlock (ewm);
 
-    return ETHEREUM_BOOLEAN_TRUE;
+    return result;
 }
 
 /**
@@ -697,44 +707,58 @@ ewmConnect(BREthereumEWM ewm) {
  */
 extern BREthereumBoolean
 ewmDisconnect (BREthereumEWM ewm) {
+    BREthereumBoolean result = ETHEREUM_BOOLEAN_FALSE;
 
-    if (ETHEREUM_BOOLEAN_IS_FALSE (ewmIsConnected(ewm)))
-        return ETHEREUM_BOOLEAN_FALSE;
+    ewmLock (ewm);
 
-    // Set ewm->state thereby stopping handlers (in a race with bcs/event calls).
-    ewm->state = LIGHT_NODE_DISCONNECTED;
+    if (ETHEREUM_BOOLEAN_IS_TRUE (ewmIsConnected(ewm))) {
+        // Set ewm->state thereby stopping handlers (in a race with bcs/event calls).
+        ewm->state = LIGHT_NODE_DISCONNECTED;
 
-    // What order for these stop functions?  See comment in `bcsStop()`.
-    alarmClockStop (alarmClock);
+        // What order for these stop functions?  See comment in `bcsStop()`.
+        alarmClockStop (alarmClock);
 
-    switch (ewm->mode) {
-        case BRD_ONLY:
-            break;
-        case BRD_WITH_P2P_SEND:
-        case P2P_WITH_BRD_SYNC:
-        case P2P_ONLY:
-            bcsStop(ewm->bcs);
-            break;
+        switch (ewm->mode) {
+            case BRD_ONLY:
+                break;
+            case BRD_WITH_P2P_SEND:
+            case P2P_WITH_BRD_SYNC:
+            case P2P_ONLY:
+                bcsStop(ewm->bcs);
+                break;
+        }
+
+        eventHandlerStop(ewm->handler);
+
+        result = ETHEREUM_BOOLEAN_TRUE;
     }
 
-    eventHandlerStop(ewm->handler);
+    ewmUnlock (ewm);
 
-    return ETHEREUM_BOOLEAN_TRUE;
+    return result;
 }
 
 extern BREthereumBoolean
 ewmIsConnected (BREthereumEWM ewm) {
-    if (LIGHT_NODE_CONNECTED != ewm->state) return ETHEREUM_BOOLEAN_FALSE;
+    BREthereumBoolean result = ETHEREUM_BOOLEAN_FALSE;
 
-    switch (ewm->mode) {
-        case BRD_ONLY:
-            return ETHEREUM_BOOLEAN_TRUE;
+    ewmLock (ewm);
 
-        case BRD_WITH_P2P_SEND:
-        case P2P_WITH_BRD_SYNC:
-        case P2P_ONLY:
-            return bcsIsStarted (ewm->bcs);
+    if (LIGHT_NODE_CONNECTED == ewm->state) {
+        switch (ewm->mode) {
+            case BRD_ONLY:
+                result = ETHEREUM_BOOLEAN_TRUE;
+                break;
+
+            case BRD_WITH_P2P_SEND:
+            case P2P_WITH_BRD_SYNC:
+            case P2P_ONLY:
+                result = bcsIsStarted (ewm->bcs);
+                break;
+        }
     }
+    ewmUnlock (ewm);
+    return result;
 }
 
 static void
@@ -854,6 +878,16 @@ ewmSync (BREthereumEWM ewm) {
             bcsSync (ewm->bcs, 0);
             return ETHEREUM_BOOLEAN_TRUE;
     }
+}
+
+extern void
+ewmLock (BREthereumEWM ewm) {
+    pthread_mutex_lock (&ewm->lock);
+}
+
+extern void
+ewmUnlock (BREthereumEWM ewm) {
+    pthread_mutex_unlock (&ewm->lock);
 }
 
 ///
@@ -1990,6 +2024,12 @@ extern BREthereumHash
 ewmTransferGetHash(BREthereumEWM ewm,
                    BREthereumTransfer transfer) {
     return transferGetHash(transfer);
+}
+
+extern BREthereumHash
+ewmTransferGetOriginatingTransactionHash(BREthereumEWM ewm,
+                                         BREthereumTransfer transfer) {
+    return transferGetOriginatingTransactionHash(transfer);
 }
 
 extern char *

@@ -496,7 +496,24 @@ transferGetHash (BREthereumTransfer transfer) {
 
 extern const BREthereumHash
 transferGetOriginatingTransactionHash (BREthereumTransfer transfer) {
-    return (NULL == transfer->originatingTransaction ? EMPTY_HASH_INIT : transactionGetHash(transfer->originatingTransaction));
+    // If we have an originatingTransaction - becasue we created the transfer - then return its hash.
+    if (NULL != transfer->originatingTransaction) return transactionGetHash(transfer->originatingTransaction);
+
+    // But if we don't have an originatingTransaction then we should be able to gets its hash
+    // from the basis.
+    switch (transfer->basis.type) {
+        case TRANSFER_BASIS_TRANSACTION:
+            return (NULL == transfer->basis.u.transaction
+                    ? EMPTY_HASH_INIT
+                    : transactionGetHash (transfer->basis.u.transaction));
+        case TRANSFER_BASIS_LOG: {
+            if (NULL == transfer->basis.u.log) return EMPTY_HASH_INIT;
+
+            BREthereumHash hash = EMPTY_HASH_INIT;
+            logExtractIdentifier(transfer->basis.u.log, &hash, NULL);
+            return hash;
+        }
+    }
 }
 
 extern uint64_t
