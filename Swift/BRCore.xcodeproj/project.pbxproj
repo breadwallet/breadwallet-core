@@ -163,7 +163,6 @@
 		3CAB60E720AF8ED800810CE4 /* test.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53A620AF595400C430F6 /* test.c */; };
 		3CAB60E820AF8EE000810CE4 /* test.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C42EF8E209763AB000E58E0 /* test.c */; };
 		3CAB613320B3536000810CE4 /* test-les.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A538920AF595400C430F6 /* test-les.c */; };
-		3CC48D4A221CD1F200067EFC /* CoreTestsConfig.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3CC48D49221CD1F200067EFC /* CoreTestsConfig.plist */; };
 		3CCD36B121A5BB8D0032637A /* BRWalletManager.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36B021A5BB8D0032637A /* BRWalletManager.c */; };
 		3CCD36B221A5BB8D0032637A /* BRWalletManager.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36B021A5BB8D0032637A /* BRWalletManager.c */; };
 		3CCD36B421AA11CC0032637A /* BRFiat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36B321AA11CB0032637A /* BRFiat.swift */; };
@@ -1112,6 +1111,7 @@
 				3CC48D4D221CD7E000067EFC /* Ensure CoreTestsConfig.plist */,
 				3CAB60A220AF8C8500810CE4 /* Sources */,
 				3CAB60A320AF8C8500810CE4 /* Frameworks */,
+				3C8EDD042232F54900D5D146 /* Copy CoreTestsConfig.plist As Bundle Resource */,
 				3CAB60A420AF8C8500810CE4 /* Resources */,
 			);
 			buildRules = (
@@ -1231,13 +1231,31 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3CC48D4A221CD1F200067EFC /* CoreTestsConfig.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		3C8EDD042232F54900D5D146 /* Copy CoreTestsConfig.plist As Bundle Resource */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy CoreTestsConfig.plist As Bundle Resource";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "RES_FILE=\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\"\nTGT_FILE=\"${CONFIGURATION_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/CoreTestsConfig.plist\"\ncp \"${RES_FILE}\" \"${TGT_FILE}\"\necho \"Copied \\\"${RES_FILE}\\\" to \\\"${TGT_FILE}\\\"\"\n";
+			showEnvVarsInLog = 0;
+		};
 		3CC48D4D221CD7E000067EFC /* Ensure CoreTestsConfig.plist */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -1254,8 +1272,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "#cp \"${HOME}/.brdCoreTestsConfig.plist\" \"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\"\nenv\n\nif [ -f \"${HOME}/.brdCoreTestsConfig.plist\" ]; then \n  cp \"${HOME}/.brdCoreTestsConfig.plist\" \"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\"\n  if [ ! -f \"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\" ]; then\n    echo \"Copy to  \\\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\\\" failed.\"\n  else\n    echo \"Copied \\\"${HOME}/.brdCoreTestsConfig.plist\\\" to \\\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\\\"\"\n  fi\nelse\n  echo \"Missing file ~/.brdCoreTestConfig.plist - You must provide the this file with a form like:\"\n  echo \"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\"\n  echo \"  <!DOCTYPE plist PUBLIC \\\"-//Apple//DTD PLIST 1.0//EN\\\" \\\"http://www.apple.com/DTDs/PropertyList-1.0.dtd\\\">\"\n  echo \"  <plist version=\\\"1.0\\\">\"\n  echo \"  <dict>\"\n  echo \"    <key>paperKeysTestnet</key>\"\n  echo \"    <array>\"\n  echo \"      <string>\\\"some paper key\\\"</string>\"\n  echo \"      ...\"\n  echo \"    </array>\"\n  echo \"    <key>paperKeysMainnet</key>\"\n  echo \"    <array>\"\n  echo \"      <string>\\\"some other paper key\\\"</string>\"\n  echo \"      ...\"\n  echo \"     </array>\"\n  echo \"    </dict>\"\n  echo \"  </plist>\"\n  exit 1\nfi\n";
-			showEnvVarsInLog = 0;
+			shellScript = "SRC_FILE=\"${HOME}/.brdCoreTestsConfig.plist\"\nTGT_FILE=\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\"\n\nif [ -f \"${SRC_FILE}\"  ]; then \n  cp \"${SRC_FILE}\" \"${TGT_FILE}\"\n  chmod 644 \"${TGT_FILE}\"\n  if [ ! -f \"${TGT_FILE}\" ]; then\n    echo \"Copy to  \\\"${TGT_FILE}\\\" failed.\"\n  else\n    echo \"Copied \\\"${SRC_FILE}\\\" to \\\"${TGT_FILE}\\\"\"\n  fi\nelse\n  echo \"Missing file ${SRC_FILE} - You must provide this file with a form like:\"\n  echo \"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\"\n  echo \"  <!DOCTYPE plist PUBLIC \\\"-//Apple//DTD PLIST 1.0//EN\\\" \\\"http://www.apple.com/DTDs/PropertyList-1.0.dtd\\\">\"\n  echo \"  <plist version=\\\"1.0\\\">\"\n  echo \"  <dict>\"\n  echo \"    <key>paperKeysTestnet</key>\"\n  echo \"    <array>\"\n  echo \"      <string>\\\"some paper key\\\"</string>\"\n  echo \"      ...\"\n  echo \"    </array>\"\n  echo \"    <key>paperKeysMainnet</key>\"\n  echo \"    <array>\"\n  echo \"      <string>\\\"some other paper key\\\"</string>\"\n  echo \"      ...\"\n  echo \"     </array>\"\n  echo \"    </dict>\"\n  echo \"  </plist>\"\n  exit 1\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
