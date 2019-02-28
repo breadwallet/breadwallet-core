@@ -1785,7 +1785,7 @@ nodeProcess (BREthereumNode node,
                     }
 
                     // Finally, CONNECTED
-                    nodeProcessSuccess (node, NODE_ROUTE_UDP, &message, nodeStateCreateConnected());
+                    nodeProcessSuccess (node, NODE_ROUTE_UDP, NULL, nodeStateCreateConnected());
 
                     if (DIS_MESSAGE_NEIGHBORS == message.u.dis.identifier) {
                         // We got a NEIGHBORS response - this node is discovered and is Parity
