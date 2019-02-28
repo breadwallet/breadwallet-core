@@ -1257,7 +1257,7 @@ ewmWalletCreateTransferToCancel(BREthereumEWM ewm,
                        etherCreateZero(),
                        gasPriceCreate(newGasPrice),
                        transactionGetGasLimit(oldTransaction),
-                       strdup (transactionGetData(oldTransaction)),
+                       transactionGetData(oldTransaction),
                        transactionGetNonce(oldTransaction));
 
     transferSetStatus(oldTransfer, TRANSFER_STATUS_REPLACED);
@@ -1325,7 +1325,7 @@ ewmWalletCreateTransferToReplace (BREthereumEWM ewm,
                        transactionGetAmount(oldTransaction),
                        gasPrice,
                        gasLimit,
-                       strdup (transactionGetData(oldTransaction)),
+                       transactionGetData(oldTransaction),
                        nonce);
 
     transferSetStatus(oldTransfer, TRANSFER_STATUS_REPLACED);

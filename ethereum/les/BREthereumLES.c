@@ -1114,9 +1114,6 @@ lesThread (BREthereumLES les) {
     fd_set readDescriptors, writeDesciptors;
     int maximumDescriptor = -1;
 
-    // True if we need to update descriptors.
-    int updateDesciptors = 1;
-
     pthread_mutex_lock (&les->lock);
 
     BRArrayOf(BREthereumNode) nodesToRemove;
@@ -1250,28 +1247,21 @@ lesThread (BREthereumLES les) {
         for (ssize_t index = requestsToFailCount - 1; index >= 0; index--)
             array_rm (les->requests, requestsToFail[index]);
 
-        // Just do it, always.
-        updateDesciptors = 1;
-
         //
         // Update the read (and write) descriptors to include nodes that are 'active' on any route.
         //
-        if (updateDesciptors) {
-            maximumDescriptor = -1;
-            FD_ZERO (&readDescriptors);
-            FD_ZERO (&writeDesciptors);
+        maximumDescriptor = -1;
+        FD_ZERO (&readDescriptors);
+        FD_ZERO (&writeDesciptors);
 
-            FOR_EACH_ROUTE(route) {
-                BRArrayOf(BREthereumNode) nodes = les->activeNodesByRoute[route];
-                for (size_t index = 0; index < array_count(nodes); index++)
-                    maximumDescriptor = maximum (maximumDescriptor,
-                                                 nodeUpdateDescriptors (nodes[index],
-                                                                        route,
-                                                                        &readDescriptors,
-                                                                        &writeDesciptors));
-            }
-
-            // updateDesciptors = 0;
+        FOR_EACH_ROUTE(route) {
+            BRArrayOf(BREthereumNode) nodes = les->activeNodesByRoute[route];
+            for (size_t index = 0; index < array_count(nodes); index++)
+                maximumDescriptor = maximum (maximumDescriptor,
+                                             nodeUpdateDescriptors (nodes[index],
+                                                                    route,
+                                                                    &readDescriptors,
+                                                                    &writeDesciptors));
         }
 
         pthread_mutex_unlock (&les->lock);
@@ -1422,19 +1412,12 @@ lesThread (BREthereumLES les) {
                         assert (0);  // how?
                 }
             }
-
-            // updateDesciptors = 1;
-
-            // pipe ()
         }
 
         //
         // or we have an pselect() error.
         //
-        else {
-            lesHandleSelectError (les, errno);
-            updateDesciptors = 1;
-        }
+        else lesHandleSelectError (les, errno);
 
         // double check that everything has been handled.
         assert (0 == array_count(nodesToRemove));
