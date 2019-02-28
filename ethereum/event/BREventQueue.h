@@ -40,7 +40,7 @@ typedef struct BREventQueueRecord *BREventQueue;
  * optional `lock`.
  */
 extern BREventQueue
-eventQueueCreate (size_t size, pthread_mutex_t *lock);
+eventQueueCreate (size_t size);
 
 extern void
 eventQueueDestroy (BREventQueue queue);
