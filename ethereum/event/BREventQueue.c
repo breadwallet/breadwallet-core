@@ -37,9 +37,6 @@ struct BREventQueueRecord {
     // A linked-list (through event->next) of available events
     BREvent *available;
 
-    // A lock for exclusive access when queueing/dequeueing events.
-    pthread_mutex_t *lockToUse;
-
     // If not provided with a lock, use this one.
     pthread_mutex_t lock;
 
@@ -48,7 +45,7 @@ struct BREventQueueRecord {
 };
 
 extern BREventQueue
-eventQueueCreate (size_t size, pthread_mutex_t *lock) {
+eventQueueCreate (size_t size) {
     BREventQueue queue = calloc (1, sizeof (struct BREventQueueRecord));
 
     queue->pending = NULL;
@@ -61,16 +58,12 @@ eventQueueCreate (size_t size, pthread_mutex_t *lock) {
         queue->available = event;
     }
 
-    // If a lock was not provided, create the PTHREAD LOCK, as a normal, non-recursive, lock.
-    if (NULL != lock) queue->lockToUse = lock;
-    else {
+    {
         pthread_mutexattr_t attr;
         pthread_mutexattr_init(&attr);
         pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
         pthread_mutex_init(&queue->lock, &attr);
         pthread_mutexattr_destroy(&attr);
-
-        queue->lockToUse = &queue->lock;
     }
 
     return queue;
@@ -96,7 +89,7 @@ eventFreeAll (BREvent *event,
 
 extern void
 eventQueueClear (BREventQueue queue) {
-    pthread_mutex_lock(queue->lockToUse);
+    pthread_mutex_lock(&queue->lock);
 
     eventFreeAll(queue->pending, 1);
     eventFreeAll(queue->available, 0);
@@ -104,7 +97,7 @@ eventQueueClear (BREventQueue queue) {
     queue->pending = NULL;
     queue->available = NULL;
 
-    pthread_mutex_unlock(queue->lockToUse);
+    pthread_mutex_unlock(&queue->lock);
 }
 
 extern void
@@ -112,8 +105,7 @@ eventQueueDestroy (BREventQueue queue) {
     // Clear the pending and available queues.
     eventQueueClear (queue);
 
-    if (queue->lockToUse == &queue->lock)
-        pthread_mutex_destroy(&queue->lock);
+    pthread_mutex_destroy(&queue->lock);
 
     memset (queue, 0, sizeof (struct BREventQueueRecord));
     free (queue);
@@ -123,7 +115,7 @@ static void
 eventQueueEnqueue (BREventQueue queue,
                    const BREvent *event,
                    int tail) {
-    pthread_mutex_lock(queue->lockToUse);
+    pthread_mutex_lock(&queue->lock);
 
     // Get the next available event
     BREvent *this = queue->available;
@@ -152,7 +144,7 @@ eventQueueEnqueue (BREventQueue queue,
         queue->pending = this;
     }
 
-    pthread_mutex_unlock(queue->lockToUse);
+    pthread_mutex_unlock(&queue->lock);
 }
 
 extern void
@@ -175,7 +167,7 @@ eventQueueDequeue (BREventQueue queue,
     if (NULL == event)
         return EVENT_STATUS_NULL_EVENT;
     
-    pthread_mutex_lock(queue->lockToUse);
+    pthread_mutex_lock(&queue->lock);
     
     // Get the next pending event
     BREvent *this = queue->pending;
@@ -197,7 +189,7 @@ eventQueueDequeue (BREventQueue queue,
         this->next = queue->available;
         queue->available = this;
     }
-    pthread_mutex_unlock(queue->lockToUse);
+    pthread_mutex_unlock(&queue->lock);
     
     return status;
 }
@@ -205,8 +197,8 @@ eventQueueDequeue (BREventQueue queue,
 extern int
 eventQueueHasPending (BREventQueue queue) {
     int pending = 0;
-    pthread_mutex_lock(queue->lockToUse);
+    pthread_mutex_lock(&queue->lock);
     pending = NULL != queue->pending;
-    pthread_mutex_unlock(queue->lockToUse);
+    pthread_mutex_unlock(&queue->lock);
     return pending;
 }

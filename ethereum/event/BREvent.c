@@ -155,7 +155,7 @@ eventHandlerCreate (const char *name,
     handler->thread = PTHREAD_NULL;
 
     handler->scratch = (BREvent*) calloc (1, handler->eventSize);
-    handler->queue = eventQueueCreate(handler->eventSize, handler->lockToUse);
+    handler->queue = eventQueueCreate (handler->eventSize);
 
     return handler;
 }
