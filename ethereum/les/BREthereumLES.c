@@ -362,6 +362,8 @@ struct BREthereumLESRecord {
     int theTimeToQuitIsNow;
     int theTimeToCleanIsNow;
     int theTimeToUpdateBlockHeadIsNow;
+
+    int isPendingDNSSeeds;
 };
 
 static void
@@ -631,7 +633,7 @@ lesCreate (BREthereumNetwork network,
     les->theTimeToCleanIsNow = 0;
     les->theTimeToUpdateBlockHeadIsNow = 0;
 
-    size_t bootstrappedEndpointsCount = 0;
+    les->isPendingDNSSeeds = 1;
 
 #if !defined(LES_BOOTSTRAP_LCL_ONLY)
     // Identify a set of initial nodes; first, use all the endpoints provided (based on `configs`)
@@ -647,74 +649,6 @@ lesCreate (BREthereumNetwork network,
 #endif // !defined(LES_BOOTSTRAP_LCL_ONLY)
 
     if (NULL != configs) BRSetFreeAll(configs, (BRSetItemFree) nodeConfigRelease);
-
-#if !defined (LES_BOOTSTRAP_LCL_ONLY)
-    // Create nodes from our network seeds.
-    const char **seeds = networkGetSeeds (network);
-    size_t seedsCount  = networkGetSeedsCount(network);
-
-    for (size_t i = 0; i < seedsCount; i++) {
-        BREthereumLESSeedContext context = { les, seeds[i],
-            (0 == i ? NODE_PRIORITY_BRD : NODE_PRIORITY_DIS),
-            0, 0
-        };
-
-        lesSeedQuery(&context);
-    }
-#endif // !defined (LES_BOOTSTRAP_LCL_ONLY)
-
-    // Create nodes from compiled-in nodes; this is done in case the 'seed' query fails - which
-    // it currently does for Android.  Take the opportunity to add in LCL nodes, if debugging.
-    struct {
-        BREthereumNodeType type;
-        BREthereumNodePriority priority;
-        const char **enodes;
-    } enodesDecl[] = {
-#if defined (LES_BOOTSTRAP_LCL_ONLY)
-        { NODE_TYPE_PARITY,  NODE_PRIORITY_LCL, networkGetEnodesLocal (network, 1) },
-        { NODE_TYPE_GETH,    NODE_PRIORITY_LCL, networkGetEnodesLocal (network, 0) },
-#else
-        { NODE_TYPE_UNKNOWN, NODE_PRIORITY_BRD, networkGetEnodesBRD (network) },
-        { NODE_TYPE_UNKNOWN, NODE_PRIORITY_DIS, networkGetEnodesCommunity (network) },
-#endif
-        { NODE_TYPE_UNKNOWN, NODE_PRIORITY_DIS, NULL }
-    };
-
-    int useParity = 0;
-    int useGeth   = 0;
-#if defined (LES_SUPPORT_PARITY)
-    useParity = 1;
-#endif
-#if defined (LES_SUPPORT_GETH)
-    useGeth = 1;
-#endif
-
-    for (size_t indexDecl = 0; NULL != enodesDecl[indexDecl].enodes; indexDecl++) {
-        const char **enodes = enodesDecl[indexDecl].enodes;
-        for (size_t index = 0; NULL != enodes[index]; index++) {
-            BREthereumBoolean added = ETHEREUM_BOOLEAN_FALSE;
-            BREthereumNodeType type = enodesDecl[indexDecl].type;
-
-            if (type == NODE_TYPE_UNKNOWN ||
-                (useParity && type == NODE_TYPE_PARITY) ||
-                (useGeth   && type == NODE_TYPE_GETH))
-                lesEnsureNodeForEndpoint (les,
-                                          nodeEndpointCreateEnode(enodes[index]),
-                                          (BREthereumNodeState) { NODE_AVAILABLE },
-                                          enodesDecl[indexDecl].priority,
-                                          &added);
-
-            if (ETHEREUM_BOOLEAN_IS_TRUE(added))
-                bootstrappedEndpointsCount += 1;
-        }
-    }
-
-    // Report on the bootstrap results.
-    eth_log (LES_LOG_TOPIC, "Nodes Bootstrapped: %zu", bootstrappedEndpointsCount);
-    for (size_t index = 0; index < 5 && index < array_count(les->availableNodes); index++) {
-        BREthereumDISNeighborEnode enode = neighborDISAsEnode (nodeEndpointGetDISNeighbor (nodeGetRemoteEndpoint (les->availableNodes[index])), 1);
-        eth_log (LES_LOG_TOPIC, "  @ %zu: %s", index, enode.chars);
-    }
 
     return les;
 }
@@ -1100,6 +1034,79 @@ lesHandleSelectError (BREthereumLES les,
     }
 }
 
+static void
+lesThreadBootstrapSeeds (BREthereumLES les) {
+    size_t bootstrappedEndpointsCount = 0;
+
+#if !defined (LES_BOOTSTRAP_LCL_ONLY)
+    // Create nodes from our network seeds.
+    const char **seeds = networkGetSeeds (les->network);
+    size_t seedsCount  = networkGetSeedsCount(les->network);
+
+    for (size_t i = 0; i < seedsCount; i++) {
+        BREthereumLESSeedContext context = { les, seeds[i],
+            (0 == i ? NODE_PRIORITY_BRD : NODE_PRIORITY_DIS),
+            0, 0
+        };
+
+        lesSeedQuery(&context);
+    }
+#endif // !defined (LES_BOOTSTRAP_LCL_ONLY)
+
+    // Create nodes from compiled-in nodes; this is done in case the 'seed' query fails - which
+    // it currently does for Android.  Take the opportunity to add in LCL nodes, if debugging.
+    struct {
+        BREthereumNodeType type;
+        BREthereumNodePriority priority;
+        const char **enodes;
+    } enodesDecl[] = {
+#if defined (LES_BOOTSTRAP_LCL_ONLY)
+        { NODE_TYPE_PARITY,  NODE_PRIORITY_LCL, networkGetEnodesLocal (les->network, 1) },
+        { NODE_TYPE_GETH,    NODE_PRIORITY_LCL, networkGetEnodesLocal (les->network, 0) },
+#else
+        { NODE_TYPE_UNKNOWN, NODE_PRIORITY_BRD, networkGetEnodesBRD (les->network) },
+        { NODE_TYPE_UNKNOWN, NODE_PRIORITY_DIS, networkGetEnodesCommunity (les->network) },
+#endif
+        { NODE_TYPE_UNKNOWN, NODE_PRIORITY_DIS, NULL }
+    };
+
+    int useParity = 0;
+    int useGeth   = 0;
+#if defined (LES_SUPPORT_PARITY)
+    useParity = 1;
+#endif
+#if defined (LES_SUPPORT_GETH)
+    useGeth = 1;
+#endif
+
+    for (size_t indexDecl = 0; NULL != enodesDecl[indexDecl].enodes; indexDecl++) {
+        const char **enodes = enodesDecl[indexDecl].enodes;
+        for (size_t index = 0; NULL != enodes[index]; index++) {
+            BREthereumBoolean added = ETHEREUM_BOOLEAN_FALSE;
+            BREthereumNodeType type = enodesDecl[indexDecl].type;
+
+            if (type == NODE_TYPE_UNKNOWN ||
+                (useParity && type == NODE_TYPE_PARITY) ||
+                (useGeth   && type == NODE_TYPE_GETH))
+                lesEnsureNodeForEndpoint (les,
+                                          nodeEndpointCreateEnode(enodes[index]),
+                                          (BREthereumNodeState) { NODE_AVAILABLE },
+                                          enodesDecl[indexDecl].priority,
+                                          &added);
+
+            if (ETHEREUM_BOOLEAN_IS_TRUE(added))
+                bootstrappedEndpointsCount += 1;
+        }
+    }
+
+    // Report on the bootstrap results.
+    eth_log (LES_LOG_TOPIC, "Nodes Bootstrapped: %zu", bootstrappedEndpointsCount);
+    for (size_t index = 0; index < 5 && index < array_count(les->availableNodes); index++) {
+        BREthereumDISNeighborEnode enode = neighborDISAsEnode (nodeEndpointGetDISNeighbor (nodeGetRemoteEndpoint (les->availableNodes[index])), 1);
+        eth_log (LES_LOG_TOPIC, "  @ %zu: %s", index, enode.chars);
+    }
+}
+
 static void *
 lesThread (BREthereumLES les) {
 #if defined (__ANDROID__)
@@ -1115,6 +1122,13 @@ lesThread (BREthereumLES les) {
     int maximumDescriptor = -1;
 
     pthread_mutex_lock (&les->lock);
+
+    // See CORE-260: the process of finding seeds, using DNS TXT fields, can take a while.
+    // So, we moved it out of lesCreate() here, in lesThread().
+    if (les->isPendingDNSSeeds) {
+        les->isPendingDNSSeeds = 0;
+        lesThreadBootstrapSeeds (les);
+     }
 
     BRArrayOf(BREthereumNode) nodesToRemove;
     array_new(nodesToRemove, 10);
