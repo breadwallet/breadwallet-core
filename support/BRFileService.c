@@ -285,6 +285,7 @@ fileServiceLoad (BRFileService fs,
     // Allocate some storage for entity bytes;
     size_t bufferSize = 8 * 1024;
     uint8_t *buffer = malloc (bufferSize);
+    if (NULL == buffer) return fileServiceFailedUnix (fs, NULL, NULL, ENOMEM);
 
     // Process each directory entry.
     while (NULL != (dirEntry = readdir(dir)))
@@ -319,7 +320,10 @@ fileServiceLoad (BRFileService fs,
             // Ensure `buffer` is large enough
             if (bytesCount > bufferSize) {
                 bufferSize = bytesCount;
-                buffer = realloc (buffer, bufferSize);
+
+                uint8_t *bufferNew = realloc (buffer, bufferSize);
+                if (NULL == bufferNew) return fileServiceFailedUnix (fs, buffer, NULL, ENOMEM);
+                buffer = bufferNew;
             }
 
             // read the bytes - multiple might be required
