@@ -921,11 +921,14 @@ blockLinkLogsWithTransactions (BREthereumBlock block) {
         // Importantly, note that the log has no reference to the transaction itself.  And, if only
         // implicitly, we assume that `block` has the correct transaction at transactionIndex.
         BREthereumTransaction transaction = block->transactions[transactionIndex];
+
+        // The logIndex was assigned (w/o the transaction hash) from the receipts
         logExtractIdentifier(log, NULL, &logIndex);
+
+        // Finally, a fully identified log
         logInitializeIdentifier(log, transactionGetHash(transaction), logIndex);
     }
 }
-
 
 //
 // Block RLP Encode / Decode

@@ -510,6 +510,8 @@ transferGetOriginatingTransactionHash (BREthereumTransfer transfer) {
             if (NULL == transfer->basis.u.log) return EMPTY_HASH_INIT;
 
             BREthereumHash hash = EMPTY_HASH_INIT;
+
+            // If log has not been recorded, then EMPTY_HASH_INIT is returned.
             logExtractIdentifier(transfer->basis.u.log, &hash, NULL);
             return hash;
         }

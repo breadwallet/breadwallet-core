@@ -1737,9 +1737,10 @@ ewmHandleLog (BREthereumEWM ewm,
               OwnershipGiven BREthereumLog log) {
     BREthereumHash logHash = logGetHash(log);
 
+    // Assert that we always have an identifier for `log`.
     BREthereumHash transactionHash;
     size_t logIndex;
-    logExtractIdentifier(log, &transactionHash, &logIndex);
+    assert (ETHEREUM_BOOLEAN_IS_TRUE (logExtractIdentifier(log, &transactionHash, &logIndex)));
 
     BREthereumHashString logHashString;
     hashFillString(logHash, logHashString);

@@ -580,8 +580,8 @@ bcsPendFindLogsByTransactionHash (BREthereumBCS bcs,
         BREthereumLog  log     = BRSetGet (bcs->logs, &logHash);
         if (NULL != log) {
             BREthereumHash txHash;
-            logExtractIdentifier (log, &txHash, NULL);
-            if (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(txHash, hash))) {
+            if (ETHEREUM_BOOLEAN_IS_TRUE (logExtractIdentifier (log, &txHash, NULL)) &&
+                ETHEREUM_BOOLEAN_IS_TRUE (hashEqual(txHash, hash))) {
                 if (NULL == logs) array_new (logs, 1);
                 array_add (logs, log);
             }
@@ -2070,8 +2070,8 @@ bcsPeriodicDispatcher (BREventHandler handler,
         BREthereumLog  log     = BRSetGet (bcs->logs, &logHash);
         if (NULL != log) {
             BREthereumHash hash;
-            logExtractIdentifier (log, &hash, NULL);
-            if (-1 == hashesIndex(hashes, hash))
+            if (ETHEREUM_BOOLEAN_IS_TRUE (logExtractIdentifier (log, &hash, NULL)) &&
+                -1 == hashesIndex(hashes, hash))
                 array_add (hashes, hash);
         }
     }

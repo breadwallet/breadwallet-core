@@ -495,8 +495,8 @@ walletGetTransferByOriginatingHash (BREthereumWallet wallet,
 
 extern BREthereumTransfer
 walletGetTransferByNonce(BREthereumWallet wallet,
-                            BREthereumAddress sourceAddress,
-                            uint64_t nonce) {
+                         BREthereumAddress sourceAddress,
+                         uint64_t nonce) {
     for (int i = 0; i < array_count(wallet->transfers); i++)
         if (nonce == transferGetNonce (wallet->transfers[i])
             && ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(sourceAddress, transferGetSourceAddress(wallet->transfers[i]))))
@@ -506,7 +506,7 @@ walletGetTransferByNonce(BREthereumWallet wallet,
 
 extern BREthereumTransfer
 walletGetTransferByIndex(BREthereumWallet wallet,
-                            uint64_t index) {
+                         uint64_t index) {
     return (index < array_count(wallet->transfers)
             ? wallet->transfers[index]
             : NULL);
@@ -514,7 +514,7 @@ walletGetTransferByIndex(BREthereumWallet wallet,
 
 static int // -1 if not found
 walletLookupTransferIndex (BREthereumWallet wallet,
-                              BREthereumTransfer transfer) {
+                           BREthereumTransfer transfer) {
     for (int i = 0; i < array_count(wallet->transfers); i++)
         if (transfer == wallet->transfers[i])
             return i;
@@ -523,7 +523,7 @@ walletLookupTransferIndex (BREthereumWallet wallet,
 
 static void
 walletInsertTransferSorted (BREthereumWallet wallet,
-                               BREthereumTransfer transfer) {
+                            BREthereumTransfer transfer) {
     size_t index = array_count(wallet->transfers);
     for (; index > 0; index--)
         // quit if transfer is not-less-than the next in wallet
@@ -538,7 +538,7 @@ walletInsertTransferSorted (BREthereumWallet wallet,
 #pragma GCC diagnostic ignored "-Wunused-function"
 static void
 walletUpdateTransferSorted (BREthereumWallet wallet,
-                               BREthereumTransfer transfer) {
+                            BREthereumTransfer transfer) {
     // transfer might have moved - move it if needed - but for now, remove then insert.
     int index = walletLookupTransferIndex(wallet, transfer);
     assert (-1 != index);
