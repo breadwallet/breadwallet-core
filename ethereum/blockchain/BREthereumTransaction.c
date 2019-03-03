@@ -558,9 +558,11 @@ transactionHasStatus(BREthereumTransaction transaction,
 
 /**
  * Compare two transactions based on their block, or if not blocked, their nonce.
+ *
  * @param t1
  * @param t2
- * @return
+ =
+ * @return a BREthereumComparison result.
  */
 extern BREthereumComparison
 transactionCompare(BREthereumTransaction t1,

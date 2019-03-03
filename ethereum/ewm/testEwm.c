@@ -585,30 +585,41 @@ runEWM_CONNECT_test (const char *paperKey,
     client.context = testContextCreate();
     
     BREthereumEWM ewm = ewmCreateWithPaperKey (ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
-                                               P2P_ONLY,
+                                               BRD_ONLY,
                                                client,
                                                storagePath);
     
     BREthereumWallet wallet = ewmGetWallet(ewm);
-    
+    BREthereumAmount balance;
     ewmConnect(ewm);
     
     printf ("====     Waiting for Balance\n");
+
+    // First balance, in wallet creation, will be 0
     waitForBalance(client.context);
+    balance = ewmWalletGetBalance (ewm, wallet);
+    assert (AMOUNT_ETHER == balance.type);
+    assert (ETHEREUM_BOOLEAN_TRUE == etherIsEQ(amountGetEther(balance), etherCreateZero()));
+
     //    sleep (20);  // let connect 'take'
-    
+
+    // Second balance will be from the client.
+    waitForBalance(client.context);
+
     // Callback to JSON_RPC for 'getBalanance'&
     //    ewmUpdateWalletBalance (ewm, wallet, &status);
-    BREthereumAmount balance = ewmWalletGetBalance (ewm, wallet);
+
     BREthereumEther expectedBalance = etherCreate(createUInt256Parse("0x123f", 16, &status));
+    balance = ewmWalletGetBalance (ewm, wallet);
     assert (CORE_PARSE_OK == status
             && AMOUNT_ETHER == amountGetType(balance)
             && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (expectedBalance, amountGetEther(balance)));
-    
-    int count = ewmWalletGetTransferCount(ewm, wallet);
-    assert (2 == count);
-    
+
     //    ewmUpdateTransactions(ewm);
+
+//    int count = ewmWalletGetTransferCount(ewm, wallet);
+//    assert (2 == count);
+
     testContextRelease(client.context);
     clientRelease();
     ewmDisconnect(ewm);
@@ -867,7 +878,7 @@ runEWMTests (const char *paperKey,
     // prepareTransaction(NODE_PAPER_KEY, NODE_RECV_ADDR, TEST_TRANS2_GAS_PRICE_VALUE, GAS_LIMIT_DEFAULT, NODE_ETHER_AMOUNT);
     if (NULL == paperKey) paperKey = NODE_PAPER_KEY;
 
-    runEWM_CONNECT_test(paperKey, storagePath);
+//    runEWM_CONNECT_test(paperKey, storagePath);
     runEWM_TOKEN_test (paperKey, storagePath);
     runEWM_PUBLIC_KEY_test (ethereumMainnet, paperKey, storagePath);
 }

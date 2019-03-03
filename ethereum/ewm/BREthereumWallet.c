@@ -44,11 +44,11 @@ walletCreateDefaultGasLimit (BREthereumWallet wallet);
 
 static void
 walletInsertTransferSorted (BREthereumWallet wallet,
-                               BREthereumTransfer transfer);
+                            BREthereumTransfer transfer);
 
 static int // -1 if not found
 walletLookupTransferIndex (BREthereumWallet wallet,
-                              BREthereumTransfer transfer);
+                           BREthereumTransfer transfer);
 
 /**
  *
@@ -101,12 +101,37 @@ struct BREthereumWalletRecord {
      */
     BREthereumToken token; // optional
     
-    //
-    // Transfers - these are sorted from oldest [index 0] to newest.  As transfers are added
-    // we'll maintain the ordering using an 'insertion sort' - while starting at the end and
-    // working backwards.
-    //
-    BREthereumTransfer *transfers;
+    /*
+     * Transfers - these are sorted from oldest [index 0] to newest.  As transfers are added
+     * we'll maintain the ordering using an 'insertion sort' - while starting at the end and
+     * working backwards.
+     *
+     * We are often faced with looking up a transfer based on a hash.  For example, BCS found
+     * a transaction for our address and we need to find the corresponding transfer.  Or, instead
+     * of BCS, the BRD endpoint reports a transaction/log of interest.  How do we lookup based
+     * on a hash?
+     *
+     * Further complicating the lookup are:
+     *  a) a transfer is only guaranteed to have a hash if we originated the transfer.  In this
+     *     case we have an 'originating transaction' and can compare its hash.
+     *  b) a log doesn't have a transaction hash until it has been included.
+     *  c) one hash can produce multiple logs.  The logs will have a unique identifier, as
+     *     {hash,indexInBlock} when included, but the hash itself need not be unique.  Note: this
+     *     does not apply to ERC20 transfers, which have one hash and one log.
+     *
+     * FOR NOW, WE'LL ASSUME: ONE HASH <==> ONE TRANSFER (transaction or log)
+     *
+     * Given a hash, to find a corresponding transfers we'll iterate through `transfers` and
+     * compare: a) the hash for the originating transaction, if it exists, b) the hash for the
+     * basis, if it exists.  If the basis is a log, we'll extranct the transaction hash and compare
+     * that.
+     *
+     * We might consider:
+     *   BRSetOf (BRArrayOf ({hash, transfer}) transfersByHashPairs;
+     * which would speed lookup of a transfer.
+     *
+     */
+    BRArrayOf (BREthereumTransfer) transfers;
 };
 
 //
@@ -274,13 +299,13 @@ walletCreateTransferGeneric (BREthereumWallet wallet,
 private_extern void
 walletHandleTransfer(BREthereumWallet wallet,
                      BREthereumTransfer transfer) {
-    walletInsertTransferSorted(wallet, transfer);
+    walletInsertTransferSorted (wallet, transfer);
 }
 
 private_extern void
 walletUnhandleTransfer (BREthereumWallet wallet,
                         BREthereumTransfer transfer) {
-    int index = walletLookupTransferIndex(wallet, transfer);
+    int index = walletLookupTransferIndex (wallet, transfer);
     assert (-1 != index);
     array_rm(wallet->transfers, index);
 }
@@ -288,7 +313,7 @@ walletUnhandleTransfer (BREthereumWallet wallet,
 private_extern int
 walletHasTransfer (BREthereumWallet wallet,
                    BREthereumTransfer transfer) {
-    return -1 != walletLookupTransferIndex(wallet, transfer);
+    return -1 != walletLookupTransferIndex (wallet, transfer);
 }
 
 //
@@ -472,11 +497,13 @@ walletWalkTransfers (BREthereumWallet wallet,
 }
 
 extern BREthereumTransfer
-walletGetTransferByHash (BREthereumWallet wallet,
-                         BREthereumHash hash) {
+walletGetTransferByIdentifier (BREthereumWallet wallet,
+                               BREthereumHash hash) {
+    if (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual (hash, EMPTY_HASH_INIT))) return NULL;
+
     for (int i = 0; i < array_count(wallet->transfers); i++) {
-        BREthereumHash transferHash = transferGetHash(wallet->transfers[i]);
-        if (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(hash, transferHash)))
+        BREthereumHash identifier = transferGetIdentifier (wallet->transfers[i]);
+        if (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual (hash, identifier)))
             return wallet->transfers[i];
     }
     return NULL;
@@ -486,8 +513,8 @@ extern BREthereumTransfer
 walletGetTransferByOriginatingHash (BREthereumWallet wallet,
                                     BREthereumHash hash) {
     for (int i = 0; i < array_count(wallet->transfers); i++) {
-        BREthereumTransaction transaction = transferGetOriginatingTransaction(wallet->transfers[i]);
-        if (NULL != transaction && ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(hash, transactionGetHash(transaction))))
+        BREthereumTransaction transaction = transferGetOriginatingTransaction (wallet->transfers[i]);
+        if (NULL != transaction && ETHEREUM_BOOLEAN_IS_TRUE (hashEqual (hash, transactionGetHash (transaction))))
             return wallet->transfers[i];
     }
     return NULL;
@@ -527,7 +554,7 @@ walletInsertTransferSorted (BREthereumWallet wallet,
     size_t index = array_count(wallet->transfers);
     for (; index > 0; index--)
         // quit if transfer is not-less-than the next in wallet
-        if (ETHEREUM_COMPARISON_LT != transferCompare(transfer, wallet->transfers[index - 1]))
+        if (ETHEREUM_COMPARISON_LT != transferCompare (transfer, wallet->transfers[index - 1]))
             break;
     array_insert(wallet->transfers, index, transfer);
 }

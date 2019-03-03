@@ -181,6 +181,23 @@ public class DefaultEthereumBackendClient: EthereumBackendClient {
                                  5539808]
             }
 
+        case "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62".lowercased():
+            if 0 != interests & UInt32 (1 << 3) /* CLIENT_GET_BLOCKS_LOGS_AS_TARGET */ {
+                blockNumbers += [5732521]
+            }
+
+            if 0 != interests & UInt32 (1 << 2) /* CLIENT_GET_BLOCKS_LOGS_AS_SOURCE */ {
+                // ~8 blocks
+            }
+
+            if 0 != interests & UInt32 (1 << 1) /* CLIENT_GET_BLOCKS_TRANSACTIONS_AS_TARGET */ {
+                // ~5 blocks
+            }
+
+            if 0 != interests & UInt32 (1 << 0) /* CLIENT_GET_BLOCKS_TRANSACTIONS_AS_SOURCE */ {
+                // ~ 45 blocks
+            }
+
         default:
             blockNumbers.append(contentsOf: [blockStart,
                                              (blockStart + blockStop) / 2,
@@ -225,7 +242,7 @@ public class DefaultEthereumBackendClient: EthereumBackendClient {
     }
 
     public func getNonce(ewm: EthereumWalletManager, address: String, rid: Int32) {
-        ewm.announceNonce(address: address, nonce: "48", rid: rid)
+        ewm.announceNonce(address: address, nonce: "59", rid: rid)
     }
 
     public init () {}

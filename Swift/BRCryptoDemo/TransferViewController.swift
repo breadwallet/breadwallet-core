@@ -94,7 +94,7 @@ class TransferViewController: UIViewController {
             resubmitButton.isEnabled = false
        }
 
-//        nonceLabel.text = transfer.nonce.description
+        nonceLabel.text = (transfer as? EthereumTransfer)?.nonce.description ?? "N/A"
         dotView.mainColor = colorForState()
     }
 

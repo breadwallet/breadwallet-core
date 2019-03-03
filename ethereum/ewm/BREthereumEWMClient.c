@@ -818,8 +818,9 @@ ewmAnnounceSubmitTransfer(BREthereumEWM ewm,
 
     if (NULL != strHash) {
         BREthereumHash hash = hashCreate(strHash);
-        if (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(transferGetHash(transfer), hashCreateEmpty()))
-            || ETHEREUM_BOOLEAN_IS_FALSE (hashEqual(transferGetHash(transfer), hash)))
+        // We announce a submitted transfer => there is an originating transaction.
+        if (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual (hash, EMPTY_HASH_INIT))
+            || ETHEREUM_BOOLEAN_IS_FALSE (hashEqual (hash, transferGetOriginatingTransactionHash (transfer))))
             return ERROR_TRANSACTION_HASH_MISMATCH;
     }
 
@@ -994,7 +995,7 @@ ewmHandleTransferEvent (BREthereumEWM ewm,
         BREthereumLog         log         = transferGetBasisLog(transfer);
 
         // If we have a hash, then we've got something to save.
-        BREthereumHash hash = transferGetHash(transfer);
+        BREthereumHash hash = transferGetIdentifier(transfer);
         if (ETHEREUM_BOOLEAN_IS_FALSE (hashCompare (hash, EMPTY_HASH_INIT))) {
 
             // One of `transaction` or `log` will always be null

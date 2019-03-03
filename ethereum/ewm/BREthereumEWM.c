@@ -1688,8 +1688,21 @@ ewmHandleTransaction (BREthereumEWM ewm,
     BREthereumWallet wallet = ewmGetWallet(ewm);
     assert (NULL != wallet);
 
+    ///
+    ///  What hash to use:
+    ///     originating -> expecting a result
+    ///     identifier  -> seen already.
+    ///
+    ///     originating should be good in one wallet?  [no, multiple logs?]
+    ///        wallet will have transfers w/o a basis.
+    ///        does a transfer with an ERC20 transfer fit in one wallet?
+    ///        does a transfer with some smart contract fit in one wallet (no?)
+    ///
+
     // Find a preexisting transfer
-    BREthereumTransfer transfer = walletGetTransferByHash (wallet, hash);
+    BREthereumTransfer transfer = walletGetTransferByIdentifier (wallet, hash);
+    if (NULL == transfer)
+        transfer = walletGetTransferByOriginatingHash (wallet, hash);
 
     int needStatusEvent = 0;
 
@@ -1748,8 +1761,10 @@ ewmHandleLog (BREthereumEWM ewm,
     BREthereumHashString transactionHashString;
     hashFillString(transactionHash, transactionHashString);
 
-    eth_log ("EWM", "Log: %s { %8s @ %zu }, Change: %s",
-             logHashString, transactionHashString, logIndex, BCS_CALLBACK_TRANSACTION_TYPE_NAME(type));
+    eth_log ("EWM", "Log: %s { %8s @ %zu }, Change: %s, Status: %d",
+             logHashString, transactionHashString, logIndex,
+             BCS_CALLBACK_TRANSACTION_TYPE_NAME(type),
+             logGetStatus(log).type);
 
     BREthereumToken token = tokenLookupByAddress(logGetAddress(log));
     if (NULL == token) return;
@@ -1760,7 +1775,9 @@ ewmHandleLog (BREthereumEWM ewm,
     BREthereumWallet wallet = ewmGetWalletHoldingToken (ewm, token);
     assert (NULL != wallet);
 
-    BREthereumTransfer transfer = walletGetTransferByHash (wallet, logHash);
+    BREthereumTransfer transfer = walletGetTransferByIdentifier (wallet, logHash);
+    if (NULL == transfer)
+        transfer = walletGetTransferByOriginatingHash (wallet, transactionHash);
 
     int needStatusEvent = 0;
 
@@ -2022,9 +2039,9 @@ ewmTransferGetSource (BREthereumEWM ewm,
 }
 
 extern BREthereumHash
-ewmTransferGetHash(BREthereumEWM ewm,
-                   BREthereumTransfer transfer) {
-    return transferGetHash(transfer);
+ewmTransferGetIdentifier(BREthereumEWM ewm,
+                         BREthereumTransfer transfer) {
+    return transferGetIdentifier (transfer);
 }
 
 extern BREthereumHash

@@ -224,36 +224,36 @@ typedef void (*BREthereumTransferWalker) (void *context, BREthereumTransfer tran
 
 extern int
 transferPredicateAny (void *ignore,
-                         BREthereumTransfer transfer,
-                         unsigned int index);
+                      BREthereumTransfer transfer,
+                      unsigned int index);
 
 extern int
 transferPredicateStatus (BREthereumTransferStatus status,
-                            BREthereumTransfer transfer,
-                            unsigned int index);
+                         BREthereumTransfer transfer,
+                         unsigned int index);
 
 extern void
 walletWalkTransfers (BREthereumWallet wallet,
-                        void *context,
-                        BREthereumTransferPredicate predicate,
-                        BREthereumTransferWalker walker);
+                     void *context,
+                     BREthereumTransferPredicate predicate,
+                     BREthereumTransferWalker walker);
 
 extern BREthereumTransfer
-walletGetTransferByHash (BREthereumWallet wallet,
-                            BREthereumHash hash);
+walletGetTransferByIdentifier (BREthereumWallet wallet,
+                               BREthereumHash hash);
 
 extern BREthereumTransfer
 walletGetTransferByOriginatingHash (BREthereumWallet wallet,
                                     BREthereumHash hash);
-    
+
 extern BREthereumTransfer
 walletGetTransferByNonce(BREthereumWallet wallet,
-                            BREthereumAddress sourceAddress,
-                            uint64_t nonce);
+                         BREthereumAddress sourceAddress,
+                         uint64_t nonce);
 
 extern BREthereumTransfer
 walletGetTransferByIndex(BREthereumWallet wallet,
-                            uint64_t index);
+                         uint64_t index);
 
 extern unsigned long
 walletGetTransferCount (BREthereumWallet wallet);

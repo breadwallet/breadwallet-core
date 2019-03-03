@@ -252,7 +252,7 @@ public class EthereumTransfer: Transfer {
     public var hash: TransferHash? {
         guard ETHEREUM_BOOLEAN_TRUE == ewmTransferIsSubmitted (self.core, self.identifier)
             else { return nil }
-        let hash = ewmTransferGetHash(self.core, self.identifier)
+        let hash = ewmTransferGetIdentifier (self.core, self.identifier)
         return TransferHash.ethereum (hash)
     }
     
@@ -264,6 +264,10 @@ public class EthereumTransfer: Transfer {
             return ETHEREUM_BOOLEAN_TRUE == addressEqual ( accountGetPrimaryAddress (account), address)
         }
         else { return false }
+    }
+
+    public var nonce: UInt64 {
+        return ewmTransferGetNonce(self.core, self.identifier)
     }
     
     init (wallet: EthereumWallet,
