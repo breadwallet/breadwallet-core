@@ -128,8 +128,8 @@ static struct BREthereumNetworkRecord ethereumMainnetRecord = {
         NULL },
 
     // Local - Parity
-    { "enode://74b31b97f646b206dd01d8f20d080b97e502483a55ee64ea02cbf0c6df4263ff33bee61ba940113db36a4cfd1e1e8f2fe66cf91e6a1925f63860fb6bc5671c87@192.168.1.200:8888",  // SSD Archive - SAM
-        "enode://4483ac6134c85ecbd31d14168f1c97b82bdc45c442e81277f52428968de41add46549f8d6c9c8c3432f3b8834b018c350ac37d87d70d67e599f42f68a96717fc@127.0.0.1:30303",     // SSD Archive - Ed
+    { "enode://74b31b97f646b206dd01d8f20d080b97e502483a55ee64ea02cbf0c6df4263ff33bee61ba940113db36a4cfd1e1e8f2fe66cf91e6a1925f63860fb6bc5671c87@192.168.1.200:8888",  // SSD Archive - Sam
+        "enode://6ff469b687ad551b105226ea5d84c5137e8cbba0e12c134fa53b620b6fa90bbb2ee0fe1f590d05eec79f70c21399946be6c87d2ff7b698c77a775807917114d4@127.0.0.1:30303",   // SSD Archive - Ed
         NULL },
 
     // Local - Geth
