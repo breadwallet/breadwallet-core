@@ -2012,16 +2012,15 @@ ewmTransferGetRawDataHexEncoded(BREthereumEWM ewm,
     assert (walletHasTransfer(wallet, transfer));
 
     BREthereumTransaction transaction = transferGetOriginatingTransaction (transfer);
-    assert (NULL != transaction);
 
-    return transactionGetRlpHexEncoded(transaction,
-                                       ewm->network,
-                                       (ETHEREUM_BOOLEAN_IS_TRUE (transactionIsSigned(transaction))
-                                        ? RLP_TYPE_TRANSACTION_SIGNED
-                                        : RLP_TYPE_TRANSACTION_UNSIGNED),
-                                       prefix);
-}
-
+    return (NULL == transaction ? NULL
+            : transactionGetRlpHexEncoded (transaction,
+                                           ewm->network,
+                                           (ETHEREUM_BOOLEAN_IS_TRUE (transactionIsSigned(transaction))
+                                            ? RLP_TYPE_TRANSACTION_SIGNED
+                                            : RLP_TYPE_TRANSACTION_UNSIGNED),
+                                           prefix));
+            }
 
 ///
 /// MARK: - Transfer
