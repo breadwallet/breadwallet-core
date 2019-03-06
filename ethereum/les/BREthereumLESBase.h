@@ -47,11 +47,11 @@
 #define LES_LOG_TOPIC "LES"
 
 /** */
-#define LES_SUPPORT_PARITY
+//#define LES_SUPPORT_PARITY
 #define LES_SUPPORT_PARITY_VERSION      (1)
 
 /** */
-//#define LES_SUPPORT_GETH
+#define LES_SUPPORT_GETH
 #define LES_SUPPORT_GETH_VERSION        (2)
 #define LES_SUPPORT_GETH_ANNOUNCE_TYPE  (1)
 
@@ -69,8 +69,6 @@
 #if defined (LES_BOOTSTRAP_BRD_ONLY) || defined (NDEBUG) || !defined (DEBUG)
 #undef LES_BOOTSTRAP_LCL_ONLY
 #endif
-
-#define LES_BOOTSTRAP_LCL_ONLY
 
 /**
  * For debugging only, we can optionally disable P2P Node Discovery.  This is very useful for
