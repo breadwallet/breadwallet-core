@@ -63,6 +63,7 @@ typedef enum {
     TRANSACTION_ERROR_GAS_TOO_LOW,
     TRANSACTION_ERROR_REPLACEMENT_UNDER_PRICED,
     TRANSACTION_ERROR_DROPPED,
+    TRANSACTION_ERROR_ALREADY_KNOWN,   // Geth: submit arrives after shared (from other peer)
     TRANSACTION_ERROR_UNKNOWN,
 } BREthereumTransactionErrorType;
 
