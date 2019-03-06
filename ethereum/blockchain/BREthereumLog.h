@@ -84,12 +84,32 @@ logCreate (BREthereumAddress address,
            BREthereumLogTopic *topics,
            BRRlpData data);
 
+
 extern void
 logInitializeIdentifier (BREthereumLog log,
                          BREthereumHash transactionHash,
                          size_t transactionReceiptIndex);
 
-extern void
+/**
+ * An identifier for an unknown receipt index.
+ */
+#define LOG_TRANSACTION_RECEIPT_INDEX_UNKNOWN       (SIZE_MAX)
+
+/**
+ * Extract the log's identifier components.  A Log is identified by the transaction hash that
+ * originated the log and the index of the log in the block's transaction receipts array.
+ *
+ * If the log has not been recorded in a block, then FALSE is returned.  Otherwise TRUE is returned
+ * and `transactionHash` and `transacetionReceiptIndex` will be filled.
+ *
+ * @param log the log
+ * @param transactionHash a hash pointer; if non-NULL will be filled with the transaction's hash
+ * @param transactionReceiptIndex an index pointer, if non-NULL will be filled with the logs
+ *    index in the block's transaction receipts array.
+ *
+ * @return TRUE if recorded in a block, FALSE otherwise.
+ */
+extern BREthereumBoolean
 logExtractIdentifier (BREthereumLog log,
                       BREthereumHash *transactionHash,
                       size_t *transactionReceiptIndex);

@@ -202,6 +202,9 @@ struct BREthereumBCSStruct {
     /**
      * A BRSet of logs for account.  This includes any and all logs that we've ever
      * identified/created for account no matter the log's status.  [See above for `transactions`]
+     *
+     * As this is a BRSet and a log's hash is the set identifier, every log in this set must be
+     * included?
      */
     BRSetOf(BREtherumLog) logs;
 

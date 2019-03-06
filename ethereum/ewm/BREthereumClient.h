@@ -113,6 +113,11 @@ extern "C" {
     ///
     /// MARK: Submit Transfer
     ///
+
+    /**
+     * Client handler for submitting a transaction.  Makes a JSON_RPC call with `transaction` and
+     * then invokes `ewmAnnounceSubmitTransfer()` with the result.
+     */
     typedef void
     (*BREthereumClientHandlerSubmitTransaction) (BREthereumClientContext context,
                                                  BREthereumEWM ewm,
@@ -122,7 +127,9 @@ extern "C" {
                                                  int rid);
 
     /**
-     * Announce the result of a submitted transaction
+     * Announce the result of a submitted transaction.  This is only called from the client
+     * in the implementation of BREthereumClientHandlerSubmitTransaction (after the JSON_RPC
+     * call is made to actually submit the transfer)
      *
      * @param ewm the ewm
      * @param wid the wallet

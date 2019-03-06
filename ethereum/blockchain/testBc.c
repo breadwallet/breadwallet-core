@@ -369,7 +369,7 @@ runLogTests (void) {
 
     BREthereumHash statusArchiveTxHash;
     size_t statusArchiveIndex;
-    logExtractIdentifier(logArchived, &statusArchiveTxHash, &statusArchiveIndex);
+    assert (ETHEREUM_BOOLEAN_IS_TRUE (logExtractIdentifier(logArchived, &statusArchiveTxHash, &statusArchiveIndex)));
 //    assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(status.identifier.transactionHash, statusArchiveTxHash)));
     assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual (someTxHash, statusArchiveTxHash)));
 
