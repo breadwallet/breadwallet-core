@@ -37,6 +37,7 @@ transactionGetErrorName (BREthereumTransactionErrorType type) {
         "* gas too low",
         "* replacement under-pricesd",
         "* dropped",
+        "* already known",
         "* unknown"
     };
 
@@ -135,7 +136,7 @@ transactionStatusRLPDecode (BRRlpItem item,
                             BRRlpCoder coder) {
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
-    assert (3 == itemsCount); // [type, [blockHash blockNumber, txIndex], error]
+    assert (3 == itemsCount); // [type, [blockHash, blockNumber, txIndex], error]
 
     // We have seen (many) cases where the `type` is `unknown` but there is an `error`.  That
     // appears to violate the LES specfication.  Anyways, if we see an `error` we'll force the
@@ -145,7 +146,8 @@ transactionStatusRLPDecode (BRRlpItem item,
         BREthereumTransactionErrorType type = lookupTransactionErrorType (reasons, reason);
         BREthereumTransactionStatus status = transactionStatusCreateErrored (type, reason);
         free (reason);
-        return status;
+        // CORE-264: We always consider an 'already known' error as 'pending'
+        return TRANSACTION_ERROR_ALREADY_KNOWN != type ? status : transactionStatusCreate(TRANSACTION_STATUS_PENDING);
     }
     if (NULL != reason) free (reason);
 
@@ -172,8 +174,9 @@ transactionStatusRLPDecode (BRRlpItem item,
         case TRANSACTION_STATUS_ERRORED: {
             // We should not be here....
             BREthereumTransactionErrorType type = (BREthereumTransactionErrorType) rlpDecodeUInt64 (coder, items[2], 0);
-            BREthereumTransactionStatus status = transactionStatusCreateErrored (type, transactionGetErrorName (type));
-            return status;
+            return (TRANSACTION_ERROR_ALREADY_KNOWN != type
+                    ? transactionStatusCreateErrored (type, transactionGetErrorName (type))
+                    : transactionStatusCreate(TRANSACTION_STATUS_PENDING));
         }
     }
 }
