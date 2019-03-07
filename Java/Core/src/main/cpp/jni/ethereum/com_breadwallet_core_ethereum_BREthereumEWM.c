@@ -641,18 +641,6 @@ JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniWalletSetDefaultGasL
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
- * Method:    jniForceTransactionUpdate
- * Signature: ()V
- */
-JNIEXPORT void JNICALL
-Java_com_breadwallet_core_ethereum_BREthereumEWM_jniForceTransactionUpdate
-        (JNIEnv *env, jobject thisObject) {
-    BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
-    ewmUpdateTransactions(node);
-}
-
-/*
- * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniAnnounceTransaction
  * Signature: (ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
  */
