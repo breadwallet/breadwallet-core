@@ -189,14 +189,6 @@ extern "C" {
                                     int id,
                                     BREthereumBoolean success);
 
-    /**
-     * Update the transactions for the ewm's account.  A JSON_RPC EWM will call out to
-     * BREthereumClientHandlerGetTransactions which is expected to query all transactions associated with the
-     * accounts address and then the call out is to call back the 'announce transaction' callback.
-     */
-    extern void
-    ewmUpdateTransactions (BREthereumEWM ewm);
-
     ///
     /// MARK: Get Logs
     ///
@@ -230,11 +222,6 @@ extern "C" {
     ewmAnnounceLogComplete (BREthereumEWM ewm,
                             int id,
                             BREthereumBoolean success);
-
-    extern void
-    ewmUpdateLogs (BREthereumEWM ewm,
-                   BREthereumWallet wid,
-                   BREthereumContractEvent event);
 
     ///
     /// MARK: Get Tokens
@@ -276,9 +263,6 @@ extern "C" {
                             const char *blockNumber,
                             int rid);
 
-    extern void
-    ewmUpdateBlockNumber (BREthereumEWM ewm);
-
     ///
     /// MARK: - Nonce
     ///
@@ -293,9 +277,6 @@ extern "C" {
                       const char *strAddress,
                       const char *strNonce,
                       int rid);
-
-    extern void
-    ewmUpdateNonce (BREthereumEWM ewm);
 
     ///
     /// MARK: - Blocks

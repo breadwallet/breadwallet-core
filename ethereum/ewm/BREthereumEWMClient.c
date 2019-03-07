@@ -265,25 +265,6 @@ ewmAnnounceGasEstimate (BREthereumEWM ewm,
 //
 // Get Block Number
 //
-extern void
-ewmUpdateBlockNumber (BREthereumEWM ewm) {
-    if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) return;
-    switch (ewm->mode) {
-        case BRD_ONLY:
-        case BRD_WITH_P2P_SEND: {
-            ewm->client.funcGetBlockNumber (ewm->client.context,
-                                            ewm,
-                                            ++ewm->requestId);
-            break;
-        }
-
-        case P2P_WITH_BRD_SYNC:
-        case P2P_ONLY:
-            // TODO: LES Update Wallet Balance
-            break;
-    }
-}
-
 /**
  * Handle a Client Announcement of `blockNumber`.  This will be BRD Backend's JSON_RPC result for
  * the most recent Ethereum blockNumber
@@ -312,30 +293,6 @@ ewmAnnounceBlockNumber (BREthereumEWM ewm,
 //
 // Get Nonce
 //
-extern void
-ewmUpdateNonce (BREthereumEWM ewm) {
-    if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) return;
-    switch (ewm->mode) {
-        case BRD_ONLY:
-        case BRD_WITH_P2P_SEND: {
-            char *address = addressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
-
-            ewm->client.funcGetNonce (ewm->client.context,
-                                      ewm,
-                                      address,
-                                      ++ewm->requestId);
-
-            free (address);
-            break;
-        }
-
-        case P2P_WITH_BRD_SYNC:
-        case P2P_ONLY:
-            // TODO: LES Update Wallet Balance
-            break;
-    }
-}
-
 extern BREthereumStatus
 ewmAnnounceNonce (BREthereumEWM ewm,
                   const char *strAddress,
@@ -370,34 +327,7 @@ ewmHandleAnnounceNonce (BREthereumEWM ewm,
 //
 // Get Transactions
 //
-extern void
-ewmUpdateTransactions (BREthereumEWM ewm) {
-    if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) {
-        // Nothing to announce
-        return;
-    }
-    switch (ewm->mode) {
-        case BRD_ONLY:
-        case BRD_WITH_P2P_SEND: {
-            char *address = addressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
 
-            ewm->client.funcGetTransactions (ewm->client.context,
-                                             ewm,
-                                             address,
-                                             ewm->brdSync.begBlockNumber,
-                                             ewm->brdSync.endBlockNumber,
-                                             ++ewm->requestId);
-
-            free (address);
-            break;
-        }
-
-        case P2P_WITH_BRD_SYNC:
-        case P2P_ONLY:
-            // TODO: LES Update Wallet Balance
-            break;
-    }
-}
 
 extern void
 ewmHandleAnnounceTransaction(BREthereumEWM ewm,
@@ -514,51 +444,6 @@ ewmAnnounceTransactionComplete (BREthereumEWM ewm,
 //
 // Get Logs
 //
-static const char *
-ewmGetWalletContractAddress (BREthereumEWM ewm, BREthereumWallet wallet) {
-    if (NULL == wallet) return NULL;
-    
-    BREthereumToken token = walletGetToken(wallet);
-    return (NULL == token ? NULL : tokenGetAddress(token));
-}
-
-extern void
-ewmUpdateLogs (BREthereumEWM ewm,
-               BREthereumWallet wid,
-               BREthereumContractEvent event) {
-    if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) {
-        // Nothing to announce
-        return;
-    }
-    switch (ewm->mode) {
-        case BRD_ONLY:
-        case BRD_WITH_P2P_SEND: {
-            char *address = addressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
-            char *encodedAddress =
-            eventERC20TransferEncodeAddress (event, address);
-            const char *contract = ewmGetWalletContractAddress(ewm, wid);
-
-            ewm->client.funcGetLogs (ewm->client.context,
-                                     ewm,
-                                     contract,
-                                     encodedAddress,
-                                     eventGetSelector(event),
-                                     ewm->brdSync.begBlockNumber,
-                                     ewm->brdSync.endBlockNumber,
-                                     ++ewm->requestId);
-
-            free (encodedAddress);
-            free (address);
-            break;
-        }
-
-        case P2P_WITH_BRD_SYNC:
-        case P2P_ONLY:
-            // TODO: LES Update Logs
-            break;
-    }
-}
-
 extern void
 ewmHandleAnnounceLog (BREthereumEWM ewm,
                       BREthereumEWMClientAnnounceLogBundle *bundle,
