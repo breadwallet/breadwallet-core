@@ -39,44 +39,6 @@
 //
 // Wallet Balance
 //
-
-extern void
-ewmUpdateWalletBalance(BREthereumEWM ewm,
-                       BREthereumWallet wallet) {
-
-    if (NULL == wallet) {
-        ewmSignalWalletEvent(ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
-                                     ERROR_UNKNOWN_WALLET,
-                                     NULL);
-        
-    } else if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) {
-        ewmSignalWalletEvent(ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
-                                     ERROR_NODE_NOT_CONNECTED,
-                                     NULL);
-    } else {
-        switch (ewm->mode) {
-            case BRD_ONLY:
-            case BRD_WITH_P2P_SEND: {
-                char *address = addressGetEncodedString(walletGetAddress(wallet), 0);
-
-                ewm->client.funcGetBalance (ewm->client.context,
-                                            ewm,
-                                            wallet,
-                                            address,
-                                            ++ewm->requestId);
-
-                free(address);
-                break;
-            }
-
-            case P2P_WITH_BRD_SYNC:
-            case P2P_ONLY:
-                // TODO: LES Update Wallet Balance
-                break;
-        }
-    }
-}
-
 /**
  * Handle the Client Announcement for the balance of `wallet`.  This will be the BRD Backend's
  * result (not necessarily a JSON_RPC result) for the balance which will be ether ETH or TOK.

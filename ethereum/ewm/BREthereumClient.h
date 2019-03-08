@@ -60,10 +60,6 @@ extern "C" {
                               const char *balance,
                               int rid);
 
-    extern void
-    ewmUpdateWalletBalance (BREthereumEWM ewm,
-                            BREthereumWallet wid);
-
     ///
     /// MARK: - Gas Price
     ///

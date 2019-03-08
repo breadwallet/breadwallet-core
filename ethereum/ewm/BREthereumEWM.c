@@ -1925,6 +1925,43 @@ ewmHandleGetBlocks (BREthereumEWM ewm,
 // Periodic Dispatcher
 //
 static void
+ewmUpdateWalletBalance(BREthereumEWM ewm,
+                       BREthereumWallet wallet) {
+
+    if (NULL == wallet) {
+        ewmSignalWalletEvent(ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
+                             ERROR_UNKNOWN_WALLET,
+                             NULL);
+
+    } else if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) {
+        ewmSignalWalletEvent(ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
+                             ERROR_NODE_NOT_CONNECTED,
+                             NULL);
+    } else {
+        switch (ewm->mode) {
+            case BRD_ONLY:
+            case BRD_WITH_P2P_SEND: {
+                char *address = addressGetEncodedString(walletGetAddress(wallet), 0);
+
+                ewm->client.funcGetBalance (ewm->client.context,
+                                            ewm,
+                                            wallet,
+                                            address,
+                                            ++ewm->requestId);
+
+                free(address);
+                break;
+            }
+
+            case P2P_WITH_BRD_SYNC:
+            case P2P_ONLY:
+                // TODO: LES Update Wallet Balance
+                break;
+        }
+    }
+}
+
+static void
 ewmUpdateBlockNumber (BREthereumEWM ewm) {
     if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) return;
     switch (ewm->mode) {
