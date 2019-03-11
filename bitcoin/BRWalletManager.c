@@ -18,7 +18,7 @@
 #include "BRChainParams.h"
 #include "bcash/BRBCashParams.h"
 
-#include "support/BRFileService.h"
+#include "../support/BRFileService.h"
 
 /* Forward Declarations */
 
