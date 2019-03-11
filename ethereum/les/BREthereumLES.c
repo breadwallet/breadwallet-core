@@ -648,7 +648,7 @@ lesCreate (BREthereumNetwork network,
                                           NULL);
 #endif // !defined(LES_BOOTSTRAP_LCL_ONLY)
 
-    if (NULL != configs) BRSetFreeAll(configs, (BRSetItemFree) nodeConfigRelease);
+    if (NULL != configs) BRSetFreeAll(configs, (void (*) (void*))  nodeConfigRelease);
 
     return les;
 }

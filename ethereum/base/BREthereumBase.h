@@ -31,29 +31,8 @@ extern "C" {
 #endif
 
 #include "BRArray.h"
-#include "../../BRSet.h"
+#include "BRSet.h"
 
-#define BRSetOf(type)      BRSet*
-
-#define FOR_SET(type,var,set) \
-  for (type var = BRSetIterate(set, NULL); \
-       NULL != var; \
-       var = BRSetIterate(set, var))
-
-typedef void
-(*BRSetItemFree) (void *item);
-
-static inline void
-BRSetFreeAll (BRSet *set, BRSetItemFree itemFree) {
-    size_t itemsCount = BRSetCount (set);
-    void  *itemsAll [itemsCount];
-
-    BRSetAll (set, itemsAll,  itemsCount);
-    for (size_t index = 0; index < itemsCount; index++)
-        itemFree (itemsAll[index]);
-    BRSetClear (set);
-    BRSetFree  (set);
-}
 
 #define REPEAT(index, count) \
   for (size_t index = 0, __indexLimit = (size_t) (count); index < __indexLimit; index++)

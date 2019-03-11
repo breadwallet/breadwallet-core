@@ -322,3 +322,20 @@ void BRSetFree(BRSet *set)
     free(set->table);
     free(set);
 }
+
+// frees each item and then frees memory allocated for set
+void BRSetFreeAll (BRSet *set, void (*itemFree) (void *item)) {
+    assert (set != NULL);
+    assert (itemFree != NULL);
+
+    size_t i = 0, size = set->size;
+    void *t;
+
+    while (i < size) {
+        t = set->table[i++];
+        if (t) itemFree(t);
+    }
+
+    BRSetClear (set);
+    BRSetFree  (set);
+}

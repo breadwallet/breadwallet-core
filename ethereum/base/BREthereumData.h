@@ -27,11 +27,7 @@
 #define BR_Ethereum_Data_H
 
 #include "BRArray.h"
-#include "../../BRSet.h"
-
-#if !defined (BRSetOf)
-#define BRSetOf(type)      BRSet*
-#endif
+#include "BRSet.h"
 
 #include "../rlp/BRRlp.h"
 #include "BREthereumHash.h"

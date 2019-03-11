@@ -84,6 +84,19 @@ void BRSetIntersect(BRSet *set, const BRSet *otherSet);
 // frees memory allocated for set
 void BRSetFree(BRSet *set);
 
+// frees each item and then frees memory allocated for set
+void BRSetFreeAll (BRSet *set, void (*itemFree) (void *item));
+
+/**
+ * Explicitly declare a BRSet of `type`.
+ */
+#define BRSetOf(type)      BRSet*
+
+#define FOR_SET(type,var,set) \
+  for (type var = BRSetIterate(set, NULL); \
+       NULL != var; \
+       var = BRSetIterate(set, var))
+
 #ifdef __cplusplus
 }
 #endif

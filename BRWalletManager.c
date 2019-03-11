@@ -10,6 +10,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include "BRArray.h"
+#include "BRSet.h"
 #include "BRWalletManager.h"
 #include "BRPeerManager.h"
 #include "BRMerkleBlock.h"
@@ -18,8 +19,6 @@
 #include "bcash/BRBCashParams.h"
 
 #include "support/BRFileService.h"
-
-#define BRSetOf(type)     BRSet*
 
 /* Forward Declarations */
 

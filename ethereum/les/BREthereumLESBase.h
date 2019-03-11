@@ -28,12 +28,12 @@
 
 #include "BRSet.h"
 #include "BRArray.h"
+#include "BRSet.h"
+
 #include "../util/BRUtil.h"
 #include "../rlp/BRRlp.h"
 #include "../base/BREthereumHash.h"
 #include "../blockchain/BREthereumNetwork.h"
-
-#define BRSetOf(type)      BRSet*
 
 #define DEFAULT_UDPPORT     (30303)
 #define DEFAULT_TCPPORT     (30303)
