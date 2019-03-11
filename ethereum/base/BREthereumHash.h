@@ -29,10 +29,7 @@
 #include <stdlib.h>
 #include <memory.h>
 #include "../../BRInt.h"
-#include "../../BRArray.h"
-#if ! defined (BRArrayOf)
-#define BRArrayOf( type )     type*
-#endif
+#include "BRArray.h"
 
 #include "../rlp/BRRlp.h"
 #include "BREthereumLogic.h"

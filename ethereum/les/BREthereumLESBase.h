@@ -33,7 +33,6 @@
 #include "../base/BREthereumHash.h"
 #include "../blockchain/BREthereumNetwork.h"
 
-#define BRArrayOf(type)    type*
 #define BRSetOf(type)      BRSet*
 
 #define DEFAULT_UDPPORT     (30303)

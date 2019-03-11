@@ -24,16 +24,12 @@
 //  THE SOFTWARE.
 
 #include "BRFileService.h"
-#include "../BRArray.h"
+#include "BRArray.h"
 #include <stdio.h>
 #include <string.h>
 #include <dirent.h>
 #include <sys/stat.h>
 #include <errno.h>
-
-#if !defined(BRArrayOf)
-#define BRArrayOf(type)    type*
-#endif
 
 #define FILE_SERVICE_INITIAL_TYPE_COUNT    (5)
 #define FILE_SERVICE_INITIAL_HANDLER_COUNT    (2)

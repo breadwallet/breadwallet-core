@@ -19,7 +19,6 @@
 
 #include "support/BRFileService.h"
 
-#define BRArrayOf(type)   type*
 #define BRSetOf(type)     BRSet*
 
 /* Forward Declarations */

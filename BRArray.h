@@ -177,6 +177,12 @@ extern "C" {
     free((size_t *)(array) - 2);\
 } while (0)
 
+/**
+ * Explicitly declare a BRArray of `type`.  Within the scope of the declared variable, one must
+ * use the array_*() macros/functions when touching the variable.
+ */
+#define BRArrayOf(type)    type*
+
 #ifdef __cplusplus
 }
 #endif
