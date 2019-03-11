@@ -28,7 +28,7 @@
 
 #include <stdlib.h>
 #include <memory.h>
-#include "../../BRInt.h"
+#include "BRInt.h"
 #include "BRArray.h"
 
 #include "../rlp/BRRlp.h"

@@ -28,7 +28,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include "../../BRInt.h"
+#include "../../support/BRInt.h"
 
 #ifdef __cplusplus
 extern "C" {
