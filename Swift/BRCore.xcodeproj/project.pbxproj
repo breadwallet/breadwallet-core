@@ -329,7 +329,7 @@
 		3C2A539320AF595400C430F6 /* BREventQueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BREventQueue.h; sourceTree = "<group>"; };
 		3C2A539420AF595400C430F6 /* BREvent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BREvent.h; sourceTree = "<group>"; };
 		3C2A539520AF595400C430F6 /* BREventQueue.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BREventQueue.c; sourceTree = "<group>"; };
-		3C2A539620AF595400C430F6 /* BREthereum.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BREthereum.h; path = ../../ethereum/BREthereum.h; sourceTree = "<group>"; };
+		3C2A539620AF595400C430F6 /* BREthereum.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BREthereum.h; sourceTree = "<group>"; };
 		3C2A539820AF595400C430F6 /* BRRlp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRRlp.h; sourceTree = "<group>"; };
 		3C2A539920AF595400C430F6 /* BRRlpCoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRRlpCoder.h; sourceTree = "<group>"; };
 		3C2A539A20AF595400C430F6 /* BRRlpCoder.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRRlpCoder.c; sourceTree = "<group>"; };
@@ -338,7 +338,7 @@
 		3C2A53A220AF595400C430F6 /* BREthereumEWM.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BREthereumEWM.c; sourceTree = "<group>"; };
 		3C2A53A320AF595400C430F6 /* BREthereumEWMPrivate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BREthereumEWMPrivate.h; sourceTree = "<group>"; };
 		3C2A53A520AF595400C430F6 /* BREthereumAccount.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BREthereumAccount.h; sourceTree = "<group>"; };
-		3C2A53A620AF595400C430F6 /* test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = test.c; path = ../../ethereum/test.c; sourceTree = "<group>"; };
+		3C2A53A620AF595400C430F6 /* test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = test.c; sourceTree = "<group>"; };
 		3C2A53A820AF595400C430F6 /* BREthereumToken.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BREthereumToken.h; sourceTree = "<group>"; };
 		3C2A53A920AF595400C430F6 /* BREthereumContract.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BREthereumContract.c; sourceTree = "<group>"; };
 		3C2A53AA20AF595400C430F6 /* BREthereumToken.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BREthereumToken.c; sourceTree = "<group>"; };
@@ -449,7 +449,7 @@
 		3C9025FC2108DDAE00143B69 /* BREthereumBCSSync.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumBCSSync.c; sourceTree = "<group>"; };
 		3C902621210A7E9800143B69 /* BREthereumTransfer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumTransfer.h; sourceTree = "<group>"; };
 		3C902622210A7E9800143B69 /* BREthereumTransfer.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumTransfer.c; sourceTree = "<group>"; };
-		3CA15F7E221645B400C84E65 /* test.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = test.h; path = ../../ethereum/test.h; sourceTree = "<group>"; };
+		3CA15F7E221645B400C84E65 /* test.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = test.h; sourceTree = "<group>"; };
 		3CA15F7F221648D200C84E65 /* libresolv.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libresolv.tbd; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk/usr/lib/libresolv.tbd; sourceTree = DEVELOPER_DIR; };
 		3CA74EA920AF622D00EDF3E7 /* BRKeyECIES.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = BRKeyECIES.c; path = ../../BRKeyECIES.c; sourceTree = "<group>"; };
 		3CA74EAA20AF622D00EDF3E7 /* BRKeyECIES.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BRKeyECIES.h; path = ../../BRKeyECIES.h; sourceTree = "<group>"; };
@@ -641,6 +641,7 @@
 				3C2A53A620AF595400C430F6 /* test.c */,
 			);
 			name = ethereum;
+			path = ../../ethereum;
 			sourceTree = "<group>";
 		};
 		3C2A537820AF595400C430F6 /* util */ = {
@@ -656,8 +657,7 @@
 				CA92F78F2100F9CA0015C966 /* BRKeccak.c */,
 				3C9025EE21063AD200143B69 /* testUtil.c */,
 			);
-			name = util;
-			path = ../../ethereum/util;
+			path = util;
 			sourceTree = "<group>";
 		};
 		3C2A537F20AF595400C430F6 /* les */ = {
@@ -681,8 +681,7 @@
 				3C2A538620AF595400C430F6 /* BREthereumLES.c */,
 				3C2A538920AF595400C430F6 /* test-les.c */,
 			);
-			name = les;
-			path = ../../ethereum/les;
+			path = les;
 			sourceTree = "<group>";
 		};
 		3C2A539120AF595400C430F6 /* event */ = {
@@ -696,8 +695,7 @@
 				3C3B37FB20D82335004F9928 /* BREventAlarm.c */,
 				3C9025F221064B6700143B69 /* testEvent.c */,
 			);
-			name = event;
-			path = ../../ethereum/event;
+			path = event;
 			sourceTree = "<group>";
 		};
 		3C2A539720AF595400C430F6 /* rlp */ = {
@@ -708,8 +706,7 @@
 				3C2A539A20AF595400C430F6 /* BRRlpCoder.c */,
 				3C9025F021063BDC00143B69 /* testRlp.c */,
 			);
-			name = rlp;
-			path = ../../ethereum/rlp;
+			path = rlp;
 			sourceTree = "<group>";
 		};
 		3C2A539E20AF595400C430F6 /* ewm */ = {
@@ -732,8 +729,7 @@
 				3C386DD120C6F6060065E355 /* BREthereumEWMClient.c */,
 				3C9025F82106511700143B69 /* testEwm.c */,
 			);
-			name = ewm;
-			path = ../../ethereum/ewm;
+			path = ewm;
 			sourceTree = "<group>";
 		};
 		3C2A53A720AF595400C430F6 /* contract */ = {
@@ -745,8 +741,7 @@
 				3C2A53A920AF595400C430F6 /* BREthereumContract.c */,
 				3C9025FA2106613600143B69 /* testContract.c */,
 			);
-			name = contract;
-			path = ../../ethereum/contract;
+			path = contract;
 			sourceTree = "<group>";
 		};
 		3C2A53AC20AF595400C430F6 /* base */ = {
@@ -768,8 +763,7 @@
 				3C2A53AE20AF595400C430F6 /* BREthereumSignature.c */,
 				3C9025F621064FF800143B69 /* testBase.c */,
 			);
-			name = base;
-			path = ../../ethereum/base;
+			path = base;
 			sourceTree = "<group>";
 		};
 		3C2A53BA20AF595500C430F6 /* blockchain */ = {
@@ -795,8 +789,7 @@
 				3CF38E4721C4421600B771E6 /* BREthereumProofOfWork.c */,
 				3C9025F421064E9F00143B69 /* testBc.c */,
 			);
-			name = blockchain;
-			path = ../../ethereum/blockchain;
+			path = blockchain;
 			sourceTree = "<group>";
 		};
 		3C386DC920C6F5E40065E355 /* bcs */ = {
@@ -809,8 +802,7 @@
 				3C9025FC2108DDAE00143B69 /* BREthereumBCSSync.c */,
 				3C386DCD20C6F5E40065E355 /* BREthereumBCSEvent.c */,
 			);
-			name = bcs;
-			path = ../../ethereum/bcs;
+			path = bcs;
 			sourceTree = "<group>";
 		};
 		3C3CE04C214457DA00AA99D5 /* msg */ = {
@@ -941,8 +933,7 @@
 				3C5F5E73212C82310038B732 /* BREthereumMPT.h */,
 				3C5F5E74212C82310038B732 /* BREthereumMPT.c */,
 			);
-			name = mpt;
-			path = ../../ethereum/mpt;
+			path = mpt;
 			sourceTree = "<group>";
 		};
 		3C6B172D2131CB5B003C313B /* CoreExplore */ = {
