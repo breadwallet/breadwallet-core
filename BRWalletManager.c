@@ -37,12 +37,12 @@ static void _BRWalletManagerThreadCleanup (void *info);
 
 static const char *
 getNetworkName (const BRChainParams *params) {
-    if (params->magicNumber == BRMainNetParams.magicNumber ||
-        params->magicNumber == BRBCashParams.magicNumber)
+    if (params->magicNumber == BRMainNetParams->magicNumber ||
+        params->magicNumber == BRBCashParams->magicNumber)
         return "mainnet";
 
-    if (params->magicNumber == BRTestNetParams.magicNumber ||
-        params->magicNumber == BRBCashTestNetParams.magicNumber)
+    if (params->magicNumber == BRTestNetParams->magicNumber ||
+        params->magicNumber == BRBCashTestNetParams->magicNumber)
         return "testnet";
 
     return NULL;
@@ -50,12 +50,12 @@ getNetworkName (const BRChainParams *params) {
 
 static const char *
 getCurrencyName (const BRChainParams *params) {
-    if (params->magicNumber == BRMainNetParams.magicNumber ||
-        params->magicNumber == BRTestNetParams.magicNumber)
+    if (params->magicNumber == BRMainNetParams->magicNumber ||
+        params->magicNumber == BRTestNetParams->magicNumber)
         return "btc";
 
-    if (params->magicNumber == BRBCashParams.magicNumber ||
-        params->magicNumber == BRBCashTestNetParams.magicNumber)
+    if (params->magicNumber == BRBCashParams->magicNumber ||
+        params->magicNumber == BRBCashTestNetParams->magicNumber)
         return "bch";
 
     return NULL;
@@ -63,12 +63,12 @@ getCurrencyName (const BRChainParams *params) {
 
 static BRWalletForkId
 getForkId (const BRChainParams *params) {
-    if (params->magicNumber == BRMainNetParams.magicNumber ||
-        params->magicNumber == BRTestNetParams.magicNumber)
+    if (params->magicNumber == BRMainNetParams->magicNumber ||
+        params->magicNumber == BRTestNetParams->magicNumber)
         return WALLET_FORKID_BITCOIN;
 
-    if (params->magicNumber == BRBCashParams.magicNumber ||
-        params->magicNumber == BRBCashTestNetParams.magicNumber)
+    if (params->magicNumber == BRBCashParams->magicNumber ||
+        params->magicNumber == BRBCashTestNetParams->magicNumber)
         return WALLET_FORKID_BITCASH;
 
     return (BRWalletForkId) -1;

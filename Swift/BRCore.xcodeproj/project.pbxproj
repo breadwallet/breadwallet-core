@@ -31,6 +31,10 @@
 		3C18F8C921950797006F738F /* BRCrypto.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3C0EADEB2188D91F000577A6 /* BRCrypto.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		3C18F8CC219507E2006F738F /* CoreDemoListener.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C18F8CB219507E2006F738F /* CoreDemoListener.swift */; };
 		3C1CD3C8216FD015001709A3 /* testEwm.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C9025F82106511700143B69 /* testEwm.c */; };
+		3C25BF3A2236EBAA004B093F /* BRChainParams.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C25BF392236EBAA004B093F /* BRChainParams.c */; };
+		3C25BF3C2236EBC6004B093F /* BRBCashParams.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C25BF3B2236EBC6004B093F /* BRBCashParams.c */; };
+		3C25BF3D2236EBC6004B093F /* BRBCashParams.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C25BF3B2236EBC6004B093F /* BRBCashParams.c */; };
+		3C25BF3E2236EBCA004B093F /* BRChainParams.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C25BF392236EBAA004B093F /* BRChainParams.c */; };
 		3C386DC720C6F4AF0065E355 /* BREthereumLESRandom.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C386DC120C6F4AE0065E355 /* BREthereumLESRandom.c */; };
 		3C386DCF20C6F5E40065E355 /* BREthereumBCS.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C386DCA20C6F5E40065E355 /* BREthereumBCS.c */; };
 		3C386DD020C6F5E40065E355 /* BREthereumBCSEvent.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C386DCD20C6F5E40065E355 /* BREthereumBCSEvent.c */; };
@@ -312,6 +316,8 @@
 		3C18F8BD21950748006F738F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		3C18F8BF21950748006F738F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		3C18F8CB219507E2006F738F /* CoreDemoListener.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDemoListener.swift; sourceTree = "<group>"; };
+		3C25BF392236EBAA004B093F /* BRChainParams.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = BRChainParams.c; path = ../../BRChainParams.c; sourceTree = "<group>"; };
+		3C25BF3B2236EBC6004B093F /* BRBCashParams.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRBCashParams.c; sourceTree = "<group>"; };
 		3C2A537720AF595400C430F6 /* BREthereumAccount.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BREthereumAccount.c; sourceTree = "<group>"; };
 		3C2A537920AF595400C430F6 /* BRUtilMath.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRUtilMath.h; sourceTree = "<group>"; };
 		3C2A537A20AF595400C430F6 /* BRUtilHex.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRUtilHex.h; sourceTree = "<group>"; };
@@ -888,6 +894,7 @@
 				3C590F4E20950C730005597B /* BRBloomFilter.c */,
 				3C590F4020950C720005597B /* BRBloomFilter.h */,
 				3C590F5220950C740005597B /* BRChainParams.h */,
+				3C25BF392236EBAA004B093F /* BRChainParams.c */,
 				3C590F5520950C740005597B /* BRCrypto.c */,
 				3C590F3620950C720005597B /* BRCrypto.h */,
 				3CA74EA920AF622D00EDF3E7 /* BRKeyECIES.c */,
@@ -919,6 +926,7 @@
 		3C590F3B20950C720005597B /* bcash */ = {
 			isa = PBXGroup;
 			children = (
+				3C25BF3B2236EBC6004B093F /* BRBCashParams.c */,
 				3C590F3C20950C720005597B /* BRBCashParams.h */,
 				3C590F3D20950C720005597B /* BRBCashAddr.c */,
 				3C590F3E20950C720005597B /* BRBCashAddr.h */,
@@ -1355,6 +1363,7 @@
 				3CCD36B221A5BB8D0032637A /* BRWalletManager.c in Sources */,
 				3C6B17532131CE12003C313B /* BREthereumEWM.c in Sources */,
 				3C6B17542131CE12003C313B /* BRRlpCoder.c in Sources */,
+				3C25BF3D2236EBC6004B093F /* BRBCashParams.c in Sources */,
 				3C6B17552131CE12003C313B /* BRUtilMath.c in Sources */,
 				3C6B17562131CE12003C313B /* BRUtilMathParse.c in Sources */,
 				3C6B17572131CE12003C313B /* BRUtilHex.c in Sources */,
@@ -1367,6 +1376,7 @@
 				3C6B175C2131CE12003C313B /* BRBech32.c in Sources */,
 				3C6B175D2131CE12003C313B /* BRBIP32Sequence.c in Sources */,
 				3C6B175E2131CE12003C313B /* BREthereumMessage.c in Sources */,
+				3C25BF3E2236EBCA004B093F /* BRChainParams.c in Sources */,
 				3C6B175F2131CE12003C313B /* BRBIP38Key.c in Sources */,
 				3C6B17602131CE12003C313B /* BREthereumMPT.c in Sources */,
 				3C6B17612131CE12003C313B /* BREthereumTransfer.c in Sources */,
@@ -1411,7 +1421,9 @@
 				3CAB60B920AF8D1A00810CE4 /* BREthereumTransactionReceipt.c in Sources */,
 				3CAB60BA20AF8D1A00810CE4 /* BREthereumAccountState.c in Sources */,
 				3CD30494213B222A00A0CCED /* BREthereumMessagePIP.c in Sources */,
+				3C25BF3A2236EBAA004B093F /* BRChainParams.c in Sources */,
 				3CAB60BB20AF8D1A00810CE4 /* BREthereumLog.c in Sources */,
+				3C25BF3C2236EBC6004B093F /* BRBCashParams.c in Sources */,
 				3CAB60BC20AF8D1A00810CE4 /* BREthereumTransactionStatus.c in Sources */,
 				3CAB60BD20AF8D1A00810CE4 /* BREthereumBlock.c in Sources */,
 				3CAB60BE20AF8D1A00810CE4 /* BREthereumAmount.c in Sources */,

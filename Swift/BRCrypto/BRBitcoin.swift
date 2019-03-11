@@ -699,19 +699,5 @@ public class BitcoinWalletManager: WalletManager {
         #endif
         BRPeerManagerDisconnect (self.corePeerManager)
     }
-    
-    //hack to keep the swift compiler happy
-    let a = BRBCashCheckpoints
-    let b = BRBCashDNSSeeds
-    let c = BRBCashVerifyDifficulty
-    let d = BRBCashTestNetCheckpoints
-    let e = BRBCashTestNetDNSSeeds
-    let f = BRBCashTestNetVerifyDifficulty
-    let g = BRMainNetDNSSeeds
-    let h = BRMainNetCheckpoints
-    let i = BRMainNetVerifyDifficulty
-    let j = BRTestNetDNSSeeds
-    let k = BRTestNetCheckpoints
-    let l = BRTestNetVerifyDifficulty
 }
 

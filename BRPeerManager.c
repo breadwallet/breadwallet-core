@@ -2041,12 +2041,12 @@ void BRPeerManagerFree(BRPeerManager *manager)
 }
 
 const BRChainParams *bitcoinParams (int mainnet) {
-    return mainnet ? &BRMainNetParams : &BRTestNetParams;
+    return mainnet ? BRMainNetParams : BRTestNetParams;
 }
 
 const BRChainParams *bitcashParams (int mainnet) {
 
-    return mainnet ? &BRBCashParams : &BRBCashTestNetParams;
+    return mainnet ? BRBCashParams : BRBCashTestNetParams;
 }
 
 char *u256HashToString (UInt256 hash) {

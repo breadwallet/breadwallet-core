@@ -2858,7 +2858,7 @@ void BRPeerAcceptMessageTest(BRPeer *peer, const uint8_t *msg, size_t len, const
 int BRPeerTests()
 {
     int r = 1;
-    BRPeer *p = BRPeerNew(BR_CHAIN_PARAMS.magicNumber);
+    BRPeer *p = BRPeerNew(BR_CHAIN_PARAMS->magicNumber);
     const char msg[] = "my message";
     
     BRPeerAcceptMessageTest(p, (const uint8_t *)msg, sizeof(msg) - 1, "inv");
@@ -2991,9 +2991,9 @@ static void testSyncSaveBlocks (void *c, int replace, BRMerkleBlock *blocks[], s
 extern int BRRunTestsSync (const char *paperKey,
                            int isBTC,
                            int isMainnet) {
-    const BRChainParams *params = (isBTC & isMainnet ? &BRMainNetParams
-                                   : (isBTC & !isMainnet ? &BRTestNetParams
-                                      : (isMainnet ? &BRBCashParams : &BRBCashTestNetParams)));
+    const BRChainParams *params = (isBTC & isMainnet ? BRMainNetParams
+                                   : (isBTC & !isMainnet ? BRTestNetParams
+                                      : (isMainnet ? BRBCashParams : BRBCashTestNetParams)));
 
     uint32_t epoch;
     int needPaperKey = NULL == paperKey;
@@ -3093,9 +3093,9 @@ extern int BRRunTestWalletManagerSync (const char *paperKey,
                                        const char *storagePath,
                                        int isBTC,
                                        int isMainnet) {
-    const BRChainParams *params = (isBTC & isMainnet ? &BRMainNetParams
-                                   : (isBTC & !isMainnet ? &BRTestNetParams
-                                      : (isMainnet ? &BRBCashParams : &BRBCashTestNetParams)));
+    const BRChainParams *params = (isBTC & isMainnet ? BRMainNetParams
+                                   : (isBTC & !isMainnet ? BRTestNetParams
+                                      : (isMainnet ? BRBCashParams : BRBCashTestNetParams)));
 
     uint32_t epoch = 1483228800; // 1/1/17
     epoch += (365 + 365/2) * 24 * 60 * 60;
