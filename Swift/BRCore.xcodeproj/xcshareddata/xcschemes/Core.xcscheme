@@ -23,7 +23,7 @@
       </BuildActionEntries>
    </BuildAction>
    <TestAction
-      buildConfiguration = "Debug-Mainnet"
+      buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       enableASanStackUseAfterReturn = "YES"
@@ -62,9 +62,6 @@
                </Test>
                <Test
                   Identifier = "CoreTests/testBitcoinWalletManagerSync()">
-               </Test>
-               <Test
-                  Identifier = "CoreTests/testEWM()">
                </Test>
                <Test
                   Identifier = "CoreTests/testEthereumSync()">
@@ -132,7 +129,7 @@
       </MacroExpansion>
    </ProfileAction>
    <AnalyzeAction
-      buildConfiguration = "Debug-Mainnet">
+      buildConfiguration = "Debug">
    </AnalyzeAction>
    <ArchiveAction
       buildConfiguration = "Release"
