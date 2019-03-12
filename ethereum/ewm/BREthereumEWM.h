@@ -110,6 +110,12 @@ ewmIsConnected (BREthereumEWM ewm);
 extern BREthereumBoolean
 ewmSync (BREthereumEWM ewm);
 
+extern void
+ewmLock (BREthereumEWM ewm);
+
+extern void
+ewmUnlock (BREthereumEWM ewm);
+
 extern uint64_t
 ewmGetBlockHeight (BREthereumEWM ewm);
 
@@ -273,8 +279,12 @@ ewmTransferGetSource (BREthereumEWM ewm,
                       BREthereumTransfer transfer);
 
 extern BREthereumHash
-ewmTransferGetHash(BREthereumEWM ewm,
-                   BREthereumTransfer transfer);
+ewmTransferGetIdentifier (BREthereumEWM ewm,
+                          BREthereumTransfer transfer);
+
+extern BREthereumHash
+ewmTransferGetOriginatingTransactionHash (BREthereumEWM ewm,
+                                          BREthereumTransfer transfer);
 
 
 extern BREthereumAmount

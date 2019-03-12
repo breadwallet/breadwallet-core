@@ -735,8 +735,7 @@ static int _BRPeerAcceptMerkleblockMessage(BRPeer *peer, const uint8_t *msg, siz
     }
     else {
         size_t count = BRMerkleBlockTxHashes(block, NULL, 0);
-        UInt256 _hashes[(sizeof(UInt256)*count <= 0x1000) ? count : 0],
-                *hashes = (sizeof(UInt256)*count <= 0x1000) ? _hashes : malloc(count*sizeof(*hashes));
+        UInt256 _hashes[128], *hashes = (count <= 128) ? _hashes : malloc(count*sizeof(UInt256));
         
         assert(hashes != NULL);
         count = BRMerkleBlockTxHashes(block, hashes, count);
@@ -1221,7 +1220,6 @@ void BRPeerConnect(BRPeer *peer)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
     struct timeval tv;
-    int error = 0;
     pthread_attr_t attr;
 
     pthread_mutex_lock(&ctx->lock);
@@ -1241,7 +1239,7 @@ void BRPeerConnect(BRPeer *peer)
             ctx->disconnectTime = tv.tv_sec + (double)tv.tv_usec/1000000 + CONNECT_TIMEOUT;
 
             if (pthread_attr_init(&attr) != 0) {
-                error = ENOMEM;
+                // error = ENOMEM;
                 peer_log(peer, "error creating thread");
                 ctx->status = BRPeerStatusDisconnected;
                 //if (ctx->disconnected) ctx->disconnected(ctx->info, error);
@@ -1249,7 +1247,7 @@ void BRPeerConnect(BRPeer *peer)
             else if (pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0 ||
                      pthread_attr_setstacksize(&attr, PTHREAD_STACK_SIZE) != 0 ||
                      pthread_create(&ctx->thread, &attr, _peerThreadRoutine, peer) != 0) {
-                error = EAGAIN;
+                // error = EAGAIN;
                 peer_log(peer, "error creating thread");
                 pthread_attr_destroy(&attr);
                 ctx->status = BRPeerStatusDisconnected;

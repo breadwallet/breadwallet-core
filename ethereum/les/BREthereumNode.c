@@ -880,7 +880,14 @@ nodeDisconnect (BREthereumNode node,
     // Clear any pending timeout.
     node->timeout = -1;
 
-    if (ETHEREUM_BOOLEAN_IS_TRUE(returnToAvailable))
+    // If this node has a priority of NODE_PRIORITY_LCL or NODE_PRIORITY_BRD then always return
+    // it to available.  See JIRA:CORE-257 - finding viable LES/PIP nodes is so rare that we simply
+    // cannot afford to eliminate options that we trust.
+    if (NODE_PRIORITY_LCL == node->priority || NODE_PRIORITY_BRD == node->priority)
+        returnToAvailable = ETHEREUM_BOOLEAN_TRUE;
+
+    // If we already annonce `available`, then don't announce it again.
+    if (ETHEREUM_BOOLEAN_IS_TRUE(returnToAvailable) && NODE_AVAILABLE != stateToAnnounce.type)
         nodeStateAnnounce(node, route, nodeStateCreate (NODE_AVAILABLE));
 
     return node->states[route];
@@ -1507,8 +1514,8 @@ nodeProcess (BREthereumNode node,
                     // Confirm that the remote supports ETH.  We've seen a node announce support for
                     // PIPv1 and being 200,000 blocks into the future.  Perhaps we avoid connecting
                     // to such a node - but will still have to handle rogue nodes.
-                    if (ETHEREUM_BOOLEAN_IS_FALSE(nodeEndpointHasHelloCapability (node->remote, "eth", 62)) ||
-                        ETHEREUM_BOOLEAN_IS_FALSE(nodeEndpointHasHelloCapability (node->remote, "eth", 63)))
+                    if (ETHEREUM_BOOLEAN_IS_FALSE (nodeEndpointHasHelloCapability (node->remote, "eth", 62)) &&
+                        ETHEREUM_BOOLEAN_IS_FALSE (nodeEndpointHasHelloCapability (node->remote, "eth", 63)))
                         return nodeProcessFailure (node, NODE_ROUTE_TCP, &message, nodeStateCreateErrorProtocol(NODE_PROTOCOL_CAPABILITIES_MISMATCH));
 
                     // Confirm that the remote has one and only one of the local capabilities.  It is unlikely,
@@ -1785,7 +1792,7 @@ nodeProcess (BREthereumNode node,
                     }
 
                     // Finally, CONNECTED
-                    nodeProcessSuccess (node, NODE_ROUTE_UDP, &message, nodeStateCreateConnected());
+                    nodeProcessSuccess (node, NODE_ROUTE_UDP, NULL, nodeStateCreateConnected());
 
                     if (DIS_MESSAGE_NEIGHBORS == message.u.dis.identifier) {
                         // We got a NEIGHBORS response - this node is discovered and is Parity
@@ -2014,7 +2021,6 @@ nodeSend (BREthereumNode node,
           BREthereumMessage message) {
 
     int error = 0;
-    size_t bytesCount = 0;
 
     assert ((NODE_ROUTE_UDP == route && MESSAGE_DIS == message.identifier) ||
             (NODE_ROUTE_UDP != route && MESSAGE_DIS != message.identifier));
@@ -2040,7 +2046,6 @@ nodeSend (BREthereumNode node,
             pthread_mutex_lock (&node->lock);
             error = nodeEndpointSendData (node->remote, route, data.bytes, data.bytesCount);
             pthread_mutex_unlock (&node->lock);
-            bytesCount = data.bytesCount;
             break;
         }
 
@@ -2064,7 +2069,6 @@ nodeSend (BREthereumNode node,
 
             error = nodeEndpointSendData (node->remote, route, encryptedData.bytes, encryptedData.bytesCount);
             pthread_mutex_unlock (&node->lock);
-            bytesCount = encryptedData.bytesCount;
             rlpDataRelease(encryptedData);
             break;
         }
@@ -2154,11 +2158,13 @@ nodeRecv (BREthereumNode node,
             // Given bytesCount, update recvDataBuffer if too small
             pthread_mutex_lock (&node->lock);
             if (bytesCount > bytesLimit) {
-                bytesCount = 2 * bytesCount; // margin
-                node->recvDataBuffer.bytesCount = bytesCount;
-                node->recvDataBuffer.bytes = realloc(node->recvDataBuffer.bytes, bytesCount);
+                // Expand recvDataBuffer, with some margin
+                node->recvDataBuffer = (BRRlpData) {
+                    2 * bytesCount,
+                    realloc(node->recvDataBuffer.bytes, 2 * bytesCount)
+                };
                 bytes = node->recvDataBuffer.bytes;
-                bytesLimit = bytesCount;
+                // bytesLimit = node->recvDataBuffer.bytesCount;
             }
             pthread_mutex_unlock (&node->lock);
 
@@ -2393,17 +2399,17 @@ _sendAuthInitiator(BREthereumNode node) {
     memset(xorStaticNonce.u8, 0, 32);
     bytesXOR(staticSharedSecret.u8, localNonce->u8, xorStaticNonce.u8, sizeof(localNonce->u8));
 
-
     // S(ephemeral-privk, static-shared-secret ^ nonce)
     // Determine the signature length
-    size_t signatureLen = 65; BRKeyCompactSignEthereum(localEphemeral,
-                                                       NULL, 0,
-                                                       xorStaticNonce);
-
+    size_t signatureLen = BRKeyCompactSignEthereum (localEphemeral,
+                                                    NULL, 0,
+                                                    xorStaticNonce);
+    assert (65 == signatureLen);
+    
     // Fill the signature
-    signatureLen = BRKeyCompactSignEthereum(localEphemeral,
-                                            signature, signatureLen,
-                                            xorStaticNonce);
+    BRKeyCompactSignEthereum (localEphemeral,
+                              signature, signatureLen,
+                              xorStaticNonce);
 
     // || H(ephemeral-pubk)||
     memset(&hPubKey[32], 0, 32);

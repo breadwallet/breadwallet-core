@@ -60,10 +60,6 @@ extern "C" {
                               const char *balance,
                               int rid);
 
-    extern void
-    ewmUpdateWalletBalance (BREthereumEWM ewm,
-                            BREthereumWallet wid);
-
     ///
     /// MARK: - Gas Price
     ///
@@ -113,6 +109,11 @@ extern "C" {
     ///
     /// MARK: Submit Transfer
     ///
+
+    /**
+     * Client handler for submitting a transaction.  Makes a JSON_RPC call with `transaction` and
+     * then invokes `ewmAnnounceSubmitTransfer()` with the result.
+     */
     typedef void
     (*BREthereumClientHandlerSubmitTransaction) (BREthereumClientContext context,
                                                  BREthereumEWM ewm,
@@ -122,7 +123,9 @@ extern "C" {
                                                  int rid);
 
     /**
-     * Announce the result of a submitted transaction
+     * Announce the result of a submitted transaction.  This is only called from the client
+     * in the implementation of BREthereumClientHandlerSubmitTransaction (after the JSON_RPC
+     * call is made to actually submit the transfer)
      *
      * @param ewm the ewm
      * @param wid the wallet
@@ -182,14 +185,6 @@ extern "C" {
                                     int id,
                                     BREthereumBoolean success);
 
-    /**
-     * Update the transactions for the ewm's account.  A JSON_RPC EWM will call out to
-     * BREthereumClientHandlerGetTransactions which is expected to query all transactions associated with the
-     * accounts address and then the call out is to call back the 'announce transaction' callback.
-     */
-    extern void
-    ewmUpdateTransactions (BREthereumEWM ewm);
-
     ///
     /// MARK: Get Logs
     ///
@@ -223,11 +218,6 @@ extern "C" {
     ewmAnnounceLogComplete (BREthereumEWM ewm,
                             int id,
                             BREthereumBoolean success);
-
-    extern void
-    ewmUpdateLogs (BREthereumEWM ewm,
-                   BREthereumWallet wid,
-                   BREthereumContractEvent event);
 
     ///
     /// MARK: Get Tokens
@@ -269,9 +259,6 @@ extern "C" {
                             const char *blockNumber,
                             int rid);
 
-    extern void
-    ewmUpdateBlockNumber (BREthereumEWM ewm);
-
     ///
     /// MARK: - Nonce
     ///
@@ -286,9 +273,6 @@ extern "C" {
                       const char *strAddress,
                       const char *strNonce,
                       int rid);
-
-    extern void
-    ewmUpdateNonce (BREthereumEWM ewm);
 
     ///
     /// MARK: - Blocks

@@ -641,18 +641,6 @@ JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniWalletSetDefaultGasL
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
- * Method:    jniForceTransactionUpdate
- * Signature: ()V
- */
-JNIEXPORT void JNICALL
-Java_com_breadwallet_core_ethereum_BREthereumEWM_jniForceTransactionUpdate
-        (JNIEnv *env, jobject thisObject) {
-    BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
-    ewmUpdateTransactions(node);
-}
-
-/*
- * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniAnnounceTransaction
  * Signature: (ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
  */
@@ -1326,14 +1314,14 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionTargetAddress
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
- * Method:    jniTransactionGetHash
+ * Method:    jniTransactionGetIdentifier
  * Signature: (J)Ljava/lang/String;
  */
-JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionGetHash
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionGetIdentifier
         (JNIEnv *env, jobject thisObject, jlong tid) {
     BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
     BREthereumTransfer transfer = getTransfer (env, tid);
-    BREthereumHash hash = ewmTransferGetHash(node, transfer);
+    BREthereumHash hash = ewmTransferGetIdentifier(node, transfer);
     return asJniString(env, hashAsString(hash));
 }
 

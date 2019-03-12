@@ -37,18 +37,15 @@ struct BREventQueueRecord {
     // A linked-list (through event->next) of available events
     BREvent *available;
 
-    // A lock for exclusive access when queueing/dequeueing events.
+    // If not provided with a lock, use this one.
     pthread_mutex_t lock;
-
-    // Boolean to identify we this queue owns (created) the lock.
-    int lockOwner;
 
     // The size of each event
     size_t size;
 };
 
 extern BREventQueue
-eventQueueCreate (size_t size, pthread_mutex_t *lock) {
+eventQueueCreate (size_t size) {
     BREventQueue queue = calloc (1, sizeof (struct BREventQueueRecord));
 
     queue->pending = NULL;
@@ -61,18 +58,12 @@ eventQueueCreate (size_t size, pthread_mutex_t *lock) {
         queue->available = event;
     }
 
-    queue->lock = *lock;
-    queue->lockOwner = 0;
-
-    // If a lock was not provided, create the PTHREAD LOCK, as a normal, non-recursive, lock.
-    if (NULL == lock) {
+    {
         pthread_mutexattr_t attr;
         pthread_mutexattr_init(&attr);
         pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
         pthread_mutex_init(&queue->lock, &attr);
         pthread_mutexattr_destroy(&attr);
-
-        queue->lockOwner = 1;
     }
 
     return queue;
@@ -114,8 +105,7 @@ eventQueueDestroy (BREventQueue queue) {
     // Clear the pending and available queues.
     eventQueueClear (queue);
 
-    if (queue->lockOwner)
-        pthread_mutex_destroy(&queue->lock);
+    pthread_mutex_destroy(&queue->lock);
 
     memset (queue, 0, sizeof (struct BREventQueueRecord));
     free (queue);

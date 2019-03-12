@@ -396,6 +396,16 @@ ewmCreate (BREthereumNetwork network,
     // Our one and only coder
     ewm->coder = rlpCoderCreate();
 
+    // Create the EWM lock - do this early in case any `init` functions use it.
+    {
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+
+        pthread_mutex_init(&ewm->lock, &attr);
+        pthread_mutexattr_destroy(&attr);
+    }
+
     // The file service.  Initialize {nodes, blocks, transactions and logs} from the FileService
 
     ewm->fs = fileServiceCreate (storagePath, "eth", networkGetName(network),
@@ -476,7 +486,6 @@ ewmCreate (BREthereumNetwork network,
         BRSetAdd (blocks, block);
     }
 
-
     // Create the alarm clock, but don't start it.
     alarmClockCreateIfNecessary(0);
 
@@ -484,18 +493,10 @@ ewmCreate (BREthereumNetwork network,
     // that we should/might query the BRD backend services.
     ewm->handler = eventHandlerCreate ("Core Ethereum EWM",
                                        ewmEventTypes,
-                                       ewmEventTypesCount);
+                                       ewmEventTypesCount,
+                                       &ewm->lock);
 
     array_new(ewm->wallets, DEFAULT_WALLET_CAPACITY);
-
-    {
-        pthread_mutexattr_t attr;
-        pthread_mutexattr_init(&attr);
-        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-
-        pthread_mutex_init(&ewm->lock, &attr);
-        pthread_mutexattr_destroy(&attr);
-    }
 
     // Create a default ETH wallet; other wallets will be created 'on demand'
     ewm->walletHoldingEther = walletCreate(ewm->account,
@@ -632,6 +633,7 @@ ewmCreateWithPublicKey (BREthereumNetwork network,
 
 extern void
 ewmDestroy (BREthereumEWM ewm) {
+    pthread_mutex_lock(&ewm->lock);
     ewmDisconnect(ewm);
 
     bcsDestroy(ewm->bcs);
@@ -645,6 +647,8 @@ ewmDestroy (BREthereumEWM ewm) {
     // Finally remove the assert recovery handler
     BRAssertRemoveRecovery((BRAssertRecoveryInfo) ewm);
 
+    pthread_mutex_unlock (&ewm->lock);
+    pthread_mutex_destroy (&ewm->lock);
     free (ewm);
 }
 
@@ -662,31 +666,37 @@ ewmDestroy (BREthereumEWM ewm) {
  */
 extern BREthereumBoolean
 ewmConnect(BREthereumEWM ewm) {
+    BREthereumBoolean result = ETHEREUM_BOOLEAN_FALSE;
+
+    ewmLock (ewm);
 
     // Nothing to do if already connected
-    if (ETHEREUM_BOOLEAN_IS_TRUE (ewmIsConnected(ewm)))
-        return ETHEREUM_BOOLEAN_FALSE;
+    if (ETHEREUM_BOOLEAN_IS_FALSE (ewmIsConnected(ewm))) {
+        // Set ewm {client,state} prior to bcs/event start.  Avoid race conditions, particularly
+        // with `ewmPeriodicDispatcher`.
+        ewm->state = LIGHT_NODE_CONNECTED;
 
-    // Set ewm {client,state} prior to bcs/event start.  Avoid race conditions, particularly
-    // with `ewmPeriodicDispatcher`.
-    ewm->state = LIGHT_NODE_CONNECTED;
+        // Start the alarm clock, if needed.
+        alarmClockStart(alarmClock);
 
-    // Start the alarm clock, if needed.
-    alarmClockStart(alarmClock);
+        switch (ewm->mode) {
+            case BRD_ONLY:
+                break;
+            case BRD_WITH_P2P_SEND:
+            case P2P_WITH_BRD_SYNC:
+            case P2P_ONLY:
+                bcsStart(ewm->bcs);
+                break;
+        }
 
-    switch (ewm->mode) {
-        case BRD_ONLY:
-            break;
-        case BRD_WITH_P2P_SEND:
-        case P2P_WITH_BRD_SYNC:
-        case P2P_ONLY:
-            bcsStart(ewm->bcs);
-            break;
+        eventHandlerStart(ewm->handler);
+
+        result = ETHEREUM_BOOLEAN_TRUE;
     }
 
-    eventHandlerStart(ewm->handler);
+    ewmUnlock (ewm);
 
-    return ETHEREUM_BOOLEAN_TRUE;
+    return result;
 }
 
 /**
@@ -697,44 +707,61 @@ ewmConnect(BREthereumEWM ewm) {
  */
 extern BREthereumBoolean
 ewmDisconnect (BREthereumEWM ewm) {
+    BREthereumBoolean result = ETHEREUM_BOOLEAN_FALSE;
 
-    if (ETHEREUM_BOOLEAN_IS_FALSE (ewmIsConnected(ewm)))
-        return ETHEREUM_BOOLEAN_FALSE;
+    ewmLock (ewm);
 
-    // Set ewm->state thereby stopping handlers (in a race with bcs/event calls).
-    ewm->state = LIGHT_NODE_DISCONNECTED;
+    if (ETHEREUM_BOOLEAN_IS_TRUE (ewmIsConnected(ewm))) {
+        // Set ewm->state thereby stopping handlers (in a race with bcs/event calls).
+        ewm->state = LIGHT_NODE_DISCONNECTED;
 
-    // What order for these stop functions?  See comment in `bcsStop()`.
-    alarmClockStop (alarmClock);
+        // What order for these stop functions?  See comment in `bcsStop()`.
+        alarmClockStop (alarmClock);
 
-    switch (ewm->mode) {
-        case BRD_ONLY:
-            break;
-        case BRD_WITH_P2P_SEND:
-        case P2P_WITH_BRD_SYNC:
-        case P2P_ONLY:
-            bcsStop(ewm->bcs);
-            break;
+        switch (ewm->mode) {
+            case BRD_ONLY:
+                break;
+            case BRD_WITH_P2P_SEND:
+            case P2P_WITH_BRD_SYNC:
+            case P2P_ONLY:
+                bcsStop(ewm->bcs);
+                break;
+        }
+
+        // Unlock here - required for eventHandlerStop() to run and succeed on pthread_join(). This
+        // could be moved to immediately after `ewm->state = ...` as the lock *only* protects
+        // that EWM field.
+        ewmUnlock(ewm);
+        eventHandlerStop(ewm->handler);
+
+        result = ETHEREUM_BOOLEAN_TRUE;
     }
+    else ewmUnlock(ewm);
 
-    eventHandlerStop(ewm->handler);
-
-    return ETHEREUM_BOOLEAN_TRUE;
+    return result;
 }
 
 extern BREthereumBoolean
 ewmIsConnected (BREthereumEWM ewm) {
-    if (LIGHT_NODE_CONNECTED != ewm->state) return ETHEREUM_BOOLEAN_FALSE;
+    BREthereumBoolean result = ETHEREUM_BOOLEAN_FALSE;
 
-    switch (ewm->mode) {
-        case BRD_ONLY:
-            return ETHEREUM_BOOLEAN_TRUE;
+    ewmLock (ewm);
 
-        case BRD_WITH_P2P_SEND:
-        case P2P_WITH_BRD_SYNC:
-        case P2P_ONLY:
-            return bcsIsStarted (ewm->bcs);
+    if (LIGHT_NODE_CONNECTED == ewm->state) {
+        switch (ewm->mode) {
+            case BRD_ONLY:
+                result = ETHEREUM_BOOLEAN_TRUE;
+                break;
+
+            case BRD_WITH_P2P_SEND:
+            case P2P_WITH_BRD_SYNC:
+            case P2P_ONLY:
+                result = bcsIsStarted (ewm->bcs);
+                break;
+        }
     }
+    ewmUnlock (ewm);
+    return result;
 }
 
 static void
@@ -854,6 +881,16 @@ ewmSync (BREthereumEWM ewm) {
             bcsSync (ewm->bcs, 0);
             return ETHEREUM_BOOLEAN_TRUE;
     }
+}
+
+extern void
+ewmLock (BREthereumEWM ewm) {
+    pthread_mutex_lock (&ewm->lock);
+}
+
+extern void
+ewmUnlock (BREthereumEWM ewm) {
+    pthread_mutex_unlock (&ewm->lock);
 }
 
 ///
@@ -1223,7 +1260,7 @@ ewmWalletCreateTransferToCancel(BREthereumEWM ewm,
                        etherCreateZero(),
                        gasPriceCreate(newGasPrice),
                        transactionGetGasLimit(oldTransaction),
-                       strdup (transactionGetData(oldTransaction)),
+                       transactionGetData(oldTransaction),
                        transactionGetNonce(oldTransaction));
 
     transferSetStatus(oldTransfer, TRANSFER_STATUS_REPLACED);
@@ -1291,7 +1328,7 @@ ewmWalletCreateTransferToReplace (BREthereumEWM ewm,
                        transactionGetAmount(oldTransaction),
                        gasPrice,
                        gasLimit,
-                       strdup (transactionGetData(oldTransaction)),
+                       transactionGetData(oldTransaction),
                        nonce);
 
     transferSetStatus(oldTransfer, TRANSFER_STATUS_REPLACED);
@@ -1654,8 +1691,21 @@ ewmHandleTransaction (BREthereumEWM ewm,
     BREthereumWallet wallet = ewmGetWallet(ewm);
     assert (NULL != wallet);
 
+    ///
+    ///  What hash to use:
+    ///     originating -> expecting a result
+    ///     identifier  -> seen already.
+    ///
+    ///     originating should be good in one wallet?  [no, multiple logs?]
+    ///        wallet will have transfers w/o a basis.
+    ///        does a transfer with an ERC20 transfer fit in one wallet?
+    ///        does a transfer with some smart contract fit in one wallet (no?)
+    ///
+
     // Find a preexisting transfer
-    BREthereumTransfer transfer = walletGetTransferByHash (wallet, hash);
+    BREthereumTransfer transfer = walletGetTransferByIdentifier (wallet, hash);
+    if (NULL == transfer)
+        transfer = walletGetTransferByOriginatingHash (wallet, hash);
 
     int needStatusEvent = 0;
 
@@ -1703,9 +1753,10 @@ ewmHandleLog (BREthereumEWM ewm,
               OwnershipGiven BREthereumLog log) {
     BREthereumHash logHash = logGetHash(log);
 
+    // Assert that we always have an identifier for `log`.
     BREthereumHash transactionHash;
     size_t logIndex;
-    logExtractIdentifier(log, &transactionHash, &logIndex);
+    assert (ETHEREUM_BOOLEAN_IS_TRUE (logExtractIdentifier(log, &transactionHash, &logIndex)));
 
     BREthereumHashString logHashString;
     hashFillString(logHash, logHashString);
@@ -1713,8 +1764,10 @@ ewmHandleLog (BREthereumEWM ewm,
     BREthereumHashString transactionHashString;
     hashFillString(transactionHash, transactionHashString);
 
-    eth_log ("EWM", "Log: %s { %8s @ %zu }, Change: %s",
-             logHashString, transactionHashString, logIndex, BCS_CALLBACK_TRANSACTION_TYPE_NAME(type));
+    eth_log ("EWM", "Log: %s { %8s @ %zu }, Change: %s, Status: %d",
+             logHashString, transactionHashString, logIndex,
+             BCS_CALLBACK_TRANSACTION_TYPE_NAME(type),
+             logGetStatus(log).type);
 
     BREthereumToken token = tokenLookupByAddress(logGetAddress(log));
     if (NULL == token) return;
@@ -1725,7 +1778,9 @@ ewmHandleLog (BREthereumEWM ewm,
     BREthereumWallet wallet = ewmGetWalletHoldingToken (ewm, token);
     assert (NULL != wallet);
 
-    BREthereumTransfer transfer = walletGetTransferByHash (wallet, logHash);
+    BREthereumTransfer transfer = walletGetTransferByIdentifier (wallet, logHash);
+    if (NULL == transfer)
+        transfer = walletGetTransferByOriginatingHash (wallet, transactionHash);
 
     int needStatusEvent = 0;
 
@@ -1872,6 +1927,164 @@ ewmHandleGetBlocks (BREthereumEWM ewm,
 //
 // Periodic Dispatcher
 //
+static void
+ewmUpdateWalletBalance(BREthereumEWM ewm,
+                       BREthereumWallet wallet) {
+
+    if (NULL == wallet) {
+        ewmSignalWalletEvent(ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
+                             ERROR_UNKNOWN_WALLET,
+                             NULL);
+
+    } else if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) {
+        ewmSignalWalletEvent(ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
+                             ERROR_NODE_NOT_CONNECTED,
+                             NULL);
+    } else {
+        switch (ewm->mode) {
+            case BRD_ONLY:
+            case BRD_WITH_P2P_SEND: {
+                char *address = addressGetEncodedString(walletGetAddress(wallet), 0);
+
+                ewm->client.funcGetBalance (ewm->client.context,
+                                            ewm,
+                                            wallet,
+                                            address,
+                                            ++ewm->requestId);
+
+                free(address);
+                break;
+            }
+
+            case P2P_WITH_BRD_SYNC:
+            case P2P_ONLY:
+                // TODO: LES Update Wallet Balance
+                break;
+        }
+    }
+}
+
+static void
+ewmUpdateBlockNumber (BREthereumEWM ewm) {
+    if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) return;
+    switch (ewm->mode) {
+        case BRD_ONLY:
+        case BRD_WITH_P2P_SEND: {
+            ewm->client.funcGetBlockNumber (ewm->client.context,
+                                            ewm,
+                                            ++ewm->requestId);
+            break;
+        }
+
+        case P2P_WITH_BRD_SYNC:
+        case P2P_ONLY:
+            // TODO: LES Update Wallet Balance
+            break;
+    }
+}
+
+static void
+ewmUpdateNonce (BREthereumEWM ewm) {
+    if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) return;
+    switch (ewm->mode) {
+        case BRD_ONLY:
+        case BRD_WITH_P2P_SEND: {
+            char *address = addressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
+
+            ewm->client.funcGetNonce (ewm->client.context,
+                                      ewm,
+                                      address,
+                                      ++ewm->requestId);
+
+            free (address);
+            break;
+        }
+
+        case P2P_WITH_BRD_SYNC:
+        case P2P_ONLY:
+            // TODO: LES Update Wallet Balance
+            break;
+    }
+}
+
+/**
+ * Update the transactions for the ewm's account.  A JSON_RPC EWM will call out to
+ * BREthereumClientHandlerGetTransactions which is expected to query all transactions associated with the
+ * accounts address and then the call out is to call back the 'announce transaction' callback.
+ */
+static void
+ewmUpdateTransactions (BREthereumEWM ewm) {
+    if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) {
+        // Nothing to announce
+        return;
+    }
+    switch (ewm->mode) {
+        case BRD_ONLY:
+        case BRD_WITH_P2P_SEND: {
+            char *address = addressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
+
+            ewm->client.funcGetTransactions (ewm->client.context,
+                                             ewm,
+                                             address,
+                                             ewm->brdSync.begBlockNumber,
+                                             ewm->brdSync.endBlockNumber,
+                                             ++ewm->requestId);
+
+            free (address);
+            break;
+        }
+
+        case P2P_WITH_BRD_SYNC:
+        case P2P_ONLY:
+            // TODO: LES Update Wallet Balance
+            break;
+    }
+}
+
+static const char *
+ewmGetWalletContractAddress (BREthereumEWM ewm, BREthereumWallet wallet) {
+    if (NULL == wallet) return NULL;
+
+    BREthereumToken token = walletGetToken(wallet);
+    return (NULL == token ? NULL : tokenGetAddress(token));
+}
+
+static void
+ewmUpdateLogs (BREthereumEWM ewm,
+               BREthereumWallet wid,
+               BREthereumContractEvent event) {
+    if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) {
+        // Nothing to announce
+        return;
+    }
+    switch (ewm->mode) {
+        case BRD_ONLY:
+        case BRD_WITH_P2P_SEND: {
+            char *address = addressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
+            char *encodedAddress =
+            eventERC20TransferEncodeAddress (event, address);
+            const char *contract = ewmGetWalletContractAddress(ewm, wid);
+
+            ewm->client.funcGetLogs (ewm->client.context,
+                                     ewm,
+                                     contract,
+                                     encodedAddress,
+                                     eventGetSelector(event),
+                                     ewm->brdSync.begBlockNumber,
+                                     ewm->brdSync.endBlockNumber,
+                                     ++ewm->requestId);
+
+            free (encodedAddress);
+            free (address);
+            break;
+        }
+
+        case P2P_WITH_BRD_SYNC:
+        case P2P_ONLY:
+            // TODO: LES Update Logs
+            break;
+    }
+}
 
 //
 // Periodicaly query the BRD backend to get current status (block number, nonce, balances,
@@ -1960,16 +2173,15 @@ ewmTransferGetRawDataHexEncoded(BREthereumEWM ewm,
     assert (walletHasTransfer(wallet, transfer));
 
     BREthereumTransaction transaction = transferGetOriginatingTransaction (transfer);
-    assert (NULL != transaction);
 
-    return transactionGetRlpHexEncoded(transaction,
-                                       ewm->network,
-                                       (ETHEREUM_BOOLEAN_IS_TRUE (transactionIsSigned(transaction))
-                                        ? RLP_TYPE_TRANSACTION_SIGNED
-                                        : RLP_TYPE_TRANSACTION_UNSIGNED),
-                                       prefix);
-}
-
+    return (NULL == transaction ? NULL
+            : transactionGetRlpHexEncoded (transaction,
+                                           ewm->network,
+                                           (ETHEREUM_BOOLEAN_IS_TRUE (transactionIsSigned(transaction))
+                                            ? RLP_TYPE_TRANSACTION_SIGNED
+                                            : RLP_TYPE_TRANSACTION_UNSIGNED),
+                                           prefix));
+            }
 
 ///
 /// MARK: - Transfer
@@ -1987,9 +2199,15 @@ ewmTransferGetSource (BREthereumEWM ewm,
 }
 
 extern BREthereumHash
-ewmTransferGetHash(BREthereumEWM ewm,
-                   BREthereumTransfer transfer) {
-    return transferGetHash(transfer);
+ewmTransferGetIdentifier(BREthereumEWM ewm,
+                         BREthereumTransfer transfer) {
+    return transferGetIdentifier (transfer);
+}
+
+extern BREthereumHash
+ewmTransferGetOriginatingTransactionHash(BREthereumEWM ewm,
+                                         BREthereumTransfer transfer) {
+    return transferGetOriginatingTransactionHash(transfer);
 }
 
 extern char *

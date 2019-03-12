@@ -159,8 +159,31 @@ transferSetGasLimit (BREthereumTransfer transfer,
 #endif
 
 // TODO: If not signed? submitted?
+
+/**
+ * Return the transfer's unique identifier; however, it is guaranteed to exist if-and-only-if the
+ * transfer's basis has been included in the block chain.  Specifically, if the transfer's basis
+ * is a Log then until included we don't even have a Log.
+ *
+ * @param transfer
+ *
+ * @return The unique hash or HASH_EMPTY_INIT if the transfer is not in the block chain.
+ */
 extern const BREthereumHash
-transferGetHash (BREthereumTransfer transfer);
+transferGetIdentifier (BREthereumTransfer transfer);
+
+/**
+ * Return the hash of the transfer's originating transaction.  Multiple transfers might share the
+ * same originating transaction and thus the same hash.  For example, an ERC20 exchange would have
+ * a 'fee transfer' and a 'token transfer' with the same originating transaction.  Another example
+ * would be a single transfer that produced N (> 1) logs (albeit this is not supported yet).
+ *
+ * @param transfer
+ *
+ * @return the originating transactions hash or HAHS_EMPTY_INIT
+ */
+extern const BREthereumHash
+transferGetOriginatingTransactionHash (BREthereumTransfer transfer);
 
 // TODO: Needed?
 extern uint64_t
@@ -176,13 +199,28 @@ extern BREthereumComparison
 transferCompare (BREthereumTransfer t1,
                  BREthereumTransfer t2);
 
+
+/**
+ * Make `transaction` the basis for `transfer`.  If `transfer` is not based on TRANSACTION, then
+ * an assertion is raised.  If `transfer` already has a basis, then that transaction is released.
+ *
+ * @param transfer
+ * @param transaction
+ */
 extern void
 transferSetBasisForTransaction (BREthereumTransfer transfer,
-                                BREthereumTransaction transaction);
+                                OwnershipGiven BREthereumTransaction transaction);
 
+/**
+ * Make `log` the basis for `transfer`.  If `transfer` is not based on LOG, then an assertion
+ * is raised.  If `transfer` already has a basis, then that log is released.
+ *
+ * @param transfer
+ * @param log
+ */
 extern void
 transferSetBasisForLog (BREthereumTransfer transfer,
-                        BREthereumLog log);
+                        OwnershipGiven BREthereumLog log);
 
 //
 //

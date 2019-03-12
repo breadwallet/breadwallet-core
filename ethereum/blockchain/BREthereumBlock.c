@@ -921,11 +921,14 @@ blockLinkLogsWithTransactions (BREthereumBlock block) {
         // Importantly, note that the log has no reference to the transaction itself.  And, if only
         // implicitly, we assume that `block` has the correct transaction at transactionIndex.
         BREthereumTransaction transaction = block->transactions[transactionIndex];
+
+        // The logIndex was assigned (w/o the transaction hash) from the receipts
         logExtractIdentifier(log, NULL, &logIndex);
+
+        // Finally, a fully identified log
         logInitializeIdentifier(log, transactionGetHash(transaction), logIndex);
     }
 }
-
 
 //
 // Block RLP Encode / Decode
@@ -936,6 +939,10 @@ blockTransactionsRlpEncode (BREthereumBlock block,
                             BREthereumRlpType type,
                             BRRlpCoder coder) {
     size_t itemsCount = (NULL == block->transactions ? 0 : array_count(block->transactions));
+
+    // If there are no items, skip out immediately.
+    if (0 == itemsCount) return rlpEncodeList(coder, 0);
+
     BRRlpItem items[itemsCount];
 
     for (int i = 0; i < itemsCount; i++)
@@ -974,6 +981,10 @@ blockOmmersRlpEncode (BREthereumBlock block,
                       BREthereumRlpType type,
                       BRRlpCoder coder) {
     size_t itemsCount = (NULL == block->ommers ? 0 : array_count(block->ommers));
+
+    // If there are no items, skip out immediately.
+    if (0 == itemsCount) return rlpEncodeList(coder, 0);
+
     BRRlpItem items[itemsCount];
 
     for (int i = 0; i < itemsCount; i++)

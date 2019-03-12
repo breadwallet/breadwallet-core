@@ -12,14 +12,14 @@
 #include "BREthereumContract.h"
 #include "BREthereumToken.h"
 
-#if defined (BITCOIN_TESTNET) && 1 == BITCOIN_TESTNET
+#if defined (BITCOIN_TESTNET)
 const char *tokenBRDAddress = "0x7108ca7c4718efa810457f228305c9c71390931a"; // testnet
 #else
 const char *tokenBRDAddress = "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"; // mainnet
 #endif
 
 #if defined (BITCOIN_DEBUG)
-#  if defined (BITCOIN_TESTNET) && 1 == BITCOIN_TESTNET
+#  if defined (BITCOIN_TESTNET)
 static const char *tokenTSTAddress = "0x722dd3f80bac40c951b51bdd28dd19d435762180"; // testnet,
 #  else
 static const char *tokenTSTAddress = "0x3efd578b271d034a69499e4a2d933c631d44b9ad"; // mainnet
@@ -99,7 +99,7 @@ void runTokenLookupTests () {
     assert (NULL != token);
 #endif
 
-#if 0 == BITCOIN_TESTNET
+#if !defined(BITCOIN_TESTNET)
     token = tokenLookup("0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0"); // EOI
     assert (NULL != token);
 #endif

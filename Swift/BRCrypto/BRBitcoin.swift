@@ -163,8 +163,7 @@ public class BitcoinTransfer: Transfer {
         self._wallet = wallet
         self.core = core
         
-        // TODO: Should be: included w/ TransferConfirmation
-        self.state = TransferState.submitted
+        self.state = TransferState.created
     }
     
     init? (wallet: BitcoinWallet,
@@ -393,7 +392,7 @@ public class BitcoinWalletManager: WalletManager {
                     let coreTransaction = coreTransaction {
                     bwm.queue.async {
                         if let wallet = bwm.primaryWallet as? BitcoinWallet {
-                            var transfer: Transfer!
+                            var transfer: BitcoinTransfer!
                             var walletEvent: WalletEvent?
                             var transferEvent: TransferEvent?
 
@@ -406,7 +405,8 @@ public class BitcoinWalletManager: WalletManager {
                                 walletEvent   = WalletEvent.transferAdded(transfer: transfer)
 
                             case BITCOIN_TRANSACTION_UPDATED:
-                                if let transfer = wallet.lookup (coreTransaction: coreTransaction) as? BitcoinTransfer {
+                                transfer = wallet.lookup (coreTransaction: coreTransaction) as? BitcoinTransfer
+                                if nil != transfer {
                                     let oldState = transfer.state
                                     let newState = TransferState.included (confirmation:
                                         TransferConfirmation (blockNumber: 500000,
@@ -421,7 +421,8 @@ public class BitcoinWalletManager: WalletManager {
                                 }
 
                             case BITCOIN_TRANSACTION_DELETED:
-                                if let transfer = wallet.lookup (coreTransaction: coreTransaction) as? BitcoinTransfer {
+                                transfer = wallet.lookup (coreTransaction: coreTransaction) as? BitcoinTransfer
+                                if nil != transfer {
                                     if let index = wallet.transfers.firstIndex (where: {
                                         ($0 as? BitcoinTransfer).map { $0.core == coreTransaction } ?? false }) {
                                         wallet.transfers.remove(at: index)

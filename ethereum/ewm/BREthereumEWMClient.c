@@ -39,44 +39,6 @@
 //
 // Wallet Balance
 //
-
-extern void
-ewmUpdateWalletBalance(BREthereumEWM ewm,
-                       BREthereumWallet wallet) {
-
-    if (NULL == wallet) {
-        ewmSignalWalletEvent(ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
-                                     ERROR_UNKNOWN_WALLET,
-                                     NULL);
-        
-    } else if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) {
-        ewmSignalWalletEvent(ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
-                                     ERROR_NODE_NOT_CONNECTED,
-                                     NULL);
-    } else {
-        switch (ewm->mode) {
-            case BRD_ONLY:
-            case BRD_WITH_P2P_SEND: {
-                char *address = addressGetEncodedString(walletGetAddress(wallet), 0);
-
-                ewm->client.funcGetBalance (ewm->client.context,
-                                            ewm,
-                                            wallet,
-                                            address,
-                                            ++ewm->requestId);
-
-                free(address);
-                break;
-            }
-
-            case P2P_WITH_BRD_SYNC:
-            case P2P_ONLY:
-                // TODO: LES Update Wallet Balance
-                break;
-        }
-    }
-}
-
 /**
  * Handle the Client Announcement for the balance of `wallet`.  This will be the BRD Backend's
  * result (not necessarily a JSON_RPC result) for the balance which will be ether ETH or TOK.
@@ -265,25 +227,6 @@ ewmAnnounceGasEstimate (BREthereumEWM ewm,
 //
 // Get Block Number
 //
-extern void
-ewmUpdateBlockNumber (BREthereumEWM ewm) {
-    if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) return;
-    switch (ewm->mode) {
-        case BRD_ONLY:
-        case BRD_WITH_P2P_SEND: {
-            ewm->client.funcGetBlockNumber (ewm->client.context,
-                                            ewm,
-                                            ++ewm->requestId);
-            break;
-        }
-
-        case P2P_WITH_BRD_SYNC:
-        case P2P_ONLY:
-            // TODO: LES Update Wallet Balance
-            break;
-    }
-}
-
 /**
  * Handle a Client Announcement of `blockNumber`.  This will be BRD Backend's JSON_RPC result for
  * the most recent Ethereum blockNumber
@@ -312,30 +255,6 @@ ewmAnnounceBlockNumber (BREthereumEWM ewm,
 //
 // Get Nonce
 //
-extern void
-ewmUpdateNonce (BREthereumEWM ewm) {
-    if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) return;
-    switch (ewm->mode) {
-        case BRD_ONLY:
-        case BRD_WITH_P2P_SEND: {
-            char *address = addressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
-
-            ewm->client.funcGetNonce (ewm->client.context,
-                                      ewm,
-                                      address,
-                                      ++ewm->requestId);
-
-            free (address);
-            break;
-        }
-
-        case P2P_WITH_BRD_SYNC:
-        case P2P_ONLY:
-            // TODO: LES Update Wallet Balance
-            break;
-    }
-}
-
 extern BREthereumStatus
 ewmAnnounceNonce (BREthereumEWM ewm,
                   const char *strAddress,
@@ -370,34 +289,7 @@ ewmHandleAnnounceNonce (BREthereumEWM ewm,
 //
 // Get Transactions
 //
-extern void
-ewmUpdateTransactions (BREthereumEWM ewm) {
-    if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) {
-        // Nothing to announce
-        return;
-    }
-    switch (ewm->mode) {
-        case BRD_ONLY:
-        case BRD_WITH_P2P_SEND: {
-            char *address = addressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
 
-            ewm->client.funcGetTransactions (ewm->client.context,
-                                             ewm,
-                                             address,
-                                             ewm->brdSync.begBlockNumber,
-                                             ewm->brdSync.endBlockNumber,
-                                             ++ewm->requestId);
-
-            free (address);
-            break;
-        }
-
-        case P2P_WITH_BRD_SYNC:
-        case P2P_ONLY:
-            // TODO: LES Update Wallet Balance
-            break;
-    }
-}
 
 extern void
 ewmHandleAnnounceTransaction(BREthereumEWM ewm,
@@ -514,51 +406,6 @@ ewmAnnounceTransactionComplete (BREthereumEWM ewm,
 //
 // Get Logs
 //
-static const char *
-ewmGetWalletContractAddress (BREthereumEWM ewm, BREthereumWallet wallet) {
-    if (NULL == wallet) return NULL;
-    
-    BREthereumToken token = walletGetToken(wallet);
-    return (NULL == token ? NULL : tokenGetAddress(token));
-}
-
-extern void
-ewmUpdateLogs (BREthereumEWM ewm,
-               BREthereumWallet wid,
-               BREthereumContractEvent event) {
-    if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) {
-        // Nothing to announce
-        return;
-    }
-    switch (ewm->mode) {
-        case BRD_ONLY:
-        case BRD_WITH_P2P_SEND: {
-            char *address = addressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
-            char *encodedAddress =
-            eventERC20TransferEncodeAddress (event, address);
-            const char *contract = ewmGetWalletContractAddress(ewm, wid);
-
-            ewm->client.funcGetLogs (ewm->client.context,
-                                     ewm,
-                                     contract,
-                                     encodedAddress,
-                                     eventGetSelector(event),
-                                     ewm->brdSync.begBlockNumber,
-                                     ewm->brdSync.endBlockNumber,
-                                     ++ewm->requestId);
-
-            free (encodedAddress);
-            free (address);
-            break;
-        }
-
-        case P2P_WITH_BRD_SYNC:
-        case P2P_ONLY:
-            // TODO: LES Update Logs
-            break;
-    }
-}
-
 extern void
 ewmHandleAnnounceLog (BREthereumEWM ewm,
                       BREthereumEWMClientAnnounceLogBundle *bundle,
@@ -818,8 +665,9 @@ ewmAnnounceSubmitTransfer(BREthereumEWM ewm,
 
     if (NULL != strHash) {
         BREthereumHash hash = hashCreate(strHash);
-        if (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(transferGetHash(transfer), hashCreateEmpty()))
-            || ETHEREUM_BOOLEAN_IS_FALSE (hashEqual(transferGetHash(transfer), hash)))
+        // We announce a submitted transfer => there is an originating transaction.
+        if (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual (hash, EMPTY_HASH_INIT))
+            || ETHEREUM_BOOLEAN_IS_FALSE (hashEqual (hash, transferGetOriginatingTransactionHash (transfer))))
             return ERROR_TRANSACTION_HASH_MISMATCH;
     }
 
@@ -994,7 +842,7 @@ ewmHandleTransferEvent (BREthereumEWM ewm,
         BREthereumLog         log         = transferGetBasisLog(transfer);
 
         // If we have a hash, then we've got something to save.
-        BREthereumHash hash = transferGetHash(transfer);
+        BREthereumHash hash = transferGetIdentifier(transfer);
         if (ETHEREUM_BOOLEAN_IS_FALSE (hashCompare (hash, EMPTY_HASH_INIT))) {
 
             // One of `transaction` or `log` will always be null

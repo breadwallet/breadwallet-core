@@ -210,10 +210,16 @@ ewmHandleTransactionEventDispatcher(BREventHandler ignore,
     ewmHandleTransaction(event->ewm, event->type, event->transaction);
 }
 
+static void
+ewmHandleTransactionEventDestroyer (BREthereumHandleTransactionEvent *event) {
+    transactionRelease(event->transaction);
+}
+
 BREventType handleTransactionEventType = {
     "EWM: Handle Transaction Event",
     sizeof (BREthereumHandleTransactionEvent),
-    (BREventDispatcher) ewmHandleTransactionEventDispatcher
+    (BREventDispatcher) ewmHandleTransactionEventDispatcher,
+    (BREventDestroyer) ewmHandleTransactionEventDestroyer
 };
 
 extern void
@@ -241,10 +247,16 @@ ewmHandleLogEventDispatcher(BREventHandler ignore,
     ewmHandleLog(event->ewm, event->type, event->log);
 }
 
+static void
+ewmHandleLogEventDestroyer (BREthereumHandleLogEvent *event) {
+    logRelease(event->log);
+}
+
 BREventType handleLogEventType = {
     "EWM: Handle Log Event",
     sizeof (BREthereumHandleLogEvent),
-    (BREventDispatcher) ewmHandleLogEventDispatcher
+    (BREventDispatcher) ewmHandleLogEventDispatcher,
+    (BREventDestroyer) ewmHandleLogEventDestroyer
 };
 
 extern void
