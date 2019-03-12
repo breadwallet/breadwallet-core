@@ -813,6 +813,7 @@ bcsSyncHandleBlockHeaders (BREthereumBCSSyncRange range,
                 // `header` is now owned by `root->context`.
                 root->callback (root->context, range, headers[index], 0);
 
+            array_free (headers);
             syncRangeComplete (range);
             break;
         }

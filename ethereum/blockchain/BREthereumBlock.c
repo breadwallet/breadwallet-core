@@ -954,7 +954,7 @@ blockTransactionsRlpEncode (BREthereumBlock block,
     return rlpEncodeListItems(coder, items, itemsCount);
 }
 
-extern BREthereumTransaction *
+extern BRArrayOf(BREthereumTransaction)
 blockTransactionsRlpDecode (BRRlpItem item,
                             BREthereumNetwork network,
                             BREthereumRlpType type,
@@ -962,7 +962,7 @@ blockTransactionsRlpDecode (BRRlpItem item,
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
 
-    BREthereumTransaction *transactions;
+    BRArrayOf(BREthereumTransaction) transactions;
     array_new(transactions, itemsCount);
 
     for (int i = 0; i < itemsCount; i++) {
@@ -970,7 +970,7 @@ blockTransactionsRlpDecode (BRRlpItem item,
                                                                      network,
                                                                      type,
                                                                      coder);
-        array_add(transactions, transaction);
+        array_add (transactions, transaction);
     }
 
     return transactions;
@@ -996,7 +996,7 @@ blockOmmersRlpEncode (BREthereumBlock block,
     return rlpEncodeListItems(coder, items, itemsCount);
 }
 
-extern BREthereumBlockHeader *
+extern BRArrayOf (BREthereumBlockHeader)
 blockOmmersRlpDecode (BRRlpItem item,
                       BREthereumNetwork network,
                       BREthereumRlpType type,
@@ -1004,12 +1004,12 @@ blockOmmersRlpDecode (BRRlpItem item,
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
 
-    BREthereumBlockHeader *headers;
+    BRArrayOf (BREthereumBlockHeader) headers;
     array_new(headers, itemsCount);
 
     for (int i = 0; i < itemsCount; i++) {
         BREthereumBlockHeader header = blockHeaderRlpDecode(items[i], type, coder);
-        array_add(headers, header);
+        array_add (headers, header);
     }
 
     return headers;
@@ -1293,7 +1293,7 @@ blockReportStatusHeaderProofRequest (BREthereumBlock block,
 
 extern void
 blockReportStatusHeaderProof (BREthereumBlock block,
-                              OwnershipGiven BREthereumBlockHeaderProof proof) {
+                              BREthereumBlockHeaderProof proof) {
     assert (block->status.headerProofRequest == BLOCK_REQUEST_PENDING);
     block->status.headerProofRequest = BLOCK_REQUEST_COMPLETE;
     block->status.headerProof = proof;

@@ -901,11 +901,16 @@ lesHandleProvision (BREthereumLES les,
                     //
                     // We've taken ownership of the provision, we retain the provision as it will
                     // be reassigned to another node.
+                    //
+                    // Note that the provision might be filled with some data
+                    provisionReleaseResults (&request->provision);
 
+                    // Provide an explanation.
                     char explanation[256];
                     sprintf (explanation, "Provision Error: %s, Type: %s",
                              provisionErrorGetReasonName(result.u.error.reason),
                              provisionGetTypeName(result.type));
+
                     lesDeactivateNode (les, NODE_ROUTE_TCP, node, explanation);
                     return;
                 }
