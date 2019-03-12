@@ -728,12 +728,15 @@ ewmDisconnect (BREthereumEWM ewm) {
                 break;
         }
 
+        // Unlock here - required for eventHandlerStop() to run and succeed on pthread_join(). This
+        // could be moved to immediately after `ewm->state = ...` as the lock *only* protects
+        // that EWM field.
+        ewmUnlock(ewm);
         eventHandlerStop(ewm->handler);
 
         result = ETHEREUM_BOOLEAN_TRUE;
     }
-
-    ewmUnlock (ewm);
+    else ewmUnlock(ewm);
 
     return result;
 }

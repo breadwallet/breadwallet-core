@@ -877,7 +877,7 @@ public protocol WalletFactory {
 /// ERC20Token; the ETH wallet will be the primaryWallet.  A BitcoinWalletManager manages one
 /// and only one wallet holding BTC.).
 ///
-/// At least conceptuall, a WalletManager is an 'Active Object' (whereas Transfer and Wallet are
+/// At least conceptually, a WalletManager is an 'Active Object' (whereas Transfer and Wallet are
 /// 'Passive Objects'
 ///
 public protocol WalletManager : class {
