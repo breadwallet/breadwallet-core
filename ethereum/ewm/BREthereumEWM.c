@@ -1770,10 +1770,10 @@ ewmHandleLog (BREthereumEWM ewm,
              logGetStatus(log).type);
 
     BREthereumToken token = tokenLookupByAddress(logGetAddress(log));
-    if (NULL == token) return;
+    if (NULL == token) { logRelease(log); return;}
 
     // TODO: Confirm LogTopic[0] is 'transfer'
-    if (3 != logGetTopicsCount(log)) return;
+    if (3 != logGetTopicsCount(log)) { logRelease(log); return; }
 
     BREthereumWallet wallet = ewmGetWalletHoldingToken (ewm, token);
     assert (NULL != wallet);
