@@ -582,8 +582,12 @@ openSocket(BREthereumNodeEndpoint endpoint, int *socketToAssign, int port, int d
 
     if (*socketToAssign < 0) return openSocketReportResult (endpoint, port, type, errno);
 
-    tv.tv_sec = 10; // one second timeout for send/receive, so thread doesn't block for too long
+    // ten second timeout for send/receive
+    // BTC: so thread doesn't block for too long.
+    // ETH: we use select and thus won't/shouldn't block on reads nor writes.
+    tv.tv_sec = 10;
     tv.tv_usec = 0;
+
     setsockopt(*socketToAssign, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
     setsockopt(*socketToAssign, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
     setsockopt(*socketToAssign, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on));
