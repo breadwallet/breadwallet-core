@@ -81,8 +81,14 @@
 //#define LES_DISABLE_DISCOVERY
 
 /**
- * We we attempt to open a socket to a node endpoint and the socket reports EINPROGRESS, we'll
- * select() on the socket with this timeout.
+ * If we attempt to open a socket to a node endpoint and the socket reports EINPROGRESS, we'll
+ * select() on the socket with this timeout.  See CORE-265.  This occurs on the LES thread and
+ * is a blocking operation - blocking *all* other nodes.  We should consider attempting to resolve
+ * an EINPROGRESS by introducing another 'connecting' state (between OPEN and AUTH).  That new
+ * state will wait on the 'write file descriptor' and then do `getsockopt()` - if success then
+ * move to AUTH otherwise error.
+ *
+ * But, the above is too onerous at this time.  We can wait; nobody is going any where.
  */
 #define NODE_ENDPOINT_OPEN_SOCKET_TIMEOUT 3.0
 
@@ -96,17 +102,19 @@
  */
 #define P2P_MESSAGE_VERSION     0x04
 
-// The number of nodes the should be maintained as 'active' (aka 'connected').  Once connected we
+// The number of nodes that should be maintained as 'active' (aka 'connected').  Once connected we
 // will get announcements of new blocks.  When a transaction is submitted we'll submit it to *all*
 // active nodes.  We will need multiple active nodes for submissions as we *routinely* see nodes
 // simply dropping submission outright, quietly.
-#define LES_ACTIVE_NODE_COUNT 4
+#define LES_ACTIVE_NODE_COUNT 3
 
 // When discovering nodes (on UDP) don't allow more then LES_ACTIVE_NODE_UDP_LIMIT nodes to be
 // actively discovering at once.
 #define LES_ACTIVE_NODE_UDP_LIMIT 3
 
-// The numver of nodes that should be available.
+// The number of nodes that should be available.  We'll discover nodes until we reach this count.
+// Note that this doesn mean that the nodes are LESv2 or PIPv1 nodes - they are just nodes.  As
+// we explore individual nodes they may become unavailable and we'll need to discover more.
 #define LES_AVAILABLE_NODES_COUNT     (100)
 
 // For a request with a nodeIndex that is not LES_PREFERRED_NODE_INDEX, the intention is to send
