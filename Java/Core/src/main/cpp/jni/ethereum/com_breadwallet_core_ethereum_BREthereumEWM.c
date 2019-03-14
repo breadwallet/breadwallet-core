@@ -556,21 +556,6 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniEstimateWalletGasPrice
     ewmUpdateGasPrice (node, wallet);
 }
 
-
-/*
- * Class:     com_breadwallet_core_ethereum_BREthereumEWM
- * Method:    jniForceWalletBalanceUpdate
- * Signature: (J)V
- */
-JNIEXPORT void JNICALL
-Java_com_breadwallet_core_ethereum_BREthereumEWM_jniForceWalletBalanceUpdate
-        (JNIEnv *env, jobject thisObject, jlong wid) {
-    BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
-    BREthereumWallet wallet = getWallet (env, wid);
-
-    ewmUpdateWalletBalance (node, wallet);
-}
-
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniWalletGetDefaultGasPrice

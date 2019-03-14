@@ -209,14 +209,6 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniEstim
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
- * Method:    jniForceWalletBalanceUpdate
- * Signature: (J)V
- */
-JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniForceWalletBalanceUpdate
-  (JNIEnv *, jobject, jlong);
-
-/*
- * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniWalletGetDefaultGasPrice
  * Signature: (J)J
  */

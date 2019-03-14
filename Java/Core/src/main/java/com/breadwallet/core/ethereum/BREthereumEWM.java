@@ -646,8 +646,6 @@ public class BREthereumEWM extends BRCoreJniReference {
 
     protected native void jniEstimateWalletGasPrice(long walletId);
 
-    protected native void jniForceWalletBalanceUpdate(long wallet);
-
     protected native long jniWalletGetDefaultGasPrice(long wallet);
 
     protected native void jniWalletSetDefaultGasPrice(long wallet, long value);
