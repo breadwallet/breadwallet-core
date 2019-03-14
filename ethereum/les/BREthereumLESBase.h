@@ -64,21 +64,21 @@
 /**
  * For debugging only, we can optionally only bootstrap from a LCL (local) server.
  */
-//#define LES_BOOTSTRAP_LCL_ONLY
-
 #if defined (LES_BOOTSTRAP_BRD_ONLY) || defined (NDEBUG) || !defined (DEBUG)
 #undef LES_BOOTSTRAP_LCL_ONLY
 #endif
+
+//#define LES_BOOTSTRAP_LCL_ONLY
 
 /**
  * For debugging only, we can optionally disable P2P Node Discovery.  This is very useful for
  * performance and memory allocation/leak analysis
  */
-// #define LES_DISABLE_DISCOVERY
-
 #if defined (NDEBUG) || !defined (DEBUG)
 #undef LES_DISABLE_DISCOVERY
 #endif
+
+//#define LES_DISABLE_DISCOVERY
 
 /**
  * We we attempt to open a socket to a node endpoint and the socket reports EINPROGRESS, we'll

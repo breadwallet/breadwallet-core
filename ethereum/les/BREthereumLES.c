@@ -1029,12 +1029,18 @@ lesDeactivateNodes (BREthereumLES les,
 static void
 lesHandleSelectError (BREthereumLES les,
                       int error) {
+    eth_log (LES_LOG_TOPIC, "Top-Level Select Error: %s", strerror(error));
+
     switch (error) {
         case EAGAIN:
         case EBADF:
         case EINTR:
         case EINVAL:
-            eth_log (LES_LOG_TOPIC, "Select Error: %s", strerror(error));
+            // expected errors - do something ??
+            break;
+
+        default:
+            // unexpected - do what?
             break;
     }
 }
@@ -1419,6 +1425,20 @@ lesThread (BREthereumLES les) {
                         // On error; no longer available
                         lesLogNodeActivate(les, node, NODE_ROUTE_TCP, "", "<=|=>");
                         array_rm (les->availableNodes, 0);
+
+                        // TODO: Restore to 'AVAILABLE'
+                        //
+                        // If this node has a priority of NODE_PRIORITY_LCL or NODE_PRIORITY_BRD
+                        // then consider returning it to available. See JIRA:CORE-257 - finding
+                        // viable LES/PIP nodes is so rare that we simply cannot afford to
+                        // eliminate options that we trust.
+                        //
+                        // Note: We attempted doing just the above in `nodeDisconnect()`.  With
+                        // that we returned to this code and immediately retried to connect to
+                        // the same node - failing again and again, forever.  Thus if we consider
+                        // returning to available, at the very least we must put the node at the
+                        // end of `les->availableNodes`.
+
                         break;
 
                     case NODE_CONNECTING:
@@ -1479,7 +1499,12 @@ lesThread (BREthereumLES les) {
         // that are in an error state, back to NODE_AVAILABLE - when LES connects again we'll then
         // attempt to connect to that node.  That connection might be futile; we'll try anyways.
         BREthereumNodeState oldState = nodeGetState(node, NODE_ROUTE_TCP);
-        BREthereumNodeState newState = nodeGetPreferredState(oldState);
+
+        // Always restore BRD and LCL nodes to 'NODE_AVAILABLE'
+        BREthereumNodeState newState = (NODE_PRIORITY_BRD == nodeGetPriority(node) || NODE_PRIORITY_LCL == nodeGetPriority(node)
+                                        ? ((BREthereumNodeState) { NODE_AVAILABLE })
+                                        : nodeGetPreferredState(oldState));
+
         nodeDisconnect (node, NODE_ROUTE_TCP, newState, ETHEREUM_BOOLEAN_FALSE);
         if (NODE_AVAILABLE != oldState.type && NODE_AVAILABLE == newState.type)
             lesInsertNodeAsAvailable (les, node);
