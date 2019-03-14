@@ -113,7 +113,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
         self.ethManager = EthereumWalletManager (listener: listener,
                                                  account: account,
                                                  network: Ethereum.Networks.mainnet,
-                                                 mode: WalletManagerMode.api_with_p2p_submit,
+                                                 mode: WalletManagerMode.p2p_only, //  api_with_p2p_submit,
                                                  timestamp: 0,
                                                  storagePath: storagePath)
 

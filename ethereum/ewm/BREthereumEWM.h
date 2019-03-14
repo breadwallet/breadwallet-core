@@ -279,12 +279,12 @@ ewmTransferGetSource (BREthereumEWM ewm,
                       BREthereumTransfer transfer);
 
 extern BREthereumHash
-ewmTransferGetHash(BREthereumEWM ewm,
-                   BREthereumTransfer transfer);
+ewmTransferGetIdentifier (BREthereumEWM ewm,
+                          BREthereumTransfer transfer);
 
 extern BREthereumHash
-ewmTransferGetOriginatingTransactionHash(BREthereumEWM ewm,
-                                         BREthereumTransfer transfer);
+ewmTransferGetOriginatingTransactionHash (BREthereumEWM ewm,
+                                          BREthereumTransfer transfer);
 
 
 extern BREthereumAmount

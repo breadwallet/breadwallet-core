@@ -583,32 +583,56 @@ runEWM_CONNECT_test (const char *paperKey,
     
     BRCoreParseStatus status;
     client.context = testContextCreate();
-    
+
+    BREthereumAmount balance;
+    BREthereumEther expectedBalance = etherCreate(createUInt256Parse("0x123f", 16, &status));
+    assert (CORE_PARSE_OK == status);
+
     BREthereumEWM ewm = ewmCreateWithPaperKey (ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
-                                               P2P_ONLY,
+                                               BRD_ONLY,
                                                client,
                                                storagePath);
-    
+    assert (NULL != ewm);
+
     BREthereumWallet wallet = ewmGetWallet(ewm);
-    
+    assert (NULL != wallet);
+
+    balance = ewmWalletGetBalance (ewm, wallet);
+    assert (AMOUNT_ETHER == balance.type);
+    assert (ETHEREUM_BOOLEAN_TRUE == etherIsEQ (amountGetEther(balance), etherCreateZero()));
+
+    // Immediately dispatches callbacks for WalletManager and Wallet events. Notable, wallet
+    // create and a wallet update balance events.
     ewmConnect(ewm);
     
     printf ("====     Waiting for Balance\n");
+
+    // First balance event, from wallet creation, will be 0.  But we cannot guarantee that we won't
+    // have gotten an updated balance by now.
     waitForBalance(client.context);
-    //    sleep (20);  // let connect 'take'
-    
+    balance = ewmWalletGetBalance (ewm, wallet);
+    assert (AMOUNT_ETHER == balance.type);
+    assert (ETHEREUM_BOOLEAN_TRUE == etherIsEQ (amountGetEther(balance), etherCreateZero()) ||
+            ETHEREUM_BOOLEAN_TRUE == etherIsEQ (amountGetEther(balance), expectedBalance));
+
+    // the proper approach is to wait on a 'EWM' connected event.
+    sleep (2);  // let connect 'take'
+
+    // Second balance will be from the client.
+    waitForBalance(client.context);
+
     // Callback to JSON_RPC for 'getBalanance'&
     //    ewmUpdateWalletBalance (ewm, wallet, &status);
-    BREthereumAmount balance = ewmWalletGetBalance (ewm, wallet);
-    BREthereumEther expectedBalance = etherCreate(createUInt256Parse("0x123f", 16, &status));
-    assert (CORE_PARSE_OK == status
-            && AMOUNT_ETHER == amountGetType(balance)
-            && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (expectedBalance, amountGetEther(balance)));
-    
-    int count = ewmWalletGetTransferCount(ewm, wallet);
-    assert (2 == count);
-    
+
+    balance = ewmWalletGetBalance (ewm, wallet);
+    assert (AMOUNT_ETHER == amountGetType(balance));
+    assert (ETHEREUM_BOOLEAN_TRUE == etherIsEQ (expectedBalance, amountGetEther(balance)));
+
     //    ewmUpdateTransactions(ewm);
+
+//    int count = ewmWalletGetTransferCount(ewm, wallet);
+//    assert (2 == count);
+
     testContextRelease(client.context);
     clientRelease();
     ewmDisconnect(ewm);

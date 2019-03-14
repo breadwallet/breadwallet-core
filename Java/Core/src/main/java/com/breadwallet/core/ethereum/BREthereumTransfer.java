@@ -58,8 +58,8 @@ public class BREthereumTransfer extends BREthereumEWM.ReferenceWithDefaultUnit {
         return ewm.get().jniTransactionTargetAddress(identifier);
     }
 
-    public String getHash () {
-        return ewm.get().jniTransactionGetHash (identifier);
+    public String getIdentifier () {
+        return ewm.get().jniTransactionGetIdentifier(identifier);
     }
 
     //

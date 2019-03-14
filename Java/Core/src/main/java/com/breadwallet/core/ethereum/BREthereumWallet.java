@@ -170,15 +170,6 @@ public class BREthereumWallet extends BREthereumEWM.ReferenceWithDefaultUnit {
         return fiatPerCrypto.multiply(new BigDecimal(getBalance(unitForFiatPerCrypto)));
     }
 
-
-    /**
-     * Force a balance update (by querying the Ethereum Blockchain) and then assign the
-     * wallet's balance.  Access with getBalance().
-     */
-    public void updateBalance () {
-        ewm.get().jniForceWalletBalanceUpdate(identifier);
-    }
-
     //
     // Estimate GasPrice and Gas
     //

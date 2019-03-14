@@ -34,6 +34,12 @@
 //
 //
 
+// Convert a char into uint8_t (decode)
+#define decodeChar(c)           ((uint8_t) _hexu(c))
+
+// Convert a uint8_t into a char (encode)
+#define encodeChar(u)           ((char)    _hexc(u))
+
 extern void
 decodeHex (uint8_t *target, size_t targetLen, const char *source, size_t sourceLen) {
     //
@@ -41,7 +47,7 @@ decodeHex (uint8_t *target, size_t targetLen, const char *source, size_t sourceL
     assert (2 * targetLen == sourceLen);
     
     for (int i = 0; i < targetLen; i++) {
-        target[i] = (uint8_t) ((_hexu(source[2*i]) << 4) | _hexu(source[(2*i)+1]));
+        target[i] = (uint8_t) ((decodeChar(source[2*i]) << 4) | decodeChar(source[(2*i)+1]));
     }
 }
 
@@ -65,8 +71,8 @@ encodeHex (char *target, size_t targetLen, const uint8_t *source, size_t sourceL
     assert (targetLen == 2 * sourceLen  + 1);
     
     for (int i = 0; i < sourceLen; i++) {
-        target[2*i] = (uint8_t) _hexc (source[i] >> 4);
-        target[2*i + 1] = (uint8_t) _hexc (source[i]);
+        target[2*i + 0] = encodeChar (source[i] >> 4);
+        target[2*i + 1] = encodeChar (source[i]);
     }
     target[2*sourceLen] = '\0';
 }

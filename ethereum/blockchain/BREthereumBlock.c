@@ -921,11 +921,14 @@ blockLinkLogsWithTransactions (BREthereumBlock block) {
         // Importantly, note that the log has no reference to the transaction itself.  And, if only
         // implicitly, we assume that `block` has the correct transaction at transactionIndex.
         BREthereumTransaction transaction = block->transactions[transactionIndex];
+
+        // The logIndex was assigned (w/o the transaction hash) from the receipts
         logExtractIdentifier(log, NULL, &logIndex);
+
+        // Finally, a fully identified log
         logInitializeIdentifier(log, transactionGetHash(transaction), logIndex);
     }
 }
-
 
 //
 // Block RLP Encode / Decode
@@ -936,6 +939,10 @@ blockTransactionsRlpEncode (BREthereumBlock block,
                             BREthereumRlpType type,
                             BRRlpCoder coder) {
     size_t itemsCount = (NULL == block->transactions ? 0 : array_count(block->transactions));
+
+    // If there are no items, skip out immediately.
+    if (0 == itemsCount) return rlpEncodeList(coder, 0);
+
     BRRlpItem items[itemsCount];
 
     for (int i = 0; i < itemsCount; i++)
@@ -947,7 +954,7 @@ blockTransactionsRlpEncode (BREthereumBlock block,
     return rlpEncodeListItems(coder, items, itemsCount);
 }
 
-extern BREthereumTransaction *
+extern BRArrayOf(BREthereumTransaction)
 blockTransactionsRlpDecode (BRRlpItem item,
                             BREthereumNetwork network,
                             BREthereumRlpType type,
@@ -955,7 +962,7 @@ blockTransactionsRlpDecode (BRRlpItem item,
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
 
-    BREthereumTransaction *transactions;
+    BRArrayOf(BREthereumTransaction) transactions;
     array_new(transactions, itemsCount);
 
     for (int i = 0; i < itemsCount; i++) {
@@ -963,7 +970,7 @@ blockTransactionsRlpDecode (BRRlpItem item,
                                                                      network,
                                                                      type,
                                                                      coder);
-        array_add(transactions, transaction);
+        array_add (transactions, transaction);
     }
 
     return transactions;
@@ -974,6 +981,10 @@ blockOmmersRlpEncode (BREthereumBlock block,
                       BREthereumRlpType type,
                       BRRlpCoder coder) {
     size_t itemsCount = (NULL == block->ommers ? 0 : array_count(block->ommers));
+
+    // If there are no items, skip out immediately.
+    if (0 == itemsCount) return rlpEncodeList(coder, 0);
+
     BRRlpItem items[itemsCount];
 
     for (int i = 0; i < itemsCount; i++)
@@ -985,7 +996,7 @@ blockOmmersRlpEncode (BREthereumBlock block,
     return rlpEncodeListItems(coder, items, itemsCount);
 }
 
-extern BREthereumBlockHeader *
+extern BRArrayOf (BREthereumBlockHeader)
 blockOmmersRlpDecode (BRRlpItem item,
                       BREthereumNetwork network,
                       BREthereumRlpType type,
@@ -993,12 +1004,12 @@ blockOmmersRlpDecode (BRRlpItem item,
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
 
-    BREthereumBlockHeader *headers;
+    BRArrayOf (BREthereumBlockHeader) headers;
     array_new(headers, itemsCount);
 
     for (int i = 0; i < itemsCount; i++) {
         BREthereumBlockHeader header = blockHeaderRlpDecode(items[i], type, coder);
-        array_add(headers, header);
+        array_add (headers, header);
     }
 
     return headers;
@@ -1282,7 +1293,7 @@ blockReportStatusHeaderProofRequest (BREthereumBlock block,
 
 extern void
 blockReportStatusHeaderProof (BREthereumBlock block,
-                              OwnershipGiven BREthereumBlockHeaderProof proof) {
+                              BREthereumBlockHeaderProof proof) {
     assert (block->status.headerProofRequest == BLOCK_REQUEST_PENDING);
     block->status.headerProofRequest = BLOCK_REQUEST_COMPLETE;
     block->status.headerProof = proof;

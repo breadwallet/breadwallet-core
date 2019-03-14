@@ -624,6 +624,11 @@ messageLESTxStatusConsume (BREthereumLESMessageTxStatus *message,
     if (NULL != stati) { *stati = message->stati; message->stati = NULL; }
 }
 
+/**
+ * When decoding a LES TxStatus message, the 'error' field has been observed to start with these
+ * strings.  We'll map these (based on the array index) to a enumeration of status errors.
+ * See BREthereumTransactionErrorType.
+ */
 const char *lesTransactionErrorPreface[] = {
     "invalid sender",
     "nonce too low",
@@ -632,6 +637,7 @@ const char *lesTransactionErrorPreface[] = {
     "intrinsic gas too low",
     "replacement transaction underpriced",
     "____", // dropped
+    "known transaction",
     "unknown"
 };
 

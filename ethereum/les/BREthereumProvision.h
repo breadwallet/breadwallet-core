@@ -212,6 +212,13 @@ extern void
 provisionRelease (BREthereumProvision *provision,
                   BREthereumBoolean releaseResults);
 
+/**
+ * Release only the results portion of a provision.  If a provision fails, we'll release an
+ * partial result and then expect to reschedule the provision.
+ */
+extern void
+provisionReleaseResults (BREthereumProvision *provision);
+
 extern BREthereumMessage
 provisionCreateMessage (BREthereumProvision *provision,
                         BREthereumMessageIdentifier type,

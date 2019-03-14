@@ -352,20 +352,17 @@ bcsDestroy (BREthereumBCS bcs) {
     // TODO: We'll need to announce things to our `listener`
 
     // Headers
-    BRSetApply (bcs->blocks, NULL, blockReleaseForSet);
-    BRSetFree (bcs->blocks);
+    BRSetFreeAll (bcs->blocks, (void (*) (void*)) blockRelease);
 
     // Orphans (All are in 'blocks') so don't release the block.
     BRSetFree (bcs->orphans);
 
     // Transaction
-    BRSetApply (bcs->transactions, NULL, transactionReleaseForSet);
-    BRSetFree (bcs->transactions);
+    BRSetFreeAll (bcs->transactions, (void (*) (void*)) transactionRelease);
 
     // Logs
-    BRSetApply (bcs->logs, NULL, logReleaseForSet);
-    BRSetFree (bcs->logs);
-
+    BRSetFreeAll (bcs->logs, (void (*) (void*)) logRelease);
+    
     // pending transactions/logs are in bcs->transactions/logs; thus already released.
     array_free (bcs->pendingTransactions);
     array_free (bcs->pendingLogs);
@@ -580,8 +577,8 @@ bcsPendFindLogsByTransactionHash (BREthereumBCS bcs,
         BREthereumLog  log     = BRSetGet (bcs->logs, &logHash);
         if (NULL != log) {
             BREthereumHash txHash;
-            logExtractIdentifier (log, &txHash, NULL);
-            if (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(txHash, hash))) {
+            if (ETHEREUM_BOOLEAN_IS_TRUE (logExtractIdentifier (log, &txHash, NULL)) &&
+                ETHEREUM_BOOLEAN_IS_TRUE (hashEqual(txHash, hash))) {
                 if (NULL == logs) array_new (logs, 1);
                 array_add (logs, log);
             }
@@ -1644,7 +1641,7 @@ static void
 bcsHandleBlockProof (BREthereumBCS bcs,
                      BREthereumNodeReference node,
                      uint64_t number,
-                     OwnershipGiven BREthereumBlockHeaderProof proof) {
+                     BREthereumBlockHeaderProof proof) {
     // Header Proofs *do not exist* for recent blocks; not in Parity nor in Geth:
     // https://github.com/paritytech/parity-ethereum/issues/9829
 
@@ -2070,8 +2067,8 @@ bcsPeriodicDispatcher (BREventHandler handler,
         BREthereumLog  log     = BRSetGet (bcs->logs, &logHash);
         if (NULL != log) {
             BREthereumHash hash;
-            logExtractIdentifier (log, &hash, NULL);
-            if (-1 == hashesIndex(hashes, hash))
+            if (ETHEREUM_BOOLEAN_IS_TRUE (logExtractIdentifier (log, &hash, NULL)) &&
+                -1 == hashesIndex(hashes, hash))
                 array_add (hashes, hash);
         }
     }

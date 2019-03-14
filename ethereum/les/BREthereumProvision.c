@@ -1102,34 +1102,26 @@ provisionCopy (BREthereumProvision *provision,
 }
 
 extern void
-provisionRelease (BREthereumProvision *provision,
-                  BREthereumBoolean releaseResults) {
+provisionReleaseResults (BREthereumProvision *provision) {
     switch (provision->type) {
-
         case PROVISION_BLOCK_HEADERS:
-            if (ETHEREUM_BOOLEAN_IS_TRUE(releaseResults) && NULL != provision->u.headers.headers)
+            if (NULL != provision->u.headers.headers)
                 // Sometimes the headers will be NULL - because we preallocated the response.
                 blockHeadersRelease(provision->u.headers.headers);
             break;
 
         case PROVISION_BLOCK_PROOFS:
-            if (NULL != provision->u.proofs.numbers)
-                array_free (provision->u.proofs.numbers);
-            if (ETHEREUM_BOOLEAN_IS_TRUE(releaseResults) && NULL != provision->u.proofs.proofs)
+            if (NULL != provision->u.proofs.proofs)
                 array_free (provision->u.proofs.proofs);
             break;
-            
+
         case PROVISION_BLOCK_BODIES:
-            if (NULL != provision->u.bodies.hashes)
-                array_free (provision->u.bodies.hashes);
-            if (ETHEREUM_BOOLEAN_IS_TRUE(releaseResults) && NULL != provision->u.bodies.pairs)
+            if (NULL != provision->u.bodies.pairs)
                 blockBodyPairsRelease(provision->u.bodies.pairs);
             break;
 
         case PROVISION_TRANSACTION_RECEIPTS:
-            if (NULL != provision->u.receipts.hashes)
-                array_free (provision->u.receipts.hashes);
-            if (ETHEREUM_BOOLEAN_IS_TRUE(releaseResults) && NULL != provision->u.receipts.receipts) {
+            if (NULL != provision->u.receipts.receipts) {
                 size_t count = array_count(provision->u.receipts.receipts);
                 for (size_t index = 0; index < count; index++)
                     transactionReceiptsRelease (provision->u.receipts.receipts[index]);
@@ -1138,17 +1130,50 @@ provisionRelease (BREthereumProvision *provision,
             break;
 
         case PROVISION_ACCOUNTS:
+            if (NULL != provision->u.accounts.accounts)
+                array_free (provision->u.accounts.accounts);
+            break;
+
+        case PROVISION_TRANSACTION_STATUSES:
+            if (NULL != provision->u.statuses.statuses)
+                array_free (provision->u.statuses.statuses);
+            break;
+
+        case PROVISION_SUBMIT_TRANSACTION:
+            break;
+    }
+}
+
+extern void
+provisionRelease (BREthereumProvision *provision,
+                  BREthereumBoolean releaseResults) {
+    switch (provision->type) {
+        case PROVISION_BLOCK_HEADERS:
+            break;
+
+        case PROVISION_BLOCK_PROOFS:
+            if (NULL != provision->u.proofs.numbers)
+                array_free (provision->u.proofs.numbers);
+            break;
+            
+        case PROVISION_BLOCK_BODIES:
+            if (NULL != provision->u.bodies.hashes)
+                array_free (provision->u.bodies.hashes);
+            break;
+
+        case PROVISION_TRANSACTION_RECEIPTS:
+            if (NULL != provision->u.receipts.hashes)
+                array_free (provision->u.receipts.hashes);
+            break;
+
+        case PROVISION_ACCOUNTS:
             if (NULL != provision->u.accounts.hashes)
                 array_free (provision->u.accounts.hashes);
-            if (ETHEREUM_BOOLEAN_IS_TRUE(releaseResults) && NULL != provision->u.accounts.accounts)
-                array_free (provision->u.accounts.accounts);
             break;
 
         case PROVISION_TRANSACTION_STATUSES:
             if (NULL != provision->u.statuses.hashes)
                 array_free (provision->u.statuses.hashes);
-            if (ETHEREUM_BOOLEAN_IS_TRUE(releaseResults) && NULL != provision->u.statuses.statuses)
-                array_free (provision->u.statuses.statuses);
             break;
 
         case PROVISION_SUBMIT_TRANSACTION:
@@ -1156,6 +1181,9 @@ provisionRelease (BREthereumProvision *provision,
                 transactionRelease (provision->u.submission.transaction);
             break;
     }
+
+    if (ETHEREUM_BOOLEAN_IS_TRUE(releaseResults))
+        provisionReleaseResults(provision);
 }
 
 extern void
