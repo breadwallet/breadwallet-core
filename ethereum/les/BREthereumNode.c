@@ -880,13 +880,7 @@ nodeDisconnect (BREthereumNode node,
     // Clear any pending timeout.
     node->timeout = -1;
 
-    // If this node has a priority of NODE_PRIORITY_LCL or NODE_PRIORITY_BRD then always return
-    // it to available.  See JIRA:CORE-257 - finding viable LES/PIP nodes is so rare that we simply
-    // cannot afford to eliminate options that we trust.
-    if (NODE_PRIORITY_LCL == node->priority || NODE_PRIORITY_BRD == node->priority)
-        returnToAvailable = ETHEREUM_BOOLEAN_TRUE;
-
-    // If we already annonce `available`, then don't announce it again.
+    // If we already announced `available`, then don't announce it again.
     if (ETHEREUM_BOOLEAN_IS_TRUE(returnToAvailable) && NODE_AVAILABLE != stateToAnnounce.type)
         nodeStateAnnounce(node, route, nodeStateCreate (NODE_AVAILABLE));
 

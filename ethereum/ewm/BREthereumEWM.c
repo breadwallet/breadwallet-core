@@ -1736,7 +1736,7 @@ ewmHandleTransaction (BREthereumEWM ewm,
         BREthereumTransaction original = transferGetOriginatingTransaction (transfer);
         if (NULL != original && ETHEREUM_BOOLEAN_IS_TRUE(hashEqual (transactionGetHash(original),
                                                                     transactionGetHash(transaction))))
-        transactionSetStatus (original, transactionGetStatus(transaction));
+            transactionSetStatus (original, transactionGetStatus(transaction));
 
         transferSetBasisForTransaction (transfer, transaction); // transaction ownership given
     }
