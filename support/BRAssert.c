@@ -30,9 +30,7 @@
 #include <limits.h>         // UINT_MAX
 #include <assert.h>
 #include "BRAssert.h"
-#include "../BRArray.h"
-
-#define BRArrayOf(type)             type*
+#include "BRArray.h"
 
 #define PTHREAD_NULL            ((pthread_t) NULL)
 

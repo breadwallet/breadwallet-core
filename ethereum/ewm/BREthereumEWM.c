@@ -559,7 +559,7 @@ ewmCreate (BREthereumNetwork network,
             // ... and then just ignore nodes
 
             // Free sets... BUT DO NOT free 'nodes' as those had 'OwnershipGiven' in bcsCreate()
-            BRSetFreeAll(blocks, (BRSetItemFree) blockRelease);
+            BRSetFreeAll(blocks, (void (*) (void*)) blockRelease);
             BRSetFree (transactions);
             BRSetFree (logs);
 

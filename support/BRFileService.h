@@ -27,8 +27,8 @@
 #define BRFileService_h
 
 #include <stdlib.h>
-#include "../BRSet.h"
-#include "../BRInt.h"
+#include "BRSet.h"
+#include "BRInt.h"
 
 //Both Bitcoin and Ethereum Wallet Managers include the ability to save and load peers, block,
 //transactions and logs (for Ethereum) to the file system.  But, they both implement the file

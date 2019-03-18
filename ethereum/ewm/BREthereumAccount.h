@@ -30,8 +30,8 @@
 extern "C" {
 #endif
 
-#include "../../BRKey.h"
-#include "../../BRInt.h"
+#include "BRKey.h"
+#include "../../support/BRInt.h"
 #include "BREthereumBase.h"
 
 //
