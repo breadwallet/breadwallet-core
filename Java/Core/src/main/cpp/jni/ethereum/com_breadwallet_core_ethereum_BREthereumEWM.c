@@ -1585,6 +1585,7 @@ clientEstimateGas(BREthereumClientContext context, BREthereumEWM node,
     jobject data = (*env)->NewStringUTF(env, dataStr);
 
     (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineGetGasEstimate,
+                                 (jlong) node,
                                  (jlong) wid,
                                  (jlong) tid,
                                  from,
