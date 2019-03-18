@@ -401,11 +401,11 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM_1PublicKey
 }
 
 /*
- * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniAddressIsValid
  * Signature: (Ljava/lang/String;)Z
  */
-JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAddressIsValid
+JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAddressIsValid
         (JNIEnv *env, jclass thisClass, jstring addressObject) {
 
     const char *address = (*env)->GetStringUTFChars(env, addressObject, 0);
@@ -909,7 +909,7 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnou
 }
 
 /*
- * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniAnnounceToken
  * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;I)V
  */
@@ -999,12 +999,12 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateTransaction
 }
 
 /*
- * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniCreateTransactionGeneric
  * Signature: (JLjava/lang/String;Ljava/lang/String;JLjava/lang/String;JLjava/lang/String;Ljava/lang/String;)J
  */
 JNIEXPORT jlong JNICALL
-Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateTransactionGeneric
+Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateTransactionGeneric
         (JNIEnv *env, jobject thisObject,
          jlong wid,
          jstring toObject,
@@ -1380,6 +1380,18 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionGetBlockNumber
     BREthereumTransfer transfer = getTransfer (env, tid);
     return (jlong) ewmTransferGetBlockNumber (node, transfer);
 
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumEWM
+ * Method:    jniTransactionGetBlockTimestamp
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionGetBlockTimestamp
+        (JNIEnv *env, jobject thisObject, jlong tid) {
+    BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
+    BREthereumTransfer transfer = getTransfer (env, tid);
+    return (jlong) ewmTransferGetBlockTimestamp (node, transfer);
 }
 
 /*
