@@ -172,6 +172,9 @@ coerceUInt64 (UInt256 x, int *overflow);
 extern char *
 coerceString (UInt256 x, int base);
 
+extern char *
+coerceStringPrefaced (UInt256 x, int base, const char *preface);
+
   /**
    * Returns a decimal string represention of `x` in base `0 with `decimals` digits after the
    * decimal-point.
