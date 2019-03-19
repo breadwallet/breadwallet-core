@@ -440,56 +440,43 @@ public protocol KeyPair {
 ///
 /// A Blockchain Network
 ///
-/// - bitcoin: A bitcoin-specific network (mainnet, testnet)
-/// - bitcash: A bitcash-specific network (mainnet, testnet)
-/// - ethereum: An ethereum-specific network (mainnet/foundation, ropsten, rinkeby, ...)
-///
-public enum Network {
-    case bitcoin  (name: String, forkId: UInt8, chainParams: UnsafePointer<BRChainParams>)
-    case bitcash  (name: String, forkId: UInt8, chainParams: UnsafePointer<BRChainParams>)
-    case ethereum (name: String, chainId: UInt, core: BREthereumNetwork)
-
-    public var name: String {
-        switch self {
-        case .bitcoin  (let name, _, _): return name
-        case .bitcash  (let name, _, _): return name
-        case .ethereum (let name, _, _): return name
-        }
-    }
-
-    public var currency: Currency {
-        switch self {
-        case .bitcoin: return Bitcoin.currency
-        case .bitcash: return Bitcash.currency
-        case .ethereum: return Ethereum.currency
-        }
-    }
+public protocol Network {
+    var name: String { get }
+    /// The native token of the network
+    var currency: Currency { get }
 }
 
-extension Network: Hashable {
-    public var hashValue: Int {
-        switch self {
-        case .bitcoin  (let name, _, _): return name.hashValue
-        case .bitcash  (let name, _, _): return name.hashValue
-        case .ethereum (let name, _, _): return name.hashValue
-        }
-    }
-
-    public static func == (lhs: Network, rhs: Network) -> Bool {
-        switch (lhs, rhs) {
-        case (.bitcoin  (let n1, _, _), .bitcoin  (let n2, _, _)): return n1 == n2
-        case (.bitcash  (let n1, _, _), .bitcash  (let n2, _, _)): return n1 == n2
-        case (.ethereum (let n1, _, _), .ethereum (let n2, _, _)): return n1 == n2
-        default: return false
-        }
-    }
-}
-
-extension Network: CustomStringConvertible {
+public extension Network {
     public var description: String {
         return name
     }
 }
+
+///
+/// An Ethereum network (mainnet/foundation, ropsten, rinkeby, ...)
+///
+public struct EthereumNetwork: Network {
+    public let name: String
+    public let chainId: UInt
+    public let core: BREthereumNetwork
+    public let currency: Currency
+}
+
+extension EthereumNetwork: CustomStringConvertible {}
+extension EthereumNetwork: Hashable {}
+
+///
+/// A Bitcoin (mainnet, testnet) or Bitcoin-compatible fork (Bitcoin Cash - mainnet, testnet) network
+///
+public struct BitcoinNetwork: Network {
+    public let name: String
+    public let forkId: UInt8
+    public let chainParams: UnsafePointer<BRChainParams>
+    public let currency: Currency
+}
+
+extension BitcoinNetwork: CustomStringConvertible {}
+extension BitcoinNetwork: Hashable {}
 
 ///
 /// An Address for transferring an amount.
@@ -888,7 +875,7 @@ public protocol WalletManager : class {
     /// The account
     var account: Account { get }
 
-    /// The network
+    /// The blockchain network
     var network: Network { get }
 
     /// The primaryWallet

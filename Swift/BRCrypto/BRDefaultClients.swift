@@ -104,7 +104,7 @@ public class DefaultEthereumBackendClient: EthereumBackendClient {
         if (begBlockNumber <= 0x1e487e) {
             ewm.announceLog(rid: rid,
                             hash: "0xa37bd8bd8b1fa2838ef65aec9f401f56a6279f99bb1cfb81fa84e923b1b60f2b",
-                            contract: (ewm.network == Ethereum.Networks.mainnet
+                            contract: (ewm.ethereumNetwork == Ethereum.Networks.mainnet
                                 ? "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"
                                 : "0x7108ca7c4718efa810457f228305c9c71390931a"),
                             topics: ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
@@ -210,7 +210,7 @@ public class DefaultEthereumBackendClient: EthereumBackendClient {
 
     public func getTokens(ewm: EthereumWalletManager, rid: Int32) {
         ewm.announceToken (rid: rid,
-                           address: (ewm.network == Ethereum.Networks.mainnet
+                           address: (ewm.ethereumNetwork == Ethereum.Networks.mainnet
                             ? "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"
                             : "0x7108ca7c4718efa810457f228305c9c71390931a"),
                            symbol: "BRD",
@@ -219,7 +219,7 @@ public class DefaultEthereumBackendClient: EthereumBackendClient {
                            decimals: 18)
 
         ewm.announceToken (rid: rid,
-                           address: (ewm.network == Ethereum.Networks.mainnet
+                           address: (ewm.ethereumNetwork == Ethereum.Networks.mainnet
                             ? "0x9e3359f862b6c7f5c660cfd6d1aa6909b1d9504d"
                             : "0x6e67ccd648244b3b8e2f56149b40ba8de9d79b09"),
                            symbol: "CCC",

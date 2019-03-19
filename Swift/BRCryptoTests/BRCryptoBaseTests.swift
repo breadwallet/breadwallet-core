@@ -99,8 +99,6 @@ class BRCryptoBaseTests: XCTestCase {
         XCTAssertEqual (Bitcoin.Networks.mainnet, Bitcoin.Networks.mainnet)
         XCTAssertEqual (Ethereum.Networks.rinkeby, Ethereum.Networks.rinkeby)
         XCTAssertNotEqual(Bitcoin.Networks.mainnet, Bitcoin.Networks.testnet)
-        XCTAssertNotEqual(Bitcoin.Networks.mainnet, Ethereum.Networks.mainnet)
-        XCTAssertNotEqual(Bitcoin.Networks.mainnet, Ethereum.Networks.ropsten)
         XCTAssertNotEqual (Ethereum.Networks.rinkeby, Ethereum.Networks.ropsten)
 
         // name
@@ -117,14 +115,6 @@ class BRCryptoBaseTests: XCTestCase {
         XCTAssertEqual(Bitcash.currency, Bitcash.Networks.mainnet.currency)
         XCTAssertEqual(Ethereum.currency, Ethereum.Networks.mainnet.currency)
         XCTAssertEqual(Ethereum.currency, Ethereum.Networks.foundation.currency)
-
-
-        // hashable
-        let networks = Set (arrayLiteral: Bitcoin.Networks.mainnet,
-                                            Bitcash.Networks.mainnet,
-                                           Ethereum.Networks.mainnet)
-        XCTAssertTrue(networks.contains(Bitcash.Networks.mainnet))
-        XCTAssertFalse(networks.contains(Bitcoin.Networks.testnet))
     }
 
     func testAddress () {
@@ -151,9 +141,4 @@ class BRCryptoBaseTests: XCTestCase {
         XCTAssertEqual("foo", r1.description)
         XCTAssertEqual("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", e1.description)
     }
-//    func testPerformanceExample() {
-//        self.measure {
-//        }
-//    }
-
 }

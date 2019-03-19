@@ -20,9 +20,9 @@ public struct Ethereum {
     }
 
     public struct Networks {
-        public static let mainnet = Network.ethereum (name: "ETH Mainnet", chainId: 1, core: ethereumMainnet)
-        public static let ropsten = Network.ethereum (name: "ETH Ropsten", chainId: 3, core: ethereumTestnet)
-        public static let rinkeby = Network.ethereum (name: "ETH Rinkeby", chainId: 4, core: ethereumRinkeby)
+        public static let mainnet = EthereumNetwork (name: "ETH Mainnet", chainId: 1, core: ethereumMainnet, currency: Ethereum.currency)
+        public static let ropsten = EthereumNetwork (name: "ETH Ropsten", chainId: 3, core: ethereumTestnet, currency: Ethereum.currency)
+        public static let rinkeby = EthereumNetwork (name: "ETH Rinkeby", chainId: 4, core: ethereumRinkeby, currency: Ethereum.currency)
         public static let foundation = mainnet
     }
 
@@ -43,13 +43,6 @@ extension Amount {
         return self.currency != Ethereum.currency
             ? nil
             : amountCreateEther (etherCreate (self.value))
-    }
-}
-
-extension Network {
-    var ethereumCore: BREthereumNetwork? {
-        if case .ethereum (_, _, let core) = self { return core }
-        else { return nil }
     }
 }
 
@@ -413,7 +406,7 @@ public class EthereumWalletManager: WalletManager {
     }
 
     lazy var queue : DispatchQueue = {
-        return DispatchQueue (label: "\(network.currency.code) WalletManager")
+        return DispatchQueue (label: "com.brd.brcore.wm.\(currency.code)")
 
     }()
 
@@ -422,12 +415,15 @@ public class EthereumWalletManager: WalletManager {
     //    public var address: EthereumAddress {
     //        return EthereumAddress ("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62")
     //    }
-    
-    public var network: Network
+
+    public var ethereumNetwork: EthereumNetwork
+    public var network: Network {
+        return ethereumNetwork
+    }
     
     public lazy var primaryWallet: Wallet = {
         return EthereumWallet (manager: self,
-                               currency: Ethereum.currency,
+                               currency: network.currency,
                                wid: ewmGetWallet(self.core))
     }()
     
@@ -486,14 +482,14 @@ public class EthereumWalletManager: WalletManager {
 
     public init (listener: EthereumListener,
                  account: Account,
-                 network: Network,
+                 network: EthereumNetwork,
                  mode: WalletManagerMode,
                  timestamp: BREthereumTimestamp,
                  storagePath: String,
                  persistenceClient: EthereumPersistenceClient = DefaultEthereumPersistenceClient(),
                  backendClient: EthereumBackendClient = DefaultEthereumBackendClient()) {
 
-        let coreNetwork: BREthereumNetwork! = network.ethereumCore
+        let coreNetwork: BREthereumNetwork! = network.core
         precondition (nil != coreNetwork)
 
         self.backendClient = backendClient
@@ -501,7 +497,7 @@ public class EthereumWalletManager: WalletManager {
         
         self._listener = listener
         self.account = account
-        self.network = network
+        self.ethereumNetwork = network
         self.mode = mode
         self.path = storagePath
         self.state = WalletManagerState.created

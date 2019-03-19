@@ -18,8 +18,8 @@ public struct Bitcoin {
     }
 
     public struct Networks {
-        public static let mainnet = Network.bitcoin (name: "BTC Mainnet", forkId: 0x00, chainParams: bitcoinParams (1))
-        public static let testnet = Network.bitcoin (name: "BTC Testnet", forkId: 0x40, chainParams: bitcoinParams (0))
+        public static let mainnet = BitcoinNetwork (name: "BTC Mainnet", forkId: 0x00, chainParams: bitcoinParams (1), currency: Bitcoin.currency)
+        public static let testnet = BitcoinNetwork (name: "BTC Testnet", forkId: 0x40, chainParams: bitcoinParams (0), currency: Bitcoin.currency)
     }
 
     public struct AddressSchemes {
@@ -39,24 +39,6 @@ public struct BitcoinLegacyAddressScheme: AddressScheme {
 public struct BitcoinSegwitAddressScheme: AddressScheme {
     public func getAddress(for wallet: BitcoinWallet) -> Address {
         return Address.bitcoin (BRWalletReceiveAddress(wallet.core))
-    }
-}
-
-extension Network {
-    var bitcoinChainParams: UnsafePointer<BRChainParams>? {
-        switch self {
-        case let .bitcoin (_, _, params): return params
-        case let .bitcash (_, _, params): return params
-        case .ethereum: return nil
-        }
-    }
-
-    var forkId: BRWalletForkId? {
-        switch self {
-        case let .bitcoin(_, forkId, _): return BRWalletForkId (UInt32(forkId))
-        case let .bitcash(_, forkId, _): return BRWalletForkId (UInt32(forkId))
-        case .ethereum: return nil
-        }
     }
 }
 
@@ -288,8 +270,11 @@ public class BitcoinWalletManager: WalletManager {
     }
 
     public let account: Account
-    
-    public var network: Network
+
+    public let bitcoinNetwork: BitcoinNetwork
+    public var network: Network {
+        return bitcoinNetwork
+    }
     
     public private(set) lazy var primaryWallet: Wallet = {
         let wallet = BitcoinWallet (manager: self, currency: network.currency, core: coreWallet)
@@ -313,7 +298,7 @@ public class BitcoinWalletManager: WalletManager {
     #endif
 
     lazy var queue : DispatchQueue = {
-        return DispatchQueue (label: "\(network.currency.code) WalletManager")
+        return DispatchQueue (label: "com.brd.brcore.wm.\(network.currency.code)")
     }()
 
     internal static var managers: [BitcoinWalletManager] = [] // Weak<>
@@ -362,23 +347,23 @@ public class BitcoinWalletManager: WalletManager {
 
     public init (listener: BitcoinListener,
                  account: Account,
-                 network: Network,
+                 network: BitcoinNetwork,
                  mode: WalletManagerMode,
                  timestamp: UInt64,
                  storagePath: String,
                  persistenceClient: BitcoinPersistenceClient = DefaultBitcoinPersistenceClient(),
                  backendClient: BitcoinBackendClient = DefaultBitcoinBackendClient()) {
-        let params: UnsafePointer<BRChainParams>! = network.bitcoinChainParams
+        let params: UnsafePointer<BRChainParams>! = network.chainParams
         precondition (nil != params)
 
-        let forkId: BRWalletForkId! = network.forkId
+        let forkId: BRWalletForkId! = BRWalletForkId (UInt32(network.forkId))
         precondition (nil != forkId);
 
         self.backendClient = backendClient
         self.persistenceClient = persistenceClient
         
         self._listener = listener
-        self.network = network
+        self.bitcoinNetwork = network
         self.account = account
         self.path = storagePath
         self.mode = mode
