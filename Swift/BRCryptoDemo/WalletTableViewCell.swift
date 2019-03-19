@@ -34,14 +34,14 @@ class WalletTableViewCell: UITableViewCell {
         textLabel?.text = "\(wallet.name) (\(wallet.manager.network))"
 
         // balance into defaultUnit
-        let balance = wallet.balance.coerce(unit: wallet.currency.defaultUnit)
+        let balance = wallet.balance.double
 
-        detailTextLabel?.text = balance.double?.description ?? "??"
+        detailTextLabel?.text = balance?.description ?? "??"
 
-        var value : String = balance.double?.description.trimmingCharacters(in: CharacterSet (charactersIn: "0 ")) ?? ""
+        var value : String = balance?.description.trimmingCharacters(in: CharacterSet (charactersIn: "0 ")) ?? ""
         if value == "." || value == "" || value == "0." || value == ".0" {
             value = "0.0"
         }
-        detailTextLabel?.text = value + " " + balance.unit.symbol
+        detailTextLabel?.text = value + " " + wallet.currency.defaultUnit.symbol
     }
 }

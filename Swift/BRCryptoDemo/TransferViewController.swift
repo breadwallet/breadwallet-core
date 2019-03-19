@@ -54,8 +54,6 @@ class TransferViewController: UIViewController {
 
 
     func canonicalAmount (_ amount: Amount, sign: String) -> String {
-        let amount = amount.coerce(unit: amount.currency.defaultUnit)
-
         var result = amount.double?.description.trimmingCharacters(in: CharacterSet (charactersIn: "0 ")) ?? ""
         if result == "." || result == "" || result == "0." || result == ".0" {
             result = "0.0"

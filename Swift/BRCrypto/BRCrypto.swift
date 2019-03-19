@@ -22,51 +22,63 @@ import BRCore.Ethereum        // BREthereum{Account,Address}, ...
 ///
 public class Currency {
 
-    /// The code
+    /// The ticker code
     public let code: String
 
     /// The symbol
-    public let symbol: String
+    public var symbol: String {
+        return defaultUnit.symbol
+    }
 
     /// The name
     public let name: String
 
-    /// The decimals in the defaultUnit
-    public let decimals: UInt8
+    /// The base unit
+    public let baseUnit: CurrencyUnit
 
-    /// The baseUnit
-    public private(set) var baseUnit: Unit! = nil
+    /// The default unit
+    public let defaultUnit: CurrencyUnit
 
-    /// The defaultUnit
-    public private(set) var defaultUnit: Unit! = nil
+    /// A unit is compatible if it is supported by the currency.
+    /// - Parameter unit: the unit to check
+    /// - Returns: true if compatible, false otherwise
+    public func isCompatible(withUnit unit: CurrencyUnit) -> Bool {
+        return supportedUnits.contains(unit.asAny())
+    }
 
-    internal init (code: String, symbol: String, name: String, decimals: UInt8,
-                   baseUnit: (name: String, symbol: String)) {
+    /// All supported units
+    internal let supportedUnits: Set<AnyCurrencyUnit>
+
+    internal init (code: String, name: String, baseUnit: CurrencyUnit, defaultUnit: CurrencyUnit, supportedUnits: [CurrencyUnit] = []) {
         self.code = code
-        self.symbol = symbol
         self.name = name
-        self.decimals = decimals
+        self.baseUnit = baseUnit
+        self.defaultUnit = defaultUnit
 
-        // Note that `Unit` holds a `Currency` and `Currency
-        /// The baseUnit.
-        ///
-        /// @Note: akdfja;dl
-        ///
-        self.baseUnit = Unit (baseUnit.name, baseUnit.symbol, self) // self has 'nil' for baseUnit
-
-        let scale = pow (10.0, Double(decimals))
-        self.defaultUnit = Unit (code, symbol, UInt64(scale),
-                                 base: self.baseUnit)
+        var allSupportedUnits = supportedUnits
+        allSupportedUnits += [baseUnit, defaultUnit]
+        self.supportedUnits = Set(allSupportedUnits.map { $0.asAny() })
     }
 }
 
 extension Currency: Equatable {
     public static func == (lhs: Currency, rhs: Currency) -> Bool {
         return lhs === rhs ||
-            (lhs.code  == rhs.code &&
+            (lhs.code == rhs.code &&
                 lhs.symbol == rhs.symbol &&
                 lhs.name == rhs.name &&
-                lhs.decimals == rhs.decimals)
+                lhs.baseUnit.asAny() == rhs.baseUnit.asAny() &&
+                lhs.defaultUnit.asAny() == rhs.defaultUnit.asAny())
+    }
+}
+
+extension Currency: Hashable {
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(code)
+        hasher.combine(symbol)
+        hasher.combine(name)
+        hasher.combine(baseUnit.asAny())
+        hasher.combine(defaultUnit.asAny())
     }
 }
 
@@ -80,58 +92,85 @@ extension Currency: Equatable {
 /// ane WEI for Bitcoin and Ethereum, respectively.  There can be multiple 'derivedUnits' - which
 /// are derived by scaling off of a baseUnit.
 ///
-public class Unit {
-    public let currency: Currency
-    public let name: String
-    public let symbol: String
+public protocol CurrencyUnit {
+    var name: String { get }
+    var symbol: String { get }
+    /// Base unit multiplier as a power of 10 (e.g. 1 BTC (default unit) = 1e8 Satoshi (base unit), decimals = 8)
+    var decimals: UInt8 { get }
+    var scale: UInt64 { get }
 
-    let scale: UInt64
-    let base: Unit!
+    func isEqualTo(_ other: CurrencyUnit) -> Bool
+    func asAny() -> AnyCurrencyUnit
+}
 
-    ///
-    /// Two units are compatible if they share the same currency
-    ///
-    /// - Parameter that: the other unit to compare
-    /// - Returns: true if compatible, false otherwise
-    ///
-    public func isCompatible (_ that: Unit) -> Bool {
-        return (self === that || self.currency == that.currency)
-    }
+public extension CurrencyUnit {
+    var scale: UInt64 { return UInt64(pow(10.0, Double(decimals))) }
 
-    ///
-    /// Initialize as a 'baseUnit'
-    ///
-    /// - Parameters:
-    ///   - name: The name, such as SATOSHI
-    ///   - symbol: The symbol, such as 'sat'
-    ///   - currency: The currency
-    ///
-    init (_ name: String, _ symbol: String, _ currency: Currency) {
-        self.currency = currency
-        self.base = nil
-        self.name = name
-        self.symbol = symbol
-        self.scale = 1
-    }
-
-
-    /// Initilize as a 'derivedUnit'
-    ///
-    /// - Parameters:
-    ///   - name: The name, such a BTC
-    ///   - symbol: The symbol, such as "B"
-    ///   - scale: The scale, such as 10_000_000
-    ///   - base: The base Unit
-    ///
-    init (_ name: String, _ symbol: String,  _ scale: UInt64, base: Unit) {
-        precondition (nil == base.base)
-        self.currency = base.currency
-        self.base = base
-        self.name = name
-        self.symbol = symbol
-        self.scale = scale
+    func isCompatible(withCurrency currency: Currency) -> Bool {
+        return currency.isCompatible(withUnit: self)
     }
 }
+
+public extension CurrencyUnit where Self: Equatable {
+    func isEqualTo(_ other: CurrencyUnit) -> Bool {
+        guard let other = other as? Self else { return false }
+        return self == other
+    }
+
+    func asAny() -> AnyCurrencyUnit {
+        return AnyCurrencyUnit(self)
+    }
+}
+
+public extension CurrencyUnit where Self: Hashable {
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(name)
+        hasher.combine(symbol)
+        hasher.combine(decimals)
+    }
+}
+
+/// This enables declaring CurrencyUnit enums with Int values representing the decimals
+/// The case labels are used the name and symbol (can be overriden)
+public extension CurrencyUnit where Self: RawRepresentable, Self.RawValue == UInt8 {
+    var name: String { return String(describing: self).uppercased() }
+    var symbol: String { return String(describing: self) }
+    var decimals: UInt8 { return rawValue }
+}
+
+/// Type-erasure wrapper to allow CurrencyUnit to conform to Equatable/Hashable
+public struct AnyCurrencyUnit: CurrencyUnit {
+    init(_ unit: CurrencyUnit) {
+        self.unit = unit
+    }
+
+    public var name: String { return unit.name }
+    public var symbol: String { return unit.symbol }
+    public var decimals: UInt8 { return unit.decimals }
+
+    private let unit: CurrencyUnit
+}
+
+extension AnyCurrencyUnit: Hashable {
+    public static func ==(lhs: AnyCurrencyUnit, rhs: AnyCurrencyUnit) -> Bool {
+        return lhs.unit.isEqualTo(rhs.unit)
+    }
+}
+
+/// A generic unit with variable decimals, for use with dynamically defined currencies
+public struct GenericUnit: CurrencyUnit {
+    public let name: String
+    public let symbol: String
+    public let decimals: UInt8
+
+    init(name: String, symbol: String, decimals: UInt8) {
+        self.name = name
+        self.symbol = symbol
+        self.decimals = decimals
+    }
+}
+
+extension GenericUnit: Hashable {}
 
 ///
 /// An amount of currency.  This can be negative (as in, 'currency owed' rather then 'currency
@@ -139,6 +178,8 @@ public class Unit {
 /// assert on !isCompatible for mismatched currency.
 ///
 public struct Amount {
+
+    public let currency: Currency
 
     // The value.  This is *always* the amount in the 'baseUnit' and thus an unsigned integer.
     // For example, if amount is 1BTC, then value is 1e8; if amount is 1ETH, then value is
@@ -148,12 +189,9 @@ public struct Amount {
     // If negative
     public let negative: Bool
 
-    // The unit.  This is used for 'display' purposes only.  For example, if Amount is 10 GWEI
-    // then value is 10 * 10^9 and `double` produces `10.0`.
-    public let unit: Unit
-
-    // The value in `unit` as a Double, if representable
-    public var double: Double? {
+    /// The value in `unit` as a Double, if representable
+    public func double(as unit: CurrencyUnit) -> Double? {
+        guard currency.isCompatible(withUnit: unit) else { return nil }
         let scale = unit.scale
         assert (scale > 0)
 
@@ -168,30 +206,26 @@ public struct Amount {
         return 1 == overflow ? nil : (self.negative ? -result : result)
     }
 
+    /// The value as a Double,  in the currency's default unit, if representable
+    public var double: Double? {
+        return double(as: currency.defaultUnit)
+    }
+
     func scale (by scale: Double) -> Amount? {
         var overflow: Int32 = 0
         var negative: Int32 = 0
         var remainder: Double = 0
 
         let value = mulUInt256_Double (self.value, scale, &overflow, &negative, &remainder)
-        return 1 == overflow ? nil : Amount (value: value, unit: self.unit, negative: self.negative != (1 == negative))
+        return 1 == overflow ? nil : Amount (currency: currency, value: value, negative: self.negative != (1 == negative))
     }
 
-    public func coerce (unit: Unit) -> Amount {
-        precondition(self.unit.isCompatible(unit))
-        return Amount (value: self.value, unit: unit, negative: self.negative)
+    public func isCompatible (with that: Amount) -> Bool {
+        return currency == that.currency
     }
 
-    public var currency: Currency {
-        return unit.currency
-    }
-
-    public func isCompatible (_ that: Amount) -> Bool {
-        return unit.isCompatible(that.unit)
-    }
-
-    public func describe (decimals: Int, withSymbol: Bool) -> String {
-        if let value = self.double {
+    public func describe (as unit: CurrencyUnit, decimals: Int, withSymbol: Bool) -> String {
+        if let value = self.double(as: unit) {
             var result = value;
             for _ in 0..<decimals { result *= 10 }
             result = floor (result)
@@ -201,19 +235,19 @@ public struct Amount {
         else { return "<nan>" }
     }
     
-    public init (value: UInt64, unit: Unit) {
-        self.init (value: value, unit: unit, negative: false)
+    public init (currency: Currency, value: UInt64, unit: CurrencyUnit) {
+        self.init (currency: currency, value: value, unit: unit, negative: false)
     }
 
-    public init (value: Int64, unit: Unit) {
-        self.init (value: UInt64 (abs (value)), unit: unit, negative: value < 0)
+    public init (currency: Currency, value: Int64, unit: CurrencyUnit) {
+        self.init (currency: currency, value: UInt64 (abs (value)), unit: unit, negative: value < 0)
     }
 
-    public init (value: Int, unit: Unit) {
-        self.init (value: UInt64(abs(value)), unit: unit, negative: value < 0)
+    public init (currency: Currency, value: Int, unit: CurrencyUnit) {
+        self.init (currency: currency, value: UInt64(abs(value)), unit: unit, negative: value < 0)
     }
     
-    public init (value: Double, unit: Unit) {
+    public init (currency: Currency, value: Double, unit: CurrencyUnit) {
         let scale = unit.scale
 
         var overflow: Int32 = 0
@@ -222,10 +256,10 @@ public struct Amount {
 
         let value = mulUInt256_Double (createUInt256(scale), value, &overflow, &negative, &remainder)
 
-        self.init (value: value, unit: unit, negative: 1 == negative)
+        self.init (currency: currency, value: value, negative: 1 == negative)
     }
 
-    public init? (exactly value: Double, unit: Unit) {
+    public init? (currency: Currency, exactly value: Double, unit: CurrencyUnit) {
         let scale = unit.scale
 
         var overflow: Int32 = 0
@@ -236,19 +270,20 @@ public struct Amount {
 
         if (0 != remainder) { return nil }
 
-        self.init (value: value, unit: unit, negative: 1 == negative)
+        self.init (currency: currency, value: value, negative: 1 == negative)
     }
 
     //
     // Internal Init
     //
-    internal init (value: UInt256, unit: Unit, negative: Bool) {
+    internal init (currency: Currency, value: UInt256, negative: Bool) {
+        self.currency = currency
         self.value = value
         self.negative = negative
-        self.unit = unit
     }
 
-    internal init (value: UInt64, unit: Unit, negative: Bool) {
+    internal init (currency: Currency, value: UInt64, unit: CurrencyUnit, negative: Bool) {
+        assert(currency.isCompatible(withUnit: unit))
         let scale = unit.scale
         var overflow: Int32 = 0
         let value = (1 == scale
@@ -256,25 +291,25 @@ public struct Amount {
             : mulUInt256_Overflow (createUInt256(value), createUInt256(scale), &overflow))
         assert (0 == overflow)
 
-        self.init (value: value, unit: unit, negative: negative)
+        self.init (currency: currency, value: value, negative: negative)
     }
 }
 
 extension Amount {
     public static func + (lhs: Amount, rhs: Amount) -> Amount? {
-        guard lhs.isCompatible(rhs) else { return nil }
+        guard lhs.isCompatible(with: rhs) else { return nil }
 
         var overflow: Int32 = 0
         let value = addUInt256_Overflow(lhs.value, rhs.value, &overflow)
-        return 0 == overflow ? Amount (value: value, unit: lhs.unit, negative: false) : nil
+        return 0 == overflow ? Amount (currency: lhs.currency, value: value, negative: false) : nil
     }
 
     public static func - (lhs: Amount, rhs: Amount) -> Amount? {
-        guard lhs.isCompatible(rhs) else { return nil }
+        guard lhs.isCompatible(with: rhs) else { return nil }
 
         var negative: Int32 = 0
         let value = subUInt256_Negative (lhs.value, rhs.value, &negative)
-        return Amount (value: value, unit: lhs.unit, negative: 1 == negative)
+        return Amount (currency: lhs.currency, value: value, negative: 1 == negative)
     }
 }
 
@@ -284,24 +319,24 @@ extension Amount {
 ///
 extension Amount: Comparable {
     public static func == (lhs: Amount, rhs: Amount) -> Bool {
-        guard lhs.isCompatible(rhs) else { return false }
+        guard lhs.isCompatible(with: rhs) else { return false }
         return 1 == eqUInt256 (lhs.value, rhs.value)
     }
 
     public static func < (lhs: Amount, rhs: Amount) -> Bool {
-        guard lhs.isCompatible(rhs) else { return false }
+        guard lhs.isCompatible(with: rhs) else { return false }
         return 1 == ltUInt256 (lhs.value, rhs.value)
     }
 
     public static func <= (lhs: Amount, rhs: Amount) -> Bool {
-        guard lhs.isCompatible(rhs) else { return false }
+        guard lhs.isCompatible(with: rhs) else { return false }
         return 1 == leUInt256 (lhs.value, rhs.value)
     }
 }
 
 extension Amount: CustomStringConvertible {
     public var description: String {
-        return "\(self.double?.description ?? "<nan>") \(self.currency.symbol)"
+        return "\(double(as: currency.defaultUnit)?.description ?? "<nan>") \(self.currency.symbol)"
     }
 }
 
@@ -331,14 +366,20 @@ extension Amount: CustomStringConvertible {
 ///
 public struct CurrencyPair {
 
-    /// In EUR/USD=1.2500, the `baseCurrecny` is EUR.
-    public let baseUnit: Unit
+    /// In EUR/USD=1.2500, the `baseCurrency` is EUR.
+    public let baseCurrency: Currency
 
-    /// In EUR/USD=1.250, the `quoteCurrecny` is USD.
-    public let quoteUnit: Unit
+    /// The unit of the `baseCurrency`
+    public let baseUnit: CurrencyUnit
 
-    /// In EUR/USD=1.2500, the `exchangeRate` is 1.2500 which represents the number of USD that
-    /// one EUR can be exchanged for.
+    /// In EUR/USD=1.250, the `quoteCurrency` is USD.
+    public let quoteCurrency: Currency
+
+    /// The unit of the `quoteCurrency`
+    public let quoteUnit: CurrencyUnit
+
+    /// In EUR/USD=1.2500, the `exchangeRate` is 1.2500 which represents the number of USD (`quoteCurrency`) that
+    /// one EUR (`baseCurrency`) can be exchanged for.
     public let exchangeRate: Double
 
     ///
@@ -350,8 +391,8 @@ public struct CurrencyPair {
     /// - Returns: the amount as `quoteCurrency`
     ///
     public func exchange(asBase amount: Amount) -> Amount? {
-        guard let amountValue = amount.coerce(unit: baseUnit).double else { return nil }
-        return Amount (value: amountValue * exchangeRate, unit: quoteUnit)
+        guard let amountValue = amount.double(as: baseUnit) else { return nil }
+        return Amount (currency: quoteCurrency, value: amountValue * exchangeRate, unit: quoteUnit)
     }
 
     ///
@@ -363,8 +404,18 @@ public struct CurrencyPair {
     /// - Returns: the amount as `baseCurrency`
     ///
     public func exchange(asQuote amount: Amount) -> Amount? {
-        guard let amountValue = amount.coerce(unit: quoteUnit).double else { return nil }
-        return Amount (value: amountValue / exchangeRate, unit: baseUnit)
+        guard let amountValue = amount.double(as: quoteUnit) else { return nil }
+        return Amount (currency: baseCurrency, value: amountValue / exchangeRate, unit: baseUnit)
+    }
+
+    init(baseCurrency: Currency, baseUnit: CurrencyUnit? = nil,
+         quoteCurrency: Currency, quoteUnit: CurrencyUnit? = nil,
+         exchangeRate: Double) {
+        self.baseCurrency = baseCurrency
+        self.baseUnit = baseUnit ?? baseCurrency.defaultUnit
+        self.quoteCurrency = quoteCurrency
+        self.quoteUnit = quoteUnit ?? quoteCurrency.defaultUnit
+        self.exchangeRate = exchangeRate
     }
 }
 

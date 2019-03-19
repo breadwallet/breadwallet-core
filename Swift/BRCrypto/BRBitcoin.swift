@@ -10,11 +10,21 @@ import Foundation // DispatchQueue
 import BRCore
 
 public struct Bitcoin {
-    public static let currency = Currency (code: "BTC", symbol:  "₿", name: "Bitcoin", decimals: 8,
-                                           baseUnit: (name: "SAT", symbol: "sat"))
-    public struct Units {
-        public static let SATOSHI = Bitcoin.currency.baseUnit!
-        public static let BITCOIN = Bitcoin.currency.defaultUnit!
+    public static let currency = Currency(code: "BTC",
+                                          name: "Bitcoin",
+                                          baseUnit: Units.satoshi,
+                                          defaultUnit: Units.bitcoin,
+                                          supportedUnits: Units.allCases)
+
+    public enum Units: UInt8, CurrencyUnit, CaseIterable {
+        case satoshi = 0
+        case bit = 2
+        case millibitcoin = 5
+        case bitcoin = 8 // 1 Satoshi = 1e-8 BTC
+
+        var currency: Currency {
+            return Bitcoin.currency
+        }
     }
 
     public struct Networks {
@@ -131,14 +141,17 @@ public class BitcoinTransfer: Transfer {
             ? recv - send
             : (send - Int64(fees)) - recv)
 
-        return Amount (value: value, unit: Bitcoin.Units.SATOSHI)
+        return Amount (currency: _wallet.currency,
+                       value: value,
+                       unit: Bitcoin.Units.satoshi)
     }
     
     public var fee: Amount {
 //        var transaction = core
         let fee = BRWalletFeeForTx (_wallet.core, core)
-        return Amount (value: (fee == UINT64_MAX ? 0 : fee),
-                       unit: Bitcoin.Units.SATOSHI)
+        return Amount (currency: _wallet.currency,
+                       value: (fee == UINT64_MAX ? 0 : fee),
+                       unit: Bitcoin.Units.satoshi)
     }
     
     public var feeBasis: TransferFeeBasis {
@@ -209,7 +222,8 @@ public class BitcoinWallet: Wallet {
     }
     
     public var balance: Amount {
-        return Amount (value: BRWalletBalance (core),
+        return Amount (currency: currency,
+                       value: BRWalletBalance (core),
                        unit: currency.baseUnit)
         
     }
@@ -412,7 +426,9 @@ public class BitcoinWalletManager: WalletManager {
                                         TransferConfirmation (blockNumber: 500000,
                                                               transactionIndex: 0,
                                                               timestamp: 1543190400,
-                                                              fee: Amount (value: 0, unit: Bitcoin.Units.SATOSHI)))
+                                                              fee: Amount (currency: wallet.currency,
+                                                                           value: 0,
+                                                                           unit: Bitcoin.Units.satoshi)))
 
                                     transfer.state = newState
 
@@ -466,7 +482,9 @@ public class BitcoinWalletManager: WalletManager {
                                 break
 
                             case BITCOIN_WALLET_BALANCE_UPDATED:
-                                let amount = Amount (value: event.u.balance.satoshi, unit: Bitcoin.Units.SATOSHI)
+                                let amount = Amount (currency: wallet.currency,
+                                                     value: event.u.balance.satoshi,
+                                                     unit: Bitcoin.Units.satoshi)
                                 bwm.listener.handleWalletEvent (manager: bwm,
                                                                 wallet: wallet,
                                                                 event: WalletEvent.balanceUpdated(amount: amount))

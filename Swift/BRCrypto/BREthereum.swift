@@ -10,13 +10,20 @@ import Foundation
 import BRCore.Ethereum
 
 public struct Ethereum {
-    public static let currency = Currency (code: "ETH", symbol:  "Ξ", name: "Ethereum", decimals: 18,
-                                           baseUnit: (name: "WEI",symbol: "wei"))
-    public struct Units {
-        public static let WEI: Unit = Ethereum.currency.baseUnit!
-        public static let ETHER: Unit = Ethereum.currency.defaultUnit!
-        // others
-        public static let GWEI: Unit = Unit ("GWEI",  "gwei",          1000000000, base: WEI)
+    public static let currency = Currency(code: "ETH",
+                                          name: "Ethereum",
+                                          baseUnit: Units.wei,
+                                          defaultUnit: Units.ether,
+                                          supportedUnits: Units.allCases)
+
+    enum Units: UInt8, CurrencyUnit, CaseIterable {
+        case wei = 0
+        case kwei = 3
+        case mwei = 6
+        case gwei = 9
+        case micro = 12
+        case milli = 15
+        case ether = 18 // 1 Wei = 1e-18 ether
     }
 
     public struct Networks {
@@ -160,11 +167,12 @@ public class EthereumToken {
         let symb = asUTF8String(tokenGetSymbol(identifier))
         let name = asUTF8String(tokenGetName(identifier))
 
-        self.currency = Currency (code: symb,
-                                  symbol: symb,
-                                  name: name,
-                                  decimals: UInt8(tokenGetDecimals(identifier)),
-                                  baseUnit: (name: name, symbol: symb))
+        let baseUnit =  GenericUnit(name: name, symbol: symb, decimals: 0)
+        let tokenUnit = GenericUnit(name: name, symbol: symb, decimals: UInt8(tokenGetDecimals(identifier)))
+        self.currency = Currency(code: symb,
+                                 name: name,
+                                 baseUnit: baseUnit,
+                                 defaultUnit: tokenUnit)
     }
 }
 
@@ -223,19 +231,19 @@ public class EthereumTransfer: Transfer {
     public private(set) lazy var amount: Amount = {
         let amount: BREthereumAmount = ewmTransferGetAmount (self.core, self.identifier)
         return (AMOUNT_ETHER == amount.type
-            ? Amount (value: amount.u.ether.valueInWEI,
-                      unit: wallet.currency.defaultUnit,
+            ? Amount (currency: wallet.currency,
+                      value: amount.u.ether.valueInWEI,
                       negative: false)
-            : Amount (value: amount.u.tokenQuantity.valueAsInteger,
-                      unit: wallet.currency.defaultUnit,
+            : Amount (currency: wallet.currency,
+                      value: amount.u.tokenQuantity.valueAsInteger,
                       negative: false))
     }()
     
     public private(set) lazy var fee: Amount = {
         var overflow: Int32 = 0;
         let fee: BREthereumEther = ewmTransferGetFee (self.core, self.identifier, &overflow)
-        return Amount (value: fee.valueInWEI,
-                       unit: Ethereum.currency.defaultUnit,
+        return Amount (currency: Ethereum.currency,
+                       value: fee.valueInWEI,
                        negative: false)
     }()
     
@@ -245,7 +253,9 @@ public class EthereumTransfer: Transfer {
         //        let price = createUInt256Parse (priceStr, 10, &status)
         
         return TransferFeeBasis.ethereum(
-            gasPrice: Amount (value: price.etherPerGas.valueInWEI, unit: Ethereum.Units.GWEI, negative: false),
+            gasPrice: Amount (currency: Ethereum.currency,
+                              value: price.etherPerGas.valueInWEI,
+                              negative: false),
             gasLimit: ewmTransferGetGasLimit (self.core, self.identifier).amountOfGas)
     }()
     
@@ -332,8 +342,8 @@ public class EthereumWallet: Wallet {
     
     public var balance: Amount {
         let amount: BREthereumAmount =  ewmWalletGetBalance (self.core, self.identifier)
-        return Amount (value: (AMOUNT_ETHER == amount.type ?  amount.u.ether.valueInWEI : amount.u.tokenQuantity.valueAsInteger),
-                       unit: currency.defaultUnit,
+        return Amount (currency: currency,
+                       value: (AMOUNT_ETHER == amount.type ? amount.u.ether.valueInWEI : amount.u.tokenQuantity.valueAsInteger),
                        negative: false)
     }
     
@@ -361,7 +371,9 @@ public class EthereumWallet: Wallet {
             let gasLimit = ewmWalletGetDefaultGasLimit (self.core, self.identifier)
             let gasPrice = ewmWalletGetDefaultGasPrice (self.core, self.identifier)
             return TransferFeeBasis.ethereum(
-                gasPrice: Amount (value: gasPrice.etherPerGas.valueInWEI, unit: Ethereum.Units.GWEI, negative: false),
+                gasPrice: Amount (currency: Ethereum.currency,
+                                  value: gasPrice.etherPerGas.valueInWEI,
+                                  negative: false),
                 gasLimit: gasLimit.amountOfGas)
         }
         set (basis) {
@@ -759,7 +771,7 @@ public class EthereumWalletManager: WalletManager {
                                         blockNumber: 0,
                                         transactionIndex: 0,
                                         timestamp: 0,
-                                        fee: Amount (value: Int(0), unit: wallet.currency.baseUnit))
+                                        fee: Amount (currency: wallet.currency, value: Int(0), unit: wallet.currency.baseUnit))
                                     newTransferState = TransferState.included(confirmation: confirmation)
                                     break
 
@@ -995,24 +1007,26 @@ extension WalletEvent {
                 let token: EthereumToken! = ewm.findToken (identifier: coreBalance.u.tokenQuantity.token)
                 precondition (nil != token)
 
-                amount = Amount (value: coreBalance.u.tokenQuantity.valueAsInteger,
-                                 unit:  token.currency.baseUnit,
+                amount = Amount (currency: token.currency,
+                                 value: coreBalance.u.tokenQuantity.valueAsInteger,
                                  negative: false)
             case AMOUNT_ETHER: fallthrough
             default:
-                amount = Amount (value: coreBalance.u.ether.valueInWEI,
-                                 unit:  Ethereum.currency.baseUnit,
+                amount = Amount (currency: ewm.primaryWallet.currency,
+                                 value: coreBalance.u.ether.valueInWEI,
                                  negative: false)
             }
 
             self = .balanceUpdated (amount: amount!)
-
+            
         case WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED,
              WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED:
             let gasLimit = ewmWalletGetDefaultGasLimit (ewm.core, wid)
             let gasPrice = ewmWalletGetDefaultGasPrice (ewm.core, wid)
             let feeBasis = TransferFeeBasis.ethereum(
-                gasPrice: Amount (value: gasPrice.etherPerGas.valueInWEI, unit: Ethereum.Units.GWEI, negative: false),
+                gasPrice: Amount (currency: ewm.primaryWallet.currency,
+                                  value: gasPrice.etherPerGas.valueInWEI,
+                                  negative: false),
                 gasLimit: gasLimit.amountOfGas)
             self = .feeBasisUpdated(feeBasis: feeBasis)
 
@@ -1074,7 +1088,9 @@ extension TransferState {
                 blockNumber: ewmTransferGetBlockNumber (ewm, tid),
                 transactionIndex: ewmTransferGetTransactionIndex (ewm, tid),
                 timestamp: ewmTransferGetBlockTimestamp (ewm, tid),
-                fee: Amount (value: fee.valueInWEI, unit: Ethereum.Units.ETHER, negative: false))
+                fee: Amount (currency: Ethereum.currency,
+                             value: fee.valueInWEI,
+                             negative: false))
 
             self = .included(confirmation: confirmation)
 

@@ -9,11 +9,17 @@
 import BRCore
 
 public struct Bitcash {
-    public static let currency = Currency (code: "BCH", symbol:  "₿", name: "Bitcash", decimals: 8,
-                                           baseUnit: (name: "SAT", symbol: "sat"))
-    public struct Units {
-        public static let SATOSHI = Bitcoin.currency.baseUnit!
-        public static let BITCASH = Bitcoin.currency.defaultUnit!
+    public static let currency = Currency(code: "BCH",
+                                          name: "Bitcoin Cash",
+                                          baseUnit: Units.satoshi,
+                                          defaultUnit: Units.bitcash,
+                                          supportedUnits: Units.allCases)
+
+    public enum Units: UInt8, CurrencyUnit, CaseIterable {
+        case satoshi = 0
+        case bit = 2
+        case millibitcash = 5
+        case bitcash = 8 // 1 Satoshi = 1e-8 BTC
     }
 
     public struct Networks {

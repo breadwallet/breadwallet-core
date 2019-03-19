@@ -27,62 +27,65 @@ class BRCryptoBaseTests: XCTestCase {
     }
 
     func testUnit () {
-        XCTAssertFalse(Ethereum.Units.ETHER.isCompatible(Bitcoin.Units.SATOSHI))
+        XCTAssertFalse(Ethereum.currency.isCompatible(withUnit: Bitcoin.Units.satoshi))
+        XCTAssertFalse(Bitcoin.currency.isCompatible(withUnit: Ethereum.Units.ether))
+        XCTAssertFalse(Bitcoin.currency.isCompatible(withUnit: Bitcash.Units.bitcash))
     }
 
     func testAmount () {
-        let ETHER = Ethereum.Units.ETHER
-        let WEI   = Ethereum.Units.WEI
-        let GWEI  = Ethereum.Units.GWEI
+        let ETHER = Ethereum.Units.ether
+        let WEI   = Ethereum.Units.wei
+        let GWEI  = Ethereum.Units.gwei
+        let eth = Ethereum.currency
 
-        XCTAssert (nil != Amount (exactly: 1.5, unit: ETHER))
-        XCTAssert (nil != Amount (exactly: 1.0, unit: ETHER))
-        XCTAssert (nil == Amount (exactly: 1.5, unit: WEI))
+        XCTAssert (nil != Amount (currency: eth, exactly: 1.5, unit: ETHER))
+        XCTAssert (nil != Amount (currency: eth, exactly: 1.0, unit: ETHER))
+        XCTAssert (nil == Amount (currency: eth, exactly: 1.5, unit: WEI))
 
-        XCTAssert (1.5 == Amount (exactly: 1.5, unit: ETHER)?.double)
-        XCTAssert (1.5 * 1e9 == Amount (exactly: 1.5, unit: ETHER)?.coerce(unit: GWEI).double)
+        XCTAssert (1.5 == Amount (currency: eth, exactly: 1.5, unit: ETHER)?.double)
+        XCTAssert (1.5 * 1e9 == Amount (currency: eth, exactly: 1.5, unit: ETHER)?.double(as: GWEI))
 
-        XCTAssert (+10 == Amount(value: +10, unit: ETHER).double)
-        XCTAssert (-10 == Amount(value: -10, unit: ETHER).double)
+        XCTAssert (+10 == Amount(currency: eth, value: +10, unit: ETHER).double)
+        XCTAssert (-10 == Amount(currency: eth, value: -10, unit: ETHER).double)
 
-        XCTAssert (-10 == Amount(value: -10.0, unit: ETHER).double)
+        XCTAssert (-10 == Amount(currency: eth, value: -10.0, unit: ETHER).double)
 
-        XCTAssertEqual(25.0, Amount(value: 10.0, unit: ETHER).scale(by: 2.5)?.double ?? 0.0, accuracy: 1e-6)
-        XCTAssertEqual( 2.0, Amount(value: 10.0, unit: ETHER).scale(by: 1/5)?.double ?? 0.0, accuracy: 1e-6)
+        XCTAssertEqual(25.0, Amount(currency: eth, value: 10.0, unit: ETHER).scale(by: 2.5)?.double ?? 0.0, accuracy: 1e-6)
+        XCTAssertEqual( 2.0, Amount(currency: eth, value: 10.0, unit: ETHER).scale(by: 1/5)?.double ?? 0.0, accuracy: 1e-6)
 
-        XCTAssert(Amount (value: 1, unit: ETHER) >  Amount (value: 1, unit: GWEI))
-        XCTAssert(Amount (value: 1, unit: ETHER) == Amount (value: 1, unit: ETHER))
-        XCTAssert(Amount (value: 1, unit: ETHER) != Amount (value: 2, unit: ETHER))
-        XCTAssert(Amount (value: 1, unit: ETHER) == Amount (value: 1e9, unit: GWEI))
-        XCTAssert(Amount (value: 1e-3, unit: ETHER) == Amount (value: 1e6, unit: GWEI))
+        XCTAssert(Amount (currency: eth, value: 1, unit: ETHER) >  Amount (currency: eth, value: 1, unit: GWEI))
+        XCTAssert(Amount (currency: eth, value: 1, unit: ETHER) == Amount (currency: eth, value: 1, unit: ETHER))
+        XCTAssert(Amount (currency: eth, value: 1, unit: ETHER) != Amount (currency: eth, value: 2, unit: ETHER))
+        XCTAssert(Amount (currency: eth, value: 1, unit: ETHER) == Amount (currency: eth, value: 1e9, unit: GWEI))
+        XCTAssert(Amount (currency: eth, value: 1e-3, unit: ETHER) == Amount (currency: eth, value: 1e6, unit: GWEI))
 
-        XCTAssert(Amount (value: 2.5, unit: ETHER) == Amount (value: 1.5, unit: ETHER) + Amount (value: 1.0, unit: ETHER))
-        XCTAssert(Amount (value: 0.5, unit: ETHER) == Amount (value: 1.5, unit: ETHER) - Amount (value: 1.0, unit: ETHER))
+        XCTAssert(Amount (currency: eth, value: 2.5, unit: ETHER) == Amount (currency: eth, value: 1.5, unit: ETHER) + Amount (currency: eth, value: 1.0, unit: ETHER))
+        XCTAssert(Amount (currency: eth, value: 0.5, unit: ETHER) == Amount (currency: eth, value: 1.5, unit: ETHER) - Amount (currency: eth, value: 1.0, unit: ETHER))
 
-        let a1 = Amount (value: 1, unit: ETHER)
-        let a2 = Amount (value: 1, unit: Bitcoin.Units.SATOSHI)
-        XCTAssertTrue  (a1.isCompatible(a1))
-        XCTAssertFalse (a1.isCompatible(a2))
+        let a1 = Amount (currency: eth, value: 1, unit: ETHER)
+        let a2 = Amount (currency: Bitcoin.currency, value: 1, unit: Bitcoin.Units.satoshi)
+        XCTAssertTrue  (a1.isCompatible(with: a1))
+        XCTAssertFalse (a1.isCompatible(with: a2))
 
         XCTAssertEqual(a1.description, "1.0 \(Ethereum.currency.symbol)")
 
-        XCTAssertEqual    ("9.123", Amount (value: 9.12345, unit: ETHER).describe(decimals: 3, withSymbol: false))
-        XCTAssertNotEqual ("9.123", Amount (value: 9.12345, unit: ETHER).describe(decimals: 4, withSymbol: false))
-        XCTAssertEqual    ("9.123 \(ETHER.symbol)", Amount (value: 9.12345, unit: ETHER).describe(decimals: 3, withSymbol: true))
+        XCTAssertEqual    ("9.123", Amount (currency: eth, value: 9.12345, unit: ETHER).describe(as: ETHER, decimals: 3, withSymbol: false))
+        XCTAssertNotEqual ("9.123", Amount (currency: eth, value: 9.12345, unit: ETHER).describe(as: ETHER, decimals: 4, withSymbol: false))
+        XCTAssertEqual    ("9.123 \(ETHER.symbol)", Amount (currency: eth, value: 9.12345, unit: ETHER).describe(as: ETHER, decimals: 3, withSymbol: true))
     }
 
     func testCurrencyPair () {
-        let BTC = Bitcoin.currency.defaultUnit!
-        let USD = Fiat.US.defaultUnit!
+        let BTC = Bitcoin.currency.defaultUnit
+        let USD = Fiat.US.defaultUnit
 
-        let pair = CurrencyPair (baseUnit: BTC, quoteUnit: USD, exchangeRate: 6000)
+        let pair = CurrencyPair (baseCurrency: Bitcoin.currency, quoteCurrency: Fiat.US, exchangeRate: 6000)
 
         // BTC -> USD
-        let inUSD = pair.exchange(asBase: Amount (value: 1.0, unit: BTC))
+        let inUSD = pair.exchange(asBase: Amount (currency: Bitcoin.currency, value: 1.0, unit: BTC))
         XCTAssertEqual(6000, inUSD?.double ?? 0, accuracy: 1e-6)
 
         // USD -> BTC
-        let inBTC = pair.exchange(asQuote: Amount (value: 6000.0, unit: USD))
+        let inBTC = pair.exchange(asQuote: Amount (currency: Fiat.US, value: 6000.0, unit: USD))
         XCTAssertEqual(1.0, inBTC?.double ?? 0, accuracy: 1e-6)
 
         XCTAssertEqual("\(BTC.name)/\(USD.name)=\(6000.0)", pair.description)
