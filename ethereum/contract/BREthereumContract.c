@@ -378,12 +378,12 @@ contractEncode (BREthereumContract contract, BREthereumContractFunction function
     unsigned int argsCount = function->argumentCount;
     
     // The encoding result is the function selector plus 64 chars for each argument plus '\0'
-    char *encoding = malloc (strlen(function->selector) - 2 + argsCount * 64 + 1);
+    char *encoding = malloc (strlen(function->selector) + argsCount * 64 + 1);
     size_t encodingIndex = 0;
     
     // Copy the selector
-    memcpy (&encoding[encodingIndex], &function->selector[2], strlen(function->selector) - 2);
-    encodingIndex += strlen(function->selector) - 2;
+    memcpy (&encoding[encodingIndex], &function->selector[0], strlen(function->selector));
+    encodingIndex += strlen(function->selector);
     
     va_list args;
     va_start (args, function);
