@@ -51,6 +51,8 @@ eventGetSelector (BREthereumContractEvent event);
  * called with a pair as (uint8_t *bytes, size_t bytesCount).  Thus for example, an ERC20
  * token transfer would be called as:
  *
+ * This will be prefaced with '0x'
+ *
  * char *address;
  * UInt256 amount;
  *

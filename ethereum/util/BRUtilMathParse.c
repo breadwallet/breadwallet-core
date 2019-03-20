@@ -342,6 +342,7 @@ extern char *
 coerceStringPrefaced (UInt256 x, int base, const char *preface) {
     char *string = coerceString (x, base);
     if (NULL == preface || 0 == strcmp ("", preface)) return string;
+    char *stringToFree = string; // save the pointer to string
 
     // Strip off leading zeros in `string`
     while ('\0' != string[0] && '0' == string[0]) string++;
@@ -349,7 +350,8 @@ coerceStringPrefaced (UInt256 x, int base, const char *preface) {
     char *result = malloc (strlen(preface) + strlen (string) + 1);
     strcpy (result, preface);
     strcat (result, string);
-    free (string);
+
+    free (stringToFree);
 
     return result;
 }
