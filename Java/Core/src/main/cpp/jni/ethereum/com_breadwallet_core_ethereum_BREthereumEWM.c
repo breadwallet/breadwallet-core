@@ -1084,14 +1084,14 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniSignTransactionWithPrivateKe
          jbyteArray privateKeyByteArray) {
     BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
 
-    BRKey *key = (BRKey *) (*env)->GetByteArrayElements (env, privateKeyByteArray, 0);
+    BRKey *key = (BRKey *) (*env)->GetByteArrayElements(env, privateKeyByteArray, 0);
 
     ewmWalletSignTransfer(node,
-                                                (BREthereumWallet) walletId,
-                                                (BREthereumTransfer) transactionId,
-                                                *key);
+                          (BREthereumWallet) walletId,
+                          (BREthereumTransfer) transactionId,
+                          *key);
 
-    (*env)->ReleaseByteArrayElements (env, privateKeyByteArray, (jbyte*) key, 0);
+    (*env)->ReleaseByteArrayElements(env, privateKeyByteArray, (jbyte *) key, 0);
 }
 
 
@@ -1108,10 +1108,9 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniSubmitTransaction
          jlong tid) {
     BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
     ewmWalletSubmitTransfer(node,
-                                    (BREthereumWallet) wid,
-                                    (BREthereumTransfer) tid);
+                            (BREthereumWallet) wid,
+                            (BREthereumTransfer) tid);
 }
-
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
