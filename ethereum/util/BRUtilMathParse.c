@@ -338,6 +338,24 @@ coerceString (UInt256 x, int base) {
     }
 }
 
+extern char *
+coerceStringPrefaced (UInt256 x, int base, const char *preface) {
+    char *string = coerceString (x, base);
+    if (NULL == preface || 0 == strcmp ("", preface)) return string;
+    char *stringToFree = string; // save the pointer to string
+
+    // Strip off leading zeros in `string`
+    while ('\0' != string[0] && '0' == string[0]) string++;
+
+    char *result = malloc (strlen(preface) + strlen (string) + 1);
+    strcpy (result, preface);
+    strcat (result, string);
+
+    free (stringToFree);
+
+    return result;
+}
+
 extern char * 
 coerceStringDecimal (UInt256 x, int decimals) {
     char *string = coerceString(x, 10);

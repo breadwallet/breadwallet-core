@@ -168,7 +168,7 @@ ewmUpdateGasEstimate (BREthereumEWM ewm,
 
                 char *from = addressGetEncodedString(fromAddress, 1);
                 char *to = (char *) addressGetEncodedString(transactionGetTargetAddress(transaction), 0);
-                char *amount = coerceString(amountInEther.valueInWEI, 16);
+                char *amount = coerceStringPrefaced(amountInEther.valueInWEI, 16, "0x");
 
                 ewm->client.funcEstimateGas (ewm->client.context,
                                              ewm,
