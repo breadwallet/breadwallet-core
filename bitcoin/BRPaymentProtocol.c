@@ -268,7 +268,7 @@ typedef enum {
     encrypted_msg_status_msg = 9
 } encrypted_msg_key;
 
-static BRTxOutput _BRPaymentProtocolOutput(uint64_t amount, uint8_t *script, size_t scriptLen)
+static BRTxOutput _BRPaymentProtocolOutput(uint64_t amount, uint8_t *script, size_t scriptLen, int mainnet)
 {
     BRTxOutput out = BR_TX_OUTPUT_NONE;
     ProtoBufContext ctx = { NULL, NULL };
@@ -278,13 +278,13 @@ static BRTxOutput _BRPaymentProtocolOutput(uint64_t amount, uint8_t *script, siz
     array_new(ctx.defaults, output_script + 1);
     array_set_count(ctx.defaults, output_script + 1);
     out.amount = amount;
-    BRTxOutputSetScript(&out, script, scriptLen);
+    BRTxOutputSetScript(&out, script, scriptLen, mainnet);
     if (! out.script) array_new(out.script, sizeof(ctx));
     array_add_array(out.script, (uint8_t *)&ctx, sizeof(ctx)); // store context at end of script data
     return out;
 }
 
-static BRTxOutput _BRPaymentProtocolOutputParse(const uint8_t *buf, size_t bufLen)
+static BRTxOutput _BRPaymentProtocolOutputParse(const uint8_t *buf, size_t bufLen, int mainnet)
 {
     BRTxOutput out = BR_TX_OUTPUT_NONE;
     ProtoBufContext ctx = { NULL, NULL };
@@ -302,7 +302,7 @@ static BRTxOutput _BRPaymentProtocolOutputParse(const uint8_t *buf, size_t bufLe
         
         switch (key >> 3) {
             case output_amount: out.amount = i, ctx.defaults[output_amount] = 0; break;
-            case output_script: BRTxOutputSetScript(&out, data, dataLen); break;
+            case output_script: BRTxOutputSetScript(&out, data, dataLen, mainnet); break;
             default: _ProtoBufUnknown(&ctx.unknown, key, i, data, dataLen); break;
         }
     }
@@ -344,12 +344,12 @@ static void _BRPaymentProtocolOutputFree(BRTxOutput out)
         memcpy(&ctx, &out.script[out.scriptLen], sizeof(ctx));
         if (ctx.defaults) array_free(ctx.defaults);
         if (ctx.unknown) array_free(ctx.unknown);
-        BRTxOutputSetScript(&out, NULL, 0);
+        BRTxOutputSetScript(&out, NULL, 0, 0);
     }
 }
 
 // returns a newly allocated details struct that must be freed by calling BRPaymentProtocolDetailsFree()
-BRPaymentProtocolDetails *BRPaymentProtocolDetailsNew(const char *network, const BRTxOutput outputs[], size_t outCount,
+BRPaymentProtocolDetails *BRPaymentProtocolDetailsNew(const char *network, int mainnet, const BRTxOutput outputs[], size_t outCount,
                                                       uint64_t time, uint64_t expires, const char *memo,
                                                       const char *paymentURL, const uint8_t *merchantData,
                                                       size_t merchDataLen)
@@ -372,7 +372,7 @@ BRPaymentProtocolDetails *BRPaymentProtocolDetailsNew(const char *network, const
     array_new(details->outputs, outCount);
     
     for (size_t i = 0; i < outCount; i++) {
-        array_add(details->outputs, _BRPaymentProtocolOutput(outputs[i].amount, outputs[i].script, outputs[i].scriptLen));
+        array_add(details->outputs, _BRPaymentProtocolOutput(outputs[i].amount, outputs[i].script, outputs[i].scriptLen, mainnet));
     }
     
     details->time = time;
@@ -385,7 +385,7 @@ BRPaymentProtocolDetails *BRPaymentProtocolDetailsNew(const char *network, const
 
 // buf must contain a serialized details struct
 // returns a details struct that must be freed by calling BRPaymentProtocolDetailsFree()
-BRPaymentProtocolDetails *BRPaymentProtocolDetailsParse(const uint8_t *buf, size_t bufLen)
+BRPaymentProtocolDetails *BRPaymentProtocolDetailsParse(const uint8_t *buf, size_t bufLen, int mainnet)
 {
     BRPaymentProtocolDetails *details = calloc(1, sizeof(*details) + sizeof(ProtoBufContext));
     ProtoBufContext *ctx = (ProtoBufContext *)&details[1];
@@ -408,7 +408,7 @@ BRPaymentProtocolDetails *BRPaymentProtocolDetailsParse(const uint8_t *buf, size
 
         switch (key >> 3) {
             case details_network: _ProtoBufString(&details->network, data, dLen); break;
-            case details_outputs: out = _BRPaymentProtocolOutputParse(data, dLen); break;
+            case details_outputs: out = _BRPaymentProtocolOutputParse(data, dLen, mainnet); break;
             case details_time: details->time = i, ctx->defaults[details_time] = 0; break;
             case details_expires: details->expires = i, ctx->defaults[details_expires] = 0; break;
             case details_memo: _ProtoBufString(&details->memo, data, dLen); break;
@@ -524,7 +524,7 @@ BRPaymentProtocolRequest *BRPaymentProtocolRequestNew(uint32_t version, const ch
 
 // buf must contain a serialized request struct
 // returns a request struct that must be freed by calling BRPaymentProtocolRequestFree()
-BRPaymentProtocolRequest *BRPaymentProtocolRequestParse(const uint8_t *buf, size_t bufLen)
+BRPaymentProtocolRequest *BRPaymentProtocolRequestParse(const uint8_t *buf, size_t bufLen, int mainnet)
 {
     BRPaymentProtocolRequest *req = calloc(1, sizeof(*req) + sizeof(ProtoBufContext));
     ProtoBufContext *ctx = (ProtoBufContext *)&req[1];
@@ -547,7 +547,7 @@ BRPaymentProtocolRequest *BRPaymentProtocolRequestParse(const uint8_t *buf, size
             case request_version: req->version = (uint32_t)i, ctx->defaults[request_version] = 0; break;
             case request_pki_type: _ProtoBufString(&req->pkiType, data, dataLen); break;
             case request_pki_data: req->pkiDataLen = _ProtoBufBytes(&req->pkiData, data, dataLen); break;
-            case request_details: req->details = (data) ? BRPaymentProtocolDetailsParse(data, dataLen) : NULL; break;
+            case request_details: req->details = (data) ? BRPaymentProtocolDetailsParse(data, dataLen, mainnet) : NULL; break;
             case request_signature: req->sigLen = _ProtoBufBytes(&req->signature, data, dataLen); break;
             default: _ProtoBufUnknown(&ctx->unknown, key, i, data, dataLen); break;
         }
@@ -673,7 +673,8 @@ void BRPaymentProtocolRequestFree(BRPaymentProtocolRequest *req)
 }
 
 // returns a newly allocated payment struct that must be freed by calling BRPaymentProtocolPaymentFree()
-BRPaymentProtocolPayment *BRPaymentProtocolPaymentNew(const uint8_t *merchantData, size_t merchDataLen,
+BRPaymentProtocolPayment *BRPaymentProtocolPaymentNew(int mainnet,
+                                                      const uint8_t *merchantData, size_t merchDataLen,
                                                       BRTransaction *transactions[], size_t txCount,
                                                       const uint64_t refundToAmounts[],
                                                       const BRAddress refundToAddresses[], size_t refundToCount,
@@ -701,10 +702,10 @@ BRPaymentProtocolPayment *BRPaymentProtocolPaymentNew(const uint8_t *merchantDat
     array_new(payment->refundTo, refundToCount);
         
     for (size_t i = 0; i < refundToCount; i++) {
-        uint8_t script[BRAddressScriptPubKey(NULL, 0, refundToAddresses[i].s)];
-        size_t scriptLen = BRAddressScriptPubKey(script, sizeof(script), refundToAddresses[i].s);
+        uint8_t script[BRAddressScriptPubKey(NULL, 0, refundToAddresses[i].s, mainnet)];
+        size_t scriptLen = BRAddressScriptPubKey(script, sizeof(script), refundToAddresses[i].s, mainnet);
             
-        array_add(payment->refundTo, _BRPaymentProtocolOutput(refundToAmounts[i], script, scriptLen));
+        array_add(payment->refundTo, _BRPaymentProtocolOutput(refundToAmounts[i], script, scriptLen, mainnet));
     }
     
     payment->refundToCount = refundToCount;
@@ -714,7 +715,7 @@ BRPaymentProtocolPayment *BRPaymentProtocolPaymentNew(const uint8_t *merchantDat
 
 // buf must contain a serialized payment struct
 // returns a payment struct that must be freed by calling BRPaymentProtocolPaymentFree()
-BRPaymentProtocolPayment *BRPaymentProtocolPaymentParse(const uint8_t *buf, size_t bufLen)
+BRPaymentProtocolPayment *BRPaymentProtocolPaymentParse(const uint8_t *buf, size_t bufLen, int mainnet)
 {
     BRPaymentProtocolPayment *payment = calloc(1, sizeof(*payment) + sizeof(ProtoBufContext));
     ProtoBufContext *ctx = (ProtoBufContext *)&payment[1];
@@ -736,8 +737,8 @@ BRPaymentProtocolPayment *BRPaymentProtocolPaymentParse(const uint8_t *buf, size
         uint64_t i = 0, key = _ProtoBufField(&i, &data, buf, &dLen, &off);
         
         switch (key >> 3) {
-            case payment_transactions: tx = (data) ? BRTransactionParse(data, dLen) : NULL; break;
-            case payment_refund_to: out = _BRPaymentProtocolOutputParse(data, dLen); break;
+            case payment_transactions: tx = (data) ? BRTransactionParse(data, dLen, mainnet) : NULL; break;
+            case payment_refund_to: out = _BRPaymentProtocolOutputParse(data, dLen, mainnet); break;
             case payment_memo: _ProtoBufString(&payment->memo, data, dLen); break;
             case payment_merch_data: payment->merchDataLen = _ProtoBufBytes(&payment->merchantData, data, dLen); break;
             default: _ProtoBufUnknown(&ctx->unknown, key, i, data, dLen); break;
@@ -833,7 +834,7 @@ BRPaymentProtocolACK *BRPaymentProtocolACKNew(BRPaymentProtocolPayment *payment,
 
 // buf must contain a serialized ACK struct
 // returns a ACK struct that must be freed by calling BRPaymentProtocolACKFree()
-BRPaymentProtocolACK *BRPaymentProtocolACKParse(const uint8_t *buf, size_t bufLen)
+BRPaymentProtocolACK *BRPaymentProtocolACKParse(const uint8_t *buf, size_t bufLen, int mainnet)
 {
     BRPaymentProtocolACK *ack = calloc(1, sizeof(*ack) + sizeof(ProtoBufContext));
     ProtoBufContext *ctx = (ProtoBufContext *)&ack[1];
@@ -851,7 +852,7 @@ BRPaymentProtocolACK *BRPaymentProtocolACKParse(const uint8_t *buf, size_t bufLe
         uint64_t i = 0, key = _ProtoBufField(&i, &data, buf, &dataLen, &off);
         
         switch (key >> 3) {
-            case ack_payment: ack->payment = (data) ? BRPaymentProtocolPaymentParse(data, dataLen) : NULL; break;
+            case ack_payment: ack->payment = (data) ? BRPaymentProtocolPaymentParse(data, dataLen, mainnet) : NULL; break;
             case ack_memo: _ProtoBufString(&ack->memo, data, dataLen); break;
             default: _ProtoBufUnknown(&ctx->unknown, key, i, data, dataLen); break;
         }
@@ -1212,7 +1213,8 @@ static void _BRPaymentProtocolEncryptedMessageCEK(BRPaymentProtocolEncryptedMess
 // returns a newly allocated encrypted message struct that must be freed by calling BRPaymentProtocolMessageFree()
 // message is the un-encrypted serialized payment protocol message
 // one of either receiverKey or senderKey must contain a private key, and the other must contain only a public key
-BRPaymentProtocolEncryptedMessage *BRPaymentProtocolEncryptedMessageNew(BRPaymentProtocolMessageType msgType,
+BRPaymentProtocolEncryptedMessage *BRPaymentProtocolEncryptedMessageNew(int mainnet,
+                                                                        BRPaymentProtocolMessageType msgType,
                                                                         const uint8_t *message, size_t msgLen,
                                                                         BRKey *receiverKey, BRKey *senderKey,
                                                                         uint64_t nonce,
@@ -1232,7 +1234,7 @@ BRPaymentProtocolEncryptedMessage *BRPaymentProtocolEncryptedMessageNew(BRPaymen
     assert(message != NULL || msgLen == 0);
     assert(receiverKey != NULL);
     assert(senderKey != NULL);
-    assert(BRKeyPrivKey(receiverKey, NULL, 0) != 0 || BRKeyPrivKey(senderKey, NULL, 0) != 0);
+    assert(BRKeyPrivKey(receiverKey, NULL, 0, mainnet) != 0 || BRKeyPrivKey(senderKey, NULL, 0, mainnet) != 0);
     
     array_new(ctx->defaults, encrypted_msg_status_msg + 1);
     array_set_count(ctx->defaults, encrypted_msg_status_msg + 1);
@@ -1245,7 +1247,7 @@ BRPaymentProtocolEncryptedMessage *BRPaymentProtocolEncryptedMessageNew(BRPaymen
     if (identifier) msg->identLen = _ProtoBufBytes(&msg->identifier, identifier, identLen);
     msg->statusCode = statusCode;
     if (statusMsg) _ProtoBufString(&msg->statusMsg, statusMsg, strlen(statusMsg));
-    privKey = (BRKeyPrivKey(receiverKey, NULL, 0) != 0) ? receiverKey : senderKey;
+    privKey = (BRKeyPrivKey(receiverKey, NULL, 0, mainnet) != 0) ? receiverKey : senderKey;
     _BRPaymentProtocolEncryptedMessageCEK(msg, cek, iv, privKey);
     snprintf(ad, adLen, "%"PRIu64"%s", statusCode, (statusMsg) ? statusMsg : "");
     bufLen = BRChacha20Poly1305AEADEncrypt(buf, bufLen, cek, iv, message, msgLen, ad, strlen(ad));

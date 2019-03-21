@@ -100,7 +100,8 @@ class CoreTests: XCTestCase {
     }
     
     func testBitcoin () {
-        XCTAssert(1 == BRRunTests())
+        XCTAssert(1 == BRRunTests(1))
+        XCTAssert(1 == BRRunTests(0))
     }
 
     //
@@ -123,7 +124,7 @@ class CoreTests: XCTestCase {
     }
 
     func testEthereumContract () {
-        runContractTests ();
+        runContractTests (1);
     }
     
     func testEthereumBasics() {

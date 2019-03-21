@@ -61,10 +61,10 @@ typedef struct {
     uint32_t sequence;
 } BRTxInput;
 
-void BRTxInputSetAddress(BRTxInput *input, const char *address);
-void BRTxInputSetScript(BRTxInput *input, const uint8_t *script, size_t scriptLen);
-void BRTxInputSetSignature(BRTxInput *input, const uint8_t *signature, size_t sigLen);
-void BRTxInputSetWitness(BRTxInput *input, const uint8_t *witness, size_t witLen);
+void BRTxInputSetAddress(BRTxInput *input, const char *address, int mainnet);
+void BRTxInputSetScript(BRTxInput *input, const uint8_t *script, size_t scriptLen, int mainnet);
+void BRTxInputSetSignature(BRTxInput *input, const uint8_t *signature, size_t sigLen, int mainnet);
+void BRTxInputSetWitness(BRTxInput *input, const uint8_t *witness, size_t witLen, int mainnet);
 
 typedef struct {
     char address[75];
@@ -76,8 +76,8 @@ typedef struct {
 #define BR_TX_OUTPUT_NONE ((const BRTxOutput) { "", 0, NULL, 0 })
 
 // when creating a BRTxOutput struct outside of a BRTransaction, set address or script to NULL when done to free memory
-void BRTxOutputSetAddress(BRTxOutput *output, const char *address);
-void BRTxOutputSetScript(BRTxOutput *output, const uint8_t *script, size_t scriptLen);
+void BRTxOutputSetAddress(BRTxOutput *output, const char *address, int mainnet);
+void BRTxOutputSetScript(BRTxOutput *output, const uint8_t *script, size_t scriptLen, int mainnet);
 
 typedef struct {
     UInt256 txHash;
@@ -96,23 +96,23 @@ typedef struct {
 BRTransaction *BRTransactionNew(void);
 
 // returns a deep copy of tx and that must be freed by calling BRTransactionFree()
-BRTransaction *BRTransactionCopy(const BRTransaction *tx);
+BRTransaction *BRTransactionCopy(const BRTransaction *tx, int mainnet);
 
 // buf must contain a serialized tx
 // retruns a transaction that must be freed by calling BRTransactionFree()
-BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen);
+BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen, int mainnet);
 
 // returns number of bytes written to buf, or total bufLen needed if buf is NULL
 // (tx->blockHeight and tx->timestamp are not serialized)
 size_t BRTransactionSerialize(const BRTransaction *tx, uint8_t *buf, size_t bufLen);
 
 // adds an input to tx
-void BRTransactionAddInput(BRTransaction *tx, UInt256 txHash, uint32_t index, uint64_t amount,
+void BRTransactionAddInput(BRTransaction *tx, int mainnet, UInt256 txHash, uint32_t index, uint64_t amount,
                            const uint8_t *script, size_t scriptLen, const uint8_t *signature, size_t sigLen,
                            const uint8_t *witness, size_t witLen, uint32_t sequence);
 
 // adds an output to tx
-void BRTransactionAddOutput(BRTransaction *tx, uint64_t amount, const uint8_t *script, size_t scriptLen);
+void BRTransactionAddOutput(BRTransaction *tx, int mainnet, uint64_t amount, const uint8_t *script, size_t scriptLen);
 
 // shuffles order of tx outputs
 void BRTransactionShuffleOutputs(BRTransaction *tx);
@@ -132,7 +132,7 @@ int BRTransactionIsSigned(const BRTransaction *tx);
 // adds signatures to any inputs with NULL signatures that can be signed with any keys
 // forkId is 0 for bitcoin, 0x40 for b-cash, 0x4f for b-gold
 // returns true if tx is signed
-int BRTransactionSign(BRTransaction *tx, int forkId, BRKey keys[], size_t keysCount);
+int BRTransactionSign(BRTransaction *tx, int forkId, int mainnet, BRKey keys[], size_t keysCount);
 
 // true if tx meets IsStandard() rules: https://bitcoin.org/en/developer-guide#standard-transactions
 int BRTransactionIsStandard(const BRTransaction *tx);

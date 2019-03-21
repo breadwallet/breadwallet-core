@@ -408,7 +408,7 @@ ewmCreate (BREthereumNetwork network,
 
     // The file service.  Initialize {nodes, blocks, transactions and logs} from the FileService
 
-    ewm->fs = fileServiceCreate (storagePath, "eth", networkGetName(network),
+    ewm->fs = fileServiceCreate (storagePath, "eth", networkGetName(network), 1,
                                  ewm,
                                  ewmFileServiceErrorHandler);
     if (NULL == ewm->fs) return ewmCreateErrorHandler(ewm, 1, "create");

@@ -73,6 +73,7 @@ struct BRWalletStruct {
     BRTransaction **transactions;
     BRMasterPubKey masterPubKey;
     int forkId;
+    int mainnet;
     UInt160 *internalChain, *externalChain;
     BRSet *allTx, *invalidTx, *pendingTx, *spentOutputs, *usedPKH, *allPKH;
     void *callbackInfo;
@@ -90,9 +91,9 @@ inline static void _BRWalletAddressFromHash160(BRWallet *wallet, char *addr, siz
                                    h.u8[6], h.u8[7], h.u8[8], h.u8[9], h.u8[10], h.u8[11], h.u8[12], h.u8[13], h.u8[14],
                                    h.u8[15], h.u8[16], h.u8[17], h.u8[18], h.u8[19], OP_EQUALVERIFY, OP_CHECKSIG };
         
-        BRAddressFromScriptPubKey(addr, addrLen, script, sizeof(script));
+        BRAddressFromScriptPubKey(addr, addrLen, script, sizeof(script), wallet->mainnet);
     }
-    else BRAddressFromHash160(addr, addrLen, &h);
+    else BRAddressFromHash160(addr, addrLen, &h, wallet->mainnet);
 }
 
 inline static int _BRWalletTxIsAscending(BRWallet *wallet, const BRTransaction *tx1, const BRTransaction *tx2)
@@ -265,7 +266,7 @@ static void _BRWalletUpdateBalance(BRWallet *wallet)
 
 // allocates and populates a BRWallet struct which must be freed by calling BRWalletFree()
 // forkId is 0 for bitcoin, 0x40 for b-cash
-BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPubKey mpk, int forkId)
+BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPubKey mpk, int forkId, int mainnet)
 {
     BRWallet *wallet = NULL;
     BRTransaction *tx;
@@ -279,6 +280,7 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
     wallet->feePerKb = DEFAULT_FEE_PER_KB;
     wallet->masterPubKey = mpk;
     wallet->forkId = forkId;
+    wallet->mainnet = mainnet;
     array_new(wallet->internalChain, 100);
     array_new(wallet->externalChain, 100);
     array_new(wallet->balanceHist, txCount + 100);
@@ -528,7 +530,7 @@ BRAddress BRWalletLegacyAddress(BRWallet *wallet)
                          0, 0, 0, 0, 0, 0, 0, 0, 0, OP_EQUALVERIFY, OP_CHECKSIG };
     
     BRWalletUnusedAddrs(wallet, &addr, 1, 0);
-    if (BRAddressHash160(&script[3], addr.s)) BRAddressFromScriptPubKey(addr.s, sizeof(addr), script, sizeof(script));
+    if (BRAddressHash160(&script[3], addr.s)) BRAddressFromScriptPubKey(addr.s, sizeof(addr), script, sizeof(script), wallet->mainnet);
     return addr;
 }
 
@@ -596,9 +598,9 @@ BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, uint64_t amount, cons
     
     assert(wallet != NULL);
     assert(amount > 0);
-    assert(addr != NULL && BRAddressIsValid(addr));
+    assert(addr != NULL && BRAddressIsValid(addr, wallet->mainnet));
     o.amount = amount;
-    BRTxOutputSetAddress(&o, addr);
+    BRTxOutputSetAddress(&o, addr, wallet->mainnet);
     return BRWalletCreateTxForOutputs(wallet, &o, 1);
 }
 
@@ -617,7 +619,7 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
 
     for (i = 0; outputs && i < outCount; i++) {
         assert(outputs[i].script != NULL && outputs[i].scriptLen > 0);
-        BRTransactionAddOutput(transaction, outputs[i].amount, outputs[i].script, outputs[i].scriptLen);
+        BRTransactionAddOutput(transaction, wallet->mainnet, outputs[i].amount, outputs[i].script, outputs[i].scriptLen);
         amount += outputs[i].amount;
     }
     
@@ -633,7 +635,7 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
         o = &wallet->utxos[i];
         tx = BRSetGet(wallet->allTx, o);
         if (! tx || o->n >= tx->outCount) continue;
-        BRTransactionAddInput(transaction, tx->txHash, o->n, tx->outputs[o->n].amount,
+        BRTransactionAddInput(transaction, wallet->mainnet, tx->txHash, o->n, tx->outputs[o->n].amount,
                               tx->outputs[o->n].script, tx->outputs[o->n].scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
         
         if (BRTransactionVSize(transaction) + TX_OUTPUT_SIZE > TX_MAX_SIZE) { // transaction size-in-bytes too large
@@ -686,10 +688,10 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
     }
     else if (transaction && balance - (amount + feeAmount) > minAmount) { // add change output
         BRWalletUnusedAddrs(wallet, &addr, 1, 1);
-        uint8_t script[BRAddressScriptPubKey(NULL, 0, addr.s)];
-        size_t scriptLen = BRAddressScriptPubKey(script, sizeof(script), addr.s);
+        uint8_t script[BRAddressScriptPubKey(NULL, 0, addr.s, wallet->mainnet)];
+        size_t scriptLen = BRAddressScriptPubKey(script, sizeof(script), addr.s, wallet->mainnet);
     
-        BRTransactionAddOutput(transaction, balance - (amount + feeAmount), script, scriptLen);
+        BRTransactionAddOutput(transaction, wallet->mainnet, balance - (amount + feeAmount), script, scriptLen);
         BRTransactionShuffleOutputs(transaction);
     }
     
@@ -731,7 +733,7 @@ int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const void *see
         BRBIP32PrivKeyList(&keys[internalCount], externalCount, seed, seedLen, SEQUENCE_EXTERNAL_CHAIN, externalIdx);
         // TODO: XXX wipe seed callback
         seed = NULL;
-        if (tx) r = BRTransactionSign(tx, forkId, keys, internalCount + externalCount);
+        if (tx) r = BRTransactionSign(tx, forkId, wallet->mainnet, keys, internalCount + externalCount);
         for (i = 0; i < internalCount + externalCount; i++) BRKeyClean(&keys[i]);
     }
     else r = -1; // user canceled authentication
@@ -1152,7 +1154,7 @@ uint64_t BRWalletFeeForTxAmount(BRWallet *wallet, uint64_t amount)
     assert(amount > 0);
     maxAmount = BRWalletMaxOutputAmount(wallet);
     o.amount = (amount < maxAmount) ? amount : maxAmount;
-    BRTxOutputSetScript(&o, dummyScript, sizeof(dummyScript)); // unspendable dummy scriptPubKey
+    BRTxOutputSetScript(&o, dummyScript, sizeof(dummyScript), wallet->mainnet); // unspendable dummy scriptPubKey
     tx = BRWalletCreateTxForOutputs(wallet, &o, 1);
 
     if (tx) {
@@ -1265,4 +1267,8 @@ int64_t BRBitcoinAmount(int64_t localAmount, double price)
     }
     
     return (localAmount < 0) ? -amount : amount;
+}
+
+int BRWalletIsMainnet (BRWallet *wallet) {
+    return wallet->mainnet;
 }

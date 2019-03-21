@@ -171,6 +171,7 @@ inline static int _BRBlockHeightEq(const void *block, const void *otherBlock)
 struct BRPeerManagerStruct {
     const BRChainParams *params;
     BRWallet *wallet;
+    int mainnet;
     int isConnected, connectFailureCount, misbehavinCount, dnsThreadCount, peerThreadCount, maxConnectCount;
     BRPeer *peers, *downloadPeer, fixedPeer, **connectedPeers;
     char downloadPeerName[INET6_ADDRSTRLEN + 6];
@@ -1479,6 +1480,7 @@ BRPeerManager *BRPeerManagerNew(const BRChainParams *params, BRWallet *wallet, u
     assert(peers != NULL || peersCount == 0);
     manager->params = params;
     manager->wallet = wallet;
+    manager->mainnet = BRWalletIsMainnet(wallet);
     manager->earliestKeyTime = earliestKeyTime;
     manager->averageTxPerBlock = 1400;
     manager->maxConnectCount = PEER_MAX_CONNECTIONS;
@@ -1641,7 +1643,7 @@ void BRPeerManagerConnect(BRPeerManager *manager)
                 info = calloc(1, sizeof(*info));
                 assert(info != NULL);
                 info->manager = manager;
-                info->peer = BRPeerNew(manager->params->magicNumber);
+                info->peer = BRPeerNew(manager->params->magicNumber, manager->mainnet);
                 *info->peer = peers[i];
                 array_rm(peers, i);
                 array_add(manager->connectedPeers, info->peer);

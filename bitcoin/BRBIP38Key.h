@@ -38,7 +38,7 @@ int BRBIP38KeyIsValid(const char *bip38Key);
 
 // decrypts a BIP38 key using the given passphrase and returns false if passphrase is incorrect
 // passphrase must be unicode NFC normalized: http://www.unicode.org/reports/tr15/#Norm_Forms
-int BRKeySetBIP38Key(BRKey *key, const char *bip38Key, const char *passphrase);
+int BRKeySetBIP38Key(BRKey *key, const char *bip38Key, const char *passphrase, int mainnet);
 
 // generates an "intermediate code" for an EC multiply mode key
 // salt should be 64bits of random data
@@ -60,7 +60,7 @@ void BRKeySetBIP38ItermediateCode(BRKey *key, const char *code, const uint8_t *s
 // encrypts key with passphrase
 // passphrase must be unicode NFC normalized
 // returns number of bytes written to bip38Key including NULL terminator or total bip38KeyLen needed if bip38Key is NULL
-size_t BRKeyBIP38Key(BRKey *key, char *bip38Key, size_t bip38KeyLen, const char *passphrase);
+size_t BRKeyBIP38Key(BRKey *key, char *bip38Key, size_t bip38KeyLen, const char *passphrase, int mainnet);
 
 #ifdef __cplusplus
 }

@@ -74,6 +74,11 @@ getForkId (const BRChainParams *params) {
     return (BRWalletForkId) -1;
 }
 
+static int
+getMainnet (const BRChainParams *params) {
+    return params == BRMainNetParams || params == BRBCashParams;
+}
+
 ///
 /// MARK: BRWalletManager
 ///
@@ -141,7 +146,7 @@ fileServiceTypeTransactionV1Reader (BRFileServiceContext context,
     size_t txTimestampSize  = sizeof (uint32_t);
     size_t txBlockHeightSize = sizeof (uint32_t);
 
-    BRTransaction *transaction = BRTransactionParse (bytes, bytesCount);
+    BRTransaction *transaction = BRTransactionParse (bytes, bytesCount, fileServiceOnMainnet(fs));
     if (NULL == transaction) return NULL;
 
     transaction->blockHeight = UInt32GetLE (&bytes[bytesCount - txTimestampSize - txBlockHeightSize]);
@@ -378,6 +383,7 @@ BRWalletManagerNew (BRWalletManagerClient client,
 //    manager->walletForkId = fork;
     manager->client = client;
 
+    int mainnet = getMainnet(params);
     BRWalletForkId fork = getForkId (params);
     const char *networkName  = getNetworkName  (params);
     const char *currencyName = getCurrencyName (params);
@@ -385,7 +391,7 @@ BRWalletManagerNew (BRWalletManagerClient client,
     //
     // Create the File Service w/ associated types.
     //
-    manager->fileService = fileServiceCreate (baseStoragePath, currencyName, networkName, 
+    manager->fileService = fileServiceCreate (baseStoragePath, currencyName, networkName, mainnet,
                                               manager,
                                               bwmFileServiceErrorHandler);
     if (NULL == manager->fileService) return bwmCreateErrorHandler (manager, 1, "create");
@@ -439,7 +445,7 @@ BRWalletManagerNew (BRWalletManagerClient client,
         else array_clear(peers);
     }
 
-    manager->wallet = BRWalletNew (transactions, array_count(transactions), mpk, fork);
+    manager->wallet = BRWalletNew (transactions, array_count(transactions), mpk, fork, mainnet);
     BRWalletSetCallbacks (manager->wallet, manager,
                           _BRWalletManagerBalanceChanged,
                           _BRWalletManagerTxAdded,

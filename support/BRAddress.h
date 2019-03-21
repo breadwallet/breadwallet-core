@@ -34,10 +34,6 @@
 extern "C" {
 #endif
 
-#if BITCOIN_TESTNET
-#pragma message "testnet build"
-#endif
-
 // bitcoin address prefixes
 #define BITCOIN_PUBKEY_ADDRESS      0
 #define BITCOIN_SCRIPT_ADDRESS      5
@@ -92,11 +88,11 @@ typedef struct {
 
 // writes the bitcoin address for a scriptPubKey to addr
 // returns the number of bytes written, or addrLen needed if addr is NULL
-size_t BRAddressFromScriptPubKey(char *addr, size_t addrLen, const uint8_t *script, size_t scriptLen);
+size_t BRAddressFromScriptPubKey(char *addr, size_t addrLen, const uint8_t *script, size_t scriptLen, int mainnet);
 
 // writes the bitcoin address for a scriptSig to addr
 // returns the number of bytes written, or addrLen needed if addr is NULL
-size_t BRAddressFromScriptSig(char *addr, size_t addrLen, const uint8_t *script, size_t scriptLen);
+size_t BRAddressFromScriptSig(char *addr, size_t addrLen, const uint8_t *script, size_t scriptLen, int mainnet);
 
 // writes the bitcoin address for a witness to addr
 // returns the number of bytes written, or addrLen needed if addr is NULL
@@ -104,17 +100,17 @@ size_t BRAddressFromWitness(char *addr, size_t addrLen, const uint8_t *witness, 
 
 // writes the bech32 pay-to-witness-pubkey-hash address for a hash160 to addr
 // returns the number of bytes written, or addrLen needed if addr is NULL
-size_t BRAddressFromHash160(char *addr, size_t addrLen, const void *md20);
+size_t BRAddressFromHash160(char *addr, size_t addrLen, const void *md20, int mainnet);
 
 // writes the scriptPubKey for addr to script
 // returns the number of bytes written, or scriptLen needed if script is NULL
-size_t BRAddressScriptPubKey(uint8_t *script, size_t scriptLen, const char *addr);
+size_t BRAddressScriptPubKey(uint8_t *script, size_t scriptLen, const char *addr, int mainnet);
 
 // writes the 20 byte hash160 of addr to md20 and returns true on success
 int BRAddressHash160(void *md20, const char *addr);
 
 // returns true if addr is a valid bitcoin address
-int BRAddressIsValid(const char *addr);
+int BRAddressIsValid(const char *addr, int mainnet);
 
 // returns a hash value for addr suitable for use in a hashtable
 inline static size_t BRAddressHash(const void *addr)

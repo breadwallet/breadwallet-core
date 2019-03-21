@@ -2502,7 +2502,7 @@ _readAuthAckFromRecipient(BREthereumNode node) {
 
     // eth_log (LES_LOG_TOPIC,"%s", "received auth ack from recipient");
 
-    size_t len = BRKeyECIESAES128SHA256Decrypt(nodeKey, node->ackBuf, ackBufLen, node->ackBufCipher, ackCipherBufLen);
+    size_t len = BRKeyECIESAES128SHA256Decrypt(nodeKey, node->ackBuf, ackBufLen, node->ackBufCipher, ackCipherBufLen, 1);
 
     if (len != ackBufLen) {
         //TODO: call _readAckAuthFromRecipientEIP8...

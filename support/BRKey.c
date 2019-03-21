@@ -156,7 +156,7 @@ void BRKeyECDH(const BRKey *privKey, uint8_t *out32, BRKey *pubKey)
 
 // returns true if privKey is a valid private key
 // supported formats are wallet import format (WIF), mini private key format, or hex string
-int BRPrivKeyIsValid(const char *privKey)
+int BRPrivKeyIsValid(const char *privKey, int mainnet)
 {
     uint8_t data[34];
     size_t dataLen, strLen;
@@ -168,11 +168,7 @@ int BRPrivKeyIsValid(const char *privKey)
     strLen = strlen(privKey);
     
     if (dataLen == 33 || dataLen == 34) { // wallet import format: https://en.bitcoin.it/wiki/Wallet_import_format
-#if BITCOIN_TESTNET
-        r = (data[0] == BITCOIN_PRIVKEY_TEST);
-#else
-        r = (data[0] == BITCOIN_PRIVKEY);
-#endif
+        r = (data[0] == (mainnet ? BITCOIN_PRIVKEY : BITCOIN_PRIVKEY_TEST));
     }
     else if ((strLen == 30 || strLen == 22) && privKey[0] == 'S') { // mini private key format
         char s[strLen + 2];
@@ -204,22 +200,18 @@ int BRKeySetSecret(BRKey *key, const UInt256 *secret, int compressed)
 
 // assigns privKey to key and returns true on success
 // privKey must be wallet import format (WIF), mini private key format, or hex string
-int BRKeySetPrivKey(BRKey *key, const char *privKey)
+int BRKeySetPrivKey(BRKey *key, const char *privKey, int mainnet)
 {
     size_t len = strlen(privKey);
-    uint8_t data[34], version = BITCOIN_PRIVKEY;
+    uint8_t data[34], version = (mainnet ? BITCOIN_PRIVKEY : BITCOIN_PRIVKEY_TEST);
     int r = 0;
     
-#if BITCOIN_TESTNET
-    version = BITCOIN_PRIVKEY_TEST;
-#endif
-
     assert(key != NULL);
     assert(privKey != NULL);
     
     // mini private key format
     if ((len == 30 || len == 22) && privKey[0] == 'S') {
-        if (! BRPrivKeyIsValid(privKey)) return 0;
+        if (! BRPrivKeyIsValid(privKey, mainnet)) return 0;
         BRSHA256(data, privKey, strlen(privKey));
         r = BRKeySetSecret(key, (UInt256 *)data, 0);
     }
@@ -263,17 +255,14 @@ int BRKeySetPubKey(BRKey *key, const uint8_t *pubKey, size_t pkLen)
 
 // writes the WIF private key to privKey and returns the number of bytes writen, or pkLen needed if privKey is NULL
 // returns 0 on failure
-size_t BRKeyPrivKey(const BRKey *key, char *privKey, size_t pkLen)
+size_t BRKeyPrivKey(const BRKey *key, char *privKey, size_t pkLen, int mainnet)
 {
     uint8_t data[34];
 
     assert(key != NULL);
     
     if (secp256k1_ec_seckey_verify(_ctx, key->secret.u8)) {
-        data[0] = BITCOIN_PRIVKEY;
-#if BITCOIN_TESTNET
-        data[0] = BITCOIN_PRIVKEY_TEST;
-#endif
+        data[0] = (mainnet ? BITCOIN_PRIVKEY : BITCOIN_PRIVKEY_TEST);
         
         UInt256Set(&data[1], key->secret);
         if (key->compressed) data[33] = 0x01;
@@ -321,19 +310,19 @@ UInt160 BRKeyHash160(BRKey *key)
 
 // writes the bech32 pay-to-witness-pubkey-hash address for key to addr
 // returns the number of bytes written, or addrLen needed if addr is NULL
-size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen)
+size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen, int mainnet)
 {
     UInt160 hash;
     
     assert(key != NULL);
     
     hash = BRKeyHash160(key);
-    return (! UInt160IsZero(hash)) ? BRAddressFromHash160(addr, addrLen, &hash) : 0;
+    return (! UInt160IsZero(hash)) ? BRAddressFromHash160(addr, addrLen, &hash, mainnet) : 0;
 }
 
 // writes the legacy pay-to-pubkey-hash bitcoin address for key to addr
 // returns the number of bytes written, or addrLen needed if addr is NULL
-size_t BRKeyLegacyAddr(BRKey *key, char *addr, size_t addrLen)
+size_t BRKeyLegacyAddr(BRKey *key, char *addr, size_t addrLen, int mainnet)
 {
     UInt160 hash;
     uint8_t data[21];
@@ -341,10 +330,7 @@ size_t BRKeyLegacyAddr(BRKey *key, char *addr, size_t addrLen)
     assert(key != NULL);
     
     hash = BRKeyHash160(key);
-    data[0] = BITCOIN_PUBKEY_ADDRESS;
-#if BITCOIN_TESTNET
-    data[0] = BITCOIN_PUBKEY_ADDRESS_TEST;
-#endif
+    data[0] = (mainnet ? BITCOIN_PUBKEY_ADDRESS : BITCOIN_PUBKEY_ADDRESS_TEST);
     UInt160Set(&data[1], hash);
 
     if (! UInt160IsZero(hash)) {

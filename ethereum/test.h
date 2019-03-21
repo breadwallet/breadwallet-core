@@ -43,7 +43,7 @@ extern void runEventTests (void);
 extern void runBcTests (void);
 
 // Contract
-extern void runContractTests (void);
+extern void runContractTests (int mainnet);
 
 // LES
 extern void runLESTests(const char *paperKey);
@@ -66,7 +66,7 @@ runSyncTest (BREthereumNetwork network,
 
 //
 extern void
-installTokensForTest (void);
+installTokensForTest (int mainnet);
 
 extern void
 runTests (int reallySend);

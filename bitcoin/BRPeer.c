@@ -414,7 +414,7 @@ static int _BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t msgL
 static int _BRPeerAcceptTxMessage(BRPeer *peer, const uint8_t *msg, size_t msgLen)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
-    BRTransaction *tx = BRTransactionParse(msg, msgLen);
+    BRTransaction *tx = BRTransactionParse(msg, msgLen, peer->mainnet);
     UInt256 txHash;
     int r = 1;
 
@@ -1116,11 +1116,12 @@ static void _dummyThreadCleanup(void *info)
 }
 
 // returns a newly allocated BRPeer struct that must be freed by calling BRPeerFree()
-BRPeer *BRPeerNew(uint32_t magicNumber)
+BRPeer *BRPeerNew(uint32_t magicNumber, int mainnet)
 {
     BRPeerContext *ctx = calloc(1, sizeof(*ctx));
     
     assert(ctx != NULL);
+    ctx->peer.mainnet = mainnet;
     ctx->magicNumber = magicNumber;
     array_new(ctx->useragent, 40);
     array_new(ctx->knownBlockHashes, 10);

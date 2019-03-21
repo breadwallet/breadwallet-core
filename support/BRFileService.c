@@ -103,6 +103,7 @@ fileServiceEntityTypeAddHandler (BRFileServiceEntityType *entityType,
 ///
 ///
 struct BRFileServiceRecord {
+    int mainnet;
     const char *pathToType;
     BRArrayOf(BRFileServiceEntityType) entityTypes;
     BRFileServiceContext context;
@@ -113,6 +114,7 @@ extern BRFileService
 fileServiceCreate (const char *basePath,
                    const char *currency,
                    const char *network,
+                   int mainnet,
                    BRFileServiceContext context,
                    BRFileServiceErrorHandler handler) {
     // Reasonable limits on `network` and `currency` (ensure subsequent stack allocation works).
@@ -139,6 +141,7 @@ fileServiceCreate (const char *basePath,
 
     BRFileService fs = calloc (1, sizeof (struct BRFileServiceRecord));
 
+    fs->mainnet = mainnet;
     fs->pathToType = strdup(dirPath);
     array_new (fs->entityTypes, FILE_SERVICE_INITIAL_TYPE_COUNT);
 
@@ -156,6 +159,11 @@ fileServiceRelease (BRFileService fs) {
     free ((char *) fs->pathToType);
     if (NULL != fs->entityTypes) array_free (fs->entityTypes);
     free (fs);
+}
+
+extern int
+fileServiceOnMainnet (BRFileService fs) {
+    return fs->mainnet;
 }
 
 extern void

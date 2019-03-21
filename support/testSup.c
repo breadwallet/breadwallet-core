@@ -62,7 +62,7 @@ static int runSupFileServiceTests (void) {
     if (0 == stat  (path, &dirStat)) _rmdir (path);
     if (0 != mkdir (path, 0000)) return 0;
 
-    fs = fileServiceCreate(path, currency, network, NULL, NULL);
+    fs = fileServiceCreate(path, currency, network, 1, NULL, NULL);
     if (NULL != fs) return fileServiceTestDone(path, 0);
 
     //
@@ -71,7 +71,7 @@ static int runSupFileServiceTests (void) {
     if (0 == stat  (path, &dirStat)) _rmdir (path);
     if (0 != mkdir (path, 0700)) return 0;
 
-    fs = fileServiceCreate(path, currency, network, NULL, NULL);
+    fs = fileServiceCreate(path, currency, network, 1, NULL, NULL);
     if (NULL == fs) return fileServiceTestDone(path, 0);
 
     // Confirm the full path exists.

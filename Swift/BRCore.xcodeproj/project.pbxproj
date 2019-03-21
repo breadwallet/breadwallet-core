@@ -1882,7 +1882,6 @@
 				OTHER_CFLAGS = (
 					"-DDEBUG",
 					"-DBITCOIN_DEBUG",
-					"-DBITCOIN_TESTNET",
 				);
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1909,7 +1908,6 @@
 				OTHER_CFLAGS = (
 					"-DDEBUG",
 					"-DBITCOIN_DEBUG",
-					"-DBITCOIN_TESTNET",
 				);
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1937,7 +1935,6 @@
 				OTHER_CFLAGS = (
 					"-DDEBUG",
 					"-DBITCOIN_DEBUG",
-					"-DBITCOIN_TESTNET",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.CoreTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -2244,7 +2241,7 @@
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
 				MODULEMAP_FILE = "$(PROJECT_DIR)/Core/module.modulemap";
-				OTHER_CFLAGS = "-DBITCOIN_TESTNET";
+				OTHER_CFLAGS = "";
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -2267,7 +2264,7 @@
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				OTHER_CFLAGS = "-DBITCOIN_TESTNET";
+				OTHER_CFLAGS = "";
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -2291,7 +2288,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				OTHER_CFLAGS = "-DBITCOIN_TESTNET";
+				OTHER_CFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.CoreTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "CoreTests/CoreTests-Bridging-Header.h";
@@ -2370,7 +2367,6 @@
 				OTHER_CFLAGS = (
 					"-DDEBUG",
 					"-DBITCOIN_DEBUG",
-					"-DBITCOIN_TESTNET",
 				);
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";

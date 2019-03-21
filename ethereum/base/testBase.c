@@ -138,7 +138,7 @@ void runSignatureTests (void) {
     assert (0 == strcmp (digestString, signingHash));
 
     BRKey privateKeyUncompressed;
-    BRKeySetPrivKey(&privateKeyUncompressed, SIGNATURE_PRIVATE_KEY);
+    BRKeySetPrivKey(&privateKeyUncompressed, SIGNATURE_PRIVATE_KEY, 1);
 
     size_t signatureLen = BRKeyCompactSign(&privateKeyUncompressed,
                                            NULL, 0,

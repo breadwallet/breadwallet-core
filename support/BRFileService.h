@@ -82,11 +82,15 @@ extern BRFileService
 fileServiceCreate (const char *basePath,
                    const char *currency,
                    const char *network,
+                   int mainnet,
                    BRFileServiceContext context,
                    BRFileServiceErrorHandler handler);
 
 extern void
 fileServiceRelease (BRFileService fs);
+
+extern int
+fileServiceOnMainnet (BRFileService fs);
 
 extern void
 fileServiceSetErrorHandler (BRFileService fs,

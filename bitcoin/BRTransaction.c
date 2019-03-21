@@ -39,10 +39,10 @@
 #define SIGHASH_ANYONECANPAY 0x80 // let other people add inputs, I don't care where the rest of the bitcoins come from
 #define SIGHASH_FORKID       0x40 // use BIP143 digest method (for b-cash/b-gold signatures)
 
-void BRTxInputSetAddress(BRTxInput *input, const char *address)
+void BRTxInputSetAddress(BRTxInput *input, const char *address, int mainnet)
 {
     assert(input != NULL);
-    assert(address == NULL || BRAddressIsValid(address));
+    assert(address == NULL || BRAddressIsValid(address, mainnet));
     if (input->script) array_free(input->script);
     input->script = NULL;
     input->scriptLen = 0;
@@ -50,14 +50,14 @@ void BRTxInputSetAddress(BRTxInput *input, const char *address)
 
     if (address) {
         strncpy(input->address, address, sizeof(input->address) - 1);
-        input->scriptLen = BRAddressScriptPubKey(NULL, 0, address);
+        input->scriptLen = BRAddressScriptPubKey(NULL, 0, address, mainnet);
         array_new(input->script, input->scriptLen);
         array_set_count(input->script, input->scriptLen);
-        BRAddressScriptPubKey(input->script, input->scriptLen, address);
+        BRAddressScriptPubKey(input->script, input->scriptLen, address, mainnet);
     }
 }
 
-void BRTxInputSetScript(BRTxInput *input, const uint8_t *script, size_t scriptLen)
+void BRTxInputSetScript(BRTxInput *input, const uint8_t *script, size_t scriptLen, int mainnet)
 {
     assert(input != NULL);
     assert(script != NULL || scriptLen == 0);
@@ -70,11 +70,11 @@ void BRTxInputSetScript(BRTxInput *input, const uint8_t *script, size_t scriptLe
         input->scriptLen = scriptLen;
         array_new(input->script, scriptLen);
         array_add_array(input->script, script, scriptLen);
-        BRAddressFromScriptPubKey(input->address, sizeof(input->address), script, scriptLen);
+        BRAddressFromScriptPubKey(input->address, sizeof(input->address), script, scriptLen, mainnet);
     }
 }
 
-void BRTxInputSetSignature(BRTxInput *input, const uint8_t *signature, size_t sigLen)
+void BRTxInputSetSignature(BRTxInput *input, const uint8_t *signature, size_t sigLen, int mainnet)
 {
     assert(input != NULL);
     assert(signature != NULL || sigLen == 0);
@@ -86,11 +86,11 @@ void BRTxInputSetSignature(BRTxInput *input, const uint8_t *signature, size_t si
         input->sigLen = sigLen;
         array_new(input->signature, sigLen);
         array_add_array(input->signature, signature, sigLen);
-        if (! input->address[0]) BRAddressFromScriptSig(input->address, sizeof(input->address), signature, sigLen);
+        if (! input->address[0]) BRAddressFromScriptSig(input->address, sizeof(input->address), signature, sigLen, mainnet);
     }
 }
 
-void BRTxInputSetWitness(BRTxInput *input, const uint8_t *witness, size_t witLen)
+void BRTxInputSetWitness(BRTxInput *input, const uint8_t *witness, size_t witLen, int mainnet)
 {
     assert(input != NULL);
     assert(witness != NULL || witLen == 0);
@@ -130,10 +130,10 @@ static size_t _BRTxInputData(const BRTxInput *input, uint8_t *data, size_t dataL
     return (! data || off <= dataLen) ? off : 0;
 }
 
-void BRTxOutputSetAddress(BRTxOutput *output, const char *address)
+void BRTxOutputSetAddress(BRTxOutput *output, const char *address, int mainnet)
 {
     assert(output != NULL);
-    assert(address == NULL || BRAddressIsValid(address));
+    assert(address == NULL || BRAddressIsValid(address, mainnet));
     if (output->script) array_free(output->script);
     output->script = NULL;
     output->scriptLen = 0;
@@ -141,14 +141,14 @@ void BRTxOutputSetAddress(BRTxOutput *output, const char *address)
 
     if (address) {
         strncpy(output->address, address, sizeof(output->address) - 1);
-        output->scriptLen = BRAddressScriptPubKey(NULL, 0, address);
+        output->scriptLen = BRAddressScriptPubKey(NULL, 0, address, mainnet);
         array_new(output->script, output->scriptLen);
         array_set_count(output->script, output->scriptLen);
-        BRAddressScriptPubKey(output->script, output->scriptLen, address);
+        BRAddressScriptPubKey(output->script, output->scriptLen, address, mainnet);
     }
 }
 
-void BRTxOutputSetScript(BRTxOutput *output, const uint8_t *script, size_t scriptLen)
+void BRTxOutputSetScript(BRTxOutput *output, const uint8_t *script, size_t scriptLen, int mainnet)
 {
     assert(output != NULL);
     if (output->script) array_free(output->script);
@@ -160,7 +160,7 @@ void BRTxOutputSetScript(BRTxOutput *output, const uint8_t *script, size_t scrip
         output->scriptLen = scriptLen;
         array_new(output->script, scriptLen);
         array_add_array(output->script, script, scriptLen);
-        BRAddressFromScriptPubKey(output->address, sizeof(output->address), script, scriptLen);
+        BRAddressFromScriptPubKey(output->address, sizeof(output->address), script, scriptLen, mainnet);
     }
 }
 
@@ -365,7 +365,7 @@ BRTransaction *BRTransactionNew(void)
 }
 
 // returns a deep copy of tx and that must be freed by calling BRTransactionFree()
-BRTransaction *BRTransactionCopy(const BRTransaction *tx)
+BRTransaction *BRTransactionCopy(const BRTransaction *tx, int mainnet)
 {
     BRTransaction *cpy = BRTransactionNew();
     BRTxInput *inputs = cpy->inputs;
@@ -378,14 +378,14 @@ BRTransaction *BRTransactionCopy(const BRTransaction *tx)
     cpy->inCount = cpy->outCount = 0;
 
     for (size_t i = 0; i < tx->inCount; i++) {
-        BRTransactionAddInput(cpy, tx->inputs[i].txHash, tx->inputs[i].index, tx->inputs[i].amount,
+        BRTransactionAddInput(cpy, mainnet, tx->inputs[i].txHash, tx->inputs[i].index, tx->inputs[i].amount,
                               tx->inputs[i].script, tx->inputs[i].scriptLen,
                               tx->inputs[i].signature, tx->inputs[i].sigLen,
                               tx->inputs[i].witness, tx->inputs[i].witLen, tx->inputs[i].sequence);
     }
     
     for (size_t i = 0; i < tx->outCount; i++) {
-        BRTransactionAddOutput(cpy, tx->outputs[i].amount, tx->outputs[i].script, tx->outputs[i].scriptLen);
+        BRTransactionAddOutput(cpy, mainnet, tx->outputs[i].amount, tx->outputs[i].script, tx->outputs[i].scriptLen);
     }
 
     return cpy;
@@ -393,7 +393,7 @@ BRTransaction *BRTransactionCopy(const BRTransaction *tx)
 
 // buf must contain a serialized tx
 // retruns a transaction that must be freed by calling BRTransactionFree()
-BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen)
+BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen, int mainnet)
 {
     assert(buf != NULL || bufLen == 0);
     if (! buf) return NULL;
@@ -427,16 +427,16 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen)
         sLen = (size_t)BRVarInt(&buf[off], (off <= bufLen ? bufLen - off : 0), &len);
         off += len;
         
-        if (off + sLen <= bufLen && BRAddressFromScriptPubKey(NULL, 0, &buf[off], sLen) > 0) {
-            BRTxInputSetScript(input, &buf[off], sLen);
+        if (off + sLen <= bufLen && BRAddressFromScriptPubKey(NULL, 0, &buf[off], sLen, mainnet) > 0) {
+            BRTxInputSetScript(input, &buf[off], sLen, mainnet);
             input->amount = (off + sLen + sizeof(uint64_t) <= bufLen) ? UInt64GetLE(&buf[off + sLen]) : 0;
             off += sizeof(uint64_t);
             isSigned = 0;
         }
-        else if (off + sLen <= bufLen) BRTxInputSetSignature(input, &buf[off], sLen);
+        else if (off + sLen <= bufLen) BRTxInputSetSignature(input, &buf[off], sLen, mainnet);
         
         off += sLen;
-        if (! witnessFlag) BRTxInputSetWitness(input, &buf[off], 0); // set witness to empty byte array
+        if (! witnessFlag) BRTxInputSetWitness(input, &buf[off], 0, mainnet); // set witness to empty byte array
         input->sequence = (off + sizeof(uint32_t) <= bufLen) ? UInt32GetLE(&buf[off]) : 0;
         off += sizeof(uint32_t);
     }
@@ -451,7 +451,7 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen)
         off += sizeof(uint64_t);
         sLen = (size_t)BRVarInt(&buf[off], (off <= bufLen ? bufLen - off : 0), &len);
         off += len;
-        if (off + sLen <= bufLen) BRTxOutputSetScript(output, &buf[off], sLen);
+        if (off + sLen <= bufLen) BRTxOutputSetScript(output, &buf[off], sLen, mainnet);
         off += sLen;
     }
     
@@ -465,7 +465,7 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen)
             sLen += len;
         }
         
-        if (off + sLen <= bufLen) BRTxInputSetWitness(input, &buf[off], sLen);
+        if (off + sLen <= bufLen) BRTxInputSetWitness(input, &buf[off], sLen, mainnet);
         off += sLen;
     }
     
@@ -502,7 +502,7 @@ size_t BRTransactionSerialize(const BRTransaction *tx, uint8_t *buf, size_t bufL
 }
 
 // adds an input to tx
-void BRTransactionAddInput(BRTransaction *tx, UInt256 txHash, uint32_t index, uint64_t amount,
+void BRTransactionAddInput(BRTransaction *tx, int mainnet, UInt256 txHash, uint32_t index, uint64_t amount,
                            const uint8_t *script, size_t scriptLen, const uint8_t *signature, size_t sigLen,
                            const uint8_t *witness, size_t witLen, uint32_t sequence)
 {
@@ -515,16 +515,16 @@ void BRTransactionAddInput(BRTransaction *tx, UInt256 txHash, uint32_t index, ui
     assert(witness != NULL || witLen == 0);
     
     if (tx) {
-        if (script) BRTxInputSetScript(&input, script, scriptLen);
-        if (signature) BRTxInputSetSignature(&input, signature, sigLen);
-        if (witness) BRTxInputSetWitness(&input, witness, witLen);
+        if (script) BRTxInputSetScript(&input, script, scriptLen, mainnet);
+        if (signature) BRTxInputSetSignature(&input, signature, sigLen, mainnet);
+        if (witness) BRTxInputSetWitness(&input, witness, witLen, mainnet);
         array_add(tx->inputs, input);
         tx->inCount = array_count(tx->inputs);
     }
 }
 
 // adds an output to tx
-void BRTransactionAddOutput(BRTransaction *tx, uint64_t amount, const uint8_t *script, size_t scriptLen)
+void BRTransactionAddOutput(BRTransaction *tx, int mainnet, uint64_t amount, const uint8_t *script, size_t scriptLen)
 {
     BRTxOutput output = { "", amount, NULL, 0 };
     
@@ -532,7 +532,7 @@ void BRTransactionAddOutput(BRTransaction *tx, uint64_t amount, const uint8_t *s
     assert(script != NULL || scriptLen == 0);
     
     if (tx) {
-        BRTxOutputSetScript(&output, script, scriptLen);
+        BRTxOutputSetScript(&output, script, scriptLen, mainnet);
         array_add(tx->outputs, output);
         tx->outCount = array_count(tx->outputs);
     }
@@ -637,7 +637,7 @@ int BRTransactionIsSigned(const BRTransaction *tx)
 // adds signatures to any inputs with NULL signatures that can be signed with any keys
 // forkId is 0 for bitcoin, 0x40 for b-cash, 0x4f for b-gold
 // returns true if tx is signed
-int BRTransactionSign(BRTransaction *tx, int forkId, BRKey keys[], size_t keysCount)
+int BRTransactionSign(BRTransaction *tx, int forkId, int mainnet, BRKey keys[], size_t keysCount)
 {
     UInt160 pkh[keysCount];
     size_t i, j;
@@ -674,8 +674,8 @@ int BRTransactionSign(BRTransaction *tx, int forkId, BRKey keys[], size_t keysCo
             sig[sigLen++] = forkId | SIGHASH_ALL;
             scriptLen = BRScriptPushData(script, sizeof(script), sig, sigLen);
             scriptLen += BRScriptPushData(&script[scriptLen], sizeof(script) - scriptLen, pubKey, pkLen);
-            BRTxInputSetSignature(input, script, 0);
-            BRTxInputSetWitness(input, script, scriptLen);
+            BRTxInputSetSignature(input, script, 0, mainnet);
+            BRTxInputSetWitness(input, script, scriptLen, mainnet);
         }
         else if (elemsCount >= 2 && *elems[elemsCount - 2] == OP_EQUALVERIFY) { // pay-to-pubkey-hash
             uint8_t data[_BRTransactionData(tx, NULL, 0, i, forkId | SIGHASH_ALL)];
@@ -686,8 +686,8 @@ int BRTransactionSign(BRTransaction *tx, int forkId, BRKey keys[], size_t keysCo
             sig[sigLen++] = forkId | SIGHASH_ALL;
             scriptLen = BRScriptPushData(script, sizeof(script), sig, sigLen);
             scriptLen += BRScriptPushData(&script[scriptLen], sizeof(script) - scriptLen, pubKey, pkLen);
-            BRTxInputSetSignature(input, script, scriptLen);
-            BRTxInputSetWitness(input, script, 0);
+            BRTxInputSetSignature(input, script, scriptLen, mainnet);
+            BRTxInputSetWitness(input, script, 0, mainnet);
         }
         else { // pay-to-pubkey
             uint8_t data[_BRTransactionData(tx, NULL, 0, i, forkId | SIGHASH_ALL)];
@@ -697,15 +697,15 @@ int BRTransactionSign(BRTransaction *tx, int forkId, BRKey keys[], size_t keysCo
             sigLen = BRKeySign(&keys[j], sig, sizeof(sig) - 1, md);
             sig[sigLen++] = forkId | SIGHASH_ALL;
             scriptLen = BRScriptPushData(script, sizeof(script), sig, sigLen);
-            BRTxInputSetSignature(input, script, scriptLen);
-            BRTxInputSetWitness(input, script, 0);
+            BRTxInputSetSignature(input, script, scriptLen, mainnet);
+            BRTxInputSetWitness(input, script, 0, mainnet);
         }
     }
     
     if (tx && BRTransactionIsSigned(tx)) {
         uint8_t data[BRTransactionSerialize(tx, NULL, 0)];
         size_t len = BRTransactionSerialize(tx, data, sizeof(data));
-        BRTransaction *t = BRTransactionParse(data, len);
+        BRTransaction *t = BRTransactionParse(data, len, mainnet);
         
         if (t) tx->txHash = t->txHash, tx->wtxHash = t->wtxHash;
         if (t) BRTransactionFree(t);
@@ -731,13 +731,13 @@ void BRTransactionFree(BRTransaction *tx)
     
     if (tx) {
         for (size_t i = 0; i < tx->inCount; i++) {
-            BRTxInputSetScript(&tx->inputs[i], NULL, 0);
-            BRTxInputSetSignature(&tx->inputs[i], NULL, 0);
-            BRTxInputSetWitness(&tx->inputs[i], NULL, 0);
+            BRTxInputSetScript(&tx->inputs[i], NULL, 0, 0);
+            BRTxInputSetSignature(&tx->inputs[i], NULL, 0, 0);
+            BRTxInputSetWitness(&tx->inputs[i], NULL, 0, 0);
         }
 
         for (size_t i = 0; i < tx->outCount; i++) {
-            BRTxOutputSetScript(&tx->outputs[i], NULL, 0);
+            BRTxOutputSetScript(&tx->outputs[i], NULL, 0, 0);
         }
 
         array_free(tx->outputs);

@@ -64,12 +64,6 @@
 #define _va_rest(first, ...) __VA_ARGS__
 #endif
 
-#if BITCOIN_TESTNET
-#define BR_CHAIN_PARAMS BRTestNetParams
-#else
-#define BR_CHAIN_PARAMS BRMainNetParams
-#endif
-
 int BRIntsTests()
 {
     // test endianess
@@ -1125,7 +1119,7 @@ int BRAesTests()
     return r;
 }
 
-int BRKeyTests()
+int BRKeyTests(int mainnet)
 {
     int r = 1;
     BRKey key, key2;
@@ -1135,78 +1129,68 @@ int BRKeyTests()
     uint8_t sig[72], pubKey[65];
     size_t sigLen, pkLen;
 
-    if (BRPrivKeyIsValid("S6c56bnXQiBjk9mqSYE7ykVQ7NzrRz"))
+    if (BRPrivKeyIsValid("S6c56bnXQiBjk9mqSYE7ykVQ7NzrRz", 1))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPrivKeyIsValid() test 0\n", __func__);
 
     // mini private key format
-    if (! BRPrivKeyIsValid("S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy"))
+    if (! BRPrivKeyIsValid("S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy", 1))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPrivKeyIsValid() test 1\n", __func__);
 
     printf("\n");
-    BRKeySetPrivKey(&key, "S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy");
-    BRKeyLegacyAddr(&key, addr.s, sizeof(addr));
+    BRKeySetPrivKey(&key, "S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy", mainnet);
+    BRKeyLegacyAddr(&key, addr.s, sizeof(addr), mainnet);
     printf("privKey:S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy = %s\n", addr.s);
-#if BITCOIN_TESTNET
-    if (! BRAddressEq(&addr, "ms8fwvXzrCoyatnGFRaLbepSqwGRxVJQF1"))
+    if (! BRAddressEq(&addr, (mainnet ? "1CciesT23BNionJeXrbxmjc7ywfiyM4oLW" : "ms8fwvXzrCoyatnGFRaLbepSqwGRxVJQF1")))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetPrivKey() test 1\n", __func__);
-#else
-    if (! BRAddressEq(&addr, "1CciesT23BNionJeXrbxmjc7ywfiyM4oLW"))
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetPrivKey() test 1\n", __func__);
-#endif
 
     // old mini private key format
-    if (! BRPrivKeyIsValid("SzavMBLoXU6kDrqtUVmffv"))
+    if (! BRPrivKeyIsValid("SzavMBLoXU6kDrqtUVmffv", 1))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPrivKeyIsValid() test 2\n", __func__);
 
-    BRKeySetPrivKey(&key, "SzavMBLoXU6kDrqtUVmffv");
-    BRKeyLegacyAddr(&key, addr.s, sizeof(addr));
+    BRKeySetPrivKey(&key, "SzavMBLoXU6kDrqtUVmffv", mainnet);
+    BRKeyLegacyAddr(&key, addr.s, sizeof(addr), mainnet);
     printf("privKey:SzavMBLoXU6kDrqtUVmffv = %s\n", addr.s);
-#if BITCOIN_TESTNET
-    if (! BRAddressEq(&addr, "mrhzp5mstA4Midx85EeCjuaUAAGANMFmRP"))
+    if (! BRAddressEq(&addr, (mainnet ? "1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj" : "mrhzp5mstA4Midx85EeCjuaUAAGANMFmRP")))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetPrivKey() test 2\n", __func__);
-#else
-    if (! BRAddressEq(&addr, "1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj"))
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetPrivKey() test 2\n", __func__);
-#endif
 
-#if ! BITCOIN_TESTNET
-    // uncompressed private key
-    if (! BRPrivKeyIsValid("5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF"))
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRPrivKeyIsValid() test 3\n", __func__);
-    
-    BRKeySetPrivKey(&key, "5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF");
-    BRKeyLegacyAddr(&key, addr.s, sizeof(addr));
-    printf("privKey:5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF = %s\n", addr.s);
-    if (! BRAddressEq(&addr, "1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj"))
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetPrivKey() test 3\n", __func__);
+    if (mainnet) {
+        // uncompressed private key
+        if (! BRPrivKeyIsValid("5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF", 1))
+            r = 0, fprintf(stderr, "***FAILED*** %s: BRPrivKeyIsValid() test 3\n", __func__);
 
-    // uncompressed private key export
-    char privKey1[BRKeyPrivKey(&key, NULL, 0)];
-    
-    BRKeyPrivKey(&key, privKey1, sizeof(privKey1));
-    printf("privKey:%s\n", privKey1);
-    if (strcmp(privKey1, "5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF") != 0)
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 1\n", __func__);
-    
-    // compressed private key
-    if (! BRPrivKeyIsValid("KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL"))
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRPrivKeyIsValid() test 4\n", __func__);
-    
-    BRKeySetPrivKey(&key, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
-    BRKeyLegacyAddr(&key, addr.s, sizeof(addr));
-    printf("privKey:KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL = %s\n", addr.s);
-    if (! BRAddressEq(&addr, "1JMsC6fCtYWkTjPPdDrYX3we2aBrewuEM3"))
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetPrivKey() test 4\n", __func__);
-    
-    // compressed private key export
-    char privKey2[BRKeyPrivKey(&key, NULL, 0)];
-    
-    BRKeyPrivKey(&key, privKey2, sizeof(privKey2));
-    printf("privKey:%s\n", privKey2);
-    if (strcmp(privKey2, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL") != 0)
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 2\n", __func__);
-#endif
-    
+        BRKeySetPrivKey(&key, "5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF", 1);
+        BRKeyLegacyAddr(&key, addr.s, sizeof(addr), 1);
+        printf("privKey:5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF = %s\n", addr.s);
+        if (! BRAddressEq(&addr, "1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj"))
+            r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetPrivKey() test 3\n", __func__);
+
+        // uncompressed private key export
+        char privKey1[BRKeyPrivKey(&key, NULL, 0, 1)];
+
+        BRKeyPrivKey(&key, privKey1, sizeof(privKey1), 1);
+        printf("privKey:%s\n", privKey1);
+        if (strcmp(privKey1, "5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF") != 0)
+            r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 1\n", __func__);
+
+        // compressed private key
+        if (! BRPrivKeyIsValid("KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL", 1))
+            r = 0, fprintf(stderr, "***FAILED*** %s: BRPrivKeyIsValid() test 4\n", __func__);
+
+        BRKeySetPrivKey(&key, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL", 1);
+        BRKeyLegacyAddr(&key, addr.s, sizeof(addr), 1);
+        printf("privKey:KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL = %s\n", addr.s);
+        if (! BRAddressEq(&addr, "1JMsC6fCtYWkTjPPdDrYX3we2aBrewuEM3"))
+            r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetPrivKey() test 4\n", __func__);
+
+        // compressed private key export
+        char privKey2[BRKeyPrivKey(&key, NULL, 0, 1)];
+
+        BRKeyPrivKey(&key, privKey2, sizeof(privKey2), 1);
+        printf("privKey:%s\n", privKey2);
+        if (strcmp(privKey2, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL") != 0)
+            r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 2\n", __func__);
+    }
+
     // signing
     BRKeySetSecret(&key, &uint256("0000000000000000000000000000000000000000000000000000000000000001"), 1);
     msg = "Everything should be made as simple as possible, but not simpler.";
@@ -1385,7 +1369,7 @@ int BRKeyTests()
     return r;
 }
 
-int BRBIP38KeyTests()
+int BRBIP38KeyTests(int mainnet)
 {
     int r = 1;
     BRKey key;
@@ -1394,81 +1378,81 @@ int BRBIP38KeyTests()
     printf("\n");
 
     // non EC multiplied, uncompressed
-    if (! BRKeySetPrivKey(&key, "5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR") ||
-        ! BRKeyBIP38Key(&key, bip38Key, sizeof(bip38Key), "TestingOneTwoThree") ||
+    if (! BRKeySetPrivKey(&key, "5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR", mainnet) ||
+        ! BRKeyBIP38Key(&key, bip38Key, sizeof(bip38Key), "TestingOneTwoThree", mainnet) ||
         strncmp(bip38Key, "6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg", sizeof(bip38Key)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyBIP38Key() test 1\n", __func__);
     
-    if (! BRKeySetBIP38Key(&key, "6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg", "TestingOneTwoThree") ||
-        ! BRKeyPrivKey(&key, privKey, sizeof(privKey)) ||
+    if (! BRKeySetBIP38Key(&key, "6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg", "TestingOneTwoThree", mainnet) ||
+        ! BRKeyPrivKey(&key, privKey, sizeof(privKey), mainnet) ||
         strncmp(privKey, "5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR", sizeof(privKey)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetBIP38Key() test 1\n", __func__);
 
     printf("privKey:%s\n", privKey);
 
-    if (! BRKeySetPrivKey(&key, "5HtasZ6ofTHP6HCwTqTkLDuLQisYPah7aUnSKfC7h4hMUVw2gi5") ||
-        ! BRKeyBIP38Key(&key, bip38Key, sizeof(bip38Key), "Satoshi") ||
+    if (! BRKeySetPrivKey(&key, "5HtasZ6ofTHP6HCwTqTkLDuLQisYPah7aUnSKfC7h4hMUVw2gi5", mainnet) ||
+        ! BRKeyBIP38Key(&key, bip38Key, sizeof(bip38Key), "Satoshi", mainnet) ||
         strncmp(bip38Key, "6PRNFFkZc2NZ6dJqFfhRoFNMR9Lnyj7dYGrzdgXXVMXcxoKTePPX1dWByq", sizeof(bip38Key)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyBIP38Key() test 2\n", __func__);
 
-    if (! BRKeySetBIP38Key(&key, "6PRNFFkZc2NZ6dJqFfhRoFNMR9Lnyj7dYGrzdgXXVMXcxoKTePPX1dWByq", "Satoshi") ||
-        ! BRKeyPrivKey(&key, privKey, sizeof(privKey)) ||
+    if (! BRKeySetBIP38Key(&key, "6PRNFFkZc2NZ6dJqFfhRoFNMR9Lnyj7dYGrzdgXXVMXcxoKTePPX1dWByq", "Satoshi", mainnet) ||
+        ! BRKeyPrivKey(&key, privKey, sizeof(privKey), mainnet) ||
         strncmp(privKey, "5HtasZ6ofTHP6HCwTqTkLDuLQisYPah7aUnSKfC7h4hMUVw2gi5", sizeof(privKey)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetBIP38Key() test 2\n", __func__);
 
     printf("privKey:%s\n", privKey);
     
     // non EC multiplied, compressed
-    if (! BRKeySetPrivKey(&key, "L44B5gGEpqEDRS9vVPz7QT35jcBG2r3CZwSwQ4fCewXAhAhqGVpP") ||
-        ! BRKeyBIP38Key(&key, bip38Key, sizeof(bip38Key), "TestingOneTwoThree") ||
+    if (! BRKeySetPrivKey(&key, "L44B5gGEpqEDRS9vVPz7QT35jcBG2r3CZwSwQ4fCewXAhAhqGVpP", mainnet) ||
+        ! BRKeyBIP38Key(&key, bip38Key, sizeof(bip38Key), "TestingOneTwoThree", mainnet) ||
         strncmp(bip38Key, "6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo", sizeof(bip38Key)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyBIP38Key() test 3\n", __func__);
 
-    if (! BRKeySetBIP38Key(&key, "6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo", "TestingOneTwoThree") ||
-        ! BRKeyPrivKey(&key, privKey, sizeof(privKey)) ||
+    if (! BRKeySetBIP38Key(&key, "6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo", "TestingOneTwoThree", mainnet) ||
+        ! BRKeyPrivKey(&key, privKey, sizeof(privKey), mainnet) ||
         strncmp(privKey, "L44B5gGEpqEDRS9vVPz7QT35jcBG2r3CZwSwQ4fCewXAhAhqGVpP", sizeof(privKey)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetBIP38Key() test 3\n", __func__);
 
     printf("privKey:%s\n", privKey);
 
-    if (! BRKeySetPrivKey(&key, "KwYgW8gcxj1JWJXhPSu4Fqwzfhp5Yfi42mdYmMa4XqK7NJxXUSK7") ||
-        ! BRKeyBIP38Key(&key, bip38Key, sizeof(bip38Key), "Satoshi") ||
+    if (! BRKeySetPrivKey(&key, "KwYgW8gcxj1JWJXhPSu4Fqwzfhp5Yfi42mdYmMa4XqK7NJxXUSK7", mainnet) ||
+        ! BRKeyBIP38Key(&key, bip38Key, sizeof(bip38Key), "Satoshi", mainnet) ||
         strncmp(bip38Key, "6PYLtMnXvfG3oJde97zRyLYFZCYizPU5T3LwgdYJz1fRhh16bU7u6PPmY7", sizeof(bip38Key)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyBIP38Key() test 4\n", __func__);
 
-    if (! BRKeySetBIP38Key(&key, "6PYLtMnXvfG3oJde97zRyLYFZCYizPU5T3LwgdYJz1fRhh16bU7u6PPmY7", "Satoshi") ||
-        ! BRKeyPrivKey(&key, privKey, sizeof(privKey)) ||
+    if (! BRKeySetBIP38Key(&key, "6PYLtMnXvfG3oJde97zRyLYFZCYizPU5T3LwgdYJz1fRhh16bU7u6PPmY7", "Satoshi", mainnet) ||
+        ! BRKeyPrivKey(&key, privKey, sizeof(privKey), mainnet) ||
         strncmp(privKey, "KwYgW8gcxj1JWJXhPSu4Fqwzfhp5Yfi42mdYmMa4XqK7NJxXUSK7", sizeof(privKey)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetBIP38Key() test 4\n", __func__);
 
     printf("privKey:%s\n", privKey);
 
     // EC multiplied, uncompressed, no lot/sequence number
-    if (! BRKeySetBIP38Key(&key, "6PfQu77ygVyJLZjfvMLyhLMQbYnu5uguoJJ4kMCLqWwPEdfpwANVS76gTX", "TestingOneTwoThree") ||
-        ! BRKeyPrivKey(&key, privKey, sizeof(privKey)) ||
+    if (! BRKeySetBIP38Key(&key, "6PfQu77ygVyJLZjfvMLyhLMQbYnu5uguoJJ4kMCLqWwPEdfpwANVS76gTX", "TestingOneTwoThree", mainnet) ||
+        ! BRKeyPrivKey(&key, privKey, sizeof(privKey), mainnet) ||
         strncmp(privKey, "5K4caxezwjGCGfnoPTZ8tMcJBLB7Jvyjv4xxeacadhq8nLisLR2", sizeof(privKey)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetBIP38Key() test 5\n", __func__);
 
     printf("privKey:%s\n", privKey);
 
-    if (! BRKeySetBIP38Key(&key, "6PfLGnQs6VZnrNpmVKfjotbnQuaJK4KZoPFrAjx1JMJUa1Ft8gnf5WxfKd", "Satoshi") ||
-        ! BRKeyPrivKey(&key, privKey, sizeof(privKey)) ||
+    if (! BRKeySetBIP38Key(&key, "6PfLGnQs6VZnrNpmVKfjotbnQuaJK4KZoPFrAjx1JMJUa1Ft8gnf5WxfKd", "Satoshi", mainnet) ||
+        ! BRKeyPrivKey(&key, privKey, sizeof(privKey), mainnet) ||
         strncmp(privKey, "5KJ51SgxWaAYR13zd9ReMhJpwrcX47xTJh2D3fGPG9CM8vkv5sH", sizeof(privKey)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetBIP38Key() test 6\n", __func__);
 
     printf("privKey:%s\n", privKey);
     
     // EC multiplied, uncompressed, with lot/sequence number
-    if (! BRKeySetBIP38Key(&key, "6PgNBNNzDkKdhkT6uJntUXwwzQV8Rr2tZcbkDcuC9DZRsS6AtHts4Ypo1j", "MOLON LABE") ||
-        ! BRKeyPrivKey(&key, privKey, sizeof(privKey)) ||
+    if (! BRKeySetBIP38Key(&key, "6PgNBNNzDkKdhkT6uJntUXwwzQV8Rr2tZcbkDcuC9DZRsS6AtHts4Ypo1j", "MOLON LABE", mainnet) ||
+        ! BRKeyPrivKey(&key, privKey, sizeof(privKey), mainnet) ||
         strncmp(privKey, "5JLdxTtcTHcfYcmJsNVy1v2PMDx432JPoYcBTVVRHpPaxUrdtf8", sizeof(privKey)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetBIP38Key() test 7\n", __func__);
 
     printf("privKey:%s\n", privKey);
 
     if (! BRKeySetBIP38Key(&key, "6PgGWtx25kUg8QWvwuJAgorN6k9FbE25rv5dMRwu5SKMnfpfVe5mar2ngH",
-                           "\u039c\u039f\u039b\u03a9\u039d \u039b\u0391\u0392\u0395") ||
-        ! BRKeyPrivKey(&key, privKey, sizeof(privKey)) ||
+                           "\u039c\u039f\u039b\u03a9\u039d \u039b\u0391\u0392\u0395", mainnet) ||
+        ! BRKeyPrivKey(&key, privKey, sizeof(privKey), mainnet) ||
         strncmp(privKey, "5KMKKuUmAkiNbA3DazMQiLfDq47qs8MAEThm4yL8R2PhV1ov33D", sizeof(privKey)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetBIP38Key() test 8\n", __func__);
 
@@ -1484,14 +1468,14 @@ int BRBIP38KeyTests()
 //    printf("privKey:%s\n", privKey);
 
     // incorrect password test
-    if (BRKeySetBIP38Key(&key, "6PRW5o9FLp4gJDDVqJQKJFTpMvdsSGJxMYHtHaQBF3ooa8mwD69bapcDQn", "foobar"))
+    if (BRKeySetBIP38Key(&key, "6PRW5o9FLp4gJDDVqJQKJFTpMvdsSGJxMYHtHaQBF3ooa8mwD69bapcDQn", "foobar", mainnet))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetBIP38Key() test 10\n", __func__);
 
     printf("                                    ");
     return r;
 }
 
-int BRKeyECIESTests()
+int BRKeyECIESTests(int mainnet)
 {
     int r = 1;
     BRKey key, ephem;
@@ -1507,7 +1491,7 @@ int BRKeyECIESTests()
     len = BRKeyECIESAES128SHA256Encrypt(&key, cipher, sizeof(cipher), &ephem, plain, sizeof(plain) - 1);
     if (len == 0) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRKeyECIESAES128SHA256Encrypt() test 1", __func__);
 
-    len = BRKeyECIESAES128SHA256Decrypt(&key, dec, sizeof(dec), cipher, len);
+    len = BRKeyECIESAES128SHA256Decrypt(&key, dec, sizeof(dec), cipher, len, mainnet);
     if (len != sizeof(plain) - 1 || strncmp(dec, plain, len) != 0)
         r = 0, fprintf(stderr, "\n***FAILED*** %s: BRKeyECIESAES128SHA256Decrypt() test 1", __func__);
     
@@ -1519,7 +1503,7 @@ int BRKeyECIESTests()
     char dec2[2];
     
     BRKeySetSecret(&key, &uint256("57baf2c62005ddec64c357d96183ebc90bf9100583280e848aa31d683cad73cb"), 0);
-    len = BRKeyECIESAES128SHA256Decrypt(&key, dec2, sizeof(dec2), cipher2, sizeof(cipher2) - 1);
+    len = BRKeyECIESAES128SHA256Decrypt(&key, dec2, sizeof(dec2), cipher2, sizeof(cipher2) - 1, mainnet);
     if (len != 1 || strncmp(dec2, "a", 1) != 0)
         r = 0, fprintf(stderr, "\n***FAILED*** %s: BRKeyECIESAES128SHA256Decrypt() test2", __func__);
     
@@ -1527,7 +1511,7 @@ int BRKeyECIESTests()
     return r;
 }
 
-int BRAddressTests()
+int BRAddressTests(int mainnet)
 {
     int r = 1;
     UInt256 secret = uint256("0000000000000000000000000000000000000000000000000000000000000001");
@@ -1535,13 +1519,13 @@ int BRAddressTests()
     BRAddress addr, addr2;
     
     BRKeySetSecret(&k, &secret, 1);
-    if (! BRKeyAddress(&k, addr.s, sizeof(addr)))
+    if (! BRKeyAddress(&k, addr.s, sizeof(addr), mainnet))
         r = 0, fprintf(stderr, "\n***FAILED*** %s: BRKeyAddress()", __func__);
 
-    uint8_t script[BRAddressScriptPubKey(NULL, 0, addr.s)];
-    size_t scriptLen = BRAddressScriptPubKey(script, sizeof(script), addr.s);
+    uint8_t script[BRAddressScriptPubKey(NULL, 0, addr.s, mainnet)];
+    size_t scriptLen = BRAddressScriptPubKey(script, sizeof(script), addr.s, mainnet);
     
-    BRAddressFromScriptPubKey(addr2.s, sizeof(addr2), script, scriptLen);
+    BRAddressFromScriptPubKey(addr2.s, sizeof(addr2), script, scriptLen, mainnet);
     if (! BRAddressEq(&addr, &addr2))
         r = 0, fprintf(stderr, "\n***FAILED*** %s: BRAddressFromScriptPubKey() test 1", __func__);
     
@@ -1549,11 +1533,11 @@ int BRAddressTests()
     
     BRAddress addr3;
     char script2[] = "\0\x14\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
-    if (! BRAddressFromScriptPubKey(addr3.s, sizeof(addr3), (uint8_t *)script2, sizeof(script2)))
+    if (! BRAddressFromScriptPubKey(addr3.s, sizeof(addr3), (uint8_t *)script2, sizeof(script2), mainnet))
         r = 0, fprintf(stderr, "\n***FAILED*** %s: BRAddressFromScriptPubKey() test 2", __func__);
 
-    uint8_t script3[BRAddressScriptPubKey(NULL, 0, addr3.s)];
-    size_t script3Len = BRAddressScriptPubKey(script3, sizeof(script3), addr3.s);
+    uint8_t script3[BRAddressScriptPubKey(NULL, 0, addr3.s, mainnet)];
+    size_t script3Len = BRAddressScriptPubKey(script3, sizeof(script3), addr3.s, mainnet);
 
     if (script3Len != sizeof(script2) || memcmp(script2, script3, sizeof(script2)))
         r = 0, fprintf(stderr, "\n***FAILED*** %s: BRAddressScriptPubKey() test", __func__);
@@ -1708,7 +1692,7 @@ int BRBIP39MnemonicTests()
     return r;
 }
 
-int BRBIP32SequenceTests()
+int BRBIP32SequenceTests(int mainnet)
 {
     int r = 1;
 
@@ -1754,15 +1738,10 @@ int BRBIP32SequenceTests()
     BRBIP39DeriveKey(dk.u8, "inhale praise target steak garlic cricket paper better evil almost sadness crawl city "
                      "banner amused fringe fox insect roast aunt prefer hollow basic ladder", NULL);
     BRBIP32BitIDKey(&key, dk.u8, sizeof(dk), 0, "http://bitid.bitcoin.blue/callback");
-    BRKeyLegacyAddr(&key, addr.s, sizeof(addr));
-#if BITCOIN_TESTNET
-    if (strncmp(addr.s, "mxZ2Dn9vcyNeKh9DNHZw6d6NrxeYCVNjc2", sizeof(addr)) != 0)
+    BRKeyLegacyAddr(&key, addr.s, sizeof(addr), mainnet);
+    if (strncmp(addr.s, (mainnet ? "1J34vj4wowwPYafbeibZGht3zy3qERoUM1" : "mxZ2Dn9vcyNeKh9DNHZw6d6NrxeYCVNjc2"), sizeof(addr)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRBIP32BitIDKey() test\n", __func__);
-#else
-    if (strncmp(addr.s, "1J34vj4wowwPYafbeibZGht3zy3qERoUM1", sizeof(addr)) != 0)
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRBIP32BitIDKey() test\n", __func__);
-#endif
-    
+
     // TODO: XXX test BRBIP32SerializeMasterPrivKey()
     // TODO: XXX test BRBIP32SerializeMasterPubKey()
 
@@ -1816,7 +1795,7 @@ static int BRTransactionEqual (BRTransaction *tx1, BRTransaction *tx2) {
     return 1;
 }
 
-int BRTransactionTests()
+int BRTransactionTests(int mainnet)
 {
     int r = 1;
     UInt256 secret = uint256("0000000000000000000000000000000000000000000000000000000000000001"),
@@ -1826,29 +1805,29 @@ int BRTransactionTests()
     
     memset(&k[0], 0, sizeof(k[0])); // test with array of keys where first key is empty/invalid
     BRKeySetSecret(&k[1], &secret, 1);
-    BRKeyLegacyAddr(&k[1], address.s, sizeof(address));
+    BRKeyLegacyAddr(&k[1], address.s, sizeof(address), mainnet);
 
-    uint8_t script[BRAddressScriptPubKey(NULL, 0, address.s)];
-    size_t scriptLen = BRAddressScriptPubKey(script, sizeof(script), address.s);
+    uint8_t script[BRAddressScriptPubKey(NULL, 0, address.s, mainnet)];
+    size_t scriptLen = BRAddressScriptPubKey(script, sizeof(script), address.s, mainnet);
     BRTransaction *tx = BRTransactionNew();
     
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddOutput(tx, 100000000, script, scriptLen);
-    BRTransactionAddOutput(tx, 4900000000, script, scriptLen);
+    BRTransactionAddInput(tx, mainnet, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddOutput(tx, mainnet, 100000000, script, scriptLen);
+    BRTransactionAddOutput(tx, mainnet, 4900000000, script, scriptLen);
     
     uint8_t buf[BRTransactionSerialize(tx, NULL, 0)]; // test serializing/parsing unsigned tx
     size_t len = BRTransactionSerialize(tx, buf, sizeof(buf));
     
     if (len == 0) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionSerialize() test 0", __func__);
     BRTransactionFree(tx);
-    tx = BRTransactionParse(buf, len);
+    tx = BRTransactionParse(buf, len, mainnet);
     
     if (! tx || tx->inCount != 1 || tx->outCount != 2)
         r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionParse() test 0", __func__);
     if (! tx) return r;
     
-    BRTransactionSign(tx, 0, k, 2);
-    BRAddressFromScriptSig(addr.s, sizeof(addr), tx->inputs[0].signature, tx->inputs[0].sigLen);
+    BRTransactionSign(tx, 0, mainnet, k, 2);
+    BRAddressFromScriptSig(addr.s, sizeof(addr), tx->inputs[0].signature, tx->inputs[0].sigLen, mainnet);
     if (! BRTransactionIsSigned(tx) || ! BRAddressEq(&address, &addr))
         r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionSign() test 1", __func__);
 
@@ -1856,7 +1835,7 @@ int BRTransactionTests()
     size_t len2 = BRTransactionSerialize(tx, buf2, sizeof(buf2));
 
     BRTransactionFree(tx);
-    tx = BRTransactionParse(buf2, len2);
+    tx = BRTransactionParse(buf2, len2, mainnet);
 
     if (! tx || ! BRTransactionIsSigned(tx))
         r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionParse() test 1", __func__);
@@ -1870,29 +1849,29 @@ int BRTransactionTests()
     BRTransactionFree(tx);
     
     tx = BRTransactionNew();
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
-    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
-    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
-    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
-    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
-    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
-    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
-    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
-    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
-    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
-    BRTransactionSign(tx, 0, k, 2);
+    BRTransactionAddInput(tx, mainnet, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, mainnet, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, mainnet, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, mainnet, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, mainnet, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, mainnet, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, mainnet, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, mainnet, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, mainnet, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, mainnet, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddOutput(tx, mainnet, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, mainnet, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, mainnet, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, mainnet, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, mainnet, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, mainnet, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, mainnet, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, mainnet, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, mainnet, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, mainnet, 1000000, script, scriptLen);
+    BRTransactionSign(tx, mainnet, 0, k, 2);
     BRAddressFromScriptSig(addr.s, sizeof(addr), tx->inputs[tx->inCount - 1].signature,
-                           tx->inputs[tx->inCount - 1].sigLen);
+                           tx->inputs[tx->inCount - 1].sigLen, mainnet);
     if (! BRTransactionIsSigned(tx) || ! BRAddressEq(&address, &addr))
         r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionSign() test 2", __func__);
 
@@ -1900,7 +1879,7 @@ int BRTransactionTests()
     size_t len4 = BRTransactionSerialize(tx, buf4, sizeof(buf4));
     
     BRTransactionFree(tx);
-    tx = BRTransactionParse(buf4, len4);
+    tx = BRTransactionParse(buf4, len4, mainnet);
     if (! tx || ! BRTransactionIsSigned(tx))
         r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionParse() test 2", __func__);
     if (! tx) return r;
@@ -1912,35 +1891,35 @@ int BRTransactionTests()
         r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionSerialize() test 2", __func__);
     BRTransactionFree(tx);
 
-    BRKeyAddress(&k[1], addr.s, sizeof(addr));
+    BRKeyAddress(&k[1], addr.s, sizeof(addr), mainnet);
     
-    uint8_t wscript[BRAddressScriptPubKey(NULL, 0, addr.s)];
-    size_t wscriptLen = BRAddressScriptPubKey(wscript, sizeof(wscript), addr.s);
+    uint8_t wscript[BRAddressScriptPubKey(NULL, 0, addr.s, mainnet)];
+    size_t wscriptLen = BRAddressScriptPubKey(wscript, sizeof(wscript), addr.s, mainnet);
 
     tx = BRTransactionNew();
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, wscript, wscriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, wscript, wscriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, wscript, wscriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, wscript, wscriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, wscript, wscriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
-    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
-    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
-    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
-    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
-    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
-    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
-    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
-    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
-    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
-    BRTransactionSign(tx, 0, k, 2);
+    BRTransactionAddInput(tx, mainnet, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, mainnet, inHash, 0, 1, wscript, wscriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, mainnet, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, mainnet, inHash, 0, 1, wscript, wscriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, mainnet, inHash, 0, 1, wscript, wscriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, mainnet, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, mainnet, inHash, 0, 1, wscript, wscriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, mainnet, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, mainnet, inHash, 0, 1, wscript, wscriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, mainnet, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddOutput(tx, mainnet, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, mainnet, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, mainnet, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, mainnet, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, mainnet, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, mainnet, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, mainnet, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, mainnet, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, mainnet, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, mainnet, 1000000, script, scriptLen);
+    BRTransactionSign(tx, mainnet, 0, k, 2);
     BRAddressFromScriptSig(addr.s, sizeof(addr), tx->inputs[tx->inCount - 1].signature,
-                           tx->inputs[tx->inCount - 1].sigLen);
+                           tx->inputs[tx->inCount - 1].sigLen, mainnet);
     if (! BRTransactionIsSigned(tx) || ! BRAddressEq(&address, &addr) || tx->inputs[1].sigLen > 0 ||
         tx->inputs[1].witLen == 0) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionSign() test 3", __func__);
     
@@ -1948,7 +1927,7 @@ int BRTransactionTests()
     size_t len6 = BRTransactionSerialize(tx, buf6, sizeof(buf6));
     
     BRTransactionFree(tx);
-    tx = BRTransactionParse(buf6, len6);
+    tx = BRTransactionParse(buf6, len6, mainnet);
     if (! tx || ! BRTransactionIsSigned(tx))
         r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionParse() test 3", __func__);
     if (! tx) return r;
@@ -1961,23 +1940,24 @@ int BRTransactionTests()
     BRTransactionFree(tx);
     
     tx = BRTransactionNew();
-    BRTransactionAddInput(tx, uint256("fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f"), 0, 625000000,
+    BRTransactionAddInput(tx, mainnet,
+                          uint256("fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f"), 0, 625000000,
                           (uint8_t *)"\x21\x03\xc9\xf4\x83\x6b\x9a\x4f\x77\xfc\x0d\x81\xf7\xbc\xb0\x1b\x7f\x1b\x35\x91"
                           "\x68\x64\xb9\x47\x6c\x24\x1c\xe9\xfc\x19\x8b\xd2\x54\x32\xac", 35,
                           (uint8_t *)"\x48\x30\x45\x02\x21\x00\x8b\x9d\x1d\xc2\x6b\xa6\xa9\xcb\x62\x12\x7b\x02\x74\x2f"
                           "\xa9\xd7\x54\xcd\x3b\xeb\xf3\x37\xf7\xa5\x5d\x11\x4c\x8e\x5c\xdd\x30\xbe\x02\x20\x40\x52\x9b"
                           "\x19\x4b\xa3\xf9\x28\x1a\x99\xf2\xb1\xc0\xa1\x9c\x04\x89\xbc\x22\xed\xe9\x44\xcc\xf4\xec\xba"
                           "\xb4\xcc\x61\x8e\xf3\xed\x01", 73, (uint8_t *)"", 0, 0xffffffee);
-    BRTransactionAddInput(tx, uint256("ef51e1b804cc89d182d279655c3aa89e815b1b309fe287d9b2b55d57b90ec68a"), 1, 600000000,
+    BRTransactionAddInput(tx, mainnet, uint256("ef51e1b804cc89d182d279655c3aa89e815b1b309fe287d9b2b55d57b90ec68a"), 1, 600000000,
                           (uint8_t *)"\x00\x14\x1d\x0f\x17\x2a\x0e\xcb\x48\xae\xe1\xbe\x1f\x26\x87\xd2\x96\x3a\xe3\x3f"
                           "\x71\xa1", 22, NULL, 0, NULL, 0, 0xffffffff);
-    BRTransactionAddOutput(tx, 0x06b22c20, (uint8_t *)"\x76\xa9\x14\x82\x80\xb3\x7d\xf3\x78\xdb\x99\xf6\x6f\x85\xc9"
+    BRTransactionAddOutput(tx, mainnet, 0x06b22c20, (uint8_t *)"\x76\xa9\x14\x82\x80\xb3\x7d\xf3\x78\xdb\x99\xf6\x6f\x85\xc9"
                            "\x5a\x78\x3a\x76\xac\x7a\x6d\x59\x88\xac", 25);
-    BRTransactionAddOutput(tx, 0x0d519390, (uint8_t *)"\x76\xa9\x14\x3b\xde\x42\xdb\xee\x7e\x4d\xbe\x6a\x21\xb2\xd5"
+    BRTransactionAddOutput(tx, mainnet, 0x0d519390, (uint8_t *)"\x76\xa9\x14\x3b\xde\x42\xdb\xee\x7e\x4d\xbe\x6a\x21\xb2\xd5"
                            "\x0c\xe2\xf0\x16\x7f\xaa\x81\x59\x88\xac", 25);
     tx->lockTime = 0x00000011;
     BRKeySetSecret(k, &uint256("619c335025c7f4012e556c2a58b2506e30b8511b53ade95ea316fd8c3286feb9"), 1);
-    BRTransactionSign(tx, 0, k, 1);
+    BRTransactionSign(tx, 0, mainnet, k, 1);
     
     uint8_t buf8[BRTransactionSerialize(tx, NULL, 0)];
     size_t len8 = BRTransactionSerialize(tx, buf8, sizeof(buf8));
@@ -2016,7 +1996,7 @@ int BRTransactionTests()
     "\x2a\xe7\xe0\x5a\xd7\x21\x02\xa7\xbf\x21\x58\x2d\x71\xe5\xda\x5c\x3b\xc4\x3e\x84\xc8\x8f\xdf\x32\x80\x3a\xa4\x72"
     "\x0e\x1c\x1a\x9d\x08\xaa\xb5\x41\xa4\xf3\x31\x53\xae\x00\x00\x00\x00";
     
-    tx = BRTransactionParse((uint8_t *)buf0, sizeof(buf0) - 1);
+    tx = BRTransactionParse((uint8_t *)buf0, sizeof(buf0) - 1, mainnet);
     
     uint8_t buf1[BRTransactionSerialize(tx, NULL, 0)];
     size_t len0 = BRTransactionSerialize(tx, buf1, sizeof(buf1));
@@ -2027,13 +2007,13 @@ int BRTransactionTests()
         r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionSerialize() test 4", __func__);
     
     BRTransaction *src = BRTransactionNew();
-    BRTransactionAddInput(src, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(src, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddOutput(src, 1000000, script, scriptLen);
-    BRTransactionAddOutput(src, 1000000, script, scriptLen);
-    BRTransactionAddOutput(src, 1000000, script, scriptLen);
+    BRTransactionAddInput(src, mainnet, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(src, mainnet, inHash, 0, 1, script, scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddOutput(src, mainnet, 1000000, script, scriptLen);
+    BRTransactionAddOutput(src, mainnet, 1000000, script, scriptLen);
+    BRTransactionAddOutput(src, mainnet, 1000000, script, scriptLen);
 
-    BRTransaction *tgt = BRTransactionCopy(src);
+    BRTransaction *tgt = BRTransactionCopy(src, mainnet);
     if (! BRTransactionEqual(tgt, src))
         r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionCopy() test 1", __func__);
 
@@ -2043,8 +2023,8 @@ int BRTransactionTests()
     BRTransactionFree(tgt);
     BRTransactionFree(src);
 
-    src = BRTransactionParse(buf4, len4);
-    tgt = BRTransactionCopy(src);
+    src = BRTransactionParse(buf4, len4, mainnet);
+    tgt = BRTransactionCopy(src, mainnet);
     if (! BRTransactionEqual(tgt, src))
         r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionCopy() test 3", __func__);
     BRTransactionFree(tgt);
@@ -2092,7 +2072,7 @@ int BRWalletTests()
     BRBIP39DeriveKey(&seed, phrase, NULL);
 
     BRMasterPubKey mpk = BRBIP32MasterPubKey(&seed, sizeof(seed));
-    BRWallet *w = BRWalletNew(NULL, 0, mpk, 0);
+    BRWallet *w = BRWalletNew(NULL, 0, mpk, 0, 1);
     UInt256 secret = uint256("0000000000000000000000000000000000000000000000000000000000000001"),
             inHash = uint256("0000000000000000000000000000000000000000000000000000000000000001");
     BRKey k;
@@ -2103,7 +2083,7 @@ int BRWalletTests()
     
     BRWalletSetCallbacks(w, w, walletBalanceChanged, walletTxAdded, walletTxUpdated, walletTxDeleted);
     BRKeySetSecret(&k, &secret, 1);
-    BRKeyAddress(&k, addr.s, sizeof(addr));
+    BRKeyAddress(&k, addr.s, sizeof(addr), 1);
     
     tx = BRWalletCreateTransaction(w, 1, addr.s);
     if (tx) r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletCreateTransaction() test 0\n", __func__);
@@ -2111,14 +2091,14 @@ int BRWalletTests()
     tx = BRWalletCreateTransaction(w, SATOSHIS, addr.s);
     if (tx) r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletCreateTransaction() test 1\n", __func__);
     
-    uint8_t inScript[BRAddressScriptPubKey(NULL, 0, addr.s)];
-    size_t inScriptLen = BRAddressScriptPubKey(inScript, sizeof(inScript), addr.s);
-    uint8_t outScript[BRAddressScriptPubKey(NULL, 0, recvAddr.s)];
-    size_t outScriptLen = BRAddressScriptPubKey(outScript, sizeof(outScript), recvAddr.s);
+    uint8_t inScript[BRAddressScriptPubKey(NULL, 0, addr.s, 1)];
+    size_t inScriptLen = BRAddressScriptPubKey(inScript, sizeof(inScript), addr.s, 1);
+    uint8_t outScript[BRAddressScriptPubKey(NULL, 0, recvAddr.s, 1)];
+    size_t outScriptLen = BRAddressScriptPubKey(outScript, sizeof(outScript), recvAddr.s, 1);
     
     tx = BRTransactionNew();
-    BRTransactionAddInput(tx, inHash, 0, 1, inScript, inScriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddOutput(tx, SATOSHIS, outScript, outScriptLen);
+    BRTransactionAddInput(tx, 1, inHash, 0, 1, inScript, inScriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddOutput(tx, 1, SATOSHIS, outScript, outScriptLen);
 //    BRWalletRegisterTransaction(w, tx); // test adding unsigned tx
 //    if (BRWalletBalance(w) != 0)
 //        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletRegisterTransaction() test 1\n", __func__);
@@ -2126,7 +2106,7 @@ int BRWalletTests()
     if (BRWalletTransactions(w, NULL, 0) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletTransactions() test 1\n", __func__);
 
-    BRTransactionSign(tx, 0, &k, 1);
+    BRTransactionSign(tx, 0, 1, &k, 1);
     BRWalletRegisterTransaction(w, tx);
     if (BRWalletBalance(w) != SATOSHIS)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletRegisterTransaction() test 2\n", __func__);
@@ -2139,10 +2119,10 @@ int BRWalletTests()
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletRegisterTransaction() test 3\n", __func__);
 
     tx = BRTransactionNew();
-    BRTransactionAddInput(tx, inHash, 1, 1, inScript, inScriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE - 1);
-    BRTransactionAddOutput(tx, SATOSHIS, outScript, outScriptLen);
+    BRTransactionAddInput(tx, 1, inHash, 1, 1, inScript, inScriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE - 1);
+    BRTransactionAddOutput(tx, 1, SATOSHIS, outScript, outScriptLen);
     tx->lockTime = 1000;
-    BRTransactionSign(tx, 0, &k, 1);
+    BRTransactionSign(tx, 0, 1, &k, 1);
 
     if (! BRWalletTransactionIsPending(w, tx))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletTransactionIsPending() test\n", __func__);
@@ -2157,11 +2137,11 @@ int BRWalletTests()
 
     BRWalletFree(w);
     tx = BRTransactionNew();
-    BRTransactionAddInput(tx, inHash, 0, 1, inScript, inScriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddOutput(tx, SATOSHIS, outScript, outScriptLen);
-    BRTransactionSign(tx, 0, &k, 1);
+    BRTransactionAddInput(tx, 1, inHash, 0, 1, inScript, inScriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddOutput(tx, 1, SATOSHIS, outScript, outScriptLen);
+    BRTransactionSign(tx, 0, 1, &k, 1);
     tx->timestamp = 1;
-    w = BRWalletNew(&tx, 1, mpk, 0);
+    w = BRWalletNew(&tx, 1, mpk, 0, 1);
     if (BRWalletBalance(w) != SATOSHIS)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletNew() test\n", __func__);
 
@@ -2218,10 +2198,10 @@ int BRWalletTests()
     int64_t amt;
     
     tx = BRTransactionNew();
-    BRTransactionAddInput(tx, inHash, 0, 1, inScript, inScriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddOutput(tx, 740000, outScript, outScriptLen);
-    BRTransactionSign(tx, 0, &k, 1);
-    w = BRWalletNew(&tx, 1, mpk, 0);
+    BRTransactionAddInput(tx, 1, inHash, 0, 1, inScript, inScriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddOutput(tx, 1, 740000, outScript, outScriptLen);
+    BRTransactionSign(tx, 0, 1, &k, 1);
+    w = BRWalletNew(&tx, 1, mpk, 0, 1);
     BRWalletSetCallbacks(w, w, walletBalanceChanged, walletTxAdded, walletTxUpdated, walletTxDeleted);
     BRWalletSetFeePerKb(w, 65000);
     amt = BRWalletMaxOutputAmount(w);
@@ -2417,7 +2397,7 @@ int BRMerkleBlockTests()
     return r;
 }
 
-int BRPaymentProtocolTests()
+int BRPaymentProtocolTests(int mainnet)
 {
     int r = 1;
     const char buf1[] = "\x08\x01\x12\x0b\x78\x35\x30\x39\x2b\x73\x68\x61\x32\x35\x36\x1a\xb8\x1d\x0a\xc9\x0b\x30\x82"
@@ -2579,7 +2559,7 @@ int BRPaymentProtocolTests()
     memcpy(buf3, buf1, sizeof(buf1) - 1);
     memcpy(buf3 + (sizeof(buf1) - 1), buf2, sizeof(buf2) - 1);
 
-    BRPaymentProtocolRequest *req = BRPaymentProtocolRequestParse(buf3, sizeof(buf3));
+    BRPaymentProtocolRequest *req = BRPaymentProtocolRequestParse(buf3, sizeof(buf3), mainnet);
     uint8_t buf4[BRPaymentProtocolRequestSerialize(req, NULL, 0)];
     size_t len = BRPaymentProtocolRequestSerialize(req, buf4, sizeof(buf4));
     int i = 0;
@@ -2606,7 +2586,7 @@ int BRPaymentProtocolTests()
     "\x64\x20\x62\x79\x20\x42\x69\x74\x50\x61\x79\x2e\x20\x49\x6e\x76\x6f\x69\x63\x65\x20\x77\x69\x6c\x6c\x20\x62\x65"
     "\x20\x6d\x61\x72\x6b\x65\x64\x20\x61\x73\x20\x70\x61\x69\x64\x20\x69\x66\x20\x74\x68\x65\x20\x74\x72\x61\x6e\x73"
     "\x61\x63\x74\x69\x6f\x6e\x20\x69\x73\x20\x63\x6f\x6e\x66\x69\x72\x6d\x65\x64\x2e";
-    BRPaymentProtocolACK *ack = BRPaymentProtocolACKParse((const uint8_t *)buf5, sizeof(buf5) - 1);
+    BRPaymentProtocolACK *ack = BRPaymentProtocolACKParse((const uint8_t *)buf5, sizeof(buf5) - 1, mainnet);
     uint8_t buf6[BRPaymentProtocolACKSerialize(ack, NULL, 0)];
 
     len = BRPaymentProtocolACKSerialize(ack, buf6, sizeof(buf6));
@@ -2734,7 +2714,7 @@ int BRPaymentProtocolTests()
     "\x7b\x5d\x76\x05\x3a\x58\x40\xbc\x4d\x61\x04\xdd\x87\xef\xc3\x1b\xcc\x3a\x8a\xef\xc3\x10\x02\x35\xbe\x61\xc0\x3a"
     "\x50\x55\x66\x77\x71\x85\xdd\x6f\x93\x2b\xae\xb5\xd5\xe2\xd4\x39\x8d\x01\x14\x0d\x48";
 
-    req = BRPaymentProtocolRequestParse((const uint8_t *)buf7, sizeof(buf7) - 1);
+    req = BRPaymentProtocolRequestParse((const uint8_t *)buf7, sizeof(buf7) - 1, mainnet);
 
     uint8_t buf8[BRPaymentProtocolRequestSerialize(req, NULL, 0)];
 
@@ -2761,7 +2741,7 @@ int BRPaymentProtocolTests()
     // test garbage input
     const char buf9[] = "jfkdlasjfalk;sjfal;jflsadjfla;s";
     
-    req = BRPaymentProtocolRequestParse((const uint8_t *)buf9, sizeof(buf9) - 1);
+    req = BRPaymentProtocolRequestParse((const uint8_t *)buf9, sizeof(buf9) - 1, mainnet);
     
     uint8_t buf0[(req) ? BRPaymentProtocolRequestSerialize(req, NULL, 0) : 0];
 
@@ -2773,7 +2753,7 @@ int BRPaymentProtocolTests()
     return r;
 }
 
-int BRPaymentProtocolEncryptionTests()
+int BRPaymentProtocolEncryptionTests(int mainnet)
 {
     int r = 1;
     BRKey senderKey, receiverKey;
@@ -2821,7 +2801,7 @@ int BRPaymentProtocolEncryptionTests()
     if (msg1) BRPaymentProtocolMessageFree(msg1);
     
     BRPaymentProtocolEncryptedMessage *msg2 =
-        BRPaymentProtocolEncryptedMessageNew(BRPaymentProtocolMessageTypeACK, (uint8_t *)buf, sizeof(buf) - 1,
+        BRPaymentProtocolEncryptedMessageNew(mainnet, BRPaymentProtocolMessageTypeACK, (uint8_t *)buf, sizeof(buf) - 1,
                                              &receiverKey, &senderKey, time(NULL), id, sizeof(id), 1, NULL);
 
     if (! msg2) r = 0, fprintf(stderr, "***FAILED*** %s: BRPaymentProtocolEncryptedMessageNew() test\n", __func__);
@@ -2855,17 +2835,19 @@ int BRPaymentProtocolEncryptionTests()
 
 void BRPeerAcceptMessageTest(BRPeer *peer, const uint8_t *msg, size_t len, const char *type);
 
-int BRPeerTests()
+int BRPeerTests(int mainnet)
 {
     int r = 1;
-    BRPeer *p = BRPeerNew(BR_CHAIN_PARAMS->magicNumber);
+
+    const BRChainParams *params = (mainnet ? BRMainNetParams : BRTestNetParams);
+    BRPeer *p = BRPeerNew(params->magicNumber, mainnet);
     const char msg[] = "my message";
     
     BRPeerAcceptMessageTest(p, (const uint8_t *)msg, sizeof(msg) - 1, "inv");
     return r;
 }
 
-int BRRunTests()
+int BRRunTests(int mainnet)
 {
     int fail = 0;
     
@@ -2892,23 +2874,23 @@ int BRRunTests()
     printf("BRAesTests...                       ");
     printf("%s\n", (BRAesTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRKeyTests...                       ");
-    printf("%s\n", (BRKeyTests()) ? "success" : (fail++, "***FAIL***"));
+    printf("%s\n", (BRKeyTests(mainnet)) ? "success" : (fail++, "***FAIL***"));
     printf("BRBIP38KeyTests...                  ");
 #if SKIP_BIP38
     printf("SKIPPED\n");
 #else
-    printf("%s\n", (BRBIP38KeyTests()) ? "success" : (fail++, "***FAIL***"));
+    printf("%s\n", (BRBIP38KeyTests(mainnet)) ? "success" : (fail++, "***FAIL***"));
 #endif
     printf("BRKeyECIESTests...                  ");
-    printf("%s\n", (BRKeyECIESTests()) ? "success" : (fail++, "***FAIL***"));
+    printf("%s\n", (BRKeyECIESTests(mainnet)) ? "success" : (fail++, "***FAIL***"));
     printf("BRAddressTests...                   ");
-    printf("%s\n", (BRAddressTests()) ? "success" : (fail++, "***FAIL***"));
+    printf("%s\n", (BRAddressTests(mainnet)) ? "success" : (fail++, "***FAIL***"));
     printf("BRBIP39MnemonicTests...             ");
     printf("%s\n", (BRBIP39MnemonicTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRBIP32SequenceTests...             ");
-    printf("%s\n", (BRBIP32SequenceTests()) ? "success" : (fail++, "***FAIL***"));
+    printf("%s\n", (BRBIP32SequenceTests(mainnet)) ? "success" : (fail++, "***FAIL***"));
     printf("BRTransactionTests...               ");
-    printf("%s\n", (BRTransactionTests()) ? "success" : (fail++, "***FAIL***"));
+    printf("%s\n", (BRTransactionTests(mainnet)) ? "success" : (fail++, "***FAIL***"));
     printf("BRWalletTests...                    ");
     printf("%s\n", (BRWalletTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRBloomFilterTests...               ");
@@ -2916,9 +2898,9 @@ int BRRunTests()
     printf("BRMerkleBlockTests...               ");
     printf("%s\n", (BRMerkleBlockTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRPaymentProtocolTests...           ");
-    printf("%s\n", (BRPaymentProtocolTests()) ? "success" : (fail++, "***FAIL***"));
+    printf("%s\n", (BRPaymentProtocolTests(mainnet)) ? "success" : (fail++, "***FAIL***"));
     printf("BRPaymentProtocolEncryptionTests... ");
-    printf("%s\n", (BRPaymentProtocolEncryptionTests()) ? "success" : (fail++, "***FAIL***"));
+    printf("%s\n", (BRPaymentProtocolEncryptionTests(mainnet)) ? "success" : (fail++, "***FAIL***"));
     printf("\n");
     
     if (fail > 0) printf("%d TEST FUNCTION(S) ***FAILED***\n", fail);
@@ -3022,7 +3004,7 @@ extern int BRRunTestsSync (const char *paperKey,
     BRBIP39DeriveKey (seed.u8, paperKey, NULL);
     BRMasterPubKey mpk = BRBIP32MasterPubKey(&seed, sizeof (seed));
 
-    BRWallet *wallet = BRWalletNew (NULL, 0, mpk, 0x00);
+    BRWallet *wallet = BRWalletNew (NULL, 0, mpk, 0x00, isMainnet);
     // BRWalletSetCallbacks
 
     BRPeerManager *pm = BRPeerManagerNew (params, wallet, epoch, NULL, 0, NULL, 0);
@@ -3154,7 +3136,7 @@ void txStatusUpdate(void *info)
 
 int main(int argc, const char *argv[])
 {
-    int r = BRRunTests();
+    int r = BRRunTests(1);
     
 //    int err = 0;
 //    UInt512 seed = UINT512_ZERO;

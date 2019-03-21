@@ -102,14 +102,15 @@ typedef struct {
     uint64_t services; // bitcoin network services supported by peer
     uint64_t timestamp; // timestamp reported by peer
     uint8_t flags; // scratch variable
+    uint8_t mainnet;
 } BRPeer;
 
-#define BR_PEER_NONE ((const BRPeer) { UINT128_ZERO, 0, 0, 0, 0 })
+#define BR_PEER_NONE ((const BRPeer) { UINT128_ZERO, 0, 0, 0, 0, 1 })
 
 // NOTE: BRPeer functions are not thread-safe
 
 // returns a newly allocated BRPeer struct that must be freed by calling BRPeerFree()
-BRPeer *BRPeerNew(uint32_t magicNumber);
+BRPeer *BRPeerNew(uint32_t magicNumber, int mainnet);
 
 // info is a void pointer that will be passed along with each callback call
 // void connected(void *) - called when peer handshake completes successfully

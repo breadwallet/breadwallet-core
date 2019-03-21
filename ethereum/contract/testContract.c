@@ -12,29 +12,28 @@
 #include "BREthereumContract.h"
 #include "BREthereumToken.h"
 
-#if defined (BITCOIN_TESTNET)
-const char *tokenBRDAddress = "0x7108ca7c4718efa810457f228305c9c71390931a"; // testnet
-#else
-const char *tokenBRDAddress = "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"; // mainnet
-#endif
-
-#if defined (BITCOIN_DEBUG)
-#  if defined (BITCOIN_TESTNET)
-static const char *tokenTSTAddress = "0x722dd3f80bac40c951b51bdd28dd19d435762180"; // testnet,
-#  else
-static const char *tokenTSTAddress = "0x3efd578b271d034a69499e4a2d933c631d44b9ad"; // mainnet
-#  endif
-#endif
-
+const char *tokenBRDAddress = "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6";
 static const char *tokenEOSAddress = "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0";
 static const char *tokenKNCAddress = "0xdd974d5c2e2928dea5f71b9825b8b646686bd200";
 
+
+#if defined (BITCOIN_DEBUG)
+static const char *tokenTSTAddress = "0x3efd578b271d034a69499e4a2d933c631d44b9ad";
+#endif
+
 extern void
-installTokensForTest (void) {
+installTokensForTest (int mainnet) {
     static int needInstall = 1;
     if (!needInstall) return;
     needInstall = 0;
-    
+
+    if (!mainnet) {
+        tokenBRDAddress = "0x7108ca7c4718efa810457f228305c9c71390931a";
+#if defined (BITCOIN_DEBUG)
+        tokenTSTAddress = "0x722dd3f80bac40c951b51bdd28dd19d435762180";
+#endif
+    }
+
     BREthereumGas defaultGasLimit = gasCreate(TOKEN_BRD_DEFAULT_GAS_LIMIT);
     BREthereumGasPrice defaultGasPrice = gasPriceCreate(etherCreateNumber(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, WEI));
     tokenInstall (tokenBRDAddress,
@@ -108,8 +107,8 @@ void runTokenLookupTests () {
 
 
 extern void
-runContractTests (void) {
-    installTokensForTest();
+runContractTests (int mainnet) {
+    installTokensForTest(mainnet);
     runTokenParseTests ();
     runTokenLookupTests();
 }

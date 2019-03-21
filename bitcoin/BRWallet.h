@@ -60,7 +60,7 @@ typedef struct BRWalletStruct BRWallet;
 
 // allocates and populates a BRWallet struct that must be freed by calling BRWalletFree()
 // forkId is 0 for bitcoin, 0x40 for b-cash
-BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPubKey mpk, int forkId);
+BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPubKey mpk, int forkId, int mainnet);
 
 // not thread-safe, set callbacks once after BRWalletNew(), before calling other BRWallet functions
 // info is a void pointer that will be passed along with each callback call
@@ -201,6 +201,8 @@ int64_t BRLocalAmount(int64_t amount, double price);
 // returns the given local currency amount in satoshis
 // price is local currency units (i.e. pennies, pence) per bitcoin
 int64_t BRBitcoinAmount(int64_t localAmount, double price);
+
+int BRWalletIsMainnet (BRWallet *wallet);
 
 #ifdef __cplusplus
 }

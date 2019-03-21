@@ -6,7 +6,7 @@
 // Bitcoin
 extern int BRRunSupTests (void);
 
-extern int BRRunTests();
+extern int BRRunTests(int mainnet);
 
 extern int BRRunTestsSync (const char *paperKey,
                            int isBTC,

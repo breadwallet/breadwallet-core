@@ -543,12 +543,12 @@ runPerfTestsCoder (int repeat, int many) {
 
 
 extern void
-installTokensForTest (void);
+installTokensForTest (int mainnet);
 
 extern void
 runTests (int reallySend) {
     installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);
-    installTokensForTest ();
+    installTokensForTest (1);
 
     // Initialize tokens
 //    tokenGet(0);
@@ -560,17 +560,14 @@ runTests (int reallySend) {
     printf ("Done\n");
 }
 
-extern void
-installTokensForTest (void);
-
 #if defined (TEST_ETHEREUM_NEED_MAIN)
 int main(int argc, const char *argv[]) {
-    installTokensForTest ();
+    installTokensForTest (1);
     runUtilTests();
     runRlpTests();
     runEventTests();
     runBcTests();
-    runContractTests();
+    runContractTests(1);
     runEWMTests();
     runTests(0);
 }

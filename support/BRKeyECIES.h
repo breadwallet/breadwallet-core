@@ -37,7 +37,7 @@ extern "C" {
 size_t BRKeyECIESAES128SHA256Encrypt(BRKey *pubKey, void *out, size_t outLen, BRKey *ephemKey,
                                      const void *data, size_t dataLen);
 
-size_t BRKeyECIESAES128SHA256Decrypt(BRKey *privKey, void *out, size_t outLen, const void *data, size_t dataLen);
+size_t BRKeyECIESAES128SHA256Decrypt(BRKey *privKey, void *out, size_t outLen, const void *data, size_t dataLen, int mainnet);
     
     
 // Generates a pairing key using HMAC_DRBG with the local private key as entropy and SHA256(identifier) as the nonce.
