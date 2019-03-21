@@ -401,11 +401,11 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM_1PublicKey
 }
 
 /*
- * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniAddressIsValid
  * Signature: (Ljava/lang/String;)Z
  */
-JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAddressIsValid
+JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAddressIsValid
         (JNIEnv *env, jclass thisClass, jstring addressObject) {
 
     const char *address = (*env)->GetStringUTFChars(env, addressObject, 0);
@@ -909,7 +909,7 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnou
 }
 
 /*
- * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniAnnounceToken
  * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;I)V
  */
@@ -999,12 +999,12 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateTransaction
 }
 
 /*
- * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniCreateTransactionGeneric
  * Signature: (JLjava/lang/String;Ljava/lang/String;JLjava/lang/String;JLjava/lang/String;Ljava/lang/String;)J
  */
 JNIEXPORT jlong JNICALL
-Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateTransactionGeneric
+Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateTransactionGeneric
         (JNIEnv *env, jobject thisObject,
          jlong wid,
          jstring toObject,
@@ -1084,14 +1084,14 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniSignTransactionWithPrivateKe
          jbyteArray privateKeyByteArray) {
     BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
 
-    BRKey *key = (BRKey *) (*env)->GetByteArrayElements (env, privateKeyByteArray, 0);
+    BRKey *key = (BRKey *) (*env)->GetByteArrayElements(env, privateKeyByteArray, 0);
 
     ewmWalletSignTransfer(node,
-                                                (BREthereumWallet) walletId,
-                                                (BREthereumTransfer) transactionId,
-                                                *key);
+                          (BREthereumWallet) walletId,
+                          (BREthereumTransfer) transactionId,
+                          *key);
 
-    (*env)->ReleaseByteArrayElements (env, privateKeyByteArray, (jbyte*) key, 0);
+    (*env)->ReleaseByteArrayElements(env, privateKeyByteArray, (jbyte *) key, 0);
 }
 
 
@@ -1108,10 +1108,9 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniSubmitTransaction
          jlong tid) {
     BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
     ewmWalletSubmitTransfer(node,
-                                    (BREthereumWallet) wid,
-                                    (BREthereumTransfer) tid);
+                            (BREthereumWallet) wid,
+                            (BREthereumTransfer) tid);
 }
-
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
@@ -1384,6 +1383,18 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionGetBlockNumber
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
+ * Method:    jniTransactionGetBlockTimestamp
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionGetBlockTimestamp
+        (JNIEnv *env, jobject thisObject, jlong tid) {
+    BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
+    BREthereumTransfer transfer = getTransfer (env, tid);
+    return (jlong) ewmTransferGetBlockTimestamp (node, transfer);
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniTransactionGetBlockConfirmations
  * Signature: (J)J
  */
@@ -1573,6 +1584,7 @@ clientEstimateGas(BREthereumClientContext context, BREthereumEWM node,
     jobject data = (*env)->NewStringUTF(env, dataStr);
 
     (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineGetGasEstimate,
+                                 (jlong) node,
                                  (jlong) wid,
                                  (jlong) tid,
                                  from,

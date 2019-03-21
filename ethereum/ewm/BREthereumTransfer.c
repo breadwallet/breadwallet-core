@@ -755,10 +755,14 @@ transferProvideOriginatingTransaction (BREthereumTransfer transfer) {
 
 
 private_extern BREthereumEther
-transferGetEffectiveAmountInEther (BREthereumTransfer transfer) {
+transferGetEffectiveAmountInEther(BREthereumTransfer transfer) {
     switch (transfer->basis.type) {
-        case TRANSFER_BASIS_LOG: return etherCreateZero();
-        case TRANSFER_BASIS_TRANSACTION: return transactionGetAmount(transfer->basis.u.transaction);
+        case TRANSFER_BASIS_LOG:
+            return etherCreateZero();
+        case TRANSFER_BASIS_TRANSACTION:
+            return transactionGetAmount(NULL != transfer->basis.u.transaction
+                                        ? transfer->basis.u.transaction
+                                        : transfer->originatingTransaction);
     }
 }
 
