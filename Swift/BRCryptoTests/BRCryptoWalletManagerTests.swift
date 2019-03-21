@@ -40,8 +40,4 @@ class BRCryptoWalletManagerTests: XCTestCase {
 
     /// MARK: Ethereum
 
-//    func testPerformanceExample() {
-//        self.measure {
-//        }
-//    }
 }
