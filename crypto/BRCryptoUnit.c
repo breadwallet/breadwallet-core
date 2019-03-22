@@ -24,6 +24,7 @@
 //  THE SOFTWARE.
 
 #include "BRCryptoUnit.h"
+#include "BRCryptoPrivate.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -56,7 +57,7 @@ cryptoUnitCreateInternal (BRCryptoCurrency currency,
     return unit;
 }
 
-/* private */ extern BRCryptoUnit
+private_extern BRCryptoUnit
 cryptoUnitCreateAsBase (BRCryptoCurrency currency,
                         const char *name,
                         const char *symbol) {
@@ -68,7 +69,7 @@ cryptoUnitCreateAsBase (BRCryptoCurrency currency,
     return unit;
 }
 
-/* private */ extern BRCryptoUnit
+private_extern BRCryptoUnit
 cryptoUnitCreate (BRCryptoCurrency currency,
                   const char *name,
                   const char *symbol,
@@ -91,6 +92,20 @@ cryptoUnitRelease (BRCryptoUnit unit) {
     free (unit->name);
     free (unit->symbol);
     free (unit);
+}
+
+private_extern BRArrayOf(BRCryptoUnit)
+cryptoUnitTakeAll (BRArrayOf(BRCryptoUnit) units) {
+    for (size_t index = 0; index < array_count (units); index++)
+        cryptoUnitTake(units[index]);
+    return units;
+}
+
+private_extern BRArrayOf(BRCryptoUnit)
+cryptoUnitGiveAll (BRArrayOf(BRCryptoUnit) units) {
+    for (size_t index = 0; index < array_count (units); index++)
+        cryptoUnitGive(units[index]);
+    return units;
 }
 
 extern const char *

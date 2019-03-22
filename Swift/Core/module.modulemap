@@ -9,6 +9,7 @@ module BRCore [system] [extern_c] {
     header "../../crypto/BRCryptoTransfer.h"
     header "../../crypto/BRCryptoWallet.h"
     header "../../crypto/BRCryptoWalletManager.h"
+    header "../../crypto/BRCryptoSystem.h"
 
     header "../../crypto/BRCryptoPrivate.h"
     export *

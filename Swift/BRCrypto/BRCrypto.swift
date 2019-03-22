@@ -400,8 +400,14 @@ public protocol KeyPair {
 public class Network {
     internal let core: BRCryptoNetwork
 
+    /// The name
     public var name: String {
         return asUTF8String (cryptoNetworkGetName (core))
+    }
+
+    /// If 'mainnet' then true, otherwise false
+    public var isMainnet: Bool {
+        return CRYPTO_TRUE == cryptoNetworkIsMainnet (core)
     }
 
     /// The native currency.  Multiple networks will have the same currency; for example,
@@ -411,39 +417,65 @@ public class Network {
     /// All currencies.  Multiple networks will have the same currencies.
     public let currencies: [Currency]  // when hashable =>  Set<Currency>
 
+    internal func lookup (currency core: BRCryptoCurrency) -> Currency? {
+        return currencies.first { $0.core == core }
+    }
+
+    internal let units: [Unit]
+
+    internal func lookup (unit core: BRCryptoUnit) -> Unit? {
+        return units.first { $0.core == core }
+    }
+
+    ///
+    /// if `currency` is in `currencies` then true; otherwise false
+    ///
+    /// - Parameter that: the currency
+    ///
+    /// - Returns:
+    ///
     public func hasCurrency (_ that: Currency) -> Bool {
-        return currencies.contains(that)
+        return currencies.contains { $0.core == that.core }
     }
 
-    public func baseUnitFor (currency: Currency) -> Unit {
-        // cache these
-        return Unit (core: cryptoNetworkGetUnitAsBase (core, currency.core),
-                     currency: currency)
+    public func baseUnitFor (currency: Currency) -> Unit? {
+        return cryptoNetworkGetUnitAsBase (core, currency.core)
+        .flatMap { lookup (unit: $0 ) }
     }
 
-    public func defaultUnitFor (currency: Currency) -> Unit {
-        // cache these
-        return Unit (core: cryptoNetworkGetUnitAsDefault (core, currency.core),
-                     currency: currency)
+    public func defaultUnitFor (currency: Currency) -> Unit? {
+        return cryptoNetworkGetUnitAsDefault(core, currency.core)
+            .flatMap { lookup (unit: $0 ) }
     }
 
-    public func unitsFor (currency: Currency) -> [Unit] { // Set<Unit>
-        // cache these
-        let _ /* coreUnits */ = cryptoNetworkGetUnits (core, currency.core);
-        return []
+    public func unitsFor (currency: Currency) -> [Unit]? { // Set<Unit>
+        guard hasCurrency(currency) else { return nil }
+        return (0..<cryptoNetworkGetUnitCount (core, currency.core))
+            .map { lookup (unit: cryptoNetworkGetUnitAt (core, currency.core, $0))! }
     }
 
-    public func hasUnitFor (currency: Currency, unit: Unit) -> Bool {
-        return unitsFor (currency: currency).contains (unit)
+    public func hasUnitFor (currency: Currency, unit: Unit) -> Bool? {
+        return unitsFor (currency: currency)
+            .map { $0.contains(unit) }
     }
 
     internal init (core: BRCryptoNetwork) {
-        let _ /* coreCurrencies */ = cryptoNetworkGetCurrencies (core)
-        let coreCurrency   = cryptoNetworkGetCurrency (core)!
-
-        self.currencies = [] // from coreCurrencies
-        self.currency = Currency (core: coreCurrency) // from currencies
         self.core = core
+
+        let currencies = (0..<cryptoNetworkGetCurrencyCount (core))
+            .map { Currency (core: cryptoNetworkGetCurrencyAt (core, $0)!) }
+
+        // Cache all the currencies
+        self.currencies = currencies
+
+        // Cache all the units
+        self.units = currencies
+            .flatMap { (currency) in (0..<cryptoNetworkGetUnitCount (core, currency.core))
+                .map { Unit (core: cryptoNetworkGetUnitAt (core, currency.core, $0)) }}
+
+        // Get the native currency
+        self.currency = cryptoNetworkGetCurrency(core)
+            .map { (coreCurrency) in currencies.first { $0.core == coreCurrency }!}!
     }
 }
 
@@ -1055,15 +1087,22 @@ public protocol SystemListener : class {
 
 /// Singleton
 public final class System {
+    internal let core: BRCryptoSystem;
 
     /// The listener.  Gets all events for {Network, WalletManger, Wallet, Transfer}
     public private(set) weak var listener: SystemListener?
 
     /// The path for persistent storage
-    public let path: String
+    public var path: String {
+        return asUTF8String(cryptoSystemGetPersistencePath (core))
+    }
 
     /// The URL for the 'blockchain DB'
     public let url: URL
+
+    public let account: Account
+
+    /// Networks
 
     public internal(set) var networks: [Network] = []
 
@@ -1071,48 +1110,93 @@ public final class System {
         return networks.first { $0.core == core }
     }
 
+    /// Wallet Managers
+    public internal(set) var managers: [WalletManager] = [];
+
     internal func lookup (manager core: BRCryptoWalletManager) -> WalletManager? {
-        return nil
+        return managers.first { $0.core == core }
     }
 
     internal func lookup (wallet core: BRCryptoWallet, manager: WalletManager) -> Wallet? {
-        return nil
+        return manager.wallets.first { $0.core == core }
     }
 
     internal func lookup (transfer core: BRCryptoTransfer, wallet: Wallet) -> Transfer? {
-        return  nil
+        return wallet.transfers.first { $0.core == core }
     }
 
+    // No - define 'system listener'
     private var coreNetworkListener: BRCryptoNetworkListener! = nil
     private var coreWalletManagerListener: BRCryptoCWMListener! = nil
 
+    public func start () {
+        cryptoSystemStart (core);
+    }
+
+    public func stop () {
+        cryptoSystemStop (core)
+    }
+
+    public func createWalletManager (network: Network,
+                                     currency: Currency,
+                                     mode: WalletManagerMode) {
+
+    }
     private static var instance: System?
 
-    init (listener: SystemListener,
-          persistencePath: String,
-          blockchainURL: URL) {
-        precondition (nil == System.instance)
-
+    internal init (core: BRCryptoSystem,
+                   account: Account,
+                   listener: SystemListener,
+                   blockchainURL: URL) {
+        self.core = core
+        self.account = account
         self.listener = listener
-        self.path = persistencePath
         self.url = blockchainURL
         System.instance = self
 
+        // Network Listener
+
         self.coreNetworkListener = BRCryptoNetworkListener (
             context: Unmanaged<System>.passRetained(self).toOpaque(),
-            announce: { (context: BRCryptoNetworkListenerContext?, core: BRCryptoNetwork?) in
-                precondition (nil != context)
-                precondition (nil != core)
+            created: { (context: BRCryptoNetworkListenerContext?, coreNetwork: BRCryptoNetwork?) in
+                precondition (nil != context && nil != coreNetwork)
                 let system = Unmanaged<System>.fromOpaque(context!).takeRetainedValue()
-                let network = Network (core: core!)
+                let network = Network (core: coreNetwork!)
 
                 system.networks.append (network)
                 system.listener?.handleNetworkEvent(
                     system: system,
                     network: network,
                     event: NetworkEvent.created)
-        })
+        } // ,
+            //            currencyAdded: { (context: BRCryptoNetworkListenerContext?, coreNetwork: BRCryptoNetwork?, coreCurrency: BRCryptoCurrency?) in
+            //                precondition (nil != context && nil != coreNetwork && nil != coreCurrency)
+            //                let system = Unmanaged<System>.fromOpaque(context!).takeRetainedValue()
+            //                if let network = system.lookup (network: coreNetwork!) {
+            //                    let currency = Currency (core: coreCurrency!)
+            //                    // add to 'network'
+            //                    system.listener?.handleNetworkEvent(
+            //                        system: system,
+            //                        network: network,
+            //                        event: NetworkEvent.currencyAdded(currency: currency))
+            //                }
+            //        },
+            //            currencyDeleted: { (context: BRCryptoNetworkListenerContext?, coreNetwork: BRCryptoNetwork?, coreCurrency: BRCryptoCurrency?) in
+            //                precondition (nil != context && nil != coreNetwork && nil != coreCurrency)
+            //                let system = Unmanaged<System>.fromOpaque(context!).takeRetainedValue()
+            //                if let network = system.lookup(network: coreNetwork!) {
+            //                    let currency = Currency (core: coreCurrency!)
+            //                    // rem from 'network'
+            //                    system.listener?.handleNetworkEvent(
+            //                        system: system,
+            //                        network: network,
+            //                        event: NetworkEvent.currencyDeleted(currency: currency))
+            //                }
+            //        }
+        )
         cryptoNetworkDeclareListener(self.coreNetworkListener)
+
+        // Wallet Listener
 
         self.coreWalletManagerListener = BRCryptoCWMListener (
             context: Unmanaged<System>.passRetained(self).toOpaque(),
@@ -1167,6 +1251,19 @@ public final class System {
         // Start communicating with URL
         //   Load currencies
         //   Load blockchains
+
     }
+
+    public convenience init (account: Account,
+                             listener: SystemListener,
+                             persistencePath: String,
+                             blockchainURL: URL) {
+        precondition (nil == System.instance)
+
+        self.init (core: cryptoSystemCreate (account.core, persistencePath),
+                   account: account,
+                   listener: listener,
+                   blockchainURL: blockchainURL)
+     }
 }
 

@@ -42,13 +42,18 @@ extern "C" {
      */
     typedef struct BRCryptoNetworkRecord *BRCryptoNetwork;
 
-    typedef void *BRCryptoNetworkListenerContext;
-    typedef void (*BRCryptoNetworkListenerAnnounce) (BRCryptoNetworkListenerContext context,
-                                                     BRCryptoNetwork network);
+    typedef void  *BRCryptoNetworkListenerContext;
+    typedef void (*BRCryptoNetworkListenerCreated) (BRCryptoNetworkListenerContext context,
+                                                    BRCryptoNetwork network);
+    typedef void (*BRCryptoNetworkListenerCurrency) (BRCryptoNetworkListenerContext context,
+                                                     BRCryptoNetwork network,
+                                                     BRCryptoCurrency currency);
 
     typedef struct {
         BRCryptoNetworkListenerContext context;
-        BRCryptoNetworkListenerAnnounce announce;
+        BRCryptoNetworkListenerCreated created;
+ //       BRCryptoNetworkListenerCurrency currencyAdded;
+//        BRCryptoNetworkListenerCurrency currencyDeleted;
     } BRCryptoNetworkListener;
 
     extern void
@@ -56,17 +61,24 @@ extern "C" {
 
     extern BRArrayOf(BRCryptoNetwork) networks;
 
-     extern const char *
+    extern const char *
     cryptoNetworkGetName (BRCryptoNetwork network);
 
+    extern BRCryptoBoolean
+    cryptoNetworkIsMainnet (BRCryptoNetwork network);
+    
     extern BRCryptoBlockChainHeight
     cryptoNetworkGetHeight (BRCryptoNetwork network);
 
     extern BRCryptoCurrency
     cryptoNetworkGetCurrency (BRCryptoNetwork network);
 
-    extern BRArrayOf (BRCryptoCurrency)
-    cryptoNetworkGetCurrencies (BRCryptoNetwork network);
+    extern size_t
+    cryptoNetworkGetCurrencyCount (BRCryptoNetwork network);
+
+    extern BRCryptoCurrency
+    cryptoNetworkGetCurrencyAt (BRCryptoNetwork network,
+                                size_t index);
 
     extern BRCryptoUnit
     cryptoNetworkGetUnitAsBase (BRCryptoNetwork network,
@@ -76,10 +88,17 @@ extern "C" {
     cryptoNetworkGetUnitAsDefault (BRCryptoNetwork network,
                                    BRCryptoCurrency currency);
 
-    extern BRArrayOf (BRCryptoUnit)
-    cryptoNetworkGetUnits (BRCryptoNetwork network,
-                           BRCryptoCurrency currency);
-    
+    extern size_t
+    cryptoNetworkGetUnitCount (BRCryptoNetwork network,
+                               BRCryptoCurrency currency);
+
+    extern BRCryptoUnit
+    cryptoNetworkGetUnitAt (BRCryptoNetwork network,
+                            BRCryptoCurrency currency,
+                            size_t index);
+
+    DECLARE_CRYPTO_GIVE_TAKE (BRCryptoNetwork, cryptoNetwork);
+
 #ifdef __cplusplus
 }
 #endif

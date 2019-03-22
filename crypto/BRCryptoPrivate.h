@@ -33,6 +33,8 @@
 
 #include "BRCryptoNetwork.h"
 #include "BRCryptoAccount.h"
+#include "BRCryptoAmount.h"
+#include "BRCryptoAddress.h"
 
 ///
 #include "../support/BRAddress.h"
@@ -66,6 +68,12 @@ extern "C" {
                       BRCryptoUnit baseUnit,
                       uint8_t powerOffset);
 
+    private_extern BRArrayOf(BRCryptoUnit)
+    cryptoUnitTakeAll (BRArrayOf(BRCryptoUnit) units);
+
+    private_extern BRArrayOf(BRCryptoUnit)
+    cryptoUnitGiveAll (BRArrayOf(BRCryptoUnit) units);
+
     /// MARK: - Amount
 
     private_extern BRCryptoAmount
@@ -86,11 +94,36 @@ extern "C" {
 
     /// MARK: - Network
 
+    private_extern void
+    cryptoNetworkSetHeight (BRCryptoNetwork network,
+                            BRCryptoBlockChainHeight height);
+    
+    private_extern void
+    cryptoNetworkSetCurrency (BRCryptoNetwork network,
+                              BRCryptoCurrency currency);
+    
+    private_extern void
+    cryptoNetworkAddCurrency (BRCryptoNetwork network,
+                              BRCryptoCurrency currency,
+                              BRCryptoUnit baseUnit,
+                              BRCryptoUnit defaultUnit,
+                              /* ownership given */ BRArrayOf(BRCryptoUnit) units);
+
     private_extern BREthereumNetwork
     cryptoNetworkAsETH (BRCryptoNetwork network);
 
     private_extern BRChainParams *
     cryptoNetworkAsBTC (BRCryptoNetwork network);
+
+    private_extern BRCryptoNetwork
+    cryptoNetworkCreateAsBTC (const char *name,
+                              uint8_t forkId,
+                              BRChainParams *params);
+
+    private_extern BRCryptoNetwork
+    cryptoNetworkCreateAsETH (const char *name,
+                              uint32_t chainId,
+                              BREthereumNetwork net);
 
     /// MARK: - Account
 
