@@ -27,28 +27,71 @@
 #define BRCryptoBase_h
 
 #include <inttypes.h>
+#include <stdatomic.h>
 
-typedef enum {
-    CRYPTO_FALSE = 0,
-    CRYPTO_TRUE  = 1
-} BRCryptoBoolean;
+// temporary
+#include <stdio.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+    typedef enum {
+        CRYPTO_FALSE = 0,
+        CRYPTO_TRUE  = 1
+    } BRCryptoBoolean;
 
 #define AS_CRYPTO_BOOLEAN(zeroIfFalse)   ((zeroIfFalse) ? CRYPTO_TRUE : CRYPTO_FALSE)
 
-typedef uint64_t BRCryptoBlockChainHeight;
+    typedef uint64_t BRCryptoBlockChainHeight;
 
-// Private-ish
-typedef enum {
-    BLOCK_CHAIN_TYPE_BTC,
-    BLOCK_CHAIN_TYPE_ETH,
-    BLOCK_CHAIN_TYPE_GEN
-} BRCryptoBlockChainType;
+    // Private-ish
+    typedef enum {
+        BLOCK_CHAIN_TYPE_BTC,
+        BLOCK_CHAIN_TYPE_ETH,
+        BLOCK_CHAIN_TYPE_GEN
+    } BRCryptoBlockChainType;
 
-typedef enum {
-    SYNC_MODE_BRD_ONLY,
-    SYNC_MODE_BRD_WITH_P2P_SEND,
-    SYNC_MODE_P2P_WITH_BRD_SYNC,
-    SYNC_MODE_P2P_ONLY
-} BRCryptoSyncMode;
+    typedef enum {
+        SYNC_MODE_BRD_ONLY,
+        SYNC_MODE_BRD_WITH_P2P_SEND,
+        SYNC_MODE_P2P_WITH_BRD_SYNC,
+        SYNC_MODE_P2P_ONLY
+    } BRCryptoSyncMode;
+
+    /// MARK: Reference Counting
+
+    typedef struct {
+        _Atomic(unsigned int) count;
+        void (*free) (void *);
+    } BRCryptoRef;
+
+#define DECLARE_CRYPTO_GIVE_TAKE(type, preface) \
+  extern type preface##Take (type obj);  \
+  extern void preface##Give (type obj)
+
+#define IMPLEMENT_CRYPTO_GIVE_TAKE(type, preface) \
+  extern type              \
+  preface##Take (type obj) {        \
+    atomic_fetch_add (&obj->ref.count, 1); \
+    return obj;            \
+  }                        \
+  extern void              \
+  preface##Give (type obj) {        \
+    if (1 == atomic_fetch_sub (&obj->ref.count, 1))  \
+      obj->ref.free (obj); \
+  }
+
+#define CRYPTO_AS_FREE(release)     ((void (*) (void *)) release)
+
+#define CRYPTO_REF_ASSIGN(release)  (BRCryptoRef) { 1, CRYPTO_AS_FREE (release) }
+
+#if !defined (private_extern)
+#  define private_extern          extern
+#endif
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* BRCryptoBase_h */

@@ -289,3 +289,10 @@ coerceUInt64 (UInt256 value, int *overflow) {
     return *overflow ? 0 : value.u64[0];
 }
 
+extern double
+coerceDouble (UInt256 value, int *overflow) {
+    *overflow = (0 != value.u64[3] ||
+                 0 != value.u64[2] ||
+                 0 != value.u64[1]);
+    return *overflow ? 0 : (double) value.u64[0];
+}

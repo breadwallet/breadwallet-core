@@ -60,9 +60,6 @@ extern "C" {
     cryptoAmountIsCompatible (BRCryptoAmount a1,
                               BRCryptoAmount a2);
 
-    extern BRCryptoBoolean
-    cryptoAmountIsNegative (BRCryptoAmount a1);
-
     extern BRCryptoComparison
     cryptoAmountCompare (BRCryptoAmount a1,
                          BRCryptoAmount a2);
@@ -77,12 +74,10 @@ extern "C" {
 
     extern double
     cryptoAmountGetDouble (BRCryptoAmount amount,
+                           BRCryptoUnit unit,
                            BRCryptoBoolean *overflow);
 
-    extern int64_t
-    cryptoAmountGetInteger (BRCryptoAmount amount,
-                            BRCryptoBoolean *overflow);
-
+    DECLARE_CRYPTO_GIVE_TAKE (BRCryptoAmount, cryptoAmount);
 
 #ifdef __cplusplus
 }

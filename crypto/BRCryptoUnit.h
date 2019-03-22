@@ -60,6 +60,8 @@ extern "C" {
     cryptoUnitIsIdentical (BRCryptoUnit u1,
                            BRCryptoUnit u2);
 
+    DECLARE_CRYPTO_GIVE_TAKE (BRCryptoUnit, cryptoUnit);
+
 #ifdef __cplusplus
 }
 #endif

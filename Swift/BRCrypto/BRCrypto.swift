@@ -19,7 +19,7 @@ import BRCore               // Core Crypto
 /// A Currency has a number of decimals which define the currency's defaultUnit relative to the
 /// baseUnit.
 ///
-public class Currency {
+public final class Currency {
     internal let core: BRCryptoCurrency
 
     /// The code; e.g. BTC
@@ -40,6 +40,16 @@ public class Currency {
     internal init (core: BRCryptoCurrency) {
         self.core = core
     }
+
+    internal convenience init (name: String,
+                               code: String,
+                               type: String) {
+        self.init (core: cryptoCurrencyCreate(name, code, type))
+    }
+
+    deinit {
+        cryptoCurrencyGive (core)
+    }
 }
 
 extension Currency: Equatable {
@@ -58,7 +68,7 @@ extension Currency: Equatable {
 /// ane WEI for Bitcoin and Ethereum, respectively.  There can be multiple 'derivedUnits' - which
 /// are derived by scaling off of a baseUnit.
 ///
-public class Unit {
+public final class Unit {
     internal let core: BRCryptoUnit
 
     public let currency: Currency
@@ -75,11 +85,15 @@ public class Unit {
         let coreBaseUnit = cryptoUnitGetBaseUnit (self.core)!
         return (CRYPTO_TRUE == cryptoUnitIsIdentical(self.core, coreBaseUnit)
             ? self
-            : Unit (core: coreBaseUnit))
+            : Unit (core: coreBaseUnit)) // alloc - no
     }()
 
+    public var decimals: UInt8 {
+        return cryptoUnitGetBaseDecimalOffset (core)
+    }
+    
     public func isCompatible (with that: Unit) -> Bool {
-        return CRYPTO_TRUE == cryptoUnitIsIdentical (self.core, that.core)
+        return CRYPTO_TRUE == cryptoUnitIsCompatible (self.core, that.core)
     }
 
     public func hasCurrency (_ currency: Currency) -> Bool {
@@ -95,6 +109,26 @@ public class Unit {
         self.init (core: core,
                    currency: Currency (core: cryptoUnitGetCurrency (core)))
     }
+
+    internal convenience init (currency: Currency,
+                               name: String,
+                               symbol: String) {
+        self.init (core: cryptoUnitCreateAsBase (currency.core, name, symbol),
+                   currency: currency)
+    }
+
+    internal convenience init (currency: Currency,
+                               name: String,
+                               symbol: String,
+                               base: Unit,
+                               decimals: UInt8) {
+        self.init (core: cryptoUnitCreate (currency.core, name, symbol, base.core, decimals),
+                   currency: currency)
+    }
+
+    deinit {
+        cryptoUnitGive (core)
+    }
 }
 
 extension Unit: Equatable {
@@ -109,7 +143,7 @@ extension Unit: Equatable {
 /// owned').  Supports basic arithmetic operations (addition, subtraction, comparison); will
 /// assert on !isCompatible for mismatched currency.
 ///
-public struct Amount {
+public final class Amount {
     /// The underlying Core memory reference
     internal let core: BRCryptoAmount
 
@@ -128,19 +162,13 @@ public struct Amount {
 
     internal func double (as unit: Unit) -> Double? {
         var overflow: BRCryptoBoolean = CRYPTO_FALSE
-        let value = cryptoAmountGetDouble(core, &overflow)
-        return CRYPTO_TRUE == overflow ? nil : value
-    }
-
-    internal func integer (as unit: Unit) -> Int64? {
-        var overflow: BRCryptoBoolean = CRYPTO_FALSE
-        let value = cryptoAmountGetInteger(core, &overflow)
+        let value = cryptoAmountGetDouble(core, unit.core, &overflow)
         return CRYPTO_TRUE == overflow ? nil : value
     }
 
      public func string (as unit: Unit) -> String? {
         return double (as: unit)
-            .flatMap { self.formatterWith (symbol: unit.symbol).string(from: NSNumber(value: $0)) }
+            .flatMap { self.formatterWith (unit: unit).string(from: NSNumber(value: $0)) }
     }
 
     public func string (pair: CurrencyPair) -> String? {
@@ -183,13 +211,21 @@ public struct Amount {
                        unit: unit)
     }
 
-    private func formatterWith (symbol: String) -> NumberFormatter {
+    // static func create (exactly: Double, unit: Unit) -> Amount  ==> No remainder
+    //   nil == Amount.create (exactly: 1.5, unit: SATOSHI)  // remainder is 0.5
+
+    private func formatterWith (unit: Unit) -> NumberFormatter {
         let formatter = NumberFormatter()
-        formatter.usesGroupingSeparator = true
-        formatter.numberStyle = .currency
         formatter.locale = Locale.current
-        formatter.currencySymbol = symbol;
+        formatter.numberStyle = .currency
+        formatter.currencySymbol = unit.symbol;
+        formatter.generatesDecimalNumbers = 0 != unit.decimals
+        formatter.maximumFractionDigits = Int(unit.decimals)
         return formatter
+    }
+
+    deinit {
+        cryptoAmountGive (core)
     }
 }
 
@@ -209,18 +245,28 @@ extension Amount {
 ///
 extension Amount: Comparable {
     public static func == (lhs: Amount, rhs: Amount) -> Bool {
-        return CRYPTO_COMPARE_EQ  == cryptoAmountCompare (lhs.core, rhs.core)
+        return CRYPTO_COMPARE_EQ == cryptoAmountCompare (lhs.core, rhs.core)
     }
 
-    public static func < (lhs: Amount, rhs: Amount) -> Bool {
+     public static func < (lhs: Amount, rhs: Amount) -> Bool {
         return CRYPTO_COMPARE_LT == cryptoAmountCompare (lhs.core, rhs.core)
+    }
+
+    public static func > (lhs: Amount, rhs: Amount) -> Bool {
+        return CRYPTO_COMPARE_GT == cryptoAmountCompare (lhs.core, rhs.core)
+    }
+
+    public static func != (lhs: Amount, rhs: Amount) -> Bool {
+        return CRYPTO_COMPARE_EQ != cryptoAmountCompare (lhs.core, rhs.core)
     }
 
     public static func <= (lhs: Amount, rhs: Amount) -> Bool {
         return CRYPTO_COMPARE_GT != cryptoAmountCompare (lhs.core, rhs.core)
     }
 
-    // ...
+    public static func >= (lhs: Amount, rhs: Amount) -> Bool {
+        return CRYPTO_COMPARE_LT != cryptoAmountCompare (lhs.core, rhs.core)
+    }
 }
 
 extension Amount: CustomStringConvertible {
@@ -309,7 +355,7 @@ extension CurrencyPair: CustomStringConvertible {
 /// An `Accouint` represents the User's paperKey.  An App generally has one instace of an
 /// account; that account generates bitcoin, ethereum, ... addresses
 ///
-public struct Account {
+public final class Account {
 
     let core: BRCryptoAccount
 
@@ -351,7 +397,7 @@ public protocol KeyPair {
 /// network type.  Specifically {BTC, BCH, ETH, ...} x {Mainnet, Testnet, ...}.  Thus there will
 /// be networks of [BTC-Mainnet, BTC-Testnet, ..., ETH-Mainnet, ETH-Testnet, ETH-Rinkeby, ...]
 ///
-public struct Network {
+public class Network {
     internal let core: BRCryptoNetwork
 
     public var name: String {
@@ -393,7 +439,7 @@ public struct Network {
 
     internal init (core: BRCryptoNetwork) {
         let _ /* coreCurrencies */ = cryptoNetworkGetCurrencies (core)
-        let coreCurrency   = cryptoNetworkGetNativeCurrency (core)!
+        let coreCurrency   = cryptoNetworkGetCurrency (core)!
 
         self.currencies = [] // from coreCurrencies
         self.currency = Currency (core: coreCurrency) // from currencies
@@ -410,7 +456,6 @@ extension Network: CustomStringConvertible {
 public enum NetworkEvent {
     case created
 }
-
 
 ///
 /// An Address for transferring an amount.
@@ -457,7 +502,7 @@ extension Address: CustomStringConvertible {
 /// Once the transfer has been included in the currency's blockchain it will have a
 /// `TransferConfirmation`.
 ///
-public class Transfer {
+open class Transfer {
     internal let core: BRCryptoTransfer
 
     /// The owning wallet
@@ -604,7 +649,7 @@ public protocol TransferFactory {
 ///
 /// A Wallet holds the transfers and a balance for a single currency.
 ///
-public class Wallet {
+open class Wallet {
     internal let core: BRCryptoWallet
 
     /// The owning manager
@@ -788,7 +833,7 @@ public protocol WalletFactory {
 /// At least conceptually, a WalletManager is an 'Active Object' (whereas Transfer and Wallet are
 /// 'Passive Objects'
 ///
-public class WalletManager {
+open class WalletManager {
     internal let core: BRCryptoWalletManager
 
     /// The account
@@ -1009,7 +1054,7 @@ public protocol SystemListener : class {
 
 
 /// Singleton
-public class System {
+public final class System {
 
     /// The listener.  Gets all events for {Network, WalletManger, Wallet, Transfer}
     public private(set) weak var listener: SystemListener?

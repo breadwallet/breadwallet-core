@@ -62,7 +62,6 @@ extern "C" {
     extern void
     cryptoWalletManagerDeclareListener (BRCryptoCWMListener listener);
 
-
     extern BRCryptoNetwork
     cryptoWalletManagerGetNetwork (BRCryptoWalletManager cwm);
 
