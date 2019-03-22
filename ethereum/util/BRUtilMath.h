@@ -164,6 +164,13 @@ extern uint64_t
 coerceUInt64 (UInt256 x, int *overflow);
 
 /**
+ * Coerce `x`, a UInt256, to a double.  If `x` is too big then overflow is set to 1 and
+ * zero is returned.
+ */
+extern double
+coerceDouble (UInt256 value, int *overflow);
+
+/**
  * Returns the string representation of `x` in `base`.  No matter the base, the returned string
  * will be in big-endian format.
  *

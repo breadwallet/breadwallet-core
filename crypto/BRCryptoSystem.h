@@ -1,8 +1,8 @@
 //
-//  BRCryptoUnit.h
+//  BRCryptoSystem.h
 //  BRCore
 //
-//  Created by Ed Gamble on 3/19/19.
+//  Created by Ed Gamble on 3/22/19.
 //  Copyright © 2019 breadwallet. All rights reserved.
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,47 +23,40 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BRCryptoUnit_h
-#define BRCryptoUnit_h
+#ifndef BRCryptoSystem_h
+#define BRCryptoSystem_h
 
-#include <inttypes.h>
-
-#include "BRCryptoBase.h"
+#include "BRCryptoNetwork.h"
 #include "BRCryptoCurrency.h"
+#include "BRCryptoWalletManager.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-    typedef struct BRCryptoUnitRecord *BRCryptoUnit;
+    typedef struct BRCryptoSystemRecord *BRCryptoSystem;
+
+    extern BRCryptoSystem
+    cryptoSystemCreate (BRCryptoAccount account,
+                        const char *path);
 
     extern const char *
-    cryptoUnitGetName (BRCryptoUnit unit);
+    cryptoSystemGetPersistencePath (BRCryptoSystem system);
+    
+    extern void
+    cryptoSystemStart (BRCryptoSystem system);
 
-    extern const char *
-    cryptoUnitGetSymbol (BRCryptoUnit unit);
+    extern void
+    cryptoSystemStop (BRCryptoSystem system);
 
-    extern BRCryptoCurrency
-    cryptoUnitGetCurrency (BRCryptoUnit unit);
-
-    extern BRCryptoUnit
-    cryptoUnitGetBaseUnit (BRCryptoUnit unit);
-
-    extern uint8_t
-    cryptoUnitGetBaseDecimalOffset (BRCryptoUnit unit);
-
-    extern BRCryptoBoolean
-    cryptoUnitIsCompatible (BRCryptoUnit u1,
-                            BRCryptoUnit u2);
-
-    extern BRCryptoBoolean
-    cryptoUnitIsIdentical (BRCryptoUnit u1,
-                           BRCryptoUnit u2);
-
-    DECLARE_CRYPTO_GIVE_TAKE (BRCryptoUnit, cryptoUnit);
+    extern BRCryptoWalletManager
+    cryptoSystemCreateWalletManager (BRCryptoSystem system,
+                                     BRCryptoNetwork network,
+                                     BRCryptoCurrency currency,
+                                     BRCryptoSyncMode mode);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* BRCryptoUnit_h */
+#endif /* BRCryptoSystem_h */

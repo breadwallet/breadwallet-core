@@ -9,6 +9,7 @@
 import XCTest
 @testable import BRCrypto
 
+#if false
 class Listener : BitcoinListener, EthereumListener {
     func handleTokenEvent(manager: WalletManager, token: EthereumToken, event: EthereumTokenEvent) {
 
@@ -23,10 +24,13 @@ class Listener : BitcoinListener, EthereumListener {
     func handleTransferEvent(manager: WalletManager, wallet: Wallet, transfer: Transfer, event: TransferEvent) {
     }
 }
+#endif
 
 class BRCryptoWalletManagerTests: XCTestCase {
 
+    #if false
     var listener: Listener!
+    #endif
 
     override func setUp() {
     }

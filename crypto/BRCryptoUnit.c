@@ -24,14 +24,89 @@
 //  THE SOFTWARE.
 
 #include "BRCryptoUnit.h"
+#include "BRCryptoPrivate.h"
+
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+
+static void
+cryptoUnitRelease (BRCryptoUnit unit);
 
 struct BRCryptoUnitRecord {
     BRCryptoCurrency currency;
     char *name;
     char *symbol;
-    BRCryptoUnit baseUnit;
-    uint8_t powerOffset;
+    BRCryptoUnit base;
+    uint8_t decimals;
+    BRCryptoRef ref;
 };
+
+IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoUnit, cryptoUnit)
+
+static BRCryptoUnit
+cryptoUnitCreateInternal (BRCryptoCurrency currency,
+                          const char *name,
+                          const char *symbol) {
+    BRCryptoUnit unit = malloc (sizeof (struct BRCryptoUnitRecord));
+
+    unit->currency = cryptoCurrencyTake (currency);
+    unit->name   = strdup (name);
+    unit->symbol = strdup (symbol);
+    unit->ref = CRYPTO_REF_ASSIGN (cryptoUnitRelease);
+    return unit;
+}
+
+private_extern BRCryptoUnit
+cryptoUnitCreateAsBase (BRCryptoCurrency currency,
+                        const char *name,
+                        const char *symbol) {
+    BRCryptoUnit unit = cryptoUnitCreateInternal (currency, name, symbol);
+
+    unit->base = NULL;
+    unit->decimals = 0;
+
+    return unit;
+}
+
+private_extern BRCryptoUnit
+cryptoUnitCreate (BRCryptoCurrency currency,
+                  const char *name,
+                  const char *symbol,
+                  BRCryptoUnit baseUnit,
+                  uint8_t powerOffset) {
+    assert (NULL != baseUnit);
+    BRCryptoUnit unit = cryptoUnitCreateInternal (currency, name, symbol);
+
+    unit->base = baseUnit;
+    unit->decimals = powerOffset;
+
+    return unit;
+}
+
+static void
+cryptoUnitRelease (BRCryptoUnit unit) {
+    printf ("Unit: Release\n");
+    if (NULL != unit->base) cryptoUnitGive (unit->base);
+    cryptoCurrencyGive (unit->currency);
+    free (unit->name);
+    free (unit->symbol);
+    free (unit);
+}
+
+private_extern BRArrayOf(BRCryptoUnit)
+cryptoUnitTakeAll (BRArrayOf(BRCryptoUnit) units) {
+    for (size_t index = 0; index < array_count (units); index++)
+        cryptoUnitTake(units[index]);
+    return units;
+}
+
+private_extern BRArrayOf(BRCryptoUnit)
+cryptoUnitGiveAll (BRArrayOf(BRCryptoUnit) units) {
+    for (size_t index = 0; index < array_count (units); index++)
+        cryptoUnitGive(units[index]);
+    return units;
+}
 
 extern const char *
 cryptoUnitGetName (BRCryptoUnit unit) {
@@ -45,17 +120,17 @@ cryptoUnitGetSymbol (BRCryptoUnit unit) {
 
 extern BRCryptoCurrency
 cryptoUnitGetCurrency (BRCryptoUnit unit) {
-    return unit->currency;
+    return unit->currency; // take - only on assign?  dangling memory (no 'root' holding)
 }
 
 extern BRCryptoUnit
 cryptoUnitGetBaseUnit (BRCryptoUnit unit) {
-    return NULL == unit->baseUnit ? unit : unit->baseUnit;
+    return NULL == unit->base ? unit : unit->base;
 }
 
 extern uint8_t
 cryptoUnitGetBaseDecimalOffset (BRCryptoUnit unit) {
-    return NULL == unit->baseUnit ? 0 : unit->powerOffset;
+    return NULL == unit->base ? 0 : unit->decimals;
 }
 
 extern BRCryptoBoolean

@@ -27,15 +27,22 @@
 
 #include <stdlib.h>
 #include <assert.h>
+#include <math.h>
 
 #include "support/BRInt.h"
 #include "ethereum/util/BRUtilMath.h"
+
+static void
+cryptoAmountRelease (BRCryptoAmount amount);
 
 struct BRCryptoAmountRecord {
     BRCryptoCurrency currency;
     BRCryptoBoolean isNegative;
     UInt256 value;
+    BRCryptoRef ref;
 };
+
+IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoAmount, cryptoAmount);
 
 /* private */ extern BRCryptoAmount
 cryptoAmountCreate (BRCryptoCurrency currency,
@@ -43,9 +50,10 @@ cryptoAmountCreate (BRCryptoCurrency currency,
                     UInt256 value) {
     BRCryptoAmount amount = malloc (sizeof (struct BRCryptoAmountRecord));
 
-    amount->currency = currency; // RefCount
+    amount->currency = cryptoCurrencyTake (currency);
     amount->isNegative = isNegative;
     amount->value = value;
+    amount->ref = CRYPTO_REF_ASSIGN (cryptoAmountRelease);
 
     return amount;
 }
@@ -53,31 +61,43 @@ cryptoAmountCreate (BRCryptoCurrency currency,
 extern BRCryptoAmount
 cryptoAmountCreateDouble (double value,
                           BRCryptoUnit unit) {
-    UInt256 v = UINT256_ZERO;
+    uint8_t decimals = cryptoUnitGetBaseDecimalOffset (unit);
+    long double v = fabs(value) * powl (10.0, decimals);
+
+    if (v > INT64_MAX) return NULL;
+
     return cryptoAmountCreate (cryptoUnitGetCurrency(unit),
                                value < 0.0,
-                               v);
+                               createUInt256((uint64_t) v));
 }
 
 extern BRCryptoAmount
 cryptoAmountCreateInteger (int64_t value,
                            BRCryptoUnit unit) {
-    UInt256 v = UINT256_ZERO;
-    return cryptoAmountCreate (cryptoUnitGetCurrency(unit),
-                               value < 0.0,
-                               v);
-}
+    int powOverflow = 0, mulOverflow = 0;
 
+    UInt256 v = createUInt256 (value < 0 ? -value : value);
+    uint8_t decimals = cryptoUnitGetBaseDecimalOffset (unit);
+
+    if (0 != decimals)
+        v = mulUInt256_Overflow (v, createUInt256Power(decimals, &powOverflow), &mulOverflow);
+
+    return (powOverflow || mulOverflow ? NULL
+            : cryptoAmountCreate (cryptoUnitGetCurrency(unit),
+                                  value < 0.0,
+                                  v));
+}
 
 static void
 cryptoAmountRelease (BRCryptoAmount amount) {
-    // amount - RefCount
+    printf ("Amount: Release\n");
+    cryptoCurrencyGive (amount->currency);
     free (amount);
 }
 
 extern BRCryptoCurrency
 cryptoAmountGetCurrency (BRCryptoAmount amount) {
-    return amount->currency;
+    return amount->currency; // take?
 }
 
 extern BRCryptoBoolean
@@ -158,16 +178,10 @@ cryptoAmountSub (BRCryptoAmount a1,
 
 extern double
 cryptoAmountGetDouble (BRCryptoAmount amount,
+                       BRCryptoUnit unit,
                        BRCryptoBoolean *overflow) {
     assert (NULL != overflow);
-    *overflow = CRYPTO_FALSE;
-    return 0.0;
-}
-
-extern int64_t
-cryptoAmountGetInteger (BRCryptoAmount amount,
-                        BRCryptoBoolean *overflow) {
-    assert (NULL != overflow);
-    *overflow = CRYPTO_FALSE;
-    return 0;
+    long double power  = powl (10.0, cryptoUnitGetBaseDecimalOffset(unit));
+    long double result = coerceDouble (amount->value, (int*) overflow) / power;
+    return (CRYPTO_TRUE == amount->isNegative ? -result : result);
 }

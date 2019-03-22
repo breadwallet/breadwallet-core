@@ -25,15 +25,47 @@
 
 #include "BRCryptoCurrency.h"
 
+#include <stdlib.h>
+#include <string.h>
+
+static void
+cryptoCurrencyRelease (BRCryptoCurrency currency);
+
 struct BRCryptoCurrencyRecord {
     char *name;
     char *code;
     char *type;
+    BRCryptoRef ref;
 };
+
+IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoCurrency, cryptoCurrency)
+
+/* private */ extern BRCryptoCurrency
+cryptoCurrencyCreate (const char *name,
+                      const char *code,
+                      const char *type) {
+    BRCryptoCurrency currency = malloc (sizeof (struct BRCryptoCurrencyRecord));
+
+    currency->name = strdup (name);
+    currency->code = strdup (code);
+    currency->type = strdup (type);
+    currency->ref  = CRYPTO_REF_ASSIGN (cryptoCurrencyRelease);
+
+    return currency;
+}
+
+static void
+cryptoCurrencyRelease (BRCryptoCurrency currency) {
+    printf ("Currency: Release\n");
+    free (currency->type);
+    free (currency->code);
+    free (currency->name);
+    free (currency);
+}
 
 extern const char *
 cryptoCurrencyGetName (BRCryptoCurrency currency) {
-    return currency->code;
+    return currency->name;
 }
 
 extern const char *
@@ -53,6 +85,21 @@ cryptoCurrencyGetType (BRCryptoCurrency currency) {
 
 extern BRCryptoBoolean
 cryptoCurrencyIsIdentical (BRCryptoCurrency c1,
-                         BRCryptoCurrency c2) {
+                           BRCryptoCurrency c2) {
     return AS_CRYPTO_BOOLEAN (c1 == c2);
 }
+
+#if 0
+extern BRCryptoCurrency
+cryptoCurrencyTake (BRCryptoCurrency currency) {
+    currency->refs++;
+    return currency;
+}
+
+extern void
+cryptoCurrencyGive (BRCryptoCurrency currency) {
+    currency->refs--;
+    if (0 == currency->refs)
+        cryptoCurrencyRelease (currency);
+}
+#endif

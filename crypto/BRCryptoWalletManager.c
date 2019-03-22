@@ -164,3 +164,12 @@ cryptoWalletManagerSync (BRCryptoWalletManager cwm) {
             break;
     }
 }
+
+
+static BRCryptoCWMListener listener = { NULL, NULL };
+
+extern void
+cryptoWalletManagerDeclareListener (BRCryptoCWMListener l) {
+    listener = l;
+}
+

@@ -31,28 +31,27 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+    
     typedef struct BRCryptoCurrencyRecord *BRCryptoCurrency;
-
+    
     extern const char *
     cryptoCurrencyGetName (BRCryptoCurrency currency);
-
-
+    
     extern const char *
     cryptoCurrencyGetCode (BRCryptoCurrency currency);
-
+    
     extern const char *
     cryptoCurrencyGetType (BRCryptoCurrency currency);
-
+    
     extern BRCryptoBoolean
     cryptoCurrencyIsIdentical (BRCryptoCurrency c1,
                                BRCryptoCurrency c2);
-
+    
     // initial supply
     // total supply
-
-    // units (aka denominations) - NO, CIRCULAR
-
+    
+    DECLARE_CRYPTO_GIVE_TAKE (BRCryptoCurrency, cryptoCurrency);
+    
 #ifdef __cplusplus
 }
 #endif

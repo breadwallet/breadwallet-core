@@ -26,42 +26,116 @@
 #ifndef BRCryptoPrivate_h
 #define BRCryptoPrivate_h
 
+/// A 'private header' - to define interfaces that are implementation dependent and that require
+/// including implementation specific headers.
+
 #include <inttypes.h>
 
 #include "BRCryptoNetwork.h"
 #include "BRCryptoAccount.h"
+#include "BRCryptoAmount.h"
+#include "BRCryptoAddress.h"
 
-#include "support/BRAddress.h"
-#include "support/BRBIP32Sequence.h"
-#include "bitcoin/BRChainParams.h"
-#include "ethereum/BREthereum.h"
+///
+#include "../support/BRAddress.h"
+#include "../support/BRBIP32Sequence.h"
+#include "../bitcoin/BRChainParams.h"
+#include "../ethereum/BREthereum.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+    /// MARK: - Currency
+
+    private_extern BRCryptoCurrency
+    cryptoCurrencyCreate (const char *name,
+                          const char *code,
+                          const char *type);
 
 
-/* private */ extern BRCryptoAmount
-cryptoAmountCreate (BRCryptoCurrency currency,
-                    BRCryptoBoolean isNegative,
-                    UInt256 value);
+    /// MARK: - Unit
 
-/* private */ extern BRCryptoAddress
-cryptoAddressCreateAsETH (BREthereumAddress eth);
+    private_extern BRCryptoUnit
+    cryptoUnitCreateAsBase (BRCryptoCurrency currency,
+                            const char *name,
+                            const char *symbol);
 
-/* private */ extern BRCryptoAddress
-cryptoAddressCreateAsBTC (BRAddress btc);
+    private_extern BRCryptoUnit
+    cryptoUnitCreate (BRCryptoCurrency currency,
+                      const char *name,
+                      const char *symbol,
+                      BRCryptoUnit baseUnit,
+                      uint8_t powerOffset);
 
-/* private */ extern BRCryptoAddress
-cryptoAddressCreate (const char *string);
+    private_extern BRArrayOf(BRCryptoUnit)
+    cryptoUnitTakeAll (BRArrayOf(BRCryptoUnit) units);
 
-/* private */ extern BREthereumNetwork
-cryptoNetworkAsETH (BRCryptoNetwork network);
+    private_extern BRArrayOf(BRCryptoUnit)
+    cryptoUnitGiveAll (BRArrayOf(BRCryptoUnit) units);
 
-/* private */ extern BRChainParams *
-cryptoNetworkAsBTC (BRCryptoNetwork network);
+    /// MARK: - Amount
 
-/* private */ extern BREthereumAccount
-cryptoAccountAsETH (BRCryptoAccount account);
+    private_extern BRCryptoAmount
+    cryptoAmountCreate (BRCryptoCurrency currency,
+                        BRCryptoBoolean isNegative,
+                        UInt256 value);
 
-/* private */ extern BRMasterPubKey
-cryptoAccountAsBTC (BRCryptoAccount account);
+    /// MARK: - Address
+
+    private_extern BRCryptoAddress
+    cryptoAddressCreateAsETH (BREthereumAddress eth);
+
+    private_extern BRCryptoAddress
+    cryptoAddressCreateAsBTC (BRAddress btc);
+
+    private_extern BRCryptoAddress
+    cryptoAddressCreate (const char *string);
+
+    /// MARK: - Network
+
+    private_extern void
+    cryptoNetworkSetHeight (BRCryptoNetwork network,
+                            BRCryptoBlockChainHeight height);
+    
+    private_extern void
+    cryptoNetworkSetCurrency (BRCryptoNetwork network,
+                              BRCryptoCurrency currency);
+    
+    private_extern void
+    cryptoNetworkAddCurrency (BRCryptoNetwork network,
+                              BRCryptoCurrency currency,
+                              BRCryptoUnit baseUnit,
+                              BRCryptoUnit defaultUnit,
+                              /* ownership given */ BRArrayOf(BRCryptoUnit) units);
+
+    private_extern BREthereumNetwork
+    cryptoNetworkAsETH (BRCryptoNetwork network);
+
+    private_extern BRChainParams *
+    cryptoNetworkAsBTC (BRCryptoNetwork network);
+
+    private_extern BRCryptoNetwork
+    cryptoNetworkCreateAsBTC (const char *name,
+                              uint8_t forkId,
+                              BRChainParams *params);
+
+    private_extern BRCryptoNetwork
+    cryptoNetworkCreateAsETH (const char *name,
+                              uint32_t chainId,
+                              BREthereumNetwork net);
+
+    /// MARK: - Account
+
+    private_extern BREthereumAccount
+    cryptoAccountAsETH (BRCryptoAccount account);
+
+    private_extern BRMasterPubKey
+    cryptoAccountAsBTC (BRCryptoAccount account);
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif /* BRCryptoPrivate_h */
