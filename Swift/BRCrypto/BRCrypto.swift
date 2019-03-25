@@ -7,7 +7,7 @@
 //
 import Foundation
 import SystemConfiguration  // SCSystemReachability
-import BRCore               // Core Crypto
+import BRCryptoC
 
 ///
 /// A currency is a medium for exchange.
