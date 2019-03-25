@@ -120,15 +120,16 @@ extern "C" {
                               uint8_t forkId,
                               BRChainParams *params);
 
-    private_extern BRCryptoNetwork
-    cryptoNetworkCreateAsETH (const char *name,
-                              uint32_t chainId,
-                              BREthereumNetwork net);
+    private_extern BRCryptoBlockChainType
+    cryptoNetworkGetBlockChainType (BRCryptoNetwork network);
 
     /// MARK: - Account
 
     private_extern BREthereumAccount
     cryptoAccountAsETH (BRCryptoAccount account);
+
+    private_extern const char *
+    cryptoAccountAddressAsETH (BRCryptoAccount account);
 
     private_extern BRMasterPubKey
     cryptoAccountAsBTC (BRCryptoAccount account);

@@ -18,11 +18,19 @@ class BRCryptoAccountTests: XCTestCase {
     }
 
     func testAccount () {
-        #if false
-        let _ = Account (phrase: "ginger settle marine tissue robot crane night number ramp coast roast critic")
-        let s1 = Account.deriveSeed(phrase: "ginger settle marine tissue robot crane night number ramp coast roast critic")
-        let _ = Account (seed: s1)
-        #endif
+        let phrase  = "ginger settle marine tissue robot crane night number ramp coast roast critic"
+        let address = "0x8fB4CB96F7C15F9C39B3854595733F728E1963Bc"
+
+        guard let a1 = Account.createFrom (phrase: phrase)
+            else { XCTAssert(false); return}
+
+        XCTAssert (a1.addressAsETH == address)
+        XCTAssert (0 == a1.timestamp)
+
+
+        let d2 = Account.deriveSeed (phrase: phrase)
+        guard let a2 = Account.createFrom (seed: d2) else { XCTAssert (false); return }
+        XCTAssert (a2.addressAsETH == address)
     }
 
     func testAddress () {

@@ -278,3 +278,8 @@ cryptoNetworkAsBTC (BRCryptoNetwork network) {
     assert (BLOCK_CHAIN_TYPE_BTC == network->type);
     return network->u.btc.params;
 }
+
+private_extern BRCryptoBlockChainType
+cryptoNetworkGetBlockChainType (BRCryptoNetwork network) {
+    return network->type;
+}

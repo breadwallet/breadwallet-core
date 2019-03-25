@@ -359,12 +359,16 @@ public final class Account {
 
     let core: BRCryptoAccount
 
-    internal init (core: BRCryptoAccount) {
-        self.core = core
+    public var timestamp: UInt64 {
+        return cryptoAccountGetTimestamp (core)
     }
 
     public var serialize: Data {
         return Data (count: 0)
+    }
+
+    internal init (core: BRCryptoAccount) {
+        self.core = core
     }
 
     static func createFrom (phrase: String) -> Account? {
@@ -372,8 +376,22 @@ public final class Account {
             .map { Account (core: $0) }
     }
 
-    static func createFrom (serialization: Data) -> Account? {
-        return nil
+    static func createFrom (seed input: Data) -> Account? {
+        var data = input
+        return data.withUnsafeMutableBytes {
+            cryptoAccountCreateFromSeedBytes ($0)
+                .map { Account (core: $0) }
+        }
+    }
+
+    static func deriveSeed (phrase: String) -> Data {
+        var seed = cryptoAccountDeriveSeed(phrase)
+        return Data (bytes: &seed, count: MemoryLayout<UInt512>.size);
+    }
+
+    // Test Only
+    internal var addressAsETH: String {
+        return asUTF8String (cryptoAccountAddressAsETH(core)!)
     }
 }
 
