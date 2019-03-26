@@ -38,6 +38,9 @@ extern "C" {
     extern BRCryptoCurrency
     cryptoWalletGetCurrency (BRCryptoWallet wallet);
 
+    extern BRCryptoUnit
+    cryptoWalletGetUnitForFee (BRCryptoWallet wallet);
+    
     extern BRCryptoAmount
     cryptoWalletGetBalance (BRCryptoWallet wallet);
 

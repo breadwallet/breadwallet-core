@@ -62,7 +62,7 @@ struct BRCryptoNetworkRecord {
     union {
         struct {
             uint8_t forkId;
-            BRChainParams *params;
+            const BRChainParams *params;
         } btc;
 
         struct {
@@ -97,7 +97,7 @@ cryptoNetworkCreate (const char *name) {
 private_extern BRCryptoNetwork
 cryptoNetworkCreateAsBTC (const char *name,
                           uint8_t forkId,
-                          BRChainParams *params) {
+                          const BRChainParams *params) {
     BRCryptoNetwork network = cryptoNetworkCreate (name);
     network->type = BLOCK_CHAIN_TYPE_BTC;
     network->u.btc.forkId = forkId;
@@ -118,7 +118,7 @@ cryptoNetworkCreateAsETH (const char *name,
     return network;
 }
 
-static void
+private_extern void
 cryptoNetworkAnnounce (BRCryptoNetwork network) {
     if (NULL != listener.context)
         listener.created (listener.context, network);
@@ -209,6 +209,15 @@ cryptoNetworkGetCurrencyAt (BRCryptoNetwork network,
     return network->associations[index].currency;
 }
 
+extern BRCryptoCurrency
+cryptoNetworkGetCurrencyForCode (BRCryptoNetwork network,
+                                   const char *code) {
+    for (size_t index = 0; index < array_count(network->associations); index++)
+        if (0 == strcmp (code, cryptoCurrencyGetCode (network->associations[index].currency)))
+            return network->associations[index].currency;
+    return NULL;
+}
+
 static BRCryptoCurrencyAssociation *
 cryptoNetworkLookupCurrency (BRCryptoNetwork network,
                              BRCryptoCurrency currency) {
@@ -273,7 +282,7 @@ cryptoNetworkAsETH (BRCryptoNetwork network) {
     return network->u.eth.net;
 }
 
-private_extern BRChainParams *
+private_extern const BRChainParams *
 cryptoNetworkAsBTC (BRCryptoNetwork network) {
     assert (BLOCK_CHAIN_TYPE_BTC == network->type);
     return network->u.btc.params;

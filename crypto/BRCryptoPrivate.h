@@ -35,11 +35,14 @@
 #include "BRCryptoAccount.h"
 #include "BRCryptoAmount.h"
 #include "BRCryptoAddress.h"
+#include "BRCryptoWallet.h"
 
 ///
 #include "../support/BRAddress.h"
 #include "../support/BRBIP32Sequence.h"
 #include "../bitcoin/BRChainParams.h"
+#include "../bitcoin/BRWallet.h"
+#include "../bcash/BRBCashParams.h"
 #include "../ethereum/BREthereum.h"
 
 #ifdef __cplusplus
@@ -95,6 +98,9 @@ extern "C" {
     /// MARK: - Network
 
     private_extern void
+    cryptoNetworkAnnounce (BRCryptoNetwork network);
+
+    private_extern void
     cryptoNetworkSetHeight (BRCryptoNetwork network,
                             BRCryptoBlockChainHeight height);
     
@@ -112,13 +118,18 @@ extern "C" {
     private_extern BREthereumNetwork
     cryptoNetworkAsETH (BRCryptoNetwork network);
 
-    private_extern BRChainParams *
+    private_extern const BRChainParams *
     cryptoNetworkAsBTC (BRCryptoNetwork network);
 
     private_extern BRCryptoNetwork
     cryptoNetworkCreateAsBTC (const char *name,
                               uint8_t forkId,
-                              BRChainParams *params);
+                              const BRChainParams *params);
+
+    private_extern BRCryptoNetwork
+    cryptoNetworkCreateAsETH (const char *name,
+                              uint32_t chainId,
+                              BREthereumNetwork net);
 
     private_extern BRCryptoBlockChainType
     cryptoNetworkGetBlockChainType (BRCryptoNetwork network);
@@ -134,6 +145,27 @@ extern "C" {
     private_extern BRMasterPubKey
     cryptoAccountAsBTC (BRCryptoAccount account);
 
+    /// MARK: - Wallet
+
+    private_extern BRCryptoBlockChainType
+    cryptoWalletGetType (BRCryptoWallet wallet);
+
+    private_extern BRWallet *
+    cryptoWalletAsBTC (BRCryptoWallet wallet);
+
+    private_extern BREthereumWallet
+    cryptoWalletAsETH (BRCryptoWallet wallet);
+    
+    private_extern BRCryptoWallet
+    cryptoWalletCreateAsBTC (BRCryptoUnit unit,
+                             BRCryptoUnit unitForFee,
+                             BRWallet *btc);
+
+    private_extern BRCryptoWallet
+    cryptoWalletCreateAsETH (BRCryptoUnit unit,
+                             BRCryptoUnit unitForFee,
+                             BREthereumWallet eth);
+    
 #ifdef __cplusplus
 }
 #endif

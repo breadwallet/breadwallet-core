@@ -42,11 +42,59 @@ struct BRCryptoWalletRecord {
 
     BRCryptoUnit unit;  // baseUnit
     BRArrayOf (BRCryptoTransfer) transfers;
+
+    BRCryptoUnit unitForFee;
 };
+
+static BRCryptoWallet
+cryptoWalletCreateInternal (BRCryptoBlockChainType type,
+                            BRCryptoUnit unit,
+                            BRCryptoUnit unitForFee) {
+    BRCryptoWallet wallet = malloc (sizeof (struct BRCryptoWalletRecord));
+
+    wallet->type = type;
+    wallet->unit = cryptoUnitTake (unit);
+    wallet->unitForFee = cryptoUnitTake (unitForFee);
+    array_new (wallet->transfers, 5);
+
+    return wallet;
+}
+
+private_extern BRCryptoWallet
+cryptoWalletCreateAsBTC (BRCryptoUnit unit,
+                         BRCryptoUnit unitForFee,
+                         BRWallet *btc) {
+    BRCryptoWallet wallet = cryptoWalletCreateInternal (BLOCK_CHAIN_TYPE_BTC, unit, unitForFee);
+
+    wallet->u.btc = btc;
+
+    return wallet;
+}
+
+private_extern BRCryptoWallet
+cryptoWalletCreateAsETH (BRCryptoUnit unit,
+                         BRCryptoUnit unitForFee,
+                         BREthereumWallet eth) {
+    BRCryptoWallet wallet = cryptoWalletCreateInternal (BLOCK_CHAIN_TYPE_ETH, unit, unitForFee);
+
+    wallet->u.eth = eth;
+
+    return wallet;
+}
+
+private_extern BRCryptoBlockChainType
+cryptoWalletGetType (BRCryptoWallet wallet) {
+    return wallet->type;
+}
 
 extern BRCryptoCurrency
 cryptoWalletGetCurrency (BRCryptoWallet wallet) {
     return cryptoUnitGetCurrency(wallet->unit);
+}
+
+extern BRCryptoUnit
+cryptoWalletGetUnitForFee (BRCryptoWallet wallet) {
+    return wallet->unitForFee;
 }
 
 extern BRCryptoAmount
@@ -63,4 +111,16 @@ cryptoWalletGetTransfers (BRCryptoWallet wallet) {
 extern BRCryptoAddress
 cryptoWalletGetAddress (BRCryptoWallet wallet) {
     return cryptoAddressCreate("no address");
+}
+
+private_extern BRWallet *
+cryptoWalletAsBTC (BRCryptoWallet wallet) {
+    assert (BLOCK_CHAIN_TYPE_BTC ==  wallet->type);
+    return wallet->u.btc;
+}
+
+private_extern BREthereumWallet
+cryptoWalletAsETH (BRCryptoWallet wallet) {
+    assert (BLOCK_CHAIN_TYPE_ETH ==  wallet->type);
+    return wallet->u.eth;
 }

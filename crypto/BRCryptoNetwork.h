@@ -80,6 +80,10 @@ extern "C" {
     cryptoNetworkGetCurrencyAt (BRCryptoNetwork network,
                                 size_t index);
 
+    extern BRCryptoCurrency
+    cryptoNetworkGetCurrencyForSymbol (BRCryptoNetwork network,
+                                       const char *symbol);
+
     extern BRCryptoUnit
     cryptoNetworkGetUnitAsBase (BRCryptoNetwork network,
                                 BRCryptoCurrency currency);
