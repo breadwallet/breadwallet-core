@@ -326,32 +326,33 @@ int BRMerkleBlockVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBloc
     // TODO: implement testnet difficulty rule check
     return r; // don't worry about difficulty on testnet for now
 #endif
+
+    // TODO: fix difficulty target check for Litecoin
+    // if (r && (block->height % BLOCK_DIFFICULTY_INTERVAL) == 0) {
+    //     // target is in "compact" format, where the most significant byte is the size of resulting value in bytes, next
+    //     // bit is the sign, and the remaining 23bits is the value after having been right shifted by (size - 3)*8 bits
+    //     static const uint32_t maxsize = MAX_PROOF_OF_WORK >> 24, maxtarget = MAX_PROOF_OF_WORK & 0x00ffffff;
+    //     int timespan = (int)((int64_t)previous->timestamp - (int64_t)transitionTime), size = previous->target >> 24;
+    //     uint64_t target = previous->target & 0x00ffffff;
+
+    //     // limit difficulty transition to -75% or +400%
+    //     if (timespan < TARGET_TIMESPAN/4) timespan = TARGET_TIMESPAN/4;
+    //     if (timespan > TARGET_TIMESPAN*4) timespan = TARGET_TIMESPAN*4;
     
-    if (r && (block->height % BLOCK_DIFFICULTY_INTERVAL) == 0) {
-        // target is in "compact" format, where the most significant byte is the size of resulting value in bytes, next
-        // bit is the sign, and the remaining 23bits is the value after having been right shifted by (size - 3)*8 bits
-        static const uint32_t maxsize = MAX_PROOF_OF_WORK >> 24, maxtarget = MAX_PROOF_OF_WORK & 0x00ffffff;
-        int timespan = (int)((int64_t)previous->timestamp - (int64_t)transitionTime), size = previous->target >> 24;
-        uint64_t target = previous->target & 0x00ffffff;
+    //     // TARGET_TIMESPAN happens to be a multiple of 256, and since timespan is at least TARGET_TIMESPAN/4, we don't
+    //     // lose precision when target is multiplied by timespan and then divided by TARGET_TIMESPAN/256
+    //     target *= timespan;
+    //     target /= TARGET_TIMESPAN >> 8;
+    //     size--; // decrement size since we only divided by TARGET_TIMESPAN/256
     
-        // limit difficulty transition to -75% or +400%
-        if (timespan < TARGET_TIMESPAN/4) timespan = TARGET_TIMESPAN/4;
-        if (timespan > TARGET_TIMESPAN*4) timespan = TARGET_TIMESPAN*4;
+    //     while (size < 1 || target > 0x007fffff) target >>= 8, size++; // normalize target for "compact" format
     
-        // TARGET_TIMESPAN happens to be a multiple of 256, and since timespan is at least TARGET_TIMESPAN/4, we don't
-        // lose precision when target is multiplied by timespan and then divided by TARGET_TIMESPAN/256
-        target *= timespan;
-        target /= TARGET_TIMESPAN >> 8;
-        size--; // decrement size since we only divided by TARGET_TIMESPAN/256
+    //     // limit to MAX_PROOF_OF_WORK
+    //     if (size > maxsize || (size == maxsize && target > maxtarget)) target = maxtarget, size = maxsize;
     
-        while (size < 1 || target > 0x007fffff) target >>= 8, size++; // normalize target for "compact" format
-    
-        // limit to MAX_PROOF_OF_WORK
-        if (size > maxsize || (size == maxsize && target > maxtarget)) target = maxtarget, size = maxsize;
-    
-        if (block->target != ((uint32_t)target | size << 24)) r = 0;
-    }
-    else if (r && block->target != previous->target) r = 0;
+    //     if (block->target != ((uint32_t)target | size << 24)) r = 0;
+    // }
+    // else if (r && block->target != previous->target) r = 0;
     
     return r;
 }
