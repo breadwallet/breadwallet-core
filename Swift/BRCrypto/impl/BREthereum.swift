@@ -6,20 +6,41 @@
 //  Copyright © 2019 breadwallet. All rights reserved.
 //
 
+import BRCryptoC
 import BRCore.Ethereum
-class EthereumNetwork: NetworkBase {
-    let core: BREthereumNetwork
 
-    public init (core: BREthereumNetwork,
-                 name: String,
-                 isMainnet: Bool,
-                 currency: Currency,
-                 associations: Dictionary<Currency, Association>) {
-        self.core = core
-        super.init (name: name,
-                    isMainnet: isMainnet,
-                    currency: currency,
-                    associations: associations)
+extension Amount {
+    fileprivate var asETH: UInt64 {
+        var overflow: BRCryptoBoolean = CRYPTO_FALSE
+        let value = cryptoAmountGetIntegerRaw (self.core, &overflow)
+        precondition(CRYPTO_FALSE == overflow)
+        return value
+    }
+
+    static fileprivate func createAsETH (_ value: UInt256, _ unit: Unit) -> Amount {
+        return Amount (core: cryptoAmountCreate(unit.currency.core, CRYPTO_FALSE, value),
+                       unit: unit);
+    }
+}
+
+extension Address {
+    static fileprivate func createAsETH (_ eth: BREthereumAddress) -> Address  {
+        return Address (core: cryptoAddressCreateAsETH (eth))
+    }
+}
+
+extension Network {
+    fileprivate var asETH: BREthereumNetwork! {
+        switch self.impl {
+        case let .ethereum(_, network): return network
+        default: precondition(false); return nil
+        }
+    }
+}
+
+extension Account {
+    fileprivate var asETH: BREthereumAccount {
+        return cryptoAccountAsETH (self.core)
     }
 }
 
@@ -40,7 +61,7 @@ public class EthereumToken {
     internal init (identifier: BREthereumToken,
                    currency: Currency) {
         self.identifier = identifier
-        self.address = EthereumAddress (tokenGetAddressRaw(identifier))
+        self.address = Address (core: cryptoAddressCreateAsETH(tokenGetAddressRaw(identifier)))
         self.currency = currency
     }
 }
@@ -65,23 +86,6 @@ extension EthereumTokenEvent: CustomStringConvertible {
 ///
 ///
 ///
-class EthereumAddress: Address {
-    let core: BREthereumAddress
-
-    internal init (_ core: BREthereumAddress) {
-        self.core = core
-    }
-
-    static func create(string: String, network: Network) -> Address? {
-        return (ETHEREUM_BOOLEAN_FALSE == addressValidateString(string)
-            ? nil
-            : EthereumAddress (addressCreate (string)))
-    }
-
-    var description: String {
-        return asUTF8String(addressGetEncodedString (core, 1))
-    }
-}
 
 class EthereumTransfer: Transfer {
     internal let identifier: BREthereumTransfer
@@ -99,11 +103,11 @@ class EthereumTransfer: Transfer {
     internal let unit: Unit
 
     public private(set) lazy var source: Address? = {
-        return EthereumAddress (ewmTransferGetSource (self.core, self.identifier))
+        return Address (core: cryptoAddressCreateAsETH (ewmTransferGetSource (self.core, self.identifier)))
     }()
 
     public private(set) lazy var target: Address? = {
-        return EthereumAddress (ewmTransferGetTarget (self.core, self.identifier))
+        return Address (core: cryptoAddressCreateAsETH (ewmTransferGetTarget (self.core, self.identifier)))
     }()
 
     public private(set) lazy var amount: Amount = {
@@ -112,23 +116,41 @@ class EthereumTransfer: Transfer {
             ? amount.u.ether.valueInWEI
             : amount.u.tokenQuantity.valueAsInteger)
 
-        return Amount (value: value,
-                       isNegative: false,
+        return Amount (core: cryptoAmountCreate (unit.currency.core, CRYPTO_FALSE, value),
                        unit: unit)
     } ()
 
-    var fee: Amount
+    public private(set) lazy var fee: Amount = {
+        var overflow: Int32 = 0;
+        let amount: BREthereumEther = ewmTransferGetFee (self.core, self.identifier, &overflow)
+        precondition (0 == overflow)
+
+        let unit = wallet.manager.network.baseUnitFor(currency: wallet.manager.currency)!
+        return Amount.createAsETH (amount.valueInWEI, unit)
+    }()
 
     var feeBasis: TransferFeeBasis
 
-    var hash: TransferHash?
+    public private(set) var hash: TransferHash? = nil
 
-    var state: TransferState
+    public private(set) var state: TransferState
 
-    var isSent: Bool
+    public let isSent: Bool
 
-    
+    internal init (wallet: EthereumWallet,
+                   unit: Unit,
+                   tid: BREthereumTransfer) {
+        self._wallet = wallet
+        self.identifier = tid
+        self.unit = unit
+        self.state = TransferState.created
 
+        let gasUnit = wallet.manager.network.baseUnitFor(currency: wallet.manager.currency)!
+
+        let gasPrice = Amount.createAsETH(createUInt256 (0), gasUnit)
+        self.feeBasis = TransferFeeBasis.ethereum(gasPrice: gasPrice, gasLimit: 0)
+        self.isSent = true
+    }
 }
 
 ///
@@ -136,6 +158,9 @@ class EthereumTransfer: Transfer {
 ///
 class EthereumWallet: Wallet {
     internal let identifier: BREthereumWallet
+    private var core: BREthereumEWM {
+        return _manager.core!
+    }
 
     public unowned let _manager: EthereumWalletManager
 
@@ -143,21 +168,50 @@ class EthereumWallet: Wallet {
         return _manager
     }
 
-    private var core: BREthereumEWM {
-        return _manager.core!
+    public let name: String
+
+    public let unit: Unit
+
+    public var balance: Amount {
+        let coreETH = ewmWalletGetBalance (self.core, self.identifier)
+        let value = (coreETH.type == AMOUNT_ETHER
+            ? coreETH.u.ether.valueInWEI
+            : coreETH.u.tokenQuantity.valueAsInteger)
+        return Amount.createAsETH (value, unit)
     }
 
-    public let currency: Currency
+    public private(set) var transfers: [Transfer] = []
+
+    public func lookup (transfer: TransferHash) -> Transfer? {
+        return nil
+    }
 
     public internal(set) var state: WalletState
 
+    public internal(set) var defaultFeeBasis: TransferFeeBasis
+
+//    public var transferFactory: TransferFactory
+
+    public let target: Address
+    public let source: Address
+
     internal init (manager: EthereumWalletManager,
-                   currency: Currency,
+                   unit: Unit,
                    wid: BREthereumWallet) {
         self._manager = manager
         self.identifier = wid
-        self.currency = currency
+        self.name = "some name"
+        self.unit = unit
+
         self.state = WalletState.created
+
+        self.target = Address.createAsETH (accountGetPrimaryAddress (manager.account.asETH))
+        self.source = self.target
+
+        let gasUnit  = manager.network.baseUnitFor(currency: manager.currency)!
+        let gasPrice = Amount.createAsETH(createUInt256 (0), gasUnit)
+        self.defaultFeeBasis = TransferFeeBasis.ethereum(gasPrice: gasPrice, gasLimit: 0)
+
     }
 }
 
@@ -170,9 +224,13 @@ class EthereumWalletManager: WalletManager {
     public let account: Account
     public var network: Network
 
+    internal lazy var unit: Unit = {
+        return network.defaultUnitFor(currency: network.currency)!
+    }()
+
     public lazy var primaryWallet: Wallet = {
         return EthereumWallet (manager: self,
-                               currency: network.currency,
+                               unit: unit,
                                wid: ewmGetWallet(self.core))
     }()
 
@@ -180,20 +238,36 @@ class EthereumWalletManager: WalletManager {
         return [primaryWallet]
     } ()
 
-    internal func addWallet (identifier: BREthereumWallet) {
-        guard case .none = findWallet(identifier: identifier) else { return }
 
-        if let tokenId = ewmWalletGetToken (core, identifier) {
-            guard let token = findToken (identifier: tokenId) else { precondition(false); return }
-            wallets.append (EthereumWallet (manager: self,
-                                            currency: token.currency,
-                                            wid: identifier))
-        }
+    public func createWalletFor (currency: Currency) -> Wallet? {
+        guard let unit = network.defaultUnitFor (currency: currency) else { return nil }
+
+        let core = ewmGetWallet(self.core)! // holding token
+
+        let wallet =  EthereumWallet (manager: self,
+                                      unit: unit,
+                                      wid: core)
+        wallets.append(wallet)
+        return wallet
     }
 
-    internal func findWallet (identifier: BREthereumWallet) -> EthereumWallet? {
-        return wallets.first { identifier == ($0 as! EthereumWallet).identifier } as? EthereumWallet
-    }
+//    internal func addWallet (identifier: BREthereumWallet) {
+//        guard case .none = findWallet(identifier: identifier) else { return }
+//
+//        if let tokenId = ewmWalletGetToken (core, identifier) {
+//            guard let token = findToken (identifier: tokenId),
+//                let unit = network.defaultUnitFor(currency: token.currency)
+//                else { precondition(false); return }
+//
+//            wallets.append (EthereumWallet (manager: self,
+//                                            unit: unit,
+//                                            wid: identifier))
+//        }
+//    }
+//
+//    internal func findWallet (identifier: BREthereumWallet) -> EthereumWallet? {
+//        return wallets.first { identifier == ($0 as! EthereumWallet).identifier } as? EthereumWallet
+//    }
 
     public var mode: WalletManagerMode
 
@@ -201,15 +275,13 @@ class EthereumWalletManager: WalletManager {
 
     public var state: WalletManagerState
 
-    #if false
-    public var walletFactory: WalletFactory = EthereumWalletFactory()
-    #endif
+//    public var walletFactory: WalletFactory = EthereumWalletFactory()
 
     internal let query: BlockChainDB
 
     public init (//listener: EthereumListener,
                  account: Account,
-                 network: EthereumNetwork,
+                 network: Network,
                  mode: WalletManagerMode,
                  storagePath: String) {
 
@@ -220,8 +292,8 @@ class EthereumWalletManager: WalletManager {
         self.state   = WalletManagerState.created
         self.query   = BlockChainDB()
 
-        self.core = ewmCreate (network.core,
-                               account.ethereumAccount,
+        self.core = ewmCreate (network.asETH,
+                               account.asETH,
                                UInt64(account.timestamp),
                                EthereumWalletManager.coreMode (mode),
                                coreEthereumClient,
@@ -292,10 +364,12 @@ class EthereumWalletManager: WalletManager {
     private lazy var coreEthereumClient: BREthereumClient = {
         let this = self
         return BREthereumClient (
-            context: UnsafeMutableRawPointer (Unmanaged<EthereumWalletManager>.passRetained(this).toOpaque()),
+            // Unmanaged<System>.passRetained(self).toOpaque(),
+            // Unmanaged<System>.fromOpaque(context!).takeRetainedValue()
+            context: Unmanaged<EthereumWalletManager>.passUnretained(this).toOpaque(),
 
             funcGetBalance: { (context, coreEWM, wid, address, rid) in
-                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeRetainedValue()
+                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeUnretainedValue()
                 let address = asUTF8String(address!)
                 this.query.getBalanceAsETH (ewm: this.core,
                                             wid: wid!,
@@ -305,7 +379,7 @@ class EthereumWalletManager: WalletManager {
                 }},
 
             funcGetGasPrice: { (context, coreEWM, wid, rid) in
-                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeRetainedValue()
+                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeUnretainedValue()
 //                    ewm.queue.async {
 //                        ewm.backendClient.getGasPrice (ewm: ewm,
 //                                                       wid: wid!,
@@ -314,7 +388,7 @@ class EthereumWalletManager: WalletManager {
 //                }},
         },
             funcEstimateGas: { (context, coreEWM, wid, tid, from, to, amount, data, rid)  in
-                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeRetainedValue()
+                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeUnretainedValue()
                     let from = asUTF8String(from!)
                     let to = asUTF8String(to!)
                     let amount = asUTF8String(amount!)
@@ -333,7 +407,7 @@ class EthereumWalletManager: WalletManager {
         },
 
             funcSubmitTransaction: { (context, coreEWM, wid, tid, transaction, rid)  in
-                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeRetainedValue()
+                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeUnretainedValue()
                     let transaction = asUTF8String (transaction!)
 //                    ewm.queue.async {
 //                        ewm.backendClient.submitTransaction(ewm: ewm,
@@ -345,7 +419,7 @@ class EthereumWalletManager: WalletManager {
 //                }},
         },
             funcGetTransactions: { (context, coreEWM, address, begBlockNumber, endBlockNumber, rid) in
-                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeRetainedValue()
+                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeUnretainedValue()
                     let address = asUTF8String(address!)
 //                    ewm.queue.async {
 //                        ewm.backendClient.getTransactions(ewm: ewm,
@@ -357,7 +431,7 @@ class EthereumWalletManager: WalletManager {
 //                }},
         },
             funcGetLogs: { (context, coreEWM, contract, address, event, begBlockNumber, endBlockNumber, rid) in
-                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeRetainedValue()
+                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeUnretainedValue()
                     let address = asUTF8String(address!)
 //                    ewm.queue.async {
 //                        ewm.backendClient.getLogs (ewm: ewm,
@@ -370,27 +444,28 @@ class EthereumWalletManager: WalletManager {
 //                }},
         },
             funcGetBlocks: { (context, coreEWM, address, interests, blockStart, blockStop, rid) in
-                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeRetainedValue()
-                    let address = asUTF8String(address!)
-//                    ewm.queue.async {
-//                        ewm.backendClient.getBlocks (ewm: ewm,
-//                                                     address: address,
-//                                                     interests: interests,
-//                                                     blockStart: blockStart,
-//                                                     blockStop: blockStop,
-//                                                     rid: rid)
-//                    }
-//                }},
-        },
+                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeUnretainedValue()
+                let address = asUTF8String(address!)
+                this.query.getBlocksAsETH (ewm: this.core,
+                                           address: address,
+                                           interests: interests,
+                                           blockStart: blockStart,
+                                           blockStop: blockStop,
+                                           rid: rid) { (blocks, rid) in
+                                            ewmAnnounceBlocks (this.core, rid,
+                                                               Int32(blocks.count),
+                                                               UnsafeMutablePointer<UInt64>(mutating: blocks))
+                }},
+
             funcGetTokens: { (context, coreEWM, rid) in
-                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeRetainedValue()
+                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeUnretainedValue()
 //                    ewm.queue.async {
 //                        ewm.backendClient.getTokens (ewm: ewm, rid: rid)
 //                    }
 //                }},
         },
             funcGetBlockNumber: { (context, coreEWM, rid) in
-                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeRetainedValue()
+                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeUnretainedValue()
 //                    ewm.queue.async {
 //                        ewm.backendClient.getBlockNumber(ewm: ewm, rid: rid)
 //                    }
@@ -398,7 +473,7 @@ class EthereumWalletManager: WalletManager {
         },
 
             funcGetNonce: { (context, coreEWM, address, rid) in
-                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeRetainedValue()
+                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeUnretainedValue()
                     let address = asUTF8String(address!)
 //                    ewm.queue.async {
 //                        ewm.backendClient.getNonce(ewm: ewm,
@@ -409,7 +484,7 @@ class EthereumWalletManager: WalletManager {
         },
 
             funcEWMEvent: { (context, coreEWM, event, status, message) in
-                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeRetainedValue()
+                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeUnretainedValue()
 //                    ewm.queue.async {
 //                        ewm.listener.handleManagerEvent (manager: ewm,
 //                                                         event: WalletManagerEvent(event))
@@ -417,14 +492,14 @@ class EthereumWalletManager: WalletManager {
 //                }},
         },
             funcPeerEvent: { (context, coreEWM, event, status, message) in
-                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeRetainedValue()
+                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeUnretainedValue()
 //                    ewm.queue.async {
 //                        //                    ewm.listener.handlePeerEvent (ewm: ewm, event: EthereumPeerEvent (event))
 //                    }
 //                }},
         },
             funcWalletEvent: { (context, coreEWM, wid, event, status, message) in
-                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeRetainedValue()
+                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeUnretainedValue()
 //                    ewm.queue.async {
 //                        let event = WalletEvent (ewm: ewm, wid: wid!, event: event)
 //                        if case .created = event,
@@ -441,7 +516,7 @@ class EthereumWalletManager: WalletManager {
 //                }},
         },
             funcTokenEvent: { (context, coreEWM, token, event) in
-                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeRetainedValue()
+                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeUnretainedValue()
 //                    ewm.queue.async {
 //                        let event = EthereumTokenEvent (event)
 //                        if case .created = event,
@@ -466,7 +541,7 @@ class EthereumWalletManager: WalletManager {
             //                }},
 
             funcTransferEvent: { (context, coreEWM, wid, tid, event, status, message) in
-                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeRetainedValue()
+                let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeUnretainedValue()
 //                    ewm.queue.async {
 //                        if let wallet = ewm.findWallet(identifier: wid!) {
 //                            // Create a transfer, if needed.

@@ -1,6 +1,6 @@
 //
 //  BREthereum.swift
-//  BRCoreX
+//  BRCrypto
 //
 //  Created by Ed Gamble on 11/7/18.
 //  Copyright © 2018 breadwallet. All rights reserved.

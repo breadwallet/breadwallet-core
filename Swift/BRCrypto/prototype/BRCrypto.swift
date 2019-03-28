@@ -1,13 +1,13 @@
 //
 //  BRCrypto.swift
-//  BRCoreX
+//  BRCrypto
 //
 //  Created by Ed Gamble on 11/5/18.
 //  Copyright © 2018 breadwallet. All rights reserved.
 //
 import Foundation
 import SystemConfiguration  // SCSystemReachability
-import BRCore               // Core Crypto
+import BRCryptoC               // Core Crypto
 
 ///
 /// A currency is a medium for exchange.

@@ -77,6 +77,10 @@ extern "C" {
                            BRCryptoUnit unit,
                            BRCryptoBoolean *overflow);
 
+    extern uint64_t
+    cryptoAmountGetIntegerRaw (BRCryptoAmount amount,
+                               BRCryptoBoolean *overflow);
+    
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoAmount, cryptoAmount);
 
 #ifdef __cplusplus

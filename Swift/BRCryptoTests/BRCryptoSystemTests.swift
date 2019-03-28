@@ -8,12 +8,11 @@
 import XCTest
 @testable import BRCrypto
 
-class TestSystem : System {
-}
-
 class TestListener: SystemListener {
+    func handleSystemEvent(system: System, event: SystemEvent) {
+    }
+    
     func handleNetworkEvent(system: System, network: Network, event: NetworkEvent) {
-        guard let system = system as? TestSystem else { assert (false); return }
         switch event {
         case .created:
             // A network was created; create the corresponding wallet manager.  Note: an actual
@@ -27,9 +26,9 @@ class TestListener: SystemListener {
     }
 
     func handleManagerEvent(system: System, manager: WalletManager, event: WalletManagerEvent) {
-        guard let _ /* system */ = system as? TestSystem else { assert (false); return }
         switch event {
         case .created:
+            manager.connect()
             // A WalletManager was created; create a wallet for each currency.
             break
         default:
@@ -62,19 +61,35 @@ class TestListener: SystemListener {
 
 }
 
-class BRCryptoSystemTests: XCTestCase {
+class BRCryptoSystemTests: BRCryptoBaseTests {
+//    let url  = URL (string: "http:/brd.com/")!
 
-
-
-    let path = "/tmp/"
-    let url  = URL (string: "http:/brd.com/")!
-
-    let phrase  = "ginger settle marine tissue robot crane night number ramp coast roast critic"
     var account: Account!
+    var storagePath: String!
 
     override func setUp() {
-        account = Account.createFrom (phrase: phrase)!
+        super.setUp()
 
+        account = Account.createFrom (phrase: paperKey)!
+
+        storagePath = FileManager.default
+            .urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Core").path
+
+        do {
+            if FileManager.default.fileExists(atPath: storagePath) {
+                try FileManager.default.removeItem(atPath: storagePath)
+            }
+
+            try FileManager.default.createDirectory (atPath: storagePath,
+                                                     withIntermediateDirectories: true,
+                                                     attributes: nil)
+        }
+        catch let error as NSError {
+            print("Error: \(error.localizedDescription)")
+        }
+
+        NSLog ("StoragePath: \(storagePath)");
     }
 
     override func tearDown() {
@@ -82,14 +97,14 @@ class BRCryptoSystemTests: XCTestCase {
 
     func testSystem() {
         let listener = TestListener ()
-        
-        let sys = TestSystem (account: account,
-                                   listener: listener,
-                                   persistencePath: path,
-                                   blockchainURL: url);
 
-        sys.start();
+        let sys = SystemBase (listener: listener,
+                              account: account,
+                              path: storagePath,
+                              query: BlockChainDB())
 
+        sys.start (networksNeeded: ["ethereum-mainnet"]);
+        sleep(60)
     }
 
 }

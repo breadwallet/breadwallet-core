@@ -78,7 +78,7 @@ cryptoUnitCreate (BRCryptoCurrency currency,
     assert (NULL != baseUnit);
     BRCryptoUnit unit = cryptoUnitCreateInternal (currency, name, symbol);
 
-    unit->base = baseUnit;
+    unit->base = cryptoUnitTake (baseUnit);
     unit->decimals = powerOffset;
 
     return unit;

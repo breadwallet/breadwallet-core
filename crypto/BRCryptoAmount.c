@@ -185,3 +185,12 @@ cryptoAmountGetDouble (BRCryptoAmount amount,
     long double result = coerceDouble (amount->value, (int*) overflow) / power;
     return (CRYPTO_TRUE == amount->isNegative ? -result : result);
 }
+
+extern uint64_t
+cryptoAmountGetIntegerRaw (BRCryptoAmount amount,
+                           BRCryptoBoolean *overflow) {
+    *overflow = (0 != amount->value.u64 [3] ||
+                 0 != amount->value.u64 [2] ||
+                 0 != amount->value.u64 [1]);
+    return *overflow ? 0 : amount->value.u64[0];
+}

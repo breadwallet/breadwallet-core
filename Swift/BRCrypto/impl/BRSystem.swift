@@ -7,7 +7,10 @@
 //
 
 import Foundation
+import BRCore
 import BRCore.Ethereum
+
+//import BRCore.Ethereum
 
 public final class SystemBase: System {
     /// The listener.  Gets all events for {Network, WalletManger, Wallet, Transfer}
@@ -32,36 +35,52 @@ public final class SystemBase: System {
 
     public func createWalletManager (network: Network,
                                      mode: WalletManagerMode) {
-        if let network =  network as? EthereumNetwork {
-            let manager = EthereumWalletManager (account: account,
-                                                 network: network,
-                                                 mode: mode,
-                                                 storagePath: "\(path)/eth/\(network.name.lowercased())")
-            managers.append(manager)
-            listener?.handleManagerEvent(system: self, manager: manager, event: WalletManagerEvent.created)
-            listener?.handleSystemEvent(system: self, event: SystemEvent.managerAdded(manager: manager))
+        var manager: WalletManager!
 
-            network.currencies
-                .filter { $0.type == "erc20" }
-                .forEach {
-//                    let unit = network.defaultUnitFor(currency: $0)
-//                    let core: BREthereumToken! = nil // ewmToek
-//                    let token = EthereumToken (identifier: core, currency: $0)
-            }
+//        let storagePath = "\(path)/\(network.currency.code)/\(network.name.lowercased())"
+
+        switch network.currency.code {
+        case Currency.codeAsBTC,
+             Currency.codeAsBCH:
+//            manager = BitcoinWalletManager (// listener: <#T##BitcoinListener#>,
+//                                            account: account,
+//                                            network: network,
+//                                            mode: mode,
+//                                            storagePath: storagePath)
+            break
+        case Currency.codeAsETH:
+            manager = EthereumWalletManager (account: account,
+                                             network: network,
+                                             mode: mode,
+                                             storagePath: path)
+            break
+        default: // generic
+            break
+
         }
+        precondition(nil != manager)
+
+        managers.append(manager)
+        listener?.handleManagerEvent(system: self, manager: manager, event: WalletManagerEvent.created)
+        listener?.handleSystemEvent(system: self, event: SystemEvent.managerAdded(manager: manager))
+
+        // For ETH: tokens - add and wallet define
+//        network.currencies
+//            .filter { $0.type == "erc20" }
+//            .forEach {
+//                //                    let unit = network.defaultUnitFor(currency: $0)
+//                //                    let core: BREthereumToken! = nil // ewmToek
+//                //                    let token = EthereumToken (identifier: core, currency: $0)
+//        }
     }
 
     public func createWallet(manager: WalletManager, currency: Currency) {
-        if let manager = manager as? EthereumWalletManager {
-            let core = ewmGetWalletHoldingToken (manager.core, nil)
-            let wallet = EthereumWallet (manager: manager,
-                                         currency: currency,
-                                         wid: core!)
-
-            manager.wallets.append (wallet)
-            listener?.handleWalletEvent (system: self, manager: manager, wallet: wallet, event: WalletEvent.created)
-            listener?.handleManagerEvent(system: self, manager: manager, event: WalletManagerEvent.walletAdded(wallet: wallet))
+        guard let wallet = manager.createWalletFor(currency: currency) else {
+            precondition(false); return
         }
+
+        listener?.handleWalletEvent (system: self, manager: manager, wallet: wallet, event: WalletEvent.created)
+        listener?.handleManagerEvent(system: self, manager: manager, event: WalletManagerEvent.walletAdded(wallet: wallet))
     }
 
     private static var instance: System?
@@ -79,52 +98,114 @@ public final class SystemBase: System {
     }
 
     public init (listener: SystemListener,
-                             account: Account,
-                             path: String,
-                             query: BlockChainDB) {
+                 account: Account,
+                 path: String,
+                 query: BlockChainDB) {
         precondition (nil == SystemBase.instance)
-
+        
         self.listener = listener
         self.account = account
         self.path = path
         self.query = query
-
+        
         listener.handleSystemEvent (system: self, event: SystemEvent.created)
     }
 
-    public func start () {
-        let ETH = Currency (uids: "ETH", name: "Ethereum", code: "ETH", type: "native")
-        let ETH_WEI   = Unit (currency: ETH, uids: "ETH_WEI",   name: "WEI",   symbol: "wei")
-        let ETH_GWEI  = Unit (currency: ETH, uids: "ETH_GWEI",  name: "GWEI",  symbol: "gwei", base: ETH_WEI, decimals: 9)
-        let ETH_ETHER = Unit (currency: ETH, uids: "ETH_ETHER", name: "ETHER", symbol: "Ξ",    base: ETH_WEI, decimals: 18)
+    public func start (networksNeeded: [String]) {
+        func currencyDenominationToBaseUnit (currency: Currency, model: BlockChainDB.Model.CurrencyDenomination) -> Unit {
+            let uids = "\(currency.name)-\(model.code)"
+            return Unit (currency: currency, uids: uids, name: model.name, symbol: model.symbol)
+        }
 
-        let BRD = Currency (uids: "ERC20 BRD", name: "BRD Token", code: "BRD", type: "erc20")
-        let BRD_INT = Unit (currency: BRD, uids: "ERC20 BRD INT", name: "BRD INT", symbol: "BRD INT")
-        let BRD_BRD = Unit (currency: BRD, uids: "ERC20_BRD_BRD", name: "BRD", symbol: "BRD", base: BRD_INT, decimals: 18)
+        func currencyDenominationToUnit (currency: Currency, model: BlockChainDB.Model.CurrencyDenomination, base: Unit) -> Unit {
+            let uids = "\(currency.name)-\(model.code)"
+            return Unit (currency: currency, uids: uids, name: model.name, symbol: model.symbol, base: base, decimals: model.decimals)
+        }
 
-        let ETH_ASSOCIATIONS = [
-                ETH: NetworkBase.Association (baseUnit: ETH_WEI, defaultUnit: ETH_ETHER, units: Set<Unit> (arrayLiteral: ETH_WEI, ETH_GWEI, ETH_ETHER)),
-                BRD: NetworkBase.Association (baseUnit: BRD_INT, defaultUnit: BRD_BRD,   units: Set<Unit> (arrayLiteral: BRD_INT, BRD_BRD))
-        ]
+        // query blockchains
+        self.query.getBlockchains { (blockchainModels: [BlockChainDB.Model.Blockchain]) in
 
-        let ETH_Mainnet = EthereumNetwork (core: ethereumMainnet,
-                                           name: "Mainnet",
-                                           isMainnet: true,
-                                           currency: ETH,
-                                           associations: ETH_ASSOCIATIONS)
-        networks.append(ETH_Mainnet)
-        listener?.handleNetworkEvent(system: self, network: ETH_Mainnet, event: NetworkEvent.created)
-        listener?.handleSystemEvent (system: self, event: SystemEvent.networkAdded(network: ETH_Mainnet))
+            // For every blockchain, query the currency and then create a network
+            blockchainModels.filter { networksNeeded.contains($0.id) }
+                .forEach { (blockchainModel: BlockChainDB.Model.Blockchain) in
 
-        let ETH_Testnet = EthereumNetwork (core: ethereumTestnet,
-                                           name: "Testnet",
-                                           isMainnet: false,
-                                           currency: ETH,
-                                           associations: ETH_ASSOCIATIONS)
-        networks.append(ETH_Testnet)
-        listener?.handleNetworkEvent(system: self, network: ETH_Testnet, event: NetworkEvent.created)
-        listener?.handleSystemEvent(system: self, event: SystemEvent.networkAdded(network: ETH_Testnet))
-    }
+                // query currencies
+                self.query.getCurrencies(blockchainID: blockchainModel.id) { (currencyModels: [BlockChainDB.Model.Currency]) in
+
+                    var associations: [Currency : Network.Association] = [:]
+
+                    currencyModels.forEach { (currencyModel: BlockChainDB.Model.Currency) in
+                        // Create the currency
+
+                        // TODO: Don't create duplicates
+                        let currency = Currency (uids: currencyModel.id,
+                                                 name: currencyModel.name,
+                                                 code: currencyModel.code,
+                                                 type: currencyModel.type)
+
+                        // Create the base unit
+                        let baseUnit = currencyModel.demoninations.first { 0 == $0.decimals}
+                            .map { currencyDenominationToBaseUnit(currency: currency, model: $0) }!
+
+                        // Create the other units
+                        var units: [Unit] = [baseUnit]
+                        units += currencyModel.demoninations.filter { 0 != $0.decimals }
+                            .map { currencyDenominationToUnit (currency: currency, model: $0, base: baseUnit) }
+
+                        // Find the default unit
+                        let maximumDecimals = units.reduce (0) { max ($0, $1.decimals) }
+                        let defaultUnit = units.first { $0.decimals == maximumDecimals }!
+
+
+                        associations[currency] = Network.Association (baseUnit: baseUnit,
+                                                                      defaultUnit: defaultUnit,
+                                                                      units: Set<Unit>(units))
+                    }
+
+                    let currency = associations.keys.first { $0.code == blockchainModel.currency }!
+
+                    let network = Network (uids: blockchainModel.id,
+                                           name: blockchainModel.name,
+                                           isMainnet: blockchainModel.isMainnet,
+                                           currency: currency,
+                                           associations: associations)
+
+                    self.networks.append (network)
+                    self.listener?.handleNetworkEvent (system: self, network: network, event: NetworkEvent.created)
+                    self.listener?.handleSystemEvent  (system: self, event: SystemEvent.networkAdded(network: network))
+                }
+            }
+        }
+
+//        let ETH = Currency (uids: "ETH", name: "Ethereum", code: "ETH", type: "native")
+//        let ETH_WEI   = Unit (currency: ETH, uids: "ETH_WEI",   name: "WEI",   symbol: "wei")
+//        let ETH_GWEI  = Unit (currency: ETH, uids: "ETH_GWEI",  name: "GWEI",  symbol: "gwei", base: ETH_WEI, decimals: 9)
+//        let ETH_ETHER = Unit (currency: ETH, uids: "ETH_ETHER", name: "ETHER", symbol: "Ξ",    base: ETH_WEI, decimals: 18)
+//
+//        let BRD = Currency (uids: "ERC20 BRD", name: "BRD Token", code: "BRD", type: "erc20")
+//        let BRD_INT = Unit (currency: BRD, uids: "ERC20 BRD INT", name: "BRD INT", symbol: "BRD INT")
+//        let BRD_BRD = Unit (currency: BRD, uids: "ERC20_BRD_BRD", name: "BRD", symbol: "BRD", base: BRD_INT, decimals: 18)
+//
+//        let ETH_ASSOCIATIONS = [
+//                ETH: Network.Association (baseUnit: ETH_WEI, defaultUnit: ETH_ETHER, units: Set<Unit> (arrayLiteral: ETH_WEI, ETH_GWEI, ETH_ETHER)),
+//                BRD: Network.Association (baseUnit: BRD_INT, defaultUnit: BRD_BRD,   units: Set<Unit> (arrayLiteral: BRD_INT, BRD_BRD))
+//        ]
+//
+//        let ETH_Mainnet = Network (name: "Mainnet",
+//                                   isMainnet: true,
+//                                   currency: ETH,
+//                                   associations: ETH_ASSOCIATIONS)
+//        networks.append(ETH_Mainnet)
+//        listener?.handleNetworkEvent(system: self, network: ETH_Mainnet, event: NetworkEvent.created)
+//        listener?.handleSystemEvent (system: self, event: SystemEvent.networkAdded(network: ETH_Mainnet))
+//
+//        let ETH_Testnet = Network (name: "Testnet",
+//                                   isMainnet: false,
+//                                   currency: ETH,
+//                                   associations: ETH_ASSOCIATIONS)
+//        networks.append(ETH_Testnet)
+//        listener?.handleNetworkEvent(system: self, network: ETH_Testnet, event: NetworkEvent.created)
+//        listener?.handleSystemEvent(system: self, event: SystemEvent.networkAdded(network: ETH_Testnet))
 
         // Query the BlockchainDB - determine the networks.
 
@@ -352,4 +433,4 @@ public final class SystemBase: System {
 //    private var coreWalletManagerListener: BRCryptoCWMListener! = nil
 //}
 
-
+}

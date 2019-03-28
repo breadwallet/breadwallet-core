@@ -7,41 +7,52 @@
 //
 
 import Foundation
+import BRCryptoC
+
 import BRCore
 import BRCore.Ethereum
 
-
-// A currency is a medium for exchange.
 ///
-/// Each currency has a `baseUnit` and a `defaultUnit`.  Because a `Unit` holds a Currency this
-/// sets up recursive definition for both `Currency` and `Unit` - thus these abstractions must be
-/// represented as reference types using `class`
-///
-/// A Currency has a number of decimals which define the currency's defaultUnit relative to the
-/// baseUnit.
+/// A currency is a medium for exchange.
 ///
 public final class Currency: Hashable {
+
+    internal let core: BRCryptoCurrency
 
     /// A 'Unique Identifier
     internal let uids: String
 
     /// The code; e.g. BTC
-    public let code: String
+    public var code: String {
+        return asUTF8String (cryptoCurrencyGetCode(core))
+    }
 
     /// The name; e.g. Bitcoin
-    public let name: String
+    public var name: String {
+        return asUTF8String (cryptoCurrencyGetName (core))
+    }
 
     /// The type:
-    public let type: String
+    public var type: String {
+        return asUTF8String (cryptoCurrencyGetType (core))
+    }
 
-    internal init (uids: String,
-                   name: String,
-                   code: String,
-                   type: String) {
+    internal init (core: BRCryptoCurrency,
+                   uids: String) {
+        self.core = core
         self.uids = uids
-        self.code = code
-        self.name = name
-        self.type = type
+    }
+
+    internal convenience init (uids: String,
+                               name: String,
+                               code: String,
+                               type: String) {
+        self.init (core: cryptoCurrencyCreate(name, code, type),
+                   uids: uids);
+    }
+
+    deinit {
+        cryptoCurrencyGive (core)
     }
 
     public static func == (lhs: Currency, rhs: Currency) -> Bool {
@@ -51,8 +62,12 @@ public final class Currency: Hashable {
     public func hash (into hasher: inout Hasher) {
         hasher.combine (uids)
     }
-}
 
+    /// Used to map Currency -> Built-In-Blockchain-Network
+    internal static let codeAsBTC = "btc"
+    internal static let codeAsBCH = "bch"
+    internal static let codeAsETH = "eth"
+}
 
 ///
 /// A unit of measure for a currency.  There can be multiple units for a given currency (analogous
@@ -62,54 +77,71 @@ public final class Currency: Hashable {
 ///
 /// Each Currency has a 'baseUnit' - which is defined as the 'integer-ish' unit - such as SATOSHI
 /// ane WEI for Bitcoin and Ethereum, respectively.  There can be multiple 'derivedUnits' - which
-/// are derived by scaling off of a baseUnit.
+/// are derived by scaling off of a baseUnit.  For example, BTC and ETHER respectively.
 ///
 public final class Unit: Hashable {
-     internal let uids: String
+    internal let core: BRCryptoUnit
+
+    internal let uids: String
 
     public let currency: Currency
 
-    public let name: String;
+    public var name: String {
+        return asUTF8String (cryptoUnitGetName (core))
+    }
 
-    public let symbol: String
+    public var symbol: String {
+        return asUTF8String (cryptoUnitGetSymbol (core))
+    }
 
     public private(set) unowned var base: Unit! = nil // unowned?
 
-    public let decimals: UInt8
+    public var decimals: UInt8 {
+        return cryptoUnitGetBaseDecimalOffset (core)
+    }
 
     public func isCompatible (with that: Unit) -> Bool {
-        return self.currency == that.currency
+        return CRYPTO_TRUE == cryptoUnitIsCompatible (self.core, that.core)
     }
 
     public func hasCurrency (_ currency: Currency) -> Bool {
-        return self.currency == currency
+        return currency.core == cryptoUnitGetCurrency (core)
+    }
+
+    internal init (core: BRCryptoUnit,
+                   currency: Currency,
+                   uids: String,
+                   base: Unit?) {
+        self.core = core
+        self.currency = currency
+        self.uids = uids
+        self.base = base ?? self
     }
 
     internal convenience init (currency: Currency,
                                uids: String,
                                name: String,
                                symbol: String) {
-        self.init (currency: currency,
+        self.init (core: cryptoUnitCreateAsBase (currency.core, name, symbol),
+                   currency: currency,
                    uids: uids,
-                   name: name,
-                   symbol: symbol,
-                   base: nil,
-                   decimals: 0)
+                   base: nil)
     }
 
-    internal init (currency: Currency,
-                   uids: String,
-                   name: String,
-                   symbol: String,
-                   base: Unit?,
-                   decimals: UInt8) {
-        self.currency = currency
-        self.uids = uids
-        self.name = name
-        self.symbol = symbol
-        self.decimals = decimals
-        self.base = (nil == base ? self : base!)
+    internal convenience init (currency: Currency,
+                               uids: String,
+                               name: String,
+                               symbol: String,
+                               base: Unit,
+                               decimals: UInt8) {
+        self.init (core: cryptoUnitCreate (currency.core, name, symbol, base.core, decimals),
+                   currency: currency,
+                   uids: uids,
+                   base: base)
+    }
 
+    deinit {
+        cryptoUnitGive (core)
     }
 
     public static func == (lhs: Unit, rhs: Unit) -> Bool {
@@ -127,15 +159,12 @@ public final class Unit: Hashable {
 /// assert on !isCompatible for mismatched currency.
 ///
 public final class Amount {
-
-    // Value in the currency's base unit
-    internal let value: UInt256
-
-    // Sign
-    public let isNegative: Bool
+    /// The underlying Core memory reference
+    internal let core: BRCryptoAmount
 
     /// The (default) unit.  Without this there is no reasonable implementation of
-    /// CustomeStringConvertable.
+    /// CustomeStringConvertable.  This property is only used in the `description` function
+    /// and to ascertain the Amount's currency typically for consistency in add/sub functions.
     public let unit: Unit
 
     /// The currency
@@ -143,15 +172,20 @@ public final class Amount {
         return unit.currency
     }
 
+    public var isNegative: Bool {
+        return CRYPTO_TRUE == cryptoAmountIsNegative (core)
+    }
+
     internal func double (as unit: Unit) -> Double? {
-        var overflow: Int32 = 0
-        let result = coerceDouble(value, &overflow)
-        return 1 == overflow ? nil : (isNegative ? -result : result)
+        var overflow: BRCryptoBoolean = CRYPTO_FALSE
+        let value = cryptoAmountGetDouble(core, unit.core, &overflow)
+        return CRYPTO_TRUE == overflow ? nil : value
     }
 
     public func string (as unit: Unit) -> String? {
         return double (as: unit)
-            .flatMap { self.formatterWith (unit: unit).string(from: NSNumber(value: $0)) }
+            .flatMap { self.formatterWith (unit: unit)
+                .string (from: NSNumber(value: $0)) }
     }
 
     public func string (pair: CurrencyPair) -> String? {
@@ -159,83 +193,39 @@ public final class Amount {
     }
 
     public func isCompatible (with that: Amount) -> Bool {
-        return self.currency == that.currency
+        return CRYPTO_TRUE == cryptoAmountIsCompatible (self.core, that.core)
     }
 
     public func hasCurrency (_ currency: Currency) -> Bool {
-        return self.currency == currency
+        return currency.core == cryptoAmountGetCurrency (core)
     }
 
     public func add (_ that: Amount) -> Amount? {
-        precondition (isCompatible(with: that))
-        var overflow: Int32 = 0
-        let result = addUInt256_Overflow(self.value, that.value, &overflow)
-        return 1 == overflow ? nil : Amount (value: result, isNegative: false, unit: unit)
+        precondition (isCompatible (with: that))
+        return cryptoAmountAdd (self.core, that.core)
+            .map { Amount (core: $0, unit: self.unit) }
     }
 
     public func sub (_ that: Amount) -> Amount? {
-        precondition (isCompatible(with: that))
-
-        var negative: Int32 = 0
-        var overflow: Int32 = 0
-        var value: UInt256
-
-        if self.isNegative && !that.isNegative {
-            // (-x) - y = - (x + y)
-            value = addUInt256_Overflow (self.value, that.value, &overflow);
-            if 1 == overflow { return nil }
-            negative = 1
-        }
-        else if !self.isNegative && that.isNegative {
-            // x - (-y) = x + y
-            value = addUInt256_Overflow (self.value, that.value, &overflow);
-            if 1 == overflow { return nil }
-        }
-        else if self.isNegative && that.isNegative {
-            // (-x) - (-y) = y - x
-            value = subUInt256_Negative (that.value, self.value, &negative);
-        }
-        else {
-            // x - y
-            value = subUInt256_Negative (self.value, that.value, &negative);
-        }
-
-        return Amount (value: value,
-                       isNegative: 1 == negative,
-                       unit: unit)
+        precondition (isCompatible (with: that))
+        return cryptoAmountSub (self.core, that.core)
+            .map { Amount (core: $0, unit: self.unit) }
     }
 
-    internal init (value: UInt256,
-                   isNegative: Bool,
+    internal init (core: BRCryptoAmount,
                    unit: Unit) {
-        self.value = value
-        self.isNegative = isNegative
+        self.core = core
         self.unit = unit
     }
 
-    static func create (double value: Double, unit: Unit) -> Amount? {
-        let v: Double = fabs(value) * pow (10.0, Double(unit.decimals))
-        return (v > Double(INT64_MAX)
-            ? nil
-            : Amount (value: createUInt256(UInt64(v)),
-                      isNegative: value < 0,
-                      unit: unit))
+    static func create (double: Double, unit: Unit) -> Amount {
+        return Amount (core: cryptoAmountCreateDouble (double, unit.core),
+                       unit: unit)
     }
 
-    static func create (integer value: Int64, unit: Unit) -> Amount? {
-        var powOverflow: Int32 = 0
-        var mulOverflow: Int32 = 0
-
-        let v = createUInt256 (value < 0 ? UInt64(-value) : UInt64(value))
-        let result = (0 == unit.decimals
-            ? v
-            : mulUInt256_Overflow(v, createUInt256Power(unit.decimals, &powOverflow), &mulOverflow))
-
-        return (1 == powOverflow || 1 == mulOverflow
-            ? nil
-            : Amount (value: result,
-                      isNegative: value < 0,
-                      unit: unit))
+    static func create (integer: Int64, unit: Unit) -> Amount {
+        return Amount (core: cryptoAmountCreateInteger (integer, unit.core),
+                       unit: unit)
     }
 
     // static func create (exactly: Double, unit: Unit) -> Amount  ==> No remainder
@@ -250,15 +240,19 @@ public final class Amount {
         formatter.maximumFractionDigits = Int(unit.decimals)
         return formatter
     }
+
+    deinit {
+        cryptoAmountGive (core)
+    }
 }
 
 extension Amount {
     public static func + (lhs: Amount, rhs: Amount) -> Amount? {
-        return lhs.add (rhs)
+        return lhs.add(rhs)
     }
 
     public static func - (lhs: Amount, rhs: Amount) -> Amount? {
-        return lhs.sub (rhs)
+        return lhs.sub(rhs)
     }
 }
 
@@ -267,43 +261,28 @@ extension Amount {
 /// expectation that `lhs` and `rhs` satisfy one of: ==, >, and <.  Caution.
 ///
 extension Amount: Comparable {
-    internal static func compare (_ lhs: Amount, _ rhs:Amount) -> Int32 {
-        precondition (lhs.isCompatible(with: rhs))
-
-        if       lhs.isNegative && !rhs.isNegative { return -1 }
-        else if !lhs.isNegative &&  rhs.isNegative { return +1 }
-        else if  lhs.isNegative &&  rhs.isNegative {
-            // both negative -> swap comparison
-            return compareUInt256 (rhs.value, lhs.value)
-        }
-        else {
-            // both positive -> same comparison
-            return compareUInt256(lhs.value, rhs.value)
-        }
-    }
-
     public static func == (lhs: Amount, rhs: Amount) -> Bool {
-        return lhs.isNegative == rhs.isNegative && 1 == eqUInt256(lhs.value, rhs.value)
+        return CRYPTO_COMPARE_EQ == cryptoAmountCompare (lhs.core, rhs.core)
     }
 
     public static func < (lhs: Amount, rhs: Amount) -> Bool {
-        return -1 == compare (lhs, rhs)
+        return CRYPTO_COMPARE_LT == cryptoAmountCompare (lhs.core, rhs.core)
     }
 
     public static func > (lhs: Amount, rhs: Amount) -> Bool {
-        return +1 == compare (lhs, rhs)
+        return CRYPTO_COMPARE_GT == cryptoAmountCompare (lhs.core, rhs.core)
     }
 
     public static func != (lhs: Amount, rhs: Amount) -> Bool {
-        return 0 != compare (lhs, rhs)
+        return CRYPTO_COMPARE_EQ != cryptoAmountCompare (lhs.core, rhs.core)
     }
 
     public static func <= (lhs: Amount, rhs: Amount) -> Bool {
-        return +1 != compare (lhs, rhs)
+        return CRYPTO_COMPARE_GT != cryptoAmountCompare (lhs.core, rhs.core)
     }
 
     public static func >= (lhs: Amount, rhs: Amount) -> Bool {
-        return -1 != compare (lhs, rhs)
+        return CRYPTO_COMPARE_LT != cryptoAmountCompare (lhs.core, rhs.core)
     }
 }
 
@@ -389,48 +368,41 @@ extension CurrencyPair: CustomStringConvertible {
     }
 }
 
-
+///
+///
+///
 public final class Account {
-    /// The Bitcoin masterPublicKey
-    internal let masterPublicKey: BRMasterPubKey
+    let core: BRCryptoAccount
 
-    /// The Ethereum account
-    internal let ethereumAccount: BREthereumAccount
-
-    internal init (seed: UInt512) {
-        var seed = seed
-        self.masterPublicKey = BRBIP32MasterPubKey (&seed, MemoryLayout<UInt512>.size)
-        self.ethereumAccount = createAccountWithBIP32Seed (seed)
+    public var timestamp: UInt64 {
+        return cryptoAccountGetTimestamp (core)
     }
 
-    ///
-    /// Initialize an Account from a seed.  The seed is not stored, only publically-accessible
-    /// values, derived from the seed, are stored.
-    ///
-    /// - Parameter seed: The UInt512 seed
-    ///
-   static func createFrom (seed: UInt512) -> Account { // Data
-        return Account (seed: seed)
+    internal init (core: BRCryptoAccount) {
+        self.core = core
     }
 
-    ///
-    /// Derive a 'seed' from a paperKey phrase.  Used when signing (Bitcoin) transactions.
-    ///
-    /// - Parameter phrase: The PaperKey
-    /// - Returns: The UInt512 seed.
-    ///
-    static func deriveSeed (phrase: String) -> UInt512 { // Data
-        var seed: UInt512 = zeroUInt512()
-        BRBIP39DeriveKey (&seed.u8, phrase, nil); // no passphrase
-        return seed
+    public static func createFrom (phrase: String) -> Account? {
+        return cryptoAccountCreate (phrase)
+            .map { Account (core: $0) }
     }
 
-    // Install words
-}
+    public static func createFrom (seed: Data) -> Account? {
+        var data = seed
+        return data.withUnsafeMutableBytes {
+            cryptoAccountCreateFromSeedBytes ($0)
+                .map { Account (core: $0) }
+        }
+    }
 
-extension Account {
-    var timestamp: UInt32 {
-        return 0
+    public static func deriveSeed (phrase: String) -> Data {
+        var seed = cryptoAccountDeriveSeed(phrase)
+        return Data (bytes: &seed, count: MemoryLayout<UInt512>.size);
+    }
+
+    // Test Only
+    internal var addressAsETH: String {
+        return asUTF8String (cryptoAccountAddressAsETH(core)!)
     }
 }
 
@@ -439,46 +411,136 @@ extension Account {
 /// network type.  Specifically {BTC, BCH, ETH, ...} x {Mainnet, Testnet, ...}.  Thus there will
 /// be networks of [BTC-Mainnet, BTC-Testnet, ..., ETH-Mainnet, ETH-Testnet, ETH-Rinkeby, ...]
 ///
-public protocol Network: CustomStringConvertible {
+public final class Network: CustomStringConvertible {
+
+    /// A unique-identifer-string
+    public let uids: String
     /// The name
-    var name: String { get }
+    public let name: String
 
     /// If 'mainnet' then true, otherwise false
-    var isMainnet: Bool { get }
+    public let isMainnet: Bool
 
     /// The native currency.  Multiple networks will have the same currency; for example,
     /// BTC-Mainnet and BTC-Testnet share the BTC currency.
-     var currency: Currency { get }
+    public let currency: Currency
 
     /// All currencies.  Multiple networks will have the same currencies.
-    var currencies: Set<Currency> { get }
+    public var currencies: Set<Currency>
 
-    func currencyBy (code: String) -> Currency?
+    internal var associations: Dictionary<Currency, Association> = [:]
 
-    ///
-    /// if `currency` is in `currencies` then true; otherwise false
-    ///
-    /// - Parameter that: the currency
-    ///
-    /// - Returns:
-    ///
-    func hasCurrency (_ that: Currency) -> Bool
+    func currencyBy (code: String) -> Currency? {
+        return currencies.first { $0.code == code }
+    }
 
-    func baseUnitFor (currency: Currency) -> Unit?
+    public func hasCurrency(_ that: Currency) -> Bool {
+        return currencies.contains(that)
+    }
 
-    func defaultUnitFor (currency: Currency) -> Unit?
+    public func baseUnitFor(currency: Currency) -> Unit? {
+        return associations[currency]?.baseUnit
+    }
 
-    func unitsFor (currency: Currency) -> Set<Unit>?
+    public func defaultUnitFor(currency: Currency) -> Unit? {
+        return associations[currency]?.defaultUnit
+    }
 
-    func hasUnitFor (currency: Currency, unit: Unit) -> Bool?
+    public func unitsFor(currency: Currency) -> Set<Unit>? {
+        return associations[currency]?.units
+    }
 
-    // address schemes
-}
+    public func hasUnitFor(currency: Currency, unit: Unit) -> Bool? {
+        return unitsFor(currency: currency)?.contains(unit)
+    }
 
-extension Network {
+    public struct Association {
+        let baseUnit: Unit
+        let defaultUnit: Unit
+        let units: Set<Unit>
+    }
+
+    internal init (uids: String,
+                   name: String,
+                   isMainnet: Bool,
+                   currency: Currency,
+                   associations: Dictionary<Currency, Association>,
+                   impl: Impl) {
+        self.uids = uids
+        self.name = name
+        self.isMainnet = isMainnet
+        self.currency = currency
+        self.associations = associations
+
+        self.currencies = associations.keys.reduce (into: Set<Currency>()) {
+            $0.insert($1)
+        }
+
+        self.impl = impl
+    }
+
+    public convenience init (uids: String,
+                             name: String,
+                             isMainnet: Bool,
+                             currency: Currency,
+                             associations: Dictionary<Currency, Association>) {
+        var impl: Impl!
+
+        switch currency.code {
+        case Currency.codeAsBTC:
+            impl = Impl.bitcoin (forkId: (isMainnet ? 0x00 : 0x40), chainParams: (isMainnet ? BRMainNetParams : BRTestNetParams))
+        case Currency.codeAsBCH:
+            impl = Impl.bitcoin (forkId: (isMainnet ? 0x00 : 0x40), chainParams: (isMainnet ? BRBCashParams : BRBCashTestNetParams))
+        case Currency.codeAsETH:
+            if uids.contains("mainnet") {
+                impl = Impl.ethereum(chainId: 1, core: ethereumMainnet)
+            }
+            else if uids.contains("testnet") || uids.contains("ropsten") {
+                impl = Impl.ethereum (chainId: 3, core: ethereumTestnet)
+            }
+            else if uids.contains ("rinkeby") {
+                impl = Impl.ethereum (chainId: 4, core: ethereumRinkeby)
+            }
+        default:
+            impl = Impl.generic
+            break
+        }
+
+        self.init (uids: uids,
+                   name: name,
+                   isMainnet: isMainnet,
+                   currency: currency,
+                   associations: associations,
+                   impl: impl)
+    }
+
     public var description: String {
         return name
     }
+
+    internal let impl: Impl
+    public enum Impl {
+        case bitcoin  (forkId: UInt8, chainParams: UnsafePointer<BRChainParams>)
+        case bitcash  (forkId: UInt8, chainParams: UnsafePointer<BRChainParams>)
+        case ethereum (chainId: UInt, core: BREthereumNetwork)
+        case generic
+    }
+
+    public var supportedModes: [WalletManagerMode] {
+        switch impl {
+        case .bitcoin,
+             .bitcash:
+            return [WalletManagerMode.p2p_only]
+        case .ethereum:
+            return [WalletManagerMode.api_only,
+                    WalletManagerMode.api_with_p2p_submit]
+        case .generic:
+            return [WalletManagerMode.api_only]
+        }
+    }
+
+    // address schemes
+
 }
 
 public enum NetworkEvent {
@@ -491,7 +553,17 @@ public enum NetworkEvent {
 /// - bitcoin: A bitcon-specific address
 /// - ethereum: An ethereum-specific address
 ///
-public protocol Address: CustomStringConvertible {
+public final class Address: CustomStringConvertible {
+
+    let core: BRCryptoAddress
+
+    internal init (core: BRCryptoAddress) {
+        self.core = core
+    }
+
+    public private(set) lazy var description: String = {
+        return asUTF8String (cryptoAddressAsString (core))
+    }()
 
     ///
     /// Create an Addres from `string` and `network`.  The provided `string` must be valid for
@@ -507,7 +579,36 @@ public protocol Address: CustomStringConvertible {
     ///
     /// - Returns: An address or nil if `string` is invalide for `network`
     ///
-    static func create (string: String, network: Network) -> Address?
+    static func create (string: String, network: Network) -> Address? {
+        switch network.currency.code {
+        case Currency.codeAsBTC,
+             Currency.codeAsBCH:
+            return nil
+        case Currency.codeAsETH:
+            return nil
+        default: // generic
+            return nil
+        }
+    }
+
+//    class EthereumAddress: Address {
+//        let core: BREthereumAddress
+//
+//        internal init (_ core: BREthereumAddress) {
+//            self.core = core
+//        }
+//
+//        static func create(string: String, network: Network) -> Address? {
+//            return (ETHEREUM_BOOLEAN_FALSE == addressValidateString(string)
+//                ? nil
+//                : EthereumAddress (addressCreate (string)))
+//        }
+//
+//        var description: String {
+//            return asUTF8String(addressGetEncodedString (core, 1))
+//        }
+//    }
+
 }
 
 ///
@@ -715,7 +816,7 @@ public protocol Wallet: class {
     var defaultFeeBasis: TransferFeeBasis { get set }
 
     /// The default TransferFactory for creating transfers.
-    var transferFactory: TransferFactory { get set }
+//    var transferFactory: TransferFactory { get set }
 
     /// An address suitable for a transfer target (receiving).  Uses the default Address Scheme
     var target: Address { get }
@@ -739,14 +840,14 @@ extension Wallet {
     ///
     /// - Returns: A new transfer
     ///
-    public func createTransfer (target: Address,
-                                amount: Amount,
-                                feeBasis: TransferFeeBasis) -> Transfer? {
-        return transferFactory.createTransfer (wallet: self,
-                                               target: target,
-                                               amount: amount,
-                                               feeBasis: feeBasis)
-    }
+//    public func createTransfer (target: Address,
+//                                amount: Amount,
+//                                feeBasis: TransferFeeBasis) -> Transfer? {
+//        return transferFactory.createTransfer (wallet: self,
+//                                               target: target,
+//                                               amount: amount,
+//                                               feeBasis: feeBasis)
+//    }
 
     ///
     /// Create a transfer for wallet using the `defaultFeeBasis`.  Invokes the wallet's
@@ -760,12 +861,12 @@ extension Wallet {
     ///
     /// - Returns: A new transfer
     ///
-    public func createTransfer (target: Address,
-                                amount: Amount) -> Transfer? {
-        return createTransfer (target: target,
-                               amount: amount,
-                               feeBasis: defaultFeeBasis)
-    }
+//    public func createTransfer (target: Address,
+//                                amount: Amount) -> Transfer? {
+//        return createTransfer (target: target,
+//                               amount: amount,
+//                               feeBasis: defaultFeeBasis)
+//    }
 
     /// The currency held in wallet.
     public var currency: Currency {
@@ -867,7 +968,9 @@ public protocol WalletManager : class {
     var state: WalletManagerState { get }
 
     /// The default WalletFactory for creating wallets.
-    var walletFactory: WalletFactory { get set }
+//    var walletFactory: WalletFactory { get set }
+
+    func createWalletFor (currency: Currency) -> Wallet? 
 
     /// Connect to network and begin managing wallets for account
     func connect ()
@@ -897,10 +1000,10 @@ extension WalletManager {
     ///
     /// - Returns: a new wallet.
     ///
-    func createWallet (currency: Currency) -> Wallet {
-        return walletFactory.createWallet (manager: self,
-                                           currency: currency)
-    }
+//    func createWallet (currency: Currency) -> Wallet {
+//        return walletFactory.createWallet (manager: self,
+//                                           currency: currency)
+//    }
 
     /// The primaryWallet's currency.
     var currency: Currency {
@@ -1128,7 +1231,7 @@ public protocol System {
     /// Wallet Managers
     var managers: [WalletManager] { get }
 
-    func start ()
+    func start (networksNeeded: [String])
 
     func stop ()
 

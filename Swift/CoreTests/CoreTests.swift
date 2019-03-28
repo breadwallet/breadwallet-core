@@ -104,6 +104,11 @@ class CoreTests: XCTestCase {
     }
 
     //
+    func testCrypto () {
+        runCryptoTests ()
+    }
+
+    //
     // Ethereum
     //
     func testEthereumRlp () {
