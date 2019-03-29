@@ -21,7 +21,6 @@
 
 #include <stdlib.h>
 #include <assert.h>
-#include <malloc.h>
 #include "BRCoreJni.h"
 
 #define JNI_REFERENCE_ADDRESS_FIELD_NAME "jniReferenceAddress"

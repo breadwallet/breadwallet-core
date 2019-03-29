@@ -20,7 +20,6 @@
 //  THE SOFTWARE.
 
 #include <stdlib.h>
-#include <malloc.h>
 #include <string.h>
 #include "BRCoreJni.h"
 #include "BRChainParams.h"

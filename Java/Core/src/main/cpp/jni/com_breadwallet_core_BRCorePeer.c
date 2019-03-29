@@ -20,7 +20,6 @@
 //  THE SOFTWARE.
 
 #include <stdlib.h>
-#include <malloc.h>
 #include "BRPeer.h"
 #include "BRInt.h"
 #include "BRCoreJni.h"

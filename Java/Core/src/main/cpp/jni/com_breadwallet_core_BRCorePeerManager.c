@@ -20,7 +20,6 @@
 //  THE SOFTWARE.
 
 #include <stdlib.h>
-#include <malloc.h>
 #include <arpa/inet.h>
 #include <BRChainParams.h>
 #include "BRPeerManager.h"

@@ -22,7 +22,6 @@
 #include <BRTransaction.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <malloc.h>
 #include <BRInt.h>
 #include "BRCoreJni.h"
 #include "com_breadwallet_core_BRCoreTransaction.h"

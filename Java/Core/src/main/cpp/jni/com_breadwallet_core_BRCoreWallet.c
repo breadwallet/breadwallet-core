@@ -20,7 +20,6 @@
 //  THE SOFTWARE.
 
 #include <stdlib.h>
-#include <malloc.h>
 #include <assert.h>
 #include <BRBIP39Mnemonic.h>
 #include "BRWallet.h"

@@ -24,7 +24,6 @@
 #include <BRKeyECIES.h>
 #include <BRAddress.h>
 #include <stdlib.h>
-#include <malloc.h>
 #include <assert.h>
 #include <BRBase58.h>
 #include <BRBIP39Mnemonic.h>

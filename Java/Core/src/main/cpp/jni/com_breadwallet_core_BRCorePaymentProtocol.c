@@ -21,7 +21,6 @@
 
 #include <BRPaymentProtocol.h>
 #include <stdlib.h>
-#include <malloc.h>
 #include <assert.h>
 #include "BRCoreJni.h"
 #include "com_breadwallet_core_BRCorePaymentProtocol.h"

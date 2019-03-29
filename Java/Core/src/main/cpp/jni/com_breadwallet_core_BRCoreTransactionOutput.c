@@ -23,7 +23,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <malloc.h>
 #include <BRTransaction.h>
 #include "com_breadwallet_core_BRCoreTransactionOutput.h"
 
