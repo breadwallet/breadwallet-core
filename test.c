@@ -3166,9 +3166,9 @@ int main(int argc, const char *argv[])
 //    BRBIP39DeriveKey(seed.u8, "axis husband project any sea patch drip tip spirit tide bring belt", NULL);
 //    mpk = BRBIP32MasterPubKey(&seed, sizeof(seed));
 //
-//    wallet = BRWalletNew(NULL, 0, mpk);
+//    wallet = BRWalletNew(NULL, 0, mpk, 0);
 //    BRWalletSetCallbacks(wallet, wallet, walletBalanceChanged, walletTxAdded, walletTxUpdated, walletTxDeleted);
-//    printf("wallet created with first receive address: %s\n", BRWalletReceiveAddress(wallet).s);
+//    printf("wallet created with first receive address: %s\n", BRWalletLegacyAddress(wallet).s);
 //
 //    manager = BRPeerManagerNew(&BRMainNetParams, wallet, BIP39_CREATION_TIME, NULL, 0, NULL, 0);
 //    BRPeerManagerSetCallbacks(manager, manager, syncStarted, syncStopped, txStatusUpdate, NULL, NULL, NULL, NULL);
