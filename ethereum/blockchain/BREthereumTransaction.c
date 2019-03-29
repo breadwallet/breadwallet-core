@@ -196,21 +196,9 @@ transactionGetGasPrice (BREthereumTransaction transaction) {
     return transaction->gasPrice;
 }
 
-extern void
-transactionSetGasPrice (BREthereumTransaction transaction,
-                        BREthereumGasPrice gasPrice) {
-    transaction->gasPrice = gasPrice;
-}
-
 extern BREthereumGas
 transactionGetGasLimit (BREthereumTransaction transaction) {
     return transaction->gasLimit;
-}
-
-extern void
-transactionSetGasLimit (BREthereumTransaction transaction,
-                        BREthereumGas gasLimit) {
-    transaction->gasLimit = gasLimit;
 }
 
 static BREthereumGas

@@ -394,6 +394,14 @@ extern void
 transferSetGasEstimate (BREthereumTransfer transfer,
                         BREthereumGas gasEstimate) {
     transfer->gasEstimate = gasEstimate;
+
+    // Generally, you'd only set the gas estimate for a transfer that a) you have originated and
+    // b) that you haven't submitted.  Perhaps we should constrain setting the estimate to only
+    // transfers that you have originated?  On the other hand, if for display purposed you want
+    // to set an estimate and then get the estimate to display, then perhaps originating the
+    // transfer should not be required.
+    if (NULL != transfer->originatingTransaction)
+        transactionSetGasEstimate (transfer->originatingTransaction, gasEstimate);
 }
 
 extern BREthereumTransaction
