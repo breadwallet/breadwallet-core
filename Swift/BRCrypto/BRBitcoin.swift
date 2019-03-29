@@ -18,8 +18,8 @@ public struct Bitcoin {
     }
 
     public struct Networks {
-        public static let mainnet = Network.bitcoin (name: "BTC Mainnet", forkId: 0x00, chainParams: bitcoinParams (1))
-        public static let testnet = Network.bitcoin (name: "BTC Testnet", forkId: 0x40, chainParams: bitcoinParams (0))
+        public static let mainnet = Network.bitcoin (name: "BTC Mainnet", forkId: 0x00, chainParams: BRChainParamsGetBitcoin (1))
+        public static let testnet = Network.bitcoin (name: "BTC Testnet", forkId: 0x40, chainParams: BRChainParamsGetBitcoin (0))
     }
 
     public struct AddressSchemes {

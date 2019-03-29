@@ -30,4 +30,8 @@
 extern const BRChainParams *BRBCashParams;
 extern const BRChainParams *BRBCashTestNetParams;
 
+static inline const BRChainParams *BRChainParamsGetBitcash (int mainnet) {
+    return mainnet ? BRBCashParams : BRBCashTestNetParams;
+}
+
 #endif // BRChainParams_h

@@ -17,8 +17,8 @@ public struct Bitcash {
     }
 
     public struct Networks {
-        public static let mainnet = Network.bitcash (name: "BCH Mainnet", forkId: 0x00, chainParams: bitcashParams (1))
-        public static let testnet = Network.bitcash (name: "BCH Testnet", forkId: 0x40, chainParams: bitcashParams (0))
+        public static let mainnet = Network.bitcash (name: "BCH Mainnet", forkId: 0x00, chainParams: BRChainParamsGetBitcash (1))
+        public static let testnet = Network.bitcash (name: "BCH Testnet", forkId: 0x40, chainParams: BRChainParamsGetBitcash (0))
     }
 
     public struct AddressSchemes {

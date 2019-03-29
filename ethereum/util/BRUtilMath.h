@@ -175,14 +175,22 @@ coerceString (UInt256 x, int base);
 extern char *
 coerceStringPrefaced (UInt256 x, int base, const char *preface);
 
-  /**
-   * Returns a decimal string represention of `x` in base `0 with `decimals` digits after the
-   * decimal-point.
-   *
-   * @warn YOU OWN THE RETURNED MEMORY
-   */
+/**
+ * Returns a decimal string represention of `x` in base `0 with `decimals` digits after the
+ * decimal-point.
+ *
+ * @warn YOU OWN THE RETURNED MEMORY
+ */
 extern char *
 coerceStringDecimal (UInt256 x, int decimals);
+
+
+/**
+ * Returns a '0x' prefaced hex string
+ */
+extern char *
+coerceUInt256HashToString (UInt256 hash);
+
 
 //  static UInt256
 //  divideUInt256 (UInt256 numerator, UInt256 denominator) {

@@ -649,7 +649,7 @@ public enum TransferHash: Hashable, CustomStringConvertible {
     public var description: String {
         switch self {
         case .bitcoin (let core):
-            return asUTF8String (u256HashToString(core), true)
+            return asUTF8String (coerceUInt256HashToString(core), true)
         case .ethereum(let core):
             return asUTF8String (hashAsString(core))
         }
