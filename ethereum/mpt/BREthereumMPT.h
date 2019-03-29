@@ -27,9 +27,6 @@
 #define BR_Ethereum_MPT_h
 
 #include "BRArray.h"
-#if ! defined (BRArrayOf)
-#define BRArrayOf( type )     type*
-#endif
 
 #include "../rlp/BRRlp.h"
 #include "../base/BREthereumData.h"

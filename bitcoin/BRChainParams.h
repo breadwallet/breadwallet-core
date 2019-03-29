@@ -1,5 +1,5 @@
 //
-//  BRBCashParams.h
+//  BRChainParams.h
 //
 //  Created by Aaron Voisine on 1/10/18.
 //  Copyright (c) 2019 breadwallet LLC
@@ -22,12 +22,32 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BRBCashParams_h
-#define BRBCashParams_h
+#ifndef BRChainParams_h
+#define BRChainParams_h
 
-#include "BRChainParams.h"
+#include "BRMerkleBlock.h"
+#include "BRSet.h"
+#include "BRPeer.h"
+#include <assert.h>
 
-extern const BRChainParams *BRBCashParams;
-extern const BRChainParams *BRBCashTestNetParams;
+typedef struct {
+    uint32_t height;
+    UInt256 hash;
+    uint32_t timestamp;
+    uint32_t target;
+} BRCheckPoint;
+
+typedef struct {
+    const char * const *dnsSeeds; // NULL terminated array of dns seeds
+    uint16_t standardPort;
+    uint32_t magicNumber;
+    uint64_t services;
+    int (*verifyDifficulty)(const BRMerkleBlock *block, const BRSet *blockSet); // blockSet must have last 2016 blocks
+    const BRCheckPoint *checkpoints;
+    size_t checkpointsCount;
+} BRChainParams;
+
+extern const BRChainParams *BRMainNetParams;
+extern const BRChainParams *BRTestNetParams;
 
 #endif // BRChainParams_h

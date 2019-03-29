@@ -30,7 +30,7 @@
 extern "C" {
 #endif
 
-#include "../../BRInt.h"
+#include "../../support/BRInt.h"
 
 #if LITTLE_ENDIAN != BYTE_ORDER
 #error "Must be a `LITTLE ENDIAN` cpu architecture"

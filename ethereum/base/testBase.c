@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include "BREthereumBase.h"
-#include "../../BRCrypto.h"
+#include "BRCrypto.h"
 
 static void
 runEtherParseTests () {

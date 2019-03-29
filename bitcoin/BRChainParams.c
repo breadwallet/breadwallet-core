@@ -1,7 +1,8 @@
 //
-//  BRChainParams.h
+//  BRChainParams.c
+//  BRCore
 //
-//  Created by Aaron Voisine on 1/10/18.
+//  Created by Aaron Voisine on 3/11/19.
 //  Copyright (c) 2019 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -22,30 +23,9 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BRChainParams_h
-#define BRChainParams_h
+//
 
-#include "BRMerkleBlock.h"
-#include "BRSet.h"
-#include "BRPeer.h"
-#include <assert.h>
-
-typedef struct {
-    uint32_t height;
-    UInt256 hash;
-    uint32_t timestamp;
-    uint32_t target;
-} BRCheckPoint;
-
-typedef struct {
-    const char * const *dnsSeeds; // NULL terminated array of dns seeds
-    uint16_t standardPort;
-    uint32_t magicNumber;
-    uint64_t services;
-    int (*verifyDifficulty)(const BRMerkleBlock *block, const BRSet *blockSet); // blockSet must have last 2016 blocks
-    const BRCheckPoint *checkpoints;
-    size_t checkpointsCount;
-} BRChainParams;
+#include "BRChainParams.h"
 
 static const char *BRMainNetDNSSeeds[] = {
     "seed.breadwallet.com.", "seed.bitcoin.sipa.be.", "dnsseed.bluematt.me.", "dnsseed.bitcoin.dashjr.org.",
@@ -107,24 +87,24 @@ static const BRCheckPoint BRTestNetCheckpoints[] = {
     { 1209600, uint256("0000000000000026b4692a26f1651bec8e9d4905640bd8e56056c9a9c53badf8"), 1507328506, 0x1973e180 },
     { 1310400, uint256("0000000000013b434bbe5668293c92ef26df6d6d4843228e8958f6a3d8101709"), 1527038604, 0x1b0ffff0 },
     { 1411200, uint256("00000000000000008b3baea0c3de24b9333c169e1543874f4202397f5b8502cb"), 1535535770, 0x194ac105 }
-    //{ 1512000, 
+    //{ 1512000,
 };
 
 static int BRMainNetVerifyDifficulty(const BRMerkleBlock *block, const BRSet *blockSet)
 {
     const BRMerkleBlock *previous, *b = NULL;
     uint32_t i;
-    
+
     assert(block != NULL);
     assert(blockSet != NULL);
-    
+
     // check if we hit a difficulty transition, and find previous transition block
     if ((block->height % BLOCK_DIFFICULTY_INTERVAL) == 0) {
         for (i = 0, b = block; b && i < BLOCK_DIFFICULTY_INTERVAL; i++) {
             b = BRSetGet(blockSet, &b->prevBlock);
         }
     }
-    
+
     previous = BRSetGet(blockSet, &block->prevBlock);
     return BRMerkleBlockVerifyDifficulty(block, previous, (b) ? b->timestamp : 0);
 }
@@ -134,7 +114,7 @@ static int BRTestNetVerifyDifficulty(const BRMerkleBlock *block, const BRSet *bl
     return 1; // XXX skip testnet difficulty check for now
 }
 
-static const BRChainParams BRMainNetParams = {
+static const BRChainParams BRMainNetParamsRecord = {
     BRMainNetDNSSeeds,
     8333,                  // standardPort
     0xd9b4bef9,            // magicNumber
@@ -143,8 +123,9 @@ static const BRChainParams BRMainNetParams = {
     BRMainNetCheckpoints,
     sizeof(BRMainNetCheckpoints)/sizeof(*BRMainNetCheckpoints)
 };
+const BRChainParams *BRMainNetParams = &BRMainNetParamsRecord;
 
-static const BRChainParams BRTestNetParams = {
+static const BRChainParams BRTestNetParamsRecord = {
     BRTestNetDNSSeeds,
     18333,                 // standardPort
     0x0709110b,            // magicNumber
@@ -153,5 +134,4 @@ static const BRChainParams BRTestNetParams = {
     BRTestNetCheckpoints,
     sizeof(BRTestNetCheckpoints)/sizeof(*BRTestNetCheckpoints)
 };
-
-#endif // BRChainParams_h
+const BRChainParams *BRTestNetParams = &BRTestNetParamsRecord;
