@@ -19,5 +19,8 @@ extern int BRRunTestWalletManagerSync (const char *paperKey,
 
 extern void BRRandInit (void);
 
+// testCrypto.c
+extern void runCryptoTests (void);
+
 #include "test.h"
 

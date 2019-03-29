@@ -40,6 +40,8 @@ extern "C" {
 
     typedef void *BRCryptoCWMListenerContext;
 
+    // Add events
+    
     typedef void (*BRCryptoCWMListenerWalletManagerEvent) (BRCryptoCWMListenerContext context,
                                                            BRCryptoWalletManager manager);
 
@@ -59,14 +61,18 @@ extern "C" {
         BRCryptoCWMListenerTransferEvent transferEventCallback;
     } BRCryptoCWMListener;
 
-    extern void
-    cryptoWalletManagerDeclareListener (BRCryptoCWMListener listener);
+    extern BRCryptoWalletManager
+    cryptoWalletManagerCreate (BRCryptoCWMListener listener,
+                               BRCryptoAccount account,
+                               BRCryptoNetwork network,
+                               BRCryptoSyncMode mode,
+                               const char *path);
 
     extern BRCryptoNetwork
     cryptoWalletManagerGetNetwork (BRCryptoWalletManager cwm);
 
     extern BRCryptoAccount
-    cryptoWalletMangerGetAccount (BRCryptoWalletManager cwm);
+    cryptoWalletManagerGetAccount (BRCryptoWalletManager cwm);
 
     extern BRCryptoSyncMode
     cryptoWalletManagerGetMode (BRCryptoWalletManager cwm);
@@ -74,8 +80,20 @@ extern "C" {
     extern const char *
     cryptoWalletManagerGetPath (BRCryptoWalletManager cwm);
     
-    // primary Wallet
-    // wallets
+    extern BRCryptoWallet
+    cryptoWalletManagerGetWallet (BRCryptoWalletManager cwm);
+
+    extern size_t
+    cryptoWalletManagerGetWalletsCount (BRCryptoWalletManager cwm);
+
+    extern BRCryptoWallet
+    cryptoWalletManagerGetWalletAtIndex (BRCryptoWalletManager cwm,
+                                            size_t index);
+
+
+    extern BRCryptoWallet
+    cryptoWalletManagerGetWalletForCurrency (BRCryptoWalletManager cwm,
+                                               BRCryptoCurrency currency);
 
     extern void
     cryptoWalletManagerConnect (BRCryptoWalletManager cwm);

@@ -47,6 +47,8 @@ typedef enum {
     WALLET_FORKID_BITGOLD = 0x4f
 } BRWalletForkId;
 
+typedef void *BRWalletManagerClientContext;
+
 ///
 /// Transaction Event
 ///
@@ -67,7 +69,8 @@ typedef struct {
 } BRTransactionEvent;
 
 typedef void
-(*BRTransactionEventCallback) (BRWalletManager manager,
+(*BRTransactionEventCallback) (BRWalletManagerClientContext context,
+                               BRWalletManager manager,
                                BRWallet *wallet,
                                BRTransaction *transaction,
                                BRTransactionEvent event);
@@ -91,7 +94,8 @@ typedef struct {
 } BRWalletEvent;
 
 typedef void
-(*BRWalletEventCallback) (BRWalletManager manager,
+(*BRWalletEventCallback) (BRWalletManagerClientContext context,
+                          BRWalletManager manager,
                           BRWallet *wallet,
                           BRWalletEvent event);
 
@@ -115,10 +119,12 @@ typedef struct {
 } BRWalletManagerEvent;
 
 typedef void
-(*BRWalletManagerEventCallback) (BRWalletManager manager,
+(*BRWalletManagerEventCallback) (BRWalletManagerClientContext context,
+                                 BRWalletManager manager,
                                  BRWalletManagerEvent event);
 
 typedef struct {
+    BRWalletManagerClientContext context;
     BRTransactionEventCallback funcTransactionEvent;
     BRWalletEventCallback  funcWalletEvent;
     BRWalletManagerEventCallback funcWalletManagerEvent;
@@ -139,6 +145,9 @@ BRWalletManagerConnect (BRWalletManager manager);
 
 extern void
 BRWalletManagerDisconnect (BRWalletManager manager);
+
+extern void
+BRWalletManagerScan (BRWalletManager manager);
 
 //
 // These should not be needed if the events are sufficient

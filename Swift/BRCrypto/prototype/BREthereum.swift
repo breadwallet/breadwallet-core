@@ -1,6 +1,6 @@
 //
 //  BREthereum.swift
-//  BRCoreX
+//  BRCrypto
 //
 //  Created by Ed Gamble on 11/7/18.
 //  Copyright © 2018 breadwallet. All rights reserved.
@@ -492,10 +492,10 @@ public class EthereumWalletManager: WalletManager {
                  storagePath: String,
                  persistenceClient: EthereumPersistenceClient = DefaultEthereumPersistenceClient(),
                  backendClient: EthereumBackendClient = DefaultEthereumBackendClient()) {
-
+        
         let coreNetwork: BREthereumNetwork! = network.ethereumCore
         precondition (nil != coreNetwork)
-
+        
         self.backendClient = backendClient
         self.persistenceClient = persistenceClient
         
@@ -511,8 +511,8 @@ public class EthereumWalletManager: WalletManager {
                                timestamp,
                                EthereumWalletManager.coreMode (mode),
                                coreEthereumClient,
-                                storagePath)
-
+                               storagePath)
+        
         EthereumWalletManager.managers.append(Weak (value: self))
         self.listener.handleManagerEvent(manager: self, event: WalletManagerEvent.created)
     }
@@ -552,7 +552,7 @@ public class EthereumWalletManager: WalletManager {
     private lazy var coreEthereumClient: BREthereumClient = {
         let this = self
         return BREthereumClient (
-            context: UnsafeMutableRawPointer (Unmanaged<EthereumWalletManager>.passRetained(this).toOpaque()),
+            context: Unmanaged<EthereumWalletManager>.passRetained(this).toOpaque(), //   UnsafeMutableRawPointer (Unmanaged<EthereumWalletManager>.passRetained(this).toOpaque()),
             
             funcGetBalance: { (coreClient, coreEWM, wid, address, rid) in
                 if let ewm = EthereumWalletManager.lookup(core: coreEWM) {

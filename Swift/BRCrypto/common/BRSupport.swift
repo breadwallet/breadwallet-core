@@ -136,11 +136,11 @@ public struct AsHashable<Value:Hashable, Item> : Hashable {
     public init (item: Item, toValue: (Item) -> Value) {
         self.init (item: item, value: toValue(item))
     }
-    
-    public var hashValue : Int {
-        return value.hashValue
+
+    public func hash (into hasher: inout Hasher) {
+        hasher.combine (value)
     }
-    
+
     public static func == <Value:Hashable, Item> (lhs:AsHashable<Value, Item>, rhs:AsHashable<Value,Item>) -> Bool {
         return lhs.value == rhs.value
     }

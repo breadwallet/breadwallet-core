@@ -24,39 +24,74 @@
 //  THE SOFTWARE.
 
 #include "BRCryptoAccount.h"
+#include "BRCryptoPrivate.h"
 
 #include "support/BRBIP32Sequence.h"
 #include "support/BRBIP39Mnemonic.h"
 #include "support/BRKey.h"
 #include "ethereum/BREthereum.h"
 
+static void
+cryptoAccountRelease (BRCryptoAccount account);
+
 struct BRCryptoAccountRecord {
     BRMasterPubKey btc;
     BREthereumAccount eth;
 
     uint64_t timestamp;
+    BRCryptoRef ref;
 };
 
+IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoAccount, cryptoAccount);
+
 static UInt512
-cryptoAccountDeriveSeed (const char *phrase) {
+cryptoAccountDeriveSeedInternal (const char *phrase) {
     UInt512 seed;
     BRBIP39DeriveKey (seed.u8, phrase, NULL);
     return seed;
 }
 
 static BRCryptoAccount
-cryptoAccountCreateWithSeed (UInt512 seed) {
+cryptoAccountCreateFromSeedInternal (UInt512 seed,
+                                     uint64_t timestamp) {
     BRCryptoAccount account = malloc (sizeof (struct BRCryptoAccountRecord));
 
     account->btc = BRBIP32MasterPubKey (seed.u8, sizeof (seed.u8));
     account->eth = createAccountWithBIP32Seed(seed);
+    account->timestamp = timestamp;
+    account->ref = CRYPTO_REF_ASSIGN(cryptoAccountRelease);
 
     return account;
 }
 
+extern UInt512
+cryptoAccountDeriveSeed (const char *phrase) {
+    return cryptoAccountDeriveSeedInternal(phrase);
+}
+
 extern BRCryptoAccount
 cryptoAccountCreate (const char *phrase) {
-    return cryptoAccountCreateWithSeed (cryptoAccountDeriveSeed (phrase));
+    return cryptoAccountCreateFromSeedInternal (cryptoAccountDeriveSeedInternal(phrase), 0);
+}
+
+extern BRCryptoAccount
+cryptoAccountCreateFromSeed (UInt512 seed) {
+    return cryptoAccountCreateFromSeedInternal (seed, 0);
+}
+
+extern BRCryptoAccount
+cryptoAccountCreateFromSeedBytes (uint8_t *bytes) {
+    UInt512 seed;
+    memcpy (seed.u8, bytes, sizeof (seed.u8));
+    return cryptoAccountCreateFromSeedInternal (seed, 0);
+}
+
+
+static void
+cryptoAccountRelease (BRCryptoAccount account) {
+    accountFree(account->eth);  // Core holds???
+    printf ("Account: Release\n");
+    free (account);
 }
 
 extern uint64_t
@@ -64,12 +99,18 @@ cryptoAccountGetTimestamp (BRCryptoAccount account) {
     return account->timestamp;
 
 }
-/* private */ extern BREthereumAccount
+
+private_extern BREthereumAccount
 cryptoAccountAsETH (BRCryptoAccount account) {
     return account->eth;
 }
 
-/* private */ extern BRMasterPubKey
+private_extern const char *
+cryptoAccountAddressAsETH (BRCryptoAccount account) {
+    return accountGetPrimaryAddressString (account->eth);
+}
+
+private_extern BRMasterPubKey
 cryptoAccountAsBTC (BRCryptoAccount account) {
     return account->btc;
 }

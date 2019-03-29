@@ -1,26 +1,26 @@
 //
 //  BRCrypto.swift
-//  BRCoreX
+//  BRCrypto
 //
-//  Created by Ed Gamble on 11/5/18.
-//  Copyright © 2018 breadwallet. All rights reserved.
+//  Created by Ed Gamble on 3/27/19.
+//  Copyright © 2019 breadwallet. All rights reserved.
 //
+
 import Foundation
-import SystemConfiguration  // SCSystemReachability
 import BRCryptoC
+
+import BRCore
+import BRCore.Ethereum
 
 ///
 /// A currency is a medium for exchange.
 ///
-/// Each currency has a `baseUnit` and a `defaultUnit`.  Because a `Unit` holds a Currency this
-/// sets up recursive definition for both `Currency` and `Unit` - thus these abstractions must be
-/// represented as reference types using `class`
-///
-/// A Currency has a number of decimals which define the currency's defaultUnit relative to the
-/// baseUnit.
-///
-public final class Currency {
+public final class Currency: Hashable {
+
     internal let core: BRCryptoCurrency
+
+    /// A 'Unique Identifier
+    internal let uids: String
 
     /// The code; e.g. BTC
     public var code: String {
@@ -37,25 +37,36 @@ public final class Currency {
         return asUTF8String (cryptoCurrencyGetType (core))
     }
 
-    internal init (core: BRCryptoCurrency) {
+    internal init (core: BRCryptoCurrency,
+                   uids: String) {
         self.core = core
+        self.uids = uids
     }
 
-    internal convenience init (name: String,
+    internal convenience init (uids: String,
+                               name: String,
                                code: String,
                                type: String) {
-        self.init (core: cryptoCurrencyCreate(name, code, type))
+        self.init (core: cryptoCurrencyCreate(name, code, type),
+                   uids: uids);
     }
 
     deinit {
         cryptoCurrencyGive (core)
     }
-}
 
-extension Currency: Equatable {
     public static func == (lhs: Currency, rhs: Currency) -> Bool {
-        return CRYPTO_TRUE == cryptoCurrencyIsIdentical (lhs.core, rhs.core)
+        return lhs === rhs || lhs.uids == rhs.uids
     }
+
+    public func hash (into hasher: inout Hasher) {
+        hasher.combine (uids)
+    }
+
+    /// Used to map Currency -> Built-In-Blockchain-Network
+    internal static let codeAsBTC = "btc"
+    internal static let codeAsBCH = "bch"
+    internal static let codeAsETH = "eth"
 }
 
 ///
@@ -66,10 +77,12 @@ extension Currency: Equatable {
 ///
 /// Each Currency has a 'baseUnit' - which is defined as the 'integer-ish' unit - such as SATOSHI
 /// ane WEI for Bitcoin and Ethereum, respectively.  There can be multiple 'derivedUnits' - which
-/// are derived by scaling off of a baseUnit.
+/// are derived by scaling off of a baseUnit.  For example, BTC and ETHER respectively.
 ///
-public final class Unit {
+public final class Unit: Hashable {
     internal let core: BRCryptoUnit
+
+    internal let uids: String
 
     public let currency: Currency
 
@@ -81,17 +94,12 @@ public final class Unit {
         return asUTF8String (cryptoUnitGetSymbol (core))
     }
 
-    public private(set) lazy var base: Unit = {
-        let coreBaseUnit = cryptoUnitGetBaseUnit (self.core)!
-        return (CRYPTO_TRUE == cryptoUnitIsIdentical(self.core, coreBaseUnit)
-            ? self
-            : Unit (core: coreBaseUnit)) // alloc - no
-    }()
+    public private(set) unowned var base: Unit! = nil // unowned?
 
     public var decimals: UInt8 {
         return cryptoUnitGetBaseDecimalOffset (core)
     }
-    
+
     public func isCompatible (with that: Unit) -> Bool {
         return CRYPTO_TRUE == cryptoUnitIsCompatible (self.core, that.core)
     }
@@ -100,43 +108,50 @@ public final class Unit {
         return currency.core == cryptoUnitGetCurrency (core)
     }
 
-    internal init (core: BRCryptoUnit, currency: Currency) {
+    internal init (core: BRCryptoUnit,
+                   currency: Currency,
+                   uids: String,
+                   base: Unit?) {
         self.core = core
         self.currency = currency
-    }
-
-    internal convenience init (core: BRCryptoUnit) {
-        self.init (core: core,
-                   currency: Currency (core: cryptoUnitGetCurrency (core)))
+        self.uids = uids
+        self.base = base ?? self
     }
 
     internal convenience init (currency: Currency,
+                               uids: String,
                                name: String,
                                symbol: String) {
         self.init (core: cryptoUnitCreateAsBase (currency.core, name, symbol),
-                   currency: currency)
+                   currency: currency,
+                   uids: uids,
+                   base: nil)
     }
 
     internal convenience init (currency: Currency,
+                               uids: String,
                                name: String,
                                symbol: String,
                                base: Unit,
                                decimals: UInt8) {
         self.init (core: cryptoUnitCreate (currency.core, name, symbol, base.core, decimals),
-                   currency: currency)
+                   currency: currency,
+                   uids: uids,
+                   base: base)
     }
 
     deinit {
         cryptoUnitGive (core)
     }
-}
 
-extension Unit: Equatable {
     public static func == (lhs: Unit, rhs: Unit) -> Bool {
-        return CRYPTO_TRUE == cryptoUnitIsIdentical (lhs.core, rhs.core)
+        return lhs === rhs || lhs.uids == rhs.uids
+    }
+
+    public func hash (into hasher: inout Hasher) {
+        hasher.combine (uids)
     }
 }
-
 
 ///
 /// An amount of currency.  This can be negative (as in, 'currency owed' rather then 'currency
@@ -148,7 +163,8 @@ public final class Amount {
     internal let core: BRCryptoAmount
 
     /// The (default) unit.  Without this there is no reasonable implementation of
-    /// CustomeStringConvertable.
+    /// CustomeStringConvertable.  This property is only used in the `description` function
+    /// and to ascertain the Amount's currency typically for consistency in add/sub functions.
     public let unit: Unit
 
     /// The currency
@@ -166,9 +182,10 @@ public final class Amount {
         return CRYPTO_TRUE == overflow ? nil : value
     }
 
-     public func string (as unit: Unit) -> String? {
+    public func string (as unit: Unit) -> String? {
         return double (as: unit)
-            .flatMap { self.formatterWith (unit: unit).string(from: NSNumber(value: $0)) }
+            .flatMap { self.formatterWith (unit: unit)
+                .string (from: NSNumber(value: $0)) }
     }
 
     public func string (pair: CurrencyPair) -> String? {
@@ -184,13 +201,13 @@ public final class Amount {
     }
 
     public func add (_ that: Amount) -> Amount? {
-        precondition (isCompatible(with: that))
+        precondition (isCompatible (with: that))
         return cryptoAmountAdd (self.core, that.core)
             .map { Amount (core: $0, unit: self.unit) }
     }
 
     public func sub (_ that: Amount) -> Amount? {
-        precondition (isCompatible(with: that))
+        precondition (isCompatible (with: that))
         return cryptoAmountSub (self.core, that.core)
             .map { Amount (core: $0, unit: self.unit) }
     }
@@ -248,7 +265,7 @@ extension Amount: Comparable {
         return CRYPTO_COMPARE_EQ == cryptoAmountCompare (lhs.core, rhs.core)
     }
 
-     public static func < (lhs: Amount, rhs: Amount) -> Bool {
+    public static func < (lhs: Amount, rhs: Amount) -> Bool {
         return CRYPTO_COMPARE_LT == cryptoAmountCompare (lhs.core, rhs.core)
     }
 
@@ -328,7 +345,7 @@ public struct CurrencyPair {
     ///
     public func exchange(asBase amount: Amount) -> Amount? {
         return amount.double(as: baseUnit)
-            .map { Amount.create (double: $0 * exchangeRate, unit: quoteUnit) }
+            .flatMap { Amount.create (double: $0 * exchangeRate, unit: quoteUnit) }
     }
 
     ///
@@ -341,7 +358,7 @@ public struct CurrencyPair {
     ///
     public func exchange(asQuote amount: Amount) -> Amount? {
         return amount.double (as: quoteUnit)
-            .map { Amount.create (double: $0 / exchangeRate, unit: baseUnit) }
+            .flatMap { Amount.create (double: $0 / exchangeRate, unit: baseUnit) }
     }
 }
 
@@ -352,137 +369,178 @@ extension CurrencyPair: CustomStringConvertible {
 }
 
 ///
-/// An `Accouint` represents the User's paperKey.  An App generally has one instace of an
-/// account; that account generates bitcoin, ethereum, ... addresses
+///
 ///
 public final class Account {
-
     let core: BRCryptoAccount
+
+    public var timestamp: UInt64 {
+        return cryptoAccountGetTimestamp (core)
+    }
 
     internal init (core: BRCryptoAccount) {
         self.core = core
     }
 
-    public var serialize: Data {
-        return Data (count: 0)
-    }
-
-    static func createFrom (phrase: String) -> Account? {
+    public static func createFrom (phrase: String) -> Account? {
         return cryptoAccountCreate (phrase)
             .map { Account (core: $0) }
     }
 
-    static func createFrom (serialization: Data) -> Account? {
-        return nil
+    public static func createFrom (seed: Data) -> Account? {
+        var data = seed
+        return data.withUnsafeMutableBytes {
+            cryptoAccountCreateFromSeedBytes ($0)
+                .map { Account (core: $0) }
+        }
+    }
+
+    public static func deriveSeed (phrase: String) -> Data {
+        var seed = cryptoAccountDeriveSeed(phrase)
+        return Data (bytes: &seed, count: MemoryLayout<UInt512>.size);
+    }
+
+    // Test Only
+    internal var addressAsETH: String {
+        return asUTF8String (cryptoAccountAddressAsETH(core)!)
     }
 }
-
-///
-/// A Key (unused)
-///
-#if false
-public protocol Key {}
-
-///
-/// A KeyPair (unused)
-///
-public protocol KeyPair {
-    var privateKey : Key { get }
-    var publicKey : Key { get }
-}
-#endif
 
 ///
 /// A Blockchain Network.  Networks are created based from a cross-product of block chain and
 /// network type.  Specifically {BTC, BCH, ETH, ...} x {Mainnet, Testnet, ...}.  Thus there will
 /// be networks of [BTC-Mainnet, BTC-Testnet, ..., ETH-Mainnet, ETH-Testnet, ETH-Rinkeby, ...]
 ///
-public class Network {
-    internal let core: BRCryptoNetwork
+public final class Network: CustomStringConvertible {
 
+    /// A unique-identifer-string
+    public let uids: String
     /// The name
-    public var name: String {
-        return asUTF8String (cryptoNetworkGetName (core))
-    }
+    public let name: String
 
     /// If 'mainnet' then true, otherwise false
-    public var isMainnet: Bool {
-        return CRYPTO_TRUE == cryptoNetworkIsMainnet (core)
-    }
+    public let isMainnet: Bool
 
     /// The native currency.  Multiple networks will have the same currency; for example,
     /// BTC-Mainnet and BTC-Testnet share the BTC currency.
     public let currency: Currency
 
     /// All currencies.  Multiple networks will have the same currencies.
-    public let currencies: [Currency]  // when hashable =>  Set<Currency>
+    public var currencies: Set<Currency>
 
-    internal func lookup (currency core: BRCryptoCurrency) -> Currency? {
-        return currencies.first { $0.core == core }
+    internal var associations: Dictionary<Currency, Association> = [:]
+
+    func currencyBy (code: String) -> Currency? {
+        return currencies.first { $0.code == code }
     }
 
-    internal let units: [Unit]
-
-    internal func lookup (unit core: BRCryptoUnit) -> Unit? {
-        return units.first { $0.core == core }
+    public func hasCurrency(_ that: Currency) -> Bool {
+        return currencies.contains(that)
     }
 
-    ///
-    /// if `currency` is in `currencies` then true; otherwise false
-    ///
-    /// - Parameter that: the currency
-    ///
-    /// - Returns:
-    ///
-    public func hasCurrency (_ that: Currency) -> Bool {
-        return currencies.contains { $0.core == that.core }
+    public func baseUnitFor(currency: Currency) -> Unit? {
+        return associations[currency]?.baseUnit
     }
 
-    public func baseUnitFor (currency: Currency) -> Unit? {
-        return cryptoNetworkGetUnitAsBase (core, currency.core)
-        .flatMap { lookup (unit: $0 ) }
+    public func defaultUnitFor(currency: Currency) -> Unit? {
+        return associations[currency]?.defaultUnit
     }
 
-    public func defaultUnitFor (currency: Currency) -> Unit? {
-        return cryptoNetworkGetUnitAsDefault(core, currency.core)
-            .flatMap { lookup (unit: $0 ) }
+    public func unitsFor(currency: Currency) -> Set<Unit>? {
+        return associations[currency]?.units
     }
 
-    public func unitsFor (currency: Currency) -> [Unit]? { // Set<Unit>
-        guard hasCurrency(currency) else { return nil }
-        return (0..<cryptoNetworkGetUnitCount (core, currency.core))
-            .map { lookup (unit: cryptoNetworkGetUnitAt (core, currency.core, $0))! }
+    public func hasUnitFor(currency: Currency, unit: Unit) -> Bool? {
+        return unitsFor(currency: currency)?.contains(unit)
     }
 
-    public func hasUnitFor (currency: Currency, unit: Unit) -> Bool? {
-        return unitsFor (currency: currency)
-            .map { $0.contains(unit) }
+    public struct Association {
+        let baseUnit: Unit
+        let defaultUnit: Unit
+        let units: Set<Unit>
     }
 
-    internal init (core: BRCryptoNetwork) {
-        self.core = core
+    internal init (uids: String,
+                   name: String,
+                   isMainnet: Bool,
+                   currency: Currency,
+                   associations: Dictionary<Currency, Association>,
+                   impl: Impl) {
+        self.uids = uids
+        self.name = name
+        self.isMainnet = isMainnet
+        self.currency = currency
+        self.associations = associations
 
-        let currencies = (0..<cryptoNetworkGetCurrencyCount (core))
-            .map { Currency (core: cryptoNetworkGetCurrencyAt (core, $0)!) }
+        self.currencies = associations.keys.reduce (into: Set<Currency>()) {
+            $0.insert($1)
+        }
 
-        // Cache all the currencies
-        self.currencies = currencies
-
-        // Cache all the units
-        self.units = currencies
-            .flatMap { (currency) in (0..<cryptoNetworkGetUnitCount (core, currency.core))
-                .map { Unit (core: cryptoNetworkGetUnitAt (core, currency.core, $0)) }}
-
-        // Get the native currency
-        self.currency = cryptoNetworkGetCurrency(core)
-            .map { (coreCurrency) in currencies.first { $0.core == coreCurrency }!}!
+        self.impl = impl
     }
-}
 
-extension Network: CustomStringConvertible {
+    public convenience init (uids: String,
+                             name: String,
+                             isMainnet: Bool,
+                             currency: Currency,
+                             associations: Dictionary<Currency, Association>) {
+        var impl: Impl!
+
+        switch currency.code {
+        case Currency.codeAsBTC:
+            impl = Impl.bitcoin (forkId: (isMainnet ? 0x00 : 0x40), chainParams: (isMainnet ? BRMainNetParams : BRTestNetParams))
+        case Currency.codeAsBCH:
+            impl = Impl.bitcoin (forkId: (isMainnet ? 0x00 : 0x40), chainParams: (isMainnet ? BRBCashParams : BRBCashTestNetParams))
+        case Currency.codeAsETH:
+            if uids.contains("mainnet") {
+                impl = Impl.ethereum(chainId: 1, core: ethereumMainnet)
+            }
+            else if uids.contains("testnet") || uids.contains("ropsten") {
+                impl = Impl.ethereum (chainId: 3, core: ethereumTestnet)
+            }
+            else if uids.contains ("rinkeby") {
+                impl = Impl.ethereum (chainId: 4, core: ethereumRinkeby)
+            }
+        default:
+            impl = Impl.generic
+            break
+        }
+
+        self.init (uids: uids,
+                   name: name,
+                   isMainnet: isMainnet,
+                   currency: currency,
+                   associations: associations,
+                   impl: impl)
+    }
+
     public var description: String {
         return name
     }
+
+    internal let impl: Impl
+    public enum Impl {
+        case bitcoin  (forkId: UInt8, chainParams: UnsafePointer<BRChainParams>)
+        case bitcash  (forkId: UInt8, chainParams: UnsafePointer<BRChainParams>)
+        case ethereum (chainId: UInt, core: BREthereumNetwork)
+        case generic
+    }
+
+    public var supportedModes: [WalletManagerMode] {
+        switch impl {
+        case .bitcoin,
+             .bitcash:
+            return [WalletManagerMode.p2p_only]
+        case .ethereum:
+            return [WalletManagerMode.api_only,
+                    WalletManagerMode.api_with_p2p_submit]
+        case .generic:
+            return [WalletManagerMode.api_only]
+        }
+    }
+
+    // address schemes
+
 }
 
 public enum NetworkEvent {
@@ -495,12 +553,17 @@ public enum NetworkEvent {
 /// - bitcoin: A bitcon-specific address
 /// - ethereum: An ethereum-specific address
 ///
-public struct Address {
+public final class Address: CustomStringConvertible {
+
     let core: BRCryptoAddress
 
     internal init (core: BRCryptoAddress) {
         self.core = core
     }
+
+    public private(set) lazy var description: String = {
+        return asUTF8String (cryptoAddressAsString (core))
+    }()
 
     ///
     /// Create an Addres from `string` and `network`.  The provided `string` must be valid for
@@ -517,14 +580,47 @@ public struct Address {
     /// - Returns: An address or nil if `string` is invalide for `network`
     ///
     static func create (string: String, network: Network) -> Address? {
-        return nil
+        switch network.currency.code {
+        case Currency.codeAsBTC,
+             Currency.codeAsBCH:
+            return nil
+        case Currency.codeAsETH:
+            return nil
+        default: // generic
+            return nil
+        }
     }
+
+//    class EthereumAddress: Address {
+//        let core: BREthereumAddress
+//
+//        internal init (_ core: BREthereumAddress) {
+//            self.core = core
+//        }
+//
+//        static func create(string: String, network: Network) -> Address? {
+//            return (ETHEREUM_BOOLEAN_FALSE == addressValidateString(string)
+//                ? nil
+//                : EthereumAddress (addressCreate (string)))
+//        }
+//
+//        var description: String {
+//            return asUTF8String(addressGetEncodedString (core, 1))
+//        }
+//    }
+
 }
 
-extension Address: CustomStringConvertible {
-    public var description: String {
-        return asUTF8String (cryptoAddressAsString (core))
-    }
+///
+/// An AddressScheme generates addresses for a wallet.  Depending on the scheme, a given wallet may
+/// generate different address.  For example, a Bitcoin wallet can have a 'Segwit/BECH32' address
+/// scheme or a 'Legacy' address scheme.
+///
+public protocol AddressScheme {
+//    associatedtype W: Wallet
+
+    // Generate a 'receive' (aka target') address for wallet.
+    func getAddress (for wallet: Wallet) -> Address
 }
 
 ///
@@ -534,62 +630,43 @@ extension Address: CustomStringConvertible {
 /// Once the transfer has been included in the currency's blockchain it will have a
 /// `TransferConfirmation`.
 ///
-open class Transfer {
-    internal let core: BRCryptoTransfer
+public protocol Transfer : class {
 
     /// The owning wallet
-    public let wallet: Wallet
+    var wallet: Wallet { get }
 
     /// The source pays the fee and sends the amount.
-    public let source: Address?
+    var source: Address? { get }
 
     /// The target receives the amount
-    public let target: Address?
+    var target: Address? { get }
 
     /// The amount to transfer
-    public let amount: Amount
+    var amount: Amount { get }
 
     /// The fee paid - before the transfer is confirmed, this is the estimated fee.
-    public internal(set) var fee: Amount
+    var fee: Amount { get }
 
     /// The basis for the fee.
-    public let feeBasis: TransferFeeBasis
+    var feeBasis: TransferFeeBasis { get }
 
     /// An optional confirmation.
+    var confirmation: TransferConfirmation? { get }
+
+    /// An optional hash
+    var hash: TransferHash? { get }
+
+    /// The current state
+    var state: TransferState { get }
+
+    var isSent: Bool { get }
+    // var originator: Bool { get }
+}
+
+extension Transfer {
     public var confirmation: TransferConfirmation? {
         if case .included (let confirmation) = state { return confirmation }
         else { return nil }
-    }
-
-    /// An optional hash
-    public internal(set) var hash: TransferHash?
-
-    /// The current state
-    public internal(set) var state: TransferState
-
-    var isSent: Bool {
-        return false
-    }
-    // var originator: Bool
-
-    internal init (core: BRCryptoTransfer,
-                   wallet: Wallet,
-                   source: Address,
-                   target: Address,
-                   amount: Amount,
-                   fee: Amount,
-                   feeBasis: TransferFeeBasis,
-                   hash: TransferHash?,
-                   state: TransferState) {
-        self.core = core
-        self.wallet = wallet
-        self.source = source
-        self.target = target
-        self.amount = amount
-        self.fee = fee
-        self.feeBasis = feeBasis
-        self.hash = hash
-        self.state = state
     }
 }
 
@@ -614,10 +691,40 @@ public struct TransferConfirmation {
 ///
 /// A TransferHash uniquely identifies a transfer *among* the owning wallet's transfers.
 ///
-public struct TransferHash: Equatable {  // hashable, equatable, custom..
-    let core: BRCryptoTransferHash
+public enum TransferHash: Hashable, CustomStringConvertible {
+    case bitcoin (UInt256)
+    case ethereum (BREthereumHash)
 
+    public func hash (into hasher: inout Hasher) {
+        switch self {
+        case .bitcoin (let core):
+            hasher.combine (core.u32.0)
+            break
+        case .ethereum (var core):
+            hasher.combine (Int(hashSetValue(&core)))
+            break
+        }
+    }
 
+    public static func == (lhs: TransferHash, rhs: TransferHash) -> Bool {
+        switch (lhs, rhs) {
+        case (.bitcoin(let c1), .bitcoin(let c2)):
+            return 1 == eqUInt256 (c1, c2)
+        case (.ethereum(var c1), .ethereum(var c2)):
+            return 1 == hashSetEqual(&c1, &c2)
+        default:
+            return false
+        }
+    }
+
+    public var description: String {
+        switch self {
+        case .bitcoin (let core):
+            return asUTF8String (u256HashToString(core), true)
+        case .ethereum(let core):
+            return asUTF8String (hashAsString(core))
+        }
+    }
 }
 
 ///
@@ -647,7 +754,6 @@ extension TransferState: CustomStringConvertible {
     }
 }
 
-///
 /// A TransferEvent represents a asynchronous announcment of a transfer's state change.
 ///
 public enum TransferEvent {
@@ -678,60 +784,47 @@ public protocol TransferFactory {
                          feeBasis: TransferFeeBasis) -> Transfer? // T
 }
 
+
 ///
 /// A Wallet holds the transfers and a balance for a single currency.
 ///
-open class Wallet {
-    internal let core: BRCryptoWallet
+public protocol Wallet: class {
 
     /// The owning manager
-    public let manager: WalletManager
+    var manager: WalletManager { get }
+
+    /// The name
+    var name: String { get }
 
     /// The base unit for the wallet's network.  This is used for `balance` and to derive the
     /// currency and name
-    internal let unit: Unit
+    var unit: Unit { get }
 
     /// The current balance for currency
-    public var balance: Amount {
-        return Amount (core: cryptoWalletGetBalance (core), unit: unit)
-    }
+    var balance: Amount { get }
 
     /// The transfers of currency yielding `balance`
-    public internal(set) var transfers: [Transfer] = []
+    var transfers: [Transfer] { get }
 
     /// Use a hash to lookup a transfer
-    func lookup (hash: TransferHash) -> Transfer? {
-        return transfers.first { $0.hash ==  hash }
-    }
+    func lookup (transfer: TransferHash) -> Transfer?
 
     /// The current state.
-    public internal(set) var state: WalletState
+    var state: WalletState { get }
 
     /// The default TransferFeeBasis for created transfers.
-    public var defaultFeeBasis: TransferFeeBasis
+    var defaultFeeBasis: TransferFeeBasis { get set }
 
     /// The default TransferFactory for creating transfers.
-    public var transferFactory: TransferFactory
+//    var transferFactory: TransferFactory { get set }
 
     /// An address suitable for a transfer target (receiving).  Uses the default Address Scheme
-    public var target: Address {
-        return Address (core: cryptoWalletGetAddress (core))
-    }
+    var target: Address { get }
 
-    internal init (core: BRCryptoWallet,
-                   manager: WalletManager,
-                   name: String,
-                   unit: Unit,
-                   state: WalletState,
-                   defaultFeeBasis: TransferFeeBasis,
-                   transferFactory: TransferFactory) {
-        self.core = core
-        self.manager = manager
-        self.unit = unit
-        self.state = state
-        self.defaultFeeBasis = defaultFeeBasis
-        self.transferFactory = transferFactory
-    }
+    /// An address suitable for a transfer source (sending).  Uses the default AddressScheme
+    var source: Address { get }
+
+    // address scheme
 }
 
 extension Wallet {
@@ -747,14 +840,14 @@ extension Wallet {
     ///
     /// - Returns: A new transfer
     ///
-    public func createTransfer (target: Address,
-                                amount: Amount,
-                                feeBasis: TransferFeeBasis) -> Transfer? {
-        return transferFactory.createTransfer (wallet: self,
-                                               target: target,
-                                               amount: amount,
-                                               feeBasis: feeBasis)
-    }
+//    public func createTransfer (target: Address,
+//                                amount: Amount,
+//                                feeBasis: TransferFeeBasis) -> Transfer? {
+//        return transferFactory.createTransfer (wallet: self,
+//                                               target: target,
+//                                               amount: amount,
+//                                               feeBasis: feeBasis)
+//    }
 
     ///
     /// Create a transfer for wallet using the `defaultFeeBasis`.  Invokes the wallet's
@@ -768,12 +861,12 @@ extension Wallet {
     ///
     /// - Returns: A new transfer
     ///
-    public func createTransfer (target: Address,
-                                amount: Amount) -> Transfer? {
-        return createTransfer (target: target,
-                               amount: amount,
-                               feeBasis: defaultFeeBasis)
-    }
+//    public func createTransfer (target: Address,
+//                                amount: Amount) -> Transfer? {
+//        return createTransfer (target: target,
+//                               amount: amount,
+//                               feeBasis: defaultFeeBasis)
+//    }
 
     /// The currency held in wallet.
     public var currency: Currency {
@@ -825,18 +918,6 @@ extension WalletEvent: CustomStringConvertible {
 }
 
 ///
-/// An AddressScheme generates addresses for a wallet.  Depending on the scheme, a given wallet may
-/// generate different address.  For example, a Bitcoin wallet can have a 'Segwit/BECH32' address
-/// scheme or a 'Legacy' address scheme.
-///
-public protocol AddressScheme {
-    associatedtype W: Wallet
-
-    // Generate a 'receive' (aka target') address for wallet.
-    func getAddress (for wallet: W) -> Address
-}
-
-///
 /// A WalletFactory is a customization point for Wallet creation.
 /// TODO: ?? AND HOW DOES THIS FIT WITH CoreWallet w/ REQUIRED INTERFACE TO Core ??
 ///
@@ -865,77 +946,49 @@ public protocol WalletFactory {
 /// At least conceptually, a WalletManager is an 'Active Object' (whereas Transfer and Wallet are
 /// 'Passive Objects'
 ///
-open class WalletManager {
-    internal let core: BRCryptoWalletManager
-
+public protocol WalletManager : class {
     /// The account
-    public let account: Account
+    var account: Account { get }
 
     /// The network
-    public let network: Network
+    var network: Network { get }
 
     /// The primaryWallet
-    public let primaryWallet: Wallet
+    var primaryWallet: Wallet { get }
 
     /// The managed wallets - often will just be [primaryWallet]
-    public let wallets: [Wallet]
+    var wallets: [Wallet] { get }
 
     // The mode determines how the manager manages the account and wallets on network
-    public let mode: WalletManagerMode
+    var mode: WalletManagerMode { get }
 
     // The file-system path to use for persistent storage.
-    public let path: String
+    var path: String { get }  // persistent storage
 
-    public internal(set) var state: WalletManagerState
+    var state: WalletManagerState { get }
 
     /// The default WalletFactory for creating wallets.
-    public var walletFactory: WalletFactory
+//    var walletFactory: WalletFactory { get set }
+
+    func createWalletFor (currency: Currency) -> Wallet? 
 
     /// Connect to network and begin managing wallets for account
-    func connect () {
-        cryptoWalletManagerConnect (core)
-    }
+    func connect ()
 
     /// Disconnect from the network.
-    func disconnect () {
-        cryptoWalletManagerDisconnect (core)
-    }
+    func disconnect ()
 
-     /// isConnected
+    /// isConnected
+    /// sync(...)
     /// isSyncing
 
-     func sync () {
-        cryptoWalletManagerSync (core)
-    }
+    func sign (transfer: Transfer, paperKey: String)
 
-    func sign (transfer: Transfer, paperKey: String) {
+    func submit (transfer: Transfer)
 
-    }
-
-    func submit (transfer: Transfer) {
-
-    }
-
-    internal init (core: BRCryptoWalletManager,
-                   network: Network,
-                   account: Account,
-                   wallet: Wallet,
-                   wallets: [Wallet],
-                   mode: WalletManagerMode,
-                   path: String,
-                   state: WalletManagerState,
-                   factory: WalletFactory) {
-        self.core = core
-        self.network = network
-        self.account = account
-        self.primaryWallet = wallet
-        self.wallets = wallets
-        self.mode = mode
-        self.path = path
-        self.state = state
-        self.walletFactory = factory
-        }
+    func sync ()
 }
+
 
 extension WalletManager {
     ///
@@ -947,10 +1000,10 @@ extension WalletManager {
     ///
     /// - Returns: a new wallet.
     ///
-    func createWallet (currency: Currency) -> Wallet {
-        return walletFactory.createWallet (manager: self,
-                                           currency: currency)
-    }
+//    func createWallet (currency: Currency) -> Wallet {
+//        return walletFactory.createWallet (manager: self,
+//                                           currency: currency)
+//    }
 
     /// The primaryWallet's currency.
     var currency: Currency {
@@ -980,23 +1033,6 @@ public enum WalletManagerState {
 }
 
 ///
-/// A WalletManager Event represents a asynchronous announcment of a managera's state change.
-///
-public enum WalletManagerEvent {
-    case created
-    case changed (oldState: WalletManagerState, newState: WalletManagerState)
-    case deleted
-
-    case walletAdded (wallet: Wallet)
-    case walletChanged (wallet: Wallet)
-    case walletDeleted (wallet: Wallet)
-
-    case syncStarted
-    case syncProgress (percentComplete: Double)
-    case syncEnded (error: String?)
-}
-
-///
 /// The WalletManager's mode determines how the account and associated wallets are managed.
 ///
 /// - api_only: Use only the defined 'Cloud-Based API' to synchronize the account's transfers.
@@ -1017,26 +1053,39 @@ public enum WalletManagerMode {
 }
 
 ///
+/// A WalletManager Event represents a asynchronous announcment of a managera's state change.
+///
+public enum WalletManagerEvent {
+    case created
+    case changed (oldState: WalletManagerState, newState: WalletManagerState)
+    case deleted
+
+    case walletAdded (wallet: Wallet)
+    case walletChanged (wallet: Wallet)
+    case walletDeleted (wallet: Wallet)
+
+    case syncStarted
+    case syncProgress (percentComplete: Double)
+    case syncEnded (error: String?)
+}
+
+public enum SystemEvent {
+    case created
+    case networkAdded (network: Network)
+    case managerAdded (manager: WalletManager)
+}
+///
 /// A SystemListener recieves asynchronous events announcing state changes to Networks, to Managers,
 /// to Wallets and to Transfers.  This is an application's sole mechanism to learn of asynchronous
 /// state changes.
 ///
-/// Note: This must be 'class bound' as System  hold an 'unowned' reference (for GC reasons).
+/// Note: This must be 'class bound' as System  hold a 'weak' reference (for GC reasons).
 ///
 public protocol SystemListener : class {
 
-    ///
-    /// Handle a NetworkEvent
-    ///
-    /// - Parameters:
-    ///   - system: the system
-    ///   - network: the network
-    ///   - event: the event
-    ///
-    func handleNetworkEvent (system: System,
-                             network: Network,
-                             event: NetworkEvent)
-
+    func handleSystemEvent (system: System,
+                            event: SystemEvent)
+    
     ///
     /// Handle a WalletManagerEvent.
     ///
@@ -1082,188 +1131,119 @@ public protocol SystemListener : class {
 
     // TODO: handlePeerEvent ()
     // TODO: handleBlockEvent ()
+
+    ///
+    /// Handle a NetworkEvent
+    ///
+    /// - Parameters:
+    ///   - system: the system
+    ///   - network: the network
+    ///   - event: the event
+    ///
+    func handleNetworkEvent (system: System,
+                             network: Network,
+                             event: NetworkEvent)
+
+
+
+//    /// System
+//
+//    func handleSystemAddedNetwork (system: System,
+//                                   network: Network)
+//
+//    func handleSystemAddedManager (system: System,
+//                                   manager: WalletManager)
+//
+//    /// Network
+//
+//    // added currency
+//
+//    /// Manager
+//
+//    func handleManagerChangedState (system: System,
+//                                    manager: WalletManager,
+//                                    old: WalletManagerState,
+//                                    new: WalletManagerState)
+//
+//    func handleManagerAddedWallet (system: System,
+//                                   manager: WalletManager,
+//                                   wallet: Wallet)
+//    // changed wallet
+//    // deleted wallet
+//
+//    func handleManagerStartedSync (system: System,
+//                                   manager: WalletManager)
+//
+//    func handleManagerProgressedSync (system: System,
+//                                      manager: WalletManager,
+//                                      percentage: Double)
+//
+//    func handleManagerStoppedSync (system: System,
+//                                   manager: WalletManager)
+//
+//    /// Wallet
+//
+//    func handleWalletAddedTransfer (system: System,
+//                                    manager: WalletManager,
+//                                    wallet: Wallet,
+//                                    transfer: Transfer)
+//
+//    // changed transfer
+//    // deleted transfer
+//
+//    func handleWalletUpdatedBalance (system: System,
+//                                     manager: WalletManager,
+//                                     wallet: Wallet)
+//
+//    func handleWalletUpdatedFeeBasis (system: System,
+//                                      manager: WalletManager,
+//                                      wallet: Wallet)
+//
+//    /// Transfer
+//
+//    func handleTransferChangedState (system: System,
+//                                     manager: WalletManager,
+//                                     wallet: Wallet,
+//                                     transfer: Transfer,
+//                                     old: TransferState,
+//                                     new: TransferState)
 }
 
 
-/// Singleton
-public final class System {
-    internal let core: BRCryptoSystem;
 
+/// Singleton
+public protocol System {
+    
     /// The listener.  Gets all events for {Network, WalletManger, Wallet, Transfer}
-    public private(set) weak var listener: SystemListener?
+    var listener: SystemListener? { get }
+
+    var account: Account { get }
 
     /// The path for persistent storage
-    public var path: String {
-        return asUTF8String(cryptoSystemGetPersistencePath (core))
-    }
+    var path: String { get }
 
-    /// The URL for the 'blockchain DB'
-    public let url: URL
-
-    public let account: Account
+    /// The 'blockchain DB'
+    var query: BlockChainDB { get }
 
     /// Networks
-
-    public internal(set) var networks: [Network] = []
-
-    internal func lookup (network core: BRCryptoNetwork) -> Network? {
-        return networks.first { $0.core == core }
-    }
+    var networks: [Network] { get }
 
     /// Wallet Managers
-    public internal(set) var managers: [WalletManager] = [];
+    var managers: [WalletManager] { get }
 
-    internal func lookup (manager core: BRCryptoWalletManager) -> WalletManager? {
-        return managers.first { $0.core == core }
-    }
+    func start (networksNeeded: [String])
 
-    internal func lookup (wallet core: BRCryptoWallet, manager: WalletManager) -> Wallet? {
-        return manager.wallets.first { $0.core == core }
-    }
+    func stop ()
 
-    internal func lookup (transfer core: BRCryptoTransfer, wallet: Wallet) -> Transfer? {
-        return wallet.transfers.first { $0.core == core }
-    }
+    func createWalletManager (network: Network,
+                              mode: WalletManagerMode)
 
-    // No - define 'system listener'
-    private var coreNetworkListener: BRCryptoNetworkListener! = nil
-    private var coreWalletManagerListener: BRCryptoCWMListener! = nil
-
-    public func start () {
-        cryptoSystemStart (core);
-    }
-
-    public func stop () {
-        cryptoSystemStop (core)
-    }
-
-    public func createWalletManager (network: Network,
-                                     currency: Currency,
-                                     mode: WalletManagerMode) {
-
-    }
-    private static var instance: System?
-
-    internal init (core: BRCryptoSystem,
-                   account: Account,
-                   listener: SystemListener,
-                   blockchainURL: URL) {
-        self.core = core
-        self.account = account
-        self.listener = listener
-        self.url = blockchainURL
-        System.instance = self
-
-        // Network Listener
-
-        self.coreNetworkListener = BRCryptoNetworkListener (
-            context: Unmanaged<System>.passRetained(self).toOpaque(),
-            created: { (context: BRCryptoNetworkListenerContext?, coreNetwork: BRCryptoNetwork?) in
-                precondition (nil != context && nil != coreNetwork)
-                let system = Unmanaged<System>.fromOpaque(context!).takeRetainedValue()
-                let network = Network (core: coreNetwork!)
-
-                system.networks.append (network)
-                system.listener?.handleNetworkEvent(
-                    system: system,
-                    network: network,
-                    event: NetworkEvent.created)
-        } // ,
-            //            currencyAdded: { (context: BRCryptoNetworkListenerContext?, coreNetwork: BRCryptoNetwork?, coreCurrency: BRCryptoCurrency?) in
-            //                precondition (nil != context && nil != coreNetwork && nil != coreCurrency)
-            //                let system = Unmanaged<System>.fromOpaque(context!).takeRetainedValue()
-            //                if let network = system.lookup (network: coreNetwork!) {
-            //                    let currency = Currency (core: coreCurrency!)
-            //                    // add to 'network'
-            //                    system.listener?.handleNetworkEvent(
-            //                        system: system,
-            //                        network: network,
-            //                        event: NetworkEvent.currencyAdded(currency: currency))
-            //                }
-            //        },
-            //            currencyDeleted: { (context: BRCryptoNetworkListenerContext?, coreNetwork: BRCryptoNetwork?, coreCurrency: BRCryptoCurrency?) in
-            //                precondition (nil != context && nil != coreNetwork && nil != coreCurrency)
-            //                let system = Unmanaged<System>.fromOpaque(context!).takeRetainedValue()
-            //                if let network = system.lookup(network: coreNetwork!) {
-            //                    let currency = Currency (core: coreCurrency!)
-            //                    // rem from 'network'
-            //                    system.listener?.handleNetworkEvent(
-            //                        system: system,
-            //                        network: network,
-            //                        event: NetworkEvent.currencyDeleted(currency: currency))
-            //                }
-            //        }
-        )
-        cryptoNetworkDeclareListener(self.coreNetworkListener)
-
-        // Wallet Listener
-
-        self.coreWalletManagerListener = BRCryptoCWMListener (
-            context: Unmanaged<System>.passRetained(self).toOpaque(),
-
-            walletManagerEventCallback: { (context: BRCryptoCWMListenerContext?, coreCWM: BRCryptoWalletManager?) in
-                precondition (nil != context && nil != coreCWM)
-                let system  = Unmanaged<System>.fromOpaque(context!).takeRetainedValue()
-                if let manager = system.lookup(manager: coreCWM!) {
-                    let event = WalletManagerEvent.created
-
-                    system.listener?.handleManagerEvent(
-                        system: system,
-                        manager: manager,
-                        event: event)
-                }
-        },
-            walletEventCallback: { (context: BRCryptoCWMListenerContext?, coreCWM: BRCryptoWalletManager?, coreWallet: BRCryptoWallet?) in
-                precondition (nil != context && nil != coreCWM && nil != coreWallet)
-                let system = Unmanaged<System>.fromOpaque(context!).takeRetainedValue()
-                if let manager = system.lookup (manager: coreCWM!),
-                    let wallet = system.lookup(wallet: coreWallet!, manager: manager) {
-
-                    let event = WalletEvent.created
-
-                    system.listener?.handleWalletEvent(
-                        system: system,
-                        manager: manager,
-                        wallet: wallet,
-                        event: event)
-                }
-        },
-
-            transferEventCallback: { (context: BRCryptoCWMListenerContext?, coreCWM: BRCryptoWalletManager?, coreWallet: BRCryptoWallet?, coreTransfer: BRCryptoTransfer?) in
-                precondition (nil != context && nil != coreCWM && nil != coreWallet && nil != coreTransfer)
-                let system = Unmanaged<System>.fromOpaque(context!).takeRetainedValue()
-                if let manager = system.lookup (manager: coreCWM!),
-                    let wallet = system.lookup (wallet: coreWallet!, manager: manager),
-                    let transfer = system.lookup (transfer: coreTransfer!, wallet: wallet) {
-
-                    let event = TransferEvent.created
-
-                    system.listener?.handleTransferEvent(
-                        system: system,
-                        manager: manager,
-                        wallet: wallet,
-                        transfer: transfer,
-                        event: event)
-                }
-        })
-        cryptoWalletManagerDeclareListener (self.coreWalletManagerListener)
-
-        // Start communicating with URL
-        //   Load currencies
-        //   Load blockchains
-
-    }
-
-    public convenience init (account: Account,
-                             listener: SystemListener,
-                             persistencePath: String,
-                             blockchainURL: URL) {
-        precondition (nil == System.instance)
-
-        self.init (core: cryptoSystemCreate (account.core, persistencePath),
-                   account: account,
-                   listener: listener,
-                   blockchainURL: blockchainURL)
-     }
+    func createWallet (manager: WalletManager,
+                       currency: Currency)
+    
+    static func create (listener: SystemListener,
+                        account: Account,
+                        path: String,
+                        query: BlockChainDB) -> System
 }
 

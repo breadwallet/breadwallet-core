@@ -447,7 +447,8 @@ BRWalletManagerNew (BRWalletManagerClient client,
                           _BRWalletManagerTxDeleted);
     
 
-    client.funcWalletEvent (manager,
+    client.funcWalletEvent (client.context,
+                            manager,
                             manager->wallet,
                             (BRWalletEvent) {
                                 BITCOIN_WALLET_CREATED
@@ -492,7 +493,8 @@ BRWalletManagerGetPeerManager (BRWalletManager manager) {
 extern void
 BRWalletManagerConnect (BRWalletManager manager) {
     BRPeerManagerConnect(manager->peerManager);
-    manager->client.funcWalletManagerEvent (manager,
+    manager->client.funcWalletManagerEvent (manager->client.context,
+                                            manager,
                                             (BRWalletManagerEvent) {
                                                 BITCOIN_WALLET_MANAGER_CONNECTED
                                             });
@@ -501,9 +503,21 @@ BRWalletManagerConnect (BRWalletManager manager) {
 extern void
 BRWalletManagerDisconnect (BRWalletManager manager) {
     BRPeerManagerDisconnect(manager->peerManager);
-    manager->client.funcWalletManagerEvent (manager,
+    manager->client.funcWalletManagerEvent (manager->client.context,
+                                            manager,
                                             (BRWalletManagerEvent) {
                                                 BITCOIN_WALLET_MANAGER_DISCONNECTED
+                                            });
+}
+
+
+extern void
+BRWalletManagerScan (BRWalletManager manager) {
+    BRPeerManagerRescan(manager->peerManager);
+    manager->client.funcWalletManagerEvent (manager->client.context,
+                                            manager,
+                                            (BRWalletManagerEvent) {
+                                                BITCOIN_WALLET_MANAGER_SYNC_STARTED
                                             });
 }
 
@@ -514,7 +528,8 @@ BRWalletManagerDisconnect (BRWalletManager manager) {
 static void
 _BRWalletManagerBalanceChanged (void *info, uint64_t balanceInSatoshi) {
     BRWalletManager manager = (BRWalletManager) info;
-    manager->client.funcWalletEvent (manager,
+    manager->client.funcWalletEvent (manager->client.context,
+                                     manager,
                                      manager->wallet,
                                      (BRWalletEvent) {
                                          BITCOIN_WALLET_BALANCE_UPDATED,
@@ -526,7 +541,8 @@ static void
 _BRWalletManagerTxAdded   (void *info, BRTransaction *tx) {
     BRWalletManager manager = (BRWalletManager) info;
     fileServiceSave(manager->fileService, fileServiceTypeTransactions, tx);
-    manager->client.funcTransactionEvent (manager,
+    manager->client.funcTransactionEvent (manager->client.context,
+                                          manager,
                                           manager->wallet,
                                           tx,
                                           (BRTransactionEvent) {
@@ -545,7 +561,8 @@ _BRWalletManagerTxUpdated (void *info, const UInt256 *hashes, size_t count, uint
         // assert timestamp and blockHeight in transaction
         fileServiceSave (manager->fileService, fileServiceTypeTransactions, transaction);
 
-        manager->client.funcTransactionEvent (manager,
+        manager->client.funcTransactionEvent (manager->client.context,
+                                              manager,
                                               manager->wallet,
                                               transaction,
                                               (BRTransactionEvent) {
@@ -561,7 +578,8 @@ _BRWalletManagerTxDeleted (void *info, UInt256 hash, int notifyUser, int recomme
     fileServiceRemove(manager->fileService, fileServiceTypeTransactions, hash);
 
     BRTransaction *transaction = BRWalletTransactionForHash(manager->wallet, hash);
-    manager->client.funcTransactionEvent (manager,
+    manager->client.funcTransactionEvent (manager->client.context,
+                                          manager,
                                           manager->wallet,
                                           transaction,
                                           (BRTransactionEvent) {
@@ -593,7 +611,8 @@ _BRWalletManagerSavePeers  (void *info, int replace, const BRPeer *peers, size_t
 static void
 _BRWalletManagerSyncStarted (void *info) {
     BRWalletManager manager = (BRWalletManager) info;
-    manager->client.funcWalletManagerEvent (manager,
+    manager->client.funcWalletManagerEvent (manager->client.context,
+                                            manager,
                                             (BRWalletManagerEvent) {
                                                 BITCOIN_WALLET_MANAGER_SYNC_STARTED
                                             });
@@ -602,7 +621,8 @@ _BRWalletManagerSyncStarted (void *info) {
 static void
 _BRWalletManagerSyncStopped (void *info, int reason) {
     BRWalletManager manager = (BRWalletManager) info;
-    manager->client.funcWalletManagerEvent (manager,
+    manager->client.funcWalletManagerEvent (manager->client.context,
+                                            manager,
                                             (BRWalletManagerEvent) {
                                                 BITCOIN_WALLET_MANAGER_SYNC_STOPPED,
                                                 { .syncStopped = { reason }}

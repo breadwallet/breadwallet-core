@@ -27,6 +27,8 @@
 #define BRCryptoAccount_h
 
 #include <inttypes.h>
+#include "BRCryptoBase.h"
+#include "../ethereum/ewm/BREthereumAccount.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,11 +36,22 @@ extern "C" {
 
     typedef struct BRCryptoAccountRecord *BRCryptoAccount;
 
+    extern UInt512
+    cryptoAccountDeriveSeed (const char *phrase);
+
     extern BRCryptoAccount
     cryptoAccountCreate (const char *paperKey);
 
+    extern BRCryptoAccount
+    cryptoAccountCreateFromSeed (UInt512 seed);
+
+    extern BRCryptoAccount
+    cryptoAccountCreateFromSeedBytes (uint8_t *bytes);
+
     extern uint64_t
     cryptoAccountGetTimestamp (BRCryptoAccount account);
+
+    DECLARE_CRYPTO_GIVE_TAKE (BRCryptoAccount, cryptoAccount);
 
 #ifdef __cplusplus
 }

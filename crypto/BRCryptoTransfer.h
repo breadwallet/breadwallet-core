@@ -44,7 +44,10 @@ extern "C" {
         CRYPTO_TRANSFER_DELETED
     } BRCryptoTransferState;
 
-     typedef struct BRCryptoTransferRecord *BRCryptoTransfer;
+    typedef struct BRCryptoTransferRecord *BRCryptoTransfer;
+
+    extern BRCryptoTransfer
+    cryptoTransferCreate (BRCryptoWallet wallet); // MORE
 
     extern BRCryptoWallet
     cryptoTransferGetWallet (BRCryptoTransfer transfer);

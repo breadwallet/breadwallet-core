@@ -17,7 +17,6 @@
 		3C0EADF92188D920000577A6 /* BRCryptoAmountTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C0EADF82188D920000577A6 /* BRCryptoAmountTests.swift */; };
 		3C0EADFB2188D920000577A6 /* BRCryptoVersion.h in Headers */ = {isa = PBXBuildFile; fileRef = 3C0EADED2188D91F000577A6 /* BRCryptoVersion.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		3C0EAE022188D930000577A6 /* libCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CAB609B20AF8C5D00810CE4 /* libCore.a */; };
-		3C0EAE1821910AA1000577A6 /* BRCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C0EAE0C2190BCE9000577A6 /* BRCrypto.swift */; };
 		3C0EAE1A2191145A000577A6 /* BRSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C0EAE192191145A000577A6 /* BRSupport.swift */; };
 		3C0FF5332209243B0068A0AE /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CEF5FC9220513FC0010A811 /* libresolv.tbd */; };
 		3C18F8B221950746006F738F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C18F8B121950746006F738F /* AppDelegate.swift */; };
@@ -138,6 +137,7 @@
 		3C97E2612243E5EE003FD88F /* BRCryptoNetworkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C97E2602243E5EE003FD88F /* BRCryptoNetworkTests.swift */; };
 		3C97E2642245610E003FD88F /* BRCryptoSystem.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C97E2632245610E003FD88F /* BRCryptoSystem.c */; };
 		3C97E2652245610E003FD88F /* BRCryptoSystem.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C97E2632245610E003FD88F /* BRCryptoSystem.c */; };
+		3C97E269224996C3003FD88F /* BRCryptoSystemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C97E268224996C2003FD88F /* BRCryptoSystemTests.swift */; };
 		3CA15F80221648D200C84E65 /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CA15F7F221648D200C84E65 /* libresolv.tbd */; };
 		3CAB60A920AF8C8500810CE4 /* CoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB60A820AF8C8500810CE4 /* CoreTests.swift */; };
 		3CAB60AB20AF8C8500810CE4 /* libCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CAB609B20AF8C5D00810CE4 /* libCore.a */; };
@@ -189,6 +189,13 @@
 		3CAB60E720AF8ED800810CE4 /* test.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53A620AF595400C430F6 /* test.c */; };
 		3CAB60E820AF8EE000810CE4 /* test.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C42EF8E209763AB000E58E0 /* test.c */; };
 		3CAB613320B3536000810CE4 /* test-les.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A538920AF595400C430F6 /* test-les.c */; };
+		3CCB1348224D1B1700ADCDB9 /* BRCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCB1342224D1B1700ADCDB9 /* BRCrypto.swift */; };
+		3CCB1349224D1B1700ADCDB9 /* BRBlockChainDB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCB1343224D1B1700ADCDB9 /* BRBlockChainDB.swift */; };
+		3CCB134C224D1B1700ADCDB9 /* BRSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCB1347224D1B1700ADCDB9 /* BRSystem.swift */; };
+		3CCB1352224D2C5600ADCDB9 /* BRBitcash.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36B521AC65690032637A /* BRBitcash.swift */; };
+		3CCB1353224D2C7E00ADCDB9 /* BREthereum.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCB1345224D1B1700ADCDB9 /* BREthereum.swift */; };
+		3CCB1355224D3F7500ADCDB9 /* testCrypto.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CCB1354224D3F7500ADCDB9 /* testCrypto.c */; };
+		3CCB1363224D94C300ADCDB9 /* BRCryptoBaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCB1362224D94C300ADCDB9 /* BRCryptoBaseTests.swift */; };
 		3CCD36B121A5BB8D0032637A /* BRWalletManager.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36B021A5BB8D0032637A /* BRWalletManager.c */; };
 		3CCD36B221A5BB8D0032637A /* BRWalletManager.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36B021A5BB8D0032637A /* BRWalletManager.c */; };
 		3CCD36BD21AC90860032637A /* WalletViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36B721AC90850032637A /* WalletViewController.swift */; };
@@ -500,6 +507,7 @@
 		3C97E2602243E5EE003FD88F /* BRCryptoNetworkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRCryptoNetworkTests.swift; sourceTree = "<group>"; };
 		3C97E2622245610E003FD88F /* BRCryptoSystem.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRCryptoSystem.h; sourceTree = "<group>"; };
 		3C97E2632245610E003FD88F /* BRCryptoSystem.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRCryptoSystem.c; sourceTree = "<group>"; };
+		3C97E268224996C2003FD88F /* BRCryptoSystemTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BRCryptoSystemTests.swift; sourceTree = "<group>"; };
 		3CA15F7E221645B400C84E65 /* test.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = test.h; sourceTree = "<group>"; };
 		3CA15F7F221648D200C84E65 /* libresolv.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libresolv.tbd; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk/usr/lib/libresolv.tbd; sourceTree = DEVELOPER_DIR; };
 		3CA74EA920AF622D00EDF3E7 /* BRKeyECIES.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRKeyECIES.c; sourceTree = "<group>"; };
@@ -510,6 +518,12 @@
 		3CAB60AA20AF8C8500810CE4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		3CAB60E920AF8F3E00810CE4 /* CoreTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CoreTests-Bridging-Header.h"; sourceTree = "<group>"; };
 		3CC48D49221CD1F200067EFC /* CoreTestsConfig.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = CoreTestsConfig.plist; sourceTree = "<group>"; };
+		3CCB1342224D1B1700ADCDB9 /* BRCrypto.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BRCrypto.swift; sourceTree = "<group>"; };
+		3CCB1343224D1B1700ADCDB9 /* BRBlockChainDB.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BRBlockChainDB.swift; sourceTree = "<group>"; };
+		3CCB1345224D1B1700ADCDB9 /* BREthereum.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BREthereum.swift; sourceTree = "<group>"; };
+		3CCB1347224D1B1700ADCDB9 /* BRSystem.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BRSystem.swift; sourceTree = "<group>"; };
+		3CCB1354224D3F7500ADCDB9 /* testCrypto.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testCrypto.c; sourceTree = "<group>"; };
+		3CCB1362224D94C300ADCDB9 /* BRCryptoBaseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRCryptoBaseTests.swift; sourceTree = "<group>"; };
 		3CCD36AA21A36B590032637A /* BREthereumBase.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumBase.h; sourceTree = "<group>"; };
 		3CCD36AE21A4B1EB0032637A /* BREthereumClient.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumClient.h; sourceTree = "<group>"; };
 		3CCD36AF21A5BB8D0032637A /* BRWalletManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRWalletManager.h; sourceTree = "<group>"; };
@@ -628,11 +642,12 @@
 		3C0EADEC2188D91F000577A6 /* BRCrypto */ = {
 			isa = PBXGroup;
 			children = (
-				3C0EAE0C2190BCE9000577A6 /* BRCrypto.swift */,
-				3C0EAE192191145A000577A6 /* BRSupport.swift */,
+				3CCB1342224D1B1700ADCDB9 /* BRCrypto.swift */,
+				3CCB1344224D1B1700ADCDB9 /* impl */,
+				3CCB135E224D5C7900ADCDB9 /* common */,
+				3C97E25C224302A6003FD88F /* prototype */,
 				3C0EADED2188D91F000577A6 /* BRCryptoVersion.h */,
 				3C0EADEE2188D91F000577A6 /* Info.plist */,
-				3C97E25C224302A6003FD88F /* prototype */,
 			);
 			path = BRCrypto;
 			sourceTree = "<group>";
@@ -640,12 +655,14 @@
 		3C0EADF72188D920000577A6 /* BRCryptoTests */ = {
 			isa = PBXGroup;
 			children = (
+				3CCB1362224D94C300ADCDB9 /* BRCryptoBaseTests.swift */,
 				3C0EADF82188D920000577A6 /* BRCryptoAmountTests.swift */,
 				3C97E25E2243E589003FD88F /* BRCryptoAccountTests.swift */,
 				3CE48BF421E937580067BFC9 /* BRCryptoTransferTests.swift */,
 				3CE48BF821E938370067BFC9 /* BRCryptoWalletTests.swift */,
 				3CE48BF621E937F70067BFC9 /* BRCryptoWalletManagerTests.swift */,
 				3C97E2602243E5EE003FD88F /* BRCryptoNetworkTests.swift */,
+				3C97E268224996C2003FD88F /* BRCryptoSystemTests.swift */,
 				3C0EADFA2188D920000577A6 /* Info.plist */,
 			);
 			path = BRCryptoTests;
@@ -1024,14 +1041,14 @@
 				3C97E24022416AB1003FD88F /* BRCryptoUnit.c */,
 				3C97E24222416AB1003FD88F /* BRCryptoAmount.h */,
 				3C97E24422416AB1003FD88F /* BRCryptoAmount.c */,
-				3C97E23822416AB1003FD88F /* BRCryptoCurrencyPair.h */,
-				3C97E23722416AB1003FD88F /* BRCryptoCurrencyPair.c */,
-				3C97E24122416AB1003FD88F /* BRCryptoNetwork.h */,
-				3C97E23922416AB1003FD88F /* BRCryptoNetwork.c */,
 				3C97E254224170B9003FD88F /* BRCryptoAccount.h */,
 				3C97E255224170B9003FD88F /* BRCryptoAccount.c */,
 				3C97E258224170EC003FD88F /* BRCryptoAddress.h */,
 				3C97E259224170EC003FD88F /* BRCryptoAddress.c */,
+				3C97E24122416AB1003FD88F /* BRCryptoNetwork.h */,
+				3C97E23922416AB1003FD88F /* BRCryptoNetwork.c */,
+				3C97E23822416AB1003FD88F /* BRCryptoCurrencyPair.h */,
+				3C97E23722416AB1003FD88F /* BRCryptoCurrencyPair.c */,
 				3C97E23E22416AB1003FD88F /* BRCryptoTransfer.h */,
 				3C97E23B22416AB1003FD88F /* BRCryptoTransfer.c */,
 				3C97E23C22416AB1003FD88F /* BRCryptoWallet.h */,
@@ -1040,6 +1057,7 @@
 				3C97E23D22416AB1003FD88F /* BRCryptoWalletManager.c */,
 				3C97E2622245610E003FD88F /* BRCryptoSystem.h */,
 				3C97E2632245610E003FD88F /* BRCryptoSystem.c */,
+				3CCB1354224D3F7500ADCDB9 /* testCrypto.c */,
 			);
 			name = crypto;
 			path = ../../crypto;
@@ -1048,9 +1066,8 @@
 		3C97E25C224302A6003FD88F /* prototype */ = {
 			isa = PBXGroup;
 			children = (
-				3C0EAE2821935388000577A6 /* BRBitcoin.swift */,
+				3C0EAE0C2190BCE9000577A6 /* BRCrypto.swift */,
 				3C0EAE25219349CD000577A6 /* BREthereum.swift */,
-				3CCD36B521AC65690032637A /* BRBitcash.swift */,
 				3CCD36B321AA11CB0032637A /* BRFiat.swift */,
 				3CCD36C621AF25650032637A /* BRDefaultClients.swift */,
 				3C0EAE2021925574000577A6 /* BRCoreX.playground */,
@@ -1077,6 +1094,26 @@
 				3CEF5FC9220513FC0010A811 /* libresolv.tbd */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		3CCB1344224D1B1700ADCDB9 /* impl */ = {
+			isa = PBXGroup;
+			children = (
+				3CCB1345224D1B1700ADCDB9 /* BREthereum.swift */,
+				3C0EAE2821935388000577A6 /* BRBitcoin.swift */,
+				3CCD36B521AC65690032637A /* BRBitcash.swift */,
+				3CCB1347224D1B1700ADCDB9 /* BRSystem.swift */,
+			);
+			path = impl;
+			sourceTree = "<group>";
+		};
+		3CCB135E224D5C7900ADCDB9 /* common */ = {
+			isa = PBXGroup;
+			children = (
+				3CCB1343224D1B1700ADCDB9 /* BRBlockChainDB.swift */,
+				3C0EAE192191145A000577A6 /* BRSupport.swift */,
+			);
+			path = common;
 			sourceTree = "<group>";
 		};
 		3CEE8EEB216FAFF7008540C8 /* CorePerf */ = {
@@ -1123,8 +1160,10 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 3C0EADFF2188D920000577A6 /* Build configuration list for PBXNativeTarget "BRCryptoTests" */;
 			buildPhases = (
+				3CCB1364224D97AF00ADCDB9 /* Ensure CoreTestsConfig.plist */,
 				3C0EADEF2188D91F000577A6 /* Sources */,
 				3C0EADF02188D91F000577A6 /* Frameworks */,
+				3CCB1365224D9B2600ADCDB9 /* Copy CoreTestsConfig.plist as Resource */,
 				3C0EADF12188D91F000577A6 /* Resources */,
 			);
 			buildRules = (
@@ -1259,10 +1298,11 @@
 				TargetAttributes = {
 					3C0EADEA2188D91F000577A6 = {
 						CreatedOnToolsVersion = 10.0;
-						LastSwiftMigration = 1000;
+						LastSwiftMigration = 1020;
 					};
 					3C0EADF22188D91F000577A6 = {
 						CreatedOnToolsVersion = 10.0;
+						LastSwiftMigration = 1020;
 					};
 					3C18F8AE21950746006F738F = {
 						CreatedOnToolsVersion = 10.0;
@@ -1379,6 +1419,42 @@
 			shellPath = /bin/sh;
 			shellScript = "SRC_FILE=\"${HOME}/.brdCoreTestsConfig.plist\"\nTGT_FILE=\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\"\n\nif [ -f \"${SRC_FILE}\"  ]; then \n  cp \"${SRC_FILE}\" \"${TGT_FILE}\"\n  chmod 644 \"${TGT_FILE}\"\n  if [ ! -f \"${TGT_FILE}\" ]; then\n    echo \"Copy to  \\\"${TGT_FILE}\\\" failed.\"\n  else\n    echo \"Copied \\\"${SRC_FILE}\\\" to \\\"${TGT_FILE}\\\"\"\n  fi\nelse\n  echo \"Missing file ${SRC_FILE} - You must provide this file with a form like:\"\n  echo \"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\"\n  echo \"  <!DOCTYPE plist PUBLIC \\\"-//Apple//DTD PLIST 1.0//EN\\\" \\\"http://www.apple.com/DTDs/PropertyList-1.0.dtd\\\">\"\n  echo \"  <plist version=\\\"1.0\\\">\"\n  echo \"  <dict>\"\n  echo \"    <key>paperKeysTestnet</key>\"\n  echo \"    <array>\"\n  echo \"      <string>\\\"some paper key\\\"</string>\"\n  echo \"      ...\"\n  echo \"    </array>\"\n  echo \"    <key>paperKeysMainnet</key>\"\n  echo \"    <array>\"\n  echo \"      <string>\\\"some other paper key\\\"</string>\"\n  echo \"      ...\"\n  echo \"     </array>\"\n  echo \"    </dict>\"\n  echo \"  </plist>\"\n  exit 1\nfi\n";
 		};
+		3CCB1364224D97AF00ADCDB9 /* Ensure CoreTestsConfig.plist */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Ensure CoreTestsConfig.plist";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "SRC_FILE=\"${HOME}/.brdCoreTestsConfig.plist\"\nTGT_FILE=\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\"\n\nif [ -f \"${SRC_FILE}\"  ]; then \ncp \"${SRC_FILE}\" \"${TGT_FILE}\"\nchmod 644 \"${TGT_FILE}\"\nif [ ! -f \"${TGT_FILE}\" ]; then\necho \"Copy to  \\\"${TGT_FILE}\\\" failed.\"\nelse\necho \"Copied \\\"${SRC_FILE}\\\" to \\\"${TGT_FILE}\\\"\"\nfi\nelse\necho \"Missing file ${SRC_FILE} - You must provide this file with a form like:\"\necho \"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\"\necho \"  <!DOCTYPE plist PUBLIC \\\"-//Apple//DTD PLIST 1.0//EN\\\" \\\"http://www.apple.com/DTDs/PropertyList-1.0.dtd\\\">\"\necho \"  <plist version=\\\"1.0\\\">\"\necho \"  <dict>\"\necho \"    <key>paperKeysTestnet</key>\"\necho \"    <array>\"\necho \"      <string>\\\"some paper key\\\"</string>\"\necho \"      ...\"\necho \"    </array>\"\necho \"    <key>paperKeysMainnet</key>\"\necho \"    <array>\"\necho \"      <string>\\\"some other paper key\\\"</string>\"\necho \"      ...\"\necho \"     </array>\"\necho \"    </dict>\"\necho \"  </plist>\"\nexit 1\nfi\n";
+		};
+		3CCB1365224D9B2600ADCDB9 /* Copy CoreTestsConfig.plist as Resource */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy CoreTestsConfig.plist as Resource";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "RES_FILE=\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\"\nTGT_FILE=\"${CONFIGURATION_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/CoreTestsConfig.plist\"\ncp \"${RES_FILE}\" \"${TGT_FILE}\"\necho \"Copied \\\"${RES_FILE}\\\" to \\\"${TGT_FILE}\\\"\"\n";
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -1386,8 +1462,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3C0EAE1821910AA1000577A6 /* BRCrypto.swift in Sources */,
+				3CCB1348224D1B1700ADCDB9 /* BRCrypto.swift in Sources */,
+				3CCB1353224D2C7E00ADCDB9 /* BREthereum.swift in Sources */,
+				3CCB134C224D1B1700ADCDB9 /* BRSystem.swift in Sources */,
 				3C0EAE1A2191145A000577A6 /* BRSupport.swift in Sources */,
+				3CCB1352224D2C5600ADCDB9 /* BRBitcash.swift in Sources */,
+				3CCB1349224D1B1700ADCDB9 /* BRBlockChainDB.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1399,6 +1479,8 @@
 				3CE48BF921E938370067BFC9 /* BRCryptoWalletTests.swift in Sources */,
 				3C0EADF92188D920000577A6 /* BRCryptoAmountTests.swift in Sources */,
 				3C97E2612243E5EE003FD88F /* BRCryptoNetworkTests.swift in Sources */,
+				3C97E269224996C3003FD88F /* BRCryptoSystemTests.swift in Sources */,
+				3CCB1363224D94C300ADCDB9 /* BRCryptoBaseTests.swift in Sources */,
 				3C97E25F2243E589003FD88F /* BRCryptoAccountTests.swift in Sources */,
 				3CE48BF521E937580067BFC9 /* BRCryptoTransferTests.swift in Sources */,
 			);
@@ -1608,6 +1690,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3CCB1355224D3F7500ADCDB9 /* testCrypto.c in Sources */,
 				3CAB613320B3536000810CE4 /* test-les.c in Sources */,
 				3C9025F321064B6700143B69 /* testEvent.c in Sources */,
 				3CEF5FB121FB972B0010A811 /* testSup.c in Sources */,
@@ -1716,7 +1799,7 @@
 				"SWIFT_ACTIVE_COMPILATION_CONDITIONS[arch=*]" = AVOID;
 				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/Core/";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 4.2;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -1747,7 +1830,7 @@
 				SKIP_INSTALL = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = MAINNET;
 				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/Core/";
-				SWIFT_VERSION = 4.2;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -1769,7 +1852,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.BRCryptoTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 4.2;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -1790,7 +1873,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.BRCryptoTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 4.2;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -1930,7 +2013,7 @@
 				"SWIFT_ACTIVE_COMPILATION_CONDITIONS[arch=*]" = AVOID;
 				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/Core/";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 4.2;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = "Debug-Testnet";
@@ -1952,7 +2035,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.BRCryptoTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 4.2;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = "Debug-Testnet";
@@ -2297,7 +2380,7 @@
 				SKIP_INSTALL = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = TESTNET;
 				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/Core/";
-				SWIFT_VERSION = 4.2;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = "Release-Testnet";
@@ -2318,7 +2401,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.BRCryptoTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 4.2;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = "Release-Testnet";

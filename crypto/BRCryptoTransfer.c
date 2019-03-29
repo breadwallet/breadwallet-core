@@ -53,6 +53,38 @@ struct BRCryptoTransferRecord {
     BRCryptoCurrency currency;
 };
 
+static BRCryptoTransfer
+cryptoTransferCreateInternal (BRCryptoBlockChainType type,
+                              BRCryptoWallet wallet) {
+    BRCryptoTransfer transfer = malloc (sizeof (struct BRCryptoTransferRecord));
+
+    transfer->type = type;
+    transfer->wallet = wallet;  // TODO: RefCount - Circularity....
+    return transfer;
+}
+
+extern BRCryptoTransfer
+cryptoTransferCreate (BRCryptoWallet wallet) {
+    BRCryptoBlockChainType type = cryptoWalletGetType (wallet);
+    BRCryptoTransfer transfer = cryptoTransferCreateInternal (type, wallet);
+
+    switch (type) {
+
+        case BLOCK_CHAIN_TYPE_BTC:
+            transfer->u.btc = NULL;
+            break;
+        case BLOCK_CHAIN_TYPE_ETH:
+            transfer->u.eth = NULL;
+//            transfer->u.eth = ewmWalletCreateTransfer (...)
+
+            break;
+        case BLOCK_CHAIN_TYPE_GEN:
+            break;
+    }
+    // BTC, ETH
+    return transfer;
+}
+
 extern BRCryptoWallet
 cryptoTransferGetWallet (BRCryptoTransfer transfer) {
     return transfer->wallet;
@@ -108,7 +140,21 @@ cryptoTransferGetAmount (BRCryptoTransfer transfer) {
 }
 
 extern BRCryptoAmount
-cryptoTransferGetFee (BRCryptoTransfer transfer);
+cryptoTransferGetFee (BRCryptoTransfer transfer) {
+    BRCryptoWallet wallet = transfer->wallet;
+    BRCryptoUnit   unit   = cryptoWalletGetUnitForFee (wallet);
+
+    switch (transfer->type) {
+        case BLOCK_CHAIN_TYPE_BTC:
+            return cryptoAmountCreateInteger (0, unit);
+
+        case BLOCK_CHAIN_TYPE_ETH:
+            return cryptoAmountCreateInteger (0, unit);
+
+        case BLOCK_CHAIN_TYPE_GEN:
+            return cryptoAmountCreateInteger (0, unit);
+    }
+}
 
 extern BRCryptoBoolean
 cryptoTransferExtractConfirmation (BRCryptoTransfer transfer,
