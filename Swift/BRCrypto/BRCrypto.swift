@@ -467,11 +467,11 @@ public enum Network {
 }
 
 extension Network: Hashable {
-    public var hashValue: Int {
+    public func hash (into hasher: inout Hasher) {
         switch self {
-        case .bitcoin  (let name, _, _): return name.hashValue
-        case .bitcash  (let name, _, _): return name.hashValue
-        case .ethereum (let name, _, _): return name.hashValue
+        case .bitcoin  (let name, _, _): hasher.combine (name)
+        case .bitcash  (let name, _, _): hasher.combine (name)
+        case .ethereum (let name, _, _): hasher.combine (name)
         }
     }
 
@@ -516,14 +516,11 @@ public enum Address {
 }
 
 extension Address: Hashable {
-    public var hashValue: Int {
+    public func hash (into hasher: inout Hasher) {
         switch self {
-        case let .raw (addr):
-            return addr.hashValue
-        case var .bitcoin (addr):
-            return BRAddressHash (&addr)
-        case let .ethereum (addr):
-            return Int(addressHashValue(addr))
+        case let .raw (addr): hasher.combine (addr)
+        case var .bitcoin  (addr): hasher.combine (BRAddressHash (&addr))
+        case let .ethereum (addr): hasher.combine (addressHashValue(addr))
         }
     }
 
@@ -626,12 +623,10 @@ public enum TransferHash: Hashable, CustomStringConvertible {
     case bitcoin (UInt256)
     case ethereum (BREthereumHash)
 
-    public var hashValue: Int {
+    public func hash (into hasher: inout Hasher) {
         switch self {
-        case .bitcoin (let core):
-            return Int(core.u32.0)
-        case .ethereum (var core):
-            return Int(hashSetValue(&core))
+        case .bitcoin  (let core): hasher.combine (core.u32.0)
+        case .ethereum (var core): hasher.combine (hashSetValue(&core))
         }
     }
 
