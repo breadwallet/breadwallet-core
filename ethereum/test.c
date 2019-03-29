@@ -47,6 +47,8 @@
 #include "blockchain/BREthereumBlockChain.h"
 #include "event/BREventAlarm.h"
 
+#include "test.h"
+
 extern const char *tokenBRDAddress;
 //
 // Ether & Token Parse
@@ -571,7 +573,7 @@ int main(int argc, const char *argv[]) {
     runEventTests();
     runBcTests();
     runContractTests();
-    runEWMTests();
+    runEWMTests(NODE_PAPER_KEY, "/tmp");
     runTests(0);
 }
 #endif

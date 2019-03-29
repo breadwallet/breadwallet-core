@@ -28,6 +28,7 @@
 
 #include <stdlib.h>
 #include <time.h>
+#include <pthread.h>
 
 #ifdef __cplusplus
 extern "C" {
