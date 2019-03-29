@@ -39,7 +39,7 @@ handlePaperKeyToAccount (void) {
     printf ("Read: %s\n", paperKey);
 
     BREthereumAccount account = createAccount(paperKey);
-    const char *publicAddress = accountGetPrimaryAddressString(account);
+    char *publicAddress = accountGetPrimaryAddressString(account);
     printf ("Public Address: %s\n", publicAddress);
     free (publicAddress);
 

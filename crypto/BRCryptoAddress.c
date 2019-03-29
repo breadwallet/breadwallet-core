@@ -29,46 +29,69 @@
 #include "support/BRAddress.h"
 #include "ethereum/BREthereum.h"
 
+static void
+cryptoAddressRelease (BRCryptoAddress address);
+
 struct BRCryptoAddressRecord {
     BRCryptoBlockChainType type;
     union {
         BRAddress btc;
         BREthereumAddress eth;
     } u;
+    BRCryptoRef ref;
 };
 
+IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoAddress, cryptoAddress);
+
+static void
+cryptoAddressRelease (BRCryptoAddress address) {
+    printf ("Address: Release\n");
+    free (address);
+}
+
 /* private */ extern BRCryptoAddress
-cryptoAddressCreate (const char *string) {
+cryptoAddressCreate (BRCryptoBlockChainType type) {
     BRCryptoAddress address = malloc (sizeof (struct BRCryptoAddressRecord));
 
-    address->type = BLOCK_CHAIN_TYPE_BTC;
+    address->type = type;
+    address->ref = CRYPTO_REF_ASSIGN(cryptoAddressRelease);
 
     return address;
 }
 
 /* private */ extern BRCryptoAddress
 cryptoAddressCreateAsETH (BREthereumAddress eth) {
-    BRCryptoAddress address = malloc (sizeof (struct BRCryptoAddressRecord));
-
-    address->type = BLOCK_CHAIN_TYPE_ETH;
+    BRCryptoAddress address = cryptoAddressCreate (BLOCK_CHAIN_TYPE_ETH);
     address->u.eth = eth;
-
     return address;
 }
 
 /* private */ extern BRCryptoAddress
 cryptoAddressCreateAsBTC (BRAddress btc) {
-    BRCryptoAddress address = malloc (sizeof (struct BRCryptoAddressRecord));
-
-    address->type = BLOCK_CHAIN_TYPE_BTC;
+    BRCryptoAddress address = cryptoAddressCreate (BLOCK_CHAIN_TYPE_BTC);
     address->u.btc = btc;
-
     return address;
 }
 
-extern const char *
+extern char *
 cryptoAddressAsString (BRCryptoAddress address) {
-    return "no address";
+    switch (address->type) {
+        case BLOCK_CHAIN_TYPE_BTC:
+            return strdup (address->u.btc.s);
+        case BLOCK_CHAIN_TYPE_ETH:
+            return addressGetEncodedString(address->u.eth, 1);
+        case BLOCK_CHAIN_TYPE_GEN:
+            return "none";
+    }
 }
 
+extern BRCryptoBoolean
+cryptoAddressIsIdentical (BRCryptoAddress a1,
+                          BRCryptoAddress a2) {
+    return AS_CRYPTO_BOOLEAN (a1 == a2 ||
+                              (a1->type == a2->type &&
+                               (a1->type == BLOCK_CHAIN_TYPE_BTC
+                                ? 0 == strcmp (a1->u.btc.s, a2->u.btc.s)
+                                : ETHEREUM_BOOLEAN_IS_TRUE (addressEqual (a1->u.eth, a2->u.eth)))));
+}
 

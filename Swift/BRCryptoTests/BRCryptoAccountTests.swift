@@ -34,29 +34,29 @@ class BRCryptoAccountTests: XCTestCase {
     }
 
     func testAddress () {
-        #if false
-        let r1 = Address (raw: "foo")
-        let r2 = Address (raw: "bar")
-        let r3 = Address (raw: "foo")
+        let e1 = Address.createAsETH ("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62")
+        let e2 = Address.createAsETH ("0xd3CFBA03Fc13dc01F0C67B88CBEbE776D8F3DE8f")
 
-        XCTAssertEqual (r1, r3)
-        XCTAssertNotEqual (r1, r2)
+        XCTAssertNotNil (e1)
+        XCTAssertNotNil (e2)
 
-        let e1 = Address (ethereum: "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62")
-        let e2 = Address (ethereum: "0xd3CFBA03Fc13dc01F0C67B88CBEbE776D8F3DE8f")
+        XCTAssertEqual("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", e1?.description)
+        XCTAssertEqual("0xd3CFBA03Fc13dc01F0C67B88CBEbE776D8F3DE8f", e2?.description)
 
-        XCTAssertEqual(e1, e1)
+        let b1 = Address.createAsBTC ("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj")
+
+        XCTAssertNotNil (b1)
+        XCTAssertEqual("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj",  b1?.description)
+
+        let e3 = Address.createAsETH ("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62")
+
+        XCTAssertEqual (e1, e1)
+        XCTAssertEqual (e1, e3)
+        XCTAssertEqual (e3, e1)
+
         XCTAssertNotEqual (e1, e2)
-        XCTAssertNotEqual (r1, e1)
-
-        // hashable
-        XCTAssertEqual (r1.hashValue, r1.hashValue);
-        XCTAssertEqual (e1.hashValue, e1.hashValue);
-
-        XCTAssertNotEqual (e1.hashValue, e2.hashValue);
-
-        XCTAssertEqual("foo", r1.description)
-        XCTAssertEqual("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", e1.description)
-        #endif
+        XCTAssertNotEqual (e2, e1)
+        XCTAssertNotEqual (e1, b1)
+        XCTAssertNotEqual (b1, e1)
     }
 }

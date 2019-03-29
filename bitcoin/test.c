@@ -3054,15 +3054,17 @@ extern int BRRunTestsSync (const char *paperKey,
 ///
 
 static void
-_testTransactionEventCallback (BRWalletManager manager,
-                                BRWallet *wallet,
-                                BRTransaction *transaction,
-                                BRTransactionEvent event) {
+_testTransactionEventCallback (BRWalletManagerClientContext context,
+                               BRWalletManager manager,
+                               BRWallet *wallet,
+                               BRTransaction *transaction,
+                               BRTransactionEvent event) {
     printf ("TST: TransactionEvent: %d\n", event.type);
 }
 
 static void
-_testWalletEventCallback (BRWalletManager manager,
+_testWalletEventCallback (BRWalletManagerClientContext context,
+                          BRWalletManager manager,
                           BRWallet *wallet,
                           BRWalletEvent event) {
     printf ("TST: WalletEvent: %d\n", event.type);
@@ -3071,15 +3073,16 @@ _testWalletEventCallback (BRWalletManager manager,
 static int syncDone = 0;
 
 static void
-_testWalletManagerEventCallback (BRWalletManager manager,
+_testWalletManagerEventCallback (BRWalletManagerClientContext context,
+                                 BRWalletManager manager,
                                  BRWalletManagerEvent event) {
     printf ("TST: WalletManagerEvent: %d\n", event.type);
     switch (event.type) {
-
+            
         case BITCOIN_WALLET_MANAGER_CONNECTED:
-             break;
+            break;
         case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
-             break;
+            break;
         case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
             syncDone = 1;
             break;
@@ -3106,6 +3109,7 @@ extern int BRRunTestWalletManagerSync (const char *paperKey,
     BRMasterPubKey mpk = BRBIP32MasterPubKey(&seed, sizeof (seed));
 
     BRWalletManagerClient client = {
+        NULL,
         _testTransactionEventCallback,
         _testWalletEventCallback,
         _testWalletManagerEventCallback

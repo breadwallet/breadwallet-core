@@ -60,7 +60,7 @@ class BRCryptoBaseTests: XCTestCase {
         #endif
 
         // Eth Account for the non-compromised, mainnet paperKey "e...a"
-        var fakeEthAccount: String = "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62"
+//        var fakeEthAccount: String = "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62"
 
         if FileManager.default.fileExists(atPath: configPath) {
             let configFile = URL(fileURLWithPath: configPath)
@@ -76,7 +76,7 @@ class BRCryptoBaseTests: XCTestCase {
         else if 0 == isMainnet /* testnet */ {
             // This is a compromised testnet paperkey
             paperKeys = ["ginger settle marine tissue robot crane night number ramp coast roast critic"]
-            fakeEthAccount = "0x8fB4CB96F7C15F9C39B3854595733F728E1963Bc"
+//            fakeEthAccount = "0x8fB4CB96F7C15F9C39B3854595733F728E1963Bc"
         }
 
         coreDataDir = FileManager.default

@@ -26,14 +26,22 @@
 #ifndef BRCryptoAddress_h
 #define BRCryptoAddress_h
 
+#include "BRCryptoBase.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
     typedef struct BRCryptoAddressRecord *BRCryptoAddress;
 
-    extern const char *
+    extern char *
     cryptoAddressAsString (BRCryptoAddress address);
+
+    extern BRCryptoBoolean
+    cryptoAddressIsIdentical (BRCryptoAddress a1,
+                              BRCryptoAddress a2);
+    
+    DECLARE_CRYPTO_GIVE_TAKE (BRCryptoAddress, cryptoAddress);
 
 #ifdef __cplusplus
 }

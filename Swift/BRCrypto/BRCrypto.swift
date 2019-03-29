@@ -404,6 +404,10 @@ public final class Account {
     internal var addressAsETH: String {
         return asUTF8String (cryptoAccountAddressAsETH(core)!)
     }
+
+    deinit {
+        cryptoAccountGive (core)
+    }
 }
 
 ///
@@ -539,6 +543,19 @@ public final class Network: CustomStringConvertible {
         }
     }
 
+    /// Should use the network's/manager's default address scheme
+    public func addressFor (_ string: String) -> Address? {
+        switch impl {
+        case .bitcoin,
+             .bitcash:
+            return Address.createAsBTC (string)
+        case .ethereum:
+            return Address.createAsETH (string)
+        case .generic:
+            return nil
+        }
+    }
+
     // address schemes
 
 }
@@ -553,8 +570,7 @@ public enum NetworkEvent {
 /// - bitcoin: A bitcon-specific address
 /// - ethereum: An ethereum-specific address
 ///
-public final class Address: CustomStringConvertible {
-
+public final class Address: Equatable, CustomStringConvertible {
     let core: BRCryptoAddress
 
     internal init (core: BRCryptoAddress) {
@@ -580,15 +596,23 @@ public final class Address: CustomStringConvertible {
     /// - Returns: An address or nil if `string` is invalide for `network`
     ///
     static func create (string: String, network: Network) -> Address? {
-        switch network.currency.code {
-        case Currency.codeAsBTC,
-             Currency.codeAsBCH:
-            return nil
-        case Currency.codeAsETH:
-            return nil
-        default: // generic
-            return nil
-        }
+        return network.addressFor(string)
+    }
+
+    internal static func createAsBTC (_ string: String) -> Address? {
+        guard 1 == BRAddressIsValid (string)
+            else { return nil }
+        return Address (core: cryptoAddressCreateAsBTC(BRAddressFill (string)))
+    }
+
+    internal static func createAsETH (_ string: String) -> Address? {
+        guard ETHEREUM_BOOLEAN_TRUE == addressValidateString (string)
+            else { return nil }
+        return Address (core: cryptoAddressCreateAsETH (addressCreate(string)))
+    }
+
+    deinit {
+        cryptoAddressGive (core)
     }
 
 //    class EthereumAddress: Address {
@@ -609,6 +633,9 @@ public final class Address: CustomStringConvertible {
 //        }
 //    }
 
+    public static func == (lhs: Address, rhs: Address) -> Bool {
+        return CRYPTO_TRUE == cryptoAddressIsIdentical (lhs.core, rhs.core)
+    }
 }
 
 ///
