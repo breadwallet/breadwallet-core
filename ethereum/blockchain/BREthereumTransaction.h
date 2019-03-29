@@ -96,16 +96,15 @@ transactionGetFeeLimit (BREthereumTransaction transaction, int *overflow);
 extern BREthereumGasPrice
 transactionGetGasPrice (BREthereumTransaction transaction);
 
-extern void
-transactionSetGasPrice (BREthereumTransaction transaction,
-                        BREthereumGasPrice gasPrice);
-
 extern BREthereumGas
 transactionGetGasLimit (BREthereumTransaction transaction);
 
+extern BREthereumGas
+transactionGetGasEstimate (BREthereumTransaction transaction);
+
 extern void
-transactionSetGasLimit (BREthereumTransaction transaction,
-                        BREthereumGas gasLimit);
+transactionSetGasEstimate (BREthereumTransaction transaction,
+                           BREthereumGas gasEstimate);
 
 extern uint64_t
 transactionGetNonce (BREthereumTransaction transaction);

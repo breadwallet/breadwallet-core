@@ -133,31 +133,6 @@ transferSignWithKey (BREthereumTransfer transfer,
                      BREthereumAddress address,
                      BRKey privateKey);
 
-//
-//
-//
-#if defined TRANSFER_FEES_AND_STUFF
-/**
- * Return the maximum fee (in Ether) for transfer (as gasLimit * gasPrice).
- */
-extern BREthereumEther
-transferGetFeeLimit (BREthereumTransfer transfer, int *overflow);
-
-extern BREthereumGasPrice
-transferGetGasPrice (BREthereumTransfer transfer);
-
-extern void
-transferSetGasPrice (BREthereumTransfer transfer,
-                     BREthereumGasPrice gasPrice);
-
-extern BREthereumGas
-transferGetGasLimit (BREthereumTransfer transfer);
-
-extern void
-transferSetGasLimit (BREthereumTransfer transfer,
-                     BREthereumGas gasLimit);
-#endif
-
 // TODO: If not signed? submitted?
 
 /**
