@@ -26,58 +26,61 @@ add_library( # Sets the name of the library.
 target_sources (core
                 PUBLIC
 
-                # Core files
-                src/main/cpp/core/BRAddress.c
-                src/main/cpp/core/BRAddress.h
-                src/main/cpp/core/BRArray.h
-                src/main/cpp/core/BRBase58.c
-                src/main/cpp/core/BRBase58.h
-                src/main/cpp/core/BRBech32.c
-                src/main/cpp/core/BRBech32.h
-                src/main/cpp/core/BRBIP32Sequence.c
-                src/main/cpp/core/BRBIP32Sequence.h
-                src/main/cpp/core/BRBIP38Key.c
-                src/main/cpp/core/BRBIP38Key.h
-                src/main/cpp/core/BRBIP39Mnemonic.c
-                src/main/cpp/core/BRBIP39Mnemonic.h
-                src/main/cpp/core/BRBIP39WordsEn.h
-                src/main/cpp/core/BRBloomFilter.c
-                src/main/cpp/core/BRBloomFilter.h
-                src/main/cpp/core/BRCrypto.c
-                src/main/cpp/core/BRCrypto.h
-                src/main/cpp/core/BRInt.h
-                src/main/cpp/core/BRKey.c
-                src/main/cpp/core/BRKey.h
-                src/main/cpp/core/BRKeyECIES.c
-                src/main/cpp/core/BRKeyECIES.h
-                src/main/cpp/core/BRMerkleBlock.c
-                src/main/cpp/core/BRMerkleBlock.h
-                src/main/cpp/core/BRPaymentProtocol.c
-                src/main/cpp/core/BRPaymentProtocol.h
-                src/main/cpp/core/BRPeer.c
-                src/main/cpp/core/BRPeer.h
-                src/main/cpp/core/BRPeerManager.c
-                src/main/cpp/core/BRPeerManager.h
-                src/main/cpp/core/BRSet.c
-                src/main/cpp/core/BRSet.h
-                src/main/cpp/core/BRTransaction.c
-                src/main/cpp/core/BRTransaction.h
-                src/main/cpp/core/BRWallet.c
-                src/main/cpp/core/BRWallet.h
-
-                src/main/cpp/core/support/BRFileService.c
-                src/main/cpp/core/support/BRFileService.h
+                # Support Files
+                src/main/cpp/core/support/BRAddress.c
+                src/main/cpp/core/support/BRAddress.h
                 src/main/cpp/core/support/BRAssert.c
                 src/main/cpp/core/support/BRAssert.h
+                src/main/cpp/core/support/BRArray.h
+                src/main/cpp/core/support/BRBIP32Sequence.c
+                src/main/cpp/core/support/BRBIP32Sequence.h
+                src/main/cpp/core/support/BRBIP39Mnemonic.c
+                src/main/cpp/core/support/BRBIP39Mnemonic.h
+                src/main/cpp/core/support/BRBIP39WordsEn.h
+                src/main/cpp/core/support/BRBase58.c
+                src/main/cpp/core/support/BRBase58.h
+                src/main/cpp/core/support/BRBech32.c
+                src/main/cpp/core/support/BRBech32.h
+                src/main/cpp/core/support/BRCrypto.c
+                src/main/cpp/core/support/BRCrypto.h
+                src/main/cpp/core/support/BRFileService.c
+                src/main/cpp/core/support/BRFileService.h
+                src/main/cpp/core/support/BRInt.h
+                src/main/cpp/core/support/BRKey.c
+                src/main/cpp/core/support/BRKey.h
+                src/main/cpp/core/support/BRKeyECIES.c
+                src/main/cpp/core/support/BRKeyECIES.h
+                src/main/cpp/core/support/BRSet.c
+                src/main/cpp/core/support/BRSet.h
+
+                # Bitcoin
+                src/main/cpp/core/bitcoin/BRBIP38Key.c
+                src/main/cpp/core/bitcoin/BRBIP38Key.h
+                src/main/cpp/core/bitcoin/BRBloomFilter.c
+                src/main/cpp/core/bitcoin/BRBloomFilter.h
+                src/main/cpp/core/bitcoin/BRChainParams.h
+                src/main/cpp/core/bitcoin/BRChainParams.c
+                src/main/cpp/core/bitcoin/BRMerkleBlock.c
+                src/main/cpp/core/bitcoin/BRMerkleBlock.h
+                src/main/cpp/core/bitcoin/BRPaymentProtocol.c
+                src/main/cpp/core/bitcoin/BRPaymentProtocol.h
+                src/main/cpp/core/bitcoin/BRPeer.c
+                src/main/cpp/core/bitcoin/BRPeer.h
+                src/main/cpp/core/bitcoin/BRPeerManager.c
+                src/main/cpp/core/bitcoin/BRPeerManager.h
+                src/main/cpp/core/bitcoin/BRTransaction.c
+                src/main/cpp/core/bitcoin/BRTransaction.h
+                src/main/cpp/core/bitcoin/BRWallet.c
+                src/main/cpp/core/bitcoin/BRWallet.h
+                src/main/cpp/core/bitcoin/BRWalletManager.c
+                src/main/cpp/core/bitcoin/BRWalletManager.h
 
                 # BCash files
                 src/main/cpp/core/bcash/BRBCashAddr.c
                 src/main/cpp/core/bcash/BRBCashAddr.h
                 src/main/cpp/core/bcash/BRBCashParams.h
-
-                # Bech32 files
-                src/main/cpp/core/BRBech32.c
-                src/main/cpp/core/BRBech32.h)
+                src/main/cpp/core/bcash/BRBCashParams.c
+                )
 
 # Core JNI
 target_sources (core
@@ -275,11 +278,11 @@ target_sources (core
                 src/main/cpp/jni/ethereum/com_breadwallet_core_ethereum_BREthereumWallet.h)
 
 include_directories(src/main/cpp/core/)
+include_directories(src/main/cpp/core/support)
+include_directories(src/main/cpp/core/bitcoin)
+include_directories(src/main/cpp/core/bcash)
 include_directories(src/main/cpp/core/ethereum/)
 include_directories(src/main/cpp/core/secp256k1/)
-#include_directories(src/main/secp/secp256k1/src/)
-#include_directories(src/main/secp/secp256k1/)
-#include_directories(src/main/secp/)
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by

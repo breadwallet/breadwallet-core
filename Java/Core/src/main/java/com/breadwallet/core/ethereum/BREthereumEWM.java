@@ -776,6 +776,14 @@ public class BREthereumEWM extends BRCoreJniReference {
             this.ewm = new WeakReference<>(ewm);
             this.identifier = identifier;
         }
+
+        static {
+            try { System.loadLibrary("core"); }
+            catch (UnsatisfiedLinkError e) {
+                e.printStackTrace();
+                System.err.println ("Native code library failed to load.\\n\" + " + e);
+            }
+        }
     }
 
     //
