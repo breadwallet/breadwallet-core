@@ -26,22 +26,12 @@
 #ifndef BR_Ethereum_Base_H
 #define BR_Ethereum_Base_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "support/BRArray.h"
+#include "support/BRSet.h"
+#include "ethereum/util/BRUtil.h"
+#include "ethereum/rlp/BRRlp.h"
 
-#include "BRArray.h"
-#include "BRSet.h"
-
-
-#define REPEAT(index, count) \
-  for (size_t index = 0, __indexLimit = (size_t) (count); index < __indexLimit; index++)
-
-#define OwnershipGiven
-#define OwnershipKept
-
-#include "../util/BRUtil.h"         // "BRInt.h"
-#include "../rlp/BRRlp.h"
+// All 'base'
 #include "BREthereumLogic.h"
 #include "BREthereumEther.h"
 #include "BREthereumGas.h"
@@ -49,6 +39,16 @@ extern "C" {
 #include "BREthereumData.h"
 #include "BREthereumAddress.h"
 #include "BREthereumSignature.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define REPEAT(index, count) \
+for (size_t index = 0, __indexLimit = (size_t) (count); index < __indexLimit; index++)
+
+#define OwnershipGiven
+#define OwnershipKept
 
 typedef uint64_t BREthereumTimestamp;  // A Unix time
 #define ETHEREUM_TIMESTAMP_UNKNOWN    ((uint64_t) 0)

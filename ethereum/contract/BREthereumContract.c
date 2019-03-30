@@ -27,8 +27,8 @@
 #include <stdarg.h>
 #include <memory.h>
 #include <assert.h>
+#include "ethereum/base/BREthereumBase.h"
 #include "BREthereumContract.h"
-#include "../base/BREthereumBase.h"
 
 /* Forward Declarations */
 static void

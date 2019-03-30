@@ -19,10 +19,9 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#include <BRMerkleBlock.h>
 #include <assert.h>
 #include "BRCoreJni.h"
-#include "BRMerkleBlock.h"
+#include "bitcoin/BRMerkleBlock.h"
 #include "com_breadwallet_core_BRCoreMerkleBlock.h"
 
 /*

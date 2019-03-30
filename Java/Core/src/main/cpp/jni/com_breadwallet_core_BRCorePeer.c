@@ -20,9 +20,9 @@
 //  THE SOFTWARE.
 
 #include <stdlib.h>
-#include "BRPeer.h"
-#include "BRInt.h"
 #include "BRCoreJni.h"
+#include "support/BRInt.h"
+#include "bitcoin/BRPeer.h"
 #include "com_breadwallet_core_BRCorePeer.h"
 
 /*

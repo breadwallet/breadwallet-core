@@ -27,13 +27,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <pthread.h>
-#include "BRArray.h"
+#include "support/BRArray.h"
 #include "BREthereumEWMPrivate.h"
-
-//
-//
-//
-//
 
 // ==============================================================================================
 //

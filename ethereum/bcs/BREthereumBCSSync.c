@@ -24,8 +24,8 @@
 //  THE SOFTWARE.
 
 #include <stdlib.h>
+#include "ethereum/les/BREthereumLES.h"
 #include "BREthereumBCSPrivate.h"
-#include "../les/BREthereumLES.h"
 
 /* Forward Declarations */
 static void

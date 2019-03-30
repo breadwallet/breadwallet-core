@@ -24,7 +24,7 @@
 //  THE SOFTWARE.
 
 #include "support/BRAssert.h"
-#include "../../blockchain/BREthereumBlockChain.h"
+#include "ethereum/blockchain/BREthereumBlockChain.h"
 #include "BREthereumMessageLES.h"
 
 // GETH Limits

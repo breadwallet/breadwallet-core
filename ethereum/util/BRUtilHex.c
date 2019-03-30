@@ -27,12 +27,8 @@
 #include <assert.h>
 #include <ctype.h>
 #include <string.h>
-#include "BRInt.h"
+#include "support/BRInt.h"
 #include "BRUtilHex.h"
-
-//
-//
-//
 
 // Convert a char into uint8_t (decode)
 #define decodeChar(c)           ((uint8_t) _hexu(c))

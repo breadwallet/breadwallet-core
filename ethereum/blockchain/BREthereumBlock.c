@@ -26,8 +26,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "BRArray.h"
-#include "../base/BREthereumLogic.h"
+#include "support/BRArray.h"
+#include "ethereum/base/BREthereumLogic.h"
 #include "BREthereumBlock.h"
 #include "BREthereumLog.h"
 

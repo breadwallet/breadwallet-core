@@ -27,19 +27,17 @@
 #include <assert.h>
 #include <string.h>
 #include <stdarg.h>
-#include <stdio.h>  // sprintf
+#include <stdio.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <errno.h>
 #include <dirent.h>
 #include <sys/stat.h>
-
-#include "BRArray.h"
-#include "BRBIP39Mnemonic.h"
+#include "support/BRArray.h"
+#include "support/BRBIP39Mnemonic.h"
 #include "support/BRAssert.h"
-
-#include "../event/BREvent.h"
-#include "../event/BREventAlarm.h"
+#include "ethereum/event/BREvent.h"
+#include "ethereum/event/BREventAlarm.h"
 #include "BREthereumEWMPrivate.h"
 
 #define EWM_SLEEP_SECONDS (10)

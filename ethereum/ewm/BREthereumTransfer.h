@@ -26,11 +26,10 @@
 #ifndef BR_Ethereum_Transfer_H
 #define BR_Ethereum_Transfer_H
 
-#include "../base/BREthereumBase.h"
-#include "../blockchain/BREthereumNetwork.h"
-#include "../blockchain/BREthereumTransaction.h"
-#include "../blockchain/BREthereumLog.h"
-
+#include "ethereum/base/BREthereumBase.h"
+#include "ethereum/blockchain/BREthereumNetwork.h"
+#include "ethereum/blockchain/BREthereumTransaction.h"
+#include "ethereum/blockchain/BREthereumLog.h"
 #include "BREthereumBase.h"
 #include "BREthereumAmount.h"
 #include "BREthereumAccount.h"

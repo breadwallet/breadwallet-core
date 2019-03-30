@@ -34,22 +34,22 @@
 #include <arpa/inet.h>
 #include <assert.h>
 #include <pthread.h>
-
-#include "BRInt.h"
-#include "BRArray.h"
-#include "BRSet.h"
-#include "BRCrypto.h"
-#include "BRBIP39WordsEn.h"
+#include "support/BRInt.h"
+#include "support/BRArray.h"
+#include "support/BRSet.h"
+#include "support/BRCrypto.h"
+#include "support/BRBIP39WordsEn.h"
+#include "ethereum/event/BREventAlarm.h"
+#include "ethereum/blockchain/BREthereumBlockChain.h"
+#include "ethereum/ewm/BREthereumAccount.h"
+#include "ethereum/ewm/BREthereumWallet.h"
+#include "ethereum/ewm/BREthereumTransfer.h"
 #include "BREthereum.h"
-#include "ewm/BREthereumAccount.h"
-#include "ewm/BREthereumWallet.h"
-#include "ewm/BREthereumTransfer.h"
-#include "blockchain/BREthereumBlockChain.h"
-#include "event/BREventAlarm.h"
 
 #include "test.h"
 
 extern const char *tokenBRDAddress;
+
 //
 // Ether & Token Parse
 //

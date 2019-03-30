@@ -26,9 +26,9 @@
 #ifndef BR_Ethereum_BCS_Private_h
 #define BR_Ethereum_BCS_Private_h
 
+#include "ethereum/blockchain/BREthereumBlockChain.h"
+#include "ethereum/event/BREvent.h"
 #include "BREthereumBCS.h"
-#include "../blockchain/BREthereumBlockChain.h"
-#include "../event/BREvent.h"
 
 #ifdef __cplusplus
 extern "C" {

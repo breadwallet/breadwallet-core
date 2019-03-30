@@ -26,7 +26,7 @@
 #ifndef BR_Ethereum_Message_DIS_H
 #define BR_Ethereum_Message_DIS_H
 
-#include "BRKey.h"
+#include "support/BRKey.h"
 #include "../BREthereumLESBase.h"
 
 #ifdef __cplusplus

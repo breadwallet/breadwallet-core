@@ -27,7 +27,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
-#include "BRCrypto.h"
+#include "support/BRCrypto.h"
 #include "BREthereumBase.h"
 #include "BREthereumAddress.h"
 

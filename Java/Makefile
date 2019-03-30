@@ -5,7 +5,6 @@ CINC_DIR=/usr/include
 
 JAVA_LIB=/Users/ebg/Library/Android//sdk/extras/android/m2repository/com/android/support/support-annotations/25.3.1/support-annotations-25.3.1.jar
 
-
 JNI_LIB=libCore.jnilib
 
 JNI_SDIR=Core/src/main/cpp/jni
@@ -158,7 +157,7 @@ ETH_OBJS=$(ETH_SRCS:.c=.o)
 #
 #
 CFLAGS=-I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/darwin \
-	-I.. -I../support -I../bitcoin -I../bcash -I../ethereum/ -I../secp256k1 \
+	-I.. -I../support -I../secp256k1 \
 	-Wno-nullability-completeness -Wno-format-extra-args -Wno-unknown-warning-option
 
 compile: $(JNI_LIB) java_comp
@@ -173,7 +172,7 @@ debug: $(JNI_LIB) java_comp
 		 com.breadwallet.core.BRWalletManager $(ARGS) # -D.
 
 $(JNI_LIB): $(JNI_OBJS) $(CORE_OBJS) $(ETH_OBJS)
-	cc -dynamiclib -lresolv -o $@ $? # $(JNI_LIB) $(JNI_OBJS) $(CORE_OBJS) $(ETH_OBJS)
+	cc -dynamiclib -lresolv -o $@ $?
 
 java_comp:	FORCE
 	@mkdir -p build
@@ -200,16 +199,10 @@ jni_hdr_eth: 	FORCE
 
 jni_hdr: java_comp jni_hdr_core jni_hdr_eth
 
-#            if [[ "$${class}" != "*\"$\"*" ]]; then
-#           fi
-
 clean:
 	rm -rf build $(JNI_OBJS) $(CORE_OBJS) $(JAVA_OBJS) $(JNI_LIB)
 
 FORCE:
-
-#	-Wno-nullability-completeness
-
 
 # Generate Headers:
 # 	javac Foo.java

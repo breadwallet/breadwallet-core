@@ -10,9 +10,8 @@
 #include <time.h>
 #include <assert.h>
 #include <unistd.h>
-
+#include "ethereum/event/BREventAlarm.h"
 #include "BREthereumEWMPrivate.h"
-#include "../event/BREventAlarm.h"
 
 //
 // EWM Tests

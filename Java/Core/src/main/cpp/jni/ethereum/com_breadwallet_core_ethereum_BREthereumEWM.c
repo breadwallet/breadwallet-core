@@ -24,13 +24,12 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
-#include <ethereum/ewm/BREthereumAmount.h>
-#include <ethereum/base/BREthereumHash.h>
-#include <ethereum/base/BREthereumData.h>
-#include "BRBIP39Mnemonic.h"
-#include "BRKey.h"
-#include "BREthereum.h"
-
+#include "support/BRBIP39Mnemonic.h"
+#include "support/BRKey.h"
+#include "ethereum/ewm/BREthereumAmount.h"
+#include "ethereum/base/BREthereumHash.h"
+#include "ethereum/base/BREthereumData.h"
+#include "ethereum/BREthereum.h"
 #include "com_breadwallet_core_ethereum_BREthereumEWM.h"
 
 static BREthereumWallet

@@ -24,8 +24,8 @@
 //  THE SOFTWARE.
 
 #include "support/BRAssert.h"
+#include "ethereum/mpt/BREthereumMPT.h"
 #include "BREthereumMessagePIP.h"
-#include "../../mpt/BREthereumMPT.h"
 
 extern const char *
 messagePIPGetRequestName (BREthereumPIPRequestType type) {

@@ -32,14 +32,11 @@
 #include <arpa/inet.h>
 #include <resolv.h>
 #include <netdb.h>
-
-#include "BRInt.h"
-#include "BRArray.h"
-
-#include "../rlp/BRRlp.h"
-#include "../util/BRUtil.h"
-#include "../base/BREthereumBase.h"
-
+#include "support/BRInt.h"
+#include "support/BRArray.h"
+#include "ethereum/rlp/BRRlp.h"
+#include "ethereum/util/BRUtil.h"
+#include "ethereum/base/BREthereumBase.h"
 #include "BREthereumLES.h"
 #include "BREthereumLESRandom.h"
 #include "BREthereumMessage.h"

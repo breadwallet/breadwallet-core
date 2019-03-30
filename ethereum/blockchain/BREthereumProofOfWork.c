@@ -25,10 +25,10 @@
 
 #include <stdlib.h>
 #include <stdarg.h>
-#include "BRArray.h"
-#include "BRSet.h"
+#include "support/BRArray.h"
+#include "support/BRSet.h"
+#include "ethereum/rlp/BRRlp.h"
 #include "BREthereumBlock.h"
-#include "../rlp/BRRlp.h"
 
 #define POW_WORD_BYTES            (4)
 #define POW_DATA_SET_INIT         (1 << 30)

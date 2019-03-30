@@ -26,7 +26,7 @@
 #ifndef BR_Ethereum_Wallet_H
 #define BR_Ethereum_Wallet_H
 
-#include "../blockchain/BREthereumBlockChain.h"
+#include "ethereum/blockchain/BREthereumBlockChain.h"
 #include "BREthereumBase.h"
 #include "BREthereumAccount.h"
 #include "BREthereumTransfer.h"

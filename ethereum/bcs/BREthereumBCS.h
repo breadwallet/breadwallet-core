@@ -26,8 +26,8 @@
 #ifndef BR_Ethereum_BCS_h
 #define BR_Ethereum_BCS_h
 
-#include "../base/BREthereumBase.h"
-#include "../les/BREthereumLES.h"
+#include "ethereum/base/BREthereumBase.h"
+#include "ethereum/les/BREthereumLES.h"
 
 #ifdef __cplusplus
 extern "C" {

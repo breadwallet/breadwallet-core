@@ -27,17 +27,14 @@
 #define BR_Ethereum_EWM_Private_H
 
 #include <pthread.h>
-#include "../blockchain/BREthereumBlockChain.h"
-#include "../les/BREthereumLES.h"
-#include "../bcs/BREthereumBCS.h"
-#include "../event/BREvent.h"
-
+#include "support/BRFileService.h"
+#include "ethereum/blockchain/BREthereumBlockChain.h"
+#include "ethereum/les/BREthereumLES.h"
+#include "ethereum/bcs/BREthereumBCS.h"
+#include "ethereum/event/BREvent.h"
 #include "BREthereumEWM.h"
 #include "BREthereumWallet.h"
 #include "BREthereumTransfer.h"
-
-#include "../../support/BRFileService.h"
-
 
 #ifdef __cplusplus
 extern "C" {

@@ -23,8 +23,8 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#include "ethereum/util/BRUtil.h" // encodeHexCreate()
 #include "BREthereumData.h"
-#include "../util/BRUtil.h" // encodeHexCreate()
 
 ///
 /// MARK: - Data

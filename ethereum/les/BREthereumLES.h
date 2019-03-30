@@ -27,11 +27,10 @@
 #define BR_Ethereum_LES_h
 
 #include <inttypes.h>
-#include "BRKey.h"
-#include "BRArray.h"
-#include "../base/BREthereumBase.h"
-#include "../blockchain/BREthereumBlockChain.h"
-
+#include "support/BRArray.h"
+#include "support/BRKey.h"
+#include "ethereum/base/BREthereumBase.h"
+#include "ethereum/blockchain/BREthereumBlockChain.h"
 #include "BREthereumProvision.h"
 
 #ifdef __cplusplus

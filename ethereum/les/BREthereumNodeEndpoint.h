@@ -27,8 +27,8 @@
 #define BR_Ethereum_Node_Endpoint_H
 
 #include <limits.h>
-#include "BRKey.h"
-#include "BRInt.h"
+#include "support/BRInt.h"
+#include "support/BRKey.h"
 #include "BREthereumMessage.h"
 #include "BREthereumLESRandom.h"
 

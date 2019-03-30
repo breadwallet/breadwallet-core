@@ -27,7 +27,6 @@
 #include <sys/socket.h>
 #include "BREthereumMessage.h"
 
-
 /// MARK: - Wire Protocol Messagees
 
 extern BRRlpItem

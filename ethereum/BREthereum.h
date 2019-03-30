@@ -26,7 +26,6 @@
 #ifndef BR_Ethereum_H
 #define BR_Ethereum_H
 
-//#include <stdint.h>
 #include "base/BREthereumBase.h"
 #include "ewm/BREthereumEWM.h"
 #include "ewm/BREthereumAccount.h"

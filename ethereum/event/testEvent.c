@@ -9,7 +9,6 @@
 #include <stdio.h>
 #include <assert.h>
 #include <pthread.h>
-
 #include "BREvent.h"
 #include "BREventAlarm.h"
 

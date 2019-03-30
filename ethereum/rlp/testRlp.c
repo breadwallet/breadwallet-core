@@ -10,8 +10,8 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include "ethereum/util/BRUtil.h"
 #include "BRRlp.h"
-#include "../util/BRUtil.h"
 
 static void
 showHex (uint8_t *source, size_t sourceLen) {

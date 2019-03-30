@@ -30,8 +30,8 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <limits.h>
-#include "BRCrypto.h"
-#include "BRKeyECIES.h"
+#include "support/BRCrypto.h"
+#include "support/BRKeyECIES.h"
 #include "support/BRAssert.h"
 #include "BREthereumNode.h"
 #include "BREthereumLESFrameCoder.h"

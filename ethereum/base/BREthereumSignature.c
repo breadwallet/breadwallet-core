@@ -24,7 +24,7 @@
 //  THE SOFTWARE.
 
 #include <assert.h>
-#include "BRCrypto.h"
+#include "support/BRCrypto.h"
 #include "BREthereumSignature.h"
 
 //

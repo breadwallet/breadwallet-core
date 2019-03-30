@@ -26,10 +26,9 @@
 #ifndef BR_Ethereum_MPT_h
 #define BR_Ethereum_MPT_h
 
-#include "BRArray.h"
-
-#include "../rlp/BRRlp.h"
-#include "../base/BREthereumData.h"
+#include "support/BRArray.h"
+#include "ethereum/rlp/BRRlp.h"
+#include "ethereum/base/BREthereumData.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -8,11 +8,9 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#include "BREthereum.h"
-
-#include "BRBIP39WordsEn.h"
-
-#include "test.h"  // runSyncTest
+#include "support/BRBIP39WordsEn.h"
+#include "ethereum/BREthereum.h"
+#include "ethereum/test.h"  // runSyncTest
 
 extern BREthereumClient
 runEWM_createClient (void);

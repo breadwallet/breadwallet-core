@@ -24,8 +24,8 @@
 //  THE SOFTWARE.
 
 #include <string.h>
-#include "BRArray.h"
-#include "BRSet.h"
+#include "support/BRArray.h"
+#include "support/BRSet.h"
 #include "BREthereumToken.h"
 
 #define TOKEN_DEFAULT_INITIALIZATION_COUNT   (100)

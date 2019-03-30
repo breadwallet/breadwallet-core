@@ -26,7 +26,7 @@
 #ifndef BR_Ethereum_AccountState_H
 #define BR_Ethereum_AccountState_H
 
-#include "../base/BREthereumBase.h"
+#include "ethereum/base/BREthereumBase.h"
 
 #ifdef __cplusplus
 extern "C" {

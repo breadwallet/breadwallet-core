@@ -26,8 +26,8 @@
 #ifndef BR_Ethereum_Network_h
 #define BR_Ethereum_Network_h
 
-#include "../../support/BRInt.h"
-#include "../base/BREthereumHash.h"
+#include "support/BRInt.h"
+#include "ethereum/base/BREthereumHash.h"
 
 #ifdef __cplusplus
 extern "C" {

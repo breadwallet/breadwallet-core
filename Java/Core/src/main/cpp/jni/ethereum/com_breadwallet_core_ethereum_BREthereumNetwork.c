@@ -23,8 +23,8 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#include "ethereum/blockchain/BREthereumNetwork.h"
 #include "com_breadwallet_core_ethereum_BREthereumNetwork.h"
-#include "blockchain/BREthereumNetwork.h"
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumNetwork

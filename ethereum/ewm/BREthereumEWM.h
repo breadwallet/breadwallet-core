@@ -26,9 +26,8 @@
 #ifndef BR_Ethereum_EWM_H
 #define BR_Ethereum_EWM_H
 
-#include "../blockchain/BREthereumNetwork.h"
-#include "../contract/BREthereumContract.h"
-
+#include "ethereum/blockchain/BREthereumNetwork.h"
+#include "ethereum/contract/BREthereumContract.h"
 #include "BREthereumBase.h"
 #include "BREthereumAmount.h"
 #include "BREthereumClient.h"

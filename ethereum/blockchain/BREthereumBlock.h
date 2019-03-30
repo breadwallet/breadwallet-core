@@ -27,7 +27,7 @@
 #define BR_Ethereum_Block_H
 
 #include <limits.h>
-#include "../base/BREthereumBase.h"
+#include "ethereum/base/BREthereumBase.h"
 #include "BREthereumTransaction.h"
 #include "BREthereumLog.h"
 #include "BREthereumAccountState.h"

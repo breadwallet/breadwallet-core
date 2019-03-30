@@ -27,8 +27,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include "BREthereumEther.h"
 #include "support/BRAssert.h"
+#include "BREthereumEther.h"
 
 #if LITTLE_ENDIAN != BYTE_ORDER
 #error "Must be a `LITTLE ENDIAN` cpu architecture"

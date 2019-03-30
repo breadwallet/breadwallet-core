@@ -19,11 +19,11 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#include <BRTransaction.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <BRInt.h>
 #include "BRCoreJni.h"
+#include "support/BRInt.h"
+#include "bitcoin/BRTransaction.h"
 #include "com_breadwallet_core_BRCoreTransaction.h"
 
 //

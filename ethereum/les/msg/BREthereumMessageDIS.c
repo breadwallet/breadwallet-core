@@ -25,10 +25,10 @@
 
 #include <sys/socket.h>
 #include <assert.h>
-#include "BRKey.h"
-#include "BRInt.h"
+#include "support/BRKey.h"
+#include "support/BRInt.h"
 #include "support/BRAssert.h"
-#include "../../base/BREthereumSignature.h"
+#include "ethereum/base/BREthereumSignature.h"
 #include "BREthereumMessageDIS.h"
 
 // #define NEED_TO_PRINT_DIS_NEIGHBOR_DETAILS

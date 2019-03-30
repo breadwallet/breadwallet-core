@@ -1,5 +1,5 @@
 //
-//  BREthereumHolding
+//  BREthereumAmount
 //  breadwallet-core Ethereum
 //
 //  Created by Ed Gamble on 2/25/18.
@@ -23,11 +23,11 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_Holding_H
-#define BR_Ethereum_Holding_H
+#ifndef BR_Ethereum_Amount_H
+#define BR_Ethereum_Amount_H
 
-#include "../base/BREthereumBase.h"
-#include "../contract/BREthereumToken.h"
+#include "ethereum/base/BREthereumBase.h"
+#include "ethereum/contract/BREthereumToken.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -151,4 +151,4 @@ amountCreateTokenQuantityString (BREthereumToken token,
 }
 #endif
 
-#endif //BR_Ethereum_Holding_H
+#endif //BR_Ethereum_Amount_H

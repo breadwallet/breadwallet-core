@@ -26,7 +26,7 @@
 #ifndef BR_Ethereum_Token_H
 #define BR_Ethereum_Token_H
 
-#include "../base/BREthereumBase.h"
+#include "ethereum/base/BREthereumBase.h"
 #include "BREthereumContract.h"
 
 // For tokenBRD define defaults for Gas Limit and Price.  These are arguably never up to date

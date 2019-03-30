@@ -24,16 +24,15 @@
 //  THE SOFTWARE.
 
 #include <stdlib.h>
-#include "BRCrypto.h"
-#include "BRKey.h"
-#include "BRArray.h"
-#include "BRBIP38Key.h"
-#include "../rlp/BRRlpCoder.h"
-#include "../util/BRKeccak.h"
+#include "support/BRArray.h"
+#include "support/BRCrypto.h"
+#include "support/BRKey.h"
+#include "bitcoin/BRBIP38Key.h"
+#include "ethereum/rlp/BRRlpCoder.h"
+#include "ethereum/util/BRKeccak.h"
 #include "BREthereumLESFrameCoder.h"
 
 #define UINT256_SIZE 32
-
 #define HEADER_LEN 16
 #define MAC_LEN 16
 

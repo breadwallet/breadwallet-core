@@ -27,9 +27,9 @@
 #define BR_Ethereum_Random_h
 
 #include <inttypes.h>
-#include "BRKey.h"
-#include "BRInt.h"
-#include "../base/BREthereumBase.h"
+#include "support/BRKey.h"
+#include "support/BRInt.h"
+#include "ethereum/base/BREthereumBase.h"
 
 #ifdef __cplusplus
 extern "C" {

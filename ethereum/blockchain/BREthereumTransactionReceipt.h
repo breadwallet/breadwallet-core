@@ -26,7 +26,7 @@
 #ifndef BR_Ethereum_Transaction_Receipt_h
 #define BR_Ethereum_Transaction_Receipt_h
 
-#include "../base/BREthereumBase.h"
+#include "ethereum/base/BREthereumBase.h"
 #include "BREthereumBloomFilter.h"
 #include "BREthereumLog.h"
 

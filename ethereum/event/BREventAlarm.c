@@ -29,8 +29,8 @@
 #include <errno.h>
 #include <pthread.h>
 #include <sys/time.h>
-#include "BRArray.h"
 #include "support/BRAssert.h"
+#include "support/BRArray.h"
 #include "BREvent.h"
 #include "BREventAlarm.h"
 

@@ -38,17 +38,15 @@
 #include <arpa/inet.h>
 #include <assert.h>
 #include <regex.h>
-#include "BRInt.h"
-#include "BRCrypto.h"
-#include "../base/BREthereumHash.h"
-#include "../blockchain/BREthereumNetwork.h"
+#include "support/BRInt.h"
+#include "support/BRCrypto.h"
+#include "ethereum/base/BREthereumHash.h"
+#include "ethereum/blockchain/BREthereumNetwork.h"
+#include "BREthereumLESRandom.h"
 #include "BREthereumLES.h"
 #include "BREthereumNode.h"
 
-#include "BREthereum.h"
-#include "../ewm/BREthereumEWM.h"
-#include "BREthereumLESRandom.h"
-#include "../ewm/BREthereumAccount.h"
+#include "ethereum/BREthereum.h"
 
 #define TST_LOG_TOPIC    "TST"
 

@@ -9,7 +9,8 @@
 #ifndef BREthereumBase_h
 #define BREthereumBase_h
 
-#include "../base/BREthereumBase.h"
+#include "ethereum/base/BREthereumBase.h"
+
 typedef struct BREthereumAccountRecord *BREthereumAccount;
 typedef struct BREthereumTransferRecord *BREthereumTransfer;
 typedef struct BREthereumWalletRecord *BREthereumWallet;

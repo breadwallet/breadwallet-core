@@ -26,8 +26,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include "BRCrypto.h"
-#include "../util/BRUtil.h"
+#include "support/BRCrypto.h"
+#include "ethereum/util/BRUtil.h"
 #include "BREthereumHash.h"
 
 static BREthereumHash emptyHash;

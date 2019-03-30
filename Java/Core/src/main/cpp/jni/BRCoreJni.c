@@ -20,7 +20,6 @@
 //  THE SOFTWARE.
 
 #include <jni.h>
-#include <BRTransaction.h>
 #include <assert.h>
 #include "BRCoreJni.h"
 

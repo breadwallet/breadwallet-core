@@ -26,10 +26,9 @@
 #ifndef BR_Ethereum_Data_H
 #define BR_Ethereum_Data_H
 
-#include "BRArray.h"
-#include "BRSet.h"
-
-#include "../rlp/BRRlp.h"
+#include "support/BRArray.h"
+#include "support/BRSet.h"
+#include "ethereum/rlp/BRRlp.h"
 #include "BREthereumHash.h"
 
 #ifdef __cplusplus

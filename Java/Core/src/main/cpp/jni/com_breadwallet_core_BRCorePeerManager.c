@@ -21,10 +21,9 @@
 
 #include <stdlib.h>
 #include <arpa/inet.h>
-#include <BRChainParams.h>
-#include "BRPeerManager.h"
-#include "BRChainParams.h"
 #include "BRCoreJni.h"
+#include "bitcoin/BRChainParams.h"
+#include "bitcoin/BRPeerManager.h"
 #include "com_breadwallet_core_BRCorePeerManager.h"
 #include "com_breadwallet_core_BRCoreTransaction.h"
 

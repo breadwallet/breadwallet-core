@@ -35,6 +35,8 @@
 #include <netinet/in.h>
 #include <assert.h>
 #include <limits.h>
+#include "ethereum/util/BRUtil.h"
+#include "BREthereumNodeEndpoint.h"
 
 #ifndef HOST_NAME_MAX
 # if defined(_POSIX_HOST_NAME_MAX)
@@ -47,9 +49,6 @@
 #  error HOST_NAME_MAX is undefined
 # endif
 #endif /* HOST_NAME_MAX */
-
-#include "../util/BRUtil.h"
-#include "BREthereumNodeEndpoint.h"
 
 #ifndef MSG_NOSIGNAL   // linux based systems have a MSG_NOSIGNAL send flag, useful for supressing SIGPIPE signals
 #define MSG_NOSIGNAL 0 // set to 0 if undefined (BSD has the SO_NOSIGPIPE sockopt, and windows has no signals at all)

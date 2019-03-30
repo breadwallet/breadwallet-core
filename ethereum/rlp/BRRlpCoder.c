@@ -28,8 +28,8 @@
 #include <memory.h>
 #include <assert.h>
 #include <pthread.h>
+#include "ethereum/util/BRUtil.h"
 #include "BRRlpCoder.h"
-#include "../util/BRUtil.h"
 
 static void
 rlpCoderReclaimInternal (BRRlpCoder coder) ;

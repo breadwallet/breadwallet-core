@@ -25,8 +25,8 @@
 
 #include <stdlib.h>
 #include <stdarg.h>
-#include "BRArray.h"
-#include "BRSet.h"
+#include "support/BRArray.h"
+#include "support/BRSet.h"
 #include "BREthereumBCSPrivate.h"
 
 #define BCS_TRANSACTION_CHECK_STATUS_SECONDS   (7)

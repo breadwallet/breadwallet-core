@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "BRCoreJni.h"
-#include "BRChainParams.h"
+#include "bitcoin/BRChainParams.h"
 #include "bcash/BRBCashParams.h"
 #include "com_breadwallet_core_BRCoreChainParams.h"
 

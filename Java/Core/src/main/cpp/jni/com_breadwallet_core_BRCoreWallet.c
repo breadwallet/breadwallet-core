@@ -21,12 +21,12 @@
 
 #include <stdlib.h>
 #include <assert.h>
-#include <BRBIP39Mnemonic.h>
-#include "BRWallet.h"
-#include "BRAddress.h"
 #include "BRCoreJni.h"
-#include "BRTransaction.h"
-#include "BRPeerManager.h"
+#include "support/BRAddress.h"
+#include "support/BRBIP39Mnemonic.h"
+#include "bitcoin/BRWallet.h"
+#include "bitcoin/BRTransaction.h"
+#include "bitcoin/BRPeerManager.h"
 #include "com_breadwallet_core_BRCoreWallet.h"
 #include "com_breadwallet_core_BRCoreTransaction.h"
 

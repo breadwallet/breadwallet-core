@@ -28,10 +28,9 @@
 
 #include <stdlib.h>
 #include <memory.h>
-#include "BRInt.h"
-#include "BRArray.h"
-
-#include "../rlp/BRRlp.h"
+#include "support/BRInt.h"
+#include "support/BRArray.h"
+#include "ethereum/rlp/BRRlp.h"
 #include "BREthereumLogic.h"
 
 #ifdef __cplusplus

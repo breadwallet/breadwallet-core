@@ -26,14 +26,12 @@
 #ifndef BR_Ethereum_LES_Base_H
 #define BR_Ethereum_LES_Base_H
 
-#include "BRSet.h"
-#include "BRArray.h"
-#include "BRSet.h"
-
-#include "../util/BRUtil.h"
-#include "../rlp/BRRlp.h"
-#include "../base/BREthereumHash.h"
-#include "../blockchain/BREthereumNetwork.h"
+#include "support/BRSet.h"
+#include "support/BRArray.h"
+#include "ethereum/util/BRUtil.h"
+#include "ethereum/rlp/BRRlp.h"
+#include "ethereum/base/BREthereumHash.h"
+#include "ethereum/blockchain/BREthereumNetwork.h"
 
 #define DEFAULT_UDPPORT     (30303)
 #define DEFAULT_TCPPORT     (30303)

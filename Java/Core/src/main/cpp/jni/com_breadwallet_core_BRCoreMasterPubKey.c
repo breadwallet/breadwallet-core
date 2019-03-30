@@ -21,11 +21,10 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <BRBIP32Sequence.h>
 #include <assert.h>
-#include "BRBIP39Mnemonic.h"
-#include "BRBIP32Sequence.h"
 #include "BRCoreJni.h"
+#include "support/BRBIP32Sequence.h"
+#include "support/BRBIP39Mnemonic.h"
 #include "com_breadwallet_core_BRCoreMasterPubKey.h"
 
 /*

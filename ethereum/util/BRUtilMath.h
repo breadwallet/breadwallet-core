@@ -26,11 +26,11 @@
 #ifndef BR_Util_Math_H
 #define BR_Util_Math_H
 
+#include "support/BRInt.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "../../support/BRInt.h"
 
 #if LITTLE_ENDIAN != BYTE_ORDER
 #error "Must be a `LITTLE ENDIAN` cpu architecture"

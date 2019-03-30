@@ -26,8 +26,8 @@
 #ifndef BR_Ethereum_Transaction_H
 #define BR_Ethereum_Transaction_H
 
-#include "../base/BREthereumBase.h"
-#include "../contract/BREthereumToken.h"
+#include "ethereum/base/BREthereumBase.h"
+#include "ethereum/contract/BREthereumToken.h"
 #include "BREthereumNetwork.h"
 #include "BREthereumTransactionStatus.h"
 

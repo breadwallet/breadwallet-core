@@ -24,8 +24,8 @@
 //  THE SOFTWARE.
 
 #include "../BRCoreJni.h"
+#include "ethereum/contract/BREthereumToken.h"
 #include "com_breadwallet_core_ethereum_BREthereumToken.h"
-#include "contract/BREthereumToken.h"
 
 #if defined (BITCOIN_TESTNET) && 1 == BITCOIN_TESTNET
 static const char *tokenBRDAddress = "0x7108ca7c4718efa810457f228305c9c71390931a"; // testnet

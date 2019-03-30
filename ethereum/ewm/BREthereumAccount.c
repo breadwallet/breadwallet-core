@@ -26,14 +26,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "BRKey.h"
-#include "BRBIP32Sequence.h"
-#include "BRBIP39Mnemonic.h"
-#include "BRCrypto.h"
-#include "BRBase58.h"
-#include "BRBIP39WordsEn.h"
-
-#include "../base/BREthereumBase.h"
+#include "support/BRCrypto.h"
+#include "support/BRKey.h"
+#include "support/BRBIP32Sequence.h"
+#include "support/BRBIP39Mnemonic.h"
+#include "support/BRBase58.h"
+#include "support/BRBIP39WordsEn.h"
+#include "ethereum/base/BREthereumBase.h"
 #include "BREthereumAccount.h"
 
 #if defined(DEBUG)

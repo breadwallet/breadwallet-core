@@ -25,9 +25,9 @@
 
 #include <string.h>
 #include <assert.h>
+#include "ethereum/blockchain/BREthereumTransaction.h"
+#include "ethereum/blockchain/BREthereumLog.h"
 #include "BREthereumTransfer.h"
-#include "../blockchain/BREthereumTransaction.h"
-#include "../blockchain/BREthereumLog.h"
 
 static void
 transferProvideOriginatingTransaction (BREthereumTransfer transfer);

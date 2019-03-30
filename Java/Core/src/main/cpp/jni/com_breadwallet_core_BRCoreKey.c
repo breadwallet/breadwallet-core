@@ -19,16 +19,16 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#include "BRCoreJni.h"
-#include <BRKey.h>
-#include <BRKeyECIES.h>
-#include <BRAddress.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <BRBase58.h>
-#include <BRBIP39Mnemonic.h>
-#include <BRBIP38Key.h>
-#include <BRBIP32Sequence.h>
+#include "BRCoreJni.h"
+#include "support/BRKey.h"
+#include "support/BRKeyECIES.h"
+#include "support/BRAddress.h"
+#include "support/BRBase58.h"
+#include "support/BRBIP39Mnemonic.h"
+#include "support/BRBIP32Sequence.h"
+#include "bitcoin/BRBIP38Key.h"
 #include "com_breadwallet_core_BRCoreKey.h"
 
 /*

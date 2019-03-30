@@ -23,11 +23,10 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#include "support/BRInt.h"
+#include "support/BRSet.h"
+#include "bitcoin/BRPeer.h"
 #include "BRBCashParams.h"
-
-#include "BRInt.h"
-#include "BRSet.h"
-#include "BRPeer.h"
 
 static const char *BRBCashDNSSeeds[] = {
     "seed-abc.breadwallet.com.", "seed.bitcoinabc.org.", "seed-abc.bitcoinforks.org.", "seed.bitcoinunlimited.info.",

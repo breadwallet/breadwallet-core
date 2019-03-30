@@ -19,12 +19,12 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#include "BRCoreJni.h"
 #include <stdlib.h>
 #include <assert.h>
-#include "BRAddress.h"
-#include "com_breadwallet_core_BRCoreAddress.h"
+#include "BRCoreJni.h"
+#include "support/BRAddress.h"
 #include "bcash/BRBCashAddr.h"
+#include "com_breadwallet_core_BRCoreAddress.h"
 
 /*
  * Class:     com_breadwallet_core_BRCoreAddress

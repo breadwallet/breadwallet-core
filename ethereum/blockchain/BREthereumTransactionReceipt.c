@@ -25,7 +25,7 @@
 
 #include <string.h>
 #include <assert.h>
-#include "BRArray.h"
+#include "support/BRArray.h"
 #include "BREthereumLog.h"
 #include "BREthereumTransactionReceipt.h"
 

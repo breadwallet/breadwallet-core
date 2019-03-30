@@ -26,11 +26,12 @@
 #ifndef BR_Ethereum_Message_LES_H
 #define BR_Ethereum_Message_LES_H
 
+#include "ethereum/mpt/BREthereumMPT.h"
+#include "ethereum/blockchain/BREthereumBlock.h"
+#include "ethereum/blockchain/BREthereumTransactionReceipt.h"
 #include "../BREthereumLESBase.h"
-#include "../../mpt/BREthereumMPT.h"
-#include "../../blockchain/BREthereumBlock.h"
-#include "../../blockchain/BREthereumTransactionReceipt.h"
 #include "BREthereumMessageP2P.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

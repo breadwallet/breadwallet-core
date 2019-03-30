@@ -26,13 +26,13 @@
 #ifndef BR_Ethereum_Account_H
 #define BR_Ethereum_Account_H
 
+#include "support/BRInt.h"
+#include "support/BRKey.h"
+#include "BREthereumBase.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "BRKey.h"
-#include "../../support/BRInt.h"
-#include "BREthereumBase.h"
 
 //
 // Account

@@ -92,7 +92,7 @@ test:	build
 build: clean
 	@echo "== Building"
 	gcc -o test -Wno-format-extra-args -Wno-nullability-completeness -Wno-unknown-warning-option \
-		-I. -I.. -I../bitcoin -I../support -I../bcash -I../secp256k1 \
+		-I. -I.. -I../support -I../secp256k1 \
 		-DDEBUG -DBITCOIN_DEBUG=1 -DTEST_ETHEREUM_NEED_MAIN \
                 $(CORE_SRCS) $(ETH_SRCS) $(ETH_TST_SRCS) -lc -lresolv
 

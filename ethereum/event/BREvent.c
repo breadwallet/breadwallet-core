@@ -28,13 +28,11 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include <assert.h>
-
-#define PTHREAD_NULL   ((pthread_t) NULL)
-
 #include "BREvent.h"
 #include "BREventQueue.h"
 #include "BREventAlarm.h"
 
+#define PTHREAD_NULL   ((pthread_t) NULL)
 #define PTHREAD_STACK_SIZE (512 * 1024)
 #define PTHREAD_NAME_SIZE   (33)
 

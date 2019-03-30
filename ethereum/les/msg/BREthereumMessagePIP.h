@@ -26,10 +26,10 @@
 #ifndef BR_Ethereum_Message_PIP_H
 #define BR_Ethereum_Message_PIP_H
 
+#include "ethereum/blockchain/BREthereumBlockChain.h"
+#include "ethereum/mpt/BREthereumMPT.h"
 #include "../BREthereumLESBase.h"
-#include "../../blockchain/BREthereumBlockChain.h"
 #include "BREthereumMessageP2P.h"       // BREthereumP2PMessageStatus
-#include "../../mpt/BREthereumMPT.h"
 
 #ifdef __cplusplus
 extern "C" {
