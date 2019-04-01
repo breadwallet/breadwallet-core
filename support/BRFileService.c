@@ -3,7 +3,7 @@
 //  Core
 //
 //  Created by Richard Evers on 1/4/19.
-//  Copyright © 2019 breadwallet. All rights reserved.
+//  Copyright © 2019 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal

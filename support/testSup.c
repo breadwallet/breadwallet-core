@@ -3,7 +3,7 @@
 //  CoreTests
 //
 //  Created by Ed Gamble on 1/25/19.
-//  Copyright © 2019 breadwallet. All rights reserved.
+//  Copyright © 2019 breadwallet LLC
 //
 
 #include <stdio.h>

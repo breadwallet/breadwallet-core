@@ -3,7 +3,7 @@
 //  BRCore
 //
 //  Created by Ed Gamble on 11/19/18.
-//  Copyright © 2018 breadwallet. All rights reserved.
+//  Copyright © 2018 Breadwinner AG.  All rights reserved.
 //
 
 #ifndef BREthereumBase_h

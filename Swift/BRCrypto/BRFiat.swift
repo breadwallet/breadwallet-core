@@ -3,9 +3,15 @@
 //  BRCrypto
 //
 //  Created by Ed Gamble on 11/24/18.
-//  Copyright © 2018 breadwallet. All rights reserved.
+//  Copyright © 2018 Breadwallet AG. All rights reserved.
 //
-//  Copyright © 2018 breadwallet. All rights reserved.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
+//
+//  Copyright © 2018 Breadwallet AG. All rights reserved.
+//
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
 
 import BRCore
