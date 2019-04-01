@@ -153,9 +153,8 @@ logTopicsCopy (BRArrayOf(BREthereumLogTopic) topics) {
 }
 
 //
-// Ethereum Log
+// Log
 //
-// A log entry, O, is:
 struct BREthereumLogRecord {
     // THIS MUST BE FIRST to support BRSet operations.
 
@@ -165,16 +164,24 @@ struct BREthereumLogRecord {
      */
     BREthereumHash hash;
 
-    // a tuple of the logger’s address, Oa;
+    /**
+     * a tuple of the logger’s address, Oa;
+     */
     BREthereumAddress address;
 
-    // a series of 32-byte log topics, Ot;
+    /**
+     * a series of 32-byte log topics, Ot;
+     */
     BRArrayOf(BREthereumLogTopic) topics;
 
-    // and some number of bytes of data, Od
+    /**
+     * and some number of bytes of data, Od
+     */
     BRRlpData data;
 
-    // A unique identifer - derived from the transactionHash and the transactionReceiptIndex
+    /**
+     * A unique identifer - derived from the transactionHash and the transactionReceiptIndex
+     */
     struct {
         /**
          * The hash of the transaction producing this log.  This value *does not* depend on
@@ -190,7 +197,9 @@ struct BREthereumLogRecord {
         size_t transactionReceiptIndex;
     } identifier;
 
-    // status
+    /**
+     * status
+     */
     BREthereumTransactionStatus status;
 };
 
@@ -379,9 +388,7 @@ logHashEqual (const void *l1, const void *l2) {
                          &((BREthereumLog) l2)->hash);
 }
 
-///
 /// MARK: - Release // Copy
-///
 
 extern void
 logRelease (BREthereumLog log) {
@@ -421,9 +428,7 @@ logCopy (BREthereumLog log) {
     return copy;
 }
 
-///
 /// MARK: - RLP Encode/Decode
-///
 
 static BRRlpItem
 logTopicsRlpEncode (BREthereumLog log,

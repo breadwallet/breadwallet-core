@@ -45,7 +45,7 @@ typedef enum {
 extern const char *
 provisionErrorGetReasonName (BREthereumProvisionErrorReason reason);
 
-/// MARK: Provision
+/// MARK: - Provision Support
 
 /**
  * A Node provides four types of results, based on a corresponding request: Block Headers,

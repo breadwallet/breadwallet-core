@@ -96,9 +96,7 @@ struct BREthereumNodeEndpointRecord {
     BREthereumBoolean discovered;
 };
 
-///
 /// MARK: - Create/Release
-///
 
 extern BREthereumNodeEndpoint
 nodeEndpointCreateDetailed (BREthereumDISNeighbor dis,
@@ -198,9 +196,7 @@ nodeEndpointRelease (BREthereumNodeEndpoint endpoint) {
     free (endpoint);
 }
 
-///
 /// MARK: - Getters/Setters
-///
 
 extern BREthereumHash
 nodeEndpointGetHash (BREthereumNodeEndpoint endpoint) {
@@ -260,9 +256,8 @@ nodeEndpointHashEqual (const void *h1, const void *h2) {
                                      &((BREthereumNodeEndpoint) h2)->hash);
 }
 
-///
 /// MARK: - Hello
-///
+
 extern BREthereumP2PMessageHello
 nodeEndpointGetHello (const BREthereumNodeEndpoint endpoint) {
     return endpoint->hello;
@@ -322,9 +317,8 @@ nodeEndpointHasHelloMatchingCapability (BREthereumNodeEndpoint source,
     return NULL;
 }
 
-///
 /// MARK: - Status
-///
+
 extern BREthereumP2PMessageStatus
 nodeEndpointGetStatus (const BREthereumNodeEndpoint endpoint) {
     return endpoint->status;
@@ -362,9 +356,8 @@ nodeEndpointShowStatus (BREthereumNodeEndpoint endpoint) {
     messageP2PStatusShow (&endpoint->status);
 }
 
-///
 /// MARK: - Open/Close
-///
+
 extern int // errno
 nodeEndpointOpen (BREthereumNodeEndpoint endpoint,
                   BREthereumNodeEndpointRoute route) {
@@ -416,9 +409,7 @@ nodeEndpointIsOpen (BREthereumNodeEndpoint endpoint,
     return -1 != endpoint->sockets[route];
 }
 
-///
 /// MARK: - Recv/Send Data
-///
 
 extern int // errno
 nodeEndpointRecvData (BREthereumNodeEndpoint endpoint,

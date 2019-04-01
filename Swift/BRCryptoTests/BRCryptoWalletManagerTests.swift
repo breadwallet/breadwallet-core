@@ -34,14 +34,8 @@ class BRCryptoWalletManagerTests: XCTestCase {
     override func tearDown() {
     }
 
-    /// MARK: Bitcoin
+    // Bitcoin
 
+    // Ethereum
 
-
-    /// MARK: Ethereum
-
-//    func testPerformanceExample() {
-//        self.measure {
-//        }
-//    }
 }

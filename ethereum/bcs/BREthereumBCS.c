@@ -698,9 +698,8 @@ bcsHandleAnnounce (BREthereumBCS bcs,
                             ETHEREUM_BOOLEAN_FALSE);
 }
 
-///
 /// MARK: - Chain
-///
+
 static void
 bcsReclaimBlock (BREthereumBCS bcs,
                  BREthereumBlock block,
@@ -1260,9 +1259,7 @@ bcsExtendChainIfPossible (BREthereumBCS bcs,
     bcsReclaimAndSaveBlocksIfAppropriate (bcs);
 }
 
-///
 /// MARK: - Block Header
-///
 
 static BREthereumBoolean
 bcsBlockHasMatchingTransactions (BREthereumBCS bcs,
@@ -1427,9 +1424,7 @@ bcsHandleBlockHeaders (BREthereumBCS bcs,
                                proofNumbers);
 }
 
-///
 /// MARK: - Account State
-///
 
 static void
 bcsHandleAccountState (BREthereumBCS bcs,
@@ -1490,9 +1485,7 @@ bcsHandleAccountStates (BREthereumBCS bcs,
     array_free (states);
 }
 
-///
 /// MARK: - Block Bodies
-///
 
 /*!
  */
@@ -1634,9 +1627,8 @@ bcsHandleBlockBodies (BREthereumBCS bcs,
     array_free (pairs);
 }
 
-///
 /// MARK: - Header Proofs
-///
+
 static void
 bcsHandleBlockProof (BREthereumBCS bcs,
                      BREthereumNodeReference node,
@@ -1696,10 +1688,7 @@ bcsHandleBlockProofs (BREthereumBCS bcs,
     array_free (proofs);
 }
 
-///
 /// MARK: - Transaction Receipts
-///
-
 
 #if defined (INCLUDE_UNUSED_FUNCTION)
 static BREthereumBoolean
@@ -1870,9 +1859,7 @@ bcsHandleTransactionReceiptsMultiple (BREthereumBCS bcs,
     array_free (arrayOfReceipts);
 }
 
-///
 /// MARK: - Transaction Status
-///
 
 //
 // We only obsserve transaction status for two cases:

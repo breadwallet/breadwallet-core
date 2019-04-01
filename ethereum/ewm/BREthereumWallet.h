@@ -36,19 +36,6 @@ extern "C" {
 #endif
 
 /**
- * An EthereumWallet holds ETH or ERC20 Tokens.
- *
- * GetEtherPerHolding
- * SetEtherPerHolding
- * GetHoldingValueInEther
- *
- * GetLocalCurrentyPerHolding
- * SetLocalCurrencyPerHolding
- * GetHoldingValueInLocalCurrency
- */
-//typedef struct BREthereumWalletRecord *BREthereumWallet;
-
-/**
  * Create a wallet holding ETH; will use the account's primary address.
  *
  * @param account

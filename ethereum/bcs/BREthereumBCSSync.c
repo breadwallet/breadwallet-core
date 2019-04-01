@@ -79,9 +79,7 @@ typedef enum {
     SYNC_RESULT_ACCOUNT
 } BREthereumBCSSyncResultState;
 
-///
 /// MARK: - Sync Range
-///
 
 /**
  * The Context for the Sync Range Callback
@@ -498,9 +496,7 @@ syncRangeComplete (BREthereumBCSSyncRange child) {
         syncRangeComplete (parent);
 }
 
-///
-/// MARK: Sync
-///
+/// MARK: - Sync
 
 /**
  * A BCS Sync handles ongoing sync reqeusts.  A call to bcsSyncContinue() will start a sync as
@@ -763,10 +759,7 @@ bcsSyncStop (BREthereumBCSSync sync) {
         bcsSyncStopInternal (sync, NULL);
 }
 
-
-///
 /// MARK: - Sync Handle Block Header / Account State
-///
 
 /**
  * Given all block headers then: a) for a N_ARY range, request the account states; or b) for a

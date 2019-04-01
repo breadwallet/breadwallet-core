@@ -34,6 +34,7 @@
 // #define NEED_TO_PRINT_DIS_NEIGHBOR_DETAILS
 
 /// MARK: UInt512
+
 typedef enum {
     INT_BITWISE_AND,
     INT_BITWISE_OR,
@@ -136,9 +137,8 @@ endpointDISDecode (BRRlpItem item, BRRlpCoder coder) {
     return endpoint;
 }
 
-//
-// MARK: - DIS Neighbor
-//
+/// MARK: - DIS Neighbor
+
 static BREthereumDISNeighbor
 neighborDISDecode (BRRlpItem item, BREthereumMessageCoder coder) {
     BREthereumDISNeighbor neighbor;

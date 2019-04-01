@@ -69,6 +69,7 @@ installSharedWordList (const char *wordList[], int wordListLength) {
 }
 
 // Address Detail
+
 /**
  * An EthereumAddress is as '0x'-prefixed, hex-encoded string with an overall lenght of 42
  * characters.  Addresses can be explicitly provided - such as with a 'send to' addresses; or can
@@ -179,7 +180,10 @@ addressDetailFillRaw (BREthereumAddressDetail *address, const char *string) {
 // Account
 //
 struct BREthereumAccountRecord {
-    
+
+    /**
+     * The master public key derived from the seed as per BIP-32
+     */
     BRMasterPubKey masterPubKey;
     
     /**

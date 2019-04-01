@@ -34,10 +34,13 @@
 extern "C" {
 #endif
 
-//
-// Signature
-//
-
+/**
+ * An Ethereum Signature Type is an enumeration for the types of ethereum signatures.  There
+ * are two types: one for signing transactions and one for signing P2P messages, it seems.  An
+ * ethereum signature is 'recoverable' in that given the signature and the data one can recover
+ * the public key (corresponding to the private key used for signing) and then from the public key
+ * one can recover the address.
+ */
 typedef enum {
     /**
      * A 'VRS' signature suitable for Ethereum Transaction signing.  Modifies the 'v' field with
@@ -51,7 +54,6 @@ typedef enum {
      */
     SIGNATURE_TYPE_RECOVERABLE_RSV
 } BREthereumSignatureType;
-
 
 /**
  * A VRS signature - with a Network chainID encoded into 'v'
@@ -74,7 +76,11 @@ typedef struct {
 
 
 /**
- * An Ethereum Signature - one of the two types: VRS_EIP or RSV
+ * An Ethereum Signature is the result of crytographically signing an arbitary piece of data.
+ *
+ * Commonly used for signing a transaction for submission to the Ehterehm P2P network.  In this
+ * case the transaction is RLP encoded *without* the signature, the unsigned RLP data is signed,
+ * and then the transaction is RLP encoded *with* the signature.
  */
 typedef struct {
     BREthereumSignatureType type;

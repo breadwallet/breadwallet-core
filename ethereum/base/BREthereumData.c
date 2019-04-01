@@ -26,9 +26,7 @@
 #include "ethereum/util/BRUtil.h" // encodeHexCreate()
 #include "BREthereumData.h"
 
-///
 /// MARK: - Data
-///
 
 extern BREthereumData
 dataCreateFromBytes (size_t count, uint8_t *bytes, int takeBytes) {
@@ -78,10 +76,7 @@ dataAsRlpData (BREthereumData data) {
     return rlp;
 }
 
-
-///
 /// MARK: - Hash Data Pair
-///
 
 struct BREthereumHashDataPairRecord {
     BREthereumHash hash;
@@ -156,9 +151,7 @@ hashDataPairHashEqual (const void *t1,
                                      &((BREthereumHashDataPair) t2)->hash);
 }
 
-///
 /// MARK: - Hash Data Pair Set
-///
 extern BRSetOf (BREthereumHashDataPair)
 hashDataPairSetCreateEmpty(size_t count) {
     return BRSetNew (hashDataPairHashValue,

@@ -32,6 +32,9 @@
 static void
 networkInitilizeAllIfAppropriate (void);
 
+//
+// Network
+//
 struct BREthereumNetworkRecord {
     const char *name;
     int chainId;
@@ -95,9 +98,7 @@ networkGetEnodesLocal (BREthereumNetwork network, int parity) {
     return parity ?  network->enodesLCLParity : network->enodesLCLGeth;
 }
 
-//
-// MARK: - Static Network Definitions
-//
+/// MARK: - Static Network Definitions
 
 //
 // Mainnet
@@ -232,9 +233,7 @@ RinkebyChainConfig = &ChainConfig{
 }
 */
 
-//
-// MARK: - Trusted Checkpoints
-//
+/// MARK: - Trusted Checkpoints
 
 /*
 // trustedCheckpoint represents a set of post-processed trie roots (CHT and BloomTrie) associated with

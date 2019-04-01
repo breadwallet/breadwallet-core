@@ -44,9 +44,8 @@ extern "C" {
     typedef void *BREthereumClientContext;
 
 
-    ///
     /// MARK: - Balance
-    ///
+
     typedef void
     (*BREthereumClientHandlerGetBalance) (BREthereumClientContext context,
                                           BREthereumEWM ewm,
@@ -60,9 +59,8 @@ extern "C" {
                               const char *balance,
                               int rid);
 
-    ///
     /// MARK: - Gas Price
-    ///
+
     typedef void
     (*BREthereumClientHandlerGetGasPrice) (BREthereumClientContext context,
                                            BREthereumEWM ewm,
@@ -79,9 +77,8 @@ extern "C" {
     ewmUpdateGasPrice (BREthereumEWM ewm,
                        BREthereumWallet wid);
 
-    ///
     /// MARK: - Gas Estimate
-    ///
+
     typedef void
     (*BREthereumClientHandlerEstimateGas) (BREthereumClientContext context,
                                            BREthereumEWM ewm,
@@ -106,9 +103,7 @@ extern "C" {
                           BREthereumWallet wid,
                           BREthereumTransfer tid);
 
-    ///
-    /// MARK: Submit Transfer
-    ///
+    /// MARK: - Submit Transfer
 
     /**
      * Client handler for submitting a transaction.  Makes a JSON_RPC call with `transaction` and
@@ -146,9 +141,8 @@ extern "C" {
                                const char *errorMessage,
                                int rid);
 
-    ///
-    /// MARK: Get Transactions
-    ///
+    /// MARK: - Get Transactions
+
     typedef void
     (*BREthereumClientHandlerGetTransactions) (BREthereumClientContext context,
                                                BREthereumEWM ewm,
@@ -185,9 +179,7 @@ extern "C" {
                                     int id,
                                     BREthereumBoolean success);
 
-    ///
-    /// MARK: Get Logs
-    ///
+    /// MARK: - Get Logs
 
     typedef void
     (*BREthereumClientHandlerGetLogs) (BREthereumClientContext context,
@@ -219,9 +211,8 @@ extern "C" {
                             int id,
                             BREthereumBoolean success);
 
-    ///
-    /// MARK: Get Tokens
-    ///
+    /// MARK: - Get Tokens
+
     typedef void
     (*BREthereumClientHandlerGetTokens) (BREthereumClientContext context,
                                          BREthereumEWM ewm,
@@ -246,9 +237,8 @@ extern "C" {
     extern void
     ewmUpdateTokens (BREthereumEWM ewm);
 
-    ///
     /// MARK: - BlockNumber
-    ///
+
     typedef void
     (*BREthereumClientHandlerGetBlockNumber) (BREthereumClientContext context,
                                               BREthereumEWM ewm,
@@ -259,9 +249,8 @@ extern "C" {
                             const char *blockNumber,
                             int rid);
 
-    ///
     /// MARK: - Nonce
-    ///
+
     typedef void
     (*BREthereumClientHandlerGetNonce) (BREthereumClientContext context,
                                         BREthereumEWM ewm,
@@ -274,9 +263,8 @@ extern "C" {
                       const char *strNonce,
                       int rid);
 
-    ///
     /// MARK: - Blocks
-    ///
+
     typedef void
     (*BREthereumClientHandlerGetBlocks) (BREthereumClientContext context,
                                          BREthereumEWM ewm,
@@ -293,9 +281,8 @@ extern "C" {
                        int blockNumbersCount,
                        uint64_t *blockNumbers);
 
-     ///
     /// MARK: - Events
-    ///
+
     typedef enum {
         WALLET_EVENT_CREATED = 0,
         WALLET_EVENT_BALANCE_UPDATED,

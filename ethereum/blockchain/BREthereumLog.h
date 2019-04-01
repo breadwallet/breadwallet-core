@@ -34,15 +34,16 @@
 extern "C" {
 #endif
 
-//
-// MARK: - Log Topic
-//
+/// MARK: - Log Topic
+
 #define LOG_TOPIC_BYTES_COUNT   32
 
+/**
+ * An Ethereum Log Topic is 32 bytes of arbitary data.
+ */
 typedef struct {
     uint8_t bytes[LOG_TOPIC_BYTES_COUNT];
 } BREthereumLogTopic;
-
 
 /**
  * Create a LogTopic from a 0x-prefaces, 67 (1 + 2 + 64) character string; otherwise fatal.
@@ -73,9 +74,16 @@ logTopicAsString (BREthereumLogTopic topic);
 extern BREthereumAddress
 logTopicAsAddress (BREthereumLogTopic topic);
 
-//
-// MARK: - Log
-//
+
+/// MARK: - Log
+
+/**
+ * An Ethereum Log is the output of Smart Contract execution.
+ *
+ * From the Ethereum specificaion:  A log entry, O, is: {address, types, data}.  To that we add
+ * a status, an identifier pair as { transactionHash, transactionReceiptIndex} and a hash (of the
+ * identifier).
+ */
 typedef struct BREthereumLogRecord *BREthereumLog;
 
 extern BREthereumLog

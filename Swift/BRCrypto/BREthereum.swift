@@ -311,9 +311,9 @@ public class EthereumTransferFactory: TransferFactory {
     }
 }
 
-///
-/// MARK: - Wallet
-///
+//
+// Wallet
+//
 
 public class EthereumWallet: Wallet {
     internal let identifier: BREthereumWallet
@@ -832,7 +832,7 @@ public class EthereumWalletManager: WalletManager {
         return dict
     }
 
-    /// MARK: - Ethereum Update Interface
+    // Ethereum Update Interface
 
     public func updateTokens () {
         ewmUpdateTokens(core)
@@ -847,7 +847,7 @@ public class EthereumWalletManager: WalletManager {
         ewmUpdateGasEstimate(core, wallet.identifier, transfer.identifier)
     }
 
-    /// MARK: - Ethereum Backend Announce Interface
+    // Ethereum Backend Announce Interface
 
     public func announceBalance (wid: BREthereumWallet, balance: String, rid: Int32) {
         ewmAnnounceWalletBalance (core, wid, balance, rid)

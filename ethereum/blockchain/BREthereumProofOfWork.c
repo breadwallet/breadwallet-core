@@ -42,6 +42,9 @@
 #define POW_CACHE_ROUNDS          (3)
 #define POW_ACCESSES              (64)
 
+//
+// Proof Of Work
+//
 struct BREthereumProofOfWorkStruct {
     int foo;
 };

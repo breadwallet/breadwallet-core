@@ -410,9 +410,7 @@ ewmSignalGetBlocks (BREthereumEWM ewm,
     eventHandlerSignalEvent(ewm->handler, (BREvent*) &event);
 }
 
-///
 /// MARK: - Client
-///
 
 //
 // Wallet Event

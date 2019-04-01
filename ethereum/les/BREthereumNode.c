@@ -36,9 +36,7 @@
 #include "BREthereumNode.h"
 #include "BREthereumLESFrameCoder.h"
 
-///
 /// MARK: - Forward Declarations
-///
 
 // #define NODE_SHOW_RLP_ITEMS
 // #define NODE_SHOW_RECV_RLP_ITEMS
@@ -101,9 +99,7 @@ static const ssize_t ackCipherBufLen =  ackBufLen + 65 + 16 + 32;
 static int _sendAuthInitiator(BREthereumNode node);
 static int _readAuthAckFromRecipient(BREthereumNode node);
 
-///
 /// MARK: - Node Type
-///
 
 extern const char *
 nodeTypeGetName (BREthereumNodeType type) {
@@ -115,9 +111,7 @@ nodeTypeGetName (BREthereumNodeType type) {
     return nodeTypeNames[type];
 }
 
-///
 /// MARK: - Node State Create ...
-///
 
 static inline BREthereumNodeState
 nodeStateCreate (BREthereumNodeStateType type) {
@@ -291,9 +285,7 @@ nodeStateDecode (BRRlpItem item,
     }
 }
 
-///
 /// MARK: - Node Provisioner
-///
 
 /**
  * A Node Provisioner completes a Provision by dispatching messages, possibly multiple
@@ -472,9 +464,7 @@ provisionerRelease (BREthereumNodeProvisioner *provisioner,
         provisionRelease (&provisioner->provision, releaseProvisionResults);
 }
 
-///
 /// MARK: - LES Node
-///
 
 struct BREthereumNodeRecord {
     // Must be first to support BRSet.
@@ -887,9 +877,8 @@ nodeDisconnect (BREthereumNode node,
     return node->states[route];
 }
 
-///
 /// MARK: - Node Process
-///
+
 extern BREthereumBoolean
 nodeCanHandleProvision (BREthereumNode node,
                         BREthereumProvision provision) {
@@ -1908,11 +1897,7 @@ nodeUpdateDescriptors (BREthereumNode node,
     return socket;
 }
 
-
-///
 /// MARK: - LES Node Support
-///
-
 
 /**
  * Extract the `type` and `subtype` of a message from the RLP-encoded `value`.  The `value` has
@@ -1945,8 +1930,7 @@ extractIdentifier (BREthereumNode node,
     }
 }
 
-/// MARK: LES Node State
-
+/// MARK: - LES Node State
 
 extern void
 nodeSetStateInitial (BREthereumNode node,
@@ -1989,9 +1973,7 @@ nodeSetStateInitial (BREthereumNode node,
     }
 }
 
-///
 /// MARK: - Send / Recv
-///
 
 static BREthereumNodeStatus
 nodeSendFailed (BREthereumNode node,
@@ -2267,7 +2249,7 @@ nodeGetCredits (BREthereumNode node) {
 #pragma clang diagnostic pop
 #pragma GCC diagnostic pop
 
-/// MARK: Discovered
+/// MARK: - Discovered
 
 extern BREthereumBoolean
 nodeGetDiscovered (BREthereumNode node) {
@@ -2341,9 +2323,7 @@ nodeHandleTime (BREthereumNode node,
     return ETHEREUM_BOOLEAN_FALSE;
 }
 
-///
 /// MARK: - Auth Support
-///
 
 static void
 bytesXOR(uint8_t * op1, uint8_t* op2, uint8_t* result, size_t len) {

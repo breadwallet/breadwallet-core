@@ -34,8 +34,14 @@
 extern "C" {
 #endif
 
-/*!
- * The Result of a LES 'GetReceipts' request
+/**
+ * An Etheruem Transaction Receipt contains data pertinent to the execution of a transaction.
+ *
+ * As per the Ethereum specification: The transaction receipt, R, is a tuple of four items
+ * comprising: {gasUsed, logs, bloomfilter, statusCode}
+ *
+ * [Note: there appears to be a change in interpretation for 'status code'; it is shown here
+ * as stateRoot
  */
 typedef struct BREthereumTransactionReceiptRecord *BREthereumTransactionReceipt;
 

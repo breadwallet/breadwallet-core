@@ -34,24 +34,6 @@
 extern "C" {
 #endif
 
-//
-// Account
-//
-
-/**
- * The Bread App will have a single EthereumAccount for both Ether and all ERC20 tokens.  This
- * account is conceptually identical to the App's 'private key' derived from the User's 'paper
- * key'.  An EthereumAccount uses BIP32 (probably not BIP44) to generate addresses; and thus
- * the provided 'private key' must be suitable for BIP32.  [The 'private key` argument is likely
- * a BRMasterPubKey thingy]
- *
- * An EthereumAccount can generate an essentially arbitrary number of EthereumAddress-es.  However,
- * in Ethereum addresses are not a factor in privacy; therefore, we'll use one EthereumAddress per
- * EthereumWallet - all transactions for that wallet will use the same address.
- *
- */
-// typedef struct BREthereumAccountRecord *BREthereumAccount;
-
 /**
  * Create a new account using paperKey and the sharedWordList (see installSharedWordList).
  *

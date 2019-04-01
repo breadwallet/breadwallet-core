@@ -82,9 +82,8 @@ handleRLP (BRRlpCoder coder, const char *input) {
     rlpDataRelease(data);
 }
 
-///
 /// MARK: - Handle RLP Huge
-///
+
 #if 0
 // Use in BREthereumNode recv() to write RLP data to file.
 if (bytesCount > 2 * 1024 * 1024) {

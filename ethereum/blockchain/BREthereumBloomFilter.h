@@ -35,6 +35,9 @@ extern "C" {
 #define ETHEREUM_BLOOM_FILTER_BITS 2048
 #define ETHEREUM_BLOOM_FILTER_BYTES   (ETHEREUM_BLOOM_FILTER_BITS / 8)
 
+/**
+ * An Etereum Bloom Filter is a 2048-bit 'fuzzy' representation of one or more addresses.
+ */
 typedef struct {
     uint8_t bytes[ETHEREUM_BLOOM_FILTER_BYTES];
 } BREthereumBloomFilter;

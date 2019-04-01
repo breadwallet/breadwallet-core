@@ -36,10 +36,9 @@
 static unsigned int transactionAllocCount = 0;
 #endif
 
-/**
- * An Ethereum Transaction ...
- *
- */
+//
+// Transaction
+//
 struct BREthereumTransactionRecord {
     // THIS MUST BE FIRST to support BRSet operations.
 
@@ -48,15 +47,14 @@ struct BREthereumTransactionRecord {
      */
     BREthereumHash hash;
 
-
-    //
-    //
-    //
+    /**
+     * The source address - sends 'amount'
+     */
     BREthereumAddress sourceAddress;
 
-    //
-    //
-    //
+    /**
+     * The target address - recvs 'amount'
+     */
     BREthereumAddress targetAddress;
 
     /**
@@ -66,15 +64,34 @@ struct BREthereumTransactionRecord {
      * transfer function encodes the amount.
      */
     BREthereumEther amount;
+
+    /**
+     * The gas Price
+     */
     BREthereumGasPrice gasPrice;
+
+    /**
+     * The gas limit
+     */
     BREthereumGas gasLimit;
+
+    /**
+     * The gas estimate
+     */
     BREthereumGas gasEstimate;
-    
+
+    /**
+     * The nonce
+     */
     uint64_t nonce;
+
+    /**
+     * The chainId
+     */
     BREthereumChainId chainId;   // EIP-135 - chainId - "Since EIP-155 use chainId for v"
 
     /**
-     *
+     * The data
      */
     char *data;
 
@@ -83,9 +100,9 @@ struct BREthereumTransactionRecord {
      */
     BREthereumSignature signature;
 
-    //
-    // State
-    //
+    /**
+     * The status
+     */
     BREthereumTransactionStatus status;
 };
 

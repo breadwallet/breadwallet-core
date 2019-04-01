@@ -54,9 +54,8 @@ ewmPeriodicDispatcher (BREventHandler handler,
 
 /* Forward Implementation */
 
-///
-/// MARK: Transaction File Service
-///
+/// MARK: - Transaction File Service
+
 static const char *fileServiceTypeTransactions = "transactions";
 
 enum {
@@ -117,9 +116,8 @@ initialTransactionsLoad (BREthereumEWM ewm) {
     return transactions;
 }
 
-///
-/// MARK: Log File Service
-///
+/// MARK: - Log File Service
+
 static const char *fileServiceTypeLogs = "logs";
 
 enum {
@@ -181,9 +179,8 @@ initialLogsLoad (BREthereumEWM ewm) {
 }
 
 
-///
-/// MARK: Block File Service
-///
+/// MARK: - Block File Service
+
 static const char *fileServiceTypeBlocks = "blocks";
 enum {
     EWM_BLOCK_VERSION_1
@@ -243,9 +240,8 @@ initialBlocksLoad (BREthereumEWM ewm) {
     return blocks;
 }
 
-///
-/// MARK: Node File Service
-///
+/// MARK: - Node File Service
+
 static const char *fileServiceTypeNodes = "nodes";
 enum {
     EWM_NODE_VERSION_1
@@ -340,9 +336,8 @@ ewmFileServiceErrorHandler (BRFileServiceContext context,
     // TODO: Actually force a resync.
 }
 
-///
-/// MARK: Ethereum Wallet Manager
-///
+/// MARK: - Ethereum Wallet Manager
+
 static BREthereumEWM
 ewmCreateErrorHandler (BREthereumEWM ewm, int fileService, const char* reason) {
     if (NULL != ewm) free (ewm);
@@ -650,9 +645,7 @@ ewmDestroy (BREthereumEWM ewm) {
     free (ewm);
 }
 
-///
 /// MARK: - Connect / Disconnect
-///
 
 /**
  * ewmConnect() - Start EWM.  Returns TRUE if started, FALSE if is currently stated (TRUE
@@ -891,9 +884,8 @@ ewmUnlock (BREthereumEWM ewm) {
     pthread_mutex_unlock (&ewm->lock);
 }
 
-///
 /// MARK: - Blocks
-///
+
 #if defined (NEVER_DEFINED)
 extern BREthereumBlock
 ewmLookupBlockByHash(BREthereumEWM ewm,
@@ -963,9 +955,8 @@ ewmUpdateBlockHeight(BREthereumEWM ewm,
         ewm->blockHeight = blockHeight;
 }
 
-///
 /// MARK: - Transfers
-///
+
 #if defined (NEVER_DEFINED)
 extern BREthereumTransfer
 ewmLookupTransfer (BREthereumEWM ewm,
@@ -1042,9 +1033,8 @@ ewmDeleteTransfer (BREthereumEWM ewm,
 }
 #endif
 
-///
-/// MARK: Wallets
-///
+/// MARK: - Wallets
+
 #if defined (NEVER_DEFINED)
 extern BREthereumWallet
 ewmLookupWallet(BREthereumEWM ewm,
@@ -1456,9 +1446,8 @@ ewmWalletSetDefaultGasPrice(BREthereumEWM ewm,
 }
 
 
-///
-/// MARK: Handlers
-///
+/// MARK: - Handlers
+
 /**
  * Handle a default `gasPrice` for `wallet`
  *
@@ -2181,9 +2170,8 @@ ewmTransferGetRawDataHexEncoded(BREthereumEWM ewm,
                                            prefix));
             }
 
-///
 /// MARK: - Transfer
-///
+
 extern BREthereumAddress
 ewmTransferGetTarget (BREthereumEWM ewm,
                       BREthereumTransfer transfer) {
@@ -2374,9 +2362,8 @@ ewmTransferGetFee(BREthereumEWM ewm,
     return transferGetFee(transfer, overflow);
 }
 
-///
 /// MARK: - Amount
-///
+
 extern BREthereumAmount
 ewmCreateEtherAmountString(BREthereumEWM ewm,
                            const char *number,
@@ -2415,9 +2402,8 @@ ewmCoerceTokenAmountToString(BREthereumEWM ewm,
     return tokenQuantityGetValueString(token, unit);
 }
 
-///
 /// MARK: - Gas Price / Limit
-///
+
 extern BREthereumGasPrice
 ewmCreateGasPrice (uint64_t value,
                    BREthereumEtherUnit unit) {
@@ -2459,8 +2445,4 @@ feeBasisCreate (BREthereumGas limit,
         { .gas = { limit, price }}
     };
 }
-
-///
-/// MARK: EWM Persistent Storage
-
 

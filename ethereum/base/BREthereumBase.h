@@ -53,6 +53,15 @@ for (size_t index = 0, __indexLimit = (size_t) (count); index < __indexLimit; in
 typedef uint64_t BREthereumTimestamp;  // A Unix time
 #define ETHEREUM_TIMESTAMP_UNKNOWN    ((uint64_t) 0)
 
+/**
+ * An Ethereum RLP type is an enumeration of the RLP encoding types.
+ *
+ * Four types are defined: the 'network' type produces an encoding consistent with the Etherum
+ * specification.  The 'archive' types produces a network encoding w/ some added values needed for
+ * archival (aka persistent) storage.  The 'unsigned' type refers to a non-network transaction
+ * encoding suitable for signing.  The 'signed' type is an alias for 'network' and is used to
+ * contrast with the 'unsigned' type.
+ */
 typedef enum {
     RLP_TYPE_NETWORK,
     RLP_TYPE_ARCHIVE,
@@ -61,42 +70,47 @@ typedef enum {
 } BREthereumRlpType;
 
 
-//
-// Sync Mode
-//
+/**
+ * An Ethereum Sync mode specifies how an EWM interfaces with the Ethereum P2P network or with 'BRD
+ * Server Assisted' interfaces) to determine a User's transfers.
+ *
+ * There are four modes; they differ in the extent of BRD vs P2P interaction.
+ */
 typedef enum {
-    //
-    // Use the BRD backend for all Core blockchain state.  The BRD backend provides: account state
-    // (balance + nonce), transactions, logs, block chain head number, etc.  (The BRD backend
-    // offers an etherscan.io-like HTTP interface).  The BRD backend includes a 'submit transaction'
-    // interface.
-    //
+    /**
+     * Use the BRD backend for all Core blockchain state.  The BRD backend provides: account state
+     * (balance + nonce), transactions, logs, block chain head number, etc.  (The BRD backend
+     * offers an etherscan.io-like HTTP interface).  The BRD backend includes a 'submit transaction'
+     * interface.
+     */
     BRD_ONLY,
 
-    //
-    // Use the BRD backend for everything other than 'submit transaction'
-    //
+    /*
+     * Use the BRD backend for everything other than 'submit transaction'
+     */
     BRD_WITH_P2P_SEND,
 
-    //
-    // We'll use the BRD endpoint to identiy blocks of interest based on ETH and TOK transfer
-    // where our addres is the SOURCE or TARGET. We'll only process blocks from the last N (~ 2000)
-    // blocks in the chain.
-    //
+    /**
+     * We'll use the BRD endpoint to identiy blocks of interest based on ETH and TOK transfer
+     * where our addres is the SOURCE or TARGET. We'll only process blocks from the last N (~ 2000)
+     * blocks in the chain.
+     */
     P2P_WITH_BRD_SYNC,
 
-    //
-    // We'll be willing to do a complete block chain sync, even starting at block zero.  We'll
-    // use our 'N-ary Search on Account Changes' to perform the sync effectively.  We'll use the
-    // BRD endpoint to augment the 'N-Ary Search' to find TOK transfers where our address is the
-    // SOURCE.
-    //
+    /**
+     * We'll be willing to do a complete block chain sync, even starting at block zero.  We'll
+     * use our 'N-ary Search on Account Changes' to perform the sync effectively.  We'll use the
+     * BRD endpoint to augment the 'N-Ary Search' to find TOK transfers where our address is the
+     * SOURCE.
+     */
     P2P_ONLY
 } BREthereumMode;
 
-//
-// Sync Interest
-//
+/**
+ * An Ehtereum Sync Interest specifies what a 'BRD Service Assisted' mode sync shoul provide data
+ * for.  When query BRD services we can be interested in blocks where the User's account/address
+ * appears in {transactions, logs} x {source, target}.
+ */
 typedef enum {
     CLIENT_GET_BLOCKS_NODE = 0,
     CLIENT_GET_BLOCKS_TRANSACTIONS_AS_SOURCE = (1 << 0),
@@ -105,9 +119,9 @@ typedef enum {
     CLIENT_GET_BLOCKS_LOGS_AS_TARGET = (1 << 3)
 } BREthereumSyncInterest;
 
-//
-// Sync Interest Set
-//
+/**
+ * An Ethereum Sync Interest Set is an 'option set' of sync interests.
+ */
 typedef unsigned int BREthereumSyncInterestSet;
 
 static inline int // 1 if match; 0 if not
@@ -116,28 +130,48 @@ syncInterestMatch(BREthereumSyncInterestSet interests,
     return interests & interest;
 }
 
-
+/**
+ * An Ethereum Transfer Status is an enumeration of a transfer's states/status.
+ *
+ * A transfer status extends the 'Ethereum Transaction Status' (which is defined in the Ethereum
+ * specfication) to include more 'life cycle' events such as 'created', 'cancelled, 'replaced' and
+ * 'deleted'.  Thus a transfer status is IOS/Android application focused - not P2P network focused.
+ */
 typedef enum {
-    // Created: transfer created in local memory
+    /**
+     * Created: transfer created in local memory
+     */
     TRANSFER_STATUS_CREATED,
 
-    // Submitted: transfer submitted
+    /**
+     * Submitted: transfer submitted
+     */
     TRANSFER_STATUS_SUBMITTED,
 
-    // Included: transfer is already included in the canonical chain. data contains an
-    // RLP-encoded [blockHash: B_32, blockNumber: P, txIndex: P] structure.
+    /**
+     * Included: transfer is already included in the canonical chain. data contains an
+     * RLP-encoded [blockHash: B_32, blockNumber: P, txIndex: P] structure.
+     */
     TRANSFER_STATUS_INCLUDED,
 
-    // Error: transfer sending failed. data contains a text error message
+    /**
+     * Error: transfer sending failed. data contains a text error message
+     */
     TRANSFER_STATUS_ERRORED,
 
-    // Cancelled
+    /**
+     * Cancelled
+     */
     TRANSFER_STATUS_CANCELLED,
 
-    // Replaced
+    /**
+     * Replaced
+     */
     TRANSFER_STATUS_REPLACED,
 
-    //
+    /**
+     * Deleted
+     */
     TRANSFER_STATUS_DELETED
 
 } BREthereumTransferStatus;

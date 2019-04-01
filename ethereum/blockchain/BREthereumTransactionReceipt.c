@@ -30,24 +30,28 @@
 #include "BREthereumTransactionReceipt.h"
 
 //
-// The Result of a LES 'GetReceipts' request
+// Transaction Receipt
 //
-// The transaction receipt, R, is a tuple of four items comprising: ...
-//
-// However, there appears to be a change in interpretation for 'status code' and the
-// order is not consistent with the 'Yellow Paper'
 struct BREthereumTransactionReceiptRecord {
-    // the cumulative gas used in the block containing the transaction receipt as of
-    // immediately after the transaction has happened, Ru,
+    /**
+     * the cumulative gas used in the block containing the transaction receipt as of
+     * immediately after the transaction has happened, Ru,
+     */
     uint64_t gasUsed;
 
-    // the set of logs created through execution of the transaction, Rl
+    /**
+     * the set of logs created through execution of the transaction, Rl
+     */
     BREthereumLog *logs;
 
-    // the Bloom filter composed from information in those logs, Rb
+    /**
+     * the Bloom filter composed from information in those logs, Rb
+     */
     BREthereumBloomFilter bloomFilter;
 
-    // and the status code of the transaction, Rz
+    /**
+     * and the status code of the transaction, Rz
+     */
     BRRlpData stateRoot;
 };
 

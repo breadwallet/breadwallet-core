@@ -58,7 +58,7 @@
 #define LES_LOCAL_ENDPOINT_UDP_PORT   DEFAULT_UDPPORT
 #define LES_LOCAL_ENDPOINT_NAME       "BRD Light Client"
 
-/// MARK: Node Test
+/// MARK: - Node Test
 
 #pragma clang diagnostic push
 #pragma GCC diagnostic push
@@ -855,6 +855,8 @@ static void run_GetProofsV2_Tests(BREthereumLES les){
 //
 // Test GetAccountState
 //
+#if 0
+
 static int _GetAccount_Context1 = 0;
 static void _GetAccountState_Callback_Test1 (BREthereumLESProvisionContext context,
                                              BREthereumLES les,
@@ -945,7 +947,7 @@ static void run_GetAccountState_Tests (BREthereumLES les){
     _waitForTests();
     eth_log(TST_LOG_TOPIC, "GetAccopuntState: %s", "Tests Successful");
 }
-
+#endif
 
 //
 //  Testing SendTx and SendTxV2 message
@@ -1081,6 +1083,7 @@ void _GetBlockHeaders_0_1 (BREthereumLESProvisionContext context,
     _signalTestComplete();
 }
 
+#if 0
 static void
 run_GetSomeHeaders (BREthereumLES les) {
     _initTest(1);
@@ -1091,7 +1094,9 @@ run_GetSomeHeaders (BREthereumLES les) {
                             2, 0, ETHEREUM_BOOLEAN_FALSE);
     _waitForTests();
 }
+#endif
 
+#if 0
 typedef struct {
     BREthereumBlockHeader header;
     BRArrayOf (BREthereumTransaction) transactions;
@@ -1130,6 +1135,7 @@ _GetSomeBlocks_Header (BREthereumLESProvisionContext context,
     _signalTestComplete();
 
 }
+
 static void
 run_GetSomeBlocks (BREthereumLES les) {
     SomeHeaderData block_data;
@@ -1155,6 +1161,7 @@ run_GetSomeBlocks (BREthereumLES les) {
 
     free (hex); rlpReleaseItem (coder, item);
 }
+#endif
 
 extern void
 runLESTests (const char *paperKey) {

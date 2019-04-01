@@ -119,7 +119,7 @@ typedef void
                                    BREthereumNode node,
                                    BRArrayOf(BREthereumDISNeighbor) neighbors);
 
-/// MARK: LES Node State
+/// MARK: - LES Node State
 
 typedef enum {
     NODE_AVAILABLE,
@@ -331,7 +331,8 @@ extern int
 nodeHashEqual (const void *node1,
                const void *node2);
 
-/// MARK: Node Message Send/Recv
+/// MARK: - Node Message Send/Recv
+    
 typedef enum {
     NODE_STATUS_SUCCESS,
     NODE_STATUS_ERROR

@@ -291,9 +291,7 @@ bcsSignalNodes (BREthereumBCS bcs,
     eventHandlerSignalEvent (bcs->handler, (BREvent *) &event);
 }
 
-//
-// MARK: - SyncProgress
-//
+/// MARK: - SyncProgress
 
 /// ==============================================================================================
 //

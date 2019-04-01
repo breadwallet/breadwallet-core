@@ -74,9 +74,8 @@ getForkId (const BRChainParams *params) {
     return (BRWalletForkId) -1;
 }
 
-///
-/// MARK: BRWalletManager
-///
+/// MARK: - BRWalletManager
+
 struct BRWalletManagerStruct {
     //BRWalletForkId walletForkId;
     BRFileService fileService;
@@ -85,9 +84,8 @@ struct BRWalletManagerStruct {
     BRWalletManagerClient client;
 };
 
-///
-/// MARK: Transaction File Service
-///
+/// MARK: - Transaction File Service
+
 static const char *fileServiceTypeTransactions = "transactions";
 
 enum {
@@ -170,9 +168,8 @@ initialTransactionsLoad (BRWalletManager manager) {
     return transactions;
 }
 
-///
-/// MARK: Block File Service
-///
+/// MARK: - Block File Service
+
 static const char *fileServiceTypeBlocks = "blocks";
 enum {
     WALLET_MANAGER_BLOCK_VERSION_1
@@ -253,9 +250,8 @@ initialBlocksLoad (BRWalletManager manager) {
     return blocks;
 }
 
-///
-/// MARK: Peer File Service
-///
+/// MARK: - Peer File Service
+
 static const char *fileServiceTypePeers = "peers";
 enum {
     WALLET_MANAGER_PEER_VERSION_1
@@ -352,9 +348,9 @@ bwmFileServiceErrorHandler (BRFileServiceContext context,
     if (NULL != bwm->peerManager)
         BRPeerManagerRescan (bwm->peerManager);
 }
-///
-/// MARK: Wallet Manager
-///
+
+/// MARK: - Wallet Manager
+
 static BRWalletManager
 bwmCreateErrorHandler (BRWalletManager bwm, int fileService, const char* reason) {
     if (NULL != bwm) free (bwm);
@@ -507,9 +503,7 @@ BRWalletManagerDisconnect (BRWalletManager manager) {
                                             });
 }
 
-///
-/// MARK: Wallet Callbacks
-///
+/// MARK: - Wallet Callbacks
 
 static void
 _BRWalletManagerBalanceChanged (void *info, uint64_t balanceInSatoshi) {
@@ -569,9 +563,8 @@ _BRWalletManagerTxDeleted (void *info, UInt256 hash, int notifyUser, int recomme
                                           });
 }
 
-///
-/// MARK: Peer Manager Callbacks
-///
+/// MARK: - Peer Manager Callbacks
+
 static void
 _BRWalletManagerSaveBlocks (void *info, int replace, BRMerkleBlock **blocks, size_t count) {
     BRWalletManager manager = (BRWalletManager) info;

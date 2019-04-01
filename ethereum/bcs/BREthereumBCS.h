@@ -34,11 +34,9 @@ extern "C" {
 #endif
 
 /**
- * @class BREthereumBCS
+ * A Block Chain Slice
  *
- * @brief A Block Chain Slice
- *
- * @discussion A Block Chain Slice (BCS) represents a user account-centric view of the Ethereum
+ * A Block Chain Slice (BCS) represents a user account-centric view of the Ethereum
  * block chain.  A BCS maintains the User's transfers (both transactions and logs) for the User as
  * either the source or target of the transfer.  The maintained transfers must be valid; the
  * validation is performed by validating blocks in the block chain.
@@ -53,7 +51,6 @@ extern "C" {
  * the block is validated - using a 'Header Proof' or a block chain.
  *
  * BCS uses a unique 'nary-search on account state changes w/ augmentation' to identify transfers.
- *
  */
 typedef struct BREthereumBCSStruct *BREthereumBCS;
 

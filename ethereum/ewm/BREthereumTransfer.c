@@ -32,9 +32,8 @@
 static void
 transferProvideOriginatingTransaction (BREthereumTransfer transfer);
 
-//
-// MARK: - Status
-//
+/// MARK: - Status
+
 //#define TRANSFER_STATUS_DETAIL_BYTES   \
 //(sizeof (BREthereumGas) + sizeof (BREthereumHash) + 2 * sizeof(uint64_t))
 //
@@ -76,9 +75,8 @@ transferStatusCreate (BREthereumTransactionStatus status) {
     }
 }
 
-//
-// MARK: Basis
-//
+/// MARK: - Basis
+
 typedef struct {
     BREthereumTransferBasisType type;
     union {
@@ -122,7 +120,7 @@ transferBasisGetHash (BREthereumTransferBasis *basis) {
 }
 
 //
-//
+// Transfer
 //
 struct BREthereumTransferRecord {
 
@@ -566,9 +564,8 @@ transferGetFee (BREthereumTransfer transfer, int *overflow) {
     else return etherCreateZero();
 }
 
-///
 /// MARK: - Basis
-///
+
 extern void
 transferSetBasisForTransaction (BREthereumTransfer transfer,
                                 OwnershipGiven BREthereumTransaction transaction) {
@@ -606,9 +603,8 @@ transferSetBasisForLog (BREthereumTransfer transfer,
     transfer->status = transferStatusCreate (logGetStatus(log));
 }
 
-///
 /// MARK: - Status
-///
+
 extern BREthereumTransactionStatus
 transferGetStatusForBasis (BREthereumTransfer transfer) {
     switch (transfer->basis.type) {
@@ -698,9 +694,8 @@ transferExtractStatusErrorType (BREthereumTransfer transfer,
     return 1;
 }
 
-///
 /// MARK: - Originating Transaction
-///
+
 static char *
 transferProvideOriginatingTransactionData (BREthereumTransfer transfer) {
     switch (amountGetType(transfer->amount)) {

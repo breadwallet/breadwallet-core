@@ -2962,7 +2962,7 @@ static void testSyncStoppedX(void *c, int error) {
 }
 
 static void testSyncSaveBlocks (void *c, int replace, BRMerkleBlock *blocks[], size_t blocksCount) {
-    BRRunTestContext *context = (BRRunTestContext*) c;
+    // BRRunTestContext *context = (BRRunTestContext*) c;
     printf ("Sync: saveBlock: %zu, Replace: %s\n", blocksCount, (replace ? "Yes" : "No"));
     uint32_t unixTime =  (uint32_t) time (NULL);
 

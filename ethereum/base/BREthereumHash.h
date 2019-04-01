@@ -37,12 +37,11 @@
 extern "C" {
 #endif
 
-//
-// Hash - An Ethereum 256-bit Keccak hash
-//
-
 #define ETHEREUM_HASH_BYTES    (256/8)
 
+/**
+ * An Ethereum 256-bit Keccak hash
+ */
 typedef struct {
     uint8_t bytes[ETHEREUM_HASH_BYTES];
 } BREthereumHash;
@@ -84,7 +83,7 @@ extern BREthereumHash
 hashCreateEmpty (void);
 
 /**
- * Creata a Hash by computing it from a arbitrary data set
+ * Creata a Hash by computing it, using Keccak256, from a arbitrary data set
  */
 extern BREthereumHash
 hashCreateFromData (BRRlpData data);

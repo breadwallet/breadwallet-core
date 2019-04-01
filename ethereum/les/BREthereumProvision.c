@@ -514,7 +514,7 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
     return status;
 }
 
-/// MARK: PIP
+/// MARK: - PIP
 
 static BREthereumMessage
 provisionCreateMessagePIP (BREthereumProvision *provisionMulti,

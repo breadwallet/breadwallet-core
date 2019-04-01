@@ -150,9 +150,7 @@ nodeEndpointSetStatus (BREthereumNodeEndpoint endpoint,
 extern void
 nodeEndpointShowStatus (BREthereumNodeEndpoint endpoint);
 
-///
-/// MARK: Open/Close, Send/Recv
-///
+/// MARK: - Open/Close, Send/Recv
 
 extern int
 nodeEndpointOpen (BREthereumNodeEndpoint endpoint,

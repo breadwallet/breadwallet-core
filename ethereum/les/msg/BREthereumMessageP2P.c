@@ -272,9 +272,8 @@ messageP2PRelease (BREthereumP2PMessage *message) {
     }
 }
 
-///
 /// MARK: - P2P Message Status Faker
-///
+
 extern int
 messageP2PStatusKeyValuePairsExtractValue (BRArrayOf(BREthereumP2PMessageStatusKeyValuePair) pairs,
                                            BREthereumP2PMessageStatusKey key,

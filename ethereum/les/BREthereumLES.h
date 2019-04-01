@@ -37,7 +37,7 @@
 extern "C" {
 #endif
 
-/// MARK:  LES Node Config
+/// MARK: LES Node Config
 
 /**
  * A LES Node Config is used to save a node for use when reestablishing LES.  See the typedef

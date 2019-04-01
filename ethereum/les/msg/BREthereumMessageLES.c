@@ -37,7 +37,7 @@
 // MaxTxSend                = 64  // Amount of transactions to be send per request
 // MaxTxStatus              = 256 // Amount of transactions to queried per request
 
-/// MARK: - LES (Light Ethereum Subprotocol) Messages
+/// MARK: LES (Light Ethereum Subprotocol) Messages
 
 // Static
 BREthereumLESMessageSpec messageLESSpecs [NUMBER_OF_LES_MESSAGE_IDENTIFIERS] = {
@@ -69,9 +69,7 @@ messageLESGetIdentifierName (BREthereumLESMessageIdentifier identifer) {
     return messageLESSpecs[identifer].name;
 }
 
-//
-// MARK: LES Status
-//
+/// MARK: - LES Status
 
 extern void
 messageLESStatusShow(BREthereumLESMessageStatus *status) {
@@ -257,7 +255,7 @@ messageLESGetBlockHeadersDecode (BRRlpItem item,
     BRFail();
 }
 
-/// MARK: BlockHeaders
+/// MARK: LES BlockHeaders
 
 extern void
 messageLESBlockHeadersConsume (BREthereumLESMessageBlockHeaders *message,

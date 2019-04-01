@@ -32,9 +32,9 @@
 #include "ethereum/les/BREthereumLES.h"
 #include "ethereum/bcs/BREthereumBCS.h"
 #include "ethereum/event/BREvent.h"
-#include "BREthereumEWM.h"
-#include "BREthereumWallet.h"
 #include "BREthereumTransfer.h"
+#include "BREthereumWallet.h"
+#include "BREthereumEWM.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -73,9 +73,9 @@ extern void
 ewmInsertWallet (BREthereumEWM ewm,
                  BREthereumWallet wallet);
 
-/**
- *
- */
+//
+// EWM
+//
 struct BREthereumEWMRecord {
     /**
      * The State
@@ -163,9 +163,8 @@ struct BREthereumEWMRecord {
     } brdSync;
 };
 
-///
 /// MARK: - BCS Callback Interfaces
-///
+
 //
 // Signal/Handle Block Chain (BCS Callback)
 //
@@ -182,7 +181,7 @@ ewmSignalBlockChain (BREthereumEWM ewm,
                      uint64_t headBlockTimestamp);
 
 //
-// Signal/Handle Balance (BCS Callback)
+// Signal/Handle Account State (BCS Callback)
 //
 extern void
 ewmHandleAccountState (BREthereumEWM ewm,
@@ -332,9 +331,8 @@ ewmSignalGetBlocks (BREthereumEWM ewm,
                     uint64_t blockStart,
                     uint64_t blockStop);
 
-///
 /// MARK: - (Wallet) Balance
-///
+
 extern void
 ewmHandleAnnounceBalance (BREthereumEWM ewm,
                                 BREthereumWallet wallet,
@@ -347,9 +345,8 @@ ewmSignalAnnounceBalance (BREthereumEWM ewm,
                                 UInt256 amount,
                                 int rid);
 
-///
 /// MARK: - GasPrice
-///
+
 extern void
 ewmSignalAnnounceGasPrice (BREthereumEWM ewm,
                                  BREthereumWallet wallet,
@@ -362,9 +359,7 @@ ewmHandleAnnounceGasPrice (BREthereumEWM ewm,
                                  UInt256 value,
                                  int rid);
 
-///
 /// MARK: - Estimate Gas
-///
 
 extern void
 ewmHandleAnnounceGasEstimate (BREthereumEWM ewm,
@@ -380,9 +375,8 @@ ewmSignalAnnounceGasEstimate (BREthereumEWM ewm,
                                     UInt256 value,
                                     int rid);
 
-///
 /// MARK: - Submit Transaction
-///
+
 extern void
 ewmSignalAnnounceSubmitTransfer (BREthereumEWM ewm,
                                  BREthereumWallet wallet,
@@ -399,9 +393,8 @@ ewmHandleAnnounceSubmitTransfer (BREthereumEWM ewm,
                                  const char *errorMessage,
                                  int rid);
 
-///
 /// MARK: - Transactions
-///
+
 typedef struct {
     BREthereumHash hash;
     BREthereumAddress from;
@@ -437,9 +430,8 @@ ewmSignalAnnounceTransaction(BREthereumEWM ewm,
                                    BREthereumEWMClientAnnounceTransactionBundle *bundle,
                                    int id);
 
-///
 /// MARK: - Logs
-///
+
 typedef struct {
     BREthereumHash hash;
     BREthereumAddress contract;
@@ -473,9 +465,8 @@ ewmHandleAnnounceLog (BREthereumEWM ewm,
                             BREthereumEWMClientAnnounceLogBundle *bundle,
                             int id);
 
-///
 /// MARK: - Account Complete
-///
+
 extern void
 ewmSignalAnnounceComplete (BREthereumEWM ewm,
                            BREthereumBoolean isTransaction,
@@ -487,9 +478,8 @@ ewmHandleAnnounceComplete (BREthereumEWM ewm,
                            BREthereumBoolean isTransaction,
                            BREthereumBoolean success,
                            int rid);
-///
 /// MARK: - Tokens
-///
+
 typedef struct {
     char *address;
     char *symbol;
@@ -527,9 +517,8 @@ ewmSignalAnnounceTokenComplete (BREthereumEWM ewm,
                                 BREthereumBoolean success,
                                 int rid);
 
-///
-// MARK: - BlockNumber
-///
+/// MARK: - BlockNumber
+
 extern void
 ewmHandleAnnounceBlockNumber (BREthereumEWM ewm,
                                     uint64_t blockNumber,
@@ -540,9 +529,8 @@ ewmSignalAnnounceBlockNumber (BREthereumEWM ewm,
                                     uint64_t blockNumber,
                                     int rid);
 
-///
 /// MARK: - Nonce
-///
+
 extern void
 ewmHandleAnnounceNonce (BREthereumEWM ewm,
                               BREthereumAddress address,
@@ -652,9 +640,8 @@ ewmHandleEWMEvent(BREthereumEWM ewm,
                         BREthereumStatus status,
                         const char *errorDescription);
 
-///
 /// MARK: - Handler For Main
-///
+
 extern const BREventType *ewmEventTypes[];
 extern const unsigned int ewmEventTypesCount;
 

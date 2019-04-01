@@ -43,9 +43,19 @@ gasApplyLmitMargin (BREthereumGas gas) {
     return gasCreate(((100 + GAS_LIMIT_MARGIN_PERCENT) * gas.amountOfGas) / 100);
 }
 
-//
-// Transaction
-//
+/**
+ * An Ethereum Transaction is a transaction on the Ethereum P2P network
+ *
+ * Per the Ethereum Specification: A transaction (formally, T) is a single cryptographically-signed
+ * instruction constructed by an actor externally to the scope of Ethereum. While it is assumed
+ * that the ultimate external actor will be human in nature, software tools will be used in its
+ * construction and dissemination1. There are two types of transactions: those which result in
+ * message calls and those which result in the creation of new accounts with associated code
+ * (known informally as ‘contract creation’). Both types specify a number of common fields:
+ * { nonce, gasPrice, gasLimit, to, value, {v,r,s}}.
+ *
+ * Additional filds are: {hash, chainId, data and status}.
+ */
 typedef struct BREthereumTransactionRecord *BREthereumTransaction;
 
 extern BREthereumTransaction

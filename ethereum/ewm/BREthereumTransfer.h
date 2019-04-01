@@ -38,8 +38,6 @@
 extern "C" {
 #endif
 
-//typedef struct BREthereumTransferRecord *BREthereumTransfer;
-
 #define TRANSACTION_NONCE_IS_NOT_ASSIGNED   UINT64_MAX
 
 static inline BREthereumGas

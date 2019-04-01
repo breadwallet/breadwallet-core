@@ -34,9 +34,7 @@
 extern "C" {
 #endif
 
-///
 /// MARK: - Sync Defines
-///
 
 #define LES_GET_HEADERS_MAXIMUM        (192)
 
@@ -79,13 +77,11 @@ extern "C" {
  */
 typedef struct BREthereumBCSSyncStruct *BREthereumBCSSync;
 
-///
 /// MARK: - typedef BCS
-///
 
-/**
- *
- */
+//
+// BCS
+//
 struct BREthereumBCSStruct {
 
     /**

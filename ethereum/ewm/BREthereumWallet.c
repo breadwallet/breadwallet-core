@@ -50,9 +50,9 @@ static int // -1 if not found
 walletLookupTransferIndex (BREthereumWallet wallet,
                            BREthereumTransfer transfer);
 
-/**
- *
- */
+//
+// Wallet
+//
 struct BREthereumWalletRecord {
     
     /**

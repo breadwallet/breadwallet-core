@@ -38,6 +38,9 @@ extern "C" {
 
 #define ADDRESS_BYTES   (20)
 
+/**
+ * An Ethereum Address
+ */
 typedef struct {
     uint8_t bytes[ADDRESS_BYTES];
 } BREthereumAddress;

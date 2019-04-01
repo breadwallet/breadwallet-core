@@ -35,10 +35,11 @@
 extern "C" {
 #endif
 
-///
 /// MARK: - Data
-///
 
+/**
+ * Ethereum Data is an pair of { count, bytes} representing an arbitrary array of bytes.
+ */
 typedef struct {
     size_t count;
     uint8_t *bytes;
@@ -69,10 +70,12 @@ dataAsString (BREthereumData data);
 extern BRRlpData
 dataAsRlpData (BREthereumData data);
 
-///
 /// MARK: - Hash Data Pair
-///
 
+/**
+ * An Ethereum Hash Data Pair holds {Hash, Data} where the hash can be considered a unique
+ * identifier for the Data
+ */
 typedef struct BREthereumHashDataPairRecord *BREthereumHashDataPair;
 
 /**
@@ -128,9 +131,7 @@ extern int
 hashDataPairHashEqual (const void *t1,
                        const void *t2);
 
-///
 /// MARK: - Hash Data Pair Set
-///
 
 extern BRSetOf (BREthereumHashDataPair)
 hashDataPairSetCreateEmpty (size_t count);

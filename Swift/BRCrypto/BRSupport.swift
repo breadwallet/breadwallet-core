@@ -8,9 +8,8 @@
 
 import Foundation
 
-///
-/// MARK: - Support
-///
+// Support
+
 public func asUTF8String (_ chars: UnsafeMutablePointer<CChar>, _ release : Bool = false ) -> String {
     let result = String (cString: chars, encoding: .utf8)!
     if (release) { free (chars) }

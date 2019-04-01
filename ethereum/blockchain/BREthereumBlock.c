@@ -55,7 +55,7 @@ static unsigned int blockHeaderAllocCount = 0;
 #define EIP158_FORK_BLOCK_NUMBER      (2675000)
 #define BYZANTIUM_FORK_BLOCK_NUMBER   (4370000)
 
-// MARK: - Block Status
+/// MARK: - Block Status
 
 static void
 blockStatusInitialize (BREthereumBlockStatus *status,
@@ -73,114 +73,104 @@ static BREthereumBlockStatus
 blockStatusRlpDecode (BRRlpItem item,
                       BRRlpCoder coder);
 
-// GETH:
-/*
- type Header struct {
-    ParentHash  common.Hash    `json:"parentHash"       gencodec:"required"`
-    UncleHash   common.Hash    `json:"sha3Uncles"       gencodec:"required"`
-    Coinbase    common.Address `json:"miner"            gencodec:"required"`
-    Root        common.Hash    `json:"stateRoot"        gencodec:"required"`
-    TxHash      common.Hash    `json:"transactionsRoot" gencodec:"required"`
-    ReceiptHash common.Hash    `json:"receiptsRoot"     gencodec:"required"`
-    Bloom       Bloom          `json:"logsBloom"        gencodec:"required"`
-    Difficulty  *big.Int       `json:"difficulty"       gencodec:"required"`
-    Number      *big.Int       `json:"number"           gencodec:"required"`
-    GasLimit    uint64         `json:"gasLimit"         gencodec:"required"`
-    GasUsed     uint64         `json:"gasUsed"          gencodec:"required"`
-    Time        *big.Int       `json:"timestamp"        gencodec:"required"`
-    Extra       []byte         `json:"extraData"        gencodec:"required"`
-    MixDigest   common.Hash    `json:"mixHash"          gencodec:"required"`
-    Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
-}
-
-// HashNoNonce returns the hash which is used as input for the proof-of-work search.
-func (h *Header) HashNoNonce() common.Hash {
-    return rlpHash([]interface{}{
-        h.ParentHash,
-        h.UncleHash,
-        h.Coinbase,
-        h.Root,
-        h.TxHash,
-        h.ReceiptHash,
-        h.Bloom,
-        h.Difficulty,
-        h.Number,
-        h.GasLimit,
-        h.GasUsed,
-        h.Time,
-        h.Extra,
-    })
-}
-*/
-/**
- * An Ethereum Block header.
- *
- * As per (2018-05-04 https://ethereum.github.io/yellowpaper/paper.pdf). [Documentation from
- * that reference]
- */
+//
+// Block Header
+//
 struct BREthereumBlockHeaderRecord {
     // THIS MUST BE FIRST to support BRSet operations.
-    //
-    // The Keccak256-bit hash (of this Block).
+
+    /**
+     * The Keccak256-bit hash (of this Block).
+     */
     BREthereumHash hash;
 
-    // The Keccak256-bit hash of the parent block’s header, in its entirety; formally Hp.
+    /**
+     * The Keccak256-bit hash of the parent block’s header, in its entirety; formally Hp.
+     */
     BREthereumHash parentHash;
 
-    // The Keccak 256-bit hash of the ommers list portion of this block; formally Ho.
+    /**
+     * The Keccak 256-bit hash of the ommers list portion of this block; formally Ho.
+     */
     BREthereumHash ommersHash;
 
-    // The 160-bit address to which all fees collected from the successful mining of this block
-    // be transferred; formally Hc.
+    /**
+     * The 160-bit address to which all fees collected from the successful mining of this block
+     * be transferred; formally Hc.
+     */
     BREthereumAddress beneficiary;
 
-    // The Keccak 256-bit hash of the root node of the state trie, after all transactions are
-    // executed and finalisations applied; formally Hr.
+    /**
+     * The Keccak 256-bit hash of the root node of the state trie, after all transactions are
+     * executed and finalisations applied; formally Hr.
+     */
     BREthereumHash stateRoot;
 
-    // The Keccak 256-bit hash of the root node of the trie structure populated with each
-    // transaction in the transactions list portion of the block; formally Ht.
+    /**
+     * The Keccak 256-bit hash of the root node of the trie structure populated with each
+     * transaction in the transactions list portion of the block; formally Ht.
+     */
     BREthereumHash transactionsRoot;
 
-    // The Keccak 256-bit hash of the root node of the trie structure populated with the receipts
-    // of each transaction in the transactions list portion of the block; formally He.
+    /**
+     * The Keccak 256-bit hash of the root node of the trie structure populated with the receipts
+     * of each transaction in the transactions list portion of the block; formally He.
+     */
     BREthereumHash receiptsRoot;
 
-    // The Bloom filter composed from indexable information (logger address and log topics)
-    // contained in each log entry from the receipt of each transaction in the transactions list;
-    // formally Hb.
+    /**
+     * The Bloom filter composed from indexable information (logger address and log topics)
+     * contained in each log entry from the receipt of each transaction in the transactions list;
+     * formally Hb.
+     */
     BREthereumBloomFilter logsBloom;
 
-    // A scalar value corresponding to the difficulty level of this block. This can be calculated
-    // from the previous block’s difficulty level and the timestamp; formally Hd.
-    // Also see: https://ethereum.stackexchange.com/questions/7068/difficulty-and-total-difficulty
+    /**
+     * A scalar value corresponding to the difficulty level of this block. This can be calculated
+     * from the previous block’s difficulty level and the timestamp; formally Hd.
+     * Also see: https://ethereum.stackexchange.com/questions/7068/difficulty-and-total-difficulty
+     */
     UInt256 difficulty;
 
-    // A scalar value equal to the number of ancestor blocks. The genesis block has a number of
-    // zero; formally Hi.
+    /**
+     * A scalar value equal to the number of ancestor blocks. The genesis block has a number of
+     * zero; formally Hi.
+     */
     uint64_t number;
 
-    // A scalar value equal to the current limit of gas expenditure per block; formally Hl.
+    /**
+     * A scalar value equal to the current limit of gas expenditure per block; formally Hl.
+     */
     uint64_t gasLimit; // BREthereumGas
 
-    // A scalar value equal to the total gas used in transactions in this block; formally Hg.
+    /**
+     * A scalar value equal to the total gas used in transactions in this block; formally Hg.
+     */
     uint64_t gasUsed; // BREthereumGas
 
-    // A scalar value equal to the reasonable output of Unix’s time() at this block’s inception;
-    // formally Hs.
+    /**
+     * A scalar value equal to the reasonable output of Unix’s time() at this block’s inception;
+     * formally Hs.
+     */
     uint64_t timestamp;
 
-    // An arbitrary byte array containing data relevant to this block. This must be 32 bytes or
-    // fewer; formally Hx.
+    /**
+     * An arbitrary byte array containing data relevant to this block. This must be 32 bytes or
+     * fewer; formally Hx.
+     */
     uint8_t extraData [32];
     uint8_t extraDataCount;
 
-    // A 256-bit hash which, combined with the nonce, proves that a sufficient amount of
-    // computation has been carried out on this block; formally Hm.
+    /**
+     * A 256-bit hash which, combined with the nonce, proves that a sufficient amount of
+     * computation has been carried out on this block; formally Hm.
+     */
     BREthereumHash mixHash;
 
-    // A 64-bitvalue which, combined with the mixHash, proves that a sufficient amount of
-    // computation has been carried out on this block; formally Hn.
+    /**
+     * A 64-bitvalue which, combined with the mixHash, proves that a sufficient amount of
+     * computation has been carried out on this block; formally Hn.
+     */
     uint64_t nonce;
 };
 
@@ -631,34 +621,39 @@ blockHeaderRlpDecode (BRRlpItem item,
 
 }
 
-///
 /// MARK: - Block
-///
 
 //
-// An Ethereum Block
+// Block
 //
-// The block in Ethereum is ...
 struct BREthereumBlockRecord {
     // THIS MUST BE FIRST to support BRSet operations. (its first field is BREthereumHash)
     BREthereumBlockStatus status;
 
-    // ... the collection of relevant pieces of information (known as the block header), H,
+    /**
+     * ... the collection of relevant pieces of information (known as the block header), H,
+     */
     BREthereumBlockHeader header;
 
-    // ... together with information corresponding to the comprised transactions, T,
+    /**
+     * ... together with information corresponding to the comprised transactions, T,
+     */
     BREthereumTransaction *transactions;
 
-    // ... and a set of other block headers U that are known to have a parent equal to the present
-    // block’s parent’s parent (such blocks are known as ommers).
-    // Also, see: https://ethereum.stackexchange.com/questions/34/what-is-an-uncle-ommer-block
+    /**
+     * ... and a set of other block headers U that are known to have a parent equal to the present
+     * block’s parent’s parent (such blocks are known as ommers).
+     * Also, see: https://ethereum.stackexchange.com/questions/34/what-is-an-uncle-ommer-block
+     */
     BREthereumBlockHeader *ommers;
 
-    // ... the totalDifficulty as a) zero or b) the header difficulty + next's totalDifficulty
+    /**
+     * ... the totalDifficulty as a) zero or b) the header difficulty + next's totalDifficulty
+     */
     UInt256 totalDifficulty;
 
     /**
-     *
+     * The next block in the chain via the 'parent'
      */
     BREthereumBlock next;
 };
@@ -1074,9 +1069,8 @@ blockRlpDecode (BRRlpItem item,
     return block;
 }
 
-//
-// MARK: - Block As Set
-//
+/// MARK: - Block As Set
+
 extern size_t
 blockHashValue (const void *b)
 {
@@ -1104,9 +1098,7 @@ blocksRelease (OwnershipGiven BRArrayOf(BREthereumBlock) blocks) {
     }
 }
 
-//
-// MARK: - Block Next (Chaining)
-//
+/// MARK: - Block Next (Chaining)
 
 extern BREthereumBlock
 blockGetNext (BREthereumBlock block) {
@@ -1126,9 +1118,7 @@ blockHasNext (BREthereumBlock block) {
     return AS_ETHEREUM_BOOLEAN (BLOCK_NEXT_NONE != block->next);
 }
 
-///
-/// MARK: Block Body Pair
-///
+/// MARK: - Block Body Pair
 
 extern void
 blockBodyPairRelease (BREthereumBlockBodyPair *pair) {
@@ -1146,9 +1136,7 @@ blockBodyPairsRelease (BRArrayOf(BREthereumBlockBodyPair) pairs) {
     }
 }
 
-//
-// MARK: - Block Status
-//
+/// MARK: - Block Status
 
 extern BREthereumBlockStatus
 blockGetStatus (BREthereumBlock block) {
@@ -1384,84 +1372,7 @@ blockStatusRlpDecode (BRRlpItem item,
     return status;
 }
 
-/* Block Headers (10)
- ETH: LES:   L 10: [
- ETH: LES:     L 15: [
- ETH: LES:       I 32: 0xb853f283c777f628e28be62a80850d98a5a5e9c4e86afb0e785f7a222ebf67f8
- ETH: LES:       I 32: 0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347
- ETH: LES:       I 20: 0xb2930b35844a230f00e51431acae96fe543a0347
- ETH: LES:       I 32: 0x24dc4e9f66f026b0569270e8ef95d34c275721ff6eecab029afe11c43249e046
- ETH: LES:       I 32: 0xa7f796d7cd98ed2f3fb70ecb9a48939825f1a3d0364eb995c49151761ce9659c
- ETH: LES:       I 32: 0xed45b3ad4bb2b46bf1e49a7925c63042aa41d5af7372db334142152d5a7ec422
- ETH: LES:       I256: 0x00a61039e24688a200002e10102021116002220040204048308206009928412802041520200201115014888000c00080020a002021308850c60d020d00200188062900c83288401115821a1c101200d00318080088df000830c1938002a018040420002a22201000680a391c91610e4884682a00910446003da000b9501020009c008205091c0b04108c000410608061a07042141001820440d404042002a4234f00090845c1544820140430552592100352140400039000108e052110088800000340422064301701c8212008820c4648a020a482e90a0268480000400021800110414680020205002400808012c6248120027c4121119802240010a2181983
- ETH: LES:       I  7: 0x0baf848614eb16
- ETH: LES:       I  3: 0x5778a9
- ETH: LES:       I  3: 0x7a121d
- ETH: LES:       I  3: 0x793640
- ETH: LES:       I  4: 0x5b1596f8
- ETH: LES:       I  5: 0x73696e6731
- ETH: LES:       I 32: 0xbcefde2594b8b501c985c2f0f411c69baee727c4f90a74ef28b7f2b59a00f7c2
- ETH: LES:       I  8: 0x07ab2de40005d6f7
- ETH: LES:     ]
- ETH: LES:     L 15: [
- ETH: LES:       I 32: 0x8996b1f91f060302350f1cb9014a11d48fd1b42eeeacf18ce4762b94c69656fa
- ETH: LES:       I 32: 0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347
- ETH: LES:       I 20: 0xea674fdde714fd979de3edf0f56aa9716b898ec8
- ETH: LES:       I 32: 0x4a91466c8a43f6c61d47ae2680072ec0ca9d4077752b947bc0913f6f52823476
- ETH: LES:       I 32: 0xfc9df67c1dc39852692763387da8039d824e9956d936338184f51c6734e8cc9f
- ETH: LES:       I 32: 0x2cfe437b4cac28ccbb68373b6107e4e1c8fabdbfe8941d256367d4ab9e97e3e4
- ETH: LES:       I256: 0xe01310094f66290e1101240443c1f801110021114120280c00088524322a016c2c2212b0012302001094b000009404a10018c03040208082c600c64c01280101039141e008a2c9198186044c1882541400580c36026194088033a15a08003400c5200624020c010033453168429059cd066310252a04680618226215548466e4006180038a24544804c209e11046012c008046b100065c648050084c0a15222aba6e800030c0148c2301162034298812550c060c20018470190a4141280920c110124052001d31444a30030116a42b0001c36427a888c817281110482046a04003183121a4b00042a4c6008048208fa444200204280222cc008c148446101092
- ETH: LES:       I  7: 0x0bab23f73e93e6
- ETH: LES:       I  3: 0x5778a7
- ETH: LES:       I  3: 0x7a121d
- ETH: LES:       I  3: 0x7a0453
- ETH: LES:       I  4: 0x5b1596ed
- ETH: LES:       I 21: 0x65746865726d696e652d6177732d61736961312d33
- ETH: LES:       I 32: 0x057ca051122a8e18dbd6dadaade0f7c5b877623a4ae706facce5de7d1f924858
- ETH: LES:       I  8: 0xcd9b80400100b43c
- ETH: LES:     ]
- ETH: LES:    ...
- ETH: LES:  ]
- */
-
-
-/* BLock Bodies
-ETH: LES:   L  2: [
-ETH: LES:     L  2: [
-ETH: LES:       L117: [
-ETH: LES:         L  9: [
-ETH: LES:           I  1: 0x09
-ETH: LES:           I  5: 0x0ba43b7400
-ETH: LES:           I  2: 0x5208
-ETH: LES:           I 20: 0x5521a68d4f8253fc44bfb1490249369b3e299a4a
-ETH: LES:           I  8: 0x154f1f6cc6457c00
-ETH: LES:           I  0: 0x
-ETH: LES:           I  1: 0x26
-ETH: LES:           I 32: 0x317428668e86eedc101a2ac3344c66dca791b078557e018a4524d86da3529de2
-ETH: LES:           I 32: 0x40446aa978d382ad2a12549713ad94cbe654aa4853ab68414566a0638689f6a9
-ETH: LES:         ]
-ETH: LES:         L  9: [
-ETH: LES:           I  2: 0x0308
-ETH: LES:           I  5: 0x0ba43b7400
-ETH: LES:           I  2: 0xb78d
-ETH: LES:           I 20: 0x58a4884182d9e835597f405e5f258290e46ae7c2
-ETH: LES:           I  0: 0x
-ETH: LES:           I 68: 0xa9059cbb0000000000000000000000004a2ce805877250dd17e14f4421d66d2a9717725a0000000000000000000000000000000000000000000000273f96e31883e34000
-ETH: LES:           I  1: 0x26
-ETH: LES:           I 32: 0xf02eac3ab7c93ccdea73b6cbcc3483d0d03cdb374c07b3021461e8bb108234fa
-ETH: LES:           I 32: 0x511e4c85506e11c46198fd61982f5cc05c9c06f792aaee47f5ddf14ced764b1d
-ETH: LES:         ]
-ETH: LES:         ...
-ETH: LES:       ]
-ETH: LES:       L  0: []
-ETH: LES:     ]
-ETH: LES:    ...
-ETH: LES   ]
-*/
-
-//
-// MARK: Genesis Blocks
-//
+/// MARK: - Genesis Blocks
 
 // We should extract these blocks from the Ethereum Blockchain so as to have the definitive
 // data.  
@@ -1727,9 +1638,7 @@ initializeGenesisBlocks (void) {
     header->nonce = 0x0000000000000000;
 }
 
-//
-// MARK: Block Checkpoint
-//
+/// MARK: - Block Checkpoint
 
 static BREthereumBlockCheckpoint
 ethereumMainnetCheckpoints [] = {
@@ -1847,3 +1756,119 @@ extern BREthereumBlockHeader
 blockCheckpointCreatePartialBlockHeader (const BREthereumBlockCheckpoint *checkpoint) {
     return createBlockHeaderMinimal (checkpoint->hash, checkpoint->number, checkpoint->timestamp, UINT256_ZERO);
 }
+
+
+// GETH:
+/*
+ type Header struct {
+      ParentHash  common.Hash    `json:"parentHash"       gencodec:"required"`
+      UncleHash   common.Hash    `json:"sha3Uncles"       gencodec:"required"`
+      Coinbase    common.Address `json:"miner"            gencodec:"required"`
+      Root        common.Hash    `json:"stateRoot"        gencodec:"required"`
+      TxHash      common.Hash    `json:"transactionsRoot" gencodec:"required"`
+      ReceiptHash common.Hash    `json:"receiptsRoot"     gencodec:"required"`
+      Bloom       Bloom          `json:"logsBloom"        gencodec:"required"`
+      Difficulty  *big.Int       `json:"difficulty"       gencodec:"required"`
+      Number      *big.Int       `json:"number"           gencodec:"required"`
+      GasLimit    uint64         `json:"gasLimit"         gencodec:"required"`
+      GasUsed     uint64         `json:"gasUsed"          gencodec:"required"`
+      Time        *big.Int       `json:"timestamp"        gencodec:"required"`
+      Extra       []byte         `json:"extraData"        gencodec:"required"`
+      MixDigest   common.Hash    `json:"mixHash"          gencodec:"required"`
+      Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
+ }
+
+ // HashNoNonce returns the hash which is used as input for the proof-of-work search.
+ func (h *Header) HashNoNonce() common.Hash {
+   return rlpHash([]interface{}{
+     h.ParentHash,
+      h.UncleHash,
+      h.Coinbase,
+      h.Root,
+      h.TxHash,
+      h.ReceiptHash,
+      h.Bloom,
+      h.Difficulty,
+      h.Number,
+      h.GasLimit,
+      h.GasUsed,
+      h.Time,
+      h.Extra,
+   })
+ }
+ */
+
+/* Block Headers (10)
+ ETH: LES:   L 10: [
+ ETH: LES:     L 15: [
+ ETH: LES:       I 32: 0xb853f283c777f628e28be62a80850d98a5a5e9c4e86afb0e785f7a222ebf67f8
+ ETH: LES:       I 32: 0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347
+ ETH: LES:       I 20: 0xb2930b35844a230f00e51431acae96fe543a0347
+ ETH: LES:       I 32: 0x24dc4e9f66f026b0569270e8ef95d34c275721ff6eecab029afe11c43249e046
+ ETH: LES:       I 32: 0xa7f796d7cd98ed2f3fb70ecb9a48939825f1a3d0364eb995c49151761ce9659c
+ ETH: LES:       I 32: 0xed45b3ad4bb2b46bf1e49a7925c63042aa41d5af7372db334142152d5a7ec422
+ ETH: LES:       I256: 0x00a61039e24688a200002e10102021116002220040204048308206009928412802041520200201115014888000c00080020a002021308850c60d020d00200188062900c83288401115821a1c101200d00318080088df000830c1938002a018040420002a22201000680a391c91610e4884682a00910446003da000b9501020009c008205091c0b04108c000410608061a07042141001820440d404042002a4234f00090845c1544820140430552592100352140400039000108e052110088800000340422064301701c8212008820c4648a020a482e90a0268480000400021800110414680020205002400808012c6248120027c4121119802240010a2181983
+ ETH: LES:       I  7: 0x0baf848614eb16
+ ETH: LES:       I  3: 0x5778a9
+ ETH: LES:       I  3: 0x7a121d
+ ETH: LES:       I  3: 0x793640
+ ETH: LES:       I  4: 0x5b1596f8
+ ETH: LES:       I  5: 0x73696e6731
+ ETH: LES:       I 32: 0xbcefde2594b8b501c985c2f0f411c69baee727c4f90a74ef28b7f2b59a00f7c2
+ ETH: LES:       I  8: 0x07ab2de40005d6f7
+ ETH: LES:     ]
+ ETH: LES:     L 15: [
+ ETH: LES:       I 32: 0x8996b1f91f060302350f1cb9014a11d48fd1b42eeeacf18ce4762b94c69656fa
+ ETH: LES:       I 32: 0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347
+ ETH: LES:       I 20: 0xea674fdde714fd979de3edf0f56aa9716b898ec8
+ ETH: LES:       I 32: 0x4a91466c8a43f6c61d47ae2680072ec0ca9d4077752b947bc0913f6f52823476
+ ETH: LES:       I 32: 0xfc9df67c1dc39852692763387da8039d824e9956d936338184f51c6734e8cc9f
+ ETH: LES:       I 32: 0x2cfe437b4cac28ccbb68373b6107e4e1c8fabdbfe8941d256367d4ab9e97e3e4
+ ETH: LES:       I256: 0xe01310094f66290e1101240443c1f801110021114120280c00088524322a016c2c2212b0012302001094b000009404a10018c03040208082c600c64c01280101039141e008a2c9198186044c1882541400580c36026194088033a15a08003400c5200624020c010033453168429059cd066310252a04680618226215548466e4006180038a24544804c209e11046012c008046b100065c648050084c0a15222aba6e800030c0148c2301162034298812550c060c20018470190a4141280920c110124052001d31444a30030116a42b0001c36427a888c817281110482046a04003183121a4b00042a4c6008048208fa444200204280222cc008c148446101092
+ ETH: LES:       I  7: 0x0bab23f73e93e6
+ ETH: LES:       I  3: 0x5778a7
+ ETH: LES:       I  3: 0x7a121d
+ ETH: LES:       I  3: 0x7a0453
+ ETH: LES:       I  4: 0x5b1596ed
+ ETH: LES:       I 21: 0x65746865726d696e652d6177732d61736961312d33
+ ETH: LES:       I 32: 0x057ca051122a8e18dbd6dadaade0f7c5b877623a4ae706facce5de7d1f924858
+ ETH: LES:       I  8: 0xcd9b80400100b43c
+ ETH: LES:     ]
+ ETH: LES:    ...
+ ETH: LES:  ]
+ */
+
+
+/* BLock Bodies
+ ETH: LES:   L  2: [
+ ETH: LES:     L  2: [
+ ETH: LES:       L117: [
+ ETH: LES:         L  9: [
+ ETH: LES:           I  1: 0x09
+ ETH: LES:           I  5: 0x0ba43b7400
+ ETH: LES:           I  2: 0x5208
+ ETH: LES:           I 20: 0x5521a68d4f8253fc44bfb1490249369b3e299a4a
+ ETH: LES:           I  8: 0x154f1f6cc6457c00
+ ETH: LES:           I  0: 0x
+ ETH: LES:           I  1: 0x26
+ ETH: LES:           I 32: 0x317428668e86eedc101a2ac3344c66dca791b078557e018a4524d86da3529de2
+ ETH: LES:           I 32: 0x40446aa978d382ad2a12549713ad94cbe654aa4853ab68414566a0638689f6a9
+ ETH: LES:         ]
+ ETH: LES:         L  9: [
+ ETH: LES:           I  2: 0x0308
+ ETH: LES:           I  5: 0x0ba43b7400
+ ETH: LES:           I  2: 0xb78d
+ ETH: LES:           I 20: 0x58a4884182d9e835597f405e5f258290e46ae7c2
+ ETH: LES:           I  0: 0x
+ ETH: LES:           I 68: 0xa9059cbb0000000000000000000000004a2ce805877250dd17e14f4421d66d2a9717725a0000000000000000000000000000000000000000000000273f96e31883e34000
+ ETH: LES:           I  1: 0x26
+ ETH: LES:           I 32: 0xf02eac3ab7c93ccdea73b6cbcc3483d0d03cdb374c07b3021461e8bb108234fa
+ ETH: LES:           I 32: 0x511e4c85506e11c46198fd61982f5cc05c9c06f792aaee47f5ddf14ced764b1d
+ ETH: LES:         ]
+ ETH: LES:         ...
+ ETH: LES:       ]
+ ETH: LES:       L  0: []
+ ETH: LES:     ]
+ ETH: LES:    ...
+ ETH: LES   ]
+ */

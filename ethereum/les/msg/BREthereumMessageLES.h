@@ -128,7 +128,7 @@ messageLESAnnounceConsume (BREthereumLESMessageAnnounce *message,
 //            else *pairs = message->pairs;
 //    }
 
-    /// MARK: LES Get Block Headers
+/// MARK: LES Get Block Headers
 
 /**
  * A LES Get Block Headers Message ...
@@ -271,11 +271,13 @@ messageLESProofsConsume (BREthereumLESMessageProofs *message,
                          BRArrayOf(BREthereumMPTNodePath) *paths);
 
 /// MARK: LES GetContractCodes
+
 typedef struct {
     uint64_t reqId;
 } BREthereumLESMessageGetContractCodes;
 
 /// MARK: LES ContractCodes
+
 typedef struct {
     uint64_t reqId;
     uint64_t bv;
@@ -321,12 +323,14 @@ messageLESHeaderProofsConsume (BREthereumLESMessageHeaderProofs *message,
                                BRArrayOf(BREthereumMPTNodePath) *paths);
 
 /// MARK: LES GetProofsV2
+
 typedef struct {
     uint64_t reqId;
     BRArrayOf(BREthereumLESMessageGetProofsSpec) specs;
 } BREthereumLESMessageGetProofsV2;
 
 /// MARK: LES ProofsV2
+
 typedef struct {
     uint64_t reqId;
     uint64_t bv;
@@ -335,11 +339,13 @@ typedef struct {
 
 
 /// MARK: LES GetHelperTrieProofs
+
 typedef struct {
     uint64_t reqId;
 } BREthereumLESMessageGetHelperTrieProofs;
 
 /// MARK: LES HelperTrieProofs
+    
 typedef struct {
     uint64_t reqId;
     uint64_t bv;

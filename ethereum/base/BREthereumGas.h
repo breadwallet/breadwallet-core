@@ -34,7 +34,8 @@ extern "C" {
 #endif
 
 /**
- * Ethereum Gas is a measure of the work associated with a transaction.
+ * Ethereum Gas is a measure of the work associated with a transaction.  Transactions submitted to
+ * the Ethereum P2P network require computation; gas is a measure of that computation.
  */
 typedef struct BREthereumGasStruct {
     uint64_t amountOfGas;
@@ -53,11 +54,11 @@ extern BREthereumGas
 gasRlpDecode (BRRlpItem item, BRRlpCoder coder);
 
 /**
- * Ethereum Gas Price is the amount of Ether for on Gas - aka Ether/Gas.  The total cost for
+ * Ethereum Gas Price is the amount of Ether for one Gas - aka Ether/Gas.  The total cost for
  * an Ethereum transaction is the Gas Price * Gas (used).
  *
  * "If you Gas Price is too low, nobody will process your transaction".  You'll want a Gas Price
- * that is high enough to ensure the transaction is process within your desired time frame; but
+ * that is high enough to ensure the transaction is processed within your desired time frame; but
  * not so high that you overpay with no advantage (in confirmation time).
  */
 typedef struct BREthereumGasPriceStruct {

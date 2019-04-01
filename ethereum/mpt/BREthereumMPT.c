@@ -28,9 +28,7 @@
 
 #undef MPT_SHOW_PROOF_NODES
 
-///
 /// MARK: - MPT Node
-///
 
 typedef struct BREthereumMPTNodeRecord *BREthereumMPTNode;
 
@@ -218,9 +216,8 @@ mptNodeDecode (BRRlpItem item,
     return node;
 }
 
-///
 /// MARK: - MPT Node Path
-///
+
 struct BREthereumMPTNodePathRecord {
     BRArrayOf(BREthereumMPTNode) nodes;
 };

@@ -34,9 +34,11 @@
 extern "C" {
 #endif
 
-//
-// Ether
-//
+/**
+ * An Ethereum Ether Unit defines ETH units in powers of 10^3.   The 'base Unit' is WEI - the
+ * smallest demonination of ETH and the one in which all integer values of the currency are counted.
+ * Common 'derived units' are GWEI (3 => 10^9) and ETHER (6 => 10^18).
+ */
 typedef enum {
     WEI = 0,
 
@@ -65,6 +67,10 @@ typedef enum {
 
 #define NUMBER_OF_ETHER_UNITS  (1 + TETHER)
 
+/**
+ * Ether is the intrinsic currency of Ethereum.  It is represented as an integer value in WEI
+ * and is commonly prescribed to have 256 bits.
+ */
 typedef struct BREthereumEtherStruct {
     UInt256 valueInWEI;
 } BREthereumEther;

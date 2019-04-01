@@ -272,9 +272,7 @@ messagePIPRequestEncode (BREthereumPIPMessageRequest *request, BREthereumMessage
                            rlpEncodeListItems (coder.rlp, items, itemsCount));
 }
 
-///
 /// MARK: Response
-///
 
 extern BREthereumPIPRequestOutput
 messagePIPRequestOutputDecode (BRRlpItem item,
@@ -501,7 +499,8 @@ messagePIPRelayTransactionsEncode (BREthereumPIPMessageRelayTransactions *messag
 }
 
 
-/// MARK:
+/// MARK: PIP Decode/Encode
+
 extern BREthereumPIPMessage
 messagePIPDecode (BRRlpItem item,
                   BREthereumMessageCoder coder,

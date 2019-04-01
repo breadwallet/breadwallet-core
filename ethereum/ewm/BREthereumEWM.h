@@ -36,9 +36,8 @@
 extern "C" {
 #endif
 
-///
-/// MARK: Ethereum Wallet Manager
-///
+/// MARK: - Ethereum Wallet Manager
+
 extern BREthereumEWM
 ewmCreate (BREthereumNetwork network,
            BREthereumAccount account,
@@ -93,10 +92,8 @@ extern BRKey
 ewmGetAccountPrimaryAddressPrivateKey(BREthereumEWM ewm,
                                       const char *paperKey);
 
+/// MARK: - Connect
 
-///
-/// MARK: Connect
-///
 extern BREthereumBoolean
 ewmConnect(BREthereumEWM ewm);
 
@@ -122,9 +119,8 @@ extern void
 ewmUpdateBlockHeight(BREthereumEWM ewm,
                      uint64_t blockHeight);
 
-///
 /// MARK: - Wallets
-///
+
 extern BREthereumWallet *
 ewmGetWallets (BREthereumEWM ewm);
 
@@ -138,9 +134,8 @@ extern BREthereumWallet
 ewmGetWalletHoldingToken(BREthereumEWM ewm,
                          BREthereumToken token);
 
-///
 /// MARK: - Wallet
-///
+
 extern BREthereumToken
 ewmWalletGetToken (BREthereumEWM ewm,
                    BREthereumWallet wallet);
@@ -260,10 +255,8 @@ ewmWalletCreateTransferToReplace(BREthereumEWM ewm,
                                  BREthereumBoolean updateGasLimit,
                                  BREthereumBoolean updateNonce);
 
-
-///
 /// MARK: - Transfer
-///
+
 extern void
 ewmTransferDelete (BREthereumEWM ewm,
                    BREthereumTransfer transfer);
@@ -362,9 +355,8 @@ ewmTransferGetFee(BREthereumEWM ewm,
                   BREthereumTransfer transfer,
                   int *overflow);
 
-///
 /// MARK: - Amount
-///
+
 extern BREthereumAmount
 ewmCreateEtherAmountString(BREthereumEWM ewm,
                            const char *number,
@@ -393,9 +385,8 @@ ewmCoerceTokenAmountToString(BREthereumEWM ewm,
                              BREthereumTokenQuantity token,
                              BREthereumTokenQuantityUnit unit);
 
-///
-/// MARK: Gas Price / Limit
-///
+/// MARK: - Gas Price / Limit
+
 extern BREthereumGasPrice
 ewmCreateGasPrice (uint64_t value,
                    BREthereumEtherUnit unit);
@@ -403,9 +394,8 @@ ewmCreateGasPrice (uint64_t value,
 extern BREthereumGas
 ewmCreateGas (uint64_t value);
 
-///
-/// MARK: Block Number
-///
+/// MARK: - Block Number
+
 extern void
 ethereumClientUpdateBlockNumber (BREthereumEWM ewm);
 
