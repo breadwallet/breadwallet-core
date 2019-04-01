@@ -120,7 +120,7 @@ class SummaryViewController: UITableViewController, WalletListener {
         case .balanceUpdated:
             guard wallets.contains(where: { $0 === wallet }) else { return }
             DispatchQueue.main.async {
-                let index = self.wallets.index(where: { $0 === wallet})!
+                let index = self.wallets.firstIndex(where: { $0 === wallet})!
                 let path = IndexPath (row: index, section: 0)
                 let cell = self.tableView.cellForRow(at: path) as! WalletTableViewCell
                 cell.updateView()
@@ -128,7 +128,7 @@ class SummaryViewController: UITableViewController, WalletListener {
         case .deleted:
             guard wallets.contains(where: { $0 === wallet} ) else { return }
             DispatchQueue.main.async {
-                let index = self.wallets.index(where: {$0 === wallet} )!
+                let index = self.wallets.firstIndex(where: {$0 === wallet} )!
                 self.wallets.remove(at: index)
 
                 let path = IndexPath (row: index, section: 0)
