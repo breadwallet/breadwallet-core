@@ -3,50 +3,50 @@
 //  BRCore
 //
 //  Created by Ed Gamble on 5/15/18.
-//  Copyright (c) 2018 breadwallet LLC
+//  Copyright © 2018 Breadwinner AG.  All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #ifndef BR_Ethereum_Transaction_Status_h
 #define BR_Ethereum_Transaction_Status_h
 
-#include "../base/BREthereumBase.h"
+#include "ethereum/base/BREthereumBase.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/**
+ * An Ethereum Transaction Status Type is an enumeration of the results of transaction
+ * submission to the Ethereum P2P network.  [In practice, these may only be specified in
+ * the Geth LESv{1,2} specification; not more generally in the Ethereum specifcation}.
+ */
 typedef enum {
-    // Unknown (0): transaction is unknown
+    /**
+     * Unknown (0): transaction is unknown
+     */
     TRANSACTION_STATUS_UNKNOWN = 0,
 
-    //Queued (1): transaction is queued (not processable yet)
+    /**
+     *Queued (1): transaction is queued (not processable yet)
+     */
     TRANSACTION_STATUS_QUEUED = 1,
 
-    // Pending (2): transaction is pending (processable)
+    /**
+     * Pending (2): transaction is pending (processable)
+     */
     TRANSACTION_STATUS_PENDING = 2,
 
-    // Included (3): transaction is already included in the canonical chain. data contains an
-    // RLP-encoded [blockHash: B_32, blockNumber: P, txIndex: P] structure.
+    /**
+     * Included (3): transaction is already included in the canonical chain. data contains an
+     * RLP-encoded [blockHash: B_32, blockNumber: P, txIndex: P] structure.
+     */
     TRANSACTION_STATUS_INCLUDED = 3,
 
-    // Error (4): transaction sending failed. data contains a text error message
+    /**
+     * Error (4): transaction sending failed. data contains a text error message
+     */
     TRANSACTION_STATUS_ERRORED = 4,
 } BREthereumTransactionStatusType;
 
@@ -74,6 +74,12 @@ transactionGetErrorName (BREthereumTransactionErrorType type);
 #define TRANSACTION_STATUS_DETAIL_BYTES   \
     (sizeof (BREthereumGas) + sizeof (BREthereumHash) + 3 * sizeof(uint64_t) - sizeof (BREthereumTransactionErrorType))
 
+/**
+ * An Ethereum Transaction Status is the status of a transaction submitted to the Ethereum
+ * P2P network.  It consists of the type and then data specific to the type.  For example, if
+ * the type is 'included' then {blockHash, blockNumber, blockTransactionIndex, blockTimestamp,
+ * gasUsed} is part of the status.
+ */
 typedef struct BREthereumTransactionStatusLESRecord {
     BREthereumTransactionStatusType type;
     union {

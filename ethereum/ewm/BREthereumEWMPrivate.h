@@ -3,41 +3,23 @@
 //  BRCore
 //
 //  Created by Ed Gamble on 5/7/18.
-//  Copyright (c) 2018 breadwallet LLC
+//  Copyright © 2018 Breadwinner AG.  All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #ifndef BR_Ethereum_EWM_Private_H
 #define BR_Ethereum_EWM_Private_H
 
 #include <pthread.h>
-#include "../blockchain/BREthereumBlockChain.h"
-#include "../les/BREthereumLES.h"
-#include "../bcs/BREthereumBCS.h"
-#include "../event/BREvent.h"
-
-#include "BREthereumEWM.h"
-#include "BREthereumWallet.h"
+#include "support/BRFileService.h"
+#include "ethereum/blockchain/BREthereumBlockChain.h"
+#include "ethereum/les/BREthereumLES.h"
+#include "ethereum/bcs/BREthereumBCS.h"
+#include "ethereum/event/BREvent.h"
 #include "BREthereumTransfer.h"
-
-#include "../../support/BRFileService.h"
-
+#include "BREthereumWallet.h"
+#include "BREthereumEWM.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -76,9 +58,9 @@ extern void
 ewmInsertWallet (BREthereumEWM ewm,
                  BREthereumWallet wallet);
 
-/**
- *
- */
+//
+// EWM
+//
 struct BREthereumEWMRecord {
     /**
      * The State
@@ -166,9 +148,8 @@ struct BREthereumEWMRecord {
     } brdSync;
 };
 
-///
 /// MARK: - BCS Callback Interfaces
-///
+
 //
 // Signal/Handle Block Chain (BCS Callback)
 //
@@ -185,7 +166,7 @@ ewmSignalBlockChain (BREthereumEWM ewm,
                      uint64_t headBlockTimestamp);
 
 //
-// Signal/Handle Balance (BCS Callback)
+// Signal/Handle Account State (BCS Callback)
 //
 extern void
 ewmHandleAccountState (BREthereumEWM ewm,
@@ -335,9 +316,8 @@ ewmSignalGetBlocks (BREthereumEWM ewm,
                     uint64_t blockStart,
                     uint64_t blockStop);
 
-///
 /// MARK: - (Wallet) Balance
-///
+
 extern void
 ewmHandleAnnounceBalance (BREthereumEWM ewm,
                                 BREthereumWallet wallet,
@@ -350,9 +330,8 @@ ewmSignalAnnounceBalance (BREthereumEWM ewm,
                                 UInt256 amount,
                                 int rid);
 
-///
 /// MARK: - GasPrice
-///
+
 extern void
 ewmSignalAnnounceGasPrice (BREthereumEWM ewm,
                                  BREthereumWallet wallet,
@@ -365,9 +344,7 @@ ewmHandleAnnounceGasPrice (BREthereumEWM ewm,
                                  UInt256 value,
                                  int rid);
 
-///
 /// MARK: - Estimate Gas
-///
 
 extern void
 ewmHandleAnnounceGasEstimate (BREthereumEWM ewm,
@@ -383,9 +360,8 @@ ewmSignalAnnounceGasEstimate (BREthereumEWM ewm,
                                     UInt256 value,
                                     int rid);
 
-///
 /// MARK: - Submit Transaction
-///
+
 extern void
 ewmSignalAnnounceSubmitTransfer (BREthereumEWM ewm,
                                  BREthereumWallet wallet,
@@ -402,9 +378,8 @@ ewmHandleAnnounceSubmitTransfer (BREthereumEWM ewm,
                                  const char *errorMessage,
                                  int rid);
 
-///
 /// MARK: - Transactions
-///
+
 typedef struct {
     BREthereumHash hash;
     BREthereumAddress from;
@@ -440,9 +415,8 @@ ewmSignalAnnounceTransaction(BREthereumEWM ewm,
                                    BREthereumEWMClientAnnounceTransactionBundle *bundle,
                                    int id);
 
-///
 /// MARK: - Logs
-///
+
 typedef struct {
     BREthereumHash hash;
     BREthereumAddress contract;
@@ -476,9 +450,8 @@ ewmHandleAnnounceLog (BREthereumEWM ewm,
                             BREthereumEWMClientAnnounceLogBundle *bundle,
                             int id);
 
-///
 /// MARK: - Account Complete
-///
+
 extern void
 ewmSignalAnnounceComplete (BREthereumEWM ewm,
                            BREthereumBoolean isTransaction,
@@ -490,9 +463,8 @@ ewmHandleAnnounceComplete (BREthereumEWM ewm,
                            BREthereumBoolean isTransaction,
                            BREthereumBoolean success,
                            int rid);
-///
 /// MARK: - Tokens
-///
+
 typedef struct {
     char *address;
     char *symbol;
@@ -530,9 +502,8 @@ ewmSignalAnnounceTokenComplete (BREthereumEWM ewm,
                                 BREthereumBoolean success,
                                 int rid);
 
-///
-// MARK: - BlockNumber
-///
+/// MARK: - BlockNumber
+
 extern void
 ewmHandleAnnounceBlockNumber (BREthereumEWM ewm,
                                     uint64_t blockNumber,
@@ -543,9 +514,8 @@ ewmSignalAnnounceBlockNumber (BREthereumEWM ewm,
                                     uint64_t blockNumber,
                                     int rid);
 
-///
 /// MARK: - Nonce
-///
+
 extern void
 ewmHandleAnnounceNonce (BREthereumEWM ewm,
                               BREthereumAddress address,
@@ -655,9 +625,8 @@ ewmHandleEWMEvent(BREthereumEWM ewm,
                         BREthereumStatus status,
                         const char *errorDescription);
 
-///
 /// MARK: - Handler For Main
-///
+
 extern const BREventType *ewmEventTypes[];
 extern const unsigned int ewmEventTypesCount;
 

@@ -50,4 +50,8 @@ typedef struct {
 extern const BRChainParams *BRMainNetParams;
 extern const BRChainParams *BRTestNetParams;
 
+static inline const BRChainParams *BRChainParamsGetBitcoin (int mainnet) {
+    return mainnet ? BRMainNetParams : BRTestNetParams;
+}
+
 #endif // BRChainParams_h

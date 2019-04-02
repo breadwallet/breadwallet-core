@@ -3,25 +3,10 @@
 //  breadwallet-core Ethereum
 //
 //  Created by Ed Gamble on 2/21/2018.
-//  Copyright (c) 2018 breadwallet LLC
+//  Copyright © 2018 Breadwinner AG.  All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include <stdlib.h>
 #include <string.h>
@@ -36,10 +21,9 @@
 static unsigned int transactionAllocCount = 0;
 #endif
 
-/**
- * An Ethereum Transaction ...
- *
- */
+//
+// Transaction
+//
 struct BREthereumTransactionRecord {
     // THIS MUST BE FIRST to support BRSet operations.
 
@@ -48,15 +32,14 @@ struct BREthereumTransactionRecord {
      */
     BREthereumHash hash;
 
-
-    //
-    //
-    //
+    /**
+     * The source address - sends 'amount'
+     */
     BREthereumAddress sourceAddress;
 
-    //
-    //
-    //
+    /**
+     * The target address - recvs 'amount'
+     */
     BREthereumAddress targetAddress;
 
     /**
@@ -66,15 +49,34 @@ struct BREthereumTransactionRecord {
      * transfer function encodes the amount.
      */
     BREthereumEther amount;
+
+    /**
+     * The gas Price
+     */
     BREthereumGasPrice gasPrice;
+
+    /**
+     * The gas limit
+     */
     BREthereumGas gasLimit;
+
+    /**
+     * The gas estimate
+     */
     BREthereumGas gasEstimate;
-    
+
+    /**
+     * The nonce
+     */
     uint64_t nonce;
+
+    /**
+     * The chainId
+     */
     BREthereumChainId chainId;   // EIP-135 - chainId - "Since EIP-155 use chainId for v"
 
     /**
-     *
+     * The data
      */
     char *data;
 
@@ -83,9 +85,9 @@ struct BREthereumTransactionRecord {
      */
     BREthereumSignature signature;
 
-    //
-    // State
-    //
+    /**
+     * The status
+     */
     BREthereumTransactionStatus status;
 };
 
@@ -196,21 +198,9 @@ transactionGetGasPrice (BREthereumTransaction transaction) {
     return transaction->gasPrice;
 }
 
-extern void
-transactionSetGasPrice (BREthereumTransaction transaction,
-                        BREthereumGasPrice gasPrice) {
-    transaction->gasPrice = gasPrice;
-}
-
 extern BREthereumGas
 transactionGetGasLimit (BREthereumTransaction transaction) {
     return transaction->gasLimit;
-}
-
-extern void
-transactionSetGasLimit (BREthereumTransaction transaction,
-                        BREthereumGas gasLimit) {
-    transaction->gasLimit = gasLimit;
 }
 
 static BREthereumGas

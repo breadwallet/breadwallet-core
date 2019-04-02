@@ -1,21 +1,26 @@
-CORE_SRCS=../BRAddress.c \
-	../BRBIP32Sequence.c \
-	../BRBIP38Key.c \
-	../BRBIP39Mnemonic.c \
-	../BRBase58.c \
-	../BRBech32.c \
-	../BRBloomFilter.c \
-	../BRCrypto.c \
-	../BRKey.c \
-	../BRKeyECIES.c \
-	../BRMerkleBlock.c \
-	../BRPaymentProtocol.c \
-	../BRPeer.c \
-	../BRPeerManager.c \
-	../BRSet.c \
-	../BRTransaction.c \
-	../BRWallet.c \
-	../bcash/BRBCashAddr.c
+CORE_SRCS=../support/BRAddress.c \
+	../support/BRAssert.c \
+	../support/BRBIP32Sequence.c \
+	../support/BRBIP39Mnemonic.c \
+	../support/BRBase58.c \
+	../support/BRBech32.c \
+	../support/BRCrypto.c \
+	../support/BRFileService.c \
+	../support/BRKey.c \
+	../support/BRKeyECIES.c \
+	../support/BRSet.c \
+	../bitcoin/BRBIP38Key.c \
+	../bitcoin/BRBloomFilter.c \
+	../bitcoin/BRChainParams.c \
+	../bitcoin/BRMerkleBlock.c \
+	../bitcoin/BRPaymentProtocol.c \
+	../bitcoin/BRPeer.c \
+	../bitcoin/BRPeerManager.c \
+	../bitcoin/BRTransaction.c \
+	../bitcoin/BRWallet.c \
+	../bitcoin/BRWalletManager.c \
+	../bcash/BRBCashAddr.c \
+	../bcash/BRBCashParams.c
 
 CORE_OBJS=$(CORE_SRCS:.c=.o)
 
@@ -38,6 +43,7 @@ ETH_SRCS=./rlp/BRRlpCoder.c \
 	./blockchain/BREthereumBloomFilter.c \
 	./blockchain/BREthereumLog.c \
 	./blockchain/BREthereumNetwork.c \
+	./blockchain/BREthereumProofOfWork.c \
 	./blockchain/BREthereumTransaction.c \
 	./blockchain/BREthereumTransactionReceipt.c \
 	./blockchain/BREthereumTransactionStatus.c \
@@ -69,7 +75,7 @@ ETH_SRCS=./rlp/BRRlpCoder.c \
 ETH_OBJS=$(ETH_SRCS:.c=.o)
 
 ETH_TST_SRCS=test.c \
-	./les/test-les.c \
+	./les/testLES.c \
 	./base/testBase.c \
 	./blockchain/testBc.c \
 	./contract/testContract.c \
@@ -84,12 +90,13 @@ test:	build
 	./test
 
 build: clean
+	@echo "== Building"
 	gcc -o test -Wno-format-extra-args -Wno-nullability-completeness -Wno-unknown-warning-option \
-		-I/usr/include -I/usr/include/malloc -I/usr/include/machine -I../secp256k1 -I.. \
-		-I. -I../secp256k1/include \
+		-I. -I.. -I../support -I../secp256k1 \
 		-DDEBUG -DBITCOIN_DEBUG=1 -DTEST_ETHEREUM_NEED_MAIN \
-                $(CORE_SRCS) $(ETH_SRCS) $(ETH_TST_SRCS) -lc
+                $(CORE_SRCS) $(ETH_SRCS) $(ETH_TST_SRCS) -lc -lresolv
 
 clean:
-	rm -rf $(CORE_OBJS) $(ETH_OBJS)
+	@echo "== Cleaning"
+	@rm -rf $(CORE_OBJS) $(ETH_OBJS) $(ETH_TST_OBJS)
 

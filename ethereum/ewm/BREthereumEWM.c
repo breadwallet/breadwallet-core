@@ -3,43 +3,26 @@
 //  breadwallet-core Ethereum
 //
 //  Created by Ed Gamble on 3/5/18.
-//  Copyright (c) 2018 breadwallet LLC
+//  Copyright © 2018 Breadwinner AG.  All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
 #include <stdarg.h>
-#include <stdio.h>  // sprintf
+#include <stdio.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <errno.h>
 #include <dirent.h>
 #include <sys/stat.h>
-
-#include "BRArray.h"
-#include "BRBIP39Mnemonic.h"
+#include "support/BRArray.h"
+#include "support/BRBIP39Mnemonic.h"
 #include "support/BRAssert.h"
-
-#include "../event/BREvent.h"
-#include "../event/BREventAlarm.h"
+#include "ethereum/event/BREvent.h"
+#include "ethereum/event/BREventAlarm.h"
 #include "BREthereumEWMPrivate.h"
 
 #define EWM_SLEEP_SECONDS (10)
@@ -56,9 +39,8 @@ ewmPeriodicDispatcher (BREventHandler handler,
 
 /* Forward Implementation */
 
-///
-/// MARK: Transaction File Service
-///
+/// MARK: - Transaction File Service
+
 static const char *fileServiceTypeTransactions = "transactions";
 
 enum {
@@ -119,9 +101,8 @@ initialTransactionsLoad (BREthereumEWM ewm) {
     return transactions;
 }
 
-///
-/// MARK: Log File Service
-///
+/// MARK: - Log File Service
+
 static const char *fileServiceTypeLogs = "logs";
 
 enum {
@@ -183,9 +164,8 @@ initialLogsLoad (BREthereumEWM ewm) {
 }
 
 
-///
-/// MARK: Block File Service
-///
+/// MARK: - Block File Service
+
 static const char *fileServiceTypeBlocks = "blocks";
 enum {
     EWM_BLOCK_VERSION_1
@@ -245,9 +225,8 @@ initialBlocksLoad (BREthereumEWM ewm) {
     return blocks;
 }
 
-///
-/// MARK: Node File Service
-///
+/// MARK: - Node File Service
+
 static const char *fileServiceTypeNodes = "nodes";
 enum {
     EWM_NODE_VERSION_1
@@ -342,9 +321,8 @@ ewmFileServiceErrorHandler (BRFileServiceContext context,
     // TODO: Actually force a resync.
 }
 
-///
-/// MARK: Ethereum Wallet Manager
-///
+/// MARK: - Ethereum Wallet Manager
+
 static BREthereumEWM
 ewmCreateErrorHandler (BREthereumEWM ewm, int fileService, const char* reason) {
     if (NULL != ewm) free (ewm);
@@ -652,9 +630,7 @@ ewmDestroy (BREthereumEWM ewm) {
     free (ewm);
 }
 
-///
 /// MARK: - Connect / Disconnect
-///
 
 /**
  * ewmConnect() - Start EWM.  Returns TRUE if started, FALSE if is currently stated (TRUE
@@ -893,9 +869,8 @@ ewmUnlock (BREthereumEWM ewm) {
     pthread_mutex_unlock (&ewm->lock);
 }
 
-///
 /// MARK: - Blocks
-///
+
 #if defined (NEVER_DEFINED)
 extern BREthereumBlock
 ewmLookupBlockByHash(BREthereumEWM ewm,
@@ -965,9 +940,8 @@ ewmUpdateBlockHeight(BREthereumEWM ewm,
         ewm->blockHeight = blockHeight;
 }
 
-///
 /// MARK: - Transfers
-///
+
 #if defined (NEVER_DEFINED)
 extern BREthereumTransfer
 ewmLookupTransfer (BREthereumEWM ewm,
@@ -1044,9 +1018,8 @@ ewmDeleteTransfer (BREthereumEWM ewm,
 }
 #endif
 
-///
-/// MARK: Wallets
-///
+/// MARK: - Wallets
+
 #if defined (NEVER_DEFINED)
 extern BREthereumWallet
 ewmLookupWallet(BREthereumEWM ewm,
@@ -1458,9 +1431,8 @@ ewmWalletSetDefaultGasPrice(BREthereumEWM ewm,
 }
 
 
-///
-/// MARK: Handlers
-///
+/// MARK: - Handlers
+
 /**
  * Handle a default `gasPrice` for `wallet`
  *
@@ -2183,9 +2155,8 @@ ewmTransferGetRawDataHexEncoded(BREthereumEWM ewm,
                                            prefix));
             }
 
-///
 /// MARK: - Transfer
-///
+
 extern BREthereumAddress
 ewmTransferGetTarget (BREthereumEWM ewm,
                       BREthereumTransfer transfer) {
@@ -2376,9 +2347,8 @@ ewmTransferGetFee(BREthereumEWM ewm,
     return transferGetFee(transfer, overflow);
 }
 
-///
 /// MARK: - Amount
-///
+
 extern BREthereumAmount
 ewmCreateEtherAmountString(BREthereumEWM ewm,
                            const char *number,
@@ -2417,9 +2387,8 @@ ewmCoerceTokenAmountToString(BREthereumEWM ewm,
     return tokenQuantityGetValueString(token, unit);
 }
 
-///
 /// MARK: - Gas Price / Limit
-///
+
 extern BREthereumGasPrice
 ewmCreateGasPrice (uint64_t value,
                    BREthereumEtherUnit unit) {
@@ -2461,8 +2430,4 @@ feeBasisCreate (BREthereumGas limit,
         { .gas = { limit, price }}
     };
 }
-
-///
-/// MARK: EWM Persistent Storage
-
 

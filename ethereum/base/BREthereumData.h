@@ -3,43 +3,28 @@
 //  BRCore
 //
 //  Created by Ed Gamble on 10/3/18.
-//  Copyright (c) 2018 breadwallet LLC
+//  Copyright © 2018 Breadwinner AG.  All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #ifndef BR_Ethereum_Data_H
 #define BR_Ethereum_Data_H
 
-#include "BRArray.h"
-#include "BRSet.h"
-
-#include "../rlp/BRRlp.h"
+#include "support/BRArray.h"
+#include "support/BRSet.h"
+#include "ethereum/rlp/BRRlp.h"
 #include "BREthereumHash.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-///
 /// MARK: - Data
-///
 
+/**
+ * Ethereum Data is an pair of { count, bytes} representing an arbitrary array of bytes.
+ */
 typedef struct {
     size_t count;
     uint8_t *bytes;
@@ -70,10 +55,12 @@ dataAsString (BREthereumData data);
 extern BRRlpData
 dataAsRlpData (BREthereumData data);
 
-///
 /// MARK: - Hash Data Pair
-///
 
+/**
+ * An Ethereum Hash Data Pair holds {Hash, Data} where the hash can be considered a unique
+ * identifier for the Data
+ */
 typedef struct BREthereumHashDataPairRecord *BREthereumHashDataPair;
 
 /**
@@ -129,9 +116,7 @@ extern int
 hashDataPairHashEqual (const void *t1,
                        const void *t2);
 
-///
 /// MARK: - Hash Data Pair Set
-///
 
 extern BRSetOf (BREthereumHashDataPair)
 hashDataPairSetCreateEmpty (size_t count);

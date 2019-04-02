@@ -3,25 +3,10 @@
 //  BRCore
 //
 //  Created by Ed Gamble on 5/17/18.
-//  Copyright (c) 2018 breadwallet LLC
+//  Copyright © 2018 Breadwinner AG.  All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #ifndef BR_Ethereum_Signature_H
 #define BR_Ethereum_Signature_H
@@ -34,10 +19,13 @@
 extern "C" {
 #endif
 
-//
-// Signature
-//
-
+/**
+ * An Ethereum Signature Type is an enumeration for the types of ethereum signatures.  There
+ * are two types: one for signing transactions and one for signing P2P messages, it seems.  An
+ * ethereum signature is 'recoverable' in that given the signature and the data one can recover
+ * the public key (corresponding to the private key used for signing) and then from the public key
+ * one can recover the address.
+ */
 typedef enum {
     /**
      * A 'VRS' signature suitable for Ethereum Transaction signing.  Modifies the 'v' field with
@@ -51,7 +39,6 @@ typedef enum {
      */
     SIGNATURE_TYPE_RECOVERABLE_RSV
 } BREthereumSignatureType;
-
 
 /**
  * A VRS signature - with a Network chainID encoded into 'v'
@@ -74,7 +61,11 @@ typedef struct {
 
 
 /**
- * An Ethereum Signature - one of the two types: VRS_EIP or RSV
+ * An Ethereum Signature is the result of crytographically signing an arbitary piece of data.
+ *
+ * Commonly used for signing a transaction for submission to the Ehterehm P2P network.  In this
+ * case the transaction is RLP encoded *without* the signature, the unsigned RLP data is signed,
+ * and then the transaction is RLP encoded *with* the signature.
  */
 typedef struct {
     BREthereumSignatureType type;

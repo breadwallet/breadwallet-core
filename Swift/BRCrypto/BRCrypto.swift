@@ -3,9 +3,11 @@
 //  BRCrypto
 //
 //  Created by Ed Gamble on 3/27/19.
-//  Copyright © 2019 breadwallet. All rights reserved.
+//  Copyright © 2018 Breadwallet AG. All rights reserved.
 //
-
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
+//
 import Foundation
 import BRCryptoC
 
@@ -747,7 +749,7 @@ public enum TransferHash: Hashable, CustomStringConvertible {
     public var description: String {
         switch self {
         case .bitcoin (let core):
-            return asUTF8String (u256HashToString(core), true)
+            return asUTF8String (coerceUInt256HashToString(core), true)
         case .ethereum(let core):
             return asUTF8String (hashAsString(core))
         }

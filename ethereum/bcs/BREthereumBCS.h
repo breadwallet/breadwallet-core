@@ -3,42 +3,25 @@
 //  Core
 //
 //  Created by Ed Gamble on 5/24/18.
-//  Copyright (c) 2018 breadwallet LLC
+//  Copyright © 2018 Breadwinner AG.  All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #ifndef BR_Ethereum_BCS_h
 #define BR_Ethereum_BCS_h
 
-#include "../base/BREthereumBase.h"
-#include "../les/BREthereumLES.h"
+#include "ethereum/base/BREthereumBase.h"
+#include "ethereum/les/BREthereumLES.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * @class BREthereumBCS
+ * A Block Chain Slice
  *
- * @brief A Block Chain Slice
- *
- * @discussion A Block Chain Slice (BCS) represents a user account-centric view of the Ethereum
+ * A Block Chain Slice (BCS) represents a user account-centric view of the Ethereum
  * block chain.  A BCS maintains the User's transfers (both transactions and logs) for the User as
  * either the source or target of the transfer.  The maintained transfers must be valid; the
  * validation is performed by validating blocks in the block chain.
@@ -53,7 +36,6 @@ extern "C" {
  * the block is validated - using a 'Header Proof' or a block chain.
  *
  * BCS uses a unique 'nary-search on account state changes w/ augmentation' to identify transfers.
- *
  */
 typedef struct BREthereumBCSStruct *BREthereumBCS;
 

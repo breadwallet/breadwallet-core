@@ -3,32 +3,16 @@
 //  breadwallet-core Ethereum
 //
 //  Created by Ed Gamble on 3/5/18.
-//  Copyright (c) 2018 breadwallet LLC
+//  Copyright © 2018 Breadwinner AG.  All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #ifndef BR_Ethereum_EWM_H
 #define BR_Ethereum_EWM_H
 
-#include "../blockchain/BREthereumNetwork.h"
-#include "../contract/BREthereumContract.h"
-
+#include "ethereum/blockchain/BREthereumNetwork.h"
+#include "ethereum/contract/BREthereumContract.h"
 #include "BREthereumBase.h"
 #include "BREthereumAmount.h"
 #include "BREthereumClient.h"
@@ -37,9 +21,8 @@
 extern "C" {
 #endif
 
-///
-/// MARK: Ethereum Wallet Manager
-///
+/// MARK: - Ethereum Wallet Manager
+
 extern BREthereumEWM
 ewmCreate (BREthereumNetwork network,
            BREthereumAccount account,
@@ -94,10 +77,8 @@ extern BRKey
 ewmGetAccountPrimaryAddressPrivateKey(BREthereumEWM ewm,
                                       const char *paperKey);
 
+/// MARK: - Connect
 
-///
-/// MARK: Connect
-///
 extern BREthereumBoolean
 ewmConnect(BREthereumEWM ewm);
 
@@ -123,9 +104,8 @@ extern void
 ewmUpdateBlockHeight(BREthereumEWM ewm,
                      uint64_t blockHeight);
 
-///
 /// MARK: - Wallets
-///
+
 extern BREthereumWallet *
 ewmGetWallets (BREthereumEWM ewm);
 
@@ -139,9 +119,8 @@ extern BREthereumWallet
 ewmGetWalletHoldingToken(BREthereumEWM ewm,
                          BREthereumToken token);
 
-///
 /// MARK: - Wallet
-///
+
 extern BREthereumToken
 ewmWalletGetToken (BREthereumEWM ewm,
                    BREthereumWallet wallet);
@@ -261,10 +240,8 @@ ewmWalletCreateTransferToReplace(BREthereumEWM ewm,
                                  BREthereumBoolean updateGasLimit,
                                  BREthereumBoolean updateNonce);
 
-
-///
 /// MARK: - Transfer
-///
+
 extern void
 ewmTransferDelete (BREthereumEWM ewm,
                    BREthereumTransfer transfer);
@@ -363,9 +340,8 @@ ewmTransferGetFee(BREthereumEWM ewm,
                   BREthereumTransfer transfer,
                   int *overflow);
 
-///
 /// MARK: - Amount
-///
+
 extern BREthereumAmount
 ewmCreateEtherAmountString(BREthereumEWM ewm,
                            const char *number,
@@ -394,9 +370,8 @@ ewmCoerceTokenAmountToString(BREthereumEWM ewm,
                              BREthereumTokenQuantity token,
                              BREthereumTokenQuantityUnit unit);
 
-///
-/// MARK: Gas Price / Limit
-///
+/// MARK: - Gas Price / Limit
+
 extern BREthereumGasPrice
 ewmCreateGasPrice (uint64_t value,
                    BREthereumEtherUnit unit);
@@ -404,9 +379,8 @@ ewmCreateGasPrice (uint64_t value,
 extern BREthereumGas
 ewmCreateGas (uint64_t value);
 
-///
-/// MARK: Block Number
-///
+/// MARK: - Block Number
+
 extern void
 ethereumClientUpdateBlockNumber (BREthereumEWM ewm);
 

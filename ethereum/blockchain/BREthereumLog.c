@@ -3,27 +3,12 @@
 //  BRCore
 //
 //  Created by Ed Gamble on 5/10/18.
-//  Copyright (c) 2018 breadwallet LLC
+//  Copyright © 2018 Breadwinner AG.  All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
-#include "BRArray.h"
+#include "support/BRArray.h"
 #include "BREthereumLog.h"
 
 /**
@@ -153,9 +138,8 @@ logTopicsCopy (BRArrayOf(BREthereumLogTopic) topics) {
 }
 
 //
-// Ethereum Log
+// Log
 //
-// A log entry, O, is:
 struct BREthereumLogRecord {
     // THIS MUST BE FIRST to support BRSet operations.
 
@@ -165,16 +149,24 @@ struct BREthereumLogRecord {
      */
     BREthereumHash hash;
 
-    // a tuple of the logger’s address, Oa;
+    /**
+     * a tuple of the logger’s address, Oa;
+     */
     BREthereumAddress address;
 
-    // a series of 32-byte log topics, Ot;
+    /**
+     * a series of 32-byte log topics, Ot;
+     */
     BRArrayOf(BREthereumLogTopic) topics;
 
-    // and some number of bytes of data, Od
+    /**
+     * and some number of bytes of data, Od
+     */
     BRRlpData data;
 
-    // A unique identifer - derived from the transactionHash and the transactionReceiptIndex
+    /**
+     * A unique identifer - derived from the transactionHash and the transactionReceiptIndex
+     */
     struct {
         /**
          * The hash of the transaction producing this log.  This value *does not* depend on
@@ -190,7 +182,9 @@ struct BREthereumLogRecord {
         size_t transactionReceiptIndex;
     } identifier;
 
-    // status
+    /**
+     * status
+     */
     BREthereumTransactionStatus status;
 };
 
@@ -379,9 +373,7 @@ logHashEqual (const void *l1, const void *l2) {
                          &((BREthereumLog) l2)->hash);
 }
 
-///
 /// MARK: - Release // Copy
-///
 
 extern void
 logRelease (BREthereumLog log) {
@@ -421,9 +413,7 @@ logCopy (BREthereumLog log) {
     return copy;
 }
 
-///
 /// MARK: - RLP Encode/Decode
-///
 
 static BRRlpItem
 logTopicsRlpEncode (BREthereumLog log,

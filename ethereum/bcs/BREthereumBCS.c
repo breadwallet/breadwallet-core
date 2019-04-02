@@ -3,30 +3,15 @@
 //  Core
 //
 //  Created by Ed Gamble on 5/24/18.
-//  Copyright (c) 2018 breadwallet LLC
+//  Copyright © 2018 Breadwinner AG.  All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include <stdlib.h>
 #include <stdarg.h>
-#include "BRArray.h"
-#include "BRSet.h"
+#include "support/BRArray.h"
+#include "support/BRSet.h"
 #include "BREthereumBCSPrivate.h"
 
 #define BCS_TRANSACTION_CHECK_STATUS_SECONDS   (7)
@@ -698,9 +683,8 @@ bcsHandleAnnounce (BREthereumBCS bcs,
                             ETHEREUM_BOOLEAN_FALSE);
 }
 
-///
 /// MARK: - Chain
-///
+
 static void
 bcsReclaimBlock (BREthereumBCS bcs,
                  BREthereumBlock block,
@@ -1260,9 +1244,7 @@ bcsExtendChainIfPossible (BREthereumBCS bcs,
     bcsReclaimAndSaveBlocksIfAppropriate (bcs);
 }
 
-///
 /// MARK: - Block Header
-///
 
 static BREthereumBoolean
 bcsBlockHasMatchingTransactions (BREthereumBCS bcs,
@@ -1427,9 +1409,7 @@ bcsHandleBlockHeaders (BREthereumBCS bcs,
                                proofNumbers);
 }
 
-///
 /// MARK: - Account State
-///
 
 static void
 bcsHandleAccountState (BREthereumBCS bcs,
@@ -1490,9 +1470,7 @@ bcsHandleAccountStates (BREthereumBCS bcs,
     array_free (states);
 }
 
-///
 /// MARK: - Block Bodies
-///
 
 /*!
  */
@@ -1634,9 +1612,8 @@ bcsHandleBlockBodies (BREthereumBCS bcs,
     array_free (pairs);
 }
 
-///
 /// MARK: - Header Proofs
-///
+
 static void
 bcsHandleBlockProof (BREthereumBCS bcs,
                      BREthereumNodeReference node,
@@ -1696,10 +1673,7 @@ bcsHandleBlockProofs (BREthereumBCS bcs,
     array_free (proofs);
 }
 
-///
 /// MARK: - Transaction Receipts
-///
-
 
 #if defined (INCLUDE_UNUSED_FUNCTION)
 static BREthereumBoolean
@@ -1870,9 +1844,7 @@ bcsHandleTransactionReceiptsMultiple (BREthereumBCS bcs,
     array_free (arrayOfReceipts);
 }
 
-///
 /// MARK: - Transaction Status
-///
 
 //
 // We only obsserve transaction status for two cases:

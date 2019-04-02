@@ -3,7 +3,10 @@
 //  BRCrypto
 //
 //  Created by Ed Gamble on 11/7/18.
-//  Copyright © 2018 breadwallet. All rights reserved.
+//  Copyright © 2018 Breadwallet AG. All rights reserved.
+//
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
 
 import Foundation
@@ -311,9 +314,9 @@ public class EthereumTransferFactory: TransferFactory {
     }
 }
 
-///
-/// MARK: - Wallet
-///
+//
+// Wallet
+//
 
 public class EthereumWallet: Wallet {
     internal let identifier: BREthereumWallet
@@ -832,7 +835,7 @@ public class EthereumWalletManager: WalletManager {
         return dict
     }
 
-    /// MARK: - Ethereum Update Interface
+    // Ethereum Update Interface
 
     public func updateTokens () {
         ewmUpdateTokens(core)
@@ -847,7 +850,7 @@ public class EthereumWalletManager: WalletManager {
         ewmUpdateGasEstimate(core, wallet.identifier, transfer.identifier)
     }
 
-    /// MARK: - Ethereum Backend Announce Interface
+    // Ethereum Backend Announce Interface
 
     public func announceBalance (wid: BREthereumWallet, balance: String, rid: Int32) {
         ewmAnnounceWalletBalance (core, wid, balance, rid)

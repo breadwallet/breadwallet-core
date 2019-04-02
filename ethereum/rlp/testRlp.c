@@ -3,15 +3,15 @@
 //  CoreTests
 //
 //  Created by Ed Gamble on 7/23/18.
-//  Copyright © 2018 breadwallet. All rights reserved.
+//  Copyright © 2018 Breadwinner AG.  All rights reserved.
 //
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include "ethereum/util/BRUtil.h"
 #include "BRRlp.h"
-#include "../util/BRUtil.h"
 
 static void
 showHex (uint8_t *source, size_t sourceLen) {

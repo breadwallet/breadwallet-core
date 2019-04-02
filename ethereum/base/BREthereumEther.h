@@ -3,40 +3,27 @@
 //  breadwallet-core Ethereum
 //
 //  Created by Ed Gamble on 2/21/18.
-//  Copyright (c) 2018 breadwallet LLC
+//  Copyright © 2018 Breadwinner AG.  All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #ifndef BR_Ethereum_Ether_H
 #define BR_Ethereum_Ether_H
 
-#include "../rlp/BRRlp.h"
-#include "../util/BRUtil.h"
+#include "ethereum/rlp/BRRlp.h"
+#include "ethereum/util/BRUtil.h"
 #include "BREthereumLogic.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-//
-// Ether
-//
+/**
+ * An Ethereum Ether Unit defines ETH units in powers of 10^3.   The 'base Unit' is WEI - the
+ * smallest demonination of ETH and the one in which all integer values of the currency are counted.
+ * Common 'derived units' are GWEI (3 => 10^9) and ETHER (6 => 10^18).
+ */
 typedef enum {
     WEI = 0,
 
@@ -65,6 +52,10 @@ typedef enum {
 
 #define NUMBER_OF_ETHER_UNITS  (1 + TETHER)
 
+/**
+ * Ether is the intrinsic currency of Ethereum.  It is represented as an integer value in WEI
+ * and is commonly prescribed to have 256 bits.
+ */
 typedef struct BREthereumEtherStruct {
     UInt256 valueInWEI;
 } BREthereumEther;

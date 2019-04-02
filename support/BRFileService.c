@@ -3,7 +3,7 @@
 //  Core
 //
 //  Created by Richard Evers on 1/4/19.
-//  Copyright © 2019 breadwallet. All rights reserved.
+//  Copyright © 2019 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -199,9 +199,8 @@ fileServiceLookupEntityHandler (const BRFileService fs,
     return (NULL == entityType ? NULL : fileServiceEntityTypeLookupHandler (entityType, version));
 }
 
-///
-/// MARK: Failure Reporting
-///
+/// MARK: - Failure Reporting
+
 static int
 fileServiceFailedInternal (BRFileService fs,
                                void* bufferToFree,
@@ -253,9 +252,8 @@ fileServiceFailedEntity(BRFileService fs,
                                           });
 }
 
-///
-/// MARK: Load
-///
+/// MARK: - Load
+
 extern int
 fileServiceLoad (BRFileService fs,
                  BRSet *results,
@@ -369,9 +367,8 @@ fileServiceLoad (BRFileService fs,
     return 1;
 }
 
-///
-/// MARK: Save
-///
+/// MARK: - Save
+
 extern void /* error code? */
 fileServiceSave (BRFileService fs,
                  const char *type,  /* block, peers, transactions, logs, ... */
@@ -418,9 +415,8 @@ fileServiceSave (BRFileService fs,
     free (bytes);
 }
 
-///
-/// MARK: Remve, Clear
-///
+/// MARK: - Remove, Clear
+
 extern void
 fileServiceRemove (BRFileService fs,
                    const char *type,

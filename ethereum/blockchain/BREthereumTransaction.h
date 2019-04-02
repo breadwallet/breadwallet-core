@@ -3,31 +3,16 @@
 //  breadwallet-core Ethereum
 //
 //  Created by Ed Gamble on 2/21/2018.
-//  Copyright (c) 2018 breadwallet LLC
+//  Copyright © 2018 Breadwinner AG.  All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #ifndef BR_Ethereum_Transaction_H
 #define BR_Ethereum_Transaction_H
 
-#include "../base/BREthereumBase.h"
-#include "../contract/BREthereumToken.h"
+#include "ethereum/base/BREthereumBase.h"
+#include "ethereum/contract/BREthereumToken.h"
 #include "BREthereumNetwork.h"
 #include "BREthereumTransactionStatus.h"
 
@@ -43,9 +28,19 @@ gasApplyLmitMargin (BREthereumGas gas) {
     return gasCreate(((100 + GAS_LIMIT_MARGIN_PERCENT) * gas.amountOfGas) / 100);
 }
 
-//
-// Transaction
-//
+/**
+ * An Ethereum Transaction is a transaction on the Ethereum P2P network
+ *
+ * Per the Ethereum Specification: A transaction (formally, T) is a single cryptographically-signed
+ * instruction constructed by an actor externally to the scope of Ethereum. While it is assumed
+ * that the ultimate external actor will be human in nature, software tools will be used in its
+ * construction and dissemination1. There are two types of transactions: those which result in
+ * message calls and those which result in the creation of new accounts with associated code
+ * (known informally as ‘contract creation’). Both types specify a number of common fields:
+ * { nonce, gasPrice, gasLimit, to, value, {v,r,s}}.
+ *
+ * Additional filds are: {hash, chainId, data and status}.
+ */
 typedef struct BREthereumTransactionRecord *BREthereumTransaction;
 
 extern BREthereumTransaction
@@ -96,16 +91,15 @@ transactionGetFeeLimit (BREthereumTransaction transaction, int *overflow);
 extern BREthereumGasPrice
 transactionGetGasPrice (BREthereumTransaction transaction);
 
-extern void
-transactionSetGasPrice (BREthereumTransaction transaction,
-                        BREthereumGasPrice gasPrice);
-
 extern BREthereumGas
 transactionGetGasLimit (BREthereumTransaction transaction);
 
+extern BREthereumGas
+transactionGetGasEstimate (BREthereumTransaction transaction);
+
 extern void
-transactionSetGasLimit (BREthereumTransaction transaction,
-                        BREthereumGas gasLimit);
+transactionSetGasEstimate (BREthereumTransaction transaction,
+                           BREthereumGas gasEstimate);
 
 extern uint64_t
 transactionGetNonce (BREthereumTransaction transaction);

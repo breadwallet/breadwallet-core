@@ -24,9 +24,9 @@
 //  THE SOFTWARE.
 
 #include "BRBCashAddr.h"
-#include "BRAddress.h"
-#include "BRBase58.h"
-#include "BRCrypto.h"
+#include "support/BRAddress.h"
+#include "support/BRBase58.h"
+#include "support/BRCrypto.h"
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>

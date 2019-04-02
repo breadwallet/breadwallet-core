@@ -3,54 +3,21 @@
 //  breadwallet-core Ethereum
 //
 //  Created by Ed Gamble on 2/21/2018.
-//  Copyright (c) 2018 breadwallet LLC
+//  Copyright © 2018 Breadwinner AG.  All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #ifndef BR_Ethereum_Account_H
 #define BR_Ethereum_Account_H
 
+#include "support/BRInt.h"
+#include "support/BRKey.h"
+#include "BREthereumBase.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "BRKey.h"
-#include "../../support/BRInt.h"
-#include "BREthereumBase.h"
-
-//
-// Account
-//
-
-/**
- * The Bread App will have a single EthereumAccount for both Ether and all ERC20 tokens.  This
- * account is conceptually identical to the App's 'private key' derived from the User's 'paper
- * key'.  An EthereumAccount uses BIP32 (probably not BIP44) to generate addresses; and thus
- * the provided 'private key' must be suitable for BIP32.  [The 'private key` argument is likely
- * a BRMasterPubKey thingy]
- *
- * An EthereumAccount can generate an essentially arbitrary number of EthereumAddress-es.  However,
- * in Ethereum addresses are not a factor in privacy; therefore, we'll use one EthereumAddress per
- * EthereumWallet - all transactions for that wallet will use the same address.
- *
- */
-// typedef struct BREthereumAccountRecord *BREthereumAccount;
 
 /**
  * Create a new account using paperKey and the sharedWordList (see installSharedWordList).

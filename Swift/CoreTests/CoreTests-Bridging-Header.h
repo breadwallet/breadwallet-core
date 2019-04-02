@@ -1,7 +1,7 @@
 //
 //  Use this file to import your target's public headers that you would like to expose to Swift.
 //
-#include "BREthereum.h"
+#include "ethereum/BREthereum.h"
 
 // Bitcoin
 extern int BRRunSupTests (void);

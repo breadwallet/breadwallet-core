@@ -3,16 +3,17 @@
 //  CorePerf
 //
 //  Created by Ed Gamble on 10/11/18.
-//  Copyright © 2018 breadwallet. All rights reserved.
+//  Copyright © 2018 Breadwallet AG. All rights reserved.
+//
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
 
 #include <stdio.h>
 #include <unistd.h>
-#include "BREthereum.h"
-
-#include "BRBIP39WordsEn.h"
-
-#include "test.h"  // runSyncTest
+#include "support/BRBIP39WordsEn.h"
+#include "ethereum/BREthereum.h"
+#include "ethereum/test.h"  // runSyncTest
 
 extern BREthereumClient
 runEWM_createClient (void);

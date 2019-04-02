@@ -3,13 +3,12 @@
 //  CoreTests
 //
 //  Created by Ed Gamble on 7/23/18.
-//  Copyright © 2018 breadwallet. All rights reserved.
+//  Copyright © 2018 Breadwinner AG.  All rights reserved.
 //
 
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-
 #include "BREthereumBlockChain.h"
 
 //

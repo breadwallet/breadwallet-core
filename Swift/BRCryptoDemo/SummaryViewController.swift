@@ -3,7 +3,10 @@
 //  CoreDemo
 //
 //  Created by Ed Gamble on 7/26/18.
-//  Copyright © 2018 breadwallet. All rights reserved.
+//  Copyright © 2018 Breadwallet AG. All rights reserved.
+//
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
 
 import UIKit
@@ -117,7 +120,7 @@ class SummaryViewController: UITableViewController, WalletListener {
         case .balanceUpdated:
             guard wallets.contains(where: { $0 === wallet }) else { return }
             DispatchQueue.main.async {
-                let index = self.wallets.index(where: { $0 === wallet})!
+                let index = self.wallets.firstIndex(where: { $0 === wallet})!
                 let path = IndexPath (row: index, section: 0)
                 let cell = self.tableView.cellForRow(at: path) as! WalletTableViewCell
                 cell.updateView()
@@ -125,7 +128,7 @@ class SummaryViewController: UITableViewController, WalletListener {
         case .deleted:
             guard wallets.contains(where: { $0 === wallet} ) else { return }
             DispatchQueue.main.async {
-                let index = self.wallets.index(where: {$0 === wallet} )!
+                let index = self.wallets.firstIndex(where: {$0 === wallet} )!
                 self.wallets.remove(at: index)
 
                 let path = IndexPath (row: index, section: 0)

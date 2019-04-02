@@ -3,16 +3,15 @@
 //  CoreTests
 //
 //  Created by Ed Gamble on 7/23/18.
-//  Copyright © 2018 breadwallet. All rights reserved.
+//  Copyright © 2018 Breadwinner AG.  All rights reserved.
 //
 
 #include <stdio.h>
 #include <time.h>
 #include <assert.h>
 #include <unistd.h>
-
+#include "ethereum/event/BREventAlarm.h"
 #include "BREthereumEWMPrivate.h"
-#include "../event/BREventAlarm.h"
 
 //
 // EWM Tests

@@ -3,25 +3,10 @@
 //  breadwallet-core Ethereum
 //
 //  Created by Lamont Samuels on 5/01/18.
-//  Copyright (c) 2018 breadwallet LLC
+//  Copyright © 2018 Breadwinner AG.  All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include <string.h>
 #include <stdlib.h>
@@ -32,14 +17,11 @@
 #include <arpa/inet.h>
 #include <resolv.h>
 #include <netdb.h>
-
-#include "BRInt.h"
-#include "BRArray.h"
-
-#include "../rlp/BRRlp.h"
-#include "../util/BRUtil.h"
-#include "../base/BREthereumBase.h"
-
+#include "support/BRInt.h"
+#include "support/BRArray.h"
+#include "ethereum/rlp/BRRlp.h"
+#include "ethereum/util/BRUtil.h"
+#include "ethereum/base/BREthereumBase.h"
 #include "BREthereumLES.h"
 #include "BREthereumLESRandom.h"
 #include "BREthereumMessage.h"
@@ -292,12 +274,28 @@ requestsRelease (OwnershipGiven BRArrayOf(BREthereumLESRequest) requests) {
     }
 }
 
-///
 /// MARK: - LES
-///
 
 /**
- * LES
+ * An Ethereum LES handles Geth LESv2 and Parity PIPv1 messages sent on the Ethereum P2P network.
+ *
+ * LES operates on a single network and discovers nodes using the DIS (Discovery) Protocol.  LES
+ * attempts to identify a set number of nodes as neighbors - typically 100; these nodes are
+ * 'available'. LES also attempts to mainset a set number of active nodes - typically 3 or 4; these
+ * nodes are in a connected state and LES is receiving periodic block announcements.
+ *
+ * LES uses the active nodes for transaction submission.  (This is for a non-BRD_ONLY EWM mode).
+ *
+ * LES runs in its own thread and used events/messages and associated callbacks.
+ *
+ * The lesProvideXYZ functions are used by BCS to submit P2P requests to peers for processing.
+ * These functions have an explicit context+callback for results; because the data is provided
+ * asynchronously the context+callback needs to remain valid.
+ *
+ * The lesProvideXYZ functions provide a data abstracction over the specific node's light
+ * ethereum protocol.  Specifically, an individual node might be a GETH (LESv2) or a Parity (PIPv1)
+ * node with each type having protocol specific data structures, the lesProvideXYZ interface has
+ * an abstraction of the node specfic data.
  */
 struct BREthereumLESRecord {
 
@@ -330,7 +328,7 @@ struct BREthereumLESRecord {
     BRArrayOf(BREthereumNode) availableNodes;
 
     /** Active Nodes - a subset of `nodes` in a state of 'CONNECTED' or 'CONNECTING'.  We actively
-     * `select()` on these nodes to hanlde send/recv needs */
+     * `select()` on these nodes to handle send/recv needs */
     BRArrayOf(BREthereumNode) activeNodesByRoute[NUMBER_OF_NODE_ROUTES];
 
     /** Requests - pending, have not been provisioned to a node */
@@ -340,8 +338,8 @@ struct BREthereumLESRecord {
     BREthereumProvisionIdentifier requestsIdentifier;
 
     /** The block head, that we know about.  This is also represented in the `localEndpoint`
-     * status, except that their might be a lag (block head is updated by BCS through the LES
-     * interface, but the localEndpoint's status is updated as a 'safe point' in LES */
+     * status, except that there might be a lag (block head is updated by BCS through the LES
+     * interface, but the localEndpoint's status is updated as a 'safe point' in LES) */
     struct {
         BREthereumHash hash;
         uint64_t number;
@@ -426,9 +424,8 @@ lesEnsureNodeForEndpoint (BREthereumLES les,
     return node;
 }
 
-///
 /// MARK: - DNS Seeds
-///
+
 #if !defined (LES_BOOTSTRAP_LCL_ONLY)
 typedef struct {
     BREthereumLES les;
@@ -505,9 +502,8 @@ lesSeedQuery (BREthereumLESSeedContext *context) {
 }
 #endif
 
-//
-// MARK: - Public functions
-//
+/// MARK: - Public functions
+
 extern BREthereumLES
 lesCreate (BREthereumNetwork network,
            BREthereumLESCallbackContext callbackContext,
@@ -804,9 +800,8 @@ lesGetNodeHostname (BREthereumLES les,
                     BREthereumNodeReference node) {
     return nodeEndpointGetHostname (nodeGetRemoteEndpoint ((BREthereumNode) node));
 }
-///
+
 /// MARK: - LES Node Callbacks
-///
 
 /**
  * Handle a Node's Status message by invoking les->callbackStatus with the Node's head{Hash,Num}
@@ -955,9 +950,7 @@ lesHandleNeighbor (BREthereumLES les,
     nodeSetDiscovered(node, ETHEREUM_BOOLEAN_TRUE);
 }
 
-///
 /// MARK: - LES (Main) Thread
-///
 
 static void
 lesLogNodeActivate (BREthereumLES les,
@@ -1528,9 +1521,7 @@ lesThread (BREthereumLES les) {
     pthread_exit (0);
 }
 
-///
 /// MARK: - (Public) Provide (Headers, ...)
-///
 
 static void
 lesAddRequestSpecifically (BREthereumLES les,

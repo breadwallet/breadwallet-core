@@ -3,37 +3,21 @@
 //  breadwallet-core Ethereum
 //
 //  Created by Ed Gamble on 2/21/2018.
-//  Copyright (c) 2018 breadwallet LLC
+//  Copyright © 2018 Breadwinner AG.  All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "BRKey.h"
-#include "BRBIP32Sequence.h"
-#include "BRBIP39Mnemonic.h"
-#include "BRCrypto.h"
-#include "BRBase58.h"
-#include "BRBIP39WordsEn.h"
-
-#include "../base/BREthereumBase.h"
+#include "support/BRCrypto.h"
+#include "support/BRKey.h"
+#include "support/BRBIP32Sequence.h"
+#include "support/BRBIP39Mnemonic.h"
+#include "support/BRBase58.h"
+#include "support/BRBIP39WordsEn.h"
+#include "ethereum/base/BREthereumBase.h"
 #include "BREthereumAccount.h"
 
 #if defined(DEBUG)
@@ -70,6 +54,7 @@ installSharedWordList (const char *wordList[], int wordListLength) {
 }
 
 // Address Detail
+
 /**
  * An EthereumAddress is as '0x'-prefixed, hex-encoded string with an overall lenght of 42
  * characters.  Addresses can be explicitly provided - such as with a 'send to' addresses; or can
@@ -180,7 +165,10 @@ addressDetailFillRaw (BREthereumAddressDetail *address, const char *string) {
 // Account
 //
 struct BREthereumAccountRecord {
-    
+
+    /**
+     * The master public key derived from the seed as per BIP-32
+     */
     BRMasterPubKey masterPubKey;
     
     /**

@@ -3,31 +3,16 @@
 //  breadwallet-core Ethereum
 //
 //  Created by Ed Gamble on 3/23/2018.
-//  Copyright (c) 2018 breadwallet LLC
+//  Copyright © 2018 Breadwinner AG.  All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #ifndef BR_Ethereum_Block_H
 #define BR_Ethereum_Block_H
 
 #include <limits.h>
-#include "../base/BREthereumBase.h"
+#include "ethereum/base/BREthereumBase.h"
 #include "BREthereumTransaction.h"
 #include "BREthereumLog.h"
 #include "BREthereumAccountState.h"
@@ -37,8 +22,32 @@
 extern "C" {
 #endif
 
+/**
+ * An Ethereum Block header.
+ *
+ * As per (2018-05-04 https://ethereum.github.io/yellowpaper/paper.pdf). [Documentation from
+ * that reference].  The header consists of: {hash, paretnHash, ommersHash, beneficiary, stateRoot,
+ * transactionRoot, receiptsRoot, logsBloom, difficulty, number, gasLimit, gasUsed, timestamp,
+ * extraData, mixHash, nonce}.  Note: this nonce is not the account nonce but the 'mining nonce'.
+ */
 typedef struct BREthereumBlockHeaderRecord *BREthereumBlockHeader;
+
+/**
+ * An Ethereum Block
+ *
+ * As per the Etheruem specification: The block in Ethereum consists of: { header, transacctions,
+ * and ommers/uncles}.  To that we add: a block status - which is a complicated structure used
+ * during synchronization in order to gather all the needed, but intermediate, block state; the
+ * totalDifficulty - which is computed from checkpoints (in the worst case the generis block) by
+ * adding the difficulty of each individual block; and the next block - which provides the
+ * block chain through parents.
+ */
 typedef struct BREthereumBlockRecord *BREthereumBlock;
+    
+/**
+ * An Etheruem Proof of Work Struct holds intermediate state used in the Ethereum PoW algorithm
+ * used to validate blocks.
+ */
 typedef struct BREthereumProofOfWorkStruct *BREthereumProofOfWork;
 
 /// MARK: - Block Header
@@ -150,9 +159,8 @@ blockHeaderCopy (BREthereumBlockHeader source);
 extern void
 blockHeadersRelease (BRArrayOf(BREthereumBlockHeader) headers);
 
-    ///
-    /// MARK: CHT Root (Number)
-    ///
+/// MARK: - CHT Root (Number)
+
 /**
  * From Parity:
 
@@ -175,7 +183,7 @@ chtRootNumberGetFromNumber (uint64_t number);
 #define BLOCK_HEADER_CHT_ROOT_INTERVAL          (2048)
 #define BLOCK_HEADER_CHT_ROOT_INTERVAL_SHIFT    (11)          // 2048 == (1 << 11)
 
-/// MARK: Block
+/// MARK: - Block
 
 //
 // Block
@@ -308,11 +316,8 @@ blockReleaseForSet (void *ignore, void *item);
 extern void
 blocksRelease (OwnershipGiven BRArrayOf(BREthereumBlock) blocks);
 
+/// MARK: - Block Next (Chaining)
 
-//
-// MARK: - Block Next (Chaining)
-//
-    
 #define BLOCK_NEXT_NONE   ((BREthereumBlock) 0)
 
 extern BREthereumBlock
@@ -346,18 +351,14 @@ blockBodyPairRelease (BREthereumBlockBodyPair *pair);
 extern void
 blockBodyPairsRelease (BRArrayOf(BREthereumBlockBodyPair) pairs);
 
-///
 /// MARK: - Block Header Proof
-///
 
 typedef struct {
     BREthereumHash hash;
     UInt256 totalDifficulty;
 } BREthereumBlockHeaderProof;
 
-///
 /// MARK: - Block Status
-///
 
 typedef enum {
     BLOCK_REQUEST_NOT_NEEDED,
@@ -494,9 +495,7 @@ blockReleaseStatus (BREthereumBlock block,
                     BREthereumBoolean releaseTransactions,
                     BREthereumBoolean releaseLogs);
 
-//
-// MARK: - Block Decoding for LES
-//
+/// MARK: - Block Decoding for LES
 
 /**
  * Return BRArrayOf(BREthereumBlockHeader) w/ array owned by caller.
@@ -568,9 +567,8 @@ blockCheckpointCreatePartialBlockHeader (const BREthereumBlockCheckpoint *checkp
 private_extern void
 blockFree (BREthereumBlock block);
 
-///
 /// MARK: - Proof of Work
-///
+
 extern BREthereumProofOfWork
 proofOfWorkCreate (void);
 

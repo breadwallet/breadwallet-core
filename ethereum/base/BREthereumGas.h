@@ -3,30 +3,15 @@
 //  breadwallet-core Ethereum
 //
 //  Created by Ed Gamble on 2/24/18.
-//  Copyright (c) 2018 breadwallet LLC
+//  Copyright © 2018 Breadwinner AG.  All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #ifndef BR_Ethereum_Gas_H
 #define BR_Ethereum_Gas_H
 
-#include "../../support/BRInt.h"
+#include "support/BRInt.h"
 #include "BREthereumEther.h"
 
 #ifdef __cplusplus
@@ -34,7 +19,8 @@ extern "C" {
 #endif
 
 /**
- * Ethereum Gas is a measure of the work associated with a transaction.
+ * Ethereum Gas is a measure of the work associated with a transaction.  Transactions submitted to
+ * the Ethereum P2P network require computation; gas is a measure of that computation.
  */
 typedef struct BREthereumGasStruct {
     uint64_t amountOfGas;
@@ -53,11 +39,11 @@ extern BREthereumGas
 gasRlpDecode (BRRlpItem item, BRRlpCoder coder);
 
 /**
- * Ethereum Gas Price is the amount of Ether for on Gas - aka Ether/Gas.  The total cost for
+ * Ethereum Gas Price is the amount of Ether for one Gas - aka Ether/Gas.  The total cost for
  * an Ethereum transaction is the Gas Price * Gas (used).
  *
  * "If you Gas Price is too low, nobody will process your transaction".  You'll want a Gas Price
- * that is high enough to ensure the transaction is process within your desired time frame; but
+ * that is high enough to ensure the transaction is processed within your desired time frame; but
  * not so high that you overpay with no advantage (in confirmation time).
  */
 typedef struct BREthereumGasPriceStruct {

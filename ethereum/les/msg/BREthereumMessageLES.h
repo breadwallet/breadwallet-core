@@ -3,34 +3,20 @@
 //  BRCore
 //
 //  Created by Ed Gamble on 9/1/18.
-//  Copyright (c) 2018 breadwallet LLC
+//  Copyright © 2018 Breadwinner AG.  All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #ifndef BR_Ethereum_Message_LES_H
 #define BR_Ethereum_Message_LES_H
 
+#include "ethereum/mpt/BREthereumMPT.h"
+#include "ethereum/blockchain/BREthereumBlock.h"
+#include "ethereum/blockchain/BREthereumTransactionReceipt.h"
 #include "../BREthereumLESBase.h"
-#include "../../mpt/BREthereumMPT.h"
-#include "../../blockchain/BREthereumBlock.h"
-#include "../../blockchain/BREthereumTransactionReceipt.h"
 #include "BREthereumMessageP2P.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -127,7 +113,7 @@ messageLESAnnounceConsume (BREthereumLESMessageAnnounce *message,
 //            else *pairs = message->pairs;
 //    }
 
-    /// MARK: LES Get Block Headers
+/// MARK: LES Get Block Headers
 
 /**
  * A LES Get Block Headers Message ...
@@ -270,11 +256,13 @@ messageLESProofsConsume (BREthereumLESMessageProofs *message,
                          BRArrayOf(BREthereumMPTNodePath) *paths);
 
 /// MARK: LES GetContractCodes
+
 typedef struct {
     uint64_t reqId;
 } BREthereumLESMessageGetContractCodes;
 
 /// MARK: LES ContractCodes
+
 typedef struct {
     uint64_t reqId;
     uint64_t bv;
@@ -320,12 +308,14 @@ messageLESHeaderProofsConsume (BREthereumLESMessageHeaderProofs *message,
                                BRArrayOf(BREthereumMPTNodePath) *paths);
 
 /// MARK: LES GetProofsV2
+
 typedef struct {
     uint64_t reqId;
     BRArrayOf(BREthereumLESMessageGetProofsSpec) specs;
 } BREthereumLESMessageGetProofsV2;
 
 /// MARK: LES ProofsV2
+
 typedef struct {
     uint64_t reqId;
     uint64_t bv;
@@ -334,11 +324,13 @@ typedef struct {
 
 
 /// MARK: LES GetHelperTrieProofs
+
 typedef struct {
     uint64_t reqId;
 } BREthereumLESMessageGetHelperTrieProofs;
 
 /// MARK: LES HelperTrieProofs
+    
 typedef struct {
     uint64_t reqId;
     uint64_t bv;

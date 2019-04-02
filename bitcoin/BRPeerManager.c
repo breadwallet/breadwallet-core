@@ -2039,21 +2039,3 @@ void BRPeerManagerFree(BRPeerManager *manager)
     pthread_mutex_destroy(&manager->lock);
     free(manager);
 }
-
-const BRChainParams *bitcoinParams (int mainnet) {
-    return mainnet ? BRMainNetParams : BRTestNetParams;
-}
-
-const BRChainParams *bitcashParams (int mainnet) {
-
-    return mainnet ? BRBCashParams : BRBCashTestNetParams;
-}
-
-char *u256HashToString (UInt256 hash) {
-    char result[67];
-    result[0] = '0';
-    result[1] = 'x';
-    strcpy (&result[2], u256hex(hash));
-    return strdup (result);
-}
-

@@ -3,25 +3,10 @@
 //  breadwallet-core Ethereum
 //
 //  Created by Lamont Samuels on 4/16/18.
-//  Copyright (c) 2018 breadwallet LLC
+//  Copyright © 2018 Breadwinner AG.  All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,17 +23,15 @@
 #include <arpa/inet.h>
 #include <assert.h>
 #include <regex.h>
-#include "BRInt.h"
-#include "BRCrypto.h"
-#include "../base/BREthereumHash.h"
-#include "../blockchain/BREthereumNetwork.h"
+#include "support/BRInt.h"
+#include "support/BRCrypto.h"
+#include "ethereum/base/BREthereumHash.h"
+#include "ethereum/blockchain/BREthereumNetwork.h"
+#include "BREthereumLESRandom.h"
 #include "BREthereumLES.h"
 #include "BREthereumNode.h"
 
-#include "BREthereum.h"
-#include "../ewm/BREthereumEWM.h"
-#include "BREthereumLESRandom.h"
-#include "../ewm/BREthereumAccount.h"
+#include "ethereum/BREthereum.h"
 
 #define TST_LOG_TOPIC    "TST"
 
@@ -60,7 +43,7 @@
 #define LES_LOCAL_ENDPOINT_UDP_PORT   DEFAULT_UDPPORT
 #define LES_LOCAL_ENDPOINT_NAME       "BRD Light Client"
 
-/// MARK: Node Test
+/// MARK: - Node Test
 
 #pragma clang diagnostic push
 #pragma GCC diagnostic push
@@ -857,6 +840,8 @@ static void run_GetProofsV2_Tests(BREthereumLES les){
 //
 // Test GetAccountState
 //
+#if 0
+
 static int _GetAccount_Context1 = 0;
 static void _GetAccountState_Callback_Test1 (BREthereumLESProvisionContext context,
                                              BREthereumLES les,
@@ -947,7 +932,7 @@ static void run_GetAccountState_Tests (BREthereumLES les){
     _waitForTests();
     eth_log(TST_LOG_TOPIC, "GetAccopuntState: %s", "Tests Successful");
 }
-
+#endif
 
 //
 //  Testing SendTx and SendTxV2 message
@@ -1083,6 +1068,7 @@ void _GetBlockHeaders_0_1 (BREthereumLESProvisionContext context,
     _signalTestComplete();
 }
 
+#if 0
 static void
 run_GetSomeHeaders (BREthereumLES les) {
     _initTest(1);
@@ -1093,7 +1079,9 @@ run_GetSomeHeaders (BREthereumLES les) {
                             2, 0, ETHEREUM_BOOLEAN_FALSE);
     _waitForTests();
 }
+#endif
 
+#if 0
 typedef struct {
     BREthereumBlockHeader header;
     BRArrayOf (BREthereumTransaction) transactions;
@@ -1132,6 +1120,7 @@ _GetSomeBlocks_Header (BREthereumLESProvisionContext context,
     _signalTestComplete();
 
 }
+
 static void
 run_GetSomeBlocks (BREthereumLES les) {
     SomeHeaderData block_data;
@@ -1157,6 +1146,7 @@ run_GetSomeBlocks (BREthereumLES les) {
 
     free (hex); rlpReleaseItem (coder, item);
 }
+#endif
 
 extern void
 runLESTests (const char *paperKey) {

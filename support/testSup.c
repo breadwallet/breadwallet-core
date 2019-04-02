@@ -3,7 +3,7 @@
 //  CoreTests
 //
 //  Created by Ed Gamble on 1/25/19.
-//  Copyright © 2019 breadwallet. All rights reserved.
+//  Copyright © 2019 breadwallet LLC
 //
 
 #include <stdio.h>
@@ -16,10 +16,8 @@
 #include "BRFileService.h"
 #include "BRAssert.h"
 
+/// MARK: - File Service Tests
 
-///
-/// MARK: File Service Tests
-///
 static int
 _remove(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf)
 {
@@ -42,9 +40,8 @@ fileServiceTestDone (char *path, int success) {
     return success;
 }
 
-///
 /// MARK: - File Service Tests
-///
+
 static int runSupFileServiceTests (void) {
     printf ("==== SUP:FileService\n");
 
@@ -100,9 +97,8 @@ static int runSupFileServiceTests (void) {
     return fileServiceTestDone(path, 1);
 }
 
-///
 /// MARK: - Assert Tests
-///
+
 #include <pthread.h>
 
 #define DEFAULT_WORKERS     (5)

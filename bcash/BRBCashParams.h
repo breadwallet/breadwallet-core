@@ -25,9 +25,13 @@
 #ifndef BRBCashParams_h
 #define BRBCashParams_h
 
-#include "BRChainParams.h"
+#include "bitcoin/BRChainParams.h"
 
 extern const BRChainParams *BRBCashParams;
 extern const BRChainParams *BRBCashTestNetParams;
+
+static inline const BRChainParams *BRChainParamsGetBitcash (int mainnet) {
+    return mainnet ? BRBCashParams : BRBCashTestNetParams;
+}
 
 #endif // BRChainParams_h
