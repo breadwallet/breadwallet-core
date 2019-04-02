@@ -65,7 +65,7 @@ extern "C" {
     cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                BRCryptoAccount account,
                                BRCryptoNetwork network,
-                               BRCryptoSyncMode mode,
+                               BRSyncMode mode,
                                const char *path);
 
     extern BRCryptoNetwork
@@ -74,7 +74,7 @@ extern "C" {
     extern BRCryptoAccount
     cryptoWalletManagerGetAccount (BRCryptoWalletManager cwm);
 
-    extern BRCryptoSyncMode
+    extern BRSyncMode
     cryptoWalletManagerGetMode (BRCryptoWalletManager cwm);
 
     extern const char *

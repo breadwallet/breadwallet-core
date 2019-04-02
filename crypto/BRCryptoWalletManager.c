@@ -88,7 +88,7 @@ struct BRCryptoWalletManagerRecord {
     BRCryptoCWMListener listener;
     BRCryptoNetwork network;
     BRCryptoAccount account;
-    BRCryptoSyncMode mode;
+    BRSyncMode mode;
 
     /// The primary wallet
     BRCryptoWallet wallet;
@@ -103,7 +103,7 @@ cryptoWalletManagerCreateInternal (BRCryptoCWMListener listener,
                                    BRCryptoAccount account,
                                    BRCryptoBlockChainType type,
                                    BRCryptoNetwork network,
-                                   BRCryptoSyncMode mode,
+                                   BRSyncMode mode,
                                    char *path) {
     BRCryptoWalletManager cwm = malloc (sizeof (struct BRCryptoWalletManagerRecord));
 
@@ -124,7 +124,7 @@ extern BRCryptoWalletManager
 cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                            BRCryptoAccount account,
                            BRCryptoNetwork network,
-                           BRCryptoSyncMode mode,
+                           BRSyncMode mode,
                            const char *path) {
     // ?? extend path... with network-type : network-name
     // ?? done by ewmCreate()?
@@ -154,6 +154,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                              cryptoAccountAsBTC (account),
                                              cryptoNetworkAsBTC (network),
                                              (uint32_t) cryptoAccountGetTimestamp(account),
+                                             mode,
                                              cwmPath);
 
             cwm->wallet = cryptoWalletCreateAsBTC (unit, unit, BRWalletManagerGetWallet (cwm->u.btc));
@@ -218,7 +219,7 @@ cryptoWalletManagerGetAccount (BRCryptoWalletManager cwm) {
     return cwm->account;
 }
 
-extern BRCryptoSyncMode
+extern BRSyncMode
 cryptoWalletManagerGetMode (BRCryptoWalletManager cwm) {
     return cwm->mode;
 }

@@ -21,9 +21,25 @@
 #include "BRChainParams.h"
 #include "bcash/BRBCashParams.h"
 
-#include "../support/BRFileService.h"
+#include "support/BRFileService.h"
+#include "ethereum/event/BREvent.h"
+#include "ethereum/event/BREventAlarm.h"
+
+#define BWM_SLEEP_SECONDS       (5 * 60)                  // 5 minutes
+
+// When using a BRD sync, offset the start block by N days of Bitcoin blocks; the value of N is
+// assumed to be 'the maximum number of days that the blockchain DB could be behind'
+#define BWM_MINUTES_PER_BLOCK                   10              // assumed, bitcoin
+#define BWM_BRD_SYNC_DAYS_OFFSET                 3
+#define BWM_BRD_SYNC_START_BLOCK_OFFSET        ((BWM_BRD_SYNC_DAYS_OFFSET * 24 * 60) / BWM_MINUTES_PER_BLOCK)
 
 /* Forward Declarations */
+static void
+bwmPeriodicDispatcher (BREventHandler handler,
+                       BREventTimeout *event);
+
+extern const BREventType *bwmEventTypes[];
+extern const unsigned int bwmEventTypesCount;
 
 static void _BRWalletManagerBalanceChanged (void *info, uint64_t balanceInSatoshi);
 static void _BRWalletManagerTxAdded   (void *info, BRTransaction *tx);
@@ -80,11 +96,51 @@ getForkId (const BRChainParams *params) {
 /// MARK: - BRWalletManager
 
 struct BRWalletManagerStruct {
-    //BRWalletForkId walletForkId;
+    BRSyncMode mode;
+
     BRFileService fileService;
     BRWallet *wallet;
     BRPeerManager  *peerManager;
     BRWalletManagerClient client;
+
+    //BRWalletForkId walletForkId;
+
+    /// MARK: Mode Changes
+
+    /**
+     * The BlockHeight is the largest block number seen
+     */
+    uint64_t blockHeight;
+
+    /**
+     * An identiifer for a BRD Request
+     */
+    unsigned int requestId;
+
+
+    /**
+     * An EventHandler for Main.  All 'announcements' (via PeerManager (or BRD) hit here.
+     */
+    BREventHandler handler;
+
+    /**
+     * The Lock ensuring single thread access to BWM state.
+     */
+    pthread_mutex_t lock;
+
+    /**
+     * If we are syncing with BRD, instead of as P2P with PeerManager, then we'll keep a record to
+     * ensure we've successfully completed the getTransactions() callbacks to the client.
+     */
+    struct {
+        uint64_t begBlockNumber;
+        uint64_t endBlockNumber;
+
+        int rid;
+
+        int completed:1;
+    } brdSync;
+
 };
 
 /// MARK: - Transaction File Service
@@ -370,60 +426,78 @@ BRWalletManagerNew (BRWalletManagerClient client,
                     BRMasterPubKey mpk,
                     const BRChainParams *params,
                     uint32_t earliestKeyTime,
+                    BRSyncMode mode,
                     const char *baseStoragePath) {
-    BRWalletManager manager = malloc (sizeof (struct BRWalletManagerStruct));
-    if (NULL == manager) return bwmCreateErrorHandler (NULL, 0, "allocate");
+    BRWalletManager bwm = malloc (sizeof (struct BRWalletManagerStruct));
+    if (NULL == bwm) return bwmCreateErrorHandler (NULL, 0, "allocate");
 
-//    manager->walletForkId = fork;
-    manager->client = client;
+    bwm->mode = mode;
+    bwm->client = client;
 
     BRWalletForkId fork = getForkId (params);
     const char *networkName  = getNetworkName  (params);
     const char *currencyName = getCurrencyName (params);
+    //    manager->walletForkId = fork;
+
+    // Initialize the `brdSync` struct
+    bwm->brdSync.rid = -1;
+    bwm->brdSync.begBlockNumber = 0;
+    bwm->brdSync.endBlockNumber = 0;
+    bwm->brdSync.completed = 0;
+
+    // Create the alarm clock, but don't start it.
+    alarmClockCreateIfNecessary(0);
+
+    // The `main` event handler has a periodic wake-up.  Used, perhaps, if the mode indicates
+    // that we should/might query the BRD backend services.
+    bwm->handler = eventHandlerCreate ("Core Bitcoin BWM",
+                                       bwmEventTypes,
+                                       bwmEventTypesCount,
+                                       &bwm->lock);
 
     //
     // Create the File Service w/ associated types.
     //
-    manager->fileService = fileServiceCreate (baseStoragePath, currencyName, networkName, 
-                                              manager,
+    bwm->fileService = fileServiceCreate (baseStoragePath, currencyName, networkName, 
+                                              bwm,
                                               bwmFileServiceErrorHandler);
-    if (NULL == manager->fileService) return bwmCreateErrorHandler (manager, 1, "create");
+    if (NULL == bwm->fileService) return bwmCreateErrorHandler (bwm, 1, "create");
 
     /// Transaction
-    if (1 != fileServiceDefineType (manager->fileService, fileServiceTypeTransactions, WALLET_MANAGER_TRANSACTION_VERSION_1,
-                                    (BRFileServiceContext) manager,
+    if (1 != fileServiceDefineType (bwm->fileService, fileServiceTypeTransactions, WALLET_MANAGER_TRANSACTION_VERSION_1,
+                                    (BRFileServiceContext) bwm,
                                     fileServiceTypeTransactionV1Identifier,
                                     fileServiceTypeTransactionV1Reader,
                                     fileServiceTypeTransactionV1Writer) ||
-        1 != fileServiceDefineCurrentVersion (manager->fileService, fileServiceTypeTransactions,
+        1 != fileServiceDefineCurrentVersion (bwm->fileService, fileServiceTypeTransactions,
                                               WALLET_MANAGER_TRANSACTION_VERSION_1))
-        return bwmCreateErrorHandler (manager, 1, fileServiceTypeTransactions);
+        return bwmCreateErrorHandler (bwm, 1, fileServiceTypeTransactions);
 
     /// Block
-    if (1 != fileServiceDefineType (manager->fileService, fileServiceTypeBlocks, WALLET_MANAGER_BLOCK_VERSION_1,
-                                    (BRFileServiceContext) manager,
+    if (1 != fileServiceDefineType (bwm->fileService, fileServiceTypeBlocks, WALLET_MANAGER_BLOCK_VERSION_1,
+                                    (BRFileServiceContext) bwm,
                                     fileServiceTypeBlockV1Identifier,
                                     fileServiceTypeBlockV1Reader,
                                     fileServiceTypeBlockV1Writer) ||
-        1 != fileServiceDefineCurrentVersion (manager->fileService, fileServiceTypeBlocks,
+        1 != fileServiceDefineCurrentVersion (bwm->fileService, fileServiceTypeBlocks,
                                               WALLET_MANAGER_BLOCK_VERSION_1))
-        return bwmCreateErrorHandler (manager, 1, fileServiceTypeBlocks);
+        return bwmCreateErrorHandler (bwm, 1, fileServiceTypeBlocks);
 
     /// Peer
-    if (1 != fileServiceDefineType (manager->fileService, fileServiceTypePeers, WALLET_MANAGER_PEER_VERSION_1,
-                                    (BRFileServiceContext) manager,
+    if (1 != fileServiceDefineType (bwm->fileService, fileServiceTypePeers, WALLET_MANAGER_PEER_VERSION_1,
+                                    (BRFileServiceContext) bwm,
                                     fileServiceTypePeerV1Identifier,
                                     fileServiceTypePeerV1Reader,
                                     fileServiceTypePeerV1Writer) ||
-        1 != fileServiceDefineCurrentVersion (manager->fileService, fileServiceTypePeers,
+        1 != fileServiceDefineCurrentVersion (bwm->fileService, fileServiceTypePeers,
                                               WALLET_MANAGER_PEER_VERSION_1))
-        return bwmCreateErrorHandler (manager, 1, fileServiceTypePeers);
+        return bwmCreateErrorHandler (bwm, 1, fileServiceTypePeers);
 
     /// Load transactions for the wallet manager.
-    BRArrayOf(BRTransaction*) transactions = initialTransactionsLoad(manager);
+    BRArrayOf(BRTransaction*) transactions = initialTransactionsLoad(bwm);
     /// Load blocks and peers for the peer manager.
-    BRArrayOf(BRMerkleBlock*) blocks = initialBlocksLoad(manager);
-    BRArrayOf(BRPeer) peers = initialPeersLoad(manager);
+    BRArrayOf(BRMerkleBlock*) blocks = initialBlocksLoad(bwm);
+    BRArrayOf(BRPeer) peers = initialPeersLoad(bwm);
 
     // If any of these are NULL, then there was a failure; on a failure they all need to be cleared
     // which will cause a *FULL SYNC*
@@ -438,18 +512,18 @@ BRWalletManagerNew (BRWalletManagerClient client,
         else array_clear(peers);
     }
 
-    manager->wallet = BRWalletNew (transactions, array_count(transactions), mpk, fork);
-    BRWalletSetCallbacks (manager->wallet, manager,
+    bwm->wallet = BRWalletNew (transactions, array_count(transactions), mpk, fork);
+    BRWalletSetCallbacks (bwm->wallet, bwm,
                           _BRWalletManagerBalanceChanged,
                           _BRWalletManagerTxAdded,
                           _BRWalletManagerTxUpdated,
                           _BRWalletManagerTxDeleted);
     
 
-    manager->peerManager = BRPeerManagerNew (params, manager->wallet, earliestKeyTime,
-                                             blocks, array_count(blocks),
-                                             peers,  array_count(peers));
-    BRPeerManagerSetCallbacks (manager->peerManager, manager,
+    bwm->peerManager = BRPeerManagerNew (params, bwm->wallet, earliestKeyTime,
+                                         blocks, array_count(blocks),
+                                         peers,  array_count(peers));
+    BRPeerManagerSetCallbacks (bwm->peerManager, bwm,
                                _BRWalletManagerSyncStarted,
                                _BRWalletManagerSyncStopped,
                                _BRWalletManagerTxStatusUpdate,
@@ -458,22 +532,78 @@ BRWalletManagerNew (BRWalletManagerClient client,
                                _BRWalletManagerNetworkIsReachabele,
                                _BRWalletManagerThreadCleanup);
 
+
+    // Support the requested mode.  We already created the BRPeerManager.  But we might consider
+    // only creating the BRPeerManager for modes where it is used (all modes besides BRD_ONLY).
+    // And, we might consider not populating the BRPeerMangaer with blocks for modes where they
+    // are not used (BRD_ONLY and BRD_WITH_P2P_SEND).
+    switch (bwm->mode) {
+        case SYNC_MODE_BRD_ONLY:
+        case SYNC_MODE_BRD_WITH_P2P_SEND: {
+            // Create a 'special' peer manager.
+            // <code removed>
+            
+            // Announce all the provided transactions...
+            // <code removed>
+            
+            // ... and then the latest block.
+            //            BREthereumBlock lastBlock = NULL;
+            //            FOR_SET (BREthereumBlock, block, blocks)
+            //            if (NULL == lastBlock || blockGetNumber(lastBlock) < blockGetNumber(block))
+            //                lastBlock = block;
+            //            ewmSignalBlockChain (ewm,
+            //                                 blockGetHash( lastBlock),
+            //                                 blockGetNumber (lastBlock),
+            //                                 blockGetTimestamp (lastBlock));
+            
+            // ... and then just ignore nodes
+            // <code removed>
+            
+            // Free sets... BUT DO NOT free 'nodes' as those had 'OwnershipGiven' in bcsCreate()
+            // <code removed>
+            
+            // Add ewmPeriodicDispatcher to handlerForMain.  Note that a 'timeout' is handled by
+            // an OOB (out-of-band) event whereby the event is pushed to the front of the queue.
+            // This may not be the right thing to do.  Imagine that EWM is blocked somehow (doing
+            // a time consuming calculation) and two 'timeout events' occur - the events will be
+            // queued in the wrong order (second before first).
+            //
+            // The function `ewmPeriodcDispatcher()` will be installed as a periodic alarm
+            // on the event handler.  It will only trigger when the event handler is running (
+            // the time between `eventHandlerStart()` and `eventHandlerStop()`)
+            
+            eventHandlerSetTimeoutDispatcher (bwm->handler,
+                                              1000 * BWM_SLEEP_SECONDS,
+                                              (BREventDispatcher) bwmPeriodicDispatcher,
+                                              (void*) bwm);
+            
+            break;
+        }
+            
+        case SYNC_MODE_P2P_WITH_BRD_SYNC:  //
+        case SYNC_MODE_P2P_ONLY: {
+            // Create a 'special' peer manager
+            // <code removed>
+            break;
+        }
+    }
+    
     array_free(transactions); array_free(blocks); array_free(peers);
-
-    manager->client.funcWalletManagerEvent (manager->client.context,
-                                            manager,
-                                            (BRWalletManagerEvent) {
-                                                BITCOIN_WALLET_MANAGER_CREATED
-                                            });
-
-    manager->client.funcWalletEvent (manager->client.context,
-                                     manager,
-                                     manager->wallet,
-                                     (BRWalletEvent) {
-                                         BITCOIN_WALLET_CREATED
-                                     });
-
-    return manager;
+    
+    bwm->client.funcWalletManagerEvent (bwm->client.context,
+                                        bwm,
+                                        (BRWalletManagerEvent) {
+                                            BITCOIN_WALLET_MANAGER_CREATED
+                                        });
+    
+    bwm->client.funcWalletEvent (bwm->client.context,
+                                 bwm,
+                                 bwm->wallet,
+                                 (BRWalletEvent) {
+                                     BITCOIN_WALLET_CREATED
+                                 });
+    
+    return bwm;
 }
 
 extern void
@@ -652,3 +782,91 @@ _BRWalletManagerThreadCleanup (void *info) {
 
     // event
 }
+
+///
+/// MARK: Events
+//
+
+static void
+bwmUpdateBlockNumber (BRWalletManager bwm) {
+
+}
+
+static void
+bwmUpdateTransactions (BRWalletManager bwm) {
+
+}
+
+const BREventType *bwmEventTypes[] = {
+//    &handleBlockChainEventType,
+//    &handleAccountStateEventType,
+//    &handleBalanceEventType,
+//    &handleGasPriceEventType,
+//    &handleGasEstimateEventType,
+//    &handleTransactionEventType,
+//    &handleLogEventType,
+//    &handleSaveBlocksEventType,
+//    &handleSaveNodesEventType,
+//    &handleSyncEventType,
+//    &handleGetBlocksEventType,
+//
+//    &ewmClientWalletEventType,
+//    //    &ewmClientBlockEventType,
+//    &ewmClientTransactionEventType,
+//    &ewmClientPeerEventType,
+//    &ewmClientEWMEventType,
+//    &ewmClientAnnounceBlockNumberEventType,
+//    &ewmClientAnnounceNonceEventType,
+//    &ewmClientAnnounceBalanceEventType,
+//    &ewmClientAnnounceGasPriceEventType,
+//    &ewmClientAnnounceGasEstimateEventType,
+//    &ewmClientAnnounceSubmitTransferEventType,
+//    &ewmClientAnnounceTransactionEventType,
+//    &ewmClientAnnounceLogEventType,
+//    &ewmClientAnnounceCompleteEventType,
+//    &ewmClientAnnounceTokenEventType,
+//    &ewmClientAnnounceTokenCompleteEventType,
+};
+
+const unsigned int
+bwmEventTypesCount = (sizeof (bwmEventTypes) / sizeof (BREventType*));
+
+//
+// Periodicaly query the BRD backend to get current status (block number, nonce, balances,
+// transactions and logs) The event will be NULL (as specified for a 'period dispatcher' - See
+// `eventHandlerSetTimeoutDispatcher()`)
+//
+static void
+bwmPeriodicDispatcher (BREventHandler handler,
+                       BREventTimeout *event) {
+    BRWalletManager ewm = (BRWalletManager) event->context;
+
+//    if (ewm->state != LIGHT_NODE_CONNECTED) return;
+    if (SYNC_MODE_P2P_ONLY == ewm->mode || SYNC_MODE_P2P_WITH_BRD_SYNC == ewm->mode) return;
+
+    bwmUpdateBlockNumber(ewm);
+//    ewmUpdateNonce(ewm);
+
+    // Handle a BRD Sync:
+
+    // 1) check if the prior sync has completed.
+    if (ewm->brdSync.completed) {
+        // 1a) if so, advance the sync range by updating `begBlockNumber`
+        ewm->brdSync.begBlockNumber = (ewm->brdSync.endBlockNumber >=  BWM_BRD_SYNC_START_BLOCK_OFFSET
+                                       ? ewm->brdSync.endBlockNumber - BWM_BRD_SYNC_START_BLOCK_OFFSET
+                                       : 0);
+    }
+    // 2) completed or not, update the `endBlockNumber` to the current block height.
+    ewm->brdSync.endBlockNumber = ewm->blockHeight;
+
+    // 3) We'll query all transactions for this ewm's account.  That will give us a shot at
+    // getting the nonce for the account's address correct.  We'll save all the transactions and
+    // then process them into wallet as wallets exist.
+    bwmUpdateTransactions(ewm);
+    // Note: we don't do the following  `ewmUpdateTransactions` because that is `extern`
+    ewm->brdSync.rid = ewm->requestId;
+    ewm->brdSync.completed = 0;
+
+    // End handling a BRD Sync
+}
+

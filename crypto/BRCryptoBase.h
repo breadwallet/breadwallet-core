@@ -28,7 +28,7 @@
 
 #include <inttypes.h>
 #include <stdatomic.h>
-
+#include "support/BRSyncMode.h"
 // temporary
 #include <stdio.h>
 
@@ -51,13 +51,6 @@ extern "C" {
         BLOCK_CHAIN_TYPE_ETH,
         BLOCK_CHAIN_TYPE_GEN
     } BRCryptoBlockChainType;
-
-    typedef enum {
-        SYNC_MODE_BRD_ONLY,
-        SYNC_MODE_BRD_WITH_P2P_SEND,
-        SYNC_MODE_P2P_WITH_BRD_SYNC,
-        SYNC_MODE_P2P_ONLY
-    } BRCryptoSyncMode;
 
     /// MARK: Reference Counting
 

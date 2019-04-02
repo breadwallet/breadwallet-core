@@ -1,8 +1,8 @@
 //
-//  BRCryptoSystem.h
+//  BRSyncMode.c
 //  BRCore
 //
-//  Created by Ed Gamble on 3/22/19.
+//  Created by Ed Gamble on 3/18/19.
 //  Copyright © 2019 breadwallet. All rights reserved.
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -22,41 +22,6 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
+//
 
-#ifndef BRCryptoSystem_h
-#define BRCryptoSystem_h
-
-#include "BRCryptoNetwork.h"
-#include "BRCryptoCurrency.h"
-#include "BRCryptoWalletManager.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-    typedef struct BRCryptoSystemRecord *BRCryptoSystem;
-
-    extern BRCryptoSystem
-    cryptoSystemCreate (BRCryptoAccount account,
-                        const char *path);
-
-    extern const char *
-    cryptoSystemGetPersistencePath (BRCryptoSystem system);
-    
-    extern void
-    cryptoSystemStart (BRCryptoSystem system);
-
-    extern void
-    cryptoSystemStop (BRCryptoSystem system);
-
-    extern BRCryptoWalletManager
-    cryptoSystemCreateWalletManager (BRCryptoSystem system,
-                                     BRCryptoCurrency currency,
-                                     BRCryptoNetwork network,
-                                     BRSyncMode mode);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* BRCryptoSystem_h */
+#include "BRSyncMode.h"

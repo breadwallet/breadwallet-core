@@ -180,7 +180,7 @@ extern BRCryptoWalletManager
 cryptoSystemCreateWalletManager (BRCryptoSystem system,
                                  BRCryptoCurrency currency,
                                  BRCryptoNetwork network,
-                                 BRCryptoSyncMode mode) {
+                                 BRSyncMode mode) {
 
     return NULL;
 }

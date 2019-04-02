@@ -2090,14 +2090,12 @@ ewmPeriodicDispatcher (BREventHandler handler,
     // getting the nonce for the account's address correct.  We'll save all the transactions and
     // then process them into wallet as wallets exist.
     ewmUpdateTransactions(ewm);
-    // Note: we don't do the following  `ewmUpdateTransactions` because that is `extern`
     ewm->brdSync.ridTransaction = ewm->requestId;
     ewm->brdSync.completedTransaction = 0;
     
     // 4) Similarly, we'll query all logs for this ewm's account.  We'll process these into
     // (token) transactions and associate with their wallet.
     ewmUpdateLogs(ewm, NULL, eventERC20Transfer);
-    // Note: we don't do the following  `ewmUpdateLogs because that is `extern`
     ewm->brdSync.ridLog = ewm->requestId;
     ewm->brdSync.completedLog = 0;
 

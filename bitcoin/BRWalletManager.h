@@ -34,6 +34,8 @@
 #include "BRWallet.h"
 #include "BRPeerManager.h"          // Unneeded, if we shadow some functions (connect,disconnect,scan)
 
+#include "support/BRSyncMode.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -136,6 +138,7 @@ BRWalletManagerNew (BRWalletManagerClient client,
                     BRMasterPubKey mpk,
                     const BRChainParams *params,
                     uint32_t earliestKeyTime,
+                    BRSyncMode mode,
                     const char *storagePath);
 
 extern void
