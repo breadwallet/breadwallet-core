@@ -31,8 +31,8 @@ class CoreDemoListener: SystemListener {
             let _ = system.createWalletManager (network: network,
                                                 mode: WalletManagerMode.api_only)
 
-        case .managerAdded: // (let manager)
-            break
+        case .managerAdded (let manager):
+            manager.connect()
 
         }
     }

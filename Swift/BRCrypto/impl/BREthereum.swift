@@ -380,44 +380,47 @@ class EthereumWalletManager: WalletManager {
 
             funcGetGasPrice: { (context, coreEWM, wid, rid) in
                 let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeUnretainedValue()
-//                    ewm.queue.async {
-//                        ewm.backendClient.getGasPrice (ewm: ewm,
-//                                                       wid: wid!,
-//                                                       rid: rid)
-//                    }
-//                }},
-        },
+                this.query.getGasPriceAsETH (ewm: this.core,
+                                             wid: wid!,
+                                             rid: rid) { (wid, gasPrice, rid) in
+                                                ewmAnnounceGasPrice (this.core, wid, gasPrice, rid)
+                }},
+
             funcEstimateGas: { (context, coreEWM, wid, tid, from, to, amount, data, rid)  in
                 let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeUnretainedValue()
                     let from = asUTF8String(from!)
                     let to = asUTF8String(to!)
                     let amount = asUTF8String(amount!)
                     let data = asUTF8String(data!)
-//                    ewm.queue.async {
-//                        ewm.backendClient.getGasEstimate(ewm: this.core,
-//                                                         wid: wid!,
-//                                                         tid: tid!,
-//                                                         from: from,
-//                                                         to: to,
-//                                                         amount: amount,
-//                                                         data: data,
-//                                                         rid: rid)
-//                    }
-//                }},
-        },
+                this.query.getGasEstimateAsETH (ewm: this.core,
+                                                wid: wid!,
+                                                tid: tid!,
+                                                from: from,
+                                                to: to,
+                                                amount: amount,
+                                                data: data,
+                                                rid: rid) { (wid, tid, gasEstimate, rid) in
+                                                    ewmAnnounceGasEstimate (this.core, wid, tid, gasEstimate, rid)
+
+                }},
 
             funcSubmitTransaction: { (context, coreEWM, wid, tid, transaction, rid)  in
                 let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeUnretainedValue()
                     let transaction = asUTF8String (transaction!)
-//                    ewm.queue.async {
-//                        ewm.backendClient.submitTransaction(ewm: ewm,
-//                                                            wid: wid!,
-//                                                            tid: tid!,
-//                                                            rawTransaction: transaction,
-//                                                            rid: rid)
-//                    }
-//                }},
-        },
+                this.query.submitTransactionAsETH (ewm: this.core,
+                                                   wid: wid!,
+                                                   tid: tid!,
+                                                   transaction: transaction,
+                                                   rid: rid) { (wid, tid, hash, errorCode, errorMessage, rid) in
+                                                    ewmAnnounceSubmitTransfer (this.core,
+                                                                               wid,
+                                                                               tid,
+                                                                               hash,
+                                                                               errorCode,
+                                                                               errorMessage,
+                                                                               rid)
+                }},
+
             funcGetTransactions: { (context, coreEWM, address, begBlockNumber, endBlockNumber, rid) in
                 let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeUnretainedValue()
                 let address = asUTF8String(address!)
@@ -431,7 +434,7 @@ class EthereumWalletManager: WalletManager {
                                                                                     rid,
                                                                                     (success ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE))
                 },
-                                                 each: { (res: BlockChainDB.ETH.Transaction) -> Void in
+                                                 each: { (res: BlockChainDB.ETH.Transaction) in
                                                     ewmAnnounceTransaction (this.core,
                                                                             res.rid,
                                                                             res.hash,
@@ -450,30 +453,42 @@ class EthereumWalletManager: WalletManager {
                                                                             res.blockTransactionIndex,
                                                                             res.blockTimestamp,
                                                                             res.isError)
-                })
-                
-        },
-                //                    ewm.queue.async {
-                //                        ewm.backendClient.getTransactions(ewm: ewm,
-                //                                                          address: address,
-                //                                                          begBlockNumber: begBlockNumber,
-                //                                                          endBlockNumber: endBlockNumber,
-                //                                                          rid: rid)
-                //                    }
-                //                }},
+                })},
+
             funcGetLogs: { (context, coreEWM, contract, address, event, begBlockNumber, endBlockNumber, rid) in
                 let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeUnretainedValue()
-                    let address = asUTF8String(address!)
-//                    ewm.queue.async {
-//                        ewm.backendClient.getLogs (ewm: ewm,
-//                                                   address: address,
-//                                                   event: asUTF8String(event!),
-//                                                   begBlockNumber: begBlockNumber,
-//                                                   endBlockNumber: endBlockNumber,
-//                                                   rid: rid)
-//                    }
-//                }},
-        },
+                let address = asUTF8String(address!)
+                this.query.getLogsAsETH (ewm: this.core,
+                                         address: address,
+                                         begBlockNumber: begBlockNumber,
+                                         endBlockNumber: endBlockNumber,
+                                         rid: rid,
+                                         done: { (success: Bool, rid: Int32) in
+                                            ewmAnnounceLogComplete (this.core,
+                                                                    rid,
+                                                                    (success ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE))
+                },
+                                         each: { (res: BlockChainDB.ETH.Log) in
+                                            var cTopics = res.topics.map { UnsafePointer<Int8>(strdup($0)) }
+                                            defer {
+                                                cTopics.forEach { free (UnsafeMutablePointer(mutating: $0)) }
+                                            }
+
+                                            ewmAnnounceLog (this.core,
+                                                            res.rid,
+                                                            res.hash,
+                                                            res.contract,
+                                                            Int32(res.topics.count),
+                                                            &cTopics,
+                                                            res.data,
+                                                            res.gasPrice,
+                                                            res.gasUsed,
+                                                            res.logIndex,
+                                                            res.blockNumber,
+                                                            res.blockTransactionIndex,
+                                                            res.blockTimestamp)
+                })},
+
             funcGetBlocks: { (context, coreEWM, address, interests, blockStart, blockStop, rid) in
                 let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeUnretainedValue()
                 let address = asUTF8String(address!)
@@ -490,29 +505,40 @@ class EthereumWalletManager: WalletManager {
 
             funcGetTokens: { (context, coreEWM, rid) in
                 let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeUnretainedValue()
-//                    ewm.queue.async {
-//                        ewm.backendClient.getTokens (ewm: ewm, rid: rid)
-//                    }
-//                }},
-        },
+                this.query.getTokensAsETH (ewm: this.core,
+                                           rid: rid,
+                                           done: { (success: Bool, rid: Int32) in
+                                            ewmAnnounceTokenComplete (this.core,
+                                                                      rid,
+                                                                      (success ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE))
+                },
+                                           each: { (res: BlockChainDB.ETH.Token) in
+                                            ewmAnnounceToken (this.core,
+                                                              res.rid,
+                                                              res.address,
+                                                              res.symbol,
+                                                              res.name,
+                                                              res.description,
+                                                              res.decimals,
+                                                              res.defaultGasLimit,
+                                                              res.defaultGasPrice)
+                })},
+            
             funcGetBlockNumber: { (context, coreEWM, rid) in
                 let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeUnretainedValue()
-//                    ewm.queue.async {
-//                        ewm.backendClient.getBlockNumber(ewm: ewm, rid: rid)
-//                    }
-//                }},
-        },
+                this.query.getBlockNumberAsETH (ewm: this.core,
+                                                rid: rid) { (number, rid) in
+                                                    ewmAnnounceBlockNumber (this.core, number, rid)
+                }},
 
             funcGetNonce: { (context, coreEWM, address, rid) in
                 let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeUnretainedValue()
-                    let address = asUTF8String(address!)
-//                    ewm.queue.async {
-//                        ewm.backendClient.getNonce(ewm: ewm,
-//                                                   address: address,
-//                                                   rid: rid)
-//                    }
-//                }},
-        },
+                let address = asUTF8String(address!)
+                this.query.getNonceAsETH (ewm: this.core,
+                                          address: address,
+                                          rid: rid) { (address, nonce, rid) in
+                                            ewmAnnounceNonce (this.core, address, nonce, rid)
+                }},
 
             funcEWMEvent: { (context, coreEWM, event, status, message) in
                 let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeUnretainedValue()
@@ -531,6 +557,22 @@ class EthereumWalletManager: WalletManager {
         },
             funcWalletEvent: { (context, coreEWM, wid, event, status, message) in
                 let this = Unmanaged<EthereumWalletManager>.fromOpaque(context!).takeUnretainedValue()
+ //               let ev = WalletEvent
+                
+                switch event {
+                case WALLET_EVENT_CREATED:
+                    break
+                case WALLET_EVENT_BALANCE_UPDATED:
+                    break
+                case WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED:
+                    break
+                case WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED:
+                    break
+                case WALLET_EVENT_DELETED:
+                    break
+                default:
+                    precondition (false)
+                }
 //                    ewm.queue.async {
 //                        let event = WalletEvent (ewm: ewm, wid: wid!, event: event)
 //                        if case .created = event,

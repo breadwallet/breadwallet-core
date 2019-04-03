@@ -92,7 +92,16 @@ public class BlockChainDB {
     /// ETH
     public struct ETH {
         public typealias Balance = (wid: BREthereumWallet, balance: String, rid: Int32)
-        /// ...
+        public typealias GasPrice = (wid: BREthereumWallet, gasPrice: String, rid: Int32)
+        public typealias GasEstimate = (wid: BREthereumWallet, tid: BREthereumTransfer, gasEstimate: String, rid: Int32)
+
+        public typealias Submit = (
+            wid: BREthereumWallet,
+            tid: BREthereumTransfer,
+            hash: String,
+            errorCode: Int32,
+            errorMessage: String?,
+            rid: Int32)
 
         public typealias Transaction = (
             hash: String,
@@ -113,10 +122,35 @@ public class BlockChainDB {
             isError: String,
             rid: Int32)
 
+        public typealias Log = (
+            hash: String,
+            contract: String,
+            topics: [String],
+            data: String,
+            gasPrice: String,
+            gasUsed: String,
+            logIndex: String,
+            blockNumber: String,
+            blockTransactionIndex: String,
+            blockTimestamp: String,
+            rid: Int32)
+
+        public typealias Token = (
+            address: String,
+            symbol: String,
+            name: String,
+            description: String,
+            decimals: UInt32,
+            defaultGasLimit: String?,
+            defaultGasPrice: String?,
+            rid: Int32)
+
         public typealias Block = (numbers: [UInt64], rid: Int32)
+        public typealias BlockNumber = (number: String, rid: Int32)
+        public typealias Nonce = (address: String, nonce: String, rid: Int32)
+
     }
 
-    /// Balance As ETH
     public func getBalanceAsETH (ewm: BREthereumEWM,
                                  wid: BREthereumWallet,
                                  address: String,
@@ -130,6 +164,40 @@ public class BlockChainDB {
         }
     }
 
+    public func getGasPriceAsETH (ewm: BREthereumEWM,
+                                  wid: BREthereumWallet,
+                                  rid: Int32,
+                                  completion: @escaping (ETH.GasPrice) -> Void) {
+        queue.async {
+            completion ((wid: wid, gasPrice: "0xffc0", rid: rid ))
+        }
+    }
+
+    public func getGasEstimateAsETH (ewm: BREthereumEWM,
+                                     wid: BREthereumWallet,
+                                     tid: BREthereumTransfer,
+                                     from: String,
+                                     to: String,
+                                     amount: String,
+                                     data: String,
+                                     rid: Int32,
+                                     completion: @escaping (ETH.GasEstimate) -> Void) {
+        queue.async {
+            completion ((wid: wid, tid: tid, gasEstimate: "92000", rid: rid))
+        }
+    }
+
+    public func submitTransactionAsETH (ewm: BREthereumEWM,
+                                        wid: BREthereumWallet,
+                                        tid: BREthereumTransfer,
+                                        transaction: String,
+                                        rid: Int32,
+                                        completion: @escaping (ETH.Submit) -> Void) {
+        queue.async {
+            completion ((wid: wid, tid: tid, hash: "0x123abc456def", errorCode: Int32(-1), errorMessage: nil, rid: rid))
+        }
+    }
+
     public func getTransactionsAsETH (ewm: BREthereumEWM,
                                       address: String,
                                       begBlockNumber: UInt64,
@@ -137,44 +205,103 @@ public class BlockChainDB {
                                       rid: Int32,
                                       done: @escaping (Bool, Int32) -> Void,
                                       each: @escaping (ETH.Transaction) -> Void) {
+        queue.async {
+//            if (begBlockNumber <= 1627184 && 1627184 <= endBlockNumber) {
+                each ((hash: "0x5f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
+                       sourceAddr: "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
+                       targetAddr: address,
+                       contractAddr: "",
+                       amount: "11113000000000",
+                       gasLimit: "21000",
+                       gasPrice: "21000000000",
+                       data: "",
+                       nonce:  "118",
+                       gasUsed: "21000",
+                       blockNumber: "1627184",
+                       blockHash: "0x0ef0110d68ee3af220e0d7c10d644fea98252180dbfc8a94cab9f0ea8b1036af",
+                       blockConfirmations: "339050",
+                       blockTransactionIndex: "3",
+                       blockTimestamp: "1516477482",
+                       isError: "0",
+                       rid: rid))
+ //           }
 
-        each ((hash: "0x5f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
-               sourceAddr: "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
-               targetAddr: address,
-               contractAddr: "",
-               amount: "11113000000000",
-               gasLimit: "21000",
-               gasPrice: "21000000000",
-               data: "",
-               nonce:  "118",
-               gasUsed: "21000",
-               blockNumber: "1627184",
-               blockHash: "0x0ef0110d68ee3af220e0d7c10d644fea98252180dbfc8a94cab9f0ea8b1036af",
-               blockConfirmations: "339050",
-               blockTransactionIndex: "3",
-               blockTimestamp: "1516477482",
-               isError: "0",
-               rid: rid))
-        
-        each ((hash: "0x5f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
-               sourceAddr: address,
-               targetAddr: "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
-               contractAddr: "",
-               amount: "11113000000000",
-               gasLimit: "21000",
-               gasPrice: "21000000000",
-               data: "",
-               nonce:  "118",
-               gasUsed: "21000",
-               blockNumber: "1627184",
-               blockHash: "0x0ef0110d68ee3af220e0d7c10d644fea98252180dbfc8a94cab9f0ea8b1036af",
-               blockConfirmations: "339050",
-               blockTransactionIndex: "3",
-               blockTimestamp: "1516477482",
-               isError: "0",
-               rid: rid))
+//            if (begBlockNumber <= 1627184 && 1627184 <= endBlockNumber) {
+                each ((hash: "0x5f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
+                       sourceAddr: address,
+                       targetAddr: "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
+                       contractAddr: "",
+                       amount: "11113000000000",
+                       gasLimit: "21000",
+                       gasPrice: "21000000000",
+                       data: "",
+                       nonce:  "118",
+                       gasUsed: "21000",
+                       blockNumber: "1627184",
+                       blockHash: "0x0ef0110d68ee3af220e0d7c10d644fea98252180dbfc8a94cab9f0ea8b1036af",
+                       blockConfirmations: "339050",
+                       blockTransactionIndex: "3",
+                       blockTimestamp: "1516477482",
+                       isError: "0",
+                       rid: rid))
+ //           }
+            done (true, rid)
+        }
+    }
 
-        done (true, rid)
+    public func getLogsAsETH (ewm: BREthereumEWM,
+                              address: String,
+                              begBlockNumber: UInt64,
+                              endBlockNumber: UInt64,
+                              rid: Int32,
+                              done: @escaping (Bool, Int32) -> Void,
+                              each: @escaping (ETH.Log) -> Void) {
+        queue.async {
+//            if (begBlockNumber <= 0x1e487e && 0x1e487e <= endBlockNumber) {
+                each ((hash: "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
+                       contract: "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6",
+                       topics: ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+                                "0x0000000000000000000000000000000000000000000000000000000000000000",
+                                "0x000000000000000000000000bdfdad139440d2db9ba2aa3b7081c2de39291508"],
+                       data: "0x0000000000000000000000000000000000000000000000000000000000002328",
+                       gasPrice: "0xba43b7400",
+                       gasUsed: "0xc64e",
+                       logIndex: "0x",
+                       blockNumber: "0x1e487e",
+                       blockTransactionIndex: "0x",
+                       blockTimestamp: "0x59fa1ac9",
+                       rid: rid))
+ //           }
+
+            done (true, rid)
+        }
+    }
+
+    public func getTokensAsETH (ewm: BREthereumEWM,
+                                rid: Int32,
+                                done: @escaping (Bool, Int32) -> Void,
+                                each: @escaping (ETH.Token) -> Void) {
+        queue.async {
+            each ((address: "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6",
+                   symbol: "BRD",
+                   name: "BRD Token",
+                   description: "BRD Token Description",
+                   decimals: 18,
+                   defaultGasLimit: nil,
+                   defaultGasPrice: nil,
+                   rid: rid))
+
+            each ((address: "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0",
+                   symbol: "EOS",
+                   name: "EOS",
+                   description: "",
+                   decimals: 18,
+                   defaultGasLimit: nil,
+                   defaultGasPrice: nil,
+                   rid: rid))
+
+            done (true, rid)
+        }
     }
 
     public func getBlocksAsETH (ewm: BREthereumEWM,
@@ -184,7 +311,6 @@ public class BlockChainDB {
                                 blockStop: UInt64,
                                 rid: Int32,
                                 completion: @escaping (ETH.Block) -> Void) {
-
         queue.async {
             var blockNumbers : [UInt64] = []
             switch address.lowercased() {
@@ -269,6 +395,23 @@ public class BlockChainDB {
 
             blockNumbers = blockNumbers.filter { blockStart < $0 && $0 < blockStop }
             completion ((numbers: blockNumbers, rid: rid))
+        }
+    }
+
+    public func getBlockNumberAsETH (ewm: BREthereumEWM,
+                                     rid: Int32,
+                                     completion: @escaping (ETH.BlockNumber) -> Void) {
+        queue.async {
+            completion ((number: "0xffc0", rid: rid ))
+        }
+    }
+    
+    public func getNonceAsETH (ewm: BREthereumEWM,
+                               address: String,
+                               rid: Int32,
+                               completion: @escaping (ETH.Nonce) -> Void) {
+        queue.async {
+            completion ((address: address, nonce: "118", rid: rid ))
         }
     }
 

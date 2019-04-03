@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <pthread.h>
+#include <errno.h>
 #include "support/BRArray.h"
 #include "BREthereumEWMPrivate.h"
 
@@ -103,15 +104,15 @@ ewmHandleAnnounceGasPrice (BREthereumEWM ewm,
 
 extern BREthereumStatus
 ewmAnnounceGasPrice(BREthereumEWM ewm,
-                               BREthereumWallet wallet,
-                               const char *gasPrice,
-                               int rid) {
+                    BREthereumWallet wallet,
+                    const char *gasPrice,
+                    int rid) {
     if (NULL == wallet) { return ERROR_UNKNOWN_WALLET; }
-
+    
     BRCoreParseStatus parseStatus;
     UInt256 amount = createUInt256Parse(gasPrice, 0, &parseStatus);
     if (CORE_PARSE_OK != parseStatus) { return ERROR_NUMERIC_PARSE; }
-
+    
     ewmSignalAnnounceGasPrice(ewm, wallet, amount, rid);
     return SUCCESS;
 }
@@ -176,29 +177,29 @@ ewmUpdateGasEstimate (BREthereumEWM ewm,
 
 extern void
 ewmHandleAnnounceGasEstimate (BREthereumEWM ewm,
-                                    BREthereumWallet wallet,
-                                    BREthereumTransfer transfer,
-                                    UInt256 value,
-                                    int rid) {
+                              BREthereumWallet wallet,
+                              BREthereumTransfer transfer,
+                              UInt256 value,
+                              int rid) {
     ewmSignalGasEstimate(ewm, wallet, transfer, gasCreate(value.u64[0]));
 }
 
 extern BREthereumStatus
 ewmAnnounceGasEstimate (BREthereumEWM ewm,
-                                   BREthereumWallet wallet,
-                                   BREthereumTransfer transfer,
-                                   const char *gasEstimate,
-                                   int rid) {
+                        BREthereumWallet wallet,
+                        BREthereumTransfer transfer,
+                        const char *gasEstimate,
+                        int rid) {
     if (NULL == wallet) { return ERROR_UNKNOWN_WALLET; }
     if (NULL == transfer) { return ERROR_UNKNOWN_TRANSACTION; }
-
+    
     BRCoreParseStatus parseStatus;
     UInt256 gas = createUInt256Parse(gasEstimate, 0, &parseStatus);
-
+    
     if (CORE_PARSE_OK != parseStatus ||
         0 != gas.u64[1] || 0 != gas.u64[2] || 0 != gas.u64[3]) { return ERROR_NUMERIC_PARSE; }
-
-
+    
+    
     ewmSignalAnnounceGasEstimate(ewm, wallet, transfer, gas, rid);
     return SUCCESS;
 }
@@ -633,13 +634,13 @@ ewmHandleAnnounceSubmitTransfer (BREthereumEWM ewm,
 }
 
 extern BREthereumStatus
-ewmAnnounceSubmitTransfer(BREthereumEWM ewm,
-                          BREthereumWallet wallet,
-                          BREthereumTransfer transfer,
-                          const char *strHash,
-                          int errorCode,
-                          const char *errorMessage,
-                          int id) {
+ewmAnnounceSubmitTransfer (BREthereumEWM ewm,
+                           BREthereumWallet wallet,
+                           BREthereumTransfer transfer,
+                           const char *strHash,
+                           int errorCode,
+                           const char *errorMessage,
+                           int id) {
     if (NULL == wallet) { return ERROR_UNKNOWN_WALLET; }
     if (NULL == transfer) { return ERROR_UNKNOWN_TRANSACTION; }
 
@@ -655,7 +656,6 @@ ewmAnnounceSubmitTransfer(BREthereumEWM ewm,
     return SUCCESS;
 }
 
-
 // ==============================================================================================
 //
 // Update Tokens
@@ -670,8 +670,8 @@ ewmUpdateTokens (BREthereumEWM ewm) {
 
 extern void
 ewmHandleAnnounceToken (BREthereumEWM ewm,
-                              BREthereumEWMClientAnnounceTokenBundle *bundle,
-                              int id) {
+                        BREthereumEWMClientAnnounceTokenBundle *bundle,
+                        int id) {
     tokenInstall (bundle->address,
                   bundle->symbol,
                   bundle->name,
@@ -691,18 +691,17 @@ ewmHandleAnnounceToken (BREthereumEWM ewm,
     ewmClientAnnounceTokenBundleRelease(bundle);
 }
 
-#include <errno.h>
 
 extern void
 ewmAnnounceToken(BREthereumEWM ewm,
+                 int rid,
                  const char *address,
                  const char *symbol,
                  const char *name,
                  const char *description,
                  unsigned int decimals,
                  const char *strDefaultGasLimit,
-                 const char *strDefaultGasPrice,
-                 int rid) {
+                 const char *strDefaultGasPrice) {
     char *strEndPointer = NULL;
 
     // Parse strDefaultGasLimit - as a decimal, hex or even octal string.  If the parse fails
@@ -743,16 +742,16 @@ ewmAnnounceToken(BREthereumEWM ewm,
 
 extern void
 ewmHandleAnnounceTokenComplete (BREthereumEWM ewm,
-                                BREthereumBoolean success,
-                                int rid) {
+                                int rid,
+                                BREthereumBoolean success) {
     if (ETHEREUM_BOOLEAN_IS_TRUE (success))
         ewmSync (ewm);
 }
 
 extern void
 ewmAnnounceTokenComplete (BREthereumEWM ewm,
-                          BREthereumBoolean success,
-                          int rid) {
+                          int rid,
+                          BREthereumBoolean success) {
     ewmSignalAnnounceTokenComplete (ewm, success, rid);
 }
 

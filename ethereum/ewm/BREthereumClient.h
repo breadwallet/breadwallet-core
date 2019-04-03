@@ -55,7 +55,7 @@ extern "C" {
     extern BREthereumStatus
     ewmAnnounceGasPrice(BREthereumEWM ewm,
                         BREthereumWallet wid,
-                        const char *gasEstimate,
+                        const char *gasPrice,
                         int rid);
 
     extern void
@@ -205,19 +205,19 @@ extern "C" {
 
     extern void
     ewmAnnounceToken(BREthereumEWM ewm,
+                     int rid,
                      const char *address,
                      const char *symbol,
                      const char *name,
                      const char *description,
                      unsigned int decimals,
                      const char *strDefaultGasLimit,
-                     const char *strDefaultGasPrice,
-                     int rid);
+                     const char *strDefaultGasPrice);
 
     extern void
     ewmAnnounceTokenComplete (BREthereumEWM ewm,
-                              BREthereumBoolean success,
-                              int rid);
+                              int rid,
+                              BREthereumBoolean success);
     
     extern void
     ewmUpdateTokens (BREthereumEWM ewm);
