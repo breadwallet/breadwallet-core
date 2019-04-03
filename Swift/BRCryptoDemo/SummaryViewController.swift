@@ -13,17 +13,18 @@ import UIKit
 import BRCrypto
 
 class SummaryViewController: UITableViewController, WalletListener {
+
+    // The wallets currently displayed.
     var wallets = [Wallet]()
 
     var detailViewController: WalletViewController? = nil
 
     override func viewDidLoad() {
+        // Possible race
+        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
+            listener.walletListeners.append (self)
+        }
         super.viewDidLoad()
-
-        // TODO: Prefer here - but done earlier to avoid race on ETH Wallet Create
-        // UIApplication.sharedClient.addWalletListener(listener: self)
-
-        // Do any additional setup after loading the view, typically from a nib.
 
         if let split = splitViewController {
             let controllers = split.viewControllers
@@ -31,15 +32,15 @@ class SummaryViewController: UITableViewController, WalletListener {
         }
     }
 
-    override func viewWillAppear(_ animated: Bool) {
+    override func viewWillAppear (_ animated: Bool) {
+        self.wallets = UIApplication.sharedSystem.wallets
+
         clearsSelectionOnViewWillAppear = splitViewController!.isCollapsed
-        self.wallets = UIApplication.sharedListener.wallets
         super.viewWillAppear(animated)
     }
 
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
     }
 
     // MARK: - Segues
@@ -49,6 +50,7 @@ class SummaryViewController: UITableViewController, WalletListener {
             if let indexPath = tableView.indexPathForSelectedRow {
                 let wallet = wallets[indexPath.row]
                 let controller = (segue.destination as! UINavigationController).topViewController as! WalletViewController
+
                 controller.wallet = wallet;
                 controller.navigationItem.leftBarButtonItem = splitViewController?.displayModeButtonItem
                 controller.navigationItem.leftItemsSupplementBackButton = true
@@ -56,7 +58,7 @@ class SummaryViewController: UITableViewController, WalletListener {
         }
     }
 
-    @IBAction func doAct(_ sender: Any) {
+    @IBAction func doAct (_ sender: Any) {
         UIApplication.sync()
         let alert = UIAlertController (title: "Act",
                                        message: nil,
@@ -87,55 +89,64 @@ class SummaryViewController: UITableViewController, WalletListener {
         return wallets.count
     }
 
-    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "WalletCell", for: indexPath) as! WalletTableViewCell
-        let wallet = wallets[indexPath.row]
-        cell.wallet = wallet
+    override func tableView (_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell (withIdentifier: "WalletCell", for: indexPath) as! WalletTableViewCell
+        cell.wallet = wallets[indexPath.row]
         return cell
     }
 
-    override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
-        // Return false if you do not want the specified item to be editable.
+    override func tableView (_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
         return true
     }
 
-    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
-        if editingStyle == .delete {
-            wallets.remove(at: indexPath.row)
+    override func tableView (_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        switch editingStyle {
+        case .delete:
+            wallets.remove (at: indexPath.row)
             tableView.deleteRows(at: [indexPath], with: .fade)
-        } else if editingStyle == .insert {
-            // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view.
+
+        case .insert:
+            // impossible
+            break
+
+        default:
+            break
         }
     }
 
-    func announceWalletEvent(manager: WalletManager, wallet: Wallet, event: WalletEvent) {
-        switch event {
-        case .created:
-            guard !wallets.contains(where: { $0 === wallet}) else { return }
-            DispatchQueue.main.async {
-                self.wallets.append(wallet)
+    func handleWalletEvent (system: System,
+                            manager: WalletManager,
+                            wallet: Wallet,
+                            event: WalletEvent) {
+        DispatchQueue.main.async {
+            switch event {
+            case .created:
+                self.wallets.append (wallet)
+
                 let path = IndexPath (row: (self.wallets.count - 1), section: 0)
                 self.tableView.insertRows (at: [path], with: .automatic)
-            }
-        case .balanceUpdated:
-            guard wallets.contains(where: { $0 === wallet }) else { return }
-            DispatchQueue.main.async {
-                let index = self.wallets.firstIndex(where: { $0 === wallet})!
+
+            case .balanceUpdated:
+                guard let index = self.wallets.firstIndex (where: { $0 === wallet })
+                    else { return }
+
                 let path = IndexPath (row: index, section: 0)
                 let cell = self.tableView.cellForRow(at: path) as! WalletTableViewCell
-                cell.updateView()
-            }
-        case .deleted:
-            guard wallets.contains(where: { $0 === wallet} ) else { return }
-            DispatchQueue.main.async {
-                let index = self.wallets.firstIndex(where: {$0 === wallet} )!
+                cell.updateView ()
+
+            case .deleted:
+                guard let index = self.wallets.firstIndex(where: { $0 === wallet })
+                    else { return }
+
                 self.wallets.remove(at: index)
 
                 let path = IndexPath (row: index, section: 0)
                 self.tableView.deleteRows(at: [path], with: .automatic)
+
+
+            default:
+                 break
             }
-        default:
-            break
         }
     }
 }

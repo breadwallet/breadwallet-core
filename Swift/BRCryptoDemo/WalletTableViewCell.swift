@@ -33,18 +33,9 @@ class WalletTableViewCell: UITableViewCell {
 
     func updateView () {
         guard let wallet = wallet else { return }
+        let balance = wallet.balance
 
         textLabel?.text = "\(wallet.name) (\(wallet.manager.network))"
-
-        // balance into defaultUnit
-        let balance = wallet.balance.coerce(unit: wallet.currency.defaultUnit)
-
-        detailTextLabel?.text = balance.double?.description ?? "??"
-
-        var value : String = balance.double?.description.trimmingCharacters(in: CharacterSet (charactersIn: "0 ")) ?? ""
-        if value == "." || value == "" || value == "0." || value == ".0" {
-            value = "0.0"
-        }
-        detailTextLabel?.text = value + " " + balance.unit.symbol
+        detailTextLabel?.text = balance.string(as: balance.unit) ?? "---"
     }
 }

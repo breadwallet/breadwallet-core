@@ -12,49 +12,24 @@
 import UIKit
 import BRCrypto
 
-protocol SharedListener {
-    static var sharedListener: CoreDemoListener { get }
+protocol SharedSystem {
+    static var sharedSystem: System { get }
 }
 
-extension UIApplication: SharedListener {
-    static var sharedListener : CoreDemoListener {
-        return (UIApplication.shared.delegate as! AppDelegate).listener
-    }
-}
-
-extension UIApplication {
-    static var paperKey: String {
-        return (UIApplication.shared.delegate as! AppDelegate).paperKey
-    }
-
-    static func sync () {
-        guard let app = UIApplication.shared.delegate as? AppDelegate else { return }
-        app.ethManager.sync()
-//        app.btcManager.sync()
-//        app.bchManager.sync()
-    }
-
-    static func sleep() {
-        guard let app = UIApplication.shared.delegate as? AppDelegate else { return }
-        NSLog ("ETH: Disconnecting")
-        app.ethManager.disconnect()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 15.0) {
-            NSLog ("ETH: Connecting")
-            app.ethManager.connect()
-        }
+extension UIApplication: SharedSystem {
+    static var sharedSystem : System {
+        return (UIApplication.shared.delegate as! CoreDemoAppDelegate).system
     }
 }
 
 @UIApplicationMain
-class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDelegate {
+class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDelegate {
 
     var window: UIWindow?
-    var listener: CoreDemoListener!
-    var btcManager: BitcoinWalletManager!
-    var ethManager: EthereumWalletManager!
-    var bchManager: BitcoinWalletManager!
-
     var paperKey: String!
+
+    var listener: CoreDemoListener!
+    var system: System!
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
@@ -76,8 +51,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
         //                                         paperKey: "0xb302B06FDB1348915599D21BD54A06832637E5E8")
 
         let timestamp:UInt64 = 1543190400 // Tue, 26 Nov 2018 00:00:00 GMT
-        let account = Account (phrase: paperKey)
 
+        guard let account = Account.createFrom(phrase: paperKey) else {
+            precondition(false, "No account")
+            return false
+        }
+
+        // Ensure the storage path
         let storagePath = FileManager.default
             .urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Core").path
@@ -97,30 +77,43 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
 
         NSLog ("StoragePath: \(storagePath)");
 
-        self.listener = CoreDemoListener ()
+        // Create the listener
+        let listener = CoreDemoListener ()
 
-        self.btcManager = BitcoinWalletManager (listener: listener,
-                                                account: account,
-                                                network: Bitcoin.Networks.testnet,
-                                                mode: WalletManagerMode.p2p_only,
-                                                timestamp: timestamp,
-                                                storagePath: storagePath)
+        // Create the BlockChainDB
+        let query = BlockChainDB ()
 
-        self.bchManager = BitcoinWalletManager (listener: listener,
-                                                account: account,
-                                                network: Bitcash.Networks.testnet,
-                                                mode: WalletManagerMode.p2p_only,
-                                                timestamp: timestamp,
-                                                storagePath: storagePath)
+        // Create the system
+        self.listener = listener
+        self.system = SystemBase.create (listener: listener,
+                                         account: account,
+                                         path: storagePath,
+                                         query: query)
 
-        self.ethManager = EthereumWalletManager (listener: listener,
-                                                 account: account,
-                                                 network: Ethereum.Networks.mainnet,
-                                                 mode: WalletManagerMode.p2p_only, //  api_with_p2p_submit,
-                                                 timestamp: 0,
-                                                 storagePath: storagePath)
+//        self.btcManager = BitcoinWalletManager (listener: listener,
+//                                                account: account,
+//                                                network: Bitcoin.Networks.testnet,
+//                                                mode: WalletManagerMode.p2p_only,
+//                                                timestamp: timestamp,
+//                                                storagePath: storagePath)
+//
+//        self.bchManager = BitcoinWalletManager (listener: listener,
+//                                                account: account,
+//                                                network: Bitcash.Networks.testnet,
+//                                                mode: WalletManagerMode.p2p_only,
+//                                                timestamp: timestamp,
+//                                                storagePath: storagePath)
+//
+//        self.ethManager = EthereumWalletManager (listener: listener,
+//                                                 account: account,
+//                                                 network: Ethereum.Networks.mainnet,
+//                                                 mode: WalletManagerMode.p2p_only, //  api_with_p2p_submit,
+//                                                 timestamp: 0,
+//                                                 storagePath: storagePath)
 
-        UIApplication.sharedListener.addWalletListener(listener: summaryController)
+ //       UIApplication.sharedListener.addWalletListener(listener: summaryController)
+
+        self.system.start (networksNeeded: ["ethereum-mainnet"]);
 
         return true
     }
@@ -143,10 +136,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
         // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
         DispatchQueue.global().async {
             sleep (5)
-            self.ethManager.updateTokens()
-            self.btcManager.connect();
-            self.bchManager.connect();
-            self.ethManager.connect();
+//            self.ethManager.updateTokens()
+//            self.btcManager.connect();
+//            self.bchManager.connect();
+//            self.ethManager.connect();
         }
     }
 
@@ -166,5 +159,27 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
         return false
     }
 
+}
+
+
+extension UIApplication {
+    static var paperKey: String {
+        return (UIApplication.shared.delegate as! CoreDemoAppDelegate).paperKey
+    }
+
+    static func sync () {
+        guard let app = UIApplication.shared.delegate as? CoreDemoAppDelegate else { return }
+        app.system.managers.forEach { $0.sync() }
+    }
+
+    static func sleep() {
+        guard let app = UIApplication.shared.delegate as? CoreDemoAppDelegate else { return }
+        NSLog ("ETH: Disconnecting")
+        app.system.managers.forEach { $0.disconnect() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 15.0) {
+            NSLog ("ETH: Connecting")
+            app.system.managers.forEach { $0.connect() }
+        }
+    }
 }
 

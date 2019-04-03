@@ -34,12 +34,14 @@ public class BlockChainDB {
             var result: [Model.Blockchain] = []
 
             if mainnet ?? true { // mainnet or nil
-//                result.append ((id: "bitcoin-mainnet",  name: "Bitcoin",  network: "mainnet", isMainnet: true,  currency: "btc", blockHeight: 600000))
+                result.append ((id: "bitcoin-mainnet",  name: "Bitcoin",  network: "mainnet", isMainnet: true,  currency: "btc", blockHeight:  600000))
+                result.append ((id: "bitcash-mainnet",  name: "Bitcash",  network: "mainnet", isMainnet: true,  currency: "bch", blockHeight: 1000000))
                 result.append ((id: "ethereum-mainnet", name: "Ethereum", network: "mainnet", isMainnet: true,  currency: "eth", blockHeight: 8000000))
             }
 
             if !(mainnet ?? false) { // !mainnet or nil
-//                result.append  ((id: "bitcoin-testnet",  name: "Bitcoin",  network: "testnet", isMainnet: false, currency: "btc", blockHeight:  900000))
+                result.append  ((id: "bitcoin-testnet",  name: "Bitcoin",  network: "testnet", isMainnet: false, currency: "btc", blockHeight:  900000))
+                result.append  ((id: "bitcash-testnet",  name: "Bitcash",  network: "testnet", isMainnet: false, currency: "bch", blockHeight: 1200000))
                 result.append  ((id: "ethereum-testnet", name: "Ethereum", network: "testnet", isMainnet: false, currency: "eth", blockHeight: 1000000))
                 result.append  ((id: "ethereum-rinkeby", name: "Ethereum", network: "rinkeby", isMainnet: false, currency: "eth", blockHeight: 2000000))
             }
@@ -54,9 +56,18 @@ public class BlockChainDB {
 
             if blockchainID?.starts(with: "bitcoin") ?? true {
                 // BTC
-//                result.append  ((id: "Bitcoin", name: "Bitcoin", code: "btc", type: "native", blockchainID: "bitcoin-mainnet", address: nil,
-//                                 demoninations: [(name: "satoshi", code: "sat", decimals: 0, symbol: self.lookupSymbol ("sat")),
-//                                                 (name: "bitcoin", code: "btc", decimals: 8, symbol: self.lookupSymbol ("btc"))]))
+                result.append  ((id: "Bitcoin", name: "Bitcoin", code: "btc", type: "native", blockchainID: "bitcoin-mainnet", address: nil,
+                                 demoninations: [(name: "satoshi", code: "sat", decimals: 0, symbol: self.lookupSymbol ("sat")),
+                                                 (name: "bitcoin", code: "btc", decimals: 8, symbol: self.lookupSymbol ("btc"))]))
+                // testnet?
+            }
+
+            if blockchainID?.starts(with: "bitcash") ?? true {
+                // BCH
+                result.append  ((id: "Bitcash", name: "Bitcash", code: "bch", type: "native", blockchainID: "bitcash-mainnet", address: nil,
+                                 demoninations: [(name: "satoshi", code: "sat", decimals: 0, symbol: self.lookupSymbol ("sat")),
+                                                 (name: "bitcoin", code: "bch", decimals: 8, symbol: self.lookupSymbol ("bch"))]))
+                // testnet??
             }
 
             if blockchainID?.starts(with: "ethereum") ?? true {
@@ -69,6 +80,7 @@ public class BlockChainDB {
                 result.append  ((id: "BRD Token", name: "BRD Token", code: "BRD", type: "erc20", blockchainID: "ethereum-mainnet", address: BlockChainDB.addressBRDMainnet,
                                  demoninations: [(name: "BRD_INTEGER",   code: "BRDI",  decimals:  0, symbol: "brdi"),
                                                  (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")]))
+                // ropsten, rinkeby?
             }
 
             completion (result)
@@ -81,6 +93,25 @@ public class BlockChainDB {
     public struct ETH {
         public typealias Balance = (wid: BREthereumWallet, balance: String, rid: Int32)
         /// ...
+
+        public typealias Transaction = (
+            hash: String,
+            sourceAddr: String,
+            targetAddr: String,
+            contractAddr: String,
+            amount: String,
+            gasLimit: String,
+            gasPrice: String,
+            data: String,
+            nonce: String,
+            gasUsed: String,
+            blockNumber: String,
+            blockHash: String,
+            blockConfirmations: String,
+            blockTransactionIndex: String,
+            blockTimestamp: String,
+            isError: String,
+            rid: Int32)
 
         public typealias Block = (numbers: [UInt64], rid: Int32)
     }
@@ -99,8 +130,52 @@ public class BlockChainDB {
         }
     }
 
-    /// ...
+    public func getTransactionsAsETH (ewm: BREthereumEWM,
+                                      address: String,
+                                      begBlockNumber: UInt64,
+                                      endBlockNumber: UInt64,
+                                      rid: Int32,
+                                      done: @escaping (Bool, Int32) -> Void,
+                                      each: @escaping (ETH.Transaction) -> Void) {
 
+        each ((hash: "0x5f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
+               sourceAddr: "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
+               targetAddr: address,
+               contractAddr: "",
+               amount: "11113000000000",
+               gasLimit: "21000",
+               gasPrice: "21000000000",
+               data: "",
+               nonce:  "118",
+               gasUsed: "21000",
+               blockNumber: "1627184",
+               blockHash: "0x0ef0110d68ee3af220e0d7c10d644fea98252180dbfc8a94cab9f0ea8b1036af",
+               blockConfirmations: "339050",
+               blockTransactionIndex: "3",
+               blockTimestamp: "1516477482",
+               isError: "0",
+               rid: rid))
+        
+        each ((hash: "0x5f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
+               sourceAddr: address,
+               targetAddr: "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
+               contractAddr: "",
+               amount: "11113000000000",
+               gasLimit: "21000",
+               gasPrice: "21000000000",
+               data: "",
+               nonce:  "118",
+               gasUsed: "21000",
+               blockNumber: "1627184",
+               blockHash: "0x0ef0110d68ee3af220e0d7c10d644fea98252180dbfc8a94cab9f0ea8b1036af",
+               blockConfirmations: "339050",
+               blockTransactionIndex: "3",
+               blockTimestamp: "1516477482",
+               isError: "0",
+               rid: rid))
+
+        done (true, rid)
+    }
 
     public func getBlocksAsETH (ewm: BREthereumEWM,
                                 address: String,
@@ -197,9 +272,7 @@ public class BlockChainDB {
         }
     }
 
-
-
-    init () {}
+    public init () {}
 
     internal let currencySymbols = ["btc":"b", "eth":"Ξ"]
     internal func lookupSymbol (_ code: String) -> String {

@@ -37,8 +37,8 @@ public final class SystemBase: System {
                                      mode: WalletManagerMode) {
         var manager: WalletManager!
 
-//        let storagePath = "\(path)/\(network.currency.code)/\(network.name.lowercased())"
-
+        // Select the manager from amoung the known wallet managers (BTC, BCH, ETH) for as
+        // the generic wallet manager.
         switch network.currency.code {
         case Currency.codeAsBTC,
              Currency.codeAsBCH:
@@ -49,29 +49,39 @@ public final class SystemBase: System {
 //                                            storagePath: storagePath)
             break
         case Currency.codeAsETH:
-            manager = EthereumWalletManager (account: account,
+            let ewm = EthereumWalletManager (account: account,
                                              network: network,
                                              mode: mode,
                                              storagePath: path)
-            break
+
+            // For ETH: Add tokens based on the currencies
+            // Note: the network holds the currencies but those currencies do not include the ETH
+            // 'Smart Contract' address which must be provided in a token declarations.  The
+            // address is part of the BlockChainDB 'currency' schema - but we don't have that.
+            //
+            //        network.currencies
+            //            .filter { $0.type == "erc20" }
+            //            .forEach {
+            //                //                    let unit = network.defaultUnitFor(currency: $0)
+            //                //                    let core: BREthereumToken! = nil // ewmToek
+            //                //                    let token = EthereumToken (identifier: core, currency: $0)
+            //        }
+            manager = ewm
+
         default: // generic
             break
 
         }
+
+        // Require a manager
         precondition(nil != manager)
 
+        // Save the manager
         managers.append(manager)
+
+        // Announce events.
         listener?.handleManagerEvent(system: self, manager: manager, event: WalletManagerEvent.created)
         listener?.handleSystemEvent(system: self, event: SystemEvent.managerAdded(manager: manager))
-
-        // For ETH: tokens - add and wallet define
-//        network.currencies
-//            .filter { $0.type == "erc20" }
-//            .forEach {
-//                //                    let unit = network.defaultUnitFor(currency: $0)
-//                //                    let core: BREthereumToken! = nil // ewmToek
-//                //                    let token = EthereumToken (identifier: core, currency: $0)
-//        }
     }
 
     public func createWallet(manager: WalletManager, currency: Currency) {
@@ -134,10 +144,9 @@ public final class SystemBase: System {
 
                     var associations: [Currency : Network.Association] = [:]
 
+                    // Update associations
                     currencyModels.forEach { (currencyModel: BlockChainDB.Model.Currency) in
-                        // Create the currency
-
-                        // TODO: Don't create duplicates
+                        // TODO: Create the currency but don't create copies
                         let currency = Currency (uids: currencyModel.id,
                                                  name: currencyModel.name,
                                                  code: currencyModel.code,
@@ -156,21 +165,26 @@ public final class SystemBase: System {
                         let maximumDecimals = units.reduce (0) { max ($0, $1.decimals) }
                         let defaultUnit = units.first { $0.decimals == maximumDecimals }!
 
-
+                        // Update associations
                         associations[currency] = Network.Association (baseUnit: baseUnit,
                                                                       defaultUnit: defaultUnit,
                                                                       units: Set<Unit>(units))
                     }
 
+                    // the default currency
                     let currency = associations.keys.first { $0.code == blockchainModel.currency }!
 
+                    // define the network
                     let network = Network (uids: blockchainModel.id,
                                            name: blockchainModel.name,
                                            isMainnet: blockchainModel.isMainnet,
                                            currency: currency,
                                            associations: associations)
 
+                    // save the network
                     self.networks.append (network)
+
+                    // Invoke callbacks.
                     self.listener?.handleNetworkEvent (system: self, network: network, event: NetworkEvent.created)
                     self.listener?.handleSystemEvent  (system: self, event: SystemEvent.networkAdded(network: network))
                 }

@@ -10,6 +10,9 @@ import XCTest
 
 class TestListener: SystemListener {
     func handleSystemEvent(system: System, event: SystemEvent) {
+        switch event {
+            
+        }
     }
     
     func handleNetworkEvent(system: System, network: Network, event: NetworkEvent) {
@@ -25,7 +28,7 @@ class TestListener: SystemListener {
         }
     }
 
-    func handleManagerEvent(system: System, manager: WalletManager, event: WalletManagerEvent) {
+    func handleManagerEvent (system: System, manager: WalletManager, event: WalletManagerEvent) {
         switch event {
         case .created:
             manager.connect()
