@@ -495,12 +495,12 @@ ewmSignalAnnounceToken (BREthereumEWM ewm,
 
 extern void
 ewmHandleAnnounceTokenComplete (BREthereumEWM ewm,
-                                BREthereumBoolean success,
-                                int rid);
+                                int rid,
+                                BREthereumBoolean success);
 extern void
 ewmSignalAnnounceTokenComplete (BREthereumEWM ewm,
-                                BREthereumBoolean success,
-                                int rid);
+                                int rid,
+                                BREthereumBoolean success);
 
 /// MARK: - BlockNumber
 

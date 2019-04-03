@@ -567,6 +567,25 @@ public enum NetworkEvent {
 }
 
 ///
+/// Listener for NetworkEvent
+///
+public protocol NetworkListener: class {
+
+    ///
+    /// Handle a NetworkEvent
+    ///
+    /// - Parameters:
+    ///   - system: the system
+    ///   - network: the network
+    ///   - event: the event
+    ///
+    func handleNetworkEvent (system: System,
+                             network: Network,
+                             event: NetworkEvent)
+
+}
+
+///
 /// An Address for transferring an amount.
 ///
 /// - bitcoin: A bitcon-specific address
@@ -783,12 +802,34 @@ extension TransferState: CustomStringConvertible {
     }
 }
 
+///
 /// A TransferEvent represents a asynchronous announcment of a transfer's state change.
 ///
 public enum TransferEvent {
     case created
     case changed (old: TransferState, new: TransferState)
     case deleted
+}
+
+///
+/// Listener for TransferEvent
+///
+public protocol TransferListener: class {
+    ///
+    /// Handle a TranferEvent.
+    ///
+    /// - Parameters:
+    ///   - system: the system
+    ///   - manager: the manager
+    ///   - wallet: the wallet
+    ///   - transfer: the transfer
+    ///   - event: the transfer event.
+    ///
+    func handleTransferEvent (system: System,
+                              manager: WalletManager,
+                              wallet: Wallet,
+                              transfer: Transfer,
+                              event: TransferEvent)
 }
 
 ///
@@ -947,6 +988,25 @@ extension WalletEvent: CustomStringConvertible {
 }
 
 ///
+/// Listener for WalletEvent
+///
+public protocol WalletListener: class {
+    ///
+    /// Handle a WalletEvent
+    ///
+    /// - Parameters:
+    ///   - system: the system
+    ///   - manager: the manager
+    ///   - wallet: the wallet
+    ///   - event: the wallet event.
+    ///
+    func handleWalletEvent (system: System,
+                            manager: WalletManager,
+                            wallet: Wallet,
+                            event: WalletEvent)
+}
+
+///
 /// A WalletFactory is a customization point for Wallet creation.
 /// TODO: ?? AND HOW DOES THIS FIT WITH CoreWallet w/ REQUIRED INTERFACE TO Core ??
 ///
@@ -982,7 +1042,7 @@ public protocol WalletManager : class {
     /// The network
     var network: Network { get }
 
-    /// The primaryWallet
+    /// The primaryWallet - holds the network's currency
     var primaryWallet: Wallet { get }
 
     /// The managed wallets - often will just be [primaryWallet]
@@ -1034,9 +1094,10 @@ extension WalletManager {
 //                                           currency: currency)
 //    }
 
-    /// The primaryWallet's currency.
+    /// The network's/primaryWallet's currency.
     var currency: Currency {
-        return primaryWallet.currency
+        // Using 'network' here avoid an infinite recursion when creating the primary wallet.
+        return network.currency
     }
 
     /// A manager `isActive` if connected or syncing
@@ -1098,23 +1159,10 @@ public enum WalletManagerEvent {
     case syncEnded (error: String?)
 }
 
-public enum SystemEvent {
-    case created
-    case networkAdded (network: Network)
-    case managerAdded (manager: WalletManager)
-}
 ///
-/// A SystemListener recieves asynchronous events announcing state changes to Networks, to Managers,
-/// to Wallets and to Transfers.  This is an application's sole mechanism to learn of asynchronous
-/// state changes.
+/// Listener For WalletManagerEvent
 ///
-/// Note: This must be 'class bound' as System  hold a 'weak' reference (for GC reasons).
-///
-public protocol SystemListener : class {
-
-    func handleSystemEvent (system: System,
-                            event: SystemEvent)
-    
+public protocol WalletManagerListener: class {
     ///
     /// Handle a WalletManagerEvent.
     ///
@@ -1127,120 +1175,12 @@ public protocol SystemListener : class {
                              manager: WalletManager,
                              event: WalletManagerEvent)
 
-    ///
-    /// Handle a WalletEvent
-    ///
-    /// - Parameters:
-    ///   - system: the system
-    ///   - manager: the manager
-    ///   - wallet: the wallet
-    ///   - event: the wallet event.
-    ///
-    func handleWalletEvent (system: System,
-                            manager: WalletManager,
-                            wallet: Wallet,
-                            event: WalletEvent)
-
-    ///
-    /// Handle a TranferEvent.
-    ///
-    /// - Parameters:
-    ///   - system: the system
-    ///   - manager: the manager
-    ///   - wallet: the wallet
-    ///   - transfer: the transfer
-    ///   - event: the transfer event.
-    ///
-    func handleTransferEvent (system: System,
-                              manager: WalletManager,
-                              wallet: Wallet,
-                              transfer: Transfer,
-                              event: TransferEvent)
-
-
-    // TODO: handlePeerEvent ()
-    // TODO: handleBlockEvent ()
-
-    ///
-    /// Handle a NetworkEvent
-    ///
-    /// - Parameters:
-    ///   - system: the system
-    ///   - network: the network
-    ///   - event: the event
-    ///
-    func handleNetworkEvent (system: System,
-                             network: Network,
-                             event: NetworkEvent)
-
-
-
-//    /// System
-//
-//    func handleSystemAddedNetwork (system: System,
-//                                   network: Network)
-//
-//    func handleSystemAddedManager (system: System,
-//                                   manager: WalletManager)
-//
-//    /// Network
-//
-//    // added currency
-//
-//    /// Manager
-//
-//    func handleManagerChangedState (system: System,
-//                                    manager: WalletManager,
-//                                    old: WalletManagerState,
-//                                    new: WalletManagerState)
-//
-//    func handleManagerAddedWallet (system: System,
-//                                   manager: WalletManager,
-//                                   wallet: Wallet)
-//    // changed wallet
-//    // deleted wallet
-//
-//    func handleManagerStartedSync (system: System,
-//                                   manager: WalletManager)
-//
-//    func handleManagerProgressedSync (system: System,
-//                                      manager: WalletManager,
-//                                      percentage: Double)
-//
-//    func handleManagerStoppedSync (system: System,
-//                                   manager: WalletManager)
-//
-//    /// Wallet
-//
-//    func handleWalletAddedTransfer (system: System,
-//                                    manager: WalletManager,
-//                                    wallet: Wallet,
-//                                    transfer: Transfer)
-//
-//    // changed transfer
-//    // deleted transfer
-//
-//    func handleWalletUpdatedBalance (system: System,
-//                                     manager: WalletManager,
-//                                     wallet: Wallet)
-//
-//    func handleWalletUpdatedFeeBasis (system: System,
-//                                      manager: WalletManager,
-//                                      wallet: Wallet)
-//
-//    /// Transfer
-//
-//    func handleTransferChangedState (system: System,
-//                                     manager: WalletManager,
-//                                     wallet: Wallet,
-//                                     transfer: Transfer,
-//                                     old: TransferState,
-//                                     new: TransferState)
 }
 
 
-
-/// Singleton
+///
+/// System (a singleton)
+///
 public protocol System {
     
     /// The listener.  Gets all events for {Network, WalletManger, Wallet, Transfer}
@@ -1260,6 +1200,9 @@ public protocol System {
     /// Wallet Managers
     var managers: [WalletManager] { get }
 
+    // Wallets
+    var wallets: [Wallet] { get }
+
     func start (networksNeeded: [String])
 
     func stop ()
@@ -1276,3 +1219,88 @@ public protocol System {
                         query: BlockChainDB) -> System
 }
 
+extension System {
+    public var wallets: [Wallet] {
+        return managers.flatMap { $0.wallets }
+    }
+}
+
+public enum SystemEvent {
+    case created
+    case networkAdded (network: Network)
+    case managerAdded (manager: WalletManager)
+}
+///
+/// A SystemListener recieves asynchronous events announcing state changes to Networks, to Managers,
+/// to Wallets and to Transfers.  This is an application's sole mechanism to learn of asynchronous
+/// state changes.
+///
+/// Note: This must be 'class bound' as System holds a 'weak' reference (for GC reasons).
+///
+public protocol SystemListener : /* class, */ WalletManagerListener, WalletListener, TransferListener, NetworkListener {
+
+    func handleSystemEvent (system: System,
+                            event: SystemEvent)
+
+    //    /// System
+    //
+    //    func handleSystemAddedNetwork (system: System,
+    //                                   network: Network)
+    //
+    //    func handleSystemAddedManager (system: System,
+    //                                   manager: WalletManager)
+    //
+    //    /// Network
+    //
+    //    // added currency
+    //
+    //    /// Manager
+    //
+    //    func handleManagerChangedState (system: System,
+    //                                    manager: WalletManager,
+    //                                    old: WalletManagerState,
+    //                                    new: WalletManagerState)
+    //
+    //    func handleManagerAddedWallet (system: System,
+    //                                   manager: WalletManager,
+    //                                   wallet: Wallet)
+    //    // changed wallet
+    //    // deleted wallet
+    //
+    //    func handleManagerStartedSync (system: System,
+    //                                   manager: WalletManager)
+    //
+    //    func handleManagerProgressedSync (system: System,
+    //                                      manager: WalletManager,
+    //                                      percentage: Double)
+    //
+    //    func handleManagerStoppedSync (system: System,
+    //                                   manager: WalletManager)
+    //
+    //    /// Wallet
+    //
+    //    func handleWalletAddedTransfer (system: System,
+    //                                    manager: WalletManager,
+    //                                    wallet: Wallet,
+    //                                    transfer: Transfer)
+    //
+    //    // changed transfer
+    //    // deleted transfer
+    //
+    //    func handleWalletUpdatedBalance (system: System,
+    //                                     manager: WalletManager,
+    //                                     wallet: Wallet)
+    //
+    //    func handleWalletUpdatedFeeBasis (system: System,
+    //                                      manager: WalletManager,
+    //                                      wallet: Wallet)
+    //
+    //    /// Transfer
+    //
+    //    func handleTransferChangedState (system: System,
+    //                                     manager: WalletManager,
+    //                                     wallet: Wallet,
+    //                                     transfer: Transfer,
+    //                                     old: TransferState,
+    //                                     new: TransferState)
+}

@@ -940,7 +940,7 @@ typedef struct {
 
 static void
 ewmSignalAnnounceTokenDispatcher (BREventHandler ignore,
-                                        BREthereumEWMClientAnnounceTokenEvent *event) {
+                                  BREthereumEWMClientAnnounceTokenEvent *event) {
     ewmHandleAnnounceToken(event->ewm, event->bundle, event->rid);
 }
 
@@ -958,8 +958,8 @@ static BREventType ewmClientAnnounceTokenEventType = {
 
 extern void
 ewmSignalAnnounceToken (BREthereumEWM ewm,
-                              BREthereumEWMClientAnnounceTokenBundle *bundle,
-                              int rid) {
+                        BREthereumEWMClientAnnounceTokenBundle *bundle,
+                        int rid) {
     BREthereumEWMClientAnnounceTokenEvent message =
     { { NULL, &ewmClientAnnounceTokenEventType}, ewm, bundle, rid};
     eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
@@ -978,7 +978,7 @@ typedef struct {
 static void
 ewmSignalAnnounceTokenCompleteDispatcher (BREventHandler ignore,
                                           BREthereumEWMClientAnnounceTokenCompleteEvent *event) {
-    ewmHandleAnnounceTokenComplete(event->ewm, event->success, event->rid);
+    ewmHandleAnnounceTokenComplete(event->ewm, event->rid, event->success);
 }
 
 static BREventType ewmClientAnnounceTokenCompleteEventType = {
@@ -989,8 +989,8 @@ static BREventType ewmClientAnnounceTokenCompleteEventType = {
 
 extern void
 ewmSignalAnnounceTokenComplete (BREthereumEWM ewm,
-                                BREthereumBoolean success,
-                                int rid) {
+                                int rid,
+                                BREthereumBoolean success) {
     BREthereumEWMClientAnnounceTokenCompleteEvent message =
     { { NULL, &ewmClientAnnounceTokenCompleteEventType}, ewm, success, rid };
     eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
