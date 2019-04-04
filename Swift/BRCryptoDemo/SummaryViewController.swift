@@ -123,6 +123,9 @@ class SummaryViewController: UITableViewController, WalletListener {
             // if visible ...
             switch event {
             case .created:
+                guard !self.wallets.contains(where: { $0 === wallet })
+                    else { return }
+
                 self.wallets.append (wallet)
 
                 let path = IndexPath (row: (self.wallets.count - 1), section: 0)

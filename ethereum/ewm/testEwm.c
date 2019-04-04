@@ -395,66 +395,60 @@ static void
 clientGetTokens (BREthereumClientContext context,
                  BREthereumEWM ewm,
                  int rid) {
-    ewmAnnounceToken(ewm,
+    ewmAnnounceToken(ewm, 0,
                      getTokenBRDAddress(ewm->network),
                      "BRD",
                      "BRD Token",
                      "BRD Token Description",
                      18,
                      NULL,
-                     NULL,
-                     0);
+                     NULL);
 #if defined (BITCOIN_DEBUG)
-    ewmAnnounceToken(ewm,
+    ewmAnnounceToken(ewm, 0,
                      getTokenTSTAddress(ewm->network),
                      "TST",
                      "Test Standard Token",
                      "TeST Standard Token (TST) for TeSTing (TST)",
                      18,
                      NULL,
-                     NULL,
-                     0);
+                     NULL);
 #endif
     // For 0xb302B06FDB1348915599D21BD54A06832637E5E8
-    ewmAnnounceToken(ewm,
+    ewmAnnounceToken(ewm, 0,
                      "0x68e14bb5a45b9681327e16e528084b9d962c1a39",
                      "CAT",
                      "CAT Token",
                      "",
                      18,
                      NULL,
-                     NULL,
-                     0);
+                     NULL);
     
-    ewmAnnounceToken(ewm,
+    ewmAnnounceToken(ewm, 0,
                      "0x1234567461d3f8db7496581774bd869c83d51c93",
                      "bitclave",
                      "bitclave",
                      "",
                      18,
                      NULL,
-                     NULL,
-                     0);
+                     NULL);
     
-    ewmAnnounceToken(ewm,
+    ewmAnnounceToken(ewm, 0,
                      "0xb3bd49e28f8f832b8d1e246106991e546c323502",
                      "GMT",
                      "GMT",
                      "",
                      18,
                      NULL,
-                     NULL,
-                     0);
+                     NULL);
     
-    ewmAnnounceToken(ewm,
+    ewmAnnounceToken(ewm, 0,
                      "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0",
                      "EOS",
                      "EOS",
                      "",
                      18,
                      NULL,
-                     NULL,
-                     0);
+                     NULL);
 
     ewmAnnounceTokenComplete(ewm, ETHEREUM_BOOLEAN_TRUE, rid);
     

@@ -11,7 +11,8 @@ import XCTest
 class TestListener: SystemListener {
     func handleSystemEvent(system: System, event: SystemEvent) {
         switch event {
-            
+        default:
+            break
         }
     }
     
