@@ -417,7 +417,7 @@ public class BlockChainDB {
 
     public init () {}
 
-    internal let currencySymbols = ["btc":"b", "eth":"Ξ"]
+    internal let currencySymbols = ["btc":"₿", "eth":"Ξ"]
     internal func lookupSymbol (_ code: String) -> String {
         return currencySymbols[code] ?? code
     }

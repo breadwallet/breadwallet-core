@@ -42,9 +42,6 @@ public final class SystemBase: System {
                                      event: SystemEvent.managerAdded(manager: manager))
     }
 
-    public func stop () {
-    }
-
     public func createWalletManager (network: Network,
                                      mode: WalletManagerMode) {
         var manager: WalletManager!
@@ -55,12 +52,17 @@ public final class SystemBase: System {
         switch network.currency.code {
         case Currency.codeAsBTC,
              Currency.codeAsBCH:
-//            manager = BitcoinWalletManager (// listener: <#T##BitcoinListener#>,
-//                                            account: account,
-//                                            network: network,
-//                                            mode: mode,
-//                                            storagePath: storagePath)
-            break
+            let bwm = BitcoinWalletManager (system: self,
+                                            listener: listener!,
+                                            account: account,
+                                            network: network,
+                                            mode: WalletManagerMode.p2p_only,
+                                            storagePath: path)
+
+            // Other configuration ?
+
+            manager = bwm
+
         case Currency.codeAsETH:
             let ewm = EthereumWalletManager (system: self,
                                              listener: listener!,
@@ -135,7 +137,17 @@ public final class SystemBase: System {
         listener.handleSystemEvent (system: self, event: SystemEvent.created)
     }
 
+    public func stop () {
+        managers.forEach { $0.disconnect() }
+    }
+
+
     public func start (networksNeeded: [String]) {
+        if !networks.isEmpty {
+            managers.forEach { $0.connect() }
+            return
+        }
+
         func currencyDenominationToBaseUnit (currency: Currency, model: BlockChainDB.Model.CurrencyDenomination) -> Unit {
             let uids = "\(currency.name)-\(model.code)"
             return Unit (currency: currency, uids: uids, name: model.name, symbol: model.symbol)

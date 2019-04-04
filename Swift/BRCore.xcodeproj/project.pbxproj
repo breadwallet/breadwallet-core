@@ -106,6 +106,7 @@
 		3C6B17722131CE12003C313B /* BREthereumEWMClient.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C386DD120C6F6060065E355 /* BREthereumEWMClient.c */; };
 		3C6B17732131CE12003C313B /* BRWallet.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C590F5720950C740005597B /* BRWallet.c */; };
 		3C6B177C2131CE70003C313B /* libCoreMacOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3C6B17792131CE12003C313B /* libCoreMacOS.a */; };
+		3C6F7C3B225673BD006B296B /* BRBitcoin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C6F7C3A225673BD006B296B /* BRBitcoin.swift */; };
 		3C9025EF21063AD200143B69 /* testUtil.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C9025EE21063AD200143B69 /* testUtil.c */; };
 		3C9025F121063BDC00143B69 /* testRlp.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C9025F021063BDC00143B69 /* testRlp.c */; };
 		3C9025F321064B6700143B69 /* testEvent.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C9025F221064B6700143B69 /* testEvent.c */; };
@@ -333,7 +334,6 @@
 		3C0EAE192191145A000577A6 /* BRSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRSupport.swift; sourceTree = "<group>"; };
 		3C0EAE2021925574000577A6 /* BRCoreX.playground */ = {isa = PBXFileReference; lastKnownFileType = file.playground; path = BRCoreX.playground; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
 		3C0EAE25219349CD000577A6 /* BREthereum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BREthereum.swift; sourceTree = "<group>"; };
-		3C0EAE2821935388000577A6 /* BRBitcoin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRBitcoin.swift; sourceTree = "<group>"; };
 		3C18F8AF21950746006F738F /* BRCryptoDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BRCryptoDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3C18F8B121950746006F738F /* CoreDemoAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDemoAppDelegate.swift; sourceTree = "<group>"; };
 		3C18F8B821950746006F738F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
@@ -470,6 +470,7 @@
 		3C6B172C2131CB5B003C313B /* CoreExplore */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = CoreExplore; sourceTree = BUILT_PRODUCTS_DIR; };
 		3C6B172E2131CB5B003C313B /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		3C6B17792131CE12003C313B /* libCoreMacOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libCoreMacOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		3C6F7C3A225673BD006B296B /* BRBitcoin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRBitcoin.swift; sourceTree = "<group>"; };
 		3C9025EE21063AD200143B69 /* testUtil.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testUtil.c; sourceTree = "<group>"; };
 		3C9025F021063BDC00143B69 /* testRlp.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testRlp.c; sourceTree = "<group>"; };
 		3C9025F221064B6700143B69 /* testEvent.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testEvent.c; sourceTree = "<group>"; };
@@ -1101,7 +1102,7 @@
 			isa = PBXGroup;
 			children = (
 				3CCB1345224D1B1700ADCDB9 /* BREthereum.swift */,
-				3C0EAE2821935388000577A6 /* BRBitcoin.swift */,
+				3C6F7C3A225673BD006B296B /* BRBitcoin.swift */,
 				3CCD36B521AC65690032637A /* BRBitcash.swift */,
 				3CCB1347224D1B1700ADCDB9 /* BRSystem.swift */,
 			);
@@ -1469,6 +1470,7 @@
 				3CCB134C224D1B1700ADCDB9 /* BRSystem.swift in Sources */,
 				3C0EAE1A2191145A000577A6 /* BRSupport.swift in Sources */,
 				3CCB1352224D2C5600ADCDB9 /* BRBitcash.swift in Sources */,
+				3C6F7C3B225673BD006B296B /* BRBitcoin.swift in Sources */,
 				3CCB1349224D1B1700ADCDB9 /* BRBlockChainDB.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

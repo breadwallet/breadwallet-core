@@ -435,8 +435,6 @@ public final class Network: CustomStringConvertible {
     /// All currencies.  Multiple networks will have the same currencies.
     public var currencies: Set<Currency>
 
-    internal var associations: Dictionary<Currency, Association> = [:]
-
     func currencyBy (code: String) -> Currency? {
         return currencies.first { $0.code == code }
     }
@@ -444,6 +442,9 @@ public final class Network: CustomStringConvertible {
     public func hasCurrency(_ that: Currency) -> Bool {
         return currencies.contains(that)
     }
+
+    /// An association mapping Currency => { baseUnit, defaultUnit, Units }
+    internal var associations: Dictionary<Currency, Association> = [:]
 
     public func baseUnitFor(currency: Currency) -> Unit? {
         return associations[currency]?.baseUnit
@@ -666,10 +667,10 @@ public final class Address: Equatable, CustomStringConvertible {
 /// scheme or a 'Legacy' address scheme.
 ///
 public protocol AddressScheme {
-//    associatedtype W: Wallet
+    associatedtype W: Wallet
 
     // Generate a 'receive' (aka target') address for wallet.
-    func getAddress (for wallet: Wallet) -> Address
+    func getAddress (for wallet: W) -> Address
 }
 
 ///
