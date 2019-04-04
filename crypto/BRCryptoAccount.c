@@ -97,7 +97,12 @@ cryptoAccountRelease (BRCryptoAccount account) {
 extern uint64_t
 cryptoAccountGetTimestamp (BRCryptoAccount account) {
     return account->timestamp;
+}
 
+extern void
+cryptoAccountSetTimestamp (BRCryptoAccount account,
+                           uint64_t timestamp) {
+    account->timestamp = timestamp;
 }
 
 private_extern BREthereumAccount

@@ -119,6 +119,8 @@ class SummaryViewController: UITableViewController, WalletListener {
                             wallet: Wallet,
                             event: WalletEvent) {
         DispatchQueue.main.async {
+            NSLog ("SummaryViewController WalletEvent: \(event)")
+            // if visible ...
             switch event {
             case .created:
                 self.wallets.append (wallet)

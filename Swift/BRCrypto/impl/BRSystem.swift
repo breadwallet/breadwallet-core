@@ -27,8 +27,20 @@ public final class SystemBase: System {
     /// Networks
     public internal(set) var networks: [Network] = []
 
+    internal func add (network: Network) {
+        networks.append (network)
+        listener?.handleSystemEvent (system: self,
+                                     event: SystemEvent.networkAdded(network: network))
+    }
+
     /// Wallet Managers
     public internal(set) var managers: [WalletManager] = [];
+
+    internal func add (manager: WalletManager) {
+        managers.append (manager)
+        listener?.handleSystemEvent (system: self,
+                                     event: SystemEvent.managerAdded(manager: manager))
+    }
 
     public func stop () {
     }
@@ -37,8 +49,9 @@ public final class SystemBase: System {
                                      mode: WalletManagerMode) {
         var manager: WalletManager!
 
-        // Select the manager from amoung the known wallet managers (BTC, BCH, ETH) for as
-        // the generic wallet manager.
+        // Select the manager from amoung the known wallet managers (BTC, BCH, ETH) or use the
+        // generic wallet manager.
+
         switch network.currency.code {
         case Currency.codeAsBTC,
              Currency.codeAsBCH:
@@ -49,7 +62,9 @@ public final class SystemBase: System {
 //                                            storagePath: storagePath)
             break
         case Currency.codeAsETH:
-            let ewm = EthereumWalletManager (account: account,
+            let ewm = EthereumWalletManager (system: self,
+                                             listener: listener!,
+                                             account: account,
                                              network: network,
                                              mode: mode,
                                              storagePath: path)
@@ -76,12 +91,11 @@ public final class SystemBase: System {
         // Require a manager
         precondition(nil != manager)
 
-        // Save the manager
-        managers.append(manager)
+        // Announce manager creation
+        //        listener?.handleManagerEvent(system: self, manager: manager, event: WalletManagerEvent.created)
 
-        // Announce events.
-        listener?.handleManagerEvent(system: self, manager: manager, event: WalletManagerEvent.created)
-        listener?.handleSystemEvent(system: self, event: SystemEvent.managerAdded(manager: manager))
+        // Save the manager - will announce the SystemEvent.managerAdded(...)
+        add (manager: manager)
     }
 
     public func createWallet(manager: WalletManager, currency: Currency) {
@@ -107,7 +121,7 @@ public final class SystemBase: System {
         return instance!
     }
 
-    public init (listener: SystemListener,
+    internal init (listener: SystemListener,
                  account: Account,
                  path: String,
                  query: BlockChainDB) {

@@ -12,14 +12,19 @@
 import UIKit
 import BRCrypto
 
-class TransferViewController: UIViewController {
-
+class TransferViewController: UIViewController, TransferListener {
     var transfer : Transfer!
     var wallet  : Wallet!
 
     var dateFormatter : DateFormatter!
 
     override func viewDidLoad() {
+        // Seems `viewDidLoad()` is called many times... and the listener is added many times.
+        // Should only be added once or should be removed (on viewWillDisappear())
+        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
+            listener.transferListeners.append (self)
+        }
+
         super.viewDidLoad()
 
         if nil == dateFormatter {
@@ -49,7 +54,7 @@ class TransferViewController: UIViewController {
 
         case .signed: return UIColor.yellow
         case .pending: return UIColor.yellow
-        case .failed(let _ /* reason */): return UIColor.red
+        case .failed /*(let reason )*/: return UIColor.red
         }
     }
 
@@ -96,77 +101,77 @@ class TransferViewController: UIViewController {
 
     @IBAction func doResubmit(_ sender: UIButton) {
         NSLog ("Want to Resubmit")
-        if case .failed(let error) = transfer.state {
-            var alertMessage: String = "Okay to resubmit?"
-            var alertAction: UIAlertAction?
-            var alert: UIAlertController!
-
+//        if case .failed(let error) = transfer.state {
+//            var alertMessage: String = "Okay to resubmit?"
+//            var alertAction: UIAlertAction?
+//            var alert: UIAlertController!
+//
 //            switch error {
 //            case .nonceTooLow:
 //                alertMessage = "Okay to update nonce and resubmit?"
-//                alertAction = UIAlertAction (title: "Yes", style: UIAlertAction.Style.default) { (action) in
-//                    let replacement = self.wallet.createTransferToReplace (transfer: self.transfer,
-//                                                                           updateNonce: true)
-//                    self.wallet.sign(transfer: replacement,
-//                                     paperKey: UIApplication.sharedClient.paperKey);
-//                    self.wallet.submit(transfer: replacement);
-//                    alert.dismiss(animated: true) {}
-//                }
-//
+////                alertAction = UIAlertAction (title: "Yes", style: UIAlertAction.Style.default) { (action) in
+////                    let replacement = self.wallet.createTransferToReplace (transfer: self.transfer,
+////                                                                           updateNonce: true)
+////                    self.wallet.sign(transfer: replacement,
+////                                     paperKey: UIApplication.sharedClient.paperKey);
+////                    self.wallet.submit(transfer: replacement);
+////                    alert.dismiss(animated: true) {}
+////                }
+////
 //            case .gasPriceTooLow:
 //                alertMessage = "Okay to double gasPrice (fee doubles) and resubmit?"
-//                alertAction = UIAlertAction (title: "Yes", style: UIAlertAction.Style.default) { (action) in
-//                    let replacement = self.wallet.createTransferToReplace (transfer: self.transfer,
-//                                                                           updateGasPrice: true)
-//                    self.wallet.sign(transfer: replacement,
-//                                     paperKey: UIApplication.sharedClient.paperKey);
-//                    self.wallet.submit(transfer: replacement);
-//                    alert.dismiss(animated: true) {}
-//                }
-//
+////                alertAction = UIAlertAction (title: "Yes", style: UIAlertAction.Style.default) { (action) in
+////                    let replacement = self.wallet.createTransferToReplace (transfer: self.transfer,
+////                                                                           updateGasPrice: true)
+////                    self.wallet.sign(transfer: replacement,
+////                                     paperKey: UIApplication.sharedClient.paperKey);
+////                    self.wallet.submit(transfer: replacement);
+////                    alert.dismiss(animated: true) {}
+////                }
+////
 //            case .gasTooLow:
 //                alertMessage = "Okay to double gasLimit (fee doubles) and resubmit?"
-//                alertAction = UIAlertAction (title: "Yes", style: UIAlertAction.Style.default) { (action) in
-//                    let replacement = self.wallet.createTransferToReplace (transfer: self.transfer,
-//                                                                           updateGasLimit: true)
-//                    self.wallet.sign(transfer: replacement,
-//                                     paperKey: UIApplication.sharedClient.paperKey);
-//                    self.wallet.submit(transfer: replacement);
-//                    alert.dismiss(animated: true) {}
-//                }
-//
-//
+////                alertAction = UIAlertAction (title: "Yes", style: UIAlertAction.Style.default) { (action) in
+////                    let replacement = self.wallet.createTransferToReplace (transfer: self.transfer,
+////                                                                           updateGasLimit: true)
+////                    self.wallet.sign(transfer: replacement,
+////                                     paperKey: UIApplication.sharedClient.paperKey);
+////                    self.wallet.submit(transfer: replacement);
+////                    alert.dismiss(animated: true) {}
+////                }
+////
+////
 //            case .invalidSignature,
 //                 .replacementUnderPriced:
 //                alertMessage = "Unsupported error";
-//                alertAction = UIAlertAction (title: "Okay", style: UIAlertAction.Style.default) { (action) in
-//                    alert.dismiss(animated: true) {}
-//                }
-//
+////                alertAction = UIAlertAction (title: "Okay", style: UIAlertAction.Style.default) { (action) in
+////                    alert.dismiss(animated: true) {}
+////                }
+////
 //            case .balanceTooLow,  // money arrived?
 //                 .dropped,
 //                 .unknown:
 //                alertMessage = "Okay to double fee and resubmit?"
-//                alertAction = UIAlertAction (title: "Yes", style: UIAlertAction.Style.default) { (action) in
-//                    let replacement = self.wallet.createTransferToReplace (transfer: self.transfer,
-//                                                                           updateGasPrice: true)
-//                    self.wallet.sign(transfer: replacement,
-//                                     paperKey: UIApplication.sharedClient.paperKey);
-//                    self.wallet.submit(transfer: replacement);
-//                    alert.dismiss(animated: true) {}
-//                }
+////                alertAction = UIAlertAction (title: "Yes", style: UIAlertAction.Style.default) { (action) in
+////                    let replacement = self.wallet.createTransferToReplace (transfer: self.transfer,
+////                                                                           updateGasPrice: true)
+////                    self.wallet.sign(transfer: replacement,
+////                                     paperKey: UIApplication.sharedClient.paperKey);
+////                    self.wallet.submit(transfer: replacement);
+////                    alert.dismiss(animated: true) {}
+////                }
 //            }
-
-            if let actionOnOkay = alertAction {
-                alert = UIAlertController (title: "Resubmit",
-                                           message: alertMessage,
-                                           preferredStyle: UIAlertController.Style.alert)
-                alert.addAction (actionOnOkay)
-                alert.addAction(UIAlertAction (title: "No", style: UIAlertAction.Style.cancel))
-
-                self.present (alert, animated: true) {}
-            }
-        }
+//
+//            if let actionOnOkay = alertAction {
+//                alert = UIAlertController (title: "Resubmit",
+//                                           message: alertMessage,
+//                                           preferredStyle: UIAlertController.Style.alert)
+//                alert.addAction (actionOnOkay)
+//                alert.addAction(UIAlertAction (title: "No", style: UIAlertAction.Style.cancel))
+//
+//                self.present (alert, animated: true) {}
+//            }
+//        }
     }
 
     /*
@@ -216,5 +221,41 @@ class TransferViewController: UIViewController {
     @IBOutlet var resubmitButton: UIButton!
     @IBOutlet var nonceLabel: UILabel!
     @IBOutlet var dotView: Dot!
+
+    func handleTransferEvent(system: System, manager: WalletManager, wallet: Wallet, transfer: Transfer, event: TransferEvent) {
+        DispatchQueue.main.async {
+            NSLog ("TransferViewController TransferEvent: \(event)")
+            guard self.wallet === wallet /* && view is visible */  else { return }
+
+            // This, for sure
+            self.dotView.mainColor = self.colorForState()
+
+            switch event {
+            case .created:
+                break // impossible...
+            case .changed (_, let new):
+                switch (new) {
+                case .created:
+                    break // impossible
+                case .signed:
+                    break
+                case .submitted:
+                    break
+                case .pending:
+                    break
+                case .included /* (let confirmation) */:
+                    self.confLabel.text = transfer.confirmation.map { "Yes @ \($0.blockNumber)" } ?? "No"
+
+                case .failed /* (let reason) */:
+                    break
+                case .deleted:
+                    break // nearly impossible
+                }
+                break
+            case .deleted:
+                break // nearly impossible
+            }
+        }
+    }
 }
 

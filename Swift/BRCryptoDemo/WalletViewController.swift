@@ -26,6 +26,12 @@ class WalletViewController: UITableViewController, TransferListener {
 
 
     override func viewDidLoad() {
+        // Seems `viewDidLoad()` is called many times... and the listener is added many times.
+        // Should only be added once or should be removed (on viewWillDisappear())
+        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
+            listener.transferListeners.append (self)
+        }
+
         super.viewDidLoad()
         self.tableView.rowHeight = 100
     }
@@ -93,7 +99,7 @@ class WalletViewController: UITableViewController, TransferListener {
 
     func handleTransferEvent(system: System, manager: WalletManager, wallet: Wallet, transfer: Transfer, event: TransferEvent) {
         DispatchQueue.main.async {
-            // guard view-is-visible
+            NSLog ("WalletViewController TransferEvent: \(event)")
             guard self.wallet === wallet /* && view is visible */  else { return }
             switch event {
             case .created:

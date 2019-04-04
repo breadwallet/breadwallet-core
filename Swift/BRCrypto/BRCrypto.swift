@@ -377,7 +377,8 @@ public final class Account {
     let core: BRCryptoAccount
 
     public var timestamp: UInt64 {
-        return cryptoAccountGetTimestamp (core)
+        get { return cryptoAccountGetTimestamp (core) }
+        set { cryptoAccountSetTimestamp (core, newValue) }
     }
 
     internal init (core: BRCryptoAccount) {
@@ -418,9 +419,9 @@ public final class Account {
 /// be networks of [BTC-Mainnet, BTC-Testnet, ..., ETH-Mainnet, ETH-Testnet, ETH-Rinkeby, ...]
 ///
 public final class Network: CustomStringConvertible {
-
     /// A unique-identifer-string
     public let uids: String
+    
     /// The name
     public let name: String
 
@@ -965,24 +966,28 @@ public enum WalletState {
 ///
 public enum WalletEvent {
     case created
+    case changed (oldState: WalletState, newState: WalletState)
+    case deleted
+
     case transferAdded   (transfer: Transfer)
     case transferChanged (transfer: Transfer)
     case transferDeleted (transfer: Transfer)
+
     case balanceUpdated  (amount: Amount)
     case feeBasisUpdated (feeBasis: TransferFeeBasis)
-    case deleted
 }
 
 extension WalletEvent: CustomStringConvertible {
     public var description: String {
         switch self {
         case .created:         return "Created"
+        case .changed:         return "StateChanged"
+        case .deleted:         return "Deleted"
         case .transferAdded:   return "TransferAdded"
         case .transferChanged: return "TransferChanged"
         case .transferDeleted: return "TransferDeleted"
         case .balanceUpdated:  return "BalanceUpdated"
         case .feeBasisUpdated: return "FeeBasisUpdated"
-        case .deleted:         return "Deleted"
         }
     }
 }
@@ -1036,6 +1041,10 @@ public protocol WalletFactory {
 /// 'Passive Objects'
 ///
 public protocol WalletManager : class {
+
+    /// The owning system
+    var system: System { get }
+
     /// The account
     var account: Account { get }
 
@@ -1177,11 +1186,10 @@ public protocol WalletManagerListener: class {
 
 }
 
-
 ///
 /// System (a singleton)
 ///
-public protocol System {
+public protocol System: class {
     
     /// The listener.  Gets all events for {Network, WalletManger, Wallet, Transfer}
     var listener: SystemListener? { get }

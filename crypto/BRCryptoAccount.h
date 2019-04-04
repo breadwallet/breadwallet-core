@@ -51,6 +51,10 @@ extern "C" {
     extern uint64_t
     cryptoAccountGetTimestamp (BRCryptoAccount account);
 
+    extern void
+    cryptoAccountSetTimestamp (BRCryptoAccount account,
+                               uint64_t timestamp);
+    
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoAccount, cryptoAccount);
 
 #ifdef __cplusplus

@@ -35,13 +35,12 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         // Override point for customization after application launch.
         let splitViewController = window!.rootViewController as! UISplitViewController
 
-        let summaryNavigationController = splitViewController.viewControllers[0] as! UINavigationController
         let walletNavigationController  = splitViewController.viewControllers[1] as! UINavigationController
-
         walletNavigationController.topViewController!.navigationItem.leftBarButtonItem = splitViewController.displayModeButtonItem
         splitViewController.delegate = self
 
-        let summaryController = summaryNavigationController.topViewController as! SummaryViewController
+//        let summaryNavigationController = splitViewController.viewControllers[0] as! UINavigationController
+//        let summaryController = summaryNavigationController.topViewController as! SummaryViewController
 
         paperKey = (CommandLine.argc > 1
             ? CommandLine.arguments[1]
@@ -50,12 +49,11 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         //                                         paperKey: "0x8975dbc1b8f25ec994815626d070899dda896511")
         //                                         paperKey: "0xb302B06FDB1348915599D21BD54A06832637E5E8")
 
-        let timestamp:UInt64 = 1543190400 // Tue, 26 Nov 2018 00:00:00 GMT
-
-        guard let account = Account.createFrom(phrase: paperKey) else {
+        guard let account = Account.createFrom (phrase: paperKey) else {
             precondition(false, "No account")
             return false
         }
+        account.timestamp = 1543190400 // Tue, 26 Nov 2018 00:00:00 GMT
 
         // Ensure the storage path
         let storagePath = FileManager.default
