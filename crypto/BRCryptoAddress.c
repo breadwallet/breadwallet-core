@@ -45,7 +45,7 @@ IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoAddress, cryptoAddress);
 
 static void
 cryptoAddressRelease (BRCryptoAddress address) {
-    printf ("Address: Release\n");
+//    printf ("Address: Release\n");
     free (address);
 }
 

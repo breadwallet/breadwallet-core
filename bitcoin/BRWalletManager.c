@@ -446,17 +446,9 @@ BRWalletManagerNew (BRWalletManagerClient client,
                           _BRWalletManagerTxDeleted);
     
 
-    client.funcWalletEvent (client.context,
-                            manager,
-                            manager->wallet,
-                            (BRWalletEvent) {
-                                BITCOIN_WALLET_CREATED
-                            });
-
     manager->peerManager = BRPeerManagerNew (params, manager->wallet, earliestKeyTime,
                                              blocks, array_count(blocks),
                                              peers,  array_count(peers));
-
     BRPeerManagerSetCallbacks (manager->peerManager, manager,
                                _BRWalletManagerSyncStarted,
                                _BRWalletManagerSyncStopped,
@@ -467,6 +459,19 @@ BRWalletManagerNew (BRWalletManagerClient client,
                                _BRWalletManagerThreadCleanup);
 
     array_free(transactions); array_free(blocks); array_free(peers);
+
+    manager->client.funcWalletManagerEvent (manager->client.context,
+                                            manager,
+                                            (BRWalletManagerEvent) {
+                                                BITCOIN_WALLET_MANAGER_CREATED
+                                            });
+
+    manager->client.funcWalletEvent (manager->client.context,
+                                     manager,
+                                     manager->wallet,
+                                     (BRWalletEvent) {
+                                         BITCOIN_WALLET_CREATED
+                                     });
 
     return manager;
 }

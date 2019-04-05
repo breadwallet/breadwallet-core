@@ -38,12 +38,12 @@
 #include "BRCryptoWallet.h"
 
 ///
-#include "../support/BRAddress.h"
-#include "../support/BRBIP32Sequence.h"
-#include "../bitcoin/BRChainParams.h"
-#include "../bitcoin/BRWallet.h"
-#include "../bcash/BRBCashParams.h"
-#include "../ethereum/BREthereum.h"
+#include "support/BRAddress.h"
+#include "support/BRBIP32Sequence.h"
+#include "bitcoin/BRChainParams.h"
+#include "bitcoin/BRWallet.h"
+#include "bcash/BRBCashParams.h"
+#include "ethereum/BREthereum.h"
 
 #ifdef __cplusplus
 extern "C" {

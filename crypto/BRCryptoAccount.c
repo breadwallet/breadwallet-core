@@ -90,7 +90,7 @@ cryptoAccountCreateFromSeedBytes (uint8_t *bytes) {
 static void
 cryptoAccountRelease (BRCryptoAccount account) {
     accountFree(account->eth);  // Core holds???
-    printf ("Account: Release\n");
+//    printf ("Account: Release\n");
     free (account);
 }
 
