@@ -73,7 +73,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
             print("Error: \(error.localizedDescription)")
         }
 
-        NSLog ("StoragePath: \(storagePath)");
+        NSLog ("App: StoragePath: \(storagePath)");
 
         // Create the listener
         let listener = CoreDemoListener ()
@@ -165,15 +165,16 @@ extension UIApplication {
 
     static func sync () {
         guard let app = UIApplication.shared.delegate as? CoreDemoAppDelegate else { return }
+        NSLog ("App: Syncing")
         app.system.managers.forEach { $0.sync() }
     }
 
     static func sleep() {
         guard let app = UIApplication.shared.delegate as? CoreDemoAppDelegate else { return }
-        NSLog ("ETH: Disconnecting")
+        NSLog ("App: Disconnecting")
         app.system.managers.forEach { $0.disconnect() }
         DispatchQueue.main.asyncAfter(deadline: .now() + 15.0) {
-            NSLog ("ETH: Connecting")
+            NSLog ("App: Connecting")
             app.system.managers.forEach { $0.connect() }
         }
     }

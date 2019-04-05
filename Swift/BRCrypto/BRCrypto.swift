@@ -66,9 +66,9 @@ public final class Currency: Hashable {
     }
 
     /// Used to map Currency -> Built-In-Blockchain-Network
-    internal static let codeAsBTC = "btc"
-    internal static let codeAsBCH = "bch"
-    internal static let codeAsETH = "eth"
+    public static let codeAsBTC = "btc"
+    public static let codeAsBCH = "bch"
+    public static let codeAsETH = "eth"
 }
 
 ///
@@ -294,6 +294,36 @@ extension Amount: CustomStringConvertible {
     }
 }
 
+extension Amount {
+    // ETH
+
+    internal var asETH: UInt64 {
+        var overflow: BRCryptoBoolean = CRYPTO_FALSE
+        let value = cryptoAmountGetIntegerRaw (self.core, &overflow)
+        precondition(CRYPTO_FALSE == overflow)
+        return value
+    }
+
+    internal static func createAsETH (_ value: UInt256, _ unit: Unit) -> Amount {
+        return Amount (core: cryptoAmountCreate(unit.currency.core, CRYPTO_FALSE, value),
+                       unit: unit);
+    }
+
+    // BTC
+
+    internal var asBTC: UInt64 {
+        var overflow: BRCryptoBoolean = CRYPTO_FALSE
+        let value = cryptoAmountGetIntegerRaw (self.core, &overflow)
+        precondition(CRYPTO_FALSE == overflow)
+        return value
+    }
+
+    internal static func createAsBTC (_ value: UInt64, _ unit: Unit) -> Amount {
+        return Amount (core: cryptoAmountCreate(unit.currency.core, CRYPTO_FALSE, createUInt256(value)),
+                       unit: unit);
+    }
+}
+
 ///
 /// "A currency pair is the quotation of the relative value of a currency unit against the unit of
 /// another currency in the foreign exchange market. The currency that is used as the reference is
@@ -403,13 +433,25 @@ public final class Account {
         return Data (bytes: &seed, count: MemoryLayout<UInt512>.size);
     }
 
-    // Test Only
-    internal var addressAsETH: String {
-        return asUTF8String (cryptoAccountAddressAsETH(core)!)
+    //
+    // Implementation Private
+    //
+
+    internal var asETH: BREthereumAccount {
+        return cryptoAccountAsETH (self.core)
+    }
+
+    internal var asBTC: BRMasterPubKey {
+        return cryptoAccountAsBTC (self.core)
     }
 
     deinit {
         cryptoAccountGive (core)
+    }
+
+    // Test Only
+    internal var addressAsETH: String {
+        return asUTF8String (cryptoAccountAddressAsETH(core)!)
     }
 }
 
@@ -564,6 +606,36 @@ public final class Network: CustomStringConvertible {
 
 }
 
+extension Network {
+
+    // ETH
+
+    internal var asETH: BREthereumNetwork! {
+        switch self.impl {
+        case let .ethereum(_, network): return network
+        default: precondition(false); return nil
+        }
+    }
+
+    // BTC
+
+    internal var asBTC: UnsafePointer<BRChainParams>! {
+        switch self.impl {
+        case let .bitcoin(_, chainParams): return chainParams
+        default: precondition(false); return nil
+        }
+    }
+
+    internal var forkId: BRWalletForkId? {
+        switch self.impl {
+        case let .bitcoin(forkId, _): return BRWalletForkId (UInt32(forkId))
+        case let .bitcash(forkId, _): return BRWalletForkId (UInt32(forkId))
+        case .ethereum: return nil
+        case .generic:  return nil
+        }
+    }
+}
+
 public enum NetworkEvent {
     case created
 }
@@ -632,6 +704,14 @@ public final class Address: Equatable, CustomStringConvertible {
         guard ETHEREUM_BOOLEAN_TRUE == addressValidateString (string)
             else { return nil }
         return Address (core: cryptoAddressCreateAsETH (addressCreate(string)))
+    }
+
+    internal static func createAsETH (_ eth: BREthereumAddress) -> Address  {
+        return Address (core: cryptoAddressCreateAsETH (eth))
+    }
+
+    internal static func createAsBTC (_ btc: BRAddress) -> Address  {
+        return Address (core: cryptoAddressCreateAsBTC (btc))
     }
 
     deinit {
@@ -1067,9 +1147,7 @@ public protocol WalletManager : class {
     var state: WalletManagerState { get }
 
     /// The default WalletFactory for creating wallets.
-//    var walletFactory: WalletFactory { get set }
-
-    func createWalletFor (currency: Currency) -> Wallet? 
+    //    var walletFactory: WalletFactory { get set }
 
     /// Connect to network and begin managing wallets for account
     func connect ()
@@ -1099,10 +1177,10 @@ extension WalletManager {
     ///
     /// - Returns: a new wallet.
     ///
-//    func createWallet (currency: Currency) -> Wallet {
-//        return walletFactory.createWallet (manager: self,
-//                                           currency: currency)
-//    }
+    //    func createWallet (currency: Currency) -> Wallet {
+    //        return walletFactory.createWallet (manager: self,
+    //                                           currency: currency)
+    //    }
 
     /// The network's/primaryWallet's currency.
     var currency: Currency {
@@ -1110,6 +1188,14 @@ extension WalletManager {
         return network.currency
     }
 
+    var baseUnit: Unit {
+        return network.baseUnitFor(currency: network.currency)!
+    }
+
+    var defaultUnit: Unit {
+        return network.defaultUnitFor(currency: network.currency)!
+    }
+    
     /// A manager `isActive` if connected or syncing
     var isActive: Bool {
         return state == .connected || state == .syncing
@@ -1219,9 +1305,6 @@ public protocol System: class {
     func createWalletManager (network: Network,
                               mode: WalletManagerMode)
 
-    func createWallet (manager: WalletManager,
-                       currency: Currency)
-    
     static func create (listener: SystemListener,
                         account: Account,
                         path: String,
@@ -1250,66 +1333,4 @@ public protocol SystemListener : /* class, */ WalletManagerListener, WalletListe
 
     func handleSystemEvent (system: System,
                             event: SystemEvent)
-
-    //    /// System
-    //
-    //    func handleSystemAddedNetwork (system: System,
-    //                                   network: Network)
-    //
-    //    func handleSystemAddedManager (system: System,
-    //                                   manager: WalletManager)
-    //
-    //    /// Network
-    //
-    //    // added currency
-    //
-    //    /// Manager
-    //
-    //    func handleManagerChangedState (system: System,
-    //                                    manager: WalletManager,
-    //                                    old: WalletManagerState,
-    //                                    new: WalletManagerState)
-    //
-    //    func handleManagerAddedWallet (system: System,
-    //                                   manager: WalletManager,
-    //                                   wallet: Wallet)
-    //    // changed wallet
-    //    // deleted wallet
-    //
-    //    func handleManagerStartedSync (system: System,
-    //                                   manager: WalletManager)
-    //
-    //    func handleManagerProgressedSync (system: System,
-    //                                      manager: WalletManager,
-    //                                      percentage: Double)
-    //
-    //    func handleManagerStoppedSync (system: System,
-    //                                   manager: WalletManager)
-    //
-    //    /// Wallet
-    //
-    //    func handleWalletAddedTransfer (system: System,
-    //                                    manager: WalletManager,
-    //                                    wallet: Wallet,
-    //                                    transfer: Transfer)
-    //
-    //    // changed transfer
-    //    // deleted transfer
-    //
-    //    func handleWalletUpdatedBalance (system: System,
-    //                                     manager: WalletManager,
-    //                                     wallet: Wallet)
-    //
-    //    func handleWalletUpdatedFeeBasis (system: System,
-    //                                      manager: WalletManager,
-    //                                      wallet: Wallet)
-    //
-    //    /// Transfer
-    //
-    //    func handleTransferChangedState (system: System,
-    //                                     manager: WalletManager,
-    //                                     wallet: Wallet,
-    //                                     transfer: Transfer,
-    //                                     old: TransferState,
-    //                                     new: TransferState)
 }

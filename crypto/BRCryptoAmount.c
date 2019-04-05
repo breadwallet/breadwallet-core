@@ -90,7 +90,7 @@ cryptoAmountCreateInteger (int64_t value,
 
 static void
 cryptoAmountRelease (BRCryptoAmount amount) {
-    printf ("Amount: Release\n");
+//    printf ("Amount: Release\n");
     cryptoCurrencyGive (amount->currency);
     free (amount);
 }

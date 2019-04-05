@@ -56,7 +56,7 @@ cryptoCurrencyCreate (const char *name,
 
 static void
 cryptoCurrencyRelease (BRCryptoCurrency currency) {
-    printf ("Currency: Release\n");
+//    printf ("Currency: Release\n");
     free (currency->type);
     free (currency->code);
     free (currency->name);

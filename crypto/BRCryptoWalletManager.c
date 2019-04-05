@@ -340,6 +340,8 @@ cwmWalletManagerEventCallbackAsBTC (BRWalletManagerClientContext context,
     BRCryptoWalletManager cwm = context;
 
     switch (event.type) {
+        case BITCOIN_WALLET_MANAGER_CREATED:
+            break;
         case BITCOIN_WALLET_MANAGER_CONNECTED:
             break;
         case BITCOIN_WALLET_MANAGER_DISCONNECTED:

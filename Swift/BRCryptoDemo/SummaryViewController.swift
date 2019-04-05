@@ -59,7 +59,6 @@ class SummaryViewController: UITableViewController, WalletListener {
     }
 
     @IBAction func doAct (_ sender: Any) {
-        UIApplication.sync()
         let alert = UIAlertController (title: "Act",
                                        message: nil,
                                        preferredStyle: UIAlertController.Style.alert)

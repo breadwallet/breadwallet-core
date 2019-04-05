@@ -17,7 +17,7 @@ class CoreDemoListener: SystemListener {
     public var transferListeners: [TransferListener] = []
 
     func handleSystemEvent(system: System, event: SystemEvent) {
-        NSLog ("SystemEvent: \(event)")
+        NSLog ("App: System: \(event)")
         switch event {
         case .created:
             break
@@ -28,8 +28,12 @@ class CoreDemoListener: SystemListener {
             // specifically, test networks are announced and having a wallet manager for a
             // testnet won't happen in a deployed App.
 
-            let _ = system.createWalletManager (network: network,
-                                                mode: WalletManagerMode.api_only)
+            let mode = (network.currency.code == Currency.codeAsBTC ||
+                network.currency.code == Currency.codeAsBCH
+                ? WalletManagerMode.p2p_only
+                : WalletManagerMode.api_only)
+
+            let _ = system.createWalletManager (network: network, mode: mode)
 
         case .managerAdded (let manager):
             manager.connect()
@@ -38,7 +42,7 @@ class CoreDemoListener: SystemListener {
     }
 
     func handleManagerEvent(system: System, manager: WalletManager, event: WalletManagerEvent) {
-        NSLog ("ManagerEvent: \(event)")
+        NSLog ("App: Manager: \(event)")
         switch event {
         case .created:
             break
@@ -62,7 +66,7 @@ class CoreDemoListener: SystemListener {
     }
 
     func handleWalletEvent(system: System, manager: WalletManager, wallet: Wallet, event: WalletEvent) {
-        NSLog ("WalletEvent: \(event)")
+        NSLog ("App: Wallet: \(event)")
         walletListeners.forEach {
             $0.handleWalletEvent (system: system,
                                   manager: manager,
@@ -72,7 +76,7 @@ class CoreDemoListener: SystemListener {
     }
 
     func handleTransferEvent(system: System, manager: WalletManager, wallet: Wallet, transfer: Transfer, event: TransferEvent) {
-        NSLog ("TransferEvent: \(event)")
+        NSLog ("App: Transfer: \(event)")
         transferListeners.forEach {
             $0.handleTransferEvent (system: system,
                                     manager: manager,
@@ -83,7 +87,7 @@ class CoreDemoListener: SystemListener {
     }
 
     func handleNetworkEvent(system: System, network: Network, event: NetworkEvent) {
-        NSLog ("NetworkEvent: \(event)")
+        NSLog ("App: Network: \(event)")
     }
 }
 
