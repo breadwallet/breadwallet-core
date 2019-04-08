@@ -162,71 +162,82 @@ public final class SystemBase: System {
         }
 
         func currencyDenominationToBaseUnit (currency: Currency, model: BlockChainDB.Model.CurrencyDenomination) -> Unit {
-            let uids = "\(currency.name)-\(model.code)"
+            let uids = "\(currency.name)-\(model.symbol)"
             return Unit (currency: currency, uids: uids, name: model.name, symbol: model.symbol)
         }
 
         func currencyDenominationToUnit (currency: Currency, model: BlockChainDB.Model.CurrencyDenomination, base: Unit) -> Unit {
-            let uids = "\(currency.name)-\(model.code)"
+            let uids = "\(currency.name)-\(model.symbol)"
             return Unit (currency: currency, uids: uids, name: model.name, symbol: model.symbol, base: base, decimals: model.decimals)
         }
 
         // query blockchains
-        self.query.getBlockchains { (blockchainModels: [BlockChainDB.Model.Blockchain]) in
+        self.query.dispatch(BlockChainDB.Request.GetBlockchains()) { result in
+            switch result {
+            case .success(let blockchainModels):
+                // For every blockchain, query the currency and then create a network
+                blockchainModels.map { $0 }.filter { networksNeeded.contains($0.id.description) }
+                    .forEach { (blockchainModel: BlockChainDB.Model.Blockchain) in
 
-            // For every blockchain, query the currency and then create a network
-            blockchainModels.filter { networksNeeded.contains($0.id) }
-                .forEach { (blockchainModel: BlockChainDB.Model.Blockchain) in
+                        // query currencies
+                        self.query.dispatch(BlockChainDB.Request.GetCurrencies(blockchainId: blockchainModel.id, match: nil)) { currenciesResult in
+                            guard case .success(let currencyModels) = currenciesResult else {
+                                return
+                            }
 
-                // query currencies
-                self.query.getCurrencies(blockchainID: blockchainModel.id) { (currencyModels: [BlockChainDB.Model.Currency]) in
+                            var associations: [Currency : Network.Association] = [:]
 
-                    var associations: [Currency : Network.Association] = [:]
+                            // Update associations
+                            currencyModels.forEach { (currencyModel: BlockChainDB.Model.Currency) in
+                                // TODO: Create the currency but don't create copies
+                                let currency = Currency (uids: currencyModel.id.description,
+                                                         name: currencyModel.name,
+                                                         code: currencyModel.code,
+                                                         type: currencyModel.type.rawValue)
 
-                    // Update associations
-                    currencyModels.forEach { (currencyModel: BlockChainDB.Model.Currency) in
-                        // TODO: Create the currency but don't create copies
-                        let currency = Currency (uids: currencyModel.id,
-                                                 name: currencyModel.name,
-                                                 code: currencyModel.code,
-                                                 type: currencyModel.type)
+                                // TODO: does a Unit need to be coupled to a base Unit?
+                                // Create the base unit
+                                let baseUnit = currencyModel.denominations.first { 0 == $0.decimals}
+                                    .map { currencyDenominationToBaseUnit(currency: currency, model: $0) }!
 
-                        // Create the base unit
-                        let baseUnit = currencyModel.demoninations.first { 0 == $0.decimals}
-                            .map { currencyDenominationToBaseUnit(currency: currency, model: $0) }!
+                                // Create the other units
+                                var units: [Unit] = [baseUnit]
+                                units += currencyModel.denominations.filter { 0 != $0.decimals }
+                                    .map { currencyDenominationToUnit (currency: currency, model: $0, base: baseUnit) }
 
-                        // Create the other units
-                        var units: [Unit] = [baseUnit]
-                        units += currencyModel.demoninations.filter { 0 != $0.decimals }
-                            .map { currencyDenominationToUnit (currency: currency, model: $0, base: baseUnit) }
+                                // TODO: base/default units should be provided by network
+                                // Find the default unit
+                                let maximumDecimals = units.reduce (0) { max ($0, $1.decimals) }
+                                let defaultUnit = units.first { $0.decimals == maximumDecimals }!
 
-                        // Find the default unit
-                        let maximumDecimals = units.reduce (0) { max ($0, $1.decimals) }
-                        let defaultUnit = units.first { $0.decimals == maximumDecimals }!
+                                // Update associations
+                                associations[currency] = Network.Association (baseUnit: baseUnit,
+                                                                              defaultUnit: defaultUnit,
+                                                                              units: Set<Unit>(units))
+                            }
 
-                        // Update associations
-                        associations[currency] = Network.Association (baseUnit: baseUnit,
-                                                                      defaultUnit: defaultUnit,
-                                                                      units: Set<Unit>(units))
-                    }
+                            // the default currency
+                            let currency = associations.keys.first { $0.uids == blockchainModel.currencyId.description }!
 
-                    // the default currency
-                    let currency = associations.keys.first { $0.code == blockchainModel.currency }!
+                            // define the network
+                            let network = Network (uids: blockchainModel.id.description,
+                                                   name: blockchainModel.name,
+                                                   isMainnet: blockchainModel.isMainnet,
+                                                   currency: currency,
+                                                   associations: associations)
 
-                    // define the network
-                    let network = Network (uids: blockchainModel.id,
-                                           name: blockchainModel.name,
-                                           isMainnet: blockchainModel.isMainnet,
-                                           currency: currency,
-                                           associations: associations)
+                            // save the network
+                            self.networks.append (network)
 
-                    // save the network
-                    self.networks.append (network)
-
-                    // Invoke callbacks.
-                    self.listener?.handleNetworkEvent (system: self, network: network, event: NetworkEvent.created)
-                    self.listener?.handleSystemEvent  (system: self, event: SystemEvent.networkAdded(network: network))
+                            // Invoke callbacks.
+                            self.listener?.handleNetworkEvent (system: self, network: network, event: NetworkEvent.created)
+                            self.listener?.handleSystemEvent  (system: self, event: SystemEvent.networkAdded(network: network))
+                        }
                 }
+
+            case .failure(let error):
+                assertionFailure("unhandled error: \(error)")
+                break
             }
         }
 

@@ -14,79 +14,396 @@ import Foundation // DispatchQueue
 import BRCore
 import BRCore.Ethereum
 
-public class BlockChainDB {
-    let queue = DispatchQueue.init(label: "BlockChainDB")
 
+public class BlockChainDB {
+
+    // TODO: proper error cases
     public enum QueryError: Error {
         case NetworkUnavailable
         case RequestFormat  // sent a mistake
         case Model          // reply w/ an error (missing label, can't parse)
     }
 
+    // MARK: DB Models
+
     public struct Model {
-        /// Blockchain
-        public typealias Blockchain = (id: String, name: String, network: String, isMainnet: Bool, currency: String, blockHeight: UInt64 /* fee Estimate */)
-        /// Currency
-        public typealias CurrencyDenomination = (name: String, code: String, decimals: UInt8, symbol: String /* extra */)
-        public typealias Currency = (id: String, name: String, code: String, type: String, blockchainID: String, address: String?, demoninations: [CurrencyDenomination])
-        /// ...
-    }
 
-    public func getBlockchains (mainnet: Bool? = nil, completion: @escaping ([Model.Blockchain]) -> Void) {  // Result<DBBlockchain, BlockChainDB.Error>
-        queue.async {
-            var result: [Model.Blockchain] = []
+        public typealias BlockchainID = Identifier<Blockchain>
+        public typealias CurrencyCode = Identifier<Currency>
+        public typealias CurrencyID = Identifier<Currency>
+        public typealias TransactionID = Identifier<Transaction>
+        public typealias TransferID = Identifier<Transfer>
+        public typealias WalletID = Identifier<Wallet>
 
-            if mainnet ?? true { // mainnet or nil
-                result.append ((id: "bitcoin-mainnet",  name: "Bitcoin",  network: "mainnet", isMainnet: true,  currency: "btc", blockHeight:  600000))
-                result.append ((id: "bitcash-mainnet",  name: "Bitcash",  network: "mainnet", isMainnet: true,  currency: "bch", blockHeight: 1000000))
-                result.append ((id: "ethereum-mainnet", name: "Ethereum", network: "mainnet", isMainnet: true,  currency: "eth", blockHeight: 8000000))
+        public struct Blockchain: Codable, Identifiable {
+            public let id: BlockchainID
+            let name: String
+            let currencyId: CurrencyID
+            let networkName: String
+            let isMainnet: Bool
+            let blockHeight: UInt64
+            let feeEstimates: [FeeEstimate]
+
+            enum CodingKeys: String, CodingKey {
+                case id
+                case name
+                case currencyId = "native_currency_id"
+                case networkName = "network"
+                case isMainnet = "is_mainnet"
+                case blockHeight = "block_height"
+                case feeEstimates = "fee_estimates"
+            }
+        }
+
+        public struct FeeEstimate: Codable {
+            let estimatedConfirmationBlocks: UInt64
+            let fee: Fee
+
+            enum CodingKeys: String, CodingKey {
+                case estimatedConfirmationBlocks = "estimated_confirmation_in"
+                case fee
+            }
+        }
+
+        public struct Fee: Codable {
+            let amount: UInt64 // TODO: UInt256 Codable -- assume base unit always used here?
+            let currencyCode: CurrencyCode
+
+            enum CodingKeys: String, CodingKey {
+                case currencyCode = "currency_id"
+                case amount
+            }
+        }
+
+        public struct Currency: Codable, Identifiable {
+            enum TokenType: String, Codable {
+                case unknown
+                case native
+                case erc20
+                case omni
             }
 
-            if !(mainnet ?? false) { // !mainnet or nil
-                result.append  ((id: "bitcoin-testnet",  name: "Bitcoin",  network: "testnet", isMainnet: false, currency: "btc", blockHeight:  900000))
-                result.append  ((id: "bitcash-testnet",  name: "Bitcash",  network: "testnet", isMainnet: false, currency: "bch", blockHeight: 1200000))
-                result.append  ((id: "ethereum-testnet", name: "Ethereum", network: "testnet", isMainnet: false, currency: "eth", blockHeight: 1000000))
-                result.append  ((id: "ethereum-rinkeby", name: "Ethereum", network: "rinkeby", isMainnet: false, currency: "eth", blockHeight: 2000000))
+            public let id: CurrencyID
+            let blockchainId: BlockchainID
+            let code: String
+            let name: String
+            let type: TokenType
+            let denominations: [CurrencyDenomination]
+            let address: String?
+            // initial_supply -- not needed?
+            // total_supply -- not needed?
+
+            enum CodingKeys: String, CodingKey {
+                case id = "currency_id"
+                case blockchainId = "blockchain_id"
+                case code
+                case name
+                case type
+                case denominations
+                case address
+            }
+        }
+
+        public struct CurrencyDenomination: Codable {
+            let decimals: UInt8
+            let name: String
+            let symbol: String
+
+            enum CodingKeys: String, CodingKey {
+                case decimals
+                case name
+                case symbol = "short_name"
+            }
+        }
+
+        public struct Block: Codable {
+            // TODO
+        }
+
+        public struct Subscription: Codable {
+            // TODO
+        }
+
+        public struct Transaction: Codable, Identifiable {
+            enum Status: String, Codable {
+                case unknown
+                case submitted
+                case feeTooLow = "fee_too_low"
+                case failed
+                case confirmed
             }
 
-            completion (result)
+            public let id: TransactionID // The partition identifier for a transaction uses a compound key
+            let transactionId: String // Hex-encoded transaction ID (can differ from the hash)
+            let blockchainId: BlockchainID
+            let blockHash: String
+            let blockHeight: UInt64
+            let confirmations: UInt64
+            let fee: Fee
+            let firstSeen: Date
+            let hash: String
+            let size: UInt64 // Size of transaction in bytes
+            let index: UInt64? // Index of this transaction within its block
+            let raw: String
+            let status: Status
+            let timestamp: Date
+            let transfers: [Transfer]
+            let acknowledgements: UInt64
+
+            enum CodingKeys: String, CodingKey {
+                case id = "identifier"
+                case transactionId = "transaction_id"
+                case blockchainId = "blockchain_id"
+                case blockHash = "block_hash"
+                case blockHeight = "block_height"
+                case confirmations
+                case fee
+                case firstSeen = "first_seen"
+                case hash
+                case size
+                case index
+                case raw
+                case status
+                case timestamp
+                case transfers
+                case acknowledgements
+            }
+        }
+
+        public struct Transfer: Codable, Identifiable {
+            public let id: TransferID
+            let transactionId: TransactionID
+            let blockchainId: BlockchainID
+            let amount: Amount
+            let index: UInt64?
+            let fromAddress: String
+            let toAddress: String
+            let acknowledgements: UInt64
+
+            enum CodingKeys: String, CodingKey {
+                case id = "transfer_id"
+                case transactionId = "transaction_id"
+                case blockchainId = "blockchain_id"
+                case amount
+                case index
+                case fromAddress = "from_address"
+                case toAddress = "to_address"
+                case acknowledgements
+            }
+        }
+
+        public struct Wallet: Codable, Identifiable {
+            public let id: WalletID
+            let currencies: [WalletCurrency]
+            let created: Date
+            let updated: Date
+
+            enum CodingKeys: String, CodingKey {
+                case id = "wallet_id"
+                case currencies
+                case created
+                case updated
+            }
+        }
+
+        public struct WalletCurrency: Codable {
+            let currencyId: CurrencyID
+            let addresses: [String]
+
+            enum CodingKeys: String, CodingKey {
+                case currencyId = "currency_id"
+                case addresses
+            }
+        }
+
+        public struct Amount: Codable {
+            let amount: UInt256
+            let currencyId: CurrencyID
+
+            enum CodingKeys: String, CodingKey {
+                case amount
+                case currencyId = "currency_id"
+            }
         }
     }
 
-    public func getCurrencies (blockchainID: String? = nil, completion: @escaping ([Model.Currency]) -> Void) {
+    // MARK: Requests
+
+    public struct Request {
+
+        // MARK: Blockchains
+
+        public struct GetBlockchains: APIRequest {
+            public typealias Response = [Model.Blockchain]
+            public var path: String { return "/blockchains" }
+
+            private(set) var testnet: Bool? = nil
+        }
+
+        public struct GetBlockchain: APIRequest {
+            public typealias Response = Model.Blockchain
+            public var path: String { return "/blockchain/\(id)" }
+            public var queryItems: [URLQueryItem]? { return nil }
+
+            let id: Model.BlockchainID
+        }
+
+        // MARK: Blocks
+
+        struct GetBlocks: APIRequest {
+            // TODO: paged requets/responses
+            typealias Response = Model.Block
+            var path: String { return "/blocks" }
+            //let queryItems: [URLQueryItem]?
+
+            let blockchainId: Model.BlockchainID?
+            let startHeight: Int64?
+            let endHeight: Int64?
+
+            enum CodingKeys: String, CodingKey {
+                case blockchainId = "blockchain_id"
+                case startHeight = "start_height"
+                case endHeight = "end_height"
+            }
+        }
+
+        struct GetBlock: APIRequest {
+            typealias Response = Model.Block
+            var path: String { return "/block/\(blockId)" }
+            var queryItems: [URLQueryItem]? { return nil }
+            let blockId: String // TODO: typed identifiers
+        }
+
+        // MARK: Currencies
+
+        public struct GetCurrencies: APIRequest {
+            public typealias Response = [Model.Currency]
+            public var path: String { return "/currencies" }
+
+            let blockchainId: Model.BlockchainID?
+            let match: String?
+
+            enum CodingKeys: String, CodingKey {
+                case blockchainId = "blockchain_id"
+                case match
+            }
+        }
+
+        public struct GetCurrency: APIRequest {
+            public typealias Response = Model.Currency
+            public var path: String { return "/currencies/\(id)" }
+            public var queryItems: [URLQueryItem]? { return nil }
+
+            let id: Model.CurrencyID
+        }
+
+        // MARK: Subscriptions
+        // TODO
+
+        // MARK: Transactions
+
+        public struct GetTransactions: APIRequest {
+            // TODO: paged requets/responses
+            public typealias Response = [Model.Transaction]
+            public var path: String { return "/transactions" }
+
+            let address: String?
+            let blockchainId: Model.BlockchainID?
+            let startHeight: Int64?
+            let endHeight: Int64?
+            let includeProof: Bool?
+            let includeRaw: Bool?
+
+            enum CodingKeys: String, CodingKey {
+                case address
+                case blockchainId = "blockchain_id"
+                case startHeight = "start_height"
+                case endHeight = "end_height"
+                case includeProof = "include_proof"
+                case includeRaw = "include_raw"
+            }
+        }
+
+        public struct GetTransaction: APIRequest {
+            public typealias Response = Model.Transaction
+            public var path: String { return "/transactions/\(id)" }
+            public var queryItems: [URLQueryItem]? { return nil }
+
+            let id: Model.TransactionID
+        }
+
+        // MARK: Transfers
+
+        public struct GetTransfers: APIRequest {
+            public typealias Response = [Model.Transfer]
+            public var path: String { return "/transfers" }
+
+            let addresses: [String]
+            let blockchainId: Model.BlockchainID?
+            let walletId: Model.WalletID?
+
+            enum CodingKeys: String, CodingKey {
+                case addresses = "address"
+                case blockchainId = "blockchain_id"
+                case walletId = "wallet_id"
+            }
+        }
+
+        public struct GetTransfer: APIRequest {
+            public typealias Response = Model.Transfer
+            public var path: String { return "/transfers/\(id)" }
+            public var queryItems: [URLQueryItem]? { return nil }
+
+            let id: Model.TransferID
+        }
+
+        // MARK: Wallets
+
+        public struct CreateWallet: APIRequest {
+            public typealias Response = String
+            public var method: HTTPMethod { return .post }
+            public var path: String { return "/wallets" }
+            public var queryItems: [URLQueryItem]? { return nil }
+            public var body: Data? {
+                return try? JSONEncoder().encode(self)
+            }
+
+            let wallet: Model.Wallet
+        }
+
+        public struct GetWallet: APIRequest {
+            public typealias Response = Model.Wallet
+            public var path: String { return "/wallets/\(id)" }
+            public var queryItems: [URLQueryItem]? { return nil }
+
+            let id: Model.WalletID
+        }
+    }
+
+    // MARK: - Properties
+
+    let queue = DispatchQueue.init(label: "BlockChainDB")
+    let dispatcher: RequestDispatcher
+
+    // MARK -
+
+//    public func getBlockchains (mainnet: Bool = true, completion: @escaping ResultCallback<Request.GetBlockchains.Response>) {
+//        let req = Request.GetBlockchains(testnet: !mainnet) // TODO: cleanup
+//        queue.async {
+//            self.dispatcher.dispatch(req, completion: completion)
+//        }
+//    }
+//
+//    public func getCurrencies (blockchainID: Model.BlockchainID? = nil, completion: @escaping ResultCallback<Request.GetCurrencies.Response>) {
+//        let req = Request.GetCurrencies(blockchainId: blockchainID, match: nil)
+//        queue.async {
+//            self.dispatcher.dispatch(req, completion: completion)
+//        }
+//    }
+
+    public func dispatch<Request: APIRequest>(_ request: Request, completion: @escaping ResultCallback<Request.Response>) {
         queue.async {
-            var result: [Model.Currency] = []
-
-            if blockchainID?.starts(with: "bitcoin") ?? true {
-                // BTC
-                result.append  ((id: "Bitcoin", name: "Bitcoin", code: "btc", type: "native", blockchainID: "bitcoin-mainnet", address: nil,
-                                 demoninations: [(name: "satoshi", code: "sat", decimals: 0, symbol: self.lookupSymbol ("sat")),
-                                                 (name: "bitcoin", code: "btc", decimals: 8, symbol: self.lookupSymbol ("btc"))]))
-                // testnet?
-            }
-
-            if blockchainID?.starts(with: "bitcash") ?? true {
-                // BCH
-                result.append  ((id: "Bitcash", name: "Bitcash", code: "bch", type: "native", blockchainID: "bitcash-mainnet", address: nil,
-                                 demoninations: [(name: "satoshi", code: "sat", decimals: 0, symbol: self.lookupSymbol ("sat")),
-                                                 (name: "bitcoin", code: "bch", decimals: 8, symbol: self.lookupSymbol ("bch"))]))
-                // testnet??
-            }
-
-            if blockchainID?.starts(with: "ethereum") ?? true {
-                // ETH
-                result.append  ((id: "Ethereum", name: "Ethereum", code: "eth", type: "native", blockchainID: "ethereum-mainnet", address: nil,
-                                 demoninations: [(name: "wei",   code: "wei",  decimals:  0, symbol: self.lookupSymbol ("wei")),
-                                                 (name: "gwei",  code: "gwei", decimals:  9, symbol: self.lookupSymbol ("gwei")),
-                                                 (name: "ether", code: "eth",  decimals: 18, symbol: self.lookupSymbol ("eth"))]))
-
-                result.append  ((id: "BRD Token", name: "BRD Token", code: "BRD", type: "erc20", blockchainID: "ethereum-mainnet", address: BlockChainDB.addressBRDMainnet,
-                                 demoninations: [(name: "BRD_INTEGER",   code: "BRDI",  decimals:  0, symbol: "brdi"),
-                                                 (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")]))
-                // ropsten, rinkeby?
-            }
-
-            completion (result)
+            self.dispatcher.dispatch(request, completion: completion)
         }
     }
 
@@ -418,7 +735,9 @@ public class BlockChainDB {
         }
     }
 
-    public init () {}
+    public init (dispatcher: RequestDispatcher) {
+        self.dispatcher = dispatcher
+    }
 
     internal let currencySymbols = ["btc":"₿", "eth":"Ξ"]
     internal func lookupSymbol (_ code: String) -> String {
@@ -427,4 +746,142 @@ public class BlockChainDB {
 
     static internal let addressBRDTestnet = "0x7108ca7c4718efa810457f228305c9c71390931a" // testnet
     static internal let addressBRDMainnet = "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6" // mainnet
+}
+
+// MARK: - Mocks
+
+extension BlockChainDB {
+    struct MockDispatcher: RequestDispatcher {
+        var baseURL: URL { return URL(string: "https://blockchain-db.us-east-1.elasticbeanstalk.com")! }
+
+        func dispatch<Request: APIRequest>(_ request: Request, completion: ResultCallback<Request.Response>) {
+            switch request {
+            case let request as BlockChainDB.Request.GetBlockchains:
+                var response: [BlockChainDB.Model.Blockchain] = []
+
+                if request.testnet ?? false { // testnet or nil
+                    response.append(BlockChainDB.Model.Blockchain(id: "bitcoin-testnet",
+                                                                  name: "Bitcoin",
+                                                                  currencyId: "btc",
+                                                                  networkName: "testnet",
+                                                                  isMainnet: true,
+                                                                  blockHeight: 900000,
+                                                                  feeEstimates: []))
+
+                    response.append(BlockChainDB.Model.Blockchain(id: "bitcash-testnet",
+                                                                  name: "Bitcoin Cash",
+                                                                  currencyId: "bch",
+                                                                  networkName: "testnet",
+                                                                  isMainnet: true,
+                                                                  blockHeight: 1200000,
+                                                                  feeEstimates: []))
+
+                    response.append(BlockChainDB.Model.Blockchain(id: "ethereum-testnet",
+                                                                  name: "Ethereum",
+                                                                  currencyId: "eth",
+                                                                  networkName: "ropsten",
+                                                                  isMainnet: true,
+                                                                  blockHeight: 1000000,
+                                                                  feeEstimates: []))
+
+                    response.append(BlockChainDB.Model.Blockchain(id: "ethereum-rinkeby",
+                                                                  name: "Ethereum",
+                                                                  currencyId: "eth",
+                                                                  networkName: "rinkeby",
+                                                                  isMainnet: true,
+                                                                  blockHeight: 2000000,
+                                                                  feeEstimates: []))
+                } else  { // mainnet
+                    response.append(BlockChainDB.Model.Blockchain(id: "bitcoin-mainnet",
+                                                                  name: "Bitcoin",
+                                                                  currencyId: "btc",
+                                                                  networkName: "mainnet",
+                                                                  isMainnet: true,
+                                                                  blockHeight: 600000,
+                                                                  feeEstimates: []))
+
+                    response.append(BlockChainDB.Model.Blockchain(id: "bitcash-mainnet",
+                                                                  name: "Bitcoin Cash",
+                                                                  currencyId: "bch",
+                                                                  networkName: "mainnet",
+                                                                  isMainnet: true,
+                                                                  blockHeight: 1000000,
+                                                                  feeEstimates: []))
+
+                    response.append(BlockChainDB.Model.Blockchain(id: "ethereum-mainnet",
+                                                                  name: "Ethereum",
+                                                                  currencyId: "eth",
+                                                                  networkName: "mainnet",
+                                                                  isMainnet: true,
+                                                                  blockHeight: 8000000,
+                                                                  feeEstimates: []))
+                }
+
+                guard let value = response as? Request.Response else { return completion(.failure(BlockChainDB.QueryError.Model)) }
+                completion(.success(value))
+
+            case let request as BlockChainDB.Request.GetCurrencies:
+                var response: [Model.Currency] = []
+
+                if request.blockchainId?.description.starts(with: "bitcoin") ?? true {
+                    // BTC
+                    response.append(Model.Currency(id: "btc",
+                                                   blockchainId: "bitcoin-mainnet",
+                                                   code: "btc",
+                                                   name: "Bitcoin",
+                                                   type: .native,
+                                                   denominations: [
+                                                    Model.CurrencyDenomination(decimals: 0, name: "satoshi", symbol: "sat"),
+                                                    Model.CurrencyDenomination(decimals: 8, name: "bitcoin", symbol: "btc")],
+                                                   address: nil))
+                    // testnet?
+                }
+
+                if request.blockchainId?.description.starts(with: "bitcash") ?? true {
+                    // BCH
+                    response.append(Model.Currency(id: "bch",
+                                                   blockchainId: "bitcoin-mainnet",
+                                                   code: "bch",
+                                                   name: "Bitcoin Cash",
+                                                   type: .native,
+                                                   denominations: [
+                                                    Model.CurrencyDenomination(decimals: 0, name: "satoshi", symbol: "sat"),
+                                                    Model.CurrencyDenomination(decimals: 8, name: "bitcash", symbol: "bch")],
+                                                   address: nil))
+                    // testnet??
+                }
+
+                if request.blockchainId?.description.starts(with: "ethereum") ?? true {
+                    // ETH
+                    response.append(Model.Currency(id: "eth",
+                                                   blockchainId: "ethereum-mainnet",
+                                                   code: "eth",
+                                                   name: "Ethereum",
+                                                   type: .native,
+                                                   denominations: [
+                                                    Model.CurrencyDenomination(decimals: 0, name: "wei", symbol: "wei"),
+                                                    Model.CurrencyDenomination(decimals: 9, name: "gwei", symbol: "gwei"),
+                                                    Model.CurrencyDenomination(decimals: 18, name: "ether", symbol: "eth")],
+                                                   address: nil))
+
+                    response.append(Model.Currency(id: "brd",
+                                                   blockchainId: "ethereum-mainnet",
+                                                   code: "BRD",
+                                                   name: "BRD Token",
+                                                   type: .erc20,
+                                                   denominations: [
+                                                    Model.CurrencyDenomination(decimals: 0, name: "BRDI", symbol: "BRDI"),
+                                                    Model.CurrencyDenomination(decimals: 18, name: "BRD", symbol: "BRD")],
+                                                   address: nil))
+                    // ropsten, rinkeby?
+                }
+
+                guard let value = response as? Request.Response else { return completion(.failure(BlockChainDB.QueryError.Model)) }
+                completion(.success(value))
+
+            default:
+                completion(.failure(BlockChainDB.QueryError.RequestFormat))
+            }
+        }
+    }
 }

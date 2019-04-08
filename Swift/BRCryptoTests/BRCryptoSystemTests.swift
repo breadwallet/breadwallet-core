@@ -64,8 +64,6 @@ class TestListener: SystemListener {
 
     func handleTransferEvent(system: System, manager: WalletManager, wallet: Wallet, transfer: Transfer, event: TransferEvent) {
     }
-
-
 }
 
 class BRCryptoSystemTests: BRCryptoBaseTests {
@@ -108,7 +106,7 @@ class BRCryptoSystemTests: BRCryptoBaseTests {
         let sys = SystemBase (listener: listener,
                               account: account,
                               path: storagePath,
-                              query: BlockChainDB())
+                              query: BlockChainDB(dispatcher: TestClient()))
 
         sys.start (networksNeeded: ["ethereum-mainnet"]);
         sleep(60)

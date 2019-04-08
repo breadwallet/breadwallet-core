@@ -12,6 +12,7 @@
 import BRCryptoC
 import BRCore
 import BRCore.Ethereum
+import Foundation // RequestDispatcher.URL
 
 class WalletManagerImplS: WalletManager {
     internal private(set) weak var listener: WalletManagerListener?
@@ -120,6 +121,7 @@ class WalletManagerImplS: WalletManager {
 
     internal let query: BlockChainDB
 
+    // TODO: dispatcher should be passed in here or combined with listener
     public init (system: System,
                  listener: WalletManagerListener,
                  account: Account,
@@ -133,7 +135,7 @@ class WalletManagerImplS: WalletManager {
         self.mode    = mode
         self.path    = storagePath
         self.state   = WalletManagerState.created
-        self.query   = BlockChainDB()
+        self.query   = BlockChainDB(dispatcher: TempDispatcher())
 
 
         let system = system as! SystemBase
@@ -751,5 +753,14 @@ class WalletManagerImplS: WalletManager {
             }
 
         }
+    }
+}
+
+class TempDispatcher: RequestDispatcher {
+    var baseURL: URL { return URL(string: "https://blockchain-db.us-east-1.elasticbeanstalk.com")! }
+
+    func dispatch<Request>(_ request: Request, completion: (Result<Request.Response, Error>) -> Void) where Request : APIRequest {
+        assertionFailure("not implemented")
+        completion(.failure(BlockChainDB.QueryError.NetworkUnavailable))
     }
 }
