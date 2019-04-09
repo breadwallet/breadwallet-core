@@ -46,7 +46,7 @@ extern "C" {
     cryptoAccountCreateFromSeed (UInt512 seed);
 
     extern BRCryptoAccount
-    cryptoAccountCreateFromSeedBytes (uint8_t *bytes);
+    cryptoAccountCreateFromSeedBytes (const uint8_t *bytes);
 
     extern uint64_t
     cryptoAccountGetTimestamp (BRCryptoAccount account);

@@ -123,6 +123,19 @@ class BRBlockChainDBTest: XCTestCase {
         }
 
         wait (for: [expectation], timeout: 60)
+
+        expectation = XCTestExpectation (description: "transactions /w addresses")
+
+        db.getTransactions (blockchainId: blockchainId, addresses: ["abc", "def"], includeRaw: true) { (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
+            guard case let .success (transactions) = res
+                else { XCTAssert(false); return }
+
+            XCTAssertFalse (transactions.isEmpty)
+            self.expectation.fulfill()
+        }
+
+        wait (for: [expectation], timeout: 60)
+
     }
 
     func testBlocks () {

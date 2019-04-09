@@ -80,7 +80,7 @@ cryptoAccountCreateFromSeed (UInt512 seed) {
 }
 
 extern BRCryptoAccount
-cryptoAccountCreateFromSeedBytes (uint8_t *bytes) {
+cryptoAccountCreateFromSeedBytes (const uint8_t *bytes) {
     UInt512 seed;
     memcpy (seed.u8, bytes, sizeof (seed.u8));
     return cryptoAccountCreateFromSeedInternal (seed, 0);

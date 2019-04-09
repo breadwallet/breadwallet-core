@@ -52,6 +52,26 @@ typedef enum {
 typedef void *BRWalletManagerClientContext;
 
 ///
+/// MARK: - Get Transactions
+
+typedef void
+(*BRGetTransactionsCallback) (BRWalletManagerClientContext context,
+                              BRWalletManager manager,
+                              uint64_t begBlockNumber,
+                              uint64_t endBlockNumber,
+                              int rid);
+
+extern int // success - data is valid
+bwmAnnounceTransaction (BRWalletManager manager,
+                        int id,
+                        BRTransaction *transaction);
+
+extern void
+bwmAnnounceTransactionComplete (BRWalletManager manager,
+                                int id,
+                                int success);
+
+///
 /// Transaction Event
 ///
 typedef enum {
@@ -128,6 +148,8 @@ typedef void
 
 typedef struct {
     BRWalletManagerClientContext context;
+    BRGetTransactionsCallback funcGetTransactions;
+
     BRTransactionEventCallback funcTransactionEvent;
     BRWalletEventCallback  funcWalletEvent;
     BRWalletManagerEventCallback funcWalletManagerEvent;
@@ -152,6 +174,19 @@ BRWalletManagerDisconnect (BRWalletManager manager);
 
 extern void
 BRWalletManagerScan (BRWalletManager manager);
+
+/**
+ * Return an array of unsued addresses with up to `limit` entries.  This will generate
+ * address, if needed, to provide `limit` entries.  The addresses are 'external' ones.
+ *
+ * This is expected to be used to query the BRD BlockChainDB to identify transactions for
+ * manager's wallet.
+ *
+ * Note: The returned array must be freed
+ */
+extern BRAddress *
+BRWalletManagerGetUnusedAddrs (BRWalletManager manager,
+                               uint32_t limit);
 
 //
 // These should not be needed if the events are sufficient
