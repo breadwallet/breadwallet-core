@@ -23,11 +23,8 @@
 //  THE SOFTWARE.
 
 #include "BRTransaction.h"
-#include "BRKey.h"
-#include "BRAddress.h"
 #include "BRArray.h"
 #include <stdlib.h>
-#include <inttypes.h>
 #include <limits.h>
 #include <time.h>
 
@@ -39,21 +36,19 @@
 #define SIGHASH_ANYONECANPAY 0x80 // let other people add inputs, I don't care where the rest of the bitcoins come from
 #define SIGHASH_FORKID       0x40 // use BIP143 digest method (for b-cash/b-gold signatures)
 
-void BRTxInputSetAddress(BRTxInput *input, const char *address)
+void BRTxInputSetAddress(BRTxInput *input, BRAddressParams params, const char *address)
 {
     assert(input != NULL);
-    assert(address == NULL || BRAddressIsValid(address));
+    assert(address == NULL || BRAddressIsValid(params, address));
     if (input->script) array_free(input->script);
     input->script = NULL;
     input->scriptLen = 0;
-    memset(input->address, 0, sizeof(input->address));
 
     if (address) {
-        strncpy(input->address, address, sizeof(input->address) - 1);
-        input->scriptLen = BRAddressScriptPubKey(NULL, 0, address);
+        input->scriptLen = BRAddressScriptPubKey(NULL, 0, params, address);
         array_new(input->script, input->scriptLen);
         array_set_count(input->script, input->scriptLen);
-        BRAddressScriptPubKey(input->script, input->scriptLen, address);
+        BRAddressScriptPubKey(input->script, input->scriptLen, params, address);
     }
 }
 
@@ -64,13 +59,11 @@ void BRTxInputSetScript(BRTxInput *input, const uint8_t *script, size_t scriptLe
     if (input->script) array_free(input->script);
     input->script = NULL;
     input->scriptLen = 0;
-    memset(input->address, 0, sizeof(input->address));
     
     if (script) {
         input->scriptLen = scriptLen;
         array_new(input->script, scriptLen);
         array_add_array(input->script, script, scriptLen);
-        BRAddressFromScriptPubKey(input->address, sizeof(input->address), script, scriptLen);
     }
 }
 
@@ -86,7 +79,6 @@ void BRTxInputSetSignature(BRTxInput *input, const uint8_t *signature, size_t si
         input->sigLen = sigLen;
         array_new(input->signature, sigLen);
         array_add_array(input->signature, signature, sigLen);
-        if (! input->address[0]) BRAddressFromScriptSig(input->address, sizeof(input->address), signature, sigLen);
     }
 }
 
@@ -102,7 +94,6 @@ void BRTxInputSetWitness(BRTxInput *input, const uint8_t *witness, size_t witLen
         input->witLen = witLen;
         array_new(input->witness, witLen);
         array_add_array(input->witness, witness, witLen);
-        if (! input->address[0]) BRAddressFromWitness(input->address, sizeof(input->address), witness, witLen);
     }
 }
 
@@ -130,21 +121,19 @@ static size_t _BRTxInputData(const BRTxInput *input, uint8_t *data, size_t dataL
     return (! data || off <= dataLen) ? off : 0;
 }
 
-void BRTxOutputSetAddress(BRTxOutput *output, const char *address)
+void BRTxOutputSetAddress(BRTxOutput *output, BRAddressParams params, const char *address)
 {
     assert(output != NULL);
-    assert(address == NULL || BRAddressIsValid(address));
+    assert(address == NULL || BRAddressIsValid(params, address));
     if (output->script) array_free(output->script);
     output->script = NULL;
     output->scriptLen = 0;
-    memset(output->address, 0, sizeof(output->address));
 
     if (address) {
-        strncpy(output->address, address, sizeof(output->address) - 1);
-        output->scriptLen = BRAddressScriptPubKey(NULL, 0, address);
+        output->scriptLen = BRAddressScriptPubKey(NULL, 0, params, address);
         array_new(output->script, output->scriptLen);
         array_set_count(output->script, output->scriptLen);
-        BRAddressScriptPubKey(output->script, output->scriptLen, address);
+        BRAddressScriptPubKey(output->script, output->scriptLen, params, address);
     }
 }
 
@@ -154,13 +143,11 @@ void BRTxOutputSetScript(BRTxOutput *output, const uint8_t *script, size_t scrip
     if (output->script) array_free(output->script);
     output->script = NULL;
     output->scriptLen = 0;
-    memset(output->address, 0, sizeof(output->address));
 
     if (script) {
         output->scriptLen = scriptLen;
         array_new(output->script, scriptLen);
         array_add_array(output->script, script, scriptLen);
-        BRAddressFromScriptPubKey(output->address, sizeof(output->address), script, scriptLen);
     }
 }
 
@@ -427,7 +414,7 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen)
         sLen = (size_t)BRVarInt(&buf[off], (off <= bufLen ? bufLen - off : 0), &len);
         off += len;
         
-        if (off + sLen <= bufLen && BRAddressFromScriptPubKey(NULL, 0, &buf[off], sLen) > 0) {
+        if (off + sLen <= bufLen && BRScriptPubKeyIsValid(&buf[off], sLen)) {
             BRTxInputSetScript(input, &buf[off], sLen);
             input->amount = (off + sLen + sizeof(uint64_t) <= bufLen) ? UInt64GetLE(&buf[off + sLen]) : 0;
             off += sizeof(uint64_t);
@@ -506,7 +493,7 @@ void BRTransactionAddInput(BRTransaction *tx, UInt256 txHash, uint32_t index, ui
                            const uint8_t *script, size_t scriptLen, const uint8_t *signature, size_t sigLen,
                            const uint8_t *witness, size_t witLen, uint32_t sequence)
 {
-    BRTxInput input = { txHash, index, "", amount, NULL, 0, NULL, 0, NULL, 0, sequence };
+    BRTxInput input = { txHash, index, amount, NULL, 0, NULL, 0, NULL, 0, sequence };
 
     assert(tx != NULL);
     assert(! UInt256IsZero(txHash));
@@ -526,7 +513,7 @@ void BRTransactionAddInput(BRTransaction *tx, UInt256 txHash, uint32_t index, ui
 // adds an output to tx
 void BRTransactionAddOutput(BRTransaction *tx, uint64_t amount, const uint8_t *script, size_t scriptLen)
 {
-    BRTxOutput output = { "", amount, NULL, 0 };
+    BRTxOutput output = { amount, NULL, 0 };
     
     assert(tx != NULL);
     assert(script != NULL || scriptLen == 0);

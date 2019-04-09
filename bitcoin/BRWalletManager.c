@@ -61,19 +61,6 @@ getCurrencyName (const BRChainParams *params) {
     return NULL;
 }
 
-static BRWalletForkId
-getForkId (const BRChainParams *params) {
-    if (params->magicNumber == BRMainNetParams->magicNumber ||
-        params->magicNumber == BRTestNetParams->magicNumber)
-        return WALLET_FORKID_BITCOIN;
-
-    if (params->magicNumber == BRBCashParams->magicNumber ||
-        params->magicNumber == BRBCashTestNetParams->magicNumber)
-        return WALLET_FORKID_BITCASH;
-
-    return (BRWalletForkId) -1;
-}
-
 /// MARK: - BRWalletManager
 
 struct BRWalletManagerStruct {
@@ -374,7 +361,6 @@ BRWalletManagerNew (BRWalletManagerClient client,
 //    manager->walletForkId = fork;
     manager->client = client;
 
-    BRWalletForkId fork = getForkId (params);
     const char *networkName  = getNetworkName  (params);
     const char *currencyName = getCurrencyName (params);
 
@@ -435,7 +421,7 @@ BRWalletManagerNew (BRWalletManagerClient client,
         else array_clear(peers);
     }
 
-    manager->wallet = BRWalletNew (transactions, array_count(transactions), mpk, fork);
+    manager->wallet = BRWalletNew (params->addrParams, transactions, array_count(transactions), mpk);
     BRWalletSetCallbacks (manager->wallet, manager,
                           _BRWalletManagerBalanceChanged,
                           _BRWalletManagerTxAdded,
