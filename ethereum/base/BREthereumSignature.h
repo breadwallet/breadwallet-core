@@ -25,23 +25,28 @@ extern "C" {
  * ethereum signature is 'recoverable' in that given the signature and the data one can recover
  * the public key (corresponding to the private key used for signing) and then from the public key
  * one can recover the address.
+ *
+ * The names 'VRS_EIP' and 'RSV' are arbitrary - originally they had to do with where in the
+ * signature, produced by BRKeyCompactSign, the 'v' was encoded - first (byte 0) or last (byte 65).
  */
 typedef enum {
     /**
-     * A 'VRS' signature suitable for Ethereum Transaction signing.  Modifies the 'v' field with
-     * a constant offset (0x1b == 27) and a compressed offset (4 if compressed, 0 otherwise).
+     * A 'VRS' signature suitable for Ethereum Transaction signing.  The 'v' field has a
+     * constant offset (0x1b == 27) and a compressed offset (4 if compressed, 0 otherwise).  In
+     * practive we only sign uncompressed and thus the 'v' field is either 0x1b or 0x1c.
      */
     SIGNATURE_TYPE_RECOVERABLE_VRS_EIP,
 
     /**
      * A 'RSV' signature suitable for 'standard' (non-transaction) signing with a recoverable
-     * signature.  Used for Ethereum messaging (P2P, DIS, LES, etc).
+     * signature.  Used for Ethereum messaging (P2P, DIS, LES, etc).  The 'v' field does not
+     * have an offset; the value will be either 0x00 or 0x01.
      */
     SIGNATURE_TYPE_RECOVERABLE_RSV
 } BREthereumSignatureType;
 
 /**
- * A VRS signature - with a Network chainID encoded into 'v'
+ * A VRS_EIP signature - v is 0x1b or 0x1c
  */
 typedef struct {
     uint8_t v;
@@ -51,7 +56,7 @@ typedef struct {
 
 
 /**
- * A RSV signature - the standard recoverable signature
+ * A RSV signature - v is 0x00 or 0x01
  */
 typedef struct {
     uint8_t r[32];

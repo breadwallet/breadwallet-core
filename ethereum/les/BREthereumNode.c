@@ -27,6 +27,8 @@
 // #define NODE_SHOW_RECV_RLP_ITEMS
 // #define NODE_SHOW_SEND_RLP_ITEMS
 
+#define NODE_SHOW_SEND_TX_ALWAYS
+
 // #define NEED_TO_PRINT_SEND_RECV_DATA
 // #define NEED_TO_AVOID_PROOFS_LOGGING
 
@@ -2014,6 +2016,11 @@ nodeSend (BREthereumNode node,
 #if defined (NODE_SHOW_SEND_RLP_ITEMS)
             if ((MESSAGE_PIP == message.identifier && PIP_MESSAGE_STATUS != message.u.pip.type) ||
                 (MESSAGE_LES == message.identifier && LES_MESSAGE_STATUS != message.u.les.identifier))
+                rlpShowItem (node->coder.rlp, item, "SEND");
+#elif defined (NODE_SHOW_SEND_TX_ALWAYS)
+            if ((MESSAGE_PIP == message.identifier && PIP_MESSAGE_RELAY_TRANSACTIONS == message.u.pip.type) ||
+                (MESSAGE_LES == message.identifier && LES_MESSAGE_SEND_TX2 == message.u.les.identifier) ||
+                (MESSAGE_LES == message.identifier && LES_MESSAGE_SEND_TX  == message.u.les.identifier))
                 rlpShowItem (node->coder.rlp, item, "SEND");
 #endif
             

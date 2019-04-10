@@ -24,6 +24,9 @@ extern void runRlpTests (void);
 // Event
 extern void runEventTests (void);
 
+// Base
+extern void runBaseTests (void);
+
 // Block Chain
 extern void runBcTests (void);
 
