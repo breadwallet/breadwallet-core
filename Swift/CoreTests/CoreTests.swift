@@ -121,6 +121,10 @@ class CoreTests: XCTestCase {
         runEventTests ();
     }
 
+    func testEthereumBase () {
+        runBaseTests()
+    }
+    
     func testEthereumBlockChain () {
         runBcTests()
     }

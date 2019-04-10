@@ -112,6 +112,7 @@ runEtherParseTests () {
 #define SIGNATURE_SIGNING_DATA "ec098504a817c800825208943535353535353535353535353535353535353535880de0b6b3a764000080018080"  // removed "0x"
 #define SIGNATURE_SIGNING_HASH "daf5a779ae972f972197303d7b574746c7ef83eadac0f2791ad23db92e4c8e53" // removed "0x"
 #define SIGNATURE_PRIVATE_KEY  "4646464646464646464646464646464646464646464646464646464646464646"
+#define SIGNATURE_ADDRESS      "9D8A62F656A8D1615C1294FD71E9CFB3E4855A4F"
 
 #define SIGNATURE_V "1b" // 37
 #define SIGNATURE_R "28ef61340bd939bc2195fe537567866003e1a15d3c71ff63e1590620aa636276" // remove "0x"
@@ -120,11 +121,11 @@ runEtherParseTests () {
 #define SIGNING_DATA_2 "f86c258502540be40083035b609482e041e84074fc5f5947d4d27e3c44f824b7a1a187b1a2bc2ec500008078a04a7db627266fa9a4116e3f6b33f5d245db40983234eb356261f36808909d2848a0166fa098a2ce3bda87af6000ed0083e3bf7cc31c6686b670bd85cbc6da2d6e85"
 #define SIGNING_HASH_2 "58e5a0fc7fbc849eddc100d44e86276168a8c7baaa5604e44ba6f5eb8ba1b7eb"
 
-void runSignatureTests (void) {
-    printf ("\n== Signature\n");
+static void runSignatureTests1 (void) {
+    printf ("\n== Signature 1\n");
     UInt256 digest;
 
-    printf ("    Data 1:\n");
+    printf ("    Data:\n");
     char *signingData = SIGNATURE_SIGNING_DATA;
     char *signingHash = SIGNATURE_SIGNING_HASH;
 
@@ -144,7 +145,7 @@ void runSignatureTests (void) {
                                            NULL, 0,
                                            digest);
 
-    // Fill the signature
+    // RAW (using directly BRKeyCompactSign)
     uint8_t signatureBytes[signatureLen];
     signatureLen = BRKeyCompactSign(&privateKeyUncompressed,
                                     signatureBytes, signatureLen,
@@ -152,25 +153,75 @@ void runSignatureTests (void) {
     assert (65 == signatureLen);
 
     char *signatureHex = encodeHexCreate(NULL, signatureBytes, signatureLen);
-    printf ("      Sig: %s\n", signatureHex);
+    printf ("      SigRaw: %s\n", signatureHex);
     assert (130 == strlen(signatureHex));
     assert (0 == strncmp (&signatureHex[ 0], SIGNATURE_V, 2));
     assert (0 == strncmp (&signatureHex[ 2], SIGNATURE_R, 64));
     assert (0 == strncmp (&signatureHex[66], SIGNATURE_S, 64));
 
-    //
-    printf ("    Data 2:");
-    signingData = SIGNING_DATA_2;
-    signingHash = SIGNING_HASH_2;
-    signingBytesCount = 0;
+    // Setup
+    int success;
+    size_t sigRDataLen, sigSDataLen;
+    uint8_t *sigRData, *sigSData;
 
-    uint8_t *signingBytes2 = decodeHexCreate(&signingBytesCount, signingData, strlen (signingData));
+    sigRData = decodeHexCreate(&sigRDataLen, SIGNATURE_R, strlen (SIGNATURE_R));
+    sigSData = decodeHexCreate(&sigSDataLen, SIGNATURE_S, strlen (SIGNATURE_S));
+    assert (32 == sigRDataLen & 32 == sigSDataLen);
 
-    BRKeccak256(&digest, signingBytes2, signingBytesCount);
+    // VRS
+    printf ("      SigVRS\n");
+    BREthereumSignature sigVRS = signatureCreate (SIGNATURE_TYPE_RECOVERABLE_VRS_EIP,
+                                                  signingBytes, signingBytesCount,
+                                                  privateKeyUncompressed);
 
-    char *digestString2 = encodeHexCreate(NULL, (uint8_t *) &digest, sizeof(UInt256));
-    printf ("\n      Hex: %s\n", digestString2);
-    assert (0 == strcmp (digestString2, signingHash));
+    assert (sigVRS.sig.vrs.v == 0x1b);
+    assert (0 == memcmp (sigVRS.sig.vrs.r, sigRData, sigRDataLen));
+    assert (0 == memcmp (sigVRS.sig.vrs.s, sigSData, sigSDataLen));
+
+    BREthereumAddress addrVRS = signatureExtractAddress (sigVRS, signingBytes, signingBytesCount, &success);
+    assert (1 ==  success);
+
+
+    // RSV
+    printf ("      SigRSV\n");
+    BREthereumSignature sigRSV = signatureCreate (SIGNATURE_TYPE_RECOVERABLE_RSV,
+                                                  signingBytes, signingBytesCount,
+                                                  privateKeyUncompressed);
+
+    assert (sigRSV.sig.rsv.v == 0x00);
+    assert (0 == memcmp (sigRSV.sig.rsv.r, sigRData, sigRDataLen));
+    assert (0 == memcmp (sigRSV.sig.rsv.s, sigSData, sigSDataLen));
+
+    BREthereumAddress addrRSV = signatureExtractAddress (sigRSV, signingBytes, signingBytesCount, &success);
+    assert (1 == success);
+
+    assert (ETHEREUM_BOOLEAN_TRUE == addressEqual (addrVRS, addrRSV));
+
+}
+
+static void runSignatureTests2 (void) {
+    printf ("\n== Signature 2\n");
+    UInt256 digest;
+
+    printf ("    Data:\n");
+    char *signingData = SIGNING_DATA_2;
+    char *signingHash = SIGNING_HASH_2;
+
+    size_t   signingBytesCount = 0;
+    uint8_t *signingBytes = decodeHexCreate(&signingBytesCount, signingData, strlen (signingData));
+
+    BRKeccak256(&digest, signingBytes, signingBytesCount);
+
+    char *digestString = encodeHexCreate(NULL, (uint8_t *) &digest, sizeof(UInt256));
+    printf ("      Hex: %s\n", digestString);
+    assert (0 == strcmp (digestString, signingHash));
+
+
+}
+
+void runSignatureTests (void) {
+    runSignatureTests1();
+    runSignatureTests2();
 }
 
 extern void
