@@ -110,8 +110,8 @@ class BRCryptoSystemTests: BRCryptoBaseTests {
                               path: storagePath,
                               query: BlockChainDB())
 
-        sys.start (networksNeeded: ["ethereum-mainnet"]);
-        sleep(60)
+        sys.start (networksNeeded: ["bitcoin-mainnet", "ethereum-mainnet"]);
+        sleep(120)
     }
 
 }
