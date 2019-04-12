@@ -3,36 +3,23 @@
 //  breadwallet-core Ethereum
 //
 //  Created by Ed Gamble on 3/10/2018.
-//  Copyright (c) 2018 breadwallet LLC
+//  Copyright © 2018 Breadwinner AG.  All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include <stdlib.h>
 #include <assert.h>
 #include <ctype.h>
 #include <string.h>
-#include "BRInt.h"
+#include "support/BRInt.h"
 #include "BRUtilHex.h"
 
-//
-//
-//
+// Convert a char into uint8_t (decode)
+#define decodeChar(c)           ((uint8_t) _hexu(c))
+
+// Convert a uint8_t into a char (encode)
+#define encodeChar(u)           ((char)    _hexc(u))
 
 extern void
 decodeHex (uint8_t *target, size_t targetLen, const char *source, size_t sourceLen) {
@@ -41,7 +28,7 @@ decodeHex (uint8_t *target, size_t targetLen, const char *source, size_t sourceL
     assert (2 * targetLen == sourceLen);
     
     for (int i = 0; i < targetLen; i++) {
-        target[i] = (uint8_t) ((_hexu(source[2*i]) << 4) | _hexu(source[(2*i)+1]));
+        target[i] = (uint8_t) ((decodeChar(source[2*i]) << 4) | decodeChar(source[(2*i)+1]));
     }
 }
 
@@ -65,8 +52,8 @@ encodeHex (char *target, size_t targetLen, const uint8_t *source, size_t sourceL
     assert (targetLen == 2 * sourceLen  + 1);
     
     for (int i = 0; i < sourceLen; i++) {
-        target[2*i] = (uint8_t) _hexc (source[i] >> 4);
-        target[2*i + 1] = (uint8_t) _hexc (source[i]);
+        target[2*i + 0] = encodeChar (source[i] >> 4);
+        target[2*i + 1] = encodeChar (source[i]);
     }
     target[2*sourceLen] = '\0';
 }

@@ -3,32 +3,16 @@
 //  breadwallet-core Ethereum
 //
 //  Created by Ed Gamble on 3/10/2018.
-//  Copyright (c) 2018 breadwallet LLC
+//  Copyright © 2018 Breadwinner AG.  All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
 #include <math.h>
 #include "BRUtil.h"
-#include "BRRlp.h"
 
 #define AS_UINT64(x)  ((uint64_t) (x))
 
@@ -51,6 +35,17 @@ createUInt256Power (uint8_t digits, int *overflow) {
         *overflow = 1;
         return UINT256_ZERO;
     }
+}
+
+extern UInt256
+createUInt256Power2 (uint8_t power) {  // always power < 256, as it must be.
+    uint8_t word  = power / 64;
+    uint8_t shift = power % 64;
+
+    UInt256 z = UINT256_ZERO;
+    z.u64[word] = (((uint64_t) 1) << shift);
+
+    return z;
 }
 
 extern UInt256
@@ -271,4 +266,11 @@ compareUInt256 (UInt256 x, UInt256 y) {
                : -1));
 }
 
+extern uint64_t
+coerceUInt64 (UInt256 value, int *overflow) {
+    *overflow = (0 != value.u64[3] ||
+                 0 != value.u64[2] ||
+                 0 != value.u64[1]);
+    return *overflow ? 0 : value.u64[0];
+}
 

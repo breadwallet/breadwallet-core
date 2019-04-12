@@ -3,34 +3,19 @@
 //  breadwallet-core Ethereum
 //
 //  Created by Ed Gamble on 3/10/2018.
-//  Copyright (c) 2018 breadwallet LLC
+//  Copyright © 2018 Breadwinner AG.  All rights reserved.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
 
 #ifndef BR_Util_Math_H
 #define BR_Util_Math_H
 
+#include "support/BRInt.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "BRInt.h"
 
 #if LITTLE_ENDIAN != BYTE_ORDER
 #error "Must be a `LITTLE ENDIAN` cpu architecture"
@@ -43,6 +28,7 @@ typedef enum {
   CORE_PARSE_OVERFLOW           // too many decimals for integer
 } BRCoreParseStatus;
 
+#define UINT256_INIT(value_as_uint64)   { .u64 = { (value_as_uint64), 0, 0, 0} }
 
 /**
  * Create from a single uint64_t value.
@@ -55,6 +41,12 @@ createUInt256 (uint64_t value);
  */
 extern UInt256
 createUInt256Power (uint8_t power, int *overflow);
+
+/**
+ * Create as (expt 2 power) where power < 256
+ */
+extern UInt256
+createUInt256Power2 (uint8_t power);
 
 /**
  * Create from a string in the provided base.  The string must consist of only characters
@@ -150,6 +142,13 @@ extern UInt256
 coerceUInt256 (UInt512  x, int *overflow);
 
 /**
+ * Coerce `x`, a UInt256, to a uint64_t.  If `x` is too big then overflow is set to 1 and
+ * zero is returned.
+ */
+extern uint64_t
+coerceUInt64 (UInt256 x, int *overflow);
+
+/**
  * Returns the string representation of `x` in `base`.  No matter the base, the returned string
  * will be in big-endian format.
  *
@@ -158,14 +157,25 @@ coerceUInt256 (UInt512  x, int *overflow);
 extern char *
 coerceString (UInt256 x, int base);
 
-  /**
-   * Returns a decimal string represention of `x` in base `0 with `decimals` digits after the
-   * decimal-point.
-   *
-   * @warn YOU OWN THE RETURNED MEMORY
-   */
+extern char *
+coerceStringPrefaced (UInt256 x, int base, const char *preface);
+
+/**
+ * Returns a decimal string represention of `x` in base `0 with `decimals` digits after the
+ * decimal-point.
+ *
+ * @warn YOU OWN THE RETURNED MEMORY
+ */
 extern char *
 coerceStringDecimal (UInt256 x, int decimals);
+
+
+/**
+ * Returns a '0x' prefaced hex string
+ */
+extern char *
+coerceUInt256HashToString (UInt256 hash);
+
 
 //  static UInt256
 //  divideUInt256 (UInt256 numerator, UInt256 denominator) {
@@ -231,9 +241,9 @@ leUInt256 (UInt256 x, UInt256 y) {
 extern int
 compareUInt256 (UInt256 x, UInt256 y);
 
-  //
-  // Parsing
-  //
+//
+// Parsing
+//
 extern BRCoreParseStatus
 parseIsInteger (const char *number);
 
