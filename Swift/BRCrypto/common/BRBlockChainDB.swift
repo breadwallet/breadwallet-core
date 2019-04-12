@@ -157,7 +157,7 @@ public class BlockChainDB {
     }
 
     public func getBlockchains (mainnet: Bool? = nil, completion: @escaping (Result<[Model.Blockchain],QueryError>) -> Void) {
-        dbMakeRequest (path: "blockchains", query: mainnet.map { ["testnet":($0 ? "false" : "true")] }) {
+        dbMakeRequest (path: "blockchains", query: mainnet.map { zip (["testnet"], [($0 ? "false" : "true")]) }) {
             (res: Result<[JSON], BlockChainDB.QueryError>) in
 
             // How to handle an error?
@@ -178,7 +178,7 @@ public class BlockChainDB {
     }
 
     public func getCurrencies (blockchainID: String? = nil, completion: @escaping (Result<[Model.Currency],QueryError>) -> Void) {
-        dbMakeRequest (path: "currencies", query: blockchainID.map { ["blockchain_id":$0] }) {
+        dbMakeRequest (path: "currencies", query: blockchainID.map { zip(["blockchain_id"], [$0]) }) {
             (res: Result<[BlockChainDB.JSON], BlockChainDB.QueryError>) in
 
             completion (res.flatMap {
@@ -192,7 +192,10 @@ public class BlockChainDB {
     }
 
     public func getTransfers (blockchainId: String, addresses: [String], completion: @escaping (Result<[Model.Transfer], QueryError>) -> Void) {
-        dbMakeRequest (path: "transfers", query: ["blockchain_id":blockchainId]) {
+        let queryKeys = ["blockchain_id"] + Array (repeating: "address", count: addresses.count)
+        let queryVals = [blockchainId]    + addresses
+
+        dbMakeRequest (path: "transfers", query: zip (queryKeys, queryVals)) {
             (res: Result<[BlockChainDB.JSON], BlockChainDB.QueryError>) in
             completion (res.flatMap {
                 let transfers = $0.map { Model.asTransfer(json: $0) }
@@ -622,7 +625,9 @@ public class BlockChainDB {
     }
 
     // [String:String] does not handle ["addresses":[...]]
-    internal func dbMakeRequest (path: String, query: [String:String]?, completion: @escaping (Result<[JSON], QueryError>) -> Void) {
+    internal func dbMakeRequest (path: String,
+                                 query: Zip2Sequence<[String],[String]>?,
+                                 completion: @escaping (Result<[JSON], QueryError>) -> Void) {
         guard var urlBuilder = URLComponents (string: dbBaseURL)
             else { completion (Result.failure(QueryError.Foo)); return }
 
