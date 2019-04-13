@@ -31,6 +31,7 @@ public class BlockChainDB {
 //        case NetworkUnavailable
 //        case RequestFormat  // sent a mistake
 //        case Model          // reply w/ an error (missing label, can't parse)
+        case NoEntity (id: String?)
     }
 
     public struct Model {
@@ -151,8 +152,82 @@ public class BlockChainDB {
 
         /// Transaction
 
-        public typealias Transaction = (id: String, foo: String)
+        public typealias Transaction = (id: String, blockchainId: String,
+            hash: String, identifier: String,
+            blockHash: String?, blockHeight: UInt64?, index: UInt64?, confirmations: UInt64?, status: String,
+            size: UInt64, timestamp: Date?, firstSeen: Date,
+            raw: String?,
+            transfers: [Transfer],
+            acknowledgements: UInt64
+        )
 
+        static internal func asTransaction (json: JSON) -> Model.Transaction? {
+            guard let id = json.asString(name: "transaction_id"),
+                let bid        = json.asString (name: "blockchain_id"),
+                let hash       = json.asString (name: "hash"),
+                let identifier = json.asString (name: "identifier"),
+                let status     = json.asString (name: "status"),
+                let size       = json.asUInt64 (name: "size"),
+                let firstSeen  = json.asDate   (name: "first_seen"),
+                let acks       = json.asUInt64 (name: "acknowledgements")
+                else { return nil }
+
+            let blockHash     = json.asString (name: "block_hash")
+            let blockHeight   = json.asUInt64 (name: "block_height")
+            let index         = json.asUInt64 (name: "index")
+            let confirmations = json.asUInt64 (name: "confirmations")
+            let timestamp     = json.asDate   (name: "timestamp")
+
+            let raw = json.asString (name: "raw")
+
+            guard let transfers = json.asJSONArray (name: "transfers")?
+                .map ({ JSON (dict: $0 )})
+                .map ({ asTransfer (json: $0)})
+                else { return nil }
+
+            return (id: id, blockchainId: bid,
+                     hash: hash, identifier: identifier,
+                     blockHash: blockHash, blockHeight: blockHeight, index: index, confirmations: confirmations, status: status,
+                     size: size, timestamp: timestamp, firstSeen: firstSeen,
+                     raw: raw,
+                     transfers: (transfers as! [Transfer]),
+                     acknowledgements: acks)
+        }
+
+        /// Block
+
+        public typealias Block = (id: String, blockchainId: String,
+            hash: String, height: UInt64, header: String?, raw: String?, mined: Date, size: UInt64,
+            prevHash: String?, nextHash: String?, // fees
+            transactions: [Transaction]?,
+            acknowledgements: UInt64
+        )
+
+        static internal func asBlock (json: JSON) -> Model.Block? {
+            guard let id = json.asString(name: "block_id"),
+                let bid      = json.asString(name: "blockchain_id"),
+                let hash     = json.asString (name: "hash"),
+                let height   = json.asUInt64 (name: "height"),
+                let mined    = json.asDate   (name: "mined"),
+                let size     = json.asUInt64 (name: "size"),
+                let acks       = json.asUInt64 (name: "acknowledgements")
+                else { return nil }
+
+            let header   = json.asString (name: "header")
+            let raw      = json.asString (name: "raw")
+            let prevHash = json.asString (name: "prev_hash")
+            let nextHash = json.asString (name: "next_hash")
+
+            let transactions = json.asJSONArray (name: "transactions")?
+                .map ({ JSON (dict: $0 )})
+                .map ({ asTransaction (json: $0)}) as? [Model.Transaction]  // no quite - i
+
+            return (id: id, blockchainId: bid,
+                    hash: hash, height: height, header: header, raw: raw, mined: mined, size: size,
+                    prevHash: prevHash, nextHash: nextHash,
+                    transactions: transactions,
+                    acknowledgements: acks)
+        }
         /// ...
     }
 
@@ -167,12 +242,7 @@ public class BlockChainDB {
 
             // Map a successful result and convert JSON -> Model.Blockchain.
             completion (res.flatMap {
-                // Convert JSON to Model
-                let blockchains = $0.map { Model.asBlockchain (json: $0) }
-                // If any conversion failed, then we've an error
-                return blockchains.contains(where: { $0 == nil })
-                    ? Result.failure (QueryError.Foo)
-                    : Result.success (blockchains as! [Model.Blockchain])
+                BlockChainDB.getManyExpected(data: $0, transform: Model.asBlockchain)
             })
         }
     }
@@ -182,11 +252,17 @@ public class BlockChainDB {
             (res: Result<[BlockChainDB.JSON], BlockChainDB.QueryError>) in
 
             completion (res.flatMap {
-                let currencies = $0.map { Model.asCurrency (json: $0) }
+                BlockChainDB.getManyExpected(data: $0, transform: Model.asCurrency)
+            })
+        }
+    }
 
-                return currencies.contains(where: { $0 == nil })
-                    ? Result.failure (QueryError.Foo)
-                    : Result.success (currencies as! [Model.Currency])
+    public func getCurrency (currencyId: String, completion: @escaping (Result<Model.Currency,QueryError>) -> Void) {
+        dbMakeRequest (path: "currencies/\(currencyId)", query: nil, embedded: false) {
+            (res: Result<[BlockChainDB.JSON], BlockChainDB.QueryError>) in
+
+            completion (res.flatMap {
+                BlockChainDB.getOneExpected(id: currencyId, data: $0, transform: Model.asCurrency)
             })
         }
     }
@@ -198,10 +274,96 @@ public class BlockChainDB {
         dbMakeRequest (path: "transfers", query: zip (queryKeys, queryVals)) {
             (res: Result<[BlockChainDB.JSON], BlockChainDB.QueryError>) in
             completion (res.flatMap {
-                let transfers = $0.map { Model.asTransfer(json: $0) }
-                return transfers.contains(where: { $0 == nil })
-                    ? Result.failure (QueryError.Foo)
-                    : Result.success (transfers as! [Model.Transfer])
+                BlockChainDB.getManyExpected (data: $0, transform: Model.asTransfer)
+            })
+        }
+    }
+
+    public func getTransfer (transferId: String, completion: @escaping (Result<Model.Transfer, QueryError>) -> Void) {
+        dbMakeRequest (path: "transfers/\(transferId)", query: nil, embedded: false) {
+            (res: Result<[BlockChainDB.JSON], BlockChainDB.QueryError>) in
+            completion (res.flatMap {
+                BlockChainDB.getOneExpected (id: transferId, data: $0, transform: Model.asTransfer)
+            })
+        }
+    }
+
+    // Transactions
+
+    public func getTransactions (blockchainId: String,
+                                 addresses: [String],
+                                 begBlockNumber: UInt64 = 0,
+                                 endBlockNumber: UInt64 = 0,
+                                 includeRaw: Bool = false,
+                                 includeProof: Bool = false,
+                                 completion: @escaping (Result<[Model.Transaction], QueryError>) -> Void) {
+        let queryKeys = ["blockchain_id", "start_height", "end_height",  "include_proof", "include_raw"]
+            + Array (repeating: "address", count: addresses.count)
+
+        let queryVals = [blockchainId, begBlockNumber.description, endBlockNumber.description, includeProof.description, includeRaw.description]
+            + addresses
+
+        dbMakeRequest (path: "transactions", query: zip (queryKeys, queryVals)) {
+            (res: Result<[BlockChainDB.JSON], BlockChainDB.QueryError>) in
+            completion (res.flatMap {
+                BlockChainDB.getManyExpected(data: $0, transform: Model.asTransaction)
+            })
+        }
+    }
+
+    public func getTransaction (transactionId: String,
+                                includeRaw: Bool = false,
+                                includeProof: Bool = false,
+                                completion: @escaping (Result<Model.Transaction, QueryError>) -> Void) {
+        let queryKeys = ["include_proof", "include_raw"]
+        let queryVals = [includeProof.description, includeRaw.description]
+
+        dbMakeRequest (path: "transactions/\(transactionId)", query: zip (queryKeys, queryVals), embedded: false) {
+            (res: Result<[BlockChainDB.JSON], BlockChainDB.QueryError>) in
+            completion (res.flatMap {
+                BlockChainDB.getOneExpected (id: transactionId, data: $0, transform: Model.asTransaction)
+            })
+        }
+    }
+
+    // Blocks
+
+    public func getBlocks (blockchainId: String,
+                           begBlockNumber: UInt64 = 0,
+                           endBlockNumber: UInt64 = 0,
+                           includeRaw: Bool = false,
+                           includeTx: Bool = false,
+                           includeTxRaw: Bool = false,
+                           includeTxProof: Bool = false,
+                           completion: @escaping (Result<[Model.Block], QueryError>) -> Void) {
+        let queryKeys = ["blockchain_id", "start_height", "end_height",  "include_raw",
+                         "include_tx", "include_tx_raw", "include_tx_proof"]
+
+        let queryVals = [blockchainId, begBlockNumber.description, endBlockNumber.description, includeRaw.description,
+                         includeTx.description, includeTxRaw.description, includeTxProof.description]
+
+        dbMakeRequest (path: "blocks", query: zip (queryKeys, queryVals)) {
+            (res: Result<[BlockChainDB.JSON], BlockChainDB.QueryError>) in
+            completion (res.flatMap {
+                BlockChainDB.getManyExpected(data: $0, transform: Model.asBlock)
+            })
+        }
+    }
+
+    public func getBlock (blockId: String,
+                          includeRaw: Bool = false,
+                          includeTx: Bool = false,
+                          includeTxRaw: Bool = false,
+                          includeTxProof: Bool = false,
+                          completion: @escaping (Result<Model.Block, QueryError>) -> Void) {
+        let queryKeys = ["include_raw", "include_tx", "include_tx_raw", "include_tx_proof"]
+
+        let queryVals = [includeRaw.description, includeTx.description, includeTxRaw.description, includeTxProof.description]
+
+        dbMakeRequest (path: "blocks/\(blockId)", query: zip (queryKeys, queryVals), embedded: false) {
+            (res: Result<[BlockChainDB.JSON], BlockChainDB.QueryError>) in
+            completion (res.flatMap {
+                BlockChainDB.getOneExpected (id: blockId, data: $0, transform: Model.asBlock)
             })
         }
     }
@@ -561,6 +723,11 @@ public class BlockChainDB {
     static internal let addressBRDTestnet = "0x7108ca7c4718efa810457f228305c9c71390931a" // testnet
     static internal let addressBRDMainnet = "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6" // mainnet
 
+    static internal let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+        return formatter
+    }()
 
     internal struct JSON {
         typealias Dict = [String:Any]
@@ -587,6 +754,11 @@ public class BlockChainDB {
         internal func asUInt8 (name: String) -> UInt8? {
             return (dict[name] as? NSNumber)
                 .flatMap { UInt8 (exactly: $0)}
+        }
+
+        internal func asDate (name: String) -> Date? {
+            return (dict[name] as? String)
+                .flatMap { dateFormatter.date (from: $0) }
         }
 
         internal func asJSONArray (name: String) -> [Dict]? {
@@ -624,9 +796,9 @@ public class BlockChainDB {
             }.resume()
     }
 
-    // [String:String] does not handle ["addresses":[...]]
     internal func dbMakeRequest (path: String,
                                  query: Zip2Sequence<[String],[String]>?,
+                                 embedded: Bool = true,
                                  completion: @escaping (Result<[JSON], QueryError>) -> Void) {
         guard var urlBuilder = URLComponents (string: dbBaseURL)
             else { completion (Result.failure(QueryError.Foo)); return }
@@ -646,7 +818,11 @@ public class BlockChainDB {
 
         sendRequest (request) { (res: Result<BlockChainDB.JSON, BlockChainDB.QueryError>) in
             completion (res.flatMap { (json: BlockChainDB.JSON) -> Result<[JSON], BlockChainDB.QueryError> in
-                guard let data = json.asJSONDict(name: "_embedded")?[path] as? [JSON.Dict]
+                let json = (embedded
+                    ? json.asJSONDict(name: "_embedded")?[path]
+                    : [json.dict])
+
+                guard let data = json as? [JSON.Dict]
                     else { return Result.failure(QueryError.Foo) }
 
                 return Result.success (data.map { JSON (dict: $0) })
@@ -664,7 +840,8 @@ public class BlockChainDB {
             else { completion (Result.failure(QueryError.Foo)); return }
 
         var request = URLRequest (url: url)
-        request.addValue("application/json", forHTTPHeaderField: "accept")
+        request.addValue ("application/json", forHTTPHeaderField: "accept")
+        request.addValue ("application/json", forHTTPHeaderField: "Content-Type")
         request.httpMethod = "POST"
 
         do { request.httpBody = try JSONSerialization.data(withJSONObject: data, options: []) }
@@ -675,5 +852,45 @@ public class BlockChainDB {
         sendRequest(request) { (res: Result<BlockChainDB.JSON, BlockChainDB.QueryError>) in
             completion (res)
         }
+    }
+
+    ///
+    /// Convert an array of JSON into a single value using a specified transform
+    ///
+    /// - Parameters:
+    ///   - id: If not value exists, report QueryError.NoEntity (id: id)
+    ///   - data: The array of JSON
+    ///   - transform: Function to tranfrom JSON -> T?
+    ///
+    /// - Returns: A `Result` with success of `T`
+    ///
+    private static func getOneExpected<T> (id: String, data: [JSON], transform: (JSON) -> T?) -> Result<T, QueryError> {
+        switch data.count {
+        case  0:
+            return Result.failure (QueryError.NoEntity(id: id))
+        case  1:
+            guard let transfer = transform (data[0])
+                else { return Result.failure (QueryError.Foo)}
+            return Result.success (transfer)
+        default:
+            return Result.failure (QueryError.Foo)
+        }
+    }
+
+    ///
+    /// Convert an array of JSON into an array of `T` using a specified transform.  If any
+    /// individual JSON cannot be converted, then a QueryError is return for `Result`
+    ///
+    /// - Parameters:
+    ///   - data: Array of JSON
+    ///   - transform: Function to transform JSON -> T?
+    ///
+    /// - Returns: A `Result` with success of `[T]`
+    ///
+    private static func getManyExpected<T> (data: [JSON], transform: (JSON) -> T?) -> Result<[T], QueryError> {
+        let results = data.map (transform)
+        return results.contains(where: { $0 == nil })
+            ? Result.failure(QueryError.Foo)
+            : Result.success(results as! [T])
     }
 }
