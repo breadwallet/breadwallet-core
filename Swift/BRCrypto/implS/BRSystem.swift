@@ -56,13 +56,13 @@ public final class SystemBase: System {
     internal func lookupManager (eth: BREthereumEWM) -> WalletManagerImplS? {
         return managers.first {
             ($0 as? WalletManagerImplS).map { $0.impl.ewm == eth } ?? false
-        } as? WalletManagerImplS
+            } as? WalletManagerImplS
     }
 
     internal func lookupManager (btc: BRCoreWalletManager) -> WalletManagerImplS? {
         return managers.first {
             ($0 as? WalletManagerImplS).map { $0.impl.bwm == btc } ?? false
-        } as? WalletManagerImplS
+            } as? WalletManagerImplS
     }
 
     public func createWalletManager (network: Network,
@@ -137,9 +137,9 @@ public final class SystemBase: System {
     }
 
     internal init (listener: SystemListener,
-                 account: Account,
-                 path: String,
-                 query: BlockChainDB) {
+                   account: Account,
+                   path: String,
+                   query: BlockChainDB) {
         precondition (nil == SystemBase.instance)
         
         self.listener = listener
@@ -153,7 +153,6 @@ public final class SystemBase: System {
     public func stop () {
         managers.forEach { $0.disconnect() }
     }
-
 
     public func start (networksNeeded: [String]) {
         if !networks.isEmpty {
@@ -172,320 +171,83 @@ public final class SystemBase: System {
         }
 
         // query blockchains
-        self.query.getBlockchains { (blockchainModels: [BlockChainDB.Model.Blockchain]) in
+        self.query.getBlockchains { (blockchainResult: Result<[BlockChainDB.Model.Blockchain],BlockChainDB.QueryError>) in
+            let blockChainModels = try! blockchainResult
+                // On success, always merge `defaultBlockchains`
+                .map { BlockChainDB.Model.unionBlockchain (BlockChainDB.Model.defaultBlockchains, $0) }
+                // On error, use defaultBlockchains
+                .recover { (error: BlockChainDB.QueryError) -> [BlockChainDB.Model.Blockchain] in
+                    return BlockChainDB.Model.defaultBlockchains
+                }.get()
 
-            // For every blockchain, query the currency and then create a network
-            blockchainModels.filter { networksNeeded.contains($0.id) }
+            blockChainModels.filter { networksNeeded.contains($0.id) }
                 .forEach { (blockchainModel: BlockChainDB.Model.Blockchain) in
 
-                // query currencies
-                self.query.getCurrencies(blockchainID: blockchainModel.id) { (currencyModels: [BlockChainDB.Model.Currency]) in
+                    // query currencies
+                    self.query.getCurrencies (blockchainID: blockchainModel.id) { (currencyResult: Result<[BlockChainDB.Model.Currency],BlockChainDB.QueryError>) in
+                        // Find applicable defaults by `blockchainID`
+                        let defaults = BlockChainDB.Model.defaultCurrencies
+                            .filter { $0.blockchainID == blockchainModel.id }
 
-                    var associations: [Currency : Network.Association] = [:]
+                        let currencyModels = try! currencyResult
+                            // On success, always merge `defaultCurrencies`
+                            .map { BlockChainDB.Model.unionCurrency (defaults, $0) }
+                            // On error, use `defaults`
+                            .recover { (error: BlockChainDB.QueryError) -> [BlockChainDB.Model.Currency] in
+                                return defaults
+                            }.get()
 
-                    // Update associations
-                    currencyModels.forEach { (currencyModel: BlockChainDB.Model.Currency) in
-                        // TODO: Create the currency but don't create copies
-                        let currency = Currency (uids: currencyModel.id,
-                                                 name: currencyModel.name,
-                                                 code: currencyModel.code,
-                                                 type: currencyModel.type)
-
-                        // Create the base unit
-                        let baseUnit = currencyModel.demoninations.first { 0 == $0.decimals}
-                            .map { currencyDenominationToBaseUnit(currency: currency, model: $0) }!
-
-                        // Create the other units
-                        var units: [Unit] = [baseUnit]
-                        units += currencyModel.demoninations.filter { 0 != $0.decimals }
-                            .map { currencyDenominationToUnit (currency: currency, model: $0, base: baseUnit) }
-
-                        // Find the default unit
-                        let maximumDecimals = units.reduce (0) { max ($0, $1.decimals) }
-                        let defaultUnit = units.first { $0.decimals == maximumDecimals }!
+                        var associations: [Currency : Network.Association] = [:]
 
                         // Update associations
-                        associations[currency] = Network.Association (baseUnit: baseUnit,
-                                                                      defaultUnit: defaultUnit,
-                                                                      units: Set<Unit>(units))
+                        currencyModels.forEach { (currencyModel: BlockChainDB.Model.Currency) in
+                            // TODO: Create the currency but don't create copies
+                            let currency = Currency (uids: currencyModel.id,
+                                                     name: currencyModel.name,
+                                                     code: currencyModel.code,
+                                                     type: currencyModel.type)
+
+                            // Create the base unit
+                            let baseUnit = currencyModel.demoninations.first { 0 == $0.decimals}
+                                .map { currencyDenominationToBaseUnit(currency: currency, model: $0) }!
+
+                            // Create the other units
+                            var units: [Unit] = [baseUnit]
+                            units += currencyModel.demoninations.filter { 0 != $0.decimals }
+                                .map { currencyDenominationToUnit (currency: currency, model: $0, base: baseUnit) }
+
+                            // Find the default unit
+                            let maximumDecimals = units.reduce (0) { max ($0, $1.decimals) }
+                            let defaultUnit = units.first { $0.decimals == maximumDecimals }!
+
+                            // Update associations
+                            associations[currency] = Network.Association (baseUnit: baseUnit,
+                                                                          defaultUnit: defaultUnit,
+                                                                          units: Set<Unit>(units))
+                        }
+
+                        // the default currency
+                        let currency = associations.keys.first { $0.code == blockchainModel.currency.lowercased() }!
+
+                        // define the network
+                        let network = Network (uids: blockchainModel.id,
+                                               name: blockchainModel.name,
+                                               isMainnet: blockchainModel.isMainnet,
+                                               currency: currency,
+                                               associations: associations)
+
+                        // save the network
+                        self.networks.append (network)
+
+                        // Invoke callbacks.
+                        self.listener?.handleNetworkEvent (system: self, network: network, event: NetworkEvent.created)
+                        self.listener?.handleSystemEvent  (system: self, event: SystemEvent.networkAdded(network: network))
                     }
-
-                    // the default currency
-                    let currency = associations.keys.first { $0.code == blockchainModel.currency }!
-
-                    // define the network
-                    let network = Network (uids: blockchainModel.id,
-                                           name: blockchainModel.name,
-                                           isMainnet: blockchainModel.isMainnet,
-                                           currency: currency,
-                                           associations: associations)
-
-                    // save the network
-                    self.networks.append (network)
-
-                    // Invoke callbacks.
-                    self.listener?.handleNetworkEvent (system: self, network: network, event: NetworkEvent.created)
-                    self.listener?.handleSystemEvent  (system: self, event: SystemEvent.networkAdded(network: network))
-                }
             }
         }
+    }
 
-//        let ETH = Currency (uids: "ETH", name: "Ethereum", code: "ETH", type: "native")
-//        let ETH_WEI   = Unit (currency: ETH, uids: "ETH_WEI",   name: "WEI",   symbol: "wei")
-//        let ETH_GWEI  = Unit (currency: ETH, uids: "ETH_GWEI",  name: "GWEI",  symbol: "gwei", base: ETH_WEI, decimals: 9)
-//        let ETH_ETHER = Unit (currency: ETH, uids: "ETH_ETHER", name: "ETHER", symbol: "Ξ",    base: ETH_WEI, decimals: 18)
-//
-//        let BRD = Currency (uids: "ERC20 BRD", name: "BRD Token", code: "BRD", type: "erc20")
-//        let BRD_INT = Unit (currency: BRD, uids: "ERC20 BRD INT", name: "BRD INT", symbol: "BRD INT")
-//        let BRD_BRD = Unit (currency: BRD, uids: "ERC20_BRD_BRD", name: "BRD", symbol: "BRD", base: BRD_INT, decimals: 18)
-//
-//        let ETH_ASSOCIATIONS = [
-//                ETH: Network.Association (baseUnit: ETH_WEI, defaultUnit: ETH_ETHER, units: Set<Unit> (arrayLiteral: ETH_WEI, ETH_GWEI, ETH_ETHER)),
-//                BRD: Network.Association (baseUnit: BRD_INT, defaultUnit: BRD_BRD,   units: Set<Unit> (arrayLiteral: BRD_INT, BRD_BRD))
-//        ]
-//
-//        let ETH_Mainnet = Network (name: "Mainnet",
-//                                   isMainnet: true,
-//                                   currency: ETH,
-//                                   associations: ETH_ASSOCIATIONS)
-//        networks.append(ETH_Mainnet)
-//        listener?.handleNetworkEvent(system: self, network: ETH_Mainnet, event: NetworkEvent.created)
-//        listener?.handleSystemEvent (system: self, event: SystemEvent.networkAdded(network: ETH_Mainnet))
-//
-//        let ETH_Testnet = Network (name: "Testnet",
-//                                   isMainnet: false,
-//                                   currency: ETH,
-//                                   associations: ETH_ASSOCIATIONS)
-//        networks.append(ETH_Testnet)
-//        listener?.handleNetworkEvent(system: self, network: ETH_Testnet, event: NetworkEvent.created)
-//        listener?.handleSystemEvent(system: self, event: SystemEvent.networkAdded(network: ETH_Testnet))
-
-        // Query the BlockchainDB - determine the networks.
-
-//        BRCryptoNetwork networks[] = {
-//            // Bitcoin
-//            cryptoNetworkCreateAsBTC("BTC Mainnet", 0x00, BRMainNetParams),
-//            cryptoNetworkCreateAsBTC("BTC Testnet", 0x40, BRTestNetParams),
-//
-//            // Bitcash
-//            cryptoNetworkCreateAsBTC("BCH Mainnet", 0x00, BRBCashParams),
-//            cryptoNetworkCreateAsBTC("BCH Testnet", 0x40, BRBCashTestNetParams),
-//
-//            // Ethereum
-//            cryptoNetworkCreateAsETH ("ETH Mainnet", 1, ethereumMainnet),
-//            cryptoNetworkCreateAsETH ("ETH Ropsten", 3, ethereumTestnet),
-//            cryptoNetworkCreateAsETH ("ETH Rinkeby", 4, ethereumRinkeby)
-//        };
-//
-//        BRArrayOf(BRCryptoUnit) units;
-//        array_new (units, 3);
-//
-//        BRCryptoCurrency BTC = cryptoCurrencyCreate ("Bitcoin", "BTC", "native");
-//        BRCryptoUnit BTC_SAT = cryptoUnitCreateAsBase (BTC, "SAT", "sat");
-//        BRCryptoUnit BTC_BTC = cryptoUnitCreate (BTC, "BTC", "₿", BTC_SAT, 8);
-//        BRArrayOf(BRCryptoUnit) BTC_UNITS;
-//        array_new (BTC_UNITS, 2);
-//        array_add (BTC_UNITS, BTC_SAT);
-//        array_add (BTC_UNITS, BTC_BTC);
-//
-//        BRCryptoCurrency BCH = cryptoCurrencyCreate ("Bitcash", "BCH", "native");
-//        BRCryptoUnit BCH_SAT = cryptoUnitCreateAsBase (BCH, "SAT", "sat");
-//        BRCryptoUnit BCH_BTC = cryptoUnitCreate (BCH, "BTH", "₿", BCH_SAT, 8);
-//        BRArrayOf(BRCryptoUnit) BCH_UNITS;
-//        array_new (BCH_UNITS, 2);
-//        array_add (BCH_UNITS, BCH_SAT);
-//        array_add (BCH_UNITS, BCH_BTC);
-//
-//        BRCryptoCurrency ETH   = cryptoCurrencyCreate ("Ethereum", "ETH", "native");
-//        BRCryptoUnit ETH_WEI   = cryptoUnitCreateAsBase (ETH, "WEI", "wei");
-//        BRCryptoUnit ETH_GWEI  = cryptoUnitCreate (ETH, "GWEI",  "WEI", ETH_WEI,  9);
-//        BRCryptoUnit ETH_ETHER = cryptoUnitCreate (ETH, "ETHER", "Ξ",   ETH_WEI, 18);
-//        BRArrayOf(BRCryptoUnit) ETH_UNITS;
-//        array_new (ETH_UNITS, 3);
-//        array_add (ETH_UNITS, ETH_WEI);
-//        array_add (ETH_UNITS, ETH_GWEI);
-//        array_add (ETH_UNITS, ETH_ETHER);
-//
-//        BRCryptoCurrency BRD = cryptoCurrencyCreate("BRD", "BRD", "erc20");
-//        BRCryptoUnit BRD_INTEGER = cryptoUnitCreateAsBase (BRD, "BRD_INTEGER", "BRD_INT");
-//        BRCryptoUnit BRD_BRD     = cryptoUnitCreate (BRD, "BRD", "BRD", BRD_INTEGER, 18);
-//        BRArrayOf(BRCryptoUnit) BRD_UNITS;
-//        array_new (BRD_UNITS, 2);
-//        array_add (BRD_UNITS, BRD_INTEGER);
-//        array_add (BRD_UNITS, BRD_BRD);
-//
-//
-//        array_new (units, 3);
-//        array_add_array (units, BTC_UNITS, array_count(BTC_UNITS));
-//        cryptoNetworkAddCurrency (networks[0], BTC, BTC_SAT, BTC_BTC, units);
-//        cryptoNetworkSetCurrency (networks[0], BTC);
-//
-//        array_new (units, 3);
-//        array_add_array (units, BTC_UNITS, array_count(BTC_UNITS));
-//        cryptoNetworkAddCurrency (networks[1], BTC, BTC_SAT, BTC_BTC, units);
-//        cryptoNetworkSetCurrency (networks[1], BTC);
-//
-//        array_new (units, 3);
-//        array_add_array (units, BCH_UNITS, array_count(BCH_UNITS));
-//        cryptoNetworkAddCurrency (networks[2], BCH, BCH_SAT, BCH_BTC, units);
-//        cryptoNetworkSetCurrency (networks[2], BCH);
-//
-//        array_new (units, 3);
-//        array_add_array (units, BCH_UNITS, array_count(BCH_UNITS));
-//        cryptoNetworkAddCurrency (networks[3], BCH, BCH_SAT, BCH_BTC, units);
-//        cryptoNetworkSetCurrency (networks[3], BCH);
-//
-//        array_new (units, 3);
-//        array_add_array (units, ETH_UNITS, array_count(ETH_UNITS));
-//        cryptoNetworkAddCurrency (networks[4], ETH, ETH_WEI, ETH_ETHER, units);
-//        array_new (units, 3);
-//        array_add_array (units, BRD_UNITS, array_count(BRD_UNITS));
-//        cryptoNetworkAddCurrency (networks[4], BRD, BRD_INTEGER, BRD_BRD, units);
-//        cryptoNetworkSetCurrency (networks[4], ETH);
-//
-//        array_new (units, 3);
-//        array_add_array (units, ETH_UNITS, array_count(ETH_UNITS));
-//        cryptoNetworkAddCurrency (networks[5], ETH, ETH_WEI, ETH_ETHER, units);
-//        array_new (units, 3);
-//        array_add_array (units, BRD_UNITS, array_count(BRD_UNITS));
-//        cryptoNetworkAddCurrency (networks[5], BRD, BRD_INTEGER, BRD_BRD, units);
-//        cryptoNetworkSetCurrency (networks[5], ETH);
-//
-//        array_new (units, 3);
-//        array_add_array (units, ETH_UNITS, array_count(ETH_UNITS));
-//        cryptoNetworkAddCurrency (networks[6], ETH, ETH_WEI, ETH_ETHER, units);
-//        // No BRD
-//        cryptoNetworkSetCurrency (networks[6], ETH);
-//
-//        array_free (units);
-//        array_free (BRD_UNITS); array_free (ETH_UNITS); array_free (BCH_UNITS); array_free (BTC_UNITS);
-//
-//        // Announce Networks
-//        for (size_t index = 0; index <= 6; index++)
-//        cryptoNetworkAnnounce(networks[index]);
-
-}
-        // Network Listener
-
-//        self.coreNetworkListener = BRCryptoNetworkListener (
-//            context: Unmanaged<System>.passRetained(self).toOpaque(),
-//            created: { (context: BRCryptoNetworkListenerContext?, coreNetwork: BRCryptoNetwork?) in
-//                precondition (nil != context && nil != coreNetwork)
-//                let system = Unmanaged<System>.fromOpaque(context!).takeRetainedValue()
-//                let network = Network (core: coreNetwork!)
-//
-//                system.networks.append (network)
-//                system.listener?.handleNetworkEvent(
-//                    system: system,
-//                    network: network,
-//                    event: NetworkEvent.created)
-//        } // ,
-//            //            currencyAdded: { (context: BRCryptoNetworkListenerContext?, coreNetwork: BRCryptoNetwork?, coreCurrency: BRCryptoCurrency?) in
-//            //                precondition (nil != context && nil != coreNetwork && nil != coreCurrency)
-//            //                let system = Unmanaged<System>.fromOpaque(context!).takeRetainedValue()
-//            //                if let network = system.lookup (network: coreNetwork!) {
-//            //                    let currency = Currency (core: coreCurrency!)
-//            //                    // add to 'network'
-//            //                    system.listener?.handleNetworkEvent(
-//            //                        system: system,
-//            //                        network: network,
-//            //                        event: NetworkEvent.currencyAdded(currency: currency))
-//            //                }
-//            //        },
-//            //            currencyDeleted: { (context: BRCryptoNetworkListenerContext?, coreNetwork: BRCryptoNetwork?, coreCurrency: BRCryptoCurrency?) in
-//            //                precondition (nil != context && nil != coreNetwork && nil != coreCurrency)
-//            //                let system = Unmanaged<System>.fromOpaque(context!).takeRetainedValue()
-//            //                if let network = system.lookup(network: coreNetwork!) {
-//            //                    let currency = Currency (core: coreCurrency!)
-//            //                    // rem from 'network'
-//            //                    system.listener?.handleNetworkEvent(
-//            //                        system: system,
-//            //                        network: network,
-//            //                        event: NetworkEvent.currencyDeleted(currency: currency))
-//            //                }
-//            //        }
-//        )
-//        cryptoNetworkDeclareListener(self.coreNetworkListener)
-//
-//        // Wallet Listener
-//
-//        self.coreWalletManagerListener = BRCryptoCWMListener (
-//            context: Unmanaged<System>.passRetained(self).toOpaque(),
-//
-//            walletManagerEventCallback: { (context: BRCryptoCWMListenerContext?, coreCWM: BRCryptoWalletManager?) in
-//                precondition (nil != context && nil != coreCWM)
-//                let system  = Unmanaged<System>.fromOpaque(context!).takeRetainedValue()
-//                if let manager = system.lookup(manager: coreCWM!) {
-//                    let event = WalletManagerEvent.created
-//
-//                    system.listener?.handleManagerEvent(
-//                        system: system,
-//                        manager: manager,
-//                        event: event)
-//                }
-//        },
-//            walletEventCallback: { (context: BRCryptoCWMListenerContext?, coreCWM: BRCryptoWalletManager?, coreWallet: BRCryptoWallet?) in
-//                precondition (nil != context && nil != coreCWM && nil != coreWallet)
-//                let system = Unmanaged<System>.fromOpaque(context!).takeRetainedValue()
-//                if let manager = system.lookup (manager: coreCWM!),
-//                    let wallet = system.lookup(wallet: coreWallet!, manager: manager) {
-//
-//                    let event = WalletEvent.created
-//
-//                    system.listener?.handleWalletEvent(
-//                        system: system,
-//                        manager: manager,
-//                        wallet: wallet,
-//                        event: event)
-//                }
-//        },
-//
-//            transferEventCallback: { (context: BRCryptoCWMListenerContext?, coreCWM: BRCryptoWalletManager?, coreWallet: BRCryptoWallet?, coreTransfer: BRCryptoTransfer?) in
-//                precondition (nil != context && nil != coreCWM && nil != coreWallet && nil != coreTransfer)
-//                let system = Unmanaged<System>.fromOpaque(context!).takeRetainedValue()
-//                if let manager = system.lookup (manager: coreCWM!),
-//                    let wallet = system.lookup (wallet: coreWallet!, manager: manager),
-//                    let transfer = system.lookup (transfer: coreTransfer!, wallet: wallet) {
-//
-//                    let event = TransferEvent.created
-//
-//                    system.listener?.handleTransferEvent(
-//                        system: system,
-//                        manager: manager,
-//                        wallet: wallet,
-//                        transfer: transfer,
-//                        event: event)
-//                }
-//        })
-//        cryptoWalletManagerDeclareListener (self.coreWalletManagerListener)
-//
-//        // Start communicating with URL
-//        //   Load currencies
-//        //   Load blockchains
-//
-//    }
-//
-//    internal func lookup (network core: BRCryptoNetwork) -> Network? {
-//        return networks.first { $0.core == core }
-//    }
-//
-//    internal func lookup (manager core: BRCryptoWalletManager) -> WalletManager? {
-//        return managers.first { $0.core == core }
-//    }
-//
-//    internal func lookup (wallet core: BRCryptoWallet, manager: WalletManager) -> Wallet? {
-//        return manager.wallets.first { $0.core == core }
-//    }
-//
-//    internal func lookup (transfer core: BRCryptoTransfer, wallet: Wallet) -> Transfer? {
-//        return wallet.transfers.first { $0.core == core }
-//    }
-//
-//    // No - define 'system listener'
-//    private var coreNetworkListener: BRCryptoNetworkListener! = nil
-//    private var coreWalletManagerListener: BRCryptoCWMListener! = nil
-//}
-
+    // Core Ethereum Client
 
     internal var coreEthereumClient: BREthereumClient {
         let this = self
@@ -686,7 +448,7 @@ public final class SystemBase: System {
 
             funcEWMEvent: { (context, coreEWM, event, status, message) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-//                NSLog ("System: Ethereum: Manager: \(event)")
+                //                NSLog ("System: Ethereum: Manager: \(event)")
                 if let this = system.lookupManager(eth: coreEWM!) {
                     switch event {
                     case EWM_EVENT_CREATED:
@@ -730,11 +492,11 @@ public final class SystemBase: System {
 
             funcWalletEvent: { (context, coreEWM, wid, event, status, message) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-//                NSLog ("System: Ethereum: Wallet: \(event)")
+                //                NSLog ("System: Ethereum: Wallet: \(event)")
                 if let this = system.lookupManager(eth: coreEWM!) {
 
                     if event == WALLET_EVENT_CREATED, nil == this.lookupWallet(eth: wid), let wid = wid {
-//                        NSLog ("System: Ethereum: Wallet: Created")
+                        //                        NSLog ("System: Ethereum: Wallet: Created")
                         let currency = ewmWalletGetToken (coreEWM, wid)
                             .flatMap { this.network.currencyBy (code: asUTF8String (tokenGetSymbol ($0))) }
                             ?? this.network.currency
@@ -789,12 +551,12 @@ public final class SystemBase: System {
 
             funcTransferEvent: { (context, coreEWM, wid, tid, event, status, message) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
- //               NSLog ("System: Ethereum: Transfer: \(event)")
+                //               NSLog ("System: Ethereum: Transfer: \(event)")
                 if let this = system.lookupManager(eth: coreEWM!),
                     let wallet = this.lookupWallet (eth: wid) {
 
                     if TRANSFER_EVENT_CREATED == event, let tid = tid {
-//                        NSLog ("System: Ethereum: Transfer Created")
+                        //                        NSLog ("System: Ethereum: Transfer Created")
                         let transfer = TransferImplS (listener: this.system.listener,
                                                       wallet: wallet,
                                                       unit: wallet.unit,
@@ -840,7 +602,8 @@ public final class SystemBase: System {
                 }})
     }
 
-
+    // Core Bitcoin Client
+    
     internal var coreBitcoinClient: BRWalletManagerClient {
         let this = self
         return BRWalletManagerClient (
@@ -848,12 +611,12 @@ public final class SystemBase: System {
 
             funcTransactionEvent: { (context, bid, wid, tid, event) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-//                NSLog ("System: Bitcoin: Transfer: \(event.type)")
+                //                NSLog ("System: Bitcoin: Transfer: \(event.type)")
                 if let this = system.lookupManager(btc: bid!),
                     let wallet = this.lookupWallet (btc: wid) {
 
                     if event.type == BITCOIN_TRANSACTION_ADDED, let tid = tid {
-//                        NSLog ("System: Bitcoin: Transfer Created")
+                        //                        NSLog ("System: Bitcoin: Transfer Created")
                         let transfer = TransferImplS (listener: system.listener,
                                                       wallet: wallet,
                                                       unit: wallet.unit,
@@ -884,12 +647,12 @@ public final class SystemBase: System {
 
             funcWalletEvent: { (context, bid, wid, event) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-//                NSLog ("System: Bitcoin: Wallet: \(event.type)")
+                //                NSLog ("System: Bitcoin: Wallet: \(event.type)")
                 if let this = system.lookupManager(btc: bid!) {
 
                     if event.type == BITCOIN_WALLET_CREATED, let wid = wid {
-//                        NSLog ("System: Bitcoin: Wallet: Created")
-                       let wallet = WalletImplS (listener: system.listener,
+                        //                        NSLog ("System: Bitcoin: Wallet: Created")
+                        let wallet = WalletImplS (listener: system.listener,
                                                   manager: this,
                                                   unit: this.network.defaultUnitFor(currency: this.network.currency)!,
                                                   btc: wid)
@@ -915,7 +678,7 @@ public final class SystemBase: System {
 
             funcWalletManagerEvent: { (context, bid, event) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-//                NSLog ("System: Bitcoin: Manager: \(event.type)")
+                //                NSLog ("System: Bitcoin: Manager: \(event.type)")
                 if let this = system.lookupManager(btc: bid!) {
                     switch event.type {
                     case BITCOIN_WALLET_MANAGER_CREATED:
@@ -923,26 +686,26 @@ public final class SystemBase: System {
 
                     case BITCOIN_WALLET_MANAGER_CONNECTED:
                         this.state = WalletManagerState.connected
-                        
+
                     case BITCOIN_WALLET_MANAGER_DISCONNECTED:
                         this.state = WalletManagerState.disconnected
-                        
+
                     case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
                         this.state = WalletManagerState.syncing
-                        
+
                         // not so much...
                         this.listener?.handleManagerEvent (system: this.system,
                                                            manager: this,
                                                            event: WalletManagerEvent.syncStarted)
-                        
+
                     case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
                         this.state = WalletManagerState.connected
-                        
+
                         // not so much either ...
                         this.listener?.handleManagerEvent (system: this.system,
                                                            manager: this,
                                                            event: WalletManagerEvent.syncEnded(error: nil))
-                        
+
                     default:
                         precondition(false)
                     }
@@ -950,3 +713,4 @@ public final class SystemBase: System {
         })
     }
 }
+

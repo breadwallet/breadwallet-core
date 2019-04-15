@@ -148,3 +148,12 @@ public struct AsHashable<Value:Hashable, Item> : Hashable {
         return lhs.value == rhs.value
     }
 }
+
+extension Result {
+    public func recover (_ transform: (Failure) -> Success) -> Result<Success, Failure> {
+        switch self {
+        case .success: return self
+        case let .failure(f): return Result.success(transform (f))
+        }
+    }
+}
