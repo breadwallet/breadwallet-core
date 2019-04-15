@@ -95,7 +95,7 @@ public class BlockChainDB {
             let address = json.asString(name: "address")
 
             // All denomincations must parse
-            guard let demoninations = json.asJSONArray (name: "denominations")?
+            guard let demoninations = json.asArray (name: "denominations")?
                 .map ({ JSON (dict: $0 )})
                 .map ({ asCurrencyDenomination(json: $0)})
                 else { return nil }
@@ -135,7 +135,7 @@ public class BlockChainDB {
                 let bid = json.asString(name: "blockchain_id"),
                 let acknowledgements = json.asUInt64(name: "acknowledgements"),
                 let index = json.asUInt64(name: "index"),
-                let amount = json.asJSONDict(name: "amount").map ({ JSON (dict: $0) }),
+                let amount = json.asDict(name: "amount").map ({ JSON (dict: $0) }),
                 let amountValue = amount.asString (name: "amount"),
                 let amountCurrency = amount.asString (name: "currency_id")
                 else { return nil }
@@ -156,7 +156,7 @@ public class BlockChainDB {
             hash: String, identifier: String,
             blockHash: String?, blockHeight: UInt64?, index: UInt64?, confirmations: UInt64?, status: String,
             size: UInt64, timestamp: Date?, firstSeen: Date,
-            raw: String?,
+            raw: Data?,
             transfers: [Transfer],
             acknowledgements: UInt64
         )
@@ -178,9 +178,9 @@ public class BlockChainDB {
             let confirmations = json.asUInt64 (name: "confirmations")
             let timestamp     = json.asDate   (name: "timestamp")
 
-            let raw = json.asString (name: "raw")
+            let raw = json.asData (name: "raw")
 
-            guard let transfers = json.asJSONArray (name: "transfers")?
+            guard let transfers = json.asArray (name: "transfers")?
                 .map ({ JSON (dict: $0 )})
                 .map ({ asTransfer (json: $0)})
                 else { return nil }
@@ -197,7 +197,7 @@ public class BlockChainDB {
         /// Block
 
         public typealias Block = (id: String, blockchainId: String,
-            hash: String, height: UInt64, header: String?, raw: String?, mined: Date, size: UInt64,
+            hash: String, height: UInt64, header: String?, raw: Data?, mined: Date, size: UInt64,
             prevHash: String?, nextHash: String?, // fees
             transactions: [Transaction]?,
             acknowledgements: UInt64
@@ -214,11 +214,11 @@ public class BlockChainDB {
                 else { return nil }
 
             let header   = json.asString (name: "header")
-            let raw      = json.asString (name: "raw")
+            let raw      = json.asData   (name: "raw")
             let prevHash = json.asString (name: "prev_hash")
             let nextHash = json.asString (name: "next_hash")
 
-            let transactions = json.asJSONArray (name: "transactions")?
+            let transactions = json.asArray (name: "transactions")?
                 .map ({ JSON (dict: $0 )})
                 .map ({ asTransaction (json: $0)}) as? [Model.Transaction]  // no quite - i
 
@@ -228,7 +228,6 @@ public class BlockChainDB {
                     transactions: transactions,
                     acknowledgements: acks)
         }
-        /// ...
     }
 
     public func getBlockchains (mainnet: Bool? = nil, completion: @escaping (Result<[Model.Blockchain],QueryError>) -> Void) {
@@ -761,11 +760,16 @@ public class BlockChainDB {
                 .flatMap { dateFormatter.date (from: $0) }
         }
 
-        internal func asJSONArray (name: String) -> [Dict]? {
+        internal func asData (name: String) -> Data? {
+            return (dict[name] as? String)
+                .flatMap { Data (base64Encoded: $0)! }
+        }
+
+        internal func asArray (name: String) -> [Dict]? {
             return dict[name] as? [Dict]
         }
 
-        internal func asJSONDict (name: String) -> Dict? {
+        internal func asDict (name: String) -> Dict? {
             return dict[name] as? Dict
         }
     }
@@ -819,7 +823,7 @@ public class BlockChainDB {
         sendRequest (request) { (res: Result<BlockChainDB.JSON, BlockChainDB.QueryError>) in
             completion (res.flatMap { (json: BlockChainDB.JSON) -> Result<[JSON], BlockChainDB.QueryError> in
                 let json = (embedded
-                    ? json.asJSONDict(name: "_embedded")?[path]
+                    ? json.asDict(name: "_embedded")?[path]
                     : [json.dict])
 
                 guard let data = json as? [JSON.Dict]

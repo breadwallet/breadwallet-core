@@ -99,7 +99,7 @@ class BRBlockChainDBTest: XCTestCase {
         expectation = XCTestExpectation (description: "transactions")
 
         let transactionId = "bitcoin-mainnet:cfadf40e698a8f90452c2c5b96304638376c7aa98b4448c90e7a2192db0c8a02"
-        db.getTransaction(transactionId: transactionId) { (res: Result<BlockChainDB.Model.Transaction, BlockChainDB.QueryError>) in
+        db.getTransaction(transactionId: transactionId, includeRaw: true) { (res: Result<BlockChainDB.Model.Transaction, BlockChainDB.QueryError>) in
             guard case let .success (transaction) = res
                 else { XCTAssert(false); return }
 
@@ -114,7 +114,7 @@ class BRBlockChainDBTest: XCTestCase {
         expectation = XCTestExpectation (description: "transactions")
 
         let blockchainId = "bitcoin-mainnet"
-        db.getTransactions (blockchainId: blockchainId, addresses: []) { (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
+        db.getTransactions (blockchainId: blockchainId, addresses: [], includeRaw: true) { (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
             guard case let .success (transactions) = res
                 else { XCTAssert(false); return }
 
@@ -129,7 +129,7 @@ class BRBlockChainDBTest: XCTestCase {
         expectation = XCTestExpectation (description: "block")
 
         let blockId = "bitcoin-mainnet:0000000000000000001ed7770597decf0f98fe4f099111c6a0073ceabbd1e812"
-        db.getBlock (blockId: blockId) { (res: Result<BlockChainDB.Model.Block, BlockChainDB.QueryError>) in
+        db.getBlock (blockId: blockId, includeRaw: true) { (res: Result<BlockChainDB.Model.Block, BlockChainDB.QueryError>) in
             guard case let .success (block) = res
                 else { XCTAssert(false); return }
 
@@ -144,7 +144,7 @@ class BRBlockChainDBTest: XCTestCase {
         expectation = XCTestExpectation (description: "blocks")
 
         let blockchainId = "bitcoin-mainnet"
-        db.getBlocks (blockchainId: blockchainId) { (res: Result<[BlockChainDB.Model.Block], BlockChainDB.QueryError>) in
+        db.getBlocks (blockchainId: blockchainId, includeRaw: true) { (res: Result<[BlockChainDB.Model.Block], BlockChainDB.QueryError>) in
             guard case let .success (blocks) = res
                 else { XCTAssert(false); return }
 
