@@ -52,6 +52,18 @@ public class BlockChainDB {
             return (id: id, name: name, network: network, isMainnet: isMainnet, currency: currency, blockHeight: blockHeight)
         }
 
+        static public func unionBlockchain (_ chains1: [Blockchain], _ chains2: [Blockchain]) -> [Blockchain] {
+            if (chains1.count < chains2.count) {
+                return unionBlockchain(chains2, chains1)
+            }
+
+            return chains2.reduce (chains2) { (chains, chain) -> [Blockchain] in
+                return chains.contains(where: { $0.id == chain.id })
+                    ? chains
+                    : (chains + [chain])
+                }
+        }
+
         static public let defaultBlockchains: [Blockchain] = [
             // Mainnet
             (id: "bitcoin-mainnet",  name: "Bitcoin",  network: "mainnet", isMainnet: true,  currency: "btc", blockHeight:  600000),
@@ -103,6 +115,18 @@ public class BlockChainDB {
             return demoninations.contains (where: { nil == $0 })
                 ? nil
                 : (id: id, name: name, code: code, type: type, blockchainID: bid, address: address, demoninations: (demoninations as! [CurrencyDenomination]))
+        }
+
+        static public func unionCurrency (_ c1: [Currency], _ c2: [Currency]) -> [Currency] {
+            if (c1.count < c2.count) {
+                return unionCurrency(c2, c1)
+            }
+
+            return c2.reduce (c2) { (ca, c) -> [Currency] in
+                return ca.contains(where: { $0.id == c.id })
+                    ? ca
+                    : (ca + [c])
+            }
         }
 
         static public let defaultCurrencies: [Currency] = [

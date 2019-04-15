@@ -172,8 +172,10 @@ public final class SystemBase: System {
 
         // query blockchains
         self.query.getBlockchains { (blockchainResult: Result<[BlockChainDB.Model.Blockchain],BlockChainDB.QueryError>) in
-            // On error, use defaultBlockchains
             let blockChainModels = try! blockchainResult
+                // On success, always merge `defaultBlockchains`
+                .map { BlockChainDB.Model.unionBlockchain (BlockChainDB.Model.defaultBlockchains, $0) }
+                // On error, use defaultBlockchains
                 .recover { (error: BlockChainDB.QueryError) -> [BlockChainDB.Model.Blockchain] in
                     return BlockChainDB.Model.defaultBlockchains
                 }.get()
@@ -183,11 +185,16 @@ public final class SystemBase: System {
 
                     // query currencies
                     self.query.getCurrencies (blockchainID: blockchainModel.id) { (currencyResult: Result<[BlockChainDB.Model.Currency],BlockChainDB.QueryError>) in
-                        // On error, use defaultCurrencies for blockchainModel.id
+                        // Find applicable defaults by `blockchainID`
+                        let defaults = BlockChainDB.Model.defaultCurrencies
+                            .filter { $0.blockchainID == blockchainModel.id }
+
                         let currencyModels = try! currencyResult
+                            // On success, always merge `defaultCurrencies`
+                            .map { BlockChainDB.Model.unionCurrency (defaults, $0) }
+                            // On error, use `defaults`
                             .recover { (error: BlockChainDB.QueryError) -> [BlockChainDB.Model.Currency] in
-                                return BlockChainDB.Model.defaultCurrencies
-                                    .filter { $0.blockchainID == blockchainModel.id }
+                                return defaults
                             }.get()
 
                         var associations: [Currency : Network.Association] = [:]
