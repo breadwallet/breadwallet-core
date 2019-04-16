@@ -26,14 +26,29 @@ public class BlockChainDB {
     let queue = DispatchQueue.init(label: "BlockChainDB")
 
     public enum QueryError: Error {
-        case Foo
-        case JSON (NSError)
-//        case NetworkUnavailable
-//        case RequestFormat  // sent a mistake
-//        case Model          // reply w/ an error (missing label, can't parse)
-        case NoEntity (id: String?)
+        // HTTP URL build failed
+        case url (String)
+
+        // HTTP submission error
+        case submission (Error)
+
+        // HTTP submission didn't error but returned no data
+        case noData
+
+        // JSON parse failed, generically
+        case jsonParse (Error?)
+
+        // Could not convert JSON -> T
+        case model (String)
+
+        // JSON entity expected but not provided - e.g. requested a 'transferId' that doesn't exist.
+        case noEntity (id: String?)
     }
 
+    ///
+    ///
+    ///
+    
     public struct Model {
 
         /// Blockchain
@@ -270,8 +285,16 @@ public class BlockChainDB {
         }
     }
 
-    public func getCurrencies (blockchainID: String? = nil, completion: @escaping (Result<[Model.Currency],QueryError>) -> Void) {
-        dbMakeRequest (path: "currencies", query: blockchainID.map { zip(["blockchain_id"], [$0]) }) {
+    public func getBlockchain (blockchainId: String, completion: @escaping (Result<Model.Blockchain,QueryError>) -> Void) {
+        dbMakeRequest(path: "blockchains/\(blockchainId)", query: nil, embedded: false) { (res: Result<[BlockChainDB.JSON], BlockChainDB.QueryError>) in
+            completion (res.flatMap {
+                BlockChainDB.getOneExpected (id: blockchainId, data: $0, transform: Model.asBlockchain)
+            })
+        }
+    }
+
+    public func getCurrencies (blockchainId: String? = nil, completion: @escaping (Result<[Model.Currency],QueryError>) -> Void) {
+        dbMakeRequest (path: "currencies", query: blockchainId.map { zip(["blockchain_id"], [$0]) }) {
             (res: Result<[BlockChainDB.JSON], BlockChainDB.QueryError>) in
 
             completion (res.flatMap {
@@ -392,6 +415,81 @@ public class BlockChainDB {
     }
 
     /// ...
+
+    /// BTC
+    public struct BTC {
+        typealias Transaction = (btc: BRCoreTransaction, rid: Int32)
+
+    }
+
+    internal func getBlockNumberAsBTC (bwm: BRWalletManager,
+                                       blockchainId: String,
+                                       rid: Int32,
+                                       done: @escaping (UInt64, Int32) -> Void) {
+        getBlockchain (blockchainId: blockchainId) { (res: Result<BlockChainDB.Model.Blockchain, BlockChainDB.QueryError>) in
+            switch res {
+            case let .success (blockchain):
+                done (blockchain.blockHeight, rid)
+            case .failure(_):
+                done (0, rid)  // No
+            }
+        }
+    }
+
+    internal func getTransactionsAsBTC (bwm: BRWalletManager,
+                                      blockchainId: String,
+                                      addresses: [String],
+                                      begBlockNumber: UInt64,
+                                      endBlockNumber: UInt64,
+                                      rid: Int32,
+                                      done: @escaping (Bool, Int32) -> Void,
+                                      each: @escaping (BTC.Transaction) -> Void) {
+        getTransactions (blockchainId: blockchainId,
+                         addresses: addresses,
+                         begBlockNumber: begBlockNumber,
+                         endBlockNumber: endBlockNumber,
+                         includeRaw: true) { (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
+                            let btcRes = res
+                                .flatMap { (dbTransactions: [BlockChainDB.Model.Transaction]) -> Result<[BRCoreTransaction], BlockChainDB.QueryError> in
+                                    let transactions:[BRCoreTransaction?] = dbTransactions
+                                        .map {
+                                            guard let raw = $0.raw
+                                                else { return nil }
+
+                                            let bytes = [UInt8] (raw)
+                                            guard let btcTransaction = BRTransactionParse (bytes, bytes.count)
+                                                else { return nil }
+
+                                            //Date
+                                            btcTransaction.pointee.timestamp =
+                                                $0.timestamp.map { UInt32 ($0.timeIntervalSince1970) } ?? UInt32 (0)
+                                            btcTransaction.pointee.blockHeight =
+                                                $0.blockHeight.map { UInt32 ($0) } ?? 0
+
+                                            return  btcTransaction
+                                    }
+
+                                    return transactions.contains(where: { nil == $0 })
+                                        ? Result.failure (QueryError.model ("BRCoreTransaction parse error"))
+                                        : Result.success (transactions as! [BRCoreTransaction])
+                                }
+
+                            switch btcRes {
+                            case .failure: done (false, rid)
+                            case let .success (btc):
+                                btc.forEach { each ((btc: $0, rid: rid)) }
+                                done (true, rid)
+                            }
+        }
+
+//        queue.async {
+//            if Bool.random() { // sometimes return no transaction -> done
+//                each ((foo: 0, rid: rid))
+//                each ((foo: 1, rid: rid))
+//            }
+//            done (true, rid)
+//        }
+    }
 
     /// ETH
     public struct ETH {
@@ -802,23 +900,23 @@ public class BlockChainDB {
     private func sendRequest (_ request: URLRequest, completion: @escaping (Result<JSON, QueryError>) -> Void) {
         session.dataTask (with: request) { (data, res, error) in
             guard nil == error else {
-                completion (Result.failure(QueryError.Foo)) // NSURLErrorDomain
+                completion (Result.failure(QueryError.submission (error!))) // NSURLErrorDomain
                 return
             }
 
             guard let data = data else {
-                completion (Result.failure (QueryError.Foo))
+                completion (Result.failure (QueryError.noData))
                 return
             }
 
             do {
                 guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? JSON.Dict
-                    else { completion (Result.failure(QueryError.Foo)); return }
+                    else { completion (Result.failure(QueryError.jsonParse(nil))); return }
 
                 completion (Result.success (JSON (dict: json)))
             }
             catch let jsonError as NSError {
-                completion (Result.failure (QueryError.JSON (jsonError)))
+                completion (Result.failure (QueryError.jsonParse (jsonError)))
                 return
             }
             }.resume()
@@ -829,7 +927,7 @@ public class BlockChainDB {
                                  embedded: Bool = true,
                                  completion: @escaping (Result<[JSON], QueryError>) -> Void) {
         guard var urlBuilder = URLComponents (string: dbBaseURL)
-            else { completion (Result.failure(QueryError.Foo)); return }
+            else { completion (Result.failure(QueryError.url("URLComponents"))); return }
 
         urlBuilder.path = "/\(path)"
         if let query = query {
@@ -837,7 +935,7 @@ public class BlockChainDB {
         }
 
         guard let url = urlBuilder.url else {
-            completion (Result.failure (QueryError.Foo))
+            completion (Result.failure (QueryError.url("URLComponents.url")))
             return
         }
 
@@ -851,7 +949,7 @@ public class BlockChainDB {
                     : [json.dict])
 
                 guard let data = json as? [JSON.Dict]
-                    else { return Result.failure(QueryError.Foo) }
+                    else { return Result.failure(QueryError.model ("[JSON.Dict] expected")) }
 
                 return Result.success (data.map { JSON (dict: $0) })
             })
@@ -860,12 +958,12 @@ public class BlockChainDB {
 
     internal func rpcMakeRequest (path: String, data: JSON.Dict, completion: @escaping (Result<JSON, QueryError>) -> Void) {
         guard var urlBuilder = URLComponents (string: ethBaseURL!)
-            else { completion (Result.failure(QueryError.Foo)); return }
+            else { completion (Result.failure(QueryError.url("URLComponents"))); return }
 
         urlBuilder.path = path
 
         guard let url = urlBuilder.url
-            else { completion (Result.failure(QueryError.Foo)); return }
+            else { completion (Result.failure (QueryError.url("URLComponents.url"))); return }
 
         var request = URLRequest (url: url)
         request.addValue ("application/json", forHTTPHeaderField: "accept")
@@ -874,7 +972,7 @@ public class BlockChainDB {
 
         do { request.httpBody = try JSONSerialization.data(withJSONObject: data, options: []) }
         catch let jsonError as NSError {
-            completion (Result.failure (QueryError.JSON(jsonError)))
+            completion (Result.failure (QueryError.jsonParse(jsonError)))
         }
 
         sendRequest(request) { (res: Result<BlockChainDB.JSON, BlockChainDB.QueryError>) in
@@ -895,13 +993,13 @@ public class BlockChainDB {
     private static func getOneExpected<T> (id: String, data: [JSON], transform: (JSON) -> T?) -> Result<T, QueryError> {
         switch data.count {
         case  0:
-            return Result.failure (QueryError.NoEntity(id: id))
+            return Result.failure (QueryError.noEntity(id: id))
         case  1:
             guard let transfer = transform (data[0])
-                else { return Result.failure (QueryError.Foo)}
+                else { return Result.failure (QueryError.model ("(JSON) -> T transform error (one)"))}
             return Result.success (transfer)
         default:
-            return Result.failure (QueryError.Foo)
+            return Result.failure (QueryError.model ("(JSON) -> T expected one only"))
         }
     }
 
@@ -918,7 +1016,7 @@ public class BlockChainDB {
     private static func getManyExpected<T> (data: [JSON], transform: (JSON) -> T?) -> Result<[T], QueryError> {
         let results = data.map (transform)
         return results.contains(where: { $0 == nil })
-            ? Result.failure(QueryError.Foo)
+            ? Result.failure(QueryError.model ("(JSON) -> T transform error (many)"))
             : Result.success(results as! [T])
     }
 }

@@ -421,11 +421,9 @@ public final class Account {
     }
 
     public static func createFrom (seed: Data) -> Account? {
-        var data = seed
-        return data.withUnsafeMutableBytes {
-            cryptoAccountCreateFromSeedBytes ($0)
-                .map { Account (core: $0) }
-        }
+        let bytes = [UInt8](seed)
+        return cryptoAccountCreateFromSeedBytes (bytes)
+            .map { Account (core: $0) }
     }
 
     public static func deriveSeed (phrase: String) -> Data {

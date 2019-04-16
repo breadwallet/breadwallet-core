@@ -184,7 +184,7 @@ public final class SystemBase: System {
                 .forEach { (blockchainModel: BlockChainDB.Model.Blockchain) in
 
                     // query currencies
-                    self.query.getCurrencies (blockchainID: blockchainModel.id) { (currencyResult: Result<[BlockChainDB.Model.Currency],BlockChainDB.QueryError>) in
+                    self.query.getCurrencies (blockchainId: blockchainModel.id) { (currencyResult: Result<[BlockChainDB.Model.Currency],BlockChainDB.QueryError>) in
                         // Find applicable defaults by `blockchainID`
                         let defaults = BlockChainDB.Model.defaultCurrencies
                             .filter { $0.blockchainID == blockchainModel.id }
@@ -608,6 +608,56 @@ public final class SystemBase: System {
         let this = self
         return BRWalletManagerClient (
             context: Unmanaged<SystemBase>.passUnretained(this).toOpaque(),
+
+            funcGetBlockNumber: { (context, bid, rid) in
+                let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
+                NSLog ("System: Bitcoin: GetBlockNumber")
+                if let this = system.lookupManager(btc: bid!) {
+                    this.query.getBlockNumberAsBTC (bwm: bid!,
+                                                    blockchainId: this.network.uids,
+                                                    rid: rid) {
+                                                        (number: UInt64, rid: Int32) in
+                                                        bwmAnnounceBlockNumber (bid, rid, number)
+                    }
+                }},
+
+            funcGetTransactions: { (context, bid, begBlockNumber, endBlockNumber, rid) in
+                let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
+                NSLog ("System: Bitcoin: GetTransaction: {\(begBlockNumber), \(endBlockNumber)}")
+                if let this = system.lookupManager(btc: bid!) {
+                    // We query the BlockChainDB with an array of addresses.  If there are no
+                    // transactions for those addresses, then we are done.  But, if there are
+                    // we need to generate more address and keep trying to find additional
+                    // transactions.
+
+                    // Get a C pointer to `addressesLimit` BRAddress structures
+                    let addressesLimit:Int = 3
+                    let addressesPointer = BRWalletManagerGetUnusedAddrs (bid, UInt32(addressesLimit))
+                    defer { free (addressesPointer) }
+
+                    // Convert the C pointer into a Swift array of BRAddress
+                    let addressesStructures:[BRAddress] = addressesPointer!.withMemoryRebound (to: BRAddress.self, capacity: addressesLimit) {
+                        Array(UnsafeBufferPointer (start: $0, count: addressesLimit))
+                    }
+
+                    // Convert each BRAddress to a String
+                    let addresses = addressesStructures.map {
+                        return String(cString: UnsafeRawPointer([$0]).assumingMemoryBound(to: CChar.self))
+                    }
+
+                    this.query.getTransactionsAsBTC (bwm: bid!,
+                                                     blockchainId: this.network.uids,
+                                                     addresses: addresses,
+                                                     begBlockNumber: begBlockNumber,
+                                                     endBlockNumber: endBlockNumber,
+                                                     rid: rid,
+                                                     done: { (success: Bool, rid: Int32) in
+                                                        bwmAnnounceTransactionComplete (bid, rid, (success ? 1 : 0))
+                    },
+                                                     each: { (res: BlockChainDB.BTC.Transaction) in
+                                                        bwmAnnounceTransaction (bid, res.rid, res.btc)
+                    })
+                }},
 
             funcTransactionEvent: { (context, bid, wid, tid, event) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()

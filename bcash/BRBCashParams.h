@@ -34,4 +34,8 @@ static inline const BRChainParams *BRChainParamsGetBitcash (int mainnet) {
     return mainnet ? BRBCashParams : BRBCashTestNetParams;
 }
 
+static inline int BRChainParamsIsBitcash (const BRChainParams *params) {
+    return BRBCashParams == params || BRBCashTestNetParams == params;
+}
+
 #endif // BRChainParams_h

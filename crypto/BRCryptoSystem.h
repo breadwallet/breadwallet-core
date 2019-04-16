@@ -53,7 +53,7 @@ extern "C" {
     cryptoSystemCreateWalletManager (BRCryptoSystem system,
                                      BRCryptoCurrency currency,
                                      BRCryptoNetwork network,
-                                     BRCryptoSyncMode mode);
+                                     BRSyncMode mode);
 
 #ifdef __cplusplus
 }

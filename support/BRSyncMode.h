@@ -1,8 +1,8 @@
 //
-//  BRCryptoAccount.h
+//  BRSyncMode.h
 //  BRCore
 //
-//  Created by Ed Gamble on 3/19/19.
+//  Created by Ed Gamble on 3/18/19.
 //  Copyright © 2019 breadwallet. All rights reserved.
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -22,43 +22,26 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
+//
 
-#ifndef BRCryptoAccount_h
-#define BRCryptoAccount_h
+#ifndef BRSyncMode_h
+#define BRSyncMode_h
 
-#include <inttypes.h>
-#include "BRCryptoBase.h"
-#include "../ethereum/ewm/BREthereumAccount.h"
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-    typedef struct BRCryptoAccountRecord *BRCryptoAccount;
-
-    extern UInt512
-    cryptoAccountDeriveSeed (const char *phrase);
-
-    extern BRCryptoAccount
-    cryptoAccountCreate (const char *paperKey);
-
-    extern BRCryptoAccount
-    cryptoAccountCreateFromSeed (UInt512 seed);
-
-    extern BRCryptoAccount
-    cryptoAccountCreateFromSeedBytes (const uint8_t *bytes);
-
-    extern uint64_t
-    cryptoAccountGetTimestamp (BRCryptoAccount account);
-
-    extern void
-    cryptoAccountSetTimestamp (BRCryptoAccount account,
-                               uint64_t timestamp);
-    
-    DECLARE_CRYPTO_GIVE_TAKE (BRCryptoAccount, cryptoAccount);
+typedef enum {
+    SYNC_MODE_BRD_ONLY,
+    SYNC_MODE_BRD_WITH_P2P_SEND,
+    SYNC_MODE_P2P_WITH_BRD_SYNC,
+    SYNC_MODE_P2P_ONLY
+} BRSyncMode;
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* BRCryptoAccount_h */
+#endif /* BRSyncMode_h */

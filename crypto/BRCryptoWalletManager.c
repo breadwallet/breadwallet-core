@@ -51,6 +51,20 @@ cwmTransactionEventCallbackAsBTC (BRWalletManagerClientContext context,
                                   BRTransactionEvent event);
 
 static void
+cwmGetTransactionsCallbackAsBTC (BRWalletManagerClientContext context,
+                                 BRWalletManager manager,
+                                 uint64_t begBlockNumber,
+                                 uint64_t endBlockNumber,
+                                 int rid);
+
+static void
+cwmGetBlockNumberCallbackAsBTC (BRWalletManagerClientContext context,
+                                BRWalletManager manager,
+                                int rid);
+
+
+
+static void
 cwmWalletManagerEventCallbackAsETH (BREthereumClientContext context,
                                     BREthereumEWM ewm,
                                     // BREthereumWallet wid,
@@ -76,6 +90,8 @@ cwmTransactionEventCallbackAsETH (BREthereumClientContext context,
                                   BREthereumStatus status,
                                   const char *errorDescription);
 
+
+
 /// MARK: - Wallet Manager
 
 struct BRCryptoWalletManagerRecord {
@@ -88,7 +104,7 @@ struct BRCryptoWalletManagerRecord {
     BRCryptoCWMListener listener;
     BRCryptoNetwork network;
     BRCryptoAccount account;
-    BRCryptoSyncMode mode;
+    BRSyncMode mode;
 
     /// The primary wallet
     BRCryptoWallet wallet;
@@ -103,7 +119,7 @@ cryptoWalletManagerCreateInternal (BRCryptoCWMListener listener,
                                    BRCryptoAccount account,
                                    BRCryptoBlockChainType type,
                                    BRCryptoNetwork network,
-                                   BRCryptoSyncMode mode,
+                                   BRSyncMode mode,
                                    char *path) {
     BRCryptoWalletManager cwm = malloc (sizeof (struct BRCryptoWalletManagerRecord));
 
@@ -124,7 +140,7 @@ extern BRCryptoWalletManager
 cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                            BRCryptoAccount account,
                            BRCryptoNetwork network,
-                           BRCryptoSyncMode mode,
+                           BRSyncMode mode,
                            const char *path) {
     // ?? extend path... with network-type : network-name
     // ?? done by ewmCreate()?
@@ -145,6 +161,8 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
         case BLOCK_CHAIN_TYPE_BTC: {
             BRWalletManagerClient client = {
                 cwm,
+                cwmGetBlockNumberCallbackAsBTC,
+                cwmGetTransactionsCallbackAsBTC,
                 cwmTransactionEventCallbackAsBTC,
                 cwmWalletEventCallbackAsBTC,
                 cwmWalletManagerEventCallbackAsBTC
@@ -154,6 +172,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                              cryptoAccountAsBTC (account),
                                              cryptoNetworkAsBTC (network),
                                              (uint32_t) cryptoAccountGetTimestamp(account),
+                                             mode,
                                              cwmPath);
 
             cwm->wallet = cryptoWalletCreateAsBTC (unit, unit, BRWalletManagerGetWallet (cwm->u.btc));
@@ -218,7 +237,7 @@ cryptoWalletManagerGetAccount (BRCryptoWalletManager cwm) {
     return cwm->account;
 }
 
-extern BRCryptoSyncMode
+extern BRSyncMode
 cryptoWalletManagerGetMode (BRCryptoWalletManager cwm) {
     return cwm->mode;
 }
@@ -422,6 +441,27 @@ cwmTransactionEventCallbackAsBTC (BRWalletManagerClientContext context,
                                          // event
                                          );
 }
+
+static void
+cwmGetTransactionsCallbackAsBTC (BRWalletManagerClientContext context,
+                                 BRWalletManager manager,
+                                 uint64_t begBlockNumber,
+                                 uint64_t endBlockNumber,
+                                 int rid) {
+    BRCryptoWalletManager cwm = context;
+
+    (void) cwm;
+}
+
+static void
+cwmGetBlockNumberCallbackAsBTC (BRWalletManagerClientContext context,
+                                BRWalletManager manager,
+                                int rid) {
+    BRCryptoWalletManager cwm = context;
+
+    (void) cwm;
+}
+
 
 static void
 cwmWalletManagerEventCallbackAsETH (BREthereumClientContext context,

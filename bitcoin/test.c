@@ -3115,7 +3115,9 @@ extern int BRRunTestWalletManagerSync (const char *paperKey,
         _testWalletManagerEventCallback
     };
 
-    BRWalletManager manager = BRWalletManagerNew (client, mpk, params, epoch, storagePath);
+    BRSyncMode mode = SYNC_MODE_P2P_ONLY;
+
+    BRWalletManager manager = BRWalletManagerNew (client, mpk, params, epoch, mode, storagePath);
 
     BRPeerManager *pm = BRWalletManagerGetPeerManager(manager);
 

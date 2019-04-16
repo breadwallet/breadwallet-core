@@ -34,6 +34,8 @@
 #include "BRWallet.h"
 #include "BRPeerManager.h"          // Unneeded, if we shadow some functions (connect,disconnect,scan)
 
+#include "support/BRSyncMode.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -48,6 +50,35 @@ typedef enum {
 } BRWalletForkId;
 
 typedef void *BRWalletManagerClientContext;
+
+/// MARK: - Callbacks
+
+typedef void
+(*BRGetBlockNumberCallback) (BRWalletManagerClientContext context,
+                             BRWalletManager manager,
+                             int rid);
+
+extern int
+bwmAnnounceBlockNumber (BRWalletManager manager,
+                        int rid,
+                        uint64_t blockNumber);
+
+typedef void
+(*BRGetTransactionsCallback) (BRWalletManagerClientContext context,
+                              BRWalletManager manager,
+                              uint64_t begBlockNumber,
+                              uint64_t endBlockNumber,
+                              int rid);
+
+extern int // success - data is valid
+bwmAnnounceTransaction (BRWalletManager manager,
+                        int id,
+                        BRTransaction *transaction);
+
+extern void
+bwmAnnounceTransactionComplete (BRWalletManager manager,
+                                int id,
+                                int success);
 
 ///
 /// Transaction Event
@@ -126,6 +157,10 @@ typedef void
 
 typedef struct {
     BRWalletManagerClientContext context;
+
+    BRGetBlockNumberCallback  funcGetBlockNumber;
+    BRGetTransactionsCallback funcGetTransactions;
+
     BRTransactionEventCallback funcTransactionEvent;
     BRWalletEventCallback  funcWalletEvent;
     BRWalletManagerEventCallback funcWalletManagerEvent;
@@ -136,6 +171,7 @@ BRWalletManagerNew (BRWalletManagerClient client,
                     BRMasterPubKey mpk,
                     const BRChainParams *params,
                     uint32_t earliestKeyTime,
+                    BRSyncMode mode,
                     const char *storagePath);
 
 extern void
@@ -149,6 +185,19 @@ BRWalletManagerDisconnect (BRWalletManager manager);
 
 extern void
 BRWalletManagerScan (BRWalletManager manager);
+
+/**
+ * Return an array of unsued addresses with up to `limit` entries.  This will generate
+ * address, if needed, to provide `limit` entries.  The addresses are 'external' ones.
+ *
+ * This is expected to be used to query the BRD BlockChainDB to identify transactions for
+ * manager's wallet.
+ *
+ * Note: The returned array must be freed
+ */
+extern BRAddress *
+BRWalletManagerGetUnusedAddrs (BRWalletManager manager,
+                               uint32_t limit);
 
 //
 // These should not be needed if the events are sufficient

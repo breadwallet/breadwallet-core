@@ -22,6 +22,21 @@ class BRBlockChainDBTest: XCTestCase {
     }
 
     func testBlockchains() {
+        expectation = XCTestExpectation (description: "blockchain")
+
+        let blockchainId = "bitcoin-mainnet"
+        db.getBlockchain (blockchainId: blockchainId) { (res: Result<BlockChainDB.Model.Blockchain, BlockChainDB.QueryError>) in
+            guard case let .success (blockchain) = res
+                else { XCTAssert(false); return }
+
+            XCTAssertEqual (blockchainId, blockchain.id)
+
+            self.expectation.fulfill()
+        }
+
+        wait (for: [expectation], timeout: 60)
+
+
         expectation = XCTestExpectation (description: "blockchains")
 
         db.getBlockchains { (res: Result<[BlockChainDB.Model.Blockchain], BlockChainDB.QueryError>) in
@@ -123,6 +138,19 @@ class BRBlockChainDBTest: XCTestCase {
         }
 
         wait (for: [expectation], timeout: 60)
+
+        expectation = XCTestExpectation (description: "transactions /w addresses")
+
+        db.getTransactions (blockchainId: blockchainId, addresses: ["abc", "def"], includeRaw: true) { (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
+            guard case let .success (transactions) = res
+                else { XCTAssert(false); return }
+
+            XCTAssertFalse (transactions.isEmpty)
+            self.expectation.fulfill()
+        }
+
+        wait (for: [expectation], timeout: 60)
+
     }
 
     func testBlocks () {

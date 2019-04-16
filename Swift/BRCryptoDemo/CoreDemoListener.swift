@@ -30,7 +30,7 @@ class CoreDemoListener: SystemListener {
 
             let mode = (network.currency.code == Currency.codeAsBTC ||
                 network.currency.code == Currency.codeAsBCH
-                ? WalletManagerMode.p2p_only
+                ? WalletManagerMode.api_only
                 : WalletManagerMode.api_only)
 
             let _ = system.createWalletManager (network: network, mode: mode)

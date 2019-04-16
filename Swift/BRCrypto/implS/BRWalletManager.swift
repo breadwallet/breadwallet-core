@@ -146,6 +146,7 @@ class WalletManagerImplS: WalletManager {
                                                           account.asBTC,
                                                           network.asBTC,
                                                           UInt32 (account.timestamp),
+                                                          WalletManagerImplS.modeAsBTC(mode),
                                                           storagePath)
             self.impl = Impl.bitcoin (mid: bwm)
 
@@ -219,6 +220,15 @@ class WalletManagerImplS: WalletManager {
         case .api_with_p2p_submit: return BRD_WITH_P2P_SEND
         case .p2p_with_api_sync: return P2P_WITH_BRD_SYNC
         case .p2p_only: return P2P_ONLY
+        }
+    }
+
+    private static func modeAsBTC (_ mode: WalletManagerMode) -> BRSyncMode {
+        switch mode {
+        case .api_only: return SYNC_MODE_BRD_ONLY
+        case .api_with_p2p_submit: return SYNC_MODE_BRD_WITH_P2P_SEND
+        case .p2p_with_api_sync: return SYNC_MODE_P2P_WITH_BRD_SYNC
+        case .p2p_only: return SYNC_MODE_P2P_ONLY
         }
     }
 /*

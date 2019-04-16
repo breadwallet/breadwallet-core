@@ -27,6 +27,8 @@
 #ifndef BRAssert_h
 #define BRAssert_h
 
+#include <stdio.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -165,7 +167,5 @@ BRAssertRemoveRecovery (BRAssertRecoveryInfo info);
 #ifdef __cplusplus
 }
 #endif
-
-#include <stdio.h>
 
 #endif /* BRAssert_h */
