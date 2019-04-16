@@ -22,5 +22,9 @@ extern void BRRandInit (void);
 // testCrypto.c
 extern void runCryptoTests (void);
 
+// Ripple
+extern void
+runRippleTest (void /* ... */);
+
 #include "test.h"
 
