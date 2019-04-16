@@ -285,8 +285,16 @@ public class BlockChainDB {
         }
     }
 
-    public func getCurrencies (blockchainID: String? = nil, completion: @escaping (Result<[Model.Currency],QueryError>) -> Void) {
-        dbMakeRequest (path: "currencies", query: blockchainID.map { zip(["blockchain_id"], [$0]) }) {
+    public func getBlockchain (blockchainId: String, completion: @escaping (Result<Model.Blockchain,QueryError>) -> Void) {
+        dbMakeRequest(path: "blockchains/\(blockchainId)", query: nil, embedded: false) { (res: Result<[BlockChainDB.JSON], BlockChainDB.QueryError>) in
+            completion (res.flatMap {
+                BlockChainDB.getOneExpected (id: blockchainId, data: $0, transform: Model.asBlockchain)
+            })
+        }
+    }
+
+    public func getCurrencies (blockchainId: String? = nil, completion: @escaping (Result<[Model.Currency],QueryError>) -> Void) {
+        dbMakeRequest (path: "currencies", query: blockchainId.map { zip(["blockchain_id"], [$0]) }) {
             (res: Result<[BlockChainDB.JSON], BlockChainDB.QueryError>) in
 
             completion (res.flatMap {
@@ -412,6 +420,20 @@ public class BlockChainDB {
     public struct BTC {
         typealias Transaction = (btc: BRCoreTransaction, rid: Int32)
 
+    }
+
+    internal func getBlockNumberAsBTC (bwm: BRWalletManager,
+                                       blockchainId: String,
+                                       rid: Int32,
+                                       done: @escaping (UInt64, Int32) -> Void) {
+        getBlockchain (blockchainId: blockchainId) { (res: Result<BlockChainDB.Model.Blockchain, BlockChainDB.QueryError>) in
+            switch res {
+            case let .success (blockchain):
+                done (blockchain.blockHeight, rid)
+            case .failure(_):
+                done (0, rid)  // No
+            }
+        }
     }
 
     internal func getTransactionsAsBTC (bwm: BRWalletManager,

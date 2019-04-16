@@ -111,7 +111,7 @@ class BRCryptoSystemTests: BRCryptoBaseTests {
                               query: BlockChainDB())
 
         sys.start (networksNeeded: ["bitcoin-mainnet", "ethereum-mainnet"]);
-        sleep(120)
+        sleep(10)
     }
 
 }

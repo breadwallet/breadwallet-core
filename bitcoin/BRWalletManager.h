@@ -51,8 +51,17 @@ typedef enum {
 
 typedef void *BRWalletManagerClientContext;
 
-///
-/// MARK: - Get Transactions
+/// MARK: - Callbacks
+
+typedef void
+(*BRGetBlockNumberCallback) (BRWalletManagerClientContext context,
+                             BRWalletManager manager,
+                             int rid);
+
+extern int
+bwmAnnounceBlockNumber (BRWalletManager manager,
+                        int rid,
+                        uint64_t blockNumber);
 
 typedef void
 (*BRGetTransactionsCallback) (BRWalletManagerClientContext context,
@@ -148,6 +157,8 @@ typedef void
 
 typedef struct {
     BRWalletManagerClientContext context;
+
+    BRGetBlockNumberCallback  funcGetBlockNumber;
     BRGetTransactionsCallback funcGetTransactions;
 
     BRTransactionEventCallback funcTransactionEvent;

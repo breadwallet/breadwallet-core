@@ -184,7 +184,7 @@ public final class SystemBase: System {
                 .forEach { (blockchainModel: BlockChainDB.Model.Blockchain) in
 
                     // query currencies
-                    self.query.getCurrencies (blockchainID: blockchainModel.id) { (currencyResult: Result<[BlockChainDB.Model.Currency],BlockChainDB.QueryError>) in
+                    self.query.getCurrencies (blockchainId: blockchainModel.id) { (currencyResult: Result<[BlockChainDB.Model.Currency],BlockChainDB.QueryError>) in
                         // Find applicable defaults by `blockchainID`
                         let defaults = BlockChainDB.Model.defaultCurrencies
                             .filter { $0.blockchainID == blockchainModel.id }
@@ -608,6 +608,18 @@ public final class SystemBase: System {
         let this = self
         return BRWalletManagerClient (
             context: Unmanaged<SystemBase>.passUnretained(this).toOpaque(),
+
+            funcGetBlockNumber: { (context, bid, rid) in
+                let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
+                NSLog ("System: Bitcoin: GetBlockNumber")
+                if let this = system.lookupManager(btc: bid!) {
+                    this.query.getBlockNumberAsBTC (bwm: bid!,
+                                                    blockchainId: this.network.uids,
+                                                    rid: rid) {
+                                                        (number: UInt64, rid: Int32) in
+                                                        bwmAnnounceBlockNumber (bid, rid, number)
+                    }
+                }},
 
             funcGetTransactions: { (context, bid, begBlockNumber, endBlockNumber, rid) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
