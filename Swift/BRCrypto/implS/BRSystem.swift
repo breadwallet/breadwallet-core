@@ -630,23 +630,22 @@ public final class SystemBase: System {
                 if let this = system.lookupManager(btc: bid!) {
                     // We query the BlockChainDB with an array of addresses.  If there are no
                     // transactions for those addresses, then we are done.  But, if there are
-                    // we need to generate more address and keep trying to find additional
+                    // we need to generate more addresses and keep trying to find additional
                     // transactions.
                     //
                     // So we'll repeatedly loop and accumulate transactions until no more
                     // transactions are found for the set of addresses
+                    //
+                    // In order to 'generate more addresses' we'll need to announce each
+                    // transaction - which will register each transaction in the wallet
 
-                    // TODO: Don't we need to register transactions *as they are found* so that
-                    // BRWalletManagerGetUnusedAddrs actually generates new addresses?  If so,
-                    // how do we handle an error?  Before registering do we need to check if
-                    // the transaction is already in wallet?
+                    // TODO: Register early transactions even if later transactions fail?  Possible?
 
                     system.queue.async {
                         let semaphore = DispatchSemaphore (value: 0)
 
                         var transactionsError = false
                         var transactionsFound = false
-                        var transactions = [BlockChainDB.BTC.Transaction]()
 
                         repeat {
                              // Get a C pointer to `addressesLimit` BRAddress structures
@@ -680,20 +679,13 @@ public final class SystemBase: System {
                             },
                                                              each: { (res: BlockChainDB.BTC.Transaction) in
                                                                 transactionsFound = true
-                                                                transactions.append (res)
+                                                                bwmAnnounceTransaction (bid, res.rid, res.btc)
                             })
 
                             // Wait until the query is done
                             semaphore.wait()
 
                         } while !transactionsError && transactionsFound
-
-                        // Announce each transaction
-                        if !transactionsError {
-                            transactions.forEach {
-                                bwmAnnounceTransaction (bid, $0.rid, $0.btc)
-                            }
-                        }
 
                         // Announce done
                         bwmAnnounceTransactionComplete (bid, rid, (transactionsError ? 0 : 1))
