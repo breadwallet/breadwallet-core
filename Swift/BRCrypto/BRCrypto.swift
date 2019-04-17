@@ -502,6 +502,10 @@ public final class Network: CustomStringConvertible {
         return unitsFor(currency: currency)?.contains(unit)
     }
 
+    /// The initial height of the network.  Will be used by a network's wallet manager.
+
+    internal let height: UInt64
+
     public struct Association {
         let baseUnit: Unit
         let defaultUnit: Unit
@@ -512,6 +516,7 @@ public final class Network: CustomStringConvertible {
                    name: String,
                    isMainnet: Bool,
                    currency: Currency,
+                   height: UInt64,
                    associations: Dictionary<Currency, Association>,
                    impl: Impl) {
         self.uids = uids
@@ -524,6 +529,7 @@ public final class Network: CustomStringConvertible {
             $0.insert($1)
         }
 
+        self.height = height
         self.impl = impl
     }
 
@@ -531,6 +537,7 @@ public final class Network: CustomStringConvertible {
                              name: String,
                              isMainnet: Bool,
                              currency: Currency,
+                             height: UInt64,
                              associations: Dictionary<Currency, Association>) {
         var impl: Impl!
 
@@ -558,6 +565,7 @@ public final class Network: CustomStringConvertible {
                    name: name,
                    isMainnet: isMainnet,
                    currency: currency,
+                   height: height,
                    associations: associations,
                    impl: impl)
     }

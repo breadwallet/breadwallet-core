@@ -29,6 +29,7 @@ module BRCore [system] [extern_c] {
     header "../../support/BRKey.h"
     header "../../support/BRKeyECIES.h"
     header "../../support/BRBIP39Mnemonic.h"
+    header "../../support/BRSyncMode.h"
     header "../../bitcoin/BRBIP38Key.h"
     header "../../bitcoin/BRBloomFilter.h"
     header "../../bitcoin/BRMerkleBlock.h"

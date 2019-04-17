@@ -33,6 +33,8 @@ public final class SystemBase: System {
 
     public let account: Account
 
+    private let queue = DispatchQueue (label: "Crypto System")
+
     /// Networks
     public internal(set) var networks: [Network] = []
 
@@ -234,6 +236,7 @@ public final class SystemBase: System {
                                                name: blockchainModel.name,
                                                isMainnet: blockchainModel.isMainnet,
                                                currency: currency,
+                                               height: blockchainModel.blockHeight,
                                                associations: associations)
 
                         // save the network
@@ -627,36 +630,66 @@ public final class SystemBase: System {
                 if let this = system.lookupManager(btc: bid!) {
                     // We query the BlockChainDB with an array of addresses.  If there are no
                     // transactions for those addresses, then we are done.  But, if there are
-                    // we need to generate more address and keep trying to find additional
+                    // we need to generate more addresses and keep trying to find additional
                     // transactions.
+                    //
+                    // So we'll repeatedly loop and accumulate transactions until no more
+                    // transactions are found for the set of addresses
+                    //
+                    // In order to 'generate more addresses' we'll need to announce each
+                    // transaction - which will register each transaction in the wallet
 
-                    // Get a C pointer to `addressesLimit` BRAddress structures
-                    let addressesLimit:Int = 3
-                    let addressesPointer = BRWalletManagerGetUnusedAddrs (bid, UInt32(addressesLimit))
-                    defer { free (addressesPointer) }
+                    // TODO: Register early transactions even if later transactions fail?  Possible?
 
-                    // Convert the C pointer into a Swift array of BRAddress
-                    let addressesStructures:[BRAddress] = addressesPointer!.withMemoryRebound (to: BRAddress.self, capacity: addressesLimit) {
-                        Array(UnsafeBufferPointer (start: $0, count: addressesLimit))
+                    system.queue.async {
+                        let semaphore = DispatchSemaphore (value: 0)
+
+                        var transactionsError = false
+                        var transactionsFound = false
+
+                        repeat {
+                             // Get a C pointer to `addressesLimit` BRAddress structures
+                            let addressesLimit:Int = 25
+                            let addressesPointer = BRWalletManagerGetUnusedAddrs (bid, UInt32(addressesLimit))
+                            defer { free (addressesPointer) }
+
+                            // Convert the C pointer into a Swift array of BRAddress
+                            let addressesStructures:[BRAddress] = addressesPointer!.withMemoryRebound (to: BRAddress.self, capacity: addressesLimit) {
+                                Array(UnsafeBufferPointer (start: $0, count: addressesLimit))
+                            }
+
+                            // Convert each BRAddress to a String
+                            let addresses = addressesStructures.map {
+                                return String(cString: UnsafeRawPointer([$0]).assumingMemoryBound(to: CChar.self))
+                            }
+
+                            transactionsFound = false
+                            transactionsError = false
+
+                            // Query the blockchainDB. Record each found transaction
+                            this.query.getTransactionsAsBTC (bwm: bid!,
+                                                             blockchainId: this.network.uids,
+                                                             addresses: addresses,
+                                                             begBlockNumber: begBlockNumber,
+                                                             endBlockNumber: endBlockNumber,
+                                                             rid: rid,
+                                                             done: { (success: Bool, rid: Int32) in
+                                                                transactionsError = !success
+                                                                semaphore.signal ()
+                            },
+                                                             each: { (res: BlockChainDB.BTC.Transaction) in
+                                                                transactionsFound = true
+                                                                bwmAnnounceTransaction (bid, res.rid, res.btc)
+                            })
+
+                            // Wait until the query is done
+                            semaphore.wait()
+
+                        } while !transactionsError && transactionsFound
+
+                        // Announce done
+                        bwmAnnounceTransactionComplete (bid, rid, (transactionsError ? 0 : 1))
                     }
-
-                    // Convert each BRAddress to a String
-                    let addresses = addressesStructures.map {
-                        return String(cString: UnsafeRawPointer([$0]).assumingMemoryBound(to: CChar.self))
-                    }
-
-                    this.query.getTransactionsAsBTC (bwm: bid!,
-                                                     blockchainId: this.network.uids,
-                                                     addresses: addresses,
-                                                     begBlockNumber: begBlockNumber,
-                                                     endBlockNumber: endBlockNumber,
-                                                     rid: rid,
-                                                     done: { (success: Bool, rid: Int32) in
-                                                        bwmAnnounceTransactionComplete (bid, rid, (success ? 1 : 0))
-                    },
-                                                     each: { (res: BlockChainDB.BTC.Transaction) in
-                                                        bwmAnnounceTransaction (bid, res.rid, res.btc)
-                    })
                 }},
 
             funcTransactionEvent: { (context, bid, wid, tid, event) in

@@ -148,8 +148,10 @@ class WalletManagerImplS: WalletManager {
                                                           UInt32 (account.timestamp),
                                                           WalletManagerImplS.modeAsBTC(mode),
                                                           storagePath)
-            self.impl = Impl.bitcoin (mid: bwm)
+            // Hacky?
+            bwmAnnounceBlockNumber (bwm, 0, network.height)
 
+            self.impl = Impl.bitcoin (mid: bwm)
 
         case Currency.codeAsETH:
             let ewm:BREthereumEWM = ewmCreate (network.asETH,
