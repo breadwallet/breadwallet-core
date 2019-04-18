@@ -220,17 +220,17 @@ public final class Amount {
         self.unit = unit
     }
 
-    static func create (double: Double, unit: Unit) -> Amount {
+    public static func create (double: Double, unit: Unit) -> Amount {
         return Amount (core: cryptoAmountCreateDouble (double, unit.core),
                        unit: unit)
     }
 
-    static func create (integer: Int64, unit: Unit) -> Amount {
+    public static func create (integer: Int64, unit: Unit) -> Amount {
         return Amount (core: cryptoAmountCreateInteger (integer, unit.core),
                        unit: unit)
     }
 
-    static func create (string: String, unit: Unit) -> Amount? {
+    public static func create (string: String, unit: Unit) -> Amount? {
         let core = cryptoAmountCreateString (string, unit.core)
         return nil == core ? nil : Amount (core: core!, unit: unit)
     }
