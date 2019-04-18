@@ -230,6 +230,11 @@ public final class Amount {
                        unit: unit)
     }
 
+    static func create (string: String, unit: Unit) -> Amount? {
+        let core = cryptoAmountCreateString (string, unit.core)
+        return nil == core ? nil : Amount (core: core!, unit: unit)
+    }
+
     // static func create (exactly: Double, unit: Unit) -> Amount  ==> No remainder
     //   nil == Amount.create (exactly: 1.5, unit: SATOSHI)  // remainder is 0.5
 
