@@ -52,6 +52,7 @@ extern "C" {
 
     extern BRCryptoAmount
     cryptoAmountCreateString (const char *value,
+                              BRCryptoBoolean isNegative,
                               BRCryptoUnit unit);
     
     extern BRCryptoCurrency

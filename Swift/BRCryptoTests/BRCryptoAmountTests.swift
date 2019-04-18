@@ -126,6 +126,12 @@ class BRCryptoAmountTests: XCTestCase {
         XCTAssert ("SAT100,000,000" == btc3s.string (as: BTC_SATOSHI))
         XCTAssert ("B1.00"          == btc3s.string (as: BTC_BTC))
 
+        let btc4s = Amount.create (string: "0x5f5e100", negative: true, unit: BTC_SATOSHI)!
+        XCTAssert (-100000000 == btc4s.double (as: BTC_SATOSHI))
+        XCTAssert (-1         == btc4s.double (as: BTC_BTC))
+        XCTAssert ("-SAT100,000,000" == btc4s.string (as: BTC_SATOSHI))
+        XCTAssert ("-B1.00"          == btc4s.string (as: BTC_BTC))
+
         XCTAssertNil (Amount.create (string: "w0x5f5e100", unit: BTC_SATOSHI))
         XCTAssertNil (Amount.create (string: "0x5f5e100w", unit: BTC_SATOSHI))
         XCTAssertNil (Amount.create (string: "1000000000000000000000000000000000000000000000000000000000000000000000000000000000000", unit: BTC_SATOSHI))

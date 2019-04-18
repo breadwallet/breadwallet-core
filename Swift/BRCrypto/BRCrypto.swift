@@ -230,8 +230,8 @@ public final class Amount {
                        unit: unit)
     }
 
-    public static func create (string: String, unit: Unit) -> Amount? {
-        let core = cryptoAmountCreateString (string, unit.core)
+    public static func create (string: String, negative: Bool = false, unit: Unit) -> Amount? {
+        let core = cryptoAmountCreateString (string, (negative ? CRYPTO_TRUE : CRYPTO_FALSE), unit.core)
         return nil == core ? nil : Amount (core: core!, unit: unit)
     }
 

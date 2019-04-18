@@ -98,11 +98,12 @@ cryptoAmountCreateInteger (int64_t value,
 
 extern BRCryptoAmount
 cryptoAmountCreateString (const char *value,
+                          BRCryptoBoolean isNegative,
                           BRCryptoUnit unit) {
     BRCoreParseStatus status;
 
     UInt256 v = createUInt256Parse (value, 0, &status);
-    return (CORE_PARSE_OK != status ? NULL : cryptoAmountCreateUInt256 (v, CRYPTO_FALSE, unit));
+    return (CORE_PARSE_OK != status ? NULL : cryptoAmountCreateUInt256 (v, isNegative, unit));
 }
 
 static void
