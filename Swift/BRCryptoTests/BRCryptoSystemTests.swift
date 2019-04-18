@@ -96,7 +96,7 @@ class BRCryptoSystemTests: BRCryptoBaseTests {
             print("Error: \(error.localizedDescription)")
         }
 
-        NSLog ("StoragePath: \(storagePath ?? "<none>")");
+        print ("TST: StoragePath: \(storagePath ?? "<none>")");
     }
 
     override func tearDown() {

@@ -465,7 +465,7 @@ public final class SystemBase: System {
 
             funcEWMEvent: { (context, coreEWM, event, status, message) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-                //                NSLog ("System: Ethereum: Manager: \(event)")
+                //                print ("SYS: ETH: Manager: \(event)")
                 if let this = system.lookupManager(eth: coreEWM!) {
                     switch event {
                     case EWM_EVENT_CREATED:
@@ -509,11 +509,11 @@ public final class SystemBase: System {
 
             funcWalletEvent: { (context, coreEWM, wid, event, status, message) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-                //                NSLog ("System: Ethereum: Wallet: \(event)")
+                //                print ("SYS: ETH: Wallet: \(event)")
                 if let this = system.lookupManager(eth: coreEWM!) {
 
                     if event == WALLET_EVENT_CREATED, nil == this.lookupWallet(eth: wid), let wid = wid {
-                        //                        NSLog ("System: Ethereum: Wallet: Created")
+                        //                        print ("SYS: ETH: Wallet: Created")
                         let currency = ewmWalletGetToken (coreEWM, wid)
                             .flatMap { this.network.currencyBy (code: asUTF8String (tokenGetSymbol ($0))) }
                             ?? this.network.currency
@@ -568,12 +568,12 @@ public final class SystemBase: System {
 
             funcTransferEvent: { (context, coreEWM, wid, tid, event, status, message) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-                //               NSLog ("System: Ethereum: Transfer: \(event)")
+                //               print ("SYS: ETH: Transfer: \(event)")
                 if let this = system.lookupManager(eth: coreEWM!),
                     let wallet = this.lookupWallet (eth: wid) {
 
                     if TRANSFER_EVENT_CREATED == event, let tid = tid {
-                        //                        NSLog ("System: Ethereum: Transfer Created")
+                        //                        print ("SYS: ETH: Transfer Created")
                         let transfer = TransferImplS (listener: this.system.listener,
                                                       wallet: wallet,
                                                       unit: wallet.unit,
@@ -628,7 +628,7 @@ public final class SystemBase: System {
 
             funcGetBlockNumber: { (context, bid, rid) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-                NSLog ("System: Bitcoin: GetBlockNumber")
+                print ("SYS: BTC: GetBlockNumber")
                 if let this = system.lookupManager(btc: bid!) {
                     this.query.getBlockNumberAsBTC (bwm: bid!,
                                                     blockchainId: this.network.uids,
@@ -640,7 +640,7 @@ public final class SystemBase: System {
 
             funcGetTransactions: { (context, bid, begBlockNumber, endBlockNumber, rid) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-                NSLog ("System: Bitcoin: GetTransaction: {\(begBlockNumber), \(endBlockNumber)}")
+                print ("SYS: BTC: GetTransaction: {\(begBlockNumber), \(endBlockNumber)}")
                 if let this = system.lookupManager(btc: bid!) {
                     // We query the BlockChainDB with an array of addresses.  If there are no
                     // transactions for those addresses, then we are done.  But, if there are
@@ -708,12 +708,12 @@ public final class SystemBase: System {
 
             funcTransactionEvent: { (context, bid, wid, tid, event) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-                //                NSLog ("System: Bitcoin: Transfer: \(event.type)")
+                //                print ("SYS: BTC: Transfer: \(event.type)")
                 if let this = system.lookupManager(btc: bid!),
                     let wallet = this.lookupWallet (btc: wid) {
 
                     if event.type == BITCOIN_TRANSACTION_ADDED, let tid = tid {
-                        //                        NSLog ("System: Bitcoin: Transfer Created")
+                        //                        print ("SYS: BTC: Transfer Created")
                         let transfer = TransferImplS (listener: system.listener,
                                                       wallet: wallet,
                                                       unit: wallet.unit,
@@ -744,7 +744,7 @@ public final class SystemBase: System {
 
             funcWalletEvent: { (context, bid, wid, event) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-                //                NSLog ("System: Bitcoin: Wallet: \(event.type)")
+                //                print ("SYS: BTC: Wallet: \(event.type)")
                 if let this = system.lookupManager(btc: bid!) {
 
                     if event.type == BITCOIN_WALLET_CREATED, let wid = wid {

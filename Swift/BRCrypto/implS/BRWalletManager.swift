@@ -160,6 +160,7 @@ class WalletManagerImplS: WalletManager {
                                                WalletManagerImplS.modeAsETH (mode),
                                                system.coreEthereumClient,
                                                storagePath)
+
             self.impl = Impl.ethereum (ewm: ewm)
 
         default:

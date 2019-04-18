@@ -100,7 +100,7 @@ class TransferViewController: UIViewController, TransferListener {
     }
 
     @IBAction func doResubmit(_ sender: UIButton) {
-        NSLog ("Want to Resubmit")
+        print ("APP: TVC: Want to Resubmit")
 //        if case .failed(let error) = transfer.state {
 //            var alertMessage: String = "Okay to resubmit?"
 //            var alertAction: UIAlertAction?
@@ -180,7 +180,7 @@ class TransferViewController: UIViewController, TransferListener {
      * the blockchain" / "being stuck"
      */
     @IBAction func doCancel(_ sender: UIButton) {
-        NSLog ("Want to Cancel")
+        print ("APP: TVC: Want to Cancel")
         let alert = UIAlertController (title: "Cancel Transaction for <small-fee> ETH",
                                        message: "Are you sure?",
                                        preferredStyle: UIAlertController.Style.actionSheet)
@@ -224,7 +224,7 @@ class TransferViewController: UIViewController, TransferListener {
 
     func handleTransferEvent(system: System, manager: WalletManager, wallet: Wallet, transfer: Transfer, event: TransferEvent) {
         DispatchQueue.main.async {
-            NSLog ("TransferViewController TransferEvent: \(event)")
+            print ("APP: TVC: TransferEvent: \(event)")
             guard self.wallet === wallet /* && view is visible */  else { return }
 
             // This, for sure
