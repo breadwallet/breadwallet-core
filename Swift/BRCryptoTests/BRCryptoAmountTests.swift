@@ -93,6 +93,11 @@ class BRCryptoAmountTests: XCTestCase {
         XCTAssert ("-B1.50"          == btc4.string (as: BTC_BTC))
         XCTAssert ("-SAT150,000,000" == btc4.string (as: BTC_SATOSHI))
 
+        let formatter = NumberFormatter()
+        formatter.minimumFractionDigits = 2
+        formatter.generatesDecimalNumbers = true
+        XCTAssert ("-1.50" == btc4.string (as: BTC_BTC, formatter: formatter))
+
         let eth1 = Amount.create (double: 1e9, unit: ETH_GWEI)
         let eth2 = Amount.create (double: 1.0, unit: ETH_ETHER)
         let eth3 = Amount.create (double: 1.1, unit: ETH_ETHER)

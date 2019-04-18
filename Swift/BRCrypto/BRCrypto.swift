@@ -184,14 +184,15 @@ public final class Amount {
         return CRYPTO_TRUE == overflow ? nil : value
     }
 
-    public func string (as unit: Unit) -> String? {
+    public func string (as unit: Unit, formatter: NumberFormatter? = nil) -> String? {
         return double (as: unit)
-            .flatMap { self.formatterWith (unit: unit)
+            .flatMap { (formatter ?? self.formatterWith (unit: unit))
                 .string (from: NSNumber(value: $0)) }
     }
 
-    public func string (pair: CurrencyPair) -> String? {
-        return pair.exchange (asBase: self)?.string (as: pair.quoteUnit)
+    public func string (pair: CurrencyPair, formatter: NumberFormatter? = nil) -> String? {
+        return pair.exchange (asBase: self)?
+            .string (as: pair.quoteUnit, formatter: formatter)
     }
 
     public func isCompatible (with that: Amount) -> Bool {
