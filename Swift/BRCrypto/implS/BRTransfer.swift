@@ -85,12 +85,8 @@ class TransferImplS: Transfer {
     public internal(set) var state: TransferState {
         didSet {
             let newValue = state
-            listener?.handleTransferEvent (system: wallet.manager.system,
-                                           manager: wallet.manager,
-                                           wallet: wallet,
-                                           transfer: self,
-                                           event: TransferEvent.changed (old: oldValue,
-                                                                         new: newValue))
+            announceEvent (TransferEvent.changed (old: oldValue,
+                                                  new: newValue))
         }
     }
 
@@ -99,49 +95,50 @@ class TransferImplS: Transfer {
         return impl.isSent
     }()
 
-    private init (listener: TransferListener?,
-                  wallet: WalletImplS,
-                  unit: Unit,
-                  feeBasis: TransferFeeBasis,
-                  impl: Impl) {
+    internal init (listener: TransferListener?,
+                   wallet: WalletImplS,
+                   unit: Unit,
+                   impl: Impl) {
+        let feeUnit = wallet.manager.network.baseUnitFor(currency: wallet.manager.currency)!
+
         self.listener = listener
         self.wallet = wallet
         self.unit = unit
         self.state = TransferState.created
         self.impl = impl
-        self.feeBasis = feeBasis
+        self.feeBasis = impl.feeBasis(in: feeUnit)
 
+        wallet.add(transfer: self)
+
+    }
+
+    internal func announceEvent (_ event: TransferEvent) {
         self.listener?.handleTransferEvent (system: system,
                                             manager: manager,
                                             wallet: wallet,
                                             transfer: self,
-                                            event: TransferEvent.created)
+                                            event: event)
     }
 
-    internal convenience init (listener: TransferListener?,
-                               wallet: WalletImplS,
-                               unit: Unit,
-                               eth: BREthereumTransfer) {
-        let gasUnit = wallet.manager.network.baseUnitFor(currency: wallet.manager.currency)!
-        let gasPrice = Amount.createAsETH(createUInt256 (0), gasUnit)
-
-        self.init (listener: listener,
-                   wallet: wallet,
-                   unit: unit,
-                   feeBasis: TransferFeeBasis.ethereum (gasPrice: gasPrice, gasLimit: 0),
-                   impl: Impl.ethereum (ewm:wallet.impl.ewm, core: eth))
-    }
-
-    internal convenience init (listener: TransferListener?,
-                               wallet: WalletImplS,
-                               unit: Unit,
-                               btc: BRCoreTransaction) {
-        self.init (listener: listener,
-                   wallet: wallet,
-                   unit: unit,
-                   feeBasis: TransferFeeBasis.bitcoin(feePerKB: 0),
-                   impl: Impl.bitcoin (wid: wallet.impl.btc, tid: btc))
-    }
+//    internal convenience init (listener: TransferListener?,
+//                               wallet: WalletImplS,
+//                               unit: Unit,
+//                               eth: BREthereumTransfer) {
+//        self.init (listener: listener,
+//                   wallet: wallet,
+//                   unit: unit,
+//                   impl: Impl.ethereum (ewm:wallet.impl.ewm, core: eth))
+//    }
+//
+//    internal convenience init (listener: TransferListener?,
+//                               wallet: WalletImplS,
+//                               unit: Unit,
+//                               btc: BRCoreTransaction) {
+//        self.init (listener: listener,
+//                   wallet: wallet,
+//                   unit: unit,
+//                   impl: Impl.bitcoin (wid: wallet.impl.btc, tid: btc))
+//    }
 
 
     enum Impl {
@@ -176,6 +173,17 @@ class TransferImplS: Transfer {
             }
         }
 
+        internal func matches (_ that: Impl) -> Bool {
+            switch (self, that) {
+            case (let .bitcoin (wid1, tid1), let .bitcoin (wid2, tid2)):
+                return wid1 == wid2 && tid1 == tid2
+            case (let .ethereum (ewm1, c1), let .ethereum (ewm2, c2)):
+                return ewm1 == ewm2 && c1 == c2
+            default:
+                return false
+            }
+        }
+        
         internal func source (sent: Bool) -> Address? {
             switch self {
             case let .ethereum (ewm, core):
@@ -241,12 +249,23 @@ class TransferImplS: Transfer {
                 var overflow: Int32 = 0;
                 let amount: BREthereumEther = ewmTransferGetFee (ewm, core, &overflow)
                 precondition (0 == overflow)
-
                 return Amount.createAsETH (amount.valueInWEI, unit)
+
             case let .bitcoin (wid, tid):
                 //        var transaction = core
                 let fee = BRWalletFeeForTx (wid, tid)
                 return Amount.createAsBTC (fee, unit)
+            }
+        }
+
+        internal func feeBasis (in unit: Unit) -> TransferFeeBasis {
+            switch self {
+            case .ethereum:
+                let gasPrice = Amount.createAsETH (createUInt256 (0), unit)
+                return TransferFeeBasis.ethereum (gasPrice: gasPrice, gasLimit: 0)
+
+            case .bitcoin:
+                return TransferFeeBasis.bitcoin(feePerKB: 0)
             }
         }
 

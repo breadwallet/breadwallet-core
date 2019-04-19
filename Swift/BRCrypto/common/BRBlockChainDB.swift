@@ -927,7 +927,17 @@ public class BlockChainDB {
     public init (dbBaseURL: String = "http://blockchain-db.us-east-1.elasticbeanstalk.com",
                  ethBaseURL: String? = nil) {
         self.dbBaseURL = dbBaseURL
-        self.ethBaseURL = ethBaseURL
+
+        if nil == ethBaseURL {
+            #if DEBUG
+            self.ethBaseURL = "http://stage2.breadwallet.com"
+            #else
+            self.ethBaseURL = "http://api.breadwallet.com"
+            #endif
+        }
+        else {
+            self.ethBaseURL = ethBaseURL
+        }
     }
 
     static internal let currencySymbols = ["btc":"₿", "eth":"Ξ"]

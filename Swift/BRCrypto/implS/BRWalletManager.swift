@@ -16,108 +16,154 @@ import BRCore.Ethereum
 class WalletManagerImplS: WalletManager {
     internal private(set) weak var listener: WalletManagerListener?
 
-    // Internal
     internal var impl: Impl
 
-    //    internal var core: BREthereumEWM! = nil
-
+    /// The owning system
     public unowned let system: System
+
+    /// The account
     public let account: Account
+
+    /// The network
     public var network: Network
 
+
+    /// The default unit - as the networks default unit
     internal lazy var unit: Unit = {
         return network.defaultUnitFor(currency: network.currency)!
     }()
 
+    /// The primary wallet - this is typically the wallet where fees are applied which may or may
+    /// not differ from the specific wallet used for a transfer (like BRD transfer => ETH fee)
     public lazy var primaryWallet: Wallet = {
-        var wallet: Wallet! = nil
+        var walletImpl: WalletImplS.Impl! = nil
 
         switch impl {
         case let .ethereum (ewm):
-            let eth = ewmGetWallet(ewm)
-            if let w = lookupWallet(eth: eth) { return w }
+            guard let core = ewmGetWallet(ewm)
+                else { print ("SYS: WalletManager: missed ETH primary wallet"); precondition(false) }
 
-            wallet = WalletImplS (listener: system.listener,
-                                  manager: self,
-                                  unit: unit,
-                                  eth: eth!)
+            walletImpl = WalletImplS.Impl.ethereum(ewm: ewm, core: core)
 
         case let .bitcoin (bwm):
-            let bwm = BRWalletManagerGetWallet (bwm)
-            if let w = lookupWallet(btc: bwm) { return w }
-            wallet = WalletImplS (listener: system.listener,
-                                  manager: self,
-                                  unit: unit,
-                                  btc: bwm!)
+            guard let wid = BRWalletManagerGetWallet (bwm)
+                else { print ("SYS: WalletManager: missed BTC primary wallet"); precondition(false) }
 
+            walletImpl = WalletImplS.Impl.bitcoin(wid: wid)
         case .generic:
             break
         }
 
-        precondition (nil != wallet)
+        precondition (nil != walletImpl)
 
-        add (wallet: wallet)
-        return wallet
+        // Find a preexisting wallet (unlikely) or create one.
+        return walletByImplOrCreate (walletImpl!,
+                                     listener: system.listener,
+                                     manager: self,
+                                     unit: unit,
+                                     create: true)!  // Using '!' is okay as `create` is true
     }()
 
+    /// The manager's wallets, unsorted.
     var wallets: [Wallet] = []
 
+    ///
+    /// Add `wallet` to `wallets`.  Will signal WalletEvent.created and
+    /// WalletManagerEvent.walletAdded.  If `wallets` already contains `wallet` then nothing
+    /// is added.
+    ///
+    /// - Parameter wallet: the wallet to add
+    ///
     internal func add (wallet: Wallet) {
         if !wallets.contains(where: { $0 === wallet }) {
+            guard let wallet = wallet as? WalletImplS
+                else { precondition (false); return }
+
             wallets.append (wallet)
-            self.listener?.handleManagerEvent (system: system,
-                                               manager: self,
-                                               event: WalletManagerEvent.walletAdded(wallet: wallet))
+            wallet.announceEvent (WalletEvent.created)
+            announceEvent (WalletManagerEvent.walletAdded(wallet: wallet))
         }
     }
 
+    ///
+    /// Remove `wallet` from `wallets`.  Will signal WalletManagerEvent.walletDeleted adn then
+    //// WalletEvent.deleted.  If `wallets` already contains `wallet` then nothing
+    /// is deleted
+    ///
+    /// - Parameter wallet: the wallet to remove
+    ///
     internal func rem (wallet: Wallet) {
         wallets.firstIndex { $0 === wallet }
             .map {
+                guard let wallet = wallet as? WalletImplS
+                    else { precondition (false); return }
+
+                announceEvent (WalletManagerEvent.walletDeleted (wallet: wallet))
+                wallet.announceEvent (WalletEvent.deleted)
                 wallets.remove(at: $0)
-                self.listener?.handleManagerEvent (system: system,
-                                                   manager: self,
-                                                   event: WalletManagerEvent.walletAdded(wallet: wallet))
         }
     }
 
     internal func upd (wallet: Wallet) {
         if wallets.contains(where: { $0 === wallet }) {
-            self.listener?.handleManagerEvent (system: system,
-                                               manager: self,
-                                               event: WalletManagerEvent.walletChanged(wallet: wallet))
+            announceEvent (WalletManagerEvent.walletChanged(wallet: wallet))
         }
     }
 
-    internal func lookupWallet (eth: BREthereumWallet?) -> WalletImplS? {
-        guard let eth = eth else { return nil }
-        return wallets
-            .filter { $0 is WalletImplS }
-            .first { ($0 as! WalletImplS).impl.matches (eth: eth) } as? WalletImplS
+    ///
+    /// Find a wallet by `impl`
+    ///
+    /// - Parameter impl: the impl
+    /// - Returns: The wallet, if found
+    ///
+    internal func walletBy (impl: WalletImplS.Impl) -> WalletImplS? {
+        return wallets.first {
+            ($0 as? WalletImplS)?.impl.matches (impl) ?? false
+        } as? WalletImplS
     }
 
-    internal func lookupWallet (btc: BRCoreWallet?) -> WalletImplS? {
-        guard let btc = btc else { return nil }
-        return wallets
-            .filter { $0 is WalletImplS }
-            .first { ($0 as! WalletImplS).impl.matches (btc: btc) } as? WalletImplS
+    ///
+    /// Find a wallet by `impl` or, if `create` is `true`, create one.  This will maintain the
+    /// manager <==> wallet constraints (See WalletImplS.init)
+    ///
+    /// - Parameters:
+    ///   - impl: the impl
+    ///   - listener: the listener (if created)
+    ///   - manager: the manager (if created)
+    ///   - unit: the default unit (if created)
+    ///   - create: if not found by `impl`, create one if `true`
+    ///
+    /// - Returns: The wallet
+    ///
+    internal func walletByImplOrCreate (_ impl: WalletImplS.Impl,
+                                        listener: WalletListener?,
+                                        manager: WalletManagerImplS,
+                                        unit: Unit,
+                                        create: Bool = false) -> WalletImplS? {
+        return walletBy (impl: impl) ??
+            (!create
+                ? nil
+                : WalletImplS (listener: listener,
+                               manager: manager,
+                               unit: unit,
+                               impl: impl))
     }
 
+    /// The mode
     public var mode: WalletManagerMode
 
+    /// The path for persistent storage
     public var path: String
 
+    /// The state.  Upon change, generates a WalletManagerEvent.changed event
     public var state: WalletManagerState {
         didSet {
             let newValue = state
-            self.listener?.handleManagerEvent (system: system,
-                                               manager: self,
-                                               event: WalletManagerEvent.changed(oldState: oldValue, newState: newValue))
+            announceEvent (WalletManagerEvent.changed(oldState: oldValue, newState: newValue))
         }
     }
 
-    //    public var walletFactory: WalletFactory = EthereumWalletFactory()
-
+    /// The BlockChainDB for BRD Server Assisted queries.
     internal let query: BlockChainDB
 
     public init (system: System,
@@ -135,6 +181,7 @@ class WalletManagerImplS: WalletManager {
         self.state   = WalletManagerState.created
         self.query   = BlockChainDB()
 
+        self.listener = listener
 
         let system = system as! SystemBase
 
@@ -167,9 +214,14 @@ class WalletManagerImplS: WalletManager {
             self.impl = Impl.generic
         }
 
-        listener.handleManagerEvent (system: system,
-                                     manager: self,
-                                     event: WalletManagerEvent.created)
+        print ("SYS: WalletManager: Init")
+        system.add(manager: self)
+    }
+
+    internal func announceEvent (_ event: WalletManagerEvent) {
+        self.listener?.handleManagerEvent (system: system,
+                                           manager: self,
+                                           event: event)
     }
 
     public func connect() {
@@ -187,6 +239,13 @@ class WalletManagerImplS: WalletManager {
     }
 
     public func submit (transfer: Transfer) {
+        guard let wallet = transfer.wallet as? WalletImplS,
+            let transfer = transfer as? TransferImplS
+            else { precondition (false) }
+
+        impl.submit (manager: self,
+                     wallet: wallet,
+                     transfer: transfer)
     }
 
     public func sync() {
@@ -256,6 +315,17 @@ class WalletManagerImplS: WalletManager {
             }
         }
 
+        internal func matches (_ that: Impl) -> Bool {
+            switch (self, that) {
+            case (let .bitcoin (bwm1), let .bitcoin (bwm2)):
+                return bwm1 == bwm2
+            case (let .ethereum (ewm1), let .ethereum (ewm2)):
+                return ewm1 == ewm2
+            default:
+                return false
+            }
+        }
+
         internal func connect() {
             switch self {
             case let .ethereum (ewm):
@@ -291,14 +361,10 @@ class WalletManagerImplS: WalletManager {
         internal func sign (paperKey: String, wallet: WalletImplS, transfer: TransferImplS) {
             switch self {
             case let .ethereum (ewm):
-//                guard let wallet = primaryWallet as? WalletImplS,
-//                    let transfer = transfer as? TransferImplS else { precondition(false); return }
                 ewmWalletSignTransferWithPaperKey(ewm, wallet.impl.eth, transfer.impl.eth, paperKey)
 
             case let .bitcoin (mid):
-//                guard let transfer = transfer as? TransferImplS else { precondition(false); return }
-
-                let coreWallet      = BRWalletManagerGetWallet      (mid)
+                let coreWallet  = BRWalletManagerGetWallet      (mid)
 
                 var seed = Account.deriveSeed (phrase: paperKey)
                 BRWalletSignTransaction (coreWallet, transfer.impl.btc, &seed, MemoryLayout<UInt512>.size)
@@ -312,13 +378,9 @@ class WalletManagerImplS: WalletManager {
         internal func submit (manager: WalletManagerImplS, wallet: WalletImplS, transfer: TransferImplS) {
             switch self {
             case let .ethereum (ewm):
-//                guard let wallet = primaryWallet as? WalletImplS,
-//                    let transfer = transfer as? TransferImplS else { precondition(false); return }
                 ewmWalletSubmitTransfer (ewm, wallet.impl.eth, transfer.impl.eth)
 
             case let .bitcoin (mid):
-//                guard let transfer = transfer as? TransferImplS else { precondition(false); return }
-
                 let corePeerManager = BRWalletManagerGetPeerManager (mid)
 
                 let  closure = CLangClosure { (error: Int32) in
@@ -344,7 +406,6 @@ class WalletManagerImplS: WalletManager {
             case .generic:
                 break
             }
-
         }
     }
 }
