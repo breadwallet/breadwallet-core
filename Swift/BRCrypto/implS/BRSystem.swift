@@ -273,215 +273,215 @@ public final class SystemBase: System {
 
             funcGetBalance: { (context, coreEWM, wid, address, rid) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-                if let this = system.lookupManager(eth: coreEWM!) {
+                if let manager = system.lookupManager(eth: coreEWM!) {
 
                     let address = asUTF8String(address!)
-                    this.query.getBalanceAsETH (ewm: this.impl.ewm,
-                                                wid: wid!,
-                                                address: address,
-                                                rid: rid) { (wid, balance, rid) in
-                                                    ewmAnnounceWalletBalance (this.impl.ewm, wid, balance, rid)
+                    manager.query.getBalanceAsETH (ewm: manager.impl.ewm,
+                                                   wid: wid!,
+                                                   address: address,
+                                                   rid: rid) { (wid, balance, rid) in
+                                                    ewmAnnounceWalletBalance (manager.impl.ewm, wid, balance, rid)
                     }
                 }},
 
             funcGetGasPrice: { (context, coreEWM, wid, rid) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-                if let this = system.lookupManager(eth: coreEWM!) {
-                    this.query.getGasPriceAsETH (ewm: this.impl.ewm,
-                                                 wid: wid!,
-                                                 rid: rid) { (wid, gasPrice, rid) in
-                                                    ewmAnnounceGasPrice (this.impl.ewm, wid, gasPrice, rid)
+                if let manager = system.lookupManager(eth: coreEWM!) {
+                    manager.query.getGasPriceAsETH (ewm: manager.impl.ewm,
+                                                    wid: wid!,
+                                                    rid: rid) { (wid, gasPrice, rid) in
+                                                        ewmAnnounceGasPrice (manager.impl.ewm, wid, gasPrice, rid)
                     }
                 }},
 
             funcEstimateGas: { (context, coreEWM, wid, tid, from, to, amount, data, rid)  in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-                if let this = system.lookupManager(eth: coreEWM!) {
+                if let manager = system.lookupManager(eth: coreEWM!) {
                     let from = asUTF8String(from!)
                     let to = asUTF8String(to!)
                     let amount = asUTF8String(amount!)
                     let data = asUTF8String(data!)
-                    this.query.getGasEstimateAsETH (ewm: this.impl.ewm,
-                                                    wid: wid!,
-                                                    tid: tid!,
-                                                    from: from,
-                                                    to: to,
-                                                    amount: amount,
-                                                    data: data,
-                                                    rid: rid) { (wid, tid, gasEstimate, rid) in
-                                                        ewmAnnounceGasEstimate (this.impl.ewm, wid, tid, gasEstimate, rid)
+                    manager.query.getGasEstimateAsETH (ewm: manager.impl.ewm,
+                                                       wid: wid!,
+                                                       tid: tid!,
+                                                       from: from,
+                                                       to: to,
+                                                       amount: amount,
+                                                       data: data,
+                                                       rid: rid) { (wid, tid, gasEstimate, rid) in
+                                                        ewmAnnounceGasEstimate (manager.impl.ewm, wid, tid, gasEstimate, rid)
                     }
                 }},
 
             funcSubmitTransaction: { (context, coreEWM, wid, tid, transaction, rid)  in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-                if let this = system.lookupManager(eth: coreEWM!) {
+                if let manager = system.lookupManager(eth: coreEWM!) {
                     let transaction = asUTF8String (transaction!)
-                    this.query.submitTransactionAsETH (ewm: this.impl.ewm,
-                                                       wid: wid!,
-                                                       tid: tid!,
-                                                       transaction: transaction,
-                                                       rid: rid) { (wid, tid, hash, errorCode, errorMessage, rid) in
-                                                        ewmAnnounceSubmitTransfer (this.impl.ewm,
-                                                                                   wid,
-                                                                                   tid,
-                                                                                   hash,
-                                                                                   errorCode,
-                                                                                   errorMessage,
-                                                                                   rid)
+                    manager.query.submitTransactionAsETH (ewm: manager.impl.ewm,
+                                                          wid: wid!,
+                                                          tid: tid!,
+                                                          transaction: transaction,
+                                                          rid: rid) { (wid, tid, hash, errorCode, errorMessage, rid) in
+                                                            ewmAnnounceSubmitTransfer (manager.impl.ewm,
+                                                                                       wid,
+                                                                                       tid,
+                                                                                       hash,
+                                                                                       errorCode,
+                                                                                       errorMessage,
+                                                                                       rid)
                     }
                 }},
 
             funcGetTransactions: { (context, coreEWM, address, begBlockNumber, endBlockNumber, rid) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-                if let this = system.lookupManager(eth: coreEWM!) {
+                if let manager = system.lookupManager(eth: coreEWM!) {
                     let address = asUTF8String(address!)
-                    this.query.getTransactionsAsETH (ewm: this.impl.ewm,
-                                                     address: address,
-                                                     begBlockNumber: begBlockNumber,
-                                                     endBlockNumber: endBlockNumber,
-                                                     rid: rid,
-                                                     done: { (success: Bool, rid: Int32) in
-                                                        ewmAnnounceTransactionComplete (this.impl.ewm,
-                                                                                        rid,
-                                                                                        (success ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE))
+                    manager.query.getTransactionsAsETH (ewm: manager.impl.ewm,
+                                                        address: address,
+                                                        begBlockNumber: begBlockNumber,
+                                                        endBlockNumber: endBlockNumber,
+                                                        rid: rid,
+                                                        done: { (success: Bool, rid: Int32) in
+                                                            ewmAnnounceTransactionComplete (manager.impl.ewm,
+                                                                                            rid,
+                                                                                            (success ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE))
                     },
-                                                     each: { (res: BlockChainDB.ETH.Transaction) in
-                                                        ewmAnnounceTransaction (this.impl.ewm,
-                                                                                res.rid,
-                                                                                res.hash,
-                                                                                res.sourceAddr,
-                                                                                res.targetAddr,
-                                                                                res.contractAddr,
-                                                                                res.amount,
-                                                                                res.gasLimit,
-                                                                                res.gasPrice,
-                                                                                res.data,
-                                                                                res.nonce,
-                                                                                res.gasUsed,
-                                                                                res.blockNumber,
-                                                                                res.blockHash,
-                                                                                res.blockConfirmations,
-                                                                                res.blockTransactionIndex,
-                                                                                res.blockTimestamp,
-                                                                                res.isError)
+                                                        each: { (res: BlockChainDB.ETH.Transaction) in
+                                                            ewmAnnounceTransaction (manager.impl.ewm,
+                                                                                    res.rid,
+                                                                                    res.hash,
+                                                                                    res.sourceAddr,
+                                                                                    res.targetAddr,
+                                                                                    res.contractAddr,
+                                                                                    res.amount,
+                                                                                    res.gasLimit,
+                                                                                    res.gasPrice,
+                                                                                    res.data,
+                                                                                    res.nonce,
+                                                                                    res.gasUsed,
+                                                                                    res.blockNumber,
+                                                                                    res.blockHash,
+                                                                                    res.blockConfirmations,
+                                                                                    res.blockTransactionIndex,
+                                                                                    res.blockTimestamp,
+                                                                                    res.isError)
                     })
                 }},
 
             funcGetLogs: { (context, coreEWM, contract, address, event, begBlockNumber, endBlockNumber, rid) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-                if let this = system.lookupManager(eth: coreEWM!) {
+                if let manager = system.lookupManager(eth: coreEWM!) {
                     let address = asUTF8String(address!)
-                    this.query.getLogsAsETH (ewm: this.impl.ewm,
-                                             address: address,
-                                             begBlockNumber: begBlockNumber,
-                                             endBlockNumber: endBlockNumber,
-                                             rid: rid,
-                                             done: { (success: Bool, rid: Int32) in
-                                                ewmAnnounceLogComplete (this.impl.ewm,
-                                                                        rid,
-                                                                        (success ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE))
+                    manager.query.getLogsAsETH (ewm: manager.impl.ewm,
+                                                address: address,
+                                                begBlockNumber: begBlockNumber,
+                                                endBlockNumber: endBlockNumber,
+                                                rid: rid,
+                                                done: { (success: Bool, rid: Int32) in
+                                                    ewmAnnounceLogComplete (manager.impl.ewm,
+                                                                            rid,
+                                                                            (success ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE))
                     },
-                                             each: { (res: BlockChainDB.ETH.Log) in
-                                                var cTopics = res.topics.map { UnsafePointer<Int8>(strdup($0)) }
-                                                defer {
-                                                    cTopics.forEach { free (UnsafeMutablePointer(mutating: $0)) }
-                                                }
+                                                each: { (res: BlockChainDB.ETH.Log) in
+                                                    var cTopics = res.topics.map { UnsafePointer<Int8>(strdup($0)) }
+                                                    defer {
+                                                        cTopics.forEach { free (UnsafeMutablePointer(mutating: $0)) }
+                                                    }
 
-                                                ewmAnnounceLog (this.impl.ewm,
-                                                                res.rid,
-                                                                res.hash,
-                                                                res.contract,
-                                                                Int32(res.topics.count),
-                                                                &cTopics,
-                                                                res.data,
-                                                                res.gasPrice,
-                                                                res.gasUsed,
-                                                                res.logIndex,
-                                                                res.blockNumber,
-                                                                res.blockTransactionIndex,
-                                                                res.blockTimestamp)
+                                                    ewmAnnounceLog (manager.impl.ewm,
+                                                                    res.rid,
+                                                                    res.hash,
+                                                                    res.contract,
+                                                                    Int32(res.topics.count),
+                                                                    &cTopics,
+                                                                    res.data,
+                                                                    res.gasPrice,
+                                                                    res.gasUsed,
+                                                                    res.logIndex,
+                                                                    res.blockNumber,
+                                                                    res.blockTransactionIndex,
+                                                                    res.blockTimestamp)
                     })
                 }},
 
             funcGetBlocks: { (context, coreEWM, address, interests, blockStart, blockStop, rid) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-                if let this = system.lookupManager(eth: coreEWM!) {
+                if let manager = system.lookupManager(eth: coreEWM!) {
                     let address = asUTF8String(address!)
-                    this.query.getBlocksAsETH (ewm: this.impl.ewm,
-                                               address: address,
-                                               interests: interests,
-                                               blockStart: blockStart,
-                                               blockStop: blockStop,
-                                               rid: rid) { (blocks, rid) in
-                                                ewmAnnounceBlocks (this.impl.ewm, rid,
-                                                                   Int32(blocks.count),
-                                                                   UnsafeMutablePointer<UInt64>(mutating: blocks))
+                    manager.query.getBlocksAsETH (ewm: manager.impl.ewm,
+                                                  address: address,
+                                                  interests: interests,
+                                                  blockStart: blockStart,
+                                                  blockStop: blockStop,
+                                                  rid: rid) { (blocks, rid) in
+                                                    ewmAnnounceBlocks (manager.impl.ewm, rid,
+                                                                       Int32(blocks.count),
+                                                                       UnsafeMutablePointer<UInt64>(mutating: blocks))
                     }
                 }},
 
             funcGetTokens: { (context, coreEWM, rid) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-                if let this = system.lookupManager(eth: coreEWM!) {
-                    this.query.getTokensAsETH (ewm: this.impl.ewm,
-                                               rid: rid,
-                                               done: { (success: Bool, rid: Int32) in
-                                                ewmAnnounceTokenComplete (this.impl.ewm,
-                                                                          rid,
-                                                                          (success ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE))
+                if let manager = system.lookupManager(eth: coreEWM!) {
+                    manager.query.getTokensAsETH (ewm: manager.impl.ewm,
+                                                  rid: rid,
+                                                  done: { (success: Bool, rid: Int32) in
+                                                    ewmAnnounceTokenComplete (manager.impl.ewm,
+                                                                              rid,
+                                                                              (success ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE))
                     },
-                                               each: { (res: BlockChainDB.ETH.Token) in
-                                                ewmAnnounceToken (this.impl.ewm,
-                                                                  res.rid,
-                                                                  res.address,
-                                                                  res.symbol,
-                                                                  res.name,
-                                                                  res.description,
-                                                                  res.decimals,
-                                                                  res.defaultGasLimit,
-                                                                  res.defaultGasPrice)
+                                                  each: { (res: BlockChainDB.ETH.Token) in
+                                                    ewmAnnounceToken (manager.impl.ewm,
+                                                                      res.rid,
+                                                                      res.address,
+                                                                      res.symbol,
+                                                                      res.name,
+                                                                      res.description,
+                                                                      res.decimals,
+                                                                      res.defaultGasLimit,
+                                                                      res.defaultGasPrice)
                     })
                 }},
 
             funcGetBlockNumber: { (context, coreEWM, rid) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-                if let this = system.lookupManager(eth: coreEWM!) {
-                    this.query.getBlockNumberAsETH (ewm: this.impl.ewm,
-                                                    rid: rid) { (number, rid) in
-                                                        ewmAnnounceBlockNumber (this.impl.ewm, number, rid)
+                if let manager = system.lookupManager(eth: coreEWM!) {
+                    manager.query.getBlockNumberAsETH (ewm: manager.impl.ewm,
+                                                       rid: rid) { (number, rid) in
+                                                        ewmAnnounceBlockNumber (manager.impl.ewm, number, rid)
                     }
                 }},
 
             funcGetNonce: { (context, coreEWM, address, rid) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-                if let this = system.lookupManager(eth: coreEWM!) {
+                if let manager = system.lookupManager(eth: coreEWM!) {
                     let address = asUTF8String(address!)
-                    this.query.getNonceAsETH (ewm: this.impl.ewm,
-                                              address: address,
-                                              rid: rid) { (address, nonce, rid) in
-                                                ewmAnnounceNonce (this.impl.ewm, address, nonce, rid)
+                    manager.query.getNonceAsETH (ewm: manager.impl.ewm,
+                                                 address: address,
+                                                 rid: rid) { (address, nonce, rid) in
+                                                    ewmAnnounceNonce (manager.impl.ewm, address, nonce, rid)
                     }
                 }},
 
             funcEWMEvent: { (context, coreEWM, event, status, message) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-                //                print ("SYS: ETH: Manager: \(event)")
-                if let this = system.lookupManager(eth: coreEWM!) {
+                print ("SYS: ETH: Manager: \(event)")
+                if let manager = system.lookupManager(eth: coreEWM!) {
                     switch event {
                     case EWM_EVENT_CREATED:
                         // elsewhere
                         break
                     case EWM_EVENT_SYNC_STARTED:
-                        this.listener?.handleManagerEvent (system: this.system,
-                                                           manager: this,
-                                                           event: WalletManagerEvent.syncStarted)
+                        manager.listener?.handleManagerEvent (system: system,
+                                                              manager: manager,
+                                                              event: WalletManagerEvent.syncStarted)
                         break
                     case EWM_EVENT_SYNC_CONTINUES:
                         break
                     case EWM_EVENT_SYNC_STOPPED:
-                        this.listener?.handleManagerEvent (system: this.system,
-                                                           manager: this,
-                                                           event: WalletManagerEvent.syncEnded (error: message.map { asUTF8String ($0) }))
+                        manager.listener?.handleManagerEvent (system: system,
+                                                              manager: manager,
+                                                              event: WalletManagerEvent.syncEnded (error: message.map { asUTF8String ($0) }))
                         break
                     case EWM_EVENT_NETWORK_UNAVAILABLE:
                         // pending
@@ -509,24 +509,24 @@ public final class SystemBase: System {
 
             funcWalletEvent: { (context, coreEWM, wid, event, status, message) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-                //                print ("SYS: ETH: Wallet: \(event)")
-                if let this = system.lookupManager(eth: coreEWM!) {
+                print ("SYS: ETH: Wallet: \(event)")
+                if let manager = system.lookupManager(eth: coreEWM!) {
 
-                    if event == WALLET_EVENT_CREATED, nil == this.lookupWallet(eth: wid), let wid = wid {
+                    if event == WALLET_EVENT_CREATED, nil == manager.lookupWallet(eth: wid), let wid = wid {
                         //                        print ("SYS: ETH: Wallet: Created")
                         let currency = ewmWalletGetToken (coreEWM, wid)
-                            .flatMap { this.network.currencyBy (code: asUTF8String (tokenGetSymbol ($0))) }
-                            ?? this.network.currency
+                            .flatMap { manager.network.currencyBy (code: asUTF8String (tokenGetSymbol ($0))) }
+                            ?? manager.network.currency
 
-                        let wallet = WalletImplS (listener: this.system.listener,
-                                                  manager: this,
-                                                  unit: this.network.defaultUnitFor (currency: currency)!,
+                        let wallet = WalletImplS (listener: system.listener,
+                                                  manager: manager,
+                                                  unit: manager.network.defaultUnitFor (currency: currency)!,
                                                   eth: wid)
 
-                        this.add (wallet: wallet)
+                        manager.add (wallet: wallet)
                     }
 
-                    if let wallet = this.lookupWallet (eth: wid) {
+                    if let wallet = manager.lookupWallet (eth: wid) {
                         switch event {
                         case WALLET_EVENT_CREATED:
                             break
@@ -548,6 +548,7 @@ public final class SystemBase: System {
 
             funcTokenEvent: { (context, coreEWM, token, event) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
+                print ("SYS: ETH: Token: \(event)")
                 if let _ = system.lookupManager(eth: coreEWM!) {
                     switch event {
                     case TOKEN_EVENT_CREATED:
@@ -568,17 +569,16 @@ public final class SystemBase: System {
 
             funcTransferEvent: { (context, coreEWM, wid, tid, event, status, message) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-                //               print ("SYS: ETH: Transfer: \(event)")
-                if let this = system.lookupManager(eth: coreEWM!),
-                    let wallet = this.lookupWallet (eth: wid) {
+                print ("SYS: ETH: Transfer: \(event)")
+                if let manager = system.lookupManager(eth: coreEWM!),
+                    let wallet = manager.lookupWallet (eth: wid) {
 
                     if TRANSFER_EVENT_CREATED == event, let tid = tid {
                         //                        print ("SYS: ETH: Transfer Created")
-                        let transfer = TransferImplS (listener: this.system.listener,
+                        let transfer = TransferImplS (listener: system.listener,
                                                       wallet: wallet,
                                                       unit: wallet.unit,
                                                       eth: tid)
-                        wallet.add (transfer: transfer)
                     }
 
                     if let transfer = wallet.lookupTransfer (eth: tid) as? TransferImplS {
@@ -599,10 +599,9 @@ public final class SystemBase: System {
                                 blockNumber: ewmTransferGetBlockNumber (coreEWM, tid),
                                 transactionIndex: ewmTransferGetTransactionIndex (coreEWM, tid),
                                 timestamp: ewmTransferGetBlockTimestamp (coreEWM, tid),
-                                fee: Amount.createAsETH (ether.valueInWEI, this.unit))
+                                fee: Amount.createAsETH (ether.valueInWEI, manager.unit))
 
                             transfer.state = TransferState.included(confirmation: confirmation)
-
 
                         case TRANSFER_EVENT_ERRORED:
                             transfer.state = TransferState.failed (reason: message.flatMap { asUTF8String ($0) } ?? "<missing>")
@@ -640,8 +639,8 @@ public final class SystemBase: System {
 
             funcGetTransactions: { (context, bid, begBlockNumber, endBlockNumber, rid) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-                print ("SYS: BTC: GetTransaction: {\(begBlockNumber), \(endBlockNumber)}")
-                if let this = system.lookupManager(btc: bid!) {
+                print ("SYS: BTC: GetTransactions: Blocks: {\(begBlockNumber), \(endBlockNumber)}")
+                if let manager = system.lookupManager(btc: bid!) {
                     // We query the BlockChainDB with an array of addresses.  If there are no
                     // transactions for those addresses, then we are done.  But, if there are
                     // we need to generate more addresses and keep trying to find additional
@@ -662,7 +661,7 @@ public final class SystemBase: System {
                         var transactionsFound = false
 
                         repeat {
-                             // Get a C pointer to `addressesLimit` BRAddress structures
+                            // Get a C pointer to `addressesLimit` BRAddress structures
                             let addressesLimit:Int = 25
                             let addressesPointer = BRWalletManagerGetUnusedAddrs (bid, UInt32(addressesLimit))
                             defer { free (addressesPointer) }
@@ -681,19 +680,19 @@ public final class SystemBase: System {
                             transactionsError = false
 
                             // Query the blockchainDB. Record each found transaction
-                            this.query.getTransactionsAsBTC (bwm: bid!,
-                                                             blockchainId: this.network.uids,
-                                                             addresses: addresses,
-                                                             begBlockNumber: begBlockNumber,
-                                                             endBlockNumber: endBlockNumber,
-                                                             rid: rid,
-                                                             done: { (success: Bool, rid: Int32) in
-                                                                transactionsError = !success
-                                                                semaphore.signal ()
+                            manager.query.getTransactionsAsBTC (bwm: bid!,
+                                                                blockchainId: manager.network.uids,
+                                                                addresses: addresses,
+                                                                begBlockNumber: begBlockNumber,
+                                                                endBlockNumber: endBlockNumber,
+                                                                rid: rid,
+                                                                done: { (success: Bool, rid: Int32) in
+                                                                    transactionsError = !success
+                                                                    semaphore.signal ()
                             },
-                                                             each: { (res: BlockChainDB.BTC.Transaction) in
-                                                                transactionsFound = true
-                                                                bwmAnnounceTransaction (bid, res.rid, res.btc)
+                                                                each: { (res: BlockChainDB.BTC.Transaction) in
+                                                                    transactionsFound = true
+                                                                    bwmAnnounceTransaction (bid, res.rid, res.btc)
                             })
 
                             // Wait until the query is done
@@ -708,9 +707,9 @@ public final class SystemBase: System {
 
             funcTransactionEvent: { (context, bid, wid, tid, event) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-                //                print ("SYS: BTC: Transfer: \(event.type)")
-                if let this = system.lookupManager(btc: bid!),
-                    let wallet = this.lookupWallet (btc: wid) {
+                print ("SYS: BTC: Transfer: \(event.type)")
+                if let manager = system.lookupManager(btc: bid!),
+                    let wallet = manager.lookupWallet (btc: wid) {
 
                     if event.type == BITCOIN_TRANSACTION_ADDED, let tid = tid {
                         //                        print ("SYS: BTC: Transfer Created")
@@ -731,7 +730,7 @@ public final class SystemBase: System {
                                 blockNumber: UInt64(event.u.updated.blockHeight),
                                 transactionIndex: 0,
                                 timestamp: UInt64(event.u.updated.timestamp),
-                                fee: Amount.createAsBTC (0, this.unit))
+                                fee: Amount.createAsBTC (0, manager.unit))
 
                             transfer.state = TransferState.included (confirmation: confirmation)
 
@@ -744,19 +743,19 @@ public final class SystemBase: System {
 
             funcWalletEvent: { (context, bid, wid, event) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-                //                print ("SYS: BTC: Wallet: \(event.type)")
-                if let this = system.lookupManager(btc: bid!) {
+                print ("SYS: BTC: Wallet: \(event.type)")
+                if let manager = system.lookupManager(btc: bid!) {
 
                     if event.type == BITCOIN_WALLET_CREATED, let wid = wid {
                         //                        NSLog ("System: Bitcoin: Wallet: Created")
                         let wallet = WalletImplS (listener: system.listener,
-                                                  manager: this,
-                                                  unit: this.network.defaultUnitFor(currency: this.network.currency)!,
+                                                  manager: manager,
+                                                  unit: manager.network.defaultUnitFor(currency: manager.network.currency)!,
                                                   btc: wid)
-                        this.add (wallet: wallet)
+                        manager.add (wallet: wallet)
                     }
 
-                    if let wallet = this.lookupWallet (btc: wid) {
+                    if let wallet = manager.lookupWallet (btc: wid) {
                         switch event.type {
                         case BITCOIN_WALLET_CREATED:
                             break
@@ -775,33 +774,33 @@ public final class SystemBase: System {
 
             funcWalletManagerEvent: { (context, bid, event) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
-                //                NSLog ("System: Bitcoin: Manager: \(event.type)")
-                if let this = system.lookupManager(btc: bid!) {
+                print ("SYS: BTC: WalletManager: \(event.type)")
+                if let manager = system.lookupManager(btc: bid!) {
                     switch event.type {
                     case BITCOIN_WALLET_MANAGER_CREATED:
                         break
 
                     case BITCOIN_WALLET_MANAGER_CONNECTED:
-                        this.state = WalletManagerState.connected
+                        manager.state = WalletManagerState.connected
 
                     case BITCOIN_WALLET_MANAGER_DISCONNECTED:
-                        this.state = WalletManagerState.disconnected
+                        manager.state = WalletManagerState.disconnected
 
                     case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
-                        this.state = WalletManagerState.syncing
+                        manager.state = WalletManagerState.syncing
 
                         // not so much...
-                        this.listener?.handleManagerEvent (system: this.system,
-                                                           manager: this,
-                                                           event: WalletManagerEvent.syncStarted)
+                        manager.listener?.handleManagerEvent (system: system,
+                                                              manager: manager,
+                                                              event: WalletManagerEvent.syncStarted)
 
                     case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
-                        this.state = WalletManagerState.connected
+                        manager.state = WalletManagerState.connected
 
                         // not so much either ...
-                        this.listener?.handleManagerEvent (system: this.system,
-                                                           manager: this,
-                                                           event: WalletManagerEvent.syncEnded(error: nil))
+                        manager.listener?.handleManagerEvent (system: system,
+                                                              manager: manager,
+                                                              event: WalletManagerEvent.syncEnded(error: nil))
 
                     default:
                         precondition(false)

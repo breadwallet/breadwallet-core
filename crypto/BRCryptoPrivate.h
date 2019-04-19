@@ -35,7 +35,6 @@
 #include "BRCryptoAccount.h"
 #include "BRCryptoAmount.h"
 #include "BRCryptoAddress.h"
-#include "BRCryptoWallet.h"
 
 ///
 #include "support/BRAddress.h"
@@ -145,8 +144,10 @@ extern "C" {
     private_extern BRMasterPubKey
     cryptoAccountAsBTC (BRCryptoAccount account);
 
-    /// MARK: - Wallet
+#if defined (USE_PENDING)
+    #include "BRCryptoWallet.h"
 
+    /// MARK: - Wallet
     private_extern BRCryptoBlockChainType
     cryptoWalletGetType (BRCryptoWallet wallet);
 
@@ -165,6 +166,7 @@ extern "C" {
     cryptoWalletCreateAsETH (BRCryptoUnit unit,
                              BRCryptoUnit unitForFee,
                              BREthereumWallet eth);
+#endif // defined (USE_PENDING)
     
 #ifdef __cplusplus
 }

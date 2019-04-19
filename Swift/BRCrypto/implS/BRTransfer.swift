@@ -29,7 +29,21 @@ fileprivate struct BitcoinSegwitAddressScheme: AddressScheme {
 // ==================
 
 
-
+///
+/// Implementaton (in Swift) of Transfer
+///
+/// A Transfer can be created in one of two ways - User initiated or Sync initiated.  When the
+/// transfer is sync initiated the underlying C code will callback with the details and the handler
+/// must construct a transfer.  For a User initiated we endeavor to use the same flow; therefore,
+/// we create the specific type of C entity and wait for the callback to construct the Transfer
+/// itself.
+///
+/// This class is defined recursively with `Wallet`.  The implementation is careful to ensure that
+/// the constraints between Transfer and Wallet are maintained - particularly in the announcement
+/// of Transfer.created and Wallet.transferAdded.
+///
+/// An alternate implementation in C would use BRCryptoTransfer (as `TransferImplC`)
+///
 class TransferImplS: Transfer {
     internal private(set) weak var listener: TransferListener?
 
@@ -85,20 +99,17 @@ class TransferImplS: Transfer {
         return impl.isSent
     }()
 
-    internal init (listener: TransferListener?,
-                   wallet: WalletImplS,
-                   unit: Unit,
-                   eth: BREthereumTransfer) {
+    private init (listener: TransferListener?,
+                  wallet: WalletImplS,
+                  unit: Unit,
+                  feeBasis: TransferFeeBasis,
+                  impl: Impl) {
         self.listener = listener
         self.wallet = wallet
         self.unit = unit
         self.state = TransferState.created
-        self.impl = Impl.ethereum (ewm:wallet.impl.ewm, core: eth)
-
-        let gasUnit = wallet.manager.network.baseUnitFor(currency: wallet.manager.currency)!
-        let gasPrice = Amount.createAsETH(createUInt256 (0), gasUnit)
-        self.feeBasis = TransferFeeBasis.ethereum (gasPrice: gasPrice, gasLimit: 0)
-        self.isSent = true
+        self.impl = impl
+        self.feeBasis = feeBasis
 
         self.listener?.handleTransferEvent (system: system,
                                             manager: manager,
@@ -107,26 +118,29 @@ class TransferImplS: Transfer {
                                             event: TransferEvent.created)
     }
 
-    internal init (listener: TransferListener?,
-                   wallet: WalletImplS,
-                   unit: Unit,
-                   btc: BRCoreTransaction) {
-        self.listener = listener
-        self.wallet = wallet
-        self.unit = unit
-        self.state = TransferState.created
-        self.impl = Impl.bitcoin (wid: wallet.impl.btc, tid: btc)
-
+    internal convenience init (listener: TransferListener?,
+                               wallet: WalletImplS,
+                               unit: Unit,
+                               eth: BREthereumTransfer) {
         let gasUnit = wallet.manager.network.baseUnitFor(currency: wallet.manager.currency)!
-
         let gasPrice = Amount.createAsETH(createUInt256 (0), gasUnit)
-        self.feeBasis = TransferFeeBasis.ethereum(gasPrice: gasPrice, gasLimit: 0)
 
-        self.listener?.handleTransferEvent (system: system,
-                                            manager: manager,
-                                            wallet: wallet,
-                                            transfer: self,
-                                            event: TransferEvent.created)
+        self.init (listener: listener,
+                   wallet: wallet,
+                   unit: unit,
+                   feeBasis: TransferFeeBasis.ethereum (gasPrice: gasPrice, gasLimit: 0),
+                   impl: Impl.ethereum (ewm:wallet.impl.ewm, core: eth))
+    }
+
+    internal convenience init (listener: TransferListener?,
+                               wallet: WalletImplS,
+                               unit: Unit,
+                               btc: BRCoreTransaction) {
+        self.init (listener: listener,
+                   wallet: wallet,
+                   unit: unit,
+                   feeBasis: TransferFeeBasis.bitcoin(feePerKB: 0),
+                   impl: Impl.bitcoin (wid: wallet.impl.btc, tid: btc))
     }
 
 
