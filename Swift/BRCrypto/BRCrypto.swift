@@ -184,14 +184,15 @@ public final class Amount {
         return CRYPTO_TRUE == overflow ? nil : value
     }
 
-    public func string (as unit: Unit) -> String? {
+    public func string (as unit: Unit, formatter: NumberFormatter? = nil) -> String? {
         return double (as: unit)
-            .flatMap { self.formatterWith (unit: unit)
+            .flatMap { (formatter ?? self.formatterWith (unit: unit))
                 .string (from: NSNumber(value: $0)) }
     }
 
-    public func string (pair: CurrencyPair) -> String? {
-        return pair.exchange (asBase: self)?.string (as: pair.quoteUnit)
+    public func string (pair: CurrencyPair, formatter: NumberFormatter? = nil) -> String? {
+        return pair.exchange (asBase: self)?
+            .string (as: pair.quoteUnit, formatter: formatter)
     }
 
     public func isCompatible (with that: Amount) -> Bool {
@@ -220,14 +221,19 @@ public final class Amount {
         self.unit = unit
     }
 
-    static func create (double: Double, unit: Unit) -> Amount {
+    public static func create (double: Double, unit: Unit) -> Amount {
         return Amount (core: cryptoAmountCreateDouble (double, unit.core),
                        unit: unit)
     }
 
-    static func create (integer: Int64, unit: Unit) -> Amount {
+    public static func create (integer: Int64, unit: Unit) -> Amount {
         return Amount (core: cryptoAmountCreateInteger (integer, unit.core),
                        unit: unit)
+    }
+
+    public static func create (string: String, negative: Bool = false, unit: Unit) -> Amount? {
+        let core = cryptoAmountCreateString (string, (negative ? CRYPTO_TRUE : CRYPTO_FALSE), unit.core)
+        return nil == core ? nil : Amount (core: core!, unit: unit)
     }
 
     // static func create (exactly: Double, unit: Unit) -> Amount  ==> No remainder
@@ -965,7 +971,7 @@ public protocol Wallet: class {
     var transfers: [Transfer] { get }
 
     /// Use a hash to lookup a transfer
-    func lookup (transfer: TransferHash) -> Transfer?
+    func transferBy (hash: TransferHash) -> Transfer?
 
     /// The current state.
     var state: WalletState { get }
@@ -1194,6 +1200,10 @@ extension WalletManager {
         return network.currency
     }
 
+    public var name: String {
+        return currency.code
+    }
+    
     var baseUnit: Unit {
         return network.baseUnitFor(currency: network.currency)!
     }

@@ -85,7 +85,7 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
     }
     */
     @IBAction func submit(_ sender: UIBarButtonItem) {
-        NSLog ("Want to submit")
+        print ("APP: TCC: Want to submit")
         let value = (oneBitcoinSelected
             ? 0.01
             : (oneEtherSelected
@@ -103,7 +103,7 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
 
             guard let unit = self.wallet!.currency.defaultUnit else { self.dismiss(animated: true) {}; return }
             let amount = Amount (value: Double(value), unit: unit)
-            print ("ETH: Submit Amount: \(amount)");
+            print ("APP: TVV: Submit ETH Amount: \(amount)");
 
             // let amount = Amount (value: value, unit: self.wallet.currency.defaultUnit)
 
@@ -133,7 +133,7 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
             self.dismiss(animated: true) {}
         })
         alert.addAction(UIAlertAction (title: "No", style: UIAlertAction.Style.cancel) { (action) in
-            NSLog ("Will Cancel" )
+            print ("APP: TCC: Will Cancel" )
         })
         self.present(alert, animated: true) {}
     }

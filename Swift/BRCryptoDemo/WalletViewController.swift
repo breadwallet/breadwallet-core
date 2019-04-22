@@ -77,7 +77,7 @@ class WalletViewController: UITableViewController, TransferListener {
             break
             
         case "createTransfer":
-            NSLog ("Want to Create")
+            print ("APP: WVC: Want to Create")
 //            let controller = (segue.destination as! UINavigationController).topViewController as! TransferCreateController
 //            controller.wallet = wallet
             break
@@ -99,7 +99,7 @@ class WalletViewController: UITableViewController, TransferListener {
 
     func handleTransferEvent(system: System, manager: WalletManager, wallet: Wallet, transfer: Transfer, event: TransferEvent) {
         DispatchQueue.main.async {
-            NSLog ("WalletViewController TransferEvent: \(event)")
+            print ("APP: WVC: TransferEvent: \(event)")
             guard self.wallet === wallet /* && view is visible */  else { return }
             switch event {
             case .created:

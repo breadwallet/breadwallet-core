@@ -16,108 +16,154 @@ import BRCore.Ethereum
 class WalletManagerImplS: WalletManager {
     internal private(set) weak var listener: WalletManagerListener?
 
-    // Internal
     internal var impl: Impl
 
-    //    internal var core: BREthereumEWM! = nil
-
+    /// The owning system
     public unowned let system: System
+
+    /// The account
     public let account: Account
+
+    /// The network
     public var network: Network
 
+
+    /// The default unit - as the networks default unit
     internal lazy var unit: Unit = {
         return network.defaultUnitFor(currency: network.currency)!
     }()
 
+    /// The primary wallet - this is typically the wallet where fees are applied which may or may
+    /// not differ from the specific wallet used for a transfer (like BRD transfer => ETH fee)
     public lazy var primaryWallet: Wallet = {
-        var wallet: Wallet! = nil
+        var walletImpl: WalletImplS.Impl! = nil
 
         switch impl {
         case let .ethereum (ewm):
-            let eth = ewmGetWallet(ewm)
-            if let w = lookupWallet(eth: eth) { return w }
+            guard let core = ewmGetWallet(ewm)
+                else { print ("SYS: WalletManager: missed ETH primary wallet"); precondition(false) }
 
-            wallet = WalletImplS (listener: system.listener,
-                                  manager: self,
-                                  unit: unit,
-                                  eth: eth!)
+            walletImpl = WalletImplS.Impl.ethereum(ewm: ewm, core: core)
 
         case let .bitcoin (bwm):
-            let bwm = BRWalletManagerGetWallet (bwm)
-            if let w = lookupWallet(btc: bwm) { return w }
-            wallet = WalletImplS (listener: system.listener,
-                                  manager: self,
-                                  unit: unit,
-                                  btc: bwm!)
+            guard let wid = BRWalletManagerGetWallet (bwm)
+                else { print ("SYS: WalletManager: missed BTC primary wallet"); precondition(false) }
 
+            walletImpl = WalletImplS.Impl.bitcoin(wid: wid)
         case .generic:
             break
         }
 
-        precondition (nil != wallet)
+        precondition (nil != walletImpl)
 
-        add (wallet: wallet)
-        return wallet
+        // Find a preexisting wallet (unlikely) or create one.
+        return walletByImplOrCreate (walletImpl!,
+                                     listener: system.listener,
+                                     manager: self,
+                                     unit: unit,
+                                     create: true)!  // Using '!' is okay as `create` is true
     }()
 
+    /// The manager's wallets, unsorted.
     var wallets: [Wallet] = []
 
+    ///
+    /// Add `wallet` to `wallets`.  Will signal WalletEvent.created and
+    /// WalletManagerEvent.walletAdded.  If `wallets` already contains `wallet` then nothing
+    /// is added.
+    ///
+    /// - Parameter wallet: the wallet to add
+    ///
     internal func add (wallet: Wallet) {
         if !wallets.contains(where: { $0 === wallet }) {
+            guard let wallet = wallet as? WalletImplS
+                else { precondition (false); return }
+
             wallets.append (wallet)
-            self.listener?.handleManagerEvent (system: system,
-                                               manager: self,
-                                               event: WalletManagerEvent.walletAdded(wallet: wallet))
+            wallet.announceEvent (WalletEvent.created)
+            announceEvent (WalletManagerEvent.walletAdded(wallet: wallet))
         }
     }
 
+    ///
+    /// Remove `wallet` from `wallets`.  Will signal WalletManagerEvent.walletDeleted adn then
+    //// WalletEvent.deleted.  If `wallets` already contains `wallet` then nothing
+    /// is deleted
+    ///
+    /// - Parameter wallet: the wallet to remove
+    ///
     internal func rem (wallet: Wallet) {
         wallets.firstIndex { $0 === wallet }
             .map {
+                guard let wallet = wallet as? WalletImplS
+                    else { precondition (false); return }
+
+                announceEvent (WalletManagerEvent.walletDeleted (wallet: wallet))
+                wallet.announceEvent (WalletEvent.deleted)
                 wallets.remove(at: $0)
-                self.listener?.handleManagerEvent (system: system,
-                                                   manager: self,
-                                                   event: WalletManagerEvent.walletAdded(wallet: wallet))
         }
     }
 
     internal func upd (wallet: Wallet) {
         if wallets.contains(where: { $0 === wallet }) {
-            self.listener?.handleManagerEvent (system: system,
-                                               manager: self,
-                                               event: WalletManagerEvent.walletChanged(wallet: wallet))
+            announceEvent (WalletManagerEvent.walletChanged(wallet: wallet))
         }
     }
 
-    internal func lookupWallet (eth: BREthereumWallet?) -> WalletImplS? {
-        guard let eth = eth else { return nil }
-        return wallets
-            .filter { $0 is WalletImplS }
-            .first { ($0 as! WalletImplS).impl.matches (eth: eth) } as? WalletImplS
+    ///
+    /// Find a wallet by `impl`
+    ///
+    /// - Parameter impl: the impl
+    /// - Returns: The wallet, if found
+    ///
+    internal func walletBy (impl: WalletImplS.Impl) -> WalletImplS? {
+        return wallets.first {
+            ($0 as? WalletImplS)?.impl.matches (impl) ?? false
+        } as? WalletImplS
     }
 
-    internal func lookupWallet (btc: BRCoreWallet?) -> WalletImplS? {
-        guard let btc = btc else { return nil }
-        return wallets
-            .filter { $0 is WalletImplS }
-            .first { ($0 as! WalletImplS).impl.matches (btc: btc) } as? WalletImplS
+    ///
+    /// Find a wallet by `impl` or, if `create` is `true`, create one.  This will maintain the
+    /// manager <==> wallet constraints (See WalletImplS.init)
+    ///
+    /// - Parameters:
+    ///   - impl: the impl
+    ///   - listener: the listener (if created)
+    ///   - manager: the manager (if created)
+    ///   - unit: the default unit (if created)
+    ///   - create: if not found by `impl`, create one if `true`
+    ///
+    /// - Returns: The wallet
+    ///
+    internal func walletByImplOrCreate (_ impl: WalletImplS.Impl,
+                                        listener: WalletListener?,
+                                        manager: WalletManagerImplS,
+                                        unit: Unit,
+                                        create: Bool = false) -> WalletImplS? {
+        return walletBy (impl: impl) ??
+            (!create
+                ? nil
+                : WalletImplS (listener: listener,
+                               manager: manager,
+                               unit: unit,
+                               impl: impl))
     }
 
+    /// The mode
     public var mode: WalletManagerMode
 
+    /// The path for persistent storage
     public var path: String
 
+    /// The state.  Upon change, generates a WalletManagerEvent.changed event
     public var state: WalletManagerState {
         didSet {
             let newValue = state
-            self.listener?.handleManagerEvent (system: system,
-                                               manager: self,
-                                               event: WalletManagerEvent.changed(oldState: oldValue, newState: newValue))
+            announceEvent (WalletManagerEvent.changed(oldState: oldValue, newState: newValue))
         }
     }
 
-    //    public var walletFactory: WalletFactory = EthereumWalletFactory()
-
+    /// The BlockChainDB for BRD Server Assisted queries.
     internal let query: BlockChainDB
 
     public init (system: System,
@@ -135,6 +181,7 @@ class WalletManagerImplS: WalletManager {
         self.state   = WalletManagerState.created
         self.query   = BlockChainDB()
 
+        self.listener = listener
 
         let system = system as! SystemBase
 
@@ -160,15 +207,21 @@ class WalletManagerImplS: WalletManager {
                                                WalletManagerImplS.modeAsETH (mode),
                                                system.coreEthereumClient,
                                                storagePath)
+
             self.impl = Impl.ethereum (ewm: ewm)
 
         default:
             self.impl = Impl.generic
         }
 
-        listener.handleManagerEvent (system: system,
-                                     manager: self,
-                                     event: WalletManagerEvent.created)
+        print ("SYS: WalletManager (\(name)): Init")
+        system.add(manager: self)
+    }
+
+    internal func announceEvent (_ event: WalletManagerEvent) {
+        self.listener?.handleManagerEvent (system: system,
+                                           manager: self,
+                                           event: event)
     }
 
     public func connect() {
@@ -186,6 +239,13 @@ class WalletManagerImplS: WalletManager {
     }
 
     public func submit (transfer: Transfer) {
+        guard let wallet = transfer.wallet as? WalletImplS,
+            let transfer = transfer as? TransferImplS
+            else { precondition (false) }
+
+        impl.submit (manager: self,
+                     wallet: wallet,
+                     transfer: transfer)
     }
 
     public func sync() {
@@ -233,425 +293,7 @@ class WalletManagerImplS: WalletManager {
         case .p2p_only: return SYNC_MODE_P2P_ONLY
         }
     }
-/*
-    #if false
-    private lazy var coreEthereumClient: BREthereumClient = {
-        let this = self
-        return BREthereumClient (
-            context: Unmanaged<WalletManagerImplS>.passUnretained(this).toOpaque(),
-
-            funcGetBalance: { (context, coreEWM, wid, address, rid) in
-                let this = Unmanaged<WalletManagerImplS>.fromOpaque(context!).takeUnretainedValue()
-                let address = asUTF8String(address!)
-                this.query.getBalanceAsETH (ewm: this.impl.ewm,
-                                            wid: wid!,
-                                            address: address,
-                                            rid: rid) { (wid, balance, rid) in
-                                                ewmAnnounceWalletBalance (this.impl.ewm, wid, balance, rid)
-                }},
-
-            funcGetGasPrice: { (context, coreEWM, wid, rid) in
-                let this = Unmanaged<WalletManagerImplS>.fromOpaque(context!).takeUnretainedValue()
-                this.query.getGasPriceAsETH (ewm: this.impl.ewm,
-                                             wid: wid!,
-                                             rid: rid) { (wid, gasPrice, rid) in
-                                                ewmAnnounceGasPrice (this.impl.ewm, wid, gasPrice, rid)
-                }},
-
-            funcEstimateGas: { (context, coreEWM, wid, tid, from, to, amount, data, rid)  in
-                let this = Unmanaged<WalletManagerImplS>.fromOpaque(context!).takeUnretainedValue()
-                let from = asUTF8String(from!)
-                let to = asUTF8String(to!)
-                let amount = asUTF8String(amount!)
-                let data = asUTF8String(data!)
-                this.query.getGasEstimateAsETH (ewm: this.impl.ewm,
-                                                wid: wid!,
-                                                tid: tid!,
-                                                from: from,
-                                                to: to,
-                                                amount: amount,
-                                                data: data,
-                                                rid: rid) { (wid, tid, gasEstimate, rid) in
-                                                    ewmAnnounceGasEstimate (this.impl.ewm, wid, tid, gasEstimate, rid)
-
-                }},
-
-            funcSubmitTransaction: { (context, coreEWM, wid, tid, transaction, rid)  in
-                let this = Unmanaged<WalletManagerImplS>.fromOpaque(context!).takeUnretainedValue()
-                let transaction = asUTF8String (transaction!)
-                this.query.submitTransactionAsETH (ewm: this.impl.ewm,
-                                                   wid: wid!,
-                                                   tid: tid!,
-                                                   transaction: transaction,
-                                                   rid: rid) { (wid, tid, hash, errorCode, errorMessage, rid) in
-                                                    ewmAnnounceSubmitTransfer (this.impl.ewm,
-                                                                               wid,
-                                                                               tid,
-                                                                               hash,
-                                                                               errorCode,
-                                                                               errorMessage,
-                                                                               rid)
-                }},
-
-            funcGetTransactions: { (context, coreEWM, address, begBlockNumber, endBlockNumber, rid) in
-                let this = Unmanaged<WalletManagerImplS>.fromOpaque(context!).takeUnretainedValue()
-                let address = asUTF8String(address!)
-                this.query.getTransactionsAsETH (ewm: this.impl.ewm,
-                                                 address: address,
-                                                 begBlockNumber: begBlockNumber,
-                                                 endBlockNumber: endBlockNumber,
-                                                 rid: rid,
-                                                 done: { (success: Bool, rid: Int32) in
-                                                    ewmAnnounceTransactionComplete (this.impl.ewm,
-                                                                                    rid,
-                                                                                    (success ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE))
-                },
-                                                 each: { (res: BlockChainDB.ETH.Transaction) in
-                                                    ewmAnnounceTransaction (this.impl.ewm,
-                                                                            res.rid,
-                                                                            res.hash,
-                                                                            res.sourceAddr,
-                                                                            res.targetAddr,
-                                                                            res.contractAddr,
-                                                                            res.amount,
-                                                                            res.gasLimit,
-                                                                            res.gasPrice,
-                                                                            res.data,
-                                                                            res.nonce,
-                                                                            res.gasUsed,
-                                                                            res.blockNumber,
-                                                                            res.blockHash,
-                                                                            res.blockConfirmations,
-                                                                            res.blockTransactionIndex,
-                                                                            res.blockTimestamp,
-                                                                            res.isError)
-                })},
-
-            funcGetLogs: { (context, coreEWM, contract, address, event, begBlockNumber, endBlockNumber, rid) in
-                let this = Unmanaged<WalletManagerImplS>.fromOpaque(context!).takeUnretainedValue()
-                let address = asUTF8String(address!)
-                this.query.getLogsAsETH (ewm: this.impl.ewm,
-                                         address: address,
-                                         begBlockNumber: begBlockNumber,
-                                         endBlockNumber: endBlockNumber,
-                                         rid: rid,
-                                         done: { (success: Bool, rid: Int32) in
-                                            ewmAnnounceLogComplete (this.impl.ewm,
-                                                                    rid,
-                                                                    (success ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE))
-                },
-                                         each: { (res: BlockChainDB.ETH.Log) in
-                                            var cTopics = res.topics.map { UnsafePointer<Int8>(strdup($0)) }
-                                            defer {
-                                                cTopics.forEach { free (UnsafeMutablePointer(mutating: $0)) }
-                                            }
-
-                                            ewmAnnounceLog (this.impl.ewm,
-                                                            res.rid,
-                                                            res.hash,
-                                                            res.contract,
-                                                            Int32(res.topics.count),
-                                                            &cTopics,
-                                                            res.data,
-                                                            res.gasPrice,
-                                                            res.gasUsed,
-                                                            res.logIndex,
-                                                            res.blockNumber,
-                                                            res.blockTransactionIndex,
-                                                            res.blockTimestamp)
-                })},
-
-            funcGetBlocks: { (context, coreEWM, address, interests, blockStart, blockStop, rid) in
-                let this = Unmanaged<WalletManagerImplS>.fromOpaque(context!).takeUnretainedValue()
-                let address = asUTF8String(address!)
-                this.query.getBlocksAsETH (ewm: this.impl.ewm,
-                                           address: address,
-                                           interests: interests,
-                                           blockStart: blockStart,
-                                           blockStop: blockStop,
-                                           rid: rid) { (blocks, rid) in
-                                            ewmAnnounceBlocks (this.impl.ewm, rid,
-                                                               Int32(blocks.count),
-                                                               UnsafeMutablePointer<UInt64>(mutating: blocks))
-                }},
-
-            funcGetTokens: { (context, coreEWM, rid) in
-                let this = Unmanaged<WalletManagerImplS>.fromOpaque(context!).takeUnretainedValue()
-                this.query.getTokensAsETH (ewm: this.impl.ewm,
-                                           rid: rid,
-                                           done: { (success: Bool, rid: Int32) in
-                                            ewmAnnounceTokenComplete (this.impl.ewm,
-                                                                      rid,
-                                                                      (success ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE))
-                },
-                                           each: { (res: BlockChainDB.ETH.Token) in
-                                            ewmAnnounceToken (this.impl.ewm,
-                                                              res.rid,
-                                                              res.address,
-                                                              res.symbol,
-                                                              res.name,
-                                                              res.description,
-                                                              res.decimals,
-                                                              res.defaultGasLimit,
-                                                              res.defaultGasPrice)
-                })},
-
-            funcGetBlockNumber: { (context, coreEWM, rid) in
-                let this = Unmanaged<WalletManagerImplS>.fromOpaque(context!).takeUnretainedValue()
-                this.query.getBlockNumberAsETH (ewm: this.impl.ewm,
-                                                rid: rid) { (number, rid) in
-                                                    ewmAnnounceBlockNumber (this.impl.ewm, number, rid)
-                }},
-
-            funcGetNonce: { (context, coreEWM, address, rid) in
-                let this = Unmanaged<WalletManagerImplS>.fromOpaque(context!).takeUnretainedValue()
-                let address = asUTF8String(address!)
-                this.query.getNonceAsETH (ewm: this.impl.ewm,
-                                          address: address,
-                                          rid: rid) { (address, nonce, rid) in
-                                            ewmAnnounceNonce (this.impl.ewm, address, nonce, rid)
-                }},
-
-            funcEWMEvent: { (context, coreEWM, event, status, message) in
-                let this = Unmanaged<WalletManagerImplS>.fromOpaque(context!).takeUnretainedValue()
-                switch event {
-                case EWM_EVENT_CREATED:
-                    // elsewhere
-                    break
-                case EWM_EVENT_SYNC_STARTED:
-                    this.listener?.handleManagerEvent (system: this.system,
-                                                       manager: this,
-                                                       event: WalletManagerEvent.syncStarted)
-                    break
-                case EWM_EVENT_SYNC_CONTINUES:
-                    break
-                case EWM_EVENT_SYNC_STOPPED:
-                    this.listener?.handleManagerEvent (system: this.system,
-                                                       manager: this,
-                                                       event: WalletManagerEvent.syncEnded (error: message.map { asUTF8String ($0) }))
-                    break
-                case EWM_EVENT_NETWORK_UNAVAILABLE:
-                    // pending
-                    break
-                case EWM_EVENT_DELETED:
-                    // elsewhere
-                    break
-                default:
-                    precondition (false)
-                }},
-
-            funcPeerEvent: { (context, coreEWM, event, status, message) in
-                let this = Unmanaged<WalletManagerImplS>.fromOpaque(context!).takeUnretainedValue()
-                switch event {
-                case PEER_EVENT_CREATED:
-                    break
-                case PEER_EVENT_DELETED:
-                    break
-                default:
-                    precondition (false)
-                }},
-
-            funcWalletEvent: { (context, coreEWM, wid, event, status, message) in
-                let this = Unmanaged<WalletManagerImplS>.fromOpaque(context!).takeUnretainedValue()
-
-                if event == WALLET_EVENT_CREATED, let wid = wid {
-                    print ("Wallet Created")
-                    let currency = ewmWalletGetToken (coreEWM, wid)
-                        .flatMap { this.network.currencyBy (code: asUTF8String (tokenGetSymbol ($0))) }
-                        ?? this.network.currency
-
-                    let wallet = WalletImplS (listener: this.system.listener,
-                                              manager: this,
-                                              unit: this.network.defaultUnitFor (currency: currency)!,
-                                              eth: wid)
-
-                    this.add (wallet: wallet)
-                }
-
-                if let wallet = this.lookupWallet (eth: wid) {
-                    switch event {
-                    case WALLET_EVENT_CREATED:
-                        break
-                    case WALLET_EVENT_BALANCE_UPDATED:
-                        wallet.upd (balance: wallet.balance)
-
-                    case WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED,
-                         WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED:
-                        wallet.updateDefaultFeeBasis ()
-
-                    case WALLET_EVENT_DELETED:
-                        break
-
-                    default:
-                        precondition (false)
-                    }
-                }},
-
-            funcTokenEvent: { (context, coreEWM, token, event) in
-                let this = Unmanaged<WalletManagerImplS>.fromOpaque(context!).takeUnretainedValue()
-                switch event {
-                case TOKEN_EVENT_CREATED:
-                    break
-                case TOKEN_EVENT_DELETED:
-                    break
-                default:
-                    precondition (false)
-                }},
-
-            //            funcBlockEvent: { (context, coreEWM, bid, event, status, message) in
-            //                if let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-            //                    //                    ewm.listener.handleBlockEvent(ewm: ewm,
-            //                    //                                                 block: ewm.findBlock(identifier: bid),
-            //                    //                                                 event: EthereumBlockEvent (event))
-            //                }},
-
-            funcTransferEvent: { (context, coreEWM, wid, tid, event, status, message) in
-                let this = Unmanaged<WalletManagerImplS>.fromOpaque(context!).takeUnretainedValue()
-                if let wallet = this.lookupWallet (eth: wid) {
-
-                    if TRANSFER_EVENT_CREATED == event, let tid = tid {
-                        print ("Transfer Created")
-                        let transfer = TransferImplS (listener: this.system.listener,
-                                                      wallet: wallet,
-                                                      unit: wallet.unit,
-                                                      eth: tid)
-                        wallet.add (transfer: transfer)
-                    }
-
-                    if let transfer = wallet.lookupTransfer (eth: tid) as? TransferImplS {
-                        switch event {
-                        case TRANSFER_EVENT_CREATED:
-                            break
-
-                        case TRANSFER_EVENT_SIGNED:
-                            transfer.state = TransferState.signed
-
-                        case TRANSFER_EVENT_SUBMITTED:
-                            transfer.state = TransferState.submitted
-
-                        case TRANSFER_EVENT_INCLUDED:
-                            var overflow: Int32 = 0
-                            let ether = ewmTransferGetFee (coreEWM, tid, &overflow)
-                            let confirmation = TransferConfirmation (
-                                blockNumber: ewmTransferGetBlockNumber (coreEWM, tid),
-                                transactionIndex: ewmTransferGetTransactionIndex (coreEWM, tid),
-                                timestamp: ewmTransferGetBlockTimestamp (coreEWM, tid),
-                                fee: Amount.createAsETH (ether.valueInWEI, this.unit))
-
-                            transfer.state = TransferState.included(confirmation: confirmation)
-
-
-                        case TRANSFER_EVENT_ERRORED:
-                            transfer.state = TransferState.failed (reason: message.flatMap { asUTF8String ($0) } ?? "<missing>")
-
-                        case TRANSFER_EVENT_GAS_ESTIMATE_UPDATED:
-                            break
-                        case TRANSFER_EVENT_BLOCK_CONFIRMATIONS_UPDATED:
-                            break
-                        case TRANSFER_EVENT_DELETED:
-                            break
-                        default:
-                            precondition (false)
-                        }}
-                }})
-    }()
-
-    private lazy var coreBitcoinClient: BRWalletManagerClient = {
-        let this = self
-        return BRWalletManagerClient (
-            context: Unmanaged<WalletManagerImplS>.passUnretained(this).toOpaque(),
-            funcTransactionEvent: { (context, bid, wid, tid, event) in
-                let this = Unmanaged<WalletManagerImplS>.fromOpaque(context!).takeUnretainedValue()
-                if let wallet = this.lookupWallet (btc: wid) {
-
-                    if event.type == BITCOIN_TRANSACTION_ADDED, let tid = tid {
-                        print ("Bitcoin: Transfer Created")
-                        let transfer = TransferImplS (listener: this.system.listener,
-                                                      wallet: wallet,
-                                                      unit: wallet.unit,
-                                                      btc: tid)
-                    }
-
-                    if let transfer = wallet.lookupTransfer (btc: tid) as? TransferImplS {
-                        switch event.type {
-                        case BITCOIN_TRANSACTION_ADDED:
-                            break
-                        case BITCOIN_TRANSACTION_UPDATED:
-                            let confirmation = TransferConfirmation (
-                                blockNumber: UInt64(event.u.updated.blockHeight),
-                                transactionIndex: 0,
-                                timestamp: UInt64(event.u.updated.timestamp),
-                                fee: Amount.createAsBTC (0, this.unit))
-
-                            transfer.state = TransferState.included (confirmation: confirmation)
-
-                        case BITCOIN_TRANSACTION_DELETED:
-                            break
-                        default:
-                            precondition(false)
-                        }}
-                }},
-
-            funcWalletEvent: { (context, bid, wid, event) in
-                let this = Unmanaged<WalletManagerImplS>.fromOpaque(context!).takeUnretainedValue()
-
-                if event.type == BITCOIN_WALLET_CREATED, let wid = wid {
-                    let wallet = WalletImplS (listener: this.system.listener,
-                                              manager: this,
-                                              unit: this.network.defaultUnitFor(currency: this.network.currency)!,
-                                              btc: wid)
-                    this.add (wallet: wallet)
-                }
-
-                if let wallet = this.lookupWallet (btc: wid) {
-                    switch event.type {
-                    case BITCOIN_WALLET_CREATED:
-                        break
-
-                    case BITCOIN_WALLET_BALANCE_UPDATED:
-                        wallet.upd (balance: wallet.balance)
-
-                    case BITCOIN_WALLET_DELETED:
-                        break
-
-                    default:
-                        precondition(false)
-                    }
-                }},
-
-            funcWalletManagerEvent: { (context, bid, event) in
-                let this = Unmanaged<WalletManagerImplS>.fromOpaque(context!).takeUnretainedValue()
-                switch event.type {
-                case BITCOIN_WALLET_MANAGER_CONNECTED:
-                    this.state = WalletManagerState.connected
-
-                case BITCOIN_WALLET_MANAGER_DISCONNECTED:
-                    this.state = WalletManagerState.disconnected
-
-                case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
-                    this.state = WalletManagerState.syncing
-
-                    // not so much...
-                    this.listener?.handleManagerEvent (system: this.system,
-                                                       manager: this,
-                                                       event: WalletManagerEvent.syncStarted)
-
-                case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
-                    this.state = WalletManagerState.connected
-
-                    // not so much either ...
-                    this.listener?.handleManagerEvent (system: this.system,
-                                                       manager: this,
-                                                       event: WalletManagerEvent.syncEnded(error: nil))
-
-                default:
-                    precondition(false)
-                }
-        })
-    }()
-
-    #endif
-*/
+    
     enum Impl {
         case bitcoin (mid: BRCoreWalletManager)
         case ethereum (ewm: BREthereumEWM)
@@ -670,6 +312,17 @@ class WalletManagerImplS: WalletManager {
             case .bitcoin (let mid): return mid
             case .ethereum: return nil
             case .generic: return nil
+            }
+        }
+
+        internal func matches (_ that: Impl) -> Bool {
+            switch (self, that) {
+            case (let .bitcoin (bwm1), let .bitcoin (bwm2)):
+                return bwm1 == bwm2
+            case (let .ethereum (ewm1), let .ethereum (ewm2)):
+                return ewm1 == ewm2
+            default:
+                return false
             }
         }
 
@@ -708,14 +361,10 @@ class WalletManagerImplS: WalletManager {
         internal func sign (paperKey: String, wallet: WalletImplS, transfer: TransferImplS) {
             switch self {
             case let .ethereum (ewm):
-//                guard let wallet = primaryWallet as? WalletImplS,
-//                    let transfer = transfer as? TransferImplS else { precondition(false); return }
                 ewmWalletSignTransferWithPaperKey(ewm, wallet.impl.eth, transfer.impl.eth, paperKey)
 
             case let .bitcoin (mid):
-//                guard let transfer = transfer as? TransferImplS else { precondition(false); return }
-
-                let coreWallet      = BRWalletManagerGetWallet      (mid)
+                let coreWallet  = BRWalletManagerGetWallet      (mid)
 
                 var seed = Account.deriveSeed (phrase: paperKey)
                 BRWalletSignTransaction (coreWallet, transfer.impl.btc, &seed, MemoryLayout<UInt512>.size)
@@ -729,13 +378,9 @@ class WalletManagerImplS: WalletManager {
         internal func submit (manager: WalletManagerImplS, wallet: WalletImplS, transfer: TransferImplS) {
             switch self {
             case let .ethereum (ewm):
-//                guard let wallet = primaryWallet as? WalletImplS,
-//                    let transfer = transfer as? TransferImplS else { precondition(false); return }
                 ewmWalletSubmitTransfer (ewm, wallet.impl.eth, transfer.impl.eth)
 
             case let .bitcoin (mid):
-//                guard let transfer = transfer as? TransferImplS else { precondition(false); return }
-
                 let corePeerManager = BRWalletManagerGetPeerManager (mid)
 
                 let  closure = CLangClosure { (error: Int32) in
@@ -761,7 +406,6 @@ class WalletManagerImplS: WalletManager {
             case .generic:
                 break
             }
-
         }
     }
 }

@@ -442,6 +442,15 @@ BRWalletManagerNew (BRWalletManagerClient client,
     const char *currencyName = getCurrencyName (params);
     //    manager->walletForkId = fork;
 
+    {
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+
+        pthread_mutex_init(&bwm->lock, &attr);
+        pthread_mutexattr_destroy(&attr);
+    }
+
     // Initialize the `brdSync` struct
     bwm->brdSync.rid = -1;
     bwm->brdSync.begBlockNumber = 0;

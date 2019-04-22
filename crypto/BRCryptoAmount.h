@@ -50,6 +50,11 @@ extern "C" {
     cryptoAmountCreateInteger (int64_t value,
                                BRCryptoUnit unit);
 
+    extern BRCryptoAmount
+    cryptoAmountCreateString (const char *value,
+                              BRCryptoBoolean isNegative,
+                              BRCryptoUnit unit);
+    
     extern BRCryptoCurrency
     cryptoAmountGetCurrency (BRCryptoAmount amount);
     

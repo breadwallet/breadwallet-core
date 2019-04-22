@@ -13,6 +13,7 @@
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
+#include <errno.h>
 #include "support/BRAssert.h"
 #include "BRUtil.h"
 
@@ -180,11 +181,14 @@ parseUInt64 (const char *string, int digits, int base) {
     assert (digits <= maxDigits );
     
     //
-    char number[1 + maxDigits];
+    char number[1 + maxDigits], *numberEnd;
     strncpy (number, string, maxDigits);
     number[maxDigits] = '\0';
-    
-    uint64_t value = strtoull (number, NULL, base);
+
+    errno = 0;
+    uint64_t value = strtoull (number, &numberEnd, base);
+    if (0 == errno && number != numberEnd && '\0' != numberEnd[0])
+        errno = EINVAL;
     return createUInt256 (value);
 }
 
@@ -209,6 +213,11 @@ createUInt256Parse (const char *string, int base, BRCoreParseStatus *status) {
     // Strip leading '0's
     while ('0' == *string) string++;
 
+    if ('\0' != *string && ('-' == *string || '+' == *string)) {
+        *status = CORE_PARSE_STRANGE_DIGITS;
+        return UINT256_ZERO;
+    }
+    
     UInt256 value = UINT256_ZERO;
     int maxDigits = parseMaximumDigitsForUInt256InBase(base);
     long length = strlen (string);
@@ -226,8 +235,13 @@ createUInt256Parse (const char *string, int base, BRCoreParseStatus *status) {
     // Eventually, when `parseUInt64()` calls `strtoull` we'll still be using big endian.
     for (long index = 0; index < length; index += stringChunks) {
         // On the first time through, get an initial value
-        if (index == 0)
+        if (index == 0) {
             value = parseUInt64(string, stringChunks, base);
+            if (errno != 0) {
+                *status = CORE_PARSE_STRANGE_DIGITS;
+                return UINT256_ZERO;
+            }
+        }
         
         // Otherwise, we'll scale value and add in the next chunk.
         else {

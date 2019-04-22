@@ -50,11 +50,12 @@ createUInt256Power2 (uint8_t power);
 
 /**
  * Create from a string in the provided base.  The string must consist of only characters
- * in the base.  That is, avoid the '0x' prefix.  No decimal points; this is an integer parse.
+ * in the base and optionally the '0x' prefix.  No decimal points; this is an integer parse.  There
+ * must not be a sign of either '-' or '+'; this is an unsigned integer parse.
  *
  * The string must be in big-endian format, always.  Generally this is only an issue for hex
- * (and perhaps) binary strings.  That is, for decimal strings you would expect "12.3" to some
- * who wind up with the number 3.21.  But for 0x0102, maybe not so clear.
+ * (and perhaps) binary strings.  That is, for decimal strings you would not expect "12.3" to some
+ * how wind up with the number 3.21.  But for 0x0102, maybe not so clear.
  *
  * @param number - an integer value expressed in `base` in big-endian format.
  * @param base - must only be one of 2, 10, or 16.
