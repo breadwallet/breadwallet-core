@@ -72,6 +72,7 @@ public final class SystemBase: System {
             switch manager.currency.code {
             case Currency.codeAsETH:
                 if let ewm = manager.impl.ewm {
+                    ewmLock(ewm); defer { ewmUnlock(ewm) }
                     ewmUpdateTokens(ewm)
                 }
                 break

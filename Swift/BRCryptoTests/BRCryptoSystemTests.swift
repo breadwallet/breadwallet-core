@@ -105,10 +105,10 @@ class BRCryptoSystemTests: BRCryptoBaseTests {
     func testSystem() {
         let listener = TestListener ()
 
-        let sys = SystemBase (listener: listener,
-                              account: account,
-                              path: storagePath,
-                              query: BlockChainDB())
+        let sys = SystemBase.create (listener: listener,
+                                     account: account,
+                                     path: storagePath,
+                                     query: BlockChainDB())
 
         sys.start (networksNeeded: ["bitcoin-mainnet", "ethereum-mainnet"]);
         sleep(10)
