@@ -124,7 +124,6 @@ int add_uint32(uint32_t i, uint8_t* buffer) {
 
 int add_uint64(uint64_t i, uint8_t* buffer)
 {
-    i = i | 0x4000000000000000;
     buffer[0] = (i >> 56);
     buffer[1] = (i >> 48) & 0xff;
     buffer[2] = (i >> 40) & 0xff;
@@ -136,12 +135,18 @@ int add_uint64(uint64_t i, uint8_t* buffer)
     return 8;
 }
 
+int add_amount(uint64_t amount, uint8_t* buffer)
+{
+    // The only amount type we support at the moment is XRP.
+    // the most significant bit is always 0 to indicate that it's XRP
+    // and the second-most-significant bit is 1 to indicate that it is positive
+    amount = amount | 0x4000000000000000;
+    return add_uint64(amount, buffer);
+}
+
 int add_raw(uint8_t* raw, int length, uint8_t* buffer)
 {
     memcpy(buffer, raw, length);
-    //for (int i = 0; i < length; i++) {
-    //    buffer[i] = raw[i];
-    //}
     return length;
 }
 
@@ -182,7 +187,7 @@ int add_content(BRRippleField *field, uint8_t *buffer)
             return(add_uint32(field->data.i32, buffer));
             break;
         case 6:
-            return(add_uint64(field->data.i64, buffer));
+            return(add_amount(field->data.i64, buffer));
             break;
         case 8:
             assert(field->fieldCode == 1 || field->fieldCode == 3);
