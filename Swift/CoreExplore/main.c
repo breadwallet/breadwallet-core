@@ -292,13 +292,44 @@ handleWalletAddrs (void) {
     BRWalletUnusedAddrs (wallet, addrs1, WALLET_GAP, 0);
     BRWalletUnusedAddrs (wallet, addrs2, WALLET_GAP, 0);
 
-    int diff = memcmp (&addrs1[0], &addrs2[0], sizeof (addrs1));
-    assert (0 == memcmp (addrs1, addrs2, sizeof (addrs1)));
+    for (size_t index = 0; index < WALLET_GAP; index++)
+        assert (0 == strcmp (addrs1[index].s, addrs2[index].s));
+
+    int diff = memcmp (addrs1[0].s, addrs2[0].s, sizeof (BRAddress));
+//    assert (0 == memcmp (addrs1, addrs2, sizeof (addrs1)));
 }
 
 //
 //
 //
+//
+// String from HexEncoding
+//
+static void
+handleStringFromHex (const char *hex) {
+    if (0 == strncmp (hex, "0x", 2))
+        hex += 2;
+
+    size_t   bytesCount;
+    uint8_t *bytes = decodeHexCreate(&bytesCount, hex, strlen(hex));
+
+    char string[bytesCount + 1];
+    for (size_t index = 0; index < bytesCount; index++)
+        string[index] = (char) bytes[index];
+    string[bytesCount] = '\0';
+
+    printf ("Hex : %s\nChar: %s\n", hex, string);
+}
+
+static void
+handleAddressFromString (const char *hex, BRRlpCoder coder) {
+    BREthereumAddress address = addressCreate(hex);
+
+    BRRlpItem item = addressRlpEncode(address, coder);
+    rlpShowItem(coder, item, "ADDR");
+    rlpReleaseItem(coder, item);
+}
+
 int main(int argc, const char * argv[]) {
     BRRlpCoder coder = rlpCoderCreate();
 
@@ -352,6 +383,12 @@ int main(int argc, const char * argv[]) {
     handleWalletAddrs();
 #endif
 
+
+#if 0
+    handleStringFromHex("0x696e73756666696369656e742066756e647320666f7220676173202a207072696365202b2076616c7565");
+    handleAddressFromString("0x0AbdAce70D3790235af448C88547603b945604ea", coder);
+
+#endif
     rlpCoderRelease(coder);
     return 0;
 }
