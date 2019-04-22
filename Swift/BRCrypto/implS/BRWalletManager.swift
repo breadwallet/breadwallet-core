@@ -214,7 +214,7 @@ class WalletManagerImplS: WalletManager {
             self.impl = Impl.generic
         }
 
-        print ("SYS: WalletManager: Init")
+        print ("SYS: WalletManager (\(name)): Init")
         system.add(manager: self)
     }
 

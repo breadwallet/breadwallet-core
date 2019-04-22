@@ -138,7 +138,12 @@ public class BlockChainDB {
 
             (id: "BRD Token", name: "BRD Token", code: "BRD", type: "erc20", blockchainID: "ethereum-mainnet", address: BlockChainDB.addressBRDMainnet,
              demoninations: [(name: "BRD_INTEGER",   code: "BRDI",  decimals:  0, symbol: "brdi"),
-                             (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")])
+                             (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")]),
+
+
+            (id: "EOS Token", name: "EOS Token", code: "EOS", type: "erc20", blockchainID: "ethereum-mainnet", address: "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0",
+             demoninations: [(name: "EOS_INTEGER",   code: "EOSI",  decimals:  0, symbol: "eosi"),
+                             (name: "EOS",           code: "EOS",   decimals: 18, symbol: "eos")])
         ]
 
         /// Transfer
@@ -769,6 +774,8 @@ public class BlockChainDB {
                                 rid: Int32,
                                 done: @escaping (Bool, Int32) -> Void,
                                 each: @escaping (ETH.Token) -> Void) {
+        // Everything returned by BRD must/absolutely-must be in BlockChainDB currencies.  Thus,
+        // when stubbed, so too must these.
         queue.async {
             each ((address: "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6",
                    symbol: "BRD",

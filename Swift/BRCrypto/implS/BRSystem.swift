@@ -595,11 +595,16 @@ public final class SystemBase: System {
                 guard let manager  = system.managerBy(impl: WalletManagerImplS.Impl.ethereum(ewm: eid))
                     else { print ("SYS: ETH: Wallet: \(event): Missed {manager, wallet}"); return }
 
-                // Assume `wid` corresponds to a token; if it does't,  use the network's currency.
-               let currency = ewmWalletGetToken (coreEWM, wid)
-                    .flatMap ({ manager.network.currencyBy (code: asUTF8String (tokenGetSymbol ($0))) }) ?? manager.network.currency
+                // We absolutely must have a currency for every `WID`.  Said another way, of course
+                // ETH, but also every TOKEN must have a currency.
 
-                let unit = manager.network.defaultUnitFor (currency: currency)!
+                // Get the token's symbol or ETH
+                let code = ewmWalletGetToken (eid, wid)
+                    .flatMap { asUTF8String (tokenGetSymbol ($0)) } ?? manager.network.currency.code
+
+                guard let currency = manager.network.currencyBy (code: code),
+                    let unit = manager.network.defaultUnitFor (currency: currency)
+                    else { print ("SYS: ETH: Wallet: \(event): precondition {currency, unit}"); precondition (false) }
 
                 guard let wallet = manager.walletByImplOrCreate (WalletImplS.Impl.ethereum(ewm: eid, core: wid),
                                                                  listener: system.listener,
@@ -613,6 +618,7 @@ public final class SystemBase: System {
                 switch event {
                 case WALLET_EVENT_CREATED:
                     break
+
                 case WALLET_EVENT_BALANCE_UPDATED:
                     wallet.upd (balance: wallet.balance)
 
@@ -635,6 +641,7 @@ public final class SystemBase: System {
 
                 let name = asUTF8String (tokenGetSymbol (token))
 
+                #if ETH_TOKEN_HANDLE_EVENTS
                 // We get token events for Ethereum ERC20 tokens of interest.  This will be a
                 // massive subset of all known ERC20 tokens.  So, create a wallet immediately.
 
@@ -650,17 +657,20 @@ public final class SystemBase: System {
                                                                  unit: unit,
                                                                  create: event == TOKEN_EVENT_CREATED)
                     else { print ("SYS: ETH: Token (\(name)): \(event): Missed {wallet}"); return }
+                #endif
 
-                print ("SYS: ETH: Token (\(wallet.name)): \(event)")
+                print ("SYS: ETH: Token (\(name)): \(event)")
                 switch event {
                 case TOKEN_EVENT_CREATED:
                     // We don't create a wallet here... although perhaps we should.  Core knows
                     // about the token; a wallet will be created if/when a transfer for this
                     // token occurs.
                     break
+
                 case TOKEN_EVENT_DELETED:
                     // TODO:
                     break
+                    
                 default:
                     precondition (false)
                 }},

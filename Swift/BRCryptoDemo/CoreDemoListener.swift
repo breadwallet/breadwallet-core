@@ -42,7 +42,7 @@ class CoreDemoListener: SystemListener {
     }
 
     func handleManagerEvent(system: System, manager: WalletManager, event: WalletManagerEvent) {
-        print ("APP: Manager: \(event)")
+        print ("APP: Manager (\(manager.name)): \(event)")
         switch event {
         case .created:
             break
@@ -66,7 +66,7 @@ class CoreDemoListener: SystemListener {
     }
 
     func handleWalletEvent(system: System, manager: WalletManager, wallet: Wallet, event: WalletEvent) {
-        print ("APP: Wallet: \(event)")
+        print ("APP: Wallet (\(manager.name):\(wallet.name)): \(event)")
         walletListeners.forEach {
             $0.handleWalletEvent (system: system,
                                   manager: manager,
@@ -76,7 +76,7 @@ class CoreDemoListener: SystemListener {
     }
 
     func handleTransferEvent(system: System, manager: WalletManager, wallet: Wallet, transfer: Transfer, event: TransferEvent) {
-        print ("APP: Transfer: \(event)")
+        print ("APP: Transfer (\(manager.name):\(wallet.name)): \(event)")
         transferListeners.forEach {
             $0.handleTransferEvent (system: system,
                                     manager: manager,

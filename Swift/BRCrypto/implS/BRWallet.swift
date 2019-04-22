@@ -167,7 +167,7 @@ class WalletImplS: Wallet {
         self.impl = impl
         self.defaultFeeBasis = impl.defaultFeeBasis(in: feeUnit)
 
-        print ("SYS: Wallet: Init")
+        print ("SYS: Wallet (\(manager.name):\(name)): Init")
         manager.add (wallet: self)
      }
 
