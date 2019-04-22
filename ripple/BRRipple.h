@@ -12,100 +12,141 @@
 #define BRRipple_h
 
 #include <stdint.h>
+#include "BRRippleBase.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-    //
-    // Transaction
-    //
-    typedef struct BRRippleTransactionRecord *BRRippleTransaction;
+// Forward declarations
+typedef struct BRRippleTransactionRecord *BRRippleTransaction;
+typedef struct BRRippleSerializedTransactionRecord *BRRippleSerializedTransaction;
 
-    extern BRRippleTransaction
-    rippleTransactionCreate (void /* TBD */);
+/**
+ * Create a Ripple transaction
+ *
+ * NOTE: for this first iteration the only transaction type supported
+ * is a Payment, in XRP only. The payment only supports the required fields.
+ *
+ * @param  sourceAddress  Ripple address of owner account
+ * @param  targetAddress  Ripple address of recieving account
+ * @param  txType         Ripple transaction type (only supporing PAYMENT for now)
+ * @param  amount         XRP drop amount to be sent
+ * @param  sequence       Next valid sequence number for the owner account
+ * @param  fee            XRP fee in drops
+ *
+ * @return transaction    a ripple transaction
+ */
+extern BRRippleTransaction
+rippleTransactionCreate(BRRippleAddress sourceAddress,
+                        BRRippleAddress targetAddress,
+                        BRRippleTransactionType txType,
+                        uint64_t amount, // For now assume XRP drops.
+                        uint32_t sequence,
+                        uint64_t fee);
 
-    /**
-     * Serialize a Ripple transaction (in a form suitable signing)
-     *
-     * @param transaction the transaction to serialize
-     */
-    extern void /* ?? uint8_t * ?? */
-    rippleTransactionSerialize /* ForSigning */ (BRRippleTransaction transaction);
+/**
+ * Delete a Ripple transaction
+ *
+ * @param transaction  BRRippleTransaction
+ */
+extern void deleteRippleTransaction(BRRippleTransaction transaction);
 
-    // Some other function to 'attach a signature' and then serialize the transaction +
-    // signature for submission?
-    
-    //
-    // Account
-    //
-    typedef struct BRRippleAccountRecord *BRRippleAccount;
+/**
+ * Serialize a Ripple transaction (in a form suitable signing)
+ *
+ * @param transaction the transaction to serialize
+ */
+extern BRRippleSerializedTransaction
+rippleTransactionSerialize /* ForSigning */ (BRRippleTransaction transaction);
 
+/**
+ * Get the size of a serialized transaction
+ *
+ * @param  s     serialized transaction
+ * @return size
+ */
+extern uint32_t getSerializedSize(BRRippleSerializedTransaction s);
+/**
+ * Get the raw bytes of a serialized transaction
+ *
+ * @param  s     serialized transaction
+ * @return bytes uint8_t
+ */
+extern uint8_t* getSerializedBytes(BRRippleSerializedTransaction s);
 
-    /**
-     * Create a Ripple account for the `paperKey`.  The account *must never* hold the privateKey
-     * derived from the paperKey; but likely must hold some publicKey.
-     *
-     * @param paperKey
-     *
-     * @return An account for `paperKey`
-     */
-    extern BRRippleAccount
-    rippleAccountCreate (const char *paperKey);
-
-    /**
-     * Get the account's primary address
-     *
-     * @param account the account
-     */
-    extern void /* ?? const char * ?? */
-    rippleAccountGetPrimaryAddress (BRRippleAccount account);
-
-    /**
-     * Sign `bytes` for `account` with `paperKey`
-     *
-     * @param account the account to sign with
-     * @param bytes bytes to sign
-     * @param bytesCount the count of bytes to sign
-     * @param paperKey the paperKey for signing
-     */
-    extern void /* ?? signature ?? */
-    rippleAccountSignBytes (BRRippleAccount account,
-                            /* address */
-                            /* signature type */
-                            uint8_t *bytes,
-                            size_t bytesCount,
-                            const char *paperKey);
-
-    //
-    // Wallet
-    //
-    typedef struct BRRippleWalletRecord *BRRippleWallet;
-
-    extern BRRippleWallet
-    rippleWalletCreate (BRRippleAccount account);
+// Some other function to 'attach a signature' and then serialize the transaction +
+// signature for submission?
+//
+// Account
+//
+typedef struct BRRippleAccountRecord *BRRippleAccount;
 
 
-    /**
-     * Return an address suitable for sending Ripple.  Depending on the nature of Ripple this
-     * might just be the account's primary address or this might be different every time a
-     * source address is requested.
-     *
-     * @param wallet the walelt for source address
-     */
-    extern void /* ?? const char * ?? */
-    rippleWalletGetSourceAddress (BRRippleWallet wallet);
+/**
+ * Create a Ripple account for the `paperKey`.  The account *must never* hold the privateKey
+ * derived from the paperKey; but likely must hold some publicKey.
+ *
+ * @param paperKey
+ *
+ * @return An account for `paperKey`
+ */
+extern BRRippleAccount
+rippleAccountCreate (const char *paperKey);
+
+/**
+ * Get the account's primary address
+ *
+ * @param account the account
+ */
+extern void /* ?? const char * ?? */
+rippleAccountGetPrimaryAddress (BRRippleAccount account);
+
+/**
+ * Sign `bytes` for `account` with `paperKey`
+ *
+ * @param account the account to sign with
+ * @param bytes bytes to sign
+ * @param bytesCount the count of bytes to sign
+ * @param paperKey the paperKey for signing
+ */
+extern void /* ?? signature ?? */
+rippleAccountSignBytes (BRRippleAccount account,
+                        /* address */
+                        /* signature type */
+                        uint8_t *bytes,
+                        size_t bytesCount,
+                        const char *paperKey);
+
+//
+// Wallet
+//
+typedef struct BRRippleWalletRecord *BRRippleWallet;
+
+extern BRRippleWallet
+rippleWalletCreate (BRRippleAccount account);
 
 
-    /**
-     * Return an address suitable for receiving Ripple  Depending on the nature of Ripple this
-     * might just be the accounts' primary address or this might be different every time a
-     * target address is requested.
-     *
-     * @param wallet the wallet for target address
-     */
-    extern void /* ?? const char * ?? */
-    rippleWalletGetTargetAddress (BRRippleWallet wallet);
+/**
+ * Return an address suitable for sending Ripple.  Depending on the nature of Ripple this
+ * might just be the account's primary address or this might be different every time a
+ * source address is requested.
+ *
+ * @param wallet the walelt for source address
+ */
+extern void /* ?? const char * ?? */
+rippleWalletGetSourceAddress (BRRippleWallet wallet);
+
+
+/**
+ * Return an address suitable for receiving Ripple  Depending on the nature of Ripple this
+ * might just be the accounts' primary address or this might be different every time a
+ * target address is requested.
+ *
+ * @param wallet the wallet for target address
+ */
+extern void /* ?? const char * ?? */
+rippleWalletGetTargetAddress (BRRippleWallet wallet);
 
 #ifdef __cplusplus
 }
