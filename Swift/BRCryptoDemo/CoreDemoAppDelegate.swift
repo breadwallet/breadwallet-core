@@ -73,7 +73,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
             print("Error: \(error.localizedDescription)")
         }
 
-        NSLog ("App: StoragePath: \(storagePath)");
+        print ("APP: StoragePath: \(storagePath)");
 
         // Create the listener
         let listener = CoreDemoListener ()
@@ -88,30 +88,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
                                          path: storagePath,
                                          query: query)
 
-//        self.btcManager = BitcoinWalletManager (listener: listener,
-//                                                account: account,
-//                                                network: Bitcoin.Networks.testnet,
-//                                                mode: WalletManagerMode.p2p_only,
-//                                                timestamp: timestamp,
-//                                                storagePath: storagePath)
-//
-//        self.bchManager = BitcoinWalletManager (listener: listener,
-//                                                account: account,
-//                                                network: Bitcash.Networks.testnet,
-//                                                mode: WalletManagerMode.p2p_only,
-//                                                timestamp: timestamp,
-//                                                storagePath: storagePath)
-//
-//        self.ethManager = EthereumWalletManager (listener: listener,
-//                                                 account: account,
-//                                                 network: Ethereum.Networks.mainnet,
-//                                                 mode: WalletManagerMode.p2p_only, //  api_with_p2p_submit,
-//                                                 timestamp: 0,
-//                                                 storagePath: storagePath)
-
- //       UIApplication.sharedListener.addWalletListener(listener: summaryController)
-
-        self.system.start (networksNeeded: ["bitcoin-mainnet", "ethereum-mainnet"]);
+        self.system.start (networksNeeded: ["bitcoin-mainnet","ethereum-mainnet"])
 
         return true
     }
@@ -165,16 +142,16 @@ extension UIApplication {
 
     static func sync () {
         guard let app = UIApplication.shared.delegate as? CoreDemoAppDelegate else { return }
-        NSLog ("App: Syncing")
+        print ("APP: Syncing")
         app.system.managers.forEach { $0.sync() }
     }
 
     static func sleep() {
         guard let app = UIApplication.shared.delegate as? CoreDemoAppDelegate else { return }
-        NSLog ("App: Disconnecting")
+        print ("APP: Disconnecting")
         app.system.managers.forEach { $0.disconnect() }
         DispatchQueue.main.asyncAfter(deadline: .now() + 15.0) {
-            NSLog ("App: Connecting")
+            print ("APP: Connecting")
             app.system.managers.forEach { $0.connect() }
         }
     }

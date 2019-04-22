@@ -157,3 +157,14 @@ extension Result {
         }
     }
 }
+
+extension Array {
+    public func unionOf<ID: Equatable> (_ that: [Iterator.Element], using toIdentifier: (Iterator.Element) -> ID) -> [Iterator.Element] {
+        return self.reduce (that) { (result, element) -> [Iterator.Element] in
+            let elementId = toIdentifier (element)
+            return result.contains { toIdentifier($0) == elementId }
+                ? result
+                : (result + [element])
+        }
+    }
+}

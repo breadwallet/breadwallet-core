@@ -29,7 +29,21 @@ fileprivate struct BitcoinSegwitAddressScheme: AddressScheme {
 // ==================
 
 
-
+///
+/// Implementaton (in Swift) of Transfer
+///
+/// A Transfer can be created in one of two ways - User initiated or Sync initiated.  When the
+/// transfer is sync initiated the underlying C code will callback with the details and the handler
+/// must construct a transfer.  For a User initiated we endeavor to use the same flow; therefore,
+/// we create the specific type of C entity and wait for the callback to construct the Transfer
+/// itself.
+///
+/// This class is defined recursively with `Wallet`.  The implementation is careful to ensure that
+/// the constraints between Transfer and Wallet are maintained - particularly in the announcement
+/// of Transfer.created and Wallet.transferAdded.
+///
+/// An alternate implementation in C would use BRCryptoTransfer (as `TransferImplC`)
+///
 class TransferImplS: Transfer {
     internal private(set) weak var listener: TransferListener?
 
@@ -71,12 +85,8 @@ class TransferImplS: Transfer {
     public internal(set) var state: TransferState {
         didSet {
             let newValue = state
-            listener?.handleTransferEvent (system: wallet.manager.system,
-                                           manager: wallet.manager,
-                                           wallet: wallet,
-                                           transfer: self,
-                                           event: TransferEvent.changed (old: oldValue,
-                                                                         new: newValue))
+            announceEvent (TransferEvent.changed (old: oldValue,
+                                                  new: newValue))
         }
     }
 
@@ -88,46 +98,47 @@ class TransferImplS: Transfer {
     internal init (listener: TransferListener?,
                    wallet: WalletImplS,
                    unit: Unit,
-                   eth: BREthereumTransfer) {
+                   impl: Impl) {
+        let feeUnit = wallet.manager.network.baseUnitFor(currency: wallet.manager.currency)!
+
         self.listener = listener
         self.wallet = wallet
         self.unit = unit
         self.state = TransferState.created
-        self.impl = Impl.ethereum (ewm:wallet.impl.ewm, core: eth)
+        self.impl = impl
+        self.feeBasis = impl.feeBasis(in: feeUnit)
 
-        let gasUnit = wallet.manager.network.baseUnitFor(currency: wallet.manager.currency)!
-        let gasPrice = Amount.createAsETH(createUInt256 (0), gasUnit)
-        self.feeBasis = TransferFeeBasis.ethereum (gasPrice: gasPrice, gasLimit: 0)
-        self.isSent = true
+        wallet.add(transfer: self)
 
+    }
+
+    internal func announceEvent (_ event: TransferEvent) {
         self.listener?.handleTransferEvent (system: system,
                                             manager: manager,
                                             wallet: wallet,
                                             transfer: self,
-                                            event: TransferEvent.created)
+                                            event: event)
     }
 
-    internal init (listener: TransferListener?,
-                   wallet: WalletImplS,
-                   unit: Unit,
-                   btc: BRCoreTransaction) {
-        self.listener = listener
-        self.wallet = wallet
-        self.unit = unit
-        self.state = TransferState.created
-        self.impl = Impl.bitcoin (wid: wallet.impl.btc, tid: btc)
-
-        let gasUnit = wallet.manager.network.baseUnitFor(currency: wallet.manager.currency)!
-
-        let gasPrice = Amount.createAsETH(createUInt256 (0), gasUnit)
-        self.feeBasis = TransferFeeBasis.ethereum(gasPrice: gasPrice, gasLimit: 0)
-
-        self.listener?.handleTransferEvent (system: system,
-                                            manager: manager,
-                                            wallet: wallet,
-                                            transfer: self,
-                                            event: TransferEvent.created)
-    }
+//    internal convenience init (listener: TransferListener?,
+//                               wallet: WalletImplS,
+//                               unit: Unit,
+//                               eth: BREthereumTransfer) {
+//        self.init (listener: listener,
+//                   wallet: wallet,
+//                   unit: unit,
+//                   impl: Impl.ethereum (ewm:wallet.impl.ewm, core: eth))
+//    }
+//
+//    internal convenience init (listener: TransferListener?,
+//                               wallet: WalletImplS,
+//                               unit: Unit,
+//                               btc: BRCoreTransaction) {
+//        self.init (listener: listener,
+//                   wallet: wallet,
+//                   unit: unit,
+//                   impl: Impl.bitcoin (wid: wallet.impl.btc, tid: btc))
+//    }
 
 
     enum Impl {
@@ -162,6 +173,17 @@ class TransferImplS: Transfer {
             }
         }
 
+        internal func matches (_ that: Impl) -> Bool {
+            switch (self, that) {
+            case (let .bitcoin (wid1, tid1), let .bitcoin (wid2, tid2)):
+                return wid1 == wid2 && tid1 == tid2
+            case (let .ethereum (ewm1, c1), let .ethereum (ewm2, c2)):
+                return ewm1 == ewm2 && c1 == c2
+            default:
+                return false
+            }
+        }
+        
         internal func source (sent: Bool) -> Address? {
             switch self {
             case let .ethereum (ewm, core):
@@ -227,12 +249,23 @@ class TransferImplS: Transfer {
                 var overflow: Int32 = 0;
                 let amount: BREthereumEther = ewmTransferGetFee (ewm, core, &overflow)
                 precondition (0 == overflow)
-
                 return Amount.createAsETH (amount.valueInWEI, unit)
+
             case let .bitcoin (wid, tid):
                 //        var transaction = core
                 let fee = BRWalletFeeForTx (wid, tid)
                 return Amount.createAsBTC (fee, unit)
+            }
+        }
+
+        internal func feeBasis (in unit: Unit) -> TransferFeeBasis {
+            switch self {
+            case .ethereum:
+                let gasPrice = Amount.createAsETH (createUInt256 (0), unit)
+                return TransferFeeBasis.ethereum (gasPrice: gasPrice, gasLimit: 0)
+
+            case .bitcoin:
+                return TransferFeeBasis.bitcoin(feePerKB: 0)
             }
         }
 

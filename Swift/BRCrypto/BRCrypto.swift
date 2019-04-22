@@ -971,7 +971,7 @@ public protocol Wallet: class {
     var transfers: [Transfer] { get }
 
     /// Use a hash to lookup a transfer
-    func lookup (transfer: TransferHash) -> Transfer?
+    func transferBy (hash: TransferHash) -> Transfer?
 
     /// The current state.
     var state: WalletState { get }
@@ -1200,6 +1200,10 @@ extension WalletManager {
         return network.currency
     }
 
+    public var name: String {
+        return currency.code
+    }
+    
     var baseUnit: Unit {
         return network.baseUnitFor(currency: network.currency)!
     }
