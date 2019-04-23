@@ -21,7 +21,7 @@ extern "C" {
 // Forward declarations
 typedef struct BRRippleTransactionRecord *BRRippleTransaction;
 typedef struct BRRippleSerializedTransactionRecord *BRRippleSerializedTransaction;
-
+    
 /**
  * Create a Ripple transaction
  *
@@ -94,6 +94,9 @@ typedef struct BRRippleAccountRecord *BRRippleAccount;
 extern BRRippleAccount
 rippleAccountCreate (const char *paperKey);
 
+extern uint8_t * getRippleAccountBytes(BRRippleAccount account);
+extern char * getRippleAddress(BRRippleAccount account);
+    
 /**
  * Get the account's primary address
  *

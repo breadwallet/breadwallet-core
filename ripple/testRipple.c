@@ -51,7 +51,29 @@ testRippleTransaction (void /* ... */) {
     assert(memcmp(expected_output, bytes, size));
 }
 
+static void
+testRippleAccount (void /* ... */) {
+    static int i = 0;
+    const char * paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
+    // The above set of words should produce the following Ripple account address
+    // string: r41vZ8exoVyUfVzs56yeN8xB5gDhSkho9a
+    // raw bytes - EF FC 27 52 B5 C9 DA 22 88 C5 D0 1F 30 4E C8 29 51 E3 7C A2
+    uint8_t expected_bytes[] = { 0xEF, 0xFC, 0x27, 0x52, 0xB5, 0xC9, 0xDA, 0x22, 0x88, 0xC5,
+        0xD0, 0x1F, 0x30, 0x4E, 0xC8, 0x29, 0x51, 0xE3, 0x7C, 0xA2 };
+    const char* expected_accountid_string = "r41vZ8exoVyUfVzs56yeN8xB5gDhSkho9a";
+    BRRippleAccount account = rippleAccountCreate(paper_key);
+
+    // Get the 20 bytes that were created for the account
+    uint8_t *accountBytes = getRippleAccountBytes(account);
+    assert(0 == memcmp(accountBytes, expected_bytes, 20));
+
+    // Get the string ripple address
+    char * accountAddress = getRippleAddress(account);
+    assert(0 == memcmp(expected_accountid_string, accountAddress, strlen(accountAddress)));
+}
+
 extern void
 runRippleTest (void /* ... */) {
     testRippleTransaction ();
+    testRippleAccount();
 }
