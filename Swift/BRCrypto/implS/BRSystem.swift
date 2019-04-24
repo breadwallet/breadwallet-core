@@ -312,11 +312,21 @@ public final class SystemBase: System {
                 if let manager = system.managerBy(impl: WalletManagerImplS.Impl.ethereum(ewm: eid)){
 
                     let address = asUTF8String(address!)
-                    manager.query.getBalanceAsETH (ewm: manager.impl.ewm,
-                                                   wid: wid,
-                                                   address: address,
-                                                   rid: rid) { (wid, balance, rid) in
-                                                    ewmAnnounceWalletBalance (manager.impl.ewm, wid, balance, rid)
+                    if nil == ewmWalletGetToken (eid, wid) {
+                        manager.query.getBalanceAsETH (ewm: manager.impl.ewm,
+                                                       wid: wid,
+                                                       address: address,
+                                                       rid: rid) { (wid, balance, rid) in
+                                                        ewmAnnounceWalletBalance (manager.impl.ewm, wid, balance, rid)
+                        }
+                    }
+                    else {
+                        manager.query.getBalanceAsTOK (ewm: manager.impl.ewm,
+                                                       wid: wid,
+                                                       address: address,
+                                                       rid: rid) { (wid, balance, rid) in
+                                                        ewmAnnounceWalletBalance (manager.impl.ewm, wid, balance, rid)
+                        }
                     }
                 }},
 
@@ -427,9 +437,13 @@ public final class SystemBase: System {
                     else { print ("SYS: ETH: GetLogs: Missed {eid}"); return }
 
                 if let manager = system.managerBy(impl: WalletManagerImplS.Impl.ethereum(ewm: eid)) {
-                    let address = asUTF8String(address!)
+                    let address  = asUTF8String(address!)
+                    let contract = contract.map { asUTF8String ($0) }
+                    let event    = asUTF8String (event!)
                     manager.query.getLogsAsETH (ewm: manager.impl.ewm,
+                                                contract: contract,
                                                 address: address,
+                                                event: event,
                                                 begBlockNumber: begBlockNumber,
                                                 endBlockNumber: endBlockNumber,
                                                 rid: rid,
@@ -604,7 +618,7 @@ public final class SystemBase: System {
 
                 guard let currency = manager.network.currencyBy (code: code),
                     let unit = manager.network.defaultUnitFor (currency: currency)
-                    else { print ("SYS: ETH: Wallet: \(event): precondition {currency, unit}"); precondition (false) }
+                    else { print ("SYS: ETH: Wallet (\(code)): \(event): precondition {currency, unit}"); return } //precondition (false) }
 
                 guard let wallet = manager.walletByImplOrCreate (WalletImplS.Impl.ethereum(ewm: eid, core: wid),
                                                                  listener: system.listener,
