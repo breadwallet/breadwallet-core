@@ -23,6 +23,7 @@ extern "C" {
 typedef struct BRRippleTransactionRecord *BRRippleTransaction;
 typedef struct BRRippleSerializedTransactionRecord *BRRippleSerializedTransaction;
 typedef struct BRRippleAccountRecord *BRRippleAccount;
+typedef BRRippleSignatureRecord *BRRippleSignature;
 
 /**
  * Create a Ripple transaction
@@ -64,6 +65,16 @@ extern BRRippleSerializedTransaction
 rippleTransactionSerialize /* ForSigning */ (BRRippleTransaction transaction);
 
 /**
+ * Serialize a Ripple transaction (in a form suitable signing)
+ *
+ * @param transaction  the transaction to serialize
+ * @param signature    previously calculated signature
+ * @param sig_length   length of the signature bytes
+ */
+extern BRRippleSerializedTransaction
+rippleTransactionSerializeWithSignature (BRRippleTransaction transaction, uint8_t *signature, int sig_length);
+
+/**
  * Get the size of a serialized transaction
  *
  * @param  s     serialized transaction
@@ -77,6 +88,24 @@ extern uint32_t getSerializedSize(BRRippleSerializedTransaction s);
  * @return bytes uint8_t
  */
 extern uint8_t* getSerializedBytes(BRRippleSerializedTransaction s);
+
+extern void deleteSerializedBytes(BRRippleSerializedTransaction sTransaction);
+    
+/**
+ * Sign `bytes` for `account` with `paperKey`
+ *
+ * @param account the account to sign with
+ * @param bytes bytes to sign
+ * @param bytesCount the count of bytes to sign
+ * @param paperKey the paperKey for signing
+ */
+extern BRRippleSignature
+rippleAccountSignBytes (BRRippleAccount account,
+                        uint8_t *bytes,
+                        size_t bytesCount,
+                        const char *paperKey);
+
+extern void rippleSignatureDelete(BRRippleSignature signature);
 
 // Some other function to 'attach a signature' and then serialize the transaction +
 // signature for submission?
@@ -117,22 +146,6 @@ extern void /* ?? const char * ?? */
 rippleAccountGetPrimaryAddress (BRRippleAccount account);
 
 extern BRKey rippleAccountGetPublicKey(BRRippleAccount account);
-
-/**
- * Sign `bytes` for `account` with `paperKey`
- *
- * @param account the account to sign with
- * @param bytes bytes to sign
- * @param bytesCount the count of bytes to sign
- * @param paperKey the paperKey for signing
- */
-extern void /* ?? signature ?? */
-rippleAccountSignBytes (BRRippleAccount account,
-                        /* address */
-                        /* signature type */
-                        uint8_t *bytes,
-                        size_t bytesCount,
-                        const char *paperKey);
 
 //
 // Wallet

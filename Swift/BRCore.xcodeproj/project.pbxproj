@@ -234,6 +234,7 @@
 		C3C453E1226E2C62004CC0C7 /* BRRippleSerialize.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C453DD226E2C62004CC0C7 /* BRRippleSerialize.c */; };
 		C3C453E2226E2C62004CC0C7 /* BRRippleTransaction.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C453DE226E2C62004CC0C7 /* BRRippleTransaction.c */; };
 		C3C453E5226E4863004CC0C7 /* BRRippleAccount.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C453E3226E4862004CC0C7 /* BRRippleAccount.c */; };
+		C3C453E72270B39E004CC0C7 /* BRRippleSignature.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C453E62270B39E004CC0C7 /* BRRippleSignature.c */; };
 		CA92F7902100F9CA0015C966 /* BRKeccak.c in Sources */ = {isa = PBXBuildFile; fileRef = CA92F78F2100F9CA0015C966 /* BRKeccak.c */; };
 /* End PBXBuildFile section */
 
@@ -579,6 +580,8 @@
 		C3C453DF226E2C62004CC0C7 /* BRRippleSerialize.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRRippleSerialize.h; sourceTree = "<group>"; };
 		C3C453E0226E2C62004CC0C7 /* BRRippleBase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRRippleBase.h; sourceTree = "<group>"; };
 		C3C453E3226E4862004CC0C7 /* BRRippleAccount.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRRippleAccount.c; sourceTree = "<group>"; };
+		C3C453E62270B39E004CC0C7 /* BRRippleSignature.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRRippleSignature.c; sourceTree = "<group>"; };
+		C3C453E82270B960004CC0C7 /* BRRippleSignature.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRRippleSignature.h; sourceTree = "<group>"; };
 		CA92F78E2100F9CA0015C966 /* BRKeccak.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRKeccak.h; sourceTree = "<group>"; };
 		CA92F78F2100F9CA0015C966 /* BRKeccak.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRKeccak.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -1045,6 +1048,8 @@
 		3C812EBD226666C50007D335 /* ripple */ = {
 			isa = PBXGroup;
 			children = (
+				C3C453E82270B960004CC0C7 /* BRRippleSignature.h */,
+				C3C453E62270B39E004CC0C7 /* BRRippleSignature.c */,
 				C3C453E3226E4862004CC0C7 /* BRRippleAccount.c */,
 				C3C453E0226E2C62004CC0C7 /* BRRippleBase.h */,
 				C3C453DD226E2C62004CC0C7 /* BRRippleSerialize.c */,
@@ -1636,6 +1641,7 @@
 				C3C453E2226E2C62004CC0C7 /* BRRippleTransaction.c in Sources */,
 				3CF38E4821C4421600B771E6 /* BREthereumProofOfWork.c in Sources */,
 				3CAB60B220AF8D1A00810CE4 /* BREthereumGas.c in Sources */,
+				C3C453E72270B39E004CC0C7 /* BRRippleSignature.c in Sources */,
 				3CAB60B320AF8D1A00810CE4 /* BREthereumHash.c in Sources */,
 				3CD30498213B228900A0CCED /* BREthereumMessageDIS.c in Sources */,
 				3CAB60B420AF8D1A00810CE4 /* BREthereumAddress.c in Sources */,

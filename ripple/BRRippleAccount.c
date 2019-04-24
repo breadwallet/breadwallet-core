@@ -15,11 +15,10 @@
 #include "support/BRCrypto.h"
 #include "support/BRKey.h"
 #include "support/BRBIP32Sequence.h"
-#include "support/BRBIP39Mnemonic.h"
-#include "support/BRBase58.h"
 #include "support/BRBIP39WordsEn.h"
 #include "BRRipple.h"
 #include "BRRippleBase.h"
+#include "BRRippleSignature.h"
 
 #define PRIMARY_ADDRESS_BIP44_INDEX 0
 
@@ -38,7 +37,7 @@ installSharedWordList (const char *wordList[], int wordListLength) {
 }
 
 struct BRRippleAccountRecord {
-    BRRippleAddress raw;
+    BRRippleAddress raw; // The 20 byte account id
     
     // Ripple address in string format - only needed when viewing or
     // sending to someone else?
@@ -141,6 +140,8 @@ extern char * createRippleAddressString (BRRippleAddress address, int useChecksu
 extern BRRippleAccount rippleAccountCreate (const char *paperKey)
 {
     installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);
+
+    // Create the seed and the keys
     UInt512 seed = getSeed(paperKey);
     BRKey   key  = deriveRippleKeyFromSeed (seed, 0);
     key.compressed = 1;
@@ -186,4 +187,20 @@ extern void rippleAccountDelete(BRRippleAccount account)
     // Currently there is not any allocated memory inside the account
     // so just delete the account itself
     free(account);
+}
+
+extern BRRippleSignature
+rippleAccountSignBytes (BRRippleAccount account,
+                        /* address */
+                        /* signature type */
+                        uint8_t *bytes,
+                        size_t bytesCount,
+                        const char *paperKey)
+{
+    // Create the private key from the paperKey
+    installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);
+    UInt512 seed = getSeed(paperKey);
+    BRKey   key  = deriveRippleKeyFromSeed (seed, 0);
+    
+    return signBytes(&key, bytes, bytesCount);
 }

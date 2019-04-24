@@ -21,10 +21,20 @@ typedef struct {
     uint8_t bytes[ADDRESS_BYTES];
 } BRRippleAddress;
 
+// Even though we only support the Payment type - plan for
+// the future
 typedef enum {
     PAYMENT
 } BRRippleTransactionType ;
 
+// Stucture to hold the calculated signature
+typedef struct  {
+    uint8_t signature[65];
+} BRRippleSignatureRecord;
+
+// Ripple has the concept of fields, which are sorted. This
+// field stucture allows us to easily sort the fields when
+// creating the serialized format
 typedef struct _ripple_field {
     int typeCode;
     int fieldCode;
@@ -35,6 +45,7 @@ typedef struct _ripple_field {
         uint64_t i64;
         BRRippleAddress address;
         BRKey publicKey;
+        BRRippleSignatureRecord signature;
     } data;
 } BRRippleField;
 

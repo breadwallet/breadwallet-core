@@ -64,6 +64,15 @@ int calculate_buffer_size(BRRippleField *fields, int num_fields)
             case 6:
                 size += 8; // 64-bit integers
                 break;
+            case 7:
+                if (fields[i].fieldCode == 4) {
+                    size += sizeof(fields[i].data.signature.signature);
+                    size += 4; // max needed to store length
+                } else if (fields[i].fieldCode == 3) {
+                    size += sizeof(fields[i].data.publicKey.pubKey);
+                    size += 4; // max needed to store length
+                }
+                break;
             case 8:
                 // Accounts - which is really the address of 20 bytes plus
                 // 1 extra byte for the size.
@@ -188,7 +197,11 @@ int add_blob(BRRippleField *field, uint8_t *buffer)
         return length;
     } else if (field->fieldCode == 4){
         // TxnSignature
-        return 0;
+        int length = add_length(sizeof(field->data.signature.signature), buffer);
+        length += add_raw(field->data.signature.signature,
+                          sizeof(field->data.signature.signature),
+                          &buffer[length]);
+        return length;
     } else {
         return 0;
     }
@@ -231,7 +244,7 @@ extern BRRippleSerializedTransaction serialize (BRRippleField *fields, int num_f
     
     // The values (fields) in the Ripple transaction are sorted by
     // type code and field code (asc)
-    qsort(fields, 6, sizeof(BRRippleField), compare_function);
+    qsort(fields, num_fields, sizeof(BRRippleField), compare_function);
 
     // serialize all the fields adding the fieldis and content to the buffer
     int buffer_index = 0;
@@ -241,6 +254,7 @@ extern BRRippleSerializedTransaction serialize (BRRippleField *fields, int num_f
     }
 
     result->size = buffer_index;
+
     return result;
 }
 
@@ -251,4 +265,13 @@ extern uint32_t getSerializedSize(BRRippleSerializedTransaction s)
 extern uint8_t* getSerializedBytes(BRRippleSerializedTransaction s)
 {
     return s->buffer;
+}
+
+extern void deleteSerializedBytes(BRRippleSerializedTransaction sTransaction)
+{
+    assert(sTransaction);
+    if (sTransaction->buffer) {
+        free(sTransaction->buffer);
+    }
+    free(sTransaction);
 }

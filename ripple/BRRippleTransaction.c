@@ -87,14 +87,10 @@ extern void deleteRippleTransaction(BRRippleTransaction transaction)
     free(transaction);
 }
 
-extern BRRippleSerializedTransaction rippleTransactionSerialize (BRRippleTransaction transaction)
+void setFieldInfo(BRRippleField *fields, int num_fields, BRRippleTransaction transaction,
+                  uint8_t * signature, int sig_length)
 {
-    assert(transaction);
-    assert(transaction->transactionType == PAYMENT);
-    assert(transaction->payment);
-
     // Convert all the content to ripple fields
-    BRRippleField fields[7];
     fields[0].typeCode = 8;
     fields[0].fieldCode = 1;
     fields[0].data.address = transaction->sourceAddress;
@@ -111,7 +107,7 @@ extern BRRippleSerializedTransaction rippleTransactionSerialize (BRRippleTransac
     fields[4].typeCode = 7;
     fields[4].fieldCode = 3;
     fields[4].data.publicKey = transaction->publicKey;
-
+    
     // Payment info
     fields[5].typeCode = 8;
     fields[5].fieldCode = 3;
@@ -119,7 +115,42 @@ extern BRRippleSerializedTransaction rippleTransactionSerialize (BRRippleTransac
     fields[6].typeCode = 6;
     fields[6].fieldCode = 1;
     fields[6].data.i64 = transaction->payment->amount;
-    
+
+    if (signature) {
+        fields[7].typeCode = 7;
+        fields[7].fieldCode = 4;
+        memcpy(&fields[7].data.signature, signature, sig_length);
+    }
+}
+
+extern BRRippleSerializedTransaction
+rippleTransactionSerialize (BRRippleTransaction transaction)
+{
+    assert(transaction);
+    assert(transaction->transactionType == PAYMENT);
+    assert(transaction->payment);
+    BRRippleField fields[7];
+
+    setFieldInfo(fields, 7, transaction, 0, 0);
+
     // Serialize the fields
     return(serialize(fields, 7));
+}
+
+extern BRRippleSerializedTransaction
+rippleTransactionSerializeWithSignature(BRRippleTransaction transaction,
+                                        uint8_t *signature,
+                                        int    sig_length)
+{
+    assert(transaction);
+    assert(transaction->transactionType == PAYMENT);
+    assert(transaction->payment);
+    BRRippleField fields[8];
+    
+    assert(signature);
+    assert(65 == sig_length);
+    setFieldInfo(fields, 8, transaction, signature, sig_length);
+    
+    // Serialize the fields
+    return(serialize(fields, 8));
 }

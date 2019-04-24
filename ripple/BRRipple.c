@@ -12,10 +12,6 @@
 
 /// MARK: - Transaction
 
-struct BRRippleTransactionRecord {
-
-};
-
 /// MARK: - Account
 
 
