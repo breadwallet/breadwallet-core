@@ -172,6 +172,7 @@ class WalletManagerImplS: WalletManager {
                  network: Network,
                  mode: WalletManagerMode,
                  storagePath: String) {
+        let system = system as! SystemBase
 
         self.system  = system
         self.account = account
@@ -179,11 +180,9 @@ class WalletManagerImplS: WalletManager {
         self.mode    = mode
         self.path    = storagePath
         self.state   = WalletManagerState.created
-        self.query   = BlockChainDB()
+        self.query   = system.query
 
         self.listener = listener
-
-        let system = system as! SystemBase
 
         switch network.currency.code {
         case Currency.codeAsBTC,
