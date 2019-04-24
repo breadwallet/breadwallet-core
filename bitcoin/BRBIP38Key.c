@@ -230,7 +230,10 @@ size_t BRKeyBIP38Key(BRKey *key, char *bip38Key, size_t bip38KeyLen, const char 
     
     if (! bip38Key) return 43*138/100 + 2; // 43bytes*log(256)/log(58), rounded up, plus NULL terminator
 
-    assert(key != NULL && BRKeyPrivKey(key, NULL, 0) > 0);
+    assert(key != NULL);
+    size_t priKeyLen = BRKeyPrivKey(key, NULL, 0);
+    assert(priKeyLen  > 0);
+
     assert(passphrase != NULL);
    
     if (key->compressed) flag |= BIP38_COMPRESSED_FLAG;

@@ -1232,7 +1232,10 @@ BRPaymentProtocolEncryptedMessage *BRPaymentProtocolEncryptedMessageNew(BRPaymen
     assert(message != NULL || msgLen == 0);
     assert(receiverKey != NULL);
     assert(senderKey != NULL);
-    assert(BRKeyPrivKey(receiverKey, NULL, 0) != 0 || BRKeyPrivKey(senderKey, NULL, 0) != 0);
+
+    size_t recPriKeyLen = BRKeyPrivKey(receiverKey, NULL, 0);
+    size_t sndPriKeyLen = BRKeyPrivKey(senderKey, NULL, 0);
+    assert(recPriKeyLen != 0 || sndPriKeyLen != 0);
     
     array_new(ctx->defaults, encrypted_msg_status_msg + 1);
     array_set_count(ctx->defaults, encrypted_msg_status_msg + 1);

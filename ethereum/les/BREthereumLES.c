@@ -380,12 +380,21 @@ lesInsertNodeAsAvailable (BREthereumLES les,
     if (ETHEREUM_BOOLEAN_IS_FALSE(inserted)) array_add (les->availableNodes, node);
 }
 
-static BREthereumNode
+/// Create a node for `endpoint` and add it to `les->nodes`.  If `endpoint` does not exist,
+/// then do nothing.
+static void
 lesEnsureNodeForEndpoint (BREthereumLES les,
                           OwnershipGiven BREthereumNodeEndpoint endpoint,
                           BREthereumNodeState state,
                           BREthereumNodePriority priority,
                           BREthereumBoolean *added) {
+
+    // Skip out if given an invalid endpoint
+    if (NULL == endpoint) {
+        if (NULL != added) *added = ETHEREUM_BOOLEAN_FALSE;
+        return;
+    }
+
     BREthereumHash hash = nodeEndpointGetHash(endpoint);
 
     pthread_mutex_lock (&les->lock);
@@ -421,7 +430,6 @@ lesEnsureNodeForEndpoint (BREthereumLES les,
     else nodeEndpointRelease(endpoint);  // we own it; release if not passed to nodeCreate()
 
     pthread_mutex_unlock (&les->lock);
-    return node;
 }
 
 /// MARK: - DNS Seeds

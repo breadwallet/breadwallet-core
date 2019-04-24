@@ -289,7 +289,7 @@ fileServiceTypePeerV1Reader (BRFileServiceContext context,
                               BRFileService fs,
                               uint8_t *bytes,
                               uint32_t bytesCount) {
-    assert (bytesCount = sizeof (BRPeer));
+    assert (bytesCount == sizeof (BRPeer));
 
     BRPeer *peer = malloc (bytesCount);;
     memcpy (peer, bytes, bytesCount);
