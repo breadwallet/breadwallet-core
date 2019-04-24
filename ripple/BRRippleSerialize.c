@@ -10,6 +10,7 @@
 //
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include <assert.h>
 #include "BRRipple.h"
 #include "BRRippleBase.h"
@@ -177,6 +178,22 @@ int add_length(int length, uint8_t* buffer)
     }
 }
 
+int add_blob(BRRippleField *field, uint8_t *buffer)
+{
+    // Variable length blob
+    if (field->fieldCode == 3) {
+        // SigningPubKey - according to the docs this is a
+        int length = add_length(33, buffer);
+        length += add_raw(field->data.publicKey.pubKey, 33, &buffer[length]);
+        return length;
+    } else if (field->fieldCode == 4){
+        // TxnSignature
+        return 0;
+    } else {
+        return 0;
+    }
+}
+
 int add_content(BRRippleField *field, uint8_t *buffer)
 {
     switch(field->typeCode) {
@@ -188,6 +205,10 @@ int add_content(BRRippleField *field, uint8_t *buffer)
             break;
         case 6:
             return(add_amount(field->data.i64, buffer));
+            break;
+        case 7:
+            // Variable length blob
+            return(add_blob(field,buffer));
             break;
         case 8:
             assert(field->fieldCode == 1 || field->fieldCode == 3);

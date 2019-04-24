@@ -10,8 +10,11 @@
 //
 #ifndef BRRipple_base_h
 #define BRRipple_base_h
+#include "BRKey.h"
 
 #define ADDRESS_BYTES   (20)
+
+
 
 // A Ripple Address - 20 bytes
 typedef struct {
@@ -31,6 +34,7 @@ typedef struct _ripple_field {
         uint32_t i32;
         uint64_t i64;
         BRRippleAddress address;
+        BRKey publicKey;
     } data;
 } BRRippleField;
 

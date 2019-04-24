@@ -9,6 +9,7 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <assert.h>
 #include "BRRipple.h"
@@ -40,6 +41,9 @@ struct BRRippleTransactionRecord {
     // The next valid sequence number for the initiating account
     uint32_t sequence;
 
+    // The account
+    BRKey publicKey;
+
     // The ripple payment information
     // TODO in the future if more transaction are supported this could
     // be changed to a union of the various types
@@ -52,7 +56,8 @@ rippleTransactionCreate(BRRippleAddress sourceAddress,
                         BRRippleTransactionType txType,
                         uint64_t amount, // For now assume XRP drops.
                         uint32_t sequence,
-                        uint64_t fee)
+                        uint64_t fee,
+                        BRKey publicKey)
 {
     BRRippleTransaction transaction = calloc (1, sizeof (struct BRRippleTransactionRecord));
     
@@ -63,6 +68,7 @@ rippleTransactionCreate(BRRippleAddress sourceAddress,
     transaction->sequence = sequence;
     transaction->sourceAddress = sourceAddress;
     transaction->transactionType = txType;
+    transaction->publicKey = publicKey;
 
     // Payment information
     transaction->payment = calloc(1, sizeof(BRRipplePaymentTxRecord));
@@ -88,7 +94,7 @@ extern BRRippleSerializedTransaction rippleTransactionSerialize (BRRippleTransac
     assert(transaction->payment);
 
     // Convert all the content to ripple fields
-    BRRippleField fields[6];
+    BRRippleField fields[7];
     fields[0].typeCode = 8;
     fields[0].fieldCode = 1;
     fields[0].data.address = transaction->sourceAddress;
@@ -101,16 +107,19 @@ extern BRRippleSerializedTransaction rippleTransactionSerialize (BRRippleTransac
     fields[3].typeCode = 6;
     fields[3].fieldCode = 8;
     fields[3].data.i64 = transaction->fee;
+    // Public key info
+    fields[4].typeCode = 7;
+    fields[4].fieldCode = 3;
+    fields[4].data.publicKey = transaction->publicKey;
 
     // Payment info
-    fields[4].typeCode = 8;
-    fields[4].fieldCode = 3;
-    fields[4].data.address = transaction->payment->targetAddress;
-    fields[5].typeCode = 6;
-    fields[5].fieldCode = 1;
-    fields[5].data.i64 = transaction->payment->amount;
+    fields[5].typeCode = 8;
+    fields[5].fieldCode = 3;
+    fields[5].data.address = transaction->payment->targetAddress;
+    fields[6].typeCode = 6;
+    fields[6].fieldCode = 1;
+    fields[6].data.i64 = transaction->payment->amount;
     
     // Serialize the fields
-    return(serialize(fields, 6));
+    return(serialize(fields, 7));
 }
-

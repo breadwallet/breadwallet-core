@@ -13,6 +13,7 @@
 
 #include <stdint.h>
 #include "BRRippleBase.h"
+#include "BRKey.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,7 +22,8 @@ extern "C" {
 // Forward declarations
 typedef struct BRRippleTransactionRecord *BRRippleTransaction;
 typedef struct BRRippleSerializedTransactionRecord *BRRippleSerializedTransaction;
-    
+typedef struct BRRippleAccountRecord *BRRippleAccount;
+
 /**
  * Create a Ripple transaction
  *
@@ -43,7 +45,8 @@ rippleTransactionCreate(BRRippleAddress sourceAddress,
                         BRRippleTransactionType txType,
                         uint64_t amount, // For now assume XRP drops.
                         uint32_t sequence,
-                        uint64_t fee);
+                        uint64_t fee,
+                        BRKey publicKey);
 
 /**
  * Delete a Ripple transaction
@@ -80,8 +83,6 @@ extern uint8_t* getSerializedBytes(BRRippleSerializedTransaction s);
 //
 // Account
 //
-typedef struct BRRippleAccountRecord *BRRippleAccount;
-
 
 /**
  * Create a Ripple account for the `paperKey`.  The account *must never* hold the privateKey
@@ -94,6 +95,16 @@ typedef struct BRRippleAccountRecord *BRRippleAccount;
 extern BRRippleAccount
 rippleAccountCreate (const char *paperKey);
 
+/**
+ * Delete a ripple account (clean up memory)
+ *
+ * @param account BRRippleAccount to delete
+ *
+ * @return void
+ */
+extern void rippleAccountDelete(BRRippleAccount account);
+
+// Accessor function for the account object
 extern uint8_t * getRippleAccountBytes(BRRippleAccount account);
 extern char * getRippleAddress(BRRippleAccount account);
     
@@ -104,6 +115,8 @@ extern char * getRippleAddress(BRRippleAccount account);
  */
 extern void /* ?? const char * ?? */
 rippleAccountGetPrimaryAddress (BRRippleAccount account);
+
+extern BRKey rippleAccountGetPublicKey(BRRippleAccount account);
 
 /**
  * Sign `bytes` for `account` with `paperKey`

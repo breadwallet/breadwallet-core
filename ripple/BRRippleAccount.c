@@ -52,6 +52,8 @@ struct BRRippleAccountRecord {
     uint64_t sequence; // The NEXT valid sequence number
 };
 
+// NOTE: this is a copy from the one found in support
+// TODO - modify the one in support to allow for different alphabets
 size_t encodeBase58Ripple(char *str, size_t strLen, const uint8_t *data, size_t dataLen)
 {
     static const char chars[] = "rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz";
@@ -115,23 +117,6 @@ extern BRKey deriveRippleKeyFromSeed (UInt512 seed, uint32_t index)
     return privateKey;
 }
 
-extern BRRippleAddress createRippleAddressBytes(uint8_t *pubkey, int pubkeysize) {
-    BRRippleAddress address;
-
-    // Create a 20-byte accountID from the public key
-    // 1. First do a SHA256 on the public key
-    // 2. Then to a MD160 on the result of the SHA256
-    uint8_t sha256[32];
-    BRSHA256(sha256, pubkey, pubkeysize);
-
-    // Now take the result and do the riped160 hash
-    uint8_t md20[20];
-    BRRMD160(md20, sha256, 32);
-    memcpy (address.bytes, md20, 20);
-
-    return address;
-}
-
 extern char * createRippleAddressString (BRRippleAddress address, int useChecksum)
 {
     char *string = calloc (1, 36);
@@ -168,7 +153,8 @@ extern BRRippleAccount rippleAccountCreate (const char *paperKey)
     memcpy(account->publicKey, pubkey, 33);
 
     // Create the raw bytes for the 20 byte account id
-    account->raw = createRippleAddressBytes(pubkey, sizeof(pubkey));
+    UInt160 hash = BRKeyHash160(&key);
+    memcpy(account->raw.bytes, hash.u8, 20);
 
     // Create the string representation of the ripple address
     char *string = createRippleAddressString(account->raw, 1);
@@ -185,4 +171,19 @@ extern uint8_t * getRippleAccountBytes(BRRippleAccount account)
 extern char * getRippleAddress(BRRippleAccount account)
 {
     return(account->string);
+}
+
+extern BRKey rippleAccountGetPublicKey(BRRippleAccount account)
+{
+    BRKey key;
+    key.compressed = 1;
+    memcpy(key.pubKey, account->publicKey, 33);
+    return key;
+}
+
+extern void rippleAccountDelete(BRRippleAccount account)
+{
+    // Currently there is not any allocated memory inside the account
+    // so just delete the account itself
+    free(account);
 }
