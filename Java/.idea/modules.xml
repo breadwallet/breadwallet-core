@@ -5,7 +5,7 @@
       <module fileurl="file://$PROJECT_DIR$/Core/Core.iml" filepath="$PROJECT_DIR$/Core/Core.iml" />
       <module fileurl="file://$PROJECT_DIR$/CoreDemo/CoreDemo.iml" filepath="$PROJECT_DIR$/CoreDemo/CoreDemo.iml" />
       <module fileurl="file://$PROJECT_DIR$/Crypto/Crypto.iml" filepath="$PROJECT_DIR$/Crypto/Crypto.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/Java.iml" filepath="$PROJECT_DIR$/.idea/Java.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Java.iml" filepath="$PROJECT_DIR$/Java.iml" />
     </modules>
   </component>
 </project>
