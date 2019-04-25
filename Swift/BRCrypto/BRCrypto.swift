@@ -215,6 +215,10 @@ public final class Amount {
             .map { Amount (core: $0, unit: self.unit) }
     }
 
+    public var negate: Amount {
+        return Amount (core: cryptoAmountNegate (core), unit: unit)
+    }
+    
     internal init (core: BRCryptoAmount,
                    unit: Unit) {
         self.core = core

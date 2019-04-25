@@ -194,6 +194,13 @@ cryptoAmountSub (BRCryptoAmount a1,
     }
 }
 
+extern BRCryptoAmount
+cryptoAmountNegate (BRCryptoAmount amount) {
+    return cryptoAmountCreate (amount->currency,
+                               CRYPTO_TRUE == amount->isNegative ? CRYPTO_FALSE : CRYPTO_TRUE,
+                               amount->value);
+}
+
 extern double
 cryptoAmountGetDouble (BRCryptoAmount amount,
                        BRCryptoUnit unit,
