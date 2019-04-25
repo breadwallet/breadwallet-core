@@ -787,8 +787,13 @@ public protocol Transfer : class {
     /// The target receives the amount
     var target: Address? { get }
 
-    /// The amount to transfer
+    /// The amount to transfer - always positive (from source to target)
     var amount: Amount { get }
+
+    /// The amount to transfer after considering the direction.  If we received the transfer,
+    /// the amount will be positive; if we sent the transfer, the amount will be negative; if
+    /// the transfer is 'self directed', the amount will be zero.
+    var amountDirected: Amount { get }
 
     /// The fee paid - before the transfer is confirmed, this is the estimated fee.
     var fee: Amount { get }
@@ -805,7 +810,9 @@ public protocol Transfer : class {
     /// The current state
     var state: TransferState { get }
 
-    var isSent: Bool { get }
+    /// The direction
+    var direction: TransferDirection { get }
+
     // var originator: Bool { get }
 }
 
@@ -814,6 +821,12 @@ extension Transfer {
         if case .included (let confirmation) = state { return confirmation }
         else { return nil }
     }
+}
+
+public enum TransferDirection {
+    case sent
+    case received
+    case recovered
 }
 
 ///

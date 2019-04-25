@@ -59,19 +59,14 @@ class TransferViewController: UIViewController, TransferListener {
     }
 
 
-    func canonicalAmount (_ amount: Amount, sign: String) -> String {
-        return amount.string (as: amount.unit)
-            .map { sign + $0 } ?? "NaN"
-    }
-
     func updateView () {
 //        let address = UIApplication.sharedClient.node.address
         let date: Date? = (nil == transfer.confirmation ? nil
             : Date (timeIntervalSince1970: TimeInterval(transfer.confirmation!.timestamp)))
         let hash = transfer.hash
 
-        amountLabel.text = canonicalAmount(transfer.amount, sign: (transfer.isSent ? "-" : "+"))
-        feeLabel.text  = canonicalAmount(transfer.fee, sign: "")
+        amountLabel.text = transfer.amountDirected.description
+        feeLabel.text  =  transfer.fee.description
         dateLabel.text = date.map { dateFormatter.string(from: $0) } ?? "<pending>"
         sendLabel.text = transfer.source?.description ?? "<unknown>"
         recvLabel.text = transfer.target?.description ?? "<unknown>"
