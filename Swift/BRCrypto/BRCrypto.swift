@@ -821,6 +821,11 @@ extension Transfer {
         if case .included (let confirmation) = state { return confirmation }
         else { return nil }
     }
+
+    public func confirmationsAt (blockHeight: UInt64) -> UInt64? {
+        return confirmation
+            .flatMap { blockHeight >= $0.blockNumber ? (1 + blockHeight - $0.blockNumber) : nil }
+    }
 }
 
 public enum TransferDirection {
