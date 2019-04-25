@@ -16,15 +16,82 @@ import BRCore.Ethereum
 
 public class BlockChainDB {
 
-    let dbBaseURL: String
-    let ethBaseURL: String?
+    /// Base URL (String) for the BRD BlockChain DB
+    let bdbBaseURL: String
 
-    // For `session.dataTask()`
-    let session = URLSession (configuration: .default)
+    /// Base URL (String) for BRD API Services
+    let apiBaseURL: String
 
-    // Temporary - adding asynchronicity to ETh requests.
+    // The seesion to use for DataTaskFunc as in `session.dataTask (with: request, ...)`
+    let session: URLSession
+
+    /// A DispatchQueue Used for certain queries that can't be accomplished in the session's data
+    /// task.  Such as when multiple request are needed in getTransactions().
     let queue = DispatchQueue.init(label: "BlockChainDB")
 
+    /// A function type that decorates a `request`, handle 'challenges', performs decrypting and/or
+    /// uncompression of response data and creates a `URLSessionDataTask` for the provided `session`.
+    public typealias DataTaskFunc = (URLSession, URLRequest, @escaping (Data?, URLResponse?, Error?) -> Void) -> URLSessionDataTask
+
+    /// A DataTaskFunc for submission to the BRD API
+    internal let apiDataTaskFunc: DataTaskFunc
+
+    /// A DataTaskFunc for submission to the BRD BlockChain DB
+    internal let bdbDataTaskFunc: DataTaskFunc
+
+    /// A default DataTaskFunc that simply invokes `session.dataTask (with: request, ...)`
+    static let defaultDataTaskFunc: DataTaskFunc = {
+        (_ session: URLSession,
+        _ request: URLRequest,
+        _ completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) -> URLSessionDataTask in
+        session.dataTask (with: request, completionHandler: completionHandler)
+    }
+
+    ///
+    /// Initialize a BlockChainDB
+    ///
+    /// - Parameters:
+    ///   - session: the URLSession to use.  Defaults to `URLSession (configuration: .default)`
+    ///   - bdbBaseURL: the baseURL for the BRD BlockChain DB.  Defaults to "http://blockchain-db.us-east-1.elasticbeanstalk.com"
+    ///   - bdbDataTaskFunc: an optional DataTaskFunc for BRD BlockChain DB.  This defaults to
+    ///       `session.dataTask (with: request, ...)`
+    ///   - apiBaseURL: the baseRUL for the BRD API Server.  Defaults to "https://api.breadwallet.com".
+    ///       if this is a DEBUG build then "https://stage2.breadwallet.com" will be used instead.
+    ///   - apiDataTaskFunc: an optional DataTaskFunc for BRD API services.  For a non-DEBUG build,
+    ///       this function would need to properly authenticate with BRD.  This means 'decorating
+    ///       the request' header, perhaps responding to a 'challenge', perhaps decripting and/or
+    ///       uncompressing response data.  This defaults to `session.dataTask (with: request, ...)`
+    ///       which suffices for DEBUG builds.
+    ///
+    public init (session: URLSession = URLSession (configuration: .default),
+                 bdbBaseURL: String = "http://blockchain-db.us-east-1.elasticbeanstalk.com",
+                 bdbDataTaskFunc: DataTaskFunc? = nil,
+                 apiBaseURL: String = "https://api.breadwallet.com",
+                 apiDataTaskFunc: DataTaskFunc? = nil) {
+
+        self.session = session
+
+        self.bdbBaseURL = bdbBaseURL
+        self.bdbDataTaskFunc = bdbDataTaskFunc ?? BlockChainDB.defaultDataTaskFunc
+
+        #if DEBUG
+        self.apiBaseURL = "https://stage2.breadwallet.com"
+        #else
+        self.ethBaseURL = apiBaseURL
+        #endif
+        self.apiDataTaskFunc = apiDataTaskFunc ?? BlockChainDB.defaultDataTaskFunc
+    }
+
+    ///
+    /// A QueryError subtype of Error
+    ///
+    /// - url:
+    /// - submission:
+    /// - noData:
+    /// - jsonParse:
+    /// - model:
+    /// - noEntity:
+    ///
     public enum QueryError: Error {
         // HTTP URL build failed
         case url (String)
@@ -46,9 +113,8 @@ public class BlockChainDB {
     }
 
     ///
+    /// The BlockChainDB Model (aka Schema-ish)
     ///
-    ///
-    
     public struct Model {
 
         /// Blockchain
@@ -67,12 +133,15 @@ public class BlockChainDB {
             return (id: id, name: name, network: network, isMainnet: isMainnet, currency: currency, blockHeight: blockHeight)
         }
 
+        /// We define default blockchains but these are wholly insufficient given that the
+        /// specfication includes `blockHeight` (which can never be correct).
         static public let defaultBlockchains: [Blockchain] = [
             // Mainnet
  //           (id: "bitcoin-mainnet",  name: "Bitcoin",  network: "mainnet", isMainnet: true,  currency: "btc", blockHeight:  600000),
             (id: "bitcash-mainnet",  name: "Bitcash",  network: "mainnet", isMainnet: true,  currency: "bch", blockHeight: 1000000),
             (id: "ethereum-mainnet", name: "Ethereum", network: "mainnet", isMainnet: true,  currency: "eth", blockHeight: 8000000),
 
+            // Testnet
             (id: "bitcoin-testnet",  name: "Bitcoin",  network: "testnet", isMainnet: false, currency: "btc", blockHeight:  900000),
             (id: "bitcash-testnet",  name: "Bitcash",  network: "testnet", isMainnet: false, currency: "bch", blockHeight: 1200000),
             (id: "ethereum-testnet", name: "Ethereum", network: "testnet", isMainnet: false, currency: "eth", blockHeight: 1000000),
@@ -84,7 +153,7 @@ public class BlockChainDB {
         public typealias CurrencyDenomination = (name: String, code: String, decimals: UInt8, symbol: String /* extra */)
         public typealias Currency = (id: String, name: String, code: String, type: String, blockchainID: String, address: String?, demoninations: [CurrencyDenomination])
 
-        static internal func asCurrencyDenomination (json: JSON) -> Model.CurrencyDenomination? {
+       static internal func asCurrencyDenomination (json: JSON) -> Model.CurrencyDenomination? {
             guard let name = json.asString (name: "name"),
                 let code = json.asString (name: "short_name"),
                 let decimals = json.asUInt8 (name: "decimals")
@@ -94,6 +163,11 @@ public class BlockChainDB {
             let symbol = lookupSymbol (code)
 
             return (name: name, code: code, decimals: decimals, symbol: symbol)
+        }
+
+        static internal let currencySymbols = ["btc":"₿", "eth":"Ξ"]
+        static internal func lookupSymbol (_ code: String) -> String {
+            return currencySymbols[code] ?? code
         }
 
         static internal func asCurrency (json: JSON) -> Model.Currency? {
@@ -136,15 +210,23 @@ public class BlockChainDB {
                              (name: "ether", code: "eth",  decimals: 18, symbol: lookupSymbol ("eth"))]),
 
 
-            (id: "BRD Token", name: "BRD Token", code: "BRD", type: "erc20", blockchainID: "ethereum-mainnet", address: BlockChainDB.addressBRDMainnet,
+            (id: "BRD Token", name: "BRD Token", code: "BRD", type: "erc20", blockchainID: "ethereum-mainnet", address: addressBRDMainnet,
              demoninations: [(name: "BRD_INTEGER",   code: "BRDI",  decimals:  0, symbol: "brdi"),
                              (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")]),
 
 
             (id: "EOS Token", name: "EOS Token", code: "EOS", type: "erc20", blockchainID: "ethereum-mainnet", address: "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0",
              demoninations: [(name: "EOS_INTEGER",   code: "EOSI",  decimals:  0, symbol: "eosi"),
-                             (name: "EOS",           code: "EOS",   decimals: 18, symbol: "eos")])
+                             (name: "EOS",           code: "EOS",   decimals: 18, symbol: "eos")]),
+
+            // Testnet
+            (id: "BRD Token", name: "BRD Token", code: "BRD", type: "erc20", blockchainID: "ethereum-testnet", address: addressBRDTestnet,
+             demoninations: [(name: "BRD_INTEGER",   code: "BRDI",  decimals:  0, symbol: "brdi"),
+                             (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")]),
         ]
+
+        static internal let addressBRDTestnet = "0x7108ca7c4718efa810457f228305c9c71390931a" // testnet
+        static internal let addressBRDMainnet = "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6" // mainnet
 
         /// Transfer
 
@@ -251,15 +333,9 @@ public class BlockChainDB {
     }
 
     public func getBlockchains (mainnet: Bool? = nil, completion: @escaping (Result<[Model.Blockchain],QueryError>) -> Void) {
-        dbMakeRequest (path: "blockchains", query: mainnet.map { zip (["testnet"], [($0 ? "false" : "true")]) }) {
-            (more: Bool, res: Result<[JSON], BlockChainDB.QueryError>) in
+        bdbMakeRequest (path: "blockchains", query: mainnet.map { zip (["testnet"], [($0 ? "false" : "true")]) }) {
+            (more: Bool, res: Result<[JSON], QueryError>) in
             precondition (!more)
-            // How to handle an error?
-            //    a) ignore it and return `defaultBlockchain`?
-            //    b) pass it along, let caller use `defaultBlockchains`
-            // We'll choose 'b'
-
-            // Map a successful result and convert JSON -> Model.Blockchain.
             completion (res.flatMap {
                 BlockChainDB.getManyExpected(data: $0, transform: Model.asBlockchain)
             })
@@ -267,8 +343,8 @@ public class BlockChainDB {
     }
 
     public func getBlockchain (blockchainId: String, completion: @escaping (Result<Model.Blockchain,QueryError>) -> Void) {
-        dbMakeRequest(path: "blockchains/\(blockchainId)", query: nil, embedded: false) {
-            (more: Bool, res: Result<[BlockChainDB.JSON], BlockChainDB.QueryError>) in
+        bdbMakeRequest(path: "blockchains/\(blockchainId)", query: nil, embedded: false) {
+            (more: Bool, res: Result<[JSON], QueryError>) in
             precondition (!more)
             completion (res.flatMap {
                 BlockChainDB.getOneExpected (id: blockchainId, data: $0, transform: Model.asBlockchain)
@@ -277,8 +353,8 @@ public class BlockChainDB {
     }
 
     public func getCurrencies (blockchainId: String? = nil, completion: @escaping (Result<[Model.Currency],QueryError>) -> Void) {
-        dbMakeRequest (path: "currencies", query: blockchainId.map { zip(["blockchain_id"], [$0]) }) {
-            (more: Bool, res: Result<[BlockChainDB.JSON], BlockChainDB.QueryError>) in
+        bdbMakeRequest (path: "currencies", query: blockchainId.map { zip(["blockchain_id"], [$0]) }) {
+            (more: Bool, res: Result<[JSON], QueryError>) in
             precondition (!more)
             completion (res.flatMap {
                 BlockChainDB.getManyExpected(data: $0, transform: Model.asCurrency)
@@ -287,8 +363,8 @@ public class BlockChainDB {
     }
 
     public func getCurrency (currencyId: String, completion: @escaping (Result<Model.Currency,QueryError>) -> Void) {
-        dbMakeRequest (path: "currencies/\(currencyId)", query: nil, embedded: false) {
-            (more: Bool, res: Result<[BlockChainDB.JSON], BlockChainDB.QueryError>) in
+        bdbMakeRequest (path: "currencies/\(currencyId)", query: nil, embedded: false) {
+            (more: Bool, res: Result<[JSON], QueryError>) in
             precondition (!more)
             completion (res.flatMap {
                 BlockChainDB.getOneExpected(id: currencyId, data: $0, transform: Model.asCurrency)
@@ -300,8 +376,8 @@ public class BlockChainDB {
         let queryKeys = ["blockchain_id"] + Array (repeating: "address", count: addresses.count)
         let queryVals = [blockchainId]    + addresses
 
-        dbMakeRequest (path: "transfers", query: zip (queryKeys, queryVals)) {
-            (more: Bool, res: Result<[BlockChainDB.JSON], BlockChainDB.QueryError>) in
+        bdbMakeRequest (path: "transfers", query: zip (queryKeys, queryVals)) {
+            (more: Bool, res: Result<[JSON], QueryError>) in
             completion (res.flatMap {
                 BlockChainDB.getManyExpected (data: $0, transform: Model.asTransfer)
             })
@@ -309,8 +385,8 @@ public class BlockChainDB {
     }
 
     public func getTransfer (transferId: String, completion: @escaping (Result<Model.Transfer, QueryError>) -> Void) {
-        dbMakeRequest (path: "transfers/\(transferId)", query: nil, embedded: false) {
-            (more: Bool, res: Result<[BlockChainDB.JSON], BlockChainDB.QueryError>) in
+        bdbMakeRequest (path: "transfers/\(transferId)", query: nil, embedded: false) {
+            (more: Bool, res: Result<[JSON], QueryError>) in
             precondition (!more)
             completion (res.flatMap {
                 BlockChainDB.getOneExpected (id: transferId, data: $0, transform: Model.asTransfer)
@@ -327,10 +403,8 @@ public class BlockChainDB {
                                  includeRaw: Bool = false,
                                  includeProof: Bool = false,
                                  completion: @escaping (Result<[Model.Transaction], QueryError>) -> Void) {
-        //
         // This query could overrun the endpoint's page size (typically 5,000).  If so, we'll need
         // to repeat the request for the next batch.
-        //
         self.queue.async {
             let semaphore = DispatchSemaphore (value: 0)
 
@@ -351,8 +425,8 @@ public class BlockChainDB {
 
                 moreResults = false
 
-                self.dbMakeRequest (path: "transactions", query: zip (queryKeys, queryVals)) {
-                    (more: Bool, res: Result<[BlockChainDB.JSON], BlockChainDB.QueryError>) in
+                self.bdbMakeRequest (path: "transactions", query: zip (queryKeys, queryVals)) {
+                    (more: Bool, res: Result<[JSON], QueryError>) in
                     // Flag if `more`
                     moreResults = more
 
@@ -386,8 +460,8 @@ public class BlockChainDB {
         let queryKeys = ["include_proof", "include_raw"]
         let queryVals = [includeProof.description, includeRaw.description]
 
-        dbMakeRequest (path: "transactions/\(transactionId)", query: zip (queryKeys, queryVals), embedded: false) {
-            (more: Bool, res: Result<[BlockChainDB.JSON], BlockChainDB.QueryError>) in
+        bdbMakeRequest (path: "transactions/\(transactionId)", query: zip (queryKeys, queryVals), embedded: false) {
+            (more: Bool, res: Result<[JSON], QueryError>) in
             precondition (!more)
             completion (res.flatMap {
                 BlockChainDB.getOneExpected (id: transactionId, data: $0, transform: Model.asTransaction)
@@ -421,8 +495,8 @@ public class BlockChainDB {
                 let queryVals = [blockchainId, begBlockNumber.description, endBlockNumber.description, includeRaw.description,
                                  includeTx.description, includeTxRaw.description, includeTxProof.description]
 
-                self.dbMakeRequest (path: "blocks", query: zip (queryKeys, queryVals)) {
-                    (more: Bool, res: Result<[BlockChainDB.JSON], BlockChainDB.QueryError>) in
+                self.bdbMakeRequest (path: "blocks", query: zip (queryKeys, queryVals)) {
+                    (more: Bool, res: Result<[JSON], QueryError>) in
 
                     // Flag if `more`
                     moreResults = more
@@ -461,8 +535,8 @@ public class BlockChainDB {
 
         let queryVals = [includeRaw.description, includeTx.description, includeTxRaw.description, includeTxProof.description]
 
-        dbMakeRequest (path: "blocks/\(blockId)", query: zip (queryKeys, queryVals), embedded: false) {
-            (more: Bool, res: Result<[BlockChainDB.JSON], BlockChainDB.QueryError>) in
+        bdbMakeRequest (path: "blocks/\(blockId)", query: zip (queryKeys, queryVals), embedded: false) {
+            (more: Bool, res: Result<[JSON], QueryError>) in
             precondition (!more)
             completion (res.flatMap {
                 BlockChainDB.getOneExpected (id: blockId, data: $0, transform: Model.asBlock)
@@ -470,19 +544,16 @@ public class BlockChainDB {
         }
     }
 
-    /// ...
-
     /// BTC
     public struct BTC {
         typealias Transaction = (btc: BRCoreTransaction, rid: Int32)
-
     }
 
     internal func getBlockNumberAsBTC (bwm: BRWalletManager,
                                        blockchainId: String,
                                        rid: Int32,
                                        done: @escaping (UInt64, Int32) -> Void) {
-        getBlockchain (blockchainId: blockchainId) { (res: Result<BlockChainDB.Model.Blockchain, BlockChainDB.QueryError>) in
+        getBlockchain (blockchainId: blockchainId) { (res: Result<Model.Blockchain, QueryError>) in
             switch res {
             case let .success (blockchain):
                 done (blockchain.blockHeight, rid)
@@ -504,9 +575,9 @@ public class BlockChainDB {
                          addresses: addresses,
                          begBlockNumber: begBlockNumber,
                          endBlockNumber: endBlockNumber,
-                         includeRaw: true) { (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
+                         includeRaw: true) { (res: Result<[Model.Transaction], QueryError>) in
                             let btcRes = res
-                                .flatMap { (dbTransactions: [BlockChainDB.Model.Transaction]) -> Result<[BRCoreTransaction], BlockChainDB.QueryError> in
+                                .flatMap { (dbTransactions: [Model.Transaction]) -> Result<[BRCoreTransaction], QueryError> in
                                     let transactions:[BRCoreTransaction?] = dbTransactions
                                         .map {
                                             guard let raw = $0.raw
@@ -539,6 +610,7 @@ public class BlockChainDB {
     }
 
     /// ETH
+
     public struct ETH {
         public typealias Balance = (wid: BREthereumWallet, balance: String, rid: Int32)
         public typealias GasPrice = (wid: BREthereumWallet, gasPrice: String, rid: Int32)
@@ -573,21 +645,21 @@ public class BlockChainDB {
 
         static internal func asTransaction (json: JSON, rid: Int32) -> ETH.Transaction? {
             guard let hash = json.asString(name: "hash"),
-                let sourceAddr = json.asString(name: "from"),
-                let targetAddr = json.asString(name: "to"),
+                let sourceAddr   = json.asString(name: "from"),
+                let targetAddr   = json.asString(name: "to"),
                 let contractAddr = json.asString(name: "contractAddress"),
-                let amount     = json.asString(name: "value"),
-                let gasLimit   = json.asString(name: "gas"),
-                let gasPrice   = json.asString(name: "gasPrice"),
-                let data       = json.asString(name: "input"),
-                let nonce      = json.asString(name: "nonce"),
-                let gasUsed    = json.asString(name: "gasUsed"),
-                let blockNumber    = json.asString(name: "blockNumber"),
-                let blockHash      = json.asString(name: "blockHash"),
+                let amount       = json.asString(name: "value"),
+                let gasLimit     = json.asString(name: "gas"),
+                let gasPrice     = json.asString(name: "gasPrice"),
+                let data         = json.asString(name: "input"),
+                let nonce        = json.asString(name: "nonce"),
+                let gasUsed      = json.asString(name: "gasUsed"),
+                let blockNumber  = json.asString(name: "blockNumber"),
+                let blockHash    = json.asString(name: "blockHash"),
                 let blockConfirmations    = json.asString(name: "confirmations"),
                 let blockTransactionIndex = json.asString(name: "transactionIndex"),
                 let blockTimestamp        = json.asString(name: "timeStamp"),
-                let isError    = json.asString(name: "isError")
+                let isError      = json.asString(name: "isError")
                 else { return nil }
 
             return (hash: hash,
@@ -613,6 +685,7 @@ public class BlockChainDB {
             blockTimestamp: String,
             rid: Int32)
 
+        // BRD API servcies *always* appends `topics` with ""; we need to axe that.
         static internal func dropLastIfEmpty (_ strings: [String]?) -> [String]? {
             return (nil != strings && !strings!.isEmpty && "" == strings!.last!
                 ? strings!.dropLast()
@@ -621,15 +694,15 @@ public class BlockChainDB {
 
         static internal func asLog (json: JSON, rid: Int32) -> ETH.Log? {
             guard let hash = json.asString(name: "transactionHash"),
-                let contract = json.asString(name: "address"),
-                let topics   = dropLastIfEmpty (json.asStringArray (name: "topics")),
-                let data     = json.asString(name: "data"),
-                let gasPrice = json.asString(name: "gasPrice"),
-                let gasUsed  = json.asString(name: "gasUsed"),
-                let logIndex = json.asString(name: "logIndex"),
+                let contract    = json.asString(name: "address"),
+                let topics      = dropLastIfEmpty (json.asStringArray (name: "topics")),
+                let data        = json.asString(name: "data"),
+                let gasPrice    = json.asString(name: "gasPrice"),
+                let gasUsed     = json.asString(name: "gasUsed"),
+                let logIndex    = json.asString(name: "logIndex"),
                 let blockNumber = json.asString(name: "blockNumber"),
                 let blockTransactionIndex = json.asString(name: "transactionIndex"),
-                let blockTimestamp = json.asString(name: "timeStamp")
+                let blockTimestamp        = json.asString(name: "timeStamp")
                 else { return nil }
 
             return (hash: hash, contract: contract, topics: topics, data: data,
@@ -650,9 +723,6 @@ public class BlockChainDB {
             rid: Int32)
 
         static internal func asToken (json: JSON, rid: Int32) -> ETH.Token? {
-            // {"code":"1ST","name":"FirstBlood","type":"erc20","scale":18,"is_supported":true,
-            //  "contract_address":"0xaf30D2a7e90d7dC361C8c4585E9bB7d2F6f15bc7",
-            //  "sale_address":"","aliases":[],"colors":["#f15a22","#f15a22"]}
             guard let name   = json.asString(name: "name"),
                 let symbol   = json.asString(name: "code"),
                 let address  = json.asString(name: "contract_address"),
@@ -685,7 +755,7 @@ public class BlockChainDB {
             "id"      : rid
         ]
 
-        ethMakeRequestJSON(ewm: ewm, data: json) { (res: Result<BlockChainDB.JSON, BlockChainDB.QueryError>) in
+        apiMakeRequestJSON(ewm: ewm, data: json) { (res: Result<JSON, QueryError>) in
             let balance = try! res
                 .map { $0.asString (name: "result")! }
                 .recover { (ignore) in "200000000000000000" }
@@ -711,9 +781,9 @@ public class BlockChainDB {
             "contractaddress" : contract
         ]
 
-        ethMakeRequestQUERY (ewm: ewm,
+        apiMakeRequestQUERY (ewm: ewm,
                              query: zip (Array(queryDict.keys), Array(queryDict.values)),
-                             data: json) { (res: Result<BlockChainDB.JSON, BlockChainDB.QueryError>) in
+                             data: json) { (res: Result<JSON, QueryError>) in
                                 let balance = try! res
                                     .map { $0.asString (name: "result")! }
                                     .recover { (ignore) in "0x1" }
@@ -733,7 +803,7 @@ public class BlockChainDB {
             "id" : rid
         ]
 
-        ethMakeRequestJSON(ewm: ewm, data: json) { (res: Result<BlockChainDB.JSON, BlockChainDB.QueryError>) in
+        apiMakeRequestJSON(ewm: ewm, data: json) { (res: Result<JSON, QueryError>) in
             let gasPrice = try! res
                 .map { $0.asString (name: "result")! }
                 .recover { (ignore) in "0xffc0" }
@@ -759,7 +829,7 @@ public class BlockChainDB {
             "id"      : rid
         ]
 
-        ethMakeRequestJSON(ewm: ewm, data: json) { (res: Result<BlockChainDB.JSON, BlockChainDB.QueryError>) in
+        apiMakeRequestJSON(ewm: ewm, data: json) { (res: Result<JSON, QueryError>) in
             let gasEstimate = try! res
                 .map { $0.asString (name: "result")! }
                 .recover { (ignore) in "92000" }
@@ -782,7 +852,7 @@ public class BlockChainDB {
             "id"      : rid
         ]
 
-        ethMakeRequestJSON(ewm: ewm, data: json) { (res: Result<BlockChainDB.JSON, BlockChainDB.QueryError>) in
+        apiMakeRequestJSON(ewm: ewm, data: json) { (res: Result<JSON, QueryError>) in
             let hash = try! res
                 .map { $0.asString (name: "result")! }
                 .recover { (ignore) in "0x123abc456def" }
@@ -811,11 +881,11 @@ public class BlockChainDB {
             "endBlock"  : endBlockNumber.description
         ]
 
-        ethMakeRequestQUERY (ewm: ewm, query: zip (Array(queryDict.keys), Array(queryDict.values)), data: json) {
+        apiMakeRequestQUERY (ewm: ewm, query: zip (Array(queryDict.keys), Array(queryDict.values)), data: json) {
             (res: Result<JSON, QueryError>) in
 
             let resLogs = res
-                .flatMap({ (json: BlockChainDB.JSON) -> Result<[ETH.Transaction], QueryError> in
+                .flatMap({ (json: JSON) -> Result<[ETH.Transaction], QueryError> in
                     guard let _ = json.asString (name: "status"),
                         let   _ = json.asString (name: "message"),
                         let   result  = json.asArray (name:  "result")
@@ -860,7 +930,7 @@ public class BlockChainDB {
         ]
         if nil != contract { queryDict["address"] = contract! }
 
-        ethMakeRequestQUERY (ewm: ewm, query: zip (Array(queryDict.keys), Array(queryDict.values)), data: json) {
+        apiMakeRequestQUERY (ewm: ewm, query: zip (Array(queryDict.keys), Array(queryDict.values)), data: json) {
             (res: Result<JSON, QueryError>) in
 
             let resLogs = res
@@ -892,7 +962,7 @@ public class BlockChainDB {
                                 each: @escaping (ETH.Token) -> Void) {
         // Everything returned by BRD must/absolutely-must be in BlockChainDB currencies.  Thus,
         // when stubbed, so too must these.
-        ethMakeRequestTOKEN (ewm: ewm) { (res: Result<[JSON.Dict], QueryError>) in
+        apiMakeRequestTOKEN (ewm: ewm) { (res: Result<[JSON.Dict], QueryError>) in
             let resTokens = res
                 .flatMap({ (jsonArray: [JSON.Dict]) -> Result<[ETH.Token], QueryError> in
                     let tokens = jsonArray.map { ETH.asToken (json: JSON (dict: $0), rid: rid) }
@@ -919,90 +989,72 @@ public class BlockChainDB {
                                 blockStop: UInt64,
                                 rid: Int32,
                                 completion: @escaping (ETH.Block) -> Void) {
+        func parseBlockNumber (_ s: String) -> UInt64? {
+            return s.starts(with: "0x")
+                ? UInt64 (s.dropFirst(2), radix: 16)
+                : UInt64 (s)
+        }
+
         queue.async {
-            var blockNumbers : [UInt64] = []
-            switch address.lowercased() {
-            case "0xb302B06FDB1348915599D21BD54A06832637E5E8".lowercased():
-                if 0 != interests & UInt32 (1 << 3) /* CLIENT_GET_BLOCKS_LOGS_AS_TARGET */ {
-                    blockNumbers += [4847049,
-                                     4847152,
-                                     4894677,
-                                     4965538,
-                                     4999850,
-                                     5029844]
-                }
+            let semaphore = DispatchSemaphore (value: 0)
 
-                if 0 != interests & UInt32 (1 << 2) /* CLIENT_GET_BLOCKS_LOGS_AS_SOURCE */ {
-                    blockNumbers += [5705175]
-                }
+            var transactions: [ETH.Transaction] = []
+            var transactionsSuccess: Bool = false
 
-                if 0 != interests & UInt32 (1 << 1) /* CLIENT_GET_BLOCKS_TRANSACTIONS_AS_TARGET */ {
-                    blockNumbers += [4894027,
-                                     4908682,
-                                     4991227]
-                }
+            var logs: [ETH.Log] = []
+            var logsSuccess: Bool = false
 
-                if 0 != interests & UInt32 (1 << 0) /* CLIENT_GET_BLOCKS_TRANSACTIONS_AS_SOURCE */ {
-                    blockNumbers += [4894330,
-                                     4894641,
-                                     4894677,
-                                     4903993,
-                                     4906377,
-                                     4997449,
-                                     4999850,
-                                     4999875,
-                                     5000000,
-                                     5705175]
-                }
+            self.getTransactionsAsETH (ewm: ewm,
+                                       address: address,
+                                       begBlockNumber: blockStart,
+                                       endBlockNumber: blockStop,
+                                       rid: rid,
+                                       done: { (success:Bool, rid:Int32) in
+                                        transactionsSuccess = success
+                                        semaphore.signal() },
+                                       each: { transactions.append ($0) })
 
-            case "0xa9de3dbD7d561e67527bC1Ecb025c59D53b9F7Ef".lowercased():
-                if 0 != interests & UInt32 (1 << 3) /* CLIENT_GET_BLOCKS_LOGS_AS_TARGET */ {
-                    blockNumbers += [5506607,
-                                     5877545]
-                }
+            self.getLogsAsETH (ewm: ewm,
+                               contract: nil,
+                               address: address,
+                               event: "0xa9059cbb",  // ERC20 Transfer
+                               begBlockNumber: blockStart,
+                               endBlockNumber: blockStop,
+                               rid: rid,
+                               done: { (success:Bool, rid:Int32) in
+                                logsSuccess = success
+                                semaphore.signal() },
+                               each: { logs.append ($0) })
 
-                if 0 != interests & UInt32 (1 << 2) /* CLIENT_GET_BLOCKS_LOGS_AS_SOURCE */ {
-                    blockNumbers += [5506764,
-                                     5509990,
-                                     5511681]
-                }
+            semaphore.wait()
+            semaphore.wait()
 
-                if 0 != interests & UInt32 (1 << 1) /* CLIENT_GET_BLOCKS_TRANSACTIONS_AS_TARGET */ {
-                    blockNumbers += [5506602]
-                }
+            var numbers: [UInt64] = []
+            if transactionsSuccess && logsSuccess {
+                numbers += transactions
+                    .filter {
+                        return (
+                            /* CLIENT_GET_BLOCKS_TRANSACTIONS_AS_TARGET */
+                            (0 != (interests & UInt32 (1 << 0)) && address == $0.sourceAddr) ||
 
-                if 0 != interests & UInt32 (1 << 0) /* CLIENT_GET_BLOCKS_TRANSACTIONS_AS_SOURCE */ {
-                    blockNumbers += [5506764,
-                                     5509990,
-                                     5511681,
-                                     5539808]
-                }
+                                /* CLIENT_GET_BLOCKS_TRANSACTIONS_AS_TARGET */
+                                (0 != (interests & UInt32 (1 << 1)) && address == $0.targetAddr))
+                    }
+                    .map { parseBlockNumber ($0.blockNumber) ?? 0 }
 
-            case "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62".lowercased():
-                if 0 != interests & UInt32 (1 << 3) /* CLIENT_GET_BLOCKS_LOGS_AS_TARGET */ {
-                    blockNumbers += [5732521]
-                }
-
-                if 0 != interests & UInt32 (1 << 2) /* CLIENT_GET_BLOCKS_LOGS_AS_SOURCE */ {
-                    // ~8 blocks
-                }
-
-                if 0 != interests & UInt32 (1 << 1) /* CLIENT_GET_BLOCKS_TRANSACTIONS_AS_TARGET */ {
-                    // ~5 blocks
-                }
-
-                if 0 != interests & UInt32 (1 << 0) /* CLIENT_GET_BLOCKS_TRANSACTIONS_AS_SOURCE */ {
-                    // ~ 45 blocks
-                }
-
-            default:
-                blockNumbers.append(contentsOf: [blockStart,
-                                                 (blockStart + blockStop) / 2,
-                                                 blockStop])
+                numbers += logs
+                    .filter {
+                        if $0.topics.count != 3 { return false }
+                        return (
+                            /* CLIENT_GET_BLOCKS_LOGS_AS_SOURCE */
+                            (0 != (interests & UInt32 (1 << 2)) && address == $0.topics[1]) ||
+                                /* CLIENT_GET_BLOCKS_LOGS_AS_TARGET */
+                                (0 != (interests & UInt32 (1 << 3)) && address == $0.topics[2]))
+                    }
+                    .map { parseBlockNumber($0.blockNumber) ?? 0}
             }
 
-            blockNumbers = blockNumbers.filter { blockStart < $0 && $0 < blockStop }
-            completion ((numbers: blockNumbers, rid: rid))
+            completion ((numbers: numbers, rid: rid))
         }
     }
 
@@ -1015,7 +1067,7 @@ public class BlockChainDB {
             "id" : rid
         ]
 
-        ethMakeRequestJSON(ewm: ewm, data: json) { (res: Result<BlockChainDB.JSON, BlockChainDB.QueryError>) in
+        apiMakeRequestJSON(ewm: ewm, data: json) { (res: Result<JSON, QueryError>) in
             let result = try! res
                 .map { $0.asString (name: "result")! }
                 .recover { (ignore) in "0xffc0" }
@@ -1035,7 +1087,7 @@ public class BlockChainDB {
             "id" : rid
         ]
 
-        ethMakeRequestJSON(ewm: ewm, data: json) { (res: Result<BlockChainDB.JSON, BlockChainDB.QueryError>) in
+        apiMakeRequestJSON(ewm: ewm, data: json) { (res: Result<JSON, QueryError>) in
             let result = try! res
                 .map { $0.asString (name: "result")! }
                 .recover { (ignore) in "118" }
@@ -1044,31 +1096,7 @@ public class BlockChainDB {
         }
     }
 
-    public init (dbBaseURL: String = "http://blockchain-db.us-east-1.elasticbeanstalk.com",
-                 ethBaseURL: String? = nil) {
-        self.dbBaseURL = dbBaseURL
-
-        if nil == ethBaseURL {
-            #if DEBUG
-            self.ethBaseURL = "https://stage2.breadwallet.com"
-            #else
-            self.ethBaseURL = "https://api.breadwallet.com"
-            #endif
-        }
-        else {
-            self.ethBaseURL = ethBaseURL
-        }
-    }
-
-    static internal let currencySymbols = ["btc":"₿", "eth":"Ξ"]
-    static internal func lookupSymbol (_ code: String) -> String {
-        return currencySymbols[code] ?? code
-    }
-
-    static internal let addressBRDTestnet = "0x7108ca7c4718efa810457f228305c9c71390931a" // testnet
-    static internal let addressBRDMainnet = "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6" // mainnet
-
-    static internal let dateFormatter: DateFormatter = {
+     static internal let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
         return formatter
@@ -1124,8 +1152,8 @@ public class BlockChainDB {
         }
     }
 
-    private func sendRequest (_ request: URLRequest, completion: @escaping (Result<JSON, QueryError>) -> Void) {
-        session.dataTask (with: request) { (data, res, error) in
+    private func sendRequest<T> (_ request: URLRequest, _ dataTaskFunc: DataTaskFunc, completion: @escaping (Result<T, QueryError>) -> Void) {
+        dataTaskFunc (session, request) { (data, res, error) in
             guard nil == error else {
                 completion (Result.failure(QueryError.submission (error!))) // NSURLErrorDomain
                 return
@@ -1147,184 +1175,130 @@ public class BlockChainDB {
             }
 
             do {
-                guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? JSON.Dict
+                guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? T
                     else {
-                        print ("Data JSON.Dict: \(data.map { String(format: "%c", $0) }.joined())")
-                        completion (Result.failure(QueryError.jsonParse(nil)));
-                        return }
-
-                completion (Result.success (JSON (dict: json)))
-            }
-            catch let jsonError as NSError {
-                print ("Data JSON.Error: \(data.map { String(format: "%c", $0) }.joined())")
-                completion (Result.failure (QueryError.jsonParse (jsonError)))
-                return
-            }
-        }.resume()
-    }
-
-    internal func dbMakeRequest (path: String,
-                                 query: Zip2Sequence<[String],[String]>?,
-                                 embedded: Bool = true,
-                                 completion: @escaping (Bool, Result<[JSON], QueryError>) -> Void) {
-        guard var urlBuilder = URLComponents (string: dbBaseURL)
-            else { completion (false, Result.failure(QueryError.url("URLComponents"))); return }
-
-        urlBuilder.path = "/\(path)"
-        if let query = query {
-            urlBuilder.queryItems = query.map { URLQueryItem (name: $0, value: $1) }
-        }
-
-        guard let url = urlBuilder.url else {
-            completion (false, Result.failure (QueryError.url("URLComponents.url")))
-            return
-        }
-
-        var request = URLRequest (url: url)
-        request.addValue("application/json", forHTTPHeaderField: "accept")
-
-        sendRequest (request) { (res: Result<BlockChainDB.JSON, BlockChainDB.QueryError>) in
-            // See if there is a 'page' Dict in the JSON
-            let page: JSON.Dict? = try! res.map { $0.asDict(name: "page") }.recover { (ignore) in return nil }.get()
-
-            // The page is full if 'total_pages' is more than 1
-            let full: Bool = page.map { (($0["total_pages"] as? Int) ?? 0) > 1 } ?? false
-
-            // If called not embedded then never be full
-            // precondition (...)
-
-            // Callback with `more` and the result (maybe error)
-            completion (false, // embedded && full,
-                res.flatMap { (json: BlockChainDB.JSON) -> Result<[JSON], BlockChainDB.QueryError> in
-                    let json = (embedded
-                        ? json.asDict(name: "_embedded")?[path]
-                        : [json.dict])
-
-                    guard let data = json as? [JSON.Dict]
-                        else { return Result.failure(QueryError.model ("[JSON.Dict] expected")) }
-
-                    return Result.success (data.map { JSON (dict: $0) })
-            })
-        }
-    }
-
-    internal func ethMakeRequestJSON (ewm: BREthereumEWM, data: JSON.Dict, completion: @escaping (Result<JSON, QueryError>) -> Void) {
-        let networkName = asUTF8String (networkGetName (ewmGetNetwork(ewm))).lowercased()
-
-        guard var urlBuilder = URLComponents (string: ethBaseURL!)
-            else { completion (Result.failure(QueryError.url("URLComponents"))); return }
-
-        urlBuilder.path = "/ethq/\(networkName)/proxy"
-
-        guard let url = urlBuilder.url
-            else { completion (Result.failure (QueryError.url("URLComponents.url"))); return }
-
-        print ("SYS: BDB: Query: \(url.absoluteString): Dict: \(data)")
-        var request = URLRequest (url: url)
-        request.addValue ("application/json", forHTTPHeaderField: "accept")
-        request.addValue ("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpMethod = "POST"
-
-        do { request.httpBody = try JSONSerialization.data (withJSONObject: data, options: []) }
-        catch let jsonError as NSError {
-            completion (Result.failure (QueryError.jsonParse(jsonError)))
-        }
-
-        sendRequest(request) { (res: Result<BlockChainDB.JSON, BlockChainDB.QueryError>) in
-            completion (res)
-        }
-    }
-
-    internal func ethMakeRequestQUERY (ewm: BREthereumEWM,
-                                       query: Zip2Sequence<[String],[String]>?,
-                                       data: JSON.Dict,
-                                       completion: @escaping (Result<JSON, QueryError>) -> Void) {
-        //        let json: JSON.Dict = [ "id" : rid ]
-
-        let networkName = asUTF8String (networkGetName (ewmGetNetwork(ewm))).lowercased()
-
-        guard var urlBuilder = URLComponents (string: ethBaseURL!)
-            else { completion (Result.failure(QueryError.url("URLComponents"))); return }
-
-        urlBuilder.path = "/ethq/\(networkName)/query"
-        if let query = query {
-            urlBuilder.queryItems = query.map { URLQueryItem (name: $0, value: $1) }
-        }
-
-        guard let url = urlBuilder.url
-            else { completion (Result.failure (QueryError.url("URLComponents.url"))); return }
-
-        print ("SYS: BDB: Query: \(url.absoluteString)")
-        var request = URLRequest (url: url)
-        request.addValue ("application/json", forHTTPHeaderField: "accept")
-        request.addValue ("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpMethod = "POST"
-
-        do { request.httpBody = try JSONSerialization.data (withJSONObject: data, options: []) }
-        catch let jsonError as NSError {
-            completion (Result.failure (QueryError.jsonParse(jsonError)))
-        }
-
-        sendRequest(request) { (res: Result<BlockChainDB.JSON, BlockChainDB.QueryError>) in
-            // {"status":1, "message":"OK", "result":[...]}
-            completion (res)
-        }
-    }
-
-    internal func ethMakeRequestTOKEN (ewm: BREthereumEWM,
-                                       completion: @escaping (Result<[JSON.Dict], QueryError>) -> Void) {
-
-        guard var urlBuilder = URLComponents (string: ethBaseURL!)
-            else { completion (Result.failure(QueryError.url("URLComponents"))); return }
-
-        urlBuilder.path = "/currencies"
-        urlBuilder.queryItems = [URLQueryItem (name: "type", value: "erc20")]
-
-        guard let url = urlBuilder.url
-            else { completion (Result.failure (QueryError.url("URLComponents.url"))); return }
-
-        print ("SYS: BDB: Query: \(url.absoluteString)")
-        var request = URLRequest (url: url)
-        request.addValue ("application/json", forHTTPHeaderField: "accept")
-        request.addValue ("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpMethod = "GET"
-
-        session.dataTask (with: request) { (data, res, error) in
-            guard nil == error else {
-                completion (Result.failure(QueryError.submission (error!))) // NSURLErrorDomain
-                return
-            }
-
-            guard let res = res as? HTTPURLResponse else {
-                completion (Result.failure (QueryError.url ("No Response")))
-                return
-            }
-
-            guard 200 == res.statusCode else {
-                completion (Result.failure (QueryError.url ("Status: \(res.statusCode) ")))
-                return
-            }
-
-            guard let data = data else {
-                completion (Result.failure (QueryError.noData))
-                return
-            }
-
-            do {
-                guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? [JSON.Dict]
-                    else {
-                        print ("Data JSON.Dict: \(data.map { String(format: "%c", $0) }.joined())")
+                        print ("SYS: API: ERROR: JSON.Dict: \(data.map { String(format: "%c", $0) }.joined())")
                         completion (Result.failure(QueryError.jsonParse(nil)));
                         return }
 
                 completion (Result.success (json))
             }
             catch let jsonError as NSError {
-                print ("Data JSON.Error: \(data.map { String(format: "%c", $0) }.joined())")
+                print ("SYS: API: ERROR: JSON.Error: \(data.map { String(format: "%c", $0) }.joined())")
                 completion (Result.failure (QueryError.jsonParse (jsonError)))
                 return
             }
-        }.resume()
+            }.resume()
+    }
+
+    internal func makeRequest<T> (_ dataTaskFunc: DataTaskFunc,
+                                  _ baseURL: String,
+                                  path: String,
+                                  query: Zip2Sequence<[String],[String]>? = nil,
+                                  data: JSON.Dict? = nil,
+                                  httpMethod: String = "POST",
+                                  completion: @escaping (Result<T, QueryError>) -> Void) {
+        guard var urlBuilder = URLComponents (string: baseURL)
+            else { completion (Result.failure(QueryError.url("URLComponents"))); return }
+
+        urlBuilder.path = path.starts(with: "/") ? path : "/\(path)"
+        if let query = query {
+            urlBuilder.queryItems = query.map { URLQueryItem (name: $0, value: $1) }
+        }
+
+        guard let url = urlBuilder.url
+            else { completion (Result.failure (QueryError.url("URLComponents.url"))); return }
+
+        print ("SYS: Request: \(url.absoluteString): Data: \(data?.description ?? "[]")")
+
+        var request = URLRequest (url: url)
+        request.addValue ("application/json", forHTTPHeaderField: "accept")
+        request.addValue ("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpMethod = httpMethod
+
+        // If we have data as a JSON.Dict, then add it as the httpBody to the request.
+        if let data = data {
+            do { request.httpBody = try JSONSerialization.data (withJSONObject: data, options: []) }
+            catch let jsonError as NSError {
+                completion (Result.failure (QueryError.jsonParse(jsonError)))
+            }
+        }
+
+        sendRequest (request, dataTaskFunc, completion: completion)
+    }
+
+    internal func bdbMakeRequest (path: String,
+                                  query: Zip2Sequence<[String],[String]>?,
+                                  embedded: Bool = true,
+                                  completion: @escaping (Bool, Result<[JSON], QueryError>) -> Void) {
+        makeRequest (bdbDataTaskFunc, bdbBaseURL,
+                     path: path,
+                     query: query,
+                     data: nil,
+                     httpMethod: "GET") { (res: Result<JSON.Dict, QueryError>) in
+                        let res = res.map { JSON (dict: $0) }
+
+                        // See if there is a 'page' Dict in the JSON
+                        let page: JSON.Dict? = try! res
+                            .map { $0.asDict(name: "page") }
+                            .recover { (ignore) in return nil }
+                            .get()
+
+                        // The page is full if 'total_pages' is more than 1
+                        let full: Bool = page.map { (($0["total_pages"] as? Int) ?? 0) > 1 } ?? false
+
+                        // If called not embedded then never be full
+                        // precondition (...)
+
+                        // Callback with `more` and the result (maybe error)
+                        completion (false, // embedded && full,
+                            res.flatMap { (json: JSON) -> Result<[JSON], QueryError> in
+                                let json = (embedded
+                                    ? json.asDict(name: "_embedded")?[path]
+                                    : [json.dict])
+
+                                guard let data = json as? [JSON.Dict]
+                                    else { return Result.failure(QueryError.model ("[JSON.Dict] expected")) }
+
+                                return Result.success (data.map { JSON (dict: $0) })
+                        })
+        }
+    }
+
+    internal func apiMakeRequestJSON (ewm: BREthereumEWM, data: JSON.Dict, completion: @escaping (Result<JSON, QueryError>) -> Void) {
+        let path = "/ethq/\(BlockChainDB.networkNameFrom(ewm:ewm).lowercased())/proxy"
+        makeRequest (apiDataTaskFunc, apiBaseURL,
+                     path: path,
+                     query: nil,
+                     data: data,
+                     httpMethod: "POST") { (res: Result<JSON.Dict, QueryError>) in
+                        completion (res.map { JSON (dict: $0) })
+        }
+    }
+
+    internal func apiMakeRequestQUERY (ewm: BREthereumEWM,
+                                       query: Zip2Sequence<[String],[String]>?,
+                                       data: JSON.Dict,
+                                       completion: @escaping (Result<JSON, QueryError>) -> Void) {
+        let path = "/ethq/\(BlockChainDB.networkNameFrom(ewm:ewm).lowercased())/query"
+        makeRequest (apiDataTaskFunc, apiBaseURL,
+                     path: path,
+                     query: query,
+                     data: data,
+                     httpMethod: "POST") { (res: Result<JSON.Dict, QueryError>) in
+                        completion (res.map { JSON (dict: $0) })
+        }
+    }
+
+    internal func apiMakeRequestTOKEN (ewm: BREthereumEWM,
+                                       completion: @escaping (Result<[JSON.Dict], QueryError>) -> Void) {
+        let path = "/currencies"
+        makeRequest (apiDataTaskFunc, apiBaseURL,
+                     path: path,
+                     query: zip(["type"], ["erc20"]),
+                     data: nil,
+                     httpMethod: "GET",
+                     completion: completion)
     }
 
     ///
@@ -1365,5 +1339,15 @@ public class BlockChainDB {
         return results.contains(where: { $0 == nil })
             ? Result.failure(QueryError.model ("(JSON) -> T transform error (many)"))
             : Result.success(results as! [T])
+    }
+
+    ///
+    /// Derive the network name from `ewm`.
+    ///
+    /// - Parameter ewm:
+    /// - Returns:
+    ///
+    private static func networkNameFrom (ewm: BREthereumEWM) -> String {
+        return asUTF8String (networkGetName (ewmGetNetwork (ewm)))
     }
 }
