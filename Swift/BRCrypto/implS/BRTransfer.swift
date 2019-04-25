@@ -62,16 +62,24 @@ class TransferImplS: Transfer {
     internal let unit: Unit
 
     public private(set) lazy var source: Address? = {
-        return impl.source (sent: self.isSent)
+        return impl.source
     }()
 
     public private(set) lazy var target: Address? = {
-        return impl.target (sent: self.isSent)
+        return impl.target
     }()
 
     public private(set) lazy var amount: Amount = {
         return impl.amount (in: wallet.unit)
     } ()
+
+    public private(set) lazy var amountDirected: Amount = {
+        switch direction {
+        case .sent: return amount.negate
+        case .received: return amount
+        case .recovered: return Amount.create(integer: 0, unit: unit)
+        }
+    }()
 
     public private(set) lazy var fee: Amount = {
         let unit = wallet.manager.network.defaultUnitFor (currency: wallet.manager.currency)!
@@ -80,7 +88,9 @@ class TransferImplS: Transfer {
 
     var feeBasis: TransferFeeBasis
 
-    public private(set) var hash: TransferHash? = nil
+    public var hash: TransferHash? {
+        return impl.hash
+    }
 
     public internal(set) var state: TransferState {
         didSet {
@@ -90,9 +100,8 @@ class TransferImplS: Transfer {
         }
     }
 
-    /// Flag to determine if the wallet's owner sent this transfer
-    public private(set) lazy var isSent: Bool = {
-        return impl.isSent
+    public private(set) lazy var direction: TransferDirection = {
+        return impl.direction
     }()
 
     internal init (listener: TransferListener?,
@@ -184,11 +193,13 @@ class TransferImplS: Transfer {
             }
         }
         
-        internal func source (sent: Bool) -> Address? {
+        internal var source: Address? {
             switch self {
             case let .ethereum (ewm, core):
                 return Address (core: cryptoAddressCreateAsETH (ewmTransferGetSource (ewm, core)))
             case let .bitcoin (wid, tid):
+                let sent = UINT64_MAX != BRWalletFeeForTx (wid, tid)
+
                 let inputs = [BRTxInput](UnsafeBufferPointer(start: tid.pointee.inputs, count: tid.pointee.inCount))
                 let inputsContain = (sent ? 1 : 0)
                 return inputs
@@ -199,11 +210,13 @@ class TransferImplS: Transfer {
             }
         }
 
-        internal func target (sent: Bool) -> Address? {
+        internal var target: Address? {
             switch self {
             case let .ethereum (ewm, core):
                 return Address (core: cryptoAddressCreateAsETH (ewmTransferGetTarget (ewm, core)))
             case let .bitcoin (wid, tid):
+                let sent = UINT64_MAX != BRWalletFeeForTx (wid, tid)
+
                 // The target address is in a TxOutput; if not sent is it out address, otherwise anothers
                 let outputs = [BRTxOutput](UnsafeBufferPointer(start: tid.pointee.outputs, count: tid.pointee.outCount))
                 let outputsContain = (!sent ? 1 : 0)
@@ -269,16 +282,48 @@ class TransferImplS: Transfer {
             }
         }
 
-        internal var isSent: Bool {
+        internal var direction: TransferDirection {
             switch self {
-            case .ethereum: // (ewm, core):
-                return true
+            case let .ethereum (ewm, core):
+                let source  = ewmTransferGetSource (ewm, core)
+                let target  = ewmTransferGetTarget (ewm, core)
+                let address = accountGetPrimaryAddress (ewmGetAccount(ewm))
+
+                switch (addressEqual (source, address), addressEqual (target, address)) {
+                case (ETHEREUM_BOOLEAN_TRUE,  ETHEREUM_BOOLEAN_TRUE ): return .recovered
+                case (ETHEREUM_BOOLEAN_TRUE,  ETHEREUM_BOOLEAN_FALSE): return .sent
+                case (ETHEREUM_BOOLEAN_FALSE, ETHEREUM_BOOLEAN_TRUE ): return .received
+                default: precondition(false)
+                }
 
             case let .bitcoin (wid, tid):
                 // Returns a 'fee' if 'all inputs are from wallet' (meaning, the bitcoin transaction is
-                // composed of UTXOs from wallet)
-                let fee = BRWalletFeeForTx (wid, tid)
-                return fee != UINT64_MAX // && fee != 0
+                // composed of UTXOs from wallet). We paid a fee, we sent it.
+                let fees = BRWalletFeeForTx (wid, tid)
+                if fees != UINT64_MAX { return .sent }
+
+                let recv = BRWalletAmountReceivedFromTx (wid, tid)
+                let send = BRWalletAmountSentByTx (wid, tid)   // includes fees
+
+                return send > 0 && (recv + fees) == send
+                    ? .recovered
+                    : .received
+            }
+        }
+
+        internal var hash: TransferHash? {
+            switch self {
+            case let .ethereum (ewm, core):
+                let coreHash = ewmTransferGetOriginatingTransactionHash (ewm, core)
+                return ETHEREUM_BOOLEAN_TRUE == hashEqual(coreHash, hashCreateEmpty())
+                    ? nil
+                    : TransferHash.ethereum(coreHash)
+
+            case let .bitcoin (_, tid):
+                let coreHash = tid.pointee.txHash
+                return 1 == UInt256IsZero(coreHash)
+                    ? nil
+                    : TransferHash.bitcoin(coreHash)
             }
         }
     }
