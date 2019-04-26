@@ -267,7 +267,7 @@ class TransferImplS: Transfer {
             case let .bitcoin (wid, tid):
                 //        var transaction = core
                 let fee = BRWalletFeeForTx (wid, tid)
-                return Amount.createAsBTC (fee, unit)
+                return Amount.createAsBTC (fee == UINT64_MAX ? 0 : fee, unit)
             }
         }
 
