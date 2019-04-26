@@ -1187,7 +1187,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
     }
 
     // ignore block headers that are newer than one week before earliestKeyTime (it's a header if it has 0 totalTx)
-    if (block->totalTx == 0 && block->timestamp + 7*24*60*60 > manager->earliestKeyTime + 2*60*60) {
+    if (block->totalTx == 0 && block->timestamp + 7*24*60*60 - 2*60*60 > manager->earliestKeyTime) {
         BRMerkleBlockFree(block);
         block = NULL;
     }
