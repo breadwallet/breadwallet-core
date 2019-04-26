@@ -536,7 +536,17 @@ BRWalletManagerNew (BRWalletManagerClient client,
                           _BRWalletManagerTxAdded,
                           _BRWalletManagerTxUpdated,
                           _BRWalletManagerTxDeleted);
-    
+
+    // If in a SYNC_MODE using BRD, explicitly set the BRPeerManager's `earliestKeyTime`.  Normally
+    // that time is defined as that time when the User's `paperKey` was created.  It informs the
+    // Bitcoin peers of the point beyond which BTC/BCH transactions might occur.  But, we'll set
+    // time impossibly into the future for the case where we want to disable 'syncing' and still
+    // maintain a P2P connection.
+
+    if (SYNC_MODE_BRD_ONLY == bwm->mode || SYNC_MODE_BRD_WITH_P2P_SEND == bwm->mode)
+        // There might be BTC calculations based on adding to earliestKeyTime.  Try to avoid having
+        // those computations overflow, hackily.  Back up one year before the end of time.
+        earliestKeyTime = UINT32_MAX - 365 * 24 * 60 * 60;
 
     bwm->peerManager = BRPeerManagerNew (params, bwm->wallet, earliestKeyTime,
                                          blocks, array_count(blocks),
