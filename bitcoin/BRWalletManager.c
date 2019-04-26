@@ -645,18 +645,18 @@ BRWalletManagerGetPeerManager (BRWalletManager manager) {
 extern void
 BRWalletManagerConnect (BRWalletManager manager) {
     switch (manager->mode) {
-            case SYNC_MODE_BRD_ONLY:
+        case SYNC_MODE_BRD_ONLY:
             break;
-
-            case SYNC_MODE_BRD_WITH_P2P_SEND:
-            case SYNC_MODE_P2P_WITH_BRD_SYNC:
-            case SYNC_MODE_P2P_ONLY:
+            
+        case SYNC_MODE_BRD_WITH_P2P_SEND:
+        case SYNC_MODE_P2P_WITH_BRD_SYNC:
+        case SYNC_MODE_P2P_ONLY:
             BRPeerManagerConnect(manager->peerManager);
             break;
     }
-
+    
     eventHandlerStart (manager->handler);
-
+    
     manager->client.funcWalletManagerEvent (manager->client.context,
                                             manager,
                                             (BRWalletManagerEvent) {
@@ -667,18 +667,18 @@ BRWalletManagerConnect (BRWalletManager manager) {
 extern void
 BRWalletManagerDisconnect (BRWalletManager manager) {
     switch (manager->mode) {
-            case SYNC_MODE_BRD_ONLY:
+        case SYNC_MODE_BRD_ONLY:
             break;
-
-            case SYNC_MODE_BRD_WITH_P2P_SEND:
-            case SYNC_MODE_P2P_WITH_BRD_SYNC:
-            case SYNC_MODE_P2P_ONLY:
+            
+        case SYNC_MODE_BRD_WITH_P2P_SEND:
+        case SYNC_MODE_P2P_WITH_BRD_SYNC:
+        case SYNC_MODE_P2P_ONLY:
             BRPeerManagerDisconnect(manager->peerManager);
             break;
     }
-
+    
     eventHandlerStop(manager->handler);
-
+    
     manager->client.funcWalletManagerEvent (manager->client.context,
                                             manager,
                                             (BRWalletManagerEvent) {
@@ -752,7 +752,6 @@ _BRWalletManagerTxAdded   (void *info, BRTransaction *tx) {
                                           (BRTransactionEvent) {
                                               BITCOIN_TRANSACTION_ADDED
                                           });
-    BRWalletManagerCheckHeight (manager);
 }
 
 static void
@@ -775,7 +774,6 @@ _BRWalletManagerTxUpdated (void *info, const UInt256 *hashes, size_t count, uint
                                                   { .updated = { blockHeight, timestamp }}
                                               });
     }
-    BRWalletManagerCheckHeight (manager);
 }
 
 static void
@@ -791,7 +789,6 @@ _BRWalletManagerTxDeleted (void *info, UInt256 hash, int notifyUser, int recomme
                                           (BRTransactionEvent) {
                                               BITCOIN_TRANSACTION_DELETED
                                           });
-    BRWalletManagerCheckHeight (manager);
 }
 
 /// MARK: - Peer Manager Callbacks
@@ -803,7 +800,6 @@ _BRWalletManagerSaveBlocks (void *info, int replace, BRMerkleBlock **blocks, siz
     if (replace) fileServiceClear(manager->fileService, fileServiceTypeBlocks);
     for (size_t index = 0; index < count; index++)
         fileServiceSave (manager->fileService, fileServiceTypeBlocks, blocks[index]);
-    BRWalletManagerCheckHeight (manager);
 }
 
 static void
@@ -813,7 +809,6 @@ _BRWalletManagerSavePeers  (void *info, int replace, const BRPeer *peers, size_t
     if (replace) fileServiceClear(manager->fileService, fileServiceTypePeers);
     for (size_t index = 0; index < count; index++)
         fileServiceSave (manager->fileService, fileServiceTypePeers, &peers[index]);
-    BRWalletManagerCheckHeight (manager);
 }
 
 static void
@@ -824,7 +819,6 @@ _BRWalletManagerSyncStarted (void *info) {
                                             (BRWalletManagerEvent) {
                                                 BITCOIN_WALLET_MANAGER_SYNC_STARTED
                                             });
-    BRWalletManagerCheckHeight (manager);
 }
 
 static void
@@ -836,16 +830,19 @@ _BRWalletManagerSyncStopped (void *info, int reason) {
                                                 BITCOIN_WALLET_MANAGER_SYNC_STOPPED,
                                                 { .syncStopped = { reason }}
                                             });
-    BRWalletManagerCheckHeight (manager);
 }
 
 static void
 _BRWalletManagerTxStatusUpdate (void *info) {
     BRWalletManager manager = (BRWalletManager) info;
 
-    // event
+    // It is safe to call this here.  This function will call BRPeerManagerLastBlockTimestamp()
+    // to get the current block height but that function attempts to take the BRPeerManager
+    // mutex.  That mutex IS NOT RECURSIVE and thus a deadlock can occur.  Only this
+    // BRPeerManager callback occurs outside of that mutex being held.  Once could call this
+    // function in the BRWallet callbacks; but those callbacks are not redundent with this
+    // callback as regards a block height change.
     BRWalletManagerCheckHeight (manager);
-
 }
 
 static int
