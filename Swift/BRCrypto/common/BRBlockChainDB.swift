@@ -195,6 +195,7 @@ public class BlockChainDB {
         }
 
         static public let defaultCurrencies: [Currency] = [
+            // Mainnet
             (id: "Bitcoin", name: "Bitcoin", code: "btc", type: "native", blockchainID: "bitcoin-mainnet", address: nil,
              demoninations: [(name: "satoshi", code: "sat", decimals: 0, symbol: lookupSymbol ("sat")),
                              (name: "bitcoin", code: "btc", decimals: 8, symbol: lookupSymbol ("btc"))]),
@@ -220,7 +221,21 @@ public class BlockChainDB {
                              (name: "EOS",           code: "EOS",   decimals: 18, symbol: "eos")]),
 
             // Testnet
-            (id: "BRD Token", name: "BRD Token", code: "BRD", type: "erc20", blockchainID: "ethereum-testnet", address: addressBRDTestnet,
+            (id: "Bitcoin-Testnet", name: "Bitcoin", code: "btc", type: "native", blockchainID: "bitcoin-testnet", address: nil,
+             demoninations: [(name: "satoshi", code: "sat", decimals: 0, symbol: lookupSymbol ("sat")),
+                             (name: "bitcoin", code: "btc", decimals: 8, symbol: lookupSymbol ("btc"))]),
+
+            (id: "Bitcash-Testnet", name: "Bitcash", code: "bch", type: "native", blockchainID: "bitcash-testnet", address: nil,
+             demoninations: [(name: "satoshi", code: "sat", decimals: 0, symbol: lookupSymbol ("sat")),
+                             (name: "bitcoin", code: "bch", decimals: 8, symbol: lookupSymbol ("bch"))]),
+
+
+            (id: "Ethereum-Testnet", name: "Ethereum", code: "eth", type: "native", blockchainID: "ethereum-testnet", address: nil,
+             demoninations: [(name: "wei",   code: "wei",  decimals:  0, symbol: lookupSymbol ("wei")),
+                             (name: "gwei",  code: "gwei", decimals:  9, symbol: lookupSymbol ("gwei")),
+                             (name: "ether", code: "eth",  decimals: 18, symbol: lookupSymbol ("eth"))]),
+
+            (id: "BRD Token Testnet", name: "BRD Token", code: "BRD", type: "erc20", blockchainID: "ethereum-testnet", address: addressBRDTestnet,
              demoninations: [(name: "BRD_INTEGER",   code: "BRDI",  decimals:  0, symbol: "brdi"),
                              (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")]),
         ]
