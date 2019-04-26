@@ -77,6 +77,9 @@ extern "C" {
     cryptoAmountSub (BRCryptoAmount a1,
                      BRCryptoAmount a2);
 
+    extern BRCryptoAmount
+    cryptoAmountNegate (BRCryptoAmount amount);
+    
     extern double
     cryptoAmountGetDouble (BRCryptoAmount amount,
                            BRCryptoUnit unit,
