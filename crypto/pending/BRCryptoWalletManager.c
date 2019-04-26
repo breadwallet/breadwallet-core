@@ -585,8 +585,6 @@ cwmTransactionEventCallbackAsETH (BREthereumClientContext context,
             break;
         case TRANSFER_EVENT_GAS_ESTIMATE_UPDATED:
             break;
-        case TRANSFER_EVENT_BLOCK_CONFIRMATIONS_UPDATED:
-            break;
         case TRANSFER_EVENT_DELETED:
             break;
     }

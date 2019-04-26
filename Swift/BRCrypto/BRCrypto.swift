@@ -512,9 +512,9 @@ public final class Network: CustomStringConvertible {
         return unitsFor(currency: currency)?.contains(unit)
     }
 
-    /// The initial height of the network.  Will be used by a network's wallet manager.
-
-    internal let height: UInt64
+    /// The current height of the blockChain network.  On a reorganization, this might go backwards.
+    /// (No guarantee that this monotonically increases)
+    public internal(set) var height: UInt64
 
     public struct Association {
         let baseUnit: Unit
@@ -822,6 +822,16 @@ extension Transfer {
         else { return nil }
     }
 
+    ///
+    /// The confirmations of transfer at a provided `blockHeight`.  If the transfer has not been
+    /// confirmed or if the `blockHeight` is less than the confirmation height then `nil` is
+    /// returned.  The minimum returned value is 1 - if `blockHeight` is the same as the
+    /// confirmation block, then the transfer has been confirmed once.
+    ///
+    /// - Parameter blockHeight:
+    ///
+    /// - Returns: the number of confirmations
+    ///
     public func confirmationsAt (blockHeight: UInt64) -> UInt64? {
         return confirmation
             .flatMap { blockHeight >= $0.blockNumber ? (1 + blockHeight - $0.blockNumber) : nil }
@@ -924,6 +934,7 @@ extension TransferState: CustomStringConvertible {
 public enum TransferEvent {
     case created
     case changed (old: TransferState, new: TransferState)
+    case confirmation (count: UInt64)
     case deleted
 }
 
@@ -1291,6 +1302,8 @@ public enum WalletManagerEvent {
     case syncStarted
     case syncProgress (percentComplete: Double)
     case syncEnded (error: String?)
+
+    case blockUpdated (height: UInt64)
 }
 
 ///

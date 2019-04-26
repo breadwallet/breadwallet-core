@@ -62,6 +62,8 @@ class CoreDemoListener: SystemListener {
             break
         case .syncEnded: // (let error):
             break
+        case .blockUpdated: // (let height):
+            break
         }
     }
 

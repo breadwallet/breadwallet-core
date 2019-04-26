@@ -74,6 +74,8 @@ class TransferViewController: UIViewController, TransferListener {
         identifierLabel.text = hash.map { $0.description } ?? "<pending>"
 
         confLabel.text = transfer.confirmation.map { "Yes @ \($0.blockNumber)" } ?? "No"
+        confCountLabel.text = ""
+        
         switch transfer.state {
         case .failed(let reason):
             stateLabel.text = "\(transfer.state.description): \(reason)"
@@ -211,6 +213,7 @@ class TransferViewController: UIViewController, TransferListener {
     @IBOutlet var recvLabel: CopyableLabel!
     @IBOutlet var identifierLabel: UILabel!
     @IBOutlet var confLabel: UILabel!
+    @IBOutlet var confCountLabel: UILabel!
     @IBOutlet var stateLabel: UILabel!
     @IBOutlet var cancelButton: UIButton!
     @IBOutlet var resubmitButton: UIButton!
@@ -246,6 +249,9 @@ class TransferViewController: UIViewController, TransferListener {
                 case .deleted:
                     break // nearly impossible
                 }
+                break
+            case .confirmation(let count):
+                self.confCountLabel.text = count.description
                 break
             case .deleted:
                 break // nearly impossible
