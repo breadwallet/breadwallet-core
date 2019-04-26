@@ -163,6 +163,20 @@ class WalletManagerImplS: WalletManager {
         }
     }
 
+    internal var height: UInt64 {
+        get { return network.height }
+        set {
+            network.height = newValue
+            announceEvent (WalletManagerEvent.blockUpdated(height: newValue))
+            wallets.flatMap { $0.transfers }
+                .forEach {
+                    if let confirmations = $0.confirmationsAt (blockHeight: newValue) {
+                        ($0 as? TransferImplS)?.announceEvent (TransferEvent.confirmation (count: confirmations))
+                    }
+            }
+        }
+    }
+
     /// The BlockChainDB for BRD Server Assisted queries.
     internal let query: BlockChainDB
 

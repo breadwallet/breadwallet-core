@@ -115,7 +115,7 @@ struct BRWalletManagerStruct {
     /**
      * The BlockHeight is the largest block number seen
      */
-    uint64_t blockHeight;
+    uint32_t blockHeight;
 
     /**
      * An identiifer for a BRD Request
@@ -716,6 +716,27 @@ BRWalletManagerGetUnusedAddrs (BRWalletManager manager,
     return addresses;
 }
 
+static void
+BRWalletManagerUpdateHeightIfAppropriate (BRWalletManager manager,
+                                          uint32_t height) {
+    pthread_mutex_lock (&manager->lock);
+    if (height != manager->blockHeight) {
+        manager->blockHeight = height;
+        manager->client.funcWalletManagerEvent (manager->client.context,
+                                                manager,
+                                                (BRWalletManagerEvent) {
+                                                    BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED,
+                                                    { .blockHeightUpdated = { manager->blockHeight }}
+                                                });
+    }
+    pthread_mutex_unlock (&manager->lock);
+}
+
+static void
+BRWalletManagerCheckHeight (BRWalletManager manager) {
+    BRWalletManagerUpdateHeightIfAppropriate (manager, BRPeerManagerLastBlockHeight (manager->peerManager));
+}
+
 /// MARK: Wallet Callbacks
 
 static void
@@ -741,6 +762,7 @@ _BRWalletManagerTxAdded   (void *info, BRTransaction *tx) {
                                           (BRTransactionEvent) {
                                               BITCOIN_TRANSACTION_ADDED
                                           });
+    BRWalletManagerCheckHeight (manager);
 }
 
 static void
@@ -763,6 +785,7 @@ _BRWalletManagerTxUpdated (void *info, const UInt256 *hashes, size_t count, uint
                                                   { .updated = { blockHeight, timestamp }}
                                               });
     }
+    BRWalletManagerCheckHeight (manager);
 }
 
 static void
@@ -778,6 +801,7 @@ _BRWalletManagerTxDeleted (void *info, UInt256 hash, int notifyUser, int recomme
                                           (BRTransactionEvent) {
                                               BITCOIN_TRANSACTION_DELETED
                                           });
+    BRWalletManagerCheckHeight (manager);
 }
 
 /// MARK: - Peer Manager Callbacks
@@ -789,6 +813,7 @@ _BRWalletManagerSaveBlocks (void *info, int replace, BRMerkleBlock **blocks, siz
     if (replace) fileServiceClear(manager->fileService, fileServiceTypeBlocks);
     for (size_t index = 0; index < count; index++)
         fileServiceSave (manager->fileService, fileServiceTypeBlocks, blocks[index]);
+    BRWalletManagerCheckHeight (manager);
 }
 
 static void
@@ -798,6 +823,7 @@ _BRWalletManagerSavePeers  (void *info, int replace, const BRPeer *peers, size_t
     if (replace) fileServiceClear(manager->fileService, fileServiceTypePeers);
     for (size_t index = 0; index < count; index++)
         fileServiceSave (manager->fileService, fileServiceTypePeers, &peers[index]);
+    BRWalletManagerCheckHeight (manager);
 }
 
 static void
@@ -808,6 +834,7 @@ _BRWalletManagerSyncStarted (void *info) {
                                             (BRWalletManagerEvent) {
                                                 BITCOIN_WALLET_MANAGER_SYNC_STARTED
                                             });
+    BRWalletManagerCheckHeight (manager);
 }
 
 static void
@@ -819,13 +846,15 @@ _BRWalletManagerSyncStopped (void *info, int reason) {
                                                 BITCOIN_WALLET_MANAGER_SYNC_STOPPED,
                                                 { .syncStopped = { reason }}
                                             });
+    BRWalletManagerCheckHeight (manager);
 }
 
 static void
 _BRWalletManagerTxStatusUpdate (void *info) {
-//    BRWalletManager manager = (BRWalletManager) info;
+    BRWalletManager manager = (BRWalletManager) info;
 
     // event
+    BRWalletManagerCheckHeight (manager);
 
 }
 
@@ -984,9 +1013,7 @@ extern int
 bwmAnnounceBlockNumber (BRWalletManager manager,
                         int rid,
                         uint64_t blockNumber) {
-    pthread_mutex_lock (&manager->lock);
-    manager->blockHeight = blockNumber;
-    pthread_mutex_unlock (&manager->lock);
+    BRWalletManagerUpdateHeightIfAppropriate(manager, (int32_t) blockNumber);
     return 1;
 }
 

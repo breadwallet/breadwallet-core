@@ -559,8 +559,7 @@ public final class SystemBase: System {
                 if let manager = system.managerBy(impl: WalletManagerImplS.Impl.ethereum(ewm: eid)) {
                     switch event {
                     case EWM_EVENT_CREATED:
-                        // elsewhere
-                        break
+                        break // elsewhere
                     case EWM_EVENT_SYNC_STARTED:
                         manager.state = WalletManagerState.syncing
                         manager.announceEvent(WalletManagerEvent.syncStarted)
@@ -572,11 +571,11 @@ public final class SystemBase: System {
                         manager.state = WalletManagerState.connected
                         break
                     case EWM_EVENT_NETWORK_UNAVAILABLE:
-                        // pending
-                        break
+                        break // pending
+                    case EWM_EVENT_BLOCK_HEIGHT_UPDATED:
+                        manager.height = ewmGetBlockHeight(eid)
                     case EWM_EVENT_DELETED:
-                        // elsewhere
-                        break
+                        break // elsewhere
                     default:
                         precondition (false)
                     }
@@ -739,8 +738,6 @@ public final class SystemBase: System {
                         transfer.state = TransferState.failed (reason: message.flatMap { asUTF8String ($0) } ?? "<missing>")
 
                     case TRANSFER_EVENT_GAS_ESTIMATE_UPDATED:
-                        break
-                    case TRANSFER_EVENT_BLOCK_CONFIRMATIONS_UPDATED:
                         break
                     case TRANSFER_EVENT_DELETED:
                         break
@@ -942,6 +939,9 @@ public final class SystemBase: System {
                                                           event: WalletManagerEvent.syncEnded(error: nil))
                     manager.state = WalletManagerState.connected
 
+                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+                    manager.height = UInt64(event.u.blockHeightUpdated.value)
+
                 default:
                     precondition(false)
                 }
@@ -957,6 +957,7 @@ extension BRWalletManagerEventType: CustomStringConvertible {
         case BITCOIN_WALLET_MANAGER_DISCONNECTED: return "Disconnected"
         case BITCOIN_WALLET_MANAGER_SYNC_STARTED: return "Sync Started"
         case BITCOIN_WALLET_MANAGER_SYNC_STOPPED: return "Sync Stopped"
+        case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED: return "Block Height Updated"
         default: return "<<unknown>>"
         }
     }
@@ -1013,7 +1014,6 @@ extension BREthereumTransferEvent: CustomStringConvertible {
         case TRANSFER_EVENT_INCLUDED: return "Included"
         case TRANSFER_EVENT_ERRORED: return "Errored"
         case TRANSFER_EVENT_GAS_ESTIMATE_UPDATED: return "Gas Estimate Updated"
-        case TRANSFER_EVENT_BLOCK_CONFIRMATIONS_UPDATED: return "Block Confirmations Updated"
         case TRANSFER_EVENT_DELETED: return "Deleted"
         default: return "<<unknown>>"
         }
@@ -1041,6 +1041,7 @@ extension BREthereumEWMEvent: CustomStringConvertible {
         case EWM_EVENT_SYNC_CONTINUES: return "Sync Continues"
         case EWM_EVENT_SYNC_STOPPED: return "Sync Stopped"
         case EWM_EVENT_NETWORK_UNAVAILABLE: return "Network Unavailable"
+        case EWM_EVENT_BLOCK_HEIGHT_UPDATED: return "Block Height Updated"
         case EWM_EVENT_DELETED: return "Deleted"
         default: return "<<unknown>>"
         }
