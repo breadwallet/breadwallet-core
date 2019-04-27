@@ -470,7 +470,7 @@
                         </connections>
                     </tableView>
                     <navigationItem key="navigationItem" title="Wallet Transfers" id="gpA-m1-7MB">
-                        <barButtonItem key="rightBarButtonItem" enabled="NO" systemItem="add" id="eEO-9T-DbA">
+                        <barButtonItem key="rightBarButtonItem" systemItem="add" id="eEO-9T-DbA">
                             <connections>
                                 <segue destination="66z-us-aMt" kind="presentation" identifier="createTransfer" id="FEb-jC-U2A"/>
                             </connections>

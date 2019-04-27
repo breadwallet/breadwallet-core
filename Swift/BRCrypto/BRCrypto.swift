@@ -706,7 +706,7 @@ public final class Address: Equatable, CustomStringConvertible {
     ///
     /// - Returns: An address or nil if `string` is invalide for `network`
     ///
-    static func create (string: String, network: Network) -> Address? {
+    public static func create (string: String, network: Network) -> Address? {
         return network.addressFor(string)
     }
 
@@ -980,10 +980,11 @@ public protocol TransferFactory {
     ///
     /// - Returns: A new transfer
     ///
-    func createTransfer (wallet: Wallet,
-                         target: Address,
-                         amount: Amount,
-                         feeBasis: TransferFeeBasis) -> Transfer? // T
+//    func createTransfer (listener: TransferListener,
+//                         wallet: Wallet,
+//                         target: Address,
+//                         amount: Amount,
+//                         feeBasis: TransferFeeBasis) -> Transfer? // T
 }
 
 
@@ -1027,14 +1028,13 @@ public protocol Wallet: class {
     var source: Address { get }
 
     // address scheme
-}
 
-extension Wallet {
     ///
     /// Create a transfer for wallet.  Invokes the wallet's transferFactory to create a transfer.
     /// Generates events: TransferEvent.created and WalletEvent.transferAdded(transfer).
     ///
     /// - Parameters:
+    ///   - listener: The transfer listener
     ///   - source: The source spends 'amount + fee'
     ///   - target: The target receives 'amount
     ///   - amount: The amount
@@ -1042,10 +1042,20 @@ extension Wallet {
     ///
     /// - Returns: A new transfer
     ///
-//    public func createTransfer (target: Address,
+    func createTransfer (listener: TransferListener,
+                         target: Address,
+                         amount: Amount,
+                         feeBasis: TransferFeeBasis) -> Transfer?
+}
+
+extension Wallet {
+    // Default implementation, using `transferFactory`
+//    public func createTransfer (listener: TransferListener,
+//                                target: Address,
 //                                amount: Amount,
 //                                feeBasis: TransferFeeBasis) -> Transfer? {
-//        return transferFactory.createTransfer (wallet: self,
+//        return transferFactory.createTransfer (listener: listener,
+//                                               wallet: self,
 //                                               target: target,
 //                                               amount: amount,
 //                                               feeBasis: feeBasis)
@@ -1063,12 +1073,14 @@ extension Wallet {
     ///
     /// - Returns: A new transfer
     ///
-//    public func createTransfer (target: Address,
-//                                amount: Amount) -> Transfer? {
-//        return createTransfer (target: target,
-//                               amount: amount,
-//                               feeBasis: defaultFeeBasis)
-//    }
+    public func createTransfer (listener: TransferListener,
+                                target: Address,
+                                amount: Amount) -> Transfer? {
+        return createTransfer (listener: listener,
+                               target: target,
+                               amount: amount,
+                               feeBasis: defaultFeeBasis)
+    }
 
     /// The currency held in wallet.
     public var currency: Currency {
