@@ -836,6 +836,11 @@ extension Transfer {
         return confirmation
             .flatMap { blockHeight >= $0.blockNumber ? (1 + blockHeight - $0.blockNumber) : nil }
     }
+
+    /// The confirmations of transfer at the current network `height`.
+    public var confirmations: UInt64? {
+        return confirmationsAt (blockHeight: wallet.manager.network.height)
+    }
 }
 
 public enum TransferDirection {
