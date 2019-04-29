@@ -78,8 +78,8 @@ class WalletViewController: UITableViewController, TransferListener {
             
         case "createTransfer":
             print ("APP: WVC: Want to Create")
-//            let controller = (segue.destination as! UINavigationController).topViewController as! TransferCreateController
-//            controller.wallet = wallet
+            let controller = (segue.destination as! UINavigationController).topViewController as! TransferCreateController
+            controller.wallet = wallet
             break
 
         default:

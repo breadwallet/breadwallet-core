@@ -74,7 +74,7 @@ class TransferViewController: UIViewController, TransferListener {
         identifierLabel.text = hash.map { $0.description } ?? "<pending>"
 
         confLabel.text = transfer.confirmation.map { "Yes @ \($0.blockNumber)" } ?? "No"
-        confCountLabel.text = ""
+        confCountLabel.text = transfer.confirmations?.description ?? ""
         
         switch transfer.state {
         case .failed(let reason):
