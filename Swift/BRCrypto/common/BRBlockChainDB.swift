@@ -119,7 +119,13 @@ public class BlockChainDB {
 
         /// Blockchain
 
-        public typealias Blockchain = (id: String, name: String, network: String, isMainnet: Bool, currency: String, blockHeight: UInt64 /* fee Estimate */)
+        public typealias Blockchain = (
+            id: String,
+            name: String,
+            network: String,
+            isMainnet: Bool,
+            currency: String,
+            blockHeight: UInt64 /* fee Estimate */)
 
         static internal func asBlockchain (json: JSON) -> Model.Blockchain? {
             guard let id = json.asString (name: "id"),
@@ -151,7 +157,14 @@ public class BlockChainDB {
         /// Currency & CurrencyDenomination
 
         public typealias CurrencyDenomination = (name: String, code: String, decimals: UInt8, symbol: String /* extra */)
-        public typealias Currency = (id: String, name: String, code: String, type: String, blockchainID: String, address: String?, demoninations: [CurrencyDenomination])
+        public typealias Currency = (
+            id: String,
+            name: String,
+            code: String,
+            type: String,
+            blockchainID: String,
+            address: String?,
+            demoninations: [CurrencyDenomination])
 
        static internal func asCurrencyDenomination (json: JSON) -> Model.CurrencyDenomination? {
             guard let name = json.asString (name: "name"),
@@ -245,7 +258,16 @@ public class BlockChainDB {
 
         /// Transfer
 
-        public typealias Transfer = (id: String, source: String?, target: String?, amountValue: String, amountCurrency: String, acknowledgements: UInt64, index: UInt64, transactionId: String?, blockchainId: String)
+        public typealias Transfer = (
+            id: String,
+            source: String?,
+            target: String?,
+            amountValue: String,
+            amountCurrency: String,
+            acknowledgements: UInt64,
+            index: UInt64,
+            transactionId: String?,
+            blockchainId: String)
 
         static internal func asTransfer (json: JSON) -> Model.Transfer? {
             guard let id = json.asString(name: "transfer_id"),
@@ -269,10 +291,19 @@ public class BlockChainDB {
 
         /// Transaction
 
-        public typealias Transaction = (id: String, blockchainId: String,
-            hash: String, identifier: String,
-            blockHash: String?, blockHeight: UInt64?, index: UInt64?, confirmations: UInt64?, status: String,
-            size: UInt64, timestamp: Date?, firstSeen: Date,
+        public typealias Transaction = (
+            id: String,
+            blockchainId: String,
+            hash: String,
+            identifier: String,
+            blockHash: String?,
+            blockHeight: UInt64?,
+            index: UInt64?,
+            confirmations: UInt64?,
+            status: String,
+            size: UInt64,
+            timestamp: Date?,
+            firstSeen: Date,
             raw: Data?,
             transfers: [Transfer],
             acknowledgements: UInt64
@@ -313,9 +344,17 @@ public class BlockChainDB {
 
         /// Block
 
-        public typealias Block = (id: String, blockchainId: String,
-            hash: String, height: UInt64, header: String?, raw: Data?, mined: Date, size: UInt64,
-            prevHash: String?, nextHash: String?, // fees
+        public typealias Block = (
+            id: String,
+            blockchainId: String,
+            hash: String,
+            height: UInt64,
+            header: String?,
+            raw: Data?,
+            mined: Date,
+            size: UInt64,
+            prevHash: String?,
+            nextHash: String?, // fees
             transactions: [Transaction]?,
             acknowledgements: UInt64
         )
@@ -337,7 +376,7 @@ public class BlockChainDB {
 
             let transactions = json.asArray (name: "transactions")?
                 .map ({ JSON (dict: $0 )})
-                .map ({ asTransaction (json: $0)}) as? [Model.Transaction]  // no quite - i
+                .map ({ asTransaction (json: $0)}) as? [Model.Transaction]  // not quite
 
             return (id: id, blockchainId: bid,
                     hash: hash, height: height, header: header, raw: raw, mined: mined, size: size,
@@ -345,7 +384,76 @@ public class BlockChainDB {
                     transactions: transactions,
                     acknowledgements: acks)
         }
-    }
+
+        /// Wallet
+
+        public typealias WalletCurrency = (currency: String, addresses: [String])
+        public typealias Wallet = (
+            id: String,
+            created: Date,
+            currencies: [WalletCurrency]
+        )
+
+        static internal func asWalletCurrency (json: JSON) -> Model.WalletCurrency? {
+            guard let currency = json.asString(name: "currency_id")
+            else { return nil }
+
+            let addresses = json.asStringArray(name: "addresses") ?? []
+
+            return (currency: currency, addresses: addresses)
+        }
+
+        static internal func asJSON (walletCurrency: Model.WalletCurrency) -> JSON.Dict {
+            return [
+                "currency_id" : walletCurrency.currency,
+                "addresses"   : walletCurrency.addresses
+            ]
+        }
+
+        static internal func asWallet (json: JSON) -> Model.Wallet? {
+            guard let id = json.asString (name: "wallet_id"),
+                let created = json.asDate (name: "created")
+                else { return nil }
+
+            let currencies = json.asArray(name: "currencies")?
+                .map { JSON (dict: $0) }
+                .map { asWalletCurrency (json: $0) } as? [Model.WalletCurrency]
+            ?? [] // not quite
+
+            return (id: id, created: created, currencies: currencies)
+        }
+
+        /// Subscription
+
+        public typealias SubscriptionEndpoint = (environment: String, kind: String, value: String)
+        public typealias Subscription = (
+            id: String,
+            wallet: String,
+            device: String,
+            endpoint: SubscriptionEndpoint
+        )
+
+        static internal func asSubscriptionEndpoint (json: JSON) -> SubscriptionEndpoint? {
+            guard let environment = json.asString (name: "environment"),
+            let kind = json.asString(name: "kind"),
+            let value = json.asString(name: "value")
+                else { return nil }
+
+            return (environment: environment, kind: kind, value: value)
+        }
+
+        static internal func asSubscription (json: JSON) -> Subscription? {
+            guard let id = json.asString (name: "subscription_id"),
+                let wallet = json.asString (name: "wallet_id"),
+                let device = json.asString (name: "device_id"),
+                let endpoint = json.asDict(name: "endpoint")
+                    .flatMap ({ asSubscriptionEndpoint (json: JSON (dict: $0)) })
+                else { return nil }
+
+            return (id: id, wallet: wallet, device: device, endpoint: endpoint)
+        }
+
+    } // End of Model
 
     public func getBlockchains (mainnet: Bool? = nil, completion: @escaping (Result<[Model.Blockchain],QueryError>) -> Void) {
         bdbMakeRequest (path: "blockchains", query: mainnet.map { zip (["testnet"], [($0 ? "false" : "true")]) }) {
@@ -387,6 +495,43 @@ public class BlockChainDB {
         }
     }
 
+    public func getSubscription (id: String, completion: @escaping (Result<Model.Subscription, QueryError>) -> Void) {
+        bdbMakeRequest (path: "subscriptions/\(id)", query: nil, embedded: false) {
+            (more: Bool, res: Result<[JSON], QueryError>) in
+            precondition (!more)
+            completion (res.flatMap {
+                BlockChainDB.getOneExpected (id: id, data: $0, transform: Model.asSubscription)
+            })
+        }
+    }
+
+    public func createSubscription (walletId: String, deviceId: String, endpointValue: String,
+                                    completion: @escaping (Result<String, QueryError>) -> Void) {
+        let json: JSON.Dict = [
+            "wallet_id" : walletId,
+            "device_id" : deviceId,
+            "endpoint"  : [
+                "environment" : "develop",          // not quite
+                "type"        : "apns",
+                "value"       : endpointValue
+                ]
+        ]
+
+        makeRequest (bdbDataTaskFunc, bdbBaseURL,
+                     path: "subscriptions",
+                     query: nil,
+                     data: json,
+                     httpMethod: "POST") {
+                        (res: Result<JSON.Dict, QueryError>) in
+                        completion (res.flatMap {
+                            JSON(dict: $0)
+                                .asString (name: "subscription_id")
+                                .map { Result.success($0) }
+                            ?? Result.failure(QueryError.model("subscription"))
+                        })
+        }
+    }
+
     public func getTransfers (blockchainId: String, addresses: [String], completion: @escaping (Result<[Model.Transfer], QueryError>) -> Void) {
         let queryKeys = ["blockchain_id"] + Array (repeating: "address", count: addresses.count)
         let queryVals = [blockchainId]    + addresses
@@ -406,6 +551,30 @@ public class BlockChainDB {
             completion (res.flatMap {
                 BlockChainDB.getOneExpected (id: transferId, data: $0, transform: Model.asTransfer)
             })
+        }
+    }
+
+    public func getWallet (walletId: String, completion: @escaping (Result<Model.Wallet, QueryError>) -> Void) {
+        bdbMakeRequest(path: "wallets/\(walletId)", query: nil, embedded: false) { (more: Bool, res: Result<[JSON], QueryError>) in
+            precondition(!more)
+            completion (res.flatMap {
+                BlockChainDB.getOneExpected(id: walletId, data: $0, transform: Model.asWallet)
+            })
+        }
+    }
+
+    public func createWallet (id: String, currencies: [Model.WalletCurrency]) -> Void {
+        let json: JSON.Dict = [
+            "walletId"   : id,
+            "currencies" : currencies.map { Model.asJSON(walletCurrency: $0) }
+            ]
+
+        makeRequest (bdbDataTaskFunc, bdbBaseURL,
+                     path: "wallets",
+                     query: nil,
+                     data: json,
+                     httpMethod: "POST") {
+                        (res: Result<JSON.Dict, QueryError>) in
         }
     }
 
