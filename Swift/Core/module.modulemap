@@ -3,7 +3,7 @@ module BRCryptoC [system] [extern_c] {
     header "../../crypto/BRCryptoUnit.h"
     header "../../crypto/BRCryptoAmount.h"
 //    header "../../crypto/BRCryptoCurrencyPair.h"
-    header "../../crypto/BRCryptoNetwork.h"
+//    header "../../crypto/BRCryptoNetwork.h"
     header "../../crypto/BRCryptoAccount.h"
     header "../../crypto/BRCryptoAddress.h"
 //    header "../../crypto/BRCryptoTransfer.h"

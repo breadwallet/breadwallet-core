@@ -121,8 +121,6 @@
 		3C902623210A7E9800143B69 /* BREthereumTransfer.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C902622210A7E9800143B69 /* BREthereumTransfer.c */; };
 		3C97E2352241658E003FD88F /* BRCryptoCurrency.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C97E2332241658E003FD88F /* BRCryptoCurrency.c */; };
 		3C97E2362241658E003FD88F /* BRCryptoCurrency.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C97E2332241658E003FD88F /* BRCryptoCurrency.c */; };
-		3C97E24722416AB1003FD88F /* BRCryptoNetwork.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C97E23922416AB1003FD88F /* BRCryptoNetwork.c */; };
-		3C97E24822416AB1003FD88F /* BRCryptoNetwork.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C97E23922416AB1003FD88F /* BRCryptoNetwork.c */; };
 		3C97E24F22416AB1003FD88F /* BRCryptoUnit.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C97E24022416AB1003FD88F /* BRCryptoUnit.c */; };
 		3C97E25022416AB1003FD88F /* BRCryptoUnit.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C97E24022416AB1003FD88F /* BRCryptoUnit.c */; };
 		3C97E25122416AB1003FD88F /* BRCryptoAmount.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C97E24422416AB1003FD88F /* BRCryptoAmount.c */; };
@@ -1023,6 +1021,8 @@
 			children = (
 				3C97E23822416AB1003FD88F /* BRCryptoCurrencyPair.h */,
 				3C97E23722416AB1003FD88F /* BRCryptoCurrencyPair.c */,
+				3C97E24122416AB1003FD88F /* BRCryptoNetwork.h */,
+				3C97E23922416AB1003FD88F /* BRCryptoNetwork.c */,
 				3C97E23E22416AB1003FD88F /* BRCryptoTransfer.h */,
 				3C97E23B22416AB1003FD88F /* BRCryptoTransfer.c */,
 				3C97E23C22416AB1003FD88F /* BRCryptoWallet.h */,
@@ -1058,8 +1058,6 @@
 				3C97E255224170B9003FD88F /* BRCryptoAccount.c */,
 				3C97E258224170EC003FD88F /* BRCryptoAddress.h */,
 				3C97E259224170EC003FD88F /* BRCryptoAddress.c */,
-				3C97E24122416AB1003FD88F /* BRCryptoNetwork.h */,
-				3C97E23922416AB1003FD88F /* BRCryptoNetwork.c */,
 				3C77C7CD226A6AFE00BB5FFB /* pending */,
 				3CCB1354224D3F7500ADCDB9 /* testCrypto.c */,
 			);
@@ -1509,7 +1507,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3C97E24822416AB1003FD88F /* BRCryptoNetwork.c in Sources */,
 				3C0D297C216FD0DB003838E9 /* BREthereumMessagePIP.c in Sources */,
 				3C6B17392131CE12003C313B /* BREthereumEther.c in Sources */,
 				3C6B173A2131CE12003C313B /* BREthereumGas.c in Sources */,
@@ -1593,7 +1590,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3C97E24722416AB1003FD88F /* BRCryptoNetwork.c in Sources */,
 				3CD30496213B226B00A0CCED /* BREthereumMessageP2P.c in Sources */,
 				3CAB60B120AF8D1A00810CE4 /* BREthereumEther.c in Sources */,
 				3CF38E4821C4421600B771E6 /* BREthereumProofOfWork.c in Sources */,
