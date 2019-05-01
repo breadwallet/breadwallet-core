@@ -29,7 +29,8 @@ typedef enum {
 
 // Stucture to hold the calculated signature
 typedef struct  {
-    uint8_t signature[65];
+    uint8_t signature[256];
+    int sig_length;
 } BRRippleSignatureRecord;
 
 // Ripple has the concept of fields, which are sorted. This

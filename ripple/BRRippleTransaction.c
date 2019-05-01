@@ -41,6 +41,9 @@ struct BRRippleTransactionRecord {
     // The next valid sequence number for the initiating account
     uint32_t sequence;
 
+    uint32_t flags;
+    uint32_t lastLedgerSequence;
+
     // The account
     BRKey publicKey;
 
@@ -57,6 +60,8 @@ rippleTransactionCreate(BRRippleAddress sourceAddress,
                         uint64_t amount, // For now assume XRP drops.
                         uint32_t sequence,
                         uint64_t fee,
+                        uint32_t flags,
+                        uint32_t lastLedgerSequence,
                         BRKey publicKey)
 {
     BRRippleTransaction transaction = calloc (1, sizeof (struct BRRippleTransactionRecord));
@@ -69,6 +74,8 @@ rippleTransactionCreate(BRRippleAddress sourceAddress,
     transaction->sourceAddress = sourceAddress;
     transaction->transactionType = txType;
     transaction->publicKey = publicKey;
+    transaction->flags = flags;
+    transaction->lastLedgerSequence = lastLedgerSequence;
 
     // Payment information
     transaction->payment = calloc(1, sizeof(BRRipplePaymentTxRecord));
@@ -103,23 +110,32 @@ void setFieldInfo(BRRippleField *fields, int num_fields, BRRippleTransaction tra
     fields[3].typeCode = 6;
     fields[3].fieldCode = 8;
     fields[3].data.i64 = transaction->fee;
-    // Public key info
-    fields[4].typeCode = 7;
-    fields[4].fieldCode = 3;
-    fields[4].data.publicKey = transaction->publicKey;
     
     // Payment info
-    fields[5].typeCode = 8;
-    fields[5].fieldCode = 3;
-    fields[5].data.address = transaction->payment->targetAddress;
-    fields[6].typeCode = 6;
-    fields[6].fieldCode = 1;
-    fields[6].data.i64 = transaction->payment->amount;
+    fields[4].typeCode = 8;
+    fields[4].fieldCode = 3;
+    fields[4].data.address = transaction->payment->targetAddress;
+    fields[5].typeCode = 6;
+    fields[5].fieldCode = 1;
+    fields[5].data.i64 = transaction->payment->amount;
+
+    // Public key info
+    fields[6].typeCode = 7;
+    fields[6].fieldCode = 3;
+    fields[6].data.publicKey = transaction->publicKey;
+
+    fields[7].typeCode = 2;
+    fields[7].fieldCode = 2;
+    fields[7].data.i32 = transaction->flags;
+    fields[8].typeCode = 2;
+    fields[8].fieldCode = 27;
+    fields[8].data.i32 = transaction->lastLedgerSequence;
 
     if (signature) {
-        fields[7].typeCode = 7;
-        fields[7].fieldCode = 4;
-        memcpy(&fields[7].data.signature, signature, sig_length);
+        fields[9].typeCode = 7;
+        fields[9].fieldCode = 4;
+        memcpy(&fields[9].data.signature.signature, signature, sig_length);
+        fields[9].data.signature.sig_length = sig_length;
     }
 }
 
@@ -129,12 +145,12 @@ rippleTransactionSerialize (BRRippleTransaction transaction)
     assert(transaction);
     assert(transaction->transactionType == PAYMENT);
     assert(transaction->payment);
-    BRRippleField fields[7];
+    BRRippleField fields[9];
 
-    setFieldInfo(fields, 7, transaction, 0, 0);
+    setFieldInfo(fields, 9, transaction, 0, 0);
 
     // Serialize the fields
-    return(serialize(fields, 7));
+    return(serialize(fields, 9));
 }
 
 extern BRRippleSerializedTransaction
@@ -145,12 +161,11 @@ rippleTransactionSerializeWithSignature(BRRippleTransaction transaction,
     assert(transaction);
     assert(transaction->transactionType == PAYMENT);
     assert(transaction->payment);
-    BRRippleField fields[8];
+    BRRippleField fields[10];
     
     assert(signature);
-    assert(65 == sig_length);
-    setFieldInfo(fields, 8, transaction, signature, sig_length);
+    setFieldInfo(fields, 10, transaction, signature, sig_length);
     
     // Serialize the fields
-    return(serialize(fields, 8));
+    return(serialize(fields, 10));
 }

@@ -21,18 +21,22 @@ signBytes (BRKey *key, uint8_t *bytes, size_t bytesCount)
 {
     BRRippleSignature sig = calloc(1,sizeof(BRRippleSignatureRecord));
 
-    // Hash with the required Keccak-256
-    // TODO (1) - is this the correct thing to do for Ripple transaction???
-    // documentation is light on the algorithm
-    // TODO (2) - in some of the files that show signing some HashPrefix is
-    // appended at the beginning of the bytes - in our case if needed it would
-    // be { 'T', 'X', 'N', 0x00 }
+    // Before hashing the transaction - append the prefix
+    uint8_t HASH_TX_SIGN[4] = { 0x53, 0x54, 0x58, 0x00 }; // 0x53545800  # 'STX'
     UInt256 messageDigest;
-    BRKeccak256(&messageDigest, bytes, bytesCount);
+    uint8_t bytes_to_hash[4 + bytesCount];
+    memcpy(bytes_to_hash, HASH_TX_SIGN, 4);
+    memcpy(&bytes_to_hash[4], bytes, bytesCount);
 
-    size_t signatureLen = 65;
-    signatureLen = BRKeyCompactSign (key, sig->signature, signatureLen, messageDigest);
-    assert (65 == signatureLen);
+    // Create a sha512 hash and only use the first 32 bytes
+    uint8_t hash[64];
+    BRSHA512(hash, bytes_to_hash, bytesCount + 4);
+    memcpy(messageDigest.u8, hash, 32);
+
+    // BRKeySign (not sure if this is a good name) but it signs the key and does DER encoding.
+    // TODO - figure out what the max size the buffer needs to be, currently hard coded to 256 bytes
+    // but all I have seen so far is either 70 or 71 bytes
+    sig->sig_length = BRKeySign(key, sig->signature, (int)sizeof(sig->signature), messageDigest);
 
     return sig;
 }

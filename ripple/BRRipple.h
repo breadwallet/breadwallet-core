@@ -37,6 +37,8 @@ typedef BRRippleSignatureRecord *BRRippleSignature;
  * @param  amount         XRP drop amount to be sent
  * @param  sequence       Next valid sequence number for the owner account
  * @param  fee            XRP fee in drops
+ * @param  flags
+ * @param  lastLegderSequence  this value is highly recommeded and comes from the server
  *
  * @return transaction    a ripple transaction
  */
@@ -47,6 +49,8 @@ rippleTransactionCreate(BRRippleAddress sourceAddress,
                         uint64_t amount, // For now assume XRP drops.
                         uint32_t sequence,
                         uint64_t fee,
+                        uint32_t flags,
+                        uint32_t lastLedgerSequence,
                         BRKey publicKey);
 
 /**

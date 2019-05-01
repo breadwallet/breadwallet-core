@@ -137,19 +137,56 @@ extern char * createRippleAddressString (BRRippleAddress address, int useChecksu
     return string;
 }
 
+/**
+ * Optional way to create the BRKey
+ *
+ * 1. The normal way using the mnemonic paper_key
+ * 2. In DEBUG mode unit tests can pass in a private key instead
+ *
+ */
+static BRKey getKey(const char* paperKey)
+{
+#ifndef DEBUG
+    // In release mode we assume we only support mnemonic paper key
+    // Create the seed and the keys
+    UInt512 seed = getSeed(paperKey);
+    return deriveRippleKeyFromSeed (seed, 0);
+#else
+    // See if this key has any embedded spaces. If it does then
+    // it is a real paper key
+    int is_paper_key = 0;
+    unsigned long size = strlen(paperKey);
+    for(unsigned long i = 0; i < size; i++) {
+        if (paperKey[i] == ' ') {
+            is_paper_key = 1;
+            break;
+        }
+    }
+    if (1 == is_paper_key) {
+        // Create the seed and the keys
+        UInt512 seed = getSeed(paperKey);
+        return deriveRippleKeyFromSeed (seed, 0);
+    } else {
+        BRKey key;
+        BRKeySetPrivKey(&key, paperKey);
+        return key;
+    }
+#endif
+}
+
 extern BRRippleAccount rippleAccountCreate (const char *paperKey)
 {
     installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);
 
-    // Create the seed and the keys
-    UInt512 seed = getSeed(paperKey);
-    BRKey   key  = deriveRippleKeyFromSeed (seed, 0);
+    BRKey key = getKey(paperKey);
+
     key.compressed = 1;
-    
-    // Fill key.pubKey
     uint8_t pubkey[33];
     assert (33 == BRKeyPubKey (&key, pubkey, 33));
 
+    char priv_key_check[34];
+    BRKeyPrivKey(&key, priv_key_check, 34);
+    
     BRRippleAccount account = (BRRippleAccount) calloc (1, sizeof (struct BRRippleAccountRecord));
     memcpy(account->publicKey, pubkey, 33);
 
@@ -198,9 +235,7 @@ rippleAccountSignBytes (BRRippleAccount account,
                         const char *paperKey)
 {
     // Create the private key from the paperKey
-    installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);
-    UInt512 seed = getSeed(paperKey);
-    BRKey   key  = deriveRippleKeyFromSeed (seed, 0);
-    
+    BRKey key = getKey(paperKey);
+
     return signBytes(&key, bytes, bytesCount);
 }

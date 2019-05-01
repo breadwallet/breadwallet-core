@@ -197,9 +197,9 @@ int add_blob(BRRippleField *field, uint8_t *buffer)
         return length;
     } else if (field->fieldCode == 4){
         // TxnSignature
-        int length = add_length(sizeof(field->data.signature.signature), buffer);
+        int length = add_length(field->data.signature.sig_length, buffer);
         length += add_raw(field->data.signature.signature,
-                          sizeof(field->data.signature.signature),
+                          field->data.signature.sig_length,
                           &buffer[length]);
         return length;
     } else {
