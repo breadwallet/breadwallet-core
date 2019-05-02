@@ -156,29 +156,29 @@ class TransferImplS: Transfer {
 
         internal var eth: BREthereumTransfer! {
             switch self {
-            case .bitcoin: return nil
             case .ethereum (_, let core): return core
+            default: return nil
             }
         }
 
         internal var btc: BRCoreTransaction! {
             switch self {
             case .bitcoin (_, let tid): return tid
-            case .ethereum: return nil
+            default: return nil
             }
         }
 
         internal func matches (eth: BREthereumTransfer) -> Bool {
             switch self {
-            case .bitcoin: return false
             case .ethereum (_, let tid): return tid == eth
+            default: return false
             }
         }
 
         internal func matches (btc: BRCoreTransaction) -> Bool {
             switch self {
             case .bitcoin (_, let tid): return tid == btc
-            case .ethereum: return false
+            default: return false
             }
         }
 
@@ -236,8 +236,7 @@ class TransferImplS: Transfer {
                     ? amount.u.ether.valueInWEI
                     : amount.u.tokenQuantity.valueAsInteger)
 
-                return Amount (core: cryptoAmountCreate (unit.currency.core, CRYPTO_FALSE, value),
-                               unit: unit)
+                return Amount.create (uint256: value, unit)
 
             case let .bitcoin (wid, tid):
                 var fees = UInt64(BRWalletFeeForTx (wid, tid))
@@ -251,7 +250,7 @@ class TransferImplS: Transfer {
                     ? recv - send
                     : (send - Int64(fees)) - recv)
 
-                return Amount.createAsBTC (UInt64(value), unit)
+                return Amount.create (uint64: UInt64(value), unit)
             }
 
         }
@@ -262,19 +261,19 @@ class TransferImplS: Transfer {
                 var overflow: Int32 = 0;
                 let amount: BREthereumEther = ewmTransferGetFee (ewm, core, &overflow)
                 precondition (0 == overflow)
-                return Amount.createAsETH (amount.valueInWEI, unit)
+                return Amount.create (uint256: amount.valueInWEI, unit)
 
             case let .bitcoin (wid, tid):
                 //        var transaction = core
                 let fee = BRWalletFeeForTx (wid, tid)
-                return Amount.createAsBTC (fee == UINT64_MAX ? 0 : fee, unit)
+                return Amount.create (uint64: fee == UINT64_MAX ? 0 : fee, unit)
             }
         }
 
         internal func feeBasis (in unit: Unit) -> TransferFeeBasis {
             switch self {
             case .ethereum:
-                let gasPrice = Amount.createAsETH (createUInt256 (0), unit)
+                let gasPrice = Amount.create (uint256: createUInt256 (0), unit)
                 return TransferFeeBasis.ethereum (gasPrice: gasPrice, gasLimit: 0)
 
             case .bitcoin:

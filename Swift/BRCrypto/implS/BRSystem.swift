@@ -730,7 +730,7 @@ public final class SystemBase: System {
                             blockNumber: ewmTransferGetBlockNumber (coreEWM, tid),
                             transactionIndex: ewmTransferGetTransactionIndex (coreEWM, tid),
                             timestamp: ewmTransferGetBlockTimestamp (coreEWM, tid),
-                            fee: Amount.createAsETH (ether.valueInWEI, manager.unit))
+                            fee: Amount.create (uint256: ether.valueInWEI, manager.unit))
 
                         transfer.state = TransferState.included (confirmation: confirmation)
 
@@ -866,7 +866,7 @@ public final class SystemBase: System {
                         blockNumber: UInt64(event.u.updated.blockHeight),
                         transactionIndex: 0,
                         timestamp: UInt64(event.u.updated.timestamp),
-                        fee: Amount.createAsBTC (0, manager.unit))
+                        fee: Amount.create (uint64: 0, manager.unit))
 
                     transfer.state = TransferState.included (confirmation: confirmation)
 

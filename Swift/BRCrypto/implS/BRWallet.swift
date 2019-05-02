@@ -251,9 +251,9 @@ class WalletImplS: Wallet {
                 let value = (coreETH.type == AMOUNT_ETHER
                     ? coreETH.u.ether.valueInWEI
                     : coreETH.u.tokenQuantity.valueAsInteger)
-                return Amount.createAsETH (value, unit)
+                return Amount.create (uint256: value, unit)
             case let .bitcoin (wid):
-                return Amount.createAsBTC (BRWalletBalance (wid), unit)
+                return Amount.create(uint64: BRWalletBalance(wid), unit)
             }
         }
 
@@ -263,7 +263,7 @@ class WalletImplS: Wallet {
                 let coreGasPrice = ewmWalletGetDefaultGasPrice (ewm, core)
                 let coreGasLimit = ewmWalletGetDefaultGasLimit (ewm, core)
                 return TransferFeeBasis.ethereum (
-                    gasPrice: Amount.createAsETH (coreGasPrice.etherPerGas.valueInWEI, unit),
+                    gasPrice: Amount.create(uint256: coreGasPrice.etherPerGas.valueInWEI, unit),
                     gasLimit: coreGasLimit.amountOfGas)
             case let .bitcoin (wid):
                 return TransferFeeBasis.bitcoin(feePerKB: BRWalletFeePerKb (wid))

@@ -235,6 +235,16 @@ public final class Amount {
                        unit: unit)
     }
 
+    internal static func create (uint64: UInt64, _ unit: Unit) -> Amount {
+        return  Amount (core: cryptoAmountCreate (unit.currency.core, CRYPTO_FALSE, createUInt256(uint64)),
+                        unit: unit)
+    }
+
+    internal static func create (uint256: UInt256, _ unit: Unit) -> Amount {
+        return  Amount (core: cryptoAmountCreate (unit.currency.core, CRYPTO_FALSE, uint256),
+                        unit: unit)
+    }
+
     public static func create (string: String, negative: Bool = false, unit: Unit) -> Amount? {
         let core = cryptoAmountCreateString (string, (negative ? CRYPTO_TRUE : CRYPTO_FALSE), unit.core)
         return nil == core ? nil : Amount (core: core!, unit: unit)
@@ -301,36 +311,6 @@ extension Amount: Comparable {
 extension Amount: CustomStringConvertible {
     public var description: String {
         return string (as: unit) ?? "<nan>"
-    }
-}
-
-extension Amount {
-    // ETH
-
-    internal var asETH: UInt64 {
-        var overflow: BRCryptoBoolean = CRYPTO_FALSE
-        let value = cryptoAmountGetIntegerRaw (self.core, &overflow)
-        precondition(CRYPTO_FALSE == overflow)
-        return value
-    }
-
-    internal static func createAsETH (_ value: UInt256, _ unit: Unit) -> Amount {
-        return Amount (core: cryptoAmountCreate(unit.currency.core, CRYPTO_FALSE, value),
-                       unit: unit);
-    }
-
-    // BTC
-
-    internal var asBTC: UInt64 {
-        var overflow: BRCryptoBoolean = CRYPTO_FALSE
-        let value = cryptoAmountGetIntegerRaw (self.core, &overflow)
-        precondition(CRYPTO_FALSE == overflow)
-        return value
-    }
-
-    internal static func createAsBTC (_ value: UInt64, _ unit: Unit) -> Amount {
-        return Amount (core: cryptoAmountCreate(unit.currency.core, CRYPTO_FALSE, createUInt256(value)),
-                       unit: unit);
     }
 }
 
