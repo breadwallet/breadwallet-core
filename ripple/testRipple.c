@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "BRRipple.h"
+#include "BRRippleBase58.h"
 
 static BRRippleAccount createRippleAccount(const char* paper_key,
                                            const char* expected_account_address)
@@ -188,12 +189,27 @@ static void runWalletTests()
     
 }
 
+static void checkDecodeRippleAddress()
+{
+    uint8_t expected_bytes[] = { 0xEF, 0xFC, 0x27, 0x52, 0xB5, 0xC9, 0xDA, 0x22, 0x88, 0xC5,
+        0xD0, 0x1F, 0x30, 0x4E, 0xC8, 0x29, 0x51, 0xE3, 0x7C, 0xA2 };
+    const char* ripple_address = "r41vZ8exoVyUfVzs56yeN8xB5gDhSkho9a";
+    
+    BRRippleAddress address;
+    int length = rippleAddressStringToAddress(ripple_address, &address);
+    assert(length == 20);
+    assert(0 == memcmp(expected_bytes, address.bytes, 20));
+}
+
 extern void
 runRippleTest (void /* ... */) {
 
     testRippleAccount();
     testRippleTransaction();
     testSerializeWithSignature();
+
+    // base58 encoding tests
+    checkDecodeRippleAddress();
 
     // Wallet tests
     runWalletTests();
