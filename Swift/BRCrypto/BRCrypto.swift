@@ -1109,9 +1109,10 @@ public enum WalletEvent {
     case changed (oldState: WalletState, newState: WalletState)
     case deleted
 
-    case transferAdded   (transfer: Transfer)
-    case transferChanged (transfer: Transfer)
-    case transferDeleted (transfer: Transfer)
+    case transferAdded     (transfer: Transfer)
+    case transferChanged   (transfer: Transfer)
+    case transferDeleted   (transfer: Transfer)
+    case transferSubmitted (transfer: Transfer, success: Bool)
 
     case balanceUpdated  (amount: Amount)
     case feeBasisUpdated (feeBasis: TransferFeeBasis)
@@ -1120,14 +1121,15 @@ public enum WalletEvent {
 extension WalletEvent: CustomStringConvertible {
     public var description: String {
         switch self {
-        case .created:         return "Created"
-        case .changed:         return "StateChanged"
-        case .deleted:         return "Deleted"
-        case .transferAdded:   return "TransferAdded"
-        case .transferChanged: return "TransferChanged"
-        case .transferDeleted: return "TransferDeleted"
-        case .balanceUpdated:  return "BalanceUpdated"
-        case .feeBasisUpdated: return "FeeBasisUpdated"
+        case .created:           return "Created"
+        case .changed:           return "StateChanged"
+        case .deleted:           return "Deleted"
+        case .transferAdded:     return "TransferAdded"
+        case .transferChanged:   return "TransferChanged"
+        case .transferDeleted:   return "TransferDeleted"
+        case .transferSubmitted: return "TransferSubmitted"
+        case .balanceUpdated:    return "BalanceUpdated"
+        case .feeBasisUpdated:   return "FeeBasisUpdated"
         }
     }
 }

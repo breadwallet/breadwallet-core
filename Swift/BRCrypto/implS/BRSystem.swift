@@ -842,6 +842,36 @@ public final class SystemBase: System {
                     }
                 }},
 
+            funcSubmitTransaction: { (context, bid, wid, tid, rid) in
+                let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
+
+                guard let bid = bid, let wid = wid, let tid = tid
+                    else { print ("SYS: BTC: SubmitTransaction: Missed {bid, wid, tid}"); return }
+
+
+                guard let manager  = system.managerBy  (impl: WalletManagerImplS.Impl.bitcoin(mid: bid)),
+                    let   wallet   = manager.walletBy  (impl: WalletImplS.Impl.bitcoin(wid: wid)),
+                    let   _        = wallet.transferBy (impl: TransferImplS.Impl.bitcoin(wid: wid, tid: tid))
+                    else { print ("SYS: BTC: SubmitTransaction: Missed {manager, wallet, transfer}"); return }
+
+                let dataCount = BRTransactionSerialize (tid, nil, 0)
+                var data = Data (count: dataCount)
+                data.withUnsafeMutableBytes { (bytes: UnsafeMutableRawBufferPointer) -> Void in
+                    let bytesAsUInt8 = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+                    BRTransactionSerialize (tid, bytesAsUInt8, dataCount)
+                }
+
+                manager.query.putTransaction (blockchainId: manager.network.uids,
+                                              transaction: data.base64EncodedData(),
+                                              completion: { (res: Result<BlockChainDB.Model.Transaction, BlockChainDB.QueryError>) in
+                                                var error: Int32 = 0
+                                                if case let .failure(f) = res {
+                                                    print ("SYS: BTC: SubmitTransaction: Error: \(f)")
+                                                    error = 1
+                                                }
+                                                bwmAnnounceSubmit (bid, rid, tid, error)
+                })},
+
             funcTransactionEvent: { (context, bid, wid, tid, event) in
                 let system = Unmanaged<SystemBase>.fromOpaque(context!).takeUnretainedValue()
 
@@ -861,6 +891,7 @@ public final class SystemBase: System {
                 switch event.type {
                 case BITCOIN_TRANSACTION_ADDED:
                     break
+                    
                 case BITCOIN_TRANSACTION_UPDATED:
                     let confirmation = TransferConfirmation (
                         blockNumber: UInt64(event.u.updated.blockHeight),
@@ -872,6 +903,7 @@ public final class SystemBase: System {
 
                 case BITCOIN_TRANSACTION_DELETED:
                     break
+
                 default:
                     precondition(false)
                 }},
@@ -897,6 +929,12 @@ public final class SystemBase: System {
 
                 case BITCOIN_WALLET_BALANCE_UPDATED:
                     wallet.upd (balance: wallet.balance)
+
+                case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
+                    guard let transfer = wallet.transferBy (impl: TransferImplS.Impl.bitcoin(wid: wid, tid: event.u.submitted.transaction))
+                        else { print ("SYS: BTC: Wallet: \(event.type): Missed {transfer}"); return }
+                    wallet.announceEvent (WalletEvent.transferSubmitted (transfer: transfer,
+                                                                         success: 0 == event.u.submitted.error))
 
                 case BITCOIN_WALLET_DELETED:
                     break
@@ -968,6 +1006,7 @@ extension BRWalletEventType: CustomStringConvertible {
         switch self {
         case BITCOIN_WALLET_CREATED: return "Created"
         case BITCOIN_WALLET_BALANCE_UPDATED: return "Balance Updated"
+        case BITCOIN_WALLET_TRANSACTION_SUBMITTED: return "Transaction Submitted"
         case BITCOIN_WALLET_DELETED: return "Deleted"
         default: return "<<unknown>>"
        }

@@ -130,6 +130,7 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
                     return
             }
 
+            // Will generate a WalletEvent.transferSubmitted (transfer, success)
             self.wallet.manager.submit(transfer: transfer,
                                        paperKey: UIApplication.paperKey);
 
