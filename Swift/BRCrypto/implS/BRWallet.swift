@@ -109,13 +109,12 @@ class WalletImplS: Wallet {
                                  impl: impl))
     }
 
-    func createTransfer (listener: TransferListener,
-                         target: Address,
+    func createTransfer (target: Address,
                          amount: Amount,
                          feeBasis: TransferFeeBasis) -> Transfer? {
         return impl.createTransfer (target: target, amount: amount, feeBasis: feeBasis)
             .map {
-                TransferImplS (listener: listener,
+                TransferImplS (listener: self.manager.system.listener,
                                wallet: self,
                                unit: amount.unit,
                                impl: $0)

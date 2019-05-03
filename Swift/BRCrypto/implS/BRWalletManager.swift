@@ -245,20 +245,15 @@ class WalletManagerImplS: WalletManager {
         impl.disconnect ()
     }
 
-    public func sign (transfer: Transfer, paperKey: String) {
-        impl.sign (paperKey: paperKey,
-                   wallet: transfer.wallet as! WalletImplS,
-                   transfer: transfer as! TransferImplS)
-    }
-
-    public func submit (transfer: Transfer) {
+    public func submit (transfer: Transfer, paperKey: String) {
         guard let wallet = transfer.wallet as? WalletImplS,
             let transfer = transfer as? TransferImplS
             else { precondition (false) }
 
         impl.submit (manager: self,
                      wallet: wallet,
-                     transfer: transfer)
+                     transfer: transfer,
+                     paperKey: paperKey)
     }
 
     public func sync() {
@@ -371,30 +366,20 @@ class WalletManagerImplS: WalletManager {
             }
         }
         
-        internal func sign (paperKey: String, wallet: WalletImplS, transfer: TransferImplS) {
+        internal func submit (manager: WalletManagerImplS,
+                              wallet: WalletImplS,
+                              transfer: TransferImplS,
+                              paperKey: String) {
             switch self {
             case let .ethereum (ewm):
                 ewmWalletSignTransferWithPaperKey(ewm, wallet.impl.eth, transfer.impl.eth, paperKey)
-
-            case let .bitcoin (mid):
-                let coreWallet  = BRWalletManagerGetWallet      (mid)
-
-                var seed = Account.deriveSeed (phrase: paperKey)
-                BRWalletSignTransaction (coreWallet, transfer.impl.btc, &seed, MemoryLayout<UInt512>.size)
-
-            case .generic:
-                break
-            }
-
-        }
-
-        internal func submit (manager: WalletManagerImplS, wallet: WalletImplS, transfer: TransferImplS) {
-            switch self {
-            case let .ethereum (ewm):
                 ewmWalletSubmitTransfer (ewm, wallet.impl.eth, transfer.impl.eth)
 
             case let .bitcoin (mid):
+                let coreWallet      = BRWalletManagerGetWallet      (mid)
                 let corePeerManager = BRWalletManagerGetPeerManager (mid)
+
+                var seed = Account.deriveSeed (phrase: paperKey)
 
                 let  closure = CLangClosure { (error: Int32) in
                     let event = TransferEvent.changed (
@@ -408,6 +393,8 @@ class WalletManagerImplS: WalletManager {
                                                             transfer: transfer,
                                                             event: event)
                 }
+
+                BRWalletSignTransaction (coreWallet, transfer.impl.btc, &seed, MemoryLayout<UInt512>.size)
                 BRPeerManagerPublishTx (corePeerManager, transfer.impl.btc,
                                         Unmanaged<CLangClosure<(Int32)>>.passRetained(closure).toOpaque(),
                                         { (info, error) in

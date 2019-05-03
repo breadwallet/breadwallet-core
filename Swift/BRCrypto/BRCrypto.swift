@@ -1042,8 +1042,7 @@ public protocol Wallet: class {
     ///
     /// - Returns: A new transfer
     ///
-    func createTransfer (listener: TransferListener,
-                         target: Address,
+    func createTransfer (target: Address,
                          amount: Amount,
                          feeBasis: TransferFeeBasis) -> Transfer?
 }
@@ -1073,11 +1072,9 @@ extension Wallet {
     ///
     /// - Returns: A new transfer
     ///
-    public func createTransfer (listener: TransferListener,
-                                target: Address,
+    public func createTransfer (target: Address,
                                 amount: Amount) -> Transfer? {
-        return createTransfer (listener: listener,
-                               target: target,
+        return createTransfer (target: target,
                                amount: amount,
                                feeBasis: defaultFeeBasis)
     }
@@ -1170,8 +1167,8 @@ public protocol WalletFactory {
     ///
     /// - Returns: A new wallet
     ///
-    func createWallet (manager: WalletManager,
-                       currency: Currency) -> Wallet
+//    func createWallet (manager: WalletManager,
+//                       currency: Currency) -> Wallet
 }
 
 ///
@@ -1221,9 +1218,7 @@ public protocol WalletManager : class {
     /// sync(...)
     /// isSyncing
 
-    func sign (transfer: Transfer, paperKey: String)
-
-    func submit (transfer: Transfer)
+    func submit (transfer: Transfer, paperKey: String)
 
     func sync ()
 }
@@ -1265,11 +1260,6 @@ extension WalletManager {
     /// A manager `isActive` if connected or syncing
     var isActive: Bool {
         return state == .connected || state == .syncing
-    }
-
-    func signAndSubmit (transfer: Transfer, paperKey: String) {
-        sign (transfer: transfer, paperKey: paperKey)
-        submit (transfer: transfer)
     }
 }
 
@@ -1341,6 +1331,10 @@ public protocol WalletManagerListener: class {
 
 }
 
+public protocol WalletManagerFactor {
+
+}
+
 ///
 /// System (a singleton)
 ///
@@ -1398,7 +1392,13 @@ public enum SystemEvent {
 /// Note: This must be 'class bound' as System holds a 'weak' reference (for GC reasons).
 ///
 public protocol SystemListener : /* class, */ WalletManagerListener, WalletListener, TransferListener, NetworkListener {
-
+    ///
+    /// Handle a System Event
+    ///
+    /// - Parameters:
+    ///   - system: the system
+    ///   - event: the event
+    ///
     func handleSystemEvent (system: System,
                             event: SystemEvent)
 }
