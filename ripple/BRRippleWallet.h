@@ -12,15 +12,30 @@
 #define BRRipple_wallet_h
 
 #include "BRRippleBase.h"
+#include "BRRippleAccount.h"
 
 //
 // Wallet
 //
 typedef struct BRRippleWalletRecord *BRRippleWallet;
 
+/**
+ * Create a ripple wallet object
+ *
+ * @param account   the ripple account that is associated with the wallet
+ *
+ * @return wallet   pointer to the wallet
+ */
 extern BRRippleWallet
 rippleWalletCreate (BRRippleAccount account);
 
+/**
+ * Release memory for the wallet
+ *
+ * @param wallet   the ripple wallet to release
+ */
+extern void
+rippleWalletRelease (BRRippleWallet wallet);
 
 /**
  * Return an address suitable for sending Ripple.  Depending on the nature of Ripple this
@@ -28,8 +43,10 @@ rippleWalletCreate (BRRippleAccount account);
  * source address is requested.
  *
  * @param wallet the walelt for source address
+ *
+ * @return address  ripple address associated with this account
  */
-extern void /* ?? const char * ?? */
+extern BRRippleAddress
 rippleWalletGetSourceAddress (BRRippleWallet wallet);
 
 
@@ -39,8 +56,10 @@ rippleWalletGetSourceAddress (BRRippleWallet wallet);
  * target address is requested.
  *
  * @param wallet the wallet for target address
+ *
+ * @return address  ripple address associated with this account
  */
-extern void /* ?? const char * ?? */
+extern BRRippleAddress
 rippleWalletGetTargetAddress (BRRippleWallet wallet);
 
 #endif

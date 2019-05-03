@@ -13,6 +13,7 @@
 
 #include "BRKey.h"
 #include "BRRippleBase.h"
+#include "BRRippleTransaction.h"
 
 typedef struct BRRippleAccountRecord *BRRippleAccount;
 
@@ -35,6 +36,19 @@ rippleAccountCreate (const char *paperKey);
  * @return void
  */
 extern void rippleAccountDelete(BRRippleAccount account);
+
+/**
+ * Serialize a Ripple transaction (in a form suitable signing)
+ *
+ * @param transaction         the transaction to serialize
+ * @param paperKey            paper key of the sending account
+ * @param sequence            the next valid sequence number for the account
+ * @param lastLedgerSequence  0 - don't send this value
+ *                            > 0 - last ledger sequence from the server
+ */
+extern BRRippleSerializedTransaction
+rippleAccountSignTransaction(BRRippleTransaction transaction, const char *paperKey,
+                             uint32_t sequence, uint32_t lastLedgerSequence);
 
 // Accessor function for the account object
 extern uint8_t * getRippleAccountBytes(BRRippleAccount account);

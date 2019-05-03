@@ -235,6 +235,7 @@
 		C3C453E2226E2C62004CC0C7 /* BRRippleTransaction.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C453DE226E2C62004CC0C7 /* BRRippleTransaction.c */; };
 		C3C453E5226E4863004CC0C7 /* BRRippleAccount.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C453E3226E4862004CC0C7 /* BRRippleAccount.c */; };
 		C3C453E72270B39E004CC0C7 /* BRRippleSignature.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C453E62270B39E004CC0C7 /* BRRippleSignature.c */; };
+		C3C864A4227C6B490055120E /* BRRippleWallet.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C864A3227C6B490055120E /* BRRippleWallet.c */; };
 		CA92F7902100F9CA0015C966 /* BRKeccak.c in Sources */ = {isa = PBXBuildFile; fileRef = CA92F78F2100F9CA0015C966 /* BRKeccak.c */; };
 /* End PBXBuildFile section */
 
@@ -585,6 +586,7 @@
 		C3C864A0227B8CFE0055120E /* BRRippleAccount.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRRippleAccount.h; sourceTree = "<group>"; };
 		C3C864A1227B90530055120E /* BRRippleTransaction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRRippleTransaction.h; sourceTree = "<group>"; };
 		C3C864A2227B92A80055120E /* BRRippleWallet.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRRippleWallet.h; sourceTree = "<group>"; };
+		C3C864A3227C6B490055120E /* BRRippleWallet.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRRippleWallet.c; sourceTree = "<group>"; };
 		CA92F78E2100F9CA0015C966 /* BRKeccak.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRKeccak.h; sourceTree = "<group>"; };
 		CA92F78F2100F9CA0015C966 /* BRKeccak.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRKeccak.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -1051,6 +1053,7 @@
 		3C812EBD226666C50007D335 /* ripple */ = {
 			isa = PBXGroup;
 			children = (
+				C3C864A3227C6B490055120E /* BRRippleWallet.c */,
 				C3C864A2227B92A80055120E /* BRRippleWallet.h */,
 				C3C864A1227B90530055120E /* BRRippleTransaction.h */,
 				C3C864A0227B8CFE0055120E /* BRRippleAccount.h */,
@@ -1683,6 +1686,7 @@
 				CA92F7902100F9CA0015C966 /* BRKeccak.c in Sources */,
 				3CAB60CD20AF8D1A00810CE4 /* BREthereumEWM.c in Sources */,
 				3C812EC02266675E0007D335 /* BRRipple.c in Sources */,
+				C3C864A4227C6B490055120E /* BRRippleWallet.c in Sources */,
 				3C25BF472236EE40004B093F /* BRBCashParams.c in Sources */,
 				3C97E24922416AB1003FD88F /* BRCryptoWallet.c in Sources */,
 				3CAB60D120AF8D1A00810CE4 /* BRRlpCoder.c in Sources */,

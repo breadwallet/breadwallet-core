@@ -37,20 +37,25 @@ rippleTransactionCreate(BRRippleAddress sourceAddress,
                         uint64_t fee);
 
 /**
+ * Create a Ripple transaction
+ *
+ * NOTE: for this first iteration the only transaction type supported
+ * is a Payment, in XRP only. The payment only supports the required fields.
+ *
+ * @param  bytes    serialized bytes from the server
+ * @param  length   length of above bytes
+ *
+ * @return transaction    a ripple transaction
+ */
+extern BRRippleTransaction
+rippleTransactionCreateFromBytes(uint8_t bytes, int length);
+
+/**
  * Delete a Ripple transaction
  *
  * @param transaction  BRRippleTransaction
  */
 extern void deleteRippleTransaction(BRRippleTransaction transaction);
-
-/**
- * Serialize a Ripple transaction (in a form suitable signing)
- *
- * @param transaction the transaction to serialize
- */
-extern BRRippleSerializedTransaction
-rippleTransactionSerializeAndSign(BRRippleTransaction transaction, uint32_t sequence,
-                                  const char *paperKey);
 
 /**
  * Get the size of a serialized transaction

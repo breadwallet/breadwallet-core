@@ -90,6 +90,12 @@ rippleTransactionCreate(BRRippleAddress sourceAddress,
     return transaction;
 }
 
+extern BRRippleTransaction
+rippleTransactionCreateFromBytes(uint8_t bytes, int length)
+{
+    return 0;
+}
+
 extern void deleteRippleTransaction(BRRippleTransaction transaction)
 {
     assert(transaction);
@@ -182,30 +188,18 @@ rippleTransactionSerialize (BRRippleTransaction transaction,
     return s;
 }
 
-#if 0
-extern BRRippleSignature
-rippleAccountSignBytes (BRRippleAccount account,
-                        /* address */
-                        /* signature type */
-                        uint8_t *bytes,
-                        size_t bytesCount,
-                        const char *paperKey)
-{
-    // Create the private key from the paperKey
-    BRKey key = getKey(paperKey);
-    
-    return signBytes(&key, bytes, bytesCount);
-}
-#endif
-
 extern BRRippleSerializedTransaction
-rippleTransactionSerializeAndSign(BRRippleTransaction transaction, uint32_t sequence,
-                                  const char *paperKey)
+rippleTransactionSerializeAndSign(BRRippleTransaction transaction, const char *paperKey,
+                                  uint32_t sequence, uint32_t lastLedgerSequence)
 {
     // If this transaction was previously signed - delete that info
     if (transaction->signedBytes) {
         free(transaction->signedBytes);
     }
+
+    // Add in the provided parameters
+    transaction->sequence = sequence;
+    transaction->lastLedgerSequence = lastLedgerSequence;
 
     // Create the private key from the paperKey
     BRKey key = getKey(paperKey);
@@ -215,7 +209,6 @@ rippleTransactionSerializeAndSign(BRRippleTransaction transaction, uint32_t sequ
     
     // Add the public key to the transaction
     transaction->publicKey = rippleAccountGetPublicKey(account);
-    transaction->sequence = sequence;
     
     // Serialize the bytes
     BRRippleSerializedTransaction serializedBytes = rippleTransactionSerialize (transaction, 0, 0);

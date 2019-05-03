@@ -8,10 +8,10 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
-#include "BRRipple.h"
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
+#include "BRRipple.h"
 
 static BRRippleAccount createRippleAccount(const char* paper_key,
                                            const char* expected_account_address)
@@ -152,7 +152,7 @@ testSerializeWithSignature (void /* ... */) {
     assert(transaction);
 
     // Serialize and sign
-    BRRippleSerializedTransaction s = rippleTransactionSerializeAndSign(transaction, 1, paper_key);
+    BRRippleSerializedTransaction s = rippleAccountSignTransaction(transaction, paper_key, 1, 0);
     assert(s);
     int signed_size = getSerializedSize(s);
     uint8_t *signed_bytes = getSerializedBytes(s);
@@ -173,12 +173,30 @@ testSerializeWithSignature (void /* ... */) {
     rippleAccountDelete(account);
 }
 
+static void createAndDeleteWallet()
+{
+    const char * paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
+    BRRippleAccount account = rippleAccountCreate(paper_key);
+    BRRippleWallet wallet = rippleWalletCreate(account);
+    assert(wallet);
+    rippleWalletRelease(wallet);
+}
+
+static void runWalletTests()
+{
+    createAndDeleteWallet();
+    
+}
+
 extern void
 runRippleTest (void /* ... */) {
 
     testRippleAccount();
     testRippleTransaction();
     testSerializeWithSignature();
+
+    // Wallet tests
+    runWalletTests();
 
     // If we pass the expected_accountid_string to this function it will validate for us
     const char* paper_key = "996F8505F48FCB74D291F7B459A5EA20FEA97ACEC803D7459B3742AF3DCF4B9D";

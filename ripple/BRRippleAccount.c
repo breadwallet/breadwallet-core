@@ -241,3 +241,14 @@ extern BRRippleAccount rippleAccountCreateWithKey(BRKey key)
 {
     return (BRRippleAccount)0;
 }
+
+extern BRRippleSerializedTransaction
+rippleTransactionSerializeAndSign(BRRippleTransaction transaction, const char *paperKey,
+                                  uint32_t sequence, uint32_t lastLedgerSequence);
+
+extern BRRippleSerializedTransaction
+rippleAccountSignTransaction(BRRippleTransaction transaction, const char *paperKey,
+                             uint32_t sequence, uint32_t lastLedgerSequence)
+{
+    return rippleTransactionSerializeAndSign(transaction, paperKey, sequence, lastLedgerSequence);
+}
