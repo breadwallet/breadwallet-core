@@ -115,7 +115,7 @@ struct BRWalletManagerStruct {
     /**
      * The BlockHeight is the largest block number seen
      */
-    uint64_t blockHeight;
+    uint32_t blockHeight;
 
     /**
      * An identiifer for a BRD Request
@@ -655,18 +655,18 @@ BRWalletManagerGetPeerManager (BRWalletManager manager) {
 extern void
 BRWalletManagerConnect (BRWalletManager manager) {
     switch (manager->mode) {
-            case SYNC_MODE_BRD_ONLY:
+        case SYNC_MODE_BRD_ONLY:
             break;
-
-            case SYNC_MODE_BRD_WITH_P2P_SEND:
-            case SYNC_MODE_P2P_WITH_BRD_SYNC:
-            case SYNC_MODE_P2P_ONLY:
+            
+        case SYNC_MODE_BRD_WITH_P2P_SEND:
+        case SYNC_MODE_P2P_WITH_BRD_SYNC:
+        case SYNC_MODE_P2P_ONLY:
             BRPeerManagerConnect(manager->peerManager);
             break;
     }
-
+    
     eventHandlerStart (manager->handler);
-
+    
     manager->client.funcWalletManagerEvent (manager->client.context,
                                             manager,
                                             (BRWalletManagerEvent) {
@@ -677,18 +677,18 @@ BRWalletManagerConnect (BRWalletManager manager) {
 extern void
 BRWalletManagerDisconnect (BRWalletManager manager) {
     switch (manager->mode) {
-            case SYNC_MODE_BRD_ONLY:
+        case SYNC_MODE_BRD_ONLY:
             break;
-
-            case SYNC_MODE_BRD_WITH_P2P_SEND:
-            case SYNC_MODE_P2P_WITH_BRD_SYNC:
-            case SYNC_MODE_P2P_ONLY:
+            
+        case SYNC_MODE_BRD_WITH_P2P_SEND:
+        case SYNC_MODE_P2P_WITH_BRD_SYNC:
+        case SYNC_MODE_P2P_ONLY:
             BRPeerManagerDisconnect(manager->peerManager);
             break;
     }
-
+    
     eventHandlerStop(manager->handler);
-
+    
     manager->client.funcWalletManagerEvent (manager->client.context,
                                             manager,
                                             (BRWalletManagerEvent) {
@@ -714,6 +714,27 @@ BRWalletManagerGetUnusedAddrs (BRWalletManager manager,
     BRAddress *addresses = calloc (limit, sizeof (BRAddress));
     BRWalletUnusedAddrs (manager->wallet, addresses, (uint32_t) limit, 0);
     return addresses;
+}
+
+static void
+BRWalletManagerUpdateHeightIfAppropriate (BRWalletManager manager,
+                                          uint32_t height) {
+    pthread_mutex_lock (&manager->lock);
+    if (height != manager->blockHeight) {
+        manager->blockHeight = height;
+        manager->client.funcWalletManagerEvent (manager->client.context,
+                                                manager,
+                                                (BRWalletManagerEvent) {
+                                                    BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED,
+                                                    { .blockHeightUpdated = { manager->blockHeight }}
+                                                });
+    }
+    pthread_mutex_unlock (&manager->lock);
+}
+
+static void
+BRWalletManagerCheckHeight (BRWalletManager manager) {
+    BRWalletManagerUpdateHeightIfAppropriate (manager, BRPeerManagerLastBlockHeight (manager->peerManager));
 }
 
 /// MARK: Wallet Callbacks
@@ -823,10 +844,15 @@ _BRWalletManagerSyncStopped (void *info, int reason) {
 
 static void
 _BRWalletManagerTxStatusUpdate (void *info) {
-//    BRWalletManager manager = (BRWalletManager) info;
+    BRWalletManager manager = (BRWalletManager) info;
 
-    // event
-
+    // It is safe to call this here.  This function will call BRPeerManagerLastBlockTimestamp()
+    // to get the current block height but that function attempts to take the BRPeerManager
+    // mutex.  That mutex IS NOT RECURSIVE and thus a deadlock can occur.  Only this
+    // BRPeerManager callback occurs outside of that mutex being held.  Once could call this
+    // function in the BRWallet callbacks; but those callbacks are not redundent with this
+    // callback as regards a block height change.
+    BRWalletManagerCheckHeight (manager);
 }
 
 static int
@@ -984,9 +1010,7 @@ extern int
 bwmAnnounceBlockNumber (BRWalletManager manager,
                         int rid,
                         uint64_t blockNumber) {
-    pthread_mutex_lock (&manager->lock);
-    manager->blockHeight = blockNumber;
-    pthread_mutex_unlock (&manager->lock);
+    BRWalletManagerUpdateHeightIfAppropriate(manager, (int32_t) blockNumber);
     return 1;
 }
 

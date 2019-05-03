@@ -194,6 +194,20 @@ class BRCryptoAmountTests: XCTestCase {
         #endif
         }
 
+    func testAmountBTC () {
+        let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native")
+
+        let BTC_SATOSHI = BRCrypto.Unit (currency: btc, uids: "BTC-SAT",  name: "Satoshi", symbol: "SAT")
+        let BTC_BTC = BRCrypto.Unit (currency: btc, uids: "BTC-BTC",  name: "Bitcoin", symbol: "B", base: BTC_SATOSHI, decimals: 8)
+
+
+        let btc1 = Amount.createAsBTC(100000000, BTC_BTC)
+        XCTAssert (100000000 == btc1.double (as: BTC_SATOSHI))
+        XCTAssert (1         == btc1.double (as: BTC_BTC))
+        XCTAssertFalse (btc1.isNegative)
+
+
+    }
     func testCurrencyPair () {
         #if false
         let BTC = Bitcoin.currency.defaultUnit!

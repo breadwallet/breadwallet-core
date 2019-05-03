@@ -78,8 +78,8 @@ class WalletViewController: UITableViewController, TransferListener {
             
         case "createTransfer":
             print ("APP: WVC: Want to Create")
-//            let controller = (segue.destination as! UINavigationController).topViewController as! TransferCreateController
-//            controller.wallet = wallet
+            let controller = (segue.destination as! UINavigationController).topViewController as! TransferCreateController
+            controller.wallet = wallet
             break
 
         default:
@@ -113,6 +113,13 @@ class WalletViewController: UITableViewController, TransferListener {
                     let path = IndexPath (row: index, section: 0)
                     self.tableView.reloadRows(at: [path], with: .automatic)
                 }
+
+            case .confirmation:
+                if let index = self.transfers.firstIndex (where: { $0 === transfer}) {
+                    let path = IndexPath (row: index, section: 0)
+                    self.tableView.reloadRows(at: [path], with: .automatic)
+                }
+
 
             case .deleted:
                 if let index = self.transfers.firstIndex (where: { $0 === transfer}) {

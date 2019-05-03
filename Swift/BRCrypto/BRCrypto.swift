@@ -512,9 +512,9 @@ public final class Network: CustomStringConvertible {
         return unitsFor(currency: currency)?.contains(unit)
     }
 
-    /// The initial height of the network.  Will be used by a network's wallet manager.
-
-    internal let height: UInt64
+    /// The current height of the blockChain network.  On a reorganization, this might go backwards.
+    /// (No guarantee that this monotonically increases)
+    public internal(set) var height: UInt64
 
     public struct Association {
         let baseUnit: Unit
@@ -706,7 +706,7 @@ public final class Address: Equatable, CustomStringConvertible {
     ///
     /// - Returns: An address or nil if `string` is invalide for `network`
     ///
-    static func create (string: String, network: Network) -> Address? {
+    public static func create (string: String, network: Network) -> Address? {
         return network.addressFor(string)
     }
 
@@ -821,6 +821,26 @@ extension Transfer {
         if case .included (let confirmation) = state { return confirmation }
         else { return nil }
     }
+
+    ///
+    /// The confirmations of transfer at a provided `blockHeight`.  If the transfer has not been
+    /// confirmed or if the `blockHeight` is less than the confirmation height then `nil` is
+    /// returned.  The minimum returned value is 1 - if `blockHeight` is the same as the
+    /// confirmation block, then the transfer has been confirmed once.
+    ///
+    /// - Parameter blockHeight:
+    ///
+    /// - Returns: the number of confirmations
+    ///
+    public func confirmationsAt (blockHeight: UInt64) -> UInt64? {
+        return confirmation
+            .flatMap { blockHeight >= $0.blockNumber ? (1 + blockHeight - $0.blockNumber) : nil }
+    }
+
+    /// The confirmations of transfer at the current network `height`.
+    public var confirmations: UInt64? {
+        return confirmationsAt (blockHeight: wallet.manager.network.height)
+    }
 }
 
 public enum TransferDirection {
@@ -919,6 +939,7 @@ extension TransferState: CustomStringConvertible {
 public enum TransferEvent {
     case created
     case changed (old: TransferState, new: TransferState)
+    case confirmation (count: UInt64)
     case deleted
 }
 
@@ -959,10 +980,11 @@ public protocol TransferFactory {
     ///
     /// - Returns: A new transfer
     ///
-    func createTransfer (wallet: Wallet,
-                         target: Address,
-                         amount: Amount,
-                         feeBasis: TransferFeeBasis) -> Transfer? // T
+//    func createTransfer (listener: TransferListener,
+//                         wallet: Wallet,
+//                         target: Address,
+//                         amount: Amount,
+//                         feeBasis: TransferFeeBasis) -> Transfer? // T
 }
 
 
@@ -1006,14 +1028,13 @@ public protocol Wallet: class {
     var source: Address { get }
 
     // address scheme
-}
 
-extension Wallet {
     ///
     /// Create a transfer for wallet.  Invokes the wallet's transferFactory to create a transfer.
     /// Generates events: TransferEvent.created and WalletEvent.transferAdded(transfer).
     ///
     /// - Parameters:
+    ///   - listener: The transfer listener
     ///   - source: The source spends 'amount + fee'
     ///   - target: The target receives 'amount
     ///   - amount: The amount
@@ -1021,10 +1042,19 @@ extension Wallet {
     ///
     /// - Returns: A new transfer
     ///
-//    public func createTransfer (target: Address,
+    func createTransfer (target: Address,
+                         amount: Amount,
+                         feeBasis: TransferFeeBasis) -> Transfer?
+}
+
+extension Wallet {
+    // Default implementation, using `transferFactory`
+//    public func createTransfer (listener: TransferListener,
+//                                target: Address,
 //                                amount: Amount,
 //                                feeBasis: TransferFeeBasis) -> Transfer? {
-//        return transferFactory.createTransfer (wallet: self,
+//        return transferFactory.createTransfer (listener: listener,
+//                                               wallet: self,
 //                                               target: target,
 //                                               amount: amount,
 //                                               feeBasis: feeBasis)
@@ -1042,12 +1072,12 @@ extension Wallet {
     ///
     /// - Returns: A new transfer
     ///
-//    public func createTransfer (target: Address,
-//                                amount: Amount) -> Transfer? {
-//        return createTransfer (target: target,
-//                               amount: amount,
-//                               feeBasis: defaultFeeBasis)
-//    }
+    public func createTransfer (target: Address,
+                                amount: Amount) -> Transfer? {
+        return createTransfer (target: target,
+                               amount: amount,
+                               feeBasis: defaultFeeBasis)
+    }
 
     /// The currency held in wallet.
     public var currency: Currency {
@@ -1137,8 +1167,8 @@ public protocol WalletFactory {
     ///
     /// - Returns: A new wallet
     ///
-    func createWallet (manager: WalletManager,
-                       currency: Currency) -> Wallet
+//    func createWallet (manager: WalletManager,
+//                       currency: Currency) -> Wallet
 }
 
 ///
@@ -1188,9 +1218,7 @@ public protocol WalletManager : class {
     /// sync(...)
     /// isSyncing
 
-    func sign (transfer: Transfer, paperKey: String)
-
-    func submit (transfer: Transfer)
+    func submit (transfer: Transfer, paperKey: String)
 
     func sync ()
 }
@@ -1232,11 +1260,6 @@ extension WalletManager {
     /// A manager `isActive` if connected or syncing
     var isActive: Bool {
         return state == .connected || state == .syncing
-    }
-
-    func signAndSubmit (transfer: Transfer, paperKey: String) {
-        sign (transfer: transfer, paperKey: paperKey)
-        submit (transfer: transfer)
     }
 }
 
@@ -1286,6 +1309,8 @@ public enum WalletManagerEvent {
     case syncStarted
     case syncProgress (percentComplete: Double)
     case syncEnded (error: String?)
+
+    case blockUpdated (height: UInt64)
 }
 
 ///
@@ -1303,6 +1328,10 @@ public protocol WalletManagerListener: class {
     func handleManagerEvent (system: System,
                              manager: WalletManager,
                              event: WalletManagerEvent)
+
+}
+
+public protocol WalletManagerFactor {
 
 }
 
@@ -1363,7 +1392,13 @@ public enum SystemEvent {
 /// Note: This must be 'class bound' as System holds a 'weak' reference (for GC reasons).
 ///
 public protocol SystemListener : /* class, */ WalletManagerListener, WalletListener, TransferListener, NetworkListener {
-
+    ///
+    /// Handle a System Event
+    ///
+    /// - Parameters:
+    ///   - system: the system
+    ///   - event: the event
+    ///
     func handleSystemEvent (system: System,
                             event: SystemEvent)
 }

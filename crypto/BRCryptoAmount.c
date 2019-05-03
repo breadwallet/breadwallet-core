@@ -219,3 +219,8 @@ cryptoAmountGetIntegerRaw (BRCryptoAmount amount,
                  0 != amount->value.u64 [1]);
     return *overflow ? 0 : amount->value.u64[0];
 }
+
+extern UInt256
+cryptoAmountGetValue (BRCryptoAmount amount) {
+    return amount->value;
+}
