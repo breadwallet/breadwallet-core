@@ -27,11 +27,17 @@ typedef enum {
     PAYMENT
 } BRRippleTransactionType ;
 
+// A Ripple Transaction Hash
+typedef struct {
+    uint8_t bytes[33];
+} BRRippleTransactionHash;
+
 // Stucture to hold the calculated signature
-typedef struct  {
+typedef struct {
     uint8_t signature[256];
     int sig_length;
 } BRRippleSignatureRecord;
+typedef BRRippleSignatureRecord *BRRippleSignature;
 
 // Ripple has the concept of fields, which are sorted. This
 // field stucture allows us to easily sort the fields when
