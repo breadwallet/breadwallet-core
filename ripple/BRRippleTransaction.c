@@ -230,3 +230,42 @@ extern uint8_t* getSerializedBytes(BRRippleSerializedTransaction s)
 {
     return s->buffer;
 }
+
+extern BRRippleTransactionHash rippleTransactionGetHash(BRRippleTransaction transaction)
+{
+    BRRippleTransactionHash hash;
+    memset(hash.bytes, 0x00, sizeof(hash.bytes));
+
+    // TODO - figure out how Ripple creates the hash of their transaction
+
+    return hash;
+}
+
+extern uint64_t rippleTransactionGetFee(BRRippleTransaction transaction)
+{
+    assert(transaction);
+    return transaction->fee;
+}
+extern uint64_t rippleTransactionGetAmount(BRRippleTransaction transaction)
+{
+    assert(transaction);
+    assert(transaction->payment);
+    return transaction->payment->amount;
+}
+extern uint32_t rippleTransactionGetSequence(BRRippleTransaction transaction)
+{
+    assert(transaction);
+    return transaction->sequence;
+}
+extern BRRippleAddress rippleTransactionGetSource(BRRippleTransaction transaction)
+{
+    assert(transaction);
+    return transaction->sourceAddress;
+}
+extern BRRippleAddress rippleTransactionGetTarget(BRRippleTransaction transaction)
+{
+    assert(transaction);
+    assert(transaction->payment);
+    return transaction->payment->targetAddress;
+}
+

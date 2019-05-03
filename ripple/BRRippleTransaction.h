@@ -64,6 +64,7 @@ extern void deleteRippleTransaction(BRRippleTransaction transaction);
  * @return size
  */
 extern uint32_t getSerializedSize(BRRippleSerializedTransaction s);
+
 /**
  * Get the raw bytes of a serialized transaction
  *
@@ -71,5 +72,23 @@ extern uint32_t getSerializedSize(BRRippleSerializedTransaction s);
  * @return bytes uint8_t
  */
 extern uint8_t* getSerializedBytes(BRRippleSerializedTransaction s);
+
+/**
+ * Get the hash of a ripple transaction
+ *
+ * @param  transaction   a valid ripple transaction
+ * @return hash          a BRRippleTransactionHash object
+ */
+extern BRRippleTransactionHash rippleTransactionGetHash(BRRippleTransaction transaction);
+
+/**
+ * Various getter methods for the transaction
+ *
+ */
+extern uint64_t rippleTransactionGetFee(BRRippleTransaction transaction);
+extern uint64_t rippleTransactionGetAmount(BRRippleTransaction transaction);
+extern uint32_t rippleTransactionGetSequence(BRRippleTransaction transaction);
+extern BRRippleAddress rippleTransactionGetSource(BRRippleTransaction transaction);
+extern BRRippleAddress rippleTransactionGetTarget(BRRippleTransaction transaction);
 
 #endif

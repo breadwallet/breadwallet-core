@@ -59,10 +59,64 @@ testRippleTransaction (void /* ... */) {
     // Create an account so we can get a public key
     const char * paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
     BRRippleAccount account = rippleAccountCreate(paper_key);
-    BRKey publicKey = rippleAccountGetPublicKey(account);
     transaction = rippleTransactionCreate(sourceAddress, targetAddress, 1000000, 12);
     assert(transaction);
 
+    rippleAccountDelete(account);
+    deleteRippleTransaction(transaction);
+}
+
+static void
+testRippleTransactionGetters (void /* ... */) {
+    BRRippleTransaction transaction;
+    
+    uint8_t expected_output[] = {
+        0x12, 0x00, 0x00, // transaction type - 16-bit (1,2)
+        0x24, 0x00, 0x00, 0x00, 0x01, // Sequence - 32-bit (2,4)
+        0x61, 0x40, 0x00, 0x00, 0x00, 0x00, 0x0F, 0x42, 0x40, // Amount 1,000,000 - 64-bit
+        0x68, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0C, // Fee 12 - 64-bit
+        0x73, 0x21, 0x03, 0x2b, 0xe3, 0xce, 0xe5, 0x76, 0x03, // Public Key
+        0x6f, 0x90, 0x76, 0x59, 0x6f, 0xc4, 0xf8, 0xd4, 0xa2,
+        0xa0, 0x57, 0xf8, 0xf8, 0x65, 0x48, 0xc0, 0x98, 0x0e,
+        0x02, 0x13, 0x16, 0x07, 0x2f, 0xed, 0xa2, 0xd3,
+        0x81, 0x14, 0xB5, 0xF7, 0x62, 0x79, 0x8A, 0x53, 0xD5, // Source Address - type 8
+        0x43, 0xA0, 0x14, 0xCA, 0xF8, 0xB2, 0x97, 0xCF, 0xF8, 0xF2, 0xF9, 0x37, 0xE8,
+        0x83, 0x14, 0xB6, 0xF8, 0x63, 0x80, 0x8B, 0x54, 0xD6, // Target Address - type 8
+        0x43, 0xA0, 0x14, 0xCA, 0xF8, 0xB2, 0x97, 0xCF, 0xF8, 0xF2, 0xF9, 0x37, 0xE8
+    };
+    
+    // Here are the 20 byte addresses
+    uint8_t sourceBytes[] = { 0xB5, 0xF7, 0x62, 0x79, 0x8A, 0x53, 0xD5,
+        0x43, 0xA0, 0x14, 0xCA, 0xF8, 0xB2, 0x97, 0xCF, 0xF8, 0xF2, 0xF9, 0x37, 0xE8 };
+    uint8_t destBytes[] = { 0xB6, 0xF8, 0x63, 0x80, 0x8B, 0x54, 0xD6,
+        0x43, 0xA0, 0x14, 0xCA, 0xF8, 0xB2, 0x97, 0xCF, 0xF8, 0xF2, 0xF9, 0x37, 0xE8 };
+    BRRippleAddress sourceAddress;
+    BRRippleAddress targetAddress;
+    memcpy(sourceAddress.bytes, sourceBytes, 20);
+    memcpy(targetAddress.bytes, destBytes, 20);
+    
+    // Create an account so we can get a public key
+    const char * paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
+    BRRippleAccount account = rippleAccountCreate(paper_key);
+    transaction = rippleTransactionCreate(sourceAddress, targetAddress, 1000000, 12);
+    assert(transaction);
+
+    uint64_t fee = rippleTransactionGetFee(transaction);
+    assert(fee == 12);
+
+    uint64_t amount = rippleTransactionGetAmount(transaction);
+    assert(amount == 1000000);
+
+    uint32_t sequence = rippleTransactionGetSequence(transaction);
+    // Since we don't add the sequence until later - it should be 0
+    assert(0 == sequence);
+
+    BRRippleAddress source = rippleTransactionGetSource(transaction);
+    assert(0 == memcmp(source.bytes, sourceAddress.bytes, 20));
+
+    BRRippleAddress target = rippleTransactionGetTarget(transaction);
+    assert(0 == memcmp(target.bytes, targetAddress.bytes, 20));
+    
     rippleAccountDelete(account);
     deleteRippleTransaction(transaction);
 }
@@ -152,8 +206,15 @@ testSerializeWithSignature (void /* ... */) {
     transaction = rippleTransactionCreate(sourceAddress, targetAddress, 1000000, 12);
     assert(transaction);
 
+    uint32_t sequence_number = 1;
+
+    // Before we sign the sequence should be 0
+    uint32_t sequence = rippleTransactionGetSequence(transaction);
+    // Since we don't add the sequence until later - it should be 0
+    assert(0 == sequence);
+
     // Serialize and sign
-    BRRippleSerializedTransaction s = rippleAccountSignTransaction(transaction, paper_key, 1, 0);
+    BRRippleSerializedTransaction s = rippleAccountSignTransaction(transaction, paper_key, sequence_number, 0);
     assert(s);
     int signed_size = getSerializedSize(s);
     uint8_t *signed_bytes = getSerializedBytes(s);
@@ -163,6 +224,11 @@ testSerializeWithSignature (void /* ... */) {
         printf("%02X", signed_bytes[i]);
         if (i == (signed_size -1)) printf("\n");
     }
+
+    // After calling the sign function the sequence number should match what we passed in
+    sequence = rippleTransactionGetSequence(transaction);
+    // Since we don't add the sequence until later - it should be 0
+    assert(sequence_number == sequence);
 
     // Compare the output with what we are expecting - ignore the signature
     assert(0 == memcmp(signed_bytes, expected_output, 50));
@@ -205,7 +271,10 @@ extern void
 runRippleTest (void /* ... */) {
 
     testRippleAccount();
+
+    // Transaction tests
     testRippleTransaction();
+    testRippleTransactionGetters();
     testSerializeWithSignature();
 
     // base58 encoding tests
