@@ -29,7 +29,7 @@ typedef enum {
 
 // A Ripple Transaction Hash
 typedef struct {
-    uint8_t bytes[33];
+    uint8_t bytes[32];
 } BRRippleTransactionHash;
 
 // Stucture to hold the calculated signature

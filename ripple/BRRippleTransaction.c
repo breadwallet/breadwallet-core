@@ -63,6 +63,7 @@ struct BRRippleTransactionRecord {
 struct BRRippleSerializedTransactionRecord {
     int size;
     uint8_t *buffer;
+    uint8_t txHash[32];
 };
 
 extern BRRippleTransaction
@@ -175,10 +176,12 @@ rippleTransactionSerialize (BRRippleTransaction transaction,
 
     int num_fields = setFieldInfo(fields, transaction, signature, sig_length);
 
-    // Serialize the fields
+    // Create the serialization object and initialize
     BRRippleSerializedTransaction s = calloc(1, sizeof(struct BRRippleSerializedTransactionRecord));
     s->buffer = 0;
     s->size = 0;
+    memset(s->txHash, 0x00, sizeof(s->txHash));
+
     int size = serialize(fields, num_fields, 0, 0);
     if (size > 0) {
         s->buffer = calloc(1, size);
@@ -188,6 +191,26 @@ rippleTransactionSerialize (BRRippleTransaction transaction,
     return s;
 }
 
+static void createTransactionHash(BRRippleSerializedTransaction signedBytes)
+{
+    assert(signedBytes);
+    uint8_t bytes_to_hash[signedBytes->size + 4];
+
+    // Add the transaction prefix before hashing
+    bytes_to_hash[0] = 'T';
+    bytes_to_hash[1] = 'X';
+    bytes_to_hash[2] = 'N';
+    bytes_to_hash[3] = 0;
+
+    // Copy the rest of the bytes into the buffer
+    memcpy(&bytes_to_hash[4], signedBytes->buffer, signedBytes->size);
+
+    // Do a sha512 hash and use the first 32 bytes
+    uint8_t md64[64];
+    BRSHA512(md64, bytes_to_hash, sizeof(bytes_to_hash));
+    memcpy(signedBytes->txHash, md64, 32);
+}
+
 extern BRRippleSerializedTransaction
 rippleTransactionSerializeAndSign(BRRippleTransaction transaction, const char *paperKey,
                                   uint32_t sequence, uint32_t lastLedgerSequence)
@@ -195,6 +218,7 @@ rippleTransactionSerializeAndSign(BRRippleTransaction transaction, const char *p
     // If this transaction was previously signed - delete that info
     if (transaction->signedBytes) {
         free(transaction->signedBytes);
+        transaction->signedBytes = 0;
     }
 
     // Add in the provided parameters
@@ -219,6 +243,10 @@ rippleTransactionSerializeAndSign(BRRippleTransaction transaction, const char *p
     // Re-serialize with signature
     transaction->signedBytes = rippleTransactionSerialize(transaction, sig->signature, sig->sig_length);
     
+    // Create and store a transaction hash of the transaction - the hash is attached to the signed
+    // bytes object and will get destroyed if a subsequent serialization is done.
+    createTransactionHash(transaction->signedBytes);
+
     return transaction->signedBytes;
 }
 
@@ -236,7 +264,10 @@ extern BRRippleTransactionHash rippleTransactionGetHash(BRRippleTransaction tran
     BRRippleTransactionHash hash;
     memset(hash.bytes, 0x00, sizeof(hash.bytes));
 
-    // TODO - figure out how Ripple creates the hash of their transaction
+    // See if we have any signed bytes
+    if (transaction->signedBytes) {
+        memcpy(hash.bytes, transaction->signedBytes->txHash, 32);
+    }
 
     return hash;
 }
