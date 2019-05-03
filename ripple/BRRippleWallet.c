@@ -14,15 +14,16 @@
 //
 // Wallet
 //
-typedef struct _BRRippleWalletRecord
+struct BRRippleWalletRecord
 {
-    
-} BRRippleWalletRecord;
+    uint64_t balance;
+};
 
 extern BRRippleWallet
 rippleWalletCreate (BRRippleAccount account)
 {
-    BRRippleWallet wallet = calloc(1, sizeof(BRRippleWalletRecord));
+    BRRippleWallet wallet = calloc(1, sizeof(struct BRRippleWalletRecord));
+    wallet->balance = 0;
     return wallet;
 }
 
@@ -46,5 +47,17 @@ rippleWalletGetTargetAddress (BRRippleWallet wallet)
 {
     BRRippleAddress address;
     return address;
+}
+
+extern uint64_t
+rippleWalletGetBalance (BRRippleWallet wallet)
+{
+    return wallet->balance;
+}
+
+extern void
+rippleWalletSetBalance (BRRippleWallet wallet, uint64_t balance)
+{
+    wallet->balance = balance;
 }
 

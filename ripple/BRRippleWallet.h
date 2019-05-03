@@ -62,4 +62,24 @@ rippleWalletGetSourceAddress (BRRippleWallet wallet);
 extern BRRippleAddress
 rippleWalletGetTargetAddress (BRRippleWallet wallet);
 
+/**
+ * Return the ripple balance for this wallet
+ *
+ * @param wallet the specified ripple wallet
+ *
+ * @return balance  ripple balance in drops
+ */
+extern uint64_t
+rippleWalletGetBalance (BRRippleWallet wallet);
+
+/**
+ * Set the ripple balance in this wallet
+ *
+ * @param balance   the ripple balance in drops
+ *
+ * @return void
+ */
+extern void
+rippleWalletSetBalance (BRRippleWallet wallet, uint64_t balance);
+
 #endif

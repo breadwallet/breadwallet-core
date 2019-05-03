@@ -290,10 +290,27 @@ static void createAndDeleteWallet()
     rippleWalletRelease(wallet);
 }
 
+static void testWalletBalance()
+{
+    const char * paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
+    BRRippleAccount account = rippleAccountCreate(paper_key);
+    BRRippleWallet wallet = rippleWalletCreate(account);
+    assert(wallet);
+    rippleWalletRelease(wallet);
+
+    uint64_t balance = rippleWalletGetBalance(wallet);
+    assert(balance == 0);
+
+    uint64_t expected_balance = 25000000;
+    rippleWalletSetBalance(wallet, expected_balance);
+    balance = rippleWalletGetBalance(wallet);
+    assert(balance == expected_balance);
+}
+
 static void runWalletTests()
 {
     createAndDeleteWallet();
-    
+    testWalletBalance();
 }
 
 static void checkDecodeRippleAddress()
