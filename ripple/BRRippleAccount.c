@@ -20,6 +20,7 @@
 #include "BRRippleBase.h"
 #include "BRRippleAccount.h"
 #include "BRRippleSignature.h"
+#include "BRRippleBase58.h"
 
 #define PRIMARY_ADDRESS_BIP44_INDEX 0
 
@@ -251,4 +252,20 @@ rippleAccountSignTransaction(BRRippleTransaction transaction, const char *paperK
                              uint32_t sequence, uint32_t lastLedgerSequence)
 {
     return rippleTransactionSerializeAndSign(transaction, paperKey, sequence, lastLedgerSequence);
+}
+
+extern BRRippleAddress
+rippleAddressCreate(const char * rippleAddressString)
+{
+    BRRippleAddress address;
+    memset(address.bytes, 0x00, sizeof(address.bytes));
+    // Work backwards from this ripple address (string) to what is
+    // known as the acount ID (20 bytes)
+    rippleAddressStringToAddress(rippleAddressString, &address);
+    return address;
+}
+
+extern int // 1 if equal
+rippleAddressEqual (BRRippleAddress a1, BRRippleAddress a2) {
+    return 0 == memcmp (a1.bytes, a2.bytes, 20);
 }
