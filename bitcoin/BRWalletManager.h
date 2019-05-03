@@ -80,6 +80,19 @@ bwmAnnounceTransactionComplete (BRWalletManager manager,
                                 int id,
                                 int success);
 
+typedef void
+(*BRSubmitTransactionCallback) (BRWalletManagerClientContext context,
+                                BRWalletManager manager,
+                                BRWallet *wallet,
+                                BRTransaction *transaction,
+                                int rid);
+
+extern void
+bwmAnnounceSubmit (BRWalletManager manager,
+                   int rid,
+                   BRTransaction *transaction,
+                   int error);
+
 ///
 /// Transaction Event
 ///
@@ -112,6 +125,7 @@ typedef void
 typedef enum {
     BITCOIN_WALLET_CREATED,
     BITCOIN_WALLET_BALANCE_UPDATED,
+    BITCOIN_WALLET_TRANSACTION_SUBMITTED,
     BITCOIN_WALLET_DELETED
 } BRWalletEventType;
 
@@ -121,6 +135,10 @@ typedef struct {
         struct {
             uint64_t satoshi;
         } balance;
+        struct {
+            BRTransaction *transaction;
+            int error; // 0 on success
+        } submitted;
     } u;
 } BRWalletEvent;
 
@@ -164,6 +182,7 @@ typedef struct {
 
     BRGetBlockNumberCallback  funcGetBlockNumber;
     BRGetTransactionsCallback funcGetTransactions;
+    BRSubmitTransactionCallback funcSubmitTransaction;
 
     BRTransactionEventCallback funcTransactionEvent;
     BRWalletEventCallback  funcWalletEvent;
@@ -211,6 +230,12 @@ BRWalletManagerGetWallet (BRWalletManager manager);
 
 extern BRPeerManager *
 BRWalletManagerGetPeerManager (BRWalletManager manager);
+
+extern void
+BRWalletManagerSubmitTransaction (BRWalletManager manager,
+                                  BRTransaction *transaction,
+                                  const void *seed,
+                                  size_t seedLen);
 
 #ifdef __cplusplus
 }
