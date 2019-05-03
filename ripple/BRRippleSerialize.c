@@ -15,11 +15,6 @@
 #include "BRRipple.h"
 #include "BRRippleBase.h"
 
-struct BRRippleSerializedTransactionRecord {
-    int size;
-    uint8_t *buffer;
-}  ;
-
 /**
  * Compare 2 Ripple fields
  *
@@ -235,13 +230,15 @@ int add_content(BRRippleField *field, uint8_t *buffer)
     }
 }
 
-extern BRRippleSerializedTransaction serialize (BRRippleField *fields, int num_fields)
+extern int serialize (BRRippleField *fields, int num_fields, uint8_t * buffer, int bufferSize)
 {
     // Create the stucture to hold the results
-    BRRippleSerializedTransaction result = calloc(1, sizeof(struct BRRippleSerializedTransactionRecord));
-    result->size = calculate_buffer_size(fields, num_fields);
-    result->buffer = calloc(1, result->size);
+    int size = calculate_buffer_size(fields, num_fields);
     
+    if (bufferSize < size) {
+        return size;
+    }
+
     // The values (fields) in the Ripple transaction are sorted by
     // type code and field code (asc)
     qsort(fields, num_fields, sizeof(BRRippleField), compare_function);
@@ -249,29 +246,9 @@ extern BRRippleSerializedTransaction serialize (BRRippleField *fields, int num_f
     // serialize all the fields adding the fieldis and content to the buffer
     int buffer_index = 0;
     for (int i = 0; i < num_fields; i++) {
-        buffer_index += add_fieldid(fields[i].typeCode, fields[i].fieldCode, &result->buffer[buffer_index]);
-        buffer_index += add_content( &fields[i], &result->buffer[buffer_index]);
+        buffer_index += add_fieldid(fields[i].typeCode, fields[i].fieldCode, &buffer[buffer_index]);
+        buffer_index += add_content( &fields[i], &buffer[buffer_index]);
     }
 
-    result->size = buffer_index;
-
-    return result;
-}
-
-extern uint32_t getSerializedSize(BRRippleSerializedTransaction s)
-{
-    return s->size;
-}
-extern uint8_t* getSerializedBytes(BRRippleSerializedTransaction s)
-{
-    return s->buffer;
-}
-
-extern void deleteSerializedBytes(BRRippleSerializedTransaction sTransaction)
-{
-    assert(sTransaction);
-    if (sTransaction->buffer) {
-        free(sTransaction->buffer);
-    }
-    free(sTransaction);
+    return buffer_index;
 }

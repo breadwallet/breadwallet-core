@@ -11,7 +11,7 @@
 #ifndef BRRipple_serialize_h
 #define BRRipple_serialize_h
 
-#include "BRRipple.h"
+#include "BRRippleBase.h"
 
 /**
  * Serialize an unsorted array of fields
@@ -19,6 +19,7 @@
  * @param fields      unsorted array of fields
  * @parma num_fields  the number of fields to serialize
  */
-extern BRRippleSerializedTransaction serialize (BRRippleField * fields, int num_fields);
+extern int serialize(BRRippleField * fields, int num_fields,
+                     uint8_t *buffer, int bufferSize);
 
 #endif

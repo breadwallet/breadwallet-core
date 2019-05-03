@@ -11,6 +11,8 @@
 #ifndef BRRipple_signature_h
 #define BRRipple_signature_h
 
+#include "BRRippleBase.h"
+
 /**
  * Sign the bytes with the master private key
  *

@@ -1,0 +1,70 @@
+//
+//  BRRippleTransaction.h
+//  Core
+//
+//  Created by Carl Cherry on 4/16/19.
+//  Copyright © 2019 Breadwinner AG. All rights reserved.
+//
+//  See the LICENSE file at the project root for license information.
+//  See the CONTRIBUTORS file at the project root for a list of contributors.
+//
+#ifndef BRRipple_transaction_h
+#define BRRipple_transaction_h
+
+#include "BRRippleBase.h"
+
+typedef struct BRRippleTransactionRecord *BRRippleTransaction;
+typedef struct BRRippleSerializedTransactionRecord *BRRippleSerializedTransaction;
+
+/**
+ * Create a Ripple transaction
+ *
+ * NOTE: for this first iteration the only transaction type supported
+ * is a Payment, in XRP only. The payment only supports the required fields.
+ *
+ * @param  sourceAddress  Ripple address of owner account
+ * @param  targetAddress  Ripple address of recieving account
+ * @param  amount         XRP drop amount to be sent
+ * @param  fee            XRP fee in drops
+ * @param  publicKey      source account's public key
+ *
+ * @return transaction    a ripple transaction
+ */
+extern BRRippleTransaction
+rippleTransactionCreate(BRRippleAddress sourceAddress,
+                        BRRippleAddress targetAddress,
+                        uint64_t amount, // For now assume XRP drops.
+                        uint64_t fee);
+
+/**
+ * Delete a Ripple transaction
+ *
+ * @param transaction  BRRippleTransaction
+ */
+extern void deleteRippleTransaction(BRRippleTransaction transaction);
+
+/**
+ * Serialize a Ripple transaction (in a form suitable signing)
+ *
+ * @param transaction the transaction to serialize
+ */
+extern BRRippleSerializedTransaction
+rippleTransactionSerializeAndSign(BRRippleTransaction transaction, uint32_t sequence,
+                                  const char *paperKey);
+
+/**
+ * Get the size of a serialized transaction
+ *
+ * @param  s     serialized transaction
+ * @return size
+ */
+extern uint32_t getSerializedSize(BRRippleSerializedTransaction s);
+/**
+ * Get the raw bytes of a serialized transaction
+ *
+ * @param  s     serialized transaction
+ * @return bytes uint8_t
+ */
+extern uint8_t* getSerializedBytes(BRRippleSerializedTransaction s);
+
+#endif

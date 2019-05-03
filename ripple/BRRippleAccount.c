@@ -18,6 +18,7 @@
 #include "support/BRBIP39WordsEn.h"
 #include "BRRipple.h"
 #include "BRRippleBase.h"
+#include "BRRippleAccount.h"
 #include "BRRippleSignature.h"
 
 #define PRIMARY_ADDRESS_BIP44_INDEX 0
@@ -144,7 +145,7 @@ extern char * createRippleAddressString (BRRippleAddress address, int useChecksu
  * 2. In DEBUG mode unit tests can pass in a private key instead
  *
  */
-static BRKey getKey(const char* paperKey)
+BRKey getKey(const char* paperKey)
 {
 #ifndef DEBUG
     // In release mode we assume we only support mnemonic paper key
@@ -226,16 +227,17 @@ extern void rippleAccountDelete(BRRippleAccount account)
     free(account);
 }
 
-extern BRRippleSignature
-rippleAccountSignBytes (BRRippleAccount account,
-                        /* address */
-                        /* signature type */
-                        uint8_t *bytes,
-                        size_t bytesCount,
-                        const char *paperKey)
+extern BRRippleAddress rippleAccountGetPrimaryAddress (BRRippleAccount account)
 {
-    // Create the private key from the paperKey
-    BRKey key = getKey(paperKey);
+    // Currently we only have the primary address - so just return it
+    return account->raw;
+}
 
-    return signBytes(&key, bytes, bytesCount);
+extern BRRippleAccount rippleAccountCreateWithSeed(UInt256 seed)
+{
+    return (BRRippleAccount)0;
+}
+extern BRRippleAccount rippleAccountCreateWithKey(BRKey key)
+{
+    return (BRRippleAccount)0;
 }
