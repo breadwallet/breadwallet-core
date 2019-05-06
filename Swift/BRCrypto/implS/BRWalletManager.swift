@@ -9,6 +9,7 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
 
+import Foundation
 import BRCryptoC
 import BRCore
 import BRCore.Ethereum
@@ -224,7 +225,14 @@ class WalletManagerImplS: WalletManager {
             self.impl = Impl.ethereum (ewm: ewm)
 
         default:
-            self.impl = Impl.generic
+            let queue = DispatchQueue(label: "GenericWalletManager:\(network.currency.core)")
+            let timer = DispatchSource.makeTimerSource(queue: queue)
+
+            self.impl = Impl.generic(
+                bdb: query,
+                queue: queue,
+                timer: timer,
+                periodInMilliseconds:  10 * 1000)
         }
 
         print ("SYS: WalletManager (\(name)): Init")
@@ -258,6 +266,10 @@ class WalletManagerImplS: WalletManager {
 
     public func sync() {
         impl.sync()
+    }
+
+    deinit {
+        impl.release()
     }
 
     // Actually a Set/Dictionary by {Symbol}
@@ -305,21 +317,19 @@ class WalletManagerImplS: WalletManager {
     enum Impl {
         case bitcoin (mid: BRCoreWalletManager)
         case ethereum (ewm: BREthereumEWM)
-        case generic
+        case generic (bdb: BlockChainDB, queue: DispatchQueue, timer: DispatchSourceTimer, periodInMilliseconds: Int)
 
         internal var ewm: BREthereumEWM! {
             switch self {
-            case .bitcoin: return nil
             case .ethereum (let ewm): return ewm
-            case .generic: return nil
+            default: return nil
             }
         }
 
         internal var bwm: BRCoreWalletManager! {
             switch self {
             case .bitcoin (let mid): return mid
-            case .ethereum: return nil
-            case .generic: return nil
+            default: return nil
             }
         }
 
@@ -338,20 +348,35 @@ class WalletManagerImplS: WalletManager {
             switch self {
             case let .ethereum (ewm):
                 ewmConnect (ewm)
+
             case let .bitcoin (mid):
                 BRWalletManagerConnect (mid)
-            case .generic:
-                break
+
+            case let .generic (query, _, timer, period):
+                timer.schedule (deadline: .now(), repeating: DispatchTimeInterval.milliseconds (period))
+                timer.setEventHandler {
+                    NSLog ("Want to Ping BRD - generic wallet manager")
+                    let blockchainId = "foo"
+                    let addresses: [String] = []
+                    query.getTransfers (blockchainId: blockchainId,
+                                        addresses: addresses,
+                                        completion: { (res: Result<[BlockChainDB.Model.Transfer], BlockChainDB.QueryError>) in
+                                            // create a 'Transfer'; add to wallet.
+                                            // find wallet from
+                    })
+                }
+                timer.resume()
             }
         }
+
         internal func disconnect() {
             switch self {
             case let .ethereum (ewm):
                 ewmDisconnect (ewm)
             case let .bitcoin (mid):
                 BRWalletManagerDisconnect (mid)
-            case .generic:
-                break
+            case .generic (_, _, let timer, _):
+                timer.suspend()
             }
         }
 
@@ -362,10 +387,21 @@ class WalletManagerImplS: WalletManager {
             case let .bitcoin (mid):
                 BRWalletManagerScan (mid)
             case .generic:
+                // query.getTransfers (... <full block range> ...)
                 break
             }
         }
-        
+
+        internal func release () {
+            switch self {
+            case .ethereum, .bitcoin:
+                break
+            case let .generic (_, _, timer, _):
+                timer.suspend()
+                timer.cancel()
+            }
+        }
+
         internal func submit (manager: WalletManagerImplS,
                               wallet: WalletImplS,
                               transfer: TransferImplS,

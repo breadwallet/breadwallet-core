@@ -18,6 +18,7 @@ module BRCryptoC [system] [extern_c] {
 module BRCore [system] [extern_c] {
     textual header "../../secp256k1/src/basic-config.h"
     textual header "../../secp256k1/src/secp256k1.c"
+
     header "../../support/BRInt.h"
     header "../../support/BRArray.h"
     header "../../support/BRSet.h"
@@ -30,6 +31,7 @@ module BRCore [system] [extern_c] {
     header "../../support/BRKeyECIES.h"
     header "../../support/BRBIP39Mnemonic.h"
     header "../../support/BRSyncMode.h"
+
     header "../../bitcoin/BRBIP38Key.h"
     header "../../bitcoin/BRBloomFilter.h"
     header "../../bitcoin/BRMerkleBlock.h"
@@ -40,13 +42,20 @@ module BRCore [system] [extern_c] {
     header "../../bitcoin/BRWalletManager.h"
     header "../../bitcoin/BRPeerManager.h"
     header "../../bitcoin/BRChainParams.h"
+
     header "../../bcash/BRBCashParams.h"
     header "../../bcash/BRBCashAddr.h"
+
     export *
 
     explicit module Ethereum {
         header "../../ethereum/BREthereum.h"
         header "../../ethereum/contract/BREthereumToken.h"
+        export *
+    }
+
+    explicit module Ripple {
+        header "../../ripple/BRRipple.h"
         export *
     }
 }

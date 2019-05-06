@@ -201,7 +201,7 @@ class BRCryptoAmountTests: XCTestCase {
         let BTC_BTC = BRCrypto.Unit (currency: btc, uids: "BTC-BTC",  name: "Bitcoin", symbol: "B", base: BTC_SATOSHI, decimals: 8)
 
 
-        let btc1 = Amount.createAsBTC(100000000, BTC_BTC)
+        let btc1 = Amount.create(uint64: 100000000, BTC_BTC)
         XCTAssert (100000000 == btc1.double (as: BTC_SATOSHI))
         XCTAssert (1         == btc1.double (as: BTC_BTC))
         XCTAssertFalse (btc1.isNegative)

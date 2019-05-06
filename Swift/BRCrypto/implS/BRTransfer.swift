@@ -11,6 +11,7 @@
 
 import BRCryptoC
 import BRCore.Ethereum
+import BRCore.Ripple
 
 
 fileprivate struct BitcoinLegacyAddressScheme: AddressScheme {
@@ -153,6 +154,7 @@ class TransferImplS: Transfer {
     enum Impl {
         case bitcoin (wid: BRCoreWallet, tid: BRCoreTransaction)
         case ethereum (ewm: BREthereumEWM, core: BREthereumTransfer)
+        case ripple (core: BRRippleTransaction)
 
         internal var eth: BREthereumTransfer! {
             switch self {
@@ -188,6 +190,8 @@ class TransferImplS: Transfer {
                 return wid1 == wid2 && tid1 == tid2
             case (let .ethereum (ewm1, c1), let .ethereum (ewm2, c2)):
                 return ewm1 == ewm2 && c1 == c2
+            case (let .ripple (c1), let .ripple (c2)):
+                return c1 == c2
             default:
                 return false
             }
@@ -207,6 +211,8 @@ class TransferImplS: Transfer {
                     // But if we didn't send it, then the inputs will be the sender's inputs.
                     .first { inputsContain == BRWalletContainsAddress (wid, UnsafeRawPointer([$0.address]).assumingMemoryBound(to: CChar.self)) }
                     .map { Address.createAsBTC (BRAddress (s: $0.address))}
+            case let .ripple (core):
+                return Address (core: cryptoAddressCreateAsXRP (rippleTransactionGetSource (core)))
             }
         }
 
@@ -225,6 +231,8 @@ class TransferImplS: Transfer {
                     // outputs.  But if we did send it, then the outpus witll be the targets outputs.
                     .first { outputsContain == BRWalletContainsAddress(wid, UnsafeRawPointer([$0.address]).assumingMemoryBound(to: CChar.self)) }
                     .map { Address.createAsBTC (BRAddress (s: $0.address)) }
+            case let .ripple (core):
+                return Address (core: cryptoAddressCreateAsXRP (rippleTransactionGetTarget (core)))
             }
         }
 
@@ -251,6 +259,9 @@ class TransferImplS: Transfer {
                     : (send - Int64(fees)) - recv)
 
                 return Amount.create (uint64: UInt64(value), unit)
+
+            case let .ripple(core):
+                return Amount.create(uint64: rippleTransactionGetAmount(core), unit)
             }
 
         }
@@ -267,6 +278,9 @@ class TransferImplS: Transfer {
                 //        var transaction = core
                 let fee = BRWalletFeeForTx (wid, tid)
                 return Amount.create (uint64: fee == UINT64_MAX ? 0 : fee, unit)
+
+            case let .ripple (core):
+                return Amount.create(uint64: rippleTransactionGetFee(core), unit)
             }
         }
 
@@ -277,13 +291,16 @@ class TransferImplS: Transfer {
                 let ethGasPrice = ewmTransferGetGasPrice (ewm, core, WEI)
 
                 return TransferFeeBasis.ethereum (
-                    gasPrice: Amount.createAsETH (ethGasPrice.etherPerGas.valueInWEI, unit),
+                    gasPrice: Amount.create (uint256: ethGasPrice.etherPerGas.valueInWEI, unit),
                     gasLimit: ethGasLimit.amountOfGas)
 
             case .bitcoin:
                 // Need to be derived from the transaction fee + size if confirmed; otherwise
                 // this is the current wallet->feePerKb
                 return TransferFeeBasis.bitcoin(feePerKB: DEFAULT_FEE_PER_KB)
+
+            case .ripple: // (let core):
+                return TransferFeeBasis.bitcoin(feePerKB: 0)
             }
         }
 
@@ -313,6 +330,17 @@ class TransferImplS: Transfer {
                 return send > 0 && (recv + fees) == send
                     ? .recovered
                     : .received
+
+            case let .ripple (core):
+                let source = rippleTransactionGetSource (core)
+                let target = rippleTransactionGetTarget (core)
+
+                if 1 == rippleAddressEqual (source, target) { return .recovered }
+
+                // let address = accountAddress
+                return .sent
+                
+
             }
         }
 
@@ -329,6 +357,10 @@ class TransferImplS: Transfer {
                 return 1 == UInt256IsZero(coreHash)
                     ? nil
                     : TransferHash.bitcoin(coreHash)
+
+            case let .ripple(core):
+                let coreHash = rippleTransactionGetHash (core)
+                return nil
             }
         }
     }

@@ -710,6 +710,10 @@ public final class Address: Equatable, CustomStringConvertible {
         return Address (core: cryptoAddressCreateAsBTC (btc))
     }
 
+    internal static func createAsXRP (_ xrp: BRRippleAddress) -> Address {
+        return Address (core: cryptoAddressCreateAsXRP (xrp))
+    }
+
     deinit {
         cryptoAddressGive (core)
     }

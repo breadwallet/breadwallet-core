@@ -42,6 +42,7 @@
 #include "bitcoin/BRWallet.h"
 #include "bcash/BRBCashParams.h"
 #include "ethereum/BREthereum.h"
+#include "ripple/BRRipple.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -91,8 +92,14 @@ extern "C" {
     cryptoAddressCreateAsBTC (BRAddress btc);
 
     private_extern BRCryptoAddress
+    cryptoAddressCreateAsXRP (BRRippleAddress xrp);
+    
+    private_extern BRCryptoAddress
     cryptoAddressCreate (const char *string);
 
+    private_extern BRRippleAddress
+    cryptoAddressAsXRP (BRCryptoAddress address);
+    
     /// MARK: - Account
 
     private_extern BREthereumAccount

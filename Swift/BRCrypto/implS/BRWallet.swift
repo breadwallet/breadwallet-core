@@ -24,6 +24,27 @@ fileprivate struct BitcoinSegwitAddressScheme: AddressScheme {
     }
 }
 
+extension Amount {
+
+    // ETH
+
+    internal var asETH: UInt64 {
+        var overflow: BRCryptoBoolean = CRYPTO_FALSE
+        let value = cryptoAmountGetIntegerRaw (self.core, &overflow)
+        precondition(CRYPTO_FALSE == overflow)
+        return value
+    }
+
+    // BTC
+
+    internal var asBTC: UInt64 {
+        var overflow: BRCryptoBoolean = CRYPTO_FALSE
+        let value = cryptoAmountGetIntegerRaw (self.core, &overflow)
+        precondition(CRYPTO_FALSE == overflow)
+        return value
+    }
+}
+
 //
 // WalletImplS
 //
@@ -136,21 +157,11 @@ class WalletImplS: Wallet {
     }
 
     public var target: Address {
-        switch impl {
-        case .bitcoin:
-            return BitcoinLegacyAddressScheme().getAddress(for: self)
-        case .ethereum:
-            return Address.createAsETH (accountGetPrimaryAddress (manager.account.asETH))
-        }
+        return impl.target (for: self)
     }
 
     public var source: Address {
-        switch impl {
-        case .bitcoin:
-            return BitcoinLegacyAddressScheme().getAddress(for: self)
-        case .ethereum:
-            return Address.createAsETH (accountGetPrimaryAddress (manager.account.asETH))
-        }
+        return impl.source (for: self)
     }
 
     func estimateFee (amount: Amount,
@@ -204,39 +215,40 @@ class WalletImplS: Wallet {
     enum Impl {
         case bitcoin (wid: BRCoreWallet)
         case ethereum (ewm: BREthereumEWM, core: BREthereumWallet)
+        case ripple (core: BRRippleWallet)
 
         internal var ewm: BREthereumEWM! {
             switch self {
-            case .bitcoin: return nil
             case .ethereum (let ewm, _): return ewm
+            default: return nil
             }
         }
 
         internal var eth: BREthereumWallet! {
             switch self {
-            case .bitcoin: return nil
             case .ethereum (_, let eth): return eth
+            default: return nil
             }
         }
 
         internal var btc: BRCoreWallet! {
             switch self {
             case .bitcoin (let btc): return btc
-            case .ethereum: return nil
+            default: return nil
             }
         }
 
         internal func matches (eth: BREthereumWallet) -> Bool {
             switch self {
-            case .bitcoin: return false
             case .ethereum (_, let core): return core == eth
+            default: return false
             }
         }
 
         internal func matches (btc: BRCoreWallet) -> Bool {
             switch self {
             case .bitcoin (let wid): return wid == btc
-            case .ethereum: return false
+            default: return false
             }
         }
 
@@ -246,6 +258,8 @@ class WalletImplS: Wallet {
                 return wid1 == wid2
             case (let .ethereum (ewm1, c1), let .ethereum (ewm2, c2)):
                 return ewm1 == ewm2 && c1 == c2
+            case (let .ripple (c1), let .ripple (c2)):
+                return c1 == c2
             default:
                 return false
             }
@@ -261,6 +275,8 @@ class WalletImplS: Wallet {
                 return Amount.create (uint256: value, unit)
             case let .bitcoin (wid):
                 return Amount.create(uint64: BRWalletBalance(wid), unit)
+            case let .ripple (core):
+                return Amount.create(uint64: rippleWalletGetBalance(core), unit)
             }
         }
 
@@ -274,6 +290,30 @@ class WalletImplS: Wallet {
                     gasLimit: coreGasLimit.amountOfGas)
             case let .bitcoin (wid):
                 return TransferFeeBasis.bitcoin(feePerKB: BRWalletFeePerKb (wid))
+            case let .ripple(core):
+                return TransferFeeBasis.bitcoin(feePerKB: 0)
+            }
+        }
+
+        internal func target (for wallet: WalletImplS) -> Address {
+            switch self {
+            case .bitcoin:
+                return BitcoinLegacyAddressScheme().getAddress(for: wallet)
+            case .ethereum:
+                return Address.createAsETH (accountGetPrimaryAddress (wallet.manager.account.asETH))
+            case let .ripple(core):
+                return Address.createAsXRP (rippleWalletGetTargetAddress(core))
+            }
+        }
+
+        public func source (for wallet: WalletImplS) -> Address {
+            switch self {
+            case .bitcoin:
+                return BitcoinLegacyAddressScheme().getAddress(for: wallet)
+            case .ethereum:
+                return Address.createAsETH (accountGetPrimaryAddress (wallet.manager.account.asETH))
+            case let .ripple(core):
+                return Address.createAsXRP (rippleWalletGetSourceAddress(core))
             }
         }
 
@@ -293,11 +333,11 @@ class WalletImplS: Wallet {
                 guard case let .ethereum (gasPrice, gasLimit) = feeBasis
                     else { precondition (false) }
                 precondition (gasPrice.hasCurrency(feeUnit.currency))
-                let ethGasPrice = ewmCreateGasPrice (gasPrice.asETH, WEI)
+                let ethGasPrice = gasPriceCreate (etherCreate (cryptoAmountGetValue (gasPrice.core)))
                 let ethGasLimit = ewmCreateGas (gasLimit)
 
                 let fee = ewmWalletEstimateTransferFeeForBasis (ewm, wid, ethAmount, ethGasPrice, ethGasLimit, &overflow)
-                return Amount.createAsETH (fee.valueInWEI, feeUnit)
+                return Amount.create(uint256: fee.valueInWEI, feeUnit)
 
             case let .bitcoin (wid):
                 let feePerKBSaved = BRWalletFeePerKb (wid)
@@ -307,7 +347,10 @@ class WalletImplS: Wallet {
                 BRWalletSetFeePerKb (wid, feePerKB)
                 let fee = BRWalletFeeForTxAmount (wid, amount.asBTC)
                 BRWalletSetFeePerKb (wid, feePerKBSaved)
-                return Amount.createAsBTC (fee, feeUnit)
+                return Amount.create(uint64: fee, feeUnit)
+
+            case let .ripple (wid):
+                return Amount.create(integer: 0, unit: feeUnit)
             }
         }
 
@@ -339,7 +382,25 @@ class WalletImplS: Wallet {
 
                 return BRWalletCreateTransaction (wid, value, addr)
                     .map { TransferImplS.Impl.bitcoin(wid: wid, tid: $0) }
+
+            case let .ripple (wid):
+                let xrpTarget = cryptoAddressAsXRP (target.core)
+                let xrpSource = cryptoAddressCreateAsXRP (rippleWalletGetSourceAddress(wid))
+
+//                return rippleTransactionCreate (xrpSource, xrpTarget,
+//                                                <#T##txType: BRRippleTransactionType##BRRippleTransactionType#>,
+//                                                <#T##amount: UInt64##UInt64#>,
+//                                                <#T##sequence: UInt32##UInt32#>,
+//                                                <#T##fee: UInt64##UInt64#>,
+//                                                <#T##flags: UInt32##UInt32#>,
+//                                                <#T##lastLedgerSequence: UInt32##UInt32#>,
+//                                                <#T##publicKey: BRKey##BRKey#>)
+                return nil
             }
+
+
+
+
         }
     }
 }

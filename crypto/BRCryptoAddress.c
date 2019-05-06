@@ -28,6 +28,7 @@
 
 #include "support/BRAddress.h"
 #include "ethereum/BREthereum.h"
+#include "ripple/BRRipple.h"
 
 static void
 cryptoAddressRelease (BRCryptoAddress address);
@@ -37,6 +38,7 @@ struct BRCryptoAddressRecord {
     union {
         BRAddress btc;
         BREthereumAddress eth;
+        BRRippleAddress xrp;
     } u;
     BRCryptoRef ref;
 };
@@ -73,6 +75,18 @@ cryptoAddressCreateAsBTC (BRAddress btc) {
     return address;
 }
 
+private_extern BRCryptoAddress
+cryptoAddressCreateAsXRP (BRRippleAddress xrp) {
+    BRCryptoAddress address = cryptoAddressCreate (BLOCK_CHAIN_TYPE_XRP);
+    address->u.xrp = xrp;
+    return address;
+}
+
+private_extern BRRippleAddress
+cryptoAddressAsXRP (BRCryptoAddress address) {
+    return address->u.xrp;
+}
+
 extern char *
 cryptoAddressAsString (BRCryptoAddress address) {
     switch (address->type) {
@@ -80,6 +94,8 @@ cryptoAddressAsString (BRCryptoAddress address) {
             return strdup (address->u.btc.s);
         case BLOCK_CHAIN_TYPE_ETH:
             return addressGetEncodedString(address->u.eth, 1);
+        case BLOCK_CHAIN_TYPE_XRP:
+            return "xrp-not-yet";
         case BLOCK_CHAIN_TYPE_GEN:
             return "none";
     }
@@ -88,10 +104,18 @@ cryptoAddressAsString (BRCryptoAddress address) {
 extern BRCryptoBoolean
 cryptoAddressIsIdentical (BRCryptoAddress a1,
                           BRCryptoAddress a2) {
-    return AS_CRYPTO_BOOLEAN (a1 == a2 ||
-                              (a1->type == a2->type &&
-                               (a1->type == BLOCK_CHAIN_TYPE_BTC
-                                ? 0 == strcmp (a1->u.btc.s, a2->u.btc.s)
-                                : ETHEREUM_BOOLEAN_IS_TRUE (addressEqual (a1->u.eth, a2->u.eth)))));
+    if (a1 == a2) return CRYPTO_TRUE;
+    if (a1->type != a2->type) return CRYPTO_FALSE;
+
+    switch (a1->type) {
+        case BLOCK_CHAIN_TYPE_BTC:
+            return AS_CRYPTO_BOOLEAN (0 == strcmp (a1->u.btc.s, a2->u.btc.s));
+        case BLOCK_CHAIN_TYPE_ETH:
+            return AS_CRYPTO_BOOLEAN (ETHEREUM_BOOLEAN_IS_TRUE (addressEqual (a1->u.eth, a2->u.eth)));
+        case BLOCK_CHAIN_TYPE_XRP:
+            return AS_CRYPTO_BOOLEAN (0 == memcmp (a1->u.xrp.bytes, a2->u.xrp.bytes, 20));
+        case BLOCK_CHAIN_TYPE_GEN:
+            return CRYPTO_FALSE;
+    }
 }
 
