@@ -17,6 +17,7 @@
 #include "support/BRAddress.h"
 #include "support/BRBIP39Mnemonic.h"
 #include "support/BRBIP32Sequence.h"
+#include "support/BRBIP39WordsEn.h"
 #include "bitcoin/BRTransaction.h"
 #include "bitcoin/BRWallet.h"
 
@@ -299,6 +300,49 @@ handleWalletAddrs (void) {
 //    assert (0 == memcmp (addrs1, addrs2, sizeof (addrs1)));
 }
 
+
+#define IAN_COLEMAN_PAPER_KEY   "trigger verb tilt script hospital pumpkin young then same clerk march afford"
+#define IAN_COLEMAN_RIPPLE_DEX0_PUBKEY "0286d3703a7cf4540401cf96838a8d9eb5dd06e490d92988c00e3a185c975324e5"
+#define IAN_COLEMAN_RIPPLE_DEX0_PRIKEY "2b8bcc2ac6e96d76c56c1135340e395b0aec99540617d76ded17acbf8f4e3eb4"
+#define IAN_COLEMAN_RIPPLE_DEX0_ADDR   "rf3uTZX3ATLJN9hGekyXLiGgXzGHEVinSF"
+
+static BRKey
+derivePrivateKeyFromSeedRipple (UInt512 seed, uint32_t index) {
+    BRKey privateKey;
+
+    // The BIP32 privateKey for m/44'/60'/0'/0/index
+    BRBIP32PrivKeyPath(&privateKey, &seed, sizeof(UInt512), 5,
+                       44 | BIP32_HARD,          // purpose  : BIP-44
+                       144 | BIP32_HARD,          // coin_type: Ripple
+                       0 | BIP32_HARD,          // account  : <n/a>
+                       0,                        // change   : not change
+                       index);                   // index    :
+
+    privateKey.compressed = 0;
+
+    return privateKey;
+}
+
+static void
+handleRippleAccount (void) {
+    installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);
+
+    UInt512 seed = deriveSeedFromPaperKey (IAN_COLEMAN_PAPER_KEY);
+    BRKey   key  = derivePrivateKeyFromSeedRipple (seed, 0);
+    key.compressed = 1;
+
+    // Fill key.pubKey
+    assert (33 == BRKeyPubKey (&key, NULL, 0));
+
+    // Expected result
+    size_t pubKeyResultLen;
+    uint8_t *pubKeyResult = decodeHexCreate(&pubKeyResultLen, IAN_COLEMAN_RIPPLE_DEX0_PUBKEY, strlen(IAN_COLEMAN_RIPPLE_DEX0_PUBKEY));
+    assert (33 == pubKeyResultLen);
+
+    // Confirm
+    assert (0 == memcmp (pubKeyResult, key.pubKey, 33));
+}
+
 //
 //
 //
@@ -379,7 +423,7 @@ int main(int argc, const char * argv[]) {
     handleEthTransactionDecode (coder);
 #endif
 
-#if 1
+#if 0
     handleWalletAddrs();
 #endif
 
@@ -389,6 +433,11 @@ int main(int argc, const char * argv[]) {
     handleAddressFromString("0x0AbdAce70D3790235af448C88547603b945604ea", coder);
 
 #endif
+
+#if 1
+    handleRippleAccount();
+#endif
+
     rlpCoderRelease(coder);
     return 0;
 }
