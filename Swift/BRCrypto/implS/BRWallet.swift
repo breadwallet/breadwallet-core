@@ -153,6 +153,14 @@ class WalletImplS: Wallet {
         }
     }
 
+    func estimateFee (amount: Amount,
+                      feeBasis: TransferFeeBasis?) -> Amount {
+        precondition (amount.hasCurrency (currency))
+        return impl.estimateFee (amount: amount,
+                                 feeBasis: feeBasis ?? defaultFeeBasis,
+                                 unit: manager.network.baseUnitFor (currency: manager.currency)!)
+    }
+
     ///
     /// Create a wallet using `impl` *and* add it to the manager.  By adding it to the manager
     /// we ensure that `manager <==> wallet` constraints are maintained.
@@ -266,6 +274,40 @@ class WalletImplS: Wallet {
                     gasLimit: coreGasLimit.amountOfGas)
             case let .bitcoin (wid):
                 return TransferFeeBasis.bitcoin(feePerKB: BRWalletFeePerKb (wid))
+            }
+        }
+
+        internal func estimateFee (amount: Amount,
+                                   feeBasis: TransferFeeBasis,
+                                   unit feeUnit: Unit) -> Amount {
+            switch self {
+            case let .ethereum (ewm, wid):
+                var overflow: Int32 = 0
+
+                // Amount is in ETH or TOK
+                let ethValue  = cryptoAmountGetValue (amount.core)
+                let ethAmount = ewmWalletGetToken (ewm, wid)
+                    .map { amountCreateToken (createTokenQuantity ($0, ethValue))}
+                    ?? amountCreateEther (etherCreate(ethValue))
+
+                guard case let .ethereum (gasPrice, gasLimit) = feeBasis
+                    else { precondition (false) }
+                precondition (gasPrice.hasCurrency(feeUnit.currency))
+                let ethGasPrice = ewmCreateGasPrice (gasPrice.asETH, WEI)
+                let ethGasLimit = ewmCreateGas (gasLimit)
+
+                let fee = ewmWalletEstimateTransferFeeForBasis (ewm, wid, ethAmount, ethGasPrice, ethGasLimit, &overflow)
+                return Amount.createAsETH (fee.valueInWEI, feeUnit)
+
+            case let .bitcoin (wid):
+                let feePerKBSaved = BRWalletFeePerKb (wid)
+                guard case let .bitcoin (feePerKB) = feeBasis
+                    else { precondition (false)  }
+
+                BRWalletSetFeePerKb (wid, feePerKB)
+                let fee = BRWalletFeeForTxAmount (wid, amount.asBTC)
+                BRWalletSetFeePerKb (wid, feePerKBSaved)
+                return Amount.createAsBTC (fee, feeUnit)
             }
         }
 

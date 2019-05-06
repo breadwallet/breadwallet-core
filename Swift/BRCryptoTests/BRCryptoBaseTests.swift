@@ -10,6 +10,7 @@
 //
 
 import XCTest
+import BRCrypto
 
 class BRCryptoBaseTests: XCTestCase {
 
@@ -51,9 +52,9 @@ class BRCryptoBaseTests: XCTestCase {
         catch {
             XCTAssert(false)
         }
-
     }
 
+    var account: Account!
 
     override func setUp() {
         super.setUp()
@@ -65,6 +66,7 @@ class BRCryptoBaseTests: XCTestCase {
         // Eth Account for the non-compromised, mainnet paperKey "e...a"
 //        var fakeEthAccount: String = "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62"
 
+        // Get the paperKey from `configPath`
         if FileManager.default.fileExists(atPath: configPath) {
             let configFile = URL(fileURLWithPath: configPath)
             let configData = try! Data.init(contentsOf: configFile)
@@ -82,13 +84,16 @@ class BRCryptoBaseTests: XCTestCase {
 //            fakeEthAccount = "0x8fB4CB96F7C15F9C39B3854595733F728E1963Bc"
         }
 
+        /// Create the account
+        account = Account.createFrom (phrase: paperKey)!
+
+        /// Create the 'storagePath'
         coreDataDir = FileManager.default
             .urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Core").path
 
         coreDirCreate()
         coreDirClear()
-
    }
 
     func testBase() {

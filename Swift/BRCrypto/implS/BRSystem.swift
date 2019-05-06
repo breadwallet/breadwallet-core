@@ -186,6 +186,10 @@ public final class SystemBase: System {
         listener.handleSystemEvent (system: self, event: SystemEvent.created)
     }
 
+    internal static func resetForTest () {
+        instance = nil
+    }
+    
     /// Stop the system.  All managers are disconnected.
     public func stop () {
         managers.forEach { $0.disconnect() }

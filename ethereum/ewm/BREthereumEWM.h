@@ -194,10 +194,18 @@ ewmWalletCreateTransferWithFeeBasis (BREthereumEWM ewm,
                                      BREthereumAmount amount,
                                      BREthereumFeeBasis feeBasis);
 extern BREthereumEther
-ewmWalletEstimateTransferFee(BREthereumEWM ewm,
-                             BREthereumWallet wallet,
-                             BREthereumAmount amount,
-                             int *overflow);
+ewmWalletEstimateTransferFee (BREthereumEWM ewm,
+                              BREthereumWallet wallet,
+                              BREthereumAmount amount,
+                              int *overflow);
+
+extern BREthereumEther
+ewmWalletEstimateTransferFeeForBasis (BREthereumEWM ewm,
+                                      BREthereumWallet wallet,
+                                      BREthereumAmount amount,
+                                      BREthereumGasPrice price,
+                                      BREthereumGas gas,
+                                      int *overflow);
 
 extern void // status, error
 ewmWalletSignTransfer(BREthereumEWM ewm,
