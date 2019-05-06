@@ -202,13 +202,13 @@ walletsRelease (OwnershipGiven BRArrayOf(BREthereumWallet) wallets) {
 //
 extern BREthereumEther
 walletEstimateTransferFee (BREthereumWallet wallet,
-                              BREthereumAmount amount,
-                              int *overflow) {
-    return walletEstimateTransferFeeDetailed(wallet,
-                                                amount,
-                                                wallet->defaultGasPrice,
-                                                amountGetGasEstimate(amount),
-                                                overflow);
+                           BREthereumAmount amount,
+                           int *overflow) {
+    return walletEstimateTransferFeeDetailed (wallet,
+                                              amount,
+                                              wallet->defaultGasPrice,
+                                              amountGetGasEstimate(amount),
+                                              overflow);
 }
 
 /**
@@ -216,13 +216,13 @@ walletEstimateTransferFee (BREthereumWallet wallet,
  */
 extern BREthereumEther
 walletEstimateTransferFeeDetailed (BREthereumWallet wallet,
-                                      BREthereumAmount amount,
-                                      BREthereumGasPrice price,
-                                      BREthereumGas gas,
-                                      int *overflow) {
-    return etherCreate(mulUInt256_Overflow(price.etherPerGas.valueInWEI,
-                                           createUInt256(gas.amountOfGas),
-                                           overflow));
+                                   BREthereumAmount amount,
+                                   BREthereumGasPrice price,
+                                   BREthereumGas gas,
+                                   int *overflow) {
+    return etherCreate (mulUInt256_Overflow (price.etherPerGas.valueInWEI,
+                                             createUInt256(gas.amountOfGas),
+                                             overflow));
 }
 
 //
@@ -243,16 +243,16 @@ walletCreateTransferWithFeeBasis (BREthereumWallet wallet,
 
 extern BREthereumTransfer
 walletCreateTransfer(BREthereumWallet wallet,
-                        BREthereumAddress recvAddress,
-                        BREthereumAmount amount) {
-
-    return walletCreateTransferWithFeeBasis(wallet, recvAddress, amount,
-                                            (BREthereumFeeBasis) {
-                                                FEE_BASIS_GAS,
-                                                { .gas = {
-                                                    wallet->defaultGasLimit,
-                                                    wallet->defaultGasPrice
-                                                }}});
+                     BREthereumAddress recvAddress,
+                     BREthereumAmount amount) {
+    
+    return walletCreateTransferWithFeeBasis (wallet, recvAddress, amount,
+                                             (BREthereumFeeBasis) {
+                                                 FEE_BASIS_GAS,
+                                                 { .gas = {
+                                                     wallet->defaultGasLimit,
+                                                     wallet->defaultGasPrice
+                                                 }}});
 }
 
 extern BREthereumTransfer

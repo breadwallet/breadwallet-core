@@ -305,6 +305,7 @@ extension Amount: CustomStringConvertible {
 }
 
 extension Amount {
+
     // ETH
 
     internal var asETH: UInt64 {
@@ -854,7 +855,7 @@ public enum TransferDirection {
 ///
 public enum TransferFeeBasis {
     case bitcoin  (feePerKB: UInt64) // in satoshi
-    case ethereum (gasPrice: Amount, gasLimit: UInt64)
+    case ethereum (gasPrice: Amount, gasLimit: UInt64) // Amount in ETH
 }
 
 ///
@@ -1045,6 +1046,19 @@ public protocol Wallet: class {
     func createTransfer (target: Address,
                          amount: Amount,
                          feeBasis: TransferFeeBasis) -> Transfer?
+
+    ///
+    /// Estimate the fee for a transfer with `amount` from `wallet`.  If provided use the `feeBasis`
+    /// otherwise use the wallet's `defaultFeeBasis`
+    ///
+    /// - Parameters:
+    ///   - amount: the transfer amount MUST BE GREATER THAN 0
+    ///   - feeBasis: the feeBasis to use, if provided
+    ///
+    /// - Returns: transfer fee
+    ///
+    func estimateFee (amount: Amount,
+                      feeBasis: TransferFeeBasis?) -> Amount
 }
 
 extension Wallet {
@@ -1241,20 +1255,22 @@ extension WalletManager {
     //                                           currency: currency)
     //    }
 
-    /// The network's/primaryWallet's currency.
+    /// The network's/primaryWallet's currency.  This is the currency used for transfer fees.
     var currency: Currency {
-        // Using 'network' here avoid an infinite recursion when creating the primary wallet.
-        return network.currency
+        return network.currency // don't reference `primaryWallet`; infinitely recurses
     }
 
+    /// The name is simply the network currency's code - e.g. BTC, ETH
     public var name: String {
         return currency.code
     }
-    
+
+    /// The baseUnit for the network's currency.
     var baseUnit: Unit {
         return network.baseUnitFor(currency: network.currency)!
     }
 
+    /// The defaultUnit for the network's currency.
     var defaultUnit: Unit {
         return network.defaultUnitFor(currency: network.currency)!
     }
