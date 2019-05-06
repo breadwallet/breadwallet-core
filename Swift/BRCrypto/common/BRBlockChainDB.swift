@@ -653,6 +653,27 @@ public class BlockChainDB {
         }
     }
 
+    public func putTransaction (blockchainId: String,
+                                transaction: Data,
+                                completion: @escaping (Result<Model.Transaction, QueryError>) -> Void) {
+        let json: JSON.Dict = [
+            "transaction" : transaction.base64EncodedData()
+        ]
+
+        makeRequest(bdbDataTaskFunc, bdbBaseURL,
+                    path: "/transactions",
+                    query: zip (["blockchain_id"], [blockchainId]),
+                    data: json,
+                    httpMethod: "PUT") {
+                        (res: Result<JSON.Dict, BlockChainDB.QueryError>) in
+                        completion (res.flatMap {
+                            Model.asTransaction (json: JSON (dict: $0))
+                                .map { Result.success($0) }
+                                ?? Result.failure (QueryError.model ("(JSON) -> T transform error (one)"))
+                        })
+        }
+    }
+
     // Blocks
 
     public func getBlocks (blockchainId: String,
@@ -1435,7 +1456,7 @@ public class BlockChainDB {
                         // precondition (...)
 
                         // Callback with `more` and the result (maybe error)
-                        completion (false, // embedded && full,
+                        completion (false && (embedded && full),
                             res.flatMap { (json: JSON) -> Result<[JSON], QueryError> in
                                 let json = (embedded
                                     ? json.asDict(name: "_embedded")?[path]

@@ -115,8 +115,7 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
             print ("APP: TVV: Submit ETH Amount: \(amount)");
 
             // let amount = Amount (value: value, unit: self.wallet.currency.defaultUnit)
-            guard let transfer = self.wallet.createTransfer (listener: self.wallet.manager.system.listener!,
-                                                             target: target,
+            guard let transfer = self.wallet.createTransfer (target: target,
                                                              amount: amount,
                                                              feeBasis: self.feeBasis())
                 else {
@@ -131,10 +130,10 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
                     return
             }
 
-            self.wallet.manager.sign(transfer: transfer,
-                                     paperKey: UIApplication.paperKey);
+            // Will generate a WalletEvent.transferSubmitted (transfer, success)
+            self.wallet.manager.submit(transfer: transfer,
+                                       paperKey: UIApplication.paperKey);
 
-            self.wallet.manager.submit(transfer: transfer);
             // Notify, close
             self.dismiss(animated: true) {}
         })

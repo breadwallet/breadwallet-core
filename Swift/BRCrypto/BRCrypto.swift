@@ -834,7 +834,7 @@ public enum TransferDirection {
 ///
 public enum TransferFeeBasis {
     case bitcoin  (feePerKB: UInt64) // in satoshi
-    case ethereum (gasPrice: Amount, gasLimit: UInt64)
+    case ethereum (gasPrice: Amount, gasLimit: UInt64) // Amount in ETH
 }
 
 ///
@@ -1022,10 +1022,22 @@ public protocol Wallet: class {
     ///
     /// - Returns: A new transfer
     ///
-    func createTransfer (listener: TransferListener,
-                         target: Address,
+    func createTransfer (target: Address,
                          amount: Amount,
                          feeBasis: TransferFeeBasis) -> Transfer?
+
+    ///
+    /// Estimate the fee for a transfer with `amount` from `wallet`.  If provided use the `feeBasis`
+    /// otherwise use the wallet's `defaultFeeBasis`
+    ///
+    /// - Parameters:
+    ///   - amount: the transfer amount MUST BE GREATER THAN 0
+    ///   - feeBasis: the feeBasis to use, if provided
+    ///
+    /// - Returns: transfer fee
+    ///
+    func estimateFee (amount: Amount,
+                      feeBasis: TransferFeeBasis?) -> Amount
 }
 
 extension Wallet {
@@ -1053,11 +1065,9 @@ extension Wallet {
     ///
     /// - Returns: A new transfer
     ///
-    public func createTransfer (listener: TransferListener,
-                                target: Address,
+    public func createTransfer (target: Address,
                                 amount: Amount) -> Transfer? {
-        return createTransfer (listener: listener,
-                               target: target,
+        return createTransfer (target: target,
                                amount: amount,
                                feeBasis: defaultFeeBasis)
     }
@@ -1092,9 +1102,10 @@ public enum WalletEvent {
     case changed (oldState: WalletState, newState: WalletState)
     case deleted
 
-    case transferAdded   (transfer: Transfer)
-    case transferChanged (transfer: Transfer)
-    case transferDeleted (transfer: Transfer)
+    case transferAdded     (transfer: Transfer)
+    case transferChanged   (transfer: Transfer)
+    case transferDeleted   (transfer: Transfer)
+    case transferSubmitted (transfer: Transfer, success: Bool)
 
     case balanceUpdated  (amount: Amount)
     case feeBasisUpdated (feeBasis: TransferFeeBasis)
@@ -1103,14 +1114,15 @@ public enum WalletEvent {
 extension WalletEvent: CustomStringConvertible {
     public var description: String {
         switch self {
-        case .created:         return "Created"
-        case .changed:         return "StateChanged"
-        case .deleted:         return "Deleted"
-        case .transferAdded:   return "TransferAdded"
-        case .transferChanged: return "TransferChanged"
-        case .transferDeleted: return "TransferDeleted"
-        case .balanceUpdated:  return "BalanceUpdated"
-        case .feeBasisUpdated: return "FeeBasisUpdated"
+        case .created:           return "Created"
+        case .changed:           return "StateChanged"
+        case .deleted:           return "Deleted"
+        case .transferAdded:     return "TransferAdded"
+        case .transferChanged:   return "TransferChanged"
+        case .transferDeleted:   return "TransferDeleted"
+        case .transferSubmitted: return "TransferSubmitted"
+        case .balanceUpdated:    return "BalanceUpdated"
+        case .feeBasisUpdated:   return "FeeBasisUpdated"
         }
     }
 }
@@ -1150,8 +1162,8 @@ public protocol WalletFactory {
     ///
     /// - Returns: A new wallet
     ///
-    func createWallet (manager: WalletManager,
-                       currency: Currency) -> Wallet
+//    func createWallet (manager: WalletManager,
+//                       currency: Currency) -> Wallet
 }
 
 ///
@@ -1201,9 +1213,7 @@ public protocol WalletManager : class {
     /// sync(...)
     /// isSyncing
 
-    func sign (transfer: Transfer, paperKey: String)
-
-    func submit (transfer: Transfer)
+    func submit (transfer: Transfer, paperKey: String)
 
     func sync ()
 }
@@ -1224,20 +1234,22 @@ extension WalletManager {
     //                                           currency: currency)
     //    }
 
-    /// The network's/primaryWallet's currency.
+    /// The network's/primaryWallet's currency.  This is the currency used for transfer fees.
     var currency: Currency {
-        // Using 'network' here avoid an infinite recursion when creating the primary wallet.
-        return network.currency
+        return network.currency // don't reference `primaryWallet`; infinitely recurses
     }
 
+    /// The name is simply the network currency's code - e.g. BTC, ETH
     public var name: String {
         return currency.code
     }
-    
+
+    /// The baseUnit for the network's currency.
     var baseUnit: Unit {
         return network.baseUnitFor(currency: network.currency)!
     }
 
+    /// The defaultUnit for the network's currency.
     var defaultUnit: Unit {
         return network.defaultUnitFor(currency: network.currency)!
     }
@@ -1245,11 +1257,6 @@ extension WalletManager {
     /// A manager `isActive` if connected or syncing
     var isActive: Bool {
         return state == .connected || state == .syncing
-    }
-
-    func signAndSubmit (transfer: Transfer, paperKey: String) {
-        sign (transfer: transfer, paperKey: paperKey)
-        submit (transfer: transfer)
     }
 }
 
@@ -1321,6 +1328,10 @@ public protocol WalletManagerListener: class {
 
 }
 
+public protocol WalletManagerFactory {
+
+}
+
 ///
 /// System (a singleton)
 ///
@@ -1378,7 +1389,13 @@ public enum SystemEvent {
 /// Note: This must be 'class bound' as System holds a 'weak' reference (for GC reasons).
 ///
 public protocol SystemListener : /* class, */ WalletManagerListener, WalletListener, TransferListener, NetworkListener {
-
+    ///
+    /// Handle a System Event
+    ///
+    /// - Parameters:
+    ///   - system: the system
+    ///   - event: the event
+    ///
     func handleSystemEvent (system: System,
                             event: SystemEvent)
 }

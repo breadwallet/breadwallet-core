@@ -272,12 +272,18 @@ class TransferImplS: Transfer {
 
         internal func feeBasis (in unit: Unit) -> TransferFeeBasis {
             switch self {
-            case .ethereum:
-                let gasPrice = Amount.create (uint256: createUInt256 (0), unit)
-                return TransferFeeBasis.ethereum (gasPrice: gasPrice, gasLimit: 0)
+            case let .ethereum (ewm, core):
+                let ethGasLimit = ewmTransferGetGasLimit (ewm, core) // or gasUsed
+                let ethGasPrice = ewmTransferGetGasPrice (ewm, core, WEI)
+
+                return TransferFeeBasis.ethereum (
+                    gasPrice: Amount.createAsETH (ethGasPrice.etherPerGas.valueInWEI, unit),
+                    gasLimit: ethGasLimit.amountOfGas)
 
             case .bitcoin:
-                return TransferFeeBasis.bitcoin(feePerKB: 0)
+                // Need to be derived from the transaction fee + size if confirmed; otherwise
+                // this is the current wallet->feePerKb
+                return TransferFeeBasis.bitcoin(feePerKB: DEFAULT_FEE_PER_KB)
             }
         }
 

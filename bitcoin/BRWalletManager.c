@@ -45,6 +45,7 @@ static void _BRWalletManagerBalanceChanged (void *info, uint64_t balanceInSatosh
 static void _BRWalletManagerTxAdded   (void *info, BRTransaction *tx);
 static void _BRWalletManagerTxUpdated (void *info, const UInt256 *hashes, size_t count, uint32_t blockHeight, uint32_t timestamp);
 static void _BRWalletManagerTxDeleted (void *info, UInt256 hash, int notifyUser, int recommendRescan);
+static void _BRWalletManagerTxPublished (void *info, int error);
 
 static void _BRWalletManagerSyncStarted (void *info);
 static void _BRWalletManagerSyncStopped (void *info, int reason);
@@ -351,7 +352,7 @@ fileServiceTypePeerV1Reader (BRFileServiceContext context,
                              BRFileService fs,
                              uint8_t *bytes,
                              uint32_t bytesCount) {
-    assert (bytesCount = sizeof (BRPeer));
+    assert (bytesCount == sizeof (BRPeer));
 
     BRPeer *peer = malloc (bytesCount);;
     memcpy (peer, bytes, bytesCount);
@@ -618,12 +619,14 @@ BRWalletManagerNew (BRWalletManagerClient client,
     
     array_free(transactions); array_free(blocks); array_free(peers);
     
+    assert (NULL != bwm->client.funcWalletManagerEvent);
     bwm->client.funcWalletManagerEvent (bwm->client.context,
                                         bwm,
                                         (BRWalletManagerEvent) {
                                             BITCOIN_WALLET_MANAGER_CREATED
                                         });
     
+    assert (NULL != bwm->client.funcWalletEvent);
     bwm->client.funcWalletEvent (bwm->client.context,
                                  bwm,
                                  bwm->wallet,
@@ -667,6 +670,7 @@ BRWalletManagerConnect (BRWalletManager manager) {
     
     eventHandlerStart (manager->handler);
     
+    assert (NULL != manager->client.funcWalletManagerEvent);
     manager->client.funcWalletManagerEvent (manager->client.context,
                                             manager,
                                             (BRWalletManagerEvent) {
@@ -689,6 +693,7 @@ BRWalletManagerDisconnect (BRWalletManager manager) {
     
     eventHandlerStop(manager->handler);
     
+    assert (NULL != manager->client.funcWalletManagerEvent);
     manager->client.funcWalletManagerEvent (manager->client.context,
                                             manager,
                                             (BRWalletManagerEvent) {
@@ -699,11 +704,49 @@ BRWalletManagerDisconnect (BRWalletManager manager) {
 extern void
 BRWalletManagerScan (BRWalletManager manager) {
     BRPeerManagerRescan(manager->peerManager);
+
+    assert (NULL != manager->client.funcWalletManagerEvent);
     manager->client.funcWalletManagerEvent (manager->client.context,
                                             manager,
                                             (BRWalletManagerEvent) {
                                                 BITCOIN_WALLET_MANAGER_SYNC_STARTED
                                             });
+}
+
+typedef struct {
+    BRWalletManager manager;
+    BRTransaction *transaction;
+} SubmitTransactionInfo;
+
+extern void
+BRWalletManagerSubmitTransaction (BRWalletManager manager,
+                                  BRTransaction *transaction,
+                                  const void *seed,
+                                  size_t seedLen) {
+    BRWalletSignTransaction (manager->wallet, transaction, seed, seedLen);
+
+    switch (manager->mode) {
+        case SYNC_MODE_BRD_ONLY:
+            assert (NULL != manager->client.funcSubmitTransaction);
+            manager->client.funcSubmitTransaction (manager->client.context,
+                                                   manager,
+                                                   manager->wallet,
+                                                   transaction,
+                                                   manager->requestId++);
+            break;
+
+        case SYNC_MODE_BRD_WITH_P2P_SEND:
+        case SYNC_MODE_P2P_WITH_BRD_SYNC:
+        case SYNC_MODE_P2P_ONLY: {
+            SubmitTransactionInfo *info = malloc (sizeof (SubmitTransactionInfo));
+            info->manager = manager;
+            info->transaction = transaction;
+
+            BRPeerManagerPublishTx (manager->peerManager, transaction, info,
+                                    _BRWalletManagerTxPublished);
+            break;
+        }
+    }
 }
 
 extern BRAddress *
@@ -721,6 +764,8 @@ BRWalletManagerUpdateHeightIfAppropriate (BRWalletManager manager,
                                           uint32_t height) {
     pthread_mutex_lock (&manager->lock);
     if (height != manager->blockHeight) {
+        assert (NULL != manager->client.funcWalletManagerEvent);
+
         manager->blockHeight = height;
         manager->client.funcWalletManagerEvent (manager->client.context,
                                                 manager,
@@ -742,6 +787,8 @@ BRWalletManagerCheckHeight (BRWalletManager manager) {
 static void
 _BRWalletManagerBalanceChanged (void *info, uint64_t balanceInSatoshi) {
     BRWalletManager manager = (BRWalletManager) info;
+
+    assert (NULL != manager->client.funcWalletEvent);
     manager->client.funcWalletEvent (manager->client.context,
                                      manager,
                                      manager->wallet,
@@ -755,6 +802,8 @@ static void
 _BRWalletManagerTxAdded   (void *info, BRTransaction *tx) {
     BRWalletManager manager = (BRWalletManager) info;
     fileServiceSave(manager->fileService, fileServiceTypeTransactions, tx);
+
+    assert (NULL != manager->client.funcTransactionEvent);
     manager->client.funcTransactionEvent (manager->client.context,
                                           manager,
                                           manager->wallet,
@@ -775,6 +824,7 @@ _BRWalletManagerTxUpdated (void *info, const UInt256 *hashes, size_t count, uint
         // assert timestamp and blockHeight in transaction
         fileServiceSave (manager->fileService, fileServiceTypeTransactions, transaction);
 
+        assert (NULL != manager->client.funcTransactionEvent);
         manager->client.funcTransactionEvent (manager->client.context,
                                               manager,
                                               manager->wallet,
@@ -792,6 +842,8 @@ _BRWalletManagerTxDeleted (void *info, UInt256 hash, int notifyUser, int recomme
     fileServiceRemove(manager->fileService, fileServiceTypeTransactions, hash);
 
     BRTransaction *transaction = BRWalletTransactionForHash(manager->wallet, hash);
+
+    assert (NULL != manager->client.funcTransactionEvent);
     manager->client.funcTransactionEvent (manager->client.context,
                                           manager,
                                           manager->wallet,
@@ -799,6 +851,22 @@ _BRWalletManagerTxDeleted (void *info, UInt256 hash, int notifyUser, int recomme
                                           (BRTransactionEvent) {
                                               BITCOIN_TRANSACTION_DELETED
                                           });
+}
+
+static void
+_BRWalletManagerTxPublished (void *info, int error) {
+    BRWalletManager manager    = ((SubmitTransactionInfo*) info)->manager;
+    BRTransaction *transaction = ((SubmitTransactionInfo*) info)->transaction;
+    free (info);
+
+    assert  (NULL != manager->client.funcWalletEvent);
+    manager->client.funcWalletEvent (manager->client.context,
+                                     manager,
+                                     manager->wallet,
+                                     (BRWalletEvent) {
+                                         BITCOIN_WALLET_TRANSACTION_SUBMITTED,
+                                         { .submitted = { transaction, error }}
+                                     });
 }
 
 /// MARK: - Peer Manager Callbacks
@@ -824,6 +892,8 @@ _BRWalletManagerSavePeers  (void *info, int replace, const BRPeer *peers, size_t
 static void
 _BRWalletManagerSyncStarted (void *info) {
     BRWalletManager manager = (BRWalletManager) info;
+
+    assert (NULL != manager->client.funcWalletManagerEvent);
     manager->client.funcWalletManagerEvent (manager->client.context,
                                             manager,
                                             (BRWalletManagerEvent) {
@@ -834,6 +904,8 @@ _BRWalletManagerSyncStarted (void *info) {
 static void
 _BRWalletManagerSyncStopped (void *info, int reason) {
     BRWalletManager manager = (BRWalletManager) info;
+
+    assert (NULL != manager->client.funcWalletManagerEvent);
     manager->client.funcWalletManagerEvent (manager->client.context,
                                             manager,
                                             (BRWalletManagerEvent) {
@@ -880,6 +952,7 @@ bwmUpdateBlockNumber (BRWalletManager bwm) {
         case SYNC_MODE_BRD_ONLY:
         case SYNC_MODE_BRD_WITH_P2P_SEND:
         case SYNC_MODE_P2P_WITH_BRD_SYNC:
+            assert (NULL != bwm->client.funcGetBlockNumber);
             bwm->client.funcGetBlockNumber (bwm->client.context,
                                             bwm,
                                             bwm->requestId++);
@@ -897,6 +970,7 @@ bwmUpdateTransactions (BRWalletManager bwm) {
         case SYNC_MODE_BRD_ONLY:
         case SYNC_MODE_BRD_WITH_P2P_SEND:
         case SYNC_MODE_P2P_WITH_BRD_SYNC:
+            assert (NULL != bwm->client.funcGetTransactions);
             // Callback to 'client' to get all transactions (for all wallet addresses) between
             // a {beg,end}BlockNumber.  The client will gather the transactions and then call
             // bwmAnnounceTransaction()  (for each one or with all of them).
@@ -1014,3 +1088,17 @@ bwmAnnounceBlockNumber (BRWalletManager manager,
     return 1;
 }
 
+extern void
+bwmAnnounceSubmit (BRWalletManager manager,
+                   int rid,
+                   BRTransaction *transaction,
+                   int error) {
+    assert (NULL != manager->client.funcWalletEvent);
+    manager->client.funcWalletEvent (manager->client.context,
+                                     manager,
+                                     manager->wallet,
+                                     (BRWalletEvent) {
+                                         BITCOIN_WALLET_TRANSACTION_SUBMITTED,
+                                         { .submitted = { transaction, error }}
+                                     });
+}

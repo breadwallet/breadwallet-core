@@ -1207,6 +1207,16 @@ ewmWalletEstimateTransferFee(BREthereumEWM ewm,
     return walletEstimateTransferFee(wallet, amount, overflow);
 }
 
+extern BREthereumEther
+ewmWalletEstimateTransferFeeForBasis(BREthereumEWM ewm,
+                                     BREthereumWallet wallet,
+                                     BREthereumAmount amount,
+                                     BREthereumGasPrice price,
+                                     BREthereumGas gas,
+                                     int *overflow) {
+    return walletEstimateTransferFeeDetailed (wallet, amount, price, gas, overflow);
+}
+
 extern BREthereumBoolean
 ewmWalletCanCancelTransfer (BREthereumEWM ewm,
                             BREthereumWallet wallet,
@@ -2401,11 +2411,6 @@ extern BREthereumGas
 ewmCreateGas (uint64_t value) {
     return gasCreate(value);
 }
-
-
-
-
-
 
 extern void
 ewmTransferDelete (BREthereumEWM ewm,
