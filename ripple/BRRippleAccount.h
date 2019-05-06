@@ -55,6 +55,28 @@ extern uint8_t * getRippleAccountBytes(BRRippleAccount account);
 extern char * getRippleAddress(BRRippleAccount account);
 
 /**
+ * Create a BRRippleAddress from the ripple string
+ *
+ * @param rippleAddres  address in the form r41...
+ *
+ * @return address      BRRippleAddres
+ */
+extern BRRippleAddress
+rippleAddressCreate(const char * rippleAddressString);
+
+/**
+ * Compare 2 ripple addresses
+ *
+ * @param a1  first address
+ * @param a2  second address
+ *
+ * @return 1 - if addresses are equal
+ *         0 - if not equal
+ */
+extern int
+rippleAddressEqual (BRRippleAddress a1, BRRippleAddress a2);
+
+/**
  * Get the account's primary address
  *
  * @param account the account

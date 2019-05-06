@@ -325,10 +325,41 @@ static void checkDecodeRippleAddress()
     assert(0 == memcmp(expected_bytes, address.bytes, 20));
 }
 
+static void testRippleAddressCreate()
+{
+    uint8_t expected_bytes[] = { 0xEF, 0xFC, 0x27, 0x52, 0xB5, 0xC9, 0xDA, 0x22, 0x88, 0xC5,
+        0xD0, 0x1F, 0x30, 0x4E, 0xC8, 0x29, 0x51, 0xE3, 0x7C, 0xA2 };
+    const char* ripple_address = "r41vZ8exoVyUfVzs56yeN8xB5gDhSkho9a";
+    
+    BRRippleAddress address = rippleAddressCreate(ripple_address);
+    assert(0 == memcmp(expected_bytes, address.bytes, 20));
+}
+
+static void testRippleAddressEqual()
+{
+    uint8_t address_input[] = { 0xEF, 0xFC, 0x27, 0x52, 0xB5, 0xC9, 0xDA, 0x22, 0x88, 0xC5,
+        0xD0, 0x1F, 0x30, 0x4E, 0xC8, 0x29, 0x51, 0xE3, 0x7C, 0xA2 };
+
+    BRRippleAddress a1;
+    BRRippleAddress a2;
+    memcpy(a1.bytes, address_input, 20);
+    a2 = a1;
+    int result = rippleAddressEqual(a1, a2);
+    assert(1 == result);
+
+    // Modify a2
+    a2.bytes[0] = 0xFF;
+    result = rippleAddressEqual(a1, a2);
+    assert(0 == result);
+}
+
 extern void
 runRippleTest (void /* ... */) {
 
+    // Account tests
     testRippleAccount();
+    testRippleAddressCreate();
+    testRippleAddressEqual();
 
     // Transaction tests
     testRippleTransaction();
