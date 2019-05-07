@@ -28,7 +28,7 @@ static const char **sharedWordList;
 
 #define WORD_LIST_LENGTH 2048
 
-extern int
+static int
 installSharedWordList (const char *wordList[], int wordListLength) {
     if (BIP39_WORDLIST_COUNT != wordListLength)
         return 0;
