@@ -151,6 +151,24 @@ class BRCryptoAmountTests: XCTestCase {
         // Negative/Positive
         XCTAssertNil (Amount.create (string: "-1", unit: BTC_SATOSHI))
         XCTAssertNil (Amount.create (string: "+1", unit: BTC_SATOSHI))
+        XCTAssertNil (Amount.create (string: "0.1", unit: BTC_SATOSHI))
+        XCTAssertNil (Amount.create (string: "1.1", unit: BTC_SATOSHI))
+        XCTAssertNotNil (Amount.create (string: "1.0", unit: BTC_SATOSHI))
+        XCTAssertNotNil (Amount.create (string: "1.",  unit: BTC_SATOSHI))
+
+        XCTAssertNotNil (Amount.create (string: "0.1", unit: BTC_BTC))
+        XCTAssertNotNil (Amount.create (string: "1.1", unit: BTC_BTC))
+        XCTAssertNotNil (Amount.create (string: "1.0", unit: BTC_BTC))
+        XCTAssertNotNil (Amount.create (string: "1.",  unit: BTC_BTC))
+
+        XCTAssert ( 10000000 == Amount.create (string: "0.1", unit: BTC_BTC)?.double(as: BTC_SATOSHI))
+        XCTAssert (110000000 == Amount.create (string: "1.1", unit: BTC_BTC)?.double(as: BTC_SATOSHI))
+        XCTAssert (100000000 == Amount.create (string: "1.0", unit: BTC_BTC)?.double(as: BTC_SATOSHI))
+        XCTAssert (100000000 == Amount.create (string: "1.", unit: BTC_BTC)?.double(as: BTC_SATOSHI))
+
+        XCTAssertNotNil (Amount.create (string: "0.12345678",  unit: BTC_BTC))
+        XCTAssertNil    (Amount.create (string: "0.123456789", unit: BTC_BTC))
+
 
         #if false
         let ETHER = Ethereum.Units.ETHER

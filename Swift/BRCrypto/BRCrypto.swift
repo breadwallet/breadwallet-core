@@ -235,14 +235,44 @@ public final class Amount {
                        unit: unit)
     }
 
+    ///
+    /// Parse `string` into an `Amount`.  The string has some limitations:
+    ///  * it cannot start with '-' or '+' (no sign character)
+    ///  * if it starts with '0x', it is interpreted as a 'hex string'
+    ///  * if it has a decimal point, it is interpreted as a 'decimal string'
+    ///  * otherwise, it is interpreted as an 'integer string'
+    ///
+    /// If it is a 'decimal string' and the string includes values after the decimal point, then
+    /// the number of values must be less than or equal to the unit's decimals.  For example a
+    /// string of "1.1" in BTC_SATOSHI won't parse as BTC_SATOSHI has 0 decimals (it is a base unit
+    /// and thus must be an integer).  Whereas, a string of "1.1" in BTC_BTC will parse as BTC_BTC
+    /// has 8 decimals and the string has but one.  ("0.123456789" won't parse as it has 9 digits
+    /// after the decimal; both "1." and "1.0" will parse.)
+    ///
+    /// Additionally, `string` cannot have any extraneous starting or ending characters.  Said
+    /// another way, `string` must be fully consumed.  Thus "10w" and "w10" and "1.1w" won't parse.
+    ///
+    /// - Parameters:
+    ///   - string: the string to parse
+    ///   - negative: true if negative; false otherwise
+    ///   - unit: the string's unit
+    ///
+    /// - Returns: The `Amount` if the string can be parsed.
+    ///
     public static func create (string: String, negative: Bool = false, unit: Unit) -> Amount? {
         let core = cryptoAmountCreateString (string, (negative ? CRYPTO_TRUE : CRYPTO_FALSE), unit.core)
         return nil == core ? nil : Amount (core: core!, unit: unit)
     }
 
-    // static func create (exactly: Double, unit: Unit) -> Amount  ==> No remainder
-    //   nil == Amount.create (exactly: 1.5, unit: SATOSHI)  // remainder is 0.5
-
+    ///
+    /// Produce a default NumberFormatter for `unit`.  Uses the User's current locale, a number
+    /// style of `.currency`, a currency symbol of `unit.symbol`, and factional digits of
+    /// `unit.decimals` (if non-zero).
+    ///
+    /// - Parameter unit: the unit
+    ///
+    /// - Returns: the formatter for unit
+    ///
     private func formatterWith (unit: Unit) -> NumberFormatter {
         let formatter = NumberFormatter()
         formatter.locale = Locale.current
