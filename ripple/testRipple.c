@@ -14,8 +14,11 @@
 #include "BRRipple.h"
 #include "BRRippleBase58.h"
 #include "BRCrypto.h"
+#include "support/BRBIP32Sequence.h"
+#include "support/BRBIP39WordsEn.h"
+#include "BRKey.h"
 
-static BRRippleAccount createRippleAccount(const char* paper_key,
+static BRRippleAccount createTestRippleAccount(const char* paper_key,
                                            const char* expected_account_address)
 {
     BRRippleAccount account = rippleAccountCreate(paper_key);
@@ -123,7 +126,7 @@ testRippleTransactionGetters (void /* ... */) {
 }
 
 static void
-testRippleAccount (void /* ... */) {
+testCreateRippleAccountWithPaperKey (void /* ... */) {
     const char * paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
     // The above set of words should produce the following Ripple account address
     // string: r41vZ8exoVyUfVzs56yeN8xB5gDhSkho9a
@@ -132,19 +135,79 @@ testRippleAccount (void /* ... */) {
         0xD0, 0x1F, 0x30, 0x4E, 0xC8, 0x29, 0x51, 0xE3, 0x7C, 0xA2 };
     const char* expected_accountid_string = "r41vZ8exoVyUfVzs56yeN8xB5gDhSkho9a";
 
-    // If we pass the expected_accountid_string to this function it will validate for us
-    BRRippleAccount account = createRippleAccount(paper_key, expected_accountid_string);
+    // Create the account using the paper key
+    BRRippleAccount account = rippleAccountCreate(paper_key);
     assert(account);
 
     // Get the 20 bytes that were created for the account
     uint8_t *accountBytes = getRippleAccountBytes(account);
     assert(0 == memcmp(accountBytes, expected_bytes, 20));
 
+    // Get the ripple address string and compare
+    const char *rippleAddress = getRippleAddress(account);
+    assert(0 == memcmp(rippleAddress, expected_accountid_string, 25));
+
+    rippleAccountDelete(account);
+}
+
+static void
+testCreateRippleAccountWithSeed (void /* ... */) {
+    const char * paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
+    // The above set of words should produce the following Ripple account address
+    // string: r41vZ8exoVyUfVzs56yeN8xB5gDhSkho9a
+    const char* expected_accountid_string = "r41vZ8exoVyUfVzs56yeN8xB5gDhSkho9a";
+
+    // Use the above paper key to create a seed value
+    UInt512 seed = UINT512_ZERO;
+    BRBIP39DeriveKey(seed.u8, paper_key, NULL); // no passphrase
+
+    // If we pass the expected_accountid_string to this function it will validate for us
+    BRRippleAccount account = rippleAccountCreateWithSeed(seed);
+    assert(account);
+
+    // Get the ripple address string and compare
+    const char *rippleAddress = getRippleAddress(account);
+    assert(0 == memcmp(rippleAddress, expected_accountid_string, 25));
+
+    rippleAccountDelete(account);
+}
+
+static void
+testCreateRippleAccountWithKey (void /* ... */) {
+    const char * paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
+    // The above set of words should produce the following Ripple account address
+    // string: r41vZ8exoVyUfVzs56yeN8xB5gDhSkho9a
+    const char* expected_accountid_string = "r41vZ8exoVyUfVzs56yeN8xB5gDhSkho9a";
+
+    // Use the above paper key to create a seed value
+    UInt512 seed = UINT512_ZERO;
+    BRBIP39DeriveKey(seed.u8, paper_key, NULL); // no passphrase
+
+    // Create the private key from the seed
+    BRKey privateKey;
+    // The BIP32 privateKey for m/44'/60'/0'/0/index
+    BRBIP32PrivKeyPath(&privateKey, &seed, sizeof(UInt512), 5,
+                       44 | BIP32_HARD,          // purpose  : BIP-44
+                       144 | BIP32_HARD,        // coin_type: Ripple
+                       0 | BIP32_HARD,          // account  : <n/a>
+                       0,                        // change   : not change
+                       0);                   // index    :
+
+    privateKey.compressed = 0;
+
+    // If we pass the expected_accountid_string to this function it will validate for us
+    BRRippleAccount account = rippleAccountCreateWithKey(privateKey);
+    assert(account);
+
+    // Get the 20 bytes that were created for the account
+    const char *rippleAddress = getRippleAddress(account);
+    assert(0 == memcmp(rippleAddress, expected_accountid_string, 25));
+
     rippleAccountDelete(account);
 }
 
 static void getAccountInfo(const char* paper_key, const char* ripple_address) {
-    BRRippleAccount account = createRippleAccount(paper_key, ripple_address);
+    BRRippleAccount account = createTestRippleAccount(paper_key, ripple_address);
     assert(account);
     
     // Get the 20 bytes that were created for the account
@@ -195,7 +258,7 @@ testSerializeWithSignature (void /* ... */) {
     // Create an account so we can get a public key
     //const char * paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
     const char * paper_key = "F603971FCF8366465537B6AD793B37BED5FF730D3764A9DC0F7F4AD911E7372C";
-    BRRippleAccount account = createRippleAccount(paper_key, NULL);
+    BRRippleAccount account = createTestRippleAccount(paper_key, NULL);
     // Get the 20 bytes that were created for the account
     uint8_t *accountBytes = getRippleAccountBytes(account);
 
@@ -321,7 +384,7 @@ testTransactionHash (void /* ... */) {
     
     // Create an account so we can get a public key
     const char * paper_key = "F603971FCF8366465537B6AD793B37BED5FF730D3764A9DC0F7F4AD911E7372C";
-    BRRippleAccount account = createRippleAccount(paper_key, NULL);
+    BRRippleAccount account = createTestRippleAccount(paper_key, NULL);
     // Get the 20 bytes that were created for the account
     uint8_t *accountBytes = getRippleAccountBytes(account);
     
@@ -424,13 +487,20 @@ static void testRippleAddressEqual()
     assert(0 == result);
 }
 
+void rippleAccountTests()
+{
+    testCreateRippleAccountWithPaperKey();
+    testCreateRippleAccountWithSeed();
+    testCreateRippleAccountWithKey();
+    testRippleAddressCreate();
+    testRippleAddressEqual();
+}
+
 extern void
 runRippleTest (void /* ... */) {
 
     // Account tests
-    testRippleAccount();
-    testRippleAddressCreate();
-    testRippleAddressEqual();
+    rippleAccountTests();
 
     // Transaction tests
     testRippleTransaction();

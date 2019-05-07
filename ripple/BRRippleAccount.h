@@ -11,9 +11,9 @@
 #ifndef BRRipple_account_h
 #define BRRipple_account_h
 
-#include "BRKey.h"
 #include "BRRippleBase.h"
 #include "BRRippleTransaction.h"
+#include "BRKey.h"
 
 typedef struct BRRippleAccountRecord *BRRippleAccount;
 
@@ -85,7 +85,7 @@ extern BRRippleAddress rippleAccountGetPrimaryAddress (BRRippleAccount account);
 
 extern BRKey rippleAccountGetPublicKey(BRRippleAccount account);
 
-extern BRRippleAccount rippleAccountCreateWithSeed(UInt256 seed);
+extern BRRippleAccount rippleAccountCreateWithSeed(UInt512 seed);
 extern BRRippleAccount rippleAccountCreateWithKey(BRKey key);
 
 #endif
