@@ -146,6 +146,7 @@ public class BlockChainDB {
  //           (id: "bitcoin-mainnet",  name: "Bitcoin",  network: "mainnet", isMainnet: true,  currency: "btc", blockHeight:  600000),
             (id: "bitcash-mainnet",  name: "Bitcash",  network: "mainnet", isMainnet: true,  currency: "bch", blockHeight: 1000000),
             (id: "ethereum-mainnet", name: "Ethereum", network: "mainnet", isMainnet: true,  currency: "eth", blockHeight: 8000000),
+            (id: "ripple-mainnet",   name: "Ripple",   network: "mainnet", isMainnet: true,  currency: "xrp", blockHeight: 5000000),
 
             // Testnet
             (id: "bitcoin-testnet",  name: "Bitcoin",  network: "testnet", isMainnet: false, currency: "btc", blockHeight:  900000),
@@ -216,6 +217,10 @@ public class BlockChainDB {
             (id: "Bitcash", name: "Bitcash", code: "bch", type: "native", blockchainID: "bitcash-mainnet", address: nil,
              demoninations: [(name: "satoshi", code: "sat", decimals: 0, symbol: lookupSymbol ("sat")),
                              (name: "bitcoin", code: "bch", decimals: 8, symbol: lookupSymbol ("bch"))]),
+
+            (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-mainnet", address: nil,
+             demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
+                             (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
 
 
             (id: "Ethereum", name: "Ethereum", code: "eth", type: "native", blockchainID: "ethereum-mainnet", address: nil,

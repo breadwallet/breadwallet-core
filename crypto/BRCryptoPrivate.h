@@ -111,6 +111,9 @@ extern "C" {
     private_extern BRMasterPubKey
     cryptoAccountAsBTC (BRCryptoAccount account);
 
+    private_extern BRRippleAccount
+    cryptoAccountAsXRP (BRCryptoAccount account);
+
 /// MARK: - Network
 #if defined (USE_PENDING)
 #include "BRCryptoNetwork.h"

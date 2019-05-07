@@ -88,7 +88,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
                                          path: storagePath,
                                          query: query)
 
-        self.system.start (networksNeeded: ["bitcoin-mainnet","ethereum-mainnet"])
+        self.system.start (networksNeeded: ["bitcoin-mainnet","ethereum-mainnet", "ripple-mainnet"])
 
         return true
     }

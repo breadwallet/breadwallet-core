@@ -433,6 +433,10 @@ public final class Account {
         return cryptoAccountAsBTC (self.core)
     }
 
+    internal var asXRP: BRRippleAccount {
+        return cryptoAccountAsXRP (self.core)
+    }
+
     deinit {
         cryptoAccountGive (core)
     }

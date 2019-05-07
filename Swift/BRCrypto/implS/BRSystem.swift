@@ -88,51 +88,52 @@ public final class SystemBase: System {
             } as? WalletManagerImplS
     }
 
-     public func createWalletManager (network: Network,
+    public func createWalletManager (network: Network,
                                      mode: WalletManagerMode) {
 
-        var manager: WalletManagerImplS! = nil
+        // Events will be generated here for {Wallet Manager Created, Wallet Created}.  The
+        // events will be ignored because the array system.managers cannot possiby include
+        // 'manager' - which must exist to properly dispatch the listener announcement.
+        // Thus the events are lost.  We'll send them again.
+        let manager: WalletManagerImplS = WalletManagerImplS (system: self,
+                                                              listener: listener!,
+                                                              account: account,
+                                                              network: network,
+                                                              mode: mode,
+                                                              storagePath: path)
 
+        // Perhaps do something unique for the blockchain - particularly blockchains that have
+        // a Core P2P implementation.
         switch network.currency.code {
         case Currency.codeAsBTC,
-             Currency.codeAsBCH,
-             Currency.codeAsETH:
+             Currency.codeAsBCH:
+            break;
 
-            // Events will be generated here for {Wallet Manager Created, Wallet Created}.  The
-            // events will be ignored because the array system.managers cannot possiby include
-            // 'manager' - which must exist to properly dispatch the listener announcement.
-            // Thus the events are lost.  We'll send them again.
-            manager = WalletManagerImplS (system: self,
-                                          listener: listener!,
-                                          account: account,
-                                          network: network,
-                                          mode: mode,
-                                          storagePath: path)
-
-            if network.currency.code == Currency.codeAsETH {
-                // think about adding tokens/currencies for ERC20, others.
-
-                // For ETH: Add tokens based on the currencies
-                // Note: the network holds the currencies but those currencies do not include the ETH
-                // 'Smart Contract' address which must be provided in a token declarations.  The
-                // address is part of the BlockChainDB 'currency' schema - but we don't have that.
-                //
-                //        network.currencies
-                //            .filter { $0.type == "erc20" }
-                //            .forEach {
-                //                //                    let unit = network.defaultUnitFor(currency: $0)
-                //                //                    let core: BREthereumToken! = nil // ewmToek
-                //                //                    let token = EthereumToken (identifier: core, currency: $0)
-                //        }
-            }
+        case Currency.codeAsETH:
+            // See: CORE-291
+            //
+            // This is handled elsewhere; On a 'created' event, some ethereum handler queries the
+            // BRD getTokens endpoint and then instaniates ERC20 tokens.
+            //
+            // Think about adding tokens/currencies for ERC20, others.
+            //
+            // For ETH: Add tokens based on the currencies
+            // Note: the network holds the currencies but those currencies do not include the ETH
+            // 'Smart Contract' address which must be provided in a token declarations.  The
+            // address is part of the BlockChainDB 'currency' schema - but we don't have that.
+            //
+            //        network.currencies
+            //            .filter { $0.type == "erc20" }
+            //            .forEach {
+            //                //                    let unit = network.defaultUnitFor(currency: $0)
+            //                //                    let core: BREthereumToken! = nil // ewmToek
+            //                //                    let token = EthereumToken (identifier: core, currency: $0)
+            //        }
+            break
 
         default:
-            // Create a 'generic wallet manager' (maybe handled above)
             break
         }
-
-        // Require a manager
-        precondition (nil != manager)
 
         // Touch the primary wallet.  When the ETH or BTC wallet manager waw created, it likely
         // called-back WalletEvent.created for the primary wallet.  But, this manager was not held

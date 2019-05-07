@@ -37,6 +37,7 @@ cryptoAccountRelease (BRCryptoAccount account);
 struct BRCryptoAccountRecord {
     BRMasterPubKey btc;
     BREthereumAccount eth;
+    BRRippleAccount xrp;
 
     uint64_t timestamp;
     BRCryptoRef ref;
@@ -57,7 +58,9 @@ cryptoAccountCreateFromSeedInternal (UInt512 seed,
     BRCryptoAccount account = malloc (sizeof (struct BRCryptoAccountRecord));
 
     account->btc = BRBIP32MasterPubKey (seed.u8, sizeof (seed.u8));
-    account->eth = createAccountWithBIP32Seed(seed);
+    account->eth = createAccountWithBIP32Seed (seed);
+    account->xrp = rippleAccountCreateWithSeed (seed);
+
     account->timestamp = timestamp;
     account->ref = CRYPTO_REF_ASSIGN(cryptoAccountRelease);
 
@@ -118,4 +121,9 @@ cryptoAccountAddressAsETH (BRCryptoAccount account) {
 private_extern BRMasterPubKey
 cryptoAccountAsBTC (BRCryptoAccount account) {
     return account->btc;
+}
+
+private_extern BRRippleAccount
+cryptoAccountAsXRP (BRCryptoAccount account) {
+    return account->xrp;
 }

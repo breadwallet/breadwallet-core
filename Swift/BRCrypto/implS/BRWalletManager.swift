@@ -51,8 +51,10 @@ class WalletManagerImplS: WalletManager {
                 else { print ("SYS: WalletManager: missed BTC primary wallet"); precondition(false) }
 
             walletImpl = WalletImplS.Impl.bitcoin(wid: wid)
-        case .generic:
-            break
+
+        case let generic: //(bdb: BlockChainDB, queue: DispatchQueue, timer: DispatchSourceTimer, periodInMilliseconds: Int):
+            let core = rippleWalletCreate (account.asXRP)!
+            walletImpl = WalletImplS.Impl.ripple (core: core)
         }
 
         precondition (nil != walletImpl)
@@ -355,12 +357,13 @@ class WalletManagerImplS: WalletManager {
             case let .generic (query, _, timer, period):
                 timer.schedule (deadline: .now(), repeating: DispatchTimeInterval.milliseconds (period))
                 timer.setEventHandler {
-                    NSLog ("Want to Ping BRD - generic wallet manager")
-                    let blockchainId = "foo"
+                    print ("SYS: WalletManager: GEN: Want ot Ping BRD Services")
+                    let blockchainId = "ripple-mainnet"
                     let addresses: [String] = []
                     query.getTransfers (blockchainId: blockchainId,
                                         addresses: addresses,
                                         completion: { (res: Result<[BlockChainDB.Model.Transfer], BlockChainDB.QueryError>) in
+                                            return
                                             // create a 'Transfer'; add to wallet.
                                             // find wallet from
                     })
