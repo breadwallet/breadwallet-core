@@ -11,9 +11,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdint.h>
+#include <stdbool.h>
 #include <assert.h>
 #include "BRRipple.h"
 #include "BRRippleBase.h"
+#include "BRArray.h"
 
 /**
  * Compare 2 Ripple fields
@@ -230,7 +233,7 @@ int add_content(BRRippleField *field, uint8_t *buffer)
     }
 }
 
-extern int serialize (BRRippleField *fields, int num_fields, uint8_t * buffer, int bufferSize)
+extern int rippleSerialize (BRRippleField *fields, int num_fields, uint8_t * buffer, int bufferSize)
 {
     // Create the stucture to hold the results
     int size = calculate_buffer_size(fields, num_fields);
@@ -251,4 +254,151 @@ extern int serialize (BRRippleField *fields, int num_fields, uint8_t * buffer, i
     }
 
     return buffer_index;
+}
+
+int get_fieldcode(uint8_t * buffer, BRRippleField *field)
+{
+    assert(field);
+    assert(buffer);
+
+    if (buffer[0] == 0) {
+        // This is an uncommon type with 3 bytes
+        field->typeCode = buffer[1];
+        field->fieldCode = buffer[2];
+        return 3; // 3-bytes to store the code
+    } else if (buffer[0] < 16) {
+        // The type and code are in reverse order in this case
+        field->typeCode = buffer[1];
+        field->fieldCode = buffer[0];
+        return 2; // 2 bytes to store the code
+    } else {
+        // This is the most common case - type and field are in the same byte
+        field->fieldCode = buffer[0] & 0x0F;
+        field->typeCode = buffer[0] >> 4 & 0x0F;
+        return 1; // 1 byte to store the code
+    }
+}
+
+int get_length(uint8_t* buffer, int * length)
+{
+    // Get the value for the first bytes
+    int lengthLength = (int)buffer[0];
+    if (lengthLength <= 192) {
+        // We are done
+        *length = lengthLength;
+        return 1; // We are using 1 byte for length
+    } else if (lengthLength <= 240) {
+        // This is a 2-byte length
+        *length = 193
+                  + ((buffer[0] - 193) * 256)
+                  + buffer[1];
+        return 2; // We are using 2 bytes for length
+    } else if (lengthLength <= 254) {
+        // 3-byte string
+        *length = 12481 +
+                  ((buffer[0] - 241) * 65536)
+                  + (buffer[1] * 256)
+                  + buffer[2];
+        return 3; // We are using 3 bytes for length
+    } else {
+        // Invalid length
+        return -1;
+    }
+}
+
+int get_content(uint8_t *buffer, BRRippleField *field)
+{
+    switch(field->typeCode) {
+        case 1:
+            // Parse a 2-byte integer
+            field->data.i16 = (buffer[0] << 8) + (buffer[1] & 0xFF);
+            return 2;
+            break;
+        case 2:
+            field->data.i32 = (buffer[0] << 24) +
+                              (buffer[1] << 16) +
+                              (buffer[2] << 8) +
+                              buffer[3];
+            return 4;
+            break;
+        case 6:
+            field->data.i64 = ((uint64_t)buffer[0] << 56) +
+                            ((uint64_t)buffer[1] << 48) +
+                            ((uint64_t)buffer[2] << 40) +
+                            ((uint64_t)buffer[3] << 32) +
+                            (buffer[4] << 24) +
+                            (buffer[5] << 16) +
+                            (buffer[6] << 8) +
+                            buffer[7];
+            field->data.i64 = field->data.i64 & 0xBFFFFFFFFFFFFFFF;
+            return 8;
+            break;
+        case 7:
+            // This is another length encode field. This could be the public key
+            // or the signature - or pehaps something unknown to us
+            {
+                int content_length = 0;
+                int lengthLength = get_length(buffer, &content_length);
+                if (field->fieldCode == 3) { // public key
+                    memcpy(field->data.publicKey.pubKey, &buffer[lengthLength], content_length);
+                } else if (field->fieldCode == 4) { // signature
+                    memcpy(field->data.signature.signature, &buffer[lengthLength], content_length);
+                    field->data.signature.sig_length = content_length;
+                }
+                return (lengthLength + content_length);
+            }
+            break;
+        case 8:
+            // This is the account ID fields - alwasy 1 bytes of length
+            // then 20 bytes of account id
+            if (field->fieldCode == 1 || field->fieldCode == 3) { // address
+                memcpy(field->data.address.bytes, &buffer[1], 20);
+                return 21;
+            } else {
+                // Get the length and skip the content
+                int content_length = 0;
+                int lengthLength = get_length(buffer, &content_length);
+                return (lengthLength + content_length);
+            }
+            break;
+        default:
+            return 0;
+    }
+}
+
+bool addFieldToList(BRRippleField * field)
+{
+    switch(field->typeCode) {
+        case 1:
+        case 2:
+        case 6:
+        case 7:
+        case 8:
+            return true;
+        default:
+            return false;
+            break;
+    }
+}
+
+extern int rippleDeserialize(uint8_t *buffer, int bufferSize, BRArrayOf(BRRippleField) fields)
+{
+    assert(buffer);
+    assert(fields);
+
+    int index = 0;
+
+    while (index < bufferSize - 1) {
+        // Get the code and field
+        BRRippleField field;
+        memset(&field, 0x00, sizeof(BRRippleField));
+        index += get_fieldcode(&buffer[index], &field);
+        index += get_content(&buffer[index], &field);
+
+        // If we care about this field - add it to our array
+        if (addFieldToList(&field)) {
+            array_add(fields, field);
+        }
+    }
+    return 0;
 }

@@ -176,31 +176,53 @@ BRKey getKey(const char* paperKey)
 #endif
 }
 
+static BRRippleAccount createAccountObject(BRKey * key)
+{
+    BRRippleAccount account = (BRRippleAccount) calloc (1, sizeof (struct BRRippleAccountRecord));
+    memset(account, 0x00, sizeof(struct BRRippleAccountRecord));
+
+    // Check the private key
+    assert(BRKeyPrivKey(key, NULL, 0) > 0);
+
+    // Get the public key and store with the account object
+    key->compressed = 1;
+    uint8_t pubkey[33];
+    assert (33 == BRKeyPubKey (key, pubkey, 33));
+    memcpy(account->publicKey, pubkey, 33);
+
+    // Create the raw bytes for the 20 byte account id
+    UInt160 hash = BRKeyHash160(key);
+    memcpy(account->raw.bytes, hash.u8, 20);
+    
+    // Create the string representation of the ripple address
+    char *string = createRippleAddressString(account->raw, 1);
+    memcpy(account->string, string, strlen(string));
+    free(string);
+
+    return account;
+}
+
+// Create an account from the paper key
 extern BRRippleAccount rippleAccountCreate (const char *paperKey)
 {
     installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);
 
     BRKey key = getKey(paperKey);
 
-    key.compressed = 1;
-    uint8_t pubkey[33];
-    assert (33 == BRKeyPubKey (&key, pubkey, 33));
+    return createAccountObject(&key);
+}
 
-    char priv_key_check[34];
-    BRKeyPrivKey(&key, priv_key_check, 34);
-    
-    BRRippleAccount account = (BRRippleAccount) calloc (1, sizeof (struct BRRippleAccountRecord));
-    memcpy(account->publicKey, pubkey, 33);
+// Create an account object with the seed
+extern BRRippleAccount rippleAccountCreateWithSeed(UInt512 seed)
+{
+    BRKey key = deriveRippleKeyFromSeed (seed, 0);
+    return createAccountObject(&key);
+}
 
-    // Create the raw bytes for the 20 byte account id
-    UInt160 hash = BRKeyHash160(&key);
-    memcpy(account->raw.bytes, hash.u8, 20);
-
-    // Create the string representation of the ripple address
-    char *string = createRippleAddressString(account->raw, 1);
-    memcpy(account->string, string, strlen(string));
-
-    return account;
+// Create an account object using the key
+extern BRRippleAccount rippleAccountCreateWithKey(BRKey key)
+{
+    return createAccountObject(&key);
 }
 
 extern uint8_t * getRippleAccountBytes(BRRippleAccount account)
@@ -232,15 +254,6 @@ extern BRRippleAddress rippleAccountGetPrimaryAddress (BRRippleAccount account)
 {
     // Currently we only have the primary address - so just return it
     return account->raw;
-}
-
-extern BRRippleAccount rippleAccountCreateWithSeed(UInt256 seed)
-{
-    return (BRRippleAccount)0;
-}
-extern BRRippleAccount rippleAccountCreateWithKey(BRKey key)
-{
-    return (BRRippleAccount)0;
 }
 
 extern BRRippleSerializedTransaction

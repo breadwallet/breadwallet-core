@@ -14,8 +14,11 @@
 #include "BRRipple.h"
 #include "BRRippleBase58.h"
 #include "BRCrypto.h"
+#include "support/BRBIP32Sequence.h"
+#include "support/BRBIP39WordsEn.h"
+#include "BRKey.h"
 
-static BRRippleAccount createRippleAccount(const char* paper_key,
+static BRRippleAccount createTestRippleAccount(const char* paper_key,
                                            const char* expected_account_address)
 {
     BRRippleAccount account = rippleAccountCreate(paper_key);
@@ -123,7 +126,7 @@ testRippleTransactionGetters (void /* ... */) {
 }
 
 static void
-testRippleAccount (void /* ... */) {
+testCreateRippleAccountWithPaperKey (void /* ... */) {
     const char * paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
     // The above set of words should produce the following Ripple account address
     // string: r41vZ8exoVyUfVzs56yeN8xB5gDhSkho9a
@@ -132,19 +135,79 @@ testRippleAccount (void /* ... */) {
         0xD0, 0x1F, 0x30, 0x4E, 0xC8, 0x29, 0x51, 0xE3, 0x7C, 0xA2 };
     const char* expected_accountid_string = "r41vZ8exoVyUfVzs56yeN8xB5gDhSkho9a";
 
-    // If we pass the expected_accountid_string to this function it will validate for us
-    BRRippleAccount account = createRippleAccount(paper_key, expected_accountid_string);
+    // Create the account using the paper key
+    BRRippleAccount account = rippleAccountCreate(paper_key);
     assert(account);
 
     // Get the 20 bytes that were created for the account
     uint8_t *accountBytes = getRippleAccountBytes(account);
     assert(0 == memcmp(accountBytes, expected_bytes, 20));
 
+    // Get the ripple address string and compare
+    const char *rippleAddress = getRippleAddress(account);
+    assert(0 == memcmp(rippleAddress, expected_accountid_string, 25));
+
+    rippleAccountDelete(account);
+}
+
+static void
+testCreateRippleAccountWithSeed (void /* ... */) {
+    const char * paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
+    // The above set of words should produce the following Ripple account address
+    // string: r41vZ8exoVyUfVzs56yeN8xB5gDhSkho9a
+    const char* expected_accountid_string = "r41vZ8exoVyUfVzs56yeN8xB5gDhSkho9a";
+
+    // Use the above paper key to create a seed value
+    UInt512 seed = UINT512_ZERO;
+    BRBIP39DeriveKey(seed.u8, paper_key, NULL); // no passphrase
+
+    // If we pass the expected_accountid_string to this function it will validate for us
+    BRRippleAccount account = rippleAccountCreateWithSeed(seed);
+    assert(account);
+
+    // Get the ripple address string and compare
+    const char *rippleAddress = getRippleAddress(account);
+    assert(0 == memcmp(rippleAddress, expected_accountid_string, 25));
+
+    rippleAccountDelete(account);
+}
+
+static void
+testCreateRippleAccountWithKey (void /* ... */) {
+    const char * paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
+    // The above set of words should produce the following Ripple account address
+    // string: r41vZ8exoVyUfVzs56yeN8xB5gDhSkho9a
+    const char* expected_accountid_string = "r41vZ8exoVyUfVzs56yeN8xB5gDhSkho9a";
+
+    // Use the above paper key to create a seed value
+    UInt512 seed = UINT512_ZERO;
+    BRBIP39DeriveKey(seed.u8, paper_key, NULL); // no passphrase
+
+    // Create the private key from the seed
+    BRKey privateKey;
+    // The BIP32 privateKey for m/44'/60'/0'/0/index
+    BRBIP32PrivKeyPath(&privateKey, &seed, sizeof(UInt512), 5,
+                       44 | BIP32_HARD,          // purpose  : BIP-44
+                       144 | BIP32_HARD,        // coin_type: Ripple
+                       0 | BIP32_HARD,          // account  : <n/a>
+                       0,                        // change   : not change
+                       0);                   // index    :
+
+    privateKey.compressed = 0;
+
+    // If we pass the expected_accountid_string to this function it will validate for us
+    BRRippleAccount account = rippleAccountCreateWithKey(privateKey);
+    assert(account);
+
+    // Get the 20 bytes that were created for the account
+    const char *rippleAddress = getRippleAddress(account);
+    assert(0 == memcmp(rippleAddress, expected_accountid_string, 25));
+
     rippleAccountDelete(account);
 }
 
 static void getAccountInfo(const char* paper_key, const char* ripple_address) {
-    BRRippleAccount account = createRippleAccount(paper_key, ripple_address);
+    BRRippleAccount account = createTestRippleAccount(paper_key, ripple_address);
     assert(account);
     
     // Get the 20 bytes that were created for the account
@@ -195,7 +258,7 @@ testSerializeWithSignature (void /* ... */) {
     // Create an account so we can get a public key
     //const char * paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
     const char * paper_key = "F603971FCF8366465537B6AD793B37BED5FF730D3764A9DC0F7F4AD911E7372C";
-    BRRippleAccount account = createRippleAccount(paper_key, NULL);
+    BRRippleAccount account = createTestRippleAccount(paper_key, NULL);
     // Get the 20 bytes that were created for the account
     uint8_t *accountBytes = getRippleAccountBytes(account);
 
@@ -240,6 +303,77 @@ testSerializeWithSignature (void /* ... */) {
     rippleAccountDelete(account);
 }
 
+extern BRRippleSignatureRecord rippleTransactionGetSignature(BRRippleTransaction transaction);
+
+static void testTransactionDeserialize()
+{
+    uint8_t bytes[] = {
+        0x12, 0x00, 0x00, // transaction type - 16-bit
+        0x22, 0x80, 0x00, 0x00, 0x00, // Flags
+        0x24, 0x00, 0x00, 0x00, 0x01, // Sequence - 32-bit
+        0x61, 0x40, 0x00, 0x00, 0x00, 0x00, 0x0F, 0x42, 0x40, // Amount 1,000,000 - 64-bit
+        0x68, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0C, // Fee 12 - 64-bit
+        0x73, 0x21, 0x03, 0x2b, 0xe3, 0xce, 0xe5, 0x76, 0x03, // Public Key
+        0x6f, 0x90, 0x76, 0x59, 0x6f, 0xc4, 0xf8, 0xd4, 0xa2,
+        0xa0, 0x57, 0xf8, 0xf8, 0x65, 0x48, 0xc0, 0x98, 0x0e,
+        0x02, 0x13, 0x16, 0x07, 0x2f, 0xed, 0xa2, 0xd3,
+        // signature goes here
+        0x74, 0x46, 0x30, 0x44, 0x02, 0x20, 0x14, 0x37, 0x59, 0x43,
+        0x7C, 0x04, 0xF7, 0xB6, 0x1F, 0x01, 0x25, 0x63, 0xAF, 0xE9,
+        0x0D, 0x8D, 0xAF, 0xC4, 0x6E, 0x86, 0x03, 0x5E, 0x1D, 0x96,
+        0x5A, 0x9C, 0xED, 0x28, 0x2C, 0x97, 0xD4, 0xCE, 0x02, 0x20,
+        0x4C, 0xFD, 0x24, 0x1E, 0x86, 0xF1, 0x7E, 0x01, 0x12, 0x98,
+        0xFC, 0x1A, 0x39, 0xB6, 0x33, 0x86, 0xC7, 0x43, 0x06, 0xA5,
+        0xDE, 0x04, 0x7E, 0x21, 0x3B, 0x0F, 0x29, 0xEF, 0xA4, 0x57,
+        0x1C, 0x2C,
+        // Source address
+        0x81, 0x14, 0xEF, 0xFC, 0x27, 0x52, 0xB5, 0xC9, 0xDA,
+        0x22, 0x88, 0xC5, 0xD0, 0x1F, 0x30, 0x4E, 0xC8, 0x29, 0x51, 0xE3, 0x7C, 0xA2,
+        // Destination address
+        0x83, 0x14, 0xB6, 0xF8, 0x63, 0x80, 0x8B, 0x54, 0xD6,
+        0x43, 0xA0, 0x14, 0xCA, 0xF8, 0xB2, 0x97, 0xCF, 0xF8, 0xF2, 0xF9, 0x37, 0xE8
+    };
+    BRRippleTransaction transaction = rippleTransactionCreateFromBytes(bytes, 29 + 26 + 44 + 72);
+    assert(transaction);
+    uint16_t transactionType = rippleTransactionGetType(transaction);
+    assert(PAYMENT == transactionType);
+
+    uint32_t flags = rippleTransactionGetFlags(transaction);
+    assert(0x80000000 == flags);
+    uint32_t sequence = rippleTransactionGetSequence(transaction);
+    assert(1 == sequence);
+
+    uint64_t fee = rippleTransactionGetFee(transaction);
+    assert(12 == fee);
+    uint64_t amount = rippleTransactionGetAmount(transaction);
+    assert(1000000 == amount);
+
+    BRRippleAddress sourceAddress = rippleTransactionGetSource(transaction);
+    uint8_t expected_source_address[] = {
+        0xEF, 0xFC, 0x27, 0x52, 0xB5, 0xC9, 0xDA, // Source address - type 8, field 1
+        0x22, 0x88, 0xC5, 0xD0, 0x1F, 0x30, 0x4E, 0xC8, 0x29, 0x51, 0xE3, 0x7C, 0xA2
+    };
+    assert(0 == memcmp(sourceAddress.bytes, expected_source_address, 20));
+
+    BRRippleAddress targetAddress = rippleTransactionGetTarget(transaction);
+    uint8_t expected_target_address[] = {
+        0xB6, 0xF8, 0x63, 0x80, 0x8B, 0x54, 0xD6, // Target Address - type 8, field 3
+        0x43, 0xA0, 0x14, 0xCA, 0xF8, 0xB2, 0x97, 0xCF, 0xF8, 0xF2, 0xF9, 0x37, 0xE8
+    };
+    assert(0 == memcmp(targetAddress.bytes, expected_target_address, 20));
+    
+    BRRippleSignatureRecord signature = rippleTransactionGetSignature(transaction);
+    uint8_t sig_bytes[] = {  0x30, 0x44, 0x02, 0x20, 0x14, 0x37, 0x59, 0x43,
+        0x7C, 0x04, 0xF7, 0xB6, 0x1F, 0x01, 0x25, 0x63, 0xAF, 0xE9,
+        0x0D, 0x8D, 0xAF, 0xC4, 0x6E, 0x86, 0x03, 0x5E, 0x1D, 0x96,
+        0x5A, 0x9C, 0xED, 0x28, 0x2C, 0x97, 0xD4, 0xCE, 0x02, 0x20,
+        0x4C, 0xFD, 0x24, 0x1E, 0x86, 0xF1, 0x7E, 0x01, 0x12, 0x98,
+        0xFC, 0x1A, 0x39, 0xB6, 0x33, 0x86, 0xC7, 0x43, 0x06, 0xA5,
+        0xDE, 0x04, 0x7E, 0x21, 0x3B, 0x0F, 0x29, 0xEF, 0xA4, 0x57,
+        0x1C, 0x2C};
+    assert(0 == memcmp(signature.signature, sig_bytes, signature.sig_length));
+}
+
 static void
 testTransactionHash (void /* ... */) {
     BRRippleTransaction transaction;
@@ -250,7 +384,7 @@ testTransactionHash (void /* ... */) {
     
     // Create an account so we can get a public key
     const char * paper_key = "F603971FCF8366465537B6AD793B37BED5FF730D3764A9DC0F7F4AD911E7372C";
-    BRRippleAccount account = createRippleAccount(paper_key, NULL);
+    BRRippleAccount account = createTestRippleAccount(paper_key, NULL);
     // Get the 20 bytes that were created for the account
     uint8_t *accountBytes = getRippleAccountBytes(account);
     
@@ -353,19 +487,27 @@ static void testRippleAddressEqual()
     assert(0 == result);
 }
 
+void rippleAccountTests()
+{
+    testCreateRippleAccountWithPaperKey();
+    testCreateRippleAccountWithSeed();
+    testCreateRippleAccountWithKey();
+    testRippleAddressCreate();
+    testRippleAddressEqual();
+}
+
 extern void
 runRippleTest (void /* ... */) {
 
     // Account tests
-    testRippleAccount();
-    testRippleAddressCreate();
-    testRippleAddressEqual();
+    rippleAccountTests();
 
     // Transaction tests
     testRippleTransaction();
     testRippleTransactionGetters();
     testSerializeWithSignature();
     testTransactionHash();
+    testTransactionDeserialize();
 
     // base58 encoding tests
     checkDecodeRippleAddress();
