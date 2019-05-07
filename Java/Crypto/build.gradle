@@ -7,6 +7,12 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
+    externalNativeBuild {
+        cmake {
+            path "CMakeLists.txt"  //path can only be set outside (in android block)
+        }
+    }
+
     defaultConfig {
         minSdkVersion 23
         targetSdkVersion 28
@@ -29,6 +35,17 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+
+        debug {
+            debuggable true
+            jniDebuggable true
+            minifyEnabled false
+            externalNativeBuild {
+                cmake {
+                    cFlags "-DDEBUG", "-DBITCOIN_DEBUG"
+                }
+            }
+        }
     }
 }
 
@@ -38,5 +55,4 @@ dependencies {
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
-    implementation project(':Core')
 }
