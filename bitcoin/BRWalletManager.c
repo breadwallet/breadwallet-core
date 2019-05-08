@@ -452,12 +452,6 @@ BRWalletManagerNew (BRWalletManagerClient client,
         pthread_mutexattr_destroy(&attr);
     }
 
-    // Initialize the `brdSync` struct
-    bwm->brdSync.rid = -1;
-    bwm->brdSync.begBlockNumber = 0;
-    bwm->brdSync.endBlockNumber = 0;
-    bwm->brdSync.completed = 0;
-
     // Create the alarm clock, but don't start it.
     alarmClockCreateIfNecessary(0);
 
@@ -560,6 +554,13 @@ BRWalletManagerNew (BRWalletManagerClient client,
                                _BRWalletManagerSavePeers,
                                _BRWalletManagerNetworkIsReachabele,
                                _BRWalletManagerThreadCleanup);
+
+
+    // Initialize the `brdSync` struct
+    bwm->brdSync.rid = -1;
+    bwm->brdSync.begBlockNumber = BRPeerManagerLastBlockHeight (bwm->peerManager);
+    bwm->brdSync.endBlockNumber = bwm->brdSync.begBlockNumber;
+    bwm->brdSync.completed = 0;
 
 
     // Support the requested mode.  We already created the BRPeerManager.  But we might consider
@@ -1023,6 +1024,10 @@ const BREventType *bwmEventTypes[] = {
 const unsigned int
 bwmEventTypesCount = (sizeof (bwmEventTypes) / sizeof (BREventType*));
 
+#if !defined (MAX)
+#define MAX(a,b) (((a)>(b))?(a):(b))
+#endif
+
 //
 // Periodicaly query the BRD backend to get current status (block number, nonce, balances,
 // transactions and logs) The event will be NULL (as specified for a 'period dispatcher' - See
@@ -1047,7 +1052,7 @@ bwmPeriodicDispatcher (BREventHandler handler,
                                        : 0);
     }
     // 2) completed or not, update the `endBlockNumber` to the current block height.
-    bwm->brdSync.endBlockNumber = bwm->blockHeight;
+    bwm->brdSync.endBlockNumber = MAX (bwm->blockHeight, bwm->brdSync.begBlockNumber);
 
     // 3) We'll query all transactions for this bwm's account.  We'll process all the transactions
     // into the wallet.
