@@ -551,7 +551,6 @@ static void testWalletBalance()
     BRRippleAccount account = rippleAccountCreate(paper_key);
     BRRippleWallet wallet = rippleWalletCreate(account);
     assert(wallet);
-    rippleWalletRelease(wallet);
 
     uint64_t balance = rippleWalletGetBalance(wallet);
     assert(balance == 0);
@@ -560,12 +559,27 @@ static void testWalletBalance()
     rippleWalletSetBalance(wallet, expected_balance);
     balance = rippleWalletGetBalance(wallet);
     assert(balance == expected_balance);
+
+    rippleWalletRelease(wallet);
 }
 
-static void runWalletTests()
+static void testWalletAddress()
 {
-    createAndDeleteWallet();
-    testWalletBalance();
+    const char * paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
+    BRRippleAccount account = rippleAccountCreate(paper_key);
+    BRRippleWallet wallet = rippleWalletCreate(account);
+    assert(wallet);
+
+    uint8_t accountBytes[] = { 0xEF, 0xFC, 0x27, 0x52, 0xB5, 0xC9, 0xDA, 0x22, 0x88, 0xC5,
+        0xD0, 0x1F, 0x30, 0x4E, 0xC8, 0x29, 0x51, 0xE3, 0x7C, 0xA2 };
+
+    BRRippleAddress sourceAddress = rippleWalletGetSourceAddress(wallet);
+    assert(0 == memcmp(accountBytes, sourceAddress.bytes, 20));
+
+    BRRippleAddress targetAddress = rippleWalletGetTargetAddress(wallet);
+    assert(0 == memcmp(accountBytes, targetAddress.bytes, 20));
+
+    rippleWalletRelease(wallet);
 }
 
 static void checkDecodeRippleAddress()
@@ -623,10 +637,17 @@ void rippleTransactionTests()
     testRippleTransactionGetters();
     testSerializeWithSignature();
     testTransactionHash();
-    //testTransactionDeserialize();
-    //testTransactionDeserializeUnknownFields();
-    //testTransactionDeserializeOptionalFields();
+    testTransactionDeserialize();
+    testTransactionDeserializeUnknownFields();
+    testTransactionDeserializeOptionalFields();
     testTransactionDeserializeLastLedgerSequence();
+}
+
+static void runWalletTests()
+{
+    createAndDeleteWallet();
+    testWalletBalance();
+    testWalletAddress();
 }
 
 extern void
