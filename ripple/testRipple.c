@@ -18,6 +18,28 @@
 #include "support/BRBIP39WordsEn.h"
 #include "BRKey.h"
 
+int debug_log = 0;
+
+uint8_t char2int(char input)
+{
+    if(input >= '0' && input <= '9')
+        return input - '0';
+    if(input >= 'A' && input <= 'F')
+        return input - 'A' + 10;
+    if(input >= 'a' && input <= 'f')
+        return input - 'a' + 10;
+    return 0;
+}
+
+void hex2bin(const char* src, uint8_t * target)
+{
+    while(*src && src[1])
+    {
+        *(target++) = (char2int(src[0]) << 4) | (char2int(src[1]) & 0xff);
+        src += 2;
+    }
+}
+
 static BRRippleAccount createTestRippleAccount(const char* paper_key,
                                            const char* expected_account_address)
 {
@@ -108,8 +130,18 @@ testRippleTransactionGetters (void /* ... */) {
     uint64_t fee = rippleTransactionGetFee(transaction);
     assert(fee == 12);
 
+    // Get the raw fee object
+    BRRippleAmount feeRaw = rippleTransactionGetAmountRaw(transaction, FEE);
+    assert(0 == feeRaw.currencyType);
+    assert(12 == feeRaw.amount);
+    
     uint64_t amount = rippleTransactionGetAmount(transaction);
     assert(amount == 1000000);
+
+    // Get the raw amount object
+    BRRippleAmount amountRaw = rippleTransactionGetAmountRaw(transaction, AMOUNT);
+    assert(0 == amountRaw.currencyType);
+    assert(1000000 == amountRaw.amount);
 
     uint32_t sequence = rippleTransactionGetSequence(transaction);
     // Since we don't add the sequence until later - it should be 0
@@ -229,7 +261,7 @@ static void getAccountInfo(const char* paper_key, const char* ripple_address) {
 }
 
 static void
-testSerializeWithSignature (void /* ... */) {
+testSerializeWithSignature () {
     BRRippleTransaction transaction;
     
     uint8_t expected_output[] = {
@@ -261,6 +293,8 @@ testSerializeWithSignature (void /* ... */) {
     BRRippleAccount account = createTestRippleAccount(paper_key, NULL);
     // Get the 20 bytes that were created for the account
     uint8_t *accountBytes = getRippleAccountBytes(account);
+    char * accountAddress = getRippleAddress(account);
+    if (debug_log) printf("%s\n, accountAddress");
 
     BRRippleAddress sourceAddress;
     BRRippleAddress targetAddress;
@@ -283,10 +317,12 @@ testSerializeWithSignature (void /* ... */) {
     int signed_size = getSerializedSize(s);
     uint8_t *signed_bytes = getSerializedBytes(s);
     // Print out the bytes as a string
-    for (int i = 0; i < signed_size; i++) {
-        if (i == 0) printf("SIGNED BYTES\n");
-        printf("%02X", signed_bytes[i]);
-        if (i == (signed_size -1)) printf("\n");
+    if (debug_log) {
+        for (int i = 0; i < signed_size; i++) {
+            if (i == 0) printf("SIGNED BYTES\n");
+            printf("%02X", signed_bytes[i]);
+            if (i == (signed_size -1)) printf("\n");
+        }
     }
 
     // After calling the sign function the sequence number should match what we passed in
@@ -305,73 +341,158 @@ testSerializeWithSignature (void /* ... */) {
 
 extern BRRippleSignatureRecord rippleTransactionGetSignature(BRRippleTransaction transaction);
 
-static void testTransactionDeserialize()
+static BRRippleTransaction transactionDeserialize(const char * trans_bytes, const char * extra_fields)
 {
-    uint8_t bytes[] = {
-        0x12, 0x00, 0x00, // transaction type - 16-bit
-        0x22, 0x80, 0x00, 0x00, 0x00, // Flags
-        0x24, 0x00, 0x00, 0x00, 0x01, // Sequence - 32-bit
-        0x61, 0x40, 0x00, 0x00, 0x00, 0x00, 0x0F, 0x42, 0x40, // Amount 1,000,000 - 64-bit
-        0x68, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0C, // Fee 12 - 64-bit
-        0x73, 0x21, 0x03, 0x2b, 0xe3, 0xce, 0xe5, 0x76, 0x03, // Public Key
-        0x6f, 0x90, 0x76, 0x59, 0x6f, 0xc4, 0xf8, 0xd4, 0xa2,
-        0xa0, 0x57, 0xf8, 0xf8, 0x65, 0x48, 0xc0, 0x98, 0x0e,
-        0x02, 0x13, 0x16, 0x07, 0x2f, 0xed, 0xa2, 0xd3,
-        // signature goes here
-        0x74, 0x46, 0x30, 0x44, 0x02, 0x20, 0x14, 0x37, 0x59, 0x43,
-        0x7C, 0x04, 0xF7, 0xB6, 0x1F, 0x01, 0x25, 0x63, 0xAF, 0xE9,
-        0x0D, 0x8D, 0xAF, 0xC4, 0x6E, 0x86, 0x03, 0x5E, 0x1D, 0x96,
-        0x5A, 0x9C, 0xED, 0x28, 0x2C, 0x97, 0xD4, 0xCE, 0x02, 0x20,
-        0x4C, 0xFD, 0x24, 0x1E, 0x86, 0xF1, 0x7E, 0x01, 0x12, 0x98,
-        0xFC, 0x1A, 0x39, 0xB6, 0x33, 0x86, 0xC7, 0x43, 0x06, 0xA5,
-        0xDE, 0x04, 0x7E, 0x21, 0x3B, 0x0F, 0x29, 0xEF, 0xA4, 0x57,
-        0x1C, 0x2C,
-        // Source address
-        0x81, 0x14, 0xEF, 0xFC, 0x27, 0x52, 0xB5, 0xC9, 0xDA,
-        0x22, 0x88, 0xC5, 0xD0, 0x1F, 0x30, 0x4E, 0xC8, 0x29, 0x51, 0xE3, 0x7C, 0xA2,
-        // Destination address
-        0x83, 0x14, 0xB6, 0xF8, 0x63, 0x80, 0x8B, 0x54, 0xD6,
-        0x43, 0xA0, 0x14, 0xCA, 0xF8, 0xB2, 0x97, 0xCF, 0xF8, 0xF2, 0xF9, 0x37, 0xE8
-    };
-    BRRippleTransaction transaction = rippleTransactionCreateFromBytes(bytes, 29 + 26 + 44 + 72);
+    // Combine the transaction string (hex string of serialized transaction) along with
+    // any extra bytes.  The extra bytes would be fields that we currently don't know how
+    // to parse.
+    size_t tx_length = strlen(trans_bytes) + 1;
+    if (extra_fields) {
+        tx_length += strlen(extra_fields);
+    }
+    char tx_blob[tx_length];
+    memset(tx_blob, 0x00, sizeof(tx_blob));
+    strcpy(tx_blob, trans_bytes);
+    if (extra_fields) {
+        strcat(tx_blob, extra_fields);
+    }
+
+    // Convert the trans to binary
+    uint8_t bytes[strlen(tx_blob)/2];
+    memset(bytes,0x00, sizeof(bytes));
+    hex2bin(tx_blob, bytes);
+
+    BRRippleTransaction transaction = rippleTransactionCreateFromBytes(bytes, sizeof(bytes));
+    return transaction;
+}
+
+const char * serialized_transaction = "120000"
+    "2280000000"
+    "2400000019"
+    "6140000000000F4240"
+    "68400000000000000C"
+    "7321035590938D3FDA530A36DBA666C463530D830387ED68F7F6C40B38EC922C0A0885"
+    "74463044022005CF72B172AAA5AA326AFA7FC90D2B3DBD0EDD9E778DA44ACC380BEAAC"
+    "8BF46F02207C19625D87CCCDD29688780F95CD895913BED9F0415B92F17A1799A2CE19F258"
+    "81140A000DC76DC6E5843BDBE06A274E90C8A6B4AC2C"
+    "8314AF6553EE2CDCA165AB0375A3EFB0C7650EA55350";
+
+static void validateDeserializedTransaction(BRRippleTransaction transaction)
+{
     assert(transaction);
     uint16_t transactionType = rippleTransactionGetType(transaction);
     assert(PAYMENT == transactionType);
-
-    uint32_t flags = rippleTransactionGetFlags(transaction);
-    assert(0x80000000 == flags);
+    
     uint32_t sequence = rippleTransactionGetSequence(transaction);
-    assert(1 == sequence);
-
+    assert(25 == sequence);
+    
+    // Validate the source address
+    uint8_t expectedSource[20];
+    hex2bin("0A000DC76DC6E5843BDBE06A274E90C8A6B4AC2C", expectedSource);
+    BRRippleAddress source = rippleTransactionGetSource(transaction);
+    assert(0 == memcmp(source.bytes, expectedSource, 20));
+    
+    // Validate the destination address
+    uint8_t expectedTarget[20];
+    hex2bin("AF6553EE2CDCA165AB0375A3EFB0C7650EA55350", expectedTarget);
+    BRRippleAddress destination = rippleTransactionGetTarget(transaction);
+    assert(0 == memcmp(destination.bytes, expectedTarget, 20));
+    
+    // Public key from the tx_blob
+    uint8_t expectedPubKey[33];
+    hex2bin("035590938D3FDA530A36DBA666C463530D830387ED68F7F6C40B38EC922C0A0885", expectedPubKey);
+    BRKey pubKey = rippleTransactionGetPublicKey(transaction);
+    assert(0 == (memcmp(expectedPubKey, pubKey.pubKey, 33)));
+    
     uint64_t fee = rippleTransactionGetFee(transaction);
     assert(12 == fee);
-    uint64_t amount = rippleTransactionGetAmount(transaction);
-    assert(1000000 == amount);
-
-    BRRippleAddress sourceAddress = rippleTransactionGetSource(transaction);
-    uint8_t expected_source_address[] = {
-        0xEF, 0xFC, 0x27, 0x52, 0xB5, 0xC9, 0xDA, // Source address - type 8, field 1
-        0x22, 0x88, 0xC5, 0xD0, 0x1F, 0x30, 0x4E, 0xC8, 0x29, 0x51, 0xE3, 0x7C, 0xA2
-    };
-    assert(0 == memcmp(sourceAddress.bytes, expected_source_address, 20));
-
-    BRRippleAddress targetAddress = rippleTransactionGetTarget(transaction);
-    uint8_t expected_target_address[] = {
-        0xB6, 0xF8, 0x63, 0x80, 0x8B, 0x54, 0xD6, // Target Address - type 8, field 3
-        0x43, 0xA0, 0x14, 0xCA, 0xF8, 0xB2, 0x97, 0xCF, 0xF8, 0xF2, 0xF9, 0x37, 0xE8
-    };
-    assert(0 == memcmp(targetAddress.bytes, expected_target_address, 20));
     
-    BRRippleSignatureRecord signature = rippleTransactionGetSignature(transaction);
-    uint8_t sig_bytes[] = {  0x30, 0x44, 0x02, 0x20, 0x14, 0x37, 0x59, 0x43,
-        0x7C, 0x04, 0xF7, 0xB6, 0x1F, 0x01, 0x25, 0x63, 0xAF, 0xE9,
-        0x0D, 0x8D, 0xAF, 0xC4, 0x6E, 0x86, 0x03, 0x5E, 0x1D, 0x96,
-        0x5A, 0x9C, 0xED, 0x28, 0x2C, 0x97, 0xD4, 0xCE, 0x02, 0x20,
-        0x4C, 0xFD, 0x24, 0x1E, 0x86, 0xF1, 0x7E, 0x01, 0x12, 0x98,
-        0xFC, 0x1A, 0x39, 0xB6, 0x33, 0x86, 0xC7, 0x43, 0x06, 0xA5,
-        0xDE, 0x04, 0x7E, 0x21, 0x3B, 0x0F, 0x29, 0xEF, 0xA4, 0x57,
-        0x1C, 0x2C};
-    assert(0 == memcmp(signature.signature, sig_bytes, signature.sig_length));
+    uint32_t flags = rippleTransactionGetFlags(transaction);
+    assert(0x80000000 == flags);
+}
+
+static void validateOptionalFields(BRRippleTransaction transaction,
+                                   uint32_t expectedSourceTag,
+                                   uint32_t expectedDestinationTag,
+                                   UInt256 *expectedInvoiceId,
+                                   BRRippleTransactionHash *expectedAccountTxnId)
+{
+    assert(transaction);
+
+    // source tag
+    uint32_t sourceTag = rippleTransactionGetSourceTag(transaction);
+    assert(expectedSourceTag == sourceTag);
+
+    // destination tag
+    uint32_t destinationTag = rippleTransactionGetDestinationTag(transaction);
+    assert(expectedDestinationTag == destinationTag);
+    
+    UInt256 invoiceId = rippleTransactionGetInvoiceID(transaction);
+    assert(0 == memcmp(expectedInvoiceId->u8, invoiceId.u8, 32));
+
+    BRRippleTransactionHash accountTxnId = rippleTransactionGetAccountTxnId(transaction);
+    assert(0 == memcmp(expectedAccountTxnId->bytes, accountTxnId.bytes, 32));
+}
+
+static void testTransactionDeserialize()
+{
+    // This is a real tx blob coming back from ripple test server
+    BRRippleTransaction transaction = transactionDeserialize(serialized_transaction, NULL);
+    validateDeserializedTransaction(transaction);
+    UInt256 expectedInvoiceId;
+    memset(expectedInvoiceId.u8, 0x00, sizeof(expectedInvoiceId.u8));
+    BRRippleTransactionHash expectedAccountTxnId;
+    memset(expectedAccountTxnId.bytes, 0x00, sizeof(expectedAccountTxnId.bytes));
+    validateOptionalFields(transaction, 0, 0,
+                           &expectedInvoiceId, &expectedAccountTxnId);
+    
+    deleteRippleTransaction(transaction);
+}
+
+static void testTransactionDeserializeUnknownFields()
+{
+    // Test with the STObject appended
+    BRRippleTransaction transaction = transactionDeserialize(serialized_transaction, "E000");
+    validateDeserializedTransaction(transaction);
+    deleteRippleTransaction(transaction);
+
+    // Test with the STArray
+    transaction = transactionDeserialize(serialized_transaction, "F000");
+    validateDeserializedTransaction(transaction);
+    deleteRippleTransaction(transaction);
+
+    // Test with the PathSet field appended
+    transaction = transactionDeserialize(serialized_transaction, "0112");
+    validateDeserializedTransaction(transaction);
+    deleteRippleTransaction(transaction);
+
+}
+
+static void testTransactionDeserializeOptionalFields()
+{
+    const char * test_input = "1200002280000000240000000261D4838D7EA4C6800000000000000000000000000055534400000000004B4E9C06F24296074F7BC48F92A97916C6DC5EA968400000000000000C69D4838D7EA4C6800000000000000000000000000055534400000000004B4E9C06F24296074F7BC48F92A97916C6DC5EA981144B4E9C06F24296074F7BC48F92A97916C6DC5EA983143E9D4A2B8AA0780F682D136F7A56D6724EF53754";
+
+    BRRippleTransaction transaction = transactionDeserialize(test_input, NULL);
+    assert(transaction);
+
+    BRRippleAmount sendMax = rippleTransactionGetAmountRaw(transaction, SENDMAX);
+    assert(1 == sendMax.currencyType);
+
+    BRRippleAmount amountRaw = rippleTransactionGetAmountRaw(transaction, AMOUNT);
+    assert(1 == amountRaw.currencyType);
+    //assert(1 == amountRaw.amount);
+}
+
+static void testTransactionDeserializeLastLedgerSequence()
+{
+    // 201B0121EAC0
+    const char * test_input = "1200002400000001201B0121EAC06140000000000F424068400000000000000C81142D66C01F69269EE58D62174B821295CCF763DF3C8314572A19A7C7DD6F72C7D24DE3F10FDFEFE8636A36";
+
+    BRRippleTransaction transaction = transactionDeserialize(test_input, NULL);
+    assert(transaction);
+
+    uint32_t lastLedgerSequence = rippleTransactionGetLastLedgerSequence(transaction);
+    assert(19000000 == lastLedgerSequence);
 }
 
 static void
@@ -430,7 +551,6 @@ static void testWalletBalance()
     BRRippleAccount account = rippleAccountCreate(paper_key);
     BRRippleWallet wallet = rippleWalletCreate(account);
     assert(wallet);
-    rippleWalletRelease(wallet);
 
     uint64_t balance = rippleWalletGetBalance(wallet);
     assert(balance == 0);
@@ -439,12 +559,27 @@ static void testWalletBalance()
     rippleWalletSetBalance(wallet, expected_balance);
     balance = rippleWalletGetBalance(wallet);
     assert(balance == expected_balance);
+
+    rippleWalletRelease(wallet);
 }
 
-static void runWalletTests()
+static void testWalletAddress()
 {
-    createAndDeleteWallet();
-    testWalletBalance();
+    const char * paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
+    BRRippleAccount account = rippleAccountCreate(paper_key);
+    BRRippleWallet wallet = rippleWalletCreate(account);
+    assert(wallet);
+
+    uint8_t accountBytes[] = { 0xEF, 0xFC, 0x27, 0x52, 0xB5, 0xC9, 0xDA, 0x22, 0x88, 0xC5,
+        0xD0, 0x1F, 0x30, 0x4E, 0xC8, 0x29, 0x51, 0xE3, 0x7C, 0xA2 };
+
+    BRRippleAddress sourceAddress = rippleWalletGetSourceAddress(wallet);
+    assert(0 == memcmp(accountBytes, sourceAddress.bytes, 20));
+
+    BRRippleAddress targetAddress = rippleWalletGetTargetAddress(wallet);
+    assert(0 == memcmp(accountBytes, targetAddress.bytes, 20));
+
+    rippleWalletRelease(wallet);
 }
 
 static void checkDecodeRippleAddress()
@@ -496,6 +631,25 @@ void rippleAccountTests()
     testRippleAddressEqual();
 }
 
+void rippleTransactionTests()
+{
+    testRippleTransaction();
+    testRippleTransactionGetters();
+    testSerializeWithSignature();
+    testTransactionHash();
+    testTransactionDeserialize();
+    testTransactionDeserializeUnknownFields();
+    testTransactionDeserializeOptionalFields();
+    testTransactionDeserializeLastLedgerSequence();
+}
+
+static void runWalletTests()
+{
+    createAndDeleteWallet();
+    testWalletBalance();
+    testWalletAddress();
+}
+
 extern void
 runRippleTest (void /* ... */) {
 
@@ -503,11 +657,7 @@ runRippleTest (void /* ... */) {
     rippleAccountTests();
 
     // Transaction tests
-    testRippleTransaction();
-    testRippleTransactionGetters();
-    testSerializeWithSignature();
-    testTransactionHash();
-    testTransactionDeserialize();
+    rippleTransactionTests();
 
     // base58 encoding tests
     checkDecodeRippleAddress();
@@ -515,8 +665,8 @@ runRippleTest (void /* ... */) {
     // Wallet tests
     runWalletTests();
 
-    // If we pass the expected_accountid_string to this function it will validate for us
+    // getAccountInfo is just a utility to print out info if needed
     const char* paper_key = "996F8505F48FCB74D291F7B459A5EA20FEA97ACEC803D7459B3742AF3DCF4B9D";
     const char* ripple_address = "rGzQdxGFHLtiP16x8k458Am5sy8mBcnhpD";
-    getAccountInfo(paper_key, ripple_address);
+    //getAccountInfo(paper_key, ripple_address);
 }

@@ -10,6 +10,7 @@
 //
 #ifndef BRRipple_base_h
 #define BRRipple_base_h
+#include <stdbool.h>
 #include "BRKey.h"
 
 #define ADDRESS_BYTES   (20)
@@ -32,6 +33,20 @@ typedef struct {
     uint8_t bytes[32];
 } BRRippleTransactionHash;
 
+typedef struct {
+    int currencyType; // 0 - ripple, 1 - other, -1 unknown/invalid
+    uint64_t amount;
+    uint8_t currencyCode[20];
+    uint8_t issuerId[20];
+} BRRippleAmount;
+
+typedef enum {
+    AMOUNT,
+    FEE,
+    SENDMAX,
+    DELIVERMIN
+} BRRippleAmountType;
+
 // Stucture to hold the calculated signature
 typedef struct {
     uint8_t signature[256];
@@ -50,9 +65,11 @@ typedef struct _ripple_field {
         uint16_t i16;
         uint32_t i32;
         uint64_t i64;
+        BRRippleAmount amount;
         BRRippleAddress address;
         BRKey publicKey;
         BRRippleSignatureRecord signature;
+        uint8_t hash[32]; // There are 3 potential hash fields - longest is 32 bytes
     } data;
 } BRRippleField;
 
