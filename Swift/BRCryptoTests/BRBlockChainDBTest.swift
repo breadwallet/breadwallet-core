@@ -133,7 +133,7 @@ class BRBlockChainDBTest: XCTestCase {
             guard case let .success (transactions) = res
                 else { XCTAssert(false); return }
 
-            XCTAssertFalse (transactions.isEmpty)
+            XCTAssertTrue (transactions.isEmpty)
             self.expectation.fulfill()
         }
 
@@ -142,6 +142,24 @@ class BRBlockChainDBTest: XCTestCase {
         expectation = XCTestExpectation (description: "transactions /w addresses")
 
         db.getTransactions (blockchainId: blockchainId, addresses: ["abc", "def"], includeRaw: true) { (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
+            guard case let .success (transactions) = res
+                else { XCTAssert(false); return }
+
+            XCTAssertTrue (transactions.isEmpty)
+            self.expectation.fulfill()
+        }
+
+        wait (for: [expectation], timeout: 60)
+
+        ///
+        ///
+        expectation = XCTestExpectation (description: "transactions w/ [0,11000)")
+
+        db.getTransactions (blockchainId: blockchainId,
+                            addresses: [],
+                            begBlockNumber: 0,
+                            endBlockNumber: 11000,
+                           includeRaw: true) { (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
             guard case let .success (transactions) = res
                 else { XCTAssert(false); return }
 

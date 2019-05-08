@@ -136,7 +136,7 @@ public class BlockChainDB {
                 let blockHeight = json.asUInt64 (name: "block_height")
                 else { return nil }
 
-            return (id: id, name: name, network: network, isMainnet: isMainnet, currency: currency, blockHeight: blockHeight)
+            return (id: id, name: name, network: network, isMainnet: isMainnet, currency: currency, blockHeight: max (blockHeight, 575020))
         }
 
         /// We define default blockchains but these are wholly insufficient given that the
@@ -595,29 +595,30 @@ public class BlockChainDB {
         // This query could overrun the endpoint's page size (typically 5,000).  If so, we'll need
         // to repeat the request for the next batch.
         self.queue.async {
+            let queryKeys = ["blockchain_id", "start_height", "end_height", "include_proof", "include_raw"]
+                + Array (repeating: "address", count: addresses.count)
+
+            var queryVals = [blockchainId, "0", "0", includeProof.description, includeRaw.description]
+                + addresses
+
             let semaphore = DispatchSemaphore (value: 0)
 
-            var moreResults = false
+//            var moreResults = false
             var begBlockNumber = begBlockNumber
 
             var error: QueryError? = nil
             var results = [Model.Transaction]()
 
-            repeat {
-                let queryKeys = ["blockchain_id", "start_height", "end_height",
-                                 "include_proof", "include_raw"]
-                    + Array (repeating: "address", count: addresses.count)
+            for begHeight in stride (from: begBlockNumber, to: endBlockNumber, by: 5000) {
+                queryVals[1] = begHeight.description
+                queryVals[2] = min (begHeight + 5000, endBlockNumber).description
 
-                let queryVals = [blockchainId, begBlockNumber.description, endBlockNumber.description,
-                                 includeProof.description, includeRaw.description]
-                    + addresses
-
-                moreResults = false
+                //                moreResults = false
 
                 self.bdbMakeRequest (path: "transactions", query: zip (queryKeys, queryVals)) {
                     (more: Bool, res: Result<[JSON], QueryError>) in
                     // Flag if `more`
-                    moreResults = more
+//                    moreResults = more
 
                     // Append `transactions` with the resulting transactions.
                     results += try! res
@@ -634,7 +635,8 @@ public class BlockChainDB {
                 }
 
                 semaphore.wait()
-            } while moreResults && nil == error
+                if nil != error { break }
+            }
 
             completion (nil == error
                 ? Result.success (results)
