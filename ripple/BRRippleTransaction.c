@@ -335,7 +335,6 @@ extern BRRippleSignatureRecord rippleTransactionGetSignature(BRRippleTransaction
 void getFieldInfo(BRRippleField *fields, int fieldLength, BRRippleTransaction transaction)
 {
     for (int i = 0; i < fieldLength; i++) {
-        BRRippleField *field = &fields[i];
         switch(fields[i].typeCode) {
             case 1:
                 if (fields[i].fieldCode == 2) {
@@ -352,13 +351,13 @@ void getFieldInfo(BRRippleField *fields, int fieldLength, BRRippleTransaction tr
             case 6:
                 // This is the "amount" fields.
                 if (fields[i].fieldCode == 1) { // amount
-                    transaction->payment->amount = field->data.i64;
+                    transaction->payment->amount = fields[i].data.i64;
                 } else if (fields[i].fieldCode == 8) { // fee
                     transaction->fee = fields[i].data.i64;
                 }
             case 7:
                 if (fields[i].fieldCode == 3) { // public key
-                    transaction->publicKey = fields->data.publicKey;
+                    transaction->publicKey = fields[i].data.publicKey;
                 } else if (fields[i].fieldCode == 4) { // signature
                     transaction->signature = fields[i].data.signature;
                 }

@@ -53,6 +53,7 @@ typedef struct _ripple_field {
         BRRippleAddress address;
         BRKey publicKey;
         BRRippleSignatureRecord signature;
+        uint8_t hash[32]; // There are 3 potential hash fields - longest is 32 bytes
     } data;
 } BRRippleField;
 
