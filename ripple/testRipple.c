@@ -130,8 +130,18 @@ testRippleTransactionGetters (void /* ... */) {
     uint64_t fee = rippleTransactionGetFee(transaction);
     assert(fee == 12);
 
+    // Get the raw fee object
+    BRRippleAmount feeRaw = rippleTransactionGetAmountRaw(transaction, FEE);
+    assert(0 == feeRaw.currencyType);
+    assert(12 == feeRaw.amount);
+    
     uint64_t amount = rippleTransactionGetAmount(transaction);
     assert(amount == 1000000);
+
+    // Get the raw amount object
+    BRRippleAmount amountRaw = rippleTransactionGetAmountRaw(transaction, AMOUNT);
+    assert(0 == amountRaw.currencyType);
+    assert(1000000 == amountRaw.amount);
 
     uint32_t sequence = rippleTransactionGetSequence(transaction);
     // Since we don't add the sequence until later - it should be 0
@@ -401,11 +411,41 @@ static void validateDeserializedTransaction(BRRippleTransaction transaction)
     assert(0x80000000 == flags);
 }
 
+static void validateOptionalFields(BRRippleTransaction transaction,
+                                   uint32_t expectedSourceTag,
+                                   uint32_t expectedDestinationTag,
+                                   UInt256 *expectedInvoiceId,
+                                   BRRippleTransactionHash *expectedAccountTxnId)
+{
+    assert(transaction);
+
+    // source tag
+    uint32_t sourceTag = rippleTransactionGetSourceTag(transaction);
+    assert(expectedSourceTag == sourceTag);
+
+    // destination tag
+    uint32_t destinationTag = rippleTransactionGetDestinationTag(transaction);
+    assert(expectedDestinationTag == destinationTag);
+    
+    UInt256 invoiceId = rippleTransactionGetInvoiceID(transaction);
+    assert(0 == memcmp(expectedInvoiceId->u8, invoiceId.u8, 32));
+
+    BRRippleTransactionHash accountTxnId = rippleTransactionGetAccountTxnId(transaction);
+    assert(0 == memcmp(expectedAccountTxnId->bytes, accountTxnId.bytes, 32));
+}
+
 static void testTransactionDeserialize()
 {
     // This is a real tx blob coming back from ripple test server
     BRRippleTransaction transaction = transactionDeserialize(serialized_transaction, NULL);
     validateDeserializedTransaction(transaction);
+    UInt256 expectedInvoiceId;
+    memset(expectedInvoiceId.u8, 0x00, sizeof(expectedInvoiceId.u8));
+    BRRippleTransactionHash expectedAccountTxnId;
+    memset(expectedAccountTxnId.bytes, 0x00, sizeof(expectedAccountTxnId.bytes));
+    validateOptionalFields(transaction, 0, 0,
+                           &expectedInvoiceId, &expectedAccountTxnId);
+    
     deleteRippleTransaction(transaction);
 }
 
@@ -425,6 +465,22 @@ static void testTransactionDeserializeUnknownFields()
     transaction = transactionDeserialize(serialized_transaction, "0112");
     validateDeserializedTransaction(transaction);
     deleteRippleTransaction(transaction);
+
+}
+
+static void testTransactionDeserializeOptionalFields()
+{
+    const char * test_input = "1200002280000000240000000261D4838D7EA4C6800000000000000000000000000055534400000000004B4E9C06F24296074F7BC48F92A97916C6DC5EA968400000000000000C69D4838D7EA4C6800000000000000000000000000055534400000000004B4E9C06F24296074F7BC48F92A97916C6DC5EA981144B4E9C06F24296074F7BC48F92A97916C6DC5EA983143E9D4A2B8AA0780F682D136F7A56D6724EF53754";
+
+    BRRippleTransaction transaction = transactionDeserialize(test_input, NULL);
+    assert(transaction);
+
+    BRRippleAmount sendMax = rippleTransactionGetAmountRaw(transaction, SENDMAX);
+    assert(1 == sendMax.currencyType);
+
+    BRRippleAmount amountRaw = rippleTransactionGetAmountRaw(transaction, AMOUNT);
+    assert(1 == amountRaw.currencyType);
+    //assert(1 == amountRaw.amount);
 
 }
 
@@ -558,6 +614,7 @@ void rippleTransactionTests()
     testTransactionHash();
     testTransactionDeserialize();
     testTransactionDeserializeUnknownFields();
+    testTransactionDeserializeOptionalFields();
 }
 
 extern void

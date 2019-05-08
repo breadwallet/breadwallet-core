@@ -82,8 +82,15 @@ extern uint8_t* getSerializedBytes(BRRippleSerializedTransaction s);
 extern BRRippleTransactionHash rippleTransactionGetHash(BRRippleTransaction transaction);
 
 /**
- * Various getter methods for the transaction
+ * Get the Account Txn ID hash (if applicable)
  *
+ * @param  transaction   a valid ripple transaction
+ * @return hash          a BRRippleTransactionHash object
+ */
+extern BRRippleTransactionHash rippleTransactionGetAccountTxnId(BRRippleTransaction transaction);
+
+/**
+ * Various getter methods for the transaction
  */
 extern uint16_t rippleTransactionGetType(BRRippleTransaction transaction);
 extern uint64_t rippleTransactionGetFee(BRRippleTransaction transaction);
@@ -93,5 +100,11 @@ extern uint32_t rippleTransactionGetFlags(BRRippleTransaction transaction);
 extern BRRippleAddress rippleTransactionGetSource(BRRippleTransaction transaction);
 extern BRRippleAddress rippleTransactionGetTarget(BRRippleTransaction transaction);
 extern BRKey rippleTransactionGetPublicKey(BRRippleTransaction transaction);
+
+extern UInt256 rippleTransactionGetInvoiceID(BRRippleTransaction transaction);
+extern uint32_t rippleTransactionGetSourceTag(BRRippleTransaction transaction);
+extern uint32_t rippleTransactionGetDestinationTag(BRRippleTransaction transaction);
+
+extern BRRippleAmount rippleTransactionGetAmountRaw(BRRippleTransaction transaction, BRRippleAmountType amountType);
 
 #endif

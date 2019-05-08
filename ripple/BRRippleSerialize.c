@@ -349,18 +349,25 @@ int get_bytes(uint8_t *buffer, uint8_t *output, int length)
     return length;
 }
 
-// Amount fields - only XRP supported for now
-int get_amount(uint8_t * buffer, uint64_t * value)
+// Amount fields - either XRP or something else
+int get_amount(uint8_t * buffer, BRRippleAmount * amount)
 {
+    // If bit-0 is 0 then this is XRP
     bool isXRP = (buffer[0] & 0x80) == 0x00;
     if (isXRP) {
         // XRP currency
-        get_u64(buffer, value);
+        amount->currencyType = 0; // XRP
+        get_u64(buffer, &amount->amount);
         // Get rid of the sign bit - FYI, XRP is always possitive
-        *value = *value & 0xBFFFFFFFFFFFFFFF;
+        amount->amount = amount->amount & 0xBFFFFFFFFFFFFFFF;
         return 8; // always 8 bytes
     } else {
-        // Some other currency - not supported yet
+        // Some other currency
+        amount->currencyType = 1; // NOT XRP
+        // Ignore the non-XRP amounts for now - they are encoded as follows.
+        // <xrpbit><signbit><8-bit exponent><54-bit matissa>
+        memcpy(amount->currencyCode, &buffer[8], 20);
+        memcpy(amount->issuerId, &buffer[28], 20);
         return (384/8);
     }
 }
@@ -427,8 +434,8 @@ int get_content(uint8_t *buffer, BRRippleField *field)
             return get_bytes(buffer, field->data.hash, 16);
         case 5: // Hash256
             return get_bytes(buffer, field->data.hash, 32);
-        case 6: // Amount, 8-byte integer if XRP
-            return get_amount(buffer, &field->data.i64);
+        case 6: // Amount
+            return get_amount(buffer, &field->data.amount);
         case 7:
         case 8: // 7 & 8 are variable length fields
             return get_VLContent(buffer, field);
@@ -462,7 +469,6 @@ bool addFieldToList(BRRippleField * field)
         case 8:
         case 16:
         case 17:
-        case
             return true;
         default:
             return false;

@@ -19,6 +19,7 @@
 #include "BRRippleAccount.h"
 #include "BRCrypto.h"
 #include "BRArray.h"
+#include "BRInt.h"
 
 // Implemented in BRRippleAccount.c
 extern BRKey getKey(const char* paperKey);
@@ -28,7 +29,29 @@ typedef struct _txPaymentRecord {
     BRRippleAddress targetAddress;
 
     // The payment amount (currently only supporting XRP drops
-    uint64_t amount;
+    BRRippleAmount amount;
+
+    // (Optional) Arbitrary tag that identifies the reason for the payment
+    // to the destination, or a hosted recipient to pay.
+    uint32_t destinationTag;
+
+    // (Optional) Arbitrary 256-bit hash representing a specific
+    // reason or identifier for this payment.
+    uint8_t invoiceId[32];
+
+    // (Optional) Highest amount of source currency this transaction is
+    // allowed to cost, including transfer fees, exchange rates, and slippage.
+    // Does not include the XRP destroyed as a cost for submitting the transaction.
+    // For non-XRP amounts, the nested field names MUST be lower-case.
+    // Must be supplied for cross-currency/cross-issue payments.
+    // Must be omitted for XRP-to-XRP payments.
+    BRRippleAmount sendMax;
+
+    // (Optional) Minimum amount of destination currency this transaction should deliver.
+    // Only valid if this is a partial payment.
+    //For non-XRP amounts, the nested field names are lower-case.
+    BRRippleAmount deliverMin;
+
 } BRRipplePaymentTxRecord;
 
 struct BRRippleTransactionRecord {
@@ -41,8 +64,8 @@ struct BRRippleTransactionRecord {
     // The Transaction type
     BRRippleTransactionType transactionType;
 
-    // The transaction fee (in drops)
-    uint64_t fee;
+    // The transaction fee in drops (always XRP if I read the docs correctly)
+    BRRippleAmount fee;
     
     // The next valid sequence number for the initiating account
     uint32_t sequence;
@@ -61,6 +84,18 @@ struct BRRippleTransactionRecord {
     BRRippleSerializedTransaction signedBytes;
 
     BRRippleSignatureRecord signature;
+
+    // Other fields that might show up when deserializing
+
+    // Hash value identifying another transaction. If provided, this transaction
+    //is only valid if the sending account's previously-sent transaction matches the provided hash.
+    BRRippleTransactionHash accountTxnID;
+
+    // Arbitrary integer used to identify the reason for this payment,
+    // or a sender on whose behalf this transaction is made. Conventionally,
+    // a refund should specify the initial payment's SourceTag as the refund
+    // payment's DestinationTag.
+    uint32_t sourceTag;
 };
 
 struct BRRippleSerializedTransactionRecord {
@@ -91,7 +126,8 @@ rippleTransactionCreate(BRRippleAddress sourceAddress,
     BRRippleTransaction transaction = createTransactionObject();
 
     // Common fields
-    transaction->fee = fee;
+    transaction->fee.currencyType = 0; // XRP
+    transaction->fee.amount = fee;
     transaction->sourceAddress = sourceAddress;
     transaction->transactionType = PAYMENT;
     transaction->flags = 0x80000000; // tfFullyCanonicalSig
@@ -99,7 +135,8 @@ rippleTransactionCreate(BRRippleAddress sourceAddress,
 
     // Payment information
     transaction->payment->targetAddress = targetAddress;
-    transaction->payment->amount = amount;
+    transaction->payment->amount.currencyType = 0; // XRP
+    transaction->payment->amount.amount = amount; // XRP only
     
     transaction->signedBytes = 0;
 
@@ -138,7 +175,7 @@ int setFieldInfo(BRRippleField *fields, BRRippleTransaction transaction,
 
     fields[index].typeCode = 6;
     fields[index].fieldCode = 8;
-    fields[index++].data.i64 = transaction->fee;
+    fields[index++].data.i64 = transaction->fee.amount;
     
     // Payment info
     fields[index].typeCode = 8;
@@ -147,7 +184,7 @@ int setFieldInfo(BRRippleField *fields, BRRippleTransaction transaction,
 
     fields[index].typeCode = 6;
     fields[index].fieldCode = 1;
-    fields[index++].data.i64 = transaction->payment->amount;
+    fields[index++].data.i64 = transaction->payment->amount.amount; // XRP only
 
     // Public key info
     fields[index].typeCode = 7;
@@ -281,6 +318,19 @@ extern BRRippleTransactionHash rippleTransactionGetHash(BRRippleTransaction tran
     return hash;
 }
 
+extern BRRippleTransactionHash rippleTransactionGetAccountTxnId(BRRippleTransaction transaction)
+{
+    assert(transaction);
+
+    BRRippleTransactionHash hash;
+    memset(hash.bytes, 0x00, sizeof(hash.bytes));
+
+    // Copy whatever is in the field - might be nulls
+    memcpy(hash.bytes, transaction->accountTxnID.bytes, 32);
+
+    return hash;
+}
+
 extern uint16_t rippleTransactionGetType(BRRippleTransaction transaction)
 {
     assert(transaction);
@@ -290,13 +340,13 @@ extern uint16_t rippleTransactionGetType(BRRippleTransaction transaction)
 extern uint64_t rippleTransactionGetFee(BRRippleTransaction transaction)
 {
     assert(transaction);
-    return transaction->fee;
+    return transaction->fee.amount; // XRP always
 }
 extern uint64_t rippleTransactionGetAmount(BRRippleTransaction transaction)
 {
     assert(transaction);
     assert(transaction->payment);
-    return transaction->payment->amount;
+    return transaction->payment->amount.amount; // XRP only
 }
 extern uint32_t rippleTransactionGetSequence(BRRippleTransaction transaction)
 {
@@ -332,40 +382,105 @@ extern BRRippleSignatureRecord rippleTransactionGetSignature(BRRippleTransaction
     return transaction->signature;
 }
 
+extern UInt256 rippleTransactionGetInvoiceID(BRRippleTransaction transaction)
+{
+    assert(transaction);
+    assert(transaction->payment);
+    UInt256 bytes;
+    memset(bytes.u8, 0x00, sizeof(bytes.u8));
+    memcpy(bytes.u8, transaction->payment->invoiceId, 32);
+    return bytes;
+}
+
+extern uint32_t rippleTransactionGetSourceTag(BRRippleTransaction transaction)
+{
+    assert(transaction);
+    return transaction->sourceTag;
+}
+
+extern uint32_t rippleTransactionGetDestinationTag(BRRippleTransaction transaction)
+{
+    assert(transaction);
+    assert(transaction->payment);
+    return transaction->payment->destinationTag;
+}
+
+extern BRRippleAmount rippleTransactionGetAmountRaw(BRRippleTransaction transaction,
+                                                    BRRippleAmountType amountType)
+{
+    if (FEE == amountType) {
+        return transaction->fee;
+    } else if (transaction->payment != NULL) {
+        switch(amountType) {
+            case AMOUNT:
+                return transaction->payment->amount;
+            case SENDMAX:
+                return transaction->payment->sendMax;
+            case DELIVERMIN:
+                return transaction->payment->deliverMin;
+        }
+    }
+
+    BRRippleAmount amount;
+    amount.currencyType = -1; // Invalid
+    return amount;
+}
+
 void getFieldInfo(BRRippleField *fields, int fieldLength, BRRippleTransaction transaction)
 {
     for (int i = 0; i < fieldLength; i++) {
         switch(fields[i].typeCode) {
             case 1:
-                if (fields[i].fieldCode == 2) {
+                if (2 == fields[i].fieldCode) {
                     transaction->transactionType = fields[i].data.i16;
                 }
                 break;
             case 2:
-                if (fields[i].fieldCode == 2) {
+                if (2 == fields[i].fieldCode) {
                     transaction->flags = fields[i].data.i32;
-                } else if (fields[i].fieldCode == 4) {
+                } else if (3 == fields[i].fieldCode) {
+                    transaction->sourceTag = fields[i].data.i32;
+                } else if (4 == fields[i].fieldCode) {
                     transaction->sequence = fields[i].data.i32;
+                } else if (14 == fields[i].fieldCode
+                           && transaction->payment != NULL) {
+                    transaction->payment->destinationTag = fields[i].data.i32;
                 }
                 break;
-            case 6:
-                // This is the "amount" fields.
-                if (fields[i].fieldCode == 1) { // amount
-                    transaction->payment->amount = fields[i].data.i64;
-                } else if (fields[i].fieldCode == 8) { // fee
-                    transaction->fee = fields[i].data.i64;
+            case 5: // Hash256
+                if (9 == fields[i].fieldCode) {
+                    memcpy(transaction->accountTxnID.bytes, fields[i].data.hash, 32);
+                } else if (17 == fields[i].fieldCode &&
+                           transaction->payment != NULL) {
+                    memcpy(transaction->payment->invoiceId, fields[i].data.hash, 32);
                 }
-            case 7:
-                if (fields[i].fieldCode == 3) { // public key
+                break;
+            case 6: // Amount object
+                if (8 == fields[i].fieldCode) { // fee)
+                    transaction->fee = fields[i].data.amount;
+                } else if (transaction->payment != NULL) {
+                    // The other amounts are attached to the payment object so
+                    // hence the check above.
+                    if (1 == fields[i].fieldCode) { // amount
+                        transaction->payment->amount = fields[i].data.amount;
+                    } else if (9 == fields[i].fieldCode) { // fee
+                        transaction->payment->sendMax = fields[i].data.amount;
+                    } else if (10 == fields[i].fieldCode) {
+                        transaction->payment->deliverMin = fields[i].data.amount;
+                    }
+                }
+            case 7: // Blob data
+                if (3 == fields[i].fieldCode) { // public key
                     transaction->publicKey = fields[i].data.publicKey;
-                } else if (fields[i].fieldCode == 4) { // signature
+                } else if (4 == fields[i].fieldCode) { // signature
                     transaction->signature = fields[i].data.signature;
                 }
                 break;
-            case 8:
-                if (fields[i].fieldCode == 1) { // source address
+            case 8: // Addresses - 20 bytes
+                if (1 == fields[i].fieldCode) { // source address
                     transaction->sourceAddress = fields[i].data.address;
-                } else if (fields[i].fieldCode == 3) { // target address
+                } else if (3 == fields[i].fieldCode &&
+                           transaction->payment != NULL) { // target address
                     transaction->payment->targetAddress = fields[i].data.address;
                 }
             default:
