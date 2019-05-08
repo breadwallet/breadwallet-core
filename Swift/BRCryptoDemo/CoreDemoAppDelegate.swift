@@ -49,7 +49,8 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         //                                         paperKey: "0x8975dbc1b8f25ec994815626d070899dda896511")
         //                                         paperKey: "0xb302B06FDB1348915599D21BD54A06832637E5E8")
 
-        guard let account = Account.createFrom (phrase: paperKey) else {
+        let walletId = UUID (uuidString: "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96")?.uuidString ?? "empty-wallet-id"
+        guard let account = Account.createFrom (phrase: paperKey, uids: walletId) else {
             precondition(false, "No account")
             return false
         }

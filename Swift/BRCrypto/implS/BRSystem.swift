@@ -189,7 +189,17 @@ public final class SystemBase: System {
     internal static func resetForTest () {
         instance = nil
     }
-    
+
+    public func subscribe (using subscription: BlockChainDB.Subscription) {
+        self.query.subscribe (walletId: account.uids,
+                              subscription: subscription)
+    }
+
+    public func announce (transaction id: String, data: [String: Any]) {
+        
+
+    }
+
     /// Stop the system.  All managers are disconnected.
     public func stop () {
         managers.forEach { $0.disconnect() }
