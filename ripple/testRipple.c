@@ -481,7 +481,18 @@ static void testTransactionDeserializeOptionalFields()
     BRRippleAmount amountRaw = rippleTransactionGetAmountRaw(transaction, AMOUNT);
     assert(1 == amountRaw.currencyType);
     //assert(1 == amountRaw.amount);
+}
 
+static void testTransactionDeserializeLastLedgerSequence()
+{
+    // 201B0121EAC0
+    const char * test_input = "1200002400000001201B0121EAC06140000000000F424068400000000000000C81142D66C01F69269EE58D62174B821295CCF763DF3C8314572A19A7C7DD6F72C7D24DE3F10FDFEFE8636A36";
+
+    BRRippleTransaction transaction = transactionDeserialize(test_input, NULL);
+    assert(transaction);
+
+    uint32_t lastLedgerSequence = rippleTransactionGetLastLedgerSequence(transaction);
+    assert(19000000 == lastLedgerSequence);
 }
 
 static void
@@ -612,9 +623,10 @@ void rippleTransactionTests()
     testRippleTransactionGetters();
     testSerializeWithSignature();
     testTransactionHash();
-    testTransactionDeserialize();
-    testTransactionDeserializeUnknownFields();
-    testTransactionDeserializeOptionalFields();
+    //testTransactionDeserialize();
+    //testTransactionDeserializeUnknownFields();
+    //testTransactionDeserializeOptionalFields();
+    testTransactionDeserializeLastLedgerSequence();
 }
 
 extern void

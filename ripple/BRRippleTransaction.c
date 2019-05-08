@@ -405,6 +405,12 @@ extern uint32_t rippleTransactionGetDestinationTag(BRRippleTransaction transacti
     return transaction->payment->destinationTag;
 }
 
+extern uint32_t rippleTransactionGetLastLedgerSequence(BRRippleTransaction transaction)
+{
+    assert(transaction);
+    return transaction->lastLedgerSequence;
+}
+
 extern BRRippleAmount rippleTransactionGetAmountRaw(BRRippleTransaction transaction,
                                                     BRRippleAmountType amountType)
 {
@@ -445,6 +451,8 @@ void getFieldInfo(BRRippleField *fields, int fieldLength, BRRippleTransaction tr
                 } else if (14 == fields[i].fieldCode
                            && transaction->payment != NULL) {
                     transaction->payment->destinationTag = fields[i].data.i32;
+                } else if (27 == fields[i].fieldCode) {
+                    transaction->lastLedgerSequence = fields[i].data.i32;
                 }
                 break;
             case 5: // Hash256

@@ -97,6 +97,7 @@ extern uint64_t rippleTransactionGetFee(BRRippleTransaction transaction);
 extern uint64_t rippleTransactionGetAmount(BRRippleTransaction transaction);
 extern uint32_t rippleTransactionGetSequence(BRRippleTransaction transaction);
 extern uint32_t rippleTransactionGetFlags(BRRippleTransaction transaction);
+extern uint32_t rippleTransactionGetLastLedgerSequence(BRRippleTransaction transaction);
 extern BRRippleAddress rippleTransactionGetSource(BRRippleTransaction transaction);
 extern BRRippleAddress rippleTransactionGetTarget(BRRippleTransaction transaction);
 extern BRKey rippleTransactionGetPublicKey(BRRippleTransaction transaction);

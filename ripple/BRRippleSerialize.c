@@ -87,10 +87,12 @@ int add_fieldid(int type, int code, uint8_t *buffer)
 {
     if (type < 16) {
         if (code < 16) {
+            // Common type and name
             unsigned char fieldid = (unsigned char)((type << 4) | code);
             buffer[0] = fieldid;
             return 1;
         } else {
+            // Common type, uncommon name
             buffer[0] = type << 4;
             buffer[1] = code;
             return 2;
@@ -98,7 +100,7 @@ int add_fieldid(int type, int code, uint8_t *buffer)
     }
     else if (code < 16)
     {
-        // uncommon type, common name
+        // uncommon type, common name, reverse the byte order
         buffer[0] = code;
         buffer[1] = type;
         return 2;
@@ -269,16 +271,26 @@ int get_fieldcode(uint8_t * buffer, BRRippleField *field)
 
     if (buffer[0] == 0) {
         // This is an uncommon type with 3 bytes
+        // both type and field >= 16
         field->typeCode = buffer[1];
         field->fieldCode = buffer[2];
         return 3; // 3-bytes to store the code
-    } else if (buffer[0] < 16) {
-        // The type and code are in reverse order in this case
+    } else if ((buffer[0] & 0x0F) == 0) {
+        // lower 4 bits of first byte are all off
+        // 2 byte code where type < 16, field >= 16
+        field->typeCode = buffer[0] >> 4 & 0x0F;
+        field->fieldCode = buffer[1];
+        return 2; // 2 bytes to store the code
+    } else if ((buffer[0] & 0xF0) == 0) {
+        // high 4 bits of first byte are all off
+        // 2-byte code where type >= 16, field < 16
+        // reverse byte order
         field->typeCode = buffer[1];
         field->fieldCode = buffer[0];
-        return 2; // 2 bytes to store the code
+        return 2;
     } else {
         // This is the most common case - type and field are in the same byte
+        // both type and code < 16
         field->fieldCode = buffer[0] & 0x0F;
         field->typeCode = buffer[0] >> 4 & 0x0F;
         return 1; // 1 byte to store the code
