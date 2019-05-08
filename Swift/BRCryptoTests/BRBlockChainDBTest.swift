@@ -188,7 +188,8 @@ class BRBlockChainDBTest: XCTestCase {
 
         expectation = XCTestExpectation (description: "wallet create")
 
-        db.createWallet(id: walletId, currencies: []) {
+        let wallet = (id: walletId, currencies: BlockChainDB.minimalCurrencies)
+        db.createWallet (wallet) {
             (res: Result<BlockChainDB.Model.Wallet, BlockChainDB.QueryError>) in
             guard case let .success (wallet) = res
                 else { XCTAssert(false); return }
@@ -199,8 +200,16 @@ class BRBlockChainDBTest: XCTestCase {
 
         wait(for: [expectation], timeout: 60)
 
+        db.deleteWallet(id: walletId) {
+            (res: Result<BlockChainDB.Model.Wallet, BlockChainDB.QueryError>) in
+            guard case let .success (wallet) = res
+                else { XCTAssert(false); return }
 
+            XCTAssertEqual (walletId, wallet.id )
+            self.expectation.fulfill()
+        }
 
+        wait(for: [expectation], timeout: 60)
     }
 
     func testSubscription () {
