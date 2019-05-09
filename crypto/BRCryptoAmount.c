@@ -100,9 +100,18 @@ extern BRCryptoAmount
 cryptoAmountCreateString (const char *value,
                           BRCryptoBoolean isNegative,
                           BRCryptoUnit unit) {
+    UInt256 v;
     BRCoreParseStatus status;
 
-    UInt256 v = createUInt256Parse (value, 0, &status);
+    // Try to parse as an integer
+    v = createUInt256Parse (value, 0, &status);
+
+    // if that fails, try to parse as a decimal
+    if (CORE_PARSE_OK != status) {
+        v = createUInt256ParseDecimal (value, cryptoUnitGetBaseDecimalOffset (unit), &status);
+        unit = cryptoUnitGetBaseUnit(unit);
+    }
+
     return (CORE_PARSE_OK != status ? NULL : cryptoAmountCreateUInt256 (v, isNegative, unit));
 }
 
