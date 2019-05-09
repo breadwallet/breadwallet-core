@@ -9,21 +9,62 @@
  */
 package com.breadwallet.crypto;
 
-public class Currency {
-    public final String code;
-    public final String symbol;
-    public final String name;
-    public final int decimals;
+import com.breadwallet.crypto.jni.CryptoLibrary;
+import com.breadwallet.crypto.jni.CryptoLibrary.BRCryptoCurrency;
 
-    public final Unit baseUnit;
-    public final Unit defaultUnit;
+import java.util.Objects;
 
-    public Currency(String code, String symbol, String name, int decimals, String baseUnitName, String baseUnitSymbol) {
-        this.code = code;
-        this.symbol = symbol;
-        this.name = name;
-        this.decimals = decimals;
-        this.baseUnit    = new Unit (this, baseUnitName, baseUnitSymbol);
-        this.defaultUnit = new Unit (code, symbol, (long) Math.pow (10, decimals), this.baseUnit);
+public final class Currency {
+
+    public static final String CODE_AS_BTC = "btc";
+    public static final String CODE_AS_BCH = "bch";
+    public static final String CODE_AS_ETH = "eth";
+
+    /* package */ final BRCryptoCurrency core;
+    private final String uids;
+
+    /* package */ Currency(String uids, String name, String code, String type) {
+        this(CryptoLibrary.INSTANCE.cryptoCurrencyCreate(name, code, type), uids);
+    }
+
+    private Currency(BRCryptoCurrency core, String uids) {
+        this.core = core;
+        this.uids = uids;
+    }
+
+    @Override
+    protected void finalize() {
+        CryptoLibrary.INSTANCE.cryptoCurrencyGive(core);
+    }
+
+    public String getName() {
+        return CryptoLibrary.INSTANCE.cryptoCurrencyGetName(core);
+    }
+
+    public String getCode() {
+        return CryptoLibrary.INSTANCE.cryptoCurrencyGetCode(core);
+    }
+
+    public String getType() {
+        return CryptoLibrary.INSTANCE.cryptoCurrencyGetType(core);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        Currency currency = (Currency) o;
+        return uids.equals(currency.uids);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(uids);
     }
 }

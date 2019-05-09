@@ -27,6 +27,7 @@
 #define BRCryptoAccount_h
 
 #include <inttypes.h>
+#include "BRInt.h"
 #include "BRCryptoBase.h"
 #include "../ethereum/ewm/BREthereumAccount.h"
 
