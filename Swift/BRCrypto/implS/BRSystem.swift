@@ -823,7 +823,7 @@ public final class SystemBase: System {
                         repeat {
                             // Get a C pointer to `addressesLimit` BRAddress structures
                             let addressesLimit:Int = 25
-                            let addressesPointer = BRWalletManagerGetUnusedAddrs (bid, UInt32(addressesLimit))
+                            let addressesPointer = BRWalletManagerGetUnusedAddrsLegacy (bid, UInt32(addressesLimit))
                             defer { free (addressesPointer) }
 
                             // Convert the C pointer into a Swift array of BRAddress

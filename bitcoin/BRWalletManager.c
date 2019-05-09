@@ -750,15 +750,32 @@ BRWalletManagerSubmitTransaction (BRWalletManager manager,
     }
 }
 
+static void
+BRWalletManagerAddressToLegacy (BRAddress *addr) {
+    uint8_t script[] = { OP_DUP, OP_HASH160, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, OP_EQUALVERIFY, OP_CHECKSIG };
+
+    if (BRAddressHash160(&script[3], addr->s)) BRAddressFromScriptPubKey(addr->s, sizeof(BRAddress), script, sizeof(script));
+}
+
 extern BRAddress *
 BRWalletManagerGetUnusedAddrs (BRWalletManager manager,
                                uint32_t limit) {
-    //    assert (sizeof (size_t) == sizeof (uint32_t));
-
     BRAddress *addresses = calloc (limit, sizeof (BRAddress));
     BRWalletUnusedAddrs (manager->wallet, addresses, (uint32_t) limit, 0);
     return addresses;
 }
+
+extern BRAddress *
+BRWalletManagerGetUnusedAddrsLegacy (BRWalletManager manager,
+                                     uint32_t limit) {
+    BRAddress *addresses = BRWalletManagerGetUnusedAddrs (manager, limit);
+    for (size_t index = 0; index < limit; index++)
+        BRWalletManagerAddressToLegacy (&addresses[index]);
+    return addresses;
+}
+
+
 
 static void
 BRWalletManagerUpdateHeightIfAppropriate (BRWalletManager manager,

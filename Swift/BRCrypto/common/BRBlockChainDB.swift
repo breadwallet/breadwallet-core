@@ -1654,7 +1654,7 @@ public class BlockChainDB {
                         completion (false && (embedded && full),
                             res.flatMap { (json: JSON) -> Result<[JSON], QueryError> in
                                 let json = (embedded
-                                    ? json.asDict(name: "_embedded")?[path]
+                                    ? (json.asDict(name: "_embedded")?[path] ?? [])
                                     : [json.dict])
 
                                 guard let data = json as? [JSON.Dict]
