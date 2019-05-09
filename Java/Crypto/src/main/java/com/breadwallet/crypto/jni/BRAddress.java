@@ -1,5 +1,6 @@
 package com.breadwallet.crypto.jni;
 
+import com.breadwallet.crypto.Address;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 
@@ -49,8 +50,8 @@ public class BRAddress extends Structure {
 			super();
 		}
 
-		public ByValue(byte[] s) {
-			super(s);
+		public ByValue(BRAddress address) {
+			super(address.s);
 		}
 	};
 }

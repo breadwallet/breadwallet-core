@@ -66,13 +66,29 @@ public class AmountAIT {
         assertEquals(new Double(-1), btc4s.doubleAmount(btc_btc).get());
         // TODO: Add string tests
 
-        // TODO: Believe this is a bug in core; fix and re-enable
-//        assertFalse(Amount.create("w0x5f5e100", false, satoshi_btc).isPresent());
+        assertFalse(Amount.create("w0x5f5e100", false, satoshi_btc).isPresent());
         assertFalse(Amount.create("0x5f5e100w", false, satoshi_btc).isPresent());
         assertFalse(Amount.create("1000000000000000000000000000000000000000000000000000000000000000000000000000000000000", false, satoshi_btc).isPresent());
 
         assertFalse(Amount.create("-1", false, satoshi_btc).isPresent());
         assertFalse(Amount.create("+1", false, satoshi_btc).isPresent());
+        assertFalse(Amount.create("0.1", false, satoshi_btc).isPresent());
+        assertFalse(Amount.create("1.1", false, satoshi_btc).isPresent());
+        assertTrue(Amount.create("1.0", false, satoshi_btc).isPresent());
+        assertTrue(Amount.create("1", false, satoshi_btc).isPresent());
+
+        assertTrue(Amount.create("0.1", false, btc_btc).isPresent());
+        assertTrue(Amount.create("1.1", false, btc_btc).isPresent());
+        assertTrue(Amount.create("1.0", false, btc_btc).isPresent());
+        assertTrue(Amount.create("1.", false, btc_btc).isPresent());
+
+        assertEquals(new Double(10000000), Amount.create("0.1", false, btc_btc).get().doubleAmount(satoshi_btc).get());
+        assertEquals(new Double(110000000), Amount.create("1.1", false, btc_btc).get().doubleAmount(satoshi_btc).get());
+        assertEquals(new Double(100000000), Amount.create("1.0", false, btc_btc).get().doubleAmount(satoshi_btc).get());
+        assertEquals(new Double(100000000), Amount.create("1.", false, btc_btc).get().doubleAmount(satoshi_btc).get());
+
+        assertTrue(Amount.create("0.12345678", false, btc_btc).isPresent());
+        assertFalse(Amount.create("0.123456789", false, btc_btc).isPresent());
     }
 
     @Test

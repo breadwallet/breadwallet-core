@@ -35,13 +35,13 @@ public final class Address {
             return Optional.absent();
         }
 
-        BRAddress.ByValue addressValue = new BRAddress.ByValue(BRAddress.addressFill(address).s);
+        BRAddress.ByValue addressValue = new BRAddress.ByValue(BRAddress.addressFill(address));
         return Optional.of(new Address(CryptoLibrary.INSTANCE.cryptoAddressCreateAsBTC(addressValue)));
     }
 
     /* package */ static Address createAsBtc(BRAddress address) {
         // TODO: Can we just create cryptoAddressCreateAsBTCString function in the C layer?
-        BRAddress.ByValue addressValue = new BRAddress.ByValue(address.s);
+        BRAddress.ByValue addressValue = new BRAddress.ByValue(address);
         return new Address(CryptoLibrary.INSTANCE.cryptoAddressCreateAsBTC(addressValue));
     }
 
@@ -56,7 +56,7 @@ public final class Address {
 
     /* package */ static Address createAsEth(BREthereumAddress address) {
         // TODO: Can we just create cryptoAddressCreateAsETHString function in the C layer?
-        BREthereumAddress.ByValue addressValue = new BREthereumAddress.ByValue(address.s);
+        BREthereumAddress.ByValue addressValue = new BREthereumAddress.ByValue(address);
         return new Address(CryptoLibrary.INSTANCE.cryptoAddressCreateAsETH(addressValue));
     }
 
@@ -73,8 +73,6 @@ public final class Address {
     public String toString() {
         Pointer addressPtr = CryptoLibrary.INSTANCE.cryptoAddressAsString(core);
         String addressStr = addressPtr.getString(0, "UTF-8");
-
-        // TODO: Is it safe to use this? Should we have a cryptoAddressStringFree?
         Native.free(Pointer.nativeValue(addressPtr));
         return addressStr;
     }

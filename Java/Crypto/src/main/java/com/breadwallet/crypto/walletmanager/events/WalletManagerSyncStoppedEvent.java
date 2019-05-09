@@ -1,11 +1,16 @@
 package com.breadwallet.crypto.walletmanager.events;
 
+import com.google.common.base.Optional;
+
 public final class WalletManagerSyncStoppedEvent implements WalletManagerEvent {
 
-    // TODO: Part of a large discussion; should these be behind getters?
-    public final String error;
+    private final String error;
 
     public WalletManagerSyncStoppedEvent(String error) {
         this.error = error;
+    }
+
+    public Optional<String> getError() {
+        return Optional.fromNullable(error);
     }
 }

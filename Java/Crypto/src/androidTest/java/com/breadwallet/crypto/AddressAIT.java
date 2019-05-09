@@ -12,17 +12,17 @@ public class AddressAIT {
         Optional<Address> oe1 = Address.createAsEth("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62");
         assertTrue(oe1.isPresent());
         Address e1 = oe1.get();
-        assertEquals(e1.toString(), "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62");
+        assertEquals("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", e1.toString());
 
         Optional<Address> oe2 = Address.createAsEth("0xd3CFBA03Fc13dc01F0C67B88CBEbE776D8F3DE8f");
         assertTrue(oe2.isPresent());
         Address e2 = oe2.get();
-        assertEquals(e2.toString(), "0xd3CFBA03Fc13dc01F0C67B88CBEbE776D8F3DE8f");
+        assertEquals("0xd3CFBA03Fc13dc01F0C67B88CBEbE776D8F3DE8f", e2.toString());
 
         Optional<Address> oe3 = Address.createAsEth("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62");
         assertTrue(oe3.isPresent());
         Address e3 = oe3.get();
-        assertEquals(e3.toString(), "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62");
+        assertEquals("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", e3.toString());
 
         assertEquals(e1, e1);
         assertEquals(e1, e3);
@@ -37,7 +37,7 @@ public class AddressAIT {
         Optional<Address> ob1 = Address.createAsBtc("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj");
         assertTrue(ob1.isPresent());
         Address b1 = ob1.get();
-        assertEquals(b1.toString(), "1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj");
+        assertEquals("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj", b1.toString());
 
         // TODO: Expand coverage
     }

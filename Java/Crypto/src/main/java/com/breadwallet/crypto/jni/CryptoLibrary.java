@@ -8,8 +8,7 @@ import com.sun.jna.ptr.IntByReference;
 
 public interface CryptoLibrary extends Library {
     String JNA_LIBRARY_NAME = "crypto";
-    CryptoLibrary INSTANCE = Native.loadLibrary(CryptoLibrary.JNA_LIBRARY_NAME, CryptoLibrary.class);
-
+    CryptoLibrary INSTANCE = Native.load(CryptoLibrary.JNA_LIBRARY_NAME, CryptoLibrary.class);
 
     /**
      * <i>native declaration : crypto/BRCryptoBase.h:3</i><br>

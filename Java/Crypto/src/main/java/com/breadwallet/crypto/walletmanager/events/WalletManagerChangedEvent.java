@@ -4,12 +4,19 @@ import com.breadwallet.crypto.walletmanager.WalletManagerState;
 
 public final class WalletManagerChangedEvent implements WalletManagerEvent {
 
-    // TODO: Part of a large discussion; should these be behind getters?
-    public final WalletManagerState oldState;
-    public final WalletManagerState newState;
+    private final WalletManagerState oldState;
+    private final WalletManagerState newState;
 
     public WalletManagerChangedEvent(WalletManagerState oldState, WalletManagerState newState) {
         this.oldState = oldState;
         this.newState = newState;
+    }
+
+    public WalletManagerState getOldState() {
+        return oldState;
+    }
+
+    public WalletManagerState getNewState() {
+        return newState;
     }
 }

@@ -4,9 +4,13 @@ import com.breadwallet.crypto.Amount;
 
 public final class WalletBalanceUpdatedEvent implements WalletEvent {
 
-    public final Amount balance;
+    private final Amount balance;
 
     public WalletBalanceUpdatedEvent(Amount balance) {
         this.balance = balance;
+    }
+
+    public Amount getBalance() {
+        return balance;
     }
 }

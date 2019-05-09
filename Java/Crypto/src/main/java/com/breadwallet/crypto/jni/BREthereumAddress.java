@@ -39,8 +39,8 @@ public class BREthereumAddress extends Structure {
 			super();
 		}
 
-		public ByValue(byte[] s) {
-			super(s);
+		public ByValue(BREthereumAddress address) {
+			super(address.s);
 		}
 	};
 }
