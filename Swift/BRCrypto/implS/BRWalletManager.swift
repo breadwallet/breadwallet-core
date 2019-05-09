@@ -82,6 +82,7 @@ class WalletManagerImplS: WalletManager {
             wallets.append (wallet)
             wallet.announceEvent (WalletEvent.created)
             announceEvent (WalletManagerEvent.walletAdded(wallet: wallet))
+            (system as? SystemBase)?.updateSubscribedWallets()
         }
     }
 

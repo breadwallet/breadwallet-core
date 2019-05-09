@@ -89,6 +89,11 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
                                          path: storagePath,
                                          query: query)
 
+        // Subscribe to notificiations or not (Provide an endpoint if notifications are enabled).
+        let subscriptionId = UIDevice.current.identifierForVendor!.uuidString
+        let subscription = BlockChainDB.Subscription (id: subscriptionId, endpoint: nil);
+        self.system.subscribe (using: subscription)
+
         self.system.start (networksNeeded: ["bitcoin-mainnet","ethereum-mainnet"])
 
         return true

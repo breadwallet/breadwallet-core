@@ -54,10 +54,10 @@ public class BlockChainDB {
     public struct Subscription {
         
         /// A unique identifier for the subscription
-        let subscriptionId: String
+        public let subscriptionId: String
 
         /// A unique identifier for the device.
-        let deviceId: String
+        public let deviceId: String
 
         ///
         /// An endpoint definition allowing the BlockchainDB to 'target' this App.  Allows
@@ -67,7 +67,13 @@ public class BlockChainDB {
         /// environment : { unknown, production, development }
         /// kind        : { unknown, apns, fcm, ... }
         /// value       : For apns/fcm this will be the registration token, apns should be hex-encoded
-        let endpoint: (environment: String, kind: String, value: String)?
+        public let endpoint: (environment: String, kind: String, value: String)?
+
+        public init (id: String, deviceId: String? = nil, endpoint: (environment: String, kind: String, value: String)?) {
+            self.subscriptionId = id
+            self.deviceId = deviceId ?? id
+            self.endpoint = endpoint
+        }
     }
 
     /// A User-specific identifier - a string representation of a UUIDv4
@@ -95,7 +101,7 @@ public class BlockChainDB {
         self.walletId = walletId
         self.subscription = subscription
 
-        // Subscribing requires a wallet on the BlockChainID, so start by create the BlockChainDB
+        // Subscribing requires a wallet on the BlockChainDD, so start by create the BlockChainDB
         // Model.Wallet and then get or create one on the DB.
 
         let wallet = (id: walletId, currencies: BlockChainDB.minimalCurrencies)
@@ -493,7 +499,7 @@ public class BlockChainDB {
 //        }
 
         static internal func asWallet (json: JSON) -> Model.Wallet? {
-            guard let id = json.asString (name: "wallet_id")
+            guard let id = json.asString (name: "id")
                 else { return nil }
 
             if let currencies = json.asDict(name: "currencies") as? [String:[String]] {
@@ -507,7 +513,8 @@ public class BlockChainDB {
 
         static internal func asJSON (wallet: Wallet) -> JSON.Dict {
             return [
-                "wallet_id"     : wallet.id,
+                "id"            : wallet.id,
+                "created"       : "2019-05-06T01:08:49.495+0000",
                 "currencies"    : wallet.currencies
             ]
         }
@@ -554,7 +561,7 @@ public class BlockChainDB {
             return [
                 "subscription_id"   : subscription.id,
                 "wallet_id"         : subscription.wallet,
-                "device_id"         : subscription.endpoint,
+                "device_id"         : subscription.device,
                 "endpoint"          : asJSON (subscriptionEndpoint: subscription.endpoint)
             ]
         }
@@ -1568,14 +1575,14 @@ public class BlockChainDB {
             do {
                 guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? T
                     else {
-                        print ("SYS: API: ERROR: JSON.Dict: \(data.map { String(format: "%c", $0) }.joined())")
+                        print ("SYS: API: ERROR: JSON.Dict: '\(data.map { String(format: "%c", $0) }.joined())'")
                         completion (Result.failure(QueryError.jsonParse(nil)));
                         return }
 
                 completion (Result.success (json))
             }
             catch let jsonError as NSError {
-                print ("SYS: API: ERROR: JSON.Error: \(data.map { String(format: "%c", $0) }.joined())")
+                print ("SYS: API: ERROR: JSON.Error: '\(data.map { String(format: "%c", $0) }.joined())'")
                 completion (Result.failure (QueryError.jsonParse (jsonError)))
                 return
             }
@@ -1600,7 +1607,7 @@ public class BlockChainDB {
         guard let url = urlBuilder.url
             else { completion (Result.failure (QueryError.url("URLComponents.url"))); return }
 
-        print ("SYS: Request: \(url.absoluteString): Data: \(data?.description ?? "[]")")
+        print ("SYS: Request: \(url.absoluteString): Method: \(httpMethod): Data: \(data?.description ?? "[]")")
 
         var request = URLRequest (url: url)
         request.addValue ("application/json", forHTTPHeaderField: "accept")

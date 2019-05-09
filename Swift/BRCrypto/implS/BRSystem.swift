@@ -196,8 +196,16 @@ public final class SystemBase: System {
     }
 
     public func announce (transaction id: String, data: [String: Any]) {
-        
+        print ("SYS: Announce: \(id)")
+    }
 
+    internal func updateSubscribedWallets () {
+        let currencyKeyValues = wallets.map { ($0.currency.code, [$0.source.description]) }
+        let wallet = (id: account.uids,
+                      currencies: Dictionary (uniqueKeysWithValues: currencyKeyValues))
+        self.query.updateWallet (wallet) { (res: Result<BlockChainDB.Model.Wallet, BlockChainDB.QueryError>) in
+            print ("SYS: SubscribedWallets: \(res)")
+        }
     }
 
     /// Stop the system.  All managers are disconnected.
@@ -288,7 +296,8 @@ public final class SystemBase: System {
                         }
 
                         // the default currency
-                        let currency = associations.keys.first { $0.code == blockchainModel.currency.lowercased() }!
+                        guard let currency = associations.keys.first (where: { $0.code == blockchainModel.currency.lowercased() })
+                        else { print ("SYS: START: Missed Currency (\(blockchainModel.currency)): defaultUnit"); return }
 
                         // define the network
                         let network = Network (uids: blockchainModel.id,
