@@ -156,6 +156,9 @@ coerceUInt64 (UInt256 x, int *overflow);
 extern double
 coerceDouble (UInt256 value, int *overflow);
 
+extern long double
+coerceLongDouble (UInt256 value, int *overflow);
+
 /**
  * Returns the string representation of `x` in `base`.  No matter the base, the returned string
  * will be in big-endian format.

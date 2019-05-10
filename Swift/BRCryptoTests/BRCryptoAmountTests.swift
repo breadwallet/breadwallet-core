@@ -169,48 +169,43 @@ class BRCryptoAmountTests: XCTestCase {
         XCTAssertNotNil (Amount.create (string: "0.12345678",  unit: BTC_BTC))
         XCTAssertNil    (Amount.create (string: "0.123456789", unit: BTC_BTC))
 
-
-        #if false
-        let ETHER = Ethereum.Units.ETHER
-        let WEI   = Ethereum.Units.WEI
-        let GWEI  = Ethereum.Units.GWEI
-
-        XCTAssert (nil != Amount (exactly: 1.5, unit: ETHER))
-        XCTAssert (nil != Amount (exactly: 1.0, unit: ETHER))
-        XCTAssert (nil == Amount (exactly: 1.5, unit: WEI))
-
-        XCTAssert (1.5 == Amount (exactly: 1.5, unit: ETHER)?.double)
-        XCTAssert (1.5 * 1e9 == Amount (exactly: 1.5, unit: ETHER)?.coerce(unit: GWEI).double)
-
-        XCTAssert (+10 == Amount(value: +10, unit: ETHER).double)
-        XCTAssert (-10 == Amount(value: -10, unit: ETHER).double)
-
-        XCTAssert (-10 == Amount(value: -10.0, unit: ETHER).double)
-
-        XCTAssertEqual(25.0, Amount(value: 10.0, unit: ETHER).scale(by: 2.5)?.double ?? 0.0, accuracy: 1e-6)
-        XCTAssertEqual( 2.0, Amount(value: 10.0, unit: ETHER).scale(by: 1/5)?.double ?? 0.0, accuracy: 1e-6)
-
-        XCTAssert(Amount (value: 1, unit: ETHER) >  Amount (value: 1, unit: GWEI))
-        XCTAssert(Amount (value: 1, unit: ETHER) == Amount (value: 1, unit: ETHER))
-        XCTAssert(Amount (value: 1, unit: ETHER) != Amount (value: 2, unit: ETHER))
-        XCTAssert(Amount (value: 1, unit: ETHER) == Amount (value: 1e9, unit: GWEI))
-        XCTAssert(Amount (value: 1e-3, unit: ETHER) == Amount (value: 1e6, unit: GWEI))
-
-        XCTAssert(Amount (value: 2.5, unit: ETHER) == Amount (value: 1.5, unit: ETHER) + Amount (value: 1.0, unit: ETHER))
-        XCTAssert(Amount (value: 0.5, unit: ETHER) == Amount (value: 1.5, unit: ETHER) - Amount (value: 1.0, unit: ETHER))
-
-        let a1 = Amount (value: 1, unit: ETHER)
-        let a2 = Amount (value: 1, unit: Bitcoin.Units.SATOSHI)
-        XCTAssertTrue  (a1.isCompatible(a1))
-        XCTAssertFalse (a1.isCompatible(a2))
-
-        XCTAssertEqual(a1.description, "1.0 \(Ethereum.currency.symbol)")
-
-        XCTAssertEqual    ("9.123", Amount (value: 9.12345, unit: ETHER).describe(decimals: 3, withSymbol: false))
-        XCTAssertNotEqual ("9.123", Amount (value: 9.12345, unit: ETHER).describe(decimals: 4, withSymbol: false))
-        XCTAssertEqual    ("9.123 \(ETHER.symbol)", Amount (value: 9.12345, unit: ETHER).describe(decimals: 3, withSymbol: true))
-        #endif
         }
+
+    func testAmountETH () {
+        let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native")
+
+        let ETH_WEI  = BRCrypto.Unit (currency: eth, uids: "ETH-WEI", name: "WEI",   symbol: "wei")
+        let ETH_GWEI = BRCrypto.Unit (currency: eth, uids: "ETH-GWEI", name: "GWEI",  symbol: "gwei", base: ETH_WEI, decimals: 9)
+        let ETH_ETHER = BRCrypto.Unit (currency: eth, uids: "ETH-ETH", name: "ETHER", symbol: "E",    base: ETH_WEI, decimals: 18)
+
+        let a1 = Amount.create(string:  "12.12345678", negative: false, unit: ETH_ETHER)
+        XCTAssertNotNil(a1)
+        XCTAssertNotNil(a1!.double (as: ETH_ETHER))
+        XCTAssertEqual(12.12345678, a1!.double (as: ETH_ETHER)!)
+
+        let a2 = Amount.create(string: "123.12345678", negative: false, unit: ETH_ETHER)
+        XCTAssertNotNil(a2)
+        XCTAssertNotNil(a2!.double (as: ETH_ETHER))
+        XCTAssertEqual(123.12345678, a2!.double (as: ETH_ETHER)!)
+
+        let a3 = Amount.create(string:  "12.12345678", negative: false, unit: ETH_GWEI)
+        XCTAssertNotNil(a3)
+        XCTAssertNotNil(a3!.double (as: ETH_GWEI))
+        XCTAssertEqual(12.12345678, a3!.double (as: ETH_GWEI)!)
+
+        let a4 = Amount.create(string:  "123.12345678", negative: false, unit: ETH_GWEI)
+        XCTAssertNotNil(a4)
+        XCTAssertNotNil(a4!.double (as: ETH_GWEI))
+        XCTAssertEqual(123.12345678, a4!.double (as: ETH_GWEI)!)
+
+
+        let a5 = Amount.create(string: "1.234567891234567891", negative: false, unit: ETH_ETHER)
+        XCTAssertNotNil(a5)
+        XCTAssertNotNil (a5?.double(as: ETH_WEI))
+        XCTAssertEqual(1234567891234567891, a5?.double(as: ETH_WEI)!)
+        // Lost precision - last 5 digits
+        XCTAssertEqual("wei1,234,567,891,234,570,000", a5?.string(as: ETH_WEI)!)
+    }
 
     func testAmountBTC () {
         let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native")
