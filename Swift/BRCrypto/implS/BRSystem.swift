@@ -240,7 +240,7 @@ public final class SystemBase: System {
         self.query.getBlockchains { (blockchainResult: Result<[BlockChainDB.Model.Blockchain],BlockChainDB.QueryError>) in
             let blockChainModels = try! blockchainResult
                 // On success, always merge `defaultBlockchains`
-                .map { BlockChainDB.Model.defaultBlockchains.unionOf ($0) { $0.id }}
+                .map { $0.unionOf (BlockChainDB.Model.defaultBlockchains) { $0.id } }
                 // On error, use defaultBlockchains
                 .recover { (error: BlockChainDB.QueryError) -> [BlockChainDB.Model.Blockchain] in
                     return BlockChainDB.Model.defaultBlockchains
@@ -257,7 +257,7 @@ public final class SystemBase: System {
 
                         let currencyModels = try! currencyResult
                             // On success, always merge `defaultCurrencies`
-                            .map { defaults.unionOf ($0) { $0.id }}
+                            .map { $0.unionOf (defaults) { $0.id }}
                             // On error, use `defaults`
                             .recover { (error: BlockChainDB.QueryError) -> [BlockChainDB.Model.Currency] in
                                 return defaults

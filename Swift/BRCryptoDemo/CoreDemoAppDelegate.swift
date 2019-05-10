@@ -54,7 +54,8 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
             precondition(false, "No account")
             return false
         }
-        account.timestamp = 1543190400 // Tue, 26 Nov 2018 00:00:00 GMT
+        account.timestamp = 1514764800 // 2018-01-01
+//        account.timestamp = 1543190400 // Tue, 26 Nov 2018 00:00:00 GMT
 
         // Ensure the storage path
         let storagePath = FileManager.default

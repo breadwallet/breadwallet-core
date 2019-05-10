@@ -218,6 +218,8 @@ class BRBlockChainDBTest: XCTestCase {
 
         wait(for: [expectation], timeout: 60)
 
+        expectation = XCTestExpectation (description: "wallet delete")
+
         db.deleteWallet(id: walletId) {
             (res: Result<BlockChainDB.Model.Wallet, BlockChainDB.QueryError>) in
             guard case let .success (wallet) = res

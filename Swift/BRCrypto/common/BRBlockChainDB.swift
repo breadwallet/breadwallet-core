@@ -209,13 +209,26 @@ public class BlockChainDB {
 
         /// Blockchain
 
+        public typealias BlockchainFee = (amount: String, tier: String, confirmations: String)
         public typealias Blockchain = (
             id: String,
             name: String,
             network: String,
             isMainnet: Bool,
             currency: String,
-            blockHeight: UInt64 /* fee Estimate */)
+            blockHeight: UInt64,
+            feeEstimates: [BlockchainFee])
+
+        static internal func asBlockchainFee (json: JSON) -> Model.BlockchainFee? {
+            guard let amount = json.asDict(name: "fee")?["amount"] as? String,
+                let tier = json.asString(name: "tier")
+                else { return nil }
+
+            // We've seen 'null' - assign "1" if so.
+            let confirmations = json.asString(name: "estimated_confirmation_in") ?? "1"
+
+            return (amount: amount, tier: tier, confirmations: confirmations)
+        }
 
         static internal func asBlockchain (json: JSON) -> Model.Blockchain? {
             guard let id = json.asString (name: "id"),
@@ -226,22 +239,29 @@ public class BlockChainDB {
                 let blockHeight = json.asUInt64 (name: "block_height")
                 else { return nil }
 
-            return (id: id, name: name, network: network, isMainnet: isMainnet, currency: currency, blockHeight: max (blockHeight, 575020))
+            guard let feeEstimates = json.asArray(name: "fee_estimates")?
+                .map ({ JSON (dict: $0) })
+                .map ({ asBlockchainFee (json: $0) }) as? [Model.BlockchainFee]
+            else { return nil }
+
+            return (id: id, name: name, network: network, isMainnet: isMainnet, currency: currency,
+                    blockHeight: blockHeight,
+                    feeEstimates: feeEstimates)
         }
 
         /// We define default blockchains but these are wholly insufficient given that the
         /// specfication includes `blockHeight` (which can never be correct).
         static public let defaultBlockchains: [Blockchain] = [
             // Mainnet
- //           (id: "bitcoin-mainnet",  name: "Bitcoin",  network: "mainnet", isMainnet: true,  currency: "btc", blockHeight:  600000),
-            (id: "bitcash-mainnet",  name: "Bitcash",  network: "mainnet", isMainnet: true,  currency: "bch", blockHeight: 1000000),
-            (id: "ethereum-mainnet", name: "Ethereum", network: "mainnet", isMainnet: true,  currency: "eth", blockHeight: 8000000),
+            (id: "bitcoin-mainnet",  name: "Bitcoin",  network: "mainnet", isMainnet: true,  currency: "btc", blockHeight:  654321, feeEstimates: []),
+            (id: "bitcash-mainnet",  name: "Bitcash",  network: "mainnet", isMainnet: true,  currency: "bch", blockHeight: 1000000, feeEstimates: []),
+            (id: "ethereum-mainnet", name: "Ethereum", network: "mainnet", isMainnet: true,  currency: "eth", blockHeight: 8000000, feeEstimates: []),
 
             // Testnet
-            (id: "bitcoin-testnet",  name: "Bitcoin",  network: "testnet", isMainnet: false, currency: "btc", blockHeight:  900000),
-            (id: "bitcash-testnet",  name: "Bitcash",  network: "testnet", isMainnet: false, currency: "bch", blockHeight: 1200000),
-            (id: "ethereum-testnet", name: "Ethereum", network: "testnet", isMainnet: false, currency: "eth", blockHeight: 1000000),
-            (id: "ethereum-rinkeby", name: "Ethereum", network: "rinkeby", isMainnet: false, currency: "eth", blockHeight: 2000000)
+            (id: "bitcoin-testnet",  name: "Bitcoin",  network: "testnet", isMainnet: false, currency: "btc", blockHeight:  900000, feeEstimates: []),
+            (id: "bitcash-testnet",  name: "Bitcash",  network: "testnet", isMainnet: false, currency: "bch", blockHeight: 1200000, feeEstimates: []),
+            (id: "ethereum-testnet", name: "Ethereum", network: "testnet", isMainnet: false, currency: "eth", blockHeight: 1000000, feeEstimates: []),
+            (id: "ethereum-rinkeby", name: "Ethereum", network: "rinkeby", isMainnet: false, currency: "eth", blockHeight: 2000000, feeEstimates: [])
         ]
 
         /// Currency & CurrencyDenomination
