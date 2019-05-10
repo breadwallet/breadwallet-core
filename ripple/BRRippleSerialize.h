@@ -12,6 +12,7 @@
 #define BRRipple_serialize_h
 
 #include "BRRippleBase.h"
+#include "BRRipplePrivateStructs.h"
 #include "BRArray.h"
 
 /**
@@ -20,8 +21,8 @@
  * @param fields      unsorted array of fields
  * @parma num_fields  the number of fields to serialize
  */
-extern int rippleSerialize(BRRippleField * fields, int num_fields,
-                     uint8_t *buffer, int bufferSize);
+extern uint32_t rippleSerialize(BRRippleField * fields, uint32_t num_fields,
+                     uint8_t *buffer, uint32_t bufferSize);
 
 /**
  * Deserialize a byte stream into an array of fields
@@ -30,6 +31,6 @@ extern int rippleSerialize(BRRippleField * fields, int num_fields,
  * @param bufferSize  number of bytes in stream
  * @param fields      BRArray of fields
  */
-extern int rippleDeserialize(uint8_t *buffer, int bufferSize, BRArrayOf(BRRippleField) fields);
+extern int rippleDeserialize(uint8_t *buffer, uint32_t bufferSize, BRArrayOf(BRRippleField) fields);
 
 #endif

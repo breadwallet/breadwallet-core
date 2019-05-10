@@ -69,7 +69,7 @@ rippleWalletGetTargetAddress (BRRippleWallet wallet);
  *
  * @return balance  ripple balance in drops
  */
-extern uint64_t
+extern BRRippleUnitDrops
 rippleWalletGetBalance (BRRippleWallet wallet);
 
 /**
@@ -80,6 +80,6 @@ rippleWalletGetBalance (BRRippleWallet wallet);
  * @return void
  */
 extern void
-rippleWalletSetBalance (BRRippleWallet wallet, uint64_t balance);
+rippleWalletSetBalance (BRRippleWallet wallet, BRRippleUnitDrops balance);
 
 #endif

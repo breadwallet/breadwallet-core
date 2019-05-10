@@ -11,48 +11,103 @@
 #ifndef BRRipple_account_h
 #define BRRipple_account_h
 
-#include "BRRippleBase.h"
 #include "BRRippleTransaction.h"
 #include "BRKey.h"
 
 typedef struct BRRippleAccountRecord *BRRippleAccount;
 
 /**
- * Create a Ripple account for the `paperKey`.  The account *must never* hold the privateKey
- * derived from the paperKey; but likely must hold some publicKey.
+ * Create a Ripple account object
  *
- * @param paperKey
- *
- * @return An account for `paperKey`
+ * @param  paperKey  12 word mnemonic string
+ * @return account
  */
-extern BRRippleAccount
+extern BRRippleAccount /* caller must free - rippleAccountFree */
 rippleAccountCreate (const char *paperKey);
 
 /**
- * Delete a ripple account (clean up memory)
+ * Create a Ripple account object
  *
- * @param account BRRippleAccount to delete
+ * @param  seed     512-bit secret
+ * @return account
+ */
+extern BRRippleAccount /* caller must free - rippleAccountFree */
+rippleAccountCreateWithSeed(UInt512 seed);
+
+/**
+ * Create a Ripple account object
+ *
+ * @param  key      BRKey with valid private key
+ * @return account
+ */
+extern BRRippleAccount /* caller must free - rippleAccountFree */
+rippleAccountCreateWithKey(BRKey key);
+
+/**
+ * Free the memory for a ripple account object
+ *
+ * @param account BRRippleAccount to free
  *
  * @return void
  */
-extern void rippleAccountDelete(BRRippleAccount account);
+extern void rippleAccountFree(BRRippleAccount account);
 
 /**
- * Serialize a Ripple transaction (in a form suitable signing)
+ * Set the sequence number
  *
- * @param transaction         the transaction to serialize
- * @param paperKey            paper key of the sending account
- * @param sequence            the next valid sequence number for the account
- * @param lastLedgerSequence  0 - don't send this value
- *                            > 0 - last ledger sequence from the server
+ * @param sequence   uint32_t sequence number. The sequence number, relative to the initiating account,
+ *                   of this transaction. A transaction is only valid if the Sequence number is exactly
+ *                   1 greater than the previous transaction from the same account.
+ *
+ * @return void
  */
-extern BRRippleSerializedTransaction
-rippleAccountSignTransaction(BRRippleTransaction transaction, const char *paperKey,
-                             uint32_t sequence, uint32_t lastLedgerSequence);
+extern void rippleAccountSetSequence(BRRippleAccount account, BRRippleSequence sequence);
 
-// Accessor function for the account object
-extern uint8_t * getRippleAccountBytes(BRRippleAccount account);
-extern char * getRippleAddress(BRRippleAccount account);
+/**
+ * Set the sequence number
+ *
+ * @param lastLedgerSequence    (Optional; strongly recommended) Highest ledger index this transaction
+ *                              can appear in. Specifying this field places a strict upper limit on
+ *                              how long the transaction can wait to be validated or rejected.
+ *                              See Reliable Transaction Submission for more details.
+ *
+ * @return void
+ */
+extern void rippleAccountSetLastLedgerSequence(BRRippleAccount account,
+                                               BRRippleLastLedgerSequence lastLedgerSequence);
+
+/**
+ * Serialize (and sign) a Ripple Transaction.  Ready for submission to the ledger.
+ *
+ * @param account         the account sending the payment
+ * @param transaction     the transaction to serialize
+ * @param paperKey        paper key of the sending account
+ *
+ * @return handle         BRRippleSerializedTransaction handle, use this to get the size and bytes
+ *                        NOTE: If successful then the sequence number in the account is incremented
+ *                        NOTE: is the handle is NULL then the serialization failed AND the sequence
+ *                              was not incremented
+ */
+extern
+const BRRippleSerializedTransaction /* do NOT free, owned by transaction */
+rippleAccountSignTransaction(BRRippleAccount account, BRRippleTransaction transaction, const char *paperKey);
+
+// Accessor function for the account address (Ripple ID)
+extern BRRippleAddress
+rippleAccountGetAddress(BRRippleAccount account);
+
+/*
+ * Get the string version of the ripple address
+ *
+ * @param account        handle of a valid account object
+ * @param rippleAddress  pointer to char buffer to hold the address
+ * @param length         length of the rippleAddress buffer
+ *
+ * @return               number of bytes copied to rippleAddress + 1 (for terminating byte)
+ *                       otherwise return the number of bytes needed to store the address
+ *                       including the 0 termination byte
+ */
+extern int rippleAccountGetAddressString(BRRippleAccount account, char * rippleAddress, int length);
 
 /**
  * Create a BRRippleAddress from the ripple string
@@ -84,8 +139,5 @@ rippleAddressEqual (BRRippleAddress a1, BRRippleAddress a2);
 extern BRRippleAddress rippleAccountGetPrimaryAddress (BRRippleAccount account);
 
 extern BRKey rippleAccountGetPublicKey(BRRippleAccount account);
-
-extern BRRippleAccount rippleAccountCreateWithSeed(UInt512 seed);
-extern BRRippleAccount rippleAccountCreateWithKey(BRKey key);
 
 #endif

@@ -14,9 +14,14 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
+#include <math.h>
 #include "BRRipple.h"
 #include "BRRippleBase.h"
+#include "BRRipplePrivateStructs.h"
 #include "BRArray.h"
+
+// Forward declarations
+static int get_content(uint8_t *buffer, BRRippleField *field);
 
 /**
  * Compare 2 Ripple fields
@@ -44,7 +49,7 @@ int compare_function(const void *field1, const void *field2) {
  * @param num_fields  The size of the array
  * @return the size of the buffer needed
  */
-int calculate_buffer_size(BRRippleField *fields, int num_fields)
+uint32_t calculate_buffer_size(BRRippleField *fields, uint32_t num_fields)
 {
     // The fieldid is stored as 2-4 bytes. Since a few extra bytes won't hurt
     // just allocate 4 bytes per field to be safe.
@@ -235,10 +240,10 @@ int add_content(BRRippleField *field, uint8_t *buffer)
     }
 }
 
-extern int rippleSerialize (BRRippleField *fields, int num_fields, uint8_t * buffer, int bufferSize)
+extern uint32_t rippleSerialize (BRRippleField *fields, uint32_t num_fields, uint8_t * buffer, uint32_t bufferSize)
 {
     // Create the stucture to hold the results
-    int size = calculate_buffer_size(fields, num_fields);
+    uint32_t size = calculate_buffer_size(fields, num_fields);
     
     if (bufferSize < size) {
         return size;
@@ -248,7 +253,7 @@ extern int rippleSerialize (BRRippleField *fields, int num_fields, uint8_t * buf
     // type code and field code (asc)
     qsort(fields, num_fields, sizeof(BRRippleField), compare_function);
 
-    // serialize all the fields adding the fieldis and content to the buffer
+    // serialize all the fields adding the field IDs and content to the buffer
     int buffer_index = 0;
     for (int i = 0; i < num_fields; i++) {
         buffer_index += add_fieldid(fields[i].typeCode, fields[i].fieldCode, &buffer[buffer_index]);
@@ -369,15 +374,25 @@ int get_amount(uint8_t * buffer, BRRippleAmount * amount)
     if (isXRP) {
         // XRP currency
         amount->currencyType = 0; // XRP
-        get_u64(buffer, &amount->amount);
+        get_u64(buffer, &amount->amount.u64Amount);
         // Get rid of the sign bit - FYI, XRP is always possitive
-        amount->amount = amount->amount & 0xBFFFFFFFFFFFFFFF;
+        amount->amount.u64Amount = amount->amount.u64Amount & 0xBFFFFFFFFFFFFFFF;
         return 8; // always 8 bytes
     } else {
         // Some other currency
-        amount->currencyType = 1; // NOT XRP
-        // Ignore the non-XRP amounts for now - they are encoded as follows.
+        amount->currencyType = 1; // NOT XRPs
         // <xrpbit><signbit><8-bit exponent><54-bit matissa>
+        // if sign bit is 0 number is negative for some reason
+        int sign = (buffer[0] & 0x40) ? 1 : -1;
+        int8_t exponent = ((buffer[0] & 0x3F) << 2) + ((buffer[1] & 0xC0) >> 6) - 97;
+        uint64_t mantissa = ((uint64_t)(buffer[1] & 0x3F) << 48) +
+            ((uint64_t)(buffer[2]) << 40) +
+            ((uint64_t)(buffer[3]) << 32) +
+            ((uint64_t)(buffer[4]) << 24) +
+            ((uint64_t)(buffer[5]) << 16) +
+            ((uint64_t)(buffer[6]) << 8) +
+            (buffer[7] & 0xFF);
+        amount->amount.dAmount = (double)mantissa * pow(10, exponent) * sign;
         memcpy(amount->currencyCode, &buffer[8], 20);
         memcpy(amount->issuerId, &buffer[28], 20);
         return (384/8);
@@ -414,12 +429,77 @@ int get_STObject(uint8_t *buffer, BRRippleField *field)
     return 0;
 }
 
-// STArray - not supported
+int get_MemoField(uint8_t *buffer, BRRippleMemoNode *memoNode)
+{
+    int bytesRead = 0;
+
+    BRRippleField field;
+    bytesRead += get_fieldcode(&buffer[bytesRead], &field);
+    if (7 == field.typeCode &&
+        (field.fieldCode >= 12 && field.fieldCode <= 14)) {
+        // Memo field - get the field type and content
+        int content_length = 0;
+        int lengthLength = get_length(&buffer[bytesRead], &content_length);
+        bytesRead += lengthLength;
+        VLBytes * content = createVLBytes(content_length);
+        memcpy(content->value, &buffer[bytesRead], content_length);
+        bytesRead += content_length;
+        switch(field.fieldCode) {
+            case 12:
+                memoNode->memo.memoType = content;
+                break;
+            case 13:
+                memoNode->memo.memoData = content;
+                break;
+            case 14:
+                memoNode->memo.memoFormat = content;
+                break;
+        }
+        return (bytesRead);
+    } else {
+        // Not a memo field
+        return 0;
+    }
+}
+
+int get_memo_object(uint8_t *buffer, BRRippleMemoNode * memoNode)
+{
+    int bytesRead = 0;
+    // Peek ahead at the next byte
+    uint8_t code = buffer[bytesRead];
+    while (code != 0xE1) { // 0xE1 indicates end of object
+        // Get the memo fields
+        bytesRead += get_MemoField(&buffer[bytesRead], memoNode);
+        code = buffer[bytesRead]; // Peek ahead at the next byte
+    }
+    bytesRead += 1; // the E1 bytes
+    return bytesRead;
+}
+
+// STArray
 int get_STArray(uint8_t *buffer, BRRippleField *field)
 {
-    // TODO - support arrays
-    printf("STArray\n");
-    return 0;
+    // Keep track of where we are in the buffer
+    int bytesRead = 0;
+
+    // Peek ahead at the next byte
+    uint8_t code = buffer[bytesRead];
+    while (code != 0xF1) { // 0xF1 indicates end of array
+        // The array can contain multiple objects - get the next one
+        BRRippleField stObject;
+        bytesRead += get_fieldcode(&buffer[bytesRead], &stObject);
+        if (10 == stObject.fieldCode) {
+            // This is a memo - fetch a new memo list node and attach to field
+            BRRippleMemoNode * memoNode = memoListAdd(field);
+            // Get the memo content
+            bytesRead += get_memo_object(&buffer[bytesRead], memoNode);
+        } else {
+            // Don't support anything other that memos currently.
+            return 0; // indicate we can't parse this
+        }
+        code = buffer[bytesRead]; // peek ahead to see if we are done
+    }
+    return bytesRead + 1;  // Add in the F1 byte
 }
 
 // PathSet - not supported
@@ -431,7 +511,7 @@ int get_PathSet(uint8_t *buffer, BRRippleField *field)
 }
 
 // Get the content for the specified type and field codes
-int get_content(uint8_t *buffer, BRRippleField *field)
+static int get_content(uint8_t *buffer, BRRippleField *field)
 {
     // According to the ripple docs this is the FULL list of
     // field types that can appear in a transaction
@@ -479,6 +559,7 @@ bool addFieldToList(BRRippleField * field)
         case 6:
         case 7:
         case 8:
+        case 15:
         case 16:
         case 17:
             return true;
@@ -499,7 +580,9 @@ extern int rippleDeserialize(uint8_t *buffer, int bufferSize, BRArrayOf(BRRipple
         // Get the code and field
         BRRippleField field;
         memset(&field, 0x00, sizeof(BRRippleField));
+
         index += get_fieldcode(&buffer[index], &field);
+
         int content_length = get_content(&buffer[index], &field);
         if (0 == content_length) {
             // We were unable to parse this field - so quit now

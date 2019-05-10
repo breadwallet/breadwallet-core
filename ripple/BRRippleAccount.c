@@ -24,33 +24,24 @@
 
 #define PRIMARY_ADDRESS_BIP44_INDEX 0
 
-static const char **sharedWordList;
-
 #define WORD_LIST_LENGTH 2048
-
-static int
-installSharedWordList (const char *wordList[], int wordListLength) {
-    if (BIP39_WORDLIST_COUNT != wordListLength)
-        return 0;
-    
-    sharedWordList = wordList;
-    
-    return 1;
-}
 
 struct BRRippleAccountRecord {
     BRRippleAddress raw; // The 20 byte account id
-    
-    // Ripple address in string format - only needed when viewing or
-    // sending to someone else?
-    char string[36];
 
     // The public key - needed when sending 
-    uint8_t publicKey [33];  // BIP44: 'Master Public Key 'M' (264 bits) - 8
+    BRKey publicKey;  // BIP44: 'Master Public Key 'M' (264 bits) - 8
 
     uint32_t index;     // The BIP-44 Index used for this key.
     
-    uint64_t sequence; // The NEXT valid sequence number
+    BRRippleSequence sequence;   // The NEXT valid sequence number, must be exactly 1 greater
+                                 // than the last transaction sent
+
+    BRRippleLastLedgerSequence lastLedgerSequence; // (Optional; strongly recommended) Highest ledger
+                                 // index this transaction
+                                 // can appear in. Specifying this field places a strict upper limit on
+                                 // how long the transaction can wait to be validated or rejected.
+                                 // See Reliable Transaction Submission for more details.
 };
 
 // NOTE: this is a copy from the one found in support
@@ -121,7 +112,6 @@ extern BRKey deriveRippleKeyFromSeed (UInt512 seed, uint32_t index)
 extern char * createRippleAddressString (BRRippleAddress address, int useChecksum)
 {
     char *string = calloc (1, 36);
-    memset(string, 0x00, 36);
 
     // The process is this:
     // 1. Prepend the Ripple address indicator (0) to the 20 bytes
@@ -179,25 +169,20 @@ BRKey getKey(const char* paperKey)
 static BRRippleAccount createAccountObject(BRKey * key)
 {
     BRRippleAccount account = (BRRippleAccount) calloc (1, sizeof (struct BRRippleAccountRecord));
-    memset(account, 0x00, sizeof(struct BRRippleAccountRecord));
 
-    // Check the private key
-    assert(BRKeyPrivKey(key, NULL, 0) > 0);
+    // Take a copy of the key since we are changing at least once property
+    BRKey tmpKey = *key;
 
     // Get the public key and store with the account object
-    key->compressed = 1;
+    tmpKey.compressed = 1;
     uint8_t pubkey[33];
-    assert (33 == BRKeyPubKey (key, pubkey, 33));
-    memcpy(account->publicKey, pubkey, 33);
+    BRKeyPubKey(&tmpKey, pubkey, 33);
+    memcpy(account->publicKey.pubKey, pubkey, 33);
+    account->publicKey.compressed = 1;
 
     // Create the raw bytes for the 20 byte account id
-    UInt160 hash = BRKeyHash160(key);
+    UInt160 hash = BRKeyHash160(&tmpKey);
     memcpy(account->raw.bytes, hash.u8, 20);
-    
-    // Create the string representation of the ripple address
-    char *string = createRippleAddressString(account->raw, 1);
-    memcpy(account->string, string, strlen(string));
-    free(string);
 
     return account;
 }
@@ -205,8 +190,6 @@ static BRRippleAccount createAccountObject(BRKey * key)
 // Create an account from the paper key
 extern BRRippleAccount rippleAccountCreate (const char *paperKey)
 {
-    installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);
-
     BRKey key = getKey(paperKey);
 
     return createAccountObject(&key);
@@ -225,25 +208,52 @@ extern BRRippleAccount rippleAccountCreateWithKey(BRKey key)
     return createAccountObject(&key);
 }
 
-extern uint8_t * getRippleAccountBytes(BRRippleAccount account)
+extern void rippleAccountSetSequence(BRRippleAccount account, BRRippleSequence sequence)
 {
-    return(account->raw.bytes);
+    assert(account);
+    account->sequence = sequence;
 }
 
-extern char * getRippleAddress(BRRippleAccount account)
+extern void rippleAccountSetLastLedgerSequence(BRRippleAccount account,
+                                               BRRippleLastLedgerSequence lastLedgerSequence)
 {
-    return(account->string);
+    assert(account);
+    account->lastLedgerSequence = lastLedgerSequence;
+}
+
+extern BRRippleAddress rippleAccountGetAddress(BRRippleAccount account)
+{
+    BRRippleAddress address;
+    memcpy(address.bytes, account->raw.bytes, sizeof(address.bytes));
+    return(address);
+}
+
+extern int rippleAccountGetAddressString(BRRippleAccount account, char * rippleAddress, int length)
+{
+    // Create the ripple address string
+    char *address = createRippleAddressString(account->raw, 1);
+    if (address) {
+        int addressLength = (int)strlen(address);
+        // Copy the address if we have enough room in the buffer
+        if (length > addressLength) {
+            strcpy(rippleAddress, address);
+        }
+        free(address);
+        return(addressLength + 1); // string length plus terminating byte
+    } else {
+        return 0;
+    }
 }
 
 extern BRKey rippleAccountGetPublicKey(BRRippleAccount account)
 {
-    BRKey key;
-    key.compressed = 1;
-    memcpy(key.pubKey, account->publicKey, 33);
-    return key;
+    // Before returning this - make sure there is no private key.
+    // It should NOT be there but better to make sure.
+    account->publicKey.secret = UINT256_ZERO;
+    return account->publicKey;
 }
 
-extern void rippleAccountDelete(BRRippleAccount account)
+extern void rippleAccountFree(BRRippleAccount account)
 {
     // Currently there is not any allocated memory inside the account
     // so just delete the account itself
@@ -257,14 +267,29 @@ extern BRRippleAddress rippleAccountGetPrimaryAddress (BRRippleAccount account)
 }
 
 extern BRRippleSerializedTransaction
-rippleTransactionSerializeAndSign(BRRippleTransaction transaction, const char *paperKey,
-                                  uint32_t sequence, uint32_t lastLedgerSequence);
+rippleTransactionSerializeAndSign(BRRippleTransaction transaction, BRKey *privateKey,
+                                  BRKey *publicKey, uint32_t sequence, uint32_t lastLedgerSequence);
 
-extern BRRippleSerializedTransaction
-rippleAccountSignTransaction(BRRippleTransaction transaction, const char *paperKey,
-                             uint32_t sequence, uint32_t lastLedgerSequence)
+extern const BRRippleSerializedTransaction
+rippleAccountSignTransaction(BRRippleAccount account, BRRippleTransaction transaction, const char *paperKey)
 {
-    return rippleTransactionSerializeAndSign(transaction, paperKey, sequence, lastLedgerSequence);
+    assert(account);
+    assert(transaction);
+    assert(paperKey);
+
+    // Create the private key from the paperKey
+    BRKey key = getKey(paperKey);
+
+    BRRippleSerializedTransaction signedBytes =
+        rippleTransactionSerializeAndSign(transaction, &key, &account->publicKey,
+                                          account->sequence, account->lastLedgerSequence);
+
+    // Increment the sequence number if we were able to sign the bytes
+    if (signedBytes) {
+        account->sequence++;
+    }
+
+    return signedBytes;
 }
 
 extern BRRippleAddress

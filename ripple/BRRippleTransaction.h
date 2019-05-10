@@ -12,6 +12,7 @@
 #define BRRipple_transaction_h
 
 #include "BRRippleBase.h"
+#include "BRKey.h"
 
 typedef struct BRRippleTransactionRecord *BRRippleTransaction;
 typedef struct BRRippleSerializedTransactionRecord *BRRippleSerializedTransaction;
@@ -30,11 +31,11 @@ typedef struct BRRippleSerializedTransactionRecord *BRRippleSerializedTransactio
  *
  * @return transaction    a ripple transaction
  */
-extern BRRippleTransaction
+extern BRRippleTransaction /* caller must free - rippleTransactionFree */
 rippleTransactionCreate(BRRippleAddress sourceAddress,
                         BRRippleAddress targetAddress,
-                        uint64_t amount, // For now assume XRP drops.
-                        uint64_t fee);
+                        BRRippleUnitDrops amount, // For now assume XRP drops.
+                        BRRippleUnitDrops fee);
 
 /**
  * Create a Ripple transaction
@@ -47,15 +48,15 @@ rippleTransactionCreate(BRRippleAddress sourceAddress,
  *
  * @return transaction    a ripple transaction
  */
-extern BRRippleTransaction
+extern BRRippleTransaction /* caller must free - rippleTransactionFree */
 rippleTransactionCreateFromBytes(uint8_t *bytes, int length);
 
 /**
- * Delete a Ripple transaction
+ * Clean up any memory for this transaction
  *
  * @param transaction  BRRippleTransaction
  */
-extern void deleteRippleTransaction(BRRippleTransaction transaction);
+extern void rippleTransactionFree(BRRippleTransaction transaction);
 
 /**
  * Get the size of a serialized transaction
@@ -92,19 +93,19 @@ extern BRRippleTransactionHash rippleTransactionGetAccountTxnId(BRRippleTransact
 /**
  * Various getter methods for the transaction
  */
-extern uint16_t rippleTransactionGetType(BRRippleTransaction transaction);
-extern uint64_t rippleTransactionGetFee(BRRippleTransaction transaction);
-extern uint64_t rippleTransactionGetAmount(BRRippleTransaction transaction);
-extern uint32_t rippleTransactionGetSequence(BRRippleTransaction transaction);
-extern uint32_t rippleTransactionGetFlags(BRRippleTransaction transaction);
-extern uint32_t rippleTransactionGetLastLedgerSequence(BRRippleTransaction transaction);
+extern BRRippleTransactionType rippleTransactionGetType(BRRippleTransaction transaction);
+extern BRRippleUnitDrops rippleTransactionGetFee(BRRippleTransaction transaction);
+extern BRRippleUnitDrops rippleTransactionGetAmount(BRRippleTransaction transaction);
+extern BRRippleSequence rippleTransactionGetSequence(BRRippleTransaction transaction);
+extern BRRippleFlags rippleTransactionGetFlags(BRRippleTransaction transaction);
+extern BRRippleLastLedgerSequence rippleTransactionGetLastLedgerSequence(BRRippleTransaction transaction);
 extern BRRippleAddress rippleTransactionGetSource(BRRippleTransaction transaction);
 extern BRRippleAddress rippleTransactionGetTarget(BRRippleTransaction transaction);
 extern BRKey rippleTransactionGetPublicKey(BRRippleTransaction transaction);
 
 extern UInt256 rippleTransactionGetInvoiceID(BRRippleTransaction transaction);
-extern uint32_t rippleTransactionGetSourceTag(BRRippleTransaction transaction);
-extern uint32_t rippleTransactionGetDestinationTag(BRRippleTransaction transaction);
+extern BRRippleSourceTag rippleTransactionGetSourceTag(BRRippleTransaction transaction);
+extern BRRippleDestinationTag rippleTransactionGetDestinationTag(BRRippleTransaction transaction);
 
 extern BRRippleAmount rippleTransactionGetAmountRaw(BRRippleTransaction transaction, BRRippleAmountType amountType);
 

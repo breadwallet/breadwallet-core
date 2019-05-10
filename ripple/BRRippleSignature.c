@@ -14,6 +14,7 @@
 #include <assert.h>
 #include "BRRipple.h"
 #include "BRRippleBase.h"
+#include "BRRipplePrivateStructs.h"
 #include "BRCrypto.h"
 
 extern BRRippleSignature

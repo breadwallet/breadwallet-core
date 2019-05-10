@@ -47,8 +47,9 @@ static BRRippleAccount createTestRippleAccount(const char* paper_key,
     
     // Get the string ripple address
     if (expected_account_address) {
-        char * accountAddress = getRippleAddress(account);
-        assert(0 == memcmp(expected_account_address, accountAddress, strlen(accountAddress)));
+        char rippleAddress[36];
+        rippleAccountGetAddressString(account, rippleAddress, 36);
+        assert(0 == strcmp(expected_account_address, rippleAddress));
     }
     return account;
 }
@@ -88,8 +89,8 @@ testRippleTransaction (void /* ... */) {
     transaction = rippleTransactionCreate(sourceAddress, targetAddress, 1000000, 12);
     assert(transaction);
 
-    rippleAccountDelete(account);
-    deleteRippleTransaction(transaction);
+    rippleAccountFree(account);
+    rippleTransactionFree(transaction);
 }
 
 static void
@@ -131,17 +132,17 @@ testRippleTransactionGetters (void /* ... */) {
     assert(fee == 12);
 
     // Get the raw fee object
-    BRRippleAmount feeRaw = rippleTransactionGetAmountRaw(transaction, FEE);
+    BRRippleAmount feeRaw = rippleTransactionGetAmountRaw(transaction, RIPPLE_AMOUNT_TYPE_FEE);
     assert(0 == feeRaw.currencyType);
-    assert(12 == feeRaw.amount);
+    assert(12 == feeRaw.amount.u64Amount);
     
     uint64_t amount = rippleTransactionGetAmount(transaction);
     assert(amount == 1000000);
 
     // Get the raw amount object
-    BRRippleAmount amountRaw = rippleTransactionGetAmountRaw(transaction, AMOUNT);
+    BRRippleAmount amountRaw = rippleTransactionGetAmountRaw(transaction, RIPPLE_AMOUNT_TYPE_AMOUNT);
     assert(0 == amountRaw.currencyType);
-    assert(1000000 == amountRaw.amount);
+    assert(1000000 == amountRaw.amount.u64Amount);
 
     uint32_t sequence = rippleTransactionGetSequence(transaction);
     // Since we don't add the sequence until later - it should be 0
@@ -153,8 +154,8 @@ testRippleTransactionGetters (void /* ... */) {
     BRRippleAddress target = rippleTransactionGetTarget(transaction);
     assert(0 == memcmp(target.bytes, targetAddress.bytes, 20));
     
-    rippleAccountDelete(account);
-    deleteRippleTransaction(transaction);
+    rippleAccountFree(account);
+    rippleTransactionFree(transaction);
 }
 
 static void
@@ -165,21 +166,22 @@ testCreateRippleAccountWithPaperKey (void /* ... */) {
     // raw bytes - EF FC 27 52 B5 C9 DA 22 88 C5 D0 1F 30 4E C8 29 51 E3 7C A2
     uint8_t expected_bytes[] = { 0xEF, 0xFC, 0x27, 0x52, 0xB5, 0xC9, 0xDA, 0x22, 0x88, 0xC5,
         0xD0, 0x1F, 0x30, 0x4E, 0xC8, 0x29, 0x51, 0xE3, 0x7C, 0xA2 };
-    const char* expected_accountid_string = "r41vZ8exoVyUfVzs56yeN8xB5gDhSkho9a";
+    const char* expected_ripple_address = "r41vZ8exoVyUfVzs56yeN8xB5gDhSkho9a";
 
     // Create the account using the paper key
     BRRippleAccount account = rippleAccountCreate(paper_key);
     assert(account);
 
     // Get the 20 bytes that were created for the account
-    uint8_t *accountBytes = getRippleAccountBytes(account);
-    assert(0 == memcmp(accountBytes, expected_bytes, 20));
+    BRRippleAddress address = rippleAccountGetAddress(account);
+    assert(0 == memcmp(address.bytes, expected_bytes, 20));
 
     // Get the ripple address string and compare
-    const char *rippleAddress = getRippleAddress(account);
-    assert(0 == memcmp(rippleAddress, expected_accountid_string, 25));
+    char rippleAddress[36];
+    rippleAccountGetAddressString(account, rippleAddress, 36);
+    assert(0 == strcmp(rippleAddress, expected_ripple_address));
 
-    rippleAccountDelete(account);
+    rippleAccountFree(account);
 }
 
 static void
@@ -198,10 +200,11 @@ testCreateRippleAccountWithSeed (void /* ... */) {
     assert(account);
 
     // Get the ripple address string and compare
-    const char *rippleAddress = getRippleAddress(account);
-    assert(0 == memcmp(rippleAddress, expected_accountid_string, 25));
+    char rippleAddress[36];
+    rippleAccountGetAddressString(account, rippleAddress, 36);
+    assert(0 == strcmp(rippleAddress, expected_accountid_string));
 
-    rippleAccountDelete(account);
+    rippleAccountFree(account);
 }
 
 static void
@@ -232,10 +235,11 @@ testCreateRippleAccountWithKey (void /* ... */) {
     assert(account);
 
     // Get the 20 bytes that were created for the account
-    const char *rippleAddress = getRippleAddress(account);
-    assert(0 == memcmp(rippleAddress, expected_accountid_string, 25));
+    char rippleAddress[36];
+    rippleAccountGetAddressString(account, rippleAddress, 36);
+    assert(0 == strcmp(rippleAddress, expected_accountid_string));
 
-    rippleAccountDelete(account);
+    rippleAccountFree(account);
 }
 
 static void getAccountInfo(const char* paper_key, const char* ripple_address) {
@@ -243,10 +247,10 @@ static void getAccountInfo(const char* paper_key, const char* ripple_address) {
     assert(account);
     
     // Get the 20 bytes that were created for the account
-    uint8_t *bytes = getRippleAccountBytes(account);
+    BRRippleAddress address = rippleAccountGetAddress(account);
     for(int i = 0; i < 20; i++) {
         if (i == 0) printf("ACCOUNT ID:\n");
-        printf("%02X", bytes[i]);
+        printf("%02X", address.bytes[i]);
         if (i == 19) printf("\n");
     }
 
@@ -257,7 +261,7 @@ static void getAccountInfo(const char* paper_key, const char* ripple_address) {
         if (i == 32) printf("\n");
     }
     
-    rippleAccountDelete(account);
+    rippleAccountFree(account);
 }
 
 static void
@@ -292,13 +296,14 @@ testSerializeWithSignature () {
     const char * paper_key = "F603971FCF8366465537B6AD793B37BED5FF730D3764A9DC0F7F4AD911E7372C";
     BRRippleAccount account = createTestRippleAccount(paper_key, NULL);
     // Get the 20 bytes that were created for the account
-    uint8_t *accountBytes = getRippleAccountBytes(account);
-    char * accountAddress = getRippleAddress(account);
-    if (debug_log) printf("%s\n, accountAddress");
+    BRRippleAddress address = rippleAccountGetAddress(account);
+    char rippleAddress[36];
+    rippleAccountGetAddressString(account, rippleAddress, 36);
+    if (debug_log) printf("%s\n", rippleAddress);
 
     BRRippleAddress sourceAddress;
     BRRippleAddress targetAddress;
-    memcpy(sourceAddress.bytes, accountBytes, 20);
+    memcpy(sourceAddress.bytes, address.bytes, 20);
     memcpy(targetAddress.bytes, destBytes, 20);
 
     transaction = rippleTransactionCreate(sourceAddress, targetAddress, 1000000, 12);
@@ -311,8 +316,11 @@ testSerializeWithSignature () {
     // Since we don't add the sequence until later - it should be 0
     assert(0 == sequence);
 
+    // Must set the sequence number before signing
+    rippleAccountSetSequence(account, sequence_number);
+
     // Serialize and sign
-    BRRippleSerializedTransaction s = rippleAccountSignTransaction(transaction, paper_key, sequence_number, 0);
+    BRRippleSerializedTransaction s = rippleAccountSignTransaction(account, transaction, paper_key);
     assert(s);
     int signed_size = getSerializedSize(s);
     uint8_t *signed_bytes = getSerializedBytes(s);
@@ -335,8 +343,8 @@ testSerializeWithSignature () {
     // Now compare the last 2 fields (source and destination)
     //assert(0 == memcmp(&signed_bytes[signed_size-44], &expected_output[sizeof(expected_output)-44], 44));
     
-    deleteRippleTransaction(transaction);
-    rippleAccountDelete(account);
+    rippleTransactionFree(transaction);
+    rippleAccountFree(account);
 }
 
 extern BRRippleSignatureRecord rippleTransactionGetSignature(BRRippleTransaction transaction);
@@ -381,7 +389,7 @@ static void validateDeserializedTransaction(BRRippleTransaction transaction)
 {
     assert(transaction);
     uint16_t transactionType = rippleTransactionGetType(transaction);
-    assert(PAYMENT == transactionType);
+    assert(RIPPLE_TX_TYPE_PAYMENT == transactionType);
     
     uint32_t sequence = rippleTransactionGetSequence(transaction);
     assert(25 == sequence);
@@ -446,7 +454,7 @@ static void testTransactionDeserialize()
     validateOptionalFields(transaction, 0, 0,
                            &expectedInvoiceId, &expectedAccountTxnId);
     
-    deleteRippleTransaction(transaction);
+    rippleTransactionFree(transaction);
 }
 
 static void testTransactionDeserializeUnknownFields()
@@ -454,17 +462,17 @@ static void testTransactionDeserializeUnknownFields()
     // Test with the STObject appended
     BRRippleTransaction transaction = transactionDeserialize(serialized_transaction, "E000");
     validateDeserializedTransaction(transaction);
-    deleteRippleTransaction(transaction);
+    rippleTransactionFree(transaction);
 
     // Test with the STArray
     transaction = transactionDeserialize(serialized_transaction, "F000");
     validateDeserializedTransaction(transaction);
-    deleteRippleTransaction(transaction);
+    rippleTransactionFree(transaction);
 
     // Test with the PathSet field appended
     transaction = transactionDeserialize(serialized_transaction, "0112");
     validateDeserializedTransaction(transaction);
-    deleteRippleTransaction(transaction);
+    rippleTransactionFree(transaction);
 
 }
 
@@ -475,12 +483,13 @@ static void testTransactionDeserializeOptionalFields()
     BRRippleTransaction transaction = transactionDeserialize(test_input, NULL);
     assert(transaction);
 
-    BRRippleAmount sendMax = rippleTransactionGetAmountRaw(transaction, SENDMAX);
+    BRRippleAmount sendMax = rippleTransactionGetAmountRaw(transaction, RIPPLE_AMOUNT_TYPE_SENDMAX);
     assert(1 == sendMax.currencyType);
 
-    BRRippleAmount amountRaw = rippleTransactionGetAmountRaw(transaction, AMOUNT);
+    BRRippleAmount amountRaw = rippleTransactionGetAmountRaw(transaction, RIPPLE_AMOUNT_TYPE_AMOUNT);
     assert(1 == amountRaw.currencyType);
-    //assert(1 == amountRaw.amount);
+    // Not sure how to test doubles
+    //assert((double)1 == amountRaw.amount.dAmount);
 }
 
 static void testTransactionDeserializeLastLedgerSequence()
@@ -495,6 +504,24 @@ static void testTransactionDeserializeLastLedgerSequence()
     assert(19000000 == lastLedgerSequence);
 }
 
+static void testTransactionDeserializeWithMemos()
+{
+    const char * test_input = "1200002400000001201B0121EAC06140000000000F424068400000000000000C"
+    "81142D66C01F69269EE58D62174B821295CCF763DF3C"
+    "8314572A19A7C7DD6F72C7D24DE3F10FDFEFE8636A36"
+    "F9EA7C1F687474703A2F2F6578616D706C652E636F6D2F6"
+    "D656D6F2F67656E657269637D04AAAAAAAAE1"
+    "EA7C1F687474703A2F2F6578616D706C652E636F6D2F6D656D6F2F67656E657269637D04BBBBBBBBE1F1";
+
+    BRRippleTransaction transaction = transactionDeserialize(test_input, NULL);
+    assert(transaction);
+    
+    uint32_t lastLedgerSequence = rippleTransactionGetLastLedgerSequence(transaction);
+    assert(19000000 == lastLedgerSequence);
+
+    rippleTransactionFree(transaction);
+}
+
 static void
 testTransactionHash (void /* ... */) {
     BRRippleTransaction transaction;
@@ -507,18 +534,19 @@ testTransactionHash (void /* ... */) {
     const char * paper_key = "F603971FCF8366465537B6AD793B37BED5FF730D3764A9DC0F7F4AD911E7372C";
     BRRippleAccount account = createTestRippleAccount(paper_key, NULL);
     // Get the 20 bytes that were created for the account
-    uint8_t *accountBytes = getRippleAccountBytes(account);
+    BRRippleAddress address = rippleAccountGetAddress(account);
     
     BRRippleAddress sourceAddress;
     BRRippleAddress targetAddress;
-    memcpy(sourceAddress.bytes, accountBytes, 20);
+    memcpy(sourceAddress.bytes, address.bytes, 20);
     memcpy(targetAddress.bytes, destBytes, 20);
     
     transaction = rippleTransactionCreate(sourceAddress, targetAddress, 1000000, 12);
     assert(transaction);
 
     // Serialize and sign
-    BRRippleSerializedTransaction s = rippleAccountSignTransaction(transaction, paper_key, 25, 0);
+    rippleAccountSetSequence(account, 25);
+    BRRippleSerializedTransaction s = rippleAccountSignTransaction(account, transaction, paper_key);
     assert(s);
     
     // Compare the transaction hash
@@ -531,8 +559,8 @@ testTransactionHash (void /* ... */) {
     BRRippleTransactionHash hash = rippleTransactionGetHash(transaction);
     assert(0 == memcmp(hash.bytes, expected_hash, 32));
 
-    deleteRippleTransaction(transaction);
-    rippleAccountDelete(account);
+    rippleTransactionFree(transaction);
+    rippleAccountFree(account);
 }
 
 
@@ -637,10 +665,11 @@ void rippleTransactionTests()
     testRippleTransactionGetters();
     testSerializeWithSignature();
     testTransactionHash();
-    testTransactionDeserialize();
-    testTransactionDeserializeUnknownFields();
-    testTransactionDeserializeOptionalFields();
-    testTransactionDeserializeLastLedgerSequence();
+    //testTransactionDeserialize();
+    //testTransactionDeserializeUnknownFields();
+    //testTransactionDeserializeOptionalFields();
+    //testTransactionDeserializeLastLedgerSequence();
+    testTransactionDeserializeWithMemos();
 }
 
 static void runWalletTests()

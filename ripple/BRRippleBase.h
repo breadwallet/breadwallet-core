@@ -10,12 +10,11 @@
 //
 #ifndef BRRipple_base_h
 #define BRRipple_base_h
-#include <stdbool.h>
-#include "BRKey.h"
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
 
 #define ADDRESS_BYTES   (20)
-
-
 
 // A Ripple Address - 20 bytes
 typedef struct {
@@ -25,7 +24,8 @@ typedef struct {
 // Even though we only support the Payment type - plan for
 // the future
 typedef enum {
-    PAYMENT
+    RIPPLE_TX_TYPE_UNKNOWN = -1,
+    RIPPLE_TX_TYPE_PAYMENT = 0
 } BRRippleTransactionType ;
 
 // A Ripple Transaction Hash
@@ -35,16 +35,19 @@ typedef struct {
 
 typedef struct {
     int currencyType; // 0 - ripple, 1 - other, -1 unknown/invalid
-    uint64_t amount;
     uint8_t currencyCode[20];
     uint8_t issuerId[20];
+    union _amount {
+        uint64_t u64Amount; // XRP drops
+        double   dAmount;   // for other currencies
+    } amount;
 } BRRippleAmount;
 
 typedef enum {
-    AMOUNT,
-    FEE,
-    SENDMAX,
-    DELIVERMIN
+    RIPPLE_AMOUNT_TYPE_AMOUNT,
+    RIPPLE_AMOUNT_TYPE_FEE,
+    RIPPLE_AMOUNT_TYPE_SENDMAX,
+    RIPPLE_AMOUNT_TYPE_DELIVERMIN
 } BRRippleAmountType;
 
 // Stucture to hold the calculated signature
@@ -54,23 +57,11 @@ typedef struct {
 } BRRippleSignatureRecord;
 typedef BRRippleSignatureRecord *BRRippleSignature;
 
-// Ripple has the concept of fields, which are sorted. This
-// field stucture allows us to easily sort the fields when
-// creating the serialized format
-typedef struct _ripple_field {
-    int typeCode;
-    int fieldCode;
-    union _data {
-        uint8_t i8;
-        uint16_t i16;
-        uint32_t i32;
-        uint64_t i64;
-        BRRippleAmount amount;
-        BRRippleAddress address;
-        BRKey publicKey;
-        BRRippleSignatureRecord signature;
-        uint8_t hash[32]; // There are 3 potential hash fields - longest is 32 bytes
-    } data;
-} BRRippleField;
+typedef uint64_t BRRippleUnitDrops;
+typedef uint32_t BRRippleSequence;
+typedef uint32_t BRRippleFlags;
+typedef uint32_t BRRippleLastLedgerSequence;
+typedef uint32_t BRRippleSourceTag;
+typedef uint32_t BRRippleDestinationTag;
 
 #endif
