@@ -29,8 +29,9 @@ public class BlockChainDB {
     /// task.  Such as when multiple request are needed in getTransactions().
     let queue = DispatchQueue.init(label: "BlockChainDB")
 
-    /// A function type that decorates a `request`, handle 'challenges', performs decrypting and/or
-    /// uncompression of response data and creates a `URLSessionDataTask` for the provided `session`.
+    /// A function type that decorates a `request`, handles 'challenges', performs decrypting and/or
+    /// uncompression of response data, redirects if requires and creates a `URLSessionDataTask`
+    /// for the provided `session`.
     public typealias DataTaskFunc = (URLSession, URLRequest, @escaping (Data?, URLResponse?, Error?) -> Void) -> URLSessionDataTask
 
     /// A DataTaskFunc for submission to the BRD API
@@ -45,6 +46,95 @@ public class BlockChainDB {
         _ request: URLRequest,
         _ completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) -> URLSessionDataTask in
         session.dataTask (with: request, completionHandler: completionHandler)
+    }
+
+    ///
+    /// A Subscription allows for BlockchainDB 'Asynchronous Notifications'.
+    ///
+    public struct Subscription {
+        
+        /// A unique identifier for the subscription
+        public let subscriptionId: String
+
+        /// A unique identifier for the device.
+        public let deviceId: String
+
+        ///
+        /// An endpoint definition allowing the BlockchainDB to 'target' this App.  Allows
+        /// for APNS, FCM and other notification systems.  This is an optional value; when set to
+        /// .none, any existing notification will be disabled
+        ///
+        /// environment : { unknown, production, development }
+        /// kind        : { unknown, apns, fcm, ... }
+        /// value       : For apns/fcm this will be the registration token, apns should be hex-encoded
+        public let endpoint: (environment: String, kind: String, value: String)?
+
+        public init (id: String, deviceId: String? = nil, endpoint: (environment: String, kind: String, value: String)?) {
+            self.subscriptionId = id
+            self.deviceId = deviceId ?? id
+            self.endpoint = endpoint
+        }
+    }
+
+    /// A User-specific identifier - a string representation of a UUIDv4
+    internal var walletId: String? = nil
+
+    /// A Subscription specificiation
+    internal var subscription: Subscription? = nil
+
+    private var modelSubscription: Model.Subscription? {
+        guard let walletId = walletId,  let subscription = subscription, let endpoint = subscription.endpoint
+            else { return nil }
+
+        return (id: subscription.subscriptionId,
+                wallet: walletId,
+                device: subscription.deviceId,
+                endpoint: (environment: endpoint.environment, kind: endpoint.kind, value: endpoint.value))
+    }
+
+    // A BlockChainDB wallet requires at least one 'currency : [<addr>+]' entry.  Create a minimal,
+    // default one using a compromised ETH address.  This will get replaced as soon as we have
+    // a real ETH account.
+    internal static let minimalCurrencies = ["eth" : ["A9De3DBd7D561e67527BC1ECB025C59D53B9F7EF"]]
+
+    internal func subscribe (walletId: String, subscription: Subscription) {
+        self.walletId = walletId
+        self.subscription = subscription
+
+        // Subscribing requires a wallet on the BlockChainDD, so start by create the BlockChainDB
+        // Model.Wallet and then get or create one on the DB.
+
+        let wallet = (id: walletId, currencies: BlockChainDB.minimalCurrencies)
+
+        getOrCreateWallet (wallet) { (walletRes: Result<Model.Wallet, QueryError>) in
+            guard case .success = walletRes
+                else { print ("SYS: Wallet: Missed"); return }
+
+            if let model = self.modelSubscription {
+                // If the subscription included an endpoint, then put the subscription on the
+                // blockchainDB - via POST or PUT.
+                self.getSubscription (id: model.id) { (subRes: Result<Model.Subscription, QueryError>) in
+                    switch subRes {
+                    case let .success (subscription):
+                        self.updateSubscription (subscription) {
+                            (resSub: Result<BlockChainDB.Model.Subscription, BlockChainDB.QueryError>) in
+                        }
+
+                    case .failure:
+                        self.createSubscription (model) {
+                            (resSub: Result<BlockChainDB.Model.Subscription, BlockChainDB.QueryError>) in
+                        }
+                    }
+                }
+            }
+
+            else {
+                // Otherwise delete it.
+                self.deleteSubscription(id: subscription.subscriptionId) {
+                    (subRes: Result<BlockChainDB.Model.Subscription, BlockChainDB.QueryError>) in
+                }
+            }
+        }
     }
 
     ///
@@ -64,7 +154,7 @@ public class BlockChainDB {
     ///       which suffices for DEBUG builds.
     ///
     public init (session: URLSession = URLSession (configuration: .default),
-                 bdbBaseURL: String = "http://blockchain-db.us-east-1.elasticbeanstalk.com",
+                 bdbBaseURL: String = "https://test-blockchaindb-api.brd.tools", // "http://blockchain-db.us-east-1.elasticbeanstalk.com",
                  bdbDataTaskFunc: DataTaskFunc? = nil,
                  apiBaseURL: String = "https://api.breadwallet.com",
                  apiDataTaskFunc: DataTaskFunc? = nil) {
@@ -119,13 +209,26 @@ public class BlockChainDB {
 
         /// Blockchain
 
+        public typealias BlockchainFee = (amount: String, tier: String, confirmations: String)
         public typealias Blockchain = (
             id: String,
             name: String,
             network: String,
             isMainnet: Bool,
             currency: String,
-            blockHeight: UInt64 /* fee Estimate */)
+            blockHeight: UInt64,
+            feeEstimates: [BlockchainFee])
+
+        static internal func asBlockchainFee (json: JSON) -> Model.BlockchainFee? {
+            guard let amount = json.asDict(name: "fee")?["amount"] as? String,
+                let tier = json.asString(name: "tier")
+                else { return nil }
+
+            // We've seen 'null' - assign "1" if so.
+            let confirmations = json.asString(name: "estimated_confirmation_in") ?? "1"
+
+            return (amount: amount, tier: tier, confirmations: confirmations)
+        }
 
         static internal func asBlockchain (json: JSON) -> Model.Blockchain? {
             guard let id = json.asString (name: "id"),
@@ -136,22 +239,29 @@ public class BlockChainDB {
                 let blockHeight = json.asUInt64 (name: "block_height")
                 else { return nil }
 
-            return (id: id, name: name, network: network, isMainnet: isMainnet, currency: currency, blockHeight: max (blockHeight, 575020))
+            guard let feeEstimates = json.asArray(name: "fee_estimates")?
+                .map ({ JSON (dict: $0) })
+                .map ({ asBlockchainFee (json: $0) }) as? [Model.BlockchainFee]
+            else { return nil }
+
+            return (id: id, name: name, network: network, isMainnet: isMainnet, currency: currency,
+                    blockHeight: blockHeight,
+                    feeEstimates: feeEstimates)
         }
 
         /// We define default blockchains but these are wholly insufficient given that the
         /// specfication includes `blockHeight` (which can never be correct).
         static public let defaultBlockchains: [Blockchain] = [
             // Mainnet
- //           (id: "bitcoin-mainnet",  name: "Bitcoin",  network: "mainnet", isMainnet: true,  currency: "btc", blockHeight:  600000),
-            (id: "bitcash-mainnet",  name: "Bitcash",  network: "mainnet", isMainnet: true,  currency: "bch", blockHeight: 1000000),
-            (id: "ethereum-mainnet", name: "Ethereum", network: "mainnet", isMainnet: true,  currency: "eth", blockHeight: 8000000),
+            (id: "bitcoin-mainnet",  name: "Bitcoin",  network: "mainnet", isMainnet: true,  currency: "btc", blockHeight:  654321, feeEstimates: []),
+            (id: "bitcash-mainnet",  name: "Bitcash",  network: "mainnet", isMainnet: true,  currency: "bch", blockHeight: 1000000, feeEstimates: []),
+            (id: "ethereum-mainnet", name: "Ethereum", network: "mainnet", isMainnet: true,  currency: "eth", blockHeight: 8000000, feeEstimates: []),
 
             // Testnet
-            (id: "bitcoin-testnet",  name: "Bitcoin",  network: "testnet", isMainnet: false, currency: "btc", blockHeight:  900000),
-            (id: "bitcash-testnet",  name: "Bitcash",  network: "testnet", isMainnet: false, currency: "bch", blockHeight: 1200000),
-            (id: "ethereum-testnet", name: "Ethereum", network: "testnet", isMainnet: false, currency: "eth", blockHeight: 1000000),
-            (id: "ethereum-rinkeby", name: "Ethereum", network: "rinkeby", isMainnet: false, currency: "eth", blockHeight: 2000000)
+            (id: "bitcoin-testnet",  name: "Bitcoin",  network: "testnet", isMainnet: false, currency: "btc", blockHeight:  900000, feeEstimates: []),
+            (id: "bitcash-testnet",  name: "Bitcash",  network: "testnet", isMainnet: false, currency: "bch", blockHeight: 1200000, feeEstimates: []),
+            (id: "ethereum-testnet", name: "Ethereum", network: "testnet", isMainnet: false, currency: "eth", blockHeight: 1000000, feeEstimates: []),
+            (id: "ethereum-rinkeby", name: "Ethereum", network: "rinkeby", isMainnet: false, currency: "eth", blockHeight: 2000000, feeEstimates: [])
         ]
 
         /// Currency & CurrencyDenomination
@@ -387,40 +497,46 @@ public class BlockChainDB {
 
         /// Wallet
 
-        public typealias WalletCurrency = (currency: String, addresses: [String])
         public typealias Wallet = (
             id: String,
-            created: Date,
-            currencies: [WalletCurrency]
+            currencies: [String:[String]]  // "currency_id": [<address>, ...]
         )
 
-        static internal func asWalletCurrency (json: JSON) -> Model.WalletCurrency? {
-            guard let currency = json.asString(name: "currency_id")
-            else { return nil }
-
-            let addresses = json.asStringArray(name: "addresses") ?? []
-
-            return (currency: currency, addresses: addresses)
-        }
-
-        static internal func asJSON (walletCurrency: Model.WalletCurrency) -> JSON.Dict {
-            return [
-                "currency_id" : walletCurrency.currency,
-                "addresses"   : walletCurrency.addresses
-            ]
-        }
+//        static internal func asWalletCurrency (json: JSON) -> Model.WalletCurrency? {
+//            guard let currency = json.asString(name: "currency_id")
+//            else { return nil }
+//
+//            let addresses = json.asStringArray(name: "addresses") ?? []
+//
+//            return (currency: currency, addresses: addresses)
+//        }
+//
+//        static internal func asJSON (walletCurrency: Model.WalletCurrency) -> JSON.Dict {
+//            return [
+//                "currency_id" : walletCurrency.currency,
+//                "addresses"   : walletCurrency.addresses
+//            ]
+//        }
 
         static internal func asWallet (json: JSON) -> Model.Wallet? {
-            guard let id = json.asString (name: "wallet_id"),
-                let created = json.asDate (name: "created")
+            guard let id = json.asString (name: "id")
                 else { return nil }
 
-            let currencies = json.asArray(name: "currencies")?
-                .map { JSON (dict: $0) }
-                .map { asWalletCurrency (json: $0) } as? [Model.WalletCurrency]
-            ?? [] // not quite
+            if let currencies = json.asDict(name: "currencies") as? [String:[String]] {
+                return (id: id, currencies: currencies)
+            }
+            else {
+                print ("SYS: BDB: Missed Wallet Currencies")
+                return (id: id, currencies: [String:[String]]())
+            }
+        }
 
-            return (id: id, created: created, currencies: currencies)
+        static internal func asJSON (wallet: Wallet) -> JSON.Dict {
+            return [
+                "id"            : wallet.id,
+                "created"       : "2019-05-06T01:08:49.495+0000",
+                "currencies"    : wallet.currencies
+            ]
         }
 
         /// Subscription
@@ -442,6 +558,14 @@ public class BlockChainDB {
             return (environment: environment, kind: kind, value: value)
         }
 
+        static internal func asJSON (subscriptionEndpoint: SubscriptionEndpoint) -> JSON.Dict {
+            return [
+                "environment"   : subscriptionEndpoint.environment,
+                "kind"          : subscriptionEndpoint.kind,
+                "value"         : subscriptionEndpoint.value
+            ]
+        }
+
         static internal func asSubscription (json: JSON) -> Subscription? {
             guard let id = json.asString (name: "subscription_id"),
                 let wallet = json.asString (name: "wallet_id"),
@@ -451,6 +575,15 @@ public class BlockChainDB {
                 else { return nil }
 
             return (id: id, wallet: wallet, device: device, endpoint: endpoint)
+        }
+
+        static internal func asJSON (subscription: Subscription) -> JSON.Dict {
+            return [
+                "subscription_id"   : subscription.id,
+                "wallet_id"         : subscription.wallet,
+                "device_id"         : subscription.device,
+                "endpoint"          : asJSON (subscriptionEndpoint: subscription.endpoint)
+            ]
         }
 
     } // End of Model
@@ -495,6 +628,24 @@ public class BlockChainDB {
         }
     }
 
+    /// Subscription
+
+    internal func makeSubscriptionRequest (_ subscription: Model.Subscription, path: String, httpMethod: String,
+                                           completion: @escaping (Result<Model.Subscription, QueryError>) -> Void) {
+        makeRequest (bdbDataTaskFunc, bdbBaseURL,
+                     path: path,
+                     query: nil,
+                     data: Model.asJSON(subscription: subscription),
+                     httpMethod: httpMethod) {
+                        (res: Result<JSON.Dict, QueryError>) in
+                        completion (res.flatMap {
+                            Model.asSubscription(json: JSON(dict: $0))
+                                .map { Result.success ($0) }
+                                ?? Result.failure(QueryError.model("Missed Subscription"))
+                        })
+        }
+    }
+
     public func getSubscription (id: String, completion: @escaping (Result<Model.Subscription, QueryError>) -> Void) {
         bdbMakeRequest (path: "subscriptions/\(id)", query: nil, embedded: false) {
             (more: Bool, res: Result<[JSON], QueryError>) in
@@ -505,32 +656,118 @@ public class BlockChainDB {
         }
     }
 
-    public func createSubscription (walletId: String, deviceId: String, endpointValue: String,
-                                    completion: @escaping (Result<String, QueryError>) -> Void) {
-        let json: JSON.Dict = [
-            "wallet_id" : walletId,
-            "device_id" : deviceId,
-            "endpoint"  : [
-                "environment" : "develop",          // not quite
-                "type"        : "apns",
-                "value"       : endpointValue
-                ]
-        ]
+    public func createSubscription (_ subscription: Model.Subscription,
+                                    completion: @escaping (Result<Model.Subscription, QueryError>) -> Void) {
+        makeSubscriptionRequest (subscription,
+                                 path: "subscriptions",
+                                 httpMethod: "POST",
+                                 completion: completion)
+     }
 
+    public func getOrCreateSubscription (_ subscription: Model.Subscription,
+                                         completion: @escaping (Result<Model.Subscription, QueryError>) -> Void) {
+        getSubscription(id: subscription.id) { (res: Result<BlockChainDB.Model.Subscription, BlockChainDB.QueryError>) in
+            if case .success = res { completion (res) }
+            else {
+                self.createSubscription (subscription, completion: completion)
+            }
+        }
+    }
+
+    public func updateSubscription (_ subscription: Model.Subscription, completion: @escaping (Result<Model.Subscription, QueryError>) -> Void) {
+        let path = "subscriptions/\(subscription.id )"
+        makeSubscriptionRequest (subscription,
+                                 path: path,
+                                 httpMethod: "PUT",
+                                 completion: completion)
+    }
+
+    public func deleteSubscription (id: String, completion: @escaping (Result<Model.Subscription, QueryError>) -> Void) {
+        let path = "subscriptions/\(id)"
         makeRequest (bdbDataTaskFunc, bdbBaseURL,
-                     path: "subscriptions",
+                     path: path,
                      query: nil,
-                     data: json,
-                     httpMethod: "POST") {
+                     data: nil,
+                     httpMethod: "DELETE") {
                         (res: Result<JSON.Dict, QueryError>) in
+                        // Not likely
                         completion (res.flatMap {
-                            JSON(dict: $0)
-                                .asString (name: "subscription_id")
-                                .map { Result.success($0) }
-                            ?? Result.failure(QueryError.model("subscription"))
+                            Model.asSubscription(json: JSON(dict: $0))
+                                .map { Result.success ($0) }
+                                ?? Result.failure(QueryError.model("Missed Delete Subscription"))
                         })
         }
     }
+
+    /// Wallet
+
+    internal func makeWalletRequest (_ wallet: Model.Wallet, path: String, httpMethod: String,
+                                           completion: @escaping (Result<Model.Wallet, QueryError>) -> Void) {
+        makeRequest (bdbDataTaskFunc, bdbBaseURL,
+                     path: path,
+                     query: nil,
+                     data: Model.asJSON (wallet: wallet),
+                     httpMethod: httpMethod) {
+                        (res: Result<JSON.Dict, QueryError>) in
+                        completion (res.flatMap {
+                            Model.asWallet(json: JSON(dict: $0))
+                                .map { Result.success ($0) }
+                                ?? Result.failure(QueryError.model("Missed Wallet"))
+                        })
+        }
+    }
+
+    public func getWallet (walletId: String, completion: @escaping (Result<Model.Wallet, QueryError>) -> Void) {
+        bdbMakeRequest(path: "wallets/\(walletId)", query: nil, embedded: false) { (more: Bool, res: Result<[JSON], QueryError>) in
+            precondition(!more)
+            completion (res.flatMap {
+                BlockChainDB.getOneExpected(id: walletId, data: $0, transform: Model.asWallet)
+            })
+        }
+    }
+
+    public func createWallet (_ wallet: Model.Wallet, completion: @escaping (Result<Model.Wallet, QueryError>) -> Void) {
+        makeWalletRequest (wallet,
+                           path: "wallets",
+                           httpMethod: "POST",
+                           completion: completion)
+    }
+
+    public func getOrCreateWallet (_ wallet: Model.Wallet, completion: @escaping (Result<Model.Wallet, QueryError>) -> Void) {
+        getWallet (walletId: wallet.id) { (res: Result<Model.Wallet, QueryError>) in
+            if case .success = res { completion (res) }
+            else {
+                self.createWallet (wallet, completion: completion)
+            }
+        }
+    }
+
+    public func updateWallet (_ wallet: Model.Wallet, completion: @escaping (Result<Model.Wallet, QueryError>) -> Void) {
+        let path = "wallets/\(wallet.id)"
+        makeWalletRequest (wallet,
+                           path: path,
+                           httpMethod: "PUT",
+                           completion: completion)
+    }
+
+    public func deleteWallet (id: String, completion: @escaping (Result<Model.Wallet, QueryError>) -> Void) {
+        let path = "wallets/\(id)"
+        makeRequest (bdbDataTaskFunc, bdbBaseURL,
+                     path: path,
+                     query: nil,
+                     data: nil,
+                     httpMethod: "DELETE") {
+                        (res: Result<JSON.Dict, QueryError>) in
+                        // Not likely
+                        completion (res.flatMap {
+                            Model.asWallet(json: JSON(dict: $0))
+                                .map { Result.success ($0) }
+                                ?? Result.failure(QueryError.model("Missed Delete Wallet"))
+                        })
+        }
+    }
+
+    // Transfers
 
     public func getTransfers (blockchainId: String, addresses: [String], completion: @escaping (Result<[Model.Transfer], QueryError>) -> Void) {
         let queryKeys = ["blockchain_id"] + Array (repeating: "address", count: addresses.count)
@@ -551,30 +788,6 @@ public class BlockChainDB {
             completion (res.flatMap {
                 BlockChainDB.getOneExpected (id: transferId, data: $0, transform: Model.asTransfer)
             })
-        }
-    }
-
-    public func getWallet (walletId: String, completion: @escaping (Result<Model.Wallet, QueryError>) -> Void) {
-        bdbMakeRequest(path: "wallets/\(walletId)", query: nil, embedded: false) { (more: Bool, res: Result<[JSON], QueryError>) in
-            precondition(!more)
-            completion (res.flatMap {
-                BlockChainDB.getOneExpected(id: walletId, data: $0, transform: Model.asWallet)
-            })
-        }
-    }
-
-    public func createWallet (id: String, currencies: [Model.WalletCurrency]) -> Void {
-        let json: JSON.Dict = [
-            "walletId"   : id,
-            "currencies" : currencies.map { Model.asJSON(walletCurrency: $0) }
-            ]
-
-        makeRequest (bdbDataTaskFunc, bdbBaseURL,
-                     path: "wallets",
-                     query: nil,
-                     data: json,
-                     httpMethod: "POST") {
-                        (res: Result<JSON.Dict, QueryError>) in
         }
     }
 
@@ -1384,14 +1597,14 @@ public class BlockChainDB {
             do {
                 guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? T
                     else {
-                        print ("SYS: API: ERROR: JSON.Dict: \(data.map { String(format: "%c", $0) }.joined())")
+                        print ("SYS: API: ERROR: JSON.Dict: '\(data.map { String(format: "%c", $0) }.joined())'")
                         completion (Result.failure(QueryError.jsonParse(nil)));
                         return }
 
                 completion (Result.success (json))
             }
             catch let jsonError as NSError {
-                print ("SYS: API: ERROR: JSON.Error: \(data.map { String(format: "%c", $0) }.joined())")
+                print ("SYS: API: ERROR: JSON.Error: '\(data.map { String(format: "%c", $0) }.joined())'")
                 completion (Result.failure (QueryError.jsonParse (jsonError)))
                 return
             }
@@ -1416,7 +1629,7 @@ public class BlockChainDB {
         guard let url = urlBuilder.url
             else { completion (Result.failure (QueryError.url("URLComponents.url"))); return }
 
-        print ("SYS: Request: \(url.absoluteString): Data: \(data?.description ?? "[]")")
+        print ("SYS: Request: \(url.absoluteString): Method: \(httpMethod): Data: \(data?.description ?? "[]")")
 
         var request = URLRequest (url: url)
         request.addValue ("application/json", forHTTPHeaderField: "accept")
@@ -1461,7 +1674,7 @@ public class BlockChainDB {
                         completion (false && (embedded && full),
                             res.flatMap { (json: JSON) -> Result<[JSON], QueryError> in
                                 let json = (embedded
-                                    ? json.asDict(name: "_embedded")?[path]
+                                    ? (json.asDict(name: "_embedded")?[path] ?? [])
                                     : [json.dict])
 
                                 guard let data = json as? [JSON.Dict]

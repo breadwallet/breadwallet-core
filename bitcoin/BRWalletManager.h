@@ -222,6 +222,10 @@ extern BRAddress *
 BRWalletManagerGetUnusedAddrs (BRWalletManager manager,
                                uint32_t limit);
 
+extern BRAddress *
+BRWalletManagerGetUnusedAddrsLegacy (BRWalletManager manager,
+                                     uint32_t limit);
+
 //
 // These should not be needed if the events are sufficient
 //

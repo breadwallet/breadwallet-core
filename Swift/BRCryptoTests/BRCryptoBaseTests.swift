@@ -85,7 +85,8 @@ class BRCryptoBaseTests: XCTestCase {
         }
 
         /// Create the account
-        account = Account.createFrom (phrase: paperKey)!
+        let walletId = UUID (uuidString: "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96")?.uuidString ?? "empty-wallet-id"
+        account = Account.createFrom (phrase: paperKey, uids: walletId)!
 
         /// Create the 'storagePath'
         coreDataDir = FileManager.default

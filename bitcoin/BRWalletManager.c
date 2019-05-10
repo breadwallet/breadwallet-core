@@ -437,6 +437,7 @@ BRWalletManagerNew (BRWalletManagerClient client,
 
     bwm->mode = mode;
     bwm->client = client;
+    bwm->requestId = 0;
 
     BRWalletForkId fork = getForkId (params);
     const char *networkName  = getNetworkName  (params);
@@ -532,11 +533,16 @@ BRWalletManagerNew (BRWalletManagerClient client,
                           _BRWalletManagerTxUpdated,
                           _BRWalletManagerTxDeleted);
 
-    // If in a SYNC_MODE using BRD, explicitly set the BRPeerManager's `earliestKeyTime`.  Normally
-    // that time is defined as that time when the User's `paperKey` was created.  It informs the
-    // Bitcoin peers of the point beyond which BTC/BCH transactions might occur.  But, we'll set
-    // time impossibly into the future for the case where we want to disable 'syncing' and still
-    // maintain a P2P connection.
+    // Find the BRCheckpoint that is at least one week before earliestKeyTime.
+#define ONE_WEEK_IN_SECONDS      (7*24*60*60)
+    const BRCheckPoint *earliestCheckPoint = BRChainParamsGetCheckpointBefore (params, earliestKeyTime - ONE_WEEK_IN_SECONDS);
+    assert (NULL != earliestCheckPoint);
+
+    // If in a SYNC_MODE using BRD, explicitly set the BRPeerManager's `earliestKeyTime` to
+    // 'infinity'.  Normally that time is defined as that time when the User's `paperKey` was
+    // created.  It informs the Bitcoin peers of the point beyond which BTC/BCH transactions might
+    // occur.  But, we'll set time impossibly into the future for the case where we want to disable
+    // P2P 'syncing' yet still maintain a P2P connection.
 
     if (SYNC_MODE_BRD_ONLY == bwm->mode || SYNC_MODE_BRD_WITH_P2P_SEND == bwm->mode)
         // There might be BTC calculations based on adding to earliestKeyTime.  Try to avoid having
@@ -558,7 +564,7 @@ BRWalletManagerNew (BRWalletManagerClient client,
 
     // Initialize the `brdSync` struct
     bwm->brdSync.rid = -1;
-    bwm->brdSync.begBlockNumber = BRPeerManagerLastBlockHeight (bwm->peerManager);
+    bwm->brdSync.begBlockNumber = earliestCheckPoint->height;
     bwm->brdSync.endBlockNumber = bwm->brdSync.begBlockNumber;
     bwm->brdSync.completed = 0;
 
@@ -750,15 +756,32 @@ BRWalletManagerSubmitTransaction (BRWalletManager manager,
     }
 }
 
+static void
+BRWalletManagerAddressToLegacy (BRAddress *addr) {
+    uint8_t script[] = { OP_DUP, OP_HASH160, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, OP_EQUALVERIFY, OP_CHECKSIG };
+
+    if (BRAddressHash160(&script[3], addr->s)) BRAddressFromScriptPubKey(addr->s, sizeof(BRAddress), script, sizeof(script));
+}
+
 extern BRAddress *
 BRWalletManagerGetUnusedAddrs (BRWalletManager manager,
                                uint32_t limit) {
-    //    assert (sizeof (size_t) == sizeof (uint32_t));
-
     BRAddress *addresses = calloc (limit, sizeof (BRAddress));
     BRWalletUnusedAddrs (manager->wallet, addresses, (uint32_t) limit, 0);
     return addresses;
 }
+
+extern BRAddress *
+BRWalletManagerGetUnusedAddrsLegacy (BRWalletManager manager,
+                                     uint32_t limit) {
+    BRAddress *addresses = BRWalletManagerGetUnusedAddrs (manager, limit);
+    for (size_t index = 0; index < limit; index++)
+        BRWalletManagerAddressToLegacy (&addresses[index]);
+    return addresses;
+}
+
+
 
 static void
 BRWalletManagerUpdateHeightIfAppropriate (BRWalletManager manager,
@@ -975,7 +998,6 @@ bwmUpdateTransactions (BRWalletManager bwm) {
             // Callback to 'client' to get all transactions (for all wallet addresses) between
             // a {beg,end}BlockNumber.  The client will gather the transactions and then call
             // bwmAnnounceTransaction()  (for each one or with all of them).
-            if (bwm->brdSync.begBlockNumber != bwm->brdSync.endBlockNumber)
                 bwm->client.funcGetTransactions (bwm->client.context,
                                                  bwm,
                                                  bwm->brdSync.begBlockNumber,
@@ -1054,13 +1076,19 @@ bwmPeriodicDispatcher (BREventHandler handler,
     // 2) completed or not, update the `endBlockNumber` to the current block height.
     bwm->brdSync.endBlockNumber = MAX (bwm->blockHeight, bwm->brdSync.begBlockNumber);
 
-    // 3) We'll query all transactions for this bwm's account.  We'll process all the transactions
-    // into the wallet.
-    bwmUpdateTransactions(bwm);
+    // 3) we'll update transactions if there are more blocks to examine
+    if (bwm->brdSync.begBlockNumber != bwm->brdSync.endBlockNumber) {
 
-    // Note: we don't do the following  `ewmUpdateTransactions` because that is `extern`
-    bwm->brdSync.rid = bwm->requestId;
-    bwm->brdSync.completed = 0;
+        // 3a) Save the current requestId
+        bwm->brdSync.rid = bwm->requestId;
+
+        // 3b) Query all transactions; each one found will have bwmAnnounceTransaction() invoked
+        // which will process the transaction into the wallet.
+        bwmUpdateTransactions(bwm);
+
+        // 3c) Mark as not completed
+        bwm->brdSync.completed = 0;
+    }
 
     // End handling a BRD Sync
 }

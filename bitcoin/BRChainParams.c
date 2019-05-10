@@ -114,6 +114,13 @@ static int BRTestNetVerifyDifficulty(const BRMerkleBlock *block, const BRSet *bl
     return 1; // XXX skip testnet difficulty check for now
 }
 
+extern const BRCheckPoint *BRChainParamsGetCheckpointBefore (const BRChainParams *params, uint32_t timestamp) {
+    for (ssize_t index = params->checkpointsCount - 1; index >= 0; index--)
+        if (params->checkpoints[index].timestamp < timestamp)
+            return &params->checkpoints[index];
+   return NULL;
+}
+
 static const BRChainParams BRMainNetParamsRecord = {
     BRMainNetDNSSeeds,
     8333,                  // standardPort
