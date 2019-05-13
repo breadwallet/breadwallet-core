@@ -2,6 +2,8 @@ package com.breadwallet.crypto.blockchaindb.models;
 
 import com.breadwallet.crypto.blockchaindb.JsonUtilities;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -9,7 +11,9 @@ import org.json.JSONObject;
 
 import java.util.Collections;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 public class Wallet {
 
@@ -18,22 +22,40 @@ public class Wallet {
             String id = json.getString("wallet_id");
             Date created = JsonUtilities.get8601DateFromString(json, "created");
 
-            JSONArray jsonCurrencies = json.getJSONArray("currencies");
-            Optional<List<WalletCurrency>> optionalCurrencies = WalletCurrency.asWalletCurrencies(jsonCurrencies);
-            List<WalletCurrency> currencies = optionalCurrencies.or(Collections.emptyList());
+            ImmutableMap.Builder<String, List<String>> currenciesBuilder = new ImmutableMap.Builder<>();
+            JSONObject currenciesJson = json.getJSONObject("currencies");
+            for (String currency: (Iterable<String>) () -> currenciesJson.keys()) {
 
-            return Optional.of(new Wallet(id, created, currencies));
+                ImmutableList.Builder<String> addressesBuilder = new ImmutableList.Builder<>();
+                JSONArray currencyAddressesJson = currenciesJson.getJSONArray(currency);
+                for (int i = 0; i < currencyAddressesJson.length(); i++) {
+                    String currencyAddress = currencyAddressesJson.getString(i);
+                    addressesBuilder.add(currency);
+                }
+
+                currenciesBuilder.put(currency, addressesBuilder.build());
+            }
+
+            return Optional.of(new Wallet(id, created, currenciesBuilder.build()));
 
         } catch (JSONException e) {
             return Optional.absent();
         }
     }
 
+    public static JSONObject asJson(Wallet wallet) {
+        return new JSONObject(ImmutableMap.of(
+                "id", wallet.id,
+                "created", JsonUtilities.get8601StringFromDate(wallet.created),
+                "currencies", wallet.currencies
+                ));
+    }
+
     private final String id;
     private final Date created;
-    private final List<WalletCurrency> currencies;
+    private final Map<String, List<String>> currencies;
 
-    public Wallet(String id, Date created, List<WalletCurrency> currencies) {
+    public Wallet(String id, Date created, Map<String, List<String>> currencies) {
         this.id = id;
         this.created = created;
         this.currencies = currencies;
@@ -45,9 +67,5 @@ public class Wallet {
 
     public Date getCreated() {
         return created;
-    }
-
-    public List<WalletCurrency> getCurrencies() {
-        return currencies;
     }
 }

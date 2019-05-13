@@ -1,6 +1,7 @@
 package com.breadwallet.crypto.blockchaindb.models;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -18,6 +19,14 @@ public class SubscriptionEndpoint {
         } catch (JSONException e) {
             return Optional.absent();
         }
+    }
+
+    public static JSONObject asJson(SubscriptionEndpoint endpoint) {
+        return new JSONObject(ImmutableMap.of(
+                "environment", endpoint.environment,
+                "kind", endpoint.kind,
+                "value", endpoint.value
+        ));
     }
 
     private final String environment;

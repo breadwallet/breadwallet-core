@@ -10,7 +10,8 @@ public class AccountAIT {
     @Test
     public void testAccountCreateFromPhrase() {
         String phrase = "ginger settle marine tissue robot crane night number ramp coast roast critic";
-        Optional<Account> account = Account.createFrom(phrase);
+        String uids = "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96";
+        Optional<Account> account = Account.createFrom(phrase, uids);
         assertTrue(account.isPresent());
         assertEquals(0, account.get().getTimestamp());
 
@@ -21,7 +22,8 @@ public class AccountAIT {
     public void testAccountDeriveSeed() {
         String phrase = "ginger settle marine tissue robot crane night number ramp coast roast critic";
         byte[] seed = Account.deriveSeed(phrase);
-        Optional<Account> account = Account.createFrom(seed);
+        String uids = "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96";
+        Optional<Account> account = Account.createFrom(seed, uids);
         assertTrue(account.isPresent());
         assertEquals(0, account.get().getTimestamp());
         // TODO: Add addressAsETH

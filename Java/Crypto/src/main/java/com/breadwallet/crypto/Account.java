@@ -16,29 +16,31 @@ import com.google.common.base.Optional;
 public final class Account {
 
     /* package */ final BRCryptoAccount core;
+    private final String uids;
 
-    public static Optional<Account> createFrom(String phrase) {
+    public static Optional<Account> createFrom(String phrase, String uids) {
         BRCryptoAccount account = CryptoLibrary.INSTANCE.cryptoAccountCreate(phrase);
         if (account == null) {
             return Optional.absent();
         }
-        return Optional.of(new Account(account));
+        return Optional.of(new Account(account, uids));
     }
 
-    public static Optional<Account> createFrom(byte[] seed) {
+    public static Optional<Account> createFrom(byte[] seed, String uids) {
         BRCryptoAccount account = CryptoLibrary.INSTANCE.cryptoAccountCreateFromSeedBytes(seed);
         if (account == null) {
             return Optional.absent();
         }
-        return Optional.of(new Account(account));
+        return Optional.of(new Account(account, uids));
     }
 
     public static byte[] deriveSeed(String phrase) {
         return CryptoLibrary.INSTANCE.cryptoAccountDeriveSeed(phrase).u8.clone();
     }
 
-    private Account(BRCryptoAccount core) {
+    private Account(BRCryptoAccount core, String uids) {
         this.core = core;
+        this.uids = uids;
     }
 
     @Override

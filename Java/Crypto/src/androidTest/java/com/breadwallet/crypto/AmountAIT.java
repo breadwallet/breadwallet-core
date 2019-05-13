@@ -114,5 +114,25 @@ public class AmountAIT {
 
         assertTrue(eth2.sub(eth3).get().isNegative());
         assertFalse(eth2.sub(eth2).get().isNegative());
+
+
+        Amount a1 = Amount.create( "12.12345678", false, ether_eth).get();
+        assertTrue(a1.doubleAmount(ether_eth).isPresent());
+        assertEquals(new Double(12.12345678), a1.doubleAmount(ether_eth).get());
+
+        Amount a2 = Amount.create( "123.12345678", false, ether_eth).get();
+        assertTrue(a2.doubleAmount(ether_eth).isPresent());
+        assertEquals(new Double(123.12345678), a2.doubleAmount(ether_eth).get());
+
+        Amount a3 = Amount.create( "12.12345678", false, gwei_eth).get();
+        assertTrue(a3.doubleAmount(ether_eth).isPresent());
+        assertEquals(new Double(12.12345678), a3.doubleAmount(gwei_eth).get());
+
+        Amount a4 = Amount.create( "123.12345678", false, gwei_eth).get();
+        assertTrue(a4.doubleAmount(ether_eth).isPresent());
+        assertEquals(new Double(123.12345678), a4.doubleAmount(gwei_eth).get());
+
+        Amount a5 = Amount.create( "1.234567891234567891", false, ether_eth).get();
+        assertEquals(new Double(1234567891234567891L), a5.doubleAmount(wei_eth).get());
     }
 }

@@ -141,8 +141,8 @@ public class BlockchainDbAIT {
         blockchainDb.getTransfers("bitcoin-mainnet", Arrays.asList("1JfbZRwdDHKZmuiZgYArJZhcuuzuw2HuMu"), handler);
 
         // TODO: Revisit this after getting clarification on the endpoint
-//        List<Transfer> transfers = handler.dat().get();
-//        assertNotNull(transfers);
+        List<Transfer> transfers = handler.dat().get();
+        assertNotNull(transfers);
     }
 
     @Test

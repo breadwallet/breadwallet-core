@@ -172,18 +172,70 @@ public class BlockchainDb {
 
     // Subscription
 
+    public void getOrCreateSubscription(Subscription subscription, BlockchainCompletionHandler<Subscription> handler) {
+        getSubscription(subscription.getId(), new BlockchainCompletionHandler<Subscription>() {
+            @Override
+            public void handleData(Subscription data) {
+                handler.handleData(data);
+            }
+
+            @Override
+            public void handleError(QueryError error) {
+                createSubscription(subscription, handler);
+            }
+        });
+    }
+
     public void getSubscription(String id, BlockchainCompletionHandler<Subscription> handler) {
         // TODO: I don't think we should be building it like this
         String path = String.format("subscriptions/%s", id);
-        bdbMakeRequest(path, ImmutableListMultimap.of(), new BdbRequestCompletionObjectHandler() {
+        makeSubscriptionRequest(path, "GET", handler);
+    }
+
+    public void createSubscription(Subscription subscription, BlockchainCompletionHandler<Subscription> handler) {
+        makeSubscriptionRequest(subscription, "subscriptions","POST", handler);
+    }
+
+    public void updateSubscription(Subscription subscription, BlockchainCompletionHandler<Subscription> handler) {
+        // TODO: I don't think we should be building it like this
+        String path = String.format("subscriptions/%s", subscription.getId());
+        makeSubscriptionRequest(subscription, path, "POST", handler);
+    }
+
+    public void deleteSubscription(String id, BlockchainCompletionHandler<Subscription> handler) {
+        // TODO: I don't think we should be building it like this
+        String path = String.format("subscriptions/%s", id);
+        makeSubscriptionRequest(path, "DELETE", handler);
+    }
+
+    private void makeSubscriptionRequest(Subscription subscription, String path, String httpMethod, BlockchainCompletionHandler<Subscription> handler) {
+        makeRequest(bdbDataTask, bdbBaseURL, path, ImmutableMultimap.of(), Subscription.asJson(subscription), httpMethod, new BlockchainCompletionHandler<JSONObject>() {
             @Override
-            public void handleData(JSONObject json, boolean more) {
-                checkArgument(!more);
-                Optional<Subscription> subscription = Subscription.asSubscription(json);
-                if (subscription.isPresent()) {
-                    handler.handleData(subscription.get());
+            public void handleData(JSONObject data) {
+                Optional<Subscription> optionalSubscription = Subscription.asSubscription(data);
+                if (optionalSubscription.isPresent()) {
+                    handler.handleData(optionalSubscription.get());
                 } else {
-                    handler.handleError(new QueryModelError("Transform error"));
+                    handler.handleError(new QueryModelError("Missed subscription"));
+                }
+            }
+
+            @Override
+            public void handleError(QueryError error) {
+                handler.handleError(error);
+            }
+        });
+    }
+
+    private void makeSubscriptionRequest(String path, String httpMethod, BlockchainCompletionHandler<Subscription> handler) {
+        makeRequest(bdbDataTask, bdbBaseURL, path, ImmutableMultimap.of(), null, httpMethod, new BlockchainCompletionHandler<JSONObject>() {
+            @Override
+            public void handleData(JSONObject data) {
+                Optional<Subscription> optionalSubscription = Subscription.asSubscription(data);
+                if (optionalSubscription.isPresent()) {
+                    handler.handleData(optionalSubscription.get());
+                } else {
+                    handler.handleError(new QueryModelError("Missed subscription"));
                 }
             }
 
@@ -247,18 +299,51 @@ public class BlockchainDb {
 
     // Wallet
 
+    public void getOrCreateWallet(Wallet wallet, BlockchainCompletionHandler<Wallet> handler) {
+        getWallet(wallet.getId(), new BlockchainCompletionHandler<Wallet>() {
+            @Override
+            public void handleData(Wallet data) {
+                handler.handleData(data);
+            }
+
+            @Override
+            public void handleError(QueryError error) {
+                createWallet(wallet, handler);
+            }
+        });
+    }
+
     public void getWallet(String id, BlockchainCompletionHandler<Wallet> handler) {
         // TODO: I don't think we should be building it like this
         String path = String.format("wallets/%s", id);
-        bdbMakeRequest(path, ImmutableListMultimap.of(), new BdbRequestCompletionObjectHandler() {
+        makeWalletRequest(path, "GET", handler);
+    }
+
+    public void createWallet(Wallet wallet, BlockchainCompletionHandler<Wallet> handler) {
+        makeWalletRequest(wallet, "wallets", "POST", handler);
+    }
+
+    public void updateWallet(Wallet wallet, BlockchainCompletionHandler<Wallet> handler) {
+        // TODO: I don't think we should be building it like this
+        String path = String.format("wallets/%s", wallet.getId());
+        makeWalletRequest(wallet, path, "PUT", handler);
+    }
+
+    public void deleteWallet(String id, BlockchainCompletionHandler<Wallet> handler) {
+        // TODO: I don't think we should be building it like this
+        String path = String.format("wallets/%s", id);
+        makeWalletRequest(path, "DELETE", handler);
+    }
+
+    private void makeWalletRequest(Wallet wallet, String path, String httpMethod, BlockchainCompletionHandler<Wallet> handler) {
+        makeRequest(bdbDataTask, bdbBaseURL, path, ImmutableMultimap.of(), Wallet.asJson(wallet), httpMethod, new BlockchainCompletionHandler<JSONObject>() {
             @Override
-            public void handleData(JSONObject json, boolean more) {
-                checkArgument(!more);
-                Optional<Wallet> wallet = Wallet.asWallet(json);
-                if (wallet.isPresent()) {
-                    handler.handleData(wallet.get());
+            public void handleData(JSONObject data) {
+                Optional<Wallet> optionalWallet = Wallet.asWallet(data);
+                if (optionalWallet.isPresent()) {
+                    handler.handleData(optionalWallet.get());
                 } else {
-                    handler.handleError(new QueryModelError("Transform error"));
+                    handler.handleError(new QueryModelError("Missed wallet"));
                 }
             }
 
@@ -269,7 +354,24 @@ public class BlockchainDb {
         });
     }
 
-    // TODO: Add createWallet
+    private void makeWalletRequest(String path, String httpMethod, BlockchainCompletionHandler<Wallet> handler) {
+        makeRequest(bdbDataTask, bdbBaseURL, path, ImmutableMultimap.of(), null, httpMethod, new BlockchainCompletionHandler<JSONObject>() {
+            @Override
+            public void handleData(JSONObject data) {
+                Optional<Wallet> optionalWallet = Wallet.asWallet(data);
+                if (optionalWallet.isPresent()) {
+                    handler.handleData(optionalWallet.get());
+                } else {
+                    handler.handleError(new QueryModelError("Missed wallet"));
+                }
+            }
+
+            @Override
+            public void handleError(QueryError error) {
+                handler.handleError(error);
+            }
+        });
+    }
 
     // Transactions
 

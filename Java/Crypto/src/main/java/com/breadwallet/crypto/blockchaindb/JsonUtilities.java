@@ -22,19 +22,24 @@ public final class JsonUtilities {
 
     private static DateFormat ISO_8601_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
-    public static Optional<byte[]> getOptionalBase64Bytes(JSONObject json, String name) {
-        try {
-            return Optional.fromNullable(Base64.decode(json.optString(name, null), Base64.DEFAULT));
-        } catch (IllegalArgumentException e) {
-            return Optional.absent();
-        }
-    }
-
     public static Date get8601DateFromString(JSONObject json, String name) throws JSONException {
         try {
             return ISO_8601_FORMAT.parse(json.getString(name));
         } catch (ParseException e) {
             throw new JSONException("Invalid date value for " + name);
+        }
+    }
+
+    public static String get8601StringFromDate(Date date) {
+        return ISO_8601_FORMAT.format(date);
+    }
+
+
+    public static Optional<byte[]> getOptionalBase64Bytes(JSONObject json, String name) {
+        try {
+            return Optional.fromNullable(Base64.decode(json.optString(name, null), Base64.DEFAULT));
+        } catch (IllegalArgumentException e) {
+            return Optional.absent();
         }
     }
 
@@ -68,14 +73,5 @@ public final class JsonUtilities {
             }
         }
         return Optional.of(items);
-    }
-
-    public static Optional<List<Blockchain>> getOptionalBlockchainList(JSONObject json, String name) {
-        JSONArray jsonArray = json.optJSONArray(name);
-        if (jsonArray == null) {
-            return Optional.absent();
-        }
-
-        return Blockchain.asBlockchains(jsonArray);
     }
 }
