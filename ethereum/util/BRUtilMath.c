@@ -276,8 +276,19 @@ coerceUInt64 (UInt256 value, int *overflow) {
 
 extern double
 coerceDouble (UInt256 value, int *overflow) {
-    *overflow = (0 != value.u64[3] ||
-                 0 != value.u64[2] ||
-                 0 != value.u64[1]);
-    return *overflow ? 0 : (double) value.u64[0];
+    long double result = coerceLongDouble (value, overflow);
+    if (!*overflow)
+        *overflow = !isfinite ((double) result);
+    return (double) result;
+}
+
+extern long double
+coerceLongDouble (UInt256 value, int *overflow) {
+    long double scale = powl ((long double) 2.0, (long double) 64.0);
+    long double result = 0;
+    for (ssize_t index = 3; index >= 0; index--)
+        result = ((long double) value.u64[index] + scale * result);
+
+    *overflow = !isfinite(result);
+    return result;
 }

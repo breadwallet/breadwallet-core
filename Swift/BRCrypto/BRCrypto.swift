@@ -195,6 +195,30 @@ public final class Amount {
             .string (as: pair.quoteUnit, formatter: formatter)
     }
 
+    ///
+    /// Return a 'raw string' (as an integer in self's base unit) using `base` and `preface`.
+    /// Caution is warranted: this is a string w/o any context (currency in a particular Unit).
+    /// Don't use this tp subvert the other `string(as Unit: Unit, ...)` function.  Should only be
+    /// used for 'partner' interfaces when their API requires a string value in the base unit.
+    ///
+    /// - Note: The amount's sign is utterly ignored.
+    /// - Note: Unless there is a 'preface', the result may have leading zeros.
+    /// - Note: For base 16, lowercased hex digits are returned.
+    ///
+    /// - Parameters:
+    ///   - base: the numeric base - one of {2, 10, 16}.  Defaults to 16
+    ///   - preface: a strig preface, defaults to '0x'
+    ///
+    /// - Returns: the amount in the base unit as a 'raw string'
+    ///
+    public func string (base: UInt8 = 16, preface: String = "0x") -> String {
+        let value = cryptoAmountGetValue (self.core)
+        let chars = coerceStringPrefaced (value, Int32(base), preface)
+        defer { free (chars) }
+
+        return asUTF8String (chars!)
+    }
+
     public func isCompatible (with that: Amount) -> Bool {
         return CRYPTO_TRUE == cryptoAmountIsCompatible (self.core, that.core)
     }
@@ -447,24 +471,28 @@ extension CurrencyPair: CustomStringConvertible {
 public final class Account {
     let core: BRCryptoAccount
 
+    // A 'globally unique' ID String for account.  For BlockchainDB this will be the 'walletId'
+    let uids: String
+
     public var timestamp: UInt64 {
         get { return cryptoAccountGetTimestamp (core) }
         set { cryptoAccountSetTimestamp (core, newValue) }
     }
 
-    internal init (core: BRCryptoAccount) {
+    internal init (core: BRCryptoAccount, uids: String) {
         self.core = core
+        self.uids = uids
     }
 
-    public static func createFrom (phrase: String) -> Account? {
+    public static func createFrom (phrase: String, uids: String) -> Account? {
         return cryptoAccountCreate (phrase)
-            .map { Account (core: $0) }
+            .map { Account (core: $0, uids: uids) }
     }
 
-    public static func createFrom (seed: Data) -> Account? {
+    public static func createFrom (seed: Data, uids: String) -> Account? {
         let bytes = [UInt8](seed)
         return cryptoAccountCreateFromSeedBytes (bytes)
-            .map { Account (core: $0) }
+            .map { Account (core: $0, uids: uids) }
     }
 
     public static func deriveSeed (phrase: String) -> Data {
@@ -1391,6 +1419,7 @@ public protocol System: class {
     /// The listener.  Gets all events for {Network, WalletManger, Wallet, Transfer}
     var listener: SystemListener? { get }
 
+    /// The account
     var account: Account { get }
 
     /// The path for persistent storage
@@ -1405,20 +1434,77 @@ public protocol System: class {
     /// Wallet Managers
     var managers: [WalletManager] { get }
 
-    // Wallets
+    // Wallets - derived as a 'flatMap' of the managers' wallets.
     var wallets: [Wallet] { get }
 
+    ///
+    /// Start the system.  This will query various BRD services, notably the BlockChainDB, to
+    /// establish the available networks (aka blockchains) and their currencies.  If the
+    /// `networksNeeded` array includes the name of an available network, then a `Network`
+    /// will be created for that network.  (This generates a `SystemEvent` which can be used by
+    /// the App to create a `WalletManager`)
+    ///
+    /// This method can be called repeatedly; however ONLY THE FIRST invocation will create
+    /// Networks for needed networks.  Subsequent calls will simple restart `System` processing.
+    ///
+    /// - Parameter networksNeeded: Array of network names of interest.
+    ///
     func start (networksNeeded: [String])
 
+    ///
+    /// Stop the system.  Will inhibit `System` processing.
+    ///
     func stop ()
 
-    func createWalletManager (network: Network,
-                              mode: WalletManagerMode)
+    ///
+    /// Subscribe (or unsubscribe) to BlockChainDB notifications.  Notifications provide an
+    /// asynchronous announcement of DB changes pertinent to the User and are used to avoid
+    /// polling the DB for such changes.
+    ///
+    /// The Subscription includes an `endpoint` which is optional.  If provided, subscriptions
+    /// are enabled; if not provided, subscriptions are disabled.  Disabling a sbuscription is
+    /// required, even though polling in undesirable, because Notifications are user configured.
+    ///
+    /// - Parameter subscription: the subscription to enable or to disable notifications
+    ///
+    func subscribe (using subscription: BlockChainDB.Subscription)
 
+    ///
+    /// Announce a BlockChainDB transaction.  This should be called upon the "System User's"
+    /// receipt of a BlockchainDB notification.
+    ///
+    /// - Parameters:
+    ///   - transaction: the transaction id which can be used in `getTransfer` to query the
+    ///         blockchainDB for details on the transaction
+    ///   - data: The transaction JSON data (a dictionary) if available
+    ///
+    func announce (transaction id: String, data: [String:Any])
+
+
+    /// Create a system.
+    ///
+    /// - Parameters:
+    ///   - listener: the system listener
+    ///   - account: the system account
+    ///   - path: the file system path for persistent storage
+    ///   - query: the blockchainDB for queries
+    ///
+    /// - Returns: A System
+    ///
     static func create (listener: SystemListener,
                         account: Account,
                         path: String,
                         query: BlockChainDB) -> System
+
+    ///
+    /// Create a wallet manager for `network` using `mode.
+    ///
+    /// - Parameters:
+    ///   - network: the wallet manager's network
+    ///   - mode: the mode to use
+    ///
+    func createWalletManager (network: Network,
+                              mode: WalletManagerMode)
 }
 
 extension System {

@@ -189,7 +189,25 @@ public final class SystemBase: System {
     internal static func resetForTest () {
         instance = nil
     }
-    
+
+    public func subscribe (using subscription: BlockChainDB.Subscription) {
+        self.query.subscribe (walletId: account.uids,
+                              subscription: subscription)
+    }
+
+    public func announce (transaction id: String, data: [String: Any]) {
+        print ("SYS: Announce: \(id)")
+    }
+
+    internal func updateSubscribedWallets () {
+        let currencyKeyValues = wallets.map { ($0.currency.code, [$0.source.description]) }
+        let wallet = (id: account.uids,
+                      currencies: Dictionary (uniqueKeysWithValues: currencyKeyValues))
+        self.query.updateWallet (wallet) { (res: Result<BlockChainDB.Model.Wallet, BlockChainDB.QueryError>) in
+            print ("SYS: SubscribedWallets: \(res)")
+        }
+    }
+
     /// Stop the system.  All managers are disconnected.
     public func stop () {
         managers.forEach { $0.disconnect() }
@@ -222,7 +240,7 @@ public final class SystemBase: System {
         self.query.getBlockchains { (blockchainResult: Result<[BlockChainDB.Model.Blockchain],BlockChainDB.QueryError>) in
             let blockChainModels = try! blockchainResult
                 // On success, always merge `defaultBlockchains`
-                .map { BlockChainDB.Model.defaultBlockchains.unionOf ($0) { $0.id }}
+                .map { $0.unionOf (BlockChainDB.Model.defaultBlockchains) { $0.id } }
                 // On error, use defaultBlockchains
                 .recover { (error: BlockChainDB.QueryError) -> [BlockChainDB.Model.Blockchain] in
                     return BlockChainDB.Model.defaultBlockchains
@@ -239,7 +257,7 @@ public final class SystemBase: System {
 
                         let currencyModels = try! currencyResult
                             // On success, always merge `defaultCurrencies`
-                            .map { defaults.unionOf ($0) { $0.id }}
+                            .map { $0.unionOf (defaults) { $0.id }}
                             // On error, use `defaults`
                             .recover { (error: BlockChainDB.QueryError) -> [BlockChainDB.Model.Currency] in
                                 return defaults
@@ -278,7 +296,8 @@ public final class SystemBase: System {
                         }
 
                         // the default currency
-                        let currency = associations.keys.first { $0.code == blockchainModel.currency.lowercased() }!
+                        guard let currency = associations.keys.first (where: { $0.code == blockchainModel.currency.lowercased() })
+                        else { print ("SYS: START: Missed Currency (\(blockchainModel.currency)): defaultUnit"); return }
 
                         // define the network
                         let network = Network (uids: blockchainModel.id,
@@ -804,7 +823,7 @@ public final class SystemBase: System {
                         repeat {
                             // Get a C pointer to `addressesLimit` BRAddress structures
                             let addressesLimit:Int = 25
-                            let addressesPointer = BRWalletManagerGetUnusedAddrs (bid, UInt32(addressesLimit))
+                            let addressesPointer = BRWalletManagerGetUnusedAddrsLegacy (bid, UInt32(addressesLimit))
                             defer { free (addressesPointer) }
 
                             // Convert the C pointer into a Swift array of BRAddress

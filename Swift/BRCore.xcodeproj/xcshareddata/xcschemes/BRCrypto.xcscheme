@@ -57,6 +57,38 @@
                BlueprintName = "BRCryptoTests"
                ReferencedContainer = "container:BRCore.xcodeproj">
             </BuildableReference>
+            <SkippedTests>
+               <Test
+                  Identifier = "BRBlockChainDBTest">
+               </Test>
+            </SkippedTests>
+         </TestableReference>
+         <TestableReference
+            skipped = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "3CAB60A520AF8C8500810CE4"
+               BuildableName = "CoreTests.xctest"
+               BlueprintName = "CoreTests"
+               ReferencedContainer = "container:BRCore.xcodeproj">
+            </BuildableReference>
+            <SkippedTests>
+               <Test
+                  Identifier = "CoreTests/testBitcoinSyncMany()">
+               </Test>
+               <Test
+                  Identifier = "CoreTests/testBitcoinSyncOne()">
+               </Test>
+               <Test
+                  Identifier = "CoreTests/testBitcoinWalletManagerSync()">
+               </Test>
+               <Test
+                  Identifier = "CoreTests/testEthereumSyncStorage()">
+               </Test>
+               <Test
+                  Identifier = "CoreTests/testPerformanceExample()">
+               </Test>
+            </SkippedTests>
          </TestableReference>
       </Testables>
       <MacroExpansion>
