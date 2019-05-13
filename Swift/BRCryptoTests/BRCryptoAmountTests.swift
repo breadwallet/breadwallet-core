@@ -205,6 +205,11 @@ class BRCryptoAmountTests: XCTestCase {
         XCTAssertEqual(1234567891234567891, a5?.double(as: ETH_WEI)!)
         // Lost precision - last 5 digits
         XCTAssertEqual("wei1,234,567,891,234,570,000", a5?.string(as: ETH_WEI)!)
+
+        XCTAssertEqual("1234567891234567891", a5?.string (base: 10, preface: ""))
+        XCTAssertEqual("1000000000000000000", Amount.create(string: "1", negative: false, unit: ETH_ETHER)!.string (base: 10, preface: ""))
+        // String (1000000000000000000, radix:16, uppercase: true) -> DE0B6B3A7640000
+        XCTAssertEqual("0xDE0B6B3A7640000".lowercased(), Amount.create(string: "1", negative: false, unit: ETH_ETHER)!.string (base: 16, preface: "0x"))
     }
 
     func testAmountBTC () {

@@ -161,7 +161,9 @@ coerceLongDouble (UInt256 value, int *overflow);
 
 /**
  * Returns the string representation of `x` in `base`.  No matter the base, the returned string
- * will be in big-endian format.
+ * will be in big-endian format (as you expect).
+ *
+ * base must be one of {2, 10, 16}
  *
  * @warn YOU OWN THE RETURNED MEMORY
  */

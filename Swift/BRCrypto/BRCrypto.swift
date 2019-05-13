@@ -195,6 +195,30 @@ public final class Amount {
             .string (as: pair.quoteUnit, formatter: formatter)
     }
 
+    ///
+    /// Return a 'raw string' (as an integer in self's base unit) using `base` and `preface`.
+    /// Caution is warranted: this is a string w/o any context (currency in a particular Unit).
+    /// Don't use this tp subvert the other `string(as Unit: Unit, ...)` function.  Should only be
+    /// used for 'partner' interfaces when their API requires a string value in the base unit.
+    ///
+    /// - Note: The amount's sign is utterly ignored.
+    /// - Note: Unless there is a 'preface', the result may have leading zeros.
+    /// - Note: For base 16, lowercased hex digits are returned.
+    ///
+    /// - Parameters:
+    ///   - base: the numeric base - one of {2, 10, 16}.  Defaults to 16
+    ///   - preface: a strig preface, defaults to '0x'
+    ///
+    /// - Returns: the amount in the base unit as a 'raw string'
+    ///
+    public func string (base: UInt8 = 16, preface: String = "0x") -> String {
+        let value = cryptoAmountGetValue (self.core)
+        let chars = coerceStringPrefaced (value, Int32(base), preface)
+        defer { free (chars) }
+
+        return asUTF8String (chars!)
+    }
+
     public func isCompatible (with that: Amount) -> Bool {
         return CRYPTO_TRUE == cryptoAmountIsCompatible (self.core, that.core)
     }
