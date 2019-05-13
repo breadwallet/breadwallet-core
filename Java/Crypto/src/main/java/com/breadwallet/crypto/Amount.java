@@ -105,10 +105,14 @@ public final class Amount implements Comparable<Amount> {
     @Override
     public int compareTo(Amount o) {
         switch (CryptoLibrary.INSTANCE.cryptoAmountCompare(core, o.core)) {
-            case BRCryptoComparison.CRYPTO_COMPARE_EQ: return 0;
-            case BRCryptoComparison.CRYPTO_COMPARE_LT: return -1;
-            case BRCryptoComparison.CRYPTO_COMPARE_GT: return 1;
-            default: throw new IllegalStateException("Invalid amount comparison");
+            case BRCryptoComparison.CRYPTO_COMPARE_EQ:
+                return 0;
+            case BRCryptoComparison.CRYPTO_COMPARE_LT:
+                return -1;
+            case BRCryptoComparison.CRYPTO_COMPARE_GT:
+                return 1;
+            default:
+                throw new IllegalStateException("Invalid amount comparison");
         }
     }
 

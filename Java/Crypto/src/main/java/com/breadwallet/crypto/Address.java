@@ -30,7 +30,8 @@ public final class Address {
         return network.addressFor(address);
     }
 
-    /* package */ static Optional<Address> createAsBtc(String address) {
+    /* package */
+    static Optional<Address> createAsBtc(String address) {
         if (BRCryptoBoolean.CRYPTO_TRUE != CryptoLibrary.INSTANCE.BRAddressIsValid(address)) {
             return Optional.absent();
         }
@@ -39,13 +40,15 @@ public final class Address {
         return Optional.of(new Address(CryptoLibrary.INSTANCE.cryptoAddressCreateAsBTC(addressValue)));
     }
 
-    /* package */ static Address createAsBtc(BRAddress address) {
+    /* package */
+    static Address createAsBtc(BRAddress address) {
         // TODO: Can we just create cryptoAddressCreateAsBTCString function in the C layer?
         BRAddress.ByValue addressValue = new BRAddress.ByValue(address);
         return new Address(CryptoLibrary.INSTANCE.cryptoAddressCreateAsBTC(addressValue));
     }
 
-    /* package */ static Optional<Address> createAsEth(String address) {
+    /* package */
+    static Optional<Address> createAsEth(String address) {
         if (BREthereumBoolean.ETHEREUM_BOOLEAN_TRUE != CryptoLibrary.INSTANCE.addressValidateString(address)) {
             return Optional.absent();
         }
@@ -54,7 +57,8 @@ public final class Address {
         return Optional.of(new Address(CryptoLibrary.INSTANCE.cryptoAddressCreateAsETH(addressValue)));
     }
 
-    /* package */ static Address createAsEth(BREthereumAddress address) {
+    /* package */
+    static Address createAsEth(BREthereumAddress address) {
         // TODO: Can we just create cryptoAddressCreateAsETHString function in the C layer?
         BREthereumAddress.ByValue addressValue = new BREthereumAddress.ByValue(address);
         return new Address(CryptoLibrary.INSTANCE.cryptoAddressCreateAsETH(addressValue));

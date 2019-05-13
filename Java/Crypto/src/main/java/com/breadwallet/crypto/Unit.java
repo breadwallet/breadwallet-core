@@ -30,7 +30,8 @@ public final class Unit {
 
     /* package */ Unit(Currency currency, String uids, String name, String symbol, Unit base, byte decimals) {
         // TODO: Change decimals to short and verify that it is positive and less than Byte.MAX_VALUE
-        this(CryptoLibrary.INSTANCE.cryptoUnitCreate(currency.core, name, symbol, base.core, decimals), currency, uids, base);
+        this(CryptoLibrary.INSTANCE.cryptoUnitCreate(currency.core, name, symbol, base.core, decimals), currency,
+                uids, base);
     }
 
     private Unit(BRCryptoUnit core, Currency currency, String uids, Unit base) {

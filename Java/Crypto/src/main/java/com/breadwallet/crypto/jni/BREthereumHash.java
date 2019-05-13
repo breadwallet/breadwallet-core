@@ -32,9 +32,9 @@ public class BREthereumHash extends Structure {
 
     public static class ByReference extends BREthereumHash implements Structure.ByReference {
 
-    };
+    }
 
     public static class ByValue extends BREthereumHash implements Structure.ByValue {
 
-    };
+    }
 }

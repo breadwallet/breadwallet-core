@@ -10,6 +10,7 @@ import com.google.common.base.Optional;
 import java.util.ArrayList;
 import java.util.List;
 
+// TODO: System is an unfortunate name in Java. How about CryptoManager?
 public interface System {
 
     void start(List<String> networksNeeded);

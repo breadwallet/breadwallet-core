@@ -37,9 +37,9 @@ public class BRMasterPubKey extends Structure {
 
     public static class ByReference extends BRMasterPubKey implements Structure.ByReference {
 
-    };
+    }
 
     public static class ByValue extends BRMasterPubKey implements Structure.ByValue {
 
-    };
+    }
 }

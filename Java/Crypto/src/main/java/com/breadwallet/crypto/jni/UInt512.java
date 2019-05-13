@@ -32,9 +32,9 @@ public class UInt512 extends Structure {
 
     public static class ByReference extends UInt512 implements com.sun.jna.Structure.ByReference {
 
-    };
+    }
 
     public static class ByValue extends UInt512 implements com.sun.jna.Structure.ByValue {
 
-    };
+    }
 }

@@ -10,48 +10,48 @@ import java.util.List;
 
 public class BRAddress extends Structure {
 
-	public static BRAddress addressFill(String address) {
-		byte[] dstBytes = new byte[75];
-		if (CryptoLibrary.BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.BRAddressIsValid(address)) {
-			byte[] srcBytes = address.getBytes(StandardCharsets.UTF_8);
-			System.arraycopy(srcBytes, 0, dstBytes, 0, Math.min(srcBytes.length, 74));
-		}
-		return new BRAddress(dstBytes);
-	}
+    public static BRAddress addressFill(String address) {
+        byte[] dstBytes = new byte[75];
+        if (CryptoLibrary.BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.BRAddressIsValid(address)) {
+            byte[] srcBytes = address.getBytes(StandardCharsets.UTF_8);
+            System.arraycopy(srcBytes, 0, dstBytes, 0, Math.min(srcBytes.length, 74));
+        }
+        return new BRAddress(dstBytes);
+    }
 
-	public byte[] s = new byte[75];
+    public byte[] s = new byte[75];
 
-	public BRAddress() {
-		super();
-	}
+    public BRAddress() {
+        super();
+    }
 
-	protected List<String> getFieldOrder() {
-		return Arrays.asList("s");
-	}
+    protected List<String> getFieldOrder() {
+        return Arrays.asList("s");
+    }
 
-	public BRAddress(byte s[]) {
-		super();
-		if ((s.length != this.s.length)) 
-			throw new IllegalArgumentException("Wrong array size !");
-		this.s = s;
-	}
+    public BRAddress(byte s[]) {
+        super();
+        if ((s.length != this.s.length))
+            throw new IllegalArgumentException("Wrong array size !");
+        this.s = s;
+    }
 
-	public BRAddress(Pointer peer) {
-		super(peer);
-	}
+    public BRAddress(Pointer peer) {
+        super(peer);
+    }
 
-	public static class ByReference extends BRAddress implements Structure.ByReference {
-		
-	};
+    public static class ByReference extends BRAddress implements Structure.ByReference {
 
-	public static class ByValue extends BRAddress implements Structure.ByValue {
+    }
 
-		public ByValue() {
-			super();
-		}
+    public static class ByValue extends BRAddress implements Structure.ByValue {
 
-		public ByValue(BRAddress address) {
-			super(address.s);
-		}
-	};
+        public ByValue() {
+            super();
+        }
+
+        public ByValue(BRAddress address) {
+            super(address.s);
+        }
+    }
 }
