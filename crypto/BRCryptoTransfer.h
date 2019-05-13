@@ -26,10 +26,12 @@
 #ifndef BRCryptoTransfer_h
 #define BRCryptoTransfer_h
 
+#include "BRCryptoHash.h"
 #include "BRCryptoAddress.h"
 #include "BRCryptoAmount.h"
+#include "BRCryptoFeeBasis.h"
 
-typedef struct BRCryptoWalletRecord *BRCryptoWallet;
+//#include "ethereum/base/BREthereumBase.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,14 +46,17 @@ extern "C" {
         CRYPTO_TRANSFER_DELETED
     } BRCryptoTransferState;
 
+    typedef enum {
+        CRYPTO_TRANSFER_SENT,
+        CRYPTO_TRANSFER_RECEIVED,
+        CRYPTO_TRANSFER_RECOVERED
+    } BRCryptoTransferDirection;
+
     typedef struct BRCryptoTransferRecord *BRCryptoTransfer;
 
-    extern BRCryptoTransfer
-    cryptoTransferCreate (BRCryptoWallet wallet); // MORE
-
-    extern BRCryptoWallet
-    cryptoTransferGetWallet (BRCryptoTransfer transfer);
-
+    extern BRCryptoBlockChainType
+    cryptoTransferGetType (BRCryptoTransfer transfer);
+    
     extern BRCryptoAddress
     cryptoTransferGetSourceAddress (BRCryptoTransfer transfer);
 
@@ -77,9 +82,19 @@ extern "C" {
     extern BRCryptoTransferState
     cryptoTransferGetState (BRCryptoTransfer transfer);
 
-    // hash
-    typedef struct BRCryptoTransferHashRecord *BRCryptoTransferHash;
+    extern BRCryptoTransferDirection
+    cryptoTransferGetDirection (BRCryptoTransfer transfer);
 
+    extern BRCryptoHash
+    cryptoTransferGetHash (BRCryptoTransfer transfer);
+
+    extern BRCryptoFeeBasis
+    cryptoTransferGetFeeBasis (BRCryptoTransfer transfer);
+
+    extern BRCryptoBoolean
+    cryptoTransferEqual (BRCryptoTransfer transfer1, BRCryptoTransfer transfer2);
+    
+    DECLARE_CRYPTO_GIVE_TAKE (BRCryptoTransfer, cryptoTransfer);
 
 #ifdef __cplusplus
 }

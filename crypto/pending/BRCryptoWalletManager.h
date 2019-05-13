@@ -90,7 +90,6 @@ extern "C" {
     cryptoWalletManagerGetWalletAtIndex (BRCryptoWalletManager cwm,
                                             size_t index);
 
-
     extern BRCryptoWallet
     cryptoWalletManagerGetWalletForCurrency (BRCryptoWalletManager cwm,
                                                BRCryptoCurrency currency);

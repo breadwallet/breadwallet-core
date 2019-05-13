@@ -835,6 +835,9 @@ public protocol AddressScheme {
 /// Once the transfer has been included in the currency's blockchain it will have a
 /// `TransferConfirmation`.
 ///
+/// A Transfer is Equatable but not Hashable; Hashable would naturally be implmeneted in terms of
+/// the TransferHash however that hash isn't available until after a transfer is signed.
+///
 public protocol Transfer : class {
 
     /// The owning wallet
@@ -873,6 +876,8 @@ public protocol Transfer : class {
     var direction: TransferDirection { get }
 
     // var originator: Bool { get }
+
+    func identical (that: Transfer) -> Bool
 }
 
 extension Transfer {
@@ -906,14 +911,33 @@ public enum TransferDirection {
     case sent
     case received
     case recovered
+
+    internal init (core: BRCryptoTransferDirection) {
+        switch core {
+        case CRYPTO_TRANSFER_SENT:      self = .sent
+        case CRYPTO_TRANSFER_RECEIVED:  self = .received
+        case CRYPTO_TRANSFER_RECOVERED: self = .recovered
+        default: self = .sent;  precondition(false)
+        }
+    }
 }
 
 ///
 /// A TransferFeeBasis is use to estimate the fee to complete a transfer
 ///
-public enum TransferFeeBasis {
-    case bitcoin  (feePerKB: UInt64) // in satoshi
-    case ethereum (gasPrice: Amount, gasLimit: UInt64) // Amount in ETH
+public class TransferFeeBasis {
+    internal let core: BRCryptoFeeBasis
+
+//    case bitcoin  (feePerKB: UInt64) // in satoshi
+//    case ethereum (gasPrice: Amount, gasLimit: UInt64) // Amount in ETH
+
+    init (core: BRCryptoFeeBasis) {
+        self.core = core
+    }
+
+    deinit {
+        cryptoFeeBasisGive (core)
+    }
 }
 
 ///
@@ -929,39 +953,27 @@ public struct TransferConfirmation {
 ///
 /// A TransferHash uniquely identifies a transfer *among* the owning wallet's transfers.
 ///
-public enum TransferHash: Hashable, CustomStringConvertible {
-    case bitcoin (UInt256)
-    case ethereum (BREthereumHash)
+public class TransferHash: Hashable, CustomStringConvertible {
+    internal let core: BRCryptoHash
+
+    init (core: BRCryptoHash) {
+        self.core = core
+    }
+
+    deinit {
+        cryptoHashGive (core)
+    }
 
     public func hash (into hasher: inout Hasher) {
-        switch self {
-        case .bitcoin (let core):
-            hasher.combine (core.u32.0)
-            break
-        case .ethereum (var core):
-            hasher.combine (Int(hashSetValue(&core)))
-            break
-        }
+        hasher.combine (cryptoHashGetHashValue (core))
     }
 
     public static func == (lhs: TransferHash, rhs: TransferHash) -> Bool {
-        switch (lhs, rhs) {
-        case (.bitcoin(let c1), .bitcoin(let c2)):
-            return 1 == eqUInt256 (c1, c2)
-        case (.ethereum(var c1), .ethereum(var c2)):
-            return 1 == hashSetEqual(&c1, &c2)
-        default:
-            return false
-        }
+        return CRYPTO_TRUE == cryptoHashEqual (lhs.core, rhs.core)
     }
 
     public var description: String {
-        switch self {
-        case .bitcoin (let core):
-            return asUTF8String (coerceUInt256HashToString(core), true)
-        case .ethereum(let core):
-            return asUTF8String (hashAsString(core))
-        }
+        return asUTF8String (cryptoHashString (core), true)
     }
 }
 

@@ -26,8 +26,8 @@
 #ifndef BRCryptoWallet_h
 #define BRCryptoWallet_h
 
+#include "BRCryptoFeeBasis.h"
 #include "BRCryptoTransfer.h"
-#include "../support/BRArray.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,11 +44,40 @@ extern "C" {
     extern BRCryptoAmount
     cryptoWalletGetBalance (BRCryptoWallet wallet);
 
-    extern BRArrayOf(BRCryptoTransfer)
-    cryptoWalletGetTransfers (BRCryptoWallet wallet);
+    extern size_t
+    cryptoWalletGetTransferCount (BRCryptoWallet wallet);
+
+    extern void
+    cryptoWalletAddTransfer (BRCryptoWallet wallet, BRCryptoTransfer transfer);
+    
+    extern BRCryptoTransfer
+    cryptoWalletGetTransfer (BRCryptoWallet wallet, size_t index);
 
     extern BRCryptoAddress
     cryptoWalletGetAddress (BRCryptoWallet wallet);
+
+    extern BRCryptoFeeBasis
+    cryptoWalletGetDefaultFeeBasis (BRCryptoWallet wallet);
+
+    extern void
+    cryptoWalletSetDefaultFeeBasis (BRCryptoWallet wallet,
+                                    BRCryptoFeeBasis feeBasis);
+
+    DECLARE_CRYPTO_GIVE_TAKE (BRCryptoWallet, cryptoWallet);
+
+    extern BRCryptoTransfer
+    cryptoWalletCreateTransfer (BRCryptoWallet wallet,
+                                BRCryptoAddress target,
+                                BRCryptoAmount amount,
+                                BRCryptoFeeBasis feeBasis);
+    extern BRCryptoAmount
+    cryptoWalletEstimateFee (BRCryptoWallet wallet,
+                             BRCryptoAmount amount,
+                             BRCryptoFeeBasis feeBasis,
+                             BRCryptoUnit feeUnit); // for fee
+
+    extern BRCryptoBoolean
+    cryptoWalletEqual (BRCryptoWallet w1, BRCryptoWallet w2);
 
 #ifdef __cplusplus
 }

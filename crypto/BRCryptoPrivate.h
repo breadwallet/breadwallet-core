@@ -31,21 +31,34 @@
 
 #include <inttypes.h>
 
+#include "BRCryptoHash.h"
 #include "BRCryptoAccount.h"
 #include "BRCryptoAmount.h"
 #include "BRCryptoAddress.h"
+#include "BRCryptoFeeBasis.h"
+#include "BRCryptoTransfer.h"
 
 ///
 #include "support/BRAddress.h"
 #include "support/BRBIP32Sequence.h"
 #include "bitcoin/BRChainParams.h"
+#include "bitcoin/BRTransaction.h"
 #include "bitcoin/BRWallet.h"
 #include "bcash/BRBCashParams.h"
 #include "ethereum/BREthereum.h"
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+    /// MARK: - Hash
+
+    private_extern BRCryptoHash
+    cryptoHashCreateAsBTC (UInt256 btc);
+
+    private_extern BRCryptoHash
+    cryptoHashCreateAsETH (BREthereumHash eth);
 
     /// MARK: - Currency
 
@@ -104,6 +117,34 @@ extern "C" {
     private_extern BRMasterPubKey
     cryptoAccountAsBTC (BRCryptoAccount account);
 
+    /// MARK: FeeBasis
+    
+    private_extern uint64_t
+    cryptoFeeBasisAsBTC (BRCryptoFeeBasis feeBasis);
+
+    private_extern BREthereumFeeBasis
+    cryptoFeeBasisAsETH (BRCryptoFeeBasis feeBasis);
+
+    private_extern BRCryptoFeeBasis
+    cryptoFeeBasisCreateAsBTC (uint64_t feePerKB);
+
+    private_extern BRCryptoFeeBasis
+    cryptoFeeBasisCreateAsETH (BREthereumGas gas,
+                               BREthereumGasPrice gasPrice);
+    
+    /// MARK: Transfer
+
+    extern BRCryptoTransfer
+    cryptoTransferCreateAsBTC (BRCryptoCurrency currency,
+                               BRWallet *wid,
+                               BRTransaction *tid);
+
+    extern BRCryptoTransfer
+    cryptoTransferCreateAsETH (BRCryptoCurrency currency,
+                               BREthereumEWM ewm,
+                               BREthereumTransfer tid);
+
+
 /// MARK: - Network
 #if defined (USE_PENDING)
 #include "BRCryptoNetwork.h"
@@ -159,12 +200,14 @@ cryptoWalletAsETH (BRCryptoWallet wallet);
 private_extern BRCryptoWallet
 cryptoWalletCreateAsBTC (BRCryptoUnit unit,
                          BRCryptoUnit unitForFee,
-                         BRWallet *btc);
+                         BRWalletManager bwm,
+                         BRWallet *wid);
 
 private_extern BRCryptoWallet
 cryptoWalletCreateAsETH (BRCryptoUnit unit,
                          BRCryptoUnit unitForFee,
-                         BREthereumWallet eth);
+                         BREthereumEWM ewm,
+                         BREthereumWallet wid);
 #endif // defined (USE_PENDING)
     
 #ifdef __cplusplus

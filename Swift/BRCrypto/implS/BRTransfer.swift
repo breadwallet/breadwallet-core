@@ -104,6 +104,10 @@ class TransferImplS: Transfer {
         return impl.direction
     }()
 
+    public func identical (that: Transfer) -> Bool {
+        return (that as? TransferImplS).map { self.impl.matches ($0.impl) } ?? false
+    }
+
     internal init (listener: TransferListener?,
                    wallet: WalletImplS,
                    unit: Unit,
@@ -277,14 +281,12 @@ class TransferImplS: Transfer {
                 let ethGasLimit = ewmTransferGetGasLimit (ewm, core) // or gasUsed
                 let ethGasPrice = ewmTransferGetGasPrice (ewm, core, WEI)
 
-                return TransferFeeBasis.ethereum (
-                    gasPrice: Amount.createAsETH (ethGasPrice.etherPerGas.valueInWEI, unit),
-                    gasLimit: ethGasLimit.amountOfGas)
+                return TransferFeeBasis (core: cryptoFeeBasisCreateAsETH(ethGasLimit, ethGasPrice))
 
             case .bitcoin:
                 // Need to be derived from the transaction fee + size if confirmed; otherwise
                 // this is the current wallet->feePerKb
-                return TransferFeeBasis.bitcoin(feePerKB: DEFAULT_FEE_PER_KB)
+                return TransferFeeBasis (core: cryptoFeeBasisCreateAsBTC(DEFAULT_FEE_PER_KB))
             }
         }
 
@@ -323,13 +325,13 @@ class TransferImplS: Transfer {
                 let coreHash = ewmTransferGetOriginatingTransactionHash (ewm, core)
                 return ETHEREUM_BOOLEAN_TRUE == hashEqual(coreHash, hashCreateEmpty())
                     ? nil
-                    : TransferHash.ethereum(coreHash)
+                    : TransferHash (core: cryptoHashCreateAsETH(coreHash))
 
             case let .bitcoin (_, tid):
                 let coreHash = tid.pointee.txHash
                 return 1 == UInt256IsZero(coreHash)
                     ? nil
-                    : TransferHash.bitcoin(coreHash)
+                    : TransferHash (core: cryptoHashCreateAsBTC(coreHash))
             }
         }
     }

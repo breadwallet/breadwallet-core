@@ -269,11 +269,10 @@ class WalletImplS: Wallet {
             case let .ethereum (ewm, core):
                 let coreGasPrice = ewmWalletGetDefaultGasPrice (ewm, core)
                 let coreGasLimit = ewmWalletGetDefaultGasLimit (ewm, core)
-                return TransferFeeBasis.ethereum (
-                    gasPrice: Amount.createAsETH (coreGasPrice.etherPerGas.valueInWEI, unit),
-                    gasLimit: coreGasLimit.amountOfGas)
+                return TransferFeeBasis (core: cryptoFeeBasisCreateAsETH (coreGasLimit, coreGasPrice))
+
             case let .bitcoin (wid):
-                return TransferFeeBasis.bitcoin(feePerKB: BRWalletFeePerKb (wid))
+                return TransferFeeBasis (core: cryptoFeeBasisCreateAsBTC (BRWalletFeePerKb (wid)))
             }
         }
 
@@ -290,21 +289,19 @@ class WalletImplS: Wallet {
                     .map { amountCreateToken (createTokenQuantity ($0, ethValue))}
                     ?? amountCreateEther (etherCreate(ethValue))
 
-                guard case let .ethereum (gasPrice, gasLimit) = feeBasis
-                    else { precondition (false) }
-                precondition (gasPrice.hasCurrency(feeUnit.currency))
-                let ethGasPrice = ewmCreateGasPrice (gasPrice.asETH, WEI)
-                let ethGasLimit = ewmCreateGas (gasLimit)
+                let ethFeeBasis = cryptoFeeBasisAsETH (feeBasis.core)
 
-                let fee = ewmWalletEstimateTransferFeeForBasis (ewm, wid, ethAmount, ethGasPrice, ethGasLimit, &overflow)
+                let fee = ewmWalletEstimateTransferFeeForBasis (ewm, wid, ethAmount,
+                                                                ethFeeBasis.u.gas.price,
+                                                                ethFeeBasis.u.gas.limit,
+                                                                &overflow)
                 return Amount.createAsETH (fee.valueInWEI, feeUnit)
 
             case let .bitcoin (wid):
                 let feePerKBSaved = BRWalletFeePerKb (wid)
-                guard case let .bitcoin (feePerKB) = feeBasis
-                    else { precondition (false)  }
-
+                let feePerKB = cryptoFeeBasisAsBTC (feeBasis.core)
                 BRWalletSetFeePerKb (wid, feePerKB)
+
                 let fee = BRWalletFeeForTxAmount (wid, amount.asBTC)
                 BRWalletSetFeePerKb (wid, feePerKBSaved)
                 return Amount.createAsBTC (fee, feeUnit)
@@ -317,17 +314,12 @@ class WalletImplS: Wallet {
             let addr = cryptoAddressAsString (target.core)
             switch self {
             case let .ethereum (ewm, wid):
-                guard case let .ethereum (gasPrice, gasLimit) = feeBasis
-                    else { return nil }
-
                 let ethValue  = cryptoAmountGetValue (amount.core)
                 let ethAmount = ewmWalletGetToken (ewm, wid)
                     .map { amountCreateToken (createTokenQuantity ($0, ethValue))}
                 ?? amountCreateEther (etherCreate(ethValue))
 
-                let ethGasLimit = gasCreate (gasLimit)
-                let ethGasPrice = gasPriceCreate (etherCreate (cryptoAmountGetValue (gasPrice.core)))
-                let ethFeeBasis = feeBasisCreate (ethGasLimit, ethGasPrice)
+                let ethFeeBasis = cryptoFeeBasisAsETH (feeBasis.core)
 
                 return ewmWalletCreateTransferWithFeeBasis (ewm, wid, addr, ethAmount, ethFeeBasis)
                     .map { TransferImplS.Impl.ethereum (ewm: ewm, core: $0) }

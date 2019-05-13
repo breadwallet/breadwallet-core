@@ -44,7 +44,7 @@ struct BRCryptoAmountRecord {
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoAmount, cryptoAmount);
 
-/* private */ extern BRCryptoAmount
+private_extern BRCryptoAmount
 cryptoAmountCreate (BRCryptoCurrency currency,
                     BRCryptoBoolean isNegative,
                     UInt256 value) {

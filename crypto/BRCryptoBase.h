@@ -28,7 +28,9 @@
 
 #include <inttypes.h>
 #include <stdatomic.h>
+#include "support/BRInt.h"
 #include "support/BRSyncMode.h"
+#include "ethereum/base/BREthereumHash.h"
 // temporary
 #include <stdio.h>
 
@@ -51,6 +53,7 @@ extern "C" {
         BLOCK_CHAIN_TYPE_ETH,
         BLOCK_CHAIN_TYPE_GEN
     } BRCryptoBlockChainType;
+
 
     /// MARK: Reference Counting
 
