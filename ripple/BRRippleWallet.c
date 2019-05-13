@@ -31,7 +31,7 @@ rippleWalletCreate (BRRippleAccount account)
 }
 
 extern void
-rippleWalletRelease (BRRippleWallet wallet)
+rippleWalletFree (BRRippleWallet wallet)
 {
     if (wallet) {
         free(wallet);

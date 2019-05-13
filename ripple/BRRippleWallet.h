@@ -26,16 +26,16 @@ typedef struct BRRippleWalletRecord *BRRippleWallet;
  *
  * @return wallet   pointer to the wallet
  */
-extern BRRippleWallet
+extern BRRippleWallet /* caller must free - rippleWalletFree */
 rippleWalletCreate (BRRippleAccount account);
 
 /**
- * Release memory for the wallet
+ * Free memory for the specified wallet object
  *
  * @param wallet   the ripple wallet to release
  */
 extern void
-rippleWalletRelease (BRRippleWallet wallet);
+rippleWalletFree (BRRippleWallet wallet);
 
 /**
  * Return an address suitable for sending Ripple.  Depending on the nature of Ripple this

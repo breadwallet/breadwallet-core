@@ -21,6 +21,7 @@
 #include "BRRippleAccount.h"
 #include "BRRippleSignature.h"
 #include "BRRippleBase58.h"
+//#include "BRBase58.h"
 
 #define PRIMARY_ADDRESS_BIP44_INDEX 0
 
@@ -44,45 +45,7 @@ struct BRRippleAccountRecord {
                                  // See Reliable Transaction Submission for more details.
 };
 
-// NOTE: this is a copy from the one found in support
-// TODO - modify the one in support to allow for different alphabets
-size_t encodeBase58Ripple(char *str, size_t strLen, const uint8_t *data, size_t dataLen)
-{
-    static const char chars[] = "rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz";
-    size_t i, j, len, zcount = 0;
-    
-    assert(data != NULL);
-    while (zcount < dataLen && data && data[zcount] == 0) zcount++; // count leading zeroes
-    
-    uint8_t buf[(dataLen - zcount)*138/100 + 1]; // log(256)/log(58), rounded up
-    
-    memset(buf, 0, sizeof(buf));
-    
-    for (i = zcount; data && i < dataLen; i++) {
-        uint32_t carry = data[i];
-        
-        for (j = sizeof(buf); j > 0; j--) {
-            carry += (uint32_t)buf[j - 1] << 8;
-            buf[j - 1] = carry % 58;
-            carry /= 58;
-        }
-        
-        var_clean(&carry);
-    }
-    
-    i = 0;
-    while (i < sizeof(buf) && buf[i] == 0) i++; // skip leading zeroes
-    len = (zcount + sizeof(buf) - i) + 1;
-    
-    if (str && len <= strLen) {
-        while (zcount-- > 0) *(str++) = chars[0];
-        while (i < sizeof(buf)) *(str++) = chars[buf[i++]];
-        *str = '\0';
-    }
-    
-    mem_clean(buf, sizeof(buf));
-    return (! str || len <= strLen) ? len : 0;
-}
+static const char rippleAlphabet[] = "rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz";
 
 extern UInt512 getSeed(const char *paperKey)
 {
@@ -125,7 +88,8 @@ extern char * createRippleAddressString (BRRippleAddress address, int useChecksu
     memcpy(&input[21], hash, 4);
 
     // Now base58 encode the result
-    encodeBase58Ripple(string, 35, input, 25);
+    rippleEncodeBase58(string, 35, input, 25);
+    //BRBase58EncodeEx(string, 36, input, 25, rippleAlphabet);
     return string;
 }
 
@@ -290,6 +254,49 @@ rippleAccountSignTransaction(BRRippleAccount account, BRRippleTransaction transa
     }
 
     return signedBytes;
+}
+
+extern int rippleAddressStringToAddress(const char* input, BRRippleAddress *address)
+{
+    // The ripple address "string" is a base58 encoded string
+    // using the ripple base58 alphabet.  After decoding the address
+    // the output lookes like this
+    // [ 0, 20-bytes, 4-byte checksum ] for a total of 25 bytes
+    // In the ripple alphabet "r" maps to 0 which is why the first byte is 0
+    assert(address);
+
+    // Decode the
+    uint8_t bytes[25];
+    //int length = BRBase58DecodeEx(NULL, 0, input, rippleAlphabet);
+    int length = rippleDecodeBase58(input, NULL);
+    if (length != 25) {
+        // Since ripple addresses are created from 20 byte account IDs the
+        // needed space to covert it back has to be 25 bytes.
+        // LOG message?
+        return 0;
+    }
+
+    // We got the correct length so go ahead and decode.
+    rippleDecodeBase58(input, bytes);
+    //BRBase58DecodeEx(bytes, 25, input, rippleAlphabet);
+
+    // We need to do a checksum on all but the last 4 bytes.
+    // From trial and error is appears that the checksum is just
+    // sha256(sha256(first21bytes))
+    uint8_t md32[32];
+    BRSHA256_2(md32, &bytes[0], 21);
+    // Compare the first 4 bytes of the sha hash to the last 4 bytes
+    // of the decoded bytes (i.e. starting a byte 21)
+    if (0 == memcmp(md32, &bytes[21], 4)) {
+        // The checksum has passed so copy the 20 bytes that form the account id
+        // to our ripple address structure.
+        // i.e. strip off the 1 bytes token and the 4 byte checksum
+        memcpy(address->bytes, &bytes[1], 20);
+        return 20;
+    } else {
+        // Checksum does not match - do we log this somewhere
+    }
+    return 0;
 }
 
 extern BRRippleAddress

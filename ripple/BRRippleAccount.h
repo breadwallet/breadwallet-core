@@ -107,7 +107,9 @@ rippleAccountGetAddress(BRRippleAccount account);
  *                       otherwise return the number of bytes needed to store the address
  *                       including the 0 termination byte
  */
-extern int rippleAccountGetAddressString(BRRippleAccount account, char * rippleAddress, int length);
+extern int rippleAccountGetAddressString(BRRippleAccount account,
+                                         char * rippleAddress, /* memory owned by caller */
+                                         int length);
 
 /**
  * Create a BRRippleAddress from the ripple string

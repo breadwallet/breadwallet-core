@@ -14,15 +14,7 @@
 #include <stdlib.h>
 #include "BRRippleBase.h"
 
-/**
- * Convert a ripple address string to the account ID bytes
- *
- * @param rippleAddressString   i.e. r41vZ8....
- * @param address               pointer to a BRRippleAddress
- *
- * @return number of bytes written to the address
- */
-extern int rippleAddressStringToAddress(const char* rippleAddressString, BRRippleAddress * address);
-
+size_t rippleEncodeBase58(char *str, size_t strLen, const uint8_t *data, size_t dataLen);
+int rippleDecodeBase58(const char* input, uint8_t *output);
 
 #endif

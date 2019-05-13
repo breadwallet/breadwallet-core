@@ -72,7 +72,8 @@ extern uint32_t getSerializedSize(BRRippleSerializedTransaction s);
  * @param  s     serialized transaction
  * @return bytes uint8_t
  */
-extern uint8_t* getSerializedBytes(BRRippleSerializedTransaction s);
+extern uint8_t* /* DO NOT FREE - owned by the transaction object */
+getSerializedBytes(BRRippleSerializedTransaction s);
 
 /**
  * Get the hash of a ripple transaction
