@@ -15,7 +15,6 @@ import com.breadwallet.crypto.jni.CryptoLibrary;
 import com.breadwallet.crypto.jni.CryptoLibrary.BRCryptoAddress;
 import com.breadwallet.crypto.jni.CryptoLibrary.BRCryptoBoolean;
 import com.breadwallet.crypto.jni.CryptoLibrary.BREthereumBoolean;
-import com.breadwallet.crypto.network.Network;
 import com.google.common.base.Optional;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;

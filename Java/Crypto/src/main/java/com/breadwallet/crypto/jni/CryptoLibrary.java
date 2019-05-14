@@ -341,6 +341,33 @@ public interface CryptoLibrary extends Library {
         }
     };
 
+    class BRCryptoWallet extends PointerType {
+        public BRCryptoWallet(Pointer address) {
+            super(address);
+        }
+        public BRCryptoWallet() {
+            super();
+        }
+    };
+
+    class BRCryptoWalletManager extends PointerType {
+        public BRCryptoWalletManager(Pointer address) {
+            super(address);
+        }
+        public BRCryptoWalletManager() {
+            super();
+        }
+    };
+
+    class BRCryptoSystem extends PointerType {
+        public BRCryptoSystem(Pointer address) {
+            super(address);
+        }
+        public BRCryptoSystem() {
+            super();
+        }
+    };
+
 
     // TODO: Why are these not in their corresponding header file
     CryptoLibrary.BRCryptoCurrency cryptoCurrencyCreate(String name, String code, String type);
