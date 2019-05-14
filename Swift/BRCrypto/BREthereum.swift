@@ -484,7 +484,7 @@ public class EthereumWalletManager: WalletManager {
     }
 
     public func sync() {
-        ewmSync (core);
+        ewmSync (core, ETHEREUM_BOOLEAN_TRUE);
     }
 
     public init (listener: EthereumListener,

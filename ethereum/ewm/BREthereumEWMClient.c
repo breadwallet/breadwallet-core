@@ -746,7 +746,7 @@ ewmHandleAnnounceTokenComplete (BREthereumEWM ewm,
                                 BREthereumBoolean success,
                                 int rid) {
     if (ETHEREUM_BOOLEAN_IS_TRUE (success))
-        ewmSync (ewm);
+        ewmSync (ewm, ETHEREUM_BOOLEAN_FALSE);
 }
 
 extern void

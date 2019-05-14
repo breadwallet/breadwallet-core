@@ -824,7 +824,8 @@ ewmSyncUpdateTransfer (BREthereumSyncTransferContext *context,
 }
 
 extern BREthereumBoolean
-ewmSync (BREthereumEWM ewm) {
+ewmSync (BREthereumEWM ewm,
+         BREthereumBoolean pendExistingTransfers) {
     if (LIGHT_NODE_CONNECTED != ewm->state) return ETHEREUM_BOOLEAN_FALSE;
 
     switch (ewm->mode) {
@@ -832,17 +833,19 @@ ewmSync (BREthereumEWM ewm) {
         case BRD_WITH_P2P_SEND: {
             pthread_mutex_lock(&ewm->lock);
 
-            BREthereumSyncTransferContext context = { ewm, 0, ewm->blockHeight };
-            BREthereumWallet *wallets = ewmGetWallets(ewm);
+            if (ETHEREUM_BOOLEAN_IS_TRUE (pendExistingTransfers)) {
+                BREthereumSyncTransferContext context = { ewm, 0, ewm->blockHeight };
+                BREthereumWallet *wallets = ewmGetWallets(ewm);
 
-            // Walk each wallet, set all transfers to 'pending'
-            for (size_t wid = 0; NULL != wallets[wid]; wid++)
-                walletWalkTransfers (wallets[wid], &context,
-                                     (BREthereumTransferPredicate) ewmSyncUpdateTransferPredicate,
-                                     (BREthereumTransferWalker)    ewmSyncUpdateTransfer);
+                // Walk each wallet, set all transfers to 'pending'
+                for (size_t wid = 0; NULL != wallets[wid]; wid++)
+                    walletWalkTransfers (wallets[wid], &context,
+                                         (BREthereumTransferPredicate) ewmSyncUpdateTransferPredicate,
+                                         (BREthereumTransferWalker)    ewmSyncUpdateTransfer);
 
-            free (wallets);
-
+                free (wallets);
+            }
+            
             // Start a sync from block 0
             ewm->brdSync.begBlockNumber = 0;
 
