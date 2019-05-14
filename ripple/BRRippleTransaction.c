@@ -447,8 +447,8 @@ extern BRRippleAmount rippleTransactionGetAmountRaw(BRRippleTransaction transact
 
 BRRippleTransactionType mapTransactionType(uint16_t txType)
 {
-    if (txType == 0) {
-        return RIPPLE_TX_TYPE_PAYMENT;
+    if (txType <= 20 || txType == 100 || txType == 101) {
+        return (BRRippleTransactionType)txType;
     }
     return RIPPLE_TX_TYPE_UNKNOWN;
 }

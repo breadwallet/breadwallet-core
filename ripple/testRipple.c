@@ -11,12 +11,15 @@
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
+#include <unistd.h>
 #include "BRRipple.h"
 #include "BRRippleBase58.h"
 #include "BRCrypto.h"
 #include "support/BRBIP32Sequence.h"
 #include "support/BRBIP39WordsEn.h"
 #include "BRKey.h"
+#include "testtxlist1.h"
+#include "testtxlist2.h"
 
 int debug_log = 0;
 
@@ -527,6 +530,17 @@ static void testTransactionDeserialize1(const char* test_input)
     BRRippleTransaction transaction = transactionDeserialize(test_input, NULL);
     assert(transaction);
 
+    // Check if this is a transaction
+    BRRippleTransactionType txType = rippleTransactionGetType(transaction);
+    assert(txType == RIPPLE_TX_TYPE_PAYMENT);
+
+    // Get the sequence number
+    BRRippleSequence sequence = rippleTransactionGetSequence(transaction);
+
+    // Record the currency type
+    BRRippleAmount amount = rippleTransactionGetAmountRaw(transaction, RIPPLE_AMOUNT_TYPE_AMOUNT);
+    printf("sequence: %u, type: %s\n", sequence, (amount.currencyType == 0 ? "XRP" : "OTHER"));
+
     rippleTransactionFree(transaction);
 }
 
@@ -685,8 +699,46 @@ static void runWalletTests()
     testWalletAddress();
 }
 
+static void runDeserializeTests(const char* tx_list_name, const char* tx_list[], int num_elements)
+{
+    int payments = 0;
+    int other_type = 0;
+    int xrp_currency = 0;
+    int other_currency = 0;
+    for(int i = 0; i <= num_elements - 2; i += 2) {
+        BRRippleTransaction transaction = transactionDeserialize(tx_list[i+1], NULL);
+        assert(transaction);
+        
+        // Check if this is a transaction
+        BRRippleTransactionType txType = rippleTransactionGetType(transaction);
+        if (txType == RIPPLE_TX_TYPE_PAYMENT) {
+            // Get the sequence number
+            BRRippleSequence sequence = rippleTransactionGetSequence(transaction);
+            assert(0 != sequence);
+            // Record the currency type
+            BRRippleAmount amount = rippleTransactionGetAmountRaw(transaction, RIPPLE_AMOUNT_TYPE_AMOUNT);
+            if (amount.currencyType == 0) {
+                xrp_currency++;
+            } else {
+                other_currency++;
+            }
+            payments++;
+        } else {
+            other_type++;
+        }
+        
+        rippleTransactionFree(transaction);
+    }
+    printf("list_name: %s, tx count: %d, payments: %d, other: %d, XRP: %d, other currency: %d\n",
+           tx_list_name, num_elements/2, payments, other_type, xrp_currency, other_currency);
+}
+
 extern void
 runRippleTest (void /* ... */) {
+
+    // Read data from external file and deserialize
+    runDeserializeTests("200 new transaction", test_tx_list, (int)(sizeof(test_tx_list)/sizeof(char*)));
+    runDeserializeTests("200 old transactions", test_tx_list2, (int)(sizeof(test_tx_list2)/sizeof(char*)));
 
     // Account tests
     rippleAccountTests();

@@ -425,7 +425,7 @@ int get_VLContent(uint8_t *buffer, BRRippleField *field)
 int get_STObject(uint8_t *buffer, BRRippleField *field)
 {
     // TODO - support embedded objects
-    printf("STObject\n");
+    //printf("STObject\n");
     return 0;
 }
 
@@ -506,7 +506,7 @@ int get_STArray(uint8_t *buffer, BRRippleField *field)
 int get_PathSet(uint8_t *buffer, BRRippleField *field)
 {
     // TODO - support path sets
-    printf("PathSet\n");
+    //printf("PathSet\n");
     return 0;
 }
 
