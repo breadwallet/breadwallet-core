@@ -453,58 +453,59 @@ BRRippleTransactionType mapTransactionType(uint16_t txType)
     return RIPPLE_TX_TYPE_UNKNOWN;
 }
 
-void getFieldInfo(BRRippleField *fields, int fieldLength, BRRippleTransaction transaction)
+void getFieldInfo(BRArrayOf(BRRippleField) fieldArray, int fieldCount, BRRippleTransaction transaction)
 {
-    for (int i = 0; i < fieldLength; i++) {
-        switch(fields[i].typeCode) {
+    for (int i = 0; i < fieldCount; i++) {
+        BRRippleField *field = &fieldArray[i];
+        switch(field->typeCode) {
             case 1:
-                if (2 == fields[i].fieldCode) {
+                if (2 == field->fieldCode) {
                     // Map to our enum
-                    transaction->transactionType = mapTransactionType(fields[i].data.i16);
+                    transaction->transactionType = mapTransactionType(field->data.i16);
                 }
                 break;
             case 2:
-                if (2 == fields[i].fieldCode) {
-                    transaction->flags = fields[i].data.i32;
-                } else if (3 == fields[i].fieldCode) {
-                    transaction->sourceTag = fields[i].data.i32;
-                } else if (4 == fields[i].fieldCode) {
-                    transaction->sequence = fields[i].data.i32;
-                } else if (14 == fields[i].fieldCode) {
-                    transaction->payment.destinationTag = fields[i].data.i32;
-                } else if (27 == fields[i].fieldCode) {
-                    transaction->lastLedgerSequence = fields[i].data.i32;
+                if (2 == field->fieldCode) {
+                    transaction->flags = field->data.i32;
+                } else if (3 == field->fieldCode) {
+                    transaction->sourceTag = field->data.i32;
+                } else if (4 == field->fieldCode) {
+                    transaction->sequence = field->data.i32;
+                } else if (14 == field->fieldCode) {
+                    transaction->payment.destinationTag = field->data.i32;
+                } else if (27 == field->fieldCode) {
+                    transaction->lastLedgerSequence = field->data.i32;
                 }
                 break;
             case 5: // Hash256
-                if (9 == fields[i].fieldCode) {
-                    memcpy(transaction->accountTxnID.bytes, fields[i].data.hash, 32);
-                } else if (17 == fields[i].fieldCode) {
-                    memcpy(transaction->payment.invoiceId, fields[i].data.hash, 32);
+                if (9 == field->fieldCode) {
+                    memcpy(transaction->accountTxnID.bytes, field->data.hash, 32);
+                } else if (17 == field->fieldCode) {
+                    memcpy(transaction->payment.invoiceId, field->data.hash, 32);
                 }
                 break;
             case 6: // Amount object
-                if (8 == fields[i].fieldCode) { // fee)
-                    transaction->fee = fields[i].data.amount;
-                } else if (1 == fields[i].fieldCode) { // amount
-                    transaction->payment.amount = fields[i].data.amount;
-                } else if (9 == fields[i].fieldCode) { // fee
-                    transaction->payment.sendMax = fields[i].data.amount;
-                } else if (10 == fields[i].fieldCode) {
-                    transaction->payment.deliverMin = fields[i].data.amount;
+                if (8 == field->fieldCode) { // fee)
+                    transaction->fee = field->data.amount;
+                } else if (1 == field->fieldCode) { // amount
+                    transaction->payment.amount = field->data.amount;
+                } else if (9 == field->fieldCode) { // fee
+                    transaction->payment.sendMax = field->data.amount;
+                } else if (10 == field->fieldCode) {
+                    transaction->payment.deliverMin = field->data.amount;
                 }
             case 7: // Blob data
-                if (3 == fields[i].fieldCode) { // public key
-                    transaction->publicKey = fields[i].data.publicKey;
-                } else if (4 == fields[i].fieldCode) { // signature
-                    transaction->signature = fields[i].data.signature;
+                if (3 == field->fieldCode) { // public key
+                    transaction->publicKey = field->data.publicKey;
+                } else if (4 == field->fieldCode) { // signature
+                    transaction->signature = field->data.signature;
                 }
                 break;
             case 8: // Addresses - 20 bytes
-                if (1 == fields[i].fieldCode) { // source address
-                    transaction->sourceAddress = fields[i].data.address;
-                } else if (3 == fields[i].fieldCode) { // target address
-                    transaction->payment.targetAddress = fields[i].data.address;
+                if (1 == field->fieldCode) { // source address
+                    transaction->sourceAddress = field->data.address;
+                } else if (3 == field->fieldCode) { // target address
+                    transaction->payment.targetAddress = field->data.address;
                 }
             default:
                 break;
@@ -515,24 +516,27 @@ void getFieldInfo(BRRippleField *fields, int fieldLength, BRRippleTransaction tr
 extern BRRippleTransaction
 rippleTransactionCreateFromBytes(uint8_t *bytes, int length)
 {
-    BRRippleField * fields;
-    array_new(fields, 10);
-    rippleDeserialize(bytes, length, fields);
+    BRArrayOf(BRRippleField) fieldArray;
+    array_new(fieldArray, 15);
+    // Since the BRArray memory might be moved to a realloc we need to
+    // pass in the address of the array so it can be modified
+    rippleDeserialize(bytes, length, &fieldArray);
     
     BRRippleTransaction transaction = createTransactionObject();
-    
-    getFieldInfo(fields, array_count(fields), transaction);
+
+    int arrayCount = array_count(fieldArray);
+    getFieldInfo(fieldArray, arrayCount, transaction);
 
     // Before we get rid of the fields - see if there are any fields that
     // need to be cleaned up (i.e. they allocated some memory
-    size_t arraySize = array_count(fields);
-    for(size_t i = 0; i < arraySize; i++) {
-        if (15 == fields[i].typeCode && 9 == fields[i].fieldCode) {
+    for (int i = 0; i < arrayCount; i++) {
+        BRRippleField *field = &fieldArray[i];
+        if (15 == field->typeCode && 9 == field->fieldCode) {
             // An array of Memos
-            transaction->memos = fields[i].memos;
+            transaction->memos = field->memos;
         }
     }
-    array_free(fields);
+    array_free(fieldArray);
 
     return transaction;
 }

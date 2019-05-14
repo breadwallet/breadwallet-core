@@ -18,8 +18,11 @@
 /**
  * Serialize an unsorted array of fields
  *
- * @param fields      unsorted array of fields
- * @parma num_fields  the number of fields to serialize
+ * @param fields      pointer to BRArrayOf(BRRippleField). NOTE: the address of the array
+ *                    must be passed in due to a possible realloc of the array (and new memory location)
+ * @param num_fields  the number of fields to serialize
+ *
+ * @return number of bytes read
  */
 extern uint32_t rippleSerialize(BRRippleField * fields, uint32_t num_fields,
                      uint8_t *buffer, uint32_t bufferSize);
@@ -31,6 +34,6 @@ extern uint32_t rippleSerialize(BRRippleField * fields, uint32_t num_fields,
  * @param bufferSize  number of bytes in stream
  * @param fields      BRArray of fields
  */
-extern int rippleDeserialize(uint8_t *buffer, uint32_t bufferSize, BRArrayOf(BRRippleField) fields);
+extern int rippleDeserialize(uint8_t *buffer, uint32_t bufferSize, BRArrayOf(BRRippleField) *fields);
 
 #endif

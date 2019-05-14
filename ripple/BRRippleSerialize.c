@@ -569,7 +569,7 @@ bool addFieldToList(BRRippleField * field)
     }
 }
 
-extern int rippleDeserialize(uint8_t *buffer, int bufferSize, BRArrayOf(BRRippleField) fields)
+extern int rippleDeserialize(uint8_t *buffer, int bufferSize, BRArrayOf(BRRippleField) *fields)
 {
     assert(buffer);
     assert(fields);
@@ -594,7 +594,7 @@ extern int rippleDeserialize(uint8_t *buffer, int bufferSize, BRArrayOf(BRRipple
 
         // If we care about this field - add it to our array
         if (addFieldToList(&field)) {
-            array_add(fields, field);
+            array_add(*fields, field);
         }
     }
     return index;

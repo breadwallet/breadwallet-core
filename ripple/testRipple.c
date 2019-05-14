@@ -669,12 +669,12 @@ void rippleTransactionTests()
     testRippleTransactionGetters();
     testSerializeWithSignature();
     testTransactionHash();
-    //testTransactionDeserialize();
-    //testTransactionDeserializeUnknownFields();
-    //testTransactionDeserializeOptionalFields();
-    //testTransactionDeserializeLastLedgerSequence();
-    //testTransactionDeserializeWithMemos();
-    //testTransactionDeserialize1(tx_one);
+    testTransactionDeserialize();
+    testTransactionDeserializeUnknownFields();
+    testTransactionDeserializeOptionalFields();
+    testTransactionDeserializeLastLedgerSequence();
+    testTransactionDeserializeWithMemos();
+    testTransactionDeserialize1(tx_one);
     testTransactionDeserialize1(tx_two);
 }
 
