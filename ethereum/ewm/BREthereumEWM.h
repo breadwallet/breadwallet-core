@@ -89,7 +89,8 @@ extern BREthereumBoolean
 ewmIsConnected (BREthereumEWM ewm);
 
 extern BREthereumBoolean
-ewmSync (BREthereumEWM ewm);
+ewmSync (BREthereumEWM ewm,
+         BREthereumBoolean pendExistingTransfers);
 
 extern void
 ewmLock (BREthereumEWM ewm);
