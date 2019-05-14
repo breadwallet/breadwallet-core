@@ -2,7 +2,6 @@ package com.breadwallet.crypto.blockchaindb.models;
 
 import android.support.annotation.Nullable;
 
-import com.breadwallet.crypto.blockchaindb.JsonUtilities;
 import com.google.common.base.Optional;
 
 import org.json.JSONArray;
@@ -20,7 +19,7 @@ public class Block {
         String header = json.optString("header", null);
         String prevHash = json.optString("prevHash", null);
         String nextHash = json.optString("nexthash", null);
-        byte[] raw = JsonUtilities.getOptionalBase64Bytes(json, "raw").orNull();
+        byte[] raw = Utilities.getOptionalBase64Bytes(json, "raw").orNull();
 
         JSONArray transactionsJson = json.optJSONArray("transactions");
         List<Transaction> transactions = transactionsJson == null ? null : Transaction.asTransactions(transactionsJson).orNull();
@@ -30,10 +29,10 @@ public class Block {
             String id = json.getString("block_id");
             String bid = json.getString("blockchain_id");
             String hash = json.getString("hash");
-            long height = JsonUtilities.getLongFromString(json, "height");
-            long size = JsonUtilities.getLongFromString(json, "size");
-            long acks = JsonUtilities.getLongFromString(json, "acknowledgements");
-            Date mined = JsonUtilities.get8601DateFromString(json,"mined");
+            long height = Utilities.getLongFromString(json, "height");
+            long size = Utilities.getLongFromString(json, "size");
+            long acks = Utilities.getLongFromString(json, "acknowledgements");
+            Date mined = Utilities.get8601DateFromString(json,"mined");
 
             return Optional.of(new Block(id, bid, hash, height, header, raw, mined, size, prevHash, nextHash,
                     transactions, acks));

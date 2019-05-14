@@ -1,6 +1,5 @@
 package com.breadwallet.crypto.blockchaindb.models;
 
-import com.breadwallet.crypto.blockchaindb.JsonUtilities;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 
@@ -32,7 +31,7 @@ public class Blockchain {
             String network = json.getString("network");
             boolean isMainnet = json.getBoolean("is_mainnet");
             String currency = json.getString("native_currency_id");
-            long blockHeight = JsonUtilities.getLongFromString(json, "block_height");
+            long blockHeight = Utilities.getLongFromString(json, "block_height");
 
             JSONArray feeEstimatesJson = json.getJSONArray("fee_estimates");
             Optional<List<BlockchainFee>> feeEstimatesOption = BlockchainFee.asBlockchainFees(feeEstimatesJson);

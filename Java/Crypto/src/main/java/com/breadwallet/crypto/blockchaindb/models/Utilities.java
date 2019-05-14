@@ -1,9 +1,7 @@
-package com.breadwallet.crypto.blockchaindb;
+package com.breadwallet.crypto.blockchaindb.models;
 
-import android.support.annotation.Nullable;
 import android.util.Base64;
 
-import com.breadwallet.crypto.blockchaindb.models.Blockchain;
 import com.google.common.base.Optional;
 
 import org.json.JSONArray;
@@ -17,12 +15,13 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-// TODO: Do we want this class here?
-public final class JsonUtilities {
+/* package */
+final class Utilities {
 
     private static DateFormat ISO_8601_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
-    public static Date get8601DateFromString(JSONObject json, String name) throws JSONException {
+    /* package */
+    static Date get8601DateFromString(JSONObject json, String name) throws JSONException {
         try {
             return ISO_8601_FORMAT.parse(json.getString(name));
         } catch (ParseException e) {
@@ -30,12 +29,22 @@ public final class JsonUtilities {
         }
     }
 
-    public static String get8601StringFromDate(Date date) {
+    /* package */
+    static Optional<Date> getOptional8601DateFromString(JSONObject json, String name) {
+        try {
+            return Optional.fromNullable(ISO_8601_FORMAT.parse(json.optString(name, null)));
+        } catch (ParseException e) {
+            return Optional.absent();
+        }
+    }
+
+    /* package */
+    static String get8601StringFromDate(Date date) {
         return ISO_8601_FORMAT.format(date);
     }
 
-
-    public static Optional<byte[]> getOptionalBase64Bytes(JSONObject json, String name) {
+    /* package */
+    static Optional<byte[]> getOptionalBase64Bytes(JSONObject json, String name) {
         try {
             return Optional.fromNullable(Base64.decode(json.optString(name, null), Base64.DEFAULT));
         } catch (IllegalArgumentException e) {
@@ -43,7 +52,8 @@ public final class JsonUtilities {
         }
     }
 
-    public static long getLongFromString(JSONObject json, String name) throws JSONException {
+    /* package */
+    static long getLongFromString(JSONObject json, String name) throws JSONException {
         try {
             return Long.parseLong(json.getString(name));
         } catch (NumberFormatException e) {
@@ -51,7 +61,8 @@ public final class JsonUtilities {
         }
     }
 
-    public static Optional<Long> getOptionalLongFromString(JSONObject json, String name) {
+    /* package */
+    static Optional<Long> getOptionalLongFromString(JSONObject json, String name) {
         try {
             return Optional.fromNullable(Long.parseLong(json.optString(name, null)));
         } catch (NumberFormatException e) {
@@ -59,7 +70,8 @@ public final class JsonUtilities {
         }
     }
 
-    public static Optional<List<String>> getOptionalStringList(JSONObject json, String name) {
+    /* package */
+    static Optional<List<String>> getOptionalStringList(JSONObject json, String name) {
         JSONArray jsonArray = json.optJSONArray(name);
         if (jsonArray == null) {
             return Optional.absent();

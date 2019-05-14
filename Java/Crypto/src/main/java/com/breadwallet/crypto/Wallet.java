@@ -15,6 +15,8 @@ import java.util.List;
 
 public interface Wallet {
 
+    WalletManager getWalletManager();
+
     Unit getBaseUnit();
 
     Amount getBalance();

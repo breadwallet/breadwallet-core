@@ -2,7 +2,6 @@ package com.breadwallet.crypto.blockchaindb.models;
 
 import android.support.annotation.Nullable;
 
-import com.breadwallet.crypto.blockchaindb.JsonUtilities;
 import com.google.common.base.Optional;
 
 import org.json.JSONArray;
@@ -17,10 +16,15 @@ public class Transaction {
 
     public static Optional<Transaction> asTransaction(JSONObject json) {
         // optional
-        Long index = JsonUtilities.getOptionalLongFromString(json, "index").orNull();
-        Long blockHeight = JsonUtilities.getOptionalLongFromString(json, "block_height").orNull();
+        Long index = Utilities.getOptionalLongFromString(json, "index").orNull();
+        Long blockHeight = Utilities.getOptionalLongFromString(json, "block_height").orNull();
         String blockHash = json.optString("block_hash", null);
-        byte[] raw = JsonUtilities.getOptionalBase64Bytes(json, "raw").orNull();
+        byte[] raw = Utilities.getOptionalBase64Bytes(json, "raw").orNull();
+
+        Date firstSeen = Utilities.getOptional8601DateFromString(json, "first_seen").orNull();
+        Date timestamp = Utilities.getOptional8601DateFromString(json, "timestamp").orNull();
+        long acks = Utilities.getOptionalLongFromString(json, "acknowledgements").or(Long.valueOf(0));
+        Long confirmations = Utilities.getOptionalLongFromString(json, "confirmations").orNull();
 
         //required
         try {
@@ -29,11 +33,7 @@ public class Transaction {
             String hash = json.getString("hash");
             String identifier = json.getString("identifier");
             String status = json.getString("status");
-            long size = JsonUtilities.getLongFromString(json, "size");
-            Date firstSeen = JsonUtilities.get8601DateFromString(json, "first_seen");
-            long acks = JsonUtilities.getLongFromString(json, "acknowledgements");
-            Date timestamp = JsonUtilities.get8601DateFromString(json, "timestamp");
-            Long confirmations = JsonUtilities.getLongFromString(json, "confirmations");
+            long size = Utilities.getLongFromString(json, "size");
 
             JSONArray jsonTransfers = json.getJSONArray("transfers");
             Optional<List<Transfer>> optionalTransfers = Transfer.asTransfers(jsonTransfers);
@@ -73,10 +73,11 @@ public class Transaction {
     private final String identifier;
     private final String status;
     private final long size;
-    private final Date firstSeen;
     private final List<Transfer> transfers;
     private final long acknowledgements;
 
+    @Nullable
+    private final Date firstSeen;
     @Nullable
     private final String blockHash;
     @Nullable
@@ -92,7 +93,7 @@ public class Transaction {
 
     public Transaction(String id, String blockchainId, String hash, String identifier, @Nullable String blockHash,
                        @Nullable Long blockHeight, @Nullable Long index, @Nullable Long confirmations, String status,
-                       long size, @Nullable Date timestamp, Date firstSeen, @Nullable byte[] raw,
+                       long size, @Nullable Date timestamp, @Nullable Date firstSeen, @Nullable byte[] raw,
                        List<Transfer> transfers, long acknowledgements) {
         this.id = id;
         this.blockchainId = blockchainId;
@@ -155,8 +156,8 @@ public class Transaction {
         return Optional.fromNullable(timestamp);
     }
 
-    public Date getFirstSeen() {
-        return firstSeen;
+    public Optional<Date> getFirstSeen() {
+        return Optional.fromNullable(firstSeen);
     }
 
     public Optional<byte[]> getRaw() {
