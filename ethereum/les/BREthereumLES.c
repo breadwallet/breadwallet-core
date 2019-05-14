@@ -718,9 +718,10 @@ lesRelease(BREthereumLES les) {
 
 extern void
 lesClean (BREthereumLES les) {
-    pthread_mutex_lock (&les->lock);
-    les->theTimeToCleanIsNow = 1;
-    pthread_mutex_unlock (&les->lock);
+    if (0 == pthread_mutex_trylock (&les->lock)) {
+        les->theTimeToCleanIsNow = 1;
+        pthread_mutex_unlock (&les->lock);
+    }
 }
 
 extern void
