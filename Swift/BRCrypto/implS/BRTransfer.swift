@@ -245,13 +245,16 @@ class TransferImplS: Transfer {
 
                 let recv = Int64(BRWalletAmountReceivedFromTx (wid, tid))
                 let send = Int64(BRWalletAmountSentByTx (wid, tid))   // includes fees
+                let fee = Int64(fees)
 
-                // The value is always positive; it is the value sent from source to target.
-                let value = (0 == fees
-                    ? recv - send
-                    : (send - Int64(fees)) - recv)
-
-                return Amount.createAsBTC (UInt64(value), unit)
+                switch direction {
+                case .recovered:
+                    return Amount.createAsBTC(UInt64(send), unit)
+                case .sent:
+                    return Amount.createAsBTC(UInt64(send - recv - fee), unit)
+                case .received:
+                    return Amount.createAsBTC(UInt64(recv), unit)
+                }
             }
 
         }
@@ -305,15 +308,19 @@ class TransferImplS: Transfer {
             case let .bitcoin (wid, tid):
                 // Returns a 'fee' if 'all inputs are from wallet' (meaning, the bitcoin transaction is
                 // composed of UTXOs from wallet). We paid a fee, we sent it.
-                let fees = BRWalletFeeForTx (wid, tid)
-                if fees != UINT64_MAX { return .sent }
+                var fees = BRWalletFeeForTx (wid, tid)
+                if fees == UINT64_MAX { fees = 0 }
 
                 let recv = BRWalletAmountReceivedFromTx (wid, tid)
                 let send = BRWalletAmountSentByTx (wid, tid)   // includes fees
 
-                return send > 0 && (recv + fees) == send
-                    ? .recovered
-                    : .received
+                if send > 0 && (recv + fees) == send {
+                    return .recovered
+                } else if send > 0 {
+                    return .sent
+                } else {
+                    return .received
+                }
             }
         }
 
