@@ -433,8 +433,6 @@ ewmCreate (BREthereumNetwork network,
         return ewmCreateErrorHandler(ewm, 1, fileServiceTypeBlocks);
 
     // Load all the persistent entities
-    BRSetOf(BREthereumTransaction) transactions = initialTransactionsLoad(ewm);
-    BRSetOf(BREthereumLog) logs = initialLogsLoad(ewm);
     BRSetOf(BREthereumNodeConfig) nodes = initialNodesLoad(ewm);
     BRSetOf(BREthereumBlock) blocks = initialBlocksLoad(ewm);
 
@@ -442,13 +440,7 @@ ewmCreate (BREthereumNetwork network,
     // started automatically, as part of the normal processing, of 'blocks' (we'll use a checkpoint,
     // before the `accountTimestamp, which will be well in the past and we'll sync up to the
     // head of the blockchain).
-    if (NULL == transactions || NULL == logs || NULL == nodes || NULL == blocks) {
-        if (NULL == transactions) transactions = BRSetNew(transactionHashValue, transactionHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
-        else BRSetClear(transactions);
-
-        if (NULL == logs) logs = BRSetNew(logHashValue, logHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
-        else BRSetClear(logs);
-
+    if (NULL == nodes || NULL == blocks) {
         if (NULL == blocks) blocks = BRSetNew(blockHashValue, blockHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
         else BRSetClear(blocks);
 
@@ -512,17 +504,7 @@ ewmCreate (BREthereumNetwork network,
                                   listener,
                                   mode,
                                   nodes,
-                                  NULL,
-                                  NULL,
                                   NULL);
-
-            // Announce all the provided transactions...
-            FOR_SET (BREthereumTransaction, transaction, transactions)
-                ewmSignalTransaction (ewm, BCS_CALLBACK_TRANSACTION_ADDED, transaction);
-
-            // ... as well as the provided logs...
-            FOR_SET (BREthereumLog, log, logs)
-                ewmSignalLog (ewm, BCS_CALLBACK_LOG_ADDED, log);
 
             // ... and then the latest block.
             BREthereumBlock lastBlock = NULL;
@@ -538,8 +520,6 @@ ewmCreate (BREthereumNetwork network,
 
             // Free sets... BUT DO NOT free 'nodes' as those had 'OwnershipGiven' in bcsCreate()
             BRSetFreeAll(blocks, (void (*) (void*)) blockRelease);
-            BRSetFree (transactions);
-            BRSetFree (logs);
 
             // Add ewmPeriodicDispatcher to handlerForMain.  Note that a 'timeout' is handled by
             // an OOB (out-of-band) event whereby the event is pushed to the front of the queue.
@@ -566,9 +546,7 @@ ewmCreate (BREthereumNetwork network,
                                   listener,
                                   mode,
                                   nodes,
-                                  blocks,
-                                  transactions,
-                                  logs);
+                                  blocks);
             break;
         }
     }
@@ -607,6 +585,50 @@ ewmCreateWithPublicKey (BREthereumNetwork network,
                       mode,
                       client,
                       storagePath);
+}
+
+extern void
+ewmInitialize (BREthereumEWM ewm) {
+    // Load all the persistent entities
+    BRSetOf(BREthereumTransaction) transactions = initialTransactionsLoad(ewm);
+    BRSetOf(BREthereumLog) logs = initialLogsLoad(ewm);
+
+    // If any are NULL, then we have an error and a full sync is required.  The sync will be
+    // started automatically, as part of the normal processing, of 'blocks' (we'll use a checkpoint,
+    // before the `accountTimestamp, which will be well in the past and we'll sync up to the
+    // head of the blockchain).
+    if (NULL == transactions || NULL == logs) {
+        if (NULL == transactions) transactions = BRSetNew(transactionHashValue, transactionHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
+        else BRSetClear(transactions);
+
+        if (NULL == logs) logs = BRSetNew(logHashValue, logHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
+        else BRSetClear(logs);
+    }
+
+    // Support the requested mode
+    switch (ewm->mode) {
+        case BRD_ONLY:
+        case BRD_WITH_P2P_SEND: {
+            // Announce all the provided transactions...
+            FOR_SET (BREthereumTransaction, transaction, transactions)
+                ewmSignalTransaction (ewm, BCS_CALLBACK_TRANSACTION_ADDED, transaction);
+
+            // ... as well as the provided logs...
+            FOR_SET (BREthereumLog, log, logs)
+                ewmSignalLog (ewm, BCS_CALLBACK_LOG_ADDED, log);
+
+            BRSetFree (transactions);
+            BRSetFree (logs);
+            break;
+        }
+
+        case P2P_WITH_BRD_SYNC:  // 
+        case P2P_ONLY: {
+            // Initialize blocks, transactions and logs from saved state.
+            bcsInitialize(ewm->bcs, transactions, logs);
+            break;
+        }
+    }
 }
 
 extern void

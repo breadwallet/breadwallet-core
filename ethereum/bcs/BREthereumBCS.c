@@ -135,8 +135,8 @@ bcsCreateInitializeBlocks (BREthereumBCS bcs,
 }
 
 static void
-bcsCreateInitializeTransactions (BREthereumBCS bcs,
-                                 BRSetOf(BREthereumTransaction) transactions) {
+bcsInitializeTransactions (BREthereumBCS bcs,
+                           OwnershipGiven BRSetOf(BREthereumTransaction) transactions) {
     if (NULL == transactions) return;
     else if (0 == BRSetCount(transactions)) { BRSetFree (transactions); return; }
 
@@ -154,8 +154,8 @@ bcsCreateInitializeTransactions (BREthereumBCS bcs,
 }
 
 static void
-bcsCreateInitializeLogs (BREthereumBCS bcs,
-                         BRSetOf(BREthereumLog) logs) {
+bcsInitializeLogs (BREthereumBCS bcs,
+                   OwnershipGiven BRSetOf(BREthereumLog) logs) {
     if (NULL == logs) return;
     else if (0 == BRSetCount(logs)) { BRSetFree (logs); return; }
 
@@ -178,9 +178,7 @@ bcsCreate (BREthereumNetwork network,
            BREthereumBCSListener listener,
            BREthereumMode mode,
            OwnershipGiven BRSetOf(BREthereumNodeConfig) peers,
-           OwnershipGiven BRSetOf(BREthereumBlock) blocks,
-           OwnershipGiven BRSetOf(BREthereumTransaction) transactions,
-           OwnershipGiven BRSetOf(BREthereumLog) logs) {
+           OwnershipGiven BRSetOf(BREthereumBlock) blocks) {
 
     BREthereumBCS bcs = (BREthereumBCS) calloc (1, sizeof(struct BREthereumBCSStruct));
 
@@ -247,8 +245,6 @@ bcsCreate (BREthereumNetwork network,
 
     // Initialize blocks, transactions and logs from saved state.
     bcsCreateInitializeBlocks(bcs, blocks);
-    bcsCreateInitializeTransactions(bcs, transactions);
-    bcsCreateInitializeLogs(bcs, logs);
 
     // Initialize LES and SYNC - we must create LES from a block where the totalDifficulty is
     // computed.  In practice, we need all the blocks from bcs->chain back to a checkpoint - and
@@ -300,6 +296,15 @@ bcsCreate (BREthereumNetwork network,
     bcs->pow = proofOfWorkCreate();
 
     return bcs;
+}
+
+extern void
+bcsInitialize (BREthereumBCS bcs,
+               OwnershipGiven BRSetOf(BREthereumTransaction) transactions,
+               OwnershipGiven BRSetOf(BREthereumLog) logs) {
+    // Initialize ransactions and logs from saved state.
+    bcsInitializeTransactions(bcs, transactions);
+    bcsInitializeLogs(bcs, logs);
 }
 
 extern void

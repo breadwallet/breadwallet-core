@@ -212,6 +212,8 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                     client,
                                     cwmPath);
 
+            ewmInitialize (cwm->u.eth);
+
             cwm->wallet = cryptoWalletCreateAsETH (unit, unit, ewmGetWallet (cwm->u.eth));
             break;
         }

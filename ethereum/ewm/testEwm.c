@@ -587,6 +587,8 @@ runEWM_CONNECT_test (const char *paperKey,
                                                storagePath);
     assert (NULL != ewm);
 
+    ewmInitialize (ewm);
+
     BREthereumWallet wallet = ewmGetWallet(ewm);
     assert (NULL != wallet);
 
@@ -650,6 +652,9 @@ void prepareTransaction (const char *paperKey,
                                                P2P_ONLY,
                                                client,
                                                storagePath);
+
+    ewmInitialize (ewm);
+
     // A wallet amount Ether
     BREthereumWallet wallet = ewmGetWallet(ewm);
     // END - One Time Code Block
@@ -710,6 +715,9 @@ testReallySend (const char *storagePath) {
                                                P2P_ONLY,
                                                client,
                                                storagePath);
+
+    ewmInitialize (ewm);
+
     BREthereumAccount account = ewmGetAccount(ewm);
     
     // A wallet amount Ether
@@ -783,6 +791,9 @@ runEWM_TOKEN_test (const char *paperKey,
                                                P2P_ONLY,
                                                client,
                                                storagePath);
+
+    ewmInitialize (ewm);
+
     BREthereumWallet wid = ewmGetWalletHoldingToken(ewm, token);
     
     BREthereumAmount amount = ewmCreateTokenAmountString(ewm, token,
@@ -818,6 +829,9 @@ runEWM_PUBLIC_KEY_test (BREthereumNetwork network,
                                                 P2P_ONLY,
                                                 client,
                                                 storagePath);
+
+    ewmInitialize (ewm1);
+
     BRKey publicKey = ewmGetAccountPrimaryAddressPublicKey (ewm1);
     char *addr1 = ewmGetAccountPrimaryAddress (ewm1);
     
@@ -825,6 +839,9 @@ runEWM_PUBLIC_KEY_test (BREthereumNetwork network,
                                                  P2P_ONLY,
                                                  client,
                                                  storagePath);
+
+    ewmInitialize (ewm2);
+
     char *addr2 = ewmGetAccountPrimaryAddress (ewm2);
     
     
@@ -855,6 +872,7 @@ runSyncTest (BREthereumNetwork network,
 
     ewm = ewmCreate (ethereumMainnet, account, accountTimestamp, mode, client, storagePath);
 
+    ewmInitialize (ewm);
     
     char *address = ewmGetAccountPrimaryAddress(ewm);
     printf ("ETH: TST:\nETH: TST: Address: %s\nETH: TST:\n", address);

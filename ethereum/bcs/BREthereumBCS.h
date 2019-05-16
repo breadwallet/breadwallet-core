@@ -163,9 +163,12 @@ bcsCreate (BREthereumNetwork network,
            BREthereumBCSListener listener,
            BREthereumMode syncMode,
            BRSetOf(BREthereumNodeConfig) peers,
-           BRSetOf(BREthereumBlock) blocks,
-           BRSetOf(BREthereumTransaction) transactions,
-           BRSetOf(BREthereumLog) logs);
+           BRSetOf(BREthereumBlock) blocks);
+
+extern void
+bcsInitialize (BREthereumBCS bcs,
+               OwnershipGiven BRSetOf(BREthereumTransaction) transactions,
+               OwnershipGiven BRSetOf(BREthereumLog) logs);
 
 extern void
 bcsStart (BREthereumBCS bcs);

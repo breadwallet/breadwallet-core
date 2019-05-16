@@ -48,6 +48,9 @@ ewmCreateWithPublicKey (BREthereumNetwork network,
                         const char *storagePath);
 
 extern void
+ewmInitialize (BREthereumEWM ewm);
+
+extern void
 ewmDestroy (BREthereumEWM ewm);
 
 extern BREthereumNetwork

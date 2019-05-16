@@ -354,6 +354,8 @@ class WalletManagerImplS: WalletManager {
 
         internal func initialize(manager: WalletManagerImplS) {
             switch self {
+            case let .ethereum (ewm):
+                ewmInitialize (ewm)
             case let .bitcoin (bwm):
                 BRWalletManagerInit (bwm)
                 // Hacky?
