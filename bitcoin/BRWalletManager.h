@@ -198,6 +198,9 @@ BRWalletManagerNew (BRWalletManagerClient client,
                     const char *storagePath);
 
 extern void
+BRWalletManagerInit (BRWalletManager manager);
+
+extern void
 BRWalletManagerFree (BRWalletManager manager);
 
 extern void

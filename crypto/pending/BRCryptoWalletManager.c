@@ -175,6 +175,8 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                              mode,
                                              cwmPath);
 
+            BRWalletManagerInit(cwm->u.btc);
+
             cwm->wallet = cryptoWalletCreateAsBTC (unit, unit, BRWalletManagerGetWallet (cwm->u.btc));
             break;
         }

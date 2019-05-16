@@ -623,25 +623,61 @@ BRWalletManagerNew (BRWalletManagerClient client,
             break;
         }
     }
-    
+
     array_free(transactions); array_free(blocks); array_free(peers);
-    
-    assert (NULL != bwm->client.funcWalletManagerEvent);
-    bwm->client.funcWalletManagerEvent (bwm->client.context,
-                                        bwm,
-                                        (BRWalletManagerEvent) {
-                                            BITCOIN_WALLET_MANAGER_CREATED
-                                        });
-    
-    assert (NULL != bwm->client.funcWalletEvent);
-    bwm->client.funcWalletEvent (bwm->client.context,
-                                 bwm,
-                                 bwm->wallet,
-                                 (BRWalletEvent) {
-                                     BITCOIN_WALLET_CREATED
-                                 });
-    
+
     return bwm;
+}
+
+extern void
+BRWalletManagerInit (BRWalletManager manager) {
+    assert (NULL != manager->client.funcWalletManagerEvent);
+    assert (NULL != manager->client.funcWalletEvent);
+    assert (NULL != manager->client.funcTransactionEvent);
+
+    manager->client.funcWalletManagerEvent (manager->client.context,
+                                            manager,
+                                            (BRWalletManagerEvent) {
+                                                BITCOIN_WALLET_MANAGER_CREATED
+                                            });
+
+
+    manager->client.funcWalletEvent (manager->client.context,
+                                     manager,
+                                     manager->wallet,
+                                     (BRWalletEvent) {
+                                         BITCOIN_WALLET_CREATED
+                                     });
+
+    size_t transactionsCount = BRWalletTransactions (manager->wallet, NULL, 0);
+    if (transactionsCount) {
+        BRArrayOf(BRTransaction*) transactions;
+        array_new (transactions, transactionsCount);
+
+        transactionsCount = BRWalletTransactions (manager->wallet, transactions, transactionsCount);
+        array_set_count(transactions, transactionsCount);
+
+        for (size_t i = 0; transactions && i < transactionsCount; i++) {
+            manager->client.funcTransactionEvent (manager->client.context,
+                                                  manager,
+                                                  manager->wallet,
+                                                  transactions[i],
+                                                  (BRTransactionEvent) {
+                                                      BITCOIN_TRANSACTION_ADDED
+                                                  });
+
+            manager->client.funcTransactionEvent (manager->client.context,
+                                                  manager,
+                                                  manager->wallet,
+                                                  transactions[i],
+                                                  (BRTransactionEvent) {
+                                                      BITCOIN_TRANSACTION_UPDATED,
+                                                      { .updated = { transactions[i]->blockHeight, transactions[i]->timestamp }}
+                                                  });
+        }
+
+        array_free(transactions);
+    }
 }
 
 extern void

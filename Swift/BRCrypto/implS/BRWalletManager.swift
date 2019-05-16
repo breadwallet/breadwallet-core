@@ -27,6 +27,21 @@ class WalletManagerImplS: WalletManager {
     /// The network
     public var network: Network
 
+    public static func create (system: System,
+                               listener: WalletManagerListener,
+                               account: Account,
+                               network: Network,
+                               mode: WalletManagerMode,
+                               storagePath: String) -> WalletManagerImplS {
+        let walletManager = WalletManagerImplS (system: system,
+                                                listener: listener,
+                                                account: account,
+                                                network: network,
+                                                mode: mode,
+                                                storagePath: storagePath)
+        walletManager.initialize();
+        return walletManager;
+    }
 
     /// The default unit - as the networks default unit
     internal lazy var unit: Unit = {
@@ -181,12 +196,12 @@ class WalletManagerImplS: WalletManager {
     /// The BlockChainDB for BRD Server Assisted queries.
     internal let query: BlockChainDB
 
-    public init (system: System,
-                 listener: WalletManagerListener,
-                 account: Account,
-                 network: Network,
-                 mode: WalletManagerMode,
-                 storagePath: String) {
+    private init (system: System,
+                  listener: WalletManagerListener,
+                  account: Account,
+                  network: Network,
+                  mode: WalletManagerMode,
+                  storagePath: String) {
         let system = system as! SystemBase
 
         self.system  = system
@@ -209,8 +224,6 @@ class WalletManagerImplS: WalletManager {
                                                           UInt32 (account.timestamp),
                                                           WalletManagerImplS.modeAsBTC(mode),
                                                           storagePath)
-            // Hacky?
-            bwmAnnounceBlockNumber (bwm, 0, network.height)
 
             self.impl = Impl.bitcoin (mid: bwm)
 
@@ -236,6 +249,10 @@ class WalletManagerImplS: WalletManager {
         self.listener?.handleManagerEvent (system: system,
                                            manager: self,
                                            event: event)
+    }
+
+    private func initialize() {
+        impl.initialize(manager: self)
     }
 
     public func connect() {
@@ -332,6 +349,17 @@ class WalletManagerImplS: WalletManager {
                 return ewm1 == ewm2
             default:
                 return false
+            }
+        }
+
+        internal func initialize(manager: WalletManagerImplS) {
+            switch self {
+            case let .bitcoin (bwm):
+                BRWalletManagerInit (bwm)
+                // Hacky?
+                bwmAnnounceBlockNumber (bwm, 0, manager.network.height)
+            default:
+                break
             }
         }
 

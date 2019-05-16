@@ -102,12 +102,12 @@ public final class SystemBase: System {
             // events will be ignored because the array system.managers cannot possiby include
             // 'manager' - which must exist to properly dispatch the listener announcement.
             // Thus the events are lost.  We'll send them again.
-            manager = WalletManagerImplS (system: self,
-                                          listener: listener!,
-                                          account: account,
-                                          network: network,
-                                          mode: mode,
-                                          storagePath: path)
+            manager = WalletManagerImplS.create (system: self,
+                                                 listener: listener!,
+                                                 account: account,
+                                                 network: network,
+                                                 mode: mode,
+                                                 storagePath: path)
 
             if network.currency.code == Currency.codeAsETH {
                 // think about adding tokens/currencies for ERC20, others.

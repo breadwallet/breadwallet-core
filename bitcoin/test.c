@@ -3123,6 +3123,8 @@ extern int BRRunTestWalletManagerSync (const char *paperKey,
 
     BRWalletManager manager = BRWalletManagerNew (client, mpk, params, epoch, mode, storagePath);
 
+    BRWalletManagerInit(manager);
+
     BRPeerManager *pm = BRWalletManagerGetPeerManager(manager);
 
     syncDone = 0;
