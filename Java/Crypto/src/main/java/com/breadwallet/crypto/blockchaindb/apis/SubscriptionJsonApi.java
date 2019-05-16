@@ -11,9 +11,9 @@ import org.json.JSONObject;
 
 public class SubscriptionJsonApi {
 
-    private final JsonApiClient jsonClient;
+    private final BdbApiClient jsonClient;
 
-    public SubscriptionJsonApi(JsonApiClient jsonClient) {
+    public SubscriptionJsonApi(BdbApiClient jsonClient) {
         this.jsonClient = jsonClient;
     }
 

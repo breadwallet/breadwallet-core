@@ -29,7 +29,7 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 
-public class JsonApiClient {
+public class BdbApiClient {
 
     public static final MediaType MEDIA_TYPE_JSON = MediaType.parse("application/json; charset=utf-8");
 
@@ -37,7 +37,7 @@ public class JsonApiClient {
     private final String baseUrl;
     private final BlockchainDataTask dataTask;
 
-    public JsonApiClient(OkHttpClient client, String baseUrl, BlockchainDataTask dataTask) {
+    public BdbApiClient(OkHttpClient client, String baseUrl, BlockchainDataTask dataTask) {
         this.client = client;
         this.baseUrl = baseUrl;
         this.dataTask = dataTask;

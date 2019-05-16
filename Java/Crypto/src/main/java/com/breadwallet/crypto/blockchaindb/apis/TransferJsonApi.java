@@ -1,7 +1,6 @@
 package com.breadwallet.crypto.blockchaindb.apis;
 
 import com.breadwallet.crypto.blockchaindb.BlockchainCompletionHandler;
-import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryModelError;
 import com.breadwallet.crypto.blockchaindb.models.Transfer;
@@ -18,9 +17,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public class TransferJsonApi {
 
-    private final JsonApiClient jsonClient;
+    private final BdbApiClient jsonClient;
 
-    public TransferJsonApi(JsonApiClient jsonClient) {
+    public TransferJsonApi(BdbApiClient jsonClient) {
         this.jsonClient = jsonClient;
     }
 

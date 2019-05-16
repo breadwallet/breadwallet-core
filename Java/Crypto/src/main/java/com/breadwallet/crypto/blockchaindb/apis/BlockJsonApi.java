@@ -22,10 +22,10 @@ public class BlockJsonApi {
 
     private static final int PAGINATION_COUNT = 5000;
 
-    private final JsonApiClient jsonClient;
+    private final BdbApiClient jsonClient;
     private final ExecutorService executorService;
 
-    public BlockJsonApi(JsonApiClient jsonClient, ExecutorService executorService) {
+    public BlockJsonApi(BdbApiClient jsonClient, ExecutorService executorService) {
         this.jsonClient = jsonClient;
         this.executorService = executorService;
     }

@@ -5,7 +5,7 @@ import android.support.annotation.Nullable;
 import com.breadwallet.crypto.blockchaindb.apis.BlockJsonApi;
 import com.breadwallet.crypto.blockchaindb.apis.BlockchainJsonApi;
 import com.breadwallet.crypto.blockchaindb.apis.CurrencyJsonApi;
-import com.breadwallet.crypto.blockchaindb.apis.JsonApiClient;
+import com.breadwallet.crypto.blockchaindb.apis.BdbApiClient;
 import com.breadwallet.crypto.blockchaindb.apis.SubscriptionJsonApi;
 import com.breadwallet.crypto.blockchaindb.apis.TransactionJsonApi;
 import com.breadwallet.crypto.blockchaindb.apis.TransferJsonApi;
@@ -41,7 +41,7 @@ public class BlockchainDb {
 
         ExecutorService executorService = Executors.newCachedThreadPool();
 
-        JsonApiClient bdbClient = new JsonApiClient(client, bdbBaseURL, bdbDataTask);
+        BdbApiClient bdbClient = new BdbApiClient(client, bdbBaseURL, bdbDataTask);
 
         this.blockApi = new BlockJsonApi(bdbClient, executorService);
         this.blockchainApi = new BlockchainJsonApi(bdbClient);

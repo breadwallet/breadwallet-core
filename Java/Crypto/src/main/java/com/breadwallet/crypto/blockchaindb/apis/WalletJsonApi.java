@@ -11,9 +11,9 @@ import org.json.JSONObject;
 
 public class WalletJsonApi {
 
-    private final JsonApiClient jsonClient;
+    private final BdbApiClient jsonClient;
 
-    public WalletJsonApi(JsonApiClient jsonClient) {
+    public WalletJsonApi(BdbApiClient jsonClient) {
         this.jsonClient = jsonClient;
     }
 

@@ -20,9 +20,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public class CurrencyJsonApi {
 
-    private final JsonApiClient jsonClient;
+    private final BdbApiClient jsonClient;
 
-    public CurrencyJsonApi(JsonApiClient jsonClient) {
+    public CurrencyJsonApi(BdbApiClient jsonClient) {
         this.jsonClient = jsonClient;
     }
 

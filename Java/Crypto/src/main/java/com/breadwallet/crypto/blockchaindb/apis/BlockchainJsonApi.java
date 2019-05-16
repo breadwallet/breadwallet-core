@@ -17,9 +17,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public class BlockchainJsonApi {
 
-    private final JsonApiClient jsonClient;
+    private final BdbApiClient jsonClient;
 
-    public BlockchainJsonApi(JsonApiClient jsonClient) {
+    public BlockchainJsonApi(BdbApiClient jsonClient) {
         this.jsonClient = jsonClient;
     }
 

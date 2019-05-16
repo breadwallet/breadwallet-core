@@ -1,7 +1,6 @@
 package com.breadwallet.crypto.blockchaindb.apis;
 
 import com.breadwallet.crypto.blockchaindb.BlockchainCompletionHandler;
-import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryModelError;
 import com.breadwallet.crypto.blockchaindb.models.Transaction;
@@ -23,10 +22,10 @@ public class TransactionJsonApi {
 
     private static final int PAGINATION_COUNT = 5000;
 
-    private final JsonApiClient jsonClient;
+    private final BdbApiClient jsonClient;
     private final ExecutorService executorService;
 
-    public TransactionJsonApi(JsonApiClient jsonClient, ExecutorService executorService) {
+    public TransactionJsonApi(BdbApiClient jsonClient, ExecutorService executorService) {
         this.jsonClient = jsonClient;
         this.executorService = executorService;
     }
