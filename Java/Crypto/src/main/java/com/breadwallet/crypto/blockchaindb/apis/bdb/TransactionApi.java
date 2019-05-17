@@ -1,11 +1,14 @@
-package com.breadwallet.crypto.blockchaindb.apis;
+package com.breadwallet.crypto.blockchaindb.apis.bdb;
+
+import android.util.Base64;
 
 import com.breadwallet.crypto.blockchaindb.BlockchainCompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryModelError;
-import com.breadwallet.crypto.blockchaindb.models.Transaction;
+import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 
 import org.json.JSONArray;
@@ -18,14 +21,14 @@ import java.util.concurrent.Semaphore;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class TransactionJsonApi {
+public class TransactionApi {
 
     private static final int PAGINATION_COUNT = 5000;
 
     private final BdbApiClient jsonClient;
     private final ExecutorService executorService;
 
-    public TransactionJsonApi(BdbApiClient jsonClient, ExecutorService executorService) {
+    public TransactionApi(BdbApiClient jsonClient, ExecutorService executorService) {
         this.jsonClient = jsonClient;
         this.executorService = executorService;
     }
@@ -45,7 +48,29 @@ public class TransactionJsonApi {
         Multimap<String, String> params = ImmutableListMultimap.of("include_proof", String.valueOf(includeProof),
                 "include_raw", String.valueOf(includeRaw));
 
-        jsonClient.makeRequest(path, params, new JsonApiCompletionObjectHandler() {
+        jsonClient.sendGetRequest(path, params, new ObjectCompletionHandler() {
+            @Override
+            public void handleData(JSONObject json, boolean more) {
+                checkArgument(!more);
+                Optional<Transaction> transaction = Transaction.asTransaction(json);
+                if (transaction.isPresent()) {
+                    handler.handleData(transaction.get());
+                } else {
+                    handler.handleError(new QueryModelError("Transform error"));
+                }
+            }
+
+            @Override
+            public void handleError(QueryError error) {
+                handler.handleError(error);
+            }
+        });
+    }
+
+    public void putTransaction(String id, byte[] data, BlockchainCompletionHandler<Transaction> handler) {
+        JSONObject json = new JSONObject(ImmutableMap.of("transaction", Base64.encode(data, Base64.DEFAULT)));
+        Multimap<String, String> params = ImmutableListMultimap.of("blockchain_id", id);
+        jsonClient.sendRequest("transactions", params, json, "PUT", new ObjectCompletionHandler() {
             @Override
             public void handleData(JSONObject json, boolean more) {
                 checkArgument(!more);
@@ -78,11 +103,11 @@ public class TransactionJsonApi {
         for (String address : addresses) paramBuilders.put("address", address);
 
         for (long i = beginBlockNumber; i < endBlockNumber && error[0] == null; i += PAGINATION_COUNT) {
-            paramBuilders.put("start_height", String.valueOf(beginBlockNumber));
-            paramBuilders.put("end_height", String.valueOf(Math.min(beginBlockNumber + PAGINATION_COUNT,
+            paramBuilders.put("start_height", String.valueOf(i));
+            paramBuilders.put("end_height", String.valueOf(Math.min(i + PAGINATION_COUNT,
                     endBlockNumber)));
 
-            jsonClient.makeRequest("transactions", paramBuilders.build(), new JsonApiCompletionArrayHandler() {
+            jsonClient.sendGetRequest("transactions", paramBuilders.build(), new ArrayCompletionHandler() {
                 @Override
                 public void handleData(JSONArray json, boolean more) {
                     Optional<List<Transaction>> transactions = Transaction.asTransactions(json);
@@ -96,7 +121,8 @@ public class TransactionJsonApi {
                 }
 
                 @Override
-                public void handleError(QueryError error) {
+                public void handleError(QueryError e) {
+                    error[0] = e;
                     sema.release();
                 }
             });

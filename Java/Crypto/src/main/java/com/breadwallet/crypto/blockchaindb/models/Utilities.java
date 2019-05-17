@@ -15,13 +15,11 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-/* package */
-final class Utilities {
+public final class Utilities {
 
     private static DateFormat ISO_8601_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
-    /* package */
-    static Date get8601DateFromString(JSONObject json, String name) throws JSONException {
+    public static Date get8601DateFromString(JSONObject json, String name) throws JSONException {
         try {
             return ISO_8601_FORMAT.parse(json.getString(name));
         } catch (ParseException e) {
@@ -29,8 +27,7 @@ final class Utilities {
         }
     }
 
-    /* package */
-    static Optional<Date> getOptional8601DateFromString(JSONObject json, String name) {
+    public static Optional<Date> getOptional8601DateFromString(JSONObject json, String name) {
         try {
             return Optional.fromNullable(ISO_8601_FORMAT.parse(json.optString(name, null)));
         } catch (ParseException e) {
@@ -38,13 +35,11 @@ final class Utilities {
         }
     }
 
-    /* package */
-    static String get8601StringFromDate(Date date) {
+    public  static String get8601StringFromDate(Date date) {
         return ISO_8601_FORMAT.format(date);
     }
 
-    /* package */
-    static Optional<byte[]> getOptionalBase64Bytes(JSONObject json, String name) {
+    public static Optional<byte[]> getOptionalBase64Bytes(JSONObject json, String name) {
         try {
             return Optional.fromNullable(Base64.decode(json.optString(name, null), Base64.DEFAULT));
         } catch (IllegalArgumentException e) {
@@ -52,8 +47,7 @@ final class Utilities {
         }
     }
 
-    /* package */
-    static long getLongFromString(JSONObject json, String name) throws JSONException {
+    public static long getLongFromString(JSONObject json, String name) throws JSONException {
         try {
             return Long.parseLong(json.getString(name));
         } catch (NumberFormatException e) {
@@ -61,8 +55,7 @@ final class Utilities {
         }
     }
 
-    /* package */
-    static Optional<Long> getOptionalLongFromString(JSONObject json, String name) {
+    public static Optional<Long> getOptionalLongFromString(JSONObject json, String name) {
         try {
             return Optional.fromNullable(Long.parseLong(json.optString(name, null)));
         } catch (NumberFormatException e) {
@@ -70,8 +63,18 @@ final class Utilities {
         }
     }
 
-    /* package */
-    static Optional<List<String>> getOptionalStringList(JSONObject json, String name) {
+    public static List<String> getStringList(JSONObject json, String name) throws JSONException {
+        JSONArray jsonArray = json.getJSONArray(name);
+
+        List<String> items = new ArrayList<>();
+        for (int i = 0; i < jsonArray.length(); i++) {
+            String object = jsonArray.getString(i);
+            items.add(object);
+        }
+        return items;
+    }
+
+    public static Optional<List<String>> getOptionalStringList(JSONObject json, String name) {
         JSONArray jsonArray = json.optJSONArray(name);
         if (jsonArray == null) {
             return Optional.absent();
@@ -83,6 +86,7 @@ final class Utilities {
             if (object == null) {
                 return Optional.absent();
             }
+            items.add(object);
         }
         return Optional.of(items);
     }

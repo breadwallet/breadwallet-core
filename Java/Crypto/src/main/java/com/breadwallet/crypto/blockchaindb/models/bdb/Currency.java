@@ -1,4 +1,4 @@
-package com.breadwallet.crypto.blockchaindb.models;
+package com.breadwallet.crypto.blockchaindb.models.bdb;
 
 import android.support.annotation.Nullable;
 

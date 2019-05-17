@@ -1,4 +1,4 @@
-package com.breadwallet.crypto.blockchaindb.models;
+package com.breadwallet.crypto.blockchaindb.models.bdb;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;

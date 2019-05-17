@@ -1,14 +1,11 @@
-package com.breadwallet.crypto.blockchaindb.apis;
-
-import android.support.annotation.Nullable;
+package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
 import com.breadwallet.crypto.blockchaindb.BlockchainCompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryModelError;
-import com.breadwallet.crypto.blockchaindb.models.Currency;
+import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
 import org.json.JSONArray;
@@ -18,28 +15,23 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class CurrencyJsonApi {
+public class BlockchainApi {
 
     private final BdbApiClient jsonClient;
 
-    public CurrencyJsonApi(BdbApiClient jsonClient) {
+    public BlockchainApi(BdbApiClient jsonClient) {
         this.jsonClient = jsonClient;
     }
 
-    public void getCurrencies(BlockchainCompletionHandler<List<Currency>> handler) {
-        getCurrencies(null, handler);
-    }
-
-    public void getCurrencies(@Nullable String id, BlockchainCompletionHandler<List<Currency>> handler) {
-        Multimap<String, String> params = id == null ? ImmutableMultimap.of() : ImmutableListMultimap.of(
-                "blockchain_id", id);
-        jsonClient.makeRequest("currencies", params, new JsonApiCompletionArrayHandler() {
+    public void getBlockchains(boolean ismainnet, BlockchainCompletionHandler<List<Blockchain>> handler) {
+        Multimap<String, String> params = ImmutableListMultimap.of("testnet", Boolean.valueOf(!ismainnet).toString());
+        jsonClient.sendGetRequest("blockchains", params, new ArrayCompletionHandler() {
             @Override
             public void handleData(JSONArray json, boolean more) {
                 checkArgument(!more);
-                Optional<List<Currency>> currencies = Currency.asCurrencies(json);
-                if (currencies.isPresent()) {
-                    handler.handleData(currencies.get());
+                Optional<List<Blockchain>> blockchains = Blockchain.asBlockchains(json);
+                if (blockchains.isPresent()) {
+                    handler.handleData(blockchains.get());
                 } else {
                     handler.handleError(new QueryModelError("Transform error"));
                 }
@@ -52,16 +44,16 @@ public class CurrencyJsonApi {
         });
     }
 
-    public void getCurrency(String id, BlockchainCompletionHandler<Currency> handler) {
+    public void getBlockchain(String id, BlockchainCompletionHandler<Blockchain> handler) {
         // TODO: I don't think we should be building it like this
-        String path = String.format("currencies/%s", id);
-        jsonClient.makeRequest(path, ImmutableListMultimap.of(), new JsonApiCompletionObjectHandler() {
+        String path = String.format("blockchains/%s", id);
+        jsonClient.sendGetRequest(path, ImmutableListMultimap.of(), new ObjectCompletionHandler() {
             @Override
             public void handleData(JSONObject json, boolean more) {
                 checkArgument(!more);
-                Optional<Currency> currency = Currency.asCurrency(json);
-                if (currency.isPresent()) {
-                    handler.handleData(currency.get());
+                Optional<Blockchain> blockchain = Blockchain.asBlockchain(json);
+                if (blockchain.isPresent()) {
+                    handler.handleData(blockchain.get());
                 } else {
                     handler.handleError(new QueryModelError("Transform error"));
                 }
@@ -73,5 +65,4 @@ public class CurrencyJsonApi {
             }
         });
     }
-
 }

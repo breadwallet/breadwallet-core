@@ -1,9 +1,9 @@
-package com.breadwallet.crypto.blockchaindb.apis;
+package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
 import com.breadwallet.crypto.blockchaindb.BlockchainCompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryModelError;
-import com.breadwallet.crypto.blockchaindb.models.Block;
+import com.breadwallet.crypto.blockchaindb.models.bdb.Block;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimap;
@@ -18,14 +18,14 @@ import java.util.concurrent.Semaphore;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class BlockJsonApi {
+public class BlockApi {
 
     private static final int PAGINATION_COUNT = 5000;
 
     private final BdbApiClient jsonClient;
     private final ExecutorService executorService;
 
-    public BlockJsonApi(BdbApiClient jsonClient, ExecutorService executorService) {
+    public BlockApi(BdbApiClient jsonClient, ExecutorService executorService) {
         this.jsonClient = jsonClient;
         this.executorService = executorService;
     }
@@ -46,7 +46,7 @@ public class BlockJsonApi {
                 "include_tx_raw", String.valueOf(includeTxRaw),
                 "include_tx_proof", String.valueOf(includeTxProof));
 
-        jsonClient.makeRequest(path, params, new JsonApiCompletionObjectHandler() {
+        jsonClient.sendGetRequest(path, params, new ObjectCompletionHandler() {
             @Override
             public void handleData(JSONObject json, boolean more) {
                 checkArgument(!more);
@@ -68,7 +68,6 @@ public class BlockJsonApi {
     private void getBlocksOnExecutor(String id, long beginBlockNumber, long endBlockNumber, boolean includeRaw,
                                      boolean includeTx, boolean includeTxRaw, boolean includeTxProof,
                                      BlockchainCompletionHandler<List<Block>> handler) {
-        final boolean[] moreResults = {false};
         final QueryError[] error = {null};
         List<Block> allBlocks = new ArrayList<>();
         Semaphore sema = new Semaphore(0);
@@ -81,11 +80,11 @@ public class BlockJsonApi {
         paramBuilders.put("include_tx_proof", String.valueOf(includeTxProof));
 
         for (long i = beginBlockNumber; i < endBlockNumber && error[0] == null; i += PAGINATION_COUNT) {
-            paramBuilders.put("start_height", String.valueOf(beginBlockNumber));
-            paramBuilders.put("end_height", String.valueOf(Math.min(beginBlockNumber + PAGINATION_COUNT,
+            paramBuilders.put("start_height", String.valueOf(i));
+            paramBuilders.put("end_height", String.valueOf(Math.min(i + PAGINATION_COUNT,
                     endBlockNumber)));
 
-            jsonClient.makeRequest("transactions", paramBuilders.build(), new JsonApiCompletionArrayHandler() {
+            jsonClient.sendGetRequest("transactions", paramBuilders.build(), new ArrayCompletionHandler() {
                 @Override
                 public void handleData(JSONArray json, boolean more) {
                     Optional<List<Block>> blocks = Block.asBlocks(json);
@@ -99,7 +98,8 @@ public class BlockJsonApi {
                 }
 
                 @Override
-                public void handleError(QueryError error) {
+                public void handleError(QueryError e) {
+                    error[0] = e;
                     sema.release();
                 }
             });

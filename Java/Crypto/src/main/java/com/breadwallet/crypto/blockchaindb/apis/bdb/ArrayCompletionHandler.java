@@ -1,10 +1,11 @@
-package com.breadwallet.crypto.blockchaindb.apis;
+package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 
 import org.json.JSONArray;
 
-public interface JsonApiCompletionArrayHandler {
+/* package */
+interface ArrayCompletionHandler {
     void handleData(JSONArray json, boolean more);
 
     void handleError(QueryError error);

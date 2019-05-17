@@ -1,9 +1,9 @@
-package com.breadwallet.crypto.blockchaindb.apis;
+package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
 import com.breadwallet.crypto.blockchaindb.BlockchainCompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryModelError;
-import com.breadwallet.crypto.blockchaindb.models.Transfer;
+import com.breadwallet.crypto.blockchaindb.models.bdb.Transfer;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimap;
@@ -15,11 +15,11 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class TransferJsonApi {
+public class TransferApi {
 
     private final BdbApiClient jsonClient;
 
-    public TransferJsonApi(BdbApiClient jsonClient) {
+    public TransferApi(BdbApiClient jsonClient) {
         this.jsonClient = jsonClient;
     }
 
@@ -29,7 +29,7 @@ public class TransferJsonApi {
         for (String address : addresses) paramBuilders.put("address", address);
         Multimap<String, String> params = paramBuilders.build();
 
-        jsonClient.makeRequest("transfers", params, new JsonApiCompletionArrayHandler() {
+        jsonClient.sendGetRequest("transfers", params, new ArrayCompletionHandler() {
             @Override
             public void handleData(JSONArray json, boolean more) {
                 checkArgument(!more);  // TODO: Should this be here? Its not in the swift version
@@ -51,7 +51,7 @@ public class TransferJsonApi {
     public void getTransfer(String id, BlockchainCompletionHandler<Transfer> handler) {
         // TODO: I don't think we should be building it like this
         String path = String.format("transfers/%s", id);
-        jsonClient.makeRequest(path, ImmutableListMultimap.of(), new JsonApiCompletionObjectHandler() {
+        jsonClient.sendGetRequest(path, ImmutableListMultimap.of(), new ObjectCompletionHandler() {
             @Override
             public void handleData(JSONObject json, boolean more) {
                 checkArgument(!more);

@@ -1,12 +1,10 @@
-package com.breadwallet.crypto.blockchaindb.models;
+package com.breadwallet.crypto.blockchaindb.models.bdb;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import java.util.List;
 
 public class Subscription {
 
