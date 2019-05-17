@@ -9,6 +9,7 @@ import com.breadwallet.crypto.blockchaindb.models.bdb.Currency;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transfer;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthLog;
+import com.breadwallet.crypto.blockchaindb.models.brd.EthToken;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthTransaction;
 
 import org.junit.Before;
@@ -127,8 +128,7 @@ public class BlockchainDbAIT {
         SynchronousCompletionHandler<List<Transaction>> handler = new SynchronousCompletionHandler<>();
 
         // TODO: This fails due to the endpoint returning a 504
-        // blockchainDb.getTransactions("bitcoin-mainnet", Arrays.asList("1JfbZRwdDHKZmuiZgYArJZhcuuzuw2HuMu"), 0,
-        // 50000,
+        // blockchainDb.getTransactions("bitcoin-mainnet", Arrays.asList("1JfbZRwdDHKZmuiZgYArJZhcuuzuw2HuMu"), 0, 50000,
         //         true, true, handler);
         // List<Transaction> transactions = handler.dat().get();
         // assertNotEquals(0, transactions.size());
@@ -236,6 +236,15 @@ public class BlockchainDbAIT {
 
         blockchainDb.getNonceAsEth("mainnet", "0x04d542459de6765682D21771D1ba23dC30Fb675F", 0, handler);
         String output = handler.dat().get();
+        assertFalse(output.isEmpty());
+    }
+
+    @Test
+    public void testGetTokensAsEth() {
+        SynchronousCompletionHandler<List<EthToken>> handler = new SynchronousCompletionHandler<>();
+
+        blockchainDb.getTokensAsEth(0, handler);
+        List<EthToken> output = handler.dat().get();
         assertFalse(output.isEmpty());
     }
 

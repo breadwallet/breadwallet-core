@@ -48,31 +48,24 @@ public class BrdApiClient {
 
     public void makeRequestJson(String networkName, JSONObject json, StringCompletionHandler handler) {
         makeAndSendRequest(Arrays.asList("ethq", networkName, "proxy"), ImmutableMultimap.of(), json, "POST",
-                new StringHandler(handler));
+                new EmbeddedStringHandler(handler));
     }
 
     public void makeRequestQuery(String networkName, Multimap<String, String> params, JSONObject json,
                                  StringCompletionHandler handler) {
         makeAndSendRequest(Arrays.asList("ethq", networkName, "query"), params, json, "POST",
-                new StringHandler(handler));
+                new EmbeddedStringHandler(handler));
     }
 
     public void makeRequestQuery(String networkName, Multimap<String, String> params, JSONObject json,
                                  ArrayCompletionHandler handler) {
         makeAndSendRequest(Arrays.asList("ethq", networkName, "query"), params, json, "POST",
-                new ArrayHandler(handler));
+                new EmbeddedArrayHandler(handler));
     }
 
-    public void makeRequestToken(StringCompletionHandler handler) {
+    public void makeRequestToken(ArrayCompletionHandler handler) {
         makeAndSendRequest(Arrays.asList("currencies"), ImmutableMultimap.of("type", "erc20"), null, "GET",
-                new StringHandler(handler));
-    }
-
-
-    private interface ResponseHandler {
-        void handleData(JSONObject data);
-
-        void handleError(QueryError error);
+                new RootArrayHandler(handler));
     }
 
     private void makeAndSendRequest(List<String> segments,
@@ -98,7 +91,7 @@ public class BrdApiClient {
         sendRequest(requestBuilder.build(), dataTask, handler);
     }
 
-    private <T> void sendRequest(Request request, BlockchainDataTask dataTask, ResponseHandler handler) {
+    private <T> void sendRequest(Request request, BlockchainDataTask dataTask, ResponseHandler<T> handler) {
         dataTask.execute(client, request, new Callback() {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
@@ -108,10 +101,16 @@ public class BrdApiClient {
                         if (responseBody == null) {
                             handler.handleError(new QueryNoDataError());
                         } else {
+                            T data = null;
+
                             try {
-                                handler.handleData(new JSONObject(responseBody.string()));
+                                data = handler.parseData(responseBody.string());
                             } catch (JSONException e) {
                                 handler.handleError(new QueryJsonParseError(e.getMessage()));
+                            }
+
+                            if (data != null) {
+                                handler.handleData(data);
                             }
                         }
                     }
@@ -128,12 +127,25 @@ public class BrdApiClient {
         });
     }
 
-    private static class StringHandler implements ResponseHandler {
+    private interface ResponseHandler<T> {
+        T parseData(String data) throws JSONException;
+
+        void handleData(T data);
+
+        void handleError(QueryError error);
+    }
+
+    private static class EmbeddedStringHandler implements ResponseHandler<JSONObject> {
 
         private final StringCompletionHandler handler;
 
-        StringHandler(StringCompletionHandler handler) {
+        EmbeddedStringHandler(StringCompletionHandler handler) {
             this.handler = handler;
+        }
+
+        @Override
+        public JSONObject parseData(String data) throws JSONException {
+            return new JSONObject(data);
         }
 
         @Override
@@ -148,12 +160,17 @@ public class BrdApiClient {
         }
     }
 
-    private static class ArrayHandler implements ResponseHandler {
+    private static class EmbeddedArrayHandler implements ResponseHandler<JSONObject> {
 
         private final ArrayCompletionHandler handler;
 
-        ArrayHandler(ArrayCompletionHandler handler) {
+        EmbeddedArrayHandler(ArrayCompletionHandler handler) {
             this.handler = handler;
+        }
+
+        @Override
+        public JSONObject parseData(String data) throws JSONException {
+            return new JSONObject(data);
         }
 
         @Override
@@ -168,6 +185,30 @@ public class BrdApiClient {
             } else {
                 handler.handleData(result);
             }
+        }
+
+        @Override
+        public void handleError(QueryError error) {
+            handler.handleError(error);
+        }
+    }
+
+    private static class RootArrayHandler implements ResponseHandler<JSONArray> {
+
+        private final ArrayCompletionHandler handler;
+
+        RootArrayHandler(ArrayCompletionHandler handler) {
+            this.handler = handler;
+        }
+
+        @Override
+        public JSONArray parseData(String data) throws JSONException {
+            return new JSONArray(data);
+        }
+
+        @Override
+        public void handleData(JSONArray data) {
+            handler.handleData(data);
         }
 
         @Override

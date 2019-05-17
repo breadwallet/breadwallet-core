@@ -13,11 +13,9 @@ import com.breadwallet.crypto.blockchaindb.apis.bdb.WalletApi;
 import com.breadwallet.crypto.blockchaindb.apis.brd.EthBalanceApi;
 import com.breadwallet.crypto.blockchaindb.apis.brd.BrdApiClient;
 import com.breadwallet.crypto.blockchaindb.apis.brd.EthGasApi;
-import com.breadwallet.crypto.blockchaindb.apis.brd.EthLogApi;
-import com.breadwallet.crypto.blockchaindb.apis.brd.EthNonceApi;
-import com.breadwallet.crypto.blockchaindb.apis.brd.EthTransactionApi;
+import com.breadwallet.crypto.blockchaindb.apis.brd.EthTokenApi;
 import com.breadwallet.crypto.blockchaindb.apis.brd.EthBlockApi;
-import com.breadwallet.crypto.blockchaindb.errors.QueryError;
+import com.breadwallet.crypto.blockchaindb.apis.brd.EthTransferApi;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Block;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Currency;
@@ -26,22 +24,16 @@ import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transfer;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Wallet;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthLog;
+import com.breadwallet.crypto.blockchaindb.models.brd.EthToken;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthTransaction;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Semaphore;
 
 import okhttp3.OkHttpClient;
 
 public class BlockchainDb {
-
-    // TODO: Where should this reside?
-    private static final String ETH_EVENT_ERC20_TRANSFER = "0xa9059cbb";
-
-    private final ExecutorService executorService;
 
     private final BlockApi blockApi;
     private final BlockchainApi blockchainApi;
@@ -54,9 +46,8 @@ public class BlockchainDb {
     private final EthBalanceApi ethBalanceApi;
     private final EthBlockApi ethBlockApi;
     private final EthGasApi ethGasApi;
-    private final EthLogApi ethLogApi;
-    private final EthNonceApi ethNonceApi;
-    private final EthTransactionApi ethTransactionApi;
+    private final EthTokenApi ethTokenApi;
+    private final EthTransferApi ethTransferApi;
 
     public BlockchainDb(OkHttpClient client, String bdbBaseURL, @Nullable BlockchainDataTask bdbDataTask,
                         String apiBaseURL, @Nullable BlockchainDataTask apiDataTask) {
@@ -67,7 +58,7 @@ public class BlockchainDb {
         BdbApiClient bdbClient = new BdbApiClient(client, bdbBaseURL, bdbDataTask);
         BrdApiClient brdClient = new BrdApiClient(client, apiBaseURL, apiDataTask);
 
-        this.executorService = Executors.newCachedThreadPool();
+        ExecutorService executorService = Executors.newCachedThreadPool();
 
         this.blockApi = new BlockApi(bdbClient, executorService);
         this.blockchainApi = new BlockchainApi(bdbClient);
@@ -80,9 +71,8 @@ public class BlockchainDb {
         this.ethBalanceApi = new EthBalanceApi(brdClient);
         this.ethBlockApi = new EthBlockApi(brdClient);
         this.ethGasApi = new EthGasApi(brdClient);
-        this.ethLogApi = new EthLogApi(brdClient);
-        this.ethNonceApi = new EthNonceApi(brdClient);
-        this.ethTransactionApi = new EthTransactionApi(brdClient);
+        this.ethTokenApi = new EthTokenApi(brdClient);
+        this.ethTransferApi = new EthTransferApi(brdClient, executorService);
     }
 
     // Blockchain
@@ -219,116 +209,41 @@ public class BlockchainDb {
         ethGasApi.getGasEstimateAsEth(networkName, from, to, amount, data, rid, handler);
     }
 
-    // ETH Transaction
+    // ETH Token
 
-    public void submitTransactionAsEth(String networkName, String transaction, int rid,
-                                       BlockchainCompletionHandler<String> handler) {
-        ethTransactionApi.submitTransactionAsEth(networkName, transaction, rid, handler);
-    }
-
-    public void getTransactionsAsEth(String networkName, String address, long begBlockNumber, long endBlockNumber,
-                                     int rid, BlockchainCompletionHandler<List<EthTransaction>> handler) {
-        ethTransactionApi.getTransactionsAsEth(networkName, address, begBlockNumber, endBlockNumber, rid, handler);
-    }
-
-    // ETH Log
-
-    public void getLogsAsEth(String networkName, @Nullable String contract, String address, String event,
-                             long begBlockNumber, long endBlockNumber, int rid, BlockchainCompletionHandler<List<EthLog>> handler) {
-        ethLogApi.getLogsAsEth(networkName, contract, address, event, begBlockNumber, endBlockNumber, rid, handler);
+    public void getTokensAsEth(int rid, BlockchainCompletionHandler<List<EthToken>> handler) {
+        ethTokenApi.getTokensAsEth(rid, handler);
     }
 
     // ETH Block
-
-    public void getBlocksAsEth(String networkName, String address, int interests, long blockStart, long blockEnd,
-                               int rid, BlockchainCompletionHandler<List<Long>> handler) {
-        executorService.submit(() -> getBlocksAsEthOnExecutor(networkName, address, interests, blockStart, blockEnd,
-                rid, handler));
-    }
 
     public void getBlockNumberAsEth(String networkName, int rid, BlockchainCompletionHandler<String> handler) {
         ethBlockApi.getBlockNumberAsEth(networkName, rid, handler);
     }
 
-    private void getBlocksAsEthOnExecutor(String networkName, String address, int interests, long blockStart,
-                                          long blockEnd, int rid, BlockchainCompletionHandler<List<Long>> handler) {
-        // TODO: Move this out to an API (either combine transaction/logs or pass in the APIs to the block api)
-        final QueryError[] error = {null};
+    // ETH Transfer
 
-        List<EthTransaction> transactions = new ArrayList<>();
-        Semaphore transactionsSema = new Semaphore(0);
-        getTransactionsAsEth(networkName, address, blockStart, blockEnd, rid, new BlockchainCompletionHandler<List<EthTransaction>>() {
-            @Override
-            public void handleData(List<EthTransaction> data) {
-                transactions.addAll(data);
-                transactionsSema.release();
-            }
-
-            @Override
-            public void handleError(QueryError e) {
-                error[0] = e;
-                transactionsSema.release();
-            }
-        });
-
-        List<EthLog> logs = new ArrayList<>();
-        Semaphore logsSema = new Semaphore(0);
-        getLogsAsEth(networkName, null, address, ETH_EVENT_ERC20_TRANSFER, blockStart, blockEnd, rid, new BlockchainCompletionHandler<List<EthLog>>() {
-            @Override
-            public void handleData(List<EthLog> data) {
-                logs.addAll(data);
-                logsSema.release();
-            }
-
-            @Override
-            public void handleError(QueryError e) {
-                error[0] = e;
-                logsSema.release();
-            }
-        });
-
-        transactionsSema.acquireUninterruptibly();
-        logsSema.acquireUninterruptibly();
-
-        if (error[0] != null) {
-            handler.handleError(error[0]);
-        } else {
-            List<Long> numbers = new ArrayList<>();
-            for (EthTransaction transaction: transactions) {
-                boolean include = (0 != (interests & (1 << 0)) && address.equals(transaction.getSourceAddr())) ||
-                        (0 != (interests & (1 << 1)) && address.equals(transaction.getTargetAddr()));
-                if (include) {
-                    try {
-                        numbers.add(Long.decode(transaction.getBlockNumber()));
-                    } catch (NumberFormatException e) {
-                        // TODO: How do we want to handle this?
-                    }
-                }
-            }
-
-            for (EthLog log: logs) {
-                List<String> topics = log.getTopics();
-                boolean include = topics.size() == 3 &&
-                        ((0 != (interests & (1 << 2)) && address.equals(topics.get(1))) ||
-                                (0 != (interests & (1 << 3)) && address.equals(topics.get(2))));
-                if (include) {
-                    try {
-                        numbers.add(Long.decode(log.getBlockNumber()));
-                    } catch (NumberFormatException e) {
-                        // TODO: How do we want to handle this?
-                    }
-                }
-            }
-
-            handler.handleData(numbers);
-        }
+    public void submitTransactionAsEth(String networkName, String transaction, int rid,
+                                       BlockchainCompletionHandler<String> handler) {
+        ethTransferApi.submitTransactionAsEth(networkName, transaction, rid, handler);
     }
 
-    // ETH Nonce
+    public void getTransactionsAsEth(String networkName, String address, long begBlockNumber, long endBlockNumber,
+                                     int rid, BlockchainCompletionHandler<List<EthTransaction>> handler) {
+        ethTransferApi.getTransactionsAsEth(networkName, address, begBlockNumber, endBlockNumber, rid, handler);
+    }
 
     public void getNonceAsEth(String networkName, String address, int rid, BlockchainCompletionHandler<String> handler) {
-        ethNonceApi.getNonceAsEth(networkName, address, rid, handler);
+        ethTransferApi.getNonceAsEth(networkName, address, rid, handler);
     }
 
-    // TODO: Add getTokensAsEth
+    public void getLogsAsEth(String networkName, @Nullable String contract, String address, String event,
+                             long begBlockNumber, long endBlockNumber, int rid, BlockchainCompletionHandler<List<EthLog>> handler) {
+        ethTransferApi.getLogsAsEth(networkName, contract, address, event, begBlockNumber, endBlockNumber, rid, handler);
+    }
+
+    public void getBlocksAsEth(String networkName, String address, int interests, long blockStart, long blockEnd,
+                               int rid, BlockchainCompletionHandler<List<Long>> handler) {
+        ethTransferApi.getBlocksAsEth(networkName, address, interests, blockStart, blockEnd, rid, handler);
+    }
 }

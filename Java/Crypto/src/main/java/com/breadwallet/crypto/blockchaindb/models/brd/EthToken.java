@@ -4,8 +4,12 @@ import android.support.annotation.Nullable;
 
 import com.google.common.base.Optional;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class EthToken {
 
@@ -21,6 +25,24 @@ public class EthToken {
         } catch (JSONException e) {
             return Optional.absent();
         }
+    }
+
+    public static Optional<List<EthToken>> asTokens(JSONArray json, int rid) {
+        List<EthToken> objs = new ArrayList<>();
+        for (int i = 0; i < json.length(); i++) {
+            JSONObject obj = json.optJSONObject(i);
+            if (obj == null) {
+                return Optional.absent();
+            }
+
+            Optional<EthToken> opt = EthToken.asToken(obj, rid);
+            if (!opt.isPresent()) {
+                return Optional.absent();
+            }
+
+            objs.add(opt.get());
+        }
+        return Optional.of(objs);
     }
 
     private final String address;
