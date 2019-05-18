@@ -130,6 +130,9 @@ extern BREthereumAmount
 ewmWalletGetBalance(BREthereumEWM ewm,
                     BREthereumWallet wallet);
 
+extern void
+ewmUpdateWalletBalance(BREthereumEWM ewm,
+                       BREthereumWallet wallet);
 
 extern BREthereumGas
 ewmWalletGetGasEstimate(BREthereumEWM ewm,
