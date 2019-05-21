@@ -25,44 +25,12 @@ public class BlockchainApi {
 
     public void getBlockchains(boolean ismainnet, BlockchainCompletionHandler<List<Blockchain>> handler) {
         Multimap<String, String> params = ImmutableListMultimap.of("testnet", Boolean.valueOf(!ismainnet).toString());
-        jsonClient.sendGetRequest("blockchains", params, new ArrayCompletionHandler() {
-            @Override
-            public void handleData(JSONArray json, boolean more) {
-                checkArgument(!more);
-                Optional<List<Blockchain>> blockchains = Blockchain.asBlockchains(json);
-                if (blockchains.isPresent()) {
-                    handler.handleData(blockchains.get());
-                } else {
-                    handler.handleError(new QueryModelError("Transform error"));
-                }
-            }
-
-            @Override
-            public void handleError(QueryError error) {
-                handler.handleError(error);
-            }
-        });
+        jsonClient.sendGetRequest("blockchains", params,  Blockchain::asBlockchains, handler);
     }
 
     public void getBlockchain(String id, BlockchainCompletionHandler<Blockchain> handler) {
         // TODO: I don't think we should be building it like this
         String path = String.format("blockchains/%s", id);
-        jsonClient.sendGetRequest(path, ImmutableListMultimap.of(), new ObjectCompletionHandler() {
-            @Override
-            public void handleData(JSONObject json, boolean more) {
-                checkArgument(!more);
-                Optional<Blockchain> blockchain = Blockchain.asBlockchain(json);
-                if (blockchain.isPresent()) {
-                    handler.handleData(blockchain.get());
-                } else {
-                    handler.handleError(new QueryModelError("Transform error"));
-                }
-            }
-
-            @Override
-            public void handleError(QueryError error) {
-                handler.handleError(error);
-            }
-        });
+        jsonClient.sendGetRequest(path, ImmutableListMultimap.of(), Blockchain::asBlockchain, handler);
     }
 }

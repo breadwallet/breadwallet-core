@@ -24,10 +24,10 @@ public class EthBalanceApi {
                 "jsonrpc", "2.0",
                 "method", "eth_getBalance",
                 "params", ImmutableList.of(address, "latest"),
-                "id", Integer.valueOf(rid)
+                "id", rid
         ));
 
-        client.makeRequestJson(networkName, json, new StringCompletionHandler() {
+        client.makeRequestJson(networkName, json, new BlockchainCompletionHandler<Optional<String>>() {
             @Override
             public void handleData(Optional<String> result) {
                 // TODO: Do we want default values?
@@ -44,7 +44,7 @@ public class EthBalanceApi {
     public void getBalanceAsTok(String networkName, String address, String tokenAddress, int rid,
                                 BlockchainCompletionHandler<String> handler) {
         JSONObject json = new JSONObject(ImmutableMap.of(
-                "id", Integer.valueOf(rid)
+                "id", rid
         ));
 
         ImmutableMultimap<String, String> params = ImmutableListMultimap.of(
@@ -54,7 +54,7 @@ public class EthBalanceApi {
                 "contractaddress", tokenAddress
         );
 
-        client.makeRequestQuery(networkName, params, json, new StringCompletionHandler() {
+        client.makeRequestQuery(networkName, params, json, new BlockchainCompletionHandler<Optional<String>>() {
             @Override
             public void handleData(Optional<String> result) {
                 // TODO: Do we want default values?

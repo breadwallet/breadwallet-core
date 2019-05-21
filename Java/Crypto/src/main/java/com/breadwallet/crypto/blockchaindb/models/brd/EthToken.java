@@ -13,7 +13,7 @@ import java.util.List;
 
 public class EthToken {
 
-    public static Optional<EthToken> asToken(JSONObject json, int rid) {
+    public static Optional<EthToken> asToken(JSONObject json) {
         try {
             String name = json.getString("name");
             String symbol = json.getString("code");
@@ -21,13 +21,13 @@ public class EthToken {
             int decimals = json.getInt("scale");
             String description = String.format("Token for %s", symbol);
 
-            return Optional.of(new EthToken(address, symbol, name, description, decimals, null, null, rid));
+            return Optional.of(new EthToken(address, symbol, name, description, decimals, null, null));
         } catch (JSONException e) {
             return Optional.absent();
         }
     }
 
-    public static Optional<List<EthToken>> asTokens(JSONArray json, int rid) {
+    public static Optional<List<EthToken>> asTokens(JSONArray json) {
         List<EthToken> objs = new ArrayList<>();
         for (int i = 0; i < json.length(); i++) {
             JSONObject obj = json.optJSONObject(i);
@@ -35,7 +35,7 @@ public class EthToken {
                 return Optional.absent();
             }
 
-            Optional<EthToken> opt = EthToken.asToken(obj, rid);
+            Optional<EthToken> opt = EthToken.asToken(obj);
             if (!opt.isPresent()) {
                 return Optional.absent();
             }
@@ -50,7 +50,6 @@ public class EthToken {
     private final String name;
     private final String description;
     private final int decimals;
-    private final int rid;
 
     @Nullable
     private final String defaultGasLimit;
@@ -58,7 +57,7 @@ public class EthToken {
     private final String defaultGasPrice;
 
     private EthToken(String address, String symbol, String name, String description, int decimals,
-                     String defaultGasLimit, @Nullable String defaultGasPrice, int rid) {
+                     String defaultGasLimit, @Nullable String defaultGasPrice) {
         this.address = address;
         this.symbol = symbol;
         this.name = name;
@@ -66,7 +65,6 @@ public class EthToken {
         this.decimals = decimals;
         this.defaultGasLimit = defaultGasLimit;
         this.defaultGasPrice = defaultGasPrice;
-        this.rid = rid;
     }
 
     public String getAddress() {
@@ -87,10 +85,6 @@ public class EthToken {
 
     public int getDecimals() {
         return decimals;
-    }
-
-    public int getRid() {
-        return rid;
     }
 
     public Optional<String> getDefaultGasLimit() {

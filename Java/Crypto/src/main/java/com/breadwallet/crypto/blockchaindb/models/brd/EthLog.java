@@ -12,7 +12,7 @@ import java.util.List;
 
 public class EthLog {
 
-    public static Optional<EthLog> asLog(JSONObject json, int rid) {
+    public static Optional<EthLog> asLog(JSONObject json) {
         try {
             String hash = json.getString("transactionHash");
             String contract = json.getString("address");
@@ -27,14 +27,14 @@ public class EthLog {
 
             return Optional.of(new EthLog(
                     hash, contract, topics, data, gasPrice, gasUsed, logIndex, blockNumber,
-                    blockTransactionIndex, blockTimestamp, rid
+                    blockTransactionIndex, blockTimestamp
             ));
         } catch (JSONException e) {
             return Optional.absent();
         }
     }
 
-    public static Optional<List<EthLog>> asLogs(JSONArray json, int rid) {
+    public static Optional<List<EthLog>> asLogs(JSONArray json) {
         List<EthLog> objs = new ArrayList<>();
         for (int i = 0; i < json.length(); i++) {
             JSONObject obj = json.optJSONObject(i);
@@ -42,7 +42,7 @@ public class EthLog {
                 return Optional.absent();
             }
 
-            Optional<EthLog> opt = EthLog.asLog(obj, rid);
+            Optional<EthLog> opt = EthLog.asLog(obj);
             if (!opt.isPresent()) {
                 return Optional.absent();
             }
@@ -72,10 +72,9 @@ public class EthLog {
     private final String blockNumber;
     private final String blockTransactionIndex;
     private final String blockTimestamp;
-    private final int rid;
 
     private EthLog(String hash, String contract, List<String> topics, String data, String gasPrice, String gasUsed,
-                  String logIndex, String blockNumber, String blockTransactionIndex, String blockTimestamp, int rid) {
+                  String logIndex, String blockNumber, String blockTransactionIndex, String blockTimestamp) {
         this.hash = hash;
         this.contract = contract;
         this.topics = topics;
@@ -86,7 +85,6 @@ public class EthLog {
         this.blockNumber = blockNumber;
         this.blockTransactionIndex = blockTransactionIndex;
         this.blockTimestamp = blockTimestamp;
-        this.rid = rid;
     }
 
     public String getHash() {
@@ -127,9 +125,5 @@ public class EthLog {
 
     public String getBlockTimestamp() {
         return blockTimestamp;
-    }
-
-    public int getRid() {
-        return rid;
     }
 }

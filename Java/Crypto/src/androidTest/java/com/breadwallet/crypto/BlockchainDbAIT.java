@@ -46,7 +46,7 @@ public class BlockchainDbAIT {
 
     @Test
     public void testGetBlockchains() {
-        SynchronousCompletionHandler<List<Blockchain>> handler = new SynchronousCompletionHandler();
+        SynchronousCompletionHandler<List<Blockchain>> handler = new SynchronousCompletionHandler<>();
 
         blockchainDb.getBlockchains(true, handler);
         List<Blockchain> blockchains = handler.dat().get();
@@ -61,7 +61,7 @@ public class BlockchainDbAIT {
 
     @Test
     public void testGetBlockchain() {
-        SynchronousCompletionHandler<Blockchain> handler = new SynchronousCompletionHandler();
+        SynchronousCompletionHandler<Blockchain> handler = new SynchronousCompletionHandler<>();
 
         blockchainDb.getBlockchain("bitcoin-mainnet", handler);
         Blockchain blockchain = handler.dat().get();
@@ -72,7 +72,7 @@ public class BlockchainDbAIT {
 
     @Test
     public void testGetCurrencies() {
-        SynchronousCompletionHandler<List<Currency>> handler = new SynchronousCompletionHandler();
+        SynchronousCompletionHandler<List<Currency>> handler = new SynchronousCompletionHandler<>();
         List<Currency> currencies;
 
         blockchainDb.getCurrencies("bitcoin-mainnet", handler);
@@ -88,7 +88,7 @@ public class BlockchainDbAIT {
 
     @Test
     public void testGetCurrency() {
-        SynchronousCompletionHandler<Currency> handler = new SynchronousCompletionHandler();
+        SynchronousCompletionHandler<Currency> handler = new SynchronousCompletionHandler<>();
 
         // TODO: This fails due to the endpoint not returning anything
         // blockchainDb.getCurrency("bitcoin-mainnet", handler);
@@ -100,7 +100,7 @@ public class BlockchainDbAIT {
 
     @Test
     public void testGetTransfers() {
-        SynchronousCompletionHandler<List<Transfer>> handler = new SynchronousCompletionHandler();
+        SynchronousCompletionHandler<List<Transfer>> handler = new SynchronousCompletionHandler<>();
 
         blockchainDb.getTransfers("bitcoin-mainnet", Arrays.asList("1JfbZRwdDHKZmuiZgYArJZhcuuzuw2HuMu"), handler);
         List<Transfer> transfers = handler.dat().get();
@@ -114,8 +114,7 @@ public class BlockchainDbAIT {
         SynchronousCompletionHandler<Transfer> handler = new SynchronousCompletionHandler<>();
 
         // TODO: This fails due to the endpoint returning a 504
-        // blockchainDb.getTransfer("bitcoin-mainnet:63522845d294ee9b0188ae5cac91bf389a0c3723f084ca1025e7d9cdfe481ce1
-        // :1",
+        // blockchainDb.getTransfer("bitcoin-mainnet:63522845d294ee9b0188ae5cac91bf389a0c3723f084ca1025e7d9cdfe481ce1:1",
         //         handler);
         // Transfer transfer = handler.dat().get();
         // assertNotNull(transfer);
@@ -127,11 +126,10 @@ public class BlockchainDbAIT {
     public void testGetTransactions() {
         SynchronousCompletionHandler<List<Transaction>> handler = new SynchronousCompletionHandler<>();
 
-        // TODO: This fails due to the endpoint returning a 504
-        // blockchainDb.getTransactions("bitcoin-mainnet", Arrays.asList("1JfbZRwdDHKZmuiZgYArJZhcuuzuw2HuMu"), 0, 50000,
-        //         true, true, handler);
-        // List<Transaction> transactions = handler.dat().get();
-        // assertNotEquals(0, transactions.size());
+        blockchainDb.getTransactions("bitcoin-mainnet", Arrays.asList("1JfbZRwdDHKZmuiZgYArJZhcuuzuw2HuMu"), 0, 50000,
+                true, true, handler);
+        List<Transaction> transactions = handler.dat().get();
+        assertNotEquals(0, transactions.size());
     }
 
     @Test

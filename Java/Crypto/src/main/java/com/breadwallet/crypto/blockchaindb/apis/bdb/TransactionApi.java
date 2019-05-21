@@ -9,6 +9,7 @@ import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
 import org.json.JSONArray;
@@ -48,45 +49,13 @@ public class TransactionApi {
         Multimap<String, String> params = ImmutableListMultimap.of("include_proof", String.valueOf(includeProof),
                 "include_raw", String.valueOf(includeRaw));
 
-        jsonClient.sendGetRequest(path, params, new ObjectCompletionHandler() {
-            @Override
-            public void handleData(JSONObject json, boolean more) {
-                checkArgument(!more);
-                Optional<Transaction> transaction = Transaction.asTransaction(json);
-                if (transaction.isPresent()) {
-                    handler.handleData(transaction.get());
-                } else {
-                    handler.handleError(new QueryModelError("Transform error"));
-                }
-            }
-
-            @Override
-            public void handleError(QueryError error) {
-                handler.handleError(error);
-            }
-        });
+        jsonClient.sendGetRequest(path, params, Transaction::asTransaction, handler);
     }
 
     public void putTransaction(String id, byte[] data, BlockchainCompletionHandler<Transaction> handler) {
         JSONObject json = new JSONObject(ImmutableMap.of("transaction", Base64.encode(data, Base64.DEFAULT)));
         Multimap<String, String> params = ImmutableListMultimap.of("blockchain_id", id);
-        jsonClient.sendRequest("transactions", params, json, "PUT", new ObjectCompletionHandler() {
-            @Override
-            public void handleData(JSONObject json, boolean more) {
-                checkArgument(!more);
-                Optional<Transaction> transaction = Transaction.asTransaction(json);
-                if (transaction.isPresent()) {
-                    handler.handleData(transaction.get());
-                } else {
-                    handler.handleError(new QueryModelError("Transform error"));
-                }
-            }
-
-            @Override
-            public void handleError(QueryError error) {
-                handler.handleError(error);
-            }
-        });
+        jsonClient.sendRequest("transactions", params, json, "PUT", Transaction::asTransaction, handler);
     }
 
     private void getTransactionsOnExecutor(String id, List<String> addresses, long beginBlockNumber, long endBlockNumber,
@@ -96,27 +65,24 @@ public class TransactionApi {
         List<Transaction> allTransactions = new ArrayList<>();
         Semaphore sema = new Semaphore(0);
 
-        ImmutableListMultimap.Builder<String, String> paramBuilders = ImmutableListMultimap.builder();
-        paramBuilders.put("blockchain_id", id);
-        paramBuilders.put("include_proof", String.valueOf(includeProof));
-        paramBuilders.put("include_raw", String.valueOf(includeRaw));
-        for (String address : addresses) paramBuilders.put("address", address);
+        ImmutableListMultimap.Builder<String, String> baseBuilder = ImmutableListMultimap.builder();
+        baseBuilder.put("blockchain_id", id);
+        baseBuilder.put("include_proof", String.valueOf(includeProof));
+        baseBuilder.put("include_raw", String.valueOf(includeRaw));
+        for (String address : addresses) baseBuilder.put("address", address);
+        ImmutableMultimap<String, String> baseParams = baseBuilder.build();
 
         for (long i = beginBlockNumber; i < endBlockNumber && error[0] == null; i += PAGINATION_COUNT) {
-            paramBuilders.put("start_height", String.valueOf(i));
-            paramBuilders.put("end_height", String.valueOf(Math.min(i + PAGINATION_COUNT,
-                    endBlockNumber)));
+            ImmutableListMultimap.Builder<String, String> paramsBuilder = ImmutableListMultimap.builder();
+            paramsBuilder.putAll(baseParams);
+            paramsBuilder.putAll("start_height", String.valueOf(i));
+            paramsBuilder.putAll("end_height", String.valueOf(Math.min(i + PAGINATION_COUNT, endBlockNumber)));
+            ImmutableMultimap<String, String> params = paramsBuilder.build();
 
-            jsonClient.sendGetRequest("transactions", paramBuilders.build(), new ArrayCompletionHandler() {
+            jsonClient.sendGetRequest("transactions", params, Transaction::asTransactions, new BlockchainCompletionHandler<List<Transaction>>() {
                 @Override
-                public void handleData(JSONArray json, boolean more) {
-                    Optional<List<Transaction>> transactions = Transaction.asTransactions(json);
-                    if (transactions.isPresent()) {
-                        allTransactions.addAll(transactions.get());
-                    } else {
-                        error[0] = new QueryModelError("Transform error");
-                    }
-
+                public void handleData(List<Transaction> transactions) {
+                    allTransactions.addAll(transactions);
                     sema.release();
                 }
 

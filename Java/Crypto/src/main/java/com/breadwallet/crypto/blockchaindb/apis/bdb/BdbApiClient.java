@@ -4,12 +4,15 @@ import android.support.annotation.Nullable;
 
 import com.breadwallet.crypto.blockchaindb.BlockchainCompletionHandler;
 import com.breadwallet.crypto.blockchaindb.BlockchainDataTask;
+import com.breadwallet.crypto.blockchaindb.apis.ArrayResponseParser;
+import com.breadwallet.crypto.blockchaindb.apis.ObjectResponseParser;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryJsonParseError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryModelError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryNoDataError;
 import com.breadwallet.crypto.blockchaindb.errors.QuerySubmissionError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryUrlError;
+import com.google.common.base.Optional;
 import com.google.common.collect.Multimap;
 
 import org.json.JSONArray;
@@ -29,6 +32,8 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 public class BdbApiClient {
 
     public static final MediaType MEDIA_TYPE_JSON = MediaType.parse("application/json; charset=utf-8");
@@ -43,28 +48,22 @@ public class BdbApiClient {
         this.dataTask = dataTask;
     }
 
-    public void sendGetRequest(String path, Multimap<String, String> params, ObjectCompletionHandler handler) {
-        makeAndSendRequest(path, params, null, "GET", new ObjectHandler(handler));
+    public <T> void sendGetRequest(String path, Multimap<String, String> params, ObjectResponseParser<T> parser, BlockchainCompletionHandler<T> handler) {
+        makeAndSendRequest(path, params, null, "GET", new ObjectHandler<T>(parser, handler));
     }
 
-    public void sendGetRequest(String path, Multimap<String, String> params, ArrayCompletionHandler handler) {
-        makeAndSendRequest(path, params, null, "GET", new ArrayHandler(handler, path));
+    public <T> void sendGetRequest(String path, Multimap<String, String> params, ArrayResponseParser<T> parser, BlockchainCompletionHandler<T> handler) {
+        makeAndSendRequest(path, params, null, "GET", new ArrayHandler<T>(path, parser, handler));
     }
 
-    public void sendRequest(String path,
-                            Multimap<String, String> params,
-                            @Nullable JSONObject json,
-                            String httpMethod,
-                            ObjectCompletionHandler handler) {
-        makeAndSendRequest(path, params, json, httpMethod, new ObjectHandler(handler));
+    public <T> void sendRequest(String path, Multimap<String, String> params, @Nullable JSONObject json,
+                                String httpMethod, ObjectResponseParser<T> parser, BlockchainCompletionHandler<T> handler) {
+        makeAndSendRequest(path, params, json, httpMethod, new ObjectHandler<T>(parser, handler));
     }
 
-    public void sendRequest(String path,
-                            Multimap<String, String> params,
-                            @Nullable JSONObject json,
-                            String httpMethod,
-                            ArrayCompletionHandler handler) {
-        makeAndSendRequest(path, params, json, httpMethod, new ArrayHandler(handler, path));
+    public <T> void sendRequest(String path, Multimap<String, String> params, @Nullable JSONObject json,
+                            String httpMethod, ArrayResponseParser<T> parser, BlockchainCompletionHandler<T> handler) {
+        makeAndSendRequest(path, params, json, httpMethod, new ArrayHandler(path, parser, handler));
     }
 
     private void makeAndSendRequest(String path,
@@ -121,11 +120,13 @@ public class BdbApiClient {
         void handleError(QueryError error);
     }
 
-    private static class ObjectHandler implements ResponseHandler {
+    private static class ObjectHandler<T> implements ResponseHandler {
 
-        private final ObjectCompletionHandler handler;
+        private final ObjectResponseParser<T> parser;
+        private final BlockchainCompletionHandler<T> handler;
 
-        ObjectHandler(ObjectCompletionHandler handler) {
+        ObjectHandler(ObjectResponseParser<T> parser, BlockchainCompletionHandler<T> handler) {
+            this.parser = parser;
             this.handler = handler;
         }
 
@@ -136,7 +137,14 @@ public class BdbApiClient {
 
             // TODO: why is this always set to false in the swift
             boolean more = false && full;
-            handler.handleData(json, more);
+
+            checkArgument(!more);
+            Optional<T> data = parser.parse(json);
+            if (data.isPresent()) {
+                handler.handleData(data.get());
+            } else {
+                handler.handleError(new QueryModelError("Transform error"));
+            }
         }
 
         @Override
@@ -145,14 +153,17 @@ public class BdbApiClient {
         }
     }
 
-    private static class ArrayHandler implements ResponseHandler {
+    private static class ArrayHandler<T> implements ResponseHandler {
 
         private final String path;
-        private final ArrayCompletionHandler handler;
+        private final ArrayResponseParser<T> parser;
+        private final BlockchainCompletionHandler<T> handler;
 
-        ArrayHandler(ArrayCompletionHandler handler, String path) {
-            this.handler = handler;
+
+        ArrayHandler(String path, ArrayResponseParser<T> parser, BlockchainCompletionHandler<T> handler) {
             this.path = path;
+            this.parser = parser;
+            this.handler = handler;
         }
 
         @Override
@@ -170,7 +181,12 @@ public class BdbApiClient {
                 handler.handleError(new QueryModelError("Data expected"));
 
             } else {
-                handler.handleData(jsonEmbeddedData, more);
+                Optional<T> data = parser.parse(jsonEmbeddedData);
+                if (data.isPresent()) {
+                    handler.handleData(data.get());
+                } else {
+                    handler.handleError(new QueryModelError("Transform error"));
+                }
             }
         }
 

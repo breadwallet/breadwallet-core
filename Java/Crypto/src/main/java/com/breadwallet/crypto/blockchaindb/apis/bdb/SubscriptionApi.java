@@ -58,21 +58,6 @@ public class SubscriptionApi {
     private void makeSubscriptionRequest(@Nullable Subscription subscription, String path, String httpMethod,
                                          BlockchainCompletionHandler<Subscription> handler) {
         JSONObject json = subscription == null ? null : Subscription.asJson(subscription);
-        jsonClient.sendRequest(path, ImmutableMultimap.of(), json, httpMethod, new ObjectCompletionHandler() {
-            @Override
-            public void handleData(JSONObject json, boolean more) {
-                Optional<Subscription> optionalSubscription = Subscription.asSubscription(json);
-                if (optionalSubscription.isPresent()) {
-                    handler.handleData(optionalSubscription.get());
-                } else {
-                    handler.handleError(new QueryModelError("Missed subscription"));
-                }
-            }
-
-            @Override
-            public void handleError(QueryError error) {
-                handler.handleError(error);
-            }
-        });
+        jsonClient.sendRequest(path, ImmutableMultimap.of(), json, httpMethod, Subscription::asSubscription, handler);
     }
 }

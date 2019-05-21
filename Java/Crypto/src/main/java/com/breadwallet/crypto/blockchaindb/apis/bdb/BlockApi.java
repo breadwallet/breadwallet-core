@@ -6,6 +6,7 @@ import com.breadwallet.crypto.blockchaindb.errors.QueryModelError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Block;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
 import org.json.JSONArray;
@@ -46,23 +47,7 @@ public class BlockApi {
                 "include_tx_raw", String.valueOf(includeTxRaw),
                 "include_tx_proof", String.valueOf(includeTxProof));
 
-        jsonClient.sendGetRequest(path, params, new ObjectCompletionHandler() {
-            @Override
-            public void handleData(JSONObject json, boolean more) {
-                checkArgument(!more);
-                Optional<Block> block = Block.asBlock(json);
-                if (block.isPresent()) {
-                    handler.handleData(block.get());
-                } else {
-                    handler.handleError(new QueryModelError("Transform error"));
-                }
-            }
-
-            @Override
-            public void handleError(QueryError error) {
-                handler.handleError(error);
-            }
-        });
+        jsonClient.sendGetRequest(path, params, Block::asBlock, handler);
     }
 
     private void getBlocksOnExecutor(String id, long beginBlockNumber, long endBlockNumber, boolean includeRaw,
@@ -72,28 +57,26 @@ public class BlockApi {
         List<Block> allBlocks = new ArrayList<>();
         Semaphore sema = new Semaphore(0);
 
-        ImmutableListMultimap.Builder<String, String> paramBuilders = ImmutableListMultimap.builder();
-        paramBuilders.put("blockchain_id", id);
-        paramBuilders.put("include_raw", String.valueOf(includeRaw));
-        paramBuilders.put("include_tx", String.valueOf(includeTx));
-        paramBuilders.put("include_tx_raw", String.valueOf(includeTxRaw));
-        paramBuilders.put("include_tx_proof", String.valueOf(includeTxProof));
+        ImmutableListMultimap.Builder<String, String> baseBuilder = ImmutableListMultimap.builder();
+        baseBuilder.put("blockchain_id", id);
+        baseBuilder.put("include_raw", String.valueOf(includeRaw));
+        baseBuilder.put("include_tx", String.valueOf(includeTx));
+        baseBuilder.put("include_tx_raw", String.valueOf(includeTxRaw));
+        baseBuilder.put("include_tx_proof", String.valueOf(includeTxProof));
+        ImmutableMultimap<String, String> baseParams = baseBuilder.build();
 
         for (long i = beginBlockNumber; i < endBlockNumber && error[0] == null; i += PAGINATION_COUNT) {
-            paramBuilders.put("start_height", String.valueOf(i));
-            paramBuilders.put("end_height", String.valueOf(Math.min(i + PAGINATION_COUNT,
+            ImmutableListMultimap.Builder<String, String> paramsBuilder = ImmutableListMultimap.builder();
+            paramsBuilder.putAll(baseParams);
+            paramsBuilder.put("start_height", String.valueOf(i));
+            paramsBuilder.put("end_height", String.valueOf(Math.min(i + PAGINATION_COUNT,
                     endBlockNumber)));
+            ImmutableMultimap<String, String> params = paramsBuilder.build();
 
-            jsonClient.sendGetRequest("transactions", paramBuilders.build(), new ArrayCompletionHandler() {
+            jsonClient.sendGetRequest("transactions", params, Block::asBlocks, new BlockchainCompletionHandler<List<Block>>() {
                 @Override
-                public void handleData(JSONArray json, boolean more) {
-                    Optional<List<Block>> blocks = Block.asBlocks(json);
-                    if (blocks.isPresent()) {
-                        allBlocks.addAll(blocks.get());
-                    } else {
-                        error[0] = new QueryModelError("Transform error");
-                    }
-
+                public void handleData(List<Block> blocks) {
+                    allBlocks.addAll(blocks);
                     sema.release();
                 }
 

@@ -11,7 +11,7 @@ import java.util.List;
 
 public class EthTransaction {
 
-    public static Optional<EthTransaction> asTransaction(JSONObject json, int rid) {
+    public static Optional<EthTransaction> asTransaction(JSONObject json) {
         try {
             String hash = json.getString("hash");
             String sourceAddr = json.getString("from");
@@ -33,14 +33,14 @@ public class EthTransaction {
             return Optional.of(new EthTransaction(
                     hash, sourceAddr, targetAddr, contractAddr, amount, gasLimit, gasPrice,
                     data, nonce, gasUsed, blockNumber, blockHash, blockConfirmations, blockTransacionIndex,
-                    blockTimestamp, isError, rid
+                    blockTimestamp, isError
             ));
         } catch (JSONException e) {
             return Optional.absent();
         }
     }
 
-    public static Optional<List<EthTransaction>> asTransactions(JSONArray json, int rid) {
+    public static Optional<List<EthTransaction>> asTransactions(JSONArray json) {
         List<EthTransaction> objs = new ArrayList<>();
         for (int i = 0; i < json.length(); i++) {
             JSONObject obj = json.optJSONObject(i);
@@ -48,7 +48,7 @@ public class EthTransaction {
                 return Optional.absent();
             }
 
-            Optional<EthTransaction> opt = EthTransaction.asTransaction(obj, rid);
+            Optional<EthTransaction> opt = EthTransaction.asTransaction(obj);
             if (!opt.isPresent()) {
                 return Optional.absent();
             }
@@ -74,10 +74,11 @@ public class EthTransaction {
     private final String blockTransacionIndex;
     private final String blockTimestamp;
     private final String isError;
-    private final int rid;
 
     private EthTransaction(String hash, String sourceAddr, String targetAddr, String contractAddr, String amount,
-                          String gasLimit, String gasPrice, String data, String nonce, String gasUsed, String blockNumber, String blockHash, String blockConfirmations, String blockTransacionIndex, String blockTimestamp, String isError, int rid) {
+                           String gasLimit, String gasPrice, String data, String nonce, String gasUsed,
+                           String blockNumber, String blockHash, String blockConfirmations,
+                           String blockTransacionIndex, String blockTimestamp, String isError) {
         this.hash = hash;
         this.sourceAddr = sourceAddr;
         this.targetAddr = targetAddr;
@@ -94,7 +95,6 @@ public class EthTransaction {
         this.blockTransacionIndex = blockTransacionIndex;
         this.blockTimestamp = blockTimestamp;
         this.isError = isError;
-        this.rid = rid;
     }
 
     public String getHash() {
@@ -159,9 +159,5 @@ public class EthTransaction {
 
     public String getIsError() {
         return isError;
-    }
-
-    public int getRid() {
-        return rid;
     }
 }

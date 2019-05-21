@@ -57,21 +57,6 @@ public class WalletApi {
     private void makeWalletRequest(Wallet wallet, String path, String httpMethod,
                                    BlockchainCompletionHandler<Wallet> handler) {
         JSONObject json = wallet == null ? null : Wallet.asJson(wallet);
-        jsonClient.sendRequest(path, ImmutableMultimap.of(), json, httpMethod, new ObjectCompletionHandler() {
-            @Override
-            public void handleData(JSONObject json, boolean more) {
-                Optional<Wallet> optionalWallet = Wallet.asWallet(json);
-                if (optionalWallet.isPresent()) {
-                    handler.handleData(optionalWallet.get());
-                } else {
-                    handler.handleError(new QueryModelError("Missed wallet"));
-                }
-            }
-
-            @Override
-            public void handleError(QueryError error) {
-                handler.handleError(error);
-            }
-        });
+        jsonClient.sendRequest(path, ImmutableMultimap.of(), json, httpMethod, Wallet::asWallet, handler);
     }
 }

@@ -21,10 +21,10 @@ public class EthGasApi {
                 "jsonrpc", "2.0",
                 "method", "eth_gasPrice",
                 "params", ImmutableList.of(),
-                "id", Integer.valueOf(rid)
+                "id", rid
         ));
 
-        client.makeRequestJson(networkName, json, new StringCompletionHandler() {
+        client.makeRequestJson(networkName, json, new BlockchainCompletionHandler<Optional<String>>() {
             @Override
             public void handleData(Optional<String> result) {
                 // TODO: Do we want default values?
@@ -44,10 +44,10 @@ public class EthGasApi {
                 "jsonrpc", "2.0",
                 "method", "eth_estimateGas",
                 "params", ImmutableList.of(ImmutableMap.of("from", from, "to", to, "amount", amount, "data", data)),
-                "id", Integer.valueOf(rid)
+                "id", rid
         ));
 
-        client.makeRequestJson(networkName, json, new StringCompletionHandler() {
+        client.makeRequestJson(networkName, json, new BlockchainCompletionHandler<Optional<String>>() {
             @Override
             public void handleData(Optional<String> result) {
                 // TODO: Do we want default values?

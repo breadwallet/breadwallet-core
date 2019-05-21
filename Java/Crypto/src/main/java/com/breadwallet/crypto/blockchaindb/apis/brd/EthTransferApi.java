@@ -4,7 +4,6 @@ import android.support.annotation.Nullable;
 
 import com.breadwallet.crypto.blockchaindb.BlockchainCompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
-import com.breadwallet.crypto.blockchaindb.errors.QueryModelError;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthLog;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthTransaction;
 import com.google.common.base.Optional;
@@ -13,7 +12,6 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -40,10 +38,10 @@ public class EthTransferApi {
                 "jsonrpc", "2.0",
                 "method", "eth_sendRawTransaction",
                 "params", ImmutableList.of(transaction),
-                "id", Integer.valueOf(rid)
+                "id", rid
         ));
 
-        client.makeRequestJson(networkName, json, new StringCompletionHandler() {
+        client.makeRequestJson(networkName, json, new BlockchainCompletionHandler<Optional<String>>() {
             @Override
             public void handleData(Optional<String> result) {
                 // TODO: Do we want default values?
@@ -60,7 +58,7 @@ public class EthTransferApi {
     public void getTransactionsAsEth(String networkName, String address, long begBlockNumber, long endBlockNumber,
                                      int rid, BlockchainCompletionHandler<List<EthTransaction>> handler) {
         JSONObject json = new JSONObject(ImmutableMap.of(
-                "id", Integer.valueOf(rid),
+                "id", rid,
                 "account", address
         ));
 
@@ -72,22 +70,7 @@ public class EthTransferApi {
                 "endBlock", String.valueOf(endBlockNumber)
         );
 
-        client.makeRequestQuery(networkName, params, json, new ArrayCompletionHandler() {
-            @Override
-            public void handleData(JSONArray json) {
-                Optional<List<EthTransaction>> transactions = EthTransaction.asTransactions(json, rid);
-                if (transactions.isPresent()) {
-                    handler.handleData(transactions.get());
-                } else {
-                    handler.handleError(new QueryModelError("Transform error"));
-                }
-            }
-
-            @Override
-            public void handleError(QueryError error) {
-                handler.handleError(error);
-            }
-        });
+        client.makeRequestQuery(networkName, params, json, EthTransaction::asTransactions, handler);
     }
 
     public void getNonceAsEth(String networkName, String address, int rid,
@@ -96,10 +79,10 @@ public class EthTransferApi {
                 "jsonrpc", "2.0",
                 "method", "eth_getTransactionCount",
                 "params", ImmutableList.of(address, "latest"),
-                "id", Integer.valueOf(rid)
+                "id", rid
         ));
 
-        client.makeRequestJson(networkName, json, new StringCompletionHandler() {
+        client.makeRequestJson(networkName, json, new BlockchainCompletionHandler<Optional<String>>() {
             @Override
             public void handleData(Optional<String> result) {
                 // TODO: Do we want default values?
@@ -117,7 +100,7 @@ public class EthTransferApi {
                              long begBlockNumber, long endBlockNumber, int rid,
                              BlockchainCompletionHandler<List<EthLog>> handler) {
         JSONObject json = new JSONObject(ImmutableMap.of(
-                "id", Integer.valueOf(rid)
+                "id", rid
         ));
 
         ImmutableListMultimap.Builder<String, String> paramsBuilders = ImmutableListMultimap.builder();
@@ -134,22 +117,7 @@ public class EthTransferApi {
             paramsBuilders.put("address", contract);
         }
 
-        client.makeRequestQuery(networkName, paramsBuilders.build(), json, new ArrayCompletionHandler() {
-            @Override
-            public void handleData(JSONArray json) {
-                Optional<List<EthLog>> logs = EthLog.asLogs(json, rid);
-                if (logs.isPresent()) {
-                    handler.handleData(logs.get());
-                } else {
-                    handler.handleError(new QueryModelError("Transform error"));
-                }
-            }
-
-            @Override
-            public void handleError(QueryError error) {
-                handler.handleError(error);
-            }
-        });
+        client.makeRequestQuery(networkName, paramsBuilders.build(), json, EthLog::asLogs, handler);
     }
 
     public void getBlocksAsEth(String networkName, String address, int interests, long blockStart, long blockEnd,

@@ -21,19 +21,18 @@ public class EthBlockApi {
                 "jsonrpc", "2.0",
                 "method", "eth_blockNumber",
                 "params", ImmutableList.of(),
-                "id", Integer.valueOf(rid)
+                "id", rid
         ));
 
-        client.makeRequestJson(networkName, json, new StringCompletionHandler() {
+        client.makeRequestJson(networkName, json, new BlockchainCompletionHandler<Optional<String>>() {
             @Override
-            public void handleData(Optional<String> result) {
-                // TODO: Do we want default values?
-                handler.handleData(result.or("0xffc0"));
+            public void handleData(Optional<String> data) {
+                handler.handleData(data.or("0xffc0"));
             }
 
             @Override
             public void handleError(QueryError error) {
-                handler.handleError(error);
+
             }
         });
     }
