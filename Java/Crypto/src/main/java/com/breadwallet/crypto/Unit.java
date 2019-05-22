@@ -12,26 +12,26 @@ package com.breadwallet.crypto;
 import com.breadwallet.crypto.jni.CryptoLibrary;
 import com.breadwallet.crypto.jni.CryptoLibrary.BRCryptoBoolean;
 import com.breadwallet.crypto.jni.CryptoLibrary.BRCryptoUnit;
+import com.google.common.primitives.UnsignedBytes;
 
 import java.util.Objects;
 
 public final class Unit {
 
-    private Unit base;
+    /* package */
+    final BRCryptoUnit core;
 
+    private Unit base;
     private final String uids;
     private final Currency currency;
-
-    /* package */ final BRCryptoUnit core;
 
     /* package */ Unit(Currency currency, String uids, String name, String symbol) {
         this(CryptoLibrary.INSTANCE.cryptoUnitCreateAsBase(currency.core, name, symbol), currency, uids, null);
     }
 
-    /* package */ Unit(Currency currency, String uids, String name, String symbol, Unit base, byte decimals) {
-        // TODO: Change decimals to short and verify that it is positive and less than Byte.MAX_VALUE
-        this(CryptoLibrary.INSTANCE.cryptoUnitCreate(currency.core, name, symbol, base.core, decimals), currency,
-                uids, base);
+    /* package */ Unit(Currency currency, String uids, String name, String symbol, Unit base, int decimals) {
+        this(CryptoLibrary.INSTANCE.cryptoUnitCreate(currency.core, name, symbol, base.core,
+                UnsignedBytes.checkedCast(decimals)), currency, uids, base);
     }
 
     private Unit(BRCryptoUnit core, Currency currency, String uids, Unit base) {
@@ -62,8 +62,8 @@ public final class Unit {
         return base;
     }
 
-    public byte getDecimals() {
-        return CryptoLibrary.INSTANCE.cryptoUnitGetBaseDecimalOffset(core);
+    public int getDecimals() {
+        return UnsignedBytes.toInt(CryptoLibrary.INSTANCE.cryptoUnitGetBaseDecimalOffset(core));
     }
 
     public boolean isCompatible(Unit other) {

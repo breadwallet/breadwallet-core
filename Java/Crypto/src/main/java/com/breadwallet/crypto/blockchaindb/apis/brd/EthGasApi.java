@@ -24,7 +24,7 @@ public class EthGasApi {
                 "id", rid
         ));
 
-        client.makeRequestJson(networkName, json, new BlockchainCompletionHandler<Optional<String>>() {
+        client.sendJsonRequest(networkName, json, new BlockchainCompletionHandler<Optional<String>>() {
             @Override
             public void handleData(Optional<String> result) {
                 // TODO: Do we want default values?
@@ -47,7 +47,7 @@ public class EthGasApi {
                 "id", rid
         ));
 
-        client.makeRequestJson(networkName, json, new BlockchainCompletionHandler<Optional<String>>() {
+        client.sendJsonRequest(networkName, json, new BlockchainCompletionHandler<Optional<String>>() {
             @Override
             public void handleData(Optional<String> result) {
                 // TODO: Do we want default values?

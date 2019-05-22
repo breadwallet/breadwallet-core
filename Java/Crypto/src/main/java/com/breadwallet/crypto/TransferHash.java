@@ -2,6 +2,7 @@ package com.breadwallet.crypto;
 
 import com.breadwallet.crypto.jni.BREthereumHash;
 import com.breadwallet.crypto.jni.UInt256;
+import com.google.common.io.BaseEncoding;
 
 import java.math.BigInteger;
 
@@ -39,7 +40,7 @@ public final class TransferHash {
             return false;
         }
 
-        // TODO: Is this safe to do instead of calling native method?
+        // TODO: Does this yield the same result as calling native method?
         switch (type) {
             case BTC:
                 return btcCore.u8.equals(hash.btcCore.u8);
@@ -52,12 +53,25 @@ public final class TransferHash {
 
     @Override
     public int hashCode() {
-        // TODO: Is this safe to do instead of calling native method?
+        // TODO: Does this yield the same result as calling native method?
         switch (type) {
             case BTC:
                 return new BigInteger(btcCore.u8).intValue();
             case ETH:
                 return new BigInteger(ethCore.u8).intValue();
+            default:
+                throw new IllegalStateException("Invalid type");
+        }
+    }
+
+    @Override
+    public String toString() {
+        switch (type) {
+            // TODO: Does this yield the same result as calling native method?
+            case BTC:
+                return BaseEncoding.base16().encode(btcCore.u8);
+            case ETH:
+                return BaseEncoding.base16().encode(ethCore.u8);
             default:
                 throw new IllegalStateException("Invalid type");
         }

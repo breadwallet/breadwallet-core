@@ -25,13 +25,11 @@ public class CurrencyApi {
     public void getCurrencies(@Nullable String id, BlockchainCompletionHandler<List<Currency>> handler) {
         Multimap<String, String> params = id == null ? ImmutableMultimap.of() : ImmutableListMultimap.of(
                 "blockchain_id", id);
-        jsonClient.sendGetRequest("currencies", params, Currency::asCurrencies, handler);
+        jsonClient.sendGetForArray("currencies", params, Currency::asCurrencies, handler);
     }
 
     public void getCurrency(String id, BlockchainCompletionHandler<Currency> handler) {
-        // TODO: I don't think we should be building it like this
-        String path = String.format("currencies/%s", id);
-        jsonClient.sendGetRequest(path, ImmutableListMultimap.of(), Currency::asCurrency, handler);
+        jsonClient.sendGetWithId("currencies", id, ImmutableMultimap.of(), Currency::asCurrency, handler);
     }
 
 }

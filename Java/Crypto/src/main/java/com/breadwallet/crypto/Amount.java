@@ -9,21 +9,27 @@
  */
 package com.breadwallet.crypto;
 
+import android.support.annotation.Nullable;
+
 import com.breadwallet.crypto.jni.CryptoLibrary;
 import com.breadwallet.crypto.jni.CryptoLibrary.BRCryptoAmount;
 import com.breadwallet.crypto.jni.CryptoLibrary.BRCryptoBoolean;
 import com.breadwallet.crypto.jni.CryptoLibrary.BRCryptoComparison;
+import com.breadwallet.crypto.jni.UInt256;
 import com.google.common.base.Optional;
+import com.sun.jna.Native;
+import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
 
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.text.NumberFormat;
 import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
 public final class Amount implements Comparable<Amount> {
-
-    /* package */ final BRCryptoAmount core;
-    private final Unit unit;
 
     public static Amount create(double value, Unit unit) {
         return new Amount(CryptoLibrary.INSTANCE.cryptoAmountCreateDouble(value, unit.core), unit);
@@ -41,6 +47,26 @@ public final class Amount implements Comparable<Amount> {
         }
         return Optional.of(new Amount(amount, unit));
     }
+
+    private static NumberFormat formatterWithUnit(Unit unit) {
+        DecimalFormat formatter = (DecimalFormat) DecimalFormat.getCurrencyInstance().clone();
+        DecimalFormatSymbols formatterSymbols = (DecimalFormatSymbols) formatter.getDecimalFormatSymbols().clone();
+
+        formatterSymbols.setInternationalCurrencySymbol(unit.getCurrency().getCode());
+        formatterSymbols.setCurrencySymbol(unit.getSymbol());
+
+        formatter.setParseBigDecimal(true);
+        formatter.setRoundingMode(RoundingMode.HALF_UP);
+        formatter.setDecimalFormatSymbols(formatterSymbols);
+        formatter.setMaximumFractionDigits(unit.getDecimals());
+
+        return formatter;
+    }
+
+    /* package */
+    final BRCryptoAmount core;
+
+    private final Unit unit;
 
     private Amount(BRCryptoAmount core, Unit unit) {
         this.core = core;
@@ -94,12 +120,33 @@ public final class Amount implements Comparable<Amount> {
         return new Amount(CryptoLibrary.INSTANCE.cryptoAmountNegate(core), unit);
     }
 
-    // TODO: String/Formatting functions
-
     /* package */ Optional<Double> doubleAmount(Unit asUnit) {
         IntByReference overflowRef = new IntByReference(BRCryptoBoolean.CRYPTO_FALSE);
         double value = CryptoLibrary.INSTANCE.cryptoAmountGetDouble(core, asUnit.core, overflowRef);
         return overflowRef.getValue() == BRCryptoBoolean.CRYPTO_TRUE ? Optional.absent() : Optional.of(value);
+    }
+
+    public Optional<String> toStringAsUnit(Unit asUnit, @Nullable NumberFormat numberFormatter) {
+        numberFormatter = numberFormatter != null ? numberFormatter : formatterWithUnit(asUnit);
+        return doubleAmount(asUnit).transform(numberFormatter::format);
+    }
+
+    public Optional<String> toStringFromPair(CurrencyPair pair, @Nullable NumberFormat numberFormatter) {
+        Optional<Amount> amount = pair.exchangeAsBase(this);
+        if (amount.isPresent()) {
+            return amount.get().toStringAsUnit(pair.getQuoteUnit(), numberFormatter);
+        } else {
+            return Optional.absent();
+        }
+    }
+
+    public String toStringWithBase(int base, String preface) {
+        checkArgument(base > 0, "Invalid base value");
+        UInt256.ByValue value = CryptoLibrary.INSTANCE.cryptoAmountGetValue(core);
+        Pointer ptr = CryptoLibrary.INSTANCE.coerceStringPrefaced(value, base, preface);
+        String str = ptr.getString(0, "UTF-8");
+        Native.free(Pointer.nativeValue(ptr));
+        return str;
     }
 
     @Override

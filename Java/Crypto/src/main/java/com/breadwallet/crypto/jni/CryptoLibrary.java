@@ -296,6 +296,12 @@ public interface CryptoLibrary extends Library {
     int addressValidateString(String addr);
 
 
+    /**
+     * Original signature : <code>char * coerceStringPrefaced (UInt256, int base, const char *)</code><br>
+     * <i>native declaration : ethereum/util/BRUtilMath.h</i>
+     */
+    Pointer coerceStringPrefaced(UInt256.ByValue value, int base, String preface);
+
     class BRCryptoAccount extends PointerType {
         public BRCryptoAccount(Pointer address) {
             super(address);

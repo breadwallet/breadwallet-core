@@ -1,6 +1,5 @@
 package com.breadwallet.crypto;
 
-import com.google.common.base.Function;
 import com.google.common.base.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -24,5 +23,22 @@ public final class CurrencyPair {
 
     public Optional<Amount> exchangeAsQuote(Amount amount) {
         return amount.doubleAmount(quoteUnit).transform(input -> Amount.create(input / exchangeRate, baseUnit));
+    }
+
+    public Unit getBaseUnit() {
+        return baseUnit;
+    }
+
+    public Unit getQuoteUnit() {
+        return quoteUnit;
+    }
+
+    public double getExchangeRate() {
+        return exchangeRate;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s/%s=%s", baseUnit.getName(), quoteUnit.getName(), exchangeRate);
     }
 }

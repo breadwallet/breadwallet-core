@@ -13,4 +13,9 @@ public final class WalletTransferAddedEvent implements WalletEvent {
     public Transfer getTransfer() {
         return transfer;
     }
+
+    @Override
+    public String toString() {
+        return "TransferAdded";
+    }
 }

@@ -50,37 +50,37 @@ public class BrdApiClient {
     }
 
     /* package */
-    void makeRequestJson(String networkName, JSONObject json, BlockchainCompletionHandler<Optional<String>> handler) {
+    void sendJsonRequest(String networkName, JSONObject json, BlockchainCompletionHandler<Optional<String>> handler) {
         makeAndSendRequest(Arrays.asList("ethq", networkName, "proxy"), ImmutableMultimap.of(), json, "POST",
                 new EmbeddedStringHandler(handler));
     }
 
     /* package */
-    void makeRequestQuery(String networkName, Multimap<String, String> params, JSONObject json,
-                                 BlockchainCompletionHandler<Optional<String>> handler) {
+    void sendQueryRequest(String networkName, Multimap<String, String> params, JSONObject json,
+                          BlockchainCompletionHandler<Optional<String>> handler) {
         makeAndSendRequest(Arrays.asList("ethq", networkName, "query"), params, json, "POST",
                 new EmbeddedStringHandler(handler));
     }
 
     /* package */
-    <T> void makeRequestQuery(String networkName, Multimap<String, String> params, JSONObject json,
-                              ArrayResponseParser<T> parser, BlockchainCompletionHandler<T> handler) {
+    <T> void sendQueryForArrayRequest(String networkName, Multimap<String, String> params, JSONObject json,
+                                      ArrayResponseParser<T> parser, BlockchainCompletionHandler<T> handler) {
         makeAndSendRequest(Arrays.asList("ethq", networkName, "query"), params, json, "POST",
                 new EmbeddedArrayHandler<T>(parser, handler));
     }
 
     /* package */
-    <T> void makeRequestToken(ArrayResponseParser<T> parser, BlockchainCompletionHandler<T> handler) {
+    <T> void sendTokenRequest(ArrayResponseParser<T> parser, BlockchainCompletionHandler<T> handler) {
         makeAndSendRequest(Collections.singletonList("currencies"), ImmutableMultimap.of("type", "erc20"), null, "GET",
                 new RootArrayHandler<T>(parser, handler));
     }
 
-    private <T> void makeAndSendRequest(List<String> segments,
+    private <T> void makeAndSendRequest(List<String> pathSegments,
                                     Multimap<String, String> params, @Nullable JSONObject json, String httpMethod,
                                     ResponseHandler<T> handler) {
         HttpUrl.Builder urlBuilder = HttpUrl.parse(baseUrl).newBuilder();
 
-        for (String segment : segments) {
+        for (String segment : pathSegments) {
             urlBuilder.addPathSegment(segment);
         }
 
@@ -128,7 +128,6 @@ public class BrdApiClient {
 
             @Override
             public void onFailure(Call call, IOException e) {
-                // TODO: Do we want to propagate this?
                 handler.handleError(new QuerySubmissionError(e.getMessage()));
             }
         });

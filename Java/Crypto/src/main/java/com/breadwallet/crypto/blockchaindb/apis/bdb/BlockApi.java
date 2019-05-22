@@ -34,20 +34,20 @@ public class BlockApi {
     public void getBlocks(String id, long beginBlockNumber, long endBlockNumber, boolean includeRaw,
                           boolean includeTx, boolean includeTxRaw, boolean includeTxProof,
                           BlockchainCompletionHandler<List<Block>> handler) {
-        executorService.submit(() -> getBlocksOnExecutor(id, beginBlockNumber, endBlockNumber, includeRaw, includeTx, includeTxRaw, includeTxProof, handler));
+        executorService.submit(() -> getBlocksOnExecutor(id, beginBlockNumber, endBlockNumber, includeRaw, includeTx,
+                includeTxRaw, includeTxProof, handler));
     }
 
     public void getBlock(String id, boolean includeRaw,
                          boolean includeTx, boolean includeTxRaw, boolean includeTxProof,
                          BlockchainCompletionHandler<Block> handler) {
-        String path = String.format("blocks/%s", id);
         Multimap<String, String> params = ImmutableListMultimap.of(
                 "include_raw", String.valueOf(includeRaw),
                 "include_tx", String.valueOf(includeTx),
                 "include_tx_raw", String.valueOf(includeTxRaw),
                 "include_tx_proof", String.valueOf(includeTxProof));
 
-        jsonClient.sendGetRequest(path, params, Block::asBlock, handler);
+        jsonClient.sendGetWithId("blocks", id, params, Block::asBlock, handler);
     }
 
     private void getBlocksOnExecutor(String id, long beginBlockNumber, long endBlockNumber, boolean includeRaw,
@@ -73,7 +73,8 @@ public class BlockApi {
                     endBlockNumber)));
             ImmutableMultimap<String, String> params = paramsBuilder.build();
 
-            jsonClient.sendGetRequest("transactions", params, Block::asBlocks, new BlockchainCompletionHandler<List<Block>>() {
+            jsonClient.sendGetForArray("blocks", params, Block::asBlocks,
+                    new BlockchainCompletionHandler<List<Block>>() {
                 @Override
                 public void handleData(List<Block> blocks) {
                     allBlocks.addAll(blocks);

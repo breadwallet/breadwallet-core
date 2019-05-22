@@ -13,4 +13,9 @@ public final class WalletBalanceUpdatedEvent implements WalletEvent {
     public Amount getBalance() {
         return balance;
     }
+
+    @Override
+    public String toString() {
+        return "BalanceUpdated";
+    }
 }

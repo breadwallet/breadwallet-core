@@ -14,6 +14,6 @@ public class EthTokenApi {
     }
 
     public void getTokensAsEth(int rid, BlockchainCompletionHandler<List<EthToken>> handler) {
-        client.makeRequestToken(EthToken::asTokens, handler);
+        client.sendTokenRequest(EthToken::asTokens, handler);
     }
 }

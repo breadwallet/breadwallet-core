@@ -49,7 +49,7 @@ public final class Utilities {
 
     public static long getLongFromString(JSONObject json, String name) throws JSONException {
         try {
-            return Long.parseLong(json.getString(name));
+            return Long.decode(json.getString(name));
         } catch (NumberFormatException e) {
             throw new JSONException("Invalid long value for " + name);
         }
@@ -57,7 +57,7 @@ public final class Utilities {
 
     public static Optional<Long> getOptionalLongFromString(JSONObject json, String name) {
         try {
-            return Optional.fromNullable(Long.parseLong(json.optString(name, null)));
+            return Optional.of(Long.decode(json.optString(name, null)));
         } catch (NumberFormatException e) {
             return Optional.absent();
         }

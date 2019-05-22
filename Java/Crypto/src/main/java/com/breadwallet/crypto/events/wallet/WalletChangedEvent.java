@@ -19,4 +19,9 @@ public final class WalletChangedEvent implements WalletEvent {
     public WalletState getNewState() {
         return newState;
     }
+
+    @Override
+    public String toString() {
+        return "StateChanged";
+    }
 }

@@ -24,7 +24,7 @@ public class EthBlockApi {
                 "id", rid
         ));
 
-        client.makeRequestJson(networkName, json, new BlockchainCompletionHandler<Optional<String>>() {
+        client.sendJsonRequest(networkName, json, new BlockchainCompletionHandler<Optional<String>>() {
             @Override
             public void handleData(Optional<String> data) {
                 handler.handleData(data.or("0xffc0"));

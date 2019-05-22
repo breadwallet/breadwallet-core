@@ -44,22 +44,20 @@ public class TransactionApi {
 
     public void getTransaction(String id, boolean includeRaw, boolean includeProof,
                                BlockchainCompletionHandler<Transaction> handler) {
-        // TODO: I don't think we should be building it like this
-        String path = String.format("transactions/%s", id);
         Multimap<String, String> params = ImmutableListMultimap.of("include_proof", String.valueOf(includeProof),
                 "include_raw", String.valueOf(includeRaw));
 
-        jsonClient.sendGetRequest(path, params, Transaction::asTransaction, handler);
+        jsonClient.sendGetWithId("transactions", id, params, Transaction::asTransaction, handler);
     }
 
     public void putTransaction(String id, byte[] data, BlockchainCompletionHandler<Transaction> handler) {
         JSONObject json = new JSONObject(ImmutableMap.of("transaction", Base64.encode(data, Base64.DEFAULT)));
         Multimap<String, String> params = ImmutableListMultimap.of("blockchain_id", id);
-        jsonClient.sendRequest("transactions", params, json, "PUT", Transaction::asTransaction, handler);
+        jsonClient.sendPut("transactions", params, json, Transaction::asTransaction, handler);
     }
 
-    private void getTransactionsOnExecutor(String id, List<String> addresses, long beginBlockNumber, long endBlockNumber,
-                                           boolean includeRaw, boolean includeProof,
+    private void getTransactionsOnExecutor(String id, List<String> addresses, long beginBlockNumber,
+                                           long endBlockNumber, boolean includeRaw, boolean includeProof,
                                            BlockchainCompletionHandler<List<Transaction>> handler) {
         final QueryError[] error = {null};
         List<Transaction> allTransactions = new ArrayList<>();
@@ -79,19 +77,20 @@ public class TransactionApi {
             paramsBuilder.putAll("end_height", String.valueOf(Math.min(i + PAGINATION_COUNT, endBlockNumber)));
             ImmutableMultimap<String, String> params = paramsBuilder.build();
 
-            jsonClient.sendGetRequest("transactions", params, Transaction::asTransactions, new BlockchainCompletionHandler<List<Transaction>>() {
-                @Override
-                public void handleData(List<Transaction> transactions) {
-                    allTransactions.addAll(transactions);
-                    sema.release();
-                }
+            jsonClient.sendGetForArray("transactions", params, Transaction::asTransactions,
+                    new BlockchainCompletionHandler<List<Transaction>>() {
+                        @Override
+                        public void handleData(List<Transaction> transactions) {
+                            allTransactions.addAll(transactions);
+                            sema.release();
+                        }
 
-                @Override
-                public void handleError(QueryError e) {
-                    error[0] = e;
-                    sema.release();
-                }
-            });
+                        @Override
+                        public void handleError(QueryError e) {
+                            error[0] = e;
+                            sema.release();
+                        }
+                    });
 
             sema.acquireUninterruptibly();
         }

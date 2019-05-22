@@ -9,7 +9,7 @@ public class AmountAIT {
     public void testAmountCreateBtc() {
         Currency btc = new Currency("Bitcoin", "Bitcoin", "BTC", "native");
         Unit satoshi_btc = new Unit(btc, "BTC-SAT", "Satoshi", "SAT");
-        Unit btc_btc = new Unit(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, (byte) 8);
+        Unit btc_btc = new Unit(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, 8);
 
         Amount btc1 = Amount.create(100000000, satoshi_btc);
         assertEquals(new Double(100000000), btc1.doubleAmount(satoshi_btc).get());
@@ -37,14 +37,15 @@ public class AmountAIT {
         assertEquals(new Double(-1.5), btc4.doubleAmount(btc_btc).get());
         assertEquals(new Double(-150000000), btc4.doubleAmount(satoshi_btc).get());
 
-        // TODO: Add in formatting tests
+        assertEquals("-B1.50", btc4.toStringAsUnit(btc_btc, null));
+        assertEquals("-SAT150,000,000", btc4.toStringAsUnit(satoshi_btc, null).get());
     }
 
     @Test
     public void testAmountCreateBtcString() {
         Currency btc = new Currency("Bitcoin", "Bitcoin", "BTC", "native");
         Unit satoshi_btc = new Unit(btc, "BTC-SAT", "Satoshi", "SAT");
-        Unit btc_btc = new Unit(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, (byte) 8);
+        Unit btc_btc = new Unit(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, 8);
 
         Amount btc1s = Amount.create("100000000", false, satoshi_btc).get();
         assertEquals(new Double(100000000), btc1s.doubleAmount(satoshi_btc).get());
@@ -59,12 +60,14 @@ public class AmountAIT {
         Amount btc3s = Amount.create("0x5f5e100", false, satoshi_btc).get();
         assertEquals(new Double(100000000), btc3s.doubleAmount(satoshi_btc).get());
         assertEquals(new Double(1), btc3s.doubleAmount(btc_btc).get());
-        // TODO: Add string tests
+        assertEquals("SAT100,000,000", btc3s.toStringAsUnit(satoshi_btc, null).get());
+        assertEquals("B1.00", btc3s.toStringAsUnit(btc_btc, null).get());
 
         Amount btc4s = Amount.create("0x5f5e100", true, satoshi_btc).get();
         assertEquals(new Double(-100000000), btc4s.doubleAmount(satoshi_btc).get());
         assertEquals(new Double(-1), btc4s.doubleAmount(btc_btc).get());
-        // TODO: Add string tests
+        assertEquals("-SAT100,000,000", btc4s.toStringAsUnit(satoshi_btc, null).get());
+        assertEquals("-B1.00", btc4s.toStringAsUnit(btc_btc, null).get());
 
         assertFalse(Amount.create("w0x5f5e100", false, satoshi_btc).isPresent());
         assertFalse(Amount.create("0x5f5e100w", false, satoshi_btc).isPresent());
@@ -96,8 +99,8 @@ public class AmountAIT {
         Currency eth = new Currency("Ethereum", "Ethereum", "ETH", "native");
 
         Unit wei_eth = new Unit(eth, "ETH-WEI", "WEI", "wei");
-        Unit gwei_eth = new Unit(eth, "ETH-GWEI", "GWEI",  "gwei", wei_eth, (byte) 9);
-        Unit ether_eth = new Unit(eth, "ETH-ETH", "ETHER", "E",    wei_eth, (byte) 18);
+        Unit gwei_eth = new Unit(eth, "ETH-GWEI", "GWEI",  "gwei", wei_eth, 9);
+        Unit ether_eth = new Unit(eth, "ETH-ETH", "ETHER", "E",    wei_eth, 18);
 
         Amount eth1 = Amount.create(1e9, gwei_eth);
         Amount eth2 = Amount.create(1.0, ether_eth);
@@ -134,5 +137,12 @@ public class AmountAIT {
 
         Amount a5 = Amount.create( "1.234567891234567891", false, ether_eth).get();
         assertEquals(new Double(1234567891234567891L), a5.doubleAmount(wei_eth).get());
+        // TODO: The swift behaviour diverges here; how do we want to handle?
+        // assertEquals("wei1,234,567,891,234,570,000", a5.toStringAsUnit(wei_eth, null).get());
+        assertEquals("1234567891234567891", a5.toStringWithBase(10, ""));
+
+        Amount a6 = Amount.create("1", false, ether_eth).get();
+        assertEquals("1000000000000000000", a6.toStringWithBase(10, ""));
+        assertEquals("0xDE0B6B3A7640000".toLowerCase(), a6.toStringWithBase(16, "0x"));
     }
 }

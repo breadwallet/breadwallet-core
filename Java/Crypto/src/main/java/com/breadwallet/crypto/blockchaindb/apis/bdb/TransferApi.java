@@ -6,6 +6,7 @@ import com.breadwallet.crypto.blockchaindb.errors.QueryModelError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transfer;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
 import org.json.JSONArray;
@@ -29,13 +30,11 @@ public class TransferApi {
         for (String address : addresses) paramBuilders.put("address", address);
         Multimap<String, String> params = paramBuilders.build();
 
-        jsonClient.sendGetRequest("transfers", params, Transfer::asTransfers, handler);
+        jsonClient.sendGetForArray("transfers", params, Transfer::asTransfers, handler);
     }
 
     public void getTransfer(String id, BlockchainCompletionHandler<Transfer> handler) {
-        // TODO: I don't think we should be building it like this
-        String path = String.format("transfers/%s", id);
-        jsonClient.sendGetRequest(path, ImmutableListMultimap.of(), Transfer::asTransfer, handler);
+        jsonClient.sendGetWithId("transfers", id, ImmutableMultimap.of(), Transfer::asTransfer, handler);
     }
 
 }

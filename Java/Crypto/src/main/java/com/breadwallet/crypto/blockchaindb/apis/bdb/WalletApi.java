@@ -5,6 +5,7 @@ import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryModelError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Wallet;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 
 import org.json.JSONObject;
@@ -32,31 +33,20 @@ public class WalletApi {
         });
     }
 
-    public void getWallet(String id, BlockchainCompletionHandler<Wallet> handler) {
-        // TODO: I don't think we should be building it like this
-        String path = String.format("wallets/%s", id);
-        makeWalletRequest(null, path, "GET", handler);
+    public void createWallet(Wallet wallet, BlockchainCompletionHandler<Wallet> handler) {
+        jsonClient.sendPost("wallets", ImmutableMultimap.of(), Wallet.asJson(wallet), Wallet::asWallet, handler);
     }
 
-    public void createWallet(Wallet wallet, BlockchainCompletionHandler<Wallet> handler) {
-        makeWalletRequest(wallet, "wallets", "POST", handler);
+    public void getWallet(String id, BlockchainCompletionHandler<Wallet> handler) {
+        jsonClient.sendGetWithId("wallets", id, ImmutableMultimap.of(), Wallet::asWallet, handler);
     }
 
     public void updateWallet(Wallet wallet, BlockchainCompletionHandler<Wallet> handler) {
-        // TODO: I don't think we should be building it like this
-        String path = String.format("wallets/%s", wallet.getId());
-        makeWalletRequest(wallet, path, "PUT", handler);
+        jsonClient.sendPutWithId("wallets", wallet.getId(), ImmutableMultimap.of(), Wallet.asJson(wallet),
+                Wallet::asWallet, handler);
     }
 
     public void deleteWallet(String id, BlockchainCompletionHandler<Wallet> handler) {
-        // TODO: I don't think we should be building it like this
-        String path = String.format("wallets/%s", id);
-        makeWalletRequest(null, path, "DELETE", handler);
-    }
-
-    private void makeWalletRequest(Wallet wallet, String path, String httpMethod,
-                                   BlockchainCompletionHandler<Wallet> handler) {
-        JSONObject json = wallet == null ? null : Wallet.asJson(wallet);
-        jsonClient.sendRequest(path, ImmutableMultimap.of(), json, httpMethod, Wallet::asWallet, handler);
+        jsonClient.sendDeleteWithId("wallets", id, ImmutableMultimap.of(), Wallet::asWallet, handler);
     }
 }

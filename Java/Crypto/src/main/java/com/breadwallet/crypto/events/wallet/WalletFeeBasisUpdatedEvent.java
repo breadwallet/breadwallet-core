@@ -13,4 +13,9 @@ public final class WalletFeeBasisUpdatedEvent implements WalletEvent {
     public TransferFeeBasis getFeeBasis() {
         return feeBasis;
     }
+
+    @Override
+    public String toString() {
+        return "FeeBasisUpdated";
+    }
 }

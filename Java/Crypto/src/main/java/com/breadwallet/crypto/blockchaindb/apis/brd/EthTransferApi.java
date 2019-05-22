@@ -41,7 +41,7 @@ public class EthTransferApi {
                 "id", rid
         ));
 
-        client.makeRequestJson(networkName, json, new BlockchainCompletionHandler<Optional<String>>() {
+        client.sendJsonRequest(networkName, json, new BlockchainCompletionHandler<Optional<String>>() {
             @Override
             public void handleData(Optional<String> result) {
                 // TODO: Do we want default values?
@@ -70,7 +70,7 @@ public class EthTransferApi {
                 "endBlock", String.valueOf(endBlockNumber)
         );
 
-        client.makeRequestQuery(networkName, params, json, EthTransaction::asTransactions, handler);
+        client.sendQueryForArrayRequest(networkName, params, json, EthTransaction::asTransactions, handler);
     }
 
     public void getNonceAsEth(String networkName, String address, int rid,
@@ -82,7 +82,7 @@ public class EthTransferApi {
                 "id", rid
         ));
 
-        client.makeRequestJson(networkName, json, new BlockchainCompletionHandler<Optional<String>>() {
+        client.sendJsonRequest(networkName, json, new BlockchainCompletionHandler<Optional<String>>() {
             @Override
             public void handleData(Optional<String> result) {
                 // TODO: Do we want default values?
@@ -117,7 +117,7 @@ public class EthTransferApi {
             paramsBuilders.put("address", contract);
         }
 
-        client.makeRequestQuery(networkName, paramsBuilders.build(), json, EthLog::asLogs, handler);
+        client.sendQueryForArrayRequest(networkName, paramsBuilders.build(), json, EthLog::asLogs, handler);
     }
 
     public void getBlocksAsEth(String networkName, String address, int interests, long blockStart, long blockEnd,
@@ -128,7 +128,6 @@ public class EthTransferApi {
 
     private void getBlocksAsEthOnExecutor(String networkName, String address, int interests, long blockStart,
                                           long blockEnd, int rid, BlockchainCompletionHandler<List<Long>> handler) {
-        // TODO: Move this out to an API (either combine transaction/logs or pass in the APIs to the block api)
         final QueryError[] error = {null};
 
         List<EthTransaction> transactions = new ArrayList<>();
@@ -168,6 +167,7 @@ public class EthTransferApi {
 
         if (error[0] != null) {
             handler.handleError(error[0]);
+
         } else {
             List<Long> numbers = new ArrayList<>();
             for (EthTransaction transaction: transactions) {

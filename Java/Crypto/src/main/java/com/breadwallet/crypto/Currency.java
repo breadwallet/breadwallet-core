@@ -20,7 +20,9 @@ public final class Currency {
     public static final String CODE_AS_BCH = "bch";
     public static final String CODE_AS_ETH = "eth";
 
-    /* package */ final BRCryptoCurrency core;
+    /* package */
+    final BRCryptoCurrency core;
+
     private final String uids;
 
     /* package */ Currency(String uids, String name, String code, String type) {

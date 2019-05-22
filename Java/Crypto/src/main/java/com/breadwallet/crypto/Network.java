@@ -9,10 +9,6 @@
  */
 package com.breadwallet.crypto;
 
-import com.breadwallet.crypto.Address;
-import com.breadwallet.crypto.Currency;
-import com.breadwallet.crypto.Unit;
-import com.breadwallet.crypto.WalletManagerMode;
 import com.google.common.base.Optional;
 
 import java.util.List;
@@ -91,5 +87,10 @@ public final class Network {
     public Optional<Address> addressFor(String address) {
         // TODO: Fill in once impl code is in place
         return Optional.absent();
+    }
+
+    @Override
+    public String toString() {
+        return name;
     }
 }

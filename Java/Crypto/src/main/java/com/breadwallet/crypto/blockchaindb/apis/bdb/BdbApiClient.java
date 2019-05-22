@@ -20,6 +20,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import okhttp3.Call;
@@ -48,29 +51,98 @@ public class BdbApiClient {
         this.dataTask = dataTask;
     }
 
-    public <T> void sendGetRequest(String path, Multimap<String, String> params, ObjectResponseParser<T> parser, BlockchainCompletionHandler<T> handler) {
-        makeAndSendRequest(path, params, null, "GET", new ObjectHandler<T>(parser, handler));
+    // Create (Crud)
+
+    <T> void sendPost(String resource, Multimap<String, String> params, JSONObject json, ObjectResponseParser<T> parser,
+                      BlockchainCompletionHandler<T> handler) {
+        makeAndSendRequest(
+                Collections.singletonList(resource),
+                params,
+                json,
+                "POST",
+                new ObjectHandler<>(parser, handler));
     }
 
-    public <T> void sendGetRequest(String path, Multimap<String, String> params, ArrayResponseParser<T> parser, BlockchainCompletionHandler<T> handler) {
-        makeAndSendRequest(path, params, null, "GET", new ArrayHandler<T>(path, parser, handler));
+    // Read (cRud)
+
+    /* package */
+    <T> void sendGet(String resource, Multimap<String, String> params, ObjectResponseParser<T> parser,
+                     BlockchainCompletionHandler<T> handler) {
+        makeAndSendRequest(
+                Collections.singletonList(resource),
+                params,
+                null,
+                "GET",
+                new ObjectHandler<>(parser, handler));
     }
 
-    public <T> void sendRequest(String path, Multimap<String, String> params, @Nullable JSONObject json,
-                                String httpMethod, ObjectResponseParser<T> parser, BlockchainCompletionHandler<T> handler) {
-        makeAndSendRequest(path, params, json, httpMethod, new ObjectHandler<T>(parser, handler));
+    /* package */
+    <T> void sendGetForArray(String resource, Multimap<String, String> params, ArrayResponseParser<T> parser,
+                             BlockchainCompletionHandler<T> handler) {
+        makeAndSendRequest(
+                Collections.singletonList(resource),
+                params,
+                null,
+                "GET",
+                new ArrayHandler<>(resource, parser, handler));
     }
 
-    public <T> void sendRequest(String path, Multimap<String, String> params, @Nullable JSONObject json,
-                            String httpMethod, ArrayResponseParser<T> parser, BlockchainCompletionHandler<T> handler) {
-        makeAndSendRequest(path, params, json, httpMethod, new ArrayHandler(path, parser, handler));
+    /* package */
+    <T> void sendGetWithId(String resource, String id, Multimap<String, String> params, ObjectResponseParser<T> parser,
+                           BlockchainCompletionHandler<T> handler) {
+        makeAndSendRequest(
+                Arrays.asList(resource, id),
+                params,
+                null,
+                "GET",
+                new ObjectHandler<>(parser, handler));
     }
 
-    private void makeAndSendRequest(String path,
+    // Update (crUd)
+
+    <T> void sendPut(String resource, Multimap<String, String> params, JSONObject json,
+                     ObjectResponseParser<T> parser, BlockchainCompletionHandler<T> handler) {
+        makeAndSendRequest(
+                Collections.singletonList(resource),
+                params,
+                json,
+                "PUT",
+                new ObjectHandler<>(parser, handler));
+    }
+
+    <T> void sendPutWithId(String resource, String id, Multimap<String, String> params, JSONObject json,
+                           ObjectResponseParser<T> parser, BlockchainCompletionHandler<T> handler) {
+        makeAndSendRequest(
+                Arrays.asList(resource, id),
+                params,
+                json,
+                "PUT",
+                new ObjectHandler<>(parser, handler));
+    }
+
+    // Delete (crdD)
+
+    /* package */
+    <T> void sendDeleteWithId(String resource, String id, Multimap<String, String> params,
+                              ObjectResponseParser<T> parser,
+                              BlockchainCompletionHandler<T> handler) {
+        makeAndSendRequest(
+                Arrays.asList(resource, id),
+                params,
+                null,
+                "DELETE",
+                new ObjectHandler<>(parser, handler));
+    }
+
+    private void makeAndSendRequest(List<String> pathSegments,
                                     Multimap<String, String> params, @Nullable JSONObject json, String httpMethod,
                                     ResponseHandler handler) {
         HttpUrl.Builder urlBuilder = HttpUrl.parse(baseUrl).newBuilder();
-        urlBuilder.addPathSegments(path);
+
+        for (String segment : pathSegments) {
+            urlBuilder.addPathSegment(segment);
+        }
+
         for (Map.Entry<String, String> entry : params.entries()) {
             String key = entry.getKey();
             String value = entry.getValue();
@@ -109,7 +181,6 @@ public class BdbApiClient {
 
             @Override
             public void onFailure(Call call, IOException e) {
-                // TODO: Do we want to propagate this?
                 handler.handleError(new QuerySubmissionError(e.getMessage()));
             }
         });

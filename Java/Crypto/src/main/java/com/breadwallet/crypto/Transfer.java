@@ -34,11 +34,7 @@ public interface Transfer {
     Optional<TransferHash> getHash();
 
     default Optional<TransferConfirmation> getConfirmation() {
-        TransferState state = getState();
-        if (state.type == TransferState.Type.INCLUDED) {
-            return Optional.of(state.includedConfirmation);
-        }
-        return Optional.absent();
+        return getState().getIncludedConfirmation();
     }
 
     default Optional<Long> getConfirmationsAt(long blockHeight) {
