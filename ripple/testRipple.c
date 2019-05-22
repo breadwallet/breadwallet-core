@@ -18,8 +18,8 @@
 #include "support/BRBIP32Sequence.h"
 #include "support/BRBIP39WordsEn.h"
 #include "BRKey.h"
-#include "testtxlist1.h"
-#include "testtxlist2.h"
+#include "testRippleTxList1.h"
+#include "testRippleTxList2.h"
 
 int debug_log = 0;
 

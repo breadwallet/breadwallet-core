@@ -35,20 +35,6 @@ extern "C" {
 
 // base58 and base58check encoding: https://en.bitcoin.it/wiki/Base58Check_encoding
 
-/*
- * Base58 encoder - with user supplied alphabet
- *
- * @param str      output buffer to hold encoded string
- * @param strLen   length of str buffer
- * @param data     input buffer - bytes to encode
- * @param dataLen  length of data buffer
- * @param alphabet the alphabet to use for base58 encoding
- *
- * @return number of characters written to str including NULL terminator
- *         or total strLen needed if str is NULL
- */
-size_t BRBase58EncodeEx(char *str, size_t strLen, const uint8_t *data, size_t dataLen, const char *alphabet);
-
 // returns the number of characters written to str including NULL terminator, or total strLen needed if str is NULL
 // NOTE: this function calls BRBase58EncodeEx using the bitcoin alphabet. If you need to
 // use a different alphabet call BRBase58EncodeEx directly
@@ -64,6 +50,23 @@ size_t BRBase58CheckEncode(char *str, size_t strLen, const uint8_t *data, size_t
 
 // returns the number of bytes written to data, or total dataLen needed if data is NULL
 size_t BRBase58CheckDecode(uint8_t *data, size_t dataLen, const char *str);
+
+// Extended versions of base58 encode/decode that allow caller to control
+// the alphabet being used.  This is needed for Ripple (and perhaps others)
+
+/*
+ * Base58 encoder - with user supplied alphabet
+ *
+ * @param str      output buffer to hold encoded string
+ * @param strLen   length of str buffer
+ * @param data     input buffer - bytes to encode
+ * @param dataLen  length of data buffer
+ * @param alphabet the alphabet to use for base58 encoding
+ *
+ * @return number of characters written to str including NULL terminator
+ *         or total strLen needed if str is NULL
+ */
+ size_t BRBase58EncodeEx(char *str, size_t strLen, const uint8_t *data, size_t dataLen, const char *alphabet);
 
 /*
  * Base58 decoder - with user supplied alphabet
