@@ -47,6 +47,10 @@ public class BREthereumTransfer extends BREthereumEWM.ReferenceWithDefaultUnit {
         return ewm.get().jniTransactionGetIdentifier(identifier);
     }
 
+    public String getOriginationTransactionHash() {
+        return ewm.get().jniTransactionOriginatingTransactionHash(identifier);
+    }
+    
     //
     // Amount
     //
