@@ -27,15 +27,19 @@
 #include "BRCrypto.h"
 #include <inttypes.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <assert.h>
 
 // base58 and base58check encoding: https://en.bitcoin.it/wiki/Base58Check_encoding
+static const char * bitcoinAlphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
 // returns the number of characters written to str including NULL terminator, or total strLen needed if str is NULL
-size_t BRBase58Encode(char *str, size_t strLen, const uint8_t *data, size_t dataLen)
+size_t BRBase58EncodeEx(char *str, size_t strLen, const uint8_t *data, size_t dataLen, const char *alphabet)
 {
-    static const char chars[] = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+    const char * chars = alphabet;
+    assert(strlen(alphabet) >= 58);
+
     size_t i, j, len, zcount = 0;
     
     assert(data != NULL);
@@ -71,11 +75,16 @@ size_t BRBase58Encode(char *str, size_t strLen, const uint8_t *data, size_t data
     return (! str || len <= strLen) ? len : 0;
 }
 
+size_t BRBase58Encode(char *str, size_t strLen, const uint8_t *data, size_t dataLen)
+{
+    return BRBase58EncodeEx(str, strLen, data, dataLen, bitcoinAlphabet);
+}
+
 // returns the number of bytes written to data, or total dataLen needed if data is NULL
 size_t BRBase58Decode(uint8_t *data, size_t dataLen, const char *str)
 {
     size_t i = 0, j, len, zcount = 0;
-    
+
     assert(str != NULL);
     while (str && *str == '1') str++, zcount++; // count leading zeroes
     
@@ -181,5 +190,55 @@ size_t BRBase58CheckDecode(uint8_t *data, size_t dataLen, const char *str)
     
     mem_clean(buf, bufLen);
     if (buf != _buf) free(buf);
+    return (! data || len <= dataLen) ? len : 0;
+}
+
+size_t BRBase58DecodeEx(uint8_t* data, size_t dataLen, const char *str, const char* alphabet)
+{
+    int reverseLookup[256];
+    memset(&reverseLookup[0], -1, sizeof(reverseLookup));
+    int map_num = 0;
+    for (int i = 0; i < strlen(alphabet); i++) {
+        reverseLookup[alphabet[i]] = map_num++;
+    }
+
+    // Skip and count leading zeroes
+    int zcount = 0;
+    while (str && reverseLookup[*str] == 0) str++, zcount++;
+
+    // Create buffer large enough to hold the decode bytes
+    int bufSize = (str) ? (int)(strlen(str)*733/1000 + 1) : 0;
+    uint8_t buf[bufSize];
+    memset(buf, 0, sizeof(buf));
+
+    // Do the decoding
+    while (str && *str)
+    {
+        int carry = reverseLookup[*str];
+        if (carry == -1) return 0;
+
+        for (int i = bufSize - 1; i >= 0; i--)
+        {
+            carry += 58 * buf[i];
+            buf[i] = carry % 256;
+            carry /= 256;
+        }
+        str++;
+    }
+
+    // Skip leading zeros in buf
+    int i = 0;
+    while(buf[i] == 0) { i++; }
+
+    // Calculate the length
+    size_t len = zcount + sizeof(buf) - i;
+
+    // If the caller has passed in buffer large enough then copy to it
+    if (data && len <= dataLen) {
+        if (zcount > 0) memset(data, 0, zcount);
+        memcpy(&data[zcount], &buf[i], sizeof(buf) - i);
+    }
+
+    // ONLY return 0 if the user passed in a buffer but it was not large enough
     return (! data || len <= dataLen) ? len : 0;
 }
