@@ -59,19 +59,14 @@ class TransferViewController: UIViewController, TransferListener {
     }
 
 
-    func canonicalAmount (_ amount: Amount, sign: String) -> String {
-        return amount.string (as: amount.unit)
-            .map { sign + $0 } ?? "NaN"
-    }
-
     func updateView () {
 //        let address = UIApplication.sharedClient.node.address
         let date: Date? = (nil == transfer.confirmation ? nil
             : Date (timeIntervalSince1970: TimeInterval(transfer.confirmation!.timestamp)))
         let hash = transfer.hash
 
-        amountLabel.text = canonicalAmount(transfer.amount, sign: (transfer.isSent ? "-" : "+"))
-        feeLabel.text  = canonicalAmount(transfer.fee, sign: "")
+        amountLabel.text = transfer.amountDirected.description
+        feeLabel.text  =  transfer.fee.description
         dateLabel.text = date.map { dateFormatter.string(from: $0) } ?? "<pending>"
         sendLabel.text = transfer.source?.description ?? "<unknown>"
         recvLabel.text = transfer.target?.description ?? "<unknown>"
@@ -79,6 +74,8 @@ class TransferViewController: UIViewController, TransferListener {
         identifierLabel.text = hash.map { $0.description } ?? "<pending>"
 
         confLabel.text = transfer.confirmation.map { "Yes @ \($0.blockNumber)" } ?? "No"
+        confCountLabel.text = transfer.confirmations?.description ?? ""
+        
         switch transfer.state {
         case .failed(let reason):
             stateLabel.text = "\(transfer.state.description): \(reason)"
@@ -100,7 +97,7 @@ class TransferViewController: UIViewController, TransferListener {
     }
 
     @IBAction func doResubmit(_ sender: UIButton) {
-        NSLog ("Want to Resubmit")
+        print ("APP: TVC: Want to Resubmit")
 //        if case .failed(let error) = transfer.state {
 //            var alertMessage: String = "Okay to resubmit?"
 //            var alertAction: UIAlertAction?
@@ -180,7 +177,7 @@ class TransferViewController: UIViewController, TransferListener {
      * the blockchain" / "being stuck"
      */
     @IBAction func doCancel(_ sender: UIButton) {
-        NSLog ("Want to Cancel")
+        print ("APP: TVC: Want to Cancel")
         let alert = UIAlertController (title: "Cancel Transaction for <small-fee> ETH",
                                        message: "Are you sure?",
                                        preferredStyle: UIAlertController.Style.actionSheet)
@@ -216,6 +213,7 @@ class TransferViewController: UIViewController, TransferListener {
     @IBOutlet var recvLabel: CopyableLabel!
     @IBOutlet var identifierLabel: UILabel!
     @IBOutlet var confLabel: UILabel!
+    @IBOutlet var confCountLabel: UILabel!
     @IBOutlet var stateLabel: UILabel!
     @IBOutlet var cancelButton: UIButton!
     @IBOutlet var resubmitButton: UIButton!
@@ -224,7 +222,7 @@ class TransferViewController: UIViewController, TransferListener {
 
     func handleTransferEvent(system: System, manager: WalletManager, wallet: Wallet, transfer: Transfer, event: TransferEvent) {
         DispatchQueue.main.async {
-            NSLog ("TransferViewController TransferEvent: \(event)")
+            print ("APP: TVC: TransferEvent: \(event)")
             guard self.wallet === wallet /* && view is visible */  else { return }
 
             // This, for sure
@@ -251,6 +249,9 @@ class TransferViewController: UIViewController, TransferListener {
                 case .deleted:
                     break // nearly impossible
                 }
+                break
+            case .confirmation(let count):
+                self.confCountLabel.text = count.description
                 break
             case .deleted:
                 break // nearly impossible

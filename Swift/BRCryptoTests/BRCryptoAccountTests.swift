@@ -24,7 +24,8 @@ class BRCryptoAccountTests: XCTestCase {
         let phrase  = "ginger settle marine tissue robot crane night number ramp coast roast critic"
         let address = "0x8fB4CB96F7C15F9C39B3854595733F728E1963Bc"
 
-        guard let a1 = Account.createFrom (phrase: phrase)
+        let walletId = UUID (uuidString: "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96")?.uuidString ?? "empty-wallet-id"
+        guard let a1 = Account.createFrom (phrase: phrase, uids: walletId)
             else { XCTAssert(false); return}
 
         XCTAssert (a1.addressAsETH == address)
@@ -32,7 +33,7 @@ class BRCryptoAccountTests: XCTestCase {
 
 
         let d2 = Account.deriveSeed (phrase: phrase)
-        guard let a2 = Account.createFrom (seed: d2) else { XCTAssert (false); return }
+        guard let a2 = Account.createFrom (seed: d2, uids: walletId) else { XCTAssert (false); return }
         XCTAssert (a2.addressAsETH == address)
     }
 

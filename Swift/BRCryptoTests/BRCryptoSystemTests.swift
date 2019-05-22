@@ -11,7 +11,9 @@
 import XCTest
 @testable import BRCrypto
 
-class TestListener: SystemListener {
+fileprivate class TestListener: SystemListener {
+    // XCTestExpectation ::  expectation = XCTestExpectation (description: "")
+
     func handleSystemEvent(system: System, event: SystemEvent) {
         switch event {
         default:
@@ -40,22 +42,6 @@ class TestListener: SystemListener {
             break
         default:
             break
-//        case .changed(let oldState, let newState):
-//            break
-//        case .deleted:
-//            break
-//        case .walletAdded(let wallet):
-//            break
-//        case .walletChanged(let wallet):
-//            break
-//        case .walletDeleted(let wallet):
-//            break
-//        case .syncStarted:
-//            break
-//        case .syncProgress(let percentComplete):
-//            break
-//        case .syncEnded(let error):
-//            break
         }
     }
 
@@ -64,39 +50,16 @@ class TestListener: SystemListener {
 
     func handleTransferEvent(system: System, manager: WalletManager, wallet: Wallet, transfer: Transfer, event: TransferEvent) {
     }
-
-
 }
 
 class BRCryptoSystemTests: BRCryptoBaseTests {
 //    let url  = URL (string: "http:/brd.com/")!
 
-    var account: Account!
     var storagePath: String!
 
     override func setUp() {
         super.setUp()
-
-        account = Account.createFrom (phrase: paperKey)!
-
-        storagePath = FileManager.default
-            .urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Core").path
-
-        do {
-            if FileManager.default.fileExists(atPath: storagePath) {
-                try FileManager.default.removeItem(atPath: storagePath)
-            }
-
-            try FileManager.default.createDirectory (atPath: storagePath,
-                                                     withIntermediateDirectories: true,
-                                                     attributes: nil)
-        }
-        catch let error as NSError {
-            print("Error: \(error.localizedDescription)")
-        }
-
-        NSLog ("StoragePath: \(storagePath ?? "<none>")");
+        print ("TST: StoragePath: \(coreDataDir ?? "<none>")");
     }
 
     override func tearDown() {
@@ -105,13 +68,13 @@ class BRCryptoSystemTests: BRCryptoBaseTests {
     func testSystem() {
         let listener = TestListener ()
 
-        let sys = SystemBase (listener: listener,
-                              account: account,
-                              path: storagePath,
-                              query: BlockChainDB())
+        SystemBase.resetForTest()
+        let sys = SystemBase.create (listener: listener,
+                                     account: account,
+                                     path: coreDataDir,
+                                     query: BlockChainDB())
 
         sys.start (networksNeeded: ["bitcoin-mainnet", "ethereum-mainnet"]);
         sleep(10)
     }
-
 }

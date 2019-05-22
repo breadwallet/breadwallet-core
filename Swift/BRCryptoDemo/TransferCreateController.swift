@@ -27,10 +27,10 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
     }
 
     var isEthCurrency: Bool {
-        return wallet.currency == Ethereum.currency
+        return wallet.currency.code == Currency.codeAsETH
     }
     var isBitCurrency: Bool {
-        return wallet.currency == Bitcoin.currency || wallet.currency == Bitcash.currency
+        return wallet.currency.code == Currency.codeAsBTC || wallet.currency.code == Currency.codeAsBCH
     }
 
     var isTokCurrency: Bool {
@@ -52,17 +52,17 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
         amountSlider.minimumValue = 0.0
         amountSlider.maximumValue = 0.001  //  Float (wallet.balance.amount)!
         amountSlider.value = 0.0
-        switch wallet.currency {
-        case Ethereum.currency:
-            recvField.text = (wallet.manager.network == Ethereum.Networks.mainnet
+        switch wallet.currency.code {
+        case Currency.codeAsETH:
+            recvField.text = (wallet.manager.network.isMainnet
                 ? "0x19454a70538bfbdbd7abf3ac8d274d5cb2514056" /* "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62" */
                 : "0xbDFdAd139440D2Db9BA2aa3B7081C2dE39291508");
-        case Bitcoin.currency:
-            recvField.text = (wallet.manager.network == Bitcoin.Networks.mainnet
+        case Currency.codeAsBTC:
+            recvField.text = (wallet.manager.network.isMainnet
                 ? ""
                 : "mv4rnyY3Su5gjcDNzbMLKBQkBicCtHUtFB")
-        case Bitcash.currency:
-            recvField.text = (wallet.manager.network == Bitcash.Networks.mainnet
+        case Currency.codeAsBCH:
+            recvField.text = (wallet.manager.network.isMainnet
                 ? ""
                 : "mv4rnyY3Su5gjcDNzbMLKBQkBicCtHUtFB")
         default:
@@ -85,7 +85,7 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
     }
     */
     @IBAction func submit(_ sender: UIBarButtonItem) {
-        NSLog ("Want to submit")
+        print ("APP: TCC: Want to submit")
         let value = (oneBitcoinSelected
             ? 0.01
             : (oneEtherSelected
@@ -97,22 +97,27 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
             preferredStyle: UIAlertController.Style.actionSheet)
 
         alert.addAction(UIAlertAction (title: "Yes", style: UIAlertAction.Style.destructive) { (action) in
-            let target = (self.isBitCurrency
-                ? Address (raw:  self.recvField.text!)
-                : Address (ethereum: self.recvField.text!))
+            guard let target = Address.create (string: self.recvField.text!, network: self.wallet.manager.network)
+                else {
+                    let alert = UIAlertController (title: "Submit Transfer",
+                                                   message: "Failed to create transfer - invalid target address",
+                                                   preferredStyle: UIAlertController.Style.alert)
+                    alert.addAction(UIAlertAction (title: "Okay", style: UIAlertAction.Style.cancel) { (action) in
+                        self.dismiss(animated: true) {}
+                    })
 
-            guard let unit = self.wallet!.currency.defaultUnit else { self.dismiss(animated: true) {}; return }
-            let amount = Amount (value: Double(value), unit: unit)
-            print ("ETH: Submit Amount: \(amount)");
+                    self.present (alert, animated: true) {}
+                    return
+            }
+
+            let unit = self.wallet.unit
+            let amount = Amount.create (double: Double(value), unit: unit)
+            print ("APP: TVV: Submit ETH Amount: \(amount)");
 
             // let amount = Amount (value: value, unit: self.wallet.currency.defaultUnit)
-
-            guard let transfer = (self.isBitCurrency
-                ? self.wallet.createTransfer(target: target, amount: amount)
-                : self.wallet.createTransfer(target: target,
-                                             amount: amount,
-                                             feeBasis: TransferFeeBasis.ethereum (gasPrice: Amount (value: self.gasPrice(), unit: Ethereum.Units.WEI),
-                                                                                  gasLimit: self.gasLimit())))
+            guard let transfer = self.wallet.createTransfer (target: target,
+                                                             amount: amount,
+                                                             feeBasis: self.feeBasis())
                 else {
                     let alert = UIAlertController (title: "Submit Transfer",
                                                message: "Failed to create transfer - balance too low?",
@@ -125,15 +130,15 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
                     return
             }
 
-            self.wallet.manager.sign(transfer: transfer,
-                                     paperKey: UIApplication.paperKey);
+            // Will generate a WalletEvent.transferSubmitted (transfer, success)
+            self.wallet.manager.submit(transfer: transfer,
+                                       paperKey: UIApplication.paperKey);
 
-            self.wallet.manager.submit(transfer: transfer);
             // Notify, close
             self.dismiss(animated: true) {}
         })
         alert.addAction(UIAlertAction (title: "No", style: UIAlertAction.Style.cancel) { (action) in
-            NSLog ("Will Cancel" )
+            print ("APP: TCC: Will Cancel" )
         })
         self.present(alert, animated: true) {}
     }
@@ -141,17 +146,6 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
     @IBAction func cancel(_ sender: UIBarButtonItem) {
         self.dismiss(animated: true) {}
     }
-
-    func canonicalAmount (_ amount: Amount, sign: String) -> String {
-        let amount = amount.coerce(unit: amount.currency.defaultUnit)
-
-        var result = amount.double?.description.trimmingCharacters(in: CharacterSet (charactersIn: "0 ")) ?? ""
-        if result == "." || result == "" || result == "0." || result == ".0" {
-            result = "0.0"
-        }
-        return sign + result + " " + amount.unit.symbol
-    }
-
 
     func updateView () {
 
@@ -171,6 +165,18 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
         amountLabel.text = amountSlider.value.description
         submitButton.isEnabled = (recvField.text != "" &&
             (0.0 != amountSlider.value || oneEtherSelected || oneBitcoinSelected))
+    }
+
+    func feeBasis () -> TransferFeeBasis {
+        switch wallet.currency.code {
+        case Currency.codeAsETH:
+            let wei = wallet.manager.network.baseUnitFor(currency: wallet.currency)!
+            return TransferFeeBasis.ethereum (
+                gasPrice: Amount.create(integer: Int64 (gasPrice()), unit: wei),
+                gasLimit: gasLimit())
+        default:
+            return TransferFeeBasis.bitcoin(feePerKB: 1000)
+        }
     }
 
     // In WEI

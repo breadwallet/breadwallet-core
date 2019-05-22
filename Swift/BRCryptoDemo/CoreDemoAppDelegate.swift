@@ -49,11 +49,13 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         //                                         paperKey: "0x8975dbc1b8f25ec994815626d070899dda896511")
         //                                         paperKey: "0xb302B06FDB1348915599D21BD54A06832637E5E8")
 
-        guard let account = Account.createFrom (phrase: paperKey) else {
+        let walletId = UUID (uuidString: "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96")?.uuidString ?? "empty-wallet-id"
+        guard let account = Account.createFrom (phrase: paperKey, uids: walletId) else {
             precondition(false, "No account")
             return false
         }
-        account.timestamp = 1543190400 // Tue, 26 Nov 2018 00:00:00 GMT
+        account.timestamp = 1514764800 // 2018-01-01
+//        account.timestamp = 1543190400 // Tue, 26 Nov 2018 00:00:00 GMT
 
         // Ensure the storage path
         let storagePath = FileManager.default
@@ -73,7 +75,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
             print("Error: \(error.localizedDescription)")
         }
 
-        NSLog ("App: StoragePath: \(storagePath)");
+        print ("APP: StoragePath: \(storagePath)");
 
         // Create the listener
         let listener = CoreDemoListener ()
@@ -88,30 +90,12 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
                                          path: storagePath,
                                          query: query)
 
-//        self.btcManager = BitcoinWalletManager (listener: listener,
-//                                                account: account,
-//                                                network: Bitcoin.Networks.testnet,
-//                                                mode: WalletManagerMode.p2p_only,
-//                                                timestamp: timestamp,
-//                                                storagePath: storagePath)
-//
-//        self.bchManager = BitcoinWalletManager (listener: listener,
-//                                                account: account,
-//                                                network: Bitcash.Networks.testnet,
-//                                                mode: WalletManagerMode.p2p_only,
-//                                                timestamp: timestamp,
-//                                                storagePath: storagePath)
-//
-//        self.ethManager = EthereumWalletManager (listener: listener,
-//                                                 account: account,
-//                                                 network: Ethereum.Networks.mainnet,
-//                                                 mode: WalletManagerMode.p2p_only, //  api_with_p2p_submit,
-//                                                 timestamp: 0,
-//                                                 storagePath: storagePath)
+        // Subscribe to notificiations or not (Provide an endpoint if notifications are enabled).
+        let subscriptionId = UIDevice.current.identifierForVendor!.uuidString
+        let subscription = BlockChainDB.Subscription (id: subscriptionId, endpoint: nil);
+        self.system.subscribe (using: subscription)
 
- //       UIApplication.sharedListener.addWalletListener(listener: summaryController)
-
-        self.system.start (networksNeeded: ["bitcoin-mainnet", "ethereum-mainnet"]);
+        self.system.start (networksNeeded: ["bitcoin-mainnet","ethereum-mainnet"])
 
         return true
     }
@@ -165,16 +149,16 @@ extension UIApplication {
 
     static func sync () {
         guard let app = UIApplication.shared.delegate as? CoreDemoAppDelegate else { return }
-        NSLog ("App: Syncing")
+        print ("APP: Syncing")
         app.system.managers.forEach { $0.sync() }
     }
 
     static func sleep() {
         guard let app = UIApplication.shared.delegate as? CoreDemoAppDelegate else { return }
-        NSLog ("App: Disconnecting")
+        print ("APP: Disconnecting")
         app.system.managers.forEach { $0.disconnect() }
         DispatchQueue.main.asyncAfter(deadline: .now() + 15.0) {
-            NSLog ("App: Connecting")
+            print ("APP: Connecting")
             app.system.managers.forEach { $0.connect() }
         }
     }

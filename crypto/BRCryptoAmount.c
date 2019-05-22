@@ -58,6 +58,23 @@ cryptoAmountCreate (BRCryptoCurrency currency,
     return amount;
 }
 
+static BRCryptoAmount
+cryptoAmountCreateUInt256 (UInt256 v,
+                           BRCryptoBoolean isNegative,
+                           BRCryptoUnit unit) {
+    int powOverflow = 0, mulOverflow = 0;
+
+    uint8_t decimals = cryptoUnitGetBaseDecimalOffset (unit);
+
+    if (0 != decimals)
+        v = mulUInt256_Overflow (v, createUInt256Power(decimals, &powOverflow), &mulOverflow);
+
+    return (powOverflow || mulOverflow ? NULL
+            : cryptoAmountCreate (cryptoUnitGetCurrency(unit),
+                                  isNegative,
+                                  v));
+}
+
 extern BRCryptoAmount
 cryptoAmountCreateDouble (double value,
                           BRCryptoUnit unit) {
@@ -67,25 +84,35 @@ cryptoAmountCreateDouble (double value,
     if (v > INT64_MAX) return NULL;
 
     return cryptoAmountCreate (cryptoUnitGetCurrency(unit),
-                               value < 0.0,
+                               (value < 0.0 ? CRYPTO_TRUE : CRYPTO_FALSE),
                                createUInt256((uint64_t) v));
 }
 
 extern BRCryptoAmount
 cryptoAmountCreateInteger (int64_t value,
                            BRCryptoUnit unit) {
-    int powOverflow = 0, mulOverflow = 0;
 
     UInt256 v = createUInt256 (value < 0 ? -value : value);
-    uint8_t decimals = cryptoUnitGetBaseDecimalOffset (unit);
+    return cryptoAmountCreateUInt256 (v, (value < 0 ? CRYPTO_TRUE : CRYPTO_FALSE), unit);
+}
 
-    if (0 != decimals)
-        v = mulUInt256_Overflow (v, createUInt256Power(decimals, &powOverflow), &mulOverflow);
+extern BRCryptoAmount
+cryptoAmountCreateString (const char *value,
+                          BRCryptoBoolean isNegative,
+                          BRCryptoUnit unit) {
+    UInt256 v;
+    BRCoreParseStatus status;
 
-    return (powOverflow || mulOverflow ? NULL
-            : cryptoAmountCreate (cryptoUnitGetCurrency(unit),
-                                  value < 0.0,
-                                  v));
+    // Try to parse as an integer
+    v = createUInt256Parse (value, 0, &status);
+
+    // if that fails, try to parse as a decimal
+    if (CORE_PARSE_OK != status) {
+        v = createUInt256ParseDecimal (value, cryptoUnitGetBaseDecimalOffset (unit), &status);
+        unit = cryptoUnitGetBaseUnit(unit);
+    }
+
+    return (CORE_PARSE_OK != status ? NULL : cryptoAmountCreateUInt256 (v, isNegative, unit));
 }
 
 static void
@@ -176,6 +203,13 @@ cryptoAmountSub (BRCryptoAmount a1,
     }
 }
 
+extern BRCryptoAmount
+cryptoAmountNegate (BRCryptoAmount amount) {
+    return cryptoAmountCreate (amount->currency,
+                               CRYPTO_TRUE == amount->isNegative ? CRYPTO_FALSE : CRYPTO_TRUE,
+                               amount->value);
+}
+
 extern double
 cryptoAmountGetDouble (BRCryptoAmount amount,
                        BRCryptoUnit unit,
@@ -193,4 +227,9 @@ cryptoAmountGetIntegerRaw (BRCryptoAmount amount,
                  0 != amount->value.u64 [2] ||
                  0 != amount->value.u64 [1]);
     return *overflow ? 0 : amount->value.u64[0];
+}
+
+extern UInt256
+cryptoAmountGetValue (BRCryptoAmount amount) {
+    return amount->value;
 }

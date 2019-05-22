@@ -794,8 +794,7 @@ ewmHandleBlockEvent(BREthereumEWM ewm,
 static int
 ewmNeedTransferSave (BREthereumEWM ewm,
                      BREthereumTransferEvent event) {
-    return (TRANSFER_EVENT_GAS_ESTIMATE_UPDATED != event &&
-            TRANSFER_EVENT_BLOCK_CONFIRMATIONS_UPDATED != event);
+    return (TRANSFER_EVENT_GAS_ESTIMATE_UPDATED != event);
 }
 
 extern void

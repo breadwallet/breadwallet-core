@@ -29,6 +29,7 @@
 #include "BRCryptoBase.h"
 #include "BRCryptoCurrency.h"
 #include "BRCryptoUnit.h"
+#include "support/BRInt.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -50,6 +51,11 @@ extern "C" {
     cryptoAmountCreateInteger (int64_t value,
                                BRCryptoUnit unit);
 
+    extern BRCryptoAmount
+    cryptoAmountCreateString (const char *value,
+                              BRCryptoBoolean isNegative,
+                              BRCryptoUnit unit);
+    
     extern BRCryptoCurrency
     cryptoAmountGetCurrency (BRCryptoAmount amount);
     
@@ -72,6 +78,9 @@ extern "C" {
     cryptoAmountSub (BRCryptoAmount a1,
                      BRCryptoAmount a2);
 
+    extern BRCryptoAmount
+    cryptoAmountNegate (BRCryptoAmount amount);
+    
     extern double
     cryptoAmountGetDouble (BRCryptoAmount amount,
                            BRCryptoUnit unit,
@@ -80,7 +89,11 @@ extern "C" {
     extern uint64_t
     cryptoAmountGetIntegerRaw (BRCryptoAmount amount,
                                BRCryptoBoolean *overflow);
-    
+
+    // Private-ish
+    extern UInt256
+    cryptoAmountGetValue (BRCryptoAmount amount);
+
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoAmount, cryptoAmount);
 
 #ifdef __cplusplus

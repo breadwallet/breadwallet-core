@@ -173,7 +173,7 @@
                                 <nil key="highlightedColor"/>
                             </label>
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" lineBreakMode="middleTruncation" baselineAdjustment="alignBaselines" adjustsLetterSpacingToFitWidth="YES" adjustsFontForContentSizeCategory="YES" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="XO7-1V-dpo">
-                                <rect key="frame" x="16" y="413" width="343" height="17"/>
+                                <rect key="frame" x="16" y="413" width="173" height="17"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="14"/>
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
@@ -218,10 +218,22 @@
                                     <action selector="doResubmit:" destination="hSS-q9-i3e" eventType="touchUpInside" id="mVK-Zi-SZz"/>
                                 </connections>
                             </button>
-                            <view contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="rRL-RR-uWP" customClass="Dot" customModule="BRCryptoDemo" customModuleProvider="target">
-                                <rect key="frame" x="334" y="439" width="25" height="25"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" textAlignment="right" lineBreakMode="middleTruncation" baselineAdjustment="alignBaselines" adjustsLetterSpacingToFitWidth="YES" adjustsFontForContentSizeCategory="YES" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Nna-wm-WQ9">
+                                <rect key="frame" x="189" y="413" width="170" height="17"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="170" id="Ky3-Hs-gQR"/>
+                                </constraints>
+                                <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="rRL-RR-uWP" customClass="Dot" customModule="BRCryptoDemo" customModuleProvider="target">
+                                <rect key="frame" x="334" y="437" width="25" height="25"/>
                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="25" id="9D3-Ua-11c"/>
+                                    <constraint firstAttribute="height" constant="25" id="JEu-CR-Nxz"/>
+                                </constraints>
                             </view>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
@@ -241,9 +253,11 @@
                             <constraint firstItem="W6B-wc-UDS" firstAttribute="leading" secondItem="DSr-Cq-WjE" secondAttribute="leading" constant="16" id="9et-Os-DFj"/>
                             <constraint firstItem="mx1-cF-5NT" firstAttribute="leading" secondItem="DSr-Cq-WjE" secondAttribute="leading" constant="16" id="Atd-Fi-Rcc"/>
                             <constraint firstItem="Msp-ZU-V54" firstAttribute="leading" secondItem="DSr-Cq-WjE" secondAttribute="leading" constant="16" id="BdD-nw-lpk"/>
+                            <constraint firstItem="rRL-RR-uWP" firstAttribute="bottom" secondItem="Msp-ZU-V54" secondAttribute="bottom" id="Faz-wP-Lxs"/>
                             <constraint firstItem="i29-Bu-x5Y" firstAttribute="top" secondItem="Msp-ZU-V54" secondAttribute="bottom" constant="30" id="H0k-xe-78D"/>
                             <constraint firstItem="DSr-Cq-WjE" firstAttribute="trailing" secondItem="mx1-cF-5NT" secondAttribute="trailing" constant="16" id="Ij0-LV-BeY"/>
                             <constraint firstItem="DSr-Cq-WjE" firstAttribute="trailing" secondItem="W6B-wc-UDS" secondAttribute="trailing" constant="16" id="JHK-QE-wIA"/>
+                            <constraint firstItem="Nna-wm-WQ9" firstAttribute="trailing" secondItem="MLN-bC-1fP" secondAttribute="trailing" id="KvX-Pg-1Sd"/>
                             <constraint firstItem="ZpH-5u-myO" firstAttribute="leading" secondItem="DSr-Cq-WjE" secondAttribute="leading" constant="16" id="Mfj-za-Ub9"/>
                             <constraint firstItem="Yrm-2z-u7B" firstAttribute="top" secondItem="Msp-ZU-V54" secondAttribute="bottom" constant="2" id="O0q-5c-TSL"/>
                             <constraint firstItem="zpy-jG-U3g" firstAttribute="top" secondItem="IJW-uK-4cU" secondAttribute="bottom" constant="2" id="OZI-40-Naj"/>
@@ -267,15 +281,17 @@
                             <constraint firstItem="i29-Bu-x5Y" firstAttribute="leading" secondItem="DSr-Cq-WjE" secondAttribute="leading" constant="16" id="jnP-AY-wdF"/>
                             <constraint firstItem="GNr-nd-ZLG" firstAttribute="top" secondItem="Vu4-vH-2qi" secondAttribute="bottom" constant="30" id="kEC-wO-rQI"/>
                             <constraint firstItem="zpy-jG-U3g" firstAttribute="leading" secondItem="DSr-Cq-WjE" secondAttribute="leading" constant="16" id="khd-7W-iew"/>
+                            <constraint firstItem="Nna-wm-WQ9" firstAttribute="baseline" secondItem="XO7-1V-dpo" secondAttribute="baseline" id="lU9-w3-B8I"/>
                             <constraint firstItem="Fx0-Tm-aUD" firstAttribute="top" secondItem="i29-Bu-x5Y" secondAttribute="bottom" constant="2" id="mBb-Or-syE"/>
                             <constraint firstItem="paz-yI-Rkj" firstAttribute="leading" secondItem="DSr-Cq-WjE" secondAttribute="leading" constant="16" id="noF-jC-IM2"/>
+                            <constraint firstItem="DSr-Cq-WjE" firstAttribute="trailing" secondItem="rRL-RR-uWP" secondAttribute="trailing" constant="16" id="pdd-Ru-pqp"/>
+                            <constraint firstItem="Nna-wm-WQ9" firstAttribute="leading" secondItem="XO7-1V-dpo" secondAttribute="trailing" id="rVf-g7-11I"/>
                             <constraint firstItem="paz-yI-Rkj" firstAttribute="top" secondItem="1aL-0l-OyD" secondAttribute="bottom" constant="30" id="rbC-lU-GS9"/>
                             <constraint firstItem="pSY-xF-fdu" firstAttribute="leading" secondItem="DSr-Cq-WjE" secondAttribute="leading" constant="16" id="tks-7f-pJ7"/>
                             <constraint firstItem="YK6-7o-4uj" firstAttribute="leading" secondItem="DSr-Cq-WjE" secondAttribute="leading" constant="16" id="vE6-9j-SSB"/>
                             <constraint firstItem="GIl-9T-fPm" firstAttribute="top" secondItem="GNr-nd-ZLG" secondAttribute="bottom" constant="2" id="w3x-gH-0GB"/>
                             <constraint firstItem="Vu4-vH-2qi" firstAttribute="top" secondItem="YK6-7o-4uj" secondAttribute="bottom" constant="30" id="xIE-E9-dx3"/>
                             <constraint firstItem="GNr-nd-ZLG" firstAttribute="leading" secondItem="DSr-Cq-WjE" secondAttribute="leading" constant="16" id="xe9-2M-fMI"/>
-                            <constraint firstItem="DSr-Cq-WjE" firstAttribute="trailing" secondItem="XO7-1V-dpo" secondAttribute="trailing" constant="16" id="znl-L9-Fsf"/>
                             <constraint firstItem="F0N-Rw-q7C" firstAttribute="leading" secondItem="DSr-Cq-WjE" secondAttribute="leading" constant="16" id="zvu-M4-cUu"/>
                         </constraints>
                         <viewLayoutGuide key="safeArea" id="DSr-Cq-WjE"/>
@@ -284,6 +300,7 @@
                     <connections>
                         <outlet property="amountLabel" destination="zpy-jG-U3g" id="GVQ-jv-jtI"/>
                         <outlet property="cancelButton" destination="x5c-ne-Y7v" id="CrQ-79-1Yn"/>
+                        <outlet property="confCountLabel" destination="Nna-wm-WQ9" id="3wb-HC-zv1"/>
                         <outlet property="confLabel" destination="XO7-1V-dpo" id="9hj-Tr-JTJ"/>
                         <outlet property="dateLabel" destination="pSY-xF-fdu" id="4jQ-c0-xwD"/>
                         <outlet property="dotView" destination="rRL-RR-uWP" id="RU8-2b-0ua"/>
@@ -453,7 +470,7 @@
                         </connections>
                     </tableView>
                     <navigationItem key="navigationItem" title="Wallet Transfers" id="gpA-m1-7MB">
-                        <barButtonItem key="rightBarButtonItem" enabled="NO" systemItem="add" id="eEO-9T-DbA">
+                        <barButtonItem key="rightBarButtonItem" systemItem="add" id="eEO-9T-DbA">
                             <connections>
                                 <segue destination="66z-us-aMt" kind="presentation" identifier="createTransfer" id="FEb-jC-U2A"/>
                             </connections>

@@ -17,7 +17,7 @@ class CoreDemoListener: SystemListener {
     public var transferListeners: [TransferListener] = []
 
     func handleSystemEvent(system: System, event: SystemEvent) {
-        NSLog ("App: System: \(event)")
+        print ("APP: System: \(event)")
         switch event {
         case .created:
             break
@@ -42,7 +42,7 @@ class CoreDemoListener: SystemListener {
     }
 
     func handleManagerEvent(system: System, manager: WalletManager, event: WalletManagerEvent) {
-        NSLog ("App: Manager: \(event)")
+        print ("APP: Manager (\(manager.name)): \(event)")
         switch event {
         case .created:
             break
@@ -62,11 +62,13 @@ class CoreDemoListener: SystemListener {
             break
         case .syncEnded: // (let error):
             break
+        case .blockUpdated: // (let height):
+            break
         }
     }
 
     func handleWalletEvent(system: System, manager: WalletManager, wallet: Wallet, event: WalletEvent) {
-        NSLog ("App: Wallet: \(event)")
+        print ("APP: Wallet (\(manager.name):\(wallet.name)): \(event)")
         walletListeners.forEach {
             $0.handleWalletEvent (system: system,
                                   manager: manager,
@@ -76,7 +78,7 @@ class CoreDemoListener: SystemListener {
     }
 
     func handleTransferEvent(system: System, manager: WalletManager, wallet: Wallet, transfer: Transfer, event: TransferEvent) {
-        NSLog ("App: Transfer: \(event)")
+        print ("APP: Transfer (\(manager.name):\(wallet.name)): \(event)")
         transferListeners.forEach {
             $0.handleTransferEvent (system: system,
                                     manager: manager,
@@ -87,7 +89,7 @@ class CoreDemoListener: SystemListener {
     }
 
     func handleNetworkEvent(system: System, network: Network, event: NetworkEvent) {
-        NSLog ("App: Network: \(event)")
+        print ("APP: Network: \(event)")
     }
 }
 

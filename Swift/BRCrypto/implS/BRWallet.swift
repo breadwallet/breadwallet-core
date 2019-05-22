@@ -42,92 +42,98 @@ class WalletImplS: Wallet {
 
     public let unit: Unit
 
+    //
+    // Balance
+    //
     public var balance: Amount {
         return impl.balance(in: unit)
     }
 
     internal func upd (balance: Amount) {
-        self.listener?.handleWalletEvent (system: system,
-                                          manager: manager,
-                                          wallet: self,
-                                          event: WalletEvent.balanceUpdated(amount: balance))
+        announceEvent (WalletEvent.balanceUpdated(amount: balance))
     }
 
+    //
+    // Transfers
+    //
     public private(set) var transfers: [Transfer] = []
 
     internal func add (transfer: Transfer) {
         if !transfers.contains (where: { $0 === transfer }) {
+            guard let transfer = transfer as? TransferImplS
+                else { precondition (false); return }
+
             transfers.append (transfer)
-            self.listener?.handleWalletEvent (system: system,
-                                              manager: manager,
-                                              wallet: self,
-                                              event: WalletEvent.transferAdded (transfer: transfer))
+            transfer.announceEvent(TransferEvent.created)
+            announceEvent(WalletEvent.transferAdded (transfer: transfer))
         }
     }
 
     internal func rem (transfer: Transfer) {
         transfers.firstIndex { $0 === transfer }
             .map {
+                guard let transfer = transfer as? TransferImplS
+                    else { precondition (false); return }
+
+                announceEvent (WalletEvent.transferDeleted (transfer: transfer))
+                transfer.announceEvent (TransferEvent.deleted)
                 transfers.remove(at: $0)
-                self.listener?.handleWalletEvent (system: system,
-                                                  manager: manager,
-                                                  wallet: self,
-                                                  event: WalletEvent.transferDeleted (transfer: transfer))
         }
     }
 
     internal func upd (transfer: Transfer) {
         if transfers.contains(where: { $0 === transfer }) {
-            self.listener?.handleWalletEvent (system: system,
-                                              manager: manager,
-                                              wallet: self,
-                                              event: WalletEvent.transferChanged(transfer: transfer))
+            announceEvent (WalletEvent.transferChanged(transfer: transfer))
         }
     }
 
-    public func lookup (transfer: TransferHash) -> Transfer? {
-        return nil
+    public func transferBy (hash: TransferHash) -> Transfer? {
+        return transfers
+            .first { $0.hash.map { $0 == hash } ?? false }
     }
 
-    internal func lookupTransfer (eth: BREthereumTransfer?) -> Transfer? {
-        guard let eth = eth else { return nil }
+    internal func transferBy (impl: TransferImplS.Impl) -> Transfer? {
         return transfers
-            .filter { $0 is TransferImplS }
-            .first { ($0 as! TransferImplS).impl.matches (eth: eth) }
+            .first { ($0 as? TransferImplS)?.impl.matches (impl) ?? false }
     }
 
-    internal func lookupTransfer (btc: BRCoreTransaction?) -> Transfer? {
-        guard let btc = btc else { return nil }
-        return transfers
-            .filter { $0 is TransferImplS }
-            .first { ($0 as! TransferImplS).impl.matches (btc: btc) }
+    internal func transferByImplOrCreate (_ impl: TransferImplS.Impl,
+                                          listener: TransferListener?,
+                                          create: Bool = false) -> TransferImplS? {
+        return transferBy (impl: impl) as? TransferImplS ??
+            (!create
+                ? nil
+                : TransferImplS (listener: listener,
+                                 wallet: self,
+                                 unit: unit,
+                                 impl: impl))
+    }
+
+    func createTransfer (target: Address,
+                         amount: Amount,
+                         feeBasis: TransferFeeBasis) -> Transfer? {
+        return impl.createTransfer (target: target, amount: amount, feeBasis: feeBasis)
+            .map {
+                TransferImplS (listener: self.manager.system.listener,
+                               wallet: self,
+                               unit: amount.unit,
+                               impl: $0)
+        }
     }
 
     public internal(set) var state: WalletState {
         didSet {
             let newValue = state
-            self.listener?.handleWalletEvent (system: system,
-                                              manager: manager,
-                                              wallet: self,
-                                              event: WalletEvent.changed(oldState: oldValue, newState: newValue))
+            announceEvent (WalletEvent.changed (oldState: oldValue, newState: newValue))
         }
     }
 
     public internal(set) var defaultFeeBasis: TransferFeeBasis {
         didSet {
             let newValue = defaultFeeBasis
-            self.listener?.handleWalletEvent (system: system,
-                                              manager: manager,
-                                              wallet: self,
-                                              event: WalletEvent.feeBasisUpdated (feeBasis: newValue))
+            announceEvent (WalletEvent.feeBasisUpdated (feeBasis: newValue))
         }
     }
-
-    internal func updateDefaultFeeBasis () {
-        defaultFeeBasis = impl.defaultFeeBasis (in: unit)
-     }
-
-    //    public var transferFactory: TransferFactory
 
     public var target: Address {
         switch impl {
@@ -147,50 +153,54 @@ class WalletImplS: Wallet {
         }
     }
 
+    func estimateFee (amount: Amount,
+                      feeBasis: TransferFeeBasis?) -> Amount {
+        precondition (amount.hasCurrency (currency))
+        return impl.estimateFee (amount: amount,
+                                 feeBasis: feeBasis ?? defaultFeeBasis,
+                                 unit: manager.network.baseUnitFor (currency: manager.currency)!)
+    }
+
+    ///
+    /// Create a wallet using `impl` *and* add it to the manager.  By adding it to the manager
+    /// we ensure that `manager <==> wallet` constraints are maintained.
+    ///
+    /// This will generate a Wallet.created event and then aWalletManager.walletAdded event.
+    ///
+    /// - Parameters:
+    ///   - listener: The wallet listener
+    ///   - manager: this wallet's manager
+    ///   - unit: the default unit
+    ///   - impl: a reference to the underlying 'C' implementation
+    ///
     internal init (listener: WalletListener?,
                    manager: WalletManagerImplS,
                    unit: Unit,
-                   eth: BREthereumWallet) {
+                   impl: Impl) {
+        let feeUnit = manager.network.baseUnitFor (currency: manager.currency)!
+
         self.listener = listener
         self.manager = manager
         self.name = unit.currency.code
         self.unit = unit
-        self.impl = Impl.ethereum (ewm: manager.impl.ewm, core: eth)
-
         self.state = WalletState.created
+        self.impl = impl
+        self.defaultFeeBasis = impl.defaultFeeBasis(in: feeUnit)
 
-        let coreGasPrice = ewmWalletGetDefaultGasPrice (manager.impl.ewm, eth)
-        let coreGasLimit = ewmWalletGetDefaultGasLimit (manager.impl.ewm, eth)
-        self.defaultFeeBasis = TransferFeeBasis.ethereum (
-            gasPrice: Amount.createAsETH (coreGasPrice.etherPerGas.valueInWEI, manager.unit),
-            gasLimit: coreGasLimit.amountOfGas)
+        print ("SYS: Wallet (\(manager.name):\(name)): Init")
+        manager.add (wallet: self)
+     }
 
+    internal func announceEvent (_ event: WalletEvent) {
         self.listener?.handleWalletEvent (system: system,
                                           manager: manager,
                                           wallet: self,
-                                          event: WalletEvent.created)
+                                          event: event)
     }
 
-    internal init (listener: WalletListener?,
-                   manager: WalletManagerImplS,
-                   unit: Unit,
-                   btc: BRCoreWallet) {
-        self.listener = listener
-        self.manager = manager
-        self.name = unit.currency.code
-        self.unit = unit
-        self.impl = Impl.bitcoin (wid: btc)
-
-        self.state = WalletState.created
-        self.defaultFeeBasis = TransferFeeBasis.bitcoin(feePerKB: BRWalletFeePerKb (btc))
-
-        self.listener?.handleWalletEvent (system: system,
-                                          manager: manager,
-                                          wallet: self,
-                                          event: WalletEvent.created)
-    }
-
-
+    ///
+    /// Impl
+    ///
     enum Impl {
         case bitcoin (wid: BRCoreWallet)
         case ethereum (ewm: BREthereumEWM, core: BREthereumWallet)
@@ -230,6 +240,17 @@ class WalletImplS: Wallet {
             }
         }
 
+        internal func matches (_ that: Impl) -> Bool {
+            switch (self, that) {
+            case (let .bitcoin (wid1), let .bitcoin (wid2)):
+                return wid1 == wid2
+            case (let .ethereum (ewm1, c1), let .ethereum (ewm2, c2)):
+                return ewm1 == ewm2 && c1 == c2
+            default:
+                return false
+            }
+        }
+        
         internal func balance (in unit: Unit) -> Amount {
             switch self {
             case let .ethereum (ewm, core):
@@ -253,6 +274,71 @@ class WalletImplS: Wallet {
                     gasLimit: coreGasLimit.amountOfGas)
             case let .bitcoin (wid):
                 return TransferFeeBasis.bitcoin(feePerKB: BRWalletFeePerKb (wid))
+            }
+        }
+
+        internal func estimateFee (amount: Amount,
+                                   feeBasis: TransferFeeBasis,
+                                   unit feeUnit: Unit) -> Amount {
+            switch self {
+            case let .ethereum (ewm, wid):
+                var overflow: Int32 = 0
+
+                // Amount is in ETH or TOK
+                let ethValue  = cryptoAmountGetValue (amount.core)
+                let ethAmount = ewmWalletGetToken (ewm, wid)
+                    .map { amountCreateToken (createTokenQuantity ($0, ethValue))}
+                    ?? amountCreateEther (etherCreate(ethValue))
+
+                guard case let .ethereum (gasPrice, gasLimit) = feeBasis
+                    else { precondition (false) }
+                precondition (gasPrice.hasCurrency(feeUnit.currency))
+                let ethGasPrice = ewmCreateGasPrice (gasPrice.asETH, WEI)
+                let ethGasLimit = ewmCreateGas (gasLimit)
+
+                let fee = ewmWalletEstimateTransferFeeForBasis (ewm, wid, ethAmount, ethGasPrice, ethGasLimit, &overflow)
+                return Amount.createAsETH (fee.valueInWEI, feeUnit)
+
+            case let .bitcoin (wid):
+                let feePerKBSaved = BRWalletFeePerKb (wid)
+                guard case let .bitcoin (feePerKB) = feeBasis
+                    else { precondition (false)  }
+
+                BRWalletSetFeePerKb (wid, feePerKB)
+                let fee = BRWalletFeeForTxAmount (wid, amount.asBTC)
+                BRWalletSetFeePerKb (wid, feePerKBSaved)
+                return Amount.createAsBTC (fee, feeUnit)
+            }
+        }
+
+        internal func createTransfer (target: Address,
+                                      amount: Amount,
+                                      feeBasis: TransferFeeBasis) -> TransferImplS.Impl? {
+            let addr = cryptoAddressAsString (target.core)
+            switch self {
+            case let .ethereum (ewm, wid):
+                guard case let .ethereum (gasPrice, gasLimit) = feeBasis
+                    else { return nil }
+
+                let ethValue  = cryptoAmountGetValue (amount.core)
+                let ethAmount = ewmWalletGetToken (ewm, wid)
+                    .map { amountCreateToken (createTokenQuantity ($0, ethValue))}
+                ?? amountCreateEther (etherCreate(ethValue))
+
+                let ethGasLimit = gasCreate (gasLimit)
+                let ethGasPrice = gasPriceCreate (etherCreate (cryptoAmountGetValue (gasPrice.core)))
+                let ethFeeBasis = feeBasisCreate (ethGasLimit, ethGasPrice)
+
+                return ewmWalletCreateTransferWithFeeBasis (ewm, wid, addr, ethAmount, ethFeeBasis)
+                    .map { TransferImplS.Impl.ethereum (ewm: ewm, core: $0) }
+
+            case let .bitcoin (wid):
+                var overflow: BRCryptoBoolean = CRYPTO_FALSE
+                let value = cryptoAmountGetIntegerRaw(amount.core, &overflow)
+                if CRYPTO_TRUE == overflow { return nil }
+
+                return BRWalletCreateTransaction (wid, value, addr)
+                    .map { TransferImplS.Impl.bitcoin(wid: wid, tid: $0) }
             }
         }
     }

@@ -133,7 +133,7 @@ class BRBlockChainDBTest: XCTestCase {
             guard case let .success (transactions) = res
                 else { XCTAssert(false); return }
 
-            XCTAssertFalse (transactions.isEmpty)
+            XCTAssertTrue (transactions.isEmpty)
             self.expectation.fulfill()
         }
 
@@ -142,6 +142,24 @@ class BRBlockChainDBTest: XCTestCase {
         expectation = XCTestExpectation (description: "transactions /w addresses")
 
         db.getTransactions (blockchainId: blockchainId, addresses: ["abc", "def"], includeRaw: true) { (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
+            guard case let .success (transactions) = res
+                else { XCTAssert(false); return }
+
+            XCTAssertTrue (transactions.isEmpty)
+            self.expectation.fulfill()
+        }
+
+        wait (for: [expectation], timeout: 60)
+
+        ///
+        ///
+        expectation = XCTestExpectation (description: "transactions w/ [0,11000)")
+
+        db.getTransactions (blockchainId: blockchainId,
+                            addresses: [],
+                            begBlockNumber: 0,
+                            endBlockNumber: 11000,
+                           includeRaw: true) { (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
             guard case let .success (transactions) = res
                 else { XCTAssert(false); return }
 
@@ -181,6 +199,41 @@ class BRBlockChainDBTest: XCTestCase {
         }
 
         wait (for: [expectation], timeout: 60)
+    }
+
+    func testWallet () {
+        let walletId = UUID (uuidString: "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96")?.uuidString ?? "empty-wallet-id"
+
+        expectation = XCTestExpectation (description: "wallet create")
+
+        let wallet = (id: walletId, currencies: BlockChainDB.minimalCurrencies)
+        db.createWallet (wallet) {
+            (res: Result<BlockChainDB.Model.Wallet, BlockChainDB.QueryError>) in
+            guard case let .success (wallet) = res
+                else { XCTAssert(false); return }
+
+            XCTAssertEqual (walletId, wallet.id )
+            self.expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 60)
+
+        expectation = XCTestExpectation (description: "wallet delete")
+
+        db.deleteWallet(id: walletId) {
+            (res: Result<BlockChainDB.Model.Wallet, BlockChainDB.QueryError>) in
+            guard case let .success (wallet) = res
+                else { XCTAssert(false); return }
+
+            XCTAssertEqual (walletId, wallet.id )
+            self.expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 60)
+    }
+
+    func testSubscription () {
+
     }
 
 //    func testPerformanceExample() {

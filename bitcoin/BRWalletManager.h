@@ -80,6 +80,19 @@ bwmAnnounceTransactionComplete (BRWalletManager manager,
                                 int id,
                                 int success);
 
+typedef void
+(*BRSubmitTransactionCallback) (BRWalletManagerClientContext context,
+                                BRWalletManager manager,
+                                BRWallet *wallet,
+                                BRTransaction *transaction,
+                                int rid);
+
+extern void
+bwmAnnounceSubmit (BRWalletManager manager,
+                   int rid,
+                   BRTransaction *transaction,
+                   int error);
+
 ///
 /// Transaction Event
 ///
@@ -112,6 +125,7 @@ typedef void
 typedef enum {
     BITCOIN_WALLET_CREATED,
     BITCOIN_WALLET_BALANCE_UPDATED,
+    BITCOIN_WALLET_TRANSACTION_SUBMITTED,
     BITCOIN_WALLET_DELETED
 } BRWalletEventType;
 
@@ -121,6 +135,10 @@ typedef struct {
         struct {
             uint64_t satoshi;
         } balance;
+        struct {
+            BRTransaction *transaction;
+            int error; // 0 on success
+        } submitted;
     } u;
 } BRWalletEvent;
 
@@ -138,7 +156,8 @@ typedef enum {
     BITCOIN_WALLET_MANAGER_CONNECTED,
     BITCOIN_WALLET_MANAGER_DISCONNECTED,
     BITCOIN_WALLET_MANAGER_SYNC_STARTED,
-    BITCOIN_WALLET_MANAGER_SYNC_STOPPED
+    BITCOIN_WALLET_MANAGER_SYNC_STOPPED,
+    BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED
 } BRWalletManagerEventType;
 
 typedef struct {
@@ -147,6 +166,9 @@ typedef struct {
         struct {
             int error;
         } syncStopped;
+        struct {
+            uint32_t value;
+        } blockHeightUpdated;
     } u;
 } BRWalletManagerEvent;
 
@@ -160,6 +182,7 @@ typedef struct {
 
     BRGetBlockNumberCallback  funcGetBlockNumber;
     BRGetTransactionsCallback funcGetTransactions;
+    BRSubmitTransactionCallback funcSubmitTransaction;
 
     BRTransactionEventCallback funcTransactionEvent;
     BRWalletEventCallback  funcWalletEvent;
@@ -199,6 +222,10 @@ extern BRAddress *
 BRWalletManagerGetUnusedAddrs (BRWalletManager manager,
                                uint32_t limit);
 
+extern BRAddress *
+BRWalletManagerGetUnusedAddrsLegacy (BRWalletManager manager,
+                                     uint32_t limit);
+
 //
 // These should not be needed if the events are sufficient
 //
@@ -207,6 +234,12 @@ BRWalletManagerGetWallet (BRWalletManager manager);
 
 extern BRPeerManager *
 BRWalletManagerGetPeerManager (BRWalletManager manager);
+
+extern void
+BRWalletManagerSubmitTransaction (BRWalletManager manager,
+                                  BRTransaction *transaction,
+                                  const void *seed,
+                                  size_t seedLen);
 
 #ifdef __cplusplus
 }

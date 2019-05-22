@@ -54,11 +54,6 @@ class TransferTableViewCell: UITableViewCell {
         }
     }
 
-    func canonicalAmount (_ amount: Amount, sign: String) -> String {
-        return amount.string (as: amount.unit)
-            .map { sign + $0 } ?? "NaN"
-    }
-    
     func updateView () {
         if let transfer = transfer {
             let date: Date? = transfer.confirmation.map {
@@ -68,8 +63,8 @@ class TransferTableViewCell: UITableViewCell {
 
             dateLabel.text = date.map { dateFormatter.string(from: $0) } ?? "<pending>"
             addrLabel.text = "Hash: \(hash.map { $0.description } ?? "<pending>")"
-            amountLabel.text = canonicalAmount(transfer.amount, sign: (transfer.isSent ? "-" : "+"))
-            feeLabel.text = "Fee: \(canonicalAmount(transfer.fee, sign: ""))"
+            amountLabel.text = transfer.amountDirected.description
+            feeLabel.text = "Fee: \(transfer.fee)"
             dotView.mainColor = colorForState()
             dotView.setNeedsDisplay()
         }

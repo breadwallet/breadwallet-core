@@ -157,3 +157,23 @@ extension Result {
         }
     }
 }
+
+extension Array {
+    ///
+    /// Merge `that` into `self`, as a 'union', using `toIdentifier` to determine uniqueness
+    ///
+    /// - Parameters:
+    ///   - that: array to merge into `self`
+    ///   - toIdentifier: function determining uniqueness, returns `Equatable`
+    ///
+    /// - Returns: new array as union of 'this into self'
+    ///
+    public func unionOf<ID: Equatable> (_ that: [Iterator.Element], using toIdentifier: (Iterator.Element) -> ID) -> [Iterator.Element] {
+        return that.reduce (self) { (result, element) -> [Iterator.Element] in // that into self
+            let elementId = toIdentifier (element)
+            return result.contains { toIdentifier($0) == elementId }
+                ? result
+                : (result + [element])
+        }
+    }
+}

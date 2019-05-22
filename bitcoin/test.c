@@ -3110,6 +3110,10 @@ extern int BRRunTestWalletManagerSync (const char *paperKey,
 
     BRWalletManagerClient client = {
         NULL,
+        (BRGetBlockNumberCallback) NULL,
+        (BRGetTransactionsCallback) NULL,
+        (BRSubmitTransactionCallback) NULL,
+        
         _testTransactionEventCallback,
         _testWalletEventCallback,
         _testWalletManagerEventCallback

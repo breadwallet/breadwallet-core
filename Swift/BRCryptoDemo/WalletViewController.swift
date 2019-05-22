@@ -77,9 +77,9 @@ class WalletViewController: UITableViewController, TransferListener {
             break
             
         case "createTransfer":
-            NSLog ("Want to Create")
-//            let controller = (segue.destination as! UINavigationController).topViewController as! TransferCreateController
-//            controller.wallet = wallet
+            print ("APP: WVC: Want to Create")
+            let controller = (segue.destination as! UINavigationController).topViewController as! TransferCreateController
+            controller.wallet = wallet
             break
 
         default:
@@ -99,7 +99,7 @@ class WalletViewController: UITableViewController, TransferListener {
 
     func handleTransferEvent(system: System, manager: WalletManager, wallet: Wallet, transfer: Transfer, event: TransferEvent) {
         DispatchQueue.main.async {
-            NSLog ("WalletViewController TransferEvent: \(event)")
+            print ("APP: WVC: TransferEvent: \(event)")
             guard self.wallet === wallet /* && view is visible */  else { return }
             switch event {
             case .created:
@@ -109,6 +109,12 @@ class WalletViewController: UITableViewController, TransferListener {
                 self.tableView.insertRows (at: [path], with: .automatic)
 
             case .changed: //  (let old, let new)
+                if let index = self.transfers.firstIndex (where: { $0 === transfer}) {
+                    let path = IndexPath (row: index, section: 0)
+                    self.tableView.reloadRows(at: [path], with: .automatic)
+                }
+
+            case .confirmation:
                 if let index = self.transfers.firstIndex (where: { $0 === transfer}) {
                     let path = IndexPath (row: index, section: 0)
                     self.tableView.reloadRows(at: [path], with: .automatic)

@@ -936,8 +936,12 @@ ewmGetBlockHeight(BREthereumEWM ewm) {
 extern void
 ewmUpdateBlockHeight(BREthereumEWM ewm,
                      uint64_t blockHeight) {
-    if (blockHeight > ewm->blockHeight)
+    pthread_mutex_lock(&ewm->lock);
+    if (blockHeight != ewm->blockHeight) {
         ewm->blockHeight = blockHeight;
+        ewmSignalEWMEvent (ewm, EWM_EVENT_BLOCK_HEIGHT_UPDATED, SUCCESS, NULL);
+    }
+    pthread_mutex_unlock(&ewm->lock);
 }
 
 /// MARK: - Transfers
@@ -1203,6 +1207,16 @@ ewmWalletEstimateTransferFee(BREthereumEWM ewm,
     return walletEstimateTransferFee(wallet, amount, overflow);
 }
 
+extern BREthereumEther
+ewmWalletEstimateTransferFeeForBasis(BREthereumEWM ewm,
+                                     BREthereumWallet wallet,
+                                     BREthereumAmount amount,
+                                     BREthereumGasPrice price,
+                                     BREthereumGas gas,
+                                     int *overflow) {
+    return walletEstimateTransferFeeDetailed (wallet, amount, price, gas, overflow);
+}
+
 extern BREthereumBoolean
 ewmWalletCanCancelTransfer (BREthereumEWM ewm,
                             BREthereumWallet wallet,
@@ -1391,7 +1405,7 @@ ewmWalletGetGasEstimate(BREthereumEWM ewm,
                         BREthereumWallet wallet,
                         BREthereumTransfer transfer) {
     return transferGetGasEstimate(transfer);
-
+    
 }
 
 extern BREthereumGas
@@ -1406,15 +1420,15 @@ ewmWalletSetDefaultGasLimit(BREthereumEWM ewm,
                             BREthereumGas gasLimit) {
     walletSetDefaultGasLimit(wallet, gasLimit);
     ewmSignalWalletEvent(ewm,
-                               wallet,
-                               WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED,
-                               SUCCESS,
-                               NULL);
+                         wallet,
+                         WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED,
+                         SUCCESS,
+                         NULL);
 }
 
 extern BREthereumGasPrice
 ewmWalletGetDefaultGasPrice(BREthereumEWM ewm,
-                                 BREthereumWallet wallet) {
+                            BREthereumWallet wallet) {
     return walletGetDefaultGasPrice(wallet);
 }
 
@@ -1424,10 +1438,10 @@ ewmWalletSetDefaultGasPrice(BREthereumEWM ewm,
                             BREthereumGasPrice gasPrice) {
     walletSetDefaultGasPrice(wallet, gasPrice);
     ewmSignalWalletEvent(ewm,
-                               wallet,
-                               WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
-                               SUCCESS,
-                               NULL);
+                         wallet,
+                         WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
+                         SUCCESS,
+                         NULL);
 }
 
 
@@ -1449,9 +1463,9 @@ ewmHandleGasPrice (BREthereumEWM ewm,
     walletSetDefaultGasPrice(wallet, gasPrice);
     
     ewmSignalWalletEvent(ewm,
-                                 wallet,
-                                 WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
-                                 SUCCESS, NULL);
+                         wallet,
+                         WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
+                         SUCCESS, NULL);
     
     pthread_mutex_unlock(&ewm->lock);
 }
@@ -1475,13 +1489,13 @@ ewmHandleGasEstimate (BREthereumEWM ewm,
     transferSetGasEstimate(transfer, gasEstimate);
     
     ewmSignalTransferEvent(ewm,
-                                      wallet,
-                                      transfer,
-                                      TRANSFER_EVENT_GAS_ESTIMATE_UPDATED,
-                                      SUCCESS, NULL);
+                           wallet,
+                           transfer,
+                           TRANSFER_EVENT_GAS_ESTIMATE_UPDATED,
+                           SUCCESS, NULL);
     
     pthread_mutex_unlock(&ewm->lock);
-    
+
 }
 
 // ==============================================================================================
@@ -1513,15 +1527,15 @@ ewmHandleBlockChain (BREthereumEWM ewm,
         eth_log ("EWM", "BlockChain: %" PRIu64, headBlockNumber);
 
     // At least this - allows for: ewmGetBlockHeight
-    ewm->blockHeight = headBlockNumber;
+    ewmUpdateBlockHeight (ewm, headBlockNumber);
 
 #if defined (NEVER_DEFINED)
     // TODO: Need a 'block id' - or axe the need of 'block id'?
     ewmSignalBlockEvent (ewm,
-                               (BREthereumBlockId) 0,
-                               BLOCK_EVENT_CHAINED,
-                               SUCCESS,
-                               NULL);
+                         (BREthereumBlockId) 0,
+                         BLOCK_EVENT_CHAINED,
+                         SUCCESS,
+                         NULL);
 #endif
 }
 
@@ -2397,11 +2411,6 @@ extern BREthereumGas
 ewmCreateGas (uint64_t value) {
     return gasCreate(value);
 }
-
-
-
-
-
 
 extern void
 ewmTransferDelete (BREthereumEWM ewm,

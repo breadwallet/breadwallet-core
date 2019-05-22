@@ -118,7 +118,7 @@ class SummaryViewController: UITableViewController, WalletListener {
                             wallet: Wallet,
                             event: WalletEvent) {
         DispatchQueue.main.async {
-            NSLog ("SummaryViewController WalletEvent: \(event)")
+            print ("APP: SVC: WalletEvent (\(manager.name):\(wallet.name)): \(event)")
             // if visible ...
             switch event {
             case .created:
@@ -138,6 +138,9 @@ class SummaryViewController: UITableViewController, WalletListener {
                 let cell = self.tableView.cellForRow(at: path) as! WalletTableViewCell
                 cell.updateView ()
 
+//            case .transferSubmitted (transfer, success):
+//                break
+
             case .deleted:
                 guard let index = self.wallets.firstIndex(where: { $0 === wallet })
                     else { return }
@@ -147,9 +150,8 @@ class SummaryViewController: UITableViewController, WalletListener {
                 let path = IndexPath (row: index, section: 0)
                 self.tableView.deleteRows(at: [path], with: .automatic)
 
-
             default:
-                 break
+                break
             }
         }
     }

@@ -184,14 +184,39 @@ public final class Amount {
         return CRYPTO_TRUE == overflow ? nil : value
     }
 
-    public func string (as unit: Unit) -> String? {
+    public func string (as unit: Unit, formatter: NumberFormatter? = nil) -> String? {
         return double (as: unit)
-            .flatMap { self.formatterWith (unit: unit)
+            .flatMap { (formatter ?? self.formatterWith (unit: unit))
                 .string (from: NSNumber(value: $0)) }
     }
 
-    public func string (pair: CurrencyPair) -> String? {
-        return pair.exchange (asBase: self)?.string (as: pair.quoteUnit)
+    public func string (pair: CurrencyPair, formatter: NumberFormatter? = nil) -> String? {
+        return pair.exchange (asBase: self)?
+            .string (as: pair.quoteUnit, formatter: formatter)
+    }
+
+    ///
+    /// Return a 'raw string' (as an integer in self's base unit) using `base` and `preface`.
+    /// Caution is warranted: this is a string w/o any context (currency in a particular Unit).
+    /// Don't use this tp subvert the other `string(as Unit: Unit, ...)` function.  Should only be
+    /// used for 'partner' interfaces when their API requires a string value in the base unit.
+    ///
+    /// - Note: The amount's sign is utterly ignored.
+    /// - Note: Unless there is a 'preface', the result may have leading zeros.
+    /// - Note: For base 16, lowercased hex digits are returned.
+    ///
+    /// - Parameters:
+    ///   - base: the numeric base - one of {2, 10, 16}.  Defaults to 16
+    ///   - preface: a strig preface, defaults to '0x'
+    ///
+    /// - Returns: the amount in the base unit as a 'raw string'
+    ///
+    public func string (base: UInt8 = 16, preface: String = "0x") -> String {
+        let value = cryptoAmountGetValue (self.core)
+        let chars = coerceStringPrefaced (value, Int32(base), preface)
+        defer { free (chars) }
+
+        return asUTF8String (chars!)
     }
 
     public func isCompatible (with that: Amount) -> Bool {
@@ -214,25 +239,64 @@ public final class Amount {
             .map { Amount (core: $0, unit: self.unit) }
     }
 
+    public var negate: Amount {
+        return Amount (core: cryptoAmountNegate (core), unit: unit)
+    }
+    
     internal init (core: BRCryptoAmount,
                    unit: Unit) {
         self.core = core
         self.unit = unit
     }
 
-    static func create (double: Double, unit: Unit) -> Amount {
+    public static func create (double: Double, unit: Unit) -> Amount {
         return Amount (core: cryptoAmountCreateDouble (double, unit.core),
                        unit: unit)
     }
 
-    static func create (integer: Int64, unit: Unit) -> Amount {
+    public static func create (integer: Int64, unit: Unit) -> Amount {
         return Amount (core: cryptoAmountCreateInteger (integer, unit.core),
                        unit: unit)
     }
 
-    // static func create (exactly: Double, unit: Unit) -> Amount  ==> No remainder
-    //   nil == Amount.create (exactly: 1.5, unit: SATOSHI)  // remainder is 0.5
+    ///
+    /// Parse `string` into an `Amount`.  The string has some limitations:
+    ///  * it cannot start with '-' or '+' (no sign character)
+    ///  * if it starts with '0x', it is interpreted as a 'hex string'
+    ///  * if it has a decimal point, it is interpreted as a 'decimal string'
+    ///  * otherwise, it is interpreted as an 'integer string'
+    ///
+    /// If it is a 'decimal string' and the string includes values after the decimal point, then
+    /// the number of values must be less than or equal to the unit's decimals.  For example a
+    /// string of "1.1" in BTC_SATOSHI won't parse as BTC_SATOSHI has 0 decimals (it is a base unit
+    /// and thus must be an integer).  Whereas, a string of "1.1" in BTC_BTC will parse as BTC_BTC
+    /// has 8 decimals and the string has but one.  ("0.123456789" won't parse as it has 9 digits
+    /// after the decimal; both "1." and "1.0" will parse.)
+    ///
+    /// Additionally, `string` cannot have any extraneous starting or ending characters.  Said
+    /// another way, `string` must be fully consumed.  Thus "10w" and "w10" and "1.1w" won't parse.
+    ///
+    /// - Parameters:
+    ///   - string: the string to parse
+    ///   - negative: true if negative; false otherwise
+    ///   - unit: the string's unit
+    ///
+    /// - Returns: The `Amount` if the string can be parsed.
+    ///
+    public static func create (string: String, negative: Bool = false, unit: Unit) -> Amount? {
+        let core = cryptoAmountCreateString (string, (negative ? CRYPTO_TRUE : CRYPTO_FALSE), unit.core)
+        return nil == core ? nil : Amount (core: core!, unit: unit)
+    }
 
+    ///
+    /// Produce a default NumberFormatter for `unit`.  Uses the User's current locale, a number
+    /// style of `.currency`, a currency symbol of `unit.symbol`, and factional digits of
+    /// `unit.decimals` (if non-zero).
+    ///
+    /// - Parameter unit: the unit
+    ///
+    /// - Returns: the formatter for unit
+    ///
     private func formatterWith (unit: Unit) -> NumberFormatter {
         let formatter = NumberFormatter()
         formatter.locale = Locale.current
@@ -295,6 +359,7 @@ extension Amount: CustomStringConvertible {
 }
 
 extension Amount {
+
     // ETH
 
     internal var asETH: UInt64 {
@@ -406,24 +471,28 @@ extension CurrencyPair: CustomStringConvertible {
 public final class Account {
     let core: BRCryptoAccount
 
+    // A 'globally unique' ID String for account.  For BlockchainDB this will be the 'walletId'
+    let uids: String
+
     public var timestamp: UInt64 {
         get { return cryptoAccountGetTimestamp (core) }
         set { cryptoAccountSetTimestamp (core, newValue) }
     }
 
-    internal init (core: BRCryptoAccount) {
+    internal init (core: BRCryptoAccount, uids: String) {
         self.core = core
+        self.uids = uids
     }
 
-    public static func createFrom (phrase: String) -> Account? {
+    public static func createFrom (phrase: String, uids: String) -> Account? {
         return cryptoAccountCreate (phrase)
-            .map { Account (core: $0) }
+            .map { Account (core: $0, uids: uids) }
     }
 
-    public static func createFrom (seed: Data) -> Account? {
+    public static func createFrom (seed: Data, uids: String) -> Account? {
         let bytes = [UInt8](seed)
         return cryptoAccountCreateFromSeedBytes (bytes)
-            .map { Account (core: $0) }
+            .map { Account (core: $0, uids: uids) }
     }
 
     public static func deriveSeed (phrase: String) -> Data {
@@ -502,6 +571,10 @@ public final class Network: CustomStringConvertible {
         return unitsFor(currency: currency)?.contains(unit)
     }
 
+    /// The current height of the blockChain network.  On a reorganization, this might go backwards.
+    /// (No guarantee that this monotonically increases)
+    public internal(set) var height: UInt64
+
     public struct Association {
         let baseUnit: Unit
         let defaultUnit: Unit
@@ -512,6 +585,7 @@ public final class Network: CustomStringConvertible {
                    name: String,
                    isMainnet: Bool,
                    currency: Currency,
+                   height: UInt64,
                    associations: Dictionary<Currency, Association>,
                    impl: Impl) {
         self.uids = uids
@@ -524,6 +598,7 @@ public final class Network: CustomStringConvertible {
             $0.insert($1)
         }
 
+        self.height = height
         self.impl = impl
     }
 
@@ -531,6 +606,7 @@ public final class Network: CustomStringConvertible {
                              name: String,
                              isMainnet: Bool,
                              currency: Currency,
+                             height: UInt64,
                              associations: Dictionary<Currency, Association>) {
         var impl: Impl!
 
@@ -558,6 +634,7 @@ public final class Network: CustomStringConvertible {
                    name: name,
                    isMainnet: isMainnet,
                    currency: currency,
+                   height: height,
                    associations: associations,
                    impl: impl)
     }
@@ -688,7 +765,7 @@ public final class Address: Equatable, CustomStringConvertible {
     ///
     /// - Returns: An address or nil if `string` is invalide for `network`
     ///
-    static func create (string: String, network: Network) -> Address? {
+    public static func create (string: String, network: Network) -> Address? {
         return network.addressFor(string)
     }
 
@@ -769,8 +846,13 @@ public protocol Transfer : class {
     /// The target receives the amount
     var target: Address? { get }
 
-    /// The amount to transfer
+    /// The amount to transfer - always positive (from source to target)
     var amount: Amount { get }
+
+    /// The amount to transfer after considering the direction.  If we received the transfer,
+    /// the amount will be positive; if we sent the transfer, the amount will be negative; if
+    /// the transfer is 'self directed', the amount will be zero.
+    var amountDirected: Amount { get }
 
     /// The fee paid - before the transfer is confirmed, this is the estimated fee.
     var fee: Amount { get }
@@ -787,7 +869,9 @@ public protocol Transfer : class {
     /// The current state
     var state: TransferState { get }
 
-    var isSent: Bool { get }
+    /// The direction
+    var direction: TransferDirection { get }
+
     // var originator: Bool { get }
 }
 
@@ -796,6 +880,32 @@ extension Transfer {
         if case .included (let confirmation) = state { return confirmation }
         else { return nil }
     }
+
+    ///
+    /// The confirmations of transfer at a provided `blockHeight`.  If the transfer has not been
+    /// confirmed or if the `blockHeight` is less than the confirmation height then `nil` is
+    /// returned.  The minimum returned value is 1 - if `blockHeight` is the same as the
+    /// confirmation block, then the transfer has been confirmed once.
+    ///
+    /// - Parameter blockHeight:
+    ///
+    /// - Returns: the number of confirmations
+    ///
+    public func confirmationsAt (blockHeight: UInt64) -> UInt64? {
+        return confirmation
+            .flatMap { blockHeight >= $0.blockNumber ? (1 + blockHeight - $0.blockNumber) : nil }
+    }
+
+    /// The confirmations of transfer at the current network `height`.
+    public var confirmations: UInt64? {
+        return confirmationsAt (blockHeight: wallet.manager.network.height)
+    }
+}
+
+public enum TransferDirection {
+    case sent
+    case received
+    case recovered
 }
 
 ///
@@ -803,7 +913,7 @@ extension Transfer {
 ///
 public enum TransferFeeBasis {
     case bitcoin  (feePerKB: UInt64) // in satoshi
-    case ethereum (gasPrice: Amount, gasLimit: UInt64)
+    case ethereum (gasPrice: Amount, gasLimit: UInt64) // Amount in ETH
 }
 
 ///
@@ -888,6 +998,7 @@ extension TransferState: CustomStringConvertible {
 public enum TransferEvent {
     case created
     case changed (old: TransferState, new: TransferState)
+    case confirmation (count: UInt64)
     case deleted
 }
 
@@ -928,10 +1039,11 @@ public protocol TransferFactory {
     ///
     /// - Returns: A new transfer
     ///
-    func createTransfer (wallet: Wallet,
-                         target: Address,
-                         amount: Amount,
-                         feeBasis: TransferFeeBasis) -> Transfer? // T
+//    func createTransfer (listener: TransferListener,
+//                         wallet: Wallet,
+//                         target: Address,
+//                         amount: Amount,
+//                         feeBasis: TransferFeeBasis) -> Transfer? // T
 }
 
 
@@ -957,7 +1069,7 @@ public protocol Wallet: class {
     var transfers: [Transfer] { get }
 
     /// Use a hash to lookup a transfer
-    func lookup (transfer: TransferHash) -> Transfer?
+    func transferBy (hash: TransferHash) -> Transfer?
 
     /// The current state.
     var state: WalletState { get }
@@ -975,14 +1087,13 @@ public protocol Wallet: class {
     var source: Address { get }
 
     // address scheme
-}
 
-extension Wallet {
     ///
     /// Create a transfer for wallet.  Invokes the wallet's transferFactory to create a transfer.
     /// Generates events: TransferEvent.created and WalletEvent.transferAdded(transfer).
     ///
     /// - Parameters:
+    ///   - listener: The transfer listener
     ///   - source: The source spends 'amount + fee'
     ///   - target: The target receives 'amount
     ///   - amount: The amount
@@ -990,10 +1101,32 @@ extension Wallet {
     ///
     /// - Returns: A new transfer
     ///
-//    public func createTransfer (target: Address,
+    func createTransfer (target: Address,
+                         amount: Amount,
+                         feeBasis: TransferFeeBasis) -> Transfer?
+
+    ///
+    /// Estimate the fee for a transfer with `amount` from `wallet`.  If provided use the `feeBasis`
+    /// otherwise use the wallet's `defaultFeeBasis`
+    ///
+    /// - Parameters:
+    ///   - amount: the transfer amount MUST BE GREATER THAN 0
+    ///   - feeBasis: the feeBasis to use, if provided
+    ///
+    /// - Returns: transfer fee
+    ///
+    func estimateFee (amount: Amount,
+                      feeBasis: TransferFeeBasis?) -> Amount
+}
+
+extension Wallet {
+    // Default implementation, using `transferFactory`
+//    public func createTransfer (listener: TransferListener,
+//                                target: Address,
 //                                amount: Amount,
 //                                feeBasis: TransferFeeBasis) -> Transfer? {
-//        return transferFactory.createTransfer (wallet: self,
+//        return transferFactory.createTransfer (listener: listener,
+//                                               wallet: self,
 //                                               target: target,
 //                                               amount: amount,
 //                                               feeBasis: feeBasis)
@@ -1011,12 +1144,12 @@ extension Wallet {
     ///
     /// - Returns: A new transfer
     ///
-//    public func createTransfer (target: Address,
-//                                amount: Amount) -> Transfer? {
-//        return createTransfer (target: target,
-//                               amount: amount,
-//                               feeBasis: defaultFeeBasis)
-//    }
+    public func createTransfer (target: Address,
+                                amount: Amount) -> Transfer? {
+        return createTransfer (target: target,
+                               amount: amount,
+                               feeBasis: defaultFeeBasis)
+    }
 
     /// The currency held in wallet.
     public var currency: Currency {
@@ -1048,9 +1181,10 @@ public enum WalletEvent {
     case changed (oldState: WalletState, newState: WalletState)
     case deleted
 
-    case transferAdded   (transfer: Transfer)
-    case transferChanged (transfer: Transfer)
-    case transferDeleted (transfer: Transfer)
+    case transferAdded     (transfer: Transfer)
+    case transferChanged   (transfer: Transfer)
+    case transferDeleted   (transfer: Transfer)
+    case transferSubmitted (transfer: Transfer, success: Bool)
 
     case balanceUpdated  (amount: Amount)
     case feeBasisUpdated (feeBasis: TransferFeeBasis)
@@ -1059,14 +1193,15 @@ public enum WalletEvent {
 extension WalletEvent: CustomStringConvertible {
     public var description: String {
         switch self {
-        case .created:         return "Created"
-        case .changed:         return "StateChanged"
-        case .deleted:         return "Deleted"
-        case .transferAdded:   return "TransferAdded"
-        case .transferChanged: return "TransferChanged"
-        case .transferDeleted: return "TransferDeleted"
-        case .balanceUpdated:  return "BalanceUpdated"
-        case .feeBasisUpdated: return "FeeBasisUpdated"
+        case .created:           return "Created"
+        case .changed:           return "StateChanged"
+        case .deleted:           return "Deleted"
+        case .transferAdded:     return "TransferAdded"
+        case .transferChanged:   return "TransferChanged"
+        case .transferDeleted:   return "TransferDeleted"
+        case .transferSubmitted: return "TransferSubmitted"
+        case .balanceUpdated:    return "BalanceUpdated"
+        case .feeBasisUpdated:   return "FeeBasisUpdated"
         }
     }
 }
@@ -1106,8 +1241,8 @@ public protocol WalletFactory {
     ///
     /// - Returns: A new wallet
     ///
-    func createWallet (manager: WalletManager,
-                       currency: Currency) -> Wallet
+//    func createWallet (manager: WalletManager,
+//                       currency: Currency) -> Wallet
 }
 
 ///
@@ -1157,9 +1292,7 @@ public protocol WalletManager : class {
     /// sync(...)
     /// isSyncing
 
-    func sign (transfer: Transfer, paperKey: String)
-
-    func submit (transfer: Transfer)
+    func submit (transfer: Transfer, paperKey: String)
 
     func sync ()
 }
@@ -1180,16 +1313,22 @@ extension WalletManager {
     //                                           currency: currency)
     //    }
 
-    /// The network's/primaryWallet's currency.
+    /// The network's/primaryWallet's currency.  This is the currency used for transfer fees.
     var currency: Currency {
-        // Using 'network' here avoid an infinite recursion when creating the primary wallet.
-        return network.currency
+        return network.currency // don't reference `primaryWallet`; infinitely recurses
     }
 
+    /// The name is simply the network currency's code - e.g. BTC, ETH
+    public var name: String {
+        return currency.code
+    }
+
+    /// The baseUnit for the network's currency.
     var baseUnit: Unit {
         return network.baseUnitFor(currency: network.currency)!
     }
 
+    /// The defaultUnit for the network's currency.
     var defaultUnit: Unit {
         return network.defaultUnitFor(currency: network.currency)!
     }
@@ -1197,11 +1336,6 @@ extension WalletManager {
     /// A manager `isActive` if connected or syncing
     var isActive: Bool {
         return state == .connected || state == .syncing
-    }
-
-    func signAndSubmit (transfer: Transfer, paperKey: String) {
-        sign (transfer: transfer, paperKey: paperKey)
-        submit (transfer: transfer)
     }
 }
 
@@ -1251,6 +1385,8 @@ public enum WalletManagerEvent {
     case syncStarted
     case syncProgress (percentComplete: Double)
     case syncEnded (error: String?)
+
+    case blockUpdated (height: UInt64)
 }
 
 ///
@@ -1271,6 +1407,10 @@ public protocol WalletManagerListener: class {
 
 }
 
+public protocol WalletManagerFactor {
+
+}
+
 ///
 /// System (a singleton)
 ///
@@ -1279,6 +1419,7 @@ public protocol System: class {
     /// The listener.  Gets all events for {Network, WalletManger, Wallet, Transfer}
     var listener: SystemListener? { get }
 
+    /// The account
     var account: Account { get }
 
     /// The path for persistent storage
@@ -1293,20 +1434,77 @@ public protocol System: class {
     /// Wallet Managers
     var managers: [WalletManager] { get }
 
-    // Wallets
+    // Wallets - derived as a 'flatMap' of the managers' wallets.
     var wallets: [Wallet] { get }
 
+    ///
+    /// Start the system.  This will query various BRD services, notably the BlockChainDB, to
+    /// establish the available networks (aka blockchains) and their currencies.  If the
+    /// `networksNeeded` array includes the name of an available network, then a `Network`
+    /// will be created for that network.  (This generates a `SystemEvent` which can be used by
+    /// the App to create a `WalletManager`)
+    ///
+    /// This method can be called repeatedly; however ONLY THE FIRST invocation will create
+    /// Networks for needed networks.  Subsequent calls will simple restart `System` processing.
+    ///
+    /// - Parameter networksNeeded: Array of network names of interest.
+    ///
     func start (networksNeeded: [String])
 
+    ///
+    /// Stop the system.  Will inhibit `System` processing.
+    ///
     func stop ()
 
-    func createWalletManager (network: Network,
-                              mode: WalletManagerMode)
+    ///
+    /// Subscribe (or unsubscribe) to BlockChainDB notifications.  Notifications provide an
+    /// asynchronous announcement of DB changes pertinent to the User and are used to avoid
+    /// polling the DB for such changes.
+    ///
+    /// The Subscription includes an `endpoint` which is optional.  If provided, subscriptions
+    /// are enabled; if not provided, subscriptions are disabled.  Disabling a sbuscription is
+    /// required, even though polling in undesirable, because Notifications are user configured.
+    ///
+    /// - Parameter subscription: the subscription to enable or to disable notifications
+    ///
+    func subscribe (using subscription: BlockChainDB.Subscription)
 
+    ///
+    /// Announce a BlockChainDB transaction.  This should be called upon the "System User's"
+    /// receipt of a BlockchainDB notification.
+    ///
+    /// - Parameters:
+    ///   - transaction: the transaction id which can be used in `getTransfer` to query the
+    ///         blockchainDB for details on the transaction
+    ///   - data: The transaction JSON data (a dictionary) if available
+    ///
+    func announce (transaction id: String, data: [String:Any])
+
+
+    /// Create a system.
+    ///
+    /// - Parameters:
+    ///   - listener: the system listener
+    ///   - account: the system account
+    ///   - path: the file system path for persistent storage
+    ///   - query: the blockchainDB for queries
+    ///
+    /// - Returns: A System
+    ///
     static func create (listener: SystemListener,
                         account: Account,
                         path: String,
                         query: BlockChainDB) -> System
+
+    ///
+    /// Create a wallet manager for `network` using `mode.
+    ///
+    /// - Parameters:
+    ///   - network: the wallet manager's network
+    ///   - mode: the mode to use
+    ///
+    func createWalletManager (network: Network,
+                              mode: WalletManagerMode)
 }
 
 extension System {
@@ -1328,7 +1526,13 @@ public enum SystemEvent {
 /// Note: This must be 'class bound' as System holds a 'weak' reference (for GC reasons).
 ///
 public protocol SystemListener : /* class, */ WalletManagerListener, WalletListener, TransferListener, NetworkListener {
-
+    ///
+    /// Handle a System Event
+    ///
+    /// - Parameters:
+    ///   - system: the system
+    ///   - event: the event
+    ///
     func handleSystemEvent (system: System,
                             event: SystemEvent)
 }

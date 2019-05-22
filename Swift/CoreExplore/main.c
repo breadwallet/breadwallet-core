@@ -12,12 +12,20 @@
 #include <stdio.h>
 #include <unistd.h>         // sleep
 #include <pthread.h>
+
 #include "support/BRAssert.h"
+#include "support/BRAddress.h"
+#include "support/BRBIP39Mnemonic.h"
+#include "support/BRBIP32Sequence.h"
+#include "support/BRBIP39WordsEn.h"
 #include "bitcoin/BRTransaction.h"
+#include "bitcoin/BRWallet.h"
+
 #include "ethereum/rlp/BRRlp.h"
 #include "ethereum/util/BRUtil.h"
 #include "ethereum/blockchain/BREthereumBlockChain.h"
 #include "ethereum/ewm/BREthereumAccount.h"
+#include "ethereum/ewm/BREthereumTransfer.h"
 #include "ethereum/BREthereum.h"
 
 #define TEST_TRANS_ETH      "0xf86a75843b9aca00825208943d7eefb552b7d633e7f9eb48cd82cd098ecd5b4687038d7ea4c68000802aa045827725970e3c9729c9450b3ff04f98f10e231ebdeec5d522585a9a57bab1b4a025547970f9bedbef17d4aadd38f4263955633507689a9d7598c9e9bc38438d03"
@@ -219,6 +227,152 @@ void *assertThread (void *ignore) {
     return NULL;
 }
 
+//
+// Transaction Decode
+//
+#define ETH_TRANS1_ADDR "0xf89862b47e26d7ceb8f91216bba42013567521f9"
+#define ETH_TRANS1 "f8a92e84ee6b280083029040940abdace70d3790235af448c88547603b945604ea80b844a9059cbb00000000000000000000000043a0fe792d38745575f624728070b20072208d2d00000000000000000000000000000000000000000000000029a2241af62c000026a06774cdf4cbd9b4cc0003d030d8ef8916017a6ccec4a6856cc18aaf8bb623c91ca034aceeb4d46af817138480ce34d63be8ef8ad37a5aa10afc851dd6f5293999d1"
+
+// addr:
+#define ETH_TRANS2_ADDR "0x8c13c45d667fcbafe125b3b71db761a811e4a7b0"
+#define ETH_TRANS2 "f8a92e847735940083029040940abdace70d3790235af448c88547603b945604ea80b844a9059cbb00000000000000000000000043a0fe792d38745575f624728070b20072208d2d00000000000000000000000000000000000000000000000029a2241af62c000026a09e64771d0ad4d4e509e8bf980cf3d7fa759cf8e09aefc3ee8f39bbdfbe82fca4a0473a223c9993040edf5792bf1f787a8c3d2bce4c618230b27d5068628397b6a5"
+
+#define ETH_PAPER_KEY "era frozen diary puzzle person pond spy lawsuit sell group bachelor elbow"
+
+static BREthereumAddress
+handleEthTransactionDecode1 (BRRlpCoder coder, const char *rlpString) {
+    size_t rlpBytesCount;
+    uint8_t *rlpBytes = decodeHexCreate (&rlpBytesCount, rlpString, strlen (rlpString));
+
+    BRRlpData  data  = { rlpBytesCount, rlpBytes };
+    BRRlpItem  item  = rlpGetItem(coder, data);
+    rlpShowItem(coder, item, "FOO");
+
+    BREthereumTransaction transaction = transactionRlpDecode (item, ethereumMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
+    BREthereumSignature sig1 = transactionGetSignature(transaction);
+    BREthereumAddress   add1 = transactionExtractAddress (transaction, ethereumMainnet, coder);
+
+    BREthereumTransfer transfer = transferCreateWithTransactionOriginating (transaction, TRANSFER_BASIS_TRANSACTION);
+    BREthereumAccount  account = createAccount(ETH_PAPER_KEY);
+    BREthereumAddress  address = accountGetPrimaryAddress (account);
+
+    transferSign (transfer, ethereumMainnet, account, address, ETH_PAPER_KEY);
+    BREthereumSignature sig2 = transactionGetSignature (transferGetOriginatingTransaction(transfer));
+    BREthereumAddress   add2 = transactionExtractAddress (transferGetOriginatingTransaction(transfer), ethereumMainnet, coder);
+
+    return add2;
+}
+
+static void
+handleEthTransactionDecode (BRRlpCoder coder) {
+
+    BREthereumAddress addr1 = handleEthTransactionDecode1 (coder, ETH_TRANS1);
+    BREthereumAddress addr2 = handleEthTransactionDecode1 (coder, ETH_TRANS2);
+    assert (ETHEREUM_BOOLEAN_TRUE == addressEqual (addr1, addr2));
+}
+
+//
+// BRWalletUnusedAddr - do multiple calls produce multiple multiple addres
+//
+#define WALLET_GAP      10
+
+static void
+handleWalletAddrs (void) {
+    BRAddress addrs1[WALLET_GAP];
+    BRAddress addrs2[WALLET_GAP];
+
+    const char *phrase = "a random seed";
+    UInt512 seed;
+
+    BRBIP39DeriveKey(&seed, phrase, NULL);
+
+    BRMasterPubKey mpk = BRBIP32MasterPubKey(&seed, sizeof(seed));
+
+    BRWallet *wallet = BRWalletNew (NULL, 0, mpk, 0);
+
+    BRWalletUnusedAddrs (wallet, addrs1, WALLET_GAP, 0);
+    BRWalletUnusedAddrs (wallet, addrs2, WALLET_GAP, 0);
+
+    for (size_t index = 0; index < WALLET_GAP; index++)
+        assert (0 == strcmp (addrs1[index].s, addrs2[index].s));
+
+    int diff = memcmp (addrs1[0].s, addrs2[0].s, sizeof (BRAddress));
+//    assert (0 == memcmp (addrs1, addrs2, sizeof (addrs1)));
+}
+
+
+#define IAN_COLEMAN_PAPER_KEY   "trigger verb tilt script hospital pumpkin young then same clerk march afford"
+#define IAN_COLEMAN_RIPPLE_DEX0_PUBKEY "0286d3703a7cf4540401cf96838a8d9eb5dd06e490d92988c00e3a185c975324e5"
+#define IAN_COLEMAN_RIPPLE_DEX0_PRIKEY "2b8bcc2ac6e96d76c56c1135340e395b0aec99540617d76ded17acbf8f4e3eb4"
+#define IAN_COLEMAN_RIPPLE_DEX0_ADDR   "rf3uTZX3ATLJN9hGekyXLiGgXzGHEVinSF"
+
+static BRKey
+derivePrivateKeyFromSeedRipple (UInt512 seed, uint32_t index) {
+    BRKey privateKey;
+
+    // The BIP32 privateKey for m/44'/60'/0'/0/index
+    BRBIP32PrivKeyPath(&privateKey, &seed, sizeof(UInt512), 5,
+                       44 | BIP32_HARD,          // purpose  : BIP-44
+                       144 | BIP32_HARD,          // coin_type: Ripple
+                       0 | BIP32_HARD,          // account  : <n/a>
+                       0,                        // change   : not change
+                       index);                   // index    :
+
+    privateKey.compressed = 0;
+
+    return privateKey;
+}
+
+static void
+handleRippleAccount (void) {
+    installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);
+
+    UInt512 seed = deriveSeedFromPaperKey (IAN_COLEMAN_PAPER_KEY);
+    BRKey   key  = derivePrivateKeyFromSeedRipple (seed, 0);
+    key.compressed = 1;
+
+    // Fill key.pubKey
+    assert (33 == BRKeyPubKey (&key, NULL, 0));
+
+    // Expected result
+    size_t pubKeyResultLen;
+    uint8_t *pubKeyResult = decodeHexCreate(&pubKeyResultLen, IAN_COLEMAN_RIPPLE_DEX0_PUBKEY, strlen(IAN_COLEMAN_RIPPLE_DEX0_PUBKEY));
+    assert (33 == pubKeyResultLen);
+
+    // Confirm
+    assert (0 == memcmp (pubKeyResult, key.pubKey, 33));
+}
+
+//
+//
+//
+//
+// String from HexEncoding
+//
+static void
+handleStringFromHex (const char *hex) {
+    if (0 == strncmp (hex, "0x", 2))
+        hex += 2;
+
+    size_t   bytesCount;
+    uint8_t *bytes = decodeHexCreate(&bytesCount, hex, strlen(hex));
+
+    char string[bytesCount + 1];
+    for (size_t index = 0; index < bytesCount; index++)
+        string[index] = (char) bytes[index];
+    string[bytesCount] = '\0';
+
+    printf ("Hex : %s\nChar: %s\n", hex, string);
+}
+
+static void
+handleAddressFromString (const char *hex, BRRlpCoder coder) {
+    BREthereumAddress address = addressCreate(hex);
+
+    BRRlpItem item = addressRlpEncode(address, coder);
+    rlpShowItem(coder, item, "ADDR");
+    rlpReleaseItem(coder, item);
+}
 
 int main(int argc, const char * argv[]) {
     BRRlpCoder coder = rlpCoderCreate();
@@ -243,7 +397,7 @@ int main(int argc, const char * argv[]) {
     handleTrans(coder, TEST_TRANS_BRD);
 #endif
 
-#if 1
+#if 0
     BRAssertInstall (NULL, assertHandle);
     BRAssertDefineRecovery((BRAssertRecoveryInfo) 1, assertRecover);
     BRAssertDefineRecovery((BRAssertRecoveryInfo) 2, assertRecover);
@@ -264,6 +418,26 @@ int main(int argc, const char * argv[]) {
     sleep (5);
     printf ("main: Done\n");
 #endif
+
+#if 0
+    handleEthTransactionDecode (coder);
+#endif
+
+#if 0
+    handleWalletAddrs();
+#endif
+
+
+#if 0
+    handleStringFromHex("0x696e73756666696369656e742066756e647320666f7220676173202a207072696365202b2076616c7565");
+    handleAddressFromString("0x0AbdAce70D3790235af448C88547603b945604ea", coder);
+
+#endif
+
+#if 1
+    handleRippleAccount();
+#endif
+
     rlpCoderRelease(coder);
     return 0;
 }
