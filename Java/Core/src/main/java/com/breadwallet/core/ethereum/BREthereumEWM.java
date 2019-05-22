@@ -697,6 +697,8 @@ public class BREthereumEWM extends BRCoreJniReference {
 
     protected native String jniTransactionGetIdentifier(long transactionId);
 
+    protected native String jniTransactionOriginatingTransactionHash(long transactionId);
+
     protected native String jniTransactionGetGasPrice(long transactionId, long unit);
 
     protected native long jniTransactionGetGasLimit(long transactionId);

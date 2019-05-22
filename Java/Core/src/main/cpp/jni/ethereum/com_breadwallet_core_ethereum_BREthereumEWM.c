@@ -1294,6 +1294,19 @@ JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTr
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
+ * Method:    jniTransactionOriginatingTransactionHash
+ * Signature: (J)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionOriginatingTransactionHash
+        (JNIEnv *env, jobject thisObject, jlong tid) {
+    BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
+    BREthereumTransfer transfer = getTransfer (env, tid);
+    BREthereumHash hash = ewmTransferGetOriginatingTransactionHash(node, transfer);
+    return asJniString(env, hashAsString(hash));
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniTransactionGetGasPrice
  * Signature: (JJ)Ljava/lang/String;
  */
