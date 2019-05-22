@@ -45,8 +45,6 @@ struct BRRippleAccountRecord {
                                  // See Reliable Transaction Submission for more details.
 };
 
-static const char rippleAlphabet[] = "rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz";
-
 extern UInt512 getSeed(const char *paperKey)
 {
     // Generate the 512bit private key using a BIP39 paperKey
@@ -89,7 +87,10 @@ extern char * createRippleAddressString (BRRippleAddress address, int useChecksu
 
     // Now base58 encode the result
     rippleEncodeBase58(string, 35, input, 25);
-    //BRBase58EncodeEx(string, 36, input, 25, rippleAlphabet);
+    // NOTE: once the following function is "approved" we can switch to using it
+    // and remove the base58 function above
+    // static const char rippleAlphabet[] = "rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz";
+    // BRBase58EncodeEx(string, 36, input, 25, rippleAlphabet);
     return string;
 }
 

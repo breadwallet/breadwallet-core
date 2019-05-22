@@ -524,7 +524,7 @@ rippleTransactionCreateFromBytes(uint8_t *bytes, int length)
     
     BRRippleTransaction transaction = createTransactionObject();
 
-    int arrayCount = array_count(fieldArray);
+    int arrayCount = (int)array_count(fieldArray);
     getFieldInfo(fieldArray, arrayCount, transaction);
 
     // Before we get rid of the fields - see if there are any fields that
