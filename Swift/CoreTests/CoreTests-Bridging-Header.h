@@ -26,5 +26,9 @@ extern void runCryptoTests (void);
 extern void
 runRippleTest (void /* ... */);
 
+// Ripple
+extern void
+runStellarTest (void /* ... */);
+
 #include "test.h"
 

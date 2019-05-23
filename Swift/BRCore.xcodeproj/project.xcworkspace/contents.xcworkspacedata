@@ -2,6 +2,116 @@
 <Workspace
    version = "1.0">
    <FileRef
-      location = "self:BRDcore.xcodeproj">
+      location = "group:../../stellar/BRStellar.h">
+   </FileRef>
+   <FileRef
+      location = "group:../../stellar/BRStellarAccount.c">
+   </FileRef>
+   <FileRef
+      location = "group:../../stellar/BRStellarAccount.h">
+   </FileRef>
+   <FileRef
+      location = "group:../../stellar/BRStellarAccountUtils.c">
+   </FileRef>
+   <FileRef
+      location = "group:../../stellar/BRStellarAccountUtils.h">
+   </FileRef>
+   <FileRef
+      location = "group:../../stellar/BRStellarBase.h">
+   </FileRef>
+   <FileRef
+      location = "group:../../stellar/BRStellarPrivateStructs.h">
+   </FileRef>
+   <FileRef
+      location = "group:../../stellar/BRStellarSerialize.c">
+   </FileRef>
+   <FileRef
+      location = "group:../../stellar/BRStellarSerialize.h">
+   </FileRef>
+   <FileRef
+      location = "group:../../stellar/BRStellarSignature.c">
+   </FileRef>
+   <FileRef
+      location = "group:../../stellar/BRStellarSignature.h">
+   </FileRef>
+   <FileRef
+      location = "group:../../stellar/BRStellarTransaction.c">
+   </FileRef>
+   <FileRef
+      location = "group:../../stellar/BRStellarTransaction.h">
+   </FileRef>
+   <FileRef
+      location = "group:../../stellar/BRStellarWallet.c">
+   </FileRef>
+   <FileRef
+      location = "group:../../stellar/BRStellarWallet.h">
+   </FileRef>
+   <Group
+      location = "group:../../stellar/ed25519"
+      name = "ed25519">
+      <FileRef
+         location = "group:precomp_data.h">
+      </FileRef>
+      <FileRef
+         location = "group:fe.c">
+      </FileRef>
+      <FileRef
+         location = "group:ge.c">
+      </FileRef>
+      <FileRef
+         location = "group:sha512.h">
+      </FileRef>
+      <FileRef
+         location = "group:ed25519.h">
+      </FileRef>
+      <FileRef
+         location = "group:fe.h">
+      </FileRef>
+      <FileRef
+         location = "group:keypair.c">
+      </FileRef>
+      <FileRef
+         location = "group:fixedint.h">
+      </FileRef>
+      <FileRef
+         location = "group:sha512.c">
+      </FileRef>
+      <FileRef
+         location = "group:ge.h">
+      </FileRef>
+   </Group>
+   <FileRef
+      location = "group:../../stellar/README">
+   </FileRef>
+   <FileRef
+      location = "group:../../stellar/testStellar.c">
+   </FileRef>
+   <Group
+      location = "group:../../stellar/utils"
+      name = "utils">
+      <FileRef
+         location = "group:base32.c">
+      </FileRef>
+      <FileRef
+         location = "group:crc16.h">
+      </FileRef>
+      <FileRef
+         location = "group:b64.h">
+      </FileRef>
+      <FileRef
+         location = "group:decode.c">
+      </FileRef>
+      <FileRef
+         location = "group:encode.c">
+      </FileRef>
+      <FileRef
+         location = "group:base32.h">
+      </FileRef>
+      <FileRef
+         location = "group:crc16.c">
+      </FileRef>
+   </Group>
+   <FileRef
+      location = "self:">
    </FileRef>
 </Workspace>
