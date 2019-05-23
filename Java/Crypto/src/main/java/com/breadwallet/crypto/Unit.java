@@ -18,6 +18,7 @@ import java.util.Objects;
 
 public final class Unit {
 
+    // TODO: This is package, which is risky since it can be free'd by the finalize code here
     /* package */
     final BRCryptoUnit core;
 

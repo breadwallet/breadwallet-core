@@ -1,14 +1,91 @@
 package com.breadwallet.crypto.jni;
 
+import com.sun.jna.Callback;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
+import com.sun.jna.NativeLibrary;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 import com.sun.jna.ptr.IntByReference;
+import com.sun.jna.ptr.PointerByReference;
 
 public interface CryptoLibrary extends Library {
     String JNA_LIBRARY_NAME = "crypto";
+    NativeLibrary LIBRARY = NativeLibrary.getInstance(CryptoLibrary.JNA_LIBRARY_NAME);
     CryptoLibrary INSTANCE = Native.load(CryptoLibrary.JNA_LIBRARY_NAME, CryptoLibrary.class);
+
+
+    /**
+     * <i>native declaration : support/BRSyncMode.h:5</i><br>
+     * enum values
+     */
+    interface BRSyncMode {
+        /** <i>native declaration : support/BRSyncMode.h:1</i> */
+        int SYNC_MODE_BRD_ONLY = 0;
+        /** <i>native declaration : support/BRSyncMode.h:2</i> */
+        int SYNC_MODE_BRD_WITH_P2P_SEND = 1;
+        /** <i>native declaration : support/BRSyncMode.h:3</i> */
+        int SYNC_MODE_P2P_WITH_BRD_SYNC = 2;
+        /** <i>native declaration : support/BRSyncMode.h:4</i> */
+        int SYNC_MODE_P2P_ONLY = 3;
+    };
+
+    /**
+     * <i>native declaration : bitcoin/BRWalletManager.h:6</i><br>
+     * enum values
+     */
+    public static interface BRWalletForkId {
+        /** <i>native declaration : bitcoin/BRWalletManager.h:3</i> */
+        public static final int WALLET_FORKID_BITCOIN = 0x00;
+        /** <i>native declaration : bitcoin/BRWalletManager.h:4</i> */
+        public static final int WALLET_FORKID_BITCASH = 0x40;
+        /** <i>native declaration : bitcoin/BRWalletManager.h:5</i> */
+        public static final int WALLET_FORKID_BITGOLD = 0x4f;
+    };
+    /**
+     * <i>native declaration : bitcoin/BRWalletManager.h:27</i><br>
+     * enum values
+     */
+    public static interface BRTransactionEventType {
+        /** <i>native declaration : bitcoin/BRWalletManager.h:24</i> */
+        public static final int BITCOIN_TRANSACTION_ADDED = 0;
+        /** <i>native declaration : bitcoin/BRWalletManager.h:25</i> */
+        public static final int BITCOIN_TRANSACTION_UPDATED = 1;
+        /** <i>native declaration : bitcoin/BRWalletManager.h:26</i> */
+        public static final int BITCOIN_TRANSACTION_DELETED = 2;
+    };
+    /**
+     * <i>native declaration : bitcoin/BRWalletManager.h:45</i><br>
+     * enum values
+     */
+    public static interface BRWalletEventType {
+        /** <i>native declaration : bitcoin/BRWalletManager.h:41</i> */
+        public static final int BITCOIN_WALLET_CREATED = 0;
+        /** <i>native declaration : bitcoin/BRWalletManager.h:42</i> */
+        public static final int BITCOIN_WALLET_BALANCE_UPDATED = 1;
+        /** <i>native declaration : bitcoin/BRWalletManager.h:43</i> */
+        public static final int BITCOIN_WALLET_TRANSACTION_SUBMITTED = 2;
+        /** <i>native declaration : bitcoin/BRWalletManager.h:44</i> */
+        public static final int BITCOIN_WALLET_DELETED = 3;
+    };
+    /**
+     * <i>native declaration : bitcoin/BRWalletManager.h:70</i><br>
+     * enum values
+     */
+    public static interface BRWalletManagerEventType {
+        /** <i>native declaration : bitcoin/BRWalletManager.h:64</i> */
+        public static final int BITCOIN_WALLET_MANAGER_CREATED = 0;
+        /** <i>native declaration : bitcoin/BRWalletManager.h:65</i> */
+        public static final int BITCOIN_WALLET_MANAGER_CONNECTED = 1;
+        /** <i>native declaration : bitcoin/BRWalletManager.h:66</i> */
+        public static final int BITCOIN_WALLET_MANAGER_DISCONNECTED = 2;
+        /** <i>native declaration : bitcoin/BRWalletManager.h:67</i> */
+        public static final int BITCOIN_WALLET_MANAGER_SYNC_STARTED = 3;
+        /** <i>native declaration : bitcoin/BRWalletManager.h:68</i> */
+        public static final int BITCOIN_WALLET_MANAGER_SYNC_STOPPED = 4;
+        /** <i>native declaration : bitcoin/BRWalletManager.h:69</i> */
+        public static final int BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED = 5;
+    };
 
     /**
      * <i>native declaration : crypto/BRCryptoBase.h:3</i><br>
@@ -267,15 +344,22 @@ public interface CryptoLibrary extends Library {
 
 
     /**
+     * Original signature : <code>BRMasterPubKey cryptoAccountAsBTC(BRCryptoAccount)</code><br>
+     * <i>native declaration : crypto/BRCryptoPrivate.h:23</i>
+     */
+    BRMasterPubKey.ByValue cryptoAccountAsBTC(CryptoLibrary.BRCryptoAccount account);
+
+
+    /**
      * Original signature : <code>BRCryptoAddress cryptoAddressCreateAsBTC(BRAddress)</code><br>
      * <i>native declaration : crypto/BRCryptoPrivate.h:8</i>
      */
-    CryptoLibrary.BRCryptoAddress cryptoAddressCreateAsBTC(com.breadwallet.crypto.jni.BRAddress.ByValue btc);
+    CryptoLibrary.BRCryptoAddress cryptoAddressCreateAsBTC(BRAddress.ByValue btc);
     /**
      * Original signature : <code>BRCryptoAddress cryptoAddressCreateAsEth(BREthereumAddress)</code><br>
      * <i>native declaration : crypto/BRCryptoPrivate.h:8</i>
      */
-    CryptoLibrary.BRCryptoAddress cryptoAddressCreateAsETH(com.breadwallet.crypto.jni.BREthereumAddress.ByValue address);
+    CryptoLibrary.BRCryptoAddress cryptoAddressCreateAsETH(BREthereumAddress.ByValue address);
 
     /**
      * Original signature : <code>int BRAddressIsValid(const char*)</code><br>
@@ -297,10 +381,86 @@ public interface CryptoLibrary extends Library {
 
 
     /**
+     * returns the first unused external address (legacy pay-to-pubkey-hash)<br>
+     * Original signature : <code>BRAddress BRWalletLegacyAddress(BRWallet*)</code><br>
+     * <i>native declaration : bitcoin/BRWallet.h:37</i>
+     */
+    BRAddress.ByValue BRWalletLegacyAddress(CryptoLibrary.BRWallet wallet);
+    /**
+     * current wallet balance, not including transactions known to be invalid<br>
+     * Original signature : <code>uint64_t BRWalletBalance(BRWallet*)</code><br>
+     * <i>native declaration : bitcoin/BRWallet.h:67</i>
+     */
+    long BRWalletBalance(CryptoLibrary.BRWallet wallet);
+    /**
+     * fee-per-kb of transaction size to use when creating a transaction<br>
+     * Original signature : <code>uint64_t BRWalletFeePerKb(BRWallet*)</code><br>
+     * <i>native declaration : bitcoin/BRWallet.h:87</i>
+     */
+    long BRWalletFeePerKb(CryptoLibrary.BRWallet wallet);
+
+
+    /**
      * Original signature : <code>char * coerceStringPrefaced (UInt256, int base, const char *)</code><br>
      * <i>native declaration : ethereum/util/BRUtilMath.h</i>
      */
     Pointer coerceStringPrefaced(UInt256.ByValue value, int base, String preface);
+
+    /** <i>native declaration : bitcoin/BRWalletManager.h:9</i> */
+    interface BRGetBlockNumberCallback extends Callback {
+        void apply(Pointer context, Pointer manager, int rid);
+    };
+    /** <i>native declaration : bitcoin/BRWalletManager.h:12</i> */
+    interface BRGetTransactionsCallback extends Callback {
+        void apply(Pointer context, Pointer manager, long begBlockNumber, long endBlockNumber, int rid);
+    };
+    /** <i>native declaration : bitcoin/BRWalletManager.h:20</i> */
+    interface BRSubmitTransactionCallback extends Callback {
+        void apply(Pointer context, Pointer manager, Pointer wallet, BRTransaction transaction, int rid);
+    };
+    /** <i>native declaration : bitcoin/BRWalletManager.h:39</i> */
+    interface BRTransactionEventCallback extends Callback {
+        void apply(Pointer context, Pointer manager, Pointer wallet, BRTransaction transaction, BRTransactionEvent.ByValue event);
+    };
+    /** <i>native declaration : bitcoin/BRWalletManager.h:62</i> */
+    interface BRWalletEventCallback extends Callback {
+        void apply(Pointer context, Pointer manager, Pointer wallet, BRWalletEvent.ByValue event);
+    };
+    /** <i>native declaration : bitcoin/BRWalletManager.h:85</i> */
+    interface BRWalletManagerEventCallback extends Callback {
+        void apply(Pointer context, Pointer manager, BRWalletManagerEvent.ByValue event);
+    };
+    /**
+     * Original signature : <code>BRWalletManager BRWalletManagerNew(BRWalletManagerClient, BRMasterPubKey, const BRChainParams*, uint32_t, BRSyncMode, const char*)</code><br>
+     * <i>native declaration : bitcoin/BRWalletManager.h:96</i>
+     */
+    BRWalletManager BRWalletManagerNew(BRWalletManagerClient.ByValue client, BRMasterPubKey.ByValue mpk, BRChainParams params, int earliestKeyTime, int mode, String storagePath);
+    /**
+     * Original signature : <code>void BRWalletManagerFree(BRWalletManager)</code><br>
+     * <i>native declaration : bitcoin/BRWalletManager.h:98</i>
+     */
+    void BRWalletManagerFree(CryptoLibrary.BRWalletManager manager);
+    /**
+     * Original signature : <code>void BRWalletManagerConnect(BRWalletManager)</code><br>
+     * <i>native declaration : bitcoin/BRWalletManager.h:100</i>
+     */
+    void BRWalletManagerConnect(CryptoLibrary.BRWalletManager manager);
+    /**
+     * Original signature : <code>void BRWalletManagerDisconnect(BRWalletManager)</code><br>
+     * <i>native declaration : bitcoin/BRWalletManager.h:102</i>
+     */
+    void BRWalletManagerDisconnect(CryptoLibrary.BRWalletManager manager);
+    /**
+     * Original signature : <code>void BRWalletManagerScan(BRWalletManager)</code><br>
+     * <i>native declaration : bitcoin/BRWalletManager.h:104</i>
+     */
+    void BRWalletManagerScan(CryptoLibrary.BRWalletManager manager);
+    /**
+     * Original signature : <code>BRWallet* BRWalletManagerGetWallet(BRWalletManager)</code><br>
+     * <i>native declaration : bitcoin/BRWalletManager.h:117</i>
+     */
+    BRWallet BRWalletManagerGetWallet(CryptoLibrary.BRWalletManager manager);
+
 
     class BRCryptoAccount extends PointerType {
         public BRCryptoAccount(Pointer address) {
@@ -370,6 +530,32 @@ public interface CryptoLibrary extends Library {
             super(address);
         }
         public BRCryptoSystem() {
+            super();
+        }
+    };
+
+
+    class BRChainParams extends PointerType {
+        public BRChainParams(Pointer address) {
+            super(address);
+        }
+        public BRChainParams() {
+            super();
+        }
+    }
+    class BRWallet extends PointerType {
+        public BRWallet(Pointer address) {
+            super(address);
+        }
+        public BRWallet() {
+            super();
+        }
+    };
+    class BRWalletManager extends PointerType {
+        public BRWalletManager(Pointer address) {
+            super(address);
+        }
+        public BRWalletManager() {
             super();
         }
     };

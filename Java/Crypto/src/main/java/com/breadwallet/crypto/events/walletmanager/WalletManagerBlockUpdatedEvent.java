@@ -11,4 +11,9 @@ public final class WalletManagerBlockUpdatedEvent implements WalletManagerEvent 
     public long getHeight() {
         return height;
     }
+
+    @Override
+    public <T> T accept(WalletManagerEventVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
 }

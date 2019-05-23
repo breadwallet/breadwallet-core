@@ -13,4 +13,10 @@ public final class WalletManagerWalletChangedEvent implements WalletManagerEvent
     public Wallet getWallet() {
         return wallet;
     }
+
+    @Override
+    public <T> T accept(WalletManagerEventVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
+
 }

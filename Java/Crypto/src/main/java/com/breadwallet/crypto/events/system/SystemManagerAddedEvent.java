@@ -13,4 +13,9 @@ public class SystemManagerAddedEvent implements SystemEvent {
     public WalletManager getWalletManager() {
         return walletManager;
     }
+
+    @Override
+    public <T> T accept(SystemEventVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
 }

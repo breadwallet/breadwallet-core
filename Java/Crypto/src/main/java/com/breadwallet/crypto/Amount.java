@@ -63,9 +63,7 @@ public final class Amount implements Comparable<Amount> {
         return formatter;
     }
 
-    /* package */
-    final BRCryptoAmount core;
-
+    private final BRCryptoAmount core;
     private final Unit unit;
 
     private Amount(BRCryptoAmount core, Unit unit) {

@@ -13,4 +13,9 @@ public final class WalletManagerSyncStoppedEvent implements WalletManagerEvent {
     public Optional<String> getError() {
         return Optional.fromNullable(error);
     }
+
+    @Override
+    public <T> T accept(WalletManagerEventVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
 }

@@ -9,13 +9,15 @@
  */
 package com.breadwallet.crypto;
 
+import com.breadwallet.crypto.jni.BRMasterPubKey;
 import com.breadwallet.crypto.jni.CryptoLibrary;
 import com.breadwallet.crypto.jni.CryptoLibrary.BRCryptoAccount;
 import com.google.common.base.Optional;
 
+// TODO: Should uid be a UUID object? Or should we verify that it is a valid one?
 public final class Account {
 
-    /* package */ final BRCryptoAccount core;
+    private final BRCryptoAccount core;
     private final String uids;
 
     public static Optional<Account> createFrom(String phrase, String uids) {
@@ -54,5 +56,10 @@ public final class Account {
 
     public void setTimestamp(long timestamp) {
         CryptoLibrary.INSTANCE.cryptoAccountSetTimestamp(core, timestamp);
+    }
+
+    /* package */
+    BRMasterPubKey.ByValue asBtc() {
+        return CryptoLibrary.INSTANCE.cryptoAccountAsBTC(core);
     }
 }

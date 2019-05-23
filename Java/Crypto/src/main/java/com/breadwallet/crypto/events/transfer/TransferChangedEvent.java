@@ -19,4 +19,9 @@ public final class TransferChangedEvent implements TranferEvent {
     public TransferState getNewState() {
         return newState;
     }
+
+    @Override
+    public <T> T accept(TransferEventVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
 }

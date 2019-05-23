@@ -49,6 +49,10 @@ public class BlockchainDb {
     private final EthTokenApi ethTokenApi;
     private final EthTransferApi ethTransferApi;
 
+    public BlockchainDb(OkHttpClient client, String bdbBaseURL, String apiBaseURL) {
+        this(client, bdbBaseURL, null, apiBaseURL, null);
+    }
+
     public BlockchainDb(OkHttpClient client, String bdbBaseURL, @Nullable BlockchainDataTask bdbDataTask,
                         String apiBaseURL, @Nullable BlockchainDataTask apiDataTask) {
         BlockchainDataTask defaultDataTask = (cli, request, callback) -> cli.newCall(request).enqueue(callback);
@@ -76,6 +80,10 @@ public class BlockchainDb {
     }
 
     // Blockchain
+
+    public void getBlockchains(BlockchainCompletionHandler<List<Blockchain>> handler) {
+        blockchainApi.getBlockchains(true, handler);
+    }
 
     public void getBlockchains(boolean ismainnet, BlockchainCompletionHandler<List<Blockchain>> handler) {
         blockchainApi.getBlockchains(ismainnet, handler);

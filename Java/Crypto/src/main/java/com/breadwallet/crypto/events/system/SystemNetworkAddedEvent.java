@@ -13,4 +13,9 @@ public class SystemNetworkAddedEvent implements SystemEvent {
     public Network getNetwork() {
         return network;
     }
+
+    @Override
+    public <T> T accept(SystemEventVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
 }

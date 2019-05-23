@@ -10,46 +10,46 @@
 package com.breadwallet.crypto;
 
 import com.google.common.base.Optional;
+import com.sun.jna.Pointer;
 
 import java.util.List;
 
-public interface Wallet {
+public abstract class Wallet {
 
-    WalletManager getWalletManager();
+    /* package */
+    abstract Pointer getPointer();
 
-    Unit getBaseUnit();
+    public abstract Unit getBaseUnit();
 
-    Amount getBalance();
+    public abstract Amount getBalance();
 
-    List<Transfer> getTransfers();
+    public abstract List<Transfer> getTransfers();
 
-    Optional<Transfer> getTransferByHash(TransferHash hash);
+    public abstract Optional<Transfer> getTransferByHash(TransferHash hash);
 
-    WalletState getState();
+    public abstract WalletState getState();
 
-    TransferFeeBasis getDefaultFeeBasis();
+    public abstract TransferFeeBasis getDefaultFeeBasis();
 
-    void getDefaultFeeBasis(TransferFeeBasis feeBasis);
+    public abstract void setDefaultFeeBasis(TransferFeeBasis feeBasis);
 
-    Address getTarget();
+    public abstract Address getTarget();
 
-    Address getSource();
+    public abstract Address getSource();
 
-    Optional<Transfer> createTransfer(Address target, Amount amount, TransferFeeBasis feeBasis);
+    public abstract Optional<Transfer> createTransfer(Address target, Amount amount, TransferFeeBasis feeBasis);
 
-    Amount estimateFee(Amount amount, TransferFeeBasis feeBasis);
+    public abstract Amount estimateFee(Amount amount, TransferFeeBasis feeBasis);
 
-    default Optional<Transfer> createTransfer(Address target, Amount amount) {
+    public Optional<Transfer> createTransfer(Address target, Amount amount) {
         return createTransfer(target, amount, getDefaultFeeBasis());
     }
 
-    default Currency getCurrency() {
+    public Currency getCurrency() {
         return getBaseUnit().getCurrency();
     }
 
-
-    default String getName() {
+    public String getName() {
         return getBaseUnit().getCurrency().getCode();
     }
-
 }

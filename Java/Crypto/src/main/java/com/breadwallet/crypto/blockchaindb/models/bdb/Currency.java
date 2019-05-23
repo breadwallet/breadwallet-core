@@ -130,7 +130,7 @@ public class Currency {
         return type;
     }
 
-    public String getBlockchainID() {
+    public String getBlockchainId() {
         return blockchainID;
     }
 

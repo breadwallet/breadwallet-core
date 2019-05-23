@@ -5,5 +5,5 @@ import com.breadwallet.crypto.Network;
 
 public interface NetworkListener {
 
-    void handleNetworkEvent(System system, Network network, NetworkEvent networkEvent);
+    void handleNetworkEvent(System system, Network network, NetworkEvent event);
 }

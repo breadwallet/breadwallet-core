@@ -23,8 +23,6 @@ import java.util.Objects;
 
 public final class Address {
 
-    private final BRCryptoAddress core;
-
     public static Optional<Address> create(String address, Network network) {
         return network.addressFor(address);
     }
@@ -62,6 +60,8 @@ public final class Address {
         BREthereumAddress.ByValue addressValue = new BREthereumAddress.ByValue(address);
         return new Address(CryptoLibrary.INSTANCE.cryptoAddressCreateAsETH(addressValue));
     }
+
+    private final BRCryptoAddress core;
 
     private Address(BRCryptoAddress core) {
         this.core = core;

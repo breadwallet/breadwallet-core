@@ -22,7 +22,6 @@ public final class Currency {
 
     /* package */
     final BRCryptoCurrency core;
-
     private final String uids;
 
     /* package */ Currency(String uids, String name, String code, String type) {

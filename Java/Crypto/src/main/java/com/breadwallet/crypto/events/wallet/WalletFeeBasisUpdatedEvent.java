@@ -18,4 +18,9 @@ public final class WalletFeeBasisUpdatedEvent implements WalletEvent {
     public String toString() {
         return "FeeBasisUpdated";
     }
+
+    @Override
+    public <T> T accept(WalletEventVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
 }

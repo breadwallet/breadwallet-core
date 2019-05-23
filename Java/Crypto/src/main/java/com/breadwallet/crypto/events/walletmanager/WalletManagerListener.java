@@ -5,5 +5,5 @@ import com.breadwallet.crypto.System;
 
 public interface WalletManagerListener {
 
-    void handleWalletEvent(System system, WalletManager manager, WalletManagerEvent event);
+    void handleManagerEvent(System system, WalletManager manager, WalletManagerEvent event);
 }

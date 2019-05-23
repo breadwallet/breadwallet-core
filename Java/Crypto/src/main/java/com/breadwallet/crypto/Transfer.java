@@ -33,6 +33,8 @@ public interface Transfer {
 
     Optional<TransferHash> getHash();
 
+    Optional<Long> getConfirmations();
+
     default Optional<TransferConfirmation> getConfirmation() {
         return getState().getIncludedConfirmation();
     }
@@ -44,9 +46,5 @@ public interface Transfer {
             return (blockHeight >= confirmation.blockNumber) ? Optional.of(1 + blockHeight - confirmation.blockNumber) : Optional.absent();
         }
         return Optional.absent();
-    }
-
-    default Optional<Long> getConfirmations() {
-        return getWallet().transform(wallet -> wallet.getWalletManager().getNetwork().getHeight());
     }
 }

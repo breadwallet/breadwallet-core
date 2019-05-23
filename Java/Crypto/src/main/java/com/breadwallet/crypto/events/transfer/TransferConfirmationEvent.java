@@ -11,4 +11,9 @@ public final class TransferConfirmationEvent implements TranferEvent {
     public long getCount() {
         return count;
     }
+
+    @Override
+    public <T> T accept(TransferEventVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
 }

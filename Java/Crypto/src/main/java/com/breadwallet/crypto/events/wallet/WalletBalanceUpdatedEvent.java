@@ -18,4 +18,9 @@ public final class WalletBalanceUpdatedEvent implements WalletEvent {
     public String toString() {
         return "BalanceUpdated";
     }
+
+    @Override
+    public <T> T accept(WalletEventVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
 }

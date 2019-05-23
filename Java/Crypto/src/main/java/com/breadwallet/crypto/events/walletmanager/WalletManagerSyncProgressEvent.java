@@ -11,4 +11,9 @@ public final class WalletManagerSyncProgressEvent implements WalletManagerEvent 
     public double getPercentComplete() {
         return percentComplete;
     }
+
+    @Override
+    public <T> T accept(WalletManagerEventVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
 }

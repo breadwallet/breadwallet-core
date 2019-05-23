@@ -9,9 +9,28 @@ import java.util.List;
 // TODO: System is an unfortunate name in Java. How about CryptoManager?
 public interface System {
 
-    void start(List<String> networksNeeded);
+    // TODO: Implement subscription
+    void subscribe(String subscriptionToken);
 
-    void stop();
+    void initialize(List<String> networksNeeded);
+
+    default void start() {
+        for (WalletManager manager: getWalletManagers()) {
+            manager.connect();
+        }
+    }
+
+    default void stop() {
+        for (WalletManager manager: getWalletManagers()) {
+            manager.disconnect();
+        }
+    }
+
+    default void sync() {
+        for (WalletManager manager: getWalletManagers()) {
+            manager.sync();
+        }
+    }
 
     void createWalletManager(Network network, WalletManagerMode mode);
 

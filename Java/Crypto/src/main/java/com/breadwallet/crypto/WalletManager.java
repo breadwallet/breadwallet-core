@@ -9,53 +9,68 @@
  */
 package com.breadwallet.crypto;
 
+import com.google.common.base.Optional;
+import com.sun.jna.Pointer;
+
 import java.util.List;
 
-public interface WalletManager {
+public abstract class WalletManager {
 
-    void connect();
+    /* package */
+    abstract Wallet createWalletByPtr(Pointer walletPtr);
 
-    void disconnect();
+    /* package */
+    abstract Optional<Wallet> getWalletByPtr(Pointer walletPtr);
 
-    void submit(Transfer transfer, String paperKey);
+    /* package */
+    abstract Pointer getPointer();
 
-    void sync();
+    /* package */
+    abstract WalletManagerState setState(WalletManagerState state);
 
-    System getSystem();
+    public abstract void initialize();
 
-    Account getAccount();
+    public abstract void connect();
 
-    Network getNetwork();
+    public abstract void disconnect();
 
-    Wallet getPrimaryWallet();
+    public abstract void sync();
 
-    List<Wallet> getWallets();
+    public abstract void submit(Transfer transfer, String paperKey);
 
-    WalletManagerMode getMode();
+    public abstract Account getAccount();
 
-    String getPath();
+    public abstract Network getNetwork();
 
-    WalletManagerState getState();
+    public abstract Wallet getPrimaryWallet();
 
-    default Currency getCurrency() {
+    public abstract List<Wallet> getWallets();
+
+    public abstract WalletManagerMode getMode();
+
+    public abstract String getPath();
+
+    public abstract WalletManagerState getState();
+
+    public Currency getCurrency() {
         return getNetwork().getCurrency();
     }
 
-    default String getName() {
+    public String getName() {
         return getCurrency().getCode();
     }
 
-    default Unit getBaseUnit() {
+    public Unit getBaseUnit() {
         Network network = getNetwork();
         return network.baseUnitFor(network.getCurrency()).get();
     }
 
-    default Unit getDefaultUnit() {
+    public Unit getDefaultUnit() {
         Network network = getNetwork();
         return network.defaultUnitFor(network.getCurrency()).get();
     }
 
-    default boolean isActive() {
+    public boolean isActive() {
         WalletManagerState state = getState();
         return state == WalletManagerState.CREATED || state == state.SYNCHING;
     }
