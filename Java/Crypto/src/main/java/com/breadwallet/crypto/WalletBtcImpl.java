@@ -6,53 +6,69 @@ import com.google.common.base.Optional;
 import com.sun.jna.Pointer;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-public class WalletBtcImpl extends Wallet {
+import javax.annotation.Nullable;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
+
+// TODO: Where do we free 'core'?
+
+/* package */
+class WalletBtcImpl extends Wallet {
+
+    private final List<Transfer> transfers;
+
+    private final BRWallet core;
 
     private final Object owner;
-    private final BRWallet core;
-    private final Unit unit;
-    private final WalletState state;
+    private final Unit feeUnit;
+    private final Unit defaultUnit;
     private final String name;
 
+    private WalletState state;
     private TransferFeeBasis defaultFeeBasis;
 
     /* package */
-    WalletBtcImpl(Object owner, Pointer ptr, Unit unit) {
+    WalletBtcImpl(Object owner, Pointer ptr, Unit feeUnit, Unit defaultUnit) {
         this.owner = owner;
-        this.core = new BRWallet(ptr);
-        this.unit = unit;
-        this.name = unit.getCurrency().getCode();
+        this.feeUnit = feeUnit;
+        this.defaultUnit = defaultUnit;
+        this.name = defaultUnit.getCurrency().getCode();
         this.state = WalletState.CREATED;
+
+        this.transfers = Collections.synchronizedList(new ArrayList<>());
+        this.core = new BRWallet(ptr);
+
         this.defaultFeeBasis = TransferFeeBasis.createBtc(CryptoLibrary.INSTANCE.BRWalletFeePerKb(core));
     }
 
     @Override
-    Pointer getPointer() {
-        return core.getPointer();
-    }
-
-    @Override
     public Unit getBaseUnit() {
-        return unit;
+        return defaultUnit;
     }
 
     @Override
     public Amount getBalance() {
         // TODO: This diverges from Swift, is this okay?
-        return Amount.create(CryptoLibrary.INSTANCE.BRWalletBalance(core), unit);
+        return Amount.create(CryptoLibrary.INSTANCE.BRWalletBalance(core), defaultUnit);
     }
 
     @Override
     public List<Transfer> getTransfers() {
-        // TODO: Implement me!
-        return new ArrayList<>();
+        return new ArrayList<>(transfers);
     }
 
     @Override
     public Optional<Transfer> getTransferByHash(TransferHash hash) {
-        // TODO: Implement me!
+        for (Transfer transfer: transfers) {
+            TransferHash transferHash = transfer.getHash().orNull();
+            if (hash.equals(transferHash )) {
+                return Optional.of(transfer);
+            }
+        }
         return Optional.absent();
     }
 
@@ -68,7 +84,7 @@ public class WalletBtcImpl extends Wallet {
 
     @Override
     public void setDefaultFeeBasis(TransferFeeBasis feeBasis) {
-        // TODO: Implement me!
+        defaultFeeBasis = feeBasis;
     }
 
     @Override
@@ -88,8 +104,65 @@ public class WalletBtcImpl extends Wallet {
     }
 
     @Override
-    public Amount estimateFee(Amount amount, TransferFeeBasis feeBasis) {
-        // TODO: Implement me!
-        return null;
+    public Amount estimateFee(Amount amount, @Nullable TransferFeeBasis feeBasis) {
+        checkState(amount.hasCurrency(defaultUnit.getCurrency()));
+        feeBasis = feeBasis == null ? defaultFeeBasis : feeBasis;
+
+        long feePerKbSaved = CryptoLibrary.INSTANCE.BRWalletFeePerKb(core);
+
+        Optional<Long> optFeePerKb = feeBasis.getBtcFeePerKb();
+        checkArgument(optFeePerKb.isPresent());
+        long feePerKb = optFeePerKb.get();
+
+        CryptoLibrary.INSTANCE.BRWalletSetFeePerKb(core, feePerKb);
+        long fee = CryptoLibrary.INSTANCE.BRWalletFeeForTxAmount(core, amount.asBtc());
+        CryptoLibrary.INSTANCE.BRWalletSetFeePerKb(core, feePerKbSaved);
+
+        // TODO: This diverges from Swift, is this okay?
+        return Amount.create(fee, feeUnit);
     }
+
+    @Override
+    Pointer getPointer() {
+        return core.getPointer();
+    }
+
+    @Override
+    /* package */
+    Optional<Transfer> getOrCreateTransferByPtr(Pointer transferPtr, boolean createAllowed) {
+        Optional<Transfer> optTransfer = getTransferByPtr(transferPtr);
+        if (optTransfer.isPresent()) {
+            return optTransfer;
+        } else if (createAllowed) {
+            return Optional.of(createTransferByPtr(transferPtr));
+        } else {
+            return Optional.absent();
+        }
+    }
+
+    @Override
+    /* package */
+    WalletState setState(WalletState newState) {
+        WalletState oldState = state;
+        state = newState;
+        return oldState;
+    }
+
+    private
+    Transfer createTransferByPtr(Pointer transferPtr) {
+        Transfer transfer = new TransferBtcImpl(this, transferPtr, defaultUnit);
+        transfers.add(transfer);
+        return transfer;
+    }
+
+    private
+    Optional<Transfer> getTransferByPtr(Pointer transferPtr) {
+        for (Transfer transfer: transfers) {
+            if (transfer.getPointer().equals(transferPtr)) {
+                return Optional.of(transfer);
+            }
+        }
+        return Optional.absent();
+    }
+
 }

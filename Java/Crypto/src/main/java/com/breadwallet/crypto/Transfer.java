@@ -11,35 +11,39 @@ package com.breadwallet.crypto;
 
 import com.google.common.base.Optional;
 
-public interface Transfer {
+public abstract class Transfer {
 
-    Optional<Wallet> getWallet();
+    /* package */
+    abstract Object getPointer();
 
-    Optional<Address> getSource();
+    /* package */
+    abstract TransferState setState(TransferState state);
 
-    Optional<Address> getTarget();
+    public abstract Optional<Address> getSource();
 
-    Amount getAmount();
+    public abstract Optional<Address> getTarget();
 
-    Amount getAmountDirected();
+    public abstract Amount getAmount();
 
-    Amount getFee();
+    public abstract Amount getAmountDirected();
 
-    TransferFeeBasis getFeeBasis();
+    public abstract Amount getFee();
 
-    TransferState getState();
+    public abstract TransferFeeBasis getFeeBasis();
 
-    TransferDirection getDirection();
+    public abstract TransferState getState();
 
-    Optional<TransferHash> getHash();
+    public abstract TransferDirection getDirection();
 
-    Optional<Long> getConfirmations();
+    public abstract Optional<TransferHash> getHash();
 
-    default Optional<TransferConfirmation> getConfirmation() {
+    public abstract Optional<Long> getConfirmations();
+
+    public Optional<TransferConfirmation> getConfirmation() {
         return getState().getIncludedConfirmation();
     }
 
-    default Optional<Long> getConfirmationsAt(long blockHeight) {
+    public Optional<Long> getConfirmationsAt(long blockHeight) {
         Optional<TransferConfirmation> optionalConfirmation = getConfirmation();
         if (optionalConfirmation.isPresent()) {
             TransferConfirmation confirmation = optionalConfirmation.get();

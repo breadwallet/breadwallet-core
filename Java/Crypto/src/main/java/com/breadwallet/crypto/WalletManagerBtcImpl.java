@@ -64,7 +64,7 @@ class WalletManagerBtcImpl extends WalletManager {
         checkNotNull(wallet);
         Pointer walletPtr = wallet.getPointer();
         checkNotNull(walletPtr);
-        Wallet primaryWallet = new WalletBtcImpl(this, walletPtr, getDefaultUnit());
+        Wallet primaryWallet = new WalletBtcImpl(this, walletPtr, getBaseUnit(), getDefaultUnit());
 
         this.wallets = Collections.synchronizedList(new ArrayList<>(Collections.singleton(primaryWallet)));
     }
@@ -139,14 +139,25 @@ class WalletManagerBtcImpl extends WalletManager {
 
     @Override
     /* package */
+    Optional<Wallet> getOrCreateWalletByPtr(Pointer walletPtr, boolean createAllowed) {
+        Optional<Wallet> optWallet = getWalletByPtr(walletPtr);
+        if (optWallet.isPresent()) {
+            return optWallet;
+        } else if (createAllowed) {
+            return Optional.of(createWalletByPtr(walletPtr));
+        } else {
+            return Optional.absent();
+        }
+    }
+
+    private
     Wallet createWalletByPtr(Pointer walletPtr) {
-        Wallet wallet = new WalletBtcImpl(WalletManagerBtcImpl.this, walletPtr, getDefaultUnit());
+        Wallet wallet = new WalletBtcImpl(this, walletPtr, getBaseUnit(), getDefaultUnit());
         wallets.add(wallet);
         return wallet;
     }
 
-    @Override
-    /* package */
+    private
     Optional<Wallet> getWalletByPtr(Pointer walletPtr) {
         for (Wallet wallet: wallets) {
             if (wallet.getPointer().equals(walletPtr)) {

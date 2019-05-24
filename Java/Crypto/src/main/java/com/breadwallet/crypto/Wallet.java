@@ -14,10 +14,18 @@ import com.sun.jna.Pointer;
 
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 public abstract class Wallet {
 
     /* package */
     abstract Pointer getPointer();
+
+    /* package */
+    abstract Optional<Transfer> getOrCreateTransferByPtr(Pointer transferPtr, boolean createAllowed);
+
+    /* package */
+    abstract WalletState setState(WalletState state);
 
     public abstract Unit getBaseUnit();
 
@@ -39,7 +47,7 @@ public abstract class Wallet {
 
     public abstract Optional<Transfer> createTransfer(Address target, Amount amount, TransferFeeBasis feeBasis);
 
-    public abstract Amount estimateFee(Amount amount, TransferFeeBasis feeBasis);
+    public abstract Amount estimateFee(Amount amount, @Nullable TransferFeeBasis feeBasis);
 
     public Optional<Transfer> createTransfer(Address target, Amount amount) {
         return createTransfer(target, amount, getDefaultFeeBasis());

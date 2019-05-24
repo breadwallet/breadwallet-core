@@ -28,6 +28,7 @@ import java.text.NumberFormat;
 import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 public final class Amount implements Comparable<Amount> {
 
@@ -178,5 +179,13 @@ public final class Amount implements Comparable<Amount> {
     @Override
     public int hashCode() {
         return Objects.hash(core, unit);
+    }
+
+    /* package */
+    long asBtc() {
+        IntByReference overflowRef = new IntByReference(BRCryptoBoolean.CRYPTO_FALSE);
+        long value = CryptoLibrary.INSTANCE.cryptoAmountGetIntegerRaw(core, overflowRef);
+        checkState(BRCryptoBoolean.CRYPTO_FALSE == overflowRef.getValue());
+        return value;
     }
 }

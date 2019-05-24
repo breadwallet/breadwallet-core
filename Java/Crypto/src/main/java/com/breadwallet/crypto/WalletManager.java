@@ -17,13 +17,10 @@ import java.util.List;
 public abstract class WalletManager {
 
     /* package */
-    abstract Wallet createWalletByPtr(Pointer walletPtr);
-
-    /* package */
-    abstract Optional<Wallet> getWalletByPtr(Pointer walletPtr);
-
-    /* package */
     abstract Pointer getPointer();
+
+    /* package */
+    abstract Optional<Wallet> getOrCreateWalletByPtr(Pointer walletPtr, boolean createAllowed);
 
     /* package */
     abstract WalletManagerState setState(WalletManagerState state);

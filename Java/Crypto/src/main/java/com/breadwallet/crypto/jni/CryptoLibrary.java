@@ -15,6 +15,10 @@ public interface CryptoLibrary extends Library {
     CryptoLibrary INSTANCE = Native.load(CryptoLibrary.JNA_LIBRARY_NAME, CryptoLibrary.class);
 
 
+    /** <i>native declaration : bitcoin/BRWallet.h</i> */
+    public static final long DEFAULT_FEE_PER_KB = (long)(1000L * 10);
+
+
     /**
      * <i>native declaration : support/BRSyncMode.h:5</i><br>
      * enum values
@@ -34,7 +38,7 @@ public interface CryptoLibrary extends Library {
      * <i>native declaration : bitcoin/BRWalletManager.h:6</i><br>
      * enum values
      */
-    public static interface BRWalletForkId {
+    interface BRWalletForkId {
         /** <i>native declaration : bitcoin/BRWalletManager.h:3</i> */
         public static final int WALLET_FORKID_BITCOIN = 0x00;
         /** <i>native declaration : bitcoin/BRWalletManager.h:4</i> */
@@ -46,7 +50,7 @@ public interface CryptoLibrary extends Library {
      * <i>native declaration : bitcoin/BRWalletManager.h:27</i><br>
      * enum values
      */
-    public static interface BRTransactionEventType {
+    interface BRTransactionEventType {
         /** <i>native declaration : bitcoin/BRWalletManager.h:24</i> */
         public static final int BITCOIN_TRANSACTION_ADDED = 0;
         /** <i>native declaration : bitcoin/BRWalletManager.h:25</i> */
@@ -58,7 +62,7 @@ public interface CryptoLibrary extends Library {
      * <i>native declaration : bitcoin/BRWalletManager.h:45</i><br>
      * enum values
      */
-    public static interface BRWalletEventType {
+    interface BRWalletEventType {
         /** <i>native declaration : bitcoin/BRWalletManager.h:41</i> */
         public static final int BITCOIN_WALLET_CREATED = 0;
         /** <i>native declaration : bitcoin/BRWalletManager.h:42</i> */
@@ -72,7 +76,7 @@ public interface CryptoLibrary extends Library {
      * <i>native declaration : bitcoin/BRWalletManager.h:70</i><br>
      * enum values
      */
-    public static interface BRWalletManagerEventType {
+    interface BRWalletManagerEventType {
         /** <i>native declaration : bitcoin/BRWalletManager.h:64</i> */
         public static final int BITCOIN_WALLET_MANAGER_CREATED = 0;
         /** <i>native declaration : bitcoin/BRWalletManager.h:65</i> */
@@ -398,7 +402,17 @@ public interface CryptoLibrary extends Library {
      * <i>native declaration : bitcoin/BRWallet.h:87</i>
      */
     long BRWalletFeePerKb(CryptoLibrary.BRWallet wallet);
-
+    /**
+     * Original signature : <code>void BRWalletSetFeePerKb(BRWallet*, uint64_t)</code><br>
+     * <i>native declaration : bitcoin/BRWallet.h:89</i>
+     */
+    void BRWalletSetFeePerKb(CryptoLibrary.BRWallet wallet, long feePerKb);
+    /**
+     * fee that will be added for a transaction of the given amount<br>
+     * Original signature : <code>uint64_t BRWalletFeeForTxAmount(BRWallet*, uint64_t)</code><br>
+     * <i>native declaration : bitcoin/BRWallet.h:179</i>
+     */
+    long BRWalletFeeForTxAmount(CryptoLibrary.BRWallet wallet, long amount);
 
     /**
      * Original signature : <code>char * coerceStringPrefaced (UInt256, int base, const char *)</code><br>
@@ -420,7 +434,7 @@ public interface CryptoLibrary extends Library {
     };
     /** <i>native declaration : bitcoin/BRWalletManager.h:39</i> */
     interface BRTransactionEventCallback extends Callback {
-        void apply(Pointer context, Pointer manager, Pointer wallet, BRTransaction transaction, BRTransactionEvent.ByValue event);
+        void apply(Pointer context, Pointer manager, Pointer wallet, Pointer transaction, BRTransactionEvent.ByValue event);
     };
     /** <i>native declaration : bitcoin/BRWalletManager.h:62</i> */
     interface BRWalletEventCallback extends Callback {

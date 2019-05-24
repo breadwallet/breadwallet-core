@@ -16,16 +16,23 @@ import com.breadwallet.crypto.events.system.SystemListener;
 import com.breadwallet.crypto.events.system.SystemManagerAddedEvent;
 import com.breadwallet.crypto.events.system.SystemNetworkAddedEvent;
 import com.breadwallet.crypto.events.transfer.TranferEvent;
+import com.breadwallet.crypto.events.transfer.TransferChangedEvent;
 import com.breadwallet.crypto.events.transfer.TransferConfirmationEvent;
+import com.breadwallet.crypto.events.transfer.TransferCreatedEvent;
+import com.breadwallet.crypto.events.transfer.TransferDeletedEvent;
 import com.breadwallet.crypto.events.wallet.WalletBalanceUpdatedEvent;
+import com.breadwallet.crypto.events.wallet.WalletChangedEvent;
 import com.breadwallet.crypto.events.wallet.WalletCreatedEvent;
 import com.breadwallet.crypto.events.wallet.WalletDeletedEvent;
 import com.breadwallet.crypto.events.wallet.WalletEvent;
+import com.breadwallet.crypto.events.wallet.WalletTransferAddedEvent;
+import com.breadwallet.crypto.events.wallet.WalletTransferDeletedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerChangedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerCreatedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerSyncStartedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerSyncStoppedEvent;
+import com.breadwallet.crypto.events.walletmanager.WalletManagerWalletChangedEvent;
 import com.breadwallet.crypto.jni.BRTransaction;
 import com.breadwallet.crypto.jni.BRTransactionEvent;
 import com.breadwallet.crypto.jni.BRWalletEvent;
@@ -195,167 +202,171 @@ public class SystemImpl implements System {
         });
     }
 
-    private void handleTransactionEvent(Pointer context, Pointer managerPtr, Pointer walletPtr, BRTransaction transaction, BRTransactionEvent.ByValue event) {
+    private void handleTransactionEvent(Pointer context, Pointer managerPtr, Pointer walletPtr, Pointer transactionPtr, BRTransactionEvent.ByValue event) {
         systemExecutor.submit(() -> {
-            // TODO: Implement this
-            Log.d(TAG, "BRTransactionEventCallback");
-            switch (event.type) {
-                case CryptoLibrary.BRTransactionEventType.BITCOIN_TRANSACTION_ADDED:
-                    Log.d(TAG, "BRTransactionEventCallback: BITCOIN_TRANSACTION_ADDED");
-                    break;
-                case CryptoLibrary.BRTransactionEventType.BITCOIN_TRANSACTION_DELETED:
-                    Log.d(TAG, "BRTransactionEventCallback: BITCOIN_TRANSACTION_DELETED");
-                    break;
-                case CryptoLibrary.BRTransactionEventType.BITCOIN_TRANSACTION_UPDATED:
-                    Log.d(TAG, String.format("BRTransactionEventCallback: BITCOIN_TRANSACTION_UPDATED (%s, %s)", event.u.updated.blockHeight, event.u.updated.timestamp));
-                    break;
-                default:
-                    throw new IllegalStateException(String.format("Unsupported BRTransactionEventCallback type: %s", event.type));
+            try {Thread.sleep(100); } catch (InterruptedException e) {}
+            Optional<WalletManager> optManager = getWalletManagerByPointer(managerPtr);
+            if (optManager.isPresent()) {
+                WalletManager walletManager = optManager.get();
+
+                Optional<Wallet> optWallet = walletManager.getOrCreateWalletByPtr(walletPtr, false);
+                if (optWallet.isPresent()) {
+                    Wallet wallet = optWallet.get();
+
+                    boolean createAllowed = event.type == CryptoLibrary.BRTransactionEventType.BITCOIN_TRANSACTION_ADDED;
+                    Optional<Transfer> optTransfer = wallet.getOrCreateTransferByPtr(transactionPtr, createAllowed);
+                    if (optTransfer.isPresent()) {
+                        Transfer transfer = optTransfer.get();
+
+                        switch (event.type) {
+                            case CryptoLibrary.BRTransactionEventType.BITCOIN_TRANSACTION_ADDED:
+                                Log.d(TAG, "BRTransactionEventCallback: BITCOIN_TRANSACTION_ADDED");
+
+                                announceTransferEvent(walletManager, wallet, transfer, new TransferCreatedEvent());
+                                announceWalletEvent(walletManager, wallet, new WalletTransferAddedEvent(transfer));
+                                break;
+                            case CryptoLibrary.BRTransactionEventType.BITCOIN_TRANSACTION_DELETED:
+                                Log.d(TAG, "BRTransactionEventCallback: BITCOIN_TRANSACTION_DELETED");
+
+                                announceTransferEvent(walletManager, wallet, transfer, new TransferDeletedEvent());
+                                announceWalletEvent(walletManager, wallet, new WalletTransferDeletedEvent(transfer));
+                                break;
+                            case CryptoLibrary.BRTransactionEventType.BITCOIN_TRANSACTION_UPDATED:
+                                int blockHeight = event.u.updated.blockHeight;
+                                int timestamp = event.u.updated.timestamp;
+                                Log.d(TAG, String.format("BRTransactionEventCallback: BITCOIN_TRANSACTION_UPDATED (%s, %s)", blockHeight, timestamp));
+
+                                Amount amount = Amount.create(0, walletManager.getDefaultUnit());
+                                TransferConfirmation confirmation = new TransferConfirmation(blockHeight, 0, timestamp, amount);
+
+                                TransferState newState = TransferState.createIncluded(confirmation);
+                                TransferState oldState = transfer.setState(newState);
+
+                                announceTransferEvent(walletManager, wallet, transfer, new TransferChangedEvent(oldState, newState));
+
+                                break;
+                            default:
+                                throw new IllegalStateException(String.format("Unsupported BRTransactionEventCallback type: %s", event.type));
+                        }
+
+                    } else {
+                        Log.d(TAG, String.format("BRTransactionEventCallback: missed transfer for type: %s", event.type));
+                    }
+
+                } else {
+                    Log.d(TAG, String.format("BRTransactionEventCallback: missed wallet for type: %s", event.type));
+                }
+
+            } else {
+                Log.d(TAG, String.format("BRTransactionEventCallback: missed manager for type: %s", event.type));
             }
+
         });
     }
 
     private void handleWalletEvent(Pointer context, Pointer managerPtr, Pointer walletPtr, BRWalletEvent.ByValue event) {
         systemExecutor.submit(() -> {
-            switch (event.type) {
-                case CryptoLibrary.BRWalletEventType.BITCOIN_WALLET_CREATED: {
-                    Log.d(TAG, "BRWalletEventCallback: BITCOIN_WALLET_CREATED");
-                    Optional<WalletManager> optManager = getWalletManagerByPointer(managerPtr);
-                    if (optManager.isPresent()) {
-                        WalletManager walletManager = optManager.get();
-                        Optional<Wallet> optWallet = walletManager.getWalletByPtr(walletPtr);
+            Optional<WalletManager> optManager = getWalletManagerByPointer(managerPtr);
+            if (optManager.isPresent()) {
+                WalletManager walletManager = optManager.get();
 
-                        if (!optWallet.isPresent()) {
-                            Wallet wallet = walletManager.createWalletByPtr(walletPtr);
+                boolean createAllowed = event.type == CryptoLibrary.BRWalletEventType.BITCOIN_WALLET_CREATED;
+                Optional<Wallet> optWallet = walletManager.getOrCreateWalletByPtr(walletPtr, createAllowed);
+                if (optWallet.isPresent()) {
+                    Wallet wallet = optWallet.get();
+
+                    switch (event.type) {
+                        case CryptoLibrary.BRWalletEventType.BITCOIN_WALLET_CREATED: {
+                            Log.d(TAG, "BRWalletEventCallback: BITCOIN_WALLET_CREATED");
 
                             announceWalletEvent(walletManager, wallet, new WalletCreatedEvent());
+                            break;
                         }
-                    } else {
-                        Log.d(TAG, "BRWalletEventCallback: BITCOIN_WALLET_CREATED missed manager");
-                    }
-                    break;
-                }
-                case CryptoLibrary.BRWalletEventType.BITCOIN_WALLET_DELETED: {
-                    Log.d(TAG, "BRWalletEventCallback: BITCOIN_WALLET_DELETED");
-                    Optional<WalletManager> optManager = getWalletManagerByPointer(managerPtr);
-                    if (optManager.isPresent()) {
-                        WalletManager walletManager = optManager.get();
-                        Optional<Wallet> optWallet = walletManager.getWalletByPtr(walletPtr);
-
-                        if (optWallet.isPresent()) {
-                            Wallet wallet = optWallet.get();
+                        case CryptoLibrary.BRWalletEventType.BITCOIN_WALLET_DELETED: {
+                            Log.d(TAG, "BRWalletEventCallback: BITCOIN_WALLET_DELETED");
 
                             announceWalletEvent(walletManager, wallet, new WalletDeletedEvent());
-                        } else {
-                            Log.d(TAG, "BRWalletEventCallback: BITCOIN_WALLET_DELETED missed wallet");
+                            break;
                         }
-                    } else {
-                        Log.d(TAG, "BRWalletEventCallback: BITCOIN_WALLET_DELETED missed manager");
-                    }
-                    break;
-                }
-                case CryptoLibrary.BRWalletEventType.BITCOIN_WALLET_BALANCE_UPDATED: {
-                    Log.d(TAG, String.format("BRWalletEventCallback: BITCOIN_WALLET_BALANCE_UPDATED (%s)", event.u.balance.satoshi));
+                        case CryptoLibrary.BRWalletEventType.BITCOIN_WALLET_BALANCE_UPDATED: {
+                            Log.d(TAG, String.format("BRWalletEventCallback: BITCOIN_WALLET_BALANCE_UPDATED (%s)", event.u.balance.satoshi));
 
-                    Optional<WalletManager> optManager = getWalletManagerByPointer(managerPtr);
-                    if (optManager.isPresent()) {
-                        WalletManager walletManager = optManager.get();
-                        Optional<Wallet> optWallet = walletManager.getWalletByPtr(walletPtr);
-
-                        if (optWallet.isPresent()) {
-                            Wallet wallet = optWallet.get();
                             announceWalletEvent(walletManager, wallet, new WalletBalanceUpdatedEvent(wallet.getBalance()));
-                        } else {
-                            Log.d(TAG, "BRWalletEventCallback: BITCOIN_WALLET_BALANCE_UPDATED missed wallet");
+                            announceWalletManagerEvent(walletManager, new WalletManagerWalletChangedEvent(wallet));
+                            break;
                         }
-                    } else {
-                        Log.d(TAG, "BRWalletEventCallback: BITCOIN_WALLET_BALANCE_UPDATED missed manager");
+                        case CryptoLibrary.BRWalletEventType.BITCOIN_WALLET_TRANSACTION_SUBMITTED: {
+                            Log.d(TAG, String.format("BRWalletEventCallback: BITCOIN_WALLET_TRANSACTION_SUBMITTED (%s)", event.u.submitted.error));
+
+                            // TODO: Implement this
+                            break;
+                        }
+                        default:
+                            throw new IllegalStateException(String.format("Unsupported BRWalletEventCallback type: %s", event.type));
                     }
-                    break;
+                } else {
+                    Log.d(TAG, String.format("BRWalletEventCallback: missed wallet for type: %s", event.type));
                 }
-                case CryptoLibrary.BRWalletEventType.BITCOIN_WALLET_TRANSACTION_SUBMITTED: {
-                    Log.d(TAG, String.format("BRWalletEventCallback: BITCOIN_WALLET_TRANSACTION_SUBMITTED (%s)", event.u.submitted.error));
-                    // TODO: Implement this
-                    break;
-                }
-                default:
-                    throw new IllegalStateException(String.format("Unsupported BRWalletEventCallback type: %s", event.type));
+
+            } else {
+                Log.d(TAG, String.format("BRWalletEventCallback: missed manager for type: %s", event.type));
             }
         });
     }
 
     private void handleWalletManagerEvent(Pointer context, Pointer managerPtr, BRWalletManagerEvent.ByValue event) {
         systemExecutor.submit(() -> {
-            switch (event.type) {
-                case CryptoLibrary.BRWalletManagerEventType.BITCOIN_WALLET_MANAGER_CREATED: {
-                    Log.d(TAG, "BRWalletManagerEventCallback: BITCOIN_WALLET_MANAGER_CREATED");
-                    break;
-                }
-                case CryptoLibrary.BRWalletManagerEventType.BITCOIN_WALLET_MANAGER_CONNECTED: {
-                    Log.d(TAG, "BRWalletManagerEventCallback: BITCOIN_WALLET_MANAGER_CONNECTED");
-                    Optional<WalletManager> optManager = getWalletManagerByPointer(managerPtr);
-                    if (optManager.isPresent()) {
-                        WalletManager walletManager = optManager.get();
+            Optional<WalletManager> optManager = getWalletManagerByPointer(managerPtr);
+            if (optManager.isPresent()) {
+                WalletManager walletManager = optManager.get();
+
+                switch (event.type) {
+                    case CryptoLibrary.BRWalletManagerEventType.BITCOIN_WALLET_MANAGER_CREATED: {
+                        Log.d(TAG, "BRWalletManagerEventCallback: BITCOIN_WALLET_MANAGER_CREATED");
+                        announceWalletManagerEvent(null, new WalletManagerCreatedEvent());
+                        break;
+                    }
+                    case CryptoLibrary.BRWalletManagerEventType.BITCOIN_WALLET_MANAGER_CONNECTED: {
+                        Log.d(TAG, "BRWalletManagerEventCallback: BITCOIN_WALLET_MANAGER_CONNECTED");
+
                         WalletManagerState newState = WalletManagerState.CONNECTED;
                         WalletManagerState oldState = walletManager.setState(newState);
 
                         announceWalletManagerEvent(walletManager, new WalletManagerChangedEvent(oldState, newState));
-                    } else {
-                        Log.d(TAG, "BRWalletManagerEventCallback: BITCOIN_WALLET_MANAGER_CONNECTED missed manager");
+                        break;
                     }
-                    break;
-                }
-                case CryptoLibrary.BRWalletManagerEventType.BITCOIN_WALLET_MANAGER_DISCONNECTED: {
-                    Log.d(TAG, "BRWalletManagerEventCallback: BITCOIN_WALLET_MANAGER_DISCONNECTED");
-                    Optional<WalletManager> optManager = getWalletManagerByPointer(managerPtr);
-                    if (optManager.isPresent()) {
-                        WalletManager walletManager = optManager.get();
+                    case CryptoLibrary.BRWalletManagerEventType.BITCOIN_WALLET_MANAGER_DISCONNECTED: {
+                        Log.d(TAG, "BRWalletManagerEventCallback: BITCOIN_WALLET_MANAGER_DISCONNECTED");
+
                         WalletManagerState newState = WalletManagerState.DISCONNECTED;
                         WalletManagerState oldState = walletManager.setState(newState);
 
                         announceWalletManagerEvent(walletManager, new WalletManagerChangedEvent(oldState, newState));
-                    } else {
-                        Log.d(TAG, "BRWalletManagerEventCallback: BITCOIN_WALLET_MANAGER_DISCONNECTED missed manager");
+                        break;
                     }
-                    break;
-                }
-                case CryptoLibrary.BRWalletManagerEventType.BITCOIN_WALLET_MANAGER_SYNC_STARTED: {
-                    Log.d(TAG, "BRWalletManagerEventCallback: BITCOIN_WALLET_MANAGER_SYNC_STARTED");
-                    Optional<WalletManager> optManager = getWalletManagerByPointer(managerPtr);
-                    if (optManager.isPresent()) {
-                        WalletManager walletManager = optManager.get();
+                    case CryptoLibrary.BRWalletManagerEventType.BITCOIN_WALLET_MANAGER_SYNC_STARTED: {
+                        Log.d(TAG, "BRWalletManagerEventCallback: BITCOIN_WALLET_MANAGER_SYNC_STARTED");
+
                         WalletManagerState newState = WalletManagerState.SYNCHING;
                         WalletManagerState oldState = walletManager.setState(newState);
 
                         announceWalletManagerEvent(walletManager, new WalletManagerSyncStartedEvent());
                         announceWalletManagerEvent(walletManager, new WalletManagerChangedEvent(oldState, newState));
-                    } else {
-                        Log.d(TAG, "BRWalletManagerEventCallback: BITCOIN_WALLET_MANAGER_SYNC_STARTED missed manager");
+                        break;
                     }
-                    break;
-                }
-                case CryptoLibrary.BRWalletManagerEventType.BITCOIN_WALLET_MANAGER_SYNC_STOPPED: {
-                    int error = event.u.syncStopped.error;
-                    Log.d(TAG, String.format("BRWalletManagerEventCallback: BITCOIN_WALLET_MANAGER_SYNC_STOPPED (%s)", error));
-                    Optional<WalletManager> optManager = getWalletManagerByPointer(managerPtr);
-                    if (optManager.isPresent()) {
-                        WalletManager walletManager = optManager.get();
+                    case CryptoLibrary.BRWalletManagerEventType.BITCOIN_WALLET_MANAGER_SYNC_STOPPED: {
+                        int error = event.u.syncStopped.error;
+                        Log.d(TAG, String.format("BRWalletManagerEventCallback: BITCOIN_WALLET_MANAGER_SYNC_STOPPED (%s)", error));
+
                         WalletManagerState newState = WalletManagerState.CONNECTED;
                         WalletManagerState oldState = walletManager.setState(newState);
 
                         announceWalletManagerEvent(walletManager, new WalletManagerSyncStoppedEvent(String.format("Code: %s", error)));
                         announceWalletManagerEvent(walletManager, new WalletManagerChangedEvent(oldState, newState));
-                    } else {
-                        Log.d(TAG, "BRWalletManagerEventCallback: BITCOIN_WALLET_MANAGER_SYNC_STOPPED missed manager");
+                        break;
                     }
-                    break;
-                }
-                case CryptoLibrary.BRWalletManagerEventType.BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED: {
-                    int height = event.u.blockHeightUpdated.value;
-                    Log.d(TAG, String.format("BRWalletManagerEventCallback: BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED (%s)", height));
-                    Optional<WalletManager> optManager = getWalletManagerByPointer(managerPtr);
-                    if (optManager.isPresent()) {
-                        WalletManager walletManager = optManager.get();
+                    case CryptoLibrary.BRWalletManagerEventType.BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED: {
+                        int height = event.u.blockHeightUpdated.value;
 
                         Network network = walletManager.getNetwork();
                         network.setHeight(height);
@@ -369,14 +380,16 @@ public class SystemImpl implements System {
                                 }
                             }
                         }
-                    } else {
-                        Log.d(TAG, "BRWalletManagerEventCallback: BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED missed manager");
+                        break;
                     }
-                    break;
+                    default:
+                        throw new IllegalStateException(String.format("Unsupported BRWalletManagerEventCallback type: %s", event.type));
                 }
-                default:
-                    throw new IllegalStateException(String.format("Unsupported BRWalletManagerEventCallback type: %s", event.type));
+
+            } else {
+                Log.d(TAG, String.format("BRWalletManagerEventCallback: missed manager for type: %s", event.type));
             }
+
         });
     }
 
