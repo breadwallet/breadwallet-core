@@ -27,6 +27,8 @@ public abstract class Wallet {
     /* package */
     abstract WalletState setState(WalletState state);
 
+    public abstract WalletManager getWalletManager();
+
     public abstract Unit getBaseUnit();
 
     public abstract Amount getBalance();

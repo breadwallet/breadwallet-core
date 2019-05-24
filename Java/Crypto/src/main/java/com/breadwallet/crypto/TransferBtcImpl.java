@@ -21,14 +21,14 @@ class TransferBtcImpl extends Transfer {
 
     private final BRTransaction core;
 
-    private final Object owner;
+    private final Wallet owner;
     private final Unit unit;
     private final TransferFeeBasis feeBasis;
 
     private TransferState state;
 
     /* package */
-    TransferBtcImpl(Object owner, Pointer ptr, Unit unit) {
+    TransferBtcImpl(Wallet owner, Pointer ptr, Unit unit) {
         this.owner = owner;
         this.unit = unit;
         this.state = TransferState.createCreated();
@@ -37,6 +37,11 @@ class TransferBtcImpl extends Transfer {
 
         // TODO: There is a comment in the Swift about this; is this OK?
         this.feeBasis = TransferFeeBasis.createBtc(CryptoLibrary.DEFAULT_FEE_PER_KB);
+    }
+
+    @Override
+    public Wallet getWallet() {
+        return owner;
     }
 
     @Override

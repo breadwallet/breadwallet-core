@@ -24,12 +24,12 @@ import com.breadwallet.crypto.events.walletmanager.WalletManagerEvent;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SharedSystemListener implements SystemListener {
+public class CoreSystemListener implements SystemListener {
 
     private final List<WalletListener> walletListeners = new ArrayList<>();
     private final List<TransferListener> transferListeners = new ArrayList<>();
 
-    private static final String TAG = SharedSystemListener.class.getName();
+    private static final String TAG = CoreSystemListener.class.getName();
 
     public void addListener(WalletListener listener) {
         walletListeners.add(listener);

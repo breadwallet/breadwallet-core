@@ -19,6 +19,8 @@ public abstract class Transfer {
     /* package */
     abstract TransferState setState(TransferState state);
 
+    public abstract Wallet getWallet();
+
     public abstract Optional<Address> getSource();
 
     public abstract Optional<Address> getTarget();

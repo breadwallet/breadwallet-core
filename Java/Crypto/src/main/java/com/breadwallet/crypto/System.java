@@ -51,6 +51,6 @@ public interface System {
         for (WalletManager manager: getWalletManagers()) {
             wallets.addAll(manager.getWallets());
         }
-        return null;
+        return wallets;
     }
 }

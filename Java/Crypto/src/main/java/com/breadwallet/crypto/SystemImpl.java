@@ -21,7 +21,6 @@ import com.breadwallet.crypto.events.transfer.TransferConfirmationEvent;
 import com.breadwallet.crypto.events.transfer.TransferCreatedEvent;
 import com.breadwallet.crypto.events.transfer.TransferDeletedEvent;
 import com.breadwallet.crypto.events.wallet.WalletBalanceUpdatedEvent;
-import com.breadwallet.crypto.events.wallet.WalletChangedEvent;
 import com.breadwallet.crypto.events.wallet.WalletCreatedEvent;
 import com.breadwallet.crypto.events.wallet.WalletDeletedEvent;
 import com.breadwallet.crypto.events.wallet.WalletEvent;
@@ -204,8 +203,7 @@ public class SystemImpl implements System {
 
     private void handleTransactionEvent(Pointer context, Pointer managerPtr, Pointer walletPtr, Pointer transactionPtr, BRTransactionEvent.ByValue event) {
         systemExecutor.submit(() -> {
-            try {Thread.sleep(100); } catch (InterruptedException e) {}
-            Optional<WalletManager> optManager = getWalletManagerByPointer(managerPtr);
+            Optional<WalletManager> optManager = getWalletManagerByPtr(managerPtr);
             if (optManager.isPresent()) {
                 WalletManager walletManager = optManager.get();
 
@@ -266,7 +264,7 @@ public class SystemImpl implements System {
 
     private void handleWalletEvent(Pointer context, Pointer managerPtr, Pointer walletPtr, BRWalletEvent.ByValue event) {
         systemExecutor.submit(() -> {
-            Optional<WalletManager> optManager = getWalletManagerByPointer(managerPtr);
+            Optional<WalletManager> optManager = getWalletManagerByPtr(managerPtr);
             if (optManager.isPresent()) {
                 WalletManager walletManager = optManager.get();
 
@@ -316,7 +314,7 @@ public class SystemImpl implements System {
 
     private void handleWalletManagerEvent(Pointer context, Pointer managerPtr, BRWalletManagerEvent.ByValue event) {
         systemExecutor.submit(() -> {
-            Optional<WalletManager> optManager = getWalletManagerByPointer(managerPtr);
+            Optional<WalletManager> optManager = getWalletManagerByPtr(managerPtr);
             if (optManager.isPresent()) {
                 WalletManager walletManager = optManager.get();
 
@@ -428,7 +426,7 @@ public class SystemImpl implements System {
         return added;
     }
 
-    private Optional<WalletManager> getWalletManagerByPointer(Pointer walletManagerPtr) {
+    private Optional<WalletManager> getWalletManagerByPtr(Pointer walletManagerPtr) {
         for (WalletManager walletManager: walletManagers) {
             if (walletManager.getPointer().equals(walletManagerPtr)) {
                 return Optional.of(walletManager);

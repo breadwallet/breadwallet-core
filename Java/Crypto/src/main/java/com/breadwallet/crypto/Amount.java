@@ -81,6 +81,10 @@ public final class Amount implements Comparable<Amount> {
         return unit.getCurrency();
     }
 
+    public Unit getUnit() {
+        return unit;
+    }
+
     public boolean hasCurrency(Currency currency) {
         return currency.core.equals(CryptoLibrary.INSTANCE.cryptoAmountGetCurrency(core));
     }

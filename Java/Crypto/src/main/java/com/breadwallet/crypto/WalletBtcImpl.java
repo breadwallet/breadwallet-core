@@ -23,7 +23,7 @@ class WalletBtcImpl extends Wallet {
 
     private final BRWallet core;
 
-    private final Object owner;
+    private final WalletManager owner;
     private final Unit feeUnit;
     private final Unit defaultUnit;
     private final String name;
@@ -32,7 +32,7 @@ class WalletBtcImpl extends Wallet {
     private TransferFeeBasis defaultFeeBasis;
 
     /* package */
-    WalletBtcImpl(Object owner, Pointer ptr, Unit feeUnit, Unit defaultUnit) {
+    WalletBtcImpl(WalletManager owner, Pointer ptr, Unit feeUnit, Unit defaultUnit) {
         this.owner = owner;
         this.feeUnit = feeUnit;
         this.defaultUnit = defaultUnit;
@@ -43,6 +43,11 @@ class WalletBtcImpl extends Wallet {
         this.core = new BRWallet(ptr);
 
         this.defaultFeeBasis = TransferFeeBasis.createBtc(CryptoLibrary.INSTANCE.BRWalletFeePerKb(core));
+    }
+
+    @Override
+    public WalletManager getWalletManager() {
+        return owner;
     }
 
     @Override
