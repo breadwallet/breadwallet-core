@@ -92,13 +92,13 @@ public class CurrencyDenomination {
     private final String name;
     private final String code;
     private final int decimals;
-    private final String symbols;
+    private final String symbol;
 
-    public CurrencyDenomination(String name, String code, int decimals, String symbols) {
+    public CurrencyDenomination(String name, String code, int decimals, String symbol) {
         this.name = name;
         this.code = code;
         this.decimals = decimals;
-        this.symbols = symbols;
+        this.symbol = symbol;
     }
 
     public String getName() {
@@ -113,7 +113,7 @@ public class CurrencyDenomination {
         return decimals;
     }
 
-    public String getSymbols() {
-        return symbols;
+    public String getSymbol() {
+        return symbol;
     }
 }

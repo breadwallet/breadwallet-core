@@ -53,8 +53,9 @@ public final class Amount implements Comparable<Amount> {
         DecimalFormat formatter = (DecimalFormat) DecimalFormat.getCurrencyInstance().clone();
         DecimalFormatSymbols formatterSymbols = (DecimalFormatSymbols) formatter.getDecimalFormatSymbols().clone();
 
-        formatterSymbols.setInternationalCurrencySymbol(unit.getCurrency().getCode());
-        formatterSymbols.setCurrencySymbol(unit.getSymbol());
+        String symbol = unit.getSymbol();
+        formatterSymbols.setInternationalCurrencySymbol(symbol);
+        formatterSymbols.setCurrencySymbol(symbol);
 
         formatter.setParseBigDecimal(true);
         formatter.setRoundingMode(RoundingMode.HALF_UP);

@@ -126,6 +126,7 @@ public class BlockchainDbAIT {
     public void testGetTransactions() {
         SynchronousCompletionHandler<List<Transaction>> handler = new SynchronousCompletionHandler<>();
 
+        // TODO: This fails due to paging; need to work with the backend guys to determine how queries with no hits look
         blockchainDb.getTransactions("bitcoin-mainnet", Arrays.asList("1JfbZRwdDHKZmuiZgYArJZhcuuzuw2HuMu"), 0, 50000,
                 true, true, handler);
         List<Transaction> transactions = handler.dat().get();

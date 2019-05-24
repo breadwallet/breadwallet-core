@@ -508,7 +508,7 @@ public class SystemImpl implements System {
                             Collections.sort(units, (o1, o2) -> {
                                 int d1 = o1.getDecimals();
                                 int d2 = o2.getDecimals();
-                                int result = d1 - d2;
+                                int result = d2 - d1;
                                 int absResult = Math.abs(result);
                                 return result == 0 ? result : (result / absResult);
                             });
@@ -598,8 +598,8 @@ public class SystemImpl implements System {
                                                            List<CurrencyDenomination> denominations) {
             for (CurrencyDenomination denomination : denominations) {
                 if (denomination.getDecimals() == 0) {
-                    String uids = String.format("%s-%s", currency.getName(), currency.getCode());
-                    return new Unit(currency, uids, denomination.getName(), denomination.getCode());
+                    String uids = String.format("%s-%s", currency.getName(), denomination.getCode());
+                    return new Unit(currency, uids, denomination.getName(), denomination.getSymbol());
                 }
             }
             // TODO: This isn't how we should handle this (this is based on swift)
@@ -610,9 +610,9 @@ public class SystemImpl implements System {
                                                               List<CurrencyDenomination> denominations, Unit base) {
             List<Unit> units = new ArrayList<>();
             for (CurrencyDenomination denomination : denominations) {
-                if (denomination.getDecimals() == 0) {
-                    String uids = String.format("%s-%s", currency.getName(), currency.getCode());
-                    units.add(new Unit(currency, uids, denomination.getName(), denomination.getCode(), base,
+                if (denomination.getDecimals() != 0) {
+                    String uids = String.format("%s-%s", currency.getName(), denomination.getCode());
+                    units.add(new Unit(currency, uids, denomination.getName(), denomination.getSymbol(), base,
                             denomination.getDecimals()));
                 }
             }

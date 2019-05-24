@@ -37,7 +37,7 @@ public class AmountAIT {
         assertEquals(new Double(-1.5), btc4.doubleAmount(btc_btc).get());
         assertEquals(new Double(-150000000), btc4.doubleAmount(satoshi_btc).get());
 
-        assertEquals("-B1.50", btc4.toStringAsUnit(btc_btc, null));
+        assertEquals("-B1.50", btc4.toStringAsUnit(btc_btc, null).get());
         assertEquals("-SAT150,000,000", btc4.toStringAsUnit(satoshi_btc, null).get());
     }
 
