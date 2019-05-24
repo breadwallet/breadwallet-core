@@ -48,7 +48,7 @@ public class CoreCryptoApplication extends Application {
 
         StrictMode.enableDefaults();
 
-        String paperKey = "boring head harsh green empty clip fatal typical found crane dinner timber";
+        String paperKey = BuildConfig.PaperKey;
 
         File storageFile = new File (getFilesDir(), "core");
         if (storageFile.exists()) deleteRecursively(storageFile);

@@ -1,5 +1,13 @@
 apply plugin: 'com.android.application'
 
+ext {
+    // configure a non-compromised key in your ~/.gradle/gradle.properties file ala
+    // BrdPaperKey="boring ..."
+    if (!project.hasProperty('BrdPaperKey')) {
+        BrdPaperKey = '"boring head harsh green empty clip fatal typical found crane dinner timber"'
+    }
+}
+
 android {
     compileSdkVersion 28
     compileOptions {
@@ -15,6 +23,8 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+        buildConfigField 'String', "PaperKey", BrdPaperKey
     }
 
     buildTypes {
