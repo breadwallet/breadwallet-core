@@ -91,4 +91,15 @@ public class BRTransactionEvent extends Structure {
 	public static class ByValue extends BRTransactionEvent implements Structure.ByValue {
 		
 	};
+
+	@Override
+	public void read() {
+		super.read();
+		switch (type){
+			case CryptoLibrary.BRTransactionEventType.BITCOIN_TRANSACTION_UPDATED:
+				u.setType(u_union.updated_struct.class);
+				u.read();
+				break;
+		}
+	}
 }

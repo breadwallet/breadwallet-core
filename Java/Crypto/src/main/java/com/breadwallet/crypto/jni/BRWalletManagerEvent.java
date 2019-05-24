@@ -120,4 +120,19 @@ public class BRWalletManagerEvent extends Structure {
 	public static class ByValue extends BRWalletManagerEvent implements Structure.ByValue {
 		
 	};
+
+	@Override
+	public void read() {
+		super.read();
+		switch (type){
+			case CryptoLibrary.BRWalletManagerEventType.BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+				u.setType(u_union.blockHeightUpdated_struct.class);
+				u.read();
+				break;
+			case CryptoLibrary.BRWalletManagerEventType.BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
+				u.setType(u_union.syncStopped_struct.class);
+				u.read();
+				break;
+		}
+	}
 }
