@@ -229,6 +229,8 @@
 		C349D009229717F7005C5CED /* base32.c in Sources */ = {isa = PBXBuildFile; fileRef = C349D005229717F7005C5CED /* base32.c */; };
 		C349D00A229717F7005C5CED /* decode.c in Sources */ = {isa = PBXBuildFile; fileRef = C349D006229717F7005C5CED /* decode.c */; };
 		C3854DC522971A0000890AF1 /* testStellar.c in Sources */ = {isa = PBXBuildFile; fileRef = C349CFE5229716D9005C5CED /* testStellar.c */; };
+		C3854DC9229879DE00890AF1 /* BRStellarSerialize.c in Sources */ = {isa = PBXBuildFile; fileRef = C3854DC8229879DE00890AF1 /* BRStellarSerialize.c */; };
+		C3854DCC22987A2600890AF1 /* BRStellarTransaction.c in Sources */ = {isa = PBXBuildFile; fileRef = C3854DCA22987A2600890AF1 /* BRStellarTransaction.c */; };
 		C3C453E1226E2C62004CC0C7 /* BRRippleSerialize.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C453DD226E2C62004CC0C7 /* BRRippleSerialize.c */; };
 		C3C453E2226E2C62004CC0C7 /* BRRippleTransaction.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C453DE226E2C62004CC0C7 /* BRRippleTransaction.c */; };
 		C3C453E5226E4863004CC0C7 /* BRRippleAccount.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C453E3226E4862004CC0C7 /* BRRippleAccount.c */; };
@@ -602,6 +604,10 @@
 		C349D006229717F7005C5CED /* decode.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = decode.c; sourceTree = "<group>"; };
 		C370DC362295776000314FBB /* testRippleTxList1.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = testRippleTxList1.h; sourceTree = "<group>"; };
 		C370DC372295776000314FBB /* testRippleTxList2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = testRippleTxList2.h; sourceTree = "<group>"; };
+		C3854DC7229879DE00890AF1 /* BRStellarSerialize.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRStellarSerialize.h; sourceTree = "<group>"; };
+		C3854DC8229879DE00890AF1 /* BRStellarSerialize.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRStellarSerialize.c; sourceTree = "<group>"; };
+		C3854DCA22987A2600890AF1 /* BRStellarTransaction.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRStellarTransaction.c; sourceTree = "<group>"; };
+		C3854DCB22987A2600890AF1 /* BRStellarTransaction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRStellarTransaction.h; sourceTree = "<group>"; };
 		C3C453DD226E2C62004CC0C7 /* BRRippleSerialize.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRRippleSerialize.c; sourceTree = "<group>"; };
 		C3C453DE226E2C62004CC0C7 /* BRRippleTransaction.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRRippleTransaction.c; sourceTree = "<group>"; };
 		C3C453DF226E2C62004CC0C7 /* BRRippleSerialize.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRRippleSerialize.h; sourceTree = "<group>"; };
@@ -1207,6 +1213,10 @@
 		C349CFD622971690005C5CED /* stellar */ = {
 			isa = PBXGroup;
 			children = (
+				C3854DCA22987A2600890AF1 /* BRStellarTransaction.c */,
+				C3854DCB22987A2600890AF1 /* BRStellarTransaction.h */,
+				C3854DC8229879DE00890AF1 /* BRStellarSerialize.c */,
+				C3854DC7229879DE00890AF1 /* BRStellarSerialize.h */,
 				C349CFF12297179D005C5CED /* ed25519 */,
 				C349CFF022971786005C5CED /* utils */,
 				C349CFE7229716D9005C5CED /* BRStellar.h */,
@@ -1742,6 +1752,7 @@
 				3CAB60B420AF8D1A00810CE4 /* BREthereumAddress.c in Sources */,
 				3CAB60B520AF8D1A00810CE4 /* BREthereumSignature.c in Sources */,
 				3CAB60B620AF8D1A00810CE4 /* BREthereumTransaction.c in Sources */,
+				C3854DCC22987A2600890AF1 /* BRStellarTransaction.c in Sources */,
 				3CAB60B720AF8D1A00810CE4 /* BREthereumBloomFilter.c in Sources */,
 				3C97E2352241658E003FD88F /* BRCryptoCurrency.c in Sources */,
 				3CD3049A213B22AF00A0CCED /* BREthereumMessageLES.c in Sources */,
@@ -1815,6 +1826,7 @@
 				3CAB60E420AF8D1A00810CE4 /* BRSet.c in Sources */,
 				3C97E256224170B9003FD88F /* BRCryptoAccount.c in Sources */,
 				3C386DC720C6F4AF0065E355 /* BREthereumLESRandom.c in Sources */,
+				C3854DC9229879DE00890AF1 /* BRStellarSerialize.c in Sources */,
 				3C386DD420C6F6070065E355 /* BREthereumEWMEvent.c in Sources */,
 				C349CFFC229717EA005C5CED /* keypair.c in Sources */,
 				3CAB60E520AF8D1A00810CE4 /* BRTransaction.c in Sources */,

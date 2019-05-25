@@ -40,4 +40,92 @@ typedef struct {
 } BRStellarSignatureRecord;
 typedef BRStellarSignatureRecord *BRStellarSignature;
 
+typedef uint32_t BRStellarFee;
+typedef uint64_t BRStellarSequence;
+typedef uint64_t TimePoint;
+
+typedef struct __time_bounds {
+    TimePoint minTime;
+    TimePoint maxTime;
+} BRStellarTimeBounds;
+
+typedef enum _stellar_crypto_key_type
+{
+    KEY_TYPE_ED25519 = 0,
+    KEY_TYPE_PRE_AUTH_TX = 1,
+    KEY_TYPE_HASH_X = 2
+} BRStellarCryptoKeyType;
+
+typedef enum _stellar_public_key_type
+{
+    PUBLIC_KEY_TYPE_ED25519 = KEY_TYPE_ED25519
+} BRStellarPublicKeyType;
+
+typedef enum _stellar_memo_type
+{
+    MEMO_NONE = 0,
+    MEMO_TEXT = 1,
+    MEMO_ID = 2,
+    MEMO_HASH = 3,
+    MEMO_RETURN = 4
+} BRStellarMemoType;
+
+typedef struct __stellar_memo {
+    BRStellarMemoType memoType;
+    uint64_t id;
+    char text[28];
+    uint8_t hash[32]; // the hash of what to pull from the content server
+    uint8_t retHash[32]; // the hash of the tx you are rejecting
+} BRStellarMemo;
+
+typedef struct _br_account_id {
+    BRStellarPublicKeyType accountType;
+    uint8_t                accountID[32];
+} BRStellarAccountID;
+
+typedef enum _stellar_asset_type
+{
+    ASSET_TYPE_NATIVE = 0,
+    ASSET_TYPE_CREDIT_ALPHANUM4 = 1,
+    ASSET_TYPE_CREDIT_ALPHANUM12 = 2
+} BRStellarAssetType;
+
+typedef struct _stellar_asset_
+{
+    BRStellarAssetType type;
+    char assetCode[12]; // This will either be 4 or 12 bytes value, right padded with 0's
+    BRStellarAccountID issuer;
+} BRStellarAsset;
+
+typedef struct _stellar_payment_op_ {
+    BRStellarAccountID source;
+    BRStellarAccountID destination;
+    BRStellarAsset     asset;         // what they end up with
+    int64_t            amount;        // amount they end up with
+} BRStellarPaymentOperation;
+
+typedef enum __stellar_operation_type
+{
+    CREATE_ACCOUNT = 0,
+    PAYMENT = 1,
+    PATH_PAYMENT = 2,
+    MANAGE_SELL_OFFER = 3,
+    CREATE_PASSIVE_SELL_OFFER = 4,
+    SET_OPTIONS = 5,
+    CHANGE_TRUST = 6,
+    ALLOW_TRUST = 7,
+    ACCOUNT_MERGE = 8,
+    INFLATION = 9,
+    MANAGE_DATA = 10,
+    BUMP_SEQUENCE = 11,
+    MANAGE_BUY_OFFER = 12
+} BRStellarOperationType;
+
+typedef struct _stellar_operation_ {
+    BRStellarOperationType type;
+    union _op_ {
+        BRStellarPaymentOperation payment;
+    } operation;
+} BRStellarOperation;
+
 #endif
