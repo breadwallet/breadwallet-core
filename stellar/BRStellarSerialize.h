@@ -19,7 +19,7 @@
 extern "C" {
 #endif
 
-extern int stellarSerializeTransaction(BRStellarAccountID accountID,
+extern int stellarSerializeTransaction(BRStellarAccountID *accountID,
                                        BRStellarFee fee,
                                            BRStellarSequence sequence,
                                            BRStellarTimeBounds *timeBounds,

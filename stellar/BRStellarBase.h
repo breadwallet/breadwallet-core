@@ -98,10 +98,9 @@ typedef struct _stellar_asset_
 } BRStellarAsset;
 
 typedef struct _stellar_payment_op_ {
-    BRStellarAccountID source;
     BRStellarAccountID destination;
     BRStellarAsset     asset;         // what they end up with
-    int64_t            amount;        // amount they end up with
+    double             amount;        // amount they end up with
 } BRStellarPaymentOperation;
 
 typedef enum __stellar_operation_type
@@ -123,6 +122,7 @@ typedef enum __stellar_operation_type
 
 typedef struct _stellar_operation_ {
     BRStellarOperationType type;
+    BRStellarAccountID source; // Optional
     union _op_ {
         BRStellarPaymentOperation payment;
     } operation;

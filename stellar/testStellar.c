@@ -82,7 +82,7 @@ static void runAccountTests()
 }
 
 void decodeXRDPayment() {
-    const char * xdr = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAyAAHHCYAAAADAAAAAAAAAAEAAAAUQnV5IHlvdXJzZWxmIGEgYmVlciEAAAACAAAAAAAAAAEAAAAAVWLzRLZHFEi3tuvrW66cHOzJMO8ohoviu3i7dCgx5xAAAAAAAAAAAAZCLEAAAAAAAAAABQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAC2ZlZC5uZXR3b3JrAAAAAAAAAAAAAAAAAeJoetEAAABAOBq8+RiNT5Sfo8K/B+4CBwrgZwWhsNa/v5kwk7lZ9Xg/8qj76tjZHZGzDXKKt+8fslu+09efBRVPffc8Jpq2Ag==";
+    const char * xdr = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAyAAHHCYAAAAGAAAAAAAAAAEAAAAUQnV5IHlvdXJzZWxmIGEgYmVlciEAAAACAAAAAAAAAAEAAAAAVWLzRLZHFEi3tuvrW66cHOzJMO8ohoviu3i7dCgx5xAAAAAAAAAAAAZCLEAAAAAAAAAAAQAAAABVYvNEtkcUSLe26+tbrpwc7Mkw7yiGi+K7eLt0KDHnEAAAAAFVU0QAAAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAAA9ZI2AAAAAAAAAAAeJoetEAAABAg6x6wTbG9arAsdZ2SZ7hHcvY4rgCHgakJRMiOs2F4z/ruGW8UGPXNG9NkNDe6KbXMhwT5wI5cZTOJaS1PNdxBw==";
 
     size_t decodeSize = 0;
     unsigned char* decoded = b64_decode_ex(xdr, strlen(xdr), &decodeSize);
@@ -125,12 +125,19 @@ static void serializeMinimum()
     BRStellarOperation * op1 = calloc(1, sizeof(BRStellarOperation));
     op1->type = PAYMENT;
     strcpy(op1->operation.payment.asset.assetCode, "XLM");
-    op1->operation.payment.source = sourceAccount;
     op1->operation.payment.destination = targetAccount;
-    op1->operation.payment.amount = (uint64_t)((double)10000000 * 10.5);
+    op1->operation.payment.amount = 10.5;
+    BRStellarOperation * op2 = calloc(1, sizeof(BRStellarOperation));
+    op2->type = PAYMENT;
+    op2->operation.payment.asset.type = 1;
+    strcpy(op2->operation.payment.asset.assetCode, "USD");
+    op2->operation.payment.asset.issuer = sourceAccount;
+    op2->operation.payment.destination = targetAccount;
+    op2->operation.payment.amount = 25.75;
+    BRStellarOperation ops[] = { *op1, *op2 };
     
-    size_t length = stellarSerializeTransaction(sourceAccount, 200, 2001274371309571, NULL, 0,
-                                &memo, op1, 1, NULL, 0, buffer, 1024);
+    size_t length = stellarSerializeTransaction(&sourceAccount, 200, 2001274371309571, NULL, 0,
+                                &memo, ops, 2, NULL, 0, buffer, 1024);
 
     for(int i = 0; i < length; i++) {
         if (i % 8 == 0) printf("\n");
@@ -147,6 +154,6 @@ void runSerializationTests()
 extern void
 runStellarTest (void /* ... */) {
     decodeXRDPayment();
-    runAccountTests();
+    //runAccountTests();
     runSerializationTests();
 }
