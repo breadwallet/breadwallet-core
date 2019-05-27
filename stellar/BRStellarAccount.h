@@ -118,4 +118,6 @@ extern BRStellarAddress stellarAccountGetPrimaryAddress (BRStellarAccount accoun
 
 extern BRKey stellarAccountGetPublicKey(BRStellarAccount account);
 
+extern void stellarAccountSetSequence(BRStellarAccount account, uint64_t sequence);
+
 #endif

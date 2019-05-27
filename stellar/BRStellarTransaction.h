@@ -12,7 +12,7 @@
 #define BRStellar_transaction_h
 
 #include "BRStellarBase.h"
-#include "BRKey.h"
+#include "support/BRKey.h"
 
 typedef struct BRStellarTransactionRecord *BRStellarTransaction;
 typedef struct BRStellarSerializedTransactionRecord *BRStellarSerializedTransaction;
@@ -26,9 +26,13 @@ typedef struct BRStellarSerializedTransactionRecord *BRStellarSerializedTransact
  * @return transaction    a stellar transaction
  */
 extern BRStellarTransaction /* caller must free - stellarTransactionFree */
-stellarTransactionCreate(BRStellarAddress sourceAddress,
-                        BRStellarAddress targetAddress
-                        /* other stuff */);
+stellarTransactionCreate(BRStellarAccountID *accountID,
+                        BRStellarFee fee,
+                        BRStellarTimeBounds *timeBounds,
+                        int numTimeBounds,
+                        BRStellarMemo *memo,
+                        BRStellarOperation * operations,
+                        int numOperations);
 
 /**
  * Create a Stellar transaction
@@ -54,7 +58,7 @@ extern void stellarTransactionFree(BRStellarTransaction transaction);
  * @param  s     serialized transaction
  * @return size
  */
-extern uint32_t getSerializedSize(BRStellarSerializedTransaction s);
+extern size_t stellarGetSerializedSize(BRStellarSerializedTransaction s);
 
 /**
  * Get the raw bytes of a serialized transaction
@@ -63,7 +67,7 @@ extern uint32_t getSerializedSize(BRStellarSerializedTransaction s);
  * @return bytes uint8_t
  */
 extern uint8_t* /* DO NOT FREE - owned by the transaction object */
-getSerializedBytes(BRStellarSerializedTransaction s);
+stellarGetSerializedBytes(BRStellarSerializedTransaction s);
 
 /**
  * Get the hash of a stellar transaction

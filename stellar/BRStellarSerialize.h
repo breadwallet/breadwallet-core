@@ -21,16 +21,20 @@ extern "C" {
 
 extern int stellarSerializeTransaction(BRStellarAccountID *accountID,
                                        BRStellarFee fee,
-                                           BRStellarSequence sequence,
+                                       BRStellarSequence sequence,
                                            BRStellarTimeBounds *timeBounds,
                                            int numTimeBounds,
                                            BRStellarMemo *memo,
                                            BRStellarOperation * operations,
                                            int numOperations,
+                                           int version,
                                            uint8_t *signature,
-                                           size_t signatureLength,
-                                           uint8_t *buffer, size_t bufferSize);
+                                           int signatureLength,
+                                           uint8_t **buffer);
 
+
+BRStellarSignatureRecord stellarTransactionSign(uint8_t * tx, size_t txLength,
+                                  const char* networkID, uint8_t *privateKey, uint8_t *publicKey);
 
 #ifdef __cplusplus
 }

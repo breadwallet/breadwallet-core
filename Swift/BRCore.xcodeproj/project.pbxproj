@@ -218,6 +218,8 @@
 		3CF0FC9021657D7B000DE3FE /* BREthereumData.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CF0FC8F21657D7A000DE3FE /* BREthereumData.c */; };
 		3CF0FC9121657D7B000DE3FE /* BREthereumData.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CF0FC8F21657D7A000DE3FE /* BREthereumData.c */; };
 		3CF38E4821C4421600B771E6 /* BREthereumProofOfWork.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CF38E4721C4421600B771E6 /* BREthereumProofOfWork.c */; };
+		C3137CF3229C7BAA0094983E /* sign.c in Sources */ = {isa = PBXBuildFile; fileRef = C3137CF2229C7BA90094983E /* sign.c */; };
+		C3137CF6229C7BF00094983E /* sc.c in Sources */ = {isa = PBXBuildFile; fileRef = C3137CF5229C7BEF0094983E /* sc.c */; };
 		C349CFE8229716D9005C5CED /* BRStellarAccountUtils.c in Sources */ = {isa = PBXBuildFile; fileRef = C349CFD7229716D8005C5CED /* BRStellarAccountUtils.c */; };
 		C349CFEA229716D9005C5CED /* BRStellarAccount.c in Sources */ = {isa = PBXBuildFile; fileRef = C349CFD9229716D9005C5CED /* BRStellarAccount.c */; };
 		C349CFFC229717EA005C5CED /* keypair.c in Sources */ = {isa = PBXBuildFile; fileRef = C349CFF4229717E9005C5CED /* keypair.c */; };
@@ -576,6 +578,9 @@
 		3CF0FC8E21657D7A000DE3FE /* BREthereumData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumData.h; sourceTree = "<group>"; };
 		3CF0FC8F21657D7A000DE3FE /* BREthereumData.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumData.c; sourceTree = "<group>"; };
 		3CF38E4721C4421600B771E6 /* BREthereumProofOfWork.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumProofOfWork.c; sourceTree = "<group>"; };
+		C3137CF2229C7BA90094983E /* sign.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sign.c; sourceTree = "<group>"; };
+		C3137CF4229C7BEF0094983E /* sc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sc.h; sourceTree = "<group>"; };
+		C3137CF5229C7BEF0094983E /* sc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sc.c; sourceTree = "<group>"; };
 		C349CFD7229716D8005C5CED /* BRStellarAccountUtils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRStellarAccountUtils.c; sourceTree = "<group>"; };
 		C349CFD9229716D9005C5CED /* BRStellarAccount.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRStellarAccount.c; sourceTree = "<group>"; };
 		C349CFDB229716D9005C5CED /* BRStellarBase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRStellarBase.h; sourceTree = "<group>"; };
@@ -1250,6 +1255,9 @@
 		C349CFF12297179D005C5CED /* ed25519 */ = {
 			isa = PBXGroup;
 			children = (
+				C3137CF5229C7BEF0094983E /* sc.c */,
+				C3137CF4229C7BEF0094983E /* sc.h */,
+				C3137CF2229C7BA90094983E /* sign.c */,
 				C349CFF8229717E9005C5CED /* ed25519.h */,
 				C349CFF3229717E9005C5CED /* fe.h */,
 				C349CFF9229717E9005C5CED /* fe.c */,
@@ -1795,9 +1803,11 @@
 				3CAB60D520AF8D1A00810CE4 /* BRBCashAddr.c in Sources */,
 				3CAB60D620AF8D1A00810CE4 /* BRAddress.c in Sources */,
 				C349D008229717F7005C5CED /* encode.c in Sources */,
+				C3137CF3229C7BAA0094983E /* sign.c in Sources */,
 				3CEF5FD42208C6E40010A811 /* BRAssert.c in Sources */,
 				3CAB60D720AF8D1A00810CE4 /* BRBase58.c in Sources */,
 				C349D009229717F7005C5CED /* base32.c in Sources */,
+				C3137CF6229C7BF00094983E /* sc.c in Sources */,
 				3C9025FD2108DDAE00143B69 /* BREthereumBCSSync.c in Sources */,
 				3CAB60D820AF8D1A00810CE4 /* BRBech32.c in Sources */,
 				3CAB60D920AF8D1A00810CE4 /* BRBIP32Sequence.c in Sources */,

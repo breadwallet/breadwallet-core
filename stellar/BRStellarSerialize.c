@@ -18,7 +18,11 @@
 #include "BRStellar.h"
 #include "BRStellarBase.h"
 #include "BRStellarPrivateStructs.h"
-#include "BRArray.h"
+#include "support/BRInt.h"
+#include "support/BRCrypto.h"
+#include "support/BRKey.h"
+#include "BRStellarAccount.h"
+#include "ed25519/ed25519.h"
 
 bool validAccountID(BRStellarAccountID * account)
 {
@@ -59,6 +63,14 @@ uint8_t * pack_fopaque(uint8_t *data, int dataSize, uint8_t *buffer)
     int padding = paddedSize - dataSize;
     memcpy(buffer, data, dataSize);
     return (buffer + dataSize + padding);
+}
+
+uint8_t * pack_opaque(uint8_t *data, int dataSize, uint8_t *buffer)
+{
+    // See if the datasize is a multiple of 4 - and determine how many
+    // bytes we need to pad at the end of this opaque data
+    buffer = pack_int(dataSize, buffer);
+    return pack_fopaque(data, dataSize, buffer);
 }
 
 uint8_t * pack_string(const char* data, uint8_t *buffer)
@@ -166,6 +178,17 @@ uint8_t * pack_Operations(BRStellarOperation *operations, int numOperations, uin
     return buffer;
 }
 
+uint8_t * pack_Signatures(uint8_t *signatures, int numSignatures, uint8_t *buffer)
+{
+    buffer = pack_int(numSignatures, buffer);
+    for (int i = 0; i < numSignatures; i++)
+    {
+        buffer = pack_fopaque(&signatures[i * 68], 4, buffer); // Sig hint
+        buffer = pack_opaque(&signatures[(i * 68) + 4], 64, buffer); // Sig
+    }
+    return buffer;
+}
+
 extern size_t stellarSerializeTransaction(BRStellarAccountID *accountID,
                                        BRStellarFee fee,
                                        BRStellarSequence sequence,
@@ -174,26 +197,17 @@ extern size_t stellarSerializeTransaction(BRStellarAccountID *accountID,
                                        BRStellarMemo *memo,
                                        BRStellarOperation * operations,
                                        int numOperations,
-                                       uint8_t *signature,
-                                       size_t signatureLength,
-                                       uint8_t *buffer, size_t bufferSize)
+                                       int version,
+                                       uint8_t *signatures,
+                                       int numSignatures,
+                                       uint8_t **buffer)
 {
-    size_t approx_size = 24 + 4 + 8 + (4 + numTimeBounds*16); // First 4 fields
-    approx_size += (4 + 4 + 4); // Memo type, time bounds array size, numOperations
-    if (numTimeBounds) {
-        approx_size += numTimeBounds * 16;
-    }
-    if (memo) {
-        approx_size += 32; // The largest value in a memo object
-    }
-    if (numOperations) {
-        approx_size += numOperations * 256; // Have to figure this out
-    }
-    if (signature) {
-        approx_size += 4 + signatureLength + 3;
-    }
+    size_t approx_size = 24 + 4 + 8 + (4 + numTimeBounds*16) + 4 + 32; // First 4 fields + version + buffer
+    approx_size += (4 + (numOperations * 128)) + (4 + (memo ? 32 : 0)) +
+                   (numSignatures ? (numSignatures * 72) : 4);
 
-    uint8_t *pStart = buffer;
+    *buffer = calloc(1, approx_size);
+    uint8_t *pStart = *buffer;
     uint8_t *pCurrent = pStart;
 
     // AccountID - PublicKey object
@@ -214,7 +228,51 @@ extern size_t stellarSerializeTransaction(BRStellarAccountID *accountID,
     // Operations - array of operations
     pCurrent = pack_Operations(operations, numOperations, pCurrent);
 
-    // self.pack_int(data.ext.v)
+    // The Stellar XDR documentation has a stucture (name "v") which
+    // says it is reserved for future use.  Currently all the client libraries
+    // simpy pack the value 0.
+    pCurrent = pack_int(version, pCurrent);
+
+    // Add the signature if applicable
+    if (numSignatures) {
+        pCurrent = pack_Signatures(signatures, numSignatures, pCurrent);
+    }
 
     return (pCurrent - pStart);
+}
+
+BRStellarSignatureRecord stellarTransactionSign(uint8_t * tx, size_t txLength,
+                const char* networkID, uint8_t *privateKey, uint8_t *publicKey)
+{
+    // What are we going to hash
+    // sha256(networkID) + tx_type + tx
+    // tx_type is basically a 4-byte packed int
+    size_t size = 32 + 4 + txLength;
+    uint8_t bytes_to_hash[size];
+    uint8_t *pHash = bytes_to_hash;
+
+    // Hash the networkID
+    uint8_t networkHash[32];
+    BRSHA256(networkHash, networkID, strlen(networkID));
+    memcpy(pHash, networkHash, 32);
+    pHash += 32;
+    uint8_t tx_type[4] = {0, 0, 0, 2}; // Add the tx_type
+    memcpy(pHash, tx_type, 4);
+    pHash += 4;
+    memcpy(pHash, tx, txLength); // Add the serialized transaction
+
+    // Do a sha256 hash of the data
+    UInt256 hash;
+    BRSHA256(hash.u8, bytes_to_hash, size);
+
+    // Now sign the hash
+    unsigned char signature[64];
+    ed25519_sign(signature, hash.u8, 32, publicKey, privateKey);
+
+    // This is what they call a decorated signature - it includes
+    // a 4-byte hint of what public key to use.
+    BRStellarSignatureRecord sig;
+    memcpy(sig.signature, &publicKey[28], 4); // Last for bytes of public key
+    memcpy(&sig.signature[4], signature, 64);
+    return sig;
 }

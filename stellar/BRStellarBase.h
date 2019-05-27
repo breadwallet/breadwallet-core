@@ -33,10 +33,9 @@ typedef struct {
     uint8_t bytes[32];
 } BRStellarTransactionHash;
 
-// Stucture to hold the calculated signature
+// Stucture to hold the decorated signature
 typedef struct {
-    uint8_t signature[256];
-    int sig_length;
+    uint8_t signature[68];
 } BRStellarSignatureRecord;
 typedef BRStellarSignatureRecord *BRStellarSignature;
 
