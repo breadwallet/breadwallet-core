@@ -11,7 +11,6 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
 // TODO: Where do we free 'core'?
@@ -86,7 +85,8 @@ class WalletBtcImpl extends Wallet {
     }
 
     @Override
-    public void setDefaultFeeBasis(TransferFeeBasis feeBasis) {
+    /* package */
+    void setDefaultFeeBasis(TransferFeeBasis feeBasis) {
         defaultFeeBasis = feeBasis;
     }
 
@@ -112,10 +112,7 @@ class WalletBtcImpl extends Wallet {
         feeBasis = feeBasis == null ? defaultFeeBasis : feeBasis;
 
         long feePerKbSaved = coreWallet.getFeePerKb();
-
-        Optional<Long> optFeePerKb = feeBasis.getBtcFeePerKb();
-        checkArgument(optFeePerKb.isPresent());
-        long feePerKb = optFeePerKb.get();
+        long feePerKb = feeBasis.getBtcFeePerKb();
 
         coreWallet.setFeePerKb(feePerKb);
         long fee = coreWallet.getFeeForTxAmount(amount.asBtc());

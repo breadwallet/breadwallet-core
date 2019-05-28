@@ -2,47 +2,78 @@ package com.breadwallet.crypto;
 
 import com.google.common.base.Optional;
 
-import javax.annotation.Nullable;
-
 public final class TransferFeeBasis {
 
-    private final TransferType type;
-
-    @Nullable
-    private final Long btcFeePerKb;
-    @Nullable
-    private final Amount ethGasPrice;
-    @Nullable
-    private final Long ethGasLimit;
+    private final Impl impl;
 
     public static TransferFeeBasis createBtc(long btcFeePerKb) {
-        return new TransferFeeBasis(TransferType.BTC, btcFeePerKb, null, 0);
+        return new TransferFeeBasis(new Bitcoin(btcFeePerKb));
     }
 
     public static TransferFeeBasis createEth(Amount ethGasPrice, long ethGasLimit) {
-        return new TransferFeeBasis(TransferType.ETH, 0, ethGasPrice, ethGasLimit);
+        return new TransferFeeBasis(new Ethereum(ethGasPrice, ethGasLimit));
     }
 
-    private TransferFeeBasis(TransferType type, long btcFeePerKb, Amount ethGasPrice, long ethGasLimit) {
-        this.type = type;
-        this.btcFeePerKb = btcFeePerKb;
-        this.ethGasPrice = ethGasPrice;
-        this.ethGasLimit = ethGasLimit;
+    private TransferFeeBasis(Impl impl) {
+        this.impl = impl;
     }
 
-    public TransferType getType() {
-        return type;
+    public long getBtcFeePerKb() {
+        return impl.getBtcFeePerKb();
     }
 
-    public Optional<Long> getBtcFeePerKb() {
-        return Optional.fromNullable(btcFeePerKb);
+    public Amount getEthGasPrice() {
+        return impl.getEthGasPrice();
     }
 
-    public Optional<Amount> getEthGasPrice() {
-        return Optional.fromNullable(ethGasPrice);
+    public Long getEthGasLimit() {
+        return impl.getEthGasLimit();
     }
 
-    public Optional<Long> getEthGasLimit() {
-        return Optional.fromNullable(ethGasLimit);
+    private interface Impl {
+
+        default long getBtcFeePerKb() {
+            throw new IllegalStateException("Invalid transfer fee type");
+        }
+
+        default Amount getEthGasPrice() {
+            throw new IllegalStateException("Invalid transfer fee type");
+        }
+
+        default long getEthGasLimit() {
+            throw new IllegalStateException("Invalid transfer fee type");
+        }
+    }
+
+    private static class Bitcoin implements Impl {
+
+        private final long btcFeePerKb;
+
+        private Bitcoin(long btcFeePerKb) {
+            this.btcFeePerKb = btcFeePerKb;
+        }
+
+        public long getBtcFeePerKb() {
+            return btcFeePerKb;
+        }
+    }
+
+    private static class Ethereum implements Impl {
+
+        private final Amount ethGasPrice;
+        private final long ethGasLimit;
+
+        private Ethereum(Amount ethGasPrice, long ethGasLimit) {
+            this.ethGasPrice = ethGasPrice;
+            this.ethGasLimit = ethGasLimit;
+        }
+
+        public Amount getEthGasPrice() {
+            return ethGasPrice;
+        }
+
+        public long getEthGasLimit() {
+            return ethGasLimit;
+        }
     }
 }

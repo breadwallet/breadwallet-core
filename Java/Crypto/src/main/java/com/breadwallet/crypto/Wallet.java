@@ -28,6 +28,9 @@ public abstract class Wallet {
     /* package */
     abstract WalletState setState(WalletState state);
 
+    /* package */
+    abstract void setDefaultFeeBasis(TransferFeeBasis feeBasis);
+
     public abstract WalletManager getWalletManager();
 
     public abstract Unit getBaseUnit();
@@ -41,8 +44,6 @@ public abstract class Wallet {
     public abstract WalletState getState();
 
     public abstract TransferFeeBasis getDefaultFeeBasis();
-
-    public abstract void setDefaultFeeBasis(TransferFeeBasis feeBasis);
 
     public abstract Address getTarget();
 

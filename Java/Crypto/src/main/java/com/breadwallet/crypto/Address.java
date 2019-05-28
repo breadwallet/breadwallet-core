@@ -29,7 +29,6 @@ public final class Address {
         }
 
         CoreBRCryptoAddress cryptoAddress = CoreBRCryptoAddress.createAsBtc(address);
-
         return Optional.of(new Address(cryptoAddress));
     }
 
@@ -47,7 +46,6 @@ public final class Address {
         }
 
         CoreBRCryptoAddress cryptoAddress = CoreBRCryptoAddress.createAsEth(address);
-
         return Optional.of(new Address(cryptoAddress));
     }
 

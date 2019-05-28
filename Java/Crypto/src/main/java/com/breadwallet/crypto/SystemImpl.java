@@ -422,26 +422,18 @@ public class SystemImpl implements System {
 
     // Network management
 
-    // TODO: The locking story isn't great here; improve!
-
     @Override
     public List<Network> getNetworks() {
         return new ArrayList<>(networks);
     }
 
-    private boolean addNetwork(Network network) {
-        boolean added = false;
-
+    private void addNetwork(Network network) {
         // TODO: The swift code has no guards against a network being added multiple times; should it?
         if (!networks.contains(network)) {
             networks.add(network);
 
             announceNetworkEvent(network, new NetworkCreatedEvent());
             announceSystemEvent(new SystemNetworkAddedEvent(network));
-
-            added = true;
         }
-
-        return added;
     }
 }

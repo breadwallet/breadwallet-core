@@ -6,7 +6,7 @@ import com.google.common.base.Optional;
 import java.util.ArrayList;
 import java.util.List;
 
-// TODO: System is an unfortunate name in Java. How about CryptoManager?
+// TODO: System is an unfortunate name in Java. How about CryptoManager or AccountManager?
 public interface System {
 
     // TODO: Implement subscription
@@ -39,8 +39,6 @@ public interface System {
     Account getAccount();
 
     String getPath();
-
-    // TODO: Add blockchain-db
 
     List<Network> getNetworks();
 

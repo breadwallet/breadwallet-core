@@ -50,7 +50,7 @@ class WalletManagerBtcImpl extends WalletManager {
 
         // TODO: This (assuming network.asBtc() not null, truncating timestamp) is how swift behaves, is this what we want?
         BRMasterPubKey.ByValue pubKey = account.asBtc();
-        BRChainParams chainParams = network.asBtc().orNull();
+        BRChainParams chainParams = network.asBtc();
         int timestamp = (int) account.getTimestamp();
         int mode = modeAsBtc(managerMode);
 
