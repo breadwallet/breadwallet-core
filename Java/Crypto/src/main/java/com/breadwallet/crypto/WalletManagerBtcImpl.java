@@ -15,9 +15,8 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-// WARNING: This class is NOT threadsafe!
 /* package */
-class WalletManagerBtcImpl extends WalletManager {
+final class WalletManagerBtcImpl extends WalletManager {
 
     private static int modeAsBtc(WalletManagerMode  mode) {
         switch (mode) {

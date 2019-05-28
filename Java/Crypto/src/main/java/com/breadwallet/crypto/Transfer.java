@@ -49,7 +49,8 @@ public abstract class Transfer {
         Optional<TransferConfirmation> optionalConfirmation = getConfirmation();
         if (optionalConfirmation.isPresent()) {
             TransferConfirmation confirmation = optionalConfirmation.get();
-            return (blockHeight >= confirmation.blockNumber) ? Optional.of(1 + blockHeight - confirmation.blockNumber) : Optional.absent();
+            long blockNumber = confirmation.getBlockNumber();
+            return (blockHeight >= blockNumber) ? Optional.of(1 + blockHeight - blockNumber) : Optional.absent();
         }
         return Optional.absent();
     }

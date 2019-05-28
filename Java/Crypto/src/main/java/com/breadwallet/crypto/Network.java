@@ -23,7 +23,7 @@ import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class Network {
+public final class Network {
 
     /* package */
     static Network create(String uids, String name, boolean isMainnet, Currency currency, long height,

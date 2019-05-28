@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".TransferDetailsActivity">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Amount:"/>
+
+    <TextView
+        android:id="@+id/amount_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        tools:text="Amount Goes Here"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Fee:"/>
+
+    <TextView
+        android:id="@+id/fee_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        tools:text="Fee Goes Here"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Date:"/>
+
+    <TextView
+        android:id="@+id/date_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        tools:text="Date Goes Here"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Sender:"/>
+
+    <TextView
+        android:id="@+id/sender_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        tools:text="Sender Goes Here"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Receiver:"/>
+
+    <TextView
+        android:id="@+id/receiver_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        tools:text="Receiver Goes Here"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Identifer:"/>
+
+    <TextView
+        android:id="@+id/identifier_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        tools:text="Identifier Goes Here"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="State:"/>
+
+    <TextView
+        android:id="@+id/state_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        tools:text="State Goes Here"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Confirmation:"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/confirmation_view"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            tools:text="Confirmation Goes Here"/>
+
+        <TextView
+            android:id="@+id/confirmation_count_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            tools:text="Count Goes Here"/>
+
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Actions:"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/cancel_view"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Cancel"/>
+
+        <Button
+            android:id="@+id/resubmit_view"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Resubmit"/>
+
+    </LinearLayout>
+
+</LinearLayout>

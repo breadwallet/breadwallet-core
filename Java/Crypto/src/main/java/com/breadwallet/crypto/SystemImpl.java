@@ -47,7 +47,7 @@ import java.util.concurrent.Executors;
 
 import static com.google.common.base.Preconditions.checkState;
 
-public class SystemImpl implements System {
+public final class SystemImpl implements System {
 
     private static final String TAG = SystemImpl.class.getName();
 

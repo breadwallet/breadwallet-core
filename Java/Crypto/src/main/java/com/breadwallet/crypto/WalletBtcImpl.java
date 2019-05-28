@@ -13,7 +13,7 @@ import javax.annotation.Nullable;
 import static com.google.common.base.Preconditions.checkState;
 
 /* package */
-class WalletBtcImpl extends Wallet {
+final class WalletBtcImpl extends Wallet {
 
     private final List<Transfer> transfers;
 

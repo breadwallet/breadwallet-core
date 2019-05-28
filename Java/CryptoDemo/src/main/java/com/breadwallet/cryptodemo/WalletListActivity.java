@@ -1,8 +1,6 @@
 package com.breadwallet.cryptodemo;
 
-import android.content.Intent;
 import android.support.annotation.NonNull;
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.DividerItemDecoration;
@@ -33,9 +31,9 @@ import com.breadwallet.crypto.events.wallet.WalletTransferSubmittedEvent;
 import java.util.ArrayList;
 import java.util.List;
 
-public class WalletsActivity extends AppCompatActivity implements WalletListener {
+public class WalletListActivity extends AppCompatActivity implements WalletListener {
 
-    private List<Wallet> wallets;
+    private List<Wallet> wallets = new ArrayList<>();
 
     private RecyclerView walletsView;
     private RecyclerView.Adapter walletsAdapter;
@@ -45,9 +43,7 @@ public class WalletsActivity extends AppCompatActivity implements WalletListener
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_wallets);
-
-        wallets = new ArrayList<>();
+        setContentView(R.layout.activity_wallet_list);
 
         walletsView = findViewById(R.id.wallet_recycler_view);
         walletsView.hasFixedSize();
@@ -56,12 +52,8 @@ public class WalletsActivity extends AppCompatActivity implements WalletListener
         walletsLayoutManager = new LinearLayoutManager(this);
         walletsView.setLayoutManager(walletsLayoutManager);
 
-        // TODO: Pass wallet id properly via an intent
-        walletsAdapter = new Adapter(wallets, item -> startActivity(new Intent(getApplicationContext(), WalletTransfersActivity.class)));
+        walletsAdapter = new Adapter(wallets, (wallet) -> TransferListActivity.start(this, wallet));
         walletsView.setAdapter(walletsAdapter);
-
-        ActionBar actionBar = getSupportActionBar();
-        actionBar.setTitle("Wallets");
 
         CoreCryptoApplication.listener.addListener(this);
     }

@@ -15,15 +15,17 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Phaser;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/* package */
 final class NetworkDiscovery {
 
+    /* package */
     interface Callback {
         void discovered(List<Network> networks);
     }
 
+    /* package */
     static void discoverNetworks(BlockchainDb query, List<String> networksNeeded, Callback callback) {
         // TODO: This semaphore stuff is nonsense; clean it up
         List<Network> networks = new ArrayList<>();
@@ -91,7 +93,6 @@ final class NetworkDiscovery {
             return null;
         }, latch);
     }
-
 
     private static void getBlockChains(BlockchainDb query,
                                        Collection<Blockchain> defaultBlockchains,

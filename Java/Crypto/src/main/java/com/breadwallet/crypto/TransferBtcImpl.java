@@ -19,7 +19,7 @@ import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedLong;
 
 /* package */
-class TransferBtcImpl extends Transfer {
+final class TransferBtcImpl extends Transfer {
 
     private final Wallet owner;
 
@@ -37,8 +37,6 @@ class TransferBtcImpl extends Transfer {
         this.coreTransfer = coreTransfer;
         this.defaultUnit = defaultUnit;
         this.state = TransferState.createCreated();
-
-
     }
 
     @Override

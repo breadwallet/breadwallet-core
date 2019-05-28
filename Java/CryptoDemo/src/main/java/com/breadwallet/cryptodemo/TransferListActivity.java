@@ -1,5 +1,7 @@
 package com.breadwallet.cryptodemo;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.support.annotation.NonNull;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
@@ -26,15 +28,37 @@ import com.breadwallet.crypto.events.transfer.TransferEventVisitor;
 import com.breadwallet.crypto.events.transfer.TransferListener;
 
 import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class WalletTransfersActivity extends AppCompatActivity implements TransferListener {
+import javax.annotation.Nullable;
+
+public class TransferListActivity extends AppCompatActivity implements TransferListener {
+
+    private static final DateFormat DATE_FORMAT = DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG);
+
+    private static final String EXTRA_WALLET_NAME = "com.breadwallet.cryptodemo,TransferListActivity.EXTRA_WALLET_NAME";
+
+    public static void start(Activity callerActivity, Wallet wallet) {
+        Intent intent = new Intent(callerActivity, TransferListActivity.class);
+        intent.putExtra(EXTRA_WALLET_NAME, wallet.getName());
+        callerActivity.startActivity(intent);
+    }
+
+    @Nullable
+    private static Wallet getWallet(Intent intent) {
+        String walletName = intent.getStringExtra(EXTRA_WALLET_NAME);
+        for(Wallet wallet: CoreCryptoApplication.system.getWallets()) {
+            if (wallet.getName().equals(walletName)) {
+                return wallet;
+            }
+        }
+        return null;
+    }
 
     private Wallet wallet;
-    private List<Transfer> transfers;
+    private List<Transfer> transfers = new ArrayList<>();
 
     private RecyclerView transfersView;
     private RecyclerView.Adapter transferAdapter;
@@ -43,11 +67,13 @@ public class WalletTransfersActivity extends AppCompatActivity implements Transf
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_wallet_transfers);
+        setContentView(R.layout.activity_transfer_list);
 
-        // TODO: Get this properly via an intent
-        wallet = CoreCryptoApplication.system.getWallets().get(0);
-        transfers = new ArrayList<>();
+        wallet = getWallet(getIntent());
+        if (null == wallet) {
+            finish();
+            return;
+        }
 
         transfersView = findViewById(R.id.transfer_recycler_view);
         transfersView.hasFixedSize();
@@ -56,29 +82,34 @@ public class WalletTransfersActivity extends AppCompatActivity implements Transf
         transferLayoutManager = new LinearLayoutManager(this);
         transfersView.setLayoutManager(transferLayoutManager);
 
-        transferAdapter = new Adapter(transfers);
+        transferAdapter = new Adapter(transfers, (transfer) -> TransferDetailsActivity.start(this, wallet, transfer));
         transfersView.setAdapter(transferAdapter);
 
         ActionBar actionBar = getSupportActionBar();
         actionBar.setTitle(String.format("Wallet: %s", wallet.getName()));
-
-        CoreCryptoApplication.listener.addListener(this);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
 
+        CoreCryptoApplication.listener.addListener(this);
+
         transfers.clear();
         transfers.addAll(wallet.getTransfers());
-
         transferAdapter.notifyDataSetChanged();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        CoreCryptoApplication.listener.removeListener(this);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        CoreCryptoApplication.listener.removeListener(this);
 
         transfers.clear();
         wallet = null;
@@ -90,7 +121,7 @@ public class WalletTransfersActivity extends AppCompatActivity implements Transf
             event.accept(new TransferEventVisitor<Void>() {
                 @Override
                 public Void visit(TransferChangedEvent event) {
-                    int index = transfers.indexOf(wallet);
+                    int index = transfers.indexOf(transfer);
                     if (index != -1) {
                         transferAdapter.notifyItemChanged(index);
                     }
@@ -99,7 +130,7 @@ public class WalletTransfersActivity extends AppCompatActivity implements Transf
 
                 @Override
                 public Void visit(TransferConfirmationEvent event) {
-                    int index = transfers.indexOf(wallet);
+                    int index = transfers.indexOf(transfer);
                     if (index != -1) {
                         transferAdapter.notifyItemChanged(index);
                     }
@@ -119,7 +150,7 @@ public class WalletTransfersActivity extends AppCompatActivity implements Transf
 
                 @Override
                 public Void visit(TransferDeletedEvent event) {
-                    int index = transfers.indexOf(wallet);
+                    int index = transfers.indexOf(transfer);
                     if (index != -1) {
                         transfers.remove(index);
                         transferAdapter.notifyItemRemoved(index);
@@ -130,18 +161,24 @@ public class WalletTransfersActivity extends AppCompatActivity implements Transf
         });
     }
 
+    private interface OnItemClickListener<T> {
+        void onItemClick(T item);
+    }
+
     private static class Adapter extends RecyclerView.Adapter<ViewHolder> {
 
         private List<Transfer> transfers;
+        private OnItemClickListener<Transfer> listener;
 
-        Adapter(List<Transfer> transfers) {
+        Adapter(List<Transfer> transfers, OnItemClickListener<Transfer> listener) {
             this.transfers = transfers;
+            this.listener = listener;
         }
 
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
-            View v = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.layout_wallet_transfer_item, viewGroup, false);
+            View v = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.layout_transfer_item, viewGroup, false);
             return new ViewHolder(v);
         }
 
@@ -149,9 +186,8 @@ public class WalletTransfersActivity extends AppCompatActivity implements Transf
         public void onBindViewHolder(@NonNull ViewHolder vh, int i) {
             Transfer transfer = transfers.get(i);
 
-            DateFormat dateFormatter = DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG);
             String dateText = transfer.getConfirmation()
-                    .transform((conf) -> dateFormatter.format(new Date(conf.timestamp * 1000))).or("<pending>");
+                    .transform((c) -> DATE_FORMAT.format(new Date(c.getTimestamp() * 1000))).or("<pending>");
 
             String addressText = transfer.getHash().transform(TransferHash::toString).or("<pending>");
             addressText = String.format("Hash: %s", addressText);
@@ -161,6 +197,7 @@ public class WalletTransfersActivity extends AppCompatActivity implements Transf
 
             String stateText = String.format("State: %s", transfer.getState());
 
+            vh.itemView.setOnClickListener(v -> listener.onItemClick(transfer));
             vh.dateView.setText(dateText);
             vh.amountView.setText(amountText);
             vh.addressView.setText(addressText);
