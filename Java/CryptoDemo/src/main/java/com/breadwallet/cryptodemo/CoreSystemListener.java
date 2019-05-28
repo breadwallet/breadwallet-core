@@ -53,6 +53,9 @@ public class CoreSystemListener implements SystemListener {
             public Void visit(SystemManagerAddedEvent event) {
                 WalletManager manager = event.getWalletManager();
                 manager.connect();
+
+                Wallet wallet = manager.getPrimaryWallet();
+                Log.d(TAG, String.format("Primary wallet addresses: %s <--> %s", wallet.getSource(), wallet.getTarget()));
                 return null;
             }
 

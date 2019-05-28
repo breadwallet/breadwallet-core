@@ -57,7 +57,7 @@ public class CoreCryptoApplication extends Application {
         Optional<Account> optAccount = Account.createFrom(paperKey, "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e97");
         checkState(optAccount.isPresent());
         Account account = optAccount.get();
-        account.setTimestamp(1514764800);
+        account.setTimestamp(1527168053);
 
         BlockchainDb query = new BlockchainDb(new OkHttpClient(), BDB_BASE_URL, API_BASE_URL);
         listener = new CoreSystemListener();
