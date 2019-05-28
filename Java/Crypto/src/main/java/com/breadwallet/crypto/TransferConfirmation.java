@@ -1,7 +1,5 @@
 package com.breadwallet.crypto;
 
-import com.breadwallet.crypto.Amount;
-
 public final class TransferConfirmation {
 
     public final long blockNumber;

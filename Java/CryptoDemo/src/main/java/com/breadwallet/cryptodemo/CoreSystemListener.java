@@ -35,8 +35,16 @@ public class CoreSystemListener implements SystemListener {
         walletListeners.add(listener);
     }
 
+    public void removeListener(WalletListener listener) {
+        walletListeners.remove(listener);
+    }
+
     public void addListener(TransferListener listener) {
         transferListeners.add(listener);
+    }
+
+    public void removeListener(TransferListener listener) {
+        transferListeners.remove(listener);
     }
 
     @Override

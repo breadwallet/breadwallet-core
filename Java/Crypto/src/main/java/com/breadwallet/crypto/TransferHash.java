@@ -12,13 +12,17 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public final class TransferHash {
 
+    private static final BaseEncoding BASE16_ENCODER = BaseEncoding.base16().lowerCase();
+
     private final Impl impl;
 
-    public TransferHash createBtc(UInt256 btcCore) {
+    /* package */
+    static TransferHash createBtc(UInt256 btcCore) {
         return new TransferHash(new Bitcoin(btcCore));
     }
 
-    public TransferHash createBtc(BREthereumHash ethCore) {
+    /* package */
+    static TransferHash createEth(BREthereumHash ethCore) {
         return new TransferHash(new Ethereum(ethCore));
     }
 
@@ -85,7 +89,7 @@ public final class TransferHash {
 
         @Override
         public String toString() {
-            return BaseEncoding.base16().encode(core.u8);
+            return "0x" + BASE16_ENCODER.encode(core.u8);
         }
     }
 
@@ -119,7 +123,7 @@ public final class TransferHash {
 
         @Override
         public String toString() {
-            return BaseEncoding.base16().encode(core.u8);
+            return "0x" + BASE16_ENCODER.encode(core.u8);
         }
     }
 }

@@ -2,6 +2,8 @@ package com.breadwallet.crypto.jni.bitcoin;
 import com.breadwallet.crypto.jni.SizeT;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
+
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 /**
@@ -39,7 +41,12 @@ public class BRTxOutput extends Structure {
 	public BRTxOutput(Pointer peer) {
 		super(peer);
 	}
-	public static class ByReference extends BRTxOutput implements Structure.ByReference {
+
+    public String getAddressAsString() {
+		return new String(address, StandardCharsets.UTF_8);
+    }
+
+    public static class ByReference extends BRTxOutput implements Structure.ByReference {
 		
 	};
 	public static class ByValue extends BRTxOutput implements Structure.ByValue {

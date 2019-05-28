@@ -141,6 +141,12 @@ public final class Amount implements Comparable<Amount> {
     }
 
     @Override
+    public String toString() {
+        // TODO: This is not good; we should remove here and in Swift since it isn't localized
+        return toStringAsUnit(unit, null).or("<nan>");
+    }
+
+    @Override
     public int compareTo(Amount o) {
         switch (core.compare(o.core)) {
             case BRCryptoComparison.CRYPTO_COMPARE_EQ:

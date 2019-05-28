@@ -2,7 +2,6 @@ package com.breadwallet.crypto;
 
 import com.breadwallet.crypto.jni.bitcoin.BRTransaction;
 import com.breadwallet.crypto.jni.bitcoin.BRWallet;
-import com.breadwallet.crypto.jni.bitcoin.CoreBRWalletManager;
 import com.google.common.base.Optional;
 
 import java.util.ArrayList;
@@ -12,8 +11,6 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkState;
-
-// TODO: Where do we free 'core'?
 
 /* package */
 class WalletBtcImpl extends Wallet {

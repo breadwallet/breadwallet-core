@@ -125,7 +125,7 @@ class WalletManagerBtcImpl extends WalletManager {
     @Override
     /* package */
     WalletManagerState setState(WalletManagerState newState) {
-        // TODO: Do we want to synchronize here?
+        // TODO: Do we want to synchronize here or are we ok with only being done by SystemImpl on a single thread?
         WalletManagerState oldState = state;
         state = newState;
         return oldState;

@@ -124,6 +124,7 @@ public class Network {
     public String toString() {
         return name;
     }
+
     private interface Impl {
         default BRChainParams asBtc() {
             throw new IllegalStateException("Invalid network type");

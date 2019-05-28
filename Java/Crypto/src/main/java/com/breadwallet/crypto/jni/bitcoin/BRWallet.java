@@ -42,4 +42,16 @@ public class BRWallet extends PointerType {
     public boolean matches(BRWallet o) {
         return this.equals(o);
     }
+
+    public long getAmountReceivedFromTx(BRTransaction coreTransfer) {
+        return CryptoLibrary.INSTANCE.BRWalletAmountReceivedFromTx(this, coreTransfer);
+    }
+
+    public long getAmountSentByTx(BRTransaction coreTransfer) {
+        return CryptoLibrary.INSTANCE.BRWalletAmountSentByTx(this, coreTransfer);
+    }
+
+    public int containsAddress(String address) {
+        return CryptoLibrary.INSTANCE.BRWalletContainsAddress(this, address);
+    }
 }

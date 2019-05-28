@@ -3,6 +3,8 @@ import com.breadwallet.crypto.jni.SizeT;
 import com.breadwallet.crypto.jni.support.UInt256;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
+
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 /**
@@ -37,6 +39,11 @@ public class BRTxInput extends Structure {
 	public BRTxInput(Pointer peer) {
 		super(peer);
 	}
+
+	public String getAddressAsString() {
+		return new String(address, StandardCharsets.UTF_8);
+	}
+
 	public static class ByReference extends BRTxInput implements Structure.ByReference {
 		
 	};

@@ -1,8 +1,11 @@
 package com.breadwallet.cryptodemo;
 
+import android.content.Intent;
 import android.support.annotation.NonNull;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -11,7 +14,6 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.breadwallet.crypto.Amount;
-import com.breadwallet.crypto.Currency;
 import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
@@ -31,28 +33,35 @@ import com.breadwallet.crypto.events.wallet.WalletTransferSubmittedEvent;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SummaryActivity extends AppCompatActivity implements WalletListener {
+public class WalletsActivity extends AppCompatActivity implements WalletListener {
 
-    private List<Wallet> wallets = new ArrayList<>();
+    private List<Wallet> wallets;
 
-    private RecyclerView summaryRecyclerView;
-    private RecyclerView.Adapter summaryAdapter;
-    private RecyclerView.LayoutManager summaryLayoutManager;
+    private RecyclerView walletsView;
+    private RecyclerView.Adapter walletsAdapter;
+    private RecyclerView.LayoutManager walletsLayoutManager;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_summary);
+        setContentView(R.layout.activity_wallets);
 
-        summaryRecyclerView = findViewById(R.id.summary_recycler_view);
-        summaryRecyclerView.hasFixedSize();
+        wallets = new ArrayList<>();
 
-        summaryLayoutManager = new LinearLayoutManager(this);
-        summaryRecyclerView.setLayoutManager(summaryLayoutManager);
+        walletsView = findViewById(R.id.wallet_recycler_view);
+        walletsView.hasFixedSize();
+        walletsView.addItemDecoration(new DividerItemDecoration(getApplicationContext(), DividerItemDecoration.VERTICAL));
 
-        summaryAdapter = new SummaryAdapter(wallets);
-        summaryRecyclerView.setAdapter(summaryAdapter);
+        walletsLayoutManager = new LinearLayoutManager(this);
+        walletsView.setLayoutManager(walletsLayoutManager);
+
+        // TODO: Pass wallet id properly via an intent
+        walletsAdapter = new Adapter(wallets, item -> startActivity(new Intent(getApplicationContext(), WalletTransfersActivity.class)));
+        walletsView.setAdapter(walletsAdapter);
+
+        ActionBar actionBar = getSupportActionBar();
+        actionBar.setTitle("Wallets");
 
         CoreCryptoApplication.listener.addListener(this);
     }
@@ -64,7 +73,15 @@ public class SummaryActivity extends AppCompatActivity implements WalletListener
         wallets.clear();
         wallets.addAll(CoreCryptoApplication.system.getWallets());
 
-        summaryAdapter.notifyDataSetChanged();
+        walletsAdapter.notifyDataSetChanged();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        CoreCryptoApplication.listener.removeListener(this);
+
+        wallets.clear();
     }
 
     @Override
@@ -75,7 +92,7 @@ public class SummaryActivity extends AppCompatActivity implements WalletListener
                 public Void visit(WalletBalanceUpdatedEvent event) {
                     int index = wallets.indexOf(wallet);
                     if (index != -1) {
-                        summaryAdapter.notifyItemChanged(index);
+                        walletsAdapter.notifyItemChanged(index);
                     }
                     return null;
                 }
@@ -91,7 +108,7 @@ public class SummaryActivity extends AppCompatActivity implements WalletListener
                     if (index == -1) {
                         index = wallets.size();
                         wallets.add(index, wallet);
-                        summaryAdapter.notifyItemInserted(index);
+                        walletsAdapter.notifyItemInserted(index);
                     }
                     return null;
                 }
@@ -101,7 +118,7 @@ public class SummaryActivity extends AppCompatActivity implements WalletListener
                     int index = wallets.indexOf(wallet);
                     if (index != -1) {
                         wallets.remove(index);
-                        summaryAdapter.notifyItemRemoved(index);
+                        walletsAdapter.notifyItemRemoved(index);
                     }
                     return null;
                 }
@@ -134,41 +151,36 @@ public class SummaryActivity extends AppCompatActivity implements WalletListener
         });
     }
 
-    private static class SummaryViewHolder extends RecyclerView.ViewHolder {
-
-        public TextView currencyView;
-        public TextView symbolView;
-
-        public SummaryViewHolder(@NonNull View view) {
-            super(view);
-            currencyView = view.findViewById(R.id.summary_item_currency);
-            symbolView = view.findViewById(R.id.summary_item_symbol);
-        }
+    private interface OnItemClickListener<T> {
+        void onItemClick(T item);
     }
 
-    private static class SummaryAdapter extends RecyclerView.Adapter<SummaryViewHolder> {
+    private static class Adapter extends RecyclerView.Adapter<ViewHolder> {
 
         private List<Wallet> wallets;
+        private OnItemClickListener<Wallet> listener;
 
-        SummaryAdapter(List<Wallet> wallets) {
+        Adapter(List<Wallet> wallets, OnItemClickListener<Wallet> listener) {
             this.wallets = wallets;
+            this.listener = listener;
         }
 
         @NonNull
         @Override
-        public SummaryViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
-            View v = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.layout_summary_item, viewGroup, false);
-            return new SummaryViewHolder(v);
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
+            View v = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.layout_wallet_item, viewGroup, false);
+            return new ViewHolder(v);
         }
 
         @Override
-        public void onBindViewHolder(@NonNull SummaryViewHolder vh, int i) {
+        public void onBindViewHolder(@NonNull ViewHolder vh, int i) {
             Wallet wallet = wallets.get(i);
             Amount balance = wallet.getBalance();
 
             String currencyText = String.format("%s (%s)", wallet.getName(), wallet.getWalletManager().getNetwork());
             String balanceText = balance.toStringAsUnit(balance.getUnit(), null).or("---");
 
+            vh.itemView.setOnClickListener(v -> listener.onItemClick(wallet));
             vh.currencyView.setText(currencyText);
             vh.symbolView.setText(balanceText);
         }
@@ -176,6 +188,19 @@ public class SummaryActivity extends AppCompatActivity implements WalletListener
         @Override
         public int getItemCount() {
             return wallets.size();
+        }
+    }
+
+    private static class ViewHolder extends RecyclerView.ViewHolder {
+
+        public TextView currencyView;
+        public TextView symbolView;
+
+        public ViewHolder(@NonNull View view) {
+            super(view);
+
+            currencyView = view.findViewById(R.id.item_currency);
+            symbolView = view.findViewById(R.id.item_symbol);
         }
     }
 }
