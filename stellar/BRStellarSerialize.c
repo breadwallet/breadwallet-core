@@ -241,33 +241,12 @@ extern size_t stellarSerializeTransaction(BRStellarAccountID *accountID,
     return (pCurrent - pStart);
 }
 
-BRStellarSignatureRecord stellarTransactionSign(uint8_t * tx, size_t txLength,
-                const char* networkID, uint8_t *privateKey, uint8_t *publicKey)
+BRStellarSignatureRecord stellarTransactionSign(uint8_t * tx_hash, size_t txHashLength,
+                                                uint8_t *privateKey, uint8_t *publicKey)
 {
-    // What are we going to hash
-    // sha256(networkID) + tx_type + tx
-    // tx_type is basically a 4-byte packed int
-    size_t size = 32 + 4 + txLength;
-    uint8_t bytes_to_hash[size];
-    uint8_t *pHash = bytes_to_hash;
-
-    // Hash the networkID
-    uint8_t networkHash[32];
-    BRSHA256(networkHash, networkID, strlen(networkID));
-    memcpy(pHash, networkHash, 32);
-    pHash += 32;
-    uint8_t tx_type[4] = {0, 0, 0, 2}; // Add the tx_type
-    memcpy(pHash, tx_type, 4);
-    pHash += 4;
-    memcpy(pHash, tx, txLength); // Add the serialized transaction
-
-    // Do a sha256 hash of the data
-    UInt256 hash;
-    BRSHA256(hash.u8, bytes_to_hash, size);
-
-    // Now sign the hash
+    // Create a signature from the incoming bytes
     unsigned char signature[64];
-    ed25519_sign(signature, hash.u8, 32, publicKey, privateKey);
+    ed25519_sign(signature, tx_hash, txHashLength, publicKey, privateKey);
 
     // This is what they call a decorated signature - it includes
     // a 4-byte hint of what public key to use.

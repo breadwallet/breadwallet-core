@@ -78,14 +78,6 @@ stellarGetSerializedBytes(BRStellarSerializedTransaction s);
 extern BRStellarTransactionHash stellarTransactionGetHash(BRStellarTransaction transaction);
 
 /**
- * Get the Account Txn ID hash (if applicable)
- *
- * @param  transaction   a valid stellar transaction
- * @return hash          a BRStellarTransactionHash object
- */
-extern BRStellarTransactionHash stellarTransactionGetAccountTxnId(BRStellarTransaction transaction);
-
-/**
  * Various getter methods for the transaction
  */
 

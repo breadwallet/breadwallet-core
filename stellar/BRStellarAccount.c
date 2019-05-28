@@ -32,7 +32,13 @@ struct BRStellarAccountRecord {
     BRKey publicKey;
 
     uint64_t sequence;
+    BRStellarNetworkType networkType;
 };
+
+extern void stellarAccountSetNetworkType(BRStellarAccount account, BRStellarNetworkType networkType)
+{
+    account->networkType = networkType;
+}
 
 extern char * createStellarAddressString (BRStellarAddress address, int useChecksum)
 {    return NULL;
@@ -46,6 +52,7 @@ static BRStellarAccount createAccountObject(BRKey * key)
     unsigned char publicKey[32] = {0};
     ed25519_create_keypair(publicKey, privateKey, key->secret.u8);
     memcpy(&account->publicKey.pubKey[0], &publicKey[0], 32);
+    account->networkType = STELLAR_NETWORK_PUBLIC;
     return account;
 }
 
@@ -108,7 +115,7 @@ extern BRStellarAddress stellarAccountGetPrimaryAddress (BRStellarAccount accoun
 
 extern BRStellarSerializedTransaction
 stellarTransactionSerializeAndSign(BRStellarTransaction transaction, uint8_t *privateKey,
-                                   uint8_t *publicKey, uint64_t sequence);
+                                   uint8_t *publicKey, uint64_t sequence, BRStellarNetworkType networkType);
 
 extern const BRStellarSerializedTransaction
 stellarAccountSignTransaction(BRStellarAccount account, BRStellarTransaction transaction, const char *paperKey)
@@ -121,19 +128,10 @@ stellarAccountSignTransaction(BRStellarAccount account, BRStellarTransaction tra
     unsigned char privateKey[64] = {0};
     unsigned char publicKey[32] = {0};
     ed25519_create_keypair(publicKey, privateKey, key.secret.u8);
-    printf("key secret: \n");
-    for (int i = 0; i < 32; i++) {
-        printf("%02x", key.secret.u8[i]);
-    }
-    printf("\npublic key: \n");
-    for (int i = 0; i < 32; i++) {
-        printf("%02x", publicKey[i]);
-    }
-    printf("\n");
 
     // Send it off to the transaction code to serialize and sign since we don't know
     // the internal details of a transaction
-    BRStellarSerializedTransaction s =  stellarTransactionSerializeAndSign(transaction, privateKey, publicKey, account->sequence);
+    BRStellarSerializedTransaction s =  stellarTransactionSerializeAndSign(transaction, privateKey, publicKey, account->sequence, account->networkType);
 
     return s;
 }

@@ -127,4 +127,9 @@ typedef struct _stellar_operation_ {
     } operation;
 } BRStellarOperation;
 
+typedef enum __stellar_network_type {
+    STELLAR_NETWORK_PUBLIC = 0,
+    STELLAR_NETWORK_TESTNET = 1
+} BRStellarNetworkType;
+
 #endif

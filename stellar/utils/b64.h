@@ -66,7 +66,7 @@ extern "C" {
  * Returns a `char *' base64 encoded string.
  */
 
-char *
+extern char *
 b64_encode (const unsigned char *, size_t);
 
 /**

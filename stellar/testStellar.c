@@ -21,7 +21,7 @@
 #include "BRStellarSerialize.h"
 #include "BRStellarTransaction.h"
 
-static int debug_log = 1;
+static int debug_log = 0;
 
 static uint8_t char2int(char input)
 {
@@ -139,11 +139,13 @@ static void serializeMinimum()
     uint8_t *buffer = NULL;
     size_t length = stellarSerializeTransaction(&sourceAccount, 200, 2001274371309571, NULL, 0,
                                 &memo, ops, 2, 0, NULL, 0, &buffer);
-    for(int i = 0; i < length; i++) {
-        if (i % 8 == 0) printf("\n");
-        printf("%02X ", buffer[i]);
+    if (debug_log) {
+        for(int i = 0; i < length; i++) {
+            if (i % 8 == 0) printf("\n");
+            printf("%02X ", buffer[i]);
+        }
+        printf("\n");
     }
-    printf("\n");
     free(buffer);
 }
 
@@ -154,13 +156,12 @@ static void serializeAndSign()
     BRStellarAccountID sourceAccount;
     sourceAccount.accountType = PUBLIC_KEY_TYPE_ED25519;
     hex2bin(sourcePublicKeyString, sourceAccount.accountID);
-    
+
     const char* targetPublicKeyString = "5562f344b6471448b7b6ebeb5bae9c1cecc930ef28868be2bb78bb742831e710";
     BRStellarAccountID targetAccount;
     targetAccount.accountType = PUBLIC_KEY_TYPE_ED25519;
     hex2bin(targetPublicKeyString, targetAccount.accountID);
-    
-    uint8_t buffer[1024];
+
     BRStellarMemo memo;
     memo.memoType = 1;
     strcpy(memo.text, "Buy yourself a beer!");
@@ -176,11 +177,13 @@ static void serializeAndSign()
     op2->operation.payment.asset.issuer = sourceAccount;
     op2->operation.payment.destination = targetAccount;
     op2->operation.payment.amount = 25.75;
-    BRStellarOperation ops[] = { *op1, *op2 };
-    
-    BRStellarTransaction transaction = stellarTransactionCreate(&sourceAccount, 200, NULL, 0, &memo, ops, 2);
+    BRStellarOperation ops[] = { *op1 };
+
+    uint32_t fee = 100 * (sizeof(ops)/sizeof(BRStellarOperation));
+    BRStellarTransaction transaction = stellarTransactionCreate(&sourceAccount, fee, NULL, 0, &memo, ops, 1);
     BRStellarAccount account = stellarAccountCreate("off enjoy fatal deliver team nothing auto canvas oak brass fashion happy");
     stellarAccountSetSequence(account, 2001274371309574);
+    stellarAccountSetNetworkType(account, STELLAR_NETWORK_TESTNET);
     BRStellarSerializedTransaction s = stellarAccountSignTransaction(account, transaction,
                                   "off enjoy fatal deliver team nothing auto canvas oak brass fashion happy");
 
@@ -189,7 +192,10 @@ static void serializeAndSign()
     assert(sSize > 0);
     assert(sBytes);
 
+    // Base64 the bytes
+    char * encoded = b64_encode(sBytes, sSize);
     if (debug_log) {
+        printf("encoded bytes: %s\n", encoded);
         printf("sBytes: \n");
         for (int i = 0; i < sSize; i++) {
             if (i != 0 && i % 8 == 0) printf("\n");
@@ -197,6 +203,11 @@ static void serializeAndSign()
         }
         printf("\n");
     }
+    // Compare with what we are expecting
+    const char* expected_b64 = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAZAAHHCYAAAAGAAAAAAAAAAEAAAAUQnV5IHlvdXJzZWxmIGEgYmVlciEAAAABAAAAAAAAAAEAAAAAVWLzRLZHFEi3tuvrW66cHOzJMO8ohoviu3i7dCgx5xAAAAAAAAAAAAZCLEAAAAAAAAAAAeJoetEAAABA7SA5lCfGXhKqo44uczRi9kIIOVaAv02ugAIWK8vxVDDPk5zvjIbffBTDOhJpaf4kxnvsar7NWVHhsd+ieIyYCQ==";
+    assert(0 == memcmp(encoded, expected_b64, strlen(expected_b64)));
+    assert(strlen(encoded) == strlen(expected_b64));
+    free(encoded);
 }
 
 void runSerializationTests()
@@ -207,7 +218,7 @@ void runSerializationTests()
 
 extern void
 runStellarTest (void /* ... */) {
-    decodeXRDPayment();
+    //decodeXRDPayment();
     runAccountTests();
     runSerializationTests();
 }

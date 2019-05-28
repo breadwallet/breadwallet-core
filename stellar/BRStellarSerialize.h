@@ -33,8 +33,7 @@ extern int stellarSerializeTransaction(BRStellarAccountID *accountID,
                                            uint8_t **buffer);
 
 
-BRStellarSignatureRecord stellarTransactionSign(uint8_t * tx, size_t txLength,
-                                  const char* networkID, uint8_t *privateKey, uint8_t *publicKey);
+BRStellarSignatureRecord stellarTransactionSign(uint8_t * tx_hash, size_t txHashLength, uint8_t *privateKey, uint8_t *publicKey);
 
 #ifdef __cplusplus
 }

@@ -39,7 +39,7 @@ extern void* b64_malloc(size_t);
 extern void* b64_realloc(void*, size_t);
 #endif
 
-char *
+extern char *
 b64_encode (const unsigned char *src, size_t len) {
   int i = 0;
   int j = 0;

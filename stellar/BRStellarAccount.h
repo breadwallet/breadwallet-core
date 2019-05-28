@@ -120,4 +120,6 @@ extern BRKey stellarAccountGetPublicKey(BRStellarAccount account);
 
 extern void stellarAccountSetSequence(BRStellarAccount account, uint64_t sequence);
 
+extern void stellarAccountSetNetworkType(BRStellarAccount account, BRStellarNetworkType networkType);
+
 #endif

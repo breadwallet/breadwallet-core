@@ -18,9 +18,8 @@
 #include "BRStellarSerialize.h"
 #include "BRStellarSignature.h"
 #include "BRStellarAccount.h"
-#include "BRCrypto.h"
-#include "BRArray.h"
-#include "BRInt.h"
+#include "support/BRCrypto.h"
+#include "support/BRInt.h"
 
 struct BRStellarSerializedTransactionRecord {
     size_t   size;
@@ -108,13 +107,38 @@ stellarTransactionSerialize (BRStellarTransaction transaction,
     return NULL;
 }
 
-static void createTransactionHash(BRStellarSerializedTransaction signedBytes)
+static void createTransactionHash(uint8_t *md32, uint8_t *tx, size_t txLength, const char* networkID)
 {
+    // What are we going to hash
+    // sha256(networkID) + tx_type + tx
+    // tx_type is basically a 4-byte packed int
+    size_t size = 32 + 4 + txLength;
+    uint8_t bytes_to_hash[size];
+    uint8_t *pHash = bytes_to_hash;
+    
+    // Hash the networkID
+    uint8_t networkHash[32];
+    BRSHA256(networkHash, networkID, strlen(networkID));
+    memcpy(pHash, networkHash, 32);
+    pHash += 32;
+    uint8_t tx_type[4] = {0, 0, 0, 2}; // Add the tx_type
+    memcpy(pHash, tx_type, 4);
+    pHash += 4;
+    memcpy(pHash, tx, txLength); // Add the serialized transaction
+    
+    // Do a sha256 hash of the data
+    BRSHA256(md32, bytes_to_hash, size);
 }
+
+// Map the network types to a string - get's hashed into the transaction
+const char *stellarNetworks[] = {
+    "Public Global Stellar Network ; September 2015",
+    "Test SDF Network ; September 2015"
+};
 
 extern BRStellarSerializedTransaction
 stellarTransactionSerializeAndSign(BRStellarTransaction transaction, uint8_t *privateKey,
-                                  uint8_t *publicKey, uint64_t sequence)
+                                  uint8_t *publicKey, uint64_t sequence, BRStellarNetworkType networkType)
 {
     // If this transaction was previously signed - delete that info
     if (transaction->signedBytes) {
@@ -134,11 +158,13 @@ stellarTransactionSerializeAndSign(BRStellarTransaction transaction, uint8_t *pr
                                                 transaction->operations,
                                                 transaction->numOperations,
                                                 0, NULL, 0, &buffer);
-    
+
+    // Create the transaction hash that needs to be signed
+    uint8_t tx_hash[32];
+    createTransactionHash(tx_hash, buffer, length, stellarNetworks[networkType]);
+
     // Sign the bytes and get signature
-    BRStellarSignatureRecord sig = stellarTransactionSign(buffer, length,
-                                                          "Test SDF Network ; September 2015",
-                                                          privateKey, publicKey);
+    BRStellarSignatureRecord sig = stellarTransactionSign(tx_hash, 32, privateKey, publicKey);
 
     // Serialize the bytes
     free(buffer);
@@ -148,19 +174,14 @@ stellarTransactionSerializeAndSign(BRStellarTransaction transaction, uint8_t *pr
                                                 transaction->memo,
                                                 transaction->operations,
                                                 transaction->numOperations,
-                                                0, sig.signature, 68, &buffer);
+                                                0, sig.signature, 1, &buffer);
 
     if (length) {
         transaction->signedBytes = calloc(1, sizeof(struct BRStellarSerializedTransactionRecord));
         transaction->signedBytes->buffer = calloc(1, length);
         memcpy(transaction->signedBytes->buffer, buffer, length);
         transaction->signedBytes->size = length;
-    }
-    // If we got a valid result then generate a hash
-    if (transaction->signedBytes) {
-        // Create and store a transaction hash of the transaction - the hash is attached to the signed
-        // bytes object and will get destroyed if a subsequent serialization is done.
-        createTransactionHash(transaction->signedBytes);
+        memcpy(transaction->signedBytes->txHash, tx_hash, 32);
     }
     
     // Return the pointer to the signed byte object (or perhaps NULL)
@@ -170,14 +191,13 @@ stellarTransactionSerializeAndSign(BRStellarTransaction transaction, uint8_t *pr
 
 extern BRStellarTransactionHash stellarTransactionGetHash(BRStellarTransaction transaction)
 {
-    BRStellarTransactionHash hash;
-    return hash;
-}
-
-extern BRStellarTransactionHash stellarTransactionGetAccountTxnId(BRStellarTransaction transaction)
-{
     assert(transaction);
     BRStellarTransactionHash hash;
+    if (transaction->signedBytes) {
+        memcpy(hash.bytes, transaction->signedBytes->txHash, 32);
+    } else {
+        memset(hash.bytes, 0x00, 32);
+    }
     return hash;
 }
 
