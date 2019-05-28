@@ -9,42 +9,34 @@
  */
 package com.breadwallet.crypto;
 
-import com.breadwallet.crypto.jni.CryptoLibrary;
-import com.breadwallet.crypto.jni.CryptoLibrary.BRCryptoBoolean;
-import com.breadwallet.crypto.jni.CryptoLibrary.BRCryptoUnit;
-import com.google.common.primitives.UnsignedBytes;
+import com.breadwallet.crypto.jni.crypto.CoreBRCryptoUnit;
 
 import java.util.Objects;
 
 public final class Unit {
 
-    // TODO: This is package, which is risky since it can be free'd by the finalize code here
     /* package */
-    final BRCryptoUnit core;
+    final CoreBRCryptoUnit core;
 
     private Unit base;
     private final String uids;
     private final Currency currency;
 
-    /* package */ Unit(Currency currency, String uids, String name, String symbol) {
-        this(CryptoLibrary.INSTANCE.cryptoUnitCreateAsBase(currency.core, name, symbol), currency, uids, null);
+    /* package */
+    Unit(Currency currency, String uids, String name, String symbol) {
+        this(CoreBRCryptoUnit.createAsBase(currency.core, name, symbol), currency, uids, null);
     }
 
-    /* package */ Unit(Currency currency, String uids, String name, String symbol, Unit base, int decimals) {
-        this(CryptoLibrary.INSTANCE.cryptoUnitCreate(currency.core, name, symbol, base.core,
-                UnsignedBytes.checkedCast(decimals)), currency, uids, base);
+    /* package */
+    Unit(Currency currency, String uids, String name, String symbol, Unit base, int decimals) {
+        this(CoreBRCryptoUnit.create(currency.core, name, symbol, base.core, decimals), currency, uids, base);
     }
 
-    private Unit(BRCryptoUnit core, Currency currency, String uids, Unit base) {
+    private Unit(CoreBRCryptoUnit core, Currency currency, String uids, Unit base) {
         this.core = core;
         this.currency = currency;
         this.uids = uids;
         this.base = base == null ? this : base;
-    }
-
-    @Override
-    protected void finalize() {
-        CryptoLibrary.INSTANCE.cryptoUnitGive(core);
     }
 
     public Currency getCurrency() {
@@ -52,11 +44,11 @@ public final class Unit {
     }
 
     public String getName() {
-        return CryptoLibrary.INSTANCE.cryptoUnitGetName(core);
+        return core.getName();
     }
 
     public String getSymbol() {
-        return CryptoLibrary.INSTANCE.cryptoUnitGetSymbol(core);
+        return core.getSymbol();
     }
 
     public Unit getBase() {
@@ -64,15 +56,15 @@ public final class Unit {
     }
 
     public int getDecimals() {
-        return UnsignedBytes.toInt(CryptoLibrary.INSTANCE.cryptoUnitGetBaseDecimalOffset(core));
+        return core.getDecimals();
     }
 
     public boolean isCompatible(Unit other) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoUnitIsCompatible(this.core, other.core);
+        return core.isCompatible(other.core);
     }
 
     public boolean hasCurrency(Currency currency) {
-        return currency.core.equals(CryptoLibrary.INSTANCE.cryptoUnitGetCurrency(core));
+        return core.hasCurrency(currency.core);
     }
 
     @Override

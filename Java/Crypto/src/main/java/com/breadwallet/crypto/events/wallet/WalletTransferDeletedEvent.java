@@ -15,11 +15,6 @@ public final class WalletTransferDeletedEvent implements WalletEvent {
     }
 
     @Override
-    public String toString() {
-        return "TransferDeleted";
-    }
-
-    @Override
     public <T> T accept(WalletEventVisitor<T> visitor) {
         return visitor.visit(this);
     }

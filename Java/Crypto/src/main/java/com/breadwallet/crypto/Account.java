@@ -9,19 +9,18 @@
  */
 package com.breadwallet.crypto;
 
-import com.breadwallet.crypto.jni.BRMasterPubKey;
-import com.breadwallet.crypto.jni.CryptoLibrary;
-import com.breadwallet.crypto.jni.CryptoLibrary.BRCryptoAccount;
+import com.breadwallet.crypto.jni.crypto.CoreBRCryptoAccount;
+import com.breadwallet.crypto.jni.support.BRMasterPubKey;
 import com.google.common.base.Optional;
 
 // TODO: Should uid be a UUID object? Or should we verify that it is a valid one?
 public final class Account {
 
-    private final BRCryptoAccount core;
+    private final CoreBRCryptoAccount core;
     private final String uids;
 
     public static Optional<Account> createFrom(String phrase, String uids) {
-        BRCryptoAccount account = CryptoLibrary.INSTANCE.cryptoAccountCreate(phrase);
+        CoreBRCryptoAccount account = CoreBRCryptoAccount.create(phrase);
         if (account == null) {
             return Optional.absent();
         }
@@ -29,7 +28,7 @@ public final class Account {
     }
 
     public static Optional<Account> createFrom(byte[] seed, String uids) {
-        BRCryptoAccount account = CryptoLibrary.INSTANCE.cryptoAccountCreateFromSeedBytes(seed);
+        CoreBRCryptoAccount account = CoreBRCryptoAccount.createFromSeed(seed);
         if (account == null) {
             return Optional.absent();
         }
@@ -37,29 +36,24 @@ public final class Account {
     }
 
     public static byte[] deriveSeed(String phrase) {
-        return CryptoLibrary.INSTANCE.cryptoAccountDeriveSeed(phrase).u8.clone();
+        return CoreBRCryptoAccount.deriveSeed(phrase);
     }
 
-    private Account(BRCryptoAccount core, String uids) {
+    private Account(CoreBRCryptoAccount core, String uids) {
         this.core = core;
         this.uids = uids;
     }
 
-    @Override
-    protected void finalize() {
-        CryptoLibrary.INSTANCE.cryptoAccountGive(core);
-    }
-
     public long getTimestamp() {
-        return CryptoLibrary.INSTANCE.cryptoAccountGetTimestamp(core);
+        return core.getTimestamp();
     }
 
     public void setTimestamp(long timestamp) {
-        CryptoLibrary.INSTANCE.cryptoAccountSetTimestamp(core, timestamp);
+        core.setTimestamp(timestamp);
     }
 
     /* package */
     BRMasterPubKey.ByValue asBtc() {
-        return CryptoLibrary.INSTANCE.cryptoAccountAsBTC(core);
+        return core.asBtc();
     }
 }

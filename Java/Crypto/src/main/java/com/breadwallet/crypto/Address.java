@@ -9,15 +9,10 @@
  */
 package com.breadwallet.crypto;
 
-import com.breadwallet.crypto.jni.BRAddress;
-import com.breadwallet.crypto.jni.BREthereumAddress;
-import com.breadwallet.crypto.jni.CryptoLibrary;
-import com.breadwallet.crypto.jni.CryptoLibrary.BRCryptoAddress;
-import com.breadwallet.crypto.jni.CryptoLibrary.BRCryptoBoolean;
-import com.breadwallet.crypto.jni.CryptoLibrary.BREthereumBoolean;
+import com.breadwallet.crypto.jni.crypto.CoreBRCryptoAddress;
+import com.breadwallet.crypto.jni.support.BRAddress;
+import com.breadwallet.crypto.jni.ethereum.BREthereumAddress;
 import com.google.common.base.Optional;
-import com.sun.jna.Native;
-import com.sun.jna.Pointer;
 
 import java.util.Objects;
 
@@ -29,55 +24,49 @@ public final class Address {
 
     /* package */
     static Optional<Address> createAsBtc(String address) {
-        if (BRCryptoBoolean.CRYPTO_TRUE != CryptoLibrary.INSTANCE.BRAddressIsValid(address)) {
+        if (!BRAddress.isValid(address)) {
             return Optional.absent();
         }
 
-        BRAddress.ByValue addressValue = new BRAddress.ByValue(BRAddress.addressFill(address));
-        return Optional.of(new Address(CryptoLibrary.INSTANCE.cryptoAddressCreateAsBTC(addressValue)));
+        CoreBRCryptoAddress cryptoAddress = CoreBRCryptoAddress.createAsBtc(address);
+
+        return Optional.of(new Address(cryptoAddress));
     }
 
     /* package */
     static Address createAsBtc(BRAddress address) {
         // TODO: Can we just create cryptoAddressCreateAsBTCString function in the C layer?
         BRAddress.ByValue addressValue = new BRAddress.ByValue(address);
-        return new Address(CryptoLibrary.INSTANCE.cryptoAddressCreateAsBTC(addressValue));
+        return new Address(CoreBRCryptoAddress.createAsBtc(addressValue));
     }
 
     /* package */
     static Optional<Address> createAsEth(String address) {
-        if (BREthereumBoolean.ETHEREUM_BOOLEAN_TRUE != CryptoLibrary.INSTANCE.addressValidateString(address)) {
+        if (!BREthereumAddress.isValid(address)) {
             return Optional.absent();
         }
 
-        BREthereumAddress.ByValue addressValue = CryptoLibrary.INSTANCE.addressCreate(address);
-        return Optional.of(new Address(CryptoLibrary.INSTANCE.cryptoAddressCreateAsETH(addressValue)));
+        CoreBRCryptoAddress cryptoAddress = CoreBRCryptoAddress.createAsEth(address);
+
+        return Optional.of(new Address(cryptoAddress));
     }
 
     /* package */
     static Address createAsEth(BREthereumAddress address) {
         // TODO: Can we just create cryptoAddressCreateAsETHString function in the C layer?
         BREthereumAddress.ByValue addressValue = new BREthereumAddress.ByValue(address);
-        return new Address(CryptoLibrary.INSTANCE.cryptoAddressCreateAsETH(addressValue));
+        return new Address(CoreBRCryptoAddress.createAsEth(addressValue));
     }
 
-    private final BRCryptoAddress core;
+    private final CoreBRCryptoAddress core;
 
-    private Address(BRCryptoAddress core) {
+    private Address(CoreBRCryptoAddress core) {
         this.core = core;
     }
 
     @Override
-    protected void finalize() {
-        CryptoLibrary.INSTANCE.cryptoAddressGive(core);
-    }
-
-    @Override
     public String toString() {
-        Pointer addressPtr = CryptoLibrary.INSTANCE.cryptoAddressAsString(core);
-        String addressStr = addressPtr.getString(0, "UTF-8");
-        Native.free(Pointer.nativeValue(addressPtr));
-        return addressStr;
+        return core.toString();
     }
 
     @Override
@@ -91,7 +80,7 @@ public final class Address {
         }
 
         Address address = (Address) o;
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAddressIsIdentical(core, address.core);
+        return core.isIdentical(address.core);
     }
 
     @Override

@@ -9,12 +9,12 @@
  */
 package com.breadwallet.crypto;
 
+import com.breadwallet.crypto.jni.bitcoin.BRTransaction;
 import com.google.common.base.Optional;
 
 public abstract class Transfer {
 
-    /* package */
-    abstract Object getPointer();
+    abstract boolean matches(BRTransaction transferImpl);
 
     /* package */
     abstract TransferState setState(TransferState state);

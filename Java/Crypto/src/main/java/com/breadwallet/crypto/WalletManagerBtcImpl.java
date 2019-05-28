@@ -1,23 +1,19 @@
 package com.breadwallet.crypto;
 
-import com.breadwallet.crypto.jni.BRMasterPubKey;
-import com.breadwallet.crypto.jni.BRWalletManagerClient;
-import com.breadwallet.crypto.jni.CryptoLibrary;
+import com.breadwallet.crypto.jni.bitcoin.BRWalletManager;
+import com.breadwallet.crypto.jni.bitcoin.CoreBRWalletManager;
+import com.breadwallet.crypto.jni.support.BRMasterPubKey;
+import com.breadwallet.crypto.jni.bitcoin.BRWalletManagerClient;
 import com.breadwallet.crypto.jni.CryptoLibrary.BRSyncMode;
-import com.breadwallet.crypto.jni.CryptoLibrary.BRWallet;
-import com.breadwallet.crypto.jni.CryptoLibrary.BRWalletManager;
-import com.breadwallet.crypto.jni.CryptoLibrary.BRChainParams;
+import com.breadwallet.crypto.jni.bitcoin.BRWallet;
+import com.breadwallet.crypto.jni.bitcoin.BRChainParams;
 import com.google.common.base.Optional;
-import com.google.common.base.Supplier;
-import com.sun.jna.Pointer;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-
-// TODO: Where do we free 'core'?
 
 // WARNING: This class is NOT threadsafe!
 /* package */
@@ -35,7 +31,7 @@ class WalletManagerBtcImpl extends WalletManager {
 
     private final List<Wallet> wallets;
 
-    private final BRWalletManager core;
+    private final CoreBRWalletManager core;
 
     private final Account account;
     private final Network network;
@@ -58,13 +54,11 @@ class WalletManagerBtcImpl extends WalletManager {
         int timestamp = (int) account.getTimestamp();
         int mode = modeAsBtc(managerMode);
 
-        this.core = CryptoLibrary.INSTANCE.BRWalletManagerNew(client, pubKey, chainParams, timestamp, mode, path);
+        this.core = CoreBRWalletManager.create(client, pubKey, chainParams, timestamp, mode, path);
 
-        BRWallet wallet = CryptoLibrary.INSTANCE.BRWalletManagerGetWallet(core);
+        BRWallet wallet = core.getWallet();
         checkNotNull(wallet);
-        Pointer walletPtr = wallet.getPointer();
-        checkNotNull(walletPtr);
-        Wallet primaryWallet = new WalletBtcImpl(this, walletPtr, getBaseUnit(), getDefaultUnit());
+        Wallet primaryWallet = new WalletBtcImpl(this, wallet, getBaseUnit(), getDefaultUnit());
 
         this.wallets = Collections.synchronizedList(new ArrayList<>(Collections.singleton(primaryWallet)));
     }
@@ -76,17 +70,17 @@ class WalletManagerBtcImpl extends WalletManager {
 
     @Override
     public void connect() {
-        CryptoLibrary.INSTANCE.BRWalletManagerConnect(core);
+        core.connect();
     }
 
     @Override
     public void disconnect() {
-        CryptoLibrary.INSTANCE.BRWalletManagerDisconnect(core);
+        core.disconnect();
     }
 
     @Override
     public void sync() {
-        CryptoLibrary.INSTANCE.BRWalletManagerScan(core);
+        core.scan();
     }
 
     @Override
@@ -138,38 +132,37 @@ class WalletManagerBtcImpl extends WalletManager {
     }
 
     @Override
+    boolean matches(BRWalletManager walletManagerImpl) {
+        return core.matches(walletManagerImpl);
+    }
+
+    @Override
     /* package */
-    Optional<Wallet> getOrCreateWalletByPtr(Pointer walletPtr, boolean createAllowed) {
-        Optional<Wallet> optWallet = getWalletByPtr(walletPtr);
+    Optional<Wallet> getOrCreateWalletByImpl(BRWallet walletImpl, boolean createAllowed) {
+        Optional<Wallet> optWallet = getWalletByImpl(walletImpl);
         if (optWallet.isPresent()) {
             return optWallet;
         } else if (createAllowed) {
-            return Optional.of(createWalletByPtr(walletPtr));
+            return Optional.of(createWalletByPtr(walletImpl));
         } else {
             return Optional.absent();
         }
     }
 
     private
-    Wallet createWalletByPtr(Pointer walletPtr) {
-        Wallet wallet = new WalletBtcImpl(this, walletPtr, getBaseUnit(), getDefaultUnit());
+    Wallet createWalletByPtr(BRWallet walletImpl) {
+        Wallet wallet = new WalletBtcImpl(this, walletImpl, getBaseUnit(), getDefaultUnit());
         wallets.add(wallet);
         return wallet;
     }
 
     private
-    Optional<Wallet> getWalletByPtr(Pointer walletPtr) {
+    Optional<Wallet> getWalletByImpl(BRWallet walletImpl) {
         for (Wallet wallet: wallets) {
-            if (wallet.getPointer().equals(walletPtr)) {
+            if (wallet.matches(walletImpl)) {
                 return Optional.of(wallet);
             }
         }
         return Optional.absent();
-    }
-
-    @Override
-    /* package */
-    public Pointer getPointer() {
-        return core.getPointer();
     }
 }

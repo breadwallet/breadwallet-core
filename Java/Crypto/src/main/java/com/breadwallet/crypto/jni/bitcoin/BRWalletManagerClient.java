@@ -1,4 +1,4 @@
-package com.breadwallet.crypto.jni;
+package com.breadwallet.crypto.jni.bitcoin;
 import com.breadwallet.crypto.jni.CryptoLibrary.BRGetBlockNumberCallback;
 import com.breadwallet.crypto.jni.CryptoLibrary.BRGetTransactionsCallback;
 import com.breadwallet.crypto.jni.CryptoLibrary.BRSubmitTransactionCallback;

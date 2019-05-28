@@ -1,7 +1,7 @@
 package com.breadwallet.crypto;
 
-import com.breadwallet.crypto.jni.BREthereumHash;
-import com.breadwallet.crypto.jni.UInt256;
+import com.breadwallet.crypto.jni.ethereum.BREthereumHash;
+import com.breadwallet.crypto.jni.support.UInt256;
 import com.google.common.io.BaseEncoding;
 
 import java.math.BigInteger;

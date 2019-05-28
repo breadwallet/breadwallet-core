@@ -9,18 +9,18 @@
  */
 package com.breadwallet.crypto;
 
+import com.breadwallet.crypto.jni.bitcoin.BRWallet;
+import com.breadwallet.crypto.jni.bitcoin.BRWalletManager;
 import com.google.common.base.Optional;
-import com.sun.jna.Pointer;
 
 import java.util.List;
 
 public abstract class WalletManager {
+    
+    abstract boolean matches(BRWalletManager walletManagerImpl);
 
     /* package */
-    abstract Pointer getPointer();
-
-    /* package */
-    abstract Optional<Wallet> getOrCreateWalletByPtr(Pointer walletPtr, boolean createAllowed);
+    abstract Optional<Wallet> getOrCreateWalletByImpl(BRWallet walletImpl, boolean createAllowed);
 
     /* package */
     abstract WalletManagerState setState(WalletManagerState state);

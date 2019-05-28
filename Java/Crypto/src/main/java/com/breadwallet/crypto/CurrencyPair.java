@@ -18,11 +18,19 @@ public final class CurrencyPair {
     }
 
     public Optional<Amount> exchangeAsBase(Amount amount) {
-        return amount.doubleAmount(baseUnit).transform(input -> Amount.create(input * exchangeRate, quoteUnit));
+        Optional<Double> doubleAmount = amount.doubleAmount(baseUnit);
+        if (doubleAmount.isPresent()) {
+            return Amount.create(doubleAmount.get() * exchangeRate, quoteUnit);
+        }
+        return Optional.absent();
     }
 
     public Optional<Amount> exchangeAsQuote(Amount amount) {
-        return amount.doubleAmount(quoteUnit).transform(input -> Amount.create(input / exchangeRate, baseUnit));
+        Optional<Double> doubleAmount = amount.doubleAmount(quoteUnit);
+        if (doubleAmount.isPresent()) {
+            return Amount.create(doubleAmount.get() / exchangeRate, baseUnit);
+        }
+        return Optional.absent();
     }
 
     public Unit getBaseUnit() {

@@ -9,8 +9,7 @@
  */
 package com.breadwallet.crypto;
 
-import com.breadwallet.crypto.jni.CryptoLibrary;
-import com.breadwallet.crypto.jni.CryptoLibrary.BRCryptoCurrency;
+import com.breadwallet.crypto.jni.crypto.CoreBRCryptoCurrency;
 
 import java.util.Objects;
 
@@ -21,33 +20,29 @@ public final class Currency {
     public static final String CODE_AS_ETH = "eth";
 
     /* package */
-    final BRCryptoCurrency core;
+    final CoreBRCryptoCurrency core;
+
     private final String uids;
 
     /* package */ Currency(String uids, String name, String code, String type) {
-        this(CryptoLibrary.INSTANCE.cryptoCurrencyCreate(name, code, type), uids);
+        this(CoreBRCryptoCurrency.create(name, code, type), uids);
     }
 
-    private Currency(BRCryptoCurrency core, String uids) {
+    private Currency(CoreBRCryptoCurrency core, String uids) {
         this.core = core;
         this.uids = uids;
     }
 
-    @Override
-    protected void finalize() {
-        CryptoLibrary.INSTANCE.cryptoCurrencyGive(core);
-    }
-
     public String getName() {
-        return CryptoLibrary.INSTANCE.cryptoCurrencyGetName(core);
+        return core.getName();
     }
 
     public String getCode() {
-        return CryptoLibrary.INSTANCE.cryptoCurrencyGetCode(core);
+        return core.getCode();
     }
 
     public String getType() {
-        return CryptoLibrary.INSTANCE.cryptoCurrencyGetType(core);
+        return core.getType();
     }
 
     @Override

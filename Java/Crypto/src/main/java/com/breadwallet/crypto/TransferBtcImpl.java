@@ -9,31 +9,32 @@
  */
 package com.breadwallet.crypto;
 
-import com.breadwallet.crypto.jni.BRTransaction;
+import com.breadwallet.crypto.jni.bitcoin.BRTransaction;
 import com.breadwallet.crypto.jni.CryptoLibrary;
+import com.breadwallet.crypto.jni.bitcoin.BRWallet;
+import com.breadwallet.crypto.jni.bitcoin.CoreBRWalletManager;
 import com.google.common.base.Optional;
-import com.sun.jna.Pointer;
-
-// TODO: Where do we free 'core'?
 
 /* package */
 class TransferBtcImpl extends Transfer {
 
-    private final BRTransaction core;
-
     private final Wallet owner;
+
+    private final BRWallet coreWallet;
+    private final BRTransaction coreTransfer;
+
     private final Unit unit;
     private final TransferFeeBasis feeBasis;
 
     private TransferState state;
 
     /* package */
-    TransferBtcImpl(Wallet owner, Pointer ptr, Unit unit) {
+    TransferBtcImpl(Wallet owner, BRWallet coreWallet, BRTransaction coreTransfer, Unit unit) {
         this.owner = owner;
+        this.coreWallet = coreWallet;
+        this.coreTransfer = coreTransfer;
         this.unit = unit;
         this.state = TransferState.createCreated();
-
-        this.core = new BRTransaction(ptr);
 
         // TODO: There is a comment in the Swift about this; is this OK?
         this.feeBasis = TransferFeeBasis.createBtc(CryptoLibrary.DEFAULT_FEE_PER_KB);
@@ -103,9 +104,8 @@ class TransferBtcImpl extends Transfer {
     }
 
     @Override
-    /* package */
-    Pointer getPointer() {
-        return core.getPointer();
+    boolean matches(BRTransaction transferImpl) {
+        return coreTransfer.equals(transferImpl);
     }
 
     @Override

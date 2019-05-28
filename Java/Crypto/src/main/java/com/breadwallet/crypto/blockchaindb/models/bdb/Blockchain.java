@@ -15,6 +15,7 @@ public class Blockchain {
 
     public static List<Blockchain> DEFAULT_BLOCKCHAINS = ImmutableList.of(
             // Mainnet
+            new Blockchain("bitcoin-mainnet", "Bitcoin", "mainnet", true, "btc", 654321, ImmutableList.of()),
             new Blockchain("bitcash-mainnet", "Bitcash", "mainnet", true, "bch", 1000000, ImmutableList.of()),
             new Blockchain("ethereum-mainnet", "Ethereum", "mainnet", true, "eth", 8000000, ImmutableList.of()),
 

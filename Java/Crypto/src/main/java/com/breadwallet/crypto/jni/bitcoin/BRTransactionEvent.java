@@ -1,4 +1,5 @@
-package com.breadwallet.crypto.jni;
+package com.breadwallet.crypto.jni.bitcoin;
+import com.breadwallet.crypto.jni.CryptoLibrary;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.Union;

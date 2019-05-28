@@ -1,5 +1,7 @@
-package com.breadwallet.crypto.jni;
+package com.breadwallet.crypto.jni.ethereum;
 
+import com.breadwallet.crypto.jni.CryptoLibrary;
+import com.breadwallet.crypto.jni.CryptoLibrary.BREthereumBoolean;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 
@@ -7,6 +9,10 @@ import java.util.Arrays;
 import java.util.List;
 
 public class BREthereumAddress extends Structure {
+
+    public static boolean isValid(String address) {
+        return BREthereumBoolean.ETHEREUM_BOOLEAN_TRUE == CryptoLibrary.INSTANCE.addressValidateString(address);
+    }
 
     public byte[] s = new byte[20];
 

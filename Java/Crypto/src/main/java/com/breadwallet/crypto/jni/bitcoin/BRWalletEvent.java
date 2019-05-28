@@ -1,4 +1,5 @@
-package com.breadwallet.crypto.jni;
+package com.breadwallet.crypto.jni.bitcoin;
+import com.breadwallet.crypto.jni.CryptoLibrary;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.Union;
@@ -50,7 +51,7 @@ public class BRWalletEvent extends Structure {
 		/** <i>native declaration : bitcoin/BRWalletManager.h:59</i> */
 		public static class submitted_struct extends Structure {
 			/** C type : BRTransaction* */
-			public com.breadwallet.crypto.jni.BRTransaction.ByReference transaction;
+			public BRTransaction.ByReference transaction;
 			/** 0 on success */
 			public int error;
 			public submitted_struct() {
@@ -63,7 +64,7 @@ public class BRWalletEvent extends Structure {
 			 * @param transaction C type : BRTransaction*<br>
 			 * @param error 0 on success
 			 */
-			public submitted_struct(com.breadwallet.crypto.jni.BRTransaction.ByReference transaction, int error) {
+			public submitted_struct(BRTransaction.ByReference transaction, int error) {
 				super();
 				this.transaction = transaction;
 				this.error = error;

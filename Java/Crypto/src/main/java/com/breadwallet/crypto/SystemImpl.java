@@ -2,12 +2,7 @@ package com.breadwallet.crypto;
 
 import android.util.Log;
 
-import com.breadwallet.crypto.blockchaindb.BlockchainCompletionHandler;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
-import com.breadwallet.crypto.blockchaindb.errors.QueryError;
-import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
-import com.breadwallet.crypto.blockchaindb.models.bdb.Currency;
-import com.breadwallet.crypto.blockchaindb.models.bdb.CurrencyDenomination;
 import com.breadwallet.crypto.events.network.NetworkCreatedEvent;
 import com.breadwallet.crypto.events.network.NetworkEvent;
 import com.breadwallet.crypto.events.system.SystemCreatedEvent;
@@ -32,27 +27,23 @@ import com.breadwallet.crypto.events.walletmanager.WalletManagerEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerSyncStartedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerSyncStoppedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerWalletChangedEvent;
-import com.breadwallet.crypto.jni.BRTransaction;
-import com.breadwallet.crypto.jni.BRTransactionEvent;
-import com.breadwallet.crypto.jni.BRWalletEvent;
-import com.breadwallet.crypto.jni.BRWalletManagerClient;
-import com.breadwallet.crypto.jni.BRWalletManagerEvent;
+import com.breadwallet.crypto.jni.bitcoin.BRTransaction;
+import com.breadwallet.crypto.jni.bitcoin.BRTransactionEvent;
+import com.breadwallet.crypto.jni.bitcoin.BRWallet;
+import com.breadwallet.crypto.jni.bitcoin.BRWalletEvent;
+import com.breadwallet.crypto.jni.bitcoin.BRWalletManager;
+import com.breadwallet.crypto.jni.bitcoin.BRWalletManagerClient;
+import com.breadwallet.crypto.jni.bitcoin.BRWalletManagerEvent;
 import com.breadwallet.crypto.jni.CryptoLibrary;
-import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.sun.jna.Pointer;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Semaphore;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -68,7 +59,6 @@ public class SystemImpl implements System {
 
     private static volatile SystemImpl INSTANCE;
 
-    // TODO: Do we need to worry about synchronization here beyond this simple approach?
     private final List<Network> networks = Collections.synchronizedList(new ArrayList<>());
     private final List<WalletManager> walletManagers = Collections.synchronizedList(new ArrayList<>());
     private final ExecutorService systemExecutor = Executors.newSingleThreadExecutor();
@@ -100,6 +90,13 @@ public class SystemImpl implements System {
         announceSystemEvent(new SystemCreatedEvent());
     }
 
+    // Public Interface
+
+    /*
+     * All writes to data structures must be done on the systemExecutor. The mutable data structures (networks and
+     * walletManagers) are syncronized to protect simultaneous access only.
+     */
+
     @Override
     public void subscribe(String subscriptionToken) {
         // TODO: Implement this!
@@ -109,7 +106,7 @@ public class SystemImpl implements System {
     public void initialize(List<String> networksNeeded) {
         NetworkDiscovery.discoverNetworks(query, networksNeeded, networks -> {
             for (Network network: networks) {
-                addNetwork(network);
+                systemExecutor.submit(() -> addNetwork(network));
             }
         });
     }
@@ -118,7 +115,10 @@ public class SystemImpl implements System {
     public void createWalletManager(Network network, WalletManagerMode mode) {
         String networkCode = network.getCurrency().getCode();
         if (networkCode.equals(com.breadwallet.crypto.Currency.CODE_AS_BTC)) {
-            addWalletManager(new WalletManagerBtcImpl(coreBitcoinClient, account, network, mode, path));
+            systemExecutor.submit(() -> {
+                WalletManagerBtcImpl walletManager = new WalletManagerBtcImpl(coreBitcoinClient, account, network, mode, path);
+                addWalletManager(walletManager);
+            });
         } else {
             // TODO: How do we want to handle this?
         }
@@ -180,39 +180,39 @@ public class SystemImpl implements System {
 
     // TODO: Split each case handler into a method
 
-    private void doGetBlockNumber(Pointer context, Pointer manager, int rid) {
+    private void doGetBlockNumber(Pointer context, BRWalletManager managerPtr, int rid) {
         systemExecutor.submit(() -> {
             // TODO: Implement this
             Log.d(TAG, "BRGetBlockNumberCallback");
         });
     }
 
-    private void doGetTransactions(Pointer context, Pointer manager, long begBlockNumber, long endBlockNumber, int rid) {
+    private void doGetTransactions(Pointer context, BRWalletManager managerPtr, long begBlockNumber, long endBlockNumber, int rid) {
         systemExecutor.submit(() -> {
             // TODO: Implement this
             Log.d(TAG, "BRGetTransactionsCallback");
         });
     }
 
-    private void doSubmitTransation(Pointer context, Pointer manager, Pointer wallet, BRTransaction transaction, int rid) {
+    private void doSubmitTransation(Pointer context, BRWalletManager managerPtr, BRWallet walletImpl, BRTransaction transaction, int rid) {
         systemExecutor.submit(() -> {
             // TODO: Implement this
             Log.d(TAG, "BRSubmitTransactionCallback");
         });
     }
 
-    private void handleTransactionEvent(Pointer context, Pointer managerPtr, Pointer walletPtr, Pointer transactionPtr, BRTransactionEvent.ByValue event) {
+    private void handleTransactionEvent(Pointer context, BRWalletManager managerImpl, BRWallet walletImpl, BRTransaction transactionImpl, BRTransactionEvent.ByValue event) {
         systemExecutor.submit(() -> {
-            Optional<WalletManager> optManager = getWalletManagerByPtr(managerPtr);
+            Optional<WalletManager> optManager = getWalletManagerByImpl(managerImpl);
             if (optManager.isPresent()) {
                 WalletManager walletManager = optManager.get();
 
-                Optional<Wallet> optWallet = walletManager.getOrCreateWalletByPtr(walletPtr, false);
+                Optional<Wallet> optWallet = walletManager.getOrCreateWalletByImpl(walletImpl, false);
                 if (optWallet.isPresent()) {
                     Wallet wallet = optWallet.get();
 
                     boolean createAllowed = event.type == CryptoLibrary.BRTransactionEventType.BITCOIN_TRANSACTION_ADDED;
-                    Optional<Transfer> optTransfer = wallet.getOrCreateTransferByPtr(transactionPtr, createAllowed);
+                    Optional<Transfer> optTransfer = wallet.getOrCreateTransferByImpl(transactionImpl, createAllowed);
                     if (optTransfer.isPresent()) {
                         Transfer transfer = optTransfer.get();
 
@@ -234,13 +234,15 @@ public class SystemImpl implements System {
                                 int timestamp = event.u.updated.timestamp;
                                 Log.d(TAG, String.format("BRTransactionEventCallback: BITCOIN_TRANSACTION_UPDATED (%s, %s)", blockHeight, timestamp));
 
-                                Amount amount = Amount.create(0, walletManager.getDefaultUnit());
-                                TransferConfirmation confirmation = new TransferConfirmation(blockHeight, 0, timestamp, amount);
+                                Optional<Amount> optionalAmount = Amount.create(0, walletManager.getDefaultUnit());
+                                if (optionalAmount.isPresent()) {
+                                    TransferConfirmation confirmation = new TransferConfirmation(blockHeight, 0, timestamp, optionalAmount.get());
 
-                                TransferState newState = TransferState.createIncluded(confirmation);
-                                TransferState oldState = transfer.setState(newState);
+                                    TransferState newState = TransferState.createIncluded(confirmation);
+                                    TransferState oldState = transfer.setState(newState);
 
-                                announceTransferEvent(walletManager, wallet, transfer, new TransferChangedEvent(oldState, newState));
+                                    announceTransferEvent(walletManager, wallet, transfer, new TransferChangedEvent(oldState, newState));
+                                }
 
                                 break;
                             default:
@@ -262,14 +264,14 @@ public class SystemImpl implements System {
         });
     }
 
-    private void handleWalletEvent(Pointer context, Pointer managerPtr, Pointer walletPtr, BRWalletEvent.ByValue event) {
+    private void handleWalletEvent(Pointer context, BRWalletManager managerImpl, BRWallet walletImpl, BRWalletEvent.ByValue event) {
         systemExecutor.submit(() -> {
-            Optional<WalletManager> optManager = getWalletManagerByPtr(managerPtr);
+            Optional<WalletManager> optManager = getWalletManagerByImpl(managerImpl);
             if (optManager.isPresent()) {
                 WalletManager walletManager = optManager.get();
 
                 boolean createAllowed = event.type == CryptoLibrary.BRWalletEventType.BITCOIN_WALLET_CREATED;
-                Optional<Wallet> optWallet = walletManager.getOrCreateWalletByPtr(walletPtr, createAllowed);
+                Optional<Wallet> optWallet = walletManager.getOrCreateWalletByImpl(walletImpl, createAllowed);
                 if (optWallet.isPresent()) {
                     Wallet wallet = optWallet.get();
 
@@ -312,16 +314,16 @@ public class SystemImpl implements System {
         });
     }
 
-    private void handleWalletManagerEvent(Pointer context, Pointer managerPtr, BRWalletManagerEvent.ByValue event) {
+    private void handleWalletManagerEvent(Pointer context, BRWalletManager managerImpl, BRWalletManagerEvent.ByValue event) {
         systemExecutor.submit(() -> {
-            Optional<WalletManager> optManager = getWalletManagerByPtr(managerPtr);
+            Optional<WalletManager> optManager = getWalletManagerByImpl(managerImpl);
             if (optManager.isPresent()) {
                 WalletManager walletManager = optManager.get();
 
                 switch (event.type) {
                     case CryptoLibrary.BRWalletManagerEventType.BITCOIN_WALLET_MANAGER_CREATED: {
                         Log.d(TAG, "BRWalletManagerEventCallback: BITCOIN_WALLET_MANAGER_CREATED");
-                        announceWalletManagerEvent(null, new WalletManagerCreatedEvent());
+                        announceWalletManagerEvent(walletManager, new WalletManagerCreatedEvent());
                         break;
                     }
                     case CryptoLibrary.BRWalletManagerEventType.BITCOIN_WALLET_MANAGER_CONNECTED: {
@@ -365,6 +367,7 @@ public class SystemImpl implements System {
                     }
                     case CryptoLibrary.BRWalletManagerEventType.BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED: {
                         int height = event.u.blockHeightUpdated.value;
+                        Log.d(TAG, String.format("BRWalletManagerEventCallback: BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED (%s)", height));
 
                         Network network = walletManager.getNetwork();
                         network.setHeight(height);
@@ -393,42 +396,24 @@ public class SystemImpl implements System {
 
     // WalletManager management
 
-    // TODO: The locking story isn't great here; improve!
-
     @Override
     public List<WalletManager> getWalletManagers() {
         return new ArrayList<>(walletManagers);
     }
 
-    private boolean addWalletManager(WalletManagerBtcImpl walletManagerBtc) {
-        WalletManager walletManager = walletManagerBtc;
-        boolean added = addWalletManager(walletManager);
-        if (added) {
-            announceWalletEvent(walletManager, walletManager.getPrimaryWallet(), new WalletCreatedEvent());
-        }
-        return added;
-    }
-
-    private boolean addWalletManager(WalletManager walletManager) {
-        boolean added = false;
-
+    private void addWalletManager(WalletManager walletManager) {
         // TODO: This is from the swift code but I don't see how it would ever evaluate to true
         if (!walletManagers.contains(walletManager)) {
             walletManagers.add(walletManager);
             walletManager.initialize();
 
-            announceWalletManagerEvent(walletManager, new WalletManagerCreatedEvent());
             announceSystemEvent(new SystemManagerAddedEvent(walletManager));
-
-            added = true;
         }
-
-        return added;
     }
 
-    private Optional<WalletManager> getWalletManagerByPtr(Pointer walletManagerPtr) {
+    private Optional<WalletManager> getWalletManagerByImpl(BRWalletManager manager) {
         for (WalletManager walletManager: walletManagers) {
-            if (walletManager.getPointer().equals(walletManagerPtr)) {
+            if (walletManager.matches(manager)) {
                 return Optional.of(walletManager);
             }
         }
@@ -458,177 +443,5 @@ public class SystemImpl implements System {
         }
 
         return added;
-    }
-
-    private static class NetworkDiscovery {
-
-        interface NetworksCallback {
-            void discovered(List<Network> networks);
-        }
-
-        static void discoverNetworks(BlockchainDb query, List<String> networksNeeded, NetworksCallback callback) {
-            // TODO: This semaphore stuff is nonsense; clean it up
-            Semaphore sema = new Semaphore(0);
-            List<Network> networks = new ArrayList<>();
-
-            getBlockChains(query, sema, Blockchain.DEFAULT_BLOCKCHAINS, blockchainModels -> {
-                for (Blockchain blockchainModel : blockchainModels) {
-                    String blockchainModelId = blockchainModel.getId();
-                    if (!networksNeeded.contains(blockchainModelId)) {
-                        continue;
-                    }
-
-                    final List<Currency> defaultCurrencies = new ArrayList<>();
-                    for (Currency currency :
-                            Currency.DEFAULT_CURRENCIES) {
-                        if (currency.getBlockchainId().equals(blockchainModelId)) {
-                            defaultCurrencies.add(currency);
-                        }
-                    }
-
-                    Map<com.breadwallet.crypto.Currency, NetworkAssociation> associations = new HashMap<>();
-
-                    getCurrencies(query, sema, blockchainModelId, defaultCurrencies, currencyModels -> {
-                        for (Currency currencyModel : currencyModels) {
-                            if (!blockchainModelId.equals(currencyModel.getBlockchainId())) {
-                                continue;
-                            }
-
-                            com.breadwallet.crypto.Currency currency = new com.breadwallet.crypto.Currency(
-                                    currencyModel.getId(),
-                                    currencyModel.getName(),
-                                    currencyModel.getCode(),
-                                    currencyModel.getType());
-
-                            Unit baseUnit = currencyDenominationToBaseUnit(currency, currencyModel.getDenominations());
-                            List<Unit> units = currencyDenominationToUnits(currency, currencyModel.getDenominations(),
-                                    baseUnit);
-
-                            units.add(0, baseUnit);
-                            Collections.sort(units, (o1, o2) -> {
-                                int d1 = o1.getDecimals();
-                                int d2 = o2.getDecimals();
-                                int result = d2 - d1;
-                                int absResult = Math.abs(result);
-                                return result == 0 ? result : (result / absResult);
-                            });
-                            Unit defaultUnit = units.get(0);
-
-                            associations.put(currency, new NetworkAssociation(baseUnit, defaultUnit, new HashSet<>(units)));
-                        }
-
-                        networks.add(Network.create(
-                                blockchainModel.getId(),
-                                blockchainModel.getName(),
-                                blockchainModel.isMainnet(),
-                                findCurrency(associations, blockchainModel),
-                                blockchainModel.getBlockHeight(),
-                                associations));
-
-                        return null;
-                    }, () -> callback.discovered(networks));
-                }
-                return null;
-            }, () -> callback.discovered(networks));
-        }
-
-
-        private static void getBlockChains(BlockchainDb query, Semaphore sema,
-                                           Collection<Blockchain> defaultBlockchains,
-                                           Function<Collection<Blockchain>, Void> func,
-                                           Runnable runnable) {
-            sema.release();
-            query.getBlockchains(new BlockchainCompletionHandler<List<Blockchain>>() {
-                @Override
-                public void handleData(List<Blockchain> newBlockchains) {
-                    Map<String, Blockchain> merged = new HashMap<>();
-                    for (Blockchain blockchain : defaultBlockchains) {
-                        merged.put(blockchain.getId(), blockchain);
-                    }
-
-                    for (Blockchain blockchain : newBlockchains) {
-                        merged.put(blockchain.getId(), blockchain);
-                    }
-
-                    func.apply(merged.values());
-                    sema.acquireUninterruptibly();
-                    if (sema.availablePermits() == 0) runnable.run();
-                }
-
-                @Override
-                public void handleError(QueryError error) {
-                    func.apply(defaultBlockchains);
-                    sema.acquireUninterruptibly();
-                    if (sema.availablePermits() == 0) runnable.run();
-                }
-            });
-        }
-
-        private static void getCurrencies(BlockchainDb query, Semaphore sema, String blockchainId,
-                                          Collection<Currency> defaultCurrencies,
-                                          Function<Collection<Currency>, Void> func,
-                                          Runnable runnable) {
-            sema.release();
-            query.getCurrencies(blockchainId, new BlockchainCompletionHandler<List<Currency>>() {
-                @Override
-                public void handleData(List<Currency> newCurrencies) {
-                    Map<String, Currency> merged = new HashMap<>();
-                    for (Currency currency : defaultCurrencies) {
-                        merged.put(currency.getId(), currency);
-                    }
-
-                    for (Currency currency : newCurrencies) {
-                        merged.put(currency.getId(), currency);
-                    }
-                    func.apply(merged.values());
-                    sema.acquireUninterruptibly();
-                    if (sema.availablePermits() == 0) runnable.run();
-                }
-
-                @Override
-                public void handleError(QueryError error) {
-                    func.apply(defaultCurrencies);
-                    sema.acquireUninterruptibly();
-                    if (sema.availablePermits() == 0) runnable.run();
-                }
-            });
-        }
-
-        private static Unit currencyDenominationToBaseUnit(com.breadwallet.crypto.Currency currency,
-                                                           List<CurrencyDenomination> denominations) {
-            for (CurrencyDenomination denomination : denominations) {
-                if (denomination.getDecimals() == 0) {
-                    String uids = String.format("%s-%s", currency.getName(), denomination.getCode());
-                    return new Unit(currency, uids, denomination.getName(), denomination.getSymbol());
-                }
-            }
-            // TODO: This isn't how we should handle this (this is based on swift)
-            throw new IllegalStateException("Missing base unit");
-        }
-
-        private static List<Unit> currencyDenominationToUnits(com.breadwallet.crypto.Currency currency,
-                                                              List<CurrencyDenomination> denominations, Unit base) {
-            List<Unit> units = new ArrayList<>();
-            for (CurrencyDenomination denomination : denominations) {
-                if (denomination.getDecimals() != 0) {
-                    String uids = String.format("%s-%s", currency.getName(), denomination.getCode());
-                    units.add(new Unit(currency, uids, denomination.getName(), denomination.getSymbol(), base,
-                            denomination.getDecimals()));
-                }
-            }
-            return units;
-        }
-
-        private static com.breadwallet.crypto.Currency findCurrency(Map<com.breadwallet.crypto.Currency,
-                NetworkAssociation> associations, Blockchain blockchainModel) {
-            String code = blockchainModel.getCurrency().toLowerCase();
-            for (com.breadwallet.crypto.Currency currency : associations.keySet()) {
-                if (code.equals(currency.getCode())) {
-                    return currency;
-                }
-            }
-            throw new IllegalStateException(String.format("Missing currency %s: defaultUnit",
-                    blockchainModel.getCurrency()));
-        }
     }
 }

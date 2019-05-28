@@ -9,6 +9,8 @@
  */
 package com.breadwallet.crypto;
 
+import com.breadwallet.crypto.jni.bitcoin.BRTransaction;
+import com.breadwallet.crypto.jni.bitcoin.BRWallet;
 import com.google.common.base.Optional;
 import com.sun.jna.Pointer;
 
@@ -18,11 +20,10 @@ import javax.annotation.Nullable;
 
 public abstract class Wallet {
 
-    /* package */
-    abstract Pointer getPointer();
+    abstract boolean matches(BRWallet walletImpl);
 
     /* package */
-    abstract Optional<Transfer> getOrCreateTransferByPtr(Pointer transferPtr, boolean createAllowed);
+    abstract Optional<Transfer> getOrCreateTransferByImpl(BRTransaction transferImpl, boolean createAllowed);
 
     /* package */
     abstract WalletState setState(WalletState state);

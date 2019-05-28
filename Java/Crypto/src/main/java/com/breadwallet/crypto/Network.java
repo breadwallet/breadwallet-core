@@ -9,7 +9,7 @@
  */
 package com.breadwallet.crypto;
 
-import com.breadwallet.crypto.jni.CryptoLibrary.BRChainParams;
+import com.breadwallet.crypto.jni.bitcoin.BRChainParams;
 import com.google.common.base.Optional;
 
 import java.util.List;

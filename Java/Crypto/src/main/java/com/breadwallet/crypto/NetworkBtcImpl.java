@@ -1,7 +1,7 @@
 package com.breadwallet.crypto;
 
 import com.breadwallet.crypto.jni.CryptoLibrary;
-import com.breadwallet.crypto.jni.CryptoLibrary.BRChainParams;
+import com.breadwallet.crypto.jni.bitcoin.BRChainParams;
 import com.sun.jna.Pointer;
 
 import static com.google.common.base.Preconditions.checkNotNull;

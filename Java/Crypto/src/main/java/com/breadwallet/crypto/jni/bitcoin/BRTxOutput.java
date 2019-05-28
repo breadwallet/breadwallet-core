@@ -1,4 +1,5 @@
-package com.breadwallet.crypto.jni;
+package com.breadwallet.crypto.jni.bitcoin;
+import com.breadwallet.crypto.jni.SizeT;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import java.util.Arrays;

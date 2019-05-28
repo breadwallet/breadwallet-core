@@ -11,14 +11,10 @@ package com.breadwallet.crypto;
 
 import android.support.annotation.Nullable;
 
-import com.breadwallet.crypto.jni.CryptoLibrary;
-import com.breadwallet.crypto.jni.CryptoLibrary.BRCryptoAmount;
 import com.breadwallet.crypto.jni.CryptoLibrary.BRCryptoBoolean;
 import com.breadwallet.crypto.jni.CryptoLibrary.BRCryptoComparison;
-import com.breadwallet.crypto.jni.UInt256;
+import com.breadwallet.crypto.jni.crypto.CoreBRCryptoAmount;
 import com.google.common.base.Optional;
-import com.sun.jna.Native;
-import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
 
 import java.math.RoundingMode;
@@ -30,23 +26,24 @@ import java.util.Objects;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
+// TODO: Swift doesn't acknowledge that the creates can fail
 public final class Amount implements Comparable<Amount> {
 
-    public static Amount create(double value, Unit unit) {
-        return new Amount(CryptoLibrary.INSTANCE.cryptoAmountCreateDouble(value, unit.core), unit);
+    /* package */
+    static Amount createAsBtc(long value, Unit unit) {
+        return new Amount(CoreBRCryptoAmount.createAsBtc(value, unit.getCurrency().core), unit);
     }
 
-    public static Amount create(long value, Unit unit) {
-        return new Amount(CryptoLibrary.INSTANCE.cryptoAmountCreateInteger(value, unit.core), unit);
+    public static Optional<Amount> create(double value, Unit unit) {
+        return CoreBRCryptoAmount.create(value, unit.core).transform((amount) -> new Amount(amount, unit));
+    }
+
+    public static Optional<Amount> create(long value, Unit unit) {
+        return CoreBRCryptoAmount.create(value, unit.core).transform((amount) -> new Amount(amount, unit));
     }
 
     public static Optional<Amount> create(String value, boolean isNegative, Unit unit) {
-        int isNegativeEnum = isNegative ? BRCryptoBoolean.CRYPTO_TRUE : BRCryptoBoolean.CRYPTO_FALSE;
-        BRCryptoAmount amount = CryptoLibrary.INSTANCE.cryptoAmountCreateString(value, isNegativeEnum, unit.core);
-        if (amount == null) {
-            return Optional.absent();
-        }
-        return Optional.of(new Amount(amount, unit));
+        return CoreBRCryptoAmount.create(value, isNegative, unit.core).transform((amount) -> new Amount(amount, unit));
     }
 
     private static NumberFormat formatterWithUnit(Unit unit) {
@@ -65,17 +62,12 @@ public final class Amount implements Comparable<Amount> {
         return formatter;
     }
 
-    private final BRCryptoAmount core;
+    private final CoreBRCryptoAmount core;
     private final Unit unit;
 
-    private Amount(BRCryptoAmount core, Unit unit) {
+    private Amount(CoreBRCryptoAmount core, Unit unit) {
         this.core = core;
         this.unit = unit;
-    }
-
-    @Override
-    protected void finalize() {
-        CryptoLibrary.INSTANCE.cryptoAmountGive(core);
     }
 
     public Currency getCurrency() {
@@ -87,21 +79,21 @@ public final class Amount implements Comparable<Amount> {
     }
 
     public boolean hasCurrency(Currency currency) {
-        return currency.core.equals(CryptoLibrary.INSTANCE.cryptoAmountGetCurrency(core));
+        return currency.core.equals(core.getCurrency());
     }
 
     public boolean isCompatible(Amount withAmount) {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAmountIsCompatible(core, withAmount.core);
+        return BRCryptoBoolean.CRYPTO_TRUE == core.isCompatible(withAmount.core);
     }
 
     public boolean isNegative() {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAmountIsNegative(core);
+        return BRCryptoBoolean.CRYPTO_TRUE == core.isNegative();
     }
 
     public Optional<Amount> add(Amount o) {
         checkArgument(isCompatible(o));
 
-        BRCryptoAmount amount = CryptoLibrary.INSTANCE.cryptoAmountAdd(core, o.core);
+        CoreBRCryptoAmount amount = core.add(o.core);
         if (amount == null) {
             return Optional.absent();
         }
@@ -112,7 +104,7 @@ public final class Amount implements Comparable<Amount> {
     public Optional<Amount> sub(Amount o) {
         checkArgument(isCompatible(o));
 
-        BRCryptoAmount amount = CryptoLibrary.INSTANCE.cryptoAmountSub(core, o.core);
+        CoreBRCryptoAmount amount = core.sub(o.core);
         if (amount == null) {
             return Optional.absent();
         }
@@ -121,12 +113,12 @@ public final class Amount implements Comparable<Amount> {
     }
 
     public Amount negate() {
-        return new Amount(CryptoLibrary.INSTANCE.cryptoAmountNegate(core), unit);
+        return new Amount(core.negate(), unit);
     }
 
     /* package */ Optional<Double> doubleAmount(Unit asUnit) {
         IntByReference overflowRef = new IntByReference(BRCryptoBoolean.CRYPTO_FALSE);
-        double value = CryptoLibrary.INSTANCE.cryptoAmountGetDouble(core, asUnit.core, overflowRef);
+        double value = core.getDouble(asUnit.core, overflowRef);
         return overflowRef.getValue() == BRCryptoBoolean.CRYPTO_TRUE ? Optional.absent() : Optional.of(value);
     }
 
@@ -145,17 +137,12 @@ public final class Amount implements Comparable<Amount> {
     }
 
     public String toStringWithBase(int base, String preface) {
-        checkArgument(base > 0, "Invalid base value");
-        UInt256.ByValue value = CryptoLibrary.INSTANCE.cryptoAmountGetValue(core);
-        Pointer ptr = CryptoLibrary.INSTANCE.coerceStringPrefaced(value, base, preface);
-        String str = ptr.getString(0, "UTF-8");
-        Native.free(Pointer.nativeValue(ptr));
-        return str;
+        return core.toStringWithBase(base, preface);
     }
 
     @Override
     public int compareTo(Amount o) {
-        switch (CryptoLibrary.INSTANCE.cryptoAmountCompare(core, o.core)) {
+        switch (core.compare(o.core)) {
             case BRCryptoComparison.CRYPTO_COMPARE_EQ:
                 return 0;
             case BRCryptoComparison.CRYPTO_COMPARE_LT:
@@ -178,7 +165,7 @@ public final class Amount implements Comparable<Amount> {
         }
 
         Amount amount = (Amount) o;
-        return BRCryptoComparison.CRYPTO_COMPARE_EQ == CryptoLibrary.INSTANCE.cryptoAmountCompare(core, amount.core);
+        return BRCryptoComparison.CRYPTO_COMPARE_EQ == core.compare(amount.core);
     }
 
     @Override
@@ -189,7 +176,7 @@ public final class Amount implements Comparable<Amount> {
     /* package */
     long asBtc() {
         IntByReference overflowRef = new IntByReference(BRCryptoBoolean.CRYPTO_FALSE);
-        long value = CryptoLibrary.INSTANCE.cryptoAmountGetIntegerRaw(core, overflowRef);
+        long value = core.getIntegerRaw(overflowRef);
         checkState(BRCryptoBoolean.CRYPTO_FALSE == overflowRef.getValue());
         return value;
     }
