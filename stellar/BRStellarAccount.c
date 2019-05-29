@@ -51,6 +51,8 @@ static BRStellarAccount createAccountObject(BRKey * key)
     unsigned char privateKey[64] = {0};
     unsigned char publicKey[32] = {0};
     ed25519_create_keypair(publicKey, privateKey, key->secret.u8);
+    var_clean(&privateKey);
+    var_clean(&key);
     memcpy(&account->publicKey.pubKey[0], &publicKey[0], 32);
     account->networkType = STELLAR_NETWORK_PUBLIC;
     return account;
