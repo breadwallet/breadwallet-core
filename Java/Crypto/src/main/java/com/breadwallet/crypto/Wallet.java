@@ -12,7 +12,6 @@ package com.breadwallet.crypto;
 import com.breadwallet.crypto.jni.bitcoin.BRTransaction;
 import com.breadwallet.crypto.jni.bitcoin.BRWallet;
 import com.google.common.base.Optional;
-import com.sun.jna.Pointer;
 
 import java.util.List;
 

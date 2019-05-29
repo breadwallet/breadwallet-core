@@ -20,6 +20,11 @@ public class BRWalletManager extends PointerType implements CoreBRWalletManager 
     }
 
     @Override
+    public BRPeerManager getPeerManager() {
+        return CryptoLibrary.INSTANCE.BRWalletManagerGetPeerManager(this);
+    }
+
+    @Override
     public void connect() {
         CryptoLibrary.INSTANCE.BRWalletManagerConnect(this);
     }

@@ -12,11 +12,21 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.Light.DarkActionBar"
         tools:ignore="GoogleAppIndexingWarning">
-        <activity android:name=".TransferDetailsActivity" android:label="Transfer Details" />
-        <activity android:name=".TransferListActivity" android:label="Transfers" />
-        <activity android:name=".WalletListActivity" android:label="Wallets">
+        <activity
+            android:name=".TransferCreateActivity"
+            android:label="Create Transfer"/>
+        <activity
+            android:name=".TransferDetailsActivity"
+            android:label="Transfer Details" />
+        <activity
+            android:name=".TransferListActivity"
+            android:label="Transfers" />
+        <activity
+            android:name=".WalletListActivity"
+            android:label="Wallets">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>

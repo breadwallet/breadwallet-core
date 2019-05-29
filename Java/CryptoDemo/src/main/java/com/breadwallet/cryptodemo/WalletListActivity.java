@@ -46,7 +46,6 @@ public class WalletListActivity extends AppCompatActivity implements WalletListe
         setContentView(R.layout.activity_wallet_list);
 
         walletsView = findViewById(R.id.wallet_recycler_view);
-        walletsView.hasFixedSize();
         walletsView.addItemDecoration(new DividerItemDecoration(getApplicationContext(), DividerItemDecoration.VERTICAL));
 
         walletsLayoutManager = new LinearLayoutManager(this);
@@ -54,26 +53,24 @@ public class WalletListActivity extends AppCompatActivity implements WalletListe
 
         walletsAdapter = new Adapter(wallets, (wallet) -> TransferListActivity.start(this, wallet));
         walletsView.setAdapter(walletsAdapter);
-
-        CoreCryptoApplication.listener.addListener(this);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
 
+        CoreCryptoApplication.listener.addListener(this);
+
         wallets.clear();
         wallets.addAll(CoreCryptoApplication.system.getWallets());
-
         walletsAdapter.notifyDataSetChanged();
     }
 
     @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        CoreCryptoApplication.listener.removeListener(this);
+    protected void onPause() {
+        super.onPause();
 
-        wallets.clear();
+        CoreCryptoApplication.listener.removeListener(this);
     }
 
     @Override

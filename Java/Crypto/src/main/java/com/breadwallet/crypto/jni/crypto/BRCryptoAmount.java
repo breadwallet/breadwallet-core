@@ -1,6 +1,7 @@
 package com.breadwallet.crypto.jni.crypto;
 
 import com.breadwallet.crypto.jni.CryptoLibrary;
+import com.breadwallet.crypto.jni.CryptoLibrary.BRCryptoBoolean;
 import com.breadwallet.crypto.jni.support.UInt256;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
@@ -53,8 +54,8 @@ public class BRCryptoAmount extends PointerType implements CoreBRCryptoAmount {
     }
 
     @Override
-    public int isNegative() {
-        return CryptoLibrary.INSTANCE.cryptoAmountIsNegative(this);
+    public boolean isNegative() {
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAmountIsNegative(this);
     }
 
     @Override
@@ -64,9 +65,9 @@ public class BRCryptoAmount extends PointerType implements CoreBRCryptoAmount {
     }
 
     @Override
-    public int isCompatible(CoreBRCryptoAmount o) {
+    public boolean isCompatible(CoreBRCryptoAmount o) {
         BRCryptoAmount otherCore = o.asBRCryptoAmount();
-        return CryptoLibrary.INSTANCE.cryptoAmountIsCompatible(this, otherCore);
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAmountIsCompatible(this, otherCore);
     }
 
     @Override

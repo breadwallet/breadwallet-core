@@ -40,8 +40,7 @@ public class Blockchain {
             if (!feeEstimatesOption.isPresent()) return Optional.absent();
             List<BlockchainFee> feeEstimates = feeEstimatesOption.get();
 
-            return Optional.of(new Blockchain(id, name, network, isMainnet, currency, Math.max(blockHeight, 575020),
-                    feeEstimates));
+            return Optional.of(new Blockchain(id, name, network, isMainnet, currency, blockHeight, feeEstimates));
 
         } catch (JSONException | NumberFormatException e) {
             return Optional.absent();

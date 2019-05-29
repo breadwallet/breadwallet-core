@@ -1,5 +1,6 @@
 package com.breadwallet.crypto.jni.bitcoin;
 
+import com.breadwallet.crypto.jni.CryptoLibrary;
 import com.breadwallet.crypto.jni.SizeT;
 import com.breadwallet.crypto.jni.support.UInt256;
 import com.sun.jna.Pointer;
@@ -7,7 +8,7 @@ import com.sun.jna.Structure;
 import java.util.Arrays;
 import java.util.List;
 
-public class BRTransaction extends Structure {
+public class BRTransaction extends Structure implements CoreBRTransaction {
 
 	public UInt256 txHash;
 	public UInt256 wtxHash;
@@ -30,6 +31,31 @@ public class BRTransaction extends Structure {
 
 	public BRTransaction(Pointer peer) {
 		super(peer);
+	}
+
+	@Override
+	public BRTxInput[] getInputs() {
+		return (BRTxInput[]) inputs.toArray(inCount.intValue());
+	}
+
+	@Override
+	public BRTxOutput[] getOutputs() {
+		return (BRTxOutput[]) outputs.toArray(outCount.intValue());
+	}
+
+	@Override
+	public UInt256 getTxHash() {
+		return txHash;
+	}
+
+	@Override
+	public BRTransaction asBRTransaction() {
+		return this;
+	}
+
+	@Override
+	public BRTransaction asBRTransactionDeepCopy() {
+		return CryptoLibrary.INSTANCE.BRTransactionCopy(this);
 	}
 
 	public static class ByReference extends BRTransaction implements Structure.ByReference {

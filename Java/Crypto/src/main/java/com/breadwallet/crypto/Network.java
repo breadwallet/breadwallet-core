@@ -125,6 +125,7 @@ public final class Network {
         return name;
     }
 
+    // TODO: SHould asBtc() and asEth() be returning Optional instead of throwing an exception?
     private interface Impl {
         default BRChainParams asBtc() {
             throw new IllegalStateException("Invalid network type");

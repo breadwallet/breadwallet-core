@@ -28,6 +28,7 @@ public final class TransferFeeBasis {
         return impl.getEthGasLimit();
     }
 
+    // TODO: Should getBtcFeePerKb(), getEthGasPrice(), and getEthGasLimit() be returning Optional instead of throwing an exception?
     private interface Impl {
 
         default long getBtcFeePerKb() {

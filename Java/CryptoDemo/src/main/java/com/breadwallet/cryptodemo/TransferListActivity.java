@@ -12,6 +12,7 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 
 import com.breadwallet.crypto.System;
@@ -60,6 +61,7 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
     private Wallet wallet;
     private List<Transfer> transfers = new ArrayList<>();
 
+    private Button createView;
     private RecyclerView transfersView;
     private RecyclerView.Adapter transferAdapter;
     private RecyclerView.LayoutManager transferLayoutManager;
@@ -75,8 +77,10 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
             return;
         }
 
+        createView = findViewById(R.id.create_view);
+        createView.setOnClickListener(v -> TransferCreateActivity.start(TransferListActivity.this, wallet));
+
         transfersView = findViewById(R.id.transfer_recycler_view);
-        transfersView.hasFixedSize();
         transfersView.addItemDecoration(new DividerItemDecoration(getApplicationContext(), DividerItemDecoration.VERTICAL));
 
         transferLayoutManager = new LinearLayoutManager(this);
@@ -105,14 +109,6 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
         super.onPause();
 
         CoreCryptoApplication.listener.removeListener(this);
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-
-        transfers.clear();
-        wallet = null;
     }
 
     @Override

@@ -1,6 +1,8 @@
 package com.breadwallet.crypto.jni.bitcoin;
 
 import com.breadwallet.crypto.jni.CryptoLibrary;
+import com.breadwallet.crypto.jni.CryptoLibrary.BRCryptoBoolean;
+import com.breadwallet.crypto.jni.SizeT;
 import com.breadwallet.crypto.jni.support.BRAddress;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
@@ -19,8 +21,9 @@ public class BRWallet extends PointerType {
         return CryptoLibrary.INSTANCE.BRWalletBalance(this);
     }
 
-    public long getFeeForTx(BRTransaction tx) {
-        return CryptoLibrary.INSTANCE.BRWalletFeeForTx(this, tx);
+    public long getFeeForTx(CoreBRTransaction tx) {
+        BRTransaction coreTransfer = tx.asBRTransaction();
+        return CryptoLibrary.INSTANCE.BRWalletFeeForTx(this, coreTransfer);
     }
 
     public long getFeeForTxAmount(long amount) {
@@ -43,15 +46,22 @@ public class BRWallet extends PointerType {
         return this.equals(o);
     }
 
-    public long getAmountReceivedFromTx(BRTransaction coreTransfer) {
+    public long getAmountReceivedFromTx(CoreBRTransaction tx) {
+        BRTransaction coreTransfer = tx.asBRTransaction();
         return CryptoLibrary.INSTANCE.BRWalletAmountReceivedFromTx(this, coreTransfer);
     }
 
-    public long getAmountSentByTx(BRTransaction coreTransfer) {
+    public long getAmountSentByTx(CoreBRTransaction tx) {
+        BRTransaction coreTransfer = tx.asBRTransaction();
         return CryptoLibrary.INSTANCE.BRWalletAmountSentByTx(this, coreTransfer);
     }
 
-    public int containsAddress(String address) {
-        return CryptoLibrary.INSTANCE.BRWalletContainsAddress(this, address);
+    public boolean containsAddress(String address) {
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.BRWalletContainsAddress(this, address);
+    }
+
+    public boolean signTransaction(CoreBRTransaction tx, byte[] seed) {
+        BRTransaction coreTransfer = tx.asBRTransaction();
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.BRWalletSignTransaction(this, coreTransfer, seed, new SizeT(seed.length));
     }
 }

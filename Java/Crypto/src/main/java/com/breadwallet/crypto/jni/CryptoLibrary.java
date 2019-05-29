@@ -1,6 +1,7 @@
 package com.breadwallet.crypto.jni;
 
 import com.breadwallet.crypto.jni.bitcoin.BRChainParams;
+import com.breadwallet.crypto.jni.bitcoin.BRPeerManager;
 import com.breadwallet.crypto.jni.crypto.BRCryptoAccount;
 import com.breadwallet.crypto.jni.bitcoin.BRWallet;
 import com.breadwallet.crypto.jni.bitcoin.BRWalletEvent;
@@ -418,6 +419,18 @@ public interface CryptoLibrary extends Library {
      */
     void BRWalletSetFeePerKb(BRWallet wallet, long feePerKb);
     /**
+     * result must be freed using BRTransactionFree()<br>
+     * Original signature : <code>BRTransaction* BRWalletCreateTransaction(BRWallet*, uint64_t, const char*)</code><br>
+     * <i>native declaration : bitcoin/BRWallet.h:94</i>
+     */
+    BRTransaction BRWalletCreateTransaction(BRWallet wallet, long amount, String addr);
+    /**
+     * returns true if all inputs were signed, or false if there was an error or not all inputs were able to be signed<br>
+     * Original signature : <code>int BRWalletSignTransaction(BRWallet*, BRTransaction*, const void*, size_t)</code><br>
+     * <i>native declaration : bitcoin/BRWallet.h:104</i>
+     */
+    int BRWalletSignTransaction(BRWallet wallet, BRTransaction tx, byte[] seed, SizeT seedLen);
+    /**
      * returns the amount received by the wallet from the transaction (total outputs to change and/or receive addresses)<br>
      * Original signature : <code>uint64_t BRWalletAmountReceivedFromTx(BRWallet*, const BRTransaction*)</code><br>
      * <i>native declaration : bitcoin/BRWallet.h:154</i>
@@ -447,6 +460,20 @@ public interface CryptoLibrary extends Library {
      * <i>native declaration : bitcoin/BRWallet.h:194</i>
      */
     void BRWalletFree(BRWallet wallet);
+
+
+    /**
+     * returns a deep copy of tx and that must be freed by calling BRTransactionFree()<br>
+     * Original signature : <code>BRTransaction* BRTransactionCopy(const BRTransaction*)</code><br>
+     * <i>native declaration : bitcoin/BRTransaction.h:56</i>
+     */
+    BRTransaction BRTransactionCopy(BRTransaction tx);
+    /**
+     * frees memory allocated for tx<br>
+     * Original signature : <code>void BRTransactionFree(BRTransaction*)</code><br>
+     * <i>native declaration : bitcoin/BRTransaction.h:130</i>
+     */
+    void BRTransactionFree(BRTransaction tx);
 
 
     /**
@@ -515,6 +542,23 @@ public interface CryptoLibrary extends Library {
      * <i>native declaration : bitcoin/BRWalletManager.h:117</i>
      */
     BRWallet BRWalletManagerGetWallet(BRWalletManager manager);
+    /**
+     * Original signature : <code>BRPeerManager* BRWalletManagerGetPeerManager(BRWalletManager)</code><br>
+     * <i>native declaration : bitcoin/BRWalletManager.h:119</i>
+     */
+    BRPeerManager BRWalletManagerGetPeerManager(BRWalletManager manager);
+
+
+    /** <i>native declaration : bitcoin/BRPeerManager.h:103</i> */
+    interface BRPeerManagerPublishTxCallback extends Callback {
+        void apply(Pointer info, int error);
+    };
+    /**
+     * publishes tx to bitcoin network (do not call BRTransactionFree() on tx afterward)<br>
+     * Original signature : <code>void BRPeerManagerPublishTx(BRPeerManager*, BRTransaction*, void*, BRPeerManagerPublishTxCallback*)</code><br>
+     * <i>native declaration : bitcoin/BRPeerManager.h:80</i>
+     */
+    void BRPeerManagerPublishTx(BRPeerManager manager, BRTransaction tx, Pointer info, BRPeerManagerPublishTxCallback callback);
 
 
     // TODO: Why are these not in their corresponding header file

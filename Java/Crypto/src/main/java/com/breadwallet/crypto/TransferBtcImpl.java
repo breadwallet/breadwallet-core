@@ -11,10 +11,11 @@ package com.breadwallet.crypto;
 
 import com.breadwallet.crypto.jni.bitcoin.BRTransaction;
 import com.breadwallet.crypto.jni.CryptoLibrary;
-import com.breadwallet.crypto.jni.CryptoLibrary.BRCryptoBoolean;
 import com.breadwallet.crypto.jni.bitcoin.BRTxInput;
 import com.breadwallet.crypto.jni.bitcoin.BRTxOutput;
 import com.breadwallet.crypto.jni.bitcoin.BRWallet;
+import com.breadwallet.crypto.jni.bitcoin.CoreBRTransaction;
+import com.breadwallet.crypto.jni.support.UInt256;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedLong;
 
@@ -24,14 +25,14 @@ final class TransferBtcImpl extends Transfer {
     private final Wallet owner;
 
     private final BRWallet coreWallet;
-    private final BRTransaction coreTransfer;
+    private final CoreBRTransaction coreTransfer;
 
     private final Unit defaultUnit;
 
     private TransferState state;
 
     /* package */
-    TransferBtcImpl(Wallet owner, BRWallet coreWallet, BRTransaction coreTransfer, Unit defaultUnit) {
+    TransferBtcImpl(Wallet owner, BRWallet coreWallet, CoreBRTransaction coreTransfer, Unit defaultUnit) {
         this.owner = owner;
         this.coreWallet = coreWallet;
         this.coreTransfer = coreTransfer;
@@ -48,12 +49,9 @@ final class TransferBtcImpl extends Transfer {
     public Optional<Address> getSource() {
         boolean sent = UnsignedLong.MAX_VALUE.longValue() != coreWallet.getFeeForTx(coreTransfer);
 
-        BRTxInput inputs[] = (BRTxInput[]) coreTransfer.inputs.toArray(coreTransfer.inCount.intValue());
-        int inputsContain = sent ? BRCryptoBoolean.CRYPTO_TRUE : BRCryptoBoolean.CRYPTO_FALSE;
-
-        for (BRTxInput input: inputs) {
+        for (BRTxInput input: coreTransfer.getInputs()) {
             String addressStr = input.getAddressAsString();
-            if (inputsContain == coreWallet.containsAddress(addressStr)) {
+            if (sent == coreWallet.containsAddress(addressStr)) {
                 return Address.createAsBtc(addressStr);
             }
         }
@@ -64,12 +62,9 @@ final class TransferBtcImpl extends Transfer {
     public Optional<Address> getTarget() {
         boolean sent = UnsignedLong.MAX_VALUE.longValue() != coreWallet.getFeeForTx(coreTransfer);
 
-        BRTxOutput outputs[] = (BRTxOutput[]) coreTransfer.outputs.toArray(coreTransfer.outCount.intValue());
-        int inputsContain = sent ? BRCryptoBoolean.CRYPTO_TRUE : BRCryptoBoolean.CRYPTO_FALSE;
-
-        for (BRTxOutput output: outputs) {
+        for (BRTxOutput output: coreTransfer.getOutputs()) {
             String addressStr = output.getAddressAsString();
-            if (inputsContain == coreWallet.containsAddress(addressStr)) {
+            if (!sent == coreWallet.containsAddress(addressStr)) {
                 return Address.createAsBtc(addressStr);
             }
         }
@@ -155,9 +150,10 @@ final class TransferBtcImpl extends Transfer {
 
     @Override
     public Optional<TransferHash> getHash() {
-        for (byte value: coreTransfer.txHash.u8) {
+        UInt256 txHash = coreTransfer.getTxHash();
+        for (byte value: txHash.u8) {
             if (value != 0) {
-                return Optional.of(TransferHash.createBtc(coreTransfer.txHash));
+                return Optional.of(TransferHash.createBtc(txHash));
             }
         }
         return Optional.absent();
@@ -173,6 +169,11 @@ final class TransferBtcImpl extends Transfer {
     /* package */
     boolean matches(BRTransaction transferImpl) {
         return coreTransfer.equals(transferImpl);
+    }
+
+    @Override
+    Optional<CoreBRTransaction> asCoreBRTransaction() {
+        return Optional.of(coreTransfer);
     }
 
     @Override

@@ -1,10 +1,13 @@
 package com.breadwallet.crypto;
 
+import com.breadwallet.crypto.jni.bitcoin.BRPeerManager;
 import com.breadwallet.crypto.jni.bitcoin.BRWalletManager;
+import com.breadwallet.crypto.jni.bitcoin.CoreBRTransaction;
 import com.breadwallet.crypto.jni.bitcoin.CoreBRWalletManager;
 import com.breadwallet.crypto.jni.support.BRMasterPubKey;
 import com.breadwallet.crypto.jni.bitcoin.BRWalletManagerClient;
 import com.breadwallet.crypto.jni.CryptoLibrary.BRSyncMode;
+import com.breadwallet.crypto.jni.CryptoLibrary.BRPeerManagerPublishTxCallback;
 import com.breadwallet.crypto.jni.bitcoin.BRWallet;
 import com.breadwallet.crypto.jni.bitcoin.BRChainParams;
 import com.google.common.base.Optional;
@@ -12,8 +15,6 @@ import com.google.common.base.Optional;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /* package */
 final class WalletManagerBtcImpl extends WalletManager {
@@ -28,6 +29,12 @@ final class WalletManagerBtcImpl extends WalletManager {
         }
     }
 
+    private final BRPeerManagerPublishTxCallback publishTxCallback = (info, error) -> {
+        // TODO: How do we want to propagating the error or success to the system listener?
+
+        // TODO: If there is an error, do we need to call BRTransactionFree on the originating transaction?
+    };
+    
     private final List<Wallet> wallets;
 
     private final CoreBRWalletManager core;
@@ -54,11 +61,7 @@ final class WalletManagerBtcImpl extends WalletManager {
         int mode = modeAsBtc(managerMode);
 
         this.core = CoreBRWalletManager.create(client, pubKey, chainParams, timestamp, mode, path);
-
-        BRWallet wallet = core.getWallet();
-        checkNotNull(wallet);
-        Wallet primaryWallet = new WalletBtcImpl(this, wallet, getBaseUnit(), getDefaultUnit());
-
+        Wallet primaryWallet = new WalletBtcImpl(this, core.getWallet(), getBaseUnit(), getDefaultUnit());
         this.wallets = Collections.synchronizedList(new ArrayList<>(Collections.singleton(primaryWallet)));
     }
 
@@ -84,6 +87,18 @@ final class WalletManagerBtcImpl extends WalletManager {
 
     @Override
     public void submit(Transfer transfer, String paperKey) {
+        BRWallet coreWallet = core.getWallet();
+        BRPeerManager corePeerManager = core.getPeerManager();
+
+        byte[] seed = Account.deriveSeed(paperKey);
+
+        // TODO: How do we want to handle this (i.e. a mismatch between transfer and wallet type?
+        CoreBRTransaction transaction = transfer.asCoreBRTransaction().get();
+
+        // TODO: How do we want to handle signing failure?
+        boolean signed = coreWallet.signTransaction(transaction, seed);
+
+        corePeerManager.publishTransaction(transaction, publishTxCallback);
     }
 
     @Override

@@ -13,6 +13,8 @@ public interface CoreBRWalletManager {
 
     BRWallet getWallet();
 
+    BRPeerManager getPeerManager();
+
     void connect();
 
     void disconnect();

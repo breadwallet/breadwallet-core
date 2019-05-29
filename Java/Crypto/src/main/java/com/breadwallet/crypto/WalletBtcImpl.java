@@ -2,6 +2,7 @@ package com.breadwallet.crypto;
 
 import com.breadwallet.crypto.jni.bitcoin.BRTransaction;
 import com.breadwallet.crypto.jni.bitcoin.BRWallet;
+import com.breadwallet.crypto.jni.bitcoin.CoreBRTransaction;
 import com.google.common.base.Optional;
 
 import java.util.ArrayList;
@@ -10,6 +11,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 /* package */
@@ -30,6 +32,8 @@ final class WalletBtcImpl extends Wallet {
 
     /* package */
     WalletBtcImpl(WalletManager owner, BRWallet wallet, Unit feeUnit, Unit defaultUnit) {
+        checkNotNull(wallet);
+
         this.owner = owner;
         this.coreWallet = wallet;
         this.feeUnit = feeUnit;
@@ -99,8 +103,11 @@ final class WalletBtcImpl extends Wallet {
 
     @Override
     public Optional<Transfer> createTransfer(Address target, Amount amount, TransferFeeBasis feeBasis) {
-        // TODO: Implement me!
-        return Optional.absent();
+        // TODO: The swift equivalent will result in this being added to 'transfers' and an event being created; do we want this?
+        String addr = target.toString();
+        long value = amount.asBtc();
+        Unit unit = amount.getUnit();
+        return CoreBRTransaction.create(coreWallet, value, addr).transform((t) -> new TransferBtcImpl(this, coreWallet, t, unit));
     }
 
     @Override

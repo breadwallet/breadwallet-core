@@ -10,12 +10,12 @@ public interface CoreBRCryptoAmount {
 
     static Optional<CoreBRCryptoAmount> create(double value, CoreBRCryptoUnit unit) {
         BRCryptoAmount amount = CryptoLibrary.INSTANCE.cryptoAmountCreateDouble(value, unit.asBRCryptoUnit());
-        return Optional.of(amount).transform(OwnedBRCryptoAmount::new);
+        return Optional.fromNullable(amount).transform(OwnedBRCryptoAmount::new);
     }
 
     static Optional<CoreBRCryptoAmount> create(long value, CoreBRCryptoUnit unit) {
         BRCryptoAmount amount = CryptoLibrary.INSTANCE.cryptoAmountCreateInteger(value, unit.asBRCryptoUnit());
-        return Optional.of(amount).transform(OwnedBRCryptoAmount::new);
+        return Optional.fromNullable(amount).transform(OwnedBRCryptoAmount::new);
     }
 
     static Optional<CoreBRCryptoAmount> create(String value, boolean isNegative, CoreBRCryptoUnit unit) {
@@ -44,11 +44,11 @@ public interface CoreBRCryptoAmount {
 
     CoreBRCryptoAmount negate();
 
-    int isNegative();
+    boolean isNegative();
 
     int compare(CoreBRCryptoAmount o);
 
-    int isCompatible(CoreBRCryptoAmount o);
+    boolean isCompatible(CoreBRCryptoAmount o);
 
     String toStringWithBase(int base, String preface);
 

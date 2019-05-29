@@ -10,11 +10,16 @@
 package com.breadwallet.crypto;
 
 import com.breadwallet.crypto.jni.bitcoin.BRTransaction;
+import com.breadwallet.crypto.jni.bitcoin.CoreBRTransaction;
 import com.google.common.base.Optional;
 
 public abstract class Transfer {
 
+    /* package */
     abstract boolean matches(BRTransaction transferImpl);
+
+    /* package */
+    abstract Optional<CoreBRTransaction> asCoreBRTransaction();
 
     /* package */
     abstract TransferState setState(TransferState state);

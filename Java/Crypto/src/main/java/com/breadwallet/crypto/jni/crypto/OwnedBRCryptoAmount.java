@@ -52,7 +52,7 @@ class OwnedBRCryptoAmount implements CoreBRCryptoAmount {
     }
 
     @Override
-    public int isNegative() {
+    public boolean isNegative() {
         return core.isNegative();
     }
 
@@ -62,7 +62,7 @@ class OwnedBRCryptoAmount implements CoreBRCryptoAmount {
     }
 
     @Override
-    public int isCompatible(CoreBRCryptoAmount o) {
+    public boolean isCompatible(CoreBRCryptoAmount o) {
         return core.isCompatible(o);
     }
 

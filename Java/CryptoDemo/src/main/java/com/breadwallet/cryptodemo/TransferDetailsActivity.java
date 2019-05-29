@@ -75,8 +75,6 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
     private TextView confirmationView;
     private TextView confirmationCountView;
     private TextView stateView;
-    private Button cancelView;
-    private Button resubmitView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -106,9 +104,6 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
         confirmationView = findViewById(R.id.confirmation_view);
         confirmationCountView = findViewById(R.id.confirmation_count_view);
         stateView = findViewById(R.id.state_view);
-
-        cancelView = findViewById(R.id.cancel_view);
-        resubmitView = findViewById(R.id.resubmit_view);
     }
 
     @Override
@@ -143,9 +138,6 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
 
         String stateText = transfer.getState().toString();
         stateView.setText(stateText);
-
-        cancelView.setEnabled(false);
-        resubmitView.setEnabled(false);
     }
 
     @Override
@@ -153,14 +145,6 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
         super.onPause();
 
         CoreCryptoApplication.listener.removeListener(this);
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-
-        transfer = null;
-        wallet = null;
     }
 
     @Override

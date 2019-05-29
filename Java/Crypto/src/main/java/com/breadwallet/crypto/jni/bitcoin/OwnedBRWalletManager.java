@@ -26,6 +26,11 @@ class OwnedBRWalletManager implements CoreBRWalletManager {
     }
 
     @Override
+    public BRPeerManager getPeerManager() {
+        return core.getPeerManager();
+    }
+
+    @Override
     public void connect() {
         core.connect();
     }

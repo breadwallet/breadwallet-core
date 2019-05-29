@@ -29,6 +29,7 @@ public class CoreCryptoApplication extends Application {
 
     public static System system;
     public static CoreSystemListener listener;
+    public static String paperKey;
 
     private LifecycleObserver observer = new LifecycleObserver() {
         @OnLifecycleEvent(Lifecycle.Event.ON_START)
@@ -48,7 +49,7 @@ public class CoreCryptoApplication extends Application {
 
         StrictMode.enableDefaults();
 
-        String paperKey = BuildConfig.PaperKey;
+        paperKey = BuildConfig.PaperKey;
 
         File storageFile = new File (getFilesDir(), "core");
         if (storageFile.exists()) deleteRecursively(storageFile);
@@ -57,12 +58,12 @@ public class CoreCryptoApplication extends Application {
         Optional<Account> optAccount = Account.createFrom(paperKey, "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e97");
         checkState(optAccount.isPresent());
         Account account = optAccount.get();
-        account.setTimestamp(1527168053);
+        account.setTimestamp(1507328506);
 
         BlockchainDb query = new BlockchainDb(new OkHttpClient(), BDB_BASE_URL, API_BASE_URL);
         listener = new CoreSystemListener();
         system = SystemImpl.create(Executors.newSingleThreadExecutor(), listener, account , storageFile.getAbsolutePath(), query);
-        system.initialize(Arrays.asList("bitcoin-mainnet", "ethereum-mainnet"));
+        system.initialize(Arrays.asList("bitcoin-testnet", "ethereum-testnet"));
 
         ProcessLifecycleOwner.get().getLifecycle().addObserver(observer);
     }

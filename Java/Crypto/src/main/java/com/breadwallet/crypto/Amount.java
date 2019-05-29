@@ -83,11 +83,11 @@ public final class Amount implements Comparable<Amount> {
     }
 
     public boolean isCompatible(Amount withAmount) {
-        return BRCryptoBoolean.CRYPTO_TRUE == core.isCompatible(withAmount.core);
+        return core.isCompatible(withAmount.core);
     }
 
     public boolean isNegative() {
-        return BRCryptoBoolean.CRYPTO_TRUE == core.isNegative();
+        return core.isNegative();
     }
 
     public Optional<Amount> add(Amount o) {
