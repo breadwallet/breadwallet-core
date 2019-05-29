@@ -124,7 +124,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
         String senderText = transfer.getSource().transform(Address::toString).or("<unknown>");
         senderView.setText(senderText);
 
-        String receiverText = transfer.getSource().transform(Address::toString).or("<unknown>");
+        String receiverText = transfer.getTarget().transform(Address::toString).or("<unknown>");
         receiverView.setText(receiverText);
 
         String identifierText = transfer.getHash().transform(TransferHash::toString).or("<pending>");

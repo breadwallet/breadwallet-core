@@ -128,13 +128,13 @@ public class TransferCreateActivity extends AppCompatActivity {
             String addressStr = receiverView.getText().toString();
             Optional<Address> target = Address.create(addressStr, network);
             if (!target.isPresent()) {
-                showError("Failed to create transfer - invalid target address");
+                showError("Invalid target address");
                 return;
             }
 
             Optional<Amount> amount = Amount.create(calculateValue(amountView.getProgress()), wallet.getBaseUnit());
             if (!amount.isPresent()) {
-                showError("Failed to create transfer - invalid amount");
+                showError("Invalid amount");
                 return;
             }
 
@@ -181,7 +181,7 @@ public class TransferCreateActivity extends AppCompatActivity {
                 .setPositiveButton("Continue", (dialog, which) -> {
                     Optional<Transfer> transfer = wallet.createTransfer(target, amount, getFeeBasis());
                     if (!transfer.isPresent()) {
-                        showError("Failed to create transfer - balance too low?");
+                        showError("Balance too low?");
                         return;
                     }
 
@@ -203,7 +203,7 @@ public class TransferCreateActivity extends AppCompatActivity {
 
     private void showError(String message) {
         new AlertDialog.Builder(this)
-                .setTitle("Submit Transfer")
+                .setTitle("Error")
                 .setMessage(message)
                 .setNeutralButton("Ok", (dialog, which) -> { })
                 .show();
