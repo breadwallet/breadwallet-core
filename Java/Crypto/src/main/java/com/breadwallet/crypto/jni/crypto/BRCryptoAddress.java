@@ -28,8 +28,10 @@ public class BRCryptoAddress extends PointerType implements CoreBRCryptoAddress 
     @Override
     public String toString() {
         Pointer addressPtr = CryptoLibrary.INSTANCE.cryptoAddressAsString(this);
-        String addressStr = addressPtr.getString(0, "UTF-8");
-        Native.free(Pointer.nativeValue(addressPtr));
-        return addressStr;
+        try {
+            return addressPtr.getString(0, "UTF-8");
+        } finally {
+            Native.free(Pointer.nativeValue(addressPtr));
+        }
     }
 }

@@ -11,12 +11,14 @@ package com.breadwallet.crypto;
 
 import com.breadwallet.crypto.jni.bitcoin.BRWallet;
 import com.breadwallet.crypto.jni.bitcoin.BRWalletManager;
+import com.breadwallet.crypto.jni.bitcoin.CoreBRTransaction;
 import com.google.common.base.Optional;
 
 import java.util.List;
 
 public abstract class WalletManager {
-    
+
+    /* package */
     abstract boolean matches(BRWalletManager walletManagerImpl);
 
     /* package */
@@ -24,6 +26,21 @@ public abstract class WalletManager {
 
     /* package */
     abstract WalletManagerState setState(WalletManagerState state);
+
+    /* package */
+    abstract List<String> getUnusedAddrsLegacy(int limit);
+
+    /* package */
+    abstract void announceBlockNumber(int rid, long blockNumber);
+
+    /* package */
+    abstract void announceSubmit(int rid, Transfer transfer, int errorCode);
+
+    /* package */
+    abstract void announceTransaction(int rid, CoreBRTransaction transaction);
+
+    /* package */
+    abstract void announceTransactionComplete(int rid, boolean success);
 
     public abstract void initialize();
 

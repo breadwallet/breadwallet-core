@@ -46,4 +46,9 @@ class OwnedBRTransaction implements CoreBRTransaction {
     public BRTransaction asBRTransactionDeepCopy() {
         return core.asBRTransactionDeepCopy();
     }
+
+    @Override
+    public byte[] serialize() {
+        return core.serialize();
+    }
 }

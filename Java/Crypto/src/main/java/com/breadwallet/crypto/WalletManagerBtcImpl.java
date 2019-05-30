@@ -146,6 +146,40 @@ final class WalletManagerBtcImpl extends WalletManager {
     }
 
     @Override
+    /* package */
+    List<String> getUnusedAddrsLegacy(int limit) {
+        return core.getUnusedAddrsLegacy(limit);
+    }
+
+    @Override
+    /* package */
+    void announceBlockNumber(int rid, long blockNumber) {
+        core.announceBlockNumber(rid, blockNumber);
+    }
+
+    @Override
+    /* package */
+    void announceSubmit(int rid, Transfer transfer, int i) {
+        Optional<CoreBRTransaction> optCoreTransfer = transfer.asCoreBRTransaction();
+        if (optCoreTransfer.isPresent()) {
+            core.announceSubmit(rid, optCoreTransfer.get(), i);
+        }
+    }
+
+    @Override
+    /* package */
+    void announceTransaction(int rid, CoreBRTransaction transaction) {
+        core.announceTransaction(rid, transaction);
+    }
+
+    @Override
+    /* package */
+    void announceTransactionComplete(int rid, boolean success) {
+        core.announceTransactionComplete(rid, success);
+    }
+
+    @Override
+    /* package */
     boolean matches(BRWalletManager walletManagerImpl) {
         return core.matches(walletManagerImpl);
     }

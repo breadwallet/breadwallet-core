@@ -2,7 +2,11 @@ package com.breadwallet.crypto;
 
 import android.util.Log;
 
+import com.breadwallet.crypto.blockchaindb.BlockchainCompletionHandler;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
+import com.breadwallet.crypto.blockchaindb.errors.QueryError;
+import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
+import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
 import com.breadwallet.crypto.events.network.NetworkCreatedEvent;
 import com.breadwallet.crypto.events.network.NetworkEvent;
 import com.breadwallet.crypto.events.system.SystemCreatedEvent;
@@ -21,6 +25,7 @@ import com.breadwallet.crypto.events.wallet.WalletDeletedEvent;
 import com.breadwallet.crypto.events.wallet.WalletEvent;
 import com.breadwallet.crypto.events.wallet.WalletTransferAddedEvent;
 import com.breadwallet.crypto.events.wallet.WalletTransferDeletedEvent;
+import com.breadwallet.crypto.events.wallet.WalletTransferSubmittedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerChangedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerCreatedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerEvent;
@@ -35,6 +40,7 @@ import com.breadwallet.crypto.jni.bitcoin.BRWalletManager;
 import com.breadwallet.crypto.jni.bitcoin.BRWalletManagerClient;
 import com.breadwallet.crypto.jni.bitcoin.BRWalletManagerEvent;
 import com.breadwallet.crypto.jni.CryptoLibrary;
+import com.breadwallet.crypto.jni.bitcoin.CoreBRTransaction;
 import com.google.common.base.Optional;
 import com.sun.jna.Pointer;
 
@@ -46,6 +52,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static com.google.common.base.Preconditions.checkState;
+
+// TODO: Revisit thread model
 
 public final class SystemImpl implements System {
 
@@ -91,11 +99,6 @@ public final class SystemImpl implements System {
     }
 
     // Public Interface
-
-    /*
-     * All writes to data structures must be done on the systemExecutor. The mutable data structures (networks and
-     * walletManagers) are syncronized to protect simultaneous access only.
-     */
 
     @Override
     public void subscribe(String subscriptionToken) {
@@ -180,24 +183,136 @@ public final class SystemImpl implements System {
 
     // TODO: Split each case handler into a method
 
-    private void doGetBlockNumber(Pointer context, BRWalletManager managerPtr, int rid) {
+    private void doGetBlockNumber(Pointer context, BRWalletManager managerImpl, int rid) {
         systemExecutor.submit(() -> {
-            // TODO: Implement this
-            Log.d(TAG, "BRGetBlockNumberCallback");
+            Optional<WalletManager> optManager = getWalletManagerByImpl(managerImpl);
+            if (optManager.isPresent()) {
+                WalletManager walletManager = optManager.get();
+
+                Log.d(TAG, "BRGetBlockNumberCallback");
+                query.getBlockchain(walletManager.getNetwork().getUids(), new BlockchainCompletionHandler<Blockchain>() {
+                    @Override
+                    public void handleData(Blockchain blockchain) {
+                        long blockchainHeight = blockchain.getBlockHeight();
+                        Log.d(TAG, String.format("BRGetBlockNumberCallback: succeeded with block number %s", blockchainHeight));
+                        walletManager.announceBlockNumber(rid, blockchainHeight);
+                    }
+
+                    @Override
+                    public void handleError(QueryError error) {
+                        Log.d(TAG, "BRGetBlockNumberCallback: failed", error);
+                    }
+                });
+
+            } else {
+                Log.d(TAG, "BRGetBlockNumberCallback: missed manager");
+            }
         });
     }
 
-    private void doGetTransactions(Pointer context, BRWalletManager managerPtr, long begBlockNumber, long endBlockNumber, int rid) {
+    private void doGetTransactions(Pointer context, BRWalletManager managerImpl, long begBlockNumber, long endBlockNumber, int rid) {
+        // TODO: Test all this; backend blocking this working
         systemExecutor.submit(() -> {
-            // TODO: Implement this
-            Log.d(TAG, "BRGetTransactionsCallback");
+            Optional<WalletManager> optManager = getWalletManagerByImpl(managerImpl);
+            if (optManager.isPresent()) {
+                WalletManager walletManager = optManager.get();
+                String blockchainId = walletManager.getNetwork().getUids();
+
+                Log.d(TAG, "BRGetTransactionsCallback");
+                query.getTransactions(blockchainId, walletManager.getUnusedAddrsLegacy(25), begBlockNumber, endBlockNumber, true, false, new BlockchainCompletionHandler<List<Transaction>>() {
+                    @Override
+                    public void handleData(List<Transaction> transactions) {
+                        Log.d(TAG, "BRGetTransactionsCallback: transaction success");
+                        for (Transaction transaction: transactions) {
+                            Optional<byte[]> optRaw = transaction.getRaw();
+                            if (!optRaw.isPresent()) {
+                                walletManager.announceTransactionComplete(rid, false);
+                                return;
+                            }
+
+                            // TODO: Are these casts safe?
+
+                            long timestamp = transaction.getTimestamp().transform((ts) -> ts.getTime() / 1000).or(0L);
+                            if (timestamp < 0 || timestamp > Integer.MAX_VALUE) {
+                                walletManager.announceTransactionComplete(rid, false);
+                                return;
+                            }
+
+                            long blockHeight = transaction.getBlockHeight().or(0L);
+                            if (blockHeight < 0 || blockHeight > Integer.MAX_VALUE) {
+                                walletManager.announceTransactionComplete(rid, false);
+                                return;
+                            }
+
+                            Optional<CoreBRTransaction> optCore = CoreBRTransaction.create(optRaw.get(), (int) timestamp, (int) blockHeight);
+                            if (!optCore.isPresent()) {
+                                walletManager.announceTransactionComplete(rid, false);
+                                return;
+                            }
+
+                            walletManager.announceTransaction(rid, optCore.get());
+                        }
+
+                        if (transactions.isEmpty()) {
+                            walletManager.announceTransactionComplete(rid, true);
+                        } else {
+                            query.getTransactions(blockchainId, walletManager.getUnusedAddrsLegacy(25), begBlockNumber, endBlockNumber, true, false, this);
+                        }
+                    }
+
+                    @Override
+                    public void handleError(QueryError error) {
+                        Log.d(TAG, "BRGetTransactionsCallback: transaction failed", error);
+                        walletManager.announceTransactionComplete(rid, false);
+                    }
+                });
+            } else {
+                Log.d(TAG, "BRGetTransactionsCallback: missed manager");
+            }
         });
     }
 
-    private void doSubmitTransation(Pointer context, BRWalletManager managerPtr, BRWallet walletImpl, BRTransaction transaction, int rid) {
+    private void doSubmitTransation(Pointer context, BRWalletManager managerImpl, BRWallet walletImpl, BRTransaction transactionImpl, int rid) {
+        // TODO: Test all this; backend blocking doGetTransactions() which is blocking ability to submit transactions
         systemExecutor.submit(() -> {
-            // TODO: Implement this
-            Log.d(TAG, "BRSubmitTransactionCallback");
+            Optional<WalletManager> optManager = getWalletManagerByImpl(managerImpl);
+            if (optManager.isPresent()) {
+                WalletManager walletManager = optManager.get();
+
+                Optional<Wallet> optWallet = walletManager.getOrCreateWalletByImpl(walletImpl, false);
+                if (optWallet.isPresent()) {
+                    Wallet wallet = optWallet.get();
+
+                    Optional<Transfer> optTransfer = wallet.getOrCreateTransferByImpl(transactionImpl, false);
+                    if (optTransfer.isPresent()) {
+                        Transfer transfer = optTransfer.get();
+
+                        Log.d(TAG, "BRSubmitTransactionCallback");
+                        query.putTransaction(walletManager.getNetwork().getUids(), transfer.serialize(), new BlockchainCompletionHandler<Transaction>() {
+                            @Override
+                            public void handleData(Transaction data) {
+                                Log.d(TAG, "BRSubmitTransactionCallback: succeeded");
+                                walletManager.announceSubmit(rid, transfer, 0);
+                            }
+
+                            @Override
+                            public void handleError(QueryError error) {
+                                Log.d(TAG, "BRSubmitTransactionCallback: failed", error);
+                                walletManager.announceSubmit(rid, transfer, 1);
+                            }
+                        });
+
+                    } else {
+                        Log.d(TAG, "BRSubmitTransactionCallback: missed transfer");
+                    }
+
+                } else {
+                    Log.d(TAG, "BRSubmitTransactionCallback: missed wallet");
+                }
+
+            } else {
+                Log.d(TAG, "BRSubmitTransactionCallback: missed manager");
+            }
         });
     }
 
@@ -298,7 +413,10 @@ public final class SystemImpl implements System {
                         case CryptoLibrary.BRWalletEventType.BITCOIN_WALLET_TRANSACTION_SUBMITTED: {
                             Log.d(TAG, String.format("BRWalletEventCallback: BITCOIN_WALLET_TRANSACTION_SUBMITTED (%s)", event.u.submitted.error));
 
-                            // TODO: Implement this
+                            Optional<Transfer> optTransfer = wallet.getOrCreateTransferByImpl(event.u.submitted.transaction, false);
+                            if (optTransfer.isPresent()) {
+                                announceWalletEvent(walletManager, wallet, new WalletTransferSubmittedEvent(optTransfer.get()));
+                            }
                             break;
                         }
                         default:

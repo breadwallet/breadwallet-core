@@ -24,6 +24,9 @@ public abstract class Transfer {
     /* package */
     abstract TransferState setState(TransferState state);
 
+    /* package */
+    abstract byte[] serialize();
+
     public abstract Wallet getWallet();
 
     public abstract Optional<Address> getSource();

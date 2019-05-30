@@ -43,7 +43,16 @@ public class BRTxOutput extends Structure {
 	}
 
     public String getAddressAsString() {
-		return new String(address, StandardCharsets.UTF_8);
+		String addressStr = new String(address, StandardCharsets.UTF_8);
+
+		int len = addressStr.length();
+		int end = 0;
+
+		while ((end < len) && (addressStr.charAt(end) > ' ')) {
+			end++;
+		}
+
+		return addressStr.substring(0, end);
     }
 
     public static class ByReference extends BRTxOutput implements Structure.ByReference {

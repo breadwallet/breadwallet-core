@@ -33,6 +33,8 @@ import java.util.concurrent.Executors;
 
 import okhttp3.OkHttpClient;
 
+// TODO: Lets discuss rids; do we need these in the callback?
+
 public class BlockchainDb {
 
     private final BlockApi blockApi;

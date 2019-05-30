@@ -33,7 +33,7 @@ public interface CryptoLibrary extends Library {
 
 
     /** <i>native declaration : bitcoin/BRWallet.h</i> */
-    long DEFAULT_FEE_PER_KB = (long)(1000L * 10);
+    long DEFAULT_FEE_PER_KB = (1000L * 10);
 
 
     /**
@@ -463,11 +463,23 @@ public interface CryptoLibrary extends Library {
 
 
     /**
+     * retruns a transaction that must be freed by calling BRTransactionFree()<br>
+     * Original signature : <code>BRTransaction* BRTransactionParse(const uint8_t*, size_t)</code><br>
+     * <i>native declaration : bitcoin/BRTransaction.h:61</i>
+     */
+    BRTransaction BRTransactionParse(byte buf[], SizeT bufLen);
+    /**
      * returns a deep copy of tx and that must be freed by calling BRTransactionFree()<br>
      * Original signature : <code>BRTransaction* BRTransactionCopy(const BRTransaction*)</code><br>
      * <i>native declaration : bitcoin/BRTransaction.h:56</i>
      */
     BRTransaction BRTransactionCopy(BRTransaction tx);
+    /**
+     * (tx->blockHeight and tx->timestamp are not serialized)<br>
+     * Original signature : <code>size_t BRTransactionSerialize(const BRTransaction*, uint8_t*, size_t)</code><br>
+     * <i>native declaration : bitcoin/BRTransaction.h:66</i>
+     */
+    SizeT BRTransactionSerialize(BRTransaction tx, byte[] buf, SizeT bufLen);
     /**
      * frees memory allocated for tx<br>
      * Original signature : <code>void BRTransactionFree(BRTransaction*)</code><br>
@@ -513,6 +525,27 @@ public interface CryptoLibrary extends Library {
         void apply(Pointer context, BRWalletManager manager, BRWalletManagerEvent.ByValue event);
     };
     /**
+     * Original signature : <code>int bwmAnnounceBlockNumber(BRWalletManager, int, uint64_t)</code><br>
+     * <i>native declaration : bitcoin/BRWalletManager.h:11</i>
+     */
+    int bwmAnnounceBlockNumber(BRWalletManager manager, int rid, long blockNumber);
+    /**
+     * success - data is valid<br>
+     * Original signature : <code>int bwmAnnounceTransaction(BRWalletManager, int, BRTransaction*)</code><br>
+     * <i>native declaration : bitcoin/BRWalletManager.h:17</i>
+     */
+    int bwmAnnounceTransaction(BRWalletManager manager, int id, BRTransaction transaction);
+    /**
+     * Original signature : <code>void bwmAnnounceTransactionComplete(BRWalletManager, int, int)</code><br>
+     * <i>native declaration : bitcoin/BRWalletManager.h:19</i>
+     */
+    void bwmAnnounceTransactionComplete(BRWalletManager manager, int id, int success);
+    /**
+     * Original signature : <code>void bwmAnnounceSubmit(BRWalletManager, int, BRTransaction*, int)</code><br>
+     * <i>native declaration : bitcoin/BRWalletManager.h:22</i>
+     */
+    void bwmAnnounceSubmit(BRWalletManager manager, int rid, BRTransaction transaction, int error);
+    /**
      * Original signature : <code>BRWalletManager BRWalletManagerNew(BRWalletManagerClient, BRMasterPubKey, const BRChainParams*, uint32_t, BRSyncMode, const char*)</code><br>
      * <i>native declaration : bitcoin/BRWalletManager.h:96</i>
      */
@@ -542,6 +575,11 @@ public interface CryptoLibrary extends Library {
      * <i>native declaration : bitcoin/BRWalletManager.h:117</i>
      */
     BRWallet BRWalletManagerGetWallet(BRWalletManager manager);
+    /**
+     * Original signature : <code>BRAddress* BRWalletManagerGetUnusedAddrsLegacy(BRWalletManager, uint32_t)</code><br>
+     * <i>native declaration : bitcoin/BRWalletManager.h:115</i>
+     */
+    BRAddress BRWalletManagerGetUnusedAddrsLegacy(BRWalletManager manager, int limit);
     /**
      * Original signature : <code>BRPeerManager* BRWalletManagerGetPeerManager(BRWalletManager)</code><br>
      * <i>native declaration : bitcoin/BRWalletManager.h:119</i>

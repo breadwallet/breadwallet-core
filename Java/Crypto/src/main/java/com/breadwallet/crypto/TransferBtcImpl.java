@@ -184,4 +184,10 @@ final class TransferBtcImpl extends Transfer {
         state = newState;
         return oldState;
     }
+
+    @Override
+    /* package */
+    byte[] serialize() {
+        return coreTransfer.serialize();
+    }
 }

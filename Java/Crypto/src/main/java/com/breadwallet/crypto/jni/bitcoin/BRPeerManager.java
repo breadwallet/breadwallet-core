@@ -16,7 +16,7 @@ public class BRPeerManager extends PointerType {
     }
 
     public void publishTransaction(CoreBRTransaction transaction, BRPeerManagerPublishTxCallback publishTxCallback) {
-        // Create a deep copy so that the original is unaffected
+        // TODO: We copy here so that we don't have our memory free'd from underneath us; is this OK?
         BRTransaction transactionCopy = transaction.asBRTransactionDeepCopy();
         CryptoLibrary.INSTANCE.BRPeerManagerPublishTx(this, transactionCopy, null, publishTxCallback);
     }

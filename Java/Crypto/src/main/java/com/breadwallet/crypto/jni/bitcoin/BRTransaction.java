@@ -8,6 +8,9 @@ import com.sun.jna.Structure;
 import java.util.Arrays;
 import java.util.List;
 
+import static com.google.common.base.Preconditions.checkState;
+
+
 public class BRTransaction extends Structure implements CoreBRTransaction {
 
 	public UInt256 txHash;
@@ -56,6 +59,18 @@ public class BRTransaction extends Structure implements CoreBRTransaction {
 	@Override
 	public BRTransaction asBRTransactionDeepCopy() {
 		return CryptoLibrary.INSTANCE.BRTransactionCopy(this);
+	}
+
+	@Override
+	public byte[] serialize() {
+		SizeT sizeNeeded = new SizeT(0);
+		sizeNeeded = CryptoLibrary.INSTANCE.BRTransactionSerialize(this, null, sizeNeeded);
+
+		checkState(sizeNeeded.intValue() > 0 && sizeNeeded.longValue() == sizeNeeded.intValue());
+
+		byte[] serialized = new byte[sizeNeeded.intValue()];
+		CryptoLibrary.INSTANCE.BRTransactionSerialize(this, serialized, sizeNeeded);
+		return serialized;
 	}
 
 	public static class ByReference extends BRTransaction implements Structure.ByReference {

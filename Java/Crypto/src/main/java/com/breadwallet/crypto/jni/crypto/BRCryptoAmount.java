@@ -75,9 +75,12 @@ public class BRCryptoAmount extends PointerType implements CoreBRCryptoAmount {
         checkArgument(base > 0, "Invalid base value");
         UInt256.ByValue value = CryptoLibrary.INSTANCE.cryptoAmountGetValue(this);
         Pointer ptr = CryptoLibrary.INSTANCE.coerceStringPrefaced(value, base, preface);
-        String str = ptr.getString(0, "UTF-8");
-        Native.free(Pointer.nativeValue(ptr));
-        return str;
+        try {
+            return ptr.getString(0, "UTF-8");
+        } finally {
+            Native.free(Pointer.nativeValue(ptr));
+        }
+
     }
 
     @Override
