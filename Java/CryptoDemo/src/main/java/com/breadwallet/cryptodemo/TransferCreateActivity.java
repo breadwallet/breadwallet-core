@@ -197,6 +197,7 @@ public class TransferCreateActivity extends AppCompatActivity {
                 .setNegativeButton("Cancel", (dialog, which) -> {})
                 .setPositiveButton("Continue", (dialog, which) -> {
                     walletManager.submit(transfer, CoreCryptoApplication.paperKey);
+                    finish();
                 })
                 .show();
     }
