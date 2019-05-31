@@ -21,7 +21,6 @@ import java.util.concurrent.Semaphore;
 
 public class EthTransferApi {
 
-    // TODO: Where should this reside?
     private static final String ETH_EVENT_ERC20_TRANSFER = "0xa9059cbb";
 
     private final BrdApiClient client;
@@ -44,7 +43,7 @@ public class EthTransferApi {
         client.sendJsonRequest(networkName, json, new BlockchainCompletionHandler<Optional<String>>() {
             @Override
             public void handleData(Optional<String> result) {
-                // TODO: Do we want default values?
+                // TODO(discuss): Do we want default values?
                 handler.handleData(result.or("0x123abc456def"));
             }
 
@@ -85,7 +84,7 @@ public class EthTransferApi {
         client.sendJsonRequest(networkName, json, new BlockchainCompletionHandler<Optional<String>>() {
             @Override
             public void handleData(Optional<String> result) {
-                // TODO: Do we want default values?
+                // TODO(discuss): Do we want default values?
                 handler.handleData(result.or("118"));
             }
 
@@ -177,7 +176,7 @@ public class EthTransferApi {
                     try {
                         numbers.add(Long.decode(transaction.getBlockNumber()));
                     } catch (NumberFormatException e) {
-                        // TODO: How do we want to handle this?
+                        // TODO(discuss): How do we want to handle this?
                     }
                 }
             }
@@ -191,7 +190,7 @@ public class EthTransferApi {
                     try {
                         numbers.add(Long.decode(log.getBlockNumber()));
                     } catch (NumberFormatException e) {
-                        // TODO: How do we want to handle this?
+                        // TODO(discuss): How do we want to handle this?
                     }
                 }
             }

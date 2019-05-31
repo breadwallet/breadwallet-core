@@ -30,7 +30,7 @@ import java.util.Objects;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
-// TODO: Swift doesn't acknowledge that the creates can fail
+// TODO(discuss): Swift doesn't acknowledge that the creates can fail
 public final class AmountImpl implements Amount {
 
     public static Optional<Amount> create(double value, Unit unit) {
@@ -59,8 +59,8 @@ public final class AmountImpl implements Amount {
         if (amount instanceof AmountImpl) {
             return (AmountImpl) amount;
         }
-        // TODO: We should be able to create a AmountImpl from any Amount implementation
-        throw new IllegalArgumentException("Unsupported amount type");
+        // TODO(fix): We should be able to create a AmountImpl from any Amount implementation
+        throw new IllegalArgumentException("Unsupported amount instance");
     }
 
     private static NumberFormat formatterWithUnit(Unit unit) {
@@ -178,7 +178,7 @@ public final class AmountImpl implements Amount {
 
     @Override
     public String toString() {
-        // TODO: This is not good; we should remove here and in Swift since it isn't localized
+        // TODO(discuss): Do we want to return a non-localized value here? Is there a localization of NaN?
         return toStringAsUnit(unit).or("<nan>");
     }
 
@@ -226,8 +226,8 @@ public final class AmountImpl implements Amount {
 
     /* package */
     long integerAmount() {
-        // TODO: in BRCrypto, there is asBtc and asEth but they both do this, should the Swift be modified like this?
-        // TODO: doubleAmount returns an optional based on overflow; shouldn't this?
+        // TODO(discuss): in BRCrypto, there is asBtc and asEth but they both do this, should the Swift be modified like this?
+        // TODO(discuss): doubleAmount returns an optional based on overflow; shouldn't this?
         IntByReference overflowRef = new IntByReference(BRCryptoBoolean.CRYPTO_FALSE);
         long value = core.getIntegerRaw(overflowRef);
         checkState(BRCryptoBoolean.CRYPTO_FALSE == overflowRef.getValue());

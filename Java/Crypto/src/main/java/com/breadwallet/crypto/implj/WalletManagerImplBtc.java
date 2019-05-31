@@ -76,9 +76,8 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
     }
 
     private final BRPeerManagerPublishTxCallback publishTxCallback = (info, error) -> {
-        // TODO: How do we want to propagating the error or success to the system listener?
-
-        // TODO: If there is an error, do we need to call BRTransactionFree on the originating transaction?
+        // TODO(fix): How do we want to propagating the error or success to the system listener? Or should we be using BRWalletManagerSubmitTransaction?
+        // TODO(fix): If there is an error, do we need to call BRTransactionFree on the originating transaction? Or should we be using BRWalletManagerSubmitTransaction?
     };
 
     private final BRWalletManagerClient.ByValue clientCallbacks = new BRWalletManagerClient.ByValue(Pointer.NULL,
@@ -117,7 +116,7 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
 
     @Override
     public void initialize() {
-        // TODO: Add call to CryptoLibrary.INSTANCE.BRWalletManagerInit(coreManager);
+        // TODO(fix): Add call to CryptoLibrary.INSTANCE.BRWalletManagerInit(coreManager);
     }
 
     @Override
@@ -137,7 +136,6 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
 
     @Override
     public void submit(Transfer transfer, String paperKey) {
-        // TODO: How do we want to handle this (i.e. a mismatch between transfer and wallet type?
         if (transfer instanceof TransferImplBtc) {
             BRWallet coreWallet = coreManager.getWallet();
             BRPeerManager corePeerManager = coreManager.getPeerManager();
@@ -145,10 +143,12 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
 
             byte[] seed = AccountImpl.deriveSeed(paperKey);
 
-            // TODO: How do we want to handle signing failure?
+            // TODO(discuss): How do we want to handle signing failure? Or should we be using BRWalletManagerSubmitTransaction?
             boolean signed = coreWallet.signTransaction(coreTransaction, seed);
 
             corePeerManager.publishTransaction(coreTransaction, publishTxCallback);
+        } else {
+            throw new IllegalArgumentException("Unsupported transfer type");
         }
     }
 
@@ -242,11 +242,10 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
     }
 
     private void doGetTransactions(Pointer context, BRWalletManager managerImpl, long begBlockNumber, long endBlockNumber, int rid) {
-        // TODO: Test all this; backend blocking this working
         systemExecutor.submit(() -> {
             String blockchainId = getNetwork().getUids();
 
-            Log.d(TAG, "BRGetTransactionsCallback");
+            Log.d(TAG, String.format("BRGetTransactionsCallback (%s %s)", begBlockNumber, endBlockNumber));
             query.getTransactions(blockchainId, getUnusedAddrsLegacy(), begBlockNumber, endBlockNumber, true, false, new BlockchainCompletionHandler<List<Transaction>>() {
                 @Override
                 public void handleData(List<Transaction> transactions) {
@@ -258,8 +257,7 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
                             return;
                         }
 
-                        // TODO: Are these casts safe?
-
+                        // TODO (fix): Are these casts safe?
                         long timestamp = transaction.getTimestamp().transform((ts) -> ts.getTime() / 1000).or(0L);
                         if (timestamp < 0 || timestamp > Integer.MAX_VALUE) {
                             announceTransactionComplete(rid, false);
@@ -298,7 +296,6 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
     }
 
     private void doSubmitTransation(Pointer context, BRWalletManager managerImpl, BRWallet walletImpl, BRTransaction transactionImpl, int rid) {
-        // TODO: Test all this; backend blocking doGetTransactions() which is blocking ability to submit transactions
         systemExecutor.submit(() -> {
             Optional<WalletImplBtc> optWallet = getOrCreateWalletByImpl(walletImpl, false);
             if (optWallet.isPresent()) {

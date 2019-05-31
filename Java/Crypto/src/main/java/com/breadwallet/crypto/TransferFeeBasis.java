@@ -1,8 +1,8 @@
 package com.breadwallet.crypto;
 
-// TODO(Abstraction): This could be split into a parent class as well as child classes for the fee basis types.
-//                    This way, we can put the fee, gas price and gas limit in the corresponding class. We can use the
-//                    the visitor pattern to move from the parent to the children as needed.
+// TODO(discuss): This could be split into a parent class as well as child classes for the fee basis types.
+//                This way, we can put the fee, gas price and gas limit in the corresponding class. We can use the
+//                the visitor pattern to move from the parent to the children as needed.
 
 public final class TransferFeeBasis {
 
@@ -32,7 +32,7 @@ public final class TransferFeeBasis {
         return impl.getEthGasLimit();
     }
 
-    // TODO: Should getBtcFeePerKb(), getEthGasPrice(), and getEthGasLimit() be returning Optional instead of throwing an exception?
+    // TODO(discuss): Should getBtcFeePerKb(), getEthGasPrice(), and getEthGasLimit() be returning Optional instead of throwing an exception?
     private interface CurrencyTransferFeeBasis {
 
         default long getBtcFeePerKb() {

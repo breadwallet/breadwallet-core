@@ -24,8 +24,11 @@ import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
 
 public interface CryptoLibrary extends Library {
+
     String JNA_LIBRARY_NAME = "crypto";
+
     NativeLibrary LIBRARY = NativeLibrary.getInstance(CryptoLibrary.JNA_LIBRARY_NAME);
+
     CryptoLibrary INSTANCE = Native.load(CryptoLibrary.JNA_LIBRARY_NAME, CryptoLibrary.class);
 
     /**
@@ -459,7 +462,6 @@ public interface CryptoLibrary extends Library {
     BRPeerManager BRWalletManagerGetPeerManager(BRWalletManager manager);
 
 
-    ;
     /**
      * publishes tx to bitcoin network (do not call BRTransactionFree() on tx afterward)<br>
      * Original signature : <code>void BRPeerManagerPublishTx(BRPeerManager*, BRTransaction*, void*, BRPeerManagerPublishTxCallback*)</code><br>
@@ -468,9 +470,20 @@ public interface CryptoLibrary extends Library {
     void BRPeerManagerPublishTx(BRPeerManager manager, BRTransaction tx, Pointer info, BRPeerManagerPublishTxCallback callback);
 
 
-    // TODO: Why are these not in their corresponding header file
+    /**
+     * <i>native declaration : crypto/BRCryptoPrivate.h</i>
+     */
     BRCryptoAmount cryptoAmountCreate (BRCryptoCurrency currency, int isNegative, UInt256.ByValue value);
+    /**
+     * <i>native declaration : crypto/BRCryptoPrivate.h</i>
+     */
     BRCryptoCurrency cryptoCurrencyCreate(String name, String code, String type);
+    /**
+     * <i>native declaration : crypto/BRCryptoPrivate.h</i>
+     */
     BRCryptoUnit cryptoUnitCreateAsBase(BRCryptoCurrency currency, String name, String symbol);
+    /**
+     * <i>native declaration : crypto/BRCryptoPrivate.h</i>
+     */
     BRCryptoUnit cryptoUnitCreate(BRCryptoCurrency currency, String name, String symbol, BRCryptoUnit base, byte decimals);
 }

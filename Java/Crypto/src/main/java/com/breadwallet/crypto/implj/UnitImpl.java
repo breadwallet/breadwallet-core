@@ -22,8 +22,8 @@ public final class UnitImpl implements Unit {
         if (unit instanceof UnitImpl) {
             return (UnitImpl) unit;
         }
-        // TODO: We should be able to create a UnitImpl from any Unit implementation
-        throw new IllegalArgumentException("Unsupported unit type");
+        // TODO(fix): We should be able to create a UnitImpl from any Unit implementation
+        throw new IllegalArgumentException("Unsupported unit instance");
     }
 
     private final CoreBRCryptoUnit core;

@@ -13,7 +13,7 @@ import com.breadwallet.crypto.Account;
 import com.breadwallet.crypto.libcrypto.crypto.CoreBRCryptoAccount;
 import com.breadwallet.crypto.libcrypto.support.BRMasterPubKey;
 
-// TODO: Should uid be a UUID object? Or should we verify that it is a valid one?
+// TODO(discuss): Should uid be a UUID object? Or should we verify that it is a valid one? Also, why uids and not uuid?
 public final class AccountImpl implements Account {
 
     public static AccountImpl createFrom(String phrase, String uids) {
@@ -43,7 +43,7 @@ public final class AccountImpl implements Account {
 
     @Override
     public void setTimestamp(long timestamp) {
-        // TODO: Can we make this part of the ctor or does it need to be mutable?
+        // TODO(discuss): Can we make this part of the ctor or does it need to be mutable?
         core.setTimestamp(timestamp);
     }
 

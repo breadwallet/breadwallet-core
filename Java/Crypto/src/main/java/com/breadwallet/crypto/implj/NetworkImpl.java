@@ -141,7 +141,7 @@ public final class NetworkImpl implements Network {
         return impl.asBtc();
     }
 
-    // TODO: SHould asBtc() and asEth() be returning Optional instead of throwing an exception?
+    // TODO(discuss): Should asBtc() and asEth() be returning Optional instead of throwing an exception?
     private interface CurrencyNetwork {
         default BRChainParams asBtc() {
             throw new IllegalStateException("Invalid network type");
@@ -202,7 +202,7 @@ public final class NetworkImpl implements Network {
     private static class EthereumNetwork implements CurrencyNetwork {
 
         EthereumNetwork(String uids) {
-            // TODO: Implement this
+            // TODO(fix): Implement this
         }
 
         @Override
@@ -225,7 +225,7 @@ public final class NetworkImpl implements Network {
 
         @Override
         public Optional<Address> addressFor(String address) {
-            // TODO: How is this going to be handled?
+            // TODO(discuss): How is this going to be handled?
             return Optional.absent();
         }
     }

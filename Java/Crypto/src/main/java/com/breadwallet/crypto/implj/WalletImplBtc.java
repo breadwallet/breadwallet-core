@@ -26,7 +26,7 @@ final class WalletImplBtc extends WalletImpl<TransferImplBtc> {
 
     @Override
     public Optional<Transfer> createTransfer(Address target, Amount amount, TransferFeeBasis feeBasis) {
-        // TODO: The swift equivalent will result in this being added to 'transfers' and an event being created; do we want this?
+        // TODO(fix): The swift equivalent will result in this being added to 'transfers' and an event being created; do we want this?
         String addr = target.toString();
         long value = AmountImpl.from(amount).integerAmount();
         Unit unit = amount.getUnit();

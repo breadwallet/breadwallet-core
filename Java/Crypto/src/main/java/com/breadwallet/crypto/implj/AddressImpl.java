@@ -32,7 +32,6 @@ public final class AddressImpl implements Address {
 
     /* package */
     static AddressImpl createAsBtc(BRAddress address) {
-        // TODO: Can we just create cryptoAddressCreateAsBTCString function in the C layer?
         BRAddress.ByValue addressValue = new BRAddress.ByValue(address);
         return new AddressImpl(CoreBRCryptoAddress.createAsBtc(addressValue));
     }
@@ -49,7 +48,6 @@ public final class AddressImpl implements Address {
 
     /* package */
     static AddressImpl createAsEth(BREthereumAddress address) {
-        // TODO: Can we just create cryptoAddressCreateAsETHString function in the C layer?
         BREthereumAddress.ByValue addressValue = new BREthereumAddress.ByValue(address);
         return new AddressImpl(CoreBRCryptoAddress.createAsEth(addressValue));
     }

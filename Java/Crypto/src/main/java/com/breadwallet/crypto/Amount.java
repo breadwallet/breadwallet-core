@@ -14,10 +14,10 @@ import com.google.common.base.Optional;
 
 import java.text.NumberFormat;
 
-// TODO: Swift doesn't acknowledge that the creates can fail
+// TODO(fix): Swift doesn't acknowledge that the creates can fail
 public interface Amount extends Comparable<Amount> {
 
-    // TODO: These should be proper factories
+    // TODO(discuss): These could be proper factories
 
     static Optional<Amount> create(double value, Unit unit) {
         return AmountImpl.create(value, unit);

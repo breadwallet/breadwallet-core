@@ -21,7 +21,7 @@ public class BRPeerManager extends PointerType {
     }
 
     public void publishTransaction(CoreBRTransaction transaction, BRPeerManagerPublishTxCallback publishTxCallback) {
-        // TODO: We copy here so that we don't have our memory free'd from underneath us; is this OK?
+        // TODO(discuss): We copy here so that we don't have our memory free'd from underneath us; is this OK? Or should we be using BRWalletManagerSubmitTransaction?
         BRTransaction transactionCopy = transaction.asBRTransactionDeepCopy();
         CryptoLibrary.INSTANCE.BRPeerManagerPublishTx(this, transactionCopy, null, publishTxCallback);
     }

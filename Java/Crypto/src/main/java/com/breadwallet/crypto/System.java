@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
-// TODO: System is an unfortunate name in Java. How about CryptoManager or AccountManager?
+// TODO(discuss): System is an unfortunate name in Java. How about CryptoManager or AccountManager?
 public interface System {
 
     static System create(ExecutorService listenerExecutor, SystemListener listener, Account account, String path, BlockchainDb query) {

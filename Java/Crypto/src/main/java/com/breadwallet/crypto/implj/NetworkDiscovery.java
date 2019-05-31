@@ -60,9 +60,11 @@ final class NetworkDiscovery {
                                 currencyModel.getCode(),
                                 currencyModel.getType());
 
-                        UnitImpl baseUnit = currencyDenominationToBaseUnit(currency, currencyModel.getDenominations());
-                        List<UnitImpl> units = currencyDenominationToUnits(currency, currencyModel.getDenominations(),
-                                baseUnit);
+                        CurrencyDenomination baseDenomination = findFirstBaseDenomination(currencyModel.getDenominations());
+                        List<CurrencyDenomination> nonBaseDenominations = findAllNonBaseDenominations(currencyModel.getDenominations());
+
+                        UnitImpl baseUnit = currencyDenominationToBaseUnit(currency, baseDenomination);
+                        List<UnitImpl> units = currencyDenominationToUnits(currency, nonBaseDenominations, baseUnit);
 
                         units.add(0, baseUnit);
                         Collections.sort(units, (o1, o2) -> {
@@ -163,16 +165,29 @@ final class NetworkDiscovery {
         });
     }
 
-    private static UnitImpl currencyDenominationToBaseUnit(CurrencyImpl currency,
-                                                       List<CurrencyDenomination> denominations) {
+    private static CurrencyDenomination findFirstBaseDenomination(List<CurrencyDenomination> denominations) {
         for (CurrencyDenomination denomination : denominations) {
             if (denomination.getDecimals() == 0) {
-                String uids = String.format("%s-%s", currency.getName(), denomination.getCode());
-                return new UnitImpl(currency, uids, denomination.getName(), denomination.getSymbol());
+                return denomination;
             }
         }
-        // TODO: This isn't how we should handle this (this is based on swift)
-        throw new IllegalStateException("Missing base unit");
+        throw new IllegalStateException("Missing base denomination");
+    }
+
+    private static List<CurrencyDenomination> findAllNonBaseDenominations(List<CurrencyDenomination> denominations) {
+        List<CurrencyDenomination> newDenominations = new ArrayList<>();
+        for (CurrencyDenomination denomination : denominations) {
+            if (denomination.getDecimals() != 0) {
+                newDenominations.add(denomination);
+            }
+        }
+        return newDenominations;
+    }
+
+    private static UnitImpl currencyDenominationToBaseUnit(CurrencyImpl currency,
+                                                           CurrencyDenomination denomination) {
+        String uids = String.format("%s-%s", currency.getName(), denomination.getCode());
+        return new UnitImpl(currency, uids, denomination.getName(), denomination.getSymbol());
     }
 
     private static List<UnitImpl> currencyDenominationToUnits(CurrencyImpl currency,
@@ -180,11 +195,9 @@ final class NetworkDiscovery {
                                                               UnitImpl base) {
         List<UnitImpl> units = new ArrayList<>();
         for (CurrencyDenomination denomination : denominations) {
-            if (denomination.getDecimals() != 0) {
-                String uids = String.format("%s-%s", currency.getName(), denomination.getCode());
-                units.add(new UnitImpl(currency, uids, denomination.getName(), denomination.getSymbol(), base,
-                        denomination.getDecimals()));
-            }
+            String uids = String.format("%s-%s", currency.getName(), denomination.getCode());
+            units.add(new UnitImpl(currency, uids, denomination.getName(), denomination.getSymbol(), base,
+                      denomination.getDecimals()));
         }
         return units;
     }

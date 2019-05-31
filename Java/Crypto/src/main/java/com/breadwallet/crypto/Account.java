@@ -12,13 +12,13 @@ package com.breadwallet.crypto;
 import com.breadwallet.crypto.implj.AccountImpl;
 import com.breadwallet.crypto.libcrypto.support.BRMasterPubKey;
 
-// TODO(Abstraction): This class exposes Core data types via the asBtc/asEth methods. If we want a pure
-//                    API, we need to expose the raw data, not the core data types (i.e. btcMasterPubKey,
-//                    ethMasterPubKey and ethAddressDetail)
+// TODO(discuss): This class exposes Core data types via the asBtc/asEth methods. If we want a pure
+//                API, we need to expose the raw data, not the core data types (i.e. btcMasterPubKey,
+//                ethMasterPubKey and ethAddressDetail)
 
 public interface Account {
 
-    // TODO: These should be proper factories
+    // TODO(discuss): These could be proper factories
 
     static Account createFrom(String phrase, String uids) {
         return AccountImpl.createFrom(phrase, uids);

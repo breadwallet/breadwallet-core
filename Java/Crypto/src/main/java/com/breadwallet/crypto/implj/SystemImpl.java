@@ -59,7 +59,7 @@ public final class SystemImpl implements System {
 
     @Override
     public void subscribe(String subscriptionToken) {
-        // TODO: Implement this!
+        // TODO(fix): Implement this!
     }
 
     @Override
@@ -84,7 +84,7 @@ public final class SystemImpl implements System {
                 announcer.announceSystemEvent(new SystemManagerAddedEvent(walletManager));
             }
         } else {
-            // TODO: How do we want to handle this?
+            throw new IllegalArgumentException("Unsupported network type");
         }
     }
 
@@ -120,7 +120,7 @@ public final class SystemImpl implements System {
 
         walletManagersWriteLock.lock();
         try {
-            // TODO: This is from the swift code but I don't see how it would ever evaluate to true
+            // TODO(discuss): This is from the swift code but I don't see how it would ever evaluate to true
             added = !walletManagers.contains(walletManager);
             if (added) {
                 walletManagers.add(walletManager);
@@ -149,7 +149,7 @@ public final class SystemImpl implements System {
 
         networksWriteLock.lock();
         try {
-            // TODO: The swift code has no guards against a network being added multiple times; should it?
+            // TODO(discuss): The swift code has no guards against a network being added multiple times; should it?
             added = !networks.contains(network);
             if (added) {
                 networks.add(network);

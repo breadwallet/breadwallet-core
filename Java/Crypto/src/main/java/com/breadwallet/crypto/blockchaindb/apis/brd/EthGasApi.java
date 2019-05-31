@@ -27,7 +27,7 @@ public class EthGasApi {
         client.sendJsonRequest(networkName, json, new BlockchainCompletionHandler<Optional<String>>() {
             @Override
             public void handleData(Optional<String> result) {
-                // TODO: Do we want default values?
+                // TODO(discuss): Do we want default values?
                 handler.handleData(result.or("0xffc0"));
             }
 
@@ -50,7 +50,7 @@ public class EthGasApi {
         client.sendJsonRequest(networkName, json, new BlockchainCompletionHandler<Optional<String>>() {
             @Override
             public void handleData(Optional<String> result) {
-                // TODO: Do we want default values?
+                // TODO(discuss): Do we want default values?
                 handler.handleData(result.or("92000"));
             }
 

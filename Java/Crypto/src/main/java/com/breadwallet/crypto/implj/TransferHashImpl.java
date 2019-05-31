@@ -58,7 +58,7 @@ public final class TransferHashImpl implements TransferHash {
         return impl.toString();
     }
 
-    // TODO: Do the equals, hashcode and toString implementations yield the same result as calling native method?
+    // TODO(fix): Do the equals, hashcode and toString implementations yield the same result as calling native method?
     private static class BitcoinTransferHash implements CurrencyTransferHash {
 
         private UInt256 core;

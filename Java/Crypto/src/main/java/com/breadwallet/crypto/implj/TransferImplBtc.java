@@ -102,7 +102,7 @@ final class TransferImplBtc extends TransferImpl {
 
     @Override
     public TransferFeeBasis getFeeBasis() {
-        // TODO: There is a comment in the Swift about this; is this OK?
+        // TODO(discuss): There is a comment in the Swift about this; is this OK?
         return TransferFeeBasis.createBtc(BRWallet.DEFAULT_FEE_PER_KB);
     }
 

@@ -33,7 +33,7 @@ import java.util.concurrent.Executors;
 
 import okhttp3.OkHttpClient;
 
-// TODO: Lets discuss rids; do we need these in the callback?
+// TODO(discuss): Do we need rids in the callbacks?
 
 public class BlockchainDb {
 

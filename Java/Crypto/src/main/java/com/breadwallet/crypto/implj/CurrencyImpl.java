@@ -21,7 +21,7 @@ public final class CurrencyImpl implements Currency {
         if (currency instanceof CurrencyImpl) {
             return (CurrencyImpl) currency;
         }
-        // TODO: We should be able to create a CurrencyImpl from any Currency implementation
+        // TODO(fix): We should be able to create a CurrencyImpl from any Currency implementation
         throw new IllegalArgumentException("Unsupported currency instance");
     }
 

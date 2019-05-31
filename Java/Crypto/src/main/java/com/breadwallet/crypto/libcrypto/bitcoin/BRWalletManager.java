@@ -76,7 +76,7 @@ public class BRWalletManager extends PointerType implements CoreBRWalletManager 
 
     @Override
     public void announceTransaction(int rid, CoreBRTransaction transaction) {
-        // TODO: We copy here so that we don't have our memory free'd from underneath us; is this OK?
+        // TODO(discuss): We copy here so that we don't have our memory free'd from underneath us; is this OK?
         BRTransaction tx = transaction.asBRTransactionDeepCopy();
         CryptoLibrary.INSTANCE.bwmAnnounceTransaction(this, rid, tx);
     }

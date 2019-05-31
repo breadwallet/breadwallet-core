@@ -1,6 +1,7 @@
 package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
 import android.support.annotation.Nullable;
+import android.util.Log;
 
 import com.breadwallet.crypto.blockchaindb.BlockchainCompletionHandler;
 import com.breadwallet.crypto.blockchaindb.BlockchainDataTask;
@@ -39,7 +40,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public class BdbApiClient {
 
-    public static final MediaType MEDIA_TYPE_JSON = MediaType.parse("application/json; charset=utf-8");
+    private static final String TAG = BdbApiClient.class.getName();
+
+    private static final MediaType MEDIA_TYPE_JSON = MediaType.parse("application/json; charset=utf-8");
 
     private final OkHttpClient client;
     private final String baseUrl;
@@ -135,7 +138,9 @@ public class BdbApiClient {
     }
 
     private void makeAndSendRequest(List<String> pathSegments,
-                                    Multimap<String, String> params, @Nullable JSONObject json, String httpMethod,
+                                    Multimap<String, String> params,
+                                    @Nullable JSONObject json,
+                                    String httpMethod,
                                     ResponseHandler handler) {
         HttpUrl.Builder urlBuilder = HttpUrl.parse(baseUrl).newBuilder();
 
@@ -149,8 +154,11 @@ public class BdbApiClient {
             urlBuilder.addQueryParameter(key, value);
         }
 
+        HttpUrl httpUrl = urlBuilder.build();
+        Log.d(TAG, String.format("Request: %s: Method: %s: Data: %s", httpUrl, httpMethod, json));
+
         Request.Builder requestBuilder = new Request.Builder();
-        requestBuilder.url(urlBuilder.build());
+        requestBuilder.url(httpUrl);
         requestBuilder.addHeader("accept", "application/json");
         requestBuilder.method(httpMethod, json == null ? null : RequestBody.create(MEDIA_TYPE_JSON, json.toString()));
 
@@ -206,7 +214,7 @@ public class BdbApiClient {
             JSONObject jsonPage = json.optJSONObject("page");
             boolean full = (jsonPage == null ? 0 : jsonPage.optInt("total_pages", 0)) > 1;
 
-            // TODO: why is this always set to false in the swift
+            // TODO(fix): why is this always set to false in the swift
             boolean more = false && full;
 
             checkArgument(!more);
@@ -240,24 +248,19 @@ public class BdbApiClient {
         @Override
         public void handleData(JSONObject json) {
             JSONObject jsonEmbedded = json.optJSONObject("_embedded");
-            JSONArray jsonEmbeddedData = jsonEmbedded == null ? null : jsonEmbedded.optJSONArray(path);
+            JSONArray jsonEmbeddedData = jsonEmbedded == null ? new JSONArray() : jsonEmbedded.optJSONArray(path);
 
             JSONObject jsonPage = json.optJSONObject("page");
             boolean full = (jsonPage == null ? 0 : jsonPage.optInt("total_pages", 0)) > 1;
 
-            // TODO: why is this always set to false in the swift
+            // TODO(fix): why is this always set to false in the swift
             boolean more = false && full;
 
-            if (jsonEmbedded == null || jsonEmbeddedData == null) {
-                handler.handleError(new QueryModelError("Data expected"));
-
+            Optional<T> data = parser.parse(jsonEmbeddedData);
+            if (data.isPresent()) {
+                handler.handleData(data.get());
             } else {
-                Optional<T> data = parser.parse(jsonEmbeddedData);
-                if (data.isPresent()) {
-                    handler.handleData(data.get());
-                } else {
-                    handler.handleError(new QueryModelError("Transform error"));
-                }
+                handler.handleError(new QueryModelError("Transform error"));
             }
         }
 

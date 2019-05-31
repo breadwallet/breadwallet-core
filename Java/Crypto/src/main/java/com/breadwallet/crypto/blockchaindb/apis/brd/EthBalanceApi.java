@@ -30,7 +30,7 @@ public class EthBalanceApi {
         client.sendJsonRequest(networkName, json, new BlockchainCompletionHandler<Optional<String>>() {
             @Override
             public void handleData(Optional<String> result) {
-                // TODO: Do we want default values?
+                // TODO(discuss): Do we want default values?
                 handler.handleData(result.or("200000000000000000"));
             }
 
@@ -57,7 +57,7 @@ public class EthBalanceApi {
         client.sendQueryRequest(networkName, params, json, new BlockchainCompletionHandler<Optional<String>>() {
             @Override
             public void handleData(Optional<String> result) {
-                // TODO: Do we want default values?
+                // TODO(discuss): Do we want default values?
                 handler.handleData(result.or("0x1"));
             }
 
