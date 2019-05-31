@@ -11,7 +11,6 @@ import com.breadwallet.crypto.Account;
 import com.breadwallet.crypto.SystemImpl;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.System;
-import com.google.common.base.Optional;
 
 import java.io.File;
 import java.util.Arrays;
@@ -55,9 +54,7 @@ public class CoreCryptoApplication extends Application {
         if (storageFile.exists()) deleteRecursively(storageFile);
         checkState(storageFile.mkdirs());
 
-        Optional<Account> optAccount = Account.createFrom(paperKey, "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e97");
-        checkState(optAccount.isPresent());
-        Account account = optAccount.get();
+        Account account = Account.createFrom(paperKey, "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e97");
         account.setTimestamp(1507328506);
 
         BlockchainDb query = new BlockchainDb(new OkHttpClient(), BDB_BASE_URL, API_BASE_URL);

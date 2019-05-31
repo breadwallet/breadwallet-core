@@ -9,51 +9,35 @@
  */
 package com.breadwallet.crypto;
 
-import com.breadwallet.crypto.jni.bitcoin.BRTransaction;
-import com.breadwallet.crypto.jni.bitcoin.CoreBRTransaction;
 import com.google.common.base.Optional;
 
-public abstract class Transfer {
+public interface Transfer {
 
-    /* package */
-    abstract boolean matches(BRTransaction transferImpl);
+    byte[] serialize();
 
-    /* package */
-    abstract Optional<CoreBRTransaction> asCoreBRTransaction();
+    Wallet getWallet();
 
-    /* package */
-    abstract TransferState setState(TransferState state);
+    Optional<Address> getSource();
 
-    /* package */
-    abstract byte[] serialize();
+    Optional<Address> getTarget();
 
-    public abstract Wallet getWallet();
+    Amount getAmount();
 
-    public abstract Optional<Address> getSource();
+    Amount getAmountDirected();
 
-    public abstract Optional<Address> getTarget();
+    Amount getFee();
 
-    public abstract Amount getAmount();
+    TransferFeeBasis getFeeBasis();
 
-    public abstract Amount getAmountDirected();
+    TransferDirection getDirection();
 
-    public abstract Amount getFee();
+    Optional<TransferHash> getHash();
 
-    public abstract TransferFeeBasis getFeeBasis();
-
-    public abstract TransferState getState();
-
-    public abstract TransferDirection getDirection();
-
-    public abstract Optional<TransferHash> getHash();
-
-    public abstract Optional<Long> getConfirmations();
-
-    public Optional<TransferConfirmation> getConfirmation() {
+    default Optional<TransferConfirmation> getConfirmation() {
         return getState().getIncludedConfirmation();
     }
 
-    public Optional<Long> getConfirmationsAt(long blockHeight) {
+    default Optional<Long> getConfirmationsAt(long blockHeight) {
         Optional<TransferConfirmation> optionalConfirmation = getConfirmation();
         if (optionalConfirmation.isPresent()) {
             TransferConfirmation confirmation = optionalConfirmation.get();
@@ -62,4 +46,10 @@ public abstract class Transfer {
         }
         return Optional.absent();
     }
+
+    default Optional<Long> getConfirmations() {
+        return getConfirmationsAt(getWallet().getWalletManager().getNetwork().getHeight());
+    }
+
+    TransferState getState();
 }

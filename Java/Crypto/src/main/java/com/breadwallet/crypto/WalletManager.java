@@ -9,83 +9,54 @@
  */
 package com.breadwallet.crypto;
 
-import com.breadwallet.crypto.jni.bitcoin.BRWallet;
-import com.breadwallet.crypto.jni.bitcoin.BRWalletManager;
-import com.breadwallet.crypto.jni.bitcoin.CoreBRTransaction;
-import com.google.common.base.Optional;
-
 import java.util.List;
 
-public abstract class WalletManager {
+public interface WalletManager {
 
-    /* package */
-    abstract boolean matches(BRWalletManager walletManagerImpl);
+    void initialize();
 
-    /* package */
-    abstract Optional<Wallet> getOrCreateWalletByImpl(BRWallet walletImpl, boolean createAllowed);
+    void connect();
 
-    /* package */
-    abstract WalletManagerState setState(WalletManagerState state);
+    void disconnect();
 
-    /* package */
-    abstract List<String> getUnusedAddrsLegacy(int limit);
+    void sync();
 
-    /* package */
-    abstract void announceBlockNumber(int rid, long blockNumber);
+    void submit(Transfer transfer, String paperKey);
 
-    /* package */
-    abstract void announceSubmit(int rid, Transfer transfer, int errorCode);
+    default boolean isActive() {
+        WalletManagerState state = getState();
+        return state == WalletManagerState.CREATED || state == WalletManagerState.SYNCHING;
+    }
 
-    /* package */
-    abstract void announceTransaction(int rid, CoreBRTransaction transaction);
+    Account getAccount();
 
-    /* package */
-    abstract void announceTransactionComplete(int rid, boolean success);
+    Network getNetwork();
 
-    public abstract void initialize();
+    Wallet getPrimaryWallet();
 
-    public abstract void connect();
+    List<Wallet> getWallets();
 
-    public abstract void disconnect();
+    WalletManagerMode getMode();
 
-    public abstract void sync();
+    String getPath();
 
-    public abstract void submit(Transfer transfer, String paperKey);
-
-    public abstract Account getAccount();
-
-    public abstract Network getNetwork();
-
-    public abstract Wallet getPrimaryWallet();
-
-    public abstract List<Wallet> getWallets();
-
-    public abstract WalletManagerMode getMode();
-
-    public abstract String getPath();
-
-    public abstract WalletManagerState getState();
-
-    public Currency getCurrency() {
+    default Currency getCurrency() {
         return getNetwork().getCurrency();
     }
 
-    public String getName() {
+    default String getName() {
         return getCurrency().getCode();
     }
 
-    public Unit getBaseUnit() {
+    default Unit getBaseUnit() {
         Network network = getNetwork();
         return network.baseUnitFor(network.getCurrency()).get();
     }
 
-    public Unit getDefaultUnit() {
+    default Unit getDefaultUnit() {
         Network network = getNetwork();
         return network.defaultUnitFor(network.getCurrency()).get();
     }
 
-    public boolean isActive() {
-        WalletManagerState state = getState();
-        return state == WalletManagerState.CREATED || state == state.SYNCHING;
-    }
+    WalletManagerState getState();
 }

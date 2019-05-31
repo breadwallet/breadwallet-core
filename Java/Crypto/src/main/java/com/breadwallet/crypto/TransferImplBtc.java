@@ -10,7 +10,6 @@
 package com.breadwallet.crypto;
 
 import com.breadwallet.crypto.jni.bitcoin.BRTransaction;
-import com.breadwallet.crypto.jni.CryptoLibrary;
 import com.breadwallet.crypto.jni.bitcoin.BRTxInput;
 import com.breadwallet.crypto.jni.bitcoin.BRTxOutput;
 import com.breadwallet.crypto.jni.bitcoin.BRWallet;
@@ -20,29 +19,21 @@ import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedLong;
 
 /* package */
-final class TransferBtcImpl extends Transfer {
-
-    private final Wallet owner;
+final class TransferImplBtc extends TransferImpl {
 
     private final BRWallet coreWallet;
     private final CoreBRTransaction coreTransfer;
 
-    private final Unit defaultUnit;
-
-    private TransferState state;
-
     /* package */
-    TransferBtcImpl(Wallet owner, BRWallet coreWallet, CoreBRTransaction coreTransfer, Unit defaultUnit) {
-        this.owner = owner;
+    TransferImplBtc(Wallet owner, BRWallet coreWallet, CoreBRTransaction coreTransfer, Unit defaultUnit) {
+        super(owner, defaultUnit);
         this.coreWallet = coreWallet;
         this.coreTransfer = coreTransfer;
-        this.defaultUnit = defaultUnit;
-        this.state = TransferState.createCreated();
     }
 
     @Override
-    public Wallet getWallet() {
-        return owner;
+    public byte[] serialize() {
+        return coreTransfer.serialize();
     }
 
     @Override
@@ -94,20 +85,6 @@ final class TransferBtcImpl extends Transfer {
     }
 
     @Override
-    public Amount getAmountDirected() {
-        switch (getDirection()) {
-            case RECOVERED:
-                return Amount.create(0L, defaultUnit).get();
-            case SENT:
-                return getAmount().negate();
-            case RECEIVED:
-                return getAmount();
-            default:
-                throw new IllegalStateException("Invalid transfer direction");
-        }
-    }
-
-    @Override
     public Amount getFee() {
         long fee = coreWallet.getFeeForTx(coreTransfer);
         if (fee == UnsignedLong.MAX_VALUE.longValue()) {
@@ -119,12 +96,7 @@ final class TransferBtcImpl extends Transfer {
     @Override
     public TransferFeeBasis getFeeBasis() {
         // TODO: There is a comment in the Swift about this; is this OK?
-        return TransferFeeBasis.createBtc(CryptoLibrary.DEFAULT_FEE_PER_KB);
-    }
-
-    @Override
-    public TransferState getState() {
-        return state;
+        return TransferFeeBasis.createBtc(BRWallet.DEFAULT_FEE_PER_KB);
     }
 
     @Override
@@ -159,35 +131,13 @@ final class TransferBtcImpl extends Transfer {
         return Optional.absent();
     }
 
-    @Override
-    public Optional<Long> getConfirmations() {
-        // TODO: Think we should not be doing this; instead pass in network
-        return getConfirmationsAt(owner.getWalletManager().getNetwork().getHeight());
+    /* package */
+    CoreBRTransaction getCoreBRTransaction() {
+        return coreTransfer;
     }
 
-    @Override
     /* package */
     boolean matches(BRTransaction transferImpl) {
         return coreTransfer.equals(transferImpl);
-    }
-
-    @Override
-    Optional<CoreBRTransaction> asCoreBRTransaction() {
-        return Optional.of(coreTransfer);
-    }
-
-    @Override
-    /* package */
-    TransferState setState(TransferState newState) {
-        // TODO: Do we want to synchronize here or are we ok with only being done by SystemImpl on a single thread?
-        TransferState oldState = state;
-        state = newState;
-        return oldState;
-    }
-
-    @Override
-    /* package */
-    byte[] serialize() {
-        return coreTransfer.serialize();
     }
 }

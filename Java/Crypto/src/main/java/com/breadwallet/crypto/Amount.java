@@ -11,8 +11,8 @@ package com.breadwallet.crypto;
 
 import android.support.annotation.Nullable;
 
-import com.breadwallet.crypto.jni.CryptoLibrary.BRCryptoBoolean;
-import com.breadwallet.crypto.jni.CryptoLibrary.BRCryptoComparison;
+import com.breadwallet.crypto.jni.crypto.BRCryptoBoolean;
+import com.breadwallet.crypto.jni.crypto.BRCryptoComparison;
 import com.breadwallet.crypto.jni.crypto.CoreBRCryptoAmount;
 import com.google.common.base.Optional;
 import com.sun.jna.ptr.IntByReference;
@@ -29,21 +29,21 @@ import static com.google.common.base.Preconditions.checkState;
 // TODO: Swift doesn't acknowledge that the creates can fail
 public final class Amount implements Comparable<Amount> {
 
-    /* package */
-    static Amount createAsBtc(long value, Unit unit) {
-        return new Amount(CoreBRCryptoAmount.createAsBtc(value, unit.getCurrency().core), unit);
-    }
-
     public static Optional<Amount> create(double value, Unit unit) {
-        return CoreBRCryptoAmount.create(value, unit.core).transform((amount) -> new Amount(amount, unit));
+        return CoreBRCryptoAmount.create(value, unit.getCoreBRCryptoUnit()).transform((amount) -> new Amount(amount, unit));
     }
 
     public static Optional<Amount> create(long value, Unit unit) {
-        return CoreBRCryptoAmount.create(value, unit.core).transform((amount) -> new Amount(amount, unit));
+        return CoreBRCryptoAmount.create(value, unit.getCoreBRCryptoUnit()).transform((amount) -> new Amount(amount, unit));
     }
 
     public static Optional<Amount> create(String value, boolean isNegative, Unit unit) {
-        return CoreBRCryptoAmount.create(value, isNegative, unit.core).transform((amount) -> new Amount(amount, unit));
+        return CoreBRCryptoAmount.create(value, isNegative, unit.getCoreBRCryptoUnit()).transform((amount) -> new Amount(amount, unit));
+    }
+
+    /* package */
+    static Amount createAsBtc(long value, Unit unit) {
+        return new Amount(CoreBRCryptoAmount.createAsBtc(value, unit.getCurrency().getCoreBRCryptoCurrency()), unit);
     }
 
     private static NumberFormat formatterWithUnit(Unit unit) {
@@ -79,7 +79,7 @@ public final class Amount implements Comparable<Amount> {
     }
 
     public boolean hasCurrency(Currency currency) {
-        return currency.core.equals(core.getCurrency());
+        return currency.getCoreBRCryptoCurrency().equals(core.getCurrency());
     }
 
     public boolean isCompatible(Amount withAmount) {
@@ -116,15 +116,17 @@ public final class Amount implements Comparable<Amount> {
         return new Amount(core.negate(), unit);
     }
 
-    /* package */ Optional<Double> doubleAmount(Unit asUnit) {
-        IntByReference overflowRef = new IntByReference(BRCryptoBoolean.CRYPTO_FALSE);
-        double value = core.getDouble(asUnit.core, overflowRef);
-        return overflowRef.getValue() == BRCryptoBoolean.CRYPTO_TRUE ? Optional.absent() : Optional.of(value);
+    public Optional<String> toStringAsUnit(Unit asUnit) {
+        return toStringAsUnit(asUnit, null);
     }
 
     public Optional<String> toStringAsUnit(Unit asUnit, @Nullable NumberFormat numberFormatter) {
         numberFormatter = numberFormatter != null ? numberFormatter : formatterWithUnit(asUnit);
         return doubleAmount(asUnit).transform(numberFormatter::format);
+    }
+
+    public Optional<String> toStringFromPair(CurrencyPair pair) {
+        return toStringFromPair(pair, null);
     }
 
     public Optional<String> toStringFromPair(CurrencyPair pair, @Nullable NumberFormat numberFormatter) {
@@ -143,7 +145,7 @@ public final class Amount implements Comparable<Amount> {
     @Override
     public String toString() {
         // TODO: This is not good; we should remove here and in Swift since it isn't localized
-        return toStringAsUnit(unit, null).or("<nan>");
+        return toStringAsUnit(unit).or("<nan>");
     }
 
     @Override
@@ -180,7 +182,16 @@ public final class Amount implements Comparable<Amount> {
     }
 
     /* package */
-    long asBtc() {
+    Optional<Double> doubleAmount(Unit asUnit) {
+        IntByReference overflowRef = new IntByReference(BRCryptoBoolean.CRYPTO_FALSE);
+        double value = core.getDouble(asUnit.getCoreBRCryptoUnit(), overflowRef);
+        return overflowRef.getValue() == BRCryptoBoolean.CRYPTO_TRUE ? Optional.absent() : Optional.of(value);
+    }
+
+    /* package */
+    long integerAmount() {
+        // TODO: in BRCrypto, there is asBtc and asEth but they both do this, should the Swift be modified like this?
+        // TODO: doubleAmount returns an optional based on overflow; shouldn't this?
         IntByReference overflowRef = new IntByReference(BRCryptoBoolean.CRYPTO_FALSE);
         long value = core.getIntegerRaw(overflowRef);
         checkState(BRCryptoBoolean.CRYPTO_FALSE == overflowRef.getValue());

@@ -27,13 +27,10 @@ final class NetworkDiscovery {
 
     /* package */
     static void discoverNetworks(BlockchainDb query, List<String> networksNeeded, Callback callback) {
-        // TODO: This semaphore stuff is nonsense; clean it up
         List<Network> networks = new ArrayList<>();
-        CountUpAndDownLatch latch = CountUpAndDownLatch.wrap(() -> {
-            callback.discovered(networks);
-        });
+        CountUpAndDownLatch latch = new CountUpAndDownLatch(() -> callback.discovered(networks));
 
-        getBlockChains(query, Blockchain.DEFAULT_BLOCKCHAINS, blockchainModels -> {
+        getBlockChains(latch, query, Blockchain.DEFAULT_BLOCKCHAINS, blockchainModels -> {
             for (Blockchain blockchainModel : blockchainModels) {
                 String blockchainModelId = blockchainModel.getId();
                 if (!networksNeeded.contains(blockchainModelId)) {
@@ -50,7 +47,7 @@ final class NetworkDiscovery {
 
                 Map<com.breadwallet.crypto.Currency, NetworkAssociation> associations = new HashMap<>();
 
-                getCurrencies(query, blockchainModelId, defaultCurrencies, currencyModels -> {
+                getCurrencies(latch, query, blockchainModelId, defaultCurrencies, currencyModels -> {
                     for (Currency currencyModel : currencyModels) {
                         if (!blockchainModelId.equals(currencyModel.getBlockchainId())) {
                             continue;
@@ -88,16 +85,16 @@ final class NetworkDiscovery {
                             associations));
 
                     return null;
-                }, latch);
+                });
             }
             return null;
-        }, latch);
+        });
     }
 
-    private static void getBlockChains(BlockchainDb query,
+    private static void getBlockChains(CountUpAndDownLatch latch,
+                                       BlockchainDb query,
                                        Collection<Blockchain> defaultBlockchains,
-                                       Function<Collection<Blockchain>, Void> func,
-                                       CountUpAndDownLatch latch) {
+                                       Function<Collection<Blockchain>, Void> func) {
         latch.countUp();
         query.getBlockchains(new BlockchainCompletionHandler<List<Blockchain>>() {
             @Override
@@ -129,10 +126,11 @@ final class NetworkDiscovery {
         });
     }
 
-    private static void getCurrencies(BlockchainDb query, String blockchainId,
+    private static void getCurrencies(CountUpAndDownLatch latch,
+                                      BlockchainDb query,
+                                      String blockchainId,
                                       Collection<Currency> defaultCurrencies,
-                                      Function<Collection<Currency>, Void> func,
-                                      CountUpAndDownLatch latch) {
+                                      Function<Collection<Currency>, Void> func) {
         latch.countUp();
         query.getCurrencies(blockchainId, new BlockchainCompletionHandler<List<Currency>>() {
             @Override
@@ -202,10 +200,6 @@ final class NetworkDiscovery {
     }
 
     private static class CountUpAndDownLatch {
-
-        static CountUpAndDownLatch wrap(Runnable runnable) {
-            return new CountUpAndDownLatch(runnable);
-        }
 
         private final Runnable runnable;
         private final AtomicInteger count;

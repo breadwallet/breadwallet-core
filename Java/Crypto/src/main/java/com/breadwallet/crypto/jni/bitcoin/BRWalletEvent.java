@@ -1,5 +1,4 @@
 package com.breadwallet.crypto.jni.bitcoin;
-import com.breadwallet.crypto.jni.CryptoLibrary;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.Union;
@@ -134,11 +133,11 @@ public class BRWalletEvent extends Structure {
 	public void read() {
 		super.read();
 		switch (type){
-			case CryptoLibrary.BRWalletEventType.BITCOIN_WALLET_BALANCE_UPDATED:
+			case BRWalletEventType.BITCOIN_WALLET_BALANCE_UPDATED:
 				u.setType(u_union.balance_struct.class);
 				u.read();
 				break;
-			case CryptoLibrary.BRWalletEventType.BITCOIN_WALLET_TRANSACTION_SUBMITTED:
+			case BRWalletEventType.BITCOIN_WALLET_TRANSACTION_SUBMITTED:
 				u.setType(u_union.submitted_struct.class);
 				u.read();
 				break;

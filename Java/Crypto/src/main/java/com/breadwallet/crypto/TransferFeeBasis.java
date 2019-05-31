@@ -1,5 +1,9 @@
 package com.breadwallet.crypto;
 
+// TODO(Abstraction): This could be split into a parent class as well as child classes for the fee basis types.
+//                    This way, we can put the fee, gas price and gas limit in the corresponding class. We can use the
+//                    the visitor pattern to move from the parent to the children as needed.
+
 public final class TransferFeeBasis {
 
     private final Impl impl;

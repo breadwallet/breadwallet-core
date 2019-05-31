@@ -2,6 +2,7 @@ package com.breadwallet.crypto.jni;
 
 import com.breadwallet.crypto.jni.bitcoin.BRChainParams;
 import com.breadwallet.crypto.jni.bitcoin.BRPeerManager;
+import com.breadwallet.crypto.jni.bitcoin.BRPeerManager.BRPeerManagerPublishTxCallback;
 import com.breadwallet.crypto.jni.crypto.BRCryptoAccount;
 import com.breadwallet.crypto.jni.bitcoin.BRWallet;
 import com.breadwallet.crypto.jni.bitcoin.BRWalletEvent;
@@ -30,106 +31,6 @@ public interface CryptoLibrary extends Library {
     String JNA_LIBRARY_NAME = "crypto";
     NativeLibrary LIBRARY = NativeLibrary.getInstance(CryptoLibrary.JNA_LIBRARY_NAME);
     CryptoLibrary INSTANCE = Native.load(CryptoLibrary.JNA_LIBRARY_NAME, CryptoLibrary.class);
-
-
-    /** <i>native declaration : bitcoin/BRWallet.h</i> */
-    long DEFAULT_FEE_PER_KB = (1000L * 10);
-
-
-    /**
-     * <i>native declaration : support/BRSyncMode.h:5</i><br>
-     * enum values
-     */
-    interface BRSyncMode {
-        /** <i>native declaration : support/BRSyncMode.h:1</i> */
-        int SYNC_MODE_BRD_ONLY = 0;
-        /** <i>native declaration : support/BRSyncMode.h:2</i> */
-        int SYNC_MODE_BRD_WITH_P2P_SEND = 1;
-        /** <i>native declaration : support/BRSyncMode.h:3</i> */
-        int SYNC_MODE_P2P_WITH_BRD_SYNC = 2;
-        /** <i>native declaration : support/BRSyncMode.h:4</i> */
-        int SYNC_MODE_P2P_ONLY = 3;
-    };
-
-    /**
-     * <i>native declaration : bitcoin/BRWalletManager.h:27</i><br>
-     * enum values
-     */
-    interface BRTransactionEventType {
-        /** <i>native declaration : bitcoin/BRWalletManager.h:24</i> */
-        int BITCOIN_TRANSACTION_ADDED = 0;
-        /** <i>native declaration : bitcoin/BRWalletManager.h:25</i> */
-        int BITCOIN_TRANSACTION_UPDATED = 1;
-        /** <i>native declaration : bitcoin/BRWalletManager.h:26</i> */
-        int BITCOIN_TRANSACTION_DELETED = 2;
-    };
-    /**
-     * <i>native declaration : bitcoin/BRWalletManager.h:45</i><br>
-     * enum values
-     */
-    interface BRWalletEventType {
-        /** <i>native declaration : bitcoin/BRWalletManager.h:41</i> */
-        int BITCOIN_WALLET_CREATED = 0;
-        /** <i>native declaration : bitcoin/BRWalletManager.h:42</i> */
-        int BITCOIN_WALLET_BALANCE_UPDATED = 1;
-        /** <i>native declaration : bitcoin/BRWalletManager.h:43</i> */
-        int BITCOIN_WALLET_TRANSACTION_SUBMITTED = 2;
-        /** <i>native declaration : bitcoin/BRWalletManager.h:44</i> */
-        int BITCOIN_WALLET_DELETED = 3;
-    };
-    /**
-     * <i>native declaration : bitcoin/BRWalletManager.h:70</i><br>
-     * enum values
-     */
-    interface BRWalletManagerEventType {
-        /** <i>native declaration : bitcoin/BRWalletManager.h:64</i> */
-        int BITCOIN_WALLET_MANAGER_CREATED = 0;
-        /** <i>native declaration : bitcoin/BRWalletManager.h:65</i> */
-        int BITCOIN_WALLET_MANAGER_CONNECTED = 1;
-        /** <i>native declaration : bitcoin/BRWalletManager.h:66</i> */
-        int BITCOIN_WALLET_MANAGER_DISCONNECTED = 2;
-        /** <i>native declaration : bitcoin/BRWalletManager.h:67</i> */
-        int BITCOIN_WALLET_MANAGER_SYNC_STARTED = 3;
-        /** <i>native declaration : bitcoin/BRWalletManager.h:68</i> */
-        int BITCOIN_WALLET_MANAGER_SYNC_STOPPED = 4;
-        /** <i>native declaration : bitcoin/BRWalletManager.h:69</i> */
-        int BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED = 5;
-    };
-
-    /**
-     * <i>native declaration : crypto/BRCryptoBase.h:3</i><br>
-     * enum values
-     */
-    interface BREthereumBoolean {
-        /** <i>native declaration : crypto/BRCryptoBase.h:1</i> */
-        int ETHEREUM_BOOLEAN_TRUE = 0;
-        /** <i>native declaration : crypto/BRCryptoBase.h:2</i> */
-        int ETHEREUM_BOOLEAN_FALSE = 1;
-    };
-
-    /**
-     * <i>native declaration : crypto/BRCryptoBase.h:3</i><br>
-     * enum values
-     */
-    interface BRCryptoBoolean {
-        /** <i>native declaration : crypto/BRCryptoBase.h:1</i> */
-        int CRYPTO_FALSE = 0;
-        /** <i>native declaration : crypto/BRCryptoBase.h:2</i> */
-        int CRYPTO_TRUE = 1;
-    };
-
-    /**
-     * <i>native declaration : crypto/BRCryptoAmount.h:4</i><br>
-     * enum values
-     */
-    interface BRCryptoComparison {
-        /** <i>native declaration : crypto/BRCryptoAmount.h:1</i> */
-        int CRYPTO_COMPARE_LT = 0;
-        /** <i>native declaration : crypto/BRCryptoAmount.h:2</i> */
-        int CRYPTO_COMPARE_EQ = 1;
-        /** <i>native declaration : crypto/BRCryptoAmount.h:3</i> */
-        int CRYPTO_COMPARE_GT = 2;
-    };
 
 
     /**
@@ -500,30 +401,6 @@ public interface CryptoLibrary extends Library {
     Pointer coerceStringPrefaced(UInt256.ByValue value, int base, String preface);
 
 
-    /** <i>native declaration : bitcoin/BRWalletManager.h:9</i> */
-    interface BRGetBlockNumberCallback extends Callback {
-        void apply(Pointer context, BRWalletManager manager, int rid);
-    };
-    /** <i>native declaration : bitcoin/BRWalletManager.h:12</i> */
-    interface BRGetTransactionsCallback extends Callback {
-        void apply(Pointer context, BRWalletManager manager, long begBlockNumber, long endBlockNumber, int rid);
-    };
-    /** <i>native declaration : bitcoin/BRWalletManager.h:20</i> */
-    interface BRSubmitTransactionCallback extends Callback {
-        void apply(Pointer context, BRWalletManager manager, BRWallet wallet, BRTransaction transaction, int rid);
-    };
-    /** <i>native declaration : bitcoin/BRWalletManager.h:39</i> */
-    interface BRTransactionEventCallback extends Callback {
-        void apply(Pointer context, BRWalletManager manager, BRWallet wallet, BRTransaction transaction, BRTransactionEvent.ByValue event);
-    };
-    /** <i>native declaration : bitcoin/BRWalletManager.h:62</i> */
-    interface BRWalletEventCallback extends Callback {
-        void apply(Pointer context, BRWalletManager manager, BRWallet wallet, BRWalletEvent.ByValue event);
-    };
-    /** <i>native declaration : bitcoin/BRWalletManager.h:85</i> */
-    interface BRWalletManagerEventCallback extends Callback {
-        void apply(Pointer context, BRWalletManager manager, BRWalletManagerEvent.ByValue event);
-    };
     /**
      * Original signature : <code>int bwmAnnounceBlockNumber(BRWalletManager, int, uint64_t)</code><br>
      * <i>native declaration : bitcoin/BRWalletManager.h:11</i>
@@ -587,10 +464,7 @@ public interface CryptoLibrary extends Library {
     BRPeerManager BRWalletManagerGetPeerManager(BRWalletManager manager);
 
 
-    /** <i>native declaration : bitcoin/BRPeerManager.h:103</i> */
-    interface BRPeerManagerPublishTxCallback extends Callback {
-        void apply(Pointer info, int error);
-    };
+    ;
     /**
      * publishes tx to bitcoin network (do not call BRTransactionFree() on tx afterward)<br>
      * Original signature : <code>void BRPeerManagerPublishTx(BRPeerManager*, BRTransaction*, void*, BRPeerManagerPublishTxCallback*)</code><br>

@@ -23,6 +23,13 @@ import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+// TODO(Abstraction): This class exposes Core data types via the asBtc/asEth methods. If we want a pure
+//                    API, we need to expose the raw data, not the core data types (i.e. btcChainParams, ethNetwork)
+
+// TODO(Abstraction): This could be split into a parent class as well as child classes for the network types.
+//                    This way, we can put the btcChainParams and ethNetwork in the appropriate class. We can use the
+//                    the visitor pattern to move from the parent to the children as needed.
+
 public final class Network {
 
     /* package */
@@ -110,6 +117,11 @@ public final class Network {
         return height;
     }
 
+    @Override
+    public String toString() {
+        return name;
+    }
+
     /* package */
     void setHeight(long height) {
         this.height = height;
@@ -118,11 +130,6 @@ public final class Network {
     /* package */
     BRChainParams asBtc() {
         return impl.asBtc();
-    }
-
-    @Override
-    public String toString() {
-        return name;
     }
 
     // TODO: SHould asBtc() and asEth() be returning Optional instead of throwing an exception?
@@ -209,6 +216,7 @@ public final class Network {
 
         @Override
         public Optional<Address> addressFor(String address) {
+            // TODO: How is this going to be handled?
             return Optional.absent();
         }
     }

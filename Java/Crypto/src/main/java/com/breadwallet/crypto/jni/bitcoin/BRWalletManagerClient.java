@@ -1,10 +1,5 @@
 package com.breadwallet.crypto.jni.bitcoin;
-import com.breadwallet.crypto.jni.CryptoLibrary.BRGetBlockNumberCallback;
-import com.breadwallet.crypto.jni.CryptoLibrary.BRGetTransactionsCallback;
-import com.breadwallet.crypto.jni.CryptoLibrary.BRSubmitTransactionCallback;
-import com.breadwallet.crypto.jni.CryptoLibrary.BRTransactionEventCallback;
-import com.breadwallet.crypto.jni.CryptoLibrary.BRWalletEventCallback;
-import com.breadwallet.crypto.jni.CryptoLibrary.BRWalletManagerEventCallback;
+import com.sun.jna.Callback;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import java.util.Arrays;
@@ -16,6 +11,32 @@ import java.util.List;
  * For help, please visit <a href="http://nativelibs4java.googlecode.com/">NativeLibs4Java</a> , <a href="http://rococoa.dev.java.net/">Rococoa</a>, or <a href="http://jna.dev.java.net/">JNA</a>.
  */
 public class BRWalletManagerClient extends Structure {
+
+	/** <i>native declaration : bitcoin/BRWalletManager.h:9</i> */
+	public interface BRGetBlockNumberCallback extends Callback {
+		void apply(Pointer context, BRWalletManager manager, int rid);
+	}
+	/** <i>native declaration : bitcoin/BRWalletManager.h:12</i> */
+	public interface BRGetTransactionsCallback extends Callback {
+		void apply(Pointer context, BRWalletManager manager, long begBlockNumber, long endBlockNumber, int rid);
+	};
+	/** <i>native declaration : bitcoin/BRWalletManager.h:20</i> */
+	public interface BRSubmitTransactionCallback extends Callback {
+		void apply(Pointer context, BRWalletManager manager, BRWallet wallet, BRTransaction transaction, int rid);
+	};
+	/** <i>native declaration : bitcoin/BRWalletManager.h:39</i> */
+	public interface BRTransactionEventCallback extends Callback {
+		void apply(Pointer context, BRWalletManager manager, BRWallet wallet, BRTransaction transaction, BRTransactionEvent.ByValue event);
+	};
+	/** <i>native declaration : bitcoin/BRWalletManager.h:62</i> */
+	public interface BRWalletEventCallback extends Callback {
+		void apply(Pointer context, BRWalletManager manager, BRWallet wallet, BRWalletEvent.ByValue event);
+	};
+	/** <i>native declaration : bitcoin/BRWalletManager.h:85</i> */
+	public interface BRWalletManagerEventCallback extends Callback {
+		void apply(Pointer context, BRWalletManager manager, BRWalletManagerEvent.ByValue event);
+	};
+
 	/** C type : BRWalletManagerClientContext */
 	public Pointer context;
 	/** C type : BRGetBlockNumberCallback */
@@ -58,7 +79,8 @@ public class BRWalletManagerClient extends Structure {
 	public BRWalletManagerClient(Pointer peer) {
 		super(peer);
 	}
-	public static class ByReference extends BRWalletManagerClient implements Structure.ByReference {
+
+    public static class ByReference extends BRWalletManagerClient implements Structure.ByReference {
 		
 	};
 	public static class ByValue extends BRWalletManagerClient implements Structure.ByValue {

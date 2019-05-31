@@ -58,7 +58,6 @@ public final class TransferHash {
     }
 
     // TODO: Do the equals, hashcode and toString implementations yield the same result as calling native method?
-
     private static class Bitcoin implements Impl {
 
         private UInt256 core;

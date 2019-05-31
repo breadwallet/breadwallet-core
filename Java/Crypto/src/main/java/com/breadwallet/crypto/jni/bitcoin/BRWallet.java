@@ -1,13 +1,15 @@
 package com.breadwallet.crypto.jni.bitcoin;
 
 import com.breadwallet.crypto.jni.CryptoLibrary;
-import com.breadwallet.crypto.jni.CryptoLibrary.BRCryptoBoolean;
+import com.breadwallet.crypto.jni.crypto.BRCryptoBoolean;
 import com.breadwallet.crypto.jni.SizeT;
 import com.breadwallet.crypto.jni.support.BRAddress;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
 public class BRWallet extends PointerType {
+
+    public static final long DEFAULT_FEE_PER_KB = (1000L * 10);
 
     public BRWallet(Pointer address) {
         super(address);

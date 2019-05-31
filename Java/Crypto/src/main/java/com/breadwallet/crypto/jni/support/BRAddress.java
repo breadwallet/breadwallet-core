@@ -1,7 +1,7 @@
 package com.breadwallet.crypto.jni.support;
 
 import com.breadwallet.crypto.jni.CryptoLibrary;
-import com.breadwallet.crypto.jni.CryptoLibrary.BRCryptoBoolean;
+import com.breadwallet.crypto.jni.crypto.BRCryptoBoolean;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 

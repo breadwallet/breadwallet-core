@@ -11,7 +11,10 @@ package com.breadwallet.crypto;
 
 import com.breadwallet.crypto.jni.crypto.CoreBRCryptoAccount;
 import com.breadwallet.crypto.jni.support.BRMasterPubKey;
-import com.google.common.base.Optional;
+
+// TODO(Abstraction): This class exposes Core data types via the asBtc/asEth methods. If we want a pure
+//                    API, we need to expose the raw data, not the core data types (i.e. btcMasterPubKey,
+//                    ethMasterPubKey and ethAddressDetail)
 
 // TODO: Should uid be a UUID object? Or should we verify that it is a valid one?
 public final class Account {
@@ -19,20 +22,12 @@ public final class Account {
     private final CoreBRCryptoAccount core;
     private final String uids;
 
-    public static Optional<Account> createFrom(String phrase, String uids) {
-        CoreBRCryptoAccount account = CoreBRCryptoAccount.create(phrase);
-        if (account == null) {
-            return Optional.absent();
-        }
-        return Optional.of(new Account(account, uids));
+    public static Account createFrom(String phrase, String uids) {
+        return new Account(CoreBRCryptoAccount.create(phrase), uids);
     }
 
-    public static Optional<Account> createFrom(byte[] seed, String uids) {
-        CoreBRCryptoAccount account = CoreBRCryptoAccount.createFromSeed(seed);
-        if (account == null) {
-            return Optional.absent();
-        }
-        return Optional.of(new Account(account, uids));
+    public static Account createFrom(byte[] seed, String uids) {
+        return new Account(CoreBRCryptoAccount.createFromSeed(seed), uids);
     }
 
     public static byte[] deriveSeed(String phrase) {
@@ -49,6 +44,7 @@ public final class Account {
     }
 
     public void setTimestamp(long timestamp) {
+        // TODO: Can we make this part of the ctor or does it need to be mutable?
         core.setTimestamp(timestamp);
     }
 

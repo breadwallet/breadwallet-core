@@ -6,42 +6,42 @@ import com.google.common.base.Optional;
 
 public final class TransferState {
 
-    public final Type type;
+    public static TransferState CREATED() {
+        return new TransferState(Type.CREATED, null, null);
+    }
+
+    public static TransferState SIGNED() {
+        return new TransferState(Type.SIGNED, null, null);
+    }
+
+    public static TransferState SUBMITTED() {
+        return new TransferState(Type.SUBMITTED, null, null);
+    }
+
+    public static TransferState PENDING() {
+        return new TransferState(Type.PENDING, null, null);
+    }
+
+    public static TransferState INCLUDED(TransferConfirmation confirmation) {
+        return new TransferState(Type.INCLUDED, confirmation, null);
+    }
+
+    public static TransferState FAILED(String reason) {
+        return new TransferState(Type.FAILED, null, reason);
+    }
+
+    public static TransferState DELETED() {
+        return new TransferState(Type.DELETED, null, null);
+    }
+
+    public enum Type { CREATED, SIGNED, SUBMITTED, PENDING, INCLUDED, FAILED, DELETED }
+
+    private final Type type;
 
     @Nullable
     private final TransferConfirmation includedConfirmation;
     @Nullable
     private final String failedReason;
-
-    enum Type { CREATED, SIGNED, SUBMITTED, PENDING, INCLUDED, FAILED, DELETED };
-
-    public static TransferState createCreated() {
-        return new TransferState(Type.CREATED, null, null);
-    }
-
-    public static TransferState createSigned() {
-        return new TransferState(Type.SIGNED, null, null);
-    }
-
-    public static TransferState createSubmitted() {
-        return new TransferState(Type.SUBMITTED, null, null);
-    }
-
-    public static TransferState createPending() {
-        return new TransferState(Type.PENDING, null, null);
-    }
-
-    public static TransferState createIncluded(TransferConfirmation confirmation) {
-        return new TransferState(Type.INCLUDED, confirmation, null);
-    }
-
-    public static TransferState createFailed(String reason) {
-        return new TransferState(Type.FAILED, null, reason);
-    }
-
-    public static TransferState createDeleted() {
-        return new TransferState(Type.DELETED, null, null);
-    }
 
     private TransferState(Type type, @Nullable TransferConfirmation includedConfirmation, @Nullable String failedReason) {
         this.type = type;
@@ -52,7 +52,6 @@ public final class TransferState {
     public Type getType() {
         return type;
     }
-
 
     public Optional<TransferConfirmation> getIncludedConfirmation() {
         return Optional.fromNullable(includedConfirmation);

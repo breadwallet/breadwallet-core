@@ -39,7 +39,7 @@ public class BRCryptoUnit extends PointerType implements CoreBRCryptoUnit {
     @Override
     public boolean isCompatible(CoreBRCryptoUnit other) {
         BRCryptoUnit otherCore = other.asBRCryptoUnit();
-        return CryptoLibrary.BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoUnitIsCompatible(this, otherCore);
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoUnitIsCompatible(this, otherCore);
     }
 
     @Override

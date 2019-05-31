@@ -1,5 +1,4 @@
 package com.breadwallet.crypto.jni.bitcoin;
-import com.breadwallet.crypto.jni.CryptoLibrary;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.Union;
@@ -126,11 +125,11 @@ public class BRWalletManagerEvent extends Structure {
 	public void read() {
 		super.read();
 		switch (type){
-			case CryptoLibrary.BRWalletManagerEventType.BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+			case BRWalletManagerEventType.BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
 				u.setType(u_union.blockHeightUpdated_struct.class);
 				u.read();
 				break;
-			case CryptoLibrary.BRWalletManagerEventType.BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
+			case BRWalletManagerEventType.BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
 				u.setType(u_union.syncStopped_struct.class);
 				u.read();
 				break;
