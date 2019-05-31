@@ -35,10 +35,10 @@ public class AddressAIT {
 
     @Test
     public void testAddressCreateAsBtc() {
-        Optional<AddressImpl> ob1 = AddressImpl.createAsBtc("mm7DDqVkFd35XcWecFipfTYM5dByBzn7nq");
+        Optional<AddressImpl> ob1 = AddressImpl.createAsBtc("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj");
         assertTrue(ob1.isPresent());
         Address b1 = ob1.get();
-        assertEquals("mm7DDqVkFd35XcWecFipfTYM5dByBzn7nq", b1.toString());
+        assertEquals("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj", b1.toString());
 
         // TODO: Expand coverage
     }
@@ -46,7 +46,7 @@ public class AddressAIT {
     @Test
     public void testAddressMixedEquals() {
         Address e1 = AddressImpl.createAsEth("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62").get();
-        Address b1 = AddressImpl.createAsBtc("mm7DDqVkFd35XcWecFipfTYM5dByBzn7nq").get();
+        Address b1 = AddressImpl.createAsBtc("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj").get();
 
         assertNotEquals(e1, b1);
         assertNotEquals(b1, e1);
