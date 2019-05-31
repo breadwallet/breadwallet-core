@@ -15,11 +15,11 @@ import java.util.List;
 
 public interface Wallet {
 
-    Optional<Transfer> createTransfer(Address target, Amount amount, TransferFeeBasis feeBasis);
-
     default Optional<Transfer> createTransfer(Address target, Amount amount) {
         return createTransfer(target, amount, getDefaultFeeBasis());
     }
+
+    Optional<Transfer> createTransfer(Address target, Amount amount, TransferFeeBasis feeBasis);
 
     Amount estimateFee(Amount amount);
 

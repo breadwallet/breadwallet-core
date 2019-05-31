@@ -1,15 +1,21 @@
 package com.breadwallet.crypto;
 
+import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.events.system.SystemListener;
+import com.breadwallet.crypto.implj.SystemImpl;
 import com.google.common.base.Optional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 // TODO: System is an unfortunate name in Java. How about CryptoManager or AccountManager?
 public interface System {
 
-    // TODO: Implement subscription
+    static System create(ExecutorService listenerExecutor, SystemListener listener, Account account, String path, BlockchainDb query) {
+        return SystemImpl.create(listenerExecutor, listener, account, path, query);
+    }
+
     void subscribe(String subscriptionToken);
 
     void initialize(List<String> networksNeeded);

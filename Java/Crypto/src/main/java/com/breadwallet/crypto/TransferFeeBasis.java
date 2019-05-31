@@ -6,17 +6,17 @@ package com.breadwallet.crypto;
 
 public final class TransferFeeBasis {
 
-    private final Impl impl;
+    private final CurrencyTransferFeeBasis impl;
 
     public static TransferFeeBasis createBtc(long btcFeePerKb) {
-        return new TransferFeeBasis(new Bitcoin(btcFeePerKb));
+        return new TransferFeeBasis(new BitcoinTransferFeeBasis(btcFeePerKb));
     }
 
     public static TransferFeeBasis createEth(Amount ethGasPrice, long ethGasLimit) {
-        return new TransferFeeBasis(new Ethereum(ethGasPrice, ethGasLimit));
+        return new TransferFeeBasis(new EthereumTransferFeeBasis(ethGasPrice, ethGasLimit));
     }
 
-    private TransferFeeBasis(Impl impl) {
+    private TransferFeeBasis(CurrencyTransferFeeBasis impl) {
         this.impl = impl;
     }
 
@@ -33,7 +33,7 @@ public final class TransferFeeBasis {
     }
 
     // TODO: Should getBtcFeePerKb(), getEthGasPrice(), and getEthGasLimit() be returning Optional instead of throwing an exception?
-    private interface Impl {
+    private interface CurrencyTransferFeeBasis {
 
         default long getBtcFeePerKb() {
             throw new IllegalStateException("Invalid transfer fee type");
@@ -48,11 +48,11 @@ public final class TransferFeeBasis {
         }
     }
 
-    private static class Bitcoin implements Impl {
+    private static class BitcoinTransferFeeBasis implements CurrencyTransferFeeBasis {
 
         private final long btcFeePerKb;
 
-        private Bitcoin(long btcFeePerKb) {
+        private BitcoinTransferFeeBasis(long btcFeePerKb) {
             this.btcFeePerKb = btcFeePerKb;
         }
 
@@ -61,12 +61,12 @@ public final class TransferFeeBasis {
         }
     }
 
-    private static class Ethereum implements Impl {
+    private static class EthereumTransferFeeBasis implements CurrencyTransferFeeBasis {
 
         private final Amount ethGasPrice;
         private final long ethGasLimit;
 
-        private Ethereum(Amount ethGasPrice, long ethGasLimit) {
+        private EthereumTransferFeeBasis(Amount ethGasPrice, long ethGasLimit) {
             this.ethGasPrice = ethGasPrice;
             this.ethGasLimit = ethGasLimit;
         }

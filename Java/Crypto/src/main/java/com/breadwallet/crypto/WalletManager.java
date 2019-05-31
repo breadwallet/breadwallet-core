@@ -25,7 +25,7 @@ public interface WalletManager {
 
     default boolean isActive() {
         WalletManagerState state = getState();
-        return state == WalletManagerState.CREATED || state == WalletManagerState.SYNCHING;
+        return state == WalletManagerState.CREATED || state == WalletManagerState.SYNCING;
     }
 
     Account getAccount();

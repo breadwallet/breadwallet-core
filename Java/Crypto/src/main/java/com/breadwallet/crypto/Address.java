@@ -9,80 +9,11 @@
  */
 package com.breadwallet.crypto;
 
-import com.breadwallet.crypto.jni.crypto.CoreBRCryptoAddress;
-import com.breadwallet.crypto.jni.support.BRAddress;
-import com.breadwallet.crypto.jni.ethereum.BREthereumAddress;
-import com.google.common.base.Optional;
+public interface Address {
 
-import java.util.Objects;
+    String toString();
 
-public final class Address {
+    boolean equals(Object o);
 
-    public static Optional<Address> create(String address, Network network) {
-        return network.addressFor(address);
-    }
-
-    /* package */
-    static Optional<Address> createAsBtc(String address) {
-        if (!BRAddress.isValid(address)) {
-            return Optional.absent();
-        }
-
-        CoreBRCryptoAddress cryptoAddress = CoreBRCryptoAddress.createAsBtc(address);
-        return Optional.of(new Address(cryptoAddress));
-    }
-
-    /* package */
-    static Address createAsBtc(BRAddress address) {
-        // TODO: Can we just create cryptoAddressCreateAsBTCString function in the C layer?
-        BRAddress.ByValue addressValue = new BRAddress.ByValue(address);
-        return new Address(CoreBRCryptoAddress.createAsBtc(addressValue));
-    }
-
-    /* package */
-    static Optional<Address> createAsEth(String address) {
-        if (!BREthereumAddress.isValid(address)) {
-            return Optional.absent();
-        }
-
-        CoreBRCryptoAddress cryptoAddress = CoreBRCryptoAddress.createAsEth(address);
-        return Optional.of(new Address(cryptoAddress));
-    }
-
-    /* package */
-    static Address createAsEth(BREthereumAddress address) {
-        // TODO: Can we just create cryptoAddressCreateAsETHString function in the C layer?
-        BREthereumAddress.ByValue addressValue = new BREthereumAddress.ByValue(address);
-        return new Address(CoreBRCryptoAddress.createAsEth(addressValue));
-    }
-
-    private final CoreBRCryptoAddress core;
-
-    private Address(CoreBRCryptoAddress core) {
-        this.core = core;
-    }
-
-    @Override
-    public String toString() {
-        return core.toString();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        Address address = (Address) o;
-        return core.isIdentical(address.core);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(core);
-    }
+    int hashCode();
 }

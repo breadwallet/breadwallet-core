@@ -8,7 +8,6 @@ import android.arch.lifecycle.ProcessLifecycleOwner;
 import android.os.StrictMode;
 
 import com.breadwallet.crypto.Account;
-import com.breadwallet.crypto.SystemImpl;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.System;
 
@@ -59,7 +58,7 @@ public class CoreCryptoApplication extends Application {
 
         BlockchainDb query = new BlockchainDb(new OkHttpClient(), BDB_BASE_URL, API_BASE_URL);
         listener = new CoreSystemListener();
-        system = SystemImpl.create(Executors.newSingleThreadExecutor(), listener, account , storageFile.getAbsolutePath(), query);
+        system = System.create(Executors.newSingleThreadExecutor(), listener, account , storageFile.getAbsolutePath(), query);
         system.initialize(Arrays.asList("bitcoin-testnet", "ethereum-testnet"));
 
         ProcessLifecycleOwner.get().getLifecycle().addObserver(observer);

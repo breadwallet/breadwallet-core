@@ -126,7 +126,7 @@ public class TransferCreateActivity extends AppCompatActivity {
 
         submitView.setOnClickListener(v -> {
             String addressStr = receiverView.getText().toString();
-            Optional<Address> target = Address.create(addressStr, network);
+            Optional<Address> target = network.addressFor(addressStr);
             if (!target.isPresent()) {
                 showError("Invalid target address");
                 return;

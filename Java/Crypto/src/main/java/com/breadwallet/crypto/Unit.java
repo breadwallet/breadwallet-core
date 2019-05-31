@@ -9,83 +9,23 @@
  */
 package com.breadwallet.crypto;
 
-import com.breadwallet.crypto.jni.crypto.CoreBRCryptoUnit;
+public interface Unit {
 
-import java.util.Objects;
+    Currency getCurrency();
 
-public final class Unit {
+    String getName();
 
-    private final CoreBRCryptoUnit core;
-    private final Unit base;
-    private final String uids;
-    private final Currency currency;
+    String getSymbol();
 
-    /* package */
-    Unit(Currency currency, String uids, String name, String symbol) {
-        this(CoreBRCryptoUnit.createAsBase(currency.getCoreBRCryptoCurrency(), name, symbol), currency, uids, null);
-    }
+    Unit getBase();
 
-    /* package */
-    Unit(Currency currency, String uids, String name, String symbol, Unit base, int decimals) {
-        this(CoreBRCryptoUnit.create(currency.getCoreBRCryptoCurrency(), name, symbol, base.core, decimals), currency, uids, base);
-    }
+    int getDecimals();
 
-    private Unit(CoreBRCryptoUnit core, Currency currency, String uids, Unit base) {
-        this.core = core;
-        this.currency = currency;
-        this.uids = uids;
-        this.base = base == null ? this : base;
-    }
+    boolean isCompatible(Unit other);
 
-    public Currency getCurrency() {
-        return currency;
-    }
+    boolean hasCurrency(Currency currency);
 
-    public String getName() {
-        return core.getName();
-    }
+    boolean equals(Object o);
 
-    public String getSymbol() {
-        return core.getSymbol();
-    }
-
-    public Unit getBase() {
-        return base;
-    }
-
-    public int getDecimals() {
-        return core.getDecimals();
-    }
-
-    public boolean isCompatible(Unit other) {
-        return core.isCompatible(other.core);
-    }
-
-    public boolean hasCurrency(Currency currency) {
-        return core.hasCurrency(currency.getCoreBRCryptoCurrency());
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        Unit unit = (Unit) o;
-        return uids.equals(unit.uids);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(uids);
-    }
-
-    /* package */
-    CoreBRCryptoUnit getCoreBRCryptoUnit() {
-        return core;
-    }
+    int hashCode();
 }

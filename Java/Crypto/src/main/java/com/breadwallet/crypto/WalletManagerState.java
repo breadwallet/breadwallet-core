@@ -4,6 +4,6 @@ public enum WalletManagerState {
     CREATED,
     DISCONNECTED,
     CONNECTED,
-    SYNCHING,
+    SYNCING,
     DELETED
 }

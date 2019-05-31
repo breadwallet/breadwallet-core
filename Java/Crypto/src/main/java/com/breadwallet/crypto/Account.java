@@ -9,47 +9,28 @@
  */
 package com.breadwallet.crypto;
 
-import com.breadwallet.crypto.jni.crypto.CoreBRCryptoAccount;
-import com.breadwallet.crypto.jni.support.BRMasterPubKey;
+import com.breadwallet.crypto.implj.AccountImpl;
+import com.breadwallet.crypto.libcrypto.support.BRMasterPubKey;
 
 // TODO(Abstraction): This class exposes Core data types via the asBtc/asEth methods. If we want a pure
 //                    API, we need to expose the raw data, not the core data types (i.e. btcMasterPubKey,
 //                    ethMasterPubKey and ethAddressDetail)
 
-// TODO: Should uid be a UUID object? Or should we verify that it is a valid one?
-public final class Account {
+public interface Account {
 
-    private final CoreBRCryptoAccount core;
-    private final String uids;
+    // TODO: These should be proper factories
 
-    public static Account createFrom(String phrase, String uids) {
-        return new Account(CoreBRCryptoAccount.create(phrase), uids);
+    static Account createFrom(String phrase, String uids) {
+        return AccountImpl.createFrom(phrase, uids);
     }
 
-    public static Account createFrom(byte[] seed, String uids) {
-        return new Account(CoreBRCryptoAccount.createFromSeed(seed), uids);
+    static Account createFrom(byte[] seed, String uids) {
+        return AccountImpl.createFrom(seed, uids);
     }
 
-    public static byte[] deriveSeed(String phrase) {
-        return CoreBRCryptoAccount.deriveSeed(phrase);
-    }
+    long getTimestamp();
 
-    private Account(CoreBRCryptoAccount core, String uids) {
-        this.core = core;
-        this.uids = uids;
-    }
+    void setTimestamp(long timestamp);
 
-    public long getTimestamp() {
-        return core.getTimestamp();
-    }
-
-    public void setTimestamp(long timestamp) {
-        // TODO: Can we make this part of the ctor or does it need to be mutable?
-        core.setTimestamp(timestamp);
-    }
-
-    /* package */
-    BRMasterPubKey.ByValue asBtc() {
-        return core.asBtc();
-    }
+    BRMasterPubKey.ByValue asBtc();
 }

@@ -9,61 +9,19 @@
  */
 package com.breadwallet.crypto;
 
-import com.breadwallet.crypto.jni.crypto.CoreBRCryptoCurrency;
+public interface Currency {
 
-import java.util.Objects;
+    String CODE_AS_BTC = "btc";
+    String CODE_AS_BCH = "bch";
+    String CODE_AS_ETH = "eth";
 
-public final class Currency {
+    String getName();
 
-    public static final String CODE_AS_BTC = "btc";
-    public static final String CODE_AS_BCH = "bch";
-    public static final String CODE_AS_ETH = "eth";
+    String getCode();
 
-    private final CoreBRCryptoCurrency core;
-    private final String uids;
+    String getType();
 
-    /* package */ Currency(String uids, String name, String code, String type) {
-        this(CoreBRCryptoCurrency.create(name, code, type), uids);
-    }
+    boolean equals(Object o);
 
-    private Currency(CoreBRCryptoCurrency core, String uids) {
-        this.core = core;
-        this.uids = uids;
-    }
-
-    public String getName() {
-        return core.getName();
-    }
-
-    public String getCode() {
-        return core.getCode();
-    }
-
-    public String getType() {
-        return core.getType();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        Currency currency = (Currency) o;
-        return uids.equals(currency.uids);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(uids);
-    }
-
-    /* package */
-    CoreBRCryptoCurrency getCoreBRCryptoCurrency() {
-        return core;
-    }
+    int hashCode();
 }

@@ -7,8 +7,7 @@ public final class TransferConfirmation {
     private final long timestamp;
     private final Amount fee;
 
-    /* package */
-    TransferConfirmation(long blockNumber, long transactionIndex, long timestamp, Amount fee) {
+    public TransferConfirmation(long blockNumber, long transactionIndex, long timestamp, Amount fee) {
         this.blockNumber = blockNumber;
         this.transactionIndex = transactionIndex;
         this.timestamp = timestamp;
