@@ -403,6 +403,10 @@ walletUpdateBalance (BREthereumWallet wallet) {
 
     UInt256 balance = subUInt256_Negative(recv, sent, &negative);
 
+    // If we are going to be changing the balance here then 1) shouldn't we call walletSetBalance()
+    // and shouldn't we also ensure that an event is generated (like all calls to
+    // walletSetBalance() ensure)?
+
     if (AMOUNT_ETHER == amountGetType(wallet->balance)) {
         balance = subUInt256_Negative(balance, fees, &negative);
         wallet->balance = amountCreateEther (etherCreate(balance));

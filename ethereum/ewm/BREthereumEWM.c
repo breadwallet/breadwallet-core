@@ -524,6 +524,18 @@ ewmCreate (BREthereumNetwork network,
             FOR_SET (BREthereumLog, log, logs)
                 ewmSignalLog (ewm, BCS_CALLBACK_LOG_ADDED, log);
 
+            // Previously both `ewmSignalTransaction()` and `ewmSignalLog` would iterate over
+            // all the transfers to compute the wallet's balance.  (see `walletUpdateBalance()`
+            // and its call sites (commented out currently)).  The balance was updated for each
+            // and every added transaction and an 'BALANCE_UPDATED' event was generated for each.
+            //
+            // But, now, we do not rely on summing transfers amounts - instead, since Ethereum is
+            // 'account based' we use the account state (ETH or ERC20) to get the wallet's
+            // balance.  Note, this might need to change as it is not currently clear to me
+            // how to get an ERC20 balance (execute a (free) transaction for 'balance'??); this
+            // later case applies for `bcsCreate()` below in P2P modes.
+            //
+
             // ... and then the latest block.
             BREthereumBlock lastBlock = NULL;
             FOR_SET (BREthereumBlock, block, blocks)
@@ -1073,7 +1085,6 @@ ewmInsertWallet (BREthereumEWM ewm,
     pthread_mutex_lock(&ewm->lock);
     array_add (ewm->wallets, wallet);
     ewmSignalWalletEvent (ewm, wallet, WALLET_EVENT_CREATED, SUCCESS, NULL);
-    ewmSignalWalletEvent (ewm, wallet, WALLET_EVENT_BALANCE_UPDATED, SUCCESS, NULL);
     pthread_mutex_unlock(&ewm->lock);
 }
 
@@ -1568,6 +1579,15 @@ ewmHandleBalance (BREthereumEWM ewm,
                               WALLET_EVENT_BALANCE_UPDATED,
                               SUCCESS,
                               NULL);
+
+        {
+            char *amountAsString = (AMOUNT_ETHER == amountGetType(amount)
+                                    ? etherGetValueString (amountGetEther(amount), WEI)
+                                    : tokenQuantityGetValueString (amountGetTokenQuantity(amount), TOKEN_QUANTITY_TYPE_INTEGER));
+            eth_log("EWM", "Balance: %s %s", amountAsString,
+                    (AMOUNT_ETHER == amountGetType(amount) ? "ETH" : tokenGetName(amountGetToken(amount))));
+            free (amountAsString);
+        }
     }
     pthread_mutex_unlock(&ewm->lock);
 }
@@ -1689,15 +1709,16 @@ ewmHandleTransaction (BREthereumEWM ewm,
         transfer = transferCreateWithTransaction (transaction); // transaction ownership given
 
         walletHandleTransfer (wallet, transfer);
-        walletUpdateBalance (wallet);
-        
+
+        // We've added a transfer and arguably we should update the wallet's balance.  But don't.
+        // Ethereum is 'account based'; we'll only update the balance based on a account state
+        // change (based on a P2P or API callback).
+        //
+        // walletUpdateBalance (wallet);
+
         ewmSignalTransferEvent (ewm, wallet, transfer,
                                 TRANSFER_EVENT_CREATED,
                                 SUCCESS, NULL);
-
-        ewmSignalWalletEvent (ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
-                              SUCCESS,
-                              NULL);
 
         needStatusEvent = 1;
     }
@@ -1766,15 +1787,16 @@ ewmHandleLog (BREthereumEWM ewm,
         transfer = transferCreateWithLog (log, token, ewm->coder); // log ownership given
 
         walletHandleTransfer (wallet, transfer);
-        walletUpdateBalance (wallet);
+
+        // We've added a transfer and arguably we should update the wallet's balance.  But don't.
+        // Ethereum is 'account based'; we'll only update the balance based on a account state
+        // change (based on a P2P or API callback).
+        //
+        // walletUpdateBalance (wallet);
 
         ewmSignalTransferEvent (ewm, wallet, transfer,
                                 TRANSFER_EVENT_CREATED,
                                 SUCCESS, NULL);
-
-        ewmSignalWalletEvent (ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
-                              SUCCESS,
-                              NULL);
 
         needStatusEvent = 1;
     }
