@@ -87,8 +87,8 @@ public class BlockchainDb {
         blockchainApi.getBlockchains(true, handler);
     }
 
-    public void getBlockchains(boolean ismainnet, BlockchainCompletionHandler<List<Blockchain>> handler) {
-        blockchainApi.getBlockchains(ismainnet, handler);
+    public void getBlockchains(boolean isMainnet, BlockchainCompletionHandler<List<Blockchain>> handler) {
+        blockchainApi.getBlockchains(isMainnet, handler);
     }
 
     public void getBlockchain(String id, BlockchainCompletionHandler<Blockchain> handler) {

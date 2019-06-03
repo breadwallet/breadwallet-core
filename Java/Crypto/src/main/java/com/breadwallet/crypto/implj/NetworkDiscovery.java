@@ -27,11 +27,11 @@ final class NetworkDiscovery {
     }
 
     /* package */
-    static void discoverNetworks(BlockchainDb query, List<String> networksNeeded, Callback callback) {
+    static void discoverNetworks(BlockchainDb query, List<String> networksNeeded, boolean isMainnet, Callback callback) {
         List<NetworkImpl> networks = new ArrayList<>();
         CountUpAndDownLatch latch = new CountUpAndDownLatch(() -> callback.discovered(networks));
 
-        getBlockChains(latch, query, Blockchain.DEFAULT_BLOCKCHAINS, blockchainModels -> {
+        getBlockChains(latch, query, Blockchain.DEFAULT_BLOCKCHAINS, isMainnet, blockchainModels -> {
             for (Blockchain blockchainModel : blockchainModels) {
                 String blockchainModelId = blockchainModel.getId();
                 if (!networksNeeded.contains(blockchainModelId)) {
@@ -97,9 +97,10 @@ final class NetworkDiscovery {
     private static void getBlockChains(CountUpAndDownLatch latch,
                                        BlockchainDb query,
                                        Collection<Blockchain> defaultBlockchains,
+                                       boolean isMainnet,
                                        Function<Collection<Blockchain>, Void> func) {
         latch.countUp();
-        query.getBlockchains(new BlockchainCompletionHandler<List<Blockchain>>() {
+        query.getBlockchains(isMainnet, new BlockchainCompletionHandler<List<Blockchain>>() {
             @Override
             public void handleData(List<Blockchain> newBlockchains) {
                 try {

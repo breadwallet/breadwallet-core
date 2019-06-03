@@ -16,8 +16,8 @@ public class BlockchainApi {
         this.jsonClient = jsonClient;
     }
 
-    public void getBlockchains(boolean ismainnet, BlockchainCompletionHandler<List<Blockchain>> handler) {
-        Multimap<String, String> params = ImmutableListMultimap.of("testnet", Boolean.valueOf(!ismainnet).toString());
+    public void getBlockchains(boolean isMainnet, BlockchainCompletionHandler<List<Blockchain>> handler) {
+        Multimap<String, String> params = ImmutableListMultimap.of("testnet", Boolean.valueOf(!isMainnet).toString());
         jsonClient.sendGetForArray("blockchains", params, Blockchain::asBlockchains, handler);
     }
 

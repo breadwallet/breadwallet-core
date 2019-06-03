@@ -1,13 +1,5 @@
 apply plugin: 'com.android.application'
 
-ext {
-    // configure a non-compromised key in your ~/.gradle/gradle.properties file ala
-    // BrdPaperKey="boring ..."
-    if (!project.hasProperty('BrdPaperKey')) {
-        BrdPaperKey = '"boring head harsh green empty clip fatal typical found crane dinner timber"'
-    }
-}
-
 android {
     compileSdkVersion 28
     compileOptions {
@@ -22,8 +14,18 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-        missingDimensionStrategy 'network', 'onTestnet'
-        buildConfigField 'String', "PaperKey", BrdPaperKey
+        missingDimensionStrategy 'network', 'onMainnet'
+    }
+
+    flavorDimensions "network"
+    productFlavors {
+        onMainnet {
+            dimension "network"
+        }
+
+        onTestnet {
+            dimension "network"
+        }
     }
 
     buildTypes {

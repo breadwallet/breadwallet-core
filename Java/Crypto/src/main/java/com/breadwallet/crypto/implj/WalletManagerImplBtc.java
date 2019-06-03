@@ -257,38 +257,44 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
                             return;
                         }
 
-                        // TODO (fix): Are these casts safe?
                         long timestamp = transaction.getTimestamp().transform((ts) -> ts.getTime() / 1000).or(0L);
                         if (timestamp < 0 || timestamp > Integer.MAX_VALUE) {
+                            Log.d(TAG, "BRGetTransactionsCallback received invalid timestamp, completing with failure");
                             announceTransactionComplete(rid, false);
                             return;
                         }
 
                         long blockHeight = transaction.getBlockHeight().or(0L);
                         if (blockHeight < 0 || blockHeight > Integer.MAX_VALUE) {
+                            Log.d(TAG, "BRGetTransactionsCallback received invalid block height, completing with failure");
                             announceTransactionComplete(rid, false);
                             return;
                         }
 
+                        // TODO (fix): Are these casts safe?
                         Optional<CoreBRTransaction> optCore = CoreBRTransaction.create(optRaw.get(), (int) timestamp, (int) blockHeight);
                         if (!optCore.isPresent()) {
+                            Log.d(TAG, "BRGetTransactionsCallback received invalid transaction, completing with failure");
                             announceTransactionComplete(rid, false);
                             return;
                         }
 
+                        Log.d(TAG, "BRGetTransactionsCallback received transaction, announcing " + transaction.getId());
                         announceTransaction(rid, optCore.get());
                     }
 
                     if (transactions.isEmpty()) {
+                        Log.d(TAG, "BRGetTransactionsCallback found no transactions, completing");
                         announceTransactionComplete(rid, true);
                     } else {
-                        query.getTransactions(blockchainId, getUnusedAddrsLegacy(), begBlockNumber, endBlockNumber, true, false, this);
+                        Log.d(TAG, "BRGetTransactionsCallback found transactions, requesting again");
+                        systemExecutor.submit(() -> query.getTransactions(blockchainId, getUnusedAddrsLegacy(), begBlockNumber, endBlockNumber, true, false, this));
                     }
                 }
 
                 @Override
                 public void handleError(QueryError error) {
-                    Log.d(TAG, "BRGetTransactionsCallback: transaction failed", error);
+                    Log.d(TAG, "BRGetTransactionsCallback received an error, completing with failure", error);
                     announceTransactionComplete(rid, false);
                 }
             });

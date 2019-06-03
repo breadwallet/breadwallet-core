@@ -26,10 +26,16 @@ import java.util.List;
 
 public class CoreSystemListener implements SystemListener {
 
+    private static final String TAG = CoreSystemListener.class.getName();
+
     private final List<WalletListener> walletListeners = new ArrayList<>();
     private final List<TransferListener> transferListeners = new ArrayList<>();
 
-    private static final String TAG = CoreSystemListener.class.getName();
+    private final WalletManagerMode mode;
+
+    public CoreSystemListener(WalletManagerMode mode) {
+        this.mode = mode;
+    }
 
     public void addListener(WalletListener listener) {
         walletListeners.add(listener);
@@ -69,9 +75,7 @@ public class CoreSystemListener implements SystemListener {
 
             @Override
             public Void visit(SystemNetworkAddedEvent event) {
-                Network network = event.getNetwork();
-                WalletManagerMode mode = WalletManagerMode.P2P_ONLY;
-                system.createWalletManager(network, mode);
+                system.createWalletManager(event.getNetwork(), mode);
                 return null;
             }
         });

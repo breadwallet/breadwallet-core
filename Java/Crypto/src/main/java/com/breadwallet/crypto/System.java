@@ -18,7 +18,11 @@ public interface System {
 
     void subscribe(String subscriptionToken);
 
-    void initialize(List<String> networksNeeded);
+    default void initialize(List<String> networksNeeded) {
+        initialize(networksNeeded, true);
+    }
+
+    void initialize(List<String> networksNeeded, boolean isMainnet);
 
     default void start() {
         for (WalletManager manager: getWalletManagers()) {

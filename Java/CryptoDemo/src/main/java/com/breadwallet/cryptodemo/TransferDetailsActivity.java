@@ -43,7 +43,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
     @Nullable
     private static Wallet getWallet(Intent intent) {
         String walletName = intent.getStringExtra(EXTRA_WALLET_NAME);
-        for(Wallet wallet: CoreCryptoApplication.system.getWallets()) {
+        for(Wallet wallet: CoreCryptoApplication.getSystem().getWallets()) {
             if (wallet.getName().equals(walletName)) {
                 return wallet;
             }
@@ -81,6 +81,8 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_transfer_details);
 
+        CoreCryptoApplication.initialize(this);
+
         Intent intent = getIntent();
         wallet = getWallet(intent);
         if (null == wallet) {
@@ -110,7 +112,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
     protected void onResume() {
         super.onResume();
 
-        CoreCryptoApplication.listener.addListener(this);
+        CoreCryptoApplication.getListener().addListener(this);
 
         String amountText = transfer.getAmountDirected().toString();
         amountView.setText(amountText);
@@ -144,7 +146,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
     protected void onPause() {
         super.onPause();
 
-        CoreCryptoApplication.listener.removeListener(this);
+        CoreCryptoApplication.getListener().removeListener(this);
     }
 
     @Override

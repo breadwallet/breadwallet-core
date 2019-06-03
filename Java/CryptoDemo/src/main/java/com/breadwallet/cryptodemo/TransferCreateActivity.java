@@ -39,7 +39,7 @@ public class TransferCreateActivity extends AppCompatActivity {
     @Nullable
     private static Wallet getWallet(Intent intent) {
         String walletName = intent.getStringExtra(EXTRA_WALLET_NAME);
-        for(Wallet wallet: CoreCryptoApplication.system.getWallets()) {
+        for(Wallet wallet: CoreCryptoApplication.getSystem().getWallets()) {
             if (wallet.getName().equals(walletName)) {
                 return wallet;
             }
@@ -62,6 +62,8 @@ public class TransferCreateActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_transfer_create);
+
+        CoreCryptoApplication.initialize(this);
 
         wallet = getWallet(getIntent());
         if (null == wallet) {
@@ -196,7 +198,7 @@ public class TransferCreateActivity extends AppCompatActivity {
                 .setMessage(String.format("Proceed with %s as fee?", transfer.getFee()))
                 .setNegativeButton("Cancel", (dialog, which) -> {})
                 .setPositiveButton("Continue", (dialog, which) -> {
-                    walletManager.submit(transfer, CoreCryptoApplication.paperKey);
+                    walletManager.submit(transfer, CoreCryptoApplication.getPaperKey());
                     finish();
                 })
                 .show();

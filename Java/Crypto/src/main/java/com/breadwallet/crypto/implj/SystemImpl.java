@@ -63,8 +63,8 @@ public final class SystemImpl implements System {
     }
 
     @Override
-    public void initialize(List<String> networksNeeded) {
-        NetworkDiscovery.discoverNetworks(query, networksNeeded, discoveredNetworks -> {
+    public void initialize(List<String> networksNeeded, boolean isMainnet) {
+        NetworkDiscovery.discoverNetworks(query, networksNeeded, isMainnet, discoveredNetworks -> {
             for (Network network: discoveredNetworks) {
                 if (addNetwork(network)) {
                     announcer.announceNetworkEvent(network, new NetworkCreatedEvent());
