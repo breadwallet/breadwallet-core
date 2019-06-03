@@ -39,11 +39,6 @@ final class TransferImplBtc extends TransferImpl {
     }
 
     @Override
-    public byte[] serialize() {
-        return coreTransfer.serialize();
-    }
-
-    @Override
     public Optional<Address> getSource() {
         boolean sent = UnsignedLong.MAX_VALUE.longValue() != coreWallet.getFeeForTx(coreTransfer);
 
@@ -136,6 +131,11 @@ final class TransferImplBtc extends TransferImpl {
             }
         }
         return Optional.absent();
+    }
+
+    /* package */
+    byte[] serialize() {
+        return coreTransfer.serialize();
     }
 
     /* package */

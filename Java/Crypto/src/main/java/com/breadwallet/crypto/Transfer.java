@@ -13,8 +13,6 @@ import com.google.common.base.Optional;
 
 public interface Transfer {
 
-    byte[] serialize();
-
     Wallet getWallet();
 
     Optional<Address> getSource();
