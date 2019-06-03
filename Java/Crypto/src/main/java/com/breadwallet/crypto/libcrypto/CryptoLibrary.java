@@ -23,6 +23,9 @@ import com.sun.jna.NativeLibrary;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
 
+// TODO(fix): Split into a separate module
+// TODO(fix): Remove JNAerator-generated comments
+
 public interface CryptoLibrary extends Library {
 
     String JNA_LIBRARY_NAME = "crypto";
