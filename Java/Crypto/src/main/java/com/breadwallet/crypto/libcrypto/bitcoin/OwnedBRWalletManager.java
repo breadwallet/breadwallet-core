@@ -33,8 +33,18 @@ class OwnedBRWalletManager implements CoreBRWalletManager {
     }
 
     @Override
-    public List<String> getUnusedAddrsLegacy(int limit) {
-        return core.getUnusedAddrsLegacy(limit);
+    public void generateUnusedAddrs(int limit) {
+        core.generateUnusedAddrs(limit);
+    }
+
+    @Override
+    public List<String> getAllAddrs() {
+        return core.getAllAddrs();
+    }
+
+    @Override
+    public List<String> getAllAddrsLegacy() {
+        return core.getAllAddrsLegacy();
     }
 
     @Override

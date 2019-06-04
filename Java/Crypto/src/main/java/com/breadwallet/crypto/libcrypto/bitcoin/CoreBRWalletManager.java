@@ -17,7 +17,11 @@ public interface CoreBRWalletManager {
 
     BRPeerManager getPeerManager();
 
-    List<String> getUnusedAddrsLegacy(int limit);
+    void generateUnusedAddrs(int limit);
+
+    List<String> getAllAddrs();
+
+    List<String> getAllAddrsLegacy();
 
     void connect();
 

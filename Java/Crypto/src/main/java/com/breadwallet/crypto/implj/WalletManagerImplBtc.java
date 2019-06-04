@@ -51,7 +51,10 @@ import com.breadwallet.crypto.libcrypto.bitcoin.BRChainParams;
 import com.google.common.base.Optional;
 import com.sun.jna.Pointer;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -59,6 +62,8 @@ import java.util.concurrent.Executors;
 final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
 
     private static final String TAG = WalletManagerImplBtc.class.getName();
+
+    private static final int UNUSED_ADDR_LIMIT = 25;
 
     private static int modeAsBtc(WalletManagerMode mode) {
         switch (mode) {
@@ -196,8 +201,11 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
     }
 
     private
-    List<String> getUnusedAddrsLegacy() {
-        return coreManager.getUnusedAddrsLegacy(25);
+    List<String> getAllAddrs() {
+        coreManager.generateUnusedAddrs(UNUSED_ADDR_LIMIT);
+        List<String> addrs = new ArrayList<>(coreManager.getAllAddrs());
+        addrs.addAll(coreManager.getAllAddrsLegacy());
+        return addrs;
     }
 
     private
@@ -243,13 +251,17 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
 
     private void doGetTransactions(Pointer context, BRWalletManager managerImpl, long begBlockNumber, long endBlockNumber, int rid) {
         systemExecutor.submit(() -> {
-            String blockchainId = getNetwork().getUids();
-
             Log.d(TAG, String.format("BRGetTransactionsCallback (%s %s)", begBlockNumber, endBlockNumber));
-            query.getTransactions(blockchainId, getUnusedAddrsLegacy(), begBlockNumber, endBlockNumber, true, false, new BlockchainCompletionHandler<List<Transaction>>() {
+
+            String blockchainId = getNetwork().getUids();
+            List<String> addresses = getAllAddrs();
+            Set<String> knownAddresses = new HashSet<>(addresses);
+
+            query.getTransactions(blockchainId, addresses, begBlockNumber, endBlockNumber, true, false, new BlockchainCompletionHandler<List<Transaction>>() {
                 @Override
                 public void handleData(List<Transaction> transactions) {
                     Log.d(TAG, "BRGetTransactionsCallback: transaction success");
+
                     for (Transaction transaction: transactions) {
                         Optional<byte[]> optRaw = transaction.getRaw();
                         if (!optRaw.isPresent()) {
@@ -287,8 +299,13 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
                         Log.d(TAG, "BRGetTransactionsCallback found no transactions, completing");
                         announceTransactionComplete(rid, true);
                     } else {
+                        Set<String> addressesSet = new HashSet<>(getAllAddrs());
+                        addressesSet.removeAll(knownAddresses);
+                        knownAddresses.addAll(addressesSet);
+                        List<String> addresses = new ArrayList<>(addressesSet);
+
                         Log.d(TAG, "BRGetTransactionsCallback found transactions, requesting again");
-                        systemExecutor.submit(() -> query.getTransactions(blockchainId, getUnusedAddrsLegacy(), begBlockNumber, endBlockNumber, true, false, this));
+                        systemExecutor.submit(() -> query.getTransactions(blockchainId, addresses, begBlockNumber, endBlockNumber, true, false, this));
                     }
                 }
 

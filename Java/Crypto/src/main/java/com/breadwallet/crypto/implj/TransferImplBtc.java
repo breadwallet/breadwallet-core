@@ -25,6 +25,9 @@ import com.breadwallet.crypto.libcrypto.support.UInt256;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedLong;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /* package */
 final class TransferImplBtc extends TransferImpl {
 
@@ -62,6 +65,58 @@ final class TransferImplBtc extends TransferImpl {
             }
         }
         return Optional.absent();
+    }
+
+    @Override
+    public List<Address> getSources() {
+        boolean sent = UnsignedLong.MAX_VALUE.longValue() != coreWallet.getFeeForTx(coreTransfer);
+
+        List<Address> addresses = new ArrayList<>();
+        for (BRTxInput input: coreTransfer.getInputs()) {
+            String addressStr = input.getAddressAsString();
+            if (sent == coreWallet.containsAddress(addressStr)) {
+                Optional<AddressImpl> optional = AddressImpl.createAsBtc(addressStr);
+                if (optional.isPresent()) addresses.add(optional.get());
+            }
+        }
+        return addresses;
+    }
+
+    @Override
+    public List<Address> getTargets() {
+        boolean sent = UnsignedLong.MAX_VALUE.longValue() != coreWallet.getFeeForTx(coreTransfer);
+
+        List<Address> addresses = new ArrayList<>();
+        for (BRTxOutput output: coreTransfer.getOutputs()) {
+            String addressStr = output.getAddressAsString();
+            if (!sent == coreWallet.containsAddress(addressStr)) {
+                Optional<AddressImpl> optional = AddressImpl.createAsBtc(addressStr);
+                if (optional.isPresent()) addresses.add(optional.get());
+            }
+        }
+        return addresses;
+    }
+
+    @Override
+    public List<Address> getInputs() {
+        List<Address> addresses = new ArrayList<>();
+        for (BRTxInput input: coreTransfer.getInputs()) {
+            String addressStr = input.getAddressAsString();
+            Optional<AddressImpl> optional = AddressImpl.createAsBtc(addressStr);
+            if (optional.isPresent()) addresses.add(optional.get());
+        }
+        return addresses;
+    }
+
+    @Override
+    public List<Address> getOutputs() {
+        List<Address> addresses = new ArrayList<>();
+        for (BRTxOutput output: coreTransfer.getOutputs()) {
+            String addressStr = output.getAddressAsString();
+            Optional<AddressImpl> optional = AddressImpl.createAsBtc(addressStr);
+            if (optional.isPresent()) addresses.add(optional.get());
+        }
+        return addresses;
     }
 
     @Override

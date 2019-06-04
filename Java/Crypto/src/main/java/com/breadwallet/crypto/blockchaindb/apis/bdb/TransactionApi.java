@@ -35,6 +35,7 @@ public class TransactionApi {
     }
 
 
+    // TODO(fix): Are we going to have a problem here with the number of addresses getting to be too big?
     public void getTransactions(String id, List<String> addresses, long beginBlockNumber, long endBlockNumber,
                                 boolean includeRaw, boolean includeProof,
                                 BlockchainCompletionHandler<List<Transaction>> handler) {

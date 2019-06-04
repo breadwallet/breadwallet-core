@@ -454,13 +454,28 @@ public interface CryptoLibrary extends Library {
      */
     BRWallet BRWalletManagerGetWallet(BRWalletManager manager);
     /**
+     * Original signature : <code>BRAddress* BRWalletManagerGenerateUnusedAddrs(BRWalletManager, uint32_t)</code><br>
+     * <i>native declaration : bitcoin/BRWalletManager.h</i>
+     */
+    void BRWalletManagerGenerateUnusedAddrs(BRWalletManager manager, int limit);
+    /**
      * Original signature : <code>BRAddress* BRWalletManagerGetUnusedAddrsLegacy(BRWalletManager, uint32_t)</code><br>
-     * <i>native declaration : bitcoin/BRWalletManager.h:115</i>
+     * <i>native declaration : bitcoin/BRWalletManager.h</i>
      */
     BRAddress BRWalletManagerGetUnusedAddrsLegacy(BRWalletManager manager, int limit);
     /**
+     * Original signature : <code>BRAddress* BRWalletManagerGetAllAddrsLegacy(BRWalletManager, size_t *)</code><br>
+     * <i>native declaration : bitcoin/BRWalletManager.h</i>
+     */
+    BRAddress BRWalletManagerGetAllAddrs(BRWalletManager manager, SizeTByReference addressesCount);
+    /**
+     * Original signature : <code>BRAddress* BRWalletManagerGetAllAddrsLegacy(BRWalletManager, size_t *)</code><br>
+     * <i>native declaration : bitcoin/BRWalletManager.h</i>
+     */
+    BRAddress BRWalletManagerGetAllAddrsLegacy(BRWalletManager manager, SizeTByReference addressesCount);
+    /**
      * Original signature : <code>BRPeerManager* BRWalletManagerGetPeerManager(BRWalletManager)</code><br>
-     * <i>native declaration : bitcoin/BRWalletManager.h:119</i>
+     * <i>native declaration : bitcoin/BRWalletManager.h</i>
      */
     BRPeerManager BRWalletManagerGetPeerManager(BRWalletManager manager);
 

@@ -11,6 +11,8 @@ package com.breadwallet.crypto;
 
 import com.google.common.base.Optional;
 
+import java.util.List;
+
 public interface Transfer {
 
     Wallet getWallet();
@@ -18,6 +20,14 @@ public interface Transfer {
     Optional<Address> getSource();
 
     Optional<Address> getTarget();
+
+    List<Address> getSources();
+
+    List<Address> getTargets();
+
+    List<Address> getInputs();
+
+    List<Address> getOutputs();
 
     Amount getAmount();
 

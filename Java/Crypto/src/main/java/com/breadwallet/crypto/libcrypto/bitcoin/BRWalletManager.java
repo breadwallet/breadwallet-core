@@ -1,6 +1,7 @@
 package com.breadwallet.crypto.libcrypto.bitcoin;
 
 import com.breadwallet.crypto.libcrypto.CryptoLibrary;
+import com.breadwallet.crypto.libcrypto.SizeTByReference;
 import com.breadwallet.crypto.libcrypto.crypto.BRCryptoBoolean;
 import com.breadwallet.crypto.libcrypto.support.BRAddress;
 import com.sun.jna.Native;
@@ -31,11 +32,34 @@ public class BRWalletManager extends PointerType implements CoreBRWalletManager 
     }
 
     @Override
-    public List<String> getUnusedAddrsLegacy(int limit) {
-        BRAddress address = CryptoLibrary.INSTANCE.BRWalletManagerGetUnusedAddrsLegacy(this, limit);
+    public void generateUnusedAddrs(int limit) {
+        CryptoLibrary.INSTANCE.BRWalletManagerGenerateUnusedAddrs(this, limit);
+    }
+
+    @Override
+    public List<String> getAllAddrs() {
+        SizeTByReference addrCountReference = new SizeTByReference();
+        BRAddress address = CryptoLibrary.INSTANCE.BRWalletManagerGetAllAddrs(this, addrCountReference);
         try {
             List<String> addresses = new ArrayList<>();
-            for (BRAddress addr : (BRAddress[]) address.toArray(limit)) {
+            // TODO(fix): Precondition check on this being appropriately sized
+            for (BRAddress addr: (BRAddress[]) address.toArray((int) addrCountReference.getValue())) {
+                addresses.add(addr.getAddressAsString());
+            }
+            return new ArrayList<>(addresses);
+        } finally {
+            Native.free(Pointer.nativeValue(address.getPointer()));
+        }
+    }
+
+    @Override
+    public List<String> getAllAddrsLegacy() {
+        SizeTByReference addrCountReference = new SizeTByReference();
+        BRAddress address = CryptoLibrary.INSTANCE.BRWalletManagerGetAllAddrsLegacy(this, addrCountReference);
+        try {
+            List<String> addresses = new ArrayList<>();
+            // TODO(fix): Precondition check on this being appropriately sized
+            for (BRAddress addr: (BRAddress[]) address.toArray((int) addrCountReference.getValue())) {
                 addresses.add(addr.getAddressAsString());
             }
             return new ArrayList<>(addresses);
