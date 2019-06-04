@@ -1991,10 +1991,9 @@ ewmUpdateNonce (BREthereumEWM ewm) {
  */
 static void
 ewmUpdateTransactions (BREthereumEWM ewm) {
-    if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) {
-        // Nothing to announce
-        return;
-    }
+    // Nothing to update if not connected.
+    if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) return;
+
     switch (ewm->mode) {
         case BRD_ONLY:
         case BRD_WITH_P2P_SEND: {
@@ -2030,10 +2029,9 @@ static void
 ewmUpdateLogs (BREthereumEWM ewm,
                BREthereumWallet wid,
                BREthereumContractEvent event) {
-    if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) {
-        // Nothing to announce
-        return;
-    }
+    // Nothing to update if not connected.
+    if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) return;
+
     switch (ewm->mode) {
         case BRD_ONLY:
         case BRD_WITH_P2P_SEND: {
@@ -2079,6 +2077,10 @@ ewmPeriodicDispatcher (BREventHandler handler,
     ewmUpdateBlockNumber(ewm);
     ewmUpdateNonce(ewm);
 
+    // For all the known wallets, get their balance.
+    for (int i = 0; i < array_count(ewm->wallets); i++)
+        ewmUpdateWalletBalance (ewm, ewm->wallets[i]);
+
     // Handle a BRD Sync:
 
     // 1) check if the prior sync has completed.
@@ -2088,30 +2090,33 @@ ewmPeriodicDispatcher (BREventHandler handler,
                                        ? ewm->brdSync.endBlockNumber - EWM_BRD_SYNC_START_BLOCK_OFFSET
                                        : 0);
     }
+
     // 2) completed or not, update the `endBlockNumber` to the current block height.
     ewm->brdSync.endBlockNumber = ewmGetBlockHeight(ewm);
 
-    // 3) We'll query all transactions for this ewm's account.  That will give us a shot at
-    // getting the nonce for the account's address correct.  We'll save all the transactions and
-    // then process them into wallet as wallets exist.
-    ewmUpdateTransactions(ewm);
-    // Note: we don't do the following  `ewmUpdateTransactions` because that is `extern`
-    ewm->brdSync.ridTransaction = ewm->requestId;
-    ewm->brdSync.completedTransaction = 0;
+    // 3) if the `endBlockNumber` differs from the `begBlockNumber` then perform a 'sync'
+    if (ewm->brdSync.begBlockNumber != ewm->brdSync.endBlockNumber) {
+
+        // 3a) We'll query all transactions for this ewm's account.  That will give us a shot at
+        // getting the nonce for the account's address correct.  We'll save all the transactions and
+        // then process them into wallet as wallets exist.
+        ewmUpdateTransactions(ewm);
+
+        // Record an 'update transaction' as in progress
+        ewm->brdSync.ridTransaction = ewm->requestId;
+        ewm->brdSync.completedTransaction = 0;
     
-    // 4) Similarly, we'll query all logs for this ewm's account.  We'll process these into
-    // (token) transactions and associate with their wallet.
-    ewmUpdateLogs(ewm, NULL, eventERC20Transfer);
-    // Note: we don't do the following  `ewmUpdateLogs because that is `extern`
-    ewm->brdSync.ridLog = ewm->requestId;
-    ewm->brdSync.completedLog = 0;
+        // 3b) Similarly, we'll query all logs for this ewm's account.  We'll process these into
+        // (token) transactions and associate with their wallet.
+        ewmUpdateLogs(ewm, NULL, eventERC20Transfer);
+
+        // Record an 'update log' as in progress
+        ewm->brdSync.ridLog = ewm->requestId;
+        ewm->brdSync.completedLog = 0;
+    }
 
     // End handling a BRD Sync
     
-    // For all the known wallets, get their balance.
-    for (int i = 0; i < array_count(ewm->wallets); i++)
-        ewmUpdateWalletBalance (ewm, ewm->wallets[i]);
-
     if (NULL != ewm->bcs) bcsClean (ewm->bcs);
 }
 
