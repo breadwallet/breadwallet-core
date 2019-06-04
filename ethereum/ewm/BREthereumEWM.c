@@ -1904,7 +1904,7 @@ ewmHandleGetBlocks (BREthereumEWM ewm,
 //
 // Periodic Dispatcher
 //
-static void
+extern void
 ewmUpdateWalletBalance(BREthereumEWM ewm,
                        BREthereumWallet wallet) {
 
