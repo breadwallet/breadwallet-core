@@ -35,9 +35,4 @@ class OwnedBRCryptoAccount implements CoreBRCryptoAccount {
     public BRMasterPubKey.ByValue asBtc() {
         return core.asBtc();
     }
-
-    @Override
-    public BRCryptoAccount asBRCryptoAccount() {
-        return core;
-    }
 }

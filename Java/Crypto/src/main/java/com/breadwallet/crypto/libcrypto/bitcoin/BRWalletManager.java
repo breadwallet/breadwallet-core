@@ -1,7 +1,7 @@
 package com.breadwallet.crypto.libcrypto.bitcoin;
 
 import com.breadwallet.crypto.libcrypto.CryptoLibrary;
-import com.breadwallet.crypto.libcrypto.SizeTByReference;
+import com.breadwallet.crypto.libcrypto.utility.SizeTByReference;
 import com.breadwallet.crypto.libcrypto.crypto.BRCryptoBoolean;
 import com.breadwallet.crypto.libcrypto.support.BRAddress;
 import com.sun.jna.Native;

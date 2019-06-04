@@ -1,4 +1,4 @@
-package com.breadwallet.crypto.libcrypto;
+package com.breadwallet.crypto.libcrypto.utility;
 
 import com.sun.jna.IntegerType;
 import com.sun.jna.Native;

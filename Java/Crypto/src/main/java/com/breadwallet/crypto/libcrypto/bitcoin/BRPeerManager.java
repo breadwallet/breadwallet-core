@@ -7,7 +7,6 @@ import com.sun.jna.PointerType;
 
 public class BRPeerManager extends PointerType {
 
-    /** <i>native declaration : bitcoin/BRPeerManager.h:103</i> */
     public interface BRPeerManagerPublishTxCallback extends Callback {
         void apply(Pointer info, int error);
     }

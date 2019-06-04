@@ -22,6 +22,4 @@ public interface CoreBRCryptoAccount {
     void setTimestamp(long timestamp);
 
     BRMasterPubKey.ByValue asBtc();
-
-    BRCryptoAccount asBRCryptoAccount();
 }
