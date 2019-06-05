@@ -37,6 +37,9 @@
 #include "BRCryptoAddress.h"
 #include "BRCryptoFeeBasis.h"
 #include "BRCryptoTransfer.h"
+#include "BRCryptoNetwork.h"
+#include "BRCryptoWallet.h"
+#include "BRCryptoWalletManager.h"
 
 ///
 #include "support/BRAddress.h"
@@ -44,6 +47,7 @@
 #include "bitcoin/BRChainParams.h"
 #include "bitcoin/BRTransaction.h"
 #include "bitcoin/BRWallet.h"
+#include "bitcoin/BRWalletManager.h"
 #include "bcash/BRBCashParams.h"
 #include "ethereum/BREthereum.h"
 
@@ -134,82 +138,97 @@ extern "C" {
     
     /// MARK: Transfer
 
-    extern BRCryptoTransfer
+    private_extern BRCryptoTransfer
     cryptoTransferCreateAsBTC (BRCryptoCurrency currency,
                                BRWallet *wid,
                                BRTransaction *tid);
 
-    extern BRCryptoTransfer
+    private_extern BRCryptoTransfer
     cryptoTransferCreateAsETH (BRCryptoCurrency currency,
                                BREthereumEWM ewm,
                                BREthereumTransfer tid);
 
+    private_extern BRTransaction *
+    cryptoTransferAsBTC (BRCryptoTransfer transfer);
 
-/// MARK: - Network
-#if defined (USE_PENDING)
-#include "BRCryptoNetwork.h"
-#include "BRCryptoWallet.h"
+    private_extern BREthereumTransfer
+    cryptoTransferAsETH (BRCryptoTransfer transfer);
 
-private_extern void
-cryptoNetworkAnnounce (BRCryptoNetwork network);
+    /// MARK: - Network
 
-private_extern void
-cryptoNetworkSetHeight (BRCryptoNetwork network,
-                        BRCryptoBlockChainHeight height);
+    private_extern void
+    cryptoNetworkAnnounce (BRCryptoNetwork network);
 
-private_extern void
-cryptoNetworkSetCurrency (BRCryptoNetwork network,
-                          BRCryptoCurrency currency);
+    private_extern void
+    cryptoNetworkSetHeight (BRCryptoNetwork network,
+                            BRCryptoBlockChainHeight height);
 
-private_extern void
-cryptoNetworkAddCurrency (BRCryptoNetwork network,
-                          BRCryptoCurrency currency,
-                          BRCryptoUnit baseUnit,
-                          BRCryptoUnit defaultUnit,
-                          /* ownership given */ BRArrayOf(BRCryptoUnit) units);
+    private_extern void
+    cryptoNetworkSetCurrency (BRCryptoNetwork network,
+                              BRCryptoCurrency currency);
 
-private_extern BREthereumNetwork
-cryptoNetworkAsETH (BRCryptoNetwork network);
+    private_extern void
+    cryptoNetworkAddCurrency (BRCryptoNetwork network,
+                              BRCryptoCurrency currency,
+                              BRCryptoUnit baseUnit,
+                              BRCryptoUnit defaultUnit,
+                              /* ownership given */ BRArrayOf(BRCryptoUnit) units);
 
-private_extern const BRChainParams *
-cryptoNetworkAsBTC (BRCryptoNetwork network);
+    private_extern BREthereumNetwork
+    cryptoNetworkAsETH (BRCryptoNetwork network);
 
-private_extern BRCryptoNetwork
-cryptoNetworkCreateAsBTC (const char *name,
-                          uint8_t forkId,
-                          const BRChainParams *params);
+    private_extern const BRChainParams *
+    cryptoNetworkAsBTC (BRCryptoNetwork network);
 
-private_extern BRCryptoNetwork
-cryptoNetworkCreateAsETH (const char *name,
-                          uint32_t chainId,
-                          BREthereumNetwork net);
+    private_extern BRCryptoNetwork
+    cryptoNetworkCreateAsBTC (const char *name,
+                              uint8_t forkId,
+                              const BRChainParams *params);
 
-private_extern BRCryptoBlockChainType
-cryptoNetworkGetBlockChainType (BRCryptoNetwork network);
+    private_extern BRCryptoNetwork
+    cryptoNetworkCreateAsETH (const char *name,
+                              uint32_t chainId,
+                              BREthereumNetwork net);
 
-/// MARK: - Wallet
-private_extern BRCryptoBlockChainType
-cryptoWalletGetType (BRCryptoWallet wallet);
-
-private_extern BRWallet *
-cryptoWalletAsBTC (BRCryptoWallet wallet);
-
-private_extern BREthereumWallet
-cryptoWalletAsETH (BRCryptoWallet wallet);
-
-private_extern BRCryptoWallet
-cryptoWalletCreateAsBTC (BRCryptoUnit unit,
-                         BRCryptoUnit unitForFee,
-                         BRWalletManager bwm,
-                         BRWallet *wid);
-
-private_extern BRCryptoWallet
-cryptoWalletCreateAsETH (BRCryptoUnit unit,
-                         BRCryptoUnit unitForFee,
-                         BREthereumEWM ewm,
-                         BREthereumWallet wid);
-#endif // defined (USE_PENDING)
+    private_extern BRCryptoNetwork
+    cryptoNetworkCreateAsGEN (const char *name);
     
+    private_extern BRCryptoBlockChainType
+    cryptoNetworkGetBlockChainType (BRCryptoNetwork network);
+
+    /// MARK: - Wallet
+
+    private_extern BRCryptoBlockChainType
+    cryptoWalletGetType (BRCryptoWallet wallet);
+
+    private_extern BRWallet *
+    cryptoWalletAsBTC (BRCryptoWallet wallet);
+
+    private_extern BREthereumWallet
+    cryptoWalletAsETH (BRCryptoWallet wallet);
+
+    private_extern BRCryptoWallet
+    cryptoWalletCreateAsBTC (BRCryptoUnit unit,
+                             BRCryptoUnit unitForFee,
+                             BRWalletManager bwm,
+                             BRWallet *wid);
+
+    private_extern BRCryptoWallet
+    cryptoWalletCreateAsETH (BRCryptoUnit unit,
+                             BRCryptoUnit unitForFee,
+                             BREthereumEWM ewm,
+                             BREthereumWallet wid);
+
+    /// MARK: - WalletManager
+
+    private_extern BRCryptoBoolean
+    cryptoWalletManagerHasETH (BRCryptoWalletManager manager,
+                               BREthereumEWM ewm);
+
+    private_extern BRCryptoBoolean
+    cryptoWalletManagerHasBTC (BRCryptoWalletManager manager,
+                               BRWalletManager bwm);
+
 #ifdef __cplusplus
 }
 #endif

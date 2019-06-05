@@ -308,6 +308,19 @@ cryptoTransferGetFeeBasis (BRCryptoTransfer transfer) {
     }
 }
 
+private_extern BRTransaction *
+cryptoTransferAsBTC (BRCryptoTransfer transfer) {
+    assert (BLOCK_CHAIN_TYPE_BTC ==  transfer->type);
+    return transfer->u.btc.tid;
+}
+
+private_extern BREthereumTransfer
+cryptoTransferAsETH (BRCryptoTransfer transfer) {
+    assert (BLOCK_CHAIN_TYPE_ETH ==  transfer->type);
+    return transfer->u.eth.tid;
+}
+
+
 static int
 cryptoTransferEqualAsBTC (BRCryptoTransfer t1, BRCryptoTransfer t2) {
     return (t1->u.btc.wid == t2->u.btc.wid &&

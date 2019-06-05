@@ -528,6 +528,8 @@ public final class Account {
 /// be networks of [BTC-Mainnet, BTC-Testnet, ..., ETH-Mainnet, ETH-Testnet, ETH-Rinkeby, ...]
 ///
 public final class Network: CustomStringConvertible {
+    let core: BRCryptoNetwork
+
     /// A unique-identifer-string
     public let uids: String
     
@@ -587,7 +589,7 @@ public final class Network: CustomStringConvertible {
                    currency: Currency,
                    height: UInt64,
                    associations: Dictionary<Currency, Association>,
-                   impl: Impl) {
+                   core: BRCryptoNetwork) {
         self.uids = uids
         self.name = name
         self.isMainnet = isMainnet
@@ -599,7 +601,7 @@ public final class Network: CustomStringConvertible {
         }
 
         self.height = height
-        self.impl = impl
+        self.core = core
     }
 
     public convenience init (uids: String,
@@ -608,27 +610,40 @@ public final class Network: CustomStringConvertible {
                              currency: Currency,
                              height: UInt64,
                              associations: Dictionary<Currency, Association>) {
-        var impl: Impl!
+        var core: BRCryptoNetwork!
 
         switch currency.code {
         case Currency.codeAsBTC:
-            impl = Impl.bitcoin (forkId: (isMainnet ? 0x00 : 0x40), chainParams: (isMainnet ? BRMainNetParams : BRTestNetParams))
+            core = cryptoNetworkCreateAsBTC (name,
+                                             (isMainnet ? 0x00 : 0x40),
+                                             (isMainnet ? BRMainNetParams : BRTestNetParams))
+
         case Currency.codeAsBCH:
-            impl = Impl.bitcoin (forkId: (isMainnet ? 0x00 : 0x40), chainParams: (isMainnet ? BRBCashParams : BRBCashTestNetParams))
+            core = cryptoNetworkCreateAsBTC (name,
+                                             (isMainnet ? 0x00 : 0x40),
+                                             (isMainnet ? BRBCashParams : BRBCashTestNetParams))
+
         case Currency.codeAsETH:
             if uids.contains("mainnet") {
-                impl = Impl.ethereum(chainId: 1, core: ethereumMainnet)
+                core = cryptoNetworkCreateAsETH (name, 1, ethereumMainnet)
             }
             else if uids.contains("testnet") || uids.contains("ropsten") {
-                impl = Impl.ethereum (chainId: 3, core: ethereumTestnet)
+                core = cryptoNetworkCreateAsETH (name, 3, ethereumTestnet)
             }
             else if uids.contains ("rinkeby") {
-                impl = Impl.ethereum (chainId: 4, core: ethereumRinkeby)
+                core = cryptoNetworkCreateAsETH (name, 4, ethereumRinkeby)
             }
         default:
-            impl = Impl.generic
+            core = cryptoNetworkCreateAsGEN (name)
             break
         }
+
+        cryptoNetworkSetCurrency (core, currency.core)
+        cryptoNetworkAddCurrency (core,
+                                  currency.core,
+                                  associations[currency]?.baseUnit.core,
+                                  associations[currency]?.defaultUnit.core,
+                                  nil)
 
         self.init (uids: uids,
                    name: name,
@@ -636,79 +651,45 @@ public final class Network: CustomStringConvertible {
                    currency: currency,
                    height: height,
                    associations: associations,
-                   impl: impl)
+                   core: core)
     }
 
     public var description: String {
         return name
     }
 
-    internal let impl: Impl
-    public enum Impl {
-        case bitcoin  (forkId: UInt8, chainParams: UnsafePointer<BRChainParams>)
-        case bitcash  (forkId: UInt8, chainParams: UnsafePointer<BRChainParams>)
-        case ethereum (chainId: UInt, core: BREthereumNetwork)
-        case generic
+    deinit {
+        cryptoNetworkGive (core)
     }
 
     public var supportedModes: [WalletManagerMode] {
-        switch impl {
-        case .bitcoin,
-             .bitcash:
+        switch cryptoNetworkGetType (core) {
+        case BLOCK_CHAIN_TYPE_BTC:
             return [WalletManagerMode.p2p_only]
-        case .ethereum:
+        case BLOCK_CHAIN_TYPE_ETH:
             return [WalletManagerMode.api_only,
                     WalletManagerMode.api_with_p2p_submit]
-        case .generic:
+        case BLOCK_CHAIN_TYPE_GEN:
             return [WalletManagerMode.api_only]
+        default: precondition (false)
         }
     }
 
     /// Should use the network's/manager's default address scheme
     public func addressFor (_ string: String) -> Address? {
-        switch impl {
-        case .bitcoin,
-             .bitcash:
-            return Address.createAsBTC (string)
-        case .ethereum:
+        switch cryptoNetworkGetType (core) {
+        case BLOCK_CHAIN_TYPE_BTC:
+            return Address.createAsBTC(string)
+        case BLOCK_CHAIN_TYPE_ETH:
             return Address.createAsETH (string)
-        case .generic:
+        case BLOCK_CHAIN_TYPE_GEN:
             return nil
+        default: precondition (false)
         }
     }
 
     // address schemes
 
-}
-
-extension Network {
-
-    // ETH
-
-    internal var asETH: BREthereumNetwork! {
-        switch self.impl {
-        case let .ethereum(_, network): return network
-        default: precondition(false); return nil
-        }
-    }
-
-    // BTC
-
-    internal var asBTC: UnsafePointer<BRChainParams>! {
-        switch self.impl {
-        case let .bitcoin(_, chainParams): return chainParams
-        default: precondition(false); return nil
-        }
-    }
-
-    internal var forkId: BRWalletForkId? {
-        switch self.impl {
-        case let .bitcoin(forkId, _): return BRWalletForkId (UInt32(forkId))
-        case let .bitcash(forkId, _): return BRWalletForkId (UInt32(forkId))
-        case .ethereum: return nil
-        case .generic:  return nil
-        }
-    }
 }
 
 public enum NetworkEvent {
@@ -931,7 +912,7 @@ public class TransferFeeBasis {
 //    case bitcoin  (feePerKB: UInt64) // in satoshi
 //    case ethereum (gasPrice: Amount, gasLimit: UInt64) // Amount in ETH
 
-    init (core: BRCryptoFeeBasis) {
+    internal init (core: BRCryptoFeeBasis) {
         self.core = core
     }
 

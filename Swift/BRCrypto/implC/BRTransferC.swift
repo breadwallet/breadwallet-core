@@ -13,17 +13,17 @@ import BRCryptoC
 import BRCore.Ethereum
 
 
-fileprivate struct BitcoinLegacyAddressSchemeImplC: AddressScheme {
-    public func getAddress(for wallet: WalletImplS) -> Address {
-        return Address.createAsBTC (BRWalletLegacyAddress(wallet.impl.btc))
-    }
-}
-
-fileprivate struct BitcoinSegwitAddressSchemeImplC: AddressScheme {
-    public func getAddress(for wallet: WalletImplS) -> Address {
-        return Address.createAsBTC (BRWalletReceiveAddress(wallet.impl.btc))
-    }
-}
+//fileprivate struct BitcoinLegacyAddressSchemeImplC: AddressScheme {
+//    public func getAddress(for wallet: WalletImplS) -> Address {
+//        return Address.createAsBTC (BRWalletLegacyAddress(wallet.impl.btc))
+//    }
+//}
+//
+//fileprivate struct BitcoinSegwitAddressSchemeImplC: AddressScheme {
+//    public func getAddress(for wallet: WalletImplS) -> Address {
+//        return Address.createAsBTC (BRWalletReceiveAddress(wallet.impl.btc))
+//    }
+//}
 
 
 // ==================
@@ -119,7 +119,7 @@ class TransferImplC: Transfer {
         self.unit = unit
         self.state = TransferState.created
 
-        wallet.add(transfer: self)
+//        wallet.add(transfer: self)
 
     }
 

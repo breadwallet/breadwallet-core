@@ -11,6 +11,7 @@
 
 import XCTest
 @testable import BRCrypto
+import BRCryptoC
 import BRCore
 
 fileprivate class TestListener: SystemListener {
@@ -115,15 +116,16 @@ class BRCryptoWalletTests: BRCryptoBaseTests {
         let feeBasis = wallet.defaultFeeBasis
         let fee = wallet.estimateFee (amount: Amount.create(integer: 1, unit: baseUnit), feeBasis: nil)
 
-        switch feeBasis {
-        case let .bitcoin(feePerKB):
-            // No transactions in wallet... for BTC fee will be zero
-            XCTAssertEqual (feePerKB, DEFAULT_FEE_PER_KB)
-            XCTAssertEqual (fee, Amount.create(integer: 0, unit: feeUnit))
-
-        case let .ethereum (gasPrice, gasLimit):
-            XCTAssertEqual (gasLimit, wallet === listener.ethWallet ? 21000 : 92000)
-            XCTAssertEqual (fee.asBTC, gasPrice.asETH * gasLimit)
+        switch cryptoFeeBasisGetType (feeBasis.core) {
+        case BLOCK_CHAIN_TYPE_BTC:
+            XCTAssertEqual (cryptoFeeBasisAsBTC(feeBasis.core), DEFAULT_FEE_PER_KB)
+            // Fee: XCTAssertEqual (fee, Amount.create(integer: 0, unit: feeUnit))
+        case BLOCK_CHAIN_TYPE_ETH:
+            let ethFeeBasis = cryptoFeeBasisAsETH (feeBasis.core)
+            XCTAssertEqual (ethFeeBasis.u.gas.limit.amountOfGas, wallet === listener.ethWallet ? 21000 : 92000)
+            // Fee: XCTAssertEqual (fee.asBTC, gasPrice.asETH * gasLimit)
+        default:
+            break
         }
     }
 

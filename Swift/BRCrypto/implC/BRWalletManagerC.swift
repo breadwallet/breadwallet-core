@@ -13,10 +13,30 @@ import BRCryptoC
 import BRCore
 import BRCore.Ethereum
 
+extension WalletManagerMode {
+    var asBTC: BRSyncMode {
+        switch self {
+        case .api_only: return SYNC_MODE_BRD_ONLY
+        case .api_with_p2p_submit: return SYNC_MODE_BRD_WITH_P2P_SEND
+        case .p2p_with_api_sync: return SYNC_MODE_P2P_WITH_BRD_SYNC
+        case .p2p_only: return SYNC_MODE_P2P_ONLY
+        }
+    }
+
+    var asETH: BREthereumMode {
+        switch self {
+        case .api_only: return BRD_ONLY
+        case .api_with_p2p_submit: return BRD_WITH_P2P_SEND
+        case .p2p_with_api_sync: return P2P_WITH_BRD_SYNC
+        case .p2p_only: return P2P_ONLY
+        }
+    }
+}
+
 class WalletManagerImplC: WalletManager {
     internal private(set) weak var listener: WalletManagerListener?
 
-    internal var impl: Impl
+    internal let core: BRCryptoWalletManager
 
     /// The owning system
     public unowned let system: System
@@ -36,28 +56,8 @@ class WalletManagerImplC: WalletManager {
     /// The primary wallet - this is typically the wallet where fees are applied which may or may
     /// not differ from the specific wallet used for a transfer (like BRD transfer => ETH fee)
     public lazy var primaryWallet: Wallet = {
-        var walletImpl: WalletImplS.Impl! = nil
-
-        switch impl {
-        case let .ethereum (ewm):
-            guard let core = ewmGetWallet(ewm)
-                else { print ("SYS: WalletManager: missed ETH primary wallet"); precondition(false) }
-
-            walletImpl = WalletImplS.Impl.ethereum(ewm: ewm, core: core)
-
-        case let .bitcoin (bwm):
-            guard let wid = BRWalletManagerGetWallet (bwm)
-                else { print ("SYS: WalletManager: missed BTC primary wallet"); precondition(false) }
-
-            walletImpl = WalletImplS.Impl.bitcoin(wid: wid)
-        case .generic:
-            break
-        }
-
-        precondition (nil != walletImpl)
-
         // Find a preexisting wallet (unlikely) or create one.
-        return walletByImplOrCreate (walletImpl!,
+        return walletByCoreOrCreate (cryptoWalletManagerGetWallet(core),
                                      listener: system.listener,
                                      manager: self,
                                      unit: unit,
@@ -76,7 +76,7 @@ class WalletManagerImplC: WalletManager {
     ///
     internal func add (wallet: Wallet) {
         if !wallets.contains(where: { $0 === wallet }) {
-            guard let wallet = wallet as? WalletImplS
+            guard let wallet = wallet as? WalletImplC
                 else { precondition (false); return }
 
             wallets.append (wallet)
@@ -96,7 +96,7 @@ class WalletManagerImplC: WalletManager {
     internal func rem (wallet: Wallet) {
         wallets.firstIndex { $0 === wallet }
             .map {
-                guard let wallet = wallet as? WalletImplS
+                guard let wallet = wallet as? WalletImplC
                     else { precondition (false); return }
 
                 announceEvent (WalletManagerEvent.walletDeleted (wallet: wallet))
@@ -125,7 +125,7 @@ class WalletManagerImplC: WalletManager {
 
     ///
     /// Find a wallet by `impl` or, if `create` is `true`, create one.  This will maintain the
-    /// manager <==> wallet constraints (See WalletImplS.init)
+    /// manager <==> wallet constraints (See WalletImplC.init)
     ///
     /// - Parameters:
     ///   - impl: the impl
@@ -136,18 +136,18 @@ class WalletManagerImplC: WalletManager {
     ///
     /// - Returns: The wallet
     ///
-    internal func walletByImplOrCreate (_ core: BRCryptoWallet,
+    internal func walletByCoreOrCreate (_ core: BRCryptoWallet,
                                         listener: WalletListener?,
-                                        manager: WalletManagerImplS,
+                                        manager: WalletManagerImplC,
                                         unit: Unit,
                                         create: Bool = false) -> WalletImplC? {
-        return walletBy (impl: impl) ??
+        return walletBy (core: core) ??
             (!create
                 ? nil
-                : WalletImplS (listener: listener,
+                : WalletImplC (core: core,
+                               listener: listener,
                                manager: manager,
-                               unit: unit,
-                               impl: impl))
+                               unit: unit))
     }
 
     /// The mode
@@ -172,7 +172,7 @@ class WalletManagerImplC: WalletManager {
             wallets.flatMap { $0.transfers }
                 .forEach {
                     if let confirmations = $0.confirmationsAt (blockHeight: newValue) {
-                        ($0 as? TransferImplS)?.announceEvent (TransferEvent.confirmation (count: confirmations))
+                        ($0 as? TransferImplC)?.announceEvent (TransferEvent.confirmation (count: confirmations))
                     }
             }
         }
@@ -199,34 +199,41 @@ class WalletManagerImplC: WalletManager {
 
         self.listener = listener
 
-        switch network.currency.code {
-        case Currency.codeAsBTC,
-             Currency.codeAsBCH:
-
-            let bwm:BRWalletManager = BRWalletManagerNew (system.coreBitcoinClient,
-                                                          account.asBTC,
-                                                          network.asBTC,
-                                                          UInt32 (account.timestamp),
-                                                          WalletManagerImplS.modeAsBTC(mode),
-                                                          storagePath)
-            // Hacky?
-            bwmAnnounceBlockNumber (bwm, 0, network.height)
-
-            self.impl = Impl.bitcoin (mid: bwm)
-
-        case Currency.codeAsETH:
-            let ewm:BREthereumEWM = ewmCreate (network.asETH,
-                                               account.asETH,
-                                               UInt64(account.timestamp),
-                                               WalletManagerImplS.modeAsETH (mode),
-                                               system.coreEthereumClient,
+        self.core = cryptoWalletManagerCreate (system.cryptoListener,
+                                               system.cryptoClient,
+                                               account.core,
+                                               nil, // network
+                                               mode.asBTC,
                                                storagePath)
 
-            self.impl = Impl.ethereum (ewm: ewm)
-
-        default:
-            self.impl = Impl.generic
-        }
+//        switch network.currency.code {
+//        case Currency.codeAsBTC,
+//             Currency.codeAsBCH:
+//
+//            let bwm:BRWalletManager = BRWalletManagerNew (system.coreBitcoinClient,
+//                                                          account.asBTC,
+//                                                          network.asBTC,
+//                                                          UInt32 (account.timestamp),
+//                                                          WalletManagerImplC.modeAsBTC(mode),
+//                                                          storagePath)
+//            // Hacky?
+//            bwmAnnounceBlockNumber (bwm, 0, network.height)
+//
+//            self.impl = Impl.bitcoin (mid: bwm)
+//
+//        case Currency.codeAsETH:
+//            let ewm:BREthereumEWM = ewmCreate (network.asETH,
+//                                               account.asETH,
+//                                               UInt64(account.timestamp),
+//                                               WalletManagerImplC.modeAsETH (mode),
+//                                               system.coreEthereumClient,
+//                                               storagePath)
+//
+//            self.impl = Impl.ethereum (ewm: ewm)
+//
+//        default:
+//            self.impl = Impl.generic
+//        }
 
         print ("SYS: WalletManager (\(name)): Init")
         system.add(manager: self)
@@ -239,174 +246,65 @@ class WalletManagerImplC: WalletManager {
     }
 
     public func connect() {
-        impl.connect ()
+        cryptoWalletManagerConnect(core)
     }
 
     public func disconnect() {
-        impl.disconnect ()
+        cryptoWalletManagerDisconnect(core)
     }
 
     public func submit (transfer: Transfer, paperKey: String) {
-        guard let wallet = transfer.wallet as? WalletImplS,
-            let transfer = transfer as? TransferImplS
+        guard let wallet = transfer.wallet as? WalletImplC,
+            let transfer = transfer as? TransferImplC
             else { precondition (false) }
 
-        impl.submit (manager: self,
-                     wallet: wallet,
-                     transfer: transfer,
-                     paperKey: paperKey)
+        cryptoWalletManagerSubmit (core, wallet.core, transfer.core, paperKey)
     }
 
     public func sync() {
-        impl.sync()
+        cryptoWalletManagerSync(core)
     }
-
-    // Actually a Set/Dictionary by {Symbol}
-    //    public private(set) var all: [EthereumToken] = []
-    //
-    //    internal func addToken (identifier: BREthereumToken) {
-    //        let symbol = asUTF8String (tokenGetSymbol (identifier))
-    //        if let currency = network.currencyBy (code: symbol) {
-    //            let token = EthereumToken (identifier: identifier, currency: currency)
-    //            all.append (token)
-    //            //            self._listener.handleTokenEvent(manager: self, token: token, event: EthereumTokenEvent.created)
-    //        }
-    //    }
-    //
-    //    internal func remToken (identifier: BREthereumToken) {
-    //        if let index = all.firstIndex (where: { $0.identifier == identifier}) {
-    //            //            let token = all[index]
-    //            all.remove(at: index)
-    //            //            self._listener.handleTokenEvent(manager: self, token: token, event: EthereumTokenEvent.deleted)
-    //        }
-    //    }
-    //
-    //    internal func findToken (identifier: BREthereumToken) -> EthereumToken? {
-    //        return all.first { $0.identifier == identifier }
-    //    }
-
-    private static func modeAsETH (_ mode: WalletManagerMode) -> BREthereumMode {
-        switch mode {
-        case .api_only: return BRD_ONLY
-        case .api_with_p2p_submit: return BRD_WITH_P2P_SEND
-        case .p2p_with_api_sync: return P2P_WITH_BRD_SYNC
-        case .p2p_only: return P2P_ONLY
-        }
-    }
-
-    private static func modeAsBTC (_ mode: WalletManagerMode) -> BRSyncMode {
-        switch mode {
-        case .api_only: return SYNC_MODE_BRD_ONLY
-        case .api_with_p2p_submit: return SYNC_MODE_BRD_WITH_P2P_SEND
-        case .p2p_with_api_sync: return SYNC_MODE_P2P_WITH_BRD_SYNC
-        case .p2p_only: return SYNC_MODE_P2P_ONLY
-        }
-    }
-
-    enum Impl {
-        case bitcoin (mid: BRCoreWalletManager)
-        case ethereum (ewm: BREthereumEWM)
-        case generic
-
-        internal var ewm: BREthereumEWM! {
-            switch self {
-            case .bitcoin: return nil
-            case .ethereum (let ewm): return ewm
-            case .generic: return nil
-            }
-        }
-
-        internal var bwm: BRCoreWalletManager! {
-            switch self {
-            case .bitcoin (let mid): return mid
-            case .ethereum: return nil
-            case .generic: return nil
-            }
-        }
-
-        internal func matches (_ that: Impl) -> Bool {
-            switch (self, that) {
-            case (let .bitcoin (bwm1), let .bitcoin (bwm2)):
-                return bwm1 == bwm2
-            case (let .ethereum (ewm1), let .ethereum (ewm2)):
-                return ewm1 == ewm2
-            default:
-                return false
-            }
-        }
-
-        internal func connect() {
-            switch self {
-            case let .ethereum (ewm):
-                ewmConnect (ewm)
-            case let .bitcoin (mid):
-                BRWalletManagerConnect (mid)
-            case .generic:
-                break
-            }
-        }
-        internal func disconnect() {
-            switch self {
-            case let .ethereum (ewm):
-                ewmDisconnect (ewm)
-            case let .bitcoin (mid):
-                BRWalletManagerDisconnect (mid)
-            case .generic:
-                break
-            }
-        }
-
-        internal func sync() {
-            switch self {
-            case let .ethereum (ewm):
-                ewmSync (ewm);
-            case let .bitcoin (mid):
-                BRWalletManagerScan (mid)
-            case .generic:
-                break
-            }
-        }
-
-        internal func submit (manager: WalletManagerImplS,
-                              wallet: WalletImplS,
-                              transfer: TransferImplS,
-                              paperKey: String) {
-            switch self {
-            case let .ethereum (ewm):
-                ewmWalletSignTransferWithPaperKey(ewm, wallet.impl.eth, transfer.impl.eth, paperKey)
-                ewmWalletSubmitTransfer (ewm, wallet.impl.eth, transfer.impl.eth)
-
-            case let .bitcoin (mid):
-                let coreWallet      = BRWalletManagerGetWallet      (mid)
-                let corePeerManager = BRWalletManagerGetPeerManager (mid)
-
-                var seed = Account.deriveSeed (phrase: paperKey)
-
-                let  closure = CLangClosure { (error: Int32) in
-                    let event = TransferEvent.changed (
-                        old: transfer.state,
-                        new: (0 == error
-                            ? TransferState.submitted
-                            : TransferState.failed(reason: asUTF8String(strerror(error)))))
-                    transfer.listener?.handleTransferEvent (system: manager.system,
-                                                            manager: manager,
-                                                            wallet: transfer.wallet,
-                                                            transfer: transfer,
-                                                            event: event)
-                }
-
-                BRWalletSignTransaction (coreWallet, transfer.impl.btc, &seed, MemoryLayout<UInt512>.size)
-                BRPeerManagerPublishTx (corePeerManager, transfer.impl.btc,
-                                        Unmanaged<CLangClosure<(Int32)>>.passRetained(closure).toOpaque(),
-                                        { (info, error) in
-                                            guard let info = info else { return }
-                                            let closure = Unmanaged<CLangClosure<(Int32)>>.fromOpaque(info).takeRetainedValue()
-                                            closure.function (error)
-                })
-
-            case .generic:
-                break
-            }
-        }
-    }
+//
+//        internal func submit (manager: WalletManagerImplC,
+//                              wallet: WalletImplC,
+//                              transfer: TransferImplC,
+//                              paperKey: String) {
+//            switch self {
+//            case let .ethereum (ewm):
+//                ewmWalletSignTransferWithPaperKey(ewm, wallet.impl.eth, transfer.impl.eth, paperKey)
+//                ewmWalletSubmitTransfer (ewm, wallet.impl.eth, transfer.impl.eth)
+//
+//            case let .bitcoin (mid):
+//                let coreWallet      = BRWalletManagerGetWallet      (mid)
+//                let corePeerManager = BRWalletManagerGetPeerManager (mid)
+//
+//                var seed = Account.deriveSeed (phrase: paperKey)
+//
+//                let  closure = CLangClosure { (error: Int32) in
+//                    let event = TransferEvent.changed (
+//                        old: transfer.state,
+//                        new: (0 == error
+//                            ? TransferState.submitted
+//                            : TransferState.failed(reason: asUTF8String(strerror(error)))))
+//                    transfer.listener?.handleTransferEvent (system: manager.system,
+//                                                            manager: manager,
+//                                                            wallet: transfer.wallet,
+//                                                            transfer: transfer,
+//                                                            event: event)
+//                }
+//
+//                BRWalletSignTransaction (coreWallet, transfer.impl.btc, &seed, MemoryLayout<UInt512>.size)
+//                BRPeerManagerPublishTx (corePeerManager, transfer.impl.btc,
+//                                        Unmanaged<CLangClosure<(Int32)>>.passRetained(closure).toOpaque(),
+//                                        { (info, error) in
+//                                            guard let info = info else { return }
+//                                            let closure = Unmanaged<CLangClosure<(Int32)>>.fromOpaque(info).takeRetainedValue()
+//                                            closure.function (error)
+//                })
+//
+//            case .generic:
+//                break
+//            }
+//        }
+//    }
 }

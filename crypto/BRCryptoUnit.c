@@ -96,8 +96,9 @@ cryptoUnitRelease (BRCryptoUnit unit) {
 
 private_extern BRArrayOf(BRCryptoUnit)
 cryptoUnitTakeAll (BRArrayOf(BRCryptoUnit) units) {
-    for (size_t index = 0; index < array_count (units); index++)
-        cryptoUnitTake(units[index]);
+    if (NULL != units)
+        for (size_t index = 0; index < array_count (units); index++)
+            cryptoUnitTake(units[index]);
     return units;
 }
 

@@ -42,6 +42,7 @@ extern "C" {
      */
     typedef struct BRCryptoNetworkRecord *BRCryptoNetwork;
 
+#if 0
     typedef void  *BRCryptoNetworkListenerContext;
     typedef void (*BRCryptoNetworkListenerCreated) (BRCryptoNetworkListenerContext context,
                                                     BRCryptoNetwork network);
@@ -55,23 +56,33 @@ extern "C" {
  //       BRCryptoNetworkListenerCurrency currencyAdded;
 //        BRCryptoNetworkListenerCurrency currencyDeleted;
     } BRCryptoNetworkListener;
-
+#endif
+    typedef void *BRCryptoNetworkListener;
+    
     extern void
     cryptoNetworkDeclareListener (BRCryptoNetworkListener listener);
 
     extern BRArrayOf(BRCryptoNetwork) networks;
 
+    extern BRCryptoBlockChainType
+    cryptoNetworkGetType (BRCryptoNetwork network);
+    
     extern const char *
     cryptoNetworkGetName (BRCryptoNetwork network);
 
     extern BRCryptoBoolean
     cryptoNetworkIsMainnet (BRCryptoNetwork network);
-    
-    extern BRCryptoBlockChainHeight
-    cryptoNetworkGetHeight (BRCryptoNetwork network);
 
     extern BRCryptoCurrency
     cryptoNetworkGetCurrency (BRCryptoNetwork network);
+
+    extern BRCryptoUnit
+    cryptoNetworkGetUnitAsDefault (BRCryptoNetwork network,
+                                   BRCryptoCurrency currency);
+
+#if 0
+    extern BRCryptoBlockChainHeight
+    cryptoNetworkGetHeight (BRCryptoNetwork network);
 
     extern size_t
     cryptoNetworkGetCurrencyCount (BRCryptoNetwork network);
@@ -88,10 +99,6 @@ extern "C" {
     cryptoNetworkGetUnitAsBase (BRCryptoNetwork network,
                                 BRCryptoCurrency currency);
 
-    extern BRCryptoUnit
-    cryptoNetworkGetUnitAsDefault (BRCryptoNetwork network,
-                                   BRCryptoCurrency currency);
-
     extern size_t
     cryptoNetworkGetUnitCount (BRCryptoNetwork network,
                                BRCryptoCurrency currency);
@@ -100,7 +107,7 @@ extern "C" {
     cryptoNetworkGetUnitAt (BRCryptoNetwork network,
                             BRCryptoCurrency currency,
                             size_t index);
-
+#endif
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoNetwork, cryptoNetwork);
 
 #ifdef __cplusplus

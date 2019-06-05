@@ -163,7 +163,7 @@ class WalletImplC: Wallet {
     ///
     internal init (core: BRCryptoWallet,
                    listener: WalletListener?,
-                   manager: WalletManagerImplS,
+                   manager: WalletManagerImplC,
                    unit: Unit) {
         self.core = core
         self.listener = listener

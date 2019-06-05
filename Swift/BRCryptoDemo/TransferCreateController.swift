@@ -168,15 +168,16 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
     }
 
     func feeBasis () -> TransferFeeBasis {
-        switch wallet.currency.code {
-        case Currency.codeAsETH:
-            let wei = wallet.manager.network.baseUnitFor(currency: wallet.currency)!
-            return TransferFeeBasis.ethereum (
-                gasPrice: Amount.create(integer: Int64 (gasPrice()), unit: wei),
-                gasLimit: gasLimit())
-        default:
-            return TransferFeeBasis.bitcoin(feePerKB: 1000)
-        }
+        return wallet.defaultFeeBasis
+//        switch wallet.currency.code {
+//        case Currency.codeAsETH:
+//            let wei = wallet.manager.network.baseUnitFor(currency: wallet.currency)!
+//            return TransferFeeBasis.ethereum (
+//                gasPrice: Amount.create(integer: Int64 (gasPrice()), unit: wei),
+//                gasLimit: gasLimit())
+//        default:
+//            return TransferFeeBasis.bitcoin(feePerKB: 1000)
+//        }
     }
 
     // In WEI

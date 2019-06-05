@@ -31,28 +31,59 @@
 #include "BRCryptoTransfer.h"
 #include "BRCryptoWallet.h"
 
+#include "ethereum/BREthereum.h"
+#include "bitcoin/BRWalletManager.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
     typedef struct BRCryptoWalletManagerRecord *BRCryptoWalletManager;
 
+    /// MARK: Listener
 
     typedef void *BRCryptoCWMListenerContext;
 
     // Add events
-    
+
+    typedef enum {
+        CRYPTO_WALLET_MANAGER_EVENT_FOO
+    } BRCryptoWalletManagerEventType;
+
+    typedef struct {
+        BRCryptoWalletManagerEventType type;
+    } BRCryptoWalletManagerEvent;
+
     typedef void (*BRCryptoCWMListenerWalletManagerEvent) (BRCryptoCWMListenerContext context,
-                                                           BRCryptoWalletManager manager);
+                                                           BRCryptoWalletManager manager,
+                                                           BRCryptoWalletManagerEvent event);
+
+    typedef enum {
+        CRYPTO_WALLET_EVENT_FOO
+    } BRCryptoWalletEventType;
+
+    typedef struct {
+        BRCryptoWalletEventType type;
+    } BRCryptoWalletEvent;
 
     typedef void (*BRCryptoCWMListenerWalletEvent) (BRCryptoCWMListenerContext context,
                                                     BRCryptoWalletManager manager,
-                                                    BRCryptoWallet wallet);
+                                                    BRCryptoWallet wallet,
+                                                    BRCryptoWalletEvent event);
+
+    typedef enum {
+        CRYPTO_TRANSFER_EVENT_FOO
+    } BRCryptoTransferEventType;
+
+    typedef struct {
+        BRCryptoTransferEventType type;
+    } BRCryptoTransferEvent;
 
     typedef void (*BRCryptoCWMListenerTransferEvent) (BRCryptoCWMListenerContext context,
                                                       BRCryptoWalletManager manager,
                                                       BRCryptoWallet wallet,
-                                                      BRCryptoTransfer transfer);
+                                                      BRCryptoTransfer transfer,
+                                                      BRCryptoTransferEvent event);
 
     typedef struct {
         BRCryptoCWMListenerContext context;
@@ -61,8 +92,43 @@ extern "C" {
         BRCryptoCWMListenerTransferEvent transferEventCallback;
     } BRCryptoCWMListener;
 
+    // MARK: Client
+
+    typedef void *BRCryptoCWMClientContext;
+
+    typedef struct {
+        BREthereumClientHandlerGetBalance funcGetBalance;
+        BREthereumClientHandlerGetGasPrice funcGetGasPrice;
+        BREthereumClientHandlerEstimateGas funcEstimateGas;
+        BREthereumClientHandlerSubmitTransaction funcSubmitTransaction;
+        BREthereumClientHandlerGetTransactions funcGetTransactions; // announce one-by-one
+        BREthereumClientHandlerGetLogs funcGetLogs; // announce one-by-one
+        BREthereumClientHandlerGetBlocks funcGetBlocks;
+        BREthereumClientHandlerGetTokens funcGetTokens; // announce one-by-one
+        BREthereumClientHandlerGetBlockNumber funcGetBlockNumber;
+        BREthereumClientHandlerGetNonce funcGetNonce;
+    } BRCryptoCWMClientETH;
+
+    typedef struct {
+        BRGetBlockNumberCallback  funcGetBlockNumber;
+        BRGetTransactionsCallback funcGetTransactions;
+        BRSubmitTransactionCallback funcSubmitTransaction;
+    } BRCryptoCWMClientBTC;
+
+    typedef struct {
+    } BRCryptoCWMClientGEN;
+
+    typedef struct {
+        BRCryptoCWMClientContext context;
+        BRCryptoCWMClientBTC btc;
+        BRCryptoCWMClientETH eth;
+        BRCryptoCWMClientGEN gen;
+    } BRCryptoCWMClient;
+
+
     extern BRCryptoWalletManager
     cryptoWalletManagerCreate (BRCryptoCWMListener listener,
+                               BRCryptoCWMClient client,
                                BRCryptoAccount account,
                                BRCryptoNetwork network,
                                BRSyncMode mode,
@@ -102,6 +168,13 @@ extern "C" {
 
     extern void
     cryptoWalletManagerSync (BRCryptoWalletManager cwm);
+
+    extern void
+    cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
+                               BRCryptoWallet wid,
+                               BRCryptoTransfer tid,
+                               const char *paperKey);
+    
 
 #ifdef __cplusplus
 }
