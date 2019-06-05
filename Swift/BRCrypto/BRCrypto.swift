@@ -11,9 +11,6 @@
 import Foundation
 import BRCryptoC
 
-import BRCore
-import BRCore.Ethereum
-
 ///
 /// A currency is a medium for exchange.
 ///

@@ -8,18 +8,8 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
-
 import Foundation
-
 import BRCryptoC
-import BRCore
-import BRCore.Ethereum
-
-
-typealias BRCoreWallet = OpaquePointer
-typealias BRCorePeerManager = OpaquePointer
-typealias BRCoreWalletManager = BRWalletManager
-typealias BRCoreTransaction = UnsafeMutablePointer<BRTransaction>
 
 public final class SystemBase: System {
     /// The listener.  Gets all events for {Network, WalletManger, Wallet, Transfer}

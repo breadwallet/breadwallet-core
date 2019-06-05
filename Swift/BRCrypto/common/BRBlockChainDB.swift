@@ -8,7 +8,6 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
-
 import Foundation // DispatchQueue
 
 import BRCore
@@ -966,7 +965,7 @@ public class BlockChainDB {
 
     /// BTC
     public struct BTC {
-        typealias Transaction = (btc: BRCoreTransaction, rid: Int32)
+        typealias Transaction = (btc: UnsafeMutablePointer<BRTransaction>, rid: Int32)
     }
 
     internal func getBlockNumberAsBTC (bwm: BRWalletManager,
@@ -997,8 +996,8 @@ public class BlockChainDB {
                          endBlockNumber: endBlockNumber,
                          includeRaw: true) { (res: Result<[Model.Transaction], QueryError>) in
                             let btcRes = res
-                                .flatMap { (dbTransactions: [Model.Transaction]) -> Result<[BRCoreTransaction], QueryError> in
-                                    let transactions:[BRCoreTransaction?] = dbTransactions
+                                .flatMap { (dbTransactions: [Model.Transaction]) -> Result<[UnsafeMutablePointer<BRTransaction>], QueryError> in
+                                    let transactions:[UnsafeMutablePointer<BRTransaction>?] = dbTransactions
                                         .map {
                                             guard let raw = $0.raw
                                                 else { return nil }
@@ -1017,7 +1016,7 @@ public class BlockChainDB {
 
                                     return transactions.contains(where: { nil == $0 })
                                         ? Result.failure (QueryError.model ("BRCoreTransaction parse error"))
-                                        : Result.success (transactions as! [BRCoreTransaction])
+                                        : Result.success (transactions as! [UnsafeMutablePointer<BRTransaction>])
                                 }
 
                             switch btcRes {

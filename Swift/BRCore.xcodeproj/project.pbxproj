@@ -473,9 +473,6 @@
 		3C6B172C2131CB5B003C313B /* CoreExplore */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = CoreExplore; sourceTree = BUILT_PRODUCTS_DIR; };
 		3C6B172E2131CB5B003C313B /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		3C6B17792131CE12003C313B /* libCoreMacOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libCoreMacOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		3C6F7C3C2256B051006B296B /* BRTransfer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRTransfer.swift; sourceTree = "<group>"; };
-		3C6F7C432257B53D006B296B /* BRWallet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRWallet.swift; sourceTree = "<group>"; };
-		3C6F7C452257B994006B296B /* BRWalletManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRWalletManager.swift; sourceTree = "<group>"; };
 		3C812EBE2266675E0007D335 /* BRRipple.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRRipple.h; sourceTree = "<group>"; };
 		3C812EC12266721E0007D335 /* testRipple.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testRipple.c; sourceTree = "<group>"; };
 		3C9025EE21063AD200143B69 /* testUtil.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testUtil.c; sourceTree = "<group>"; };
@@ -670,7 +667,6 @@
 				3CCB1342224D1B1700ADCDB9 /* BRCrypto.swift */,
 				3CCB135E224D5C7900ADCDB9 /* common */,
 				3CCC61DE2289D33100C0A13E /* implC */,
-				3CCB1344224D1B1700ADCDB9 /* implS */,
 				3CCB1347224D1B1700ADCDB9 /* BRSystem.swift */,
 				3C0EADED2188D91F000577A6 /* BRCryptoVersion.h */,
 				3C0EADEE2188D91F000577A6 /* Info.plist */,
@@ -1139,16 +1135,6 @@
 				3CEF5FC9220513FC0010A811 /* libresolv.tbd */,
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		3CCB1344224D1B1700ADCDB9 /* implS */ = {
-			isa = PBXGroup;
-			children = (
-				3C6F7C3C2256B051006B296B /* BRTransfer.swift */,
-				3C6F7C432257B53D006B296B /* BRWallet.swift */,
-				3C6F7C452257B994006B296B /* BRWalletManager.swift */,
-			);
-			path = implS;
 			sourceTree = "<group>";
 		};
 		3CCB135E224D5C7900ADCDB9 /* common */ = {
