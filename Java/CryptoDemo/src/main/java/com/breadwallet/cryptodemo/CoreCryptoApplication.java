@@ -9,12 +9,12 @@ import android.arch.lifecycle.ProcessLifecycleOwner;
 import android.content.Intent;
 import android.os.StrictMode;
 
+import com.breadwallet.corecrypto.CryptoApiImpl;
 import com.breadwallet.crypto.Account;
 import com.breadwallet.crypto.CryptoApi;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.System;
-import com.breadwallet.crypto.implj.CryptoApiImpl;
 
 import java.io.File;
 import java.util.Arrays;
