@@ -7,10 +7,6 @@
  */
 package com.breadwallet.corecrypto;
 
-import com.breadwallet.crypto.Account;
-import com.breadwallet.crypto.Network;
-import com.breadwallet.crypto.System;
-import com.breadwallet.crypto.WalletManager;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.events.network.NetworkCreatedEvent;
@@ -28,27 +24,27 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /* package */
-final class SystemImpl implements System {
+final class System implements com.breadwallet.crypto.System {
 
-    public static System create(ExecutorService listenerExecutor, SystemListener listener, Account account, String path, BlockchainDb query) {
-        return new SystemImpl(listenerExecutor, listener, account, path, query);
+    public static System create(ExecutorService listenerExecutor, SystemListener listener, com.breadwallet.crypto.Account account, String path, BlockchainDb query) {
+        return new System(listenerExecutor, listener, account, path, query);
     }
 
     private final SystemAnnouncer announcer;
-    private final AccountImpl account;
+    private final Account account;
     private final String path;
     private final BlockchainDb query;
 
     private final Lock networksReadLock;
     private final Lock networksWriteLock;
-    private final List<NetworkImpl> networks;
+    private final List<Network> networks;
     private final Lock walletManagersReadLock;
     private final Lock walletManagersWriteLock;
-    private final List<WalletManagerImpl> walletManagers;
+    private final List<WalletManager> walletManagers;
 
-    private SystemImpl(ExecutorService listenerExecutor, SystemListener listener, Account account, String path, BlockchainDb query) {
+    private System(ExecutorService listenerExecutor, SystemListener listener, com.breadwallet.crypto.Account account, String path, BlockchainDb query) {
         this.announcer = new SystemAnnouncer(this, listenerExecutor, listener);
-        this.account = AccountImpl.from(account);
+        this.account = Account.from(account);
         this.path = path;
         this.query = query;
 
@@ -73,7 +69,7 @@ final class SystemImpl implements System {
     @Override
     public void initialize(List<String> networksNeeded, boolean isMainnet) {
         NetworkDiscovery.discoverNetworks(query, networksNeeded, isMainnet, discoveredNetworks -> {
-            for (NetworkImpl network: discoveredNetworks) {
+            for (Network network: discoveredNetworks) {
                 if (addNetwork(network)) {
                     announcer.announceNetworkEvent(network, new NetworkCreatedEvent());
                     announcer.announceSystemEvent(new SystemNetworkAddedEvent(network));
@@ -83,11 +79,11 @@ final class SystemImpl implements System {
     }
 
     @Override
-    public void createWalletManager(Network network, WalletManagerMode mode) {
-        NetworkImpl networkImpl = NetworkImpl.from(network);
+    public void createWalletManager(com.breadwallet.crypto.Network network, WalletManagerMode mode) {
+        Network networkImpl = Network.from(network);
         String networkCode = networkImpl.getCurrency().getCode();
         if (networkCode.equals(com.breadwallet.crypto.Currency.CODE_AS_BTC)) {
-            WalletManagerImpl walletManager = new WalletManagerImplBtc(account, networkImpl, mode, path, announcer, query);
+            WalletManager walletManager = new WalletManagerBtc(account, networkImpl, mode, path, announcer, query);
             if (addWalletManager(walletManager)) {
                 walletManager.initialize();
                 announcer.announceSystemEvent(new SystemManagerAddedEvent(walletManager));
@@ -103,7 +99,7 @@ final class SystemImpl implements System {
     }
 
     @Override
-    public Account getAccount() {
+    public com.breadwallet.crypto.Account getAccount() {
         return account;
     }
 
@@ -115,7 +111,7 @@ final class SystemImpl implements System {
     // WalletManager management
 
     @Override
-    public List<WalletManager> getWalletManagers() {
+    public List<com.breadwallet.crypto.WalletManager> getWalletManagers() {
         walletManagersReadLock.lock();
         try {
             return new ArrayList<>(walletManagers);
@@ -124,7 +120,7 @@ final class SystemImpl implements System {
         }
     }
 
-    private boolean addWalletManager(WalletManagerImpl walletManager) {
+    private boolean addWalletManager(WalletManager walletManager) {
         boolean added;
 
         walletManagersWriteLock.lock();
@@ -144,7 +140,7 @@ final class SystemImpl implements System {
     // Network management
 
     @Override
-    public List<Network> getNetworks() {
+    public List<com.breadwallet.crypto.Network> getNetworks() {
         networksReadLock.lock();
         try {
             return new ArrayList<>(networks);
@@ -153,7 +149,7 @@ final class SystemImpl implements System {
         }
     }
 
-    private boolean addNetwork(NetworkImpl network) {
+    private boolean addNetwork(Network network) {
         boolean added;
 
         networksWriteLock.lock();

@@ -7,23 +7,22 @@
  */
 package com.breadwallet.corecrypto;
 
-import com.breadwallet.crypto.Account;
 import com.breadwallet.corenative.crypto.CoreBRCryptoAccount;
 import com.breadwallet.corenative.support.BRMasterPubKey;
 
 import java.util.Date;
 
 /* package */
-final class AccountImpl implements Account {
+final class Account implements com.breadwallet.crypto.Account {
 
     /* package */
-    static AccountImpl createFrom(String phrase, String uids, Date earliestKeyTime) {
-        return new AccountImpl(CoreBRCryptoAccount.create(phrase), uids, earliestKeyTime);
+    static Account createFrom(String phrase, String uids, Date earliestKeyTime) {
+        return new Account(CoreBRCryptoAccount.create(phrase), uids, earliestKeyTime);
     }
 
     /* package */
-    static AccountImpl createFrom(byte[] seed, String uids, Date earliestKeyTime) {
-        return new AccountImpl(CoreBRCryptoAccount.createFromSeed(seed), uids, earliestKeyTime);
+    static Account createFrom(byte[] seed, String uids, Date earliestKeyTime) {
+        return new Account(CoreBRCryptoAccount.createFromSeed(seed), uids, earliestKeyTime);
     }
 
     /* package */
@@ -32,9 +31,9 @@ final class AccountImpl implements Account {
     }
 
     /* package */
-    static AccountImpl from(Account account) {
-        if (account instanceof AccountImpl) {
-            return (AccountImpl) account;
+    static Account from(com.breadwallet.crypto.Account account) {
+        if (account instanceof Account) {
+            return (Account) account;
         }
         throw new IllegalArgumentException("Unsupported account instance");
     }
@@ -42,7 +41,7 @@ final class AccountImpl implements Account {
     private final CoreBRCryptoAccount core;
     private final String uids;
 
-    private AccountImpl(CoreBRCryptoAccount core, String uids, Date earliestKeyTime) {
+    private Account(CoreBRCryptoAccount core, String uids, Date earliestKeyTime) {
         this.uids = uids;
         this.core = core;
         this.core.setEarliestKeyTime(earliestKeyTime);

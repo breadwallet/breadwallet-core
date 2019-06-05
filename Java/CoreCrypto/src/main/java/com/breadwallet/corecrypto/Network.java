@@ -7,9 +7,6 @@
  */
 package com.breadwallet.corecrypto;
 
-import com.breadwallet.crypto.Address;
-import com.breadwallet.crypto.Currency;
-import com.breadwallet.crypto.Network;
 import com.breadwallet.crypto.Unit;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.corenative.CryptoLibrary;
@@ -29,27 +26,27 @@ import java.util.Set;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /* package */
-final class NetworkImpl implements Network {
+final class Network implements com.breadwallet.crypto.Network {
 
     /* package */
-    static NetworkImpl create(String uids, String name, boolean isMainnet, CurrencyImpl currency, UnsignedLong height,
-                              Map<CurrencyImpl, NetworkAssociation> associations) {
+    static Network create(String uids, String name, boolean isMainnet, Currency currency, UnsignedLong height,
+                          Map<Currency, NetworkAssociation> associations) {
         String code = currency.getCode();
-        if (code .equals(Currency.CODE_AS_BTC)) {
-            return new NetworkImpl(uids, name, isMainnet, currency, height, associations, new BitcoinNetwork(isMainnet));
-        } else if (code .equals(Currency.CODE_AS_BCH)) {
-            return new NetworkImpl(uids, name, isMainnet, currency, height, associations, new BitcashNetwork(isMainnet));
-        } else if (code .equals(Currency.CODE_AS_ETH)) {
-            return new NetworkImpl(uids, name, isMainnet, currency, height, associations, new EthereumNetwork(uids));
+        if (code .equals(com.breadwallet.crypto.Currency.CODE_AS_BTC)) {
+            return new Network(uids, name, isMainnet, currency, height, associations, new BitcoinNetwork(isMainnet));
+        } else if (code .equals(com.breadwallet.crypto.Currency.CODE_AS_BCH)) {
+            return new Network(uids, name, isMainnet, currency, height, associations, new BitcashNetwork(isMainnet));
+        } else if (code .equals(com.breadwallet.crypto.Currency.CODE_AS_ETH)) {
+            return new Network(uids, name, isMainnet, currency, height, associations, new EthereumNetwork(uids));
         } else {
-            return new NetworkImpl(uids, name, isMainnet, currency, height, associations, new Generic());
+            return new Network(uids, name, isMainnet, currency, height, associations, new Generic());
         }
     }
 
     /* package */
-    static NetworkImpl from(Network network) {
-        if (network instanceof NetworkImpl) {
-            return (NetworkImpl) network;
+    static Network from(com.breadwallet.crypto.Network network) {
+        if (network instanceof Network) {
+            return (Network) network;
         }
         throw new IllegalArgumentException("Unsupported network instance");
     }
@@ -57,14 +54,14 @@ final class NetworkImpl implements Network {
     private final String uids;
     private final String name;
     private final boolean isMainnet;
-    private final CurrencyImpl currency;
-    private final Set<CurrencyImpl> currencies;
-    private final Map<CurrencyImpl, NetworkAssociation> associations;
+    private final Currency currency;
+    private final Set<Currency> currencies;
+    private final Map<Currency, NetworkAssociation> associations;
     private final CurrencyNetwork impl;
 
     private UnsignedLong height;
 
-    private NetworkImpl(String uids, String name, boolean isMainnet, CurrencyImpl currency, UnsignedLong height, Map<CurrencyImpl,
+    private Network(String uids, String name, boolean isMainnet, Currency currency, UnsignedLong height, Map<Currency,
             NetworkAssociation> associations, CurrencyNetwork impl) {
         this.uids = uids;
         this.name = name;
@@ -77,40 +74,40 @@ final class NetworkImpl implements Network {
     }
 
     @Override
-    public Optional<Unit> baseUnitFor(Currency currency) {
+    public Optional<Unit> baseUnitFor(com.breadwallet.crypto.Currency currency) {
         NetworkAssociation association = associations.get(currency);
         return association == null ? Optional.absent() : Optional.of(association.getBaseUnit());
     }
 
     @Override
-    public Optional<Unit> defaultUnitFor(Currency currency) {
+    public Optional<Unit> defaultUnitFor(com.breadwallet.crypto.Currency currency) {
         NetworkAssociation association = associations.get(currency);
         return association == null ? Optional.absent() : Optional.of(association.getDefaultUnit());
     }
 
     @Override
-    public Optional<Set<Unit>> unitsFor(Currency currency) {
+    public Optional<Set<Unit>> unitsFor(com.breadwallet.crypto.Currency currency) {
         NetworkAssociation association = associations.get(currency);
         return association == null ? Optional.absent() : Optional.of(association.getUnits());
     }
 
     @Override
-    public Optional<Address> addressFor(String address) {
+    public Optional<com.breadwallet.crypto.Address> addressFor(String address) {
         return impl.addressFor(address);
     }
 
     @Override
-    public boolean hasUnitFor(Currency currency, Unit unit) {
+    public boolean hasUnitFor(com.breadwallet.crypto.Currency currency, Unit unit) {
         return unitsFor(currency).transform(input -> input.contains(unit)).or(false);
     }
 
     @Override
-    public boolean hasCurrency(Currency currency) {
+    public boolean hasCurrency(com.breadwallet.crypto.Currency currency) {
         return currencies.contains(currency);
     }
 
     @Override
-    public Currency getCurrency() {
+    public com.breadwallet.crypto.Currency getCurrency() {
         return currency;
     }
 
@@ -145,12 +142,12 @@ final class NetworkImpl implements Network {
             return true;
         }
 
-        if (!(object instanceof NetworkImpl)) {
+        if (!(object instanceof Network)) {
             return false;
         }
 
         // height not included in the equality and hashcode calculation
-        NetworkImpl network = (NetworkImpl) object;
+        Network network = (Network) object;
         return isMainnet == network.isMainnet &&
                 uids.equals(network.uids) &&
                 name.equals(network.name) &&
@@ -184,7 +181,7 @@ final class NetworkImpl implements Network {
 
         List<WalletManagerMode> getSupportedModes();
 
-        Optional<Address> addressFor(String address);
+        Optional<com.breadwallet.crypto.Address> addressFor(String address);
     }
 
     private static class BitcoinNetwork implements CurrencyNetwork {
@@ -208,8 +205,8 @@ final class NetworkImpl implements Network {
         }
 
         @Override
-        public Optional<Address> addressFor(String address) {
-            return AddressImpl.createAsBtc(address).transform(a -> a);
+        public Optional<com.breadwallet.crypto.Address> addressFor(String address) {
+            return Address.createAsBtc(address).transform(a -> a);
         }
 
         @Override
@@ -248,8 +245,8 @@ final class NetworkImpl implements Network {
         }
 
         @Override
-        public Optional<Address> addressFor(String address) {
-            return AddressImpl.createAsBtc(address).transform(a -> a);
+        public Optional<com.breadwallet.crypto.Address> addressFor(String address) {
+            return Address.createAsBtc(address).transform(a -> a);
         }
 
         @Override
@@ -284,8 +281,8 @@ final class NetworkImpl implements Network {
         }
 
         @Override
-        public Optional<Address> addressFor(String address) {
-            return AddressImpl.createAsEth(address).transform(a -> a);
+        public Optional<com.breadwallet.crypto.Address> addressFor(String address) {
+            return Address.createAsEth(address).transform(a -> a);
         }
     }
 
@@ -298,7 +295,7 @@ final class NetworkImpl implements Network {
         }
 
         @Override
-        public Optional<Address> addressFor(String address) {
+        public Optional<com.breadwallet.crypto.Address> addressFor(String address) {
             return Optional.absent();
         }
     }

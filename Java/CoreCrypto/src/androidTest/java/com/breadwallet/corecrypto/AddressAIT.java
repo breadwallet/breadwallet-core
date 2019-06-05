@@ -1,6 +1,5 @@
 package com.breadwallet.corecrypto;
 
-import com.breadwallet.crypto.Address;
 import com.google.common.base.Optional;
 
 import org.junit.Test;
@@ -10,17 +9,17 @@ public class AddressAIT {
 
     @Test
     public void testAddressCreateAsEth() {
-        Optional<AddressImpl> oe1 = AddressImpl.createAsEth("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62");
+        Optional<Address> oe1 = Address.createAsEth("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62");
         assertTrue(oe1.isPresent());
         Address e1 = oe1.get();
         assertEquals("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", e1.toString());
 
-        Optional<AddressImpl> oe2 = AddressImpl.createAsEth("0xd3CFBA03Fc13dc01F0C67B88CBEbE776D8F3DE8f");
+        Optional<Address> oe2 = Address.createAsEth("0xd3CFBA03Fc13dc01F0C67B88CBEbE776D8F3DE8f");
         assertTrue(oe2.isPresent());
         Address e2 = oe2.get();
         assertEquals("0xd3CFBA03Fc13dc01F0C67B88CBEbE776D8F3DE8f", e2.toString());
 
-        Optional<AddressImpl> oe3 = AddressImpl.createAsEth("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62");
+        Optional<Address> oe3 = Address.createAsEth("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62");
         assertTrue(oe3.isPresent());
         Address e3 = oe3.get();
         assertEquals("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", e3.toString());
@@ -35,7 +34,7 @@ public class AddressAIT {
 
     @Test
     public void testAddressCreateAsBtc() {
-        Optional<AddressImpl> ob1 = AddressImpl.createAsBtc("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj");
+        Optional<Address> ob1 = Address.createAsBtc("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj");
         assertTrue(ob1.isPresent());
         Address b1 = ob1.get();
         assertEquals("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj", b1.toString());
@@ -45,8 +44,8 @@ public class AddressAIT {
 
     @Test
     public void testAddressMixedEquals() {
-        Address e1 = AddressImpl.createAsEth("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62").get();
-        Address b1 = AddressImpl.createAsBtc("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj").get();
+        Address e1 = Address.createAsEth("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62").get();
+        Address b1 = Address.createAsBtc("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj").get();
 
         assertNotEquals(e1, b1);
         assertNotEquals(b1, e1);

@@ -7,40 +7,38 @@
  */
 package com.breadwallet.corecrypto;
 
-import com.breadwallet.crypto.Currency;
-import com.breadwallet.crypto.Unit;
 import com.breadwallet.corenative.crypto.CoreBRCryptoUnit;
 import com.google.common.primitives.UnsignedInteger;
 
 import java.util.Objects;
 
 /* package */
-final class UnitImpl implements Unit {
+final class Unit implements com.breadwallet.crypto.Unit {
 
     /* package */
-    static UnitImpl from(Unit unit) {
-        if (unit instanceof UnitImpl) {
-            return (UnitImpl) unit;
+    static Unit from(com.breadwallet.crypto.Unit unit) {
+        if (unit instanceof Unit) {
+            return (Unit) unit;
         }
         throw new IllegalArgumentException("Unsupported unit instance");
     }
 
     private final CoreBRCryptoUnit core;
-    private final UnitImpl base;
+    private final Unit base;
     private final String uids;
-    private final CurrencyImpl currency;
+    private final Currency currency;
 
     /* package */
-    UnitImpl(CurrencyImpl currency, String uids, String name, String symbol) {
+    Unit(Currency currency, String uids, String name, String symbol) {
         this(CoreBRCryptoUnit.createAsBase(currency.getCoreBRCryptoCurrency(), name, symbol), currency, uids, null);
     }
 
     /* package */
-    UnitImpl(CurrencyImpl currency, String uids, String name, String symbol, UnitImpl base, UnsignedInteger decimals) {
+    Unit(Currency currency, String uids, String name, String symbol, Unit base, UnsignedInteger decimals) {
         this(CoreBRCryptoUnit.create(currency.getCoreBRCryptoCurrency(), name, symbol, base.core, decimals), currency, uids, base);
     }
 
-    private UnitImpl(CoreBRCryptoUnit core, CurrencyImpl currency, String uids, UnitImpl base) {
+    private Unit(CoreBRCryptoUnit core, Currency currency, String uids, Unit base) {
         this.core = core;
         this.currency = currency;
         this.uids = uids;
@@ -48,7 +46,7 @@ final class UnitImpl implements Unit {
     }
 
     @Override
-    public CurrencyImpl getCurrency() {
+    public Currency getCurrency() {
         return currency;
     }
 
@@ -63,7 +61,7 @@ final class UnitImpl implements Unit {
     }
 
     @Override
-    public UnitImpl getBase() {
+    public Unit getBase() {
         return base;
     }
 
@@ -73,15 +71,13 @@ final class UnitImpl implements Unit {
     }
 
     @Override
-    public boolean isCompatible(Unit other) {
-        UnitImpl otherImpl = from(other);
-        return core.isCompatible(otherImpl.core);
+    public boolean isCompatible(com.breadwallet.crypto.Unit other) {
+        return core.isCompatible(from(other).core);
     }
 
     @Override
-    public boolean hasCurrency(Currency currency) {
-        CurrencyImpl currencyImpl = CurrencyImpl.from(currency);
-        return core.hasCurrency(currencyImpl.getCoreBRCryptoCurrency());
+    public boolean hasCurrency(com.breadwallet.crypto.Currency currency) {
+        return core.hasCurrency(Currency.from(currency).getCoreBRCryptoCurrency());
     }
 
     @Override
@@ -94,7 +90,7 @@ final class UnitImpl implements Unit {
             return false;
         }
 
-        UnitImpl unit = (UnitImpl) o;
+        Unit unit = (Unit) o;
         return uids.equals(unit.uids);
     }
 

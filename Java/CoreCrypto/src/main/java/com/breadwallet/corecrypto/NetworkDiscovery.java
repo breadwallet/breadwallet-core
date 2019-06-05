@@ -7,12 +7,10 @@
  */
 package com.breadwallet.corecrypto;
 
-import com.breadwallet.crypto.Unit;
 import com.breadwallet.crypto.blockchaindb.CompletionHandler;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
-import com.breadwallet.crypto.blockchaindb.models.bdb.Currency;
 import com.breadwallet.crypto.blockchaindb.models.bdb.CurrencyDenomination;
 import com.google.common.base.Function;
 import com.google.common.primitives.UnsignedInteger;
@@ -31,12 +29,12 @@ final class NetworkDiscovery {
 
     /* package */
     interface Callback {
-        void discovered(List<NetworkImpl> networks);
+        void discovered(List<Network> networks);
     }
 
     /* package */
     static void discoverNetworks(BlockchainDb query, List<String> networksNeeded, boolean isMainnet, Callback callback) {
-        List<NetworkImpl> networks = new ArrayList<>();
+        List<Network> networks = new ArrayList<>();
         CountUpAndDownLatch latch = new CountUpAndDownLatch(() -> callback.discovered(networks));
 
         getBlockChains(latch, query, Blockchain.DEFAULT_BLOCKCHAINS, isMainnet, blockchainModels -> {
@@ -46,23 +44,23 @@ final class NetworkDiscovery {
                     continue;
                 }
 
-                final List<Currency> defaultCurrencies = new ArrayList<>();
-                for (Currency currency :
-                        Currency.DEFAULT_CURRENCIES) {
+                final List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> defaultCurrencies = new ArrayList<>();
+                for (com.breadwallet.crypto.blockchaindb.models.bdb.Currency currency :
+                        com.breadwallet.crypto.blockchaindb.models.bdb.Currency.DEFAULT_CURRENCIES) {
                     if (currency.getBlockchainId().equals(blockchainModelId)) {
                         defaultCurrencies.add(currency);
                     }
                 }
 
-                Map<CurrencyImpl, NetworkAssociation> associations = new HashMap<>();
+                Map<Currency, NetworkAssociation> associations = new HashMap<>();
 
                 getCurrencies(latch, query, blockchainModelId, defaultCurrencies, currencyModels -> {
-                    for (Currency currencyModel : currencyModels) {
+                    for (com.breadwallet.crypto.blockchaindb.models.bdb.Currency currencyModel : currencyModels) {
                         if (!blockchainModelId.equals(currencyModel.getBlockchainId())) {
                             continue;
                         }
 
-                        CurrencyImpl currency = new CurrencyImpl(
+                        Currency currency = new Currency(
                                 currencyModel.getId(),
                                 currencyModel.getName(),
                                 currencyModel.getCode(),
@@ -71,17 +69,17 @@ final class NetworkDiscovery {
                         CurrencyDenomination baseDenomination = findFirstBaseDenomination(currencyModel.getDenominations());
                         List<CurrencyDenomination> nonBaseDenominations = findAllNonBaseDenominations(currencyModel.getDenominations());
 
-                        UnitImpl baseUnit = currencyDenominationToBaseUnit(currency, baseDenomination);
-                        List<UnitImpl> units = currencyDenominationToUnits(currency, nonBaseDenominations, baseUnit);
+                        Unit baseUnit = currencyDenominationToBaseUnit(currency, baseDenomination);
+                        List<Unit> units = currencyDenominationToUnits(currency, nonBaseDenominations, baseUnit);
 
                         units.add(0, baseUnit);
                         Collections.sort(units, (o1, o2) -> o2.getDecimals().compareTo(o1.getDecimals()));
-                        Unit defaultUnit = units.get(0);
+                        com.breadwallet.crypto.Unit defaultUnit = units.get(0);
 
                         associations.put(currency, new NetworkAssociation(baseUnit, defaultUnit, new HashSet<>(units)));
                     }
 
-                    networks.add(NetworkImpl.create(
+                    networks.add(Network.create(
                             blockchainModel.getId(),
                             blockchainModel.getName(),
                             blockchainModel.isMainnet(),
@@ -135,19 +133,19 @@ final class NetworkDiscovery {
     private static void getCurrencies(CountUpAndDownLatch latch,
                                       BlockchainDb query,
                                       String blockchainId,
-                                      Collection<Currency> defaultCurrencies,
-                                      Function<Collection<Currency>, Void> func) {
+                                      Collection<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> defaultCurrencies,
+                                      Function<Collection<com.breadwallet.crypto.blockchaindb.models.bdb.Currency>, Void> func) {
         latch.countUp();
-        query.getCurrencies(blockchainId, new CompletionHandler<List<Currency>>() {
+        query.getCurrencies(blockchainId, new CompletionHandler<List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency>>() {
             @Override
-            public void handleData(List<Currency> newCurrencies) {
+            public void handleData(List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> newCurrencies) {
                 try {
-                    Map<String, Currency> merged = new HashMap<>();
-                    for (Currency currency : defaultCurrencies) {
+                    Map<String, com.breadwallet.crypto.blockchaindb.models.bdb.Currency> merged = new HashMap<>();
+                    for (com.breadwallet.crypto.blockchaindb.models.bdb.Currency currency : defaultCurrencies) {
                         merged.put(currency.getId(), currency);
                     }
 
-                    for (Currency currency : newCurrencies) {
+                    for (com.breadwallet.crypto.blockchaindb.models.bdb.Currency currency : newCurrencies) {
                         merged.put(currency.getId(), currency);
                     }
 
@@ -187,28 +185,28 @@ final class NetworkDiscovery {
         return newDenominations;
     }
 
-    private static UnitImpl currencyDenominationToBaseUnit(CurrencyImpl currency,
-                                                           CurrencyDenomination denomination) {
+    private static Unit currencyDenominationToBaseUnit(Currency currency,
+                                                       CurrencyDenomination denomination) {
         String uids = String.format("%s-%s", currency.getName(), denomination.getCode());
-        return new UnitImpl(currency, uids, denomination.getName(), denomination.getSymbol());
+        return new Unit(currency, uids, denomination.getName(), denomination.getSymbol());
     }
 
-    private static List<UnitImpl> currencyDenominationToUnits(CurrencyImpl currency,
-                                                              List<CurrencyDenomination> denominations,
-                                                              UnitImpl base) {
-        List<UnitImpl> units = new ArrayList<>();
+    private static List<Unit> currencyDenominationToUnits(Currency currency,
+                                                          List<CurrencyDenomination> denominations,
+                                                          Unit base) {
+        List<Unit> units = new ArrayList<>();
         for (CurrencyDenomination denomination : denominations) {
             String uids = String.format("%s-%s", currency.getName(), denomination.getCode());
-            units.add(new UnitImpl(currency, uids, denomination.getName(), denomination.getSymbol(), base,
+            units.add(new Unit(currency, uids, denomination.getName(), denomination.getSymbol(), base,
                       denomination.getDecimals()));
         }
         return units;
     }
 
-    private static CurrencyImpl findCurrency(Map<CurrencyImpl,
+    private static Currency findCurrency(Map<Currency,
             NetworkAssociation> associations, Blockchain blockchainModel) {
         String code = blockchainModel.getCurrency().toLowerCase();
-        for (CurrencyImpl currency : associations.keySet()) {
+        for (Currency currency : associations.keySet()) {
             if (code.equals(currency.getCode())) {
                 return currency;
             }

@@ -7,7 +7,6 @@
  */
 package com.breadwallet.corecrypto;
 
-import com.breadwallet.crypto.TransferHash;
 import com.breadwallet.corenative.ethereum.BREthereumHash;
 import com.breadwallet.corenative.support.UInt256;
 import com.google.common.io.BaseEncoding;
@@ -19,23 +18,23 @@ import java.util.Objects;
 import static com.google.common.base.Preconditions.checkArgument;
 
 /* package */
-final class TransferHashImpl implements TransferHash {
+final class TransferHash implements com.breadwallet.crypto.TransferHash {
 
     private static final BaseEncoding BASE16_ENCODER = BaseEncoding.base16().lowerCase();
 
     private final CurrencyTransferHash impl;
 
     /* package */
-    static TransferHashImpl createBtc(UInt256 btcCore) {
-        return new TransferHashImpl(new BitcoinTransferHash(btcCore));
+    static TransferHash createBtc(UInt256 btcCore) {
+        return new TransferHash(new BitcoinTransferHash(btcCore));
     }
 
     /* package */
-    static TransferHashImpl createEth(BREthereumHash ethCore) {
-        return new TransferHashImpl(new EthereumTransferHash(ethCore));
+    static TransferHash createEth(BREthereumHash ethCore) {
+        return new TransferHash(new EthereumTransferHash(ethCore));
     }
 
-    private TransferHashImpl(CurrencyTransferHash impl) {
+    private TransferHash(CurrencyTransferHash impl) {
         this.impl = impl;
     }
 
@@ -48,11 +47,11 @@ final class TransferHashImpl implements TransferHash {
             return true;
         }
 
-        if (!(object instanceof TransferHashImpl)) {
+        if (!(object instanceof TransferHash)) {
             return false;
         }
 
-        TransferHashImpl that = (TransferHashImpl) object;
+        TransferHash that = (TransferHash) object;
         return impl.equals(that.impl);
     }
 

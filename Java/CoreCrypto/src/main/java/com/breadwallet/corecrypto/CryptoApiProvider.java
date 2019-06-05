@@ -7,10 +7,7 @@
  */
 package com.breadwallet.corecrypto;
 
-import com.breadwallet.crypto.Account;
-import com.breadwallet.crypto.Amount;
 import com.breadwallet.crypto.CryptoApi;
-import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Unit;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.events.system.SystemListener;
@@ -19,53 +16,53 @@ import com.google.common.base.Optional;
 import java.util.Date;
 import java.util.concurrent.ExecutorService;
 
-public final class CryptoApiImpl implements CryptoApi.Provider {
+public final class CryptoApiProvider implements CryptoApi.Provider {
 
-    private static final CryptoApiImpl INSTANCE = new CryptoApiImpl();
+    private static final CryptoApiProvider INSTANCE = new CryptoApiProvider();
 
-    public static CryptoApiImpl getInstance() {
+    public static CryptoApiProvider getInstance() {
         return INSTANCE;
     }
 
     private static final CryptoApi.AccountProvider accountProvider = new CryptoApi.AccountProvider() {
 
         @Override
-        public Account create(String phrase, String uids, Date earliestKeyTime) {
-            return AccountImpl.createFrom(phrase, uids, earliestKeyTime);
+        public com.breadwallet.crypto.Account create(String phrase, String uids, Date earliestKeyTime) {
+            return Account.createFrom(phrase, uids, earliestKeyTime);
         }
 
         @Override
-        public Account create(byte[] seed, String uids, Date earliestKeyTime) {
-            return AccountImpl.createFrom(seed, uids, earliestKeyTime);
+        public com.breadwallet.crypto.Account create(byte[] seed, String uids, Date earliestKeyTime) {
+            return Account.createFrom(seed, uids, earliestKeyTime);
         }
     };
 
     private static final CryptoApi.AmountProvider amountProvider = new CryptoApi.AmountProvider() {
         @Override
-        public Optional<Amount> create(long value, Unit unit) {
-            return AmountImpl.create(value, unit);
+        public Optional<com.breadwallet.crypto.Amount> create(long value, Unit unit) {
+            return Amount.create(value, unit).transform(a -> a);
         }
 
         @Override
-        public Optional<Amount> create(double value, Unit unit) {
-            return AmountImpl.create(value, unit);
+        public Optional<com.breadwallet.crypto.Amount> create(double value, Unit unit) {
+            return Amount.create(value, unit).transform(a -> a);
         }
 
         @Override
-        public Optional<Amount> create(String value, boolean isNegative, Unit unit) {
-            return AmountImpl.create(value, isNegative, unit);
+        public Optional<com.breadwallet.crypto.Amount> create(String value, boolean isNegative, Unit unit) {
+            return Amount.create(value, isNegative, unit).transform(a -> a);
         }
     };
 
     private static final CryptoApi.SystemProvider systemProvider = new CryptoApi.SystemProvider() {
 
         @Override
-        public System create(ExecutorService listenerExecutor, SystemListener listener, Account account, String path, BlockchainDb query) {
-            return SystemImpl.create(listenerExecutor, listener, account, path, query);
+        public com.breadwallet.crypto.System create(ExecutorService listenerExecutor, SystemListener listener, com.breadwallet.crypto.Account account, String path, BlockchainDb query) {
+            return System.create(listenerExecutor, listener, account, path, query);
         }
     };
 
-    private CryptoApiImpl() {
+    private CryptoApiProvider() {
 
     }
 

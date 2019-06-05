@@ -9,8 +9,6 @@ package com.breadwallet.corecrypto;
 
 import android.util.Log;
 
-import com.breadwallet.crypto.Amount;
-import com.breadwallet.crypto.Transfer;
 import com.breadwallet.crypto.TransferConfirmation;
 import com.breadwallet.crypto.TransferState;
 import com.breadwallet.crypto.Wallet;
@@ -66,9 +64,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /* package */
-final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
+final class WalletManagerBtc extends WalletManager<WalletBtc> {
 
-    private static final String TAG = WalletManagerImplBtc.class.getName();
+    private static final String TAG = WalletManagerBtc.class.getName();
 
     private static final UnsignedInteger UNUSED_ADDR_LIMIT = UnsignedInteger.valueOf(25);
 
@@ -101,12 +99,12 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
     private final CoreBRWalletManager coreManager;
 
     /* package */
-    WalletManagerImplBtc(AccountImpl account,
-                         NetworkImpl network,
-                         WalletManagerMode managerMode,
-                         String path,
-                         SystemAnnouncer announcer,
-                         BlockchainDb query) {
+    WalletManagerBtc(Account account,
+                     Network network,
+                     WalletManagerMode managerMode,
+                     String path,
+                     SystemAnnouncer announcer,
+                     BlockchainDb query) {
         super(account, network, managerMode, path);
         this.systemExecutor = Executors.newSingleThreadExecutor();
         this.announcer = announcer;
@@ -142,20 +140,20 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
     }
 
     @Override
-    public void submit(Transfer transfer, String paperKey) {
-        if (transfer instanceof TransferImplBtc) {
-            CoreBRTransaction coreTransaction = ((TransferImplBtc) transfer).getCoreBRTransaction();
-            byte[] seed = AccountImpl.deriveSeed(paperKey);
+    public void submit(com.breadwallet.crypto.Transfer transfer, String paperKey) {
+        if (transfer instanceof TransferBtc) {
+            CoreBRTransaction coreTransaction = ((TransferBtc) transfer).getCoreBRTransaction();
+            byte[] seed = Account.deriveSeed(paperKey);
             coreManager.submitTransaction(coreTransaction, seed);
         } else {
             throw new IllegalArgumentException("Unsupported transfer type");
         }
     }
 
-    private Optional<WalletImplBtc> getOrCreateWalletByImpl(BRWallet walletImpl, boolean createAllowed) {
+    private Optional<WalletBtc> getOrCreateWalletByImpl(BRWallet walletImpl, boolean createAllowed) {
         walletsWriteLock.lock();
         try {
-            Optional<WalletImplBtc> optWallet = getWalletByImplUnderLock(walletImpl);
+            Optional<WalletBtc> optWallet = getWalletByImplUnderLock(walletImpl);
             if (optWallet.isPresent()) {
                 return optWallet;
             } else if (createAllowed) {
@@ -171,23 +169,23 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
     private void setPrimaryWallet(BRWallet walletImpl) {
         walletsWriteLock.lock();
         try {
-            Optional<WalletImplBtc> optWallet = getWalletByImplUnderLock(walletImpl);
+            Optional<WalletBtc> optWallet = getWalletByImplUnderLock(walletImpl);
             if (!optWallet.isPresent()) {
-                wallets.add(0, new WalletImplBtc(this, walletImpl, getBaseUnit(), getDefaultUnit()));
+                wallets.add(0, new WalletBtc(this, walletImpl, getBaseUnit(), getDefaultUnit()));
             }
         } finally {
             walletsWriteLock.unlock();
         }
     }
 
-    private WalletImplBtc addWalletByImplUnderLock(BRWallet walletImpl) {
-        WalletImplBtc wallet = new WalletImplBtc(this, walletImpl, getBaseUnit(), getDefaultUnit());
+    private WalletBtc addWalletByImplUnderLock(BRWallet walletImpl) {
+        WalletBtc wallet = new WalletBtc(this, walletImpl, getBaseUnit(), getDefaultUnit());
         wallets.add(wallet);
         return wallet;
     }
 
-    private Optional<WalletImplBtc> getWalletByImplUnderLock(BRWallet walletImpl) {
-        for (WalletImplBtc wallet : wallets) {
+    private Optional<WalletBtc> getWalletByImplUnderLock(BRWallet walletImpl) {
+        for (WalletBtc wallet : wallets) {
             if (wallet.matches(walletImpl)) {
                 return Optional.of(wallet);
             }
@@ -327,14 +325,14 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
 
     private void handleTransactionEvent(Pointer context, BRWalletManager managerImpl, BRWallet walletImpl, BRTransaction transactionImpl, BRTransactionEvent.ByValue event) {
         systemExecutor.submit(() -> {
-            Optional<WalletImplBtc> optWallet = getOrCreateWalletByImpl(walletImpl, false);
+            Optional<WalletBtc> optWallet = getOrCreateWalletByImpl(walletImpl, false);
             if (optWallet.isPresent()) {
-                WalletImplBtc wallet = optWallet.get();
+                WalletBtc wallet = optWallet.get();
 
                 boolean createAllowed = event.type == BRTransactionEventType.BITCOIN_TRANSACTION_ADDED;
-                Optional<TransferImplBtc> optTransfer = wallet.getOrCreateTransferByImpl(transactionImpl, createAllowed);
+                Optional<TransferBtc> optTransfer = wallet.getOrCreateTransferByImpl(transactionImpl, createAllowed);
                 if (optTransfer.isPresent()) {
-                    TransferImpl transfer = optTransfer.get();
+                    Transfer transfer = optTransfer.get();
 
                     switch (event.type) {
                         case BRTransactionEventType.BITCOIN_TRANSACTION_ADDED:
@@ -354,7 +352,7 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
                             UnsignedLong timestamp = UnsignedLong.fromLongBits(event.u.updated.timestamp);
                             Log.d(TAG, String.format("BRTransactionEventCallback: BITCOIN_TRANSACTION_UPDATED (%s, %s)", blockHeight, timestamp));
 
-                            Optional<Amount> optionalAmount = AmountImpl.create(0, getDefaultUnit());
+                            Optional<Amount> optionalAmount = Amount.create(0, getDefaultUnit());
                             if (optionalAmount.isPresent()) {
                                 TransferConfirmation confirmation = new TransferConfirmation(blockHeight, UnsignedLong.ZERO, timestamp, optionalAmount.get());
 
@@ -382,9 +380,9 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
     private void handleWalletEvent(Pointer context, BRWalletManager managerImpl, BRWallet walletImpl, BRWalletEvent.ByValue event) {
         systemExecutor.submit(() -> {
             boolean createAllowed = event.type == BRWalletEventType.BITCOIN_WALLET_CREATED;
-            Optional<WalletImplBtc> optWallet = getOrCreateWalletByImpl(walletImpl, createAllowed);
+            Optional<WalletBtc> optWallet = getOrCreateWalletByImpl(walletImpl, createAllowed);
             if (optWallet.isPresent()) {
-                WalletImplBtc wallet = optWallet.get();
+                WalletBtc wallet = optWallet.get();
 
                 switch (event.type) {
                     case BRWalletEventType.BITCOIN_WALLET_CREATED: {
@@ -409,9 +407,9 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
                     case BRWalletEventType.BITCOIN_WALLET_TRANSACTION_SUBMITTED: {
                         Log.d(TAG, String.format("BRWalletEventCallback: BITCOIN_WALLET_TRANSACTION_SUBMITTED (%s)", event.u.submitted.error));
 
-                        Optional<TransferImplBtc> optTransfer = wallet.getOrCreateTransferByImpl(event.u.submitted.transaction, false);
+                        Optional<TransferBtc> optTransfer = wallet.getOrCreateTransferByImpl(event.u.submitted.transaction, false);
                         if (optTransfer.isPresent()) {
-                            TransferImpl transfer = optTransfer.get();
+                            Transfer transfer = optTransfer.get();
 
                             if (event.u.submitted.error == 0) {
                                 TransferState newState = TransferState.SUBMITTED();
@@ -492,7 +490,7 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
                     network.setHeight(height);
 
                     for (Wallet wallet: getWallets()) {
-                        for(Transfer transfer: wallet.getTransfers()) {
+                        for(com.breadwallet.crypto.Transfer transfer: wallet.getTransfers()) {
                             Optional<UnsignedLong> optionalConfirmations = transfer.getConfirmationsAt(height);
                             if (optionalConfirmations.isPresent()) {
                                 UnsignedLong confirmations = optionalConfirmations.get();

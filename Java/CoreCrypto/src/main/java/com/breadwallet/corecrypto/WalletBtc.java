@@ -7,8 +7,6 @@
  */
 package com.breadwallet.corecrypto;
 
-import com.breadwallet.crypto.Address;
-import com.breadwallet.crypto.Amount;
 import com.breadwallet.crypto.Transfer;
 import com.breadwallet.crypto.TransferFeeBasis;
 import com.breadwallet.crypto.Unit;
@@ -22,52 +20,52 @@ import com.google.common.primitives.UnsignedLong;
 import static com.google.common.base.Preconditions.checkState;
 
 /* package */
-final class WalletImplBtc extends WalletImpl<TransferImplBtc> {
+final class WalletBtc extends Wallet<TransferBtc> {
 
     private final BRWallet coreWallet;
 
     /* package */
-    WalletImplBtc(WalletManager owner, BRWallet wallet, Unit feeUnit, Unit defaultUnit) {
+    WalletBtc(WalletManager owner, BRWallet wallet, Unit feeUnit, Unit defaultUnit) {
         super(owner, feeUnit, defaultUnit, TransferFeeBasis.createBtc(wallet.getFeePerKb()));
         this.coreWallet = wallet;
     }
 
     @Override
-    public Optional<Transfer> createTransfer(Address target, Amount amount, TransferFeeBasis feeBasis) {
+    public Optional<Transfer> createTransfer(com.breadwallet.crypto.Address target, com.breadwallet.crypto.Amount amount, TransferFeeBasis feeBasis) {
         // TODO(fix): The swift equivalent will result in this being added to 'transfers' and an event being created; do we want this?
         String addr = target.toString();
-        UnsignedLong value = AmountImpl.from(amount).integerRawAmount();
+        UnsignedLong value = Amount.from(amount).integerRawAmount();
         Unit unit = amount.getUnit();
-        return CoreBRTransaction.create(coreWallet, value, addr).transform((t) -> new TransferImplBtc(this, coreWallet, t, unit));
+        return CoreBRTransaction.create(coreWallet, value, addr).transform((t) -> new TransferBtc(this, coreWallet, t, unit));
     }
 
     @Override
-    public Amount estimateFee(Amount amount, TransferFeeBasis feeBasis) {
+    public com.breadwallet.crypto.Amount estimateFee(com.breadwallet.crypto.Amount amount, TransferFeeBasis feeBasis) {
         checkState(amount.hasCurrency(defaultUnit.getCurrency()));
 
         UnsignedLong feePerKbSaved = coreWallet.getFeePerKb();
         UnsignedLong feePerKb = feeBasis.getBtcFeePerKb();
 
         coreWallet.setFeePerKb(feePerKb);
-        UnsignedLong fee = coreWallet.getFeeForTxAmount(AmountImpl.from(amount).integerRawAmount());
+        UnsignedLong fee = coreWallet.getFeeForTxAmount(Amount.from(amount).integerRawAmount());
         coreWallet.setFeePerKb(feePerKbSaved);
 
-        return AmountImpl.createAsBtc(fee, feeUnit);
+        return Amount.createAsBtc(fee, feeUnit);
     }
 
     @Override
-    public Amount getBalance() {
-        return AmountImpl.createAsBtc(coreWallet.getBalance(), defaultUnit);
+    public com.breadwallet.crypto.Amount getBalance() {
+        return Amount.createAsBtc(coreWallet.getBalance(), defaultUnit);
     }
 
     @Override
-    public Address getTarget() {
-        return AddressImpl.createAsBtc(coreWallet.legacyAddress());
+    public com.breadwallet.crypto.Address getTarget() {
+        return Address.createAsBtc(coreWallet.legacyAddress());
     }
 
     @Override
-    public Address getSource() {
-        return AddressImpl.createAsBtc(coreWallet.legacyAddress());
+    public com.breadwallet.crypto.Address getSource() {
+        return Address.createAsBtc(coreWallet.legacyAddress());
     }
 
     /* package */
@@ -76,10 +74,10 @@ final class WalletImplBtc extends WalletImpl<TransferImplBtc> {
     }
 
     /* package */
-    Optional<TransferImplBtc> getOrCreateTransferByImpl(BRTransaction transferImpl, boolean createAllowed) {
+    Optional<TransferBtc> getOrCreateTransferByImpl(BRTransaction transferImpl, boolean createAllowed) {
         transfersWriteLock.lock();
         try {
-            Optional<TransferImplBtc> optTransfer = getTransferByImplUnderLock(transferImpl);
+            Optional<TransferBtc> optTransfer = getTransferByImplUnderLock(transferImpl);
             if (optTransfer.isPresent()) {
                 return optTransfer;
             } else if (createAllowed) {
@@ -92,14 +90,14 @@ final class WalletImplBtc extends WalletImpl<TransferImplBtc> {
         }
     }
 
-    private TransferImplBtc addTransferByImplUnderLock(BRTransaction transferImpl) {
-        TransferImplBtc transfer = new TransferImplBtc(this, coreWallet, transferImpl, defaultUnit);
+    private TransferBtc addTransferByImplUnderLock(BRTransaction transferImpl) {
+        TransferBtc transfer = new TransferBtc(this, coreWallet, transferImpl, defaultUnit);
         transfers.add(transfer);
         return transfer;
     }
 
-    private Optional<TransferImplBtc> getTransferByImplUnderLock(BRTransaction transferImpl) {
-        for (TransferImplBtc transfer: transfers) {
+    private Optional<TransferBtc> getTransferByImplUnderLock(BRTransaction transferImpl) {
+        for (TransferBtc transfer: transfers) {
             if (transfer.matches(transferImpl)) {
                 return Optional.of(transfer);
             }

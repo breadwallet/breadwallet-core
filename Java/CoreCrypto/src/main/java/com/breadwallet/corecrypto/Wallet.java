@@ -8,11 +8,9 @@
 package com.breadwallet.corecrypto;
 
 import com.breadwallet.crypto.Amount;
-import com.breadwallet.crypto.Transfer;
 import com.breadwallet.crypto.TransferFeeBasis;
 import com.breadwallet.crypto.TransferHash;
 import com.breadwallet.crypto.Unit;
-import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
 import com.breadwallet.crypto.WalletState;
 import com.google.common.base.Optional;
@@ -25,7 +23,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /* package */
-abstract class WalletImpl<T extends TransferImpl> implements Wallet {
+abstract class Wallet<T extends Transfer> implements com.breadwallet.crypto.Wallet {
 
     protected final WalletManager owner;
     protected final Unit feeUnit;
@@ -38,7 +36,7 @@ abstract class WalletImpl<T extends TransferImpl> implements Wallet {
 
     protected TransferFeeBasis defaultFeeBasis;
 
-    protected WalletImpl(WalletManager owner, Unit feeUnit, Unit defaultUnit, TransferFeeBasis defaultFeeBasis) {
+    protected Wallet(WalletManager owner, Unit feeUnit, Unit defaultUnit, TransferFeeBasis defaultFeeBasis) {
         this.owner = owner;
         this.feeUnit = feeUnit;
         this.defaultUnit = defaultUnit;
@@ -62,7 +60,7 @@ abstract class WalletImpl<T extends TransferImpl> implements Wallet {
     }
 
     @Override
-    public List<Transfer> getTransfers() {
+    public List<com.breadwallet.crypto.Transfer> getTransfers() {
         transfersReadLock.lock();
         try {
             return new ArrayList<>(transfers);
@@ -72,10 +70,10 @@ abstract class WalletImpl<T extends TransferImpl> implements Wallet {
     }
 
     @Override
-    public Optional<Transfer> getTransferByHash(TransferHash hash) {
+    public Optional<com.breadwallet.crypto.Transfer> getTransferByHash(TransferHash hash) {
         transfersReadLock.lock();
         try {
-            for (Transfer transfer : transfers) {
+            for (com.breadwallet.crypto.Transfer transfer : transfers) {
                 TransferHash transferHash = transfer.getHash().orNull();
                 if (hash.equals(transferHash)) {
                     return Optional.of(transfer);

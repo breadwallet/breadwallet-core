@@ -7,10 +7,6 @@
  */
 package com.breadwallet.corecrypto;
 
-import com.breadwallet.crypto.Account;
-import com.breadwallet.crypto.Network;
-import com.breadwallet.crypto.Wallet;
-import com.breadwallet.crypto.WalletManager;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.WalletManagerState;
 
@@ -22,10 +18,10 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /* package */
-abstract class WalletManagerImpl<T extends WalletImpl> implements WalletManager {
+abstract class WalletManager<T extends Wallet> implements com.breadwallet.crypto.WalletManager {
 
-    protected final AccountImpl account;
-    protected final NetworkImpl network;
+    protected final Account account;
+    protected final Network network;
     protected final String path;
     protected final WalletManagerMode mode;
     protected final AtomicReference<WalletManagerState> state;
@@ -33,7 +29,7 @@ abstract class WalletManagerImpl<T extends WalletImpl> implements WalletManager 
     protected final Lock walletsWriteLock;
     protected final List<T> wallets;
 
-    protected WalletManagerImpl(AccountImpl account, NetworkImpl network, WalletManagerMode managerMode, String path) {
+    protected WalletManager(Account account, Network network, WalletManagerMode managerMode, String path) {
         this.account = account;
         this.network = network;
         this.mode = managerMode;
@@ -47,17 +43,17 @@ abstract class WalletManagerImpl<T extends WalletImpl> implements WalletManager 
     }
 
     @Override
-    public Account getAccount() {
+    public com.breadwallet.crypto.Account getAccount() {
         return account;
     }
 
     @Override
-    public Network getNetwork() {
+    public com.breadwallet.crypto.Network getNetwork() {
         return network;
     }
 
     @Override
-    public Wallet getPrimaryWallet() {
+    public com.breadwallet.crypto.Wallet getPrimaryWallet() {
         walletsReadLock.lock();
         try {
             return wallets.get(0);
@@ -67,7 +63,7 @@ abstract class WalletManagerImpl<T extends WalletImpl> implements WalletManager 
     }
 
     @Override
-    public List<Wallet> getWallets() {
+    public List<com.breadwallet.crypto.Wallet> getWallets() {
         walletsReadLock.lock();
         try {
             return new ArrayList<>(wallets);

@@ -9,11 +9,8 @@
  */
 package com.breadwallet.corecrypto;
 
-import com.breadwallet.crypto.Address;
-import com.breadwallet.crypto.Amount;
 import com.breadwallet.crypto.TransferDirection;
 import com.breadwallet.crypto.TransferFeeBasis;
-import com.breadwallet.crypto.TransferHash;
 import com.breadwallet.crypto.Unit;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.corenative.bitcoin.BRTransaction;
@@ -29,53 +26,53 @@ import java.util.ArrayList;
 import java.util.List;
 
 /* package */
-final class TransferImplBtc extends TransferImpl {
+final class TransferBtc extends Transfer {
 
     private final BRWallet coreWallet;
     private final CoreBRTransaction coreTransfer;
 
     /* package */
-    TransferImplBtc(Wallet owner, BRWallet coreWallet, CoreBRTransaction coreTransfer, Unit defaultUnit) {
+    TransferBtc(Wallet owner, BRWallet coreWallet, CoreBRTransaction coreTransfer, Unit defaultUnit) {
         super(owner, defaultUnit);
         this.coreWallet = coreWallet;
         this.coreTransfer = coreTransfer;
     }
 
     @Override
-    public Optional<Address> getSource() {
+    public Optional<com.breadwallet.crypto.Address> getSource() {
         boolean sent = !UnsignedLong.MAX_VALUE.equals(coreWallet.getFeeForTx(coreTransfer));
 
         for (BRTxInput input: coreTransfer.getInputs()) {
             String addressStr = input.getAddressAsString();
             if (sent == coreWallet.containsAddress(addressStr)) {
-                return AddressImpl.createAsBtc(addressStr).transform(a -> a);
+                return Address.createAsBtc(addressStr).transform(a -> a);
             }
         }
         return Optional.absent();
     }
 
     @Override
-    public Optional<Address> getTarget() {
+    public Optional<com.breadwallet.crypto.Address> getTarget() {
         boolean sent = !UnsignedLong.MAX_VALUE.equals(coreWallet.getFeeForTx(coreTransfer));
 
         for (BRTxOutput output: coreTransfer.getOutputs()) {
             String addressStr = output.getAddressAsString();
             if (!sent == coreWallet.containsAddress(addressStr)) {
-                return AddressImpl.createAsBtc(addressStr).transform(a -> a);
+                return Address.createAsBtc(addressStr).transform(a -> a);
             }
         }
         return Optional.absent();
     }
 
     @Override
-    public List<Address> getSources() {
+    public List<com.breadwallet.crypto.Address> getSources() {
         boolean sent = !UnsignedLong.MAX_VALUE.equals(coreWallet.getFeeForTx(coreTransfer));
 
-        List<Address> addresses = new ArrayList<>();
+        List<com.breadwallet.crypto.Address> addresses = new ArrayList<>();
         for (BRTxInput input: coreTransfer.getInputs()) {
             String addressStr = input.getAddressAsString();
             if (sent == coreWallet.containsAddress(addressStr)) {
-                Optional<AddressImpl> optional = AddressImpl.createAsBtc(addressStr);
+                Optional<Address> optional = Address.createAsBtc(addressStr);
                 if (optional.isPresent()) addresses.add(optional.get());
             }
         }
@@ -83,14 +80,14 @@ final class TransferImplBtc extends TransferImpl {
     }
 
     @Override
-    public List<Address> getTargets() {
+    public List<com.breadwallet.crypto.Address> getTargets() {
         boolean sent = !UnsignedLong.MAX_VALUE.equals(coreWallet.getFeeForTx(coreTransfer));
 
-        List<Address> addresses = new ArrayList<>();
+        List<com.breadwallet.crypto.Address> addresses = new ArrayList<>();
         for (BRTxOutput output: coreTransfer.getOutputs()) {
             String addressStr = output.getAddressAsString();
             if (!sent == coreWallet.containsAddress(addressStr)) {
-                Optional<AddressImpl> optional = AddressImpl.createAsBtc(addressStr);
+                Optional<Address> optional = Address.createAsBtc(addressStr);
                 if (optional.isPresent()) addresses.add(optional.get());
             }
         }
@@ -98,29 +95,29 @@ final class TransferImplBtc extends TransferImpl {
     }
 
     @Override
-    public List<Address> getInputs() {
-        List<Address> addresses = new ArrayList<>();
+    public List<com.breadwallet.crypto.Address> getInputs() {
+        List<com.breadwallet.crypto.Address> addresses = new ArrayList<>();
         for (BRTxInput input: coreTransfer.getInputs()) {
             String addressStr = input.getAddressAsString();
-            Optional<AddressImpl> optional = AddressImpl.createAsBtc(addressStr);
+            Optional<Address> optional = Address.createAsBtc(addressStr);
             if (optional.isPresent()) addresses.add(optional.get());
         }
         return addresses;
     }
 
     @Override
-    public List<Address> getOutputs() {
-        List<Address> addresses = new ArrayList<>();
+    public List<com.breadwallet.crypto.Address> getOutputs() {
+        List<com.breadwallet.crypto.Address> addresses = new ArrayList<>();
         for (BRTxOutput output: coreTransfer.getOutputs()) {
             String addressStr = output.getAddressAsString();
-            Optional<AddressImpl> optional = AddressImpl.createAsBtc(addressStr);
+            Optional<Address> optional = Address.createAsBtc(addressStr);
             if (optional.isPresent()) addresses.add(optional.get());
         }
         return addresses;
     }
 
     @Override
-    public Amount getAmount() {
+    public com.breadwallet.crypto.Amount getAmount() {
         UnsignedLong fee = coreWallet.getFeeForTx(coreTransfer);
         if (UnsignedLong.MAX_VALUE.equals(fee)) {
             fee = UnsignedLong.ZERO;
@@ -131,23 +128,23 @@ final class TransferImplBtc extends TransferImpl {
 
         switch (getDirection()) {
             case RECOVERED:
-                return AmountImpl.createAsBtc(send, defaultUnit);
+                return Amount.createAsBtc(send, defaultUnit);
             case SENT:
-                return AmountImpl.createAsBtc(send.minus(recv).minus(fee), defaultUnit);
+                return Amount.createAsBtc(send.minus(recv).minus(fee), defaultUnit);
             case RECEIVED:
-                return AmountImpl.createAsBtc(recv, defaultUnit);
+                return Amount.createAsBtc(recv, defaultUnit);
             default:
                 throw new IllegalStateException("Invalid transfer direction");
         }
     }
 
     @Override
-    public Amount getFee() {
+    public com.breadwallet.crypto.Amount getFee() {
         UnsignedLong fee = coreWallet.getFeeForTx(coreTransfer);
         if (UnsignedLong.MAX_VALUE.equals(fee)) {
             fee = UnsignedLong.ZERO;
         }
-        return AmountImpl.createAsBtc(fee, defaultUnit);
+        return Amount.createAsBtc(fee, defaultUnit);
     }
 
     @Override
@@ -178,11 +175,11 @@ final class TransferImplBtc extends TransferImpl {
     }
 
     @Override
-    public Optional<TransferHash> getHash() {
+    public Optional<com.breadwallet.crypto.TransferHash> getHash() {
         UInt256 txHash = coreTransfer.getTxHash();
         for (byte value: txHash.u8) {
             if (value != 0) {
-                return Optional.of(TransferHashImpl.createBtc(txHash));
+                return Optional.of(TransferHash.createBtc(txHash));
             }
         }
         return Optional.absent();

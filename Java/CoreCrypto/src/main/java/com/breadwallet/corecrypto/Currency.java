@@ -7,18 +7,17 @@
  */
 package com.breadwallet.corecrypto;
 
-import com.breadwallet.crypto.Currency;
 import com.breadwallet.corenative.crypto.CoreBRCryptoCurrency;
 
 import java.util.Objects;
 
 /* package */
-final class CurrencyImpl implements Currency {
+final class Currency implements com.breadwallet.crypto.Currency {
 
     /* package */
-    static CurrencyImpl from(Currency currency) {
-        if (currency instanceof CurrencyImpl) {
-            return (CurrencyImpl) currency;
+    static Currency from(com.breadwallet.crypto.Currency currency) {
+        if (currency instanceof Currency) {
+            return (Currency) currency;
         }
         throw new IllegalArgumentException("Unsupported currency instance");
     }
@@ -26,11 +25,11 @@ final class CurrencyImpl implements Currency {
     private final CoreBRCryptoCurrency core;
     private final String uids;
 
-    /* package */ CurrencyImpl(String uids, String name, String code, String type) {
+    /* package */ Currency(String uids, String name, String code, String type) {
         this(CoreBRCryptoCurrency.create(name, code, type), uids);
     }
 
-    private CurrencyImpl(CoreBRCryptoCurrency core, String uids) {
+    private Currency(CoreBRCryptoCurrency core, String uids) {
         this.core = core;
         this.uids = uids;
     }
@@ -60,7 +59,7 @@ final class CurrencyImpl implements Currency {
             return false;
         }
 
-        CurrencyImpl currency = (CurrencyImpl) o;
+        Currency currency = (Currency) o;
         return uids.equals(currency.uids);
     }
 

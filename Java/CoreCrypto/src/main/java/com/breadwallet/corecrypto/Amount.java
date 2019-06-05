@@ -9,11 +9,7 @@ package com.breadwallet.corecrypto;
 
 import android.support.annotation.Nullable;
 
-import com.breadwallet.crypto.Amount;
-import com.breadwallet.crypto.Currency;
 import com.breadwallet.crypto.CurrencyPair;
-import com.breadwallet.crypto.Unit;
-import com.breadwallet.corenative.crypto.BRCryptoBoolean;
 import com.breadwallet.corenative.crypto.BRCryptoComparison;
 import com.breadwallet.corenative.crypto.CoreBRCryptoAmount;
 import com.google.common.base.Optional;
@@ -28,41 +24,41 @@ import java.util.Objects;
 import static com.google.common.base.Preconditions.checkArgument;
 
 /* package */
-final class AmountImpl implements Amount {
+final class Amount implements com.breadwallet.crypto.Amount {
 
     /* package */
-    static Optional<Amount> create(double value, Unit unit) {
-        UnitImpl unitImpl = UnitImpl.from(unit);
-        return CoreBRCryptoAmount.create(value, unitImpl.getCoreBRCryptoUnit()).transform((amount) -> new AmountImpl(amount, unitImpl));
+    static Optional<Amount> create(double value, com.breadwallet.crypto.Unit unit) {
+        Unit unitImpl = Unit.from(unit);
+        return CoreBRCryptoAmount.create(value, unitImpl.getCoreBRCryptoUnit()).transform((amount) -> new Amount(amount, unitImpl));
     }
 
     /* package */
-    static Optional<Amount> create(long value, Unit unit) {
-        UnitImpl unitImpl = UnitImpl.from(unit);
-        return CoreBRCryptoAmount.create(value, unitImpl.getCoreBRCryptoUnit()).transform((amount) -> new AmountImpl(amount, unitImpl));
+    static Optional<Amount> create(long value, com.breadwallet.crypto.Unit unit) {
+        Unit unitImpl = Unit.from(unit);
+        return CoreBRCryptoAmount.create(value, unitImpl.getCoreBRCryptoUnit()).transform((amount) -> new Amount(amount, unitImpl));
     }
 
     /* package */
-    static Optional<Amount> create(String value, boolean isNegative, Unit unit) {
-        UnitImpl unitImpl = UnitImpl.from(unit);
-        return CoreBRCryptoAmount.create(value, isNegative, unitImpl.getCoreBRCryptoUnit()).transform((amount) -> new AmountImpl(amount, unitImpl));
+    static Optional<Amount> create(String value, boolean isNegative, com.breadwallet.crypto.Unit unit) {
+        Unit unitImpl = Unit.from(unit);
+        return CoreBRCryptoAmount.create(value, isNegative, unitImpl.getCoreBRCryptoUnit()).transform((amount) -> new Amount(amount, unitImpl));
     }
 
     /* package */
-    static AmountImpl createAsBtc(UnsignedLong value, Unit unit) {
-        UnitImpl unitImpl = UnitImpl.from(unit);
-        return new AmountImpl(CoreBRCryptoAmount.createAsBtc(value, unitImpl.getCurrency().getCoreBRCryptoCurrency()), unitImpl);
+    static Amount createAsBtc(UnsignedLong value, com.breadwallet.crypto.Unit unit) {
+        Unit unitImpl = Unit.from(unit);
+        return new Amount(CoreBRCryptoAmount.createAsBtc(value, unitImpl.getCurrency().getCoreBRCryptoCurrency()), unitImpl);
     }
 
     /* package */
-    static AmountImpl from(Amount amount) {
-        if (amount instanceof AmountImpl) {
-            return (AmountImpl) amount;
+    static Amount from(com.breadwallet.crypto.Amount amount) {
+        if (amount instanceof Amount) {
+            return (Amount) amount;
         }
         throw new IllegalArgumentException("Unsupported amount instance");
     }
 
-    private static NumberFormat formatterWithUnit(Unit unit) {
+    private static NumberFormat formatterWithUnit(com.breadwallet.crypto.Unit unit) {
         DecimalFormat formatter = (DecimalFormat) DecimalFormat.getCurrencyInstance().clone();
         DecimalFormatSymbols formatterSymbols = (DecimalFormatSymbols) formatter.getDecimalFormatSymbols().clone();
 
@@ -79,33 +75,31 @@ final class AmountImpl implements Amount {
     }
 
     private final CoreBRCryptoAmount core;
-    private final UnitImpl unit;
+    private final Unit unit;
 
-    private AmountImpl(CoreBRCryptoAmount core, UnitImpl unit) {
+    private Amount(CoreBRCryptoAmount core, Unit unit) {
         this.core = core;
         this.unit = unit;
     }
 
     @Override
-    public Currency getCurrency() {
+    public com.breadwallet.crypto.Currency getCurrency() {
         return unit.getCurrency();
     }
 
     @Override
-    public Unit getUnit() {
+    public com.breadwallet.crypto.Unit getUnit() {
         return unit;
     }
 
     @Override
-    public boolean hasCurrency(Currency currency) {
-        CurrencyImpl currencyImpl = CurrencyImpl.from(currency);
-        return currencyImpl.getCoreBRCryptoCurrency().equals(core.getCurrency());
+    public boolean hasCurrency(com.breadwallet.crypto.Currency currency) {
+        return Currency.from(currency).getCoreBRCryptoCurrency().equals(core.getCurrency());
     }
 
     @Override
-    public boolean isCompatible(Amount withAmount) {
-        AmountImpl amountImpl = from(withAmount);
-        return core.isCompatible(amountImpl.core);
+    public boolean isCompatible(com.breadwallet.crypto.Amount withAmount) {
+        return core.isCompatible(from(withAmount).core);
     }
 
     @Override
@@ -114,43 +108,41 @@ final class AmountImpl implements Amount {
     }
 
     @Override
-    public Optional<Amount> add(Amount o) {
+    public Optional<com.breadwallet.crypto.Amount> add(com.breadwallet.crypto.Amount o) {
         checkArgument(isCompatible(o));
 
-        AmountImpl amountImpl = from(o);
-        CoreBRCryptoAmount amount = core.add(amountImpl.core);
+        CoreBRCryptoAmount amount = core.add(from(o).core);
         if (amount == null) {
             return Optional.absent();
         }
 
-        return Optional.of(new AmountImpl(amount, unit));
+        return Optional.of(new Amount(amount, unit));
     }
 
     @Override
-    public Optional<Amount> sub(Amount o) {
+    public Optional<com.breadwallet.crypto.Amount> sub(com.breadwallet.crypto.Amount o) {
         checkArgument(isCompatible(o));
 
-        AmountImpl amountImpl = from(o);
-        CoreBRCryptoAmount amount = core.sub(amountImpl.core);
+        CoreBRCryptoAmount amount = core.sub(from(o).core);
         if (amount == null) {
             return Optional.absent();
         }
 
-        return Optional.of(new AmountImpl(amount, unit));
+        return Optional.of(new Amount(amount, unit));
     }
 
     @Override
-    public AmountImpl negate() {
-        return new AmountImpl(core.negate(), unit);
+    public Amount negate() {
+        return new Amount(core.negate(), unit);
     }
 
     @Override
-    public Optional<String> toStringAsUnit(Unit asUnit) {
+    public Optional<String> toStringAsUnit(com.breadwallet.crypto.Unit asUnit) {
         return toStringAsUnit(asUnit, null);
     }
 
     @Override
-    public Optional<String> toStringAsUnit(Unit asUnit, @Nullable NumberFormat numberFormatter) {
+    public Optional<String> toStringAsUnit(com.breadwallet.crypto.Unit asUnit, @Nullable NumberFormat numberFormatter) {
         numberFormatter = numberFormatter != null ? numberFormatter : formatterWithUnit(asUnit);
         return doubleAmount(asUnit).transform(numberFormatter::format);
     }
@@ -162,7 +154,7 @@ final class AmountImpl implements Amount {
 
     @Override
     public Optional<String> toStringFromPair(CurrencyPair pair, @Nullable NumberFormat numberFormatter) {
-        Optional<Amount> amount = pair.exchangeAsBase(this);
+        Optional<com.breadwallet.crypto.Amount> amount = pair.exchangeAsBase(this);
         if (amount.isPresent()) {
             return amount.get().toStringAsUnit(pair.getQuoteUnit(), numberFormatter);
         } else {
@@ -182,9 +174,8 @@ final class AmountImpl implements Amount {
     }
 
     @Override
-    public int compareTo(Amount o) {
-        AmountImpl amountImpl = from(o);
-        switch (core.compare(amountImpl.core)) {
+    public int compareTo(com.breadwallet.crypto.Amount o) {
+        switch (core.compare(from(o).core)) {
             case BRCryptoComparison.CRYPTO_COMPARE_EQ:
                 return 0;
             case BRCryptoComparison.CRYPTO_COMPARE_LT:
@@ -206,7 +197,7 @@ final class AmountImpl implements Amount {
             return false;
         }
 
-        AmountImpl amount = (AmountImpl) o;
+        Amount amount = (Amount) o;
         return BRCryptoComparison.CRYPTO_COMPARE_EQ == core.compare(amount.core);
     }
 
@@ -216,8 +207,8 @@ final class AmountImpl implements Amount {
     }
 
     @Override
-    public Optional<Double> doubleAmount(Unit asUnit) {
-        return core.getDouble(UnitImpl.from(asUnit).getCoreBRCryptoUnit());
+    public Optional<Double> doubleAmount(com.breadwallet.crypto.Unit asUnit) {
+        return core.getDouble(Unit.from(asUnit).getCoreBRCryptoUnit());
     }
 
     /* package */

@@ -9,7 +9,7 @@ import android.arch.lifecycle.ProcessLifecycleOwner;
 import android.content.Intent;
 import android.os.StrictMode;
 
-import com.breadwallet.corecrypto.CryptoApiImpl;
+import com.breadwallet.corecrypto.CryptoApiProvider;
 import com.breadwallet.crypto.Account;
 import com.breadwallet.crypto.CryptoApi;
 import com.breadwallet.crypto.WalletManagerMode;
@@ -82,7 +82,7 @@ public class CoreCryptoApplication extends Application {
                 checkState(storageFile.mkdirs());
             }
 
-            CryptoApi.initialize(CryptoApiImpl.getInstance());
+            CryptoApi.initialize(CryptoApiProvider.getInstance());
 
             listener = new CoreSystemListener(mode);
 

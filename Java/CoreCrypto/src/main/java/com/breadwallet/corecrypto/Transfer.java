@@ -7,8 +7,6 @@
  */
 package com.breadwallet.corecrypto;
 
-import com.breadwallet.crypto.Amount;
-import com.breadwallet.crypto.Transfer;
 import com.breadwallet.crypto.TransferState;
 import com.breadwallet.crypto.Unit;
 import com.breadwallet.crypto.Wallet;
@@ -16,13 +14,13 @@ import com.breadwallet.crypto.Wallet;
 import java.util.concurrent.atomic.AtomicReference;
 
 /* package */
-abstract class TransferImpl implements Transfer {
+abstract class Transfer implements com.breadwallet.crypto.Transfer {
 
     protected final Wallet owner;
     protected final Unit defaultUnit;
     protected final AtomicReference<TransferState> state;
 
-    protected TransferImpl(Wallet owner, Unit defaultUnit) {
+    protected Transfer(Wallet owner, Unit defaultUnit) {
         this.owner = owner;
         this.defaultUnit = defaultUnit;
         this.state = new AtomicReference<>(TransferState.CREATED());
@@ -34,10 +32,10 @@ abstract class TransferImpl implements Transfer {
     }
 
     @Override
-    public Amount getAmountDirected() {
+    public com.breadwallet.crypto.Amount getAmountDirected() {
         switch (getDirection()) {
             case RECOVERED:
-                return AmountImpl.create(0L, defaultUnit).get();
+                return Amount.create(0L, defaultUnit).get();
             case SENT:
                 return getAmount().negate();
             case RECEIVED:
