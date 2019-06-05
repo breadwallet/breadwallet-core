@@ -1,3 +1,10 @@
+/*
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
+ * Copyright (c) 2018 Breadwinner AG.  All right reserved.
+ *
+ * See the LICENSE file at the project root for license information.
+ * See the CONTRIBUTORS file at the project root for a list of contributors.
+ */
 package com.breadwallet.crypto.libcrypto.bitcoin;
 
 import com.breadwallet.crypto.libcrypto.CryptoLibrary;
@@ -19,6 +26,10 @@ public interface CoreBRTransaction {
     static Optional<CoreBRTransaction> create(BRWallet wallet, long amount, String address) {
         BRTransaction transaction = CryptoLibrary.INSTANCE.BRWalletCreateTransaction(wallet, amount, address);
         return Optional.fromNullable(transaction).transform(OwnedBRTransaction::new);
+    }
+
+    static CoreBRTransaction create(BRTransaction transaction) {
+        return new OwnedBRTransaction(transaction);
     }
 
     BRTxInput[] getInputs();

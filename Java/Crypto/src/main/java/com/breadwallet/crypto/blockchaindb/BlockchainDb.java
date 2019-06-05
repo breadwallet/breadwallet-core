@@ -1,3 +1,10 @@
+/*
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
+ * Copyright (c) 2018 Breadwinner AG.  All right reserved.
+ *
+ * See the LICENSE file at the project root for license information.
+ * See the CONTRIBUTORS file at the project root for a list of contributors.
+ */
 package com.breadwallet.crypto.blockchaindb;
 
 import android.support.annotation.Nullable;
@@ -55,11 +62,11 @@ public class BlockchainDb {
         this(client, bdbBaseURL, null, apiBaseURL, null);
     }
 
-    public BlockchainDb(OkHttpClient client, String bdbBaseURL, @Nullable BlockchainDataTask bdbDataTask,
-                        String apiBaseURL, @Nullable BlockchainDataTask apiDataTask) {
-        BlockchainDataTask defaultDataTask = (cli, request, callback) -> cli.newCall(request).enqueue(callback);
+    public BlockchainDb(OkHttpClient client, String bdbBaseURL, @Nullable DataTask bdbDataTask,
+                        String apiBaseURL, @Nullable DataTask apiDataTask) {
+        DataTask defaultDataTask = (cli, request, callback) -> cli.newCall(request).enqueue(callback);
         bdbDataTask = bdbDataTask == null ? defaultDataTask : bdbDataTask;
-
+        apiDataTask = apiDataTask == null ? defaultDataTask : apiDataTask;
 
         BdbApiClient bdbClient = new BdbApiClient(client, bdbBaseURL, bdbDataTask);
         BrdApiClient brdClient = new BrdApiClient(client, apiBaseURL, apiDataTask);
@@ -83,83 +90,83 @@ public class BlockchainDb {
 
     // Blockchain
 
-    public void getBlockchains(BlockchainCompletionHandler<List<Blockchain>> handler) {
+    public void getBlockchains(CompletionHandler<List<Blockchain>> handler) {
         blockchainApi.getBlockchains(true, handler);
     }
 
-    public void getBlockchains(boolean isMainnet, BlockchainCompletionHandler<List<Blockchain>> handler) {
+    public void getBlockchains(boolean isMainnet, CompletionHandler<List<Blockchain>> handler) {
         blockchainApi.getBlockchains(isMainnet, handler);
     }
 
-    public void getBlockchain(String id, BlockchainCompletionHandler<Blockchain> handler) {
+    public void getBlockchain(String id, CompletionHandler<Blockchain> handler) {
         blockchainApi.getBlockchain(id, handler);
     }
 
     // Currency
 
-    public void getCurrencies(BlockchainCompletionHandler<List<Currency>> handler) {
+    public void getCurrencies(CompletionHandler<List<Currency>> handler) {
         currencyApi.getCurrencies(handler);
     }
 
-    public void getCurrencies(@Nullable String id, BlockchainCompletionHandler<List<Currency>> handler) {
+    public void getCurrencies(@Nullable String id, CompletionHandler<List<Currency>> handler) {
         currencyApi.getCurrencies(id, handler);
     }
 
-    public void getCurrency(String id, BlockchainCompletionHandler<Currency> handler) {
+    public void getCurrency(String id, CompletionHandler<Currency> handler) {
         currencyApi.getCurrency(id, handler);
     }
 
     // Subscription
 
-    public void getOrCreateSubscription(Subscription subscription, BlockchainCompletionHandler<Subscription> handler) {
+    public void getOrCreateSubscription(Subscription subscription, CompletionHandler<Subscription> handler) {
         subscriptionApi.getOrCreateSubscription(subscription, handler);
     }
 
-    public void getSubscription(String id, BlockchainCompletionHandler<Subscription> handler) {
+    public void getSubscription(String id, CompletionHandler<Subscription> handler) {
         subscriptionApi.getSubscription(id, handler);
     }
 
-    public void createSubscription(Subscription subscription, BlockchainCompletionHandler<Subscription> handler) {
+    public void createSubscription(Subscription subscription, CompletionHandler<Subscription> handler) {
         subscriptionApi.createSubscription(subscription, handler);
     }
 
-    public void updateSubscription(Subscription subscription, BlockchainCompletionHandler<Subscription> handler) {
+    public void updateSubscription(Subscription subscription, CompletionHandler<Subscription> handler) {
         subscriptionApi.updateSubscription(subscription, handler);
     }
 
-    public void deleteSubscription(String id, BlockchainCompletionHandler<Subscription> handler) {
+    public void deleteSubscription(String id, CompletionHandler<Subscription> handler) {
         subscriptionApi.deleteSubscription(id, handler);
     }
 
     // Transfer
 
-    public void getTransfers(String id, List<String> addresses, BlockchainCompletionHandler<List<Transfer>> handler) {
+    public void getTransfers(String id, List<String> addresses, CompletionHandler<List<Transfer>> handler) {
         transferApi.getTransfers(id, addresses, handler);
     }
 
-    public void getTransfer(String id, BlockchainCompletionHandler<Transfer> handler) {
+    public void getTransfer(String id, CompletionHandler<Transfer> handler) {
         transferApi.getTransfer(id, handler);
     }
 
     // Wallet
 
-    public void getOrCreateWallet(Wallet wallet, BlockchainCompletionHandler<Wallet> handler) {
+    public void getOrCreateWallet(Wallet wallet, CompletionHandler<Wallet> handler) {
         walletApi.getOrCreateWallet(wallet, handler);
     }
 
-    public void getWallet(String id, BlockchainCompletionHandler<Wallet> handler) {
+    public void getWallet(String id, CompletionHandler<Wallet> handler) {
         walletApi.getWallet(id, handler);
     }
 
-    public void createWallet(Wallet wallet, BlockchainCompletionHandler<Wallet> handler) {
+    public void createWallet(Wallet wallet, CompletionHandler<Wallet> handler) {
         walletApi.createWallet(wallet, handler);
     }
 
-    public void updateWallet(Wallet wallet, BlockchainCompletionHandler<Wallet> handler) {
+    public void updateWallet(Wallet wallet, CompletionHandler<Wallet> handler) {
         walletApi.updateWallet(wallet, handler);
     }
 
-    public void deleteWallet(String id, BlockchainCompletionHandler<Wallet> handler) {
+    public void deleteWallet(String id, CompletionHandler<Wallet> handler) {
         walletApi.deleteWallet(id, handler);
     }
 
@@ -167,17 +174,17 @@ public class BlockchainDb {
 
     public void getTransactions(String id, List<String> addresses, long beginBlockNumber, long endBlockNumber,
                                 boolean includeRaw, boolean includeProof,
-                                BlockchainCompletionHandler<List<Transaction>> handler) {
+                                CompletionHandler<List<Transaction>> handler) {
         transactionApi.getTransactions(id, addresses, beginBlockNumber, endBlockNumber, includeRaw, includeProof,
                 handler);
     }
 
     public void getTransaction(String id, boolean includeRaw, boolean includeProof,
-                               BlockchainCompletionHandler<Transaction> handler) {
+                               CompletionHandler<Transaction> handler) {
         transactionApi.getTransaction(id, includeRaw, includeProof, handler);
     }
 
-    public void putTransaction(String id, byte[] data, BlockchainCompletionHandler<Transaction> handler) {
+    public void putTransaction(String id, byte[] data, CompletionHandler<Transaction> handler) {
         transactionApi.putTransaction(id, data, handler);
     }
 
@@ -185,75 +192,75 @@ public class BlockchainDb {
 
     public void getBlocks(String id, long beginBlockNumber, long endBlockNumber, boolean includeRaw,
                           boolean includeTx, boolean includeTxRaw, boolean includeTxProof,
-                          BlockchainCompletionHandler<List<Block>> handler) {
+                          CompletionHandler<List<Block>> handler) {
         blockApi.getBlocks(id, beginBlockNumber, endBlockNumber, includeRaw, includeTx, includeTxRaw, includeTxProof,
                 handler);
     }
 
     public void getBlock(String id, boolean includeRaw,
                          boolean includeTx, boolean includeTxRaw, boolean includeTxProof,
-                         BlockchainCompletionHandler<Block> handler) {
+                         CompletionHandler<Block> handler) {
         blockApi.getBlock(id, includeRaw, includeTx, includeTxRaw, includeTxProof, handler);
     }
 
     // ETH Balance
 
     public void getBalanceAsEth(String networkName, String address, int rid,
-                                BlockchainCompletionHandler<String> handler) {
+                                CompletionHandler<String> handler) {
         ethBalanceApi.getBalanceAsEth(networkName, address, rid, handler);
     }
 
     public void getBalanceAsTok(String networkName, String address, String tokenAddress, int rid,
-                                BlockchainCompletionHandler<String> handler) {
+                                CompletionHandler<String> handler) {
         ethBalanceApi.getBalanceAsTok(networkName, address, tokenAddress, rid, handler);
     }
 
     // ETH Gas
 
-    public void getGasPriceAsEth(String networkName, int rid, BlockchainCompletionHandler<String> handler) {
+    public void getGasPriceAsEth(String networkName, int rid, CompletionHandler<String> handler) {
         ethGasApi.getGasPriceAsEth(networkName, rid, handler);
     }
 
     public void getGasEstimateAsEth(String networkName, String from, String to, String amount, String data, int rid,
-                                    BlockchainCompletionHandler<String> handler) {
+                                    CompletionHandler<String> handler) {
         ethGasApi.getGasEstimateAsEth(networkName, from, to, amount, data, rid, handler);
     }
 
     // ETH Token
 
-    public void getTokensAsEth(int rid, BlockchainCompletionHandler<List<EthToken>> handler) {
+    public void getTokensAsEth(int rid, CompletionHandler<List<EthToken>> handler) {
         ethTokenApi.getTokensAsEth(rid, handler);
     }
 
     // ETH Block
 
-    public void getBlockNumberAsEth(String networkName, int rid, BlockchainCompletionHandler<String> handler) {
+    public void getBlockNumberAsEth(String networkName, int rid, CompletionHandler<String> handler) {
         ethBlockApi.getBlockNumberAsEth(networkName, rid, handler);
     }
 
     // ETH Transfer
 
     public void submitTransactionAsEth(String networkName, String transaction, int rid,
-                                       BlockchainCompletionHandler<String> handler) {
+                                       CompletionHandler<String> handler) {
         ethTransferApi.submitTransactionAsEth(networkName, transaction, rid, handler);
     }
 
     public void getTransactionsAsEth(String networkName, String address, long begBlockNumber, long endBlockNumber,
-                                     int rid, BlockchainCompletionHandler<List<EthTransaction>> handler) {
+                                     int rid, CompletionHandler<List<EthTransaction>> handler) {
         ethTransferApi.getTransactionsAsEth(networkName, address, begBlockNumber, endBlockNumber, rid, handler);
     }
 
-    public void getNonceAsEth(String networkName, String address, int rid, BlockchainCompletionHandler<String> handler) {
+    public void getNonceAsEth(String networkName, String address, int rid, CompletionHandler<String> handler) {
         ethTransferApi.getNonceAsEth(networkName, address, rid, handler);
     }
 
     public void getLogsAsEth(String networkName, @Nullable String contract, String address, String event,
-                             long begBlockNumber, long endBlockNumber, int rid, BlockchainCompletionHandler<List<EthLog>> handler) {
+                             long begBlockNumber, long endBlockNumber, int rid, CompletionHandler<List<EthLog>> handler) {
         ethTransferApi.getLogsAsEth(networkName, contract, address, event, begBlockNumber, endBlockNumber, rid, handler);
     }
 
     public void getBlocksAsEth(String networkName, String address, int interests, long blockStart, long blockEnd,
-                               int rid, BlockchainCompletionHandler<List<Long>> handler) {
+                               int rid, CompletionHandler<List<Long>> handler) {
         ethTransferApi.getBlocksAsEth(networkName, address, interests, blockStart, blockEnd, rid, handler);
     }
 }

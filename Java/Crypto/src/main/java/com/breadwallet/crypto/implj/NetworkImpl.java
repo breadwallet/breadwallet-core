@@ -1,7 +1,5 @@
 /*
- * Network
- *
- * Created by Ed Gamble <ed@breadwallet.com> on 1/22/18.
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
  * Copyright (c) 2018 Breadwinner AG.  All right reserved.
  *
  * See the LICENSE file at the project root for license information.
@@ -24,11 +22,13 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public final class NetworkImpl implements Network {
+/* package */
+final class NetworkImpl implements Network {
 
     /* package */
     static NetworkImpl create(String uids, String name, boolean isMainnet, CurrencyImpl currency, long height,
@@ -45,16 +45,23 @@ public final class NetworkImpl implements Network {
         }
     }
 
+    /* package */
+    static NetworkImpl from(Network network) {
+        if (network instanceof NetworkImpl) {
+            return (NetworkImpl) network;
+        }
+        throw new IllegalArgumentException("Unsupported network instance");
+    }
+
     private final String uids;
     private final String name;
     private final boolean isMainnet;
     private final CurrencyImpl currency;
     private final Set<CurrencyImpl> currencies;
     private final Map<CurrencyImpl, NetworkAssociation> associations;
+    private final CurrencyNetwork impl;
 
     private long height;
-
-    private final CurrencyNetwork impl;
 
     private NetworkImpl(String uids, String name, boolean isMainnet, CurrencyImpl currency, long height, Map<CurrencyImpl,
             NetworkAssociation> associations, CurrencyNetwork impl) {
@@ -132,13 +139,40 @@ public final class NetworkImpl implements Network {
     }
 
     @Override
-    public void setHeight(long height) {
-        this.height = height;
+    public boolean equals(Object object) {
+        if (this == object) {
+            return true;
+        }
+
+        if (!(object instanceof NetworkImpl)) {
+            return false;
+        }
+
+        // height not included in the equality and hashcode calculation
+        NetworkImpl network = (NetworkImpl) object;
+        return isMainnet == network.isMainnet &&
+                uids.equals(network.uids) &&
+                name.equals(network.name) &&
+                currency.equals(network.currency) &&
+                currencies.equals(network.currencies) &&
+                associations.equals(network.associations) &&
+                impl.equals(network.impl);
     }
 
     @Override
-    public BRChainParams asBtc() {
+    public int hashCode() {
+        // height not included in the equality and hashcode calculation
+        return Objects.hash(uids, name, isMainnet, currency, currencies, associations, impl);
+    }
+
+    /* package */
+    BRChainParams asBtc() {
         return impl.asBtc();
+    }
+
+    /* package */
+    void setHeight(long height) {
+        this.height = height;
     }
 
     // TODO(discuss): Should asBtc() and asEth() be returning Optional instead of throwing an exception?
@@ -176,6 +210,25 @@ public final class NetworkImpl implements Network {
         public Optional<Address> addressFor(String address) {
             return AddressImpl.createAsBtc(address).transform(a -> a);
         }
+
+        @Override
+        public boolean equals(Object object) {
+            if (this == object) {
+                return true;
+            }
+
+            if (!(object instanceof BitcoinNetwork)) {
+                return false;
+            }
+
+            BitcoinNetwork that = (BitcoinNetwork) object;
+            return chainParams.equals(that.chainParams);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(chainParams);
+        }
     }
 
     private static class BitcashNetwork implements CurrencyNetwork {
@@ -197,12 +250,31 @@ public final class NetworkImpl implements Network {
         public Optional<Address> addressFor(String address) {
             return AddressImpl.createAsBtc(address).transform(a -> a);
         }
+
+        @Override
+        public boolean equals(Object object) {
+            if (this == object) {
+                return true;
+            }
+
+            if (!(object instanceof BitcashNetwork)) {
+                return false;
+            }
+
+            BitcashNetwork that = (BitcashNetwork) object;
+            return chainParams.equals(that.chainParams);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(chainParams);
+        }
     }
 
+    // TODO(fix): Implement this (including equals and hashCode)
     private static class EthereumNetwork implements CurrencyNetwork {
 
         EthereumNetwork(String uids) {
-            // TODO(fix): Implement this
         }
 
         @Override
@@ -216,6 +288,7 @@ public final class NetworkImpl implements Network {
         }
     }
 
+    // TODO(fix): Implement this (including equals and hashCode)
     private static class Generic implements CurrencyNetwork {
 
         @Override
@@ -225,7 +298,6 @@ public final class NetworkImpl implements Network {
 
         @Override
         public Optional<Address> addressFor(String address) {
-            // TODO(discuss): How is this going to be handled?
             return Optional.absent();
         }
     }

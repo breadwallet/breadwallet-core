@@ -1,12 +1,19 @@
+/*
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
+ * Copyright (c) 2018 Breadwinner AG.  All right reserved.
+ *
+ * See the LICENSE file at the project root for license information.
+ * See the CONTRIBUTORS file at the project root for a list of contributors.
+ */
 package com.breadwallet.crypto.blockchaindb.apis.brd;
 
 import android.support.annotation.Nullable;
 
-import com.breadwallet.crypto.blockchaindb.BlockchainCompletionHandler;
+import com.breadwallet.crypto.blockchaindb.CompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
+import com.breadwallet.crypto.blockchaindb.errors.QueryModelError;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthLog;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthTransaction;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -32,7 +39,7 @@ public class EthTransferApi {
     }
 
     public void submitTransactionAsEth(String networkName, String transaction, int rid,
-                                       BlockchainCompletionHandler<String> handler) {
+                                       CompletionHandler<String> handler) {
         JSONObject json = new JSONObject(ImmutableMap.of(
                 "jsonrpc", "2.0",
                 "method", "eth_sendRawTransaction",
@@ -40,22 +47,11 @@ public class EthTransferApi {
                 "id", rid
         ));
 
-        client.sendJsonRequest(networkName, json, new BlockchainCompletionHandler<Optional<String>>() {
-            @Override
-            public void handleData(Optional<String> result) {
-                // TODO(discuss): Do we want default values?
-                handler.handleData(result.or("0x123abc456def"));
-            }
-
-            @Override
-            public void handleError(QueryError error) {
-                handler.handleError(error);
-            }
-        });
+        client.sendJsonRequest(networkName, json, handler);
     }
 
     public void getTransactionsAsEth(String networkName, String address, long begBlockNumber, long endBlockNumber,
-                                     int rid, BlockchainCompletionHandler<List<EthTransaction>> handler) {
+                                     int rid, CompletionHandler<List<EthTransaction>> handler) {
         JSONObject json = new JSONObject(ImmutableMap.of(
                 "id", rid,
                 "account", address
@@ -73,7 +69,7 @@ public class EthTransferApi {
     }
 
     public void getNonceAsEth(String networkName, String address, int rid,
-                              BlockchainCompletionHandler<String> handler) {
+                              CompletionHandler<String> handler) {
         JSONObject json = new JSONObject(ImmutableMap.of(
                 "jsonrpc", "2.0",
                 "method", "eth_getTransactionCount",
@@ -81,23 +77,12 @@ public class EthTransferApi {
                 "id", rid
         ));
 
-        client.sendJsonRequest(networkName, json, new BlockchainCompletionHandler<Optional<String>>() {
-            @Override
-            public void handleData(Optional<String> result) {
-                // TODO(discuss): Do we want default values?
-                handler.handleData(result.or("118"));
-            }
-
-            @Override
-            public void handleError(QueryError error) {
-                handler.handleError(error);
-            }
-        });
+        client.sendJsonRequest(networkName, json, handler);
     }
 
     public void getLogsAsEth(String networkName, @Nullable String contract, String address, String event,
                              long begBlockNumber, long endBlockNumber, int rid,
-                             BlockchainCompletionHandler<List<EthLog>> handler) {
+                             CompletionHandler<List<EthLog>> handler) {
         JSONObject json = new JSONObject(ImmutableMap.of(
                 "id", rid
         ));
@@ -120,18 +105,18 @@ public class EthTransferApi {
     }
 
     public void getBlocksAsEth(String networkName, String address, int interests, long blockStart, long blockEnd,
-                               int rid, BlockchainCompletionHandler<List<Long>> handler) {
+                               int rid, CompletionHandler<List<Long>> handler) {
         executorService.submit(() -> getBlocksAsEthOnExecutor(networkName, address, interests, blockStart, blockEnd,
                 rid, handler));
     }
 
     private void getBlocksAsEthOnExecutor(String networkName, String address, int interests, long blockStart,
-                                          long blockEnd, int rid, BlockchainCompletionHandler<List<Long>> handler) {
+                                          long blockEnd, int rid, CompletionHandler<List<Long>> handler) {
         final QueryError[] error = {null};
 
         List<EthTransaction> transactions = new ArrayList<>();
         Semaphore transactionsSema = new Semaphore(0);
-        getTransactionsAsEth(networkName, address, blockStart, blockEnd, rid, new BlockchainCompletionHandler<List<EthTransaction>>() {
+        getTransactionsAsEth(networkName, address, blockStart, blockEnd, rid, new CompletionHandler<List<EthTransaction>>() {
             @Override
             public void handleData(List<EthTransaction> data) {
                 transactions.addAll(data);
@@ -147,7 +132,7 @@ public class EthTransferApi {
 
         List<EthLog> logs = new ArrayList<>();
         Semaphore logsSema = new Semaphore(0);
-        getLogsAsEth(networkName, null, address, ETH_EVENT_ERC20_TRANSFER, blockStart, blockEnd, rid, new BlockchainCompletionHandler<List<EthLog>>() {
+        getLogsAsEth(networkName, null, address, ETH_EVENT_ERC20_TRANSFER, blockStart, blockEnd, rid, new CompletionHandler<List<EthLog>>() {
             @Override
             public void handleData(List<EthLog> data) {
                 logs.addAll(data);
@@ -176,7 +161,8 @@ public class EthTransferApi {
                     try {
                         numbers.add(Long.decode(transaction.getBlockNumber()));
                     } catch (NumberFormatException e) {
-                        // TODO(discuss): How do we want to handle this?
+                        handler.handleError(new QueryModelError("Invalid transaction block number"));
+                        return;
                     }
                 }
             }
@@ -190,7 +176,8 @@ public class EthTransferApi {
                     try {
                         numbers.add(Long.decode(log.getBlockNumber()));
                     } catch (NumberFormatException e) {
-                        // TODO(discuss): How do we want to handle this?
+                        handler.handleError(new QueryModelError("Invalid log block number"));
+                        return;
                     }
                 }
             }

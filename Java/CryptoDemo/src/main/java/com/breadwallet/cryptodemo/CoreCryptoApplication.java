@@ -6,17 +6,19 @@ import android.arch.lifecycle.Lifecycle;
 import android.arch.lifecycle.LifecycleObserver;
 import android.arch.lifecycle.OnLifecycleEvent;
 import android.arch.lifecycle.ProcessLifecycleOwner;
-import android.content.Context;
 import android.content.Intent;
 import android.os.StrictMode;
 
 import com.breadwallet.crypto.Account;
+import com.breadwallet.crypto.CryptoApi;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.System;
+import com.breadwallet.crypto.implj.CryptoApiImpl;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -80,10 +82,11 @@ public class CoreCryptoApplication extends Application {
                 checkState(storageFile.mkdirs());
             }
 
+            CryptoApi.initialize(CryptoApiImpl.getInstance());
+
             listener = new CoreSystemListener(mode);
 
-            Account account = Account.createFrom(paperKey, "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e97");
-            account.setTimestamp(timestamp);
+            Account account = Account.createFrom(paperKey, "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e97", new Date(timestamp * 1000));
 
             BlockchainDb query = new BlockchainDb(new OkHttpClient(), BDB_BASE_URL, API_BASE_URL);
             system = System.create(Executors.newSingleThreadExecutor(), listener, account, storageFile.getAbsolutePath(), query);

@@ -158,7 +158,6 @@ final class TransferImplBtc extends TransferImpl {
 
     @Override
     public TransferDirection getDirection() {
-        // TODO(fix): these calculations as a whole (amount, direction, etc.) need to be revisited
         long fee = coreWallet.getFeeForTx(coreTransfer);
         if (fee == UnsignedLong.MAX_VALUE.longValue()) {
             fee = 0;
@@ -187,11 +186,6 @@ final class TransferImplBtc extends TransferImpl {
             }
         }
         return Optional.absent();
-    }
-
-    /* package */
-    byte[] serialize() {
-        return coreTransfer.serialize();
     }
 
     /* package */

@@ -1,7 +1,7 @@
 package com.breadwallet.crypto;
 
-import com.breadwallet.crypto.blockchaindb.BlockchainCompletionHandler;
-import com.breadwallet.crypto.blockchaindb.BlockchainDataTask;
+import com.breadwallet.crypto.blockchaindb.CompletionHandler;
+import com.breadwallet.crypto.blockchaindb.DataTask;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
@@ -90,7 +90,7 @@ public class BlockchainDbAIT {
     public void testGetCurrency() {
         SynchronousCompletionHandler<Currency> handler = new SynchronousCompletionHandler<>();
 
-        // TODO: This fails due to the endpoint not returning anything
+        // TODO(BAK-241): This fails due to the endpoint not returning anything
         // blockchainDb.getCurrency("bitcoin-mainnet", handler);
         // Currency currency = handler.dat().get();
         // assertNotNull(currency);
@@ -113,11 +113,10 @@ public class BlockchainDbAIT {
     public void testGetTransfer() {
         SynchronousCompletionHandler<Transfer> handler = new SynchronousCompletionHandler<>();
 
-        // TODO: This fails due to the endpoint returning a 504
-        // blockchainDb.getTransfer("bitcoin-mainnet:63522845d294ee9b0188ae5cac91bf389a0c3723f084ca1025e7d9cdfe481ce1:1",
-        //         handler);
-        // Transfer transfer = handler.dat().get();
-        // assertNotNull(transfer);
+        blockchainDb.getTransfer("bitcoin-mainnet:63522845d294ee9b0188ae5cac91bf389a0c3723f084ca1025e7d9cdfe481ce1:1",
+               handler);
+        Transfer transfer = handler.dat().get();
+        assertNotNull(transfer);
 
         // TODO: Expand these tests
     }
@@ -126,7 +125,6 @@ public class BlockchainDbAIT {
     public void testGetTransactions() {
         SynchronousCompletionHandler<List<Transaction>> handler = new SynchronousCompletionHandler<>();
 
-        // TODO: This fails due to paging; need to work with the backend guys to determine how queries with no hits look
         blockchainDb.getTransactions("bitcoin-mainnet", Arrays.asList("1JfbZRwdDHKZmuiZgYArJZhcuuzuw2HuMu"), 0, 50000,
                 true, true, handler);
         List<Transaction> transactions = handler.dat().get();
@@ -178,7 +176,7 @@ public class BlockchainDbAIT {
         SynchronousCompletionHandler<String> handler = new SynchronousCompletionHandler<>();
 
         blockchainDb.getGasEstimateAsEth("mainnet", "0x04d542459de6765682D21771D1ba23dC30Fb675F",
-                "0x04d542459de6765682D21771D1ba23dC30Fb675F", "2000000", "nomnomnom", 0, handler);
+                "0x04d542459de6765682D21771D1ba23dC30Fb675F", "0x10000", "0x1234567890ABCDEF", 0, handler);
         String output = handler.dat().get();
         assertFalse(output.isEmpty());
     }
@@ -249,7 +247,7 @@ public class BlockchainDbAIT {
 
     // Helpers
 
-    private static class SynchronousCompletionHandler<T> implements BlockchainCompletionHandler<T> {
+    private static class SynchronousCompletionHandler<T> implements CompletionHandler<T> {
 
         private final Semaphore sema = new Semaphore(0);
 
@@ -281,7 +279,7 @@ public class BlockchainDbAIT {
         }
     }
 
-    private static final BlockchainDataTask synchronousDataTask = (client, request, callback) -> {
+    private static final DataTask synchronousDataTask = (client, request, callback) -> {
         Call call = client.newCall(request);
         try (Response r = call.execute()) {
             callback.onResponse(call, r);

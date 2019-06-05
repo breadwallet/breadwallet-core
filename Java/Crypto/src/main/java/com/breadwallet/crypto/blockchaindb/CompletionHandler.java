@@ -5,12 +5,11 @@
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
-package com.breadwallet.crypto.events.wallet;
+package com.breadwallet.crypto.blockchaindb;
 
-public final class WalletCreatedEvent implements WalletEvent {
+import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 
-    @Override
-    public <T> T accept(WalletEventVisitor<T> visitor) {
-        return visitor.visit(this);
-    }
+public interface CompletionHandler<T> {
+    void handleData(T data);
+    void handleError(QueryError error);
 }

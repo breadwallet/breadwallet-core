@@ -1,8 +1,13 @@
+/*
+ * TransferFeeBasis
+ *
+ * Created by Ed Gamble <ed@breadwallet.com> on 1/22/18.
+ * Copyright (c) 2018 Breadwinner AG.  All right reserved.
+ *
+ * See the LICENSE file at the project root for license information.
+ * See the CONTRIBUTORS file at the project root for a list of contributors.
+ */
 package com.breadwallet.crypto;
-
-// TODO(discuss): This could be split into a parent class as well as child classes for the fee basis types.
-//                This way, we can put the fee, gas price and gas limit in the corresponding class. We can use the
-//                the visitor pattern to move from the parent to the children as needed.
 
 public final class TransferFeeBasis {
 

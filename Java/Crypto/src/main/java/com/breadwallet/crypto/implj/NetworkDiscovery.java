@@ -1,7 +1,14 @@
+/*
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
+ * Copyright (c) 2018 Breadwinner AG.  All right reserved.
+ *
+ * See the LICENSE file at the project root for license information.
+ * See the CONTRIBUTORS file at the project root for a list of contributors.
+ */
 package com.breadwallet.crypto.implj;
 
 import com.breadwallet.crypto.Unit;
-import com.breadwallet.crypto.blockchaindb.BlockchainCompletionHandler;
+import com.breadwallet.crypto.blockchaindb.CompletionHandler;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
@@ -100,7 +107,7 @@ final class NetworkDiscovery {
                                        boolean isMainnet,
                                        Function<Collection<Blockchain>, Void> func) {
         latch.countUp();
-        query.getBlockchains(isMainnet, new BlockchainCompletionHandler<List<Blockchain>>() {
+        query.getBlockchains(isMainnet, new CompletionHandler<List<Blockchain>>() {
             @Override
             public void handleData(List<Blockchain> newBlockchains) {
                 try {
@@ -136,7 +143,7 @@ final class NetworkDiscovery {
                                       Collection<Currency> defaultCurrencies,
                                       Function<Collection<Currency>, Void> func) {
         latch.countUp();
-        query.getCurrencies(blockchainId, new BlockchainCompletionHandler<List<Currency>>() {
+        query.getCurrencies(blockchainId, new CompletionHandler<List<Currency>>() {
             @Override
             public void handleData(List<Currency> newCurrencies) {
                 try {

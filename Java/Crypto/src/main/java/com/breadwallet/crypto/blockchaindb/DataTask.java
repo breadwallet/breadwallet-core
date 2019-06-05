@@ -5,12 +5,12 @@
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
-package com.breadwallet.crypto.events.wallet;
+package com.breadwallet.crypto.blockchaindb;
 
-public final class WalletCreatedEvent implements WalletEvent {
+import okhttp3.Callback;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
 
-    @Override
-    public <T> T accept(WalletEventVisitor<T> visitor) {
-        return visitor.visit(this);
-    }
+public interface DataTask {
+    void execute(OkHttpClient client, Request request, Callback callback);
 }

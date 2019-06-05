@@ -1,10 +1,17 @@
+/*
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
+ * Copyright (c) 2018 Breadwinner AG.  All right reserved.
+ *
+ * See the LICENSE file at the project root for license information.
+ * See the CONTRIBUTORS file at the project root for a list of contributors.
+ */
 package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
 import android.support.annotation.Nullable;
 import android.util.Log;
 
-import com.breadwallet.crypto.blockchaindb.BlockchainCompletionHandler;
-import com.breadwallet.crypto.blockchaindb.BlockchainDataTask;
+import com.breadwallet.crypto.blockchaindb.CompletionHandler;
+import com.breadwallet.crypto.blockchaindb.DataTask;
 import com.breadwallet.crypto.blockchaindb.apis.ArrayResponseParser;
 import com.breadwallet.crypto.blockchaindb.apis.ObjectResponseParser;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
@@ -46,9 +53,9 @@ public class BdbApiClient {
 
     private final OkHttpClient client;
     private final String baseUrl;
-    private final BlockchainDataTask dataTask;
+    private final DataTask dataTask;
 
-    public BdbApiClient(OkHttpClient client, String baseUrl, BlockchainDataTask dataTask) {
+    public BdbApiClient(OkHttpClient client, String baseUrl, DataTask dataTask) {
         this.client = client;
         this.baseUrl = baseUrl;
         this.dataTask = dataTask;
@@ -57,7 +64,7 @@ public class BdbApiClient {
     // Create (Crud)
 
     <T> void sendPost(String resource, Multimap<String, String> params, JSONObject json, ObjectResponseParser<T> parser,
-                      BlockchainCompletionHandler<T> handler) {
+                      CompletionHandler<T> handler) {
         makeAndSendRequest(
                 Collections.singletonList(resource),
                 params,
@@ -70,7 +77,7 @@ public class BdbApiClient {
 
     /* package */
     <T> void sendGet(String resource, Multimap<String, String> params, ObjectResponseParser<T> parser,
-                     BlockchainCompletionHandler<T> handler) {
+                     CompletionHandler<T> handler) {
         makeAndSendRequest(
                 Collections.singletonList(resource),
                 params,
@@ -81,7 +88,7 @@ public class BdbApiClient {
 
     /* package */
     <T> void sendGetForArray(String resource, Multimap<String, String> params, ArrayResponseParser<T> parser,
-                             BlockchainCompletionHandler<T> handler) {
+                             CompletionHandler<T> handler) {
         makeAndSendRequest(
                 Collections.singletonList(resource),
                 params,
@@ -92,7 +99,7 @@ public class BdbApiClient {
 
     /* package */
     <T> void sendGetWithId(String resource, String id, Multimap<String, String> params, ObjectResponseParser<T> parser,
-                           BlockchainCompletionHandler<T> handler) {
+                           CompletionHandler<T> handler) {
         makeAndSendRequest(
                 Arrays.asList(resource, id),
                 params,
@@ -104,7 +111,7 @@ public class BdbApiClient {
     // Update (crUd)
 
     <T> void sendPut(String resource, Multimap<String, String> params, JSONObject json,
-                     ObjectResponseParser<T> parser, BlockchainCompletionHandler<T> handler) {
+                     ObjectResponseParser<T> parser, CompletionHandler<T> handler) {
         makeAndSendRequest(
                 Collections.singletonList(resource),
                 params,
@@ -114,7 +121,7 @@ public class BdbApiClient {
     }
 
     <T> void sendPutWithId(String resource, String id, Multimap<String, String> params, JSONObject json,
-                           ObjectResponseParser<T> parser, BlockchainCompletionHandler<T> handler) {
+                           ObjectResponseParser<T> parser, CompletionHandler<T> handler) {
         makeAndSendRequest(
                 Arrays.asList(resource, id),
                 params,
@@ -128,7 +135,7 @@ public class BdbApiClient {
     /* package */
     <T> void sendDeleteWithId(String resource, String id, Multimap<String, String> params,
                               ObjectResponseParser<T> parser,
-                              BlockchainCompletionHandler<T> handler) {
+                              CompletionHandler<T> handler) {
         makeAndSendRequest(
                 Arrays.asList(resource, id),
                 params,
@@ -165,7 +172,7 @@ public class BdbApiClient {
         sendRequest(requestBuilder.build(), dataTask, handler);
     }
 
-    private <T> void sendRequest(Request request, BlockchainDataTask dataTask, ResponseHandler handler) {
+    private <T> void sendRequest(Request request, DataTask dataTask, ResponseHandler handler) {
         dataTask.execute(client, request, new Callback() {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
@@ -202,22 +209,15 @@ public class BdbApiClient {
     private static class ObjectHandler<T> implements ResponseHandler {
 
         private final ObjectResponseParser<T> parser;
-        private final BlockchainCompletionHandler<T> handler;
+        private final CompletionHandler<T> handler;
 
-        ObjectHandler(ObjectResponseParser<T> parser, BlockchainCompletionHandler<T> handler) {
+        ObjectHandler(ObjectResponseParser<T> parser, CompletionHandler<T> handler) {
             this.parser = parser;
             this.handler = handler;
         }
 
         @Override
         public void handleData(JSONObject json) {
-            JSONObject jsonPage = json.optJSONObject("page");
-            boolean full = (jsonPage == null ? 0 : jsonPage.optInt("total_pages", 0)) > 1;
-
-            // TODO(fix): why is this always set to false in the swift
-            boolean more = false && full;
-
-            checkArgument(!more);
             Optional<T> data = parser.parse(json);
             if (data.isPresent()) {
                 handler.handleData(data.get());
@@ -236,10 +236,10 @@ public class BdbApiClient {
 
         private final String path;
         private final ArrayResponseParser<T> parser;
-        private final BlockchainCompletionHandler<T> handler;
+        private final CompletionHandler<T> handler;
 
 
-        ArrayHandler(String path, ArrayResponseParser<T> parser, BlockchainCompletionHandler<T> handler) {
+        ArrayHandler(String path, ArrayResponseParser<T> parser, CompletionHandler<T> handler) {
             this.path = path;
             this.parser = parser;
             this.handler = handler;
@@ -249,12 +249,6 @@ public class BdbApiClient {
         public void handleData(JSONObject json) {
             JSONObject jsonEmbedded = json.optJSONObject("_embedded");
             JSONArray jsonEmbeddedData = jsonEmbedded == null ? new JSONArray() : jsonEmbedded.optJSONArray(path);
-
-            JSONObject jsonPage = json.optJSONObject("page");
-            boolean full = (jsonPage == null ? 0 : jsonPage.optInt("total_pages", 0)) > 1;
-
-            // TODO(fix): why is this always set to false in the swift
-            boolean more = false && full;
 
             Optional<T> data = parser.parse(jsonEmbeddedData);
             if (data.isPresent()) {

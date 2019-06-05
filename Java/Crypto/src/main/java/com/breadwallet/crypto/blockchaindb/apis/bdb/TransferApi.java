@@ -1,16 +1,17 @@
+/*
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
+ * Copyright (c) 2018 Breadwinner AG.  All right reserved.
+ *
+ * See the LICENSE file at the project root for license information.
+ * See the CONTRIBUTORS file at the project root for a list of contributors.
+ */
 package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
-import com.breadwallet.crypto.blockchaindb.BlockchainCompletionHandler;
-import com.breadwallet.crypto.blockchaindb.errors.QueryError;
-import com.breadwallet.crypto.blockchaindb.errors.QueryModelError;
+import com.breadwallet.crypto.blockchaindb.CompletionHandler;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transfer;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import java.util.List;
 
@@ -24,7 +25,7 @@ public class TransferApi {
         this.jsonClient = jsonClient;
     }
 
-    public void getTransfers(String id, List<String> addresses, BlockchainCompletionHandler<List<Transfer>> handler) {
+    public void getTransfers(String id, List<String> addresses, CompletionHandler<List<Transfer>> handler) {
         ImmutableListMultimap.Builder<String, String> paramBuilders = ImmutableListMultimap.builder();
         paramBuilders.put("blockchain_id", id);
         for (String address : addresses) paramBuilders.put("address", address);
@@ -33,7 +34,7 @@ public class TransferApi {
         jsonClient.sendGetForArray("transfers", params, Transfer::asTransfers, handler);
     }
 
-    public void getTransfer(String id, BlockchainCompletionHandler<Transfer> handler) {
+    public void getTransfer(String id, CompletionHandler<Transfer> handler) {
         jsonClient.sendGetWithId("transfers", id, ImmutableMultimap.of(), Transfer::asTransfer, handler);
     }
 

@@ -1,8 +1,13 @@
+/*
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
+ * Copyright (c) 2018 Breadwinner AG.  All right reserved.
+ *
+ * See the LICENSE file at the project root for license information.
+ * See the CONTRIBUTORS file at the project root for a list of contributors.
+ */
 package com.breadwallet.crypto.libcrypto;
 
 import com.breadwallet.crypto.libcrypto.bitcoin.BRChainParams;
-import com.breadwallet.crypto.libcrypto.bitcoin.BRPeerManager;
-import com.breadwallet.crypto.libcrypto.bitcoin.BRPeerManager.BRPeerManagerPublishTxCallback;
 import com.breadwallet.crypto.libcrypto.crypto.BRCryptoAccount;
 import com.breadwallet.crypto.libcrypto.bitcoin.BRWallet;
 import com.breadwallet.crypto.libcrypto.bitcoin.BRWalletManager;
@@ -25,16 +30,11 @@ import com.sun.jna.NativeLibrary;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
 
-// TODO(fix): Split into a separate module
-
 public interface CryptoLibrary extends Library {
 
     String JNA_LIBRARY_NAME = "crypto";
     NativeLibrary LIBRARY = NativeLibrary.getInstance(CryptoLibrary.JNA_LIBRARY_NAME);
     CryptoLibrary INSTANCE = Native.load(CryptoLibrary.JNA_LIBRARY_NAME, CryptoLibrary.class);
-
-    // bitcoin/BRPeerManager.h
-    void BRPeerManagerPublishTx(BRPeerManager manager, BRTransaction tx, Pointer info, BRPeerManagerPublishTxCallback callback);
 
     // bitcoin/BRTransaction.h
     BRTransaction BRTransactionParse(byte[] buf, SizeT bufLen);
@@ -49,7 +49,6 @@ public interface CryptoLibrary extends Library {
     long BRWalletFeePerKb(BRWallet wallet);
     void BRWalletSetFeePerKb(BRWallet wallet, long feePerKb);
     BRTransaction BRWalletCreateTransaction(BRWallet wallet, long amount, String addr);
-    int BRWalletSignTransaction(BRWallet wallet, BRTransaction tx, byte[] seed, SizeT seedLen);
     long BRWalletAmountReceivedFromTx(BRWallet wallet, BRTransaction tx);
     long BRWalletAmountSentByTx(BRWallet wallet, BRTransaction tx);
     long BRWalletFeeForTx(BRWallet wallet, BRTransaction tx);
@@ -69,7 +68,7 @@ public interface CryptoLibrary extends Library {
     void BRWalletManagerGenerateUnusedAddrs(BRWalletManager manager, int limit);
     BRAddress BRWalletManagerGetAllAddrs(BRWalletManager manager, SizeTByReference addressesCount);
     BRAddress BRWalletManagerGetAllAddrsLegacy(BRWalletManager manager, SizeTByReference addressesCount);
-    BRPeerManager BRWalletManagerGetPeerManager(BRWalletManager manager);
+    void BRWalletManagerSubmitTransaction(BRWalletManager manager, BRTransaction transaction, byte[] seed, SizeT seedLen);
 
     // crypto/BRCryptoAccount.h
     UInt512.ByValue cryptoAccountDeriveSeed(String phrase);

@@ -1,16 +1,18 @@
+/*
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
+ * Copyright (c) 2018 Breadwinner AG.  All right reserved.
+ *
+ * See the LICENSE file at the project root for license information.
+ * See the CONTRIBUTORS file at the project root for a list of contributors.
+ */
 package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
-import com.breadwallet.crypto.blockchaindb.BlockchainCompletionHandler;
+import com.breadwallet.crypto.blockchaindb.CompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
-import com.breadwallet.crypto.blockchaindb.errors.QueryModelError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Block;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,14 +35,14 @@ public class BlockApi {
 
     public void getBlocks(String id, long beginBlockNumber, long endBlockNumber, boolean includeRaw,
                           boolean includeTx, boolean includeTxRaw, boolean includeTxProof,
-                          BlockchainCompletionHandler<List<Block>> handler) {
+                          CompletionHandler<List<Block>> handler) {
         executorService.submit(() -> getBlocksOnExecutor(id, beginBlockNumber, endBlockNumber, includeRaw, includeTx,
                 includeTxRaw, includeTxProof, handler));
     }
 
     public void getBlock(String id, boolean includeRaw,
                          boolean includeTx, boolean includeTxRaw, boolean includeTxProof,
-                         BlockchainCompletionHandler<Block> handler) {
+                         CompletionHandler<Block> handler) {
         Multimap<String, String> params = ImmutableListMultimap.of(
                 "include_raw", String.valueOf(includeRaw),
                 "include_tx", String.valueOf(includeTx),
@@ -52,7 +54,7 @@ public class BlockApi {
 
     private void getBlocksOnExecutor(String id, long beginBlockNumber, long endBlockNumber, boolean includeRaw,
                                      boolean includeTx, boolean includeTxRaw, boolean includeTxProof,
-                                     BlockchainCompletionHandler<List<Block>> handler) {
+                                     CompletionHandler<List<Block>> handler) {
         final QueryError[] error = {null};
         List<Block> allBlocks = new ArrayList<>();
         Semaphore sema = new Semaphore(0);
@@ -74,7 +76,7 @@ public class BlockApi {
             ImmutableMultimap<String, String> params = paramsBuilder.build();
 
             jsonClient.sendGetForArray("blocks", params, Block::asBlocks,
-                    new BlockchainCompletionHandler<List<Block>>() {
+                    new CompletionHandler<List<Block>>() {
                 @Override
                 public void handleData(List<Block> blocks) {
                     allBlocks.addAll(blocks);

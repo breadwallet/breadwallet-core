@@ -1,8 +1,13 @@
+/*
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
+ * Copyright (c) 2018 Breadwinner AG.  All right reserved.
+ *
+ * See the LICENSE file at the project root for license information.
+ * See the CONTRIBUTORS file at the project root for a list of contributors.
+ */
 package com.breadwallet.crypto.blockchaindb.apis.brd;
 
-import com.breadwallet.crypto.blockchaindb.BlockchainCompletionHandler;
-import com.breadwallet.crypto.blockchaindb.errors.QueryError;
-import com.google.common.base.Optional;
+import com.breadwallet.crypto.blockchaindb.CompletionHandler;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -19,7 +24,7 @@ public class EthBalanceApi {
     }
 
     public void getBalanceAsEth(String networkName, String address, int rid,
-                                BlockchainCompletionHandler<String> handler) {
+                                CompletionHandler<String> handler) {
         JSONObject json = new JSONObject(ImmutableMap.of(
                 "jsonrpc", "2.0",
                 "method", "eth_getBalance",
@@ -27,22 +32,11 @@ public class EthBalanceApi {
                 "id", rid
         ));
 
-        client.sendJsonRequest(networkName, json, new BlockchainCompletionHandler<Optional<String>>() {
-            @Override
-            public void handleData(Optional<String> result) {
-                // TODO(discuss): Do we want default values?
-                handler.handleData(result.or("200000000000000000"));
-            }
-
-            @Override
-            public void handleError(QueryError error) {
-                handler.handleError(error);
-            }
-        });
+        client.sendJsonRequest(networkName, json, handler);
     }
 
     public void getBalanceAsTok(String networkName, String address, String tokenAddress, int rid,
-                                BlockchainCompletionHandler<String> handler) {
+                                CompletionHandler<String> handler) {
         JSONObject json = new JSONObject(ImmutableMap.of(
                 "id", rid
         ));
@@ -54,17 +48,6 @@ public class EthBalanceApi {
                 "contractaddress", tokenAddress
         );
 
-        client.sendQueryRequest(networkName, params, json, new BlockchainCompletionHandler<Optional<String>>() {
-            @Override
-            public void handleData(Optional<String> result) {
-                // TODO(discuss): Do we want default values?
-                handler.handleData(result.or("0x1"));
-            }
-
-            @Override
-            public void handleError(QueryError error) {
-                handler.handleError(error);
-            }
-        });
+        client.sendQueryRequest(networkName, params, json, handler);
     }
 }

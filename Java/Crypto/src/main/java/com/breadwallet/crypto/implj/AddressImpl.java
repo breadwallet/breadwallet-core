@@ -1,7 +1,5 @@
 /*
- * Address
- *
- * Created by Ed Gamble <ed@breadwallet.com> on 1/22/18.
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
  * Copyright (c) 2018 Breadwinner AG.  All right reserved.
  *
  * See the LICENSE file at the project root for license information.
@@ -18,7 +16,8 @@ import com.google.common.base.Optional;
 
 import java.util.Objects;
 
-public final class AddressImpl implements Address {
+/* package */
+final class AddressImpl implements Address {
 
     /* package */
     static Optional<AddressImpl> createAsBtc(String address) {

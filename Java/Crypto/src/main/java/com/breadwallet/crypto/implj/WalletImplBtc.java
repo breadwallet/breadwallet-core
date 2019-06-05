@@ -1,3 +1,10 @@
+/*
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
+ * Copyright (c) 2018 Breadwinner AG.  All right reserved.
+ *
+ * See the LICENSE file at the project root for license information.
+ * See the CONTRIBUTORS file at the project root for a list of contributors.
+ */
 package com.breadwallet.crypto.implj;
 
 import com.breadwallet.crypto.Address;
@@ -28,7 +35,7 @@ final class WalletImplBtc extends WalletImpl<TransferImplBtc> {
     public Optional<Transfer> createTransfer(Address target, Amount amount, TransferFeeBasis feeBasis) {
         // TODO(fix): The swift equivalent will result in this being added to 'transfers' and an event being created; do we want this?
         String addr = target.toString();
-        long value = AmountImpl.from(amount).integerAmount();
+        long value = AmountImpl.from(amount).integerRawAmount();
         Unit unit = amount.getUnit();
         return CoreBRTransaction.create(coreWallet, value, addr).transform((t) -> new TransferImplBtc(this, coreWallet, t, unit));
     }
@@ -41,7 +48,7 @@ final class WalletImplBtc extends WalletImpl<TransferImplBtc> {
         long feePerKb = feeBasis.getBtcFeePerKb();
 
         coreWallet.setFeePerKb(feePerKb);
-        long fee = coreWallet.getFeeForTxAmount(AmountImpl.from(amount).integerAmount());
+        long fee = coreWallet.getFeeForTxAmount(AmountImpl.from(amount).integerRawAmount());
         coreWallet.setFeePerKb(feePerKbSaved);
 
         return AmountImpl.createAsBtc(fee, feeUnit);

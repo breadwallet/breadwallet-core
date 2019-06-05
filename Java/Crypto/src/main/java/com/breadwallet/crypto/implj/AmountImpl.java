@@ -1,7 +1,5 @@
 /*
- * Amount
- *
- * Created by Ed Gamble <ed@breadwallet.com> on 1/22/18.
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
  * Copyright (c) 2018 Breadwinner AG.  All right reserved.
  *
  * See the LICENSE file at the project root for license information.
@@ -30,20 +28,23 @@ import java.util.Objects;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
-// TODO(discuss): Swift doesn't acknowledge that the creates can fail
-public final class AmountImpl implements Amount {
+/* package */
+final class AmountImpl implements Amount {
 
-    public static Optional<Amount> create(double value, Unit unit) {
+    /* package */
+    static Optional<Amount> create(double value, Unit unit) {
         UnitImpl unitImpl = UnitImpl.from(unit);
         return CoreBRCryptoAmount.create(value, unitImpl.getCoreBRCryptoUnit()).transform((amount) -> new AmountImpl(amount, unitImpl));
     }
 
-    public static Optional<Amount> create(long value, Unit unit) {
+    /* package */
+    static Optional<Amount> create(long value, Unit unit) {
         UnitImpl unitImpl = UnitImpl.from(unit);
         return CoreBRCryptoAmount.create(value, unitImpl.getCoreBRCryptoUnit()).transform((amount) -> new AmountImpl(amount, unitImpl));
     }
 
-    public static Optional<Amount> create(String value, boolean isNegative, Unit unit) {
+    /* package */
+    static Optional<Amount> create(String value, boolean isNegative, Unit unit) {
         UnitImpl unitImpl = UnitImpl.from(unit);
         return CoreBRCryptoAmount.create(value, isNegative, unitImpl.getCoreBRCryptoUnit()).transform((amount) -> new AmountImpl(amount, unitImpl));
     }
@@ -59,7 +60,6 @@ public final class AmountImpl implements Amount {
         if (amount instanceof AmountImpl) {
             return (AmountImpl) amount;
         }
-        // TODO(fix): We should be able to create a AmountImpl from any Amount implementation
         throw new IllegalArgumentException("Unsupported amount instance");
     }
 
@@ -225,8 +225,7 @@ public final class AmountImpl implements Amount {
     }
 
     /* package */
-    long integerAmount() {
-        // TODO(discuss): in BRCrypto, there is asBtc and asEth but they both do this, should the Swift be modified like this?
+    long integerRawAmount() {
         // TODO(discuss): doubleAmount returns an optional based on overflow; shouldn't this?
         IntByReference overflowRef = new IntByReference(BRCryptoBoolean.CRYPTO_FALSE);
         long value = core.getIntegerRaw(overflowRef);

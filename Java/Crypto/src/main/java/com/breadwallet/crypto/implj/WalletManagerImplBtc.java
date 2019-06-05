@@ -1,17 +1,22 @@
+/*
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
+ * Copyright (c) 2018 Breadwinner AG.  All right reserved.
+ *
+ * See the LICENSE file at the project root for license information.
+ * See the CONTRIBUTORS file at the project root for a list of contributors.
+ */
 package com.breadwallet.crypto.implj;
 
 import android.util.Log;
 
-import com.breadwallet.crypto.Account;
 import com.breadwallet.crypto.Amount;
-import com.breadwallet.crypto.Network;
 import com.breadwallet.crypto.Transfer;
 import com.breadwallet.crypto.TransferConfirmation;
 import com.breadwallet.crypto.TransferState;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.WalletManagerState;
-import com.breadwallet.crypto.blockchaindb.BlockchainCompletionHandler;
+import com.breadwallet.crypto.blockchaindb.CompletionHandler;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
@@ -31,8 +36,6 @@ import com.breadwallet.crypto.events.walletmanager.WalletManagerCreatedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerSyncStartedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerSyncStoppedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerWalletChangedEvent;
-import com.breadwallet.crypto.libcrypto.bitcoin.BRPeerManager;
-import com.breadwallet.crypto.libcrypto.bitcoin.BRPeerManager.BRPeerManagerPublishTxCallback;
 import com.breadwallet.crypto.libcrypto.bitcoin.BRTransaction;
 import com.breadwallet.crypto.libcrypto.bitcoin.BRTransactionEvent;
 import com.breadwallet.crypto.libcrypto.bitcoin.BRTransactionEventType;
@@ -52,6 +55,7 @@ import com.google.common.base.Optional;
 import com.sun.jna.Pointer;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -80,11 +84,6 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
         }
     }
 
-    private final BRPeerManagerPublishTxCallback publishTxCallback = (info, error) -> {
-        // TODO(fix): How do we want to propagating the error or success to the system listener? Or should we be using BRWalletManagerSubmitTransaction?
-        // TODO(fix): If there is an error, do we need to call BRTransactionFree on the originating transaction? Or should we be using BRWalletManagerSubmitTransaction?
-    };
-
     private final BRWalletManagerClient.ByValue clientCallbacks = new BRWalletManagerClient.ByValue(Pointer.NULL,
             this::doGetBlockNumber,
             this::doGetTransactions,
@@ -99,8 +98,8 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
     private final CoreBRWalletManager coreManager;
 
     /* package */
-    WalletManagerImplBtc(Account account,
-                         Network network,
+    WalletManagerImplBtc(AccountImpl account,
+                         NetworkImpl network,
                          WalletManagerMode managerMode,
                          String path,
                          SystemAnnouncer announcer,
@@ -112,9 +111,9 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
 
         BRMasterPubKey.ByValue pubKey = account.asBtc();
         BRChainParams chainParams = network.asBtc();
-        int timestamp = (int) account.getTimestamp();
+        Date earliestKeyTime = account.getEarliestKeyTime();
         int mode = modeAsBtc(managerMode);
-        this.coreManager = CoreBRWalletManager.create(clientCallbacks, pubKey, chainParams, timestamp, mode, path);
+        this.coreManager = CoreBRWalletManager.create(clientCallbacks, pubKey, chainParams, earliestKeyTime, mode, path);
 
         setPrimaryWallet(coreManager.getWallet());
     }
@@ -142,16 +141,9 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
     @Override
     public void submit(Transfer transfer, String paperKey) {
         if (transfer instanceof TransferImplBtc) {
-            BRWallet coreWallet = coreManager.getWallet();
-            BRPeerManager corePeerManager = coreManager.getPeerManager();
             CoreBRTransaction coreTransaction = ((TransferImplBtc) transfer).getCoreBRTransaction();
-
             byte[] seed = AccountImpl.deriveSeed(paperKey);
-
-            // TODO(discuss): How do we want to handle signing failure? Or should we be using BRWalletManagerSubmitTransaction?
-            boolean signed = coreWallet.signTransaction(coreTransaction, seed);
-
-            corePeerManager.publishTransaction(coreTransaction, publishTxCallback);
+            coreManager.submitTransaction(coreTransaction, seed);
         } else {
             throw new IllegalArgumentException("Unsupported transfer type");
         }
@@ -233,7 +225,7 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
     private void doGetBlockNumber(Pointer context, BRWalletManager managerImpl, int rid) {
         systemExecutor.submit(() -> {
             Log.d(TAG, "BRGetBlockNumberCallback");
-            query.getBlockchain(getNetwork().getUids(), new BlockchainCompletionHandler<Blockchain>() {
+            query.getBlockchain(getNetwork().getUids(), new CompletionHandler<Blockchain>() {
                 @Override
                 public void handleData(Blockchain blockchain) {
                     long blockchainHeight = blockchain.getBlockHeight();
@@ -257,7 +249,7 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
             List<String> addresses = getAllAddrs();
             Set<String> knownAddresses = new HashSet<>(addresses);
 
-            query.getTransactions(blockchainId, addresses, begBlockNumber, endBlockNumber, true, false, new BlockchainCompletionHandler<List<Transaction>>() {
+            query.getTransactions(blockchainId, addresses, begBlockNumber, endBlockNumber, true, false, new CompletionHandler<List<Transaction>>() {
                 @Override
                 public void handleData(List<Transaction> transactions) {
                     Log.d(TAG, "BRGetTransactionsCallback: transaction success");
@@ -283,7 +275,7 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
                             return;
                         }
 
-                        // TODO (fix): Are these casts safe?
+                        // TODO(fix): Are these casts safe?
                         Optional<CoreBRTransaction> optCore = CoreBRTransaction.create(optRaw.get(), (int) timestamp, (int) blockHeight);
                         if (!optCore.isPresent()) {
                             Log.d(TAG, "BRGetTransactionsCallback received invalid transaction, completing with failure");
@@ -320,36 +312,22 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
 
     private void doSubmitTransation(Pointer context, BRWalletManager managerImpl, BRWallet walletImpl, BRTransaction transactionImpl, int rid) {
         systemExecutor.submit(() -> {
-            Optional<WalletImplBtc> optWallet = getOrCreateWalletByImpl(walletImpl, false);
-            if (optWallet.isPresent()) {
-                WalletImplBtc wallet = optWallet.get();
+            Log.d(TAG, "BRSubmitTransactionCallback");
 
-                Optional<TransferImplBtc> optTransfer = wallet.getOrCreateTransferByImpl(transactionImpl, false);
-                if (optTransfer.isPresent()) {
-                    TransferImplBtc transfer = optTransfer.get();
-
-                    Log.d(TAG, "BRSubmitTransactionCallback");
-                    query.putTransaction(getNetwork().getUids(), transfer.serialize(), new BlockchainCompletionHandler<Transaction>() {
-                        @Override
-                        public void handleData(Transaction data) {
-                            Log.d(TAG, "BRSubmitTransactionCallback: succeeded");
-                            announceSubmit(rid, transfer.getCoreBRTransaction(), 0);
-                        }
-
-                        @Override
-                        public void handleError(QueryError error) {
-                            Log.d(TAG, "BRSubmitTransactionCallback: failed", error);
-                            announceSubmit(rid, transfer.getCoreBRTransaction(), 1);
-                        }
-                    });
-
-                } else {
-                    Log.d(TAG, "BRSubmitTransactionCallback: missed transfer");
+            CoreBRTransaction transaction = CoreBRTransaction.create(transactionImpl);
+            query.putTransaction(getNetwork().getUids(), transaction.serialize(), new CompletionHandler<Transaction>() {
+                @Override
+                public void handleData(Transaction data) {
+                    Log.d(TAG, "BRSubmitTransactionCallback: succeeded");
+                    announceSubmit(rid, transaction, 0);
                 }
 
-            } else {
-                Log.d(TAG, "BRSubmitTransactionCallback: missed wallet");
-            }
+                @Override
+                public void handleError(QueryError error) {
+                    Log.d(TAG, "BRSubmitTransactionCallback: failed", error);
+                    announceSubmit(rid, transaction, 1);
+                }
+            });
         });
     }
 
@@ -439,7 +417,21 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
 
                         Optional<TransferImplBtc> optTransfer = wallet.getOrCreateTransferByImpl(event.u.submitted.transaction, false);
                         if (optTransfer.isPresent()) {
-                            announcer.announceWalletEvent(this, wallet, new WalletTransferSubmittedEvent(optTransfer.get()));
+                            TransferImpl transfer = optTransfer.get();
+
+                            if (event.u.submitted.error == 0) {
+                                TransferState newState = TransferState.SUBMITTED();
+                                TransferState oldState = transfer.setState(newState);
+
+                                announcer.announceTransferEvent(this, wallet, optTransfer.get(), new TransferChangedEvent(oldState, newState));
+                                announcer.announceWalletEvent(this, wallet, new WalletTransferSubmittedEvent(optTransfer.get()));
+
+                            } else {
+                                TransferState newState = TransferState.FAILED("Failed with error code " + event.u.submitted.error);
+                                TransferState oldState = transfer.setState(newState);
+
+                                announcer.announceTransferEvent(this, wallet, optTransfer.get(), new TransferChangedEvent(oldState, newState));
+                            }
                         }
                         break;
                     }
@@ -503,7 +495,6 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
                     int height = event.u.blockHeightUpdated.value;
                     Log.d(TAG, String.format("BRWalletManagerEventCallback: BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED (%s)", height));
 
-                    Network network = getNetwork();
                     network.setHeight(height);
 
                     for (Wallet wallet: getWallets()) {

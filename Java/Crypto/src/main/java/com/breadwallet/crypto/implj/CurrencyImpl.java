@@ -1,7 +1,5 @@
 /*
- * Currency
- *
- * Created by Ed Gamble <ed@breadwallet.com> on 1/22/18.
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
  * Copyright (c) 2018 Breadwinner AG.  All right reserved.
  *
  * See the LICENSE file at the project root for license information.
@@ -14,14 +12,14 @@ import com.breadwallet.crypto.libcrypto.crypto.CoreBRCryptoCurrency;
 
 import java.util.Objects;
 
-public final class CurrencyImpl implements Currency {
+/* package */
+final class CurrencyImpl implements Currency {
 
     /* package */
     static CurrencyImpl from(Currency currency) {
         if (currency instanceof CurrencyImpl) {
             return (CurrencyImpl) currency;
         }
-        // TODO(fix): We should be able to create a CurrencyImpl from any Currency implementation
         throw new IllegalArgumentException("Unsupported currency instance");
     }
 

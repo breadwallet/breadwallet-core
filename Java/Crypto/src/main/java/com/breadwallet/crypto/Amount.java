@@ -9,26 +9,22 @@
  */
 package com.breadwallet.crypto;
 
-import com.breadwallet.crypto.implj.AmountImpl;
 import com.google.common.base.Optional;
 
 import java.text.NumberFormat;
 
-// TODO(fix): Swift doesn't acknowledge that the creates can fail
 public interface Amount extends Comparable<Amount> {
 
-    // TODO(discuss): These could be proper factories
-
     static Optional<Amount> create(double value, Unit unit) {
-        return AmountImpl.create(value, unit);
+        return CryptoApi.getProvider().amountProvider().create(value, unit);
     }
 
     static Optional<Amount> create(long value, Unit unit) {
-        return AmountImpl.create(value, unit);
+        return CryptoApi.getProvider().amountProvider().create(value, unit);
     }
 
     static Optional<Amount> create(String value, boolean isNegative, Unit unit) {
-        return AmountImpl.create(value, isNegative, unit);
+        return CryptoApi.getProvider().amountProvider().create(value, isNegative, unit);
     }
 
     Currency getCurrency();

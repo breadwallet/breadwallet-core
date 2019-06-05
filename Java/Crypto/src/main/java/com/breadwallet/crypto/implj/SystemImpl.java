@@ -1,3 +1,10 @@
+/*
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
+ * Copyright (c) 2018 Breadwinner AG.  All right reserved.
+ *
+ * See the LICENSE file at the project root for license information.
+ * See the CONTRIBUTORS file at the project root for a list of contributors.
+ */
 package com.breadwallet.crypto.implj;
 
 import com.breadwallet.crypto.Account;
@@ -20,27 +27,28 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public final class SystemImpl implements System {
+/* package */
+final class SystemImpl implements System {
 
     public static System create(ExecutorService listenerExecutor, SystemListener listener, Account account, String path, BlockchainDb query) {
         return new SystemImpl(listenerExecutor, listener, account, path, query);
     }
 
     private final SystemAnnouncer announcer;
-    private final Account account;
+    private final AccountImpl account;
     private final String path;
     private final BlockchainDb query;
 
     private final Lock networksReadLock;
     private final Lock networksWriteLock;
-    private final List<Network> networks;
+    private final List<NetworkImpl> networks;
     private final Lock walletManagersReadLock;
     private final Lock walletManagersWriteLock;
     private final List<WalletManagerImpl> walletManagers;
 
     private SystemImpl(ExecutorService listenerExecutor, SystemListener listener, Account account, String path, BlockchainDb query) {
         this.announcer = new SystemAnnouncer(this, listenerExecutor, listener);
-        this.account = account;
+        this.account = AccountImpl.from(account);
         this.path = path;
         this.query = query;
 
@@ -65,7 +73,7 @@ public final class SystemImpl implements System {
     @Override
     public void initialize(List<String> networksNeeded, boolean isMainnet) {
         NetworkDiscovery.discoverNetworks(query, networksNeeded, isMainnet, discoveredNetworks -> {
-            for (Network network: discoveredNetworks) {
+            for (NetworkImpl network: discoveredNetworks) {
                 if (addNetwork(network)) {
                     announcer.announceNetworkEvent(network, new NetworkCreatedEvent());
                     announcer.announceSystemEvent(new SystemNetworkAddedEvent(network));
@@ -76,9 +84,10 @@ public final class SystemImpl implements System {
 
     @Override
     public void createWalletManager(Network network, WalletManagerMode mode) {
-        String networkCode = network.getCurrency().getCode();
+        NetworkImpl networkImpl = NetworkImpl.from(network);
+        String networkCode = networkImpl.getCurrency().getCode();
         if (networkCode.equals(com.breadwallet.crypto.Currency.CODE_AS_BTC)) {
-            WalletManagerImpl walletManager = new WalletManagerImplBtc(account, network, mode, path, announcer, query);
+            WalletManagerImpl walletManager = new WalletManagerImplBtc(account, networkImpl, mode, path, announcer, query);
             if (addWalletManager(walletManager)) {
                 walletManager.initialize();
                 announcer.announceSystemEvent(new SystemManagerAddedEvent(walletManager));
@@ -144,12 +153,11 @@ public final class SystemImpl implements System {
         }
     }
 
-    private boolean addNetwork(Network network) {
+    private boolean addNetwork(NetworkImpl network) {
         boolean added;
 
         networksWriteLock.lock();
         try {
-            // TODO(discuss): The swift code has no guards against a network being added multiple times; should it?
             added = !networks.contains(network);
             if (added) {
                 networks.add(network);

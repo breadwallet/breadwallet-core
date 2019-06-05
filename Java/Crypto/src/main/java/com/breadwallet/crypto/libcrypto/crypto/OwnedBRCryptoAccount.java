@@ -1,7 +1,16 @@
+/*
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
+ * Copyright (c) 2018 Breadwinner AG.  All right reserved.
+ *
+ * See the LICENSE file at the project root for license information.
+ * See the CONTRIBUTORS file at the project root for a list of contributors.
+ */
 package com.breadwallet.crypto.libcrypto.crypto;
 
 import com.breadwallet.crypto.libcrypto.CryptoLibrary;
 import com.breadwallet.crypto.libcrypto.support.BRMasterPubKey;
+
+import java.util.Date;
 
 /* package */
 class OwnedBRCryptoAccount implements CoreBRCryptoAccount {
@@ -22,13 +31,13 @@ class OwnedBRCryptoAccount implements CoreBRCryptoAccount {
     }
 
     @Override
-    public long getTimestamp() {
-        return core.getTimestamp();
+    public Date getEarliestKeyTime() {
+        return core.getEarliestKeyTime();
     }
 
     @Override
-    public void setTimestamp(long timestamp) {
-        core.setTimestamp(timestamp);
+    public void setEarliestKeyTime(Date earliestKeyTime) {
+        core.setEarliestKeyTime(earliestKeyTime);
     }
 
     @Override

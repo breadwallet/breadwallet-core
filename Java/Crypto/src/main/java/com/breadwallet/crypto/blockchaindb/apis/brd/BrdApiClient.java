@@ -1,9 +1,16 @@
+/*
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
+ * Copyright (c) 2018 Breadwinner AG.  All right reserved.
+ *
+ * See the LICENSE file at the project root for license information.
+ * See the CONTRIBUTORS file at the project root for a list of contributors.
+ */
 package com.breadwallet.crypto.blockchaindb.apis.brd;
 
 import android.support.annotation.Nullable;
 
-import com.breadwallet.crypto.blockchaindb.BlockchainCompletionHandler;
-import com.breadwallet.crypto.blockchaindb.BlockchainDataTask;
+import com.breadwallet.crypto.blockchaindb.CompletionHandler;
+import com.breadwallet.crypto.blockchaindb.DataTask;
 import com.breadwallet.crypto.blockchaindb.apis.ArrayResponseParser;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryJsonParseError;
@@ -41,36 +48,36 @@ public class BrdApiClient {
 
     private final OkHttpClient client;
     private final String baseUrl;
-    private final BlockchainDataTask dataTask;
+    private final DataTask dataTask;
 
-    public BrdApiClient(OkHttpClient client, String baseUrl, BlockchainDataTask dataTask) {
+    public BrdApiClient(OkHttpClient client, String baseUrl, DataTask dataTask) {
         this.client = client;
         this.baseUrl = baseUrl;
         this.dataTask = dataTask;
     }
 
     /* package */
-    void sendJsonRequest(String networkName, JSONObject json, BlockchainCompletionHandler<Optional<String>> handler) {
+    void sendJsonRequest(String networkName, JSONObject json, CompletionHandler<String> handler) {
         makeAndSendRequest(Arrays.asList("ethq", networkName, "proxy"), ImmutableMultimap.of(), json, "POST",
                 new EmbeddedStringHandler(handler));
     }
 
     /* package */
     void sendQueryRequest(String networkName, Multimap<String, String> params, JSONObject json,
-                          BlockchainCompletionHandler<Optional<String>> handler) {
+                          CompletionHandler<String> handler) {
         makeAndSendRequest(Arrays.asList("ethq", networkName, "query"), params, json, "POST",
                 new EmbeddedStringHandler(handler));
     }
 
     /* package */
     <T> void sendQueryForArrayRequest(String networkName, Multimap<String, String> params, JSONObject json,
-                                      ArrayResponseParser<T> parser, BlockchainCompletionHandler<T> handler) {
+                                      ArrayResponseParser<T> parser, CompletionHandler<T> handler) {
         makeAndSendRequest(Arrays.asList("ethq", networkName, "query"), params, json, "POST",
                 new EmbeddedArrayHandler<T>(parser, handler));
     }
 
     /* package */
-    <T> void sendTokenRequest(ArrayResponseParser<T> parser, BlockchainCompletionHandler<T> handler) {
+    <T> void sendTokenRequest(ArrayResponseParser<T> parser, CompletionHandler<T> handler) {
         makeAndSendRequest(Collections.singletonList("currencies"), ImmutableMultimap.of("type", "erc20"), null, "GET",
                 new RootArrayHandler<T>(parser, handler));
     }
@@ -98,7 +105,7 @@ public class BrdApiClient {
         sendRequest(requestBuilder.build(), dataTask, handler);
     }
 
-    private <T> void sendRequest(Request request, BlockchainDataTask dataTask, ResponseHandler<T> handler) {
+    private <T> void sendRequest(Request request, DataTask dataTask, ResponseHandler<T> handler) {
         dataTask.execute(client, request, new Callback() {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
@@ -143,9 +150,9 @@ public class BrdApiClient {
 
     private static class EmbeddedStringHandler implements ResponseHandler<JSONObject> {
 
-        private final BlockchainCompletionHandler<Optional<String>> handler;
+        private final CompletionHandler<String> handler;
 
-        EmbeddedStringHandler(BlockchainCompletionHandler<Optional<String>> handler) {
+        EmbeddedStringHandler(CompletionHandler<String> handler) {
             this.handler = handler;
         }
 
@@ -156,8 +163,12 @@ public class BrdApiClient {
 
         @Override
         public void handleData(JSONObject json) {
-            Optional<String> result = Optional.fromNullable(json.optString("result", null));
-            handler.handleData(result);
+            String result = json.optString("result", null);
+            if (result == null) {
+                handler.handleError(new QueryModelError("Data expected"));
+            } else {
+                handler.handleData(result);
+            }
         }
 
         @Override
@@ -169,9 +180,9 @@ public class BrdApiClient {
     private static class EmbeddedArrayHandler<T> implements ResponseHandler<JSONObject> {
 
         private final ArrayResponseParser<T> parser;
-        private final BlockchainCompletionHandler<T> handler;
+        private final CompletionHandler<T> handler;
 
-        EmbeddedArrayHandler(ArrayResponseParser<T> parser, BlockchainCompletionHandler<T> handler) {
+        EmbeddedArrayHandler(ArrayResponseParser<T> parser, CompletionHandler<T> handler) {
             this.parser = parser;
             this.handler = handler;
         }
@@ -209,9 +220,9 @@ public class BrdApiClient {
     private static class RootArrayHandler<T> implements ResponseHandler<JSONArray> {
 
         private final ArrayResponseParser<T> parser;
-        private final BlockchainCompletionHandler<T> handler;
+        private final CompletionHandler<T> handler;
 
-        RootArrayHandler(ArrayResponseParser<T> parser, BlockchainCompletionHandler<T> handler) {
+        RootArrayHandler(ArrayResponseParser<T> parser, CompletionHandler<T> handler) {
             this.parser = parser;
             this.handler = handler;
         }

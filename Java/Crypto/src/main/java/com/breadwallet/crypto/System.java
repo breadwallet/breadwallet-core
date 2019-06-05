@@ -1,19 +1,26 @@
+/*
+ * System
+ *
+ * Created by Ed Gamble <ed@breadwallet.com> on 1/22/18.
+ * Copyright (c) 2018 Breadwinner AG.  All right reserved.
+ *
+ * See the LICENSE file at the project root for license information.
+ * See the CONTRIBUTORS file at the project root for a list of contributors.
+ */
 package com.breadwallet.crypto;
 
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.events.system.SystemListener;
-import com.breadwallet.crypto.implj.SystemImpl;
 import com.google.common.base.Optional;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
-// TODO(discuss): System is an unfortunate name in Java. How about CryptoManager or AccountManager?
 public interface System {
 
     static System create(ExecutorService listenerExecutor, SystemListener listener, Account account, String path, BlockchainDb query) {
-        return SystemImpl.create(listenerExecutor, listener, account, path, query);
+        return CryptoApi.getProvider().systemProvider().create(listenerExecutor, listener, account, path, query);
     }
 
     void subscribe(String subscriptionToken);

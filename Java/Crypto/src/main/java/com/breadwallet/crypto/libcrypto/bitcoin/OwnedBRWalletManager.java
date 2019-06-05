@@ -1,3 +1,10 @@
+/*
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
+ * Copyright (c) 2018 Breadwinner AG.  All right reserved.
+ *
+ * See the LICENSE file at the project root for license information.
+ * See the CONTRIBUTORS file at the project root for a list of contributors.
+ */
 package com.breadwallet.crypto.libcrypto.bitcoin;
 
 import com.breadwallet.crypto.libcrypto.CryptoLibrary;
@@ -28,11 +35,6 @@ class OwnedBRWalletManager implements CoreBRWalletManager {
     }
 
     @Override
-    public BRPeerManager getPeerManager() {
-        return core.getPeerManager();
-    }
-
-    @Override
     public void generateUnusedAddrs(int limit) {
         core.generateUnusedAddrs(limit);
     }
@@ -60,6 +62,11 @@ class OwnedBRWalletManager implements CoreBRWalletManager {
     @Override
     public void scan() {
         core.scan();
+    }
+
+    @Override
+    public void submitTransaction(CoreBRTransaction tx, byte[] seed) {
+        core.submitTransaction(tx, seed);
     }
 
     @Override

@@ -1,8 +1,13 @@
+/*
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
+ * Copyright (c) 2018 Breadwinner AG.  All right reserved.
+ *
+ * See the LICENSE file at the project root for license information.
+ * See the CONTRIBUTORS file at the project root for a list of contributors.
+ */
 package com.breadwallet.crypto.blockchaindb.apis.brd;
 
-import com.breadwallet.crypto.blockchaindb.BlockchainCompletionHandler;
-import com.breadwallet.crypto.blockchaindb.errors.QueryError;
-import com.google.common.base.Optional;
+import com.breadwallet.crypto.blockchaindb.CompletionHandler;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -16,7 +21,7 @@ public class EthGasApi {
         this.client = client;
     }
 
-    public void getGasPriceAsEth(String networkName, int rid, BlockchainCompletionHandler<String> handler) {
+    public void getGasPriceAsEth(String networkName, int rid, CompletionHandler<String> handler) {
         JSONObject json = new JSONObject(ImmutableMap.of(
                 "jsonrpc", "2.0",
                 "method", "eth_gasPrice",
@@ -24,22 +29,11 @@ public class EthGasApi {
                 "id", rid
         ));
 
-        client.sendJsonRequest(networkName, json, new BlockchainCompletionHandler<Optional<String>>() {
-            @Override
-            public void handleData(Optional<String> result) {
-                // TODO(discuss): Do we want default values?
-                handler.handleData(result.or("0xffc0"));
-            }
-
-            @Override
-            public void handleError(QueryError error) {
-                handler.handleError(error);
-            }
-        });
+        client.sendJsonRequest(networkName, json, handler);
     }
 
     public void getGasEstimateAsEth(String networkName, String from, String to, String amount, String data, int rid,
-                                    BlockchainCompletionHandler<String> handler) {
+                                    CompletionHandler<String> handler) {
         JSONObject json = new JSONObject(ImmutableMap.of(
                 "jsonrpc", "2.0",
                 "method", "eth_estimateGas",
@@ -47,17 +41,6 @@ public class EthGasApi {
                 "id", rid
         ));
 
-        client.sendJsonRequest(networkName, json, new BlockchainCompletionHandler<Optional<String>>() {
-            @Override
-            public void handleData(Optional<String> result) {
-                // TODO(discuss): Do we want default values?
-                handler.handleData(result.or("92000"));
-            }
-
-            @Override
-            public void handleError(QueryError error) {
-                handler.handleError(error);
-            }
-        });
+        client.sendJsonRequest(networkName, json, handler);
     }
 }

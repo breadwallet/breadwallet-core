@@ -1,3 +1,10 @@
+/*
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
+ * Copyright (c) 2018 Breadwinner AG.  All right reserved.
+ *
+ * See the LICENSE file at the project root for license information.
+ * See the CONTRIBUTORS file at the project root for a list of contributors.
+ */
 package com.breadwallet.crypto.implj;
 
 import com.breadwallet.crypto.Account;
@@ -17,8 +24,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 /* package */
 abstract class WalletManagerImpl<T extends WalletImpl> implements WalletManager {
 
-    protected final Account account;
-    protected final Network network;
+    protected final AccountImpl account;
+    protected final NetworkImpl network;
     protected final String path;
     protected final WalletManagerMode mode;
     protected final AtomicReference<WalletManagerState> state;
@@ -26,7 +33,7 @@ abstract class WalletManagerImpl<T extends WalletImpl> implements WalletManager 
     protected final Lock walletsWriteLock;
     protected final List<T> wallets;
 
-    protected WalletManagerImpl(Account account, Network network, WalletManagerMode managerMode, String path) {
+    protected WalletManagerImpl(AccountImpl account, NetworkImpl network, WalletManagerMode managerMode, String path) {
         this.account = account;
         this.network = network;
         this.mode = managerMode;

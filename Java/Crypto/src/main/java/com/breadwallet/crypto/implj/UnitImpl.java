@@ -1,7 +1,5 @@
 /*
- * Unit
- *
- * Created by Ed Gamble <ed@breadwallet.com> on 1/22/18.
+ * Created by Michael Carrara <michael.carrara@breadwallet.com> on 5/31/18.
  * Copyright (c) 2018 Breadwinner AG.  All right reserved.
  *
  * See the LICENSE file at the project root for license information.
@@ -15,14 +13,14 @@ import com.breadwallet.crypto.libcrypto.crypto.CoreBRCryptoUnit;
 
 import java.util.Objects;
 
-public final class UnitImpl implements Unit {
+/* package */
+final class UnitImpl implements Unit {
 
     /* package */
     static UnitImpl from(Unit unit) {
         if (unit instanceof UnitImpl) {
             return (UnitImpl) unit;
         }
-        // TODO(fix): We should be able to create a UnitImpl from any Unit implementation
         throw new IllegalArgumentException("Unsupported unit instance");
     }
 
