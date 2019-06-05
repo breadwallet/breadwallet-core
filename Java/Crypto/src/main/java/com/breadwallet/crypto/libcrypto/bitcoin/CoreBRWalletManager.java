@@ -9,7 +9,9 @@ package com.breadwallet.crypto.libcrypto.bitcoin;
 
 import com.breadwallet.crypto.libcrypto.CryptoLibrary;
 import com.breadwallet.crypto.libcrypto.support.BRMasterPubKey;
+import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedInts;
+import com.google.common.primitives.UnsignedLong;
 
 import java.util.Date;
 import java.util.List;
@@ -25,7 +27,7 @@ public interface CoreBRWalletManager {
 
     BRWallet getWallet();
 
-    void generateUnusedAddrs(int limit);
+    void generateUnusedAddrs(UnsignedInteger limit);
 
     List<String> getAllAddrs();
 
@@ -41,7 +43,7 @@ public interface CoreBRWalletManager {
 
     boolean matches(BRWalletManager walletManager);
 
-    void announceBlockNumber(int rid, long blockNumber);
+    void announceBlockNumber(int rid, UnsignedLong blockNumber);
 
     void announceSubmit(int rid, CoreBRTransaction transaction, int error);
 

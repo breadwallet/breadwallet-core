@@ -7,15 +7,17 @@
  */
 package com.breadwallet.crypto.events.transfer;
 
+import com.google.common.primitives.UnsignedLong;
+
 public final class TransferConfirmationEvent implements TranferEvent {
 
-    private final long count;
+    private final UnsignedLong count;
 
-    public TransferConfirmationEvent(long count) {
+    public TransferConfirmationEvent(UnsignedLong count) {
         this.count = count;
     }
 
-    public long getCount() {
+    public UnsignedLong getCount() {
         return count;
     }
 

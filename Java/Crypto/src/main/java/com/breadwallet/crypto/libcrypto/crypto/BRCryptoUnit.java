@@ -9,6 +9,7 @@ package com.breadwallet.crypto.libcrypto.crypto;
 
 import com.breadwallet.crypto.libcrypto.CryptoLibrary;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.common.primitives.UnsignedInteger;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
@@ -39,8 +40,8 @@ public class BRCryptoUnit extends PointerType implements CoreBRCryptoUnit {
     }
 
     @Override
-    public int getDecimals() {
-        return UnsignedBytes.toInt(CryptoLibrary.INSTANCE.cryptoUnitGetBaseDecimalOffset(this));
+    public UnsignedInteger getDecimals() {
+        return UnsignedInteger.fromIntBits(UnsignedBytes.toInt(CryptoLibrary.INSTANCE.cryptoUnitGetBaseDecimalOffset(this)));
     }
 
     @Override

@@ -9,15 +9,17 @@
  */
 package com.breadwallet.crypto;
 
+import com.google.common.primitives.UnsignedLong;
+
 public final class TransferFeeBasis {
 
     private final CurrencyTransferFeeBasis impl;
 
-    public static TransferFeeBasis createBtc(long btcFeePerKb) {
+    public static TransferFeeBasis createBtc(UnsignedLong btcFeePerKb) {
         return new TransferFeeBasis(new BitcoinTransferFeeBasis(btcFeePerKb));
     }
 
-    public static TransferFeeBasis createEth(Amount ethGasPrice, long ethGasLimit) {
+    public static TransferFeeBasis createEth(Amount ethGasPrice, UnsignedLong ethGasLimit) {
         return new TransferFeeBasis(new EthereumTransferFeeBasis(ethGasPrice, ethGasLimit));
     }
 
@@ -25,7 +27,7 @@ public final class TransferFeeBasis {
         this.impl = impl;
     }
 
-    public long getBtcFeePerKb() {
+    public UnsignedLong getBtcFeePerKb() {
         return impl.getBtcFeePerKb();
     }
 
@@ -33,14 +35,14 @@ public final class TransferFeeBasis {
         return impl.getEthGasPrice();
     }
 
-    public Long getEthGasLimit() {
+    public UnsignedLong getEthGasLimit() {
         return impl.getEthGasLimit();
     }
 
     // TODO(discuss): Should getBtcFeePerKb(), getEthGasPrice(), and getEthGasLimit() be returning Optional instead of throwing an exception?
     private interface CurrencyTransferFeeBasis {
 
-        default long getBtcFeePerKb() {
+        default UnsignedLong getBtcFeePerKb() {
             throw new IllegalStateException("Invalid transfer fee type");
         }
 
@@ -48,20 +50,20 @@ public final class TransferFeeBasis {
             throw new IllegalStateException("Invalid transfer fee type");
         }
 
-        default long getEthGasLimit() {
+        default UnsignedLong getEthGasLimit() {
             throw new IllegalStateException("Invalid transfer fee type");
         }
     }
 
     private static class BitcoinTransferFeeBasis implements CurrencyTransferFeeBasis {
 
-        private final long btcFeePerKb;
+        private final UnsignedLong btcFeePerKb;
 
-        private BitcoinTransferFeeBasis(long btcFeePerKb) {
+        private BitcoinTransferFeeBasis(UnsignedLong btcFeePerKb) {
             this.btcFeePerKb = btcFeePerKb;
         }
 
-        public long getBtcFeePerKb() {
+        public UnsignedLong getBtcFeePerKb() {
             return btcFeePerKb;
         }
     }
@@ -69,9 +71,9 @@ public final class TransferFeeBasis {
     private static class EthereumTransferFeeBasis implements CurrencyTransferFeeBasis {
 
         private final Amount ethGasPrice;
-        private final long ethGasLimit;
+        private final UnsignedLong ethGasLimit;
 
-        private EthereumTransferFeeBasis(Amount ethGasPrice, long ethGasLimit) {
+        private EthereumTransferFeeBasis(Amount ethGasPrice, UnsignedLong ethGasLimit) {
             this.ethGasPrice = ethGasPrice;
             this.ethGasLimit = ethGasLimit;
         }
@@ -80,7 +82,7 @@ public final class TransferFeeBasis {
             return ethGasPrice;
         }
 
-        public long getEthGasLimit() {
+        public UnsignedLong getEthGasLimit() {
             return ethGasLimit;
         }
     }

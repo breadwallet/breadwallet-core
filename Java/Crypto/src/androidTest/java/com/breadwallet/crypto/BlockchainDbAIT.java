@@ -11,6 +11,7 @@ import com.breadwallet.crypto.blockchaindb.models.bdb.Transfer;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthLog;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthToken;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthTransaction;
+import com.google.common.primitives.UnsignedLong;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -114,7 +115,7 @@ public class BlockchainDbAIT {
         SynchronousCompletionHandler<Transfer> handler = new SynchronousCompletionHandler<>();
 
         blockchainDb.getTransfer("bitcoin-mainnet:63522845d294ee9b0188ae5cac91bf389a0c3723f084ca1025e7d9cdfe481ce1:1",
-               handler);
+                handler);
         Transfer transfer = handler.dat().get();
         assertNotNull(transfer);
 
@@ -125,7 +126,8 @@ public class BlockchainDbAIT {
     public void testGetTransactions() {
         SynchronousCompletionHandler<List<Transaction>> handler = new SynchronousCompletionHandler<>();
 
-        blockchainDb.getTransactions("bitcoin-mainnet", Arrays.asList("1JfbZRwdDHKZmuiZgYArJZhcuuzuw2HuMu"), 0, 50000,
+        blockchainDb.getTransactions("bitcoin-mainnet", Arrays.asList("1JfbZRwdDHKZmuiZgYArJZhcuuzuw2HuMu"),
+                UnsignedLong.ZERO, UnsignedLong.valueOf(50000),
                 true, true, handler);
         List<Transaction> transactions = handler.dat().get();
         assertNotEquals(0, transactions.size());
@@ -190,8 +192,8 @@ public class BlockchainDbAIT {
     public void testGetTransactionsAsEth() {
         SynchronousCompletionHandler<List<EthTransaction>> handler = new SynchronousCompletionHandler<>();
 
-        blockchainDb.getTransactionsAsEth("mainnet", "0x04d542459de6765682D21771D1ba23dC30Fb675F", 0,
-                7778000, 0, handler);
+        blockchainDb.getTransactionsAsEth("mainnet", "0x04d542459de6765682D21771D1ba23dC30Fb675F", UnsignedLong.ZERO,
+                UnsignedLong.valueOf(7778000), 0, handler);
         List<EthTransaction> output = handler.dat().get();
         assertFalse(output.isEmpty());
     }

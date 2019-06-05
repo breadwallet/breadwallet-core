@@ -9,6 +9,7 @@ package com.breadwallet.crypto.libcrypto.crypto;
 
 import com.breadwallet.crypto.libcrypto.CryptoLibrary;
 import com.breadwallet.crypto.libcrypto.support.UInt256;
+import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
@@ -38,8 +39,8 @@ public class BRCryptoAmount extends PointerType implements CoreBRCryptoAmount {
     }
 
     @Override
-    public long getIntegerRaw(IntByReference overflow) {
-        return CryptoLibrary.INSTANCE.cryptoAmountGetIntegerRaw(this, overflow);
+    public UnsignedLong getIntegerRaw(IntByReference overflow) {
+        return UnsignedLong.fromLongBits(CryptoLibrary.INSTANCE.cryptoAmountGetIntegerRaw(this, overflow));
     }
 
     @Override
@@ -78,7 +79,6 @@ public class BRCryptoAmount extends PointerType implements CoreBRCryptoAmount {
 
     @Override
     public String toStringWithBase(int base, String preface) {
-        checkArgument(base > 0, "Invalid base value");
         UInt256.ByValue value = CryptoLibrary.INSTANCE.cryptoAmountGetValue(this);
         Pointer ptr = CryptoLibrary.INSTANCE.coerceStringPrefaced(value, base, preface);
         try {

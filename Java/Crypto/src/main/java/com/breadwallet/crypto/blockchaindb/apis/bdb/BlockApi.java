@@ -13,6 +13,8 @@ import com.breadwallet.crypto.blockchaindb.models.bdb.Block;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.primitives.UnsignedLong;
+import com.google.common.primitives.UnsignedLongs;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +25,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public class BlockApi {
 
-    private static final int PAGINATION_COUNT = 5000;
+    private static final UnsignedLong PAGINATION_COUNT = UnsignedLong.valueOf(5000);
 
     private final BdbApiClient jsonClient;
     private final ExecutorService executorService;
@@ -33,7 +35,7 @@ public class BlockApi {
         this.executorService = executorService;
     }
 
-    public void getBlocks(String id, long beginBlockNumber, long endBlockNumber, boolean includeRaw,
+    public void getBlocks(String id, UnsignedLong beginBlockNumber, UnsignedLong endBlockNumber, boolean includeRaw,
                           boolean includeTx, boolean includeTxRaw, boolean includeTxProof,
                           CompletionHandler<List<Block>> handler) {
         executorService.submit(() -> getBlocksOnExecutor(id, beginBlockNumber, endBlockNumber, includeRaw, includeTx,
@@ -52,7 +54,7 @@ public class BlockApi {
         jsonClient.sendGetWithId("blocks", id, params, Block::asBlock, handler);
     }
 
-    private void getBlocksOnExecutor(String id, long beginBlockNumber, long endBlockNumber, boolean includeRaw,
+    private void getBlocksOnExecutor(String id, UnsignedLong beginBlockNumber, UnsignedLong endBlockNumber, boolean includeRaw,
                                      boolean includeTx, boolean includeTxRaw, boolean includeTxProof,
                                      CompletionHandler<List<Block>> handler) {
         final QueryError[] error = {null};
@@ -67,12 +69,11 @@ public class BlockApi {
         baseBuilder.put("include_tx_proof", String.valueOf(includeTxProof));
         ImmutableMultimap<String, String> baseParams = baseBuilder.build();
 
-        for (long i = beginBlockNumber; i < endBlockNumber && error[0] == null; i += PAGINATION_COUNT) {
+        for (UnsignedLong i = beginBlockNumber; i.compareTo(endBlockNumber) < 0 && error[0] == null; i = i.plus(PAGINATION_COUNT)) {
             ImmutableListMultimap.Builder<String, String> paramsBuilder = ImmutableListMultimap.builder();
             paramsBuilder.putAll(baseParams);
-            paramsBuilder.put("start_height", String.valueOf(i));
-            paramsBuilder.put("end_height", String.valueOf(Math.min(i + PAGINATION_COUNT,
-                    endBlockNumber)));
+            paramsBuilder.put("start_height", i.toString());
+            paramsBuilder.put("end_height", UnsignedLongs.toString(UnsignedLongs.min(i.plus(PAGINATION_COUNT).longValue(), endBlockNumber.longValue())));
             ImmutableMultimap<String, String> params = paramsBuilder.build();
 
             jsonClient.sendGetForArray("blocks", params, Block::asBlocks,

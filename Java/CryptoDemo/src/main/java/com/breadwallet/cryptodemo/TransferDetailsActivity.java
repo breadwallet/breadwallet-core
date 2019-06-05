@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.widget.Button;
 import android.widget.TextView;
 
 import com.breadwallet.crypto.Address;
@@ -22,7 +21,6 @@ import com.breadwallet.crypto.events.transfer.TransferEventVisitor;
 import com.breadwallet.crypto.events.transfer.TransferListener;
 
 import java.text.DateFormat;
-import java.util.Date;
 
 import javax.annotation.Nullable;
 
@@ -120,7 +118,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
         String feeText = transfer.getFee().toString();
         feeView.setText(feeText);
 
-        String dateText = transfer.getConfirmation().transform((c) -> DATE_FORMAT.format(new Date(c.getTimestamp() * 1000))).or("<pending>");
+        String dateText = transfer.getConfirmation().transform((c) -> DATE_FORMAT.format(c.getConfirmationTime())).or("<pending>");
         dateView.setText(dateText);
 
         String senderText = transfer.getSource().transform(Address::toString).or("<unknown>");

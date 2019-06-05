@@ -10,6 +10,7 @@ package com.breadwallet.crypto.libcrypto.bitcoin;
 import com.breadwallet.crypto.libcrypto.CryptoLibrary;
 import com.breadwallet.crypto.libcrypto.utility.SizeT;
 import com.breadwallet.crypto.libcrypto.support.UInt256;
+import com.google.common.primitives.UnsignedInts;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import java.util.Arrays;
@@ -72,9 +73,7 @@ public class BRTransaction extends Structure implements CoreBRTransaction {
         SizeT sizeNeeded = new SizeT(0);
         sizeNeeded = CryptoLibrary.INSTANCE.BRTransactionSerialize(this, null, sizeNeeded);
 
-        checkState(sizeNeeded.intValue() > 0 && sizeNeeded.longValue() == sizeNeeded.intValue());
-
-        byte[] serialized = new byte[sizeNeeded.intValue()];
+        byte[] serialized = new byte[UnsignedInts.checkedCast(sizeNeeded.longValue())];
         CryptoLibrary.INSTANCE.BRTransactionSerialize(this, serialized, sizeNeeded);
         return serialized;
     }

@@ -17,6 +17,7 @@ import com.breadwallet.crypto.libcrypto.crypto.BRCryptoBoolean;
 import com.breadwallet.crypto.libcrypto.crypto.BRCryptoComparison;
 import com.breadwallet.crypto.libcrypto.crypto.CoreBRCryptoAmount;
 import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.ptr.IntByReference;
 
 import java.math.RoundingMode;
@@ -50,7 +51,7 @@ final class AmountImpl implements Amount {
     }
 
     /* package */
-    static AmountImpl createAsBtc(long value, Unit unit) {
+    static AmountImpl createAsBtc(UnsignedLong value, Unit unit) {
         UnitImpl unitImpl = UnitImpl.from(unit);
         return new AmountImpl(CoreBRCryptoAmount.createAsBtc(value, unitImpl.getCurrency().getCoreBRCryptoCurrency()), unitImpl);
     }
@@ -74,7 +75,7 @@ final class AmountImpl implements Amount {
         formatter.setParseBigDecimal(true);
         formatter.setRoundingMode(RoundingMode.HALF_UP);
         formatter.setDecimalFormatSymbols(formatterSymbols);
-        formatter.setMaximumFractionDigits(unit.getDecimals());
+        formatter.setMaximumFractionDigits(unit.getDecimals().intValue());
 
         return formatter;
     }
@@ -225,10 +226,10 @@ final class AmountImpl implements Amount {
     }
 
     /* package */
-    long integerRawAmount() {
+    UnsignedLong integerRawAmount() {
         // TODO(discuss): doubleAmount returns an optional based on overflow; shouldn't this?
         IntByReference overflowRef = new IntByReference(BRCryptoBoolean.CRYPTO_FALSE);
-        long value = core.getIntegerRaw(overflowRef);
+        UnsignedLong value = core.getIntegerRaw(overflowRef);
         checkState(BRCryptoBoolean.CRYPTO_FALSE == overflowRef.getValue());
         return value;
     }

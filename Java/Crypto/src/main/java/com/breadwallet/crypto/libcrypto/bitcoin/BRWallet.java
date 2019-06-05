@@ -11,12 +11,13 @@ import com.breadwallet.crypto.libcrypto.CryptoLibrary;
 import com.breadwallet.crypto.libcrypto.crypto.BRCryptoBoolean;
 import com.breadwallet.crypto.libcrypto.utility.SizeT;
 import com.breadwallet.crypto.libcrypto.support.BRAddress;
+import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
 public class BRWallet extends PointerType {
 
-    public static final long DEFAULT_FEE_PER_KB = (1000L * 10);
+    public static final UnsignedLong DEFAULT_FEE_PER_KB = UnsignedLong.fromLongBits(1000L * 10);
 
     public BRWallet(Pointer address) {
         super(address);
@@ -26,46 +27,46 @@ public class BRWallet extends PointerType {
         super();
     }
 
-    public long getBalance() {
-        return CryptoLibrary.INSTANCE.BRWalletBalance(this);
+    public UnsignedLong getBalance() {
+        return UnsignedLong.fromLongBits(CryptoLibrary.INSTANCE.BRWalletBalance(this));
     }
 
-    public long getFeeForTx(CoreBRTransaction tx) {
+    public UnsignedLong getFeeForTx(CoreBRTransaction tx) {
         BRTransaction coreTransfer = tx.asBRTransaction();
-        return CryptoLibrary.INSTANCE.BRWalletFeeForTx(this, coreTransfer);
+        return UnsignedLong.fromLongBits(CryptoLibrary.INSTANCE.BRWalletFeeForTx(this, coreTransfer));
     }
 
-    public long getFeeForTxAmount(long amount) {
-        return CryptoLibrary.INSTANCE.BRWalletFeeForTxAmount(this, amount);
+    public UnsignedLong getFeeForTxAmount(UnsignedLong amount) {
+        return UnsignedLong.fromLongBits(CryptoLibrary.INSTANCE.BRWalletFeeForTxAmount(this, amount.longValue()));
     }
 
-    public long getFeePerKb() {
-        return CryptoLibrary.INSTANCE.BRWalletFeePerKb(this);
+    public UnsignedLong getFeePerKb() {
+        return UnsignedLong.fromLongBits(CryptoLibrary.INSTANCE.BRWalletFeePerKb(this));
     }
 
-    public void setFeePerKb(long feePerKb) {
-        CryptoLibrary.INSTANCE.BRWalletSetFeePerKb(this, feePerKb);
+    public void setFeePerKb(UnsignedLong feePerKb) {
+        CryptoLibrary.INSTANCE.BRWalletSetFeePerKb(this, feePerKb.longValue());
     }
 
     public BRAddress.ByValue legacyAddress() {
         return CryptoLibrary.INSTANCE.BRWalletLegacyAddress(this);
     }
 
-    public boolean matches(BRWallet o) {
-        return this.equals(o);
+    public UnsignedLong getAmountReceivedFromTx(CoreBRTransaction tx) {
+        BRTransaction coreTransfer = tx.asBRTransaction();
+        return UnsignedLong.fromLongBits(CryptoLibrary.INSTANCE.BRWalletAmountReceivedFromTx(this, coreTransfer));
     }
 
-    public long getAmountReceivedFromTx(CoreBRTransaction tx) {
+    public UnsignedLong getAmountSentByTx(CoreBRTransaction tx) {
         BRTransaction coreTransfer = tx.asBRTransaction();
-        return CryptoLibrary.INSTANCE.BRWalletAmountReceivedFromTx(this, coreTransfer);
-    }
-
-    public long getAmountSentByTx(CoreBRTransaction tx) {
-        BRTransaction coreTransfer = tx.asBRTransaction();
-        return CryptoLibrary.INSTANCE.BRWalletAmountSentByTx(this, coreTransfer);
+        return UnsignedLong.fromLongBits(CryptoLibrary.INSTANCE.BRWalletAmountSentByTx(this, coreTransfer));
     }
 
     public boolean containsAddress(String address) {
         return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.BRWalletContainsAddress(this, address);
+    }
+
+    public boolean matches(BRWallet o) {
+        return this.equals(o);
     }
 }

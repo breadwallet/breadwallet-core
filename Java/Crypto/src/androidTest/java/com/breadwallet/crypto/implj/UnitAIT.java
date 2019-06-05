@@ -11,6 +11,7 @@ package com.breadwallet.crypto.implj;
 
 import com.breadwallet.crypto.Currency;
 import com.breadwallet.crypto.Unit;
+import com.google.common.primitives.UnsignedInteger;
 
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -31,7 +32,7 @@ public class UnitAIT {
         assertTrue(satoshi_btc.isCompatible(satoshi_btc));
         assertEquals(satoshi_btc.getCoreBRCryptoUnit(), satoshi_btc.getBase().getCoreBRCryptoUnit());
 
-        Unit btc_btc = new UnitImpl(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, 8);
+        Unit btc_btc = new UnitImpl(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, UnsignedInteger.valueOf(8));
         assertEquals(btc_btc.getCurrency().getCode(), btc.getCode());
         assertTrue(satoshi_btc.isCompatible(btc_btc));
         assertTrue(btc_btc.isCompatible(satoshi_btc));
@@ -43,7 +44,7 @@ public class UnitAIT {
         CurrencyImpl eth = new CurrencyImpl("Ethereum", "Ethereum", "ETH", "native");
 
         UnitImpl satoshi_btc = new UnitImpl(btc, "BTC-SAT", "Satoshi", "SAT");
-        UnitImpl btc_btc = new UnitImpl(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, 8);
+        UnitImpl btc_btc = new UnitImpl(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, UnsignedInteger.valueOf(8));
         UnitImpl wei_eth = new UnitImpl(eth, "ETH-WEI", "WEI", "wei");
 
         assertFalse(wei_eth.isCompatible(btc_btc));

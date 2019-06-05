@@ -11,6 +11,7 @@ import android.support.annotation.Nullable;
 
 import com.breadwallet.crypto.blockchaindb.models.Utilities;
 import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedLong;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -26,14 +27,14 @@ public class Transfer {
         String source = json.optString("from_address", null);
         String target = json.optString("to_address", null);
         String tid = json.optString("transaction_id", null);
-        Long acks = Utilities.getOptionalLongFromString(json, "acknowledgements").orNull();
+        UnsignedLong acks = Utilities.getOptionalUnsignedLongFromString(json, "acknowledgements").orNull();
 
         //required
         try {
             String id = json.getString("transfer_id");
             String bid = json.getString("blockchain_id");
 
-            long index = Utilities.getLongFromString(json, "index");
+            UnsignedLong index = Utilities.getUnsignedLongFromString(json, "index");
             JSONObject amount = json.getJSONObject("amount");
             String value = amount.getString("amount");
             String currency = amount.getString("currency_id");
@@ -65,7 +66,7 @@ public class Transfer {
     private final String id;
     private final String amountValue;
     private final String amountCurrency;
-    private final long index;
+    private final UnsignedLong index;
     private final String blockchainId;
 
     @Nullable
@@ -75,10 +76,10 @@ public class Transfer {
     @Nullable
     private final String target;
     @Nullable
-    private final Long acknowledgements;
+    private final UnsignedLong acknowledgements;
 
     public Transfer(String id, @Nullable String source, @Nullable String target, String amountValue,
-                    String amountCurrency, @Nullable Long acknowledgements, long index, @Nullable String transactionId,
+                    String amountCurrency, @Nullable UnsignedLong acknowledgements, UnsignedLong index, @Nullable String transactionId,
                     String blockchainId) {
         this.id = id;
         this.source = source;
@@ -111,11 +112,11 @@ public class Transfer {
         return amountCurrency;
     }
 
-    public Optional<Long> getAcknowledgements() {
+    public Optional<UnsignedLong> getAcknowledgements() {
         return Optional.fromNullable(acknowledgements);
     }
 
-    public long getIndex() {
+    public UnsignedLong getIndex() {
         return index;
     }
 

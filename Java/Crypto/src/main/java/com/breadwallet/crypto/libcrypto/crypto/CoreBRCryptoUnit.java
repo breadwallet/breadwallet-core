@@ -9,6 +9,7 @@ package com.breadwallet.crypto.libcrypto.crypto;
 
 import com.breadwallet.crypto.libcrypto.CryptoLibrary;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.common.primitives.UnsignedInteger;
 
 public interface CoreBRCryptoUnit {
 
@@ -17,10 +18,10 @@ public interface CoreBRCryptoUnit {
         return new OwnedBRCryptoUnit(CryptoLibrary.INSTANCE.cryptoUnitCreateAsBase(coreCurrency, name, symbol));
     }
 
-    static CoreBRCryptoUnit create(CoreBRCryptoCurrency currency, String name, String symbol, CoreBRCryptoUnit base, int decimals) {
+    static CoreBRCryptoUnit create(CoreBRCryptoCurrency currency, String name, String symbol, CoreBRCryptoUnit base, UnsignedInteger decimals) {
         BRCryptoCurrency coreCurrency = currency.asBRCryptoCurrency();
         BRCryptoUnit coreBaseUnit = base.asBRCryptoUnit();
-        byte decimalsAsByte = UnsignedBytes.checkedCast(decimals);
+        byte decimalsAsByte = UnsignedBytes.checkedCast(decimals.longValue());
         return new OwnedBRCryptoUnit(CryptoLibrary.INSTANCE.cryptoUnitCreate(coreCurrency, name, symbol, coreBaseUnit, decimalsAsByte));
     }
 
@@ -28,7 +29,7 @@ public interface CoreBRCryptoUnit {
 
     String getSymbol();
 
-    int getDecimals();
+    UnsignedInteger getDecimals();
 
     boolean isCompatible(CoreBRCryptoUnit other);
 

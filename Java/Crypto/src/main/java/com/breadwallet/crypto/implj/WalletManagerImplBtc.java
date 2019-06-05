@@ -52,6 +52,9 @@ import com.breadwallet.crypto.libcrypto.support.BRSyncMode;
 import com.breadwallet.crypto.libcrypto.bitcoin.BRWallet;
 import com.breadwallet.crypto.libcrypto.bitcoin.BRChainParams;
 import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedInteger;
+import com.google.common.primitives.UnsignedInts;
+import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Pointer;
 
 import java.util.ArrayList;
@@ -67,7 +70,7 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
 
     private static final String TAG = WalletManagerImplBtc.class.getName();
 
-    private static final int UNUSED_ADDR_LIMIT = 25;
+    private static final UnsignedInteger UNUSED_ADDR_LIMIT = UnsignedInteger.valueOf(25);
 
     private static int modeAsBtc(WalletManagerMode mode) {
         switch (mode) {
@@ -201,7 +204,7 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
     }
 
     private
-    void announceBlockNumber(int rid, long blockNumber) {
+    void announceBlockNumber(int rid, UnsignedLong blockNumber) {
         coreManager.announceBlockNumber(rid, blockNumber);
     }
 
@@ -228,7 +231,7 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
             query.getBlockchain(getNetwork().getUids(), new CompletionHandler<Blockchain>() {
                 @Override
                 public void handleData(Blockchain blockchain) {
-                    long blockchainHeight = blockchain.getBlockHeight();
+                    UnsignedLong blockchainHeight = blockchain.getBlockHeight();
                     Log.d(TAG, String.format("BRGetBlockNumberCallback: succeeded with block number %s", blockchainHeight));
                     announceBlockNumber(rid, blockchainHeight);
                 }
@@ -243,13 +246,16 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
 
     private void doGetTransactions(Pointer context, BRWalletManager managerImpl, long begBlockNumber, long endBlockNumber, int rid) {
         systemExecutor.submit(() -> {
-            Log.d(TAG, String.format("BRGetTransactionsCallback (%s %s)", begBlockNumber, endBlockNumber));
+            UnsignedLong begBlockNumberUnsigned = UnsignedLong.fromLongBits(begBlockNumber);
+            UnsignedLong endBlockNumberUnsigned = UnsignedLong.fromLongBits(endBlockNumber);
+
+            Log.d(TAG, String.format("BRGetTransactionsCallback (%s %s)", begBlockNumberUnsigned, endBlockNumberUnsigned));
 
             String blockchainId = getNetwork().getUids();
             List<String> addresses = getAllAddrs();
             Set<String> knownAddresses = new HashSet<>(addresses);
 
-            query.getTransactions(blockchainId, addresses, begBlockNumber, endBlockNumber, true, false, new CompletionHandler<List<Transaction>>() {
+            query.getTransactions(blockchainId, addresses, begBlockNumberUnsigned, endBlockNumberUnsigned, true, false, new CompletionHandler<List<Transaction>>() {
                 @Override
                 public void handleData(List<Transaction> transactions) {
                     Log.d(TAG, "BRGetTransactionsCallback: transaction success");
@@ -261,22 +267,10 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
                             return;
                         }
 
-                        long timestamp = transaction.getTimestamp().transform((ts) -> ts.getTime() / 1000).or(0L);
-                        if (timestamp < 0 || timestamp > Integer.MAX_VALUE) {
-                            Log.d(TAG, "BRGetTransactionsCallback received invalid timestamp, completing with failure");
-                            announceTransactionComplete(rid, false);
-                            return;
-                        }
+                        int blockHeight = UnsignedInts.checkedCast(transaction.getBlockHeight().or(UnsignedLong.ZERO).longValue());
+                        int timestamp = UnsignedInts.checkedCast(transaction.getTimestamp().transform((ts) -> ts.getTime() / 1000).or(0L));
 
-                        long blockHeight = transaction.getBlockHeight().or(0L);
-                        if (blockHeight < 0 || blockHeight > Integer.MAX_VALUE) {
-                            Log.d(TAG, "BRGetTransactionsCallback received invalid block height, completing with failure");
-                            announceTransactionComplete(rid, false);
-                            return;
-                        }
-
-                        // TODO(fix): Are these casts safe?
-                        Optional<CoreBRTransaction> optCore = CoreBRTransaction.create(optRaw.get(), (int) timestamp, (int) blockHeight);
+                        Optional<CoreBRTransaction> optCore = CoreBRTransaction.create(optRaw.get(), timestamp, blockHeight);
                         if (!optCore.isPresent()) {
                             Log.d(TAG, "BRGetTransactionsCallback received invalid transaction, completing with failure");
                             announceTransactionComplete(rid, false);
@@ -297,7 +291,7 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
                         List<String> addresses = new ArrayList<>(addressesSet);
 
                         Log.d(TAG, "BRGetTransactionsCallback found transactions, requesting again");
-                        systemExecutor.submit(() -> query.getTransactions(blockchainId, addresses, begBlockNumber, endBlockNumber, true, false, this));
+                        systemExecutor.submit(() -> query.getTransactions(blockchainId, addresses, begBlockNumberUnsigned, endBlockNumberUnsigned, true, false, this));
                     }
                 }
 
@@ -356,13 +350,13 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
                             announcer.announceWalletEvent(this, wallet, new WalletTransferDeletedEvent(transfer));
                             break;
                         case BRTransactionEventType.BITCOIN_TRANSACTION_UPDATED:
-                            int blockHeight = event.u.updated.blockHeight;
-                            int timestamp = event.u.updated.timestamp;
+                            UnsignedLong blockHeight = UnsignedLong.fromLongBits(event.u.updated.blockHeight);
+                            UnsignedLong timestamp = UnsignedLong.fromLongBits(event.u.updated.timestamp);
                             Log.d(TAG, String.format("BRTransactionEventCallback: BITCOIN_TRANSACTION_UPDATED (%s, %s)", blockHeight, timestamp));
 
                             Optional<Amount> optionalAmount = AmountImpl.create(0, getDefaultUnit());
                             if (optionalAmount.isPresent()) {
-                                TransferConfirmation confirmation = new TransferConfirmation(blockHeight, 0, timestamp, optionalAmount.get());
+                                TransferConfirmation confirmation = new TransferConfirmation(blockHeight, UnsignedLong.ZERO, timestamp, optionalAmount.get());
 
                                 TransferState newState = TransferState.INCLUDED(confirmation);
                                 TransferState oldState = transfer.setState(newState);
@@ -492,16 +486,16 @@ final class WalletManagerImplBtc extends WalletManagerImpl<WalletImplBtc> {
                     break;
                 }
                 case BRWalletManagerEventType.BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED: {
-                    int height = event.u.blockHeightUpdated.value;
+                    UnsignedLong height = UnsignedLong.fromLongBits(event.u.blockHeightUpdated.value);
                     Log.d(TAG, String.format("BRWalletManagerEventCallback: BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED (%s)", height));
 
                     network.setHeight(height);
 
                     for (Wallet wallet: getWallets()) {
                         for(Transfer transfer: wallet.getTransfers()) {
-                            Optional<Long> optionalConfirmations = transfer.getConfirmationsAt(height);
+                            Optional<UnsignedLong> optionalConfirmations = transfer.getConfirmationsAt(height);
                             if (optionalConfirmations.isPresent()) {
-                                long confirmations = optionalConfirmations.get();
+                                UnsignedLong confirmations = optionalConfirmations.get();
                                 announcer.announceTransferEvent(this, wallet, transfer, new TransferConfirmationEvent(confirmations));
                             }
                         }

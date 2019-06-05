@@ -12,7 +12,9 @@ import com.breadwallet.crypto.libcrypto.utility.SizeT;
 import com.breadwallet.crypto.libcrypto.utility.SizeTByReference;
 import com.breadwallet.crypto.libcrypto.crypto.BRCryptoBoolean;
 import com.breadwallet.crypto.libcrypto.support.BRAddress;
+import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedInts;
+import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
@@ -36,8 +38,8 @@ public class BRWalletManager extends PointerType implements CoreBRWalletManager 
     }
 
     @Override
-    public void generateUnusedAddrs(int limit) {
-        CryptoLibrary.INSTANCE.BRWalletManagerGenerateUnusedAddrs(this, limit);
+    public void generateUnusedAddrs(UnsignedInteger limit) {
+        CryptoLibrary.INSTANCE.BRWalletManagerGenerateUnusedAddrs(this, limit.intValue());
     }
 
     @Override
@@ -46,7 +48,7 @@ public class BRWalletManager extends PointerType implements CoreBRWalletManager 
         BRAddress address = CryptoLibrary.INSTANCE.BRWalletManagerGetAllAddrs(this, addressesCountReference);
         try {
             List<String> addresses = new ArrayList<>();
-            int addressesCount = UnsignedInts.checkedCast(addressesCountReference.getValue());
+            int addressesCount = UnsignedInts.checkedCast(addressesCountReference.getValue().longValue());
             for (BRAddress addr: (BRAddress[]) address.toArray(addressesCount)) {
                 addresses.add(addr.getAddressAsString());
             }
@@ -62,7 +64,7 @@ public class BRWalletManager extends PointerType implements CoreBRWalletManager 
         BRAddress address = CryptoLibrary.INSTANCE.BRWalletManagerGetAllAddrsLegacy(this, addressesCountReference);
         try {
             List<String> addresses = new ArrayList<>();
-            int addressesCount = UnsignedInts.checkedCast(addressesCountReference.getValue());
+            int addressesCount = UnsignedInts.checkedCast(addressesCountReference.getValue().longValue());
             for (BRAddress addr: (BRAddress[]) address.toArray(addressesCount)) {
                 addresses.add(addr.getAddressAsString());
             }
@@ -100,8 +102,8 @@ public class BRWalletManager extends PointerType implements CoreBRWalletManager 
     }
 
     @Override
-    public void announceBlockNumber(int rid, long blockNumber) {
-        CryptoLibrary.INSTANCE.bwmAnnounceBlockNumber(this, rid, blockNumber);
+    public void announceBlockNumber(int rid, UnsignedLong blockNumber) {
+        CryptoLibrary.INSTANCE.bwmAnnounceBlockNumber(this, rid, blockNumber.longValue());
     }
 
     @Override

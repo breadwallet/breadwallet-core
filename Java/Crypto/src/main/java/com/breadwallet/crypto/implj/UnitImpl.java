@@ -10,6 +10,7 @@ package com.breadwallet.crypto.implj;
 import com.breadwallet.crypto.Currency;
 import com.breadwallet.crypto.Unit;
 import com.breadwallet.crypto.libcrypto.crypto.CoreBRCryptoUnit;
+import com.google.common.primitives.UnsignedInteger;
 
 import java.util.Objects;
 
@@ -35,7 +36,7 @@ final class UnitImpl implements Unit {
     }
 
     /* package */
-    UnitImpl(CurrencyImpl currency, String uids, String name, String symbol, UnitImpl base, int decimals) {
+    UnitImpl(CurrencyImpl currency, String uids, String name, String symbol, UnitImpl base, UnsignedInteger decimals) {
         this(CoreBRCryptoUnit.create(currency.getCoreBRCryptoCurrency(), name, symbol, base.core, decimals), currency, uids, base);
     }
 
@@ -67,7 +68,7 @@ final class UnitImpl implements Unit {
     }
 
     @Override
-    public int getDecimals() {
+    public UnsignedInteger getDecimals() {
         return core.getDecimals();
     }
 

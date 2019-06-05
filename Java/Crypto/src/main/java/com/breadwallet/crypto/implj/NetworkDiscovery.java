@@ -15,6 +15,7 @@ import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Currency;
 import com.breadwallet.crypto.blockchaindb.models.bdb.CurrencyDenomination;
 import com.google.common.base.Function;
+import com.google.common.primitives.UnsignedInteger;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -74,13 +75,7 @@ final class NetworkDiscovery {
                         List<UnitImpl> units = currencyDenominationToUnits(currency, nonBaseDenominations, baseUnit);
 
                         units.add(0, baseUnit);
-                        Collections.sort(units, (o1, o2) -> {
-                            int d1 = o1.getDecimals();
-                            int d2 = o2.getDecimals();
-                            int result = d2 - d1;
-                            int absResult = Math.abs(result);
-                            return result == 0 ? result : (result / absResult);
-                        });
+                        Collections.sort(units, (o1, o2) -> o2.getDecimals().compareTo(o1.getDecimals()));
                         Unit defaultUnit = units.get(0);
 
                         associations.put(currency, new NetworkAssociation(baseUnit, defaultUnit, new HashSet<>(units)));
@@ -175,7 +170,7 @@ final class NetworkDiscovery {
 
     private static CurrencyDenomination findFirstBaseDenomination(List<CurrencyDenomination> denominations) {
         for (CurrencyDenomination denomination : denominations) {
-            if (denomination.getDecimals() == 0) {
+            if (denomination.getDecimals().equals(UnsignedInteger.ZERO)) {
                 return denomination;
             }
         }
@@ -185,7 +180,7 @@ final class NetworkDiscovery {
     private static List<CurrencyDenomination> findAllNonBaseDenominations(List<CurrencyDenomination> denominations) {
         List<CurrencyDenomination> newDenominations = new ArrayList<>();
         for (CurrencyDenomination denomination : denominations) {
-            if (denomination.getDecimals() != 0) {
+            if (!denomination.getDecimals().equals(UnsignedInteger.ZERO)) {
                 newDenominations.add(denomination);
             }
         }

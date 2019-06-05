@@ -8,6 +8,7 @@
 package com.breadwallet.crypto.libcrypto.crypto;
 
 import com.breadwallet.crypto.libcrypto.CryptoLibrary;
+import com.google.common.primitives.UnsignedInteger;
 
 /* package */
 class OwnedBRCryptoUnit implements CoreBRCryptoUnit {
@@ -38,7 +39,7 @@ class OwnedBRCryptoUnit implements CoreBRCryptoUnit {
     }
 
     @Override
-    public int getDecimals() {
+    public UnsignedInteger getDecimals() {
         return core.getDecimals();
     }
 

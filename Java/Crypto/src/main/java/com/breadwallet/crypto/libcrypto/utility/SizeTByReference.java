@@ -8,34 +8,34 @@
 package com.breadwallet.crypto.libcrypto.utility;
 
 import com.google.common.primitives.UnsignedInts;
+import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Native;
 import com.sun.jna.ptr.ByReference;
-import com.sun.jna.ptr.IntByReference;
 
 public class SizeTByReference extends ByReference {
 
     public SizeTByReference() {
-        this(0);
+        this(UnsignedLong.ZERO);
     }
 
-    public SizeTByReference(long value) {
+    public SizeTByReference(UnsignedLong value) {
         super(Native.SIZE_T_SIZE);
         setValue(value);
     }
 
-    public void setValue(long value) {
+    public void setValue(UnsignedLong value) {
         if (Native.SIZE_T_SIZE == 8) {
-            getPointer().setLong(0, value);
+            getPointer().setLong(0, value.longValue());
         } else {
-            getPointer().setInt(0, UnsignedInts.checkedCast(value));
+            getPointer().setInt(0, UnsignedInts.checkedCast(value.longValue()));
         }
     }
 
-    public long getValue() {
+    public UnsignedLong getValue() {
         if (Native.SIZE_T_SIZE == 8) {
-            return getPointer().getLong(0);
+            return UnsignedLong.fromLongBits(getPointer().getLong(0));
         } else {
-            return getPointer().getInt(0);
+            return UnsignedLong.fromLongBits(getPointer().getInt(0));
         }
     }
 }

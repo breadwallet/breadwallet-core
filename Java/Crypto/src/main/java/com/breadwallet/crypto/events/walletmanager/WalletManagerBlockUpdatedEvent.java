@@ -7,15 +7,17 @@
  */
 package com.breadwallet.crypto.events.walletmanager;
 
+import com.google.common.primitives.UnsignedLong;
+
 public final class WalletManagerBlockUpdatedEvent implements WalletManagerEvent {
 
-    private final long height;
+    private final UnsignedLong height;
 
-    public WalletManagerBlockUpdatedEvent(long height) {
+    public WalletManagerBlockUpdatedEvent(UnsignedLong height) {
         this.height = height;
     }
 
-    public long getHeight() {
+    public UnsignedLong getHeight() {
         return height;
     }
 

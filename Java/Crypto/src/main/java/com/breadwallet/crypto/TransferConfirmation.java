@@ -9,29 +9,35 @@
  */
 package com.breadwallet.crypto;
 
+import com.google.common.primitives.UnsignedLong;
+
+import java.util.Date;
+
 public final class TransferConfirmation {
 
-    private final long blockNumber;
-    private final long transactionIndex;
-    private final long timestamp;
+    private static final UnsignedLong SECONDS_MS = UnsignedLong.valueOf(1000);
+
+    private final UnsignedLong blockNumber;
+    private final UnsignedLong transactionIndex;
+    private final Date timestamp;
     private final Amount fee;
 
-    public TransferConfirmation(long blockNumber, long transactionIndex, long timestamp, Amount fee) {
+    public TransferConfirmation(UnsignedLong blockNumber, UnsignedLong transactionIndex, UnsignedLong timestamp, Amount fee) {
         this.blockNumber = blockNumber;
         this.transactionIndex = transactionIndex;
-        this.timestamp = timestamp;
+        this.timestamp = new Date(timestamp.times(SECONDS_MS).longValue());
         this.fee = fee;
     }
 
-    public long getBlockNumber() {
+    public UnsignedLong getBlockNumber() {
         return blockNumber;
     }
 
-    public long getTransactionIndex() {
+    public UnsignedLong getTransactionIndex() {
         return transactionIndex;
     }
 
-    public long getTimestamp() {
+    public Date getConfirmationTime() {
         return timestamp;
     }
 

@@ -10,6 +10,7 @@ package com.breadwallet.crypto.blockchaindb.models.bdb;
 import com.breadwallet.crypto.blockchaindb.models.Utilities;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.primitives.UnsignedLong;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -22,15 +23,15 @@ public class Blockchain {
 
     public static List<Blockchain> DEFAULT_BLOCKCHAINS = ImmutableList.of(
             // Mainnet
-            new Blockchain("bitcoin-mainnet", "Bitcoin", "mainnet", true, "btc", 654321, ImmutableList.of()),
-            new Blockchain("bitcash-mainnet", "Bitcash", "mainnet", true, "bch", 1000000, ImmutableList.of()),
-            new Blockchain("ethereum-mainnet", "Ethereum", "mainnet", true, "eth", 8000000, ImmutableList.of()),
+            new Blockchain("bitcoin-mainnet", "Bitcoin", "mainnet", true, "btc", UnsignedLong.valueOf(654321), ImmutableList.of()),
+            new Blockchain("bitcash-mainnet", "Bitcash", "mainnet", true, "bch", UnsignedLong.valueOf(1000000), ImmutableList.of()),
+            new Blockchain("ethereum-mainnet", "Ethereum", "mainnet", true, "eth", UnsignedLong.valueOf(8000000), ImmutableList.of()),
 
             // Testnet
-            new Blockchain("bitcoin-testnet", "Bitcoin", "testnet", false, "btc", 900000, ImmutableList.of()),
-            new Blockchain("bitcash-testnet", "Bitcash", "testnet", false, "bch", 1200000, ImmutableList.of()),
-            new Blockchain("ethereum-testnet", "Ethereum", "testnet", false, "eth", 1000000, ImmutableList.of()),
-            new Blockchain("ethereum-rinkeby", "Ethereum", "rinkeby", false, "eth", 2000000, ImmutableList.of())
+            new Blockchain("bitcoin-testnet", "Bitcoin", "testnet", false, "btc", UnsignedLong.valueOf(900000), ImmutableList.of()),
+            new Blockchain("bitcash-testnet", "Bitcash", "testnet", false, "bch", UnsignedLong.valueOf(1200000), ImmutableList.of()),
+            new Blockchain("ethereum-testnet", "Ethereum", "testnet", false, "eth", UnsignedLong.valueOf(1000000), ImmutableList.of()),
+            new Blockchain("ethereum-rinkeby", "Ethereum", "rinkeby", false, "eth", UnsignedLong.valueOf(2000000), ImmutableList.of())
     );
 
     public static Optional<Blockchain> asBlockchain(JSONObject json) {
@@ -40,7 +41,7 @@ public class Blockchain {
             String network = json.getString("network");
             boolean isMainnet = json.getBoolean("is_mainnet");
             String currency = json.getString("native_currency_id");
-            long blockHeight = Utilities.getLongFromString(json, "block_height");
+            UnsignedLong blockHeight = Utilities.getUnsignedLongFromString(json, "block_height");
 
             JSONArray feeEstimatesJson = json.getJSONArray("fee_estimates");
             Optional<List<BlockchainFee>> feeEstimatesOption = BlockchainFee.asBlockchainFees(feeEstimatesJson);
@@ -77,10 +78,10 @@ public class Blockchain {
     private final String network;
     private final boolean isMainnet;
     private final String currency;
-    private final long blockHeight;
+    private final UnsignedLong blockHeight;
     private final List<BlockchainFee> feeEstimates;
 
-    public Blockchain(String id, String name, String network, boolean isMainnet, String currency, long blockHeight,
+    public Blockchain(String id, String name, String network, boolean isMainnet, String currency, UnsignedLong blockHeight,
                       List<BlockchainFee> feeEstimates) {
         this.id = id;
         this.name = name;
@@ -111,7 +112,7 @@ public class Blockchain {
         return currency;
     }
 
-    public long getBlockHeight() {
+    public UnsignedLong getBlockHeight() {
         return blockHeight;
     }
 }

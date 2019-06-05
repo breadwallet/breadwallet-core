@@ -11,6 +11,7 @@ import android.support.annotation.Nullable;
 
 import com.breadwallet.crypto.blockchaindb.models.Utilities;
 import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedLong;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -24,15 +25,15 @@ public class Transaction {
 
     public static Optional<Transaction> asTransaction(JSONObject json) {
         // optional
-        Long index = Utilities.getOptionalLongFromString(json, "index").orNull();
-        Long blockHeight = Utilities.getOptionalLongFromString(json, "block_height").orNull();
+        UnsignedLong index = Utilities.getOptionalUnsignedLongFromString(json, "index").orNull();
+        UnsignedLong blockHeight = Utilities.getOptionalUnsignedLongFromString(json, "block_height").orNull();
         String blockHash = json.optString("block_hash", null);
         byte[] raw = Utilities.getOptionalBase64Bytes(json, "raw").orNull();
 
         Date firstSeen = Utilities.getOptional8601DateFromString(json, "first_seen").orNull();
         Date timestamp = Utilities.getOptional8601DateFromString(json, "timestamp").orNull();
-        long acks = Utilities.getOptionalLongFromString(json, "acknowledgements").or(Long.valueOf(0));
-        Long confirmations = Utilities.getOptionalLongFromString(json, "confirmations").orNull();
+        UnsignedLong acks = Utilities.getOptionalUnsignedLongFromString(json, "acknowledgements").or(UnsignedLong.ZERO);
+        UnsignedLong confirmations = Utilities.getOptionalUnsignedLongFromString(json, "confirmations").orNull();
 
         //required
         try {
@@ -41,7 +42,7 @@ public class Transaction {
             String hash = json.getString("hash");
             String identifier = json.getString("identifier");
             String status = json.getString("status");
-            long size = Utilities.getLongFromString(json, "size");
+            UnsignedLong size = Utilities.getUnsignedLongFromString(json, "size");
 
             JSONArray jsonTransfers = json.getJSONArray("transfers");
             Optional<List<Transfer>> optionalTransfers = Transfer.asTransfers(jsonTransfers);
@@ -80,29 +81,29 @@ public class Transaction {
     private final String hash;
     private final String identifier;
     private final String status;
-    private final long size;
+    private final UnsignedLong size;
     private final List<Transfer> transfers;
-    private final long acknowledgements;
+    private final UnsignedLong acknowledgements;
 
     @Nullable
     private final Date firstSeen;
     @Nullable
     private final String blockHash;
     @Nullable
-    private final Long blockHeight;
+    private final UnsignedLong blockHeight;
     @Nullable
-    private final Long index;
+    private final UnsignedLong index;
     @Nullable
     private final Date timestamp;
     @Nullable
     private final byte[] raw;
     @Nullable
-    private final Long confirmations;
+    private final UnsignedLong confirmations;
 
     public Transaction(String id, String blockchainId, String hash, String identifier, @Nullable String blockHash,
-                       @Nullable Long blockHeight, @Nullable Long index, @Nullable Long confirmations, String status,
-                       long size, @Nullable Date timestamp, @Nullable Date firstSeen, @Nullable byte[] raw,
-                       List<Transfer> transfers, long acknowledgements) {
+                       @Nullable UnsignedLong blockHeight, @Nullable UnsignedLong index, @Nullable UnsignedLong confirmations, String status,
+                       UnsignedLong size, @Nullable Date timestamp, @Nullable Date firstSeen, @Nullable byte[] raw,
+                       List<Transfer> transfers, UnsignedLong acknowledgements) {
         this.id = id;
         this.blockchainId = blockchainId;
         this.hash = hash;
@@ -140,15 +141,15 @@ public class Transaction {
         return Optional.fromNullable(blockHash);
     }
 
-    public Optional<Long> getBlockHeight() {
+    public Optional<UnsignedLong> getBlockHeight() {
         return Optional.fromNullable(blockHeight);
     }
 
-    public Optional<Long> getIndex() {
+    public Optional<UnsignedLong> getIndex() {
         return Optional.fromNullable(index);
     }
 
-    public Optional<Long> getConfirmations() {
+    public Optional<UnsignedLong> getConfirmations() {
         return Optional.fromNullable(confirmations);
     }
 
@@ -156,7 +157,7 @@ public class Transaction {
         return status;
     }
 
-    public long getSize() {
+    public UnsignedLong getSize() {
         return size;
     }
 
@@ -176,7 +177,7 @@ public class Transaction {
         return transfers;
     }
 
-    public long getAcknowledgements() {
+    public UnsignedLong getAcknowledgements() {
         return acknowledgements;
     }
 }

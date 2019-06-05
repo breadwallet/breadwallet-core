@@ -43,7 +43,7 @@ final class TransferImplBtc extends TransferImpl {
 
     @Override
     public Optional<Address> getSource() {
-        boolean sent = UnsignedLong.MAX_VALUE.longValue() != coreWallet.getFeeForTx(coreTransfer);
+        boolean sent = !UnsignedLong.MAX_VALUE.equals(coreWallet.getFeeForTx(coreTransfer));
 
         for (BRTxInput input: coreTransfer.getInputs()) {
             String addressStr = input.getAddressAsString();
@@ -56,7 +56,7 @@ final class TransferImplBtc extends TransferImpl {
 
     @Override
     public Optional<Address> getTarget() {
-        boolean sent = UnsignedLong.MAX_VALUE.longValue() != coreWallet.getFeeForTx(coreTransfer);
+        boolean sent = !UnsignedLong.MAX_VALUE.equals(coreWallet.getFeeForTx(coreTransfer));
 
         for (BRTxOutput output: coreTransfer.getOutputs()) {
             String addressStr = output.getAddressAsString();
@@ -69,7 +69,7 @@ final class TransferImplBtc extends TransferImpl {
 
     @Override
     public List<Address> getSources() {
-        boolean sent = UnsignedLong.MAX_VALUE.longValue() != coreWallet.getFeeForTx(coreTransfer);
+        boolean sent = !UnsignedLong.MAX_VALUE.equals(coreWallet.getFeeForTx(coreTransfer));
 
         List<Address> addresses = new ArrayList<>();
         for (BRTxInput input: coreTransfer.getInputs()) {
@@ -84,7 +84,7 @@ final class TransferImplBtc extends TransferImpl {
 
     @Override
     public List<Address> getTargets() {
-        boolean sent = UnsignedLong.MAX_VALUE.longValue() != coreWallet.getFeeForTx(coreTransfer);
+        boolean sent = !UnsignedLong.MAX_VALUE.equals(coreWallet.getFeeForTx(coreTransfer));
 
         List<Address> addresses = new ArrayList<>();
         for (BRTxOutput output: coreTransfer.getOutputs()) {
@@ -121,19 +121,19 @@ final class TransferImplBtc extends TransferImpl {
 
     @Override
     public Amount getAmount() {
-        long fee = coreWallet.getFeeForTx(coreTransfer);
-        if (fee == UnsignedLong.MAX_VALUE.longValue()) {
-            fee = 0;
+        UnsignedLong fee = coreWallet.getFeeForTx(coreTransfer);
+        if (UnsignedLong.MAX_VALUE.equals(fee)) {
+            fee = UnsignedLong.ZERO;
         }
 
-        long recv = coreWallet.getAmountReceivedFromTx(coreTransfer);
-        long send  = coreWallet.getAmountSentByTx(coreTransfer);
+        UnsignedLong recv = coreWallet.getAmountReceivedFromTx(coreTransfer);
+        UnsignedLong send  = coreWallet.getAmountSentByTx(coreTransfer);
 
         switch (getDirection()) {
             case RECOVERED:
                 return AmountImpl.createAsBtc(send, defaultUnit);
             case SENT:
-                return AmountImpl.createAsBtc(send - recv - fee, defaultUnit);
+                return AmountImpl.createAsBtc(send.minus(recv).minus(fee), defaultUnit);
             case RECEIVED:
                 return AmountImpl.createAsBtc(recv, defaultUnit);
             default:
@@ -143,9 +143,9 @@ final class TransferImplBtc extends TransferImpl {
 
     @Override
     public Amount getFee() {
-        long fee = coreWallet.getFeeForTx(coreTransfer);
-        if (fee == UnsignedLong.MAX_VALUE.longValue()) {
-            fee = 0;
+        UnsignedLong fee = coreWallet.getFeeForTx(coreTransfer);
+        if (UnsignedLong.MAX_VALUE.equals(fee)) {
+            fee = UnsignedLong.ZERO;
         }
         return AmountImpl.createAsBtc(fee, defaultUnit);
     }
@@ -158,18 +158,18 @@ final class TransferImplBtc extends TransferImpl {
 
     @Override
     public TransferDirection getDirection() {
-        long fee = coreWallet.getFeeForTx(coreTransfer);
-        if (fee == UnsignedLong.MAX_VALUE.longValue()) {
-            fee = 0;
+        UnsignedLong fee = coreWallet.getFeeForTx(coreTransfer);
+        if (UnsignedLong.MAX_VALUE.equals(fee)) {
+            fee = UnsignedLong.ZERO;
         }
 
-        long recv = coreWallet.getAmountReceivedFromTx(coreTransfer);
-        long send  = coreWallet.getAmountSentByTx(coreTransfer);
+        UnsignedLong recv = coreWallet.getAmountReceivedFromTx(coreTransfer);
+        UnsignedLong send  = coreWallet.getAmountSentByTx(coreTransfer);
 
-        if (send > 0 && (recv + fee) == send) {
+        if (send.compareTo(UnsignedLong.ZERO) > 0 && (recv.plus(fee)).equals(send)) {
             return TransferDirection.RECOVERED;
 
-        } else if (send > (recv + fee)) {
+        } else if (send.compareTo((recv.plus(fee))) > 0) {
             return TransferDirection.SENT;
 
         } else {

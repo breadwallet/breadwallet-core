@@ -30,7 +30,6 @@ import com.breadwallet.crypto.events.transfer.TransferListener;
 
 import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import javax.annotation.Nullable;
@@ -185,7 +184,7 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
             Transfer transfer = transfers.get(i);
 
             String dateText = transfer.getConfirmation()
-                    .transform((c) -> DATE_FORMAT.format(new Date(c.getTimestamp() * 1000))).or("<pending>");
+                    .transform((c) -> DATE_FORMAT.format(c.getConfirmationTime())).or("<pending>");
 
             String addressText = transfer.getHash().transform(TransferHash::toString).or("<pending>");
             addressText = String.format("Hash: %s", addressText);

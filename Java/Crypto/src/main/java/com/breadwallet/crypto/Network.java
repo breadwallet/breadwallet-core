@@ -10,6 +10,7 @@
 package com.breadwallet.crypto;
 
 import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedLong;
 
 import java.util.List;
 import java.util.Set;
@@ -36,7 +37,7 @@ public interface Network {
 
     boolean isMainnet();
 
-    long getHeight();
+    UnsignedLong getHeight();
 
     boolean equals(Object o);
 

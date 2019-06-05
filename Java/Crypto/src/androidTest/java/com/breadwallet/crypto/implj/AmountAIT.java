@@ -3,6 +3,7 @@ package com.breadwallet.crypto.implj;
 import com.breadwallet.crypto.Amount;
 import com.breadwallet.crypto.Currency;
 import com.breadwallet.crypto.Unit;
+import com.google.common.primitives.UnsignedInteger;
 
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -13,7 +14,7 @@ public class AmountAIT {
     public void testAmountCreateBtc() {
         CurrencyImpl btc = new CurrencyImpl("Bitcoin", "Bitcoin", "BTC", "native");
         UnitImpl satoshi_btc = new UnitImpl(btc, "BTC-SAT", "Satoshi", "SAT");
-        UnitImpl btc_btc = new UnitImpl(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, 8);
+        UnitImpl btc_btc = new UnitImpl(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, UnsignedInteger.valueOf(8));
 
         Amount btc1 = AmountImpl.create(100000000, satoshi_btc).get();
         assertEquals(new Double(100000000), btc1.doubleAmount(satoshi_btc).get());
@@ -49,7 +50,7 @@ public class AmountAIT {
     public void testAmountCreateBtcString() {
         CurrencyImpl btc = new CurrencyImpl("Bitcoin", "Bitcoin", "BTC", "native");
         UnitImpl satoshi_btc = new UnitImpl(btc, "BTC-SAT", "Satoshi", "SAT");
-        UnitImpl btc_btc = new UnitImpl(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, 8);
+        UnitImpl btc_btc = new UnitImpl(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, UnsignedInteger.valueOf(8));
 
         Amount btc1s = AmountImpl.create("100000000", false, satoshi_btc).get();
         assertEquals(new Double(100000000), btc1s.doubleAmount(satoshi_btc).get());
@@ -103,8 +104,8 @@ public class AmountAIT {
         CurrencyImpl eth = new CurrencyImpl("Ethereum", "Ethereum", "ETH", "native");
 
         UnitImpl wei_eth = new UnitImpl(eth, "ETH-WEI", "WEI", "wei");
-        UnitImpl gwei_eth = new UnitImpl(eth, "ETH-GWEI", "GWEI",  "gwei", wei_eth, 9);
-        UnitImpl ether_eth = new UnitImpl(eth, "ETH-ETH", "ETHER", "E",    wei_eth, 18);
+        UnitImpl gwei_eth = new UnitImpl(eth, "ETH-GWEI", "GWEI",  "gwei", wei_eth, UnsignedInteger.valueOf(9));
+        UnitImpl ether_eth = new UnitImpl(eth, "ETH-ETH", "ETHER", "E",    wei_eth, UnsignedInteger.valueOf(18));
 
         Amount eth1 = AmountImpl.create(1e9, gwei_eth).get();
         Amount eth2 = AmountImpl.create(1.0, ether_eth).get();

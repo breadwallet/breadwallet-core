@@ -17,6 +17,7 @@ import com.breadwallet.crypto.libcrypto.bitcoin.BRTransaction;
 import com.breadwallet.crypto.libcrypto.bitcoin.BRWallet;
 import com.breadwallet.crypto.libcrypto.bitcoin.CoreBRTransaction;
 import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedLong;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -35,7 +36,7 @@ final class WalletImplBtc extends WalletImpl<TransferImplBtc> {
     public Optional<Transfer> createTransfer(Address target, Amount amount, TransferFeeBasis feeBasis) {
         // TODO(fix): The swift equivalent will result in this being added to 'transfers' and an event being created; do we want this?
         String addr = target.toString();
-        long value = AmountImpl.from(amount).integerRawAmount();
+        UnsignedLong value = AmountImpl.from(amount).integerRawAmount();
         Unit unit = amount.getUnit();
         return CoreBRTransaction.create(coreWallet, value, addr).transform((t) -> new TransferImplBtc(this, coreWallet, t, unit));
     }
@@ -44,11 +45,11 @@ final class WalletImplBtc extends WalletImpl<TransferImplBtc> {
     public Amount estimateFee(Amount amount, TransferFeeBasis feeBasis) {
         checkState(amount.hasCurrency(defaultUnit.getCurrency()));
 
-        long feePerKbSaved = coreWallet.getFeePerKb();
-        long feePerKb = feeBasis.getBtcFeePerKb();
+        UnsignedLong feePerKbSaved = coreWallet.getFeePerKb();
+        UnsignedLong feePerKb = feeBasis.getBtcFeePerKb();
 
         coreWallet.setFeePerKb(feePerKb);
-        long fee = coreWallet.getFeeForTxAmount(AmountImpl.from(amount).integerRawAmount());
+        UnsignedLong fee = coreWallet.getFeeForTxAmount(AmountImpl.from(amount).integerRawAmount());
         coreWallet.setFeePerKb(feePerKbSaved);
 
         return AmountImpl.createAsBtc(fee, feeUnit);

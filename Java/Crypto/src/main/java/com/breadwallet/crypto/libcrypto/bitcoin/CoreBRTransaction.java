@@ -11,6 +11,7 @@ import com.breadwallet.crypto.libcrypto.CryptoLibrary;
 import com.breadwallet.crypto.libcrypto.utility.SizeT;
 import com.breadwallet.crypto.libcrypto.support.UInt256;
 import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedLong;
 
 public interface CoreBRTransaction {
 
@@ -23,8 +24,8 @@ public interface CoreBRTransaction {
         return Optional.fromNullable(transaction).transform(OwnedBRTransaction::new);
     }
 
-    static Optional<CoreBRTransaction> create(BRWallet wallet, long amount, String address) {
-        BRTransaction transaction = CryptoLibrary.INSTANCE.BRWalletCreateTransaction(wallet, amount, address);
+    static Optional<CoreBRTransaction> create(BRWallet wallet, UnsignedLong amount, String address) {
+        BRTransaction transaction = CryptoLibrary.INSTANCE.BRWalletCreateTransaction(wallet, amount.longValue(), address);
         return Optional.fromNullable(transaction).transform(OwnedBRTransaction::new);
     }
 

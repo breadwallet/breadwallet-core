@@ -8,6 +8,8 @@
 package com.breadwallet.crypto.libcrypto.bitcoin;
 
 import com.breadwallet.crypto.libcrypto.CryptoLibrary;
+import com.google.common.primitives.UnsignedInteger;
+import com.google.common.primitives.UnsignedLong;
 
 import java.util.List;
 
@@ -35,7 +37,7 @@ class OwnedBRWalletManager implements CoreBRWalletManager {
     }
 
     @Override
-    public void generateUnusedAddrs(int limit) {
+    public void generateUnusedAddrs(UnsignedInteger limit) {
         core.generateUnusedAddrs(limit);
     }
 
@@ -75,7 +77,7 @@ class OwnedBRWalletManager implements CoreBRWalletManager {
     }
 
     @Override
-    public void announceBlockNumber(int rid, long blockNumber) {
+    public void announceBlockNumber(int rid, UnsignedLong blockNumber) {
         core.announceBlockNumber(rid, blockNumber);
     }
 

@@ -9,6 +9,8 @@
  */
 package com.breadwallet.crypto;
 
+import com.google.common.primitives.UnsignedInteger;
+
 public interface Unit {
 
     Currency getCurrency();
@@ -19,7 +21,7 @@ public interface Unit {
 
     Unit getBase();
 
-    int getDecimals();
+    UnsignedInteger getDecimals();
 
     boolean isCompatible(Unit other);
 

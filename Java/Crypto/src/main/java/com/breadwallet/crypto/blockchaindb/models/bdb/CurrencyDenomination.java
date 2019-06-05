@@ -9,6 +9,7 @@ package com.breadwallet.crypto.blockchaindb.models.bdb;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.primitives.UnsignedInteger;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -26,45 +27,45 @@ public class CurrencyDenomination {
     );
 
     public static CurrencyDenomination BTC_SATOSHI = new CurrencyDenomination(
-            "satoshi", "sat", 0, lookupSymbol("sat"));
+            "satoshi", "sat", UnsignedInteger.valueOf(0), lookupSymbol("sat"));
 
     public static CurrencyDenomination BTC_BITCOIN = new CurrencyDenomination(
-            "bitcoin", "btc", 8, lookupSymbol("btc"));
+            "bitcoin", "btc", UnsignedInteger.valueOf(8), lookupSymbol("btc"));
 
 
     public static CurrencyDenomination BCH_BITCOIN = new CurrencyDenomination(
-            "bitcoin", "bch", 8, lookupSymbol("bch"));
+            "bitcoin", "bch", UnsignedInteger.valueOf(8), lookupSymbol("bch"));
 
 
     public static CurrencyDenomination ETH_WEI = new CurrencyDenomination(
-            "wei", "wei", 0, lookupSymbol("wei"));
+            "wei", "wei", UnsignedInteger.valueOf(0), lookupSymbol("wei"));
 
     public static CurrencyDenomination ETH_GWEI = new CurrencyDenomination(
-            "gwei", "gwei", 9, lookupSymbol("gwei"));
+            "gwei", "gwei", UnsignedInteger.valueOf(9), lookupSymbol("gwei"));
 
     public static CurrencyDenomination ETH_ETHER = new CurrencyDenomination(
-            "ether", "eth", 18, lookupSymbol("eth"));
+            "ether", "eth", UnsignedInteger.valueOf(18), lookupSymbol("eth"));
 
 
     public static CurrencyDenomination BRD_INT = new CurrencyDenomination(
-            "BRD_INTEGER", "BRDI", 0, lookupSymbol("brdi"));
+            "BRD_INTEGER", "BRDI", UnsignedInteger.valueOf(0), lookupSymbol("brdi"));
 
     public static CurrencyDenomination BRD_BRD = new CurrencyDenomination(
-            "BRD", "BRD", 18, lookupSymbol("brd"));
+            "BRD", "BRD", UnsignedInteger.valueOf(18), lookupSymbol("brd"));
 
 
     public static CurrencyDenomination EOS_INT = new CurrencyDenomination(
-            "EOS_INTEGER", "EOSI", 0, lookupSymbol("eosi"));
+            "EOS_INTEGER", "EOSI", UnsignedInteger.valueOf(0), lookupSymbol("eosi"));
 
     public static CurrencyDenomination EOS_EOS = new CurrencyDenomination(
-            "EOS", "EOS", 18, lookupSymbol("eos"));
+            "EOS", "EOS", UnsignedInteger.valueOf(18), lookupSymbol("eos"));
 
 
     public static Optional<CurrencyDenomination> asDenomination(JSONObject json) {
         try {
             String name = json.getString("name");
             String code = json.getString("short_name");
-            int decimals = json.getInt("decimals");
+            UnsignedInteger decimals = UnsignedInteger.valueOf(json.getLong("decimals"));
             String symbol = lookupSymbol(code);
             return Optional.of(new CurrencyDenomination(name, code, decimals, symbol));
 
@@ -98,10 +99,10 @@ public class CurrencyDenomination {
 
     private final String name;
     private final String code;
-    private final int decimals;
+    private final UnsignedInteger decimals;
     private final String symbol;
 
-    public CurrencyDenomination(String name, String code, int decimals, String symbol) {
+    public CurrencyDenomination(String name, String code, UnsignedInteger decimals, String symbol) {
         this.name = name;
         this.code = code;
         this.decimals = decimals;
@@ -116,7 +117,7 @@ public class CurrencyDenomination {
         return code;
     }
 
-    public int getDecimals() {
+    public UnsignedInteger getDecimals() {
         return decimals;
     }
 

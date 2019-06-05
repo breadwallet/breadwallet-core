@@ -18,6 +18,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.primitives.UnsignedInteger;
+import com.google.common.primitives.UnsignedInts;
+import com.google.common.primitives.UnsignedLong;
+import com.google.common.primitives.UnsignedLongs;
 
 import org.json.JSONObject;
 
@@ -50,7 +54,7 @@ public class EthTransferApi {
         client.sendJsonRequest(networkName, json, handler);
     }
 
-    public void getTransactionsAsEth(String networkName, String address, long begBlockNumber, long endBlockNumber,
+    public void getTransactionsAsEth(String networkName, String address, UnsignedLong begBlockNumber, UnsignedLong endBlockNumber,
                                      int rid, CompletionHandler<List<EthTransaction>> handler) {
         JSONObject json = new JSONObject(ImmutableMap.of(
                 "id", rid,
@@ -81,7 +85,7 @@ public class EthTransferApi {
     }
 
     public void getLogsAsEth(String networkName, @Nullable String contract, String address, String event,
-                             long begBlockNumber, long endBlockNumber, int rid,
+                             UnsignedLong begBlockNumber, UnsignedLong endBlockNumber, int rid,
                              CompletionHandler<List<EthLog>> handler) {
         JSONObject json = new JSONObject(ImmutableMap.of(
                 "id", rid
@@ -104,14 +108,14 @@ public class EthTransferApi {
         client.sendQueryForArrayRequest(networkName, paramsBuilders.build(), json, EthLog::asLogs, handler);
     }
 
-    public void getBlocksAsEth(String networkName, String address, int interests, long blockStart, long blockEnd,
-                               int rid, CompletionHandler<List<Long>> handler) {
+    public void getBlocksAsEth(String networkName, String address, UnsignedInteger interests, UnsignedLong blockStart, UnsignedLong blockEnd,
+                               int rid, CompletionHandler<List<UnsignedLong>> handler) {
         executorService.submit(() -> getBlocksAsEthOnExecutor(networkName, address, interests, blockStart, blockEnd,
                 rid, handler));
     }
 
-    private void getBlocksAsEthOnExecutor(String networkName, String address, int interests, long blockStart,
-                                          long blockEnd, int rid, CompletionHandler<List<Long>> handler) {
+    private void getBlocksAsEthOnExecutor(String networkName, String address, UnsignedInteger interests, UnsignedLong blockStart,
+                                          UnsignedLong blockEnd, int rid, CompletionHandler<List<UnsignedLong>> handler) {
         final QueryError[] error = {null};
 
         List<EthTransaction> transactions = new ArrayList<>();
@@ -153,13 +157,16 @@ public class EthTransferApi {
             handler.handleError(error[0]);
 
         } else {
-            List<Long> numbers = new ArrayList<>();
+            List<UnsignedLong> numbers = new ArrayList<>();
+            int interestsAsInt = interests.intValue();
+
             for (EthTransaction transaction: transactions) {
-                boolean include = (0 != (interests & (1 << 0)) && address.equals(transaction.getSourceAddr())) ||
-                        (0 != (interests & (1 << 1)) && address.equals(transaction.getTargetAddr()));
+
+                boolean include = (0 != (interestsAsInt & (1 << 0)) && address.equals(transaction.getSourceAddr())) ||
+                        (0 != (interestsAsInt & (1 << 1)) && address.equals(transaction.getTargetAddr()));
                 if (include) {
                     try {
-                        numbers.add(Long.decode(transaction.getBlockNumber()));
+                        numbers.add(UnsignedLong.fromLongBits(UnsignedLongs.decode(transaction.getBlockNumber())));
                     } catch (NumberFormatException e) {
                         handler.handleError(new QueryModelError("Invalid transaction block number"));
                         return;
@@ -170,11 +177,11 @@ public class EthTransferApi {
             for (EthLog log: logs) {
                 List<String> topics = log.getTopics();
                 boolean include = topics.size() == 3 &&
-                        ((0 != (interests & (1 << 2)) && address.equals(topics.get(1))) ||
-                                (0 != (interests & (1 << 3)) && address.equals(topics.get(2))));
+                        ((0 != (interestsAsInt & (1 << 2)) && address.equals(topics.get(1))) ||
+                                (0 != (interestsAsInt & (1 << 3)) && address.equals(topics.get(2))));
                 if (include) {
                     try {
-                        numbers.add(Long.decode(log.getBlockNumber()));
+                        numbers.add(UnsignedLong.fromLongBits(UnsignedLongs.decode(log.getBlockNumber())));
                     } catch (NumberFormatException e) {
                         handler.handleError(new QueryModelError("Invalid log block number"));
                         return;

@@ -15,6 +15,7 @@ import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.libcrypto.CryptoLibrary;
 import com.breadwallet.crypto.libcrypto.bitcoin.BRChainParams;
 import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Pointer;
 
 import java.util.Arrays;
@@ -31,7 +32,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 final class NetworkImpl implements Network {
 
     /* package */
-    static NetworkImpl create(String uids, String name, boolean isMainnet, CurrencyImpl currency, long height,
+    static NetworkImpl create(String uids, String name, boolean isMainnet, CurrencyImpl currency, UnsignedLong height,
                               Map<CurrencyImpl, NetworkAssociation> associations) {
         String code = currency.getCode();
         if (code .equals(Currency.CODE_AS_BTC)) {
@@ -61,9 +62,9 @@ final class NetworkImpl implements Network {
     private final Map<CurrencyImpl, NetworkAssociation> associations;
     private final CurrencyNetwork impl;
 
-    private long height;
+    private UnsignedLong height;
 
-    private NetworkImpl(String uids, String name, boolean isMainnet, CurrencyImpl currency, long height, Map<CurrencyImpl,
+    private NetworkImpl(String uids, String name, boolean isMainnet, CurrencyImpl currency, UnsignedLong height, Map<CurrencyImpl,
             NetworkAssociation> associations, CurrencyNetwork impl) {
         this.uids = uids;
         this.name = name;
@@ -129,7 +130,7 @@ final class NetworkImpl implements Network {
     }
 
     @Override
-    public long getHeight() {
+    public UnsignedLong getHeight() {
         return height;
     }
 
@@ -171,7 +172,7 @@ final class NetworkImpl implements Network {
     }
 
     /* package */
-    void setHeight(long height) {
+    void setHeight(UnsignedLong height) {
         this.height = height;
     }
 

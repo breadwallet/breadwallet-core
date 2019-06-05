@@ -8,6 +8,7 @@
 package com.breadwallet.crypto.libcrypto.crypto;
 
 import com.breadwallet.crypto.libcrypto.CryptoLibrary;
+import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.ptr.IntByReference;
 
 /* package */
@@ -39,7 +40,7 @@ class OwnedBRCryptoAmount implements CoreBRCryptoAmount {
     }
 
     @Override
-    public long getIntegerRaw(IntByReference overflow) {
+    public UnsignedLong getIntegerRaw(IntByReference overflow) {
         return core.getIntegerRaw(overflow);
     }
 

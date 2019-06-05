@@ -33,6 +33,8 @@ import com.breadwallet.crypto.blockchaindb.models.bdb.Wallet;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthLog;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthToken;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthTransaction;
+import com.google.common.primitives.UnsignedInteger;
+import com.google.common.primitives.UnsignedLong;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -172,7 +174,7 @@ public class BlockchainDb {
 
     // Transactions
 
-    public void getTransactions(String id, List<String> addresses, long beginBlockNumber, long endBlockNumber,
+    public void getTransactions(String id, List<String> addresses, UnsignedLong beginBlockNumber, UnsignedLong endBlockNumber,
                                 boolean includeRaw, boolean includeProof,
                                 CompletionHandler<List<Transaction>> handler) {
         transactionApi.getTransactions(id, addresses, beginBlockNumber, endBlockNumber, includeRaw, includeProof,
@@ -190,7 +192,7 @@ public class BlockchainDb {
 
     // Blocks
 
-    public void getBlocks(String id, long beginBlockNumber, long endBlockNumber, boolean includeRaw,
+    public void getBlocks(String id, UnsignedLong beginBlockNumber, UnsignedLong endBlockNumber, boolean includeRaw,
                           boolean includeTx, boolean includeTxRaw, boolean includeTxProof,
                           CompletionHandler<List<Block>> handler) {
         blockApi.getBlocks(id, beginBlockNumber, endBlockNumber, includeRaw, includeTx, includeTxRaw, includeTxProof,
@@ -245,7 +247,7 @@ public class BlockchainDb {
         ethTransferApi.submitTransactionAsEth(networkName, transaction, rid, handler);
     }
 
-    public void getTransactionsAsEth(String networkName, String address, long begBlockNumber, long endBlockNumber,
+    public void getTransactionsAsEth(String networkName, String address, UnsignedLong begBlockNumber, UnsignedLong endBlockNumber,
                                      int rid, CompletionHandler<List<EthTransaction>> handler) {
         ethTransferApi.getTransactionsAsEth(networkName, address, begBlockNumber, endBlockNumber, rid, handler);
     }
@@ -255,12 +257,12 @@ public class BlockchainDb {
     }
 
     public void getLogsAsEth(String networkName, @Nullable String contract, String address, String event,
-                             long begBlockNumber, long endBlockNumber, int rid, CompletionHandler<List<EthLog>> handler) {
+                             UnsignedLong begBlockNumber, UnsignedLong endBlockNumber, int rid, CompletionHandler<List<EthLog>> handler) {
         ethTransferApi.getLogsAsEth(networkName, contract, address, event, begBlockNumber, endBlockNumber, rid, handler);
     }
 
-    public void getBlocksAsEth(String networkName, String address, int interests, long blockStart, long blockEnd,
-                               int rid, CompletionHandler<List<Long>> handler) {
+    public void getBlocksAsEth(String networkName, String address, UnsignedInteger interests, UnsignedLong blockStart, UnsignedLong blockEnd,
+                               int rid, CompletionHandler<List<UnsignedLong>> handler) {
         ethTransferApi.getBlocksAsEth(networkName, address, interests, blockStart, blockEnd, rid, handler);
     }
 }

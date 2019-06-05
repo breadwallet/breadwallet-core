@@ -10,6 +10,7 @@
 package com.breadwallet.crypto;
 
 import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedLong;
 
 import java.util.List;
 
@@ -45,17 +46,17 @@ public interface Transfer {
         return getState().getIncludedConfirmation();
     }
 
-    default Optional<Long> getConfirmationsAt(long blockHeight) {
+    default Optional<UnsignedLong> getConfirmationsAt(UnsignedLong blockHeight) {
         Optional<TransferConfirmation> optionalConfirmation = getConfirmation();
         if (optionalConfirmation.isPresent()) {
             TransferConfirmation confirmation = optionalConfirmation.get();
-            long blockNumber = confirmation.getBlockNumber();
-            return (blockHeight >= blockNumber) ? Optional.of(1 + blockHeight - blockNumber) : Optional.absent();
+            UnsignedLong blockNumber = confirmation.getBlockNumber();
+            return blockHeight.compareTo(blockNumber) >= 0 ? Optional.of(UnsignedLong.ONE.plus(blockHeight).minus(blockNumber)) : Optional.absent();
         }
         return Optional.absent();
     }
 
-    default Optional<Long> getConfirmations() {
+    default Optional<UnsignedLong> getConfirmations() {
         return getConfirmationsAt(getWallet().getWalletManager().getNetwork().getHeight());
     }
 
