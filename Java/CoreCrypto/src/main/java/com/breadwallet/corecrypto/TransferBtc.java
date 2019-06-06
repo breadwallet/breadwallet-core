@@ -25,6 +25,8 @@ import com.google.common.primitives.UnsignedLong;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.google.common.base.Preconditions.checkState;
+
 /* package */
 final class TransferBtc extends Transfer {
 
@@ -130,7 +132,7 @@ final class TransferBtc extends Transfer {
             case RECOVERED:
                 return Amount.createAsBtc(send, defaultUnit);
             case SENT:
-                return Amount.createAsBtc(send.minus(recv).minus(fee), defaultUnit);
+                return Amount.createAsBtc(send.minus(fee).minus(recv), defaultUnit);
             case RECEIVED:
                 return Amount.createAsBtc(recv, defaultUnit);
             default:
@@ -155,18 +157,23 @@ final class TransferBtc extends Transfer {
 
     @Override
     public TransferDirection getDirection() {
+        UnsignedLong send  = coreWallet.getAmountSentByTx(coreTransfer);
+        if (send.equals(UnsignedLong.ZERO)) {
+            return TransferDirection.RECEIVED;
+        }
+
         UnsignedLong fee = coreWallet.getFeeForTx(coreTransfer);
         if (UnsignedLong.MAX_VALUE.equals(fee)) {
             fee = UnsignedLong.ZERO;
         }
 
         UnsignedLong recv = coreWallet.getAmountReceivedFromTx(coreTransfer);
-        UnsignedLong send  = coreWallet.getAmountSentByTx(coreTransfer);
 
-        if (send.compareTo(UnsignedLong.ZERO) > 0 && (recv.plus(fee)).equals(send)) {
+        checkState(send.compareTo(fee) >= 0);
+        if (send.minus(fee).equals(recv)) {
             return TransferDirection.RECOVERED;
 
-        } else if (send.compareTo((recv.plus(fee))) > 0) {
+        } else if (send.minus(fee).compareTo(recv) > 0) {
             return TransferDirection.SENT;
 
         } else {
