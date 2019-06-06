@@ -43,10 +43,10 @@ android {
 }
 
 dependencies {
+    api project(':Crypto')
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.google.guava:guava:25.1-android'
     implementation 'com.android.support:appcompat-v7:28.0.0'
-    implementation project(':Crypto')
     implementation project(':CoreNative')
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'

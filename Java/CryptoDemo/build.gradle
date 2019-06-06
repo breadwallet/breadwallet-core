@@ -48,7 +48,6 @@ android {
 }
 
 dependencies {
-    implementation project(':Crypto')
     implementation project(':CoreCrypto')
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'android.arch.lifecycle:extensions:1.1.1'
