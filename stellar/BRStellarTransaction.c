@@ -33,11 +33,12 @@ struct BRStellarTransactionRecord {
     BRStellarFee fee;
     BRStellarSequence sequence;
     BRStellarTimeBounds *timeBounds;
-    int numTimeBounds;
+    uint32_t numTimeBounds;
     BRStellarMemo *memo;
     BRStellarOperation * operations;
-    int numOperations;
+    uint32_t numOperations;
     BRStellarSerializedTransaction signedBytes;
+    uint32_t numSignatures;
 };
 
 void stellarSerializedTransactionRecordFree(BRStellarSerializedTransaction * signedBytes)
@@ -68,6 +69,7 @@ static BRStellarTransaction createTransactionObject(BRStellarAccountID *accountI
     transaction->operations = operations;
     transaction->numOperations = numOperations;
     transaction->signedBytes = NULL;
+    transaction->numSignatures = 0;
     return transaction;
 }
 
@@ -84,6 +86,37 @@ stellarTransactionCreate(BRStellarAccountID *accountID,
                                 memo, operations, numOperations);
 }
 
+extern BRStellarTransaction /* caller must free - stellarTransactionFree */
+stellarTransactionCreateFromBytes(uint8_t *bytes, size_t length)
+{
+    BRStellarTransaction transaction = calloc (1, sizeof (struct BRStellarTransactionRecord));
+
+    int32_t version = 0;
+    uint8_t *signatures = NULL;
+    if (stellarDeserializeTransaction(&transaction->accountID,
+                                       &transaction->fee,
+                                       &transaction->sequence,
+                                       &transaction->timeBounds,
+                                       &transaction->numOperations,
+                                       &transaction->memo,
+                                       &transaction->operations,
+                                       &transaction->numOperations,
+                                       &version,
+                                       &signatures,
+                                       &transaction->numSignatures,
+                                       bytes, length))
+    {
+        printf("Signature: \n");
+        for(int i = 0; i < 68; i++) {
+            printf("%02X ", signatures[i]);
+        }
+        printf("\n");
+        return transaction;
+    } else {
+        stellarTransactionFree(transaction);
+        return NULL;
+    }
+}
 
 extern void stellarTransactionFree(BRStellarTransaction transaction)
 {
@@ -92,19 +125,6 @@ extern void stellarTransactionFree(BRStellarTransaction transaction)
         stellarSerializedTransactionRecordFree(&transaction->signedBytes);
     }
     free(transaction);
-}
-
-/*
- * Serialize the transaction
- *
- * @return serializedTransaction  valid BRStellarSerializedTransaction handle OR
- *                                NULL if unable to serialize
- */
-static BRStellarSerializedTransaction
-stellarTransactionSerialize (BRStellarTransaction transaction,
-                            uint8_t *signature, int sig_length)
-{
-    return NULL;
 }
 
 static void createTransactionHash(uint8_t *md32, uint8_t *tx, size_t txLength, const char* networkID)
@@ -166,7 +186,7 @@ stellarTransactionSerializeAndSign(BRStellarTransaction transaction, uint8_t *pr
     // Sign the bytes and get signature
     BRStellarSignatureRecord sig = stellarTransactionSign(tx_hash, 32, privateKey, publicKey);
 
-    // Serialize the bytes
+    // Serialize the bytes and sign
     free(buffer);
     length = stellarSerializeTransaction(&transaction->accountID, transaction->fee, sequence,
                                                 transaction->timeBounds,
@@ -211,3 +231,21 @@ extern uint8_t* stellarGetSerializedBytes(BRStellarSerializedTransaction s)
     assert(s);
     return (s->buffer);
 }
+
+extern BRStellarAccountID stellarTransactionGetAccountID(BRStellarTransaction transaction)
+{
+    assert(transaction);
+    return transaction->accountID;
+}
+
+extern uint32_t stellarTransactionGetOperationCount(BRStellarTransaction transaction)
+{
+    assert(transaction);
+    return transaction->numOperations;
+}
+extern uint32_t stellarTransactionGetSignatureCount(BRStellarTransaction transaction)
+{
+    assert(transaction);
+    return transaction->numSignatures;
+}
+

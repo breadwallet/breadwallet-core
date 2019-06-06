@@ -34,6 +34,6 @@ BRKey createStellarKeyFromSeed(UInt512 seed);
  *
  * @return address   Stellar address object
  */
-BRStellarAddress createStellarAddressFromPublicKey(BRKey * key);
+extern BRStellarAddress createStellarAddressFromPublicKey(BRKey * key);
 
 #endif // BRStellar_account_utils_h

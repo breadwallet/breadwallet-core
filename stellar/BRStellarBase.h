@@ -40,7 +40,7 @@ typedef struct {
 typedef BRStellarSignatureRecord *BRStellarSignature;
 
 typedef uint32_t BRStellarFee;
-typedef uint64_t BRStellarSequence;
+typedef int64_t  BRStellarSequence;
 typedef uint64_t TimePoint;
 
 typedef struct __time_bounds {
@@ -96,11 +96,28 @@ typedef struct _stellar_asset_
     BRStellarAccountID issuer;
 } BRStellarAsset;
 
+typedef struct _stellar_price
+{
+    int32_t n; // numerator
+    int32_t d; // denominator
+} BRStellarPrice;
+
 typedef struct _stellar_payment_op_ {
     BRStellarAccountID destination;
     BRStellarAsset     asset;         // what they end up with
     double             amount;        // amount they end up with
-} BRStellarPaymentOperation;
+} BRStellarPaymentOp;
+
+typedef struct _ManageSellOfferOp
+{
+    BRStellarAsset selling;
+    BRStellarAsset buying;
+    int64_t amount; // amount being sold. if set to 0, delete the offer
+    BRStellarPrice price;  // price of thing being sold in terms of what you are buying
+    
+    // 0=create a new offer, otherwise edit an existing offer
+    int64_t offerID;
+} BRStellarManageSellOfferOp;
 
 typedef enum __stellar_operation_type
 {
@@ -123,7 +140,8 @@ typedef struct _stellar_operation_ {
     BRStellarOperationType type;
     BRStellarAccountID source; // Optional
     union _op_ {
-        BRStellarPaymentOperation payment;
+        BRStellarPaymentOp         payment;
+        BRStellarManageSellOfferOp mangeSellOffer;
     } operation;
 } BRStellarOperation;
 

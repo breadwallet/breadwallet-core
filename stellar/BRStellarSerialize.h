@@ -22,18 +22,35 @@ extern "C" {
 extern int stellarSerializeTransaction(BRStellarAccountID *accountID,
                                        BRStellarFee fee,
                                        BRStellarSequence sequence,
-                                           BRStellarTimeBounds *timeBounds,
-                                           int numTimeBounds,
-                                           BRStellarMemo *memo,
-                                           BRStellarOperation * operations,
-                                           int numOperations,
-                                           int version,
-                                           uint8_t *signature,
-                                           int signatureLength,
-                                           uint8_t **buffer);
+                                       BRStellarTimeBounds *timeBounds,
+                                       int numTimeBounds,
+                                       BRStellarMemo *memo,
+                                       BRStellarOperation * operations,
+                                       int numOperations,
+                                       uint32_t version,
+                                       uint8_t *signature,
+                                       int signatureLength,
+                                       uint8_t **buffer);
 
 
-BRStellarSignatureRecord stellarTransactionSign(uint8_t * tx_hash, size_t txHashLength, uint8_t *privateKey, uint8_t *publicKey);
+BRStellarSignatureRecord stellarTransactionSign(uint8_t * tx_hash,
+                                                size_t txHashLength,
+                                                uint8_t *privateKey,
+                                                uint8_t *publicKey);
+
+bool stellarDeserializeTransaction(BRStellarAccountID *accountID,
+                                                   BRStellarFee *fee,
+                                                   BRStellarSequence *sequence,
+                                                   BRStellarTimeBounds **timeBounds,
+                                                   uint32_t *numTimeBounds,
+                                                   BRStellarMemo **memo,
+                                                   BRStellarOperation **operations,
+                                                   uint32_t *numOperations,
+                                                   int32_t *version,
+                                                   uint8_t **signature,
+                                                   uint32_t *signatureLength,
+                                                   uint8_t *buffer, size_t bufferLength);
+    
 
 #ifdef __cplusplus
 }

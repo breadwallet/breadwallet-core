@@ -1218,10 +1218,6 @@
 		C349CFD622971690005C5CED /* stellar */ = {
 			isa = PBXGroup;
 			children = (
-				C3854DCA22987A2600890AF1 /* BRStellarTransaction.c */,
-				C3854DCB22987A2600890AF1 /* BRStellarTransaction.h */,
-				C3854DC8229879DE00890AF1 /* BRStellarSerialize.c */,
-				C3854DC7229879DE00890AF1 /* BRStellarSerialize.h */,
 				C349CFF12297179D005C5CED /* ed25519 */,
 				C349CFF022971786005C5CED /* utils */,
 				C349CFE7229716D9005C5CED /* BRStellar.h */,
@@ -1231,6 +1227,10 @@
 				C349CFD7229716D8005C5CED /* BRStellarAccountUtils.c */,
 				C349CFDB229716D9005C5CED /* BRStellarBase.h */,
 				C349CFE2229716D9005C5CED /* BRStellarPrivateStructs.h */,
+				C3854DC7229879DE00890AF1 /* BRStellarSerialize.h */,
+				C3854DC8229879DE00890AF1 /* BRStellarSerialize.c */,
+				C3854DCB22987A2600890AF1 /* BRStellarTransaction.h */,
+				C3854DCA22987A2600890AF1 /* BRStellarTransaction.c */,
 				C349CFE4229716D9005C5CED /* README */,
 				C349CFE5229716D9005C5CED /* testStellar.c */,
 			);

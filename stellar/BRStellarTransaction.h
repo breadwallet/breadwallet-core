@@ -43,7 +43,7 @@ stellarTransactionCreate(BRStellarAccountID *accountID,
  * @return transaction    a stellar transaction
  */
 extern BRStellarTransaction /* caller must free - stellarTransactionFree */
-stellarTransactionCreateFromBytes(uint8_t *bytes, int length);
+stellarTransactionCreateFromBytes(uint8_t *bytes, size_t length);
 
 /**
  * Clean up any memory for this transaction
@@ -80,5 +80,8 @@ extern BRStellarTransactionHash stellarTransactionGetHash(BRStellarTransaction t
 /**
  * Various getter methods for the transaction
  */
+extern BRStellarAccountID stellarTransactionGetAccountID(BRStellarTransaction transaction);
+extern uint32_t stellarTransactionGetOperationCount(BRStellarTransaction transaction);
+extern uint32_t stellarTransactionGetSignatureCount(BRStellarTransaction transaction);
 
 #endif

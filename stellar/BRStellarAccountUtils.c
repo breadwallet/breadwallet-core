@@ -70,7 +70,7 @@ BRKey createStellarKeyFromSeed(UInt512 seed)
     return deriveStellarKeyFromSeed(seed, 0);
 }
 
-BRStellarAddress createStellarAddressFromPublicKey(BRKey * key)
+extern BRStellarAddress createStellarAddressFromPublicKey(BRKey * key)
 {
     BRStellarAddress address;
     
