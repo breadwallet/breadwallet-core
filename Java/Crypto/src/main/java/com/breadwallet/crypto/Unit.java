@@ -9,33 +9,25 @@
  */
 package com.breadwallet.crypto;
 
-public class Unit {
-    public final Currency currency;
-    public final String name;
-    public final String symbol;
-    public final long scale;
+import com.google.common.primitives.UnsignedInteger;
 
-    public final Unit base;
+public interface Unit {
 
-    public boolean isCompatible (Unit that) {
-        return this == that ||
-                this.currency == that.currency;
-    }
+    Currency getCurrency();
 
-    public Unit (Currency currency, String name, String symbol) {
-        this.currency = currency;
-        this.name = name;
-        this.symbol = symbol;
-        this.scale = 1;
-        this.base = null;
-    }
+    String getName();
 
-    public Unit(String name, String symbol, long scale, Unit base) {
-        this.currency = base.currency;
-        this.name = name;
-        this.symbol = symbol;
-        this.scale = scale;
-        this.base = base;
-    }
+    String getSymbol();
 
+    Unit getBase();
+
+    UnsignedInteger getDecimals();
+
+    boolean isCompatible(Unit other);
+
+    boolean hasCurrency(Currency currency);
+
+    boolean equals(Object o);
+
+    int hashCode();
 }

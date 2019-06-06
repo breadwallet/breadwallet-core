@@ -187,7 +187,7 @@ parseUInt64 (const char *string, int digits, int base) {
 
     errno = 0;
     uint64_t value = strtoull (number, &numberEnd, base);
-    if (0 == errno && number != numberEnd && '\0' != numberEnd[0])
+    if (0 == errno && (*number == '\0' || numberEnd == NULL || *numberEnd != '\0'))
         errno = EINVAL;
     return createUInt256 (value);
 }

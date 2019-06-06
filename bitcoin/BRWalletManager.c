@@ -781,6 +781,35 @@ BRWalletManagerGetUnusedAddrsLegacy (BRWalletManager manager,
     return addresses;
 }
 
+extern void
+BRWalletManagerGenerateUnusedAddrs (BRWalletManager manager,
+                                    uint32_t limit) {
+    BRWalletUnusedAddrs (manager->wallet, NULL, limit, 0);
+    BRWalletUnusedAddrs (manager->wallet, NULL, limit, 1);
+}
+
+extern BRAddress *
+BRWalletManagerGetAllAddrs (BRWalletManager manager,
+                            size_t *addressCount) {
+    assert (addressCount);
+
+    size_t addrCount = BRWalletAllAddrs (manager->wallet, NULL, 0);
+    BRAddress *addrs = (BRAddress *) calloc (addrCount, sizeof (BRAddress));
+    BRWalletAllAddrs (manager->wallet, addrs, addrCount);
+
+    *addressCount = addrCount;
+    return addrs;
+}
+
+extern BRAddress *
+BRWalletManagerGetAllAddrsLegacy (BRWalletManager manager,
+                                  size_t *addressCount) {
+    BRAddress *addresses = BRWalletManagerGetAllAddrs (manager, addressCount);
+    for (size_t index = 0; index < *addressCount; index++)
+        BRWalletManagerAddressToLegacy (&addresses[index]);
+    return addresses;
+}
+
 
 
 static void

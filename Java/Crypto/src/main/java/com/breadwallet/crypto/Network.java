@@ -8,63 +8,38 @@
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
 package com.breadwallet.crypto;
-import com.breadwallet.crypto.ethereum.Ethereum;
 
-public class Network {
-    enum Type { Bitcoin, Bitcash, Ethereum }
+import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedLong;
 
-    public static final class Bitcoin {
-        final String name;
-        final int forkId;
-        // chainParams
+import java.util.List;
+import java.util.Set;
 
-        public Bitcoin(String name, int forkId) {
-            this.name = name;
-            this.forkId = forkId;
-        }
-    }
+public interface Network {
 
-    public static final class Bitcash {
-        // as above
+    Optional<Unit> baseUnitFor(Currency currency);
 
-    }
+    Optional<Unit> defaultUnitFor(Currency currency);
 
-    public static final class Ethereum {
-        final String name;
-        final int chainId;
-        // BREthereumNetwork
+    Optional<Set<Unit>> unitsFor(Currency currency);
 
-        public Ethereum(String name, int chainId) {
-            this.name = name;
-            this.chainId = chainId;
-        }
-    }
+    Optional<Address> addressFor(String address);
 
-    public final Currency currency;
+    boolean hasUnitFor(Currency currency, Unit unit);
 
-    private final Type type;
-    private final Bitcoin bitcoin;
-    private final Bitcash bitcash;
-    private final Ethereum ethereum;
+    boolean hasCurrency(Currency currency);
 
-    public Network(Type type, Bitcoin bitcoin, Bitcash bitcash, Ethereum ethereum, Currency currency) {
-        this.type = type;
-        this.bitcoin = bitcoin;
-        this.bitcash = bitcash;
-        this.ethereum = ethereum;
-        this.currency = currency;
-    }
+    Currency getCurrency();
 
-    public Network (Bitcoin bitcoin) {
-        this (Type.Bitcoin, bitcoin, null, null, null);
-    }
+    List<WalletManagerMode> getSupportedModes();
 
-    public Network (Bitcash bitcash) {
-        this (Type.Bitcash, null, bitcash, null, null);
-    }
+    String getUids();
 
-    public Network (Ethereum ethereum) {
-        this (Type.Ethereum, null, null, ethereum,
-                com.breadwallet.crypto.ethereum.Ethereum.currency);
-    }
+    boolean isMainnet();
+
+    UnsignedLong getHeight();
+
+    boolean equals(Object o);
+
+    int hashCode();
 }

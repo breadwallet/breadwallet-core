@@ -9,51 +9,56 @@
  */
 package com.breadwallet.crypto;
 
-public abstract class Transfer {
-    public Wallet wallet;
+import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedLong;
 
-    public Address source;
+import java.util.List;
 
-    public Address target;
+public interface Transfer {
 
-    public Amount amount;
+    Wallet getWallet();
 
-    public Amount fee;
+    Optional<Address> getSource();
 
-    /*
-    /// The owning wallet
-    var wallet: Wallet { get }
+    Optional<Address> getTarget();
 
-    /// The source pays the fee and sends the amount.
-    var source: Address? { get }
+    List<Address> getSources();
 
-    /// The target receives the amount
-    var target: Address? { get }
+    List<Address> getTargets();
 
-    /// The amount to transfer
-    var amount: Amount { get }
+    List<Address> getInputs();
 
-    /// The fee paid - before the transfer is confirmed, this is the estimated fee.
-    var fee: Amount { get }
+    List<Address> getOutputs();
 
-    /// The basis for the fee.
-    var feeBasis: TransferFeeBasis { get }
+    Amount getAmount();
 
-    /// An optional confirmation.
-    var confirmation: TransferConfirmation? { get }
+    Amount getAmountDirected();
 
-    /// An optional hash
-    var hash: TransferHash? { get }
+    Amount getFee();
 
-    /// The current state
-    var state: TransferState { get }
-*/
+    TransferFeeBasis getFeeBasis();
 
-    protected Transfer(Wallet wallet, Address source, Address target, Amount amount, Amount fee) {
-        this.wallet = wallet;
-        this.source = source;
-        this.target = target;
-        this.amount = amount;
-        this.fee = fee;
+    TransferDirection getDirection();
+
+    Optional<TransferHash> getHash();
+
+    default Optional<TransferConfirmation> getConfirmation() {
+        return getState().getIncludedConfirmation();
     }
+
+    default Optional<UnsignedLong> getConfirmationsAt(UnsignedLong blockHeight) {
+        Optional<TransferConfirmation> optionalConfirmation = getConfirmation();
+        if (optionalConfirmation.isPresent()) {
+            TransferConfirmation confirmation = optionalConfirmation.get();
+            UnsignedLong blockNumber = confirmation.getBlockNumber();
+            return blockHeight.compareTo(blockNumber) >= 0 ? Optional.of(UnsignedLong.ONE.plus(blockHeight).minus(blockNumber)) : Optional.absent();
+        }
+        return Optional.absent();
+    }
+
+    default Optional<UnsignedLong> getConfirmations() {
+        return getConfirmationsAt(getWallet().getWalletManager().getNetwork().getHeight());
+    }
+
+    TransferState getState();
 }

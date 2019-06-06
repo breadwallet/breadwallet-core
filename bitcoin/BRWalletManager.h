@@ -210,6 +210,14 @@ extern void
 BRWalletManagerScan (BRWalletManager manager);
 
 /**
+ * Generate, if needed, unsued addresses up to `limit` entries in the wallet.  The
+ * addresses are both 'internal' and 'external' ones.
+ */
+extern void
+BRWalletManagerGenerateUnusedAddrs (BRWalletManager manager,
+                                    uint32_t limit);
+
+/**
  * Return an array of unsued addresses with up to `limit` entries.  This will generate
  * address, if needed, to provide `limit` entries.  The addresses are 'external' ones.
  *
@@ -225,6 +233,23 @@ BRWalletManagerGetUnusedAddrs (BRWalletManager manager,
 extern BRAddress *
 BRWalletManagerGetUnusedAddrsLegacy (BRWalletManager manager,
                                      uint32_t limit);
+
+/**
+ * Return an array of all addresses, used and unused, tracked by the wallet. The addresses
+ * are both 'internal' and 'external' ones.
+ *
+ * This is expected to be used to query the BRD BlockChainDB to identify transactions for
+ * manager's wallet.
+ *
+ * Note: The returned array must be freed
+ */
+extern BRAddress *
+BRWalletManagerGetAllAddrs (BRWalletManager manager,
+                            size_t *addressCount);
+
+extern BRAddress *
+BRWalletManagerGetAllAddrsLegacy (BRWalletManager manager,
+                                  size_t *addressCount);
 
 //
 // These should not be needed if the events are sufficient
