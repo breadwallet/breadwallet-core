@@ -1120,6 +1120,19 @@ lesThreadBootstrapSeeds (BREthereumLES les) {
     }
 }
 
+static void
+lesThreadBootstrapSeedsThreaded (BREthereumLES les) {
+    pthread_t thread;
+
+    pthread_attr_t attr;
+    pthread_attr_init (&attr);
+    pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_DETACHED);
+    pthread_attr_setstacksize (&attr, 1024 * 1024);
+    pthread_create (&thread, &attr, (ThreadRoutine) lesThreadBootstrapSeeds, les);
+    pthread_attr_destroy(&attr);
+}
+
+
 static void *
 lesThread (BREthereumLES les) {
 #if defined (__ANDROID__)
@@ -1134,14 +1147,14 @@ lesThread (BREthereumLES les) {
     fd_set readDescriptors, writeDesciptors;
     int maximumDescriptor = -1;
 
-    pthread_mutex_lock (&les->lock);
-
     // See CORE-260: the process of finding seeds, using DNS TXT fields, can take a while.
     // So, we moved it out of lesCreate() here, in lesThread().
     if (les->isPendingDNSSeeds) {
         les->isPendingDNSSeeds = 0;
-        lesThreadBootstrapSeeds (les);
+        lesThreadBootstrapSeedsThreaded (les);
      }
+
+    pthread_mutex_lock (&les->lock);
 
     BRArrayOf(BREthereumNode) nodesToRemove;
     array_new(nodesToRemove, 10);
