@@ -15,12 +15,13 @@ import com.google.common.primitives.UnsignedLong;
 
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public interface CoreBRWalletManager {
 
     static OwnedBRWalletManager create(BRWalletManagerClient.ByValue client, BRMasterPubKey.ByValue pubKey,
                                        BRChainParams chainParams, Date earliestKeyTime, int mode, String path) {
-        int timestamp = UnsignedInts.checkedCast(earliestKeyTime.getTime() / 1000);
+        int timestamp = UnsignedInts.checkedCast(TimeUnit.MILLISECONDS.toSeconds(earliestKeyTime.getTime()));
         return new OwnedBRWalletManager(CryptoLibrary.INSTANCE.BRWalletManagerNew(client, pubKey, chainParams,
                 timestamp, mode, path));
     }

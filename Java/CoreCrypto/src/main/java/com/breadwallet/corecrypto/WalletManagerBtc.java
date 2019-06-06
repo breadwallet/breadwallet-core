@@ -62,6 +62,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /* package */
 final class WalletManagerBtc extends WalletManager<WalletBtc> {
@@ -266,7 +267,7 @@ final class WalletManagerBtc extends WalletManager<WalletBtc> {
                         }
 
                         int blockHeight = UnsignedInts.checkedCast(transaction.getBlockHeight().or(UnsignedLong.ZERO).longValue());
-                        int timestamp = UnsignedInts.checkedCast(transaction.getTimestamp().transform((ts) -> ts.getTime() / 1000).or(0L));
+                        int timestamp = UnsignedInts.checkedCast(transaction.getTimestamp().transform(Date::getTime).transform(TimeUnit.MILLISECONDS::toSeconds).or(0L));
 
                         Optional<CoreBRTransaction> optCore = CoreBRTransaction.create(optRaw.get(), timestamp, blockHeight);
                         if (!optCore.isPresent()) {

@@ -13,6 +13,7 @@ import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 public class BRCryptoAccount extends PointerType implements CoreBRCryptoAccount {
 
@@ -26,12 +27,12 @@ public class BRCryptoAccount extends PointerType implements CoreBRCryptoAccount 
 
     @Override
     public Date getEarliestKeyTime() {
-        return new Date(CryptoLibrary.INSTANCE.cryptoAccountGetTimestamp(this) * 1000);
+        return new Date(TimeUnit.SECONDS.toMillis(CryptoLibrary.INSTANCE.cryptoAccountGetTimestamp(this)));
     }
 
     @Override
     public void setEarliestKeyTime(Date earliestKeyTime) {
-        CryptoLibrary.INSTANCE.cryptoAccountSetTimestamp(this, earliestKeyTime.getTime() / 1000);
+        CryptoLibrary.INSTANCE.cryptoAccountSetTimestamp(this, TimeUnit.MILLISECONDS.toSeconds(earliestKeyTime.getTime()));
     }
 
     @Override
