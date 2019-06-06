@@ -243,17 +243,16 @@ class TransferImplS: Transfer {
                 var fees = UInt64(BRWalletFeeForTx (wid, tid))
                 if (fees == UINT64_MAX) { fees = 0 }
 
-                let recv = Int64(BRWalletAmountReceivedFromTx (wid, tid))
-                let send = Int64(BRWalletAmountSentByTx (wid, tid))   // includes fees
-                let fee = Int64(fees)
+                let recv = BRWalletAmountReceivedFromTx (wid, tid)
+                let send = BRWalletAmountSentByTx (wid, tid)   // includes fees
 
                 switch direction {
                 case .recovered:
-                    return Amount.createAsBTC(UInt64(send), unit)
+                    return Amount.createAsBTC(send, unit)
                 case .sent:
-                    return Amount.createAsBTC(UInt64(send - recv - fee), unit)
+                    return Amount.createAsBTC(send - recv - fees, unit)
                 case .received:
-                    return Amount.createAsBTC(UInt64(recv), unit)
+                    return Amount.createAsBTC(recv, unit)
                 }
             }
 
@@ -306,17 +305,22 @@ class TransferImplS: Transfer {
                 }
 
             case let .bitcoin (wid, tid):
+                let send = BRWalletAmountSentByTx (wid, tid)   // includes fees
+                if send == 0 {
+                    return .received
+                }
+
                 // Returns a 'fee' if 'all inputs are from wallet' (meaning, the bitcoin transaction is
                 // composed of UTXOs from wallet). We paid a fee, we sent it.
                 var fees = BRWalletFeeForTx (wid, tid)
                 if fees == UINT64_MAX { fees = 0 }
 
                 let recv = BRWalletAmountReceivedFromTx (wid, tid)
-                let send = BRWalletAmountSentByTx (wid, tid)   // includes fees
 
-                if send > 0 && (recv + fees) == send {
+                precondition(send >= fees)
+                if (send - fees) == recv {
                     return .recovered
-                } else if send > 0 {
+                } else if (send - fees) > recv {
                     return .sent
                 } else {
                     return .received
