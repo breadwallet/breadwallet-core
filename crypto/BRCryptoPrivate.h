@@ -138,6 +138,10 @@ extern "C" {
     
     /// MARK: Transfer
 
+    private_extern void
+    cryptoTransferSetState (BRCryptoTransfer transfer,
+                            BRCryptoTransferState state);
+    
     private_extern BRCryptoTransfer
     cryptoTransferCreateAsBTC (BRCryptoCurrency currency,
                                BRWallet *wid,
@@ -153,6 +157,14 @@ extern "C" {
 
     private_extern BREthereumTransfer
     cryptoTransferAsETH (BRCryptoTransfer transfer);
+
+    private_extern BRCryptoBoolean
+    cryptoTransferHasBTC (BRCryptoTransfer transfer,
+                          BRTransaction *btc);
+
+    private_extern BRCryptoBoolean
+    cryptoTransferHasETH (BRCryptoTransfer transfer,
+                          BREthereumTransfer eth);
 
     /// MARK: - Network
 
@@ -201,6 +213,10 @@ extern "C" {
     private_extern BRCryptoBlockChainType
     cryptoWalletGetType (BRCryptoWallet wallet);
 
+    private_extern void
+    cryptoWalletSetState (BRCryptoWallet wallet,
+                          BRCryptoWalletState state);
+
     private_extern BRWallet *
     cryptoWalletAsBTC (BRCryptoWallet wallet);
 
@@ -219,8 +235,20 @@ extern "C" {
                              BREthereumEWM ewm,
                              BREthereumWallet wid);
 
+    private_extern BRCryptoTransfer
+    cryptoWalletFindTransferAsBTC (BRCryptoWallet wallet,
+                                   BRTransaction *btc);
+
+    private_extern BRCryptoTransfer
+    cryptoWalletFindTransferAsETH (BRCryptoWallet wallet,
+                                   BREthereumTransfer eth);
+
     /// MARK: - WalletManager
 
+    private_extern void
+    cryptoWalletManagerSetState (BRCryptoWalletManager cwm,
+                                 BRCryptoWalletManagerState state);
+    
     private_extern BRCryptoBoolean
     cryptoWalletManagerHasETH (BRCryptoWalletManager manager,
                                BREthereumEWM ewm);
@@ -228,6 +256,15 @@ extern "C" {
     private_extern BRCryptoBoolean
     cryptoWalletManagerHasBTC (BRCryptoWalletManager manager,
                                BRWalletManager bwm);
+
+    private_extern BRCryptoWallet
+    cryptoWalletManagerFindWalletAsBTC (BRCryptoWalletManager manager,
+                                        BRWallet *btc);
+
+    private_extern BRCryptoWallet
+    cryptoWalletManagerFindWalletAsETH (BRCryptoWalletManager manager,
+                                        BREthereumWallet eth);
+
 
 #ifdef __cplusplus
 }

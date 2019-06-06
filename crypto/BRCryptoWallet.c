@@ -52,6 +52,7 @@ struct BRCryptoWalletRecord {
         } eth;
     } u;
 
+    BRCryptoWalletState state;
     BRCryptoUnit unit;  // baseUnit
 
     //
@@ -78,8 +79,9 @@ cryptoWalletCreateInternal (BRCryptoBlockChainType type,
                             BRCryptoUnit unitForFee) {
     BRCryptoWallet wallet = malloc (sizeof (struct BRCryptoWalletRecord));
 
-    wallet->type = type;
-    wallet->unit = cryptoUnitTake (unit);
+    wallet->type  = type;
+    wallet->state = CRYPTO_WALLET_STATE_CREATED;
+    wallet->unit  = cryptoUnitTake (unit);
     wallet->unitForFee = cryptoUnitTake (unitForFee);
     array_new (wallet->transfers, 5);
 
@@ -134,6 +136,17 @@ cryptoWalletGetCurrency (BRCryptoWallet wallet) {
     return cryptoUnitGetCurrency(wallet->unit);
 }
 
+extern BRCryptoWalletState
+cryptoWalletGetState (BRCryptoWallet wallet) {
+    return wallet->state;
+}
+
+private_extern void
+cryptoWalletSetState (BRCryptoWallet wallet,
+                      BRCryptoWalletState state) {
+    wallet->state = state;
+}
+
 extern BRCryptoUnit
 cryptoWalletGetUnitForFee (BRCryptoWallet wallet) {
     return wallet->unitForFee;
@@ -149,16 +162,44 @@ static BRCryptoBoolean
 cyptoWalletHasTransfer (BRCryptoWallet wallet,
                         BRCryptoTransfer transfer) {
     for (size_t index = 0; index < array_count(wallet->transfers); index++)
-        if (cryptoTransferEqual (transfer, wallet->transfers[index]))
+        if (CRYPTO_TRUE == cryptoTransferEqual (transfer, wallet->transfers[index]))
             return CRYPTO_TRUE;
     return CRYPTO_FALSE;
+}
+
+private_extern BRCryptoTransfer
+cryptoWalletFindTransferAsBTC (BRCryptoWallet wallet,
+                               BRTransaction *btc) {
+    for (size_t index = 0; index < array_count(wallet->transfers); index++)
+        if (CRYPTO_TRUE == cryptoTransferHasBTC (wallet->transfers[index], btc))
+            return wallet->transfers[index];
+    return NULL;
+}
+
+private_extern BRCryptoTransfer
+cryptoWalletFindTransferAsETH (BRCryptoWallet wallet,
+                               BREthereumTransfer eth) {
+    for (size_t index = 0; index < array_count(wallet->transfers); index++)
+        if (CRYPTO_TRUE == cryptoTransferHasETH (wallet->transfers[index], eth))
+            return wallet->transfers[index];
+    return NULL;
 }
 
 extern void
 cryptoWalletAddTransfer (BRCryptoWallet wallet,
                          BRCryptoTransfer transfer) {
     if (CRYPTO_FALSE == cyptoWalletHasTransfer (wallet, transfer))
-        array_add (wallet->transfers, transfer);
+        array_add (wallet->transfers, cryptoTransferTake(transfer));
+}
+
+extern void
+cryptoWalletRemTransfer (BRCryptoWallet wallet, BRCryptoTransfer transfer) {
+    for (size_t index = 0; index < array_count(wallet->transfers); index++)
+        if (CRYPTO_TRUE == cryptoTransferEqual (wallet->transfers[index], transfer)) {
+            array_rm (wallet->transfers, index);
+            cryptoTransferGive (transfer);
+            return;
+        }
 }
 
 extern size_t

@@ -59,6 +59,7 @@ struct BRCryptoTransferRecord {
         } eth;
     } u;
 
+    BRCryptoTransferState state;
     BRCryptoCurrency currency;
     BRCryptoRef ref;
 };
@@ -70,7 +71,8 @@ cryptoTransferCreateInternal (BRCryptoBlockChainType type,
                               BRCryptoCurrency currency) {
     BRCryptoTransfer transfer = malloc (sizeof (struct BRCryptoTransferRecord));
 
-    transfer->type = type;
+    transfer->state = CRYPTO_TRANSFER_STATE_CREATED;
+    transfer->type  = type;
     transfer->currency = cryptoCurrencyTake(currency);
     transfer->ref = CRYPTO_REF_ASSIGN (cryptoTransferRelease);
 
@@ -245,7 +247,15 @@ cryptoTransferExtractConfirmation (BRCryptoTransfer transfer,
                                    BRCryptoAmount *fee);
 
 extern BRCryptoTransferState
-cryptoTransferGetState (BRCryptoTransfer transfer);
+cryptoTransferGetState (BRCryptoTransfer transfer) {
+    return transfer->state;
+}
+
+private_extern void
+cryptoTransferSetState (BRCryptoTransfer transfer,
+                        BRCryptoTransferState state) {
+    transfer->state = state;
+}
 
 extern BRCryptoTransferDirection
 cryptoTransferGetDirection (BRCryptoTransfer transfer) {
@@ -320,6 +330,17 @@ cryptoTransferAsETH (BRCryptoTransfer transfer) {
     return transfer->u.eth.tid;
 }
 
+private_extern BRCryptoBoolean
+cryptoTransferHasBTC (BRCryptoTransfer transfer,
+                      BRTransaction *btc) {
+    return AS_CRYPTO_BOOLEAN (BLOCK_CHAIN_TYPE_BTC == transfer->type && btc == transfer->u.btc.tid);
+}
+
+private_extern BRCryptoBoolean
+cryptoTransferHasETH (BRCryptoTransfer transfer,
+                      BREthereumTransfer eth) {
+    return AS_CRYPTO_BOOLEAN (BLOCK_CHAIN_TYPE_ETH == transfer->type && eth == transfer->u.eth.tid);
+}
 
 static int
 cryptoTransferEqualAsBTC (BRCryptoTransfer t1, BRCryptoTransfer t2) {

@@ -40,44 +40,67 @@ extern "C" {
 
     typedef struct BRCryptoWalletManagerRecord *BRCryptoWalletManager;
 
-    /// MARK: Listener
+    typedef enum {
+        CRYPTO_WALLET_MANAGER_STATE_CREATED,
+        CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED,
+        CRYPTO_WALLET_MANAGER_STATE_CONNECTED,
+        CRYPTO_WALLET_MANAGER_STATE_SYNCING,
+        CRYPTO_WALLET_MANAGER_STATE_DELETED
+    } BRCryptoWalletManagerState;
 
-    typedef void *BRCryptoCWMListenerContext;
-
-    // Add events
 
     typedef enum {
-        CRYPTO_WALLET_MANAGER_EVENT_FOO
+        CRYPTO_WALLET_MANAGER_EVENT_CREATED,
+        CRYPTO_WALLET_MANAGER_EVENT_CHANGED,
+        CRYPTO_WALLET_MANAGER_EVENT_DELETED,
+
+        CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED,
+        CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED,
+        CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED,
+
+        // wallet: added, ...
+        CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED,
+        CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES,
+        CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED,
+
+        CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED,
     } BRCryptoWalletManagerEventType;
 
     typedef struct {
         BRCryptoWalletManagerEventType type;
+        union {
+            struct {
+                BRCryptoWalletManagerState oldValue;
+                BRCryptoWalletManagerState newValue;
+            } state;
+
+            struct {
+                BRCryptoWallet value;
+            } wallet;
+
+            struct {
+                unsigned int percentComplete;
+            } sync;
+
+            struct {
+                uint64_t value;
+            } blockHeight;
+        } u;
     } BRCryptoWalletManagerEvent;
+
+    /// MARK: Listener
+    
+    typedef void *BRCryptoCWMListenerContext;
 
     typedef void (*BRCryptoCWMListenerWalletManagerEvent) (BRCryptoCWMListenerContext context,
                                                            BRCryptoWalletManager manager,
                                                            BRCryptoWalletManagerEvent event);
 
-    typedef enum {
-        CRYPTO_WALLET_EVENT_FOO
-    } BRCryptoWalletEventType;
-
-    typedef struct {
-        BRCryptoWalletEventType type;
-    } BRCryptoWalletEvent;
 
     typedef void (*BRCryptoCWMListenerWalletEvent) (BRCryptoCWMListenerContext context,
                                                     BRCryptoWalletManager manager,
                                                     BRCryptoWallet wallet,
                                                     BRCryptoWalletEvent event);
-
-    typedef enum {
-        CRYPTO_TRANSFER_EVENT_FOO
-    } BRCryptoTransferEventType;
-
-    typedef struct {
-        BRCryptoTransferEventType type;
-    } BRCryptoTransferEvent;
 
     typedef void (*BRCryptoCWMListenerTransferEvent) (BRCryptoCWMListenerContext context,
                                                       BRCryptoWalletManager manager,
@@ -143,6 +166,9 @@ extern "C" {
     extern BRSyncMode
     cryptoWalletManagerGetMode (BRCryptoWalletManager cwm);
 
+    extern BRCryptoWalletManagerState
+    cryptoWalletManagerGetState (BRCryptoWalletManager cwm);
+
     extern const char *
     cryptoWalletManagerGetPath (BRCryptoWalletManager cwm);
     
@@ -159,6 +185,14 @@ extern "C" {
     extern BRCryptoWallet
     cryptoWalletManagerGetWalletForCurrency (BRCryptoWalletManager cwm,
                                                BRCryptoCurrency currency);
+
+    extern void
+    cryptoWalletManagerAddWallet (BRCryptoWalletManager cwm,
+                                  BRCryptoWallet wallet);
+
+    extern void
+    cryptoWalletManagerRemWallet (BRCryptoWalletManager cwm,
+                                  BRCryptoWallet wallet);
 
     extern void
     cryptoWalletManagerConnect (BRCryptoWalletManager cwm);

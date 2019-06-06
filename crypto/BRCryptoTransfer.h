@@ -37,14 +37,37 @@
 extern "C" {
 #endif
 
+    typedef struct BRCryptoTransferRecord *BRCryptoTransfer;
+
     typedef enum {
-        CRYPTO_TRANSFER_CREATED,
-        CRYPTO_TRANSFER_SIGNED,
-        CRYPTO_TRANSFER_SUBMITTED,
-        CRYPTO_TRANSFER_INCLUDED,
-        CRYPTO_TRANSFER_ERRORRED,
-        CRYPTO_TRANSFER_DELETED
+        CRYPTO_TRANSFER_STATE_CREATED,
+        CRYPTO_TRANSFER_STATE_SIGNED,
+        CRYPTO_TRANSFER_STATE_SUBMITTED,
+        CRYPTO_TRANSFER_STATE_INCLUDED,
+        CRYPTO_TRANSFER_STATE_ERRORRED,
+        CRYPTO_TRANSFER_STATE_DELETED,
     } BRCryptoTransferState;
+
+    typedef enum {
+        CRYPTO_TRANSFER_EVENT_CREATED,
+        CRYPTO_TRANSFER_EVENT_CHANGED,
+        CRYPTO_TRANSFER_EVENT_CONFIRMED,
+        CRYPTO_TRANSFER_EVENT_DELETED,
+    } BRCryptoTransferEventType;
+
+    typedef struct {
+        BRCryptoTransferEventType type;
+        union {
+            struct {
+                BRCryptoTransferState old;
+                BRCryptoTransferState new;
+            } state;
+
+            struct {
+                uint64_t count;
+            } confirmation;
+        } u;
+    } BRCryptoTransferEvent;
 
     typedef enum {
         CRYPTO_TRANSFER_SENT,
@@ -52,11 +75,10 @@ extern "C" {
         CRYPTO_TRANSFER_RECOVERED
     } BRCryptoTransferDirection;
 
-    typedef struct BRCryptoTransferRecord *BRCryptoTransfer;
 
     extern BRCryptoBlockChainType
     cryptoTransferGetType (BRCryptoTransfer transfer);
-    
+
     extern BRCryptoAddress
     cryptoTransferGetSourceAddress (BRCryptoTransfer transfer);
 

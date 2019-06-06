@@ -80,6 +80,10 @@ extern "C" {
     cryptoNetworkGetUnitAsDefault (BRCryptoNetwork network,
                                    BRCryptoCurrency currency);
 
+    extern BRCryptoUnit
+    cryptoNetworkGetUnitAsBase (BRCryptoNetwork network,
+                                BRCryptoCurrency currency);
+
 #if 0
     extern BRCryptoBlockChainHeight
     cryptoNetworkGetHeight (BRCryptoNetwork network);
@@ -94,10 +98,6 @@ extern "C" {
     extern BRCryptoCurrency
     cryptoNetworkGetCurrencyForSymbol (BRCryptoNetwork network,
                                        const char *symbol);
-
-    extern BRCryptoUnit
-    cryptoNetworkGetUnitAsBase (BRCryptoNetwork network,
-                                BRCryptoCurrency currency);
 
     extern size_t
     cryptoNetworkGetUnitCount (BRCryptoNetwork network,

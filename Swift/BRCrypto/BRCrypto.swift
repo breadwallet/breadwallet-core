@@ -966,6 +966,18 @@ public enum TransferState {
     case included (confirmation: TransferConfirmation)
     case failed (reason:String)
     case deleted
+
+    internal init (core: BRCryptoTransferState, included: TransferConfirmation? = nil, failed: String? = nil) {
+        switch core {
+        case CRYPTO_TRANSFER_STATE_CREATED:   self = .created
+        case CRYPTO_TRANSFER_STATE_SIGNED:    self = .signed
+        case CRYPTO_TRANSFER_STATE_SUBMITTED: self = .submitted
+        case CRYPTO_TRANSFER_STATE_INCLUDED:  self = .included(confirmation: included!)
+        case CRYPTO_TRANSFER_STATE_ERRORRED:  self = .failed(reason: failed!)
+        case CRYPTO_TRANSFER_STATE_DELETED:   self = .deleted
+        default: /* ignore this */ self = .pending; precondition(false)
+        }
+    }
 }
 
 extension TransferState: CustomStringConvertible {
@@ -1161,6 +1173,14 @@ extension Wallet {
 public enum WalletState {
     case created
     case deleted
+
+    internal init (core: BRCryptoWalletState) {
+        switch core {
+        case CRYPTO_WALLET_STATE_CREATED: self = .created
+        case CRYPTO_WALLET_STATE_DELETED: self = .deleted
+        default: self = .created; precondition(false)
+        }
+    }
 }
 
 ///
@@ -1338,6 +1358,17 @@ public enum WalletManagerState {
     case connected
     case syncing
     case deleted
+
+    internal init (core: BRCryptoWalletManagerState) {
+        switch core {
+        case CRYPTO_WALLET_MANAGER_STATE_CREATED:      self = .created
+        case CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED: self = .disconnected
+        case CRYPTO_WALLET_MANAGER_STATE_CONNECTED:    self = .connected
+        case CRYPTO_WALLET_MANAGER_STATE_SYNCING:      self = .syncing
+        case CRYPTO_WALLET_MANAGER_STATE_DELETED:      self = .deleted
+        default: self = .created; precondition(false)
+        }
+    }
 }
 
 ///

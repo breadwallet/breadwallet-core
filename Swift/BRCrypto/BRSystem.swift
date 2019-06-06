@@ -337,15 +337,63 @@ public final class SystemBase: System {
                     else { print ("SYS: Event: \(event.type): Missed {cwm}"); return }
 
                 guard let manager = system.managerBy (core: cwm)
-                    else { print ("SYS: Event: \(event.type): Missed (manaager)"); return }
+                    else { print ("SYS: Event: \(event.type): Missed (manager)"); return }
 
                 print ("SYS: Event: Manager (\(manager.name)): \(event.type)")
 
                 switch event.type {
-                case CRYPTO_WALLET_MANAGER_EVENT_FOO:
+                case CRYPTO_WALLET_MANAGER_EVENT_CREATED:
+                    // We are only here in response to system.createWalletManager...
                     break
+
+                case CRYPTO_WALLET_MANAGER_EVENT_CHANGED:
+                    system.listener?.handleManagerEvent (system: system,
+                                                         manager: manager,
+                                                         event: WalletManagerEvent.changed (oldState: WalletManagerState (core: event.u.state.oldValue),
+                                                                                            newState: WalletManagerState (core: event.u.state.newValue)))
+
+                case CRYPTO_WALLET_MANAGER_EVENT_DELETED:
+                    system.listener?.handleManagerEvent (system: system, manager: manager,
+                                                         event: WalletManagerEvent.deleted)
+
+                case CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED:
+                    guard let wallet = manager.walletBy (core: event.u.wallet.value)
+                        else { print ("SYS: Event: \(event.type): Missed (wallet)"); return }
+                    system.listener?.handleManagerEvent (system: system,
+                                                         manager: manager,
+                                                         event: WalletManagerEvent.walletAdded (wallet: wallet))
+
+                case CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED:
+                    guard let wallet = manager.walletBy (core: event.u.wallet.value)
+                        else { print ("SYS: Event: \(event.type): Missed (wallet)"); return }
+                   system.listener?.handleManagerEvent (system: system,
+                                                         manager: manager,
+                                                         event: WalletManagerEvent.walletChanged(wallet: wallet))
+
+                case CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED:
+                    guard let wallet = manager.walletBy (core: event.u.wallet.value)
+                        else { print ("SYS: Event: \(event.type): Missed (wallet)"); return }
+                    system.listener?.handleManagerEvent (system: system,
+                                                         manager: manager,
+                                                         event: WalletManagerEvent.walletDeleted(wallet: wallet))
+
+                case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED:
+                    system.listener?.handleManagerEvent (system: system, manager: manager,
+                                                       event: WalletManagerEvent.syncStarted)
+
+                case CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES:
+                    system.listener?.handleManagerEvent (system: system, manager: manager,
+                                                       event: WalletManagerEvent.syncProgress (percentComplete: Double (event.u.sync.percentComplete)))
+
+                case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED:
+                    system.listener?.handleManagerEvent (system: system, manager: manager,
+                                                       event: WalletManagerEvent.syncEnded(error: nil))
+
+                case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED:
+                    manager.height = event.u.blockHeight.value
+
                 default: precondition(false)
-                }
+               }
         },
 
             walletEventCallback: { (context, cwm, wid, event) in
@@ -361,9 +409,58 @@ public final class SystemBase: System {
                 print ("SYS: Event: Wallet (\(wallet.name)): \(event.type)")
 
                 switch event.type {
-                case CRYPTO_WALLET_EVENT_FOO:
+                case CRYPTO_WALLET_EVENT_CREATED:
                     break
-                default: precondition(false)
+
+                case CRYPTO_WALLET_EVENT_CHANGED:
+                    system.listener?.handleWalletEvent (system: system,
+                                                        manager: manager,
+                                                        wallet: wallet,
+                                                        event: WalletEvent.changed (oldState: WalletState (core: event.u.state.oldState),
+                                                                                    newState: WalletState (core: event.u.state.newState)))
+                case CRYPTO_WALLET_EVENT_DELETED:
+                    system.listener?.handleWalletEvent (system: system,
+                                                        manager: manager,
+                                                        wallet: wallet,
+                                                        event: WalletEvent.deleted)
+
+                case CRYPTO_WALLET_EVENT_TRANSFER_ADDED:
+                    guard let transfer = wallet.transferBy(core: event.u.transfer.value)
+                        else { print ("SYS: Event: \(event.type): Missed (transfer)"); return }
+                    system.listener?.handleWalletEvent (system: system,
+                                                        manager: manager,
+                                                        wallet: wallet,
+                                                        event: WalletEvent.transferAdded (transfer: transfer))
+
+                case CRYPTO_WALLET_EVENT_TRANSFER_CHANGED:
+                    guard let transfer = wallet.transferBy(core: event.u.transfer.value)
+                        else { print ("SYS: Event: \(event.type): Missed (transfer)"); return }
+                    system.listener?.handleWalletEvent (system: system,
+                                                        manager: manager,
+                                                        wallet: wallet,
+                                                        event: WalletEvent.transferChanged (transfer: transfer))
+               case CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED:
+                guard let transfer = wallet.transferBy(core: event.u.transfer.value)
+                    else { print ("SYS: Event: \(event.type): Missed (transfer)"); return }
+                system.listener?.handleWalletEvent (system: system,
+                                                    manager: manager,
+                                                    wallet: wallet,
+                                                    event: WalletEvent.transferSubmitted (transfer: transfer, success: true))
+
+                case CRYPTO_WALLET_EVENT_TRANSFER_DELETED:
+                    guard let transfer = wallet.transferBy(core: event.u.transfer.value)
+                        else { print ("SYS: Event: \(event.type): Missed (transfer)"); return }
+                    system.listener?.handleWalletEvent (system: system,
+                                                        manager: manager,
+                                                        wallet: wallet,
+                                                        event: WalletEvent.transferDeleted (transfer: transfer))
+
+                case CRYPTO_WALLET_EVENT_BALANCE_UPDATED:
+                    break
+                case CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED:
+                    break
+
+                default: precondition (false)
                 }
         },
 
@@ -381,9 +478,35 @@ public final class SystemBase: System {
                 print ("SYS: Event: Transfer (\(wallet.name) @ \(transfer.hash?.description ?? "pending")): \(event.type)")
 
                 switch (event.type) {
-                case CRYPTO_TRANSFER_EVENT_FOO:
-                    break
-                default: precondition(false)
+                case CRYPTO_TRANSFER_EVENT_CREATED:
+                    system.listener?.handleTransferEvent (system: system,
+                                                          manager: manager,
+                                                          wallet: wallet,
+                                                          transfer: transfer,
+                                                          event: TransferEvent.created)
+
+                case CRYPTO_TRANSFER_EVENT_CHANGED:
+                    system.listener?.handleTransferEvent (system: system,
+                                                          manager: manager,
+                                                          wallet: wallet,
+                                                          transfer: transfer,
+                                                          event: TransferEvent.changed (old: TransferState.init (core: event.u.state.old),
+                                                                                        new: TransferState.init (core: event.u.state.new)))
+
+                case CRYPTO_TRANSFER_EVENT_CONFIRMED:
+                    system.listener?.handleTransferEvent (system: system,
+                                                          manager: manager,
+                                                          wallet: wallet,
+                                                          transfer: transfer,
+                                                          event: TransferEvent.confirmation(count: 10))
+
+                case CRYPTO_TRANSFER_EVENT_DELETED:
+                    system.listener?.handleTransferEvent (system: system,
+                                                          manager: manager,
+                                                          wallet: wallet,
+                                                          transfer: transfer,
+                                                          event: TransferEvent.deleted)
+               default: precondition(false)
                }
         })
     }

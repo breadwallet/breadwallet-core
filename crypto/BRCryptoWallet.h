@@ -35,6 +35,50 @@ extern "C" {
 
     typedef struct BRCryptoWalletRecord *BRCryptoWallet;
 
+    typedef enum {
+        CRYPTO_WALLET_STATE_CREATED,
+        CRYPTO_WALLET_STATE_DELETED
+    } BRCryptoWalletState;
+
+    typedef enum {
+        CRYPTO_WALLET_EVENT_CREATED,
+        CRYPTO_WALLET_EVENT_CHANGED,
+        CRYPTO_WALLET_EVENT_DELETED,
+
+        CRYPTO_WALLET_EVENT_TRANSFER_ADDED,
+        CRYPTO_WALLET_EVENT_TRANSFER_CHANGED,
+        CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED,
+        CRYPTO_WALLET_EVENT_TRANSFER_DELETED,
+
+        CRYPTO_WALLET_EVENT_BALANCE_UPDATED,
+        CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED,
+    } BRCryptoWalletEventType;
+
+    typedef struct {
+        BRCryptoWalletEventType type;
+        union {
+            struct {
+                BRCryptoWalletState oldState;
+                BRCryptoWalletState newState;
+            } state;
+
+            struct {
+                BRCryptoTransfer value;
+            } transfer;
+
+            struct {
+                BRCryptoAmount amount;
+            } balanceUpdated;
+
+            struct {
+                BRCryptoFeeBasis basis;
+            } feeBasisUpdated;
+        } u;
+    } BRCryptoWalletEvent;
+
+    extern BRCryptoWalletState
+    cryptoWalletGetState (BRCryptoWallet wallet);
+    
     extern BRCryptoCurrency
     cryptoWalletGetCurrency (BRCryptoWallet wallet);
 
@@ -49,7 +93,10 @@ extern "C" {
 
     extern void
     cryptoWalletAddTransfer (BRCryptoWallet wallet, BRCryptoTransfer transfer);
-    
+
+    extern void
+    cryptoWalletRemTransfer (BRCryptoWallet wallet, BRCryptoTransfer transfer);
+
     extern BRCryptoTransfer
     cryptoWalletGetTransfer (BRCryptoWallet wallet, size_t index);
 
