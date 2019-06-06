@@ -82,14 +82,14 @@ final class WalletManagerBtc extends WalletManager<WalletBtc> {
             case API_WITH_P2P_SUBMIT:
                 return BRSyncMode.SYNC_MODE_BRD_WITH_P2P_SEND;
             default:
-                throw new IllegalStateException("Invalid mode");
+                throw new IllegalArgumentException("Invalid mode");
         }
     }
 
     private final BRWalletManagerClient.ByValue clientCallbacks = new BRWalletManagerClient.ByValue(Pointer.NULL,
             this::doGetBlockNumber,
             this::doGetTransactions,
-            this::doSubmitTransation,
+            this::doSubmitTransaction,
             this::handleTransactionEvent,
             this::handleWalletEvent,
             this::handleWalletManagerEvent);
@@ -303,7 +303,7 @@ final class WalletManagerBtc extends WalletManager<WalletBtc> {
         });
     }
 
-    private void doSubmitTransation(Pointer context, BRWalletManager managerImpl, BRWallet walletImpl, BRTransaction transactionImpl, int rid) {
+    private void doSubmitTransaction(Pointer context, BRWalletManager managerImpl, BRWallet walletImpl, BRTransaction transactionImpl, int rid) {
         systemExecutor.submit(() -> {
             Log.d(TAG, "BRSubmitTransactionCallback");
 
