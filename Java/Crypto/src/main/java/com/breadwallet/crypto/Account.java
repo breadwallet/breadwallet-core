@@ -9,5 +9,17 @@
  */
 package com.breadwallet.crypto;
 
-public class Account {
+import java.util.Date;
+
+public interface Account {
+
+    static Account createFrom(String phrase, String uids, Date earliestKeyTime) {
+        return CryptoApi.getProvider().accountProvider().create(phrase, uids, earliestKeyTime);
+    }
+
+    static Account createFrom(byte[] seed, String uids, Date earliestKeyTime) {
+        return CryptoApi.getProvider().accountProvider().create(seed, uids, earliestKeyTime);
+    }
+
+    Date getEarliestKeyTime();
 }

@@ -9,71 +9,54 @@
  */
 package com.breadwallet.crypto;
 
-public abstract class WalletManager {
-    public interface Listener {
+import java.util.List;
 
+public interface WalletManager {
+
+    void initialize();
+
+    void connect();
+
+    void disconnect();
+
+    void sync();
+
+    void submit(Transfer transfer, String paperKey);
+
+    default boolean isActive() {
+        WalletManagerState state = getState();
+        return state == WalletManagerState.CREATED || state == WalletManagerState.SYNCING;
     }
 
-    public interface PersistenceClient {
+    Account getAccount();
 
+    Network getNetwork();
+
+    Wallet getPrimaryWallet();
+
+    List<Wallet> getWallets();
+
+    WalletManagerMode getMode();
+
+    String getPath();
+
+    default Currency getCurrency() {
+        return getNetwork().getCurrency();
     }
 
-    public interface BackendClient {
-
+    default String getName() {
+        return getCurrency().getCode();
     }
 
-    public final Account account;
-
-    public final Network network;
-
-    public final Listener listener;
-
-/*
-    /// The listener receives Wallet, Transfer and perhaps other asynchronous events.
-    var listener: WalletManagerListener { get }
-
-    /// The account
-    var account: Account { get }
-
-    /// The network
-    var network: Network { get }
-
-    /// The primaryWallet
-    var primaryWallet: Wallet { get }
-
-    /// The managed wallets - often will just be [primaryWallet]
-    var wallets: [Wallet] { get }
-
-    // The mode determines how the manager manages the account and wallets on network
-    var mode: WalletManagerMode { get }
-
-    // The file-system path to use for persistent storage.
-    var path: String { get }  // persistent storage
-
-    var state: WalletManagerState { get }
-
-    #if false
-    /// The default WalletFactory for creating wallets.
-    var walletFactory: WalletFactory { get set }
-    #endif
-
-    /// Connect to network and begin managing wallets for account
-    func connect ()
-
-    /// Disconnect from the network.
-    func disconnect ()
-
-    /// isConnected
-    /// sync(...)
-    /// isSyncing
-
-    /// sign(transfer)
-    /// submit(transfer)
-*/
-
-    protected WalletManager (Listener listener, Account account, Network network) {
-        this.listener = listener;
-        this.account = account;
-        this.network = network;
+    default Unit getBaseUnit() {
+        Network network = getNetwork();
+        return network.baseUnitFor(network.getCurrency()).get();
     }
+
+    default Unit getDefaultUnit() {
+        Network network = getNetwork();
+        return network.defaultUnitFor(network.getCurrency()).get();
+    }
+
+    WalletManagerState getState();
 }
