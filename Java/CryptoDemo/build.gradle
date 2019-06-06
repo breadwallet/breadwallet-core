@@ -20,10 +20,12 @@ android {
     productFlavors {
         onMainnet {
             dimension "network"
+            buildConfigField 'boolean', 'IS_MAINNET', 'true'
         }
 
         onTestnet {
             dimension "network"
+            buildConfigField 'boolean', 'IS_MAINNET', 'false'
         }
     }
 
@@ -33,10 +35,14 @@ android {
             debuggable true
             jniDebuggable true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            buildConfigField 'String', 'BDB_BASE_URL', '"https://test-blockchaindb-api.brd.tools"'
+            buildConfigField 'String', 'API_BASE_URL', '"https://api.breadwallet.com"'
         }
         debug {
             debuggable true
             jniDebuggable true
+            buildConfigField 'String', 'BDB_BASE_URL', '"https://test-blockchaindb-api.brd.tools"'
+            buildConfigField 'String', 'API_BASE_URL', '"https://stage2.breadwallet.com"'
         }
     }
 }

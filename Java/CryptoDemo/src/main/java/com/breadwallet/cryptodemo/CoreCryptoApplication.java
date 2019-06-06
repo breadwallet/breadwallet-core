@@ -17,10 +17,13 @@ import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.System;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import okhttp3.OkHttpClient;
@@ -29,28 +32,23 @@ import static com.google.common.base.Preconditions.checkState;
 
 public class CoreCryptoApplication extends Application {
 
-    // TODO: Make these build dependent
-    private static final String BDB_BASE_URL = "https://test-blockchaindb-api.brd.tools";
-    private static final String API_BASE_URL = "https://stage2.breadwallet.com";
+    private static final String BDB_BASE_URL = BuildConfig.BDB_BASE_URL;
+    private static final String API_BASE_URL = BuildConfig.API_BASE_URL;
+    private static final boolean IS_MAINNET = BuildConfig.IS_MAINNET;
 
     private static final String EXTRA_WIPE = "WIPE";
     private static final String EXTRA_TIMESTAMP = "TIMESTAMP";
     private static final String EXTRA_PAPER_KEY = "PAPER_KEY";
-    private static final String EXTRA_IS_MAINNET = "IS_MAINNET";
     private static final String EXTRA_MODE = "MODE";
 
     private static final boolean DEFAULT_WIPE = true;
     private static final long DEFAULT_TIMESTAMP = 0;
     private static final String DEFAULT_PAPER_KEY = "boring head harsh green empty clip fatal typical found crane dinner timber";
-    private static final boolean DEFAULT_IS_MAINNET = true;
     private static final WalletManagerMode DEFAULT_MODE = WalletManagerMode.API_ONLY;
 
     private static System system;
     private static CoreSystemListener listener;
-
     private static String paperKey;
-    private static boolean isMainnet;
-    private static WalletManagerMode mode;
 
     private static AtomicBoolean runOnce = new AtomicBoolean(false);
 
@@ -70,11 +68,11 @@ public class CoreCryptoApplication extends Application {
         if (!runOnce.getAndSet(true)) {
             Intent intent = startingActivity.getIntent();
 
+            paperKey = intent.hasExtra(EXTRA_PAPER_KEY) ? intent.getStringExtra(EXTRA_PAPER_KEY) : DEFAULT_PAPER_KEY;
+
             boolean wipe = intent.getBooleanExtra(EXTRA_WIPE, DEFAULT_WIPE);
             long timestamp = intent.getLongExtra(EXTRA_TIMESTAMP, DEFAULT_TIMESTAMP);
-            paperKey = intent.hasExtra(EXTRA_PAPER_KEY) ? intent.getStringExtra(EXTRA_PAPER_KEY) : DEFAULT_PAPER_KEY;
-            isMainnet = intent.getBooleanExtra(EXTRA_IS_MAINNET, DEFAULT_IS_MAINNET);
-            mode = intent.hasExtra(EXTRA_MODE) ? WalletManagerMode.valueOf(intent.getStringExtra(EXTRA_MODE)) : DEFAULT_MODE;
+            WalletManagerMode mode = intent.hasExtra(EXTRA_MODE) ? WalletManagerMode.valueOf(intent.getStringExtra(EXTRA_MODE)) : DEFAULT_MODE;
 
             File storageFile = new File(startingActivity.getFilesDir(), "core");
             if (wipe) {
@@ -86,11 +84,12 @@ public class CoreCryptoApplication extends Application {
 
             listener = new CoreSystemListener(mode);
 
-            Account account = Account.createFrom(paperKey, "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e97", new Date(timestamp * 1000));
+            String uids = UUID.nameUUIDFromBytes(paperKey.getBytes(StandardCharsets.UTF_8)).toString();
+            Account account = Account.createFrom(paperKey, uids, new Date(TimeUnit.SECONDS.toMillis(timestamp)));
 
             BlockchainDb query = new BlockchainDb(new OkHttpClient(), BDB_BASE_URL, API_BASE_URL);
             system = System.create(Executors.newSingleThreadExecutor(), listener, account, storageFile.getAbsolutePath(), query);
-            system.initialize(getNetworks(isMainnet));
+            system.initialize(getNetworks(IS_MAINNET));
 
             ProcessLifecycleOwner.get().getLifecycle().addObserver(observer);
         }
@@ -109,7 +108,7 @@ public class CoreCryptoApplication extends Application {
     }
 
     public static boolean isIsMainnet() {
-        return isMainnet;
+        return IS_MAINNET;
     }
 
     private static void deleteRecursively (File file) {
