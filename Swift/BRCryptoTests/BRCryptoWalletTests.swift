@@ -87,11 +87,10 @@ class BRCryptoWalletTests: BRCryptoBaseTests {
         if (nil == listener) {
             // Race condition
             listener = TestListener()
-            SystemBase.resetForTest()
-            system   = SystemBase.create (listener: listener,
-                                          account: account,
-                                          path: coreDataDir,
-                                          query: BlockChainDB())
+            system   = System (listener: listener,
+                               account: account,
+                               path: coreDataDir,
+                               query: BlockChainDB())
             system.start (networksNeeded: ["bitcoin-mainnet", "ethereum-mainnet"])
             wait (for: [listener.walletExpectation], timeout: 10)
         }

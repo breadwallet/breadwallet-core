@@ -68,6 +68,9 @@ extern "C" {
     cryptoNetworkGetType (BRCryptoNetwork network);
     
     extern const char *
+    cryptoNetworkGetUids (BRCryptoNetwork network);
+
+    extern const char *
     cryptoNetworkGetName (BRCryptoNetwork network);
 
     extern BRCryptoBoolean
@@ -84,7 +87,6 @@ extern "C" {
     cryptoNetworkGetUnitAsBase (BRCryptoNetwork network,
                                 BRCryptoCurrency currency);
 
-#if 0
     extern BRCryptoBlockChainHeight
     cryptoNetworkGetHeight (BRCryptoNetwork network);
 
@@ -95,6 +97,10 @@ extern "C" {
     cryptoNetworkGetCurrencyAt (BRCryptoNetwork network,
                                 size_t index);
 
+    extern BRCryptoBoolean
+    cryptoNetworkHasCurrency (BRCryptoNetwork network,
+                              BRCryptoCurrency currency);
+    
     extern BRCryptoCurrency
     cryptoNetworkGetCurrencyForSymbol (BRCryptoNetwork network,
                                        const char *symbol);
@@ -107,7 +113,6 @@ extern "C" {
     cryptoNetworkGetUnitAt (BRCryptoNetwork network,
                             BRCryptoCurrency currency,
                             size_t index);
-#endif
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoNetwork, cryptoNetwork);
 
 #ifdef __cplusplus

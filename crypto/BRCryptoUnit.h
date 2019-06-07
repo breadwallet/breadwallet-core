@@ -38,6 +38,9 @@ extern "C" {
     typedef struct BRCryptoUnitRecord *BRCryptoUnit;
 
     extern const char *
+    cryptoUnitGetUids(BRCryptoUnit unit);
+
+    extern const char *
     cryptoUnitGetName (BRCryptoUnit unit);
 
     extern const char *

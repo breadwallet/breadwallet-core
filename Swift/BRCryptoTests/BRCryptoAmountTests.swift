@@ -48,7 +48,9 @@ class BRCryptoAmountTests: XCTestCase {
         XCTAssertTrue  (BTC_SATOSHI.hasCurrency (btc))
         XCTAssertFalse (BTC_SATOSHI.hasCurrency (eth))
         XCTAssertTrue  (BTC_SATOSHI.isCompatible (with: BTC_SATOSHI))
-        XCTAssertTrue  (BTC_SATOSHI.core == BTC_SATOSHI.base.core)
+
+        let test = BTC_SATOSHI.core == BTC_SATOSHI.base.core
+        XCTAssertTrue  (test)
 
         let BTC_BTC = BRCrypto.Unit (currency: btc, uids: "BTC-BTC", name: "Bitcoin", symbol: "B", base: BTC_SATOSHI, decimals: 8)
         XCTAssert (BTC_BTC.currency.code == btc.code)

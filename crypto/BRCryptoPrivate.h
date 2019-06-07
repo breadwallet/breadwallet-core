@@ -67,7 +67,8 @@ extern "C" {
     /// MARK: - Currency
 
     private_extern BRCryptoCurrency
-    cryptoCurrencyCreate (const char *name,
+    cryptoCurrencyCreate (const char *uids,
+                          const char *name,
                           const char *code,
                           const char *type);
 
@@ -76,11 +77,13 @@ extern "C" {
 
     private_extern BRCryptoUnit
     cryptoUnitCreateAsBase (BRCryptoCurrency currency,
+                            const char *uids,
                             const char *name,
                             const char *symbol);
 
     private_extern BRCryptoUnit
     cryptoUnitCreate (BRCryptoCurrency currency,
+                      const char *uids,
                       const char *name,
                       const char *symbol,
                       BRCryptoUnit baseUnit,
@@ -183,8 +186,12 @@ extern "C" {
     cryptoNetworkAddCurrency (BRCryptoNetwork network,
                               BRCryptoCurrency currency,
                               BRCryptoUnit baseUnit,
-                              BRCryptoUnit defaultUnit,
-                              /* ownership given */ BRArrayOf(BRCryptoUnit) units);
+                              BRCryptoUnit defaultUnit);
+
+    private_extern void
+    cryptoNetworkAddCurrencyUnit (BRCryptoNetwork network,
+                                  BRCryptoCurrency currency,
+                                  BRCryptoUnit unit);
 
     private_extern BREthereumNetwork
     cryptoNetworkAsETH (BRCryptoNetwork network);
@@ -193,17 +200,20 @@ extern "C" {
     cryptoNetworkAsBTC (BRCryptoNetwork network);
 
     private_extern BRCryptoNetwork
-    cryptoNetworkCreateAsBTC (const char *name,
+    cryptoNetworkCreateAsBTC (const char *uids,
+                              const char *name,
                               uint8_t forkId,
                               const BRChainParams *params);
 
     private_extern BRCryptoNetwork
-    cryptoNetworkCreateAsETH (const char *name,
+    cryptoNetworkCreateAsETH (const char *uids,
+                              const char *name,
                               uint32_t chainId,
                               BREthereumNetwork net);
 
     private_extern BRCryptoNetwork
-    cryptoNetworkCreateAsGEN (const char *name);
+    cryptoNetworkCreateAsGEN (const char *uids,
+                              const char *name);
     
     private_extern BRCryptoBlockChainType
     cryptoNetworkGetBlockChainType (BRCryptoNetwork network);

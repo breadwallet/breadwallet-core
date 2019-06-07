@@ -35,6 +35,7 @@ cryptoUnitRelease (BRCryptoUnit unit);
 
 struct BRCryptoUnitRecord {
     BRCryptoCurrency currency;
+    char *uids;
     char *name;
     char *symbol;
     BRCryptoUnit base;
@@ -46,11 +47,13 @@ IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoUnit, cryptoUnit)
 
 static BRCryptoUnit
 cryptoUnitCreateInternal (BRCryptoCurrency currency,
-                          const char *name,
+                          const char *uids,
+                         const char *name,
                           const char *symbol) {
     BRCryptoUnit unit = malloc (sizeof (struct BRCryptoUnitRecord));
 
     unit->currency = cryptoCurrencyTake (currency);
+    unit->uids   = strdup (uids);
     unit->name   = strdup (name);
     unit->symbol = strdup (symbol);
     unit->ref = CRYPTO_REF_ASSIGN (cryptoUnitRelease);
@@ -59,9 +62,10 @@ cryptoUnitCreateInternal (BRCryptoCurrency currency,
 
 private_extern BRCryptoUnit
 cryptoUnitCreateAsBase (BRCryptoCurrency currency,
+                        const char *uids,
                         const char *name,
                         const char *symbol) {
-    BRCryptoUnit unit = cryptoUnitCreateInternal (currency, name, symbol);
+    BRCryptoUnit unit = cryptoUnitCreateInternal (currency, uids, name, symbol);
 
     unit->base = NULL;
     unit->decimals = 0;
@@ -71,12 +75,13 @@ cryptoUnitCreateAsBase (BRCryptoCurrency currency,
 
 private_extern BRCryptoUnit
 cryptoUnitCreate (BRCryptoCurrency currency,
+                  const char *uids,
                   const char *name,
                   const char *symbol,
                   BRCryptoUnit baseUnit,
                   uint8_t powerOffset) {
     assert (NULL != baseUnit);
-    BRCryptoUnit unit = cryptoUnitCreateInternal (currency, name, symbol);
+    BRCryptoUnit unit = cryptoUnitCreateInternal (currency, uids, name, symbol);
 
     unit->base = cryptoUnitTake (baseUnit);
     unit->decimals = powerOffset;
@@ -86,7 +91,7 @@ cryptoUnitCreate (BRCryptoCurrency currency,
 
 static void
 cryptoUnitRelease (BRCryptoUnit unit) {
-//    printf ("Unit: Release\n");
+    printf ("Unit: Release\n");
     if (NULL != unit->base) cryptoUnitGive (unit->base);
     cryptoCurrencyGive (unit->currency);
     free (unit->name);
@@ -107,6 +112,11 @@ cryptoUnitGiveAll (BRArrayOf(BRCryptoUnit) units) {
     for (size_t index = 0; index < array_count (units); index++)
         cryptoUnitGive(units[index]);
     return units;
+}
+
+extern const char *
+cryptoUnitGetUids(BRCryptoUnit unit) {
+    return unit->uids;
 }
 
 extern const char *
@@ -143,5 +153,7 @@ cryptoUnitIsCompatible (BRCryptoUnit u1,
 extern BRCryptoBoolean
 cryptoUnitIsIdentical (BRCryptoUnit u1,
                        BRCryptoUnit u2) {
-    return AS_CRYPTO_BOOLEAN (u1 == u2);
+    return AS_CRYPTO_BOOLEAN (u1 == u2
+                              || u1->uids == u2->uids
+                              || 0 == strcmp (u1->uids, u2->uids));
 }

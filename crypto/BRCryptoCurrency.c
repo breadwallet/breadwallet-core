@@ -32,6 +32,7 @@ static void
 cryptoCurrencyRelease (BRCryptoCurrency currency);
 
 struct BRCryptoCurrencyRecord {
+    char *uids;
     char *name;
     char *code;
     char *type;
@@ -41,11 +42,13 @@ struct BRCryptoCurrencyRecord {
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoCurrency, cryptoCurrency)
 
 /* private */ extern BRCryptoCurrency
-cryptoCurrencyCreate (const char *name,
+cryptoCurrencyCreate (const char *uids,
+                      const char *name,
                       const char *code,
                       const char *type) {
     BRCryptoCurrency currency = malloc (sizeof (struct BRCryptoCurrencyRecord));
 
+    currency->uids = strdup (uids);
     currency->name = strdup (name);
     currency->code = strdup (code);
     currency->type = strdup (type);
@@ -56,11 +59,17 @@ cryptoCurrencyCreate (const char *name,
 
 static void
 cryptoCurrencyRelease (BRCryptoCurrency currency) {
-//    printf ("Currency: Release\n");
+    printf ("Currency: Release\n");
     free (currency->type);
     free (currency->code);
     free (currency->name);
+    free (currency->uids);
     free (currency);
+}
+
+extern const char *
+cryptoCurrencyGetUids (BRCryptoCurrency currency) {
+    return currency->uids;
 }
 
 extern const char *
@@ -86,7 +95,9 @@ cryptoCurrencyGetType (BRCryptoCurrency currency) {
 extern BRCryptoBoolean
 cryptoCurrencyIsIdentical (BRCryptoCurrency c1,
                            BRCryptoCurrency c2) {
-    return AS_CRYPTO_BOOLEAN (c1 == c2);
+    return AS_CRYPTO_BOOLEAN (c1 == c2
+                              || c1->uids == c2->uids
+                              || 0 == strcmp (c1->uids, c2->uids));
 }
 
 #if 0
