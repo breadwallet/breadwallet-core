@@ -1048,10 +1048,7 @@ lesHandleSelectError (BREthereumLES les,
 }
 
 static void
-lesThreadBootstrapSeeds (BREthereumLES les) {
-    size_t bootstrappedEndpointsCount = 0;
-
-#if !defined (LES_BOOTSTRAP_LCL_ONLY)
+lesSeedQueryAll (BREthereumLES les) {
     // Create nodes from our network seeds.
     const char **seeds = networkGetSeeds (les->network);
     size_t seedsCount  = networkGetSeedsCount(les->network);
@@ -1064,6 +1061,26 @@ lesThreadBootstrapSeeds (BREthereumLES les) {
 
         lesSeedQuery(&context);
     }
+}
+
+static void
+lesSeedQueryAllThreaded (BREthereumLES les) {
+    pthread_t thread;
+
+    pthread_attr_t attr;
+    pthread_attr_init (&attr);
+    pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_DETACHED);
+    pthread_attr_setstacksize (&attr, 1024 * 1024);
+    pthread_create (&thread, &attr, (ThreadRoutine) lesSeedQueryAll, les);
+    pthread_attr_destroy(&attr);
+}
+
+static void
+lesThreadBootstrapSeeds (BREthereumLES les) {
+    size_t bootstrappedEndpointsCount = 0;
+
+#if !defined (LES_BOOTSTRAP_LCL_ONLY)
+    lesSeedQueryAllThreaded(les);
 #endif // !defined (LES_BOOTSTRAP_LCL_ONLY)
 
     // Create nodes from compiled-in nodes; this is done in case the 'seed' query fails - which
@@ -1120,19 +1137,6 @@ lesThreadBootstrapSeeds (BREthereumLES les) {
     }
 }
 
-static void
-lesThreadBootstrapSeedsThreaded (BREthereumLES les) {
-    pthread_t thread;
-
-    pthread_attr_t attr;
-    pthread_attr_init (&attr);
-    pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_DETACHED);
-    pthread_attr_setstacksize (&attr, 1024 * 1024);
-    pthread_create (&thread, &attr, (ThreadRoutine) lesThreadBootstrapSeeds, les);
-    pthread_attr_destroy(&attr);
-}
-
-
 static void *
 lesThread (BREthereumLES les) {
 #if defined (__ANDROID__)
@@ -1151,7 +1155,7 @@ lesThread (BREthereumLES les) {
     // So, we moved it out of lesCreate() here, in lesThread().
     if (les->isPendingDNSSeeds) {
         les->isPendingDNSSeeds = 0;
-        lesThreadBootstrapSeedsThreaded (les);
+        lesThreadBootstrapSeeds(les);
      }
 
     pthread_mutex_lock (&les->lock);
