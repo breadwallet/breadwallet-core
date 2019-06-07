@@ -336,34 +336,42 @@ final class WalletManagerBtc extends WalletManager<WalletBtc> {
                     Transfer transfer = optTransfer.get();
 
                     switch (event.type) {
-                        case BRTransactionEventType.BITCOIN_TRANSACTION_ADDED:
-                            Log.d(TAG, "BRTransactionEventCallback: BITCOIN_TRANSACTION_ADDED");
+                        case BRTransactionEventType.BITCOIN_TRANSACTION_ADDED: {
+                            UnsignedLong blockHeight = UnsignedLong.fromLongBits(transactionImpl.blockHeight);
+                            UnsignedLong timestamp = UnsignedLong.fromLongBits(transactionImpl.timestamp);
+                            Log.d(TAG, String.format("BRTransactionEventCallback: BITCOIN_TRANSACTION_ADDED (%s, %s)", blockHeight, timestamp));
 
                             announcer.announceTransferEvent(this, wallet, transfer, new TransferCreatedEvent());
                             announcer.announceWalletEvent(this, wallet, new WalletTransferAddedEvent(transfer));
-                            break;
-                        case BRTransactionEventType.BITCOIN_TRANSACTION_DELETED:
-                            Log.d(TAG, "BRTransactionEventCallback: BITCOIN_TRANSACTION_DELETED");
 
-                            announcer.announceTransferEvent(this, wallet, transfer, new TransferDeletedEvent());
-                            announcer.announceWalletEvent(this, wallet, new WalletTransferDeletedEvent(transfer));
-                            break;
-                        case BRTransactionEventType.BITCOIN_TRANSACTION_UPDATED:
-                            UnsignedLong blockHeight = UnsignedLong.fromLongBits(event.u.updated.blockHeight);
-                            UnsignedLong timestamp = UnsignedLong.fromLongBits(event.u.updated.timestamp);
-                            Log.d(TAG, String.format("BRTransactionEventCallback: BITCOIN_TRANSACTION_UPDATED (%s, %s)", blockHeight, timestamp));
-
-                            Optional<Amount> optionalAmount = Amount.create(0, getDefaultUnit());
-                            if (optionalAmount.isPresent()) {
-                                TransferConfirmation confirmation = new TransferConfirmation(blockHeight, UnsignedLong.ZERO, timestamp, optionalAmount.get());
-
+                            if (0 != transactionImpl.timestamp && transactionImpl.blockHeight != BRTransaction.TX_UNCONFIRMED) {
+                                TransferConfirmation confirmation = new TransferConfirmation(blockHeight, UnsignedLong.ZERO, timestamp, transfer.getFee());
                                 TransferState newState = TransferState.INCLUDED(confirmation);
                                 TransferState oldState = transfer.setState(newState);
 
                                 announcer.announceTransferEvent(this, wallet, transfer, new TransferChangedEvent(oldState, newState));
                             }
-
                             break;
+                        }
+                        case BRTransactionEventType.BITCOIN_TRANSACTION_DELETED: {
+                            Log.d(TAG, "BRTransactionEventCallback: BITCOIN_TRANSACTION_DELETED");
+
+                            announcer.announceTransferEvent(this, wallet, transfer, new TransferDeletedEvent());
+                            announcer.announceWalletEvent(this, wallet, new WalletTransferDeletedEvent(transfer));
+                            break;
+                        }
+                        case BRTransactionEventType.BITCOIN_TRANSACTION_UPDATED: {
+                            UnsignedLong blockHeight = UnsignedLong.fromLongBits(event.u.updated.blockHeight);
+                            UnsignedLong timestamp = UnsignedLong.fromLongBits(event.u.updated.timestamp);
+                            Log.d(TAG, String.format("BRTransactionEventCallback: BITCOIN_TRANSACTION_UPDATED (%s, %s)", blockHeight, timestamp));
+
+                            TransferConfirmation confirmation = new TransferConfirmation(blockHeight, UnsignedLong.ZERO, timestamp, transfer.getFee());
+                            TransferState newState = TransferState.INCLUDED(confirmation);
+                            TransferState oldState = transfer.setState(newState);
+
+                            announcer.announceTransferEvent(this, wallet, transfer, new TransferChangedEvent(oldState, newState));
+                            break;
+                        }
                         default:
                             throw new IllegalStateException(String.format("Unsupported BRTransactionEventCallback type: %s", event.type));
                     }
@@ -416,14 +424,14 @@ final class WalletManagerBtc extends WalletManager<WalletBtc> {
                                 TransferState newState = TransferState.SUBMITTED();
                                 TransferState oldState = transfer.setState(newState);
 
-                                announcer.announceTransferEvent(this, wallet, optTransfer.get(), new TransferChangedEvent(oldState, newState));
-                                announcer.announceWalletEvent(this, wallet, new WalletTransferSubmittedEvent(optTransfer.get()));
+                                announcer.announceTransferEvent(this, wallet, transfer, new TransferChangedEvent(oldState, newState));
+                                announcer.announceWalletEvent(this, wallet, new WalletTransferSubmittedEvent(transfer));
 
                             } else {
                                 TransferState newState = TransferState.FAILED("Failed with error code " + event.u.submitted.error);
                                 TransferState oldState = transfer.setState(newState);
 
-                                announcer.announceTransferEvent(this, wallet, optTransfer.get(), new TransferChangedEvent(oldState, newState));
+                                announcer.announceTransferEvent(this, wallet, transfer, new TransferChangedEvent(oldState, newState));
                             }
                         }
                         break;

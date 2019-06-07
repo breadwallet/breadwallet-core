@@ -11,5 +11,17 @@ package com.breadwallet.crypto;
 
 public enum WalletState {
     CREATED,
-    DELETED
+    DELETED;
+
+    @Override
+    public String toString() {
+        switch (this) {
+            case CREATED:
+                return "Created";
+            case DELETED:
+                return "Deleted";
+            default:
+                return super.toString();
+        }
+    }
 }

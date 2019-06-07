@@ -146,7 +146,17 @@ final class TransferBtc extends Transfer {
         if (UnsignedLong.MAX_VALUE.equals(fee)) {
             fee = UnsignedLong.ZERO;
         }
-        return Amount.createAsBtc(fee, defaultUnit);
+
+        switch (getDirection()) {
+            case RECOVERED:
+                return Amount.createAsBtc(fee, defaultUnit);
+            case SENT:
+                return Amount.createAsBtc(fee, defaultUnit);
+            case RECEIVED:
+                return Amount.createAsBtc(UnsignedLong.ZERO, defaultUnit);
+            default:
+                throw new IllegalStateException("Invalid transfer direction");
+        }
     }
 
     @Override
