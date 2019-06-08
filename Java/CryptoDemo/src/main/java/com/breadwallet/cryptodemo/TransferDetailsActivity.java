@@ -1,10 +1,15 @@
 package com.breadwallet.cryptodemo;
 
 import android.app.Activity;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.breadwallet.crypto.Address;
 import com.breadwallet.crypto.System;
@@ -63,6 +68,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
 
     private Wallet wallet;
     private Transfer transfer;
+    private ClipboardManager clipboardManager;
 
     private TextView amountView;
     private TextView feeView;
@@ -73,6 +79,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
     private TextView confirmationView;
     private TextView confirmationCountView;
     private TextView stateView;
+    private TextView directionView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -95,6 +102,8 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
             return;
         }
 
+        clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+
         amountView = findViewById(R.id.amount_view);
         feeView = findViewById(R.id.fee_view);
         dateView = findViewById(R.id.date_view);
@@ -104,6 +113,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
         confirmationView = findViewById(R.id.confirmation_view);
         confirmationCountView = findViewById(R.id.confirmation_count_view);
         stateView = findViewById(R.id.state_view);
+        directionView = findViewById(R.id.direction_view);
     }
 
     @Override
@@ -114,21 +124,26 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
 
         String amountText = transfer.getAmountDirected().toString();
         amountView.setText(amountText);
+        amountView.setOnClickListener(v -> copyPlaintext("Amount", amountView.getText()));
 
         String feeText = transfer.getFee().toString();
         feeView.setText(feeText);
+        feeView.setOnClickListener(v -> copyPlaintext("Fee", feeView.getText()));
 
         String dateText = transfer.getConfirmation().transform((c) -> DATE_FORMAT.format(c.getConfirmationTime())).or("<pending>");
         dateView.setText(dateText);
 
         String senderText = transfer.getSource().transform(Address::toString).or("<unknown>");
         senderView.setText(senderText);
+        senderView.setOnClickListener(v -> copyPlaintext("Sender", senderView.getText()));
 
         String receiverText = transfer.getTarget().transform(Address::toString).or("<unknown>");
         receiverView.setText(receiverText);
+        receiverView.setOnClickListener(v -> copyPlaintext("Receiver", receiverView.getText()));
 
         String identifierText = transfer.getHash().transform(TransferHash::toString).or("<pending>");
         identifierView.setText(identifierText);
+        identifierView.setOnClickListener(v -> copyPlaintext("Identifier", identifierView.getText()));
 
         String confirmationText = transfer.getConfirmation().transform((c) -> "Yes @ " + c.getBlockNumber()).or("No");
         confirmationView.setText(confirmationText);
@@ -138,6 +153,9 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
 
         String stateText = transfer.getState().toString();
         stateView.setText(stateText);
+
+        String directionText = transfer.getDirection().toString();
+        directionView.setText(directionText);
     }
 
     @Override
@@ -177,5 +195,10 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
                 }
             });
         });
+    }
+
+    private void copyPlaintext(String label, CharSequence value) {
+        clipboardManager.setPrimaryClip(ClipData.newPlainText(label, value));
+        Toast.makeText(getApplicationContext(), String.format("Copied \"%s\" to clipboard", value), Toast.LENGTH_SHORT).show();
     }
 }

@@ -14,5 +14,23 @@ public enum WalletManagerState {
     DISCONNECTED,
     CONNECTED,
     SYNCING,
-    DELETED
+    DELETED;
+
+    @Override
+    public String toString() {
+        switch (this) {
+            case DELETED:
+                return "Deleted";
+            case CREATED:
+                return "Created";
+            case SYNCING:
+                return "Syncing";
+            case CONNECTED:
+                return "Connected";
+            case DISCONNECTED:
+                return "Disconnected";
+            default:
+                return super.toString();
+        }
+    }
 }

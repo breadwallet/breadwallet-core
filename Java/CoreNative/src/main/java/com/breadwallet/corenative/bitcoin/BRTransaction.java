@@ -20,6 +20,8 @@ import static com.google.common.base.Preconditions.checkState;
 
 public class BRTransaction extends Structure implements CoreBRTransaction {
 
+    public static final int TX_UNCONFIRMED = (int)(2147483647);
+
     public UInt256 txHash;
     public UInt256 wtxHash;
     public int version;
