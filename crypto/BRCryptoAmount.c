@@ -45,17 +45,25 @@ struct BRCryptoAmountRecord {
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoAmount, cryptoAmount);
 
 private_extern BRCryptoAmount
-cryptoAmountCreate (BRCryptoCurrency currency,
-                    BRCryptoBoolean isNegative,
-                    UInt256 value) {
+cryptoAmountCreateInternal (BRCryptoCurrency currency,
+                            BRCryptoBoolean isNegative,
+                            UInt256 value,
+                            int takeCurrency) {
     BRCryptoAmount amount = malloc (sizeof (struct BRCryptoAmountRecord));
 
-    amount->currency = cryptoCurrencyTake (currency);
+    amount->currency = takeCurrency ? cryptoCurrencyTake (currency) : currency;
     amount->isNegative = isNegative;
     amount->value = value;
     amount->ref = CRYPTO_REF_ASSIGN (cryptoAmountRelease);
 
     return amount;
+}
+
+private_extern BRCryptoAmount
+cryptoAmountCreate (BRCryptoCurrency currency,
+                    BRCryptoBoolean isNegative,
+                    UInt256 value) {
+    return cryptoAmountCreateInternal (currency, isNegative, value, 1);
 }
 
 static BRCryptoAmount
@@ -70,9 +78,7 @@ cryptoAmountCreateUInt256 (UInt256 v,
         v = mulUInt256_Overflow (v, createUInt256Power(decimals, &powOverflow), &mulOverflow);
 
     return (powOverflow || mulOverflow ? NULL
-            : cryptoAmountCreate (cryptoUnitGetCurrency(unit),
-                                  isNegative,
-                                  v));
+            : cryptoAmountCreateInternal (cryptoUnitGetCurrency (unit), isNegative, v, 0));
 }
 
 extern BRCryptoAmount
@@ -83,9 +89,10 @@ cryptoAmountCreateDouble (double value,
 
     if (v > INT64_MAX) return NULL;
 
-    return cryptoAmountCreate (cryptoUnitGetCurrency(unit),
-                               (value < 0.0 ? CRYPTO_TRUE : CRYPTO_FALSE),
-                               createUInt256((uint64_t) v));
+    return cryptoAmountCreateInternal (cryptoUnitGetCurrency(unit),
+                                       (value < 0.0 ? CRYPTO_TRUE : CRYPTO_FALSE),
+                                       createUInt256((uint64_t) v),
+                                       0);
 }
 
 extern BRCryptoAmount
@@ -110,6 +117,7 @@ cryptoAmountCreateString (const char *value,
     if (CORE_PARSE_OK != status) {
         v = createUInt256ParseDecimal (value, cryptoUnitGetBaseDecimalOffset (unit), &status);
         unit = cryptoUnitGetBaseUnit(unit);
+        cryptoUnitGive(unit);
     }
 
     return (CORE_PARSE_OK != status ? NULL : cryptoAmountCreateUInt256 (v, isNegative, unit));
@@ -124,7 +132,13 @@ cryptoAmountRelease (BRCryptoAmount amount) {
 
 extern BRCryptoCurrency
 cryptoAmountGetCurrency (BRCryptoAmount amount) {
-    return amount->currency; // take?
+    return cryptoCurrencyTake (amount->currency);
+}
+
+extern BRCryptoBoolean
+cryptoAmountHasCurrency (BRCryptoAmount amount,
+                         BRCryptoCurrency currency) {
+    return AS_CRYPTO_BOOLEAN (amount->currency == currency);
 }
 
 extern BRCryptoBoolean
@@ -135,7 +149,7 @@ cryptoAmountIsNegative (BRCryptoAmount amount) {
 extern BRCryptoBoolean
 cryptoAmountIsCompatible (BRCryptoAmount a1,
                           BRCryptoAmount a2) {
-    return cryptoCurrencyIsIdentical(a1->currency, a2->currency);
+    return cryptoCurrencyIsIdentical (a1->currency, a2->currency);
 }
 
 static BRCryptoComparison

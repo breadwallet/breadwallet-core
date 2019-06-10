@@ -63,14 +63,17 @@ extern "C" {
             } state;
 
             struct {
+                /// Handler must 'give'
                 BRCryptoTransfer value;
             } transfer;
 
             struct {
+                /// Handler must 'give'
                 BRCryptoAmount amount;
             } balanceUpdated;
 
             struct {
+                /// Handler must 'give'
                 BRCryptoFeeBasis basis;
             } feeBasisUpdated;
         } u;
@@ -79,26 +82,61 @@ extern "C" {
     extern BRCryptoWalletState
     cryptoWalletGetState (BRCryptoWallet wallet);
     
+    /**
+     * Returns the wallet's currency
+     *
+     * @param wallet the wallet
+     *
+     * @return The currency w/ an incremented reference count (aka 'taken')
+     */
     extern BRCryptoCurrency
     cryptoWalletGetCurrency (BRCryptoWallet wallet);
 
+    /**
+     * Returns the wallet's (default) unit.  Used for *display* of the wallet's balance.
+     *
+     * @param wallet The wallet
+     *
+     * @return the unit w/ an incremented reference count (aka 'taken')
+     */
+    extern BRCryptoUnit
+    cryptoWalletGetUnit (BRCryptoWallet wallet);
+
+    /**
+     * Returns the wallet's fee unit.
+     *
+     * @param wallet The wallet
+     *
+     * @return the fee unit w/ an incremented reference count (aka 'taken')
+     */
     extern BRCryptoUnit
     cryptoWalletGetUnitForFee (BRCryptoWallet wallet);
     
-    extern BRCryptoAmount
+    /**
+     * Returns the wallets balance
+     *
+     * @param wallet the wallet
+     *
+     * @return the balance
+     */
+   extern BRCryptoAmount
     cryptoWalletGetBalance (BRCryptoWallet wallet);
 
     extern size_t
     cryptoWalletGetTransferCount (BRCryptoWallet wallet);
 
-    extern void
-    cryptoWalletAddTransfer (BRCryptoWallet wallet, BRCryptoTransfer transfer);
-
-    extern void
-    cryptoWalletRemTransfer (BRCryptoWallet wallet, BRCryptoTransfer transfer);
-
-    extern BRCryptoTransfer
-    cryptoWalletGetTransfer (BRCryptoWallet wallet, size_t index);
+    /**
+     * Returns the wallet's transfer at `index`.  The index must satisfy [0, count) otherwise
+     * an assertion is signaled.
+     *
+     * @param wallet the wallet
+     * @param index the desired transfer index
+     *
+     * @return The transfer w/ an incremented reference count (aka 'taken')
+     */
+   extern BRCryptoTransfer
+    cryptoWalletGetTransfer (BRCryptoWallet wallet,
+                             size_t index);
 
     extern BRCryptoAddress
     cryptoWalletGetAddress (BRCryptoWallet wallet);

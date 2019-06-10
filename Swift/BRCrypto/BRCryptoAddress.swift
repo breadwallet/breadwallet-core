@@ -19,8 +19,12 @@ import BRCryptoC
 public final class Address: Equatable, CustomStringConvertible {
     let core: BRCryptoAddress
 
-    internal init (core: BRCryptoAddress) {
-        self.core = core
+    internal init (core: BRCryptoAddress, take: Bool) {
+        self.core = take ? cryptoAddressTake(core) : core
+    }
+
+    internal convenience init (core: BRCryptoAddress) {
+        self.init (core: core, take: true)
     }
 
     public private(set) lazy var description: String = {
@@ -48,21 +52,21 @@ public final class Address: Equatable, CustomStringConvertible {
     internal static func createAsBTC (_ string: String) -> Address? {
         guard 1 == BRAddressIsValid (string)
             else { return nil }
-        return Address (core: cryptoAddressCreateAsBTC(BRAddressFill (string)))
+        return Address (core: cryptoAddressCreateAsBTC(BRAddressFill (string)), take: false)
     }
 
     internal static func createAsETH (_ string: String) -> Address? {
         guard ETHEREUM_BOOLEAN_TRUE == addressValidateString (string)
             else { return nil }
-        return Address (core: cryptoAddressCreateAsETH (addressCreate(string)))
+        return Address (core: cryptoAddressCreateAsETH (addressCreate(string)), take: false)
     }
 
     internal static func createAsETH (_ eth: BREthereumAddress) -> Address  {
-        return Address (core: cryptoAddressCreateAsETH (eth))
+        return Address (core: cryptoAddressCreateAsETH (eth), take: false)
     }
 
     internal static func createAsBTC (_ btc: BRAddress) -> Address  {
-        return Address (core: cryptoAddressCreateAsBTC (btc))
+        return Address (core: cryptoAddressCreateAsBTC (btc), take: false)
     }
 
     deinit {

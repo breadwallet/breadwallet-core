@@ -139,6 +139,11 @@ cryptoWalletGetCurrency (BRCryptoWallet wallet) {
     return cryptoUnitGetCurrency(wallet->unit);
 }
 
+extern BRCryptoUnit
+cryptoWalletGetUnit (BRCryptoWallet wallet) {
+    return cryptoUnitTake (wallet->unit);
+}
+
 extern BRCryptoWalletState
 cryptoWalletGetState (BRCryptoWallet wallet) {
     return wallet->state;
@@ -152,13 +157,13 @@ cryptoWalletSetState (BRCryptoWallet wallet,
 
 extern BRCryptoUnit
 cryptoWalletGetUnitForFee (BRCryptoWallet wallet) {
-    return wallet->unitForFee;
+    return cryptoUnitTake (wallet->unitForFee);
 }
 
 extern BRCryptoAmount
 cryptoWalletGetBalance (BRCryptoWallet wallet) {
     UInt256 value = UINT256_ZERO;
-    return cryptoAmountCreate (cryptoUnitGetCurrency (wallet->unit), CRYPTO_FALSE, value);
+    return cryptoAmountCreateInternal (cryptoUnitGetCurrency (wallet->unit), CRYPTO_FALSE, value, 0);
 }
 
 static BRCryptoBoolean
@@ -175,7 +180,7 @@ cryptoWalletFindTransferAsBTC (BRCryptoWallet wallet,
                                BRTransaction *btc) {
     for (size_t index = 0; index < array_count(wallet->transfers); index++)
         if (CRYPTO_TRUE == cryptoTransferHasBTC (wallet->transfers[index], btc))
-            return wallet->transfers[index];
+            return cryptoTransferTake (wallet->transfers[index]);
     return NULL;
 }
 
@@ -184,18 +189,18 @@ cryptoWalletFindTransferAsETH (BRCryptoWallet wallet,
                                BREthereumTransfer eth) {
     for (size_t index = 0; index < array_count(wallet->transfers); index++)
         if (CRYPTO_TRUE == cryptoTransferHasETH (wallet->transfers[index], eth))
-            return wallet->transfers[index];
+            return cryptoTransferTake (wallet->transfers[index]);
     return NULL;
 }
 
-extern void
+private_extern void
 cryptoWalletAddTransfer (BRCryptoWallet wallet,
                          BRCryptoTransfer transfer) {
     if (CRYPTO_FALSE == cyptoWalletHasTransfer (wallet, transfer))
         array_add (wallet->transfers, cryptoTransferTake(transfer));
 }
 
-extern void
+private_extern void
 cryptoWalletRemTransfer (BRCryptoWallet wallet, BRCryptoTransfer transfer) {
     for (size_t index = 0; index < array_count(wallet->transfers); index++)
         if (CRYPTO_TRUE == cryptoTransferEqual (wallet->transfers[index], transfer)) {
@@ -212,7 +217,7 @@ cryptoWalletGetTransferCount (BRCryptoWallet wallet) {
 
 extern BRCryptoTransfer
 cryptoWalletGetTransfer (BRCryptoWallet wallet, size_t index) {
-    return wallet->transfers[index];
+    return cryptoTransferTake (wallet->transfers[index]);
 }
 
 //
@@ -235,6 +240,7 @@ cryptoWalletGetAddress (BRCryptoWallet wallet) {
             return cryptoAddressCreateAsETH (ethAddress);
         }
         case BLOCK_CHAIN_TYPE_GEN:
+            assert (0);
             return NULL;
     }
 }
@@ -257,6 +263,7 @@ cryptoWalletGetDefaultFeeBasis (BRCryptoWallet wallet) {
             return cryptoFeeBasisCreateAsETH (gas, gasPrice);
         }
         case BLOCK_CHAIN_TYPE_GEN:
+            assert (0);
             return NULL;
     }
 }
@@ -377,10 +384,11 @@ cryptoWalletEstimateFee (BRCryptoWallet wallet,
             BREthereumEther ethFee = ewmWalletEstimateTransferFeeForBasis (ewm, wid, ethAmount, ethFeeBasis.u.gas.price, ethFeeBasis.u.gas.limit, &overflow);
 
             assert (!overflow);
-            return cryptoAmountCreate (cryptoUnitGetCurrency(feeUnit), CRYPTO_FALSE, ethFee.valueInWEI);
-            break;
+            return cryptoAmountCreateInternal (cryptoUnitGetCurrency(feeUnit), CRYPTO_FALSE, ethFee.valueInWEI, 0);
         }
+            
         case BLOCK_CHAIN_TYPE_GEN:
+            assert (0);
             return NULL;
     }
 }

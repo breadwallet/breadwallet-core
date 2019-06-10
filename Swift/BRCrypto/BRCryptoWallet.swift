@@ -43,7 +43,7 @@ public final class Wallet {
 
     /// The current balance for currency
     public var balance: Amount {
-        return Amount (core: cryptoWalletGetBalance (core), unit: unit)
+        return Amount (core: cryptoWalletGetBalance (core), unit: unit, take: false)
     }
 
 
@@ -51,10 +51,11 @@ public final class Wallet {
     public var transfers: [Transfer] {
         let listener = manager.system.listener
         return (0..<cryptoWalletGetTransferCount(core))
-            .map { Transfer (core: cryptoTransferTake (cryptoWalletGetTransfer (core, $0)),
-                                  listener: listener,
-                                  wallet: self,
-                                  unit: unit) }
+            .map { Transfer (core: cryptoWalletGetTransfer (core, $0),
+                             listener: listener,
+                             wallet: self,
+                             unit: unit,
+                             take: false) }
     }
 
     /// Use a hash to lookup a transfer
@@ -77,7 +78,8 @@ public final class Wallet {
                 : Transfer (core: core,
                             listener: listener,
                             wallet: self,
-                            unit: unit))
+                            unit: unit,
+                            take: true))
     }
 
     /// The current state.
@@ -88,7 +90,7 @@ public final class Wallet {
     /// The default TransferFeeBasis for created transfers.
     public var defaultFeeBasis: TransferFeeBasis {
         get {
-            return TransferFeeBasis (core: cryptoWalletGetDefaultFeeBasis (core)) }
+            return TransferFeeBasis (core: cryptoWalletGetDefaultFeeBasis (core), take: false) }
         set {
             let defaultFeeBasis = newValue // rename, for clarity
             cryptoWalletSetDefaultFeeBasis (core, defaultFeeBasis.core);
@@ -97,16 +99,16 @@ public final class Wallet {
     }
 
     /// The default TransferFactory for creating transfers.
-//    var transferFactory: TransferFactory { get set }
+    //    var transferFactory: TransferFactory { get set }
 
     /// An address suitable for a transfer target (receiving).  Uses the default Address Scheme
     public var target: Address {
-        return Address (core: cryptoWalletGetAddress (core))
+        return Address (core: cryptoWalletGetAddress (core), take: false)
     }
 
     /// An address suitable for a transfer source (sending).  Uses the default AddressScheme
     public var source: Address {
-        return Address (core: cryptoWalletGetAddress (core))
+        return Address (core: cryptoWalletGetAddress (core), take: false)
     }
 
     // address scheme
@@ -128,11 +130,11 @@ public final class Wallet {
                          amount: Amount,
                          feeBasis: TransferFeeBasis) -> Transfer? {
         return cryptoWalletCreateTransfer (core, target.core, amount.core, feeBasis.core)
-            .map {
-                Transfer (core: $0,
-                          listener: self.manager.system.listener,
-                          wallet: self,
-                          unit: amount.unit)
+            .map { Transfer (core: $0,
+                             listener: self.manager.system.listener,
+                             wallet: self,
+                             unit: amount.unit,
+                             take: false)
         }
     }
 
@@ -151,15 +153,17 @@ public final class Wallet {
         precondition (amount.hasCurrency (currency))
         let unit = manager.network.baseUnitFor (currency: manager.currency)!
         return Amount (core: cryptoWalletEstimateFee (core, amount.core, feeBasis?.core, unit.core),
-                       unit: unit)
+                       unit: unit,
+                       take: false)
     }
 
 
     internal init (core: BRCryptoWallet,
                    listener: WalletListener?,
                    manager: WalletManager,
-                   unit: Unit) {
-        self.core = core
+                   unit: Unit,
+                   take: Bool) {
+        self.core = take ? cryptoWalletTake (core) : core
         self.listener = listener
         self.manager = manager
         //self.name = unit.currency.code
@@ -167,7 +171,7 @@ public final class Wallet {
         // self.state = WalletState.created
 
         print ("SYS: Wallet (\(manager.name):\(name)): Init")
-//        manager.add (wallet: self)
+        //        manager.add (wallet: self)
     }
 
     internal func announceEvent (_ event: WalletEvent) {
@@ -184,16 +188,16 @@ public final class Wallet {
 
 extension Wallet {
     // Default implementation, using `transferFactory`
-//    public func createTransfer (listener: TransferListener,
-//                                target: Address,
-//                                amount: Amount,
-//                                feeBasis: TransferFeeBasis) -> Transfer? {
-//        return transferFactory.createTransfer (listener: listener,
-//                                               wallet: self,
-//                                               target: target,
-//                                               amount: amount,
-//                                               feeBasis: feeBasis)
-//    }
+    //    public func createTransfer (listener: TransferListener,
+    //                                target: Address,
+    //                                amount: Amount,
+    //                                feeBasis: TransferFeeBasis) -> Transfer? {
+    //        return transferFactory.createTransfer (listener: listener,
+    //                                               wallet: self,
+    //                                               target: target,
+    //                                               amount: amount,
+    //                                               feeBasis: feeBasis)
+    //    }
 
     ///
     /// Create a transfer for wallet using the `defaultFeeBasis`.  Invokes the wallet's
@@ -303,7 +307,7 @@ public protocol WalletFactory {
     ///
     /// - Returns: A new wallet
     ///
-//    func createWallet (manager: WalletManager,
-//                       currency: Currency) -> Wallet
+    //    func createWallet (manager: WalletManager,
+    //                       currency: Currency) -> Wallet
 }
 

@@ -191,12 +191,13 @@ cryptoNetworkSetHeight (BRCryptoNetwork network,
 
 extern BRCryptoCurrency
 cryptoNetworkGetCurrency (BRCryptoNetwork network) {
-    return network->currency;
+    return cryptoCurrencyTake (network->currency);
 }
 
 private_extern void
 cryptoNetworkSetCurrency (BRCryptoNetwork network,
                           BRCryptoCurrency currency) {
+    if (NULL != network->currency) cryptoCurrencyGive (network->currency);
     network->currency = cryptoCurrencyTake(currency);
 }
 
@@ -209,7 +210,7 @@ extern BRCryptoCurrency
 cryptoNetworkGetCurrencyAt (BRCryptoNetwork network,
                             size_t index) {
     assert (index < array_count(network->associations));
-    return network->associations[index].currency;
+    return cryptoCurrencyTake (network->associations[index].currency);
 }
 
 extern BRCryptoBoolean
@@ -226,7 +227,7 @@ cryptoNetworkGetCurrencyForCode (BRCryptoNetwork network,
                                    const char *code) {
     for (size_t index = 0; index < array_count(network->associations); index++)
         if (0 == strcmp (code, cryptoCurrencyGetCode (network->associations[index].currency)))
-            return network->associations[index].currency;
+            return cryptoCurrencyTake (network->associations[index].currency);
     return NULL;
 }
 
@@ -243,14 +244,14 @@ extern BRCryptoUnit
 cryptoNetworkGetUnitAsBase (BRCryptoNetwork network,
                             BRCryptoCurrency currency) {
     BRCryptoCurrencyAssociation *association = cryptoNetworkLookupCurrency (network, currency);
-    return NULL == association ? NULL : association->baseUnit;
+    return NULL == association ? NULL : cryptoUnitTake (association->baseUnit);
 }
 
 extern BRCryptoUnit
 cryptoNetworkGetUnitAsDefault (BRCryptoNetwork network,
                                BRCryptoCurrency currency) {
     BRCryptoCurrencyAssociation *association = cryptoNetworkLookupCurrency (network, currency);
-    return NULL == association ? NULL : association->defaultUnit;
+    return NULL == association ? NULL : cryptoUnitTake (association->defaultUnit);
 }
 
 extern size_t
@@ -259,7 +260,7 @@ cryptoNetworkGetUnitCount (BRCryptoNetwork network,
     BRCryptoCurrencyAssociation *association = cryptoNetworkLookupCurrency (network, currency);
     return ((NULL == association || NULL == association->units)
             ? 0
-            : array_count(association->units));
+            : array_count (association->units));
 }
 
 extern BRCryptoUnit
@@ -268,8 +269,8 @@ cryptoNetworkGetUnitAt (BRCryptoNetwork network,
                         size_t index) {
     BRCryptoCurrencyAssociation *association = cryptoNetworkLookupCurrency (network, currency);
     return ((NULL == association || NULL == association->units || index >= array_count(association->units))
-            ? 0
-            : association->units[index]);
+            ? NULL
+            : cryptoUnitTake (association->units[index]));
 }
 
 private_extern void

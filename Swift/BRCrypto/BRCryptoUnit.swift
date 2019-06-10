@@ -24,7 +24,9 @@ import BRCryptoC
 public final class Unit: Hashable {
     internal let core: BRCryptoUnit
 
-    public let currency: Currency
+    public var currency: Currency {
+        return Currency (core: cryptoUnitGetCurrency(core), take: false)
+    }
 
     internal var uids: String {
         return asUTF8String (cryptoUnitGetUids (core))
@@ -40,7 +42,7 @@ public final class Unit: Hashable {
 
     public var base: Unit {
         return cryptoUnitGetBaseUnit (core)
-            .map { Unit (core: cryptoUnitTake($0), currency: currency) } ?? self
+            .map { Unit (core: $0, take: false) } ?? self
     }
 
     public var decimals: UInt8 {
@@ -52,19 +54,16 @@ public final class Unit: Hashable {
     }
 
     public func hasCurrency (_ currency: Currency) -> Bool {
-        return currency.core == cryptoUnitGetCurrency (core)
+        return CRYPTO_TRUE == cryptoUnitHasCurrency (core, currency.core);
     }
 
     internal init (core: BRCryptoUnit,
-                   currency: Currency,
                    take: Bool) {
         self.core = take ? cryptoUnitTake(core) : core
-        self.currency = currency
     }
 
-    internal convenience init (core: BRCryptoUnit,
-                               currency: Currency) {
-        self.init (core: core, currency: currency, take: true)
+    internal convenience init (core: BRCryptoUnit) {
+        self.init (core: core, take: true)
     }
 
     internal convenience init (currency: Currency,
@@ -72,7 +71,6 @@ public final class Unit: Hashable {
                                name: String,
                                symbol: String) {
         self.init (core: cryptoUnitCreateAsBase (currency.core, uids, name, symbol),
-                   currency: currency,
                    take: false)
     }
 
@@ -83,7 +81,6 @@ public final class Unit: Hashable {
                                base: Unit,
                                decimals: UInt8) {
         self.init (core: cryptoUnitCreate (currency.core, uids, name, symbol, base.core, decimals),
-                   currency: currency,
                    take: false)
     }
 

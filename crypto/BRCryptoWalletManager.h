@@ -75,6 +75,7 @@ extern "C" {
             } state;
 
             struct {
+                /// Handler must 'give'
                 BRCryptoWallet value;
             } wallet;
 
@@ -92,16 +93,18 @@ extern "C" {
     
     typedef void *BRCryptoCWMListenerContext;
 
+    /// Handler must 'give': manager, event.wallet.value
     typedef void (*BRCryptoCWMListenerWalletManagerEvent) (BRCryptoCWMListenerContext context,
                                                            BRCryptoWalletManager manager,
                                                            BRCryptoWalletManagerEvent event);
 
-
+    /// Handler must 'give': manager, wallet, event.*
     typedef void (*BRCryptoCWMListenerWalletEvent) (BRCryptoCWMListenerContext context,
                                                     BRCryptoWalletManager manager,
                                                     BRCryptoWallet wallet,
                                                     BRCryptoWalletEvent event);
 
+    /// Handler must 'give': manager, wallet, transfer
     typedef void (*BRCryptoCWMListenerTransferEvent) (BRCryptoCWMListenerContext context,
                                                       BRCryptoWalletManager manager,
                                                       BRCryptoWallet wallet,

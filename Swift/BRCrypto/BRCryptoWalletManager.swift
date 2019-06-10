@@ -47,20 +47,22 @@ public final class WalletManager {
     /// transfer (like BRD transfer => ETH fee)
     public lazy var primaryWallet: Wallet = {
         // Find a preexisting wallet (unlikely) or create one.
-        return Wallet (core: cryptoWalletTake (cryptoWalletManagerGetWallet(core)),
+        return Wallet (core: cryptoWalletManagerGetWallet(core),
                        listener: system.listener,
                        manager: self,
-                       unit: unit)
+                       unit: unit,
+                       take: false)
     }()
 
     /// The managed wallets - often will just be [primaryWallet]
     public var wallets: [Wallet] {
         let listener = system.listener
         return (0..<cryptoWalletManagerGetWalletsCount(core))
-            .map { Wallet (core: cryptoWalletTake (cryptoWalletManagerGetWalletAtIndex (core, $0)),
+            .map { Wallet (core: cryptoWalletManagerGetWalletAtIndex (core, $0),
                            listener: listener,
                            manager: self,
-                           unit: unit) }
+                           unit: unit,
+                           take: false) }
     }
 
     ///
@@ -73,10 +75,11 @@ public final class WalletManager {
         return (0..<cryptoWalletManagerGetWalletsCount(core))
             .map { cryptoWalletManagerGetWalletAtIndex (self.core, $0) }
             .first { core == $0 }
-            .map { Wallet (core: cryptoWalletTake($0),
+            .map { Wallet (core: $0,
                            listener: system.listener,
                            manager: self,
-                           unit: unit) }
+                           unit: unit,
+                           take: false) }
     }
 
     // The mode determines how the manager manages the account and wallets on network
@@ -316,8 +319,11 @@ extension WalletManager {
 
             walletManagerEventCallback: { (context, cwm, event) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                defer {
+                    if let cwm = cwm { cryptoWalletManagerGive(cwm) }
+                }
 
-                guard let _ = cwm
+                guard let cwm = cwm
                     else { print ("SYS: Event: \(event.type): Missed {cwm}"); return }
 
                 print ("SYS: Event: Manager (\(manager.name)): \(event.type)")
@@ -339,6 +345,7 @@ extension WalletManager {
                                                           event: WalletManagerEvent.deleted)
 
                 case CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED:
+                    defer { if let wid = event.u.wallet.value { cryptoWalletGive (wid) }}
                     guard let wallet = manager.walletBy (core: event.u.wallet.value)
                         else { print ("SYS: Event: \(event.type): Missed (wallet)"); return }
                     manager.listener?.handleManagerEvent (system: manager.system,
@@ -346,6 +353,7 @@ extension WalletManager {
                                                           event: WalletManagerEvent.walletAdded (wallet: wallet))
 
                 case CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED:
+                    defer { if let wid = event.u.wallet.value { cryptoWalletGive (wid) }}
                     guard let wallet = manager.walletBy (core: event.u.wallet.value)
                         else { print ("SYS: Event: \(event.type): Missed (wallet)"); return }
                     manager.listener?.handleManagerEvent (system: manager.system,
@@ -353,6 +361,7 @@ extension WalletManager {
                                                           event: WalletManagerEvent.walletChanged(wallet: wallet))
 
                 case CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED:
+                    defer { if let wid = event.u.wallet.value { cryptoWalletGive (wid) }}
                     guard let wallet = manager.walletBy (core: event.u.wallet.value)
                         else { print ("SYS: Event: \(event.type): Missed (wallet)"); return }
                     manager.listener?.handleManagerEvent (system: manager.system,
@@ -383,6 +392,10 @@ extension WalletManager {
 
             walletEventCallback: { (context, cwm, wid, event) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                defer {
+                    if let cwm = cwm { cryptoWalletManagerGive(cwm) }
+                    if let wid = wid { cryptoWalletGive(wid) }
+                }
 
                 guard let _ = cwm, let wid = wid
                     else { print ("SYS: Event: \(event.type): Missed {cwm, wid}"); return }
@@ -409,6 +422,7 @@ extension WalletManager {
                                                         event: WalletEvent.deleted)
 
                 case CRYPTO_WALLET_EVENT_TRANSFER_ADDED:
+                    defer { if let tid = event.u.transfer.value { cryptoTransferGive(tid) }}
                     guard let transfer = wallet.transferBy(core: event.u.transfer.value)
                         else { print ("SYS: Event: \(event.type): Missed (transfer)"); return }
                     wallet.listener?.handleWalletEvent (system: manager.system,
@@ -417,6 +431,7 @@ extension WalletManager {
                                                         event: WalletEvent.transferAdded (transfer: transfer))
 
                 case CRYPTO_WALLET_EVENT_TRANSFER_CHANGED:
+                    defer { if let tid = event.u.transfer.value { cryptoTransferGive(tid) }}
                     guard let transfer = wallet.transferBy(core: event.u.transfer.value)
                         else { print ("SYS: Event: \(event.type): Missed (transfer)"); return }
                     wallet.listener?.handleWalletEvent (system: manager.system,
@@ -424,6 +439,7 @@ extension WalletManager {
                                                         wallet: wallet,
                                                         event: WalletEvent.transferChanged (transfer: transfer))
                 case CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED:
+                    defer { if let tid = event.u.transfer.value { cryptoTransferGive(tid) }}
                     guard let transfer = wallet.transferBy(core: event.u.transfer.value)
                         else { print ("SYS: Event: \(event.type): Missed (transfer)"); return }
                     wallet.listener?.handleWalletEvent (system: manager.system,
@@ -432,7 +448,8 @@ extension WalletManager {
                                                         event: WalletEvent.transferSubmitted (transfer: transfer, success: true))
 
                 case CRYPTO_WALLET_EVENT_TRANSFER_DELETED:
-                    guard let transfer = wallet.transferBy(core: event.u.transfer.value)
+                    defer { if let tid = event.u.transfer.value { cryptoTransferGive(tid) }}
+                   guard let transfer = wallet.transferBy(core: event.u.transfer.value)
                         else { print ("SYS: Event: \(event.type): Missed (transfer)"); return }
                     wallet.listener?.handleWalletEvent (system: manager.system,
                                                         manager: manager,
@@ -450,11 +467,16 @@ extension WalletManager {
 
             transferEventCallback: { (context, cwm, wid, tid, event) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                defer {
+                    if let cwm = cwm { cryptoWalletManagerGive(cwm) }
+                    if let wid = wid { cryptoWalletGive(wid) }
+                    if let tid = tid { cryptoTransferGive(tid) }
+                }
 
-                guard let wid = wid, let tid = tid
+                guard let _ = cwm, let wid = wid, let tid = tid
                     else { print ("SYS: Event: \(event.type): Missed {cwm, wid, tid}"); return }
 
-                guard let wallet   = manager.walletBy  (core: wid),
+                guard let wallet = manager.walletBy  (core: wid),
                     let transfer = wallet.transferBy (core: tid)
                     else { print ("SYS: Event: \(event.type): Missed (manaager, wallet, transfer)"); return }
 

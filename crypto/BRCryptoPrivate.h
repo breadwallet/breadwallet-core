@@ -102,6 +102,12 @@ extern "C" {
                         BRCryptoBoolean isNegative,
                         UInt256 value);
 
+    private_extern BRCryptoAmount
+    cryptoAmountCreateInternal (BRCryptoCurrency currency,
+                                BRCryptoBoolean isNegative,
+                                UInt256 value,
+                                int takeCurrency);
+    
     /// MARK: - Address
 
     private_extern BRCryptoAddress
@@ -249,6 +255,13 @@ extern "C" {
     private_extern BRCryptoTransfer
     cryptoWalletFindTransferAsETH (BRCryptoWallet wallet,
                                    BREthereumTransfer eth);
+
+    private_extern void
+    cryptoWalletAddTransfer (BRCryptoWallet wallet, BRCryptoTransfer transfer);
+
+    private_extern void
+    cryptoWalletRemTransfer (BRCryptoWallet wallet, BRCryptoTransfer transfer);
+
 
     /// MARK: - WalletManager
 

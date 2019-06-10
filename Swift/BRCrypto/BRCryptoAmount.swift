@@ -80,39 +80,42 @@ public final class Amount {
     }
 
     public func hasCurrency (_ currency: Currency) -> Bool {
-        return currency.core == cryptoAmountGetCurrency (core)
+        return CRYPTO_TRUE == cryptoAmountHasCurrency (core, currency.core)
     }
 
     public func add (_ that: Amount) -> Amount? {
         precondition (isCompatible (with: that))
         return cryptoAmountAdd (self.core, that.core)
-            .map { Amount (core: $0, unit: self.unit) }
+            .map { Amount (core: $0, unit: self.unit, take: false) }
     }
 
     public func sub (_ that: Amount) -> Amount? {
         precondition (isCompatible (with: that))
         return cryptoAmountSub (self.core, that.core)
-            .map { Amount (core: $0, unit: self.unit) }
+            .map { Amount (core: $0, unit: self.unit, take: false) }
     }
 
     public var negate: Amount {
-        return Amount (core: cryptoAmountNegate (core), unit: unit)
+        return Amount (core: cryptoAmountNegate (core), unit: unit, take: false)
     }
-    
+
     internal init (core: BRCryptoAmount,
-                   unit: Unit) {
-        self.core = core
+                   unit: Unit,
+                   take: Bool) {
+        self.core = take ? cryptoAmountTake(core) : core
         self.unit = unit
     }
 
     public static func create (double: Double, unit: Unit) -> Amount {
         return Amount (core: cryptoAmountCreateDouble (double, unit.core),
-                       unit: unit)
+                       unit: unit,
+                       take: false)
     }
 
     public static func create (integer: Int64, unit: Unit) -> Amount {
         return Amount (core: cryptoAmountCreateInteger (integer, unit.core),
-                       unit: unit)
+                       unit: unit,
+                       take: false)
     }
 
     ///
@@ -140,8 +143,8 @@ public final class Amount {
     /// - Returns: The `Amount` if the string can be parsed.
     ///
     public static func create (string: String, negative: Bool = false, unit: Unit) -> Amount? {
-        let core = cryptoAmountCreateString (string, (negative ? CRYPTO_TRUE : CRYPTO_FALSE), unit.core)
-        return nil == core ? nil : Amount (core: core!, unit: unit)
+        return cryptoAmountCreateString (string, (negative ? CRYPTO_TRUE : CRYPTO_FALSE), unit.core)
+            .map { Amount (core: $0, unit: unit, take: false) }
     }
 
     ///
@@ -227,7 +230,8 @@ extension Amount {
 
     internal static func createAsETH (_ value: UInt256, _ unit: Unit) -> Amount {
         return Amount (core: cryptoAmountCreate(unit.currency.core, CRYPTO_FALSE, value),
-                       unit: unit);
+                       unit: unit,
+                       take: false);
     }
 
     // BTC
@@ -241,7 +245,8 @@ extension Amount {
 
     internal static func createAsBTC (_ value: UInt64, _ unit: Unit) -> Amount {
         return Amount (core: cryptoAmountCreate(unit.currency.core, CRYPTO_FALSE, createUInt256(value)),
-                       unit: unit);
+                       unit: unit,
+                       take: false);
     }
 }
 
