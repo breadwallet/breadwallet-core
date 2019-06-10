@@ -316,7 +316,7 @@ cryptoWalletCreateTransfer (BRCryptoWallet wallet,
             if (CRYPTO_TRUE == overflow) { return NULL; }
 
             BRTransaction *tid = BRWalletCreateTransaction (wid, value, addr);
-            return cryptoTransferCreateAsBTC (cryptoWalletGetCurrency(wallet), wid, tid);
+            return NULL == tid ? NULL : cryptoTransferCreateAsBTC (cryptoWalletGetCurrency(wallet), wid, tid);
         }
 
         case BLOCK_CHAIN_TYPE_ETH: {
@@ -331,7 +331,7 @@ cryptoWalletCreateTransfer (BRCryptoWallet wallet,
             BREthereumFeeBasis ethFeeBasis = cryptoFeeBasisAsETH (feeBasis);
 
             BREthereumTransfer tid = ewmWalletCreateTransferWithFeeBasis (ewm, wid, addr, ethAmount, ethFeeBasis);
-            return cryptoTransferCreateAsETH (cryptoWalletGetCurrency(wallet), ewm, tid);
+            return NULL == tid ? NULL : cryptoTransferCreateAsETH (cryptoWalletGetCurrency(wallet), ewm, tid);
         }
 
         case BLOCK_CHAIN_TYPE_GEN:
