@@ -2154,6 +2154,8 @@ ewmPeriodicDispatcher (BREventHandler handler,
 
     // 1) check if the prior sync has completed.
     if (ewm->brdSync.completedTransaction && ewm->brdSync.completedLog) {
+        ewmSignalEWMEvent (ewm, EWM_EVENT_SYNC_STOPPED, SUCCESS, NULL);
+
         // 1a) if so, advance the sync range by updating `begBlockNumber`
         ewm->brdSync.begBlockNumber = (ewm->brdSync.endBlockNumber >=  EWM_BRD_SYNC_START_BLOCK_OFFSET
                                        ? ewm->brdSync.endBlockNumber - EWM_BRD_SYNC_START_BLOCK_OFFSET
@@ -2165,6 +2167,7 @@ ewmPeriodicDispatcher (BREventHandler handler,
 
     // 3) if the `endBlockNumber` differs from the `begBlockNumber` then perform a 'sync'
     if (ewm->brdSync.begBlockNumber != ewm->brdSync.endBlockNumber) {
+        ewmSignalEWMEvent (ewm, EWM_EVENT_SYNC_STARTED, SUCCESS, NULL);
 
         // 3a) We'll query all transactions for this ewm's account.  That will give us a shot at
         // getting the nonce for the account's address correct.  We'll save all the transactions and
