@@ -110,8 +110,6 @@ extern "C" {
     cryptoWalletSetDefaultFeeBasis (BRCryptoWallet wallet,
                                     BRCryptoFeeBasis feeBasis);
 
-    DECLARE_CRYPTO_GIVE_TAKE (BRCryptoWallet, cryptoWallet);
-
     extern BRCryptoTransfer
     cryptoWalletCreateTransfer (BRCryptoWallet wallet,
                                 BRCryptoAddress target,
@@ -125,6 +123,8 @@ extern "C" {
 
     extern BRCryptoBoolean
     cryptoWalletEqual (BRCryptoWallet w1, BRCryptoWallet w2);
+
+    DECLARE_CRYPTO_GIVE_TAKE (BRCryptoWallet, cryptoWallet);
 
 #ifdef __cplusplus
 }

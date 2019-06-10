@@ -30,6 +30,9 @@
 #include "bitcoin/BRWalletManager.h"
 #include "ethereum/BREthereum.h"
 
+static void
+cryptoWalletManagerRelease (BRCryptoWalletManager cwm);
+
 struct BRCryptoWalletManagerRecord {
     BRCryptoBlockChainType type;
     union {
@@ -51,8 +54,11 @@ struct BRCryptoWalletManagerRecord {
     /// All wallets
     BRArrayOf(BRCryptoWallet) wallets;
     char *path;
+
+    BRCryptoRef ref;
 };
 
+IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoWalletManager, cryptoWalletManager)
 
 /// MARK: - BTC Callbacks
 
@@ -746,14 +752,16 @@ cryptoWalletManagerCreateInternal (BRCryptoCWMListener listener,
     cwm->type = type;
     cwm->listener = listener;
     cwm->client  = client;
-    cwm->network = network;
-    cwm->account = account;
+    cwm->network = cryptoNetworkTake (network);
+    cwm->account = cryptoAccountTake (account);
     cwm->state   = CRYPTO_WALLET_MANAGER_STATE_CREATED;
     cwm->mode = mode;
-    cwm->path = path;
+    cwm->path = strdup (path);
 
     cwm->wallet = NULL;
     array_new (cwm->wallets, 1);
+
+    cwm->ref = CRYPTO_REF_ASSIGN (cryptoWalletManagerRelease);
 
     return cwm;
 }
@@ -765,14 +773,12 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                            BRCryptoNetwork network,
                            BRSyncMode mode,
                            const char *path) {
-    // ?? extend path... with network-type : network-name
-    // ?? done by ewmCreate()?
-    
+
+    // TODO: extend path... with network-type : network-name - or is that done by ewmCreate(), ...
     char *cwmPath = strdup (path);
 
     BRCryptoCurrency currency   = cryptoNetworkGetCurrency (network);
     BRCryptoUnit     unit       = cryptoNetworkGetUnitAsDefault (network, currency);
-
     BRCryptoWalletManager  cwm  = cryptoWalletManagerCreateInternal (listener,
                                                                      client,
                                                                      account,
@@ -849,10 +855,27 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
     // TODO: Race Here - see above
     array_add (cwm->wallets, cryptoWalletTake (cwm->wallet));
 
+    free (cwmPath);
+
     //    listener.walletManagerEventCallback (listener.context, cwm);  // created
     //    listener.walletEventCallback (listener.context, cwm, cwm->wallet);
 
     return cwm;
+}
+
+static void
+cryptoWalletManagerRelease (BRCryptoWalletManager cwm) {
+    printf ("Wallet Manager: Release\n");
+    cryptoAccountGive (cwm->account);
+    cryptoNetworkGive (cwm->network);
+    if (NULL != cwm->wallet) cryptoWalletGive (cwm->wallet);
+
+    for (size_t index = 0; index < array_count(cwm->wallets); index++)
+        cryptoWalletGive (cwm->wallets[index]);
+    array_free (cwm->wallets);
+
+    free (cwm->path);
+    free (cwm);
 }
 
 extern BRCryptoNetwork

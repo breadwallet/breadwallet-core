@@ -201,6 +201,7 @@ extern "C" {
                                BRCryptoTransfer tid,
                                const char *paperKey);
     
+    DECLARE_CRYPTO_GIVE_TAKE (BRCryptoWalletManager, cryptoWalletManager);
 
 #ifdef __cplusplus
 }

@@ -62,19 +62,21 @@ public final class Network: CustomStringConvertible {
     }
 
     public func baseUnitFor (currency: Currency) -> Unit? {
-        return cryptoNetworkGetUnitAsBase (core, cryptoNetworkGetCurrency(core))
+        guard hasCurrency(currency) else { return nil }
+        return cryptoNetworkGetUnitAsBase (core, currency.core)
             .map { Unit (core: $0, currency: currency) }
     }
 
     public func defaultUnitFor(currency: Currency) -> Unit? {
-        return cryptoNetworkGetUnitAsDefault (core, cryptoNetworkGetCurrency(core))
+        guard hasCurrency (currency) else { return nil }
+        return cryptoNetworkGetUnitAsDefault (core, currency.core)
             .map { Unit (core: $0, currency: currency) }
     }
 
     public func unitsFor(currency: Currency) -> Set<Unit>? {
-        let currencyCore = cryptoNetworkGetCurrency(core)
-        return Set ((0..<cryptoNetworkGetUnitCount (core, currencyCore))
-            .map { cryptoNetworkGetUnitAt (core, currencyCore, $0) }
+        guard hasCurrency (currency) else { return nil }
+        return Set ((0..<cryptoNetworkGetUnitCount (core, currency.core))
+            .map { cryptoNetworkGetUnitAt (core, currency.core, $0) }
             .map { Unit (core: $0, currency: currency) }
         )
     }

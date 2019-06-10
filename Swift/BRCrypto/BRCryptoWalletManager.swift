@@ -160,6 +160,10 @@ public final class WalletManager {
                                            manager: self,
                                            event: event)
     }
+
+    deinit {
+        cryptoWalletManagerGive (core)
+    }
 }
 
 extension WalletManager {

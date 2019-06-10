@@ -8,8 +8,8 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
-
 import XCTest
+@testable import BRCrypto
 
 class BRCryptoNetworkTests: XCTestCase {
 
@@ -19,38 +19,78 @@ class BRCryptoNetworkTests: XCTestCase {
     override func tearDown() {
     }
 
-    func testNetwork () {
-        #if false
-       // ==
-        XCTAssertEqual (Bitcoin.Networks.mainnet, Bitcoin.Networks.mainnet)
-        XCTAssertEqual (Ethereum.Networks.rinkeby, Ethereum.Networks.rinkeby)
-        XCTAssertNotEqual(Bitcoin.Networks.mainnet, Bitcoin.Networks.testnet)
-        XCTAssertNotEqual(Bitcoin.Networks.mainnet, Ethereum.Networks.mainnet)
-        XCTAssertNotEqual(Bitcoin.Networks.mainnet, Ethereum.Networks.ropsten)
-        XCTAssertNotEqual (Ethereum.Networks.rinkeby, Ethereum.Networks.ropsten)
+    func testNetworkBTC () {
+        let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native")
 
-        // name
-        XCTAssertEqual("BTC Mainnet", Bitcoin.Networks.mainnet.name)
-        XCTAssertEqual("BCH Mainnet", Bitcash.Networks.mainnet.name)
-        XCTAssertEqual("ETH Mainnet", Ethereum.Networks.mainnet.name)
+        let BTC_SATOSHI = BRCrypto.Unit (currency: btc, uids: "BTC-SAT",  name: "Satoshi", symbol: "SAT")
+        let BTC_BTC = BRCrypto.Unit (currency: btc, uids: "BTC-BTC",  name: "Bitcoin", symbol: "B", base: BTC_SATOSHI, decimals: 8)
 
-        // description
-        XCTAssertEqual(Bitcoin.Networks.mainnet.description, Bitcoin.Networks.mainnet.name)
+        let associations = Network.Association (baseUnit: BTC_SATOSHI,
+                                                defaultUnit: BTC_BTC,
+                                                units: Set (arrayLiteral: BTC_SATOSHI, BTC_BTC))
 
-        // currency
-        XCTAssertEqual(Bitcoin.currency, Bitcoin.Networks.mainnet.currency)
-        XCTAssertEqual(Bitcoin.currency, Bitcoin.Networks.testnet.currency)
-        XCTAssertEqual(Bitcash.currency, Bitcash.Networks.mainnet.currency)
-        XCTAssertEqual(Ethereum.currency, Ethereum.Networks.mainnet.currency)
-        XCTAssertEqual(Ethereum.currency, Ethereum.Networks.foundation.currency)
+        let network = Network (uids: "bitcoin-uids",
+                               name: "bitcoin-name",
+                               isMainnet: true,
+                               currency: btc,
+                               height: 100000,
+                               associations: [btc:associations])
 
+        XCTAssertEqual (network.uids, "bitcoin-uids")
+        XCTAssertEqual (network.name, "bitcoin-name")
+        XCTAssertTrue  (network.isMainnet)
+        XCTAssertEqual (network.height, 100000)
 
-        // hashable
-        let networks = Set (arrayLiteral: Bitcoin.Networks.mainnet,
-                            Bitcash.Networks.mainnet,
-                            Ethereum.Networks.mainnet)
-        XCTAssertTrue(networks.contains(Bitcash.Networks.mainnet))
-        XCTAssertFalse(networks.contains(Bitcoin.Networks.testnet))
-        #endif
+        network.height *= 2
+        XCTAssertEqual (network.height, 2 * 100000)
+
+        XCTAssertEqual (network.currency, btc)
+        XCTAssertTrue  (network.hasCurrency(btc))
+        XCTAssertTrue  (network.currencyBy(code: "BTC").map { $0 == btc } ?? false)
+
+        XCTAssertTrue  (network.baseUnitFor    (currency: btc).map { $0 == BTC_SATOSHI} ?? false)
+        XCTAssertTrue  (network.defaultUnitFor (currency: btc).map { $0 == BTC_BTC    } ?? false)
+
+        XCTAssertTrue (network.unitsFor(currency: btc).map { $0.subtracting([BTC_SATOSHI, BTC_BTC]).isEmpty } ?? false)
+        XCTAssertTrue (network.hasUnitFor(currency: btc, unit: BTC_BTC)     ?? false)
+        XCTAssertTrue (network.hasUnitFor(currency: btc, unit: BTC_SATOSHI) ?? false)
+
+        let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native")
+        let ETH_WEI  = BRCrypto.Unit (currency: eth, uids: "ETH-WEI", name: "WEI",   symbol: "wei")
+
+        XCTAssertFalse (network.hasCurrency(eth))
+        XCTAssertNil   (network.baseUnitFor(currency: eth))
+        XCTAssertNil   (network.unitsFor(currency: eth))
+
+        XCTAssertFalse (network.hasUnitFor(currency: eth, unit: ETH_WEI) ?? false)
+        XCTAssertFalse (network.hasUnitFor(currency: eth, unit: BTC_BTC) ?? false)
+        XCTAssertFalse (network.hasUnitFor(currency: btc, unit: ETH_WEI) ?? false)
+    }
+
+    func testNetworkETH () {
+        let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native")
+        let ETH_WEI  = BRCrypto.Unit (currency: eth, uids: "ETH-WEI", name: "WEI",   symbol: "wei")
+        let ETH_GWEI = BRCrypto.Unit (currency: eth, uids: "ETH-GWEI", name: "GWEI",  symbol: "gwei", base: ETH_WEI, decimals: 9)
+        let ETH_ETHER = BRCrypto.Unit (currency: eth, uids: "ETH-ETH", name: "ETHER", symbol: "E",    base: ETH_WEI, decimals: 18)
+
+        let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native")
+
+        let associations = Network.Association (baseUnit: ETH_WEI,
+                                                defaultUnit: ETH_ETHER,
+                                                units: Set (arrayLiteral: ETH_WEI, ETH_GWEI, ETH_ETHER))
+
+        let network = Network (uids: "ethereum-uids",
+                               name: "ethereump-name",
+                               isMainnet: true,
+                               currency: eth,
+                               height: 100000,
+                               associations: [eth:associations])
+
+        XCTAssertTrue  (network.hasCurrency(eth))
+        XCTAssertFalse (network.hasCurrency(btc))
+
+        XCTAssertTrue (network.hasUnitFor(currency: eth, unit: ETH_WEI)   ?? false)
+        XCTAssertTrue (network.hasUnitFor(currency: eth, unit: ETH_GWEI)  ?? false)
+        XCTAssertTrue (network.hasUnitFor(currency: eth, unit: ETH_ETHER) ?? false)
     }
 }

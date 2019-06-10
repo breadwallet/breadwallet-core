@@ -118,11 +118,14 @@ cryptoWalletCreateAsETH (BRCryptoUnit unit,
 
 static void
 cryptoWalletRelease (BRCryptoWallet wallet) {
+    printf ("Wallet: Release\n");
     cryptoUnitGive (wallet->unit);
     cryptoUnitGive(wallet->unitForFee);
+
     for (size_t index = 0; index < array_count(wallet->transfers); index++)
         cryptoTransferGive (wallet->transfers[index]);
     array_free (wallet->transfers);
+
     free (wallet);
 }
 

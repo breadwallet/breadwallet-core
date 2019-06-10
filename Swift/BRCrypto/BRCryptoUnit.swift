@@ -63,7 +63,7 @@ public final class Unit: Hashable {
     }
 
     internal convenience init (core: BRCryptoUnit,
-                   currency: Currency) {
+                               currency: Currency) {
         self.init (core: core, currency: currency, take: true)
     }
 
