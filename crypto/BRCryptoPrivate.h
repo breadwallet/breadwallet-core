@@ -110,9 +110,6 @@ extern "C" {
     private_extern BRCryptoAddress
     cryptoAddressCreateAsBTC (BRAddress btc);
 
-    private_extern BRCryptoAddress
-    cryptoAddressCreate (const char *string);
-
     /// MARK: - Account
 
     private_extern BREthereumAccount
@@ -275,7 +272,14 @@ extern "C" {
     cryptoWalletManagerFindWalletAsETH (BRCryptoWalletManager manager,
                                         BREthereumWallet eth);
 
+    private_extern void
+    cryptoWalletManagerAddWallet (BRCryptoWalletManager cwm,
+                                  BRCryptoWallet wallet);
 
+    private_extern void
+    cryptoWalletManagerRemWallet (BRCryptoWalletManager cwm,
+                                  BRCryptoWallet wallet);
+    
 #ifdef __cplusplus
 }
 #endif

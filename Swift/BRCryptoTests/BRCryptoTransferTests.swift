@@ -22,9 +22,4 @@ class BRCryptoTransferTests: XCTestCase {
 
 //    func testTransferA() {
 //    }
-
-//    func testPerformanceExample() {
-//        self.measure {
-//        }
-//    }
 }

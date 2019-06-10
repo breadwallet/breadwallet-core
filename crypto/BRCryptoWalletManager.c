@@ -800,6 +800,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                              mode,
                                              cwmPath);
 
+            // TODO: Race Here - BRWalletManagerNew will create a BRWallet event
             cwm->wallet = cryptoWalletCreateAsBTC (unit, unit, cwm->u.btc, BRWalletManagerGetWallet (cwm->u.btc));
             break;
         }
@@ -835,6 +836,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                     client,
                                     cwmPath);
 
+            // TODO: Race Here - ewmCreate will create a BREthereumWallet event
             cwm->wallet = cryptoWalletCreateAsETH (unit, unit, cwm->u.eth, ewmGetWallet (cwm->u.eth));
             break;
         }
@@ -844,6 +846,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
         }
     }
 
+    // TODO: Race Here - see above
     array_add (cwm->wallets, cryptoWalletTake (cwm->wallet));
 
     //    listener.walletManagerEventCallback (listener.context, cwm);  // created

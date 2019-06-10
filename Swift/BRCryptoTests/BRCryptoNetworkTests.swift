@@ -53,10 +53,4 @@ class BRCryptoNetworkTests: XCTestCase {
         XCTAssertFalse(networks.contains(Bitcoin.Networks.testnet))
         #endif
     }
-
-    func testPerformanceExample() {
-        self.measure {
-        }
-    }
-
 }

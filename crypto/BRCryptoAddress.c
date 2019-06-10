@@ -49,7 +49,7 @@ cryptoAddressRelease (BRCryptoAddress address) {
     free (address);
 }
 
-/* private */ extern BRCryptoAddress
+static BRCryptoAddress
 cryptoAddressCreate (BRCryptoBlockChainType type) {
     BRCryptoAddress address = malloc (sizeof (struct BRCryptoAddressRecord));
 
