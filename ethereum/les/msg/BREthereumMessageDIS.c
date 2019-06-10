@@ -390,10 +390,19 @@ messageDISDecode (BRRlpItem item,
     BREthereumDISMessagePacket *packet = (BREthereumDISMessagePacket*) packetData.bytes;
     size_t packetSize = sizeof (BREthereumDISMessagePacket);
 
-    // TODO: Use packet->hash + packet->signature to validate the packet.
-
     // Get the identifier and then decode the message contents
     BREthereumDISMessageIdentifier identifier = packet->identifier;
+
+    // Perform the most basic validation - just of identifier
+    if (DIS_MESSAGE_PING != identifier &&
+        DIS_MESSAGE_PONG != identifier &&
+        DIS_MESSAGE_FIND_NEIGHBORS != identifier &&
+        DIS_MESSAGE_NEIGHBORS != identifier) {
+        rlpCoderHasFailed (coder.rlp);
+        return (BREthereumDISMessage) { (BREthereumDISMessageIdentifier) NULL };
+    }
+
+    // TODO: Use packet->hash + packet->signature to validate the packet.
 
     // Get the rlpItem from packet->data
     BRRlpData messageData = { packetData.bytesCount - packetSize, &packetData.bytes[packetSize] };
