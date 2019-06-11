@@ -16,6 +16,7 @@
 #include "BRStellarAccount.h"
 #include "BRStellarTransaction.h"
 #include "BRStellarWallet.h"
+#include "BRStellarOperation.h"
 
 #ifdef __cplusplus
 extern "C" {

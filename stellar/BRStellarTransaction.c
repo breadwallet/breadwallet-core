@@ -15,6 +15,7 @@
 #include "BRStellar.h"
 #include "BRStellarBase.h"
 #include "BRStellarPrivateStructs.h"
+#include "BRStellarAccountUtils.h"
 #include "BRStellarSerialize.h"
 #include "BRStellarSignature.h"
 #include "BRStellarAccount.h"

@@ -109,41 +109,24 @@ static void runAccountTests()
 
 static void serializeMinimum()
 {
-    const char* sourcePublicKeyString =
-        "240FFEB7CF417181B0B0932035F8BC086B04D16C18B1DB8C629F1105E2687AD1";
-    BRStellarAccountID sourceAccount;
-    sourceAccount.accountType = PUBLIC_KEY_TYPE_ED25519;
-    hex2bin(sourcePublicKeyString, sourceAccount.accountID);
+    BRStellarAccount account = stellarAccountCreate("off enjoy fatal deliver team nothing auto canvas oak brass fashion happy");
+    BRStellarAccountID sourceAddress = stellarAccountGetAccountID(account);
+    const char * targetAddress = "GBKWF42EWZDRISFXW3V6WW5OTQOOZSJQ54UINC7CXN4LW5BIGHTRB3BB";
+    BRStellarAccountID destination = stellerAccountCreateStellarAccountID(targetAddress);
 
-    const char* targetPublicKeyString = "5562f344b6471448b7b6ebeb5bae9c1cecc930ef28868be2bb78bb742831e710";
-    BRStellarAccountID targetAccount;
-    targetAccount.accountType = PUBLIC_KEY_TYPE_ED25519;
-    hex2bin(targetPublicKeyString, targetAccount.accountID);
-
-    BRArrayOf(BRStellarOperation) operations;
-    array_new(operations, 2);
-    BRStellarOperation op1;
-    memset(&op1, 0x00, sizeof(BRStellarOperation));
-    BRStellarOperation op2;
-    memset(&op2, 0x00, sizeof(BRStellarOperation));
     BRStellarMemo memo;
     memo.memoType = 1;
     strcpy(memo.text, "Buy yourself a beer!");
-    op1.type = ST_OP_PAYMENT;
-    strcpy(op1.operation.payment.asset.assetCode, "XLM");
-    op1.operation.payment.destination = targetAccount;
-    op1.operation.payment.amount = 10.5;
-    op2.type = ST_OP_PAYMENT;
-    op2.operation.payment.asset.type = 1;
-    strcpy(op2.operation.payment.asset.assetCode, "USD");
-    op2.operation.payment.asset.issuer = sourceAccount;
-    op2.operation.payment.destination = targetAccount;
-    op2.operation.payment.amount = 25.75;
-    array_add(operations, op1);
-    array_add(operations, op2);
-    
+
+    BRArrayOf(BRStellarOperation) operations;
+    array_new(operations, 2);
+    array_add(operations, stellarOperationCreatePayment(&destination,
+                                                        stellarAssetCreateAsset("XML", NULL), 10.5));
+    array_add(operations, stellarOperationCreatePayment(&destination,
+                                                        stellarAssetCreateAsset("USD", &sourceAddress), 25.75));
+
     uint8_t *buffer = NULL;
-    size_t length = stellarSerializeTransaction(&sourceAccount, 200, 2001274371309571, NULL, 0,
+    size_t length = stellarSerializeTransaction(&sourceAddress, 200, 2001274371309571, NULL, 0,
                                 &memo, operations, 0, NULL, 0, &buffer);
     if (debug_log) {
         for(int i = 0; i < length; i++) {
@@ -157,36 +140,26 @@ static void serializeMinimum()
 
 static void serializeAndSign()
 {
-    const char* sourcePublicKeyString =
-    "240FFEB7CF417181B0B0932035F8BC086B04D16C18B1DB8C629F1105E2687AD1";
-    BRStellarAccountID sourceAccount;
-    sourceAccount.accountType = PUBLIC_KEY_TYPE_ED25519;
-    hex2bin(sourcePublicKeyString, sourceAccount.accountID);
+    const char * targetAddress = "GBKWF42EWZDRISFXW3V6WW5OTQOOZSJQ54UINC7CXN4LW5BIGHTRB3BB";
+    BRStellarAccountID destination = stellerAccountCreateStellarAccountID(targetAddress);
 
-    const char* targetPublicKeyString = "5562f344b6471448b7b6ebeb5bae9c1cecc930ef28868be2bb78bb742831e710";
-    BRStellarAccountID targetAccount;
-    targetAccount.accountType = PUBLIC_KEY_TYPE_ED25519;
-    hex2bin(targetPublicKeyString, targetAccount.accountID);
-
-    // Add the single operation to the array
-    BRArrayOf(BRStellarOperation) operations;
-    BRStellarOperation op1;
-    memset(&op1, 0x00, sizeof(BRStellarOperation));
-    array_new(operations, 1);
-    BRStellarMemo memo;
-    memo.memoType = 1;
-    strcpy(memo.text, "Buy yourself a beer!");
-    op1.type = ST_OP_PAYMENT;
-    strcpy(op1.operation.payment.asset.assetCode, "XLM");
-    op1.operation.payment.destination = targetAccount;
-    op1.operation.payment.amount = 10.5;
-    array_add(operations, op1);
-
-    uint32_t fee = 100 * (uint32_t)array_count(operations);
-    BRStellarTransaction transaction = stellarTransactionCreate(&sourceAccount, fee, NULL, 0, &memo, operations);
     BRStellarAccount account = stellarAccountCreate("off enjoy fatal deliver team nothing auto canvas oak brass fashion happy");
     stellarAccountSetSequence(account, 2001274371309576);
     stellarAccountSetNetworkType(account, STELLAR_NETWORK_TESTNET);
+    BRStellarAccountID accountID = stellarAccountGetAccountID(account);
+
+    BRStellarMemo memo;
+    memo.memoType = 1;
+    strcpy(memo.text, "Buy yourself a beer!");
+
+    // Add the single operation to the array
+    BRArrayOf(BRStellarOperation) operations;
+    array_new(operations, 1);
+    array_add(operations, stellarOperationCreatePayment(&destination,
+                                                        stellarAssetCreateAsset("XML", NULL), 10.5));
+
+    uint32_t fee = 100 * (uint32_t)array_count(operations);
+    BRStellarTransaction transaction = stellarTransactionCreate(&accountID, fee, NULL, 0, &memo, operations);
     BRStellarSerializedTransaction s = stellarAccountSignTransaction(account, transaction,
                                   "off enjoy fatal deliver team nothing auto canvas oak brass fashion happy");
 
@@ -410,6 +383,56 @@ static void runWalletTests()
                            "240FFEB7CF417181B0B0932035F8BC086B04D16C18B1DB8C629F1105E2687AD1",
                            "GASA77VXZ5AXDANQWCJSANPYXQEGWBGRNQMLDW4MMKPRCBPCNB5NC77I");
 }
+
+static void runExampleCode()
+{
+    // Create an account
+    BRStellarAccount account = stellarAccountCreate("off enjoy fatal deliver team nothing auto canvas oak brass fashion happy");
+    stellarAccountSetNetworkType(account, STELLAR_NETWORK_TESTNET);
+    BRStellarAccountID accountID = stellarAccountGetAccountID(account);
+
+    // Create a Transaction - whith a single operation
+    const char * targetAddress = "GBKWF42EWZDRISFXW3V6WW5OTQOOZSJQ54UINC7CXN4LW5BIGHTRB3BB";
+    BRStellarAccountID destination = stellerAccountCreateStellarAccountID(targetAddress);
+    
+    BRArrayOf(BRStellarOperation) operations;
+    array_new(operations, 1);
+    array_add(operations, stellarOperationCreatePayment(&destination, stellarAssetCreateAsset("XML", NULL), 10.5));
+
+    BRStellarMemo memo;
+    memo.memoType = 1;
+    strcpy(memo.text, "Buy yourself a beer!");
+
+    uint32_t fee = 100 * (uint32_t)array_count(operations);
+    BRStellarTransaction transaction = stellarTransactionCreate(&accountID, fee, NULL, 0, &memo, operations);
+
+    // Now serialize and sign
+    stellarAccountSetSequence(account, 2001274371309582);
+    stellarAccountSignTransaction(account, transaction,
+                                  "off enjoy fatal deliver team nothing auto canvas oak brass fashion happy");
+
+    // Get the hash of the transaction
+    BRStellarTransactionHash hash = stellarTransactionGetHash(transaction);
+
+    // This was a real transaction that was sent to the stellar testnet - this was the hash that
+    // was returned (using the py_stellar_core Python library).
+    const char * hashString = "8ff072db8d7fd38c1230321d94dddb0335365af5bdce09fa9254fe18b90e80e3";
+    uint8_t expected_hash[32];
+    hex2bin(hashString, expected_hash);
+    assert(0 == memcmp(hash.bytes, expected_hash, 32));
+
+    // Now let's parse the result_xdr
+    const char * result_xdr = "AAAAAAAAAGQAAAAAAAAAAQAAAAAAAAABAAAAAAAAAAA=";
+    BRStellarTransactionResult result = stellarTransactionGetResult(transaction, result_xdr);
+    assert(ST_TX_SUCCESS == result.resultCode);
+    size_t opCount = stellarTransactionGetOperationCount(transaction);
+    assert(opCount == 1);
+
+    // Now cleanup
+    stellarAccountFree(account);
+    stellarTransactionFree(transaction);
+}
+
 extern void
 runStellarTest (void /* ... */) {
     runAccountTests();
@@ -417,4 +440,6 @@ runStellarTest (void /* ... */) {
     runDeserializationTests();
     runResultDeserializationTests();
     runWalletTests();
+
+    runExampleCode();
 }

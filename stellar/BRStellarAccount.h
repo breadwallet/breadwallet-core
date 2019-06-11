@@ -83,6 +83,15 @@ extern BRStellarAddress
 stellarAccountGetAddress(BRStellarAccount account);
 
 /**
+ * Get the stellar address for this account
+ *
+ * @param account     BRStellarAccount
+ * @return accountID  raw account ID bytes
+ */
+extern BRStellarAccountID
+stellarAccountGetAccountID(BRStellarAccount account);
+    
+/**
  * Compare 2 stellar addresses
  *
  * @param a1  first address
@@ -134,6 +143,14 @@ extern void stellarAccountSetSequence(BRStellarAccount account, uint64_t sequenc
  */
 extern void stellarAccountSetNetworkType(BRStellarAccount account, BRStellarNetworkType networkType);
 
+/*
+ * Get stellar account ID from string
+ *
+ * @param address     a string containing a valid Stellar account in base64 form. e.g.
+ *                    GBKWF42EWZDRISFXW3V6WW5OTQOOZSJQ54UINC7CXN4.......
+ * @return accountID  a BRStellarAccountID object
+ */
+extern BRStellarAccountID stellerAccountCreateStellarAccountID(const char * stellarAddress);
 
 #ifdef __cplusplus
 }

@@ -28,6 +28,8 @@
 
 struct BRStellarAccountRecord {
     BRStellarAddress address;
+    BRStellarAccountID accountID;
+
     // The public key - needed when sending 
     BRKey publicKey;
 
@@ -55,6 +57,8 @@ static BRStellarAccount createAccountObject(BRKey * key)
     var_clean(&key);
     memcpy(&account->publicKey.pubKey[0], &publicKey[0], 32);
     account->networkType = STELLAR_NETWORK_PUBLIC;
+    account->accountID.accountType = PUBLIC_KEY_TYPE_ED25519;
+    memcpy(account->accountID.accountID, publicKey, 32);
     return account;
 }
 
@@ -86,6 +90,12 @@ extern BRStellarAddress stellarAccountGetAddress(BRStellarAccount account)
     // The account object should already have a public key - so generate the
     // stellar address from the public key.
     return createStellarAddressFromPublicKey(&account->publicKey);
+}
+
+extern BRStellarAccountID stellarAccountGetAccountID(BRStellarAccount account)
+{
+    assert(account);
+    return account->accountID;
 }
 
 extern BRKey stellarAccountGetPublicKey(BRStellarAccount account)
@@ -143,4 +153,10 @@ extern void stellarAccountSetSequence(BRStellarAccount account, uint64_t sequenc
     // The sequence is very important as it must be 1 greater than the previous
     // transaction sequence.
     account->sequence = sequence;
+}
+
+extern BRStellarAccountID stellerAccountCreateStellarAccountID(const char * stellarAddress)
+{
+    BRStellarAccountID accountID = createStellarAccountIDFromStellarAddress(stellarAddress);
+    return accountID;
 }

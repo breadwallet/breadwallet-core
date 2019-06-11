@@ -40,6 +40,8 @@ BRKey createStellarKeyFromSeed(UInt512 seed);
  */
 extern BRStellarAddress createStellarAddressFromPublicKey(BRKey * key);
 
+BRStellarAccountID createStellarAccountIDFromStellarAddress(const char *stellarAddress);
+
 
 #ifdef __cplusplus
 }

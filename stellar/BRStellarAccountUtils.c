@@ -44,7 +44,7 @@ SOFTWARE.
 #include "BRInt.h"
 #include "BRBIP39Mnemonic.h"
 #include "BRBIP32Sequence.h"
-#include "BRCrypto.h"
+#include "support/BRCrypto.h"
 #include "utils/crc16.h"
 #include "utils/base32.h"
 #include <assert.h>
@@ -92,6 +92,22 @@ extern BRStellarAddress createStellarAddressFromPublicKey(BRKey * key)
     
     memcpy(address.bytes, encoded_bytes, sizeof(address.bytes));
     return(address);
+}
+
+BRStellarAccountID createStellarAccountIDFromStellarAddress(const char *stellarAddress)
+{
+    // Decode the address which should take no more than 35 bytes
+    uint8_t rawBytes[35];
+    base32_decode((const unsigned char*)stellarAddress, rawBytes);
+
+    BRStellarAccountID accountID;
+    accountID.accountType = PUBLIC_KEY_TYPE_ED25519;
+    // Validation - the first byte should be 0x30
+    if (0x30 == rawBytes[0]) {
+        // We could also check last 2 bytes CRC checksum
+        memcpy(accountID.accountID, &rawBytes[1], 32);
+    }
+    return accountID;
 }
 
 // sets the private key for the path specified by vlist to key
