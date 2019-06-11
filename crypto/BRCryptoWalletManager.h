@@ -174,7 +174,11 @@ extern "C" {
 
     extern const char *
     cryptoWalletManagerGetPath (BRCryptoWalletManager cwm);
-    
+
+    extern BRCryptoBoolean
+    cryptoWalletManagerHasWallet (BRCryptoWalletManager cwm,
+                                  BRCryptoWallet wallet);
+
     extern BRCryptoWallet
     cryptoWalletManagerGetWallet (BRCryptoWalletManager cwm);
 

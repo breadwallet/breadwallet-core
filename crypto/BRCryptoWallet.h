@@ -125,6 +125,10 @@ extern "C" {
     extern size_t
     cryptoWalletGetTransferCount (BRCryptoWallet wallet);
 
+    extern BRCryptoBoolean
+    cryptoWalletHasTransfer (BRCryptoWallet wallet,
+                             BRCryptoTransfer transfer);
+
     /**
      * Returns the wallet's transfer at `index`.  The index must satisfy [0, count) otherwise
      * an assertion is signaled.

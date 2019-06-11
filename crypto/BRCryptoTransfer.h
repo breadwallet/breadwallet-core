@@ -46,23 +46,26 @@ extern "C" {
         CRYPTO_TRANSFER_STATE_INCLUDED,
         CRYPTO_TRANSFER_STATE_ERRORRED,
         CRYPTO_TRANSFER_STATE_DELETED,
-    } BRCryptoTransferState; // Type
+    } BRCryptoTransferStateType;
 
-//    typedef struct {
-//        BRCryptoTransferStateType type;
-//        union {
-//            struct {
-//                uint64_t blockNumber;
-//                uint64_t transactionIndex;
-//                uint64_t timestamp
-//                BRCryptoAmount fee;
-//            } included;
-//
-//            struct {
-//                char *message;
-//            } errorred;
-//        } u;
-//    } BRCryptoTransferState;
+    typedef struct {
+        BRCryptoTransferStateType type;
+        union {
+            struct {
+                uint64_t blockNumber;
+                uint64_t transactionIndex;
+                uint64_t timestamp;
+                BRCryptoAmount fee;
+            } included;
+
+            struct {
+                char message[128 + 1];
+            } errorred;
+        } u;
+    } BRCryptoTransferState;
+
+    extern char *
+    cryptoTransferStateGetErrorMessage (BRCryptoTransferState state);
 
     typedef enum {
         CRYPTO_TRANSFER_EVENT_CREATED,
@@ -136,12 +139,12 @@ extern "C" {
     extern BRCryptoAmount
     cryptoTransferGetFee (BRCryptoTransfer transfer);
 
-    extern BRCryptoBoolean
-    cryptoTransferExtractConfirmation (BRCryptoTransfer transfer,
-                                       uint64_t *blockNumber,
-                                       uint64_t *transactionIndex,
-                                       uint64_t *timestamp,
-                                       BRCryptoAmount *fee);
+//    extern BRCryptoBoolean
+//    cryptoTransferExtractConfirmation (BRCryptoTransfer transfer,
+//                                       uint64_t *blockNumber,
+//                                       uint64_t *transactionIndex,
+//                                       uint64_t *timestamp,
+//                                       BRCryptoAmount *fee);
 
     extern BRCryptoTransferState
     cryptoTransferGetState (BRCryptoTransfer transfer);

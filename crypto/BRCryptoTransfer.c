@@ -33,6 +33,11 @@
 #include "ethereum/BREthereum.h"
 #include "ethereum/ewm/BREthereumTransfer.h"
 
+extern char *
+cryptoTransferStateGetErrorMessage (BRCryptoTransferState state) {
+    return strdup (state.u.errorred.message);
+}
+
 /**
  *
  */
@@ -71,7 +76,7 @@ cryptoTransferCreateInternal (BRCryptoBlockChainType type,
                               BRCryptoCurrency currency) {
     BRCryptoTransfer transfer = malloc (sizeof (struct BRCryptoTransferRecord));
 
-    transfer->state = CRYPTO_TRANSFER_STATE_CREATED;
+    transfer->state = (BRCryptoTransferState) { CRYPTO_TRANSFER_STATE_CREATED };
     transfer->type  = type;
     transfer->currency = cryptoCurrencyTake(currency);
     transfer->ref = CRYPTO_REF_ASSIGN (cryptoTransferRelease);
@@ -239,21 +244,21 @@ cryptoTransferGetFee (BRCryptoTransfer transfer) { // Pass in 'currency' as bloc
     }
 }
 
-extern BRCryptoBoolean
-cryptoTransferExtractConfirmation (BRCryptoTransfer transfer,
-                                   uint64_t *blockNumber,
-                                   uint64_t *transactionIndex,
-                                   uint64_t *timestamp,
-                                   BRCryptoAmount *fee) {
-    if (CRYPTO_TRANSFER_STATE_INCLUDED != transfer->state) return CRYPTO_FALSE;
-
-    if (NULL != blockNumber) *blockNumber = 0;
-    if (NULL != transactionIndex) *transactionIndex = 0;
-    if (NULL != timestamp) *timestamp = 0;
-    if (NULL != fee) *fee = NULL;
-
-    return CRYPTO_TRUE;
-}
+//extern BRCryptoBoolean
+//cryptoTransferExtractConfirmation (BRCryptoTransfer transfer,
+//                                   uint64_t *blockNumber,
+//                                   uint64_t *transactionIndex,
+//                                   uint64_t *timestamp,
+//                                   BRCryptoAmount *fee) {
+//    if (CRYPTO_TRANSFER_STATE_INCLUDED != transfer->state) return CRYPTO_FALSE;
+//
+//    if (NULL != blockNumber) *blockNumber = 0;
+//    if (NULL != transactionIndex) *transactionIndex = 0;
+//    if (NULL != timestamp) *timestamp = 0;
+//    if (NULL != fee) *fee = cryptoTransferGetFee (transfer);
+//
+//    return CRYPTO_TRUE;
+//}
 
 extern BRCryptoTransferState
 cryptoTransferGetState (BRCryptoTransfer transfer) {

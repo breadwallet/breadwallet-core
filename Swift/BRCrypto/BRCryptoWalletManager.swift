@@ -20,7 +20,7 @@ import BRCryptoC
 /// At least conceptually, a WalletManager is an 'Active Object' (whereas Transfer and Wallet are
 /// 'Passive Objects'
 ///
-public final class WalletManager {
+public final class WalletManager: Equatable {
     internal private(set) weak var listener: WalletManagerListener?
 
     internal private(set) var core: BRCryptoWalletManager! = nil
@@ -72,14 +72,26 @@ public final class WalletManager {
     /// - Returns: The wallet, if found
     ///
     internal func walletBy (core: BRCryptoWallet) -> Wallet? {
-        return (0..<cryptoWalletManagerGetWalletsCount(core))
-            .map { cryptoWalletManagerGetWalletAtIndex (self.core, $0) }
-            .first { core == $0 }
-            .map { Wallet (core: $0,
-                           listener: system.listener,
-                           manager: self,
-                           unit: unit,
-                           take: false) }
+        return (CRYPTO_FALSE == cryptoWalletManagerHasWallet (self.core, core)
+            ? nil
+            : Wallet (core: core,
+                      listener: system.listener,
+                      manager: self,
+                      unit: unit,
+                      take: true))
+    }
+
+    internal func walletByCoreOrCreate (_ core: BRCryptoWallet,
+                                          listener: WalletListener?,
+                                          create: Bool = false) -> Wallet? {
+        return walletBy (core: core) ??
+            (!create
+                ? nil
+                : Wallet (core: core,
+                          listener: listener,
+                          manager: self,
+                          unit: unit,
+                          take: true))
     }
 
     // The mode determines how the manager manages the account and wallets on network
@@ -127,7 +139,7 @@ public final class WalletManager {
         cryptoWalletManagerSync (core)
     }
 
-    func submit (transfer: Transfer, paperKey: String) {
+    public func submit (transfer: Transfer, paperKey: String) {
         cryptoWalletManagerSubmit (core,
                                    transfer.wallet.core,
                                    transfer.core,
@@ -140,6 +152,9 @@ public final class WalletManager {
                  network: Network,
                  mode: WalletManagerMode,
                  storagePath: String) {
+
+        print ("SYS: WalletManager (\(network.currency.code)): Init")
+
         self.system  = system
         self.account = account
         self.network = network
@@ -154,7 +169,6 @@ public final class WalletManager {
                                                mode.asCore,
                                                storagePath)
 
-        print ("SYS: WalletManager (\(name)): Init")
         system.add(manager: self)
     }
 
@@ -166,6 +180,11 @@ public final class WalletManager {
 
     deinit {
         cryptoWalletManagerGive (core)
+    }
+
+    // Equatable
+    public static func == (lhs: WalletManager, rhs: WalletManager) -> Bool {
+        return lhs === rhs || lhs.core == rhs.core
     }
 }
 
@@ -392,6 +411,7 @@ extension WalletManager {
 
             walletEventCallback: { (context, cwm, wid, event) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                if nil == manager.core { manager.core = cwm }
                 defer {
                     if let cwm = cwm { cryptoWalletManagerGive(cwm) }
                     if let wid = wid { cryptoWalletGive(wid) }
@@ -400,14 +420,18 @@ extension WalletManager {
                 guard let _ = cwm, let wid = wid
                     else { print ("SYS: Event: \(event.type): Missed {cwm, wid}"); return }
 
-                guard let wallet   = manager.walletBy  (core: wid)
-                    else { print ("SYS: Event: \(event.type): Missed (manaager, wallet)"); return }
+                let wallet = manager.walletByCoreOrCreate (wid,
+                                                           listener: manager.system.listener,
+                                                           create: true)!
 
                 print ("SYS: Event: Wallet (\(wallet.name)): \(event.type)")
 
                 switch event.type {
                 case CRYPTO_WALLET_EVENT_CREATED:
-                    break
+                    wallet.listener?.handleWalletEvent (system: manager.system,
+                                                        manager: manager,
+                                                        wallet: wallet,
+                                                        event:  WalletEvent.created)
 
                 case CRYPTO_WALLET_EVENT_CHANGED:
                     wallet.listener?.handleWalletEvent (system: manager.system,
@@ -423,7 +447,7 @@ extension WalletManager {
 
                 case CRYPTO_WALLET_EVENT_TRANSFER_ADDED:
                     defer { if let tid = event.u.transfer.value { cryptoTransferGive(tid) }}
-                    guard let transfer = wallet.transferBy(core: event.u.transfer.value)
+                    guard let transfer = wallet.transferBy (core: event.u.transfer.value)
                         else { print ("SYS: Event: \(event.type): Missed (transfer)"); return }
                     wallet.listener?.handleWalletEvent (system: manager.system,
                                                         manager: manager,
@@ -432,7 +456,7 @@ extension WalletManager {
 
                 case CRYPTO_WALLET_EVENT_TRANSFER_CHANGED:
                     defer { if let tid = event.u.transfer.value { cryptoTransferGive(tid) }}
-                    guard let transfer = wallet.transferBy(core: event.u.transfer.value)
+                    guard let transfer = wallet.transferBy (core: event.u.transfer.value)
                         else { print ("SYS: Event: \(event.type): Missed (transfer)"); return }
                     wallet.listener?.handleWalletEvent (system: manager.system,
                                                         manager: manager,
@@ -440,7 +464,7 @@ extension WalletManager {
                                                         event: WalletEvent.transferChanged (transfer: transfer))
                 case CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED:
                     defer { if let tid = event.u.transfer.value { cryptoTransferGive(tid) }}
-                    guard let transfer = wallet.transferBy(core: event.u.transfer.value)
+                    guard let transfer = wallet.transferBy (core: event.u.transfer.value)
                         else { print ("SYS: Event: \(event.type): Missed (transfer)"); return }
                     wallet.listener?.handleWalletEvent (system: manager.system,
                                                         manager: manager,
@@ -449,7 +473,7 @@ extension WalletManager {
 
                 case CRYPTO_WALLET_EVENT_TRANSFER_DELETED:
                     defer { if let tid = event.u.transfer.value { cryptoTransferGive(tid) }}
-                   guard let transfer = wallet.transferBy(core: event.u.transfer.value)
+                   guard let transfer = wallet.transferBy (core: event.u.transfer.value)
                         else { print ("SYS: Event: \(event.type): Missed (transfer)"); return }
                     wallet.listener?.handleWalletEvent (system: manager.system,
                                                         manager: manager,
@@ -476,9 +500,11 @@ extension WalletManager {
                 guard let _ = cwm, let wid = wid, let tid = tid
                     else { print ("SYS: Event: \(event.type): Missed {cwm, wid, tid}"); return }
 
-                guard let wallet = manager.walletBy  (core: wid),
-                    let transfer = wallet.transferBy (core: tid)
-                    else { print ("SYS: Event: \(event.type): Missed (manaager, wallet, transfer)"); return }
+                guard let wallet = manager.walletBy (core: wid),
+                    let transfer = wallet.transferByCoreOrCreate (tid,
+                                                                  listener: manager.system.listener,
+                                                                  create: CRYPTO_TRANSFER_EVENT_CREATED == event.type)
+                    else { print ("SYS: Event: \(event.type): Missed (manager, wallet, transfer)"); return }
 
                 print ("SYS: Event: Transfer (\(wallet.name) @ \(transfer.hash?.description ?? "pending")): \(event.type)")
 
@@ -878,3 +904,159 @@ extension WalletManager {
                                   gen: clientGEN)
     }
 }
+
+extension BRWalletManagerEventType: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case BITCOIN_WALLET_MANAGER_CREATED: return "Created"
+        case BITCOIN_WALLET_MANAGER_CONNECTED: return "Connected"
+        case BITCOIN_WALLET_MANAGER_DISCONNECTED: return "Disconnected"
+        case BITCOIN_WALLET_MANAGER_SYNC_STARTED: return "Sync Started"
+        case BITCOIN_WALLET_MANAGER_SYNC_STOPPED: return "Sync Stopped"
+        case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED: return "Block Height Updated"
+        default: return "<<unknown>>"
+        }
+    }
+}
+
+extension BRWalletEventType: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case BITCOIN_WALLET_CREATED: return "Created"
+        case BITCOIN_WALLET_BALANCE_UPDATED: return "Balance Updated"
+        case BITCOIN_WALLET_TRANSACTION_SUBMITTED: return "Transaction Submitted"
+        case BITCOIN_WALLET_DELETED: return "Deleted"
+        default: return "<<unknown>>"
+        }
+    }
+}
+
+extension BRTransactionEventType: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case BITCOIN_TRANSACTION_ADDED: return "Added"
+        case BITCOIN_TRANSACTION_UPDATED: return "Updated"
+        case BITCOIN_TRANSACTION_DELETED: return "Deleted"
+        default: return "<<unknown>>"
+        }
+    }
+}
+
+extension BREthereumTokenEvent: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case TOKEN_EVENT_CREATED: return "Created"
+        case TOKEN_EVENT_DELETED: return "Deleted"
+        default: return "<<unknown>>"
+        }
+    }
+}
+
+extension BREthereumPeerEvent: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case PEER_EVENT_CREATED: return "Created"
+        case PEER_EVENT_DELETED: return "Deleted"
+        default: return "<<unknown>>"
+        }
+    }
+}
+
+extension BREthereumTransferEvent: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case TRANSFER_EVENT_CREATED: return "Created"
+        case TRANSFER_EVENT_SIGNED: return "Signed"
+        case TRANSFER_EVENT_SUBMITTED: return "Submitted"
+        case TRANSFER_EVENT_INCLUDED: return "Included"
+        case TRANSFER_EVENT_ERRORED: return "Errored"
+        case TRANSFER_EVENT_GAS_ESTIMATE_UPDATED: return "Gas Estimate Updated"
+        case TRANSFER_EVENT_DELETED: return "Deleted"
+        default: return "<<unknown>>"
+        }
+    }
+}
+
+extension BREthereumWalletEvent: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case WALLET_EVENT_CREATED: return "Created"
+        case WALLET_EVENT_BALANCE_UPDATED: return "Balance Updated"
+        case WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED: return "Default Gas Limit Updated"
+        case WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED: return "Default Gas Price Updated"
+        case WALLET_EVENT_DELETED: return "Deleted"
+        default: return "<<unknown>>"
+        }
+    }
+}
+
+extension BREthereumEWMEvent: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case EWM_EVENT_CREATED: return "Created"
+        case EWM_EVENT_SYNC_STARTED: return "Sync Started"
+        case EWM_EVENT_SYNC_CONTINUES: return "Sync Continues"
+        case EWM_EVENT_SYNC_STOPPED: return "Sync Stopped"
+        case EWM_EVENT_NETWORK_UNAVAILABLE: return "Network Unavailable"
+        case EWM_EVENT_BLOCK_HEIGHT_UPDATED: return "Block Height Updated"
+        case EWM_EVENT_DELETED: return "Deleted"
+        default: return "<<unknown>>"
+        }
+    }
+}
+
+extension BRCryptoTransferEventType: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case CRYPTO_TRANSFER_EVENT_CREATED: return "Created"
+        case CRYPTO_TRANSFER_EVENT_CHANGED: return "Changed"
+        case CRYPTO_TRANSFER_EVENT_CONFIRMED: return "Confirmed"
+        case CRYPTO_TRANSFER_EVENT_DELETED: return "Deleted"
+        default: return "<>unknown>>"
+        }
+    }
+}
+
+extension BRCryptoWalletEventType: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case CRYPTO_WALLET_EVENT_CREATED: return "Created"
+        case CRYPTO_WALLET_EVENT_CHANGED: return "Changed"
+        case CRYPTO_WALLET_EVENT_DELETED: return "Deleted"
+
+        case CRYPTO_WALLET_EVENT_TRANSFER_ADDED:     return "Transfer Added"
+        case CRYPTO_WALLET_EVENT_TRANSFER_CHANGED:   return "Transfer Changed"
+        case CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED: return "Transfer Submitted"
+        case CRYPTO_WALLET_EVENT_TRANSFER_DELETED:   return "Transfer Deleted"
+
+        case CRYPTO_WALLET_EVENT_BALANCE_UPDATED:   return "Balance Updated"
+        case CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED: return "FeeBasis Updated"
+
+        default: return "<>unknown>>"
+        }
+    }
+}
+
+extension BRCryptoWalletManagerEventType: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case CRYPTO_WALLET_MANAGER_EVENT_CREATED: return "Created"
+        case CRYPTO_WALLET_MANAGER_EVENT_CHANGED: return "Changed"
+        case CRYPTO_WALLET_MANAGER_EVENT_DELETED: return "Deleted"
+
+        case CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED:   return "Wallet Added"
+        case CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED: return "Wallet Changed"
+        case CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED: return "Wallet Deleted"
+
+            // wallet: added, ...
+        case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED:   return "Sync Started"
+        case CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES: return "Sync Continues"
+        case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED:   return "Sync Stopped"
+
+        case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED: return "Block Height Updated"
+        default: return "<>unknown>>"
+        }
+    }
+}
+
+

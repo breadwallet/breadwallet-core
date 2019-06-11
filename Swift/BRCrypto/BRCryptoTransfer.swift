@@ -20,7 +20,7 @@ import BRCryptoC
 /// A Transfer is Equatable but not Hashable; Hashable would naturally be implmeneted in terms of
 /// the TransferHash however that hash isn't available until after a transfer is signed.
 ///
-public final class Transfer {
+public final class Transfer: Equatable {
     internal private(set) weak var listener: TransferListener?
 
     internal let core: BRCryptoTransfer
@@ -139,6 +139,11 @@ public final class Transfer {
                                             transfer: self,
                                             event: event)
     }
+
+    // Equatable
+    public static func == (lhs: Transfer, rhs: Transfer) -> Bool {
+        return lhs === rhs || lhs.core == rhs.core
+    }
 }
 
 extension Transfer {
@@ -204,7 +209,7 @@ public struct TransferConfirmation {
     public let blockNumber: UInt64
     public let transactionIndex: UInt64
     public let timestamp: UInt64
-    public let fee: Amount
+    public let fee: Amount?  // Optional, for now
 }
 
 ///
@@ -245,14 +250,18 @@ public enum TransferState {
     case included (confirmation: TransferConfirmation)
     case failed (reason:String)
     case deleted
-
-    internal init (core: BRCryptoTransferState, included: TransferConfirmation? = nil, failed: String? = nil) {
-        switch core {
+    
+    internal init (core: BRCryptoTransferState) {
+        switch core.type {
         case CRYPTO_TRANSFER_STATE_CREATED:   self = .created
         case CRYPTO_TRANSFER_STATE_SIGNED:    self = .signed
         case CRYPTO_TRANSFER_STATE_SUBMITTED: self = .submitted
-        case CRYPTO_TRANSFER_STATE_INCLUDED:  self = .included(confirmation: included!)
-        case CRYPTO_TRANSFER_STATE_ERRORRED:  self = .failed(reason: failed!)
+        case CRYPTO_TRANSFER_STATE_INCLUDED:  self = .included (
+            confirmation: TransferConfirmation (blockNumber: core.u.included.blockNumber,
+                                                transactionIndex: core.u.included.transactionIndex,
+                                                timestamp: core.u.included.timestamp,
+                                                fee: nil))
+        case CRYPTO_TRANSFER_STATE_ERRORRED:  self = .failed(reason: asUTF8String(cryptoTransferStateGetErrorMessage (core)))
         case CRYPTO_TRANSFER_STATE_DELETED:   self = .deleted
         default: /* ignore this */ self = .pending; precondition(false)
         }

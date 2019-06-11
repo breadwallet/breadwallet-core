@@ -14,8 +14,7 @@ import BRCryptoC
 ///
 /// A Wallet holds the transfers and a balance for a single currency.
 ///
-public final class Wallet {
-
+public final class Wallet: Equatable {
     internal private(set) weak var listener: WalletListener?
 
     internal let core: BRCryptoWallet
@@ -65,8 +64,13 @@ public final class Wallet {
     }
 
     internal func transferBy (core: BRCryptoTransfer) -> Transfer? {
-        return transfers
-            .first { $0.core == core }
+        return (CRYPTO_FALSE == cryptoWalletHasTransfer (self.core, core)
+            ? nil
+            : Transfer (core: core,
+                        listener: manager.system.listener,
+                        wallet: self,
+                        unit: unit,
+                        take: true))
     }
 
     internal func transferByCoreOrCreate (_ core: BRCryptoTransfer,
@@ -126,7 +130,7 @@ public final class Wallet {
     ///
     /// - Returns: A new transfer
     ///
-    func createTransfer (target: Address,
+    public func createTransfer (target: Address,
                          amount: Amount,
                          feeBasis: TransferFeeBasis) -> Transfer? {
         return cryptoWalletCreateTransfer (core, target.core, amount.core, feeBasis.core)
@@ -148,7 +152,7 @@ public final class Wallet {
     ///
     /// - Returns: transfer fee
     ///
-    func estimateFee (amount: Amount,
+    public func estimateFee (amount: Amount,
                       feeBasis: TransferFeeBasis?) -> Amount {
         precondition (amount.hasCurrency (currency))
         let unit = manager.network.baseUnitFor (currency: manager.currency)!
@@ -166,11 +170,9 @@ public final class Wallet {
         self.core = take ? cryptoWalletTake (core) : core
         self.listener = listener
         self.manager = manager
-        //self.name = unit.currency.code
         self.unit = unit
-        // self.state = WalletState.created
 
-        print ("SYS: Wallet (\(manager.name):\(name)): Init")
+        // print ("SYS: Wallet (\(manager.name):\(name)): Init")
         //        manager.add (wallet: self)
     }
 
@@ -183,6 +185,11 @@ public final class Wallet {
 
     deinit {
         cryptoWalletGive (core)
+    }
+
+    // Equatable
+    public static func == (lhs: Wallet, rhs: Wallet) -> Bool {
+        return lhs === rhs || lhs.core == rhs.core
     }
 }
 

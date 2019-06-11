@@ -164,8 +164,8 @@ extern "C" {
      * @return The currency w/ an incremented reference count (aka 'taken')
      */
     extern BRCryptoCurrency
-    cryptoNetworkGetCurrencyForSymbol (BRCryptoNetwork network,
-                                       const char *symbol);
+    cryptoNetworkGetCurrencyForCode (BRCryptoNetwork network,
+                                     const char *code);
 
     /**
      * Returns the number of units for network's `currency`.  This is the index exclusive limit to
