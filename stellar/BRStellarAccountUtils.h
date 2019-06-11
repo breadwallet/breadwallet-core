@@ -11,9 +11,13 @@
 #ifndef BRStellar_account_utils_h
 #define BRStellar_account_utils_h
 
-#include "BRKey.h"
-#include "BRInt.h"
+#include "support/BRKey.h"
+#include "support/BRInt.h"
 #include "BRStellarBase.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * Generate the secret needed for public/private key pair
@@ -35,5 +39,10 @@ BRKey createStellarKeyFromSeed(UInt512 seed);
  * @return address   Stellar address object
  */
 extern BRStellarAddress createStellarAddressFromPublicKey(BRKey * key);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // BRStellar_account_utils_h

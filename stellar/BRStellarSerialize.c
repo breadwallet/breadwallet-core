@@ -8,6 +8,7 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
+#include "BRStellarSerialize.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -16,14 +17,11 @@
 #include <assert.h>
 #include <math.h>
 #include "BRStellar.h"
-#include "BRStellarBase.h"
-#include "BRStellarPrivateStructs.h"
 #include "BRStellarAccountUtils.h"
 #include "support/BRInt.h"
 #include "support/BRCrypto.h"
 #include "support/BRKey.h"
 #include "BRStellarAccount.h"
-#include "ed25519/ed25519.h"
 
 bool validAccountID(BRStellarAccountID * account)
 {
@@ -36,31 +34,53 @@ bool validAccountID(BRStellarAccountID * account)
 
 uint8_t * pack_int(int32_t value, uint8_t * buffer)
 {
-    // The XDRLIB code just packs a signed integer as unsigned
     UInt32SetBE(buffer, value);
     return buffer + 4;
-}
-
-uint8_t * unpack_uint(uint8_t * buffer, uint32_t *value)
-{
-    assert(value);
-    *value = UInt32GetBE(buffer);
-    return buffer+4;
 }
 
 uint8_t * unpack_int(uint8_t * buffer, int32_t *value)
 {
     assert(value);
-    // TODO - check if there is any difference in the signed/unsigned 32-bit integers
-    // with respect to the XDR library
+    // Stellar does send result code as negative numbers. It should work
+    // just to unpack it as a unsigned int and it will get converted to
+    // a signed int in the assignment below.
     *value = UInt32GetBE(buffer);
     return buffer+4;
+}
+
+uint8_t * unpack_uint(uint8_t * buffer, uint32_t *value)
+{
+    assert(value);
+    // TODO -
+    *value = UInt32GetBE(buffer);
+    return buffer+4;
+}
+
+// A bit of a hack but there are several cases where we need to read a
+// uint32_t but only if there is a flag indicating it is available
+uint8_t * unpack_uint_ifpresent(uint8_t * buffer, uint8_t *isPresent, uint32_t *value)
+{
+    assert(value);
+    uint32_t checkIfPresent = UInt32GetBE(buffer);
+    if (1 == checkIfPresent) {
+        *isPresent = 0x01;
+        *value = UInt32GetBE(buffer);
+    }
+    return (buffer + 4 + (checkIfPresent == 1 ? 4 : 0));
 }
 
 uint8_t * pack_uint64(uint64_t i, uint8_t* buffer)
 {
     UInt64SetBE(buffer, i);
     return buffer+8;
+}
+
+uint8_t * unpack_bool(uint8_t * buffer, bool *value)
+{
+    assert(value);
+    uint32_t tmp = UInt32GetBE(buffer);
+    *value = tmp == 0 ? false : true;
+    return buffer+4;
 }
 
 // 64-bit unsigned integer
@@ -89,6 +109,13 @@ uint8_t * unpack_int64(uint8_t * buffer, int64_t * value)
     // if x >= 0x8000000000000000:
     //    x = x - 0x10000000000000000
     //    return x
+}
+
+uint8_t * unpack_amount(uint8_t* buffer, double* value)
+{
+    uint64_t amount = UInt64GetBE(buffer);
+    *value = (double)amount / (double)10000000;
+    return (buffer + 8);
 }
 
 uint8_t * pack_fopaque(uint8_t *data, int dataSize, uint8_t *buffer)
@@ -267,11 +294,6 @@ uint8_t * unpack_Asset(uint8_t *buffer, BRStellarAsset *asset)
         case ASSET_TYPE_CREDIT_ALPHANUM4:
             buffer = unpack_fopaque(buffer, (uint8_t*)&asset->assetCode, 4);
             buffer = unpack_AccountID(buffer, &asset->issuer);
-            // for testing - turn this accountID into a stellar string
-            BRKey key;
-            memcpy(&key.pubKey[0], &asset->issuer.accountID[0], 32);
-            BRStellarAddress address = createStellarAddressFromPublicKey(&key);
-            printf("Stellar Address: %s\n", address.bytes);
             break;
         case ASSET_TYPE_CREDIT_ALPHANUM12:
             buffer = unpack_fopaque(buffer, (uint8_t*)&asset->assetCode, 12);
@@ -312,15 +334,24 @@ uint8_t * unpack_Payment(uint8_t *buffer, BRStellarPaymentOp * op)
     // Amount See `Stellar's documentation on Asset Precision
     // <https://www.stellar.org/developers/guides/concepts/assets.html#amount-precision-and-representation>`_
     // for more information.
-    uint64_t amount = 0;
-    printf("\n");
-    buffer = unpack_uint64(buffer, &amount);
-    assert(amount < 0x8000000000000000); // 9,223,372,036,854,775,807, largest amount allowed
-    // Amounts are scaled up by 10,000,000 during transport, we need to divide by the same
-    // value to get the correct amount number.
-    op->amount = (double)amount / (double)10000000;
-    printf("Amount: %f\n", op->amount);
+    buffer = unpack_amount(buffer, &op->amount);
 
+    return buffer;
+}
+
+uint8_t * unpack_PathPayment(uint8_t *buffer, BRStellarPathPaymentOp * op)
+{
+    buffer = unpack_Asset(buffer, &op->sendAsset); // Send Asset
+    buffer = unpack_amount(buffer, &op->sendMax);
+    buffer = unpack_AccountID(buffer, &op->destination); // DestinationID
+    buffer = unpack_Asset(buffer, &op->destAsset); // Send Asset
+    buffer = unpack_amount(buffer, &op->destAmount);
+    // Now unpack any paths - first get the array size
+    buffer = unpack_uint(buffer, &op->numPaths);
+    assert(op->numPaths <= 5); // From Stellar-transaction.x
+    for (int i = 0; i < op->numPaths; i++) {
+        buffer = unpack_Asset(buffer, &op->path[i]);
+    }
     return buffer;
 }
 
@@ -334,10 +365,83 @@ uint8_t * unpack_ManageSellOffer(uint8_t *buffer, BRStellarManageSellOfferOp * o
 {
     buffer = unpack_Asset(buffer, &op->selling); // Asset
     buffer = unpack_Asset(buffer, &op->buying); // Asset
-    buffer = unpack_int64(buffer, &op->amount);
+    buffer = unpack_amount(buffer, &op->amount);
     buffer = unpack_Price(buffer, &op->price);
     buffer = unpack_int64(buffer, &op->offerID);
     return buffer;
+}
+
+uint8_t * unpack_PassiveSellOffer(uint8_t *buffer, BRStellarPassiveSellOfferOp * op)
+{
+    buffer = unpack_Asset(buffer, &op->selling); // Asset
+    buffer = unpack_Asset(buffer, &op->buying); // Asset
+    buffer = unpack_amount(buffer, &op->amount);
+    buffer = unpack_Price(buffer, &op->price);
+    return buffer;
+}
+
+uint8_t * unpack_CreateAccount(uint8_t *buffer, BRStellarCreateAccountOp * op)
+{
+    buffer = unpack_AccountID(buffer, &op->account); // Asset
+    buffer = unpack_amount(buffer, &op->startingBalance);
+    return buffer;
+}
+
+uint8_t * unpack_Signer(uint8_t * buffer, BRStellarSigner *signer)
+{
+    buffer = unpack_uint(buffer, &signer->key.keyType);
+    buffer = unpack_fopaque(buffer, &signer->key.key[0], 32);
+    return unpack_uint(buffer, &signer->weight);
+}
+
+uint8_t * unpack_SetOptions(uint8_t *buffer, BRStellarSetOptionsOp * op)
+{
+    uint32_t isPresent = 0;
+    buffer = unpack_uint(buffer, &isPresent); // inflationDest
+    if (1 == isPresent) {
+        op->settings[0] = 1;
+        buffer = unpack_AccountID(buffer, &op->inflationDest);
+    }
+    buffer = unpack_uint_ifpresent(buffer, &op->settings[1], &op->clearFlags);
+    buffer = unpack_uint_ifpresent(buffer, &op->settings[2], &op->setFlags);
+    buffer = unpack_uint_ifpresent(buffer, &op->settings[3], &op->masterWeight);
+    buffer = unpack_uint_ifpresent(buffer, &op->settings[4], &op->lowThreshold);
+    buffer = unpack_uint_ifpresent(buffer, &op->settings[5], &op->medThreshold);
+    buffer = unpack_uint_ifpresent(buffer, &op->settings[6], &op->highThreshold);
+
+    buffer = unpack_uint(buffer, &isPresent); // homeDomain
+    if (1 == isPresent) {
+        op->settings[7] = 1;
+        buffer = unpack_string(buffer, &op->homeDomain[0], sizeof(op->homeDomain)/sizeof(char));
+    }
+
+    buffer = unpack_uint(buffer, &isPresent); // signer
+    if (1 == isPresent) {
+        op->settings[8] = 1;
+        buffer = unpack_Signer(buffer, &op->signer);
+    }
+    
+    return buffer;
+}
+
+uint8_t * unpack_ChangeTrust(uint8_t * buffer, BRStellarChangeTrustOp * op)
+{
+    buffer = unpack_Asset(buffer, &op->line); // Asset
+    return unpack_uint64(buffer, &op->limit);
+}
+
+uint8_t * unpack_AllowTrust(uint8_t * buffer, BRStellarAllowTrustOp * op)
+{
+    buffer = unpack_AccountID(buffer, &op->trustor);
+    buffer = unpack_uint(buffer, &op->assetType);
+    if (op->assetType == ASSET_TYPE_CREDIT_ALPHANUM4) {
+        buffer = unpack_fopaque(buffer, (uint8_t*)&op->assetCode, 4);
+    } else if (op->assetType == ASSET_TYPE_CREDIT_ALPHANUM12) {
+        buffer = unpack_fopaque(buffer, (uint8_t*)&op->assetCode, 12);
+    } else {
+        // Log ERROR - return NULL?
+    }
+    return unpack_bool(buffer, &op->authorize);
 }
 
 uint8_t * unpack_Op(uint8_t *buffer, BRStellarOperation *op)
@@ -351,21 +455,27 @@ uint8_t * unpack_Op(uint8_t *buffer, BRStellarOperation *op)
     }
     buffer = unpack_uint(buffer, &op->type); // Operation type
     switch(op->type) {
-        case PAYMENT:
+        case ST_OP_CREATE_ACCOUNT:
+            return unpack_CreateAccount(buffer, &op->operation.createAccount);
+        case ST_OP_PAYMENT:
             return unpack_Payment(buffer, &op->operation.payment);
-        case MANAGE_SELL_OFFER:
+        case ST_OP_PATH_PAYMENT:
+            return unpack_PathPayment(buffer, &op->operation.pathPayment);
+        case ST_OP_MANAGE_SELL_OFFER:
             return unpack_ManageSellOffer(buffer, &op->operation.mangeSellOffer);
-        case CREATE_ACCOUNT:
-        case PATH_PAYMENT:
-        case CREATE_PASSIVE_SELL_OFFER:
-        case SET_OPTIONS:
-        case CHANGE_TRUST:
-        case ALLOW_TRUST:
-        case ACCOUNT_MERGE:
-        case INFLATION:
-        case MANAGE_DATA:
-        case BUMP_SEQUENCE:
-        case MANAGE_BUY_OFFER:
+        case ST_OP_CREATE_PASSIVE_SELL_OFFER:
+            return unpack_PassiveSellOffer(buffer, &op->operation.passiveSellOffer);
+        case ST_OP_SET_OPTIONS:
+            return unpack_SetOptions(buffer, &op->operation.options);
+        case ST_OP_CHANGE_TRUST:
+            return unpack_ChangeTrust(buffer, &op->operation.changeTrust);
+        case ST_OP_ALLOW_TRUST:
+            return unpack_AllowTrust(buffer, &op->operation.allowTrust);
+        case ST_OP_ACCOUNT_MERGE:
+        case ST_OP_INFLATION:
+        case ST_OP_MANAGE_DATA:
+        case ST_OP_BUMP_SEQUENCE:
+        case ST_OP_MANAGE_BUY_OFFER:
             break;
         default:
             // Log and quit now.
@@ -374,12 +484,13 @@ uint8_t * unpack_Op(uint8_t *buffer, BRStellarOperation *op)
     return NULL; // Causes the parse to quit - and return an error
 }
 
-uint8_t * pack_Operations(BRStellarOperation *operations, int numOperations, uint8_t *buffer)
+uint8_t * pack_Operations(BRArrayOf(BRStellarOperation) operations, uint8_t *buffer)
 {
     // Operations is an array - so first write out the number of elements
     if (!operations) {
         return pack_int(0, buffer); // array size is zero
     }
+    uint32_t numOperations = (uint32_t)array_count(operations);
     buffer = pack_int(numOperations, buffer);
     for(int i = 0; i < numOperations; i++) {
         buffer = pack_Op(&operations[i], buffer);
@@ -387,15 +498,17 @@ uint8_t * pack_Operations(BRStellarOperation *operations, int numOperations, uin
     return buffer;
 }
 
-uint8_t * unpack_Operations(uint8_t *buffer, size_t bufferLength,
-                            BRStellarOperation **operations, uint32_t *numOperations)
+uint8_t * unpack_Operations(uint8_t *buffer, size_t bufferLength, BRArrayOf(BRStellarOperation) *ops)
 {
     // Operations is an array - so first write out the number of elements
-    buffer = unpack_uint(buffer, numOperations);
-    if (*numOperations > 0) {
-        *operations = calloc(*numOperations, sizeof(BRStellarOperation));
-        for(int i = 0; i < *numOperations; i++) {
-            buffer = unpack_Op(buffer, &(*operations)[i]);
+    uint32_t numOperations = 0;
+    buffer = unpack_uint(buffer, &numOperations);
+    if (numOperations > 0) {
+        for(int i = 0; i < numOperations; i++) {
+            BRStellarOperation op;
+            memset(&op, 0x00, sizeof(BRStellarOperation));
+            buffer = unpack_Op(buffer, &op);
+            array_add(*ops, op);
         }
     }
     return buffer;
@@ -432,15 +545,14 @@ extern size_t stellarSerializeTransaction(BRStellarAccountID *accountID,
                                        BRStellarTimeBounds *timeBounds,
                                        int numTimeBounds,
                                        BRStellarMemo *memo,
-                                       BRStellarOperation * operations,
-                                       int numOperations,
+                                       BRArrayOf(BRStellarOperation) operations,
                                        uint32_t version,
                                        uint8_t *signatures,
                                        int numSignatures,
                                        uint8_t **buffer)
 {
     size_t approx_size = 24 + 4 + 8 + (4 + numTimeBounds*16) + 4 + 32; // First 4 fields + version + buffer
-    approx_size += (4 + (numOperations * 128)) + (4 + (memo ? 32 : 0)) +
+    approx_size += (4 + (array_count(operations) * 128)) + (4 + (memo ? 32 : 0)) +
                    (numSignatures ? (numSignatures * 72) : 4);
 
     *buffer = calloc(1, approx_size);
@@ -463,7 +575,7 @@ extern size_t stellarSerializeTransaction(BRStellarAccountID *accountID,
     pCurrent = pack_Memo(memo, pCurrent);
 
     // Operations - array of operations
-    pCurrent = pack_Operations(operations, numOperations, pCurrent);
+    pCurrent = pack_Operations(operations, pCurrent);
 
     // The Stellar XDR documentation has a stucture (name "v") which
     // says it is reserved for future use.  Currently all the client libraries
@@ -478,29 +590,13 @@ extern size_t stellarSerializeTransaction(BRStellarAccountID *accountID,
     return (pCurrent - pStart);
 }
 
-BRStellarSignatureRecord stellarTransactionSign(uint8_t * tx_hash, size_t txHashLength,
-                                                uint8_t *privateKey, uint8_t *publicKey)
-{
-    // Create a signature from the incoming bytes
-    unsigned char signature[64];
-    ed25519_sign(signature, tx_hash, txHashLength, publicKey, privateKey);
-
-    // This is what they call a decorated signature - it includes
-    // a 4-byte hint of what public key to use.
-    BRStellarSignatureRecord sig;
-    memcpy(sig.signature, &publicKey[28], 4); // Last for bytes of public key
-    memcpy(&sig.signature[4], signature, 64);
-    return sig;
-}
-
 bool stellarDeserializeTransaction(BRStellarAccountID *accountID,
                                 BRStellarFee *fee,
                                 BRStellarSequence *sequence,
                                 BRStellarTimeBounds **timeBounds,
                                 uint32_t *numTimeBounds,
                                 BRStellarMemo **memo,
-                                BRStellarOperation **operations,
-                                uint32_t *numOperations,
+                                BRArrayOf(BRStellarOperation) *ops,
                                 int32_t *version,
                                 uint8_t **signature,
                                 uint32_t *signatureLength,
@@ -534,7 +630,7 @@ bool stellarDeserializeTransaction(BRStellarAccountID *accountID,
     
     // Operations - array of operations
     assert((pEnd - pCurrent) > sizeof(uint32_t)); // Can we read the array length
-    pCurrent = unpack_Operations(pCurrent, pEnd - pCurrent, operations, numOperations);
+    pCurrent = unpack_Operations(pCurrent, pEnd - pCurrent, ops);
     
     // The Stellar XDR documentation has a stucture (name "v") which
     // says it is reserved for future use.  Currently all the client libraries
@@ -547,4 +643,80 @@ bool stellarDeserializeTransaction(BRStellarAccountID *accountID,
     }
     
     return true;
+}
+
+int stellarDeserializeResultXDR(uint8_t * result_xdr, size_t result_length, BRArrayOf(BRStellarOperation) *ops,
+                                 BRStellarTransactionResult * txResult)
+{
+    // The result_xdr has the following content
+    // 1. Fee (8 bytes for some reason, instead of 4)
+    // 2. Result code for the transaction (4 bytes)
+    // 3. An array of operation result codes
+    // 4. The version (4 bytes)
+    uint8_t * pCurrent = result_xdr;
+    pCurrent = unpack_uint64(pCurrent, &txResult->fee);
+    pCurrent = unpack_int(pCurrent, &txResult->resultCode);
+    if (txResult->resultCode == ST_TX_SUCCESS || txResult->resultCode == ST_TX_FAILED)
+    {
+        // Get the operation results
+        uint32_t numOperations;
+        pCurrent = unpack_uint(pCurrent, &numOperations);
+        // Make sure that our operation array is large enough. It is possible that
+        // this function gets called without ever parsing out the transaction info
+        if (numOperations > array_count(ops)) {
+            array_set_count(*ops, numOperations);
+        }
+        for(int i = 0; i < numOperations; i++) {
+            int32_t opInner = 0;
+            BRStellarOperation *op = &((*ops)[i]);
+            pCurrent = unpack_int(pCurrent, &opInner);
+            if (opInner == ST_OP_RESULT_CODE_INNER) {
+                // Get the operation type
+                uint32_t opType = 0;
+                pCurrent = unpack_uint(pCurrent, &opType);
+                op->type = opType;
+                // TODO - for now we are only parsing out results from simple transactions where the result
+                // code is just an integer. If needed we can revisit this and add in the more complex types
+                // but it seems like this will be a lot of work when we will only be asking for payment
+                // info from the blockchaindb.
+                // I am also parsing the AccountMerge result since it has the new balance, which might be needed.
+                switch (opType) {
+                    case ST_OP_CREATE_ACCOUNT:
+                        pCurrent = unpack_int(pCurrent, &op->operation.createAccount.result.resultCode);
+                        break;
+                    case ST_OP_PAYMENT:
+                        pCurrent = unpack_int(pCurrent, &op->operation.payment.result.resultCode);
+                        break;
+                    case ST_OP_SET_OPTIONS:
+                        pCurrent = unpack_int(pCurrent, &op->operation.options.result.resultCode);
+                        break;
+                    case ST_OP_CHANGE_TRUST:
+                        pCurrent = unpack_int(pCurrent, &op->operation.changeTrust.result.resultCode);
+                        break;
+                    case ST_OP_ALLOW_TRUST:
+                        pCurrent = unpack_int(pCurrent, &op->operation.allowTrust.result.resultCode);
+                        break;
+                    case ST_OP_MANAGE_DATA:
+                        pCurrent = unpack_int(pCurrent, &op->operation.manageData.result.resultCode);
+                        break;
+                    case ST_OP_ACCOUNT_MERGE:
+                        pCurrent = unpack_int(pCurrent, &op->operation.accountMerge.result.resultCode);
+                        if (0 == op->operation.accountMerge.result.resultCode) { // 0 is alwasy success
+                            pCurrent = unpack_amount(pCurrent, &op->operation.accountMerge.balance);
+                        }
+                        break;
+                    default:
+                        // ERROR
+                        return ST_XDR_UNSUPPORTED_OPERATION;
+                        break;
+                }
+            }
+        }
+        uint32_t version = 0;
+        pCurrent = unpack_uint(pCurrent, &version);
+    } else {
+        return ST_XDR_FAILURE;
+    }
+    
+    return ST_XDR_SUCCESS;
 }

@@ -37,21 +37,21 @@ struct BRStellarAccountRecord {
 
 extern void stellarAccountSetNetworkType(BRStellarAccount account, BRStellarNetworkType networkType)
 {
+    // The network type is required when we sign the transaction. The string included in the
+    // data to hash must match the network we connect to
     account->networkType = networkType;
-}
-
-extern char * createStellarAddressString (BRStellarAddress address, int useChecksum)
-{    return NULL;
 }
 
 static BRStellarAccount createAccountObject(BRKey * key)
 {
+    // Create an initialize a BRStellarAccountRecord object
     BRStellarAccount account = (BRStellarAccount) calloc (1, sizeof (struct BRStellarAccountRecord));
 
+    // Generate the public key from the secret
     unsigned char privateKey[64] = {0};
     unsigned char publicKey[32] = {0};
     ed25519_create_keypair(publicKey, privateKey, key->secret.u8);
-    var_clean(&privateKey);
+    var_clean(&privateKey); // never leave the private key in memory
     var_clean(&key);
     memcpy(&account->publicKey.pubKey[0], &publicKey[0], 32);
     account->networkType = STELLAR_NETWORK_PUBLIC;
@@ -75,29 +75,22 @@ extern BRStellarAccount stellarAccountCreateWithSeed(UInt512 seed)
 // Create an account object using the key
 extern BRStellarAccount stellarAccountCreateWithKey(BRKey key)
 {
+    // NOTE: since this is a public function that passes in a copy
+    // of the key/secret it is up to the caller to wipe the secret from memory
     return createAccountObject(&key);
 }
 
 extern BRStellarAddress stellarAccountGetAddress(BRStellarAccount account)
 {
     assert(account);
+    // The account object should already have a public key - so generate the
+    // stellar address from the public key.
     return createStellarAddressFromPublicKey(&account->publicKey);
-}
-
-extern int stellarAccountGetAddressString(BRStellarAccount account, char * stellarAddress, int length)
-{
-    BRStellarAddress address = stellarAccountGetAddress(account);
-    // The stellar address is alread a string
-    if (length >= sizeof(address.bytes)) {
-        memcpy(stellarAddress, address.bytes, sizeof(address.bytes));
-    }
-    return sizeof(address.bytes);
 }
 
 extern BRKey stellarAccountGetPublicKey(BRStellarAccount account)
 {
-    // Before returning this - make sure there is no private key.
-    // It should NOT be there but better to make sure.
+    // The accounts BRKey object should NEVER have the secret but zero it out just in case
     account->publicKey.secret = UINT256_ZERO;
     return account->publicKey;
 }
@@ -115,6 +108,7 @@ extern BRStellarAddress stellarAccountGetPrimaryAddress (BRStellarAccount accoun
     return stellarAccountGetAddress(account);
 }
 
+// Private function implemented in BRStellarTransaction.c
 extern BRStellarSerializedTransaction
 stellarTransactionSerializeAndSign(BRStellarTransaction transaction, uint8_t *privateKey,
                                    uint8_t *publicKey, uint64_t sequence, BRStellarNetworkType networkType);
@@ -138,22 +132,6 @@ stellarAccountSignTransaction(BRStellarAccount account, BRStellarTransaction tra
     return s;
 }
 
-extern int stellarAddressStringToAddress(const char* input, BRStellarAddress *address)
-{
-    return 0;
-}
-
-extern BRStellarAddress
-stellarAddressCreate(const char * stellarAddressString)
-{
-    BRStellarAddress address;
-    memset(address.bytes, 0x00, sizeof(address.bytes));
-    // Work backwards from this stellar address (string) to what is
-    // known as the acount ID (20 bytes)
-    stellarAddressStringToAddress(stellarAddressString, &address);
-    return address;
-}
-
 extern int // 1 if equal
 stellarAddressEqual (BRStellarAddress a1, BRStellarAddress a2) {
     return 0 == memcmp (a1.bytes, a2.bytes, 20);
@@ -162,5 +140,7 @@ stellarAddressEqual (BRStellarAddress a1, BRStellarAddress a2) {
 extern void stellarAccountSetSequence(BRStellarAccount account, uint64_t sequence)
 {
     assert(account);
+    // The sequence is very important as it must be 1 greater than the previous
+    // transaction sequence.
     account->sequence = sequence;
 }

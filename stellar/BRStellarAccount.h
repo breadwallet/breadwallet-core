@@ -11,8 +11,13 @@
 #ifndef BRStellar_account_h
 #define BRStellar_account_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "support/BRKey.h"
+#include "BRStellarBase.h"
 #include "BRStellarTransaction.h"
-#include "BRKey.h"
 
 typedef struct BRStellarAccountRecord *BRStellarAccount;
 
@@ -68,34 +73,14 @@ extern
 const BRStellarSerializedTransaction /* do NOT free, owned by transaction */
 stellarAccountSignTransaction(BRStellarAccount account, BRStellarTransaction transaction, const char *paperKey);
 
-// Accessor function for the account address (Stellar ID)
+/**
+ * Get the stellar address for this account
+ *
+ * @param account   BRStellarAccount
+ * @return address  the stellar address for this account
+ */
 extern BRStellarAddress
 stellarAccountGetAddress(BRStellarAccount account);
-
-/*
- * Get the string version of the stellar address
- *
- * @param account        handle of a valid account object
- * @param stellarAddress  pointer to char buffer to hold the address
- * @param length         length of the stellarAddress buffer
- *
- * @return               number of bytes copied to stellarAddress + 1 (for terminating byte)
- *                       otherwise return the number of bytes needed to store the address
- *                       including the 0 termination byte
- */
-extern int stellarAccountGetAddressString(BRStellarAccount account,
-                                         char * stellarAddress, /* memory owned by caller */
-                                         int length);
-
-/**
- * Create a BRStellarAddress from the stellar string
- *
- * @param stellarAddres  address in the form r41...
- *
- * @return address      BRStellarAddres
- */
-extern BRStellarAddress
-stellarAddressCreate(const char * stellarAddressString);
 
 /**
  * Compare 2 stellar addresses
@@ -112,14 +97,46 @@ stellarAddressEqual (BRStellarAddress a1, BRStellarAddress a2);
 /**
  * Get the account's primary address
  *
- * @param account the account
+ * @param  account  the account
+ * @return address  the primary stellar address for this account
  */
 extern BRStellarAddress stellarAccountGetPrimaryAddress (BRStellarAccount account);
 
+/**
+ * Get the account's public key (for the primary address)
+ *
+ * @param  account     the account
+ * @return publicKey   A BRKey object holding the public key
+ */
 extern BRKey stellarAccountGetPublicKey(BRStellarAccount account);
 
+/**
+ * Set the sequence number for this account
+ *
+ * The sequence number is used when sending transcations
+ *
+ * NOTE: The current transaction sequence number of the account. This number starts
+ * equal to the ledger number at which the account was created, not at 0.
+ *
+ * @param account the account
+ * @param sequence  a 64-bit unsigned number. It should be retrieved from network
+ *                  or should be set to 1 more that the value in the lastest transaction
+ */
 extern void stellarAccountSetSequence(BRStellarAccount account, uint64_t sequence);
 
+/**
+ * Set the network type being used for this account
+ *
+ * The account will default to the production network if this fuction is not called
+ *
+ * @param account the account
+ * @param networkType      STELLAR_NETWORK_PUBLIC or STELLAR_NETWORK_TESTNET
+ */
 extern void stellarAccountSetNetworkType(BRStellarAccount account, BRStellarNetworkType networkType);
 
+
+#ifdef __cplusplus
+}
 #endif
+
+#endif // BRStellar_account_h

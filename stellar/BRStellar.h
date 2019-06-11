@@ -2,7 +2,7 @@
 //  BRStellar.h
 //  Core
 //
-//  Created by Carl Cherry on 5/21/2019.
+//  Created by Carl Cherry on 6/12/2019.
 //  Copyright © 2019 Breadwinner AG. All rights reserved.
 //
 //  See the LICENSE file at the project root for license information.
@@ -12,6 +12,7 @@
 #define BRStellar_h
 
 #include <stdint.h>
+#include "BRStellarBase.h"
 #include "BRStellarAccount.h"
 #include "BRStellarTransaction.h"
 #include "BRStellarWallet.h"
