@@ -97,6 +97,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoAmount cryptoAmountCreateInteger(long value, BRCryptoUnit unit);
     BRCryptoAmount cryptoAmountCreateString(String value, int isNegative, BRCryptoUnit unit);
     BRCryptoCurrency cryptoAmountGetCurrency(BRCryptoAmount amount);
+    int cryptoAmountHasCurrency(BRCryptoAmount amount, BRCryptoCurrency currency);
     int cryptoAmountIsNegative(BRCryptoAmount amount);
     int cryptoAmountIsCompatible(BRCryptoAmount a1, BRCryptoAmount a2);
     int cryptoAmountCompare(BRCryptoAmount a1, BRCryptoAmount a2);
@@ -167,6 +168,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoAmount cryptoTransferGetAmount(BRCryptoTransfer transfer);
     BRCryptoAmount cryptoTransferGetFee(BRCryptoTransfer transfer);
     int cryptoTransferGetDirection(BRCryptoTransfer transfer);
+    int cryptoTransferGetState(BRCryptoTransfer transfer);
     BRCryptoHash cryptoTransferGetHash(BRCryptoTransfer transfer);
     BRCryptoFeeBasis cryptoTransferGetFeeBasis(BRCryptoTransfer transfer);
     int cryptoTransferEqual(BRCryptoTransfer transfer1, BRCryptoTransfer transfer2);
@@ -178,6 +180,7 @@ public interface CryptoLibrary extends Library {
     Pointer cryptoUnitGetName(BRCryptoUnit unit);
     Pointer cryptoUnitGetSymbol(BRCryptoUnit unit);
     BRCryptoCurrency cryptoUnitGetCurrency(BRCryptoUnit unit);
+    int cryptoUnitHasCurrency(BRCryptoUnit unit, BRCryptoCurrency currency);
     BRCryptoUnit cryptoUnitGetBaseUnit(BRCryptoUnit unit);
     byte cryptoUnitGetBaseDecimalOffset(BRCryptoUnit unit);
     int cryptoUnitIsCompatible(BRCryptoUnit u1, BRCryptoUnit u2);
@@ -198,29 +201,31 @@ public interface CryptoLibrary extends Library {
     BRCryptoAddress cryptoWalletGetAddress(BRCryptoWallet wallet);
     BRCryptoFeeBasis cryptoWalletGetDefaultFeeBasis(BRCryptoWallet wallet);
     void cryptoWalletSetDefaultFeeBasis(BRCryptoWallet wallet, BRCryptoFeeBasis feeBasis);
-    BRCryptoWallet cryptoWalletTake(BRCryptoWallet obj);
-    void cryptoWalletGive(BRCryptoWallet obj);
     BRCryptoTransfer cryptoWalletCreateTransfer(BRCryptoWallet wallet, BRCryptoAddress target, BRCryptoAmount amount, BRCryptoFeeBasis feeBasis);
     BRCryptoAmount cryptoWalletEstimateFee(BRCryptoWallet wallet, BRCryptoAmount amount, BRCryptoFeeBasis feeBasis, BRCryptoUnit feeUnit);
     int cryptoWalletEqual(BRCryptoWallet w1, BRCryptoWallet w2);
+    BRCryptoWallet cryptoWalletTake(BRCryptoWallet obj);
+    void cryptoWalletGive(BRCryptoWallet obj);
 
     // crypto/BRCryptoWalletManager.h
-     BRCryptoWalletManager cryptoWalletManagerCreate(BRCryptoCWMListener.ByValue listener, BRCryptoCWMClient.ByValue client, BRCryptoAccount account, BRCryptoNetwork network, int mode, String path);
-     BRCryptoNetwork cryptoWalletManagerGetNetwork(BRCryptoWalletManager cwm);
-     BRCryptoAccount cryptoWalletManagerGetAccount(BRCryptoWalletManager cwm);
-     int cryptoWalletManagerGetMode(BRCryptoWalletManager cwm);
-     int cryptoWalletManagerGetState(BRCryptoWalletManager cwm);
-     Pointer cryptoWalletManagerGetPath(BRCryptoWalletManager cwm);
-     BRCryptoWallet cryptoWalletManagerGetWallet(BRCryptoWalletManager cwm);
-     SizeT cryptoWalletManagerGetWalletsCount(BRCryptoWalletManager cwm);
-     BRCryptoWallet cryptoWalletManagerGetWalletAtIndex(BRCryptoWalletManager cwm, SizeT index);
-     BRCryptoWallet cryptoWalletManagerGetWalletForCurrency(BRCryptoWalletManager cwm, BRCryptoCurrency currency);
-     void cryptoWalletManagerAddWallet(BRCryptoWalletManager cwm, BRCryptoWallet wallet);
-     void cryptoWalletManagerRemWallet(BRCryptoWalletManager cwm, BRCryptoWallet wallet);
-     void cryptoWalletManagerConnect(BRCryptoWalletManager cwm);
-     void cryptoWalletManagerDisconnect(BRCryptoWalletManager cwm);
-     void cryptoWalletManagerSync(BRCryptoWalletManager cwm);
-     void cryptoWalletManagerSubmit(BRCryptoWalletManager cwm, BRCryptoWallet wid, BRCryptoTransfer tid, String paperKey);
+    BRCryptoWalletManager cryptoWalletManagerCreate(BRCryptoCWMListener.ByValue listener, BRCryptoCWMClient.ByValue client, BRCryptoAccount account, BRCryptoNetwork network, int mode, String path);
+    BRCryptoNetwork cryptoWalletManagerGetNetwork(BRCryptoWalletManager cwm);
+    BRCryptoAccount cryptoWalletManagerGetAccount(BRCryptoWalletManager cwm);
+    int cryptoWalletManagerGetMode(BRCryptoWalletManager cwm);
+    int cryptoWalletManagerGetState(BRCryptoWalletManager cwm);
+    Pointer cryptoWalletManagerGetPath(BRCryptoWalletManager cwm);
+    BRCryptoWallet cryptoWalletManagerGetWallet(BRCryptoWalletManager cwm);
+    SizeT cryptoWalletManagerGetWalletsCount(BRCryptoWalletManager cwm);
+    BRCryptoWallet cryptoWalletManagerGetWalletAtIndex(BRCryptoWalletManager cwm, SizeT index);
+    BRCryptoWallet cryptoWalletManagerGetWalletForCurrency(BRCryptoWalletManager cwm, BRCryptoCurrency currency);
+    void cryptoWalletManagerAddWallet(BRCryptoWalletManager cwm, BRCryptoWallet wallet);
+    void cryptoWalletManagerRemWallet(BRCryptoWalletManager cwm, BRCryptoWallet wallet);
+    void cryptoWalletManagerConnect(BRCryptoWalletManager cwm);
+    void cryptoWalletManagerDisconnect(BRCryptoWalletManager cwm);
+    void cryptoWalletManagerSync(BRCryptoWalletManager cwm);
+    void cryptoWalletManagerSubmit(BRCryptoWalletManager cwm, BRCryptoWallet wid, BRCryptoTransfer tid, String paperKey);
+    BRCryptoWalletManager cryptoWalletManagerTake(BRCryptoWalletManager obj);
+    void cryptoWalletManagerGive(BRCryptoWalletManager obj);
 
     // ethereum/base/BREthereumAddress.h
     BREthereumAddress.ByValue addressCreate(String address);

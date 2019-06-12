@@ -12,6 +12,10 @@ import com.google.common.primitives.UnsignedLong;
 
 public interface CoreBRCryptoWalletManager {
 
+    static CoreBRCryptoWalletManager create(BRCryptoWalletManager manager) {
+        return new OwnedBRCryptoWalletManager(manager);
+    }
+
     static CoreBRCryptoWalletManager create(BRCryptoCWMListener.ByValue listener, BRCryptoCWMClient.ByValue client,
                                             CoreBRCryptoAccount account, CoreBRCryptoNetwork network, int mode,
                                             String path) {

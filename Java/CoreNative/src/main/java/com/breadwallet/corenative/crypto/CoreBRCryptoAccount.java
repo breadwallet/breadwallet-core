@@ -30,7 +30,5 @@ public interface CoreBRCryptoAccount {
 
     void setEarliestKeyTime(Date earliestKeyTime);
 
-    BRMasterPubKey.ByValue asBtc();
-
     BRCryptoAccount asBRCryptoAccount();
 }

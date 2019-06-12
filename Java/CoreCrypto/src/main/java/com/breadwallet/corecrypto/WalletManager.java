@@ -1,5 +1,6 @@
 package com.breadwallet.corecrypto;
 
+import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.breadwallet.corenative.bitcoin.BRTransaction;
@@ -19,6 +20,9 @@ import com.breadwallet.corenative.crypto.BRCryptoWalletEventType;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManager;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerEvent;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerEventType;
+import com.breadwallet.corenative.crypto.CoreBRCryptoAmount;
+import com.breadwallet.corenative.crypto.CoreBRCryptoFeeBasis;
+import com.breadwallet.corenative.crypto.CoreBRCryptoTransfer;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWallet;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWalletManager;
 import com.breadwallet.crypto.TransferState;
@@ -108,7 +112,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         this.mode = mode;
         this.path = path;
 
-        // TODO(fix): This is how the swift behaves; not good!
+        // TODO(fix): Unchecked get here
         this.networkBaseUnit = network.baseUnitFor(networkCurrency).get();
         this.networkDefaultUnit = network.defaultUnitFor(networkCurrency).get();
 
@@ -251,7 +255,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         return Objects.hash(core);
     }
 
-    private Optional<Wallet> getWallet(CoreBRCryptoWallet value) {
+    private Optional<Wallet> getWallet(@Nullable CoreBRCryptoWallet value) {
         UnsignedLong count = core.getWalletsCount();
         for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
             if (core.getWallet(i).equals(value)) {
@@ -261,247 +265,494 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         return Optional.absent();
     }
 
-    private void walletManagerEventCallback(Pointer context, BRCryptoWalletManager manager,
+    private void walletManagerEventCallback(Pointer context, @Nullable BRCryptoWalletManager cryptoWalletManager,
                                             BRCryptoWalletManagerEvent.ByValue event) {
         systemExecutor.submit(() -> {
+            Log.d(TAG, "walletManagerEventCallback");
+
+            CoreBRCryptoWalletManager walletManager = CoreBRCryptoWalletManager.create(cryptoWalletManager);
+
             switch (event.type) {
                 case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_CREATED: {
-                    Log.d(TAG, "CRYPTO_WALLET_MANAGER_EVENT_CREATED");
-                    announcer.announceWalletManagerEvent(this, new WalletManagerCreatedEvent());
-                    // TODO(fix): This is a hack, remove!
-                    announcer.announceWalletEvent(this, getPrimaryWallet(), new WalletCreatedEvent());
+                    handleWalletManagerCreated(event);
                     break;
                 }
                 case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_CHANGED: {
-                    WalletManagerState oldState = Utilities.walletManagerStateFromCrypto(event.u.state.oldValue);
-                    WalletManagerState newState = Utilities.walletManagerStateFromCrypto(event.u.state.newValue);
-                    Log.d(TAG, String.format("CRYPTO_WALLET_MANAGER_EVENT_CHANGED (%s -> %s)", oldState, newState));
-                    announcer.announceWalletManagerEvent(this, new WalletManagerChangedEvent(
-                            oldState, newState));
+                    handleWalletManagerChanged(event);
                     break;
                 }
                 case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_DELETED: {
-                    Log.d(TAG, "CRYPTO_WALLET_MANAGER_EVENT_DELETED");
-                    announcer.announceWalletManagerEvent(this, new WalletManagerDeletedEvent());
+                    handleWalletManagerDeleted(event);
                     break;
                 }
                 case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED: {
-                    Log.d(TAG, "CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED");
-                    Optional<Wallet> optional = getWallet(event.u.wallet.value);
-                    if (optional.isPresent()) {
-                        Wallet wallet = optional.get();
-                        announcer.announceWalletManagerEvent(this, new WalletManagerWalletAddedEvent(wallet));
-                    } else {
-                        Log.e(TAG, "CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED: missed wallet");
-                    }
+                    handleWalletManagerWalletAdded(event);
                     break;
                 }
                 case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED: {
-                    Log.d(TAG, "CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED");
-                    Optional<Wallet> optional = getWallet(event.u.wallet.value);
-                    if (optional.isPresent()) {
-                        Wallet wallet = optional.get();
-                        announcer.announceWalletManagerEvent(this, new WalletManagerWalletChangedEvent(wallet));
-                    } else {
-                        Log.e(TAG, "CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED: missed wallet");
-                    }
+                    handleWalletManagerWalletChanged(event);
                     break;
                 }
                 case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED: {
-                    Log.d(TAG, "CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED");
-                    Optional<Wallet> optional = getWallet(event.u.wallet.value);
-                    if (optional.isPresent()) {
-                        Wallet wallet = optional.get();
-                        announcer.announceWalletManagerEvent(this, new WalletManagerWalletDeletedEvent(wallet));
-                    } else {
-                        Log.e(TAG, "CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED: missed wallet");
-                    }
+                    handleWalletManagerWalletDeleted(event);
                     break;
                 }
                 case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED: {
-                    Log.d(TAG, "CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED");
-                    announcer.announceWalletManagerEvent(this, new WalletManagerSyncStartedEvent());
+                    handleWalletManagerSyncStarted(event);
                     break;
                 }
                 case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES: {
-                    double percent = event.u.sync.percentComplete;
-                    Log.d(TAG, String.format("CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES (%s)", percent));
-                    announcer.announceWalletManagerEvent(this,
-                            new WalletManagerSyncProgressEvent(percent));
+                    handleWalletManagerSyncProgress(event);
                     break;
                 }
                 case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED: {
-                    Log.d(TAG, "CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED");
-                    // TODO(fix): fill in message
-                    announcer.announceWalletManagerEvent(this, new WalletManagerSyncStoppedEvent(""));
+                    handleWalletManagerSyncStopped(event);
                     break;
                 }
                 case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED: {
-                    UnsignedLong blockHeight = UnsignedLong.fromLongBits(event.u.blockHeight.value);
-                    Log.d(TAG, String.format("CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED (%s)", blockHeight));
-                    announcer.announceWalletManagerEvent(this, new WalletManagerBlockUpdatedEvent(blockHeight));
-
-                    network.setHeight(blockHeight);
-                    for (Wallet wallet : getWallets()) {
-                        for (Transfer transfer : wallet.getTransfers()) {
-                            Optional<UnsignedLong> optionalConfirmations = transfer.getConfirmationsAt(blockHeight);
-                            if (optionalConfirmations.isPresent()) {
-                                UnsignedLong confirmations = optionalConfirmations.get();
-                                announcer.announceTransferEvent(this, wallet, transfer,
-                                        new TransferConfirmationEvent(confirmations));
-                            }
-                        }
-                    }
+                    handleWalletManagerBlockHeightUpdated(event);
                     break;
                 }
             }
         });
     }
 
-    private void walletEventCallback(Pointer context, BRCryptoWalletManager manager, BRCryptoWallet wallet
-            , BRCryptoWalletEvent.ByValue event) {
-        systemExecutor.submit(() -> {
-            Optional<Wallet> optWallet = getWallet(wallet);
-            if (optWallet.isPresent()) {
-                Wallet walletImpl = optWallet.get();
+    private void handleWalletManagerCreated(BRCryptoWalletManagerEvent event) {
+        Log.d(TAG, "handleWalletManagerCreated");
 
-                switch (event.type) {
-                    case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_CREATED: {
-                        Log.d(TAG, "CRYPTO_WALLET_EVENT_CREATED");
-                        announcer.announceWalletEvent(this, walletImpl, new WalletCreatedEvent());
-                        break;
-                    }
-                    case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_CHANGED: {
-                        WalletState oldState = Utilities.walletStateFromCrypto(event.u.state.oldState);
-                        WalletState newState = Utilities.walletStateFromCrypto(event.u.state.newState);
-                        Log.d(TAG, String.format("CRYPTO_WALLET_EVENT_CHANGED (%s -> %s)", oldState, newState));
-                        announcer.announceWalletEvent(this, walletImpl, new WalletChangedEvent(
-                                oldState, newState));
-                        break;
-                    }
-                    case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_DELETED: {
-                        Log.d(TAG, "CRYPTO_WALLET_EVENT_DELETED");
-                        announcer.announceWalletEvent(this, walletImpl, new WalletDeletedEvent());
-                        break;
-                    }
-                    case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_TRANSFER_ADDED: {
-                        Log.d(TAG, "CRYPTO_WALLET_EVENT_TRANSFER_ADDED");
-                        Optional<Transfer> optional = walletImpl.getTransfer(event.u.transfer.value);
-                        if (optional.isPresent()) {
-                            Transfer transfer = optional.get();
-                            announcer.announceWalletEvent(this, walletImpl,
-                                    new WalletTransferAddedEvent(transfer));
-                        } else {
-                            Log.e(TAG, "CRYPTO_WALLET_EVENT_TRANSFER_ADDED: missed transfer");
-                        }
-                        break;
-                    }
-                    case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_TRANSFER_CHANGED: {
-                        Log.d(TAG, "CRYPTO_WALLET_EVENT_TRANSFER_CHANGED");
-                        Optional<Transfer> optional = walletImpl.getTransfer(event.u.transfer.value);
-                        if (optional.isPresent()) {
-                            Transfer transfer = optional.get();
-                            announcer.announceWalletEvent(this, walletImpl,
-                                    new WalletTransferChangedEvent(transfer));
-                        } else {
-                            Log.e(TAG, "CRYPTO_WALLET_EVENT_TRANSFER_CHANGED: missed transfer");
-                        }
-                        break;
-                    }
-                    case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED: {
-                        Log.d(TAG, "CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED");
-                        Optional<Transfer> optional = walletImpl.getTransfer(event.u.transfer.value);
-                        if (optional.isPresent()) {
-                            Transfer transfer = optional.get();
-                            announcer.announceWalletEvent(this, walletImpl,
-                                    new WalletTransferSubmittedEvent(transfer));
-                        } else {
-                            Log.e(TAG, "CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED: missed transfer");
-                        }
-                        break;
-                    }
-                    case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_TRANSFER_DELETED: {
-                        Log.d(TAG, "CRYPTO_WALLET_EVENT_TRANSFER_DELETED");
-                        Optional<Transfer> optional = walletImpl.getTransfer(event.u.transfer.value);
-                        if (optional.isPresent()) {
-                            Transfer transfer = optional.get();
-                            announcer.announceWalletEvent(this, walletImpl,
-                                    new WalletTransferDeletedEvent(transfer));
-                        } else {
-                            Log.e(TAG, "CRYPTO_WALLET_EVENT_TRANSFER_DELETED: missed transfer");
-                        }
-                        break;
-                    }
-                    case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_BALANCE_UPDATED: {
-                        Amount balance = walletImpl.getBalance();
-                        Log.d(TAG, String.format("CRYPTO_WALLET_EVENT_BALANCE_UPDATED (%s)", balance));
-                        // TODO(discuss): Should the amount come from the event?
-                        announcer.announceWalletEvent(this, walletImpl,
-                                new WalletBalanceUpdatedEvent(balance));
-                        break;
-                    }
-                    case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED: {
-                        TransferFeeBasis feeBasis = walletImpl.getDefaultFeeBasis();
-                        Log.d(TAG, String.format("CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED (%s)", feeBasis));
-                        // TODO(discuss): Should the fee basis come from the event?
-                        announcer.announceWalletEvent(this, walletImpl,
-                                new WalletFeeBasisUpdatedEvent(feeBasis));
-                        break;
-                    }
+        announcer.announceWalletManagerEvent(this, new WalletManagerCreatedEvent());
+        // TODO(fix): This is a hack, remove!
+        announcer.announceWalletEvent(this, getPrimaryWallet(), new WalletCreatedEvent());
+    }
+
+    private void handleWalletManagerChanged(BRCryptoWalletManagerEvent event) {
+        WalletManagerState oldState = Utilities.walletManagerStateFromCrypto(event.u.state.oldValue);
+        WalletManagerState newState = Utilities.walletManagerStateFromCrypto(event.u.state.newValue);
+        Log.d(TAG, String.format("handleWalletManagerChanged (%s -> %s)", oldState, newState));
+
+        announcer.announceWalletManagerEvent(this, new WalletManagerChangedEvent(oldState, newState));
+    }
+
+    private void handleWalletManagerDeleted(BRCryptoWalletManagerEvent event) {
+        Log.d(TAG, "handleWalletManagerDeleted");
+
+        announcer.announceWalletManagerEvent(this, new WalletManagerDeletedEvent());
+    }
+
+    private void handleWalletManagerWalletAdded(BRCryptoWalletManagerEvent event) {
+        Log.d(TAG, "handleWalletManagerWalletAdded");
+
+        CoreBRCryptoWallet coreWallet = CoreBRCryptoWallet.create(event.u.wallet.value);
+
+        Optional<Wallet> optional = getWallet(coreWallet);
+        if (optional.isPresent()) {
+            Wallet wallet = optional.get();
+            announcer.announceWalletManagerEvent(this, new WalletManagerWalletAddedEvent(wallet));
+
+        } else {
+            Log.e(TAG, "handleWalletManagerWalletAdded: missed wallet");
+        }
+    }
+
+    private void handleWalletManagerWalletChanged(BRCryptoWalletManagerEvent event) {
+        Log.d(TAG, "handleWalletManagerWalletChanged");
+
+        CoreBRCryptoWallet coreWallet = CoreBRCryptoWallet.create(event.u.wallet.value);
+
+        Optional<Wallet> optional = getWallet(coreWallet);
+        if (optional.isPresent()) {
+            Wallet wallet = optional.get();
+            announcer.announceWalletManagerEvent(this, new WalletManagerWalletChangedEvent(wallet));
+
+        } else {
+            Log.e(TAG, "handleWalletManagerWalletChanged: missed wallet");
+        }
+    }
+
+    private void handleWalletManagerWalletDeleted(BRCryptoWalletManagerEvent event) {
+        Log.d(TAG, "handleWalletManagerWalletDeleted");
+
+        CoreBRCryptoWallet coreWallet = CoreBRCryptoWallet.create(event.u.wallet.value);
+
+        Optional<Wallet> optional = getWallet(coreWallet);
+        if (optional.isPresent()) {
+            Wallet wallet = optional.get();
+            announcer.announceWalletManagerEvent(this, new WalletManagerWalletDeletedEvent(wallet));
+
+        } else {
+            Log.e(TAG, "handleWalletManagerWalletDeleted: missed wallet");
+        }
+    }
+
+    private void handleWalletManagerSyncStarted(BRCryptoWalletManagerEvent event) {
+        Log.d(TAG, "handleWalletManagerSyncStarted");
+
+        announcer.announceWalletManagerEvent(this, new WalletManagerSyncStartedEvent());
+    }
+
+    private void handleWalletManagerSyncProgress(BRCryptoWalletManagerEvent event) {
+        double percent = event.u.sync.percentComplete;
+        Log.d(TAG, String.format("handleWalletManagerSyncProgress (%s)", percent));
+
+        announcer.announceWalletManagerEvent(this, new WalletManagerSyncProgressEvent(percent));
+    }
+
+    private void handleWalletManagerSyncStopped(BRCryptoWalletManagerEvent event) {
+        Log.d(TAG, "handleWalletManagerSyncStopped");
+        // TODO(fix): fill in message and manage its memory!
+        announcer.announceWalletManagerEvent(this, new WalletManagerSyncStoppedEvent(""));
+    }
+
+    private void handleWalletManagerBlockHeightUpdated(BRCryptoWalletManagerEvent event) {
+        UnsignedLong blockHeight = UnsignedLong.fromLongBits(event.u.blockHeight.value);
+        Log.d(TAG, String.format("handleWalletManagerBlockHeightUpdated (%s)", blockHeight));
+
+        network.setHeight(blockHeight);
+        announcer.announceWalletManagerEvent(this, new WalletManagerBlockUpdatedEvent(blockHeight));
+
+        for (Wallet wallet : getWallets()) {
+            for (Transfer transfer : wallet.getTransfers()) {
+                Optional<UnsignedLong> optionalConfirmations = transfer.getConfirmationsAt(blockHeight);
+                if (optionalConfirmations.isPresent()) {
+                    UnsignedLong confirmations = optionalConfirmations.get();
+                    announcer.announceTransferEvent(this, wallet, transfer, new TransferConfirmationEvent(confirmations));
                 }
-            } else {
-                Log.e(TAG, "walletEventCallback: missed wallet");
+            }
+        }
+    }
+
+    private void walletEventCallback(Pointer context, @Nullable BRCryptoWalletManager cryptoWalletManager,
+                                     @Nullable BRCryptoWallet cryptoWallet, BRCryptoWalletEvent.ByValue event) {
+        systemExecutor.submit(() -> {
+            Log.d(TAG, "walletEventCallback");
+
+            CoreBRCryptoWalletManager walletManager = CoreBRCryptoWalletManager.create(cryptoWalletManager);
+            CoreBRCryptoWallet wallet = CoreBRCryptoWallet.create(cryptoWallet);
+
+            switch (event.type) {
+                case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_CREATED: {
+                    handleWalletCreated(wallet, event);
+                    break;
+                }
+                case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_CHANGED: {
+                    handleWalletChanged(wallet, event);
+                    break;
+                }
+                case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_DELETED: {
+                    handleWalletDeleted(wallet, event);
+                    break;
+                }
+                case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_TRANSFER_ADDED: {
+                    handleWalletTransferAdded(wallet, event);
+                    break;
+                }
+                case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_TRANSFER_CHANGED: {
+                    handleWalletTransferChanged(wallet, event);
+                    break;
+                }
+                case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED: {
+                    handleWalletTransferSubmitted(wallet, event);
+                    break;
+                }
+                case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_TRANSFER_DELETED: {
+                    handleWalletTransferDeleted(wallet, event);
+                    break;
+                }
+                case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_BALANCE_UPDATED: {
+                    handleWalletBalanceUpdated(wallet, event);
+                    break;
+                }
+                case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED: {
+                    handleWalletFeeBasisUpdate(wallet, event);
+                    break;
+                }
             }
         });
     }
 
-    private void transferEventCallback(Pointer context, BRCryptoWalletManager manager,
-                                       BRCryptoWallet wallet, BRCryptoTransfer transfer,
+    private void handleWalletCreated(CoreBRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
+        Log.d(TAG, "handleWalletCreated");
+
+        Optional<Wallet> optWallet = getWallet(coreWallet);
+        if (optWallet.isPresent()) {
+            Wallet wallet = optWallet.get();
+            announcer.announceWalletEvent(this, wallet, new WalletCreatedEvent());
+
+        } else {
+            Log.e(TAG, "handleWalletCreated: missed wallet");
+        }
+
+    }
+
+    private void handleWalletChanged(CoreBRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
+        WalletState oldState = Utilities.walletStateFromCrypto(event.u.state.oldState);
+        WalletState newState = Utilities.walletStateFromCrypto(event.u.state.newState);
+        Log.d(TAG, String.format("handleWalletChanged (%s -> %s)", oldState, newState));
+
+        Optional<Wallet> optWallet = getWallet(coreWallet);
+        if (optWallet.isPresent()) {
+            Wallet wallet = optWallet.get();
+            announcer.announceWalletEvent(this, wallet, new WalletChangedEvent(oldState, newState));
+
+        } else {
+            Log.e(TAG, "handleWalletChanged: missed wallet");
+        }
+    }
+
+    private void handleWalletDeleted(CoreBRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
+        Log.d(TAG, "handleWalletDeleted");
+
+        Optional<Wallet> optWallet = getWallet(coreWallet);
+        if (optWallet.isPresent()) {
+            Wallet wallet = optWallet.get();
+            announcer.announceWalletEvent(this, wallet, new WalletDeletedEvent());
+
+        } else {
+            Log.e(TAG, "handleWalletDeleted: missed wallet");
+        }
+    }
+
+    private void handleWalletTransferAdded(CoreBRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
+        Log.d(TAG, "handleWalletTransferAdded");
+
+        CoreBRCryptoTransfer coreTransfer = CoreBRCryptoTransfer.create(event.u.transfer.value);
+
+        Optional<Wallet> optWallet = getWallet(coreWallet);
+        if (optWallet.isPresent()) {
+            Wallet wallet = optWallet.get();
+            Optional<Transfer> optional = wallet.getTransfer(coreTransfer);
+
+            if (optional.isPresent()) {
+                Transfer transfer = optional.get();
+                announcer.announceWalletEvent(this, wallet, new WalletTransferAddedEvent(transfer));
+
+            } else {
+                Log.e(TAG, "handleWalletTransferAdded: missed transfer");
+            }
+
+        } else {
+            Log.e(TAG, "handleWalletTransferAdded: missed wallet");
+        }
+    }
+
+    private void handleWalletTransferChanged(CoreBRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
+        Log.d(TAG, "handleWalletTransferChanged");
+
+        CoreBRCryptoTransfer coreTransfer = CoreBRCryptoTransfer.create(event.u.transfer.value);
+
+        Optional<Wallet> optWallet = getWallet(coreWallet);
+        if (optWallet.isPresent()) {
+            Wallet wallet = optWallet.get();
+            Optional<Transfer> optional = wallet.getTransfer(coreTransfer);
+
+            if (optional.isPresent()) {
+                Transfer transfer = optional.get();
+                announcer.announceWalletEvent(this, wallet, new WalletTransferChangedEvent(transfer));
+
+            } else {
+                Log.e(TAG, "handleWalletTransferChanged: missed transfer");
+            }
+
+        } else {
+            Log.e(TAG, "handleWalletTransferChanged: missed wallet");
+        }
+    }
+
+    private void handleWalletTransferSubmitted(CoreBRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
+        Log.d(TAG, "handleWalletTransferSubmitted");
+
+        CoreBRCryptoTransfer coreTransfer = CoreBRCryptoTransfer.create(event.u.transfer.value);
+
+        Optional<Wallet> optWallet = getWallet(coreWallet);
+        if (optWallet.isPresent()) {
+            Wallet wallet = optWallet.get();
+            Optional<Transfer> optional = wallet.getTransfer(coreTransfer);
+
+            if (optional.isPresent()) {
+                Transfer transfer = optional.get();
+                announcer.announceWalletEvent(this, wallet, new WalletTransferSubmittedEvent(transfer));
+
+            } else {
+                Log.e(TAG, "handleWalletTransferSubmitted: missed transfer");
+            }
+
+        } else {
+            Log.e(TAG, "handleWalletTransferSubmitted: missed wallet");
+        }
+    }
+
+    private void handleWalletTransferDeleted(CoreBRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
+        Log.d(TAG, "handleWalletTransferDeleted");
+
+        CoreBRCryptoTransfer coreTransfer = CoreBRCryptoTransfer.create(event.u.transfer.value);
+
+        Optional<Wallet> optWallet = getWallet(coreWallet);
+        if (optWallet.isPresent()) {
+            Wallet wallet = optWallet.get();
+            Optional<Transfer> optional = wallet.getTransfer(coreTransfer);
+
+            if (optional.isPresent()) {
+                Transfer transfer = optional.get();
+                announcer.announceWalletEvent(this, wallet, new WalletTransferDeletedEvent(transfer));
+
+            } else {
+                Log.e(TAG, "handleWalletTransferDeleted: missed transfer");
+            }
+
+        } else {
+            Log.e(TAG, "handleWalletTransferDeleted: missed wallet");
+        }
+    }
+
+    private void handleWalletBalanceUpdated(CoreBRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
+        Log.d(TAG, "handleWalletBalanceUpdated");
+
+        CoreBRCryptoAmount coreAmount = CoreBRCryptoAmount.createOwned(event.u.balanceUpdated.amount);
+
+        Optional<Wallet> optWallet = getWallet(coreWallet);
+        if (optWallet.isPresent()) {
+            Wallet wallet = optWallet.get();
+            // TODO(discuss): Should the amount come from the event?
+            announcer.announceWalletEvent(this, wallet, new WalletBalanceUpdatedEvent(wallet.getBalance()));
+
+        } else {
+            Log.e(TAG, "handleWalletBalanceUpdated: missed wallet");
+        }
+    }
+
+    private void handleWalletFeeBasisUpdate(CoreBRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
+        Log.d(TAG, "handleWalletFeeBasisUpdate");
+
+        CoreBRCryptoFeeBasis coreFeeBasis = CoreBRCryptoFeeBasis.createOwned(event.u.feeBasisUpdated.basis);
+
+        Optional<Wallet> optWallet = getWallet(coreWallet);
+        if (optWallet.isPresent()) {
+            Wallet wallet = optWallet.get();
+            // TODO(discuss): Should the fee basis come from the event?
+            announcer.announceWalletEvent(this, wallet, new WalletFeeBasisUpdatedEvent(wallet.getDefaultFeeBasis()));
+
+        } else {
+            Log.e(TAG, "handleWalletFeeBasisUpdate: missed wallet");
+        }
+    }
+
+    private void transferEventCallback(Pointer context, @Nullable BRCryptoWalletManager cryptoWalletManager,
+                                       @Nullable BRCryptoWallet cryptoWallet, @Nullable BRCryptoTransfer cryptoTransfer,
                                        BRCryptoTransferEvent.ByValue event) {
         systemExecutor.submit(() -> {
-            Optional<Wallet> optWallet = getWallet(wallet);
-            if (optWallet.isPresent()) {
-                Wallet walletImpl = optWallet.get();
+            Log.d(TAG, "transferEventCallback");
 
-                Optional<Transfer> optTransfer = walletImpl.getTransfer(transfer);
-                if (optTransfer.isPresent()) {
-                    Transfer transferImpl = optTransfer.get();
+            CoreBRCryptoWalletManager walletManager = CoreBRCryptoWalletManager.create(cryptoWalletManager);
+            CoreBRCryptoWallet wallet = CoreBRCryptoWallet.create(cryptoWallet);
+            CoreBRCryptoTransfer transfer = CoreBRCryptoTransfer.create(cryptoTransfer);
 
-                    switch (event.type) {
-                        case BRCryptoTransferEventType.CRYPTO_TRANSFER_EVENT_CREATED: {
-                            Log.d(TAG, "CRYPTO_TRANSFER_EVENT_CREATED");
-                            announcer.announceTransferEvent(this, walletImpl, transferImpl, new TransferCreatedEvent());
-                            break;
-                        }
-                        case BRCryptoTransferEventType.CRYPTO_TRANSFER_EVENT_CHANGED: {
-                            TransferState oldState = Utilities.transferStateFromCrypto(event.u.state.oldState);
-                            TransferState newState = Utilities.transferStateFromCrypto(event.u.state.newState);
-                            Log.d(TAG, String.format("CRYPTO_TRANSFER_EVENT_CHANGED (%s -> %s)"));
-                            announcer.announceTransferEvent(this, walletImpl, transferImpl, new TransferChangedEvent(
-                                    oldState, newState));
-                            break;
-                        }
-                        case BRCryptoTransferEventType.CRYPTO_TRANSFER_EVENT_CONFIRMED: {
-                            UnsignedLong confirmations = UnsignedLong.fromLongBits(event.u.confirmation.count);
-                            Log.d(TAG, String.format("CRYPTO_TRANSFER_EVENT_CONFIRMED (%s)", confirmations));
-                            announcer.announceTransferEvent(this, walletImpl, transferImpl,
-                                    new TransferConfirmationEvent(confirmations));
-                            break;
-                        }
-                        case BRCryptoTransferEventType.CRYPTO_TRANSFER_EVENT_DELETED: {
-                            Log.d(TAG, "CRYPTO_TRANSFER_EVENT_DELETED");
-                            announcer.announceTransferEvent(this, walletImpl, transferImpl, new TransferDeletedEvent());
-                            break;
-                        }
-                    }
-
-                } else {
-                    Log.e(TAG, "transferEventCallback: missed transfer");
+            switch (event.type) {
+                case BRCryptoTransferEventType.CRYPTO_TRANSFER_EVENT_CREATED: {
+                    handleTransferCreated(wallet, transfer, event);
+                    break;
                 }
-            } else {
-                Log.e(TAG, "transferEventCallback: missed wallet");
+                case BRCryptoTransferEventType.CRYPTO_TRANSFER_EVENT_CHANGED: {
+                    handleTransferChanged(wallet, transfer, event);
+                    break;
+                }
+                case BRCryptoTransferEventType.CRYPTO_TRANSFER_EVENT_CONFIRMED: {
+                    handleTransferConfirmed(wallet, transfer, event);
+                    break;
+                }
+                case BRCryptoTransferEventType.CRYPTO_TRANSFER_EVENT_DELETED: {
+                    handleTransferDeleted(wallet, transfer, event);
+                    break;
+                }
             }
         });
+    }
+
+    private void handleTransferCreated(CoreBRCryptoWallet coreWallet, CoreBRCryptoTransfer coreTransfer, BRCryptoTransferEvent event) {
+        Log.d(TAG, "handleTransferCreated");
+
+        Optional<Wallet> optWallet = getWallet(coreWallet);
+        if (optWallet.isPresent()) {
+            Wallet wallet = optWallet.get();
+
+            Optional<Transfer> optTransfer = wallet.getTransfer(coreTransfer);
+            if (optTransfer.isPresent()) {
+                Transfer transfer = optTransfer.get();
+                announcer.announceTransferEvent(this, wallet, transfer, new TransferCreatedEvent());
+
+            } else {
+                Log.e(TAG, "handleTransferCreated: missed transfer");
+            }
+
+        } else {
+            Log.e(TAG, "handleTransferCreated: missed wallet");
+        }
+    }
+
+    private void handleTransferConfirmed(CoreBRCryptoWallet coreWallet, CoreBRCryptoTransfer coreTransfer, BRCryptoTransferEvent event) {
+        UnsignedLong confirmations = UnsignedLong.fromLongBits(event.u.confirmation.count);
+        Log.d(TAG, String.format("handleTransferConfirmed (%s)", confirmations));
+
+        Optional<Wallet> optWallet = getWallet(coreWallet);
+        if (optWallet.isPresent()) {
+            Wallet wallet = optWallet.get();
+
+            Optional<Transfer> optTransfer = wallet.getTransfer(coreTransfer);
+            if (optTransfer.isPresent()) {
+                Transfer transfer = optTransfer.get();
+                announcer.announceTransferEvent(this, wallet, transfer, new TransferConfirmationEvent(confirmations));
+
+            } else {
+                Log.e(TAG, "handleTransferConfirmed: missed transfer");
+            }
+
+        } else {
+            Log.e(TAG, "handleTransferConfirmed: missed wallet");
+        }
+    }
+
+    private void handleTransferChanged(CoreBRCryptoWallet coreWallet, CoreBRCryptoTransfer coreTransfer, BRCryptoTransferEvent event) {
+        TransferState oldState = Utilities.transferStateFromCrypto(event.u.state.oldState);
+        TransferState newState = Utilities.transferStateFromCrypto(event.u.state.newState);
+        Log.d(TAG, String.format("handleTransferChanged (%s -> %s)"));
+
+        Optional<Wallet> optWallet = getWallet(coreWallet);
+        if (optWallet.isPresent()) {
+            Wallet wallet = optWallet.get();
+
+            Optional<Transfer> optTransfer = wallet.getTransfer(coreTransfer);
+            if (optTransfer.isPresent()) {
+                Transfer transfer = optTransfer.get();
+
+                announcer.announceTransferEvent(this, wallet, transfer, new TransferChangedEvent(oldState, newState));
+
+            } else {
+                Log.e(TAG, "handleTransferChanged: missed transfer");
+            }
+
+        } else {
+            Log.e(TAG, "handleTransferChanged: missed wallet");
+        }
+    }
+
+    private void handleTransferDeleted(CoreBRCryptoWallet coreWallet, CoreBRCryptoTransfer coreTransfer, BRCryptoTransferEvent event) {
+        Log.d(TAG, "handleTransferDeleted");
+
+        Optional<Wallet> optWallet = getWallet(coreWallet);
+        if (optWallet.isPresent()) {
+            Wallet wallet = optWallet.get();
+
+            Optional<Transfer> optTransfer = wallet.getTransfer(coreTransfer);
+            if (optTransfer.isPresent()) {
+                Transfer transfer = optTransfer.get();
+                announcer.announceTransferEvent(this, wallet, transfer, new TransferDeletedEvent());
+
+            } else {
+                Log.e(TAG, "handleTransferDeleted: missed transfer");
+            }
+
+        } else {
+            Log.e(TAG, "handleTransferDeleted: missed wallet");
+        }
     }
 
     // BTC client

@@ -24,25 +24,17 @@ public class BRCryptoTransfer extends PointerType implements CoreBRCryptoTransfe
 
     @Override
     public Optional<CoreBRCryptoAddress> getSourceAddress() {
-        BRCryptoAddress address = CryptoLibrary.INSTANCE.cryptoTransferGetSourceAddress(this);
-        if (null != address) {
-            address = CryptoLibrary.INSTANCE.cryptoAddressTake(address);
-        }
-        return Optional.fromNullable(address).transform(OwnedBRCryptoAddress::new);
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoTransferGetSourceAddress(this)).transform(OwnedBRCryptoAddress::new);
     }
 
     @Override
     public Optional<CoreBRCryptoAddress> getTargetAddress() {
-        BRCryptoAddress address = CryptoLibrary.INSTANCE.cryptoTransferGetTargetAddress(this);
-        if (null != address) {
-            address = CryptoLibrary.INSTANCE.cryptoAddressTake(address);
-        }
-        return Optional.fromNullable(address).transform(OwnedBRCryptoAddress::new);
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoTransferGetTargetAddress(this)).transform(OwnedBRCryptoAddress::new);
     }
 
     @Override
-    public CoreBRCryptoAmount getAmount() {
-        return new OwnedBRCryptoAmount(CryptoLibrary.INSTANCE.cryptoTransferGetAmount(this));
+    public Optional<CoreBRCryptoAmount> getAmount() {
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoTransferGetAmount(this)).transform(OwnedBRCryptoAmount::new);
     }
 
     @Override
@@ -63,6 +55,11 @@ public class BRCryptoTransfer extends PointerType implements CoreBRCryptoTransfe
     @Override
     public int getDirection() {
         return CryptoLibrary.INSTANCE.cryptoTransferGetDirection(this);
+    }
+
+    @Override
+    public int getState() {
+        return CryptoLibrary.INSTANCE.cryptoTransferGetState(this);
     }
 
     @Override

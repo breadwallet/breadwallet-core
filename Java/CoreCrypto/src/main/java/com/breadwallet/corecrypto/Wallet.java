@@ -7,6 +7,8 @@
  */
 package com.breadwallet.corecrypto;
 
+import android.support.annotation.Nullable;
+
 import com.breadwallet.corenative.crypto.CoreBRCryptoTransfer;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWallet;
 import com.breadwallet.crypto.WalletState;
@@ -174,7 +176,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     }
 
     /* package */
-    Optional<Transfer> getTransfer(CoreBRCryptoTransfer value) {
+    Optional<Transfer> getTransfer(@Nullable CoreBRCryptoTransfer value) {
         UnsignedLong count = core.getTransferCount();
         for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
             if (core.getTransfer(i).equals(value)) {

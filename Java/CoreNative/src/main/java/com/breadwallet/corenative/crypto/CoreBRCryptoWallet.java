@@ -11,6 +11,10 @@ import com.google.common.primitives.UnsignedLong;
 
 public interface CoreBRCryptoWallet {
 
+    static CoreBRCryptoWallet create(BRCryptoWallet wallet) {
+        return new OwnedBRCryptoWallet(wallet);
+    }
+
     CoreBRCryptoAmount getBalance();
 
     UnsignedLong getTransferCount();

@@ -32,12 +32,12 @@ public class BRCryptoHash extends PointerType implements CoreBRCryptoHash {
     }
 
     @Override
-    public BRCryptoHash asBRCryptoHash() {
-        return this;
+    public String toString() {
+        return CryptoLibrary.INSTANCE.cryptoHashString(this).getString(0, "UTF-8");
     }
 
     @Override
-    public String toString() {
-        return CryptoLibrary.INSTANCE.cryptoHashString(this).getString(0, "UTF-8");
+    public BRCryptoHash asBRCryptoHash() {
+        return this;
     }
 }

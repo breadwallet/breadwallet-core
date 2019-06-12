@@ -11,11 +11,15 @@ import com.google.common.base.Optional;
 
 public interface CoreBRCryptoTransfer {
 
+    static CoreBRCryptoTransfer create(BRCryptoTransfer transfer) {
+        return new OwnedBRCryptoTransfer(transfer);
+    }
+
     Optional<CoreBRCryptoAddress> getSourceAddress();
 
     Optional<CoreBRCryptoAddress> getTargetAddress();
 
-    CoreBRCryptoAmount getAmount();
+    Optional<CoreBRCryptoAmount> getAmount();
 
     CoreBRCryptoAmount getFee();
 
@@ -24,6 +28,8 @@ public interface CoreBRCryptoTransfer {
     Optional<CoreBRCryptoHash> getHash();
 
     int getDirection();
+
+    int getState();
 
     boolean isIdentical(CoreBRCryptoTransfer other);
 

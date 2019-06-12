@@ -106,7 +106,7 @@ final class Amount implements com.breadwallet.crypto.Amount {
 
     @Override
     public boolean hasCurrency(com.breadwallet.crypto.Currency currency) {
-        return Currency.from(currency).getCoreBRCryptoCurrency().equals(core.getCurrency());
+        return core.hasCurrency(Currency.from(currency).getCoreBRCryptoCurrency());
     }
 
     @Override
@@ -123,24 +123,14 @@ final class Amount implements com.breadwallet.crypto.Amount {
     public Optional<Amount> add(com.breadwallet.crypto.Amount o) {
         checkArgument(isCompatible(o));
 
-        CoreBRCryptoAmount amount = core.add(from(o).core);
-        if (amount == null) {
-            return Optional.absent();
-        }
-
-        return Optional.of(new Amount(amount, unit));
+        return core.add(from(o).core).transform(a -> new Amount(a, unit));
     }
 
     @Override
     public Optional<Amount> sub(com.breadwallet.crypto.Amount o) {
         checkArgument(isCompatible(o));
 
-        CoreBRCryptoAmount amount = core.sub(from(o).core);
-        if (amount == null) {
-            return Optional.absent();
-        }
-
-        return Optional.of(new Amount(amount, unit));
+        return core.sub(from(o).core).transform(a -> new Amount(a, unit));
     }
 
     @Override
@@ -221,12 +211,6 @@ final class Amount implements com.breadwallet.crypto.Amount {
     @Override
     public Optional<Double> doubleAmount(com.breadwallet.crypto.Unit asUnit) {
         return core.getDouble(Unit.from(asUnit).getCoreBRCryptoUnit());
-    }
-
-    /* package */
-    UnsignedLong integerRawAmount() {
-        // TODO(discuss): doubleAmount returns an optional based on overflow; shouldn't this?
-        return core.getIntegerRaw().get();
     }
 
     /* package */

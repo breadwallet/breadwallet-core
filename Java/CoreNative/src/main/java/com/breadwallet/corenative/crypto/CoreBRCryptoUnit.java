@@ -40,6 +40,8 @@ public interface CoreBRCryptoUnit {
 
     boolean isCompatible(CoreBRCryptoUnit other);
 
+    CoreBRCryptoCurrency getCurrency();
+
     boolean hasCurrency(CoreBRCryptoCurrency currency);
 
     boolean isIdentical(CoreBRCryptoUnit other);

@@ -29,7 +29,6 @@ public class BRCryptoUnit extends PointerType implements CoreBRCryptoUnit {
         return this;
     }
 
-
     @Override
     public String getUids() {
         return CryptoLibrary.INSTANCE.cryptoUnitGetUids(this).getString(0, "UTF-8");
@@ -52,11 +51,7 @@ public class BRCryptoUnit extends PointerType implements CoreBRCryptoUnit {
 
     @Override
     public Optional<CoreBRCryptoUnit> getBase() {
-        BRCryptoUnit baseUnit = CryptoLibrary.INSTANCE.cryptoUnitGetBaseUnit(this);
-        if (null != baseUnit) {
-            baseUnit = CryptoLibrary.INSTANCE.cryptoUnitTake(baseUnit);
-        }
-        return Optional.fromNullable(baseUnit).transform(OwnedBRCryptoUnit::new);
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoUnitGetBaseUnit(this)).transform(OwnedBRCryptoUnit::new);
     }
 
     @Override
@@ -66,9 +61,14 @@ public class BRCryptoUnit extends PointerType implements CoreBRCryptoUnit {
     }
 
     @Override
+    public CoreBRCryptoCurrency getCurrency() {
+        return new OwnedBRCryptoCurrency(CryptoLibrary.INSTANCE.cryptoUnitGetCurrency(this));
+    }
+
+    @Override
     public boolean hasCurrency(CoreBRCryptoCurrency currency) {
-        BRCryptoCurrency coreCurrency = currency.asBRCryptoCurrency();
-        return coreCurrency.equals(CryptoLibrary.INSTANCE.cryptoUnitGetCurrency(this));
+        BRCryptoCurrency otherCore = currency.asBRCryptoCurrency();
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoUnitHasCurrency(this,  otherCore);
     }
 
     @Override

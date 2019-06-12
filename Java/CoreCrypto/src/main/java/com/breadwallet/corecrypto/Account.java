@@ -53,11 +53,6 @@ final class Account implements com.breadwallet.crypto.Account {
     }
 
     /* package */
-    BRMasterPubKey.ByValue asBtc() {
-        return core.asBtc();
-    }
-
-    /* package */
     CoreBRCryptoAccount getCoreBRCryptoAccount() {
         return core;
     }

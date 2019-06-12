@@ -45,15 +45,17 @@ public interface CoreBRCryptoAmount {
         return new OwnedBRCryptoAmount(amountCore);
     }
 
+    static CoreBRCryptoAmount createOwned(BRCryptoAmount amount) {
+        return new OwnedBRCryptoAmount(amount);
+    }
+
     CoreBRCryptoCurrency getCurrency();
 
     Optional<Double> getDouble(CoreBRCryptoUnit unit);
 
-    Optional<UnsignedLong> getIntegerRaw();
+    Optional<CoreBRCryptoAmount> add(CoreBRCryptoAmount amount);
 
-    CoreBRCryptoAmount add(CoreBRCryptoAmount amount);
-
-    CoreBRCryptoAmount sub(CoreBRCryptoAmount amount);
+    Optional<CoreBRCryptoAmount> sub(CoreBRCryptoAmount amount);
 
     CoreBRCryptoAmount negate();
 
@@ -62,6 +64,8 @@ public interface CoreBRCryptoAmount {
     int compare(CoreBRCryptoAmount o);
 
     boolean isCompatible(CoreBRCryptoAmount o);
+
+    boolean hasCurrency(CoreBRCryptoCurrency o);
 
     String toStringWithBase(int base, String preface);
 

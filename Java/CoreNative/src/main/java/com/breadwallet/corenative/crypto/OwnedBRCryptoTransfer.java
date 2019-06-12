@@ -41,7 +41,7 @@ class OwnedBRCryptoTransfer implements CoreBRCryptoTransfer {
     }
 
     @Override
-    public CoreBRCryptoAmount getAmount() {
+    public Optional<CoreBRCryptoAmount> getAmount() {
         return core.getAmount();
     }
 
@@ -63,6 +63,11 @@ class OwnedBRCryptoTransfer implements CoreBRCryptoTransfer {
     @Override
     public int getDirection() {
         return core.getDirection();
+    }
+
+    @Override
+    public int getState() {
+        return core.getState();
     }
 
     @Override

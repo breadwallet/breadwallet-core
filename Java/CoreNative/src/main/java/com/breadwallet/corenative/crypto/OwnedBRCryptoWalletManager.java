@@ -7,6 +7,7 @@
  */
 package com.breadwallet.corenative.crypto;
 
+import com.breadwallet.corenative.CryptoLibrary;
 import com.google.common.primitives.UnsignedLong;
 
 import java.util.Objects;
@@ -21,6 +22,14 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     /* package */
     OwnedBRCryptoWalletManager(BRCryptoWalletManager core) {
         this.core = core;
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        super.finalize();
+        if (null != core) {
+            CryptoLibrary.INSTANCE.cryptoWalletManagerGive(core);
+        }
     }
 
     @Override

@@ -16,18 +16,18 @@ import java.util.Objects;
 final class Unit implements com.breadwallet.crypto.Unit {
 
     /* package */
-    static Unit create(CoreBRCryptoUnit core, Currency currency) {
-        return new Unit(core, currency);
+    static Unit create(CoreBRCryptoUnit core) {
+        return new Unit(core);
     }
 
     /* package */
     static Unit create(Currency currency, String uids, String name, String symbol) {
-        return new Unit(CoreBRCryptoUnit.createAsBase(currency.getCoreBRCryptoCurrency(), uids, name, symbol), currency);
+        return new Unit(CoreBRCryptoUnit.createAsBase(currency.getCoreBRCryptoCurrency(), uids, name, symbol));
     }
 
     /* package */
     static Unit create(Currency currency, String uids, String name, String symbol, Unit base, UnsignedInteger decimals) {
-        return new Unit(CoreBRCryptoUnit.create(currency.getCoreBRCryptoCurrency(), uids, name, symbol, base.core, decimals), currency);
+        return new Unit(CoreBRCryptoUnit.create(currency.getCoreBRCryptoCurrency(), uids, name, symbol, base.core, decimals));
     }
 
     /* package */
@@ -39,16 +39,14 @@ final class Unit implements com.breadwallet.crypto.Unit {
     }
 
     private final CoreBRCryptoUnit core;
-    private final Currency currency;
 
-    private Unit(CoreBRCryptoUnit core, Currency currency) {
+    private Unit(CoreBRCryptoUnit core) {
         this.core = core;
-        this.currency = currency;
     }
 
     @Override
     public Currency getCurrency() {
-        return currency;
+        return Currency.create(core.getCurrency());
     }
 
     @Override
@@ -63,7 +61,7 @@ final class Unit implements com.breadwallet.crypto.Unit {
 
     @Override
     public Unit getBase() {
-        return core.getBase().transform(u -> new Unit(u, currency)).or(this);
+        return core.getBase().transform(u -> new Unit(u)).or(this);
     }
 
     @Override

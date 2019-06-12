@@ -36,11 +36,6 @@ public class BRCryptoAccount extends PointerType implements CoreBRCryptoAccount 
     }
 
     @Override
-    public BRMasterPubKey.ByValue asBtc() {
-        return CryptoLibrary.INSTANCE.cryptoAccountAsBTC(this);
-    }
-
-    @Override
     public BRCryptoAccount asBRCryptoAccount() {
         return this;
     }

@@ -43,23 +43,18 @@ class OwnedBRCryptoAmount implements CoreBRCryptoAmount {
     }
 
     @Override
-    public Optional<UnsignedLong> getIntegerRaw() {
-        return core.getIntegerRaw();
+    public Optional<CoreBRCryptoAmount> add(CoreBRCryptoAmount amount) {
+        return core.add(amount);
     }
 
     @Override
-    public CoreBRCryptoAmount add(CoreBRCryptoAmount amount) {
-        return new OwnedBRCryptoAmount(core.add(amount));
-    }
-
-    @Override
-    public CoreBRCryptoAmount sub(CoreBRCryptoAmount amount) {
-        return new OwnedBRCryptoAmount(core.sub(amount));
+    public Optional<CoreBRCryptoAmount> sub(CoreBRCryptoAmount amount) {
+        return core.sub(amount);
     }
 
     @Override
     public CoreBRCryptoAmount negate() {
-        return new OwnedBRCryptoAmount(core.negate());
+        return core.negate();
     }
 
     @Override
@@ -75,6 +70,11 @@ class OwnedBRCryptoAmount implements CoreBRCryptoAmount {
     @Override
     public boolean isCompatible(CoreBRCryptoAmount o) {
         return core.isCompatible(o);
+    }
+
+    @Override
+    public boolean hasCurrency(CoreBRCryptoCurrency o) {
+        return core.hasCurrency(o);
     }
 
     @Override

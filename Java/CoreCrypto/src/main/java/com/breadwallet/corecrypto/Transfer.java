@@ -34,13 +34,11 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
     private final CoreBRCryptoTransfer core;
     private final Wallet wallet;
     private final Unit defaultUnit;
-    private final AtomicReference<TransferState> state;
 
     private Transfer(CoreBRCryptoTransfer core, Wallet wallet, Unit defaultUnit) {
         this.core = core;
         this.wallet = wallet;
         this.defaultUnit = defaultUnit;
-        this.state = new AtomicReference<>(TransferState.CREATED());
     }
 
     @Override
@@ -60,13 +58,15 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
 
     @Override
     public Amount getAmount() {
-        return Amount.create(core.getAmount(), wallet.getBaseUnit());
+        // TODO(fix): Unchecked get here
+        return Amount.create(core.getAmount().get(), wallet.getBaseUnit());
     }
 
     @Override
      public Amount getAmountDirected() {
         switch (getDirection()) {
             case RECOVERED:
+                // TODO(fix): Unchecked get here
                 return Amount.create(0L, defaultUnit).get();
             case SENT:
                 return getAmount().negate();
@@ -99,7 +99,7 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
 
     @Override
     public TransferState getState() {
-        return state.get();
+        return Utilities.transferStateFromCrypto(core.getState());
     }
 
     @Override
@@ -119,11 +119,6 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
     @Override
     public int hashCode() {
         return Objects.hash(core);
-    }
-
-    /* package */
-    TransferState setState(TransferState newState) {
-        return state.getAndSet(newState);
     }
 
     /* package */

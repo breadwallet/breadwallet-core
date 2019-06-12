@@ -9,5 +9,9 @@ package com.breadwallet.corenative.crypto;
 
 public interface CoreBRCryptoFeeBasis {
 
+    static CoreBRCryptoFeeBasis createOwned(BRCryptoFeeBasis basis) {
+        return new OwnedBRCryptoFeeBasis(basis);
+    }
+
     BRCryptoFeeBasis asBRCryptoFeeBasis();
 }

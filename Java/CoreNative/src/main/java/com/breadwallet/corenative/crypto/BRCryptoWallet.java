@@ -25,7 +25,7 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
 
     @Override
     public CoreBRCryptoAmount getBalance() {
-        return CryptoLibrary.INSTANCE.cryptoWalletGetBalance(this);
+        return new OwnedBRCryptoAmount(CryptoLibrary.INSTANCE.cryptoWalletGetBalance(this));
     }
 
     @Override
@@ -35,9 +35,8 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
 
     @Override
     public CoreBRCryptoTransfer getTransfer(UnsignedLong index) {
-        BRCryptoTransfer transfer = CryptoLibrary.INSTANCE.cryptoWalletGetTransfer(this, new SizeT(index.longValue()));
-        transfer = CryptoLibrary.INSTANCE.cryptoTransferTake(transfer);
-        return new OwnedBRCryptoTransfer(transfer);
+        return new OwnedBRCryptoTransfer(CryptoLibrary.INSTANCE.cryptoWalletGetTransfer(this,
+                new SizeT(index.longValue())));
     }
 
     @Override
@@ -53,7 +52,7 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
     @Override
     public CoreBRCryptoFeeBasis getDefaultFeeBasis() {
         // TODO(discuss): This could return NULL, should be optional?
-        return CryptoLibrary.INSTANCE.cryptoWalletGetDefaultFeeBasis(this);
+        return new OwnedBRCryptoFeeBasis(CryptoLibrary.INSTANCE.cryptoWalletGetDefaultFeeBasis(this));
     }
 
     @Override
@@ -64,25 +63,29 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
     @Override
     public CoreBRCryptoAddress getSourceAddress() {
         // TODO(discuss): This could return NULL, should be optional?
-        return CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this);
+        return new OwnedBRCryptoAddress(CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this));
     }
 
     @Override
     public CoreBRCryptoAddress getTargetAddress() {
         // TODO(discuss): This could return NULL, should be optional?
-        return CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this);
+        return new OwnedBRCryptoAddress(CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this));
     }
 
     @Override
-    public CoreBRCryptoTransfer createTransfer(CoreBRCryptoAddress target, CoreBRCryptoAmount amount, CoreBRCryptoFeeBasis feeBasis) {
+    public CoreBRCryptoTransfer createTransfer(CoreBRCryptoAddress target, CoreBRCryptoAmount amount,
+                                               CoreBRCryptoFeeBasis feeBasis) {
         // TODO(discuss): This could return NULL, should be optional?
-        return CryptoLibrary.INSTANCE.cryptoWalletCreateTransfer(this, target.asBRCryptoAddress(), amount.asBRCryptoAmount(), feeBasis.asBRCryptoFeeBasis());
+        return new OwnedBRCryptoTransfer(CryptoLibrary.INSTANCE.cryptoWalletCreateTransfer(this,
+                target.asBRCryptoAddress(), amount.asBRCryptoAmount(), feeBasis.asBRCryptoFeeBasis()));
     }
 
     @Override
-    public CoreBRCryptoAmount estimateFee(CoreBRCryptoAmount amount, CoreBRCryptoFeeBasis feeBasis, CoreBRCryptoUnit unit) {
+    public CoreBRCryptoAmount estimateFee(CoreBRCryptoAmount amount, CoreBRCryptoFeeBasis feeBasis,
+                                          CoreBRCryptoUnit unit) {
         // TODO(discuss): This could return NULL, should be optional?
-        return CryptoLibrary.INSTANCE.cryptoWalletEstimateFee(this, amount.asBRCryptoAmount(), feeBasis.asBRCryptoFeeBasis(), unit.asBRCryptoUnit());
+        return new OwnedBRCryptoAmount(CryptoLibrary.INSTANCE.cryptoWalletEstimateFee(this, amount.asBRCryptoAmount(),
+                feeBasis.asBRCryptoFeeBasis(), unit.asBRCryptoUnit()));
     }
 
     @Override

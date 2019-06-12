@@ -82,15 +82,43 @@ final class Network implements com.breadwallet.crypto.Network {
     }
 
     @Override
+    public String getUids() {
+        return core.getUids();
+    }
+
+    @Override
+    public boolean isMainnet() {
+        return core.isMainnet();
+    }
+
+    @Override
+    public UnsignedLong getHeight() {
+        return core.getHeight();
+    }
+
+    @Override
+    public Currency getCurrency() {
+        return Currency.create(core.getCurrency());
+    }
+
+    // TODO(fix): Add getCurrencies() and getCurrencyByCode()
+
+    @Override
+    public boolean hasCurrency(com.breadwallet.crypto.Currency currency) {
+        Currency currencyImpl = Currency.from(currency);
+        return core.hasCurrency(currencyImpl.getCoreBRCryptoCurrency());
+    }
+
+    @Override
     public Optional<Unit> baseUnitFor(com.breadwallet.crypto.Currency currency) {
         Currency currencyImpl = Currency.from(currency);
-        return core.getUnitAsBase(core.getCurrency()).transform(u -> Unit.create(u, currencyImpl));
+        return core.getUnitAsBase(currencyImpl.getCoreBRCryptoCurrency()).transform(Unit::create);
     }
 
     @Override
     public Optional<Unit> defaultUnitFor(com.breadwallet.crypto.Currency currency) {
         Currency currencyImpl = Currency.from(currency);
-        return core.getUnitAsDefault(core.getCurrency()).transform(u -> Unit.create(u, currencyImpl));
+        return core.getUnitAsDefault(currencyImpl.getCoreBRCryptoCurrency()).transform(Unit::create);
     }
 
     @Override
@@ -102,7 +130,7 @@ final class Network implements com.breadwallet.crypto.Network {
         UnsignedLong count = core.getUnitCount(currencyCore);
 
         for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
-            Optional<Unit> unit = core.getUnitAt(currencyCore, i).transform(u -> Unit.create(u, currencyImpl));
+            Optional<Unit> unit = core.getUnitAt(currencyCore, i).transform(Unit::create);
             if (!unit.isPresent()) {
                 return Optional.absent();
             }
@@ -113,36 +141,8 @@ final class Network implements com.breadwallet.crypto.Network {
     }
 
     @Override
-    public Optional<Address> addressFor(String address) {
-        switch (core.getType()) {
-            case BRCryptoBlockChainType.BLOCK_CHAIN_TYPE_BTC: {
-                return Address.createAsBtc(address);
-            }
-            case BRCryptoBlockChainType.BLOCK_CHAIN_TYPE_ETH: {
-                return Address.createAsEth(address);
-            }
-            case BRCryptoBlockChainType.BLOCK_CHAIN_TYPE_GEN: {
-                return Optional.absent();
-            }
-            default:
-                throw new IllegalStateException("Invalid network type");
-        }
-    }
-
-    @Override
     public boolean hasUnitFor(com.breadwallet.crypto.Currency currency, com.breadwallet.crypto.Unit unit) {
         return unitsFor(currency).transform(input -> input.contains(unit)).or(false);
-    }
-
-    @Override
-    public boolean hasCurrency(com.breadwallet.crypto.Currency currency) {
-        Currency currencyImpl = Currency.from(currency);
-        return core.hasCurrency(currencyImpl.getCoreBRCryptoCurrency());
-    }
-
-    @Override
-    public Currency getCurrency() {
-        return Currency.create(core.getCurrency());
     }
 
     @Override
@@ -163,18 +163,21 @@ final class Network implements com.breadwallet.crypto.Network {
     }
 
     @Override
-    public String getUids() {
-        return core.getUids();
-    }
-
-    @Override
-    public boolean isMainnet() {
-        return core.isMainnet();
-    }
-
-    @Override
-    public UnsignedLong getHeight() {
-        return core.getHeight();
+    public Optional<Address> addressFor(String address) {
+        switch (core.getType()) {
+            case BRCryptoBlockChainType.BLOCK_CHAIN_TYPE_BTC: {
+                return Address.createAsBtc(address);
+            }
+            case BRCryptoBlockChainType.BLOCK_CHAIN_TYPE_ETH: {
+                return Address.createAsEth(address);
+            }
+            case BRCryptoBlockChainType.BLOCK_CHAIN_TYPE_GEN: {
+                // TODO(fix): Implement this
+                return Optional.absent();
+            }
+            default:
+                throw new IllegalStateException("Invalid network type");
+        }
     }
 
     @Override
@@ -192,16 +195,13 @@ final class Network implements com.breadwallet.crypto.Network {
             return false;
         }
 
-        // height not included in the equality and hashcode calculation
         Network network = (Network) object;
-        // TODO(fix): I think we want this, implement it
-        return false;
+        return core.equals(network.core);
     }
 
     @Override
     public int hashCode() {
-        // height not included in the equality and hashcode calculation
-        return Objects.hash(getUids(), getSupportedModes(), isMainnet(), toString());
+        return Objects.hash(core);
     }
 
     /* package */
