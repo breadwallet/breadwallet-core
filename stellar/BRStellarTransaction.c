@@ -145,6 +145,12 @@ extern void stellarTransactionFree(BRStellarTransaction transaction)
                     array_free(op->operation.passiveSellOffer.offerResult.claimOfferAtom);
                 }
             }
+            if (op->type == ST_OP_INFLATION) {
+                // If we parsed a result_xdr there could be an array of ClaimedOffers
+                if (op->operation.inflation.payouts) {
+                    array_free(op->operation.inflation.payouts);
+                }
+            }
         }
         array_free(transaction->operations);
     }

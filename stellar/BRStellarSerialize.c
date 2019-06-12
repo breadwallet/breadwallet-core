@@ -479,7 +479,6 @@ uint8_t * unpack_ManageData(uint8_t * buffer, BRStellarManageDataOp * op)
     return unpack_string(buffer, &op->value[0], 64);
 }
 
-
 uint8_t * unpack_Op(uint8_t *buffer, BRStellarOperation *op)
 {
     // See if the optional account ID is there
@@ -516,9 +515,7 @@ uint8_t * unpack_Op(uint8_t *buffer, BRStellarOperation *op)
         case ST_OP_MANAGE_BUY_OFFER:
             return unpack_ManageBuyOffer(buffer, &op->operation.manageBuyOffer);
         case ST_OP_INFLATION:
-            // Ignore for now. From my reading it would appear that the
-            // Inflaction request would be run as a separate request and we can
-            // just ingore the request itself since these will never end up on the device
+            return buffer; // Nothing to do here. The inflation request has no data.
             break;
         default:
             // Log and quit now.
@@ -623,6 +620,23 @@ uint8_t * unpack_ManageOfferSuccessResult(uint8_t * buffer, BRStellarManageOffer
         offerResult->offerType == ST_MANAGE_OFFER_UPDATED ||
         offerResult->offerType == ST_MANAGE_OFFER_DELETED) {
         buffer = unpack_OfferEntry(buffer, &offerResult->offer);
+    }
+    return buffer;
+}
+
+uint8_t * unpack_InflationResult(uint8_t * buffer, BRStellarInflationOp *op)
+{
+    // Get the number of inflation payouts
+    uint32_t numPayouts = 0;
+    buffer = unpack_uint(buffer, &numPayouts);
+    if (numPayouts > 0) {
+        array_new(op->payouts, numPayouts);
+        for (int i = 0; i < numPayouts; i++) {
+            BRStellarInflationPayout payout;
+            buffer = unpack_AccountID(buffer, &payout.destination);
+            buffer = unpack_amount(buffer, &payout.amount);
+            array_add(op->payouts, payout);
+        }
     }
     return buffer;
 }
@@ -783,6 +797,11 @@ int stellarDeserializeResultXDR(uint8_t * result_xdr, size_t result_length, BRAr
                             pCurrent = unpack_ManageOfferSuccessResult(pCurrent, &op->operation.passiveSellOffer.offerResult);
                         }
                         break;
+                    case ST_OP_INFLATION:
+                        if (0 == op->resultCode) {
+                            pCurrent = unpack_InflationResult(pCurrent, &op->operation.inflation);
+                        }
+                        break;
                     case ST_OP_CREATE_ACCOUNT:
                     case ST_OP_PAYMENT:
                     case ST_OP_SET_OPTIONS:
@@ -792,7 +811,6 @@ int stellarDeserializeResultXDR(uint8_t * result_xdr, size_t result_length, BRAr
                     case ST_OP_BUMP_SEQUENCE:
                         // Nothing more to do here
                         break;
-                    case ST_OP_INFLATION:
                     case ST_OP_PATH_PAYMENT:
                     default:
                         return ST_XDR_UNSUPPORTED_OPERATION;

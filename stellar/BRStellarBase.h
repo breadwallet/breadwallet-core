@@ -311,6 +311,16 @@ typedef struct st_manage_data
     int32_t                   resultCode;
 } BRStellarManageDataOp;
 
+typedef struct st_inflation_payout
+{
+    BRStellarAccountID  destination;
+    double              amount;
+} BRStellarInflationPayout;
+
+typedef struct st_inflation {
+    BRArrayOf(BRStellarInflationPayout) payouts;
+} BRStellarInflationOp;
+
 typedef struct st_operation {
     BRStellarOperationType  type;
     BRStellarAccountID      source;     // Optional
@@ -329,6 +339,7 @@ typedef struct st_operation {
         BRStellarManageDataOp       manageData;
         BRStellarBumpSequenceOp     bumpSequence;
         BRStellarManageBuyOfferOp   manageBuyOffer;
+        BRStellarInflationOp        inflation;
     } operation;
 } BRStellarOperation;
 

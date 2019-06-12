@@ -45,6 +45,15 @@ static void hex2bin(const char* src, uint8_t * target)
     }
 }
 
+static void printBytes(uint8_t * bytes, size_t byteSize)
+{
+    for(int i = 0; i < byteSize; i++) {
+        if (i >= 0 && i % 8 == 0) printf("\n");
+        printf("%02X ", bytes[i]);
+    }
+    printf("\n");
+}
+
 static BRStellarAccount createTestAccount(const char* paper_key,
                               const char* public_key_string, const char* expected_address)
 {
@@ -322,6 +331,8 @@ static const char * account_merge = "AAAAAK0WSc/cVTc6KLcLGEKy8dTyA4sXIALXqlhQfZc
 static const char * bump_sequence = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAZAAHHCYAAAAPAAAAAAAAAAAAAAABAAAAAAAAAAsABxwmAAAADwAAAAAAAAAB4mh60QAAAECg9GxHI1P4Nv2trtrcyebY13S3xh0eChfQ3yGY2uLihfc+969HcD7ucOjbeP6j/HWk1JlStWl2DPhXh1mA3DcI";
 static const char * manage_data = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAZAAHHCYAAAAQAAAAAAAAAAAAAAABAAAAAAAAAAoAAAANYnVzaW5lc3NfbmFtZQAAAAAAAAEAAAAIMDI0OTIzODEAAAAAAAAAAeJoetEAAABARhwJWm8F1Qj0HyEiYAzVqqqqqfsxicENe62XK/Me0m/9l2NzX3B3KM+RYfChwemEYG7/WdDmc0fx+8F1/gzIBw==";
 static const char * manage_buy_offer = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAZAAHHCYAAAAYAAAAAAAAAAAAAAABAAAAAAAAAAwAAAAAAAAAAVVTRAAAAAAAJA/+t89BcYGwsJMgNfi8CGsE0WwYsduMYp8RBeJoetEAAAAAPYqzIAAAAAEAAAAMAAAAAAAAAAAAAAAAAAAAAeJoetEAAABAdpt5hTDI88136Xw/yeiDIl7TKbR9dy7kwrJUa+ACIuO1bWmNWrnR7ZGb1z+/I6XgeqoY47vaLLK9kkTS4a1+AA==";
+static const char * inflation_no_source_account = "AAAAAP2WpWayOtp5SOb2El22dFAtiBNTRY1YHnvNQoTao/PMAAAAZAAMLtoAAAABAAAAAAAAAAAAAAABAAAAAAAAAAkAAAAAAAAAAdqj88wAAABAyx19spq3TJYlNhc7PWFZYPFHpCbdN1mD2sZcboulgX5t4YmF13P1/NRDD1JlP9qvf6iJq6utt79D2MajH5SbAg==";
+static const char * inflation = "AAAAAP2WpWayOtp5SOb2El22dFAtiBNTRY1YHnvNQoTao/PMAAAAZAAMLtoAAAABAAAAAAAAAAAAAAABAAAAAQAAAAD9lqVmsjraeUjm9hJdtnRQLYgTU0WNWB57zUKE2qPzzAAAAAkAAAAAAAAAAdqj88wAAABAgugHYgFn8OonOY7njT876dhFYI4eACBLD2UjcqxAYVNBgRnKbsrUbq8mSfQXjlUwqRxLSrLbGyjFneSCioD/Cw==";
 
 void runDeserializationTests()
 {
@@ -355,6 +366,9 @@ void runDeserializationTests()
 
     testDeserialize(manage_buy_offer, ST_OP_MANAGE_BUY_OFFER, 1, 1, NULL, "GASA77VXZ5AXDANQWCJSANPYXQEGWBGRNQMLDW4MMKPRCBPCNB5NC77I");
 
+    testDeserialize(inflation, ST_OP_INFLATION, 1, 1, NULL, "GD6ZNJLGWI5NU6KI433BEXNWORIC3CATKNCY2WA6PPGUFBG2UPZ4ZAXA");
+    testDeserialize(inflation_no_source_account, ST_OP_INFLATION, 1, 1, NULL, "GD6ZNJLGWI5NU6KI433BEXNWORIC3CATKNCY2WA6PPGUFBG2UPZ4ZAXA");
+
     testDeserialize(all_operations, ST_OP_PAYMENT,  7, 1, NULL,
                     "GASA77VXZ5AXDANQWCJSANPYXQEGWBGRNQMLDW4MMKPRCBPCNB5NC77I");
 
@@ -378,6 +392,42 @@ static void deserializeTxResponse(const char * response_xdr, size_t expectedOpCo
     stellarTransactionFree(transaction);
 }
 
+static void deserializeInflationResult(int32_t expectedStatus)
+{
+    // Since I don't have any real results I can use I will have to construct what I think
+    // it would look like
+    const char * tmp = "AAAAAAAAAMgAAAAAAAAAAgAAAAAAAAABAAAAAAAAAAAAAAABAAAAAAAAAAA=";
+    size_t byteSize = 0;
+    uint8_t * bytes = b64_decode_ex(tmp, strlen(tmp), &byteSize);
+    printBytes(bytes, byteSize);
+    uint8_t inflation_input[] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x64, // 64-bit fee
+        0x00, 0x00, 0x00, 0x00, // 4-byte status code
+        0x00, 0x00, 0x00, 0x01, // array size
+        0x00, 0x00, 0x00, 0x00, // Element 1 - opInner
+        0x00, 0x00, 0x00, 0x09, // operation type - 9 is inflation
+        0x00, 0x00, 0x00, 0x00, // operation status, 0 = SUCCESS
+        0x00, 0x00, 0x00, 0x01, // number of inflation payouts
+        0x00, 0x00, 0x00, 0x00, // account ID type, 0 - ed25519
+        0x24, 0x0F, 0xFE, 0xB7, 0xCF, 0x41, 0x71, 0x81, // AccountID
+        0xB0, 0xB0, 0x93, 0x20, 0x35, 0xF8, 0xBC, 0x08,
+        0x6B, 0x04, 0xD1, 0x6C, 0x18, 0xB1, 0xDB, 0x8C,
+        0x62, 0x9F, 0x11, 0x05, 0xE2, 0x68, 0x7A, 0xD1,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x98, 0x96, 0x90, // amount
+        0x00, 0x00, 0x00, 0x00 // Version
+    };
+    char * response_xdr = b64_encode(inflation_input, sizeof(inflation_input));
+    BRStellarTransaction transaction = stellarTransactionCreateFromBytes(NULL, 0);
+    assert(transaction);
+    BRStellarTransactionResult result = stellarTransactionGetResult(transaction, response_xdr);
+    assert(expectedStatus == result.resultCode);
+    BRStellarOperation *op = stellarTransactionGetOperation(transaction, 0);
+    assert(op);
+    assert(op->type == ST_OP_INFLATION);
+    free(response_xdr);
+    stellarTransactionFree(transaction);
+}
+
 static const char * response_payments = "AAAAAAAAAMgAAAAAAAAAAgAAAAAAAAABAAAAAAAAAAAAAAABAAAAAAAAAAA=";
 static const char * bad_sequence = "AAAAAAAAAAD////7AAAAAA==";
 static const char * account_merge_result = "AAAAAAAAAGQAAAAAAAAAAQAAAAAAAAAIAAAAAAAAABdIduecAAAAAA==";
@@ -388,6 +438,7 @@ static const char * manage_buy_offer_result = "AAAAAAAAAGQAAAAAAAAAAQAAAAAAAAAMA
 
 static void runResultDeserializationTests()
 {
+    deserializeInflationResult(0);
     deserializeTxResponse(response_payments, 2, 0);
     deserializeTxResponse(bad_sequence, 0, -5);
     deserializeTxResponse(account_merge_result, 1, 0);
