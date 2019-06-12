@@ -17,13 +17,13 @@ import java.util.Set;
 
 public interface Network {
 
-    Optional<Unit> baseUnitFor(Currency currency);
+    Optional<? extends Unit> baseUnitFor(Currency currency);
 
-    Optional<Unit> defaultUnitFor(Currency currency);
+    Optional<? extends Unit> defaultUnitFor(Currency currency);
 
-    Optional<Set<Unit>> unitsFor(Currency currency);
+    Optional<Set<? extends Unit>> unitsFor(Currency currency);
 
-    Optional<Address> addressFor(String address);
+    Optional<? extends Address> addressFor(String address);
 
     boolean hasUnitFor(Currency currency, Unit unit);
 

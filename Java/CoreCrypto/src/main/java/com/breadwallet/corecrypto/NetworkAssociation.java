@@ -7,8 +7,6 @@
  */
 package com.breadwallet.corecrypto;
 
-import com.breadwallet.crypto.Unit;
-
 import java.util.Set;
 
 /* package */

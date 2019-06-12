@@ -37,9 +37,9 @@ public interface Amount extends Comparable<Amount> {
 
     boolean isNegative();
 
-    Optional<Amount> add(Amount o);
+    Optional<? extends Amount> add(Amount o);
 
-    Optional<Amount> sub(Amount o);
+    Optional<? extends Amount> sub(Amount o);
 
     Amount negate();
 

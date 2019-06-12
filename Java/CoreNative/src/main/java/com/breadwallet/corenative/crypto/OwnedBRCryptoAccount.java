@@ -11,6 +11,7 @@ import com.breadwallet.corenative.CryptoLibrary;
 import com.breadwallet.corenative.support.BRMasterPubKey;
 
 import java.util.Date;
+import java.util.Objects;
 
 /* package */
 class OwnedBRCryptoAccount implements CoreBRCryptoAccount {
@@ -43,5 +44,35 @@ class OwnedBRCryptoAccount implements CoreBRCryptoAccount {
     @Override
     public BRMasterPubKey.ByValue asBtc() {
         return core.asBtc();
+    }
+
+    @Override
+    public BRCryptoAccount asBRCryptoAccount() {
+        return core;
+    }
+
+    // TODO(discuss): Do we want to do a value comparison?
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) {
+            return true;
+        }
+
+        if (object instanceof OwnedBRCryptoAccount) {
+            OwnedBRCryptoAccount that = (OwnedBRCryptoAccount) object;
+            return core.equals(that.core);
+        }
+
+        if (object instanceof BRCryptoAccount) {
+            BRCryptoAccount that = (BRCryptoAccount) object;
+            return core.equals(that);
+        }
+
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(core);
     }
 }

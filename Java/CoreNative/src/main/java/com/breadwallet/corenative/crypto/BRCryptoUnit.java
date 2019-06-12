@@ -8,6 +8,7 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
+import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.primitives.UnsignedInteger;
 import com.sun.jna.Pointer;
@@ -30,18 +31,32 @@ public class BRCryptoUnit extends PointerType implements CoreBRCryptoUnit {
 
 
     @Override
+    public String getUids() {
+        return CryptoLibrary.INSTANCE.cryptoUnitGetUids(this).getString(0, "UTF-8");
+    }
+
+    @Override
     public String getName() {
-        return CryptoLibrary.INSTANCE.cryptoUnitGetName(this);
+        return CryptoLibrary.INSTANCE.cryptoUnitGetName(this).getString(0, "UTF-8");
     }
 
     @Override
     public String getSymbol() {
-        return CryptoLibrary.INSTANCE.cryptoUnitGetSymbol(this);
+        return CryptoLibrary.INSTANCE.cryptoUnitGetSymbol(this).getString(0, "UTF-8");
     }
 
     @Override
     public UnsignedInteger getDecimals() {
         return UnsignedInteger.fromIntBits(UnsignedBytes.toInt(CryptoLibrary.INSTANCE.cryptoUnitGetBaseDecimalOffset(this)));
+    }
+
+    @Override
+    public Optional<CoreBRCryptoUnit> getBase() {
+        BRCryptoUnit baseUnit = CryptoLibrary.INSTANCE.cryptoUnitGetBaseUnit(this);
+        if (null != baseUnit) {
+            baseUnit = CryptoLibrary.INSTANCE.cryptoUnitTake(baseUnit);
+        }
+        return Optional.fromNullable(baseUnit).transform(OwnedBRCryptoUnit::new);
     }
 
     @Override
@@ -54,5 +69,11 @@ public class BRCryptoUnit extends PointerType implements CoreBRCryptoUnit {
     public boolean hasCurrency(CoreBRCryptoCurrency currency) {
         BRCryptoCurrency coreCurrency = currency.asBRCryptoCurrency();
         return coreCurrency.equals(CryptoLibrary.INSTANCE.cryptoUnitGetCurrency(this));
+    }
+
+    @Override
+    public boolean isIdentical(CoreBRCryptoUnit other) {
+        BRCryptoUnit otherCore = other.asBRCryptoUnit();
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoUnitIsIdentical(this, otherCore);
     }
 }

@@ -9,6 +9,8 @@ package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
 
+import java.util.Objects;
+
 /* package */
 class OwnedBRCryptoCurrency implements CoreBRCryptoCurrency {
 
@@ -28,6 +30,11 @@ class OwnedBRCryptoCurrency implements CoreBRCryptoCurrency {
     }
 
     @Override
+    public String getUids() {
+        return core.getUids();
+    }
+
+    @Override
     public String getName() {
         return core.getName();
     }
@@ -43,7 +50,37 @@ class OwnedBRCryptoCurrency implements CoreBRCryptoCurrency {
     }
 
     @Override
+    public boolean isIdentical(CoreBRCryptoCurrency other) {
+        return core.isIdentical(other);
+    }
+
+    @Override
     public BRCryptoCurrency asBRCryptoCurrency() {
         return core;
+    }
+
+    // TODO(discuss): Do we want to do a value comparison?
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) {
+            return true;
+        }
+
+        if (object instanceof OwnedBRCryptoCurrency) {
+            OwnedBRCryptoCurrency that = (OwnedBRCryptoCurrency) object;
+            return core.equals(that.core);
+        }
+
+        if (object instanceof BRCryptoCurrency) {
+            BRCryptoCurrency that = (BRCryptoCurrency) object;
+            return core.equals(that);
+        }
+
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(core);
     }
 }

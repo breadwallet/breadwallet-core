@@ -13,8 +13,6 @@ import java.util.List;
 
 public interface WalletManager {
 
-    void initialize();
-
     void connect();
 
     void disconnect();
@@ -23,10 +21,7 @@ public interface WalletManager {
 
     void submit(Transfer transfer, String paperKey);
 
-    default boolean isActive() {
-        WalletManagerState state = getState();
-        return state == WalletManagerState.CREATED || state == WalletManagerState.SYNCING;
-    }
+    boolean isActive();
 
     Account getAccount();
 
@@ -34,29 +29,19 @@ public interface WalletManager {
 
     Wallet getPrimaryWallet();
 
-    List<Wallet> getWallets();
+    List<? extends Wallet> getWallets();
 
     WalletManagerMode getMode();
 
     String getPath();
 
-    default Currency getCurrency() {
-        return getNetwork().getCurrency();
-    }
+    Currency getCurrency();
 
-    default String getName() {
-        return getCurrency().getCode();
-    }
+    String getName();
 
-    default Unit getBaseUnit() {
-        Network network = getNetwork();
-        return network.baseUnitFor(network.getCurrency()).get();
-    }
+    Unit getBaseUnit();
 
-    default Unit getDefaultUnit() {
-        Network network = getNetwork();
-        return network.defaultUnitFor(network.getCurrency()).get();
-    }
+    Unit getDefaultUnit();
 
     WalletManagerState getState();
 }

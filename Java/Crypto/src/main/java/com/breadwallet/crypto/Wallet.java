@@ -15,11 +15,9 @@ import java.util.List;
 
 public interface Wallet {
 
-    default Optional<Transfer> createTransfer(Address target, Amount amount) {
-        return createTransfer(target, amount, getDefaultFeeBasis());
-    }
+    Optional<? extends Transfer> createTransfer(Address target, Amount amount);
 
-    Optional<Transfer> createTransfer(Address target, Amount amount, TransferFeeBasis feeBasis);
+    Optional<? extends Transfer> createTransfer(Address target, Amount amount, TransferFeeBasis feeBasis);
 
     Amount estimateFee(Amount amount);
 
@@ -31,9 +29,9 @@ public interface Wallet {
 
     Amount getBalance();
 
-    List<Transfer> getTransfers();
+    List<? extends Transfer> getTransfers();
 
-    Optional<Transfer> getTransferByHash(TransferHash hash);
+    Optional<? extends Transfer> getTransferByHash(TransferHash hash);
 
     TransferFeeBasis getDefaultFeeBasis();
 
@@ -41,13 +39,9 @@ public interface Wallet {
 
     Address getSource();
 
-    default Currency getCurrency() {
-        return getBaseUnit().getCurrency();
-    }
+    Currency getCurrency();
 
-    default String getName() {
-        return getBaseUnit().getCurrency().getCode();
-    }
+    String getName();
 
     WalletState getState();
 }

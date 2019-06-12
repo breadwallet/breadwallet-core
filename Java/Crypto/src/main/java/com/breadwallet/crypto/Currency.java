@@ -15,6 +15,8 @@ public interface Currency {
     String CODE_AS_BCH = "bch";
     String CODE_AS_ETH = "eth";
 
+    String getUids();
+
     String getName();
 
     String getCode();

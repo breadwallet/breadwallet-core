@@ -11,15 +11,19 @@ import com.breadwallet.corenative.CryptoLibrary;
 
 public interface CoreBRCryptoCurrency {
 
-    static CoreBRCryptoCurrency create(String name, String code, String type) {
-        return new OwnedBRCryptoCurrency(CryptoLibrary.INSTANCE.cryptoCurrencyCreate(name, code, type));
+    static OwnedBRCryptoCurrency create(String uids, String name, String code, String type) {
+        return new OwnedBRCryptoCurrency(CryptoLibrary.INSTANCE.cryptoCurrencyCreate(uids, name, code, type));
     }
+
+    String getUids();
 
     String getName();
 
     String getCode();
 
     String getType();
+
+    boolean isIdentical(CoreBRCryptoCurrency coreBRCryptoCurrency);
 
     BRCryptoCurrency asBRCryptoCurrency();
 }

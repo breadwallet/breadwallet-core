@@ -56,7 +56,6 @@ public class CoreSystemListener implements SystemListener {
     @Override
     public void handleSystemEvent(System system, SystemEvent event) {
         Log.d(TAG, event.toString());
-
         event.accept(new SystemEventVisitor<Void>() {
             @Override
             public Void visit(SystemCreatedEvent event) {

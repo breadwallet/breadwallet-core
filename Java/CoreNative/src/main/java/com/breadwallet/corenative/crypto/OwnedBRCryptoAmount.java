@@ -12,6 +12,8 @@ import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.ptr.IntByReference;
 
+import java.util.Objects;
+
 /* package */
 class OwnedBRCryptoAmount implements CoreBRCryptoAmount {
 
@@ -83,5 +85,30 @@ class OwnedBRCryptoAmount implements CoreBRCryptoAmount {
     @Override
     public BRCryptoAmount asBRCryptoAmount() {
         return core;
+    }
+
+    // TODO(discuss): Do we want to do a value comparison?
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) {
+            return true;
+        }
+
+        if (object instanceof OwnedBRCryptoAmount) {
+            OwnedBRCryptoAmount that = (OwnedBRCryptoAmount) object;
+            return core.equals(that.core);
+        }
+
+        if (object instanceof BRCryptoAmount) {
+            BRCryptoAmount that = (BRCryptoAmount) object;
+            return core.equals(that);
+        }
+
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(core);
     }
 }

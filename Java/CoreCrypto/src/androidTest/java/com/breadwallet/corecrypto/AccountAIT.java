@@ -13,7 +13,7 @@ public class AccountAIT {
         String phrase = "ginger settle marine tissue robot crane night number ramp coast roast critic";
         String uids = "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96";
         Date earliestKeyTime = new Date(0);
-        Account account = Account.createFrom(phrase, uids, earliestKeyTime);
+        Account account = Account.create(phrase, uids, earliestKeyTime);
         assertEquals(earliestKeyTime.getTime(), account.getEarliestKeyTime().getTime());
 
         // TODO: Add addressAsETH
@@ -25,7 +25,7 @@ public class AccountAIT {
         byte[] seed = Account.deriveSeed(phrase);
         String uids = "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96";
         Date earliestKeyTime = new Date(0);
-        Account account = Account.createFrom(seed, uids, earliestKeyTime);
+        Account account = Account.create(seed, uids, earliestKeyTime);
         assertEquals(earliestKeyTime.getTime(), account.getEarliestKeyTime().getTime());
 
         // TODO: Add addressAsETH

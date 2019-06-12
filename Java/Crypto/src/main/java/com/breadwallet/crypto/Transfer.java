@@ -18,17 +18,9 @@ public interface Transfer {
 
     Wallet getWallet();
 
-    Optional<Address> getSource();
+    Optional<? extends Address> getSource();
 
-    Optional<Address> getTarget();
-
-    List<Address> getSources();
-
-    List<Address> getTargets();
-
-    List<Address> getInputs();
-
-    List<Address> getOutputs();
+    Optional<? extends Address> getTarget();
 
     Amount getAmount();
 
@@ -40,7 +32,7 @@ public interface Transfer {
 
     TransferDirection getDirection();
 
-    Optional<TransferHash> getHash();
+    Optional<? extends TransferHash> getHash();
 
     default Optional<TransferConfirmation> getConfirmation() {
         return getState().getIncludedConfirmation();

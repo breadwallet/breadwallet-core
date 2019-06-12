@@ -27,13 +27,13 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
     private static final CryptoApi.AccountProvider accountProvider = new CryptoApi.AccountProvider() {
 
         @Override
-        public com.breadwallet.crypto.Account create(String phrase, String uids, Date earliestKeyTime) {
-            return Account.createFrom(phrase, uids, earliestKeyTime);
+        public Account create(String phrase, String uids, Date earliestKeyTime) {
+            return Account.create(phrase, uids, earliestKeyTime);
         }
 
         @Override
-        public com.breadwallet.crypto.Account create(byte[] seed, String uids, Date earliestKeyTime) {
-            return Account.createFrom(seed, uids, earliestKeyTime);
+        public Account create(byte[] seed, String uids, Date earliestKeyTime) {
+            return Account.create(seed, uids, earliestKeyTime);
         }
     };
 
@@ -57,7 +57,7 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
     private static final CryptoApi.SystemProvider systemProvider = new CryptoApi.SystemProvider() {
 
         @Override
-        public com.breadwallet.crypto.System create(ExecutorService listenerExecutor, SystemListener listener, com.breadwallet.crypto.Account account, String path, BlockchainDb query) {
+        public System create(ExecutorService listenerExecutor, SystemListener listener, com.breadwallet.crypto.Account account, String path, BlockchainDb query) {
             return System.create(listenerExecutor, listener, account, path, query);
         }
     };

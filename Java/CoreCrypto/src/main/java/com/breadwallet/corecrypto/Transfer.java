@@ -7,32 +7,64 @@
  */
 package com.breadwallet.corecrypto;
 
+import com.breadwallet.corenative.crypto.CoreBRCryptoTransfer;
+import com.breadwallet.crypto.TransferDirection;
 import com.breadwallet.crypto.TransferState;
-import com.breadwallet.crypto.Unit;
-import com.breadwallet.crypto.Wallet;
+import com.google.common.base.Optional;
 
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 /* package */
-abstract class Transfer implements com.breadwallet.crypto.Transfer {
+final class Transfer implements com.breadwallet.crypto.Transfer {
 
-    protected final Wallet owner;
-    protected final Unit defaultUnit;
-    protected final AtomicReference<TransferState> state;
+    /* package */
+    static Transfer create(CoreBRCryptoTransfer transfer, Wallet wallet, Unit unit) {
+        return new Transfer(transfer, wallet, unit);
+    }
 
-    protected Transfer(Wallet owner, Unit defaultUnit) {
-        this.owner = owner;
+    /* package */
+    static Transfer from(com.breadwallet.crypto.Transfer transfer) {
+        if (transfer instanceof Transfer) {
+            return (Transfer) transfer;
+        }
+        throw new IllegalArgumentException("Unsupported transfer instance");
+    }
+
+    private final CoreBRCryptoTransfer core;
+    private final Wallet wallet;
+    private final Unit defaultUnit;
+    private final AtomicReference<TransferState> state;
+
+    private Transfer(CoreBRCryptoTransfer core, Wallet wallet, Unit defaultUnit) {
+        this.core = core;
+        this.wallet = wallet;
         this.defaultUnit = defaultUnit;
         this.state = new AtomicReference<>(TransferState.CREATED());
     }
 
     @Override
     public Wallet getWallet() {
-        return owner;
+        return wallet;
     }
 
     @Override
-    public com.breadwallet.crypto.Amount getAmountDirected() {
+    public Optional<Address> getSource() {
+        return core.getSourceAddress().transform(Address::create);
+    }
+
+    @Override
+    public Optional<Address> getTarget() {
+        return core.getTargetAddress().transform(Address::create);
+    }
+
+    @Override
+    public Amount getAmount() {
+        return Amount.create(core.getAmount(), wallet.getBaseUnit());
+    }
+
+    @Override
+     public Amount getAmountDirected() {
         switch (getDirection()) {
             case RECOVERED:
                 return Amount.create(0L, defaultUnit).get();
@@ -46,12 +78,56 @@ abstract class Transfer implements com.breadwallet.crypto.Transfer {
     }
 
     @Override
+    public Amount getFee() {
+        return Amount.create(core.getFee(), defaultUnit);
+    }
+
+    @Override
+    public TransferFeeBasis getFeeBasis() {
+        return TransferFeeBasis.create(core.getFeeBasis());
+    }
+
+    @Override
+    public TransferDirection getDirection() {
+        return Utilities.transferDirectionFromCrypto(core.getDirection());
+    }
+
+    @Override
+    public Optional<TransferHash> getHash() {
+        return core.getHash().transform(TransferHash::create);
+    }
+
+    @Override
     public TransferState getState() {
         return state.get();
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) {
+            return true;
+        }
+
+        if (!(object instanceof Transfer)) {
+            return false;
+        }
+
+        Transfer that = (Transfer) object;
+        return core.equals(that.core);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(core);
     }
 
     /* package */
     TransferState setState(TransferState newState) {
         return state.getAndSet(newState);
+    }
+
+    /* package */
+    CoreBRCryptoTransfer getCoreBRCryptoTransfer() {
+        return core;
     }
 }

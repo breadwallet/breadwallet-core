@@ -128,7 +128,7 @@ public class TransferCreateActivity extends AppCompatActivity {
 
         submitView.setOnClickListener(v -> {
             String addressStr = receiverView.getText().toString();
-            Optional<Address> target = network.addressFor(addressStr);
+            Optional<? extends Address> target = network.addressFor(addressStr);
             if (!target.isPresent()) {
                 showError("Invalid target address");
                 return;
@@ -181,7 +181,7 @@ public class TransferCreateActivity extends AppCompatActivity {
                 .setMessage(String.format("Send %s to %s?", amount, target.toString()))
                 .setNegativeButton("Cancel", (dialog, which) -> {})
                 .setPositiveButton("Continue", (dialog, which) -> {
-                    Optional<Transfer> transfer = wallet.createTransfer(target, amount, getFeeBasis());
+                    Optional<? extends Transfer> transfer = wallet.createTransfer(target, amount, getFeeBasis());
                     if (!transfer.isPresent()) {
                         showError("Balance too low?");
                         return;

@@ -22,18 +22,28 @@ public class BRCryptoCurrency extends PointerType implements CoreBRCryptoCurrenc
     }
 
     @Override
+    public String getUids() {
+        return CryptoLibrary.INSTANCE.cryptoCurrencyGetUids(this).getString(0, "UTF-8");
+    }
+
+    @Override
     public String getName() {
-        return CryptoLibrary.INSTANCE.cryptoCurrencyGetName(this);
+        return CryptoLibrary.INSTANCE.cryptoCurrencyGetName(this).getString(0, "UTF-8");
     }
 
     @Override
     public String getCode() {
-        return CryptoLibrary.INSTANCE.cryptoCurrencyGetCode(this);
+        return CryptoLibrary.INSTANCE.cryptoCurrencyGetCode(this).getString(0, "UTF-8");
     }
 
     @Override
     public String getType() {
-        return CryptoLibrary.INSTANCE.cryptoCurrencyGetType(this);
+        return CryptoLibrary.INSTANCE.cryptoCurrencyGetType(this).getString(0, "UTF-8");
+    }
+
+    @Override
+    public boolean isIdentical(CoreBRCryptoCurrency coreBRCryptoCurrency) {
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoCurrencyIsIdentical(this, coreBRCryptoCurrency.asBRCryptoCurrency());
     }
 
     @Override

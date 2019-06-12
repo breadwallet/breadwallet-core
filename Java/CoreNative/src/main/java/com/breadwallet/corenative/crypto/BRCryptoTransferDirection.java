@@ -7,8 +7,9 @@
  */
 package com.breadwallet.corenative.crypto;
 
-public interface BREthereumBoolean {
+public interface BRCryptoTransferDirection {
 
-    int ETHEREUM_BOOLEAN_TRUE = 0;
-    int ETHEREUM_BOOLEAN_FALSE = 1;
+    int CRYPTO_TRANSFER_SENT = 0;
+    int CRYPTO_TRANSFER_RECEIVED = 1;
+    int CRYPTO_TRANSFER_RECOVERED = 2;
 }

@@ -16,12 +16,12 @@ import java.util.Date;
 final class Account implements com.breadwallet.crypto.Account {
 
     /* package */
-    static Account createFrom(String phrase, String uids, Date earliestKeyTime) {
+    static Account create(String phrase, String uids, Date earliestKeyTime) {
         return new Account(CoreBRCryptoAccount.create(phrase), uids, earliestKeyTime);
     }
 
     /* package */
-    static Account createFrom(byte[] seed, String uids, Date earliestKeyTime) {
+    static Account create(byte[] seed, String uids, Date earliestKeyTime) {
         return new Account(CoreBRCryptoAccount.createFromSeed(seed), uids, earliestKeyTime);
     }
 
@@ -55,5 +55,10 @@ final class Account implements com.breadwallet.crypto.Account {
     /* package */
     BRMasterPubKey.ByValue asBtc() {
         return core.asBtc();
+    }
+
+    /* package */
+    CoreBRCryptoAccount getCoreBRCryptoAccount() {
+        return core;
     }
 }
