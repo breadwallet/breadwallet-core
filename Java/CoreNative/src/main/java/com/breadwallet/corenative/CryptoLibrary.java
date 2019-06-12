@@ -7,11 +7,8 @@
  */
 package com.breadwallet.corenative;
 
-import com.breadwallet.corenative.bitcoin.BRChainParams;
 import com.breadwallet.corenative.crypto.BRCryptoAccount;
-import com.breadwallet.corenative.bitcoin.BRWallet;
 import com.breadwallet.corenative.bitcoin.BRWalletManager;
-import com.breadwallet.corenative.bitcoin.BRWalletManagerClient;
 import com.breadwallet.corenative.crypto.BRCryptoAddress;
 import com.breadwallet.corenative.crypto.BRCryptoAmount;
 import com.breadwallet.corenative.crypto.BRCryptoCWMClient;
@@ -27,7 +24,6 @@ import com.breadwallet.corenative.crypto.BRCryptoWalletManager;
 import com.breadwallet.corenative.support.BRAddress;
 import com.breadwallet.corenative.bitcoin.BRTransaction;
 import com.breadwallet.corenative.ethereum.BREthereumAddress;
-import com.breadwallet.corenative.support.BRMasterPubKey;
 import com.breadwallet.corenative.support.UInt256;
 import com.breadwallet.corenative.support.UInt512;
 import com.breadwallet.corenative.utility.SizeT;
@@ -50,33 +46,14 @@ public interface CryptoLibrary extends Library {
     SizeT BRTransactionSerialize(BRTransaction tx, byte[] buf, SizeT bufLen);
     void BRTransactionFree(BRTransaction tx);
 
-    // bitcoin/BRWallet.h
-    BRAddress.ByValue BRWalletLegacyAddress(BRWallet wallet);
-    int BRWalletContainsAddress(BRWallet wallet, String addr);
-    long BRWalletBalance(BRWallet wallet);
-    long BRWalletFeePerKb(BRWallet wallet);
-    void BRWalletSetFeePerKb(BRWallet wallet, long feePerKb);
-    BRTransaction BRWalletCreateTransaction(BRWallet wallet, long amount, String addr);
-    long BRWalletAmountReceivedFromTx(BRWallet wallet, BRTransaction tx);
-    long BRWalletAmountSentByTx(BRWallet wallet, BRTransaction tx);
-    long BRWalletFeeForTx(BRWallet wallet, BRTransaction tx);
-    long BRWalletFeeForTxAmount(BRWallet wallet, long amount);
-
     // bitcoin/BRWalletManager.h
     int bwmAnnounceBlockNumber(BRWalletManager manager, int rid, long blockNumber);
     int bwmAnnounceTransaction(BRWalletManager manager, int id, BRTransaction transaction);
     void bwmAnnounceTransactionComplete(BRWalletManager manager, int id, int success);
     void bwmAnnounceSubmit(BRWalletManager manager, int rid, BRTransaction transaction, int error);
-    BRWalletManager BRWalletManagerNew(BRWalletManagerClient.ByValue client, BRMasterPubKey.ByValue mpk, BRChainParams params, int earliestKeyTime, int mode, String storagePath);
-    void BRWalletManagerFree(BRWalletManager manager);
-    void BRWalletManagerConnect(BRWalletManager manager);
-    void BRWalletManagerDisconnect(BRWalletManager manager);
-    void BRWalletManagerScan(BRWalletManager manager);
-    BRWallet BRWalletManagerGetWallet(BRWalletManager manager);
     void BRWalletManagerGenerateUnusedAddrs(BRWalletManager manager, int limit);
     BRAddress BRWalletManagerGetAllAddrs(BRWalletManager manager, SizeTByReference addressesCount);
     BRAddress BRWalletManagerGetAllAddrsLegacy(BRWalletManager manager, SizeTByReference addressesCount);
-    void BRWalletManagerSubmitTransaction(BRWalletManager manager, BRTransaction transaction, byte[] seed, SizeT seedLen);
 
     // crypto/BRCryptoAccount.h
     UInt512.ByValue cryptoAccountDeriveSeed(String phrase);
@@ -148,7 +125,6 @@ public interface CryptoLibrary extends Library {
     void cryptoNetworkGive(BRCryptoNetwork obj);
 
     // crypto/BRCryptoPrivate.h
-    BRMasterPubKey.ByValue cryptoAccountAsBTC(BRCryptoAccount account);
     BRCryptoAddress cryptoAddressCreateAsBTC(BRAddress.ByValue btc);
     BRCryptoAddress cryptoAddressCreateAsETH(BREthereumAddress.ByValue address);
     BRCryptoAmount cryptoAmountCreate (BRCryptoCurrency currency, int isNegative, UInt256.ByValue value);

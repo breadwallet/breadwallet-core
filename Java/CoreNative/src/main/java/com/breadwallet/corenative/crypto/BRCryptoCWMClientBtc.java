@@ -8,7 +8,6 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.bitcoin.BRTransaction;
-import com.breadwallet.corenative.bitcoin.BRWallet;
 import com.breadwallet.corenative.bitcoin.BRWalletManager;
 import com.sun.jna.Callback;
 import com.sun.jna.Pointer;
@@ -28,7 +27,7 @@ public class BRCryptoCWMClientBtc extends Structure {
 	}
 
 	public interface BRSubmitTransactionCallback extends Callback {
-		void apply(Pointer context, BRWalletManager manager, BRWallet wallet, BRTransaction transaction, int rid);
+		void apply(Pointer context, BRWalletManager manager, Pointer wallet, BRTransaction transaction, int rid);
 	}
 
 	public BRGetBlockNumberCallback funcGetBlockNumber;

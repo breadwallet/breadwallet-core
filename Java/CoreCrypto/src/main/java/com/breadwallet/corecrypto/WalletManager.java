@@ -4,7 +4,6 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.breadwallet.corenative.bitcoin.BRTransaction;
-import com.breadwallet.corenative.bitcoin.BRWallet;
 import com.breadwallet.corenative.bitcoin.BRWalletManager;
 import com.breadwallet.corenative.bitcoin.CoreBRTransaction;
 import com.breadwallet.corenative.crypto.BRCryptoCWMClient;
@@ -847,7 +846,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         });
     }
 
-    private void btcSubmitTransaction(Pointer context, BRWalletManager managerImpl, BRWallet walletImpl,
+    private void btcSubmitTransaction(Pointer context, BRWalletManager managerImpl, Pointer walletImpl,
                                       BRTransaction transactionImpl, int rid) {
         systemExecutor.submit(() -> {
             Log.d(TAG, "BRSubmitTransactionCallback");

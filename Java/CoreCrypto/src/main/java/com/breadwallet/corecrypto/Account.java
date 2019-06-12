@@ -8,7 +8,6 @@
 package com.breadwallet.corecrypto;
 
 import com.breadwallet.corenative.crypto.CoreBRCryptoAccount;
-import com.breadwallet.corenative.support.BRMasterPubKey;
 
 import java.util.Date;
 

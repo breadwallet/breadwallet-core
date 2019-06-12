@@ -8,7 +8,6 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
-import com.breadwallet.corenative.support.BRMasterPubKey;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 

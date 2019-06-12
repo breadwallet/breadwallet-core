@@ -8,15 +8,11 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
-import com.breadwallet.corenative.support.BRMasterPubKey;
 import com.breadwallet.corenative.utility.SizeT;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
-
-import java.util.Date;
-import java.util.concurrent.TimeUnit;
 
 public class BRCryptoNetwork extends PointerType implements CoreBRCryptoNetwork {
 
