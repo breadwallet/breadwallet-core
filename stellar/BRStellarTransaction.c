@@ -123,7 +123,31 @@ extern void stellarTransactionFree(BRStellarTransaction transaction)
     if (transaction->signedBytes) {
         stellarSerializedTransactionRecordFree(&transaction->signedBytes);
     }
-    array_free(transaction->operations);
+    // There could be some embeded arrays in the results
+    if (transaction->operations) {
+        for (int i = 0; i < array_count(transaction->operations); i++) {
+            BRStellarOperation *op = &transaction->operations[i];
+            if (op->type == ST_OP_MANAGE_BUY_OFFER) {
+                // If we parsed a result_xdr there could be an array of ClaimedOffers
+                if (op->operation.manageBuyOffer.offerResult.claimOfferAtom) {
+                    array_free(op->operation.manageBuyOffer.offerResult.claimOfferAtom);
+                }
+            }
+            if (op->type == ST_OP_MANAGE_SELL_OFFER) {
+                // If we parsed a result_xdr there could be an array of ClaimedOffers
+                if (op->operation.manageSellOffer.offerResult.claimOfferAtom) {
+                    array_free(op->operation.manageSellOffer.offerResult.claimOfferAtom);
+                }
+            }
+            if (op->type == ST_OP_CREATE_PASSIVE_SELL_OFFER) {
+                // If we parsed a result_xdr there could be an array of ClaimedOffers
+                if (op->operation.passiveSellOffer.offerResult.claimOfferAtom) {
+                    array_free(op->operation.passiveSellOffer.offerResult.claimOfferAtom);
+                }
+            }
+        }
+        array_free(transaction->operations);
+    }
     free(transaction);
 }
 

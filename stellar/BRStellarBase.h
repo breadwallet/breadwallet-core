@@ -14,6 +14,7 @@
 #include <string.h>
 #include <assert.h>
 #include <stdbool.h>
+#include "support/BRArray.h"
 #include "BRStellarResultCodes.h"
 
 #ifdef __cplusplus
@@ -80,6 +81,13 @@ typedef enum st_operation_type
     ST_OP_MANAGE_BUY_OFFER = 12
 } BRStellarOperationType;
 
+typedef enum st_manage_offer_type
+{
+    ST_MANAGE_OFFER_CREATED = 0,
+    ST_MANAGE_OFFER_UPDATED = 1,
+    ST_MANAGE_OFFER_DELETED = 2
+} BRStellarManageOfferType;
+
 typedef uint32_t BRStellarFee;
 typedef int64_t  BRStellarSequence;
 typedef uint64_t TimePoint;
@@ -132,15 +140,10 @@ typedef struct st_price
     int32_t d; // denominator
 } BRStellarPrice;
 
-typedef struct st_operation_result {
-    int32_t resultCode;
-} BRStellarOperationResult;
-
 typedef struct st_payment_op {
     BRStellarAccountID       destination;
     BRStellarAsset           asset;         // what they end up with
     BRStellarAmount          amount;        // amount they end up with
-    BRStellarOperationResult result;
 } BRStellarPaymentOp;
 
 typedef struct st_path_payment_op
@@ -155,23 +158,53 @@ typedef struct st_path_payment_op
     
     BRStellarAsset           path[5];     // additional hops it must go through to get there
     uint32_t                 numPaths;    // how many actual paths are there
-    BRStellarOperationResult result;
 } BRStellarPathPaymentOp;
-
-typedef struct st_passive_sell_offer_op
-{
-    BRStellarAsset           selling; // A
-    BRStellarAsset           buying;  // B
-    BRStellarAmount          amount;  // amount taker gets. if set to 0, delete the offer
-    BRStellarPrice           price;   // cost of A in terms of B
-    BRStellarOperationResult result;
-} BRStellarPassiveSellOfferOp;
 
 typedef struct _stellar_create_account_op_ {
     BRStellarAccountID       account;
     BRStellarAmount          startingBalance; // amount account is created with
-    BRStellarOperationResult result;
 } BRStellarCreateAccountOp;
+
+typedef struct st_claim_offer_atom
+{
+    BRStellarAccountID sellerID; // Account that owns the offer
+    uint64_t           offerID;
+
+    // amount and asset taken from the owner
+    BRStellarAsset assetSold;
+    double         amountSold;
+
+    // amount and asset sent to the owner
+    BRStellarAsset assetBought;
+    double         amountBought;
+} BRStellarClaimOfferAtom;
+
+typedef struct st_offer_entry
+{
+    BRStellarAccountID sellerID;
+    uint64_t           offerID;
+    BRStellarAsset     selling; // A
+    BRStellarAsset     buying;  // B
+    double             amount;  // amount of A
+
+    /* price for this offer:
+     price of A in terms of B
+     price=AmountB/AmountA=priceNumerator/priceDenominator
+     price is after fees
+     */
+    BRStellarPrice price;
+    uint32_t       flags; // see OfferEntryFlags
+
+    // OfferEntry object also has a reserved int32 at the
+    // end of the structure.
+} BRStellarOfferEntry;
+
+typedef struct st_manage_offer_success_result
+{
+    BRArrayOf(BRStellarClaimOfferAtom) claimOfferAtom;
+    uint32_t                           offerType;
+    BRStellarOfferEntry                offer;
+} BRStellarManageOfferResult;
 
 typedef struct st_manage_sell_offer
 {
@@ -180,23 +213,45 @@ typedef struct st_manage_sell_offer
     BRStellarAmount          amount; // amount being sold. if set to 0, delete the offer
     BRStellarPrice           price;  // price of thing being sold in terms of what you are buying
     int64_t                  offerID; // 0=create a new offer, otherwise edit an existing offer
-    BRStellarOperationResult result;
+    BRStellarManageOfferResult offerResult;
 } BRStellarManageSellOfferOp;
+
+typedef struct st_manage_buy_offer
+{
+    BRStellarAsset           selling;
+    BRStellarAsset           buying;
+    BRStellarAmount          amount; // amount being sold. if set to 0, delete the offer
+    BRStellarPrice           price;  // price of thing being sold in terms of what you are buying
+    int64_t                  offerID; // 0=create a new offer, otherwise edit an existing offer
+    BRStellarManageOfferResult offerResult;
+} BRStellarManageBuyOfferOp;
+
+typedef struct st_passive_sell_offer_op
+{
+    BRStellarAsset           selling; // A
+    BRStellarAsset           buying;  // B
+    BRStellarAmount          amount;  // amount taker gets. if set to 0, delete the offer
+    BRStellarPrice           price;   // cost of A in terms of B
+    BRStellarManageOfferResult offerResult;
+} BRStellarPassiveSellOfferOp;
 
 typedef struct st_change_trust
 {
-    BRStellarAsset           line;
-    uint64_t                 limit;
-    BRStellarOperationResult result;
+    BRStellarAsset  line;
+    uint64_t        limit;
 } BRStellarChangeTrustOp;
+
+typedef struct st_bump_sequence
+{
+    uint64_t  sequence; // The number to bump to
+} BRStellarBumpSequenceOp;
 
 typedef struct st_allow_trust
 {
-    BRStellarAccountID       trustor;
-    uint32_t                 assetType;
-    char                     assetCode[12];
-    bool                     authorize;
-    BRStellarOperationResult result;
+    BRStellarAccountID  trustor;
+    uint32_t            assetType;
+    char                assetCode[12];
+    bool                authorize;
 } BRStellarAllowTrustOp;
 
 typedef struct st_signer_key_
@@ -220,18 +275,18 @@ typedef struct st_set_options_op
     // flags for all the setting to determine if they are set.  Going with
     // the latter
     BRStellarAccountID inflationDest; // sets the inflation destination
-    
+
     uint32_t clearFlags; // which flags to clear
     uint32_t setFlags;   // which flags to set
-    
+
     // account threshold manipulation
     uint32_t masterWeight; // weight of the master account
     uint32_t lowThreshold;
     uint32_t medThreshold;
     uint32_t highThreshold;
-    
+
     char homeDomain[32]; // sets the home domain, not sure what you do with 32 chars
-    
+
     // Add, update or remove a signer for the account
     // signer is deleted if the weight is 0
     BRStellarSigner signer;
@@ -240,8 +295,6 @@ typedef struct st_set_options_op
     // They will be in the order that they appear above. i.e.
     // if homeDomain is set then settings[7] will be set to 1
     uint8_t settings[9];
-
-    BRStellarOperationResult result;
 } BRStellarSetOptionsOp;
 
 typedef struct st_account_merge
@@ -249,20 +302,23 @@ typedef struct st_account_merge
     BRStellarAccountMergeResultCode resultCode;
     BRStellarAccountID              destination;
     BRStellarAmount                 balance;
-    BRStellarOperationResult        result;
 } BRStellarAccountMergeOp;
 
 typedef struct st_manage_data
 {
-    BRStellarOperationResult        result;
+    char                      key[64];
+    char                      value[64];
+    int32_t                   resultCode;
 } BRStellarManageDataOp;
 
 typedef struct st_operation {
-    BRStellarOperationType type;
-    BRStellarAccountID source; // Optional
+    BRStellarOperationType  type;
+    BRStellarAccountID      source;     // Optional
+    int32_t                 resultCode; // If we parse result_xdr this tells us
+                                        // about the success/error
     union _op_ {
         BRStellarPaymentOp          payment;
-        BRStellarManageSellOfferOp  mangeSellOffer;
+        BRStellarManageSellOfferOp  manageSellOffer;
         BRStellarCreateAccountOp    createAccount;
         BRStellarPathPaymentOp      pathPayment;
         BRStellarPassiveSellOfferOp passiveSellOffer;
@@ -271,6 +327,8 @@ typedef struct st_operation {
         BRStellarAllowTrustOp       allowTrust;
         BRStellarAccountMergeOp     accountMerge;
         BRStellarManageDataOp       manageData;
+        BRStellarBumpSequenceOp     bumpSequence;
+        BRStellarManageBuyOfferOp   manageBuyOffer;
     } operation;
 } BRStellarOperation;
 
@@ -281,7 +339,7 @@ typedef struct st_tx_result {
                                // When we send a payment it is only 32 bits.
 } BRStellarTransactionResult;
 
-    
+
 #ifdef __cplusplus
 }
 #endif

@@ -371,6 +371,16 @@ uint8_t * unpack_ManageSellOffer(uint8_t *buffer, BRStellarManageSellOfferOp * o
     return buffer;
 }
 
+uint8_t * unpack_ManageBuyOffer(uint8_t *buffer, BRStellarManageBuyOfferOp * op)
+{
+    buffer = unpack_Asset(buffer, &op->selling); // Asset
+    buffer = unpack_Asset(buffer, &op->buying); // Asset
+    buffer = unpack_amount(buffer, &op->amount);
+    buffer = unpack_Price(buffer, &op->price);
+    buffer = unpack_int64(buffer, &op->offerID);
+    return buffer;
+}
+
 uint8_t * unpack_PassiveSellOffer(uint8_t *buffer, BRStellarPassiveSellOfferOp * op)
 {
     buffer = unpack_Asset(buffer, &op->selling); // Asset
@@ -444,6 +454,32 @@ uint8_t * unpack_AllowTrust(uint8_t * buffer, BRStellarAllowTrustOp * op)
     return unpack_bool(buffer, &op->authorize);
 }
 
+uint8_t * unpack_AccountMerge(uint8_t * buffer, BRStellarAccountMergeOp * op)
+{
+    // The only thing an account merge operation has is a destination
+    buffer = unpack_AccountID(buffer, &op->destination);
+    return buffer;
+}
+
+uint8_t * unpack_BumpSequence(uint8_t * buffer, BRStellarBumpSequenceOp * op)
+{
+    return unpack_uint64(buffer, &op->sequence);
+}
+
+uint8_t * unpack_ManageData(uint8_t * buffer, BRStellarManageDataOp * op)
+{
+    // Key/value pair
+    buffer = unpack_string(buffer, &op->key[0], 64);
+    // For some (strange) reason the value is packed as an array. BUT there
+    // can only be a single item in the array and that item cannot be more
+    // than 64 characters. Perhaps someone thought they would support multiple
+    // values at some point?
+    uint32_t arraySize = 0;
+    buffer = unpack_uint(buffer, &arraySize); // Throw this away since always 1
+    return unpack_string(buffer, &op->value[0], 64);
+}
+
+
 uint8_t * unpack_Op(uint8_t *buffer, BRStellarOperation *op)
 {
     // See if the optional account ID is there
@@ -462,7 +498,7 @@ uint8_t * unpack_Op(uint8_t *buffer, BRStellarOperation *op)
         case ST_OP_PATH_PAYMENT:
             return unpack_PathPayment(buffer, &op->operation.pathPayment);
         case ST_OP_MANAGE_SELL_OFFER:
-            return unpack_ManageSellOffer(buffer, &op->operation.mangeSellOffer);
+            return unpack_ManageSellOffer(buffer, &op->operation.manageSellOffer);
         case ST_OP_CREATE_PASSIVE_SELL_OFFER:
             return unpack_PassiveSellOffer(buffer, &op->operation.passiveSellOffer);
         case ST_OP_SET_OPTIONS:
@@ -472,10 +508,17 @@ uint8_t * unpack_Op(uint8_t *buffer, BRStellarOperation *op)
         case ST_OP_ALLOW_TRUST:
             return unpack_AllowTrust(buffer, &op->operation.allowTrust);
         case ST_OP_ACCOUNT_MERGE:
-        case ST_OP_INFLATION:
-        case ST_OP_MANAGE_DATA:
+            return unpack_AccountMerge(buffer, &op->operation.accountMerge);
         case ST_OP_BUMP_SEQUENCE:
+            return unpack_BumpSequence(buffer, &op->operation.bumpSequence);
+        case ST_OP_MANAGE_DATA:
+            return unpack_ManageData(buffer, &op->operation.manageData);
         case ST_OP_MANAGE_BUY_OFFER:
+            return unpack_ManageBuyOffer(buffer, &op->operation.manageBuyOffer);
+        case ST_OP_INFLATION:
+            // Ignore for now. From my reading it would appear that the
+            // Inflaction request would be run as a separate request and we can
+            // just ingore the request itself since these will never end up on the device
             break;
         default:
             // Log and quit now.
@@ -535,6 +578,51 @@ uint8_t * unpack_Signatures(uint8_t *buffer, uint8_t **signatures, uint32_t *num
             buffer = unpack_fopaque(buffer, &(*signatures)[i * 68], 4); // Sig hint
             buffer = unpack_opaque(buffer, &(*signatures)[(i * 68) + 4], 64); // Sig
         }
+    }
+    return buffer;
+}
+
+uint8_t * unpack_OfferEntry(uint8_t * buffer, BRStellarOfferEntry * offerEntry)
+{
+    buffer = unpack_AccountID(buffer, &offerEntry->sellerID);
+    buffer = unpack_uint64(buffer, &offerEntry->offerID);
+    buffer = unpack_Asset(buffer, &offerEntry->selling);
+    buffer = unpack_Asset(buffer, &offerEntry->buying);
+    buffer = unpack_amount(buffer, &offerEntry->amount);
+    buffer = unpack_Price(buffer, &offerEntry->price);
+    buffer = unpack_uint(buffer, &offerEntry->flags);
+    int32_t v;
+    return unpack_int(buffer, &v);
+}
+
+uint8_t * unpack_ClaimedOffer(uint8_t * buffer, BRStellarClaimOfferAtom * offerAtom)
+{
+    buffer = unpack_AccountID(buffer, &offerAtom->sellerID);
+    buffer = unpack_uint64(buffer, &offerAtom->offerID);
+    buffer = unpack_Asset(buffer, &offerAtom->assetSold);
+    buffer = unpack_amount(buffer, &offerAtom->amountSold);
+    buffer = unpack_Asset(buffer, &offerAtom->assetBought);
+    return unpack_amount(buffer, &offerAtom->amountBought);
+}
+
+uint8_t * unpack_ManageOfferSuccessResult(uint8_t * buffer, BRStellarManageOfferResult * offerResult)
+{
+    uint32_t numClaimedOffers = 0;
+    buffer = unpack_uint(buffer, &numClaimedOffers);
+    if (numClaimedOffers > 0) {
+        // Delete the existing array if there is one
+        array_new(offerResult->claimOfferAtom, numClaimedOffers);
+        for (int i = 0; i < numClaimedOffers; i++) {
+            BRStellarClaimOfferAtom offerAtom;
+            buffer = unpack_ClaimedOffer(buffer, &offerAtom);
+            array_add(offerResult->claimOfferAtom, offerAtom);
+        }
+    }
+    buffer = unpack_uint(buffer, &offerResult->offerType);
+    if (offerResult->offerType == ST_MANAGE_OFFER_CREATED ||
+        offerResult->offerType == ST_MANAGE_OFFER_UPDATED ||
+        offerResult->offerType == ST_MANAGE_OFFER_DELETED) {
+        buffer = unpack_OfferEntry(buffer, &offerResult->offer);
     }
     return buffer;
 }
@@ -671,44 +759,43 @@ int stellarDeserializeResultXDR(uint8_t * result_xdr, size_t result_length, BRAr
             BRStellarOperation *op = &((*ops)[i]);
             pCurrent = unpack_int(pCurrent, &opInner);
             if (opInner == ST_OP_RESULT_CODE_INNER) {
-                // Get the operation type
-                uint32_t opType = 0;
-                pCurrent = unpack_uint(pCurrent, &opType);
-                op->type = opType;
-                // TODO - for now we are only parsing out results from simple transactions where the result
-                // code is just an integer. If needed we can revisit this and add in the more complex types
-                // but it seems like this will be a lot of work when we will only be asking for payment
-                // info from the blockchaindb.
-                // I am also parsing the AccountMerge result since it has the new balance, which might be needed.
-                switch (opType) {
-                    case ST_OP_CREATE_ACCOUNT:
-                        pCurrent = unpack_int(pCurrent, &op->operation.createAccount.result.resultCode);
-                        break;
-                    case ST_OP_PAYMENT:
-                        pCurrent = unpack_int(pCurrent, &op->operation.payment.result.resultCode);
-                        break;
-                    case ST_OP_SET_OPTIONS:
-                        pCurrent = unpack_int(pCurrent, &op->operation.options.result.resultCode);
-                        break;
-                    case ST_OP_CHANGE_TRUST:
-                        pCurrent = unpack_int(pCurrent, &op->operation.changeTrust.result.resultCode);
-                        break;
-                    case ST_OP_ALLOW_TRUST:
-                        pCurrent = unpack_int(pCurrent, &op->operation.allowTrust.result.resultCode);
-                        break;
-                    case ST_OP_MANAGE_DATA:
-                        pCurrent = unpack_int(pCurrent, &op->operation.manageData.result.resultCode);
-                        break;
+                // Get the operation type and result code for this operation
+                pCurrent = unpack_uint(pCurrent, &op->type);
+                pCurrent = unpack_int(pCurrent, &op->resultCode);
+                switch (op->type) {
                     case ST_OP_ACCOUNT_MERGE:
-                        pCurrent = unpack_int(pCurrent, &op->operation.accountMerge.result.resultCode);
-                        if (0 == op->operation.accountMerge.result.resultCode) { // 0 is alwasy success
+                        if (0 == op->resultCode) { // 0 is alwasy success
                             pCurrent = unpack_amount(pCurrent, &op->operation.accountMerge.balance);
                         }
                         break;
-                    default:
-                        // ERROR
-                        return ST_XDR_UNSUPPORTED_OPERATION;
+                    case ST_OP_MANAGE_SELL_OFFER:
+                        if (0 == op->resultCode) {
+                            pCurrent = unpack_ManageOfferSuccessResult(pCurrent, &op->operation.manageSellOffer.offerResult);
+                        }
                         break;
+                    case ST_OP_MANAGE_BUY_OFFER:
+                        if (0 == op->resultCode) {
+                            pCurrent = unpack_ManageOfferSuccessResult(pCurrent, &op->operation.manageBuyOffer.offerResult);
+                        }
+                        break;
+                    case ST_OP_CREATE_PASSIVE_SELL_OFFER:
+                        if (0 == op->resultCode) {
+                            pCurrent = unpack_ManageOfferSuccessResult(pCurrent, &op->operation.passiveSellOffer.offerResult);
+                        }
+                        break;
+                    case ST_OP_CREATE_ACCOUNT:
+                    case ST_OP_PAYMENT:
+                    case ST_OP_SET_OPTIONS:
+                    case ST_OP_CHANGE_TRUST:
+                    case ST_OP_ALLOW_TRUST:
+                    case ST_OP_MANAGE_DATA:
+                    case ST_OP_BUMP_SEQUENCE:
+                        // Nothing more to do here
+                        break;
+                    case ST_OP_INFLATION:
+                    case ST_OP_PATH_PAYMENT:
+                    default:
+                        return ST_XDR_UNSUPPORTED_OPERATION;
                 }
             }
         }

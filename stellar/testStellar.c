@@ -105,6 +105,16 @@ static void runAccountTests()
                       "240FFEB7CF417181B0B0932035F8BC086B04D16C18B1DB8C629F1105E2687AD1",
                       "GASA77VXZ5AXDANQWCJSANPYXQEGWBGRNQMLDW4MMKPRCBPCNB5NC77I");
     stellarAccountFree(account);
+
+    account = createTestAccount("release pudding vault own maximum correct ramp cactus always cradle split space",
+                                NULL, "GCWRMSOP3RKTOORIW4FRQQVS6HKPEA4LC4QAFV5KLBIH3FYCG3DNKUZ7");
+
+    stellarAccountFree(account);
+
+    // Account "Ted"
+    account = createTestAccount("brave rival swap wrestle gorilla diet lounge farm tennis capital ecology design",
+                                NULL, "GDSTAICFVBHMGZ4HI6YEKZSGDR7QGEM4PPREYW2JV3XW7STVM7L5EDYZ");
+    stellarAccountFree(account);
 }
 
 static void serializeMinimum()
@@ -195,7 +205,7 @@ void runSerializationTests()
     serializeAndSign();
 }
 
-static void testDeserialize(const char * input,
+static void testDeserialize(const char * input, int32_t opType,
                             uint32_t expectedOpCount,
                             uint32_t expectedSignatureCount,
                             const char* expectedMemoText,
@@ -225,6 +235,12 @@ static void testDeserialize(const char * input,
     assert(opCount == expectedOpCount);
     uint32_t sigCount = stellarTransactionGetSignatureCount(transaction);
     assert(sigCount == expectedSignatureCount);
+
+    if (opType > 0) {
+        // Get the first opeation and see if it matches our expected type
+        BRStellarOperation *op = stellarTransactionGetOperation(transaction, 0);
+        assert(op->type == opType);
+    }
 
     if (expectedMemoText) {
         BRStellarMemo * memo = stellarTransactionGetMemo(transaction);
@@ -302,32 +318,44 @@ static const char * all_operations = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQ
 
 static const char * set_options_one = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAZAAHHCYAAAAIAAAAAAAAAAEAAAAUQnV5IHlvdXJzZWxmIGEgYmVlciEAAAABAAAAAAAAAAUAAAAAAAAAAQAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAALZmVkLm5ldHdvcmsAAAAAAQAAAAAWs8CgKCiwK8bpazXBRQu+7pOtl3oSqBrcPPBLJv9o9QAAAAEAAAAAAAAAAeJoetEAAABALqu9TWI9WDIY3fkMW30k0gFHE24hPweoW0Yzy+7QXdiSTPV16EZkVopcjjWJGHa6Xk3HDjGGqAAXntcHmdRNAQ==";
 static const char * set_options_all = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAZAAHHCYAAAAIAAAAAAAAAAEAAAAUQnV5IHlvdXJzZWxmIGEgYmVlciEAAAABAAAAAAAAAAUAAAABAAAAAFVi80S2RxRIt7br61uunBzsyTDvKIaL4rt4u3QoMecQAAAAAQAAAAEAAAABAAAAAgAAAAEAAAADAAAAAQAAAAQAAAABAAAABQAAAAEAAAAGAAAAAQAAAAtmZWQubmV0d29yawAAAAABAAAAABazwKAoKLArxulrNcFFC77uk62XehKoGtw88Esm/2j1AAAAAQAAAAAAAAAB4mh60QAAAED5ctKVRkz/OvdKBlHxiGNGJ5xZ+3l4dpaYYmUI3nsYemKWHufcFTbRObecjqbpfm0zC+CQW/zR0rAwmO0GEA8G";
+static const char * account_merge = "AAAAAK0WSc/cVTc6KLcLGEKy8dTyA4sXIALXqlhQfZcCNsbVAAAAZAAMHR4AAAABAAAAAAAAAAAAAAABAAAAAAAAAAgAAAAAJA/+t89BcYGwsJMgNfi8CGsE0WwYsduMYp8RBeJoetEAAAAAAAAAAQI2xtUAAABAFoPFGatheJkldW1agMJuxSF4jNbdtMYKZoPgBilM08UXWULuu4WIncnjWIXQ8ca45q1rmbP6v7lv5gfI6FL3DA==";
+static const char * bump_sequence = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAZAAHHCYAAAAPAAAAAAAAAAAAAAABAAAAAAAAAAsABxwmAAAADwAAAAAAAAAB4mh60QAAAECg9GxHI1P4Nv2trtrcyebY13S3xh0eChfQ3yGY2uLihfc+969HcD7ucOjbeP6j/HWk1JlStWl2DPhXh1mA3DcI";
+static const char * manage_data = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAZAAHHCYAAAAQAAAAAAAAAAAAAAABAAAAAAAAAAoAAAANYnVzaW5lc3NfbmFtZQAAAAAAAAEAAAAIMDI0OTIzODEAAAAAAAAAAeJoetEAAABARhwJWm8F1Qj0HyEiYAzVqqqqqfsxicENe62XK/Me0m/9l2NzX3B3KM+RYfChwemEYG7/WdDmc0fx+8F1/gzIBw==";
+static const char * manage_buy_offer = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAZAAHHCYAAAAYAAAAAAAAAAAAAAABAAAAAAAAAAwAAAAAAAAAAVVTRAAAAAAAJA/+t89BcYGwsJMgNfi8CGsE0WwYsduMYp8RBeJoetEAAAAAPYqzIAAAAAEAAAAMAAAAAAAAAAAAAAAAAAAAAeJoetEAAABAdpt5hTDI88136Xw/yeiDIl7TKbR9dy7kwrJUa+ACIuO1bWmNWrnR7ZGb1z+/I6XgeqoY47vaLLK9kkTS4a1+AA==";
 
 void runDeserializationTests()
 {
-    testDeserialize(tx_one, 1, 1, NULL,
+    testDeserialize(tx_one, ST_OP_PAYMENT, 1, 1, NULL,
                     "GASA77VXZ5AXDANQWCJSANPYXQEGWBGRNQMLDW4MMKPRCBPCNB5NC77I");
-    testDeserialize(tx_two, 1, 1, NULL,
+    testDeserialize(tx_two, ST_OP_PAYMENT, 1, 1, NULL,
                     "GASA77VXZ5AXDANQWCJSANPYXQEGWBGRNQMLDW4MMKPRCBPCNB5NC77I");
-    testDeserialize(tx_three, 10, 1, NULL,
+    testDeserialize(tx_three, ST_OP_PAYMENT, 10, 1, NULL,
                     "GBIX4B64YECP2WEWYE52Q7O7QMYWADC2VOQQF7MOJ3VWYW4EL25TKIXK");
-    testDeserialize(tx_four, 2, 1, NULL,
+    testDeserialize(tx_four, ST_OP_PAYMENT, 2, 1, NULL,
                     "GASA77VXZ5AXDANQWCJSANPYXQEGWBGRNQMLDW4MMKPRCBPCNB5NC77I");
     // tx_five has 25 ManageSellOffer operations and 2 signatures
-    testDeserialize(manage_sell_offer, 25, 2, NULL,
+    testDeserialize(manage_sell_offer, ST_OP_MANAGE_SELL_OFFER, 25, 2, NULL,
                     "GBCHVP6PGXGH6ALPV5K5LD56KJDTL7W4XBDQGNF65DPADRH4VOXVDIDG");
-    testDeserialize(create_account, 1, 2, NULL,
+    testDeserialize(create_account, ST_OP_CREATE_ACCOUNT, 1, 2, NULL,
                     "GALLHQFAFAULAK6G5FVTLQKFBO7O5E5NS55BFKA23Q6PASZG75UPKANL");
-    testDeserialize(create_account_with_memo, 1, 1, "WHALE",
+    testDeserialize(create_account_with_memo, ST_OP_CREATE_ACCOUNT, 1, 1, "WHALE",
                     "GAAU44WKNZY2Y6OHB56R23FSBADH4FJOZSFN7OKTLLKSOK7Y7GM5AT7Y");
-    testDeserialize(path_payment, 1, 1, NULL,
+    testDeserialize(path_payment, ST_OP_PATH_PAYMENT, 1, 1, NULL,
                     "GASA77VXZ5AXDANQWCJSANPYXQEGWBGRNQMLDW4MMKPRCBPCNB5NC77I");
-    testDeserialize(passive_sell_offer, 1, 1, NULL,
+    testDeserialize(passive_sell_offer, ST_OP_CREATE_PASSIVE_SELL_OFFER, 1, 1, NULL,
                     "GASA77VXZ5AXDANQWCJSANPYXQEGWBGRNQMLDW4MMKPRCBPCNB5NC77I");
-    testDeserialize(payment_and_options, 2, 1, NULL,
+    testDeserialize(payment_and_options, ST_OP_PAYMENT, 2, 1, NULL,
                     "GASA77VXZ5AXDANQWCJSANPYXQEGWBGRNQMLDW4MMKPRCBPCNB5NC77I");
 
-    testDeserialize(all_operations, 7, 1, NULL,
+    testDeserialize(account_merge, ST_OP_ACCOUNT_MERGE, 1, 1, NULL, "GCWRMSOP3RKTOORIW4FRQQVS6HKPEA4LC4QAFV5KLBIH3FYCG3DNKUZ7");
+
+    testDeserialize(bump_sequence, ST_OP_BUMP_SEQUENCE, 1, 1, NULL, "GASA77VXZ5AXDANQWCJSANPYXQEGWBGRNQMLDW4MMKPRCBPCNB5NC77I");
+
+    testDeserialize(manage_data, ST_OP_MANAGE_DATA, 1, 1, NULL, "GASA77VXZ5AXDANQWCJSANPYXQEGWBGRNQMLDW4MMKPRCBPCNB5NC77I");
+
+    testDeserialize(manage_buy_offer, ST_OP_MANAGE_BUY_OFFER, 1, 1, NULL, "GASA77VXZ5AXDANQWCJSANPYXQEGWBGRNQMLDW4MMKPRCBPCNB5NC77I");
+
+    testDeserialize(all_operations, ST_OP_PAYMENT,  7, 1, NULL,
                     "GASA77VXZ5AXDANQWCJSANPYXQEGWBGRNQMLDW4MMKPRCBPCNB5NC77I");
 
     // For the SetOptions test we want to ensure that we parsed the correct
@@ -352,11 +380,21 @@ static void deserializeTxResponse(const char * response_xdr, size_t expectedOpCo
 
 static const char * response_payments = "AAAAAAAAAMgAAAAAAAAAAgAAAAAAAAABAAAAAAAAAAAAAAABAAAAAAAAAAA=";
 static const char * bad_sequence = "AAAAAAAAAAD////7AAAAAA==";
+static const char * account_merge_result = "AAAAAAAAAGQAAAAAAAAAAQAAAAAAAAAIAAAAAAAAABdIduecAAAAAA==";
+static const char * bump_seq_number_result = "AAAAAAAAAGQAAAAAAAAAAQAAAAAAAAALAAAAAAAAAAA=";
+static const char * manage_data_result = "AAAAAAAAAGQAAAAAAAAAAQAAAAAAAAAKAAAAAAAAAAA=";
+static const char * manage_sell_offer_result = "AAAAAAAAAGQAAAAAAAAAAQAAAAAAAAADAAAAAAAAAAAAAAAAAAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAAADRmzcAAAABVVNEAAAAAAAkD/63z0FxgbCwkyA1+LwIawTRbBix24xinxEF4mh60QAAAAAAAAAAPYqzIAAAAAwAAAABAAAAAAAAAAAAAAAA";
+static const char * manage_buy_offer_result = "AAAAAAAAAGQAAAAAAAAAAQAAAAAAAAAMAAAAAAAAAAAAAAAAAAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAAADRotIAAAAAAAAAAVVTRAAAAAAAJA/+t89BcYGwsJMgNfi8CGsE0WwYsduMYp8RBeJoetEAAAAABSDkQgAAAAwAAAABAAAAAAAAAAAAAAAA";
 
 static void runResultDeserializationTests()
 {
     deserializeTxResponse(response_payments, 2, 0);
     deserializeTxResponse(bad_sequence, 0, -5);
+    deserializeTxResponse(account_merge_result, 1, 0);
+    deserializeTxResponse(bump_seq_number_result, 1, 0);
+    deserializeTxResponse(manage_data_result, 1, 0);
+    deserializeTxResponse(manage_sell_offer_result, 1, 0);
+    deserializeTxResponse(manage_buy_offer_result, 1, 0);
 }
 
 static void createDeleteWalletTest(const char* paperKey, const char* accountKey, const char* accountAddress)
@@ -411,7 +449,7 @@ static void runExampleCode()
     BRStellarSerializedTransaction s = stellarAccountSignTransaction(account, transaction,
                                   "off enjoy fatal deliver team nothing auto canvas oak brass fashion happy");
     assert(s);
-    // So whateve is needed with there serialized/signed bytes to submit the transaction
+    // Do whatever is needed with there serialized/signed bytes to submit the transaction
     // i.e. call the following functions:
     // size_t    stellarGetSerializedSize(BRStellarSerializedTransaction s)
     // uint8_t * stellarGetSerializedBytes(BRStellarSerializedTransaction s)

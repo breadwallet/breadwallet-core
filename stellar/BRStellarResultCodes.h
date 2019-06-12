@@ -60,14 +60,14 @@ typedef enum st_payment_result_code
 typedef enum _account_merge_result_code
 {
     // codes considered as "success" for the operation
-    ACCOUNT_MERGE_SUCCESS = 0,
+    ST_ACCOUNT_MERGE_SUCCESS = 0,
     // codes considered as "failure" for the operation
-    ACCOUNT_MERGE_MALFORMED = -1,       // can't merge onto itself
-    ACCOUNT_MERGE_NO_ACCOUNT = -2,      // destination does not exist
-    ACCOUNT_MERGE_IMMUTABLE_SET = -3,   // source account has AUTH_IMMUTABLE set
-    ACCOUNT_MERGE_HAS_SUB_ENTRIES = -4, // account has trust lines/offers
-    ACCOUNT_MERGE_SEQNUM_TOO_FAR = -5,  // sequence number is over max allowed
-    ACCOUNT_MERGE_DEST_FULL = -6        // can't add source balance to
+    ST_ACCOUNT_MERGE_MALFORMED = -1,       // can't merge onto itself
+    ST_ACCOUNT_MERGE_NO_ACCOUNT = -2,      // destination does not exist
+    ST_ACCOUNT_MERGE_IMMUTABLE_SET = -3,   // source account has AUTH_IMMUTABLE set
+    ST_ACCOUNT_MERGE_HAS_SUB_ENTRIES = -4, // account has trust lines/offers
+    ST_ACCOUNT_MERGE_SEQNUM_TOO_FAR = -5,  // sequence number is over max allowed
+    ST_ACCOUNT_MERGE_DEST_FULL = -6        // can't add source balance to
     // destination balance
 } BRStellarAccountMergeResultCode;
 
@@ -82,33 +82,33 @@ typedef enum st_account_create_result_code
 
 typedef enum st_path_payment_result_code
 {
-    PATH_PAYMENT_SUCCESS = 0,
-    PATH_PAYMENT_MALFORMED = -1,
-    PATH_PAYMENT_UNDERFUNDED = -2,
-    PATH_PAYMENT_SRC_NO_TRUST = -3,
-    PATH_PAYMENT_SRC_NOT_AUTHORIZED = -4,
-    PATH_PAYMENT_NO_DESTINATION = -5,
-    PATH_PAYMENT_NO_TRUST = -6,
-    PATH_PAYMENT_NOT_AUTHORIZED = -7,
-    PATH_PAYMENT_LINE_FULL = -8,
-    PATH_PAYMENT_NO_ISSUER = -9,
-    PATH_PAYMENT_TOO_FEW_OFFERS = -10,
-    PATH_PAYMENT_OFFER_CROSS_SELF = -11,
-    PATH_PAYMENT_OVER_SENDMAX = -12
+    ST_PATH_PAYMENT_SUCCESS = 0,
+    ST_PATH_PAYMENT_MALFORMED = -1,
+    ST_PATH_PAYMENT_UNDERFUNDED = -2,
+    ST_PATH_PAYMENT_SRC_NO_TRUST = -3,
+    ST_PATH_PAYMENT_SRC_NOT_AUTHORIZED = -4,
+    ST_PATH_PAYMENT_NO_DESTINATION = -5,
+    ST_PATH_PAYMENT_NO_TRUST = -6,
+    ST_PATH_PAYMENT_NOT_AUTHORIZED = -7,
+    ST_PATH_PAYMENT_LINE_FULL = -8,
+    ST_PATH_PAYMENT_NO_ISSUER = -9,
+    ST_PATH_PAYMENT_TOO_FEW_OFFERS = -10,
+    ST_PATH_PAYMENT_OFFER_CROSS_SELF = -11,
+    ST_PATH_PAYMENT_OVER_SENDMAX = -12
 } BRStellarPathPaymentResultCodes;
 
 typedef enum st_set_options_result_code
 {
-    SET_OPTIONS_SUCCESS = 0,
-    SET_OPTIONS_LOW_RESERVE = -1,
-    SET_OPTIONS_TOO_MANY_SIGNERS = -2,
-    SET_OPTIONS_BAD_FLAGS = -3,
-    SET_OPTIONS_INVALID_INFLATION = -4,
-    SET_OPTIONS_CANT_CHANGE = -5,
-    SET_OPTIONS_UNKNOWN_FLAG = -6,
-    SET_OPTIONS_THRESHOLD_OUT_OF_RANGE = -7,
-    SET_OPTIONS_BAD_SIGNER = -8,
-    SET_OPTIONS_INVALID_HOME_DOMAIN = -9
+    ST_SET_OPTIONS_SUCCESS = 0,
+    ST_SET_OPTIONS_LOW_RESERVE = -1,
+    ST_SET_OPTIONS_TOO_MANY_SIGNERS = -2,
+    ST_SET_OPTIONS_BAD_FLAGS = -3,
+    ST_SET_OPTIONS_INVALID_INFLATION = -4,
+    ST_SET_OPTIONS_CANT_CHANGE = -5,
+    ST_SET_OPTIONS_UNKNOWN_FLAG = -6,
+    ST_SET_OPTIONS_THRESHOLD_OUT_OF_RANGE = -7,
+    ST_SET_OPTIONS_BAD_SIGNER = -8,
+    ST_SET_OPTIONS_INVALID_HOME_DOMAIN = -9
 } BRStellarSetOptionsResultCodes;
 
 
