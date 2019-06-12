@@ -408,8 +408,13 @@ static void runExampleCode()
 
     // Now serialize and sign
     stellarAccountSetSequence(account, 2001274371309582);
-    stellarAccountSignTransaction(account, transaction,
+    BRStellarSerializedTransaction s = stellarAccountSignTransaction(account, transaction,
                                   "off enjoy fatal deliver team nothing auto canvas oak brass fashion happy");
+    assert(s);
+    // So whateve is needed with there serialized/signed bytes to submit the transaction
+    // i.e. call the following functions:
+    // size_t    stellarGetSerializedSize(BRStellarSerializedTransaction s)
+    // uint8_t * stellarGetSerializedBytes(BRStellarSerializedTransaction s)
 
     // Get the hash of the transaction
     BRStellarTransactionHash hash = stellarTransactionGetHash(transaction);
@@ -421,7 +426,7 @@ static void runExampleCode()
     hex2bin(hashString, expected_hash);
     assert(0 == memcmp(hash.bytes, expected_hash, 32));
 
-    // Now let's parse the result_xdr
+    // Now let's parse the result_xdr - again this was the actual string returned from testnet
     const char * result_xdr = "AAAAAAAAAGQAAAAAAAAAAQAAAAAAAAABAAAAAAAAAAA=";
     BRStellarTransactionResult result = stellarTransactionGetResult(transaction, result_xdr);
     assert(ST_TX_SUCCESS == result.resultCode);
