@@ -55,9 +55,21 @@ extern "C" {
     cryptoAmountCreateString (const char *value,
                               BRCryptoBoolean isNegative,
                               BRCryptoUnit unit);
-    
+
+
+    /**
+     * Returns the amount's currency
+     *
+     * @param amount The amount
+     *
+     * @return The currency w/ an incremented reference count (aka 'taken')
+     */
     extern BRCryptoCurrency
     cryptoAmountGetCurrency (BRCryptoAmount amount);
+
+    extern BRCryptoBoolean
+    cryptoAmountHasCurrency (BRCryptoAmount amount,
+                             BRCryptoCurrency currency);
     
     extern BRCryptoBoolean
     cryptoAmountIsNegative (BRCryptoAmount amount);

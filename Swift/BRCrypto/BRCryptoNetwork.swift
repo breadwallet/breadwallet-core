@@ -42,19 +42,19 @@ public final class Network: CustomStringConvertible {
 
     /// The native currency.
     public var currency: Currency {
-        return Currency (core: cryptoNetworkGetCurrency(core))
+        return Currency (core: cryptoNetworkGetCurrency(core), take: false)
     }
 
     /// All currencies - at least those we are handling/interested-in.
     public var currencies: Set<Currency> {
         return Set ((0..<cryptoNetworkGetCurrencyCount(core))
             .map { cryptoNetworkGetCurrencyAt (core, $0) }
-            .map { Currency (core: $0)}
+            .map { Currency (core: $0, take: false)}
         )
     }
 
     func currencyBy (code: String) -> Currency? {
-        return currencies.first { $0.code == code }
+        return currencies.first { $0.code == code } // sloppily
     }
 
     public func hasCurrency(_ currency: Currency) -> Bool {
@@ -62,25 +62,27 @@ public final class Network: CustomStringConvertible {
     }
 
     public func baseUnitFor (currency: Currency) -> Unit? {
-        return cryptoNetworkGetUnitAsBase (core, cryptoNetworkGetCurrency(core))
-            .map { Unit (core: $0, currency: currency) }
+        guard hasCurrency(currency) else { return nil }
+        return cryptoNetworkGetUnitAsBase (core, currency.core)
+            .map { Unit (core: $0, take: false) }
     }
 
-    public func defaultUnitFor(currency: Currency) -> Unit? {
-        return cryptoNetworkGetUnitAsDefault (core, cryptoNetworkGetCurrency(core))
-            .map { Unit (core: $0, currency: currency) }
+    public func defaultUnitFor (currency: Currency) -> Unit? {
+        guard hasCurrency (currency) else { return nil }
+        return cryptoNetworkGetUnitAsDefault (core, currency.core)
+            .map { Unit (core: $0, take: false) }
     }
 
-    public func unitsFor(currency: Currency) -> Set<Unit>? {
-        let currencyCore = cryptoNetworkGetCurrency(core)
-        return Set ((0..<cryptoNetworkGetUnitCount (core, currencyCore))
-            .map { cryptoNetworkGetUnitAt (core, currencyCore, $0) }
-            .map { Unit (core: $0, currency: currency) }
+    public func unitsFor (currency: Currency) -> Set<Unit>? {
+        guard hasCurrency (currency) else { return nil }
+        return Set ((0..<cryptoNetworkGetUnitCount (core, currency.core))
+            .map { cryptoNetworkGetUnitAt (core, currency.core, $0) }
+            .map { Unit (core: $0, take: false) }
         )
     }
 
-    public func hasUnitFor(currency: Currency, unit: Unit) -> Bool? {
-        return unitsFor(currency: currency)?.contains(unit)
+    public func hasUnitFor (currency: Currency, unit: Unit) -> Bool? {
+        return unitsFor (currency: currency)?.contains(unit)
     }
 
     public struct Association {

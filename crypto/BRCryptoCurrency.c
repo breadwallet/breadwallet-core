@@ -99,18 +99,3 @@ cryptoCurrencyIsIdentical (BRCryptoCurrency c1,
                               || c1->uids == c2->uids
                               || 0 == strcmp (c1->uids, c2->uids));
 }
-
-#if 0
-extern BRCryptoCurrency
-cryptoCurrencyTake (BRCryptoCurrency currency) {
-    currency->refs++;
-    return currency;
-}
-
-extern void
-cryptoCurrencyGive (BRCryptoCurrency currency) {
-    currency->refs--;
-    if (0 == currency->refs)
-        cryptoCurrencyRelease (currency);
-}
-#endif

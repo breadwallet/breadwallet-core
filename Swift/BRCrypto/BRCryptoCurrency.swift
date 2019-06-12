@@ -37,15 +37,19 @@ public final class Currency: Hashable {
         return asUTF8String (cryptoCurrencyGetType (core))
     }
 
-    internal init (core: BRCryptoCurrency) {
-        self.core = core
+    internal init (core: BRCryptoCurrency, take: Bool) {
+        self.core = take ? cryptoCurrencyTake (core) : core
+    }
+
+    internal convenience init (core: BRCryptoCurrency) {
+        self.init (core: core, take: true)
     }
 
     internal convenience init (uids: String,
                                name: String,
                                code: String,
                                type: String) {
-        self.init (core: cryptoCurrencyCreate(uids, name, code, type))
+        self.init (core: cryptoCurrencyCreate(uids, name, code, type), take: false)
     }
 
     deinit {

@@ -131,12 +131,17 @@ cryptoUnitGetSymbol (BRCryptoUnit unit) {
 
 extern BRCryptoCurrency
 cryptoUnitGetCurrency (BRCryptoUnit unit) {
-    return unit->currency; // take - only on assign?  dangling memory (no 'root' holding)
+    return cryptoCurrencyTake (unit->currency);
 }
 
+extern BRCryptoBoolean
+cryptoUnitHasCurrency (BRCryptoUnit unit,
+                       BRCryptoCurrency currency) {
+    return AS_CRYPTO_BOOLEAN (unit->currency == currency);
+}
 extern BRCryptoUnit
 cryptoUnitGetBaseUnit (BRCryptoUnit unit) {
-    return NULL == unit->base ? unit : unit->base;
+    return cryptoUnitTake (NULL == unit->base ? unit : unit->base);
 }
 
 extern uint8_t

@@ -84,6 +84,7 @@ class BRCryptoWalletTests: BRCryptoBaseTests {
 
     override func setUp() {
         super.setUp()
+        #if false
         if (nil == listener) {
             // Race condition
             listener = TestListener()
@@ -94,6 +95,7 @@ class BRCryptoWalletTests: BRCryptoBaseTests {
             system.start (networksNeeded: ["bitcoin-mainnet", "ethereum-mainnet"])
             wait (for: [listener.walletExpectation], timeout: 10)
         }
+        #endif
     }
 
     override func tearDown() {
@@ -129,9 +131,11 @@ class BRCryptoWalletTests: BRCryptoBaseTests {
     }
 
     func testWallet() {
+        #if false
         genericWalletTest(wallet: listener.btcWallet)
         genericWalletTest(wallet: listener.ethWallet)
         genericWalletTest(wallet: listener.brdWallet)
+        #endif
     }
 
 //    func testPerformanceExample() {

@@ -40,17 +40,19 @@ public final class Transfer {
 
     /// The source pays the fee and sends the amount.
     public private(set) lazy var source: Address? = {
-        return Address (core: cryptoTransferGetSourceAddress (core))
+        cryptoTransferGetSourceAddress (core)
+            .map { Address (core: $0, take: false) }
     }()
 
     /// The target receives the amount
     public private(set) lazy var target: Address? = {
-        return Address (core: cryptoTransferGetTargetAddress (core))
+        cryptoTransferGetTargetAddress (core)
+            .map { Address (core: $0, take: false) }
     }()
 
     /// The amount to transfer - always positive (from source to target)
     public private(set) lazy var amount: Amount = {
-        return Amount (core: cryptoTransferGetAmount (core), unit: wallet.unit)
+        return Amount (core: cryptoTransferGetAmount (core), unit: wallet.unit, take: false)
     } ()
 
     /// The amount to transfer after considering the direction.  If we received the transfer,
@@ -67,14 +69,14 @@ public final class Transfer {
     /// The fee paid - before the transfer is confirmed, this is the estimated fee.
     public private(set) lazy var fee: Amount = {
         let unit = wallet.manager.network.defaultUnitFor (currency: wallet.manager.currency)!
-        return Amount (core: cryptoTransferGetFee (core), unit: unit)
+        return Amount (core: cryptoTransferGetFee (core), unit: unit, take: false)
     }()
 
 
     /// The basis for the fee.
     var feeBasis: TransferFeeBasis {
         return cryptoTransferGetFeeBasis (core)
-            .map { TransferFeeBasis (core: $0) }!
+            .map { TransferFeeBasis (core: $0, take: false) }!
     }
 
     /// An optional confirmation.
@@ -93,9 +95,10 @@ public final class Transfer {
     internal init (core: BRCryptoTransfer,
                    listener: TransferListener?,
                    wallet: Wallet,
-                   unit: Unit) {
+                   unit: Unit,
+                   take: Bool) {
 
-        self.core = core
+        self.core = take ? cryptoTransferTake(core) : core
         self.listener = listener
         self.wallet = wallet
         self.unit = unit
@@ -185,8 +188,8 @@ public class TransferFeeBasis {
 //    case bitcoin  (feePerKB: UInt64) // in satoshi
 //    case ethereum (gasPrice: Amount, gasLimit: UInt64) // Amount in ETH
 
-    internal init (core: BRCryptoFeeBasis) {
-        self.core = core
+    internal init (core: BRCryptoFeeBasis, take: Bool) {
+        self.core = take ? cryptoFeeBasisTake (core) : core
     }
 
     deinit {

@@ -46,12 +46,28 @@ extern "C" {
         CRYPTO_TRANSFER_STATE_INCLUDED,
         CRYPTO_TRANSFER_STATE_ERRORRED,
         CRYPTO_TRANSFER_STATE_DELETED,
-    } BRCryptoTransferState;
+    } BRCryptoTransferState; // Type
+
+//    typedef struct {
+//        BRCryptoTransferStateType type;
+//        union {
+//            struct {
+//                uint64_t blockNumber;
+//                uint64_t transactionIndex;
+//                uint64_t timestamp
+//                BRCryptoAmount fee;
+//            } included;
+//
+//            struct {
+//                char *message;
+//            } errorred;
+//        } u;
+//    } BRCryptoTransferState;
 
     typedef enum {
         CRYPTO_TRANSFER_EVENT_CREATED,
         CRYPTO_TRANSFER_EVENT_CHANGED,
-        CRYPTO_TRANSFER_EVENT_CONFIRMED,
+        CRYPTO_TRANSFER_EVENT_CONFIRMED,  // Unneeded (for `State` typedef above)??
         CRYPTO_TRANSFER_EVENT_DELETED,
     } BRCryptoTransferEventType;
 
@@ -79,15 +95,44 @@ extern "C" {
     extern BRCryptoBlockChainType
     cryptoTransferGetType (BRCryptoTransfer transfer);
 
+    /**
+     * Returns the transfer's source address
+     *
+     * @param transfer the transfer
+     *
+     * @return the source address or NULL
+     */
     extern BRCryptoAddress
     cryptoTransferGetSourceAddress (BRCryptoTransfer transfer);
 
-    extern BRCryptoAddress
+    /**
+     * Returns the transfer's target address
+     *
+     * @param transfer the transfer
+     *
+     * @return the source address or NULL
+     */
+   extern BRCryptoAddress
     cryptoTransferGetTargetAddress (BRCryptoTransfer transfer);
 
+    /**
+     * Returns the transfer's amount
+     *
+     * @param transfer the transfer
+     *
+     * @return the amount
+     */
     extern BRCryptoAmount
     cryptoTransferGetAmount (BRCryptoTransfer transfer);
 
+    /**
+     * Returns the transfer's fee.  Note that the `fee` and the `amount` may be in different
+     * currencies.
+     *
+     * @param transfer the transfer
+     *
+     * @return the fee
+     */
     extern BRCryptoAmount
     cryptoTransferGetFee (BRCryptoTransfer transfer);
 
@@ -98,18 +143,35 @@ extern "C" {
                                        uint64_t *timestamp,
                                        BRCryptoAmount *fee);
 
-    extern BRCryptoBoolean
-    cryptoTransferIsSent (BRCryptoTransfer transfer);
-
     extern BRCryptoTransferState
     cryptoTransferGetState (BRCryptoTransfer transfer);
+
+    extern BRCryptoBoolean
+    cryptoTransferIsSent (BRCryptoTransfer transfer);
 
     extern BRCryptoTransferDirection
     cryptoTransferGetDirection (BRCryptoTransfer transfer);
 
+    /**
+     * Returns the transfer's hash.  This is the unique identifier for this transfer on the
+     * associated network's blockchain.
+     *
+     * @note: Uniqueness is TBD for Ethereum TOKEN transfers
+     *
+     * @param transfer the transfer
+     *
+     * @return the transfer's hash
+     */
     extern BRCryptoHash
     cryptoTransferGetHash (BRCryptoTransfer transfer);
 
+    /**
+     * Returns the transfer's feeBasis.
+     *
+     * @param transfer the transfer
+     *
+     * @return the transfer's feeBasis
+     */
     extern BRCryptoFeeBasis
     cryptoTransferGetFeeBasis (BRCryptoTransfer transfer);
 

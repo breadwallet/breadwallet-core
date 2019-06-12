@@ -46,9 +46,27 @@ extern "C" {
     extern const char *
     cryptoUnitGetSymbol (BRCryptoUnit unit);
 
+    /**
+     * Returns the unit's currency
+     *
+     * @param unit the Unit
+     *
+     * @return The currency w/ an incremented reference count (aka 'taken')
+     */
     extern BRCryptoCurrency
     cryptoUnitGetCurrency (BRCryptoUnit unit);
 
+    extern BRCryptoBoolean
+    cryptoUnitHasCurrency (BRCryptoUnit unit,
+                           BRCryptoCurrency currency);
+
+    /**
+     * Returns the unit's base unit.  If unit is itself the base unit then unit is returned
+     *
+     * @param unit The unit
+     *
+     * @return the base unit w/ an incremented reference count (aka 'taken')
+     */
     extern BRCryptoUnit
     cryptoUnitGetBaseUnit (BRCryptoUnit unit);
 

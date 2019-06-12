@@ -244,7 +244,16 @@ cryptoTransferExtractConfirmation (BRCryptoTransfer transfer,
                                    uint64_t *blockNumber,
                                    uint64_t *transactionIndex,
                                    uint64_t *timestamp,
-                                   BRCryptoAmount *fee);
+                                   BRCryptoAmount *fee) {
+    if (CRYPTO_TRANSFER_STATE_INCLUDED != transfer->state) return CRYPTO_FALSE;
+
+    if (NULL != blockNumber) *blockNumber = 0;
+    if (NULL != transactionIndex) *transactionIndex = 0;
+    if (NULL != timestamp) *timestamp = 0;
+    if (NULL != fee) *fee = NULL;
+
+    return CRYPTO_TRUE;
+}
 
 extern BRCryptoTransferState
 cryptoTransferGetState (BRCryptoTransfer transfer) {

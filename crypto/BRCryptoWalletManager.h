@@ -75,6 +75,7 @@ extern "C" {
             } state;
 
             struct {
+                /// Handler must 'give'
                 BRCryptoWallet value;
             } wallet;
 
@@ -92,16 +93,18 @@ extern "C" {
     
     typedef void *BRCryptoCWMListenerContext;
 
+    /// Handler must 'give': manager, event.wallet.value
     typedef void (*BRCryptoCWMListenerWalletManagerEvent) (BRCryptoCWMListenerContext context,
                                                            BRCryptoWalletManager manager,
                                                            BRCryptoWalletManagerEvent event);
 
-
+    /// Handler must 'give': manager, wallet, event.*
     typedef void (*BRCryptoCWMListenerWalletEvent) (BRCryptoCWMListenerContext context,
                                                     BRCryptoWalletManager manager,
                                                     BRCryptoWallet wallet,
                                                     BRCryptoWalletEvent event);
 
+    /// Handler must 'give': manager, wallet, transfer
     typedef void (*BRCryptoCWMListenerTransferEvent) (BRCryptoCWMListenerContext context,
                                                       BRCryptoWalletManager manager,
                                                       BRCryptoWallet wallet,
@@ -187,14 +190,6 @@ extern "C" {
                                                BRCryptoCurrency currency);
 
     extern void
-    cryptoWalletManagerAddWallet (BRCryptoWalletManager cwm,
-                                  BRCryptoWallet wallet);
-
-    extern void
-    cryptoWalletManagerRemWallet (BRCryptoWalletManager cwm,
-                                  BRCryptoWallet wallet);
-
-    extern void
     cryptoWalletManagerConnect (BRCryptoWalletManager cwm);
 
     extern void
@@ -209,6 +204,7 @@ extern "C" {
                                BRCryptoTransfer tid,
                                const char *paperKey);
     
+    DECLARE_CRYPTO_GIVE_TAKE (BRCryptoWalletManager, cryptoWalletManager);
 
 #ifdef __cplusplus
 }
