@@ -101,10 +101,8 @@ final class System implements com.breadwallet.crypto.System {
 
     @Override
     public void createWalletManager(com.breadwallet.crypto.Network network, WalletManagerMode mode) {
-        Network networkImpl = Network.from(network);
-        String networkCode = networkImpl.getCurrency().getCode();
-        if (networkCode.equals(com.breadwallet.crypto.Currency.CODE_AS_BTC)) {
-            WalletManager walletManager = WalletManager.create(account, networkImpl, mode, path, announcer, query);
+        if (network.getSupportedModes().contains(mode)) {
+            WalletManager walletManager = WalletManager.create(account, Network.from(network), mode, path, announcer, query);
             if (addWalletManager(walletManager)) {
                 announcer.announceSystemEvent(new SystemManagerAddedEvent(walletManager));
             }

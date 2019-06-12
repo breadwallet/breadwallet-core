@@ -21,6 +21,11 @@ import com.breadwallet.corenative.crypto.BRCryptoTransfer;
 import com.breadwallet.corenative.crypto.BRCryptoUnit;
 import com.breadwallet.corenative.crypto.BRCryptoWallet;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManager;
+import com.breadwallet.corenative.ethereum.BREthereumEwm;
+import com.breadwallet.corenative.ethereum.BREthereumNetwork;
+import com.breadwallet.corenative.ethereum.BREthereumToken;
+import com.breadwallet.corenative.ethereum.BREthereumTransfer;
+import com.breadwallet.corenative.ethereum.BREthereumWallet;
 import com.breadwallet.corenative.support.BRAddress;
 import com.breadwallet.corenative.bitcoin.BRTransaction;
 import com.breadwallet.corenative.ethereum.BREthereumAddress;
@@ -28,6 +33,7 @@ import com.breadwallet.corenative.support.UInt256;
 import com.breadwallet.corenative.support.UInt512;
 import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.corenative.utility.SizeTByReference;
+import com.google.common.primitives.UnsignedInteger;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
 import com.sun.jna.NativeLibrary;
@@ -206,6 +212,33 @@ public interface CryptoLibrary extends Library {
     // ethereum/base/BREthereumAddress.h
     BREthereumAddress.ByValue addressCreate(String address);
     int addressValidateString(String addr);
+
+    // ethereum/blockchain/BREthereumNetwork.h
+    Pointer networkGetName(BREthereumNetwork network);
+
+    // ethereum/contract/BREthereumToken.h
+    Pointer tokenGetAddress(BREthereumToken token);
+
+    // ethereum/ewm/BREthereumClient.h
+    int ewmAnnounceWalletBalance(BREthereumEwm ewm, BREthereumWallet wid, String data, int rid);
+    int ewmAnnounceGasPrice(BREthereumEwm ewm, BREthereumWallet wid, String data, int rid);
+    int ewmAnnounceGasEstimate(BREthereumEwm ewm, BREthereumWallet wid, BREthereumTransfer tid, String gasEstimate, int rid);
+    int ewmAnnounceTransaction(BREthereumEwm ewm, int rid, String hash, String sourceAddr, String targetAddr,
+                               String contractAddr, String amount, String gasLimit, String gasPrice, String data,
+                               String nonce, String gasUsed, String blockNumber, String blockHash,
+                               String blockConfirmations, String blockTransacionIndex, String blockTimestamp,
+                               String isError);
+    int ewmAnnounceTransactionComplete(BREthereumEwm ewm, int rid, int success);
+    int ewmAnnounceLogComplete(BREthereumEwm ewm, int rid, int success);
+    int ewmAnnounceToken(BREthereumEwm ewm, int rid, String address, String symbol, String name, String description,
+                         int decimals, String defaultGasLimit, String defaultGasPrice);
+    int ewmAnnounceTokenComplete(BREthereumEwm ewm, int rid, int success);
+    int ewmAnnounceBlockNumber(BREthereumEwm bwm, String blockNumber, int rid);
+    int ewmAnnounceNonce(BREthereumEwm ewm, String address, String nonce, int rid);
+
+    // ethereum/ewm/BREthereumEWM.h
+    BREthereumToken ewmWalletGetToken(BREthereumEwm ewm, BREthereumWallet wid);
+    BREthereumNetwork ewmGetNetwork(BREthereumEwm ewm);
 
     // ethereum/util/BRUtilMath.h
     UInt256.ByValue createUInt256(long value);

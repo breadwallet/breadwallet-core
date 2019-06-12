@@ -8,6 +8,7 @@
 package com.breadwallet.crypto.blockchaindb.apis.brd;
 
 import android.support.annotation.Nullable;
+import android.util.Log;
 
 import com.breadwallet.crypto.blockchaindb.CompletionHandler;
 import com.breadwallet.crypto.blockchaindb.DataTask;
@@ -43,6 +44,8 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 
 public class BrdApiClient {
+
+    private static final String TAG = BrdApiClient.class.getName();
 
     private static final MediaType MEDIA_TYPE_JSON = MediaType.parse("application/json; charset=utf-8");
 
@@ -97,8 +100,11 @@ public class BrdApiClient {
             urlBuilder.addQueryParameter(key, value);
         }
 
+        HttpUrl httpUrl = urlBuilder.build();
+        Log.d(TAG, String.format("Request: %s: Method: %s: Data: %s", httpUrl, httpMethod, json));
+
         Request.Builder requestBuilder = new Request.Builder();
-        requestBuilder.url(urlBuilder.build());
+        requestBuilder.url(httpUrl);
         requestBuilder.addHeader("accept", "application/json");
         requestBuilder.method(httpMethod, json == null ? null : RequestBody.create(MEDIA_TYPE_JSON, json.toString()));
 
@@ -113,6 +119,7 @@ public class BrdApiClient {
                 if (responseCode == 200) {
                     try (ResponseBody responseBody = response.body()) {
                         if (responseBody == null) {
+                            Log.e(TAG, "response failed with null body");
                             handler.handleError(new QueryNoDataError());
                         } else {
                             T data = null;
@@ -120,6 +127,7 @@ public class BrdApiClient {
                             try {
                                 data = handler.parseData(responseBody.string());
                             } catch (JSONException e) {
+                                Log.e(TAG, "response failed", e);
                                 handler.handleError(new QueryJsonParseError(e.getMessage()));
                             }
 
@@ -129,12 +137,14 @@ public class BrdApiClient {
                         }
                     }
                 } else {
+                    Log.e(TAG, "response failed with status " + responseCode);
                     handler.handleError(new QueryUrlError("Status: " + responseCode));
                 }
             }
 
             @Override
             public void onFailure(Call call, IOException e) {
+                Log.e(TAG, "send request failed", e);
                 handler.handleError(new QuerySubmissionError(e.getMessage()));
             }
         });

@@ -7,6 +7,9 @@
  */
 package com.breadwallet.corenative.crypto;
 
+import com.breadwallet.corenative.ethereum.BREthereumEwm;
+import com.breadwallet.corenative.ethereum.BREthereumTransfer;
+import com.breadwallet.corenative.ethereum.BREthereumWallet;
 import com.sun.jna.Callback;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
@@ -17,46 +20,48 @@ import java.util.List;
 public class BRCryptoCWMClientEth extends Structure {
 
     public interface BREthereumClientHandlerGetBalance extends Callback {
-        void apply(Pointer context, Pointer ewm, Pointer wid, String address, int rid);
+        void apply(Pointer context, BREthereumEwm ewm, BREthereumWallet wid, String address, int rid);
     }
 
     public interface BREthereumClientHandlerGetGasPrice extends Callback {
-        void apply(Pointer context, Pointer ewm, Pointer wid, int rid);
+        void apply(Pointer context, BREthereumEwm ewm, BREthereumWallet wid, int rid);
     }
 
     public interface BREthereumClientHandlerEstimateGas extends Callback {
-        void apply(Pointer context, Pointer ewm, Pointer wid, Pointer tid, String from, String to, String amount,
-				   String data, int rid);
+        void apply(Pointer context, BREthereumEwm ewm, BREthereumWallet wid, BREthereumTransfer tid,
+                   String from, String to, String amount, String data, int rid);
     }
 
     public interface BREthereumClientHandlerSubmitTransaction extends Callback {
-        void apply(Pointer context, Pointer ewm, Pointer wid, Pointer tid, String transaction, int rid);
+        void apply(Pointer context, BREthereumEwm ewm, BREthereumWallet wid, BREthereumTransfer tid,
+                   String transaction, int rid);
     }
 
     public interface BREthereumClientHandlerGetTransactions extends Callback {
-        void apply(Pointer context, Pointer ewm, String address, long begBlockNumber, long endBlockNumber, int rid);
+        void apply(Pointer context, BREthereumEwm ewm, String address, long begBlockNumber, long endBlockNumber,
+                   int rid);
     }
 
     public interface BREthereumClientHandlerGetLogs extends Callback {
-        void apply(Pointer context, Pointer ewm, String contract, String address, String event, long begBlockNumber,
-				   long endBlockNumber, int rid);
+        void apply(Pointer context, BREthereumEwm ewm, String contract, String address, String event,
+                   long begBlockNumber, long endBlockNumber, int rid);
     }
 
     public interface BREthereumClientHandlerGetBlocks extends Callback {
-        void apply(Pointer context, Pointer ewm, String address, int interests, long blockNumberStart,
-				   long blockNumberStop, int rid);
+        void apply(Pointer context, BREthereumEwm ewm, String address, int interests, long blockNumberStart,
+                   long blockNumberStop, int rid);
     }
 
     public interface BREthereumClientHandlerGetTokens extends Callback {
-        void apply(Pointer context, Pointer ewm, int rid);
+        void apply(Pointer context, BREthereumEwm ewm, int rid);
     }
 
     public interface BREthereumClientHandlerGetBlockNumber extends Callback {
-        void apply(Pointer context, Pointer ewm, int rid);
+        void apply(Pointer context, BREthereumEwm ewm, int rid);
     }
 
     public interface BREthereumClientHandlerGetNonce extends Callback {
-        void apply(Pointer context, Pointer ewm, String address, int rid);
+        void apply(Pointer context, BREthereumEwm ewm, String address, int rid);
     }
 
     public BREthereumClientHandlerGetBalance funcGetBalance;
@@ -76,8 +81,8 @@ public class BRCryptoCWMClientEth extends Structure {
 
     protected List<String> getFieldOrder() {
         return Arrays.asList("funcGetBalance", "funcGetGasPrice", "funcEstimateGas", "funcSubmitTransaction",
-				"funcGetTransactions", "funcGetLogs", "funcGetBlocks", "funcGetTokens", "funcGetBlockNumber",
-				"funcGetNonce");
+                "funcGetTransactions", "funcGetLogs", "funcGetBlocks", "funcGetTokens", "funcGetBlockNumber",
+                "funcGetNonce");
     }
 
     public BRCryptoCWMClientEth(BREthereumClientHandlerGetBalance funcGetBalance,

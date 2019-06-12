@@ -24,6 +24,11 @@ import com.breadwallet.corenative.crypto.CoreBRCryptoFeeBasis;
 import com.breadwallet.corenative.crypto.CoreBRCryptoTransfer;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWallet;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWalletManager;
+import com.breadwallet.corenative.ethereum.BREthereumEwm;
+import com.breadwallet.corenative.ethereum.BREthereumNetwork;
+import com.breadwallet.corenative.ethereum.BREthereumToken;
+import com.breadwallet.corenative.ethereum.BREthereumTransfer;
+import com.breadwallet.corenative.ethereum.BREthereumWallet;
 import com.breadwallet.crypto.TransferState;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.WalletManagerState;
@@ -33,6 +38,9 @@ import com.breadwallet.crypto.blockchaindb.CompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
+import com.breadwallet.crypto.blockchaindb.models.brd.EthLog;
+import com.breadwallet.crypto.blockchaindb.models.brd.EthToken;
+import com.breadwallet.crypto.blockchaindb.models.brd.EthTransaction;
 import com.breadwallet.crypto.events.transfer.TransferChangedEvent;
 import com.breadwallet.crypto.events.transfer.TransferConfirmationEvent;
 import com.breadwallet.crypto.events.transfer.TransferCreatedEvent;
@@ -414,7 +422,8 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                 Optional<UnsignedLong> optionalConfirmations = transfer.getConfirmationsAt(blockHeight);
                 if (optionalConfirmations.isPresent()) {
                     UnsignedLong confirmations = optionalConfirmations.get();
-                    announcer.announceTransferEvent(this, wallet, transfer, new TransferConfirmationEvent(confirmations));
+                    announcer.announceTransferEvent(this, wallet, transfer,
+                            new TransferConfirmationEvent(confirmations));
                 }
             }
         }
@@ -666,7 +675,8 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         });
     }
 
-    private void handleTransferCreated(CoreBRCryptoWallet coreWallet, CoreBRCryptoTransfer coreTransfer, BRCryptoTransferEvent event) {
+    private void handleTransferCreated(CoreBRCryptoWallet coreWallet, CoreBRCryptoTransfer coreTransfer,
+                                       BRCryptoTransferEvent event) {
         Log.d(TAG, "handleTransferCreated");
 
         Optional<Wallet> optWallet = getWallet(coreWallet);
@@ -687,7 +697,8 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         }
     }
 
-    private void handleTransferConfirmed(CoreBRCryptoWallet coreWallet, CoreBRCryptoTransfer coreTransfer, BRCryptoTransferEvent event) {
+    private void handleTransferConfirmed(CoreBRCryptoWallet coreWallet, CoreBRCryptoTransfer coreTransfer,
+                                         BRCryptoTransferEvent event) {
         UnsignedLong confirmations = UnsignedLong.fromLongBits(event.u.confirmation.count);
         Log.d(TAG, String.format("handleTransferConfirmed (%s)", confirmations));
 
@@ -709,7 +720,8 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         }
     }
 
-    private void handleTransferChanged(CoreBRCryptoWallet coreWallet, CoreBRCryptoTransfer coreTransfer, BRCryptoTransferEvent event) {
+    private void handleTransferChanged(CoreBRCryptoWallet coreWallet, CoreBRCryptoTransfer coreTransfer,
+                                       BRCryptoTransferEvent event) {
         TransferState oldState = Utilities.transferStateFromCrypto(event.u.state.oldState);
         TransferState newState = Utilities.transferStateFromCrypto(event.u.state.newState);
         Log.d(TAG, String.format("handleTransferChanged (%s -> %s)"));
@@ -733,7 +745,8 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         }
     }
 
-    private void handleTransferDeleted(CoreBRCryptoWallet coreWallet, CoreBRCryptoTransfer coreTransfer, BRCryptoTransferEvent event) {
+    private void handleTransferDeleted(CoreBRCryptoWallet coreWallet, CoreBRCryptoTransfer coreTransfer,
+                                       BRCryptoTransferEvent event) {
         Log.d(TAG, "handleTransferDeleted");
 
         Optional<Wallet> optWallet = getWallet(coreWallet);
@@ -758,7 +771,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
     private void btcGetBlockNumber(Pointer context, BRWalletManager managerImpl, int rid) {
         systemExecutor.submit(() -> {
-            Log.d(TAG, "BRGetBlockNumberCallback");
+            Log.d(TAG, "btcGetBlockNumber");
             query.getBlockchain(getNetwork().getUids(), new CompletionHandler<Blockchain>() {
                 @Override
                 public void handleData(Blockchain blockchain) {
@@ -782,7 +795,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
             UnsignedLong begBlockNumberUnsigned = UnsignedLong.fromLongBits(begBlockNumber);
             UnsignedLong endBlockNumberUnsigned = UnsignedLong.fromLongBits(endBlockNumber);
 
-            Log.d(TAG, String.format("BRGetTransactionsCallback (%s -> %s)", begBlockNumberUnsigned,
+            Log.d(TAG, String.format("btcGetTransactions (%s -> %s)", begBlockNumberUnsigned,
                     endBlockNumberUnsigned));
 
             String blockchainId = getNetwork().getUids();
@@ -849,7 +862,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     private void btcSubmitTransaction(Pointer context, BRWalletManager managerImpl, Pointer walletImpl,
                                       BRTransaction transactionImpl, int rid) {
         systemExecutor.submit(() -> {
-            Log.d(TAG, "BRSubmitTransactionCallback");
+            Log.d(TAG, "btcSubmitTransaction");
 
             CoreBRTransaction transaction = CoreBRTransaction.create(transactionImpl);
             query.putTransaction(getNetwork().getUids(), transaction.serialize(), new CompletionHandler<Transaction>() {
@@ -881,49 +894,270 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
     // TODO(fix): Implement me!
 
-    private void ethGetBalance(Pointer context, Pointer ewm, Pointer wid, String address, int rid) {
+    private void ethGetBalance(Pointer context, BREthereumEwm ewm, BREthereumWallet wid, String address, int rid) {
+        systemExecutor.submit(() -> {
+            Log.d(TAG, "ethGetBalance");
 
+            BREthereumNetwork network = ewm.getNetwork();
+            String networkName = network.getName().toLowerCase();
+
+            BREthereumToken token = ewm.getToken(wid);
+            if (null == token) {
+                query.getBalanceAsEth(networkName, address, rid, new CompletionHandler<String>() {
+                    @Override
+                    public void handleData(String data) {
+                        ewm.announceWalletBalance(wid, data, rid);
+                    }
+
+                    @Override
+                    public void handleError(QueryError error) {
+                        // TODO(discuss): Ignore?
+                    }
+                });
+            } else {
+                String tokenAddress = token.getAddress();
+                query.getBalanceAsTok(networkName, address, tokenAddress, rid, new CompletionHandler<String>() {
+                    @Override
+                    public void handleData(String balance) {
+                        ewm.announceWalletBalance(wid, balance, rid);
+                    }
+
+                    @Override
+                    public void handleError(QueryError error) {
+                        // TODO(discuss): Ignore?
+                    }
+                });
+            }
+        });
     }
 
-    private void ethGetGasPrice(Pointer context, Pointer ewm, Pointer wid, int rid) {
+    private void ethGetGasPrice(Pointer context, BREthereumEwm ewm, BREthereumWallet wid, int rid) {
+        systemExecutor.submit(() -> {
+            Log.d(TAG, "ethGetGasPrice");
 
+            BREthereumNetwork network = ewm.getNetwork();
+            String networkName = network.getName().toLowerCase();
+
+            query.getGasPriceAsEth(networkName, rid, new CompletionHandler<String>() {
+                @Override
+                public void handleData(String gasPrice) {
+                    ewm.announceGasPrice(wid, gasPrice, rid);
+                }
+
+                @Override
+                public void handleError(QueryError error) {
+                    // TODO(discuss): Ignore?
+                }
+            });
+        });
     }
 
-    private void ethEstimateGas(Pointer context, Pointer ewm, Pointer wid, Pointer tid, String from, String to,
+    private void ethEstimateGas(Pointer context, BREthereumEwm ewm, BREthereumWallet wid, BREthereumTransfer tid,
+                                String from, String to,
                                 String amount, String data, int rid) {
+        systemExecutor.submit(() -> {
+            Log.d(TAG, "ethEstimateGas");
 
+            BREthereumNetwork network = ewm.getNetwork();
+            String networkName = network.getName().toLowerCase();
+
+            query.getGasEstimateAsEth(networkName, from, to, amount, data, rid, new CompletionHandler<String>() {
+                @Override
+                public void handleData(String gasEstimate) {
+                    ewm.announceGasEstimate(wid, tid, gasEstimate, rid);
+                }
+
+                @Override
+                public void handleError(QueryError error) {
+                    // TODO(discuss): Ignore?
+                }
+            });
+        });
     }
 
-    private void ethSubmitTransaction(Pointer context, Pointer ewm, Pointer wid, Pointer tid, String transaction,
+    private void ethSubmitTransaction(Pointer context, BREthereumEwm ewm, BREthereumWallet wid,
+                                      BREthereumTransfer tid, String transaction,
                                       int rid) {
+        systemExecutor.submit(() -> {
+            Log.d(TAG, "ethSubmitTransaction");
 
+            BREthereumNetwork network = ewm.getNetwork();
+            String networkName = network.getName().toLowerCase();
+
+            query.submitTransactionAsEth(networkName, transaction, rid, new CompletionHandler<String>() {
+                @Override
+                public void handleData(String data) {
+                    // TODO(fix): The completion handler isn't returning enough info
+                }
+
+                @Override
+                public void handleError(QueryError error) {
+                    // TODO(discuss): Ignore?
+                }
+            });
+        });
     }
 
-    private void ethGetTransactions(Pointer context, Pointer ewm, String address, long begBlockNumber,
+    private void ethGetTransactions(Pointer context, BREthereumEwm ewm, String address, long begBlockNumber,
                                     long endBlockNumber, int rid) {
+        systemExecutor.submit(() -> {
+            Log.d(TAG, "ethGetTransactions");
 
+            BREthereumNetwork network = ewm.getNetwork();
+            String networkName = network.getName().toLowerCase();
+
+            query.getTransactionsAsEth(networkName, address, UnsignedLong.fromLongBits(begBlockNumber),
+                    UnsignedLong.fromLongBits(endBlockNumber), rid, new CompletionHandler<List<EthTransaction>>() {
+                        @Override
+                        public void handleData(List<EthTransaction> transactions) {
+                            for (EthTransaction tx : transactions) {
+                                ewm.announceTransaction(rid,
+                                        tx.getHash(),
+                                        tx.getSourceAddr(),
+                                        tx.getTargetAddr(),
+                                        tx.getContractAddr(),
+                                        tx.getAmount(),
+                                        tx.getGasLimit(),
+                                        tx.getGasPrice(),
+                                        tx.getData(),
+                                        tx.getNonce(),
+                                        tx.getGasUsed(),
+                                        tx.getBlockNumber(),
+                                        tx.getBlockHash(),
+                                        tx.getBlockConfirmations(),
+                                        tx.getBlockTransacionIndex(),
+                                        tx.getBlockTimestamp(),
+                                        tx.getIsError());
+                            }
+                            ewm.announceTransactionComplete(rid, true);
+                        }
+
+                        @Override
+                        public void handleError(QueryError error) {
+                            ewm.announceTransactionComplete(rid, false);
+                        }
+                    });
+        });
     }
 
-    private void ethGetLogs(Pointer context, Pointer ewm, String contract, String address, String event,
+    private void ethGetLogs(Pointer context, BREthereumEwm ewm, String contract, String address, String event,
                             long begBlockNumber,
                             long endBlockNumber, int rid) {
+        systemExecutor.submit(() -> {
+            Log.d(TAG, "ethGetLogs");
 
+            BREthereumNetwork network = ewm.getNetwork();
+            String networkName = network.getName().toLowerCase();
+
+            query.getLogsAsEth(networkName, contract, address, event, UnsignedLong.fromLongBits(begBlockNumber),
+                    UnsignedLong.fromLongBits(endBlockNumber), rid, new CompletionHandler<List<EthLog>>() {
+                        @Override
+                        public void handleData(List<EthLog> logs) {
+                            for (EthLog log : logs) {
+                                // TODO(fix): figure out how to announce topics
+                            }
+                            ewm.announceLogComplete(rid, true);
+                        }
+
+                        @Override
+                        public void handleError(QueryError error) {
+                            ewm.announceLogComplete(rid, false);
+                        }
+                    });
+        });
     }
 
-    private void ethGetBlocks(Pointer context, Pointer ewm, String address, int interests, long blockNumberStart,
+    private void ethGetBlocks(Pointer context, BREthereumEwm ewm, String address, int interests, long blockNumberStart,
                               long blockNumberStop, int rid) {
+        systemExecutor.submit(() -> {
+            Log.d(TAG, "ethGetBlocks");
 
+            BREthereumNetwork network = ewm.getNetwork();
+            String networkName = network.getName().toLowerCase();
+
+            query.getBlocksAsEth(networkName, address, UnsignedInteger.fromIntBits(interests),
+                    UnsignedLong.fromLongBits(blockNumberStart), UnsignedLong.fromLongBits(blockNumberStop), rid,
+                    new CompletionHandler<List<UnsignedLong>>() {
+                @Override
+                public void handleData(List<UnsignedLong> blocks) {
+                    // TODO(fix): figure out how to announce blocks
+                }
+
+                @Override
+                public void handleError(QueryError error) {
+                    // TODO(discuss): Ignore?
+                }
+            });
+        });
     }
 
-    private void ethGetTokens(Pointer context, Pointer ewm, int rid) {
+    private void ethGetTokens(Pointer context, BREthereumEwm ewm, int rid) {
+        systemExecutor.submit(() -> {
+            Log.d(TAG, "ethGetTokens");
 
+            query.getTokensAsEth(rid, new CompletionHandler<List<EthToken>>() {
+                @Override
+                public void handleData(List<EthToken> tokens) {
+                    for (EthToken token: tokens) {
+                        ewm.announceToken(rid,
+                                token.getAddress(),
+                                token.getSymbol(),
+                                token.getName(),
+                                token.getDescription(),
+                                token.getDecimals(),
+                                token.getDefaultGasLimit().orNull(),
+                                token.getDefaultGasPrice().orNull());
+                    }
+                    ewm.announceTokenComplete(rid, true);
+                }
+
+                @Override
+                public void handleError(QueryError error) {
+                    ewm.announceTokenComplete(rid, false);
+                }
+            });
+        });
     }
 
-    private void ethGetBlockNumber(Pointer context, Pointer ewm, int rid) {
+    private void ethGetBlockNumber(Pointer context, BREthereumEwm ewm, int rid) {
+        systemExecutor.submit(() -> {
+            Log.d(TAG, "ethGetBlockNumber");
 
+            BREthereumNetwork network = ewm.getNetwork();
+            String networkName = network.getName().toLowerCase();
+
+            query.getBlockNumberAsEth(networkName, rid, new CompletionHandler<String>() {
+                @Override
+                public void handleData(String number) {
+                    ewm.announceBlockNumber(number, rid);
+                }
+
+                @Override
+                public void handleError(QueryError error) {
+                    // TODO(discuss): Ignore?
+                }
+            });
+        });
     }
 
-    private void ethGetNonce(Pointer context, Pointer ewm, String address, int rid) {
+    private void ethGetNonce(Pointer context, BREthereumEwm ewm, String address, int rid) {
+        systemExecutor.submit(() -> {
+            Log.d(TAG, "ethGetNonce");
 
+            BREthereumNetwork network = ewm.getNetwork();
+            String networkName = network.getName().toLowerCase();
+
+            query.getNonceAsEth(networkName, address, rid, new CompletionHandler<String>() {
+                @Override
+                public void handleData(String nonce) {
+                    ewm.announceNonce(address, nonce, rid);
+                }
+
+                @Override
+                public void handleError(QueryError error) {
+                    // TODO(discuss): Ignore?
+                }
+            });
+        });
     }
 }
