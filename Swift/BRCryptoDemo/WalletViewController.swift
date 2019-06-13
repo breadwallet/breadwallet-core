@@ -28,7 +28,8 @@ class WalletViewController: UITableViewController, TransferListener {
     override func viewDidLoad() {
         // Seems `viewDidLoad()` is called many times... and the listener is added many times.
         // Should only be added once or should be removed (on viewWillDisappear())
-        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
+        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener,
+            !listener.transferListeners.contains(where: { $0 === self }) {
             listener.transferListeners.append (self)
         }
 

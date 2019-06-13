@@ -33,7 +33,10 @@ extern "C" {
 #endif
     
     typedef struct BRCryptoCurrencyRecord *BRCryptoCurrency;
-    
+
+    extern const char *
+    cryptoCurrencyGetUids (BRCryptoCurrency currency);
+
     extern const char *
     cryptoCurrencyGetName (BRCryptoCurrency currency);
     

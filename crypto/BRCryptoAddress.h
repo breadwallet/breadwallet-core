@@ -34,6 +34,13 @@ extern "C" {
 
     typedef struct BRCryptoAddressRecord *BRCryptoAddress;
 
+    /**
+     * Returns the addresses' string representation which is suitable for display.
+     *
+     * @param address the addres
+     *
+     *@return A string representation which is newly allocated and must be freed.
+     */
     extern char *
     cryptoAddressAsString (BRCryptoAddress address);
 
