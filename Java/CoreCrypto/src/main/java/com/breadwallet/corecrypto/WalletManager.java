@@ -777,13 +777,13 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
             @Override
             public void handleData(Blockchain blockchain) {
                 UnsignedLong blockchainHeight = blockchain.getBlockHeight();
-                Log.d(TAG, String.format("BRGetBlockNumberCallback: succeeded (%s)", blockchainHeight));
+                Log.d(TAG, String.format("btcGetBlockNumber: succeeded (%s)", blockchainHeight));
                 managerImpl.announceBlockNumber(rid, blockchainHeight);
             }
 
             @Override
             public void handleError(QueryError error) {
-                Log.d(TAG, "BRGetBlockNumberCallback: failed", error);
+                Log.d(TAG, "btcGetBlockNumber: failed", error);
             }
         });
     }
@@ -804,7 +804,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                     false, new CompletionHandler<List<Transaction>>() {
                         @Override
                         public void handleData(List<Transaction> transactions) {
-                            Log.d(TAG, "BRGetTransactionsCallback: transaction success");
+                            Log.d(TAG, "btcGetTransactions: transaction success");
 
                             for (Transaction transaction : transactions) {
                                 Optional<byte[]> optRaw = transaction.getRaw();
@@ -821,7 +821,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                                 Optional<CoreBRTransaction> optCore = CoreBRTransaction.create(optRaw.get(), timestamp,
                                         blockHeight);
                                 if (!optCore.isPresent()) {
-                                    Log.d(TAG, "BRGetTransactionsCallback received invalid transaction, completing " +
+                                    Log.d(TAG, "btcGetTransactions received invalid transaction, completing " +
                                             "with " +
                                             "failure");
                                     managerImpl.announceTransactionComplete(rid, false);
@@ -829,12 +829,12 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                                 }
 
                                 Log.d(TAG,
-                                        "BRGetTransactionsCallback received transaction, announcing " + transaction.getId());
+                                        "btcGetTransactions received transaction, announcing " + transaction.getId());
                                 managerImpl.announceTransaction(rid, optCore.get());
                             }
 
                             if (transactions.isEmpty()) {
-                                Log.d(TAG, "BRGetTransactionsCallback found no transactions, completing");
+                                Log.d(TAG, "btcGetTransactions found no transactions, completing");
                                 managerImpl.announceTransactionComplete(rid, true);
                             } else {
                                 Set<String> addressesSet = new HashSet<>(getAllAddrs(managerImpl));
@@ -842,7 +842,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                                 knownAddresses.addAll(addressesSet);
                                 List<String> addresses = new ArrayList<>(addressesSet);
 
-                                Log.d(TAG, "BRGetTransactionsCallback found transactions, requesting again");
+                                Log.d(TAG, "btcGetTransactions found transactions, requesting again");
                                 systemExecutor.submit(() -> query.getTransactions(blockchainId, addresses,
                                         begBlockNumberUnsigned, endBlockNumberUnsigned, true, false, this));
                             }
@@ -850,7 +850,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
                         @Override
                         public void handleError(QueryError error) {
-                            Log.d(TAG, "BRGetTransactionsCallback received an error, completing with failure", error);
+                            Log.d(TAG, "btcGetTransactions received an error, completing with failure", error);
                             managerImpl.announceTransactionComplete(rid, false);
                         }
                     });
@@ -865,13 +865,13 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         query.putTransaction(getNetwork().getUids(), transaction.serialize(), new CompletionHandler<Transaction>() {
             @Override
             public void handleData(Transaction data) {
-                Log.d(TAG, "BRSubmitTransactionCallback: succeeded");
+                Log.d(TAG, "btcSubmitTransaction: succeeded");
                 managerImpl.announceSubmit(rid, transaction, 0);
             }
 
             @Override
             public void handleError(QueryError error) {
-                Log.d(TAG, "BRSubmitTransactionCallback: failed", error);
+                Log.d(TAG, "btcSubmitTransaction: failed", error);
                 managerImpl.announceSubmit(rid, transaction, 1);
             }
         });

@@ -7,7 +7,12 @@
  */
 package com.breadwallet.crypto.events.network;
 
-public interface NetworkEvent {
+import android.support.annotation.Nullable;
 
-    <T> T accept(NetworkEventVisitor<T> visitor);
+public abstract class DefaultNetworkEventVisitor<T> implements NetworkEventVisitor<T> {
+
+    @Nullable
+    public T visit(NetworkCreatedEvent event) {
+        return null;
+    }
 }

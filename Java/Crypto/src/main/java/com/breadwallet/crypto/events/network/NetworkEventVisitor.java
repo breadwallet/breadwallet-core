@@ -7,7 +7,7 @@
  */
 package com.breadwallet.crypto.events.network;
 
-public interface NetworkEvent {
+public interface NetworkEventVisitor<T> {
 
-    <T> T accept(NetworkEventVisitor<T> visitor);
+    T visit(NetworkCreatedEvent event);
 }
