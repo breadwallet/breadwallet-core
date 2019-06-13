@@ -58,7 +58,7 @@ public class BRCryptoTransfer extends PointerType implements CoreBRCryptoTransfe
     }
 
     @Override
-    public int getState() {
+    public BRCryptoTransferState getState() {
         return CryptoLibrary.INSTANCE.cryptoTransferGetState(this);
     }
 

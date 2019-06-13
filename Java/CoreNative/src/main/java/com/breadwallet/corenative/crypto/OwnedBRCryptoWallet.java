@@ -46,6 +46,11 @@ class OwnedBRCryptoWallet implements CoreBRCryptoWallet {
     }
 
     @Override
+    public boolean containsTransfer(CoreBRCryptoTransfer transfer) {
+        return core.containsTransfer(transfer);
+    }
+
+    @Override
     public int getState() {
         return core.getState();
     }

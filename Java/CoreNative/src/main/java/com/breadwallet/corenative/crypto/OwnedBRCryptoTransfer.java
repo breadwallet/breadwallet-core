@@ -66,7 +66,7 @@ class OwnedBRCryptoTransfer implements CoreBRCryptoTransfer {
     }
 
     @Override
-    public int getState() {
+    public BRCryptoTransferState getState() {
         return core.getState();
     }
 

@@ -25,8 +25,8 @@ public class BRCryptoTransferEvent extends Structure {
 
 		public static class state_struct extends Structure {
 
-			public int oldState;
-			public int newState;
+			public BRCryptoTransferState oldState;
+			public BRCryptoTransferState newState;
 
 			public state_struct() {
 				super();
@@ -36,7 +36,7 @@ public class BRCryptoTransferEvent extends Structure {
 				return Arrays.asList("oldState", "newState");
 			}
 
-			public state_struct(int oldState, int newState) {
+			public state_struct(BRCryptoTransferState oldState, BRCryptoTransferState newState) {
 				super();
 				this.oldState = oldState;
 				this.newState = newState;

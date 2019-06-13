@@ -31,6 +31,10 @@ public interface Network {
 
     Currency getCurrency();
 
+    Set<? extends Currency> getCurrencies();
+
+    Optional<? extends Currency> getCurrencyByCode(String code);
+
     List<WalletManagerMode> getSupportedModes();
 
     String getUids();

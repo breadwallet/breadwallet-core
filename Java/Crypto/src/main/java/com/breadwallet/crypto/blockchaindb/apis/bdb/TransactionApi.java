@@ -7,8 +7,6 @@
  */
 package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
-import android.util.Base64;
-
 import com.breadwallet.crypto.blockchaindb.CompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
@@ -17,6 +15,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedLong;
 import com.google.common.primitives.UnsignedLongs;
 
@@ -56,7 +55,7 @@ public class TransactionApi {
     }
 
     public void putTransaction(String id, byte[] data, CompletionHandler<Transaction> handler) {
-        JSONObject json = new JSONObject(ImmutableMap.of("transaction", Base64.encodeToString(data, Base64.DEFAULT)));
+        JSONObject json = new JSONObject(ImmutableMap.of("transaction", BaseEncoding.base64().encode(data)));
         Multimap<String, String> params = ImmutableListMultimap.of("blockchain_id", id);
         jsonClient.sendPut("transactions", params, json, Transaction::asTransaction, handler);
     }

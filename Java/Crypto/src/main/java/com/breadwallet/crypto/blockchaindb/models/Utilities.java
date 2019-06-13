@@ -7,9 +7,8 @@
  */
 package com.breadwallet.crypto.blockchaindb.models;
 
-import android.util.Base64;
-
 import com.google.common.base.Optional;
+import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedLong;
 import com.google.common.primitives.UnsignedLongs;
 
@@ -51,7 +50,7 @@ public final class Utilities {
 
     public static Optional<byte[]> getOptionalBase64Bytes(JSONObject json, String name) {
         try {
-            return Optional.fromNullable(Base64.decode(json.optString(name, null), Base64.DEFAULT));
+            return Optional.fromNullable(BaseEncoding.base64().decode(json.optString(name, null)));
         } catch (IllegalArgumentException e) {
             return Optional.absent();
         }

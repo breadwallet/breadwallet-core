@@ -39,6 +39,11 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
+    public boolean containsWallet(CoreBRCryptoWallet wallet) {
+        return  BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoWalletManagerHasWallet(this, wallet.asBRCryptoWallet());
+    }
+
+    @Override
     public int getMode() {
         return CryptoLibrary.INSTANCE.cryptoWalletManagerGetMode(this);
     }

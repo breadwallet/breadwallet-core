@@ -50,6 +50,10 @@ public interface CoreBRCryptoNetwork {
 
     boolean hasCurrency(CoreBRCryptoCurrency currency);
 
+    UnsignedLong getCurrencyCount();
+
+    CoreBRCryptoCurrency getCurrency(UnsignedLong index);
+
     String getUids();
 
     boolean isMainnet();

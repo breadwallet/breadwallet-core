@@ -21,6 +21,8 @@ public interface CoreBRCryptoWallet {
 
     CoreBRCryptoTransfer getTransfer(UnsignedLong index);
 
+    boolean containsTransfer(CoreBRCryptoTransfer transfer);
+
     int getState();
 
     void setState(int state);

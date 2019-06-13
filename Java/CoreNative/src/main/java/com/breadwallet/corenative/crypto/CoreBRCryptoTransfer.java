@@ -29,7 +29,7 @@ public interface CoreBRCryptoTransfer {
 
     int getDirection();
 
-    int getState();
+    BRCryptoTransferState getState();
 
     boolean isIdentical(CoreBRCryptoTransfer other);
 

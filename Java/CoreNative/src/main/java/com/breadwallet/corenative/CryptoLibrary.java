@@ -18,6 +18,7 @@ import com.breadwallet.corenative.crypto.BRCryptoFeeBasis;
 import com.breadwallet.corenative.crypto.BRCryptoHash;
 import com.breadwallet.corenative.crypto.BRCryptoNetwork;
 import com.breadwallet.corenative.crypto.BRCryptoTransfer;
+import com.breadwallet.corenative.crypto.BRCryptoTransferState;
 import com.breadwallet.corenative.crypto.BRCryptoUnit;
 import com.breadwallet.corenative.crypto.BRCryptoWallet;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManager;
@@ -33,11 +34,11 @@ import com.breadwallet.corenative.support.UInt256;
 import com.breadwallet.corenative.support.UInt512;
 import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.corenative.utility.SizeTByReference;
-import com.google.common.primitives.UnsignedInteger;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
 import com.sun.jna.NativeLibrary;
 import com.sun.jna.Pointer;
+import com.sun.jna.StringArray;
 import com.sun.jna.ptr.IntByReference;
 
 public interface CryptoLibrary extends Library {
@@ -124,7 +125,6 @@ public interface CryptoLibrary extends Library {
     SizeT cryptoNetworkGetCurrencyCount(BRCryptoNetwork network);
     BRCryptoCurrency cryptoNetworkGetCurrencyAt(BRCryptoNetwork network, SizeT index);
     int cryptoNetworkHasCurrency(BRCryptoNetwork network, BRCryptoCurrency currency);
-    BRCryptoCurrency cryptoNetworkGetCurrencyForSymbol(BRCryptoNetwork network, String symbol);
     SizeT cryptoNetworkGetUnitCount(BRCryptoNetwork network, BRCryptoCurrency currency);
     BRCryptoUnit cryptoNetworkGetUnitAt(BRCryptoNetwork network, BRCryptoCurrency currency, SizeT index);
     BRCryptoNetwork cryptoNetworkTake(BRCryptoNetwork obj);
@@ -150,7 +150,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoAmount cryptoTransferGetAmount(BRCryptoTransfer transfer);
     BRCryptoAmount cryptoTransferGetFee(BRCryptoTransfer transfer);
     int cryptoTransferGetDirection(BRCryptoTransfer transfer);
-    int cryptoTransferGetState(BRCryptoTransfer transfer);
+    BRCryptoTransferState.ByValue cryptoTransferGetState(BRCryptoTransfer transfer);
     BRCryptoHash cryptoTransferGetHash(BRCryptoTransfer transfer);
     BRCryptoFeeBasis cryptoTransferGetFeeBasis(BRCryptoTransfer transfer);
     int cryptoTransferEqual(BRCryptoTransfer transfer1, BRCryptoTransfer transfer2);
@@ -173,13 +173,10 @@ public interface CryptoLibrary extends Library {
     // crypto/BRCryptoWallet.h
     int cryptoWalletGetState(BRCryptoWallet wallet);
     void cryptoWalletSetState(BRCryptoWallet wallet, int state);
-    BRCryptoCurrency cryptoWalletGetCurrency(BRCryptoWallet wallet);
-    BRCryptoUnit cryptoWalletGetUnitForFee(BRCryptoWallet wallet);
     BRCryptoAmount cryptoWalletGetBalance(BRCryptoWallet wallet);
     SizeT cryptoWalletGetTransferCount(BRCryptoWallet wallet);
-    void cryptoWalletAddTransfer(BRCryptoWallet wallet, BRCryptoTransfer transfer);
-    void cryptoWalletRemTransfer(BRCryptoWallet wallet, BRCryptoTransfer transfer);
     BRCryptoTransfer cryptoWalletGetTransfer(BRCryptoWallet wallet, SizeT index);
+    int cryptoWalletHasTransfer(BRCryptoWallet wallet, BRCryptoTransfer transfer);
     BRCryptoAddress cryptoWalletGetAddress(BRCryptoWallet wallet);
     BRCryptoFeeBasis cryptoWalletGetDefaultFeeBasis(BRCryptoWallet wallet);
     void cryptoWalletSetDefaultFeeBasis(BRCryptoWallet wallet, BRCryptoFeeBasis feeBasis);
@@ -199,9 +196,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoWallet cryptoWalletManagerGetWallet(BRCryptoWalletManager cwm);
     SizeT cryptoWalletManagerGetWalletsCount(BRCryptoWalletManager cwm);
     BRCryptoWallet cryptoWalletManagerGetWalletAtIndex(BRCryptoWalletManager cwm, SizeT index);
-    BRCryptoWallet cryptoWalletManagerGetWalletForCurrency(BRCryptoWalletManager cwm, BRCryptoCurrency currency);
-    void cryptoWalletManagerAddWallet(BRCryptoWalletManager cwm, BRCryptoWallet wallet);
-    void cryptoWalletManagerRemWallet(BRCryptoWalletManager cwm, BRCryptoWallet wallet);
+    int cryptoWalletManagerHasWallet(BRCryptoWalletManager manager, BRCryptoWallet wallet);
     void cryptoWalletManagerConnect(BRCryptoWalletManager cwm);
     void cryptoWalletManagerDisconnect(BRCryptoWalletManager cwm);
     void cryptoWalletManagerSync(BRCryptoWalletManager cwm);
@@ -223,18 +218,24 @@ public interface CryptoLibrary extends Library {
     int ewmAnnounceWalletBalance(BREthereumEwm ewm, BREthereumWallet wid, String data, int rid);
     int ewmAnnounceGasPrice(BREthereumEwm ewm, BREthereumWallet wid, String data, int rid);
     int ewmAnnounceGasEstimate(BREthereumEwm ewm, BREthereumWallet wid, BREthereumTransfer tid, String gasEstimate, int rid);
+    int ewmAnnounceSubmitTransfer(BREthereumEwm ewm, BREthereumWallet wid, BREthereumTransfer tid, String hash,
+                                  int errorCode, String errorMessage, int rid);
     int ewmAnnounceTransaction(BREthereumEwm ewm, int rid, String hash, String sourceAddr, String targetAddr,
                                String contractAddr, String amount, String gasLimit, String gasPrice, String data,
                                String nonce, String gasUsed, String blockNumber, String blockHash,
                                String blockConfirmations, String blockTransacionIndex, String blockTimestamp,
                                String isError);
     int ewmAnnounceTransactionComplete(BREthereumEwm ewm, int rid, int success);
+    int ewmAnnounceLog(BREthereumEwm ewm, int rid, String hash, String contract, int topicCount, StringArray topics,
+                       String data, String gasPrice, String gasUsed, String logIndex, String blockNumber,
+                       String blockTransactionIndex, String blockTimestamp);
     int ewmAnnounceLogComplete(BREthereumEwm ewm, int rid, int success);
     int ewmAnnounceToken(BREthereumEwm ewm, int rid, String address, String symbol, String name, String description,
                          int decimals, String defaultGasLimit, String defaultGasPrice);
     int ewmAnnounceTokenComplete(BREthereumEwm ewm, int rid, int success);
     int ewmAnnounceBlockNumber(BREthereumEwm bwm, String blockNumber, int rid);
     int ewmAnnounceNonce(BREthereumEwm ewm, String address, String nonce, int rid);
+    int ewmAnnounceBlocks(BREthereumEwm ewm, int rid, int blockNumbersCount, long[] blockNumbers);
 
     // ethereum/ewm/BREthereumEWM.h
     BREthereumToken ewmWalletGetToken(BREthereumEwm ewm, BREthereumWallet wid);

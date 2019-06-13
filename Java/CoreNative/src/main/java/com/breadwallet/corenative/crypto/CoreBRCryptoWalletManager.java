@@ -29,6 +29,8 @@ public interface CoreBRCryptoWalletManager {
 
     CoreBRCryptoWallet getWallet(UnsignedLong index);
 
+    boolean containsWallet(CoreBRCryptoWallet wallet);
+
     int getMode();
 
     String getPath();

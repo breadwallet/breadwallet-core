@@ -9,14 +9,20 @@ package com.breadwallet.corecrypto;
 
 import com.breadwallet.corenative.crypto.BRCryptoTransferDirection;
 import com.breadwallet.corenative.crypto.BRCryptoTransferState;
+import com.breadwallet.corenative.crypto.BRCryptoTransferStateType;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerState;
 import com.breadwallet.corenative.crypto.BRCryptoWalletState;
 import com.breadwallet.corenative.support.BRSyncMode;
+import com.breadwallet.crypto.TransferConfirmation;
 import com.breadwallet.crypto.TransferDirection;
 import com.breadwallet.crypto.TransferState;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.WalletManagerState;
 import com.breadwallet.crypto.WalletState;
+import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedLong;
+
+import java.nio.charset.StandardCharsets;
 
 /* package */
 final class Utilities {
@@ -85,15 +91,28 @@ final class Utilities {
     }
 
     /* package */
-    static TransferState transferStateFromCrypto(int state) {
-        switch (state) {
-            // TODO(fix): state contains parameters (FAILED and INCLUDED)
-            case BRCryptoTransferState.CRYPTO_TRANSFER_STATE_CREATED: return TransferState.CREATED();
-            case BRCryptoTransferState.CRYPTO_TRANSFER_STATE_DELETED: return TransferState.DELETED();
-            case BRCryptoTransferState.CRYPTO_TRANSFER_STATE_ERRORRED: return TransferState.FAILED(null);
-            case BRCryptoTransferState.CRYPTO_TRANSFER_STATE_INCLUDED: return TransferState.INCLUDED(null);
-            case BRCryptoTransferState.CRYPTO_TRANSFER_STATE_SIGNED: return TransferState.SIGNED();
-            case BRCryptoTransferState.CRYPTO_TRANSFER_STATE_SUBMITTED: return TransferState.SUBMITTED();
+    static TransferState transferStateFromCrypto(BRCryptoTransferState state) {
+        switch (state.type) {
+            case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_CREATED: return TransferState.CREATED();
+            case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_DELETED: return TransferState.DELETED();
+            case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_SIGNED: return TransferState.SIGNED();
+            case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_SUBMITTED: return TransferState.SUBMITTED();
+            case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_ERRORRED:
+                String message = new String(state.u.errorred.message, StandardCharsets.UTF_8);
+                int len = message.length();
+                int end = 0;
+                while ((end < len) && (message.charAt(end) > ' ')) {
+                    end++;
+                }
+                return TransferState.FAILED(message.substring(0, end));
+            case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_INCLUDED:
+                // TODO(fix): Fill in the fee
+                return TransferState.INCLUDED(new TransferConfirmation(
+                        UnsignedLong.fromLongBits(state.u.included.blockNumber),
+                        UnsignedLong.fromLongBits(state.u.included.transactionIndex),
+                        UnsignedLong.fromLongBits(state.u.included.timestamp),
+                        Optional.absent()
+                ));
             default: throw new IllegalArgumentException("Unsupported state");
         }
     }

@@ -1,10 +1,13 @@
 package com.breadwallet.corenative.ethereum;
 
 import com.breadwallet.corenative.CryptoLibrary;
-import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
+import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
+import com.sun.jna.StringArray;
+
+import java.util.List;
 
 public class BREthereumEwm extends PointerType {
 
@@ -46,10 +49,22 @@ public class BREthereumEwm extends PointerType {
         CryptoLibrary.INSTANCE.ewmAnnounceGasEstimate(this, wid, tid, gasEstimate, rid);
     }
 
+    public void announceSubmitTransfer(BREthereumWallet wid, BREthereumTransfer tid, String hash, int errorCode, String errorMessage, int rid) {
+        CryptoLibrary.INSTANCE.ewmAnnounceSubmitTransfer(this, wid, tid, hash, errorCode, errorMessage, rid);
+    }
+
     public void announceTransactionComplete(int rid, boolean success) {
         CryptoLibrary.INSTANCE.ewmAnnounceTransactionComplete(this, rid, success ?
                 BREthereumBoolean.ETHEREUM_BOOLEAN_TRUE :
                 BREthereumBoolean.ETHEREUM_BOOLEAN_FALSE);
+    }
+
+    public void announceLog(int rid, String hash, String contract, List<String> topics, String data, String gasPrice,
+                            String gasUsed, String logIndex, String blockNumber, String blockTransactionIndex,
+                            String blockTimestamp) {
+        CryptoLibrary.INSTANCE.ewmAnnounceLog(this, rid, hash, contract, topics.size(),
+                new StringArray(topics.toArray(new String[0]), "UTF-8"), data, gasPrice, gasUsed, logIndex,
+                blockNumber, blockTransactionIndex, blockTimestamp);
     }
 
     public void announceLogComplete(int rid, boolean success) {
@@ -57,8 +72,10 @@ public class BREthereumEwm extends PointerType {
                 BREthereumBoolean.ETHEREUM_BOOLEAN_FALSE);
     }
 
-    public void announceToken(int rid, String address, String symbol, String name, String description, UnsignedInteger decimals, String defaultGasLimit, String defaultGasPrice) {
-        CryptoLibrary.INSTANCE.ewmAnnounceToken(this, rid, address, symbol, name, description, decimals.intValue(), defaultGasLimit, defaultGasPrice);
+    public void announceToken(int rid, String address, String symbol, String name, String description,
+                              UnsignedInteger decimals, String defaultGasLimit, String defaultGasPrice) {
+        CryptoLibrary.INSTANCE.ewmAnnounceToken(this, rid, address, symbol, name, description, decimals.intValue(),
+                defaultGasLimit, defaultGasPrice);
     }
 
     public void announceTokenComplete(int rid, boolean success) {
@@ -72,5 +89,12 @@ public class BREthereumEwm extends PointerType {
 
     public void announceNonce(String address, String nonce, int rid) {
         CryptoLibrary.INSTANCE.ewmAnnounceNonce(this, address, nonce, rid);
+    }
+
+    public void announceBlocks(int rid, List<UnsignedLong> blocks) {
+        int count = 0;
+        long[] blockArray = new long[blocks.size()];
+        for (UnsignedLong block: blocks) blockArray[count++] = block.longValue();
+        CryptoLibrary.INSTANCE.ewmAnnounceBlocks(this, rid, blockArray.length, blockArray);
     }
 }

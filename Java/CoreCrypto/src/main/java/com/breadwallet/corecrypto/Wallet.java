@@ -176,14 +176,21 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     }
 
     /* package */
-    Optional<Transfer> getTransfer(@Nullable CoreBRCryptoTransfer value) {
-        UnsignedLong count = core.getTransferCount();
-        for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
-            if (core.getTransfer(i).equals(value)) {
-                return Optional.of(Transfer.create(core.getTransfer(i), this, defaultUnit));
-            }
+    Optional<Transfer> getTransfer(CoreBRCryptoTransfer transfer) {
+        return core.containsTransfer(transfer) ?
+                Optional.of(Transfer.create(transfer, this, defaultUnit)) :
+                Optional.absent();
+    }
+
+    /* package */
+    Optional<Transfer> getTransferOrCreate(CoreBRCryptoTransfer transfer) {
+        Optional<Transfer> optional = getTransfer(transfer);
+        if (optional.isPresent()) {
+            return optional;
+
+        } else {
+            return Optional.of(Transfer.create(transfer, this, defaultUnit));
         }
-        return Optional.absent();
     }
 
     /* package */

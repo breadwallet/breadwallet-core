@@ -171,7 +171,6 @@ final class Amount implements com.breadwallet.crypto.Amount {
 
     @Override
     public String toString() {
-        // TODO(discuss): Do we want to return a non-localized value here? Is there a localization of NaN?
         return toStringAsUnit(unit).or("<nan>");
     }
 

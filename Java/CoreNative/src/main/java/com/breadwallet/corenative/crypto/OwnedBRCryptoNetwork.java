@@ -52,6 +52,16 @@ class OwnedBRCryptoNetwork implements CoreBRCryptoNetwork {
     }
 
     @Override
+    public UnsignedLong getCurrencyCount() {
+        return core.getCurrencyCount();
+    }
+
+    @Override
+    public CoreBRCryptoCurrency getCurrency(UnsignedLong index) {
+        return core.getCurrency(index);
+    }
+
+    @Override
     public String getUids() {
         return core.getUids();
     }

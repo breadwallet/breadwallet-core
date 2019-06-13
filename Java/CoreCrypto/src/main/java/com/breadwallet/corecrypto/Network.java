@@ -14,6 +14,7 @@ import com.breadwallet.crypto.WalletManagerMode;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedLong;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -101,7 +102,27 @@ final class Network implements com.breadwallet.crypto.Network {
         return Currency.create(core.getCurrency());
     }
 
-    // TODO(fix): Add getCurrencies() and getCurrencyByCode()
+    @Override
+    public Set<Currency> getCurrencies() {
+        Set<Currency> transfers = new HashSet<>();
+
+        UnsignedLong count = core.getCurrencyCount();
+        for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
+            transfers.add(Currency.create(core.getCurrency(i)));
+        }
+
+        return transfers;
+    }
+
+    @Override
+    public Optional<Currency> getCurrencyByCode(String code) {
+        for (Currency currency: getCurrencies()) {
+            if (code.equals(currency.getCode())) {
+                return Optional.of(currency);
+            }
+        }
+        return Optional.absent();
+    }
 
     @Override
     public boolean hasCurrency(com.breadwallet.crypto.Currency currency) {

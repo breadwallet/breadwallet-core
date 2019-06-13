@@ -45,6 +45,17 @@ public class BRCryptoNetwork extends PointerType implements CoreBRCryptoNetwork 
     }
 
     @Override
+    public UnsignedLong getCurrencyCount() {
+        return UnsignedLong.fromLongBits(CryptoLibrary.INSTANCE.cryptoNetworkGetCurrencyCount(this).longValue());
+    }
+
+    @Override
+    public CoreBRCryptoCurrency getCurrency(UnsignedLong index) {
+        return new OwnedBRCryptoCurrency(CryptoLibrary.INSTANCE.cryptoNetworkGetCurrencyAt(this,
+                new SizeT(index.longValue())));
+    }
+
+    @Override
     public String getUids() {
         return CryptoLibrary.INSTANCE.cryptoNetworkGetUids(this).getString(0, "UTF-8");
     }

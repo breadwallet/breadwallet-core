@@ -12,8 +12,6 @@ import com.google.common.primitives.UnsignedLong;
 
 import java.util.Objects;
 
-// TODO(fix): Add a finalize method with a call to cryptoWalletManagerGive()
-
 /* package */
 class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
 
@@ -45,6 +43,11 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     @Override
     public CoreBRCryptoWallet getWallet(UnsignedLong index) {
         return core.getWallet(index);
+    }
+
+    @Override
+    public boolean containsWallet(CoreBRCryptoWallet wallet) {
+        return core.containsWallet(wallet);
     }
 
     @Override

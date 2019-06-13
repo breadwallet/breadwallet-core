@@ -39,6 +39,11 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
                 new SizeT(index.longValue())));
     }
 
+    public boolean containsTransfer(CoreBRCryptoTransfer transfer) {
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoWalletHasTransfer(this,
+                transfer.asBRCryptoTransfer());
+    }
+
     @Override
     public int getState() {
         return CryptoLibrary.INSTANCE.cryptoWalletGetState(this);
