@@ -82,15 +82,15 @@ public final class System {
     ///   - network: the wallet manager's network
     ///   - mode: the mode to use
     ///
-   public func createWalletManager (network: Network,
+    public func createWalletManager (network: Network,
                                      mode: WalletManagerMode) {
 
         let manager = WalletManager (system: self,
-                                          listener: listener!,
-                                          account: account,
-                                          network: network,
-                                          mode: mode,
-                                          storagePath: path)
+                                     listener: listener!,
+                                     account: account,
+                                     network: network,
+                                     mode: mode,
+                                     storagePath: path)
 
         //        switch network.currency.code {
         //        case Currency.codeAsBTC,
@@ -132,7 +132,9 @@ public final class System {
         // called-back WalletEvent.created for the primary wallet.  But, this manager was not held
         // by System's managers yet, so the event was ignored.  By touching the primaryWallet
         // here, we'll create a wallet.
-        let _ = manager.primaryWallet
+
+        // TODO: Race w/ this:
+        // let _ = manager.primaryWallet
     }
 
     // Wallets - derived as a 'flatMap' of the managers' wallets.
