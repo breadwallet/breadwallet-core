@@ -22,6 +22,7 @@
 #include "BRStellarSerialize.h"
 #include "BRStellarTransaction.h"
 #include "BRStellarAccountUtils.h"
+#include "testStellarInput.h"
 
 static int debug_log = 0;
 
@@ -200,9 +201,6 @@ static void serializeAndSign()
     }
     // Compare with what we are expecting
     const char* expected_b64 = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAZAAHHCYAAAAIAAAAAAAAAAEAAAAUQnV5IHlvdXJzZWxmIGEgYmVlciEAAAABAAAAAAAAAAEAAAAAVWLzRLZHFEi3tuvrW66cHOzJMO8ohoviu3i7dCgx5xAAAAAAAAAAAAZCLEAAAAAAAAAAAeJoetEAAABAzBQpbrqpbfFozHnwpIATkErUPcb5xesMeFClf5dyd4X0kBw3c6gZUVTtHh3iCZ6eUAEge/lCft6NfXzsHy1HBQ==";
-#if 0
-    "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAZAAHHCYAAAAGAAAAAAAAAAEAAAAUQnV5IHlvdXJzZWxmIGEgYmVlciEAAAABAAAAAAAAAAEAAAAAVWLzRLZHFEi3tuvrW66cHOzJMO8ohoviu3i7dCgx5xAAAAAAAAAAAAZCLEAAAAAAAAAAAeJoetEAAABA7SA5lCfGXhKqo44uczRi9kIIOVaAv02ugAIWK8vxVDDPk5zvjIbffBTDOhJpaf4kxnvsar7NWVHhsd+ieIyYCQ==";
-#endif
     assert(0 == memcmp(encoded, expected_b64, strlen(expected_b64)));
     assert(strlen(encoded) == strlen(expected_b64));
     free(encoded);
@@ -214,49 +212,80 @@ void runSerializationTests()
     serializeAndSign();
 }
 
-static void testDeserialize(const char * input, int32_t opType,
+static void testDeserialize(uint32_t test,
+                            const char * envelope_xdr, const char* result_xdr, const char* accountString,
+                            uint32_t opType,
                             uint32_t expectedOpCount,
                             uint32_t expectedSignatureCount,
-                            const char* expectedMemoText,
-                            const char* accountString)
+                            int32_t expectedStatus,
+                            uint32_t expectedResultOpCount
+                            )
 {
-    // Turn the base64 into bytes
-    size_t byteSize = 0;
-    uint8_t * bytes = b64_decode_ex(input, strlen(input), &byteSize);
-    if (debug_log) {
-        for(int i = 0; i < byteSize; i++) {
-            if (i >= 0 && i % 8 == 0) printf("\n");
-            printf("%02X ", bytes[i]);
+    // Deseralize the actual transaction if applicable
+    if (envelope_xdr) {
+        // Turn the base64 into bytes
+        size_t byteSize = 0;
+        uint8_t * bytes = b64_decode_ex(envelope_xdr, strlen(envelope_xdr), &byteSize);
+        if (debug_log) {
+            for(int i = 0; i < byteSize; i++) {
+                if (i >= 0 && i % 8 == 0) printf("\n");
+                printf("%02X ", bytes[i]);
+            }
+            printf("\n");
         }
-        printf("\n");
+
+        BRStellarTransaction transaction = stellarTransactionCreateFromBytes(&bytes[0], byteSize);
+        assert(transaction);
+        if (accountString) {
+            BRStellarAccountID accountID = stellarTransactionGetAccountID(transaction);
+            BRKey key;
+            memcpy(key.pubKey, accountID.accountID, 32);
+            BRStellarAddress address = createStellarAddressFromPublicKey(&key);
+            if (0 != strcmp(&address.bytes[0], accountString)) printf("Address: %s\n", address.bytes);
+            assert(0 == strcmp(&address.bytes[0], accountString));
+        }
+        size_t opCount = stellarTransactionGetOperationCount(transaction);
+        assert(opCount == expectedOpCount);
+        uint32_t sigCount = stellarTransactionGetSignatureCount(transaction);
+        assert(sigCount == expectedSignatureCount);
+
+        if (opType > 0) {
+            // There should be at least 1 operation that matches our expectations
+            bool found = false;
+            for (int i = 0; i < opCount; i++) {
+                BRStellarOperation *op = stellarTransactionGetOperation(transaction, i);
+                if (op->type == opType) {
+                    found = true;
+                }
+            }
+            assert(found);
+        }
+        stellarTransactionFree(transaction);
     }
 
-    BRStellarTransaction transaction = stellarTransactionCreateFromBytes(&bytes[0], byteSize);
-    assert(transaction);
-    if (accountString) {
-        BRStellarAccountID accountID = stellarTransactionGetAccountID(transaction);
-        BRKey key;
-        memcpy(key.pubKey, accountID.accountID, 32);
-        BRStellarAddress address = createStellarAddressFromPublicKey(&key);
-        assert(0 == strcmp(&address.bytes[0], accountString));
+    // If we get this far then go ahead and parse the result
+    if (result_xdr) {
+        BRStellarTransaction resultTransaction = stellarTransactionCreateFromBytes(NULL, 0);
+        BRStellarTransactionResult result = stellarTransactionGetResult(resultTransaction, result_xdr);
+        assert(expectedStatus == result.resultCode);
+        size_t opCount = stellarTransactionGetOperationCount(resultTransaction);
+        assert(opCount == expectedResultOpCount);
+        stellarTransactionFree(resultTransaction);
     }
-    size_t opCount = stellarTransactionGetOperationCount(transaction);
-    assert(opCount == expectedOpCount);
-    uint32_t sigCount = stellarTransactionGetSignatureCount(transaction);
-    assert(sigCount == expectedSignatureCount);
+}
 
-    if (opType > 0) {
-        // Get the first opeation and see if it matches our expected type
-        BRStellarOperation *op = stellarTransactionGetOperation(transaction, 0);
-        assert(op->type == opType);
-    }
-
-    if (expectedMemoText) {
-        BRStellarMemo * memo = stellarTransactionGetMemo(transaction);
-        assert(memo);
-        assert(0 == strcmp(expectedMemoText, memo->text));
-    }
-    stellarTransactionFree(transaction);
+static void testDeserialize2(const char * testNumber, const char * testType, const char * numOperations, const char * numSignatures,
+                             const char * envelop_xdr, const char * result_xdr, const char * account,
+                             const char * responseCode, const char * expectedResultOpCount)
+{
+    if (debug_log) printf("Running deserialize test %s\n", testNumber);
+    uint32_t test = atoi(testNumber);
+    uint32_t opType = atoi(testType);
+    uint32_t expectedOpCount = atoi(numOperations);
+    uint32_t expectedSignatureCount = atoi(numSignatures);
+    int32_t resCode = atoi(responseCode);
+    uint32_t resOpCount = atoi(expectedResultOpCount);
+    testDeserialize(test, envelop_xdr, result_xdr, account, opType, expectedOpCount, expectedSignatureCount, resCode, resOpCount);
 }
 
 static void testDeserializeSetOptions(const char * input,
@@ -304,148 +333,65 @@ static void testDeserializeSetOptions(const char * input,
     stellarTransactionFree(transaction);
 }
 
-
-static const char* tx_one = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAZAAHHCYAAAAGAAAAAAAAAAEAAAAUQnV5IHlvdXJzZWxmIGEgYmVlciEAAAABAAAAAAAAAAEAAAAAVWLzRLZHFEi3tuvrW66cHOzJMO8ohoviu3i7dCgx5xAAAAAAAAAAAAZCLEAAAAAAAAAAAeJoetEAAABA7SA5lCfGXhKqo44uczRi9kIIOVaAv02ugAIWK8vxVDDPk5zvjIbffBTDOhJpaf4kxnvsar7NWVHhsd+ieIyYCQ==";
-
-static const char* tx_two = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAZAAHHCYAAAAHAAAAAAAAAAEAAAAUQnV5IHlvdXJzZWxmIGEgYmVlciEAAAABAAAAAAAAAAEAAAAAVWLzRLZHFEi3tuvrW66cHOzJMO8ohoviu3i7dCgx5xAAAAAAAAAAAAZCLEAAAAAAAAAAAeJoetEAAABAlLvA6YjDlERdXd1gU5VYeczu26F+Wgt0VpGsfqdN0kgUx1B7GFdmB2tT2tKM72XLYu7Y2M6+c5QiDueVNP45BQ==";
-
-static const char* tx_three = "AAAAAFF+B9zBBP1YlsE7qH3fgzFgDFqroQL9jk7rbFuEXrs1AAAD6AAIMqMAAALHAAAAAAAAAAEAAAATMTU1OTc3NTY0NDM4NzY2MzMxNwAAAAAKAAAAAAAAAAEAAAAA6Twf5NVbRbK9xRkcq2FGkOsCXCR+2o/IQuqLMdai75sAAAABQVNUAAAAAAA7RJmpRASHTO3fxjKgzKNxcMOAIuzHdHxKqG/pKFzBeQAAAADO9ZFKAAAAAAAAAAEAAAAAtXNqcGkSnob8RmCPzwBlVkZPL6Z3uBnlEk7dzv0zoEMAAAABQVNUAAAAAAA7RJmpRASHTO3fxjKgzKNxcMOAIuzHdHxKqG/pKFzBeQAAAAAEIvXAAAAAAAAAAAEAAAAAujyXUtPD0YI01M1C5/c2er0UmMY7KEjbgNapoXfTfaEAAAABQVNUAAAAAAA7RJmpRASHTO3fxjKgzKNxcMOAIuzHdHxKqG/pKFzBeQAAAAIFZeqoAAAAAAAAAAEAAAAAkc5K9uSAJh3Grr/wm2S3LNl3OEtgRslgshd4jkxu6+4AAAABQVNUAAAAAAA7RJmpRASHTO3fxjKgzKNxcMOAIuzHdHxKqG/pKFzBeQAAAADO9ZFKAAAAAAAAAAEAAAAAujyXUtPD0YI01M1C5/c2er0UmMY7KEjbgNapoXfTfaEAAAABQVNUAAAAAAA7RJmpRASHTO3fxjKgzKNxcMOAIuzHdHxKqG/pKFzBeQAAAAABPWIAAAAAAAAAAAEAAAAAujyXUtPD0YI01M1C5/c2er0UmMY7KEjbgNapoXfTfaEAAAABQVNUAAAAAAA7RJmpRASHTO3fxjKgzKNxcMOAIuzHdHxKqG/pKFzBeQAAAAAAuKGgAAAAAAAAAAEAAAAAkc5K9uSAJh3Grr/wm2S3LNl3OEtgRslgshd4jkxu6+4AAAABQVNUAAAAAAA7RJmpRASHTO3fxjKgzKNxcMOAIuzHdHxKqG/pKFzBeQAAAADO9ZFKAAAAAAAAAAEAAAAAsxpAcS6M5dE+RQgqqRflcY+NQTB6UB+83oUvnHjPU9IAAAABQVNUAAAAAAA7RJmpRASHTO3fxjKgzKNxcMOAIuzHdHxKqG/pKFzBeQAAAABnesiqAAAAAAAAAAEAAAAAnPXA1s0+/qsD0saYDm3OOP4i244eRFnm0Zoncx1zL+sAAAABQVNUAAAAAAA7RJmpRASHTO3fxjKgzKNxcMOAIuzHdHxKqG/pKFzBeQAAAABnesiqAAAAAAAAAAEAAAAAnPXA1s0+/qsD0saYDm3OOP4i244eRFnm0Zoncx1zL+sAAAABQVNUAAAAAAA7RJmpRASHTO3fxjKgzKNxcMOAIuzHdHxKqG/pKFzBeQAAAAJs4LUUAAAAAAAAAAGEXrs1AAAAQKli297VQldRucMvFo7dC5bm+4ajMlv/a3zl18JIkOSXH4NwplUx0wsQbV0JHBbeHeM4AInlOUqxczu/2pCpXAY=";
-
-static const char* tx_four = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAyAAHHCYAAAAIAAAAAAAAAAEAAAAUQnV5IHlvdXJzZWxmIGEgYmVlciEAAAACAAAAAAAAAAEAAAAAVWLzRLZHFEi3tuvrW66cHOzJMO8ohoviu3i7dCgx5xAAAAAAAAAAAAZCLEAAAAAAAAAAAQAAAABVYvNEtkcUSLe26+tbrpwc7Mkw7yiGi+K7eLt0KDHnEAAAAAFVU0QAAAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAAA9ZI2AAAAAAAAAAAeJoetEAAABA9DFFgiaosjqQBD9HZPyVwxpmLzTOFscmzCZBBM/3Y1VCpR+u5VNeDDxLs42XdCgbadqfGBfdI4ypbgw8yT0MDw==";
-
-static const char* manage_sell_offer = "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";
-
-static const char * create_account = "AAAAABazwKAoKLArxulrNcFFC77uk62XehKoGtw88Esm/2j1AAAAZAAKSLoAAAAXAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAEAAAAAEH3Rayw4M0iCLoEe96rPFNGYim8AVHJU0z4ebYZW4JwAAAAAAAAAAEwgN7rJa6CnAywT3bO9D+O+l6DWfffoS1hxhBZj1XiLAAAAF0h26AAAAAAAAAAAAib/aPUAAABAnk4Zpl2aLtahfwbkhnLCsBg5TpvNAHzpkk1o/OlcF9cH6SiWHOyOd7NBg8Gz3J5IBBdHPHP9/f9knsV/aOAhA4ZW4JwAAABANEaa9FU68H4dtIcPsXJYk2xjyYKyNauVm4a1eBjQ5R9F85eCHQ5hxmf/TMW6F28Iu/X9dLowjYjz+zNYkWPaCQ==";
-
-static const char * create_account_with_memo = "AAAAAAFOcspucax5xw99HWyyCAZ+FS7Mit+5U1rVJyv4+ZnQAAAAZAAGuQEAAWEVAAAAAQAAAAAAAAAAAAAAAFz5YIQAAAABAAAABVdIQUxFAAAAAAAAAQAAAAAAAAAAAAAAACJVGoisBGLnBXw0Z9q6aY8vGagvvbHf1DtUhefnCOlLAAAAAAtTK4AAAAAAAAAAAfj5mdAAAABAW8usstplNLZ+TuRQbYTvB2JXSDeMKbofxmaRQCNJ5HST0Jm+K8XVjaCZ1N8fwqj9QfIt8lgWOffdMPBH/fH2Cg==";
-
-static const char * path_payment = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAZAAHHCYAAAAIAAAAAAAAAAEAAAAUQnV5IHlvdXJzZWxmIGEgYmVlciEAAAABAAAAAAAAAAIAAAAAAAAAAlQL5AAAAAAAVWLzRLZHFEi3tuvrW66cHOzJMO8ohoviu3i7dCgx5xAAAAAAAAAAADuaygAAAAABAAAAAVVTRAAAAAAAJA/+t89BcYGwsJMgNfi8CGsE0WwYsduMYp8RBeJoetEAAAAAAAAAAeJoetEAAABArgtWbZye1KhXNKvWQ9Y+sTbYA5mFL1jIUez0oKWPdtiqhILvEAtrxL6SwWOzF2Z0w8xccu0DQlfYKys3a9bjDA==";
-static const char * passive_sell_offer = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAZAAHHCYAAAAIAAAAAAAAAAEAAAAUQnV5IHlvdXJzZWxmIGEgYmVlciEAAAABAAAAAAAAAAQAAAABVVNEAAAAAAAkD/63z0FxgbCwkyA1+LwIawTRbBix24xinxEF4mh60QAAAAFDRE4AAAAAABazwKAoKLArxulrNcFFC77uk62XehKoGtw88Esm/2j1AAAAAD2KsyAAAACHAAAAZAAAAAAAAAAB4mh60QAAAECDKVlOkWGD88JNJ4U9wJgwzFT3CfqT5eUQCAvVJCVp4ZdwyDZ0aE/0JF3sUYe1WgVAg2AtntkeY8KXNXy7iGcN";
-static const char * payment_and_options = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAyAAHHCYAAAAIAAAAAAAAAAEAAAAUQnV5IHlvdXJzZWxmIGEgYmVlciEAAAACAAAAAAAAAAEAAAAAVWLzRLZHFEi3tuvrW66cHOzJMO8ohoviu3i7dCgx5xAAAAAAAAAAAAZCLEAAAAAAAAAABQAAAAAAAAABAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAtmZWQubmV0d29yawAAAAABAAAAABazwKAoKLArxulrNcFFC77uk62XehKoGtw88Esm/2j1AAAAAQAAAAAAAAAB4mh60QAAAECZIoN8cWovhgMTw/DIapIj/biEfImB6tIywxxHfBL0bxeePPR+C6mI/3LttlN+Tjhf71fMvqU9CxXR7f3wzk8D";
-
-static const char * all_operations = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAACvAAHHCYAAAAIAAAAAAAAAAEAAAAUQnV5IHlvdXJzZWxmIGEgYmVlciEAAAAHAAAAAAAAAAEAAAAAVWLzRLZHFEi3tuvrW66cHOzJMO8ohoviu3i7dCgx5xAAAAAAAAAAAAZCLEAAAAAAAAAAAQAAAABVYvNEtkcUSLe26+tbrpwc7Mkw7yiGi+K7eLt0KDHnEAAAAAFVU0QAAAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAAA9ZI2AAAAAAAAAAAgAAAAAAAAACVAvkAAAAAABVYvNEtkcUSLe26+tbrpwc7Mkw7yiGi+K7eLt0KDHnEAAAAAAAAAAAO5rKAAAAAAEAAAABVVNEAAAAAAAkD/63z0FxgbCwkyA1+LwIawTRbBix24xinxEF4mh60QAAAAAAAAAEAAAAAVVTRAAAAAAAJA/+t89BcYGwsJMgNfi8CGsE0WwYsduMYp8RBeJoetEAAAABQ0ROAAAAAAAWs8CgKCiwK8bpazXBRQu+7pOtl3oSqBrcPPBLJv9o9QAAAAA9irMgAAAAhwAAAGQAAAAAAAAABQAAAAEAAAAAVWLzRLZHFEi3tuvrW66cHOzJMO8ohoviu3i7dCgx5xAAAAABAAAAAQAAAAEAAAACAAAAAQAAAAMAAAABAAAABAAAAAEAAAAFAAAAAQAAAAYAAAABAAAAC2ZlZC5uZXR3b3JrAAAAAAEAAAAAFrPAoCgosCvG6Ws1wUULvu6TrZd6Eqga3DzwSyb/aPUAAAABAAAAAAAAAAYAAAAAAAAAAHc1lAAAAAAAAAAABwAAAABVYvNEtkcUSLe26+tbrpwc7Mkw7yiGi+K7eLt0KDHnEAAAAAFVU0QAAAAAAQAAAAAAAAAB4mh60QAAAEBgh3Y4HxZfjXS1YbXh+3ZrjrJaVNhiAlQobo4LeOsIx9SlpZfdKE/g0kaBq/OFjCUSjbSgCCvZ4AOU68o59gEG";
-
-static const char * set_options_one = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAZAAHHCYAAAAIAAAAAAAAAAEAAAAUQnV5IHlvdXJzZWxmIGEgYmVlciEAAAABAAAAAAAAAAUAAAAAAAAAAQAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAALZmVkLm5ldHdvcmsAAAAAAQAAAAAWs8CgKCiwK8bpazXBRQu+7pOtl3oSqBrcPPBLJv9o9QAAAAEAAAAAAAAAAeJoetEAAABALqu9TWI9WDIY3fkMW30k0gFHE24hPweoW0Yzy+7QXdiSTPV16EZkVopcjjWJGHa6Xk3HDjGGqAAXntcHmdRNAQ==";
-static const char * set_options_all = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAZAAHHCYAAAAIAAAAAAAAAAEAAAAUQnV5IHlvdXJzZWxmIGEgYmVlciEAAAABAAAAAAAAAAUAAAABAAAAAFVi80S2RxRIt7br61uunBzsyTDvKIaL4rt4u3QoMecQAAAAAQAAAAEAAAABAAAAAgAAAAEAAAADAAAAAQAAAAQAAAABAAAABQAAAAEAAAAGAAAAAQAAAAtmZWQubmV0d29yawAAAAABAAAAABazwKAoKLArxulrNcFFC77uk62XehKoGtw88Esm/2j1AAAAAQAAAAAAAAAB4mh60QAAAED5ctKVRkz/OvdKBlHxiGNGJ5xZ+3l4dpaYYmUI3nsYemKWHufcFTbRObecjqbpfm0zC+CQW/zR0rAwmO0GEA8G";
-static const char * account_merge = "AAAAAK0WSc/cVTc6KLcLGEKy8dTyA4sXIALXqlhQfZcCNsbVAAAAZAAMHR4AAAABAAAAAAAAAAAAAAABAAAAAAAAAAgAAAAAJA/+t89BcYGwsJMgNfi8CGsE0WwYsduMYp8RBeJoetEAAAAAAAAAAQI2xtUAAABAFoPFGatheJkldW1agMJuxSF4jNbdtMYKZoPgBilM08UXWULuu4WIncnjWIXQ8ca45q1rmbP6v7lv5gfI6FL3DA==";
-static const char * bump_sequence = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAZAAHHCYAAAAPAAAAAAAAAAAAAAABAAAAAAAAAAsABxwmAAAADwAAAAAAAAAB4mh60QAAAECg9GxHI1P4Nv2trtrcyebY13S3xh0eChfQ3yGY2uLihfc+969HcD7ucOjbeP6j/HWk1JlStWl2DPhXh1mA3DcI";
-static const char * manage_data = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAZAAHHCYAAAAQAAAAAAAAAAAAAAABAAAAAAAAAAoAAAANYnVzaW5lc3NfbmFtZQAAAAAAAAEAAAAIMDI0OTIzODEAAAAAAAAAAeJoetEAAABARhwJWm8F1Qj0HyEiYAzVqqqqqfsxicENe62XK/Me0m/9l2NzX3B3KM+RYfChwemEYG7/WdDmc0fx+8F1/gzIBw==";
-static const char * manage_buy_offer = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAZAAHHCYAAAAYAAAAAAAAAAAAAAABAAAAAAAAAAwAAAAAAAAAAVVTRAAAAAAAJA/+t89BcYGwsJMgNfi8CGsE0WwYsduMYp8RBeJoetEAAAAAPYqzIAAAAAEAAAAMAAAAAAAAAAAAAAAAAAAAAeJoetEAAABAdpt5hTDI88136Xw/yeiDIl7TKbR9dy7kwrJUa+ACIuO1bWmNWrnR7ZGb1z+/I6XgeqoY47vaLLK9kkTS4a1+AA==";
-static const char * inflation_no_source_account = "AAAAAP2WpWayOtp5SOb2El22dFAtiBNTRY1YHnvNQoTao/PMAAAAZAAMLtoAAAABAAAAAAAAAAAAAAABAAAAAAAAAAkAAAAAAAAAAdqj88wAAABAyx19spq3TJYlNhc7PWFZYPFHpCbdN1mD2sZcboulgX5t4YmF13P1/NRDD1JlP9qvf6iJq6utt79D2MajH5SbAg==";
-static const char * inflation = "AAAAAP2WpWayOtp5SOb2El22dFAtiBNTRY1YHnvNQoTao/PMAAAAZAAMLtoAAAABAAAAAAAAAAAAAAABAAAAAQAAAAD9lqVmsjraeUjm9hJdtnRQLYgTU0WNWB57zUKE2qPzzAAAAAkAAAAAAAAAAdqj88wAAABAgugHYgFn8OonOY7njT876dhFYI4eACBLD2UjcqxAYVNBgRnKbsrUbq8mSfQXjlUwqRxLSrLbGyjFneSCioD/Cw==";
-
 void runDeserializationTests()
 {
-    testDeserialize(tx_one, ST_OP_PAYMENT, 1, 1, NULL,
-                    "GASA77VXZ5AXDANQWCJSANPYXQEGWBGRNQMLDW4MMKPRCBPCNB5NC77I");
-    testDeserialize(tx_two, ST_OP_PAYMENT, 1, 1, NULL,
-                    "GASA77VXZ5AXDANQWCJSANPYXQEGWBGRNQMLDW4MMKPRCBPCNB5NC77I");
-    testDeserialize(tx_three, ST_OP_PAYMENT, 10, 1, NULL,
-                    "GBIX4B64YECP2WEWYE52Q7O7QMYWADC2VOQQF7MOJ3VWYW4EL25TKIXK");
-    testDeserialize(tx_four, ST_OP_PAYMENT, 2, 1, NULL,
-                    "GASA77VXZ5AXDANQWCJSANPYXQEGWBGRNQMLDW4MMKPRCBPCNB5NC77I");
-    // tx_five has 25 ManageSellOffer operations and 2 signatures
-    testDeserialize(manage_sell_offer, ST_OP_MANAGE_SELL_OFFER, 25, 2, NULL,
-                    "GBCHVP6PGXGH6ALPV5K5LD56KJDTL7W4XBDQGNF65DPADRH4VOXVDIDG");
-    testDeserialize(create_account, ST_OP_CREATE_ACCOUNT, 1, 2, NULL,
-                    "GALLHQFAFAULAK6G5FVTLQKFBO7O5E5NS55BFKA23Q6PASZG75UPKANL");
-    testDeserialize(create_account_with_memo, ST_OP_CREATE_ACCOUNT, 1, 1, "WHALE",
-                    "GAAU44WKNZY2Y6OHB56R23FSBADH4FJOZSFN7OKTLLKSOK7Y7GM5AT7Y");
-    testDeserialize(path_payment, ST_OP_PATH_PAYMENT, 1, 1, NULL,
-                    "GASA77VXZ5AXDANQWCJSANPYXQEGWBGRNQMLDW4MMKPRCBPCNB5NC77I");
-    testDeserialize(passive_sell_offer, ST_OP_CREATE_PASSIVE_SELL_OFFER, 1, 1, NULL,
-                    "GASA77VXZ5AXDANQWCJSANPYXQEGWBGRNQMLDW4MMKPRCBPCNB5NC77I");
-    testDeserialize(payment_and_options, ST_OP_PAYMENT, 2, 1, NULL,
-                    "GASA77VXZ5AXDANQWCJSANPYXQEGWBGRNQMLDW4MMKPRCBPCNB5NC77I");
-
-    testDeserialize(account_merge, ST_OP_ACCOUNT_MERGE, 1, 1, NULL, "GCWRMSOP3RKTOORIW4FRQQVS6HKPEA4LC4QAFV5KLBIH3FYCG3DNKUZ7");
-
-    testDeserialize(bump_sequence, ST_OP_BUMP_SEQUENCE, 1, 1, NULL, "GASA77VXZ5AXDANQWCJSANPYXQEGWBGRNQMLDW4MMKPRCBPCNB5NC77I");
-
-    testDeserialize(manage_data, ST_OP_MANAGE_DATA, 1, 1, NULL, "GASA77VXZ5AXDANQWCJSANPYXQEGWBGRNQMLDW4MMKPRCBPCNB5NC77I");
-
-    testDeserialize(manage_buy_offer, ST_OP_MANAGE_BUY_OFFER, 1, 1, NULL, "GASA77VXZ5AXDANQWCJSANPYXQEGWBGRNQMLDW4MMKPRCBPCNB5NC77I");
-
-    testDeserialize(inflation, ST_OP_INFLATION, 1, 1, NULL, "GD6ZNJLGWI5NU6KI433BEXNWORIC3CATKNCY2WA6PPGUFBG2UPZ4ZAXA");
-    testDeserialize(inflation_no_source_account, ST_OP_INFLATION, 1, 1, NULL, "GD6ZNJLGWI5NU6KI433BEXNWORIC3CATKNCY2WA6PPGUFBG2UPZ4ZAXA");
-
-    testDeserialize(all_operations, ST_OP_PAYMENT,  7, 1, NULL,
-                    "GASA77VXZ5AXDANQWCJSANPYXQEGWBGRNQMLDW4MMKPRCBPCNB5NC77I");
+    size_t numTests = sizeof(test_input)/sizeof(char*);
+    for (int i = 0; i < numTests; i += 7) {
+        testDeserialize2(test_input[i], test_input[i+1], test_input[i+2], test_input[i+3],
+                         test_input[i+4], test_input[i+5], test_input[i+6], "0", test_input[i+2]);
+    }
 
     // For the SetOptions test we want to ensure that we parsed the correct
     // settings values from the operation since there are all optional
     // For this test we have set clearFlags, home domain, and Signer
     uint8_t expectedSettingsOne[] = {0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01};
+    static const char * set_options_one = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAZAAHHCYAAAAIAAAAAAAAAAEAAAAUQnV5IHlvdXJzZWxmIGEgYmVlciEAAAABAAAAAAAAAAUAAAAAAAAAAQAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAALZmVkLm5ldHdvcmsAAAAAAQAAAAAWs8CgKCiwK8bpazXBRQu+7pOtl3oSqBrcPPBLJv9o9QAAAAEAAAAAAAAAAeJoetEAAABALqu9TWI9WDIY3fkMW30k0gFHE24hPweoW0Yzy+7QXdiSTPV16EZkVopcjjWJGHa6Xk3HDjGGqAAXntcHmdRNAQ==";
     testDeserializeSetOptions(set_options_one, 1, 1, expectedSettingsOne);
+    static const char * set_options_all = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAZAAHHCYAAAAIAAAAAAAAAAEAAAAUQnV5IHlvdXJzZWxmIGEgYmVlciEAAAABAAAAAAAAAAUAAAABAAAAAFVi80S2RxRIt7br61uunBzsyTDvKIaL4rt4u3QoMecQAAAAAQAAAAEAAAABAAAAAgAAAAEAAAADAAAAAQAAAAQAAAABAAAABQAAAAEAAAAGAAAAAQAAAAtmZWQubmV0d29yawAAAAABAAAAABazwKAoKLArxulrNcFFC77uk62XehKoGtw88Esm/2j1AAAAAQAAAAAAAAAB4mh60QAAAED5ctKVRkz/OvdKBlHxiGNGJ5xZ+3l4dpaYYmUI3nsYemKWHufcFTbRObecjqbpfm0zC+CQW/zR0rAwmO0GEA8G";
     uint8_t expectedSettingsAll[] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
     testDeserializeSetOptions(set_options_all, 1, 1, expectedSettingsAll);
 }
 
-static void deserializeTxResponse(const char * response_xdr, size_t expectedOpCount, int32_t expectedStatus)
-{
-    BRStellarTransaction transaction = stellarTransactionCreateFromBytes(NULL, 0);
-    assert(transaction);
-    BRStellarTransactionResult result = stellarTransactionGetResult(transaction, response_xdr);
-    assert(expectedStatus == result.resultCode);
-    size_t opCount = stellarTransactionGetOperationCount(transaction);
-    assert(opCount == expectedOpCount);
-    stellarTransactionFree(transaction);
-}
-
-static void deserializeInflationResult(int32_t expectedStatus)
-{
-    // Since I don't have any real results I can use I will have to construct what I think
-    // it would look like
-    const char * tmp = "AAAAAAAAAMgAAAAAAAAAAgAAAAAAAAABAAAAAAAAAAAAAAABAAAAAAAAAAA=";
-    size_t byteSize = 0;
-    uint8_t * bytes = b64_decode_ex(tmp, strlen(tmp), &byteSize);
-    printBytes(bytes, byteSize);
-    uint8_t inflation_input[] = {
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x64, // 64-bit fee
-        0x00, 0x00, 0x00, 0x00, // 4-byte status code
-        0x00, 0x00, 0x00, 0x01, // array size
-        0x00, 0x00, 0x00, 0x00, // Element 1 - opInner
-        0x00, 0x00, 0x00, 0x09, // operation type - 9 is inflation
-        0x00, 0x00, 0x00, 0x00, // operation status, 0 = SUCCESS
-        0x00, 0x00, 0x00, 0x01, // number of inflation payouts
-        0x00, 0x00, 0x00, 0x00, // account ID type, 0 - ed25519
-        0x24, 0x0F, 0xFE, 0xB7, 0xCF, 0x41, 0x71, 0x81, // AccountID
-        0xB0, 0xB0, 0x93, 0x20, 0x35, 0xF8, 0xBC, 0x08,
-        0x6B, 0x04, 0xD1, 0x6C, 0x18, 0xB1, 0xDB, 0x8C,
-        0x62, 0x9F, 0x11, 0x05, 0xE2, 0x68, 0x7A, 0xD1,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x98, 0x96, 0x90, // amount
-        0x00, 0x00, 0x00, 0x00 // Version
-    };
-    char * response_xdr = b64_encode(inflation_input, sizeof(inflation_input));
-    BRStellarTransaction transaction = stellarTransactionCreateFromBytes(NULL, 0);
-    assert(transaction);
-    BRStellarTransactionResult result = stellarTransactionGetResult(transaction, response_xdr);
-    assert(expectedStatus == result.resultCode);
-    BRStellarOperation *op = stellarTransactionGetOperation(transaction, 0);
-    assert(op);
-    assert(op->type == ST_OP_INFLATION);
-    free(response_xdr);
-    stellarTransactionFree(transaction);
-}
-
-static const char * response_payments = "AAAAAAAAAMgAAAAAAAAAAgAAAAAAAAABAAAAAAAAAAAAAAABAAAAAAAAAAA=";
 static const char * bad_sequence = "AAAAAAAAAAD////7AAAAAA==";
 static const char * account_merge_result = "AAAAAAAAAGQAAAAAAAAAAQAAAAAAAAAIAAAAAAAAABdIduecAAAAAA==";
 static const char * bump_seq_number_result = "AAAAAAAAAGQAAAAAAAAAAQAAAAAAAAALAAAAAAAAAAA=";
 static const char * manage_data_result = "AAAAAAAAAGQAAAAAAAAAAQAAAAAAAAAKAAAAAAAAAAA=";
-static const char * manage_sell_offer_result = "AAAAAAAAAGQAAAAAAAAAAQAAAAAAAAADAAAAAAAAAAAAAAAAAAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAAADRmzcAAAABVVNEAAAAAAAkD/63z0FxgbCwkyA1+LwIawTRbBix24xinxEF4mh60QAAAAAAAAAAPYqzIAAAAAwAAAABAAAAAAAAAAAAAAAA";
 static const char * manage_buy_offer_result = "AAAAAAAAAGQAAAAAAAAAAQAAAAAAAAAMAAAAAAAAAAAAAAAAAAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAAADRotIAAAAAAAAAAVVTRAAAAAAAJA/+t89BcYGwsJMgNfi8CGsE0WwYsduMYp8RBeJoetEAAAAABSDkQgAAAAwAAAABAAAAAAAAAAAAAAAA";
+
+uint8_t inflation_input[] = {
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x64, // 64-bit fee
+    0x00, 0x00, 0x00, 0x00, // 4-byte status code
+    0x00, 0x00, 0x00, 0x01, // array size
+    0x00, 0x00, 0x00, 0x00, // Element 1 - opInner
+    0x00, 0x00, 0x00, 0x09, // operation type - 9 is inflation
+    0x00, 0x00, 0x00, 0x00, // operation status, 0 = SUCCESS
+    0x00, 0x00, 0x00, 0x01, // number of inflation payouts
+    0x00, 0x00, 0x00, 0x00, // account ID type, 0 - ed25519
+    0x24, 0x0F, 0xFE, 0xB7, 0xCF, 0x41, 0x71, 0x81, // AccountID
+    0xB0, 0xB0, 0x93, 0x20, 0x35, 0xF8, 0xBC, 0x08,
+    0x6B, 0x04, 0xD1, 0x6C, 0x18, 0xB1, 0xDB, 0x8C,
+    0x62, 0x9F, 0x11, 0x05, 0xE2, 0x68, 0x7A, 0xD1,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x98, 0x96, 0x90, // amount
+    0x00, 0x00, 0x00, 0x00 // Version
+};
 
 static void runResultDeserializationTests()
 {
-    deserializeInflationResult(0);
-    deserializeTxResponse(response_payments, 2, 0);
-    deserializeTxResponse(bad_sequence, 0, -5);
-    deserializeTxResponse(account_merge_result, 1, 0);
-    deserializeTxResponse(bump_seq_number_result, 1, 0);
-    deserializeTxResponse(manage_data_result, 1, 0);
-    deserializeTxResponse(manage_sell_offer_result, 1, 0);
-    deserializeTxResponse(manage_buy_offer_result, 1, 0);
+    // static void testDeserialize2(char * testNumber, char * testType, char * numOperations, char * numSignatures,
+    // char * envelop_xdr, char * result_xdr, char * account)
+    // NOTE: parameters 2 - 5 are not used unless there is a envelope_xdr, but NULLs are not allowed
+    // Once we fine true request-responses for the following types we can remove this code
+    // Real transactions can be found here: https://dashboard.stellar.org/
+    testDeserialize2("10000", "1", "0", "1", NULL, bad_sequence, NULL, "-5", "0");
+    testDeserialize2("10001", "1", "0", "1", NULL, account_merge_result, NULL, "0", "1");
+    testDeserialize2("10002", "1", "0", "1", NULL, bump_seq_number_result, NULL, "0", "1");
+    testDeserialize2("10003", "1", "0", "1", NULL, manage_data_result, NULL, "0", "1");
+    testDeserialize2("10004", "1", "0", "1", NULL, account_merge_result, NULL, "0", "1");
+    testDeserialize2("10005", "1", "0", "1", NULL, manage_buy_offer_result, NULL, "0", "1");
+
+    // The is a special case - so far we have no way of finding a real inflation result - so
+    char * response_xdr = b64_encode(inflation_input, sizeof(inflation_input));
+    testDeserialize2("20000", "9", "1", "1", NULL, response_xdr, NULL, "0", "1");
 }
 
 static void createDeleteWalletTest(const char* paperKey, const char* accountKey, const char* accountAddress)

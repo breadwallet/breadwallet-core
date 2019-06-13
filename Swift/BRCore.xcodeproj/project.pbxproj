@@ -614,6 +614,7 @@
 		C370241122AF0D6F0026D98B /* BRStellarWallet.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRStellarWallet.h; sourceTree = "<group>"; };
 		C370241322B01B860026D98B /* BRStellarOperation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRStellarOperation.h; sourceTree = "<group>"; };
 		C370241422B01B860026D98B /* BRStellarOperation.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRStellarOperation.c; sourceTree = "<group>"; };
+		C370241622B2AA2E0026D98B /* testStellarInput.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = testStellarInput.h; sourceTree = "<group>"; };
 		C370DC362295776000314FBB /* testRippleTxList1.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = testRippleTxList1.h; sourceTree = "<group>"; };
 		C370DC372295776000314FBB /* testRippleTxList2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = testRippleTxList2.h; sourceTree = "<group>"; };
 		C3854DC7229879DE00890AF1 /* BRStellarSerialize.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRStellarSerialize.h; sourceTree = "<group>"; };
@@ -1245,6 +1246,7 @@
 				C370241022AF0D6F0026D98B /* BRStellarWallet.c */,
 				C349CFE4229716D9005C5CED /* README */,
 				C349CFE5229716D9005C5CED /* testStellar.c */,
+				C370241622B2AA2E0026D98B /* testStellarInput.h */,
 			);
 			name = stellar;
 			path = ../../stellar;
