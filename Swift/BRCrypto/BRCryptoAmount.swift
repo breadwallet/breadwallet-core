@@ -217,39 +217,6 @@ extension Amount: CustomStringConvertible {
     }
 }
 
-extension Amount {
-
-    // ETH
-
-    internal var asETH: UInt64 {
-        var overflow: BRCryptoBoolean = CRYPTO_FALSE
-        let value = cryptoAmountGetIntegerRaw (self.core, &overflow)
-        precondition(CRYPTO_FALSE == overflow)
-        return value
-    }
-
-    internal static func createAsETH (_ value: UInt256, _ unit: Unit) -> Amount {
-        return Amount (core: cryptoAmountCreate(unit.currency.core, CRYPTO_FALSE, value),
-                       unit: unit,
-                       take: false);
-    }
-
-    // BTC
-
-    internal var asBTC: UInt64 {
-        var overflow: BRCryptoBoolean = CRYPTO_FALSE
-        let value = cryptoAmountGetIntegerRaw (self.core, &overflow)
-        precondition(CRYPTO_FALSE == overflow)
-        return value
-    }
-
-    internal static func createAsBTC (_ value: UInt64, _ unit: Unit) -> Amount {
-        return Amount (core: cryptoAmountCreate(unit.currency.core, CRYPTO_FALSE, createUInt256(value)),
-                       unit: unit,
-                       take: false);
-    }
-}
-
 ///
 /// "A currency pair is the quotation of the relative value of a currency unit against the unit of
 /// another currency in the foreign exchange market. The currency that is used as the reference is

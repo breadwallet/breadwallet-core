@@ -49,26 +49,6 @@ public final class Address: Equatable, CustomStringConvertible {
         return network.addressFor(string)
     }
 
-    internal static func createAsBTC (_ string: String) -> Address? {
-        guard 1 == BRAddressIsValid (string)
-            else { return nil }
-        return Address (core: cryptoAddressCreateAsBTC(BRAddressFill (string)), take: false)
-    }
-
-    internal static func createAsETH (_ string: String) -> Address? {
-        guard ETHEREUM_BOOLEAN_TRUE == addressValidateString (string)
-            else { return nil }
-        return Address (core: cryptoAddressCreateAsETH (addressCreate(string)), take: false)
-    }
-
-    internal static func createAsETH (_ eth: BREthereumAddress) -> Address  {
-        return Address (core: cryptoAddressCreateAsETH (eth), take: false)
-    }
-
-    internal static func createAsBTC (_ btc: BRAddress) -> Address  {
-        return Address (core: cryptoAddressCreateAsBTC (btc), take: false)
-    }
-
     deinit {
         cryptoAddressGive (core)
     }

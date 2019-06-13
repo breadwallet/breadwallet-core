@@ -98,7 +98,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         let subscription = BlockChainDB.Subscription (id: subscriptionId, endpoint: nil);
         self.system.subscribe (using: subscription)
 
-        self.system.start (networksNeeded: ["bitcoin-mainnet"]) // ,"ethereum-mainnet"])
+        self.system.start (networksNeeded: [/* "bitcoin-mainnet"], */"ethereum-mainnet"])
 
         return true
     }
