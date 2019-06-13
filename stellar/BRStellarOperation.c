@@ -28,6 +28,11 @@ extern BRStellarAsset stellarAssetCreateAsset(const char* assetCode, BRStellarAc
     BRStellarAsset asset;
     memset(&asset, 0x00, sizeof(BRStellarAsset));
 
+    // https://www.stellar.org/developers/guides/concepts/assets.html
+    // Assets come in 3 forms
+    // 1. Native XML
+    // 2. An asset code that is up to 4 ASCII characters
+    // 3. An asset code that is between 5 and 12 characters
     if (0 == strcmp("XML", assetCode)) {
         asset.type = ASSET_TYPE_NATIVE;
     } else {
@@ -38,7 +43,9 @@ extern BRStellarAsset stellarAssetCreateAsset(const char* assetCode, BRStellarAc
             asset.issuer = *issuer;
         }
         else {
-            // Make sure that we cover the case where someone passes in invalid code
+            // If the caller passes in a code larger that 12 chacters just copy
+            // the first 12 and let the Stellar server respond with an error if
+            // the asset type is unknown
             size_t amountToCopy = strlen(assetCode) <= 12 ? strlen(assetCode) : 12;
             asset.type = ASSET_TYPE_CREDIT_ALPHANUM12;
             strncpy(asset.assetCode, assetCode, amountToCopy);

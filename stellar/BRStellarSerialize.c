@@ -608,6 +608,9 @@ uint8_t * unpack_ManageOfferSuccessResult(uint8_t * buffer, BRStellarManageOffer
     buffer = unpack_uint(buffer, &numClaimedOffers);
     if (numClaimedOffers > 0) {
         // Delete the existing array if there is one
+        if (offerResult->claimOfferAtom) {
+            array_free(offerResult->claimOfferAtom);
+        }
         array_new(offerResult->claimOfferAtom, numClaimedOffers);
         for (int i = 0; i < numClaimedOffers; i++) {
             BRStellarClaimOfferAtom offerAtom;
@@ -630,6 +633,9 @@ uint8_t * unpack_InflationResult(uint8_t * buffer, BRStellarInflationOp *op)
     uint32_t numPayouts = 0;
     buffer = unpack_uint(buffer, &numPayouts);
     if (numPayouts > 0) {
+        if (op->payouts) {
+            array_free(op->payouts);
+        }
         array_new(op->payouts, numPayouts);
         for (int i = 0; i < numPayouts; i++) {
             BRStellarInflationPayout payout;
@@ -739,7 +745,8 @@ bool stellarDeserializeTransaction(BRStellarAccountID *accountID,
     // simpy pack the value 0.
     pCurrent = unpack_int(pCurrent, version);
 
-    // If we still have more to unpack then we must have a signature
+    // If we still have more to unpack then we must have a signature.
+    // We need at least 4 more bytes to read the array length.
     if (pEnd - pCurrent > 4) {
         pCurrent = unpack_Signatures(pCurrent, signature, signatureLength);
     }
@@ -809,9 +816,9 @@ int stellarDeserializeResultXDR(uint8_t * result_xdr, size_t result_length, BRAr
                     case ST_OP_ALLOW_TRUST:
                     case ST_OP_MANAGE_DATA:
                     case ST_OP_BUMP_SEQUENCE:
-                        // Nothing more to do here
+                        // Nothing more to do here - no data for these types, just a result code.
                         break;
-                    case ST_OP_PATH_PAYMENT:
+                    case ST_OP_PATH_PAYMENT: // Need to find a real one of these for testing
                     default:
                         return ST_XDR_UNSUPPORTED_OPERATION;
                 }

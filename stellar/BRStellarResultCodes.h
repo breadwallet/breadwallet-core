@@ -15,6 +15,10 @@
 extern "C" {
 #endif
 
+// Transaction Result code - top level. A transaction with multiple
+// operations acts as an atomic unit. I can only assume that if some
+// operations succeed but one fails then at the high level it would
+// report to be ST_TX_FAILED
 typedef enum st_result_code
 {
     ST_TX_SUCCESS = 0,
@@ -31,6 +35,15 @@ typedef enum st_result_code
     ST_TX_INTERNAL_ERROR = -11,
 } BRStellarTXResultCode;
 
+// For some reason there is an extra level of status
+// for operations. i.e.
+// array of ops
+//    [0] ST_OP_RESULT_CODE_INNER
+//      [tr] ST_OP_PAYMENT
+//         [paymentResult] ST_PAYMENT_SUCCESS
+//    [1] ST_OP_RESULT_CODE_INNER
+//      [tr] ST_OP_PAYMENT
+//         [paymentResult] ST_PAYMENT_SUCCESS
 typedef enum st_operation_result_code {
     ST_OP_RESULT_CODE_INNER = 0,
     ST_OP_RESULT_CODE_BAD_AUTH = -1,

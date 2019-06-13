@@ -46,8 +46,9 @@ static void hex2bin(const char* src, uint8_t * target)
     }
 }
 
-static void printBytes(uint8_t * bytes, size_t byteSize)
+static void printBytes(const char* message, uint8_t * bytes, size_t byteSize)
 {
+    if (message) printf("%s\n", message);
     for(int i = 0; i < byteSize; i++) {
         if (i >= 0 && i % 8 == 0) printf("\n");
         printf("%02X ", bytes[i]);
@@ -64,12 +65,7 @@ static BRStellarAccount createTestAccount(const char* paper_key,
         uint8_t expected_public_key[32];
         hex2bin(public_key_string, expected_public_key);
         BRKey key = stellarAccountGetPublicKey(account);
-        if (debug_log) {
-            for (int i = 0; i < 32; i++) {
-                printf("%02X", key.pubKey[i]);
-            }
-            printf("\n");
-        }
+        if (debug_log) printBytes("PublicKey:", key.pubKey, 32);
         assert(0 == memcmp(key.pubKey, expected_public_key, sizeof(expected_public_key)));
     }
 
@@ -148,13 +144,7 @@ static void serializeMinimum()
     uint8_t *buffer = NULL;
     size_t length = stellarSerializeTransaction(&sourceAddress, 200, 2001274371309571, NULL, 0,
                                 &memo, operations, 0, NULL, 0, &buffer);
-    if (debug_log) {
-        for(int i = 0; i < length; i++) {
-            if (i % 8 == 0) printf("\n");
-            printf("%02X ", buffer[i]);
-        }
-        printf("\n");
-    }
+    if (debug_log) printBytes("serialized bytes:", buffer, length);
     free(buffer);
 }
 
@@ -192,18 +182,15 @@ static void serializeAndSign()
     char * encoded = b64_encode(sBytes, sSize);
     if (debug_log) {
         printf("encoded bytes: %s\n", encoded);
-        printf("sBytes: \n");
-        for (int i = 0; i < sSize; i++) {
-            if (i != 0 && i % 8 == 0) printf("\n");
-            printf("%02X ", sBytes[i]);
-        }
-        printf("\n");
+        printBytes("sBytes:", sBytes, sSize);
     }
     // Compare with what we are expecting
     const char* expected_b64 = "AAAAACQP/rfPQXGBsLCTIDX4vAhrBNFsGLHbjGKfEQXiaHrRAAAAZAAHHCYAAAAIAAAAAAAAAAEAAAAUQnV5IHlvdXJzZWxmIGEgYmVlciEAAAABAAAAAAAAAAEAAAAAVWLzRLZHFEi3tuvrW66cHOzJMO8ohoviu3i7dCgx5xAAAAAAAAAAAAZCLEAAAAAAAAAAAeJoetEAAABAzBQpbrqpbfFozHnwpIATkErUPcb5xesMeFClf5dyd4X0kBw3c6gZUVTtHh3iCZ6eUAEge/lCft6NfXzsHy1HBQ==";
     assert(0 == memcmp(encoded, expected_b64, strlen(expected_b64)));
     assert(strlen(encoded) == strlen(expected_b64));
     free(encoded);
+
+    stellarTransactionFree(transaction);
 }
 
 void runSerializationTests()
@@ -303,7 +290,7 @@ static void testDeserializeSetOptions(const char * input,
         }
         printf("\n");
     }
-    
+
     BRStellarTransaction transaction = stellarTransactionCreateFromBytes(&bytes[0], byteSize);
     assert(transaction);
 
@@ -365,7 +352,13 @@ uint8_t inflation_input[] = {
     0x00, 0x00, 0x00, 0x00, // Element 1 - opInner
     0x00, 0x00, 0x00, 0x09, // operation type - 9 is inflation
     0x00, 0x00, 0x00, 0x00, // operation status, 0 = SUCCESS
-    0x00, 0x00, 0x00, 0x01, // number of inflation payouts
+    0x00, 0x00, 0x00, 0x02, // number of inflation payouts
+    0x00, 0x00, 0x00, 0x00, // account ID type, 0 - ed25519
+    0x24, 0x0F, 0xFE, 0xB7, 0xCF, 0x41, 0x71, 0x81, // AccountID
+    0xB0, 0xB0, 0x93, 0x20, 0x35, 0xF8, 0xBC, 0x08,
+    0x6B, 0x04, 0xD1, 0x6C, 0x18, 0xB1, 0xDB, 0x8C,
+    0x62, 0x9F, 0x11, 0x05, 0xE2, 0x68, 0x7A, 0xD1,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x98, 0x96, 0x90, // amount
     0x00, 0x00, 0x00, 0x00, // account ID type, 0 - ed25519
     0x24, 0x0F, 0xFE, 0xB7, 0xCF, 0x41, 0x71, 0x81, // AccountID
     0xB0, 0xB0, 0x93, 0x20, 0x35, 0xF8, 0xBC, 0x08,
@@ -390,8 +383,8 @@ static void runResultDeserializationTests()
     testDeserialize2("10005", "1", "0", "1", NULL, manage_buy_offer_result, NULL, "0", "1");
 
     // The is a special case - so far we have no way of finding a real inflation result - so
-    char * response_xdr = b64_encode(inflation_input, sizeof(inflation_input));
-    testDeserialize2("20000", "9", "1", "1", NULL, response_xdr, NULL, "0", "1");
+    char * result_xdr = b64_encode(inflation_input, sizeof(inflation_input));
+    testDeserialize2("20000", "9", "1", "1", NULL, result_xdr, NULL, "0", "1");
 }
 
 static void createDeleteWalletTest(const char* paperKey, const char* accountKey, const char* accountAddress)
