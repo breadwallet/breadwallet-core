@@ -219,6 +219,24 @@ void *assertThread (void *ignore) {
     return NULL;
 }
 
+void handleLogDecode (BRRlpCoder coder) {
+    FILE *foo = fopen ("/Users/ebg/log-item", "r");
+
+    uint8_t bytes[1024];
+    memset (bytes, 0, 1024);
+
+    size_t bytesCount = fread (bytes, 1, 1024, foo);
+
+    BRRlpData data = { bytesCount, bytes };
+
+    BRRlpItem  item  = rlpGetItem (coder, data);
+
+    BREthereumLog log = logRlpDecode(item, RLP_TYPE_ARCHIVE, coder);
+
+    rlpReleaseItem (coder, item);
+
+    logRelease(log);
+}
 
 int main(int argc, const char * argv[]) {
     BRRlpCoder coder = rlpCoderCreate();
@@ -243,7 +261,7 @@ int main(int argc, const char * argv[]) {
     handleTrans(coder, TEST_TRANS_BRD);
 #endif
 
-#if 1
+#if 0
     BRAssertInstall (NULL, assertHandle);
     BRAssertDefineRecovery((BRAssertRecoveryInfo) 1, assertRecover);
     BRAssertDefineRecovery((BRAssertRecoveryInfo) 2, assertRecover);
@@ -263,6 +281,10 @@ int main(int argc, const char * argv[]) {
     printf ("main: Paused\n");
     sleep (5);
     printf ("main: Done\n");
+#endif
+
+#if 1
+    handleLogDecode(coder);
 #endif
     rlpCoderRelease(coder);
     return 0;
