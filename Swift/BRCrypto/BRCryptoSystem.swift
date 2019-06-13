@@ -51,16 +51,6 @@ public final class System {
             .first { $0.core == core }
     }
 
-    internal func managerBy (eth: BREthereumEWM) -> WalletManager? {
-        return managers
-            .first { CRYPTO_TRUE == cryptoWalletManagerHasETH ($0.core, eth) }
-    }
-
-    internal func managerBy (btc: BRWalletManager) -> WalletManager? {
-        return managers
-            .first { CRYPTO_TRUE == cryptoWalletManagerHasBTC($0.core, btc) }
-    }
-
     ///
     /// Add `manager` to `managers`.  Will signal WalletManagerEvent.created and then
     /// SystemEvent.managerAdded is `manager` is added.

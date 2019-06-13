@@ -174,9 +174,15 @@ public final class Network: CustomStringConvertible {
     public func addressFor (_ string: String) -> Address? {
         switch cryptoNetworkGetType (core) {
         case BLOCK_CHAIN_TYPE_BTC:
-            return Address.createAsBTC(string)
+            guard 1 == BRAddressIsValid (string)
+                else { return nil }
+            return Address (core: cryptoAddressCreateAsBTC (BRAddressFill (string)), take: false)
+
         case BLOCK_CHAIN_TYPE_ETH:
-            return Address.createAsETH (string)
+            guard ETHEREUM_BOOLEAN_TRUE == addressValidateString (string)
+                else { return nil }
+            return Address (core: cryptoAddressCreateAsETH (addressCreate(string)), take: false)
+
         case BLOCK_CHAIN_TYPE_GEN:
             return nil
         default: precondition (false)

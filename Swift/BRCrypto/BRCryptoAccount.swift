@@ -46,18 +46,6 @@ public final class Account {
         return Data (bytes: &seed, count: MemoryLayout<UInt512>.size);
     }
 
-    //
-    // Implementation Private
-    //
-
-    internal var asETH: BREthereumAccount {
-        return cryptoAccountAsETH (self.core)
-    }
-
-    internal var asBTC: BRMasterPubKey {
-        return cryptoAccountAsBTC (self.core)
-    }
-
     deinit {
         cryptoAccountGive (core)
     }
