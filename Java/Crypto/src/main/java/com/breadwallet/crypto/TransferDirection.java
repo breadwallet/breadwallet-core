@@ -12,5 +12,19 @@ package com.breadwallet.crypto;
 public enum TransferDirection {
     SENT,
     RECEIVED,
-    RECOVERED
+    RECOVERED;
+
+    @Override
+    public String toString() {
+        switch (this) {
+            case RECOVERED:
+                return "Recovered";
+            case SENT:
+                return "Sent";
+            case RECEIVED:
+                return "Received";
+            default:
+                return super.toString();
+        }
+    }
 }

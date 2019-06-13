@@ -107,7 +107,7 @@ public class BlockChainDB {
 
         getOrCreateWallet (wallet) { (walletRes: Result<Model.Wallet, QueryError>) in
             guard case .success = walletRes
-                else { print ("SYS: Wallet: Missed"); return }
+                else { print ("SYS: BDB:Wallet: Missed"); return }
 
             if let model = self.modelSubscription {
                 // If the subscription included an endpoint, then put the subscription on the
@@ -525,7 +525,7 @@ public class BlockChainDB {
                 return (id: id, currencies: currencies)
             }
             else {
-                print ("SYS: BDB: Missed Wallet Currencies")
+                print ("SYS: BDB:Missed Wallet Currencies")
                 return (id: id, currencies: [String:[String]]())
             }
         }
@@ -1596,14 +1596,14 @@ public class BlockChainDB {
             do {
                 guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? T
                     else {
-                        print ("SYS: API: ERROR: JSON.Dict: '\(data.map { String(format: "%c", $0) }.joined())'")
+                        print ("SYS: BDB:API: ERROR: JSON.Dict: '\(data.map { String(format: "%c", $0) }.joined())'")
                         completion (Result.failure(QueryError.jsonParse(nil)));
                         return }
 
                 completion (Result.success (json))
             }
             catch let jsonError as NSError {
-                print ("SYS: API: ERROR: JSON.Error: '\(data.map { String(format: "%c", $0) }.joined())'")
+                print ("SYS: BDB:API: ERROR: JSON.Error: '\(data.map { String(format: "%c", $0) }.joined())'")
                 completion (Result.failure (QueryError.jsonParse (jsonError)))
                 return
             }
@@ -1628,7 +1628,7 @@ public class BlockChainDB {
         guard let url = urlBuilder.url
             else { completion (Result.failure (QueryError.url("URLComponents.url"))); return }
 
-        print ("SYS: Request: \(url.absoluteString): Method: \(httpMethod): Data: \(data?.description ?? "[]")")
+        print ("SYS: BDB:Request: \(url.absoluteString): Method: \(httpMethod): Data: \(data?.description ?? "[]")")
 
         var request = URLRequest (url: url)
         request.addValue ("application/json", forHTTPHeaderField: "accept")

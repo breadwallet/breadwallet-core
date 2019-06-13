@@ -166,8 +166,8 @@ cryptoWalletGetBalance (BRCryptoWallet wallet) {
     return cryptoAmountCreateInternal (cryptoUnitGetCurrency (wallet->unit), CRYPTO_FALSE, value, 0);
 }
 
-static BRCryptoBoolean
-cyptoWalletHasTransfer (BRCryptoWallet wallet,
+extern BRCryptoBoolean
+cryptoWalletHasTransfer (BRCryptoWallet wallet,
                         BRCryptoTransfer transfer) {
     for (size_t index = 0; index < array_count(wallet->transfers); index++)
         if (CRYPTO_TRUE == cryptoTransferEqual (transfer, wallet->transfers[index]))
@@ -196,7 +196,7 @@ cryptoWalletFindTransferAsETH (BRCryptoWallet wallet,
 private_extern void
 cryptoWalletAddTransfer (BRCryptoWallet wallet,
                          BRCryptoTransfer transfer) {
-    if (CRYPTO_FALSE == cyptoWalletHasTransfer (wallet, transfer))
+    if (CRYPTO_FALSE == cryptoWalletHasTransfer (wallet, transfer))
         array_add (wallet->transfers, cryptoTransferTake(transfer));
 }
 

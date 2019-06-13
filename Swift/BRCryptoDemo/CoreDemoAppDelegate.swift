@@ -54,7 +54,8 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
             precondition(false, "No account")
             return false
         }
-        account.timestamp = 1514764800 // 2018-01-01
+        account.timestamp = 1530403200 // loan: 2018-07-01
+//        account.timestamp = 1514764800 // 2018-01-01
 //        account.timestamp = 1543190400 // Tue, 26 Nov 2018 00:00:00 GMT
 
         // Ensure the storage path
@@ -75,7 +76,9 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
             print("Error: \(error.localizedDescription)")
         }
 
-        print ("APP: StoragePath: \(storagePath)");
+        print ("APP: Account PaperKey  : \(paperKey.components(separatedBy: CharacterSet.whitespaces).first ?? "<missed>") ...")
+        print ("APP: Account Timestamp : \(Date.init(timeIntervalSince1970: TimeInterval(account.timestamp)))")
+        print ("APP: StoragePath       : \(storagePath)");
 
         // Create the listener
         let listener = CoreDemoListener ()
@@ -85,17 +88,17 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
 
         // Create the system
         self.listener = listener
-        self.system = SystemBase.create (listener: listener,
-                                         account: account,
-                                         path: storagePath,
-                                         query: query)
-
+        self.system = System (listener: listener,
+                              account: account,
+                              path: storagePath,
+                              query: query)
+        
         // Subscribe to notificiations or not (Provide an endpoint if notifications are enabled).
         let subscriptionId = UIDevice.current.identifierForVendor!.uuidString
         let subscription = BlockChainDB.Subscription (id: subscriptionId, endpoint: nil);
         self.system.subscribe (using: subscription)
 
-        self.system.start (networksNeeded: ["bitcoin-mainnet","ethereum-mainnet"])
+        self.system.start (networksNeeded: ["bitcoin-mainnet"]) // ,"ethereum-mainnet"])
 
         return true
     }

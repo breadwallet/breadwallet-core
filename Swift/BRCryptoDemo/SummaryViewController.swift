@@ -21,7 +21,8 @@ class SummaryViewController: UITableViewController, WalletListener {
 
     override func viewDidLoad() {
         // Possible race
-        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
+        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener,
+            !listener.walletListeners.contains(where: { $0 === self }) {
             listener.walletListeners.append (self)
         }
         super.viewDidLoad()

@@ -432,7 +432,7 @@ BRWalletManagerNew (BRWalletManagerClient client,
                     uint32_t earliestKeyTime,
                     BRSyncMode mode,
                     const char *baseStoragePath) {
-    BRWalletManager bwm = malloc (sizeof (struct BRWalletManagerStruct));
+    BRWalletManager bwm = calloc (1, sizeof (struct BRWalletManagerStruct));
     if (NULL == bwm) return bwmCreateErrorHandler (NULL, 0, "allocate");
 
     bwm->mode = mode;
@@ -623,9 +623,7 @@ BRWalletManagerNew (BRWalletManagerClient client,
             break;
         }
     }
-    
-    array_free(transactions); array_free(blocks); array_free(peers);
-    
+
     assert (NULL != bwm->client.funcWalletManagerEvent);
     bwm->client.funcWalletManagerEvent (bwm->client.context,
                                         bwm,
@@ -640,7 +638,28 @@ BRWalletManagerNew (BRWalletManagerClient client,
                                  (BRWalletEvent) {
                                      BITCOIN_WALLET_CREATED
                                  });
-    
+
+    for (size_t i = 0; transactions && i < array_count(transactions); i++) {
+        bwm->client.funcTransactionEvent (bwm->client.context,
+                                          bwm,
+                                          bwm->wallet,
+                                          transactions[i],
+                                          (BRTransactionEvent) {
+                                              BITCOIN_TRANSACTION_ADDED
+                                          });
+
+        bwm->client.funcTransactionEvent (bwm->client.context,
+                                          bwm,
+                                          bwm->wallet,
+                                          transactions[i],
+                                          (BRTransactionEvent) {
+                                          BITCOIN_TRANSACTION_UPDATED,
+                                              { .updated = { transactions[i]->blockHeight, transactions[i]->timestamp }}
+                                          });
+    }
+
+    array_free(transactions); array_free(blocks); array_free(peers);
+
     return bwm;
 }
 

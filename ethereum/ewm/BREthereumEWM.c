@@ -2238,22 +2238,20 @@ ewmTransferGetNonce(BREthereumEWM ewm,
     return transferGetNonce(transfer);
 }
 
-extern BREthereumGas
-ewmTransferGetGasUsed(BREthereumEWM ewm,
-                      BREthereumTransfer transfer) {
-    BREthereumGas gasUsed;
-    return (transferExtractStatusIncluded(transfer, NULL, NULL, NULL, NULL, &gasUsed)
-            ? gasUsed
-            : gasCreate(0));
-}
-
-extern uint64_t
-ewmTransferGetTransactionIndex(BREthereumEWM ewm,
-                               BREthereumTransfer transfer) {
-    uint64_t transactionIndex;
-    return (transferExtractStatusIncluded(transfer, NULL, NULL, &transactionIndex, NULL, NULL)
-            ? transactionIndex
-            : 0);
+extern BREthereumBoolean
+ewmTransferExtractStatusIncluded (BREthereumEWM ewm,
+                                  BREthereumTransfer transfer,
+                                  BREthereumHash *blockHash,
+                                  uint64_t *blockNumber,
+                                  uint64_t *blockTransactionIndex,
+                                  uint64_t *blockTimestamp,
+                                  BREthereumGas *gasUsed) {
+    return AS_ETHEREUM_BOOLEAN (transferExtractStatusIncluded (transfer,
+                                                               blockHash,
+                                                               blockNumber,
+                                                               blockTransactionIndex,
+                                                               blockTimestamp,
+                                                               gasUsed));
 }
 
 extern BREthereumHash
@@ -2275,12 +2273,31 @@ ewmTransferGetBlockNumber(BREthereumEWM ewm,
 }
 
 extern uint64_t
+ewmTransferGetTransactionIndex(BREthereumEWM ewm,
+                               BREthereumTransfer transfer) {
+    uint64_t transactionIndex;
+    return (transferExtractStatusIncluded(transfer, NULL, NULL, &transactionIndex, NULL, NULL)
+            ? transactionIndex
+            : 0);
+}
+
+
+extern uint64_t
 ewmTransferGetBlockTimestamp (BREthereumEWM ewm,
                               BREthereumTransfer transfer) {
     uint64_t blockTimestamp;
     return (transferExtractStatusIncluded(transfer, NULL, NULL, NULL, &blockTimestamp, NULL)
             ? blockTimestamp
             : TRANSACTION_STATUS_BLOCK_TIMESTAMP_UNKNOWN);
+}
+
+extern BREthereumGas
+ewmTransferGetGasUsed(BREthereumEWM ewm,
+                      BREthereumTransfer transfer) {
+    BREthereumGas gasUsed;
+    return (transferExtractStatusIncluded(transfer, NULL, NULL, NULL, NULL, &gasUsed)
+            ? gasUsed
+            : gasCreate(0));
 }
 
 extern uint64_t
