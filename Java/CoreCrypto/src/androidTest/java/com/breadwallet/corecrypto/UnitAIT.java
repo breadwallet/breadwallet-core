@@ -18,8 +18,8 @@ public class UnitAIT {
 
     @Test
     public void testUnitBtc() {
-        Currency btc = Currency.create("Bitcoin", "Bitcoin", "BTC", "native");
-        Currency eth = Currency.create("Ethereum", "Ethereum", "ETH", "native");
+        Currency btc = Currency.create("Bitcoin", "Bitcoin", "btc", "native");
+        Currency eth = Currency.create("Ethereum", "Ethereum", "eth", "native");
 
         Unit satoshi_btc = Unit.create(btc, "BTC-SAT", "Satoshi", "SAT");
         assertEquals(satoshi_btc.getCurrency().getCode(), btc.getCode());
@@ -38,8 +38,8 @@ public class UnitAIT {
 
     @Test
     public void testUnitEth() {
-        Currency btc = Currency.create("Bitcoin", "Bitcoin", "BTC", "native");
-        Currency eth = Currency.create("Ethereum", "Ethereum", "ETH", "native");
+        Currency btc = Currency.create("Bitcoin", "Bitcoin", "btc", "native");
+        Currency eth = Currency.create("Ethereum", "Ethereum", "eth", "native");
 
         Unit satoshi_btc = Unit.create(btc, "BTC-SAT", "Satoshi", "SAT");
         Unit btc_btc = Unit.create(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, UnsignedInteger.valueOf(8));

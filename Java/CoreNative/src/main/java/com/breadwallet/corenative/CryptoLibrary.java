@@ -139,6 +139,7 @@ public interface CryptoLibrary extends Library {
     void cryptoNetworkSetCurrency(BRCryptoNetwork network, BRCryptoCurrency currency);
     BRCryptoNetwork cryptoNetworkCreateAsBTC(String uids, String name, byte forkId, Pointer params);
     BRCryptoNetwork cryptoNetworkCreateAsETH(String uids, String name, int chainId, Pointer net);
+    BRCryptoNetwork cryptoNetworkCreateAsGEN(String uids, String name);
     void cryptoNetworkAddCurrency(BRCryptoNetwork network, BRCryptoCurrency currency, BRCryptoUnit baseUnit, BRCryptoUnit defaultUnit);
     void cryptoNetworkAddCurrencyUnit(BRCryptoNetwork network, BRCryptoCurrency currency, BRCryptoUnit unit);
     BRCryptoUnit cryptoUnitCreateAsBase(BRCryptoCurrency currency, String uids, String name, String symbol);

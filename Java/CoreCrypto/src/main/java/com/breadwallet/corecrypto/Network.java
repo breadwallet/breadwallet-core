@@ -32,13 +32,13 @@ final class Network implements com.breadwallet.crypto.Network {
         CoreBRCryptoNetwork core = null;
 
         String code = currency.getCode();
-        if (code .equals(com.breadwallet.crypto.Currency.CODE_AS_BTC)) {
+        if (code.equals(com.breadwallet.crypto.Currency.CODE_AS_BTC)) {
             core = CoreBRCryptoNetwork.createAsBtc(uids, name, isMainnet);
 
-        } else if (code .equals(com.breadwallet.crypto.Currency.CODE_AS_BCH)) {
+        } else if (code.equals(com.breadwallet.crypto.Currency.CODE_AS_BCH)) {
             core = CoreBRCryptoNetwork.createAsBch(uids, name, isMainnet);
 
-        } else if (code .equals(com.breadwallet.crypto.Currency.CODE_AS_ETH)) {
+        } else if (code.equals(com.breadwallet.crypto.Currency.CODE_AS_ETH)) {
             Optional<CoreBRCryptoNetwork> optional = CoreBRCryptoNetwork.createAsEth(uids, name, isMainnet);
             if (optional.isPresent()) {
                 core = optional.get();
@@ -47,7 +47,7 @@ final class Network implements com.breadwallet.crypto.Network {
             }
 
         } else {
-            throw new IllegalArgumentException("Unsupported network");
+            core = CoreBRCryptoNetwork.createAsGen(uids, name);
         }
 
         core.setHeight(height);
@@ -85,6 +85,11 @@ final class Network implements com.breadwallet.crypto.Network {
     @Override
     public String getUids() {
         return core.getUids();
+    }
+
+    @Override
+    public String getName() {
+        return core.getName();
     }
 
     @Override
@@ -158,12 +163,12 @@ final class Network implements com.breadwallet.crypto.Network {
 
             units.add(unit.get());
         }
-        return Optional.of(units);
+        return units.isEmpty() ? Optional.absent() : Optional.of(units);
     }
 
     @Override
-    public boolean hasUnitFor(com.breadwallet.crypto.Currency currency, com.breadwallet.crypto.Unit unit) {
-        return unitsFor(currency).transform(input -> input.contains(unit)).or(false);
+    public Optional<Boolean> hasUnitFor(com.breadwallet.crypto.Currency currency, com.breadwallet.crypto.Unit unit) {
+        return unitsFor(currency).transform(input -> input.contains(unit));
     }
 
     @Override

@@ -51,11 +51,11 @@ public class BlockchainDbAIT {
 
         blockchainDb.getBlockchains(true, handler);
         List<Blockchain> blockchains = handler.dat().get();
-        assertEquals(1, blockchains.size());
+        assertNotEquals(0, blockchains.size());
 
         blockchainDb.getBlockchains(true, handler);
         blockchains = handler.dat().get();
-        assertEquals(1, blockchains.size());
+        assertNotEquals(0, blockchains.size());
 
         // TODO: Expand these tests
     }
@@ -67,6 +67,7 @@ public class BlockchainDbAIT {
         blockchainDb.getBlockchain("bitcoin-mainnet", handler);
         Blockchain blockchain = handler.dat().get();
         assertNotNull(blockchain);
+        assertEquals(blockchain.getId(), "bitcoin-mainnet");
 
         // TODO: Expand these tests
     }
@@ -78,7 +79,7 @@ public class BlockchainDbAIT {
 
         blockchainDb.getCurrencies("bitcoin-mainnet", handler);
         currencies = handler.dat().get();
-        assertEquals(1, currencies.size());
+        assertNotEquals(0, currencies.size());
 
         blockchainDb.getCurrencies(handler);
         currencies = handler.dat().get();
@@ -92,9 +93,10 @@ public class BlockchainDbAIT {
         SynchronousCompletionHandler<Currency> handler = new SynchronousCompletionHandler<>();
 
         // TODO(BAK-241): This fails due to the endpoint not returning anything
-        // blockchainDb.getCurrency("bitcoin-mainnet", handler);
-        // Currency currency = handler.dat().get();
-        // assertNotNull(currency);
+         blockchainDb.getCurrency("bitcoin-mainnet", handler);
+         Currency currency = handler.dat().get();
+         assertNotNull(currency);
+         assertEquals(currency.getCode(), "btc");
 
         // TODO: Expand these tests
     }
@@ -114,10 +116,11 @@ public class BlockchainDbAIT {
     public void testGetTransfer() {
         SynchronousCompletionHandler<Transfer> handler = new SynchronousCompletionHandler<>();
 
-        blockchainDb.getTransfer("bitcoin-mainnet:63522845d294ee9b0188ae5cac91bf389a0c3723f084ca1025e7d9cdfe481ce1:1",
-                handler);
+        String transferId = "bitcoin-mainnet:63522845d294ee9b0188ae5cac91bf389a0c3723f084ca1025e7d9cdfe481ce1:1";
+        blockchainDb.getTransfer(transferId, handler);
         Transfer transfer = handler.dat().get();
         assertNotNull(transfer);
+        assertEquals(transferId, transfer.getId());
 
         // TODO: Expand these tests
     }

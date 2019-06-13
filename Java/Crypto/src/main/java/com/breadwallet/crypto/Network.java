@@ -25,7 +25,7 @@ public interface Network {
 
     Optional<? extends Address> addressFor(String address);
 
-    boolean hasUnitFor(Currency currency, Unit unit);
+    Optional<Boolean> hasUnitFor(Currency currency, Unit unit);
 
     boolean hasCurrency(Currency currency);
 
@@ -38,6 +38,8 @@ public interface Network {
     List<WalletManagerMode> getSupportedModes();
 
     String getUids();
+
+    String getName();
 
     boolean isMainnet();
 

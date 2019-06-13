@@ -133,6 +133,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                 this::walletEventCallback,
                 this::transferEventCallback);
 
+        // TODO(fix): Add generic client, once defined
         this.client = new BRCryptoCWMClient.ByValue(Pointer.NULL,
                 new BRCryptoCWMClientBtc(
                         this::btcGetBlockNumber,
@@ -436,7 +437,8 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                                      @Nullable BRCryptoWallet cryptoWallet, BRCryptoWalletEvent.ByValue event) {
         Log.d(TAG, "walletEventCallback");
 
-        CoreBRCryptoWalletManager walletManager = CoreBRCryptoWalletManager.create(cryptoWalletManager);
+        // take ownership of the wallet manager, even though it isn't used
+        CoreBRCryptoWalletManager.create(cryptoWalletManager);
         CoreBRCryptoWallet wallet = CoreBRCryptoWallet.create(cryptoWallet);
 
         switch (event.type) {
@@ -652,7 +654,8 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                                        BRCryptoTransferEvent.ByValue event) {
         Log.d(TAG, "transferEventCallback");
 
-        CoreBRCryptoWalletManager walletManager = CoreBRCryptoWalletManager.create(cryptoWalletManager);
+        // take ownership of the wallet manager, even though it isn't used
+        CoreBRCryptoWalletManager.create(cryptoWalletManager);
         CoreBRCryptoWallet wallet = CoreBRCryptoWallet.create(cryptoWallet);
         CoreBRCryptoTransfer transfer = CoreBRCryptoTransfer.create(cryptoTransfer);
 
@@ -783,7 +786,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
             @Override
             public void handleError(QueryError error) {
-                Log.d(TAG, "btcGetBlockNumber: failed", error);
+                Log.e(TAG, "btcGetBlockNumber: failed", error);
             }
         });
     }
@@ -850,7 +853,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
                         @Override
                         public void handleError(QueryError error) {
-                            Log.d(TAG, "btcGetTransactions received an error, completing with failure", error);
+                            Log.e(TAG, "btcGetTransactions received an error, completing with failure", error);
                             managerImpl.announceTransactionComplete(rid, false);
                         }
                     });
@@ -871,7 +874,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
             @Override
             public void handleError(QueryError error) {
-                Log.d(TAG, "btcSubmitTransaction: failed", error);
+                Log.e(TAG, "btcSubmitTransaction: failed", error);
                 managerImpl.announceSubmit(rid, transaction, 1);
             }
         });
@@ -899,12 +902,13 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
             query.getBalanceAsEth(networkName, address, rid, new CompletionHandler<String>() {
                 @Override
                 public void handleData(String data) {
+                    Log.d(TAG, "ethGetBalance: asEth succeeded");
                     ewm.announceWalletBalance(wid, data, rid);
                 }
 
                 @Override
                 public void handleError(QueryError error) {
-                    // TODO(discuss): Ignore?
+                    Log.e(TAG, "ethGetBalance: asEth failed", error);
                 }
             });
         } else {
@@ -912,12 +916,13 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
             query.getBalanceAsTok(networkName, address, tokenAddress, rid, new CompletionHandler<String>() {
                 @Override
                 public void handleData(String balance) {
+                    Log.d(TAG, "ethGetBalance: asTok succeeded");
                     ewm.announceWalletBalance(wid, balance, rid);
                 }
 
                 @Override
                 public void handleError(QueryError error) {
-                    // TODO(discuss): Ignore?
+                    Log.e(TAG, "ethGetBalance: asTok failed", error);
                 }
             });
         }
@@ -932,12 +937,13 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         query.getGasPriceAsEth(networkName, rid, new CompletionHandler<String>() {
             @Override
             public void handleData(String gasPrice) {
+                Log.d(TAG, "ethGetGasPrice: succeeded");
                 ewm.announceGasPrice(wid, gasPrice, rid);
             }
 
             @Override
             public void handleError(QueryError error) {
-                // TODO(discuss): Ignore?
+                Log.e(TAG, "ethGetGasPrice: failed", error);
             }
         });
     }
@@ -953,12 +959,13 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         query.getGasEstimateAsEth(networkName, from, to, amount, data, rid, new CompletionHandler<String>() {
             @Override
             public void handleData(String gasEstimate) {
+                Log.d(TAG, "ethEstimateGas: succeeded");
                 ewm.announceGasEstimate(wid, tid, gasEstimate, rid);
             }
 
             @Override
             public void handleError(QueryError error) {
-                // TODO(discuss): Ignore?
+                Log.e(TAG, "ethEstimateGas: failed", error);
             }
         });
     }
@@ -974,13 +981,14 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         query.submitTransactionAsEth(networkName, transaction, rid, new CompletionHandler<String>() {
             @Override
             public void handleData(String hash) {
+                Log.d(TAG, "ethSubmitTransaction: succeeded");
                 // TODO(fix): The swift is populating default values; what is the right behaviour?
                 ewm.announceSubmitTransfer(wid, tid, hash, -1, null, rid);
             }
 
             @Override
             public void handleError(QueryError error) {
-                // TODO(discuss): Ignore?
+                Log.e(TAG, "ethSubmitTransaction: failed", error);
             }
         });
     }
@@ -996,6 +1004,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                 UnsignedLong.fromLongBits(endBlockNumber), rid, new CompletionHandler<List<EthTransaction>>() {
                     @Override
                     public void handleData(List<EthTransaction> transactions) {
+                        Log.d(TAG, "ethGetTransactions: succeeded");
                         for (EthTransaction tx : transactions) {
                             ewm.announceTransaction(rid,
                                     tx.getHash(),
@@ -1020,6 +1029,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
                     @Override
                     public void handleError(QueryError error) {
+                        Log.e(TAG, "ethGetTransactions: failed", error);
                         ewm.announceTransactionComplete(rid, false);
                     }
                 });
@@ -1037,6 +1047,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                 UnsignedLong.fromLongBits(endBlockNumber), rid, new CompletionHandler<List<EthLog>>() {
                     @Override
                     public void handleData(List<EthLog> logs) {
+                        Log.d(TAG, "ethGetLogs: succeeded");
                         for (EthLog log : logs) {
                             ewm.announceLog(rid,
                                     log.getHash(),
@@ -1055,6 +1066,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
                     @Override
                     public void handleError(QueryError error) {
+                        Log.e(TAG, "ethGetLogs: failed", error);
                         ewm.announceLogComplete(rid, false);
                     }
                 });
@@ -1072,12 +1084,13 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                 new CompletionHandler<List<UnsignedLong>>() {
             @Override
             public void handleData(List<UnsignedLong> blocks) {
+                Log.d(TAG, "ethGetBlocks: succeeded");
                 ewm.announceBlocks(rid, blocks);
             }
 
             @Override
             public void handleError(QueryError error) {
-                // TODO(discuss): Ignore?
+                Log.e(TAG, "ethGetBlocks: failed", error);
             }
         });
     }
@@ -1088,6 +1101,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         query.getTokensAsEth(rid, new CompletionHandler<List<EthToken>>() {
             @Override
             public void handleData(List<EthToken> tokens) {
+                Log.d(TAG, "ethGetTokens: succeeded");
                 for (EthToken token: tokens) {
                     ewm.announceToken(rid,
                             token.getAddress(),
@@ -1103,6 +1117,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
             @Override
             public void handleError(QueryError error) {
+                Log.e(TAG, "ethGetTokens: failed", error);
                 ewm.announceTokenComplete(rid, false);
             }
         });
@@ -1117,12 +1132,13 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         query.getBlockNumberAsEth(networkName, rid, new CompletionHandler<String>() {
             @Override
             public void handleData(String number) {
+                Log.d(TAG, "ethGetBlockNumber: succeeded");
                 ewm.announceBlockNumber(number, rid);
             }
 
             @Override
             public void handleError(QueryError error) {
-                // TODO(discuss): Ignore?
+                Log.e(TAG, "ethGetBlockNumber: failed", error);
             }
         });
     }
@@ -1136,12 +1152,13 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         query.getNonceAsEth(networkName, address, rid, new CompletionHandler<String>() {
             @Override
             public void handleData(String nonce) {
+                Log.d(TAG, "ethGetNonce: succeeded");
                 ewm.announceNonce(address, nonce, rid);
             }
 
             @Override
             public void handleError(QueryError error) {
-                // TODO(discuss): Ignore?
+                Log.e(TAG, "ethGetNonce: failed", error);
             }
         });
     }

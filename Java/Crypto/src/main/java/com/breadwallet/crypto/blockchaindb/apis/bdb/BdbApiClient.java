@@ -186,7 +186,7 @@ public class BdbApiClient {
                             try {
                                 handler.handleData(new JSONObject(responseBody.string()));
                             } catch (JSONException e) {
-                                Log.e(TAG, "response failed", e);
+                                Log.e(TAG, "response failed parsing json", e);
                                 handler.handleError(new QueryJsonParseError(e.getMessage()));
                             }
                         }
@@ -225,8 +225,11 @@ public class BdbApiClient {
             Optional<T> data = parser.parse(json);
             if (data.isPresent()) {
                 handler.handleData(data.get());
+
             } else {
-                handler.handleError(new QueryModelError("Transform error"));
+                QueryError e = new QueryModelError("Transform error");
+                Log.e(TAG, "parsing error", e);
+                handler.handleError(e);
             }
         }
 
@@ -257,8 +260,11 @@ public class BdbApiClient {
             Optional<T> data = parser.parse(jsonEmbeddedData);
             if (data.isPresent()) {
                 handler.handleData(data.get());
+
             } else {
-                handler.handleError(new QueryModelError("Transform error"));
+                QueryError e = new QueryModelError("Transform error");
+                Log.e(TAG, "parsing error", e);
+                handler.handleError(e);
             }
         }
 

@@ -45,7 +45,6 @@ class OwnedBRCryptoAccount implements CoreBRCryptoAccount {
         return core;
     }
 
-    // TODO(discuss): Do we want to do a value comparison?
     @Override
     public boolean equals(Object object) {
         if (this == object) {

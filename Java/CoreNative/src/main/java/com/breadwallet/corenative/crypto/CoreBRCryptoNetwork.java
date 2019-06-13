@@ -42,6 +42,10 @@ public interface CoreBRCryptoNetwork {
         }
     }
 
+    static CoreBRCryptoNetwork createAsGen(String uids, String name) {
+        return new OwnedBRCryptoNetwork(CryptoLibrary.INSTANCE.cryptoNetworkCreateAsGEN(uids, name));
+    }
+
     void setHeight(UnsignedLong height);
 
     CoreBRCryptoCurrency getCurrency();

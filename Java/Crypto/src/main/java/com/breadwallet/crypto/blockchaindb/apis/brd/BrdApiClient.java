@@ -127,7 +127,7 @@ public class BrdApiClient {
                             try {
                                 data = handler.parseData(responseBody.string());
                             } catch (JSONException e) {
-                                Log.e(TAG, "response failed", e);
+                                Log.e(TAG, "response failed parsing json", e);
                                 handler.handleError(new QueryJsonParseError(e.getMessage()));
                             }
 
@@ -175,7 +175,10 @@ public class BrdApiClient {
         public void handleData(JSONObject json) {
             String result = json.optString("result", null);
             if (result == null) {
-                handler.handleError(new QueryModelError("Data expected"));
+                QueryError e = new QueryModelError("'result' expected");
+                Log.e(TAG, "missing 'result' in response", e);
+                handler.handleError(e);
+
             } else {
                 handler.handleData(result);
             }
@@ -205,18 +208,32 @@ public class BrdApiClient {
         @Override
         public void handleData(JSONObject json) {
             String status = json.optString("status", null);
-            String message = json.optString("status", null);
+            String message = json.optString("message", null);
             JSONArray result = json.optJSONArray("result");
 
-            if (status == null || message == null || result == null) {
-                handler.handleError(new QueryModelError("Data expected"));
+            if (status == null) {
+                QueryError e = new QueryModelError("'status' expected");
+                Log.e(TAG, "missing 'status' in response", e);
+                handler.handleError(e);
+
+            } else if (message == null) {
+                QueryError e = new QueryModelError("'message' expected");
+                Log.e(TAG, "missing 'message' in response", e);
+                handler.handleError(e);
+
+            } else if (result == null) {
+                QueryError e = new QueryModelError("'result' expected");
+                Log.e(TAG, "missing 'result' in response", e);
+                handler.handleError(e);
 
             } else {
                 Optional<T> data = parser.parse(result);
                 if (data.isPresent()) {
                     handler.handleData(data.get());
                 } else {
-                    handler.handleError(new QueryModelError("Transform error"));
+                    QueryError e = new QueryModelError("Transform error");
+                    Log.e(TAG, "parsing error", e);
+                    handler.handleError(e);
                 }
             }
         }
@@ -247,8 +264,11 @@ public class BrdApiClient {
             Optional<T> data = parser.parse(json);
             if (data.isPresent()) {
                 handler.handleData(data.get());
+
             } else {
-                handler.handleError(new QueryModelError("Transform error"));
+                QueryError e = new QueryModelError("Transform error");
+                Log.e(TAG, "parsing error", e);
+                handler.handleError(e);
             }
         }
 

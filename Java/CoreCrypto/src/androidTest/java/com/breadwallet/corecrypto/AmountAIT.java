@@ -9,7 +9,7 @@ public class AmountAIT {
 
     @Test
     public void testAmountCreateBtc() {
-        Currency btc = Currency.create("Bitcoin", "Bitcoin", "BTC", "native");
+        Currency btc = Currency.create("Bitcoin", "Bitcoin", "btc", "native");
         Unit satoshi_btc = Unit.create(btc, "BTC-SAT", "Satoshi", "SAT");
         Unit btc_btc = Unit.create(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, UnsignedInteger.valueOf(8));
 
@@ -45,7 +45,7 @@ public class AmountAIT {
 
     @Test
     public void testAmountCreateBtcString() {
-        Currency btc = Currency.create("Bitcoin", "Bitcoin", "BTC", "native");
+        Currency btc = Currency.create("Bitcoin", "Bitcoin", "btc", "native");
         Unit satoshi_btc = Unit.create(btc, "BTC-SAT", "Satoshi", "SAT");
         Unit btc_btc = Unit.create(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, UnsignedInteger.valueOf(8));
 
@@ -98,7 +98,7 @@ public class AmountAIT {
 
     @Test
     public void testAmountCreateEth() {
-        Currency eth = Currency.create("Ethereum", "Ethereum", "ETH", "native");
+        Currency eth = Currency.create("Ethereum", "Ethereum", "eth", "native");
 
         Unit wei_eth = Unit.create(eth, "ETH-WEI", "WEI", "wei");
         Unit gwei_eth = Unit.create(eth, "ETH-GWEI", "GWEI",  "gwei", wei_eth, UnsignedInteger.valueOf(9));
