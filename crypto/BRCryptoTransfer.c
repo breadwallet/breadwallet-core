@@ -138,7 +138,7 @@ cryptoTransferGetSourceAddress (BRCryptoTransfer transfer) {
                     memcpy (address.s, inputs[index].address, sizeof (address.s));
                     return cryptoAddressCreateAsBTC (address);
                 }
-            
+
             return NULL;
         }
         case BLOCK_CHAIN_TYPE_ETH:
@@ -185,18 +185,27 @@ cryptoTransferGetAmount (BRCryptoTransfer transfer) {
             BRWallet *wid = transfer->u.btc.wid;
             BRTransaction *tid = transfer->u.btc.tid;
 
-            uint64_t fees = BRWalletFeeForTx (wid, tid);
-            if (fees == UINT64_MAX) { fees = 0; }
+            uint64_t fee = BRWalletFeeForTx (wid, tid);
+            if (UINT64_MAX == fee) fee = 0;
 
             uint64_t recv = BRWalletAmountReceivedFromTx (wid, tid);
-            uint64_t send = BRWalletAmountSentByTx (wid, tid);   // includes fees
+            uint64_t send = BRWalletAmountSentByTx (wid, tid);
 
-            // The value is always positive; it is the value sent from source to target.
-            uint64_t value = (0 == fees
-                              ? recv - send
-                              : (send - fees) - recv);
-
-            return cryptoAmountCreate (transfer->currency, CRYPTO_FALSE, createUInt256(value));
+            switch (cryptoTransferGetDirection(transfer)) {
+                case CRYPTO_TRANSFER_RECOVERED:
+                    return cryptoAmountCreate (transfer->currency,
+                                               CRYPTO_FALSE,
+                                               createUInt256(send));
+                case CRYPTO_TRANSFER_SENT:
+                    return cryptoAmountCreate (transfer->currency,
+                                               CRYPTO_FALSE,
+                                               createUInt256(send - fee - recv));
+                case CRYPTO_TRANSFER_RECEIVED:
+                    return cryptoAmountCreate (transfer->currency,
+                                               CRYPTO_FALSE,
+                                               createUInt256(recv));
+                default: assert(0);
+            }
         }
         case BLOCK_CHAIN_TYPE_ETH: {
             BREthereumAmount amount = transferGetAmount(transfer->u.eth.tid);
@@ -224,9 +233,24 @@ cryptoTransferGetFee (BRCryptoTransfer transfer) { // Pass in 'currency' as bloc
             BRWallet *wid = transfer->u.btc.wid;
             BRTransaction *tid = transfer->u.btc.tid;
 
-            uint64_t value = BRWalletFeeForTx (wid, tid);
+            uint64_t fee = BRWalletFeeForTx (wid, tid);
+            if (UINT64_MAX == fee) fee = 0;
 
-            return cryptoAmountCreate (transfer->currency, CRYPTO_FALSE, createUInt256(value));
+            switch (cryptoTransferGetDirection(transfer)) {
+                case CRYPTO_TRANSFER_RECOVERED:
+                    return cryptoAmountCreate (transfer->currency,
+                                               CRYPTO_FALSE,
+                                               createUInt256(fee));
+                case CRYPTO_TRANSFER_SENT:
+                    return cryptoAmountCreate (transfer->currency,
+                                               CRYPTO_FALSE,
+                                               createUInt256(fee));
+                case CRYPTO_TRANSFER_RECEIVED:
+                    return cryptoAmountCreate (transfer->currency,
+                                               CRYPTO_FALSE,
+                                               UINT256_ZERO);
+                default: assert(0);
+            }
         }
         case BLOCK_CHAIN_TYPE_ETH: {
             BREthereumEWM ewm = transfer->u.eth.ewm;
@@ -274,9 +298,29 @@ cryptoTransferSetState (BRCryptoTransfer transfer,
 extern BRCryptoTransferDirection
 cryptoTransferGetDirection (BRCryptoTransfer transfer) {
     switch (transfer->type) {
-        case BLOCK_CHAIN_TYPE_BTC:
-            return CRYPTO_TRANSFER_SENT;
+        case BLOCK_CHAIN_TYPE_BTC: {
+            BRWallet *wid = transfer->u.btc.wid;
+            BRTransaction *tid = transfer->u.btc.tid;
 
+            uint64_t send = BRWalletAmountSentByTx (wid, tid);
+            if (0 == send) {
+                return CRYPTO_TRANSFER_RECEIVED;
+            }
+
+            uint64_t fee = BRWalletFeeForTx (wid, tid);
+            if (UINT64_MAX == fee) {
+                fee = 0;
+            }
+
+            uint64_t recv = BRWalletAmountReceivedFromTx (wid, tid);
+            if ((send - fee) == recv) {
+                return CRYPTO_TRANSFER_RECOVERED;
+            } else if ((send - fee) > recv) {
+                return CRYPTO_TRANSFER_SENT;
+            }
+
+            return CRYPTO_TRANSFER_RECEIVED;
+        }
         case BLOCK_CHAIN_TYPE_ETH:
             return CRYPTO_TRANSFER_SENT;
 
