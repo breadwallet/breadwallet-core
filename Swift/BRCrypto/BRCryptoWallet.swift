@@ -20,7 +20,7 @@ public final class Wallet: Equatable {
     internal let core: BRCryptoWallet
 
     /// The owning manager
-    public unowned let manager: WalletManager
+    public let manager: WalletManager
 
     public var system: System {
         return manager.system
