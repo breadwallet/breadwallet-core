@@ -27,10 +27,11 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
     }
 
     var isEthCurrency: Bool {
-        return wallet.currency.code == Currency.codeAsETH
+        return wallet.currency.code.lowercased() == Currency.codeAsETH
     }
     var isBitCurrency: Bool {
-        return wallet.currency.code == Currency.codeAsBTC || wallet.currency.code == Currency.codeAsBCH
+        return wallet.currency.code.lowercased() == Currency.codeAsBTC ||
+            wallet.currency.code.lowercased() == Currency.codeAsBCH
     }
 
     var isTokCurrency: Bool {
@@ -52,7 +53,7 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
         amountSlider.minimumValue = 0.0
         amountSlider.maximumValue = 0.001  //  Float (wallet.balance.amount)!
         amountSlider.value = 0.0
-        switch wallet.currency.code {
+        switch wallet.currency.code.lowercased() {
         case Currency.codeAsETH:
             recvField.text = (wallet.manager.network.isMainnet
                 ? "0x19454a70538bfbdbd7abf3ac8d274d5cb2514056" /* "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62" */

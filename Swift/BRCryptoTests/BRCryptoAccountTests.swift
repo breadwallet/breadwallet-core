@@ -37,9 +37,17 @@ class BRCryptoAccountTests: XCTestCase {
         XCTAssert (a2.addressAsETH == address)
     }
 
-    func testAddress () {
-        let e1 = Address.createAsETH ("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62")
-        let e2 = Address.createAsETH ("0xd3CFBA03Fc13dc01F0C67B88CBEbE776D8F3DE8f")
+    func testAddressETH () {
+        let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native")
+        let network = Network (uids: "ethereum-mainnet",
+                               name: "ethereum-name",
+                               isMainnet: true,
+                               currency: eth,
+                               height: 100000,
+                               associations: [:])
+
+        let e1 = Address.create (string: "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", network: network)
+        let e2 = Address.create (string: "0xd3CFBA03Fc13dc01F0C67B88CBEbE776D8F3DE8f", network: network)
 
         XCTAssertNotNil (e1)
         XCTAssertNotNil (e2)
@@ -47,12 +55,7 @@ class BRCryptoAccountTests: XCTestCase {
         XCTAssertEqual("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", e1?.description)
         XCTAssertEqual("0xd3CFBA03Fc13dc01F0C67B88CBEbE776D8F3DE8f", e2?.description)
 
-        let b1 = Address.createAsBTC ("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj")
-
-        XCTAssertNotNil (b1)
-        XCTAssertEqual("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj",  b1?.description)
-
-        let e3 = Address.createAsETH ("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62")
+        let e3 = Address.create (string: "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", network: network)
 
         XCTAssertEqual (e1, e1)
         XCTAssertEqual (e1, e3)
@@ -60,7 +63,22 @@ class BRCryptoAccountTests: XCTestCase {
 
         XCTAssertNotEqual (e1, e2)
         XCTAssertNotEqual (e2, e1)
-        XCTAssertNotEqual (e1, b1)
-        XCTAssertNotEqual (b1, e1)
     }
+
+    func testAddressBTC () {
+        let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native")
+        let network = Network (uids: "bitcoin-mainnet",
+                               name: "bitcoin-name",
+                               isMainnet: true,
+                               currency: btc,
+                               height: 100000,
+                               associations: [:])
+
+        let b1 = Address.create (string: "1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj", network: network)
+
+        XCTAssertNotNil (b1)
+        XCTAssertEqual("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj",  b1?.description)
+
+    }
+
 }

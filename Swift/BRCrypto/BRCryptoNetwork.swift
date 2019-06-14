@@ -109,6 +109,19 @@ public final class Network: CustomStringConvertible {
         }
     }
 
+    /// Create a Network
+    ///
+    /// - Parameters:
+    ///   - uids: A unique identifier string amoung all networks.  This parameter must include a
+    ///       substring of {"mainnet", "testnet", "ropsten", "rinkeby"} to indicate the type
+    ///       of the network.  [This following the BlockChainDB convention]
+    ///   - name: the name
+    ///   - isMainnet: if mainnet, then true
+    ///   - currency: the currency
+    ///   - height: the height
+    ///   - associations: An association between one or more currencies and the units
+    ///      for those currency.  The network currency should be included.
+    ///
     public convenience init (uids: String,
                              name: String,
                              isMainnet: Bool,
@@ -117,7 +130,7 @@ public final class Network: CustomStringConvertible {
                              associations: Dictionary<Currency, Association>) {
         var core: BRCryptoNetwork!
 
-        switch currency.code {
+        switch currency.code.lowercased() {
         case Currency.codeAsBTC:
             core = cryptoNetworkCreateAsBTC (uids, name,
                                              (isMainnet ? 0x00 : 0x40),
@@ -138,6 +151,10 @@ public final class Network: CustomStringConvertible {
             else if uids.contains ("rinkeby") {
                 core = cryptoNetworkCreateAsETH (uids, name, 4, ethereumRinkeby)
             }
+            else {
+                precondition (false)
+            }
+
         default:
             core = cryptoNetworkCreateAsGEN (uids, name)
             break
