@@ -137,22 +137,29 @@ final class Network implements com.breadwallet.crypto.Network {
 
     @Override
     public Optional<Unit> baseUnitFor(com.breadwallet.crypto.Currency currency) {
-        Currency currencyImpl = Currency.from(currency);
-        return core.getUnitAsBase(currencyImpl.getCoreBRCryptoCurrency()).transform(Unit::create);
+        if (!hasCurrency(currency)) {
+            return Optional.absent();
+        }
+        return core.getUnitAsBase(Currency.from(currency).getCoreBRCryptoCurrency()).transform(Unit::create);
     }
 
     @Override
     public Optional<Unit> defaultUnitFor(com.breadwallet.crypto.Currency currency) {
-        Currency currencyImpl = Currency.from(currency);
-        return core.getUnitAsDefault(currencyImpl.getCoreBRCryptoCurrency()).transform(Unit::create);
+        if (!hasCurrency(currency)) {
+            return Optional.absent();
+        }
+        return core.getUnitAsDefault(Currency.from(currency).getCoreBRCryptoCurrency()).transform(Unit::create);
     }
 
     @Override
     public Optional<Set<? extends com.breadwallet.crypto.Unit>> unitsFor(com.breadwallet.crypto.Currency currency) {
-        Currency currencyImpl = Currency.from(currency);
-        CoreBRCryptoCurrency currencyCore = currencyImpl.getCoreBRCryptoCurrency();
+        if (!hasCurrency(currency)) {
+            return Optional.absent();
+        }
 
         Set<Unit> units = new HashSet<>();
+
+        CoreBRCryptoCurrency currencyCore = Currency.from(currency).getCoreBRCryptoCurrency();
         UnsignedLong count = core.getUnitCount(currencyCore);
 
         for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
@@ -163,7 +170,8 @@ final class Network implements com.breadwallet.crypto.Network {
 
             units.add(unit.get());
         }
-        return units.isEmpty() ? Optional.absent() : Optional.of(units);
+
+        return Optional.of(units);
     }
 
     @Override

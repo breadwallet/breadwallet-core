@@ -52,7 +52,7 @@ class OwnedBRCryptoUnit implements CoreBRCryptoUnit {
     }
 
     @Override
-    public Optional<CoreBRCryptoUnit> getBase() {
+    public CoreBRCryptoUnit getBase() {
         return core.getBase();
     }
 

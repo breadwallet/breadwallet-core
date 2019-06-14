@@ -27,13 +27,13 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
     private static final CryptoApi.AccountProvider accountProvider = new CryptoApi.AccountProvider() {
 
         @Override
-        public Account create(String phrase, String uids, Date earliestKeyTime) {
-            return Account.create(phrase, uids, earliestKeyTime);
+        public Account create(String phrase, Date timestamp, String uids) {
+            return Account.create(phrase, timestamp, uids);
         }
 
         @Override
-        public Account create(byte[] seed, String uids, Date earliestKeyTime) {
-            return Account.create(seed, uids, earliestKeyTime);
+        public Account create(byte[] seed, Date timestamp, String uids) {
+            return Account.create(seed, timestamp, uids);
         }
     };
 

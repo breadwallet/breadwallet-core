@@ -25,9 +25,9 @@ public interface CoreBRCryptoAccount {
         return CryptoLibrary.INSTANCE.cryptoAccountDeriveSeed(phrase).u8.clone();
     }
 
-    Date getEarliestKeyTime();
+    Date getTimestamp();
 
-    void setEarliestKeyTime(Date earliestKeyTime);
+    void setTimestamp(Date timestamp);
 
     BRCryptoAccount asBRCryptoAccount();
 }

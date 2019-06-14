@@ -36,7 +36,7 @@ public interface CoreBRCryptoUnit {
 
     UnsignedInteger getDecimals();
 
-    Optional<CoreBRCryptoUnit> getBase();
+    CoreBRCryptoUnit getBase();
 
     boolean isCompatible(CoreBRCryptoUnit other);
 

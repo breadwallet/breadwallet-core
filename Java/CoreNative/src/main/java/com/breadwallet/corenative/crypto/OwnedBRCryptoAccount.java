@@ -31,13 +31,13 @@ class OwnedBRCryptoAccount implements CoreBRCryptoAccount {
     }
 
     @Override
-    public Date getEarliestKeyTime() {
-        return core.getEarliestKeyTime();
+    public Date getTimestamp() {
+        return core.getTimestamp();
     }
 
     @Override
-    public void setEarliestKeyTime(Date earliestKeyTime) {
-        core.setEarliestKeyTime(earliestKeyTime);
+    public void setTimestamp(Date timestamp) {
+        core.setTimestamp(timestamp);
     }
 
     @Override

@@ -61,7 +61,7 @@ final class Unit implements com.breadwallet.crypto.Unit {
 
     @Override
     public Unit getBase() {
-        return core.getBase().transform(u -> new Unit(u)).or(this);
+        return new Unit(core.getBase());
     }
 
     @Override
