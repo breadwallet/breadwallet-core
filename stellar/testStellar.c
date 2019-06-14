@@ -201,7 +201,7 @@ void runSerializationTests()
 
 static void testDeserialize(uint32_t test,
                             const char * envelope_xdr, const char* result_xdr, const char* accountString,
-                            uint32_t opType,
+                            int32_t opType,
                             uint32_t expectedOpCount,
                             uint32_t expectedSignatureCount,
                             int32_t expectedStatus,
@@ -236,7 +236,7 @@ static void testDeserialize(uint32_t test,
         uint32_t sigCount = stellarTransactionGetSignatureCount(transaction);
         assert(sigCount == expectedSignatureCount);
 
-        if (opType > 0) {
+        if (opType >= 0) {
             // There should be at least 1 operation that matches our expectations
             bool found = false;
             for (int i = 0; i < opCount; i++) {
