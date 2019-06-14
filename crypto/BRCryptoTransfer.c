@@ -321,8 +321,29 @@ cryptoTransferGetDirection (BRCryptoTransfer transfer) {
 
             return CRYPTO_TRANSFER_RECEIVED;
         }
-        case BLOCK_CHAIN_TYPE_ETH:
-            return CRYPTO_TRANSFER_SENT;
+        case BLOCK_CHAIN_TYPE_ETH: {
+            BREthereumEWM ewm = transfer->u.eth.ewm;
+            BREthereumTransfer tid =transfer->u.eth.tid;
+
+            BREthereumAddress source = ewmTransferGetSource (ewm, tid);
+            BREthereumAddress target = ewmTransferGetTarget (ewm, tid);
+
+            BREthereumAccount account = ewmGetAccount (ewm);
+            BREthereumAddress address = accountGetPrimaryAddress (ewmGetAccount(ewm));
+
+            BREthereumBoolean accountIsSource = addressEqual (source, address);
+            BREthereumBoolean accountIsTarget = addressEqual (target, address);
+
+            if (accountIsSource == ETHEREUM_BOOLEAN_TRUE && accountIsTarget == ETHEREUM_BOOLEAN_TRUE) {
+                return CRYPTO_TRANSFER_RECOVERED;
+            } else if (accountIsSource == ETHEREUM_BOOLEAN_TRUE && accountIsTarget == ETHEREUM_BOOLEAN_FALSE) {
+                return CRYPTO_TRANSFER_SENT;
+            } else if (accountIsSource == ETHEREUM_BOOLEAN_FALSE && accountIsTarget == ETHEREUM_BOOLEAN_TRUE) {
+                return CRYPTO_TRANSFER_RECEIVED;
+            }
+
+            assert(0);
+        }
 
         case BLOCK_CHAIN_TYPE_GEN:
             return CRYPTO_TRANSFER_SENT;
