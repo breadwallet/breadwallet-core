@@ -43,7 +43,8 @@ public final class System {
     }
 
 
-    /// The system's Wallet Managers, unsorted
+    /// The system's Wallet Managers, unsorted.  A WalletManager will hold an 'unowned'
+    /// reference back to `System`
     public internal(set) var managers: [WalletManager] = [];
 
     internal func managerBy (core: BRCryptoWalletManager) -> WalletManager? {

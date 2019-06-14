@@ -26,7 +26,7 @@ public final class Transfer: Equatable {
     internal let core: BRCryptoTransfer
 
     /// The owning wallet
-    public unowned let wallet: Wallet
+    public let wallet: Wallet
 
     public private(set) lazy var manager: WalletManager = {
         return wallet.manager
@@ -91,6 +91,16 @@ public final class Transfer: Equatable {
             .map { TransferHash (core: $0) }
     }
 
+    /// The current state
+    public var state: TransferState {
+        return TransferState (core: cryptoTransferGetState (core))
+    }
+
+    /// The direction
+    public private(set) lazy var direction: TransferDirection = {
+        return TransferDirection (core: cryptoTransferGetDirection (self.core))
+    }()
+
 
     internal init (core: BRCryptoTransfer,
                    listener: TransferListener?,
@@ -102,24 +112,7 @@ public final class Transfer: Equatable {
         self.listener = listener
         self.wallet = wallet
         self.unit = unit
-        self.state = TransferState.created
-
-        //        wallet.add(transfer: self)
     }
-
-    /// The current state
-    public internal(set) var state: TransferState {
-        didSet {
-            let newValue = state
-            announceEvent (TransferEvent.changed (old: oldValue,
-                                                  new: newValue))
-        }
-    }
-
-    /// The direction
-    public private(set) lazy var direction: TransferDirection = {
-        return TransferDirection (core: cryptoTransferGetDirection (self.core))
-    }()
 
 
     // var originator: Bool { get }
