@@ -162,8 +162,31 @@ cryptoWalletGetUnitForFee (BRCryptoWallet wallet) {
 
 extern BRCryptoAmount
 cryptoWalletGetBalance (BRCryptoWallet wallet) {
-    UInt256 value = UINT256_ZERO;
-    return cryptoAmountCreateInternal (cryptoUnitGetCurrency (wallet->unit), CRYPTO_FALSE, value, 0);
+    switch (wallet->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            BRWallet *wid = wallet->u.btc.wid;
+
+            UInt256 value = createUInt256 (BRWalletBalance (wid));
+            BRCryptoCurrency currency = cryptoWalletGetCurrency (wallet);
+            BRCryptoAmount amount = cryptoAmountCreate (currency, CRYPTO_FALSE, value);
+            cryptoCurrencyGive (currency);
+            return amount;
+        }
+        case BLOCK_CHAIN_TYPE_ETH: {
+            BREthereumEWM ewm = wallet->u.eth.ewm;
+            BREthereumWallet wid =wallet->u.eth.wid;
+
+            BREthereumAmount balance = ewmWalletGetBalance (ewm, wid);
+            UInt256 value = balance.type == AMOUNT_ETHER ? balance.u.ether.valueInWEI : balance.u.tokenQuantity.valueAsInteger;
+            BRCryptoCurrency currency = cryptoWalletGetCurrency (wallet);
+            BRCryptoAmount amount = cryptoAmountCreate (currency, CRYPTO_FALSE, value);
+            cryptoCurrencyGive (currency);
+            return amount;
+        }
+        case BLOCK_CHAIN_TYPE_GEN:
+            assert (0);
+            return NULL;
+    }
 }
 
 extern BRCryptoBoolean
@@ -313,7 +336,7 @@ cryptoWalletCreateTransfer (BRCryptoWallet wallet,
                             BRCryptoFeeBasis feeBasis) {
     assert (cryptoWalletGetType (wallet) == cryptoFeeBasisGetType(feeBasis));
     char *addr = cryptoAddressAsString(target); // Taraget address
-    
+
     switch (wallet->type) {
         case BLOCK_CHAIN_TYPE_BTC: {
             BRWallet *wid = wallet->u.btc.wid;
@@ -379,14 +402,14 @@ cryptoWalletEstimateFee (BRCryptoWallet wallet,
             BREthereumAmount ethAmount = (NULL != ethToken
                                           ? amountCreateToken (createTokenQuantity (ethToken, ethValue))
                                           : amountCreateEther (etherCreate (ethValue)));
-            
+
             BREthereumFeeBasis ethFeeBasis = cryptoFeeBasisAsETH (feeBasis);
             BREthereumEther ethFee = ewmWalletEstimateTransferFeeForBasis (ewm, wid, ethAmount, ethFeeBasis.u.gas.price, ethFeeBasis.u.gas.limit, &overflow);
 
             assert (!overflow);
             return cryptoAmountCreateInternal (cryptoUnitGetCurrency(feeUnit), CRYPTO_FALSE, ethFee.valueInWEI, 0);
         }
-            
+
         case BLOCK_CHAIN_TYPE_GEN:
             assert (0);
             return NULL;
