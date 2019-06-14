@@ -29,14 +29,14 @@ class BRCryptoNetworkTests: XCTestCase {
                                                 defaultUnit: BTC_BTC,
                                                 units: Set (arrayLiteral: BTC_SATOSHI, BTC_BTC))
 
-        let network = Network (uids: "bitcoin-uids",
+        let network = Network (uids: "bitcoin-mainnet",
                                name: "bitcoin-name",
                                isMainnet: true,
                                currency: btc,
                                height: 100000,
                                associations: [btc:associations])
 
-        XCTAssertEqual (network.uids, "bitcoin-uids")
+        XCTAssertEqual (network.uids, "bitcoin-mainnet")
         XCTAssertEqual (network.name, "bitcoin-name")
         XCTAssertTrue  (network.isMainnet)
         XCTAssertEqual (network.height, 100000)
@@ -79,7 +79,7 @@ class BRCryptoNetworkTests: XCTestCase {
                                                 defaultUnit: ETH_ETHER,
                                                 units: Set (arrayLiteral: ETH_WEI, ETH_GWEI, ETH_ETHER))
 
-        let network = Network (uids: "ethereum-uids",
+        let network = Network (uids: "ethereum-mainnet",
                                name: "ethereump-name",
                                isMainnet: true,
                                currency: eth,

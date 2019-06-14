@@ -16,6 +16,12 @@ class CoreDemoListener: SystemListener {
     public var walletListeners: [WalletListener] = []
     public var transferListeners: [TransferListener] = []
 
+    let currencyCodeToModeMap: [String : WalletManagerMode] = [
+        Currency.codeAsBTC : WalletManagerMode.p2p_only,
+        Currency.codeAsBCH : WalletManagerMode.p2p_only,
+        Currency.codeAsETH : WalletManagerMode.api_only
+        ]
+
     func handleSystemEvent(system: System, event: SystemEvent) {
         print ("APP: System: \(event)")
         switch event {
@@ -23,17 +29,16 @@ class CoreDemoListener: SystemListener {
             break
 
         case .networkAdded(let network):
+
             // A network was created; create the corresponding wallet manager.  Note: an actual
             // App might not be interested in having a wallet manager for every network -
             // specifically, test networks are announced and having a wallet manager for a
             // testnet won't happen in a deployed App.
 
-            let mode = (network.currency.code == Currency.codeAsBTC ||
-                network.currency.code == Currency.codeAsBCH
-                ? WalletManagerMode.api_only
-                : WalletManagerMode.api_only)
+            let code = network.currency.code.lowercased()
 
-            let _ = system.createWalletManager (network: network, mode: mode)
+            let _ = system.createWalletManager (network: network,
+                                                mode: currencyCodeToModeMap[code] ?? WalletManagerMode.api_only)
 
         case .managerAdded (let manager):
             manager.connect()
