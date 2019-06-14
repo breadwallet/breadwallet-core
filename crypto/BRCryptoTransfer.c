@@ -329,7 +329,7 @@ cryptoTransferGetDirection (BRCryptoTransfer transfer) {
             BREthereumAddress target = ewmTransferGetTarget (ewm, tid);
 
             BREthereumAccount account = ewmGetAccount (ewm);
-            BREthereumAddress address = accountGetPrimaryAddress (ewmGetAccount(ewm));
+            BREthereumAddress address = accountGetPrimaryAddress (account);
 
             BREthereumBoolean accountIsSource = addressEqual (source, address);
             BREthereumBoolean accountIsTarget = addressEqual (target, address);
