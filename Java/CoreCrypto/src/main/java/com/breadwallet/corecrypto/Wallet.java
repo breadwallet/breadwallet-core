@@ -7,82 +7,103 @@
  */
 package com.breadwallet.corecrypto;
 
-import com.breadwallet.crypto.Amount;
-import com.breadwallet.crypto.TransferFeeBasis;
-import com.breadwallet.crypto.TransferHash;
-import com.breadwallet.crypto.Unit;
-import com.breadwallet.crypto.WalletManager;
+import android.support.annotation.Nullable;
+
+import com.breadwallet.corenative.crypto.CoreBRCryptoTransfer;
+import com.breadwallet.corenative.crypto.CoreBRCryptoWallet;
 import com.breadwallet.crypto.WalletState;
 import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedLong;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.Objects;
 
 /* package */
-abstract class Wallet<T extends Transfer> implements com.breadwallet.crypto.Wallet {
+final class Wallet implements com.breadwallet.crypto.Wallet {
 
-    protected final WalletManager owner;
-    protected final Unit feeUnit;
-    protected final Unit defaultUnit;
-    protected final AtomicReference<WalletState> state;
+    /* package */
+    static Wallet create(CoreBRCryptoWallet wallet, WalletManager walletManager, Unit networkBaseUnit, Unit networkDefaultUnit) {
+        return new Wallet(wallet, walletManager, networkBaseUnit, networkDefaultUnit);
+    }
 
-    protected final Lock transfersReadLock;
-    protected final Lock transfersWriteLock;
-    protected final List<T> transfers;
+    private final CoreBRCryptoWallet core;
+    private final WalletManager walletManager;
+    private final Unit feeUnit;
+    private final Unit defaultUnit;
+    private final Currency defaultUnitCurrency;
 
-    protected TransferFeeBasis defaultFeeBasis;
+    private TransferFeeBasis defaultFeeBasis;
 
-    protected Wallet(WalletManager owner, Unit feeUnit, Unit defaultUnit, TransferFeeBasis defaultFeeBasis) {
-        this.owner = owner;
-        this.feeUnit = feeUnit;
-        this.defaultUnit = defaultUnit;
-        this.defaultFeeBasis = defaultFeeBasis;
-        this.state = new AtomicReference<>(WalletState.CREATED);
-
-        ReadWriteLock transfersRwLock = new ReentrantReadWriteLock();
-        this.transfersReadLock = transfersRwLock.readLock();
-        this.transfersWriteLock = transfersRwLock.writeLock();
-        this.transfers = new ArrayList<>();
+    private Wallet(CoreBRCryptoWallet core, WalletManager walletManager, Unit networkBaseUnit, Unit networkDefaultUnit) {
+        this.core = core;
+        this.walletManager = walletManager;
+        this.feeUnit = networkBaseUnit;
+        this.defaultUnit = networkDefaultUnit;
+        this.defaultUnitCurrency = networkDefaultUnit.getCurrency();
+        this.defaultFeeBasis = TransferFeeBasis.create(core.getDefaultFeeBasis());
     }
 
     @Override
-    public Amount estimateFee(Amount amount) {
+    public Optional<Transfer> createTransfer(com.breadwallet.crypto.Address target,
+                                             com.breadwallet.crypto.Amount amount) {
+        return createTransfer(target, amount, defaultFeeBasis);
+    }
+
+    @Override
+    public Optional<Transfer> createTransfer(com.breadwallet.crypto.Address target,
+                                             com.breadwallet.crypto.Amount amount,
+                                             com.breadwallet.crypto.TransferFeeBasis feeBasis) {
+        Address targetImpl = Address.from(target);
+        Amount amountImpl = Amount.from(amount);
+        TransferFeeBasis feeBasisImpl = TransferFeeBasis.from(feeBasis);
+        Unit unitImpl = amountImpl.getUnit();
+        CoreBRCryptoTransfer transfer = core.createTransfer(targetImpl.getCoreBRCryptoAddress(),
+                amountImpl.getCoreBRCryptoAmount(), feeBasisImpl.getCoreBRFeeBasis());
+        return Optional.of(Transfer.create(transfer, this, unitImpl));
+    }
+
+    @Override
+    public Amount estimateFee(com.breadwallet.crypto.Amount amount) {
         return estimateFee(amount, defaultFeeBasis);
     }
 
     @Override
+    public Amount estimateFee(com.breadwallet.crypto.Amount amount, com.breadwallet.crypto.TransferFeeBasis feeBasis) {
+        Amount amountImpl = Amount.from(amount);
+        TransferFeeBasis feeBasisImpl = TransferFeeBasis.from(feeBasis);
+        return Amount.create(core.estimateFee(amountImpl.getCoreBRCryptoAmount(), feeBasisImpl.getCoreBRFeeBasis(),
+                defaultUnit.getCoreBRCryptoUnit()), feeUnit);
+    }
+
+    @Override
     public WalletManager getWalletManager() {
-        return owner;
+        return walletManager;
     }
 
     @Override
-    public List<com.breadwallet.crypto.Transfer> getTransfers() {
-        transfersReadLock.lock();
-        try {
-            return new ArrayList<>(transfers);
-        } finally {
-            transfersReadLock.unlock();
+    public List<Transfer> getTransfers() {
+        List<Transfer> transfers = new ArrayList<>();
+
+        UnsignedLong count = core.getTransferCount();
+        for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
+            transfers.add(Transfer.create(core.getTransfer(i), this, defaultUnit));
         }
+
+        return transfers;
     }
 
     @Override
-    public Optional<com.breadwallet.crypto.Transfer> getTransferByHash(TransferHash hash) {
-        transfersReadLock.lock();
-        try {
-            for (com.breadwallet.crypto.Transfer transfer : transfers) {
-                TransferHash transferHash = transfer.getHash().orNull();
-                if (hash.equals(transferHash)) {
-                    return Optional.of(transfer);
-                }
+    public Optional<Transfer> getTransferByHash(com.breadwallet.crypto.TransferHash hash) {
+        List<Transfer> transfers = getTransfers();
+
+        for (Transfer transfer : transfers) {
+            Optional<TransferHash> optional = transfer.getHash();
+            if (optional.isPresent() && optional.get().equals(hash)) {
+                return Optional.of(transfer);
             }
-            return Optional.absent();
-        } finally {
-            transfersReadLock.unlock();
         }
+        return Optional.absent();
     }
 
     @Override
@@ -91,13 +112,13 @@ abstract class Wallet<T extends Transfer> implements com.breadwallet.crypto.Wall
     }
 
     @Override
-    public WalletState getState() {
-        return state.get();
+    public Amount getBalance() {
+        return Amount.create(core.getBalance(), defaultUnit);
     }
 
-    /* package */
-    WalletState setState(WalletState newState) {
-        return state.getAndSet(newState);
+    @Override
+    public WalletState getState() {
+        return Utilities.walletStateFromCrypto(core.getState());
     }
 
     @Override
@@ -105,8 +126,75 @@ abstract class Wallet<T extends Transfer> implements com.breadwallet.crypto.Wall
         return defaultFeeBasis;
     }
 
+    @Override
+    public Address getTarget() {
+        return Address.create(core.getTargetAddress());
+    }
+
+    @Override
+    public Address getSource() {
+        return Address.create(core.getSourceAddress());
+    }
+
+    @Override
+    public Currency getCurrency() {
+        return defaultUnitCurrency;
+    }
+
+    @Override
+    public String getName() {
+        return defaultUnitCurrency.getCode();
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) {
+            return true;
+        }
+
+        if (!(object instanceof Wallet)) {
+            return false;
+        }
+
+        Wallet that = (Wallet) object;
+        return core.equals(that.core);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(core);
+    }
+
     /* package */
-    void setDefaultFeeBasis(TransferFeeBasis feeBasis) {
-        defaultFeeBasis = feeBasis;
+    void setDefaultFeeBasis(com.breadwallet.crypto.TransferFeeBasis feeBasis) {
+        defaultFeeBasis = TransferFeeBasis.from(feeBasis);
+    }
+
+    /* package */
+    void setState(WalletState newState) {
+        core.setState(Utilities.walletStateToCrypto(newState));
+    }
+
+    /* package */
+    Optional<Transfer> getTransfer(CoreBRCryptoTransfer transfer) {
+        return core.containsTransfer(transfer) ?
+                Optional.of(Transfer.create(transfer, this, defaultUnit)) :
+                Optional.absent();
+    }
+
+    /* package */
+    Optional<Transfer> getTransferOrCreate(CoreBRCryptoTransfer transfer) {
+        Optional<Transfer> optional = getTransfer(transfer);
+        if (optional.isPresent()) {
+            return optional;
+
+        } else {
+            return Optional.of(Transfer.create(transfer, this, defaultUnit));
+        }
+    }
+
+    /* package */
+    CoreBRCryptoWallet getCoreBRCryptoWallet() {
+        return core;
     }
 }

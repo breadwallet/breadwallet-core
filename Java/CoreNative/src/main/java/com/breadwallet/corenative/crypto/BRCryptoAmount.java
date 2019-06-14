@@ -42,27 +42,20 @@ public class BRCryptoAmount extends PointerType implements CoreBRCryptoAmount {
     }
 
     @Override
-    public Optional<UnsignedLong> getIntegerRaw() {
-        IntByReference overflowRef = new IntByReference(BRCryptoBoolean.CRYPTO_FALSE);
-        UnsignedLong value = UnsignedLong.fromLongBits(CryptoLibrary.INSTANCE.cryptoAmountGetIntegerRaw(this, overflowRef));
-        return overflowRef.getValue() == BRCryptoBoolean.CRYPTO_TRUE ? Optional.absent() : Optional.of(value);
-    }
-
-    @Override
-    public BRCryptoAmount add(CoreBRCryptoAmount o) {
+    public Optional<CoreBRCryptoAmount> add(CoreBRCryptoAmount o) {
         BRCryptoAmount otherCore = o.asBRCryptoAmount();
-        return CryptoLibrary.INSTANCE.cryptoAmountAdd(this, otherCore);
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoAmountAdd(this, otherCore)).transform(OwnedBRCryptoAmount::new);
     }
 
     @Override
-    public BRCryptoAmount sub(CoreBRCryptoAmount o) {
+    public Optional<CoreBRCryptoAmount> sub(CoreBRCryptoAmount o) {
         BRCryptoAmount otherCore = o.asBRCryptoAmount();
-        return CryptoLibrary.INSTANCE.cryptoAmountSub(this, otherCore);
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoAmountSub(this, otherCore)).transform(OwnedBRCryptoAmount::new);
     }
 
     @Override
-    public BRCryptoAmount negate() {
-        return CryptoLibrary.INSTANCE.cryptoAmountNegate(this);
+    public CoreBRCryptoAmount negate() {
+        return new OwnedBRCryptoAmount(CryptoLibrary.INSTANCE.cryptoAmountNegate(this));
     }
 
     @Override
@@ -80,6 +73,12 @@ public class BRCryptoAmount extends PointerType implements CoreBRCryptoAmount {
     public boolean isCompatible(CoreBRCryptoAmount o) {
         BRCryptoAmount otherCore = o.asBRCryptoAmount();
         return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAmountIsCompatible(this, otherCore);
+    }
+
+    @Override
+    public boolean hasCurrency(CoreBRCryptoCurrency o) {
+        BRCryptoCurrency otherCore = o.asBRCryptoCurrency();
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAmountHasCurrency(this, otherCore);
     }
 
     @Override

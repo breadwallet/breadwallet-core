@@ -58,7 +58,7 @@ public class BRAddress extends Structure {
             end++;
         }
 
-        return addressStr.substring(0, end).trim();
+        return addressStr.substring(0, end);
     }
 
     public BRAddress(Pointer peer) {

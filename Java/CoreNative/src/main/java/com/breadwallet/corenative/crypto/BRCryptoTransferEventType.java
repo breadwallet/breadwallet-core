@@ -7,8 +7,10 @@
  */
 package com.breadwallet.corenative.crypto;
 
-public interface BREthereumBoolean {
+public interface BRCryptoTransferEventType {
 
-    int ETHEREUM_BOOLEAN_TRUE = 0;
-    int ETHEREUM_BOOLEAN_FALSE = 1;
+    int CRYPTO_TRANSFER_EVENT_CREATED = 0;
+    int CRYPTO_TRANSFER_EVENT_CHANGED = 1;
+    int CRYPTO_TRANSFER_EVENT_CONFIRMED = 2;
+    int CRYPTO_TRANSFER_EVENT_DELETED = 3;
 }

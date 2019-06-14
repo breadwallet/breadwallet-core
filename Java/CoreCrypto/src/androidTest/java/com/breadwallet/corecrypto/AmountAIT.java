@@ -9,9 +9,9 @@ public class AmountAIT {
 
     @Test
     public void testAmountCreateBtc() {
-        Currency btc = new Currency("Bitcoin", "Bitcoin", "BTC", "native");
-        Unit satoshi_btc = new Unit(btc, "BTC-SAT", "Satoshi", "SAT");
-        Unit btc_btc = new Unit(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, UnsignedInteger.valueOf(8));
+        Currency btc = Currency.create("Bitcoin", "Bitcoin", "btc", "native");
+        Unit satoshi_btc = Unit.create(btc, "BTC-SAT", "Satoshi", "SAT");
+        Unit btc_btc = Unit.create(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, UnsignedInteger.valueOf(8));
 
         Amount btc1 = Amount.create(100000000, satoshi_btc).get();
         assertEquals(new Double(100000000), btc1.doubleAmount(satoshi_btc).get());
@@ -45,9 +45,9 @@ public class AmountAIT {
 
     @Test
     public void testAmountCreateBtcString() {
-        Currency btc = new Currency("Bitcoin", "Bitcoin", "BTC", "native");
-        Unit satoshi_btc = new Unit(btc, "BTC-SAT", "Satoshi", "SAT");
-        Unit btc_btc = new Unit(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, UnsignedInteger.valueOf(8));
+        Currency btc = Currency.create("Bitcoin", "Bitcoin", "btc", "native");
+        Unit satoshi_btc = Unit.create(btc, "BTC-SAT", "Satoshi", "SAT");
+        Unit btc_btc = Unit.create(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, UnsignedInteger.valueOf(8));
 
         Amount btc1s = Amount.create("100000000", false, satoshi_btc).get();
         assertEquals(new Double(100000000), btc1s.doubleAmount(satoshi_btc).get());
@@ -98,11 +98,11 @@ public class AmountAIT {
 
     @Test
     public void testAmountCreateEth() {
-        Currency eth = new Currency("Ethereum", "Ethereum", "ETH", "native");
+        Currency eth = Currency.create("Ethereum", "Ethereum", "eth", "native");
 
-        Unit wei_eth = new Unit(eth, "ETH-WEI", "WEI", "wei");
-        Unit gwei_eth = new Unit(eth, "ETH-GWEI", "GWEI",  "gwei", wei_eth, UnsignedInteger.valueOf(9));
-        Unit ether_eth = new Unit(eth, "ETH-ETH", "ETHER", "E",    wei_eth, UnsignedInteger.valueOf(18));
+        Unit wei_eth = Unit.create(eth, "ETH-WEI", "WEI", "wei");
+        Unit gwei_eth = Unit.create(eth, "ETH-GWEI", "GWEI",  "gwei", wei_eth, UnsignedInteger.valueOf(9));
+        Unit ether_eth = Unit.create(eth, "ETH-ETH", "ETHER", "E",    wei_eth, UnsignedInteger.valueOf(18));
 
         Amount eth1 = Amount.create(1e9, gwei_eth).get();
         Amount eth2 = Amount.create(1.0, ether_eth).get();

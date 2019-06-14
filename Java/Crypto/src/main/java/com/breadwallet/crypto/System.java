@@ -31,23 +31,11 @@ public interface System {
 
     void initialize(List<String> networksNeeded, boolean isMainnet);
 
-    default void start() {
-        for (WalletManager manager: getWalletManagers()) {
-            manager.connect();
-        }
-    }
+    void start();
 
-    default void stop() {
-        for (WalletManager manager: getWalletManagers()) {
-            manager.disconnect();
-        }
-    }
+    void stop();
 
-    default void sync() {
-        for (WalletManager manager: getWalletManagers()) {
-            manager.sync();
-        }
-    }
+    void sync();
 
     void createWalletManager(Network network, WalletManagerMode mode);
 
@@ -57,15 +45,9 @@ public interface System {
 
     String getPath();
 
-    List<Network> getNetworks();
+    List<? extends Network> getNetworks();
 
-    List<WalletManager> getWalletManagers();
+    List<? extends WalletManager> getWalletManagers();
 
-    default List<Wallet> getWallets() {
-        List<Wallet> wallets = new ArrayList<>();
-        for (WalletManager manager: getWalletManagers()) {
-            wallets.addAll(manager.getWallets());
-        }
-        return wallets;
-    }
+    List<? extends Wallet> getWallets();
 }

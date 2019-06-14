@@ -17,23 +17,29 @@ import java.util.Set;
 
 public interface Network {
 
-    Optional<Unit> baseUnitFor(Currency currency);
+    Optional<? extends Unit> baseUnitFor(Currency currency);
 
-    Optional<Unit> defaultUnitFor(Currency currency);
+    Optional<? extends Unit> defaultUnitFor(Currency currency);
 
-    Optional<Set<Unit>> unitsFor(Currency currency);
+    Optional<Set<? extends Unit>> unitsFor(Currency currency);
 
-    Optional<Address> addressFor(String address);
+    Optional<? extends Address> addressFor(String address);
 
-    boolean hasUnitFor(Currency currency, Unit unit);
+    Optional<Boolean> hasUnitFor(Currency currency, Unit unit);
 
     boolean hasCurrency(Currency currency);
 
     Currency getCurrency();
 
+    Set<? extends Currency> getCurrencies();
+
+    Optional<? extends Currency> getCurrencyByCode(String code);
+
     List<WalletManagerMode> getSupportedModes();
 
     String getUids();
+
+    String getName();
 
     boolean isMainnet();
 

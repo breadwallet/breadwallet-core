@@ -8,7 +8,6 @@
 package com.breadwallet.corenative.ethereum;
 
 import com.breadwallet.corenative.CryptoLibrary;
-import com.breadwallet.corenative.crypto.BREthereumBoolean;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 

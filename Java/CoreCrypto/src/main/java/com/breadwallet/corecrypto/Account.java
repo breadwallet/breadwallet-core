@@ -8,7 +8,6 @@
 package com.breadwallet.corecrypto;
 
 import com.breadwallet.corenative.crypto.CoreBRCryptoAccount;
-import com.breadwallet.corenative.support.BRMasterPubKey;
 
 import java.util.Date;
 
@@ -16,13 +15,13 @@ import java.util.Date;
 final class Account implements com.breadwallet.crypto.Account {
 
     /* package */
-    static Account createFrom(String phrase, String uids, Date earliestKeyTime) {
-        return new Account(CoreBRCryptoAccount.create(phrase), uids, earliestKeyTime);
+    static Account create(String phrase, Date timestamp, String uids) {
+        return new Account(CoreBRCryptoAccount.create(phrase), timestamp, uids);
     }
 
     /* package */
-    static Account createFrom(byte[] seed, String uids, Date earliestKeyTime) {
-        return new Account(CoreBRCryptoAccount.createFromSeed(seed), uids, earliestKeyTime);
+    static Account create(byte[] seed, Date timestamp, String uids) {
+        return new Account(CoreBRCryptoAccount.createFromSeed(seed), timestamp, uids);
     }
 
     /* package */
@@ -41,19 +40,19 @@ final class Account implements com.breadwallet.crypto.Account {
     private final CoreBRCryptoAccount core;
     private final String uids;
 
-    private Account(CoreBRCryptoAccount core, String uids, Date earliestKeyTime) {
+    private Account(CoreBRCryptoAccount core, Date timestamp, String uids) {
         this.uids = uids;
         this.core = core;
-        this.core.setEarliestKeyTime(earliestKeyTime);
+        this.core.setTimestamp(timestamp);
     }
 
     @Override
-    public Date getEarliestKeyTime() {
-        return core.getEarliestKeyTime();
+    public Date getTimestamp() {
+        return core.getTimestamp();
     }
 
     /* package */
-    BRMasterPubKey.ByValue asBtc() {
-        return core.asBtc();
+    CoreBRCryptoAccount getCoreBRCryptoAccount() {
+        return core;
     }
 }

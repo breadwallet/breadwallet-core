@@ -15,6 +15,16 @@ import java.util.Objects;
 final class Currency implements com.breadwallet.crypto.Currency {
 
     /* package */
+    static Currency create(CoreBRCryptoCurrency core) {
+        return new Currency(core);
+    }
+
+    /* package */
+    static Currency create (String uids, String name, String code, String type) {
+        return new Currency(CoreBRCryptoCurrency.create(uids, name, code, type));
+    }
+
+    /* package */
     static Currency from(com.breadwallet.crypto.Currency currency) {
         if (currency instanceof Currency) {
             return (Currency) currency;
@@ -23,15 +33,14 @@ final class Currency implements com.breadwallet.crypto.Currency {
     }
 
     private final CoreBRCryptoCurrency core;
-    private final String uids;
 
-    /* package */ Currency(String uids, String name, String code, String type) {
-        this(CoreBRCryptoCurrency.create(name, code, type), uids);
+    private Currency(CoreBRCryptoCurrency core) {
+        this.core = core;
     }
 
-    private Currency(CoreBRCryptoCurrency core, String uids) {
-        this.core = core;
-        this.uids = uids;
+    @Override
+    public String getUids() {
+        return core.getUids();
     }
 
     @Override
@@ -60,12 +69,12 @@ final class Currency implements com.breadwallet.crypto.Currency {
         }
 
         Currency currency = (Currency) o;
-        return uids.equals(currency.uids);
+        return core.isIdentical(currency.core);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(uids);
+        return Objects.hash(getUids());
     }
 
     /* package */

@@ -79,13 +79,31 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     @Override
+    public void start() {
+        for (WalletManager manager: getWalletManagers()) {
+            manager.connect();
+        }
+    }
+
+    @Override
+    public void stop() {
+        for (WalletManager manager: getWalletManagers()) {
+            manager.disconnect();
+        }
+    }
+
+    @Override
+    public void sync() {
+        for (WalletManager manager: getWalletManagers()) {
+            manager.sync();
+        }
+    }
+
+    @Override
     public void createWalletManager(com.breadwallet.crypto.Network network, WalletManagerMode mode) {
-        Network networkImpl = Network.from(network);
-        String networkCode = networkImpl.getCurrency().getCode();
-        if (networkCode.equals(com.breadwallet.crypto.Currency.CODE_AS_BTC)) {
-            WalletManager walletManager = new WalletManagerBtc(account, networkImpl, mode, path, announcer, query);
+        if (network.getSupportedModes().contains(mode)) {
+            WalletManager walletManager = WalletManager.create(account, Network.from(network), mode, path, announcer, query);
             if (addWalletManager(walletManager)) {
-                walletManager.initialize();
                 announcer.announceSystemEvent(new SystemManagerAddedEvent(walletManager));
             }
         } else {
@@ -99,7 +117,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     @Override
-    public com.breadwallet.crypto.Account getAccount() {
+    public Account getAccount() {
         return account;
     }
 
@@ -111,7 +129,7 @@ final class System implements com.breadwallet.crypto.System {
     // WalletManager management
 
     @Override
-    public List<com.breadwallet.crypto.WalletManager> getWalletManagers() {
+    public List<WalletManager> getWalletManagers() {
         walletManagersReadLock.lock();
         try {
             return new ArrayList<>(walletManagers);
@@ -120,12 +138,20 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
+    @Override
+    public List<Wallet> getWallets() {
+        List<Wallet> wallets = new ArrayList<>();
+        for (WalletManager manager: getWalletManagers()) {
+            wallets.addAll(manager.getWallets());
+        }
+        return wallets;
+    }
+
     private boolean addWalletManager(WalletManager walletManager) {
         boolean added;
 
         walletManagersWriteLock.lock();
         try {
-            // TODO(discuss): This is from the swift code but I don't see how it would ever evaluate to true
             added = !walletManagers.contains(walletManager);
             if (added) {
                 walletManagers.add(walletManager);
@@ -140,7 +166,7 @@ final class System implements com.breadwallet.crypto.System {
     // Network management
 
     @Override
-    public List<com.breadwallet.crypto.Network> getNetworks() {
+    public List<Network> getNetworks() {
         networksReadLock.lock();
         try {
             return new ArrayList<>(networks);

@@ -8,9 +8,9 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
-import com.breadwallet.corenative.support.BRMasterPubKey;
 
 import java.util.Date;
+import java.util.Objects;
 
 /* package */
 class OwnedBRCryptoAccount implements CoreBRCryptoAccount {
@@ -31,17 +31,41 @@ class OwnedBRCryptoAccount implements CoreBRCryptoAccount {
     }
 
     @Override
-    public Date getEarliestKeyTime() {
-        return core.getEarliestKeyTime();
+    public Date getTimestamp() {
+        return core.getTimestamp();
     }
 
     @Override
-    public void setEarliestKeyTime(Date earliestKeyTime) {
-        core.setEarliestKeyTime(earliestKeyTime);
+    public void setTimestamp(Date timestamp) {
+        core.setTimestamp(timestamp);
     }
 
     @Override
-    public BRMasterPubKey.ByValue asBtc() {
-        return core.asBtc();
+    public BRCryptoAccount asBRCryptoAccount() {
+        return core;
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) {
+            return true;
+        }
+
+        if (object instanceof OwnedBRCryptoAccount) {
+            OwnedBRCryptoAccount that = (OwnedBRCryptoAccount) object;
+            return core.equals(that.core);
+        }
+
+        if (object instanceof BRCryptoAccount) {
+            BRCryptoAccount that = (BRCryptoAccount) object;
+            return core.equals(that);
+        }
+
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(core);
     }
 }

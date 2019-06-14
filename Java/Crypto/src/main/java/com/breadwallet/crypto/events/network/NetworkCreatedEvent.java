@@ -8,4 +8,9 @@
 package com.breadwallet.crypto.events.network;
 
 public final class NetworkCreatedEvent implements NetworkEvent {
+
+    @Override
+    public <T> T accept(NetworkEventVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
 }

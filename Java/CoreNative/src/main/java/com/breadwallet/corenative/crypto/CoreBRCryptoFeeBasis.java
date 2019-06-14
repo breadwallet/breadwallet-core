@@ -5,11 +5,13 @@
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
-package com.breadwallet.corenative.bitcoin;
+package com.breadwallet.corenative.crypto;
 
-public interface BRTransactionEventType {
+public interface CoreBRCryptoFeeBasis {
 
-    int BITCOIN_TRANSACTION_ADDED = 0;
-    int BITCOIN_TRANSACTION_UPDATED = 1;
-    int BITCOIN_TRANSACTION_DELETED = 2;
+    static CoreBRCryptoFeeBasis createOwned(BRCryptoFeeBasis basis) {
+        return new OwnedBRCryptoFeeBasis(basis);
+    }
+
+    BRCryptoFeeBasis asBRCryptoFeeBasis();
 }

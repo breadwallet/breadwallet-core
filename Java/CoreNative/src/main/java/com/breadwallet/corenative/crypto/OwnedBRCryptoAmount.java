@@ -12,6 +12,8 @@ import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.ptr.IntByReference;
 
+import java.util.Objects;
+
 /* package */
 class OwnedBRCryptoAmount implements CoreBRCryptoAmount {
 
@@ -41,23 +43,18 @@ class OwnedBRCryptoAmount implements CoreBRCryptoAmount {
     }
 
     @Override
-    public Optional<UnsignedLong> getIntegerRaw() {
-        return core.getIntegerRaw();
+    public Optional<CoreBRCryptoAmount> add(CoreBRCryptoAmount amount) {
+        return core.add(amount);
     }
 
     @Override
-    public CoreBRCryptoAmount add(CoreBRCryptoAmount amount) {
-        return new OwnedBRCryptoAmount(core.add(amount));
-    }
-
-    @Override
-    public CoreBRCryptoAmount sub(CoreBRCryptoAmount amount) {
-        return new OwnedBRCryptoAmount(core.sub(amount));
+    public Optional<CoreBRCryptoAmount> sub(CoreBRCryptoAmount amount) {
+        return core.sub(amount);
     }
 
     @Override
     public CoreBRCryptoAmount negate() {
-        return new OwnedBRCryptoAmount(core.negate());
+        return core.negate();
     }
 
     @Override
@@ -76,6 +73,11 @@ class OwnedBRCryptoAmount implements CoreBRCryptoAmount {
     }
 
     @Override
+    public boolean hasCurrency(CoreBRCryptoCurrency o) {
+        return core.hasCurrency(o);
+    }
+
+    @Override
     public String toStringWithBase(int base, String preface) {
         return core.toStringWithBase(base, preface);
     }
@@ -83,5 +85,29 @@ class OwnedBRCryptoAmount implements CoreBRCryptoAmount {
     @Override
     public BRCryptoAmount asBRCryptoAmount() {
         return core;
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) {
+            return true;
+        }
+
+        if (object instanceof OwnedBRCryptoAmount) {
+            OwnedBRCryptoAmount that = (OwnedBRCryptoAmount) object;
+            return core.equals(that.core);
+        }
+
+        if (object instanceof BRCryptoAmount) {
+            BRCryptoAmount that = (BRCryptoAmount) object;
+            return core.equals(that);
+        }
+
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(core);
     }
 }

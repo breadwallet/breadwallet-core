@@ -22,7 +22,7 @@ import com.sun.jna.PointerType;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BRWalletManager extends PointerType implements CoreBRWalletManager {
+public class BRWalletManager extends PointerType {
 
     public BRWalletManager(Pointer address) {
         super(address);
@@ -32,17 +32,10 @@ public class BRWalletManager extends PointerType implements CoreBRWalletManager 
         super();
     }
 
-    @Override
-    public BRWallet getWallet() {
-        return CryptoLibrary.INSTANCE.BRWalletManagerGetWallet(this);
-    }
-
-    @Override
     public void generateUnusedAddrs(UnsignedInteger limit) {
         CryptoLibrary.INSTANCE.BRWalletManagerGenerateUnusedAddrs(this, limit.intValue());
     }
 
-    @Override
     public List<String> getAllAddrs() {
         SizeTByReference addressesCountReference = new SizeTByReference();
         BRAddress address = CryptoLibrary.INSTANCE.BRWalletManagerGetAllAddrs(this, addressesCountReference);
@@ -58,7 +51,6 @@ public class BRWalletManager extends PointerType implements CoreBRWalletManager 
         }
     }
 
-    @Override
     public List<String> getAllAddrsLegacy() {
         SizeTByReference addressesCountReference = new SizeTByReference();
         BRAddress address = CryptoLibrary.INSTANCE.BRWalletManagerGetAllAddrsLegacy(this, addressesCountReference);
@@ -74,51 +66,20 @@ public class BRWalletManager extends PointerType implements CoreBRWalletManager 
         }
     }
 
-    @Override
-    public void connect() {
-        CryptoLibrary.INSTANCE.BRWalletManagerConnect(this);
-    }
-
-    @Override
-    public void disconnect() {
-        CryptoLibrary.INSTANCE.BRWalletManagerDisconnect(this);
-    }
-
-    @Override
-    public void scan() {
-        CryptoLibrary.INSTANCE.BRWalletManagerScan(this);
-    }
-
-    @Override
-    public void submitTransaction(CoreBRTransaction transaction, byte[] seed) {
-        // TODO(discuss): We copy here so that we don't have our memory free'd from underneath us; is this OK?
-        BRTransaction tx = transaction.asBRTransactionDeepCopy();
-        CryptoLibrary.INSTANCE.BRWalletManagerSubmitTransaction(this, tx, seed, new SizeT(seed.length));
-    }
-
-    @Override
-    public boolean matches(BRWalletManager o) {
-        return this.equals(o);
-    }
-
-    @Override
     public void announceBlockNumber(int rid, UnsignedLong blockNumber) {
         CryptoLibrary.INSTANCE.bwmAnnounceBlockNumber(this, rid, blockNumber.longValue());
     }
 
-    @Override
     public void announceSubmit(int rid, CoreBRTransaction transaction, int error) {
         CryptoLibrary.INSTANCE.bwmAnnounceSubmit(this, rid, transaction.asBRTransaction(), error);
     }
 
-    @Override
     public void announceTransaction(int rid, CoreBRTransaction transaction) {
         // TODO(discuss): We copy here so that we don't have our memory free'd from underneath us; is this OK?
         BRTransaction tx = transaction.asBRTransactionDeepCopy();
         CryptoLibrary.INSTANCE.bwmAnnounceTransaction(this, rid, tx);
     }
 
-    @Override
     public void announceTransactionComplete(int rid, boolean success) {
         CryptoLibrary.INSTANCE.bwmAnnounceTransactionComplete(this, rid, success ? BRCryptoBoolean.CRYPTO_TRUE : BRCryptoBoolean.CRYPTO_FALSE);
     }

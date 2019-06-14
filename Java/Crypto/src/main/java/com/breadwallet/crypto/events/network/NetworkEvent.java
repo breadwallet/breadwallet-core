@@ -8,4 +8,6 @@
 package com.breadwallet.crypto.events.network;
 
 public interface NetworkEvent {
+
+    <T> T accept(NetworkEventVisitor<T> visitor);
 }

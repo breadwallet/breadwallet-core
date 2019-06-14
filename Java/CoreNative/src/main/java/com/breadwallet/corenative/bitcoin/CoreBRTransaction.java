@@ -24,11 +24,6 @@ public interface CoreBRTransaction {
         return Optional.fromNullable(transaction).transform(OwnedBRTransaction::new);
     }
 
-    static Optional<CoreBRTransaction> create(BRWallet wallet, UnsignedLong amount, String address) {
-        BRTransaction transaction = CryptoLibrary.INSTANCE.BRWalletCreateTransaction(wallet, amount.longValue(), address);
-        return Optional.fromNullable(transaction).transform(OwnedBRTransaction::new);
-    }
-
     static CoreBRTransaction create(BRTransaction transaction) {
         return new OwnedBRTransaction(transaction);
     }

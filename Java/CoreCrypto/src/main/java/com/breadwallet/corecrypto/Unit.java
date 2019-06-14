@@ -16,6 +16,21 @@ import java.util.Objects;
 final class Unit implements com.breadwallet.crypto.Unit {
 
     /* package */
+    static Unit create(CoreBRCryptoUnit core) {
+        return new Unit(core);
+    }
+
+    /* package */
+    static Unit create(Currency currency, String uids, String name, String symbol) {
+        return new Unit(CoreBRCryptoUnit.createAsBase(currency.getCoreBRCryptoCurrency(), uids, name, symbol));
+    }
+
+    /* package */
+    static Unit create(Currency currency, String uids, String name, String symbol, Unit base, UnsignedInteger decimals) {
+        return new Unit(CoreBRCryptoUnit.create(currency.getCoreBRCryptoCurrency(), uids, name, symbol, base.core, decimals));
+    }
+
+    /* package */
     static Unit from(com.breadwallet.crypto.Unit unit) {
         if (unit instanceof Unit) {
             return (Unit) unit;
@@ -24,30 +39,14 @@ final class Unit implements com.breadwallet.crypto.Unit {
     }
 
     private final CoreBRCryptoUnit core;
-    private final Unit base;
-    private final String uids;
-    private final Currency currency;
 
-    /* package */
-    Unit(Currency currency, String uids, String name, String symbol) {
-        this(CoreBRCryptoUnit.createAsBase(currency.getCoreBRCryptoCurrency(), name, symbol), currency, uids, null);
-    }
-
-    /* package */
-    Unit(Currency currency, String uids, String name, String symbol, Unit base, UnsignedInteger decimals) {
-        this(CoreBRCryptoUnit.create(currency.getCoreBRCryptoCurrency(), name, symbol, base.core, decimals), currency, uids, base);
-    }
-
-    private Unit(CoreBRCryptoUnit core, Currency currency, String uids, Unit base) {
+    private Unit(CoreBRCryptoUnit core) {
         this.core = core;
-        this.currency = currency;
-        this.uids = uids;
-        this.base = base == null ? this : base;
     }
 
     @Override
     public Currency getCurrency() {
-        return currency;
+        return Currency.create(core.getCurrency());
     }
 
     @Override
@@ -62,7 +61,7 @@ final class Unit implements com.breadwallet.crypto.Unit {
 
     @Override
     public Unit getBase() {
-        return base;
+        return new Unit(core.getBase());
     }
 
     @Override
@@ -91,12 +90,12 @@ final class Unit implements com.breadwallet.crypto.Unit {
         }
 
         Unit unit = (Unit) o;
-        return uids.equals(unit.uids);
+        return core.isIdentical(unit.core);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(uids);
+        return Objects.hash(core.getUids());
     }
 
     /* package */

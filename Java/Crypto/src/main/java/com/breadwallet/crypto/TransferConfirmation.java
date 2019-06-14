@@ -9,6 +9,7 @@
  */
 package com.breadwallet.crypto;
 
+import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedLong;
 
 import java.util.Date;
@@ -19,9 +20,9 @@ public final class TransferConfirmation {
     private final UnsignedLong blockNumber;
     private final UnsignedLong transactionIndex;
     private final Date timestamp;
-    private final Amount fee;
+    private final Optional<Amount> fee;
 
-    public TransferConfirmation(UnsignedLong blockNumber, UnsignedLong transactionIndex, UnsignedLong timestamp, Amount fee) {
+    public TransferConfirmation(UnsignedLong blockNumber, UnsignedLong transactionIndex, UnsignedLong timestamp, Optional<Amount> fee) {
         this.blockNumber = blockNumber;
         this.transactionIndex = transactionIndex;
         this.timestamp = new Date(TimeUnit.SECONDS.toMillis(timestamp.longValue()));
@@ -40,7 +41,7 @@ public final class TransferConfirmation {
         return timestamp;
     }
 
-    public Amount getFee() {
+    public Optional<Amount> getFee() {
         return fee;
     }
 }

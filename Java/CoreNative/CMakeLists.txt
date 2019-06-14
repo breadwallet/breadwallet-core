@@ -250,23 +250,22 @@ target_sources (crypto
                 src/main/cpp/core/crypto/BRCryptoBase.h
                 src/main/cpp/core/crypto/BRCryptoCurrency.c
                 src/main/cpp/core/crypto/BRCryptoCurrency.h
+                src/main/cpp/core/crypto/BRCryptoFeeBasis.c
+                src/main/cpp/core/crypto/BRCryptoFeeBasis.h
+                src/main/cpp/core/crypto/BRCryptoHash.c
+                src/main/cpp/core/crypto/BRCryptoHash.h
+                src/main/cpp/core/crypto/BRCryptoNetwork.c
+                src/main/cpp/core/crypto/BRCryptoNetwork.h
                 src/main/cpp/core/crypto/BRCryptoPrivate.h
+                src/main/cpp/core/crypto/BRCryptoTransfer.c
+                src/main/cpp/core/crypto/BRCryptoTransfer.h
                 src/main/cpp/core/crypto/BRCryptoUnit.c
                 src/main/cpp/core/crypto/BRCryptoUnit.h
+                src/main/cpp/core/crypto/BRCryptoWallet.c
+                src/main/cpp/core/crypto/BRCryptoWallet.h
+                src/main/cpp/core/crypto/BRCryptoWalletManager.c
+                src/main/cpp/core/crypto/BRCryptoWalletManager.h
 #                src/main/cpp/core/crypto/testCrypto.c
-
-                src/main/cpp/core/crypto/pending/BRCryptoCurrencyPair.c
-                src/main/cpp/core/crypto/pending/BRCryptoCurrencyPair.h
-                src/main/cpp/core/crypto/pending/BRCryptoNetwork.c
-                src/main/cpp/core/crypto/pending/BRCryptoNetwork.h
-                src/main/cpp/core/crypto/pending/BRCryptoSystem.c
-                src/main/cpp/core/crypto/pending/BRCryptoSystem.h
-                src/main/cpp/core/crypto/pending/BRCryptoTransfer.c
-                src/main/cpp/core/crypto/pending/BRCryptoTransfer.h
-                src/main/cpp/core/crypto/pending/BRCryptoWallet.c
-                src/main/cpp/core/crypto/pending/BRCryptoWallet.h
-                src/main/cpp/core/crypto/pending/BRCryptoWalletManager.c
-                src/main/cpp/core/crypto/pending/BRCryptoWalletManager.h
                 )
 
 # Crypto JNI

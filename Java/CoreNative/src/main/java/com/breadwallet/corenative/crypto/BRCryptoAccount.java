@@ -8,7 +8,6 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
-import com.breadwallet.corenative.support.BRMasterPubKey;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
@@ -26,17 +25,17 @@ public class BRCryptoAccount extends PointerType implements CoreBRCryptoAccount 
     }
 
     @Override
-    public Date getEarliestKeyTime() {
+    public Date getTimestamp() {
         return new Date(TimeUnit.SECONDS.toMillis(CryptoLibrary.INSTANCE.cryptoAccountGetTimestamp(this)));
     }
 
     @Override
-    public void setEarliestKeyTime(Date earliestKeyTime) {
-        CryptoLibrary.INSTANCE.cryptoAccountSetTimestamp(this, TimeUnit.MILLISECONDS.toSeconds(earliestKeyTime.getTime()));
+    public void setTimestamp(Date timestamp) {
+        CryptoLibrary.INSTANCE.cryptoAccountSetTimestamp(this, TimeUnit.MILLISECONDS.toSeconds(timestamp.getTime()));
     }
 
     @Override
-    public BRMasterPubKey.ByValue asBtc() {
-        return CryptoLibrary.INSTANCE.cryptoAccountAsBTC(this);
+    public BRCryptoAccount asBRCryptoAccount() {
+        return this;
     }
 }

@@ -9,6 +9,8 @@ package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
 
+import java.util.Objects;
+
 /* package */
 class OwnedBRCryptoAddress implements CoreBRCryptoAddress {
 
@@ -40,5 +42,29 @@ class OwnedBRCryptoAddress implements CoreBRCryptoAddress {
     @Override
     public BRCryptoAddress asBRCryptoAddress() {
         return core;
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) {
+            return true;
+        }
+
+        if (object instanceof OwnedBRCryptoAddress) {
+            OwnedBRCryptoAddress that = (OwnedBRCryptoAddress) object;
+            return core.equals(that.core);
+        }
+
+        if (object instanceof BRCryptoAddress) {
+            BRCryptoAddress that = (BRCryptoAddress) object;
+            return core.equals(that);
+        }
+
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(core);
     }
 }

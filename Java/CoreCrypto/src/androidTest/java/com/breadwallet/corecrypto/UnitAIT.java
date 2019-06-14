@@ -18,10 +18,10 @@ public class UnitAIT {
 
     @Test
     public void testUnitBtc() {
-        Currency btc = new Currency("Bitcoin", "Bitcoin", "BTC", "native");
-        Currency eth = new Currency("Ethereum", "Ethereum", "ETH", "native");
+        Currency btc = Currency.create("Bitcoin", "Bitcoin", "btc", "native");
+        Currency eth = Currency.create("Ethereum", "Ethereum", "eth", "native");
 
-        Unit satoshi_btc = new Unit(btc, "BTC-SAT", "Satoshi", "SAT");
+        Unit satoshi_btc = Unit.create(btc, "BTC-SAT", "Satoshi", "SAT");
         assertEquals(satoshi_btc.getCurrency().getCode(), btc.getCode());
         assertEquals(satoshi_btc.getName(), "Satoshi");
         assertEquals(satoshi_btc.getSymbol(), "SAT");
@@ -30,7 +30,7 @@ public class UnitAIT {
         assertTrue(satoshi_btc.isCompatible(satoshi_btc));
         assertEquals(satoshi_btc.getCoreBRCryptoUnit(), satoshi_btc.getBase().getCoreBRCryptoUnit());
 
-        Unit btc_btc = new Unit(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, UnsignedInteger.valueOf(8));
+        Unit btc_btc = Unit.create(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, UnsignedInteger.valueOf(8));
         assertEquals(btc_btc.getCurrency().getCode(), btc.getCode());
         assertTrue(satoshi_btc.isCompatible(btc_btc));
         assertTrue(btc_btc.isCompatible(satoshi_btc));
@@ -38,12 +38,12 @@ public class UnitAIT {
 
     @Test
     public void testUnitEth() {
-        Currency btc = new Currency("Bitcoin", "Bitcoin", "BTC", "native");
-        Currency eth = new Currency("Ethereum", "Ethereum", "ETH", "native");
+        Currency btc = Currency.create("Bitcoin", "Bitcoin", "btc", "native");
+        Currency eth = Currency.create("Ethereum", "Ethereum", "eth", "native");
 
-        Unit satoshi_btc = new Unit(btc, "BTC-SAT", "Satoshi", "SAT");
-        Unit btc_btc = new Unit(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, UnsignedInteger.valueOf(8));
-        Unit wei_eth = new Unit(eth, "ETH-WEI", "WEI", "wei");
+        Unit satoshi_btc = Unit.create(btc, "BTC-SAT", "Satoshi", "SAT");
+        Unit btc_btc = Unit.create(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, UnsignedInteger.valueOf(8));
+        Unit wei_eth = Unit.create(eth, "ETH-WEI", "WEI", "wei");
 
         assertFalse(wei_eth.isCompatible(btc_btc));
         assertFalse(btc_btc.isCompatible(wei_eth));

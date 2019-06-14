@@ -5,18 +5,15 @@
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
-package com.breadwallet.corenative.bitcoin;
+package com.breadwallet.corenative.crypto;
 
-import com.sun.jna.Pointer;
-import com.sun.jna.PointerType;
+public interface CoreBRCryptoHash {
 
-public class BRChainParams extends PointerType {
+    int getValue();
 
-    public BRChainParams(Pointer address) {
-        super(address);
-    }
+    boolean isIdentical(CoreBRCryptoHash other);
 
-    public BRChainParams() {
-        super();
-    }
+    String toString();
+
+    BRCryptoHash asBRCryptoHash();
 }

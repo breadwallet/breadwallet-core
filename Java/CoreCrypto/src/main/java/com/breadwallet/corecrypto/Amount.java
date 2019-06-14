@@ -9,6 +9,7 @@ package com.breadwallet.corecrypto;
 
 import android.support.annotation.Nullable;
 
+import com.breadwallet.corenative.support.UInt256;
 import com.breadwallet.crypto.CurrencyPair;
 import com.breadwallet.corenative.crypto.BRCryptoComparison;
 import com.breadwallet.corenative.crypto.CoreBRCryptoAmount;
@@ -45,9 +46,20 @@ final class Amount implements com.breadwallet.crypto.Amount {
     }
 
     /* package */
+    static Amount createAsEth(UInt256.ByValue value, com.breadwallet.crypto.Unit unit) {
+        Unit unitImpl = Unit.from(unit);
+        return new Amount(CoreBRCryptoAmount.createAsEth(value, unitImpl.getCurrency().getCoreBRCryptoCurrency()), unitImpl);
+    }
+
+    /* package */
     static Amount createAsBtc(UnsignedLong value, com.breadwallet.crypto.Unit unit) {
         Unit unitImpl = Unit.from(unit);
         return new Amount(CoreBRCryptoAmount.createAsBtc(value, unitImpl.getCurrency().getCoreBRCryptoCurrency()), unitImpl);
+    }
+
+    /* package */
+    static Amount create(CoreBRCryptoAmount core, Unit unit) {
+        return new Amount(core, unit);
     }
 
     /* package */
@@ -83,18 +95,18 @@ final class Amount implements com.breadwallet.crypto.Amount {
     }
 
     @Override
-    public com.breadwallet.crypto.Currency getCurrency() {
+    public Currency getCurrency() {
         return unit.getCurrency();
     }
 
     @Override
-    public com.breadwallet.crypto.Unit getUnit() {
+    public Unit getUnit() {
         return unit;
     }
 
     @Override
     public boolean hasCurrency(com.breadwallet.crypto.Currency currency) {
-        return Currency.from(currency).getCoreBRCryptoCurrency().equals(core.getCurrency());
+        return core.hasCurrency(Currency.from(currency).getCoreBRCryptoCurrency());
     }
 
     @Override
@@ -108,27 +120,17 @@ final class Amount implements com.breadwallet.crypto.Amount {
     }
 
     @Override
-    public Optional<com.breadwallet.crypto.Amount> add(com.breadwallet.crypto.Amount o) {
+    public Optional<Amount> add(com.breadwallet.crypto.Amount o) {
         checkArgument(isCompatible(o));
 
-        CoreBRCryptoAmount amount = core.add(from(o).core);
-        if (amount == null) {
-            return Optional.absent();
-        }
-
-        return Optional.of(new Amount(amount, unit));
+        return core.add(from(o).core).transform(a -> new Amount(a, unit));
     }
 
     @Override
-    public Optional<com.breadwallet.crypto.Amount> sub(com.breadwallet.crypto.Amount o) {
+    public Optional<Amount> sub(com.breadwallet.crypto.Amount o) {
         checkArgument(isCompatible(o));
 
-        CoreBRCryptoAmount amount = core.sub(from(o).core);
-        if (amount == null) {
-            return Optional.absent();
-        }
-
-        return Optional.of(new Amount(amount, unit));
+        return core.sub(from(o).core).transform(a -> new Amount(a, unit));
     }
 
     @Override
@@ -154,7 +156,7 @@ final class Amount implements com.breadwallet.crypto.Amount {
 
     @Override
     public Optional<String> toStringFromPair(CurrencyPair pair, @Nullable NumberFormat numberFormatter) {
-        Optional<com.breadwallet.crypto.Amount> amount = pair.exchangeAsBase(this);
+        Optional<? extends com.breadwallet.crypto.Amount> amount = pair.exchangeAsBase(this);
         if (amount.isPresent()) {
             return amount.get().toStringAsUnit(pair.getQuoteUnit(), numberFormatter);
         } else {
@@ -169,7 +171,6 @@ final class Amount implements com.breadwallet.crypto.Amount {
 
     @Override
     public String toString() {
-        // TODO(discuss): Do we want to return a non-localized value here? Is there a localization of NaN?
         return toStringAsUnit(unit).or("<nan>");
     }
 
@@ -212,8 +213,7 @@ final class Amount implements com.breadwallet.crypto.Amount {
     }
 
     /* package */
-    UnsignedLong integerRawAmount() {
-        // TODO(discuss): doubleAmount returns an optional based on overflow; shouldn't this?
-        return core.getIntegerRaw().get();
+    CoreBRCryptoAmount getCoreBRCryptoAmount() {
+        return core;
     }
 }

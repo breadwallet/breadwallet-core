@@ -8,7 +8,6 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
-import com.breadwallet.corenative.support.BRMasterPubKey;
 
 import java.util.Date;
 
@@ -26,9 +25,9 @@ public interface CoreBRCryptoAccount {
         return CryptoLibrary.INSTANCE.cryptoAccountDeriveSeed(phrase).u8.clone();
     }
 
-    Date getEarliestKeyTime();
+    Date getTimestamp();
 
-    void setEarliestKeyTime(Date earliestKeyTime);
+    void setTimestamp(Date timestamp);
 
-    BRMasterPubKey.ByValue asBtc();
+    BRCryptoAccount asBRCryptoAccount();
 }

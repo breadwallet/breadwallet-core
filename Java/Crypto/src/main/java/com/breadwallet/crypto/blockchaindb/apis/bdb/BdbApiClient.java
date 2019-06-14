@@ -180,22 +180,26 @@ public class BdbApiClient {
                 if (responseCode == 200) {
                     try (ResponseBody responseBody = response.body()) {
                         if (responseBody == null) {
+                            Log.e(TAG, "response failed with null body");
                             handler.handleError(new QueryNoDataError());
                         } else {
                             try {
                                 handler.handleData(new JSONObject(responseBody.string()));
                             } catch (JSONException e) {
+                                Log.e(TAG, "response failed parsing json", e);
                                 handler.handleError(new QueryJsonParseError(e.getMessage()));
                             }
                         }
                     }
                 } else {
+                    Log.e(TAG, "response failed with status " + responseCode);
                     handler.handleError(new QueryUrlError("Status: " + responseCode));
                 }
             }
 
             @Override
             public void onFailure(Call call, IOException e) {
+                Log.e(TAG, "send request failed", e);
                 handler.handleError(new QuerySubmissionError(e.getMessage()));
             }
         });
@@ -221,8 +225,11 @@ public class BdbApiClient {
             Optional<T> data = parser.parse(json);
             if (data.isPresent()) {
                 handler.handleData(data.get());
+
             } else {
-                handler.handleError(new QueryModelError("Transform error"));
+                QueryError e = new QueryModelError("Transform error");
+                Log.e(TAG, "parsing error", e);
+                handler.handleError(e);
             }
         }
 
@@ -253,8 +260,11 @@ public class BdbApiClient {
             Optional<T> data = parser.parse(jsonEmbeddedData);
             if (data.isPresent()) {
                 handler.handleData(data.get());
+
             } else {
-                handler.handleError(new QueryModelError("Transform error"));
+                QueryError e = new QueryModelError("Transform error");
+                Log.e(TAG, "parsing error", e);
+                handler.handleError(e);
             }
         }
 

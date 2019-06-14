@@ -60,7 +60,7 @@ final class NetworkDiscovery {
                             continue;
                         }
 
-                        Currency currency = new Currency(
+                        Currency currency = Currency.create(
                                 currencyModel.getId(),
                                 currencyModel.getName(),
                                 currencyModel.getCode(),
@@ -74,7 +74,7 @@ final class NetworkDiscovery {
 
                         units.add(0, baseUnit);
                         Collections.sort(units, (o1, o2) -> o2.getDecimals().compareTo(o1.getDecimals()));
-                        com.breadwallet.crypto.Unit defaultUnit = units.get(0);
+                        Unit defaultUnit = units.get(0);
 
                         associations.put(currency, new NetworkAssociation(baseUnit, defaultUnit, new HashSet<>(units)));
                     }
@@ -188,7 +188,7 @@ final class NetworkDiscovery {
     private static Unit currencyDenominationToBaseUnit(Currency currency,
                                                        CurrencyDenomination denomination) {
         String uids = String.format("%s-%s", currency.getName(), denomination.getCode());
-        return new Unit(currency, uids, denomination.getName(), denomination.getSymbol());
+        return Unit.create(currency, uids, denomination.getName(), denomination.getSymbol());
     }
 
     private static List<Unit> currencyDenominationToUnits(Currency currency,
@@ -197,7 +197,7 @@ final class NetworkDiscovery {
         List<Unit> units = new ArrayList<>();
         for (CurrencyDenomination denomination : denominations) {
             String uids = String.format("%s-%s", currency.getName(), denomination.getCode());
-            units.add(new Unit(currency, uids, denomination.getName(), denomination.getSymbol(), base,
+            units.add(Unit.create(currency, uids, denomination.getName(), denomination.getSymbol(), base,
                       denomination.getDecimals()));
         }
         return units;

@@ -5,12 +5,11 @@
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
-package com.breadwallet.corenative.bitcoin;
+package com.breadwallet.corenative.crypto;
 
-public interface BRWalletEventType {
+public interface BRCryptoTransferDirection {
 
-    int BITCOIN_WALLET_CREATED = 0;
-    int BITCOIN_WALLET_BALANCE_UPDATED = 1;
-    int BITCOIN_WALLET_TRANSACTION_SUBMITTED = 2;
-    int BITCOIN_WALLET_DELETED = 3;
+    int CRYPTO_TRANSFER_SENT = 0;
+    int CRYPTO_TRANSFER_RECEIVED = 1;
+    int CRYPTO_TRANSFER_RECOVERED = 2;
 }

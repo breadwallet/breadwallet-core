@@ -49,6 +49,19 @@ final class Address implements com.breadwallet.crypto.Address {
         return new Address(CoreBRCryptoAddress.createAsEth(addressValue));
     }
 
+    /* package */
+    static Address create(CoreBRCryptoAddress core) {
+        return new Address(core);
+    }
+
+    /* package */
+    static Address from(com.breadwallet.crypto.Address target) {
+        if (target instanceof Address) {
+            return (Address) target;
+        }
+        throw new IllegalArgumentException("Unsupported address instance");
+    }
+
     private final CoreBRCryptoAddress core;
 
     private Address(CoreBRCryptoAddress core) {
@@ -77,5 +90,10 @@ final class Address implements com.breadwallet.crypto.Address {
     @Override
     public int hashCode() {
         return Objects.hash(core);
+    }
+
+    /* package */
+    CoreBRCryptoAddress getCoreBRCryptoAddress() {
+        return core;
     }
 }

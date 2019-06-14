@@ -32,6 +32,12 @@ public interface CoreBRCryptoAmount {
         return Optional.fromNullable(amount).transform(OwnedBRCryptoAmount::new);
     }
 
+    static CoreBRCryptoAmount createAsEth(UInt256.ByValue value, CoreBRCryptoCurrency currency) {
+        BRCryptoCurrency currencyCore = currency.asBRCryptoCurrency();
+        BRCryptoAmount amountCore = CryptoLibrary.INSTANCE.cryptoAmountCreate(currencyCore, BRCryptoBoolean.CRYPTO_FALSE, value);
+        return new OwnedBRCryptoAmount(amountCore);
+    }
+
     static CoreBRCryptoAmount createAsBtc(UnsignedLong value, CoreBRCryptoCurrency currency) {
         UInt256.ByValue valueBytes = CryptoLibrary.INSTANCE.createUInt256(value.longValue());
         BRCryptoCurrency currencyCore = currency.asBRCryptoCurrency();
@@ -39,15 +45,17 @@ public interface CoreBRCryptoAmount {
         return new OwnedBRCryptoAmount(amountCore);
     }
 
+    static CoreBRCryptoAmount createOwned(BRCryptoAmount amount) {
+        return new OwnedBRCryptoAmount(amount);
+    }
+
     CoreBRCryptoCurrency getCurrency();
 
     Optional<Double> getDouble(CoreBRCryptoUnit unit);
 
-    Optional<UnsignedLong> getIntegerRaw();
+    Optional<CoreBRCryptoAmount> add(CoreBRCryptoAmount amount);
 
-    CoreBRCryptoAmount add(CoreBRCryptoAmount amount);
-
-    CoreBRCryptoAmount sub(CoreBRCryptoAmount amount);
+    Optional<CoreBRCryptoAmount> sub(CoreBRCryptoAmount amount);
 
     CoreBRCryptoAmount negate();
 
@@ -56,6 +64,8 @@ public interface CoreBRCryptoAmount {
     int compare(CoreBRCryptoAmount o);
 
     boolean isCompatible(CoreBRCryptoAmount o);
+
+    boolean hasCurrency(CoreBRCryptoCurrency o);
 
     String toStringWithBase(int base, String preface);
 

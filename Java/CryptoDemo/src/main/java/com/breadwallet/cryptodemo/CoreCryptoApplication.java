@@ -85,7 +85,7 @@ public class CoreCryptoApplication extends Application {
             listener = new CoreSystemListener(mode);
 
             String uids = UUID.nameUUIDFromBytes(paperKey.getBytes(StandardCharsets.UTF_8)).toString();
-            Account account = Account.createFrom(paperKey, uids, new Date(TimeUnit.SECONDS.toMillis(timestamp)));
+            Account account = Account.createFrom(paperKey, new Date(TimeUnit.SECONDS.toMillis(timestamp)), uids);
 
             BlockchainDb query = new BlockchainDb(new OkHttpClient(), BDB_BASE_URL, API_BASE_URL);
             system = System.create(Executors.newSingleThreadExecutor(), listener, account, storageFile.getAbsolutePath(), query);

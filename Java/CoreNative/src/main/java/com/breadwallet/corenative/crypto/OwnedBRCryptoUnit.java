@@ -8,7 +8,10 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
+import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
+
+import java.util.Objects;
 
 /* package */
 class OwnedBRCryptoUnit implements CoreBRCryptoUnit {
@@ -29,6 +32,11 @@ class OwnedBRCryptoUnit implements CoreBRCryptoUnit {
     }
 
     @Override
+    public String getUids() {
+        return core.getUids();
+    }
+
+    @Override
     public String getName() {
         return core.getName();
     }
@@ -44,8 +52,18 @@ class OwnedBRCryptoUnit implements CoreBRCryptoUnit {
     }
 
     @Override
+    public CoreBRCryptoUnit getBase() {
+        return core.getBase();
+    }
+
+    @Override
     public boolean isCompatible(CoreBRCryptoUnit other) {
         return core.isCompatible(other);
+    }
+
+    @Override
+    public CoreBRCryptoCurrency getCurrency() {
+        return core.getCurrency();
     }
 
     @Override
@@ -54,7 +72,36 @@ class OwnedBRCryptoUnit implements CoreBRCryptoUnit {
     }
 
     @Override
+    public boolean isIdentical(CoreBRCryptoUnit other) {
+        return core.isIdentical(other);
+    }
+
+    @Override
     public BRCryptoUnit asBRCryptoUnit() {
         return core;
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) {
+            return true;
+        }
+
+        if (object instanceof OwnedBRCryptoUnit) {
+            OwnedBRCryptoUnit that = (OwnedBRCryptoUnit) object;
+            return core.equals(that.core);
+        }
+
+        if (object instanceof BRCryptoUnit) {
+            BRCryptoUnit that = (BRCryptoUnit) object;
+            return core.equals(that);
+        }
+
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(core);
     }
 }
