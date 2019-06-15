@@ -31,7 +31,7 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreTransactionInput_createT
 
     input->txHash = UInt256Get((const void *) hashData);
     input->index = (uint32_t) index;
-    input->amount = (uint32_t) amount;
+    input->amount = (uint64_t) amount;
 
     // script
     input->script = NULL;
