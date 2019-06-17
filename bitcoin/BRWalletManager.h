@@ -27,14 +27,12 @@
 #define BRWalletManager_h
 
 #include <stdio.h>
+#include "BRSyncMode.h"
 #include "BRBIP32Sequence.h"        // BRMasterPubKey
 #include "BRChainParams.h"          // BRChainParams (*NOT THE STATIC DECLARATIONS*)
-
 #include "BRTransaction.h"
 #include "BRWallet.h"
 #include "BRPeerManager.h"          // Unneeded, if we shadow some functions (connect,disconnect,scan)
-
-#include "support/BRSyncMode.h"
 
 #ifdef __cplusplus
 extern "C" {
