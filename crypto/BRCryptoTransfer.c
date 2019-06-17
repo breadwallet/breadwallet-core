@@ -407,10 +407,14 @@ cryptoTransferGetFeeBasis (BRCryptoTransfer transfer) {
     switch (transfer->type) {
         case BLOCK_CHAIN_TYPE_BTC: {
             BRWallet *wid = transfer->u.btc.wid;
+            BRTransaction *tid = transfer->u.btc.tid;
 
-            uint64_t fee = BRWalletFeePerKb (wid);
+            uint64_t fee = BRWalletFeeForTx (wid, tid);
+            uint64_t feePerKb = (UINT64_MAX == fee
+                                 ? DEFAULT_FEE_PER_KB
+                                 : (fee * 1000) / BRTransactionVSize (tid));
 
-            return cryptoFeeBasisCreateAsBTC (fee);
+            return cryptoFeeBasisCreateAsBTC (feePerKb);
         }
         case BLOCK_CHAIN_TYPE_ETH: {
             BREthereumEWM ewm = transfer->u.eth.ewm;
