@@ -58,14 +58,12 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
 
     @Override
     public Amount getAmount() {
-        // TODO(fix): Unchecked get here
-        return Amount.create(core.getAmount().get(), defaultUnit);
+        return Amount.create(core.getAmount(), defaultUnit);
     }
 
     @Override
      public Amount getAmountDirected() {
-        // TODO(fix): Unchecked get here
-        return Amount.create(core.getAmountDirected().get(), defaultUnit);
+        return Amount.create(core.getAmountDirected(), defaultUnit);
     }
 
     @Override
