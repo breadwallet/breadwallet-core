@@ -178,8 +178,8 @@ cryptoTransferGetTargetAddress (BRCryptoTransfer transfer) {
     }
 }
 
-extern BRCryptoAmount
-cryptoTransferGetAmount (BRCryptoTransfer transfer) {
+static BRCryptoAmount
+cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNegative) {
     switch (transfer->type) {
         case BLOCK_CHAIN_TYPE_BTC: {
             BRWallet *wid = transfer->u.btc.wid;
@@ -194,15 +194,15 @@ cryptoTransferGetAmount (BRCryptoTransfer transfer) {
             switch (cryptoTransferGetDirection(transfer)) {
                 case CRYPTO_TRANSFER_RECOVERED:
                     return cryptoAmountCreate (transfer->currency,
-                                               CRYPTO_FALSE,
+                                               isNegative,
                                                createUInt256(send));
                 case CRYPTO_TRANSFER_SENT:
                     return cryptoAmountCreate (transfer->currency,
-                                               CRYPTO_FALSE,
+                                               isNegative,
                                                createUInt256(send - fee - recv));
                 case CRYPTO_TRANSFER_RECEIVED:
                     return cryptoAmountCreate (transfer->currency,
-                                               CRYPTO_FALSE,
+                                               isNegative,
                                                createUInt256(recv));
                 default: assert(0);
             }
@@ -212,11 +212,11 @@ cryptoTransferGetAmount (BRCryptoTransfer transfer) {
             switch (amountGetType(amount)) {
                 case AMOUNT_ETHER:
                     return cryptoAmountCreate (transfer->currency,
-                                               CRYPTO_FALSE,
+                                               isNegative,
                                                etherGetValue(amountGetEther(amount), WEI));
                 case AMOUNT_TOKEN:
                     return cryptoAmountCreate (transfer->currency,
-                                               CRYPTO_FALSE,
+                                               isNegative,
                                                amountGetTokenQuantity(amount).valueAsInteger);
 
                 default: assert(0);
@@ -228,6 +228,12 @@ cryptoTransferGetAmount (BRCryptoTransfer transfer) {
 }
 
 extern BRCryptoAmount
+cryptoTransferGetAmount (BRCryptoTransfer transfer) {
+    return cryptoTransferGetAmountAsSign (transactionCompare,
+                                          CRYPTO_FALSE);
+}
+
+extern BRCryptoAmount
 cryptoTransferGetAmountDirected (BRCryptoTransfer transfer) {
     switch (cryptoTransferGetDirection(transfer)) {
         case CRYPTO_TRANSFER_RECOVERED: {
@@ -236,13 +242,12 @@ cryptoTransferGetAmountDirected (BRCryptoTransfer transfer) {
                                        UINT256_ZERO);
         }
         case CRYPTO_TRANSFER_SENT: {
-            BRCryptoAmount amount = cryptoTransferGetAmount (transfer);
-            BRCryptoAmount negated = cryptoAmountNegate (amount);
-            cryptoAmountGive (amount);
-            return negated;
+            return cryptoTransferGetAmountAsSign (transfer,
+                                                  CRYPTO_TRUE);
         }
         case CRYPTO_TRANSFER_RECEIVED: {
-            return cryptoTransferGetAmount (transfer);
+            return cryptoTransferGetAmountAsSign (transfer,
+                                                  CRYPTO_FALSE);
         }
         default: assert(0);
     }
