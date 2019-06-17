@@ -59,22 +59,13 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
     @Override
     public Amount getAmount() {
         // TODO(fix): Unchecked get here
-        return Amount.create(core.getAmount().get(), wallet.getBaseUnit());
+        return Amount.create(core.getAmount().get(), defaultUnit);
     }
 
     @Override
      public Amount getAmountDirected() {
-        switch (getDirection()) {
-            case RECOVERED:
-                // TODO(fix): Unchecked get here
-                return Amount.create(0L, defaultUnit).get();
-            case SENT:
-                return getAmount().negate();
-            case RECEIVED:
-                return getAmount();
-            default:
-                throw new IllegalStateException("Invalid transfer direction");
-        }
+        // TODO(fix): Unchecked get here
+        return Amount.create(core.getAmountDirected().get(), defaultUnit);
     }
 
     @Override

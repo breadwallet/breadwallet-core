@@ -38,6 +38,11 @@ public class BRCryptoTransfer extends PointerType implements CoreBRCryptoTransfe
     }
 
     @Override
+    public Optional<CoreBRCryptoAmount> getAmountDirected() {
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoTransferGetAmountDirected(this)).transform(OwnedBRCryptoAmount::new);
+    }
+
+    @Override
     public CoreBRCryptoAmount getFee() {
         return new OwnedBRCryptoAmount(CryptoLibrary.INSTANCE.cryptoTransferGetFee(this));
     }

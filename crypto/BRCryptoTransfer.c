@@ -215,14 +215,36 @@ cryptoTransferGetAmount (BRCryptoTransfer transfer) {
                                                CRYPTO_FALSE,
                                                etherGetValue(amountGetEther(amount), WEI));
                 case AMOUNT_TOKEN:
-                    return NULL;
+                    return cryptoAmountCreate (transfer->currency,
+                                               CRYPTO_FALSE,
+                                               amountGetTokenQuantity(amount).valueAsInteger);
 
-                default:
-                    return NULL;
+                default: assert(0);
             }
         }
         case BLOCK_CHAIN_TYPE_GEN:
             return NULL;
+    }
+}
+
+extern BRCryptoAmount
+cryptoTransferGetAmountDirected (BRCryptoTransfer transfer) {
+    switch (cryptoTransferGetDirection(transfer)) {
+        case CRYPTO_TRANSFER_RECOVERED: {
+            return cryptoAmountCreate (transfer->currency,
+                                       CRYPTO_FALSE,
+                                       UINT256_ZERO);
+        }
+        case CRYPTO_TRANSFER_SENT: {
+            BRCryptoAmount amount = cryptoTransferGetAmount (transfer);
+            BRCryptoAmount negated = cryptoAmountNegate (amount);
+            cryptoAmountGive (amount);
+            return negated;
+        }
+        case CRYPTO_TRANSFER_RECEIVED: {
+            return cryptoTransferGetAmount (transfer);
+        }
+        default: assert(0);
     }
 }
 
@@ -262,7 +284,6 @@ cryptoTransferGetFee (BRCryptoTransfer transfer) { // Pass in 'currency' as bloc
 
             return cryptoAmountCreate (transfer->currency, CRYPTO_FALSE, amount.valueInWEI);
         }
-
         case BLOCK_CHAIN_TYPE_GEN:
             return cryptoAmountCreate (transfer->currency, CRYPTO_FALSE, UINT256_ZERO);
     }
@@ -379,9 +400,13 @@ cryptoTransferGetHash (BRCryptoTransfer transfer) {
 extern BRCryptoFeeBasis
 cryptoTransferGetFeeBasis (BRCryptoTransfer transfer) {
     switch (transfer->type) {
-        case BLOCK_CHAIN_TYPE_BTC:
-            return cryptoFeeBasisCreateAsBTC (DEFAULT_FEE_PER_KB);
+        case BLOCK_CHAIN_TYPE_BTC: {
+            BRWallet *wid = transfer->u.btc.wid;
 
+            uint64_t fee = BRWalletFeePerKb (wid);
+
+            return cryptoFeeBasisCreateAsBTC (fee);
+        }
         case BLOCK_CHAIN_TYPE_ETH: {
             BREthereumEWM ewm = transfer->u.eth.ewm;
             BREthereumTransfer tid =transfer->u.eth.tid;
@@ -391,7 +416,6 @@ cryptoTransferGetFeeBasis (BRCryptoTransfer transfer) {
 
             return cryptoFeeBasisCreateAsETH (gas, gasPrice);
         }
-
         case BLOCK_CHAIN_TYPE_GEN:
             return NULL;
     }
