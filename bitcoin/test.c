@@ -38,6 +38,7 @@
 #include "BRPeerManager.h"
 #include "BRChainParams.h"
 #include "bcash/BRBCashParams.h"
+#include "bcash/BRBCashAddr.h"
 #include "BRPaymentProtocol.h"
 #include "BRInt.h"
 #include "BRArray.h"
@@ -354,6 +355,21 @@ int BRBech32Tests()
     l = BRBech32Encode(addr, "bc", b);
     if (l == 0 || strcmp(addr, "bc1zw508d6qejxtdg4y5r3zarvaryvg6kdaj"))
         r = 0, fprintf(stderr, "\n***FAILED*** %s: BRBech32Encode() test 3", __func__);
+
+    if (! r) fprintf(stderr, "\n                                    ");
+    return r;
+}
+
+int BRBCashAddrTests()
+{
+    int r = 1;
+    char *s, addr[36];
+    size_t l;
+
+    s = "77047ecdd5ae988f30d68e828dad668439ad3e5ebba05680089c80f0be82d889";
+    l = BRBCashAddrDecode(addr, s);
+    if (l != 0)
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRBCashAddrDecode() test 1", __func__);
 
     if (! r) fprintf(stderr, "\n                                    ");
     return r;
@@ -2879,6 +2895,8 @@ int BRRunTests()
     printf("%s\n", (BRBase58Tests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRBech32Tests...                    ");
     printf("%s\n", (BRBech32Tests()) ? "success" : (fail++, "***FAIL***"));
+    printf("BRBCashAddrTests...                 ");
+    printf("%s\n", (BRBCashAddrTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRHashTests...                      ");
     printf("%s\n", (BRHashTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRMacTests...                       ");
