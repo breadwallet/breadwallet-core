@@ -229,7 +229,7 @@ cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNega
 
 extern BRCryptoAmount
 cryptoTransferGetAmount (BRCryptoTransfer transfer) {
-    return cryptoTransferGetAmountAsSign (transactionCompare,
+    return cryptoTransferGetAmountAsSign (transfer,
                                           CRYPTO_FALSE);
 }
 
@@ -410,9 +410,12 @@ cryptoTransferGetFeeBasis (BRCryptoTransfer transfer) {
             BRTransaction *tid = transfer->u.btc.tid;
 
             uint64_t fee = BRWalletFeeForTx (wid, tid);
-            uint64_t feePerKb = (UINT64_MAX == fee
-                                 ? DEFAULT_FEE_PER_KB
-                                 : (fee * 1000) / BRTransactionVSize (tid));
+            uint64_t feePerKb = DEFAULT_FEE_PER_KB;
+            if (UINT64_MAX != fee) {
+                // round to nearest satoshi per kb
+                uint64_t size = BRTransactionVSize (tid);
+                feePerKb = ((fee * 1000) + (size / 2)) / size;
+            }
 
             return cryptoFeeBasisCreateAsBTC (feePerKb);
         }
