@@ -133,7 +133,6 @@ public interface CryptoLibrary extends Library {
     // crypto/BRCryptoPrivate.h
     BRCryptoAddress cryptoAddressCreateAsBTC(BRAddress.ByValue btc);
     BRCryptoAddress cryptoAddressCreateAsETH(BREthereumAddress.ByValue address);
-    BRCryptoAmount cryptoAmountCreate (BRCryptoCurrency currency, int isNegative, UInt256.ByValue value);
     BRCryptoCurrency cryptoCurrencyCreate(String uids, String name, String code, String type);
     void cryptoNetworkSetHeight(BRCryptoNetwork network, long height);
     void cryptoNetworkSetCurrency(BRCryptoNetwork network, BRCryptoCurrency currency);
@@ -193,6 +192,9 @@ public interface CryptoLibrary extends Library {
     BRCryptoNetwork cryptoWalletManagerGetNetwork(BRCryptoWalletManager cwm);
     BRCryptoAccount cryptoWalletManagerGetAccount(BRCryptoWalletManager cwm);
     int cryptoWalletManagerGetMode(BRCryptoWalletManager cwm);
+    BRCryptoUnit cryptoWalletGetUnit(BRCryptoWallet wallet);
+    BRCryptoUnit cryptoWalletGetUnitForFee(BRCryptoWallet wallet);
+    BRCryptoCurrency cryptoWalletGetCurrency(BRCryptoWallet wallet);
     int cryptoWalletManagerGetState(BRCryptoWalletManager cwm);
     Pointer cryptoWalletManagerGetPath(BRCryptoWalletManager cwm);
     BRCryptoWallet cryptoWalletManagerGetWallet(BRCryptoWalletManager cwm);

@@ -45,6 +45,21 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
     }
 
     @Override
+    public CoreBRCryptoCurrency getCurrency() {
+        return new OwnedBRCryptoCurrency(CryptoLibrary.INSTANCE.cryptoWalletGetCurrency(this));
+    }
+
+    @Override
+    public CoreBRCryptoUnit getFeeUnit() {
+        return new OwnedBRCryptoUnit(CryptoLibrary.INSTANCE.cryptoWalletGetUnitForFee(this));
+    }
+
+    @Override
+    public CoreBRCryptoUnit getUnit() {
+        return new OwnedBRCryptoUnit(CryptoLibrary.INSTANCE.cryptoWalletGetUnit(this));
+    }
+
+    @Override
     public int getState() {
         return CryptoLibrary.INSTANCE.cryptoWalletGetState(this);
     }
@@ -56,7 +71,6 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
 
     @Override
     public CoreBRCryptoFeeBasis getDefaultFeeBasis() {
-        // TODO(discuss): This could return NULL, should be optional?
         return new OwnedBRCryptoFeeBasis(CryptoLibrary.INSTANCE.cryptoWalletGetDefaultFeeBasis(this));
     }
 
@@ -67,13 +81,11 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
 
     @Override
     public CoreBRCryptoAddress getSourceAddress() {
-        // TODO(discuss): This could return NULL, should be optional?
         return new OwnedBRCryptoAddress(CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this));
     }
 
     @Override
     public CoreBRCryptoAddress getTargetAddress() {
-        // TODO(discuss): This could return NULL, should be optional?
         return new OwnedBRCryptoAddress(CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this));
     }
 
@@ -88,7 +100,6 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
     @Override
     public CoreBRCryptoAmount estimateFee(CoreBRCryptoAmount amount, CoreBRCryptoFeeBasis feeBasis,
                                           CoreBRCryptoUnit unit) {
-        // TODO(discuss): This could return NULL, should be optional?
         return new OwnedBRCryptoAmount(CryptoLibrary.INSTANCE.cryptoWalletEstimateFee(this, amount.asBRCryptoAmount(),
                 feeBasis.asBRCryptoFeeBasis(), unit.asBRCryptoUnit()));
     }

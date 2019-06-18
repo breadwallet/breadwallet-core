@@ -40,33 +40,46 @@ final class Unit implements com.breadwallet.crypto.Unit {
 
     private final CoreBRCryptoUnit core;
 
+    private final Currency currency;
+    private final String name;
+    private final String symbol;
+    private final String uids;
+    private final UnsignedInteger decimals;
+
     private Unit(CoreBRCryptoUnit core) {
         this.core = core;
+
+        // don't cache base unit to avoid recursion; cost of get is cheap
+        this.currency = Currency.create(core.getCurrency());
+        this.name = core.getName();
+        this.symbol = core.getSymbol();
+        this.uids = core.getUids();
+        this.decimals = core.getDecimals();
     }
 
     @Override
     public Currency getCurrency() {
-        return Currency.create(core.getCurrency());
+        return currency;
     }
 
     @Override
     public String getName() {
-        return core.getName();
+        return name;
     }
 
     @Override
     public String getSymbol() {
-        return core.getSymbol();
+        return symbol;
     }
 
     @Override
     public Unit getBase() {
-        return new Unit(core.getBase());
+        return new Unit(core.getBaseUnit());
     }
 
     @Override
     public UnsignedInteger getDecimals() {
-        return core.getDecimals();
+        return decimals;
     }
 
     @Override
@@ -95,7 +108,7 @@ final class Unit implements com.breadwallet.crypto.Unit {
 
     @Override
     public int hashCode() {
-        return Objects.hash(core.getUids());
+        return Objects.hash(uids);
     }
 
     /* package */

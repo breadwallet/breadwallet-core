@@ -8,7 +8,6 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
-import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
 
 import java.util.Objects;
@@ -52,8 +51,8 @@ class OwnedBRCryptoUnit implements CoreBRCryptoUnit {
     }
 
     @Override
-    public CoreBRCryptoUnit getBase() {
-        return core.getBase();
+    public CoreBRCryptoUnit getBaseUnit() {
+        return core.getBaseUnit();
     }
 
     @Override
