@@ -8,8 +8,6 @@
 package com.breadwallet.corecrypto;
 
 import com.breadwallet.corenative.crypto.CoreBRCryptoCurrency;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 
 import java.util.Objects;
 
@@ -36,38 +34,38 @@ final class Currency implements com.breadwallet.crypto.Currency {
 
     private final CoreBRCryptoCurrency core;
 
-    private final Supplier<String> uidsSupplier;
-    private final Supplier<String> nameSupplier;
-    private final Supplier<String> codeSupplier;
-    private final Supplier<String> typeSupplier;
+    private final String uids;
+    private final String name;
+    private final String code;
+    private final String type;
 
     private Currency(CoreBRCryptoCurrency core) {
         this.core = core;
 
-        this.uidsSupplier = Suppliers.memoize(core::getUids);
-        this.nameSupplier = Suppliers.memoize(core::getName);
-        this.codeSupplier = Suppliers.memoize(core::getCode);
-        this.typeSupplier = Suppliers.memoize(core::getType);
+        this.uids = core.getUids();
+        this.name = core.getName();
+        this.code = core.getCode();
+        this.type = core.getType();
     }
 
     @Override
     public String getUids() {
-        return uidsSupplier.get();
+        return uids;
     }
 
     @Override
     public String getName() {
-        return nameSupplier.get();
+        return name;
     }
 
     @Override
     public String getCode() {
-        return codeSupplier.get();
+        return code;
     }
 
     @Override
     public String getType() {
-        return typeSupplier.get();
+        return type;
     }
 
     @Override

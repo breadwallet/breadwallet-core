@@ -8,8 +8,6 @@
 package com.breadwallet.corecrypto;
 
 import com.breadwallet.corenative.crypto.CoreBRCryptoUnit;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.primitives.UnsignedInteger;
 
 import java.util.Objects;
@@ -42,47 +40,46 @@ final class Unit implements com.breadwallet.crypto.Unit {
 
     private final CoreBRCryptoUnit core;
 
-    private final Supplier<Currency> currencySupplier;
-    private final Supplier<String> nameSupplier;
-    private final Supplier<String> symbolSupplier;
-    private final Supplier<Unit> baseSupplier;
-    private final Supplier<UnsignedInteger> decimalsSupplier;
-    private final Supplier<Integer> hashCodeSupplier;
+    private final Currency currency;
+    private final String name;
+    private final String symbol;
+    private final String uids;
+    private final UnsignedInteger decimals;
 
     private Unit(CoreBRCryptoUnit core) {
         this.core = core;
 
-        this.currencySupplier = Suppliers.memoize(() -> Currency.create(core.getCurrency()));
-        this.nameSupplier = Suppliers.memoize(core::getName);
-        this.symbolSupplier = Suppliers.memoize(core::getSymbol);
-        this.baseSupplier = Suppliers.memoize(() -> new Unit(core.getBase()));
-        this.decimalsSupplier = Suppliers.memoize(core::getDecimals);
-        this.hashCodeSupplier = Suppliers.memoize(() -> Objects.hash(core.getUids()));
+        // don't cache base unit to avoid recursion; cost of get is cheap
+        this.currency = Currency.create(core.getCurrency());
+        this.name = core.getName();
+        this.symbol = core.getSymbol();
+        this.uids = core.getUids();
+        this.decimals = core.getDecimals();
     }
 
     @Override
     public Currency getCurrency() {
-        return currencySupplier.get();
+        return currency;
     }
 
     @Override
     public String getName() {
-        return nameSupplier.get();
+        return name;
     }
 
     @Override
     public String getSymbol() {
-        return symbolSupplier.get();
+        return symbol;
     }
 
     @Override
     public Unit getBase() {
-        return baseSupplier.get();
+        return new Unit(core.getBaseUnit());
     }
 
     @Override
     public UnsignedInteger getDecimals() {
-        return decimalsSupplier.get();
+        return decimals;
     }
 
     @Override
@@ -111,7 +108,7 @@ final class Unit implements com.breadwallet.crypto.Unit {
 
     @Override
     public int hashCode() {
-        return hashCodeSupplier.get();
+        return Objects.hash(uids);
     }
 
     /* package */

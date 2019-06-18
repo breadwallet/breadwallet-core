@@ -9,14 +9,12 @@ package com.breadwallet.corecrypto;
 
 import android.support.annotation.Nullable;
 
-import com.breadwallet.corenative.support.UInt256;
 import com.breadwallet.crypto.CurrencyPair;
 import com.breadwallet.corenative.crypto.BRCryptoComparison;
 import com.breadwallet.corenative.crypto.CoreBRCryptoAmount;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import com.google.common.primitives.UnsignedLong;
 
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
@@ -79,20 +77,20 @@ final class Amount implements com.breadwallet.crypto.Amount {
     private final CoreBRCryptoAmount core;
     private final Unit unit;
 
-    private final Supplier<Currency> currencySupplier;
+    private final Currency currency;
     private final Supplier<String> toStringSupplier;
 
     private Amount(CoreBRCryptoAmount core, Unit unit) {
         this.core = core;
         this.unit = unit;
 
-        this.currencySupplier = Suppliers.memoize(() -> Currency.create(core.getCurrency()));
+        this.currency = Currency.create(core.getCurrency());
         this.toStringSupplier = Suppliers.memoize(() -> toStringAsUnit(unit).or("<nan>"));
     }
 
     @Override
     public Currency getCurrency() {
-        return currencySupplier.get();
+        return currency;
     }
 
     @Override

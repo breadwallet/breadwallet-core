@@ -23,13 +23,13 @@ final class TransferHash implements com.breadwallet.crypto.TransferHash {
 
     private final CoreBRCryptoHash core;
 
-    private final Supplier<Integer> hashCodeSupplier;
+    private final int value;
     private final Supplier<String> toStringSupplier;
 
     private TransferHash(CoreBRCryptoHash core) {
         this.core = core;
 
-        this.hashCodeSupplier = Suppliers.memoize(() -> Objects.hash(core.getValue()));
+        this.value = core.getValue();
         this.toStringSupplier = Suppliers.memoize(core::toString);
     }
 
@@ -49,7 +49,7 @@ final class TransferHash implements com.breadwallet.crypto.TransferHash {
 
     @Override
     public int hashCode() {
-        return hashCodeSupplier.get();
+        return Objects.hash(value);
     }
 
     @Override
