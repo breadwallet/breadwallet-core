@@ -629,30 +629,20 @@ cwmWalletEventAsETH (BREthereumClientContext context,
             break;
         }
 
-        case WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED: {
-            BRCryptoFeeBasis feeBasis = cryptoWalletGetDefaultFeeBasis (wallet); // taken
-
-            cryptoWalletSetDefaultFeeBasis (wallet, feeBasis);
-
-//            cryptoFeeBasisGive (feeBasis);
-
-            cwmEvent = (BRCryptoWalletEvent) {
-                CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED,
-                { .feeBasisUpdated = { feeBasis }}
-            };
-            break;
-        }
-
+        case WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED:
         case WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED: {
-            BRCryptoFeeBasis feeBasis = cryptoWalletGetDefaultFeeBasis (wallet); // taken
+            BREthereumFeeBasis ethFeeBasis = {
+                FEE_BASIS_GAS,
+                { .gas =
+                    ewmWalletGetDefaultGasLimit (cwm->u.eth, wid),
+                    ewmWalletGetDefaultGasPrice (cwm->u.eth, wid) }
+            };
 
-            cryptoWalletSetDefaultFeeBasis (wallet, feeBasis);
-
-            //            cryptoFeeBasisGive (feeBasis);
+            cryptoWalletSetDefaultFeeBasisAsETH (wallet, ethFeeBasis);
 
             cwmEvent = (BRCryptoWalletEvent) {
                 CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED,
-                { .feeBasisUpdated = { feeBasis }}
+                { .feeBasisUpdated = { cryptoFeeBasisCreateAsETH (ethFeeBasis.u.gas.limit, ethFeeBasis.u.gas.price) }}
             };
             break;
         }

@@ -262,6 +262,9 @@ extern "C" {
     private_extern void
     cryptoWalletRemTransfer (BRCryptoWallet wallet, BRCryptoTransfer transfer);
 
+    private_extern void
+    cryptoWalletSetDefaultFeeBasisAsETH (BRCryptoWallet wallet,
+                                         BREthereumFeeBasis ethFeeBasis);
 
     /// MARK: - WalletManager
 

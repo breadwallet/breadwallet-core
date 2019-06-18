@@ -492,7 +492,12 @@ extension WalletManager {
                                                         event: WalletEvent.balanceUpdated(amount: amount))
 
                 case CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED:
-                    break
+                    let feeBasis = TransferFeeBasis (core: event.u.feeBasisUpdated.basis,
+                                                     take: false)
+                    wallet.listener?.handleWalletEvent (system: manager.system,
+                                                        manager: manager,
+                                                        wallet: wallet,
+                                                        event: WalletEvent.feeBasisUpdated(feeBasis: feeBasis))
 
                 default: precondition (false)
                 }
