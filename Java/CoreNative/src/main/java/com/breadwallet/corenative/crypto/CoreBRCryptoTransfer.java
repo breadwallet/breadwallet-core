@@ -19,7 +19,9 @@ public interface CoreBRCryptoTransfer {
 
     Optional<CoreBRCryptoAddress> getTargetAddress();
 
-    Optional<CoreBRCryptoAmount> getAmount();
+    CoreBRCryptoAmount getAmount();
+
+    CoreBRCryptoAmount getAmountDirected();
 
     CoreBRCryptoAmount getFee();
 

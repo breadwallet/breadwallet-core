@@ -59,11 +59,7 @@ public final class Transfer: Equatable {
     /// the amount will be positive; if we sent the transfer, the amount will be negative; if
     /// the transfer is 'self directed', the amount will be zero.
     public private(set) lazy var amountDirected: Amount = {
-        switch direction {
-        case .sent: return amount.negate
-        case .received: return amount
-        case .recovered: return Amount.create(integer: 0, unit: unit)
-        }
+        return Amount (core: cryptoTransferGetAmountDirected(core), unit: wallet.unit, take: false)
     }()
 
     /// The fee paid - before the transfer is confirmed, this is the estimated fee.

@@ -129,6 +129,19 @@ extern "C" {
     cryptoTransferGetAmount (BRCryptoTransfer transfer);
 
     /**
+     * Returns the transfer's amount after considering the direction
+     *
+     * If we received the transfer, the amount will be positive; if we sent the transfer, the
+     * amount will be negative; if the transfer is 'self directed', the amount will be zero.
+     *
+     * @param transfer the transfer
+     *
+     * @return the amount
+     */
+    extern BRCryptoAmount
+    cryptoTransferGetAmountDirected (BRCryptoTransfer transfer);
+
+    /**
      * Returns the transfer's fee.  Note that the `fee` and the `amount` may be in different
      * currencies.
      *
@@ -180,7 +193,7 @@ extern "C" {
 
     extern BRCryptoBoolean
     cryptoTransferEqual (BRCryptoTransfer transfer1, BRCryptoTransfer transfer2);
-    
+
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoTransfer, cryptoTransfer);
 
 #ifdef __cplusplus
