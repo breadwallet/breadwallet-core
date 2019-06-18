@@ -483,7 +483,14 @@ extension WalletManager {
                                                         event: WalletEvent.transferDeleted (transfer: transfer))
 
                 case CRYPTO_WALLET_EVENT_BALANCE_UPDATED:
-                    break
+                    let amount = Amount (core: event.u.balanceUpdated.amount,
+                                         unit: wallet.unit,
+                                         take: false)
+                    wallet.listener?.handleWalletEvent (system: manager.system,
+                                                        manager: manager,
+                                                        wallet: wallet,
+                                                        event: WalletEvent.balanceUpdated(amount: amount))
+
                 case CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED:
                     break
 
