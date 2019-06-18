@@ -172,9 +172,9 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
     @Override
     public void submit(com.breadwallet.crypto.Transfer transfer, String paperKey) {
-        Transfer transferImpl = Transfer.from(transfer);
-        Wallet walletImpl = transferImpl.getWallet();
-        core.submit(walletImpl.getCoreBRCryptoWallet(), transferImpl.getCoreBRCryptoTransfer(), paperKey);
+        Transfer cryptoTransfer = Transfer.from(transfer);
+        Wallet cryptoWallet = cryptoTransfer.getWallet();
+        core.submit(cryptoWallet.getCoreBRCryptoWallet(), cryptoTransfer.getCoreBRCryptoTransfer(), paperKey);
     }
 
     @Override
@@ -195,7 +195,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
     @Override
     public Wallet getPrimaryWallet() {
-        return Wallet.create(core.getWallet(), this, networkBaseUnit, networkDefaultUnit);
+        return Wallet.create(core.getWallet(), this);
     }
 
     @Override
@@ -204,7 +204,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
         UnsignedLong count = core.getWalletsCount();
         for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
-            wallets.add(Wallet.create(core.getWallet(i), this, networkBaseUnit, networkDefaultUnit));
+            wallets.add(Wallet.create(core.getWallet(i), this));
         }
 
         return wallets;
@@ -266,7 +266,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
     private Optional<Wallet> getWallet(CoreBRCryptoWallet wallet) {
         return core.containsWallet(wallet) ?
-                Optional.of(Wallet.create(wallet, this, networkBaseUnit, networkDefaultUnit)):
+                Optional.of(Wallet.create(wallet, this)):
                 Optional.absent();
     }
 
@@ -276,15 +276,15 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
             return optional;
 
         } else {
-            return Optional.of(Wallet.create(wallet, this, networkBaseUnit, networkDefaultUnit));
+            return Optional.of(Wallet.create(wallet, this));
         }
     }
 
-    private void walletManagerEventCallback(Pointer context, @Nullable BRCryptoWalletManager cryptoWalletManager,
+    private void walletManagerEventCallback(Pointer context, @Nullable BRCryptoWalletManager coreWalletManager,
                                             BRCryptoWalletManagerEvent.ByValue event) {
         Log.d(TAG, "WalletManagerEventCallback");
 
-        core = CoreBRCryptoWalletManager.create(cryptoWalletManager);
+        core = CoreBRCryptoWalletManager.create(coreWalletManager);
 
         switch (event.type) {
             case BRCryptoWalletManagerEventType.CRYPTO_WALLET_MANAGER_EVENT_CREATED: {
@@ -422,13 +422,13 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         announcer.announceWalletManagerEvent(this, new WalletManagerBlockUpdatedEvent(blockHeight));
     }
 
-    private void walletEventCallback(Pointer context, @Nullable BRCryptoWalletManager cryptoWalletManager,
-                                     @Nullable BRCryptoWallet cryptoWallet, BRCryptoWalletEvent.ByValue event) {
+    private void walletEventCallback(Pointer context, @Nullable BRCryptoWalletManager coreWalletManager,
+                                     @Nullable BRCryptoWallet coreWallet, BRCryptoWalletEvent.ByValue event) {
         Log.d(TAG, "WalletEventCallback");
 
         // take ownership of the wallet manager, even though it isn't used
-        CoreBRCryptoWalletManager.create(cryptoWalletManager);
-        CoreBRCryptoWallet wallet = CoreBRCryptoWallet.create(cryptoWallet);
+        CoreBRCryptoWalletManager.create(coreWalletManager);
+        CoreBRCryptoWallet wallet = CoreBRCryptoWallet.create(coreWallet);
 
         switch (event.type) {
             case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_CREATED: {
@@ -638,15 +638,15 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         }
     }
 
-    private void transferEventCallback(Pointer context, @Nullable BRCryptoWalletManager cryptoWalletManager,
-                                       @Nullable BRCryptoWallet cryptoWallet, @Nullable BRCryptoTransfer cryptoTransfer,
+    private void transferEventCallback(Pointer context, @Nullable BRCryptoWalletManager coreWalletManager,
+                                       @Nullable BRCryptoWallet coreWallet, @Nullable BRCryptoTransfer coreTransfer,
                                        BRCryptoTransferEvent.ByValue event) {
         Log.d(TAG, "TransferEventCallback");
 
         // take ownership of the wallet manager, even though it isn't used
-        CoreBRCryptoWalletManager.create(cryptoWalletManager);
-        CoreBRCryptoWallet wallet = CoreBRCryptoWallet.create(cryptoWallet);
-        CoreBRCryptoTransfer transfer = CoreBRCryptoTransfer.create(cryptoTransfer);
+        CoreBRCryptoWalletManager.create(coreWalletManager);
+        CoreBRCryptoWallet wallet = CoreBRCryptoWallet.create(coreWallet);
+        CoreBRCryptoTransfer transfer = CoreBRCryptoTransfer.create(coreTransfer);
 
         switch (event.type) {
             case BRCryptoTransferEventType.CRYPTO_TRANSFER_EVENT_CREATED: {

@@ -11,6 +11,8 @@ import com.breadwallet.corenative.crypto.CoreBRCryptoAddress;
 import com.breadwallet.corenative.ethereum.BREthereumAddress;
 import com.breadwallet.corenative.support.BRAddress;
 import com.google.common.base.Optional;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 
 import java.util.Objects;
 
@@ -28,12 +30,6 @@ final class Address implements com.breadwallet.crypto.Address {
     }
 
     /* package */
-    static Address createAsBtc(BRAddress address) {
-        BRAddress.ByValue addressValue = new BRAddress.ByValue(address);
-        return new Address(CoreBRCryptoAddress.createAsBtc(addressValue));
-    }
-
-    /* package */
     static Optional<Address> createAsEth(String address) {
         if (!BREthereumAddress.isValid(address)) {
             return Optional.absent();
@@ -41,12 +37,6 @@ final class Address implements com.breadwallet.crypto.Address {
 
         CoreBRCryptoAddress cryptoAddress = CoreBRCryptoAddress.createAsEth(address);
         return Optional.of(new Address(cryptoAddress));
-    }
-
-    /* package */
-    static Address createAsEth(BREthereumAddress address) {
-        BREthereumAddress.ByValue addressValue = new BREthereumAddress.ByValue(address);
-        return new Address(CoreBRCryptoAddress.createAsEth(addressValue));
     }
 
     /* package */
@@ -64,13 +54,17 @@ final class Address implements com.breadwallet.crypto.Address {
 
     private final CoreBRCryptoAddress core;
 
+    private final Supplier<String> toStringSupplier;
+
     private Address(CoreBRCryptoAddress core) {
         this.core = core;
+
+        this.toStringSupplier = Suppliers.memoize(core::toString);
     }
 
     @Override
     public String toString() {
-        return core.toString();
+        return toStringSupplier.get();
     }
 
     @Override
@@ -89,7 +83,7 @@ final class Address implements com.breadwallet.crypto.Address {
 
     @Override
     public int hashCode() {
-        return Objects.hash(core);
+        return Objects.hash(toString());
     }
 
     /* package */

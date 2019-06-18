@@ -12,6 +12,8 @@ import com.breadwallet.corenative.crypto.CoreBRCryptoCurrency;
 import com.breadwallet.corenative.crypto.CoreBRCryptoNetwork;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.google.common.base.Optional;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.primitives.UnsignedLong;
 
 import java.util.ArrayList;
@@ -65,6 +67,13 @@ final class Network implements com.breadwallet.crypto.Network {
 
     private final CoreBRCryptoNetwork core;
 
+    private final Supplier<Integer> typeSupplier;
+    private final Supplier<String> uidsSupplier;
+    private final Supplier<String> nameSupplier;
+    private final Supplier<Boolean> isMainnetSupplier;
+    private final Supplier<Currency> currencySupplier;
+    private final Supplier<List<Currency>> currenciesSupplier;
+
     private Network(CoreBRCryptoNetwork core, Map<Currency, NetworkAssociation> associations) {
         this.core = core;
 
@@ -80,21 +89,37 @@ final class Network implements com.breadwallet.crypto.Network {
                 core.addCurrencyUnit(currency.getCoreBRCryptoCurrency(), unit.getCoreBRCryptoUnit());
             }
         }
+
+        typeSupplier = Suppliers.memoize(core::getType);
+        uidsSupplier = Suppliers.memoize(core::getUids);
+        nameSupplier = Suppliers.memoize(core::getName);
+        isMainnetSupplier = Suppliers.memoize(core::isMainnet);
+        currencySupplier = Suppliers.memoize(() -> Currency.create(core.getCurrency()));
+        currenciesSupplier = Suppliers.memoize(() -> {
+            List<Currency> transfers = new ArrayList<>();
+
+            UnsignedLong count = core.getCurrencyCount();
+            for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
+                transfers.add(Currency.create(core.getCurrency(i)));
+            }
+
+            return transfers;
+        });
     }
 
     @Override
     public String getUids() {
-        return core.getUids();
+        return uidsSupplier.get();
     }
 
     @Override
     public String getName() {
-        return core.getName();
+        return nameSupplier.get();
     }
 
     @Override
     public boolean isMainnet() {
-        return core.isMainnet();
+        return isMainnetSupplier.get();
     }
 
     @Override
@@ -104,19 +129,12 @@ final class Network implements com.breadwallet.crypto.Network {
 
     @Override
     public Currency getCurrency() {
-        return Currency.create(core.getCurrency());
+        return currencySupplier.get();
     }
 
     @Override
     public Set<Currency> getCurrencies() {
-        Set<Currency> transfers = new HashSet<>();
-
-        UnsignedLong count = core.getCurrencyCount();
-        for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
-            transfers.add(Currency.create(core.getCurrency(i)));
-        }
-
-        return transfers;
+        return new HashSet<>(currenciesSupplier.get());
     }
 
     @Override
@@ -131,8 +149,7 @@ final class Network implements com.breadwallet.crypto.Network {
 
     @Override
     public boolean hasCurrency(com.breadwallet.crypto.Currency currency) {
-        Currency currencyImpl = Currency.from(currency);
-        return core.hasCurrency(currencyImpl.getCoreBRCryptoCurrency());
+        return core.hasCurrency(Currency.from(currency).getCoreBRCryptoCurrency());
     }
 
     @Override
@@ -181,9 +198,9 @@ final class Network implements com.breadwallet.crypto.Network {
 
     @Override
     public List<WalletManagerMode> getSupportedModes() {
-        switch (core.getType()) {
+        switch (typeSupplier.get()) {
             case BRCryptoBlockChainType.BLOCK_CHAIN_TYPE_BTC: {
-                return Collections.singletonList(WalletManagerMode.P2P_ONLY);
+                return Arrays.asList(WalletManagerMode.P2P_ONLY, WalletManagerMode.API_WITH_P2P_SUBMIT);
             }
             case BRCryptoBlockChainType.BLOCK_CHAIN_TYPE_ETH: {
                 return Arrays.asList(WalletManagerMode.API_ONLY, WalletManagerMode.API_WITH_P2P_SUBMIT);
@@ -198,7 +215,7 @@ final class Network implements com.breadwallet.crypto.Network {
 
     @Override
     public Optional<Address> addressFor(String address) {
-        switch (core.getType()) {
+        switch (typeSupplier.get()) {
             case BRCryptoBlockChainType.BLOCK_CHAIN_TYPE_BTC: {
                 return Address.createAsBtc(address);
             }
@@ -216,7 +233,7 @@ final class Network implements com.breadwallet.crypto.Network {
 
     @Override
     public String toString() {
-        return core.getName();
+        return getName();
     }
 
     @Override

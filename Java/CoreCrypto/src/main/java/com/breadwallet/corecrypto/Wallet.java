@@ -7,9 +7,11 @@
  */
 package com.breadwallet.corecrypto;
 
-import android.support.annotation.Nullable;
-
+import com.breadwallet.corenative.crypto.CoreBRCryptoAddress;
+import com.breadwallet.corenative.crypto.CoreBRCryptoAmount;
+import com.breadwallet.corenative.crypto.CoreBRCryptoFeeBasis;
 import com.breadwallet.corenative.crypto.CoreBRCryptoTransfer;
+import com.breadwallet.corenative.crypto.CoreBRCryptoUnit;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWallet;
 import com.breadwallet.crypto.WalletState;
 import com.google.common.base.Optional;
@@ -23,57 +25,55 @@ import java.util.Objects;
 final class Wallet implements com.breadwallet.crypto.Wallet {
 
     /* package */
-    static Wallet create(CoreBRCryptoWallet wallet, WalletManager walletManager, Unit networkBaseUnit, Unit networkDefaultUnit) {
-        return new Wallet(wallet, walletManager, networkBaseUnit, networkDefaultUnit);
+    static Wallet create(CoreBRCryptoWallet wallet, WalletManager walletManager) {
+        return new Wallet(wallet, walletManager);
     }
 
     private final CoreBRCryptoWallet core;
     private final WalletManager walletManager;
+
     private final Unit feeUnit;
     private final Unit defaultUnit;
     private final Currency defaultUnitCurrency;
 
-    private TransferFeeBasis defaultFeeBasis;
-
-    private Wallet(CoreBRCryptoWallet core, WalletManager walletManager, Unit networkBaseUnit, Unit networkDefaultUnit) {
+    private Wallet(CoreBRCryptoWallet core, WalletManager walletManager) {
         this.core = core;
         this.walletManager = walletManager;
-        this.feeUnit = networkBaseUnit;
-        this.defaultUnit = networkDefaultUnit;
-        this.defaultUnitCurrency = networkDefaultUnit.getCurrency();
-        this.defaultFeeBasis = TransferFeeBasis.create(core.getDefaultFeeBasis());
+
+        this.feeUnit = Unit.create(core.getFeeUnit());
+        this.defaultUnit = Unit.create(core.getUnit());
+        this.defaultUnitCurrency = Currency.create(core.getCurrency());
     }
 
     @Override
     public Optional<Transfer> createTransfer(com.breadwallet.crypto.Address target,
                                              com.breadwallet.crypto.Amount amount) {
-        return createTransfer(target, amount, defaultFeeBasis);
+        return createTransfer(target, amount, getDefaultFeeBasis());
     }
 
     @Override
     public Optional<Transfer> createTransfer(com.breadwallet.crypto.Address target,
                                              com.breadwallet.crypto.Amount amount,
                                              com.breadwallet.crypto.TransferFeeBasis feeBasis) {
-        Address targetImpl = Address.from(target);
-        Amount amountImpl = Amount.from(amount);
-        TransferFeeBasis feeBasisImpl = TransferFeeBasis.from(feeBasis);
-        Unit unitImpl = amountImpl.getUnit();
-        CoreBRCryptoTransfer transfer = core.createTransfer(targetImpl.getCoreBRCryptoAddress(),
-                amountImpl.getCoreBRCryptoAmount(), feeBasisImpl.getCoreBRFeeBasis());
-        return Optional.of(Transfer.create(transfer, this, unitImpl));
+        CoreBRCryptoAddress coreAddress = Address.from(target).getCoreBRCryptoAddress();
+        CoreBRCryptoFeeBasis coreFeeBasis = TransferFeeBasis.from(feeBasis).getCoreBRFeeBasis();
+        Amount cryptoAmount = Amount.from(amount);
+        Unit cryptoUnit = cryptoAmount.getUnit();
+        CoreBRCryptoTransfer transfer = core.createTransfer(coreAddress, cryptoAmount.getCoreBRCryptoAmount(), coreFeeBasis);
+        return Optional.of(Transfer.create(transfer, this, cryptoUnit));
     }
 
     @Override
     public Amount estimateFee(com.breadwallet.crypto.Amount amount) {
-        return estimateFee(amount, defaultFeeBasis);
+        return estimateFee(amount, getDefaultFeeBasis());
     }
 
     @Override
     public Amount estimateFee(com.breadwallet.crypto.Amount amount, com.breadwallet.crypto.TransferFeeBasis feeBasis) {
-        Amount amountImpl = Amount.from(amount);
-        TransferFeeBasis feeBasisImpl = TransferFeeBasis.from(feeBasis);
-        return Amount.create(core.estimateFee(amountImpl.getCoreBRCryptoAmount(), feeBasisImpl.getCoreBRFeeBasis(),
-                defaultUnit.getCoreBRCryptoUnit()), feeUnit);
+        CoreBRCryptoAmount coreAmount = Amount.from(amount).getCoreBRCryptoAmount();
+        CoreBRCryptoFeeBasis coreFeeBasis = TransferFeeBasis.from(feeBasis).getCoreBRFeeBasis();
+        CoreBRCryptoUnit coreUnit = defaultUnit.getCoreBRCryptoUnit();
+        return Amount.create(core.estimateFee(coreAmount, coreFeeBasis, coreUnit), feeUnit);
     }
 
     @Override
@@ -123,7 +123,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
 
     @Override
     public TransferFeeBasis getDefaultFeeBasis() {
-        return defaultFeeBasis;
+        return TransferFeeBasis.create(core.getDefaultFeeBasis());
     }
 
     @Override
@@ -167,7 +167,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
 
     /* package */
     void setDefaultFeeBasis(com.breadwallet.crypto.TransferFeeBasis feeBasis) {
-        defaultFeeBasis = TransferFeeBasis.from(feeBasis);
+        core.setDefaultFeeBasis(TransferFeeBasis.from(feeBasis).getCoreBRFeeBasis());
     }
 
     /* package */

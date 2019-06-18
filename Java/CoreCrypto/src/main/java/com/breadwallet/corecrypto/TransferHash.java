@@ -8,6 +8,8 @@
 package com.breadwallet.corecrypto;
 
 import com.breadwallet.corenative.crypto.CoreBRCryptoHash;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 
 import java.util.Objects;
 
@@ -21,8 +23,14 @@ final class TransferHash implements com.breadwallet.crypto.TransferHash {
 
     private final CoreBRCryptoHash core;
 
+    private final Supplier<Integer> hashCodeSupplier;
+    private final Supplier<String> toStringSupplier;
+
     private TransferHash(CoreBRCryptoHash core) {
         this.core = core;
+
+        this.hashCodeSupplier = Suppliers.memoize(() -> Objects.hash(core.getValue()));
+        this.toStringSupplier = Suppliers.memoize(core::toString);
     }
 
     @Override
@@ -41,11 +49,11 @@ final class TransferHash implements com.breadwallet.crypto.TransferHash {
 
     @Override
     public int hashCode() {
-        return Objects.hash(core.getValue());
+        return hashCodeSupplier.get();
     }
 
     @Override
     public String toString() {
-        return core.toString();
+        return toStringSupplier.get();
     }
 }

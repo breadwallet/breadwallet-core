@@ -8,6 +8,8 @@
 package com.breadwallet.corecrypto;
 
 import com.breadwallet.corenative.crypto.CoreBRCryptoUnit;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.primitives.UnsignedInteger;
 
 import java.util.Objects;
@@ -40,33 +42,47 @@ final class Unit implements com.breadwallet.crypto.Unit {
 
     private final CoreBRCryptoUnit core;
 
+    private final Supplier<Currency> currencySupplier;
+    private final Supplier<String> nameSupplier;
+    private final Supplier<String> symbolSupplier;
+    private final Supplier<Unit> baseSupplier;
+    private final Supplier<UnsignedInteger> decimalsSupplier;
+    private final Supplier<Integer> hashCodeSupplier;
+
     private Unit(CoreBRCryptoUnit core) {
         this.core = core;
+
+        this.currencySupplier = Suppliers.memoize(() -> Currency.create(core.getCurrency()));
+        this.nameSupplier = Suppliers.memoize(core::getName);
+        this.symbolSupplier = Suppliers.memoize(core::getSymbol);
+        this.baseSupplier = Suppliers.memoize(() -> new Unit(core.getBase()));
+        this.decimalsSupplier = Suppliers.memoize(core::getDecimals);
+        this.hashCodeSupplier = Suppliers.memoize(() -> Objects.hash(core.getUids()));
     }
 
     @Override
     public Currency getCurrency() {
-        return Currency.create(core.getCurrency());
+        return currencySupplier.get();
     }
 
     @Override
     public String getName() {
-        return core.getName();
+        return nameSupplier.get();
     }
 
     @Override
     public String getSymbol() {
-        return core.getSymbol();
+        return symbolSupplier.get();
     }
 
     @Override
     public Unit getBase() {
-        return new Unit(core.getBase());
+        return baseSupplier.get();
     }
 
     @Override
     public UnsignedInteger getDecimals() {
-        return core.getDecimals();
+        return decimalsSupplier.get();
     }
 
     @Override
@@ -95,7 +111,7 @@ final class Unit implements com.breadwallet.crypto.Unit {
 
     @Override
     public int hashCode() {
-        return Objects.hash(core.getUids());
+        return hashCodeSupplier.get();
     }
 
     /* package */
