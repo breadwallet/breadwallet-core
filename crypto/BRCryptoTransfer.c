@@ -178,8 +178,8 @@ cryptoTransferGetTargetAddress (BRCryptoTransfer transfer) {
     }
 }
 
-extern BRCryptoAmount
-cryptoTransferGetAmount (BRCryptoTransfer transfer) {
+static BRCryptoAmount
+cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNegative) {
     switch (transfer->type) {
         case BLOCK_CHAIN_TYPE_BTC: {
             BRWallet *wid = transfer->u.btc.wid;
@@ -194,15 +194,15 @@ cryptoTransferGetAmount (BRCryptoTransfer transfer) {
             switch (cryptoTransferGetDirection(transfer)) {
                 case CRYPTO_TRANSFER_RECOVERED:
                     return cryptoAmountCreate (transfer->currency,
-                                               CRYPTO_FALSE,
+                                               isNegative,
                                                createUInt256(send));
                 case CRYPTO_TRANSFER_SENT:
                     return cryptoAmountCreate (transfer->currency,
-                                               CRYPTO_FALSE,
+                                               isNegative,
                                                createUInt256(send - fee - recv));
                 case CRYPTO_TRANSFER_RECEIVED:
                     return cryptoAmountCreate (transfer->currency,
-                                               CRYPTO_FALSE,
+                                               isNegative,
                                                createUInt256(recv));
                 default: assert(0);
             }
@@ -212,17 +212,44 @@ cryptoTransferGetAmount (BRCryptoTransfer transfer) {
             switch (amountGetType(amount)) {
                 case AMOUNT_ETHER:
                     return cryptoAmountCreate (transfer->currency,
-                                               CRYPTO_FALSE,
+                                               isNegative,
                                                etherGetValue(amountGetEther(amount), WEI));
                 case AMOUNT_TOKEN:
-                    return NULL;
+                    return cryptoAmountCreate (transfer->currency,
+                                               isNegative,
+                                               amountGetTokenQuantity(amount).valueAsInteger);
 
-                default:
-                    return NULL;
+                default: assert(0);
             }
         }
         case BLOCK_CHAIN_TYPE_GEN:
             return NULL;
+    }
+}
+
+extern BRCryptoAmount
+cryptoTransferGetAmount (BRCryptoTransfer transfer) {
+    return cryptoTransferGetAmountAsSign (transfer,
+                                          CRYPTO_FALSE);
+}
+
+extern BRCryptoAmount
+cryptoTransferGetAmountDirected (BRCryptoTransfer transfer) {
+    switch (cryptoTransferGetDirection(transfer)) {
+        case CRYPTO_TRANSFER_RECOVERED: {
+            return cryptoAmountCreate (transfer->currency,
+                                       CRYPTO_FALSE,
+                                       UINT256_ZERO);
+        }
+        case CRYPTO_TRANSFER_SENT: {
+            return cryptoTransferGetAmountAsSign (transfer,
+                                                  CRYPTO_TRUE);
+        }
+        case CRYPTO_TRANSFER_RECEIVED: {
+            return cryptoTransferGetAmountAsSign (transfer,
+                                                  CRYPTO_FALSE);
+        }
+        default: assert(0);
     }
 }
 
@@ -262,7 +289,6 @@ cryptoTransferGetFee (BRCryptoTransfer transfer) { // Pass in 'currency' as bloc
 
             return cryptoAmountCreate (transfer->currency, CRYPTO_FALSE, amount.valueInWEI);
         }
-
         case BLOCK_CHAIN_TYPE_GEN:
             return cryptoAmountCreate (transfer->currency, CRYPTO_FALSE, UINT256_ZERO);
     }
@@ -379,9 +405,20 @@ cryptoTransferGetHash (BRCryptoTransfer transfer) {
 extern BRCryptoFeeBasis
 cryptoTransferGetFeeBasis (BRCryptoTransfer transfer) {
     switch (transfer->type) {
-        case BLOCK_CHAIN_TYPE_BTC:
-            return cryptoFeeBasisCreateAsBTC (DEFAULT_FEE_PER_KB);
+        case BLOCK_CHAIN_TYPE_BTC: {
+            BRWallet *wid = transfer->u.btc.wid;
+            BRTransaction *tid = transfer->u.btc.tid;
 
+            uint64_t fee = BRWalletFeeForTx (wid, tid);
+            uint64_t feePerKb = DEFAULT_FEE_PER_KB;
+            if (UINT64_MAX != fee) {
+                // round to nearest satoshi per kb
+                uint64_t size = BRTransactionVSize (tid);
+                feePerKb = ((fee * 1000) + (size / 2)) / size;
+            }
+
+            return cryptoFeeBasisCreateAsBTC (feePerKb);
+        }
         case BLOCK_CHAIN_TYPE_ETH: {
             BREthereumEWM ewm = transfer->u.eth.ewm;
             BREthereumTransfer tid =transfer->u.eth.tid;
@@ -391,7 +428,6 @@ cryptoTransferGetFeeBasis (BRCryptoTransfer transfer) {
 
             return cryptoFeeBasisCreateAsETH (gas, gasPrice);
         }
-
         case BLOCK_CHAIN_TYPE_GEN:
             return NULL;
     }
