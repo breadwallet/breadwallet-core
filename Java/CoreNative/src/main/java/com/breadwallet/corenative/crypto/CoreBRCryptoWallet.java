@@ -23,6 +23,12 @@ public interface CoreBRCryptoWallet {
 
     boolean containsTransfer(CoreBRCryptoTransfer transfer);
 
+    CoreBRCryptoCurrency getCurrency();
+
+    CoreBRCryptoUnit getFeeUnit();
+
+    CoreBRCryptoUnit getUnit();
+
     int getState();
 
     void setState(int state);

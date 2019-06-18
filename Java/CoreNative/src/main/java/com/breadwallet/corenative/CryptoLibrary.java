@@ -193,6 +193,9 @@ public interface CryptoLibrary extends Library {
     BRCryptoNetwork cryptoWalletManagerGetNetwork(BRCryptoWalletManager cwm);
     BRCryptoAccount cryptoWalletManagerGetAccount(BRCryptoWalletManager cwm);
     int cryptoWalletManagerGetMode(BRCryptoWalletManager cwm);
+    BRCryptoUnit cryptoWalletGetUnit(BRCryptoWallet wallet);
+    BRCryptoUnit cryptoWalletGetUnitForFee(BRCryptoWallet wallet);
+    BRCryptoCurrency cryptoWalletGetCurrency(BRCryptoWallet wallet);
     int cryptoWalletManagerGetState(BRCryptoWalletManager cwm);
     Pointer cryptoWalletManagerGetPath(BRCryptoWalletManager cwm);
     BRCryptoWallet cryptoWalletManagerGetWallet(BRCryptoWalletManager cwm);

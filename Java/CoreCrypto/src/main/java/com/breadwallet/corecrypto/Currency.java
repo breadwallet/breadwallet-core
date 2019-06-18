@@ -36,28 +36,38 @@ final class Currency implements com.breadwallet.crypto.Currency {
 
     private final CoreBRCryptoCurrency core;
 
+    private final String uids;
+    private final String name;
+    private final String code;
+    private final String type;
+
     private Currency(CoreBRCryptoCurrency core) {
         this.core = core;
+
+        this.uids = core.getUids();
+        this.name = core.getName();
+        this.code = core.getCode();
+        this.type = core.getType();
     }
 
     @Override
     public String getUids() {
-        return core.getUids();
+        return uids;
     }
 
     @Override
     public String getName() {
-        return core.getName();
+        return name;
     }
 
     @Override
     public String getCode() {
-        return core.getCode();
+        return code;
     }
 
     @Override
     public String getType() {
-        return core.getType();
+        return type;
     }
 
     @Override

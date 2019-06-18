@@ -18,17 +18,9 @@ public interface CoreBRCryptoAddress {
         return new OwnedBRCryptoAddress(CryptoLibrary.INSTANCE.cryptoAddressCreateAsBTC(addressValue));
     }
 
-    static CoreBRCryptoAddress createAsBtc(BRAddress.ByValue address) {
-        return new OwnedBRCryptoAddress(CryptoLibrary.INSTANCE.cryptoAddressCreateAsBTC(address));
-    }
-
     static CoreBRCryptoAddress createAsEth(String address) {
         BREthereumAddress.ByValue addressValue = CryptoLibrary.INSTANCE.addressCreate(address);
         return new OwnedBRCryptoAddress(CryptoLibrary.INSTANCE.cryptoAddressCreateAsETH(addressValue));
-    }
-
-    static CoreBRCryptoAddress createAsEth(BREthereumAddress.ByValue address) {
-        return new OwnedBRCryptoAddress(CryptoLibrary.INSTANCE.cryptoAddressCreateAsETH(address));
     }
 
     boolean isIdentical(CoreBRCryptoAddress address);

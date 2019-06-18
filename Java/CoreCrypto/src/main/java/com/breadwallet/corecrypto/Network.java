@@ -29,7 +29,7 @@ final class Network implements com.breadwallet.crypto.Network {
     /* package */
     static Network create(String uids, String name, boolean isMainnet, Currency currency, UnsignedLong height,
                           Map<Currency, NetworkAssociation> associations) {
-        CoreBRCryptoNetwork core = null;
+        CoreBRCryptoNetwork core;
 
         String code = currency.getCode();
         if (code.equals(com.breadwallet.crypto.Currency.CODE_AS_BTC)) {
@@ -65,6 +65,13 @@ final class Network implements com.breadwallet.crypto.Network {
 
     private final CoreBRCryptoNetwork core;
 
+    private final int type;
+    private final String uids;
+    private final String name;
+    private final Boolean isMainnet;
+    private final Currency currency;
+    private final Set<Currency> currencies;
+
     private Network(CoreBRCryptoNetwork core, Map<Currency, NetworkAssociation> associations) {
         this.core = core;
 
@@ -80,21 +87,32 @@ final class Network implements com.breadwallet.crypto.Network {
                 core.addCurrencyUnit(currency.getCoreBRCryptoCurrency(), unit.getCoreBRCryptoUnit());
             }
         }
+
+        type = core.getType();
+        uids = core.getUids();
+        name = core.getName();
+        isMainnet = core.isMainnet();
+        currency = Currency.create(core.getCurrency());
+        currencies = new HashSet<>();
+        UnsignedLong count = core.getCurrencyCount();
+        for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
+            currencies.add(Currency.create(core.getCurrency(i)));
+        }
     }
 
     @Override
     public String getUids() {
-        return core.getUids();
+        return uids;
     }
 
     @Override
     public String getName() {
-        return core.getName();
+        return name;
     }
 
     @Override
     public boolean isMainnet() {
-        return core.isMainnet();
+        return isMainnet;
     }
 
     @Override
@@ -104,19 +122,12 @@ final class Network implements com.breadwallet.crypto.Network {
 
     @Override
     public Currency getCurrency() {
-        return Currency.create(core.getCurrency());
+        return currency;
     }
 
     @Override
     public Set<Currency> getCurrencies() {
-        Set<Currency> transfers = new HashSet<>();
-
-        UnsignedLong count = core.getCurrencyCount();
-        for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
-            transfers.add(Currency.create(core.getCurrency(i)));
-        }
-
-        return transfers;
+        return new HashSet<>(currencies);
     }
 
     @Override
@@ -131,8 +142,7 @@ final class Network implements com.breadwallet.crypto.Network {
 
     @Override
     public boolean hasCurrency(com.breadwallet.crypto.Currency currency) {
-        Currency currencyImpl = Currency.from(currency);
-        return core.hasCurrency(currencyImpl.getCoreBRCryptoCurrency());
+        return core.hasCurrency(Currency.from(currency).getCoreBRCryptoCurrency());
     }
 
     @Override
@@ -181,9 +191,9 @@ final class Network implements com.breadwallet.crypto.Network {
 
     @Override
     public List<WalletManagerMode> getSupportedModes() {
-        switch (core.getType()) {
+        switch (type) {
             case BRCryptoBlockChainType.BLOCK_CHAIN_TYPE_BTC: {
-                return Collections.singletonList(WalletManagerMode.P2P_ONLY);
+                return Arrays.asList(WalletManagerMode.P2P_ONLY, WalletManagerMode.API_WITH_P2P_SUBMIT);
             }
             case BRCryptoBlockChainType.BLOCK_CHAIN_TYPE_ETH: {
                 return Arrays.asList(WalletManagerMode.API_ONLY, WalletManagerMode.API_WITH_P2P_SUBMIT);
@@ -198,7 +208,7 @@ final class Network implements com.breadwallet.crypto.Network {
 
     @Override
     public Optional<Address> addressFor(String address) {
-        switch (core.getType()) {
+        switch (type) {
             case BRCryptoBlockChainType.BLOCK_CHAIN_TYPE_BTC: {
                 return Address.createAsBtc(address);
             }
@@ -216,7 +226,7 @@ final class Network implements com.breadwallet.crypto.Network {
 
     @Override
     public String toString() {
-        return core.getName();
+        return getName();
     }
 
     @Override

@@ -50,7 +50,7 @@ public class BRCryptoUnit extends PointerType implements CoreBRCryptoUnit {
     }
 
     @Override
-    public CoreBRCryptoUnit getBase() {
+    public CoreBRCryptoUnit getBaseUnit() {
         return new OwnedBRCryptoUnit(CryptoLibrary.INSTANCE.cryptoUnitGetBaseUnit(this));
     }
 
