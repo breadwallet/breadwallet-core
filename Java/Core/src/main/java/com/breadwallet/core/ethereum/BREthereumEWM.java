@@ -479,7 +479,7 @@ public class BREthereumEWM extends BRCoreJniReference {
         return tokensByReference.get(reference);
     }
 
-    protected BREthereumToken addTokenByReference (long reference) {
+    protected synchronized BREthereumToken addTokenByReference (long reference) {
         BREthereumToken token = new BREthereumToken (reference);
         tokensByReference.put (token.getIdentifier(),            token);
         tokensByAddress.put   (token.getAddress().toLowerCase(), token);
