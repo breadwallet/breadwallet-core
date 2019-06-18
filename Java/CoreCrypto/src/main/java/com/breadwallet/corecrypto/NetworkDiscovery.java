@@ -64,7 +64,8 @@ final class NetworkDiscovery {
                                 currencyModel.getId(),
                                 currencyModel.getName(),
                                 currencyModel.getCode(),
-                                currencyModel.getType());
+                                currencyModel.getType(),
+                                currencyModel.getAddress().orNull());
 
                         CurrencyDenomination baseDenomination = findFirstBaseDenomination(currencyModel.getDenominations());
                         List<CurrencyDenomination> nonBaseDenominations = findAllNonBaseDenominations(currencyModel.getDenominations());
