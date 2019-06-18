@@ -21,8 +21,8 @@ import java.util.List;
 
 public class Currency {
 
-    private static final String ADDRESS_BRD_MAINNET = "0x7108ca7c4718efa810457f228305c9c71390931a";
-    private static final String ADDRESS_BRD_TESTNET = "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6";
+    private static final String ADDRESS_BRD_MAINNET = "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6";
+    private static final String ADDRESS_BRD_TESTNET = "0x7108ca7c4718efa810457f228305c9c71390931a";
 
     private static final String ADDRESS_EOS_MAINNET = "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0";
 
