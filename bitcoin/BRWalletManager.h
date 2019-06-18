@@ -124,6 +124,7 @@ typedef enum {
     BITCOIN_WALLET_CREATED,
     BITCOIN_WALLET_BALANCE_UPDATED,
     BITCOIN_WALLET_TRANSACTION_SUBMITTED,
+    BITCOIN_WALLET_FEE_PER_KB_UPDATED,
     BITCOIN_WALLET_DELETED
 } BRWalletEventType;
 
@@ -133,10 +134,15 @@ typedef struct {
         struct {
             uint64_t satoshi;
         } balance;
+
         struct {
             BRTransaction *transaction;
             int error; // 0 on success
         } submitted;
+
+        struct {
+            uint64_t value;
+        } feePerKb;
     } u;
 } BRWalletEvent;
 
@@ -263,6 +269,11 @@ BRWalletManagerSubmitTransaction (BRWalletManager manager,
                                   BRTransaction *transaction,
                                   const void *seed,
                                   size_t seedLen);
+
+extern void
+BRWalletManagerUpdateFeePerKB (BRWalletManager manager,
+                               BRWallet *wallet,
+                               uint64_t feePerKb);
 
 #ifdef __cplusplus
 }

@@ -939,6 +939,7 @@ extension BRWalletEventType: CustomStringConvertible {
         case BITCOIN_WALLET_CREATED: return "Created"
         case BITCOIN_WALLET_BALANCE_UPDATED: return "Balance Updated"
         case BITCOIN_WALLET_TRANSACTION_SUBMITTED: return "Transaction Submitted"
+        case BITCOIN_WALLET_FEE_PER_KB_UPDATED: return "FeePerKB Updated"
         case BITCOIN_WALLET_DELETED: return "Deleted"
         default: return "<<unknown>>"
         }

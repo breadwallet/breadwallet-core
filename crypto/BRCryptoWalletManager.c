@@ -254,6 +254,19 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
             break;
         }
 
+        case BITCOIN_WALLET_FEE_PER_KB_UPDATED: {
+            BRCryptoFeeBasis feeBasis = cryptoFeeBasisCreateAsBTC (event.u.feePerKb.value);
+
+            cwm->listener.walletEventCallback (cwm->listener.context,
+                                               cryptoWalletManagerTake (cwm),
+                                               wallet,
+                                               (BRCryptoWalletEvent) {
+                                                   CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED,
+                                                   { .feeBasisUpdated = { feeBasis }}
+                                               });
+            break;
+        }
+
         case BITCOIN_WALLET_TRANSACTION_SUBMITTED: {
             // Demand 'wallet'
             assert (NULL != wallet);
@@ -630,22 +643,14 @@ cwmWalletEventAsETH (BREthereumClientContext context,
         }
 
         case WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED:
-        case WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED: {
-            BREthereumFeeBasis ethFeeBasis = {
-                FEE_BASIS_GAS,
-                { .gas =
-                    ewmWalletGetDefaultGasLimit (cwm->u.eth, wid),
-                    ewmWalletGetDefaultGasPrice (cwm->u.eth, wid) }
-            };
-
-            cryptoWalletSetDefaultFeeBasisAsETH (wallet, ethFeeBasis);
-
+        case WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED:
             cwmEvent = (BRCryptoWalletEvent) {
                 CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED,
-                { .feeBasisUpdated = { cryptoFeeBasisCreateAsETH (ethFeeBasis.u.gas.limit, ethFeeBasis.u.gas.price) }}
+                { .feeBasisUpdated = { cryptoFeeBasisCreateAsETH
+                    (ewmWalletGetDefaultGasLimit (cwm->u.eth, wid),
+                     ewmWalletGetDefaultGasPrice (cwm->u.eth, wid)) }}
             };
             break;
-        }
 
         case WALLET_EVENT_DELETED:
             cwmEvent = (BRCryptoWalletEvent) {
