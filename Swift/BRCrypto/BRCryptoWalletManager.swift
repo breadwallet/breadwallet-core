@@ -51,7 +51,6 @@ public final class WalletManager: Equatable {
         return Wallet (core: coreWallet,
                        listener: system.listener,
                        manager: self,
-                       unit:  Unit (core: cryptoWalletGetUnit(coreWallet), take: false),
                        take: false)
     }()
 
@@ -64,7 +63,6 @@ public final class WalletManager: Equatable {
                 return Wallet (core: coreWallet,
                                listener: listener,
                                manager: self,
-                               unit:  Unit (core: cryptoWalletGetUnit(coreWallet), take: false),
                                take: false)
         }
     }
@@ -81,7 +79,6 @@ public final class WalletManager: Equatable {
             : Wallet (core: core,
                       listener: system.listener,
                       manager: self,
-                      unit: Unit (core: cryptoWalletGetUnit(core), take: false),
                       take: true))
     }
 
@@ -94,7 +91,6 @@ public final class WalletManager: Equatable {
                 : Wallet (core: core,
                           listener: listener,
                           manager: self,
-                          unit: Unit (core: cryptoWalletGetUnit(core), take: false),
                           take: true))
     }
 

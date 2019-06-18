@@ -593,7 +593,7 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                 // Create the appropriate wallet based on currency
                 wallet = cryptoWalletCreateAsETH (unit, unit, cwm->u.eth, wid); // taken
 
-                // Avoid a race on cwm->wallet - but be sure to get the ETH wallet.
+                // Avoid a race on cwm->wallet - but be sure to assign the ETH wallet (not a TOK one).
                 if (NULL == cwm->wallet && NULL == token) cwm->wallet = cryptoWalletTake (wallet);
 
                 cryptoWalletManagerAddWallet (cwm, wallet);
@@ -692,6 +692,8 @@ cwmEventTokenAsETH (BREthereumClientContext context,
                 ewmGetWalletHoldingToken (ewm, token);
                 cryptoCurrencyGive (currency);
             }
+
+            cryptoNetworkGive(network);
 
             // This will cascade into a WALLET_EVENT_CREATED which will in turn create a
             // BRCryptoWallet too
