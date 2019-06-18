@@ -219,7 +219,8 @@ public final class System {
                                 let currency = Currency (uids: currencyModel.id,
                                                          name: currencyModel.name,
                                                          code: currencyModel.code,
-                                                         type: currencyModel.type)
+                                                         type: currencyModel.type,
+                                                         issuer: currencyModel.address)
 
                                 // Create the base unit
                                 let baseUnit = currencyModel.demoninations.first { 0 == $0.decimals}

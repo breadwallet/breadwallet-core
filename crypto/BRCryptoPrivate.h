@@ -66,11 +66,24 @@ extern "C" {
 
     /// MARK: - Currency
 
+    /**
+     * Create a currency
+     *
+     * @param uids the 'unique identifier string'.  This will be globally unique
+     * @param name the name, such as "The Breadwallet Token"
+     * @param code the code, such as "BRD"
+     * @param type the type, such a 'erc20'
+     * @param issuer the issuer or NULL.  For currency derived from an ERC20 token, the issue must
+     *    be a 'hex string' (starts with '0x') representing the Smart Contract Address.
+     *
+     * @return a currency
+     */
     private_extern BRCryptoCurrency
     cryptoCurrencyCreate (const char *uids,
                           const char *name,
                           const char *code,
-                          const char *type);
+                          const char *type,
+                          const char *issuer);
 
 
     /// MARK: - Unit
@@ -220,6 +233,10 @@ extern "C" {
     
     private_extern BRCryptoBlockChainType
     cryptoNetworkGetBlockChainType (BRCryptoNetwork network);
+
+    private_extern BRCryptoCurrency
+    cryptoNetworkGetCurrencyforTokenETH (BRCryptoNetwork network,
+                                         BREthereumToken token);
 
     /// MARK: - Wallet
 

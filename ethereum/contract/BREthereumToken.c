@@ -75,6 +75,12 @@ tokenGetAddress(BREthereumToken token) {
     return token->address;
 }
 
+extern BREthereumBoolean
+tokenHasAddress (BREthereumToken token,
+                 const char *address) {
+    return addressEqual (token->raw, addressCreate (address));
+}
+
 extern const char *
 tokenGetSymbol(BREthereumToken token) {
     return token->symbol;

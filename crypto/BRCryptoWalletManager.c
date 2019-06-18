@@ -571,7 +571,7 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                 // Find the wallet's currency.
                 BRCryptoCurrency currency = (NULL == token
                                              ? cryptoNetworkGetCurrency (cwm->network)
-                                             : cryptoNetworkGetCurrencyForCode (cwm->network, tokenGetSymbol(token)));
+                                             : cryptoNetworkGetCurrencyforTokenETH (cwm->network, token));
 
                 // The currency might not exist.  We installed all tokens announced by
                 // `ewmGetTokens()` but, at least during debugging, not all of those tokens will
@@ -686,8 +686,12 @@ cwmEventTokenAsETH (BREthereumClientContext context,
             // will be created automatically by simply 'pinging' the wallet for token.  However,
             // only create the token's wallet if we know about the currency.
 
-            if (NULL != cryptoNetworkGetCurrencyForCode (network, tokenGetSymbol(token)))
+            BRCryptoCurrency currency = cryptoNetworkGetCurrencyforTokenETH (network, token);
+
+            if (NULL != currency) {
                 ewmGetWalletHoldingToken (ewm, token);
+                cryptoCurrencyGive (currency);
+            }
 
             // This will cascade into a WALLET_EVENT_CREATED which will in turn create a
             // BRCryptoWallet too
@@ -1103,6 +1107,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
             // When a token is announced, we'll create a CRYPTO wallet if-and-only-if the token has
             // a knonw currency.  EVERY TOKEN SHOULD, eventually - key word being 'eventually'.
             //
+            // TODO: Only finds MAINNET tokens
             ewmUpdateTokens(cwm->u.eth);
 
             break;
