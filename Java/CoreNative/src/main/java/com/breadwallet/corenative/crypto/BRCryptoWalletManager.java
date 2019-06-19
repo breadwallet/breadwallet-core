@@ -108,4 +108,16 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
         CryptoLibrary.INSTANCE.cwmAnnounceBalance(this, handle, balance.longValue(), success ? BRCryptoBoolean.CRYPTO_TRUE :
                 BRCryptoBoolean.CRYPTO_FALSE);
     }
+
+    @Override
+    public void announceGasPrice(BRCryptoCallbackHandle handle, UnsignedLong gasPrice, boolean success) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGasPrice(this, handle, gasPrice.longValue(), success ? BRCryptoBoolean.CRYPTO_TRUE :
+                BRCryptoBoolean.CRYPTO_FALSE);
+    }
+
+    @Override
+    public void announceGasEstimate(BRCryptoCallbackHandle handle, UnsignedLong gasEstimate, boolean success) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGasEstimate(this, handle, gasEstimate.longValue(), success ? BRCryptoBoolean.CRYPTO_TRUE :
+                BRCryptoBoolean.CRYPTO_FALSE);
+    }
 }

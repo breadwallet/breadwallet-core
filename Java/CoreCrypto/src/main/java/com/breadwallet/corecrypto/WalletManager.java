@@ -854,7 +854,8 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
     // ETH client
 
-    private void ethGetEtherBalance(Pointer context, BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, String networkName, String address) {
+    private void ethGetEtherBalance(Pointer context, BRCryptoWalletManager manager, BRCryptoCallbackHandle handle,
+                                    String networkName, String address) {
         Log.d(TAG, "BRCryptoCWMEthGetEtherBalanceCallback");
 
         // TODO(discuss): Do we actually need a rid here? Can it just be random? Does it need to tie into our C rid?
@@ -874,7 +875,8 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         });
     }
 
-    private void ethGetTokenBalance(Pointer context, BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, String networkName, String address, String tokenAddress) {
+    private void ethGetTokenBalance(Pointer context, BRCryptoWalletManager manager, BRCryptoCallbackHandle handle,
+                                    String networkName, String address, String tokenAddress) {
         Log.d(TAG, "BRCryptoCWMEthGetTokenBalanceCallback");
 
         // TODO(discuss): Do we actually need a rid here? Can it just be random? Does it need to tie into our C rid?
@@ -894,44 +896,44 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         });
     }
 
-    private void ethGetGasPrice(Pointer context, BREthereumEwm ewm, BREthereumWallet wid, int rid) {
-        Log.d(TAG, "BREthereumClientHandlerGetGasPrice");
+    private void ethGetGasPrice(Pointer context, BRCryptoWalletManager manager, BRCryptoCallbackHandle handle,
+                                String networkName) {
+        Log.d(TAG, "BRCryptoCWMEthGetGasPriceCallback");
 
-        BREthereumNetwork network = ewm.getNetwork();
-        String networkName = network.getName().toLowerCase();
-
-        query.getGasPriceAsEth(networkName, rid, new CompletionHandler<String>() {
+        // TODO(discuss): Do we actually need a rid here? Can it just be random? Does it need to tie into our C rid?
+        query.getGasPriceAsEth(networkName, 0, new CompletionHandler<String>() {
             @Override
             public void handleData(String gasPrice) {
-                Log.d(TAG, "BREthereumClientHandlerGetGasPrice: succeeded");
-                ewm.announceGasPrice(wid, gasPrice, rid);
+                Log.d(TAG, "BRCryptoCWMEthGetGasPriceCallback: succeeded");
+                // TODO(fix): Parsing this should be done in BDB and a failure should be handled accordingly
+                manager.announceGasPrice(handle, UnsignedLong.fromLongBits(UnsignedLongs.decode(gasPrice)), true);
             }
 
             @Override
             public void handleError(QueryError error) {
-                Log.e(TAG, "BREthereumClientHandlerGetGasPrice: failed", error);
+                Log.e(TAG, "BRCryptoCWMEthGetGasPriceCallback: failed", error);
+                manager.announceGasPrice(handle, UnsignedLong.ZERO, false);
             }
         });
     }
 
-    private void ethEstimateGas(Pointer context, BREthereumEwm ewm, BREthereumWallet wid, BREthereumTransfer tid,
-                                String from, String to,
-                                String amount, String data, int rid) {
-        Log.d(TAG, "BREthereumClientHandlerEstimateGas");
+    private void ethEstimateGas(Pointer context, BRCryptoWalletManager manager, BRCryptoCallbackHandle handle,
+                                String networkName, String from, String to, String amount, String data) {
+        Log.d(TAG, "BRCryptoCWMEthEstimateGasCallback");
 
-        BREthereumNetwork network = ewm.getNetwork();
-        String networkName = network.getName().toLowerCase();
-
-        query.getGasEstimateAsEth(networkName, from, to, amount, data, rid, new CompletionHandler<String>() {
+        // TODO(discuss): Do we actually need a rid here? Can it just be random? Does it need to tie into our C rid?
+        query.getGasEstimateAsEth(networkName, from, to, amount, data, 0, new CompletionHandler<String>() {
             @Override
             public void handleData(String gasEstimate) {
-                Log.d(TAG, "BREthereumClientHandlerEstimateGas: succeeded");
-                ewm.announceGasEstimate(wid, tid, gasEstimate, rid);
+                Log.d(TAG, "BRCryptoCWMEthEstimateGasCallback: succeeded");
+                // TODO(fix): Parsing this should be done in BDB and a failure should be handled accordinglys
+                manager.announceGasEstimate(handle, UnsignedLong.fromLongBits(UnsignedLongs.decode(gasEstimate)), true);
             }
 
             @Override
             public void handleError(QueryError error) {
-                Log.e(TAG, "BREthereumClientHandlerEstimateGas: failed", error);
+                Log.e(TAG, "BRCryptoCWMEthEstimateGasCallback: failed", error);
+                manager.announceGasEstimate(handle, UnsignedLong.ZERO, false);
             }
         });
     }

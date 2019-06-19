@@ -54,4 +54,8 @@ public interface CoreBRCryptoWalletManager {
     void announceSubmit(BRCryptoCallbackHandle handle, boolean success);
 
     void announceBalance(BRCryptoCallbackHandle handle, UnsignedLong balance, boolean success);
+
+    void announceGasPrice(BRCryptoCallbackHandle handle, UnsignedLong gasPrice, boolean success);
+
+    void announceGasEstimate(BRCryptoCallbackHandle handle, UnsignedLong gasEstimate, boolean success);
 }

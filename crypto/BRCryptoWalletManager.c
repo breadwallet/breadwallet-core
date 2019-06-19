@@ -37,7 +37,9 @@ typedef enum  {
     CWM_CALLBACK_TYPE_BTC_GET_TRANSACTIONS,
     CWM_CALLBACK_TYPE_BTC_SUBMIT_TRANSACTION,
 
-    CWM_CALLBACK_TYPE_ETH_GET_BALANCE
+    CWM_CALLBACK_TYPE_ETH_GET_BALANCE,
+    CWM_CALLBACK_TYPE_ETH_GET_GAS_PRICE,
+    CWM_CALLBACK_TYPE_ETH_ESTIMATE_GAS
 } BRCryptoCWMCallbackType;
 
 struct BRCryptoCWMCallbackRecord {
@@ -48,7 +50,11 @@ struct BRCryptoCWMCallbackRecord {
         } btcSubmit;
         struct {
             BREthereumWallet wid;
-        } ethBalance;
+        } ethWithWallet;
+        struct {
+            BREthereumWallet wid;
+            BREthereumTransfer tid;
+        } ethWithTransaction;
     } u;
     int rid;
 };
@@ -116,7 +122,7 @@ cwmGetTransactionsAsBTC (BRWalletManagerClientContext context,
 
     char **addrStrings = calloc (addrCount, sizeof(char *));
     for (size_t index = 0; index < addrCount; index ++)
-        addrStrings[index] = &addrs[index];
+        addrStrings[index] = (char *) &addrs[index];
 
     cwm->client.btc.funcGetTransactions (cwm->client.context, cwm, record, addrStrings, addrCount, begBlockNumber, endBlockNumber);
 
@@ -441,7 +447,7 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
             // Only announce changes.
             if (CRYPTO_TRANSFER_STATE_INCLUDED != oldState.type) {
                 cryptoTransferSetState (transfer, newState);
-            
+
                 cwm->listener.transferEventCallback (cwm->listener.context,
                                                      cryptoWalletManagerTake (cwm),
                                                      wallet,
@@ -868,14 +874,11 @@ cwmGetBalanceAsETH (BREthereumClientContext context,
 
     BRCryptoCWMCallbackHandle record = calloc (1, sizeof(struct BRCryptoCWMCallbackRecord));
     record->type = CWM_CALLBACK_TYPE_ETH_GET_BALANCE;
-    record->u.ethBalance.wid = wid;
+    record->u.ethWithWallet.wid = wid;
     record->rid = rid;
 
     BREthereumNetwork network = ewmGetNetwork (ewm);
-    char *networkName = strdup(networkGetName (network));
-    size_t networkNameLength = strlen (networkName);
-    for (size_t index = 0; index < networkNameLength; index++)
-        networkName[index] = tolower(networkName[index]);
+    char *networkName = networkCopyNameAsLowercase (network);
 
     BREthereumToken token = ewmWalletGetToken (ewm, wid);
     if (NULL == token) {
@@ -884,6 +887,7 @@ cwmGetBalanceAsETH (BREthereumClientContext context,
         cwm->client.eth.funcGetTokenBalance (cwm->client.context, cwm, record, networkName, address, tokenGetAddress (token));
     }
 
+    free (networkName);
     cryptoWalletManagerGive (cwm);
 }
 
@@ -892,8 +896,20 @@ cwmGetGasPriceAsETH (BREthereumClientContext context,
                      BREthereumEWM ewm,
                      BREthereumWallet wid,
                      int rid) {
-    BRCryptoWalletManager cwm = context;
-    cwm->client.eth.funcGetGasPrice (cwm->client.context, ewm, wid, rid);
+    BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
+
+    BRCryptoCWMCallbackHandle record = calloc (1, sizeof(struct BRCryptoCWMCallbackRecord));
+    record->type = CWM_CALLBACK_TYPE_ETH_GET_GAS_PRICE;
+    record->u.ethWithWallet.wid = wid;
+    record->rid = rid;
+
+    BREthereumNetwork network = ewmGetNetwork (ewm);
+    char *networkName = networkCopyNameAsLowercase (network);
+
+    cwm->client.eth.funcGetGasPrice (cwm->client.context, cwm, record, networkName);
+
+    free (networkName);
+    cryptoWalletManagerGive (cwm);
 }
 
 static void
@@ -906,8 +922,21 @@ cwmGetGasEstimateAsETH (BREthereumClientContext context,
                         const char *amount,
                         const char *data,
                         int rid) {
-    BRCryptoWalletManager cwm = context;
-    cwm->client.eth.funcEstimateGas (cwm->client.context, ewm, wid, tid, from, to, amount, data, rid);
+    BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
+
+    BRCryptoCWMCallbackHandle record = calloc (1, sizeof(struct BRCryptoCWMCallbackRecord));
+    record->type = CWM_CALLBACK_TYPE_ETH_ESTIMATE_GAS;
+    record->u.ethWithTransaction.wid = wid;
+    record->u.ethWithTransaction.tid = tid;
+    record->rid = rid;
+
+    BREthereumNetwork network = ewmGetNetwork (ewm);
+    char *networkName = networkCopyNameAsLowercase (network);
+
+    cwm->client.eth.funcEstimateGas (cwm->client.context, cwm, record, networkName, from, to, amount, data);
+
+    free (networkName);
+    cryptoWalletManagerGive (cwm);
 }
 
 static void
@@ -1383,7 +1412,37 @@ cwmAnnounceBalance (BRCryptoWalletManager cwm,
     cwm = cryptoWalletManagerTake (cwm);
 
     if (success)
-        ewmAnnounceWalletBalanceAsInteger (cwm->u.eth, handle->u.ethBalance.wid, balance, handle->rid);
+        ewmAnnounceWalletBalanceAsInteger (cwm->u.eth, handle->u.ethWithWallet.wid, balance, handle->rid);
+
+    cryptoWalletManagerGive (cwm);
+    free (handle);
+}
+
+extern void
+cwmAnnounceGasPrice (BRCryptoWalletManager cwm,
+                    BRCryptoCWMCallbackHandle handle,
+                    uint64_t gasPrice,
+                    BRCryptoBoolean success) {
+    assert (cwm); assert (handle); assert (CWM_CALLBACK_TYPE_ETH_GET_GAS_PRICE == handle->type);
+    cwm = cryptoWalletManagerTake (cwm);
+
+    if (success)
+        ewmAnnounceGasPriceAsInteger (cwm->u.eth, handle->u.ethWithWallet.wid, gasPrice, handle->rid);
+
+    cryptoWalletManagerGive (cwm);
+    free (handle);
+}
+
+extern void
+cwmAnnounceGasEstimate (BRCryptoWalletManager cwm,
+                        BRCryptoCWMCallbackHandle handle,
+                        uint64_t gasEstimate,
+                        BRCryptoBoolean success) {
+    assert (cwm); assert (handle); assert (CWM_CALLBACK_TYPE_ETH_ESTIMATE_GAS == handle->type);
+    cwm = cryptoWalletManagerTake (cwm);
+
+    if (success)
+        ewmAnnounceGasEstimateAsInteger (cwm->u.eth, handle->u.ethWithTransaction.wid, handle->u.ethWithTransaction.tid, gasEstimate, handle->rid);
 
     cryptoWalletManagerGive (cwm);
     free (handle);

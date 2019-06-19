@@ -193,6 +193,8 @@ public interface CryptoLibrary extends Library {
     void cwmAnnounceTransactionComplete(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, int success);
     void cwmAnnounceSubmit(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, int success);
     void cwmAnnounceBalance(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, long balance, int success);
+    void cwmAnnounceGasPrice(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, long gasPrice, int success);
+    void cwmAnnounceGasEstimate(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, long gasEstimate, int success);
     BRCryptoWalletManager cryptoWalletManagerTake(BRCryptoWalletManager obj);
     void cryptoWalletManagerGive(BRCryptoWalletManager obj);
 

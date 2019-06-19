@@ -64,6 +64,12 @@ extern "C" {
                         const char *gasPrice,
                         int rid);
 
+    extern BREthereumStatus
+    ewmAnnounceGasPriceAsInteger(BREthereumEWM ewm,
+                                 BREthereumWallet wid,
+                                 uint64_t gasPrice,
+                                 int rid);
+
     extern void
     ewmUpdateGasPrice (BREthereumEWM ewm,
                        BREthereumWallet wid);
@@ -88,6 +94,12 @@ extern "C" {
                             const char *gasEstimate,
                             int rid);
 
+    extern BREthereumStatus
+    ewmAnnounceGasEstimateAsInteger (BREthereumEWM ewm,
+                                     BREthereumWallet wid,
+                                     BREthereumTransfer tid,
+                                     uint64_t gasEstimate,
+                                     int rid);
 
     extern void
     ewmUpdateGasEstimate (BREthereumEWM ewm,

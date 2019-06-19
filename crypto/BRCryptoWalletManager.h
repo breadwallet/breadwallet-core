@@ -140,11 +140,27 @@ extern "C" {
                                                   const char *address,
                                                   const char *tokenAddress);
 
+    typedef void
+        (*BRCryptoCWMEthGetGasPriceCallback) (BRCryptoCWMClientContext context,
+                                              BRCryptoWalletManager manager,
+                                              BRCryptoCWMCallbackHandle handle,
+                                              const char *network);
+
+    typedef void
+        (*BRCryptoCWMEthEstimateGasCallback) (BRCryptoCWMClientContext context,
+                                              BRCryptoWalletManager manager,
+                                              BRCryptoCWMCallbackHandle handle,
+                                              const char *network,
+                                              const char *from,
+                                              const char *to,
+                                              const char *amount,
+                                              const char *data);
+
     typedef struct {
         BRCryptoCWMEthGetEtherBalanceCallback funcGetEtherBalance;
         BRCryptoCWMEthGetTokenBalanceCallback funcGetTokenBalance;
-        BREthereumClientHandlerGetGasPrice funcGetGasPrice;
-        BREthereumClientHandlerEstimateGas funcEstimateGas;
+        BRCryptoCWMEthGetGasPriceCallback funcGetGasPrice;
+        BRCryptoCWMEthEstimateGasCallback funcEstimateGas;
         BREthereumClientHandlerSubmitTransaction funcSubmitTransaction;
         BREthereumClientHandlerGetTransactions funcGetTransactions; // announce one-by-one
         BREthereumClientHandlerGetLogs funcGetLogs; // announce one-by-one
@@ -272,6 +288,24 @@ extern "C" {
     cwmAnnounceSubmit (BRCryptoWalletManager cwm,
                        BRCryptoCWMCallbackHandle handle,
                        BRCryptoBoolean success);
+
+    extern void
+    cwmAnnounceBalance (BRCryptoWalletManager cwm,
+                        BRCryptoCWMCallbackHandle handle,
+                        uint64_t balance,
+                        BRCryptoBoolean success);
+
+    extern void
+    cwmAnnounceGasPrice (BRCryptoWalletManager cwm,
+                         BRCryptoCWMCallbackHandle handle,
+                         uint64_t gasPrice,
+                         BRCryptoBoolean success);
+
+    extern void
+    cwmAnnounceGasEstimate (BRCryptoWalletManager cwm,
+                            BRCryptoCWMCallbackHandle handle,
+                            uint64_t gasEstimate,
+                            BRCryptoBoolean success);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoWalletManager, cryptoWalletManager);
 
