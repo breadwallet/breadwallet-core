@@ -58,6 +58,19 @@ ewmAnnounceWalletBalance (BREthereumEWM ewm,
     return SUCCESS;
 }
 
+extern BREthereumStatus
+ewmAnnounceWalletBalanceAsInteger (BREthereumEWM ewm,
+                                   BREthereumWallet wallet,
+                                   uint64_t balance,
+                                   int rid) {
+    if (NULL == wallet) { return ERROR_UNKNOWN_WALLET; }
+
+    UInt256 value = createUInt256(balance);
+
+    ewmSignalAnnounceBalance(ewm, wallet, value, rid);
+    return SUCCESS;
+}
+
 // ==============================================================================================
 //
 // Default Wallet Gas Price

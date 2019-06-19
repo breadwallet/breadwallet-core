@@ -102,4 +102,10 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
         CryptoLibrary.INSTANCE.cwmAnnounceSubmit(this, handle, success ? BRCryptoBoolean.CRYPTO_TRUE :
                 BRCryptoBoolean.CRYPTO_FALSE);
     }
+
+    @Override
+    public void announceBalance(BRCryptoCallbackHandle handle, UnsignedLong balance, boolean success) {
+        CryptoLibrary.INSTANCE.cwmAnnounceBalance(this, handle, balance.longValue(), success ? BRCryptoBoolean.CRYPTO_TRUE :
+                BRCryptoBoolean.CRYPTO_FALSE);
+    }
 }

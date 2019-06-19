@@ -107,6 +107,11 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
+    public void announceBalance(BRCryptoCallbackHandle handle, UnsignedLong balance, boolean success) {
+        core.announceBalance(handle, balance, success);
+    }
+
+    @Override
     public boolean equals(Object object) {
         if (this == object) {
             return true;

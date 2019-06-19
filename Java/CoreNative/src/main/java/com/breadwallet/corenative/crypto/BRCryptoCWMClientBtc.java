@@ -18,23 +18,23 @@ import java.util.List;
 
 public class BRCryptoCWMClientBtc extends Structure {
 
-    public interface BRCryptoCWMGetBlockNumberCallback extends Callback {
+    public interface BRCryptoCWMBtcGetBlockNumberCallback extends Callback {
         void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCallbackHandle handle);
     }
 
-    public interface BRCryptoCWMGetTransactionsCallback extends Callback {
+    public interface BRCryptoCWMBtcGetTransactionsCallback extends Callback {
         void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, Pointer addrs,
                    SizeT addrCount, long begBlockNumber, long endBlockNumber);
     }
 
-    public interface BRCryptoCWMSubmitTransactionCallback extends Callback {
+    public interface BRCryptoCWMBtcSubmitTransactionCallback extends Callback {
         void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, Pointer tx,
                    SizeT txLength);
     }
 
-    public BRCryptoCWMGetBlockNumberCallback funcGetBlockNumber;
-    public BRCryptoCWMGetTransactionsCallback funcGetTransactions;
-    public BRCryptoCWMSubmitTransactionCallback funcSubmitTransaction;
+    public BRCryptoCWMBtcGetBlockNumberCallback funcGetBlockNumber;
+    public BRCryptoCWMBtcGetTransactionsCallback funcGetTransactions;
+    public BRCryptoCWMBtcSubmitTransactionCallback funcSubmitTransaction;
 
     public BRCryptoCWMClientBtc() {
         super();
@@ -44,9 +44,9 @@ public class BRCryptoCWMClientBtc extends Structure {
         return Arrays.asList("funcGetBlockNumber", "funcGetTransactions", "funcSubmitTransaction");
     }
 
-    public BRCryptoCWMClientBtc(BRCryptoCWMGetBlockNumberCallback funcGetBlockNumber,
-                                BRCryptoCWMGetTransactionsCallback funcGetTransactions,
-                                BRCryptoCWMSubmitTransactionCallback funcSubmitTransaction) {
+    public BRCryptoCWMClientBtc(BRCryptoCWMBtcGetBlockNumberCallback funcGetBlockNumber,
+                                BRCryptoCWMBtcGetTransactionsCallback funcGetTransactions,
+                                BRCryptoCWMBtcSubmitTransactionCallback funcSubmitTransaction) {
         super();
         this.funcGetBlockNumber = funcGetBlockNumber;
         this.funcGetTransactions = funcGetTransactions;

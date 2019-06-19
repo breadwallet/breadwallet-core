@@ -22,7 +22,6 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
-
 #include "BRCryptoWalletManager.h"
 #include "BRCryptoBase.h"
 #include "BRCryptoPrivate.h"
@@ -36,7 +35,9 @@ cryptoWalletManagerRelease (BRCryptoWalletManager cwm);
 typedef enum  {
     CWM_CALLBACK_TYPE_BTC_GET_BLOCK_NUMBER,
     CWM_CALLBACK_TYPE_BTC_GET_TRANSACTIONS,
-    CWM_CALLBACK_TYPE_BTC_SUBMIT_TRANSACTION
+    CWM_CALLBACK_TYPE_BTC_SUBMIT_TRANSACTION,
+
+    CWM_CALLBACK_TYPE_ETH_GET_BALANCE
 } BRCryptoCWMCallbackType;
 
 struct BRCryptoCWMCallbackRecord {
@@ -45,6 +46,9 @@ struct BRCryptoCWMCallbackRecord {
         struct {
             BRTransaction *transaction;
         } btcSubmit;
+        struct {
+            BREthereumWallet wid;
+        } ethBalance;
     } u;
     int rid;
 };
@@ -89,6 +93,8 @@ cwmGetBlockNumberAsBTC (BRWalletManagerClientContext context,
     record->rid = rid;
 
     cwm->client.btc.funcGetBlockNumber (cwm->client.context, cwm, record);
+
+    cryptoWalletManagerGive (cwm);
 }
 
 static void
@@ -116,6 +122,7 @@ cwmGetTransactionsAsBTC (BRWalletManagerClientContext context,
 
     free (addrStrings);
     free (addrs);
+    cryptoWalletManagerGive (cwm);
 }
 
 static void
@@ -136,6 +143,8 @@ cwmSubmitTransactionAsBTC (BRWalletManagerClientContext context,
     size_t len = BRTransactionSerialize(transaction, data, sizeof(data));
 
     cwm->client.btc.funcSubmitTransaction (cwm->client.context, cwm, record, data, len);
+
+    cryptoWalletManagerGive (cwm);
 }
 
 static void
@@ -855,8 +864,27 @@ cwmGetBalanceAsETH (BREthereumClientContext context,
                     BREthereumWallet wid,
                     const char *address,
                     int rid) {
-    BRCryptoWalletManager cwm = context;
-    cwm->client.eth.funcGetBalance (cwm->client.context, ewm, wid, address, rid);
+    BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
+
+    BRCryptoCWMCallbackHandle record = calloc (1, sizeof(struct BRCryptoCWMCallbackRecord));
+    record->type = CWM_CALLBACK_TYPE_ETH_GET_BALANCE;
+    record->u.ethBalance.wid = wid;
+    record->rid = rid;
+
+    BREthereumNetwork network = ewmGetNetwork (ewm);
+    char *networkName = strdup(networkGetName (network));
+    size_t networkNameLength = strlen (networkName);
+    for (size_t index = 0; index < networkNameLength; index++)
+        networkName[index] = tolower(networkName[index]);
+
+    BREthereumToken token = ewmWalletGetToken (ewm, wid);
+    if (NULL == token) {
+        cwm->client.eth.funcGetEtherBalance (cwm->client.context, cwm, record, networkName, address);
+    } else {
+        cwm->client.eth.funcGetTokenBalance (cwm->client.context, cwm, record, networkName, address, tokenGetAddress (token));
+    }
+
+    cryptoWalletManagerGive (cwm);
 }
 
 static void
@@ -1289,7 +1317,7 @@ cwmAnnounceBlockNumber (BRCryptoWalletManager cwm,
     assert (cwm); assert (handle); assert (CWM_CALLBACK_TYPE_BTC_GET_BLOCK_NUMBER == handle->type);
     cwm = cryptoWalletManagerTake (cwm);
 
-    if (success) 
+    if (success)
         bwmAnnounceBlockNumber (cwm->u.btc, handle->rid, blockHeight);
 
     cryptoWalletManagerGive (cwm);
@@ -1341,6 +1369,21 @@ cwmAnnounceSubmit (BRCryptoWalletManager cwm,
 
     // TODO(fix): What is the memory management story for this transaction?
     bwmAnnounceSubmit (cwm->u.btc, handle->rid, handle->u.btcSubmit.transaction, CRYPTO_TRUE == success ? 0 : 1);
+
+    cryptoWalletManagerGive (cwm);
+    free (handle);
+}
+
+extern void
+cwmAnnounceBalance (BRCryptoWalletManager cwm,
+                    BRCryptoCWMCallbackHandle handle,
+                    uint64_t balance,
+                    BRCryptoBoolean success) {
+    assert (cwm); assert (handle); assert (CWM_CALLBACK_TYPE_ETH_GET_BALANCE == handle->type);
+    cwm = cryptoWalletManagerTake (cwm);
+
+    if (success)
+        ewmAnnounceWalletBalanceAsInteger (cwm->u.eth, handle->u.ethBalance.wid, balance, handle->rid);
 
     cryptoWalletManagerGive (cwm);
     free (handle);

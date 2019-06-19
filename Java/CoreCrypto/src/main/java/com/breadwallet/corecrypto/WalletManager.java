@@ -67,6 +67,7 @@ import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedInts;
 import com.google.common.primitives.UnsignedLong;
+import com.google.common.primitives.UnsignedLongs;
 import com.sun.jna.Pointer;
 
 import java.util.ArrayList;
@@ -140,7 +141,8 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                         this::btcGetTransactions,
                         this::btcSubmitTransaction),
                 new BRCryptoCWMClientEth(
-                        this::ethGetBalance,
+                        this::ethGetEtherBalance,
+                        this::ethGetTokenBalance,
                         this::ethGetGasPrice,
                         this::ethEstimateGas,
                         this::ethSubmitTransaction,
@@ -764,19 +766,19 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     // BTC client
 
     private void btcGetBlockNumber(Pointer context, BRCryptoWalletManager manager, BRCryptoCallbackHandle handle) {
-        Log.d(TAG, "BRGetBlockNumberCallback");
+        Log.d(TAG, "BRCryptoCWMBtcGetBlockNumberCallback");
 
         query.getBlockchain(getNetwork().getUids(), new CompletionHandler<Blockchain>() {
             @Override
             public void handleData(Blockchain blockchain) {
                 UnsignedLong blockchainHeight = blockchain.getBlockHeight();
-                Log.d(TAG, String.format("BRGetBlockNumberCallback: succeeded (%s)", blockchainHeight));
+                Log.d(TAG, String.format("BRCryptoCWMBtcGetBlockNumberCallback: succeeded (%s)", blockchainHeight));
                 manager.announceBlockNumber(handle, blockchainHeight, true);
             }
 
             @Override
             public void handleError(QueryError error) {
-                Log.e(TAG, "BRGetBlockNumberCallback: failed", error);
+                Log.e(TAG, "BRCryptoCWMBtcGetBlockNumberCallback: failed", error);
                 manager.announceBlockNumber(handle, UnsignedLong.ZERO, false);
             }
         });
@@ -787,7 +789,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         UnsignedLong begBlockNumberUnsigned = UnsignedLong.fromLongBits(begBlockNumber);
         UnsignedLong endBlockNumberUnsigned = UnsignedLong.fromLongBits(endBlockNumber);
 
-        Log.d(TAG, String.format("BRGetTransactionsCallback (%s -> %s)", begBlockNumberUnsigned,
+        Log.d(TAG, String.format("BRCryptoCWMBtcGetTransactionsCallback (%s -> %s)", begBlockNumberUnsigned,
                 endBlockNumberUnsigned));
 
         int addressesCount = UnsignedInts.checkedCast(addrCount.longValue());
@@ -798,12 +800,12 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                 false, new CompletionHandler<List<Transaction>>() {
                     @Override
                     public void handleData(List<Transaction> transactions) {
-                        Log.d(TAG, "BRGetTransactionsCallback: transaction success");
+                        Log.d(TAG, "BRCryptoCWMBtcGetTransactionsCallback: transaction success");
 
                         for (Transaction transaction : transactions) {
                             Optional<byte[]> optRaw = transaction.getRaw();
                             if (!optRaw.isPresent()) {
-                                Log.e(TAG, "BRGetTransactionsCallback completing with missing raw bytes");
+                                Log.e(TAG, "BRCryptoCWMBtcGetTransactionsCallback completing with missing raw bytes");
                                 manager.announceTransactionComplete(handle, false);
                                 return;
                             }
@@ -812,7 +814,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                             UnsignedLong timestamp =
                                     transaction.getTimestamp().transform(Date::getTime).transform(TimeUnit.MILLISECONDS::toSeconds).transform(UnsignedLong::valueOf).or(UnsignedLong.ZERO);
                             Log.d(TAG,
-                                    "BRGetTransactionsCallback received transaction, announcing " + transaction.getId());
+                                    "BRCryptoCWMBtcGetTransactionsCallback received transaction, announcing " + transaction.getId());
                             manager.announceTransaction(handle, optRaw.get(), blockHeight, timestamp);
                         }
 
@@ -822,7 +824,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
                     @Override
                     public void handleError(QueryError error) {
-                        Log.e(TAG, "BRGetTransactionsCallback received an error, completing with failure", error);
+                        Log.e(TAG, "BRCryptoCWMBtcGetTransactionsCallback received an error, completing with failure", error);
                         manager.announceTransactionComplete(handle, false);
                     }
                 });
@@ -830,7 +832,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
     private void btcSubmitTransaction(Pointer context, BRCryptoWalletManager manager, BRCryptoCallbackHandle handle,
                                       Pointer tx, SizeT txLength) {
-        Log.d(TAG, "BRSubmitTransactionCallback");
+        Log.d(TAG, "BRCryptoCWMBtcSubmitTransactionCallback");
 
         int transactionLength = UnsignedInts.checkedCast(txLength.longValue());
         byte[] transaction = tx.getByteArray(0, transactionLength);
@@ -838,13 +840,13 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         query.putTransaction(getNetwork().getUids(), transaction, new CompletionHandler<Transaction>() {
             @Override
             public void handleData(Transaction data) {
-                Log.d(TAG, "BRSubmitTransactionCallback: succeeded");
+                Log.d(TAG, "BRCryptoCWMBtcSubmitTransactionCallback: succeeded");
                 manager.announceSubmit(handle, true);
             }
 
             @Override
             public void handleError(QueryError error) {
-                Log.e(TAG, "BRSubmitTransactionCallback: failed", error);
+                Log.e(TAG, "BRCryptoCWMBtcSubmitTransactionCallback: failed", error);
                 manager.announceSubmit(handle, false);
             }
         });
@@ -852,41 +854,44 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
     // ETH client
 
-    private void ethGetBalance(Pointer context, BREthereumEwm ewm, BREthereumWallet wid, String address, int rid) {
-        Log.d(TAG, "BREthereumClientHandlerGetBalance");
+    private void ethGetEtherBalance(Pointer context, BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, String networkName, String address) {
+        Log.d(TAG, "BRCryptoCWMEthGetEtherBalanceCallback");
 
-        BREthereumNetwork network = ewm.getNetwork();
-        String networkName = network.getName().toLowerCase();
+        // TODO(discuss): Do we actually need a rid here? Can it just be random? Does it need to tie into our C rid?
+        query.getBalanceAsEth(networkName, address, 0, new CompletionHandler<String>() {
+            @Override
+            public void handleData(String balance) {
+                Log.d(TAG, "BRCryptoCWMEthGetEtherBalanceCallback: succeeded");
+                // TODO(fix): Parsing this should be done in BDB and a failure should be handled accordingly
+                manager.announceBalance(handle, UnsignedLong.fromLongBits(UnsignedLongs.decode(balance)), true);
+            }
 
-        BREthereumToken token = ewm.getToken(wid);
-        if (null == token) {
-            query.getBalanceAsEth(networkName, address, rid, new CompletionHandler<String>() {
-                @Override
-                public void handleData(String data) {
-                    Log.d(TAG, "BREthereumClientHandlerGetBalance: asEth succeeded");
-                    ewm.announceWalletBalance(wid, data, rid);
-                }
+            @Override
+            public void handleError(QueryError error) {
+                Log.e(TAG, "BRCryptoCWMEthGetEtherBalanceCallback: failed", error);
+                manager.announceBalance(handle, UnsignedLong.ZERO, false);
+            }
+        });
+    }
 
-                @Override
-                public void handleError(QueryError error) {
-                    Log.e(TAG, "BREthereumClientHandlerGetBalance: asEth failed", error);
-                }
-            });
-        } else {
-            String tokenAddress = token.getAddress();
-            query.getBalanceAsTok(networkName, address, tokenAddress, rid, new CompletionHandler<String>() {
-                @Override
-                public void handleData(String balance) {
-                    Log.d(TAG, "BREthereumClientHandlerGetBalance: asTok succeeded");
-                    ewm.announceWalletBalance(wid, balance, rid);
-                }
+    private void ethGetTokenBalance(Pointer context, BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, String networkName, String address, String tokenAddress) {
+        Log.d(TAG, "BRCryptoCWMEthGetTokenBalanceCallback");
 
-                @Override
-                public void handleError(QueryError error) {
-                    Log.e(TAG, "BREthereumClientHandlerGetBalance: asTok failed", error);
-                }
-            });
-        }
+        // TODO(discuss): Do we actually need a rid here? Can it just be random? Does it need to tie into our C rid?
+        query.getBalanceAsTok(networkName, address, tokenAddress, 0, new CompletionHandler<String>() {
+            @Override
+            public void handleData(String balance) {
+                Log.d(TAG, "BRCryptoCWMEthGetTokenBalanceCallback: succeeded");
+                // TODO(fix): Parsing this should be done in BDB and a failure should be handled accordingly
+                manager.announceBalance(handle, UnsignedLong.fromLongBits(UnsignedLongs.decode(balance)), true);
+            }
+
+            @Override
+            public void handleError(QueryError error) {
+                Log.e(TAG, "BRCryptoCWMEthGetTokenBalanceCallback: failed", error);
+                manager.announceBalance(handle, UnsignedLong.ZERO, false);
+            }
+        });
     }
 
     private void ethGetGasPrice(Pointer context, BREthereumEwm ewm, BREthereumWallet wid, int rid) {

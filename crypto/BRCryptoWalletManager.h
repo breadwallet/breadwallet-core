@@ -120,10 +120,29 @@ extern "C" {
 
     // MARK: Client
 
+    // TODO(discuss): What do we want to do for naming here?
+    typedef struct BRCryptoCWMCallbackRecord *BRCryptoCWMCallbackHandle;
+
     typedef void *BRCryptoCWMClientContext;
 
+    typedef void
+        (*BRCryptoCWMEthGetEtherBalanceCallback) (BRCryptoCWMClientContext context,
+                                                  BRCryptoWalletManager manager,
+                                                  BRCryptoCWMCallbackHandle handle,
+                                                  const char *network,
+                                                  const char *address);
+
+    typedef void
+        (*BRCryptoCWMEthGetTokenBalanceCallback) (BRCryptoCWMClientContext context,
+                                                  BRCryptoWalletManager manager,
+                                                  BRCryptoCWMCallbackHandle handle,
+                                                  const char *network,
+                                                  const char *address,
+                                                  const char *tokenAddress);
+
     typedef struct {
-        BREthereumClientHandlerGetBalance funcGetBalance;
+        BRCryptoCWMEthGetEtherBalanceCallback funcGetEtherBalance;
+        BRCryptoCWMEthGetTokenBalanceCallback funcGetTokenBalance;
         BREthereumClientHandlerGetGasPrice funcGetGasPrice;
         BREthereumClientHandlerEstimateGas funcEstimateGas;
         BREthereumClientHandlerSubmitTransaction funcSubmitTransaction;
@@ -135,33 +154,32 @@ extern "C" {
         BREthereumClientHandlerGetNonce funcGetNonce;
     } BRCryptoCWMClientETH;
 
-    typedef struct BRCryptoCWMCallbackRecord *BRCryptoCWMCallbackHandle;
-
+    // TODO(discuss): What do we want to do for naming convention here?
     typedef void
-    (*BRCryptoCWMGetBlockNumberCallback) (BRCryptoCWMClientContext context,
-                                          BRCryptoWalletManager manager,
-                                          BRCryptoCWMCallbackHandle handle);
-
-    typedef void
-    (*BRCryptoCWMGetTransactionsCallback) (BRCryptoCWMClientContext context,
-                                           BRCryptoWalletManager manager,
-                                           BRCryptoCWMCallbackHandle handle,
-                                           char **addresses,
-                                           size_t addressCount,
-                                           uint64_t begBlockNumber,
-                                           uint64_t endBlockNumber);
-
-    typedef void
-    (*BRCryptoCWMSubmitTransactionCallback) (BRCryptoCWMClientContext context,
+    (*BRCryptoCWMBtcGetBlockNumberCallback) (BRCryptoCWMClientContext context,
                                              BRCryptoWalletManager manager,
-                                             BRCryptoCWMCallbackHandle handle,
-                                             uint8_t *transaction,
-                                             size_t transactionLength);
+                                             BRCryptoCWMCallbackHandle handle);
+
+    typedef void
+    (*BRCryptoCWMBtcGetTransactionsCallback) (BRCryptoCWMClientContext context,
+                                              BRCryptoWalletManager manager,
+                                              BRCryptoCWMCallbackHandle handle,
+                                              char **addresses,
+                                              size_t addressCount,
+                                              uint64_t begBlockNumber,
+                                              uint64_t endBlockNumber);
+
+    typedef void
+    (*BRCryptoCWMBtcSubmitTransactionCallback) (BRCryptoCWMClientContext context,
+                                                BRCryptoWalletManager manager,
+                                                BRCryptoCWMCallbackHandle handle,
+                                                uint8_t *transaction,
+                                                size_t transactionLength);
 
     typedef struct {
-        BRCryptoCWMGetBlockNumberCallback  funcGetBlockNumber;
-        BRCryptoCWMGetTransactionsCallback funcGetTransactions;
-        BRCryptoCWMSubmitTransactionCallback funcSubmitTransaction;
+        BRCryptoCWMBtcGetBlockNumberCallback  funcGetBlockNumber;
+        BRCryptoCWMBtcGetTransactionsCallback funcGetTransactions;
+        BRCryptoCWMBtcSubmitTransactionCallback funcSubmitTransaction;
     } BRCryptoCWMClientBTC;
 
     typedef struct {

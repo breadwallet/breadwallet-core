@@ -19,8 +19,12 @@ import java.util.List;
 
 public class BRCryptoCWMClientEth extends Structure {
 
-    public interface BREthereumClientHandlerGetBalance extends Callback {
-        void apply(Pointer context, BREthereumEwm ewm, BREthereumWallet wid, String address, int rid);
+    public interface BRCryptoCWMEthGetEtherBalanceCallback extends Callback {
+        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, String networkName, String address);
+    }
+
+    public interface BRCryptoCWMEthGetTokenBalanceCallback extends Callback {
+        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, String networkName, String address, String tokenAddress);
     }
 
     public interface BREthereumClientHandlerGetGasPrice extends Callback {
@@ -64,7 +68,8 @@ public class BRCryptoCWMClientEth extends Structure {
         void apply(Pointer context, BREthereumEwm ewm, String address, int rid);
     }
 
-    public BREthereumClientHandlerGetBalance funcGetBalance;
+    public BRCryptoCWMEthGetEtherBalanceCallback funcGetEtherBalance;
+    public BRCryptoCWMEthGetTokenBalanceCallback funcGetTokenBalance;
     public BREthereumClientHandlerGetGasPrice funcGetGasPrice;
     public BREthereumClientHandlerEstimateGas funcEstimateGas;
     public BREthereumClientHandlerSubmitTransaction funcSubmitTransaction;
@@ -80,12 +85,13 @@ public class BRCryptoCWMClientEth extends Structure {
     }
 
     protected List<String> getFieldOrder() {
-        return Arrays.asList("funcGetBalance", "funcGetGasPrice", "funcEstimateGas", "funcSubmitTransaction",
+        return Arrays.asList("funcGetEtherBalance", "funcGetTokenBalance", "funcGetGasPrice", "funcEstimateGas", "funcSubmitTransaction",
                 "funcGetTransactions", "funcGetLogs", "funcGetBlocks", "funcGetTokens", "funcGetBlockNumber",
                 "funcGetNonce");
     }
 
-    public BRCryptoCWMClientEth(BREthereumClientHandlerGetBalance funcGetBalance,
+    public BRCryptoCWMClientEth(BRCryptoCWMEthGetEtherBalanceCallback funcGetEtherBalance,
+                                BRCryptoCWMEthGetTokenBalanceCallback funcGetTokenBalance,
                                 BREthereumClientHandlerGetGasPrice funcGetGasPrice,
                                 BREthereumClientHandlerEstimateGas funcEstimateGas,
                                 BREthereumClientHandlerSubmitTransaction funcSubmitTransaction,
@@ -96,7 +102,8 @@ public class BRCryptoCWMClientEth extends Structure {
                                 BREthereumClientHandlerGetBlockNumber funcGetBlockNumber,
                                 BREthereumClientHandlerGetNonce funcGetNonce) {
         super();
-        this.funcGetBalance = funcGetBalance;
+        this.funcGetEtherBalance = funcGetEtherBalance;
+        this.funcGetTokenBalance = funcGetTokenBalance;
         this.funcGetGasPrice = funcGetGasPrice;
         this.funcEstimateGas = funcEstimateGas;
         this.funcSubmitTransaction = funcSubmitTransaction;

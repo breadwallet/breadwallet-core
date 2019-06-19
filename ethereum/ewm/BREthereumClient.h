@@ -44,6 +44,12 @@ extern "C" {
                               const char *balance,
                               int rid);
 
+    extern BREthereumStatus
+    ewmAnnounceWalletBalanceAsInteger (BREthereumEWM ewm,
+                                       BREthereumWallet wid,
+                                       uint64_t balance,
+                                       int rid);
+
     /// MARK: - Gas Price
 
     typedef void

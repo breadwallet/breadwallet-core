@@ -52,4 +52,6 @@ public interface CoreBRCryptoWalletManager {
     void announceTransactionComplete(BRCryptoCallbackHandle handle, boolean success);
 
     void announceSubmit(BRCryptoCallbackHandle handle, boolean success);
+
+    void announceBalance(BRCryptoCallbackHandle handle, UnsignedLong balance, boolean success);
 }
