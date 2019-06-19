@@ -558,13 +558,10 @@ cwmWalletEventAsETH (BREthereumClientContext context,
 
     BRCryptoWallet wallet = cryptoWalletManagerFindWalletAsETH (cwm, wid); // taken
 
-    int needEvent = 1;
-    BRCryptoWalletEvent cwmEvent = { CRYPTO_WALLET_EVENT_CREATED };
+    // TODO: crypto{Wallet,Transfer}Give()
 
     switch (event) {
         case WALLET_EVENT_CREATED:
-            needEvent = 0;
-
             if (NULL == wallet) {
                 BREthereumToken token = ewmWalletGetToken (ewm, wid);
 
@@ -614,59 +611,64 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                                                               CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED,
                                                               { .wallet = { wallet }}
                                                           });
-                break;
             }
+            break;
 
         case WALLET_EVENT_BALANCE_UPDATED: {
-            BRCryptoCurrency currency = cryptoNetworkGetCurrency (cwm->network);
-            BRCryptoUnit     unit     = cryptoNetworkGetUnitAsBase (cwm->network, currency);
+            if (NULL != wallet) {
+                BRCryptoCurrency currency = cryptoNetworkGetCurrency(cwm->network);
+                BRCryptoUnit unit = cryptoNetworkGetUnitAsBase(cwm->network, currency);
 
-            // Get the wallet's amount...
-            BREthereumAmount amount = ewmWalletGetBalance (cwm->u.eth, wid);
+                // Get the wallet's amount...
+                BREthereumAmount amount = ewmWalletGetBalance(cwm->u.eth, wid);
 
-            // ... and then the 'raw integer' (UInt256) value
-            UInt256 value = (AMOUNT_ETHER == amountGetType (amount)
-                             ? amountGetEther(amount).valueInWEI
-                             : amountGetTokenQuantity(amount).valueAsInteger);
+                // ... and then the 'raw integer' (UInt256) value
+                UInt256 value = (AMOUNT_ETHER == amountGetType(amount)
+                                 ? amountGetEther(amount).valueInWEI
+                                 : amountGetTokenQuantity(amount).valueAsInteger);
 
-            // Use currency to create a cyrptoAmount in the base unit (implicitly).
-            BRCryptoAmount cryptoAmount = cryptoAmountCreate (currency, CRYPTO_FALSE, value);
+                // Use currency to create a cyrptoAmount in the base unit (implicitly).
+                BRCryptoAmount cryptoAmount = cryptoAmountCreate(currency, CRYPTO_FALSE, value);
 
-            cryptoUnitGive (unit);
-            cryptoCurrencyGive (currency);
+                cryptoUnitGive(unit);
+                cryptoCurrencyGive(currency);
 
-            cwmEvent = (BRCryptoWalletEvent) {
-                CRYPTO_WALLET_EVENT_BALANCE_UPDATED,
-                { .balanceUpdated = { cryptoAmount }}
-            };
+                cwm->listener.walletEventCallback(cwm->listener.context,
+                                                  cryptoWalletManagerTake(cwm),
+                                                  wallet,
+                                                  (BRCryptoWalletEvent) {
+                                                      CRYPTO_WALLET_EVENT_BALANCE_UPDATED,
+                                                      {.balanceUpdated = {cryptoAmount}}
+                                                  });
+            }
             break;
         }
 
         case WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED:
         case WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED:
-            cwmEvent = (BRCryptoWalletEvent) {
-                CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED,
-                { .feeBasisUpdated = { cryptoFeeBasisCreateAsETH
-                    (ewmWalletGetDefaultGasLimit (cwm->u.eth, wid),
-                     ewmWalletGetDefaultGasPrice (cwm->u.eth, wid)) }}
-            };
+            if (NULL != wallet) {
+                BRCryptoFeeBasis feeBasis = cryptoFeeBasisCreateAsETH(ewmWalletGetDefaultGasLimit(cwm->u.eth, wid),
+                                                                      ewmWalletGetDefaultGasPrice(cwm->u.eth,wid));
+                cwm->listener.walletEventCallback(cwm->listener.context,
+                                                  cryptoWalletManagerTake(cwm),
+                                                  wallet,
+                                                  (BRCryptoWalletEvent) {
+                                                      CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED,
+                                                      {.feeBasisUpdated = {feeBasis}}
+                                                  });
+            }
             break;
 
         case WALLET_EVENT_DELETED:
-            cwmEvent = (BRCryptoWalletEvent) {
-                CRYPTO_WALLET_EVENT_DELETED
-            };
-
+            if (NULL != wallet) {
+                cwm->listener.walletEventCallback(cwm->listener.context,
+                                                  cryptoWalletManagerTake(cwm),
+                                                  wallet,
+                                                  (BRCryptoWalletEvent) {
+                                                      CRYPTO_WALLET_EVENT_DELETED
+                                                  });
+            }
             break;
-    }
-
-    if (needEvent) {
-        cwm->listener.walletEventCallback (cwm->listener.context,
-                                           cryptoWalletManagerTake (cwm),
-                                           wallet,
-                                           cwmEvent);
-
-        // TODO: crypto{Wallet,Transfer}Give()
     }
 }
 
