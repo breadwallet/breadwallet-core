@@ -18,7 +18,7 @@ public class NetworkAIT {
 
     @Test
     public void testNetworkBtc() {
-        Currency btc = Currency.create("Bitcoin", "Bitcoin", "btc", "native");
+        Currency btc = Currency.create("Bitcoin", "Bitcoin", "btc", "native", null);
 
         Unit satoshi_btc = Unit.create(btc, "BTC-SAT", "Satoshi", "SAT");
         Unit btc_btc = Unit.create(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, UnsignedInteger.valueOf(8));
@@ -49,7 +49,7 @@ public class NetworkAIT {
         assertTrue(network.hasUnitFor(btc, btc_btc).or(false));
         assertTrue(network.hasUnitFor(btc, satoshi_btc).or(false));
 
-        Currency eth = Currency.create("Ethereum", "Ethereum", "eth", "native");
+        Currency eth = Currency.create("Ethereum", "Ethereum", "eth", "native", null);
 
         Unit wei_eth = Unit.create(eth, "ETH-WEI", "WEI", "wei");
 
@@ -64,13 +64,13 @@ public class NetworkAIT {
 
     @Test
     public void testNetworkEth() {
-        Currency eth = Currency.create("Ethereum", "Ethereum", "eth", "native");
+        Currency eth = Currency.create("Ethereum", "Ethereum", "eth", "native", null);
 
         Unit wei_eth = Unit.create(eth, "ETH-WEI", "WEI", "wei");
         Unit gwei_eth = Unit.create(eth, "ETH-GWEI", "GWEI",  "gwei", wei_eth, UnsignedInteger.valueOf(9));
         Unit ether_eth = Unit.create(eth, "ETH-ETH", "ETHER", "E",    wei_eth, UnsignedInteger.valueOf(18));
 
-        Currency btc = Currency.create("Bitcoin", "Bitcoin", "btc", "native");
+        Currency btc = Currency.create("Bitcoin", "Bitcoin", "btc", "native", null);
 
         NetworkAssociation association = new NetworkAssociation(wei_eth, ether_eth, new HashSet<>(Arrays.asList(wei_eth, gwei_eth, ether_eth)));
 

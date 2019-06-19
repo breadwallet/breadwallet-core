@@ -7,6 +7,8 @@
  */
 package com.breadwallet.corecrypto;
 
+import android.support.annotation.Nullable;
+
 import com.breadwallet.corenative.crypto.CoreBRCryptoCurrency;
 
 import java.util.Objects;
@@ -20,8 +22,8 @@ final class Currency implements com.breadwallet.crypto.Currency {
     }
 
     /* package */
-    static Currency create (String uids, String name, String code, String type) {
-        return new Currency(CoreBRCryptoCurrency.create(uids, name, code, type));
+    static Currency create (String uids, String name, String code, String type, @Nullable String issuer) {
+        return new Currency(CoreBRCryptoCurrency.create(uids, name, code, type, issuer));
     }
 
     /* package */

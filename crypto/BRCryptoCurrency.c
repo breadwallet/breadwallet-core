@@ -36,6 +36,7 @@ struct BRCryptoCurrencyRecord {
     char *name;
     char *code;
     char *type;
+    char *issuer;
     BRCryptoRef ref;
 };
 
@@ -45,13 +46,15 @@ IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoCurrency, cryptoCurrency)
 cryptoCurrencyCreate (const char *uids,
                       const char *name,
                       const char *code,
-                      const char *type) {
+                      const char *type,
+                      const char *issuer) {
     BRCryptoCurrency currency = malloc (sizeof (struct BRCryptoCurrencyRecord));
 
     currency->uids = strdup (uids);
     currency->name = strdup (name);
     currency->code = strdup (code);
     currency->type = strdup (type);
+    currency->issuer = (NULL == issuer ? NULL : strdup (issuer));
     currency->ref  = CRYPTO_REF_ASSIGN (cryptoCurrencyRelease);
 
     return currency;
@@ -64,6 +67,7 @@ cryptoCurrencyRelease (BRCryptoCurrency currency) {
     free (currency->code);
     free (currency->name);
     free (currency->uids);
+    if (NULL != currency->issuer) free (currency->issuer);
     free (currency);
 }
 
@@ -85,6 +89,11 @@ cryptoCurrencyGetCode (BRCryptoCurrency currency) {
 extern const char *
 cryptoCurrencyGetType (BRCryptoCurrency currency) {
     return currency->type;
+}
+
+extern const char *
+cryptoCurrencyGetIssuer (BRCryptoCurrency currency) {
+    return currency->issuer;
 }
 
 // total supply

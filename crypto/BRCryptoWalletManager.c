@@ -254,6 +254,19 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
             break;
         }
 
+        case BITCOIN_WALLET_FEE_PER_KB_UPDATED: {
+            BRCryptoFeeBasis feeBasis = cryptoFeeBasisCreateAsBTC (event.u.feePerKb.value);
+
+            cwm->listener.walletEventCallback (cwm->listener.context,
+                                               cryptoWalletManagerTake (cwm),
+                                               wallet,
+                                               (BRCryptoWalletEvent) {
+                                                   CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED,
+                                                   { .feeBasisUpdated = { feeBasis }}
+                                               });
+            break;
+        }
+
         case BITCOIN_WALLET_TRANSACTION_SUBMITTED: {
             // Demand 'wallet'
             assert (NULL != wallet);
@@ -545,23 +558,40 @@ cwmWalletEventAsETH (BREthereumClientContext context,
 
     BRCryptoWallet wallet = cryptoWalletManagerFindWalletAsETH (cwm, wid); // taken
 
-    int needEvent = 1;
-    BRCryptoWalletEvent cwmEvent = { CRYPTO_WALLET_EVENT_CREATED };
+    // TODO: crypto{Wallet,Transfer}Give()
 
     switch (event) {
         case WALLET_EVENT_CREATED:
-            needEvent = 0;
-
             if (NULL == wallet) {
                 BREthereumToken token = ewmWalletGetToken (ewm, wid);
 
+                // Find the wallet's currency.
                 BRCryptoCurrency currency = (NULL == token
                                              ? cryptoNetworkGetCurrency (cwm->network)
-                                             : cryptoNetworkGetCurrencyForCode (cwm->network, tokenGetSymbol(token)));
-                BRCryptoUnit     unit     = cryptoNetworkGetUnitAsDefault (cwm->network, currency);
+                                             : cryptoNetworkGetCurrencyforTokenETH (cwm->network, token));
 
+                // The currency might not exist.  We installed all tokens announced by
+                // `ewmGetTokens()` but, at least during debugging, not all of those tokens will
+                // have a corresponding currency.
+                //
+                // If a currency does exit, then when we get the EWM TOKEN_CREATED event we'll
+                // 'ping' the EWM wallet which will create the EWM wallet and bring us here where
+                // we'll create the CRYPTO wallet (based on having the token+currency).  However,
+                // if we installed token X, don't have Currency X BUT FOUND A LOG during sync, then
+                // the EWM wallet gets created automaticaly and we end up here w/o a Currency.
+                //
+                // Thus:
+                if (NULL == currency) return;
+
+                // Find the default unit; it too must exist.
+                BRCryptoUnit     unit     = cryptoNetworkGetUnitAsDefault (cwm->network, currency);
+                assert (NULL != unit);
+
+                // Create the appropriate wallet based on currency
                 wallet = cryptoWalletCreateAsETH (unit, unit, cwm->u.eth, wid); // taken
-                if (NULL == cwm->wallet ) cwm->wallet = cryptoWalletTake (wallet);
+
+                // Avoid a race on cwm->wallet - but be sure to assign the ETH wallet (not a TOK one).
+                if (NULL == cwm->wallet && NULL == token) cwm->wallet = cryptoWalletTake (wallet);
 
                 cryptoWalletManagerAddWallet (cwm, wallet);
 
@@ -581,67 +611,64 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                                                               CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED,
                                                               { .wallet = { wallet }}
                                                           });
-                break;
             }
+            break;
 
         case WALLET_EVENT_BALANCE_UPDATED: {
-            BRCryptoCurrency currency = cryptoNetworkGetCurrency (cwm->network);
-            BRCryptoUnit     unit     = cryptoNetworkGetUnitAsBase (cwm->network, currency);
-            BRCryptoAmount amount     = cryptoAmountCreateInteger (0 , unit); // taken
+            if (NULL != wallet) {
+                BRCryptoCurrency currency = cryptoNetworkGetCurrency(cwm->network);
+                BRCryptoUnit unit = cryptoNetworkGetUnitAsBase(cwm->network, currency);
 
-            cryptoUnitGive (unit);
-            cryptoCurrencyGive (currency);
+                // Get the wallet's amount...
+                BREthereumAmount amount = ewmWalletGetBalance(cwm->u.eth, wid);
 
-            cwmEvent = (BRCryptoWalletEvent) {
-                CRYPTO_WALLET_EVENT_BALANCE_UPDATED,
-                { .balanceUpdated = { amount }}
-            };
+                // ... and then the 'raw integer' (UInt256) value
+                UInt256 value = (AMOUNT_ETHER == amountGetType(amount)
+                                 ? amountGetEther(amount).valueInWEI
+                                 : amountGetTokenQuantity(amount).valueAsInteger);
+
+                // Use currency to create a cyrptoAmount in the base unit (implicitly).
+                BRCryptoAmount cryptoAmount = cryptoAmountCreate(currency, CRYPTO_FALSE, value);
+
+                cryptoUnitGive(unit);
+                cryptoCurrencyGive(currency);
+
+                cwm->listener.walletEventCallback(cwm->listener.context,
+                                                  cryptoWalletManagerTake(cwm),
+                                                  wallet,
+                                                  (BRCryptoWalletEvent) {
+                                                      CRYPTO_WALLET_EVENT_BALANCE_UPDATED,
+                                                      {.balanceUpdated = {cryptoAmount}}
+                                                  });
+            }
             break;
         }
 
-        case WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED: {
-            BRCryptoFeeBasis feeBasis = cryptoWalletGetDefaultFeeBasis (wallet); // taken
-
-            cryptoWalletSetDefaultFeeBasis (wallet, feeBasis);
-
-//            cryptoFeeBasisGive (feeBasis);
-
-            cwmEvent = (BRCryptoWalletEvent) {
-                CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED,
-                { .feeBasisUpdated = { feeBasis }}
-            };
+        case WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED:
+        case WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED:
+            if (NULL != wallet) {
+                BRCryptoFeeBasis feeBasis = cryptoFeeBasisCreateAsETH(ewmWalletGetDefaultGasLimit(cwm->u.eth, wid),
+                                                                      ewmWalletGetDefaultGasPrice(cwm->u.eth,wid));
+                cwm->listener.walletEventCallback(cwm->listener.context,
+                                                  cryptoWalletManagerTake(cwm),
+                                                  wallet,
+                                                  (BRCryptoWalletEvent) {
+                                                      CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED,
+                                                      {.feeBasisUpdated = {feeBasis}}
+                                                  });
+            }
             break;
-        }
-
-        case WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED: {
-            BRCryptoFeeBasis feeBasis = cryptoWalletGetDefaultFeeBasis (wallet); // taken
-
-            cryptoWalletSetDefaultFeeBasis (wallet, feeBasis);
-
-            //            cryptoFeeBasisGive (feeBasis);
-
-            cwmEvent = (BRCryptoWalletEvent) {
-                CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED,
-                { .feeBasisUpdated = { feeBasis }}
-            };
-            break;
-        }
 
         case WALLET_EVENT_DELETED:
-            cwmEvent = (BRCryptoWalletEvent) {
-                CRYPTO_WALLET_EVENT_DELETED
-            };
-
+            if (NULL != wallet) {
+                cwm->listener.walletEventCallback(cwm->listener.context,
+                                                  cryptoWalletManagerTake(cwm),
+                                                  wallet,
+                                                  (BRCryptoWalletEvent) {
+                                                      CRYPTO_WALLET_EVENT_DELETED
+                                                  });
+            }
             break;
-    }
-
-    if (needEvent) {
-        cwm->listener.walletEventCallback (cwm->listener.context,
-                                           cryptoWalletManagerTake (cwm),
-                                           wallet,
-                                           cwmEvent);
-
-        // TODO: crypto{Wallet,Transfer}Give()
     }
 }
 
@@ -651,8 +678,35 @@ cwmEventTokenAsETH (BREthereumClientContext context,
                     BREthereumToken token,
                     BREthereumTokenEvent event) {
 
-    BRCryptoWalletManager cwm = context;
-    (void) cwm;
+    BRCryptoWalletManager cwm = context; (void) cwm;
+
+    switch (event) {
+        case TOKEN_EVENT_CREATED: {
+            BRCryptoNetwork network = cryptoWalletManagerGetNetwork (cwm);
+
+            // A token was created.  We want a corresponding EWM wallet to be created as well; it
+            // will be created automatically by simply 'pinging' the wallet for token.  However,
+            // only create the token's wallet if we know about the currency.
+
+            BRCryptoCurrency currency = cryptoNetworkGetCurrencyforTokenETH (network, token);
+
+            if (NULL != currency) {
+                ewmGetWalletHoldingToken (ewm, token);
+                cryptoCurrencyGive (currency);
+            }
+
+            cryptoNetworkGive(network);
+
+            // This will cascade into a WALLET_EVENT_CREATED which will in turn create a
+            // BRCryptoWallet too
+
+            // Nothing more
+            break;
+        }
+        case TOKEN_EVENT_DELETED:
+            // Nothing more (for now)
+            break;
+    }
 }
 
 
@@ -666,22 +720,24 @@ cwmTransactionEventAsETH (BREthereumClientContext context,
                           const char *errorDescription) {
     BRCryptoWalletManager cwm = context;
     BRCryptoWallet wallet     = cryptoWalletManagerFindWalletAsETH (cwm, wid); // taken
+
+    // TODO: Wallet may be NULL for a sync-discovered transfer w/o a currency.
+    if (NULL == wallet) return;
+
     BRCryptoTransfer transfer = cryptoWalletFindTransferAsETH (wallet, tid);   // taken
 
     assert (NULL != transfer || TRANSFER_EVENT_CREATED == event);
 
-    int needEvent = 1;
-    BRCryptoTransferEvent cwmEvent = { CRYPTO_TRANSFER_EVENT_CREATED };
-
+    // We'll transition from `oldState` to `newState`; get some placeholder values in place.
     BRCryptoTransferState oldState = { CRYPTO_TRANSFER_STATE_CREATED };
     BRCryptoTransferState newState = { CRYPTO_TRANSFER_STATE_CREATED };
     if (NULL != transfer) oldState = cryptoTransferGetState (transfer);
 
     switch (event) {
         case TRANSFER_EVENT_CREATED:
-            if (NULL != transfer) cryptoTransferGive (transfer);
+            assert (NULL == transfer);
+            // if (NULL != transfer) cryptoTransferGive (transfer);
 
-            needEvent = 0;
             transfer = cryptoTransferCreateAsETH (cryptoWalletGetCurrency (wallet),
                                                   cwm->u.eth,
                                                   tid); // taken
@@ -706,99 +762,126 @@ cwmTransactionEventAsETH (BREthereumClientContext context,
             break;
 
         case TRANSFER_EVENT_SIGNED:
-            newState = (BRCryptoTransferState) { CRYPTO_TRANSFER_STATE_SIGNED };
-            cwmEvent = (BRCryptoTransferEvent) {
-                CRYPTO_TRANSFER_EVENT_CHANGED,
-                { .state = { oldState, newState }}
-            };
-            cryptoTransferSetState (transfer, newState);
+            if (NULL != transfer) {
+                newState = (BRCryptoTransferState) { CRYPTO_TRANSFER_STATE_SIGNED };
+
+                cryptoTransferSetState (transfer, newState);
+                cwm->listener.transferEventCallback (cwm->listener.context,
+                                                     cryptoWalletManagerTake (cwm),
+                                                     wallet,
+                                                     transfer,
+                                                     (BRCryptoTransferEvent) {
+                                                         CRYPTO_TRANSFER_EVENT_CHANGED,
+                                                         { .state = { oldState, newState }}
+                                                     });
+            }
             break;
 
         case TRANSFER_EVENT_SUBMITTED:
-            newState = (BRCryptoTransferState) { CRYPTO_TRANSFER_STATE_SUBMITTED };
-            cwmEvent = (BRCryptoTransferEvent) {
-                CRYPTO_TRANSFER_EVENT_CHANGED,
-                { .state = { oldState, newState }}
-            };
-            cryptoTransferSetState (transfer, newState);
+            if (NULL != transfer) {
+                newState = (BRCryptoTransferState) { CRYPTO_TRANSFER_STATE_SUBMITTED };
+                cryptoTransferSetState (transfer, newState);
+                cwm->listener.transferEventCallback (cwm->listener.context,
+                                                     cryptoWalletManagerTake (cwm),
+                                                     wallet,
+                                                     transfer,
+                                                     (BRCryptoTransferEvent) {
+                                                         CRYPTO_TRANSFER_EVENT_CHANGED,
+                                                         { .state = { oldState, newState }}
+                                                     });
+            }
             break;
 
-        case TRANSFER_EVENT_INCLUDED: {
-            uint64_t blockNumber, blockTransactionIndex, blockTimestamp;
-            BREthereumGas gasUsed;
+        case TRANSFER_EVENT_INCLUDED:
+            if (NULL != transfer ){
+                uint64_t blockNumber, blockTransactionIndex, blockTimestamp;
+                BREthereumGas gasUsed;
 
-            ewmTransferExtractStatusIncluded(ewm, tid, NULL, &blockNumber, &blockTransactionIndex, &blockTimestamp, &gasUsed);
+                ewmTransferExtractStatusIncluded(ewm, tid, NULL, &blockNumber, &blockTransactionIndex, &blockTimestamp, &gasUsed);
 
-            newState = (BRCryptoTransferState) {
-                CRYPTO_TRANSFER_STATE_INCLUDED,
-                { .included = {
-                    blockNumber,
-                    blockTransactionIndex,
-                    blockTimestamp,
-                    NULL   // fee from gasUsed?  What is gasPrice???
-                }}
-            };
-            cwmEvent = (BRCryptoTransferEvent) {
-                CRYPTO_TRANSFER_EVENT_CHANGED,
-                { .state = { oldState, newState }}
-            };
-            cryptoTransferSetState (transfer, newState);
+                newState = (BRCryptoTransferState) {
+                    CRYPTO_TRANSFER_STATE_INCLUDED,
+                    { .included = {
+                        blockNumber,
+                        blockTransactionIndex,
+                        blockTimestamp,
+                        NULL   // fee from gasUsed?  What is gasPrice???
+                    }}
+                };
+
+                cryptoTransferSetState (transfer, newState);
+                cwm->listener.transferEventCallback (cwm->listener.context,
+                                                     cryptoWalletManagerTake (cwm),
+                                                     wallet,
+                                                     transfer,
+                                                     (BRCryptoTransferEvent) {
+                                                         CRYPTO_TRANSFER_EVENT_CHANGED,
+                                                         { .state = { oldState, newState }}
+                                                     });
+            }
             break;
-        }
+
         case TRANSFER_EVENT_ERRORED:
-            newState = (BRCryptoTransferState) { CRYPTO_TRANSFER_STATE_ERRORRED };
-            strncpy (newState.u.errorred.message, "Some Error", 128);
+            if (NULL != transfer) {
+                newState = (BRCryptoTransferState) { CRYPTO_TRANSFER_STATE_ERRORRED };
+                strncpy (newState.u.errorred.message, "Some Error", 128);
 
-            cwmEvent = (BRCryptoTransferEvent) {
-                CRYPTO_TRANSFER_EVENT_CHANGED,
-                { .state = { oldState, newState }}
-            };
-            cryptoTransferSetState (transfer, newState);
+                cryptoTransferSetState (transfer, newState);
+                cwm->listener.transferEventCallback (cwm->listener.context,
+                                                     cryptoWalletManagerTake (cwm),
+                                                     wallet,
+                                                     transfer,
+                                                     (BRCryptoTransferEvent) {
+                                                         CRYPTO_TRANSFER_EVENT_CHANGED,
+                                                         { .state = { oldState, newState }}
+                                                     });
+            }
             break;
 
         case TRANSFER_EVENT_GAS_ESTIMATE_UPDATED:
-            needEvent = 0;
+            if (NULL != transfer) {
+            }
             break;
 
         case TRANSFER_EVENT_DELETED:
-            cryptoWalletRemTransfer (wallet, transfer);
+            if (NULL != transfer) {
+                cryptoWalletRemTransfer (wallet, transfer);
 
-            // Deleted from wallet
-            cwm->listener.walletEventCallback (cwm->listener.context,
-                                               cryptoWalletManagerTake (cwm),
-                                               cryptoWalletTake (wallet),
-                                               (BRCryptoWalletEvent) {
-                                                   CRYPTO_WALLET_EVENT_TRANSFER_DELETED,
-                                                   { .transfer = { cryptoTransferTake (transfer) }}
-                                               });
+                // Deleted from wallet
+                cwm->listener.walletEventCallback (cwm->listener.context,
+                                                   cryptoWalletManagerTake (cwm),
+                                                   cryptoWalletTake (wallet),
+                                                   (BRCryptoWalletEvent) {
+                                                       CRYPTO_WALLET_EVENT_TRANSFER_DELETED,
+                                                       { .transfer = { cryptoTransferTake (transfer) }}
+                                                   });
 
-            // State changed
-            newState = (BRCryptoTransferState) { CRYPTO_TRANSFER_STATE_DELETED };
-            cwmEvent = (BRCryptoTransferEvent) {
-                CRYPTO_TRANSFER_EVENT_CHANGED,
-                { .state = { oldState, newState }}
-            };
-            cryptoTransferSetState (transfer, newState);
+                // State changed
+                newState = (BRCryptoTransferState) { CRYPTO_TRANSFER_STATE_DELETED };
 
-            cwm->listener.transferEventCallback (cwm->listener.context,
-                                                 cryptoWalletManagerTake (cwm),
-                                                 cryptoWalletTake (wallet),
-                                                 cryptoTransferTake (transfer),
-                                                 cwmEvent);
+                cryptoTransferSetState (transfer, newState);
+                cwm->listener.transferEventCallback (cwm->listener.context,
+                                                     cryptoWalletManagerTake (cwm),
+                                                     cryptoWalletTake (wallet),
+                                                     cryptoTransferTake (transfer),
+                                                     (BRCryptoTransferEvent) {
+                                                         CRYPTO_TRANSFER_EVENT_CHANGED,
+                                                         { .state = { oldState, newState }}
+                                                     });
 
-            cwmEvent = (BRCryptoTransferEvent) {CRYPTO_TRANSFER_EVENT_DELETED };
+                cryptoTransferSetState (transfer, newState);
+                cwm->listener.transferEventCallback (cwm->listener.context,
+                                                     cryptoWalletManagerTake (cwm),
+                                                     wallet,
+                                                     transfer,
+                                                     (BRCryptoTransferEvent) {
+                                                         CRYPTO_TRANSFER_EVENT_DELETED
+                                                     });
+            }
             break;
     }
 
-    if (needEvent) {
-        cwm->listener.transferEventCallback (cwm->listener.context,
-                                             cryptoWalletManagerTake (cwm),
-                                             wallet,
-                                             transfer,
-                                             cwmEvent);
-
-        // TODO: crypto{Wallet,Transfer}Give()
-    }
+    // TODO: crypto{Wallet,Transfer}Give()
 }
 
 static void
@@ -912,6 +995,28 @@ cwmGetNonceAsETH (BREthereumClientContext context,
 /// MARK: - Wallet Manager
 ///
 ///
+#pragma clang diagnostic push
+#pragma GCC diagnostic push
+#pragma clang diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wunused-function"
+static BRArrayOf(BRCryptoCurrency)
+cryptoWalletManagerGetCurrenciesOfIntereest (BRCryptoWalletManager cwm) {
+    BRArrayOf(BRCryptoCurrency) currencies;
+
+    array_new (currencies, 3);
+    return currencies;
+}
+
+static void
+cryptoWalletManagerReleaseCurrenciesOfIntereest (BRCryptoWalletManager cwm,
+                                                 BRArrayOf(BRCryptoCurrency) currencies) {
+    for (size_t index = 0; index < array_count(currencies); index++)
+        cryptoCurrencyGive (currencies[index]);
+    array_free (currencies);
+}
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
+
 static BRCryptoWalletManager
 cryptoWalletManagerCreateInternal (BRCryptoCWMListener listener,
                                    BRCryptoCWMClient client,
@@ -970,7 +1075,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                 cwmWalletManagerEventAsBTC
             };
 
-            // TODO: Race Here - WalletEvent before cwm->u.btc is assigned.
+            // Race Here - WalletEvent before cwm->u.btc is assigned.
             cwm->u.btc = BRWalletManagerNew (client,
                                              cryptoAccountAsBTC (account),
                                              cryptoNetworkAsBTC (network),
@@ -1005,13 +1110,34 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
 
             };
 
-            // TODO: Race Here - WalletEvent before cwm->u.eth is assigned.
+            // Race Here - WalletEvent before cwm->u.eth is assigned.
             cwm->u.eth = ewmCreate (cryptoNetworkAsETH(network),
                                     cryptoAccountAsETH(account),
                                     (BREthereumTimestamp) cryptoAccountGetTimestamp(account),
                                     (BREthereumMode) mode,
                                     client,
                                     cwmPath);
+
+            // During the creation of both the BTC and ETH wallet managers, the primary wallet will
+            // be created and will have wallet events generated.  There will be a race on `cwm->wallet` but
+            // that race is resolved in the BTC and ETH event handlers, respectively.
+            //
+            // There are others wallets to create.  Specifically, for the Ethereum network we'll want to
+            // create wallets for each and every ERC20 token of interest.
+            //
+            // TODO: How to decide on tokens-of-interest and when to decide (CORE-291).
+            //
+            // We should pass in 'tokens-of-interest' as List<Currency-Code> and then add the tokens
+            // one-by-one - specifically 'add them' not 'announce them'.  If we 'announce them' then the
+            // install event gets queued until the wallet manager connects.  Or, we could query them,
+            // as we do below, and have the BRD endpoint provide them asynchronously and handled w/
+            // 'announce..
+            //
+            // When a token is announced, we'll create a CRYPTO wallet if-and-only-if the token has
+            // a knonw currency.  EVERY TOKEN SHOULD, eventually - key word being 'eventually'.
+            //
+            // TODO: Only finds MAINNET tokens
+            ewmUpdateTokens(cwm->u.eth);
 
             break;
         }
@@ -1021,7 +1147,8 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
         }
     }
 
-    // TODO: cwm->wallet IS NOT assigned here; it is assigned in WalletEvent.created handler
+    // NOTE: Race on cwm->u.{btc,et} is resolved in the event handlers
+
 
     free (cwmPath);
 
@@ -1099,30 +1226,7 @@ cryptoWalletManagerGetWalletForCurrency (BRCryptoWalletManager cwm,
     for (size_t index = 0; index < array_count(cwm->wallets); index++)
         if (currency == cryptoWalletGetCurrency (cwm->wallets[index]))
             return cryptoWalletTake (cwm->wallets[index]);
-
-    // There was no wallet.  Create one
-    //    BRCryptoNetwork  network = cryptoWalletManagerGetNetwork(cwm);
-    //    BRCryptoUnit     unit    = cryptoNetworkGetUnitAsDefault (network, currency);
-    BRCryptoWallet   wallet  = NULL;
-
-    switch (cwm->type) {
-
-        case BLOCK_CHAIN_TYPE_BTC:
-            //            wallet = cryptoWalletCreateAsBTC (unit, <#BRWallet *btc#>)
-            break;
-        case BLOCK_CHAIN_TYPE_ETH:
-            // Lookup Ethereum Token
-            // Lookup Ethereum Wallet - ewmGetWalletHoldingToken()
-            // Find Currency + Unit
-
-            //            wallet = cryptoWalletCreateAsETH (unit, <#BREthereumWallet eth#>)
-            break;
-        case BLOCK_CHAIN_TYPE_GEN:
-            break;
-    }
-
-
-    return wallet;
+    return NULL;
 }
 
 extern BRCryptoBoolean

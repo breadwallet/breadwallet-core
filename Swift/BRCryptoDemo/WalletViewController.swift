@@ -101,28 +101,30 @@ class WalletViewController: UITableViewController, TransferListener {
     func handleTransferEvent(system: System, manager: WalletManager, wallet: Wallet, transfer: Transfer, event: TransferEvent) {
         DispatchQueue.main.async {
             print ("APP: WVC: TransferEvent: \(event)")
-            guard self.wallet === wallet /* && view is visible */  else { return }
+            guard self.wallet == wallet /* && view is visible */  else { return }
             switch event {
             case .created:
-                self.transfers.append(transfer)
+                precondition(!self.transfers.contains(transfer))
+
+                self.transfers.append (transfer)
 
                 let path = IndexPath (row: (self.transfers.count - 1), section: 0)
                 self.tableView.insertRows (at: [path], with: .automatic)
 
             case .changed: //  (let old, let new)
-                if let index = self.transfers.firstIndex (where: { $0 === transfer}) {
+                if let index = self.transfers.firstIndex (of: transfer) {
                     let path = IndexPath (row: index, section: 0)
                     self.tableView.reloadRows(at: [path], with: .automatic)
                 }
 
             case .confirmation:
-                if let index = self.transfers.firstIndex (where: { $0 === transfer}) {
+                if let index = self.transfers.firstIndex (of: transfer) {
                     let path = IndexPath (row: index, section: 0)
                     self.tableView.reloadRows(at: [path], with: .automatic)
                 }
 
             case .deleted:
-                if let index = self.transfers.firstIndex (where: { $0 === transfer}) {
+                if let index = self.transfers.firstIndex (of: transfer) {
                     self.transfers.remove(at: index)
 
                     let path = IndexPath (row: index, section: 0)

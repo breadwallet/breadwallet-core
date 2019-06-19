@@ -48,8 +48,9 @@ public final class Currency: Hashable {
     internal convenience init (uids: String,
                                name: String,
                                code: String,
-                               type: String) {
-        self.init (core: cryptoCurrencyCreate(uids, name, code, type), take: false)
+                               type: String,
+                               issuer: String?) {
+        self.init (core: cryptoCurrencyCreate(uids, name, code, type, issuer), take: false)
     }
 
     deinit {

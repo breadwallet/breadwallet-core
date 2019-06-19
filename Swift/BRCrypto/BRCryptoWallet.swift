@@ -161,16 +161,23 @@ public final class Wallet: Equatable {
                        take: false)
     }
 
-
+    ///
+    /// Create a wallet
+    ///
+    /// - Parameters:
+    ///   - core: the BRCryptoWallet basis
+    ///   - listener: an optional listener
+    ///   - manager: the manager
+    ///   - take: a boolean to indicate if `core` needs to be taken (for reference counting)
+    ///
     internal init (core: BRCryptoWallet,
                    listener: WalletListener?,
                    manager: WalletManager,
-                   unit: Unit,
                    take: Bool) {
         self.core = take ? cryptoWalletTake (core) : core
         self.listener = listener
         self.manager = manager
-        self.unit = unit
+        self.unit = Unit (core: cryptoWalletGetUnit(core), take: false)
 
         // print ("SYS: Wallet (\(manager.name):\(name)): Init")
         //        manager.add (wallet: self)

@@ -231,6 +231,19 @@ cryptoNetworkGetCurrencyForCode (BRCryptoNetwork network,
     return NULL;
 }
 
+private_extern BRCryptoCurrency
+cryptoNetworkGetCurrencyforTokenETH (BRCryptoNetwork network,
+                                     BREthereumToken token) {
+    for (size_t index = 0; index < array_count(network->associations); index++) {
+        BRCryptoCurrency currency = network->associations[index].currency;
+        const char *address = cryptoCurrencyGetIssuer (currency);
+
+        if (NULL != address && ETHEREUM_BOOLEAN_IS_TRUE (tokenHasAddress (token, address)))
+            return cryptoCurrencyTake (currency);
+    }
+    return NULL;
+}
+
 static BRCryptoCurrencyAssociation *
 cryptoNetworkLookupCurrency (BRCryptoNetwork network,
                              BRCryptoCurrency currency) {

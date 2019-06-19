@@ -133,7 +133,8 @@ public interface CryptoLibrary extends Library {
     // crypto/BRCryptoPrivate.h
     BRCryptoAddress cryptoAddressCreateAsBTC(BRAddress.ByValue btc);
     BRCryptoAddress cryptoAddressCreateAsETH(BREthereumAddress.ByValue address);
-    BRCryptoCurrency cryptoCurrencyCreate(String uids, String name, String code, String type);
+    BRCryptoAmount cryptoAmountCreate (BRCryptoCurrency currency, int isNegative, UInt256.ByValue value);
+    BRCryptoCurrency cryptoCurrencyCreate(String uids, String name, String code, String type, String issuer);
     void cryptoNetworkSetHeight(BRCryptoNetwork network, long height);
     void cryptoNetworkSetCurrency(BRCryptoNetwork network, BRCryptoCurrency currency);
     BRCryptoNetwork cryptoNetworkCreateAsBTC(String uids, String name, byte forkId, Pointer params);
