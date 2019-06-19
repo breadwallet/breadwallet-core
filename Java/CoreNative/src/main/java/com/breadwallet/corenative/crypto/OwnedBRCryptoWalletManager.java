@@ -91,6 +91,11 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
+    public void announceBlockNumber(BRCryptoCallbackHandle handle, String blockchainHeight, boolean success) {
+        core.announceBlockNumber(handle, blockchainHeight, success);
+    }
+
+    @Override
     public void announceTransaction(BRCryptoCallbackHandle handle, byte[] transaction, UnsignedLong timestamp,
                                     UnsignedLong blockHeight) {
         core.announceTransaction(handle, transaction, timestamp, blockHeight);
@@ -119,6 +124,11 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     @Override
     public void announceGasEstimate(BRCryptoCallbackHandle handle, String gasEstimate, boolean success) {
         core.announceGasEstimate(handle, gasEstimate, success);
+    }
+
+    @Override
+    public void announceNonce(BRCryptoCallbackHandle handle, String address, String nonce, boolean success) {
+        core.announceNonce(handle, address, nonce, success);
     }
 
     @Override

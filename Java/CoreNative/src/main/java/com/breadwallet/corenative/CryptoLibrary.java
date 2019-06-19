@@ -190,12 +190,14 @@ public interface CryptoLibrary extends Library {
     void cryptoWalletManagerSync(BRCryptoWalletManager cwm);
     void cryptoWalletManagerSubmit(BRCryptoWalletManager cwm, BRCryptoWallet wid, BRCryptoTransfer tid, String paperKey);
     void cwmAnnounceBlockNumber(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, long blockHeight, int success);
+    void cwmAnnounceBlockNumberAsString(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, String blockHeight, int success);
     void cwmAnnounceTransaction(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, byte[] transaction, SizeT transactionLength, long timestamp, long blockHeight);
     void cwmAnnounceTransactionComplete(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, int success);
     void cwmAnnounceSubmit(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, int success);
     void cwmAnnounceBalance(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, String balance, int success);
     void cwmAnnounceGasPrice(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, String gasPrice, int success);
     void cwmAnnounceGasEstimate(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, String gasEstimate, int success);
+    void cwmAnnounceNonce(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, String address, String nonce, int success);
     BRCryptoWalletManager cryptoWalletManagerTake(BRCryptoWalletManager obj);
     void cryptoWalletManagerGive(BRCryptoWalletManager obj);
 

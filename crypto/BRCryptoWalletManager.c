@@ -39,7 +39,9 @@ typedef enum  {
 
     CWM_CALLBACK_TYPE_ETH_GET_BALANCE,
     CWM_CALLBACK_TYPE_ETH_GET_GAS_PRICE,
-    CWM_CALLBACK_TYPE_ETH_ESTIMATE_GAS
+    CWM_CALLBACK_TYPE_ETH_ESTIMATE_GAS,
+    CWM_CALLBACK_TYPE_ETH_GET_BLOCK_NUMBER,
+    CWM_CALLBACK_TYPE_ETH_GET_NONCE,
 } BRCryptoCWMCallbackType;
 
 struct BRCryptoCWMCallbackRecord {
@@ -1081,8 +1083,19 @@ static void
 cwmGetBlockNumberAsETH (BREthereumClientContext context,
                         BREthereumEWM ewm,
                         int rid) {
-    BRCryptoWalletManager cwm = context;
-    cwm->client.eth.funcGetBlockNumber (cwm->client.context, ewm, rid);
+    BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
+
+    BRCryptoCWMCallbackHandle record = calloc (1, sizeof(struct BRCryptoCWMCallbackRecord));
+    record->type = CWM_CALLBACK_TYPE_ETH_GET_BLOCK_NUMBER;
+    record->rid = rid;
+
+    BREthereumNetwork network = ewmGetNetwork (ewm);
+    char *networkName = networkCopyNameAsLowercase (network);
+
+    cwm->client.eth.funcGetBlockNumber (cwm->client.context, cwm, record, networkName);
+
+    free (networkName);
+    cryptoWalletManagerGive (cwm);
 }
 
 static void
@@ -1090,8 +1103,19 @@ cwmGetNonceAsETH (BREthereumClientContext context,
                   BREthereumEWM ewm,
                   const char *address,
                   int rid) {
-    BRCryptoWalletManager cwm = context;
-    cwm->client.eth.funcGetNonce (cwm->client.context, ewm, address, rid);
+    BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
+
+    BRCryptoCWMCallbackHandle record = calloc (1, sizeof(struct BRCryptoCWMCallbackRecord));
+    record->type = CWM_CALLBACK_TYPE_ETH_GET_NONCE;
+    record->rid = rid;
+
+    BREthereumNetwork network = ewmGetNetwork (ewm);
+    char *networkName = networkCopyNameAsLowercase (network);
+
+    cwm->client.eth.funcGetNonce (cwm->client.context, cwm, record, networkName, address);
+
+    free (networkName);
+    cryptoWalletManagerGive (cwm);
 }
 
 
@@ -1458,6 +1482,21 @@ cwmAnnounceBlockNumber (BRCryptoWalletManager cwm,
 }
 
 extern void
+cwmAnnounceBlockNumberAsString (BRCryptoWalletManager cwm,
+                                BRCryptoCWMCallbackHandle handle,
+                                const char *blockHeight,
+                                BRCryptoBoolean success) {
+    assert (cwm); assert (handle); assert (CWM_CALLBACK_TYPE_ETH_GET_BLOCK_NUMBER == handle->type);
+    cwm = cryptoWalletManagerTake (cwm);
+
+    if (success)
+        ewmAnnounceBlockNumber (cwm->u.eth, blockHeight, handle->rid);
+
+    cryptoWalletManagerGive (cwm);
+    free (handle);
+}
+
+extern void
 cwmAnnounceTransaction (BRCryptoWalletManager cwm,
                         BRCryptoCWMCallbackHandle handle,
                         uint8_t *transaction,
@@ -1547,6 +1586,22 @@ cwmAnnounceGasEstimate (BRCryptoWalletManager cwm,
 
     if (success)
         ewmAnnounceGasEstimate (cwm->u.eth, handle->u.ethWithTransaction.wid, handle->u.ethWithTransaction.tid, gasEstimate, handle->rid);
+
+    cryptoWalletManagerGive (cwm);
+    free (handle);
+}
+
+extern void
+cwmAnnounceNonce (BRCryptoWalletManager cwm,
+                        BRCryptoCWMCallbackHandle handle,
+                        const char *address,
+                        const char *nonce,
+                        BRCryptoBoolean success) {
+    assert (cwm); assert (handle); assert (CWM_CALLBACK_TYPE_ETH_GET_NONCE == handle->type);
+    cwm = cryptoWalletManagerTake (cwm);
+
+    if (success)
+        ewmAnnounceNonce (cwm->u.eth, address, nonce, handle->rid);
 
     cryptoWalletManagerGive (cwm);
     free (handle);

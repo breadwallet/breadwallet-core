@@ -85,6 +85,12 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
+    public void announceBlockNumber(BRCryptoCallbackHandle handle, String blockchainHeight, boolean success) {
+        CryptoLibrary.INSTANCE.cwmAnnounceBlockNumberAsString(this, handle, blockchainHeight, success ?
+                BRCryptoBoolean.CRYPTO_TRUE : BRCryptoBoolean.CRYPTO_FALSE);
+    }
+
+    @Override
     public void announceTransaction(BRCryptoCallbackHandle handle, byte[] transaction, UnsignedLong timestamp,
                                     UnsignedLong blockHeight) {
         CryptoLibrary.INSTANCE.cwmAnnounceTransaction(this, handle, transaction, new SizeT(transaction.length),
@@ -118,6 +124,12 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     @Override
     public void announceGasEstimate(BRCryptoCallbackHandle handle, String gasEstimate, boolean success) {
         CryptoLibrary.INSTANCE.cwmAnnounceGasEstimate(this, handle, gasEstimate, success ? BRCryptoBoolean.CRYPTO_TRUE :
+                BRCryptoBoolean.CRYPTO_FALSE);
+    }
+
+    @Override
+    public void announceNonce(BRCryptoCallbackHandle handle, String address, String nonce, boolean success) {
+        CryptoLibrary.INSTANCE.cwmAnnounceNonce(this, handle, address, nonce, success ? BRCryptoBoolean.CRYPTO_TRUE :
                 BRCryptoBoolean.CRYPTO_FALSE);
     }
 }

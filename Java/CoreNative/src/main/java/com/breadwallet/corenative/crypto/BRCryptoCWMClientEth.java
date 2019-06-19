@@ -62,12 +62,13 @@ public class BRCryptoCWMClientEth extends Structure {
         void apply(Pointer context, BREthereumEwm ewm, int rid);
     }
 
-    public interface BREthereumClientHandlerGetBlockNumber extends Callback {
-        void apply(Pointer context, BREthereumEwm ewm, int rid);
+    public interface BRCryptoCWMEthGetBlockNumberCallback extends Callback {
+        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, String networkName);
     }
 
-    public interface BREthereumClientHandlerGetNonce extends Callback {
-        void apply(Pointer context, BREthereumEwm ewm, String address, int rid);
+    public interface BRCryptoCWMEthGetNonceCallback extends Callback {
+        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, String networkName,
+                   String address);
     }
 
     public BRCryptoCWMEthGetEtherBalanceCallback funcGetEtherBalance;
@@ -79,8 +80,8 @@ public class BRCryptoCWMClientEth extends Structure {
     public BREthereumClientHandlerGetLogs funcGetLogs;
     public BREthereumClientHandlerGetBlocks funcGetBlocks;
     public BREthereumClientHandlerGetTokens funcGetTokens;
-    public BREthereumClientHandlerGetBlockNumber funcGetBlockNumber;
-    public BREthereumClientHandlerGetNonce funcGetNonce;
+    public BRCryptoCWMEthGetBlockNumberCallback funcGetBlockNumber;
+    public BRCryptoCWMEthGetNonceCallback funcGetNonce;
 
     public BRCryptoCWMClientEth() {
         super();
@@ -101,8 +102,8 @@ public class BRCryptoCWMClientEth extends Structure {
                                 BREthereumClientHandlerGetLogs funcGetLogs,
                                 BREthereumClientHandlerGetBlocks funcGetBlocks,
                                 BREthereumClientHandlerGetTokens funcGetTokens,
-                                BREthereumClientHandlerGetBlockNumber funcGetBlockNumber,
-                                BREthereumClientHandlerGetNonce funcGetNonce) {
+                                BRCryptoCWMEthGetBlockNumberCallback funcGetBlockNumber,
+                                BRCryptoCWMEthGetNonceCallback funcGetNonce) {
         super();
         this.funcGetEtherBalance = funcGetEtherBalance;
         this.funcGetTokenBalance = funcGetTokenBalance;

@@ -47,6 +47,8 @@ public interface CoreBRCryptoWalletManager {
 
     void announceBlockNumber(BRCryptoCallbackHandle handle, UnsignedLong blockchainHeight, boolean success);
 
+    void announceBlockNumber(BRCryptoCallbackHandle handle, String blockchainHeight, boolean success);
+
     void announceTransaction(BRCryptoCallbackHandle handle, byte[] transaction, UnsignedLong timestamp, UnsignedLong blockHeight);
 
     void announceTransactionComplete(BRCryptoCallbackHandle handle, boolean success);
@@ -58,4 +60,6 @@ public interface CoreBRCryptoWalletManager {
     void announceGasPrice(BRCryptoCallbackHandle handle, String gasPrice, boolean success);
 
     void announceGasEstimate(BRCryptoCallbackHandle handle, String gasEstimate, boolean success);
+
+    void announceNonce(BRCryptoCallbackHandle handle, String address, String nonce, boolean success);
 }

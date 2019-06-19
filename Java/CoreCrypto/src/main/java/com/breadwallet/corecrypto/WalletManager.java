@@ -1090,42 +1090,43 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         });
     }
 
-    private void ethGetBlockNumber(Pointer context, BREthereumEwm ewm, int rid) {
-        Log.d(TAG, "BREthereumClientHandlerGetBlockNumber");
+    private void ethGetBlockNumber(Pointer context, BRCryptoWalletManager manager, BRCryptoCallbackHandle handle,
+                                   String networkName) {
+        Log.d(TAG, "BRCryptoCWMEthGetBlockNumberCallback");
 
-        BREthereumNetwork network = ewm.getNetwork();
-        String networkName = network.getName().toLowerCase();
-
-        query.getBlockNumberAsEth(networkName, rid, new CompletionHandler<String>() {
+        // TODO(discuss): Do we actually need a rid here? Can it just be random? Does it need to tie into our C rid?
+        query.getBlockNumberAsEth(networkName, 0, new CompletionHandler<String>() {
             @Override
             public void handleData(String number) {
-                Log.d(TAG, "BREthereumClientHandlerGetBlockNumber: succeeded");
-                ewm.announceBlockNumber(number, rid);
+                Log.d(TAG, "BRCryptoCWMEthGetBlockNumberCallback: succeeded");
+                manager.announceBlockNumber(handle, number, true);
             }
 
             @Override
             public void handleError(QueryError error) {
-                Log.e(TAG, "BREthereumClientHandlerGetBlockNumber: failed", error);
+                Log.e(TAG, "BRCryptoCWMEthGetBlockNumberCallback: failed", error);
+                manager.announceBlockNumber(handle, (String) null, true);
             }
         });
     }
 
-    private void ethGetNonce(Pointer context, BREthereumEwm ewm, String address, int rid) {
-        Log.d(TAG, "BREthereumClientHandlerGetNonce");
+    private void ethGetNonce(Pointer context, BRCryptoWalletManager manager, BRCryptoCallbackHandle handle,
+                             String networkName, String address) {
+        Log.d(TAG, "BRCryptoCWMEthGetNonceCallback");
 
-        BREthereumNetwork network = ewm.getNetwork();
-        String networkName = network.getName().toLowerCase();
-
-        query.getNonceAsEth(networkName, address, rid, new CompletionHandler<String>() {
+        // TODO(discuss): Do we actually need a rid here? Can it just be random? Does it need to tie into our C rid?
+        query.getNonceAsEth(networkName, address, 0, new CompletionHandler<String>() {
             @Override
             public void handleData(String nonce) {
-                Log.d(TAG, "BREthereumClientHandlerGetNonce: succeeded");
-                ewm.announceNonce(address, nonce, rid);
+                Log.d(TAG, "BRCryptoCWMEthGetNonceCallback: succeeded");
+                manager.announceNonce(handle, address, nonce, true);
             }
 
             @Override
             public void handleError(QueryError error) {
-                Log.e(TAG, "BREthereumClientHandlerGetNonce: failed", error);
+                Log.e(TAG, "BRCryptoCWMEthGetNonceCallback: failed", error);
+                // TODO(fix): Split into separate failed announce function (and drop success as a param)
+                manager.announceNonce(handle, null, null, false);
             }
         });
     }

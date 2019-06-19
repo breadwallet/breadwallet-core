@@ -156,6 +156,19 @@ extern "C" {
                                               const char *amount,
                                               const char *data);
 
+    typedef void
+        (*BRCryptoCWMEthGetBlockNumberCallback) (BRCryptoCWMClientContext context,
+                                           BRCryptoWalletManager manager,
+                                           BRCryptoCWMCallbackHandle handle,
+                                           const char *network);
+
+    typedef void
+        (*BRCryptoCWMEthGetNonceCallback) (BRCryptoCWMClientContext context,
+                                           BRCryptoWalletManager manager,
+                                           BRCryptoCWMCallbackHandle handle,
+                                           const char *network,
+                                           const char *address);
+
     typedef struct {
         BRCryptoCWMEthGetEtherBalanceCallback funcGetEtherBalance;
         BRCryptoCWMEthGetTokenBalanceCallback funcGetTokenBalance;
@@ -166,8 +179,8 @@ extern "C" {
         BREthereumClientHandlerGetLogs funcGetLogs; // announce one-by-one
         BREthereumClientHandlerGetBlocks funcGetBlocks;
         BREthereumClientHandlerGetTokens funcGetTokens; // announce one-by-one
-        BREthereumClientHandlerGetBlockNumber funcGetBlockNumber;
-        BREthereumClientHandlerGetNonce funcGetNonce;
+        BRCryptoCWMEthGetBlockNumberCallback funcGetBlockNumber;
+        BRCryptoCWMEthGetNonceCallback funcGetNonce;
     } BRCryptoCWMClientETH;
 
     // TODO(discuss): What do we want to do for naming convention here?
@@ -270,6 +283,12 @@ extern "C" {
                             BRCryptoCWMCallbackHandle handle,
                             uint64_t blockHeight,
                             BRCryptoBoolean success);
+
+    extern void
+    cwmAnnounceBlockNumberAsString (BRCryptoWalletManager cwm,
+                                    BRCryptoCWMCallbackHandle handle,
+                                    const char *blockHeight,
+                                    BRCryptoBoolean success);
 
     extern void
     cwmAnnounceTransaction (BRCryptoWalletManager cwm,
