@@ -23,6 +23,8 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#include <pthread.h>
+
 #include "BRCryptoAccount.h"
 #include "BRCryptoPrivate.h"
 
@@ -30,6 +32,16 @@
 #include "support/BRBIP39Mnemonic.h"
 #include "support/BRKey.h"
 #include "ethereum/BREthereum.h"
+#include "generic/BRGenericRipple.h"
+
+static pthread_once_t  _accounts_once = PTHREAD_ONCE_INIT;
+
+#include "generic/BRGenericHandlers.h"
+
+static void _accounts_init (void) {
+    genericHandlersInstall (genericRippleHandlers);
+    // ...
+}
 
 static void
 cryptoAccountRelease (BRCryptoAccount account);
@@ -37,6 +49,8 @@ cryptoAccountRelease (BRCryptoAccount account);
 struct BRCryptoAccountRecord {
     BRMasterPubKey btc;
     BREthereumAccount eth;
+    BRGenericAccount xrp;
+    // ...
 
     uint64_t timestamp;
     BRCryptoRef ref;
@@ -54,10 +68,15 @@ cryptoAccountDeriveSeedInternal (const char *phrase) {
 static BRCryptoAccount
 cryptoAccountCreateFromSeedInternal (UInt512 seed,
                                      uint64_t timestamp) {
+    pthread_once (&_accounts_once, _accounts_init);
+
     BRCryptoAccount account = malloc (sizeof (struct BRCryptoAccountRecord));
 
     account->btc = BRBIP32MasterPubKey (seed.u8, sizeof (seed.u8));
     account->eth = createAccountWithBIP32Seed(seed);
+    account->xrp = gwmAccountCreate (genericRippleHandlers->type, seed);
+    // ...
+
     account->timestamp = timestamp;
     account->ref = CRYPTO_REF_ASSIGN(cryptoAccountRelease);
 
@@ -86,11 +105,12 @@ cryptoAccountCreateFromSeedBytes (const uint8_t *bytes) {
     return cryptoAccountCreateFromSeedInternal (seed, 0);
 }
 
-
 static void
 cryptoAccountRelease (BRCryptoAccount account) {
-    accountFree(account->eth);  // Core holds???
 //    printf ("Account: Release\n");
+    accountFree(account->eth);
+    gwmAccountRelease(account->xrp);
+
     free (account);
 }
 
@@ -108,6 +128,14 @@ cryptoAccountSetTimestamp (BRCryptoAccount account,
 private_extern BREthereumAccount
 cryptoAccountAsETH (BRCryptoAccount account) {
     return account->eth;
+}
+
+private_extern BRGenericAccount
+cryptoAccountAsGEN (BRCryptoAccount account,
+                    const char *type) {
+    if (gwmAccountHasType (account->xrp, type)) return account->xrp;
+
+    return NULL;
 }
 
 private_extern const char *

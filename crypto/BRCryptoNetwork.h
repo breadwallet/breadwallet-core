@@ -91,6 +91,9 @@ extern "C" {
     extern BRCryptoCurrency
     cryptoNetworkGetCurrency (BRCryptoNetwork network);
 
+    extern const char *
+    cryptoNetworkGetCurrencyCode (BRCryptoNetwork network);
+    
     /**
      * Returns the currency's default unit or NULL
      *

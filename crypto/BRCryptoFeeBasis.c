@@ -11,6 +11,7 @@
 
 #include "BRCryptoFeeBasis.h"
 #include "ethereum/ewm/BREthereumBase.h"
+#include "generic/BRGeneric.h"
 
 static void
 cryptoFeeBasisRelease (BRCryptoFeeBasis feeBasis);
@@ -20,6 +21,10 @@ struct BRCryptoFeeBasisRecord {
     union {
         uint64_t btc; // feePerKB
         BREthereumFeeBasis eth;
+        struct {
+            BRGenericWalletManager gwm;
+            BRGenericFeeBasis bid;
+        } gen;
     } u;
     BRCryptoRef ref;
 };
@@ -56,8 +61,19 @@ cryptoFeeBasisCreateAsETH (BREthereumGas gas,
     return feeBasis;
 }
 
+private_extern BRCryptoFeeBasis
+cryptoFeeBasisCreateAsGEN (BRGenericWalletManager gwm,
+                           BRGenericFeeBasis bid) {
+    BRCryptoFeeBasis feeBasis = cryptoFeeBasisCreateInternal (BLOCK_CHAIN_TYPE_GEN);
+    feeBasis->u.gen.gwm = gwm;
+    feeBasis->u.gen.bid = bid;
+
+    return feeBasis;
+}
+
 static void
 cryptoFeeBasisRelease (BRCryptoFeeBasis feeBasis) {
+    // TODO: btc, eth, gen ??
     free (feeBasis);
 }
 
@@ -77,3 +93,10 @@ cryptoFeeBasisAsETH (BRCryptoFeeBasis feeBasis) {
     assert (BLOCK_CHAIN_TYPE_ETH == feeBasis->type);
     return feeBasis->u.eth;
 }
+
+private_extern BRGenericFeeBasis
+cryptoFeeBasisAsGEN (BRCryptoFeeBasis feeBasis) {
+    assert (BLOCK_CHAIN_TYPE_GEN == feeBasis->type);
+    return feeBasis->u.gen.bid;
+}
+

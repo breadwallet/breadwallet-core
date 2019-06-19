@@ -215,7 +215,7 @@ public final class System {
                             // TODO: Only needed if getCurrencies returns the wrong stuff.
                             .filter { $0.blockchainID == blockchainModel.id }
                             .forEach { (currencyModel: BlockChainDB.Model.Currency) in
-                                // TODO: Create the currency but don't create copies
+                                // Create the currency
                                 let currency = Currency (uids: currencyModel.id,
                                                          name: currencyModel.name,
                                                          code: currencyModel.code,

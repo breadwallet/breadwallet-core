@@ -38,6 +38,7 @@ struct BRCryptoWalletManagerRecord {
     union {
         BRWalletManager btc;
         BREthereumEWM eth;
+        BRGenericWalletManager gen;
     } u;
 
     BRCryptoCWMListener listener;
@@ -1143,11 +1144,49 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
         }
 
         case BLOCK_CHAIN_TYPE_GEN: {
+            // Create CWM as 'GEN' based on the network's base currency.
+            const char *type = cryptoNetworkGetCurrencyCode (network);
+
+            cwm->u.gen = gwmCreate (type, cryptoAccountAsGEN (account, type));
+
+            // Announce the new wallet manager;
+            cwm->listener.walletManagerEventCallback (cwm->listener.context,
+                                                      cryptoWalletManagerTake (cwm),
+                                                      (BRCryptoWalletManagerEvent) {
+                                                          CRYPTO_WALLET_MANAGER_EVENT_CREATED
+                                                      });
+
+            // Create the primary wallet
+            BRCryptoCurrency currency = cryptoNetworkGetCurrency (cwm->network);
+            BRCryptoUnit     unit     = cryptoNetworkGetUnitAsDefault (cwm->network, currency);
+
+            cwm->wallet = cryptoWalletCreateAsGEN (unit, unit, cwm->u.gen, gwmCreatePrimaryWallet (cwm->u.gen));
+
+            cryptoUnitGive(unit);
+            cryptoCurrencyGive(currency);
+
+            cwm->listener.walletEventCallback (cwm->listener.context,
+                                               cryptoWalletManagerTake (cwm),
+                                               cryptoWalletTake (cwm->wallet),
+                                               (BRCryptoWalletEvent) {
+                                                   CRYPTO_WALLET_EVENT_CREATED
+                                               });
+
+            // Add the primar wallet to the wallet manager
+            cryptoWalletManagerAddWallet (cwm, cwm->wallet);
+
+            cwm->listener.walletManagerEventCallback (cwm->listener.context,
+                                                      cryptoWalletManagerTake (cwm),
+                                                      (BRCryptoWalletManagerEvent) {
+                                                          CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED,
+                                                          { .wallet = { cryptoWalletTake (cwm->wallet) }}
+                                                      });
+
             break;
         }
     }
 
-    // NOTE: Race on cwm->u.{btc,et} is resolved in the event handlers
+    // NOTE: Race on cwm->u.{btc,eth} is resolved in the event handlers
 
 
     free (cwmPath);
@@ -1169,6 +1208,8 @@ cryptoWalletManagerRelease (BRCryptoWalletManager cwm) {
         cryptoWalletGive (cwm->wallets[index]);
     array_free (cwm->wallets);
 
+    // TODO: btc, eth, gen
+    
     free (cwm->path);
     free (cwm);
 }
@@ -1332,9 +1373,19 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
             break;
 
         case BLOCK_CHAIN_TYPE_GEN:
+
+            // transfer as GEN bytes, signed.
+            // query submit
+
             break;
 
     }
+}
+
+private_extern BRCryptoBoolean
+cryptoWalletManagerHasBTC (BRCryptoWalletManager manager,
+                           BRWalletManager bwm) {
+    return AS_CRYPTO_BOOLEAN (BLOCK_CHAIN_TYPE_BTC == manager->type && bwm == manager->u.btc);
 }
 
 private_extern BRCryptoBoolean
@@ -1344,9 +1395,9 @@ cryptoWalletManagerHasETH (BRCryptoWalletManager manager,
 }
 
 private_extern BRCryptoBoolean
-cryptoWalletManagerHasBTC (BRCryptoWalletManager manager,
-                           BRWalletManager bwm) {
-    return AS_CRYPTO_BOOLEAN (BLOCK_CHAIN_TYPE_BTC == manager->type && bwm == manager->u.btc);
+cryptoWalletManagerHasGEN (BRCryptoWalletManager manager,
+                           BRGenericWalletManager gwm) {
+    return AS_CRYPTO_BOOLEAN (BLOCK_CHAIN_TYPE_GEN == manager->type && gwm == manager->u.gen);
 }
 
 private_extern BRCryptoWallet
@@ -1366,4 +1417,14 @@ cryptoWalletManagerFindWalletAsETH (BRCryptoWalletManager cwm,
             return cryptoWalletTake (cwm->wallets[index]);
     return NULL;
 }
+
+private_extern BRCryptoWallet
+cryptoWalletManagerFindWalletAsGEN (BRCryptoWalletManager cwm,
+                                    BRGenericWallet gen) {
+    for (size_t index = 0; index < array_count (cwm->wallets); index++)
+        if (gen == cryptoWalletAsGEN (cwm->wallets[index]))
+            return cryptoWalletTake (cwm->wallets[index]);
+    return NULL;
+}
+
 
