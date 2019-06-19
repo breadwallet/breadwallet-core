@@ -863,14 +863,13 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
             @Override
             public void handleData(String balance) {
                 Log.d(TAG, "BRCryptoCWMEthGetEtherBalanceCallback: succeeded");
-                // TODO(fix): Parsing this should be done in BDB and a failure should be handled accordingly
-                manager.announceBalance(handle, UnsignedLong.fromLongBits(UnsignedLongs.decode(balance)), true);
+                manager.announceBalance(handle, balance, true);
             }
 
             @Override
             public void handleError(QueryError error) {
                 Log.e(TAG, "BRCryptoCWMEthGetEtherBalanceCallback: failed", error);
-                manager.announceBalance(handle, UnsignedLong.ZERO, false);
+                manager.announceBalance(handle, null, false);
             }
         });
     }
@@ -884,14 +883,14 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
             @Override
             public void handleData(String balance) {
                 Log.d(TAG, "BRCryptoCWMEthGetTokenBalanceCallback: succeeded");
-                // TODO(fix): Parsing this should be done in BDB and a failure should be handled accordingly
-                manager.announceBalance(handle, UnsignedLong.fromLongBits(UnsignedLongs.decode(balance)), true);
+                manager.announceBalance(handle, balance, true);
             }
 
             @Override
             public void handleError(QueryError error) {
                 Log.e(TAG, "BRCryptoCWMEthGetTokenBalanceCallback: failed", error);
-                manager.announceBalance(handle, UnsignedLong.ZERO, false);
+                // TODO(fix): Split into separate failed announce function (and drop success as a param)
+                manager.announceBalance(handle, null, false);
             }
         });
     }
@@ -905,14 +904,14 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
             @Override
             public void handleData(String gasPrice) {
                 Log.d(TAG, "BRCryptoCWMEthGetGasPriceCallback: succeeded");
-                // TODO(fix): Parsing this should be done in BDB and a failure should be handled accordingly
-                manager.announceGasPrice(handle, UnsignedLong.fromLongBits(UnsignedLongs.decode(gasPrice)), true);
+                manager.announceGasPrice(handle, gasPrice, true);
             }
 
             @Override
             public void handleError(QueryError error) {
                 Log.e(TAG, "BRCryptoCWMEthGetGasPriceCallback: failed", error);
-                manager.announceGasPrice(handle, UnsignedLong.ZERO, false);
+                // TODO(fix): Split into separate failed announce function (and drop success as a param)
+                manager.announceGasPrice(handle, null, false);
             }
         });
     }
@@ -926,14 +925,14 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
             @Override
             public void handleData(String gasEstimate) {
                 Log.d(TAG, "BRCryptoCWMEthEstimateGasCallback: succeeded");
-                // TODO(fix): Parsing this should be done in BDB and a failure should be handled accordinglys
-                manager.announceGasEstimate(handle, UnsignedLong.fromLongBits(UnsignedLongs.decode(gasEstimate)), true);
+                manager.announceGasEstimate(handle, gasEstimate, true);
             }
 
             @Override
             public void handleError(QueryError error) {
                 Log.e(TAG, "BRCryptoCWMEthEstimateGasCallback: failed", error);
-                manager.announceGasEstimate(handle, UnsignedLong.ZERO, false);
+                // TODO(fix): Split into separate failed announce function (and drop success as a param)
+                manager.announceGasEstimate(handle, null, false);
             }
         });
     }

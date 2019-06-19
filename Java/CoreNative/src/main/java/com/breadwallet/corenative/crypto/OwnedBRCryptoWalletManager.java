@@ -107,17 +107,17 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
-    public void announceBalance(BRCryptoCallbackHandle handle, UnsignedLong balance, boolean success) {
+    public void announceBalance(BRCryptoCallbackHandle handle, String balance, boolean success) {
         core.announceBalance(handle, balance, success);
     }
 
     @Override
-    public void announceGasPrice(BRCryptoCallbackHandle handle, UnsignedLong gasPrice, boolean success) {
+    public void announceGasPrice(BRCryptoCallbackHandle handle, String gasPrice, boolean success) {
         core.announceGasPrice(handle, gasPrice, success);
     }
 
     @Override
-    public void announceGasEstimate(BRCryptoCallbackHandle handle, UnsignedLong gasEstimate, boolean success) {
+    public void announceGasEstimate(BRCryptoCallbackHandle handle, String gasEstimate, boolean success) {
         core.announceGasEstimate(handle, gasEstimate, success);
     }
 

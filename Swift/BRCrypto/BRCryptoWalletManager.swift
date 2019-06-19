@@ -47,10 +47,10 @@ public final class WalletManager: Equatable {
     /// transfer (like BRD transfer => ETH fee)
     public lazy var primaryWallet: Wallet = {
         // Find a preexisting wallet (unlikely) or create one.
-        return Wallet (core: cryptoWalletManagerGetWallet(core),
+        let coreWallet = cryptoWalletManagerGetWallet(core)!
+        return Wallet (core: coreWallet,
                        listener: system.listener,
                        manager: self,
-                       unit: unit,
                        take: false)
     }()
 
@@ -58,11 +58,13 @@ public final class WalletManager: Equatable {
     public var wallets: [Wallet] {
         let listener = system.listener
         return (0..<cryptoWalletManagerGetWalletsCount(core))
-            .map { Wallet (core: cryptoWalletManagerGetWalletAtIndex (core, $0),
-                           listener: listener,
-                           manager: self,
-                           unit: unit,
-                           take: false) }
+            .map {
+                let coreWallet = cryptoWalletManagerGetWalletAtIndex (core, $0)!
+                return Wallet (core: coreWallet,
+                               listener: listener,
+                               manager: self,
+                               take: false)
+        }
     }
 
     ///
@@ -77,7 +79,6 @@ public final class WalletManager: Equatable {
             : Wallet (core: core,
                       listener: system.listener,
                       manager: self,
-                      unit: unit,
                       take: true))
     }
 
@@ -90,7 +91,6 @@ public final class WalletManager: Equatable {
                 : Wallet (core: core,
                           listener: listener,
                           manager: self,
-                          unit: unit,
                           take: true))
     }
 
@@ -168,8 +168,6 @@ public final class WalletManager: Equatable {
                                                network.core,
                                                mode.asCore,
                                                storagePath)
-
-        system.add(manager: self)
     }
 
     internal func announceEvent (_ event: WalletManagerEvent) {
@@ -481,9 +479,21 @@ extension WalletManager {
                                                         event: WalletEvent.transferDeleted (transfer: transfer))
 
                 case CRYPTO_WALLET_EVENT_BALANCE_UPDATED:
-                    break
+                    let amount = Amount (core: event.u.balanceUpdated.amount,
+                                         unit: wallet.unit,
+                                         take: false)
+                    wallet.listener?.handleWalletEvent (system: manager.system,
+                                                        manager: manager,
+                                                        wallet: wallet,
+                                                        event: WalletEvent.balanceUpdated(amount: amount))
+
                 case CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED:
-                    break
+                    let feeBasis = TransferFeeBasis (core: event.u.feeBasisUpdated.basis,
+                                                     take: false)
+                    wallet.listener?.handleWalletEvent (system: manager.system,
+                                                        manager: manager,
+                                                        wallet: wallet,
+                                                        event: WalletEvent.feeBasisUpdated(feeBasis: feeBasis))
 
                 default: precondition (false)
                 }
@@ -925,6 +935,7 @@ extension BRWalletEventType: CustomStringConvertible {
         case BITCOIN_WALLET_CREATED: return "Created"
         case BITCOIN_WALLET_BALANCE_UPDATED: return "Balance Updated"
         case BITCOIN_WALLET_TRANSACTION_SUBMITTED: return "Transaction Submitted"
+        case BITCOIN_WALLET_FEE_PER_KB_UPDATED: return "FeePerKB Updated"
         case BITCOIN_WALLET_DELETED: return "Deleted"
         default: return "<<unknown>>"
         }

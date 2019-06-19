@@ -123,8 +123,7 @@ class SummaryViewController: UITableViewController, WalletListener {
             // if visible ...
             switch event {
             case .created:
-                guard !self.wallets.contains(where: { $0 === wallet })
-                    else { return }
+                precondition (!self.wallets.contains (wallet))
 
                 self.wallets.append (wallet)
 
@@ -132,24 +131,19 @@ class SummaryViewController: UITableViewController, WalletListener {
                 self.tableView.insertRows (at: [path], with: .automatic)
 
             case .balanceUpdated:
-                guard let index = self.wallets.firstIndex (where: { $0 === wallet })
-                    else { return }
-
-                let path = IndexPath (row: index, section: 0)
-                let cell = self.tableView.cellForRow(at: path) as! WalletTableViewCell
-                cell.updateView ()
-
-//            case .transferSubmitted (transfer, success):
-//                break
+                if let index = self.wallets.firstIndex (of: wallet) {
+                    let path = IndexPath (row: index, section: 0)
+                    let cell = self.tableView.cellForRow(at: path) as! WalletTableViewCell
+                    cell.updateView ()
+                }
 
             case .deleted:
-                guard let index = self.wallets.firstIndex(where: { $0 === wallet })
-                    else { return }
+                if let index = self.wallets.firstIndex (of: wallet) {
+                    self.wallets.remove (at: index)
 
-                self.wallets.remove(at: index)
-
-                let path = IndexPath (row: index, section: 0)
-                self.tableView.deleteRows(at: [path], with: .automatic)
+                    let path = IndexPath (row: index, section: 0)
+                    self.tableView.deleteRows(at: [path], with: .automatic)
+                }
 
             default:
                 break

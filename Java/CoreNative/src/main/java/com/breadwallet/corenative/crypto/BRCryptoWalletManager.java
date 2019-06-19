@@ -104,20 +104,20 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
-    public void announceBalance(BRCryptoCallbackHandle handle, UnsignedLong balance, boolean success) {
-        CryptoLibrary.INSTANCE.cwmAnnounceBalance(this, handle, balance.longValue(), success ? BRCryptoBoolean.CRYPTO_TRUE :
+    public void announceBalance(BRCryptoCallbackHandle handle, String balance, boolean success) {
+        CryptoLibrary.INSTANCE.cwmAnnounceBalance(this, handle, balance, success ? BRCryptoBoolean.CRYPTO_TRUE :
                 BRCryptoBoolean.CRYPTO_FALSE);
     }
 
     @Override
-    public void announceGasPrice(BRCryptoCallbackHandle handle, UnsignedLong gasPrice, boolean success) {
-        CryptoLibrary.INSTANCE.cwmAnnounceGasPrice(this, handle, gasPrice.longValue(), success ? BRCryptoBoolean.CRYPTO_TRUE :
+    public void announceGasPrice(BRCryptoCallbackHandle handle, String gasPrice, boolean success) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGasPrice(this, handle, gasPrice, success ? BRCryptoBoolean.CRYPTO_TRUE :
                 BRCryptoBoolean.CRYPTO_FALSE);
     }
 
     @Override
-    public void announceGasEstimate(BRCryptoCallbackHandle handle, UnsignedLong gasEstimate, boolean success) {
-        CryptoLibrary.INSTANCE.cwmAnnounceGasEstimate(this, handle, gasEstimate.longValue(), success ? BRCryptoBoolean.CRYPTO_TRUE :
+    public void announceGasEstimate(BRCryptoCallbackHandle handle, String gasEstimate, boolean success) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGasEstimate(this, handle, gasEstimate, success ? BRCryptoBoolean.CRYPTO_TRUE :
                 BRCryptoBoolean.CRYPTO_FALSE);
     }
 }

@@ -58,19 +58,6 @@ ewmAnnounceWalletBalance (BREthereumEWM ewm,
     return SUCCESS;
 }
 
-extern BREthereumStatus
-ewmAnnounceWalletBalanceAsInteger (BREthereumEWM ewm,
-                                   BREthereumWallet wallet,
-                                   uint64_t balance,
-                                   int rid) {
-    if (NULL == wallet) { return ERROR_UNKNOWN_WALLET; }
-
-    UInt256 value = createUInt256(balance);
-
-    ewmSignalAnnounceBalance(ewm, wallet, value, rid);
-    return SUCCESS;
-}
-
 // ==============================================================================================
 //
 // Default Wallet Gas Price
@@ -126,19 +113,6 @@ ewmAnnounceGasPrice(BREthereumEWM ewm,
     UInt256 amount = createUInt256Parse(gasPrice, 0, &parseStatus);
     if (CORE_PARSE_OK != parseStatus) { return ERROR_NUMERIC_PARSE; }
     
-    ewmSignalAnnounceGasPrice(ewm, wallet, amount, rid);
-    return SUCCESS;
-}
-
-extern BREthereumStatus
-    ewmAnnounceGasPriceAsInteger(BREthereumEWM ewm,
-                                 BREthereumWallet wallet,
-                                 uint64_t gasPrice,
-                                 int rid) {
-    if (NULL == wallet) { return ERROR_UNKNOWN_WALLET; }
-
-    UInt256 amount = createUInt256(gasPrice);
-
     ewmSignalAnnounceGasPrice(ewm, wallet, amount, rid);
     return SUCCESS;
 }
@@ -226,21 +200,6 @@ ewmAnnounceGasEstimate (BREthereumEWM ewm,
         0 != gas.u64[1] || 0 != gas.u64[2] || 0 != gas.u64[3]) { return ERROR_NUMERIC_PARSE; }
     
     
-    ewmSignalAnnounceGasEstimate(ewm, wallet, transfer, gas, rid);
-    return SUCCESS;
-}
-
-extern BREthereumStatus
-ewmAnnounceGasEstimateAsInteger (BREthereumEWM ewm,
-                                 BREthereumWallet wallet,
-                                 BREthereumTransfer transfer,
-                                 uint64_t gasEstimate,
-                                 int rid) {
-    if (NULL == wallet) { return ERROR_UNKNOWN_WALLET; }
-    if (NULL == transfer) { return ERROR_UNKNOWN_TRANSACTION; }
-
-    UInt256 gas = createUInt256(gasEstimate);
-
     ewmSignalAnnounceGasEstimate(ewm, wallet, transfer, gas, rid);
     return SUCCESS;
 }
@@ -703,10 +662,39 @@ ewmAnnounceSubmitTransfer (BREthereumEWM ewm,
 //
 extern void
 ewmUpdateTokens (BREthereumEWM ewm) {
-    ewm->client.funcGetTokens
-    (ewm->client.context,
-     ewm,
-     ++ewm->requestId);
+    unsigned int rid = ++ewm->requestId;
+
+    if (ethereumMainnet == ewm->network)
+        ewm->client.funcGetTokens
+        (ewm->client.context,
+         ewm,
+         rid);
+
+    else if (ethereumTestnet == ewm->network) {
+        ewmAnnounceToken (ewm, rid,
+                          "0x7108ca7c4718efa810457f228305c9c71390931a",
+                          "BRD",
+                          "BRD Token",
+                          "BRD Token Description",
+                          18,
+                          NULL,
+                          NULL);
+        ewmAnnounceToken(ewm, rid,
+                         "0x722dd3f80bac40c951b51bdd28dd19d435762180",
+                         "TST",
+                         "Test Standard Token",
+                         "TeST Standard Token (TST) for TeSTing (TST)",
+                         18,
+                         NULL,
+                         NULL);
+        ewmAnnounceTokenComplete (ewm, rid, ETHEREUM_BOOLEAN_TRUE);
+    }
+
+    else if (ethereumRinkeby == ewm->network)
+        ewmAnnounceTokenComplete (ewm, rid, ETHEREUM_BOOLEAN_TRUE);
+
+    else
+        assert (0);
 }
 
 extern void

@@ -292,19 +292,19 @@ extern "C" {
     extern void
     cwmAnnounceBalance (BRCryptoWalletManager cwm,
                         BRCryptoCWMCallbackHandle handle,
-                        uint64_t balance,
+                        const char *balance,
                         BRCryptoBoolean success);
 
     extern void
     cwmAnnounceGasPrice (BRCryptoWalletManager cwm,
                          BRCryptoCWMCallbackHandle handle,
-                         uint64_t gasPrice,
+                         const char *gasPrice,
                          BRCryptoBoolean success);
 
     extern void
     cwmAnnounceGasEstimate (BRCryptoWalletManager cwm,
                             BRCryptoCWMCallbackHandle handle,
-                            uint64_t gasEstimate,
+                            const char *gasEstimate,
                             BRCryptoBoolean success);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoWalletManager, cryptoWalletManager);

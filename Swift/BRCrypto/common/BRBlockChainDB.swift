@@ -317,6 +317,7 @@ public class BlockChainDB {
         }
 
         static public let defaultCurrencies: [Currency] = [
+
             // Mainnet
             (id: "Bitcoin", name: "Bitcoin", code: "btc", type: "native", blockchainID: "bitcoin-mainnet", address: nil,
              demoninations: [(name: "satoshi", code: "sat", decimals: 0, symbol: lookupSymbol ("sat")),
@@ -326,17 +327,14 @@ public class BlockChainDB {
              demoninations: [(name: "satoshi", code: "sat", decimals: 0, symbol: lookupSymbol ("sat")),
                              (name: "bitcoin", code: "bch", decimals: 8, symbol: lookupSymbol ("bch"))]),
 
-
             (id: "Ethereum", name: "Ethereum", code: "eth", type: "native", blockchainID: "ethereum-mainnet", address: nil,
              demoninations: [(name: "wei",   code: "wei",  decimals:  0, symbol: lookupSymbol ("wei")),
                              (name: "gwei",  code: "gwei", decimals:  9, symbol: lookupSymbol ("gwei")),
                              (name: "ether", code: "eth",  decimals: 18, symbol: lookupSymbol ("eth"))]),
 
-
             (id: "BRD Token", name: "BRD Token", code: "BRD", type: "erc20", blockchainID: "ethereum-mainnet", address: addressBRDMainnet,
              demoninations: [(name: "BRD_INTEGER",   code: "BRDI",  decimals:  0, symbol: "brdi"),
                              (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")]),
-
 
             (id: "EOS Token", name: "EOS Token", code: "EOS", type: "erc20", blockchainID: "ethereum-mainnet", address: "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0",
              demoninations: [(name: "EOS_INTEGER",   code: "EOSI",  decimals:  0, symbol: "eosi"),
@@ -350,7 +348,6 @@ public class BlockChainDB {
             (id: "Bitcash-Testnet", name: "Bitcash", code: "bch", type: "native", blockchainID: "bitcash-testnet", address: nil,
              demoninations: [(name: "satoshi", code: "sat", decimals: 0, symbol: lookupSymbol ("sat")),
                              (name: "bitcoin", code: "bch", decimals: 8, symbol: lookupSymbol ("bch"))]),
-
 
             (id: "Ethereum-Testnet", name: "Ethereum", code: "eth", type: "native", blockchainID: "ethereum-testnet", address: nil,
              demoninations: [(name: "wei",   code: "wei",  decimals:  0, symbol: lookupSymbol ("wei")),

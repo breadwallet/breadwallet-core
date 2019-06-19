@@ -116,7 +116,8 @@ public interface CryptoLibrary extends Library {
     // crypto/BRCryptoPrivate.h
     BRCryptoAddress cryptoAddressCreateAsBTC(BRAddress.ByValue btc);
     BRCryptoAddress cryptoAddressCreateAsETH(BREthereumAddress.ByValue address);
-    BRCryptoCurrency cryptoCurrencyCreate(String uids, String name, String code, String type);
+    BRCryptoAmount cryptoAmountCreate (BRCryptoCurrency currency, int isNegative, UInt256.ByValue value);
+    BRCryptoCurrency cryptoCurrencyCreate(String uids, String name, String code, String type, String issuer);
     void cryptoNetworkSetHeight(BRCryptoNetwork network, long height);
     void cryptoNetworkSetCurrency(BRCryptoNetwork network, BRCryptoCurrency currency);
     BRCryptoNetwork cryptoNetworkCreateAsBTC(String uids, String name, byte forkId, Pointer params);
@@ -192,9 +193,9 @@ public interface CryptoLibrary extends Library {
     void cwmAnnounceTransaction(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, byte[] transaction, SizeT transactionLength, long timestamp, long blockHeight);
     void cwmAnnounceTransactionComplete(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, int success);
     void cwmAnnounceSubmit(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, int success);
-    void cwmAnnounceBalance(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, long balance, int success);
-    void cwmAnnounceGasPrice(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, long gasPrice, int success);
-    void cwmAnnounceGasEstimate(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, long gasEstimate, int success);
+    void cwmAnnounceBalance(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, String balance, int success);
+    void cwmAnnounceGasPrice(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, String gasPrice, int success);
+    void cwmAnnounceGasEstimate(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, String gasEstimate, int success);
     BRCryptoWalletManager cryptoWalletManagerTake(BRCryptoWalletManager obj);
     void cryptoWalletManagerGive(BRCryptoWalletManager obj);
 

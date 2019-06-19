@@ -775,6 +775,20 @@ BRWalletManagerSubmitTransaction (BRWalletManager manager,
     }
 }
 
+extern void
+BRWalletManagerUpdateFeePerKB (BRWalletManager manager,
+                               BRWallet *wallet,
+                               uint64_t feePerKb) {
+    BRWalletSetFeePerKb (wallet, feePerKb);
+    manager->client.funcWalletEvent (manager->client.context,
+                                     manager,
+                                     wallet,
+                                     (BRWalletEvent) {
+                                         BITCOIN_WALLET_FEE_PER_KB_UPDATED,
+                                         { .feePerKb = { feePerKb }}
+                                     });
+}
+
 static void
 BRWalletManagerAddressToLegacy (BRAddress *addr) {
     uint8_t script[] = { OP_DUP, OP_HASH160, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
