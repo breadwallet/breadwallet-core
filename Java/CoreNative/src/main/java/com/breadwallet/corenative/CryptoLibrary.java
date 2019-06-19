@@ -8,11 +8,11 @@
 package com.breadwallet.corenative;
 
 import com.breadwallet.corenative.crypto.BRCryptoAccount;
-import com.breadwallet.corenative.bitcoin.BRWalletManager;
 import com.breadwallet.corenative.crypto.BRCryptoAddress;
 import com.breadwallet.corenative.crypto.BRCryptoAmount;
 import com.breadwallet.corenative.crypto.BRCryptoCWMClient;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
+import com.breadwallet.corenative.crypto.BRCryptoCallbackHandle;
 import com.breadwallet.corenative.crypto.BRCryptoCurrency;
 import com.breadwallet.corenative.crypto.BRCryptoFeeBasis;
 import com.breadwallet.corenative.crypto.BRCryptoHash;
@@ -28,12 +28,10 @@ import com.breadwallet.corenative.ethereum.BREthereumToken;
 import com.breadwallet.corenative.ethereum.BREthereumTransfer;
 import com.breadwallet.corenative.ethereum.BREthereumWallet;
 import com.breadwallet.corenative.support.BRAddress;
-import com.breadwallet.corenative.bitcoin.BRTransaction;
 import com.breadwallet.corenative.ethereum.BREthereumAddress;
 import com.breadwallet.corenative.support.UInt256;
 import com.breadwallet.corenative.support.UInt512;
 import com.breadwallet.corenative.utility.SizeT;
-import com.breadwallet.corenative.utility.SizeTByReference;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
 import com.sun.jna.NativeLibrary;
@@ -46,21 +44,6 @@ public interface CryptoLibrary extends Library {
     String JNA_LIBRARY_NAME = "crypto";
     NativeLibrary LIBRARY = NativeLibrary.getInstance(CryptoLibrary.JNA_LIBRARY_NAME);
     CryptoLibrary INSTANCE = Native.load(CryptoLibrary.JNA_LIBRARY_NAME, CryptoLibrary.class);
-
-    // bitcoin/BRTransaction.h
-    BRTransaction BRTransactionParse(byte[] buf, SizeT bufLen);
-    BRTransaction BRTransactionCopy(BRTransaction tx);
-    SizeT BRTransactionSerialize(BRTransaction tx, byte[] buf, SizeT bufLen);
-    void BRTransactionFree(BRTransaction tx);
-
-    // bitcoin/BRWalletManager.h
-    int bwmAnnounceBlockNumber(BRWalletManager manager, int rid, long blockNumber);
-    int bwmAnnounceTransaction(BRWalletManager manager, int id, BRTransaction transaction);
-    void bwmAnnounceTransactionComplete(BRWalletManager manager, int id, int success);
-    void bwmAnnounceSubmit(BRWalletManager manager, int rid, BRTransaction transaction, int error);
-    void BRWalletManagerGenerateUnusedAddrs(BRWalletManager manager, int limit);
-    BRAddress BRWalletManagerGetAllAddrs(BRWalletManager manager, SizeTByReference addressesCount);
-    BRAddress BRWalletManagerGetAllAddrsLegacy(BRWalletManager manager, SizeTByReference addressesCount);
 
     // crypto/BRCryptoAccount.h
     UInt512.ByValue cryptoAccountDeriveSeed(String phrase);
@@ -205,6 +188,10 @@ public interface CryptoLibrary extends Library {
     void cryptoWalletManagerDisconnect(BRCryptoWalletManager cwm);
     void cryptoWalletManagerSync(BRCryptoWalletManager cwm);
     void cryptoWalletManagerSubmit(BRCryptoWalletManager cwm, BRCryptoWallet wid, BRCryptoTransfer tid, String paperKey);
+    void cwmAnnounceBlockNumber(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, long blockHeight, int success);
+    void cwmAnnounceTransaction(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, byte[] transaction, SizeT transactionLength, long timestamp, long blockHeight);
+    void cwmAnnounceTransactionComplete(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, int success);
+    void cwmAnnounceSubmit(BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, int success);
     BRCryptoWalletManager cryptoWalletManagerTake(BRCryptoWalletManager obj);
     void cryptoWalletManagerGive(BRCryptoWalletManager obj);
 

@@ -86,6 +86,27 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
+    public void announceBlockNumber(BRCryptoCallbackHandle handle, UnsignedLong blockchainHeight, boolean success) {
+        core.announceBlockNumber(handle, blockchainHeight, success);
+    }
+
+    @Override
+    public void announceTransaction(BRCryptoCallbackHandle handle, byte[] transaction, UnsignedLong timestamp,
+                                    UnsignedLong blockHeight) {
+        core.announceTransaction(handle, transaction, timestamp, blockHeight);
+    }
+
+    @Override
+    public void announceTransactionComplete(BRCryptoCallbackHandle handle, boolean success) {
+        core.announceTransactionComplete(handle, success);
+    }
+
+    @Override
+    public void announceSubmit(BRCryptoCallbackHandle handle, boolean success) {
+        core.announceSubmit(handle, success);
+    }
+
+    @Override
     public boolean equals(Object object) {
         if (this == object) {
             return true;

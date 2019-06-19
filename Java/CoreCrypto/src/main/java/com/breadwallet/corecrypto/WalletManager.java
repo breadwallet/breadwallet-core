@@ -3,13 +3,11 @@ package com.breadwallet.corecrypto;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
-import com.breadwallet.corenative.bitcoin.BRTransaction;
-import com.breadwallet.corenative.bitcoin.BRWalletManager;
-import com.breadwallet.corenative.bitcoin.CoreBRTransaction;
 import com.breadwallet.corenative.crypto.BRCryptoCWMClient;
 import com.breadwallet.corenative.crypto.BRCryptoCWMClientBtc;
 import com.breadwallet.corenative.crypto.BRCryptoCWMClientEth;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
+import com.breadwallet.corenative.crypto.BRCryptoCallbackHandle;
 import com.breadwallet.corenative.crypto.BRCryptoTransfer;
 import com.breadwallet.corenative.crypto.BRCryptoTransferEvent;
 import com.breadwallet.corenative.crypto.BRCryptoTransferEventType;
@@ -29,6 +27,7 @@ import com.breadwallet.corenative.ethereum.BREthereumNetwork;
 import com.breadwallet.corenative.ethereum.BREthereumToken;
 import com.breadwallet.corenative.ethereum.BREthereumTransfer;
 import com.breadwallet.corenative.ethereum.BREthereumWallet;
+import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.crypto.TransferState;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.WalletManagerState;
@@ -71,6 +70,7 @@ import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Pointer;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -763,119 +763,91 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
     // BTC client
 
-    private void btcGetBlockNumber(Pointer context, BRWalletManager managerImpl, int rid) {
+    private void btcGetBlockNumber(Pointer context, BRCryptoWalletManager manager, BRCryptoCallbackHandle handle) {
         Log.d(TAG, "BRGetBlockNumberCallback");
+
         query.getBlockchain(getNetwork().getUids(), new CompletionHandler<Blockchain>() {
             @Override
             public void handleData(Blockchain blockchain) {
                 UnsignedLong blockchainHeight = blockchain.getBlockHeight();
                 Log.d(TAG, String.format("BRGetBlockNumberCallback: succeeded (%s)", blockchainHeight));
-                managerImpl.announceBlockNumber(rid, blockchainHeight);
+                manager.announceBlockNumber(handle, blockchainHeight, true);
             }
 
             @Override
             public void handleError(QueryError error) {
                 Log.e(TAG, "BRGetBlockNumberCallback: failed", error);
+                manager.announceBlockNumber(handle, UnsignedLong.ZERO, false);
             }
         });
     }
 
-    private void btcGetTransactions(Pointer context, BRWalletManager managerImpl, long begBlockNumber,
-                                    long endBlockNumber, int rid) {
-        systemExecutor.submit(() -> {
-            UnsignedLong begBlockNumberUnsigned = UnsignedLong.fromLongBits(begBlockNumber);
-            UnsignedLong endBlockNumberUnsigned = UnsignedLong.fromLongBits(endBlockNumber);
+    private void btcGetTransactions(Pointer context, BRCryptoWalletManager manager, BRCryptoCallbackHandle handle,
+                                    Pointer addrs, SizeT addrCount, long begBlockNumber, long endBlockNumber) {
+        UnsignedLong begBlockNumberUnsigned = UnsignedLong.fromLongBits(begBlockNumber);
+        UnsignedLong endBlockNumberUnsigned = UnsignedLong.fromLongBits(endBlockNumber);
 
-            Log.d(TAG, String.format("BRGetTransactionsCallback (%s -> %s)", begBlockNumberUnsigned, endBlockNumberUnsigned));
+        Log.d(TAG, String.format("BRGetTransactionsCallback (%s -> %s)", begBlockNumberUnsigned,
+                endBlockNumberUnsigned));
 
-            String blockchainId = getNetwork().getUids();
-            List<String> addresses = getAllAddrs(managerImpl);
-            Set<String> knownAddresses = new HashSet<>(addresses);
+        int addressesCount = UnsignedInts.checkedCast(addrCount.longValue());
+        String[] addresses = addrs.getStringArray(0, addressesCount, "UTF-8");
 
-            query.getTransactions(blockchainId, addresses, begBlockNumberUnsigned, endBlockNumberUnsigned, true,
-                    false, new CompletionHandler<List<Transaction>>() {
-                        @Override
-                        public void handleData(List<Transaction> transactions) {
-                            Log.d(TAG, "BRGetTransactionsCallback: transaction success");
+        query.getTransactions(getNetwork().getUids(), Arrays.asList(addresses), begBlockNumberUnsigned,
+                endBlockNumberUnsigned, true,
+                false, new CompletionHandler<List<Transaction>>() {
+                    @Override
+                    public void handleData(List<Transaction> transactions) {
+                        Log.d(TAG, "BRGetTransactionsCallback: transaction success");
 
-                            for (Transaction transaction : transactions) {
-                                Optional<byte[]> optRaw = transaction.getRaw();
-                                if (!optRaw.isPresent()) {
-                                    managerImpl.announceTransactionComplete(rid, false);
-                                    return;
-                                }
-
-                                int blockHeight =
-                                        UnsignedInts.checkedCast(transaction.getBlockHeight().or(UnsignedLong.ZERO).longValue());
-                                int timestamp =
-                                        UnsignedInts.checkedCast(transaction.getTimestamp().transform(Date::getTime).transform(TimeUnit.MILLISECONDS::toSeconds).or(0L));
-
-                                Optional<CoreBRTransaction> optCore = CoreBRTransaction.create(optRaw.get(), timestamp,
-                                        blockHeight);
-                                if (!optCore.isPresent()) {
-                                    Log.d(TAG, "BRGetTransactionsCallback received invalid transaction, completing " +
-                                            "with " +
-                                            "failure");
-                                    managerImpl.announceTransactionComplete(rid, false);
-                                    return;
-                                }
-
-                                Log.d(TAG,
-                                        "BRGetTransactionsCallback received transaction, announcing " + transaction.getId());
-                                managerImpl.announceTransaction(rid, optCore.get());
+                        for (Transaction transaction : transactions) {
+                            Optional<byte[]> optRaw = transaction.getRaw();
+                            if (!optRaw.isPresent()) {
+                                Log.e(TAG, "BRGetTransactionsCallback completing with missing raw bytes");
+                                manager.announceTransactionComplete(handle, false);
+                                return;
                             }
 
-                            if (transactions.isEmpty()) {
-                                Log.d(TAG, "BRGetTransactionsCallback found no transactions, completing");
-                                managerImpl.announceTransactionComplete(rid, true);
-                            } else {
-                                Set<String> addressesSet = new HashSet<>(getAllAddrs(managerImpl));
-                                addressesSet.removeAll(knownAddresses);
-                                knownAddresses.addAll(addressesSet);
-                                List<String> addresses = new ArrayList<>(addressesSet);
-
-                                Log.d(TAG, "BRGetTransactionsCallback found transactions, requesting again");
-                                systemExecutor.submit(() -> query.getTransactions(blockchainId, addresses,
-                                        begBlockNumberUnsigned, endBlockNumberUnsigned, true, false, this));
-                            }
+                            UnsignedLong blockHeight = transaction.getBlockHeight().or(UnsignedLong.ZERO);
+                            UnsignedLong timestamp =
+                                    transaction.getTimestamp().transform(Date::getTime).transform(TimeUnit.MILLISECONDS::toSeconds).transform(UnsignedLong::valueOf).or(UnsignedLong.ZERO);
+                            Log.d(TAG,
+                                    "BRGetTransactionsCallback received transaction, announcing " + transaction.getId());
+                            manager.announceTransaction(handle, optRaw.get(), blockHeight, timestamp);
                         }
 
-                        @Override
-                        public void handleError(QueryError error) {
-                            Log.e(TAG, "BRGetTransactionsCallback received an error, completing with failure", error);
-                            managerImpl.announceTransactionComplete(rid, false);
-                        }
-                    });
-        });
+                        // TODO(fix): The C layer needs to handle calling this again with any newly derived addresses
+                        manager.announceTransactionComplete(handle, true);
+                    }
+
+                    @Override
+                    public void handleError(QueryError error) {
+                        Log.e(TAG, "BRGetTransactionsCallback received an error, completing with failure", error);
+                        manager.announceTransactionComplete(handle, false);
+                    }
+                });
     }
 
-    private void btcSubmitTransaction(Pointer context, BRWalletManager managerImpl, Pointer walletImpl,
-                                      BRTransaction transactionImpl, int rid) {
+    private void btcSubmitTransaction(Pointer context, BRCryptoWalletManager manager, BRCryptoCallbackHandle handle,
+                                      Pointer tx, SizeT txLength) {
         Log.d(TAG, "BRSubmitTransactionCallback");
 
-        CoreBRTransaction transaction = CoreBRTransaction.create(transactionImpl);
-        query.putTransaction(getNetwork().getUids(), transaction.serialize(), new CompletionHandler<Transaction>() {
+        int transactionLength = UnsignedInts.checkedCast(txLength.longValue());
+        byte[] transaction = tx.getByteArray(0, transactionLength);
+
+        query.putTransaction(getNetwork().getUids(), transaction, new CompletionHandler<Transaction>() {
             @Override
             public void handleData(Transaction data) {
                 Log.d(TAG, "BRSubmitTransactionCallback: succeeded");
-                managerImpl.announceSubmit(rid, transaction, 0);
+                manager.announceSubmit(handle, true);
             }
 
             @Override
             public void handleError(QueryError error) {
                 Log.e(TAG, "BRSubmitTransactionCallback: failed", error);
-                managerImpl.announceSubmit(rid, transaction, 1);
+                manager.announceSubmit(handle, false);
             }
         });
-    }
-
-    private List<String> getAllAddrs(BRWalletManager manager) {
-        final UnsignedInteger UNUSED_ADDR_LIMIT = UnsignedInteger.valueOf(25);
-
-        manager.generateUnusedAddrs(UNUSED_ADDR_LIMIT);
-        List<String> addrs = new ArrayList<>(manager.getAllAddrs());
-        addrs.addAll(manager.getAllAddrsLegacy());
-        return addrs;
     }
 
     // ETH client

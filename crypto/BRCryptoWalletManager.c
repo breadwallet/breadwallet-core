@@ -33,6 +33,22 @@
 static void
 cryptoWalletManagerRelease (BRCryptoWalletManager cwm);
 
+typedef enum  {
+    CWM_CALLBACK_TYPE_BTC_GET_BLOCK_NUMBER,
+    CWM_CALLBACK_TYPE_BTC_GET_TRANSACTIONS,
+    CWM_CALLBACK_TYPE_BTC_SUBMIT_TRANSACTION
+} BRCryptoCWMCallbackType;
+
+struct BRCryptoCWMCallbackRecord {
+    BRCryptoCWMCallbackType type;
+    union {
+        struct {
+            BRTransaction *transaction;
+        } btcSubmit;
+    } u;
+    int rid;
+};
+
 struct BRCryptoWalletManagerRecord {
     BRCryptoBlockChainType type;
     union {
@@ -66,18 +82,40 @@ static void
 cwmGetBlockNumberAsBTC (BRWalletManagerClientContext context,
                         BRWalletManager manager,
                         int rid) {
-    BRCryptoWalletManager cwm = context;
-    cwm->client.btc.funcGetBlockNumber (cwm->client.context, manager, rid);
+    BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
+
+    BRCryptoCWMCallbackHandle record = calloc (1, sizeof(struct BRCryptoCWMCallbackRecord));
+    record->type = CWM_CALLBACK_TYPE_BTC_GET_BLOCK_NUMBER;
+    record->rid = rid;
+
+    cwm->client.btc.funcGetBlockNumber (cwm->client.context, cwm, record);
 }
 
 static void
 cwmGetTransactionsAsBTC (BRWalletManagerClientContext context,
-                         BRWalletManager btcManager,
+                         BRWalletManager manager,
                          uint64_t begBlockNumber,
                          uint64_t endBlockNumber,
                          int rid) {
-    BRCryptoWalletManager cwm = context;
-    cwm->client.btc.funcGetTransactions (cwm->client.context, btcManager, begBlockNumber, endBlockNumber, rid);
+    BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
+
+    BRCryptoCWMCallbackHandle record = calloc (1, sizeof(struct BRCryptoCWMCallbackRecord));
+    record->type = CWM_CALLBACK_TYPE_BTC_GET_TRANSACTIONS;
+    record->rid = rid;
+
+    BRWalletManagerGenerateUnusedAddrs (manager, 25);
+
+    size_t addrCount = 0;
+    BRAddress *addrs = BRWalletManagerGetAllAddrs (manager, &addrCount);
+
+    char **addrStrings = calloc (addrCount, sizeof(char *));
+    for (size_t index = 0; index < addrCount; index ++)
+        addrStrings[index] = &addrs[index];
+
+    cwm->client.btc.funcGetTransactions (cwm->client.context, cwm, record, addrStrings, addrCount, begBlockNumber, endBlockNumber);
+
+    free (addrStrings);
+    free (addrs);
 }
 
 static void
@@ -86,8 +124,18 @@ cwmSubmitTransactionAsBTC (BRWalletManagerClientContext context,
                            BRWallet *wallet,
                            BRTransaction *transaction,
                            int rid) {
-    BRCryptoWalletManager cwm = context;
-    cwm->client.btc.funcSubmitTransaction (cwm->client.context, manager, wallet, transaction, rid);
+    BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
+
+    BRCryptoCWMCallbackHandle record = calloc (1, sizeof(struct BRCryptoCWMCallbackRecord));
+    record->type = CWM_CALLBACK_TYPE_BTC_SUBMIT_TRANSACTION;
+    record->u.btcSubmit.transaction = transaction;
+    record->rid = rid;
+
+    // TODO(fix): Not a fan of putting this on the stack
+    uint8_t data[BRTransactionSerialize(transaction, NULL, 0)];
+    size_t len = BRTransactionSerialize(transaction, data, sizeof(data));
+
+    cwm->client.btc.funcSubmitTransaction (cwm->client.context, cwm, record, data, len);
 }
 
 static void
@@ -1231,6 +1279,71 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
             break;
 
     }
+}
+
+extern void
+cwmAnnounceBlockNumber (BRCryptoWalletManager cwm,
+                        BRCryptoCWMCallbackHandle handle,
+                        uint64_t blockHeight,
+                        BRCryptoBoolean success) {
+    assert (cwm); assert (handle); assert (CWM_CALLBACK_TYPE_BTC_GET_BLOCK_NUMBER == handle->type);
+    cwm = cryptoWalletManagerTake (cwm);
+
+    if (success) 
+        bwmAnnounceBlockNumber (cwm->u.btc, handle->rid, blockHeight);
+
+    cryptoWalletManagerGive (cwm);
+    free (handle);
+}
+
+extern void
+cwmAnnounceTransaction (BRCryptoWalletManager cwm,
+                        BRCryptoCWMCallbackHandle handle,
+                        uint8_t *transaction,
+                        size_t transactionLength,
+                        uint64_t timestamp,
+                        uint64_t blockHeight) {
+    assert (cwm); assert (handle); assert (CWM_CALLBACK_TYPE_BTC_GET_TRANSACTIONS == handle->type);
+    cwm = cryptoWalletManagerTake (cwm);
+
+    // TODO(fix): How do we want to handle failure? Should the caller of this function be notified?
+    BRTransaction *tx = BRTransactionParse (transaction, transactionLength);
+    if (NULL != tx) {
+        assert (timestamp <= UINT32_MAX); assert (blockHeight <= UINT32_MAX);
+        tx->timestamp = (uint32_t) timestamp;
+        tx->blockHeight = (uint32_t) blockHeight;
+        bwmAnnounceTransaction (cwm->u.btc, handle->rid, tx);
+    }
+
+    cryptoWalletManagerGive (cwm);
+    // DON'T free(handle);
+}
+
+extern void
+cwmAnnounceTransactionComplete (BRCryptoWalletManager cwm,
+                                BRCryptoCWMCallbackHandle handle,
+                                BRCryptoBoolean success) {
+    assert (cwm); assert (handle); assert (CWM_CALLBACK_TYPE_BTC_GET_TRANSACTIONS == handle->type);
+    cwm = cryptoWalletManagerTake (cwm);
+
+    bwmAnnounceTransactionComplete (cwm->u.btc, handle->rid, success);
+
+    cryptoWalletManagerGive (cwm);
+    free (handle);
+}
+
+extern void
+cwmAnnounceSubmit (BRCryptoWalletManager cwm,
+                   BRCryptoCWMCallbackHandle handle,
+                   BRCryptoBoolean success) {
+    assert (cwm); assert (handle); assert (CWM_CALLBACK_TYPE_BTC_SUBMIT_TRANSACTION == handle->type);
+    cwm = cryptoWalletManagerTake (cwm);
+
+    // TODO(fix): What is the memory management story for this transaction?
+    bwmAnnounceSubmit (cwm->u.btc, handle->rid, handle->u.btcSubmit.transaction, CRYPTO_TRUE == success ? 0 : 1);
+
+    cryptoWalletManagerGive (cwm);
+    free (handle);
 }
 
 private_extern BRCryptoBoolean

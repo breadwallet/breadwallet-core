@@ -247,10 +247,6 @@ extern BRAddress *
 BRWalletManagerGetAllAddrs (BRWalletManager manager,
                             size_t *addressCount);
 
-extern BRAddress *
-BRWalletManagerGetAllAddrsLegacy (BRWalletManager manager,
-                                  size_t *addressCount);
-
 //
 // These should not be needed if the events are sufficient
 //

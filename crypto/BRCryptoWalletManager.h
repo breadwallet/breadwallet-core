@@ -90,7 +90,7 @@ extern "C" {
     } BRCryptoWalletManagerEvent;
 
     /// MARK: Listener
-    
+
     typedef void *BRCryptoCWMListenerContext;
 
     /// Handler must 'give': manager, event.wallet.value
@@ -135,10 +135,33 @@ extern "C" {
         BREthereumClientHandlerGetNonce funcGetNonce;
     } BRCryptoCWMClientETH;
 
+    typedef struct BRCryptoCWMCallbackRecord *BRCryptoCWMCallbackHandle;
+
+    typedef void
+    (*BRCryptoCWMGetBlockNumberCallback) (BRCryptoCWMClientContext context,
+                                          BRCryptoWalletManager manager,
+                                          BRCryptoCWMCallbackHandle handle);
+
+    typedef void
+    (*BRCryptoCWMGetTransactionsCallback) (BRCryptoCWMClientContext context,
+                                           BRCryptoWalletManager manager,
+                                           BRCryptoCWMCallbackHandle handle,
+                                           char **addresses,
+                                           size_t addressCount,
+                                           uint64_t begBlockNumber,
+                                           uint64_t endBlockNumber);
+
+    typedef void
+    (*BRCryptoCWMSubmitTransactionCallback) (BRCryptoCWMClientContext context,
+                                             BRCryptoWalletManager manager,
+                                             BRCryptoCWMCallbackHandle handle,
+                                             uint8_t *transaction,
+                                             size_t transactionLength);
+
     typedef struct {
-        BRGetBlockNumberCallback  funcGetBlockNumber;
-        BRGetTransactionsCallback funcGetTransactions;
-        BRSubmitTransactionCallback funcSubmitTransaction;
+        BRCryptoCWMGetBlockNumberCallback  funcGetBlockNumber;
+        BRCryptoCWMGetTransactionsCallback funcGetTransactions;
+        BRCryptoCWMSubmitTransactionCallback funcSubmitTransaction;
     } BRCryptoCWMClientBTC;
 
     typedef struct {
@@ -207,7 +230,31 @@ extern "C" {
                                BRCryptoWallet wid,
                                BRCryptoTransfer tid,
                                const char *paperKey);
-    
+
+    extern void
+    cwmAnnounceBlockNumber (BRCryptoWalletManager cwm,
+                            BRCryptoCWMCallbackHandle handle,
+                            uint64_t blockHeight,
+                            BRCryptoBoolean success);
+
+    extern void
+    cwmAnnounceTransaction (BRCryptoWalletManager cwm,
+                            BRCryptoCWMCallbackHandle handle,
+                            uint8_t *transaction,
+                            size_t transactionLength,
+                            uint64_t timestamp,
+                            uint64_t blockHeight);
+
+    extern void
+    cwmAnnounceTransactionComplete (BRCryptoWalletManager cwm,
+                                    BRCryptoCWMCallbackHandle handle,
+                                    BRCryptoBoolean success);
+
+    extern void
+    cwmAnnounceSubmit (BRCryptoWalletManager cwm,
+                       BRCryptoCWMCallbackHandle handle,
+                       BRCryptoBoolean success);
+
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoWalletManager, cryptoWalletManager);
 
 #ifdef __cplusplus
