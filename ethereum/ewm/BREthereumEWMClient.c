@@ -662,10 +662,39 @@ ewmAnnounceSubmitTransfer (BREthereumEWM ewm,
 //
 extern void
 ewmUpdateTokens (BREthereumEWM ewm) {
-    ewm->client.funcGetTokens
-    (ewm->client.context,
-     ewm,
-     ++ewm->requestId);
+    unsigned int rid = ++ewm->requestId;
+
+    if (ethereumMainnet == ewm->network)
+        ewm->client.funcGetTokens
+        (ewm->client.context,
+         ewm,
+         rid);
+
+    else if (ethereumTestnet == ewm->network) {
+        ewmAnnounceToken (ewm, rid,
+                          "0x7108ca7c4718efa810457f228305c9c71390931a",
+                          "BRD",
+                          "BRD Token",
+                          "BRD Token Description",
+                          18,
+                          NULL,
+                          NULL);
+        ewmAnnounceToken(ewm, rid,
+                         "0x722dd3f80bac40c951b51bdd28dd19d435762180",
+                         "TST",
+                         "Test Standard Token",
+                         "TeST Standard Token (TST) for TeSTing (TST)",
+                         18,
+                         NULL,
+                         NULL);
+        ewmAnnounceTokenComplete (ewm, rid, ETHEREUM_BOOLEAN_TRUE);
+    }
+
+    else if (ethereumRinkeby == ewm->network)
+        ewmAnnounceTokenComplete (ewm, rid, ETHEREUM_BOOLEAN_TRUE);
+
+    else
+        assert (0);
 }
 
 extern void
