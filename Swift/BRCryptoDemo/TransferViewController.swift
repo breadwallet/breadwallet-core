@@ -224,7 +224,7 @@ class TransferViewController: UIViewController, TransferListener {
     func handleTransferEvent(system: System, manager: WalletManager, wallet: Wallet, transfer: Transfer, event: TransferEvent) {
         DispatchQueue.main.async {
             print ("APP: TVC: TransferEvent: \(event)")
-            guard self.wallet === wallet /* && view is visible */  else { return }
+            guard self.wallet == wallet /* && view is visible */  else { return }
 
             // This, for sure
             self.dotView.mainColor = self.colorForState()
