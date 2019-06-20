@@ -64,6 +64,8 @@ bwmAnnounceBlockNumber (BRWalletManager manager,
 typedef void
 (*BRGetTransactionsCallback) (BRWalletManagerClientContext context,
                               BRWalletManager manager,
+                              char **addresses,
+                              size_t addressCount,
                               uint64_t begBlockNumber,
                               uint64_t endBlockNumber,
                               int rid);
@@ -217,9 +219,8 @@ BRWalletManagerScan (BRWalletManager manager);
  * Generate, if needed, unsued addresses up to `limit` entries in the wallet.  The
  * addresses are both 'internal' and 'external' ones.
  */
-extern void
-BRWalletManagerGenerateUnusedAddrs (BRWalletManager manager,
-                                    uint32_t limit);
+extern size_t
+BRWalletManagerGenerateUnusedAddrs (BRWalletManager manager);
 
 /**
  * Return an array of unsued addresses with up to `limit` entries.  This will generate

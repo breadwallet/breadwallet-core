@@ -15,6 +15,7 @@
 #include "BRArray.h"
 #include "BRSet.h"
 #include "BRWalletManager.h"
+#include "BRWalletManagerPrivate.h"
 #include "BRPeerManager.h"
 #include "BRMerkleBlock.h"
 #include "BRBase58.h"
@@ -37,9 +38,6 @@
 static void
 bwmPeriodicDispatcher (BREventHandler handler,
                        BREventTimeout *event);
-
-extern const BREventType *bwmEventTypes[];
-extern const unsigned int bwmEventTypesCount;
 
 static void _BRWalletManagerBalanceChanged (void *info, uint64_t balanceInSatoshi);
 static void _BRWalletManagerTxAdded   (void *info, BRTransaction *tx);
@@ -93,59 +91,6 @@ getForkId (const BRChainParams *params) {
 
     return (BRWalletForkId) -1;
 }
-
-/// MARK: - BRWalletManager
-
-struct BRWalletManagerStruct {
-
-    /** The mode */
-    BRSyncMode mode;
-
-    /** The wallet */
-    BRWallet *wallet;
-
-    /** The peer manager */
-    BRPeerManager  *peerManager;
-
-    /** The client */
-    BRWalletManagerClient client;
-
-    /** The file service */
-    BRFileService fileService;
-
-    /**
-     * The BlockHeight is the largest block number seen
-     */
-    uint32_t blockHeight;
-
-    /**
-     * An identiifer for a BRD Request
-     */
-    unsigned int requestId;
-
-    /**
-     * An EventHandler for Main.  All 'announcements' (via PeerManager (or BRD) hit here.
-     */
-    BREventHandler handler;
-
-    /**
-     * The Lock ensuring single thread access to BWM state.
-     */
-    pthread_mutex_t lock;
-
-    /**
-     * If we are syncing with BRD, instead of as P2P with PeerManager, then we'll keep a record to
-     * ensure we've successfully completed the getTransactions() callbacks to the client.
-     */
-    struct {
-        uint64_t begBlockNumber;
-        uint64_t endBlockNumber;
-
-        int rid;
-
-        int completed:1;
-    } brdSync;
-};
 
 /// MARK: - Transaction File Service
 
@@ -287,7 +232,7 @@ fileServiceTypeBlockV1Reader (BRFileServiceContext context,
 
     BRMerkleBlock *block = BRMerkleBlockParse (bytes, bytesCount);
     if (NULL == block) return NULL;
-    
+
     block->height = UInt32GetLE(&bytes[bytesCount - blockHeightSize]);
 
     return block;
@@ -461,7 +406,7 @@ BRWalletManagerNew (BRWalletManagerClient client,
                               : (BRChainParamsIsBitcash (params)
                                  ? "Core Bitcash BWM"
                                  : "Core BWM"));
-    
+
     // The `main` event handler has a periodic wake-up.  Used, perhaps, if the mode indicates
     // that we should/might query the BRD backend services.
     bwm->handler = eventHandlerCreate (handlerName,
@@ -472,7 +417,7 @@ BRWalletManagerNew (BRWalletManagerClient client,
     //
     // Create the File Service w/ associated types.
     //
-    bwm->fileService = fileServiceCreate (baseStoragePath, currencyName, networkName, 
+    bwm->fileService = fileServiceCreate (baseStoragePath, currencyName, networkName,
                                               bwm,
                                               bwmFileServiceErrorHandler);
     if (NULL == bwm->fileService) return bwmCreateErrorHandler (bwm, 1, "create");
@@ -564,9 +509,11 @@ BRWalletManagerNew (BRWalletManagerClient client,
 
     // Initialize the `brdSync` struct
     bwm->brdSync.rid = -1;
+    bwm->brdSync.lastInternalAddress = BR_ADDRESS_NONE;
+    bwm->brdSync.lastExternalAddress = BR_ADDRESS_NONE;
     bwm->brdSync.begBlockNumber = earliestCheckPoint->height;
     bwm->brdSync.endBlockNumber = bwm->brdSync.begBlockNumber;
-    bwm->brdSync.completed = 0;
+    bwm->brdSync.completed = 1;
 
 
     // Support the requested mode.  We already created the BRPeerManager.  But we might consider
@@ -578,10 +525,10 @@ BRWalletManagerNew (BRWalletManagerClient client,
         case SYNC_MODE_BRD_WITH_P2P_SEND: {
             // Create a 'special' peer manager.
             // <code removed>
-            
+
             // Announce all the provided transactions...
             // <code removed>
-            
+
             // ... and then the latest block.
             //            BREthereumBlock lastBlock = NULL;
             //            FOR_SET (BREthereumBlock, block, blocks)
@@ -591,13 +538,13 @@ BRWalletManagerNew (BRWalletManagerClient client,
             //                                 blockGetHash( lastBlock),
             //                                 blockGetNumber (lastBlock),
             //                                 blockGetTimestamp (lastBlock));
-            
+
             // ... and then just ignore nodes
             // <code removed>
-            
+
             // Free sets... BUT DO NOT free 'nodes' as those had 'OwnershipGiven' in bcsCreate()
             // <code removed>
-            
+
             // Add ewmPeriodicDispatcher to handlerForMain.  Note that a 'timeout' is handled by
             // an OOB (out-of-band) event whereby the event is pushed to the front of the queue.
             // This may not be the right thing to do.  Imagine that EWM is blocked somehow (doing
@@ -607,15 +554,15 @@ BRWalletManagerNew (BRWalletManagerClient client,
             // The function `ewmPeriodcDispatcher()` will be installed as a periodic alarm
             // on the event handler.  It will only trigger when the event handler is running (
             // the time between `eventHandlerStart()` and `eventHandlerStop()`)
-            
+
             eventHandlerSetTimeoutDispatcher (bwm->handler,
                                               1000 * BWM_SLEEP_SECONDS,
                                               (BREventDispatcher) bwmPeriodicDispatcher,
                                               (void*) bwm);
-            
+
             break;
         }
-            
+
         case SYNC_MODE_P2P_WITH_BRD_SYNC:  //
         case SYNC_MODE_P2P_ONLY: {
             // Create a 'special' peer manager
@@ -630,7 +577,7 @@ BRWalletManagerNew (BRWalletManagerClient client,
                                         (BRWalletManagerEvent) {
                                             BITCOIN_WALLET_MANAGER_CREATED
                                         });
-    
+
     assert (NULL != bwm->client.funcWalletEvent);
     bwm->client.funcWalletEvent (bwm->client.context,
                                  bwm,
@@ -686,16 +633,16 @@ BRWalletManagerConnect (BRWalletManager manager) {
     switch (manager->mode) {
         case SYNC_MODE_BRD_ONLY:
             break;
-            
+
         case SYNC_MODE_BRD_WITH_P2P_SEND:
         case SYNC_MODE_P2P_WITH_BRD_SYNC:
         case SYNC_MODE_P2P_ONLY:
             BRPeerManagerConnect(manager->peerManager);
             break;
     }
-    
+
     eventHandlerStart (manager->handler);
-    
+
     assert (NULL != manager->client.funcWalletManagerEvent);
     manager->client.funcWalletManagerEvent (manager->client.context,
                                             manager,
@@ -709,16 +656,16 @@ BRWalletManagerDisconnect (BRWalletManager manager) {
     switch (manager->mode) {
         case SYNC_MODE_BRD_ONLY:
             break;
-            
+
         case SYNC_MODE_BRD_WITH_P2P_SEND:
         case SYNC_MODE_P2P_WITH_BRD_SYNC:
         case SYNC_MODE_P2P_ONLY:
             BRPeerManagerDisconnect(manager->peerManager);
             break;
     }
-    
+
     eventHandlerStop(manager->handler);
-    
+
     assert (NULL != manager->client.funcWalletManagerEvent);
     manager->client.funcWalletManagerEvent (manager->client.context,
                                             manager,
@@ -814,11 +761,10 @@ BRWalletManagerGetUnusedAddrsLegacy (BRWalletManager manager,
     return addresses;
 }
 
-extern void
-BRWalletManagerGenerateUnusedAddrs (BRWalletManager manager,
-                                    uint32_t limit) {
-    BRWalletUnusedAddrs (manager->wallet, NULL, limit, 0);
-    BRWalletUnusedAddrs (manager->wallet, NULL, limit, 1);
+extern size_t
+BRWalletManagerGenerateUnusedAddrs (BRWalletManager manager) {
+    return (BRWalletUnusedAddrs (manager->wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL, 0) +
+            BRWalletUnusedAddrs (manager->wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL, 1));
 }
 
 extern BRAddress *
@@ -831,7 +777,7 @@ BRWalletManagerGetAllAddrs (BRWalletManager manager,
     BRAddress *addrs = (BRAddress *) calloc (2 * addrCount, sizeof (BRAddress));
     BRWalletAllAddrs (manager->wallet, addrs, addrCount);
 
-    memcpy (addrs + addrCount, addrs, addrCount);
+    memcpy (addrs + addrCount, addrs, addrCount * sizeof(BRAddress));
     for (size_t index = 0; index < addrCount; index++)
         BRWalletManagerAddressToLegacy (&addrs[addrCount + index]);
 
@@ -1022,6 +968,17 @@ _BRWalletManagerThreadCleanup (void *info) {
     // event
 }
 
+static const char **
+_BRWalletManagerGetAllAddresses (BRWalletManager bwm, size_t *addressCount) {
+    BRAddress *addressArray = BRWalletManagerGetAllAddrs (bwm, addressCount);
+
+    const char **addresStrings = calloc (*addressCount, sizeof(char *));
+    for (size_t index = 0; index < *addressCount; index ++)
+        addresStrings[index] = (char *) &addressArray[index];
+
+    return addresStrings;
+}
+
 ///
 /// MARK: Events
 //
@@ -1045,20 +1002,28 @@ bwmUpdateBlockNumber (BRWalletManager bwm) {
 }
 
 static void
-bwmUpdateTransactions (BRWalletManager bwm) {
+bwmUpdateTransactions (BRWalletManager bwm,
+                       const char **addresses,
+                       size_t addressCount,
+                       uint64_t begBlockNumber,
+                       uint64_t endBlockNumber,
+                       int rid) {
     switch (bwm->mode) {
         case SYNC_MODE_BRD_ONLY:
         case SYNC_MODE_BRD_WITH_P2P_SEND:
         case SYNC_MODE_P2P_WITH_BRD_SYNC:
             assert (NULL != bwm->client.funcGetTransactions);
+
             // Callback to 'client' to get all transactions (for all wallet addresses) between
             // a {beg,end}BlockNumber.  The client will gather the transactions and then call
             // bwmAnnounceTransaction()  (for each one or with all of them).
-                bwm->client.funcGetTransactions (bwm->client.context,
-                                                 bwm,
-                                                 bwm->brdSync.begBlockNumber,
-                                                 bwm->brdSync.endBlockNumber,
-                                                 bwm->requestId++);
+            bwm->client.funcGetTransactions (bwm->client.context,
+                                             bwm,
+                                             addresses,
+                                             addressCount,
+                                             begBlockNumber,
+                                             endBlockNumber,
+                                             rid);
             break;
 
         case SYNC_MODE_P2P_ONLY:
@@ -1068,39 +1033,28 @@ bwmUpdateTransactions (BRWalletManager bwm) {
     }
 }
 
-const BREventType *bwmEventTypes[] = {
-//    &handleBlockChainEventType,
-//    &handleAccountStateEventType,
-//    &handleBalanceEventType,
-//    &handleGasPriceEventType,
-//    &handleGasEstimateEventType,
-//    &handleTransactionEventType,
-//    &handleLogEventType,
-//    &handleSaveBlocksEventType,
-//    &handleSaveNodesEventType,
-//    &handleSyncEventType,
-//    &handleGetBlocksEventType,
-//
-//    &ewmClientWalletEventType,
-//    //    &ewmClientBlockEventType,
-//    &ewmClientTransactionEventType,
-//    &ewmClientPeerEventType,
-//    &ewmClientEWMEventType,
-//    &ewmClientAnnounceBlockNumberEventType,
-//    &ewmClientAnnounceNonceEventType,
-//    &ewmClientAnnounceBalanceEventType,
-//    &ewmClientAnnounceGasPriceEventType,
-//    &ewmClientAnnounceGasEstimateEventType,
-//    &ewmClientAnnounceSubmitTransferEventType,
-//    &ewmClientAnnounceTransactionEventType,
-//    &ewmClientAnnounceLogEventType,
-//    &ewmClientAnnounceCompleteEventType,
-//    &ewmClientAnnounceTokenEventType,
-//    &ewmClientAnnounceTokenCompleteEventType,
-};
+extern int
+bwmAnnounceBlockNumber (BRWalletManager manager,
+                        int rid,
+                        uint64_t blockNumber) {
+    bwmSignalAnnounceBlockNumber (manager, rid, blockNumber);
+    return 1;
+}
 
-const unsigned int
-bwmEventTypesCount = (sizeof (bwmEventTypes) / sizeof (BREventType*));
+extern int
+bwmAnnounceTransaction (BRWalletManager manager,
+                        int id,
+                        BRTransaction *transaction) {
+    bwmSignalAnnounceTransaction (manager, id, transaction);
+    return 1;
+}
+
+extern void
+bwmAnnounceTransactionComplete (BRWalletManager manager,
+                                int rid,
+                                int success) {
+    bwmSignalAnnounceTransactionComplete (manager, rid, success);
+}
 
 #if !defined (MAX)
 #define MAX(a,b) (((a)>(b))?(a):(b))
@@ -1122,59 +1076,51 @@ bwmPeriodicDispatcher (BREventHandler handler,
 
     // Handle a BRD Sync:
 
-    // 1) check if the prior sync has completed.
+    // check if the prior sync has completed.
     if (bwm->brdSync.completed) {
-        // 1a) if so, advance the sync range by updating `begBlockNumber`
+        // if so, advance the sync range by updating `begBlockNumber`
         bwm->brdSync.begBlockNumber = (bwm->brdSync.endBlockNumber >=  BWM_BRD_SYNC_START_BLOCK_OFFSET
                                        ? bwm->brdSync.endBlockNumber - BWM_BRD_SYNC_START_BLOCK_OFFSET
                                        : 0);
-    }
-    // 2) completed or not, update the `endBlockNumber` to the current block height.
-    bwm->brdSync.endBlockNumber = MAX (bwm->blockHeight, bwm->brdSync.begBlockNumber);
 
-    // 3) we'll update transactions if there are more blocks to examine
-    if (bwm->brdSync.begBlockNumber != bwm->brdSync.endBlockNumber) {
+        // update the `endBlockNumber` to the current block height.
+        bwm->brdSync.endBlockNumber = MAX (bwm->blockHeight, bwm->brdSync.begBlockNumber);
 
-        // 3a) Save the current requestId
-        bwm->brdSync.rid = bwm->requestId;
+        // we'll update transactions if there are more blocks to examine
+        if (bwm->brdSync.begBlockNumber != bwm->brdSync.endBlockNumber) {
 
-        // 3b) Query all transactions; each one found will have bwmAnnounceTransaction() invoked
-        // which will process the transaction into the wallet.
-        bwmUpdateTransactions(bwm);
+            // generate addresses
+            BRWalletManagerGenerateUnusedAddrs (bwm);
 
-        // 3c) Mark as not completed
-        bwm->brdSync.completed = 0;
+            // get the addresses to query on
+            size_t addressCount = 0;
+            const char **addresses = _BRWalletManagerGetAllAddresses (bwm, &addressCount);
+
+            // save the current requestId
+            bwm->brdSync.rid = bwm->requestId;
+
+            // save the last known external and internal addresses
+            BRWalletUnusedAddrs(bwm->wallet, &bwm->brdSync.lastExternalAddress, 1, 0);
+            BRWalletUnusedAddrs(bwm->wallet, &bwm->brdSync.lastInternalAddress, 1, 1);
+
+            // query all transactions; each one found will have bwmAnnounceTransaction() invoked
+            // which will process the transaction into the wallet.
+            bwmUpdateTransactions(bwm,
+                                  addresses,
+                                  addressCount,
+                                  bwm->brdSync.begBlockNumber,
+                                  bwm->brdSync.endBlockNumber,
+                                  bwm->brdSync.rid);
+
+            // mark as not completed
+            bwm->brdSync.completed = 0;
+
+            // deallocate the address list
+            free (addresses);
+        }
     }
 
     // End handling a BRD Sync
-}
-
-extern int // success - data is valid
-bwmAnnounceTransaction (BRWalletManager manager,
-                        int id,
-                        BRTransaction *transaction) {
-    pthread_mutex_lock (&manager->lock);
-    BRWalletRegisterTransaction (manager->wallet, transaction);
-    pthread_mutex_unlock (&manager->lock);
-    return 1;
-}
-
-extern void
-bwmAnnounceTransactionComplete (BRWalletManager manager,
-                                int rid,
-                                int success) {
-    pthread_mutex_lock (&manager->lock);
-    if (rid == manager->brdSync.rid)
-        manager->brdSync.completed = success;
-    pthread_mutex_unlock (&manager->lock);
-}
-
-extern int
-bwmAnnounceBlockNumber (BRWalletManager manager,
-                        int rid,
-                        uint64_t blockNumber) {
-    BRWalletManagerUpdateHeightIfAppropriate(manager, (int32_t) blockNumber);
-    return 1;
 }
 
 extern void
@@ -1182,6 +1128,69 @@ bwmAnnounceSubmit (BRWalletManager manager,
                    int rid,
                    BRTransaction *transaction,
                    int error) {
+    bwmSignalAnnounceSubmit (manager, rid, transaction, error);
+}
+
+extern int
+bwmHandleAnnounceBlockNumber (BRWalletManager manager,
+                              int rid,
+                              uint64_t blockNumber) {
+    BRWalletManagerUpdateHeightIfAppropriate(manager, (int32_t) blockNumber);
+    return 1;
+}
+
+extern int
+bwmHandleAnnounceTransaction (BRWalletManager manager,
+                              int id,
+                              BRTransaction *transaction) {
+    pthread_mutex_lock (&manager->lock);
+    BRWalletRegisterTransaction (manager->wallet, transaction);
+    pthread_mutex_unlock (&manager->lock);
+    return 1;
+}
+
+extern void
+bwmHandleAnnounceTransactionComplete (BRWalletManager manager,
+                                      int rid,
+                                      int success) {
+    pthread_mutex_lock (&manager->lock);
+    if (rid == manager->brdSync.rid) {
+        BRAddress externalAddress = BR_ADDRESS_NONE;
+        BRAddress internalAddress = BR_ADDRESS_NONE;
+
+        BRWalletManagerGenerateUnusedAddrs (manager);
+
+        BRWalletUnusedAddrs (manager->wallet, &externalAddress, 1, 0);
+        BRWalletUnusedAddrs (manager->wallet, &internalAddress, 1, 1);
+
+        if (BRAddressEq (&externalAddress, &manager->brdSync.lastExternalAddress) &&
+            BRAddressEq (&internalAddress, &manager->brdSync.lastInternalAddress)) {
+            manager->brdSync.completed = 1;
+        } else {
+            size_t addressCount = 0;
+            const char **addresses = _BRWalletManagerGetAllAddresses (manager, &addressCount);
+
+            manager->brdSync.lastExternalAddress = externalAddress;
+            manager->brdSync.lastInternalAddress = internalAddress;
+
+            bwmUpdateTransactions (manager,
+                                   addresses,
+                                   addressCount,
+                                   manager->brdSync.begBlockNumber,
+                                   manager->brdSync.endBlockNumber,
+                                   manager->brdSync.rid);
+
+            free (addresses);
+        }
+    }
+    pthread_mutex_unlock (&manager->lock);
+}
+
+extern void
+bwmHandleAnnounceSubmit (BRWalletManager manager,
+                         int rid,
+                         BRTransaction *transaction,
+                         int error) {
     assert (NULL != manager->client.funcWalletEvent);
     manager->client.funcWalletEvent (manager->client.context,
                                      manager,

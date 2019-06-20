@@ -810,7 +810,6 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                             manager.announceGetTransactionsItemBtc(callbackState, optRaw.get(), timestamp, blockHeight);
                         }
 
-                        // TODO(fix): The C layer needs to handle calling this again with any newly derived addresses
                         manager.announceGetTransactionsComplete(callbackState, true);
                     }
 

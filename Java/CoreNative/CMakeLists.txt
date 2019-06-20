@@ -77,6 +77,8 @@ target_sources (crypto
                 src/main/cpp/core/bitcoin/BRWallet.h
                 src/main/cpp/core/bitcoin/BRWalletManager.c
                 src/main/cpp/core/bitcoin/BRWalletManager.h
+                src/main/cpp/core/bitcoin/BRWalletManagerEvent.c
+                src/main/cpp/core/bitcoin/BRWalletManagerPrivate.h
                 )
 
 # BCash
