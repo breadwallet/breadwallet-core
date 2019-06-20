@@ -719,6 +719,10 @@ public class BREthereumEWM extends BRCoreJniReference {
 
     protected native boolean jniTransactionIsSubmitted(long transactionId);
 
+    protected native boolean jniTransactionIsErrored(long transactionId);
+
+    protected native String jniTransactionGetErrorDescription(long transactionId);
+
     //
     // JNI: Tokens
     //
