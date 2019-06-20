@@ -49,7 +49,7 @@ typedef enum  {
     CWM_CALLBACK_TYPE_ETH_GET_NONCE,
 } BRCryptoCWMCallbackType;
 
-struct BRCryptoCWMCompletionStateRecord {
+struct BRCryptoCWMClientCallbackStateRecord {
     BRCryptoCWMCallbackType type;
     union {
         struct {
@@ -101,11 +101,11 @@ cwmGetBlockNumberAsBTC (BRWalletManagerClientContext context,
                         int rid) {
     BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
 
-    BRCryptoCWMCompletionState completetionState = calloc (1, sizeof(struct BRCryptoCWMCompletionStateRecord));
-    completetionState->type = CWM_CALLBACK_TYPE_BTC_GET_BLOCK_NUMBER;
-    completetionState->rid = rid;
+    BRCryptoCWMClientCallbackState callbackState = calloc (1, sizeof(struct BRCryptoCWMClientCallbackStateRecord));
+    callbackState->type = CWM_CALLBACK_TYPE_BTC_GET_BLOCK_NUMBER;
+    callbackState->rid = rid;
 
-    cwm->client.btc.funcGetBlockNumber (cwm->client.context, cwm, completetionState);
+    cwm->client.btc.funcGetBlockNumber (cwm->client.context, cwm, callbackState);
 
     cryptoWalletManagerGive (cwm);
 }
@@ -118,9 +118,9 @@ cwmGetTransactionsAsBTC (BRWalletManagerClientContext context,
                          int rid) {
     BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
 
-    BRCryptoCWMCompletionState completetionState = calloc (1, sizeof(struct BRCryptoCWMCompletionStateRecord));
-    completetionState->type = CWM_CALLBACK_TYPE_BTC_GET_TRANSACTIONS;
-    completetionState->rid = rid;
+    BRCryptoCWMClientCallbackState callbackState = calloc (1, sizeof(struct BRCryptoCWMClientCallbackStateRecord));
+    callbackState->type = CWM_CALLBACK_TYPE_BTC_GET_TRANSACTIONS;
+    callbackState->rid = rid;
 
     BRWalletManagerGenerateUnusedAddrs (manager, 25);
 
@@ -131,7 +131,7 @@ cwmGetTransactionsAsBTC (BRWalletManagerClientContext context,
     for (size_t index = 0; index < addrCount; index ++)
         addrStrings[index] = (char *) &addrs[index];
 
-    cwm->client.btc.funcGetTransactions (cwm->client.context, cwm, completetionState, addrStrings, addrCount, begBlockNumber, endBlockNumber);
+    cwm->client.btc.funcGetTransactions (cwm->client.context, cwm, callbackState, addrStrings, addrCount, begBlockNumber, endBlockNumber);
 
     free (addrStrings);
     free (addrs);
@@ -146,16 +146,16 @@ cwmSubmitTransactionAsBTC (BRWalletManagerClientContext context,
                            int rid) {
     BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
 
-    BRCryptoCWMCompletionState completetionState = calloc (1, sizeof(struct BRCryptoCWMCompletionStateRecord));
-    completetionState->type = CWM_CALLBACK_TYPE_BTC_SUBMIT_TRANSACTION;
-    completetionState->u.btcSubmit.transaction = transaction;
-    completetionState->rid = rid;
+    BRCryptoCWMClientCallbackState callbackState = calloc (1, sizeof(struct BRCryptoCWMClientCallbackStateRecord));
+    callbackState->type = CWM_CALLBACK_TYPE_BTC_SUBMIT_TRANSACTION;
+    callbackState->u.btcSubmit.transaction = transaction;
+    callbackState->rid = rid;
 
     // TODO(fix): Not a fan of putting this on the stack
     uint8_t data[BRTransactionSerialize(transaction, NULL, 0)];
     size_t len = BRTransactionSerialize(transaction, data, sizeof(data));
 
-    cwm->client.btc.funcSubmitTransaction (cwm->client.context, cwm, completetionState, data, len);
+    cwm->client.btc.funcSubmitTransaction (cwm->client.context, cwm, callbackState, data, len);
 
     cryptoWalletManagerGive (cwm);
 }
@@ -962,19 +962,19 @@ cwmGetBalanceAsETH (BREthereumClientContext context,
                     int rid) {
     BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
 
-    BRCryptoCWMCompletionState completetionState = calloc (1, sizeof(struct BRCryptoCWMCompletionStateRecord));
-    completetionState->type = CWM_CALLBACK_TYPE_ETH_GET_BALANCE;
-    completetionState->u.ethWithWallet.wid = wid;
-    completetionState->rid = rid;
+    BRCryptoCWMClientCallbackState callbackState = calloc (1, sizeof(struct BRCryptoCWMClientCallbackStateRecord));
+    callbackState->type = CWM_CALLBACK_TYPE_ETH_GET_BALANCE;
+    callbackState->u.ethWithWallet.wid = wid;
+    callbackState->rid = rid;
 
     BREthereumNetwork network = ewmGetNetwork (ewm);
     char *networkName = networkCopyNameAsLowercase (network);
 
     BREthereumToken token = ewmWalletGetToken (ewm, wid);
     if (NULL == token) {
-        cwm->client.eth.funcGetEtherBalance (cwm->client.context, cwm, completetionState, networkName, address);
+        cwm->client.eth.funcGetEtherBalance (cwm->client.context, cwm, callbackState, networkName, address);
     } else {
-        cwm->client.eth.funcGetTokenBalance (cwm->client.context, cwm, completetionState, networkName, address, tokenGetAddress (token));
+        cwm->client.eth.funcGetTokenBalance (cwm->client.context, cwm, callbackState, networkName, address, tokenGetAddress (token));
     }
 
     free (networkName);
@@ -988,15 +988,15 @@ cwmGetGasPriceAsETH (BREthereumClientContext context,
                      int rid) {
     BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
 
-    BRCryptoCWMCompletionState completetionState = calloc (1, sizeof(struct BRCryptoCWMCompletionStateRecord));
-    completetionState->type = CWM_CALLBACK_TYPE_ETH_GET_GAS_PRICE;
-    completetionState->u.ethWithWallet.wid = wid;
-    completetionState->rid = rid;
+    BRCryptoCWMClientCallbackState callbackState = calloc (1, sizeof(struct BRCryptoCWMClientCallbackStateRecord));
+    callbackState->type = CWM_CALLBACK_TYPE_ETH_GET_GAS_PRICE;
+    callbackState->u.ethWithWallet.wid = wid;
+    callbackState->rid = rid;
 
     BREthereumNetwork network = ewmGetNetwork (ewm);
     char *networkName = networkCopyNameAsLowercase (network);
 
-    cwm->client.eth.funcGetGasPrice (cwm->client.context, cwm, completetionState, networkName);
+    cwm->client.eth.funcGetGasPrice (cwm->client.context, cwm, callbackState, networkName);
 
     free (networkName);
     cryptoWalletManagerGive (cwm);
@@ -1014,16 +1014,16 @@ cwmGetGasEstimateAsETH (BREthereumClientContext context,
                         int rid) {
     BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
 
-    BRCryptoCWMCompletionState completetionState = calloc (1, sizeof(struct BRCryptoCWMCompletionStateRecord));
-    completetionState->type = CWM_CALLBACK_TYPE_ETH_ESTIMATE_GAS;
-    completetionState->u.ethWithTransaction.wid = wid;
-    completetionState->u.ethWithTransaction.tid = tid;
-    completetionState->rid = rid;
+    BRCryptoCWMClientCallbackState callbackState = calloc (1, sizeof(struct BRCryptoCWMClientCallbackStateRecord));
+    callbackState->type = CWM_CALLBACK_TYPE_ETH_ESTIMATE_GAS;
+    callbackState->u.ethWithTransaction.wid = wid;
+    callbackState->u.ethWithTransaction.tid = tid;
+    callbackState->rid = rid;
 
     BREthereumNetwork network = ewmGetNetwork (ewm);
     char *networkName = networkCopyNameAsLowercase (network);
 
-    cwm->client.eth.funcEstimateGas (cwm->client.context, cwm, completetionState, networkName, from, to, amount, data);
+    cwm->client.eth.funcEstimateGas (cwm->client.context, cwm, callbackState, networkName, from, to, amount, data);
 
     free (networkName);
     cryptoWalletManagerGive (cwm);
@@ -1038,16 +1038,16 @@ cwmSubmitTransactionAsETH (BREthereumClientContext context,
                            int rid) {
     BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
 
-    BRCryptoCWMCompletionState completetionState = calloc (1, sizeof(struct BRCryptoCWMCompletionStateRecord));
-    completetionState->type = CWM_CALLBACK_TYPE_ETH_SUBMIT_TRANSACTION;
-    completetionState->u.ethWithTransaction.wid = wid;
-    completetionState->u.ethWithTransaction.tid = tid;
-    completetionState->rid = rid;
+    BRCryptoCWMClientCallbackState callbackState = calloc (1, sizeof(struct BRCryptoCWMClientCallbackStateRecord));
+    callbackState->type = CWM_CALLBACK_TYPE_ETH_SUBMIT_TRANSACTION;
+    callbackState->u.ethWithTransaction.wid = wid;
+    callbackState->u.ethWithTransaction.tid = tid;
+    callbackState->rid = rid;
 
     BREthereumNetwork network = ewmGetNetwork (ewm);
     char *networkName = networkCopyNameAsLowercase (network);
 
-    cwm->client.eth.funcSubmitTransaction (cwm->client.context, cwm, completetionState, networkName, transaction);
+    cwm->client.eth.funcSubmitTransaction (cwm->client.context, cwm, callbackState, networkName, transaction);
 
     free (networkName);
     cryptoWalletManagerGive (cwm);
@@ -1062,14 +1062,14 @@ cwmGetTransactionsAsETH (BREthereumClientContext context,
                          int rid) {
     BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
 
-    BRCryptoCWMCompletionState completetionState = calloc (1, sizeof(struct BRCryptoCWMCompletionStateRecord));
-    completetionState->type = CWM_CALLBACK_TYPE_ETH_GET_TRANSACTIONS;
-    completetionState->rid = rid;
+    BRCryptoCWMClientCallbackState callbackState = calloc (1, sizeof(struct BRCryptoCWMClientCallbackStateRecord));
+    callbackState->type = CWM_CALLBACK_TYPE_ETH_GET_TRANSACTIONS;
+    callbackState->rid = rid;
 
     BREthereumNetwork network = ewmGetNetwork (ewm);
     char *networkName = networkCopyNameAsLowercase (network);
 
-    cwm->client.eth.funcGetTransactions (cwm->client.context, cwm, completetionState, networkName, account, begBlockNumber, endBlockNumber);
+    cwm->client.eth.funcGetTransactions (cwm->client.context, cwm, callbackState, networkName, account, begBlockNumber, endBlockNumber);
 
     free (networkName);
     cryptoWalletManagerGive (cwm);
@@ -1086,14 +1086,14 @@ cwmGetLogsAsETH (BREthereumClientContext context,
                  int rid) {
     BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
 
-    BRCryptoCWMCompletionState completetionState = calloc (1, sizeof(struct BRCryptoCWMCompletionStateRecord));
-    completetionState->type = CWM_CALLBACK_TYPE_ETH_GET_LOGS;
-    completetionState->rid = rid;
+    BRCryptoCWMClientCallbackState callbackState = calloc (1, sizeof(struct BRCryptoCWMClientCallbackStateRecord));
+    callbackState->type = CWM_CALLBACK_TYPE_ETH_GET_LOGS;
+    callbackState->rid = rid;
 
     BREthereumNetwork network = ewmGetNetwork (ewm);
     char *networkName = networkCopyNameAsLowercase (network);
 
-    cwm->client.eth.funcGetLogs (cwm->client.context, cwm, completetionState, networkName, contract, addressIgnore, event, begBlockNumber, endBlockNumber);
+    cwm->client.eth.funcGetLogs (cwm->client.context, cwm, callbackState, networkName, contract, addressIgnore, event, begBlockNumber, endBlockNumber);
 
     free (networkName);
     cryptoWalletManagerGive (cwm);
@@ -1109,14 +1109,14 @@ cwmGetBlocksAsETH (BREthereumClientContext context,
                    int rid) {
     BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
 
-    BRCryptoCWMCompletionState completetionState = calloc (1, sizeof(struct BRCryptoCWMCompletionStateRecord));
-    completetionState->type = CWM_CALLBACK_TYPE_ETH_GET_BLOCKS;
-    completetionState->rid = rid;
+    BRCryptoCWMClientCallbackState callbackState = calloc (1, sizeof(struct BRCryptoCWMClientCallbackStateRecord));
+    callbackState->type = CWM_CALLBACK_TYPE_ETH_GET_BLOCKS;
+    callbackState->rid = rid;
 
     BREthereumNetwork network = ewmGetNetwork (ewm);
     char *networkName = networkCopyNameAsLowercase (network);
 
-    cwm->client.eth.funcGetBlocks (cwm->client.context, cwm, completetionState, networkName, address, interests, blockNumberStart, blockNumberStop);
+    cwm->client.eth.funcGetBlocks (cwm->client.context, cwm, callbackState, networkName, address, interests, blockNumberStart, blockNumberStop);
 
     free (networkName);
     cryptoWalletManagerGive (cwm);
@@ -1128,11 +1128,11 @@ cwmGetTokensAsETH (BREthereumClientContext context,
                    int rid) {
     BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
 
-    BRCryptoCWMCompletionState completetionState = calloc (1, sizeof(struct BRCryptoCWMCompletionStateRecord));
-    completetionState->type = CWM_CALLBACK_TYPE_ETH_GET_TOKENS;
-    completetionState->rid = rid;
+    BRCryptoCWMClientCallbackState callbackState = calloc (1, sizeof(struct BRCryptoCWMClientCallbackStateRecord));
+    callbackState->type = CWM_CALLBACK_TYPE_ETH_GET_TOKENS;
+    callbackState->rid = rid;
 
-    cwm->client.eth.funcGetTokens (cwm->client.context, cwm, completetionState);
+    cwm->client.eth.funcGetTokens (cwm->client.context, cwm, callbackState);
 
     cryptoWalletManagerGive (cwm);
 }
@@ -1143,14 +1143,14 @@ cwmGetBlockNumberAsETH (BREthereumClientContext context,
                         int rid) {
     BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
 
-    BRCryptoCWMCompletionState completetionState = calloc (1, sizeof(struct BRCryptoCWMCompletionStateRecord));
-    completetionState->type = CWM_CALLBACK_TYPE_ETH_GET_BLOCK_NUMBER;
-    completetionState->rid = rid;
+    BRCryptoCWMClientCallbackState callbackState = calloc (1, sizeof(struct BRCryptoCWMClientCallbackStateRecord));
+    callbackState->type = CWM_CALLBACK_TYPE_ETH_GET_BLOCK_NUMBER;
+    callbackState->rid = rid;
 
     BREthereumNetwork network = ewmGetNetwork (ewm);
     char *networkName = networkCopyNameAsLowercase (network);
 
-    cwm->client.eth.funcGetBlockNumber (cwm->client.context, cwm, completetionState, networkName);
+    cwm->client.eth.funcGetBlockNumber (cwm->client.context, cwm, callbackState, networkName);
 
     free (networkName);
     cryptoWalletManagerGive (cwm);
@@ -1163,14 +1163,14 @@ cwmGetNonceAsETH (BREthereumClientContext context,
                   int rid) {
     BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
 
-    BRCryptoCWMCompletionState completetionState = calloc (1, sizeof(struct BRCryptoCWMCompletionStateRecord));
-    completetionState->type = CWM_CALLBACK_TYPE_ETH_GET_NONCE;
-    completetionState->rid = rid;
+    BRCryptoCWMClientCallbackState callbackState = calloc (1, sizeof(struct BRCryptoCWMClientCallbackStateRecord));
+    callbackState->type = CWM_CALLBACK_TYPE_ETH_GET_NONCE;
+    callbackState->rid = rid;
 
     BREthereumNetwork network = ewmGetNetwork (ewm);
     char *networkName = networkCopyNameAsLowercase (network);
 
-    cwm->client.eth.funcGetNonce (cwm->client.context, cwm, completetionState, networkName, address);
+    cwm->client.eth.funcGetNonce (cwm->client.context, cwm, callbackState, networkName, address);
 
     free (networkName);
     cryptoWalletManagerGive (cwm);
@@ -1526,68 +1526,68 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
 
 extern void
 cwmAnnounceGetBlockNumberSuccessAsInteger (BRCryptoWalletManager cwm,
-                                           BRCryptoCWMCompletionState completetionState,
+                                           BRCryptoCWMClientCallbackState callbackState,
                                            uint64_t blockNumber) {
-    assert (cwm); assert (completetionState); assert (CWM_CALLBACK_TYPE_BTC_GET_BLOCK_NUMBER == completetionState->type);
+    assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_BTC_GET_BLOCK_NUMBER == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
     bwmAnnounceBlockNumber (cwm->u.btc,
-                            completetionState->rid,
+                            callbackState->rid,
                             blockNumber);
 
     cryptoWalletManagerGive (cwm);
-    free (completetionState);
+    free (callbackState);
 }
 
 extern void
 cwmAnnounceGetBlockNumberSuccessAsString (BRCryptoWalletManager cwm,
-                                          BRCryptoCWMCompletionState completetionState,
+                                          BRCryptoCWMClientCallbackState callbackState,
                                           const char *blockNumber) {
-    assert (cwm); assert (completetionState); assert (CWM_CALLBACK_TYPE_ETH_GET_BLOCK_NUMBER == completetionState->type);
+    assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_ETH_GET_BLOCK_NUMBER == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
     ewmAnnounceBlockNumber (cwm->u.eth,
                             blockNumber,
-                            completetionState->rid);
+                            callbackState->rid);
 
     cryptoWalletManagerGive (cwm);
-    free (completetionState);
+    free (callbackState);
 }
 
 extern void
 cwmAnnounceGetBlockNumberFailure (BRCryptoWalletManager cwm,
-                                  BRCryptoCWMCompletionState completetionState) {
-    assert (cwm); assert (completetionState);
-    assert (CWM_CALLBACK_TYPE_BTC_GET_BLOCK_NUMBER == completetionState->type || CWM_CALLBACK_TYPE_ETH_GET_BLOCK_NUMBER == completetionState->type);
-    free (completetionState);
+                                  BRCryptoCWMClientCallbackState callbackState) {
+    assert (cwm); assert (callbackState);
+    assert (CWM_CALLBACK_TYPE_BTC_GET_BLOCK_NUMBER == callbackState->type || CWM_CALLBACK_TYPE_ETH_GET_BLOCK_NUMBER == callbackState->type);
+    free (callbackState);
 }
 
 extern void
 cwmAnnounceGetTransactionsItemBTC (BRCryptoWalletManager cwm,
-                                   BRCryptoCWMCompletionState completetionState,
+                                   BRCryptoCWMClientCallbackState callbackState,
                                    uint8_t *transaction,
                                    size_t transactionLength,
                                    uint64_t timestamp,
                                    uint64_t blockHeight) {
-    assert (cwm); assert (completetionState); assert (CWM_CALLBACK_TYPE_BTC_GET_TRANSACTIONS == completetionState->type);
+    assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_BTC_GET_TRANSACTIONS == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
-    // TODO(fix): How do we want to completetionState failure? Should the caller of this function be notified?
+    // TODO(fix): How do we want to callbackState failure? Should the caller of this function be notified?
     BRTransaction *tx = BRTransactionParse (transaction, transactionLength);
     if (NULL != tx) {
         assert (timestamp <= UINT32_MAX); assert (blockHeight <= UINT32_MAX);
         tx->timestamp = (uint32_t) timestamp;
         tx->blockHeight = (uint32_t) blockHeight;
-        bwmAnnounceTransaction (cwm->u.btc, completetionState->rid, tx);
+        bwmAnnounceTransaction (cwm->u.btc, callbackState->rid, tx);
     }
 
     cryptoWalletManagerGive (cwm);
-    // DON'T free (completetionState);
+    // DON'T free (callbackState);
 }
 
 extern void
 cwmAnnounceGetTransactionsItemETH (BRCryptoWalletManager cwm,
-                                   BRCryptoCWMCompletionState completetionState,
+                                   BRCryptoCWMClientCallbackState callbackState,
                                    const char *hash,
                                    const char *from,
                                    const char *to,
@@ -1607,11 +1607,11 @@ cwmAnnounceGetTransactionsItemETH (BRCryptoWalletManager cwm,
                                    // confirmations
                                    // txreceipt_status
                                    const char *isError) {
-    assert (cwm); assert (completetionState); assert (CWM_CALLBACK_TYPE_ETH_GET_TRANSACTIONS == completetionState->type);
+    assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_ETH_GET_TRANSACTIONS == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
     ewmAnnounceTransaction (cwm->u.eth,
-                            completetionState->rid,
+                            callbackState->rid,
                             hash,
                             from,
                             to,
@@ -1630,172 +1630,172 @@ cwmAnnounceGetTransactionsItemETH (BRCryptoWalletManager cwm,
                             isError);
 
     cryptoWalletManagerGive (cwm);
-    // don't free (completetionState);
+    // don't free (callbackState);
 }
 extern void
 cwmAnnounceGetTransactionsComplete (BRCryptoWalletManager cwm,
-                                    BRCryptoCWMCompletionState completetionState,
+                                    BRCryptoCWMClientCallbackState callbackState,
                                     BRCryptoBoolean success) {
-    assert (cwm); assert (completetionState);
-    assert (CWM_CALLBACK_TYPE_BTC_GET_TRANSACTIONS == completetionState->type || CWM_CALLBACK_TYPE_ETH_GET_TRANSACTIONS == completetionState->type);
+    assert (cwm); assert (callbackState);
+    assert (CWM_CALLBACK_TYPE_BTC_GET_TRANSACTIONS == callbackState->type || CWM_CALLBACK_TYPE_ETH_GET_TRANSACTIONS == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
-    if (CWM_CALLBACK_TYPE_BTC_GET_TRANSACTIONS == completetionState->type && BLOCK_CHAIN_TYPE_BTC == cwm->type) {
+    if (CWM_CALLBACK_TYPE_BTC_GET_TRANSACTIONS == callbackState->type && BLOCK_CHAIN_TYPE_BTC == cwm->type) {
         bwmAnnounceTransactionComplete (cwm->u.btc,
-                                        completetionState->rid,
+                                        callbackState->rid,
                                         success);
 
-    } else if (CWM_CALLBACK_TYPE_ETH_GET_TRANSACTIONS == completetionState->type && BLOCK_CHAIN_TYPE_ETH == cwm->type) {
+    } else if (CWM_CALLBACK_TYPE_ETH_GET_TRANSACTIONS == callbackState->type && BLOCK_CHAIN_TYPE_ETH == cwm->type) {
         ewmAnnounceTransactionComplete (cwm->u.eth,
-                                        completetionState->rid,
+                                        callbackState->rid,
                                         AS_ETHEREUM_BOOLEAN (success));
     } else {
         assert (0);
     }
 
     cryptoWalletManagerGive (cwm);
-    free (completetionState);
+    free (callbackState);
 }
 
 extern void
 cwmAnnounceSubmitTransferSuccess (BRCryptoWalletManager cwm,
-                                  BRCryptoCWMCompletionState completetionState) {
-    assert (cwm); assert (completetionState); assert (CWM_CALLBACK_TYPE_BTC_SUBMIT_TRANSACTION == completetionState->type);
+                                  BRCryptoCWMClientCallbackState callbackState) {
+    assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_BTC_SUBMIT_TRANSACTION == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
     // TODO(fix): What is the memory management story for this transaction?
     bwmAnnounceSubmit (cwm->u.btc,
-                       completetionState->rid,
-                       completetionState->u.btcSubmit.transaction,
+                       callbackState->rid,
+                       callbackState->u.btcSubmit.transaction,
                        0);
 
     cryptoWalletManagerGive (cwm);
-    free (completetionState);
+    free (callbackState);
 }
 
 extern void
 cwmAnnounceSubmitTransferSuccessForHash (BRCryptoWalletManager cwm,
-                                         BRCryptoCWMCompletionState completetionState,
+                                         BRCryptoCWMClientCallbackState callbackState,
                                          const char *hash) {
-    assert (cwm); assert (completetionState); assert (CWM_CALLBACK_TYPE_ETH_SUBMIT_TRANSACTION == completetionState->type);
+    assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_ETH_SUBMIT_TRANSACTION == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
     // TODO(fix): Do we want to propagate error code and message from the Java/Swift
     ewmAnnounceSubmitTransfer (cwm->u.eth,
-                               completetionState->u.ethWithTransaction.wid,
-                               completetionState->u.ethWithTransaction.tid,
+                               callbackState->u.ethWithTransaction.wid,
+                               callbackState->u.ethWithTransaction.tid,
                                hash,
                                -1,
                                NULL,
-                               completetionState->rid);
+                               callbackState->rid);
 
     cryptoWalletManagerGive (cwm);
-    free (completetionState);
+    free (callbackState);
 }
 
 extern void
 cwmAnnounceSubmitTransferFailure (BRCryptoWalletManager cwm,
-                                  BRCryptoCWMCompletionState completetionState) {
-    assert (cwm); assert (completetionState);
-    assert (CWM_CALLBACK_TYPE_BTC_SUBMIT_TRANSACTION == completetionState->type || CWM_CALLBACK_TYPE_ETH_SUBMIT_TRANSACTION == completetionState->type);
+                                  BRCryptoCWMClientCallbackState callbackState) {
+    assert (cwm); assert (callbackState);
+    assert (CWM_CALLBACK_TYPE_BTC_SUBMIT_TRANSACTION == callbackState->type || CWM_CALLBACK_TYPE_ETH_SUBMIT_TRANSACTION == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
-    if (CWM_CALLBACK_TYPE_BTC_SUBMIT_TRANSACTION == completetionState->type && BLOCK_CHAIN_TYPE_BTC == cwm->type) {
+    if (CWM_CALLBACK_TYPE_BTC_SUBMIT_TRANSACTION == callbackState->type && BLOCK_CHAIN_TYPE_BTC == cwm->type) {
         bwmAnnounceSubmit (cwm->u.btc,
-                           completetionState->rid,
-                           completetionState->u.btcSubmit.transaction,
+                           callbackState->rid,
+                           callbackState->u.btcSubmit.transaction,
                            1);
 
-    } else if (CWM_CALLBACK_TYPE_ETH_SUBMIT_TRANSACTION == completetionState->type && BLOCK_CHAIN_TYPE_ETH == cwm->type) {
+    } else if (CWM_CALLBACK_TYPE_ETH_SUBMIT_TRANSACTION == callbackState->type && BLOCK_CHAIN_TYPE_ETH == cwm->type) {
         // TODO(fix): Do we want to propagate error code and message from the Java/Swift
         ewmAnnounceSubmitTransfer (cwm->u.eth,
-                                   completetionState->u.ethWithTransaction.wid,
-                                   completetionState->u.ethWithTransaction.tid,
+                                   callbackState->u.ethWithTransaction.wid,
+                                   callbackState->u.ethWithTransaction.tid,
                                    NULL,
                                    0,
                                    "unknown failure",
-                                   completetionState->rid);
+                                   callbackState->rid);
     } else {
         assert (0);
     }
 
     cryptoWalletManagerGive (cwm);
-    free (completetionState);
+    free (callbackState);
 }
 
 extern void
 cwmAnnounceGetBalanceSuccess (BRCryptoWalletManager cwm,
-                              BRCryptoCWMCompletionState completetionState,
+                              BRCryptoCWMClientCallbackState callbackState,
                               const char *balance) {
-    assert (cwm); assert (completetionState); assert (CWM_CALLBACK_TYPE_ETH_GET_BALANCE == completetionState->type);
+    assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_ETH_GET_BALANCE == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
     ewmAnnounceWalletBalance (cwm->u.eth,
-                              completetionState->u.ethWithWallet.wid,
+                              callbackState->u.ethWithWallet.wid,
                               balance,
-                              completetionState->rid);
+                              callbackState->rid);
 
     cryptoWalletManagerGive (cwm);
-    free (completetionState);
+    free (callbackState);
 }
 
 extern void
 cwmAnnounceGetBalanceFailure (BRCryptoWalletManager cwm,
-                              BRCryptoCWMCompletionState completetionState) {
-    assert (cwm); assert (completetionState); assert (CWM_CALLBACK_TYPE_ETH_GET_BALANCE == completetionState->type);
-    free (completetionState);
+                              BRCryptoCWMClientCallbackState callbackState) {
+    assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_ETH_GET_BALANCE == callbackState->type);
+    free (callbackState);
 }
 
 extern void
 cwmAnnounceGetGasPriceSuccess (BRCryptoWalletManager cwm,
-                               BRCryptoCWMCompletionState completetionState,
+                               BRCryptoCWMClientCallbackState callbackState,
                                const char *gasPrice) {
-    assert (cwm); assert (completetionState); assert (CWM_CALLBACK_TYPE_ETH_GET_GAS_PRICE == completetionState->type);
+    assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_ETH_GET_GAS_PRICE == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
     ewmAnnounceGasPrice (cwm->u.eth,
-                         completetionState->u.ethWithWallet.wid,
+                         callbackState->u.ethWithWallet.wid,
                          gasPrice,
-                         completetionState->rid);
+                         callbackState->rid);
 
     cryptoWalletManagerGive (cwm);
-    free (completetionState);
+    free (callbackState);
 }
 
 extern void
 cwmAnnounceGetGasPriceFailure (BRCryptoWalletManager cwm,
-                               BRCryptoCWMCompletionState completetionState) {
-    assert (cwm); assert (completetionState); assert (CWM_CALLBACK_TYPE_ETH_GET_GAS_PRICE == completetionState->type);
-    free (completetionState);
+                               BRCryptoCWMClientCallbackState callbackState) {
+    assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_ETH_GET_GAS_PRICE == callbackState->type);
+    free (callbackState);
 }
 
 extern void
 cwmAnnounceGetGasEstimateSuccess (BRCryptoWalletManager cwm,
-                                  BRCryptoCWMCompletionState completetionState,
+                                  BRCryptoCWMClientCallbackState callbackState,
                                   const char *gasEstimate) {
-    assert (cwm); assert (completetionState); assert (CWM_CALLBACK_TYPE_ETH_ESTIMATE_GAS == completetionState->type);
+    assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_ETH_ESTIMATE_GAS == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
     ewmAnnounceGasEstimate (cwm->u.eth,
-                            completetionState->u.ethWithTransaction.wid,
-                            completetionState->u.ethWithTransaction.tid,
+                            callbackState->u.ethWithTransaction.wid,
+                            callbackState->u.ethWithTransaction.tid,
                             gasEstimate,
-                            completetionState->rid);
+                            callbackState->rid);
 
     cryptoWalletManagerGive (cwm);
-    free (completetionState);
+    free (callbackState);
 }
 
 extern void
 cwmAnnounceGetGasEstimateFailure (BRCryptoWalletManager cwm,
-                                  BRCryptoCWMCompletionState completetionState) {
-    assert (cwm); assert (completetionState); assert (CWM_CALLBACK_TYPE_ETH_ESTIMATE_GAS == completetionState->type);
-    free (completetionState);
+                                  BRCryptoCWMClientCallbackState callbackState) {
+    assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_ETH_ESTIMATE_GAS == callbackState->type);
+    free (callbackState);
 }
 
 extern void
 cwmAnnounceGetLogsItem(BRCryptoWalletManager cwm,
-                       BRCryptoCWMCompletionState completetionState,
+                       BRCryptoCWMClientCallbackState callbackState,
                        const char *strHash,
                        const char *strContract,
                        int topicCount,
@@ -1807,11 +1807,11 @@ cwmAnnounceGetLogsItem(BRCryptoWalletManager cwm,
                        const char *strBlockNumber,
                        const char *strBlockTransactionIndex,
                        const char *strBlockTimestamp) {
-    assert (cwm); assert (completetionState); assert (CWM_CALLBACK_TYPE_ETH_GET_LOGS == completetionState->type);
+    assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_ETH_GET_LOGS == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
     ewmAnnounceLog (cwm->u.eth,
-                    completetionState->rid,
+                    callbackState->rid,
                     strHash,
                     strContract,
                     topicCount,
@@ -1825,51 +1825,51 @@ cwmAnnounceGetLogsItem(BRCryptoWalletManager cwm,
                     strBlockTimestamp);
 
     cryptoWalletManagerGive (cwm);
-    // don't free (completetionState);
+    // don't free (callbackState);
 }
 
 extern void
 cwmAnnounceGetLogsComplete(BRCryptoWalletManager cwm,
-                           BRCryptoCWMCompletionState completetionState,
+                           BRCryptoCWMClientCallbackState callbackState,
                            BRCryptoBoolean success) {
-    assert (cwm); assert (completetionState); assert (CWM_CALLBACK_TYPE_ETH_GET_LOGS == completetionState->type);
+    assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_ETH_GET_LOGS == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
     ewmAnnounceLogComplete (cwm->u.eth,
-                            completetionState->rid,
+                            callbackState->rid,
                             AS_ETHEREUM_BOOLEAN (success));
 
     cryptoWalletManagerGive (cwm);
-    free (completetionState);
+    free (callbackState);
 }
 
 extern void
 cwmAnnounceGetBlocksSuccess (BRCryptoWalletManager cwm,
-                             BRCryptoCWMCompletionState completetionState,
+                             BRCryptoCWMClientCallbackState callbackState,
                              int blockNumbersCount,
                              uint64_t *blockNumbers) {
-    assert (cwm); assert (completetionState); assert (CWM_CALLBACK_TYPE_ETH_GET_BLOCKS == completetionState->type);
+    assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_ETH_GET_BLOCKS == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
     ewmAnnounceBlocks (cwm->u.eth,
-                       completetionState->rid,
+                       callbackState->rid,
                        blockNumbersCount,
                        blockNumbers);
 
     cryptoWalletManagerGive (cwm);
-    free (completetionState);
+    free (callbackState);
 }
 
 extern void
 cwmAnnounceGetBlocksFailure (BRCryptoWalletManager cwm,
-                             BRCryptoCWMCompletionState completetionState) {
-    assert (cwm); assert (completetionState); assert (CWM_CALLBACK_TYPE_ETH_GET_BLOCKS == completetionState->type);
-    free (completetionState);
+                             BRCryptoCWMClientCallbackState callbackState) {
+    assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_ETH_GET_BLOCKS == callbackState->type);
+    free (callbackState);
 }
 
 extern void
 cwmAnnounceGetTokensItem(BRCryptoWalletManager cwm,
-                         BRCryptoCWMCompletionState completetionState,
+                         BRCryptoCWMClientCallbackState callbackState,
                          const char *address,
                          const char *symbol,
                          const char *name,
@@ -1877,11 +1877,11 @@ cwmAnnounceGetTokensItem(BRCryptoWalletManager cwm,
                          unsigned int decimals,
                          const char *strDefaultGasLimit,
                          const char *strDefaultGasPrice) {
-    assert (cwm); assert (completetionState); assert (CWM_CALLBACK_TYPE_ETH_GET_TOKENS == completetionState->type);
+    assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_ETH_GET_TOKENS == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
     ewmAnnounceToken (cwm->u.eth,
-                      completetionState->rid,
+                      callbackState->rid,
                       address,
                       symbol,
                       name,
@@ -1891,46 +1891,46 @@ cwmAnnounceGetTokensItem(BRCryptoWalletManager cwm,
                       strDefaultGasPrice);
 
     cryptoWalletManagerGive (cwm);
-    // don't free (completetionState);
+    // don't free (callbackState);
 }
 
 extern void
 cwmAnnounceGetTokensComplete(BRCryptoWalletManager cwm,
-                             BRCryptoCWMCompletionState completetionState,
+                             BRCryptoCWMClientCallbackState callbackState,
                              BRCryptoBoolean success) {
-    assert (cwm); assert (completetionState); assert (CWM_CALLBACK_TYPE_ETH_GET_TOKENS == completetionState->type);
+    assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_ETH_GET_TOKENS == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
     ewmAnnounceTokenComplete (cwm->u.eth,
-                              completetionState->rid,
+                              callbackState->rid,
                               AS_ETHEREUM_BOOLEAN (success));
 
     cryptoWalletManagerGive (cwm);
-    free (completetionState);
+    free (callbackState);
 }
 
 extern void
 cwmAnnounceGetNonceSuccess (BRCryptoWalletManager cwm,
-                            BRCryptoCWMCompletionState completetionState,
+                            BRCryptoCWMClientCallbackState callbackState,
                             const char *address,
                             const char *nonce) {
-    assert (cwm); assert (completetionState); assert (CWM_CALLBACK_TYPE_ETH_GET_NONCE == completetionState->type);
+    assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_ETH_GET_NONCE == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
     ewmAnnounceNonce (cwm->u.eth,
                       address,
                       nonce,
-                      completetionState->rid);
+                      callbackState->rid);
 
     cryptoWalletManagerGive (cwm);
-    free (completetionState);
+    free (callbackState);
 }
 
 extern void
 cwmAnnounceGetNonceFailure (BRCryptoWalletManager cwm,
-                            BRCryptoCWMCompletionState completetionState) {
-    assert (cwm); assert (completetionState); assert (CWM_CALLBACK_TYPE_ETH_GET_NONCE == completetionState->type);
-    free (completetionState);
+                            BRCryptoCWMClientCallbackState callbackState) {
+    assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_ETH_GET_NONCE == callbackState->type);
+    free (callbackState);
 }
 
 private_extern BRCryptoBoolean

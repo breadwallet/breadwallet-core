@@ -48,58 +48,58 @@ public interface CoreBRCryptoWalletManager {
 
     void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, String paperKey);
 
-    void announceGetBlockNumberSuccess(BRCryptoCWMCompletionState completetionState, UnsignedLong blockchainHeight);
+    void announceGetBlockNumberSuccess(BRCryptoCWMClientCallbackState callbackState, UnsignedLong blockchainHeight);
 
-    void announceGetBlockNumberSuccess(BRCryptoCWMCompletionState completetionState, String blockNumber);
+    void announceGetBlockNumberSuccess(BRCryptoCWMClientCallbackState callbackState, String blockNumber);
 
-    void announceGetBlockNumberFailure(BRCryptoCWMCompletionState completetionState);
+    void announceGetBlockNumberFailure(BRCryptoCWMClientCallbackState callbackState);
 
-    void announceGetTransactionsItemBtc(BRCryptoCWMCompletionState completetionState, byte[] transaction, UnsignedLong timestamp,
+    void announceGetTransactionsItemBtc(BRCryptoCWMClientCallbackState callbackState, byte[] transaction, UnsignedLong timestamp,
                                         UnsignedLong blockHeight);
 
-    void announceGetTransactionsItemEth(BRCryptoCWMCompletionState completetionState, String hash, String sourceAddr,
+    void announceGetTransactionsItemEth(BRCryptoCWMClientCallbackState callbackState, String hash, String sourceAddr,
                                         String targetAddr, String contractAddr, String amount, String gasLimit,
                                         String gasPrice, String data,
                                         String nonce, String gasUsed, String blockNumber, String blockHash,
                                         String blockConfirmations, String blockTransacionIndex, String blockTimestamp,
                                         String isError);
 
-    void announceGetTransactionsComplete(BRCryptoCWMCompletionState completetionState, boolean success);
+    void announceGetTransactionsComplete(BRCryptoCWMClientCallbackState callbackState, boolean success);
 
-    void announceSubmitTransferSuccess(BRCryptoCWMCompletionState completetionState);
+    void announceSubmitTransferSuccess(BRCryptoCWMClientCallbackState callbackState);
 
-    void announceSubmitTransferSuccess(BRCryptoCWMCompletionState completetionState, String hash);
+    void announceSubmitTransferSuccess(BRCryptoCWMClientCallbackState callbackState, String hash);
 
-    void announceSubmitTransferFailure(BRCryptoCWMCompletionState completetionState);
+    void announceSubmitTransferFailure(BRCryptoCWMClientCallbackState callbackState);
 
-    void announceGetBalanceSuccess(BRCryptoCWMCompletionState completetionState, String balance);
+    void announceGetBalanceSuccess(BRCryptoCWMClientCallbackState callbackState, String balance);
 
-    void announceGetBalanceFailure(BRCryptoCWMCompletionState completetionState);
+    void announceGetBalanceFailure(BRCryptoCWMClientCallbackState callbackState);
 
-    void announceGetGasPriceSuccess(BRCryptoCWMCompletionState completetionState, String gasPrice);
+    void announceGetGasPriceSuccess(BRCryptoCWMClientCallbackState callbackState, String gasPrice);
 
-    void announceGetGasPriceFailure(BRCryptoCWMCompletionState completetionState);
+    void announceGetGasPriceFailure(BRCryptoCWMClientCallbackState callbackState);
 
-    void announceGetGasEstimateSuccess(BRCryptoCWMCompletionState completetionState, String gasEstimate);
+    void announceGetGasEstimateSuccess(BRCryptoCWMClientCallbackState callbackState, String gasEstimate);
 
-    void announceGetGasEstimateFailure(BRCryptoCWMCompletionState completetionState);
+    void announceGetGasEstimateFailure(BRCryptoCWMClientCallbackState callbackState);
 
-    void announceGetLogsItem(BRCryptoCWMCompletionState completetionState, String hash, String contract, List<String> topics,
+    void announceGetLogsItem(BRCryptoCWMClientCallbackState callbackState, String hash, String contract, List<String> topics,
                              String data, String gasPrice, String gasUsed, String logIndex, String blockNumber,
                              String blockTransactionIndex, String blockTimestamp);
 
-    void announceGetLogsComplete(BRCryptoCWMCompletionState completetionState, boolean success);
+    void announceGetLogsComplete(BRCryptoCWMClientCallbackState callbackState, boolean success);
 
-    void announceGetBlocksSuccess(BRCryptoCWMCompletionState completetionState, List<UnsignedLong> blocks);
+    void announceGetBlocksSuccess(BRCryptoCWMClientCallbackState callbackState, List<UnsignedLong> blocks);
 
-    void announceGetBlocksFailure(BRCryptoCWMCompletionState completetionState);
+    void announceGetBlocksFailure(BRCryptoCWMClientCallbackState callbackState);
 
-    void announceGetTokensItem(BRCryptoCWMCompletionState completetionState, String address, String symbol, String name,
+    void announceGetTokensItem(BRCryptoCWMClientCallbackState callbackState, String address, String symbol, String name,
                                String description, UnsignedInteger decimals, String gasLimit, String gasPrice);
 
-    void announceGetTokensComplete(BRCryptoCWMCompletionState completetionState, boolean success);
+    void announceGetTokensComplete(BRCryptoCWMClientCallbackState callbackState, boolean success);
 
-    void announceGetNonceSuccess(BRCryptoCWMCompletionState completetionState, String address, String nonce);
+    void announceGetNonceSuccess(BRCryptoCWMClientCallbackState callbackState, String address, String nonce);
 
-    void announceGetNonceFailure(BRCryptoCWMCompletionState completetionState);
+    void announceGetNonceFailure(BRCryptoCWMClientCallbackState callbackState);
 }

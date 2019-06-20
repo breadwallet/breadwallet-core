@@ -88,130 +88,130 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
-    public void announceGetBlockNumberSuccess(BRCryptoCWMCompletionState completetionState, UnsignedLong blockchainHeight) {
-        core.announceGetBlockNumberSuccess(completetionState, blockchainHeight);
+    public void announceGetBlockNumberSuccess(BRCryptoCWMClientCallbackState callbackState, UnsignedLong blockchainHeight) {
+        core.announceGetBlockNumberSuccess(callbackState, blockchainHeight);
     }
 
     @Override
-    public void announceGetBlockNumberSuccess(BRCryptoCWMCompletionState completetionState, String blockNumber) {
-        core.announceGetBlockNumberSuccess(completetionState, blockNumber);
+    public void announceGetBlockNumberSuccess(BRCryptoCWMClientCallbackState callbackState, String blockNumber) {
+        core.announceGetBlockNumberSuccess(callbackState, blockNumber);
     }
 
     @Override
-    public void announceGetBlockNumberFailure(BRCryptoCWMCompletionState completetionState) {
-        core.announceGetBlockNumberFailure(completetionState);
+    public void announceGetBlockNumberFailure(BRCryptoCWMClientCallbackState callbackState) {
+        core.announceGetBlockNumberFailure(callbackState);
     }
 
     @Override
-    public void announceGetTransactionsItemBtc(BRCryptoCWMCompletionState completetionState, byte[] transaction, UnsignedLong timestamp,
+    public void announceGetTransactionsItemBtc(BRCryptoCWMClientCallbackState callbackState, byte[] transaction, UnsignedLong timestamp,
                                                UnsignedLong blockHeight) {
-        core.announceGetTransactionsItemBtc(completetionState, transaction, timestamp, blockHeight);
+        core.announceGetTransactionsItemBtc(callbackState, transaction, timestamp, blockHeight);
     }
 
     @Override
-    public void announceGetTransactionsItemEth(BRCryptoCWMCompletionState completetionState, String hash, String sourceAddr,
+    public void announceGetTransactionsItemEth(BRCryptoCWMClientCallbackState callbackState, String hash, String sourceAddr,
                                                String targetAddr, String contractAddr, String amount, String gasLimit,
                                                String gasPrice, String data, String nonce, String gasUsed,
                                                String blockNumber, String blockHash, String blockConfirmations,
                                                String blockTransacionIndex, String blockTimestamp, String isError) {
-        core.announceGetTransactionsItemEth(completetionState,hash, sourceAddr, targetAddr, contractAddr, amount, gasLimit,
+        core.announceGetTransactionsItemEth(callbackState,hash, sourceAddr, targetAddr, contractAddr, amount, gasLimit,
                 gasPrice, data, nonce, gasUsed, blockNumber, blockHash, blockConfirmations, blockTransacionIndex,
                 blockTimestamp, isError);
     }
 
     @Override
-    public void announceGetTransactionsComplete(BRCryptoCWMCompletionState completetionState, boolean success) {
-        core.announceGetTransactionsComplete(completetionState, success);
+    public void announceGetTransactionsComplete(BRCryptoCWMClientCallbackState callbackState, boolean success) {
+        core.announceGetTransactionsComplete(callbackState, success);
     }
 
     @Override
-    public void announceSubmitTransferSuccess(BRCryptoCWMCompletionState completetionState) {
-        core.announceSubmitTransferSuccess(completetionState);
+    public void announceSubmitTransferSuccess(BRCryptoCWMClientCallbackState callbackState) {
+        core.announceSubmitTransferSuccess(callbackState);
     }
 
     @Override
-    public void announceSubmitTransferSuccess(BRCryptoCWMCompletionState completetionState, String hash) {
-        core.announceSubmitTransferSuccess(completetionState, hash);
+    public void announceSubmitTransferSuccess(BRCryptoCWMClientCallbackState callbackState, String hash) {
+        core.announceSubmitTransferSuccess(callbackState, hash);
     }
 
     @Override
-    public void announceSubmitTransferFailure(BRCryptoCWMCompletionState completetionState) {
-        core.announceSubmitTransferFailure(completetionState);
+    public void announceSubmitTransferFailure(BRCryptoCWMClientCallbackState callbackState) {
+        core.announceSubmitTransferFailure(callbackState);
     }
 
     @Override
-    public void announceGetBalanceSuccess(BRCryptoCWMCompletionState completetionState, String balance) {
-        core.announceGetBalanceSuccess(completetionState, balance);
+    public void announceGetBalanceSuccess(BRCryptoCWMClientCallbackState callbackState, String balance) {
+        core.announceGetBalanceSuccess(callbackState, balance);
     }
 
     @Override
-    public void announceGetBalanceFailure(BRCryptoCWMCompletionState completetionState) {
-        core.announceGetBalanceFailure(completetionState);
+    public void announceGetBalanceFailure(BRCryptoCWMClientCallbackState callbackState) {
+        core.announceGetBalanceFailure(callbackState);
     }
 
     @Override
-    public void announceGetGasPriceSuccess(BRCryptoCWMCompletionState completetionState, String gasPrice) {
-        core.announceGetGasPriceSuccess(completetionState, gasPrice);
+    public void announceGetGasPriceSuccess(BRCryptoCWMClientCallbackState callbackState, String gasPrice) {
+        core.announceGetGasPriceSuccess(callbackState, gasPrice);
     }
 
     @Override
-    public void announceGetGasPriceFailure(BRCryptoCWMCompletionState completetionState) {
-        core.announceGetGasPriceFailure(completetionState);
+    public void announceGetGasPriceFailure(BRCryptoCWMClientCallbackState callbackState) {
+        core.announceGetGasPriceFailure(callbackState);
     }
 
     @Override
-    public void announceGetGasEstimateSuccess(BRCryptoCWMCompletionState completetionState, String gasEstimate) {
-        core.announceGetGasEstimateSuccess(completetionState, gasEstimate);
+    public void announceGetGasEstimateSuccess(BRCryptoCWMClientCallbackState callbackState, String gasEstimate) {
+        core.announceGetGasEstimateSuccess(callbackState, gasEstimate);
     }
 
     @Override
-    public void announceGetGasEstimateFailure(BRCryptoCWMCompletionState completetionState) {
-        core.announceGetGasEstimateFailure(completetionState);
+    public void announceGetGasEstimateFailure(BRCryptoCWMClientCallbackState callbackState) {
+        core.announceGetGasEstimateFailure(callbackState);
     }
 
     @Override
-    public void announceGetLogsItem(BRCryptoCWMCompletionState completetionState, String hash, String contract,
+    public void announceGetLogsItem(BRCryptoCWMClientCallbackState callbackState, String hash, String contract,
                                     List<String> topics, String data, String gasPrice, String gasUsed,
                                     String logIndex, String blockNumber, String blockTransactionIndex,
                                     String blockTimestamp) {
-        core.announceGetLogsItem(completetionState, hash, contract, topics, data, gasPrice, gasUsed, logIndex, blockNumber,
+        core.announceGetLogsItem(callbackState, hash, contract, topics, data, gasPrice, gasUsed, logIndex, blockNumber,
                 blockTransactionIndex, blockTimestamp);
     }
 
     @Override
-    public void announceGetLogsComplete(BRCryptoCWMCompletionState completetionState, boolean success) {
-        core.announceGetLogsComplete(completetionState, success);
+    public void announceGetLogsComplete(BRCryptoCWMClientCallbackState callbackState, boolean success) {
+        core.announceGetLogsComplete(callbackState, success);
     }
 
     @Override
-    public void announceGetBlocksSuccess(BRCryptoCWMCompletionState completetionState, List<UnsignedLong> blocks) {
-        core.announceGetBlocksSuccess(completetionState, blocks);
+    public void announceGetBlocksSuccess(BRCryptoCWMClientCallbackState callbackState, List<UnsignedLong> blocks) {
+        core.announceGetBlocksSuccess(callbackState, blocks);
     }
 
     @Override
-    public void announceGetBlocksFailure(BRCryptoCWMCompletionState completetionState) {
-        core.announceGetBlocksFailure(completetionState);
+    public void announceGetBlocksFailure(BRCryptoCWMClientCallbackState callbackState) {
+        core.announceGetBlocksFailure(callbackState);
     }
 
     @Override
-    public void announceGetTokensItem(BRCryptoCWMCompletionState completetionState, String address, String symbol, String name,
+    public void announceGetTokensItem(BRCryptoCWMClientCallbackState callbackState, String address, String symbol, String name,
                                       String description, UnsignedInteger decimals, String gasLimit, String gasPrice) {
-        core.announceGetTokensItem(completetionState, address, symbol, name, description, decimals, gasLimit, gasPrice);
+        core.announceGetTokensItem(callbackState, address, symbol, name, description, decimals, gasLimit, gasPrice);
     }
 
     @Override
-    public void announceGetTokensComplete(BRCryptoCWMCompletionState completetionState, boolean success) {
-        core.announceGetTokensComplete(completetionState, success);
+    public void announceGetTokensComplete(BRCryptoCWMClientCallbackState callbackState, boolean success) {
+        core.announceGetTokensComplete(callbackState, success);
     }
 
     @Override
-    public void announceGetNonceSuccess(BRCryptoCWMCompletionState completetionState, String address, String nonce) {
-        core.announceGetNonceSuccess(completetionState, address, nonce);
+    public void announceGetNonceSuccess(BRCryptoCWMClientCallbackState callbackState, String address, String nonce) {
+        core.announceGetNonceSuccess(callbackState, address, nonce);
     }
 
     @Override
-    public void announceGetNonceFailure(BRCryptoCWMCompletionState completetionState) {
-        core.announceGetNonceFailure(completetionState);
+    public void announceGetNonceFailure(BRCryptoCWMClientCallbackState callbackState) {
+        core.announceGetNonceFailure(callbackState);
     }
 
     @Override

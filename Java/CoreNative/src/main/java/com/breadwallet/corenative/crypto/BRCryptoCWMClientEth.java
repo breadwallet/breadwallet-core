@@ -17,54 +17,54 @@ import java.util.List;
 public class BRCryptoCWMClientEth extends Structure {
 
     public interface BRCryptoCWMEthGetEtherBalanceCallback extends Callback {
-        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMCompletionState completetionState, String networkName,
+        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState, String networkName,
                    String address);
     }
 
     public interface BRCryptoCWMEthGetTokenBalanceCallback extends Callback {
-        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMCompletionState completetionState, String networkName,
+        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState, String networkName,
                    String address, String tokenAddress);
     }
 
     public interface BRCryptoCWMEthGetGasPriceCallback extends Callback {
-        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMCompletionState completetionState, String networkName);
+        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState, String networkName);
     }
 
     public interface BRCryptoCWMEthEstimateGasCallback extends Callback {
-        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMCompletionState completetionState, String networkName,
+        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState, String networkName,
                    String from, String to, String amount, String data);
     }
 
     public interface BRCryptoCWMEthSubmitTransactionCallback extends Callback {
-        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMCompletionState completetionState, String networkName,
+        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState, String networkName,
                    String transaction);
     }
 
     public interface BRCryptoCWMEthGetTransactionsCallback extends Callback {
-        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMCompletionState completetionState, String networkName,
+        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState, String networkName,
                    String address, long begBlockNumber, long endBlockNumber);
     }
 
     public interface BRCryptoCWMEthGetLogsCallback extends Callback {
-        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMCompletionState completetionState, String networkName,
+        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState, String networkName,
                    String contract, String address, String event, long begBlockNumber, long endBlockNumber);
     }
 
     public interface BRCryptoCWMEthGetBlocksCallback extends Callback {
-        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMCompletionState completetionState, String networkName,
+        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState, String networkName,
                    String address, int interests, long blockNumberStart, long blockNumberStop);
     }
 
     public interface BRCryptoCWMEthGetTokensCallback extends Callback {
-        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMCompletionState completetionState);
+        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState);
     }
 
     public interface BRCryptoCWMEthGetBlockNumberCallback extends Callback {
-        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMCompletionState completetionState, String networkName);
+        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState, String networkName);
     }
 
     public interface BRCryptoCWMEthGetNonceCallback extends Callback {
-        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMCompletionState completetionState, String networkName,
+        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState, String networkName,
                    String address);
     }
 
