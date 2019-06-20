@@ -19,16 +19,16 @@ import java.util.List;
 public class BRCryptoCWMClientBtc extends Structure {
 
     public interface BRCryptoCWMBtcGetBlockNumberCallback extends Callback {
-        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCallbackHandle handle);
+        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMCompletionState completetionState);
     }
 
     public interface BRCryptoCWMBtcGetTransactionsCallback extends Callback {
-        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, Pointer addrs,
+        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMCompletionState completetionState, Pointer addrs,
                    SizeT addrCount, long begBlockNumber, long endBlockNumber);
     }
 
     public interface BRCryptoCWMBtcSubmitTransactionCallback extends Callback {
-        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCallbackHandle handle, Pointer tx,
+        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMCompletionState completetionState, Pointer tx,
                    SizeT txLength);
     }
 

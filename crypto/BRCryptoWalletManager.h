@@ -120,22 +120,21 @@ extern "C" {
 
     // MARK: Client
 
-    // TODO(discuss): What do we want to do for naming here?
-    typedef struct BRCryptoCWMCallbackRecord *BRCryptoCWMCallbackHandle;
-
     typedef void *BRCryptoCWMClientContext;
+
+    typedef struct BRCryptoCWMCompletionStateRecord *BRCryptoCWMCompletionState;
 
     typedef void
         (*BRCryptoCWMEthGetEtherBalanceCallback) (BRCryptoCWMClientContext context,
                                                   BRCryptoWalletManager manager,
-                                                  BRCryptoCWMCallbackHandle handle,
+                                                  BRCryptoCWMCompletionState completetionState,
                                                   const char *network,
                                                   const char *address);
 
     typedef void
         (*BRCryptoCWMEthGetTokenBalanceCallback) (BRCryptoCWMClientContext context,
                                                   BRCryptoWalletManager manager,
-                                                  BRCryptoCWMCallbackHandle handle,
+                                                  BRCryptoCWMCompletionState completetionState,
                                                   const char *network,
                                                   const char *address,
                                                   const char *tokenAddress);
@@ -143,13 +142,13 @@ extern "C" {
     typedef void
         (*BRCryptoCWMEthGetGasPriceCallback) (BRCryptoCWMClientContext context,
                                               BRCryptoWalletManager manager,
-                                              BRCryptoCWMCallbackHandle handle,
+                                              BRCryptoCWMCompletionState completetionState,
                                               const char *network);
 
     typedef void
         (*BRCryptoCWMEthEstimateGasCallback) (BRCryptoCWMClientContext context,
                                               BRCryptoWalletManager manager,
-                                              BRCryptoCWMCallbackHandle handle,
+                                              BRCryptoCWMCompletionState completetionState,
                                               const char *network,
                                               const char *from,
                                               const char *to,
@@ -157,15 +156,57 @@ extern "C" {
                                               const char *data);
 
     typedef void
+        (*BRCryptoCWMEthSubmitTransactionCallback) (BRCryptoCWMClientContext context,
+                                                    BRCryptoWalletManager manager,
+                                                    BRCryptoCWMCompletionState completetionState,
+                                                    const char *network,
+                                                    const char *transaction);
+
+    typedef void
+        (*BRCryptoCWMEthGetTransactionsCallback) (BRCryptoCWMClientContext context,
+                                                  BRCryptoWalletManager manager,
+                                                  BRCryptoCWMCompletionState completetionState,
+                                                  const char *network,
+                                                  const char *address,
+                                                  uint64_t begBlockNumber,
+                                                  uint64_t endBlockNumber);
+
+    typedef void
+        (*BRCryptoCWMEthGetLogsCallback) (BRCryptoCWMClientContext context,
+                                          BRCryptoWalletManager manager,
+                                          BRCryptoCWMCompletionState completetionState,
+                                          const char *network,
+                                          const char *contract,
+                                          const char *address,
+                                          const char *event,
+                                          uint64_t begBlockNumber,
+                                          uint64_t endBlockNumber);
+
+    typedef void
+        (*BRCryptoCWMEthGetBlocksCallback) (BRCryptoCWMClientContext context,
+                                            BRCryptoWalletManager manager,
+                                            BRCryptoCWMCompletionState completetionState,
+                                            const char *network,
+                                            const char *address, // disappears immediately
+                                            BREthereumSyncInterestSet interests,
+                                            uint64_t blockNumberStart,
+                                            uint64_t blockNumberStop);
+
+    typedef void
+        (*BRCryptoCWMEthGetTokensCallback) (BRCryptoCWMClientContext context,
+                                            BRCryptoWalletManager manager,
+                                            BRCryptoCWMCompletionState completetionState);
+
+    typedef void
         (*BRCryptoCWMEthGetBlockNumberCallback) (BRCryptoCWMClientContext context,
-                                           BRCryptoWalletManager manager,
-                                           BRCryptoCWMCallbackHandle handle,
-                                           const char *network);
+                                                 BRCryptoWalletManager manager,
+                                                 BRCryptoCWMCompletionState completetionState,
+                                                 const char *network);
 
     typedef void
         (*BRCryptoCWMEthGetNonceCallback) (BRCryptoCWMClientContext context,
                                            BRCryptoWalletManager manager,
-                                           BRCryptoCWMCallbackHandle handle,
+                                           BRCryptoCWMCompletionState completetionState,
                                            const char *network,
                                            const char *address);
 
@@ -174,25 +215,24 @@ extern "C" {
         BRCryptoCWMEthGetTokenBalanceCallback funcGetTokenBalance;
         BRCryptoCWMEthGetGasPriceCallback funcGetGasPrice;
         BRCryptoCWMEthEstimateGasCallback funcEstimateGas;
-        BREthereumClientHandlerSubmitTransaction funcSubmitTransaction;
-        BREthereumClientHandlerGetTransactions funcGetTransactions; // announce one-by-one
-        BREthereumClientHandlerGetLogs funcGetLogs; // announce one-by-one
-        BREthereumClientHandlerGetBlocks funcGetBlocks;
-        BREthereumClientHandlerGetTokens funcGetTokens; // announce one-by-one
+        BRCryptoCWMEthSubmitTransactionCallback funcSubmitTransaction;
+        BRCryptoCWMEthGetTransactionsCallback funcGetTransactions; // announce one-by-one
+        BRCryptoCWMEthGetLogsCallback funcGetLogs; // announce one-by-one
+        BRCryptoCWMEthGetBlocksCallback funcGetBlocks;
+        BRCryptoCWMEthGetTokensCallback funcGetTokens; // announce one-by-one
         BRCryptoCWMEthGetBlockNumberCallback funcGetBlockNumber;
         BRCryptoCWMEthGetNonceCallback funcGetNonce;
     } BRCryptoCWMClientETH;
 
-    // TODO(discuss): What do we want to do for naming convention here?
     typedef void
     (*BRCryptoCWMBtcGetBlockNumberCallback) (BRCryptoCWMClientContext context,
                                              BRCryptoWalletManager manager,
-                                             BRCryptoCWMCallbackHandle handle);
+                                             BRCryptoCWMCompletionState completetionState);
 
     typedef void
     (*BRCryptoCWMBtcGetTransactionsCallback) (BRCryptoCWMClientContext context,
                                               BRCryptoWalletManager manager,
-                                              BRCryptoCWMCallbackHandle handle,
+                                              BRCryptoCWMCompletionState completetionState,
                                               char **addresses,
                                               size_t addressCount,
                                               uint64_t begBlockNumber,
@@ -201,7 +241,7 @@ extern "C" {
     typedef void
     (*BRCryptoCWMBtcSubmitTransactionCallback) (BRCryptoCWMClientContext context,
                                                 BRCryptoWalletManager manager,
-                                                BRCryptoCWMCallbackHandle handle,
+                                                BRCryptoCWMCompletionState completetionState,
                                                 uint8_t *transaction,
                                                 size_t transactionLength);
 
@@ -279,52 +319,150 @@ extern "C" {
                                const char *paperKey);
 
     extern void
-    cwmAnnounceBlockNumber (BRCryptoWalletManager cwm,
-                            BRCryptoCWMCallbackHandle handle,
-                            uint64_t blockHeight,
-                            BRCryptoBoolean success);
+    cwmAnnounceGetBlockNumberSuccessAsInteger (BRCryptoWalletManager cwm,
+                                               BRCryptoCWMCompletionState completetionState,
+                                               uint64_t blockNumber);
 
     extern void
-    cwmAnnounceBlockNumberAsString (BRCryptoWalletManager cwm,
-                                    BRCryptoCWMCallbackHandle handle,
-                                    const char *blockHeight,
-                                    BRCryptoBoolean success);
+    cwmAnnounceGetBlockNumberSuccessAsString (BRCryptoWalletManager cwm,
+                                              BRCryptoCWMCompletionState completetionState,
+                                              const char *blockNumber);
 
     extern void
-    cwmAnnounceTransaction (BRCryptoWalletManager cwm,
-                            BRCryptoCWMCallbackHandle handle,
-                            uint8_t *transaction,
-                            size_t transactionLength,
-                            uint64_t timestamp,
-                            uint64_t blockHeight);
+    cwmAnnounceGetBlockNumberFailure (BRCryptoWalletManager cwm,
+                                      BRCryptoCWMCompletionState completetionState);
 
     extern void
-    cwmAnnounceTransactionComplete (BRCryptoWalletManager cwm,
-                                    BRCryptoCWMCallbackHandle handle,
-                                    BRCryptoBoolean success);
+    cwmAnnounceGetTransactionsItemBTC (BRCryptoWalletManager cwm,
+                                       BRCryptoCWMCompletionState completetionState,
+                                       uint8_t *transaction,
+                                       size_t transactionLength,
+                                       uint64_t timestamp,
+                                       uint64_t blockHeight);
 
     extern void
-    cwmAnnounceSubmit (BRCryptoWalletManager cwm,
-                       BRCryptoCWMCallbackHandle handle,
-                       BRCryptoBoolean success);
+    cwmAnnounceGetTransactionsItemETH (BRCryptoWalletManager cwm,
+                                       BRCryptoCWMCompletionState completetionState,
+                                       const char *hash,
+                                       const char *from,
+                                       const char *to,
+                                       const char *contract,
+                                       const char *amount, // value
+                                       const char *gasLimit,
+                                       const char *gasPrice,
+                                       const char *data,
+                                       const char *nonce,
+                                       const char *gasUsed,
+                                       const char *blockNumber,
+                                       const char *blockHash,
+                                       const char *blockConfirmations,
+                                       const char *blockTransactionIndex,
+                                       const char *blockTimestamp,
+                                       // cumulative gas used,
+                                       // confirmations
+                                       // txreceipt_status
+                                       const char *isError);
 
     extern void
-    cwmAnnounceBalance (BRCryptoWalletManager cwm,
-                        BRCryptoCWMCallbackHandle handle,
-                        const char *balance,
-                        BRCryptoBoolean success);
+    cwmAnnounceGetTransactionsComplete (BRCryptoWalletManager cwm,
+                                        BRCryptoCWMCompletionState completetionState,
+                                        BRCryptoBoolean success);
 
     extern void
-    cwmAnnounceGasPrice (BRCryptoWalletManager cwm,
-                         BRCryptoCWMCallbackHandle handle,
-                         const char *gasPrice,
-                         BRCryptoBoolean success);
+    cwmAnnounceSubmitTransferSuccess (BRCryptoWalletManager cwm,
+                                      BRCryptoCWMCompletionState completetionState);
 
     extern void
-    cwmAnnounceGasEstimate (BRCryptoWalletManager cwm,
-                            BRCryptoCWMCallbackHandle handle,
-                            const char *gasEstimate,
-                            BRCryptoBoolean success);
+    cwmAnnounceSubmitTransferSuccessForHash (BRCryptoWalletManager cwm,
+                                             BRCryptoCWMCompletionState completetionState,
+                                             const char *hash);
+
+    extern void
+    cwmAnnounceSubmitTransferFailure (BRCryptoWalletManager cwm,
+                                      BRCryptoCWMCompletionState completetionState);
+
+    extern void
+    cwmAnnounceGetBalanceSuccess (BRCryptoWalletManager cwm,
+                                  BRCryptoCWMCompletionState completetionState,
+                                  const char *balance);
+
+    extern void
+    cwmAnnounceGetBalanceFailure (BRCryptoWalletManager cwm,
+                                  BRCryptoCWMCompletionState completetionState);
+
+    extern void
+    cwmAnnounceGetBlocksSuccess (BRCryptoWalletManager cwm,
+                                 BRCryptoCWMCompletionState completetionState,
+                                 int blockNumbersCount,
+                                 uint64_t *blockNumbers);
+
+    extern void
+    cwmAnnounceGetBlocksFailure (BRCryptoWalletManager cwm,
+                                 BRCryptoCWMCompletionState completetionState);
+
+    extern void
+    cwmAnnounceGetGasPriceSuccess (BRCryptoWalletManager cwm,
+                                   BRCryptoCWMCompletionState completetionState,
+                                   const char *gasPrice);
+
+    extern void
+    cwmAnnounceGetGasPriceFailure (BRCryptoWalletManager cwm,
+                                   BRCryptoCWMCompletionState completetionState);
+
+    extern void
+    cwmAnnounceGetGasEstimateSuccess (BRCryptoWalletManager cwm,
+                                      BRCryptoCWMCompletionState completetionState,
+                                      const char *gasEstimate);
+
+    extern void
+    cwmAnnounceGasEstimateFailure (BRCryptoWalletManager cwm,
+                                   BRCryptoCWMCompletionState completetionState);
+
+    extern void
+    cwmAnnounceGetLogsItem(BRCryptoWalletManager cwm,
+                           BRCryptoCWMCompletionState completetionState,
+                           const char *strHash,
+                           const char *strContract,
+                           int topicCount,
+                           const char **arrayTopics,
+                           const char *strData,
+                           const char *strGasPrice,
+                           const char *strGasUsed,
+                           const char *strLogIndex,
+                           const char *strBlockNumber,
+                           const char *strBlockTransactionIndex,
+                           const char *strBlockTimestamp);
+
+    extern void
+    cwmAnnounceGetLogsComplete(BRCryptoWalletManager cwm,
+                               BRCryptoCWMCompletionState completetionState,
+                               BRCryptoBoolean success);
+
+    extern void
+    cwmAnnounceGetTokensItem (BRCryptoWalletManager cwm,
+                              BRCryptoCWMCompletionState completetionState,
+                              const char *address,
+                              const char *symbol,
+                              const char *name,
+                              const char *description,
+                              unsigned int decimals,
+                              const char *strDefaultGasLimit,
+                              const char *strDefaultGasPrice);
+
+    extern void
+    cwmAnnounceGetTokensComplete (BRCryptoWalletManager cwm,
+                                  BRCryptoCWMCompletionState completetionState,
+                                  BRCryptoBoolean success);
+
+    extern void
+    cwmAnnounceGetNonceSuccess (BRCryptoWalletManager cwm,
+                                BRCryptoCWMCompletionState completetionState,
+                                const char *address,
+                                const char *nonce);
+
+    extern void
+    cwmAnnounceGetNonceFailure (BRCryptoWalletManager cwm,
+                                BRCryptoCWMCompletionState completetionState);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoWalletManager, cryptoWalletManager);
 

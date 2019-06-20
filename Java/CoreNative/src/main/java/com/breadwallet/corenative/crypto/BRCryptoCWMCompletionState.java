@@ -14,13 +14,13 @@ import com.sun.jna.PointerType;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
-public class BRCryptoCallbackHandle extends PointerType {
+public class BRCryptoCWMCompletionState extends PointerType {
 
-    public BRCryptoCallbackHandle(Pointer address) {
+    public BRCryptoCWMCompletionState(Pointer address) {
         super(address);
     }
 
-    public BRCryptoCallbackHandle() {
+    public BRCryptoCWMCompletionState() {
         super();
     }
 }

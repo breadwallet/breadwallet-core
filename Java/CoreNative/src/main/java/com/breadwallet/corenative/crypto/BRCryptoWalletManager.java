@@ -9,9 +9,13 @@ package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
 import com.breadwallet.corenative.utility.SizeT;
+import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
+import com.sun.jna.StringArray;
+
+import java.util.List;
 
 public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWalletManager {
 
@@ -79,57 +83,139 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
-    public void announceBlockNumber(BRCryptoCallbackHandle handle, UnsignedLong blockchainHeight, boolean success) {
-        CryptoLibrary.INSTANCE.cwmAnnounceBlockNumber(this, handle, blockchainHeight.longValue(), success ?
-                BRCryptoBoolean.CRYPTO_TRUE : BRCryptoBoolean.CRYPTO_FALSE);
+    public void announceGetBlockNumberSuccess(BRCryptoCWMCompletionState completetionState, UnsignedLong blockNumber) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetBlockNumberSuccessAsInteger(this, completetionState, blockNumber.longValue());
     }
 
     @Override
-    public void announceBlockNumber(BRCryptoCallbackHandle handle, String blockchainHeight, boolean success) {
-        CryptoLibrary.INSTANCE.cwmAnnounceBlockNumberAsString(this, handle, blockchainHeight, success ?
-                BRCryptoBoolean.CRYPTO_TRUE : BRCryptoBoolean.CRYPTO_FALSE);
+    public void announceGetBlockNumberSuccess(BRCryptoCWMCompletionState completetionState, String blockNumber) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetBlockNumberSuccessAsString(this, completetionState, blockNumber);
     }
 
     @Override
-    public void announceTransaction(BRCryptoCallbackHandle handle, byte[] transaction, UnsignedLong timestamp,
-                                    UnsignedLong blockHeight) {
-        CryptoLibrary.INSTANCE.cwmAnnounceTransaction(this, handle, transaction, new SizeT(transaction.length),
+    public void announceGetBlockNumberFailure(BRCryptoCWMCompletionState completetionState) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetBlockNumberFailure(this, completetionState);
+    }
+
+    @Override
+    public void announceGetTransactionsItemBtc(BRCryptoCWMCompletionState completetionState, byte[] transaction, UnsignedLong timestamp,
+                                               UnsignedLong blockHeight) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetTransactionsItemBTC(this, completetionState, transaction, new SizeT(transaction.length),
                 timestamp.longValue(), blockHeight.longValue());
     }
 
     @Override
-    public void announceTransactionComplete(BRCryptoCallbackHandle handle, boolean success) {
-        CryptoLibrary.INSTANCE.cwmAnnounceTransactionComplete(this, handle, success ? BRCryptoBoolean.CRYPTO_TRUE :
+    public void announceGetTransactionsItemEth(BRCryptoCWMCompletionState completetionState, String hash, String sourceAddr,
+                                               String targetAddr, String contractAddr, String amount, String gasLimit,
+                                               String gasPrice, String data, String nonce, String gasUsed,
+                                               String blockNumber, String blockHash, String blockConfirmations,
+                                               String blockTransacionIndex, String blockTimestamp, String isError) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetTransactionsItemETH(this, completetionState, hash, sourceAddr, targetAddr, contractAddr,
+                amount, gasLimit, gasPrice, data, nonce, gasUsed, blockNumber, blockHash, blockConfirmations,
+                blockTransacionIndex, blockTimestamp, isError);
+    }
+
+    @Override
+    public void announceGetTransactionsComplete(BRCryptoCWMCompletionState completetionState, boolean success) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetTransactionsComplete(this, completetionState, success ? BRCryptoBoolean.CRYPTO_TRUE :
                 BRCryptoBoolean.CRYPTO_FALSE);
     }
 
     @Override
-    public void announceSubmit(BRCryptoCallbackHandle handle, boolean success) {
-        CryptoLibrary.INSTANCE.cwmAnnounceSubmit(this, handle, success ? BRCryptoBoolean.CRYPTO_TRUE :
+    public void announceSubmitTransferSuccess(BRCryptoCWMCompletionState completetionState) {
+        CryptoLibrary.INSTANCE.cwmAnnounceSubmitTransferSuccess(this, completetionState);
+    }
+
+    @Override
+    public void announceSubmitTransferSuccess(BRCryptoCWMCompletionState completetionState, String hash) {
+        CryptoLibrary.INSTANCE.cwmAnnounceSubmitTransferSuccessForHash(this, completetionState, hash);
+    }
+
+    @Override
+    public void announceSubmitTransferFailure(BRCryptoCWMCompletionState completetionState) {
+        CryptoLibrary.INSTANCE.cwmAnnounceSubmitTransferFailure(this, completetionState);
+    }
+
+    @Override
+    public void announceGetBalanceSuccess(BRCryptoCWMCompletionState completetionState, String balance) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetBalanceSuccess(this, completetionState, balance);
+    }
+
+    @Override
+    public void announceGetBalanceFailure(BRCryptoCWMCompletionState completetionState) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetBalanceFailure(this, completetionState);
+    }
+
+    @Override
+    public void announceGetGasPriceSuccess(BRCryptoCWMCompletionState completetionState, String gasPrice) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetGasPriceSuccess(this, completetionState, gasPrice);
+    }
+
+    @Override
+    public void announceGetGasPriceFailure(BRCryptoCWMCompletionState completetionState) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetGasPriceFailure(this, completetionState);
+    }
+
+    @Override
+    public void announceGetGasEstimateSuccess(BRCryptoCWMCompletionState completetionState, String gasEstimate) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetGasEstimateSuccess(this, completetionState, gasEstimate);
+    }
+
+    @Override
+    public void announceGetGasEstimateFailure(BRCryptoCWMCompletionState completetionState) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetGasEstimateFailure(this, completetionState);
+    }
+
+    @Override
+    public void announceGetLogsItem(BRCryptoCWMCompletionState completetionState, String hash, String contract,
+                                    List<String> topics, String data, String gasPrice, String gasUsed,
+                                    String logIndex, String blockNumber, String blockTransactionIndex,
+                                    String blockTimestamp) {
+        StringArray topicsArray = new StringArray(topics.toArray(new String[0]), "UTF-8");
+        CryptoLibrary.INSTANCE.cwmAnnounceGetLogsItem(this, completetionState, hash, contract, topics.size(),
+                topicsArray, data, gasPrice, gasUsed, logIndex,
+                blockNumber, blockTransactionIndex, blockTimestamp);
+    }
+
+    @Override
+    public void announceGetLogsComplete(BRCryptoCWMCompletionState completetionState, boolean success) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetLogsComplete(this, completetionState, success ? BRCryptoBoolean.CRYPTO_TRUE :
                 BRCryptoBoolean.CRYPTO_FALSE);
     }
 
     @Override
-    public void announceBalance(BRCryptoCallbackHandle handle, String balance, boolean success) {
-        CryptoLibrary.INSTANCE.cwmAnnounceBalance(this, handle, balance, success ? BRCryptoBoolean.CRYPTO_TRUE :
+    public void announceGetBlocksSuccess(BRCryptoCWMCompletionState completetionState, List<UnsignedLong> blocks) {
+        int count = 0;
+        long[] blockArray = new long[blocks.size()];
+        for (UnsignedLong block: blocks) blockArray[count++] = block.longValue();
+        CryptoLibrary.INSTANCE.cwmAnnounceGetBlocksSuccess(this, completetionState, blockArray.length, blockArray);
+    }
+
+    @Override
+    public void announceGetBlocksFailure(BRCryptoCWMCompletionState completetionState) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetBlocksFailure(this, completetionState);
+    }
+
+    @Override
+    public void announceGetTokensItem(BRCryptoCWMCompletionState completetionState, String address, String symbol, String name,
+                                      String description, UnsignedInteger decimals, String gasLimit, String gasPrice) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetTokensItem(this, completetionState, address, symbol, name, description,
+                decimals.intValue(), gasLimit, gasPrice);
+    }
+
+    @Override
+    public void announceGetTokensComplete(BRCryptoCWMCompletionState completetionState, boolean success) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetTokensComplete(this, completetionState, success ? BRCryptoBoolean.CRYPTO_TRUE :
                 BRCryptoBoolean.CRYPTO_FALSE);
     }
 
     @Override
-    public void announceGasPrice(BRCryptoCallbackHandle handle, String gasPrice, boolean success) {
-        CryptoLibrary.INSTANCE.cwmAnnounceGasPrice(this, handle, gasPrice, success ? BRCryptoBoolean.CRYPTO_TRUE :
-                BRCryptoBoolean.CRYPTO_FALSE);
+    public void announceGetNonceSuccess(BRCryptoCWMCompletionState completetionState, String address, String nonce) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetNonceSuccess(this, completetionState, address, nonce);
     }
 
     @Override
-    public void announceGasEstimate(BRCryptoCallbackHandle handle, String gasEstimate, boolean success) {
-        CryptoLibrary.INSTANCE.cwmAnnounceGasEstimate(this, handle, gasEstimate, success ? BRCryptoBoolean.CRYPTO_TRUE :
-                BRCryptoBoolean.CRYPTO_FALSE);
-    }
-
-    @Override
-    public void announceNonce(BRCryptoCallbackHandle handle, String address, String nonce, boolean success) {
-        CryptoLibrary.INSTANCE.cwmAnnounceNonce(this, handle, address, nonce, success ? BRCryptoBoolean.CRYPTO_TRUE :
-                BRCryptoBoolean.CRYPTO_FALSE);
+    public void announceGetNonceFailure(BRCryptoCWMCompletionState completetionState) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetNonceFailure(this, completetionState);
     }
 }
