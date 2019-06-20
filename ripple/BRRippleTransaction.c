@@ -62,8 +62,10 @@ struct BRRippleTransactionRecord {
     // The Transaction type
     BRRippleTransactionType transactionType;
 
-    // The transaction fee in drops (always XRP if I read the docs correctly)
-    BRRippleAmount fee;
+    // The base fee according to the Ripple network.
+    BRRippleAmount feeBasis;
+
+    BRRippleUnitDrops fee; // The actual fee sent in the tx
     
     // The next valid sequence number for the initiating account
     BRRippleSequence sequence;
@@ -125,13 +127,14 @@ extern BRRippleTransaction
 rippleTransactionCreate(BRRippleAddress sourceAddress,
                         BRRippleAddress targetAddress,
                         BRRippleUnitDrops amount, // For now assume XRP drops.
-                        BRRippleUnitDrops fee)
+                        BRRippleFeeBasis feeBasis)
 {
     BRRippleTransaction transaction = createTransactionObject();
 
     // Common fields
-    transaction->fee.currencyType = 0; // XRP
-    transaction->fee.amount.u64Amount = fee;
+    transaction->feeBasis.currencyType = 0; // XRP
+    transaction->feeBasis.amount.u64Amount = feeBasis; // NOTE: the actual fee will be calculated during serialization
+    transaction->fee = 0; // Don't know it yet
     transaction->sourceAddress = sourceAddress;
     transaction->transactionType = RIPPLE_TX_TYPE_PAYMENT;
     transaction->flags = 0x80000000; // tfFullyCanonicalSig
@@ -182,7 +185,7 @@ int setFieldInfo(BRRippleField *fields, BRRippleTransaction transaction,
 
     fields[index].typeCode = 6;
     fields[index].fieldCode = 8;
-    fields[index++].data.i64 = transaction->fee.amount.u64Amount;
+    fields[index++].data.i64 = transaction->fee;
     
     // Payment info
     fields[index].typeCode = 8;
@@ -218,6 +221,16 @@ int setFieldInfo(BRRippleField *fields, BRRippleTransaction transaction,
     return index;
 }
 
+static uint64_t calculateFee(BRRippleTransaction transaction)
+{
+    // We need to calculate the fee now.
+    // TODO - we currently only support Payment transactions where
+    // the fee = baseFee * numSignatures and since we only support a single
+    // signature there is nothing to do here yet.
+    // See https://xrpl.org/transaction-cost.html for the calculations required
+    return transaction->feeBasis.amount.u64Amount;
+}
+
 /*
  * Serialize the transaction
  *
@@ -232,6 +245,7 @@ rippleTransactionSerialize (BRRippleTransaction transaction,
     assert(transaction->transactionType == RIPPLE_TX_TYPE_PAYMENT);
     BRRippleField fields[10];
 
+    transaction->fee = calculateFee(transaction);
     int num_fields = setFieldInfo(fields, transaction, signature, sig_length);
 
     BRRippleSerializedTransaction signedBytes = NULL;
@@ -311,11 +325,11 @@ rippleTransactionSerializeAndSign(BRRippleTransaction transaction, BRKey * priva
     return transaction->signedBytes;
 }
 
-extern uint32_t getSerializedSize(BRRippleSerializedTransaction s)
+extern uint32_t rippleTransactionGetSerializedSize(BRRippleSerializedTransaction s)
 {
     return s->size;
 }
-extern uint8_t* getSerializedBytes(BRRippleSerializedTransaction s)
+extern uint8_t* rippleTransactionGetSerializedBytes(BRRippleSerializedTransaction s)
 {
     return s->buffer;
 }
@@ -355,7 +369,7 @@ extern BRRippleTransactionType rippleTransactionGetType(BRRippleTransaction tran
 extern BRRippleUnitDrops rippleTransactionGetFee(BRRippleTransaction transaction)
 {
     assert(transaction);
-    return transaction->fee.amount.u64Amount; // XRP always
+    return transaction->fee; // Always XRP
 }
 extern BRRippleUnitDrops rippleTransactionGetAmount(BRRippleTransaction transaction)
 {
@@ -432,8 +446,6 @@ extern BRRippleAmount rippleTransactionGetAmountRaw(BRRippleTransaction transact
             return transaction->payment.sendMax;
         case RIPPLE_AMOUNT_TYPE_DELIVERMIN:
             return transaction->payment.deliverMin;
-        case RIPPLE_AMOUNT_TYPE_FEE:
-            return transaction->fee;
         default:
         {
             // Invalid type - return an invalid amount object
@@ -486,7 +498,7 @@ void getFieldInfo(BRArrayOf(BRRippleField) fieldArray, int fieldCount, BRRippleT
                 break;
             case 6: // Amount object
                 if (8 == field->fieldCode) { // fee)
-                    transaction->fee = field->data.amount;
+                    transaction->fee = field->data.amount.amount.u64Amount;
                 } else if (1 == field->fieldCode) { // amount
                     transaction->payment.amount = field->data.amount;
                 } else if (9 == field->fieldCode) { // fee
@@ -539,4 +551,10 @@ rippleTransactionCreateFromBytes(uint8_t *bytes, int length)
     array_free(fieldArray);
 
     return transaction;
+}
+
+extern BRRippleFeeBasis rippleTransactionGetFeeBasis(BRRippleTransaction transaction)
+{
+    assert(transaction);
+    return (BRRippleFeeBasis)transaction->feeBasis.amount.u64Amount;
 }
