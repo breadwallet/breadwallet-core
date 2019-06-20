@@ -265,6 +265,9 @@ target_sources (crypto
                 src/main/cpp/core/crypto/BRCryptoWallet.h
                 src/main/cpp/core/crypto/BRCryptoWalletManager.c
                 src/main/cpp/core/crypto/BRCryptoWalletManager.h
+                src/main/cpp/core/crypto/BRCryptoWalletManagerClient.c
+                src/main/cpp/core/crypto/BRCryptoWalletManagerClient.h
+                src/main/cpp/core/crypto/BRCryptoWalletManagerPrivate.h
 #                src/main/cpp/core/crypto/testCrypto.c
                 )
 
