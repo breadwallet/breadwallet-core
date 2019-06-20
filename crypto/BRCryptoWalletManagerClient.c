@@ -88,8 +88,6 @@ cwmGetBlockNumberAsBTC (BRWalletManagerClientContext context,
 static void
 cwmGetTransactionsAsBTC (BRWalletManagerClientContext context,
                          BRWalletManager manager,
-                         char **addresses,
-                         size_t addressCount,
                          uint64_t begBlockNumber,
                          uint64_t endBlockNumber,
                          int rid) {
@@ -99,8 +97,19 @@ cwmGetTransactionsAsBTC (BRWalletManagerClientContext context,
     callbackState->type = CWM_CALLBACK_TYPE_BTC_GET_TRANSACTIONS;
     callbackState->rid = rid;
 
-    cwm->client.btc.funcGetTransactions (cwm->client.context, cwm, callbackState, addresses, addressCount, begBlockNumber, endBlockNumber);
+    BRWalletManagerGenerateUnusedAddrs (manager, 25);
 
+    size_t addrCount = 0;
+    BRAddress *addrs = BRWalletManagerGetAllAddrs (manager, &addrCount);
+
+    char **addrStrings = calloc (addrCount, sizeof(char *));
+    for (size_t index = 0; index < addrCount; index ++)
+        addrStrings[index] = (char *) &addrs[index];
+
+    cwm->client.btc.funcGetTransactions (cwm->client.context, cwm, callbackState, addrStrings, addrCount, begBlockNumber, endBlockNumber);
+
+    free (addrStrings);
+    free (addrs);
     cryptoWalletManagerGive (cwm);
 }
 
