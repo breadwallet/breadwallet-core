@@ -902,7 +902,28 @@ extension WalletManager {
 
 extension WalletManager {
     internal var clientGEN: BRCryptoCWMClientGEN {
-        return BRCryptoCWMClientGEN ()
+        return BRCryptoCWMClientGEN (
+            funcGetBlockNumber: { (context, gwm, rid) in
+                let _ = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                precondition (nil != gwm, "SYS: GEN: GetBlockNumber: Missed {bid}")
+
+                print ("SYS: GEN: GetBlockNumber")
+                gwmAnnounceBlockNumber (gwm, rid, 100000)
+        },
+            funcGetTransactions: { (context, gwm, begBlockNumber, endBlockNumber, rid) in
+                let _ = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                precondition (nil != gwm, "SYS: GEN: GetTransaction: Missed {bid}")
+
+                print ("SYS: GEN: GetTransaction")
+                gwmAnnounceTransferComplete(gwm, rid, 1)
+        },
+            funcSubmitTransaction: { (context, gwm, wid, tid, rid) in
+                let _ = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                precondition (nil != gwm && nil != wid && nil != tid, "SYS: GEN: SubmitTransaction: Missed {bid, wid, tid}")
+
+                print ("SYS: GEN: SubmitTransaction")
+               gwmAnnounceSubmit (gwm, rid, tid, 0)
+        })
     }
 }
 

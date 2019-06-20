@@ -80,7 +80,12 @@ genericRippleTransferGetFee (BRGenericTransfer transfer) {
 
 static BRGenericFeeBasis
 genericRippleTransferGetFeeBasis (BRGenericTransfer transfer) {
-    return NULL;
+    BRRippleTransaction ripple = transfer;
+    BRRippleFeeBasis rippleFeeBasis = rippleTransactionGetFeeBasis (ripple);
+
+    BRGenericFeeBasis feeBasis = malloc (sizeof (BRRippleFeeBasis));
+    memcpy (feeBasis, &rippleFeeBasis, sizeof (BRRippleFeeBasis));
+    return feeBasis;
 }
 
 static BRGenericHash genericRippleTransferGetHash (BRGenericTransfer transfer) {

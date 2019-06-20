@@ -990,7 +990,38 @@ cwmGetNonceAsETH (BREthereumClientContext context,
     cwm->client.eth.funcGetNonce (cwm->client.context, ewm, address, rid);
 }
 
+/// MARK: GEN Callbacks
 
+static void
+cwmGetBlockNumberAsGEN (BRGenericClientContext context,
+                        BRGenericWalletManager manager,
+                        int rid) {
+    BRCryptoWalletManager cwm = context;
+    cwm->client.gen.funcGetBlockNumber (cwm->client.context, manager, rid);
+}
+
+static void
+cwmGetTransactionsAsGEN (BRGenericClientContext context,
+                         BRGenericWalletManager manager,
+                         uint64_t begBlockNumber,
+                         uint64_t endBlockNumber,
+                         int rid) {
+    BRCryptoWalletManager cwm = context;
+    (void)cwm;
+    cwm->client.gen.funcGetTransactions (cwm->client.context, manager, begBlockNumber, endBlockNumber, rid);
+}
+
+static void
+cwmSubmitTransactionAsGEN (BRGenericClientContext context,
+                           BRGenericWalletManager manager,
+                           BRGenericWallet wallet,
+                           BRGenericTransfer transfer,
+                           int rid) {
+    BRCryptoWalletManager cwm = context;
+    cwm->client.gen.funcSubmitTransaction (cwm->client.context, manager, wallet, transfer, rid);
+}
+
+//
 /// =============================================================================================
 ///
 /// MARK: - Wallet Manager
@@ -1144,10 +1175,26 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
         }
 
         case BLOCK_CHAIN_TYPE_GEN: {
+#define GEN_DISPATCHER_PERIOD       (10)        // related to block proccessing
+
+            BRGenericClient client = {
+                cwm,
+                cwmGetBlockNumberAsGEN,
+                cwmGetTransactionsAsGEN,
+                cwmSubmitTransactionAsGEN
+            };
+
             // Create CWM as 'GEN' based on the network's base currency.
             const char *type = cryptoNetworkGetCurrencyCode (network);
 
-            cwm->u.gen = gwmCreate (type, cryptoAccountAsGEN (account, type));
+
+            cwm->u.gen = gwmCreate (client,
+                                    type,
+                                    cryptoAccountAsGEN (account, type),
+                                    cryptoAccountGetTimestamp(account),
+                                    cwmPath,
+                                    GEN_DISPATCHER_PERIOD,
+                                    cryptoNetworkGetHeight(network));
 
             // Announce the new wallet manager;
             cwm->listener.walletManagerEventCallback (cwm->listener.context,
@@ -1172,7 +1219,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                                    CRYPTO_WALLET_EVENT_CREATED
                                                });
 
-            // Add the primar wallet to the wallet manager
+            // Add the primary wallet to the wallet manager
             cryptoWalletManagerAddWallet (cwm, cwm->wallet);
 
             cwm->listener.walletManagerEventCallback (cwm->listener.context,
@@ -1181,6 +1228,8 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                                           CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED,
                                                           { .wallet = { cryptoWalletTake (cwm->wallet) }}
                                                       });
+
+            // TODO: Need to reconstruct persistent transactions (and any other stuff)
 
             break;
         }
@@ -1309,6 +1358,7 @@ cryptoWalletManagerConnect (BRCryptoWalletManager cwm) {
             ewmConnect (cwm->u.eth);
             break;
         case BLOCK_CHAIN_TYPE_GEN:
+            gwmConnect(cwm->u.gen);
             break;
     }
 }
@@ -1323,6 +1373,7 @@ cryptoWalletManagerDisconnect (BRCryptoWalletManager cwm) {
             ewmDisconnect (cwm->u.eth);
             break;
         case BLOCK_CHAIN_TYPE_GEN:
+            gwmDisconnect (cwm->u.gen);
             break;
     }
 }
@@ -1337,6 +1388,7 @@ cryptoWalletManagerSync (BRCryptoWalletManager cwm) {
             ewmSync (cwm->u.eth);
             break;
         case BLOCK_CHAIN_TYPE_GEN:
+            gwmSync(cwm->u.gen);
             break;
     }
 }
@@ -1373,10 +1425,10 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
             break;
 
         case BLOCK_CHAIN_TYPE_GEN:
-
-            // transfer as GEN bytes, signed.
-            // query submit
-
+            gwmWalletSubmitTransfer (cwm->u.gen,
+                                     cryptoWalletAsGEN (wallet),
+                                     cryptoTransferAsGEN (transfer),
+                                     seed);
             break;
 
     }

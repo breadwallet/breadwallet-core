@@ -57,53 +57,19 @@ gwmAccountGetAddress (BRGenericAccount account) {
     return accountWithType->handlers->account.getAddress (accountWithType->base);
 }
 
-// MARK: - Wallet Manager
-
-struct BRGenericWalletManagerRecord {
-    BRGenericHandlers handlers;
-    BRGenericAccount account;
-};
-
-extern BRGenericWalletManager
-gwmCreate (const char *type,
-           BRGenericAccount account) {
-    BRGenericWalletManager gwm = calloc (1, sizeof (struct BRGenericWalletManagerRecord));
-
-    gwm->handlers = genericHandlerLookup (type);
-    assert (NULL != gwm->handlers);
-
-    gwm->account = account;
-    return gwm;
-}
-
-extern void
-gwmRelease (BRGenericWalletManager gwm) {
-    free (gwm);
-}
-
-extern BRGenericAddress
-gwmGetAccountAddress (BRGenericWalletManager gwm) {
-    return gwmAccountGetAddress (gwm->account);
-}
-
-extern BRGenericWallet
-gwmCreatePrimaryWallet (BRGenericWalletManager gwm) {
-    return gwmWalletCreate(gwm);
-}
-
 // MARK: - Address
 
 extern char *
 gwmAddressAsString (BRGenericWalletManager gwm,
                     BRGenericAddress aid) {
-    return gwm->handlers->address.asString (aid);
+    return gwmGetHandlers(gwm)->address.asString (aid);
 }
 
 extern int
 gwmAddressEqual (BRGenericWalletManager gwm,
                  BRGenericAddress aid1,
                  BRGenericAddress aid2) {
-    return gwm->handlers->address.equal (aid1, aid2);
+    return gwmGetHandlers(gwm)->address.equal (aid1, aid2);
 }
 
 // MARK: - Transfer
@@ -111,50 +77,50 @@ gwmAddressEqual (BRGenericWalletManager gwm,
 extern BRGenericAddress
 gwmTransferGetSourceAddress (BRGenericWalletManager gwm,
                              BRGenericTransfer tid) {
-    return gwm->handlers->transfer.sourceAddress (tid);
+    return gwmGetHandlers(gwm)->transfer.sourceAddress (tid);
 }
 
 extern BRGenericAddress
 gwmTransferGetTargetAddress (BRGenericWalletManager gwm,
                              BRGenericTransfer tid) {
-    return gwm->handlers->transfer.targetAddress (tid);
+    return gwmGetHandlers(gwm)->transfer.targetAddress (tid);
 }
 
 extern UInt256
 gwmTransferGetAmount (BRGenericWalletManager gwm,
                       BRGenericTransfer tid) {
-    return gwm->handlers->transfer.amount (tid);
+    return gwmGetHandlers(gwm)->transfer.amount (tid);
 }
 
 extern UInt256
 gwmTransferGetFee (BRGenericWalletManager gwm,
                    BRGenericTransfer tid) {
-    return gwm->handlers->transfer.fee (tid);
+    return gwmGetHandlers(gwm)->transfer.fee (tid);
 }
 
 extern BRGenericFeeBasis
 gwmTransferGetFeeBasis (BRGenericWalletManager gwm,
                         BRGenericTransfer tid) {
-    return gwm->handlers->transfer.feeBasis (tid);
+    return gwmGetHandlers(gwm)->transfer.feeBasis (tid);
 }
 
 extern BRGenericHash
 gwmTransferGetHash (BRGenericWalletManager gwm,
                     BRGenericTransfer tid) {
-    return gwm->handlers->transfer.hash (tid);
+    return gwmGetHandlers(gwm)->transfer.hash (tid);
 }
 
 // MARK: - Wallet
 
 extern BRGenericWallet
 gwmWalletCreate (BRGenericWalletManager gwm) {
-    return gwm->handlers->wallet.create (gwm->account);
+    return gwmGetHandlers(gwm)->wallet.create (gwmGetAccount(gwm));
 }
 
 extern UInt256
 gwmWalletGetBalance (BRGenericWalletManager gwm,
                      BRGenericWallet wallet) {
-    return gwm->handlers->wallet.balance (wallet);
+    return gwmGetHandlers(gwm)->wallet.balance (wallet);
 }
 
 extern BRGenericAddress
@@ -192,3 +158,12 @@ gwmWalletEstimateTransferFee (BRGenericWalletManager gwm,
                               int *overflow) {
     return UINT256_ZERO;
 }
+
+extern void
+gwmWalletSubmitTransfer (BRGenericWalletManager gwm,
+                         BRGenericWallet wid,
+                         BRGenericTransfer tid,
+                         UInt512 seed) {
+    return;
+}
+

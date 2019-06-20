@@ -238,6 +238,8 @@
 		3CF66B1722AAE45400C1E9BB /* BRCryptoUnit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CF66B0F22AAE45400C1E9BB /* BRCryptoUnit.swift */; };
 		3CF66B1822AAE45400C1E9BB /* BRCryptoCurrency.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CF66B1022AAE45400C1E9BB /* BRCryptoCurrency.swift */; };
 		3CF66B1A22AB14E100C1E9BB /* BRCryptoAddress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CF66B1922AB14E100C1E9BB /* BRCryptoAddress.swift */; };
+		3CFEFE1E22BC208E0044153D /* BRGenericWalletManager.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CFEFE1D22BC208E0044153D /* BRGenericWalletManager.c */; };
+		3CFEFE1F22BC208E0044153D /* BRGenericWalletManager.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CFEFE1D22BC208E0044153D /* BRGenericWalletManager.c */; };
 		C3C453E1226E2C62004CC0C7 /* BRRippleSerialize.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C453DD226E2C62004CC0C7 /* BRRippleSerialize.c */; };
 		C3C453E2226E2C62004CC0C7 /* BRRippleTransaction.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C453DE226E2C62004CC0C7 /* BRRippleTransaction.c */; };
 		C3C453E5226E4863004CC0C7 /* BRRippleAccount.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C453E3226E4862004CC0C7 /* BRRippleAccount.c */; };
@@ -595,6 +597,8 @@
 		3CF66B0F22AAE45400C1E9BB /* BRCryptoUnit.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BRCryptoUnit.swift; sourceTree = "<group>"; };
 		3CF66B1022AAE45400C1E9BB /* BRCryptoCurrency.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BRCryptoCurrency.swift; sourceTree = "<group>"; };
 		3CF66B1922AB14E100C1E9BB /* BRCryptoAddress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRCryptoAddress.swift; sourceTree = "<group>"; };
+		3CFEFE1C22BC208E0044153D /* BRGenericWalletManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRGenericWalletManager.h; sourceTree = "<group>"; };
+		3CFEFE1D22BC208E0044153D /* BRGenericWalletManager.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRGenericWalletManager.c; sourceTree = "<group>"; };
 		C370DC362295776000314FBB /* testRippleTxList1.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = testRippleTxList1.h; sourceTree = "<group>"; };
 		C370DC372295776000314FBB /* testRippleTxList2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = testRippleTxList2.h; sourceTree = "<group>"; };
 		C3C453DD226E2C62004CC0C7 /* BRRippleSerialize.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRRippleSerialize.c; sourceTree = "<group>"; };
@@ -1116,6 +1120,8 @@
 				3C2AED6F22BA98D7006B2F4A /* BRGenericHandlers.c */,
 				3C2AED6A22BA93C0006B2F4A /* BRGeneric.h */,
 				3C2AED6B22BA93C0006B2F4A /* BRGeneric.c */,
+				3CFEFE1C22BC208E0044153D /* BRGenericWalletManager.h */,
+				3CFEFE1D22BC208E0044153D /* BRGenericWalletManager.c */,
 				3C2C173722BAC9E900E811E2 /* BRGenericRipple.h */,
 				3C2C173822BAC9E900E811E2 /* BRGenericRipple.c */,
 			);
@@ -1601,6 +1607,7 @@
 				3C2C173122BAA48E00E811E2 /* BRCryptoHash.c in Sources */,
 				3CF0FC9121657D7B000DE3FE /* BREthereumData.c in Sources */,
 				3C6B173E2131CE12003C313B /* BREthereumTransaction.c in Sources */,
+				3CFEFE1F22BC208E0044153D /* BRGenericWalletManager.c in Sources */,
 				3C6B173F2131CE12003C313B /* BREthereumBloomFilter.c in Sources */,
 				3C6B17402131CE12003C313B /* BREthereumNetwork.c in Sources */,
 				3C97E2362241658E003FD88F /* BRCryptoCurrency.c in Sources */,
@@ -1763,6 +1770,7 @@
 				3CAB60E120AF8D1A00810CE4 /* BRPaymentProtocol.c in Sources */,
 				3CAB60E220AF8D1A00810CE4 /* BRPeer.c in Sources */,
 				C3C864A7227CA28E0055120E /* BRRippleBase58.c in Sources */,
+				3CFEFE1E22BC208E0044153D /* BRGenericWalletManager.c in Sources */,
 				3CAB60E320AF8D1A00810CE4 /* BRPeerManager.c in Sources */,
 				3CAB60E420AF8D1A00810CE4 /* BRSet.c in Sources */,
 				3C97E256224170B9003FD88F /* BRCryptoAccount.c in Sources */,

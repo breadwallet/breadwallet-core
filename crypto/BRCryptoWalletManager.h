@@ -33,6 +33,7 @@
 
 #include "ethereum/BREthereum.h"
 #include "bitcoin/BRWalletManager.h"
+#include "generic/BRGenericWalletManager.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -142,6 +143,9 @@ extern "C" {
     } BRCryptoCWMClientBTC;
 
     typedef struct {
+        BRGenericGetBlockNumberCallback funcGetBlockNumber;
+        BRGenericGetTransactionsCallback funcGetTransactions;
+        BRGenericSubmitTransactionCallback funcSubmitTransaction;
     } BRCryptoCWMClientGEN;
 
     typedef struct {

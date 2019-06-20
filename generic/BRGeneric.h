@@ -13,6 +13,7 @@
 
 #include "support/BRInt.h" // UInt256
 #include "BRGenericBase.h"
+#include "BRGenericWalletManager.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,24 +38,7 @@ extern "C" {
     extern BRGenericAddress
     gwmAccountGetAddress (BRGenericAccount account);
 
-    // MARK: - Generic Wallet Manager
-
-    typedef struct BRGenericWalletManagerRecord *BRGenericWalletManager;
-
-    extern BRGenericWalletManager
-    gwmCreate (const char *type,
-               BRGenericAccount account);
-
-    extern void
-    gwmRelease (BRGenericWalletManager gwm);
-
-    extern BRGenericAddress
-    gwmGetAccountAddress (BRGenericWalletManager gwm);
-
-    extern BRGenericWallet
-    gwmCreatePrimaryWallet (BRGenericWalletManager gwm);
-
-    // Address
+     // Address
 
     extern char *
     gwmAddressAsString (BRGenericWalletManager gwm,
@@ -127,9 +111,10 @@ extern "C" {
                                   BRGenericFeeBasis feeBasis,
                                   int *overflow);
 
-
-#ifdef __cplusplus
-}
-#endif
+    extern void
+    gwmWalletSubmitTransfer (BRGenericWalletManager gwm,
+                             BRGenericWallet wid,
+                             BRGenericTransfer tid,
+                             UInt512 seed);
 
 #endif /* BRGeneric_h */
