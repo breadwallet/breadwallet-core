@@ -67,7 +67,6 @@ typedef struct {
 
 typedef enum {
     RIPPLE_AMOUNT_TYPE_AMOUNT,
-    RIPPLE_AMOUNT_TYPE_FEE,
     RIPPLE_AMOUNT_TYPE_SENDMAX,
     RIPPLE_AMOUNT_TYPE_DELIVERMIN
 } BRRippleAmountType;
@@ -85,5 +84,7 @@ typedef uint32_t BRRippleFlags;
 typedef uint32_t BRRippleLastLedgerSequence;
 typedef uint32_t BRRippleSourceTag;
 typedef uint32_t BRRippleDestinationTag;
+
+typedef BRRippleUnitDrops BRRippleFeeBasis;
 
 #endif
