@@ -152,7 +152,7 @@ extern "C" {
     (*BRCryptoCWMBtcGetTransactionsCallback) (BRCryptoCWMClientContext context,
                                               BRCryptoWalletManager manager,
                                               BRCryptoCWMClientCallbackState callbackState,
-                                              char **addresses,
+                                              const char **addresses,
                                               size_t addressCount,
                                               uint64_t begBlockNumber,
                                               uint64_t endBlockNumber);

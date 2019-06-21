@@ -64,7 +64,7 @@ bwmAnnounceBlockNumber (BRWalletManager manager,
 typedef void
 (*BRGetTransactionsCallback) (BRWalletManagerClientContext context,
                               BRWalletManager manager,
-                              char **addresses,
+                              const char **addresses,
                               size_t addressCount,
                               uint64_t begBlockNumber,
                               uint64_t endBlockNumber,
@@ -223,8 +223,8 @@ extern size_t
 BRWalletManagerGenerateUnusedAddrs (BRWalletManager manager);
 
 /**
- * Return an array of unsued addresses with up to `limit` entries.  This will generate
- * address, if needed, to provide `limit` entries.  The addresses are 'external' ones.
+ * Return an array of unused addresses.  This will generate address, if needed, to provide
+ * entries.  The addresses are 'internal' and 'external' ones.
  *
  * This is expected to be used to query the BRD BlockChainDB to identify transactions for
  * manager's wallet.
@@ -233,11 +233,7 @@ BRWalletManagerGenerateUnusedAddrs (BRWalletManager manager);
  */
 extern BRAddress *
 BRWalletManagerGetUnusedAddrs (BRWalletManager manager,
-                               uint32_t limit);
-
-extern BRAddress *
-BRWalletManagerGetUnusedAddrsLegacy (BRWalletManager manager,
-                                     uint32_t limit);
+                               size_t *addressCount);
 
 /**
  * Return an array of all addresses, used and unused, tracked by the wallet. The addresses
