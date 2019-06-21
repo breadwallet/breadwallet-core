@@ -3,6 +3,7 @@ package com.breadwallet.cryptodemo;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import com.breadwallet.crypto.Currency;
 import com.breadwallet.crypto.Network;
 import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Transfer;
@@ -68,7 +69,7 @@ public class CoreSystemListener implements SystemListener {
 
     @Override
     public void handleSystemEvent(System system, SystemEvent event) {
-        Log.d(TAG, event.toString());
+        Log.d(TAG, String.format("System: %s", event));
         event.accept(new DefaultSystemEventVisitor<Void>() {
             @Nullable
             @Override
@@ -81,7 +82,8 @@ public class CoreSystemListener implements SystemListener {
             @Nullable
             @Override
             public Void visit(SystemNetworkAddedEvent event) {
-                system.createWalletManager(event.getNetwork(), mode);
+                List<WalletManagerMode> supportedModes = event.getNetwork().getSupportedModes();
+                system.createWalletManager(event.getNetwork(), supportedModes.contains(mode) ? mode : supportedModes.get(0));
                 return null;
             }
         });
@@ -89,17 +91,17 @@ public class CoreSystemListener implements SystemListener {
 
     @Override
     public void handleNetworkEvent(System system, Network network, NetworkEvent event) {
-        Log.d(TAG, event.toString());
+        Log.d(TAG, String.format("Network: %s", event));
     }
 
     @Override
     public void handleManagerEvent(System system, WalletManager manager, WalletManagerEvent event) {
-        Log.d(TAG, event.toString());
+        Log.d(TAG, String.format("Manager (%s): %s", manager.getName(), event));
     }
 
     @Override
     public void handleWalletEvent(System system, WalletManager manager, Wallet wallet, WalletEvent event) {
-        Log.d(TAG, event.toString());
+        Log.d(TAG, String.format("Wallet (%s:%s): %s", manager.getName(), wallet.getName(), event));
         for(WalletListener listener: walletListeners) {
             listener.handleWalletEvent(system, manager, wallet, event);
         }
@@ -117,7 +119,7 @@ public class CoreSystemListener implements SystemListener {
 
     @Override
     public void handleTransferEvent(System system, WalletManager manager, Wallet wallet, Transfer transfer, TranferEvent event) {
-        Log.d(TAG, event.toString());
+        Log.d(TAG, String.format("Transfer (%s:%s): %s", manager.getName(), wallet.getName(), event));
         for(TransferListener listener: transferListeners) {
             listener.handleTransferEvent(system, manager, wallet, transfer, event);
         }
