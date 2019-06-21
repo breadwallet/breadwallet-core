@@ -373,22 +373,23 @@ public class BlockChainDB {
             blockchainId: String)
 
         static internal func asTransfer (json: JSON) -> Model.Transfer? {
-            guard let id = json.asString(name: "transfer_id"),
-                let bid = json.asString(name: "blockchain_id"),
-                let acknowledgements = json.asUInt64(name: "acknowledgements"),
-                let index = json.asUInt64(name: "index"),
-                let amount = json.asDict(name: "amount").map ({ JSON (dict: $0) }),
-                let amountValue = amount.asString (name: "amount"),
+            guard let id   = json.asString (name: "transfer_id"),
+                let bid    = json.asString (name: "blockchain_id"),
+                let index  = json.asUInt64 (name: "index"),
+                let amount = json.asDict (name: "amount").map ({ JSON (dict: $0) }),
+                let amountValue    = amount.asString (name: "amount"),
                 let amountCurrency = amount.asString (name: "currency_id")
                 else { return nil }
 
-            let source = json.asString(name: "from_address")
-            let target = json.asString(name: "to_address")
-            let tid = json.asString(name: "transaction_id")
+            // TODO: Resolve if optional or not
+            let acks   = json.asUInt64 (name: "acknowledgements") ?? 0
+            let source = json.asString (name: "from_address")
+            let target = json.asString (name: "to_address")
+            let tid    = json.asString (name: "transaction_id")
 
             return (id: id, source: source, target: target,
                     amountValue: amountValue, amountCurrency: amountCurrency,
-                    acknowledgements: acknowledgements, index: index,
+                    acknowledgements: acks, index: index,
                     transactionId: tid, blockchainId: bid)
         }
 
@@ -406,7 +407,7 @@ public class BlockChainDB {
             status: String,
             size: UInt64,
             timestamp: Date?,
-            firstSeen: Date,
+            firstSeen: Date?,
             raw: Data?,
             transfers: [Transfer],
             acknowledgements: UInt64
@@ -418,11 +419,13 @@ public class BlockChainDB {
                 let hash       = json.asString (name: "hash"),
                 let identifier = json.asString (name: "identifier"),
                 let status     = json.asString (name: "status"),
-                let size       = json.asUInt64 (name: "size"),
-                let firstSeen  = json.asDate   (name: "first_seen"),
-                let acks       = json.asUInt64 (name: "acknowledgements")
+                let size       = json.asUInt64 (name: "size")
                 else { return nil }
 
+            // TODO: Resolve if optional or not
+            let acks       = json.asUInt64 (name: "acknowledgements") ?? 0
+            // TODO: Resolve if optional or not
+            let firstSeen     = json.asDate   (name: "first_seen")
             let blockHash     = json.asString (name: "block_hash")
             let blockHeight   = json.asUInt64 (name: "block_height")
             let index         = json.asUInt64 (name: "index")
@@ -468,10 +471,10 @@ public class BlockChainDB {
                 let hash     = json.asString (name: "hash"),
                 let height   = json.asUInt64 (name: "height"),
                 let mined    = json.asDate   (name: "mined"),
-                let size     = json.asUInt64 (name: "size"),
-                let acks       = json.asUInt64 (name: "acknowledgements")
+                let size     = json.asUInt64 (name: "size")
                 else { return nil }
 
+            let acks       = json.asUInt64 (name: "acknowledgements") ?? 0
             let header   = json.asString (name: "header")
             let raw      = json.asData   (name: "raw")
             let prevHash = json.asString (name: "prev_hash")
@@ -1091,11 +1094,8 @@ public class BlockChainDB {
             "id"      : ridIncr
         ]
 
-        apiMakeRequestJSON (network: network, data: json) { (res: Result<JSON, QueryError>) in
-            completion (res.flatMap {
-                $0.asString(name: "result").map { Result.success ($0) }
-                    ?? Result<String,QueryError>.failure(QueryError.noData) })
-        }
+        apiMakeRequestJSON (network: network, data: json,
+                            completion: BlockChainDB.getOneResultString(completion))
     }
 
     public func getBalanceAsTOK (network: String,
@@ -1103,7 +1103,6 @@ public class BlockChainDB {
                                  contract: String,
                                  completion: @escaping (Result<String,QueryError>) -> Void) {
         let json: JSON.Dict = [ "id" : ridIncr ]
-
 
         var queryDict = [
             "module"    : "account",
@@ -1114,12 +1113,8 @@ public class BlockChainDB {
 
         apiMakeRequestQUERY (network: network,
                              query: zip (Array(queryDict.keys), Array(queryDict.values)),
-                             data: json) { (res: Result<JSON, QueryError>) in
-                                completion (res.flatMap {
-                                    $0.asString(name: "result").map { Result.success ($0) }
-                                        ?? Result<String,QueryError>.failure(QueryError.noData) })
-
-        }
+                             data: json,
+                             completion: BlockChainDB.getOneResultString (completion))
     }
 
     public func getGasPriceAsETH (network: String,
@@ -1130,13 +1125,8 @@ public class BlockChainDB {
             "id" : ridIncr
         ]
 
-        apiMakeRequestJSON (network: network, data: json) {
-            (res: Result<JSON, QueryError>) in
-            completion (res.flatMap {
-                $0.asString(name: "result").map { Result.success ($0) }
-                    ?? Result<String,QueryError>.failure(QueryError.noData) })
-
-        }
+        apiMakeRequestJSON (network: network, data: json,
+                            completion: BlockChainDB.getOneResultString(completion))
     }
 
     public func getGasEstimateAsETH (network: String,
@@ -1152,11 +1142,8 @@ public class BlockChainDB {
             "id"      : ridIncr
         ]
 
-        apiMakeRequestJSON (network: network, data: json) { (res: Result<JSON, QueryError>) in
-            completion (res.flatMap {
-                $0.asString(name: "result").map { Result.success ($0) }
-                    ?? Result<String,QueryError>.failure(QueryError.noData) })
-        }
+        apiMakeRequestJSON (network: network, data: json,
+                            completion: BlockChainDB.getOneResultString(completion))
     }
 
     public func submitTransactionAsETH (network: String,
@@ -1169,11 +1156,8 @@ public class BlockChainDB {
             "id"      : ridIncr
         ]
 
-        apiMakeRequestJSON (network: network, data: json) { (res: Result<JSON, QueryError>) in
-            completion (res.flatMap {
-                $0.asString(name: "result").map { Result.success ($0) }
-                    ?? Result<String,QueryError>.failure(QueryError.noData) })
-        }
+        apiMakeRequestJSON (network: network, data: json,
+                            completion: BlockChainDB.getOneResultString(completion))
     }
 
     public func getTransactionsAsETH (network: String,
@@ -1358,12 +1342,8 @@ public class BlockChainDB {
             "id" : ridIncr
         ]
 
-        apiMakeRequestJSON (network: network, data: json) { (res: Result<JSON, QueryError>) in
-            completion (res.flatMap {
-                $0.asString(name: "result").map { Result.success ($0) }
-                    ?? Result<String,QueryError>.failure(QueryError.noData) })
-
-        }
+        apiMakeRequestJSON (network: network, data: json,
+                            completion: BlockChainDB.getOneResultString (completion))
     }
     
     public func getNonceAsETH (network: String,
@@ -1375,12 +1355,8 @@ public class BlockChainDB {
             "id" : ridIncr
         ]
 
-
-        apiMakeRequestJSON (network: network, data: json) { (res: Result<JSON, QueryError>) in
-            completion (res.flatMap {
-                $0.asString(name: "result").map { Result.success ($0) }
-                    ?? Result<String,QueryError>.failure(QueryError.noData) })
-        }
+        apiMakeRequestJSON (network: network, data: json,
+                            completion: BlockChainDB.getOneResultString (completion))
     }
 
      static internal let dateFormatter: DateFormatter = {
@@ -1627,5 +1603,34 @@ public class BlockChainDB {
         return results.contains(where: { $0 == nil })
             ? Result.failure(QueryError.model ("(JSON) -> T transform error (many)"))
             : Result.success(results as! [T])
+    }
+
+    ///
+    /// Given JSON extract a value and then apply a completion
+    ///
+    /// - Parameters:
+    ///   - extract: A function that extracts the "result" field from JSON to return T?
+    ///   - completion: A function to process a Result on T
+    ///
+    /// - Returns: A function to process a Result on JSON
+    ///
+    private static func getOneResult<T> (_ extract: @escaping (JSON) -> (String) ->T?,
+                                         _ completion: @escaping (Result<T,QueryError>) -> Void) -> ((Result<JSON,QueryError>) -> Void) {
+        return { (res: Result<JSON,QueryError>) in
+            completion (res.flatMap {
+                extract ($0)("result").map { Result.success ($0) } // extract()() returns an optional
+                    ?? Result<T,QueryError>.failure(QueryError.noData) })
+        }
+    }
+
+
+    /// Given JSON extract a value with JSON.asString (returning String?) and then apply a completion
+    ///
+    /// - Parameter completion: A function to process a Result on String
+    ///
+    /// - Returns: A function to process a Result on JSON
+    ///
+    private static func getOneResultString (_ completion: @escaping (Result<String,QueryError>) -> Void) -> ((Result<JSON,QueryError>) -> Void) {
+        return getOneResult (JSON.asString, completion)
     }
 }

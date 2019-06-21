@@ -572,7 +572,13 @@ extension WalletManager {
                 precondition (nil != cwm, "SYS: BTC: GetTransactions: Missed {cwm}")
 
                 print ("SYS: BTC: GetTransactions: Blocks: {\(begBlockNumber), \(endBlockNumber)}")
-                let addresses = [String]()
+
+                var cAddresses = addresses!
+                var addresses:[String] = Array (repeating: "", count: addressesCount)
+                for index in 0..<addressesCount {
+                    addresses[index] = asUTF8String (cAddresses.pointee!)
+                    cAddresses = cAddresses.advanced(by: 1)
+                }
 
                 manager.query.getTransactions (blockchainId: manager.network.uids,
                                                addresses: addresses,
