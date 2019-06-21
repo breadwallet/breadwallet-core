@@ -38,6 +38,8 @@
 extern "C" {
 #endif
 
+    typedef struct BRCryptoWalletManagerRecord *BRCryptoWalletManager;
+
     typedef enum {
         CRYPTO_FALSE = 0,
         CRYPTO_TRUE  = 1

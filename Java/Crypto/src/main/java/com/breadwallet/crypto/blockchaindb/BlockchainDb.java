@@ -39,10 +39,13 @@ import com.google.common.primitives.UnsignedLong;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import okhttp3.OkHttpClient;
 
 public class BlockchainDb {
+
+    private final AtomicInteger ridGenerator;
 
     private final BlockApi blockApi;
     private final BlockchainApi blockchainApi;
@@ -72,6 +75,8 @@ public class BlockchainDb {
         BrdApiClient brdClient = new BrdApiClient(client, apiBaseURL, apiDataTask);
 
         ExecutorService executorService = Executors.newCachedThreadPool();
+
+        this.ridGenerator = new AtomicInteger(0);
 
         this.blockApi = new BlockApi(bdbClient, executorService);
         this.blockchainApi = new BlockchainApi(bdbClient);
@@ -172,7 +177,8 @@ public class BlockchainDb {
 
     // Transactions
 
-    public void getTransactions(String id, List<String> addresses, UnsignedLong beginBlockNumber, UnsignedLong endBlockNumber,
+    public void getTransactions(String id, List<String> addresses, UnsignedLong beginBlockNumber,
+                                UnsignedLong endBlockNumber,
                                 boolean includeRaw, boolean includeProof,
                                 CompletionHandler<List<Transaction>> handler) {
         transactionApi.getTransactions(id, addresses, beginBlockNumber, endBlockNumber, includeRaw, includeProof,
@@ -205,62 +211,67 @@ public class BlockchainDb {
 
     // ETH Balance
 
-    public void getBalanceAsEth(String networkName, String address, int rid,
-                                CompletionHandler<String> handler) {
-        ethBalanceApi.getBalanceAsEth(networkName, address, rid, handler);
+    public void getBalanceAsEth(String networkName, String address, CompletionHandler<String> handler) {
+        ethBalanceApi.getBalanceAsEth(networkName, address, ridGenerator.getAndIncrement(), handler);
     }
 
-    public void getBalanceAsTok(String networkName, String address, String tokenAddress, int rid,
+    public void getBalanceAsTok(String networkName, String address, String tokenAddress,
                                 CompletionHandler<String> handler) {
-        ethBalanceApi.getBalanceAsTok(networkName, address, tokenAddress, rid, handler);
+        ethBalanceApi.getBalanceAsTok(networkName, address, tokenAddress, ridGenerator.getAndIncrement(), handler);
     }
 
     // ETH Gas
 
-    public void getGasPriceAsEth(String networkName, int rid, CompletionHandler<String> handler) {
-        ethGasApi.getGasPriceAsEth(networkName, rid, handler);
+    public void getGasPriceAsEth(String networkName, CompletionHandler<String> handler) {
+        ethGasApi.getGasPriceAsEth(networkName, ridGenerator.getAndIncrement(), handler);
     }
 
-    public void getGasEstimateAsEth(String networkName, String from, String to, String amount, String data, int rid,
+    public void getGasEstimateAsEth(String networkName, String from, String to, String amount, String data,
                                     CompletionHandler<String> handler) {
-        ethGasApi.getGasEstimateAsEth(networkName, from, to, amount, data, rid, handler);
+        ethGasApi.getGasEstimateAsEth(networkName, from, to, amount, data, ridGenerator.getAndIncrement(), handler);
     }
 
     // ETH Token
 
-    public void getTokensAsEth(int rid, CompletionHandler<List<EthToken>> handler) {
-        ethTokenApi.getTokensAsEth(rid, handler);
+    public void getTokensAsEth(CompletionHandler<List<EthToken>> handler) {
+        ethTokenApi.getTokensAsEth(ridGenerator.getAndIncrement(), handler);
     }
 
     // ETH Block
 
-    public void getBlockNumberAsEth(String networkName, int rid, CompletionHandler<String> handler) {
-        ethBlockApi.getBlockNumberAsEth(networkName, rid, handler);
+    public void getBlockNumberAsEth(String networkName, CompletionHandler<String> handler) {
+        ethBlockApi.getBlockNumberAsEth(networkName, ridGenerator.getAndIncrement(), handler);
     }
 
     // ETH Transfer
 
-    public void submitTransactionAsEth(String networkName, String transaction, int rid,
+    public void submitTransactionAsEth(String networkName, String transaction,
                                        CompletionHandler<String> handler) {
-        ethTransferApi.submitTransactionAsEth(networkName, transaction, rid, handler);
+        ethTransferApi.submitTransactionAsEth(networkName, transaction, ridGenerator.getAndIncrement(), handler);
     }
 
-    public void getTransactionsAsEth(String networkName, String address, UnsignedLong begBlockNumber, UnsignedLong endBlockNumber,
-                                     int rid, CompletionHandler<List<EthTransaction>> handler) {
-        ethTransferApi.getTransactionsAsEth(networkName, address, begBlockNumber, endBlockNumber, rid, handler);
+    public void getTransactionsAsEth(String networkName, String address,
+                                     UnsignedLong begBlockNumber, UnsignedLong endBlockNumber,
+                                     CompletionHandler<List<EthTransaction>> handler) {
+        ethTransferApi.getTransactionsAsEth(networkName, address, begBlockNumber, endBlockNumber,
+                ridGenerator.getAndIncrement(), handler);
     }
 
-    public void getNonceAsEth(String networkName, String address, int rid, CompletionHandler<String> handler) {
-        ethTransferApi.getNonceAsEth(networkName, address, rid, handler);
+    public void getNonceAsEth(String networkName, String address, CompletionHandler<String> handler) {
+        ethTransferApi.getNonceAsEth(networkName, address, ridGenerator.getAndIncrement(), handler);
     }
 
     public void getLogsAsEth(String networkName, @Nullable String contract, String address, String event,
-                             UnsignedLong begBlockNumber, UnsignedLong endBlockNumber, int rid, CompletionHandler<List<EthLog>> handler) {
-        ethTransferApi.getLogsAsEth(networkName, contract, address, event, begBlockNumber, endBlockNumber, rid, handler);
+                             UnsignedLong begBlockNumber, UnsignedLong endBlockNumber,
+                             CompletionHandler<List<EthLog>> handler) {
+        ethTransferApi.getLogsAsEth(networkName, contract, address, event, begBlockNumber, endBlockNumber,
+                ridGenerator.getAndIncrement(), handler);
     }
 
-    public void getBlocksAsEth(String networkName, String address, UnsignedInteger interests, UnsignedLong blockStart, UnsignedLong blockEnd,
-                               int rid, CompletionHandler<List<UnsignedLong>> handler) {
-        ethTransferApi.getBlocksAsEth(networkName, address, interests, blockStart, blockEnd, rid, handler);
+    public void getBlocksAsEth(String networkName, String address, UnsignedInteger interests,
+                               UnsignedLong blockStart, UnsignedLong blockEnd,
+                               CompletionHandler<List<UnsignedLong>> handler) {
+        ethTransferApi.getBlocksAsEth(networkName, address, interests, blockStart, blockEnd,
+                ridGenerator.getAndIncrement(), handler);
     }
 }

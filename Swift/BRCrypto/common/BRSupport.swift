@@ -155,6 +155,13 @@ extension Result {
         case let .failure(f): return Result.success(transform (f))
         }
     }
+
+    public func resolve (success: (Success) -> Void, failure: (Failure) -> Void) {
+        switch self {
+        case let .success (value): success(value)
+        case let .failure (error): failure(error)
+        }
+    }
 }
 
 extension Array {

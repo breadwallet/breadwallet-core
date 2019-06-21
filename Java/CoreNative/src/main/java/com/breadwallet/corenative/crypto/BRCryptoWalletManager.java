@@ -9,9 +9,13 @@ package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
 import com.breadwallet.corenative.utility.SizeT;
+import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
+import com.sun.jna.StringArray;
+
+import java.util.List;
 
 public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWalletManager {
 
@@ -76,5 +80,142 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     @Override
     public void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, String paperKey) {
         CryptoLibrary.INSTANCE.cryptoWalletManagerSubmit(this, wallet.asBRCryptoWallet(), transfer.asBRCryptoTransfer(), paperKey);
+    }
+
+    @Override
+    public void announceGetBlockNumberSuccess(BRCryptoCWMClientCallbackState callbackState, UnsignedLong blockNumber) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetBlockNumberSuccessAsInteger(this, callbackState, blockNumber.longValue());
+    }
+
+    @Override
+    public void announceGetBlockNumberSuccess(BRCryptoCWMClientCallbackState callbackState, String blockNumber) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetBlockNumberSuccessAsString(this, callbackState, blockNumber);
+    }
+
+    @Override
+    public void announceGetBlockNumberFailure(BRCryptoCWMClientCallbackState callbackState) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetBlockNumberFailure(this, callbackState);
+    }
+
+    @Override
+    public void announceGetTransactionsItemBtc(BRCryptoCWMClientCallbackState callbackState, byte[] transaction, UnsignedLong timestamp,
+                                               UnsignedLong blockHeight) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetTransactionsItemBTC(this, callbackState, transaction, new SizeT(transaction.length),
+                timestamp.longValue(), blockHeight.longValue());
+    }
+
+    @Override
+    public void announceGetTransactionsItemEth(BRCryptoCWMClientCallbackState callbackState, String hash, String sourceAddr,
+                                               String targetAddr, String contractAddr, String amount, String gasLimit,
+                                               String gasPrice, String data, String nonce, String gasUsed,
+                                               String blockNumber, String blockHash, String blockConfirmations,
+                                               String blockTransacionIndex, String blockTimestamp, String isError) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetTransactionsItemETH(this, callbackState, hash, sourceAddr, targetAddr, contractAddr,
+                amount, gasLimit, gasPrice, data, nonce, gasUsed, blockNumber, blockHash, blockConfirmations,
+                blockTransacionIndex, blockTimestamp, isError);
+    }
+
+    @Override
+    public void announceGetTransactionsComplete(BRCryptoCWMClientCallbackState callbackState, boolean success) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetTransactionsComplete(this, callbackState, success ? BRCryptoBoolean.CRYPTO_TRUE :
+                BRCryptoBoolean.CRYPTO_FALSE);
+    }
+
+    @Override
+    public void announceSubmitTransferSuccess(BRCryptoCWMClientCallbackState callbackState) {
+        CryptoLibrary.INSTANCE.cwmAnnounceSubmitTransferSuccess(this, callbackState);
+    }
+
+    @Override
+    public void announceSubmitTransferSuccess(BRCryptoCWMClientCallbackState callbackState, String hash) {
+        CryptoLibrary.INSTANCE.cwmAnnounceSubmitTransferSuccessForHash(this, callbackState, hash);
+    }
+
+    @Override
+    public void announceSubmitTransferFailure(BRCryptoCWMClientCallbackState callbackState) {
+        CryptoLibrary.INSTANCE.cwmAnnounceSubmitTransferFailure(this, callbackState);
+    }
+
+    @Override
+    public void announceGetBalanceSuccess(BRCryptoCWMClientCallbackState callbackState, String balance) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetBalanceSuccess(this, callbackState, balance);
+    }
+
+    @Override
+    public void announceGetBalanceFailure(BRCryptoCWMClientCallbackState callbackState) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetBalanceFailure(this, callbackState);
+    }
+
+    @Override
+    public void announceGetGasPriceSuccess(BRCryptoCWMClientCallbackState callbackState, String gasPrice) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetGasPriceSuccess(this, callbackState, gasPrice);
+    }
+
+    @Override
+    public void announceGetGasPriceFailure(BRCryptoCWMClientCallbackState callbackState) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetGasPriceFailure(this, callbackState);
+    }
+
+    @Override
+    public void announceGetGasEstimateSuccess(BRCryptoCWMClientCallbackState callbackState, String gasEstimate) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetGasEstimateSuccess(this, callbackState, gasEstimate);
+    }
+
+    @Override
+    public void announceGetGasEstimateFailure(BRCryptoCWMClientCallbackState callbackState) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetGasEstimateFailure(this, callbackState);
+    }
+
+    @Override
+    public void announceGetLogsItem(BRCryptoCWMClientCallbackState callbackState, String hash, String contract,
+                                    List<String> topics, String data, String gasPrice, String gasUsed,
+                                    String logIndex, String blockNumber, String blockTransactionIndex,
+                                    String blockTimestamp) {
+        StringArray topicsArray = new StringArray(topics.toArray(new String[0]), "UTF-8");
+        CryptoLibrary.INSTANCE.cwmAnnounceGetLogsItem(this, callbackState, hash, contract, topics.size(),
+                topicsArray, data, gasPrice, gasUsed, logIndex,
+                blockNumber, blockTransactionIndex, blockTimestamp);
+    }
+
+    @Override
+    public void announceGetLogsComplete(BRCryptoCWMClientCallbackState callbackState, boolean success) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetLogsComplete(this, callbackState, success ? BRCryptoBoolean.CRYPTO_TRUE :
+                BRCryptoBoolean.CRYPTO_FALSE);
+    }
+
+    @Override
+    public void announceGetBlocksSuccess(BRCryptoCWMClientCallbackState callbackState, List<UnsignedLong> blocks) {
+        int count = 0;
+        long[] blockArray = new long[blocks.size()];
+        for (UnsignedLong block: blocks) blockArray[count++] = block.longValue();
+        CryptoLibrary.INSTANCE.cwmAnnounceGetBlocksSuccess(this, callbackState, blockArray.length, blockArray);
+    }
+
+    @Override
+    public void announceGetBlocksFailure(BRCryptoCWMClientCallbackState callbackState) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetBlocksFailure(this, callbackState);
+    }
+
+    @Override
+    public void announceGetTokensItem(BRCryptoCWMClientCallbackState callbackState, String address, String symbol, String name,
+                                      String description, UnsignedInteger decimals, String gasLimit, String gasPrice) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetTokensItem(this, callbackState, address, symbol, name, description,
+                decimals.intValue(), gasLimit, gasPrice);
+    }
+
+    @Override
+    public void announceGetTokensComplete(BRCryptoCWMClientCallbackState callbackState, boolean success) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetTokensComplete(this, callbackState, success ? BRCryptoBoolean.CRYPTO_TRUE :
+                BRCryptoBoolean.CRYPTO_FALSE);
+    }
+
+    @Override
+    public void announceGetNonceSuccess(BRCryptoCWMClientCallbackState callbackState, String address, String nonce) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetNonceSuccess(this, callbackState, address, nonce);
+    }
+
+    @Override
+    public void announceGetNonceFailure(BRCryptoCWMClientCallbackState callbackState) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetNonceFailure(this, callbackState);
     }
 }

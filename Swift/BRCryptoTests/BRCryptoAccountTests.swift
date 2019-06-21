@@ -38,7 +38,7 @@ class BRCryptoAccountTests: XCTestCase {
     }
 
     func testAddressETH () {
-        let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native")
+        let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native", issuer: nil)
         let network = Network (uids: "ethereum-mainnet",
                                name: "ethereum-name",
                                isMainnet: true,
@@ -66,7 +66,7 @@ class BRCryptoAccountTests: XCTestCase {
     }
 
     func testAddressBTC () {
-        let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native")
+        let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
         let network = Network (uids: "bitcoin-mainnet",
                                name: "bitcoin-name",
                                isMainnet: true,

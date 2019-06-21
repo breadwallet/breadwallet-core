@@ -21,13 +21,13 @@ class BRCryptoAmountTests: XCTestCase {
     }
 
     func testCurrency() {
-        let btc = Currency (uids: "Bitcoin", name: "Bitcoin", code: "BTC", type: "native")
+        let btc = Currency (uids: "Bitcoin", name: "Bitcoin", code: "BTC", type: "native", issuer: nil)
 
         XCTAssert (btc.name == "Bitcoin")
         XCTAssert (btc.code == "BTC")
         XCTAssert (btc.type == "native")
 
-        let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native")
+        let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native", issuer: nil)
         XCTAssert (eth.name == "Ethereum")
         XCTAssert (eth.code == "ETH")
         XCTAssert (eth.type == "native")
@@ -38,8 +38,8 @@ class BRCryptoAmountTests: XCTestCase {
      }
 
     func testUnit () {
-        let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native")
-        let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native")
+        let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
+        let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native", issuer: nil)
 
         let BTC_SATOSHI = BRCrypto.Unit (currency: btc, uids: "BTC-SAT",  name: "Satoshi", symbol: "SAT")
         let BTC_BTC = BRCrypto.Unit (currency: btc, uids: "BTC-BTC", name: "Bitcoin", symbol: "B", base: BTC_SATOSHI, decimals: 8)
@@ -64,8 +64,8 @@ class BRCryptoAmountTests: XCTestCase {
     }
 
     func testAmount () {
-        let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native")
-        let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native")
+        let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
+        let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native", issuer: nil)
 
         let BTC_SATOSHI = BRCrypto.Unit (currency: btc, uids: "BTC-SAT",  name: "Satoshi", symbol: "SAT")
         let BTC_BTC = BRCrypto.Unit (currency: btc, uids: "BTC-BTC",  name: "Bitcoin", symbol: "B", base: BTC_SATOSHI, decimals: 8)
@@ -175,7 +175,7 @@ class BRCryptoAmountTests: XCTestCase {
         }
 
     func testAmountETH () {
-        let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native")
+        let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native", issuer: nil)
 
         let ETH_WEI  = BRCrypto.Unit (currency: eth, uids: "ETH-WEI", name: "WEI",   symbol: "wei")
         let ETH_GWEI = BRCrypto.Unit (currency: eth, uids: "ETH-GWEI", name: "GWEI",  symbol: "gwei", base: ETH_WEI, decimals: 9)
@@ -216,7 +216,7 @@ class BRCryptoAmountTests: XCTestCase {
     }
 
     func testAmountBTC () {
-        let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native")
+        let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
 
         let BTC_SATOSHI = BRCrypto.Unit (currency: btc, uids: "BTC-SAT",  name: "Satoshi", symbol: "SAT")
         let BTC_BTC = BRCrypto.Unit (currency: btc, uids: "BTC-BTC",  name: "Bitcoin", symbol: "B", base: BTC_SATOSHI, decimals: 8)

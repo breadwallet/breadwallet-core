@@ -284,7 +284,13 @@ extern "C" {
     private_extern void
     cryptoWalletManagerSetState (BRCryptoWalletManager cwm,
                                  BRCryptoWalletManagerState state);
-    
+
+    private_extern BRWalletManager
+    cryptoWalletManagerAsBTC (BRCryptoWalletManager manager);
+
+    private_extern BREthereumEWM
+    cryptoWalletManagerAsETH (BRCryptoWalletManager manager);
+
     private_extern BRCryptoBoolean
     cryptoWalletManagerHasETH (BRCryptoWalletManager manager,
                                BREthereumEWM ewm);

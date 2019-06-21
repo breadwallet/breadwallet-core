@@ -57,11 +57,6 @@
                BlueprintName = "BRCryptoTests"
                ReferencedContainer = "container:BRCore.xcodeproj">
             </BuildableReference>
-            <SkippedTests>
-               <Test
-                  Identifier = "BRBlockChainDBTest">
-               </Test>
-            </SkippedTests>
          </TestableReference>
          <TestableReference
             skipped = "YES">
