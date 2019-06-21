@@ -1179,38 +1179,40 @@ bwmHandleAnnounceTransactionComplete (BRWalletManager manager,
                                       int success) {
     pthread_mutex_lock (&manager->lock);
     if (rid == manager->brdSync.rid) {
-        BRAddress externalAddress = BR_ADDRESS_NONE;
-        BRAddress internalAddress = BR_ADDRESS_NONE;
+        if (success) {
+            BRAddress externalAddress = BR_ADDRESS_NONE;
+            BRAddress internalAddress = BR_ADDRESS_NONE;
 
-        BRWalletManagerGenerateUnusedAddrs (manager);
+            BRWalletManagerGenerateUnusedAddrs (manager);
 
-        BRWalletUnusedAddrs (manager->wallet, &externalAddress, 1, 0);
-        BRWalletUnusedAddrs (manager->wallet, &internalAddress, 1, 1);
+            BRWalletUnusedAddrs (manager->wallet, &externalAddress, 1, 0);
+            BRWalletUnusedAddrs (manager->wallet, &internalAddress, 1, 1);
 
-        if (BRAddressEq (&externalAddress, &manager->brdSync.lastExternalAddress) &&
-            BRAddressEq (&internalAddress, &manager->brdSync.lastInternalAddress)) {
+            if (BRAddressEq (&externalAddress, &manager->brdSync.lastExternalAddress) &&
+                BRAddressEq (&internalAddress, &manager->brdSync.lastInternalAddress)) {
+                manager->brdSync.completed = 1;
 
-            manager->brdSync.completed = 1;
+            } else {
+                size_t addressCount = 0;
+                const char **addressStrings = NULL;
+                BRAddress *addressArray = NULL;
+                BRWalletManagerUnusedAddrsAsStrings (manager, &addressCount, &addressStrings, &addressArray);
 
+                manager->brdSync.lastExternalAddress = externalAddress;
+                manager->brdSync.lastInternalAddress = internalAddress;
+
+                bwmUpdateTransactions (manager,
+                                    addressStrings,
+                                    addressCount,
+                                    manager->brdSync.begBlockNumber,
+                                    manager->brdSync.endBlockNumber,
+                                    manager->brdSync.rid);
+
+                free (addressStrings);
+                free (addressArray);
+            }
         } else {
-
-            size_t addressCount = 0;
-            const char **addressStrings = NULL;
-            BRAddress *addressArray = NULL;
-            BRWalletManagerUnusedAddrsAsStrings (manager, &addressCount, &addressStrings, &addressArray);
-
-            manager->brdSync.lastExternalAddress = externalAddress;
-            manager->brdSync.lastInternalAddress = internalAddress;
-
-            bwmUpdateTransactions (manager,
-                                   addressStrings,
-                                   addressCount,
-                                   manager->brdSync.begBlockNumber,
-                                   manager->brdSync.endBlockNumber,
-                                   manager->brdSync.rid);
-
-            free (addressStrings);
-            free (addressArray);
+            manager->brdSync.completed = 1;
         }
     }
     pthread_mutex_unlock (&manager->lock);
