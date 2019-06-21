@@ -556,346 +556,347 @@ extension WalletManager {
 extension WalletManager {
     internal var clientBTC: BRCryptoCWMClientBTC {
         return BRCryptoCWMClientBTC (
-            funcGetBlockNumber: { (context, bid, rid) in
+            funcGetBlockNumber: { (context, cwm, sid) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
-
-                guard let bid = bid
-                    else { print ("SYS: BTC: GetBlockNumber: Missed {bid}"); return }
+                precondition (nil != cwm, "SYS: BTC: GetBlockNumber: Missed {cwm}")
 
                 print ("SYS: BTC: GetBlockNumber")
-                manager.query.getBlockNumberAsBTC (bwm: bid,
-                                                   blockchainId: manager.network.uids,
-                                                   rid: rid) {
-                                                    (number: UInt64, rid: Int32) in
-                                                    bwmAnnounceBlockNumber (bid, rid, number)
+                manager.query.getBlockchain (blockchainId: manager.network.uids) { (res: Result<BlockChainDB.Model.Blockchain, BlockChainDB.QueryError>) in
+                    res.resolve (
+                        success: { cwmAnnounceGetBlockNumberSuccessAsInteger (manager.core, sid, $0.blockHeight) },
+                        failure: { (_) in cwmAnnounceGetBlockNumberFailure (manager.core, sid) })
                 }},
 
-            funcGetTransactions: { (context, bid, begBlockNumber, endBlockNumber, rid) in
+            funcGetTransactions: { (context, cwm, sid, addresses, addressesCount, begBlockNumber, endBlockNumber) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
-
-                guard let bid = bid
-                    else { print ("SYS: BTC: GetTransactions: {\(begBlockNumber), \(endBlockNumber)}: Missed {bid}"); return }
+                precondition (nil != cwm, "SYS: BTC: GetTransactions: Missed {cwm}")
 
                 print ("SYS: BTC: GetTransactions: Blocks: {\(begBlockNumber), \(endBlockNumber)}")
-                // We query the BlockChainDB with an array of addresses.  If there are no
-                // transactions for those addresses, then we are done.  But, if there are
-                // we need to generate more addresses and keep trying to find additional
-                // transactions.
-                //
-                // So we'll repeatedly loop and accumulate transactions until no more
-                // transactions are found for the set of addresses
-                //
-                // In order to 'generate more addresses' we'll need to announce each
-                // transaction - which will register each transaction in the wallet
+                let addresses = [String]()
 
-                // TODO: Register early transactions even if later transactions fail?  Possible?
+                manager.query.getTransactions (blockchainId: manager.network.uids,
+                                               addresses: addresses,
+                                               begBlockNumber: begBlockNumber,
+                                               endBlockNumber: endBlockNumber,
+                                               includeRaw: true) {
+                    (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
+                    res.resolve(
+                        success: {
+                            $0.forEach { (model: BlockChainDB.Model.Transaction) in
+                                let timestamp = model.timestamp.map { UInt64 ($0.timeIntervalSince1970) } ?? 0
+                                let height    = model.blockHeight ?? 0
 
-                manager.system.queue.async {
-                    let semaphore = DispatchSemaphore (value: 0)
+                                if var data = model.raw {
+                                    let bytesCount = data.count
+                                    data.withUnsafeMutableBytes { (bytes: UnsafeMutableRawBufferPointer) -> Void in
+                                        let bytesAsUInt8 = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+                                        cwmAnnounceGetTransactionsItemBTC (cwm, sid,
+                                                                           bytesAsUInt8,
+                                                                           bytesCount,
+                                                                           timestamp,
+                                                                           height)
+                                    }
+                                }
+                            }
+                            cwmAnnounceGetTransactionsComplete (cwm, sid, CRYPTO_TRUE) },
+                        failure: { (_) in cwmAnnounceGetTransactionsComplete (cwm, sid, CRYPTO_FALSE) })
 
-                    var transactionsError = false
-                    var transactionsFound = false
-
-                    repeat {
-                        // Get a C pointer to `addressesLimit` BRAddress structures
-                        let addressesLimit:Int = 25
-                        let addressesPointer = BRWalletManagerGetUnusedAddrsLegacy (bid, UInt32(addressesLimit))
-                        defer { free (addressesPointer) }
-
-                        // Convert the C pointer into a Swift array of BRAddress
-                        let addressesStructures:[BRAddress] = addressesPointer!.withMemoryRebound (to: BRAddress.self, capacity: addressesLimit) {
-                            Array(UnsafeBufferPointer (start: $0, count: addressesLimit))
-                        }
-
-                        // Convert each BRAddress to a String
-                        let addresses = addressesStructures.map {
-                            return String(cString: UnsafeRawPointer([$0]).assumingMemoryBound(to: CChar.self))
-                        }
-
-                        transactionsFound = false
-                        transactionsError = false
-
-                        // Query the blockchainDB. Record each found transaction
-                        manager.query.getTransactionsAsBTC (bwm: bid,
-                                                            blockchainId: manager.network.uids,
-                                                            addresses: addresses,
-                                                            begBlockNumber: begBlockNumber,
-                                                            endBlockNumber: endBlockNumber,
-                                                            rid: rid,
-                                                            done: { (success: Bool, rid: Int32) in
-                                                                transactionsError = !success
-                                                                semaphore.signal ()
-                        },
-                                                            each: { (res: BlockChainDB.BTC.Transaction) in
-                                                                transactionsFound = true
-                                                                bwmAnnounceTransaction (bid, res.rid, res.btc)
-                        })
-
-                        // Wait until the query is done
-                        semaphore.wait()
-
-                    } while !transactionsError && transactionsFound
-
-                    // Announce done
-                    bwmAnnounceTransactionComplete (bid, rid, (transactionsError ? 0 : 1))
                 }},
+           /*
+            // We query the BlockChainDB with an array of addresses.  If there are no
+            // transactions for those addresses, then we are done.  But, if there are
+            // we need to generate more addresses and keep trying to find additional
+            // transactions.
+            //
+            // So we'll repeatedly loop and accumulate transactions until no more
+            // transactions are found for the set of addresses
+            //
+            // In order to 'generate more addresses' we'll need to announce each
+            // transaction - which will register each transaction in the wallet
 
-            funcSubmitTransaction: { (context, bid, wid, tid, rid) in
+            // TODO: Register early transactions even if later transactions fail?  Possible?
+
+            manager.system.queue.async {
+                let semaphore = DispatchSemaphore (value: 0)
+
+                var transactionsError = false
+                var transactionsFound = false
+
+                repeat {
+                    // Get a C pointer to `addressesLimit` BRAddress structures
+                    let addressesLimit:Int = 25
+                    let addressesPointer = BRWalletManagerGetUnusedAddrsLegacy (bid, UInt32(addressesLimit))
+                    defer { free (addressesPointer) }
+
+                    // Convert the C pointer into a Swift array of BRAddress
+                    let addressesStructures:[BRAddress] = addressesPointer!.withMemoryRebound (to: BRAddress.self, capacity: addressesLimit) {
+                        Array(UnsafeBufferPointer (start: $0, count: addressesLimit))
+                    }
+
+                    // Convert each BRAddress to a String
+                    let addresses = addressesStructures.map {
+                        return String(cString: UnsafeRawPointer([$0]).assumingMemoryBound(to: CChar.self))
+                    }
+
+                    transactionsFound = false
+                    transactionsError = false
+
+                    // Query the blockchainDB. Record each found transaction
+                    manager.query.getTransactionsAsBTC (bwm: bid,
+                                                        blockchainId: manager.network.uids,
+                                                        addresses: addresses,
+                                                        begBlockNumber: begBlockNumber,
+                                                        endBlockNumber: endBlockNumber,
+                                                        rid: rid,
+                                                        done: { (success: Bool, rid: Int32) in
+                                                            transactionsError = !success
+                                                            semaphore.signal ()
+                    },
+                                                        each: { (res: BlockChainDB.BTC.Transaction) in
+                                                            transactionsFound = true
+                                                            bwmAnnounceTransaction (bid, res.rid, res.btc)
+                    })
+
+                    // Wait until the query is done
+                    semaphore.wait()
+
+                } while !transactionsError && transactionsFound
+                */
+
+            funcSubmitTransaction: { (context, cwm, sid, transactionBytes, transactionBytesLength) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                precondition (nil != cwm, "SYS: BTC: SubmitTransaction: Missed {cwm}")
 
-                guard let bid = bid, let _ = wid, let tid = tid
-                    else { print ("SYS: BTC: SubmitTransaction: Missed {bid, wid, tid}"); return }
-
-
-                let dataCount = BRTransactionSerialize (tid, nil, 0)
-                var data = Data (count: dataCount)
-
-                data.withUnsafeMutableBytes { (bytes: UnsafeMutableRawBufferPointer) -> Void in
-                    let bytesAsUInt8 = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                    BRTransactionSerialize (tid, bytesAsUInt8, dataCount)
+                print ("SYS: BTC: SubmitTransaction")
+                let data = Data (bytes: transactionBytes!, count: transactionBytesLength)
+                manager.query.putTransaction (blockchainId: manager.network.uids, transaction: data) {
+                    (res: Result<BlockChainDB.Model.Transaction, BlockChainDB.QueryError>) in
+                    res.resolve(
+                        success: { (_) in cwmAnnounceSubmitTransferSuccess (cwm, sid) },
+                        failure: { (_) in cwmAnnounceSubmitTransferFailure (cwm, sid) })
                 }
-
-                manager.query.putTransaction (blockchainId: manager.network.uids,
-                                              transaction: data.base64EncodedData(),
-                                              completion: { (res: Result<BlockChainDB.Model.Transaction, BlockChainDB.QueryError>) in
-                                                var error: Int32 = 0
-                                                if case let .failure(f) = res {
-                                                    print ("SYS: BTC: SubmitTransaction: Error: \(f)")
-                                                    error = 1
-                                                }
-                                                bwmAnnounceSubmit (bid, rid, tid, error)
-                })})
+        })
     }
 }
 
 extension WalletManager {
     internal var clientETH: BRCryptoCWMClientETH {
         return BRCryptoCWMClientETH (
-            funcGetBalance: { (context, coreEWM, wid, address, rid) in
+            funcGetEtherBalance: { (context, cwm, sid, network, address) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
 
-                // Non-NULL values from Core Ethereum
-                guard let eid = coreEWM, let wid = wid
-                    else { print ("SYS: ETH: GetBalance: Missed {eid, wid}"); return }
+                let ewm = cryptoWalletManagerAsETH (cwm);
+                let network = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
+                let address = asUTF8String (address!)
 
-                let address = asUTF8String(address!)
-                if nil == ewmWalletGetToken (eid, wid) {
-                    manager.query.getBalanceAsETH (ewm: eid,
-                                                   wid: wid,
-                                                   address: address,
-                                                   rid: rid) { (wid, balance, rid) in
-                                                    ewmAnnounceWalletBalance (eid, wid, balance, rid)
-                    }
-                }
-                else {
-                    manager.query.getBalanceAsTOK (ewm: eid,
-                                                   wid: wid,
-                                                   address: address,
-                                                   rid: rid) { (wid, balance, rid) in
-                                                    ewmAnnounceWalletBalance (eid, wid, balance, rid)
-                    }
+                manager.query.getBalanceAsETH (network: network, address: address) {
+                    (res: Result<String, BlockChainDB.QueryError>) in
+                    res.resolve (
+                        success: { cwmAnnounceGetBalanceSuccess (cwm, sid, $0) },
+                        failure: { (_) in cwmAnnounceGetBalanceFailure (cwm, sid) })
                 }},
 
-            funcGetGasPrice: { (context, coreEWM, wid, rid) in
+            funcGetTokenBalance: { (context, cwm, sid, network, address, contract) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
 
-                guard let eid = coreEWM, let wid = wid
-                    else { print ("SYS: ETH: GetGasPrice: Missed {eid, wid}"); return }
+                let ewm = cryptoWalletManagerAsETH (cwm);
+                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
+                let address  = asUTF8String (address!)
+                let contract = asUTF8String (contract!)
 
-                manager.query.getGasPriceAsETH (ewm: eid,
-                                                wid: wid,
-                                                rid: rid) { (wid, gasPrice, rid) in
-                                                    ewmAnnounceGasPrice (eid, wid, gasPrice, rid)
+                manager.query.getBalanceAsTOK (network: network, address: address, contract: contract) {
+                    (res: Result<String, BlockChainDB.QueryError>) in
+                    res.resolve (
+                        success: { cwmAnnounceGetBalanceSuccess (cwm, sid, $0) },
+                        failure: { (_) in cwmAnnounceGetBalanceFailure (cwm, sid) })
                 }},
 
-            funcEstimateGas: { (context, coreEWM, wid, tid, from, to, amount, data, rid)  in
+            funcGetGasPrice: { (context, cwm, sid, network) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
 
-                guard let eid = coreEWM, let wid = wid, let tid = tid
-                    else { print ("SYS: ETH: EstimateGas: Missed {eid, wid, tid}"); return }
+                let ewm = cryptoWalletManagerAsETH (cwm);
+                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
 
-                let from = asUTF8String(from!)
-                let to = asUTF8String(to!)
-                let amount = asUTF8String(amount!)
-                let data = asUTF8String(data!)
-                manager.query.getGasEstimateAsETH (ewm: eid,
-                                                   wid: wid,
-                                                   tid: tid,
-                                                   from: from,
-                                                   to: to,
-                                                   amount: amount,
-                                                   data: data,
-                                                   rid: rid) { (wid, tid, gasEstimate, rid) in
-                                                    ewmAnnounceGasEstimate (eid, wid, tid, gasEstimate, rid)
+                manager.query.getGasPriceAsETH (network: network) {
+                    (res: Result<String, BlockChainDB.QueryError>) in
+                    res.resolve (
+                        success: { cwmAnnounceGetGasPriceSuccess (cwm, sid, $0) },
+                        failure: { (_) in cwmAnnounceGetGasPriceFailure (cwm, sid) })
                 }},
 
-            funcSubmitTransaction: { (context, coreEWM, wid, tid, transaction, rid)  in
+            funcEstimateGas: { (context, cwm, sid, network, from, to, amount, data) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
 
-                guard let eid = coreEWM, let wid = wid, let tid = tid
-                    else { print ("SYS: ETH: SubmitTransaction: Missed {eid, wid, tid}"); return }
+                let ewm = cryptoWalletManagerAsETH (cwm);
+                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
 
-                let transaction = asUTF8String (transaction!)
-                manager.query.submitTransactionAsETH (ewm: eid,
-                                                      wid: wid,
-                                                      tid: tid,
-                                                      transaction: transaction,
-                                                      rid: rid) { (wid, tid, hash, errorCode, errorMessage, rid) in
-                                                        ewmAnnounceSubmitTransfer (eid,
-                                                                                   wid,
-                                                                                   tid,
-                                                                                   hash,
-                                                                                   errorCode,
-                                                                                   errorMessage,
-                                                                                   rid)
+                manager.query.getGasEstimateAsETH (network: network,
+                                                   from:   asUTF8String(from!),
+                                                   to:     asUTF8String(to!),
+                                                   amount: asUTF8String(amount!),
+                                                   data:   asUTF8String(data!)) {
+                                                    (res: Result<String, BlockChainDB.QueryError>) in
+                                                    res.resolve (
+                                                        success: { cwmAnnounceGetGasEstimateSuccess (cwm, sid, $0) },
+                                                        failure: { (_) in cwmAnnounceGetGasEstimateFailure (cwm, sid) })
                 }},
 
-            funcGetTransactions: { (context, coreEWM, address, begBlockNumber, endBlockNumber, rid) in
+            funcSubmitTransaction: { (context, cwm, sid, network, transaction) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
 
-                guard let eid = coreEWM
-                    else { print ("SYS: ETH: GetTransactions: Missed {eid}"); return }
+                let ewm = cryptoWalletManagerAsETH (cwm);
+                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
 
-                let address = asUTF8String(address!)
-                manager.query.getTransactionsAsETH (ewm: eid,
-                                                    address: address,
-                                                    begBlockNumber: begBlockNumber,
-                                                    endBlockNumber: endBlockNumber,
-                                                    rid: rid,
-                                                    done: { (success: Bool, rid: Int32) in
-                                                        ewmAnnounceTransactionComplete (eid,
-                                                                                        rid,
-                                                                                        (success ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE))
-                },
-                                                    each: { (res: BlockChainDB.ETH.Transaction) in
-                                                        ewmAnnounceTransaction (eid,
-                                                                                res.rid,
-                                                                                res.hash,
-                                                                                res.sourceAddr,
-                                                                                res.targetAddr,
-                                                                                res.contractAddr,
-                                                                                res.amount,
-                                                                                res.gasLimit,
-                                                                                res.gasPrice,
-                                                                                res.data,
-                                                                                res.nonce,
-                                                                                res.gasUsed,
-                                                                                res.blockNumber,
-                                                                                res.blockHash,
-                                                                                res.blockConfirmations,
-                                                                                res.blockTransactionIndex,
-                                                                                res.blockTimestamp,
-                                                                                res.isError)
-                })},
+                manager.query.submitTransactionAsETH (network: network,
+                                                      transaction: asUTF8String(transaction!)) {
+                                                        (res: Result<String, BlockChainDB.QueryError>) in
+                                                        res.resolve (
+                                                            success: { cwmAnnounceSubmitTransferSuccessForHash (cwm, sid, $0) },
+                                                            failure: { (_) in cwmAnnounceSubmitTransferFailure (cwm, sid) })
+                }},
 
-            funcGetLogs: { (context, coreEWM, contract, address, event, begBlockNumber, endBlockNumber, rid) in
+            funcGetTransactions: { (context, cwm, sid, network, address, begBlockNumber, endBlockNumber) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
 
-                guard let eid = coreEWM
-                    else { print ("SYS: ETH: GetLogs: Missed {eid}"); return }
+                let ewm = cryptoWalletManagerAsETH (cwm);
+                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
 
-                let address  = asUTF8String(address!)
-                let contract = contract.map { asUTF8String ($0) }
-                let event    = asUTF8String (event!)
-                manager.query.getLogsAsETH (ewm: eid,
-                                            contract: contract,
-                                            address: address,
-                                            event: event,
+               manager.query.getTransactionsAsETH (network: network,
+                                                   address: asUTF8String (address!),
+                                                   begBlockNumber: begBlockNumber,
+                                                   endBlockNumber: endBlockNumber) {
+                                                    (res: Result<[BlockChainDB.ETH.Transaction], BlockChainDB.QueryError>) in
+                                                    res.resolve(
+                                                        success: { (txs: [BlockChainDB.ETH.Transaction]) in
+                                                            txs.forEach { (tx: BlockChainDB.ETH.Transaction) in
+                                                                cwmAnnounceGetTransactionsItemETH (cwm, sid,
+                                                                                                   tx.hash,
+                                                                                                   tx.sourceAddr,
+                                                                                                   tx.targetAddr,
+                                                                                                   tx.contractAddr,
+                                                                                                   tx.amount,
+                                                                                                   tx.gasLimit,
+                                                                                                   tx.gasPrice,
+                                                                                                   tx.data,
+                                                                                                   tx.nonce,
+                                                                                                   tx.gasUsed,
+                                                                                                   tx.blockNumber,
+                                                                                                   tx.blockHash,
+                                                                                                   tx.blockConfirmations,
+                                                                                                   tx.blockTransactionIndex,
+                                                                                                   tx.blockTimestamp,
+                                                                                                   tx.isError)
+                                                            }
+                                                            cwmAnnounceGetTransactionsComplete(cwm, sid, CRYPTO_TRUE)
+                                                    },
+                                                        failure: { (_) in cwmAnnounceGetTransactionsComplete (cwm, sid, CRYPTO_FALSE) })
+                }},
+
+            funcGetLogs: { (context, cwm, sid, network, contract, address, event, begBlockNumber, endBlockNumber) in
+                let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+
+                let ewm = cryptoWalletManagerAsETH (cwm);
+                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
+
+                manager.query.getLogsAsETH (network: network,
+                                            contract: contract.map { asUTF8String($0) },
+                                            address:  asUTF8String(address!),
+                                            event:    asUTF8String(event!),
                                             begBlockNumber: begBlockNumber,
-                                            endBlockNumber: endBlockNumber,
-                                            rid: rid,
-                                            done: { (success: Bool, rid: Int32) in
-                                                ewmAnnounceLogComplete (eid,
-                                                                        rid,
-                                                                        (success ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE))
-                },
-                                            each: { (res: BlockChainDB.ETH.Log) in
-                                                var cTopics = res.topics.map { UnsafePointer<Int8>(strdup($0)) }
-                                                defer {
-                                                    cTopics.forEach { free (UnsafeMutablePointer(mutating: $0)) }
-                                                }
+                                            endBlockNumber: endBlockNumber) {
+                                                (res: Result<[BlockChainDB.ETH.Log], BlockChainDB.QueryError>) in
+                                                res.resolve(
+                                                    success: { (lgs: [BlockChainDB.ETH.Log]) in
+                                                        lgs.forEach { (log: BlockChainDB.ETH.Log) in
+                                                            let topicsCount = Int32 (log.topics.count)
+                                                            var topics = log.topics.filter { !$0.isEmpty }.map { UnsafePointer<Int8>(strdup($0)) }
+                                                            defer { topics.forEach { free(UnsafeMutablePointer(mutating: $0)) } }
 
-                                                ewmAnnounceLog (eid,
-                                                                res.rid,
-                                                                res.hash,
-                                                                res.contract,
-                                                                Int32(res.topics.count),
-                                                                &cTopics,
-                                                                res.data,
-                                                                res.gasPrice,
-                                                                res.gasUsed,
-                                                                res.logIndex,
-                                                                res.blockNumber,
-                                                                res.blockTransactionIndex,
-                                                                res.blockTimestamp)
-                })},
+                                                            cwmAnnounceGetLogsItem (cwm, sid,
+                                                                                    log.hash,
+                                                                                    log.contract,
+                                                                                    topicsCount,
+                                                                                    &topics,
+                                                                                    log.data,
+                                                                                    log.gasPrice,
+                                                                                    log.gasUsed,
+                                                                                    log.logIndex,
+                                                                                    log.blockNumber,
+                                                                                    log.blockTransactionIndex,
+                                                                                    log.blockTimestamp) }
+                                                        cwmAnnounceGetLogsComplete(cwm, sid, CRYPTO_TRUE)
+                                                },
+                                                    failure: { (_) in cwmAnnounceGetLogsComplete (cwm, sid, CRYPTO_FALSE) })
+                }},
 
-            funcGetBlocks: { (context, coreEWM, address, interests, blockStart, blockStop, rid) in
+            funcGetBlocks: { (context, cwm, sid, network, address, interests, begBlockNumber, endBlockNumber) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
 
-                guard let eid = coreEWM
-                    else { print ("SYS: ETH: GetBlocks: Missed {eid}"); return }
+                let ewm = cryptoWalletManagerAsETH (cwm);
+                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
 
-                let address = asUTF8String(address!)
-                manager.query.getBlocksAsETH (ewm: eid,
-                                              address: address,
+                manager.query.getBlocksAsETH (network: network,
+                                              address: asUTF8String(address!),
                                               interests: interests,
-                                              blockStart: blockStart,
-                                              blockStop: blockStop,
-                                              rid: rid) { (blocks, rid) in
-                                                ewmAnnounceBlocks (eid,
-                                                                   rid,
-                                                                   Int32(blocks.count),
-                                                                   UnsafeMutablePointer<UInt64>(mutating: blocks))
+                                              blockStart: begBlockNumber,
+                                              blockStop:  endBlockNumber) {
+                                                (res: Result<[UInt64], BlockChainDB.QueryError>) in
+                                                res.resolve (
+                                                    success: {
+                                                        let numbersCount = Int32 ($0.count)
+                                                        var numbers = $0
+                                                        numbers.withUnsafeMutableBytes {
+                                                            let bytesAsUInt8 = $0.baseAddress?.assumingMemoryBound(to: UInt64.self)
+                                                            cwmAnnounceGetBlocksSuccess (cwm, sid, numbersCount, bytesAsUInt8)
+                                                        }},
+                                                    failure: { (_) in cwmAnnounceGetBlocksFailure (cwm, sid) })
                 }},
 
-            funcGetTokens: { (context, coreEWM, rid) in
+            funcGetTokens: { (context, cwm, sid) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
 
-                guard let eid = coreEWM
-                    else { print ("SYS: ETH: GetTokens: Missed {eid}"); return }
-
-                manager.query.getTokensAsETH (ewm: eid,
-                                              rid: rid,
-                                              done: { (success: Bool, rid: Int32) in
-                                                ewmAnnounceTokenComplete (eid,
-                                                                          rid,
-                                                                          (success ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE))
-                },
-                                              each: { (res: BlockChainDB.ETH.Token) in
-                                                ewmAnnounceToken (eid,
-                                                                  res.rid,
-                                                                  res.address,
-                                                                  res.symbol,
-                                                                  res.name,
-                                                                  res.description,
-                                                                  res.decimals,
-                                                                  res.defaultGasLimit,
-                                                                  res.defaultGasPrice)
-                })},
-
-            funcGetBlockNumber: { (context, coreEWM, rid) in
-                let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
-
-                guard let eid = coreEWM
-                    else { print ("SYS: ETH: GetBlockNumber: Missed {eid}"); return }
-
-                manager.query.getBlockNumberAsETH (ewm: eid,
-                                                   rid: rid) { (number, rid) in
-                                                    ewmAnnounceBlockNumber (eid, number, rid)
+                manager.query.getTokensAsETH () {
+                    (res: Result<[BlockChainDB.ETH.Token],BlockChainDB.QueryError>) in
+                    res.resolve(
+                        success: { (tokens: [BlockChainDB.ETH.Token]) in
+                            tokens.forEach { (token: BlockChainDB.ETH.Token) in
+                                cwmAnnounceGetTokensItem (cwm, sid,
+                                                          token.address,
+                                                          token.symbol,
+                                                          token.name,
+                                                          token.description,
+                                                          token.decimals,
+                                                          token.defaultGasLimit,
+                                                          token.defaultGasPrice) }
+                            cwmAnnounceGetTokensComplete (cwm, sid, CRYPTO_TRUE)
+                   },
+                        failure: { (_) in cwmAnnounceGetTokensComplete (cwm, sid, CRYPTO_FALSE) })
                 }},
 
-            funcGetNonce: { (context, coreEWM, address, rid) in
+            funcGetBlockNumber: { (context, cwm, sid, network) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
 
-                guard let eid = coreEWM
-                    else { print ("SYS: ETH: GetNonce: Missed {eid}"); return }
+                let ewm = cryptoWalletManagerAsETH (cwm);
+                let network = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
 
-                let address = asUTF8String(address!)
-                manager.query.getNonceAsETH (ewm: eid,
-                                             address: address,
-                                             rid: rid) { (address, nonce, rid) in
-                                                ewmAnnounceNonce (eid, address, nonce, rid)
+                manager.query.getBlockNumberAsETH (network: network) {
+                    (res: Result<String, BlockChainDB.QueryError>) in
+                    res.resolve (
+                        success: { cwmAnnounceGetBlockNumberSuccessAsString (cwm, sid, $0) },
+                        failure: { (_) in cwmAnnounceGetBlockNumberFailure (cwm, sid) })
+                }},
+
+            funcGetNonce: { (context, cwm, sid, network, address) in
+                let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+
+                let ewm = cryptoWalletManagerAsETH (cwm);
+                let network = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
+
+                manager.query.getNonceAsETH (network: network, address: asUTF8String(address!)) {
+                    (res: Result<String, BlockChainDB.QueryError>) in
+                    res.resolve (
+                        success: { cwmAnnounceGetNonceSuccess (cwm, sid, address, $0) },
+                        failure: { (_) in cwmAnnounceGetNonceFailure (cwm, sid) })
                 }})
     }
 }

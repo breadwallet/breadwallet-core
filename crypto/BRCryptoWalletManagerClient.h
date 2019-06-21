@@ -283,8 +283,8 @@ extern "C" {
                                       const char *gasEstimate);
 
     extern void
-    cwmAnnounceGasEstimateFailure (BRCryptoWalletManager cwm,
-                                   BRCryptoCWMClientCallbackState callbackState);
+    cwmAnnounceGetGasEstimateFailure (BRCryptoWalletManager cwm,
+                                      BRCryptoCWMClientCallbackState callbackState);
 
     extern void
     cwmAnnounceGetLogsItem(BRCryptoWalletManager cwm,

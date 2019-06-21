@@ -355,6 +355,18 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
     }
 }
 
+private_extern BRWalletManager
+cryptoWalletManagerAsBTC (BRCryptoWalletManager manager) {
+    assert (BLOCK_CHAIN_TYPE_BTC == manager->type);
+    return manager->u.btc;
+}
+
+private_extern BREthereumEWM
+cryptoWalletManagerAsETH (BRCryptoWalletManager manager) {
+    assert (BLOCK_CHAIN_TYPE_ETH == manager->type);
+    return manager->u.eth;
+}
+
 private_extern BRCryptoBoolean
 cryptoWalletManagerHasETH (BRCryptoWalletManager manager,
                            BREthereumEWM ewm) {
