@@ -744,10 +744,10 @@ BRWalletManagerAddressToLegacy (BRAddress *addr) {
     if (BRAddressHash160(&script[3], addr->s)) BRAddressFromScriptPubKey(addr->s, sizeof(BRAddress), script, sizeof(script));
 }
 
-extern size_t
+extern void
 BRWalletManagerGenerateUnusedAddrs (BRWalletManager manager) {
-    return (BRWalletUnusedAddrs (manager->wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL, 0) +
-            BRWalletUnusedAddrs (manager->wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL, 1));
+    BRWalletUnusedAddrs (manager->wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL, 0);
+    BRWalletUnusedAddrs (manager->wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL, 1);
 }
 
 extern BRAddress *
@@ -755,13 +755,13 @@ BRWalletManagerGetUnusedAddrs (BRWalletManager manager,
                                size_t *addressCount) {
     assert (addressCount);
 
-    size_t externalCount = BRWalletUnusedAddrs (manager->wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL, 0);
-    size_t internalCount = BRWalletUnusedAddrs (manager->wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL, 1);
-    size_t addrCount = externalCount + internalCount;
+    BRWalletUnusedAddrs (manager->wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL, 0);
+    BRWalletUnusedAddrs (manager->wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL, 1);
+    size_t addrCount = SEQUENCE_GAP_LIMIT_EXTERNAL + SEQUENCE_GAP_LIMIT_INTERNAL;
 
     BRAddress *addrs = (BRAddress *) calloc (2 * addrCount, sizeof (BRAddress));
     BRWalletUnusedAddrs (manager->wallet, addrs, SEQUENCE_GAP_LIMIT_EXTERNAL, 0);
-    BRWalletUnusedAddrs (manager->wallet, addrs + externalCount, SEQUENCE_GAP_LIMIT_INTERNAL, 1);
+    BRWalletUnusedAddrs (manager->wallet, addrs + SEQUENCE_GAP_LIMIT_EXTERNAL, SEQUENCE_GAP_LIMIT_INTERNAL, 1);
 
     memcpy (addrs + addrCount, addrs, addrCount * sizeof(BRAddress));
     for (size_t index = 0; index < addrCount; index++)
@@ -769,6 +769,20 @@ BRWalletManagerGetUnusedAddrs (BRWalletManager manager,
 
     *addressCount = 2 * addrCount;
     return addrs;
+}
+
+static void
+BRWalletManagerUnusedAddrsAsStrings (BRWalletManager bwm, size_t *addressCount, const char ***addressStrings, BRAddress **addressArray) {
+    size_t addrCount = 0;
+    BRAddress *addrArray = BRWalletManagerGetUnusedAddrs (bwm, &addrCount);
+
+    const char **addrsStrings = calloc (addrCount, sizeof(char *));
+    for (size_t index = 0; index < addrCount; index ++)
+        addrsStrings[index] = (char *) &addrArray[index];
+
+    *addressCount = addrCount;
+    *addressStrings = addrsStrings;
+    *addressArray = addrArray;
 }
 
 extern BRAddress *
@@ -793,20 +807,6 @@ static void
 BRWalletManagerGetAllAddrsAsStrings (BRWalletManager bwm, size_t *addressCount, const char ***addressStrings, BRAddress **addressArray) {
     size_t addrCount = 0;
     BRAddress *addrArray = BRWalletManagerGetAllAddrs (bwm, &addrCount);
-
-    const char **addrsStrings = calloc (addrCount, sizeof(char *));
-    for (size_t index = 0; index < addrCount; index ++)
-        addrsStrings[index] = (char *) &addrArray[index];
-
-    *addressCount = addrCount;
-    *addressStrings = addrsStrings;
-    *addressArray = addrArray;
-}
-
-static void
-BRWalletManagerUnusedAddrsAsStrings (BRWalletManager bwm, size_t *addressCount, const char ***addressStrings, BRAddress **addressArray) {
-    size_t addrCount = 0;
-    BRAddress *addrArray = BRWalletManagerGetUnusedAddrs (bwm, &addrCount);
 
     const char **addrsStrings = calloc (addrCount, sizeof(char *));
     for (size_t index = 0; index < addrCount; index ++)
@@ -1197,7 +1197,7 @@ bwmHandleAnnounceTransactionComplete (BRWalletManager manager,
             size_t addressCount = 0;
             const char **addressStrings = NULL;
             BRAddress *addressArray = NULL;
-            BRWalletManagerGetAllAddrsAsStrings (manager, &addressCount, &addressStrings, &addressArray);
+            BRWalletManagerUnusedAddrsAsStrings (manager, &addressCount, &addressStrings, &addressArray);
 
             manager->brdSync.lastExternalAddress = externalAddress;
             manager->brdSync.lastInternalAddress = internalAddress;

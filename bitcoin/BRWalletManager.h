@@ -219,7 +219,7 @@ BRWalletManagerScan (BRWalletManager manager);
  * Generate, if needed, unsued addresses up to `limit` entries in the wallet.  The
  * addresses are both 'internal' and 'external' ones.
  */
-extern size_t
+extern void
 BRWalletManagerGenerateUnusedAddrs (BRWalletManager manager);
 
 /**
