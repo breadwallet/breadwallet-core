@@ -1196,17 +1196,20 @@ bwmHandleAnnounceTransactionComplete (BRWalletManager manager,
                 size_t addressCount = 0;
                 const char **addressStrings = NULL;
                 BRAddress *addressArray = NULL;
-                BRWalletManagerUnusedAddrsAsStrings (manager, &addressCount, &addressStrings, &addressArray);
+                BRWalletManagerUnusedAddrsAsStrings (manager,
+                                                     &addressCount,
+                                                     &addressStrings,
+                                                     &addressArray);
 
                 manager->brdSync.lastExternalAddress = externalAddress;
                 manager->brdSync.lastInternalAddress = internalAddress;
 
                 bwmUpdateTransactions (manager,
-                                    addressStrings,
-                                    addressCount,
-                                    manager->brdSync.begBlockNumber,
-                                    manager->brdSync.endBlockNumber,
-                                    manager->brdSync.rid);
+                                       addressStrings,
+                                       addressCount,
+                                       manager->brdSync.begBlockNumber,
+                                       manager->brdSync.endBlockNumber,
+                                       manager->brdSync.rid);
 
                 free (addressStrings);
                 free (addressArray);
