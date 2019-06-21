@@ -26,20 +26,19 @@
 #ifndef BRCryptoWalletManager_h
 #define BRCryptoWalletManager_h
 
+#include "BRCryptoBase.h"
 #include "BRCryptoNetwork.h"
 #include "BRCryptoAccount.h"
 #include "BRCryptoTransfer.h"
 #include "BRCryptoWallet.h"
+#include "BRCryptoWalletManagerClient.h"
 
 #include "ethereum/BREthereum.h"
 #include "bitcoin/BRWalletManager.h"
-#include "generic/BRGenericWalletManager.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-    typedef struct BRCryptoWalletManagerRecord *BRCryptoWalletManager;
 
     typedef enum {
         CRYPTO_WALLET_MANAGER_STATE_CREATED,
@@ -48,7 +47,6 @@ extern "C" {
         CRYPTO_WALLET_MANAGER_STATE_SYNCING,
         CRYPTO_WALLET_MANAGER_STATE_DELETED
     } BRCryptoWalletManagerState;
-
 
     typedef enum {
         CRYPTO_WALLET_MANAGER_EVENT_CREATED,
@@ -91,7 +89,7 @@ extern "C" {
     } BRCryptoWalletManagerEvent;
 
     /// MARK: Listener
-    
+
     typedef void *BRCryptoCWMListenerContext;
 
     /// Handler must 'give': manager, event.wallet.value
@@ -118,43 +116,6 @@ extern "C" {
         BRCryptoCWMListenerWalletEvent walletEventCallback;
         BRCryptoCWMListenerTransferEvent transferEventCallback;
     } BRCryptoCWMListener;
-
-    // MARK: Client
-
-    typedef void *BRCryptoCWMClientContext;
-
-    typedef struct {
-        BREthereumClientHandlerGetBalance funcGetBalance;
-        BREthereumClientHandlerGetGasPrice funcGetGasPrice;
-        BREthereumClientHandlerEstimateGas funcEstimateGas;
-        BREthereumClientHandlerSubmitTransaction funcSubmitTransaction;
-        BREthereumClientHandlerGetTransactions funcGetTransactions; // announce one-by-one
-        BREthereumClientHandlerGetLogs funcGetLogs; // announce one-by-one
-        BREthereumClientHandlerGetBlocks funcGetBlocks;
-        BREthereumClientHandlerGetTokens funcGetTokens; // announce one-by-one
-        BREthereumClientHandlerGetBlockNumber funcGetBlockNumber;
-        BREthereumClientHandlerGetNonce funcGetNonce;
-    } BRCryptoCWMClientETH;
-
-    typedef struct {
-        BRGetBlockNumberCallback  funcGetBlockNumber;
-        BRGetTransactionsCallback funcGetTransactions;
-        BRSubmitTransactionCallback funcSubmitTransaction;
-    } BRCryptoCWMClientBTC;
-
-    typedef struct {
-        BRGenericGetBlockNumberCallback funcGetBlockNumber;
-        BRGenericGetTransactionsCallback funcGetTransactions;
-        BRGenericSubmitTransactionCallback funcSubmitTransaction;
-    } BRCryptoCWMClientGEN;
-
-    typedef struct {
-        BRCryptoCWMClientContext context;
-        BRCryptoCWMClientBTC btc;
-        BRCryptoCWMClientETH eth;
-        BRCryptoCWMClientGEN gen;
-    } BRCryptoCWMClient;
-
 
     extern BRCryptoWalletManager
     cryptoWalletManagerCreate (BRCryptoCWMListener listener,
@@ -211,7 +172,7 @@ extern "C" {
                                BRCryptoWallet wid,
                                BRCryptoTransfer tid,
                                const char *paperKey);
-    
+
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoWalletManager, cryptoWalletManager);
 
 #ifdef __cplusplus

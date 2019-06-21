@@ -82,7 +82,6 @@ extern "C" {
                             const char *gasEstimate,
                             int rid);
 
-
     extern void
     ewmUpdateGasEstimate (BREthereumEWM ewm,
                           BREthereumWallet wid,

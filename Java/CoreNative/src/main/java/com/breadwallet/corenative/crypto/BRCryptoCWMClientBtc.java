@@ -7,57 +7,61 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.bitcoin.BRTransaction;
-import com.breadwallet.corenative.bitcoin.BRWalletManager;
+import com.breadwallet.corenative.utility.SizeT;
 import com.sun.jna.Callback;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
+
 import java.util.Arrays;
 import java.util.List;
 
 
 public class BRCryptoCWMClientBtc extends Structure {
 
-	public interface BRGetBlockNumberCallback extends Callback {
-		void apply(Pointer context, BRWalletManager manager, int rid);
-	}
+    public interface BRCryptoCWMBtcGetBlockNumberCallback extends Callback {
+        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState);
+    }
 
-	public interface BRGetTransactionsCallback extends Callback {
-		void apply(Pointer context, BRWalletManager manager, long begBlockNumber, long endBlockNumber, int rid);
-	}
+    public interface BRCryptoCWMBtcGetTransactionsCallback extends Callback {
+        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState, Pointer addrs,
+                   SizeT addrCount, long begBlockNumber, long endBlockNumber);
+    }
 
-	public interface BRSubmitTransactionCallback extends Callback {
-		void apply(Pointer context, BRWalletManager manager, Pointer wallet, BRTransaction transaction, int rid);
-	}
+    public interface BRCryptoCWMBtcSubmitTransactionCallback extends Callback {
+        void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState, Pointer tx,
+                   SizeT txLength);
+    }
 
-	public BRGetBlockNumberCallback funcGetBlockNumber;
-	public BRGetTransactionsCallback funcGetTransactions;
-	public BRSubmitTransactionCallback funcSubmitTransaction;
+    public BRCryptoCWMBtcGetBlockNumberCallback funcGetBlockNumber;
+    public BRCryptoCWMBtcGetTransactionsCallback funcGetTransactions;
+    public BRCryptoCWMBtcSubmitTransactionCallback funcSubmitTransaction;
 
-	public BRCryptoCWMClientBtc() {
-		super();
-	}
+    public BRCryptoCWMClientBtc() {
+        super();
+    }
 
-	protected List<String> getFieldOrder() {
-		return Arrays.asList("funcGetBlockNumber", "funcGetTransactions", "funcSubmitTransaction");
-	}
+    protected List<String> getFieldOrder() {
+        return Arrays.asList("funcGetBlockNumber", "funcGetTransactions", "funcSubmitTransaction");
+    }
 
-	public BRCryptoCWMClientBtc(BRGetBlockNumberCallback funcGetBlockNumber, BRGetTransactionsCallback funcGetTransactions, BRSubmitTransactionCallback funcSubmitTransaction) {
-		super();
-		this.funcGetBlockNumber = funcGetBlockNumber;
-		this.funcGetTransactions = funcGetTransactions;
-		this.funcSubmitTransaction = funcSubmitTransaction;
-	}
+    public BRCryptoCWMClientBtc(BRCryptoCWMBtcGetBlockNumberCallback funcGetBlockNumber,
+                                BRCryptoCWMBtcGetTransactionsCallback funcGetTransactions,
+                                BRCryptoCWMBtcSubmitTransactionCallback funcSubmitTransaction) {
+        super();
+        this.funcGetBlockNumber = funcGetBlockNumber;
+        this.funcGetTransactions = funcGetTransactions;
+        this.funcSubmitTransaction = funcSubmitTransaction;
+    }
 
-	public BRCryptoCWMClientBtc(Pointer peer) {
-		super(peer);
-	}
+    public BRCryptoCWMClientBtc(Pointer peer) {
+        super(peer);
+    }
 
-	public static class ByReference extends BRCryptoCWMClientBtc implements Structure.ByReference {
-		
-	}
+    public static class ByReference extends BRCryptoCWMClientBtc implements Structure.ByReference {
 
-	public static class ByValue extends BRCryptoCWMClientBtc implements Structure.ByValue {
+    }
 
-	}
+    public static class ByValue extends BRCryptoCWMClientBtc implements Structure.ByValue {
+
+    }
 }

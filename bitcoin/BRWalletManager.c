@@ -827,23 +827,17 @@ BRWalletManagerGetAllAddrs (BRWalletManager manager,
     assert (addressCount);
 
     size_t addrCount = BRWalletAllAddrs (manager->wallet, NULL, 0);
-    BRAddress *addrs = (BRAddress *) calloc (addrCount, sizeof (BRAddress));
+
+    BRAddress *addrs = (BRAddress *) calloc (2 * addrCount, sizeof (BRAddress));
     BRWalletAllAddrs (manager->wallet, addrs, addrCount);
 
-    *addressCount = addrCount;
+    memcpy (addrs + addrCount, addrs, addrCount);
+    for (size_t index = 0; index < addrCount; index++)
+        BRWalletManagerAddressToLegacy (&addrs[addrCount + index]);
+
+    *addressCount = 2 * addrCount;
     return addrs;
 }
-
-extern BRAddress *
-BRWalletManagerGetAllAddrsLegacy (BRWalletManager manager,
-                                  size_t *addressCount) {
-    BRAddress *addresses = BRWalletManagerGetAllAddrs (manager, addressCount);
-    for (size_t index = 0; index < *addressCount; index++)
-        BRWalletManagerAddressToLegacy (&addresses[index]);
-    return addresses;
-}
-
-
 
 static void
 BRWalletManagerUpdateHeightIfAppropriate (BRWalletManager manager,

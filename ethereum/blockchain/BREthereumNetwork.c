@@ -8,6 +8,7 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 
+#include <ctype.h>
 #include <stdlib.h>
 #include "BREthereumNetwork.h"
 
@@ -54,6 +55,17 @@ networkGetTrustedCheckpointBlockHeaderHash (BREthereumNetwork network) {
 extern const char *
 networkGetName (BREthereumNetwork network) {
     return network->name;
+}
+
+extern char *
+networkCopyNameAsLowercase (BREthereumNetwork network) {
+    char *networkName = strdup (network-> name);
+    size_t networkNameLength = strlen (networkName);
+
+    for (size_t index = 0; index < networkNameLength; index++)
+        networkName[index] = tolower (networkName[index]);
+
+    return networkName;
 }
 
 extern const char**

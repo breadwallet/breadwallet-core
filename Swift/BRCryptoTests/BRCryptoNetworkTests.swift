@@ -20,7 +20,7 @@ class BRCryptoNetworkTests: XCTestCase {
     }
 
     func testNetworkBTC () {
-        let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native")
+        let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
 
         let BTC_SATOSHI = BRCrypto.Unit (currency: btc, uids: "BTC-SAT",  name: "Satoshi", symbol: "SAT")
         let BTC_BTC = BRCrypto.Unit (currency: btc, uids: "BTC-BTC",  name: "Bitcoin", symbol: "B", base: BTC_SATOSHI, decimals: 8)
@@ -55,7 +55,7 @@ class BRCryptoNetworkTests: XCTestCase {
         XCTAssertTrue (network.hasUnitFor(currency: btc, unit: BTC_BTC)     ?? false)
         XCTAssertTrue (network.hasUnitFor(currency: btc, unit: BTC_SATOSHI) ?? false)
 
-        let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native")
+        let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native", issuer: nil)
         let ETH_WEI  = BRCrypto.Unit (currency: eth, uids: "ETH-WEI", name: "WEI",   symbol: "wei")
 
         XCTAssertFalse (network.hasCurrency(eth))
@@ -68,12 +68,12 @@ class BRCryptoNetworkTests: XCTestCase {
     }
 
     func testNetworkETH () {
-        let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native")
+        let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native", issuer: nil)
         let ETH_WEI  = BRCrypto.Unit (currency: eth, uids: "ETH-WEI", name: "WEI",   symbol: "wei")
         let ETH_GWEI = BRCrypto.Unit (currency: eth, uids: "ETH-GWEI", name: "GWEI",  symbol: "gwei", base: ETH_WEI, decimals: 9)
         let ETH_ETHER = BRCrypto.Unit (currency: eth, uids: "ETH-ETH", name: "ETHER", symbol: "E",    base: ETH_WEI, decimals: 18)
 
-        let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native")
+        let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
 
         let associations = Network.Association (baseUnit: ETH_WEI,
                                                 defaultUnit: ETH_ETHER,
