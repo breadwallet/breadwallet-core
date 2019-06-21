@@ -416,11 +416,39 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
             // ... and then generate a CRYPTO wallet event for 'TRANSFER_ADDED'
             cwm->listener.walletEventCallback (cwm->listener.context,
                                                cryptoWalletManagerTake (cwm),
-                                               wallet,
+                                               cryptoWalletTake (wallet),
                                                (BRCryptoWalletEvent) {
                                                    CRYPTO_WALLET_EVENT_TRANSFER_ADDED,
-                                                   { .transfer = { transfer }}
+                                                   { .transfer = { cryptoTransferTake (transfer) }}
                                                });
+
+            // ... update state to reflect included if the timestamp and block height are already set
+            if (0 != btcTransaction->timestamp && TX_UNCONFIRMED != btcTransaction->blockHeight) {
+                BRCryptoTransferState oldState = cryptoTransferGetState (transfer);
+                assert (CRYPTO_TRANSFER_STATE_INCLUDED != oldState.type);
+
+                BRCryptoTransferState newState = {
+                    CRYPTO_TRANSFER_STATE_INCLUDED,
+                    { .included = {
+                        btcTransaction->blockHeight,
+                        0,
+                        btcTransaction->timestamp,
+                        NULL
+                    }}
+                };
+
+                cryptoTransferSetState (transfer, newState);
+
+                cwm->listener.transferEventCallback (cwm->listener.context,
+                                                     cryptoWalletManagerTake (cwm),
+                                                     cryptoWalletTake (wallet),
+                                                     cryptoTransferTake (transfer),
+                                                     (BRCryptoTransferEvent) {
+                                                         CRYPTO_TRANSFER_EVENT_CHANGED,
+                                                         { .state = { oldState, newState }}
+                                                     });
+            }
+
             break;
         }
 
@@ -430,24 +458,25 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
             BRCryptoTransferState oldState = cryptoTransferGetState (transfer);
 
             // TODO: The newState is always 'included'?
-            BRCryptoTransferState newState = {
-                CRYPTO_TRANSFER_STATE_INCLUDED,
-                { .included = {
-                    event.u.updated.blockHeight,
-                    0,
-                    event.u.updated.timestamp,
-                    NULL
-                }}
-            };
 
             // Only announce changes.
             if (CRYPTO_TRANSFER_STATE_INCLUDED != oldState.type) {
+                BRCryptoTransferState newState = {
+                    CRYPTO_TRANSFER_STATE_INCLUDED,
+                    { .included = {
+                        event.u.updated.blockHeight,
+                        0,
+                        event.u.updated.timestamp,
+                        NULL
+                    }}
+                };
+
                 cryptoTransferSetState (transfer, newState);
 
                 cwm->listener.transferEventCallback (cwm->listener.context,
                                                      cryptoWalletManagerTake (cwm),
-                                                     wallet,
-                                                     transfer,
+                                                     cryptoWalletTake (wallet),
+                                                     cryptoTransferTake (transfer),
                                                      (BRCryptoTransferEvent) {
                                                          CRYPTO_TRANSFER_EVENT_CHANGED,
                                                          { .state = { oldState, newState }}
@@ -476,8 +505,8 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
             // ... and then follow up with a CRYPTO transfer event for 'DELETED'
             cwm->listener.transferEventCallback (cwm->listener.context,
                                                  cryptoWalletManagerTake (cwm),
-                                                 wallet,
-                                                 transfer,
+                                                 cryptoWalletTake (wallet),
+                                                 cryptoTransferTake (transfer),
                                                  (BRCryptoTransferEvent) {
                                                      CRYPTO_TRANSFER_EVENT_DELETED
                                                  });
@@ -485,6 +514,9 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
             break;
         }
     }
+
+    cryptoTransferGive (transfer);
+    cryptoWalletGive (wallet);
 }
 
 static void

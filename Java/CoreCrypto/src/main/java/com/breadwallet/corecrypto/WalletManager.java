@@ -807,7 +807,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                                     transaction.getTimestamp().transform(Date::getTime).transform(TimeUnit.MILLISECONDS::toSeconds).transform(UnsignedLong::valueOf).or(UnsignedLong.ZERO);
                             Log.d(TAG,
                                     "BRCryptoCWMBtcGetTransactionsCallback received transaction, announcing " + transaction.getId());
-                            manager.announceGetTransactionsItemBtc(callbackState, optRaw.get(), blockHeight, timestamp);
+                            manager.announceGetTransactionsItemBtc(callbackState, optRaw.get(), timestamp, blockHeight);
                         }
 
                         // TODO(fix): The C layer needs to handle calling this again with any newly derived addresses

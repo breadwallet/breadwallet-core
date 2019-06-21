@@ -7,12 +7,8 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.breadwallet.corenative.CryptoLibrary;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
-
-import java.util.Date;
-import java.util.concurrent.TimeUnit;
 
 public class BRCryptoCWMClientCallbackState extends PointerType {
 
