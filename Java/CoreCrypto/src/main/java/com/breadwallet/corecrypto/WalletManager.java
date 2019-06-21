@@ -850,8 +850,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                                     String networkName, String address) {
         Log.d(TAG, "BRCryptoCWMEthGetEtherBalanceCallback");
 
-        // TODO(discuss): Do we actually need a rid here? Can it just be random? Does it need to tie into our C rid?
-        query.getBalanceAsEth(networkName, address, 0, new CompletionHandler<String>() {
+        query.getBalanceAsEth(networkName, address, new CompletionHandler<String>() {
             @Override
             public void handleData(String balance) {
                 Log.d(TAG, "BRCryptoCWMEthGetEtherBalanceCallback: succeeded");
@@ -870,8 +869,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                                     String networkName, String address, String tokenAddress) {
         Log.d(TAG, "BRCryptoCWMEthGetTokenBalanceCallback");
 
-        // TODO(discuss): Do we actually need a rid here? Can it just be random? Does it need to tie into our C rid?
-        query.getBalanceAsTok(networkName, address, tokenAddress, 0, new CompletionHandler<String>() {
+        query.getBalanceAsTok(networkName, address, tokenAddress, new CompletionHandler<String>() {
             @Override
             public void handleData(String balance) {
                 Log.d(TAG, "BRCryptoCWMEthGetTokenBalanceCallback: succeeded");
@@ -881,7 +879,6 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
             @Override
             public void handleError(QueryError error) {
                 Log.e(TAG, "BRCryptoCWMEthGetTokenBalanceCallback: failed", error);
-                // TODO(fix): Split into separate failed announce function (and drop success as a param)
                 manager.announceGetBalanceFailure(callbackState);
             }
         });
@@ -891,8 +888,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                                 String networkName) {
         Log.d(TAG, "BRCryptoCWMEthGetGasPriceCallback");
 
-        // TODO(discuss): Do we actually need a rid here? Can it just be random? Does it need to tie into our C rid?
-        query.getGasPriceAsEth(networkName, 0, new CompletionHandler<String>() {
+        query.getGasPriceAsEth(networkName, new CompletionHandler<String>() {
             @Override
             public void handleData(String gasPrice) {
                 Log.d(TAG, "BRCryptoCWMEthGetGasPriceCallback: succeeded");
@@ -902,7 +898,6 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
             @Override
             public void handleError(QueryError error) {
                 Log.e(TAG, "BRCryptoCWMEthGetGasPriceCallback: failed", error);
-                // TODO(fix): Split into separate failed announce function (and drop success as a param)
                 manager.announceGetGasPriceFailure(callbackState);
             }
         });
@@ -912,8 +907,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                                 String networkName, String from, String to, String amount, String data) {
         Log.d(TAG, "BRCryptoCWMEthEstimateGasCallback");
 
-        // TODO(discuss): Do we actually need a rid here? Can it just be random? Does it need to tie into our C rid?
-        query.getGasEstimateAsEth(networkName, from, to, amount, data, 0, new CompletionHandler<String>() {
+        query.getGasEstimateAsEth(networkName, from, to, amount, data, new CompletionHandler<String>() {
             @Override
             public void handleData(String gasEstimate) {
                 Log.d(TAG, "BRCryptoCWMEthEstimateGasCallback: succeeded");
@@ -923,7 +917,6 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
             @Override
             public void handleError(QueryError error) {
                 Log.e(TAG, "BRCryptoCWMEthEstimateGasCallback: failed", error);
-                // TODO(fix): Split into separate failed announce function (and drop success as a param)
                 manager.announceGetGasEstimateFailure(callbackState);
             }
         });
@@ -933,8 +926,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                                       String networkName, String transaction) {
         Log.d(TAG, "BRCryptoCWMEthSubmitTransactionCallback");
 
-        // TODO(discuss): Do we actually need a rid here? Can it just be random? Does it need to tie into our C rid?
-        query.submitTransactionAsEth(networkName, transaction, 0, new CompletionHandler<String>() {
+        query.submitTransactionAsEth(networkName, transaction, new CompletionHandler<String>() {
             @Override
             public void handleData(String hash) {
                 Log.d(TAG, "BRCryptoCWMEthSubmitTransactionCallback: succeeded");
@@ -944,7 +936,6 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
             @Override
             public void handleError(QueryError error) {
                 Log.e(TAG, "BRCryptoCWMEthSubmitTransactionCallback: failed", error);
-                // TODO(fix): What do we want to populate here?
                 manager.announceSubmitTransferFailure(callbackState);
             }
         });
@@ -954,9 +945,8 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                                     String networkName, String address, long begBlockNumber, long endBlockNumber) {
         Log.d(TAG, "BRCryptoCWMEthGetTransactionsCallback");
 
-        // TODO(discuss): Do we actually need a rid here? Can it just be random? Does it need to tie into our C rid?
         query.getTransactionsAsEth(networkName, address, UnsignedLong.fromLongBits(begBlockNumber),
-                UnsignedLong.fromLongBits(endBlockNumber), 0, new CompletionHandler<List<EthTransaction>>() {
+                UnsignedLong.fromLongBits(endBlockNumber), new CompletionHandler<List<EthTransaction>>() {
                     @Override
                     public void handleData(List<EthTransaction> transactions) {
                         Log.d(TAG, "BRCryptoCWMEthGetTransactionsCallback: succeeded");
@@ -995,9 +985,8 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                             long endBlockNumber) {
         Log.d(TAG, "BRCryptoCWMEthGetLogsCallback");
 
-        // TODO(discuss): Do we actually need a rid here? Can it just be random? Does it need to tie into our C rid?
         query.getLogsAsEth(networkName, contract, address, event, UnsignedLong.fromLongBits(begBlockNumber),
-                UnsignedLong.fromLongBits(endBlockNumber), 0, new CompletionHandler<List<EthLog>>() {
+                UnsignedLong.fromLongBits(endBlockNumber), new CompletionHandler<List<EthLog>>() {
                     @Override
                     public void handleData(List<EthLog> logs) {
                         Log.d(TAG, "BRCryptoCWMEthGetLogsCallback: succeeded");
@@ -1030,9 +1019,8 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                               long blockNumberStop) {
         Log.d(TAG, "BRCryptoCWMEthGetBlocksCallback");
 
-        // TODO(discuss): Do we actually need a rid here? Can it just be random? Does it need to tie into our C rid?
         query.getBlocksAsEth(networkName, address, UnsignedInteger.fromIntBits(interests),
-                UnsignedLong.fromLongBits(blockNumberStart), UnsignedLong.fromLongBits(blockNumberStop), 0,
+                UnsignedLong.fromLongBits(blockNumberStart), UnsignedLong.fromLongBits(blockNumberStop),
                 new CompletionHandler<List<UnsignedLong>>() {
             @Override
             public void handleData(List<UnsignedLong> blocks) {
@@ -1051,8 +1039,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     private void ethGetTokens(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState) {
         Log.d(TAG, "BREthereumClientHandlerGetTokens");
 
-        // TODO(discuss): Do we actually need a rid here? Can it just be random? Does it need to tie into our C rid?
-        query.getTokensAsEth(0, new CompletionHandler<List<EthToken>>() {
+        query.getTokensAsEth(new CompletionHandler<List<EthToken>>() {
             @Override
             public void handleData(List<EthToken> tokens) {
                 Log.d(TAG, "BREthereumClientHandlerGetTokens: succeeded");
@@ -1081,8 +1068,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                                    String networkName) {
         Log.d(TAG, "BRCryptoCWMEthGetBlockNumberCallback");
 
-        // TODO(discuss): Do we actually need a rid here? Can it just be random? Does it need to tie into our C rid?
-        query.getBlockNumberAsEth(networkName, 0, new CompletionHandler<String>() {
+        query.getBlockNumberAsEth(networkName, new CompletionHandler<String>() {
             @Override
             public void handleData(String number) {
                 Log.d(TAG, "BRCryptoCWMEthGetBlockNumberCallback: succeeded");
@@ -1101,8 +1087,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                              String networkName, String address) {
         Log.d(TAG, "BRCryptoCWMEthGetNonceCallback");
 
-        // TODO(discuss): Do we actually need a rid here? Can it just be random? Does it need to tie into our C rid?
-        query.getNonceAsEth(networkName, address, 0, new CompletionHandler<String>() {
+        query.getNonceAsEth(networkName, address, new CompletionHandler<String>() {
             @Override
             public void handleData(String nonce) {
                 Log.d(TAG, "BRCryptoCWMEthGetNonceCallback: succeeded");
@@ -1112,7 +1097,6 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
             @Override
             public void handleError(QueryError error) {
                 Log.e(TAG, "BRCryptoCWMEthGetNonceCallback: failed", error);
-                // TODO(fix): Split into separate failed announce function (and drop success as a param)
                 manager.announceGetNonceFailure(callbackState);
             }
         });

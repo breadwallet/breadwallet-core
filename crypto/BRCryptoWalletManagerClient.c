@@ -126,12 +126,13 @@ cwmSubmitTransactionAsBTC (BRWalletManagerClientContext context,
     callbackState->u.btcSubmit.transaction = transaction;
     callbackState->rid = rid;
 
-    // TODO(fix): Not a fan of putting this on the stack
-    uint8_t data[BRTransactionSerialize(transaction, NULL, 0)];
-    size_t len = BRTransactionSerialize(transaction, data, sizeof(data));
+    size_t txLength = BRTransactionSerialize (transaction, NULL, 0);
+    uint8_t *tx = calloc (txLength, sizeof(uint8_t));
+    BRTransactionSerialize(transaction, tx, txLength);
 
-    cwm->client.btc.funcSubmitTransaction (cwm->client.context, cwm, callbackState, data, len);
+    cwm->client.btc.funcSubmitTransaction (cwm->client.context, cwm, callbackState, tx, txLength);
 
+    free (tx);
     cryptoWalletManagerGive (cwm);
 }
 
@@ -1241,7 +1242,7 @@ cwmAnnounceGetTransactionsItemBTC (BRCryptoWalletManager cwm,
     assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_BTC_GET_TRANSACTIONS == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
-    // TODO(fix): How do we want to callbackState failure? Should the caller of this function be notified?
+    // TODO(fix): How do we want to handle failure? Should the caller of this function be notified?
     BRTransaction *tx = BRTransactionParse (transaction, transactionLength);
     if (NULL != tx) {
         assert (timestamp <= UINT32_MAX); assert (blockHeight <= UINT32_MAX);
@@ -1349,7 +1350,6 @@ cwmAnnounceSubmitTransferSuccessForHash (BRCryptoWalletManager cwm,
     assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_ETH_SUBMIT_TRANSACTION == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
-    // TODO(fix): Do we want to propagate error code and message from the Java/Swift
     ewmAnnounceSubmitTransfer (cwm->u.eth,
                                callbackState->u.ethWithTransaction.wid,
                                callbackState->u.ethWithTransaction.tid,
@@ -1376,7 +1376,7 @@ cwmAnnounceSubmitTransferFailure (BRCryptoWalletManager cwm,
                            1);
 
     } else if (CWM_CALLBACK_TYPE_ETH_SUBMIT_TRANSACTION == callbackState->type && BLOCK_CHAIN_TYPE_ETH == cwm->type) {
-        // TODO(fix): Do we want to propagate error code and message from the Java/Swift
+        // TODO(fix): Do we want to receive the error code and message from Java/Swift?
         ewmAnnounceSubmitTransfer (cwm->u.eth,
                                    callbackState->u.ethWithTransaction.wid,
                                    callbackState->u.ethWithTransaction.tid,

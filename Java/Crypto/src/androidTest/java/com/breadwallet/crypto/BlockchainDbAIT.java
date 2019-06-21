@@ -152,7 +152,7 @@ public class BlockchainDbAIT {
     public void testGetBalanceAsEth() {
         SynchronousCompletionHandler<String> handler = new SynchronousCompletionHandler<>();
 
-        blockchainDb.getBalanceAsEth("mainnet", "0x04d542459de6765682D21771D1ba23dC30Fb675F", 0, handler);
+        blockchainDb.getBalanceAsEth("mainnet", "0x04d542459de6765682D21771D1ba23dC30Fb675F", handler);
         String output = handler.dat().get();
         assertFalse(output.isEmpty());
     }
@@ -162,7 +162,7 @@ public class BlockchainDbAIT {
         SynchronousCompletionHandler<String> handler = new SynchronousCompletionHandler<>();
 
         blockchainDb.getBalanceAsTok("mainnet", "0x04d542459de6765682D21771D1ba23dC30Fb675F",
-                "0xE41d2489571d322189246Dafa5EBDE1f4699F498", 0, handler);
+                "0xE41d2489571d322189246Dafa5EBDE1f4699F498", handler);
         String output = handler.dat().get();
         assertFalse(output.isEmpty());
     }
@@ -171,7 +171,7 @@ public class BlockchainDbAIT {
     public void testGetGasPriceAsEth() {
         SynchronousCompletionHandler<String> handler = new SynchronousCompletionHandler<>();
 
-        blockchainDb.getGasPriceAsEth("mainnet", 0, handler);
+        blockchainDb.getGasPriceAsEth("mainnet", handler);
         String output = handler.dat().get();
         assertFalse(output.isEmpty());
     }
@@ -181,7 +181,7 @@ public class BlockchainDbAIT {
         SynchronousCompletionHandler<String> handler = new SynchronousCompletionHandler<>();
 
         blockchainDb.getGasEstimateAsEth("mainnet", "0x04d542459de6765682D21771D1ba23dC30Fb675F",
-                "0x04d542459de6765682D21771D1ba23dC30Fb675F", "0x10000", "0x1234567890ABCDEF", 0, handler);
+                "0x04d542459de6765682D21771D1ba23dC30Fb675F", "0x10000", "0x1234567890ABCDEF", handler);
         String output = handler.dat().get();
         assertFalse(output.isEmpty());
     }
@@ -196,7 +196,7 @@ public class BlockchainDbAIT {
         SynchronousCompletionHandler<List<EthTransaction>> handler = new SynchronousCompletionHandler<>();
 
         blockchainDb.getTransactionsAsEth("mainnet", "0x04d542459de6765682D21771D1ba23dC30Fb675F", UnsignedLong.ZERO,
-                UnsignedLong.valueOf(7778000), 0, handler);
+                UnsignedLong.valueOf(7778000), handler);
         List<EthTransaction> output = handler.dat().get();
         assertFalse(output.isEmpty());
     }
@@ -207,7 +207,7 @@ public class BlockchainDbAIT {
 
         // TODO: This test doesn't return anything; should it?
         // blockchainDb.getLogsAsEth("mainnet", null, "0x04d542459de6765682D21771D1ba23dC30Fb675F",
-        //         ETH_EVENT_ERC20_TRANSFER, 0, 7778000, 0, handler);
+        //         ETH_EVENT_ERC20_TRANSFER, 0, 7778000, handler);
         // List<EthLog> output = handler.dat().get();
         // assertFalse(output.isEmpty());
     }
@@ -217,8 +217,7 @@ public class BlockchainDbAIT {
         SynchronousCompletionHandler<List<Long>> handler = new SynchronousCompletionHandler<>();
 
         // TODO: This test doesn't return anything; should it?
-        // blockchainDb.getBlocksAsEth("mainnet", "0x04d542459de6765682D21771D1ba23dC30Fb675F", 0xF, 0, 7778000, 0,
-        //         handler);
+        // blockchainDb.getBlocksAsEth("mainnet", "0x04d542459de6765682D21771D1ba23dC30Fb675F", 0xF, 0, 7778000, handler);
         // List<Long> output = handler.dat().get();
         // assertFalse(output.isEmpty());
     }
@@ -227,7 +226,7 @@ public class BlockchainDbAIT {
     public void testGetBlockNumberAsEth() {
         SynchronousCompletionHandler<String> handler = new SynchronousCompletionHandler<>();
 
-        blockchainDb.getBlockNumberAsEth("mainnet", 0, handler);
+        blockchainDb.getBlockNumberAsEth("mainnet", handler);
         String output = handler.dat().get();
         assertFalse(output.isEmpty());
     }
@@ -236,7 +235,7 @@ public class BlockchainDbAIT {
     public void testGetNonceAsEth() {
         SynchronousCompletionHandler<String> handler = new SynchronousCompletionHandler<>();
 
-        blockchainDb.getNonceAsEth("mainnet", "0x04d542459de6765682D21771D1ba23dC30Fb675F", 0, handler);
+        blockchainDb.getNonceAsEth("mainnet", "0x04d542459de6765682D21771D1ba23dC30Fb675F", handler);
         String output = handler.dat().get();
         assertFalse(output.isEmpty());
     }
@@ -245,7 +244,7 @@ public class BlockchainDbAIT {
     public void testGetTokensAsEth() {
         SynchronousCompletionHandler<List<EthToken>> handler = new SynchronousCompletionHandler<>();
 
-        blockchainDb.getTokensAsEth(0, handler);
+        blockchainDb.getTokensAsEth(handler);
         List<EthToken> output = handler.dat().get();
         assertFalse(output.isEmpty());
     }
