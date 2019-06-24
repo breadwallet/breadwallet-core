@@ -33,6 +33,7 @@
 #define BWM_MINUTES_PER_BLOCK                   10              // assumed, bitcoin
 #define BWM_BRD_SYNC_DAYS_OFFSET                 1
 #define BWM_BRD_SYNC_START_BLOCK_OFFSET        ((BWM_BRD_SYNC_DAYS_OFFSET * 24 * 60) / BWM_MINUTES_PER_BLOCK)
+#define BWM_BRD_SYNC_CHUNK_SIZE                 50000
 
 /* Forward Declarations */
 static void
@@ -1146,6 +1147,10 @@ bwmSyncReset (BRWalletManager bwm) {
 #define MAX(a,b) (((a)>(b))?(a):(b))
 #endif
 
+#if !defined (MIN)
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#endif
+
 static void
 bwmSyncStart (BRWalletManager bwm) {
     int rid                     = 0;
@@ -1161,6 +1166,7 @@ bwmSyncStart (BRWalletManager bwm) {
     if (bwm->brdSync.completed) {
         // update the `endBlockNumber` to the current block height.
         bwm->brdSync.endBlockNumber = MAX (bwm->blockHeight, bwm->brdSync.begBlockNumber);
+        bwm->brdSync.endBlockNumber = MIN (bwm->brdSync.begBlockNumber + BWM_BRD_SYNC_CHUNK_SIZE, bwm->brdSync.endBlockNumber);
 
         // we'll update transactions if there are more blocks to examine
         if (bwm->brdSync.begBlockNumber != bwm->brdSync.endBlockNumber) {
@@ -1175,14 +1181,14 @@ bwmSyncStart (BRWalletManager bwm) {
             BRWalletUnusedAddrs(bwm->wallet, &bwm->brdSync.lastExternalAddress, 1, 0);
             BRWalletUnusedAddrs(bwm->wallet, &bwm->brdSync.lastInternalAddress, 1, 1);
 
-            // mark as not completed
-            bwm->brdSync.completed = 0;
-
             // get the addresses to query the BDB with
             BRWalletManagerGetAllAddrsAsStrings (bwm,
                                                  &addressCount,
                                                  &addressStrings,
                                                  &addressArray);
+
+            // mark as not completed
+            bwm->brdSync.completed = 0;
 
             // store sync data for callback outside of lock
             begBlockNumber = bwm->brdSync.begBlockNumber;
@@ -1263,19 +1269,11 @@ bwmSyncComplete (BRWalletManager bwm,
             BRWalletUnusedAddrs (bwm->wallet, &internalAddress, 1, 1);
 
             // check if the first unused addresses have changed since last completion
-            // (i.e. a new address is now know that we need to query BDB for)
-            if (BRAddressEq (&externalAddress, &bwm->brdSync.lastExternalAddress) &&
-                BRAddressEq (&internalAddress, &bwm->brdSync.lastInternalAddress)) {
-                // no new address has been found, getTransactions is complete,
+            if (!BRAddressEq (&externalAddress, &bwm->brdSync.lastExternalAddress) ||
+                !BRAddressEq (&internalAddress, &bwm->brdSync.lastInternalAddress)) {
+                // ... we've discovered a new address (i.e. there were transactions announce)
+                // so we need to requery the same range including the newly derived addresses
 
-                // reset sync state and advance the sync range by updating `begBlockNumber`
-                bwm->brdSync.completed           = 1;
-                bwm->brdSync.lastInternalAddress = BR_ADDRESS_NONE;
-                bwm->brdSync.lastExternalAddress = BR_ADDRESS_NONE;
-                bwm->brdSync.begBlockNumber      = (bwm->brdSync.endBlockNumber >=  BWM_BRD_SYNC_START_BLOCK_OFFSET
-                                                    ? bwm->brdSync.endBlockNumber - BWM_BRD_SYNC_START_BLOCK_OFFSET
-                                                    : 0);
-            } else {
                 // store the first unused addresses for comparison in the next complete call
                 bwm->brdSync.lastExternalAddress = externalAddress;
                 bwm->brdSync.lastInternalAddress = internalAddress;
@@ -1286,9 +1284,44 @@ bwmSyncComplete (BRWalletManager bwm,
                                                     &addressStrings,
                                                     &addressArray);
 
+                // don't need to alter the range (we haven't found all transactions yet)
+
                 // store sync data for callback outside of lock
                 begBlockNumber = bwm->brdSync.begBlockNumber;
                 endBlockNumber = bwm->brdSync.endBlockNumber;
+
+            } else if (bwm->brdSync.endBlockNumber != bwm->blockHeight) {
+                // .. we haven't discovered any new addresses but we haven't gone through the whole range yet
+
+                // don't need to store the first unused addresses (we just confirmed they are equal)
+
+                // store the new range
+                bwm->brdSync.begBlockNumber = (bwm->brdSync.endBlockNumber >=  BWM_BRD_SYNC_START_BLOCK_OFFSET
+                                               ? bwm->brdSync.endBlockNumber - BWM_BRD_SYNC_START_BLOCK_OFFSET
+                                               : 0);
+                bwm->brdSync.endBlockNumber = MIN (bwm->brdSync.endBlockNumber + BWM_BRD_SYNC_CHUNK_SIZE,
+                                                   bwm->blockHeight);
+
+                // get the addresses to query the BDB with
+                BRWalletManagerGetAllAddrsAsStrings (bwm,
+                                                    &addressCount,
+                                                    &addressStrings,
+                                                    &addressArray);
+
+                // store sync data for callback outside of lock
+                begBlockNumber = bwm->brdSync.begBlockNumber;
+                endBlockNumber = bwm->brdSync.endBlockNumber;
+
+            } else {
+                // .. we haven't discovered any new addresses and we just finished the last chunk
+
+                // reset sync state and advance the sync range by updating `begBlockNumber`
+                bwm->brdSync.completed           = 1;
+                bwm->brdSync.lastInternalAddress = BR_ADDRESS_NONE;
+                bwm->brdSync.lastExternalAddress = BR_ADDRESS_NONE;
+                bwm->brdSync.begBlockNumber      = (bwm->brdSync.endBlockNumber >=  BWM_BRD_SYNC_START_BLOCK_OFFSET
+                                                    ? bwm->brdSync.endBlockNumber - BWM_BRD_SYNC_START_BLOCK_OFFSET
+                                                    : 0);
             }
         } else {
             // reset sync state on failure
