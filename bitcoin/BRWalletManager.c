@@ -530,6 +530,8 @@ BRWalletManagerNew (BRWalletManagerClient client,
     bwm->brdSync.lastExternalAddress = BR_ADDRESS_NONE;
     bwm->brdSync.begBlockNumber = earliestCheckPoint->height;
     bwm->brdSync.endBlockNumber = bwm->brdSync.begBlockNumber;
+    bwm->brdSync.chunkBegBlockNumber = bwm->brdSync.begBlockNumber;
+    bwm->brdSync.chunkEndBlockNumber = bwm->brdSync.endBlockNumber;
     bwm->brdSync.completed = 0;
 
 
@@ -1137,6 +1139,8 @@ static void
 bwmSyncReset (BRWalletManager bwm) {
     assert (SYNC_MODE_P2P_ONLY != bwm->mode);
     pthread_mutex_lock (&bwm->lock);
+    bwm->brdSync.chunkBegBlockNumber = bwm->brdSync.begBlockNumber;
+    bwm->brdSync.chunkEndBlockNumber = bwm->brdSync.endBlockNumber;
     bwm->brdSync.lastInternalAddress = BR_ADDRESS_NONE;
     bwm->brdSync.lastExternalAddress = BR_ADDRESS_NONE;
     bwm->brdSync.completed           = 1;
@@ -1166,7 +1170,6 @@ bwmSyncStart (BRWalletManager bwm) {
     if (bwm->brdSync.completed) {
         // update the `endBlockNumber` to the current block height.
         bwm->brdSync.endBlockNumber = MAX (bwm->blockHeight, bwm->brdSync.begBlockNumber);
-        bwm->brdSync.endBlockNumber = MIN (bwm->brdSync.begBlockNumber + BWM_BRD_SYNC_CHUNK_SIZE, bwm->brdSync.endBlockNumber);
 
         // we'll update transactions if there are more blocks to examine
         if (bwm->brdSync.begBlockNumber != bwm->brdSync.endBlockNumber) {
@@ -1187,12 +1190,17 @@ bwmSyncStart (BRWalletManager bwm) {
                                                  &addressStrings,
                                                  &addressArray);
 
+            // update the chunk range
+            bwm->brdSync.chunkBegBlockNumber = bwm->brdSync.begBlockNumber;
+            bwm->brdSync.chunkEndBlockNumber = MIN (bwm->brdSync.begBlockNumber + BWM_BRD_SYNC_CHUNK_SIZE,
+                                                    bwm->brdSync.endBlockNumber);
+
             // mark as not completed
             bwm->brdSync.completed = 0;
 
             // store sync data for callback outside of lock
-            begBlockNumber = bwm->brdSync.begBlockNumber;
-            endBlockNumber = bwm->brdSync.endBlockNumber;
+            begBlockNumber = bwm->brdSync.chunkBegBlockNumber;
+            endBlockNumber = bwm->brdSync.chunkEndBlockNumber;
             rid = bwm->brdSync.rid;
         }
     }
@@ -1287,20 +1295,13 @@ bwmSyncComplete (BRWalletManager bwm,
                 // don't need to alter the range (we haven't found all transactions yet)
 
                 // store sync data for callback outside of lock
-                begBlockNumber = bwm->brdSync.begBlockNumber;
-                endBlockNumber = bwm->brdSync.endBlockNumber;
+                begBlockNumber = bwm->brdSync.chunkBegBlockNumber;
+                endBlockNumber = bwm->brdSync.chunkEndBlockNumber;
 
-            } else if (bwm->brdSync.endBlockNumber != bwm->blockHeight) {
+            } else if (bwm->brdSync.chunkEndBlockNumber != bwm->brdSync.endBlockNumber) {
                 // .. we haven't discovered any new addresses but we haven't gone through the whole range yet
 
                 // don't need to store the first unused addresses (we just confirmed they are equal)
-
-                // store the new range
-                bwm->brdSync.begBlockNumber = (bwm->brdSync.endBlockNumber >=  BWM_BRD_SYNC_START_BLOCK_OFFSET
-                                               ? bwm->brdSync.endBlockNumber - BWM_BRD_SYNC_START_BLOCK_OFFSET
-                                               : 0);
-                bwm->brdSync.endBlockNumber = MIN (bwm->brdSync.endBlockNumber + BWM_BRD_SYNC_CHUNK_SIZE,
-                                                   bwm->blockHeight);
 
                 // get the addresses to query the BDB with
                 BRWalletManagerGetAllAddrsAsStrings (bwm,
@@ -1308,9 +1309,14 @@ bwmSyncComplete (BRWalletManager bwm,
                                                     &addressStrings,
                                                     &addressArray);
 
+                // store the new range
+                bwm->brdSync.chunkBegBlockNumber = bwm->brdSync.chunkEndBlockNumber;
+                bwm->brdSync.chunkEndBlockNumber = MIN (bwm->brdSync.chunkEndBlockNumber + BWM_BRD_SYNC_CHUNK_SIZE,
+                                                        bwm->brdSync.endBlockNumber);
+
                 // store sync data for callback outside of lock
-                begBlockNumber = bwm->brdSync.begBlockNumber;
-                endBlockNumber = bwm->brdSync.endBlockNumber;
+                begBlockNumber = bwm->brdSync.chunkBegBlockNumber;
+                endBlockNumber = bwm->brdSync.chunkEndBlockNumber;
 
             } else {
                 // .. we haven't discovered any new addresses and we just finished the last chunk

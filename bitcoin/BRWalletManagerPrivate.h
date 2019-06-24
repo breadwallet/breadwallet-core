@@ -81,6 +81,8 @@ struct BRWalletManagerStruct {
         BRAddress lastInternalAddress;
         uint64_t begBlockNumber;
         uint64_t endBlockNumber;
+        uint64_t chunkBegBlockNumber;
+        uint64_t chunkEndBlockNumber;
 
         int rid;
 
