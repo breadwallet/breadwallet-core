@@ -39,7 +39,7 @@ class BRBlockChainDBTest: XCTestCase {
 
         expectation = XCTestExpectation (description: "blockchains")
 
-        db.getBlockchains { (res: Result<[BlockChainDB.Model.Blockchain], BlockChainDB.QueryError>) in
+        db.getBlockchains (mainnet: false) { (res: Result<[BlockChainDB.Model.Blockchain], BlockChainDB.QueryError>) in
             guard case let .success (blockchains) = res
                 else { XCTAssert(false); return }
 
