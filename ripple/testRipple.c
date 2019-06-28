@@ -660,6 +660,16 @@ static void runWalletTests()
     testWalletAddress();
 }
 
+static void comparebuffers(const char *input, uint8_t * output, size_t outputSize)
+{
+    size_t input_size = strlen(input) / 2;
+    assert(input_size == outputSize);
+    uint8_t buffer[input_size];
+    hex2bin(input, buffer);
+    for(int i = 0; i < outputSize; i++) {
+        assert(buffer[i] == output[i]);
+    }
+}
 static void runDeserializeTests(const char* tx_list_name, const char* tx_list[], int num_elements)
 {
     int payments = 0;
@@ -672,6 +682,7 @@ static void runDeserializeTests(const char* tx_list_name, const char* tx_list[],
         BRRippleTransaction transaction = transactionDeserialize(tx_list[i+1], NULL);
         uint8_t * signed_bytes = rippleTransactionSerialize(transaction, &output_size);
         assert(input_size == output_size);
+        comparebuffers(tx_list[i+1], signed_bytes, output_size);
         free(signed_bytes);
 
         assert(transaction);
