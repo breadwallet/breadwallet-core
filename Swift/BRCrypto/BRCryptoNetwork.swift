@@ -210,6 +210,16 @@ public final class Network: CustomStringConvertible {
 
 }
 
+extension Network: Hashable {
+    public static func == (lhs: Network, rhs: Network) -> Bool {
+        return lhs.uids == rhs.uids
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(uids)
+    }
+}
+
 public enum NetworkEvent {
     case created
 }

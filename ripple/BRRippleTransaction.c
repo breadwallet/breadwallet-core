@@ -52,6 +52,13 @@ typedef struct _txPaymentRecord {
 
 } BRRipplePaymentTxRecord;
 
+struct BRRippleSerializedTransactionRecord {
+    uint32_t size;
+    uint8_t  *buffer;
+    uint8_t  txHash[32];
+};
+typedef struct BRRippleSerializedTransactionRecord *BRRippleSerializedTransaction;
+
 struct BRRippleTransactionRecord {
     
     // COMMON FIELDS
@@ -98,12 +105,6 @@ struct BRRippleTransactionRecord {
     BRRippleSourceTag sourceTag;
 
     BRRippleMemoNode * memos;
-};
-
-struct BRRippleSerializedTransactionRecord {
-    uint32_t size;
-    uint8_t  *buffer;
-    uint8_t  txHash[32];
 };
 
 void rippleSerializedTransactionRecordFree(BRRippleSerializedTransaction * signedBytes)
@@ -238,7 +239,7 @@ static uint64_t calculateFee(BRRippleTransaction transaction)
  *                                NULL if unable to serialize
  */
 static BRRippleSerializedTransaction
-rippleTransactionSerialize (BRRippleTransaction transaction,
+rippleTransactionSerializeImpl (BRRippleTransaction transaction,
                             uint8_t *signature, int sig_length)
 {
     assert(transaction);
@@ -288,7 +289,7 @@ static void createTransactionHash(BRRippleSerializedTransaction signedBytes)
     memcpy(signedBytes->txHash, md64, 32);
 }
 
-extern BRRippleSerializedTransaction
+extern size_t
 rippleTransactionSerializeAndSign(BRRippleTransaction transaction, BRKey * privateKey,
                                   BRKey *publicKey, uint32_t sequence, uint32_t lastLedgerSequence)
 {
@@ -306,13 +307,13 @@ rippleTransactionSerializeAndSign(BRRippleTransaction transaction, BRKey * priva
     transaction->publicKey = *publicKey;
     
     // Serialize the bytes
-    BRRippleSerializedTransaction serializedBytes = rippleTransactionSerialize (transaction, 0, 0);
+    BRRippleSerializedTransaction serializedBytes = rippleTransactionSerializeImpl (transaction, 0, 0);
     
     // Sign the bytes and get signature
     BRRippleSignature sig = signBytes(privateKey, serializedBytes->buffer, serializedBytes->size);
 
     // Re-serialize with signature
-    transaction->signedBytes = rippleTransactionSerialize(transaction, sig->signature, sig->sig_length);
+    transaction->signedBytes = rippleTransactionSerializeImpl(transaction, sig->signature, sig->sig_length);
 
     // If we got a valid result then generate a hash
     if (transaction->signedBytes) {
@@ -322,16 +323,24 @@ rippleTransactionSerializeAndSign(BRRippleTransaction transaction, BRKey * priva
     }
 
     // Return the pointer to the signed byte object (or perhaps NULL)
-    return transaction->signedBytes;
+    return transaction->signedBytes->size;
 }
 
-extern uint32_t rippleTransactionGetSerializedSize(BRRippleSerializedTransaction s)
+extern uint8_t* rippleTransactionSerialize(BRRippleTransaction transaction, size_t * bufferSize)
 {
-    return s->size;
-}
-extern uint8_t* rippleTransactionGetSerializedBytes(BRRippleSerializedTransaction s)
-{
-    return s->buffer;
+    assert(transaction);
+    assert(bufferSize);
+    // If we have serialized and signed this transaction then copy the bytes to the caller
+    if (transaction->signedBytes) {
+        uint8_t * buffer = calloc(1, transaction->signedBytes->size);
+        memcpy(buffer, transaction->signedBytes, transaction->signedBytes->size);
+        *bufferSize = transaction->signedBytes->size;
+        return buffer;
+    } else {
+        // Not yet seralialize and signed
+        *bufferSize = 0;
+        return NULL;
+    }
 }
 
 extern BRRippleTransactionHash rippleTransactionGetHash(BRRippleTransaction transaction)
@@ -549,6 +558,12 @@ rippleTransactionCreateFromBytes(uint8_t *bytes, int length)
         }
     }
     array_free(fieldArray);
+
+    // Store the raw bytes as well
+    transaction->signedBytes = calloc(1, sizeof(struct BRRippleSerializedTransactionRecord));
+    transaction->signedBytes->buffer = calloc(1, length);
+    memcpy(transaction->signedBytes->buffer, bytes, length);
+    transaction->signedBytes->size = length;
 
     return transaction;
 }
