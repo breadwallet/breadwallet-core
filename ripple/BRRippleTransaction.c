@@ -333,7 +333,7 @@ extern uint8_t* rippleTransactionSerialize(BRRippleTransaction transaction, size
     // If we have serialized and signed this transaction then copy the bytes to the caller
     if (transaction->signedBytes) {
         uint8_t * buffer = calloc(1, transaction->signedBytes->size);
-        memcpy(buffer, transaction->signedBytes, transaction->signedBytes->size);
+        memcpy(buffer, transaction->signedBytes->buffer, transaction->signedBytes->size);
         *bufferSize = transaction->signedBytes->size;
         return buffer;
     } else {
