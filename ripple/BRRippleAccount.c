@@ -231,11 +231,11 @@ extern BRRippleAddress rippleAccountGetPrimaryAddress (BRRippleAccount account)
     return account->raw;
 }
 
-extern BRRippleSerializedTransaction
+extern size_t
 rippleTransactionSerializeAndSign(BRRippleTransaction transaction, BRKey *privateKey,
                                   BRKey *publicKey, uint32_t sequence, uint32_t lastLedgerSequence);
 
-extern const BRRippleSerializedTransaction
+extern size_t
 rippleAccountSignTransaction(BRRippleAccount account, BRRippleTransaction transaction, const char *paperKey)
 {
     assert(account);
@@ -245,16 +245,16 @@ rippleAccountSignTransaction(BRRippleAccount account, BRRippleTransaction transa
     // Create the private key from the paperKey
     BRKey key = getKey(paperKey);
 
-    BRRippleSerializedTransaction signedBytes =
+    size_t tx_size =
         rippleTransactionSerializeAndSign(transaction, &key, &account->publicKey,
                                           account->sequence, account->lastLedgerSequence);
 
     // Increment the sequence number if we were able to sign the bytes
-    if (signedBytes) {
+    if (tx_size > 0) {
         account->sequence++;
     }
 
-    return signedBytes;
+    return tx_size;
 }
 
 extern int rippleAddressStringToAddress(const char* input, BRRippleAddress *address)
