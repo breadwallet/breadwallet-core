@@ -12,6 +12,8 @@
 #define BRGenericHandlers_h
 
 #include "support/BRInt.h" // UInt256
+#include "support/BRArray.h"
+#include "support/BRFileService.h"
 #include "BRGenericBase.h"
 
 #ifdef __cplusplus
@@ -49,6 +51,17 @@ extern "C" {
     typedef void (*BRGenericWalletFree) (BRGenericWallet wallet);
     typedef UInt256 (*BRGenericWalletGetBalance) (BRGenericWallet wallet);
 
+    // MAEK: - Generic Wallet Manager
+
+    typedef BRGenericTransfer (*BRGenericWalletManagerRecoverTransfer) (uint8_t *bytes,
+                                                                        size_t   bytesCount);
+
+    typedef void (*BRGenericWalletManagerInitializeFileService) (BRFileServiceContext context,
+                                                                 BRFileService fileService);
+
+    typedef BRArrayOf(BRGenericTransfer) (*BRGenericWalletManagerLoadTransfers) (BRFileServiceContext context,
+                                                                                 BRFileService fileService);
+
     // MARK: - Generic Handlers
 
     struct BRGenericHandersRecord {
@@ -80,8 +93,17 @@ extern "C" {
             BRGenericWalletCreate create;
             BRGenericWalletFree free;
             BRGenericWalletGetBalance balance;
+            // set balance
+
             // ...
         } wallet;
+
+        struct {
+            BRGenericWalletManagerRecoverTransfer transferRecover;
+
+            BRGenericWalletManagerInitializeFileService fileServiceInit;
+            BRGenericWalletManagerLoadTransfers fileServiceLoadTransfers;
+        } manager;
     };
 
     extern void

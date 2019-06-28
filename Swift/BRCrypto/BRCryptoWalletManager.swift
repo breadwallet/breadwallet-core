@@ -926,8 +926,37 @@ extension WalletManager {
                 let _ = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
                 precondition (nil != cwm, "SYS: GEN: GetTransaction: Missed {bid}")
 
-                print ("SYS: GEN: GetTransaction")
-                cwmAnnounceGetTransactionsComplete (cwm, sid, CRYPTO_TRUE)
+                print ("SYS: GEN: GetTransactions: Blocks: {\(begBlockNumber), \(endBlockNumber)}")
+
+                manager.query.getTransactions (blockchainId: manager.network.uids,
+                                               addresses: [asUTF8String (address!)],
+                                               begBlockNumber: begBlockNumber,
+                                               endBlockNumber: endBlockNumber,
+                                               includeRaw: true) {
+                                                (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
+                                                res.resolve(
+                                                    success: {
+                                                        $0.forEach { (model: BlockChainDB.Model.Transaction) in
+                                                            let timestamp = model.timestamp.map { UInt64 ($0.timeIntervalSince1970) } ?? 0
+                                                            let height    = model.blockHeight ?? 0
+
+                                                            if var data = model.raw {
+                                                                let bytesCount = data.count
+                                                                data.withUnsafeMutableBytes { (bytes: UnsafeMutableRawBufferPointer) -> Void in
+                                                                    let bytesAsUInt8 = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+                                                                    cwmAnnounceGetTransactionsItemGEN (cwm, sid,
+                                                                                                       bytesAsUInt8,
+                                                                                                       bytesCount,
+                                                                                                       timestamp,
+                                                                                                       height)
+                                                                }
+                                                            }
+                                                        }
+                                                        cwmAnnounceGetTransactionsComplete (cwm, sid, CRYPTO_TRUE) },
+                                                    failure: { (_) in cwmAnnounceGetTransactionsComplete (cwm, sid, CRYPTO_FALSE) })
+
+                }},
+
         },
             
             funcSubmitTransaction: { (context, cwm, sid, transactionBytes, transactionBytesLength) in

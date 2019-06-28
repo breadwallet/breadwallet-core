@@ -28,6 +28,12 @@ extern const unsigned int gwmEventTypesCount;
 #define MAX(a,b) (((a)>(b))?(a):(b))
 #endif
 
+static void
+gwmInstallFileService (BRGenericWalletManager gwm,
+                       const char *storagePath,
+                       const char *currencyName,
+                       const char *networkName);
+
 ///
 ///
 ///
@@ -49,7 +55,6 @@ struct BRGenericWalletManagerRecord {
      * An identiifer for a BRD Request
      */
     unsigned int requestId;
-
 
     /**
      * An EventHandler for Main.  All 'announcements' (via PeerManager (or BRD) hit here.
@@ -119,6 +124,7 @@ gwmCreate (BRGenericClient client,
                                        &gwm->lock);
 
     // File Service
+    gwmInstallFileService (gwm, storagePath, type, "mainnet");
 
     // Wallet ??
 
@@ -183,6 +189,18 @@ gwmGetAccountAddress (BRGenericWalletManager gwm) {
 extern BRGenericWallet
 gwmCreatePrimaryWallet (BRGenericWalletManager gwm) {
     return gwmWalletCreate(gwm);
+}
+
+extern BRGenericTransfer
+gwmRecoverTransfer (BRGenericWalletManager gwm,
+                    uint8_t *bytes,
+                    size_t   bytesCount) {
+    return gwmGetHandlers(gwm)->manager.transferRecover (bytes, bytesCount);
+}
+
+extern BRArrayOf(BRGenericTransfer)
+gwmLoadTransfers (BRGenericWalletManager gwm) {
+    return gwm->handlers->manager.fileServiceLoadTransfers (gwm, gwm->fileService);
 }
 
 /// MARK: Periodic Dispatcher
@@ -277,6 +295,17 @@ gwmAnnounceSubmit (BRGenericWalletManager manager,
                    int error) {
     // Event
 }
+
+static void
+gwmInstallFileService(BRGenericWalletManager gwm,
+                      const char *storagePath,
+                      const char *currencyName,
+                      const char *networkName) {
+    gwm->fileService = fileServiceCreate (storagePath, currencyName, networkName, gwm, NULL);
+
+    gwm->handlers->manager.fileServiceInit (gwm, gwm->fileService);
+}
+
 
 /// MARK: - Events
 

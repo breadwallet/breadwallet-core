@@ -12,6 +12,7 @@
 #define BRGeneric_h
 
 #include "support/BRInt.h" // UInt256
+#include "support/BRSet.h" // BRSet
 #include "BRGenericBase.h"
 #include "BRGenericWalletManager.h"
 
@@ -75,8 +76,15 @@ extern "C" {
     gwmTransferGetHash (BRGenericWalletManager gwm,
                         BRGenericTransfer tid);
 
+    extern BRArrayOf(BRGenericTransfer)
+    gwmLoadTransfers (BRGenericWalletManager gwm);
+
     // Wallet
 
+
+    /**
+     * Create the PrimaryWallet for `gwm`
+     */
     extern BRGenericWallet
     gwmWalletCreate (BRGenericWalletManager gwm);
 
@@ -96,6 +104,12 @@ extern "C" {
     gwmWalletSetDefaultFeeBasis (BRGenericWalletManager gwm,
                                  BRGenericWallet wid,
                                  BRGenericFeeBasis bid);
+
+    extern BRGenericTransfer
+    gwmWalletRecoverTransfer (BRGenericWalletManager gwm,
+                              BRGenericWallet wid,
+                              uint8_t *bytes,
+                              size_t   bytesCount);
 
     extern BRGenericTransfer
     gwmWalletCreateTransfer (BRGenericWalletManager gwm,

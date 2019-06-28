@@ -11,6 +11,8 @@
 #include "ripple/BRRippleWallet.h"
 #include "ripple/BRRippleTransaction.h"
 
+#include "support/BRSet.h"
+
 // Account
 static void *
 genericRippleAccountCreate (const char *type, UInt512 seed) {
@@ -116,6 +118,91 @@ genericRippleWalletGetBalance (BRGenericWallet wallet) {
     return createUInt256(rippleWalletGetBalance(ripple));
 }
 
+static BRGenericTransfer
+genericRippleWalletManagerRecoverTransfer (uint8_t *bytes,
+                                           size_t   bytesCount) {
+    return rippleTransactionCreateFromBytes (bytes, (int) bytesCount);
+}
+
+
+/// MARK: - File Service
+
+static const char *fileServiceTypeTransactions = "transactions";
+
+enum {
+    RIPPLE_TRANSACTION_VERSION_1
+};
+
+static UInt256
+fileServiceTypeTransactionV1Identifier (BRFileServiceContext context,
+                                        BRFileService fs,
+                                        const void *entity) {
+    BRRippleTransaction transaction = (BRRippleTransaction) entity;
+    BRRippleTransactionHash transactionHash = rippleTransactionGetHash(transaction);
+
+    UInt256 hash;
+    memcpy (hash.u32, transactionHash.bytes, 32);
+
+    return hash;
+}
+
+static uint8_t *
+fileServiceTypeTransactionV1Writer (BRFileServiceContext context,
+                                    BRFileService fs,
+                                    const void* entity,
+                                    uint32_t *bytesCount) {
+    BRRippleTransaction transaction = (BRRippleTransaction) entity;
+
+    size_t bufferCount;
+    uint8_t *buffer = rippleTransactionSerialize (transaction, &bufferCount);
+
+    // Require (for now) a valid serialization
+    assert (NULL != buffer && 0 != bufferCount);
+
+    if (NULL != bytesCount) *bytesCount = (uint32_t) bufferCount;
+    return buffer;
+}
+
+static void *
+fileServiceTypeTransactionV1Reader (BRFileServiceContext context,
+                                    BRFileService fs,
+                                    uint8_t *bytes,
+                                    uint32_t bytesCount) {
+    return rippleTransactionCreateFromBytes (bytes, bytesCount);
+}
+
+static void
+genericRippleWalletManagerInitializeFileService (BRFileServiceContext context,
+                                                 BRFileService fileService) {
+    if (1 != fileServiceDefineType (fileService, fileServiceTypeTransactions, RIPPLE_TRANSACTION_VERSION_1,
+                                    context,
+                                    fileServiceTypeTransactionV1Identifier,
+                                    fileServiceTypeTransactionV1Reader,
+                                    fileServiceTypeTransactionV1Writer) ||
+
+        1 != fileServiceDefineCurrentVersion (fileService, fileServiceTypeTransactions,
+                                              RIPPLE_TRANSACTION_VERSION_1))
+
+        return; //  bwmCreateErrorHandler (bwm, 1, fileServiceTypeTransactions);
+}
+
+static BRArrayOf(BRGenericTransfer)
+genericRippleWalletManagerLoadTransfers (BRFileServiceContext context,
+                                         BRFileService fileService) {
+    BRArrayOf(BRGenericTransfer) result;
+    BRSetOf(BRRippleTransaction) transactionsSet = rippleTransactionSetCreate (5);
+
+    // Load all transactions while upgrading.
+    fileServiceLoad (fileService, transactionsSet, fileServiceTypeTransactions, 1);
+
+    array_new (result, BRSetCount(transactionsSet));
+    FOR_SET (BRRippleTransaction, transaction, transactionsSet) {
+        array_add (result, (BRGenericTransfer) transaction);
+    }
+
+    return result;
+}
+
 struct BRGenericHandersRecord genericRippleHandlersRecord = {
     "xrp",
     {    // Account
@@ -141,7 +228,14 @@ struct BRGenericHandersRecord genericRippleHandlersRecord = {
     {   // Wallet
         genericRippleWalletCreate,
         genericRippleWalletFree,
-        genericRippleWalletGetBalance
+        genericRippleWalletGetBalance,
+        // ...
+    },
+
+    { // Wallet Manager
+        genericRippleWalletManagerRecoverTransfer,
+        genericRippleWalletManagerInitializeFileService,
+        genericRippleWalletManagerLoadTransfers
     }
 };
 

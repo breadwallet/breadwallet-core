@@ -211,6 +211,7 @@ cryptoWalletGetBalance (BRCryptoWallet wallet) {
             BRGenericWalletManager gwm = wallet->u.gen.gwm;
             BRGenericWallet wid = wallet->u.gen.wid;
 
+            // TODO: How does the GEN wallet know the balance?  Holds tranactions? (not currently)
             UInt256 value = gwmWalletGetBalance (gwm, wid);
             amount = cryptoAmountCreate (currency, CRYPTO_FALSE, value);
             break;

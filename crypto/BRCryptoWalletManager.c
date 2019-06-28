@@ -183,7 +183,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                                           CRYPTO_WALLET_MANAGER_EVENT_CREATED
                                                       });
 
-            // Create the primary wallet
+            // Create the primary wallet...
             BRCryptoCurrency currency = cryptoNetworkGetCurrency (cwm->network);
             BRCryptoUnit     unit     = cryptoNetworkGetUnitAsDefault (cwm->network, currency);
 
@@ -192,6 +192,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
             cryptoUnitGive(unit);
             cryptoCurrencyGive(currency);
 
+            // ... and announce the created wallet.
             cwm->listener.walletEventCallback (cwm->listener.context,
                                                cryptoWalletManagerTake (cwm),
                                                cryptoWalletTake (cwm->wallet),
@@ -199,9 +200,10 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                                    CRYPTO_WALLET_EVENT_CREATED
                                                });
 
-            // Add the primary wallet to the wallet manager
+            // Add the primary wallet to the wallet manager...
             cryptoWalletManagerAddWallet (cwm, cwm->wallet);
 
+            // ... and announce the manager's new wallet.
             cwm->listener.walletManagerEventCallback (cwm->listener.context,
                                                       cryptoWalletManagerTake (cwm),
                                                       (BRCryptoWalletManagerEvent) {
@@ -209,8 +211,24 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                                           { .wallet = { cryptoWalletTake (cwm->wallet) }}
                                                       });
 
-            // TODO: Need to reconstruct persistent transactions (and any other stuff)
+            // Load transfers from persistent storage
+            BRArrayOf(BRGenericTransfer) transfers = gwmLoadTransfers (cwm->u.gen);
+            for (size_t index = 0; index < array_count (transfers); index++) {
+                cryptoWalletManagerHandleTransferGEN (cwm, transfers[index]);
+            }
 
+            // Having added the transfers, get the wallet balance...
+            BRCryptoAmount balance = cryptoWalletGetBalance (cwm->wallet);
+
+            // ... and announce the balance
+            cwm->listener.walletEventCallback (cwm->listener.context,
+                                               cryptoWalletManagerTake (cwm),
+                                               cryptoWalletTake (cwm->wallet),
+                                               (BRCryptoWalletEvent) {
+                                                   CRYPTO_WALLET_EVENT_BALANCE_UPDATED,
+                                                   { .balanceUpdated = { balance }}
+                                               });
+            
             break;
         }
     }
@@ -472,4 +490,39 @@ cryptoWalletManagerFindWalletAsGEN (BRCryptoWalletManager cwm,
     return NULL;
 }
 
+extern void
+cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
+                                      BRGenericTransfer transferGeneric) {
+
+    // TODO: Determine the currency from `transferGeneric`
+    BRCryptoCurrency currency = cryptoNetworkGetCurrency (cwm->network);
+
+    // Create the generic transfers...
+    BRCryptoTransfer transfer = cryptoTransferCreateAsGEN (currency, cwm->u.gen, transferGeneric);
+
+    // TODO: Determine the wallet from transfer/transferGeneric
+    BRCryptoWallet   wallet   = cwm->wallet;
+
+    // .. and announce the newly created transfer.
+    cwm->listener.transferEventCallback (cwm->listener.context,
+                                         cryptoWalletManagerTake (cwm),
+                                         cryptoWalletTake (wallet),
+                                         cryptoTransferTake(transfer),
+                                         (BRCryptoTransferEvent) {
+                                             CRYPTO_TRANSFER_EVENT_CREATED
+                                         });
+
+    // Add the restored transfer to its wallet...
+    cryptoWalletAddTransfer (cwm->wallet, transfer);
+
+    // ... and announce the wallet's newly added transfer
+    cwm->listener.walletEventCallback (cwm->listener.context,
+                                       cryptoWalletManagerTake (cwm),
+                                       cryptoWalletTake (wallet),
+                                       (BRCryptoWalletEvent) {
+                                           CRYPTO_WALLET_EVENT_TRANSFER_ADDED,
+                                           { .transfer = { transfer }}
+                                       });
+
+}
 

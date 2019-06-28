@@ -759,26 +759,26 @@
 		3C25BF322236DD73004B093F /* bitcoin */ = {
 			isa = PBXGroup;
 			children = (
-				3C590F5820950C750005597B /* BRBIP38Key.c */,
 				3C590F4320950C730005597B /* BRBIP38Key.h */,
-				3C590F4E20950C730005597B /* BRBloomFilter.c */,
+				3C590F5820950C750005597B /* BRBIP38Key.c */,
 				3C590F4020950C720005597B /* BRBloomFilter.h */,
+				3C590F4E20950C730005597B /* BRBloomFilter.c */,
 				3C590F5220950C740005597B /* BRChainParams.h */,
 				3C25BF492236EE70004B093F /* BRChainParams.c */,
-				3C590F3520950C720005597B /* BRMerkleBlock.c */,
 				3C590F4920950C730005597B /* BRMerkleBlock.h */,
-				3C590F3A20950C720005597B /* BRPaymentProtocol.c */,
+				3C590F3520950C720005597B /* BRMerkleBlock.c */,
 				3C590F4120950C720005597B /* BRPaymentProtocol.h */,
-				3C590F5120950C740005597B /* BRPeer.c */,
+				3C590F3A20950C720005597B /* BRPaymentProtocol.c */,
 				3C590F5020950C740005597B /* BRPeer.h */,
-				3C590F4B20950C730005597B /* BRPeerManager.c */,
+				3C590F5120950C740005597B /* BRPeer.c */,
 				3C590F4C20950C730005597B /* BRPeerManager.h */,
-				3C590F5320950C740005597B /* BRTransaction.c */,
+				3C590F4B20950C730005597B /* BRPeerManager.c */,
 				3C590F4720950C730005597B /* BRTransaction.h */,
-				3C590F5720950C740005597B /* BRWallet.c */,
+				3C590F5320950C740005597B /* BRTransaction.c */,
 				3C590F4620950C730005597B /* BRWallet.h */,
-				3CCD36B021A5BB8D0032637A /* BRWalletManager.c */,
+				3C590F5720950C740005597B /* BRWallet.c */,
 				3CCD36AF21A5BB8D0032637A /* BRWalletManager.h */,
+				3CCD36B021A5BB8D0032637A /* BRWalletManager.c */,
 				3C42EF8E209763AB000E58E0 /* test.c */,
 			);
 			name = bitcoin;
@@ -1124,14 +1124,14 @@
 			isa = PBXGroup;
 			children = (
 				3C9B8DE422BD52930060C3A9 /* BRGenericBase.h */,
-				3C9B8DE122BD52930060C3A9 /* BRGeneric.c */,
 				3C9B8DE022BD52930060C3A9 /* BRGeneric.h */,
-				3C9B8DE622BD52940060C3A9 /* BRGenericHandlers.c */,
+				3C9B8DE122BD52930060C3A9 /* BRGeneric.c */,
 				3C9B8DE322BD52930060C3A9 /* BRGenericHandlers.h */,
-				3C9B8DE222BD52930060C3A9 /* BRGenericWalletManager.c */,
+				3C9B8DE622BD52940060C3A9 /* BRGenericHandlers.c */,
 				3C9B8DE522BD52940060C3A9 /* BRGenericWalletManager.h */,
-				3C9B8DDE22BD52930060C3A9 /* BRGenericRipple.c */,
+				3C9B8DE222BD52930060C3A9 /* BRGenericWalletManager.c */,
 				3C9B8DDF22BD52930060C3A9 /* BRGenericRipple.h */,
+				3C9B8DDE22BD52930060C3A9 /* BRGenericRipple.c */,
 			);
 			name = generic;
 			path = ../../generic;

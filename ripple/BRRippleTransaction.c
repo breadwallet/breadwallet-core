@@ -573,3 +573,21 @@ extern BRRippleFeeBasis rippleTransactionGetFeeBasis(BRRippleTransaction transac
     assert(transaction);
     return (BRRippleFeeBasis)transaction->feeBasis.amount.u64Amount;
 }
+
+static size_t
+rippleTransactionHashValue (const void *h) {
+    const BRRippleTransaction t = (BRRippleTransaction) h;
+    UInt256 *hash = (UInt256*) t->signedBytes->txHash;
+    return hash->u32[0];
+}
+
+static int
+rippleTransactionHashEqual (const void *h1, const void *h2) {
+    BRRippleTransaction t1 = (BRRippleTransaction) h1;
+    BRRippleTransaction t2 = (BRRippleTransaction) h2;
+    return h1 == h2 || 0 == memcmp (t1->signedBytes->txHash, t2->signedBytes->txHash, 32);
+}
+
+extern BRSetOf(BRRippleTransaction) rippleTransactionSetCreate (size_t initialSize) {
+    return BRSetNew (rippleTransactionHashValue, rippleTransactionHashEqual, initialSize);
+}

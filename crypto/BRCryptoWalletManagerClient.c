@@ -31,9 +31,6 @@
 #include "bitcoin/BRWalletManager.h"
 #include "ethereum/BREthereum.h"
 
-static void
-cryptoWalletManagerRelease (BRCryptoWalletManager cwm);
-
 typedef enum  {
     CWM_CALLBACK_TYPE_BTC_GET_BLOCK_NUMBER,
     CWM_CALLBACK_TYPE_BTC_GET_TRANSACTIONS,
@@ -532,12 +529,18 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
     cryptoWalletGive (wallet);
 }
 
+#pragma clang diagnostic push
+#pragma GCC diagnostic push
+#pragma clang diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wunused-function"
 static void
 cwmPublishTransactionAsBTC (void *context,
                             int error) {
     BRCryptoWalletManager cwm = context;
     (void) cwm;
 }
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
 
 /// MARK: ETH Callbacks
 
@@ -1415,7 +1418,7 @@ cwmAnnounceGetTransactionsItemETH (BRCryptoWalletManager cwm,
                             isError);
 
     cryptoWalletManagerGive (cwm);
-    // don't free (callbackState);
+    // DON'T free (callbackState);
 }
 
 extern void
@@ -1428,16 +1431,16 @@ cwmAnnounceGetTransactionsItemGEN (BRCryptoWalletManager cwm,
     assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_BTC_GET_TRANSACTIONS == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
-    assert (0);
-    
-//    // TODO(fix): How do we want to handle failure? Should the caller of this function be notified?
-//    BRTransaction *tx = BRTransactionParse (transaction, transactionLength);
-//    if (NULL != tx) {
-//        assert (timestamp <= UINT32_MAX); assert (blockHeight <= UINT32_MAX);
-//        tx->timestamp = (uint32_t) timestamp;
-//        tx->blockHeight = (uint32_t) blockHeight;
-//        bwmAnnounceTransaction (cwm->u.btc, callbackState->rid, tx);
-//    }
+    // Fundamentally, the `transfer` must allow for determining the `wallet`
+    BRGenericTransfer transfer = gwmRecoverTransfer (cwm->u.gen, transaction, transactionLength);
+
+    // Announce to GWM.  Note: the equivalent BTC+ETH announce transaction is going to
+    // create BTC+ETH wallet manager + wallet + transfer events that we'll handle by incorporating
+    // the BTC+ETH transfer into 'crypto'.  However, GEN does not generate similar events.
+    //
+    // gwmAnnounceTransfer (cwm->u.gen, callbackState->rid, transfer);
+
+    cryptoWalletManagerHandleTransferGEN (cwm, transfer);
 
     cryptoWalletManagerGive (cwm);
     // DON'T free (callbackState);

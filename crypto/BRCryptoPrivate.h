@@ -372,6 +372,10 @@ extern "C" {
     private_extern void
     cryptoWalletManagerRemWallet (BRCryptoWalletManager cwm,
                                   BRCryptoWallet wallet);
+
+    extern void
+    cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
+                                          BRGenericTransfer transferGeneric);
     
 #ifdef __cplusplus
 }

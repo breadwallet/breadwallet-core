@@ -92,6 +92,8 @@ gwmTransferGetAmount (BRGenericWalletManager gwm,
     return gwmGetHandlers(gwm)->transfer.amount (tid);
 }
 
+// TODO: Direction is needed?
+
 extern UInt256
 gwmTransferGetFee (BRGenericWalletManager gwm,
                    BRGenericTransfer tid) {
@@ -122,6 +124,8 @@ gwmWalletGetBalance (BRGenericWalletManager gwm,
                      BRGenericWallet wallet) {
     return gwmGetHandlers(gwm)->wallet.balance (wallet);
 }
+
+// TODO: Set Balance?  Add transfer/directed-amount?
 
 extern BRGenericAddress
 gwmWalletGetAddress (BRGenericWalletManager gwm,
