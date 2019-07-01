@@ -441,6 +441,23 @@ JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniT
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
+ * Method:    jniTransactionIsErrored
+ * Signature: (J)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionIsErrored
+        (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumEWM
+ * Method:    jniTransactionGetErrorDescription
+ * Signature: (J)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionGetErrorDescription
+        (JNIEnv *, jobject, jlong);
+
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniUpdateTokens
  * Signature: ()V
  */
