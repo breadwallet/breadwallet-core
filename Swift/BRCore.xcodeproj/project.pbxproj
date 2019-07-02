@@ -606,6 +606,7 @@
 		CA92F78F2100F9CA0015C966 /* BRKeccak.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRKeccak.c; sourceTree = "<group>"; };
 		CE6040C022BD69E40003967B /* BRWalletManagerEvent.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRWalletManagerEvent.c; sourceTree = "<group>"; };
 		CE6040C122BD69E40003967B /* BRWalletManagerPrivate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRWalletManagerPrivate.h; sourceTree = "<group>"; };
+		CEA3F92D22CB8282006A330E /* BRBase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRBase.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -740,8 +741,6 @@
 		3C25BF322236DD73004B093F /* bitcoin */ = {
 			isa = PBXGroup;
 			children = (
-				CE6040C022BD69E40003967B /* BRWalletManagerEvent.c */,
-				CE6040C122BD69E40003967B /* BRWalletManagerPrivate.h */,
 				3C590F5820950C750005597B /* BRBIP38Key.c */,
 				3C590F4320950C730005597B /* BRBIP38Key.h */,
 				3C590F4E20950C730005597B /* BRBloomFilter.c */,
@@ -760,8 +759,10 @@
 				3C590F4720950C730005597B /* BRTransaction.h */,
 				3C590F5720950C740005597B /* BRWallet.c */,
 				3C590F4620950C730005597B /* BRWallet.h */,
+				CE6040C122BD69E40003967B /* BRWalletManagerPrivate.h */,
 				3CCD36B021A5BB8D0032637A /* BRWalletManager.c */,
 				3CCD36AF21A5BB8D0032637A /* BRWalletManager.h */,
+				CE6040C022BD69E40003967B /* BRWalletManagerEvent.c */,
 				3C42EF8E209763AB000E58E0 /* test.c */,
 			);
 			name = bitcoin;
@@ -970,6 +971,7 @@
 		3C3DC5B821DFCA39004188BD /* support */ = {
 			isa = PBXGroup;
 			children = (
+				CEA3F92D22CB8282006A330E /* BRBase.h */,
 				3C590F4820950C730005597B /* BRInt.h */,
 				3C590F3820950C720005597B /* BRArray.h */,
 				3C590F4F20950C740005597B /* BRSet.h */,

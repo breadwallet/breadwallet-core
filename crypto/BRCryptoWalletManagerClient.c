@@ -30,6 +30,7 @@
 
 #include "bitcoin/BRWalletManager.h"
 #include "ethereum/BREthereum.h"
+#include "support/BRBase.h"
 
 static void
 cryptoWalletManagerRelease (BRCryptoWalletManager cwm);
@@ -108,7 +109,7 @@ static void
 cwmSubmitTransactionAsBTC (BRWalletManagerClientContext context,
                            BRWalletManager manager,
                            BRWallet *wallet,
-                           BRTransaction *transaction,
+                           OwnershipGiven BRTransaction *transaction,
                            int rid) {
     BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
 
@@ -1356,7 +1357,6 @@ cwmAnnounceSubmitTransferSuccess (BRCryptoWalletManager cwm,
     assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_BTC_SUBMIT_TRANSACTION == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
-    // TODO(fix): What is the memory management story for this transaction?
     bwmAnnounceSubmit (cwm->u.btc,
                        callbackState->rid,
                        callbackState->u.btcSubmit.transaction,

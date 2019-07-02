@@ -28,6 +28,7 @@
 
 #include <stdio.h>
 #include "BRSyncMode.h"
+#include "BRBase.h"                 // Ownership
 #include "BRBIP32Sequence.h"        // BRMasterPubKey
 #include "BRChainParams.h"          // BRChainParams (*NOT THE STATIC DECLARATIONS*)
 #include "BRTransaction.h"
@@ -73,7 +74,7 @@ typedef void
 extern int // success - data is valid
 bwmAnnounceTransaction (BRWalletManager manager,
                         int id,
-                        BRTransaction *transaction);
+                        OwnershipGiven BRTransaction *transaction);
 
 extern void
 bwmAnnounceTransactionComplete (BRWalletManager manager,
@@ -84,13 +85,13 @@ typedef void
 (*BRSubmitTransactionCallback) (BRWalletManagerClientContext context,
                                 BRWalletManager manager,
                                 BRWallet *wallet,
-                                BRTransaction *transaction,
+                                OwnershipGiven BRTransaction *transaction,
                                 int rid);
 
 extern void
 bwmAnnounceSubmit (BRWalletManager manager,
                    int rid,
-                   BRTransaction *transaction,
+                   OwnershipGiven BRTransaction *transaction,
                    int error);
 
 ///
@@ -259,7 +260,7 @@ BRWalletManagerGetPeerManager (BRWalletManager manager);
 
 extern void
 BRWalletManagerSubmitTransaction (BRWalletManager manager,
-                                  BRTransaction *transaction,
+                                  OwnershipGiven BRTransaction *transaction,
                                   const void *seed,
                                   size_t seedLen);
 

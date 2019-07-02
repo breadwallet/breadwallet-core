@@ -75,6 +75,23 @@ struct BRWalletManagerStruct {
     /**
      * If we are syncing with BRD, instead of as P2P with PeerManager, then we'll keep a record to
      * ensure we've successfully completed the getTransactions() callbacks to the client.
+     *
+     * We sync, using chunks, through the total range being synced on rather than using the range
+     * in its entirety.
+     *
+     *  The reasons for this are:
+     *
+     * 1) As transactions are announced, the set of addresses that need to be queried for transactions
+     *    will grow. By splitting the range into smaller chunks, we will pick up addresses as we move
+     *    through the range.
+     *
+     * 2) Chunking the sync range allows us to measure progress organically. If the whole range was
+     *    requested, we would need to enhance the client/announceCallback relationship to provide
+     *    additional data points on its progress and add complexity as a byproduct.
+     *
+     * 3) For naive implemenations that announce transactions once all of them have been discovered,
+     *    the use of chunking forces them to announce transactions more frequently. This should
+     *    ultimately lead to a more responsive user experience.
      */
     struct {
         BRAddress lastExternalAddress;
@@ -107,12 +124,12 @@ bwmSignalAnnounceBlockNumber (BRWalletManager manager,
 extern int
 bwmHandleAnnounceTransaction (BRWalletManager manager,
                               int id,
-                              BRTransaction *transaction);
+                              OwnershipGiven BRTransaction *transaction);
 
 extern void
 bwmSignalAnnounceTransaction (BRWalletManager manager,
                               int id,
-                              BRTransaction *transaction);
+                              OwnershipGiven BRTransaction *transaction);
 
 extern void
 bwmHandleAnnounceTransactionComplete (BRWalletManager manager,
@@ -129,13 +146,13 @@ bwmSignalAnnounceTransactionComplete (BRWalletManager manager,
 extern void
 bwmHandleAnnounceSubmit (BRWalletManager manager,
                          int rid,
-                         BRTransaction *transaction,
+                         OwnershipGiven BRTransaction *transaction,
                          int error);
 
 extern void
 bwmSignalAnnounceSubmit (BRWalletManager manager,
                         int rid,
-                        BRTransaction *transaction,
+                        OwnershipGiven BRTransaction *transaction,
                         int error);
 
 extern const BREventType *bwmEventTypes[];

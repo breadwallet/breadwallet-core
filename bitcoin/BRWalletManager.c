@@ -13,6 +13,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include "BRArray.h"
+#include "BRBase.h"
 #include "BRSet.h"
 #include "BRWalletManager.h"
 #include "BRWalletManagerPrivate.h"
@@ -716,7 +717,7 @@ typedef struct {
 
 extern void
 BRWalletManagerSubmitTransaction (BRWalletManager manager,
-                                  BRTransaction *transaction,
+                                  OwnershipGiven BRTransaction *transaction,
                                   const void *seed,
                                   size_t seedLen) {
     BRWalletSignTransaction (manager->wallet, transaction, seed, seedLen);
@@ -784,7 +785,7 @@ BRWalletManagerGetUnusedAddrs (BRWalletManager manager,
 
     BRAddress *addrs = (BRAddress *) calloc (2 * addrCount, sizeof (BRAddress));
     BRWalletUnusedAddrs (manager->wallet, addrs, SEQUENCE_GAP_LIMIT_EXTERNAL, 0);
-    BRWalletUnusedAddrs (manager->wallet, addrs + SEQUENCE_GAP_LIMIT_EXTERNAL, SEQUENCE_GAP_LIMIT_INTERNAL, 1);
+    BRWalletUnusedAddrs (manager->wallet, &addrs[SEQUENCE_GAP_LIMIT_EXTERNAL], SEQUENCE_GAP_LIMIT_INTERNAL, 1);
 
     memcpy (addrs + addrCount, addrs, addrCount * sizeof(BRAddress));
     for (size_t index = 0; index < addrCount; index++)
@@ -794,6 +795,18 @@ BRWalletManagerGetUnusedAddrs (BRWalletManager manager,
     return addrs;
 }
 
+/**
+ * Return all unused addresses tracked by the wallet. The addresses
+ * are both 'internal' and 'external' ones.
+ *
+ * The addresses are returned as both a sequential array of BRAddress data, as well
+ * as an array of pointers to each address.
+ *
+ * Note: Both the addressStrings and addressArray arrays must be freed.
+ *
+ * Note: The addressStrings array contains pointers to data in the addressArray. As such,
+ *       elements in addressStrings should not be accessed once addressArray has been freed.
+ */
 static void
 BRWalletManagerUnusedAddrsAsStrings (BRWalletManager bwm, size_t *addressCount, const char ***addressStrings, BRAddress **addressArray) {
     size_t addrCount = 0;
@@ -826,6 +839,18 @@ BRWalletManagerGetAllAddrs (BRWalletManager manager,
     return addrs;
 }
 
+/**
+ * Return all addresses, used and unused, tracked by the wallet. The addresses
+ * are both 'internal' and 'external' ones.
+ *
+ * The addresses are returned as both a sequential array of BRAddress data, as well
+ * as an array of pointers to each address.
+ *
+ * Note: Both the addressStrings and addressArray arrays must be freed.
+ *
+ * Note: The addressStrings array contains pointers to data in the addressArray. As such,
+ *       elements in addressStrings should not be accessed once addressArray has been freed.
+ */
 static void
 BRWalletManagerGetAllAddrsAsStrings (BRWalletManager bwm, size_t *addressCount, const char ***addressStrings, BRAddress **addressArray) {
     size_t addrCount = 0;
@@ -1064,7 +1089,7 @@ bwmHandleAnnounceBlockNumber (BRWalletManager manager,
 extern int
 bwmAnnounceTransaction (BRWalletManager manager,
                         int id,
-                        BRTransaction *transaction) {
+                        OwnershipGiven BRTransaction *transaction) {
     bwmSignalAnnounceTransaction (manager, id, transaction);
     return 1;
 }
@@ -1072,7 +1097,7 @@ bwmAnnounceTransaction (BRWalletManager manager,
 extern int
 bwmHandleAnnounceTransaction (BRWalletManager manager,
                               int id,
-                              BRTransaction *transaction) {
+                              OwnershipGiven BRTransaction *transaction) {
     bwmSyncTransaction (manager, id, transaction);
     return 1;
 }
@@ -1111,7 +1136,7 @@ bwmPeriodicDispatcher (BREventHandler handler,
 extern void
 bwmAnnounceSubmit (BRWalletManager manager,
                    int rid,
-                   BRTransaction *transaction,
+                   OwnershipGiven BRTransaction *transaction,
                    int error) {
     bwmSignalAnnounceSubmit (manager, rid, transaction, error);
 }
@@ -1119,7 +1144,7 @@ bwmAnnounceSubmit (BRWalletManager manager,
 extern void
 bwmHandleAnnounceSubmit (BRWalletManager manager,
                          int rid,
-                         BRTransaction *transaction,
+                         OwnershipGiven BRTransaction *transaction,
                          int error) {
     assert (NULL != manager->client.funcWalletEvent);
     manager->client.funcWalletEvent (manager->client.context,
@@ -1206,6 +1231,10 @@ bwmSyncStart (BRWalletManager bwm) {
     }
     pthread_mutex_unlock (&bwm->lock);
 
+    // addressCount is only set if a) we are querying a chunk for the first time or b) we need to
+    // re-query a chunk, as new addresses have been discovered due to to announced transactions.
+    // In either case, call back to the client, outside of the wallet manager's lock, asking for
+    // transactions.
     if (addressCount) {
         assert (NULL != bwm->client.funcGetTransactions);
         // Callback to 'client' to get all transactions (for all wallet addresses) between
@@ -1232,16 +1261,19 @@ bwmSyncStart (BRWalletManager bwm) {
 static void
 bwmSyncTransaction (BRWalletManager bwm,
                     int rid,
-                    BRTransaction *transaction) {
+                    OwnershipGiven BRTransaction *transaction) {
     assert (SYNC_MODE_P2P_ONLY != bwm->mode);
 
     pthread_mutex_lock (&bwm->lock);
 
     // confirm completion is for in-progress sync
     if (rid == bwm->brdSync.rid &&
-        !bwm->brdSync.completed) {
+        !bwm->brdSync.completed &&
+        BRTransactionIsSigned (transaction)) {
         BRWalletRegisterTransaction (bwm->wallet,
                                      transaction);
+    } else {
+        BRTransactionFree (transaction);
     }
 
     pthread_mutex_unlock (&bwm->lock);
@@ -1339,6 +1371,10 @@ bwmSyncComplete (BRWalletManager bwm,
 
     pthread_mutex_unlock (&bwm->lock);
 
+    // addressCount is only set if a) we are querying a chunk for the first time or b) we need to
+    // re-query a chunk, as new addresses have been discovered due to to announced transactions.
+    // In either case, call back to the client, outside of the wallet manager's lock, asking for
+    // transactions.
     if (addressCount) {
         assert (NULL != bwm->client.funcGetTransactions);
         // Callback to 'client' to get all transactions (for all wallet addresses) between

@@ -32,6 +32,7 @@ target_sources (core
                 src/main/cpp/core/support/BRAssert.c
                 src/main/cpp/core/support/BRAssert.h
                 src/main/cpp/core/support/BRArray.h
+                src/main/cpp/core/support/BRBase.h
                 src/main/cpp/core/support/BRBIP32Sequence.c
                 src/main/cpp/core/support/BRBIP32Sequence.h
                 src/main/cpp/core/support/BRBIP39Mnemonic.c

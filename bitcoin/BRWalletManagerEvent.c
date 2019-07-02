@@ -9,6 +9,7 @@
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
 
+#include "BRBase.h"
 #include "BRWalletManager.h"
 #include "BRWalletManagerPrivate.h"
 
@@ -63,7 +64,8 @@ bwmSignalAnnounceTransactionDispatcher (BREventHandler ignore,
 
 static void
 bwmSignalAnnounceTransactionDestroyer (BRWalletManagerClientAnnounceTransactionEvent *event) {
-    // TODO(fix): Do we need to deallocate the transfer here potentially?
+    assert (event->transaction);
+    BRTransactionFree (event->transaction);
 }
 
 static BREventType bwmClientAnnounceTransactionEventType = {
@@ -76,7 +78,7 @@ static BREventType bwmClientAnnounceTransactionEventType = {
 extern void
 bwmSignalAnnounceTransaction(BRWalletManager manager,
                              int rid,
-                             BRTransaction *transaction) {
+                             OwnershipGiven BRTransaction *transaction) {
     BRWalletManagerClientAnnounceTransactionEvent message =
     { { NULL, &bwmClientAnnounceTransactionEventType}, manager, rid, transaction};
     eventHandlerSignalEvent (manager->handler, (BREvent*) &message);
@@ -132,7 +134,8 @@ bwmSignalAnnounceSubmitDispatcher (BREventHandler ignore,
 
 static void
 bwmSignalAnnounceSubmitDestroyer (BRWalletManagerClientAnnounceSubmitEvent *event) {
-    // TODO(fix): Do we need to deallocate the transfer here potentially?
+    assert (event->transaction);
+    BRTransactionFree (event->transaction);
 }
 
 static BREventType bwmClientAnnounceSubmitEventType = {
@@ -145,7 +148,7 @@ static BREventType bwmClientAnnounceSubmitEventType = {
 extern void
 bwmSignalAnnounceSubmit (BRWalletManager manager,
                          int rid,
-                         BRTransaction *transaction,
+                         OwnershipGiven BRTransaction *transaction,
                          int error) {
     BRWalletManagerClientAnnounceSubmitEvent message =
     { { NULL, &bwmClientAnnounceSubmitEventType}, manager, rid, transaction, error};
