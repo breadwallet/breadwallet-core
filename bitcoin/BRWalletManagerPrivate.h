@@ -27,6 +27,7 @@
 #define BRWalletManagerPrivate_h
 
 #include "ethereum/event/BREvent.h"
+#include "support/BRBase.h"
 #include "support/BRFileService.h"
 
 #ifdef __cplusplus

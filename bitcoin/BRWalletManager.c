@@ -1270,8 +1270,12 @@ bwmSyncTransaction (BRWalletManager bwm,
     if (rid == bwm->brdSync.rid &&
         !bwm->brdSync.completed &&
         BRTransactionIsSigned (transaction)) {
-        BRWalletRegisterTransaction (bwm->wallet,
-                                     transaction);
+
+        BRWalletRegisterTransaction (bwm->wallet, transaction);
+        if (BRWalletTransactionForHash (bwm->wallet, transaction->txHash) != transaction) {
+            BRTransactionFree (transaction);
+        }
+
     } else {
         BRTransactionFree (transaction);
     }
