@@ -710,6 +710,46 @@ BRWalletManagerScan (BRWalletManager manager) {
                                             });
 }
 
+extern BRTransaction *
+BRWalletManagerCreateTransaction (BRWalletManager manager,
+                                  BRWallet *wallet,
+                                  uint64_t amount,
+                                  const char *addr) {
+    BRTransaction *transaction = BRWalletCreateTransaction (wallet, amount, addr);
+    if (NULL != transaction) {
+        assert (NULL != manager->client.funcTransactionEvent);
+        manager->client.funcTransactionEvent (manager->client.context,
+                                              manager,
+                                              manager->wallet,
+                                              transaction,
+                                              (BRTransactionEvent) {
+                                                  BITCOIN_TRANSACTION_CREATED
+                                              });
+    }
+
+    return transaction;
+}
+
+extern int
+BRWalletManagerSignTransaction (BRWalletManager manager,
+                                BRTransaction *transaction,
+                                const void *seed,
+                                size_t seedLen) {
+    int r = (1 == BRWalletSignTransaction (manager->wallet, transaction, seed, seedLen) ? 1 : 0);
+    if (r) {
+        assert (NULL != manager->client.funcTransactionEvent);
+        manager->client.funcTransactionEvent (manager->client.context,
+                                              manager,
+                                              manager->wallet,
+                                              transaction,
+                                              (BRTransactionEvent) {
+                                                  BITCOIN_TRANSACTION_SIGNED
+                                              });
+    }
+
+    return r;
+}
+
 typedef struct {
     BRWalletManager manager;
     BRTransaction *transaction;
@@ -717,11 +757,7 @@ typedef struct {
 
 extern void
 BRWalletManagerSubmitTransaction (BRWalletManager manager,
-                                  OwnershipGiven BRTransaction *transaction,
-                                  const void *seed,
-                                  size_t seedLen) {
-    BRWalletSignTransaction (manager->wallet, transaction, seed, seedLen);
-
+                                  OwnershipGiven BRTransaction *transaction) {
     switch (manager->mode) {
         case SYNC_MODE_BRD_ONLY:
             assert (NULL != manager->client.funcSubmitTransaction);

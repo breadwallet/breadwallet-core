@@ -315,15 +315,37 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
             // It must exist already in wallet (otherwise how could it have been submitted?)
             assert (NULL != transfer);
 
-            // Create the event with 'transfer' (taken)
-            cwm->listener.walletEventCallback (cwm->listener.context,
-                                               cryptoWalletManagerTake (cwm),
-                                               wallet,
-                                               (BRCryptoWalletEvent) {
-                                                   CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED,
-                                                   { .transfer = { transfer }}
-                                               });
+            BRCryptoTransferState oldState = cryptoTransferGetState (transfer);
+            assert (CRYPTO_TRANSFER_STATE_SUBMITTED != oldState.type);
 
+            if (event.u.submitted.error == 0) {
+                // Set the transfer state to submitted
+                BRCryptoTransferState newState = (BRCryptoTransferState) { CRYPTO_TRANSFER_STATE_SUBMITTED };
+
+                cryptoTransferSetState (transfer, newState);
+                cwm->listener.transferEventCallback (cwm->listener.context,
+                                                     cryptoWalletManagerTake (cwm),
+                                                     wallet,
+                                                     transfer,
+                                                     (BRCryptoTransferEvent) {
+                                                         CRYPTO_TRANSFER_EVENT_CHANGED,
+                                                         { .state = { oldState, newState }}
+                                                     });
+            } else {
+                // Set the transfer state to errorred
+                BRCryptoTransferState newState = (BRCryptoTransferState) { CRYPTO_TRANSFER_STATE_ERRORRED };
+                snprintf(newState.u.errorred.message, 128, "Error: %d", event.u.submitted.error);
+
+                cryptoTransferSetState (transfer, newState);
+                cwm->listener.transferEventCallback (cwm->listener.context,
+                                                     cryptoWalletManagerTake (cwm),
+                                                     wallet,
+                                                     transfer,
+                                                     (BRCryptoTransferEvent) {
+                                                         CRYPTO_TRANSFER_EVENT_CHANGED,
+                                                         { .state = { oldState, newState }}
+                                                     });
+            }
             break;
         }
 
@@ -381,11 +403,8 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
     // Get `transfer`.  For 'CREATED" this *will* be NULL
     BRCryptoTransfer transfer = cryptoWalletFindTransferAsBTC (wallet, btcTransaction); // taken
 
-    // Demand 'transfer' otherwise
-    assert (NULL != transfer || BITCOIN_TRANSACTION_ADDED == event.type );
-
     switch (event.type) {
-        case BITCOIN_TRANSACTION_ADDED: {
+        case BITCOIN_TRANSACTION_CREATED: {
             assert (NULL == transfer);
 
             // The transfer finally - based on the wallet's currency (BTC)
@@ -393,7 +412,7 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
                                                   cryptoWalletAsBTC (wallet),
                                                   btcTransaction);
 
-            // Generate a CYTPO transfer event for CREATED'...
+            // Generate a CRYPTO transfer event for CREATED'...
             cwm->listener.transferEventCallback (cwm->listener.context,
                                                  cryptoWalletManagerTake (cwm),
                                                  cryptoWalletTake (wallet),
@@ -413,6 +432,60 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
                                                    CRYPTO_WALLET_EVENT_TRANSFER_ADDED,
                                                    { .transfer = { cryptoTransferTake (transfer) }}
                                                });
+
+            break;
+        }
+
+        case BITCOIN_TRANSACTION_SIGNED: {
+            assert (NULL != transfer);
+
+            BRCryptoTransferState oldState = cryptoTransferGetState (transfer);
+            assert (CRYPTO_TRANSFER_STATE_SIGNED != oldState.type);
+
+            BRCryptoTransferState newState = (BRCryptoTransferState) { CRYPTO_TRANSFER_STATE_SIGNED };
+
+            cryptoTransferSetState (transfer, newState);
+            cwm->listener.transferEventCallback (cwm->listener.context,
+                                                 cryptoWalletManagerTake (cwm),
+                                                 wallet,
+                                                 transfer,
+                                                 (BRCryptoTransferEvent) {
+                                                     CRYPTO_TRANSFER_EVENT_CHANGED,
+                                                     { .state = { oldState, newState }}
+                                                 });
+            break;
+        }
+
+        case BITCOIN_TRANSACTION_ADDED: {
+            // if this was a user created transaction, transfer may already exist
+            if (NULL == transfer) {
+
+                // The transfer finally - based on the wallet's currency (BTC)
+                transfer = cryptoTransferCreateAsBTC (cryptoWalletGetCurrency (wallet),
+                                                      cryptoWalletAsBTC (wallet),
+                                                      btcTransaction);
+
+                // Generate a CRYPTO transfer event for CREATED'...
+                cwm->listener.transferEventCallback (cwm->listener.context,
+                                                     cryptoWalletManagerTake (cwm),
+                                                     cryptoWalletTake (wallet),
+                                                     cryptoTransferTake (transfer),
+                                                     (BRCryptoTransferEvent) {
+                                                         CRYPTO_TRANSFER_EVENT_CREATED
+                                                     });
+
+                // ... add 'transfer' to 'wallet' (argubaly late... but to prove a point)...
+                cryptoWalletAddTransfer (wallet, transfer);
+
+                // ... and then generate a CRYPTO wallet event for 'TRANSFER_ADDED'
+                cwm->listener.walletEventCallback (cwm->listener.context,
+                                                   cryptoWalletManagerTake (cwm),
+                                                   cryptoWalletTake (wallet),
+                                                   (BRCryptoWalletEvent) {
+                                                       CRYPTO_WALLET_EVENT_TRANSFER_ADDED,
+                                                       { .transfer = { cryptoTransferTake (transfer) }}
+                                                   });
+            }
 
             // ... update state to reflect included if the timestamp and block height are already set
             if (0 != btcTransaction->timestamp && TX_UNCONFIRMED != btcTransaction->blockHeight) {
