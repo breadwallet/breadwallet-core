@@ -807,19 +807,19 @@ BRWalletManagerGetUnusedAddrs (BRWalletManager manager,
  * Note: The addressStrings array contains pointers to data in the addressArray. As such,
  *       elements in addressStrings should not be accessed once addressArray has been freed.
  */
-static void
-BRWalletManagerUnusedAddrsAsStrings (BRWalletManager bwm, size_t *addressCount, const char ***addressStrings, BRAddress **addressArray) {
-    size_t addrCount = 0;
-    BRAddress *addrArray = BRWalletManagerGetUnusedAddrs (bwm, &addrCount);
-
-    const char **addrsStrings = calloc (addrCount, sizeof(char *));
-    for (size_t index = 0; index < addrCount; index ++)
-        addrsStrings[index] = (char *) &addrArray[index];
-
-    *addressCount = addrCount;
-    *addressStrings = addrsStrings;
-    *addressArray = addrArray;
-}
+// static void
+// BRWalletManagerUnusedAddrsAsStrings (BRWalletManager bwm, size_t *addressCount, const char ***addressStrings, BRAddress **addressArray) {
+//     size_t addrCount = 0;
+//     BRAddress *addrArray = BRWalletManagerGetUnusedAddrs (bwm, &addrCount);
+//
+//     const char **addrsStrings = calloc (addrCount, sizeof(char *));
+//     for (size_t index = 0; index < addrCount; index ++)
+//         addrsStrings[index] = (char *) &addrArray[index];
+//
+//     *addressCount = addrCount;
+//     *addressStrings = addrsStrings;
+//     *addressArray = addrArray;
+// }
 
 extern BRAddress *
 BRWalletManagerGetAllAddrs (BRWalletManager manager,

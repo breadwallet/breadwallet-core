@@ -511,13 +511,6 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
     cryptoWalletGive (wallet);
 }
 
-static void
-cwmPublishTransactionAsBTC (void *context,
-                            int error) {
-    BRCryptoWalletManager cwm = context;
-    (void) cwm;
-}
-
 /// MARK: ETH Callbacks
 
 static void
