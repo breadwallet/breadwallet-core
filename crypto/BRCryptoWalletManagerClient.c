@@ -400,15 +400,9 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
     // ... and demand 'wallet'
     assert (NULL != wallet && btcWallet == cryptoWalletAsBTC (wallet));
 
-    // Get `transfer`.  For 'CREATED" this *will* be NULL
-    BRCryptoTransfer transfer = cryptoWalletFindTransferAsBTC (wallet, btcTransaction); // taken
-
     switch (event.type) {
 
         case BITCOIN_TRANSACTION_CREATED: {
-            assert (NULL == transfer);
-            assert (!BRTransactionIsSigned (btcTransaction));
-
             // This event occurs for a user created transaction. We create the
             // cryptoTransfer using the btcTransaction, rather than a copy. That is
             // because at this point, the transaction is not signed. As a result, we
@@ -418,10 +412,12 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
             // callback being triggered (on the same thread), will not call
             // cryptoTransferCreateAsBTC but rather use cryptoWalletFindTransferAsBTC.
 
+            assert (!BRTransactionIsSigned (btcTransaction));
+
             // The transfer finally - based on the wallet's currency (BTC)
-            transfer = cryptoTransferCreateAsBTC (cryptoWalletGetCurrency (wallet),
-                                                  cryptoWalletAsBTC (wallet),
-                                                  btcTransaction);
+            BRCryptoTransfer transfer = cryptoTransferCreateAsBTC (cryptoWalletGetCurrency (wallet),
+                                                                   cryptoWalletAsBTC (wallet),
+                                                                   btcTransaction);
 
             // Generate a CRYPTO transfer event for CREATED'...
             cwm->listener.transferEventCallback (cwm->listener.context,
@@ -444,16 +440,19 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
                                                    { .transfer = { cryptoTransferTake (transfer) }}
                                                });
 
+            cryptoTransferGive (transfer);
             break;
         }
 
         case BITCOIN_TRANSACTION_SIGNED: {
-            assert (NULL != transfer);
-            assert (BRTransactionIsSigned (btcTransaction));
-            assert (btcTransaction == cryptoTransferAsBTC (transfer));
-
             // This event occurs for a user created transaction. In that case, we must be wrapping
             // the exact transfer that was signed (i.e. not a copy).
+
+            assert (BRTransactionIsSigned (btcTransaction));
+
+            BRCryptoTransfer transfer = cryptoWalletFindTransferAsBTC (wallet, btcTransaction); // taken
+            assert (NULL != transfer);
+            assert (btcTransaction == cryptoTransferAsBTC (transfer));
 
             BRCryptoTransferState oldState = cryptoTransferGetState (transfer);
             assert (CRYPTO_TRANSFER_STATE_SIGNED != oldState.type);
@@ -469,12 +468,12 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
                                                      CRYPTO_TRANSFER_EVENT_CHANGED,
                                                      { .state = { oldState, newState }}
                                                  });
+
+            cryptoTransferGive (transfer);
             break;
         }
 
         case BITCOIN_TRANSACTION_ADDED: {
-            assert (BRTransactionIsSigned (btcTransaction));
-
             // This event occurs when either a user created transaction has been submitted
             // or if the transaction arrived during a sync. If it came from a sync, transfer will
             // be NULL, so we must create a wrapping cryptoTransfer using a copy of the underlying
@@ -482,6 +481,9 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
             // we are already have a copy of the underlying btcTransaction because we made a copy on
             // submission.
 
+            assert (BRTransactionIsSigned (btcTransaction));
+
+            BRCryptoTransfer transfer = cryptoWalletFindTransferAsBTC (wallet, btcTransaction); // taken
             if (NULL == transfer) {
 
                 // The transfer finally - based on the wallet's currency (BTC)
@@ -538,18 +540,21 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
                                                      });
             }
 
+            cryptoTransferGive (transfer);
             break;
         }
 
         case BITCOIN_TRANSACTION_UPDATED: {
-            assert (NULL != transfer);
-            assert (BRTransactionIsSigned (btcTransaction));
-            assert (btcTransaction != cryptoTransferAsBTC (transfer));
-
             // This event occurs when the timestamp and/or blockHeight have been changed.
             // Regardless of if this was a user created transaction or if it came from a
             // sync, we are holding a copy of the transaction that BRWalletManager has.
             // As a result, we need to update our copy of the transaction.
+
+            assert (BRTransactionIsSigned (btcTransaction));
+
+            BRCryptoTransfer transfer = cryptoWalletFindTransferAsBTC (wallet, btcTransaction); // taken
+            assert (NULL != transfer);
+            assert (btcTransaction != cryptoTransferAsBTC (transfer));
 
             BRCryptoTransferState oldState = cryptoTransferGetState (transfer);
             BRCryptoTransferState newState = (BRCryptoTransferState) { CRYPTO_TRANSFER_STATE_CREATED };
@@ -595,15 +600,21 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
                                                      });
             }
 
+            cryptoTransferGive (transfer);
             break;
         }
 
         case BITCOIN_TRANSACTION_DELETED: {
-            assert (NULL != transfer);
+            // This event occurs when a transaction has been deleted from a wallet.
+            // Regardless of if this was a user created transaction or if it came from a
+            // sync, we are holding a copy of the transaction that BRWalletManager has. Find it
+            // and remove it from the wallet.
+
             assert (BRTransactionIsSigned (btcTransaction));
 
-            // This event occurs when a transaction has been deleted from a wallet. We don't care
-            // how we found the transaction (by hash or by identity), just remove it from the wallet.
+            BRCryptoTransfer transfer = cryptoWalletFindTransferAsBTC (wallet, btcTransaction); // taken
+            assert (NULL != transfer);
+            assert (btcTransaction != cryptoTransferAsBTC (transfer));
 
             // Generate a CRYPTO wallet event for 'TRANSFER_DELETED'...
             cwm->listener.walletEventCallback (cwm->listener.context,
@@ -626,11 +637,11 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
                                                      CRYPTO_TRANSFER_EVENT_DELETED
                                                  });
 
+            cryptoTransferGive (transfer);
             break;
         }
     }
 
-    cryptoTransferGive (transfer);
     cryptoWalletGive (wallet);
 }
 
