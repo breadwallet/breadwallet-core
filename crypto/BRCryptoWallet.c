@@ -358,7 +358,7 @@ cryptoWalletCreateTransfer (BRCryptoWallet wallet,
             if (CRYPTO_TRUE == overflow) { return NULL; }
 
             BRTransaction *tid = BRWalletManagerCreateTransaction (bwm, wid, value, addr);
-            return NULL == tid ? NULL : cryptoTransferCreateAsBTC (cryptoWalletGetCurrency(wallet), wid, tid);
+            return NULL == tid ? NULL : cryptoWalletFindTransferAsBTC (wallet, tid);
         }
 
         case BLOCK_CHAIN_TYPE_ETH: {

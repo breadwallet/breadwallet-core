@@ -101,13 +101,13 @@ typedef enum {
     // NOTE: The transaction is NOT owned by the event handler.
     /**
      * For P2P and API, this event occurs once a transaction has been created for a
-     * wallet, but is not yet signed or registered.
+     * wallet, but is not yet signed or added.
      */
     BITCOIN_TRANSACTION_CREATED,
 
     /**
      * For P2P and API, this event occurs once a transaction has been signed for a
-     * wallet, but is not yet registered.
+     * wallet, but is not yet added.
      */
     BITCOIN_TRANSACTION_SIGNED,
 
@@ -128,7 +128,7 @@ typedef enum {
 
     /**
      * For P2P, this event occurs once a transaction has been deleted from a wallet
-     * (via BRWalletRemoveTransaction) as a result of an UNCONFIRMED transaciton no longer
+     * (via BRWalletRemoveTransaction) as a result of an UNCONFIRMED transaction no longer
      * being visible in the mempools of any of connected P2P peers.
      *
      * For API, this event does not occur as transactions are implicitly CONFIRMED when synced.
@@ -148,9 +148,9 @@ typedef struct {
 
 typedef void
 (*BRTransactionEventCallback) (BRWalletManagerClientContext context,
-                               BRWalletManager manager,
-                               BRWallet *wallet,
-                               BRTransaction *transaction,
+                               OwnershipKept BRWalletManager manager,
+                               OwnershipKept BRWallet *wallet,
+                               OwnershipKept BRTransaction *transaction,
                                BRTransactionEvent event);
 
 ///
@@ -184,8 +184,8 @@ typedef struct {
 
 typedef void
 (*BRWalletEventCallback) (BRWalletManagerClientContext context,
-                          BRWalletManager manager,
-                          BRWallet *wallet,
+                          OwnershipKept BRWalletManager manager,
+                          OwnershipKept BRWallet *wallet,
                           BRWalletEvent event);
 
 ///
@@ -214,7 +214,7 @@ typedef struct {
 
 typedef void
 (*BRWalletManagerEventCallback) (BRWalletManagerClientContext context,
-                                 BRWalletManager manager,
+                                 OwnershipKept BRWalletManager manager,
                                  BRWalletManagerEvent event);
 
 typedef struct {

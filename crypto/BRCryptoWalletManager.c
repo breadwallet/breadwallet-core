@@ -331,8 +331,9 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
                                                 cryptoTransferAsBTC(transfer),
                                                 &seed,
                                                 sizeof (seed))) {
+                // Submit a copy of the transaction as we lose ownership of it once it has been submitted
                 BRWalletManagerSubmitTransaction (cwm->u.btc,
-                                                  cryptoTransferAsBTC(transfer));
+                                                  BRTransactionCopy (cryptoTransferAsBTC(transfer)));
             }
             break;
         }

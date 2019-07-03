@@ -108,6 +108,7 @@ cryptoTransferCreateAsETH (BRCryptoCurrency currency,
 
 static void
 cryptoTransferRelease (BRCryptoTransfer transfer) {
+    if (BLOCK_CHAIN_TYPE_BTC == transfer->type) BRTransactionFree (transfer->u.btc.tid);
     cryptoCurrencyGive (transfer->currency);
     free (transfer);
 }
@@ -448,7 +449,7 @@ cryptoTransferAsETH (BRCryptoTransfer transfer) {
 private_extern BRCryptoBoolean
 cryptoTransferHasBTC (BRCryptoTransfer transfer,
                       BRTransaction *btc) {
-    return AS_CRYPTO_BOOLEAN (BLOCK_CHAIN_TYPE_BTC == transfer->type && btc == transfer->u.btc.tid);
+    return AS_CRYPTO_BOOLEAN (BLOCK_CHAIN_TYPE_BTC == transfer->type && BRTransactionEq (btc, transfer->u.btc.tid));
 }
 
 private_extern BRCryptoBoolean
@@ -460,7 +461,7 @@ cryptoTransferHasETH (BRCryptoTransfer transfer,
 static int
 cryptoTransferEqualAsBTC (BRCryptoTransfer t1, BRCryptoTransfer t2) {
     return (t1->u.btc.wid == t2->u.btc.wid &&
-            t1->u.btc.tid == t2->u.btc.tid);
+            BRTransactionEq (t1->u.btc.tid, t2->u.btc.tid));
 }
 
 static int
