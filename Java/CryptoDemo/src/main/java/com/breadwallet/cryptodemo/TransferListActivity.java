@@ -17,6 +17,7 @@ import android.widget.TextView;
 
 import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Transfer;
+import com.breadwallet.crypto.TransferConfirmation;
 import com.breadwallet.crypto.TransferHash;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
@@ -27,9 +28,11 @@ import com.breadwallet.crypto.events.transfer.TransferCreatedEvent;
 import com.breadwallet.crypto.events.transfer.TransferDeletedEvent;
 import com.breadwallet.crypto.events.transfer.TransferEventVisitor;
 import com.breadwallet.crypto.events.transfer.TransferListener;
+import com.google.common.base.Optional;
 
 import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nullable;
@@ -101,7 +104,7 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
         CoreCryptoApplication.getListener().addListener(this);
 
         transfers.clear();
-        transfers.addAll(wallet.getTransfers());
+        transfers.addAll(getTransfers());
         transferAdapter.notifyDataSetChanged();
     }
 
@@ -156,6 +159,36 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
                 }
             });
         });
+    }
+
+    private List<? extends Transfer> getTransfers() {
+        List<? extends Transfer> walletTransfers = wallet.getTransfers();
+        Collections.sort(walletTransfers, (o1, o2) -> {
+            Optional<TransferConfirmation> oc1 = o1.getConfirmation();
+            Optional<TransferConfirmation> oc2 = o2.getConfirmation();
+
+            if (oc1.isPresent() && oc2.isPresent()) {
+                TransferConfirmation c1 = oc1.get();
+                TransferConfirmation c2 = oc2.get();
+
+                int blockCompare = c1.getBlockNumber().compareTo(c2.getBlockNumber());
+                int dateCompare = c1.getConfirmationTime().compareTo(c2.getConfirmationTime());
+                int indexCompare = c1.getTransactionIndex().compareTo(c2.getTransactionIndex());
+                return (blockCompare != 0
+                        ? blockCompare
+                        : (dateCompare != 0
+                        ? dateCompare
+                        : indexCompare));
+
+            } else if (oc1.isPresent()) {
+                return -1;
+            } else if (oc2.isPresent()) {
+                return 1;
+            } else {
+                return o1.hashCode() - o2.hashCode();
+            }
+        });
+        return walletTransfers;
     }
 
     private interface OnItemClickListener<T> {

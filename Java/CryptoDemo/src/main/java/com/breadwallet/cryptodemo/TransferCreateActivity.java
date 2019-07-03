@@ -118,13 +118,7 @@ public class TransferCreateActivity extends AppCompatActivity {
                 submitView.setEnabled(s.length() != 0);
             }
         });
-        boolean isMainnet = network.isMainnet();
-        if (isBitCurrency()) {
-            receiverView.setText(isMainnet ? "" : "mv4rnyY3Su5gjcDNzbMLKBQkBicCtHUtFB");
-
-        } else if (isEthCurrency()) {
-            receiverView.setText(isMainnet ? "0x19454a70538bfbdbd7abf3ac8d274d5cb2514056" : "0xbDFdAd139440D2Db9BA2aa3B7081C2dE39291508");
-        }
+        receiverView.setText(network.isMainnet() ? "" : wallet.getTarget().toString());
 
         submitView.setOnClickListener(v -> {
             String addressStr = receiverView.getText().toString();
