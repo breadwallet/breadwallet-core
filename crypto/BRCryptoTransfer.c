@@ -449,6 +449,9 @@ cryptoTransferAsETH (BRCryptoTransfer transfer) {
 private_extern BRCryptoBoolean
 cryptoTransferHasBTC (BRCryptoTransfer transfer,
                       BRTransaction *btc) {
+    // Since BTC transactions that are not yet signed do not have a txHash, only
+    // use the BRTransactionEq check when the transfer's transaction is signed.
+    // If it is not signed, use an identity check.
     return AS_CRYPTO_BOOLEAN (BLOCK_CHAIN_TYPE_BTC == transfer->type && (BRTransactionIsSigned (transfer->u.btc.tid)
                                                                          ? BRTransactionEq (btc, transfer->u.btc.tid)
                                                                          : btc == transfer->u.btc.tid));
@@ -462,6 +465,9 @@ cryptoTransferHasETH (BRCryptoTransfer transfer,
 
 static int
 cryptoTransferEqualAsBTC (BRCryptoTransfer t1, BRCryptoTransfer t2) {
+    // Since BTC transactions that are not yet signed do not have a txHash, only
+    // use the BRTransactionEq check when at least one party is signed. For cases
+    // where that is not true, use an identity check.
     return (t1->u.btc.wid == t2->u.btc.wid
             && (BRTransactionIsSigned (t1->u.btc.tid)
                 ? BRTransactionEq (t1->u.btc.tid, t2->u.btc.tid)
