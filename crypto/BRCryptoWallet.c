@@ -227,8 +227,9 @@ private_extern void
 cryptoWalletRemTransfer (BRCryptoWallet wallet, BRCryptoTransfer transfer) {
     for (size_t index = 0; index < array_count(wallet->transfers); index++)
         if (CRYPTO_TRUE == cryptoTransferEqual (wallet->transfers[index], transfer)) {
+            BRCryptoTransfer walletTransfer = wallet->transfers[index];
             array_rm (wallet->transfers, index);
-            cryptoTransferGive (transfer);
+            cryptoTransferGive (walletTransfer);
             return;
         }
 }
