@@ -732,7 +732,7 @@ BRWalletManagerCreateTransaction (BRWalletManager manager,
 
 extern int
 BRWalletManagerSignTransaction (BRWalletManager manager,
-                                BRTransaction *transaction,
+                                OwnershipKept BRTransaction *transaction,
                                 const void *seed,
                                 size_t seedLen) {
     int r = (1 == BRWalletSignTransaction (manager->wallet, transaction, seed, seedLen) ? 1 : 0);
