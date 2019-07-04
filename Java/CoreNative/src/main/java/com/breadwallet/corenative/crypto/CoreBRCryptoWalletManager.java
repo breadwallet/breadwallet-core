@@ -28,9 +28,7 @@ public interface CoreBRCryptoWalletManager {
 
     CoreBRCryptoWallet getWallet();
 
-    UnsignedLong getWalletsCount();
-
-    CoreBRCryptoWallet getWallet(UnsignedLong index);
+    List<CoreBRCryptoWallet> getWallets();
 
     boolean containsWallet(CoreBRCryptoWallet wallet);
 

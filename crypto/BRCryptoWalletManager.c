@@ -22,6 +22,9 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
+
+#include <pthread.h>
+
 #include "BRCryptoBase.h"
 #include "BRCryptoPrivate.h"
 #include "BRCryptoWalletManager.h"
@@ -86,6 +89,15 @@ cryptoWalletManagerCreateInternal (BRCryptoCWMListener listener,
     array_new (cwm->wallets, 1);
 
     cwm->ref = CRYPTO_REF_ASSIGN (cryptoWalletManagerRelease);
+
+    {
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+
+        pthread_mutex_init(&cwm->lock, &attr);
+        pthread_mutexattr_destroy(&attr);
+    }
 
     return cwm;
 }
@@ -187,6 +199,8 @@ cryptoWalletManagerRelease (BRCryptoWalletManager cwm) {
     array_free (cwm->wallets);
 
     free (cwm->path);
+
+    pthread_mutex_destroy (&cwm->lock);
     free (cwm);
 }
 
@@ -226,51 +240,74 @@ cryptoWalletManagerGetWallet (BRCryptoWalletManager cwm) {
     return cryptoWalletTake (cwm->wallet);
 }
 
-extern size_t
-cryptoWalletManagerGetWalletsCount (BRCryptoWalletManager cwm) {
-    return array_count (cwm->wallets);
+extern BRCryptoWallet *
+cryptoWalletManagerGetWallets (BRCryptoWalletManager cwm, size_t *count) {
+    pthread_mutex_lock (&cwm->lock);
+    *count = array_count (cwm->wallets);
+    BRCryptoWallet *wallets = NULL;
+    if (0 != *count) {
+        wallets = calloc (*count, sizeof(BRCryptoWallet));
+        for (size_t index = 0; index < *count; index++) {
+            wallets[index] = cryptoWalletTake(cwm->wallets[index]);
+        }
+    }
+    pthread_mutex_unlock (&cwm->lock);
+    return wallets;
 }
 
-extern BRCryptoWallet
-cryptoWalletManagerGetWalletAtIndex (BRCryptoWalletManager cwm,
-                                     size_t index) {
-    return cryptoWalletTake (cwm->wallets[index]);
-}
 
 extern BRCryptoWallet
 cryptoWalletManagerGetWalletForCurrency (BRCryptoWalletManager cwm,
                                          BRCryptoCurrency currency) {
-    for (size_t index = 0; index < array_count(cwm->wallets); index++)
-        if (currency == cryptoWalletGetCurrency (cwm->wallets[index]))
-            return cryptoWalletTake (cwm->wallets[index]);
-    return NULL;
+    BRCryptoWallet wallet = NULL;
+    pthread_mutex_lock (&cwm->lock);
+    for (size_t index = 0; index < array_count(cwm->wallets) && NULL == wallet; index++) {
+        if (currency == cryptoWalletGetCurrency (cwm->wallets[index])) {
+            wallet = cryptoWalletTake (cwm->wallets[index]);
+        }
+    }
+    pthread_mutex_unlock (&cwm->lock);
+    return wallet;
 }
 
 extern BRCryptoBoolean
 cryptoWalletManagerHasWallet (BRCryptoWalletManager cwm,
                               BRCryptoWallet wallet) {
-    for (size_t index = 0; index < array_count (cwm->wallets); index++)
-        if (CRYPTO_TRUE == cryptoWalletEqual(cwm->wallets[index], wallet))
-            return CRYPTO_TRUE;
-    return CRYPTO_FALSE;
+    BRCryptoBoolean r = CRYPTO_FALSE;
+    pthread_mutex_lock (&cwm->lock);
+    for (size_t index = 0; index < array_count (cwm->wallets) && CRYPTO_FALSE == r; index++) {
+        r = cryptoWalletEqual(cwm->wallets[index], wallet);
+    }
+    pthread_mutex_unlock (&cwm->lock);
+    return r;
 }
 
 private_extern void
 cryptoWalletManagerAddWallet (BRCryptoWalletManager cwm,
                               BRCryptoWallet wallet) {
-    if (CRYPTO_FALSE == cryptoWalletManagerHasWallet (cwm, wallet))
+    pthread_mutex_lock (&cwm->lock);
+    if (CRYPTO_FALSE == cryptoWalletManagerHasWallet (cwm, wallet)) {
         array_add (cwm->wallets, cryptoWalletTake (wallet));
+    }
+    pthread_mutex_unlock (&cwm->lock);
 }
 
 private_extern void
 cryptoWalletManagerRemWallet (BRCryptoWalletManager cwm,
                               BRCryptoWallet wallet) {
-    for (size_t index = 0; index < array_count (cwm->wallets); index++)
+
+    BRCryptoWallet managerWallet = NULL;
+    pthread_mutex_lock (&cwm->lock);
+    for (size_t index = 0; index < array_count (cwm->wallets) && NULL == managerWallet; index++) {
         if (CRYPTO_TRUE == cryptoWalletEqual(cwm->wallets[index], wallet)) {
+            managerWallet = cwm->wallets[index];
             array_rm (cwm->wallets, index);
-            cryptoWalletGive (wallet);
-            return;
         }
+    }
+    pthread_mutex_unlock (&cwm->lock);
+
+    // drop reference outside of lock to avoid potential case where release function runs
+    if (NULL != managerWallet) cryptoWalletGive (managerWallet);
 }
 
 /// MARK: - Connect/Disconnect/Sync
@@ -382,18 +419,27 @@ cryptoWalletManagerHasBTC (BRCryptoWalletManager manager,
 private_extern BRCryptoWallet
 cryptoWalletManagerFindWalletAsBTC (BRCryptoWalletManager cwm,
                                     BRWallet *btc) {
-    for (size_t index = 0; index < array_count (cwm->wallets); index++)
-        if (btc == cryptoWalletAsBTC (cwm->wallets[index]))
-            return cryptoWalletTake (cwm->wallets[index]);
-    return NULL;
+    BRCryptoWallet wallet = NULL;
+    pthread_mutex_lock (&cwm->lock);
+    for (size_t index = 0; index < array_count (cwm->wallets) && NULL == wallet; index++) {
+        if (btc == cryptoWalletAsBTC (cwm->wallets[index])) {
+            wallet = cryptoWalletTake (cwm->wallets[index]);
+        }
+    }
+    pthread_mutex_unlock (&cwm->lock);
+    return wallet;
 }
 
 private_extern BRCryptoWallet
 cryptoWalletManagerFindWalletAsETH (BRCryptoWalletManager cwm,
                                     BREthereumWallet eth) {
-    for (size_t index = 0; index < array_count (cwm->wallets); index++)
-        if (eth == cryptoWalletAsETH (cwm->wallets[index]))
-            return cryptoWalletTake (cwm->wallets[index]);
-    return NULL;
+    BRCryptoWallet wallet = NULL;
+    pthread_mutex_lock (&cwm->lock);
+    for (size_t index = 0; index < array_count (cwm->wallets) && NULL == wallet; index++) {
+        if (eth == cryptoWalletAsETH (cwm->wallets[index])) {
+            wallet = cryptoWalletTake (cwm->wallets[index]);
+        }
+    }
+    pthread_mutex_unlock (&cwm->lock);
+    return wallet;
 }
-

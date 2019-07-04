@@ -26,6 +26,8 @@
 #ifndef BRCryptoWalletManagerPrivate_h
 #define BRCryptoWalletManagerPrivate_h
 
+#include <pthread.h>
+
 #include "BRCryptoBase.h"
 #include "BRCryptoNetwork.h"
 #include "BRCryptoAccount.h"
@@ -40,6 +42,8 @@ extern "C" {
 #endif
 
 struct BRCryptoWalletManagerRecord {
+    pthread_mutex_t lock;
+
     BRCryptoBlockChainType type;
     union {
         BRWalletManager btc;

@@ -57,14 +57,20 @@ public final class WalletManager: Equatable {
     /// The managed wallets - often will just be [primaryWallet]
     public var wallets: [Wallet] {
         let listener = system.listener
-        return (0..<cryptoWalletManagerGetWalletsCount(core))
-            .map {
-                let coreWallet = cryptoWalletManagerGetWalletAtIndex (core, $0)!
-                return Wallet (core: coreWallet,
-                               listener: listener,
-                               manager: self,
-                               take: false)
-        }
+        
+        var walletsCount: size_t = 0
+        let walletsPtr = cryptoWalletManagerGetWallets(core, &walletsCount);
+        defer { if let ptr = walletsPtr { free (ptr) } }
+        
+        let wallets: [BRCryptoWallet] = walletsPtr?.withMemoryRebound(to: BRCryptoWallet.self, capacity: walletsCount) {
+            Array(UnsafeBufferPointer (start: $0, count: walletsCount))
+        } ?? []
+        
+        return wallets
+            .map { Wallet (core: $0,
+                           listener: listener,
+                           manager: self,
+                           take: false) }
     }
 
     ///

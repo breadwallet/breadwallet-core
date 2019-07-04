@@ -7,7 +7,7 @@
  */
 package com.breadwallet.corenative.crypto;
 
-import com.google.common.primitives.UnsignedLong;
+import java.util.List;
 
 public interface CoreBRCryptoWallet {
 
@@ -17,9 +17,7 @@ public interface CoreBRCryptoWallet {
 
     CoreBRCryptoAmount getBalance();
 
-    UnsignedLong getTransferCount();
-
-    CoreBRCryptoTransfer getTransfer(UnsignedLong index);
+    List<CoreBRCryptoTransfer> getTransfers();
 
     boolean containsTransfer(CoreBRCryptoTransfer transfer);
 

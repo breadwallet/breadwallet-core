@@ -10,6 +10,7 @@ package com.breadwallet.corenative.crypto;
 import com.breadwallet.corenative.CryptoLibrary;
 import com.google.common.primitives.UnsignedLong;
 
+import java.util.List;
 import java.util.Objects;
 
 /* package */
@@ -36,13 +37,8 @@ class OwnedBRCryptoWallet implements CoreBRCryptoWallet {
     }
 
     @Override
-    public UnsignedLong getTransferCount() {
-        return core.getTransferCount();
-    }
-
-    @Override
-    public CoreBRCryptoTransfer getTransfer(UnsignedLong index) {
-        return core.getTransfer(index);
+    public List<CoreBRCryptoTransfer> getTransfers() {
+        return core.getTransfers();
     }
 
     @Override

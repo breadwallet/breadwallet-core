@@ -23,6 +23,8 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#include <pthread.h>
+
 #include "BRCryptoFeeBasis.h"
 #include "BRCryptoWallet.h"
 #include "BRCryptoBase.h"
@@ -40,6 +42,8 @@ cryptoWalletRelease (BRCryptoWallet wallet);
 
 
 struct BRCryptoWalletRecord {
+    pthread_mutex_t lock;
+
     BRCryptoBlockChainType type;
     union {
         struct {
@@ -87,6 +91,15 @@ cryptoWalletCreateInternal (BRCryptoBlockChainType type,
 
     wallet->ref = CRYPTO_REF_ASSIGN (cryptoWalletRelease);
 
+    {
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+
+        pthread_mutex_init(&wallet->lock, &attr);
+        pthread_mutexattr_destroy(&attr);
+    }
+
     return wallet;
 }
 
@@ -126,6 +139,7 @@ cryptoWalletRelease (BRCryptoWallet wallet) {
         cryptoTransferGive (wallet->transfers[index]);
     array_free (wallet->transfers);
 
+    pthread_mutex_destroy (&wallet->lock);
     free (wallet);
 }
 
@@ -191,56 +205,83 @@ cryptoWalletGetBalance (BRCryptoWallet wallet) {
 
 extern BRCryptoBoolean
 cryptoWalletHasTransfer (BRCryptoWallet wallet,
-                        BRCryptoTransfer transfer) {
-    for (size_t index = 0; index < array_count(wallet->transfers); index++)
-        if (CRYPTO_TRUE == cryptoTransferEqual (transfer, wallet->transfers[index]))
-            return CRYPTO_TRUE;
-    return CRYPTO_FALSE;
+                         BRCryptoTransfer transfer) {
+    BRCryptoBoolean r = CRYPTO_FALSE;
+    pthread_mutex_lock (&wallet->lock);
+    for (size_t index = 0; index < array_count(wallet->transfers) && CRYPTO_FALSE == r; index++) {
+        r = cryptoTransferEqual (transfer, wallet->transfers[index]);
+    }
+    pthread_mutex_unlock (&wallet->lock);
+    return r;
 }
 
 private_extern BRCryptoTransfer
 cryptoWalletFindTransferAsBTC (BRCryptoWallet wallet,
                                BRTransaction *btc) {
-    for (size_t index = 0; index < array_count(wallet->transfers); index++)
-        if (CRYPTO_TRUE == cryptoTransferHasBTC (wallet->transfers[index], btc))
-            return cryptoTransferTake (wallet->transfers[index]);
-    return NULL;
+    BRCryptoTransfer transfer = NULL;
+    pthread_mutex_lock (&wallet->lock);
+    for (size_t index = 0; index < array_count(wallet->transfers) && NULL == transfer; index++) {
+        if (CRYPTO_TRUE == cryptoTransferHasBTC (wallet->transfers[index], btc)) {
+            transfer = cryptoTransferTake (wallet->transfers[index]);
+        }
+    }
+    pthread_mutex_unlock (&wallet->lock);
+    return transfer;
 }
 
 private_extern BRCryptoTransfer
 cryptoWalletFindTransferAsETH (BRCryptoWallet wallet,
                                BREthereumTransfer eth) {
-    for (size_t index = 0; index < array_count(wallet->transfers); index++)
-        if (CRYPTO_TRUE == cryptoTransferHasETH (wallet->transfers[index], eth))
-            return cryptoTransferTake (wallet->transfers[index]);
-    return NULL;
+    BRCryptoTransfer transfer = NULL;
+    pthread_mutex_lock (&wallet->lock);
+    for (size_t index = 0; index < array_count(wallet->transfers) && NULL == transfer; index++) {
+        if (CRYPTO_TRUE == cryptoTransferHasETH (wallet->transfers[index], eth)) {
+            transfer = cryptoTransferTake (wallet->transfers[index]);
+        }
+    }
+    pthread_mutex_unlock (&wallet->lock);
+    return transfer;
 }
 
 private_extern void
 cryptoWalletAddTransfer (BRCryptoWallet wallet,
                          BRCryptoTransfer transfer) {
-    if (CRYPTO_FALSE == cryptoWalletHasTransfer (wallet, transfer))
+    pthread_mutex_lock (&wallet->lock);
+    if (CRYPTO_FALSE == cryptoWalletHasTransfer (wallet, transfer)) {
         array_add (wallet->transfers, cryptoTransferTake(transfer));
+    }
+    pthread_mutex_unlock (&wallet->lock);
 }
 
 private_extern void
 cryptoWalletRemTransfer (BRCryptoWallet wallet, BRCryptoTransfer transfer) {
-    for (size_t index = 0; index < array_count(wallet->transfers); index++)
+    BRCryptoTransfer walletTransfer = NULL;
+    pthread_mutex_lock (&wallet->lock);
+    for (size_t index = 0; index < array_count(wallet->transfers) && NULL == walletTransfer; index++) {
         if (CRYPTO_TRUE == cryptoTransferEqual (wallet->transfers[index], transfer)) {
+            walletTransfer = wallet->transfers[index];
             array_rm (wallet->transfers, index);
-            cryptoTransferGive (transfer);
-            return;
         }
+    }
+    pthread_mutex_unlock (&wallet->lock);
+
+    // drop reference outside of lock to avoid potential case where release function runs
+    if (NULL != walletTransfer) cryptoTransferGive (transfer);
 }
 
-extern size_t
-cryptoWalletGetTransferCount (BRCryptoWallet wallet) {
-    return array_count (wallet->transfers);
-}
-
-extern BRCryptoTransfer
-cryptoWalletGetTransfer (BRCryptoWallet wallet, size_t index) {
-    return cryptoTransferTake (wallet->transfers[index]);
+extern BRCryptoTransfer *
+cryptoWalletGetTransfers (BRCryptoWallet wallet, size_t *count) {
+    pthread_mutex_lock (&wallet->lock);
+    *count = array_count (wallet->transfers);
+    BRCryptoTransfer *transfers = NULL;
+    if (0 != *count) {
+        transfers = calloc (*count + 1, sizeof(BRCryptoTransfer));
+        for (size_t index = 0; index < *count; index++) {
+            transfers[index] = cryptoTransferTake(wallet->transfers[index]);
+        }
+    }
+    pthread_mutex_unlock (&wallet->lock);
+    return transfers;
 }
 
 //
