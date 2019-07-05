@@ -11,10 +11,13 @@ import com.breadwallet.corenative.CryptoLibrary;
 import com.breadwallet.corenative.utility.SizeT;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
+import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 import com.sun.jna.StringArray;
 
+import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.List;
 
 public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWalletManager {
@@ -78,8 +81,23 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
-    public void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, String paperKey) {
-        CryptoLibrary.INSTANCE.cryptoWalletManagerSubmit(this, wallet.asBRCryptoWallet(), transfer.asBRCryptoTransfer(), paperKey);
+    public void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, byte[] phraseUtf8) {
+        // ensure string is null terminated
+        phraseUtf8 = Arrays.copyOf(phraseUtf8, phraseUtf8.length + 1);
+        try {
+            Memory phraseMemory = new Memory(phraseUtf8.length);
+            try {
+                phraseMemory.write(0, phraseUtf8, 0, phraseUtf8.length);
+                ByteBuffer phraseBuffer = phraseMemory.getByteBuffer(0, phraseUtf8.length);
+
+                CryptoLibrary.INSTANCE.cryptoWalletManagerSubmit(this, wallet.asBRCryptoWallet(), transfer.asBRCryptoTransfer(), phraseBuffer);
+            } finally {
+                phraseMemory.clear();
+            }
+        } finally {
+            // clear out our copy; caller responsible for original array
+            Arrays.fill(phraseUtf8, (byte) 0);
+        }
     }
 
     @Override

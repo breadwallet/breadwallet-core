@@ -83,13 +83,9 @@ extern void rippleAccountSetLastLedgerSequence(BRRippleAccount account,
  * @param transaction     the transaction to serialize
  * @param paperKey        paper key of the sending account
  *
- * @return handle         BRRippleSerializedTransaction handle, use this to get the size and bytes
- *                        NOTE: If successful then the sequence number in the account is incremented
- *                        NOTE: is the handle is NULL then the serialization failed AND the sequence
- *                              was not incremented
+ * @return size           size of serialized/siged bytes
  */
-extern
-const BRRippleSerializedTransaction /* do NOT free, owned by transaction */
+extern size_t
 rippleAccountSignTransaction(BRRippleAccount account, BRRippleTransaction transaction, const char *paperKey);
 
 // Accessor function for the account address (Ripple ID)

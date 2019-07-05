@@ -274,10 +274,10 @@ testSerializeWithSignature () {
     rippleAccountSetSequence(account, sequence_number);
 
     // Serialize and sign
-    BRRippleSerializedTransaction s = rippleAccountSignTransaction(account, transaction, paper_key);
-    assert(s);
-    int signed_size = rippleTransactionGetSerializedSize(s);
-    uint8_t *signed_bytes = rippleTransactionGetSerializedBytes(s);
+    size_t s_size = rippleAccountSignTransaction(account, transaction, paper_key);
+    size_t signed_size;
+    uint8_t *signed_bytes = rippleTransactionSerialize(transaction, &signed_size);
+    assert(s_size == signed_size);
     // Print out the bytes as a string
     if (debug_log) {
         for (int i = 0; i < signed_size; i++) {
@@ -303,6 +303,7 @@ testSerializeWithSignature () {
     
     rippleTransactionFree(transaction);
     rippleAccountFree(account);
+    free(signed_bytes);
 }
 
 extern BRRippleSignatureRecord rippleTransactionGetSignature(BRRippleTransaction transaction);
@@ -531,8 +532,7 @@ testTransactionHash (void /* ... */) {
 
     // Serialize and sign
     rippleAccountSetSequence(account, 25);
-    BRRippleSerializedTransaction s = rippleAccountSignTransaction(account, transaction, paper_key);
-    assert(s);
+    rippleAccountSignTransaction(account, transaction, paper_key);
     
     // Compare the transaction hash
     uint8_t expected_hash[] = {
@@ -660,6 +660,16 @@ static void runWalletTests()
     testWalletAddress();
 }
 
+static void comparebuffers(const char *input, uint8_t * output, size_t outputSize)
+{
+    size_t input_size = strlen(input) / 2;
+    assert(input_size == outputSize);
+    uint8_t buffer[input_size];
+    hex2bin(input, buffer);
+    for(int i = 0; i < outputSize; i++) {
+        assert(buffer[i] == output[i]);
+    }
+}
 static void runDeserializeTests(const char* tx_list_name, const char* tx_list[], int num_elements)
 {
     int payments = 0;
@@ -667,7 +677,14 @@ static void runDeserializeTests(const char* tx_list_name, const char* tx_list[],
     int xrp_currency = 0;
     int other_currency = 0;
     for(int i = 0; i <= num_elements - 2; i += 2) {
+        size_t input_size = strlen(tx_list[i+1]) / 2;
+        size_t output_size;
         BRRippleTransaction transaction = transactionDeserialize(tx_list[i+1], NULL);
+        uint8_t * signed_bytes = rippleTransactionSerialize(transaction, &output_size);
+        assert(input_size == output_size);
+        comparebuffers(tx_list[i+1], signed_bytes, output_size);
+        free(signed_bytes);
+
         assert(transaction);
         
         // Check if this is a transaction

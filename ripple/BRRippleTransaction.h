@@ -15,7 +15,6 @@
 #include "BRKey.h"
 
 typedef struct BRRippleTransactionRecord *BRRippleTransaction;
-typedef struct BRRippleSerializedTransactionRecord *BRRippleSerializedTransaction;
 
 /**
  * Create a Ripple transaction
@@ -59,21 +58,16 @@ rippleTransactionCreateFromBytes(uint8_t *bytes, int length);
 extern void rippleTransactionFree(BRRippleTransaction transaction);
 
 /**
- * Get the size of a serialized/signed transaction
+ * Get a copy of the serialized/signed bytes for a transaction
  *
- * @param  s     serialized transaction
- * @return size
- */
-extern uint32_t rippleTransactionGetSerializedSize(BRRippleSerializedTransaction s);
-
-/**
- * Get the raw bytes of a serialized/signed transaction
+ * @param  transaction   handle to a serialized/signed transaction
+ * @param size           the number of bytes for the newly allocated buffer
  *
- * @param  s     serialized transaction
- * @return bytes uint8_t *
+ * @return buffer        pointer to buffer (caller must free) with serialized/signed bytes
+ *                       or NULL if the transaction has not yet been serialized.
  */
-extern uint8_t* /* DO NOT FREE - owned by the transaction object */
-rippleTransactionGetSerializedBytes(BRRippleSerializedTransaction s);
+extern uint8_t * // Caller MUST free these bytes
+rippleTransactionSerialize(BRRippleTransaction transaction, size_t * bufferSize);
 
 /**
  * Get the hash of a ripple transaction
