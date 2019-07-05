@@ -30,6 +30,7 @@
 
 #include "bitcoin/BRWalletManager.h"
 #include "ethereum/BREthereum.h"
+#include "support/BRBase.h"
 
 static void
 cryptoWalletManagerRelease (BRCryptoWalletManager cwm);
@@ -88,6 +89,8 @@ cwmGetBlockNumberAsBTC (BRWalletManagerClientContext context,
 static void
 cwmGetTransactionsAsBTC (BRWalletManagerClientContext context,
                          BRWalletManager manager,
+                         const char **addresses,
+                         size_t addressCount,
                          uint64_t begBlockNumber,
                          uint64_t endBlockNumber,
                          int rid) {
@@ -97,19 +100,8 @@ cwmGetTransactionsAsBTC (BRWalletManagerClientContext context,
     callbackState->type = CWM_CALLBACK_TYPE_BTC_GET_TRANSACTIONS;
     callbackState->rid = rid;
 
-    BRWalletManagerGenerateUnusedAddrs (manager, 25);
+    cwm->client.btc.funcGetTransactions (cwm->client.context, cwm, callbackState, addresses, addressCount, begBlockNumber, endBlockNumber);
 
-    size_t addrCount = 0;
-    BRAddress *addrs = BRWalletManagerGetAllAddrs (manager, &addrCount);
-
-    char **addrStrings = calloc (addrCount, sizeof(char *));
-    for (size_t index = 0; index < addrCount; index ++)
-        addrStrings[index] = (char *) &addrs[index];
-
-    cwm->client.btc.funcGetTransactions (cwm->client.context, cwm, callbackState, addrStrings, addrCount, begBlockNumber, endBlockNumber);
-
-    free (addrStrings);
-    free (addrs);
     cryptoWalletManagerGive (cwm);
 }
 
@@ -117,7 +109,7 @@ static void
 cwmSubmitTransactionAsBTC (BRWalletManagerClientContext context,
                            BRWalletManager manager,
                            BRWallet *wallet,
-                           BRTransaction *transaction,
+                           OwnershipGiven BRTransaction *transaction,
                            int rid) {
     BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
 
@@ -517,13 +509,6 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
 
     cryptoTransferGive (transfer);
     cryptoWalletGive (wallet);
-}
-
-static void
-cwmPublishTransactionAsBTC (void *context,
-                            int error) {
-    BRCryptoWalletManager cwm = context;
-    (void) cwm;
 }
 
 /// MARK: ETH Callbacks
@@ -1365,7 +1350,6 @@ cwmAnnounceSubmitTransferSuccess (BRCryptoWalletManager cwm,
     assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_BTC_SUBMIT_TRANSACTION == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
-    // TODO(fix): What is the memory management story for this transaction?
     bwmAnnounceSubmit (cwm->u.btc,
                        callbackState->rid,
                        callbackState->u.btcSubmit.transaction,

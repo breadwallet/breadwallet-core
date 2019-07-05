@@ -32,6 +32,7 @@ target_sources (core
                 src/main/cpp/core/support/BRAssert.c
                 src/main/cpp/core/support/BRAssert.h
                 src/main/cpp/core/support/BRArray.h
+                src/main/cpp/core/support/BRBase.h
                 src/main/cpp/core/support/BRBIP32Sequence.c
                 src/main/cpp/core/support/BRBIP32Sequence.h
                 src/main/cpp/core/support/BRBIP39Mnemonic.c
@@ -74,6 +75,8 @@ target_sources (core
                 src/main/cpp/core/bitcoin/BRWallet.h
                 src/main/cpp/core/bitcoin/BRWalletManager.c
                 src/main/cpp/core/bitcoin/BRWalletManager.h
+                src/main/cpp/core/bitcoin/BRWalletManagerEvent.c
+                src/main/cpp/core/bitcoin/BRWalletManagerPrivate.h
 
                 # BCash files
                 src/main/cpp/core/bcash/BRBCashAddr.c

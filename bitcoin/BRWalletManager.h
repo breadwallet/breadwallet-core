@@ -28,6 +28,7 @@
 
 #include <stdio.h>
 #include "BRSyncMode.h"
+#include "BRBase.h"                 // Ownership
 #include "BRBIP32Sequence.h"        // BRMasterPubKey
 #include "BRChainParams.h"          // BRChainParams (*NOT THE STATIC DECLARATIONS*)
 #include "BRTransaction.h"
@@ -64,6 +65,8 @@ bwmAnnounceBlockNumber (BRWalletManager manager,
 typedef void
 (*BRGetTransactionsCallback) (BRWalletManagerClientContext context,
                               BRWalletManager manager,
+                              const char **addresses,
+                              size_t addressCount,
                               uint64_t begBlockNumber,
                               uint64_t endBlockNumber,
                               int rid);
@@ -71,7 +74,7 @@ typedef void
 extern int // success - data is valid
 bwmAnnounceTransaction (BRWalletManager manager,
                         int id,
-                        BRTransaction *transaction);
+                        OwnershipGiven BRTransaction *transaction);
 
 extern void
 bwmAnnounceTransactionComplete (BRWalletManager manager,
@@ -82,13 +85,13 @@ typedef void
 (*BRSubmitTransactionCallback) (BRWalletManagerClientContext context,
                                 BRWalletManager manager,
                                 BRWallet *wallet,
-                                BRTransaction *transaction,
+                                OwnershipGiven BRTransaction *transaction,
                                 int rid);
 
 extern void
 bwmAnnounceSubmit (BRWalletManager manager,
                    int rid,
-                   BRTransaction *transaction,
+                   OwnershipGiven BRTransaction *transaction,
                    int error);
 
 ///
@@ -218,12 +221,11 @@ BRWalletManagerScan (BRWalletManager manager);
  * addresses are both 'internal' and 'external' ones.
  */
 extern void
-BRWalletManagerGenerateUnusedAddrs (BRWalletManager manager,
-                                    uint32_t limit);
+BRWalletManagerGenerateUnusedAddrs (BRWalletManager manager);
 
 /**
- * Return an array of unsued addresses with up to `limit` entries.  This will generate
- * address, if needed, to provide `limit` entries.  The addresses are 'external' ones.
+ * Return an array of unused addresses.  This will generate address, if needed, to provide
+ * entries.  The addresses are 'internal' and 'external' ones.
  *
  * This is expected to be used to query the BRD BlockChainDB to identify transactions for
  * manager's wallet.
@@ -232,11 +234,7 @@ BRWalletManagerGenerateUnusedAddrs (BRWalletManager manager,
  */
 extern BRAddress *
 BRWalletManagerGetUnusedAddrs (BRWalletManager manager,
-                               uint32_t limit);
-
-extern BRAddress *
-BRWalletManagerGetUnusedAddrsLegacy (BRWalletManager manager,
-                                     uint32_t limit);
+                               size_t *addressCount);
 
 /**
  * Return an array of all addresses, used and unused, tracked by the wallet. The addresses
@@ -262,7 +260,7 @@ BRWalletManagerGetPeerManager (BRWalletManager manager);
 
 extern void
 BRWalletManagerSubmitTransaction (BRWalletManager manager,
-                                  BRTransaction *transaction,
+                                  OwnershipGiven BRTransaction *transaction,
                                   const void *seed,
                                   size_t seedLen);
 
