@@ -13,12 +13,12 @@ import java.util.Date;
 
 public interface Account {
 
-    static Account createFrom(String phrase, Date timestamp, String uids) {
-        return CryptoApi.getProvider().accountProvider().create(phrase, timestamp, uids);
+    static Account createFromPhrase(byte[] phraseUtf8, Date timestamp, String uids) {
+        return CryptoApi.getProvider().accountProvider().createFromPhrase(phraseUtf8, timestamp, uids);
     }
 
-    static Account createFrom(byte[] seed, Date timestamp, String uids) {
-        return CryptoApi.getProvider().accountProvider().create(seed, timestamp, uids);
+    static Account createFromSeed(byte[] seed, Date timestamp, String uids) {
+        return CryptoApi.getProvider().accountProvider().createFromSeed(seed, timestamp, uids);
     }
 
     Date getTimestamp();

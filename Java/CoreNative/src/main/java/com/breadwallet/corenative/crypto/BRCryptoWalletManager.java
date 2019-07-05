@@ -17,7 +17,7 @@ import com.sun.jna.PointerType;
 import com.sun.jna.StringArray;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 
 public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWalletManager {
@@ -81,17 +81,21 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
-    public void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, String phrase) {
-        byte[] phraseBytes = (phrase + "\0").getBytes(StandardCharsets.UTF_8);
+    public void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, byte[] phraseUtf8) {
+        // ensure string is null terminated
+        phraseUtf8 = Arrays.copyOf(phraseUtf8, phraseUtf8.length + 1);
 
-        Memory phraseMemory = new Memory(phraseBytes.length);
+        Memory phraseMemory = new Memory(phraseUtf8.length);
         try {
-            phraseMemory.write(0, phraseBytes, 0, phraseBytes.length);
-            ByteBuffer phraseBuffer = phraseMemory.getByteBuffer(0, phraseBytes.length);
+            phraseMemory.write(0, phraseUtf8, 0, phraseUtf8.length);
+            ByteBuffer phraseBuffer = phraseMemory.getByteBuffer(0, phraseUtf8.length);
 
             CryptoLibrary.INSTANCE.cryptoWalletManagerSubmit(this, wallet.asBRCryptoWallet(), transfer.asBRCryptoTransfer(), phraseBuffer);
         } finally {
             phraseMemory.clear();
+
+            // clear out our copy; caller responsible for original array
+            Arrays.fill(phraseUtf8, (byte) 0);
         }
     }
 

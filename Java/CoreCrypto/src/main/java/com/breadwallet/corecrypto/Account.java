@@ -15,18 +15,18 @@ import java.util.Date;
 final class Account implements com.breadwallet.crypto.Account {
 
     /* package */
-    static Account create(String phrase, Date timestamp, String uids) {
-        return new Account(CoreBRCryptoAccount.create(phrase), timestamp, uids);
+    static Account createFromPhrase(byte[] phraseUtf8, Date timestamp, String uids) {
+        return new Account(CoreBRCryptoAccount.createFromPhrase(phraseUtf8), timestamp, uids);
     }
 
     /* package */
-    static Account create(byte[] seed, Date timestamp, String uids) {
+    static Account createFromSeed(byte[] seed, Date timestamp, String uids) {
         return new Account(CoreBRCryptoAccount.createFromSeed(seed), timestamp, uids);
     }
 
     /* package */
-    static byte[] deriveSeed(String phrase) {
-        return CoreBRCryptoAccount.deriveSeed(phrase);
+    static byte[] deriveSeed(byte[] phraseUtf8) {
+        return CoreBRCryptoAccount.deriveSeed(phraseUtf8);
     }
 
     /* package */
