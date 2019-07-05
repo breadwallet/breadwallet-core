@@ -98,8 +98,41 @@ bwmAnnounceSubmit (BRWalletManager manager,
 /// Transaction Event
 ///
 typedef enum {
+    // NOTE: The transaction is NOT owned by the event handler.
+    /**
+     * For P2P and API, this event occurs once a transaction has been created for a
+     * wallet, but is not yet signed or added.
+     */
+    BITCOIN_TRANSACTION_CREATED,
+
+    /**
+     * For P2P and API, this event occurs once a transaction has been signed for a
+     * wallet, but is not yet added.
+     */
+    BITCOIN_TRANSACTION_SIGNED,
+
+    /**
+     * For P2P and API, this event occurs once a transaction has been added to a
+     * wallet (via BRWalletRegisterTransaction). Transactions are added when they have
+     * been relayed by the P2P network or synced via BlockchainDB.
+     */
     BITCOIN_TRANSACTION_ADDED,
+
+    /**
+     * For P2P, this event occurs once a transaction has been marked as CONFIRMED/UNCONFIRMED
+     * by the P2P network.
+     *
+     * For API, this event does not occur as transactions are implicitly CONFIRMED when synced.
+     */
     BITCOIN_TRANSACTION_UPDATED,
+
+    /**
+     * For P2P, this event occurs once a transaction has been deleted from a wallet
+     * (via BRWalletRemoveTransaction) as a result of an UNCONFIRMED transaction no longer
+     * being visible in the mempools of any of connected P2P peers.
+     *
+     * For API, this event does not occur as transactions are implicitly CONFIRMED when synced.
+     */
     BITCOIN_TRANSACTION_DELETED,
 } BRTransactionEventType;
 
@@ -115,9 +148,9 @@ typedef struct {
 
 typedef void
 (*BRTransactionEventCallback) (BRWalletManagerClientContext context,
-                               BRWalletManager manager,
-                               BRWallet *wallet,
-                               BRTransaction *transaction,
+                               OwnershipKept BRWalletManager manager,
+                               OwnershipKept BRWallet *wallet,
+                               OwnershipKept BRTransaction *transaction,
                                BRTransactionEvent event);
 
 ///
@@ -151,8 +184,8 @@ typedef struct {
 
 typedef void
 (*BRWalletEventCallback) (BRWalletManagerClientContext context,
-                          BRWalletManager manager,
-                          BRWallet *wallet,
+                          OwnershipKept BRWalletManager manager,
+                          OwnershipKept BRWallet *wallet,
                           BRWalletEvent event);
 
 ///
@@ -181,7 +214,7 @@ typedef struct {
 
 typedef void
 (*BRWalletManagerEventCallback) (BRWalletManagerClientContext context,
-                                 BRWalletManager manager,
+                                 OwnershipKept BRWalletManager manager,
                                  BRWalletManagerEvent event);
 
 typedef struct {
@@ -258,11 +291,33 @@ BRWalletManagerGetWallet (BRWalletManager manager);
 extern BRPeerManager *
 BRWalletManagerGetPeerManager (BRWalletManager manager);
 
+/**
+ * Creates an unsigned transaction that sends the specified amount from the wallet to the given address.
+ *
+ * @returns NULL on failure, or a transaction on success; the returned transaction must be freed using BRTransactionFree()
+ */
+extern BRTransaction *
+BRWalletManagerCreateTransaction (BRWalletManager manager,
+                                  BRWallet *wallet,
+                                  uint64_t amount,
+                                  const char *addr);
+
+/**
+ * Signs any inputs in transaction that can be signed using private keys from the wallet.
+ *
+ * @seed the master private key (wallet seed) corresponding to the master public key given when the wallet was created
+ *
+ * @return true if all inputs were signed, or false if there was an error or not all inputs were able to be signed
+ */
+extern int
+BRWalletManagerSignTransaction (BRWalletManager manager,
+                                OwnershipKept BRTransaction *transaction,
+                                const void *seed,
+                                size_t seedLen);
+
 extern void
 BRWalletManagerSubmitTransaction (BRWalletManager manager,
-                                  OwnershipGiven BRTransaction *transaction,
-                                  const void *seed,
-                                  size_t seedLen);
+                                  OwnershipGiven BRTransaction *transaction);
 
 extern void
 BRWalletManagerUpdateFeePerKB (BRWalletManager manager,

@@ -710,6 +710,46 @@ BRWalletManagerScan (BRWalletManager manager) {
                                             });
 }
 
+extern BRTransaction *
+BRWalletManagerCreateTransaction (BRWalletManager manager,
+                                  BRWallet *wallet,
+                                  uint64_t amount,
+                                  const char *addr) {
+    BRTransaction *transaction = BRWalletCreateTransaction (wallet, amount, addr);
+    if (NULL != transaction) {
+        assert (NULL != manager->client.funcTransactionEvent);
+        manager->client.funcTransactionEvent (manager->client.context,
+                                              manager,
+                                              manager->wallet,
+                                              transaction,
+                                              (BRTransactionEvent) {
+                                                  BITCOIN_TRANSACTION_CREATED
+                                              });
+    }
+
+    return transaction;
+}
+
+extern int
+BRWalletManagerSignTransaction (BRWalletManager manager,
+                                OwnershipKept BRTransaction *transaction,
+                                const void *seed,
+                                size_t seedLen) {
+    int r = (1 == BRWalletSignTransaction (manager->wallet, transaction, seed, seedLen) ? 1 : 0);
+    if (r) {
+        assert (NULL != manager->client.funcTransactionEvent);
+        manager->client.funcTransactionEvent (manager->client.context,
+                                              manager,
+                                              manager->wallet,
+                                              transaction,
+                                              (BRTransactionEvent) {
+                                                  BITCOIN_TRANSACTION_SIGNED
+                                              });
+    }
+
+    return r;
+}
+
 typedef struct {
     BRWalletManager manager;
     BRTransaction *transaction;
@@ -717,11 +757,7 @@ typedef struct {
 
 extern void
 BRWalletManagerSubmitTransaction (BRWalletManager manager,
-                                  OwnershipGiven BRTransaction *transaction,
-                                  const void *seed,
-                                  size_t seedLen) {
-    BRWalletSignTransaction (manager->wallet, transaction, seed, seedLen);
-
+                                  OwnershipGiven BRTransaction *transaction) {
     switch (manager->mode) {
         case SYNC_MODE_BRD_ONLY:
             assert (NULL != manager->client.funcSubmitTransaction);
@@ -891,7 +927,8 @@ BRWalletManagerCheckHeight (BRWalletManager manager) {
 /// MARK: Wallet Callbacks
 
 static void
-_BRWalletManagerBalanceChanged (void *info, uint64_t balanceInSatoshi) {
+_BRWalletManagerBalanceChanged (void *info,
+                                uint64_t balanceInSatoshi) {
     BRWalletManager manager = (BRWalletManager) info;
 
     assert (NULL != manager->client.funcWalletEvent);
@@ -905,7 +942,8 @@ _BRWalletManagerBalanceChanged (void *info, uint64_t balanceInSatoshi) {
 }
 
 static void
-_BRWalletManagerTxAdded   (void *info, BRTransaction *tx) {
+_BRWalletManagerTxAdded   (void *info,
+                           OwnershipKept BRTransaction *tx) {
     BRWalletManager manager = (BRWalletManager) info;
     fileServiceSave(manager->fileService, fileServiceTypeTransactions, tx);
 
@@ -920,7 +958,11 @@ _BRWalletManagerTxAdded   (void *info, BRTransaction *tx) {
 }
 
 static void
-_BRWalletManagerTxUpdated (void *info, const UInt256 *hashes, size_t count, uint32_t blockHeight, uint32_t timestamp) {
+_BRWalletManagerTxUpdated (void *info,
+                           OwnershipKept const UInt256 *hashes,
+                           size_t count,
+                           uint32_t blockHeight,
+                           uint32_t timestamp) {
     BRWalletManager manager = (BRWalletManager) info;
 
     for (size_t index = 0; index < count; index++) {
@@ -943,7 +985,10 @@ _BRWalletManagerTxUpdated (void *info, const UInt256 *hashes, size_t count, uint
 }
 
 static void
-_BRWalletManagerTxDeleted (void *info, UInt256 hash, int notifyUser, int recommendRescan) {
+_BRWalletManagerTxDeleted (void *info,
+                           UInt256 hash,
+                           int notifyUser,
+                           int recommendRescan) {
     BRWalletManager manager = (BRWalletManager) info;
     fileServiceRemove(manager->fileService, fileServiceTypeTransactions, hash);
 
@@ -960,7 +1005,8 @@ _BRWalletManagerTxDeleted (void *info, UInt256 hash, int notifyUser, int recomme
 }
 
 static void
-_BRWalletManagerTxPublished (void *info, int error) {
+_BRWalletManagerTxPublished (void *info,
+                             int error) {
     BRWalletManager manager    = ((SubmitTransactionInfo*) info)->manager;
     BRTransaction *transaction = ((SubmitTransactionInfo*) info)->transaction;
     free (info);
@@ -978,7 +1024,10 @@ _BRWalletManagerTxPublished (void *info, int error) {
 /// MARK: - Peer Manager Callbacks
 
 static void
-_BRWalletManagerSaveBlocks (void *info, int replace, BRMerkleBlock **blocks, size_t count) {
+_BRWalletManagerSaveBlocks (void *info,
+                            int replace,
+                            OwnershipKept BRMerkleBlock **blocks,
+                            size_t count) {
     BRWalletManager manager = (BRWalletManager) info;
 
     if (replace) fileServiceClear(manager->fileService, fileServiceTypeBlocks);
@@ -987,7 +1036,10 @@ _BRWalletManagerSaveBlocks (void *info, int replace, BRMerkleBlock **blocks, siz
 }
 
 static void
-_BRWalletManagerSavePeers  (void *info, int replace, const BRPeer *peers, size_t count) {
+_BRWalletManagerSavePeers  (void *info,
+                            int replace,
+                            OwnershipKept const BRPeer *peers,
+                            size_t count) {
     BRWalletManager manager = (BRWalletManager) info;
 
     if (replace) fileServiceClear(manager->fileService, fileServiceTypePeers);
