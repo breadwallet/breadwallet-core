@@ -545,8 +545,9 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
         }
 
         case BITCOIN_TRANSACTION_UPDATED: {
-            // This event occurs when the timestamp and/or blockHeight have been changed.
-            // Regardless of if this was a user created transaction or if it came from a
+            // This event occurs when the timestamp and/or blockHeight have been changed
+            // due to the transaction being confirmed or unconfirmed (in the case of a blockchain
+            // reorg). Regardless of if this was a user created transaction or if it came from a
             // sync, we are holding a copy of the transaction that BRWalletManager has.
             // As a result, we need to update our copy of the transaction.
 

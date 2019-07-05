@@ -172,13 +172,8 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
                 TransferConfirmation c2 = oc2.get();
 
                 int blockCompare = c1.getBlockNumber().compareTo(c2.getBlockNumber());
-                int dateCompare = c1.getConfirmationTime().compareTo(c2.getConfirmationTime());
                 int indexCompare = c1.getTransactionIndex().compareTo(c2.getTransactionIndex());
-                return (blockCompare != 0
-                        ? blockCompare
-                        : (dateCompare != 0
-                        ? dateCompare
-                        : indexCompare));
+                return (blockCompare != 0 ? blockCompare : indexCompare);
 
             } else if (oc1.isPresent()) {
                 return -1;
