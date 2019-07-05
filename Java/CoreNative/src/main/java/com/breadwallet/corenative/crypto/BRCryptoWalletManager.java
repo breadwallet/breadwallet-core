@@ -84,16 +84,17 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     public void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, byte[] phraseUtf8) {
         // ensure string is null terminated
         phraseUtf8 = Arrays.copyOf(phraseUtf8, phraseUtf8.length + 1);
-
-        Memory phraseMemory = new Memory(phraseUtf8.length);
         try {
-            phraseMemory.write(0, phraseUtf8, 0, phraseUtf8.length);
-            ByteBuffer phraseBuffer = phraseMemory.getByteBuffer(0, phraseUtf8.length);
+            Memory phraseMemory = new Memory(phraseUtf8.length);
+            try {
+                phraseMemory.write(0, phraseUtf8, 0, phraseUtf8.length);
+                ByteBuffer phraseBuffer = phraseMemory.getByteBuffer(0, phraseUtf8.length);
 
-            CryptoLibrary.INSTANCE.cryptoWalletManagerSubmit(this, wallet.asBRCryptoWallet(), transfer.asBRCryptoTransfer(), phraseBuffer);
+                CryptoLibrary.INSTANCE.cryptoWalletManagerSubmit(this, wallet.asBRCryptoWallet(), transfer.asBRCryptoTransfer(), phraseBuffer);
+            } finally {
+                phraseMemory.clear();
+            }
         } finally {
-            phraseMemory.clear();
-
             // clear out our copy; caller responsible for original array
             Arrays.fill(phraseUtf8, (byte) 0);
         }
