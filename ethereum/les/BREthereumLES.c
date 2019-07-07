@@ -1230,6 +1230,12 @@ lesThread (BREthereumLES les) {
                                             : (BREthereumNode) les->requests[index].nodeReference);
 #undef ACTIVE_NODE
 
+                // If `nodeToUse` is NULL, then there may be no active nodes.  We'll leave the
+                // request unchanged and thus will come back to handling the request once we have
+                // some active nodes.
+                //
+                // TODO: Consider a timeout on a request beging handled?
+
                 if (NULL != nodeToUse && nodeHasState (nodeToUse, NODE_ROUTE_TCP, NODE_CONNECTED)) {
 
                     les->requests[index].node = nodeToUse;
@@ -1584,7 +1590,11 @@ lesAddRequest (BREthereumLES les,
     if (NODE_REFERENCE_ALL != node)
         lesAddRequestSpecifically (les, node, context, callback, provision);
     else {
-        for (BREthereumNodeReference ns = NODE_REFERENCE_0; ns <= NODE_REFERENCE_4; ns++)
+        // We'll make NODE_REFERENCE_MAX - NODE_REFERENCE_MIN specific requests.  Since we have at
+        // most LES_ACTIVE_NODE_COUNT active nodes, we might not get (MAX - MIN) actual requests
+        // but only as many as the number of active nodes.  See ACTIVE_NODE above (which might
+        // discard node reference over the active nodes).
+        for (BREthereumNodeReference ns = NODE_REFERENCE_MIN; ns <= NODE_REFERENCE_MAX; ns++)
             lesAddRequestSpecifically (les, ns, context, callback,
                                        provisionCopy (&provision, ETHEREUM_BOOLEAN_FALSE));
         // Handle `OwnershipGiven`
