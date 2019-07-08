@@ -52,7 +52,26 @@ final class Network implements com.breadwallet.crypto.Network {
 
         core.setHeight(height);
         core.setCurrency(currency.getCoreBRCryptoCurrency());
-        return new Network(core, associations);
+
+        for (Map.Entry<Currency, NetworkAssociation> entry: associations.entrySet()) {
+            Currency associationCurrency = entry.getKey();
+            NetworkAssociation association = entry.getValue();
+
+            core.addCurrency(associationCurrency.getCoreBRCryptoCurrency(),
+                    association.getBaseUnit().getCoreBRCryptoUnit(),
+                    association.getDefaultUnit().getCoreBRCryptoUnit());
+
+            for (Unit unit: association.getUnits()) {
+                core.addCurrencyUnit(associationCurrency.getCoreBRCryptoCurrency(), unit.getCoreBRCryptoUnit());
+            }
+        }
+
+        return new Network(core);
+    }
+
+    /* package */
+    static Network create(CoreBRCryptoNetwork core) {
+        return new Network(core);
     }
 
     /* package */
@@ -72,21 +91,8 @@ final class Network implements com.breadwallet.crypto.Network {
     private final Currency currency;
     private final Set<Currency> currencies;
 
-    private Network(CoreBRCryptoNetwork core, Map<Currency, NetworkAssociation> associations) {
+    private Network(CoreBRCryptoNetwork core) {
         this.core = core;
-
-        for (Map.Entry<Currency, NetworkAssociation> entry: associations.entrySet()) {
-            Currency currency = entry.getKey();
-            NetworkAssociation association = entry.getValue();
-
-            core.addCurrency(currency.getCoreBRCryptoCurrency(),
-                    association.getBaseUnit().getCoreBRCryptoUnit(),
-                    association.getDefaultUnit().getCoreBRCryptoUnit());
-
-            for (Unit unit: association.getUnits()) {
-                core.addCurrencyUnit(currency.getCoreBRCryptoCurrency(), unit.getCoreBRCryptoUnit());
-            }
-        }
 
         type = core.getType();
         uids = core.getUids();

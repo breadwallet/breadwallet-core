@@ -559,6 +559,9 @@ extension WalletManager {
             funcGetBlockNumber: { (context, cwm, sid) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
                 precondition (nil != cwm, "SYS: BTC: GetBlockNumber: Missed {cwm}")
+                defer {
+                    if let cwm = cwm { cryptoWalletManagerGive(cwm) }
+                }
 
                 print ("SYS: BTC: GetBlockNumber")
                 manager.query.getBlockchain (blockchainId: manager.network.uids) { (res: Result<BlockChainDB.Model.Blockchain, BlockChainDB.QueryError>) in
@@ -570,6 +573,9 @@ extension WalletManager {
             funcGetTransactions: { (context, cwm, sid, addresses, addressesCount, begBlockNumber, endBlockNumber) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
                 precondition (nil != cwm, "SYS: BTC: GetTransactions: Missed {cwm}")
+                defer {
+                    if let cwm = cwm { cryptoWalletManagerGive(cwm) }
+                }
 
                 print ("SYS: BTC: GetTransactions: Blocks: {\(begBlockNumber), \(endBlockNumber)}")
 
@@ -672,6 +678,9 @@ extension WalletManager {
             funcSubmitTransaction: { (context, cwm, sid, transactionBytes, transactionBytesLength) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
                 precondition (nil != cwm, "SYS: BTC: SubmitTransaction: Missed {cwm}")
+                defer {
+                    if let cwm = cwm { cryptoWalletManagerGive(cwm) }
+                }
 
                 print ("SYS: BTC: SubmitTransaction")
                 let data = Data (bytes: transactionBytes!, count: transactionBytesLength)
@@ -690,6 +699,9 @@ extension WalletManager {
         return BRCryptoCWMClientETH (
             funcGetEtherBalance: { (context, cwm, sid, network, address) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                defer {
+                    if let cwm = cwm { cryptoWalletManagerGive(cwm) }
+                }
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
@@ -704,6 +716,9 @@ extension WalletManager {
 
             funcGetTokenBalance: { (context, cwm, sid, network, address, contract) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                defer {
+                    if let cwm = cwm { cryptoWalletManagerGive(cwm) }
+                }
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
@@ -719,6 +734,9 @@ extension WalletManager {
 
             funcGetGasPrice: { (context, cwm, sid, network) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                defer {
+                    if let cwm = cwm { cryptoWalletManagerGive(cwm) }
+                }
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
@@ -732,6 +750,9 @@ extension WalletManager {
 
             funcEstimateGas: { (context, cwm, sid, network, from, to, amount, data) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                defer {
+                    if let cwm = cwm { cryptoWalletManagerGive(cwm) }
+                }
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
@@ -749,6 +770,9 @@ extension WalletManager {
 
             funcSubmitTransaction: { (context, cwm, sid, network, transaction) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                defer {
+                    if let cwm = cwm { cryptoWalletManagerGive(cwm) }
+                }
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
@@ -763,6 +787,9 @@ extension WalletManager {
 
             funcGetTransactions: { (context, cwm, sid, network, address, begBlockNumber, endBlockNumber) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                defer {
+                    if let cwm = cwm { cryptoWalletManagerGive(cwm) }
+                }
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
@@ -800,6 +827,9 @@ extension WalletManager {
 
             funcGetLogs: { (context, cwm, sid, network, contract, address, event, begBlockNumber, endBlockNumber) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                defer {
+                    if let cwm = cwm { cryptoWalletManagerGive(cwm) }
+                }
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
@@ -837,6 +867,9 @@ extension WalletManager {
 
             funcGetBlocks: { (context, cwm, sid, network, address, interests, begBlockNumber, endBlockNumber) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                defer {
+                    if let cwm = cwm { cryptoWalletManagerGive(cwm) }
+                }
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
@@ -860,6 +893,9 @@ extension WalletManager {
 
             funcGetTokens: { (context, cwm, sid) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                defer {
+                    if let cwm = cwm { cryptoWalletManagerGive(cwm) }
+                }
 
                 manager.query.getTokensAsETH () {
                     (res: Result<[BlockChainDB.ETH.Token],BlockChainDB.QueryError>) in
@@ -881,6 +917,9 @@ extension WalletManager {
 
             funcGetBlockNumber: { (context, cwm, sid, network) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                defer {
+                    if let cwm = cwm { cryptoWalletManagerGive(cwm) }
+                }
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
@@ -894,6 +933,9 @@ extension WalletManager {
 
             funcGetNonce: { (context, cwm, sid, network, address) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                defer {
+                    if let cwm = cwm { cryptoWalletManagerGive(cwm) }
+                }
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network = asUTF8String (networkGetName (ewmGetNetwork (ewm)))

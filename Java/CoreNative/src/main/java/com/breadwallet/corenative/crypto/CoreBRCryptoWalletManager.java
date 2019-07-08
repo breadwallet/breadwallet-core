@@ -15,16 +15,20 @@ import java.util.List;
 
 public interface CoreBRCryptoWalletManager {
 
-    static CoreBRCryptoWalletManager create(BRCryptoWalletManager manager) {
-        return new OwnedBRCryptoWalletManager(manager);
-    }
-
     static CoreBRCryptoWalletManager create(BRCryptoCWMListener.ByValue listener, BRCryptoCWMClient.ByValue client,
                                             CoreBRCryptoAccount account, CoreBRCryptoNetwork network, int mode,
                                             String path) {
         return new OwnedBRCryptoWalletManager(CryptoLibrary.INSTANCE.cryptoWalletManagerCreate(
                 listener, client, account.asBRCryptoAccount(), network.asBRCryptoNetwork(), mode, path));
     }
+
+    static CoreBRCryptoWalletManager createOwned(BRCryptoWalletManager manager) {
+        return new OwnedBRCryptoWalletManager(manager);
+    }
+
+    CoreBRCryptoAccount getAccount();
+
+    CoreBRCryptoNetwork getNetwork();
 
     CoreBRCryptoWallet getWallet();
 

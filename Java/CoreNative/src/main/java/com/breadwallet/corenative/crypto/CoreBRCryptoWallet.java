@@ -11,7 +11,7 @@ import com.google.common.primitives.UnsignedLong;
 
 public interface CoreBRCryptoWallet {
 
-    static CoreBRCryptoWallet create(BRCryptoWallet wallet) {
+    static CoreBRCryptoWallet createOwned(BRCryptoWallet wallet) {
         return new OwnedBRCryptoWallet(wallet);
     }
 
