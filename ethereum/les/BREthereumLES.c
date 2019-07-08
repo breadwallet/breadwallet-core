@@ -1093,8 +1093,9 @@ lesThreadBootstrapSeeds (BREthereumLES les) {
 #if defined (LES_BOOTSTRAP_LCL_ONLY)
         { NODE_TYPE_PARITY,  NODE_PRIORITY_LCL, networkGetEnodesLocal (les->network, 1) },
         { NODE_TYPE_GETH,    NODE_PRIORITY_LCL, networkGetEnodesLocal (les->network, 0) },
-#else
+#elif defined (LES_BOOTSTRAP_BRD_ONLY)
         { NODE_TYPE_UNKNOWN, NODE_PRIORITY_BRD, networkGetEnodesBRD (les->network) },
+#else
         { NODE_TYPE_UNKNOWN, NODE_PRIORITY_DIS, networkGetEnodesCommunity (les->network) },
 #endif
         { NODE_TYPE_UNKNOWN, NODE_PRIORITY_DIS, NULL }

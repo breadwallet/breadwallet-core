@@ -600,6 +600,9 @@ bcsHandleSubmitTransaction (BREthereumBCS bcs,
     int pendingIndex = bcsLookupPendingTransaction (bcs, hash);
     if (-1 != pendingIndex) return;  // already pending, so skip out.
 
+    // We only ever submit transactions that are UNKNOWN.
+    assert (TRANSACTION_STATUS_UNKNOWN == transactionGetStatus(transaction).type);
+
     // Make the transaction pending.
     bcsPendTransaction(bcs, transaction);
 
@@ -1892,7 +1895,7 @@ bcsHandleTransactionReceiptsMultiple (BREthereumBCS bcs,
  *     Note: we'll only remove from pending if two back-to-back nodes report the same status.
  *
  *  b) if a node reports a transaction as errored (other than 'dropped'), we'll remove the
- *     transaction from pending and mark the transaction as ERRORED.  If is posslble that the
+ *     transaction from pending and mark the transaction as ERRORED.  It is posslble that the
  *     transaction does get included in a subsequently announced block.  Having the tranaction
  *     subsequently included implies a race condition between nodes, I think.  Note: we'll only
  *     remote from pending if two back-to-back statuses report the same error.
@@ -1901,6 +1904,11 @@ bcsHandleTransactionReceiptsMultiple (BREthereumBCS bcs,
  *     on its face) we'll ignore the UNKNOWN status.  The transaction stays pending, future status
  *     requests occur and we'll hopefully get better status info.  Or, the transaction will be
  *     part of an announced block.
+ *
+ * There are races here.  Say we've connected to two nodes that are reliably reporting status.  We
+ * get a TxStatus response from A, B and then B, A.  If 'B' is error, we'll declare the transaction
+ * in error and unpend.  However, as we noted above, once the transaction is in a block, it will
+ * move to INCLUDED.
  *
  * What does this imply from a User's perspective.  They might see a transaction in error that
  * comes back to life as INCLUDED.  Worse, they might see a transaction in error and try to
@@ -1940,12 +1948,15 @@ bcsHandleTransactionStatus (BREthereumBCS bcs,
             return;
 
         case TRANSACTION_STATUS_QUEUED:
-            needStatus = TRANSACTION_STATUS_UNKNOWN == oldStatus.type;
+            // See below comment in PENDING.
+            needStatus = TRANSACTION_STATUS_QUEUED != oldStatus.type;
             break;
 
         case TRANSACTION_STATUS_PENDING:
-            needStatus = (TRANSACTION_STATUS_UNKNOWN == oldStatus.type ||
-                          TRANSACTION_STATUS_QUEUED  == oldStatus.type);
+            // Be willing to go PENDING no matter the prior status.  In particular, if some status
+            // is ERROR (like a node is syncing and reject sthe transaction submission outright) and
+            // some other node reports PENDING, then go to PENDING (needStatus = 1).
+            needStatus = TRANSACTION_STATUS_PENDING != oldStatus.type;
             break;
 
         case TRANSACTION_STATUS_INCLUDED:
