@@ -2286,7 +2286,8 @@ bcsHandleProvision (BREthereumBCS bcs,
                              provisionGetTypeName(provision->type));
                     break;
 
-                default: break;
+                case PROVISION_ERROR_NODE_DATA:
+                    break;
             }
             break;
 

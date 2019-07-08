@@ -1440,6 +1440,10 @@ lesThread (BREthereumLES les) {
                 array_count(les->availableNodes) > 0) {
                 BREthereumNode node = les->availableNodes[0];
 
+                // This blocks on Unix connect() and then loops on select() for EINPROGRESS.
+                // Really, really we need NODE_CONNECT_OPEN_SOCKET_IN_PROGRESS with a small
+                // timeout on connect().
+                
                 nodeConnect (node, NODE_ROUTE_TCP, now);
 
                 switch (nodeGetState(node, NODE_ROUTE_TCP).type) {
