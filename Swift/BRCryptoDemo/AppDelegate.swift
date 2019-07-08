@@ -144,9 +144,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
         DispatchQueue.global().async {
             sleep (5)
             self.ethManager.updateTokens()
-            self.btcManager.connect();
-            self.bchManager.connect();
-            self.ethManager.connect();
+            if (nil != self.btcManager) { self.btcManager.connect(); }
+            if (nil != self.bchManager) { self.bchManager.connect(); }
+            if (nil != self.ethManager) { self.ethManager.connect(); }
         }
     }
 
