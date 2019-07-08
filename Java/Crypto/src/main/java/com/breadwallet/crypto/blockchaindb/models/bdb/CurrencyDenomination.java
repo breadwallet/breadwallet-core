@@ -34,7 +34,7 @@ public class CurrencyDenomination {
 
 
     public static CurrencyDenomination BCH_BITCOIN = new CurrencyDenomination(
-            "bitcoin", "bch", UnsignedInteger.valueOf(8), lookupSymbol("bch"));
+            "bitcoin cash", "bch", UnsignedInteger.valueOf(8), lookupSymbol("bch"));
 
 
     public static CurrencyDenomination ETH_WEI = new CurrencyDenomination(
