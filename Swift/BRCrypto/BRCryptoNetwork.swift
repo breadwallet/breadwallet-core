@@ -38,6 +38,11 @@ public final class Network: CustomStringConvertible {
     /// and then have their preferred fee held in WalletManager.defaultNetworkFee.
     public let fees: [NetworkFee];
 
+    /// Return the minimum fee which should be the fee with the largest confirmation time
+    public var minimumFee: NetworkFee? {
+        return fees.min { $0.timeIntervalInMilliseconds > $1.timeIntervalInMilliseconds }
+    }
+
     /// The native currency.
     public let currency: Currency
 

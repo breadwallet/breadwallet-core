@@ -323,7 +323,11 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
         }
 
         case BITCOIN_WALLET_FEE_PER_KB_UPDATED: {
-            BRCryptoFeeBasis feeBasis = cryptoFeeBasisCreateAsBTC (event.u.feePerKb.value);
+            BRCryptoUnit feeUnit = cryptoWalletGetUnitForFee(wallet);
+
+            BRCryptoFeeBasis feeBasis = cryptoFeeBasisCreateAsBTC (feeUnit,
+                                                                   event.u.feePerKb.value,
+                                                                   1000);
 
             cwm->listener.walletEventCallback (cwm->listener.context,
                                                cryptoWalletManagerTake (cwm),
@@ -332,6 +336,8 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
                                                    CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED,
                                                    { .feeBasisUpdated = { feeBasis }}
                                                });
+
+            cryptoUnitGive (feeUnit);
             break;
         }
 
@@ -433,6 +439,9 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
     switch (event.type) {
 
         case BITCOIN_TRANSACTION_CREATED: {
+            BRCryptoUnit unit         = cryptoWalletGetUnit (wallet);
+            BRCryptoUnit unitForFee = cryptoWalletGetUnitForFee(wallet);
+
             // This event occurs for a user created transaction. We create the
             // cryptoTransfer using the btcTransaction, rather than a copy. That is
             // because at this point, the transaction is not signed. As a result, we
@@ -445,7 +454,8 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
             assert (!BRTransactionIsSigned (btcTransaction));
 
             // The transfer finally - based on the wallet's currency (BTC)
-            BRCryptoTransfer transfer = cryptoTransferCreateAsBTC (cryptoWalletGetCurrency (wallet),
+            BRCryptoTransfer transfer = cryptoTransferCreateAsBTC (unit,
+                                                                   unitForFee,
                                                                    cryptoWalletAsBTC (wallet),
                                                                    btcTransaction);
 
@@ -471,6 +481,8 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
                                                });
 
             cryptoTransferGive (transfer);
+            cryptoUnitGive (unitForFee);
+            cryptoUnitGive (unit);
             break;
         }
 
@@ -515,9 +527,12 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
 
             BRCryptoTransfer transfer = cryptoWalletFindTransferAsBTC (wallet, btcTransaction); // taken
             if (NULL == transfer) {
+                BRCryptoUnit unit         = cryptoWalletGetUnit (wallet);
+                BRCryptoUnit unitForFee = cryptoWalletGetUnitForFee(wallet);
 
                 // The transfer finally - based on the wallet's currency (BTC)
-                transfer = cryptoTransferCreateAsBTC (cryptoWalletGetCurrency (wallet),
+                transfer = cryptoTransferCreateAsBTC (unit,
+                                                      unitForFee,
                                                       cryptoWalletAsBTC (wallet),
                                                       BRTransactionCopy (btcTransaction));
 
@@ -541,7 +556,10 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
                                                        CRYPTO_WALLET_EVENT_TRANSFER_ADDED,
                                                        { .transfer = { cryptoTransferTake (transfer) }}
                                                    });
-            }
+
+                cryptoUnitGive (unitForFee);
+                cryptoUnitGive (unit);
+           }
 
             // ... update state to reflect included if the timestamp and block height are already set
             if (0 != btcTransaction->timestamp && TX_UNCONFIRMED != btcTransaction->blockHeight) {
@@ -880,8 +898,11 @@ cwmWalletEventAsETH (BREthereumClientContext context,
         case WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED:
         case WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED:
             if (NULL != wallet) {
-                BRCryptoFeeBasis feeBasis = cryptoFeeBasisCreateAsETH(ewmWalletGetDefaultGasLimit(cwm->u.eth, wid),
-                                                                      ewmWalletGetDefaultGasPrice(cwm->u.eth,wid));
+                BRCryptoUnit feeUnit = cryptoWalletGetUnitForFee(wallet);
+
+                BRCryptoFeeBasis feeBasis = cryptoFeeBasisCreateAsETH (feeUnit,
+                                                                       ewmWalletGetDefaultGasLimit(cwm->u.eth, wid),
+                                                                       ewmWalletGetDefaultGasPrice(cwm->u.eth,wid));
                 cwm->listener.walletEventCallback(cwm->listener.context,
                                                   cryptoWalletManagerTake(cwm),
                                                   wallet,
@@ -889,6 +910,8 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                                                       CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED,
                                                       {.feeBasisUpdated = {feeBasis}}
                                                   });
+
+                cryptoUnitGive (feeUnit);
             }
             break;
 
@@ -967,11 +990,16 @@ cwmTransactionEventAsETH (BREthereumClientContext context,
     if (NULL != transfer) oldState = cryptoTransferGetState (transfer);
 
     switch (event) {
-        case TRANSFER_EVENT_CREATED:
+        case TRANSFER_EVENT_CREATED: {
             assert (NULL == transfer);
+
+            BRCryptoUnit unit         = cryptoWalletGetUnit (wallet);
+            BRCryptoUnit unitForFee = cryptoWalletGetUnitForFee(wallet);
+
             // if (NULL != transfer) cryptoTransferGive (transfer);
 
-            transfer = cryptoTransferCreateAsETH (cryptoWalletGetCurrency (wallet),
+            transfer = cryptoTransferCreateAsETH (unit,
+                                                  unitForFee,
                                                   cwm->u.eth,
                                                   tid); // taken
 
@@ -992,7 +1020,11 @@ cwmTransactionEventAsETH (BREthereumClientContext context,
                                                    CRYPTO_WALLET_EVENT_TRANSFER_ADDED,
                                                    { .transfer = { transfer }}
                                                });
+
+            cryptoUnitGive (unitForFee);
+            cryptoUnitGive (unit);
             break;
+        }
 
         case TRANSFER_EVENT_SIGNED:
             if (NULL != transfer) {

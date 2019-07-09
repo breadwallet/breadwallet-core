@@ -559,8 +559,11 @@ cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
     // TODO: Determine the currency from `transferGeneric`
     BRCryptoCurrency currency = cryptoNetworkGetCurrency (cwm->network);
 
+    BRCryptoUnit unit = cryptoNetworkGetUnitAsBase (cwm->network, currency);
+    BRCryptoUnit unitForFee = cryptoNetworkGetUnitAsBase (cwm->network, currency);
+
     // Create the generic transfers...
-    BRCryptoTransfer transfer = cryptoTransferCreateAsGEN (currency, cwm->u.gen, transferGeneric);
+    BRCryptoTransfer transfer = cryptoTransferCreateAsGEN (unit, unitForFee, cwm->u.gen, transferGeneric);
 
     // TODO: Determine the wallet from transfer/transferGeneric
     BRCryptoWallet   wallet   = cwm->wallet;
@@ -586,5 +589,8 @@ cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
                                            { .transfer = { transfer }}
                                        });
 
+    cryptoUnitGive(unitForFee);
+    cryptoUnitGive(unit);
+    cryptoCurrencyGive(currency);
 }
 

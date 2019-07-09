@@ -83,8 +83,8 @@ public final class System {
                                      mode: mode,
                                      storagePath: path,
                                      listener: cryptoListener,
-                                     client: cryptoClient   )
-        
+                                     client: cryptoClient)
+
         self.add (manager: manager)
     }
 
@@ -521,8 +521,7 @@ extension System {
                                                         event: WalletEvent.balanceUpdated(amount: amount))
 
                 case CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED:
-                    let feeBasis = TransferFeeBasis (core: event.u.feeBasisUpdated.basis,
-                                                     take: false)
+                    let feeBasis = TransferFeeBasis (core: event.u.feeBasisUpdated.basis, take: false)
                     system.listener?.handleWalletEvent (system: manager.system,
                                                         manager: manager,
                                                         wallet: wallet,

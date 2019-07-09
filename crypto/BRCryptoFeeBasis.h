@@ -13,6 +13,8 @@
 #define BRCryptoFeeBasis_h
 
 #include "BRCryptoBase.h"
+#include "BRCryptoCurrency.h"
+#include "BRCryptoAmount.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -22,7 +24,19 @@ extern "C" {
 
     extern BRCryptoBlockChainType
     cryptoFeeBasisGetType (BRCryptoFeeBasis feeBasis);
-    
+
+    extern BRCryptoAmount
+    cryptoFeeBasisGetPricePerCostFactor (BRCryptoFeeBasis feeBasis);
+
+    extern BRCryptoUnit
+    cryptoFeeBasisGetPricePerCostFactorUnit (BRCryptoFeeBasis feeBasis);
+
+    extern uint64_t
+    cryptoFeeBasisGetCostFactor (BRCryptoFeeBasis feeBasis);
+
+    extern BRCryptoAmount
+    cryptoFeeBasisGetFee (BRCryptoFeeBasis feeBasis);
+
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoFeeBasis, cryptoFeeBasis);
 
 #ifdef __cplusplus
