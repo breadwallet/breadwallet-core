@@ -526,7 +526,7 @@
 		3CAB60A820AF8C8500810CE4 /* CoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTests.swift; sourceTree = "<group>"; };
 		3CAB60AA20AF8C8500810CE4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		3CAB60E920AF8F3E00810CE4 /* CoreTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CoreTests-Bridging-Header.h"; sourceTree = "<group>"; };
-		3CC48D49221CD1F200067EFC /* CoreTestsConfig.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = CoreTestsConfig.plist; sourceTree = "<group>"; };
+		3CC48D49221CD1F200067EFC /* CoreTestsConfig.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = CoreTestsConfig.json; sourceTree = "<group>"; };
 		3CCB1343224D1B1700ADCDB9 /* BRBlockChainDB.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BRBlockChainDB.swift; sourceTree = "<group>"; };
 		3CCB1347224D1B1700ADCDB9 /* BRCryptoSystem.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BRCryptoSystem.swift; sourceTree = "<group>"; };
 		3CCB1354224D3F7500ADCDB9 /* testCrypto.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testCrypto.c; sourceTree = "<group>"; };
@@ -1155,7 +1155,7 @@
 				3CAB60E920AF8F3E00810CE4 /* CoreTests-Bridging-Header.h */,
 				3CAB60A820AF8C8500810CE4 /* CoreTests.swift */,
 				3CAB60AA20AF8C8500810CE4 /* Info.plist */,
-				3CC48D49221CD1F200067EFC /* CoreTestsConfig.plist */,
+				3CC48D49221CD1F200067EFC /* CoreTestsConfig.json */,
 			);
 			path = CoreTests;
 			sourceTree = "<group>";
@@ -1223,10 +1223,10 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 3C0EADFF2188D920000577A6 /* Build configuration list for PBXNativeTarget "BRCryptoTests" */;
 			buildPhases = (
-				3CCB1364224D97AF00ADCDB9 /* Ensure CoreTestsConfig.plist */,
+				3CCB1364224D97AF00ADCDB9 /* Ensure CoreTestsConfig.json */,
 				3C0EADEF2188D91F000577A6 /* Sources */,
 				3C0EADF02188D91F000577A6 /* Frameworks */,
-				3CCB1365224D9B2600ADCDB9 /* Copy CoreTestsConfig.plist as Resource */,
+				3CCB1365224D9B2600ADCDB9 /* Copy CoreTestsConfig as Resource */,
 				3C0EADF12188D91F000577A6 /* Resources */,
 			);
 			buildRules = (
@@ -1315,10 +1315,10 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 3CAB60AE20AF8C8500810CE4 /* Build configuration list for PBXNativeTarget "CoreTests" */;
 			buildPhases = (
-				3CC48D4D221CD7E000067EFC /* Ensure CoreTestsConfig.plist */,
+				3CC48D4D221CD7E000067EFC /* Ensure CoreTestsConfig */,
 				3CAB60A220AF8C8500810CE4 /* Sources */,
 				3CAB60A320AF8C8500810CE4 /* Frameworks */,
-				3C8EDD042232F54900D5D146 /* Copy CoreTestsConfig.plist As Bundle Resource */,
+				3C8EDD042232F54900D5D146 /* Copy CoreTestsConfig As Bundle Resource */,
 				3CAB60A420AF8C8500810CE4 /* Resources */,
 			);
 			buildRules = (
@@ -1446,7 +1446,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		3C8EDD042232F54900D5D146 /* Copy CoreTestsConfig.plist As Bundle Resource */ = {
+		3C8EDD042232F54900D5D146 /* Copy CoreTestsConfig As Bundle Resource */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -1455,17 +1455,17 @@
 			);
 			inputPaths = (
 			);
-			name = "Copy CoreTestsConfig.plist As Bundle Resource";
+			name = "Copy CoreTestsConfig As Bundle Resource";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "RES_FILE=\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\"\nTGT_FILE=\"${CONFIGURATION_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/CoreTestsConfig.plist\"\ncp \"${RES_FILE}\" \"${TGT_FILE}\"\necho \"Copied \\\"${RES_FILE}\\\" to \\\"${TGT_FILE}\\\"\"\n";
+			shellScript = "RES_FILE=\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.json\"\nTGT_FILE=\"${CONFIGURATION_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/CoreTestsConfig.json\"\ncp \"${RES_FILE}\" \"${TGT_FILE}\"\necho \"Copied \\\"${RES_FILE}\\\" to \\\"${TGT_FILE}\\\"\"\n";
 			showEnvVarsInLog = 0;
 		};
-		3CC48D4D221CD7E000067EFC /* Ensure CoreTestsConfig.plist */ = {
+		3CC48D4D221CD7E000067EFC /* Ensure CoreTestsConfig */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -1474,16 +1474,16 @@
 			);
 			inputPaths = (
 			);
-			name = "Ensure CoreTestsConfig.plist";
+			name = "Ensure CoreTestsConfig";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "SRC_FILE=\"${HOME}/.brdCoreTestsConfig.plist\"\nTGT_FILE=\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\"\n\nif [ -f \"${SRC_FILE}\"  ]; then \n  cp \"${SRC_FILE}\" \"${TGT_FILE}\"\n  chmod 644 \"${TGT_FILE}\"\n  if [ ! -f \"${TGT_FILE}\" ]; then\n    echo \"Copy to  \\\"${TGT_FILE}\\\" failed.\"\n  else\n    echo \"Copied \\\"${SRC_FILE}\\\" to \\\"${TGT_FILE}\\\"\"\n  fi\nelse\n  echo \"Missing file ${SRC_FILE} - You must provide this file with a form like:\"\n  echo \"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\"\n  echo \"  <!DOCTYPE plist PUBLIC \\\"-//Apple//DTD PLIST 1.0//EN\\\" \\\"http://www.apple.com/DTDs/PropertyList-1.0.dtd\\\">\"\n  echo \"  <plist version=\\\"1.0\\\">\"\n  echo \"  <dict>\"\n  echo \"    <key>paperKeysTestnet</key>\"\n  echo \"    <array>\"\n  echo \"      <string>\\\"some paper key\\\"</string>\"\n  echo \"      ...\"\n  echo \"    </array>\"\n  echo \"    <key>paperKeysMainnet</key>\"\n  echo \"    <array>\"\n  echo \"      <string>\\\"some other paper key\\\"</string>\"\n  echo \"      ...\"\n  echo \"     </array>\"\n  echo \"    </dict>\"\n  echo \"  </plist>\"\n  exit 1\nfi\n";
+			shellScript = "SRC_FILE=\"${HOME}/.brdCoreTestsConfig.json\"\nTGT_FILE=\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.json\"\n\nif [ -f \"${SRC_FILE}\"  ]; then \n  cp \"${SRC_FILE}\" \"${TGT_FILE}\"\n  chmod 644 \"${TGT_FILE}\"\n  if [ ! -f \"${TGT_FILE}\" ]; then\n    echo \"Copy to  \\\"${TGT_FILE}\\\" failed.\"\n  else\n    echo \"Copied \\\"${SRC_FILE}\\\" to \\\"${TGT_FILE}\\\"\"\n  fi\nelse\n  echo \"Missing file ${SRC_FILE} - You must provide this file.\"\n  exit 1\nfi\n";
 		};
-		3CCB1364224D97AF00ADCDB9 /* Ensure CoreTestsConfig.plist */ = {
+		3CCB1364224D97AF00ADCDB9 /* Ensure CoreTestsConfig.json */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -1492,16 +1492,16 @@
 			);
 			inputPaths = (
 			);
-			name = "Ensure CoreTestsConfig.plist";
+			name = "Ensure CoreTestsConfig.json";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "SRC_FILE=\"${HOME}/.brdCoreTestsConfig.plist\"\nTGT_FILE=\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\"\n\nif [ -f \"${SRC_FILE}\"  ]; then \ncp \"${SRC_FILE}\" \"${TGT_FILE}\"\nchmod 644 \"${TGT_FILE}\"\nif [ ! -f \"${TGT_FILE}\" ]; then\necho \"Copy to  \\\"${TGT_FILE}\\\" failed.\"\nelse\necho \"Copied \\\"${SRC_FILE}\\\" to \\\"${TGT_FILE}\\\"\"\nfi\nelse\necho \"Missing file ${SRC_FILE} - You must provide this file with a form like:\"\necho \"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\"\necho \"  <!DOCTYPE plist PUBLIC \\\"-//Apple//DTD PLIST 1.0//EN\\\" \\\"http://www.apple.com/DTDs/PropertyList-1.0.dtd\\\">\"\necho \"  <plist version=\\\"1.0\\\">\"\necho \"  <dict>\"\necho \"    <key>paperKeysTestnet</key>\"\necho \"    <array>\"\necho \"      <string>\\\"some paper key\\\"</string>\"\necho \"      ...\"\necho \"    </array>\"\necho \"    <key>paperKeysMainnet</key>\"\necho \"    <array>\"\necho \"      <string>\\\"some other paper key\\\"</string>\"\necho \"      ...\"\necho \"     </array>\"\necho \"    </dict>\"\necho \"  </plist>\"\nexit 1\nfi\n";
+			shellScript = "SRC_FILE=\"${HOME}/.brdCoreTestsConfig.json\"\nTGT_FILE=\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.json\"\n\nif [ -f \"${SRC_FILE}\"  ]; then \ncp \"${SRC_FILE}\" \"${TGT_FILE}\"\nchmod 644 \"${TGT_FILE}\"\nif [ ! -f \"${TGT_FILE}\" ]; then\necho \"Copy to  \\\"${TGT_FILE}\\\" failed.\"\nelse\necho \"Copied \\\"${SRC_FILE}\\\" to \\\"${TGT_FILE}\\\"\"\nfi\nelse\necho \"Missing file ${SRC_FILE} - You must provide this file.\"\nexit 1\nfi\n";
 		};
-		3CCB1365224D9B2600ADCDB9 /* Copy CoreTestsConfig.plist as Resource */ = {
+		3CCB1365224D9B2600ADCDB9 /* Copy CoreTestsConfig as Resource */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -1510,14 +1510,14 @@
 			);
 			inputPaths = (
 			);
-			name = "Copy CoreTestsConfig.plist as Resource";
+			name = "Copy CoreTestsConfig as Resource";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "RES_FILE=\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\"\nTGT_FILE=\"${CONFIGURATION_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/CoreTestsConfig.plist\"\ncp \"${RES_FILE}\" \"${TGT_FILE}\"\necho \"Copied \\\"${RES_FILE}\\\" to \\\"${TGT_FILE}\\\"\"\n";
+			shellScript = "RES_FILE=\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.json\"\nTGT_FILE=\"${CONFIGURATION_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/CoreTestsConfig.json\"\ncp \"${RES_FILE}\" \"${TGT_FILE}\"\necho \"Copied \\\"${RES_FILE}\\\" to \\\"${TGT_FILE}\\\"\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

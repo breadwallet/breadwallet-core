@@ -20,9 +20,8 @@ public final class Account {
     // A 'globally unique' ID String for account.  For BlockchainDB this will be the 'walletId'
     let uids: String
 
-    public var timestamp: UInt64 {
-        get { return cryptoAccountGetTimestamp (core) }
-//        set { cryptoAccountSetTimestamp (core, newValue) }
+    public var timestamp: Date {
+        return Date.init(timeIntervalSince1970: TimeInterval (cryptoAccountGetTimestamp (core)))
     }
 
     internal init (core: BRCryptoAccount, uids: String) {

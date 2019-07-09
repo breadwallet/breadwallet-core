@@ -84,7 +84,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         }
 
         print ("APP: Account PaperKey  : \(paperKey.components(separatedBy: CharacterSet.whitespaces).first ?? "<missed>") ...")
-        print ("APP: Account Timestamp : \(Date.init(timeIntervalSince1970: TimeInterval(account.timestamp)))")
+        print ("APP: Account Timestamp : \(account.timestamp)")
         print ("APP: StoragePath       : \(storagePath)");
 
         // Create the listener
