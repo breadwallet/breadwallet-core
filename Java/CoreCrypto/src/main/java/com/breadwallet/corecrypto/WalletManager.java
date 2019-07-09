@@ -412,7 +412,6 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         UnsignedLong blockHeight = UnsignedLong.fromLongBits(event.u.blockHeight.value);
         Log.d(TAG, String.format("WalletManagerBlockHeightUpdated (%s)", blockHeight));
 
-        network.setHeight(blockHeight);
         announcer.announceWalletManagerEvent(this, new WalletManagerBlockUpdatedEvent(blockHeight));
     }
 

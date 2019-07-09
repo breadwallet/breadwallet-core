@@ -199,6 +199,9 @@ cwmWalletManagerEventAsBTC (BRWalletManagerClientContext context,
                 CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED,
                 { .blockHeight = { event.u.blockHeightUpdated.value }}
             };
+            BRCryptoNetwork network = cryptoWalletManagerGetNetwork (cwm);
+            cryptoNetworkSetHeight (network, event.u.blockHeightUpdated.value);
+            cryptoNetworkGive (network);
             break;
     }
 
@@ -713,12 +716,17 @@ cwmWalletManagerEventAsETH (BREthereumClientContext context,
             cryptoWalletManagerSetState (cwm, CRYPTO_WALLET_MANAGER_STATE_DISCONNECTED);
             break;
 
-        case EWM_EVENT_BLOCK_HEIGHT_UPDATED:
+        case EWM_EVENT_BLOCK_HEIGHT_UPDATED: {
+            uint64_t blockHeight = ewmGetBlockHeight(ewm);
             cwmEvent = (BRCryptoWalletManagerEvent) {
                 CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED,
-                { .blockHeight = { ewmGetBlockHeight(ewm) }}
+                { .blockHeight = { blockHeight }}
             };
+            BRCryptoNetwork network = cryptoWalletManagerGetNetwork (cwm);
+            cryptoNetworkSetHeight (network, blockHeight);
+            cryptoNetworkGive (network);
             break;
+        }
         case EWM_EVENT_DELETED:
             cwmEvent = (BRCryptoWalletManagerEvent) {
                 CRYPTO_WALLET_MANAGER_EVENT_DELETED

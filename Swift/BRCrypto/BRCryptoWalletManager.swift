@@ -109,17 +109,7 @@ public final class WalletManager: Equatable {
     }
 
     internal var height: UInt64 {
-        get { return network.height }
-        set {
-            network.height = newValue
-            announceEvent (WalletManagerEvent.blockUpdated(height: newValue))
-            wallets.flatMap { $0.transfers }
-                .forEach {
-                    if let confirmations = $0.confirmationsAt (blockHeight: newValue) {
-                        $0.announceEvent (TransferEvent.confirmation (count: confirmations))
-                    }
-            }
-        }
+        return network.height
     }
 
     /// The default WalletFactory for creating wallets.
@@ -401,7 +391,9 @@ extension WalletManager {
                                                           event: WalletManagerEvent.syncEnded(error: nil))
 
                 case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED:
-                    manager.height = event.u.blockHeight.value
+                    manager.listener?.handleManagerEvent (system: manager.system,
+                                                          manager: manager,
+                                                          event: WalletManagerEvent.blockUpdated(height: event.u.blockHeight.value))
 
                 default: precondition(false)
                 }
