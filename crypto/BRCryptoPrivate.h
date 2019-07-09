@@ -278,7 +278,7 @@ extern "C" {
 
     private_extern void
     cryptoWalletRemTransfer (BRCryptoWallet wallet, BRCryptoTransfer transfer);
-    
+
     /// MARK: - WalletManager
 
     private_extern void
