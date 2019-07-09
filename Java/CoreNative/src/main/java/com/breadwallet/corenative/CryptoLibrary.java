@@ -35,6 +35,8 @@ import com.sun.jna.Pointer;
 import com.sun.jna.StringArray;
 import com.sun.jna.ptr.IntByReference;
 
+import java.nio.ByteBuffer;
+
 public interface CryptoLibrary extends Library {
 
     String JNA_LIBRARY_NAME = "crypto";
@@ -42,9 +44,9 @@ public interface CryptoLibrary extends Library {
     CryptoLibrary INSTANCE = Native.load(CryptoLibrary.JNA_LIBRARY_NAME, CryptoLibrary.class);
 
     // crypto/BRCryptoAccount.h
-    UInt512.ByValue cryptoAccountDeriveSeed(String phrase);
-    BRCryptoAccount cryptoAccountCreate(String paperKey);
-    BRCryptoAccount cryptoAccountCreateFromSeedBytes(byte[] bytes);
+    UInt512.ByValue cryptoAccountDeriveSeed(ByteBuffer phrase);
+    BRCryptoAccount cryptoAccountCreate(ByteBuffer phrase);
+    BRCryptoAccount cryptoAccountCreateFromSeedBytes(ByteBuffer seed);
     long cryptoAccountGetTimestamp(BRCryptoAccount account);
     void cryptoAccountSetTimestamp(BRCryptoAccount account, long timestamp);
     void cryptoAccountGive(BRCryptoAccount obj);
@@ -182,7 +184,7 @@ public interface CryptoLibrary extends Library {
     void cryptoWalletManagerConnect(BRCryptoWalletManager cwm);
     void cryptoWalletManagerDisconnect(BRCryptoWalletManager cwm);
     void cryptoWalletManagerSync(BRCryptoWalletManager cwm);
-    void cryptoWalletManagerSubmit(BRCryptoWalletManager cwm, BRCryptoWallet wid, BRCryptoTransfer tid, String paperKey);
+    void cryptoWalletManagerSubmit(BRCryptoWalletManager cwm, BRCryptoWallet wid, BRCryptoTransfer tid, ByteBuffer paperKey);
     void cwmAnnounceGetBlockNumberSuccessAsInteger(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState,long blockNumber);
     void cwmAnnounceGetBlockNumberSuccessAsString(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState, String blockNumber);
     void cwmAnnounceGetBlockNumberFailure(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState);

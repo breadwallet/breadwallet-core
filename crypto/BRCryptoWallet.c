@@ -387,18 +387,19 @@ cryptoWalletCreateTransfer (BRCryptoWallet wallet,
                             BRCryptoAmount amount,
                             BRCryptoFeeBasis feeBasis) {
     assert (cryptoWalletGetType (wallet) == cryptoFeeBasisGetType(feeBasis));
-    char *addr = cryptoAddressAsString(target); // Taraget address
+    char *addr = cryptoAddressAsString(target); // Target address
 
     switch (wallet->type) {
         case BLOCK_CHAIN_TYPE_BTC: {
+            BRWalletManager bwm = wallet->u.btc.bwm;
             BRWallet *wid = wallet->u.btc.wid;
 
             BRCryptoBoolean overflow = CRYPTO_FALSE;
             uint64_t value = cryptoAmountGetIntegerRaw (amount, &overflow);
             if (CRYPTO_TRUE == overflow) { return NULL; }
 
-            BRTransaction *tid = BRWalletCreateTransaction (wid, value, addr);
-            return NULL == tid ? NULL : cryptoTransferCreateAsBTC (cryptoWalletGetCurrency(wallet), wid, tid);
+            BRTransaction *tid = BRWalletManagerCreateTransaction (bwm, wid, value, addr);
+            return NULL == tid ? NULL : cryptoWalletFindTransferAsBTC (wallet, tid);
         }
 
         case BLOCK_CHAIN_TYPE_ETH: {

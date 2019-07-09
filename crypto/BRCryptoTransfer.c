@@ -152,9 +152,9 @@ cryptoTransferCreateAsETH (BRCryptoCurrency currency,
 
 static void
 cryptoTransferRelease (BRCryptoTransfer transfer) {
+    if (BLOCK_CHAIN_TYPE_BTC == transfer->type) BRTransactionFree (transfer->u.btc.tid);
     if (NULL != transfer->sourceAddress) cryptoAddressGive (transfer->sourceAddress);
     if (NULL != transfer->targetAddress) cryptoAddressGive (transfer->targetAddress);
-
     cryptoCurrencyGive (transfer->currency);
     memset (transfer, 0, sizeof(*transfer));
     free (transfer);
@@ -439,7 +439,12 @@ cryptoTransferAsETH (BRCryptoTransfer transfer) {
 private_extern BRCryptoBoolean
 cryptoTransferHasBTC (BRCryptoTransfer transfer,
                       BRTransaction *btc) {
-    return AS_CRYPTO_BOOLEAN (BLOCK_CHAIN_TYPE_BTC == transfer->type && btc == transfer->u.btc.tid);
+    // Since BTC transactions that are not yet signed do not have a txHash, only
+    // use the BRTransactionEq check when the transfer's transaction is signed.
+    // If it is not signed, use an identity check.
+    return AS_CRYPTO_BOOLEAN (BLOCK_CHAIN_TYPE_BTC == transfer->type && (BRTransactionIsSigned (transfer->u.btc.tid)
+                                                                         ? BRTransactionEq (btc, transfer->u.btc.tid)
+                                                                         : btc == transfer->u.btc.tid));
 }
 
 private_extern BRCryptoBoolean
@@ -450,7 +455,12 @@ cryptoTransferHasETH (BRCryptoTransfer transfer,
 
 static int
 cryptoTransferEqualAsBTC (BRCryptoTransfer t1, BRCryptoTransfer t2) {
-    return t1->u.btc.tid == t2->u.btc.tid;
+    // Since BTC transactions that are not yet signed do not have a txHash, only
+    // use the BRTransactionEq check when at least one party is signed. For cases
+    // where that is not true, use an identity check.
+    return (BRTransactionIsSigned (t1->u.btc.tid)
+            ? BRTransactionEq (t1->u.btc.tid, t2->u.btc.tid)
+            : t1->u.btc.tid == t2->u.btc.tid);
 }
 
 static int

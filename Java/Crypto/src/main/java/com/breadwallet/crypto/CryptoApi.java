@@ -19,8 +19,8 @@ import static com.google.common.base.Preconditions.checkState;
 public final class CryptoApi {
 
     public interface AccountProvider {
-        Account create(String phrase, Date timestamp, String uids);
-        Account create(byte[] seed, Date timestamp, String uids);
+        Account createFromPhrase(byte[] phraseUtf8, Date timestamp, String uids);
+        Account createFromSeed(byte[] seed, Date timestamp, String uids);
     }
 
     public interface AmountProvider {

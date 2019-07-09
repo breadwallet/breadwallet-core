@@ -165,10 +165,10 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     }
 
     @Override
-    public void submit(com.breadwallet.crypto.Transfer transfer, String paperKey) {
+    public void submit(com.breadwallet.crypto.Transfer transfer, byte[] phraseUtf8) {
         Transfer cryptoTransfer = Transfer.from(transfer);
         Wallet cryptoWallet = cryptoTransfer.getWallet();
-        core.submit(cryptoWallet.getCoreBRCryptoWallet(), cryptoTransfer.getCoreBRCryptoTransfer(), paperKey);
+        core.submit(cryptoWallet.getCoreBRCryptoWallet(), cryptoTransfer.getCoreBRCryptoTransfer(), phraseUtf8);
     }
 
     @Override
@@ -791,7 +791,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                 false, new CompletionHandler<List<Transaction>>() {
                     @Override
                     public void handleData(List<Transaction> transactions) {
-                        Log.d(TAG, "BRCryptoCWMBtcGetTransactionsCallback: transaction success");
+                        Log.d(TAG, "BRCryptoCWMBtcGetTransactionsCallback received transactions");
 
                         for (Transaction transaction : transactions) {
                             Optional<byte[]> optRaw = transaction.getRaw();
@@ -805,11 +805,11 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                             UnsignedLong timestamp =
                                     transaction.getTimestamp().transform(Date::getTime).transform(TimeUnit.MILLISECONDS::toSeconds).transform(UnsignedLong::valueOf).or(UnsignedLong.ZERO);
                             Log.d(TAG,
-                                    "BRCryptoCWMBtcGetTransactionsCallback received transaction, announcing " + transaction.getId());
+                                    "BRCryptoCWMBtcGetTransactionsCallback announcing " + transaction.getId());
                             manager.announceGetTransactionsItemBtc(callbackState, optRaw.get(), timestamp, blockHeight);
                         }
 
-                        // TODO(fix): The C layer needs to handle calling this again with any newly derived addresses
+                        Log.d(TAG, "BRCryptoCWMBtcGetTransactionsCallback: complete");
                         manager.announceGetTransactionsComplete(callbackState, true);
                     }
 

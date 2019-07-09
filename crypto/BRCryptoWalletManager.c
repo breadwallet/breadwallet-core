@@ -359,23 +359,23 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
                            BRCryptoWallet wallet,
                            BRCryptoTransfer transfer,
                            const char *paperKey) {
-    UInt512 seed = cryptoAccountDeriveSeed(paperKey);
 
     switch (cwm->type) {
-        case BLOCK_CHAIN_TYPE_BTC:
-            BRWalletSignTransaction (cryptoWalletAsBTC(wallet),
-                                     cryptoTransferAsBTC(transfer),
-                                     &seed,
-                                     sizeof (seed));
+        case BLOCK_CHAIN_TYPE_BTC: {
+            UInt512 seed = cryptoAccountDeriveSeed(paperKey);
 
-            // TODO(fix): What should be used as the callback here?
-            BRPeerManagerPublishTx (BRWalletManagerGetPeerManager(cwm->u.btc),
-                                    cryptoTransferAsBTC(transfer),
-                                    NULL,
-                                    NULL);
+            if (BRWalletManagerSignTransaction (cwm->u.btc,
+                                                cryptoTransferAsBTC(transfer),
+                                                &seed,
+                                                sizeof (seed))) {
+                // Submit a copy of the transaction as we lose ownership of it once it has been submitted
+                BRWalletManagerSubmitTransaction (cwm->u.btc,
+                                                  BRTransactionCopy (cryptoTransferAsBTC(transfer)));
+            }
             break;
+        }
 
-        case BLOCK_CHAIN_TYPE_ETH:
+        case BLOCK_CHAIN_TYPE_ETH: {
             ewmWalletSignTransferWithPaperKey (cwm->u.eth,
                                                cryptoWalletAsETH (wallet),
                                                cryptoTransferAsETH (transfer),
@@ -385,10 +385,11 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
                                      cryptoWalletAsETH (wallet),
                                      cryptoTransferAsETH (transfer));
             break;
+        }
 
-        case BLOCK_CHAIN_TYPE_GEN:
+        case BLOCK_CHAIN_TYPE_GEN: {
             break;
-
+        }
     }
 }
 

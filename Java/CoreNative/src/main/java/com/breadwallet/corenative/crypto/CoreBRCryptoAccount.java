@@ -8,21 +8,66 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
+import com.sun.jna.Memory;
 
+import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Date;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 public interface CoreBRCryptoAccount {
 
-    static CoreBRCryptoAccount create(String phrase) {
-        return new OwnedBRCryptoAccount(CryptoLibrary.INSTANCE.cryptoAccountCreate(phrase));
+    static CoreBRCryptoAccount createFromPhrase(byte[] phraseUtf8) {
+        // ensure string is null terminated
+        phraseUtf8 = Arrays.copyOf(phraseUtf8, phraseUtf8.length + 1);
+        try {
+            Memory phraseMemory = new Memory(phraseUtf8.length);
+            try {
+                phraseMemory.write(0, phraseUtf8, 0, phraseUtf8.length);
+                ByteBuffer phraseBuffer = phraseMemory.getByteBuffer(0, phraseUtf8.length);
+
+                return new OwnedBRCryptoAccount(CryptoLibrary.INSTANCE.cryptoAccountCreate(phraseBuffer));
+            } finally {
+                phraseMemory.clear();
+            }
+        } finally {
+            // clear out our copy; caller responsible for original array
+            Arrays.fill(phraseUtf8, (byte) 0);
+        }
     }
 
     static CoreBRCryptoAccount createFromSeed(byte[] seed) {
-        return new OwnedBRCryptoAccount(CryptoLibrary.INSTANCE.cryptoAccountCreateFromSeedBytes(seed));
+        checkArgument(seed.length == 64);
+
+        Memory seedMemory = new Memory(seed.length);
+        try {
+            seedMemory.write(0, seed, 0, seed.length);
+            ByteBuffer seedBuffer = seedMemory.getByteBuffer(0, seed.length);
+
+            return new OwnedBRCryptoAccount(CryptoLibrary.INSTANCE.cryptoAccountCreateFromSeedBytes(seedBuffer));
+        } finally {
+            seedMemory.clear();
+        }
     }
 
-    static byte[] deriveSeed(String phrase) {
-        return CryptoLibrary.INSTANCE.cryptoAccountDeriveSeed(phrase).u8.clone();
+    static byte[] deriveSeed(byte[] phraseUtf8) {
+        // ensure string is null terminated
+        phraseUtf8 = Arrays.copyOf(phraseUtf8, phraseUtf8.length + 1);
+        try {
+            Memory phraseMemory = new Memory(phraseUtf8.length);
+            try {
+                phraseMemory.write(0, phraseUtf8, 0, phraseUtf8.length);
+                ByteBuffer phraseBuffer = phraseMemory.getByteBuffer(0, phraseUtf8.length);
+
+                return CryptoLibrary.INSTANCE.cryptoAccountDeriveSeed(phraseBuffer).u8.clone();
+            } finally {
+                phraseMemory.clear();
+            }
+        } finally {
+            // clear out our copy; caller responsible for original array
+            Arrays.fill(phraseUtf8, (byte) 0);
+        }
     }
 
     Date getTimestamp();

@@ -48,7 +48,7 @@ public class CoreCryptoApplication extends Application {
 
     private static System system;
     private static CoreSystemListener listener;
-    private static String paperKey;
+    private static byte[] paperKey;
 
     private static AtomicBoolean runOnce = new AtomicBoolean(false);
 
@@ -68,7 +68,8 @@ public class CoreCryptoApplication extends Application {
         if (!runOnce.getAndSet(true)) {
             Intent intent = startingActivity.getIntent();
 
-            paperKey = intent.hasExtra(EXTRA_PAPER_KEY) ? intent.getStringExtra(EXTRA_PAPER_KEY) : DEFAULT_PAPER_KEY;
+            paperKey = (intent.hasExtra(EXTRA_PAPER_KEY) ? intent.getStringExtra(EXTRA_PAPER_KEY) : DEFAULT_PAPER_KEY)
+                    .getBytes(StandardCharsets.UTF_8);
 
             boolean wipe = intent.getBooleanExtra(EXTRA_WIPE, DEFAULT_WIPE);
             long timestamp = intent.getLongExtra(EXTRA_TIMESTAMP, DEFAULT_TIMESTAMP);
@@ -84,8 +85,8 @@ public class CoreCryptoApplication extends Application {
 
             listener = new CoreSystemListener(mode);
 
-            String uids = UUID.nameUUIDFromBytes(paperKey.getBytes(StandardCharsets.UTF_8)).toString();
-            Account account = Account.createFrom(paperKey, new Date(TimeUnit.SECONDS.toMillis(timestamp)), uids);
+            String uids = UUID.nameUUIDFromBytes(paperKey).toString();
+            Account account = Account.createFromPhrase(paperKey, new Date(TimeUnit.SECONDS.toMillis(timestamp)), uids);
 
             BlockchainDb query = new BlockchainDb(new OkHttpClient(), BDB_BASE_URL, API_BASE_URL);
             system = System.create(Executors.newSingleThreadExecutor(), listener, account, storageFile.getAbsolutePath(), query);
@@ -103,7 +104,7 @@ public class CoreCryptoApplication extends Application {
         return listener;
     }
 
-    public static String getPaperKey() {
+    public static byte[] getPaperKey() {
         return paperKey;
     }
 
