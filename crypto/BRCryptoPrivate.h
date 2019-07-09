@@ -42,7 +42,6 @@
 #include "BRCryptoWalletManager.h"
 
 ///
-#include "support/BRAddress.h"
 #include "support/BRBIP32Sequence.h"
 #include "bitcoin/BRChainParams.h"
 #include "bitcoin/BRTransaction.h"
