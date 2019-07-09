@@ -275,7 +275,7 @@ cryptoWalletGetTransfers (BRCryptoWallet wallet, size_t *count) {
     *count = array_count (wallet->transfers);
     BRCryptoTransfer *transfers = NULL;
     if (0 != *count) {
-        transfers = calloc (*count + 1, sizeof(BRCryptoTransfer));
+        transfers = calloc (*count, sizeof(BRCryptoTransfer));
         for (size_t index = 0; index < *count; index++) {
             transfers[index] = cryptoTransferTake(wallet->transfers[index]);
         }
