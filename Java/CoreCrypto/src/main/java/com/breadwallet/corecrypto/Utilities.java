@@ -39,6 +39,17 @@ final class Utilities {
     }
 
     /* package */
+    static WalletManagerMode walletManagerModeFromCrypto(int mode) {
+        switch (mode) {
+            case BRSyncMode.SYNC_MODE_BRD_ONLY: return WalletManagerMode.API_ONLY;
+            case BRSyncMode.SYNC_MODE_BRD_WITH_P2P_SEND: return WalletManagerMode.API_WITH_P2P_SUBMIT;
+            case BRSyncMode.SYNC_MODE_P2P_ONLY: return WalletManagerMode.P2P_ONLY;
+            case BRSyncMode.SYNC_MODE_P2P_WITH_BRD_SYNC: return WalletManagerMode.P2P_WITH_API_SYNC;
+            default: throw new IllegalArgumentException("Unsupported mode");
+        }
+    }
+
+    /* package */
     static int walletManagerStateToCrypto(WalletManagerState state) {
         switch (state) {
             case CREATED: return BRCryptoWalletManagerState.CRYPTO_WALLET_MANAGER_STATE_CREATED;

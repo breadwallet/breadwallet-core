@@ -11,7 +11,7 @@ import java.util.List;
 
 public interface CoreBRCryptoWallet {
 
-    static CoreBRCryptoWallet create(BRCryptoWallet wallet) {
+    static CoreBRCryptoWallet createOwned(BRCryptoWallet wallet) {
         return new OwnedBRCryptoWallet(wallet);
     }
 
