@@ -9,14 +9,18 @@ package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
 import com.breadwallet.corenative.utility.SizeT;
+import com.breadwallet.corenative.utility.SizeTByReference;
 import com.google.common.primitives.UnsignedInteger;
+import com.google.common.primitives.UnsignedInts;
 import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Memory;
+import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 import com.sun.jna.StringArray;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -35,14 +39,24 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
         return new OwnedBRCryptoWallet(CryptoLibrary.INSTANCE.cryptoWalletManagerGetWallet(this));
     }
 
-    @Override
-    public UnsignedLong getWalletsCount() {
-        return UnsignedLong.fromLongBits(CryptoLibrary.INSTANCE.cryptoWalletManagerGetWalletsCount(this).longValue());
-    }
 
     @Override
-    public CoreBRCryptoWallet getWallet(UnsignedLong index) {
-        return new OwnedBRCryptoWallet(CryptoLibrary.INSTANCE.cryptoWalletManagerGetWalletAtIndex(this, new SizeT(index.longValue())));
+    public List<CoreBRCryptoWallet> getWallets() {
+        List<CoreBRCryptoWallet> wallets = new ArrayList<>();
+        SizeTByReference count = new SizeTByReference();
+        Pointer walletsPtr = CryptoLibrary.INSTANCE.cryptoWalletManagerGetWallets(this, count);
+        if (null != walletsPtr) {
+            try {
+                int walletsSize = UnsignedInts.checkedCast(count.getValue().longValue());
+                for (Pointer walletPtr : walletsPtr.getPointerArray(0, walletsSize)) {
+                    wallets.add(new OwnedBRCryptoWallet(new BRCryptoWallet(walletPtr)));
+                }
+
+            } finally {
+                Native.free(Pointer.nativeValue(walletsPtr));
+            }
+        }
+        return wallets;
     }
 
     @Override

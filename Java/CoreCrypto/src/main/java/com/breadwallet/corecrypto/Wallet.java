@@ -85,9 +85,8 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     public List<Transfer> getTransfers() {
         List<Transfer> transfers = new ArrayList<>();
 
-        UnsignedLong count = core.getTransferCount();
-        for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
-            transfers.add(Transfer.create(core.getTransfer(i), this, defaultUnit));
+        for (CoreBRCryptoTransfer transfer: core.getTransfers()) {
+            transfers.add(Transfer.create(transfer, this, defaultUnit));
         }
 
         return transfers;

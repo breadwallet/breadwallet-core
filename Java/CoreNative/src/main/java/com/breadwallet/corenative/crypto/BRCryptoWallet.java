@@ -8,10 +8,14 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
-import com.breadwallet.corenative.utility.SizeT;
-import com.google.common.primitives.UnsignedLong;
+import com.breadwallet.corenative.utility.SizeTByReference;
+import com.google.common.primitives.UnsignedInts;
+import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
 
@@ -29,15 +33,24 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
     }
 
     @Override
-    public UnsignedLong getTransferCount() {
-        return UnsignedLong.fromLongBits(CryptoLibrary.INSTANCE.cryptoWalletGetTransferCount(this).longValue());
+    public List<CoreBRCryptoTransfer> getTransfers() {
+        List<CoreBRCryptoTransfer> transfers = new ArrayList<>();
+        SizeTByReference count = new SizeTByReference();
+        Pointer transfersPtr = CryptoLibrary.INSTANCE.cryptoWalletGetTransfers(this, count);
+        if (null != transfersPtr) {
+            try {
+                int transfersSize = UnsignedInts.checkedCast(count.getValue().longValue());
+                for (Pointer transferPtr: transfersPtr.getPointerArray(0, transfersSize)) {
+                    transfers.add(new OwnedBRCryptoTransfer(new BRCryptoTransfer(transferPtr)));
+                }
+
+            } finally {
+                Native.free(Pointer.nativeValue(transfersPtr));
+            }
+        }
+        return transfers;
     }
 
-    @Override
-    public CoreBRCryptoTransfer getTransfer(UnsignedLong index) {
-        return new OwnedBRCryptoTransfer(CryptoLibrary.INSTANCE.cryptoWalletGetTransfer(this,
-                new SizeT(index.longValue())));
-    }
 
     public boolean containsTransfer(CoreBRCryptoTransfer transfer) {
         return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoWalletHasTransfer(this,

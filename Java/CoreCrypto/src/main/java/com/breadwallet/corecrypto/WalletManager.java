@@ -196,9 +196,8 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     public List<Wallet> getWallets() {
         List<Wallet> wallets = new ArrayList<>();
 
-        UnsignedLong count = core.getWalletsCount();
-        for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
-            wallets.add(Wallet.create(core.getWallet(i), this));
+        for (CoreBRCryptoWallet wallet: core.getWallets()) {
+            wallets.add(Wallet.create(wallet, this));
         }
 
         return wallets;

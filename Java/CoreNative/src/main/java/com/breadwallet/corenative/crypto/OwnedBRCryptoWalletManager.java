@@ -38,13 +38,8 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
-    public UnsignedLong getWalletsCount() {
-        return core.getWalletsCount();
-    }
-
-    @Override
-    public CoreBRCryptoWallet getWallet(UnsignedLong index) {
-        return core.getWallet(index);
+    public List<CoreBRCryptoWallet> getWallets() {
+        return core.getWallets();
     }
 
     @Override
