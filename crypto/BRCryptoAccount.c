@@ -31,6 +31,8 @@
 #include "support/BRKey.h"
 #include "ethereum/BREthereum.h"
 
+#define ACCOUNT_SERIALIZE_DEFAULT_VERSION  1
+
 static void
 cryptoAccountRelease (BRCryptoAccount account);
 
@@ -51,6 +53,38 @@ cryptoAccountDeriveSeedInternal (const char *phrase) {
     return seed;
 }
 
+extern UInt512
+cryptoAccountDeriveSeed (const char *phrase) {
+    return cryptoAccountDeriveSeedInternal(phrase);
+}
+
+extern char *
+cryptoAccountGeneratePaperKey (const char *words[]) {
+    UInt128 entropy;
+    arc4random_buf (entropy.u8, sizeof (entropy));
+
+    size_t phraseLen = BRBIP39Encode (NULL, 0, words, entropy.u8, sizeof(entropy));
+    char  *phrase    = calloc (phraseLen, 1);
+
+    assert (phraseLen == BRBIP39Encode (phrase, phraseLen, words, entropy.u8, sizeof(entropy)));
+
+    return phrase;
+}
+
+static BRCryptoAccount
+cryptoAccountCreateInternal (BRMasterPubKey btc,
+                             BRKey eth,
+                             uint64_t timestamp) {
+    BRCryptoAccount account = malloc (sizeof (struct BRCryptoAccountRecord));
+
+    account->btc = btc;
+    account->eth = createAccountWithPublicKey(eth);
+    account->timestamp = timestamp;
+    account->ref = CRYPTO_REF_ASSIGN(cryptoAccountRelease);
+
+    return account;
+
+}
 static BRCryptoAccount
 cryptoAccountCreateFromSeedInternal (UInt512 seed,
                                      uint64_t timestamp) {
@@ -64,28 +98,57 @@ cryptoAccountCreateFromSeedInternal (UInt512 seed,
     return account;
 }
 
-extern UInt512
-cryptoAccountDeriveSeed (const char *phrase) {
-    return cryptoAccountDeriveSeedInternal(phrase);
-}
-
 extern BRCryptoAccount
 cryptoAccountCreate (const char *phrase, uint64_t timestamp) {
     return cryptoAccountCreateFromSeedInternal (cryptoAccountDeriveSeedInternal(phrase), timestamp);
 }
 
 extern BRCryptoAccount
-cryptoAccountCreateFromSeed (UInt512 seed, uint64_t timestamp) {
-    return cryptoAccountCreateFromSeedInternal (seed, timestamp);
-}
+cryptoAccountCreateFromSerialization (const uint8_t *bytes, size_t bytesCount) {
+    uint8_t *bytesPtr = (uint8_t *) bytes;
 
-extern BRCryptoAccount
-cryptoAccountCreateFromSeedBytes (const uint8_t *bytes, uint64_t timestamp) {
-    UInt512 seed;
-    memcpy (seed.u8, bytes, sizeof (seed.u8));
-    return cryptoAccountCreateFromSeedInternal (seed, timestamp);
-}
+    size_t verSize = sizeof (uint16_t);
+    size_t szSize  = sizeof (uint32_t);
 
+    // Decode
+    uint16_t version = UInt16GetBE (bytesPtr);
+    bytesPtr += verSize;
+
+    if (ACCOUNT_SERIALIZE_DEFAULT_VERSION != version) return NULL;
+
+    switch (version) {
+        case 1: {
+            size_t tsSize  = sizeof (uint64_t);
+
+            // Timestamp
+            uint64_t timestamp = UInt64GetBE (bytesPtr);
+            bytesPtr += tsSize;
+
+            // BTC
+            size_t mpkSize = UInt32GetBE(bytesPtr);
+            bytesPtr += szSize;
+            (void) mpkSize; // TODO: Use mpkSize
+
+            BRMasterPubKey mpk = BRBIP32ParseMasterPubKey ((const char *) bytesPtr);
+            bytesPtr += BRBIP32SerializeMasterPubKey (NULL, 0, mpk);
+
+            // ETH
+            size_t ethSize = UInt32GetBE (bytesPtr);
+            bytesPtr += szSize;
+            assert (65 == ethSize);
+
+            BRKey ethPublicKey;
+            BRKeySetPubKey(&ethPublicKey, bytesPtr, 65);
+            bytesPtr += 65;
+
+            return cryptoAccountCreateInternal (mpk, ethPublicKey, timestamp);
+        }
+
+        default:
+            assert (0);
+            break;
+    }
+}
 
 static void
 cryptoAccountRelease (BRCryptoAccount account) {
@@ -94,15 +157,72 @@ cryptoAccountRelease (BRCryptoAccount account) {
     free (account);
 }
 
+
+/**
+ * Serialize the account as per ACCOUNT_SERIALIZE_DEFAULT_VERSION.  The serialization format is:
+ *  <version><BTC size><BTC master public key><ETH size><ETH public key>
+ *
+ *
+ * @param account The account
+ * @param bytesCount A non-NULL size_t pointer filled with the bytes count
+ *
+ * @return The serialization as uint8_t*
+ */
+extern uint8_t *
+cryptoAccountSerialize (BRCryptoAccount account, size_t *bytesCount) {
+    assert (NULL != bytesCount);
+
+    size_t verSize = sizeof (uint16_t);
+    size_t tsSize  = sizeof (uint64_t); // timestamp size
+    size_t szSize  = sizeof (uint32_t); // size size
+
+    // Version
+    uint16_t version = ACCOUNT_SERIALIZE_DEFAULT_VERSION;
+
+    // BTC/BCH
+    size_t mpkSize = BRBIP32SerializeMasterPubKey (NULL, 0, account->btc);
+
+    // ETH
+    BRKey ethPublicKey = accountGetPrimaryAddressPublicKey (account->eth);
+    ethPublicKey.compressed = 0;
+    size_t ethSize = BRKeyPubKey (&ethPublicKey, NULL, 0);
+
+    *bytesCount = verSize + tsSize + (szSize + mpkSize) + (szSize + ethSize);
+    uint8_t *bytes = calloc (1, *bytesCount);
+    uint8_t *bytesPtr = bytes;
+
+    // Encode
+
+    // Version
+    UInt16SetBE (bytesPtr, version);
+    bytesPtr += verSize;
+
+    // timestamp
+    UInt64SetBE (bytesPtr, account->timestamp);
+    bytesPtr += tsSize;
+
+    // BTC
+    UInt32SetBE (bytesPtr, (uint32_t) mpkSize);
+    bytesPtr += szSize;
+
+    BRBIP32SerializeMasterPubKey ((char *) bytesPtr, mpkSize, account->btc);
+    bytesPtr += mpkSize;
+
+    // ETH
+    UInt32SetBE (bytesPtr, (uint32_t) ethSize);
+    bytesPtr += szSize;
+
+    BRKeyPubKey (&ethPublicKey, bytesPtr, ethSize);
+    bytesPtr += ethSize;
+
+    // ...
+
+    return bytes;
+}
+
 extern uint64_t
 cryptoAccountGetTimestamp (BRCryptoAccount account) {
     return account->timestamp;
-}
-
-extern void
-cryptoAccountSetTimestamp (BRCryptoAccount account,
-                           uint64_t timestamp) {
-    account->timestamp = timestamp;
 }
 
 private_extern BREthereumAccount

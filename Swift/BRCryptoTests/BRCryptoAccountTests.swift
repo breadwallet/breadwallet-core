@@ -34,13 +34,14 @@ class BRCryptoAccountTests: XCTestCase {
         guard let a1 = Account.createFrom (phrase: phrase, timestamp: timestamp, uids: walletId)
             else { XCTAssert(false); return}
 
-        XCTAssert (a1.addressAsETH == address)
+        XCTAssertEqual (a1.addressAsETH, address)
         XCTAssertEqual (timestamp, a1.timestamp)
 
+        let serialization = a1.serialize
+        guard let a2 = Account.createFrom (serialization: serialization, uids: walletId)
+            else { XCTAssert(false); return }
 
-        let d2 = Account.deriveSeed (phrase: phrase)
-        guard let a2 = Account.createFrom (seed: d2, timestamp: timestamp, uids: walletId) else { XCTAssert (false); return }
-        XCTAssert (a2.addressAsETH == address)
+        XCTAssertEqual (a2.addressAsETH, a1.addressAsETH);
     }
 
     func testAddressETH () {
