@@ -32,9 +32,6 @@
 #include "ethereum/BREthereum.h"
 #include "support/BRBase.h"
 
-static void
-cryptoWalletManagerRelease (BRCryptoWalletManager cwm);
-
 typedef enum  {
     CWM_CALLBACK_TYPE_BTC_GET_BLOCK_NUMBER,
     CWM_CALLBACK_TYPE_BTC_GET_TRANSACTIONS,
