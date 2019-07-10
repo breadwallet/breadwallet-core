@@ -34,6 +34,7 @@ import com.breadwallet.crypto.events.wallet.WalletTransferChangedEvent;
 import com.breadwallet.crypto.events.wallet.WalletTransferDeletedEvent;
 import com.breadwallet.crypto.events.wallet.WalletTransferSubmittedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerEvent;
+import com.breadwallet.crypto.events.walletmanager.WalletManagerListener;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +43,7 @@ public class CoreSystemListener implements SystemListener {
 
     private static final String TAG = CoreSystemListener.class.getName();
 
+    private final List<WalletManagerListener> walletManagerListeners = new ArrayList<>();
     private final List<WalletListener> walletListeners = new ArrayList<>();
     private final List<TransferListener> transferListeners = new ArrayList<>();
 
@@ -49,6 +51,14 @@ public class CoreSystemListener implements SystemListener {
 
     public CoreSystemListener(WalletManagerMode mode) {
         this.mode = mode;
+    }
+
+    public void addListener(WalletManagerListener listener) {
+        walletManagerListeners.add(listener);
+    }
+
+    public void removeListener(WalletManagerListener  listener) {
+        walletManagerListeners.remove(listener);
     }
 
     public void addListener(WalletListener listener) {
@@ -97,6 +107,9 @@ public class CoreSystemListener implements SystemListener {
     @Override
     public void handleManagerEvent(System system, WalletManager manager, WalletManagerEvent event) {
         Log.d(TAG, String.format("Manager (%s): %s", manager.getName(), event));
+        for(WalletManagerListener listener: walletManagerListeners) {
+            listener.handleManagerEvent(system, manager, event);
+        }
     }
 
     @Override

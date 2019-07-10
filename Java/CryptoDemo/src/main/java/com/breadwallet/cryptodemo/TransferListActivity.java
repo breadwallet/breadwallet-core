@@ -117,7 +117,7 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
     @Override
     public void handleTransferEvent(System system, WalletManager manager, Wallet wallet, Transfer transfer, TranferEvent event) {
         runOnUiThread(() -> {
-            if (wallet.equals(this.wallet)) {
+            if (manager.equals(this.wallet.getWalletManager()) && wallet.equals(this.wallet)) {
                 event.accept(new TransferEventVisitor<Void>() {
                     @Override
                     public Void visit(TransferChangedEvent event) {

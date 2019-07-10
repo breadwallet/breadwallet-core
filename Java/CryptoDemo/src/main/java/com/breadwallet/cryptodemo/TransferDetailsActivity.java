@@ -18,17 +18,17 @@ import com.breadwallet.crypto.TransferHash;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
 import com.breadwallet.crypto.events.transfer.TranferEvent;
-import com.breadwallet.crypto.events.transfer.TransferChangedEvent;
-import com.breadwallet.crypto.events.transfer.TransferCreatedEvent;
-import com.breadwallet.crypto.events.transfer.TransferDeletedEvent;
-import com.breadwallet.crypto.events.transfer.TransferEventVisitor;
 import com.breadwallet.crypto.events.transfer.TransferListener;
+import com.breadwallet.crypto.events.walletmanager.DefaultWalletManagerEventVisitor;
+import com.breadwallet.crypto.events.walletmanager.WalletManagerBlockUpdatedEvent;
+import com.breadwallet.crypto.events.walletmanager.WalletManagerEvent;
+import com.breadwallet.crypto.events.walletmanager.WalletManagerListener;
 
 import java.text.DateFormat;
 
 import javax.annotation.Nullable;
 
-public class TransferDetailsActivity extends AppCompatActivity implements TransferListener {
+public class TransferDetailsActivity extends AppCompatActivity implements TransferListener, WalletManagerListener {
 
     private static final DateFormat DATE_FORMAT = DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG);
 
@@ -95,7 +95,6 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
         }
 
         transfer = getTransfer(intent, wallet);
-        wallet = getWallet(intent);
         if (null == transfer) {
             finish();
             return;
@@ -119,8 +118,21 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
     protected void onResume() {
         super.onResume();
 
-        CoreCryptoApplication.getListener().addListener(this);
+        CoreCryptoApplication.getListener().addListener((WalletManagerListener) this);
+        CoreCryptoApplication.getListener().addListener((TransferListener) this);
 
+        updateView();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        CoreCryptoApplication.getListener().removeListener((TransferListener) this);
+        CoreCryptoApplication.getListener().removeListener((WalletManagerListener) this);
+    }
+
+    private void updateView() {
         String amountText = transfer.getAmountDirected().toString();
         amountView.setText(amountText);
         amountView.setOnClickListener(v -> copyPlaintext("Amount", amountView.getText()));
@@ -158,34 +170,25 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
-
-        CoreCryptoApplication.getListener().removeListener(this);
+    public void handleManagerEvent(System system, WalletManager manager, WalletManagerEvent event) {
+        runOnUiThread(() -> {
+            if (manager.equals(this.wallet.getWalletManager())) {
+                event.accept(new DefaultWalletManagerEventVisitor<Void>() {
+                    @Override
+                    public Void visit(WalletManagerBlockUpdatedEvent event) {
+                        updateView();
+                        return null;
+                    }
+                });
+            }
+        });
     }
 
     @Override
     public void handleTransferEvent(System system, WalletManager manager, Wallet wallet, Transfer transfer, TranferEvent event) {
         runOnUiThread(() -> {
-            if (transfer.equals(this.transfer)) {
-                event.accept(new TransferEventVisitor<Void>() {
-                    @Override
-                    public Void visit(TransferChangedEvent event) {
-                        String confirmationText = transfer.getConfirmation().transform((c) -> "Yes @ " + c.getBlockNumber()).or("No");
-                        confirmationView.setText(confirmationText);
-                        return null;
-                    }
-
-                    @Override
-                    public Void visit(TransferCreatedEvent event) {
-                        return null;
-                    }
-
-                    @Override
-                    public Void visit(TransferDeletedEvent event) {
-                        return null;
-                    }
-                });
+            if (manager.equals(this.wallet.getWalletManager()) && wallet.equals(this.wallet) && transfer.equals(this.transfer)) {
+                updateView();
             }
         });
     }

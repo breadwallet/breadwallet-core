@@ -13,6 +13,7 @@ import Foundation
 import BRCrypto
 
 class CoreDemoListener: SystemListener {
+    public var managerListeners: [WalletManagerListener] = []
     public var walletListeners: [WalletListener] = []
     public var transferListeners: [TransferListener] = []
 
@@ -48,27 +49,10 @@ class CoreDemoListener: SystemListener {
 
     func handleManagerEvent(system: System, manager: WalletManager, event: WalletManagerEvent) {
         print ("APP: Manager (\(manager.name)): \(event)")
-        switch event {
-        case .created:
-            break
-        case .changed: // (let oldState, let newState):
-            break
-        case .deleted:
-            break
-        case .walletAdded: // (let wallet):
-            break
-        case .walletChanged: // (let wallet):
-            break
-        case .walletDeleted: // (let wallet):
-            break
-        case .syncStarted:
-            break
-        case .syncProgress: // (let percentComplete):
-            break
-        case .syncEnded: // (let error):
-            break
-        case .blockUpdated: // (let height):
-            break
+        managerListeners.forEach {
+            $0.handleManagerEvent(system: system,
+                                  manager: manager,
+                                  event: event)
         }
     }
 

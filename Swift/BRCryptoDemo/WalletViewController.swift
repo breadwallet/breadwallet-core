@@ -12,7 +12,7 @@
 import UIKit
 import BRCrypto
 
-class WalletViewController: UITableViewController, TransferListener {
+class WalletViewController: UITableViewController, TransferListener, WalletManagerListener {
 
     /// The wallet viewed.
     var wallet : Wallet! {
@@ -28,9 +28,14 @@ class WalletViewController: UITableViewController, TransferListener {
     override func viewDidLoad() {
         // Seems `viewDidLoad()` is called many times... and the listener is added many times.
         // Should only be added once or should be removed (on viewWillDisappear())
-        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener,
-            !listener.transferListeners.contains(where: { $0 === self }) {
-            listener.transferListeners.append (self)
+        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
+            if !listener.managerListeners.contains(where: { $0 === self }) {
+                listener.managerListeners.append (self)
+            }
+            
+            if !listener.transferListeners.contains(where: { $0 === self }) {
+                listener.transferListeners.append (self)
+            }
         }
 
         super.viewDidLoad()
@@ -96,7 +101,19 @@ class WalletViewController: UITableViewController, TransferListener {
 
         return cell
      }
-
+    
+    func handleManagerEvent (system: System, manager: WalletManager, event: WalletManagerEvent) {
+        DispatchQueue.main.async {
+            print ("APP: WVC: ManagerEvent: \(event)")
+            guard self.wallet.manager == manager /* && view is visible */  else { return }
+            switch event {
+            case .blockUpdated:
+                self.tableView.reloadData()
+            default:
+                break
+            }
+        }
+    }
 
     func handleTransferEvent(system: System, manager: WalletManager, wallet: Wallet, transfer: Transfer, event: TransferEvent) {
         DispatchQueue.main.async {
