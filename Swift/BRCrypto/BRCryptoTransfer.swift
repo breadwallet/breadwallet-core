@@ -152,7 +152,11 @@ extension Transfer {
             .flatMap { blockHeight >= $0.blockNumber ? (1 + blockHeight - $0.blockNumber) : nil }
     }
 
-    /// The confirmations of transfer at the current network `height`.
+    /// The confirmations of transfer at the current network `height`. Since this value is
+    /// calculated based on the associated network's `height`, it is recommended that a
+    /// user refreshes any cache of it in response to WalletManagerEvent::blockUpdated events
+    /// on the owning WalletManager, in addition to further TransferEvent::changed events
+    /// on this Transfer.
     public var confirmations: UInt64? {
         return confirmationsAt (blockHeight: wallet.manager.network.height)
     }
@@ -239,7 +243,7 @@ public enum TransferState {
     case included (confirmation: TransferConfirmation)
     case failed (reason:String)
     case deleted
-    
+
     internal init (core: BRCryptoTransferState) {
         switch core.type {
         case CRYPTO_TRANSFER_STATE_CREATED:   self = .created

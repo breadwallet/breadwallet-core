@@ -294,6 +294,11 @@ public enum WalletManagerEvent {
     case syncProgress (percentComplete: Double)
     case syncEnded (error: String?)
 
+    /// An event capturing a change in the block height of the network associated with a
+    /// WalletManager. Developers should listen for this event when making use of
+    /// Transfer::confirmations, as that value is calculated based on the associated network's
+    /// block height. Displays or caches of that confirmation count should be updated when this
+    /// event occurs.
     case blockUpdated (height: UInt64)
 }
 
