@@ -59,17 +59,39 @@ cryptoAddressCreate (BRCryptoBlockChainType type) {
     return address;
 }
 
-/* private */ extern BRCryptoAddress
+private_extern BRCryptoAddress
 cryptoAddressCreateAsETH (BREthereumAddress eth) {
     BRCryptoAddress address = cryptoAddressCreate (BLOCK_CHAIN_TYPE_ETH);
     address->u.eth = eth;
     return address;
 }
 
-/* private */ extern BRCryptoAddress
+private_extern BRCryptoAddress
 cryptoAddressCreateAsBTC (BRAddress btc) {
     BRCryptoAddress address = cryptoAddressCreate (BLOCK_CHAIN_TYPE_BTC);
     address->u.btc = btc;
+    return address;
+}
+
+extern BRCryptoAddress
+cryptoAddressCreateFromStringAsETH (const char *ethAddress) {
+    assert (ethAddress);
+    BRCryptoAddress address = NULL;
+    if (ETHEREUM_BOOLEAN_TRUE == addressValidateString (ethAddress)) {
+        address = cryptoAddressCreate (BLOCK_CHAIN_TYPE_ETH);
+        address->u.eth = addressCreate (ethAddress);
+    }
+    return address;
+}
+
+extern BRCryptoAddress
+cryptoAddressCreateFromStringAsBTC (const char *btcAddress) {
+    assert (btcAddress);
+    BRCryptoAddress address = NULL;
+    if (BRAddressIsValid (btcAddress)) {
+        address = cryptoAddressCreate (BLOCK_CHAIN_TYPE_BTC);
+        address->u.btc = BRAddressFill (btcAddress);
+    }
     return address;
 }
 
