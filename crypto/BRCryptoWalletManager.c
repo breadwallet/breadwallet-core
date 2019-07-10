@@ -261,9 +261,10 @@ cryptoWalletManagerGetWalletForCurrency (BRCryptoWalletManager cwm,
                                          BRCryptoCurrency currency) {
     BRCryptoWallet wallet = NULL;
     pthread_mutex_lock (&cwm->lock);
-    for (size_t index = 0; index < array_count(cwm->wallets) && NULL == wallet; index++) {
+    for (size_t index = 0; index < array_count(cwm->wallets); index++) {
         if (currency == cryptoWalletGetCurrency (cwm->wallets[index])) {
             wallet = cryptoWalletTake (cwm->wallets[index]);
+            break;
         }
     }
     pthread_mutex_unlock (&cwm->lock);
@@ -298,10 +299,11 @@ cryptoWalletManagerRemWallet (BRCryptoWalletManager cwm,
 
     BRCryptoWallet managerWallet = NULL;
     pthread_mutex_lock (&cwm->lock);
-    for (size_t index = 0; index < array_count (cwm->wallets) && NULL == managerWallet; index++) {
+    for (size_t index = 0; index < array_count (cwm->wallets); index++) {
         if (CRYPTO_TRUE == cryptoWalletEqual(cwm->wallets[index], wallet)) {
             managerWallet = cwm->wallets[index];
             array_rm (cwm->wallets, index);
+            break;
         }
     }
     pthread_mutex_unlock (&cwm->lock);
@@ -422,9 +424,10 @@ cryptoWalletManagerFindWalletAsBTC (BRCryptoWalletManager cwm,
                                     BRWallet *btc) {
     BRCryptoWallet wallet = NULL;
     pthread_mutex_lock (&cwm->lock);
-    for (size_t index = 0; index < array_count (cwm->wallets) && NULL == wallet; index++) {
+    for (size_t index = 0; index < array_count (cwm->wallets); index++) {
         if (btc == cryptoWalletAsBTC (cwm->wallets[index])) {
             wallet = cryptoWalletTake (cwm->wallets[index]);
+            break;
         }
     }
     pthread_mutex_unlock (&cwm->lock);
@@ -436,9 +439,10 @@ cryptoWalletManagerFindWalletAsETH (BRCryptoWalletManager cwm,
                                     BREthereumWallet eth) {
     BRCryptoWallet wallet = NULL;
     pthread_mutex_lock (&cwm->lock);
-    for (size_t index = 0; index < array_count (cwm->wallets) && NULL == wallet; index++) {
+    for (size_t index = 0; index < array_count (cwm->wallets); index++) {
         if (eth == cryptoWalletAsETH (cwm->wallets[index])) {
             wallet = cryptoWalletTake (cwm->wallets[index]);
+            break;
         }
     }
     pthread_mutex_unlock (&cwm->lock);

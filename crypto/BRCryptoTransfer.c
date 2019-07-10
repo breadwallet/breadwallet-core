@@ -28,6 +28,7 @@
 #include "BRCryptoPrivate.h"
 
 #include "support/BRAddress.h"
+#include "bitcoin/BRWallet.h"
 #include "bitcoin/BRTransaction.h"
 #include "ethereum/util/BRUtil.h"
 #include "ethereum/BREthereum.h"
@@ -111,6 +112,7 @@ cryptoTransferCreateAsBTC (BRCryptoCurrency currency,
                 BRAddress address;
                 memcpy (address.s, inputs[index].address, sizeof (address.s));
                 transfer->sourceAddress = cryptoAddressCreateAsBTC (address);
+                break;
             }
         }
     }
@@ -126,6 +128,7 @@ cryptoTransferCreateAsBTC (BRCryptoCurrency currency,
                 BRAddress address;
                 memcpy (address.s, outputs[index].address, sizeof (address.s));
                 transfer->targetAddress = cryptoAddressCreateAsBTC (address);
+                break;
             }
         }
     }

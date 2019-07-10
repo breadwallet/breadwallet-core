@@ -258,9 +258,10 @@ cryptoNetworkGetCurrencyForCode (BRCryptoNetwork network,
                                    const char *code) {
     BRCryptoCurrency currency = NULL;
     pthread_mutex_lock (&network->lock);
-    for (size_t index = 0; index < array_count(network->associations) && NULL == currency; index++) {
+    for (size_t index = 0; index < array_count(network->associations); index++) {
         if (0 == strcmp (code, cryptoCurrencyGetCode (network->associations[index].currency))) {
             currency = cryptoCurrencyTake (network->associations[index].currency);
+            break;
         }
     }
     pthread_mutex_unlock (&network->lock);
@@ -272,12 +273,13 @@ cryptoNetworkGetCurrencyforTokenETH (BRCryptoNetwork network,
                                      BREthereumToken token) {
     BRCryptoCurrency tokenCurrency = NULL;
     pthread_mutex_lock (&network->lock);
-    for (size_t index = 0; index < array_count(network->associations) && NULL == tokenCurrency; index++) {
+    for (size_t index = 0; index < array_count(network->associations); index++) {
         BRCryptoCurrency currency = network->associations[index].currency;
         const char *address = cryptoCurrencyGetIssuer (currency);
 
         if (NULL != address && ETHEREUM_BOOLEAN_IS_TRUE (tokenHasAddress (token, address))) {
             tokenCurrency = cryptoCurrencyTake (currency);
+            break;
         }
     }
     pthread_mutex_unlock (&network->lock);
