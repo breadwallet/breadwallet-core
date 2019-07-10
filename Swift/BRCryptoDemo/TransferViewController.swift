@@ -251,9 +251,6 @@ class TransferViewController: UIViewController, TransferListener {
                     break // nearly impossible
                 }
                 break
-            case .confirmation(let count):
-                self.confCountLabel.text = count.description
-                break
             case .deleted:
                 break // nearly impossible
             }

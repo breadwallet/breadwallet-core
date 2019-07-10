@@ -277,7 +277,6 @@ extension TransferState: CustomStringConvertible {
 public enum TransferEvent {
     case created
     case changed (old: TransferState, new: TransferState)
-    case confirmation (count: UInt64)
     case deleted
 }
 

@@ -117,12 +117,6 @@ class WalletViewController: UITableViewController, TransferListener {
                     self.tableView.reloadRows(at: [path], with: .automatic)
                 }
 
-            case .confirmation:
-                if let index = self.transfers.firstIndex (of: transfer) {
-                    let path = IndexPath (row: index, section: 0)
-                    self.tableView.reloadRows(at: [path], with: .automatic)
-                }
-
             case .deleted:
                 if let index = self.transfers.firstIndex (of: transfer) {
                     self.transfers.remove(at: index)

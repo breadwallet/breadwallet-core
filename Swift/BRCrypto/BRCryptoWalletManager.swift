@@ -526,13 +526,6 @@ extension WalletManager {
                                                             event: TransferEvent.changed (old: TransferState.init (core: event.u.state.old),
                                                                                           new: TransferState.init (core: event.u.state.new)))
 
-                case CRYPTO_TRANSFER_EVENT_CONFIRMED:
-                    transfer.listener?.handleTransferEvent (system: manager.system,
-                                                            manager: manager,
-                                                            wallet: wallet,
-                                                            transfer: transfer,
-                                                            event: TransferEvent.confirmation(count: 10))
-
                 case CRYPTO_TRANSFER_EVENT_DELETED:
                     transfer.listener?.handleTransferEvent (system: manager.system,
                                                             manager: manager,
@@ -1020,7 +1013,6 @@ extension BRCryptoTransferEventType: CustomStringConvertible {
         switch self {
         case CRYPTO_TRANSFER_EVENT_CREATED: return "Created"
         case CRYPTO_TRANSFER_EVENT_CHANGED: return "Changed"
-        case CRYPTO_TRANSFER_EVENT_CONFIRMED: return "Confirmed"
         case CRYPTO_TRANSFER_EVENT_DELETED: return "Deleted"
         default: return "<>unknown>>"
         }

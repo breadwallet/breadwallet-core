@@ -23,7 +23,6 @@ import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
 import com.breadwallet.crypto.events.transfer.TranferEvent;
 import com.breadwallet.crypto.events.transfer.TransferChangedEvent;
-import com.breadwallet.crypto.events.transfer.TransferConfirmationEvent;
 import com.breadwallet.crypto.events.transfer.TransferCreatedEvent;
 import com.breadwallet.crypto.events.transfer.TransferDeletedEvent;
 import com.breadwallet.crypto.events.transfer.TransferEventVisitor;
@@ -118,46 +117,39 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
     @Override
     public void handleTransferEvent(System system, WalletManager manager, Wallet wallet, Transfer transfer, TranferEvent event) {
         runOnUiThread(() -> {
-            event.accept(new TransferEventVisitor<Void>() {
-                @Override
-                public Void visit(TransferChangedEvent event) {
-                    int index = transfers.indexOf(transfer);
-                    if (index != -1) {
-                        transferAdapter.notifyItemChanged(index);
+            if (wallet.equals(this.wallet)) {
+                event.accept(new TransferEventVisitor<Void>() {
+                    @Override
+                    public Void visit(TransferChangedEvent event) {
+                        int index = transfers.indexOf(transfer);
+                        if (index != -1) {
+                            transferAdapter.notifyItemChanged(index);
+                        }
+                        return null;
                     }
-                    return null;
-                }
 
-                @Override
-                public Void visit(TransferConfirmationEvent event) {
-                    int index = transfers.indexOf(transfer);
-                    if (index != -1) {
-                        transferAdapter.notifyItemChanged(index);
+                    @Override
+                    public Void visit(TransferCreatedEvent event) {
+                        int index = transfers.indexOf(transfer);
+                        if (index == -1) {
+                            index = transfers.size();
+                            transfers.add(index, transfer);
+                            transferAdapter.notifyItemInserted(index);
+                        }
+                        return null;
                     }
-                    return null;
-                }
 
-                @Override
-                public Void visit(TransferCreatedEvent event) {
-                    int index = transfers.indexOf(transfer);
-                    if (index == -1) {
-                        index = transfers.size();
-                        transfers.add(index, transfer);
-                        transferAdapter.notifyItemInserted(index);
+                    @Override
+                    public Void visit(TransferDeletedEvent event) {
+                        int index = transfers.indexOf(transfer);
+                        if (index != -1) {
+                            transfers.remove(index);
+                            transferAdapter.notifyItemRemoved(index);
+                        }
+                        return null;
                     }
-                    return null;
-                }
-
-                @Override
-                public Void visit(TransferDeletedEvent event) {
-                    int index = transfers.indexOf(transfer);
-                    if (index != -1) {
-                        transfers.remove(index);
-                        transferAdapter.notifyItemRemoved(index);
-                    }
-                    return null;
-                }
-            });
+                });
+            }
         });
     }
 

@@ -19,7 +19,6 @@ import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
 import com.breadwallet.crypto.events.transfer.TranferEvent;
 import com.breadwallet.crypto.events.transfer.TransferChangedEvent;
-import com.breadwallet.crypto.events.transfer.TransferConfirmationEvent;
 import com.breadwallet.crypto.events.transfer.TransferCreatedEvent;
 import com.breadwallet.crypto.events.transfer.TransferDeletedEvent;
 import com.breadwallet.crypto.events.transfer.TransferEventVisitor;
@@ -167,33 +166,27 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
 
     @Override
     public void handleTransferEvent(System system, WalletManager manager, Wallet wallet, Transfer transfer, TranferEvent event) {
-        // TODO: This should be filtered to only events on our transfer
         runOnUiThread(() -> {
-            event.accept(new TransferEventVisitor<Void>() {
-                @Override
-                public Void visit(TransferChangedEvent event) {
-                    String confirmationText = transfer.getConfirmation().transform((c) -> "Yes @ " + c.getBlockNumber()).or("No");
-                    confirmationView.setText(confirmationText);
-                    return null;
-                }
+            if (transfer.equals(this.transfer)) {
+                event.accept(new TransferEventVisitor<Void>() {
+                    @Override
+                    public Void visit(TransferChangedEvent event) {
+                        String confirmationText = transfer.getConfirmation().transform((c) -> "Yes @ " + c.getBlockNumber()).or("No");
+                        confirmationView.setText(confirmationText);
+                        return null;
+                    }
 
-                @Override
-                public Void visit(TransferConfirmationEvent event) {
-                    String confirmationCountText = transfer.getConfirmations().transform(String::valueOf).or("");
-                    confirmationCountView.setText(confirmationCountText);
-                    return null;
-                }
+                    @Override
+                    public Void visit(TransferCreatedEvent event) {
+                        return null;
+                    }
 
-                @Override
-                public Void visit(TransferCreatedEvent event) {
-                    return null;
-                }
-
-                @Override
-                public Void visit(TransferDeletedEvent event) {
-                    return null;
-                }
-            });
+                    @Override
+                    public Void visit(TransferDeletedEvent event) {
+                        return null;
+                    }
+                });
+            }
         });
     }
 
