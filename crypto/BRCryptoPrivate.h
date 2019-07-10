@@ -42,7 +42,6 @@
 #include "BRCryptoWalletManager.h"
 
 ///
-#include "support/BRAddress.h"
 #include "support/BRBIP32Sequence.h"
 #include "bitcoin/BRChainParams.h"
 #include "bitcoin/BRTransaction.h"
@@ -278,7 +277,7 @@ extern "C" {
 
     private_extern void
     cryptoWalletRemTransfer (BRCryptoWallet wallet, BRCryptoTransfer transfer);
-    
+
     /// MARK: - WalletManager
 
     private_extern void
