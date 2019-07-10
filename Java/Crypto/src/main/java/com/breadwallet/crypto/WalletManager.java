@@ -23,6 +23,8 @@ public interface WalletManager {
 
     boolean isActive();
 
+    System getSystem();
+
     Account getAccount();
 
     Network getNetwork();

@@ -129,7 +129,8 @@ final class System implements com.breadwallet.crypto.System {
     private static final BRCryptoCWMListenerWalletEvent CWM_LISTENER_WALLET_CALLBACK = System::walletEventCallback;
     private static final BRCryptoCWMListenerTransferEvent CWM_LISTENER_TRANSFER_CALLBACK = System::transferEventCallback;
 
-    public static System create(ExecutorService listenerExecutor, SystemListener listener, com.breadwallet.crypto.Account account, String path, BlockchainDb query) {
+    /* package */
+    static System create(ExecutorService listenerExecutor, SystemListener listener, com.breadwallet.crypto.Account account, String path, BlockchainDb query) {
         Pointer context = Pointer.createConstant(SYSTEM_IDS.incrementAndGet());
 
         BRCryptoCWMListener.ByValue cwmListener = new BRCryptoCWMListener.ByValue(context,
@@ -237,7 +238,7 @@ final class System implements com.breadwallet.crypto.System {
     @Override
     public void createWalletManager(com.breadwallet.crypto.Network network, WalletManagerMode mode) {
         if (network.getSupportedModes().contains(mode)) {
-            WalletManager walletManager = WalletManager.create(cwmListener, cwmClient, account, Network.from(network), mode, path);
+            WalletManager walletManager = WalletManager.create(cwmListener, cwmClient, account, Network.from(network), mode, path, this);
             if (addWalletManager(walletManager)) {
                 announcer.announceSystemEvent(new SystemManagerAddedEvent(walletManager));
             }
@@ -329,7 +330,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private Optional<WalletManager> getWalletManager(CoreBRCryptoWalletManager coreWalletManager) {
-        WalletManager walletManager = WalletManager.create(coreWalletManager);
+        WalletManager walletManager = WalletManager.create(coreWalletManager, this);
         walletManagersReadLock.lock();
         try {
             int index = walletManagers.indexOf(walletManager);
@@ -340,7 +341,7 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private WalletManager getWalletManagerOrCreate(CoreBRCryptoWalletManager coreWalletManager) {
-        WalletManager walletManager = WalletManager.create(coreWalletManager);
+        WalletManager walletManager = WalletManager.create(coreWalletManager, this);
         walletManagersWriteLock.lock();
         try {
             int index = walletManagers.indexOf(walletManager);

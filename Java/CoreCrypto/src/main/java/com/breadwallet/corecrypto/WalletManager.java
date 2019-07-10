@@ -18,18 +18,25 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
     /* package */
     static WalletManager create(BRCryptoCWMListener.ByValue listener, BRCryptoCWMClient.ByValue client,
-                                Account account, Network network, WalletManagerMode mode, String path) {
-        CoreBRCryptoWalletManager core = CoreBRCryptoWalletManager.create(listener, client, account.getCoreBRCryptoAccount(),
-                network.getCoreBRCryptoNetwork(), Utilities.walletManagerModeToCrypto(mode), path);
+                                Account account, Network network, WalletManagerMode mode, String path,
+                                System system) {
+        CoreBRCryptoWalletManager core = CoreBRCryptoWalletManager.create(
+                listener,
+                client,
+                account.getCoreBRCryptoAccount(),
+                network.getCoreBRCryptoNetwork(),
+                Utilities.walletManagerModeToCrypto(mode),
+                path);
 
-        return new WalletManager(core);
+        return new WalletManager(core, system);
     }
 
     /* package */
-    static WalletManager create(CoreBRCryptoWalletManager core) {
-        return new WalletManager(core);
+    static WalletManager create(CoreBRCryptoWalletManager core, System system) {
+        return new WalletManager(core, system);
     }
 
+    private final System system;
     private final Account account;
     private final Network network;
     private final Currency networkCurrency;
@@ -40,7 +47,8 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
     private CoreBRCryptoWalletManager core;
 
-    private WalletManager(CoreBRCryptoWalletManager core) {
+    private WalletManager(CoreBRCryptoWalletManager core, System system) {
+        this.system = system;
         this.account = Account.create(core.getAccount());
         this.network = Network.create(core.getNetwork());
         this.networkCurrency = network.getCurrency();
@@ -80,6 +88,11 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     public boolean isActive() {
         WalletManagerState state = getState();
         return state == WalletManagerState.CREATED || state == WalletManagerState.SYNCING;
+    }
+
+    @Override
+    public System getSystem() {
+        return system;
     }
 
     @Override
