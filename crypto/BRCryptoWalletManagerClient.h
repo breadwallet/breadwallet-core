@@ -45,89 +45,89 @@ extern "C" {
 
     typedef void
         (*BRCryptoCWMEthGetEtherBalanceCallback) (BRCryptoCWMClientContext context,
-                                                  BRCryptoWalletManager manager,
-                                                  BRCryptoCWMClientCallbackState callbackState,
-                                                  const char *network,
-                                                  const char *address);
+                                                  OwnershipGiven BRCryptoWalletManager manager,
+                                                  OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                                  OwnershipKept const char *network,
+                                                  OwnershipKept const char *address);
 
     typedef void
         (*BRCryptoCWMEthGetTokenBalanceCallback) (BRCryptoCWMClientContext context,
-                                                  BRCryptoWalletManager manager,
-                                                  BRCryptoCWMClientCallbackState callbackState,
-                                                  const char *network,
-                                                  const char *address,
-                                                  const char *tokenAddress);
+                                                  OwnershipGiven BRCryptoWalletManager manager,
+                                                  OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                                  OwnershipKept const char *network,
+                                                  OwnershipKept const char *address,
+                                                  OwnershipKept const char *tokenAddress);
 
     typedef void
         (*BRCryptoCWMEthGetGasPriceCallback) (BRCryptoCWMClientContext context,
-                                              BRCryptoWalletManager manager,
-                                              BRCryptoCWMClientCallbackState callbackState,
-                                              const char *network);
+                                              OwnershipGiven BRCryptoWalletManager manager,
+                                              OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                              OwnershipKept const char *network);
 
     typedef void
         (*BRCryptoCWMEthEstimateGasCallback) (BRCryptoCWMClientContext context,
-                                              BRCryptoWalletManager manager,
-                                              BRCryptoCWMClientCallbackState callbackState,
-                                              const char *network,
-                                              const char *from,
-                                              const char *to,
-                                              const char *amount,
-                                              const char *data);
+                                              OwnershipGiven BRCryptoWalletManager manager,
+                                              OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                              OwnershipKept const char *network,
+                                              OwnershipKept const char *from,
+                                              OwnershipKept const char *to,
+                                              OwnershipKept const char *amount,
+                                              OwnershipKept const char *data);
 
     typedef void
         (*BRCryptoCWMEthSubmitTransactionCallback) (BRCryptoCWMClientContext context,
-                                                    BRCryptoWalletManager manager,
-                                                    BRCryptoCWMClientCallbackState callbackState,
-                                                    const char *network,
-                                                    const char *transaction);
+                                                    OwnershipGiven BRCryptoWalletManager manager,
+                                                    OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                                    OwnershipKept const char *network,
+                                                    OwnershipKept const char *transaction);
 
     typedef void
         (*BRCryptoCWMEthGetTransactionsCallback) (BRCryptoCWMClientContext context,
-                                                  BRCryptoWalletManager manager,
-                                                  BRCryptoCWMClientCallbackState callbackState,
-                                                  const char *network,
-                                                  const char *address,
+                                                  OwnershipGiven BRCryptoWalletManager manager,
+                                                  OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                                  OwnershipKept const char *network,
+                                                  OwnershipKept const char *address,
                                                   uint64_t begBlockNumber,
                                                   uint64_t endBlockNumber);
 
     typedef void
         (*BRCryptoCWMEthGetLogsCallback) (BRCryptoCWMClientContext context,
-                                          BRCryptoWalletManager manager,
-                                          BRCryptoCWMClientCallbackState callbackState,
-                                          const char *network,
-                                          const char *contract,
-                                          const char *address,
-                                          const char *event,
+                                          OwnershipGiven BRCryptoWalletManager manager,
+                                          OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                          OwnershipKept const char *network,
+                                          OwnershipKept const char *contract,
+                                          OwnershipKept const char *address,
+                                          OwnershipKept const char *event,
                                           uint64_t begBlockNumber,
                                           uint64_t endBlockNumber);
 
     typedef void
         (*BRCryptoCWMEthGetBlocksCallback) (BRCryptoCWMClientContext context,
-                                            BRCryptoWalletManager manager,
-                                            BRCryptoCWMClientCallbackState callbackState,
-                                            const char *network,
-                                            const char *address, // disappears immediately
+                                            OwnershipGiven BRCryptoWalletManager manager,
+                                            OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                            OwnershipKept const char *network,
+                                            OwnershipKept const char *address, // disappears immediately
                                             BREthereumSyncInterestSet interests,
                                             uint64_t blockNumberStart,
                                             uint64_t blockNumberStop);
 
     typedef void
         (*BRCryptoCWMEthGetTokensCallback) (BRCryptoCWMClientContext context,
-                                            BRCryptoWalletManager manager,
-                                            BRCryptoCWMClientCallbackState callbackState);
+                                            OwnershipGiven BRCryptoWalletManager manager,
+                                            OwnershipGiven BRCryptoCWMClientCallbackState callbackState);
 
     typedef void
         (*BRCryptoCWMEthGetBlockNumberCallback) (BRCryptoCWMClientContext context,
-                                                 BRCryptoWalletManager manager,
-                                                 BRCryptoCWMClientCallbackState callbackState,
-                                                 const char *network);
+                                                 OwnershipGiven BRCryptoWalletManager manager,
+                                                 OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                                 OwnershipKept const char *network);
 
     typedef void
         (*BRCryptoCWMEthGetNonceCallback) (BRCryptoCWMClientContext context,
-                                           BRCryptoWalletManager manager,
-                                           BRCryptoCWMClientCallbackState callbackState,
-                                           const char *network,
-                                           const char *address);
+                                           OwnershipGiven BRCryptoWalletManager manager,
+                                           OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                           OwnershipKept const char *network,
+                                           OwnershipKept const char *address);
 
     typedef struct {
         BRCryptoCWMEthGetEtherBalanceCallback funcGetEtherBalance;
@@ -145,23 +145,23 @@ extern "C" {
 
     typedef void
     (*BRCryptoCWMBtcGetBlockNumberCallback) (BRCryptoCWMClientContext context,
-                                             BRCryptoWalletManager manager,
-                                             BRCryptoCWMClientCallbackState callbackState);
+                                             OwnershipGiven BRCryptoWalletManager manager,
+                                             OwnershipGiven BRCryptoCWMClientCallbackState callbackState);
 
     typedef void
     (*BRCryptoCWMBtcGetTransactionsCallback) (BRCryptoCWMClientContext context,
-                                              BRCryptoWalletManager manager,
-                                              BRCryptoCWMClientCallbackState callbackState,
-                                              const char **addresses,
+                                              OwnershipGiven BRCryptoWalletManager manager,
+                                              OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                              OwnershipKept const char **addresses,
                                               size_t addressCount,
                                               uint64_t begBlockNumber,
                                               uint64_t endBlockNumber);
 
     typedef void
     (*BRCryptoCWMBtcSubmitTransactionCallback) (BRCryptoCWMClientContext context,
-                                                BRCryptoWalletManager manager,
-                                                BRCryptoCWMClientCallbackState callbackState,
-                                                uint8_t *transaction,
+                                                OwnershipGiven BRCryptoWalletManager manager,
+                                                OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                                OwnershipKept uint8_t *transaction,
                                                 size_t transactionLength);
 
     typedef struct {
@@ -181,156 +181,156 @@ extern "C" {
     } BRCryptoCWMClient;
 
     extern BRWalletManagerClient
-    cryptoWalletManagerClientCreateBTCClient (BRCryptoWalletManager cwm);
+    cryptoWalletManagerClientCreateBTCClient (OwnershipKept BRCryptoWalletManager cwm);
 
     extern BREthereumClient
-    cryptoWalletManagerClientCreateETHClient (BRCryptoWalletManager cwm);
+    cryptoWalletManagerClientCreateETHClient (OwnershipKept BRCryptoWalletManager cwm);
 
     extern void
-    cwmAnnounceGetBlockNumberSuccessAsInteger (BRCryptoWalletManager cwm,
-                                               BRCryptoCWMClientCallbackState callbackState,
+    cwmAnnounceGetBlockNumberSuccessAsInteger (OwnershipKept BRCryptoWalletManager cwm,
+                                               OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
                                                uint64_t blockNumber);
 
     extern void
-    cwmAnnounceGetBlockNumberSuccessAsString (BRCryptoWalletManager cwm,
-                                              BRCryptoCWMClientCallbackState callbackState,
-                                              const char *blockNumber);
+    cwmAnnounceGetBlockNumberSuccessAsString (OwnershipKept BRCryptoWalletManager cwm,
+                                              OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                              OwnershipKept const char *blockNumber);
 
     extern void
-    cwmAnnounceGetBlockNumberFailure (BRCryptoWalletManager cwm,
-                                      BRCryptoCWMClientCallbackState callbackState);
+    cwmAnnounceGetBlockNumberFailure (OwnershipKept BRCryptoWalletManager cwm,
+                                      OwnershipGiven BRCryptoCWMClientCallbackState callbackState);
 
     extern void
-    cwmAnnounceGetTransactionsItemBTC (BRCryptoWalletManager cwm,
-                                       BRCryptoCWMClientCallbackState callbackState,
-                                       uint8_t *transaction,
+    cwmAnnounceGetTransactionsItemBTC (OwnershipKept BRCryptoWalletManager cwm,
+                                       OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                       OwnershipKept uint8_t *transaction,
                                        size_t transactionLength,
                                        uint64_t timestamp,
                                        uint64_t blockHeight);
 
     extern void
-    cwmAnnounceGetTransactionsItemETH (BRCryptoWalletManager cwm,
-                                       BRCryptoCWMClientCallbackState callbackState,
-                                       const char *hash,
-                                       const char *from,
-                                       const char *to,
-                                       const char *contract,
-                                       const char *amount, // value
-                                       const char *gasLimit,
-                                       const char *gasPrice,
-                                       const char *data,
-                                       const char *nonce,
-                                       const char *gasUsed,
-                                       const char *blockNumber,
-                                       const char *blockHash,
-                                       const char *blockConfirmations,
-                                       const char *blockTransactionIndex,
-                                       const char *blockTimestamp,
+    cwmAnnounceGetTransactionsItemETH (OwnershipKept BRCryptoWalletManager cwm,
+                                       OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                       OwnershipKept const char *hash,
+                                       OwnershipKept const char *from,
+                                       OwnershipKept const char *to,
+                                       OwnershipKept const char *contract,
+                                       OwnershipKept const char *amount, // value
+                                       OwnershipKept const char *gasLimit,
+                                       OwnershipKept const char *gasPrice,
+                                       OwnershipKept const char *data,
+                                       OwnershipKept const char *nonce,
+                                       OwnershipKept const char *gasUsed,
+                                       OwnershipKept const char *blockNumber,
+                                       OwnershipKept const char *blockHash,
+                                       OwnershipKept const char *blockConfirmations,
+                                       OwnershipKept const char *blockTransactionIndex,
+                                       OwnershipKept const char *blockTimestamp,
                                        // cumulative gas used,
                                        // confirmations
                                        // txreceipt_status
-                                       const char *isError);
+                                       OwnershipKept const char *isError);
 
     extern void
-    cwmAnnounceGetTransactionsComplete (BRCryptoWalletManager cwm,
-                                        BRCryptoCWMClientCallbackState callbackState,
+    cwmAnnounceGetTransactionsComplete (OwnershipKept BRCryptoWalletManager cwm,
+                                        OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
                                         BRCryptoBoolean success);
 
     extern void
-    cwmAnnounceSubmitTransferSuccess (BRCryptoWalletManager cwm,
-                                      BRCryptoCWMClientCallbackState callbackState);
+    cwmAnnounceSubmitTransferSuccess (OwnershipKept BRCryptoWalletManager cwm,
+                                      OwnershipGiven BRCryptoCWMClientCallbackState callbackState);
 
     extern void
-    cwmAnnounceSubmitTransferSuccessForHash (BRCryptoWalletManager cwm,
-                                             BRCryptoCWMClientCallbackState callbackState,
+    cwmAnnounceSubmitTransferSuccessForHash (OwnershipKept BRCryptoWalletManager cwm,
+                                             OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
                                              const char *hash);
 
     extern void
-    cwmAnnounceSubmitTransferFailure (BRCryptoWalletManager cwm,
-                                      BRCryptoCWMClientCallbackState callbackState);
+    cwmAnnounceSubmitTransferFailure (OwnershipKept BRCryptoWalletManager cwm,
+                                      OwnershipGiven BRCryptoCWMClientCallbackState callbackState);
 
     extern void
-    cwmAnnounceGetBalanceSuccess (BRCryptoWalletManager cwm,
-                                  BRCryptoCWMClientCallbackState callbackState,
+    cwmAnnounceGetBalanceSuccess (OwnershipKept BRCryptoWalletManager cwm,
+                                  OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
                                   const char *balance);
 
     extern void
-    cwmAnnounceGetBalanceFailure (BRCryptoWalletManager cwm,
-                                  BRCryptoCWMClientCallbackState callbackState);
+    cwmAnnounceGetBalanceFailure (OwnershipKept BRCryptoWalletManager cwm,
+                                  OwnershipGiven BRCryptoCWMClientCallbackState callbackState);
 
     extern void
-    cwmAnnounceGetBlocksSuccess (BRCryptoWalletManager cwm,
-                                 BRCryptoCWMClientCallbackState callbackState,
+    cwmAnnounceGetBlocksSuccess (OwnershipKept BRCryptoWalletManager cwm,
+                                 OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
                                  int blockNumbersCount,
                                  uint64_t *blockNumbers);
 
     extern void
-    cwmAnnounceGetBlocksFailure (BRCryptoWalletManager cwm,
-                                 BRCryptoCWMClientCallbackState callbackState);
+    cwmAnnounceGetBlocksFailure (OwnershipKept BRCryptoWalletManager cwm,
+                                 OwnershipGiven BRCryptoCWMClientCallbackState callbackState);
 
     extern void
-    cwmAnnounceGetGasPriceSuccess (BRCryptoWalletManager cwm,
-                                   BRCryptoCWMClientCallbackState callbackState,
+    cwmAnnounceGetGasPriceSuccess (OwnershipKept BRCryptoWalletManager cwm,
+                                   OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
                                    const char *gasPrice);
 
     extern void
-    cwmAnnounceGetGasPriceFailure (BRCryptoWalletManager cwm,
-                                   BRCryptoCWMClientCallbackState callbackState);
+    cwmAnnounceGetGasPriceFailure (OwnershipKept BRCryptoWalletManager cwm,
+                                   OwnershipGiven BRCryptoCWMClientCallbackState callbackState);
 
     extern void
-    cwmAnnounceGetGasEstimateSuccess (BRCryptoWalletManager cwm,
-                                      BRCryptoCWMClientCallbackState callbackState,
+    cwmAnnounceGetGasEstimateSuccess (OwnershipKept BRCryptoWalletManager cwm,
+                                      OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
                                       const char *gasEstimate);
 
     extern void
-    cwmAnnounceGetGasEstimateFailure (BRCryptoWalletManager cwm,
-                                      BRCryptoCWMClientCallbackState callbackState);
+    cwmAnnounceGetGasEstimateFailure (OwnershipKept BRCryptoWalletManager cwm,
+                                      OwnershipGiven BRCryptoCWMClientCallbackState callbackState);
 
     extern void
-    cwmAnnounceGetLogsItem(BRCryptoWalletManager cwm,
-                           BRCryptoCWMClientCallbackState callbackState,
-                           const char *strHash,
-                           const char *strContract,
+    cwmAnnounceGetLogsItem(OwnershipKept BRCryptoWalletManager cwm,
+                           OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                           OwnershipKept const char *strHash,
+                           OwnershipKept const char *strContract,
                            int topicCount,
-                           const char **arrayTopics,
-                           const char *strData,
-                           const char *strGasPrice,
-                           const char *strGasUsed,
-                           const char *strLogIndex,
-                           const char *strBlockNumber,
-                           const char *strBlockTransactionIndex,
-                           const char *strBlockTimestamp);
+                           OwnershipKept const char **arrayTopics,
+                           OwnershipKept const char *strData,
+                           OwnershipKept const char *strGasPrice,
+                           OwnershipKept const char *strGasUsed,
+                           OwnershipKept const char *strLogIndex,
+                           OwnershipKept const char *strBlockNumber,
+                           OwnershipKept const char *strBlockTransactionIndex,
+                           OwnershipKept const char *strBlockTimestamp);
 
     extern void
-    cwmAnnounceGetLogsComplete(BRCryptoWalletManager cwm,
-                               BRCryptoCWMClientCallbackState callbackState,
+    cwmAnnounceGetLogsComplete(OwnershipKept BRCryptoWalletManager cwm,
+                               OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
                                BRCryptoBoolean success);
 
     extern void
-    cwmAnnounceGetTokensItem (BRCryptoWalletManager cwm,
-                              BRCryptoCWMClientCallbackState callbackState,
-                              const char *address,
-                              const char *symbol,
-                              const char *name,
-                              const char *description,
+    cwmAnnounceGetTokensItem (OwnershipKept BRCryptoWalletManager cwm,
+                              OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                              OwnershipKept const char *address,
+                              OwnershipKept const char *symbol,
+                              OwnershipKept const char *name,
+                              OwnershipKept const char *description,
                               unsigned int decimals,
-                              const char *strDefaultGasLimit,
-                              const char *strDefaultGasPrice);
+                              OwnershipKept const char *strDefaultGasLimit,
+                              OwnershipKept const char *strDefaultGasPrice);
 
     extern void
-    cwmAnnounceGetTokensComplete (BRCryptoWalletManager cwm,
-                                  BRCryptoCWMClientCallbackState callbackState,
+    cwmAnnounceGetTokensComplete (OwnershipKept BRCryptoWalletManager cwm,
+                                  OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
                                   BRCryptoBoolean success);
 
     extern void
-    cwmAnnounceGetNonceSuccess (BRCryptoWalletManager cwm,
-                                BRCryptoCWMClientCallbackState callbackState,
-                                const char *address,
-                                const char *nonce);
+    cwmAnnounceGetNonceSuccess (OwnershipKept BRCryptoWalletManager cwm,
+                                OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                OwnershipKept const char *address,
+                                OwnershipKept const char *nonce);
 
     extern void
     cwmAnnounceGetNonceFailure (BRCryptoWalletManager cwm,
-                                BRCryptoCWMClientCallbackState callbackState);
+                                OwnershipGiven BRCryptoCWMClientCallbackState callbackState);
 
 #ifdef __cplusplus
 }

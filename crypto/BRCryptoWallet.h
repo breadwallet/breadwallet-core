@@ -81,7 +81,7 @@ extern "C" {
 
     extern BRCryptoWalletState
     cryptoWalletGetState (BRCryptoWallet wallet);
-    
+
     /**
      * Returns the wallet's currency
      *
@@ -111,7 +111,7 @@ extern "C" {
      */
     extern BRCryptoUnit
     cryptoWalletGetUnitForFee (BRCryptoWallet wallet);
-    
+
     /**
      * Returns the wallets balance
      *
@@ -119,28 +119,28 @@ extern "C" {
      *
      * @return the balance
      */
-   extern BRCryptoAmount
+    extern BRCryptoAmount
     cryptoWalletGetBalance (BRCryptoWallet wallet);
-
-    extern size_t
-    cryptoWalletGetTransferCount (BRCryptoWallet wallet);
 
     extern BRCryptoBoolean
     cryptoWalletHasTransfer (BRCryptoWallet wallet,
                              BRCryptoTransfer transfer);
 
     /**
-     * Returns the wallet's transfer at `index`.  The index must satisfy [0, count) otherwise
-     * an assertion is signaled.
+     * Returns a newly allocated array of the wallet's transfers.
+     *
+     * The caller is responsible for deallocating the returned array using
+     * free().
      *
      * @param wallet the wallet
-     * @param index the desired transfer index
+     * @param count the number of transfers returned
      *
-     * @return The transfer w/ an incremented reference count (aka 'taken')
+     * @return An array of transfers w/ an incremented reference count (aka 'taken')
+     *         or NULL if there are no transfers in the wallet.
      */
-   extern BRCryptoTransfer
-    cryptoWalletGetTransfer (BRCryptoWallet wallet,
-                             size_t index);
+    extern BRCryptoTransfer *
+    cryptoWalletGetTransfers (BRCryptoWallet wallet,
+                              size_t *count);
 
     extern BRCryptoAddress
     cryptoWalletGetAddress (BRCryptoWallet wallet);

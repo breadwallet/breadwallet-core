@@ -31,7 +31,7 @@ public class Currency {
             new Currency("Bitcoin", "Bitcoin", "btc", "native", "bitcoin-mainnet", null,
                     ImmutableList.of(CurrencyDenomination.BTC_SATOSHI, CurrencyDenomination.BTC_BITCOIN)),
 
-            new Currency("Bitcash", "Bitcash", "bch", "native", "bitcash-mainnet", null,
+            new Currency("Bitcoin-Cash", "Bitcoin Cash", "bch", "native", "bitcoin-cash-mainnet", null,
                     ImmutableList.of(CurrencyDenomination.BTC_SATOSHI, CurrencyDenomination.BCH_BITCOIN)),
 
             new Currency("Ethereum", "Ethereum", "eth", "native", "ethereum-mainnet", null,
@@ -45,17 +45,17 @@ public class Currency {
                     ImmutableList.of(CurrencyDenomination.EOS_INT, CurrencyDenomination.EOS_EOS)),
 
             // Testnet
-            new Currency("Bitcoin-Testnet", "Bitcoin", "btc", "native", "bitcoin-testnet", null,
+            new Currency("Bitcoin-Testnet", "Bitcoin Test", "btc", "native", "bitcoin-testnet", null,
                     ImmutableList.of(CurrencyDenomination.BTC_SATOSHI, CurrencyDenomination.BTC_BITCOIN)),
 
-            new Currency("Bitcash-Testnet", "Bitcash", "bch", "native", "bitcash-testnet", null,
+            new Currency("Bitcoin-Cash-Testnet", "Bitcoin Cash Test", "bch", "native", "bitcoin-cash-testnet", null,
                     ImmutableList.of(CurrencyDenomination.BTC_SATOSHI, CurrencyDenomination.BCH_BITCOIN)),
 
-            new Currency("Ethereum-Testnet", "Ethereum", "eth", "native", "ethereum-testnet", null,
+            new Currency("Ethereum-Testnet", "Ethereum Testnet", "eth", "native", "ethereum-testnet", null,
                     ImmutableList.of(CurrencyDenomination.ETH_WEI, CurrencyDenomination.ETH_GWEI,
                             CurrencyDenomination.ETH_ETHER)),
 
-            new Currency("BRD Token Testnet", "BRD Token", "BRD", "erc20", "ethereum-testnet", ADDRESS_BRD_TESTNET,
+            new Currency("BRD Token Testnet", "BRD Token Testnet", "BRD", "erc20", "ethereum-testnet", ADDRESS_BRD_TESTNET,
                     ImmutableList.of(CurrencyDenomination.BRD_INT, CurrencyDenomination.BRD_BRD))
     );
 

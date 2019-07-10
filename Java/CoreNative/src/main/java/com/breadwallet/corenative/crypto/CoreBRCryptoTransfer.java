@@ -11,7 +11,7 @@ import com.google.common.base.Optional;
 
 public interface CoreBRCryptoTransfer {
 
-    static CoreBRCryptoTransfer create(BRCryptoTransfer transfer) {
+    static CoreBRCryptoTransfer createOwned(BRCryptoTransfer transfer) {
         return new OwnedBRCryptoTransfer(transfer);
     }
 

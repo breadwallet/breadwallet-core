@@ -45,12 +45,20 @@ public final class Wallet: Equatable {
         return Amount (core: cryptoWalletGetBalance (core), unit: unit, take: false)
     }
 
-
     /// The transfers of currency yielding `balance`
     public var transfers: [Transfer] {
         let listener = manager.system.listener
-        return (0..<cryptoWalletGetTransferCount(core))
-            .map { Transfer (core: cryptoWalletGetTransfer (core, $0),
+        
+        var transfersCount: size_t = 0
+        let transfersPtr = cryptoWalletGetTransfers(core, &transfersCount);
+        defer { if let ptr = transfersPtr { free (ptr) } }
+        
+        let transfers: [BRCryptoTransfer] = transfersPtr?.withMemoryRebound(to: BRCryptoTransfer.self, capacity: transfersCount) {
+            Array(UnsafeBufferPointer (start: $0, count: transfersCount))
+        } ?? []
+        
+        return transfers
+            .map { Transfer (core: $0,
                              listener: listener,
                              wallet: self,
                              unit: unit,
