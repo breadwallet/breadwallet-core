@@ -14,6 +14,11 @@ import java.util.Date;
 /* package */
 final class Account implements com.breadwallet.crypto.Account {
 
+    /* package */
+    static byte[] deriveSeed(byte[] phraseUtf8) {
+        return CoreBRCryptoAccount.deriveSeed(phraseUtf8);
+    }
+
     /**
      * Create an account using a BIP32 phrase.
      *
@@ -27,7 +32,8 @@ final class Account implements com.breadwallet.crypto.Account {
      */
     /* package */
     static Account createFromPhrase(byte[] phraseUtf8, Date timestamp, String uids) {
-        return new Account(CoreBRCryptoAccount.createFromPhrase(phraseUtf8, timestamp), uids);
+        // TODO(fix): Move uids down to C layer
+        return new Account(CoreBRCryptoAccount.createFromPhrase(phraseUtf8, timestamp));
     }
 
     /**
@@ -43,12 +49,12 @@ final class Account implements com.breadwallet.crypto.Account {
      */
     /* package */
     static Account createFromSeed(byte[] seed, Date timestamp, String uids) {
-        return new Account(CoreBRCryptoAccount.createFromSeed(seed, timestamp), uids);
+        // TODO(fix): Move uids down to C layer
+        return new Account(CoreBRCryptoAccount.createFromSeed(seed, timestamp));
     }
 
-    /* package */
-    static byte[] deriveSeed(byte[] phraseUtf8) {
-        return CoreBRCryptoAccount.deriveSeed(phraseUtf8);
+    static Account create(CoreBRCryptoAccount core) {
+        return new Account(core);
     }
 
     /* package */
@@ -60,10 +66,8 @@ final class Account implements com.breadwallet.crypto.Account {
     }
 
     private final CoreBRCryptoAccount core;
-    private final String uids;
 
-    private Account(CoreBRCryptoAccount core, String uids) {
-        this.uids = uids;
+    private Account(CoreBRCryptoAccount core) {
         this.core = core;
     }
 

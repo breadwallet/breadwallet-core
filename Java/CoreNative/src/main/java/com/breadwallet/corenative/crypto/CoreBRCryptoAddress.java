@@ -8,19 +8,16 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
-import com.breadwallet.corenative.ethereum.BREthereumAddress;
-import com.breadwallet.corenative.support.BRAddress;
+import com.google.common.base.Optional;
 
 public interface CoreBRCryptoAddress {
 
-    static CoreBRCryptoAddress createAsBtc(String address) {
-        BRAddress.ByValue addressValue = new BRAddress.ByValue(BRAddress.addressFill(address));
-        return new OwnedBRCryptoAddress(CryptoLibrary.INSTANCE.cryptoAddressCreateAsBTC(addressValue));
+    static Optional<CoreBRCryptoAddress> createFromStringAsBtc(String address) {
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoAddressCreateFromStringAsBTC(address)).transform(OwnedBRCryptoAddress::new);
     }
 
-    static CoreBRCryptoAddress createAsEth(String address) {
-        BREthereumAddress.ByValue addressValue = CryptoLibrary.INSTANCE.addressCreate(address);
-        return new OwnedBRCryptoAddress(CryptoLibrary.INSTANCE.cryptoAddressCreateAsETH(addressValue));
+    static Optional<CoreBRCryptoAddress> createFromStringAsEth(String address) {
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoAddressCreateFromStringAsETH(address)).transform(OwnedBRCryptoAddress::new);
     }
 
     boolean isIdentical(CoreBRCryptoAddress address);

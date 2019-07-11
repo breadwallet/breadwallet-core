@@ -187,27 +187,23 @@ public final class Network: CustomStringConvertible {
         }
     }
 
-    /// Should use the network's/manager's default address scheme
+    /// TODO: Should use the network's/manager's default address scheme
     public func addressFor (_ string: String) -> Address? {
         switch cryptoNetworkGetType (core) {
         case BLOCK_CHAIN_TYPE_BTC:
-            guard 1 == BRAddressIsValid (string)
-                else { return nil }
-            return Address (core: cryptoAddressCreateAsBTC (BRAddressFill (string)), take: false)
+            return cryptoAddressCreateFromStringAsBTC(string)
+                .map { Address (core: $0, take: false)}
 
         case BLOCK_CHAIN_TYPE_ETH:
-            guard ETHEREUM_BOOLEAN_TRUE == addressValidateString (string)
-                else { return nil }
-            return Address (core: cryptoAddressCreateAsETH (addressCreate(string)), take: false)
+            return cryptoAddressCreateFromStringAsETH(string)
+                .map { Address (core: $0, take: false) }
 
         case BLOCK_CHAIN_TYPE_GEN:
             return nil
+
         default: precondition (false)
         }
     }
-
-    // address schemes
-
 }
 
 extension Network: Hashable {

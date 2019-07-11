@@ -147,16 +147,25 @@ extern "C" {
     extern BRCryptoWallet
     cryptoWalletManagerGetWallet (BRCryptoWalletManager cwm);
 
-    extern size_t
-    cryptoWalletManagerGetWalletsCount (BRCryptoWalletManager cwm);
-
-    extern BRCryptoWallet
-    cryptoWalletManagerGetWalletAtIndex (BRCryptoWalletManager cwm,
-                                                size_t index);
+    /**
+     * Returns a newly allocated array of the managers's wallets.
+     *
+     * The caller is responsible for deallocating the returned array using
+     * free().
+     *
+     * @param cwm the wallet manager
+     * @param count the number of wallets returned
+     *
+     * @return An array of wallets w/ an incremented reference count (aka 'taken')
+     *         or NULL if there are no wallters in the manager.
+     */
+    extern BRCryptoWallet *
+    cryptoWalletManagerGetWallets (BRCryptoWalletManager cwm,
+                                   size_t *count);
 
     extern BRCryptoWallet
     cryptoWalletManagerGetWalletForCurrency (BRCryptoWalletManager cwm,
-                                               BRCryptoCurrency currency);
+                                             BRCryptoCurrency currency);
 
     extern void
     cryptoWalletManagerConnect (BRCryptoWalletManager cwm);

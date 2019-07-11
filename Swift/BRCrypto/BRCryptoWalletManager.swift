@@ -57,14 +57,20 @@ public final class WalletManager: Equatable {
     /// The managed wallets - often will just be [primaryWallet]
     public var wallets: [Wallet] {
         let listener = system.listener
-        return (0..<cryptoWalletManagerGetWalletsCount(core))
-            .map {
-                let coreWallet = cryptoWalletManagerGetWalletAtIndex (core, $0)!
-                return Wallet (core: coreWallet,
-                               listener: listener,
-                               manager: self,
-                               take: false)
-        }
+        
+        var walletsCount: size_t = 0
+        let walletsPtr = cryptoWalletManagerGetWallets(core, &walletsCount);
+        defer { if let ptr = walletsPtr { free (ptr) } }
+        
+        let wallets: [BRCryptoWallet] = walletsPtr?.withMemoryRebound(to: BRCryptoWallet.self, capacity: walletsCount) {
+            Array(UnsafeBufferPointer (start: $0, count: walletsCount))
+        } ?? []
+        
+        return wallets
+            .map { Wallet (core: $0,
+                           listener: listener,
+                           manager: self,
+                           take: false) }
     }
 
     ///
@@ -562,6 +568,7 @@ extension WalletManager {
 
                 print ("SYS: BTC: GetBlockNumber")
                 manager.query.getBlockchain (blockchainId: manager.network.uids) { (res: Result<BlockChainDB.Model.Blockchain, BlockChainDB.QueryError>) in
+                    defer { cryptoWalletManagerGive (cwm!) }
                     res.resolve (
                         success: { cwmAnnounceGetBlockNumberSuccessAsInteger (manager.core, sid, $0.blockHeight) },
                         failure: { (_) in cwmAnnounceGetBlockNumberFailure (manager.core, sid) })
@@ -586,6 +593,7 @@ extension WalletManager {
                                                endBlockNumber: endBlockNumber,
                                                includeRaw: true) {
                     (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
+                    defer { cryptoWalletManagerGive (cwm!) }
                     res.resolve(
                         success: {
                             $0.forEach { (model: BlockChainDB.Model.Transaction) in
@@ -677,6 +685,7 @@ extension WalletManager {
                 let data = Data (bytes: transactionBytes!, count: transactionBytesLength)
                 manager.query.putTransaction (blockchainId: manager.network.uids, transaction: data) {
                     (res: Result<BlockChainDB.Model.Transaction, BlockChainDB.QueryError>) in
+                    defer { cryptoWalletManagerGive (cwm!) }
                     res.resolve(
                         success: { (_) in cwmAnnounceSubmitTransferSuccess (cwm, sid) },
                         failure: { (_) in cwmAnnounceSubmitTransferFailure (cwm, sid) })
@@ -690,6 +699,7 @@ extension WalletManager {
         return BRCryptoCWMClientETH (
             funcGetEtherBalance: { (context, cwm, sid, network, address) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                precondition (nil != cwm, "SYS: ETH: GetEtherBalance: Missed {cwm}")
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
@@ -697,6 +707,7 @@ extension WalletManager {
 
                 manager.query.getBalanceAsETH (network: network, address: address) {
                     (res: Result<String, BlockChainDB.QueryError>) in
+                    defer { cryptoWalletManagerGive (cwm!) }
                     res.resolve (
                         success: { cwmAnnounceGetBalanceSuccess (cwm, sid, $0) },
                         failure: { (_) in cwmAnnounceGetBalanceFailure (cwm, sid) })
@@ -704,6 +715,7 @@ extension WalletManager {
 
             funcGetTokenBalance: { (context, cwm, sid, network, address, contract) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                precondition (nil != cwm, "SYS: ETH: GetTokenBalance: Missed {cwm}")
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
@@ -712,6 +724,7 @@ extension WalletManager {
 
                 manager.query.getBalanceAsTOK (network: network, address: address, contract: contract) {
                     (res: Result<String, BlockChainDB.QueryError>) in
+                    defer { cryptoWalletManagerGive (cwm!) }
                     res.resolve (
                         success: { cwmAnnounceGetBalanceSuccess (cwm, sid, $0) },
                         failure: { (_) in cwmAnnounceGetBalanceFailure (cwm, sid) })
@@ -719,12 +732,14 @@ extension WalletManager {
 
             funcGetGasPrice: { (context, cwm, sid, network) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                precondition (nil != cwm, "SYS: ETH: GetGasPrice: Missed {cwm}")
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
 
                 manager.query.getGasPriceAsETH (network: network) {
                     (res: Result<String, BlockChainDB.QueryError>) in
+                    defer { cryptoWalletManagerGive (cwm!) }
                     res.resolve (
                         success: { cwmAnnounceGetGasPriceSuccess (cwm, sid, $0) },
                         failure: { (_) in cwmAnnounceGetGasPriceFailure (cwm, sid) })
@@ -732,6 +747,7 @@ extension WalletManager {
 
             funcEstimateGas: { (context, cwm, sid, network, from, to, amount, data) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                precondition (nil != cwm, "SYS: ETH: EstimateGas: Missed {cwm}")
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
@@ -742,6 +758,7 @@ extension WalletManager {
                                                    amount: asUTF8String(amount!),
                                                    data:   asUTF8String(data!)) {
                                                     (res: Result<String, BlockChainDB.QueryError>) in
+                                                    defer { cryptoWalletManagerGive (cwm!) }
                                                     res.resolve (
                                                         success: { cwmAnnounceGetGasEstimateSuccess (cwm, sid, $0) },
                                                         failure: { (_) in cwmAnnounceGetGasEstimateFailure (cwm, sid) })
@@ -749,6 +766,7 @@ extension WalletManager {
 
             funcSubmitTransaction: { (context, cwm, sid, network, transaction) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                precondition (nil != cwm, "SYS: ETH: SubmitTransaction: Missed {cwm}")
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
@@ -756,6 +774,7 @@ extension WalletManager {
                 manager.query.submitTransactionAsETH (network: network,
                                                       transaction: asUTF8String(transaction!)) {
                                                         (res: Result<String, BlockChainDB.QueryError>) in
+                                                        defer { cryptoWalletManagerGive (cwm!) }
                                                         res.resolve (
                                                             success: { cwmAnnounceSubmitTransferSuccessForHash (cwm, sid, $0) },
                                                             failure: { (_) in cwmAnnounceSubmitTransferFailure (cwm, sid) })
@@ -763,6 +782,7 @@ extension WalletManager {
 
             funcGetTransactions: { (context, cwm, sid, network, address, begBlockNumber, endBlockNumber) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                precondition (nil != cwm, "SYS: ETH: GetTransactions: Missed {cwm}")
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
@@ -772,6 +792,7 @@ extension WalletManager {
                                                    begBlockNumber: begBlockNumber,
                                                    endBlockNumber: endBlockNumber) {
                                                     (res: Result<[BlockChainDB.ETH.Transaction], BlockChainDB.QueryError>) in
+                                                    defer { cryptoWalletManagerGive (cwm!) }
                                                     res.resolve(
                                                         success: { (txs: [BlockChainDB.ETH.Transaction]) in
                                                             txs.forEach { (tx: BlockChainDB.ETH.Transaction) in
@@ -800,6 +821,7 @@ extension WalletManager {
 
             funcGetLogs: { (context, cwm, sid, network, contract, address, event, begBlockNumber, endBlockNumber) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                precondition (nil != cwm, "SYS: ETH: GetLogs: Missed {cwm}")
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
@@ -811,6 +833,7 @@ extension WalletManager {
                                             begBlockNumber: begBlockNumber,
                                             endBlockNumber: endBlockNumber) {
                                                 (res: Result<[BlockChainDB.ETH.Log], BlockChainDB.QueryError>) in
+                                                defer { cryptoWalletManagerGive (cwm!) }
                                                 res.resolve(
                                                     success: { (lgs: [BlockChainDB.ETH.Log]) in
                                                         lgs.forEach { (log: BlockChainDB.ETH.Log) in
@@ -837,6 +860,7 @@ extension WalletManager {
 
             funcGetBlocks: { (context, cwm, sid, network, address, interests, begBlockNumber, endBlockNumber) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                precondition (nil != cwm, "SYS: ETH: GetBlocks: Missed {cwm}")
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
@@ -847,6 +871,7 @@ extension WalletManager {
                                               blockStart: begBlockNumber,
                                               blockStop:  endBlockNumber) {
                                                 (res: Result<[UInt64], BlockChainDB.QueryError>) in
+                                                defer { cryptoWalletManagerGive (cwm!) }
                                                 res.resolve (
                                                     success: {
                                                         let numbersCount = Int32 ($0.count)
@@ -860,9 +885,11 @@ extension WalletManager {
 
             funcGetTokens: { (context, cwm, sid) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                precondition (nil != cwm, "SYS: ETH: GetTokens: Missed {cwm}")
 
                 manager.query.getTokensAsETH () {
                     (res: Result<[BlockChainDB.ETH.Token],BlockChainDB.QueryError>) in
+                    defer { cryptoWalletManagerGive (cwm!) }
                     res.resolve(
                         success: { (tokens: [BlockChainDB.ETH.Token]) in
                             tokens.forEach { (token: BlockChainDB.ETH.Token) in
@@ -881,12 +908,14 @@ extension WalletManager {
 
             funcGetBlockNumber: { (context, cwm, sid, network) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                precondition (nil != cwm, "SYS: ETH: GetBlockNumber: Missed {cwm}")
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
 
                 manager.query.getBlockNumberAsETH (network: network) {
                     (res: Result<String, BlockChainDB.QueryError>) in
+                    defer { cryptoWalletManagerGive (cwm!) }
                     res.resolve (
                         success: { cwmAnnounceGetBlockNumberSuccessAsString (cwm, sid, $0) },
                         failure: { (_) in cwmAnnounceGetBlockNumberFailure (cwm, sid) })
@@ -894,12 +923,14 @@ extension WalletManager {
 
             funcGetNonce: { (context, cwm, sid, network, address) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                precondition (nil != cwm, "SYS: ETH: GetNonce: Missed {cwm}")
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
 
                 manager.query.getNonceAsETH (network: network, address: asUTF8String(address!)) {
                     (res: Result<String, BlockChainDB.QueryError>) in
+                    defer { cryptoWalletManagerGive (cwm!) }
                     res.resolve (
                         success: { cwmAnnounceGetNonceSuccess (cwm, sid, address, $0) },
                         failure: { (_) in cwmAnnounceGetNonceFailure (cwm, sid) })

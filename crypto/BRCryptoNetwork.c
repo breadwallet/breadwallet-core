@@ -23,6 +23,8 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#include <pthread.h>
+
 #include "BRCryptoNetwork.h"
 #include "BRCryptoPrivate.h"
 
@@ -44,6 +46,8 @@ typedef struct {
 #define CRYPTO_NETWORK_DEFAULT_NETWORKS                     (5)
 
 struct BRCryptoNetworkRecord {
+    pthread_mutex_t lock;
+
     char *uids;
     char *name;
     BRCryptoBlockChainHeight height;
@@ -81,6 +85,15 @@ cryptoNetworkCreate (const char *uids,
     network->height = 0;
     array_new (network->associations, CRYPTO_NETWORK_DEFAULT_CURRENCY_ASSOCIATIONS);
     network->ref = CRYPTO_REF_ASSIGN(cryptoNetworkRelease);
+
+    {
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+
+        pthread_mutex_init(&network->lock, &attr);
+        pthread_mutexattr_destroy(&attr);
+    }
 
     return network;
 }
@@ -147,6 +160,7 @@ cryptoNetworkRelease (BRCryptoNetwork network) {
     free (network->name);
     cryptoCurrencyGive (network->currency);
     array_free (network->associations);
+    pthread_mutex_destroy (&network->lock);
     free (network);
 }
 
@@ -191,99 +205,142 @@ cryptoNetworkSetHeight (BRCryptoNetwork network,
 
 extern BRCryptoCurrency
 cryptoNetworkGetCurrency (BRCryptoNetwork network) {
-    return cryptoCurrencyTake (network->currency);
+    pthread_mutex_lock (&network->lock);
+    BRCryptoCurrency currency = cryptoCurrencyTake (network->currency);
+    pthread_mutex_unlock (&network->lock);
+    return currency;
 }
 
 private_extern void
 cryptoNetworkSetCurrency (BRCryptoNetwork network,
-                          BRCryptoCurrency currency) {
-    if (NULL != network->currency) cryptoCurrencyGive (network->currency);
-    network->currency = cryptoCurrencyTake(currency);
+                          BRCryptoCurrency newCurrency) {
+    pthread_mutex_lock (&network->lock);
+    BRCryptoCurrency currency = network->currency;
+    network->currency = cryptoCurrencyTake(newCurrency);
+    pthread_mutex_unlock (&network->lock);
+
+    // drop reference outside of lock to avoid potential case where release function runs
+    if (NULL != currency) cryptoCurrencyGive (currency);
 }
 
 extern size_t
 cryptoNetworkGetCurrencyCount (BRCryptoNetwork network) {
-    return array_count (network->associations);
+    pthread_mutex_lock (&network->lock);
+    size_t count = array_count (network->associations);
+    pthread_mutex_unlock (&network->lock);
+    return count;
 }
 
 extern BRCryptoCurrency
 cryptoNetworkGetCurrencyAt (BRCryptoNetwork network,
                             size_t index) {
+    pthread_mutex_lock (&network->lock);
     assert (index < array_count(network->associations));
-    return cryptoCurrencyTake (network->associations[index].currency);
+    BRCryptoCurrency currency = cryptoCurrencyTake (network->associations[index].currency);
+    pthread_mutex_unlock (&network->lock);
+    return currency;
 }
 
 extern BRCryptoBoolean
 cryptoNetworkHasCurrency (BRCryptoNetwork network,
                           BRCryptoCurrency currency) {
-    for (size_t index = 0; index < array_count(network->associations); index++)
-        if (CRYPTO_TRUE == cryptoCurrencyIsIdentical (network->associations[index].currency, currency))
-            return CRYPTO_TRUE;
-    return CRYPTO_FALSE;
+    BRCryptoBoolean r = CRYPTO_FALSE;
+    pthread_mutex_lock (&network->lock);
+    for (size_t index = 0; index < array_count(network->associations) && CRYPTO_FALSE == r; index++) {
+        r = cryptoCurrencyIsIdentical (network->associations[index].currency, currency);
+    }
+    pthread_mutex_unlock (&network->lock);
+    return r;
 }
 
 extern BRCryptoCurrency
 cryptoNetworkGetCurrencyForCode (BRCryptoNetwork network,
                                    const char *code) {
-    for (size_t index = 0; index < array_count(network->associations); index++)
-        if (0 == strcmp (code, cryptoCurrencyGetCode (network->associations[index].currency)))
-            return cryptoCurrencyTake (network->associations[index].currency);
-    return NULL;
+    BRCryptoCurrency currency = NULL;
+    pthread_mutex_lock (&network->lock);
+    for (size_t index = 0; index < array_count(network->associations); index++) {
+        if (0 == strcmp (code, cryptoCurrencyGetCode (network->associations[index].currency))) {
+            currency = cryptoCurrencyTake (network->associations[index].currency);
+            break;
+        }
+    }
+    pthread_mutex_unlock (&network->lock);
+    return currency;
 }
 
 private_extern BRCryptoCurrency
 cryptoNetworkGetCurrencyforTokenETH (BRCryptoNetwork network,
                                      BREthereumToken token) {
+    BRCryptoCurrency tokenCurrency = NULL;
+    pthread_mutex_lock (&network->lock);
     for (size_t index = 0; index < array_count(network->associations); index++) {
         BRCryptoCurrency currency = network->associations[index].currency;
         const char *address = cryptoCurrencyGetIssuer (currency);
 
-        if (NULL != address && ETHEREUM_BOOLEAN_IS_TRUE (tokenHasAddress (token, address)))
-            return cryptoCurrencyTake (currency);
+        if (NULL != address && ETHEREUM_BOOLEAN_IS_TRUE (tokenHasAddress (token, address))) {
+            tokenCurrency = cryptoCurrencyTake (currency);
+            break;
+        }
     }
-    return NULL;
+    pthread_mutex_unlock (&network->lock);
+    return tokenCurrency;
 }
 
 static BRCryptoCurrencyAssociation *
 cryptoNetworkLookupCurrency (BRCryptoNetwork network,
                              BRCryptoCurrency currency) {
-    for (size_t index = 0; index < array_count(network->associations); index++)
-        if (currency == network->associations[index].currency)
+    // lock is not held for this static method; caller must hold it
+    for (size_t index = 0; index < array_count(network->associations); index++) {
+        if (currency == network->associations[index].currency) {
             return &network->associations[index];
+        }
+    }
     return NULL;
 }
 
 extern BRCryptoUnit
 cryptoNetworkGetUnitAsBase (BRCryptoNetwork network,
                             BRCryptoCurrency currency) {
+    pthread_mutex_lock (&network->lock);
     BRCryptoCurrencyAssociation *association = cryptoNetworkLookupCurrency (network, currency);
-    return NULL == association ? NULL : cryptoUnitTake (association->baseUnit);
+    BRCryptoUnit unit = NULL == association ? NULL : cryptoUnitTake (association->baseUnit);
+    pthread_mutex_unlock (&network->lock);
+    return unit;
 }
 
 extern BRCryptoUnit
 cryptoNetworkGetUnitAsDefault (BRCryptoNetwork network,
                                BRCryptoCurrency currency) {
+    pthread_mutex_lock (&network->lock);
     BRCryptoCurrencyAssociation *association = cryptoNetworkLookupCurrency (network, currency);
-    return NULL == association ? NULL : cryptoUnitTake (association->defaultUnit);
+    BRCryptoUnit unit = NULL == association ? NULL : cryptoUnitTake (association->defaultUnit);
+    pthread_mutex_unlock (&network->lock);
+    return unit;
 }
 
 extern size_t
 cryptoNetworkGetUnitCount (BRCryptoNetwork network,
                            BRCryptoCurrency currency) {
+    pthread_mutex_lock (&network->lock);
     BRCryptoCurrencyAssociation *association = cryptoNetworkLookupCurrency (network, currency);
-    return ((NULL == association || NULL == association->units)
-            ? 0
-            : array_count (association->units));
+    size_t count = ((NULL == association || NULL == association->units)
+                    ? 0
+                    : array_count (association->units));
+    pthread_mutex_unlock (&network->lock);
+    return count;
 }
 
 extern BRCryptoUnit
 cryptoNetworkGetUnitAt (BRCryptoNetwork network,
                         BRCryptoCurrency currency,
                         size_t index) {
+    pthread_mutex_lock (&network->lock);
     BRCryptoCurrencyAssociation *association = cryptoNetworkLookupCurrency (network, currency);
-    return ((NULL == association || NULL == association->units || index >= array_count(association->units))
-            ? NULL
-            : cryptoUnitTake (association->units[index]));
+    BRCryptoUnit unit = ((NULL == association || NULL == association->units || index >= array_count(association->units))
+                         ? NULL
+                         : cryptoUnitTake (association->units[index]));
+    pthread_mutex_unlock (&network->lock);
+    return unit;
 }
 
 private_extern void
@@ -297,26 +354,31 @@ cryptoNetworkAddCurrency (BRCryptoNetwork network,
         cryptoUnitTake (defaultUnit),
         NULL
     };
-    array_new (association.units, 2);
 
+    pthread_mutex_lock (&network->lock);
+    array_new (association.units, 2);
     array_add (network->associations, association);
+    pthread_mutex_unlock (&network->lock);
 }
 
 private_extern void
 cryptoNetworkAddCurrencyUnit (BRCryptoNetwork network,
                               BRCryptoCurrency currency,
                               BRCryptoUnit unit) {
+    pthread_mutex_lock (&network->lock);
     BRCryptoCurrencyAssociation *association = cryptoNetworkLookupCurrency (network, currency);
-    if (NULL != association)
-        array_add (association->units, cryptoUnitTake (unit));
+    if (NULL != association) array_add (association->units, cryptoUnitTake (unit));
+    pthread_mutex_unlock (&network->lock);
 }
 
+// TODO(discuss): Is it safe to give out this pointer?
 private_extern BREthereumNetwork
 cryptoNetworkAsETH (BRCryptoNetwork network) {
     assert (BLOCK_CHAIN_TYPE_ETH == network->type);
     return network->u.eth.net;
 }
 
+// TODO(discuss): Is it safe to give out this pointer?
 private_extern const BRChainParams *
 cryptoNetworkAsBTC (BRCryptoNetwork network) {
     assert (BLOCK_CHAIN_TYPE_BTC == network->type);
