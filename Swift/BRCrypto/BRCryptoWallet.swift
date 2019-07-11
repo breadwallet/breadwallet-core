@@ -15,8 +15,8 @@ import BRCryptoC
 /// A Wallet holds the transfers and a balance for a single currency.
 ///
 public final class Wallet: Equatable {
-    internal private(set) weak var listener: WalletListener?
 
+    /// The Core representation
     internal let core: BRCryptoWallet
 
     /// The owning manager
@@ -47,8 +47,6 @@ public final class Wallet: Equatable {
 
     /// The transfers of currency yielding `balance`
     public var transfers: [Transfer] {
-        let listener = manager.system.listener
-        
         var transfersCount: size_t = 0
         let transfersPtr = cryptoWalletGetTransfers(core, &transfersCount);
         defer { if let ptr = transfersPtr { free (ptr) } }
@@ -59,7 +57,6 @@ public final class Wallet: Equatable {
         
         return transfers
             .map { Transfer (core: $0,
-                             listener: listener,
                              wallet: self,
                              unit: unit,
                              take: false) }
@@ -75,20 +72,17 @@ public final class Wallet: Equatable {
         return (CRYPTO_FALSE == cryptoWalletHasTransfer (self.core, core)
             ? nil
             : Transfer (core: core,
-                        listener: manager.system.listener,
                         wallet: self,
                         unit: unit,
                         take: true))
     }
 
     internal func transferByCoreOrCreate (_ core: BRCryptoTransfer,
-                                          listener: TransferListener?,
                                           create: Bool = false) -> Transfer? {
         return transferBy (core: core) ??
             (!create
                 ? nil
                 : Transfer (core: core,
-                            listener: listener,
                             wallet: self,
                             unit: unit,
                             take: true))
@@ -106,7 +100,7 @@ public final class Wallet: Equatable {
         set {
             let defaultFeeBasis = newValue // rename, for clarity
             cryptoWalletSetDefaultFeeBasis (core, defaultFeeBasis.core);
-            announceEvent (WalletEvent.feeBasisUpdated (feeBasis: defaultFeeBasis))
+//            announceEvent (WalletEvent.feeBasisUpdated (feeBasis: defaultFeeBasis))
         }
     }
 
@@ -143,7 +137,6 @@ public final class Wallet: Equatable {
                          feeBasis: TransferFeeBasis) -> Transfer? {
         return cryptoWalletCreateTransfer (core, target.core, amount.core, feeBasis.core)
             .map { Transfer (core: $0,
-                             listener: self.manager.system.listener,
                              wallet: self,
                              unit: amount.unit,
                              take: false)
@@ -180,23 +173,11 @@ public final class Wallet: Equatable {
     ///   - take: a boolean to indicate if `core` needs to be taken (for reference counting)
     ///
     internal init (core: BRCryptoWallet,
-                   listener: WalletListener?,
                    manager: WalletManager,
                    take: Bool) {
         self.core = take ? cryptoWalletTake (core) : core
-        self.listener = listener
         self.manager = manager
         self.unit = Unit (core: cryptoWalletGetUnit(core), take: false)
-
-        // print ("SYS: Wallet (\(manager.name):\(name)): Init")
-        //        manager.add (wallet: self)
-    }
-
-    internal func announceEvent (_ event: WalletEvent) {
-        self.listener?.handleWalletEvent (system: system,
-                                          manager: manager,
-                                          wallet: self,
-                                          event: event)
     }
 
     deinit {

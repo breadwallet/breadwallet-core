@@ -19,19 +19,13 @@ public final class Network: CustomStringConvertible {
     let core: BRCryptoNetwork
 
     /// A unique-identifer-string
-    internal var uids: String {
-        return asUTF8String (cryptoNetworkGetUids (core))
-    }
-    
+    internal let uids: String
+
     /// The name
-    public var name: String {
-        return asUTF8String (cryptoNetworkGetName (core))
-    }
+    public let name: String
 
     /// If 'mainnet' then true, otherwise false
-    public var isMainnet: Bool {
-        return CRYPTO_TRUE == cryptoNetworkIsMainnet (core)
-    }
+    public let isMainnet: Bool
 
     /// The current height of the blockChain network.  On a reorganization, this might go backwards.
     /// (No guarantee that this monotonically increases)
@@ -41,17 +35,10 @@ public final class Network: CustomStringConvertible {
     }
 
     /// The native currency.
-    public var currency: Currency {
-        return Currency (core: cryptoNetworkGetCurrency(core), take: false)
-    }
+    public let currency: Currency
 
     /// All currencies - at least those we are handling/interested-in.
-    public var currencies: Set<Currency> {
-        return Set ((0..<cryptoNetworkGetCurrencyCount(core))
-            .map { cryptoNetworkGetCurrencyAt (core, $0) }
-            .map { Currency (core: $0, take: false)}
-        )
-    }
+    public let currencies: Set<Currency>
 
     func currencyBy (code: String) -> Currency? {
         return currencies.first { $0.code == code } // sloppily
@@ -91,22 +78,15 @@ public final class Network: CustomStringConvertible {
         let units: Set<Unit>
     }
 
-    internal init (core: BRCryptoNetwork,
-                   associations: Dictionary<Currency, Association>) {
-        self.core = core
-
-        associations.forEach {
-            let (currency, association) = $0
-            cryptoNetworkAddCurrency (core,
-                                      currency.core,
-                                      association.baseUnit.core,
-                                      association.defaultUnit.core)
-            association.units.forEach {
-                cryptoNetworkAddCurrencyUnit (core,
-                                              currency.core,
-                                              $0.core)
-            }
-        }
+    internal init (core: BRCryptoNetwork, take: Bool) {
+        self.core = take ? cryptoNetworkTake(core) : core
+        self.uids = asUTF8String (cryptoNetworkGetUids (core))
+        self.name = asUTF8String (cryptoNetworkGetName (core))
+        self.isMainnet  = (CRYPTO_TRUE == cryptoNetworkIsMainnet (core))
+        self.currency   = Currency (core: cryptoNetworkGetCurrency(core), take: false)
+        self.currencies = Set ((0..<cryptoNetworkGetCurrencyCount(core))
+            .map { cryptoNetworkGetCurrencyAt (core, $0) }
+            .map { Currency (core: $0, take: false)})
     }
 
     /// Create a Network
@@ -163,7 +143,20 @@ public final class Network: CustomStringConvertible {
         cryptoNetworkSetHeight (core, height);
         cryptoNetworkSetCurrency (core, currency.core)
 
-        self.init (core: core, associations: associations)
+        associations.forEach {
+            let (currency, association) = $0
+            cryptoNetworkAddCurrency (core,
+                                      currency.core,
+                                      association.baseUnit.core,
+                                      association.defaultUnit.core)
+            association.units.forEach {
+                cryptoNetworkAddCurrencyUnit (core,
+                                              currency.core,
+                                              $0.core)
+            }
+        }
+
+        self.init (core: core, take: false)
     }
 
     public var description: String {
