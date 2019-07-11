@@ -36,11 +36,6 @@ class OwnedBRCryptoAccount implements CoreBRCryptoAccount {
     }
 
     @Override
-    public void setTimestamp(Date timestamp) {
-        core.setTimestamp(timestamp);
-    }
-
-    @Override
     public BRCryptoAccount asBRCryptoAccount() {
         return core;
     }

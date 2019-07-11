@@ -44,10 +44,9 @@ public interface CryptoLibrary extends Library {
 
     // crypto/BRCryptoAccount.h
     UInt512.ByValue cryptoAccountDeriveSeed(ByteBuffer phrase);
-    BRCryptoAccount cryptoAccountCreate(ByteBuffer phrase);
-    BRCryptoAccount cryptoAccountCreateFromSeedBytes(ByteBuffer seed);
+    BRCryptoAccount cryptoAccountCreate(ByteBuffer phrase, long timestamp);
+    BRCryptoAccount cryptoAccountCreateFromSeedBytes(ByteBuffer seed, long timestamp);
     long cryptoAccountGetTimestamp(BRCryptoAccount account);
-    void cryptoAccountSetTimestamp(BRCryptoAccount account, long timestamp);
     void cryptoAccountGive(BRCryptoAccount obj);
 
     // crypto/BRCryptoAddress.h

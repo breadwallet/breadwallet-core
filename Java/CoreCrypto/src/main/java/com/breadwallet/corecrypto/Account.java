@@ -27,7 +27,7 @@ final class Account implements com.breadwallet.crypto.Account {
      */
     /* package */
     static Account createFromPhrase(byte[] phraseUtf8, Date timestamp, String uids) {
-        return new Account(CoreBRCryptoAccount.createFromPhrase(phraseUtf8), timestamp, uids);
+        return new Account(CoreBRCryptoAccount.createFromPhrase(phraseUtf8, timestamp), uids);
     }
 
     /**
@@ -43,7 +43,7 @@ final class Account implements com.breadwallet.crypto.Account {
      */
     /* package */
     static Account createFromSeed(byte[] seed, Date timestamp, String uids) {
-        return new Account(CoreBRCryptoAccount.createFromSeed(seed), timestamp, uids);
+        return new Account(CoreBRCryptoAccount.createFromSeed(seed, timestamp), uids);
     }
 
     /* package */
@@ -62,10 +62,9 @@ final class Account implements com.breadwallet.crypto.Account {
     private final CoreBRCryptoAccount core;
     private final String uids;
 
-    private Account(CoreBRCryptoAccount core, Date timestamp, String uids) {
+    private Account(CoreBRCryptoAccount core, String uids) {
         this.uids = uids;
         this.core = core;
-        this.core.setTimestamp(timestamp);
     }
 
     @Override
