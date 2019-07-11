@@ -19,18 +19,6 @@ class TransferViewController: UIViewController, TransferListener, WalletManagerL
     var dateFormatter : DateFormatter!
 
     override func viewDidLoad() {
-        // Seems `viewDidLoad()` is called many times... and the listener is added many times.
-        // Should only be added once or should be removed (on viewWillDisappear())
-        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
-            if !listener.managerListeners.contains(where: { $0 === self }) {
-                listener.managerListeners.append (self)
-            }
-            
-            if !listener.transferListeners.contains(where: { $0 === self }) {
-                listener.transferListeners.append (self)
-            }
-        }
-
         super.viewDidLoad()
 
         if nil == dateFormatter {
@@ -40,9 +28,24 @@ class TransferViewController: UIViewController, TransferListener, WalletManagerL
     }
 
     override func viewWillAppear(_ animated: Bool) {
+        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
+            listener.add (managerListener: self)
+            listener.add (transferListener: self)
+        }
+        
         super.viewWillAppear(animated);
         updateView ()
     }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
+            listener.remove (managerListener: self)
+            listener.remove (transferListener: self)
+        }
+        
+        super.viewWillDisappear(animated)
+    }
+    
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
     }

@@ -3,7 +3,6 @@ package com.breadwallet.cryptodemo;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
-import com.breadwallet.crypto.Currency;
 import com.breadwallet.crypto.Network;
 import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Transfer;
@@ -12,40 +11,33 @@ import com.breadwallet.crypto.WalletManager;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.events.network.NetworkEvent;
 import com.breadwallet.crypto.events.system.DefaultSystemEventVisitor;
-import com.breadwallet.crypto.events.system.SystemCreatedEvent;
 import com.breadwallet.crypto.events.system.SystemEvent;
-import com.breadwallet.crypto.events.system.SystemEventVisitor;
 import com.breadwallet.crypto.events.system.SystemListener;
 import com.breadwallet.crypto.events.system.SystemManagerAddedEvent;
 import com.breadwallet.crypto.events.system.SystemNetworkAddedEvent;
 import com.breadwallet.crypto.events.transfer.TranferEvent;
 import com.breadwallet.crypto.events.transfer.TransferListener;
 import com.breadwallet.crypto.events.wallet.DefaultWalletEventVisitor;
-import com.breadwallet.crypto.events.wallet.WalletBalanceUpdatedEvent;
-import com.breadwallet.crypto.events.wallet.WalletChangedEvent;
 import com.breadwallet.crypto.events.wallet.WalletCreatedEvent;
-import com.breadwallet.crypto.events.wallet.WalletDeletedEvent;
 import com.breadwallet.crypto.events.wallet.WalletEvent;
-import com.breadwallet.crypto.events.wallet.WalletEventVisitor;
-import com.breadwallet.crypto.events.wallet.WalletFeeBasisUpdatedEvent;
 import com.breadwallet.crypto.events.wallet.WalletListener;
-import com.breadwallet.crypto.events.wallet.WalletTransferAddedEvent;
-import com.breadwallet.crypto.events.wallet.WalletTransferChangedEvent;
-import com.breadwallet.crypto.events.wallet.WalletTransferDeletedEvent;
-import com.breadwallet.crypto.events.wallet.WalletTransferSubmittedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerListener;
 
-import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.WeakHashMap;
 
 public class CoreSystemListener implements SystemListener {
 
     private static final String TAG = CoreSystemListener.class.getName();
 
-    private final List<WalletManagerListener> walletManagerListeners = new ArrayList<>();
-    private final List<WalletListener> walletListeners = new ArrayList<>();
-    private final List<TransferListener> transferListeners = new ArrayList<>();
+
+    private final Set<WalletManagerListener> walletManagerListeners = Collections.newSetFromMap(new WeakHashMap<>());
+    private final Set<WalletListener> walletListeners = Collections.newSetFromMap(new WeakHashMap<>());
+    private final Set<TransferListener> transferListeners = Collections.newSetFromMap(new WeakHashMap<>());
 
     private final WalletManagerMode mode;
 
@@ -54,27 +46,57 @@ public class CoreSystemListener implements SystemListener {
     }
 
     public void addListener(WalletManagerListener listener) {
-        walletManagerListeners.add(listener);
+        synchronized (walletManagerListeners) {
+            walletManagerListeners.add(listener);
+        }
     }
 
     public void removeListener(WalletManagerListener  listener) {
-        walletManagerListeners.remove(listener);
+        synchronized (walletManagerListeners) {
+            walletManagerListeners.remove(listener);
+        }
     }
 
     public void addListener(WalletListener listener) {
-        walletListeners.add(listener);
+        synchronized (walletListeners) {
+            walletListeners.add(listener);
+        }
     }
 
     public void removeListener(WalletListener listener) {
-        walletListeners.remove(listener);
+        synchronized (walletListeners) {
+            walletListeners.remove(listener);
+        }
     }
 
     public void addListener(TransferListener listener) {
-        transferListeners.add(listener);
+        synchronized (transferListeners) {
+            transferListeners.add(listener);
+        }
     }
 
     public void removeListener(TransferListener listener) {
-        transferListeners.remove(listener);
+        synchronized (transferListeners) {
+            transferListeners.remove(listener);
+        }
+    }
+
+    private Set<WalletListener> copyWalletListeners() {
+        synchronized (walletListeners) {
+            return new HashSet<>(walletListeners);
+        }
+    }
+
+    private Set<WalletManagerListener> copyWalletManagerListeners() {
+        synchronized (walletManagerListeners) {
+            return new HashSet<>(walletManagerListeners);
+        }
+    }
+
+    private Set<TransferListener> copyTransferListeners() {
+        synchronized (transferListeners) {
+            return new HashSet<>(transferListeners);
+        }
     }
 
     @Override
@@ -107,7 +129,7 @@ public class CoreSystemListener implements SystemListener {
     @Override
     public void handleManagerEvent(System system, WalletManager manager, WalletManagerEvent event) {
         Log.d(TAG, String.format("Manager (%s): %s", manager.getName(), event));
-        for(WalletManagerListener listener: walletManagerListeners) {
+        for(WalletManagerListener listener: copyWalletManagerListeners()) {
             listener.handleManagerEvent(system, manager, event);
         }
     }
@@ -115,7 +137,7 @@ public class CoreSystemListener implements SystemListener {
     @Override
     public void handleWalletEvent(System system, WalletManager manager, Wallet wallet, WalletEvent event) {
         Log.d(TAG, String.format("Wallet (%s:%s): %s", manager.getName(), wallet.getName(), event));
-        for(WalletListener listener: walletListeners) {
+        for(WalletListener listener: copyWalletListeners()) {
             listener.handleWalletEvent(system, manager, wallet, event);
         }
 
@@ -133,7 +155,7 @@ public class CoreSystemListener implements SystemListener {
     @Override
     public void handleTransferEvent(System system, WalletManager manager, Wallet wallet, Transfer transfer, TranferEvent event) {
         Log.d(TAG, String.format("Transfer (%s:%s): %s", manager.getName(), wallet.getName(), event));
-        for(TransferListener listener: transferListeners) {
+        for(TransferListener listener: copyTransferListeners()) {
             listener.handleTransferEvent(system, manager, wallet, transfer, event);
         }
     }

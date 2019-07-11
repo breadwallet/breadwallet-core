@@ -26,18 +26,6 @@ class WalletViewController: UITableViewController, TransferListener, WalletManag
 
 
     override func viewDidLoad() {
-        // Seems `viewDidLoad()` is called many times... and the listener is added many times.
-        // Should only be added once or should be removed (on viewWillDisappear())
-        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
-            if !listener.managerListeners.contains(where: { $0 === self }) {
-                listener.managerListeners.append (self)
-            }
-            
-            if !listener.transferListeners.contains(where: { $0 === self }) {
-                listener.transferListeners.append (self)
-            }
-        }
-
         super.viewDidLoad()
         self.tableView.rowHeight = 100
     }
@@ -49,9 +37,24 @@ class WalletViewController: UITableViewController, TransferListener, WalletManag
             self.navigationItem.title = "Wallet: \(wallet.name)"
             self.tableView.reloadData()
         }
+        
+        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
+            listener.add (managerListener: self)
+            listener.add (transferListener: self)
+        }
+        
         super.viewWillAppear(animated)
     }
 
+    override func viewWillDisappear(_ animated: Bool) {
+        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
+            listener.remove (managerListener: self)
+            listener.remove (transferListener: self)
+        }
+        
+        super.viewWillDisappear(animated)
+    }
+    
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
     }

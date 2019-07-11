@@ -13,16 +13,67 @@ import Foundation
 import BRCrypto
 
 class CoreDemoListener: SystemListener {
-    public var managerListeners: [WalletManagerListener] = []
-    public var walletListeners: [WalletListener] = []
-    public var transferListeners: [TransferListener] = []
+    
+    static let eventQueue: DispatchQueue = DispatchQueue.global()
+    
+    private var managerListeners: [WalletManagerListener] = []
+    private var walletListeners: [WalletListener] = []
+    private var transferListeners: [TransferListener] = []
 
-    let currencyCodeToModeMap: [String : WalletManagerMode] = [
-        Currency.codeAsBTC : WalletManagerMode.p2p_only,
+    private let currencyCodeToModeMap: [String : WalletManagerMode] = [
+        Currency.codeAsBTC : WalletManagerMode.api_only,
         Currency.codeAsBCH : WalletManagerMode.p2p_only,
         Currency.codeAsETH : WalletManagerMode.api_only
         ]
+    
+    func add(managerListener: WalletManagerListener) {
+        CoreDemoListener.eventQueue.async {
+            if !self.managerListeners.contains (where: { $0 === managerListener }) {
+                self.managerListeners.append (managerListener)
+            }
+        }
+    }
+    
+    func remove(managerListener: WalletManagerListener) {
+        CoreDemoListener.eventQueue.async {
+            if let i = self.managerListeners.firstIndex (where: { $0 === managerListener }) {
+                self.managerListeners.remove (at: i)
+            }
+        }
+    }
+    
+    func add(walletListener: WalletListener) {
+        CoreDemoListener.eventQueue.async {
+            if !self.walletListeners.contains (where: { $0 === walletListener }) {
+                self.walletListeners.append (walletListener)
+            }
+        }
+    }
+    
+    func remove(walletListener: WalletListener) {
+        CoreDemoListener.eventQueue.async {
+            if let i = self.walletListeners.firstIndex (where: { $0 === walletListener }) {
+                self.walletListeners.remove (at: i)
+            }
+        }
+    }
+    
+    func add(transferListener: TransferListener) {
+        CoreDemoListener.eventQueue.async {
+            if !self.transferListeners.contains (where: { $0 === transferListener }) {
+                self.transferListeners.append (transferListener)
+            }
+        }
+    }
 
+    func remove(transferListener: TransferListener) {
+        CoreDemoListener.eventQueue.async {
+            if let i = self.transferListeners.firstIndex (where: { $0 === transferListener }) {
+                self.transferListeners.remove (at: i)
+            }
+        }
+    }
+    
     func handleSystemEvent(system: System, event: SystemEvent) {
         print ("APP: System: \(event)")
         switch event {
@@ -48,32 +99,38 @@ class CoreDemoListener: SystemListener {
     }
 
     func handleManagerEvent(system: System, manager: WalletManager, event: WalletManagerEvent) {
-        print ("APP: Manager (\(manager.name)): \(event)")
-        managerListeners.forEach {
-            $0.handleManagerEvent(system: system,
-                                  manager: manager,
-                                  event: event)
+        CoreDemoListener.eventQueue.async {
+            print ("APP: Manager (\(manager.name)): \(event)")
+            self.managerListeners.forEach {
+                $0.handleManagerEvent(system: system,
+                                      manager: manager,
+                                      event: event)
+            }
         }
     }
 
     func handleWalletEvent(system: System, manager: WalletManager, wallet: Wallet, event: WalletEvent) {
-        print ("APP: Wallet (\(manager.name):\(wallet.name)): \(event)")
-        walletListeners.forEach {
-            $0.handleWalletEvent (system: system,
-                                  manager: manager,
-                                  wallet: wallet,
-                                  event: event)
+        CoreDemoListener.eventQueue.async {
+            print ("APP: Wallet (\(manager.name):\(wallet.name)): \(event)")
+            self.walletListeners.forEach {
+                $0.handleWalletEvent (system: system,
+                                      manager: manager,
+                                      wallet: wallet,
+                                      event: event)
+            }
         }
     }
 
     func handleTransferEvent(system: System, manager: WalletManager, wallet: Wallet, transfer: Transfer, event: TransferEvent) {
-        print ("APP: Transfer (\(manager.name):\(wallet.name)): \(event)")
-        transferListeners.forEach {
-            $0.handleTransferEvent (system: system,
-                                    manager: manager,
-                                    wallet: wallet,
-                                    transfer: transfer,
-                                    event: event)
+        CoreDemoListener.eventQueue.async {
+            print ("APP: Transfer (\(manager.name):\(wallet.name)): \(event)")
+            self.transferListeners.forEach {
+                $0.handleTransferEvent (system: system,
+                                        manager: manager,
+                                        wallet: wallet,
+                                        transfer: transfer,
+                                        event: event)
+            }
         }
     }
 
