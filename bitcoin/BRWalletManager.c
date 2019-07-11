@@ -1245,8 +1245,11 @@ bwmSyncStart (BRWalletManager bwm) {
     pthread_mutex_lock (&bwm->lock);
     // check if the prior sync has completed.
     if (bwm->brdSync.completed) {
-        // update the `endBlockNumber` to the current block height.
-        bwm->brdSync.endBlockNumber = MAX (bwm->blockHeight, bwm->brdSync.begBlockNumber);
+        // update the `endBlockNumber` to the current block height;
+        // since this is exclusive on the end height, we need to increment by
+        // one to make sure we get the last block
+        bwm->brdSync.endBlockNumber = MAX (bwm->blockHeight == 0 ? 0 : bwm->blockHeight + 1,
+                                           bwm->brdSync.begBlockNumber);
 
         // we'll update transactions if there are more blocks to examine
         if (bwm->brdSync.begBlockNumber != bwm->brdSync.endBlockNumber) {
