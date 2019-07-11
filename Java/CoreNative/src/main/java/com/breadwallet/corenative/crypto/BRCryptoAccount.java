@@ -30,11 +30,6 @@ public class BRCryptoAccount extends PointerType implements CoreBRCryptoAccount 
     }
 
     @Override
-    public void setTimestamp(Date timestamp) {
-        CryptoLibrary.INSTANCE.cryptoAccountSetTimestamp(this, TimeUnit.MILLISECONDS.toSeconds(timestamp.getTime()));
-    }
-
-    @Override
     public BRCryptoAccount asBRCryptoAccount() {
         return this;
     }
