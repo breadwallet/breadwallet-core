@@ -675,7 +675,7 @@ extension WalletManager {
                 let hash = asUTF8String (hashAsHex!)
                 let data = Data (bytes: transactionBytes!, count: transactionBytesLength)
                 manager.query.createTransaction (blockchainId: manager.network.uids, hashAsHex: hash, transaction: data) {
-                    (res: Result<BlockChainDB.Model.Transaction, BlockChainDB.QueryError>) in
+                    (res: Result<Void, BlockChainDB.QueryError>) in
                     defer { cryptoWalletManagerGive (cwm!) }
                     res.resolve(
                         success: { (_) in cwmAnnounceSubmitTransferSuccess (cwm, sid) },

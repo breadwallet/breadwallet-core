@@ -185,6 +185,9 @@ public class BlockChainDB {
         // HTTP submission error
         case submission (Error)
 
+        // HTTP response unexpected (typically not 200/OK)
+        case response (Int) // includes the status code
+
         // HTTP submission didn't error but returned no data
         case noData
 
@@ -867,24 +870,31 @@ public class BlockChainDB {
     public func createTransaction (blockchainId: String,
                                    hashAsHex: String,
                                    transaction: Data,
-                                   completion: @escaping (Result<Model.Transaction, QueryError>) -> Void) {
+                                   completion: @escaping (Result<Void, QueryError>) -> Void) {
         let json: JSON.Dict = [
             "blockchain_id": blockchainId,
             "transaction_id": hashAsHex,
-            "data" : transaction.base64EncodedData()
+            "data" : transaction.base64EncodedString()
         ]
 
-        makeRequest(bdbDataTaskFunc, bdbBaseURL,
-                    path: "/transactions",
-                    data: json,
-                    httpMethod: "POST") {
+        makeRequest (bdbDataTaskFunc, bdbBaseURL,
+                     path: "/transactions",
+                     data: json,
+                     httpMethod: "POST") {
                         (res: Result<JSON.Dict, BlockChainDB.QueryError>) in
-                        completion (res.flatMap {
-                            Model.asTransaction (json: JSON (dict: $0))
-                                .map { Result.success($0) }
-                                ?? Result.failure (QueryError.model ("(JSON) -> T transform error (one)"))
-                        })
-        }
+                        switch res {
+                        case .success: completion (Result.success(()))
+                        case .failure(let error):
+                            // Consider 301 or 404 errors as success - owing to a 'quirk' in
+                            // transaction submission.
+                            if case let QueryError.response (status) = error,
+                                (302 == status || 404 == status) {
+                                completion (Result.success(()))
+                            }
+                            else {
+                                completion (Result.failure(error))
+                            }
+                        }}
     }
 
     // Blocks
@@ -1430,7 +1440,7 @@ public class BlockChainDB {
             }
 
             guard 200 == res.statusCode else {
-                completion (Result.failure (QueryError.url ("Status: \(res.statusCode) ")))
+                completion (Result.failure (QueryError.response(res.statusCode)))
                 return
             }
 
