@@ -51,7 +51,6 @@ import com.breadwallet.crypto.events.system.SystemListener;
 import com.breadwallet.crypto.events.system.SystemManagerAddedEvent;
 import com.breadwallet.crypto.events.system.SystemNetworkAddedEvent;
 import com.breadwallet.crypto.events.transfer.TransferChangedEvent;
-import com.breadwallet.crypto.events.transfer.TransferConfirmationEvent;
 import com.breadwallet.crypto.events.transfer.TransferCreatedEvent;
 import com.breadwallet.crypto.events.transfer.TransferDeletedEvent;
 import com.breadwallet.crypto.events.wallet.WalletBalanceUpdatedEvent;
@@ -639,7 +638,6 @@ final class System implements com.breadwallet.crypto.System {
             Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
             if (optWalletManager.isPresent()) {
                 WalletManager walletManager = optWalletManager.get();
-                walletManager.getNetwork().setHeight(blockHeight);
                 system.announcer.announceWalletManagerEvent(walletManager, new WalletManagerBlockUpdatedEvent(blockHeight));
 
             } else {
@@ -1036,10 +1034,6 @@ final class System implements com.breadwallet.crypto.System {
                 handleTransferChanged(context, walletManager, wallet, transfer, event);
                 break;
             }
-            case BRCryptoTransferEventType.CRYPTO_TRANSFER_EVENT_CONFIRMED: {
-                handleTransferConfirmed(context, walletManager, wallet, transfer, event);
-                break;
-            }
             case BRCryptoTransferEventType.CRYPTO_TRANSFER_EVENT_DELETED: {
                 handleTransferDeleted(context, walletManager, wallet, transfer, event);
                 break;
@@ -1082,46 +1076,6 @@ final class System implements com.breadwallet.crypto.System {
 
         } else {
             Log.e(TAG, "TransferCreated: missed system");
-        }
-    }
-
-    private static void handleTransferConfirmed(Pointer context, CoreBRCryptoWalletManager coreWalletManager, CoreBRCryptoWallet coreWallet, CoreBRCryptoTransfer coreTransfer,
-                                         BRCryptoTransferEvent event) {
-        UnsignedLong confirmations = UnsignedLong.fromLongBits(event.u.confirmation.count);
-
-        Log.d(TAG, String.format("TransferConfirmed (%s)", confirmations));
-
-        Optional<System> optSystem = getInstance(context);
-        if (optSystem.isPresent()) {
-            System system = optSystem.get();
-
-            Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
-            if (optWalletManager.isPresent()) {
-                WalletManager walletManager = optWalletManager.get();
-
-                Optional<Wallet> optWallet = walletManager.getWallet(coreWallet);
-                if (optWallet.isPresent()) {
-                    Wallet wallet = optWallet.get();
-
-                    Optional<Transfer> optTransfer = wallet.getTransfer(coreTransfer);
-                    if (optTransfer.isPresent()) {
-                        Transfer transfer = optTransfer.get();
-                        system.announcer.announceTransferEvent(walletManager, wallet, transfer, new TransferConfirmationEvent(confirmations));
-
-                    } else {
-                        Log.e(TAG, "TransferConfirmed: missed transfer");
-                    }
-
-                } else {
-                    Log.e(TAG, "TransferConfirmed: missed wallet");
-                }
-
-            } else {
-                Log.e(TAG, "TransferConfirmed: missed wallet manager");
-            }
-
-        } else {
-            Log.e(TAG, "TransferConfirmed: missed system");
         }
     }
 

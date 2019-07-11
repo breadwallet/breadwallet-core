@@ -115,17 +115,7 @@ public final class WalletManager: Equatable {
     }
 
     internal var height: UInt64 {
-        get { return network.height }
-        set {
-            network.height = newValue
-            announceEvent (WalletManagerEvent.blockUpdated(height: newValue))
-            wallets.flatMap { $0.transfers }
-                .forEach {
-                    if let confirmations = $0.confirmationsAt (blockHeight: newValue) {
-                        $0.announceEvent (TransferEvent.confirmation (count: confirmations))
-                    }
-            }
-        }
+        return network.height
     }
 
     /// The default WalletFactory for creating wallets.
@@ -310,6 +300,11 @@ public enum WalletManagerEvent {
     case syncProgress (percentComplete: Double)
     case syncEnded (error: String?)
 
+    /// An event capturing a change in the block height of the network associated with a
+    /// WalletManager. Developers should listen for this event when making use of
+    /// Transfer::confirmations, as that value is calculated based on the associated network's
+    /// block height. Displays or caches of that confirmation count should be updated when this
+    /// event occurs.
     case blockUpdated (height: UInt64)
 }
 
@@ -407,7 +402,9 @@ extension WalletManager {
                                                           event: WalletManagerEvent.syncEnded(error: nil))
 
                 case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED:
-                    manager.height = event.u.blockHeight.value
+                    manager.listener?.handleManagerEvent (system: manager.system,
+                                                          manager: manager,
+                                                          event: WalletManagerEvent.blockUpdated(height: event.u.blockHeight.value))
 
                 default: precondition(false)
                 }
@@ -539,13 +536,6 @@ extension WalletManager {
                                                             transfer: transfer,
                                                             event: TransferEvent.changed (old: TransferState.init (core: event.u.state.old),
                                                                                           new: TransferState.init (core: event.u.state.new)))
-
-                case CRYPTO_TRANSFER_EVENT_CONFIRMED:
-                    transfer.listener?.handleTransferEvent (system: manager.system,
-                                                            manager: manager,
-                                                            wallet: wallet,
-                                                            transfer: transfer,
-                                                            event: TransferEvent.confirmation(count: 10))
 
                 case CRYPTO_TRANSFER_EVENT_DELETED:
                     transfer.listener?.handleTransferEvent (system: manager.system,
@@ -1059,7 +1049,6 @@ extension BRCryptoTransferEventType: CustomStringConvertible {
         switch self {
         case CRYPTO_TRANSFER_EVENT_CREATED: return "Created"
         case CRYPTO_TRANSFER_EVENT_CHANGED: return "Changed"
-        case CRYPTO_TRANSFER_EVENT_CONFIRMED: return "Confirmed"
         case CRYPTO_TRANSFER_EVENT_DELETED: return "Deleted"
         default: return "<>unknown>>"
         }
