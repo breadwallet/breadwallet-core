@@ -1872,6 +1872,10 @@
 				);
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
+				OTHER_CFLAGS = (
+					"-DDEBUG",
+					"-DBITCOIN_DEBUG",
+				);
 				OTHER_SWIFT_FLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.BRCrypto;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
@@ -1932,6 +1936,10 @@
 				);
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
+				OTHER_CFLAGS = (
+					"-DDEBUG",
+					"-DBITCOIN_DEBUG",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.BRCryptoTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -1976,6 +1984,10 @@
 				);
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
+				OTHER_CFLAGS = (
+					"-DDEBUG",
+					"-DBITCOIN_DEBUG",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.BRCryptoDemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -2091,6 +2103,11 @@
 				);
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
+				OTHER_CFLAGS = (
+					"-DDEBUG",
+					"-DBITCOIN_DEBUG",
+					"-DBITCOIN_TESTNET",
+				);
 				OTHER_SWIFT_FLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.BRCrypto;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
@@ -2118,6 +2135,11 @@
 				);
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
+				OTHER_CFLAGS = (
+					"-DDEBUG",
+					"-DBITCOIN_DEBUG",
+					"-DBITCOIN_TESTNET",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.BRCryptoTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -2140,6 +2162,11 @@
 				);
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
+				OTHER_CFLAGS = (
+					"-DDEBUG",
+					"-DBITCOIN_DEBUG",
+					"-DBITCOIN_TESTNET",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.BRCryptoDemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -2465,6 +2492,7 @@
 					"@loader_path/Frameworks",
 				);
 				MTL_FAST_MATH = YES;
+				OTHER_CFLAGS = "-DBITCOIN_TESTNET";
 				OTHER_SWIFT_FLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.BRCrypto;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
@@ -2491,6 +2519,7 @@
 					"@loader_path/Frameworks",
 				);
 				MTL_FAST_MATH = YES;
+				OTHER_CFLAGS = "-DBITCOIN_TESTNET";
 				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.BRCryptoTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -2512,6 +2541,7 @@
 					"@executable_path/Frameworks",
 				);
 				MTL_FAST_MATH = YES;
+				OTHER_CFLAGS = "-DBITCOIN_TESTNET";
 				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.BRCryptoDemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;

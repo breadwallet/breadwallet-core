@@ -864,18 +864,20 @@ public class BlockChainDB {
         }
     }
 
-    public func putTransaction (blockchainId: String,
-                                transaction: Data,
-                                completion: @escaping (Result<Model.Transaction, QueryError>) -> Void) {
+    public func createTransaction (blockchainId: String,
+                                   hash: Data,
+                                   transaction: Data,
+                                   completion: @escaping (Result<Model.Transaction, QueryError>) -> Void) {
         let json: JSON.Dict = [
-            "transaction" : transaction.base64EncodedData()
+            "blockchain_id": blockchainId,
+            "transaction_id": hash.base64EncodedData(),
+            "data" : transaction.base64EncodedData()
         ]
 
         makeRequest(bdbDataTaskFunc, bdbBaseURL,
                     path: "/transactions",
-                    query: zip (["blockchain_id"], [blockchainId]),
                     data: json,
-                    httpMethod: "PUT") {
+                    httpMethod: "POST") {
                         (res: Result<JSON.Dict, BlockChainDB.QueryError>) in
                         completion (res.flatMap {
                             Model.asTransaction (json: JSON (dict: $0))

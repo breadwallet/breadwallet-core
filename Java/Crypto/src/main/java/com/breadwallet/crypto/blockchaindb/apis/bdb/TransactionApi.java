@@ -29,7 +29,7 @@ import java.util.concurrent.Semaphore;
 public class TransactionApi {
 
     private static final UnsignedLong PAGINATION_COUNT = UnsignedLong.valueOf(5000);
-    private static final int ADDRESS_COUNT = 50;
+    private static final int ADDRESS_COUNT = 100;
 
     private final BdbApiClient jsonClient;
     private final ExecutorService executorService;
@@ -54,10 +54,12 @@ public class TransactionApi {
         jsonClient.sendGetWithId("transactions", id, params, Transaction::asTransaction, handler);
     }
 
-    public void putTransaction(String id, byte[] data, CompletionHandler<Transaction> handler) {
-        JSONObject json = new JSONObject(ImmutableMap.of("transaction", BaseEncoding.base64().encode(data)));
-        Multimap<String, String> params = ImmutableListMultimap.of("blockchain_id", id);
-        jsonClient.sendPut("transactions", params, json, Transaction::asTransaction, handler);
+    public void createTransaction(String id, byte[] txHash, byte[] tx, CompletionHandler<Transaction> handler) {
+        JSONObject json = new JSONObject(ImmutableMap.of(
+                "blockchain_id", id,
+                "transaction_id", BaseEncoding.base64().encode(txHash),
+                "data", BaseEncoding.base64().encode(tx)));
+        jsonClient.sendPost("transactions", ImmutableMultimap.of(), json, Transaction::asTransaction, handler);
     }
 
     private void getTransactionsOnExecutor(String id, List<String> addresses, UnsignedLong beginBlockNumber,

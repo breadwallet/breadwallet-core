@@ -131,7 +131,9 @@ cwmSubmitTransactionAsBTC (BRWalletManagerClientContext context,
                                            cryptoWalletManagerTake (cwm),
                                            callbackState,
                                            tx,
-                                           txLength);
+                                           txLength,
+                                           transaction->txHash.u8,
+                                           sizeof(transaction->txHash));
 
     free (tx);
     cryptoWalletManagerGive (cwm);

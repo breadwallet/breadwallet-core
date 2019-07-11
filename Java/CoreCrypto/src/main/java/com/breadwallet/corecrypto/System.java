@@ -1246,17 +1246,17 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void btcSubmitTransaction(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState,
-                                      Pointer tx, SizeT txLength) {
+                                             Pointer tx, SizeT txLength, Pointer hash, SizeT hashLength) {
         Log.d(TAG, "BRCryptoCWMBtcSubmitTransactionCallback");
 
         CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
 
         Optional<System> optSystem = getInstance(context);
         if (optSystem.isPresent()) {
-            int transactionLength = UnsignedInts.checkedCast(txLength.longValue());
-            byte[] transaction = tx.getByteArray(0, transactionLength);
+            byte[] hashBytes = hash.getByteArray(0, UnsignedInts.checkedCast(hashLength.longValue()));
+            byte[] txBytes = tx.getByteArray(0, UnsignedInts.checkedCast(txLength.longValue()));
 
-            optSystem.get().query.putTransaction(coreWalletManager.getNetwork().getUids(), transaction, new CompletionHandler<Transaction>() {
+            optSystem.get().query.createTransaction(coreWalletManager.getNetwork().getUids(), hashBytes, txBytes, new CompletionHandler<Transaction>() {
                 @Override
                 public void handleData(Transaction data) {
                     Log.d(TAG, "BRCryptoCWMBtcSubmitTransactionCallback: succeeded");
