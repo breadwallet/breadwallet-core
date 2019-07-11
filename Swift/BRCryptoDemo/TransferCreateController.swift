@@ -38,38 +38,49 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
         return !isEthCurrency && !isBitCurrency
     }
 
+    var canUseFeeBasis: Bool = false
+
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated);
 
-        oneEtherButton.setEnabled (isEthCurrency, forSegmentAt: 0)
-        oneEtherButton.setEnabled (isEthCurrency || isTokCurrency, forSegmentAt: 1)
-        oneEtherButton.setEnabled (isBitCurrency, forSegmentAt: 2)
+        let balance: Double = wallet.balance.double (as: wallet.unit) ?? 0.0
 
-        oneEtherButton.selectedSegmentIndex = (isBitCurrency ? 2 : 1)
+        oneEtherButton.setEnabled (isEthCurrency, forSegmentAt: 0)
+        oneEtherButton.setEnabled (isEthCurrency || isTokCurrency || isBitCurrency, forSegmentAt: 1)
+        oneEtherButton.setEnabled (isBitCurrency && balance >= 0.01, forSegmentAt: 2)
+        oneEtherButton.selectedSegmentIndex = 1 // slider
 
         oneEtherSelected = 0 == oneEtherButton.selectedSegmentIndex
         oneBitcoinSelected = 2 == oneEtherButton.selectedSegmentIndex
 
         amountSlider.minimumValue = 0.0
-        amountSlider.maximumValue = 0.001  //  Float (wallet.balance.amount)!
+        amountSlider.maximumValue = Float (balance)
         amountSlider.value = 0.0
-        switch wallet.currency.code.lowercased() {
-        case Currency.codeAsETH:
-            recvField.text = (wallet.manager.network.isMainnet
-                ? "0x19454a70538bfbdbd7abf3ac8d274d5cb2514056" /* "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62" */
-                : "0xbDFdAd139440D2Db9BA2aa3B7081C2dE39291508");
-        case Currency.codeAsBTC:
-            recvField.text = (wallet.manager.network.isMainnet
-                ? ""
-                : "mv4rnyY3Su5gjcDNzbMLKBQkBicCtHUtFB")
-        case Currency.codeAsBCH:
-            recvField.text = (wallet.manager.network.isMainnet
-                ? ""
-                : "mv4rnyY3Su5gjcDNzbMLKBQkBicCtHUtFB")
-        default:
-            recvField.text = "Missed currency/network"
-        }
 
+        if nil != UIPasteboard.general.string {
+            recvField.text = UIPasteboard.general.string
+        }
+        else {
+            switch wallet.currency.code.lowercased() {
+            case Currency.codeAsETH:
+                recvField.text = (wallet.manager.network.isMainnet
+                    ? "0x19454a70538bfbdbd7abf3ac8d274d5cb2514056" /* "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62" */
+                    : "0xbDFdAd139440D2Db9BA2aa3B7081C2dE39291508");
+            case Currency.codeAsBTC:
+                recvField.text = (wallet.manager.network.isMainnet
+                    ? ""
+                    : "mv4rnyY3Su5gjcDNzbMLKBQkBicCtHUtFB")
+            case Currency.codeAsBCH:
+                recvField.text = (wallet.manager.network.isMainnet
+                    ? ""
+                    : "mv4rnyY3Su5gjcDNzbMLKBQkBicCtHUtFB")
+            default:
+                recvField.text = "Missed currency/network"
+            }
+        }
+        gasPriceSegmentedController.isEnabled = isEthCurrency && canUseFeeBasis
+        gasLimitSegmentedController.isEnabled = isEthCurrency && canUseFeeBasis
+        satPerKBSegmentedController.isEnabled = isBitCurrency && canUseFeeBasis
         updateView()
     }
 
@@ -87,11 +98,7 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
     */
     @IBAction func submit(_ sender: UIBarButtonItem) {
         print ("APP: TCC: Want to submit")
-        let value = (oneBitcoinSelected
-            ? 0.01
-            : (oneEtherSelected
-                ? 1
-                : self.amountSlider.value))
+        let value = amount()
 
         let alert = UIAlertController (title: "Submit Transaction for \(value) \(wallet.name)",
             message: "Are you sure?",
@@ -113,7 +120,7 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
 
             let unit = self.wallet.unit
             let amount = Amount.create (double: Double(value), unit: unit)
-            print ("APP: TVV: Submit ETH Amount: \(amount)");
+            print ("APP: TVV: Submit \(self.isBitCurrency ? "BTC/BCH" : "ETH") Amount: \(amount)");
 
             // let amount = Amount (value: value, unit: self.wallet.currency.defaultUnit)
             guard let transfer = self.wallet.createTransfer (target: target,
@@ -132,8 +139,8 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
             }
 
             // Will generate a WalletEvent.transferSubmitted (transfer, success)
-            self.wallet.manager.submit(transfer: transfer,
-                                       paperKey: UIApplication.paperKey);
+            self.wallet.manager.submit (transfer: transfer,
+                                        paperKey: UIApplication.paperKey);
 
             // Notify, close
             self.dismiss(animated: true) {}
@@ -150,12 +157,12 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
 
     func updateView () {
 
-        let fee = Double (gasPrice() * gasLimit()) / 1e18
-        feeLabel.text = "\(fee) ETH"
+        let fee = wallet.estimateFee (amount: wallet.balance, feeBasis: nil);
+        feeLabel.text = "  \(fee) (estimated)"
 
         amountMinLabel.text = amountSlider.minimumValue.description
         amountMaxLabel.text = amountSlider.maximumValue.description
-        amountLabel.text = amountSlider.value.description
+        amountLabel.text = amount().description
         amountSlider.isEnabled = !oneEtherSelected && !oneBitcoinSelected
 
         submitButton.isEnabled = (recvField.text != "" &&
@@ -179,6 +186,14 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
 //        default:
 //            return TransferFeeBasis.bitcoin(feePerKB: 1000)
 //        }
+    }
+
+    func amount () -> Float {
+        return (oneBitcoinSelected
+                ? 0.01
+                : (oneEtherSelected
+                    ? 1
+                    : amountSlider!.value))
     }
 
     // In WEI
@@ -210,6 +225,15 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
         }
     }
 
+    func satPerKB () -> UInt64 {
+        switch (satPerKBSegmentedController.selectedSegmentIndex) {
+        case 0: return 2000
+        case 1: return 1000
+        case 2: return  500
+        default: return 1000
+        }
+    }
+
     @IBAction func gasLimitChanged(_ sender: UISegmentedControl) {
         updateView()
     }
@@ -224,4 +248,5 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
     @IBOutlet var gasPriceSegmentedController: UISegmentedControl!
     @IBOutlet var gasLimitSegmentedController: UISegmentedControl!
     @IBOutlet var oneEtherButton: UISegmentedControl!
+    @IBOutlet var satPerKBSegmentedController: UISegmentedControl!
 }

@@ -77,14 +77,18 @@ class TransferViewController: UIViewController, TransferListener, WalletManagerL
         amountLabel.text = transfer.amountDirected.description
         feeLabel.text  =  transfer.fee.description
         dateLabel.text = date.map { dateFormatter.string(from: $0) } ?? "<pending>"
-        sendLabel.text = transfer.source?.description ?? "<unknown>"
-        recvLabel.text = transfer.target?.description ?? "<unknown>"
+        sendButton.setTitle(transfer.source?.description ?? "<unknown>", for: .normal)
+        recvButton.setTitle(transfer.target?.description ?? "<unknown>", for: .normal)
 
         identifierLabel.text = hash.map { $0.description } ?? "<pending>"
 
         confLabel.text = transfer.confirmation.map { "Yes @ \($0.blockNumber)" } ?? "No"
         confCountLabel.text = transfer.confirmations?.description ?? ""
-        
+
+        if (Currency.codeAsETH != wallet.currency.code) {
+            nonceTitleLabel.isHidden = true
+            nonceLabel.isHidden = true;
+        }
         switch transfer.state {
         case .failed(let reason):
             stateLabel.text = "\(transfer.state.description): \(reason)"
@@ -218,16 +222,20 @@ class TransferViewController: UIViewController, TransferListener, WalletManagerL
     @IBOutlet var amountLabel: UILabel!
     @IBOutlet var feeLabel: UILabel!
     @IBOutlet var dateLabel: UILabel!
-    @IBOutlet var sendLabel: CopyableLabel!
-    @IBOutlet var recvLabel: CopyableLabel!
+    @IBOutlet var sendButton: UIButton!
+    @IBOutlet var recvButton: UIButton!
     @IBOutlet var identifierLabel: UILabel!
     @IBOutlet var confLabel: UILabel!
     @IBOutlet var confCountLabel: UILabel!
     @IBOutlet var stateLabel: UILabel!
     @IBOutlet var cancelButton: UIButton!
     @IBOutlet var resubmitButton: UIButton!
+    @IBOutlet var nonceTitleLabel: UILabel!
     @IBOutlet var nonceLabel: UILabel!
     @IBOutlet var dotView: Dot!
+    @IBAction func toPasteBoard(_ sender: UIButton) {
+        UIPasteboard.general.string = sender.titleLabel?.text
+    }
 
     func handleManagerEvent (system: System, manager: WalletManager, event: WalletManagerEvent) {
         DispatchQueue.main.async {

@@ -149,7 +149,7 @@ public final class Wallet: Equatable {
                              take: false)
         }
     }
-
+    
     ///
     /// Estimate the fee for a transfer with `amount` from `wallet`.  If provided use the `feeBasis`
     /// otherwise use the wallet's `defaultFeeBasis`
@@ -161,14 +161,15 @@ public final class Wallet: Equatable {
     /// - Returns: transfer fee
     ///
     public func estimateFee (amount: Amount,
-                      feeBasis: TransferFeeBasis?) -> Amount {
+                             feeBasis: TransferFeeBasis?) -> Amount {
         precondition (amount.hasCurrency (currency))
         let unit = manager.network.baseUnitFor (currency: manager.currency)!
-        return Amount (core: cryptoWalletEstimateFee (core, amount.core, feeBasis?.core, unit.core),
+        let feeBasis = feeBasis ?? defaultFeeBasis
+        return Amount (core: cryptoWalletEstimateFee (core, amount.core, feeBasis.core, unit.core),
                        unit: unit,
                        take: false)
     }
-
+    
     ///
     /// Create a wallet
     ///
