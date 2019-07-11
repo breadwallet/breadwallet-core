@@ -54,10 +54,10 @@ public class TransactionApi {
         jsonClient.sendGetWithId("transactions", id, params, Transaction::asTransaction, handler);
     }
 
-    public void createTransaction(String id, byte[] txHash, byte[] tx, CompletionHandler<Transaction> handler) {
+    public void createTransaction(String id, String hashAsHex, byte[] tx, CompletionHandler<Transaction> handler) {
         JSONObject json = new JSONObject(ImmutableMap.of(
                 "blockchain_id", id,
-                "transaction_id", BaseEncoding.base64().encode(txHash),
+                "transaction_id", hashAsHex,
                 "data", BaseEncoding.base64().encode(tx)));
         jsonClient.sendPost("transactions", ImmutableMultimap.of(), json, Transaction::asTransaction, handler);
     }

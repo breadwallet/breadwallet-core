@@ -29,7 +29,7 @@ public class BRCryptoCWMClientBtc extends Structure {
 
     public interface BRCryptoCWMBtcSubmitTransactionCallback extends Callback {
         void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState, Pointer tx,
-                   SizeT txLength, Pointer hash, SizeT hashLength);
+                   SizeT txLength, String hashAsHex);
     }
 
     public BRCryptoCWMBtcGetBlockNumberCallback funcGetBlockNumber;

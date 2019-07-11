@@ -865,12 +865,12 @@ public class BlockChainDB {
     }
 
     public func createTransaction (blockchainId: String,
-                                   hash: Data,
+                                   hashAsHex: String,
                                    transaction: Data,
                                    completion: @escaping (Result<Model.Transaction, QueryError>) -> Void) {
         let json: JSON.Dict = [
             "blockchain_id": blockchainId,
-            "transaction_id": hash.base64EncodedData(),
+            "transaction_id": hashAsHex,
             "data" : transaction.base64EncodedData()
         ]
 

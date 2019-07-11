@@ -163,8 +163,7 @@ extern "C" {
                                                 OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
                                                 OwnershipKept uint8_t *transaction,
                                                 size_t transactionLength,
-                                                OwnershipKept uint8_t *hash,
-                                                size_t hashLength);
+                                                OwnershipKept const char *hashAsHex);
 
     typedef struct {
         BRCryptoCWMBtcGetBlockNumberCallback  funcGetBlockNumber;

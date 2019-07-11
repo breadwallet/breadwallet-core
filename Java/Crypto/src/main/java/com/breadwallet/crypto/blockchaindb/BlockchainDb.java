@@ -190,8 +190,8 @@ public class BlockchainDb {
         transactionApi.getTransaction(id, includeRaw, includeProof, handler);
     }
 
-    public void createTransaction(String id, byte[] txHash, byte[] tx, CompletionHandler<Transaction> handler) {
-        transactionApi.createTransaction(id, txHash, tx, handler);
+    public void createTransaction(String id, String hashAsHex, byte[] tx, CompletionHandler<Transaction> handler) {
+        transactionApi.createTransaction(id, hashAsHex, tx, handler);
     }
 
     // Blocks
