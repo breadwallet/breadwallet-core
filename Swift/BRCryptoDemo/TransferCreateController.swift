@@ -227,10 +227,10 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
 
     func satPerKB () -> UInt64 {
         switch (satPerKBSegmentedController.selectedSegmentIndex) {
-        case 0: return 2000
-        case 1: return 1000
-        case 2: return  500
-        default: return 1000
+        case 0: return 5000
+        case 1: return 2000
+        case 2: return 1000
+        default: return 2000
         }
     }
 

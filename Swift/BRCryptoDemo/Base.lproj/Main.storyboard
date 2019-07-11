@@ -628,9 +628,9 @@
                             <segmentedControl opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="top" segmentControlStyle="plain" selectedSegmentIndex="1" translatesAutoresizingMaskIntoConstraints="NO" id="AAl-Cv-lR0">
                                 <rect key="frame" x="16" y="476" width="343" height="29"/>
                                 <segments>
+                                    <segment title="5000"/>
                                     <segment title="2000"/>
                                     <segment title="1000"/>
-                                    <segment title="500"/>
                                 </segments>
                                 <connections>
                                     <action selector="gasLimitChanged:" destination="G47-GP-HJH" eventType="valueChanged" id="JjG-J8-kKt"/>

@@ -33,7 +33,7 @@ class WalletViewController: UITableViewController, TransferListener, WalletManag
     override func viewWillAppear(_ animated: Bool) {
         // If we have a wallet, then view transfers
         if wallet != nil {
-            self.transfers = wallet.transfers;
+            self.transfers = wallet.transfers.sorted { $0.isBefore ($1) }
             self.navigationItem.title = "Wallet: \(wallet.name)"
             self.tableView.reloadData()
         }
@@ -126,9 +126,13 @@ class WalletViewController: UITableViewController, TransferListener, WalletManag
             case .created:
                 precondition(!self.transfers.contains(transfer))
 
-                self.transfers.append (transfer)
+                let index = (nil == transfer.confirmation
+                    ? 0
+                    : self.transfers.firstIndex(where: { !transfer.isBefore($0) }))!
 
-                let path = IndexPath (row: (self.transfers.count - 1), section: 0)
+                self.transfers.insert (transfer, at: index)
+
+                let path = IndexPath (row: index, section: 0)
                 self.tableView.insertRows (at: [path], with: .automatic)
 
             case .changed: //  (let old, let new)
@@ -145,6 +149,31 @@ class WalletViewController: UITableViewController, TransferListener, WalletManag
                     self.tableView.deleteRows(at: [path], with: .automatic)
                 }
             }
+        }
+    }
+}
+
+extension TransferConfirmation: Comparable {
+    public static func < (lhs: TransferConfirmation, rhs: TransferConfirmation) -> Bool {
+        return lhs.blockNumber < rhs.blockNumber
+            || (lhs.blockNumber == rhs.blockNumber && lhs.transactionIndex < rhs.transactionIndex)
+    }
+
+    public static func == (lhs: TransferConfirmation, rhs: TransferConfirmation) -> Bool {
+        return lhs.blockNumber == rhs.blockNumber
+            && lhs.transactionIndex == rhs.transactionIndex
+            && lhs.timestamp == rhs.timestamp
+    }
+}
+
+extension Transfer {
+    func isBefore (_ that: Transfer) -> Bool  {
+        switch (self.confirmation, that.confirmation) {
+        case (.none, .none): return true
+        case (.none, .some): return true
+        case (.some, .none): return false
+        case (let .some(sc), let .some(tc)):
+            return sc >= tc
         }
     }
 }
