@@ -1135,6 +1135,8 @@ bwmHandleAnnounceBlockNumber (BRWalletManager manager,
                               int rid,
                               uint64_t blockNumber) {
     BRWalletManagerUpdateHeightIfAppropriate(manager, (int32_t) blockNumber);
+
+    bwmSignalSync (manager);
     return 1;
 }
 
@@ -1180,9 +1182,9 @@ bwmPeriodicDispatcher (BREventHandler handler,
 
     assert(SYNC_MODE_P2P_ONLY != bwm->mode);
 
-    bwmUpdateBlockNumber(bwm);
+    bwmUpdateBlockNumber( bwm);
 
-    bwmSyncStart(bwm);
+    bwmSignalSync (bwm);
 }
 
 extern void
@@ -1211,6 +1213,11 @@ bwmHandleAnnounceSubmit (BRWalletManager manager,
 ///
 /// MARK: Sync
 //
+
+extern void
+bwmHandleSync (BRWalletManager manager) {
+    bwmSyncStart (manager);
+}
 
 static void
 bwmSyncReset (BRWalletManager bwm) {

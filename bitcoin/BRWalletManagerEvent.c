@@ -155,6 +155,32 @@ bwmSignalAnnounceSubmit (BRWalletManager manager,
     eventHandlerSignalEvent (manager->handler, (BREvent*) &message);
 }
 
+// Sync
+
+typedef struct {
+    struct BREventRecord base;
+    BRWalletManager manager;
+} BRWalletManagerClientSyncEvent;
+
+static void
+bwmSignalSyncDispatcher (BREventHandler ignore,
+                         BRWalletManagerClientSyncEvent *event) {
+    bwmHandleSync(event->manager);
+}
+
+static BREventType bwmClientSyncEventType = {
+    "BTC: Sync Event",
+    sizeof (BRWalletManagerClientSyncEvent),
+    (BREventDispatcher) bwmSignalSyncDispatcher
+};
+
+extern void
+bwmSignalSync (BRWalletManager manager) {
+    BRWalletManagerClientSyncEvent message =
+    { { NULL, &bwmClientSyncEventType}, manager};
+    eventHandlerSignalEvent (manager->handler, (BREvent*) &message);
+}
+
 // ==============================================================================================
 //
 // All Event Types

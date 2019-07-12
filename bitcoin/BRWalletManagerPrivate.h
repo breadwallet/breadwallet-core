@@ -156,6 +156,16 @@ bwmSignalAnnounceSubmit (BRWalletManager manager,
                         OwnershipGiven BRTransaction *transaction,
                         int error);
 
+/// MARK: - Sync
+
+extern void
+bwmHandleSync (BRWalletManager manager);
+
+extern void
+bwmSignalSync (BRWalletManager manager);
+
+/// MARK: - Events
+
 extern const BREventType *bwmEventTypes[];
 extern const unsigned int bwmEventTypesCount;
 

@@ -401,7 +401,13 @@ cryptoWalletCreateTransfer (BRCryptoWallet wallet,
             uint64_t value = cryptoAmountGetIntegerRaw (amount, &overflow);
             if (CRYPTO_TRUE == overflow) { return NULL; }
 
+            uint64_t feePerKBSaved = BRWalletFeePerKb (wid);
+            uint64_t feePerKB      = cryptoFeeBasisAsBTC (feeBasis);
+
+            BRWalletSetFeePerKb (wid, 5 * feePerKB);
             BRTransaction *tid = BRWalletManagerCreateTransaction (bwm, wid, value, addr);
+            BRWalletSetFeePerKb (wid, feePerKBSaved); // ??
+
             return NULL == tid ? NULL : cryptoWalletFindTransferAsBTC (wallet, tid);
         }
 
