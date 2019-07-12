@@ -250,11 +250,15 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
             // Demand no 'wallet'
             assert (NULL == wallet);
 
-            // We'll create a wallet using the currency's default unit.
+            // We'll create a wallet using the currency's default unit; the fee value will
+            // be 'SATOSHI', so use the currency's base unit.
             BRCryptoUnit unit = cryptoNetworkGetUnitAsDefault (cwm->network, currency);
+            assert (NULL != unit);
+            BRCryptoUnit unitForFee = cryptoNetworkGetUnitAsBase (cwm->network, currency);
+            assert (NULL != unitForFee);
 
             // The wallet, finally.
-            wallet = cryptoWalletCreateAsBTC (unit, unit, cwm->u.btc, btcWallet);
+            wallet = cryptoWalletCreateAsBTC (unit, unitForFee, cwm->u.btc, btcWallet);
 
             // Avoid a race condition on the CWM's 'primaryWallet'
             if (NULL == cwm->wallet) cwm->wallet = cryptoWalletTake (wallet);
@@ -262,7 +266,8 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
             // Update CWM with the new wallet.
             cryptoWalletManagerAddWallet (cwm, wallet);
 
-            // Done with `unit1
+            // Done with `unit` and `unitForFee`
+            cryptoUnitGive (unitForFee);
             cryptoUnitGive (unit);
 
             // Generate a CRYPTO wallet event for CREATED...
@@ -803,8 +808,10 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                 // Thus:
                 if (NULL == currency) return;
 
-                // Find the default unit; it too must exist.
-                BRCryptoUnit     unit     = cryptoNetworkGetUnitAsDefault (cwm->network, currency);
+                // Find the default and base unit; they too must exist.
+                BRCryptoUnit unitForFee = cryptoNetworkGetUnitAsBase (cwm->network, currency);
+                assert (NULL != unitForFee);
+                BRCryptoUnit unit       = cryptoNetworkGetUnitAsDefault (cwm->network, currency);
                 assert (NULL != unit);
 
                 // Create the appropriate wallet based on currency
