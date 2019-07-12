@@ -249,15 +249,16 @@ public class BlockChainDB {
         /// specfication includes `blockHeight` (which can never be correct).
         static public let defaultBlockchains: [Blockchain] = [
             // Mainnet
-            (id: "bitcoin-mainnet",  name: "Bitcoin",  network: "mainnet", isMainnet: true,  currency: "btc", blockHeight:  654321, feeEstimates: []),
-            (id: "bitcash-mainnet",  name: "Bitcash",  network: "mainnet", isMainnet: true,  currency: "bch", blockHeight: 1000000, feeEstimates: []),
-            (id: "ethereum-mainnet", name: "Ethereum", network: "mainnet", isMainnet: true,  currency: "eth", blockHeight: 8000000, feeEstimates: []),
+            (id: "bitcoin-mainnet",       name: "Bitcoin",       network: "mainnet", isMainnet: true,  currency: "btc", blockHeight:  654321, feeEstimates: []),
+            (id: "bitcoin-cash-mainnet",  name: "Bitcoin Cash",  network: "mainnet", isMainnet: true,  currency: "bch", blockHeight: 1000000, feeEstimates: []),
+            (id: "ethereum-mainnet",      name: "Ethereum",      network: "mainnet", isMainnet: true,  currency: "eth", blockHeight: 8000000, feeEstimates: []),
             (id: "ripple-mainnet",   name: "Ripple",   network: "mainnet", isMainnet: true,  currency: "xrp", blockHeight: 5000000, feeEstimates: []),
+
             // Testnet
-            (id: "bitcoin-testnet",  name: "Bitcoin",  network: "testnet", isMainnet: false, currency: "btc", blockHeight:  900000, feeEstimates: []),
-            (id: "bitcash-testnet",  name: "Bitcash",  network: "testnet", isMainnet: false, currency: "bch", blockHeight: 1200000, feeEstimates: []),
-            (id: "ethereum-testnet", name: "Ethereum", network: "testnet", isMainnet: false, currency: "eth", blockHeight: 1000000, feeEstimates: []),
-            (id: "ethereum-rinkeby", name: "Ethereum", network: "rinkeby", isMainnet: false, currency: "eth", blockHeight: 2000000, feeEstimates: [])
+            (id: "bitcoin-testnet",       name: "Bitcoin Test",      network: "testnet", isMainnet: false, currency: "btc", blockHeight:  900000, feeEstimates: []),
+            (id: "bitcoin-cash-testnet",  name: "Bitcoin Cash Test", network: "testnet", isMainnet: false, currency: "bch", blockHeight: 1200000, feeEstimates: []),
+            (id: "ethereum-testnet",      name: "Ethereum Testnet",  network: "testnet", isMainnet: false, currency: "eth", blockHeight: 1000000, feeEstimates: []),
+            (id: "ethereum-rinkeby",      name: "Ethereum Rinkeby",  network: "rinkeby", isMainnet: false, currency: "eth", blockHeight: 2000000, feeEstimates: [])
         ]
 
         /// Currency & CurrencyDenomination
@@ -320,9 +321,9 @@ public class BlockChainDB {
              demoninations: [(name: "satoshi", code: "sat", decimals: 0, symbol: lookupSymbol ("sat")),
                              (name: "bitcoin", code: "btc", decimals: 8, symbol: lookupSymbol ("btc"))]),
 
-            (id: "Bitcash", name: "Bitcash", code: "bch", type: "native", blockchainID: "bitcash-mainnet", address: nil,
-             demoninations: [(name: "satoshi", code: "sat", decimals: 0, symbol: lookupSymbol ("sat")),
-                             (name: "bitcoin", code: "bch", decimals: 8, symbol: lookupSymbol ("bch"))]),
+            (id: "Bitcoin-Cash", name: "Bitcoin Cash", code: "bch", type: "native", blockchainID: "bitcoin-cash-mainnet", address: nil,
+             demoninations: [(name: "satoshi",      code: "sat", decimals: 0, symbol: lookupSymbol ("sat")),
+                             (name: "bitcoin cash", code: "bch", decimals: 8, symbol: lookupSymbol ("bch"))]),
 
             (id: "Ethereum", name: "Ethereum", code: "eth", type: "native", blockchainID: "ethereum-mainnet", address: nil,
              demoninations: [(name: "wei",   code: "wei",  decimals:  0, symbol: lookupSymbol ("wei")),
@@ -346,9 +347,9 @@ public class BlockChainDB {
              demoninations: [(name: "satoshi", code: "sat", decimals: 0, symbol: lookupSymbol ("sat")),
                              (name: "bitcoin", code: "btc", decimals: 8, symbol: lookupSymbol ("btc"))]),
 
-            (id: "Bitcash-Testnet", name: "Bitcash", code: "bch", type: "native", blockchainID: "bitcash-testnet", address: nil,
-             demoninations: [(name: "satoshi", code: "sat", decimals: 0, symbol: lookupSymbol ("sat")),
-                             (name: "bitcoin", code: "bch", decimals: 8, symbol: lookupSymbol ("bch"))]),
+            (id: "Bitcoin-Cash-Testnet", name: "Bitcoin Cash Test", code: "bch", type: "native", blockchainID: "bitcoin-cash-testnet", address: nil,
+             demoninations: [(name: "satoshi",           code: "sat", decimals: 0, symbol: lookupSymbol ("sat")),
+                             (name: "bitcoin cash test", code: "bch", decimals: 8, symbol: lookupSymbol ("bch"))]),
 
             (id: "Ethereum-Testnet", name: "Ethereum", code: "eth", type: "native", blockchainID: "ethereum-testnet", address: nil,
              demoninations: [(name: "wei",   code: "wei",  decimals:  0, symbol: lookupSymbol ("wei")),

@@ -15,10 +15,6 @@ import java.util.List;
 
 public interface CoreBRCryptoWalletManager {
 
-    static CoreBRCryptoWalletManager create(BRCryptoWalletManager manager) {
-        return new OwnedBRCryptoWalletManager(manager);
-    }
-
     static CoreBRCryptoWalletManager create(BRCryptoCWMListener.ByValue listener, BRCryptoCWMClient.ByValue client,
                                             CoreBRCryptoAccount account, CoreBRCryptoNetwork network, int mode,
                                             String path) {
@@ -26,11 +22,17 @@ public interface CoreBRCryptoWalletManager {
                 listener, client, account.asBRCryptoAccount(), network.asBRCryptoNetwork(), mode, path));
     }
 
+    static CoreBRCryptoWalletManager createOwned(BRCryptoWalletManager manager) {
+        return new OwnedBRCryptoWalletManager(manager);
+    }
+
+    CoreBRCryptoAccount getAccount();
+
+    CoreBRCryptoNetwork getNetwork();
+
     CoreBRCryptoWallet getWallet();
 
-    UnsignedLong getWalletsCount();
-
-    CoreBRCryptoWallet getWallet(UnsignedLong index);
+    List<CoreBRCryptoWallet> getWallets();
 
     boolean containsWallet(CoreBRCryptoWallet wallet);
 
@@ -46,7 +48,7 @@ public interface CoreBRCryptoWalletManager {
 
     void sync();
 
-    void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, String paperKey);
+    void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, byte[] phraseUtf8);
 
     void announceGetBlockNumberSuccess(BRCryptoCWMClientCallbackState callbackState, UnsignedLong blockchainHeight);
 

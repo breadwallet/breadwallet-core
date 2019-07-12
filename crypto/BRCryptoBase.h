@@ -76,7 +76,9 @@ extern "C" {
   }                        \
   extern void              \
   preface##Give (type obj) {        \
-    if (1 == atomic_fetch_sub (&obj->ref.count, 1))  \
+    unsigned int __count = atomic_fetch_sub (&obj->ref.count, 1); \
+    assert (0 != __count); \
+    if (1 == __count)  \
       obj->ref.free (obj); \
   }
 

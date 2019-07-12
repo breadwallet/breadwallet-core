@@ -14,7 +14,12 @@ import XCTest
 
 class BRCryptoAccountTests: XCTestCase {
 
+    let dateFormatter = DateFormatter()
+
     override func setUp() {
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX") // set locale to reliable US_POSIX
+
     }
 
     override func tearDown() {
@@ -23,17 +28,18 @@ class BRCryptoAccountTests: XCTestCase {
     func testAccount () {
         let phrase  = "ginger settle marine tissue robot crane night number ramp coast roast critic"
         let address = "0x8fB4CB96F7C15F9C39B3854595733F728E1963Bc"
+        let timestamp = dateFormatter.date(from: "2018-01-01")!
 
         let walletId = UUID (uuidString: "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96")?.uuidString ?? "empty-wallet-id"
-        guard let a1 = Account.createFrom (phrase: phrase, uids: walletId)
+        guard let a1 = Account.createFrom (phrase: phrase, timestamp: timestamp, uids: walletId)
             else { XCTAssert(false); return}
 
         XCTAssert (a1.addressAsETH == address)
-        XCTAssert (0 == a1.timestamp)
+        XCTAssertEqual (timestamp, a1.timestamp)
 
 
         let d2 = Account.deriveSeed (phrase: phrase)
-        guard let a2 = Account.createFrom (seed: d2, uids: walletId) else { XCTAssert (false); return }
+        guard let a2 = Account.createFrom (seed: d2, timestamp: timestamp, uids: walletId) else { XCTAssert (false); return }
         XCTAssert (a2.addressAsETH == address)
     }
 

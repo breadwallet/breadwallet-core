@@ -8,8 +8,6 @@
 package com.breadwallet.corecrypto;
 
 import com.breadwallet.corenative.crypto.CoreBRCryptoAddress;
-import com.breadwallet.corenative.ethereum.BREthereumAddress;
-import com.breadwallet.corenative.support.BRAddress;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -21,22 +19,12 @@ final class Address implements com.breadwallet.crypto.Address {
 
     /* package */
     static Optional<Address> createAsBtc(String address) {
-        if (!BRAddress.isValid(address)) {
-            return Optional.absent();
-        }
-
-        CoreBRCryptoAddress cryptoAddress = CoreBRCryptoAddress.createAsBtc(address);
-        return Optional.of(new Address(cryptoAddress));
+        return CoreBRCryptoAddress.createFromStringAsBtc(address).transform(Address::new);
     }
 
     /* package */
     static Optional<Address> createAsEth(String address) {
-        if (!BREthereumAddress.isValid(address)) {
-            return Optional.absent();
-        }
-
-        CoreBRCryptoAddress cryptoAddress = CoreBRCryptoAddress.createAsEth(address);
-        return Optional.of(new Address(cryptoAddress));
+        return CoreBRCryptoAddress.createFromStringAsEth(address).transform(Address::new);
     }
 
     /* package */

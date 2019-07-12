@@ -70,7 +70,6 @@ extern "C" {
     typedef enum {
         CRYPTO_TRANSFER_EVENT_CREATED,
         CRYPTO_TRANSFER_EVENT_CHANGED,
-        CRYPTO_TRANSFER_EVENT_CONFIRMED,  // Unneeded (for `State` typedef above)??
         CRYPTO_TRANSFER_EVENT_DELETED,
     } BRCryptoTransferEventType;
 
@@ -81,10 +80,6 @@ extern "C" {
                 BRCryptoTransferState old;
                 BRCryptoTransferState new;
             } state;
-
-            struct {
-                uint64_t count;
-            } confirmation;
         } u;
     } BRCryptoTransferEvent;
 

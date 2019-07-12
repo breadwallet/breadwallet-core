@@ -1,9 +1,9 @@
 //
-//  BRCryptoWalletManagerPrivate.h
-//  BRCrypto
+//  BRBase.h
+//  BRCore
 //
-//  Created by Michael Carrara on 6/19/19.
-//  Copyright © 2019 breadwallet. All rights reserved.
+//  Created by Michael Carrara on 7/1/19.
+//  Copyright © 2019 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -23,55 +23,18 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BRCryptoWalletManagerPrivate_h
-#define BRCryptoWalletManagerPrivate_h
-
-#include <pthread.h>
-
-#include "BRCryptoBase.h"
-#include "BRCryptoNetwork.h"
-#include "BRCryptoAccount.h"
-#include "BRCryptoWallet.h"
-#include "BRCryptoWalletManager.h"
-
-#include "ethereum/BREthereum.h"
-#include "bitcoin/BRWalletManager.h"
-#include "generic/BRGenericWalletManager.h"
+#ifndef BRBase_h
+#define BRBase_h
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct BRCryptoWalletManagerRecord {
-    pthread_mutex_t lock;
-
-    BRCryptoBlockChainType type;
-    union {
-        BRWalletManager btc;
-        BREthereumEWM eth;
-        BRGenericWalletManager gen;
-    } u;
-
-    BRCryptoCWMListener listener;
-    BRCryptoCWMClient client;
-    BRCryptoNetwork network;
-    BRCryptoAccount account;
-    BRSyncMode mode;
-
-    BRCryptoWalletManagerState state;
-
-    /// The primary wallet
-    BRCryptoWallet wallet;
-
-    /// All wallets
-    BRArrayOf(BRCryptoWallet) wallets;
-    char *path;
-
-    BRCryptoRef ref;
-};
+#define OwnershipGiven
+#define OwnershipKept
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* BRCryptoWalletManagerPrivate_h */
+#endif /* BRBase_h */

@@ -20,11 +20,6 @@ class SummaryViewController: UITableViewController, WalletListener {
     var detailViewController: WalletViewController? = nil
 
     override func viewDidLoad() {
-        // Possible race
-        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener,
-            !listener.walletListeners.contains(where: { $0 === self }) {
-            listener.walletListeners.append (self)
-        }
         super.viewDidLoad()
 
         if let split = splitViewController {
@@ -36,10 +31,22 @@ class SummaryViewController: UITableViewController, WalletListener {
     override func viewWillAppear (_ animated: Bool) {
         self.wallets = UIApplication.sharedSystem.wallets
 
+        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
+            listener.add (walletListener: self)
+        }
+        
         clearsSelectionOnViewWillAppear = splitViewController!.isCollapsed
         super.viewWillAppear(animated)
     }
 
+    override func viewWillDisappear(_ animated: Bool) {
+        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
+            listener.remove (walletListener: self)
+        }
+        
+        super.viewWillDisappear(animated)
+    }
+    
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
     }

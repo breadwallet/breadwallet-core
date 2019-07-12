@@ -20,9 +20,8 @@ public final class Account {
     // A 'globally unique' ID String for account.  For BlockchainDB this will be the 'walletId'
     let uids: String
 
-    public var timestamp: UInt64 {
-        get { return cryptoAccountGetTimestamp (core) }
-        set { cryptoAccountSetTimestamp (core, newValue) }
+    public var timestamp: Date {
+        return Date.init(timeIntervalSince1970: TimeInterval (cryptoAccountGetTimestamp (core)))
     }
 
     internal init (core: BRCryptoAccount, uids: String) {
@@ -30,14 +29,16 @@ public final class Account {
         self.uids = uids
     }
 
-    public static func createFrom (phrase: String, uids: String) -> Account? {
-        return cryptoAccountCreate (phrase)
+    public static func createFrom (phrase: String, timestamp: Date, uids: String) -> Account? {
+        let timestampAsInt = UInt64 (timestamp.timeIntervalSince1970)
+        return cryptoAccountCreate (phrase, timestampAsInt)
             .map { Account (core: $0, uids: uids) }
     }
 
-    public static func createFrom (seed: Data, uids: String) -> Account? {
+    public static func createFrom (seed: Data, timestamp: Date, uids: String) -> Account? {
+        let timestampAsInt = UInt64 (timestamp.timeIntervalSince1970)
         let bytes = [UInt8](seed)
-        return cryptoAccountCreateFromSeedBytes (bytes)
+        return cryptoAccountCreateFromSeedBytes (bytes, timestampAsInt)
             .map { Account (core: $0, uids: uids) }
     }
 

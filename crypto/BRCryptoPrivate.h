@@ -42,7 +42,6 @@
 #include "BRCryptoWalletManager.h"
 
 ///
-#include "support/BRAddress.h"
 #include "support/BRBIP32Sequence.h"
 #include "bitcoin/BRChainParams.h"
 #include "bitcoin/BRTransaction.h"
@@ -123,7 +122,7 @@ extern "C" {
                                 BRCryptoBoolean isNegative,
                                 UInt256 value,
                                 int takeCurrency);
-    
+
     /// MARK: - Address
 
     private_extern BRCryptoAddress
@@ -156,7 +155,7 @@ extern "C" {
     cryptoAccountAsBTC (BRCryptoAccount account);
 
     /// MARK: FeeBasis
-    
+
     private_extern uint64_t
     cryptoFeeBasisAsBTC (BRCryptoFeeBasis feeBasis);
 
@@ -182,11 +181,11 @@ extern "C" {
     private_extern void
     cryptoTransferSetState (BRCryptoTransfer transfer,
                             BRCryptoTransferState state);
-    
+
     private_extern BRCryptoTransfer
     cryptoTransferCreateAsBTC (BRCryptoCurrency currency,
                                BRWallet *wid,
-                               BRTransaction *tid);
+                               OwnershipGiven BRTransaction *tid);
 
     private_extern BRCryptoTransfer
     cryptoTransferCreateAsETH (BRCryptoCurrency currency,
@@ -267,7 +266,7 @@ extern "C" {
     private_extern BRCryptoNetwork
     cryptoNetworkCreateAsGEN (const char *uids,
                               const char *name);
-    
+
     private_extern BRCryptoBlockChainType
     cryptoNetworkGetBlockChainType (BRCryptoNetwork network);
 
@@ -328,7 +327,7 @@ extern "C" {
 
     private_extern void
     cryptoWalletRemTransfer (BRCryptoWallet wallet, BRCryptoTransfer transfer);
-    
+
     /// MARK: - WalletManager
 
     private_extern void

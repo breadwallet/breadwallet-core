@@ -252,6 +252,8 @@
 		C3C864A4227C6B490055120E /* BRRippleWallet.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C864A3227C6B490055120E /* BRRippleWallet.c */; };
 		C3C864A7227CA28E0055120E /* BRRippleBase58.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C864A6227CA28E0055120E /* BRRippleBase58.c */; };
 		CA92F7902100F9CA0015C966 /* BRKeccak.c in Sources */ = {isa = PBXBuildFile; fileRef = CA92F78F2100F9CA0015C966 /* BRKeccak.c */; };
+		CE6040C222BD69E40003967B /* BRWalletManagerEvent.c in Sources */ = {isa = PBXBuildFile; fileRef = CE6040C022BD69E40003967B /* BRWalletManagerEvent.c */; };
+		CE6040C322BD69E40003967B /* BRWalletManagerEvent.c in Sources */ = {isa = PBXBuildFile; fileRef = CE6040C022BD69E40003967B /* BRWalletManagerEvent.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -547,7 +549,7 @@
 		3CAB60A820AF8C8500810CE4 /* CoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTests.swift; sourceTree = "<group>"; };
 		3CAB60AA20AF8C8500810CE4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		3CAB60E920AF8F3E00810CE4 /* CoreTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CoreTests-Bridging-Header.h"; sourceTree = "<group>"; };
-		3CC48D49221CD1F200067EFC /* CoreTestsConfig.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = CoreTestsConfig.plist; sourceTree = "<group>"; };
+		3CC48D49221CD1F200067EFC /* CoreTestsConfig.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = CoreTestsConfig.json; sourceTree = "<group>"; };
 		3CCB1343224D1B1700ADCDB9 /* BRBlockChainDB.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BRBlockChainDB.swift; sourceTree = "<group>"; };
 		3CCB1347224D1B1700ADCDB9 /* BRCryptoSystem.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BRCryptoSystem.swift; sourceTree = "<group>"; };
 		3CCB1354224D3F7500ADCDB9 /* testCrypto.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testCrypto.c; sourceTree = "<group>"; };
@@ -625,6 +627,9 @@
 		C3C864B02284E8250055120E /* BRRipplePrivateStructs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRRipplePrivateStructs.h; sourceTree = "<group>"; };
 		CA92F78E2100F9CA0015C966 /* BRKeccak.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRKeccak.h; sourceTree = "<group>"; };
 		CA92F78F2100F9CA0015C966 /* BRKeccak.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRKeccak.c; sourceTree = "<group>"; };
+		CE6040C022BD69E40003967B /* BRWalletManagerEvent.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRWalletManagerEvent.c; sourceTree = "<group>"; };
+		CE6040C122BD69E40003967B /* BRWalletManagerPrivate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRWalletManagerPrivate.h; sourceTree = "<group>"; };
+		CEA3F92D22CB8282006A330E /* BRBase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRBase.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -777,8 +782,10 @@
 				3C590F5320950C740005597B /* BRTransaction.c */,
 				3C590F4620950C730005597B /* BRWallet.h */,
 				3C590F5720950C740005597B /* BRWallet.c */,
-				3CCD36AF21A5BB8D0032637A /* BRWalletManager.h */,
+				CE6040C122BD69E40003967B /* BRWalletManagerPrivate.h */,
 				3CCD36B021A5BB8D0032637A /* BRWalletManager.c */,
+				3CCD36AF21A5BB8D0032637A /* BRWalletManager.h */,
+				CE6040C022BD69E40003967B /* BRWalletManagerEvent.c */,
 				3C42EF8E209763AB000E58E0 /* test.c */,
 			);
 			name = bitcoin;
@@ -987,6 +994,7 @@
 		3C3DC5B821DFCA39004188BD /* support */ = {
 			isa = PBXGroup;
 			children = (
+				CEA3F92D22CB8282006A330E /* BRBase.h */,
 				3C590F4820950C730005597B /* BRInt.h */,
 				3C590F3820950C720005597B /* BRArray.h */,
 				3C590F4F20950C740005597B /* BRSet.h */,
@@ -1179,7 +1187,7 @@
 				3CAB60E920AF8F3E00810CE4 /* CoreTests-Bridging-Header.h */,
 				3CAB60A820AF8C8500810CE4 /* CoreTests.swift */,
 				3CAB60AA20AF8C8500810CE4 /* Info.plist */,
-				3CC48D49221CD1F200067EFC /* CoreTestsConfig.plist */,
+				3CC48D49221CD1F200067EFC /* CoreTestsConfig.json */,
 			);
 			path = CoreTests;
 			sourceTree = "<group>";
@@ -1247,10 +1255,10 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 3C0EADFF2188D920000577A6 /* Build configuration list for PBXNativeTarget "BRCryptoTests" */;
 			buildPhases = (
-				3CCB1364224D97AF00ADCDB9 /* Ensure CoreTestsConfig.plist */,
+				3CCB1364224D97AF00ADCDB9 /* Ensure CoreTestsConfig.json */,
 				3C0EADEF2188D91F000577A6 /* Sources */,
 				3C0EADF02188D91F000577A6 /* Frameworks */,
-				3CCB1365224D9B2600ADCDB9 /* Copy CoreTestsConfig.plist as Resource */,
+				3CCB1365224D9B2600ADCDB9 /* Copy CoreTestsConfig as Resource */,
 				3C0EADF12188D91F000577A6 /* Resources */,
 			);
 			buildRules = (
@@ -1339,10 +1347,10 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 3CAB60AE20AF8C8500810CE4 /* Build configuration list for PBXNativeTarget "CoreTests" */;
 			buildPhases = (
-				3CC48D4D221CD7E000067EFC /* Ensure CoreTestsConfig.plist */,
+				3CC48D4D221CD7E000067EFC /* Ensure CoreTestsConfig */,
 				3CAB60A220AF8C8500810CE4 /* Sources */,
 				3CAB60A320AF8C8500810CE4 /* Frameworks */,
-				3C8EDD042232F54900D5D146 /* Copy CoreTestsConfig.plist As Bundle Resource */,
+				3C8EDD042232F54900D5D146 /* Copy CoreTestsConfig As Bundle Resource */,
 				3CAB60A420AF8C8500810CE4 /* Resources */,
 			);
 			buildRules = (
@@ -1470,7 +1478,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		3C8EDD042232F54900D5D146 /* Copy CoreTestsConfig.plist As Bundle Resource */ = {
+		3C8EDD042232F54900D5D146 /* Copy CoreTestsConfig As Bundle Resource */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -1479,17 +1487,17 @@
 			);
 			inputPaths = (
 			);
-			name = "Copy CoreTestsConfig.plist As Bundle Resource";
+			name = "Copy CoreTestsConfig As Bundle Resource";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "RES_FILE=\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\"\nTGT_FILE=\"${CONFIGURATION_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/CoreTestsConfig.plist\"\ncp \"${RES_FILE}\" \"${TGT_FILE}\"\necho \"Copied \\\"${RES_FILE}\\\" to \\\"${TGT_FILE}\\\"\"\n";
+			shellScript = "RES_FILE=\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.json\"\nTGT_FILE=\"${CONFIGURATION_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/CoreTestsConfig.json\"\ncp \"${RES_FILE}\" \"${TGT_FILE}\"\necho \"Copied \\\"${RES_FILE}\\\" to \\\"${TGT_FILE}\\\"\"\n";
 			showEnvVarsInLog = 0;
 		};
-		3CC48D4D221CD7E000067EFC /* Ensure CoreTestsConfig.plist */ = {
+		3CC48D4D221CD7E000067EFC /* Ensure CoreTestsConfig */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -1498,16 +1506,16 @@
 			);
 			inputPaths = (
 			);
-			name = "Ensure CoreTestsConfig.plist";
+			name = "Ensure CoreTestsConfig";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "SRC_FILE=\"${HOME}/.brdCoreTestsConfig.plist\"\nTGT_FILE=\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\"\n\nif [ -f \"${SRC_FILE}\"  ]; then \n  cp \"${SRC_FILE}\" \"${TGT_FILE}\"\n  chmod 644 \"${TGT_FILE}\"\n  if [ ! -f \"${TGT_FILE}\" ]; then\n    echo \"Copy to  \\\"${TGT_FILE}\\\" failed.\"\n  else\n    echo \"Copied \\\"${SRC_FILE}\\\" to \\\"${TGT_FILE}\\\"\"\n  fi\nelse\n  echo \"Missing file ${SRC_FILE} - You must provide this file with a form like:\"\n  echo \"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\"\n  echo \"  <!DOCTYPE plist PUBLIC \\\"-//Apple//DTD PLIST 1.0//EN\\\" \\\"http://www.apple.com/DTDs/PropertyList-1.0.dtd\\\">\"\n  echo \"  <plist version=\\\"1.0\\\">\"\n  echo \"  <dict>\"\n  echo \"    <key>paperKeysTestnet</key>\"\n  echo \"    <array>\"\n  echo \"      <string>\\\"some paper key\\\"</string>\"\n  echo \"      ...\"\n  echo \"    </array>\"\n  echo \"    <key>paperKeysMainnet</key>\"\n  echo \"    <array>\"\n  echo \"      <string>\\\"some other paper key\\\"</string>\"\n  echo \"      ...\"\n  echo \"     </array>\"\n  echo \"    </dict>\"\n  echo \"  </plist>\"\n  exit 1\nfi\n";
+			shellScript = "SRC_FILE=\"${HOME}/.brdCoreTestsConfig.json\"\nTGT_FILE=\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.json\"\n\nif [ -f \"${SRC_FILE}\"  ]; then \n  cp \"${SRC_FILE}\" \"${TGT_FILE}\"\n  chmod 644 \"${TGT_FILE}\"\n  if [ ! -f \"${TGT_FILE}\" ]; then\n    echo \"Copy to  \\\"${TGT_FILE}\\\" failed.\"\n  else\n    echo \"Copied \\\"${SRC_FILE}\\\" to \\\"${TGT_FILE}\\\"\"\n  fi\nelse\n  echo \"Missing file ${SRC_FILE} - You must provide this file.\"\n  exit 1\nfi\n";
 		};
-		3CCB1364224D97AF00ADCDB9 /* Ensure CoreTestsConfig.plist */ = {
+		3CCB1364224D97AF00ADCDB9 /* Ensure CoreTestsConfig.json */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -1516,16 +1524,16 @@
 			);
 			inputPaths = (
 			);
-			name = "Ensure CoreTestsConfig.plist";
+			name = "Ensure CoreTestsConfig.json";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "SRC_FILE=\"${HOME}/.brdCoreTestsConfig.plist\"\nTGT_FILE=\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\"\n\nif [ -f \"${SRC_FILE}\"  ]; then \ncp \"${SRC_FILE}\" \"${TGT_FILE}\"\nchmod 644 \"${TGT_FILE}\"\nif [ ! -f \"${TGT_FILE}\" ]; then\necho \"Copy to  \\\"${TGT_FILE}\\\" failed.\"\nelse\necho \"Copied \\\"${SRC_FILE}\\\" to \\\"${TGT_FILE}\\\"\"\nfi\nelse\necho \"Missing file ${SRC_FILE} - You must provide this file with a form like:\"\necho \"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\"\necho \"  <!DOCTYPE plist PUBLIC \\\"-//Apple//DTD PLIST 1.0//EN\\\" \\\"http://www.apple.com/DTDs/PropertyList-1.0.dtd\\\">\"\necho \"  <plist version=\\\"1.0\\\">\"\necho \"  <dict>\"\necho \"    <key>paperKeysTestnet</key>\"\necho \"    <array>\"\necho \"      <string>\\\"some paper key\\\"</string>\"\necho \"      ...\"\necho \"    </array>\"\necho \"    <key>paperKeysMainnet</key>\"\necho \"    <array>\"\necho \"      <string>\\\"some other paper key\\\"</string>\"\necho \"      ...\"\necho \"     </array>\"\necho \"    </dict>\"\necho \"  </plist>\"\nexit 1\nfi\n";
+			shellScript = "SRC_FILE=\"${HOME}/.brdCoreTestsConfig.json\"\nTGT_FILE=\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.json\"\n\nif [ -f \"${SRC_FILE}\"  ]; then \ncp \"${SRC_FILE}\" \"${TGT_FILE}\"\nchmod 644 \"${TGT_FILE}\"\nif [ ! -f \"${TGT_FILE}\" ]; then\necho \"Copy to  \\\"${TGT_FILE}\\\" failed.\"\nelse\necho \"Copied \\\"${SRC_FILE}\\\" to \\\"${TGT_FILE}\\\"\"\nfi\nelse\necho \"Missing file ${SRC_FILE} - You must provide this file.\"\nexit 1\nfi\n";
 		};
-		3CCB1365224D9B2600ADCDB9 /* Copy CoreTestsConfig.plist as Resource */ = {
+		3CCB1365224D9B2600ADCDB9 /* Copy CoreTestsConfig as Resource */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -1534,14 +1542,14 @@
 			);
 			inputPaths = (
 			);
-			name = "Copy CoreTestsConfig.plist as Resource";
+			name = "Copy CoreTestsConfig as Resource";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "RES_FILE=\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.plist\"\nTGT_FILE=\"${CONFIGURATION_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/CoreTestsConfig.plist\"\ncp \"${RES_FILE}\" \"${TGT_FILE}\"\necho \"Copied \\\"${RES_FILE}\\\" to \\\"${TGT_FILE}\\\"\"\n";
+			shellScript = "RES_FILE=\"${SOURCE_ROOT}/CoreTests/CoreTestsConfig.json\"\nTGT_FILE=\"${CONFIGURATION_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/CoreTestsConfig.json\"\ncp \"${RES_FILE}\" \"${TGT_FILE}\"\necho \"Copied \\\"${RES_FILE}\\\" to \\\"${TGT_FILE}\\\"\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -1669,6 +1677,7 @@
 				3C6B175C2131CE12003C313B /* BRBech32.c in Sources */,
 				3C6B175D2131CE12003C313B /* BRBIP32Sequence.c in Sources */,
 				3C6B175E2131CE12003C313B /* BREthereumMessage.c in Sources */,
+				CE6040C322BD69E40003967B /* BRWalletManagerEvent.c in Sources */,
 				3C9B8DF122BD55CA0060C3A9 /* BRRippleSerialize.c in Sources */,
 				3C25BF4B2236EE71004B093F /* BRChainParams.c in Sources */,
 				3C6B175F2131CE12003C313B /* BRBIP38Key.c in Sources */,
@@ -1706,6 +1715,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				3CD30496213B226B00A0CCED /* BREthereumMessageP2P.c in Sources */,
+				CE6040C222BD69E40003967B /* BRWalletManagerEvent.c in Sources */,
 				3CAB60B120AF8D1A00810CE4 /* BREthereumEther.c in Sources */,
 				C3C453E2226E2C62004CC0C7 /* BRRippleTransaction.c in Sources */,
 				3CF38E4821C4421600B771E6 /* BREthereumProofOfWork.c in Sources */,

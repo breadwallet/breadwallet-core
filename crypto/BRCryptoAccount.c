@@ -89,20 +89,20 @@ cryptoAccountDeriveSeed (const char *phrase) {
 }
 
 extern BRCryptoAccount
-cryptoAccountCreate (const char *phrase) {
-    return cryptoAccountCreateFromSeedInternal (cryptoAccountDeriveSeedInternal(phrase), 0);
+cryptoAccountCreate (const char *phrase, uint64_t timestamp) {
+    return cryptoAccountCreateFromSeedInternal (cryptoAccountDeriveSeedInternal(phrase), timestamp);
 }
 
 extern BRCryptoAccount
-cryptoAccountCreateFromSeed (UInt512 seed) {
-    return cryptoAccountCreateFromSeedInternal (seed, 0);
+cryptoAccountCreateFromSeed (UInt512 seed, uint64_t timestamp) {
+    return cryptoAccountCreateFromSeedInternal (seed, timestamp);
 }
 
 extern BRCryptoAccount
-cryptoAccountCreateFromSeedBytes (const uint8_t *bytes) {
+cryptoAccountCreateFromSeedBytes (const uint8_t *bytes, uint64_t timestamp) {
     UInt512 seed;
     memcpy (seed.u8, bytes, sizeof (seed.u8));
-    return cryptoAccountCreateFromSeedInternal (seed, 0);
+    return cryptoAccountCreateFromSeedInternal (seed, timestamp);
 }
 
 static void

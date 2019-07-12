@@ -41,13 +41,13 @@ extern "C" {
     cryptoAccountDeriveSeed (const char *phrase);
 
     extern BRCryptoAccount
-    cryptoAccountCreate (const char *paperKey);
+    cryptoAccountCreate (const char *paperKey, uint64_t timestamp);
 
     extern BRCryptoAccount
-    cryptoAccountCreateFromSeed (UInt512 seed);
+    cryptoAccountCreateFromSeed (UInt512 seed, uint64_t timestamp);
 
     extern BRCryptoAccount
-    cryptoAccountCreateFromSeedBytes (const uint8_t *bytes);
+    cryptoAccountCreateFromSeedBytes (const uint8_t *bytes, uint64_t timestamp);
 
     extern uint64_t
     cryptoAccountGetTimestamp (BRCryptoAccount account);

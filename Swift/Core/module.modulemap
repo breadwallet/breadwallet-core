@@ -10,6 +10,7 @@ module BRCryptoC [system] [extern_c] {
     header "../../crypto/BRCryptoTransfer.h"
     header "../../crypto/BRCryptoWallet.h"
     header "../../crypto/BRCryptoWalletManager.h"
+    header "../../crypto/BRCryptoWalletManagerClient.h"
     header "../../generic/BRGeneric.h"
 
     header "../../crypto/BRCryptoPrivate.h"

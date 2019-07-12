@@ -22,17 +22,18 @@ import com.breadwallet.corenative.crypto.BRCryptoTransferState;
 import com.breadwallet.corenative.crypto.BRCryptoUnit;
 import com.breadwallet.corenative.crypto.BRCryptoWallet;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManager;
-import com.breadwallet.corenative.support.BRAddress;
-import com.breadwallet.corenative.ethereum.BREthereumAddress;
 import com.breadwallet.corenative.support.UInt256;
 import com.breadwallet.corenative.support.UInt512;
 import com.breadwallet.corenative.utility.SizeT;
+import com.breadwallet.corenative.utility.SizeTByReference;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
 import com.sun.jna.NativeLibrary;
 import com.sun.jna.Pointer;
 import com.sun.jna.StringArray;
 import com.sun.jna.ptr.IntByReference;
+
+import java.nio.ByteBuffer;
 
 public interface CryptoLibrary extends Library {
 
@@ -41,11 +42,10 @@ public interface CryptoLibrary extends Library {
     CryptoLibrary INSTANCE = Native.load(CryptoLibrary.JNA_LIBRARY_NAME, CryptoLibrary.class);
 
     // crypto/BRCryptoAccount.h
-    UInt512.ByValue cryptoAccountDeriveSeed(String phrase);
-    BRCryptoAccount cryptoAccountCreate(String paperKey);
-    BRCryptoAccount cryptoAccountCreateFromSeedBytes(byte[] bytes);
+    UInt512.ByValue cryptoAccountDeriveSeed(ByteBuffer phrase);
+    BRCryptoAccount cryptoAccountCreate(ByteBuffer phrase, long timestamp);
+    BRCryptoAccount cryptoAccountCreateFromSeedBytes(ByteBuffer seed, long timestamp);
     long cryptoAccountGetTimestamp(BRCryptoAccount account);
-    void cryptoAccountSetTimestamp(BRCryptoAccount account, long timestamp);
     void cryptoAccountGive(BRCryptoAccount obj);
 
     // crypto/BRCryptoAddress.h
@@ -109,8 +109,8 @@ public interface CryptoLibrary extends Library {
     void cryptoNetworkGive(BRCryptoNetwork obj);
 
     // crypto/BRCryptoPrivate.h
-    BRCryptoAddress cryptoAddressCreateAsBTC(BRAddress.ByValue btc);
-    BRCryptoAddress cryptoAddressCreateAsETH(BREthereumAddress.ByValue address);
+    BRCryptoAddress cryptoAddressCreateFromStringAsBTC(String address);
+    BRCryptoAddress cryptoAddressCreateFromStringAsETH(String address);
     BRCryptoAmount cryptoAmountCreate (BRCryptoCurrency currency, int isNegative, UInt256.ByValue value);
     BRCryptoCurrency cryptoCurrencyCreate(String uids, String name, String code, String type, String issuer);
     void cryptoNetworkSetHeight(BRCryptoNetwork network, long height);
@@ -154,8 +154,7 @@ public interface CryptoLibrary extends Library {
     int cryptoWalletGetState(BRCryptoWallet wallet);
     void cryptoWalletSetState(BRCryptoWallet wallet, int state);
     BRCryptoAmount cryptoWalletGetBalance(BRCryptoWallet wallet);
-    SizeT cryptoWalletGetTransferCount(BRCryptoWallet wallet);
-    BRCryptoTransfer cryptoWalletGetTransfer(BRCryptoWallet wallet, SizeT index);
+    Pointer cryptoWalletGetTransfers(BRCryptoWallet wallet, SizeTByReference count);
     int cryptoWalletHasTransfer(BRCryptoWallet wallet, BRCryptoTransfer transfer);
     BRCryptoAddress cryptoWalletGetAddress(BRCryptoWallet wallet);
     BRCryptoFeeBasis cryptoWalletGetDefaultFeeBasis(BRCryptoWallet wallet);
@@ -177,13 +176,12 @@ public interface CryptoLibrary extends Library {
     int cryptoWalletManagerGetState(BRCryptoWalletManager cwm);
     Pointer cryptoWalletManagerGetPath(BRCryptoWalletManager cwm);
     BRCryptoWallet cryptoWalletManagerGetWallet(BRCryptoWalletManager cwm);
-    SizeT cryptoWalletManagerGetWalletsCount(BRCryptoWalletManager cwm);
-    BRCryptoWallet cryptoWalletManagerGetWalletAtIndex(BRCryptoWalletManager cwm, SizeT index);
+    Pointer cryptoWalletManagerGetWallets(BRCryptoWalletManager cwm, SizeTByReference count);
     int cryptoWalletManagerHasWallet(BRCryptoWalletManager cwm, BRCryptoWallet wallet);
     void cryptoWalletManagerConnect(BRCryptoWalletManager cwm);
     void cryptoWalletManagerDisconnect(BRCryptoWalletManager cwm);
     void cryptoWalletManagerSync(BRCryptoWalletManager cwm);
-    void cryptoWalletManagerSubmit(BRCryptoWalletManager cwm, BRCryptoWallet wid, BRCryptoTransfer tid, String paperKey);
+    void cryptoWalletManagerSubmit(BRCryptoWalletManager cwm, BRCryptoWallet wid, BRCryptoTransfer tid, ByteBuffer paperKey);
     void cwmAnnounceGetBlockNumberSuccessAsInteger(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState,long blockNumber);
     void cwmAnnounceGetBlockNumberSuccessAsString(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState, String blockNumber);
     void cwmAnnounceGetBlockNumberFailure(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState);
@@ -221,16 +219,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoWalletManager cryptoWalletManagerTake(BRCryptoWalletManager obj);
     void cryptoWalletManagerGive(BRCryptoWalletManager obj);
 
-    // ethereum/base/BREthereumAddress.h
-    BREthereumAddress.ByValue addressCreate(String address);
-    int addressValidateString(String addr);
-
     // ethereum/util/BRUtilMath.h
     UInt256.ByValue createUInt256(long value);
     Pointer coerceStringPrefaced(UInt256.ByValue value, int base, String preface);
-
-    // support/BRAddress.h
-    int BRAddressIsValid(String addr);
-
-
 }

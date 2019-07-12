@@ -49,12 +49,19 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         //                                         paperKey: "0x8975dbc1b8f25ec994815626d070899dda896511")
         //                                         paperKey: "0xb302B06FDB1348915599D21BD54A06832637E5E8")
 
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX") // set locale to reliable US_POSIX
+
+
         let walletId = UUID (uuidString: "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96")?.uuidString ?? "empty-wallet-id"
-        guard let account = Account.createFrom (phrase: paperKey, uids: walletId) else {
+        let timestamp = dateFormatter.date (from: "2018-07-01")! // "loan ..."
+
+        guard let account = Account.createFrom (phrase: paperKey, timestamp: timestamp, uids: walletId) else {
             precondition(false, "No account")
             return false
         }
-        account.timestamp = 1530403200 // loan: 2018-07-01
+//        account.timestamp = 1530403200 // loan: 2018-07-01
 //        account.timestamp = 1514764800 // 2018-01-01
 //        account.timestamp = 1543190400 // Tue, 26 Nov 2018 00:00:00 GMT
 
@@ -77,7 +84,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         }
 
         print ("APP: Account PaperKey  : \(paperKey.components(separatedBy: CharacterSet.whitespaces).first ?? "<missed>") ...")
-        print ("APP: Account Timestamp : \(Date.init(timeIntervalSince1970: TimeInterval(account.timestamp)))")
+        print ("APP: Account Timestamp : \(account.timestamp)")
         print ("APP: StoragePath       : \(storagePath)");
 
         // Create the listener

@@ -21,7 +21,6 @@ public class BRCryptoTransferEvent extends Structure {
 	public static class u_union extends Union {
 
 		public state_struct state;
-		public confirmation_struct confirmation;
 
 		public static class state_struct extends Structure {
 
@@ -54,35 +53,6 @@ public class BRCryptoTransferEvent extends Structure {
 			}
 		}
 
-		public static class confirmation_struct extends Structure {
-
-			public long count;
-			public confirmation_struct() {
-				super();
-			}
-
-			protected List<String> getFieldOrder() {
-				return Arrays.asList("count");
-			}
-
-			public confirmation_struct(long count) {
-				super();
-				this.count = count;
-			}
-
-			public confirmation_struct(Pointer peer) {
-				super(peer);
-			}
-
-			public static class ByReference extends confirmation_struct implements Structure.ByReference {
-				
-			}
-
-			public static class ByValue extends confirmation_struct implements Structure.ByValue {
-				
-			}
-		}
-
 		public u_union() {
 			super();
 		}
@@ -91,12 +61,6 @@ public class BRCryptoTransferEvent extends Structure {
 			super();
 			this.state = state;
 			setType(state_struct.class);
-		}
-
-		public u_union(confirmation_struct confirmation) {
-			super();
-			this.confirmation = confirmation;
-			setType(confirmation_struct.class);
 		}
 
 		public u_union(Pointer peer) {
@@ -136,10 +100,6 @@ public class BRCryptoTransferEvent extends Structure {
 		switch (type){
 			case BRCryptoTransferEventType.CRYPTO_TRANSFER_EVENT_CHANGED:
 				u.setType(u_union.state_struct.class);
-				u.read();
-				break;
-			case BRCryptoTransferEventType.CRYPTO_TRANSFER_EVENT_CONFIRMED:
-				u.setType(u_union.confirmation_struct.class);
 				u.read();
 				break;
 		}

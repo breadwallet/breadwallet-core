@@ -17,11 +17,6 @@ public abstract class DefaultTransferEventVisitor<T> implements TransferEventVis
     }
 
     @Nullable
-    public T visit(TransferConfirmationEvent event) {
-        return null;
-    }
-
-    @Nullable
     public T visit(TransferCreatedEvent event) {
         return null;
     }

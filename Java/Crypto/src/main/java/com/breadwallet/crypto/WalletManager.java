@@ -19,9 +19,11 @@ public interface WalletManager {
 
     void sync();
 
-    void submit(Transfer transfer, String paperKey);
+    void submit(Transfer transfer, byte[] phraseUtf8);
 
     boolean isActive();
+
+    System getSystem();
 
     Account getAccount();
 

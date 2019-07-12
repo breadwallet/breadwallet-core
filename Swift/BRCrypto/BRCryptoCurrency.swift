@@ -18,7 +18,7 @@ public final class Currency: Hashable {
     internal let core: BRCryptoCurrency
 
     /// A 'Unique Identifier
-    internal var uids: String {
+    public var uids: String {
         return asUTF8String (cryptoCurrencyGetUids (core))
     }
 
