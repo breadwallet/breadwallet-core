@@ -163,9 +163,9 @@ public final class Wallet: Equatable {
     public func estimateFee (amount: Amount,
                              feeBasis: TransferFeeBasis?) -> Amount {
         precondition (amount.hasCurrency (currency))
-        let unit = manager.network.baseUnitFor (currency: manager.currency)!
+        let unit = Unit (core: cryptoWalletGetUnitForFee (core))
         let feeBasis = feeBasis ?? defaultFeeBasis
-        return Amount (core: cryptoWalletEstimateFee (core, amount.core, feeBasis.core, unit.core),
+        return Amount (core: cryptoWalletEstimateFee (core, amount.core, feeBasis.core),
                        unit: unit,
                        take: false)
     }
