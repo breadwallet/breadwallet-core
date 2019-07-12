@@ -1,6 +1,9 @@
 package com.breadwallet.cryptodemo;
 
 import android.app.Activity;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.support.annotation.NonNull;
 import android.support.v7.app.ActionBar;
@@ -11,11 +14,14 @@ import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.util.SortedListAdapterCallback;
+import android.text.Html;
+import android.text.Spanned;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Transfer;
@@ -89,10 +95,13 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
 
     private Wallet wallet;
 
-    private Button createView;
+    private Button sendView;
+    private Button recvView;
     private Adapter transferAdapter;
     private RecyclerView transfersView;
     private RecyclerView.LayoutManager transferLayoutManager;
+
+    private ClipboardManager clipboardManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -107,8 +116,13 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
             return;
         }
 
-        createView = findViewById(R.id.create_view);
-        createView.setOnClickListener(v -> TransferCreateActivity.start(TransferListActivity.this, wallet));
+        clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+
+        sendView = findViewById(R.id.send_view);
+        sendView.setOnClickListener(v -> TransferCreateActivity.start(TransferListActivity.this, wallet));
+
+        recvView = findViewById(R.id.receive_view);
+        recvView.setOnClickListener(v -> copyReceiveAddress());
 
         transfersView = findViewById(R.id.transfer_recycler_view);
         transfersView.addItemDecoration(new DividerItemDecoration(getApplicationContext(), DividerItemDecoration.VERTICAL));
@@ -166,6 +180,16 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
         });
     }
 
+    private void copyReceiveAddress() {
+        String value = wallet.getTarget().toString();
+        clipboardManager.setPrimaryClip(ClipData.newPlainText("ReceiveAddress", value));
+
+        String escapedValue = Html.escapeHtml(value);
+        Spanned message = Html.fromHtml(String.format("Copied receive address <b>%s</b> to clipboard", escapedValue));
+
+        Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
+    }
+
     private interface OnItemClickListener<T> {
         void onItemClick(T item);
     }
@@ -185,7 +209,7 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
 
                 @Override
                 public boolean areContentsTheSame(Transfer t1, Transfer t2) {
-                    return t1.equals(t2);
+                    return false;
                 }
 
                 @Override

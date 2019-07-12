@@ -7,6 +7,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.Html;
+import android.text.Spanned;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -203,6 +205,10 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
 
     private void copyPlaintext(String label, CharSequence value) {
         clipboardManager.setPrimaryClip(ClipData.newPlainText(label, value));
-        Toast.makeText(getApplicationContext(), String.format("Copied \"%s\" to clipboard", value), Toast.LENGTH_SHORT).show();
+
+        String escapedValue = Html.escapeHtml(value);
+        Spanned message = Html.fromHtml(String.format("Copied <b>%s</b> to clipboard", escapedValue));
+
+        Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
     }
 }

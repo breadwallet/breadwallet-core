@@ -85,6 +85,7 @@ public class WalletListActivity extends AppCompatActivity implements WalletListe
 
                 @Override
                 public Void visit(WalletChangedEvent event) {
+                    walletsAdapter.changed(wallet);
                     return null;
                 }
 
@@ -147,7 +148,7 @@ public class WalletListActivity extends AppCompatActivity implements WalletListe
 
                 @Override
                 public boolean areContentsTheSame(Wallet w1, Wallet w2) {
-                    return w1.equals(w2);
+                    return false;
                 }
 
                 @Override
