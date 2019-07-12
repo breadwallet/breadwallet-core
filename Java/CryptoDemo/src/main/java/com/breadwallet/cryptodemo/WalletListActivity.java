@@ -3,9 +3,11 @@ package com.breadwallet.cryptodemo;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.util.SortedList;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.util.SortedListAdapterCallback;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -33,10 +35,8 @@ import java.util.List;
 
 public class WalletListActivity extends AppCompatActivity implements WalletListener {
 
-    private List<Wallet> wallets = new ArrayList<>();
-
+    private Adapter walletsAdapter;
     private RecyclerView walletsView;
-    private RecyclerView.Adapter walletsAdapter;
     private RecyclerView.LayoutManager walletsLayoutManager;
 
 
@@ -53,7 +53,7 @@ public class WalletListActivity extends AppCompatActivity implements WalletListe
         walletsLayoutManager = new LinearLayoutManager(this);
         walletsView.setLayoutManager(walletsLayoutManager);
 
-        walletsAdapter = new Adapter(wallets, (wallet) -> TransferListActivity.start(this, wallet));
+        walletsAdapter = new Adapter((wallet) -> TransferListActivity.start(this, wallet));
         walletsView.setAdapter(walletsAdapter);
     }
 
@@ -63,9 +63,7 @@ public class WalletListActivity extends AppCompatActivity implements WalletListe
 
         CoreCryptoApplication.getListener().addListener(this);
 
-        wallets.clear();
-        wallets.addAll(CoreCryptoApplication.getSystem().getWallets());
-        walletsAdapter.notifyDataSetChanged();
+        walletsAdapter.set(new ArrayList<>(CoreCryptoApplication.getSystem().getWallets()));
     }
 
     @Override
@@ -81,10 +79,7 @@ public class WalletListActivity extends AppCompatActivity implements WalletListe
             event.accept(new WalletEventVisitor<Void>() {
                 @Override
                 public Void visit(WalletBalanceUpdatedEvent event) {
-                    int index = wallets.indexOf(wallet);
-                    if (index != -1) {
-                        walletsAdapter.notifyItemChanged(index);
-                    }
+                    walletsAdapter.changed(wallet);
                     return null;
                 }
 
@@ -95,22 +90,13 @@ public class WalletListActivity extends AppCompatActivity implements WalletListe
 
                 @Override
                 public Void visit(WalletCreatedEvent event) {
-                    int index = wallets.indexOf(wallet);
-                    if (index == -1) {
-                        index = wallets.size();
-                        wallets.add(index, wallet);
-                        walletsAdapter.notifyItemInserted(index);
-                    }
+                    walletsAdapter.add(wallet);
                     return null;
                 }
 
                 @Override
                 public Void visit(WalletDeletedEvent event) {
-                    int index = wallets.indexOf(wallet);
-                    if (index != -1) {
-                        wallets.remove(index);
-                        walletsAdapter.notifyItemRemoved(index);
-                    }
+                    walletsAdapter.remove(wallet);
                     return null;
                 }
 
@@ -148,12 +134,27 @@ public class WalletListActivity extends AppCompatActivity implements WalletListe
 
     private static class Adapter extends RecyclerView.Adapter<ViewHolder> {
 
-        private List<Wallet> wallets;
-        private OnItemClickListener<Wallet> listener;
+        private final OnItemClickListener<Wallet> listener;
+        private final SortedList<Wallet> wallets;
 
-        Adapter(List<Wallet> wallets, OnItemClickListener<Wallet> listener) {
-            this.wallets = wallets;
+        Adapter(OnItemClickListener<Wallet> listener) {
             this.listener = listener;
+            this.wallets = new SortedList<>(Wallet.class, new SortedListAdapterCallback<Wallet>(this) {
+                @Override
+                public int compare(Wallet w1, Wallet w2) {
+                    return w1.getName().compareTo(w2.getName());
+                }
+
+                @Override
+                public boolean areContentsTheSame(Wallet w1, Wallet w2) {
+                    return w1.equals(w2);
+                }
+
+                @Override
+                public boolean areItemsTheSame(Wallet w1, Wallet w2) {
+                    return w1.equals(w2);
+                }
+            });
         }
 
         @NonNull
@@ -180,14 +181,33 @@ public class WalletListActivity extends AppCompatActivity implements WalletListe
         public int getItemCount() {
             return wallets.size();
         }
+
+        private void set(List<Wallet> newWallets) {
+            wallets.replaceAll(newWallets);
+        }
+
+        private void add(Wallet wallet) {
+            wallets.add(wallet);
+        }
+
+        private void remove(Wallet wallet) {
+            wallets.remove(wallet);
+        }
+
+        private void changed(Wallet wallet) {
+            int index = wallets.indexOf(wallet);
+            if (index != -1) {
+                wallets.updateItemAt(index, wallet);
+            }
+        }
     }
 
     private static class ViewHolder extends RecyclerView.ViewHolder {
 
-        public TextView currencyView;
-        public TextView symbolView;
+        private TextView currencyView;
+        private TextView symbolView;
 
-        public ViewHolder(@NonNull View view) {
+        private ViewHolder(@NonNull View view) {
             super(view);
 
             currencyView = view.findViewById(R.id.item_currency);

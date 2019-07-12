@@ -6,9 +6,11 @@ import android.support.annotation.NonNull;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.util.SortedList;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.util.SortedListAdapterCallback;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -86,13 +88,11 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
     }
 
     private Wallet wallet;
-    private List<Transfer> transfers = new ArrayList<>();
 
     private Button createView;
+    private Adapter transferAdapter;
     private RecyclerView transfersView;
-    private RecyclerView.Adapter transferAdapter;
     private RecyclerView.LayoutManager transferLayoutManager;
-    private Comparator<Transfer> transferComparator;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -107,8 +107,6 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
             return;
         }
 
-        transferComparator = DEFAULT_COMPARATOR;
-
         createView = findViewById(R.id.create_view);
         createView.setOnClickListener(v -> TransferCreateActivity.start(TransferListActivity.this, wallet));
 
@@ -118,7 +116,7 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
         transferLayoutManager = new LinearLayoutManager(this);
         transfersView.setLayoutManager(transferLayoutManager);
 
-        transferAdapter = new Adapter(transfers, (transfer) -> TransferDetailsActivity.start(this, wallet, transfer));
+        transferAdapter = new Adapter(DEFAULT_COMPARATOR, (transfer) -> TransferDetailsActivity.start(this, wallet, transfer));
         transfersView.setAdapter(transferAdapter);
 
         ActionBar actionBar = getSupportActionBar();
@@ -131,9 +129,7 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
 
         CoreCryptoApplication.getListener().addListener(this);
 
-        transfers.clear();
-        transfers.addAll(getTransfers());
-        transferAdapter.notifyDataSetChanged();
+        transferAdapter.set(new ArrayList<>(wallet.getTransfers()));
     }
 
     @Override
@@ -146,52 +142,28 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
     @Override
     public void handleTransferEvent(System system, WalletManager manager, Wallet wallet, Transfer transfer, TranferEvent event) {
         runOnUiThread(() -> {
-            if (manager.equals(this.wallet.getWalletManager()) && wallet.equals(this.wallet)) {
+            if (wallet.equals(this.wallet)) {
                 event.accept(new TransferEventVisitor<Void>() {
                     @Override
                     public Void visit(TransferChangedEvent event) {
-                        List<? extends Transfer> changedTransfers = getTransfers();
-                        int changedIndex = Collections.binarySearch(changedTransfers, transfer, transferComparator);
-                        int transfersIndex = Collections.binarySearch(transfers, transfer, transferComparator);
-                        if (changedIndex != transfersIndex) {
-                            transfers.clear();
-                            transfers.addAll(changedTransfers);
-                            transferAdapter.notifyDataSetChanged();
-                        } else if (transfersIndex >= 0) {
-                            transferAdapter.notifyItemChanged(transfersIndex);
-                        }
+                        transferAdapter.changed(transfer);
                         return null;
                     }
 
                     @Override
                     public Void visit(TransferCreatedEvent event) {
-                        int index = Collections.binarySearch(transfers, transfer, transferComparator);
-                        if (index < 0) {
-                            index = Math.abs(index) - 1;
-                            transfers.add(index, transfer);
-                            transferAdapter.notifyItemInserted(index);
-                        }
+                        transferAdapter.add(transfer);
                         return null;
                     }
 
                     @Override
                     public Void visit(TransferDeletedEvent event) {
-                        int index = Collections.binarySearch(transfers, transfer, transferComparator);
-                        if (index >= 0) {
-                            transfers.remove(index);
-                            transferAdapter.notifyItemRemoved(index);
-                        }
+                        transferAdapter.remove(transfer);
                         return null;
                     }
                 });
             }
         });
-    }
-
-    private List<? extends Transfer> getTransfers() {
-        List<? extends Transfer> walletTransfers = wallet.getTransfers();
-        Collections.sort(walletTransfers, transferComparator);
-        return walletTransfers;
     }
 
     private interface OnItemClickListener<T> {
@@ -200,12 +172,27 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
 
     private static class Adapter extends RecyclerView.Adapter<ViewHolder> {
 
-        private List<Transfer> transfers;
-        private OnItemClickListener<Transfer> listener;
+        private final OnItemClickListener<Transfer> listener;
+        private final SortedList<Transfer> transfers;
 
-        Adapter(List<Transfer> transfers, OnItemClickListener<Transfer> listener) {
-            this.transfers = transfers;
+        Adapter(Comparator<Transfer> comparator, OnItemClickListener<Transfer> listener) {
             this.listener = listener;
+            this.transfers = new SortedList<>(Transfer.class, new SortedListAdapterCallback<Transfer>(this) {
+                @Override
+                public int compare(Transfer t1, Transfer t2) {
+                    return comparator.compare(t1, t2);
+                }
+
+                @Override
+                public boolean areContentsTheSame(Transfer t1, Transfer t2) {
+                    return t1.equals(t2);
+                }
+
+                @Override
+                public boolean areItemsTheSame(Transfer t1, Transfer t2) {
+                    return t1.equals(t2);
+                }
+            });
         }
 
         @NonNull
@@ -242,17 +229,36 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
         public int getItemCount() {
             return transfers.size();
         }
+
+        private void set(List<Transfer> newTransfers) {
+            transfers.replaceAll(newTransfers);
+        }
+
+        private void add(Transfer transfer) {
+            transfers.add(transfer);
+        }
+
+        private void remove(Transfer transfer) {
+            transfers.remove(transfer);
+        }
+
+        private void changed(Transfer transfer) {
+            int index = transfers.indexOf(transfer);
+            if (index != -1) {
+                transfers.updateItemAt(index, transfer);
+            }
+        }
     }
 
     private static class ViewHolder extends RecyclerView.ViewHolder {
 
-        public TextView dateView;
-        public TextView amountView;
-        public TextView addressView;
-        public TextView feeView;
-        public TextView stateView;
+        private TextView dateView;
+        private TextView amountView;
+        private TextView addressView;
+        private TextView feeView;
+        private TextView stateView;
 
-        public ViewHolder(@NonNull View view) {
+        private ViewHolder(@NonNull View view) {
             super(view);
 
             dateView = view.findViewById(R.id.item_date);
