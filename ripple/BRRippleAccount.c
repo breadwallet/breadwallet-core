@@ -319,6 +319,6 @@ rippleAddressEqual (BRRippleAddress a1, BRRippleAddress a2) {
 
 extern char *
 rippleAddressAsString (BRRippleAddress address) {
-    return encodeHexCreate (NULL, address.bytes, 20);
+    return createRippleAddressString(address, 1);
 }
 

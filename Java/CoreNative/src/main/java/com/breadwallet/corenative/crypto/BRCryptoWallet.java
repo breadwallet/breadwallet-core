@@ -111,10 +111,9 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
     }
 
     @Override
-    public CoreBRCryptoAmount estimateFee(CoreBRCryptoAmount amount, CoreBRCryptoFeeBasis feeBasis,
-                                          CoreBRCryptoUnit unit) {
+    public CoreBRCryptoAmount estimateFee(CoreBRCryptoAmount amount, CoreBRCryptoFeeBasis feeBasis) {
         return new OwnedBRCryptoAmount(CryptoLibrary.INSTANCE.cryptoWalletEstimateFee(this, amount.asBRCryptoAmount(),
-                feeBasis.asBRCryptoFeeBasis(), unit.asBRCryptoUnit()));
+                feeBasis.asBRCryptoFeeBasis()));
     }
 
     @Override

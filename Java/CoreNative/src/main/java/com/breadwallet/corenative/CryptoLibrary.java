@@ -160,7 +160,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoFeeBasis cryptoWalletGetDefaultFeeBasis(BRCryptoWallet wallet);
     void cryptoWalletSetDefaultFeeBasis(BRCryptoWallet wallet, BRCryptoFeeBasis feeBasis);
     BRCryptoTransfer cryptoWalletCreateTransfer(BRCryptoWallet wallet, BRCryptoAddress target, BRCryptoAmount amount, BRCryptoFeeBasis feeBasis);
-    BRCryptoAmount cryptoWalletEstimateFee(BRCryptoWallet wallet, BRCryptoAmount amount, BRCryptoFeeBasis feeBasis, BRCryptoUnit feeUnit);
+    BRCryptoAmount cryptoWalletEstimateFee(BRCryptoWallet wallet, BRCryptoAmount amount, BRCryptoFeeBasis feeBasis);
     int cryptoWalletEqual(BRCryptoWallet w1, BRCryptoWallet w2);
     BRCryptoWallet cryptoWalletTake(BRCryptoWallet obj);
     void cryptoWalletGive(BRCryptoWallet obj);

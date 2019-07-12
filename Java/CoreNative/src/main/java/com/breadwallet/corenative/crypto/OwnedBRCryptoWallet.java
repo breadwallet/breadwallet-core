@@ -97,8 +97,8 @@ class OwnedBRCryptoWallet implements CoreBRCryptoWallet {
     }
 
     @Override
-    public CoreBRCryptoAmount estimateFee(CoreBRCryptoAmount amount, CoreBRCryptoFeeBasis feeBasis, CoreBRCryptoUnit unit) {
-        return core.estimateFee(amount, feeBasis, unit);
+    public CoreBRCryptoAmount estimateFee(CoreBRCryptoAmount amount, CoreBRCryptoFeeBasis feeBasis) {
+        return core.estimateFee(amount, feeBasis);
     }
 
     @Override
