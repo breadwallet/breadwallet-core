@@ -72,7 +72,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     public Amount estimateFee(com.breadwallet.crypto.Amount amount, com.breadwallet.crypto.TransferFeeBasis feeBasis) {
         CoreBRCryptoAmount coreAmount = Amount.from(amount).getCoreBRCryptoAmount();
         CoreBRCryptoFeeBasis coreFeeBasis = TransferFeeBasis.from(feeBasis).getCoreBRFeeBasis();
-        CoreBRCryptoUnit coreUnit = defaultUnit.getCoreBRCryptoUnit();
+        CoreBRCryptoUnit coreUnit = feeUnit.getCoreBRCryptoUnit();
         return Amount.create(core.estimateFee(coreAmount, coreFeeBasis, coreUnit), feeUnit);
     }
 

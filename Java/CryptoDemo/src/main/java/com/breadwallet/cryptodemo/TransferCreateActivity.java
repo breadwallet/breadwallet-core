@@ -7,6 +7,8 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.Editable;
+import android.text.Html;
+import android.text.Spanned;
 import android.text.TextWatcher;
 import android.widget.Button;
 import android.widget.EditText;
@@ -15,10 +17,9 @@ import android.widget.TextView;
 
 import com.breadwallet.crypto.Address;
 import com.breadwallet.crypto.Amount;
-import com.breadwallet.crypto.Currency;
 import com.breadwallet.crypto.Network;
 import com.breadwallet.crypto.Transfer;
-import com.breadwallet.crypto.TransferFeeBasis;
+import com.breadwallet.crypto.Unit;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
 import com.google.common.base.Optional;
@@ -50,12 +51,16 @@ public class TransferCreateActivity extends AppCompatActivity {
     private Network network;
     private WalletManager walletManager;
     private Wallet wallet;
+    private Unit baseUnit;
+
+    private double maxValue;
 
     private EditText receiverView;
     private SeekBar amountView;
     private TextView amountMinView;
     private TextView amountMaxView;
     private TextView amountValueView;
+    private TextView feeView;
     private Button submitView;
 
     @Override
@@ -72,53 +77,53 @@ public class TransferCreateActivity extends AppCompatActivity {
         }
         walletManager = wallet.getWalletManager();
         network = walletManager.getNetwork();
+        baseUnit = wallet.getBaseUnit();
+        maxValue = wallet.getBalance().doubleAmount(baseUnit).or(MAX_VALUE);
 
         receiverView = findViewById(R.id.receiver_view);
         amountView = findViewById(R.id.amount_view);
         amountMinView = findViewById(R.id.amount_min_view);
         amountMaxView = findViewById(R.id.amount_max_view);
         amountValueView = findViewById(R.id.amount_value_view);
+        feeView = findViewById(R.id.fee_view);
         submitView = findViewById(R.id.submit_view);
 
-        amountMinView.setText(String.valueOf(MIN_VALUE));
-        amountMaxView.setText(String.valueOf(MAX_VALUE));
+        amountMinView.setText(Amount.create(MIN_VALUE, baseUnit).transform(Amount::toString).or(String.valueOf(MIN_VALUE)));
+        amountMaxView.setText(Amount.create(maxValue, baseUnit).transform(Amount::toString).or(String.valueOf(maxValue)));
 
+        int amountViewProgress = 50;
+        amountView.setProgress(amountViewProgress);
         amountView.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                Optional<Amount> amount = Amount.create(calculateValue(progress), wallet.getBaseUnit());
-                amountValueView.setText(amount.transform((a) -> a.toString()).or("<nan>"));
+                updateViewOnChange(progress);
             }
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-
             }
         });
-        amountView.setProgress(50);
 
+        CharSequence receiverViewText = network.isMainnet() ? "" : wallet.getTarget().toString();
+        receiverView.setText(receiverViewText);
         receiverView.addTextChangedListener(new TextWatcher() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            public void afterTextChanged(Editable s) {
+                updateViewOnChange(s);
+            }
 
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
             }
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                submitView.setEnabled(s.length() != 0);
             }
         });
-        receiverView.setText(network.isMainnet() ? "" : wallet.getTarget().toString());
 
         submitView.setOnClickListener(v -> {
             String addressStr = receiverView.getText().toString();
@@ -128,7 +133,7 @@ public class TransferCreateActivity extends AppCompatActivity {
                 return;
             }
 
-            Optional<Amount> amount = Amount.create(calculateValue(amountView.getProgress()), wallet.getBaseUnit());
+            Optional<Amount> amount = Amount.create(calculateValue(amountView.getProgress()), baseUnit);
             if (!amount.isPresent()) {
                 showError("Invalid amount");
                 return;
@@ -136,64 +141,57 @@ public class TransferCreateActivity extends AppCompatActivity {
 
             showConfirmTransfer(target.get(), amount.get());
         });
+
+        updateView(amountViewProgress, receiverViewText);;
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
+    private void updateViewOnChange(Editable receiver) {
+        updateView(amountView.getProgress(), receiver);
     }
 
-    private double calculateValue(int percentage) {
-        return ((MAX_VALUE - MIN_VALUE) * percentage / 100) + MIN_VALUE;
+    private void updateViewOnChange(int progress) {
+        updateView(progress, receiverView.getText());
     }
 
-    private boolean isEthCurrency() {
-        return wallet.getCurrency().getCode().equals(Currency.CODE_AS_ETH);
-    }
-
-    private boolean isBitCurrency() {
-        return wallet.getCurrency().getCode().equals(Currency.CODE_AS_BTC) ||
-                wallet.getCurrency().getCode().equals(Currency.CODE_AS_BCH);
-    }
-
-    private boolean isTokCurrency() {
-        return wallet.getCurrency().getCode().equals(Currency.CODE_AS_ETH);
-    }
-
-    private TransferFeeBasis getFeeBasis() {
-        if (isEthCurrency()) {
-            // TODO: Implement this!
-            throw new UnsupportedOperationException("Unsupported currency");
+    private void updateView(int progress, CharSequence receiver) {
+        double value = calculateValue(progress);
+        Optional<Amount> amount = Amount.create(value, baseUnit);
+        if (!amount.isPresent()) {
+            submitView.setEnabled(false);
+            amountValueView.setText("<nan>");
+            feeView.setText("");
+        } else if (value == 0) {
+            submitView.setEnabled(false);
+            amountValueView.setText(amount.get().toString());
+            feeView.setText("");
         } else {
-            return wallet.getDefaultFeeBasis();
+            submitView.setEnabled(receiver.length() != 0);
+            amountValueView.setText(amount.get().toString());
+            feeView.setText(wallet.estimateFee(amount.get()).toString());
         }
     }
 
-    private void showConfirmTransfer(Address target, Amount amount) {
-        new AlertDialog.Builder(this)
-                .setTitle("Confirmation")
-                .setMessage(String.format("Send %s to %s?", amount, target.toString()))
-                .setNegativeButton("Cancel", (dialog, which) -> {})
-                .setPositiveButton("Continue", (dialog, which) -> {
-                    Optional<? extends Transfer> transfer = wallet.createTransfer(target, amount, getFeeBasis());
-                    if (!transfer.isPresent()) {
-                        showError("Balance too low?");
-                        return;
-                    }
-
-                    showConfirmSubmission(transfer.get());
-                })
-                .show();
+    private double calculateValue(int percentage) {
+        return ((maxValue - MIN_VALUE) * percentage / 100) + MIN_VALUE;
     }
 
-    private void showConfirmSubmission(Transfer transfer) {
+    private void showConfirmTransfer(Address target, Amount amount) {
+        String escapedTarget = Html.escapeHtml(target.toString());
+        String escapedAmount = Html.escapeHtml(amount.toString());
+        Spanned message = Html.fromHtml(String.format("Send <b>%s</b> to <b>%s</b>?", escapedAmount, escapedTarget));
+
         new AlertDialog.Builder(this)
                 .setTitle("Confirmation")
-                .setMessage(String.format("Proceed with %s as fee?", transfer.getFee()))
+                .setMessage(message)
                 .setNegativeButton("Cancel", (dialog, which) -> {})
                 .setPositiveButton("Continue", (dialog, which) -> {
-                    walletManager.submit(transfer, CoreCryptoApplication.getPaperKey());
-                    finish();
+                    Optional<? extends Transfer> transfer = wallet.createTransfer(target, amount);
+                    if (!transfer.isPresent()) {
+                        showError("Balance too low?");
+                    } else {
+                        walletManager.submit(transfer.get(), CoreCryptoApplication.getPaperKey());
+                        finish();
+                    }
                 })
                 .show();
     }

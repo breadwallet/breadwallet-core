@@ -199,7 +199,7 @@ final class Network implements com.breadwallet.crypto.Network {
     public List<WalletManagerMode> getSupportedModes() {
         switch (type) {
             case BRCryptoBlockChainType.BLOCK_CHAIN_TYPE_BTC: {
-                return Arrays.asList(WalletManagerMode.P2P_ONLY, WalletManagerMode.API_WITH_P2P_SUBMIT);
+                return Arrays.asList(WalletManagerMode.P2P_ONLY, WalletManagerMode.API_WITH_P2P_SUBMIT, WalletManagerMode.API_ONLY);
             }
             case BRCryptoBlockChainType.BLOCK_CHAIN_TYPE_ETH: {
                 return Arrays.asList(WalletManagerMode.API_ONLY, WalletManagerMode.API_WITH_P2P_SUBMIT);

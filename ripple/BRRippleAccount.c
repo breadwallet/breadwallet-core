@@ -16,6 +16,7 @@
 #include "support/BRKey.h"
 #include "support/BRBIP32Sequence.h"
 #include "support/BRBIP39WordsEn.h"
+#include "ethereum/util/BRUtilHex.h"
 #include "BRRipple.h"
 #include "BRRippleBase.h"
 #include "BRRippleAccount.h"
@@ -315,3 +316,9 @@ extern int // 1 if equal
 rippleAddressEqual (BRRippleAddress a1, BRRippleAddress a2) {
     return 0 == memcmp (a1.bytes, a2.bytes, 20);
 }
+
+extern char *
+rippleAddressAsString (BRRippleAddress address) {
+    return encodeHexCreate (NULL, address.bytes, 20);
+}
+

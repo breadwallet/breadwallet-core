@@ -37,6 +37,7 @@ extern "C" {
     typedef void
     (*BRGenericGetTransactionsCallback) (BRGenericClientContext context,
                                          BRGenericWalletManager manager,
+                                         const char *address,
                                          uint64_t begBlockNumber,
                                          uint64_t endBlockNumber,
                                          int rid);

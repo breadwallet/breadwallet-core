@@ -55,7 +55,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
 
 
         let walletId = UUID (uuidString: "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96")?.uuidString ?? "empty-wallet-id"
-        let timestamp = dateFormatter.date (from: "2018-07-01")! // "loan ..."
+        let timestamp = dateFormatter.date (from: "2017-10-01")! // "loan ..."
 
         guard let account = Account.createFrom (phrase: paperKey, timestamp: timestamp, uids: walletId) else {
             precondition(false, "No account")
@@ -105,7 +105,18 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         let subscription = BlockChainDB.Subscription (id: subscriptionId, endpoint: nil);
         self.system.subscribe (using: subscription)
 
-        self.system.start (networksNeeded: [/* "bitcoin-mainnet"], "ethereum-mainnet"*/ "ripple-mainnet"])
+        var networksNeeded: [String] = []
+
+        #if TESTNET
+        networksNeeded += ["bitcoin-testnet", "ripple-testnet"] // ...
+        #endif
+
+        #if MAINNET
+        networksNeeded += ["bitcoin-mainnet"] // ...
+        #endif
+
+        print ("APP: Networks          : \(networksNeeded)")
+        self.system.start (networksNeeded: networksNeeded) //, */"ethereum-mainnet"])
 
         return true
     }

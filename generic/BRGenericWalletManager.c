@@ -229,6 +229,8 @@ gwmPeriodicDispatcher (BREventHandler handler,
 
     // 3) we'll update transactions if there are more blocks to examine
     if (gwm->brdSync.begBlockNumber != gwm->brdSync.endBlockNumber) {
+        BRGenericAddress addressGen = gwmGetAccountAddress(gwm);
+        char *address = gwmAddressAsString (gwm, addressGen);
 
         // 3a) Save the current requestId
         gwm->brdSync.rid = gwm->requestId;
@@ -241,9 +243,13 @@ gwmPeriodicDispatcher (BREventHandler handler,
         // bwmAnnounceTransaction()  (for each one or with all of them).
         gwm->client.getTransactions (gwm->client.context,
                                      gwm,
+                                     address,
                                      gwm->brdSync.begBlockNumber,
                                      gwm->brdSync.endBlockNumber,
                                      gwm->requestId++);
+
+        // TODO: Handle address
+        // free (address);
 
         // 3c) Mark as not completed
         gwm->brdSync.completed = 0;

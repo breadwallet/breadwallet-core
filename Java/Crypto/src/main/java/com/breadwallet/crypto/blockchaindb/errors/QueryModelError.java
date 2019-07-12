@@ -7,6 +7,7 @@
  */
 package com.breadwallet.crypto.blockchaindb.errors;
 
+// Could not convert JSON to model
 public class QueryModelError extends QueryError {
 
     public QueryModelError(String message) {

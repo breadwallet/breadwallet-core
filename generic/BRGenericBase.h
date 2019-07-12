@@ -39,7 +39,7 @@ extern "C" {
     }
 
     static inline char *
-    generisHashAsString (BRGenericHash gen) {
+    genericHashAsString (BRGenericHash gen) {
         return encodeHexCreate (NULL, gen.value.u8, sizeof (gen.value.u8));
     }
 

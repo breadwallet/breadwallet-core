@@ -11,6 +11,7 @@
 
 
 #include "BRCryptoHash.h"
+#include "support/BRInt.h"
 #include "ethereum/util/BRUtilHex.h"
 #include "generic/BRGeneric.h"
 
@@ -81,14 +82,16 @@ cryptoHashEqual (BRCryptoHash h1, BRCryptoHash h2) {
 extern char *
 cryptoHashString (BRCryptoHash hash) {
     switch (hash->type) {
-        case BLOCK_CHAIN_TYPE_BTC:
-            return encodeHexCreate(NULL, hash->u.btc.u8, sizeof(hash->u.btc.u8));
-
-        case BLOCK_CHAIN_TYPE_ETH:
+        case BLOCK_CHAIN_TYPE_BTC: {
+            UInt256 reversedHash = UInt256Reverse (hash->u.btc);
+            return encodeHexCreate(NULL, reversedHash.u8, sizeof(reversedHash.u8));
+        }
+        case BLOCK_CHAIN_TYPE_ETH: {
             return hashAsString (hash->u.eth);
-
-        case BLOCK_CHAIN_TYPE_GEN:
-            return generisHashAsString(hash->u.gen);
+        }
+        case BLOCK_CHAIN_TYPE_GEN: {
+            return genericHashAsString(hash->u.gen);
+        }
     }
 }
 

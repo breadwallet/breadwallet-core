@@ -7,6 +7,7 @@
  */
 package com.breadwallet.crypto.blockchaindb.errors;
 
+// HTTP submission error
 public class QuerySubmissionError extends QueryError {
 
     public QuerySubmissionError(String message) {

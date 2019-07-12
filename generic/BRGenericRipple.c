@@ -38,8 +38,8 @@ genericRippleAccountGetAddress (void *account) {
 // Address
 static char *
 genericRippleAddressAsString (BRGenericAddress address) {
-    // BRRippleAddress *ripple = address;
-    return "rippleAddress";
+    BRRippleAddress *ripple = address;
+    return rippleAddressAsString(*ripple);
 }
 
 static int

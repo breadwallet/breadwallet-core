@@ -7,6 +7,7 @@
  */
 package com.breadwallet.crypto.blockchaindb.errors;
 
+// HTTP URL build failed
 public class QueryUrlError extends QueryError {
 
     public QueryUrlError(String message) {

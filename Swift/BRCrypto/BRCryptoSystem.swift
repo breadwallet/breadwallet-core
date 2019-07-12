@@ -171,6 +171,14 @@ public final class System {
             return
         }
 
+        #if MAINNET
+        var mainnet = true
+        #endif
+
+        #if TESTNET
+        var mainnet = false
+        #endif
+
         func currencyDenominationToBaseUnit (currency: Currency, model: BlockChainDB.Model.CurrencyDenomination) -> Unit {
             let uids = "\(currency.name)-\(model.code)"
             return Unit (currency: currency, uids: uids, name: model.name, symbol: model.symbol)
@@ -182,7 +190,7 @@ public final class System {
         }
 
         // query blockchains
-        self.query.getBlockchains { (blockchainResult: Result<[BlockChainDB.Model.Blockchain],BlockChainDB.QueryError>) in
+        self.query.getBlockchains (mainnet: mainnet) { (blockchainResult: Result<[BlockChainDB.Model.Blockchain],BlockChainDB.QueryError>) in
             let blockChainModels = try! blockchainResult
                 // On success, always merge `defaultBlockchains`
                 .map { $0.unionOf (BlockChainDB.Model.defaultBlockchains) { $0.id } }

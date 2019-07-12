@@ -136,6 +136,9 @@ cwmSubmitTransactionAsBTC (BRWalletManagerClientContext context,
     callbackState->u.btcSubmit.transaction = transaction;
     callbackState->rid = rid;
 
+    UInt256 txHash = UInt256Reverse (transaction->txHash);
+    char *hashAsHex = encodeHexCreate (NULL, txHash.u8, sizeof(txHash.u8));
+
     size_t txLength = BRTransactionSerialize (transaction, NULL, 0);
     uint8_t *tx = calloc (txLength, sizeof(uint8_t));
     BRTransactionSerialize(transaction, tx, txLength);
@@ -144,9 +147,11 @@ cwmSubmitTransactionAsBTC (BRWalletManagerClientContext context,
                                            cryptoWalletManagerTake (cwm),
                                            callbackState,
                                            tx,
-                                           txLength);
+                                           txLength,
+                                           hashAsHex);
 
     free (tx);
+    free (hashAsHex);
     cryptoWalletManagerGive (cwm);
 }
 
@@ -1407,6 +1412,7 @@ cwmGetBlockNumberAsGEN (BRGenericClientContext context,
 static void
 cwmGetTransactionsAsGEN (BRGenericClientContext context,
                          BRGenericWalletManager manager,
+                         const char *address,
                          uint64_t begBlockNumber,
                          uint64_t endBlockNumber,
                          int rid) {
@@ -1416,7 +1422,7 @@ cwmGetTransactionsAsGEN (BRGenericClientContext context,
     callbackState->type = CWM_CALLBACK_TYPE_GEN_GET_TRANSACTIONS;
     callbackState->rid = rid;
 
-    cwm->client.gen.funcGetTransactions (cwm->client.context, cwm, callbackState, begBlockNumber, endBlockNumber);
+    cwm->client.gen.funcGetTransactions (cwm->client.context, cwm, callbackState, address, begBlockNumber, endBlockNumber);
 
     cryptoWalletManagerGive (cwm);
 }
@@ -1435,13 +1441,19 @@ cwmSubmitTransactionAsGEN (BRGenericClientContext context,
     callbackState->u.genWithTransaction.tid = transfer;
     callbackState->rid = rid;
 
+    BRGenericHash hash = gwmTransferGetHash (cwm->u.gen, transfer);
+    char *hashAsHex = genericHashAsString (hash);
+//    UInt256 txHash = UInt256Reverse (transaction->txHash);
+//    char *hashAsHex = encodeHexCreate (NULL, txHash.u8, sizeof(txHash.u8));
+
 
     size_t txLength = 0; // BRTransactionSerialize (transaction, NULL, 0);
     uint8_t *tx = calloc (txLength, sizeof(uint8_t));
     // BRTransactionSerialize(transaction, tx, txLength);
 
-    cwm->client.gen.funcSubmitTransaction (cwm->client.context, cwm, callbackState, tx, txLength);
+    cwm->client.gen.funcSubmitTransaction (cwm->client.context, cwm, callbackState, tx, txLength, hashAsHex);
 
+    free (hashAsHex);
     cryptoWalletManagerGive (cwm);
 }
 
@@ -1501,13 +1513,28 @@ extern void
 cwmAnnounceGetBlockNumberSuccessAsInteger (OwnershipKept BRCryptoWalletManager cwm,
                                            OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
                                            uint64_t blockNumber) {
-    assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_BTC_GET_BLOCK_NUMBER == callbackState->type);
+    assert (cwm); assert (callbackState);
+    assert (CWM_CALLBACK_TYPE_BTC_GET_BLOCK_NUMBER == callbackState->type ||
+            CWM_CALLBACK_TYPE_GEN_GET_BLOCK_NUMBER == callbackState->type);
+
     cwm = cryptoWalletManagerTake (cwm);
 
-    bwmAnnounceBlockNumber (cwm->u.btc,
-                            callbackState->rid,
-                            blockNumber);
+    switch (callbackState->type) {
+        case CWM_CALLBACK_TYPE_BTC_GET_BLOCK_NUMBER:
+            bwmAnnounceBlockNumber (cwm->u.btc,
+                                    callbackState->rid,
+                                    blockNumber);
+            break;
 
+        case CWM_CALLBACK_TYPE_GEN_GET_BLOCK_NUMBER:
+            gwmAnnounceBlockNumber (cwm->u.gen,
+                                    callbackState->rid,
+                                    blockNumber);
+            break;
+
+        default:
+            break;
+    }
     cryptoWalletManagerGive (cwm);
     free (callbackState);
 }
