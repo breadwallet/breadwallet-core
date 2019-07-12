@@ -8,49 +8,56 @@
 package com.breadwallet.corecrypto;
 
 import com.breadwallet.corenative.crypto.CoreBRCryptoAccount;
+import com.google.common.base.Optional;
 
 import java.util.Date;
+import java.util.List;
+import java.lang.String;
 
 /* package */
 final class Account implements com.breadwallet.crypto.Account {
 
-    /* package */
-    static byte[] deriveSeed(byte[] phraseUtf8) {
-        return CoreBRCryptoAccount.deriveSeed(phraseUtf8);
-    }
-
     /**
-     * Create an account using a BIP32 phrase.
+     * Recover an account from a BIP-39 'paper key'.
      *
      * @apiNote The caller should take appropriate security measures, like enclosing this method's call in a
      * try-finally block that wipes the phraseUtf8 value, to ensure that it is purged from memory
      * upon completion.
      *
-     * @param phraseUtf8 The UTF-8 NFKD normalized BIP32 phrase
+     * @param phraseUtf8 The UTF-8 NFKD normalized BIP-39 paper key
      * @param timestamp The timestamp of when this account was first created
      * @param uids The unique identifier of this account
      */
-    /* package */
     static Account createFromPhrase(byte[] phraseUtf8, Date timestamp, String uids) {
-        // TODO(fix): Move uids down to C layer
         return new Account(CoreBRCryptoAccount.createFromPhrase(phraseUtf8, timestamp));
     }
 
     /**
-     * Create an account using a BIP32 seed.
+     * Create an account based on an account serialization.
      *
-     * @apiNote The caller should take appropriate security measures, like enclosing this method's call in a
-     * try-finally block that wipes the seed value, to ensure that it is purged from memory
-     * upon completion.
-     *
-     * @param seed The 512-bit BIP32 seed value
-     * @param timestamp The timestamp of when this account was first created
+     * @param serialization The result of a prior call to {@link Account#serialize()}
      * @param uids The unique identifier of this account
+     *
+     * @return The serialization's corresponding account or {@link Optional#absent()} if the serialization is invalid.
+     *         If the serialization is invalid then the account <b>must be recreated</b> from the `phrase`
+     *         (aka 'Paper Key').  A serialization will be invald when the serialization format changes
+     *         which will <b>always occur</b> when a new blockchain is added.  For example, when XRP is added
+     *         the XRP public key must be serialized; the old serialization w/o the XRP public key will
+     *         be invalid and the `phrase` is <b>required</b> in order to produce the XRP public key.
      */
-    /* package */
-    static Account createFromSeed(byte[] seed, Date timestamp, String uids) {
-        // TODO(fix): Move uids down to C layer
-        return new Account(CoreBRCryptoAccount.createFromSeed(seed, timestamp));
+    static Optional<Account> createFromSerialization(byte[] serialization, String uids) {
+        return CoreBRCryptoAccount.createFromSerialization(serialization).transform(Account::new);
+    }
+
+    /**
+     * Generate a BIP-39 'paper Key'
+     *
+     * Use {@link Account#createFromPhrase(byte[], Date, String)} to get the account
+     *
+     * @return The 12 word 'paper key
+     */
+    static String generatePhrase(List<String> words) {
+        return CoreBRCryptoAccount.generatePhrase(words);
     }
 
     static Account create(CoreBRCryptoAccount core) {
@@ -74,6 +81,11 @@ final class Account implements com.breadwallet.crypto.Account {
     @Override
     public Date getTimestamp() {
         return core.getTimestamp();
+    }
+
+    @Override
+    public byte[] serialize() {
+        return core.serialize();
     }
 
     /* package */

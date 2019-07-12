@@ -8,6 +8,9 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.utility.SizeTByReference;
+import com.google.common.primitives.UnsignedInts;
+import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
@@ -27,6 +30,16 @@ public class BRCryptoAccount extends PointerType implements CoreBRCryptoAccount 
     @Override
     public Date getTimestamp() {
         return new Date(TimeUnit.SECONDS.toMillis(CryptoLibrary.INSTANCE.cryptoAccountGetTimestamp(this)));
+    }
+    @Override
+    public byte[] serialize() {
+        SizeTByReference bytesCount = new SizeTByReference();
+        Pointer serializationPtr = CryptoLibrary.INSTANCE.cryptoAccountSerialize(this, bytesCount);
+        try {
+            return serializationPtr.getByteArray(0, UnsignedInts.checkedCast(bytesCount.getValue().longValue()));
+        } finally {
+            Native.free(Pointer.nativeValue(serializationPtr));
+        }
     }
 
     @Override

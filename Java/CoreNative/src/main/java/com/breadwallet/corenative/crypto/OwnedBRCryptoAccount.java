@@ -36,6 +36,11 @@ class OwnedBRCryptoAccount implements CoreBRCryptoAccount {
     }
 
     @Override
+    public byte[] serialize() {
+        return core.serialize();
+    }
+
+    @Override
     public BRCryptoAccount asBRCryptoAccount() {
         return core;
     }
