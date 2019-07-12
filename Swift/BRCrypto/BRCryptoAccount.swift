@@ -66,11 +66,17 @@ public final class Account {
     }
 
     ///
-    /// Generate a BIP-39 'paper Key'.  Use Account.createFrom(paperKey:) to get the account
+    /// Generate a BIP-39 'paper Key'.  Use Account.createFrom(paperKey:) to get the account.  The
+    /// wordList is the locale-specifc BIP-39-defined array of BIP39_WORDLIST_COUNT words.  This
+    /// function has a precondition on the size of the wordList.
     ///
-    /// - Returns: the 12 word 'paper key'
+    /// - Parameter wordList: A local-specific BIP-39-defined array of BIP39_WORDLIST_COUNT words.
     ///
-    public static func generatePhrase (wordList: [String]) -> (String,Date) {
+    /// - Returns: A 12 word 'paper key'
+    ///
+    public static func generatePhrase (wordList: [String]) -> (String,Date)? {
+        precondition (CRYPTO_TRUE == cryptoAccountValidateWordsList (Int32(wordList.count)))
+
         var words = wordList.map { UnsafePointer<Int8> (strdup($0)) }
         defer { words.forEach { free(UnsafeMutablePointer (mutating: $0)) } }
         return (asUTF8String (cryptoAccountGeneratePaperKey (&words)), Date())

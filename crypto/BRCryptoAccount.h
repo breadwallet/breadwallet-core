@@ -52,6 +52,16 @@ extern "C" {
     extern char *
     cryptoAccountGeneratePaperKey (const char **wordList);
 
+    /**
+     * Validate the number of words in the word list.
+     *
+     * @param wordsCount number of words
+     *
+     * @return CRYPTO_TRUE if valid; false otherwise.
+     */
+    extern BRCryptoBoolean
+    cryptoAccountValidateWordsList (int wordsCount);
+
     extern BRCryptoAccount
     cryptoAccountCreate (const char *paperKey, uint64_t timestamp);
 

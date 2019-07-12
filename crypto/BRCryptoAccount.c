@@ -71,6 +71,11 @@ cryptoAccountGeneratePaperKey (const char *words[]) {
     return phrase;
 }
 
+extern BRCryptoBoolean
+cryptoAccountValidateWordsList (int wordsCount) {
+    return AS_CRYPTO_BOOLEAN (wordsCount == BIP39_WORDLIST_COUNT);
+}
+
 static BRCryptoAccount
 cryptoAccountCreateInternal (BRMasterPubKey btc,
                              BRKey eth,
@@ -106,13 +111,20 @@ cryptoAccountCreate (const char *phrase, uint64_t timestamp) {
 extern BRCryptoAccount
 cryptoAccountCreateFromSerialization (const uint8_t *bytes, size_t bytesCount) {
     uint8_t *bytesPtr = (uint8_t *) bytes;
+    uint8_t *bytesEnd = bytesPtr + bytesCount;
+
+#define BYTES_PTR_INCR_AND_CHECK(size) do {\
+  bytesPtr += (size);\
+  if (bytesPtr > bytesEnd) return NULL;\
+} while (0)
+
 
     size_t verSize = sizeof (uint16_t);
     size_t szSize  = sizeof (uint32_t);
 
     // Decode
     uint16_t version = UInt16GetBE (bytesPtr);
-    bytesPtr += verSize;
+    BYTES_PTR_INCR_AND_CHECK(verSize);
 
     if (ACCOUNT_SERIALIZE_DEFAULT_VERSION != version) return NULL;
 
@@ -122,24 +134,24 @@ cryptoAccountCreateFromSerialization (const uint8_t *bytes, size_t bytesCount) {
 
             // Timestamp
             uint64_t timestamp = UInt64GetBE (bytesPtr);
-            bytesPtr += tsSize;
+            BYTES_PTR_INCR_AND_CHECK (tsSize);
 
             // BTC
             size_t mpkSize = UInt32GetBE(bytesPtr);
-            bytesPtr += szSize;
+            BYTES_PTR_INCR_AND_CHECK (szSize);
             (void) mpkSize; // TODO: Use mpkSize
 
             BRMasterPubKey mpk = BRBIP32ParseMasterPubKey ((const char *) bytesPtr);
-            bytesPtr += BRBIP32SerializeMasterPubKey (NULL, 0, mpk);
+            BYTES_PTR_INCR_AND_CHECK (BRBIP32SerializeMasterPubKey (NULL, 0, mpk));
 
             // ETH
             size_t ethSize = UInt32GetBE (bytesPtr);
-            bytesPtr += szSize;
+            BYTES_PTR_INCR_AND_CHECK (szSize);
             assert (65 == ethSize);
 
             BRKey ethPublicKey;
             BRKeySetPubKey(&ethPublicKey, bytesPtr, 65);
-            bytesPtr += 65;
+            BYTES_PTR_INCR_AND_CHECK (65);
 
             return cryptoAccountCreateInternal (mpk, ethPublicKey, timestamp);
         }
@@ -148,6 +160,7 @@ cryptoAccountCreateFromSerialization (const uint8_t *bytes, size_t bytesCount) {
             assert (0);
             break;
     }
+#undef BYTES_PTR_INCR_AND_CHECK
 }
 
 static void
