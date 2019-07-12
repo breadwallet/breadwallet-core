@@ -90,7 +90,7 @@ public class CoreCryptoApplication extends Application {
 
             BlockchainDb query = new BlockchainDb(new OkHttpClient(), BDB_BASE_URL, API_BASE_URL);
             system = System.create(Executors.newSingleThreadExecutor(), listener, account, storageFile.getAbsolutePath(), query);
-            system.initialize(getNetworks(IS_MAINNET));
+            system.initialize(getNetworks(IS_MAINNET), IS_MAINNET);
 
             ProcessLifecycleOwner.get().getLifecycle().addObserver(observer);
         }
