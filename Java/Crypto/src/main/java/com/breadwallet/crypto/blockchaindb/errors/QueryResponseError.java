@@ -7,6 +7,17 @@
  */
 package com.breadwallet.crypto.blockchaindb.errors;
 
-// HTTP submission didn't error but returned no data
-public class QueryNoDataError extends QueryError {
+// HTTP response unexpected (typically not 200/OK)
+public class QueryResponseError extends QueryError {
+
+    private final int statusCode;
+
+    public QueryResponseError(int statusCode) {
+        super("Status code " + statusCode);
+        this.statusCode = statusCode;
+    }
+
+    public int getStatusCode() {
+        return statusCode;
+    }
 }

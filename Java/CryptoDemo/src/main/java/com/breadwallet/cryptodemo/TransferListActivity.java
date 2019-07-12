@@ -32,6 +32,7 @@ import com.google.common.base.Optional;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import javax.annotation.Nullable;
@@ -41,6 +42,31 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
     private static final DateFormat DATE_FORMAT = DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG);
 
     private static final String EXTRA_WALLET_NAME = "com.breadwallet.cryptodemo,TransferListActivity.EXTRA_WALLET_NAME";
+
+    private static final Comparator<Transfer> OLDEST_FIRST_COMPARATOR = (o1, o2) -> {
+        Optional<TransferConfirmation> oc1 = o1.getConfirmation();
+        Optional<TransferConfirmation> oc2 = o2.getConfirmation();
+
+        if (oc1.isPresent() && oc2.isPresent()) {
+            TransferConfirmation c1 = oc1.get();
+            TransferConfirmation c2 = oc2.get();
+
+            int blockCompare = c1.getBlockNumber().compareTo(c2.getBlockNumber());
+            int indexCompare = c1.getTransactionIndex().compareTo(c2.getTransactionIndex());
+            return (blockCompare != 0 ? blockCompare : indexCompare);
+
+        } else if (oc1.isPresent()) {
+            return -1;
+        } else if (oc2.isPresent()) {
+            return 1;
+        } else {
+            return o1.hashCode() - o2.hashCode();
+        }
+    };
+
+    private static final Comparator<Transfer> NEWEST_FIRST_COMPARATOR = Collections.reverseOrder(OLDEST_FIRST_COMPARATOR);
+
+    private static final Comparator<Transfer> DEFAULT_COMPARATOR = NEWEST_FIRST_COMPARATOR;
 
     public static void start(Activity callerActivity, Wallet wallet) {
         Intent intent = new Intent(callerActivity, TransferListActivity.class);
@@ -66,6 +92,7 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
     private RecyclerView transfersView;
     private RecyclerView.Adapter transferAdapter;
     private RecyclerView.LayoutManager transferLayoutManager;
+    private Comparator<Transfer> transferComparator;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,6 +106,8 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
             finish();
             return;
         }
+
+        transferComparator = DEFAULT_COMPARATOR;
 
         createView = findViewById(R.id.create_view);
         createView.setOnClickListener(v -> TransferCreateActivity.start(TransferListActivity.this, wallet));
@@ -121,18 +150,24 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
                 event.accept(new TransferEventVisitor<Void>() {
                     @Override
                     public Void visit(TransferChangedEvent event) {
-                        int index = transfers.indexOf(transfer);
-                        if (index != -1) {
-                            transferAdapter.notifyItemChanged(index);
+                        List<? extends Transfer> changedTransfers = getTransfers();
+                        int changedIndex = Collections.binarySearch(changedTransfers, transfer, transferComparator);
+                        int transfersIndex = Collections.binarySearch(transfers, transfer, transferComparator);
+                        if (changedIndex != transfersIndex) {
+                            transfers.clear();
+                            transfers.addAll(changedTransfers);
+                            transferAdapter.notifyDataSetChanged();
+                        } else if (transfersIndex >= 0) {
+                            transferAdapter.notifyItemChanged(transfersIndex);
                         }
                         return null;
                     }
 
                     @Override
                     public Void visit(TransferCreatedEvent event) {
-                        int index = transfers.indexOf(transfer);
-                        if (index == -1) {
-                            index = transfers.size();
+                        int index = Collections.binarySearch(transfers, transfer, transferComparator);
+                        if (index < 0) {
+                            index = Math.abs(index) - 1;
                             transfers.add(index, transfer);
                             transferAdapter.notifyItemInserted(index);
                         }
@@ -141,8 +176,8 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
 
                     @Override
                     public Void visit(TransferDeletedEvent event) {
-                        int index = transfers.indexOf(transfer);
-                        if (index != -1) {
+                        int index = Collections.binarySearch(transfers, transfer, transferComparator);
+                        if (index >= 0) {
                             transfers.remove(index);
                             transferAdapter.notifyItemRemoved(index);
                         }
@@ -155,26 +190,7 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
 
     private List<? extends Transfer> getTransfers() {
         List<? extends Transfer> walletTransfers = wallet.getTransfers();
-        Collections.sort(walletTransfers, (o1, o2) -> {
-            Optional<TransferConfirmation> oc1 = o1.getConfirmation();
-            Optional<TransferConfirmation> oc2 = o2.getConfirmation();
-
-            if (oc1.isPresent() && oc2.isPresent()) {
-                TransferConfirmation c1 = oc1.get();
-                TransferConfirmation c2 = oc2.get();
-
-                int blockCompare = c1.getBlockNumber().compareTo(c2.getBlockNumber());
-                int indexCompare = c1.getTransactionIndex().compareTo(c2.getTransactionIndex());
-                return (blockCompare != 0 ? blockCompare : indexCompare);
-
-            } else if (oc1.isPresent()) {
-                return -1;
-            } else if (oc2.isPresent()) {
-                return 1;
-            } else {
-                return o1.hashCode() - o2.hashCode();
-            }
-        });
+        Collections.sort(walletTransfers, transferComparator);
         return walletTransfers;
     }
 

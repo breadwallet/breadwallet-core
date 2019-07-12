@@ -7,6 +7,7 @@
  */
 package com.breadwallet.crypto.blockchaindb.errors;
 
+// JSON parse failed, generically
 public class QueryJsonParseError extends QueryError {
 
     public QueryJsonParseError() {

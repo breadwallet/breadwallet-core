@@ -9,7 +9,9 @@ package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
 import com.breadwallet.crypto.blockchaindb.CompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
+import com.breadwallet.crypto.blockchaindb.errors.QueryResponseError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
@@ -54,12 +56,32 @@ public class TransactionApi {
         jsonClient.sendGetWithId("transactions", id, params, Transaction::asTransaction, handler);
     }
 
-    public void createTransaction(String id, String hashAsHex, byte[] tx, CompletionHandler<Transaction> handler) {
+    public void createTransaction(String id, String hashAsHex, byte[] tx, CompletionHandler<Void> handler) {
         JSONObject json = new JSONObject(ImmutableMap.of(
                 "blockchain_id", id,
                 "transaction_id", hashAsHex,
                 "data", BaseEncoding.base64().encode(tx)));
-        jsonClient.sendPost("transactions", ImmutableMultimap.of(), json, Transaction::asTransaction, handler);
+        jsonClient.sendPost("transactions", ImmutableMultimap.of(), json, Optional::of, new CompletionHandler<Object>() {
+            @Override
+            public void handleData(Object data) {
+                handler.handleData(null);
+            }
+
+            @Override
+            public void handleError(QueryError error) {
+                if (error instanceof QueryResponseError) {
+                    int statusCode = ((QueryResponseError) error).getStatusCode();
+                    // Consider 302 or 404 errors as success - owing to an issue with transaction submission
+                    if (statusCode == 302 || statusCode == 404) {
+                        handler.handleData(null);
+                    } else {
+                        handler.handleError(error);
+                    }
+                } else {
+                    handler.handleError(error);
+                }
+            }
+        });
     }
 
     private void getTransactionsOnExecutor(String id, List<String> addresses, UnsignedLong beginBlockNumber,

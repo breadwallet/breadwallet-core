@@ -7,6 +7,7 @@
  */
 package com.breadwallet.crypto.blockchaindb.errors;
 
+// JSON entity expected but not provided - e.g. requested a 'transferId' that doesn't exist
 public class QueryNoEntityError extends QueryError {
 
     private final String id;
