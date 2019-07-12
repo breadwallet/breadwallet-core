@@ -143,7 +143,8 @@ public class WalletListActivity extends AppCompatActivity implements WalletListe
             this.wallets = new SortedList<>(Wallet.class, new SortedListAdapterCallback<Wallet>(this) {
                 @Override
                 public int compare(Wallet w1, Wallet w2) {
-                    return w1.getName().compareTo(w2.getName());
+                    int managerCompare = w1.getWalletManager().getName().compareTo(w2.getWalletManager().getName());
+                    return managerCompare != 0 ? managerCompare : w1.getName().compareTo(w2.getName());
                 }
 
                 @Override
