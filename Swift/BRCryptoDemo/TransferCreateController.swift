@@ -78,6 +78,9 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
                 recvField.text = "Missed currency/network"
             }
         }
+
+        walletAddrButton.setTitle(wallet.source.description, for: .normal)
+
         gasPriceSegmentedController.isEnabled = isEthCurrency && canUseFeeBasis
         gasLimitSegmentedController.isEnabled = isEthCurrency && canUseFeeBasis
         satPerKBSegmentedController.isEnabled = isBitCurrency && canUseFeeBasis
@@ -249,4 +252,8 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
     @IBOutlet var gasLimitSegmentedController: UISegmentedControl!
     @IBOutlet var oneEtherButton: UISegmentedControl!
     @IBOutlet var satPerKBSegmentedController: UISegmentedControl!
+    @IBOutlet var walletAddrButton: UIButton!
+    @IBAction func toPasteBoard(_ sender: UIButton) {
+        UIPasteboard.general.string = sender.titleLabel?.text
+    }
 }

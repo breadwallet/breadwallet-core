@@ -126,11 +126,12 @@ class WalletViewController: UITableViewController, TransferListener, WalletManag
             case .created:
                 precondition(!self.transfers.contains(transfer))
 
-                let index = (nil == transfer.confirmation
-                    ? 0
-                    : self.transfers.firstIndex(where: { !transfer.isBefore($0) }))!
-
-                self.transfers.insert (transfer, at: index)
+                // Simple, but inefficient
+                self.transfers.insert(transfer, at: 0)
+                self.transfers.sort { $0.isBefore ($1) }
+                guard let index = self.transfers.firstIndex (of: transfer) else {
+                    precondition(false); return
+                }
 
                 let path = IndexPath (row: index, section: 0)
                 self.tableView.insertRows (at: [path], with: .automatic)
