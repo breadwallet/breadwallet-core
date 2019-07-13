@@ -37,8 +37,7 @@ class BRCryptoAccountTests: XCTestCase {
         XCTAssertEqual (a1.addressAsETH, address)
         XCTAssertEqual (timestamp, a1.timestamp)
 
-        let serialization = a1.serialize
-        guard let a2 = Account.createFrom (serialization: serialization, uids: walletId)
+        guard let a2 = Account.createFrom (serialization: a1.serialize, uids: walletId)
             else { XCTAssert(false); return }
 
         XCTAssertEqual (a2.addressAsETH, a1.addressAsETH);
