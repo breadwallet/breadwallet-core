@@ -131,7 +131,8 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                              cryptoNetworkAsBTC (network),
                                              (uint32_t) cryptoAccountGetTimestamp(account),
                                              mode,
-                                             cwmPath);
+                                             cwmPath,
+                                             cryptoNetworkGetHeight(network));
 
             break;
         }
@@ -145,7 +146,8 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                     (BREthereumTimestamp) cryptoAccountGetTimestamp(account),
                                     (BREthereumMode) mode,
                                     client,
-                                    cwmPath);
+                                    cwmPath,
+                                    cryptoNetworkGetHeight(network));
 
             // During the creation of both the BTC and ETH wallet managers, the primary wallet will
             // be created and will have wallet events generated.  There will be a race on `cwm->wallet` but

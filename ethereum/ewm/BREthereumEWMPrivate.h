@@ -103,6 +103,9 @@ struct BREthereumEWMRecord {
      * The BlockHeight is the largest block number seen or computed.  [Note: the blockHeight may
      * be computed from a Log event as (log block number + log confirmations).  This is the block
      * number for the block at the head of the blockchain.
+     *
+     * This gets initialized from ewmCreate() based on the 'known' block height of the network or
+     * with zero if the network's block height is unknown.
      */
     uint64_t blockHeight;
 

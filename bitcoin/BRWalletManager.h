@@ -235,7 +235,8 @@ BRWalletManagerNew (BRWalletManagerClient client,
                     const BRChainParams *params,
                     uint32_t earliestKeyTime,
                     BRSyncMode mode,
-                    const char *storagePath);
+                    const char *storagePath,
+                    uint64_t blockHeight);
 
 extern void
 BRWalletManagerFree (BRWalletManager manager);
