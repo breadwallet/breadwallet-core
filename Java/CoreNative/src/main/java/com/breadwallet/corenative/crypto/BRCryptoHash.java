@@ -8,6 +8,7 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
+import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
 
@@ -33,7 +34,12 @@ public class BRCryptoHash extends PointerType implements CoreBRCryptoHash {
 
     @Override
     public String toString() {
-        return CryptoLibrary.INSTANCE.cryptoHashString(this).getString(0, "UTF-8");
+        Pointer ptr = CryptoLibrary.INSTANCE.cryptoHashString(this);
+        try {
+            return ptr.getString(0, "UTF-8");
+        } finally {
+            Native.free(Pointer.nativeValue(ptr));
+        }
     }
 
     @Override

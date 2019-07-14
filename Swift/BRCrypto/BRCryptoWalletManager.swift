@@ -667,14 +667,15 @@ extension WalletManager {
                 } while !transactionsError && transactionsFound
                 */
 
-            funcSubmitTransaction: { (context, cwm, sid, transactionBytes, transactionBytesLength) in
+            funcSubmitTransaction: { (context, cwm, sid, transactionBytes, transactionBytesLength, hashAsHex) in
                 let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
                 precondition (nil != cwm, "SYS: BTC: SubmitTransaction: Missed {cwm}")
 
                 print ("SYS: BTC: SubmitTransaction")
+                let hash = asUTF8String (hashAsHex!)
                 let data = Data (bytes: transactionBytes!, count: transactionBytesLength)
-                manager.query.putTransaction (blockchainId: manager.network.uids, transaction: data) {
-                    (res: Result<BlockChainDB.Model.Transaction, BlockChainDB.QueryError>) in
+                manager.query.createTransaction (blockchainId: manager.network.uids, hashAsHex: hash, transaction: data) {
+                    (res: Result<Void, BlockChainDB.QueryError>) in
                     defer { cryptoWalletManagerGive (cwm!) }
                     res.resolve(
                         success: { (_) in cwmAnnounceSubmitTransferSuccess (cwm, sid) },

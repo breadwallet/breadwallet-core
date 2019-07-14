@@ -41,7 +41,7 @@ public interface CoreBRCryptoWallet {
 
     CoreBRCryptoTransfer createTransfer(CoreBRCryptoAddress target, CoreBRCryptoAmount amount, CoreBRCryptoFeeBasis feeBasis);
 
-    CoreBRCryptoAmount estimateFee(CoreBRCryptoAmount amount, CoreBRCryptoFeeBasis feeBasis, CoreBRCryptoUnit unit);
+    CoreBRCryptoAmount estimateFee(CoreBRCryptoAmount amount, CoreBRCryptoFeeBasis feeBasis);
 
     BRCryptoWallet asBRCryptoWallet();
 }

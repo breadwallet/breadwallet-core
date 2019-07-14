@@ -123,6 +123,9 @@ cwmSubmitTransactionAsBTC (BRWalletManagerClientContext context,
     callbackState->u.btcSubmit.transaction = transaction;
     callbackState->rid = rid;
 
+    UInt256 txHash = UInt256Reverse (transaction->txHash);
+    char *hashAsHex = encodeHexCreate (NULL, txHash.u8, sizeof(txHash.u8));
+
     size_t txLength = BRTransactionSerialize (transaction, NULL, 0);
     uint8_t *tx = calloc (txLength, sizeof(uint8_t));
     BRTransactionSerialize(transaction, tx, txLength);
@@ -131,9 +134,11 @@ cwmSubmitTransactionAsBTC (BRWalletManagerClientContext context,
                                            cryptoWalletManagerTake (cwm),
                                            callbackState,
                                            tx,
-                                           txLength);
+                                           txLength,
+                                           hashAsHex);
 
     free (tx);
+    free (hashAsHex);
     cryptoWalletManagerGive (cwm);
 }
 

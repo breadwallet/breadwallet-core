@@ -17,6 +17,7 @@ import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryJsonParseError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryModelError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryNoDataError;
+import com.breadwallet.crypto.blockchaindb.errors.QueryResponseError;
 import com.breadwallet.crypto.blockchaindb.errors.QuerySubmissionError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryUrlError;
 import com.google.common.base.Optional;
@@ -138,7 +139,7 @@ public class BrdApiClient {
                     }
                 } else {
                     Log.e(TAG, "response failed with status " + responseCode);
-                    handler.handleError(new QueryUrlError("Status: " + responseCode));
+                    handler.handleError(new QueryResponseError(responseCode));
                 }
             }
 

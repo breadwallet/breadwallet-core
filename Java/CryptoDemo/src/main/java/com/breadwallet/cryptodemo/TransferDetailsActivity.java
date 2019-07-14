@@ -7,6 +7,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.Html;
+import android.text.Spanned;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -14,6 +16,7 @@ import android.widget.Toast;
 import com.breadwallet.crypto.Address;
 import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Transfer;
+import com.breadwallet.crypto.TransferConfirmation;
 import com.breadwallet.crypto.TransferHash;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
@@ -23,6 +26,7 @@ import com.breadwallet.crypto.events.walletmanager.DefaultWalletManagerEventVisi
 import com.breadwallet.crypto.events.walletmanager.WalletManagerBlockUpdatedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerListener;
+import com.google.common.base.Optional;
 
 import java.text.DateFormat;
 
@@ -77,6 +81,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
     private TextView identifierView;
     private TextView confirmationView;
     private TextView confirmationCountView;
+    private View confirmationContainerView;
     private TextView stateView;
     private TextView directionView;
 
@@ -110,6 +115,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
         identifierView = findViewById(R.id.identifier_view);
         confirmationView = findViewById(R.id.confirmation_view);
         confirmationCountView = findViewById(R.id.confirmation_count_view);
+        confirmationContainerView = findViewById(R.id.confirmation_count_container_view);
         stateView = findViewById(R.id.state_view);
         directionView = findViewById(R.id.direction_view);
     }
@@ -133,6 +139,8 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
     }
 
     private void updateView() {
+        Optional<TransferConfirmation> confirmation = transfer.getConfirmation();
+
         String amountText = transfer.getAmountDirected().toString();
         amountView.setText(amountText);
         amountView.setOnClickListener(v -> copyPlaintext("Amount", amountView.getText()));
@@ -141,7 +149,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
         feeView.setText(feeText);
         feeView.setOnClickListener(v -> copyPlaintext("Fee", feeView.getText()));
 
-        String dateText = transfer.getConfirmation().transform((c) -> DATE_FORMAT.format(c.getConfirmationTime())).or("<pending>");
+        String dateText = confirmation.transform((c) -> DATE_FORMAT.format(c.getConfirmationTime())).or("<pending>");
         dateView.setText(dateText);
 
         String senderText = transfer.getSource().transform(Address::toString).or("<unknown>");
@@ -156,11 +164,13 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
         identifierView.setText(identifierText);
         identifierView.setOnClickListener(v -> copyPlaintext("Identifier", identifierView.getText()));
 
-        String confirmationText = transfer.getConfirmation().transform((c) -> "Yes @ " + c.getBlockNumber()).or("No");
+        String confirmationText = confirmation.transform((c) -> "Yes @ " + c.getBlockNumber()).or("No");
         confirmationView.setText(confirmationText);
 
         String confirmationCountText = transfer.getConfirmations().transform(String::valueOf).or("");
         confirmationCountView.setText(confirmationCountText);
+
+        confirmationContainerView.setVisibility(confirmation.isPresent() ? View.VISIBLE : View.INVISIBLE);
 
         String stateText = transfer.getState().toString();
         stateView.setText(stateText);
@@ -195,6 +205,10 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
 
     private void copyPlaintext(String label, CharSequence value) {
         clipboardManager.setPrimaryClip(ClipData.newPlainText(label, value));
-        Toast.makeText(getApplicationContext(), String.format("Copied \"%s\" to clipboard", value), Toast.LENGTH_SHORT).show();
+
+        String escapedValue = Html.escapeHtml(value);
+        Spanned message = Html.fromHtml(String.format("Copied <b>%s</b> to clipboard", escapedValue));
+
+        Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
     }
 }

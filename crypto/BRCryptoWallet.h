@@ -157,11 +157,20 @@ extern "C" {
                                 BRCryptoAddress target,
                                 BRCryptoAmount amount,
                                 BRCryptoFeeBasis feeBasis);
+    /**
+     * Estimate the fee to transfer `amount` from `wallet` using the `feeBasis`.  Return an amount
+     * represented in the wallet's fee currency.
+     *
+     * @param wallet the wallet
+     * @param amount the amount to transfer
+     * @param feeBasis the fee basis for the transfer
+     *
+     * @return the fee
+     */
     extern BRCryptoAmount
     cryptoWalletEstimateFee (BRCryptoWallet wallet,
                              BRCryptoAmount amount,
-                             BRCryptoFeeBasis feeBasis,
-                             BRCryptoUnit feeUnit); // for fee
+                             BRCryptoFeeBasis feeBasis);
 
     extern BRCryptoBoolean
     cryptoWalletEqual (BRCryptoWallet w1, BRCryptoWallet w2);

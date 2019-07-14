@@ -238,9 +238,8 @@ final class System implements com.breadwallet.crypto.System {
     public void createWalletManager(com.breadwallet.crypto.Network network, WalletManagerMode mode) {
         if (network.getSupportedModes().contains(mode)) {
             WalletManager walletManager = WalletManager.create(cwmListener, cwmClient, account, Network.from(network), mode, path, this);
-            if (addWalletManager(walletManager)) {
-                announcer.announceSystemEvent(new SystemManagerAddedEvent(walletManager));
-            }
+            addWalletManager(walletManager);
+            announcer.announceSystemEvent(new SystemManagerAddedEvent(walletManager));
         } else {
             throw new IllegalArgumentException("Unsupported network type");
         }
@@ -259,45 +258,6 @@ final class System implements com.breadwallet.crypto.System {
     @Override
     public String getPath() {
         return path;
-    }
-
-    // WalletManager management
-
-    @Override
-    public List<WalletManager> getWalletManagers() {
-        walletManagersReadLock.lock();
-        try {
-            return new ArrayList<>(walletManagers);
-        } finally {
-            walletManagersReadLock.unlock();
-        }
-    }
-
-    @Override
-    public List<Wallet> getWallets() {
-        List<Wallet> wallets = new ArrayList<>();
-        for (WalletManager manager: getWalletManagers()) {
-            wallets.addAll(manager.getWallets());
-        }
-        return wallets;
-    }
-
-    private boolean addWalletManager(WalletManager walletManager) {
-        boolean added;
-
-        walletManagersWriteLock.lock();
-        try {
-            added = !walletManagers.contains(walletManager);
-            if (added) {
-                walletManagers.add(walletManager);
-            } else {
-                Log.d(TAG, "addWalletManager: already present");
-            }
-        } finally {
-            walletManagersWriteLock.unlock();
-        }
-
-        return added;
     }
 
     // Network management
@@ -328,6 +288,38 @@ final class System implements com.breadwallet.crypto.System {
         return added;
     }
 
+    // WalletManager management
+
+    @Override
+    public List<Wallet> getWallets() {
+        List<Wallet> wallets = new ArrayList<>();
+        for (WalletManager manager: getWalletManagers()) {
+            wallets.addAll(manager.getWallets());
+        }
+        return wallets;
+    }
+
+    @Override
+    public List<WalletManager> getWalletManagers() {
+        walletManagersReadLock.lock();
+        try {
+            return new ArrayList<>(walletManagers);
+        } finally {
+            walletManagersReadLock.unlock();
+        }
+    }
+
+    private void addWalletManager(WalletManager walletManager) {
+        walletManagersWriteLock.lock();
+        try {
+            if (!walletManagers.contains(walletManager)) {
+                walletManagers.add(walletManager);
+            }
+        } finally {
+            walletManagersWriteLock.unlock();
+        }
+    }
+
     private Optional<WalletManager> getWalletManager(CoreBRCryptoWalletManager coreWalletManager) {
         WalletManager walletManager = WalletManager.create(coreWalletManager, this);
         walletManagersReadLock.lock();
@@ -346,6 +338,8 @@ final class System implements com.breadwallet.crypto.System {
             int index = walletManagers.indexOf(walletManager);
             if (index == -1) {
                 walletManagers.add(walletManager);
+            } else {
+                walletManager = walletManagers.get(index);
             }
             return walletManager;
         } finally {
@@ -1246,19 +1240,18 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void btcSubmitTransaction(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState,
-                                      Pointer tx, SizeT txLength) {
+                                             Pointer tx, SizeT txLength, String hashAsHex) {
         Log.d(TAG, "BRCryptoCWMBtcSubmitTransactionCallback");
 
         CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
 
         Optional<System> optSystem = getInstance(context);
         if (optSystem.isPresent()) {
-            int transactionLength = UnsignedInts.checkedCast(txLength.longValue());
-            byte[] transaction = tx.getByteArray(0, transactionLength);
+            byte[] txBytes = tx.getByteArray(0, UnsignedInts.checkedCast(txLength.longValue()));
 
-            optSystem.get().query.putTransaction(coreWalletManager.getNetwork().getUids(), transaction, new CompletionHandler<Transaction>() {
+            optSystem.get().query.createTransaction(coreWalletManager.getNetwork().getUids(), hashAsHex, txBytes, new CompletionHandler<Void>() {
                 @Override
-                public void handleData(Transaction data) {
+                public void handleData(Void data) {
                     Log.d(TAG, "BRCryptoCWMBtcSubmitTransactionCallback: succeeded");
                     coreWalletManager.announceSubmitTransferSuccess(callbackState);
                 }

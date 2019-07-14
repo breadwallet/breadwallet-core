@@ -428,9 +428,10 @@ cryptoWalletCreateTransfer (BRCryptoWallet wallet,
 extern BRCryptoAmount
 cryptoWalletEstimateFee (BRCryptoWallet wallet,
                          BRCryptoAmount amount,
-                         BRCryptoFeeBasis feeBasis,
-                         BRCryptoUnit feeUnit) {
+                         BRCryptoFeeBasis feeBasis) {
     assert (cryptoWalletGetType (wallet) == cryptoFeeBasisGetType(feeBasis));
+
+    UInt256 feeValue = UINT256_ZERO;
 
     switch (wallet->type) {
         case BLOCK_CHAIN_TYPE_BTC: {
@@ -442,10 +443,12 @@ cryptoWalletEstimateFee (BRCryptoWallet wallet,
             BRWalletSetFeePerKb (wid, feePerKB);
             BRCryptoBoolean overflow = CRYPTO_FALSE;
             uint64_t fee = BRWalletFeeForTxAmount (wid, cryptoAmountGetIntegerRaw (amount, &overflow));
-            BRWalletSetFeePerKb (wid, feePerKBSaved);
-
             assert (CRYPTO_FALSE == overflow);
-            return cryptoAmountCreateInteger (fee, feeUnit);
+
+            BRWalletSetFeePerKb (wid, feePerKBSaved); // ??
+
+            feeValue = createUInt256(fee); // in SAT
+            break;
         }
 
         case BLOCK_CHAIN_TYPE_ETH: {
@@ -460,16 +463,23 @@ cryptoWalletEstimateFee (BRCryptoWallet wallet,
                                           : amountCreateEther (etherCreate (ethValue)));
 
             BREthereumFeeBasis ethFeeBasis = cryptoFeeBasisAsETH (feeBasis);
-            BREthereumEther ethFee = ewmWalletEstimateTransferFeeForBasis (ewm, wid, ethAmount, ethFeeBasis.u.gas.price, ethFeeBasis.u.gas.limit, &overflow);
 
+            BREthereumEther ethFee = ewmWalletEstimateTransferFeeForBasis (ewm, wid, ethAmount,
+                                                                           ethFeeBasis.u.gas.price,
+                                                                           ethFeeBasis.u.gas.limit,
+                                                                           &overflow);
             assert (!overflow);
-            return cryptoAmountCreateInternal (cryptoUnitGetCurrency(feeUnit), CRYPTO_FALSE, ethFee.valueInWEI, 0);
+
+            feeValue = ethFee.valueInWEI; // in WEI
+            break;
         }
 
         case BLOCK_CHAIN_TYPE_GEN:
             assert (0);
-            return NULL;
+            break;
     }
+
+    return cryptoAmountCreateInternal (cryptoUnitGetCurrency (wallet->unitForFee), CRYPTO_FALSE, feeValue, 0);
 }
 
 static int

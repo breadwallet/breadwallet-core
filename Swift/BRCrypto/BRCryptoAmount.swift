@@ -34,7 +34,10 @@ public final class Amount {
         return CRYPTO_TRUE == cryptoAmountIsNegative (core)
     }
 
-    internal func double (as unit: Unit) -> Double? {
+    ///
+    /// Allows UISliders and the like to easily acquire the value
+    ///
+    public func double (as unit: Unit) -> Double? {
         var overflow: BRCryptoBoolean = CRYPTO_FALSE
         let value = cryptoAmountGetDouble(core, unit.core, &overflow)
         return CRYPTO_TRUE == overflow ? nil : value
