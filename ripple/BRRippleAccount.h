@@ -44,6 +44,16 @@ extern BRRippleAccount /* caller must free - rippleAccountFree */
 rippleAccountCreateWithKey(BRKey key);
 
 /**
+ * Create a Ripple account object from a (prior) serialization of the account
+ *
+ * @param bytes
+ * @param bytesCount
+ * @return account
+ */
+extern BRRippleAccount
+rippleAccountCreateWithSerialization (uint8_t *bytes, size_t bytesCount);
+
+/**
  * Free the memory for a ripple account object
  *
  * @param account BRRippleAccount to free
@@ -91,6 +101,10 @@ rippleAccountSignTransaction(BRRippleAccount account, BRRippleTransaction transa
 // Accessor function for the account address (Ripple ID)
 extern BRRippleAddress
 rippleAccountGetAddress(BRRippleAccount account);
+
+// Serialize `account`; return `bytes` and set `bytesCount`
+extern uint8_t *
+rippleAccountGetSerialization (BRRippleAccount account, size_t *bytesCount);
 
 /*
  * Get the string version of the ripple address

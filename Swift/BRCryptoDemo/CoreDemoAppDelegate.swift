@@ -108,7 +108,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         var networksNeeded: [String] = []
 
         #if TESTNET
-        networksNeeded += ["bitcoin-testnet", "ripple-testnet"] // ...
+        networksNeeded += ["bitcoin-testnet"] //, "ripple-testnet"] // ...
         #endif
 
         #if MAINNET

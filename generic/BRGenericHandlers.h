@@ -13,6 +13,7 @@
 
 #include "support/BRInt.h" // UInt256
 #include "support/BRArray.h"
+#include "support/BRKey.h"
 #include "support/BRFileService.h"
 #include "BRGenericBase.h"
 
@@ -30,8 +31,11 @@ extern "C" {
     // MARK: - Generic Account
 
     typedef void * (*BRGenericAccountCreate) (const char *type, UInt512 seed);
+    typedef void * (*BRGenericAccountCreateWithPublicKey) (const char *type, BRKey key);
+    typedef void * (*BRGenericAccountCreateWithSerialization) (const char *type, uint8_t *bytes, size_t bytesCount);
     typedef void (*BRGenericAccountFree) (BRGenericAccount account);
     typedef BRGenericAddress (*BRGenericAccountGetAddress) (BRGenericAccount account);
+    typedef uint8_t * (*BRGenericAccountGetSerialization) (BRGenericAccount account, size_t *bytesCount);
 
     // MARK: - Generic Address
     typedef char * (*BRGenericAddressAsString) (BRGenericAddress address);
@@ -68,8 +72,11 @@ extern "C" {
         const char *type;
         struct {
             BRGenericAccountCreate create;
+            BRGenericAccountCreateWithPublicKey createWithPublicKey;
+            BRGenericAccountCreateWithSerialization createWithSerialization;
             BRGenericAccountFree free;
             BRGenericAccountGetAddress getAddress;
+            BRGenericAccountGetSerialization getSerialization;
         } account;
 
         struct {

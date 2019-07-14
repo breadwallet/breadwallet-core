@@ -16,7 +16,17 @@
 // Account
 static void *
 genericRippleAccountCreate (const char *type, UInt512 seed) {
-    return rippleAccountCreateWithSeed(seed);
+    return rippleAccountCreateWithSeed (seed);
+}
+
+static void *
+genericRippleAccountCreateWithPublicKey (const char *type, BRKey key) {
+    return rippleAccountCreateWithKey (key);
+}
+
+static void *
+genericRippleAccountCreateWithSerialization (const char *type, uint8_t *bytes, size_t   bytesCount) {
+    return rippleAccountCreateWithSerialization (bytes, bytesCount);
 }
 
 static void
@@ -33,6 +43,12 @@ genericRippleAccountGetAddress (void *account) {
     BRRippleAddress *result = malloc (sizeof (BRRippleAddress));
     memcpy (result, address.bytes, sizeof (BRRippleAddress));
     return result;
+}
+
+static uint8_t *
+genericRippleAccountGetSerialization (void *account, size_t *bytesCount) {
+    BRRippleAccount ripple = account;
+    return rippleAccountGetSerialization (ripple, bytesCount);
 }
 
 // Address
@@ -207,8 +223,11 @@ struct BRGenericHandersRecord genericRippleHandlersRecord = {
     "xrp",
     {    // Account
         genericRippleAccountCreate,
+        genericRippleAccountCreateWithPublicKey,
+        genericRippleAccountCreateWithSerialization,
         genericRippleAccountFree,
-        genericRippleAccountGetAddress
+        genericRippleAccountGetAddress,
+        genericRippleAccountGetSerialization
     },
 
     {    // Address

@@ -13,6 +13,7 @@
 
 #include "support/BRInt.h" // UInt256
 #include "support/BRSet.h" // BRSet
+#include "support/BRKey.h" // BRKey
 #include "BRGenericBase.h"
 #include "BRGenericWalletManager.h"
 
@@ -26,6 +27,15 @@ extern "C" {
     gwmAccountCreate (const char *type,
                       UInt512 seed);
 
+    extern BRGenericAccount
+    gwmAccountCreateWithPublicKey (const char *type,
+                                   BRKey publicKey);
+
+    extern BRGenericAccount
+    gwmAccountCreateWithSerialization(const char *type,
+                                      uint8_t *bytes,
+                                      size_t   bytesCount);
+    
     extern void
     gwmAccountRelease (BRGenericAccount account);
 
@@ -38,6 +48,9 @@ extern "C" {
 
     extern BRGenericAddress
     gwmAccountGetAddress (BRGenericAccount account);
+
+    extern uint8_t *
+    gwmAccountGetSerialization (BRGenericAccount account, size_t *bytesCount);
 
      // Address
 

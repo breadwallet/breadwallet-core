@@ -17,18 +17,43 @@
 
 // This is, admittedly, a little odd.
 
+static BRGenericAccount
+gwmAccountCreateInternal (BRGenericHandlers handlers, void *base) {
+
+    BRGenericAccountWithType account = calloc (1, sizeof (struct BRGenericAccountWithTypeRecord));
+
+    account->handlers = handlers;
+    account->base = base;
+
+    return account;
+}
+
 extern BRGenericAccount
 gwmAccountCreate (const char *type,
                   UInt512 seed) {
-    BRGenericAccountWithType account = calloc (1, sizeof (struct BRGenericAccountWithTypeRecord));
-
     BRGenericHandlers handlers = genericHandlerLookup(type);
     assert (NULL != handlers);
 
-    account->handlers = handlers;
-    account->base = handlers->account.create (type, seed);
+    return gwmAccountCreateInternal (handlers, handlers->account.create (type, seed));
+}
 
-    return account;
+extern BRGenericAccount
+gwmAccountCreateWithPublicKey (const char *type,
+                               BRKey publicKey) {
+    BRGenericHandlers handlers = genericHandlerLookup(type);
+    assert (NULL != handlers);
+
+    return gwmAccountCreateInternal (handlers, handlers->account.createWithPublicKey (type, publicKey));
+}
+
+extern BRGenericAccount
+gwmAccountCreateWithSerialization(const char *type,
+                                  uint8_t *bytes,
+                                  size_t   bytesCount) {
+    BRGenericHandlers handlers = genericHandlerLookup(type);
+    assert (NULL != handlers);
+
+    return gwmAccountCreateInternal (handlers, handlers->account.createWithSerialization (type, bytes, bytesCount));
 }
 
 extern void
@@ -55,6 +80,14 @@ extern BRGenericAddress
 gwmAccountGetAddress (BRGenericAccount account) {
     BRGenericAccountWithType accountWithType = account;
     return accountWithType->handlers->account.getAddress (accountWithType->base);
+}
+
+extern uint8_t *
+gwmAccountGetSerialization (BRGenericAccount account, size_t *bytesCount) {
+    assert (NULL != bytesCount);
+
+    BRGenericAccountWithType accountWithType = account;
+    return accountWithType->handlers->account.getSerialization(accountWithType->base, bytesCount);
 }
 
 // MARK: - Address
