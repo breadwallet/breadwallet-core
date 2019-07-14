@@ -42,10 +42,11 @@ public interface CryptoLibrary extends Library {
     CryptoLibrary INSTANCE = Native.load(CryptoLibrary.JNA_LIBRARY_NAME, CryptoLibrary.class);
 
     // crypto/BRCryptoAccount.h
-    UInt512.ByValue cryptoAccountDeriveSeed(ByteBuffer phrase);
     BRCryptoAccount cryptoAccountCreate(ByteBuffer phrase, long timestamp);
-    BRCryptoAccount cryptoAccountCreateFromSeedBytes(ByteBuffer seed, long timestamp);
+    BRCryptoAccount cryptoAccountCreateFromSerialization(byte[] serialization, SizeT serializationLength);
+    Pointer cryptoAccountGeneratePaperKey(StringArray words);
     long cryptoAccountGetTimestamp(BRCryptoAccount account);
+    Pointer cryptoAccountSerialize(BRCryptoAccount account, SizeTByReference count);
     void cryptoAccountGive(BRCryptoAccount obj);
 
     // crypto/BRCryptoAddress.h

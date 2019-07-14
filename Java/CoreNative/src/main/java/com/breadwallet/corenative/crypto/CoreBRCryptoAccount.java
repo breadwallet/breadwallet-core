@@ -8,14 +8,18 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.utility.SizeT;
+import com.google.common.base.Optional;
 import com.sun.jna.Memory;
+import com.sun.jna.Native;
+import com.sun.jna.Pointer;
+import com.sun.jna.StringArray;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 public interface CoreBRCryptoAccount {
 
@@ -40,42 +44,24 @@ public interface CoreBRCryptoAccount {
         }
     }
 
-    static CoreBRCryptoAccount createFromSeed(byte[] seed, Date timestamp) {
-        checkArgument(seed.length == 64);
-
-        long timestampAsLong = TimeUnit.MILLISECONDS.toSeconds(timestamp.getTime());
-
-        Memory seedMemory = new Memory(seed.length);
-        try {
-            seedMemory.write(0, seed, 0, seed.length);
-            ByteBuffer seedBuffer = seedMemory.getByteBuffer(0, seed.length);
-
-            return new OwnedBRCryptoAccount(CryptoLibrary.INSTANCE.cryptoAccountCreateFromSeedBytes(seedBuffer, timestampAsLong));
-        } finally {
-            seedMemory.clear();
-        }
+    static Optional<CoreBRCryptoAccount> createFromSerialization(byte[] serialization) {
+        BRCryptoAccount account = CryptoLibrary.INSTANCE.cryptoAccountCreateFromSerialization(serialization, new SizeT(serialization.length));
+        return Optional.fromNullable(account).transform(OwnedBRCryptoAccount::new);
     }
 
-    static byte[] deriveSeed(byte[] phraseUtf8) {
-        // ensure string is null terminated
-        phraseUtf8 = Arrays.copyOf(phraseUtf8, phraseUtf8.length + 1);
+    static String generatePhrase(List<String> words) {
+        StringArray wordsArray = new StringArray(words.toArray(new String[0]), "UTF-8");
+        Pointer phrasePtr = CryptoLibrary.INSTANCE.cryptoAccountGeneratePaperKey(wordsArray);
         try {
-            Memory phraseMemory = new Memory(phraseUtf8.length);
-            try {
-                phraseMemory.write(0, phraseUtf8, 0, phraseUtf8.length);
-                ByteBuffer phraseBuffer = phraseMemory.getByteBuffer(0, phraseUtf8.length);
-
-                return CryptoLibrary.INSTANCE.cryptoAccountDeriveSeed(phraseBuffer).u8.clone();
-            } finally {
-                phraseMemory.clear();
-            }
+            return phrasePtr.getString(0, "UTF-8");
         } finally {
-            // clear out our copy; caller responsible for original array
-            Arrays.fill(phraseUtf8, (byte) 0);
+            Native.free(Pointer.nativeValue(phrasePtr));
         }
     }
 
     Date getTimestamp();
+
+    byte[] serialize();
 
     BRCryptoAccount asBRCryptoAccount();
 }

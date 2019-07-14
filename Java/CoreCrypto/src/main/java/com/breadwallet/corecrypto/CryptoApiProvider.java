@@ -14,6 +14,7 @@ import com.breadwallet.crypto.events.system.SystemListener;
 import com.google.common.base.Optional;
 
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 public final class CryptoApiProvider implements CryptoApi.Provider {
@@ -25,15 +26,19 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
     }
 
     private static final CryptoApi.AccountProvider accountProvider = new CryptoApi.AccountProvider() {
-
         @Override
-        public Account createFromPhrase(byte[] phraseUtf8, Date timestamp, String uids) {
+        public com.breadwallet.crypto.Account createFromPhrase(byte[] phraseUtf8, Date timestamp, String uids) {
             return Account.createFromPhrase(phraseUtf8, timestamp, uids);
         }
 
         @Override
-        public Account createFromSeed(byte[] seed, Date timestamp, String uids) {
-            return Account.createFromSeed(seed, timestamp, uids);
+        public Optional<com.breadwallet.crypto.Account> createFromSerialization(byte[] serialization, String uids) {
+            return Account.createFromSerialization(serialization, uids).transform(a -> a);
+        }
+
+        @Override
+        public String generatePhrase(List<String> words) {
+            return Account.generatePhrase(words);
         }
     };
 
@@ -55,9 +60,8 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
     };
 
     private static final CryptoApi.SystemProvider systemProvider = new CryptoApi.SystemProvider() {
-
         @Override
-        public System create(ExecutorService listenerExecutor, SystemListener listener, com.breadwallet.crypto.Account account, String path, BlockchainDb query) {
+        public com.breadwallet.crypto.System create(ExecutorService listenerExecutor, SystemListener listener, com.breadwallet.crypto.Account account, String path, BlockchainDb query) {
             return System.create(listenerExecutor, listener, account, path, query);
         }
     };
