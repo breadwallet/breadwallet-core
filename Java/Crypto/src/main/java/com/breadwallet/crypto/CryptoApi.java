@@ -12,6 +12,7 @@ import com.breadwallet.crypto.events.system.SystemListener;
 import com.google.common.base.Optional;
 
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -20,7 +21,8 @@ public final class CryptoApi {
 
     public interface AccountProvider {
         Account createFromPhrase(byte[] phraseUtf8, Date timestamp, String uids);
-        Account createFromSeed(byte[] seed, Date timestamp, String uids);
+        Optional<Account> createFromSerialization(byte[] serialization, String uids);
+        String generatePhrase(List<String> words);
     }
 
     public interface AmountProvider {
