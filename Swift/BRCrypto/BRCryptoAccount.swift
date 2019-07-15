@@ -44,7 +44,7 @@ public final class Account {
     public static func createFrom (phrase: String, timestamp: Date, uids: String) -> Account? {
         let timestampAsInt = UInt64 (timestamp.timeIntervalSince1970)
         return cryptoAccountCreate (phrase, timestampAsInt)
-            .map { Account (core: $0, uids: uids) }
+            .map { Account (core: $0, uids: uids, take: false) }
     }
 
     ///
@@ -62,7 +62,7 @@ public final class Account {
     public static func createFrom (serialization: Data, uids: String) -> Account? {
         var bytes = [UInt8](serialization)
         return cryptoAccountCreateFromSerialization (&bytes, bytes.count)
-            .map { Account (core: $0, uids: uids) }
+            .map { Account (core: $0, uids: uids, take: false) }
     }
 
     ///
@@ -82,8 +82,8 @@ public final class Account {
         return (asUTF8String (cryptoAccountGeneratePaperKey (&words)), Date())
     }
 
-    internal init (core: BRCryptoAccount, uids: String) {
-        self.core = core
+    internal init (core: BRCryptoAccount, uids: String, take: Bool) {
+        self.core = take ? cryptoAccountTake(core) : core
         self.uids = uids
     }
 

@@ -15,8 +15,8 @@ import BRCryptoC
 /// A Wallet holds the transfers and a balance for a single currency.
 ///
 public final class Wallet: Equatable {
-    internal private(set) weak var listener: WalletListener?
 
+    /// The Core representation
     internal let core: BRCryptoWallet
 
     /// The owning manager
@@ -45,10 +45,36 @@ public final class Wallet: Equatable {
         return Amount (core: cryptoWalletGetBalance (core), unit: unit, take: false)
     }
 
+    /// The current state.
+    public var state: WalletState {
+        return WalletState (core: cryptoWalletGetState(core))
+    }
+
+    /// The default TransferFeeBasis for created transfers.
+    public var defaultFeeBasis: TransferFeeBasis {
+        get {
+            return TransferFeeBasis (core: cryptoWalletGetDefaultFeeBasis (core), take: false) }
+        set {
+            let defaultFeeBasis = newValue // rename, for clarity
+            cryptoWalletSetDefaultFeeBasis (core, defaultFeeBasis.core);
+        }
+    }
+
+    /// The default TransferFactory for creating transfers.
+    //    var transferFactory: TransferFactory { get set }
+
+    /// An address suitable for a transfer target (receiving).  Uses the default Address Scheme
+    public var target: Address {
+        return Address (core: cryptoWalletGetAddress (core), take: false)
+    }
+
+    /// An address suitable for a transfer source (sending).  Uses the default AddressScheme
+    public var source: Address {
+        return Address (core: cryptoWalletGetAddress (core), take: false)
+    }
+
     /// The transfers of currency yielding `balance`
     public var transfers: [Transfer] {
-        let listener = manager.system.listener
-        
         var transfersCount: size_t = 0
         let transfersPtr = cryptoWalletGetTransfers(core, &transfersCount);
         defer { if let ptr = transfersPtr { free (ptr) } }
@@ -59,7 +85,6 @@ public final class Wallet: Equatable {
         
         return transfers
             .map { Transfer (core: $0,
-                             listener: listener,
                              wallet: self,
                              unit: unit,
                              take: false) }
@@ -75,52 +100,20 @@ public final class Wallet: Equatable {
         return (CRYPTO_FALSE == cryptoWalletHasTransfer (self.core, core)
             ? nil
             : Transfer (core: core,
-                        listener: manager.system.listener,
                         wallet: self,
                         unit: unit,
                         take: true))
     }
 
     internal func transferByCoreOrCreate (_ core: BRCryptoTransfer,
-                                          listener: TransferListener?,
                                           create: Bool = false) -> Transfer? {
         return transferBy (core: core) ??
             (!create
                 ? nil
                 : Transfer (core: core,
-                            listener: listener,
                             wallet: self,
                             unit: unit,
                             take: true))
-    }
-
-    /// The current state.
-    public var state: WalletState {
-        return WalletState (core: cryptoWalletGetState(core))
-    }
-
-    /// The default TransferFeeBasis for created transfers.
-    public var defaultFeeBasis: TransferFeeBasis {
-        get {
-            return TransferFeeBasis (core: cryptoWalletGetDefaultFeeBasis (core), take: false) }
-        set {
-            let defaultFeeBasis = newValue // rename, for clarity
-            cryptoWalletSetDefaultFeeBasis (core, defaultFeeBasis.core);
-            announceEvent (WalletEvent.feeBasisUpdated (feeBasis: defaultFeeBasis))
-        }
-    }
-
-    /// The default TransferFactory for creating transfers.
-    //    var transferFactory: TransferFactory { get set }
-
-    /// An address suitable for a transfer target (receiving).  Uses the default Address Scheme
-    public var target: Address {
-        return Address (core: cryptoWalletGetAddress (core), take: false)
-    }
-
-    /// An address suitable for a transfer source (sending).  Uses the default AddressScheme
-    public var source: Address {
-        return Address (core: cryptoWalletGetAddress (core), take: false)
     }
 
     // address scheme
@@ -143,7 +136,6 @@ public final class Wallet: Equatable {
                          feeBasis: TransferFeeBasis) -> Transfer? {
         return cryptoWalletCreateTransfer (core, target.core, amount.core, feeBasis.core)
             .map { Transfer (core: $0,
-                             listener: self.manager.system.listener,
                              wallet: self,
                              unit: amount.unit,
                              take: false)
@@ -180,23 +172,11 @@ public final class Wallet: Equatable {
     ///   - take: a boolean to indicate if `core` needs to be taken (for reference counting)
     ///
     internal init (core: BRCryptoWallet,
-                   listener: WalletListener?,
                    manager: WalletManager,
                    take: Bool) {
         self.core = take ? cryptoWalletTake (core) : core
-        self.listener = listener
         self.manager = manager
         self.unit = Unit (core: cryptoWalletGetUnit(core), take: false)
-
-        // print ("SYS: Wallet (\(manager.name):\(name)): Init")
-        //        manager.add (wallet: self)
-    }
-
-    internal func announceEvent (_ event: WalletEvent) {
-        self.listener?.handleWalletEvent (system: system,
-                                          manager: manager,
-                                          wallet: self,
-                                          event: event)
     }
 
     deinit {

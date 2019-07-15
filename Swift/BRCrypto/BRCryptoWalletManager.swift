@@ -21,8 +21,8 @@ import BRCryptoC
 /// 'Passive Objects'
 ///
 public final class WalletManager: Equatable {
-    internal private(set) weak var listener: WalletManagerListener?
 
+    /// The Core representation
     internal private(set) var core: BRCryptoWalletManager! = nil
 
     /// The owning system
@@ -38,18 +38,31 @@ public final class WalletManager: Equatable {
     internal let query: BlockChainDB
 
     /// The default unit - as the networks default unit
-    internal lazy var unit: Unit = {
-        return network.defaultUnitFor(currency: network.currency)!
-    }()
+    internal let unit: Unit
 
-    /// The primaryWallet - holds the network's currency - this is typically the wallet where
+    /// The mode determines how the manager manages the account and wallets on network
+    public let mode: WalletManagerMode
+
+    /// The file-system path to use for persistent storage.
+    public let path: String
+
+    /// The current state
+    public var state: WalletManagerState {
+        return WalletManagerState (core: cryptoWalletManagerGetState (core))
+    }
+
+    /// The current network block height
+    internal var height: UInt64 {
+        return network.height
+    }
+
+   /// The primaryWallet - holds the network's currency - this is typically the wallet where
     /// fees are applied which may or may not differ from the specific wallet used for a
     /// transfer (like BRD transfer => ETH fee)
     public lazy var primaryWallet: Wallet = {
         // Find a preexisting wallet (unlikely) or create one.
         let coreWallet = cryptoWalletManagerGetWallet(core)!
         return Wallet (core: coreWallet,
-                       listener: system.listener,
                        manager: self,
                        take: false)
     }()
@@ -68,7 +81,6 @@ public final class WalletManager: Equatable {
         
         return wallets
             .map { Wallet (core: $0,
-                           listener: listener,
                            manager: self,
                            take: false) }
     }
@@ -83,39 +95,18 @@ public final class WalletManager: Equatable {
         return (CRYPTO_FALSE == cryptoWalletManagerHasWallet (self.core, core)
             ? nil
             : Wallet (core: core,
-                      listener: system.listener,
                       manager: self,
                       take: true))
     }
 
     internal func walletByCoreOrCreate (_ core: BRCryptoWallet,
-                                          listener: WalletListener?,
                                           create: Bool = false) -> Wallet? {
         return walletBy (core: core) ??
             (!create
                 ? nil
                 : Wallet (core: core,
-                          listener: listener,
                           manager: self,
                           take: true))
-    }
-
-    // The mode determines how the manager manages the account and wallets on network
-    public private(set) lazy var mode: WalletManagerMode = {
-        return WalletManagerMode (core: cryptoWalletManagerGetMode (core))
-    }()
-
-    // The file-system path to use for persistent storage.
-    public private(set) lazy var path: String = {
-        return asUTF8String (cryptoWalletManagerGetPath(core))
-    }()
-
-    public var state: WalletManagerState {
-        return WalletManagerState (core: cryptoWalletManagerGetState (core))
-    }
-
-    internal var height: UInt64 {
-        return network.height
     }
 
     /// The default WalletFactory for creating wallets.
@@ -142,34 +133,38 @@ public final class WalletManager: Equatable {
                                    paperKey)
     }
 
-    public init (system: System,
-                 listener: WalletManagerListener,
-                 account: Account,
-                 network: Network,
-                 mode: WalletManagerMode,
-                 storagePath: String) {
+    internal init (core: BRCryptoWalletManager,
+                   system: System,
+                   take: Bool) {
 
-        print ("SYS: WalletManager (\(network.currency.code)): Init")
+        self.core   = take ? cryptoWalletManagerTake(core) : core
+        self.system = system
 
-        self.system  = system
-        self.account = account
+        let network = Network (core: cryptoWalletManagerGetNetwork (core), take: false)
+
+        self.account = Account (core: cryptoWalletManagerGetAccount(core), uids: "ignore", take: false)
         self.network = network
+        self.unit    = network.defaultUnitFor (currency: network.currency)!
+        self.path    = asUTF8String (cryptoWalletManagerGetPath(core))
+        self.mode    = WalletManagerMode (core: cryptoWalletManagerGetMode (core))
         self.query   = system.query
-
-        self.listener = listener
-
-        self.core = cryptoWalletManagerCreate (cryptoListener,
-                                               cryptoClient,
-                                               account.core,
-                                               network.core,
-                                               mode.asCore,
-                                               storagePath)
     }
 
-    internal func announceEvent (_ event: WalletManagerEvent) {
-        self.listener?.handleManagerEvent (system: system,
-                                           manager: self,
-                                           event: event)
+    public convenience  init (system: System,
+                              account: Account,
+                              network: Network,
+                              mode: WalletManagerMode,
+                              storagePath: String,
+                              listener: BRCryptoCWMListener,
+                              client: BRCryptoCWMClient) {
+        self.init (core: cryptoWalletManagerCreate (listener,
+                                                    client,
+                                                    account.core,
+                                                    network.core,
+                                                    mode.asCore,
+                                                    storagePath),
+                   system: system,
+                   take: false)
     }
 
     deinit {
@@ -327,837 +322,3 @@ public protocol WalletManagerListener: class {
 }
 
 public protocol WalletManagerFactory { }
-
-
-extension WalletManager {
-    internal var cryptoListener: BRCryptoCWMListener {
-        let this = self
-        return BRCryptoCWMListener (
-            context: Unmanaged<WalletManager>.passUnretained(this).toOpaque(),
-
-            walletManagerEventCallback: { (context, cwm, event) in
-                let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
-                defer {
-                    if let cwm = cwm { cryptoWalletManagerGive(cwm) }
-                }
-
-                guard let cwm = cwm
-                    else { print ("SYS: Event: \(event.type): Missed {cwm}"); return }
-
-                print ("SYS: Event: Manager (\(manager.name)): \(event.type)")
-
-                switch event.type {
-                case CRYPTO_WALLET_MANAGER_EVENT_CREATED:
-                    // We are only here in response to system.createWalletManager...
-                    break
-
-                case CRYPTO_WALLET_MANAGER_EVENT_CHANGED:
-                    manager.listener?.handleManagerEvent (system: manager.system,
-                                                          manager: manager,
-                                                          event: WalletManagerEvent.changed (oldState: WalletManagerState (core: event.u.state.oldValue),
-                                                                                             newState: WalletManagerState (core: event.u.state.newValue)))
-
-                case CRYPTO_WALLET_MANAGER_EVENT_DELETED:
-                    manager.listener?.handleManagerEvent (system: manager.system,
-                                                          manager: manager,
-                                                          event: WalletManagerEvent.deleted)
-
-                case CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED:
-                    defer { if let wid = event.u.wallet.value { cryptoWalletGive (wid) }}
-                    guard let wallet = manager.walletBy (core: event.u.wallet.value)
-                        else { print ("SYS: Event: \(event.type): Missed (wallet)"); return }
-                    manager.listener?.handleManagerEvent (system: manager.system,
-                                                          manager: manager,
-                                                          event: WalletManagerEvent.walletAdded (wallet: wallet))
-
-                case CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED:
-                    defer { if let wid = event.u.wallet.value { cryptoWalletGive (wid) }}
-                    guard let wallet = manager.walletBy (core: event.u.wallet.value)
-                        else { print ("SYS: Event: \(event.type): Missed (wallet)"); return }
-                    manager.listener?.handleManagerEvent (system: manager.system,
-                                                          manager: manager,
-                                                          event: WalletManagerEvent.walletChanged(wallet: wallet))
-
-                case CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED:
-                    defer { if let wid = event.u.wallet.value { cryptoWalletGive (wid) }}
-                    guard let wallet = manager.walletBy (core: event.u.wallet.value)
-                        else { print ("SYS: Event: \(event.type): Missed (wallet)"); return }
-                    manager.listener?.handleManagerEvent (system: manager.system,
-                                                          manager: manager,
-                                                          event: WalletManagerEvent.walletDeleted(wallet: wallet))
-
-                case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED:
-                    manager.listener?.handleManagerEvent (system: manager.system,
-                                                          manager: manager,
-                                                          event: WalletManagerEvent.syncStarted)
-
-                case CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES:
-                    manager.listener?.handleManagerEvent (system: manager.system,
-                                                          manager: manager,
-                                                          event: WalletManagerEvent.syncProgress (percentComplete: Double (event.u.sync.percentComplete)))
-
-                case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED:
-                    manager.listener?.handleManagerEvent (system: manager.system,
-                                                          manager: manager,
-                                                          event: WalletManagerEvent.syncEnded(error: nil))
-
-                case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED:
-                    manager.listener?.handleManagerEvent (system: manager.system,
-                                                          manager: manager,
-                                                          event: WalletManagerEvent.blockUpdated(height: event.u.blockHeight.value))
-
-                default: precondition(false)
-                }
-        },
-
-            walletEventCallback: { (context, cwm, wid, event) in
-                let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
-                if nil == manager.core { manager.core = cwm }
-                defer {
-                    if let cwm = cwm { cryptoWalletManagerGive(cwm) }
-                    if let wid = wid { cryptoWalletGive(wid) }
-                }
-
-                guard let _ = cwm, let wid = wid
-                    else { print ("SYS: Event: \(event.type): Missed {cwm, wid}"); return }
-
-                let wallet = manager.walletByCoreOrCreate (wid,
-                                                           listener: manager.system.listener,
-                                                           create: true)!
-
-                print ("SYS: Event: Wallet (\(wallet.name)): \(event.type)")
-
-                switch event.type {
-                case CRYPTO_WALLET_EVENT_CREATED:
-                    wallet.listener?.handleWalletEvent (system: manager.system,
-                                                        manager: manager,
-                                                        wallet: wallet,
-                                                        event:  WalletEvent.created)
-
-                case CRYPTO_WALLET_EVENT_CHANGED:
-                    wallet.listener?.handleWalletEvent (system: manager.system,
-                                                        manager: manager,
-                                                        wallet: wallet,
-                                                        event: WalletEvent.changed (oldState: WalletState (core: event.u.state.oldState),
-                                                                                    newState: WalletState (core: event.u.state.newState)))
-                case CRYPTO_WALLET_EVENT_DELETED:
-                    wallet.listener?.handleWalletEvent (system: manager.system,
-                                                        manager: manager,
-                                                        wallet: wallet,
-                                                        event: WalletEvent.deleted)
-
-                case CRYPTO_WALLET_EVENT_TRANSFER_ADDED:
-                    defer { if let tid = event.u.transfer.value { cryptoTransferGive(tid) }}
-                    guard let transfer = wallet.transferBy (core: event.u.transfer.value)
-                        else { print ("SYS: Event: \(event.type): Missed (transfer)"); return }
-                    wallet.listener?.handleWalletEvent (system: manager.system,
-                                                        manager: manager,
-                                                        wallet: wallet,
-                                                        event: WalletEvent.transferAdded (transfer: transfer))
-
-                case CRYPTO_WALLET_EVENT_TRANSFER_CHANGED:
-                    defer { if let tid = event.u.transfer.value { cryptoTransferGive(tid) }}
-                    guard let transfer = wallet.transferBy (core: event.u.transfer.value)
-                        else { print ("SYS: Event: \(event.type): Missed (transfer)"); return }
-                    wallet.listener?.handleWalletEvent (system: manager.system,
-                                                        manager: manager,
-                                                        wallet: wallet,
-                                                        event: WalletEvent.transferChanged (transfer: transfer))
-                case CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED:
-                    defer { if let tid = event.u.transfer.value { cryptoTransferGive(tid) }}
-                    guard let transfer = wallet.transferBy (core: event.u.transfer.value)
-                        else { print ("SYS: Event: \(event.type): Missed (transfer)"); return }
-                    wallet.listener?.handleWalletEvent (system: manager.system,
-                                                        manager: manager,
-                                                        wallet: wallet,
-                                                        event: WalletEvent.transferSubmitted (transfer: transfer, success: true))
-
-                case CRYPTO_WALLET_EVENT_TRANSFER_DELETED:
-                    defer { if let tid = event.u.transfer.value { cryptoTransferGive(tid) }}
-                   guard let transfer = wallet.transferBy (core: event.u.transfer.value)
-                        else { print ("SYS: Event: \(event.type): Missed (transfer)"); return }
-                    wallet.listener?.handleWalletEvent (system: manager.system,
-                                                        manager: manager,
-                                                        wallet: wallet,
-                                                        event: WalletEvent.transferDeleted (transfer: transfer))
-
-                case CRYPTO_WALLET_EVENT_BALANCE_UPDATED:
-                    let amount = Amount (core: event.u.balanceUpdated.amount,
-                                         unit: wallet.unit,
-                                         take: false)
-                    wallet.listener?.handleWalletEvent (system: manager.system,
-                                                        manager: manager,
-                                                        wallet: wallet,
-                                                        event: WalletEvent.balanceUpdated(amount: amount))
-
-                case CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED:
-                    let feeBasis = TransferFeeBasis (core: event.u.feeBasisUpdated.basis,
-                                                     take: false)
-                    wallet.listener?.handleWalletEvent (system: manager.system,
-                                                        manager: manager,
-                                                        wallet: wallet,
-                                                        event: WalletEvent.feeBasisUpdated(feeBasis: feeBasis))
-
-                default: precondition (false)
-                }
-        },
-
-            transferEventCallback: { (context, cwm, wid, tid, event) in
-                let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
-                defer {
-                    if let cwm = cwm { cryptoWalletManagerGive(cwm) }
-                    if let wid = wid { cryptoWalletGive(wid) }
-                    if let tid = tid { cryptoTransferGive(tid) }
-                }
-
-                guard let _ = cwm, let wid = wid, let tid = tid
-                    else { print ("SYS: Event: \(event.type): Missed {cwm, wid, tid}"); return }
-
-                guard let wallet = manager.walletBy (core: wid),
-                    let transfer = wallet.transferByCoreOrCreate (tid,
-                                                                  listener: manager.system.listener,
-                                                                  create: CRYPTO_TRANSFER_EVENT_CREATED == event.type)
-                    else { print ("SYS: Event: \(event.type): Missed (manager, wallet, transfer)"); return }
-
-                print ("SYS: Event: Transfer (\(wallet.name) @ \(transfer.hash?.description ?? "pending")): \(event.type)")
-
-                switch (event.type) {
-                case CRYPTO_TRANSFER_EVENT_CREATED:
-                    transfer.listener?.handleTransferEvent (system: manager.system,
-                                                            manager: manager,
-                                                            wallet: wallet,
-                                                            transfer: transfer,
-                                                            event: TransferEvent.created)
-
-                case CRYPTO_TRANSFER_EVENT_CHANGED:
-                    transfer.listener?.handleTransferEvent (system: manager.system,
-                                                            manager: manager,
-                                                            wallet: wallet,
-                                                            transfer: transfer,
-                                                            event: TransferEvent.changed (old: TransferState.init (core: event.u.state.old),
-                                                                                          new: TransferState.init (core: event.u.state.new)))
-
-                case CRYPTO_TRANSFER_EVENT_DELETED:
-                    transfer.listener?.handleTransferEvent (system: manager.system,
-                                                            manager: manager,
-                                                            wallet: wallet,
-                                                            transfer: transfer,
-                                                            event: TransferEvent.deleted)
-                default: precondition(false)
-                }
-        })
-    }
-}
-
-extension WalletManager {
-    internal var clientBTC: BRCryptoCWMClientBTC {
-        return BRCryptoCWMClientBTC (
-            funcGetBlockNumber: { (context, cwm, sid) in
-                let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
-                precondition (nil != cwm, "SYS: BTC: GetBlockNumber: Missed {cwm}")
-
-                print ("SYS: BTC: GetBlockNumber")
-                manager.query.getBlockchain (blockchainId: manager.network.uids) { (res: Result<BlockChainDB.Model.Blockchain, BlockChainDB.QueryError>) in
-                    defer { cryptoWalletManagerGive (cwm!) }
-                    res.resolve (
-                        success: { cwmAnnounceGetBlockNumberSuccessAsInteger (manager.core, sid, $0.blockHeight) },
-                        failure: { (_) in cwmAnnounceGetBlockNumberFailure (manager.core, sid) })
-                }},
-
-            funcGetTransactions: { (context, cwm, sid, addresses, addressesCount, begBlockNumber, endBlockNumber) in
-                let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
-                precondition (nil != cwm, "SYS: BTC: GetTransactions: Missed {cwm}")
-
-                print ("SYS: BTC: GetTransactions: Blocks: {\(begBlockNumber), \(endBlockNumber)}")
-
-                var cAddresses = addresses!
-                var addresses:[String] = Array (repeating: "", count: addressesCount)
-                for index in 0..<addressesCount {
-                    addresses[index] = asUTF8String (cAddresses.pointee!)
-                    cAddresses = cAddresses.advanced(by: 1)
-                }
-
-                manager.query.getTransactions (blockchainId: manager.network.uids,
-                                               addresses: addresses,
-                                               begBlockNumber: begBlockNumber,
-                                               endBlockNumber: endBlockNumber,
-                                               includeRaw: true) {
-                    (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
-                    defer { cryptoWalletManagerGive (cwm!) }
-                    res.resolve(
-                        success: {
-                            $0.forEach { (model: BlockChainDB.Model.Transaction) in
-                                let timestamp = model.timestamp.map { UInt64 ($0.timeIntervalSince1970) } ?? 0
-                                let height    = model.blockHeight ?? 0
-
-                                if var data = model.raw {
-                                    let bytesCount = data.count
-                                    data.withUnsafeMutableBytes { (bytes: UnsafeMutableRawBufferPointer) -> Void in
-                                        let bytesAsUInt8 = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                                        cwmAnnounceGetTransactionsItemBTC (cwm, sid,
-                                                                           bytesAsUInt8,
-                                                                           bytesCount,
-                                                                           timestamp,
-                                                                           height)
-                                    }
-                                }
-                            }
-                            cwmAnnounceGetTransactionsComplete (cwm, sid, CRYPTO_TRUE) },
-                        failure: { (_) in cwmAnnounceGetTransactionsComplete (cwm, sid, CRYPTO_FALSE) })
-
-                }},
-           /*
-            // We query the BlockChainDB with an array of addresses.  If there are no
-            // transactions for those addresses, then we are done.  But, if there are
-            // we need to generate more addresses and keep trying to find additional
-            // transactions.
-            //
-            // So we'll repeatedly loop and accumulate transactions until no more
-            // transactions are found for the set of addresses
-            //
-            // In order to 'generate more addresses' we'll need to announce each
-            // transaction - which will register each transaction in the wallet
-
-            // TODO: Register early transactions even if later transactions fail?  Possible?
-
-            manager.system.queue.async {
-                let semaphore = DispatchSemaphore (value: 0)
-
-                var transactionsError = false
-                var transactionsFound = false
-
-                repeat {
-                    // Get a C pointer to `addressesLimit` BRAddress structures
-                    let addressesLimit:Int = 25
-                    let addressesPointer = BRWalletManagerGetUnusedAddrsLegacy (bid, UInt32(addressesLimit))
-                    defer { free (addressesPointer) }
-
-                    // Convert the C pointer into a Swift array of BRAddress
-                    let addressesStructures:[BRAddress] = addressesPointer!.withMemoryRebound (to: BRAddress.self, capacity: addressesLimit) {
-                        Array(UnsafeBufferPointer (start: $0, count: addressesLimit))
-                    }
-
-                    // Convert each BRAddress to a String
-                    let addresses = addressesStructures.map {
-                        return String(cString: UnsafeRawPointer([$0]).assumingMemoryBound(to: CChar.self))
-                    }
-
-                    transactionsFound = false
-                    transactionsError = false
-
-                    // Query the blockchainDB. Record each found transaction
-                    manager.query.getTransactionsAsBTC (bwm: bid,
-                                                        blockchainId: manager.network.uids,
-                                                        addresses: addresses,
-                                                        begBlockNumber: begBlockNumber,
-                                                        endBlockNumber: endBlockNumber,
-                                                        rid: rid,
-                                                        done: { (success: Bool, rid: Int32) in
-                                                            transactionsError = !success
-                                                            semaphore.signal ()
-                    },
-                                                        each: { (res: BlockChainDB.BTC.Transaction) in
-                                                            transactionsFound = true
-                                                            bwmAnnounceTransaction (bid, res.rid, res.btc)
-                    })
-
-                    // Wait until the query is done
-                    semaphore.wait()
-
-                } while !transactionsError && transactionsFound
-                */
-
-            funcSubmitTransaction: { (context, cwm, sid, transactionBytes, transactionBytesLength, hashAsHex) in
-                let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
-                precondition (nil != cwm, "SYS: BTC: SubmitTransaction: Missed {cwm}")
-
-                print ("SYS: BTC: SubmitTransaction")
-                let hash = asUTF8String (hashAsHex!)
-                let data = Data (bytes: transactionBytes!, count: transactionBytesLength)
-                manager.query.createTransaction (blockchainId: manager.network.uids, hashAsHex: hash, transaction: data) {
-                    (res: Result<Void, BlockChainDB.QueryError>) in
-                    defer { cryptoWalletManagerGive (cwm!) }
-                    res.resolve(
-                        success: { (_) in cwmAnnounceSubmitTransferSuccess (cwm, sid) },
-                        failure: { (_) in cwmAnnounceSubmitTransferFailure (cwm, sid) })
-                }
-        })
-    }
-}
-
-extension WalletManager {
-    internal var clientETH: BRCryptoCWMClientETH {
-        return BRCryptoCWMClientETH (
-            funcGetEtherBalance: { (context, cwm, sid, network, address) in
-                let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
-                precondition (nil != cwm, "SYS: ETH: GetEtherBalance: Missed {cwm}")
-
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
-                let address = asUTF8String (address!)
-
-                manager.query.getBalanceAsETH (network: network, address: address) {
-                    (res: Result<String, BlockChainDB.QueryError>) in
-                    defer { cryptoWalletManagerGive (cwm!) }
-                    res.resolve (
-                        success: { cwmAnnounceGetBalanceSuccess (cwm, sid, $0) },
-                        failure: { (_) in cwmAnnounceGetBalanceFailure (cwm, sid) })
-                }},
-
-            funcGetTokenBalance: { (context, cwm, sid, network, address, contract) in
-                let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
-                precondition (nil != cwm, "SYS: ETH: GetTokenBalance: Missed {cwm}")
-
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
-                let address  = asUTF8String (address!)
-                let contract = asUTF8String (contract!)
-
-                manager.query.getBalanceAsTOK (network: network, address: address, contract: contract) {
-                    (res: Result<String, BlockChainDB.QueryError>) in
-                    defer { cryptoWalletManagerGive (cwm!) }
-                    res.resolve (
-                        success: { cwmAnnounceGetBalanceSuccess (cwm, sid, $0) },
-                        failure: { (_) in cwmAnnounceGetBalanceFailure (cwm, sid) })
-                }},
-
-            funcGetGasPrice: { (context, cwm, sid, network) in
-                let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
-                precondition (nil != cwm, "SYS: ETH: GetGasPrice: Missed {cwm}")
-
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
-
-                manager.query.getGasPriceAsETH (network: network) {
-                    (res: Result<String, BlockChainDB.QueryError>) in
-                    defer { cryptoWalletManagerGive (cwm!) }
-                    res.resolve (
-                        success: { cwmAnnounceGetGasPriceSuccess (cwm, sid, $0) },
-                        failure: { (_) in cwmAnnounceGetGasPriceFailure (cwm, sid) })
-                }},
-
-            funcEstimateGas: { (context, cwm, sid, network, from, to, amount, data) in
-                let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
-                precondition (nil != cwm, "SYS: ETH: EstimateGas: Missed {cwm}")
-
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
-
-                manager.query.getGasEstimateAsETH (network: network,
-                                                   from:   asUTF8String(from!),
-                                                   to:     asUTF8String(to!),
-                                                   amount: asUTF8String(amount!),
-                                                   data:   asUTF8String(data!)) {
-                                                    (res: Result<String, BlockChainDB.QueryError>) in
-                                                    defer { cryptoWalletManagerGive (cwm!) }
-                                                    res.resolve (
-                                                        success: { cwmAnnounceGetGasEstimateSuccess (cwm, sid, $0) },
-                                                        failure: { (_) in cwmAnnounceGetGasEstimateFailure (cwm, sid) })
-                }},
-
-            funcSubmitTransaction: { (context, cwm, sid, network, transaction) in
-                let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
-                precondition (nil != cwm, "SYS: ETH: SubmitTransaction: Missed {cwm}")
-
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
-
-                manager.query.submitTransactionAsETH (network: network,
-                                                      transaction: asUTF8String(transaction!)) {
-                                                        (res: Result<String, BlockChainDB.QueryError>) in
-                                                        defer { cryptoWalletManagerGive (cwm!) }
-                                                        res.resolve (
-                                                            success: { cwmAnnounceSubmitTransferSuccessForHash (cwm, sid, $0) },
-                                                            failure: { (_) in cwmAnnounceSubmitTransferFailure (cwm, sid) })
-                }},
-
-            funcGetTransactions: { (context, cwm, sid, network, address, begBlockNumber, endBlockNumber) in
-                let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
-                precondition (nil != cwm, "SYS: ETH: GetTransactions: Missed {cwm}")
-
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
-
-               manager.query.getTransactionsAsETH (network: network,
-                                                   address: asUTF8String (address!),
-                                                   begBlockNumber: begBlockNumber,
-                                                   endBlockNumber: endBlockNumber) {
-                                                    (res: Result<[BlockChainDB.ETH.Transaction], BlockChainDB.QueryError>) in
-                                                    defer { cryptoWalletManagerGive (cwm!) }
-                                                    res.resolve(
-                                                        success: { (txs: [BlockChainDB.ETH.Transaction]) in
-                                                            txs.forEach { (tx: BlockChainDB.ETH.Transaction) in
-                                                                cwmAnnounceGetTransactionsItemETH (cwm, sid,
-                                                                                                   tx.hash,
-                                                                                                   tx.sourceAddr,
-                                                                                                   tx.targetAddr,
-                                                                                                   tx.contractAddr,
-                                                                                                   tx.amount,
-                                                                                                   tx.gasLimit,
-                                                                                                   tx.gasPrice,
-                                                                                                   tx.data,
-                                                                                                   tx.nonce,
-                                                                                                   tx.gasUsed,
-                                                                                                   tx.blockNumber,
-                                                                                                   tx.blockHash,
-                                                                                                   tx.blockConfirmations,
-                                                                                                   tx.blockTransactionIndex,
-                                                                                                   tx.blockTimestamp,
-                                                                                                   tx.isError)
-                                                            }
-                                                            cwmAnnounceGetTransactionsComplete(cwm, sid, CRYPTO_TRUE)
-                                                    },
-                                                        failure: { (_) in cwmAnnounceGetTransactionsComplete (cwm, sid, CRYPTO_FALSE) })
-                }},
-
-            funcGetLogs: { (context, cwm, sid, network, contract, address, event, begBlockNumber, endBlockNumber) in
-                let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
-                precondition (nil != cwm, "SYS: ETH: GetLogs: Missed {cwm}")
-
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
-
-                manager.query.getLogsAsETH (network: network,
-                                            contract: contract.map { asUTF8String($0) },
-                                            address:  asUTF8String(address!),
-                                            event:    asUTF8String(event!),
-                                            begBlockNumber: begBlockNumber,
-                                            endBlockNumber: endBlockNumber) {
-                                                (res: Result<[BlockChainDB.ETH.Log], BlockChainDB.QueryError>) in
-                                                defer { cryptoWalletManagerGive (cwm!) }
-                                                res.resolve(
-                                                    success: { (lgs: [BlockChainDB.ETH.Log]) in
-                                                        lgs.forEach { (log: BlockChainDB.ETH.Log) in
-                                                            let topicsCount = Int32 (log.topics.count)
-                                                            var topics = log.topics.filter { !$0.isEmpty }.map { UnsafePointer<Int8>(strdup($0)) }
-                                                            defer { topics.forEach { free(UnsafeMutablePointer(mutating: $0)) } }
-
-                                                            cwmAnnounceGetLogsItem (cwm, sid,
-                                                                                    log.hash,
-                                                                                    log.contract,
-                                                                                    topicsCount,
-                                                                                    &topics,
-                                                                                    log.data,
-                                                                                    log.gasPrice,
-                                                                                    log.gasUsed,
-                                                                                    log.logIndex,
-                                                                                    log.blockNumber,
-                                                                                    log.blockTransactionIndex,
-                                                                                    log.blockTimestamp) }
-                                                        cwmAnnounceGetLogsComplete(cwm, sid, CRYPTO_TRUE)
-                                                },
-                                                    failure: { (_) in cwmAnnounceGetLogsComplete (cwm, sid, CRYPTO_FALSE) })
-                }},
-
-            funcGetBlocks: { (context, cwm, sid, network, address, interests, begBlockNumber, endBlockNumber) in
-                let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
-                precondition (nil != cwm, "SYS: ETH: GetBlocks: Missed {cwm}")
-
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
-
-                manager.query.getBlocksAsETH (network: network,
-                                              address: asUTF8String(address!),
-                                              interests: interests,
-                                              blockStart: begBlockNumber,
-                                              blockStop:  endBlockNumber) {
-                                                (res: Result<[UInt64], BlockChainDB.QueryError>) in
-                                                defer { cryptoWalletManagerGive (cwm!) }
-                                                res.resolve (
-                                                    success: {
-                                                        let numbersCount = Int32 ($0.count)
-                                                        var numbers = $0
-                                                        numbers.withUnsafeMutableBytes {
-                                                            let bytesAsUInt8 = $0.baseAddress?.assumingMemoryBound(to: UInt64.self)
-                                                            cwmAnnounceGetBlocksSuccess (cwm, sid, numbersCount, bytesAsUInt8)
-                                                        }},
-                                                    failure: { (_) in cwmAnnounceGetBlocksFailure (cwm, sid) })
-                }},
-
-            funcGetTokens: { (context, cwm, sid) in
-                let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
-                precondition (nil != cwm, "SYS: ETH: GetTokens: Missed {cwm}")
-
-                manager.query.getTokensAsETH () {
-                    (res: Result<[BlockChainDB.ETH.Token],BlockChainDB.QueryError>) in
-                    defer { cryptoWalletManagerGive (cwm!) }
-                    res.resolve(
-                        success: { (tokens: [BlockChainDB.ETH.Token]) in
-                            tokens.forEach { (token: BlockChainDB.ETH.Token) in
-                                cwmAnnounceGetTokensItem (cwm, sid,
-                                                          token.address,
-                                                          token.symbol,
-                                                          token.name,
-                                                          token.description,
-                                                          token.decimals,
-                                                          token.defaultGasLimit,
-                                                          token.defaultGasPrice) }
-                            cwmAnnounceGetTokensComplete (cwm, sid, CRYPTO_TRUE)
-                   },
-                        failure: { (_) in cwmAnnounceGetTokensComplete (cwm, sid, CRYPTO_FALSE) })
-                }},
-
-            funcGetBlockNumber: { (context, cwm, sid, network) in
-                let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
-                precondition (nil != cwm, "SYS: ETH: GetBlockNumber: Missed {cwm}")
-
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
-
-                manager.query.getBlockNumberAsETH (network: network) {
-                    (res: Result<String, BlockChainDB.QueryError>) in
-                    defer { cryptoWalletManagerGive (cwm!) }
-                    res.resolve (
-                        success: { cwmAnnounceGetBlockNumberSuccessAsString (cwm, sid, $0) },
-                        failure: { (_) in cwmAnnounceGetBlockNumberFailure (cwm, sid) })
-                }},
-
-            funcGetNonce: { (context, cwm, sid, network, address) in
-                let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
-                precondition (nil != cwm, "SYS: ETH: GetNonce: Missed {cwm}")
-
-                let ewm = cryptoWalletManagerAsETH (cwm);
-                let network = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
-
-                manager.query.getNonceAsETH (network: network, address: asUTF8String(address!)) {
-                    (res: Result<String, BlockChainDB.QueryError>) in
-                    defer { cryptoWalletManagerGive (cwm!) }
-                    res.resolve (
-                        success: { cwmAnnounceGetNonceSuccess (cwm, sid, address, $0) },
-                        failure: { (_) in cwmAnnounceGetNonceFailure (cwm, sid) })
-                }})
-    }
-}
-
-extension WalletManager {
-    internal var clientGEN: BRCryptoCWMClientGEN {
-        return BRCryptoCWMClientGEN (
-            funcGetBlockNumber: { (context, cwm, sid) in
-                let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
-                precondition (nil != cwm, "SYS: GEN: GetBlockNumber: Missed {gwm}")
-
-                print ("SYS: GEN: GetBlockNumber")
-                manager.query.getBlockchain (blockchainId: manager.network.uids) {
-                    (res: Result<BlockChainDB.Model.Blockchain, BlockChainDB.QueryError>) in
-                    res.resolve (
-                        success: { cwmAnnounceGetBlockNumberSuccessAsInteger (cwm, sid, $0.blockHeight) },
-                        failure: { (_) in cwmAnnounceGetBlockNumberFailure (cwm, sid) })
-                }},
-
-            funcGetTransactions: { (context, cwm, sid, address, begBlockNumber, endBlockNumber) in
-                let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
-                precondition (nil != cwm, "SYS: GEN: GetTransaction: Missed {bid}")
-
-                print ("SYS: GEN: GetTransactions: Blocks: {\(begBlockNumber), \(endBlockNumber)}")
-
-                manager.query.getTransactions (blockchainId: manager.network.uids,
-                                               addresses: [asUTF8String(address!)],
-                                               begBlockNumber: begBlockNumber,
-                                               endBlockNumber: endBlockNumber,
-                                               includeRaw: true) {
-                                                (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
-                                                res.resolve(
-                                                    success: {
-                                                        $0.forEach { (model: BlockChainDB.Model.Transaction) in
-                                                            let timestamp = model.timestamp.map { UInt64 ($0.timeIntervalSince1970) } ?? 0
-                                                            let height    = model.blockHeight ?? 0
-
-                                                            if var data = model.raw {
-                                                                let bytesCount = data.count
-                                                                data.withUnsafeMutableBytes { (bytes: UnsafeMutableRawBufferPointer) -> Void in
-                                                                    let bytesAsUInt8 = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                                                                    cwmAnnounceGetTransactionsItemGEN (cwm, sid,
-                                                                                                       bytesAsUInt8,
-                                                                                                       bytesCount,
-                                                                                                       timestamp,
-                                                                                                       height)
-                                                                }
-                                                            }
-                                                        }
-                                                        cwmAnnounceGetTransactionsComplete (cwm, sid, CRYPTO_TRUE) },
-                                                    failure: { (_) in cwmAnnounceGetTransactionsComplete (cwm, sid, CRYPTO_FALSE) })
-
-                }},
-
-            funcSubmitTransaction: { (context, cwm, sid, transactionBytes, transactionBytesLength, hashAsHex) in
-                let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
-                precondition (nil != cwm, "SYS: GEN: SubmitTransaction: Missed {cwm}")
-
-                print ("SYS: GEN: SubmitTransaction")
-                let hash = asUTF8String (hashAsHex!)
-                let data = Data (bytes: transactionBytes!, count: transactionBytesLength)
-                manager.query.createTransaction (blockchainId: manager.network.uids, hashAsHex: hash, transaction: data) {
-                    (res: Result<Void, BlockChainDB.QueryError>) in
-                    defer { cryptoWalletManagerGive (cwm!) }
-                    res.resolve(
-                        success: { (_) in cwmAnnounceSubmitTransferSuccess (cwm, sid) },
-                        failure: { (_) in cwmAnnounceSubmitTransferFailure (cwm, sid) })
-                }
-        })
-    }
-}
-
-extension WalletManager {
-    internal var cryptoClient: BRCryptoCWMClient {
-        return BRCryptoCWMClient (context: Unmanaged<WalletManager>.passUnretained(self).toOpaque(),
-                                  btc: clientBTC,
-                                  eth: clientETH,
-                                  gen: clientGEN)
-    }
-}
-
-extension BRWalletManagerEventType: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case BITCOIN_WALLET_MANAGER_CREATED: return "Created"
-        case BITCOIN_WALLET_MANAGER_CONNECTED: return "Connected"
-        case BITCOIN_WALLET_MANAGER_DISCONNECTED: return "Disconnected"
-        case BITCOIN_WALLET_MANAGER_SYNC_STARTED: return "Sync Started"
-        case BITCOIN_WALLET_MANAGER_SYNC_STOPPED: return "Sync Stopped"
-        case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED: return "Block Height Updated"
-        default: return "<<unknown>>"
-        }
-    }
-}
-
-extension BRWalletEventType: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case BITCOIN_WALLET_CREATED: return "Created"
-        case BITCOIN_WALLET_BALANCE_UPDATED: return "Balance Updated"
-        case BITCOIN_WALLET_TRANSACTION_SUBMITTED: return "Transaction Submitted"
-        case BITCOIN_WALLET_FEE_PER_KB_UPDATED: return "FeePerKB Updated"
-        case BITCOIN_WALLET_DELETED: return "Deleted"
-        default: return "<<unknown>>"
-        }
-    }
-}
-
-extension BRTransactionEventType: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case BITCOIN_TRANSACTION_ADDED: return "Added"
-        case BITCOIN_TRANSACTION_UPDATED: return "Updated"
-        case BITCOIN_TRANSACTION_DELETED: return "Deleted"
-        default: return "<<unknown>>"
-        }
-    }
-}
-
-extension BREthereumTokenEvent: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case TOKEN_EVENT_CREATED: return "Created"
-        case TOKEN_EVENT_DELETED: return "Deleted"
-        default: return "<<unknown>>"
-        }
-    }
-}
-
-extension BREthereumPeerEvent: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case PEER_EVENT_CREATED: return "Created"
-        case PEER_EVENT_DELETED: return "Deleted"
-        default: return "<<unknown>>"
-        }
-    }
-}
-
-extension BREthereumTransferEvent: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case TRANSFER_EVENT_CREATED: return "Created"
-        case TRANSFER_EVENT_SIGNED: return "Signed"
-        case TRANSFER_EVENT_SUBMITTED: return "Submitted"
-        case TRANSFER_EVENT_INCLUDED: return "Included"
-        case TRANSFER_EVENT_ERRORED: return "Errored"
-        case TRANSFER_EVENT_GAS_ESTIMATE_UPDATED: return "Gas Estimate Updated"
-        case TRANSFER_EVENT_DELETED: return "Deleted"
-        default: return "<<unknown>>"
-        }
-    }
-}
-
-extension BREthereumWalletEvent: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case WALLET_EVENT_CREATED: return "Created"
-        case WALLET_EVENT_BALANCE_UPDATED: return "Balance Updated"
-        case WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED: return "Default Gas Limit Updated"
-        case WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED: return "Default Gas Price Updated"
-        case WALLET_EVENT_DELETED: return "Deleted"
-        default: return "<<unknown>>"
-        }
-    }
-}
-
-extension BREthereumEWMEvent: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case EWM_EVENT_CREATED: return "Created"
-        case EWM_EVENT_SYNC_STARTED: return "Sync Started"
-        case EWM_EVENT_SYNC_CONTINUES: return "Sync Continues"
-        case EWM_EVENT_SYNC_STOPPED: return "Sync Stopped"
-        case EWM_EVENT_NETWORK_UNAVAILABLE: return "Network Unavailable"
-        case EWM_EVENT_BLOCK_HEIGHT_UPDATED: return "Block Height Updated"
-        case EWM_EVENT_DELETED: return "Deleted"
-        default: return "<<unknown>>"
-        }
-    }
-}
-
-extension BRCryptoTransferEventType: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case CRYPTO_TRANSFER_EVENT_CREATED: return "Created"
-        case CRYPTO_TRANSFER_EVENT_CHANGED: return "Changed"
-        case CRYPTO_TRANSFER_EVENT_DELETED: return "Deleted"
-        default: return "<>unknown>>"
-        }
-    }
-}
-
-extension BRCryptoWalletEventType: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case CRYPTO_WALLET_EVENT_CREATED: return "Created"
-        case CRYPTO_WALLET_EVENT_CHANGED: return "Changed"
-        case CRYPTO_WALLET_EVENT_DELETED: return "Deleted"
-
-        case CRYPTO_WALLET_EVENT_TRANSFER_ADDED:     return "Transfer Added"
-        case CRYPTO_WALLET_EVENT_TRANSFER_CHANGED:   return "Transfer Changed"
-        case CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED: return "Transfer Submitted"
-        case CRYPTO_WALLET_EVENT_TRANSFER_DELETED:   return "Transfer Deleted"
-
-        case CRYPTO_WALLET_EVENT_BALANCE_UPDATED:   return "Balance Updated"
-        case CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED: return "FeeBasis Updated"
-
-        default: return "<>unknown>>"
-        }
-    }
-}
-
-extension BRCryptoWalletManagerEventType: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case CRYPTO_WALLET_MANAGER_EVENT_CREATED: return "Created"
-        case CRYPTO_WALLET_MANAGER_EVENT_CHANGED: return "Changed"
-        case CRYPTO_WALLET_MANAGER_EVENT_DELETED: return "Deleted"
-
-        case CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED:   return "Wallet Added"
-        case CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED: return "Wallet Changed"
-        case CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED: return "Wallet Deleted"
-
-            // wallet: added, ...
-        case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED:   return "Sync Started"
-        case CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES: return "Sync Continues"
-        case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED:   return "Sync Stopped"
-
-        case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED: return "Block Height Updated"
-        default: return "<>unknown>>"
-        }
-    }
-}
-
-
