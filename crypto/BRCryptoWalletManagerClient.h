@@ -34,6 +34,7 @@
 
 #include "ethereum/BREthereum.h"
 #include "bitcoin/BRWalletManager.h"
+#include "generic/BRGenericWalletManager.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -171,7 +172,33 @@ extern "C" {
         BRCryptoCWMBtcSubmitTransactionCallback funcSubmitTransaction;
     } BRCryptoCWMClientBTC;
 
+    /// MARK: GEN Callbacks
+    
+    typedef void
+    (*BRCryptoCWMGenGetBlockNumberCallback) (BRCryptoCWMClientContext context,
+                                             OwnershipGiven BRCryptoWalletManager manager,
+                                             OwnershipGiven BRCryptoCWMClientCallbackState callbackState);
+    
+    typedef void
+    (*BRCryptoCWMGenGetTransactionsCallback) (BRCryptoCWMClientContext context,
+                                              OwnershipGiven BRCryptoWalletManager manager,
+                                              OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                              OwnershipKept const char *address,
+                                              uint64_t begBlockNumber,
+                                              uint64_t endBlockNumber);
+    
+    typedef void
+    (*BRCryptoCWMGenSubmitTransactionCallback) (BRCryptoCWMClientContext context,
+                                                OwnershipGiven BRCryptoWalletManager manager,
+                                                OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                                OwnershipKept uint8_t *transaction,
+                                                size_t transactionLength,
+                                                OwnershipKept const char *hashAsHex);
+
     typedef struct {
+        BRCryptoCWMGenGetBlockNumberCallback  funcGetBlockNumber;
+        BRCryptoCWMGenGetTransactionsCallback funcGetTransactions;
+        BRCryptoCWMGenSubmitTransactionCallback funcSubmitTransaction;
     } BRCryptoCWMClientGEN;
 
     typedef struct {
@@ -186,6 +213,9 @@ extern "C" {
 
     extern BREthereumClient
     cryptoWalletManagerClientCreateETHClient (OwnershipKept BRCryptoWalletManager cwm);
+
+    extern BRGenericClient
+    cryptoWalletManagerClientCreateGENClient (BRCryptoWalletManager cwm);
 
     extern void
     cwmAnnounceGetBlockNumberSuccessAsInteger (OwnershipKept BRCryptoWalletManager cwm,
@@ -232,6 +262,14 @@ extern "C" {
                                        // txreceipt_status
                                        OwnershipKept const char *isError);
 
+    extern void
+    cwmAnnounceGetTransactionsItemGEN (BRCryptoWalletManager cwm,
+                                       BRCryptoCWMClientCallbackState callbackState,
+                                       uint8_t *transaction,
+                                       size_t transactionLength,
+                                       uint64_t timestamp,
+                                       uint64_t blockHeight);
+    
     extern void
     cwmAnnounceGetTransactionsComplete (OwnershipKept BRCryptoWalletManager cwm,
                                         OwnershipGiven BRCryptoCWMClientCallbackState callbackState,

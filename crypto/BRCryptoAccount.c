@@ -23,6 +23,8 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#include <pthread.h>
+
 #include "BRCryptoAccount.h"
 #include "BRCryptoPrivate.h"
 
@@ -30,6 +32,16 @@
 #include "support/BRBIP39Mnemonic.h"
 #include "support/BRKey.h"
 #include "ethereum/BREthereum.h"
+#include "generic/BRGenericRipple.h"
+
+static pthread_once_t  _accounts_once = PTHREAD_ONCE_INIT;
+
+#include "generic/BRGenericHandlers.h"
+
+static void _accounts_init (void) {
+    genericHandlersInstall (genericRippleHandlers);
+    // ...
+}
 
 static uint16_t
 checksumFletcher16 (const uint8_t *data, size_t count);
@@ -42,6 +54,8 @@ cryptoAccountRelease (BRCryptoAccount account);
 struct BRCryptoAccountRecord {
     BRMasterPubKey btc;
     BREthereumAccount eth;
+    BRGenericAccount xrp;
+    // ...
 
     uint64_t timestamp;
     BRCryptoRef ref;
@@ -81,12 +95,14 @@ cryptoAccountValidateWordsList (int wordsCount) {
 
 static BRCryptoAccount
 cryptoAccountCreateInternal (BRMasterPubKey btc,
-                             BRKey eth,
+                             BREthereumAccount eth,
+                             BRGenericAccount xrp,
                              uint64_t timestamp) {
     BRCryptoAccount account = malloc (sizeof (struct BRCryptoAccountRecord));
 
     account->btc = btc;
-    account->eth = createAccountWithPublicKey(eth);
+    account->eth = eth;
+    account->xrp = xrp;
     account->timestamp = timestamp;
     account->ref = CRYPTO_REF_ASSIGN(cryptoAccountRelease);
 
@@ -96,10 +112,15 @@ cryptoAccountCreateInternal (BRMasterPubKey btc,
 static BRCryptoAccount
 cryptoAccountCreateFromSeedInternal (UInt512 seed,
                                      uint64_t timestamp) {
+    pthread_once (&_accounts_once, _accounts_init);
+
     BRCryptoAccount account = malloc (sizeof (struct BRCryptoAccountRecord));
 
     account->btc = BRBIP32MasterPubKey (seed.u8, sizeof (seed.u8));
     account->eth = createAccountWithBIP32Seed(seed);
+    account->xrp = gwmAccountCreate (genericRippleHandlers->type, seed);
+    // ...
+
     account->timestamp = timestamp;
     account->ref = CRYPTO_REF_ASSIGN(cryptoAccountRelease);
 
@@ -114,8 +135,10 @@ cryptoAccountCreate (const char *phrase, uint64_t timestamp) {
 
 /**
  * Deserialize into an Account.  The serialization format is:
- *  <checksum16><size32><version><BTC size><BTC master public key><ETH size><ETH public key>
- *
+ *  <checksum16><size32><version>
+ *      <BTC size><BTC master public key>
+ *      <ETH size><ETH public key>
+ *      <XRP size><XRP public key>
  *
  * @param bytes the serialized bytes
  * @param bytesCount the number of serialized bytes
@@ -186,23 +209,35 @@ if (bytesPtr > bytesEnd) return NULL; /* overkill */ \
     BRKey ethPublicKey;
     BRKeySetPubKey(&ethPublicKey, bytesPtr, 65);
     BYTES_PTR_INCR_AND_CHECK (65);
+    BREthereumAccount eth = createAccountWithPublicKey(ethPublicKey);
 
-    return cryptoAccountCreateInternal (mpk, ethPublicKey, timestamp);
+    // XRP
+    size_t xrpSize = UInt32GetBE(bytesPtr);
+    BYTES_PTR_INCR_AND_CHECK (szSize);
+
+    BRGenericAccount xrp = gwmAccountCreateWithSerialization (genericRippleHandlers->type, bytesPtr, xrpSize);
+    assert (NULL != xrp);
+
+    return cryptoAccountCreateInternal (mpk, eth, xrp, timestamp);
 #undef BYTES_PTR_INCR_AND_CHECK
 }
 
 static void
 cryptoAccountRelease (BRCryptoAccount account) {
-    accountFree(account->eth);  // Core holds???
 //    printf ("Account: Release\n");
+    accountFree(account->eth);
+    gwmAccountRelease(account->xrp);
+
     free (account);
 }
 
 
 /**
  * Serialize the account as per ACCOUNT_SERIALIZE_DEFAULT_VERSION.  The serialization format is:
- *  <checksum16><size32><version><BTC size><BTC master public key><ETH size><ETH public key>
- *
+ *  <checksum16><size32><version>
+ *      <BTC size><BTC master public key>
+ *      <ETH size><ETH public key>
+ *      <XRP size><XRP public key>
  *
  * @param account The account
  * @param bytesCount A non-NULL size_t pointer filled with the bytes count
@@ -229,8 +264,15 @@ cryptoAccountSerialize (BRCryptoAccount account, size_t *bytesCount) {
     ethPublicKey.compressed = 0;
     size_t ethSize = BRKeyPubKey (&ethPublicKey, NULL, 0);
 
+    // XRP
+    size_t   xrpSize = 0;
+    uint8_t *xrpBytes = gwmAccountGetSerialization (account->xrp, &xrpSize);
+
     // Overall size - summing all factors.
-    *bytesCount = chkSize + szSize + verSize + tsSize + (szSize + mpkSize) + (szSize + ethSize);
+    *bytesCount = (chkSize + szSize + verSize + tsSize
+                   + (szSize + mpkSize)
+                   + (szSize + ethSize)
+                   + (szSize + xrpSize));
     uint8_t *bytes = calloc (1, *bytesCount);
     uint8_t *bytesPtr = bytes;
 
@@ -265,7 +307,15 @@ cryptoAccountSerialize (BRCryptoAccount account, size_t *bytesCount) {
     BRKeyPubKey (&ethPublicKey, bytesPtr, ethSize);
     bytesPtr += ethSize;
 
-    (void) bytesPtr;  // Avoid static analysis warning
+    // XRP
+    UInt32SetBE (bytesPtr, (uint32_t) xrpSize);
+    bytesPtr += szSize;
+
+    memcpy (bytesPtr, xrpBytes, xrpSize);
+    bytesPtr += xrpSize;
+
+    // Avoid static analysis warning
+    (void) bytesPtr;
 
     // checksum
     uint16_t checksum = checksumFletcher16 (&bytes[chkSize], (*bytesCount - chkSize));
@@ -282,6 +332,14 @@ cryptoAccountGetTimestamp (BRCryptoAccount account) {
 private_extern BREthereumAccount
 cryptoAccountAsETH (BRCryptoAccount account) {
     return account->eth;
+}
+
+private_extern BRGenericAccount
+cryptoAccountAsGEN (BRCryptoAccount account,
+                    const char *type) {
+    if (gwmAccountHasType (account->xrp, type)) return account->xrp;
+
+    return NULL;
 }
 
 private_extern const char *

@@ -13,6 +13,7 @@
 #include "BRCryptoHash.h"
 #include "support/BRInt.h"
 #include "ethereum/util/BRUtilHex.h"
+#include "generic/BRGeneric.h"
 
 static void
 cryptoHashRelease (BRCryptoHash hash);
@@ -22,6 +23,7 @@ struct BRCryptoHashRecord {
     union {
         UInt256 btc;
         BREthereumHash eth;
+        BRGenericHash gen;
     } u;
     BRCryptoRef ref;
 };
@@ -48,8 +50,16 @@ cryptoHashCreateAsBTC (UInt256 btc) {
 
 private_extern BRCryptoHash
 cryptoHashCreateAsETH (BREthereumHash eth) {
-    BRCryptoHash hash = cryptoHashCreateInternal (BLOCK_CHAIN_TYPE_BTC);
+    BRCryptoHash hash = cryptoHashCreateInternal (BLOCK_CHAIN_TYPE_ETH);
     hash->u.eth = eth;
+
+    return hash;
+}
+
+private_extern BRCryptoHash
+cryptoHashCreateAsGEN (BRGenericHash gen) {
+    BRCryptoHash hash = cryptoHashCreateInternal (BLOCK_CHAIN_TYPE_GEN);
+    hash->u.gen = gen;
 
     return hash;
 }
@@ -63,7 +73,8 @@ extern BRCryptoBoolean
 cryptoHashEqual (BRCryptoHash h1, BRCryptoHash h2) {
     return (h1->type == h2->type &&
             ((BLOCK_CHAIN_TYPE_BTC == h1->type && UInt256Eq (h1->u.btc, h2->u.btc)) ||
-             (BLOCK_CHAIN_TYPE_ETH == h1->type && ETHEREUM_BOOLEAN_TRUE ==  hashEqual (h1->u.eth, h2->u.eth)))
+             (BLOCK_CHAIN_TYPE_ETH == h1->type && ETHEREUM_BOOLEAN_TRUE ==  hashEqual (h1->u.eth, h2->u.eth)) ||
+             (BLOCK_CHAIN_TYPE_GEN == h1->type && genericHashEqual (h1->u.gen, h2->u.gen)))
             ? CRYPTO_TRUE
             : CRYPTO_FALSE);
 }
@@ -79,7 +90,7 @@ cryptoHashString (BRCryptoHash hash) {
             return hashAsString (hash->u.eth);
         }
         case BLOCK_CHAIN_TYPE_GEN: {
-            return strdup ("abc");
+            return genericHashAsString(hash->u.gen);
         }
     }
 }
@@ -94,6 +105,6 @@ cryptoHashGetHashValue (BRCryptoHash hash) {
             return hashSetValue (&hash->u.eth);
 
         case BLOCK_CHAIN_TYPE_GEN:
-            return 0;
+            return genericHashSetValue (hash->u.gen);
     }
 }

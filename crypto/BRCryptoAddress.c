@@ -28,6 +28,7 @@
 
 #include "support/BRAddress.h"
 #include "ethereum/BREthereum.h"
+#include "generic/BRGeneric.h"
 
 static void
 cryptoAddressRelease (BRCryptoAddress address);
@@ -37,6 +38,10 @@ struct BRCryptoAddressRecord {
     union {
         BRAddress btc;
         BREthereumAddress eth;
+        struct {
+            BRGenericWalletManager gwm;
+            BRGenericAddress aid;
+        } gen;
     } u;
     BRCryptoRef ref;
 };
@@ -45,7 +50,9 @@ IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoAddress, cryptoAddress);
 
 static void
 cryptoAddressRelease (BRCryptoAddress address) {
-//    printf ("Address: Release\n");
+    //    printf ("Address: Release\n");
+
+    // TODO: btc, eth, gen ?
     free (address);
 }
 
@@ -72,6 +79,22 @@ cryptoAddressCreateAsBTC (BRAddress btc) {
     address->u.btc = btc;
     return address;
 }
+
+private_extern BRCryptoAddress
+cryptoAddressCreateAsGEN (BRGenericWalletManager gwm,
+    BRGenericAddress aid) {
+    BRCryptoAddress address = cryptoAddressCreate (BLOCK_CHAIN_TYPE_GEN);
+    address->u.gen.gwm = gwm;
+    address->u.gen.aid = aid;
+    return address;
+}
+
+private_extern BRGenericAddress
+cryptoAddressAsGEN (BRCryptoAddress address) {
+    assert (BLOCK_CHAIN_TYPE_GEN == address->type);
+    return address->u.gen.aid;
+}
+
 
 extern BRCryptoAddress
 cryptoAddressCreateFromStringAsETH (const char *ethAddress) {
@@ -103,7 +126,7 @@ cryptoAddressAsString (BRCryptoAddress address) {
         case BLOCK_CHAIN_TYPE_ETH:
             return addressGetEncodedString(address->u.eth, 1);
         case BLOCK_CHAIN_TYPE_GEN:
-            return strdup ("none");
+            return gwmAddressAsString (address->u.gen.gwm, address->u.gen.aid);
     }
 }
 
@@ -114,6 +137,8 @@ cryptoAddressIsIdentical (BRCryptoAddress a1,
                               (a1->type == a2->type &&
                                (a1->type == BLOCK_CHAIN_TYPE_BTC
                                 ? 0 == strcmp (a1->u.btc.s, a2->u.btc.s)
-                                : ETHEREUM_BOOLEAN_IS_TRUE (addressEqual (a1->u.eth, a2->u.eth)))));
+                                : ( a1->type == BLOCK_CHAIN_TYPE_ETH
+                                   ? ETHEREUM_BOOLEAN_IS_TRUE (addressEqual (a1->u.eth, a2->u.eth))
+                                   : gwmAddressEqual (a1->u.gen.gwm, a1->u.gen.aid, a2->u.gen.aid)))));
 }
 

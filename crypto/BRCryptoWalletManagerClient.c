@@ -47,6 +47,11 @@ typedef enum  {
     CWM_CALLBACK_TYPE_ETH_GET_TOKENS,
     CWM_CALLBACK_TYPE_ETH_GET_BLOCK_NUMBER,
     CWM_CALLBACK_TYPE_ETH_GET_NONCE,
+
+    CWM_CALLBACK_TYPE_GEN_GET_BLOCK_NUMBER,
+    CWM_CALLBACK_TYPE_GEN_GET_TRANSACTIONS,
+    CWM_CALLBACK_TYPE_GEN_SUBMIT_TRANSACTION,
+
 } BRCryptoCWMCallbackType;
 
 struct BRCryptoCWMClientCallbackStateRecord {
@@ -62,6 +67,14 @@ struct BRCryptoCWMClientCallbackStateRecord {
             BREthereumWallet wid;
             BREthereumTransfer tid;
         } ethWithTransaction;
+
+        struct {
+            BRGenericWallet wid;
+        } genWithWallet;
+        struct {
+            BRGenericWallet wid;
+            BRGenericTransfer tid;
+        } genWithTransaction;
     } u;
     int rid;
 };
@@ -1379,19 +1392,84 @@ cwmGetNonceAsETH (BREthereumClientContext context,
     cryptoWalletManagerGive (cwm);
 }
 
+// MARK: - GEN Callbacks
+
+static void
+cwmGetBlockNumberAsGEN (BRGenericClientContext context,
+                        BRGenericWalletManager manager,
+                        int rid) {
+    BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
+
+    BRCryptoCWMClientCallbackState callbackState = calloc (1, sizeof(struct BRCryptoCWMClientCallbackStateRecord));
+    callbackState->type = CWM_CALLBACK_TYPE_GEN_GET_BLOCK_NUMBER;
+    callbackState->rid = rid;
+
+    cwm->client.gen.funcGetBlockNumber (cwm->client.context, cwm, callbackState);
+
+    cryptoWalletManagerGive (cwm);
+}
+
+static void
+cwmGetTransactionsAsGEN (BRGenericClientContext context,
+                         BRGenericWalletManager manager,
+                         const char *address,
+                         uint64_t begBlockNumber,
+                         uint64_t endBlockNumber,
+                         int rid) {
+    BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
+
+    BRCryptoCWMClientCallbackState callbackState = calloc (1, sizeof(struct BRCryptoCWMClientCallbackStateRecord));
+    callbackState->type = CWM_CALLBACK_TYPE_GEN_GET_TRANSACTIONS;
+    callbackState->rid = rid;
+
+    cwm->client.gen.funcGetTransactions (cwm->client.context, cwm, callbackState, address, begBlockNumber, endBlockNumber);
+
+    cryptoWalletManagerGive (cwm);
+}
+
+static void
+cwmSubmitTransactionAsGEN (BRGenericClientContext context,
+                           BRGenericWalletManager manager,
+                           BRGenericWallet wallet,
+                           BRGenericTransfer transfer,
+                           int rid) {
+    BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
+
+    BRCryptoCWMClientCallbackState callbackState = calloc (1, sizeof(struct BRCryptoCWMClientCallbackStateRecord));
+    callbackState->type = CWM_CALLBACK_TYPE_GEN_SUBMIT_TRANSACTION;
+    callbackState->u.genWithTransaction.wid = wallet;
+    callbackState->u.genWithTransaction.tid = transfer;
+    callbackState->rid = rid;
+
+    BRGenericHash hash = gwmTransferGetHash (cwm->u.gen, transfer);
+    char *hashAsHex = genericHashAsString (hash);
+//    UInt256 txHash = UInt256Reverse (transaction->txHash);
+//    char *hashAsHex = encodeHexCreate (NULL, txHash.u8, sizeof(txHash.u8));
+
+
+    size_t txLength = 0; // BRTransactionSerialize (transaction, NULL, 0);
+    uint8_t *tx = calloc (txLength, sizeof(uint8_t));
+    // BRTransactionSerialize(transaction, tx, txLength);
+
+    cwm->client.gen.funcSubmitTransaction (cwm->client.context, cwm, callbackState, tx, txLength, hashAsHex);
+
+    free (hashAsHex);
+    cryptoWalletManagerGive (cwm);
+}
+
 // MARK: - Client Creation Functions
 
 extern BRWalletManagerClient
 cryptoWalletManagerClientCreateBTCClient (OwnershipKept BRCryptoWalletManager cwm) {
-        return (BRWalletManagerClient) {
-            cwm,
-            cwmGetBlockNumberAsBTC,
-            cwmGetTransactionsAsBTC,
-            cwmSubmitTransactionAsBTC,
-            cwmTransactionEventAsBTC,
-            cwmWalletEventAsBTC,
-            cwmWalletManagerEventAsBTC
-        };
+    return (BRWalletManagerClient) {
+        cwm,
+        cwmGetBlockNumberAsBTC,
+        cwmGetTransactionsAsBTC,
+        cwmSubmitTransactionAsBTC,
+        cwmTransactionEventAsBTC,
+        cwmWalletEventAsBTC,
+        cwmWalletManagerEventAsBTC
+    };
 }
 
 extern BREthereumClient
@@ -1419,19 +1497,44 @@ cryptoWalletManagerClientCreateETHClient (OwnershipKept BRCryptoWalletManager cw
     };
 }
 
+extern BRGenericClient
+cryptoWalletManagerClientCreateGENClient (BRCryptoWalletManager cwm) {
+    return (BRGenericClient) {
+        cwm,
+        cwmGetBlockNumberAsGEN,
+        cwmGetTransactionsAsGEN,
+        cwmSubmitTransactionAsGEN
+    };
+}
+
 /// MARK: - Announce Functions
 
 extern void
 cwmAnnounceGetBlockNumberSuccessAsInteger (OwnershipKept BRCryptoWalletManager cwm,
                                            OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
                                            uint64_t blockNumber) {
-    assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_BTC_GET_BLOCK_NUMBER == callbackState->type);
+    assert (cwm); assert (callbackState);
+    assert (CWM_CALLBACK_TYPE_BTC_GET_BLOCK_NUMBER == callbackState->type ||
+            CWM_CALLBACK_TYPE_GEN_GET_BLOCK_NUMBER == callbackState->type);
+
     cwm = cryptoWalletManagerTake (cwm);
 
-    bwmAnnounceBlockNumber (cwm->u.btc,
-                            callbackState->rid,
-                            blockNumber);
+    switch (callbackState->type) {
+        case CWM_CALLBACK_TYPE_BTC_GET_BLOCK_NUMBER:
+            bwmAnnounceBlockNumber (cwm->u.btc,
+                                    callbackState->rid,
+                                    blockNumber);
+            break;
 
+        case CWM_CALLBACK_TYPE_GEN_GET_BLOCK_NUMBER:
+            gwmAnnounceBlockNumber (cwm->u.gen,
+                                    callbackState->rid,
+                                    blockNumber);
+            break;
+
+        default:
+            break;
+    }
     cryptoWalletManagerGive (cwm);
     free (callbackState);
 }
@@ -1455,7 +1558,9 @@ extern void
 cwmAnnounceGetBlockNumberFailure (OwnershipKept BRCryptoWalletManager cwm,
                                   OwnershipGiven BRCryptoCWMClientCallbackState callbackState) {
     assert (cwm); assert (callbackState);
-    assert (CWM_CALLBACK_TYPE_BTC_GET_BLOCK_NUMBER == callbackState->type || CWM_CALLBACK_TYPE_ETH_GET_BLOCK_NUMBER == callbackState->type);
+    assert (CWM_CALLBACK_TYPE_BTC_GET_BLOCK_NUMBER == callbackState->type ||
+            CWM_CALLBACK_TYPE_ETH_GET_BLOCK_NUMBER == callbackState->type ||
+            CWM_CALLBACK_TYPE_GEN_GET_BLOCK_NUMBER == callbackState->type);
     free (callbackState);
 }
 
@@ -1527,14 +1632,43 @@ cwmAnnounceGetTransactionsItemETH (OwnershipKept BRCryptoWalletManager cwm,
                             isError);
 
     cryptoWalletManagerGive (cwm);
-    // don't free (callbackState);
+    // DON'T free (callbackState);
 }
+
+extern void
+cwmAnnounceGetTransactionsItemGEN (BRCryptoWalletManager cwm,
+                                   BRCryptoCWMClientCallbackState callbackState,
+                                   uint8_t *transaction,
+                                   size_t transactionLength,
+                                   uint64_t timestamp,
+                                   uint64_t blockHeight) {
+    assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_BTC_GET_TRANSACTIONS == callbackState->type);
+    cwm = cryptoWalletManagerTake (cwm);
+
+    // Fundamentally, the `transfer` must allow for determining the `wallet`
+    BRGenericTransfer transfer = gwmRecoverTransfer (cwm->u.gen, transaction, transactionLength);
+
+    // Announce to GWM.  Note: the equivalent BTC+ETH announce transaction is going to
+    // create BTC+ETH wallet manager + wallet + transfer events that we'll handle by incorporating
+    // the BTC+ETH transfer into 'crypto'.  However, GEN does not generate similar events.
+    //
+    // gwmAnnounceTransfer (cwm->u.gen, callbackState->rid, transfer);
+
+    cryptoWalletManagerHandleTransferGEN (cwm, transfer);
+
+    cryptoWalletManagerGive (cwm);
+    // DON'T free (callbackState);
+}
+
+
 extern void
 cwmAnnounceGetTransactionsComplete (OwnershipKept BRCryptoWalletManager cwm,
                                     OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
                                     BRCryptoBoolean success) {
     assert (cwm); assert (callbackState);
-    assert (CWM_CALLBACK_TYPE_BTC_GET_TRANSACTIONS == callbackState->type || CWM_CALLBACK_TYPE_ETH_GET_TRANSACTIONS == callbackState->type);
+    assert (CWM_CALLBACK_TYPE_BTC_GET_TRANSACTIONS == callbackState->type ||
+            CWM_CALLBACK_TYPE_ETH_GET_TRANSACTIONS == callbackState->type ||
+            CWM_CALLBACK_TYPE_GEN_GET_TRANSACTIONS == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
     if (CWM_CALLBACK_TYPE_BTC_GET_TRANSACTIONS == callbackState->type && BLOCK_CHAIN_TYPE_BTC == cwm->type) {
@@ -1546,6 +1680,12 @@ cwmAnnounceGetTransactionsComplete (OwnershipKept BRCryptoWalletManager cwm,
         ewmAnnounceTransactionComplete (cwm->u.eth,
                                         callbackState->rid,
                                         AS_ETHEREUM_BOOLEAN (success));
+
+    } else if (CWM_CALLBACK_TYPE_GEN_GET_TRANSACTIONS == callbackState->type && BLOCK_CHAIN_TYPE_GEN== cwm->type) {
+        gwmAnnounceTransferComplete (cwm->u.gen,
+                                     callbackState->rid,
+                                     CRYPTO_TRUE == success);
+
     } else {
         assert (0);
     }
@@ -1557,13 +1697,26 @@ cwmAnnounceGetTransactionsComplete (OwnershipKept BRCryptoWalletManager cwm,
 extern void
 cwmAnnounceSubmitTransferSuccess (OwnershipKept BRCryptoWalletManager cwm,
                                   OwnershipGiven BRCryptoCWMClientCallbackState callbackState) {
-    assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_BTC_SUBMIT_TRANSACTION == callbackState->type);
+    assert (cwm); assert (callbackState);
+    assert (CWM_CALLBACK_TYPE_BTC_SUBMIT_TRANSACTION == callbackState->type ||
+            CWM_CALLBACK_TYPE_GEN_SUBMIT_TRANSACTION == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
+    // TODO(fix): What is the memory management story for this transaction?
+
+    if (CWM_CALLBACK_TYPE_BTC_SUBMIT_TRANSACTION == callbackState->type && BLOCK_CHAIN_TYPE_BTC == cwm->type) {
     bwmAnnounceSubmit (cwm->u.btc,
                        callbackState->rid,
                        callbackState->u.btcSubmit.transaction,
                        0);
+    }
+
+    else if (CWM_CALLBACK_TYPE_GEN_SUBMIT_TRANSACTION == callbackState->type && BLOCK_CHAIN_TYPE_GEN == cwm->type) {
+        gwmAnnounceSubmit (cwm->u.gen,
+                           callbackState->rid,
+                           callbackState->u.genWithTransaction.tid,
+                           0);
+    }
 
     cryptoWalletManagerGive (cwm);
     free (callbackState);
@@ -1592,7 +1745,9 @@ extern void
 cwmAnnounceSubmitTransferFailure (OwnershipKept BRCryptoWalletManager cwm,
                                   OwnershipGiven BRCryptoCWMClientCallbackState callbackState) {
     assert (cwm); assert (callbackState);
-    assert (CWM_CALLBACK_TYPE_BTC_SUBMIT_TRANSACTION == callbackState->type || CWM_CALLBACK_TYPE_ETH_SUBMIT_TRANSACTION == callbackState->type);
+    assert (CWM_CALLBACK_TYPE_BTC_SUBMIT_TRANSACTION == callbackState->type ||
+            CWM_CALLBACK_TYPE_ETH_SUBMIT_TRANSACTION == callbackState->type ||
+            CWM_CALLBACK_TYPE_GEN_SUBMIT_TRANSACTION == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
     if (CWM_CALLBACK_TYPE_BTC_SUBMIT_TRANSACTION == callbackState->type && BLOCK_CHAIN_TYPE_BTC == cwm->type) {
@@ -1610,6 +1765,13 @@ cwmAnnounceSubmitTransferFailure (OwnershipKept BRCryptoWalletManager cwm,
                                    0,
                                    "unknown failure",
                                    callbackState->rid);
+
+    } else if (CWM_CALLBACK_TYPE_GEN_SUBMIT_TRANSACTION == callbackState->type && BLOCK_CHAIN_TYPE_GEN == cwm->type) {
+        gwmAnnounceSubmit (cwm->u.gen,
+                           callbackState->rid,
+                           callbackState->u.genWithTransaction.tid,
+                           1);
+
     } else {
         assert (0);
     }

@@ -931,7 +931,69 @@ extension WalletManager {
 
 extension WalletManager {
     internal var clientGEN: BRCryptoCWMClientGEN {
-        return BRCryptoCWMClientGEN ()
+        return BRCryptoCWMClientGEN (
+            funcGetBlockNumber: { (context, cwm, sid) in
+                let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                precondition (nil != cwm, "SYS: GEN: GetBlockNumber: Missed {gwm}")
+
+                print ("SYS: GEN: GetBlockNumber")
+                manager.query.getBlockchain (blockchainId: manager.network.uids) {
+                    (res: Result<BlockChainDB.Model.Blockchain, BlockChainDB.QueryError>) in
+                    res.resolve (
+                        success: { cwmAnnounceGetBlockNumberSuccessAsInteger (cwm, sid, $0.blockHeight) },
+                        failure: { (_) in cwmAnnounceGetBlockNumberFailure (cwm, sid) })
+                }},
+
+            funcGetTransactions: { (context, cwm, sid, address, begBlockNumber, endBlockNumber) in
+                let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                precondition (nil != cwm, "SYS: GEN: GetTransaction: Missed {bid}")
+
+                print ("SYS: GEN: GetTransactions: Blocks: {\(begBlockNumber), \(endBlockNumber)}")
+
+                manager.query.getTransactions (blockchainId: manager.network.uids,
+                                               addresses: [asUTF8String(address!)],
+                                               begBlockNumber: begBlockNumber,
+                                               endBlockNumber: endBlockNumber,
+                                               includeRaw: true) {
+                                                (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
+                                                res.resolve(
+                                                    success: {
+                                                        $0.forEach { (model: BlockChainDB.Model.Transaction) in
+                                                            let timestamp = model.timestamp.map { UInt64 ($0.timeIntervalSince1970) } ?? 0
+                                                            let height    = model.blockHeight ?? 0
+
+                                                            if var data = model.raw {
+                                                                let bytesCount = data.count
+                                                                data.withUnsafeMutableBytes { (bytes: UnsafeMutableRawBufferPointer) -> Void in
+                                                                    let bytesAsUInt8 = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+                                                                    cwmAnnounceGetTransactionsItemGEN (cwm, sid,
+                                                                                                       bytesAsUInt8,
+                                                                                                       bytesCount,
+                                                                                                       timestamp,
+                                                                                                       height)
+                                                                }
+                                                            }
+                                                        }
+                                                        cwmAnnounceGetTransactionsComplete (cwm, sid, CRYPTO_TRUE) },
+                                                    failure: { (_) in cwmAnnounceGetTransactionsComplete (cwm, sid, CRYPTO_FALSE) })
+
+                }},
+
+            funcSubmitTransaction: { (context, cwm, sid, transactionBytes, transactionBytesLength, hashAsHex) in
+                let manager = Unmanaged<WalletManager>.fromOpaque(context!).takeUnretainedValue()
+                precondition (nil != cwm, "SYS: GEN: SubmitTransaction: Missed {cwm}")
+
+                print ("SYS: GEN: SubmitTransaction")
+                let hash = asUTF8String (hashAsHex!)
+                let data = Data (bytes: transactionBytes!, count: transactionBytesLength)
+                manager.query.createTransaction (blockchainId: manager.network.uids, hashAsHex: hash, transaction: data) {
+                    (res: Result<Void, BlockChainDB.QueryError>) in
+                    defer { cryptoWalletManagerGive (cwm!) }
+                    res.resolve(
+                        success: { (_) in cwmAnnounceSubmitTransferSuccess (cwm, sid) },
+                        failure: { (_) in cwmAnnounceSubmitTransferFailure (cwm, sid) })
+                }
+        })
     }
 }
 

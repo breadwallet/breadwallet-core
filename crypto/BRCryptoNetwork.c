@@ -67,6 +67,7 @@ struct BRCryptoNetworkRecord {
         } eth;
 
         struct {
+            // TODO: TBD
         } gen;
     } u;
     BRCryptoRef ref;
@@ -188,6 +189,7 @@ cryptoNetworkIsMainnet (BRCryptoNetwork network) {
         case BLOCK_CHAIN_TYPE_ETH:
             return AS_CRYPTO_BOOLEAN (network->u.eth.net == ethereumMainnet);
         case BLOCK_CHAIN_TYPE_GEN:
+            // TODO:
             return CRYPTO_TRUE;
     }
 }
@@ -209,6 +211,11 @@ cryptoNetworkGetCurrency (BRCryptoNetwork network) {
     BRCryptoCurrency currency = cryptoCurrencyTake (network->currency);
     pthread_mutex_unlock (&network->lock);
     return currency;
+}
+
+extern const char *
+cryptoNetworkGetCurrencyCode (BRCryptoNetwork network) {
+    return cryptoCurrencyGetCode (network->currency);
 }
 
 private_extern void
@@ -383,6 +390,12 @@ private_extern const BRChainParams *
 cryptoNetworkAsBTC (BRCryptoNetwork network) {
     assert (BLOCK_CHAIN_TYPE_BTC == network->type);
     return network->u.btc.params;
+}
+
+private_extern void *
+cryptoNetworkAsGEN (BRCryptoNetwork network) {
+    assert (BLOCK_CHAIN_TYPE_GEN == network->type);
+    return NULL;
 }
 
 private_extern BRCryptoBlockChainType

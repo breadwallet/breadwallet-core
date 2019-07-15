@@ -13,6 +13,7 @@
 
 #include "BRRippleBase.h"
 #include "BRKey.h"
+#include "support/BRSet.h"
 
 typedef struct BRRippleTransactionRecord *BRRippleTransaction;
 
@@ -113,4 +114,5 @@ extern BRRippleDestinationTag rippleTransactionGetDestinationTag(BRRippleTransac
 
 extern BRRippleAmount rippleTransactionGetAmountRaw(BRRippleTransaction transaction, BRRippleAmountType amountType);
 
+extern BRSetOf(BRRippleTransaction) rippleTransactionSetCreate (size_t initialSize);
 #endif

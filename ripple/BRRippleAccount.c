@@ -16,6 +16,7 @@
 #include "support/BRKey.h"
 #include "support/BRBIP32Sequence.h"
 #include "support/BRBIP39WordsEn.h"
+#include "ethereum/util/BRUtilHex.h"
 #include "BRRipple.h"
 #include "BRRippleBase.h"
 #include "BRRippleAccount.h"
@@ -173,6 +174,12 @@ extern BRRippleAccount rippleAccountCreateWithKey(BRKey key)
     return createAccountObject(&key);
 }
 
+extern BRRippleAccount rippleAccountCreateWithSerialization (uint8_t *bytes, size_t bytesCount) {
+    BRKey key;
+    BRKeySetPubKey(&key, bytes, bytesCount);
+    return createAccountObject(&key);
+}
+
 extern void rippleAccountSetSequence(BRRippleAccount account, BRRippleSequence sequence)
 {
     assert(account);
@@ -191,6 +198,14 @@ extern BRRippleAddress rippleAccountGetAddress(BRRippleAccount account)
     BRRippleAddress address;
     memcpy(address.bytes, account->raw.bytes, sizeof(address.bytes));
     return(address);
+}
+
+extern uint8_t *rippleAccountGetSerialization (BRRippleAccount account, size_t *bytesCount) {
+    assert (NULL != bytesCount);
+    *bytesCount = BRKeyPubKey (&account->publicKey, NULL, 0);
+    uint8_t *bytes = calloc (1, *bytesCount);
+    BRKeyPubKey(&account->publicKey, bytes, (uint32_t) &bytesCount);
+    return bytes;
 }
 
 extern int rippleAccountGetAddressString(BRRippleAccount account, char * rippleAddress, int length)
@@ -315,3 +330,9 @@ extern int // 1 if equal
 rippleAddressEqual (BRRippleAddress a1, BRRippleAddress a2) {
     return 0 == memcmp (a1.bytes, a2.bytes, 20);
 }
+
+extern char *
+rippleAddressAsString (BRRippleAddress address) {
+    return createRippleAddressString(address, 1);
+}
+

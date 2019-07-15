@@ -255,6 +255,7 @@ public class BlockChainDB {
             (id: "bitcoin-mainnet",       name: "Bitcoin",       network: "mainnet", isMainnet: true,  currency: "btc", blockHeight:  654321, feeEstimates: []),
             (id: "bitcoin-cash-mainnet",  name: "Bitcoin Cash",  network: "mainnet", isMainnet: true,  currency: "bch", blockHeight: 1000000, feeEstimates: []),
             (id: "ethereum-mainnet",      name: "Ethereum",      network: "mainnet", isMainnet: true,  currency: "eth", blockHeight: 8000000, feeEstimates: []),
+            (id: "ripple-mainnet",   name: "Ripple",   network: "mainnet", isMainnet: true,  currency: "xrp", blockHeight: 5000000, feeEstimates: []),
 
             // Testnet
             (id: "bitcoin-testnet",       name: "Bitcoin Test",      network: "testnet", isMainnet: false, currency: "btc", blockHeight:  900000, feeEstimates: []),
@@ -339,6 +340,10 @@ public class BlockChainDB {
             (id: "EOS Token", name: "EOS Token", code: "EOS", type: "erc20", blockchainID: "ethereum-mainnet", address: "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0",
              demoninations: [(name: "EOS_INTEGER",   code: "EOSI",  decimals:  0, symbol: "eosi"),
                              (name: "EOS",           code: "EOS",   decimals: 18, symbol: "eos")]),
+
+            (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-mainnet", address: nil,
+             demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
+                             (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
 
             // Testnet
             (id: "Bitcoin-Testnet", name: "Bitcoin", code: "btc", type: "native", blockchainID: "bitcoin-testnet", address: nil,
