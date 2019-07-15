@@ -57,6 +57,7 @@ extern UInt512 getSeed(const char *paperKey)
 extern BRKey deriveRippleKeyFromSeed (UInt512 seed, uint32_t index)
 {
     BRKey privateKey;
+    mem_clean(&privateKey, sizeof(BRKey));
     
     // The BIP32 privateKey for m/44'/60'/0'/0/index
     BRBIP32PrivKeyPath(&privateKey, &seed, sizeof(UInt512), 5,
@@ -65,9 +66,7 @@ extern BRKey deriveRippleKeyFromSeed (UInt512 seed, uint32_t index)
                        0 | BIP32_HARD,          // account  : <n/a>
                        0,                        // change   : not change
                        index);                   // index    :
-    
-    privateKey.compressed = 0;
-    
+
     return privateKey;
 }
 
@@ -126,6 +125,7 @@ BRKey getKey(const char* paperKey)
         return deriveRippleKeyFromSeed (seed, 0);
     } else {
         BRKey key;
+        mem_clean(&key, sizeof(key));
         BRKeySetPrivKey(&key, paperKey);
         return key;
     }
@@ -139,15 +139,24 @@ static BRRippleAccount createAccountObject(BRKey * key)
     // Take a copy of the key since we are changing at least once property
     BRKey tmpKey = *key;
 
-    // Get the public key and store with the account object
-    tmpKey.compressed = 1;
-    uint8_t pubkey[33];
-    BRKeyPubKey(&tmpKey, pubkey, 33);
-    memcpy(account->publicKey.pubKey, pubkey, 33);
-    account->publicKey.compressed = 1;
+    // Is this a private or public key
+    if (tmpKey.pubKey[0] == 0x03 ||
+        tmpKey.pubKey[0] == 0x02) {
+        // Looks like we have a valid compressed public key here
+        // Just copy the key as is to our publicKey member
+        account->publicKey = tmpKey;
+        account->publicKey.compressed = 1;
+    } else {
+        // Generate the public key from the secret
+        tmpKey.compressed = 1;
+        uint8_t pubkey[33];
+        BRKeyPubKey(&tmpKey, pubkey, 33);
+        memcpy(account->publicKey.pubKey, pubkey, 33);
+        account->publicKey.compressed = 1;
+    }
 
     // Create the raw bytes for the 20 byte account id
-    UInt160 hash = BRKeyHash160(&tmpKey);
+    UInt160 hash = BRKeyHash160(&account->publicKey);
     memcpy(account->raw.bytes, hash.u8, 20);
 
     return account;
@@ -175,6 +184,8 @@ extern BRRippleAccount rippleAccountCreateWithKey(BRKey key)
 }
 
 extern BRRippleAccount rippleAccountCreateWithSerialization (uint8_t *bytes, size_t bytesCount) {
+    assert(bytesCount == 33);
+    assert(bytes);
     BRKey key;
     BRKeySetPubKey(&key, bytes, bytesCount);
     return createAccountObject(&key);
@@ -202,9 +213,16 @@ extern BRRippleAddress rippleAccountGetAddress(BRRippleAccount account)
 
 extern uint8_t *rippleAccountGetSerialization (BRRippleAccount account, size_t *bytesCount) {
     assert (NULL != bytesCount);
-    *bytesCount = BRKeyPubKey (&account->publicKey, NULL, 0);
+    assert (NULL != account);
+
+    // Copy the public key bytes to the caller.
+    if (account->publicKey.compressed) {
+        *bytesCount = 33; // This should always be the case
+    } else {
+        *bytesCount = 65; // but just in case
+    }
     uint8_t *bytes = calloc (1, *bytesCount);
-    BRKeyPubKey(&account->publicKey, bytes, (uint32_t) &bytesCount);
+    memcpy(bytes, account->publicKey.pubKey, *bytesCount);
     return bytes;
 }
 
