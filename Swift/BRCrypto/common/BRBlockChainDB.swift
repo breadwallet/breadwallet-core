@@ -797,6 +797,8 @@ public class BlockChainDB {
 
     // Transactions
 
+    static let ADDRESS_COUNT = 50
+
     public func getTransactions (blockchainId: String,
                                  addresses: [String],
                                  begBlockNumber: UInt64 = 0,
@@ -807,47 +809,50 @@ public class BlockChainDB {
         // This query could overrun the endpoint's page size (typically 5,000).  If so, we'll need
         // to repeat the request for the next batch.
         self.queue.async {
-            let queryKeys = ["blockchain_id", "start_height", "end_height", "include_proof", "include_raw"]
-                + Array (repeating: "address", count: addresses.count)
-
-            var queryVals = [blockchainId, "0", "0", includeProof.description, includeRaw.description]
-                + addresses
-
-            let semaphore = DispatchSemaphore (value: 0)
-
-//            var moreResults = false
-            var begBlockNumber = begBlockNumber
-
             var error: QueryError? = nil
             var results = [Model.Transaction]()
 
-            for begHeight in stride (from: begBlockNumber, to: endBlockNumber, by: 5000) {
-                queryVals[1] = begHeight.description
-                queryVals[2] = min (begHeight + 5000, endBlockNumber).description
+            for addresses in addresses.chunked(into: BlockChainDB.ADDRESS_COUNT) {
+                if nil != error { break }
+                let queryKeys = ["blockchain_id", "start_height", "end_height", "include_proof", "include_raw"]
+                    + Array (repeating: "address", count: addresses.count)
 
-                //                moreResults = false
+                var queryVals = [blockchainId, "0", "0", includeProof.description, includeRaw.description]
+                    + addresses
 
-                self.bdbMakeRequest (path: "transactions", query: zip (queryKeys, queryVals)) {
-                    (more: Bool, res: Result<[JSON], QueryError>) in
-                    // Flag if `more`
-//                    moreResults = more
+                let semaphore = DispatchSemaphore (value: 0)
 
-                    // Append `transactions` with the resulting transactions.
-                    results += try! res
-                        .flatMap { BlockChainDB.getManyExpected(data: $0, transform: Model.asTransaction) }
-                        .recover { error = $0; return [] }.get()
+                //            var moreResults = false
+                var begBlockNumber = begBlockNumber
 
-                    if more && nil == error {
-                        begBlockNumber = results.reduce(0) {
-                            max ($0, ($1.blockHeight ?? 0))
+                for begHeight in stride (from: begBlockNumber, to: endBlockNumber, by: 5000) {
+                    if nil != error { break }
+                    queryVals[1] = begHeight.description
+                    queryVals[2] = min (begHeight + 5000, endBlockNumber).description
+
+                    //                moreResults = false
+
+                    self.bdbMakeRequest (path: "transactions", query: zip (queryKeys, queryVals)) {
+                        (more: Bool, res: Result<[JSON], QueryError>) in
+                        // Flag if `more`
+                        //                    moreResults = more
+
+                        // Append `transactions` with the resulting transactions.
+                        results += try! res
+                            .flatMap { BlockChainDB.getManyExpected(data: $0, transform: Model.asTransaction) }
+                            .recover { error = $0; return [] }.get()
+
+                        if more && nil == error {
+                            begBlockNumber = results.reduce(0) {
+                                max ($0, ($1.blockHeight ?? 0))
+                            }
                         }
+
+                        semaphore.signal()
                     }
 
-                    semaphore.signal()
+                    semaphore.wait()
                 }
-
-                semaphore.wait()
-                if nil != error { break }
             }
 
             completion (nil == error
