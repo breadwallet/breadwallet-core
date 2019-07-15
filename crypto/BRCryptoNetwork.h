@@ -26,14 +26,39 @@
 #ifndef BRCryptoNetwork_h
 #define BRCryptoNetwork_h
 
-#include "BRCryptoCurrency.h"
-#include "BRCryptoUnit.h"
+#include "BRCryptoAmount.h"
 
 #include "../support/BRArray.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+    /**
+     *
+     */
+    typedef struct BRCryptoNetworkFeeRecord *BRCryptoNetworkFee;
+
+    /**
+     * The estimated time to confirm a transfer for this network fee
+     *
+     * @param networkFee the network fee
+     *
+     * @return time in milliseconds
+     */
+    extern uint64_t
+    cryptoNetworkFeeGetConfirmationTimeInMilliseconds (BRCryptoNetworkFee networkFee);
+
+    extern BRCryptoAmount
+    cryptoNetworkFeeGetPricePerCostFactor (BRCryptoNetworkFee networkFee);
+
+    extern BRCryptoUnit
+    cryptoNetworkFeeGetPricePerCostFactorUnit (BRCryptoNetworkFee networkFee);
+
+    extern BRCryptoBoolean
+    cryptoNetworkEqual (BRCryptoNetworkFee nf1, BRCryptoNetworkFee nf2);
+
+    DECLARE_CRYPTO_GIVE_TAKE (BRCryptoNetworkFee, cryptoNetworkFee);
 
     /**
      * A Crypto Network represents a Blockchain.  The blockchains are determined from the
@@ -197,6 +222,13 @@ extern "C" {
     cryptoNetworkGetUnitAt (BRCryptoNetwork network,
                             BRCryptoCurrency currency,
                             size_t index);
+
+    extern size_t
+    cryptoNetworkGetNetworkFeeCount (BRCryptoNetwork network);
+
+    extern BRCryptoNetworkFee
+    cryptoNetworkGetNetworkFeeAt (BRCryptoNetwork network,
+                                  size_t index);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoNetwork, cryptoNetwork);
 

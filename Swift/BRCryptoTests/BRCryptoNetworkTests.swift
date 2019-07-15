@@ -29,12 +29,16 @@ class BRCryptoNetworkTests: XCTestCase {
                                                 defaultUnit: BTC_BTC,
                                                 units: Set (arrayLiteral: BTC_SATOSHI, BTC_BTC))
 
+        let fee = NetworkFee (timeInternalInMilliseconds: 30 * 1000,
+                              pricePerCostFactor: Amount.create(integer: 1000, unit: BTC_SATOSHI))
+
         let network = Network (uids: "bitcoin-mainnet",
                                name: "bitcoin-name",
                                isMainnet: true,
                                currency: btc,
                                height: 100000,
-                               associations: [btc:associations])
+                               associations: [btc:associations],
+                               fees: [fee])
 
         XCTAssertEqual (network.uids, "bitcoin-mainnet")
         XCTAssertEqual (network.name, "bitcoin-name")
@@ -65,6 +69,8 @@ class BRCryptoNetworkTests: XCTestCase {
         XCTAssertFalse (network.hasUnitFor(currency: eth, unit: ETH_WEI) ?? false)
         XCTAssertFalse (network.hasUnitFor(currency: eth, unit: BTC_BTC) ?? false)
         XCTAssertFalse (network.hasUnitFor(currency: btc, unit: ETH_WEI) ?? false)
+
+        XCTAssertEqual(1, network.fees.count)
     }
 
     func testNetworkETH () {
@@ -84,7 +90,8 @@ class BRCryptoNetworkTests: XCTestCase {
                                isMainnet: true,
                                currency: eth,
                                height: 100000,
-                               associations: [eth:associations])
+                               associations: [eth:associations],
+                               fees: [])
 
         XCTAssertTrue  (network.hasCurrency(eth))
         XCTAssertFalse (network.hasCurrency(btc))

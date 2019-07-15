@@ -109,6 +109,8 @@ public final class WalletManager: Equatable {
                           take: true))
     }
 
+    public var defaultNetworkFee: NetworkFee? = nil
+
     /// The default WalletFactory for creating wallets.
     //    var walletFactory: WalletFactory { get set }
 

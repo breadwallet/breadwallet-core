@@ -50,7 +50,8 @@ class BRCryptoAccountTests: XCTestCase {
                                isMainnet: true,
                                currency: eth,
                                height: 100000,
-                               associations: [:])
+                               associations: [:],
+                               fees: [])
 
         let e1 = Address.create (string: "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", network: network)
         let e2 = Address.create (string: "0xd3CFBA03Fc13dc01F0C67B88CBEbE776D8F3DE8f", network: network)
@@ -78,7 +79,8 @@ class BRCryptoAccountTests: XCTestCase {
                                isMainnet: true,
                                currency: btc,
                                height: 100000,
-                               associations: [:])
+                               associations: [:],
+                               fees: [])
 
         let b1 = Address.create (string: "1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj", network: network)
 
