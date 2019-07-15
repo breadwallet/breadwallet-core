@@ -46,9 +46,9 @@ rippleAccountCreateWithKey(BRKey key);
 /**
  * Create a Ripple account object from a (prior) serialization of the account
  *
- * @param bytes
- * @param bytesCount
- * @return account
+ * @param bytes        raw bytes created from a previous serialization of the account
+ * @param bytesCount   number of raw bytes
+ * @return account     created account
  */
 extern BRRippleAccount
 rippleAccountCreateWithSerialization (uint8_t *bytes, size_t bytesCount);
@@ -102,7 +102,17 @@ rippleAccountSignTransaction(BRRippleAccount account, BRRippleTransaction transa
 extern BRRippleAddress
 rippleAccountGetAddress(BRRippleAccount account);
 
-// Serialize `account`; return `bytes` and set `bytesCount`
+/*
+ * Serialize the account and return a pointer to bytes
+ *
+ * The serialized account will simply be the uncompressed public key in this form
+ * <0x04><64 bytes of public key>
+ *
+ * @param account        handle of a valid account object
+ * @param bytesCount     pointer to where the size is stored
+ *
+ * @return bytes         pointer to raw bytes of serialized account
+ */
 extern uint8_t *
 rippleAccountGetSerialization (BRRippleAccount account, size_t *bytesCount);
 

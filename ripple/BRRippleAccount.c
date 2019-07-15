@@ -175,9 +175,13 @@ extern BRRippleAccount rippleAccountCreateWithKey(BRKey key)
 }
 
 extern BRRippleAccount rippleAccountCreateWithSerialization (uint8_t *bytes, size_t bytesCount) {
-    BRKey key;
-    BRKeySetPubKey(&key, bytes, bytesCount);
-    return createAccountObject(&key);
+    BRRippleAccount account = (BRRippleAccount) calloc (1, sizeof (struct BRRippleAccountRecord));
+    // Take the bytes and create our public key - the following function can handle
+    // compressed AND uncompressed input and can return either compressed or uncompressed output
+    BRKeySetPubKeyEx(&account->publicKey, bytes, bytesCount, 1);
+    UInt160 hash = BRKeyHash160(&account->publicKey); // Generate the 20-byte Ripple Account ID
+    memcpy(account->raw.bytes, hash.u8, 20);
+    return account;
 }
 
 extern void rippleAccountSetSequence(BRRippleAccount account, BRRippleSequence sequence)
@@ -202,9 +206,19 @@ extern BRRippleAddress rippleAccountGetAddress(BRRippleAccount account)
 
 extern uint8_t *rippleAccountGetSerialization (BRRippleAccount account, size_t *bytesCount) {
     assert (NULL != bytesCount);
-    *bytesCount = BRKeyPubKey (&account->publicKey, NULL, 0);
+
+    // We should be storing our public key as compressed - so we will
+    // need to convert it to uncompressed
+    size_t keySize = BRKeyPubKey (&account->publicKey, NULL, 0); // should be 33
+    BRKey uncompressedKey;
+    BRKeySetPubKeyEx(&uncompressedKey, account->publicKey.pubKey, keySize, 0);
+
+    // Now get the size of the uncompress - should be 65 - and copy the bytes
+    // to our allocated buffer
+    *bytesCount = BRKeyPubKey (&uncompressedKey, NULL, 0);
     uint8_t *bytes = calloc (1, *bytesCount);
-    BRKeyPubKey(&account->publicKey, bytes, (uint32_t) &bytesCount);
+    memcpy(bytes, uncompressedKey.pubKey, *bytesCount);
+
     return bytes;
 }
 

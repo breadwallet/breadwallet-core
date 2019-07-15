@@ -43,6 +43,16 @@ void hex2bin(const char* src, uint8_t * target)
     }
 }
 
+static void printBytes(const char* message, uint8_t * bytes, size_t byteSize)
+{
+    if (message) printf("%s\n", message);
+    for(int i = 0; i < byteSize; i++) {
+        if (i >= 0 && i % 8 == 0) printf("\n");
+        printf("%02X ", bytes[i]);
+    }
+    printf("\n");
+}
+
 static BRRippleAccount createTestRippleAccount(const char* paper_key,
                                            const char* expected_account_address)
 {
@@ -211,6 +221,52 @@ testCreateRippleAccountWithKey (void /* ... */) {
     assert(0 == strcmp(rippleAddress, expected_accountid_string));
 
     rippleAccountFree(account);
+}
+
+static void
+testCreateRippleAccountWithSerializedBytes (void /* ... */) {
+    const char * paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
+    // The above set of words should produce the following Ripple account address
+    // string: r41vZ8exoVyUfVzs56yeN8xB5gDhSkho9a
+    const char* expected_accountid_string = "r41vZ8exoVyUfVzs56yeN8xB5gDhSkho9a";
+    
+    // Use the above paper key to create a seed value
+    UInt512 seed = UINT512_ZERO;
+    BRBIP39DeriveKey(seed.u8, paper_key, NULL); // no passphrase
+    
+    // Create the private key from the seed
+    BRKey privateKey;
+    // The BIP32 privateKey for m/44'/60'/0'/0/index
+    BRBIP32PrivKeyPath(&privateKey, &seed, sizeof(UInt512), 5,
+                       44 | BIP32_HARD,          // purpose  : BIP-44
+                       144 | BIP32_HARD,        // coin_type: Ripple
+                       0 | BIP32_HARD,          // account  : <n/a>
+                       0,                        // change   : not change
+                       0);                   // index    :
+    
+    privateKey.compressed = 0;
+    
+    // If we pass the expected_accountid_string to this function it will validate for us
+    BRRippleAccount account = rippleAccountCreateWithKey(privateKey);
+    assert(account);
+    
+    // Get the 20 bytes that were created for the account
+    char rippleAddress[36];
+    rippleAccountGetAddressString(account, rippleAddress, 36);
+    assert(0 == strcmp(rippleAddress, expected_accountid_string));
+    
+    size_t bytesCount = 0;
+    uint8_t * serializedAccount = rippleAccountGetSerialization (account, &bytesCount);
+    BRRippleAccount account2 = rippleAccountCreateWithSerialization(serializedAccount, bytesCount);
+    char rippleAddress2[36];
+    // 032BE3CEE576036F9076596FC4F8D4A2A057F8F86548C0980E021316072FEDA2D3
+    // 042be3cee576036f9076596fc4f8d4a2a057f8f86548c0980e021316072feda2d35155080edffde4ce517ac8b25277494c86269bc1c7d851b276b120fe6dfd6aab
+    rippleAccountGetAddressString(account2, rippleAddress2, 36);
+    assert(0 == strcmp(rippleAddress2, expected_accountid_string));
+
+    rippleAccountFree(account);
+    rippleAccountFree(account2);
+    free(serializedAccount);
 }
 
 static void getAccountInfo(const char* paper_key, const char* ripple_address) {
@@ -634,6 +690,7 @@ void rippleAccountTests()
     testCreateRippleAccountWithPaperKey();
     testCreateRippleAccountWithSeed();
     testCreateRippleAccountWithKey();
+    testCreateRippleAccountWithSerializedBytes();
     testRippleAddressCreate();
     testRippleAddressEqual();
 }

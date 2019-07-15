@@ -261,6 +261,37 @@ int BRKeySetPubKey(BRKey *key, const uint8_t *pubKey, size_t pkLen)
     return secp256k1_ec_pubkey_parse(_ctx, &pk, key->pubKey, pkLen);
 }
 
+// assigns DER encoded pubKey to key and convert to compressed/uncompressed
+int BRKeySetPubKeyEx(BRKey *key, const uint8_t *pubKey, size_t pkLen, int compress )
+{
+    secp256k1_pubkey pk;
+    
+    assert(key != NULL);
+    assert(pubKey != NULL);
+    assert(pkLen == 33 || pkLen == 65);
+    
+    pthread_once(&_ctx_once, _ctx_init);
+    BRKeyClean(key);
+    memcpy(key->pubKey, pubKey, pkLen);
+    key->compressed = (pkLen <= 33);
+    // Parse the key and then serialize the public key based on the user input
+    if (secp256k1_ec_pubkey_parse(_ctx, &pk, key->pubKey, pkLen)) {
+        printf("key bytes: %x %x", key->pubKey[0], key->pubKey[1]);
+        // Success - now optionally convert to proper compression
+        if (key->compressed == compress) {
+            return 1; // Nothing to do here - key is in proper format
+        } else {
+            // Compress or uncompress
+            size_t outputLen = compress ? 33 : 65;
+            int ret = secp256k1_ec_pubkey_serialize(_ctx, (unsigned char *)key->pubKey, &outputLen, &pk,
+                                                    compress ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED);
+            key->compressed = compress;
+            return ret;
+        }
+    }
+    return 0;
+}
+
 // writes the WIF private key to privKey and returns the number of bytes writen, or pkLen needed if privKey is NULL
 // returns 0 on failure
 size_t BRKeyPrivKey(const BRKey *key, char *privKey, size_t pkLen)
