@@ -304,7 +304,7 @@ extension Amount: Comparable {
 
 extension Amount: CustomStringConvertible {
     public var description: String {
-        return "\(self.double?.description ?? "<nan>") \(self.currency.symbol)"
+        return "\(self.double?.description ?? "<nan>") \(self.unit.symbol)"
     }
 }
 

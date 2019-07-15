@@ -1584,8 +1584,9 @@ ewmHandleBalance (BREthereumEWM ewm,
             char *amountAsString = (AMOUNT_ETHER == amountGetType(amount)
                                     ? etherGetValueString (amountGetEther(amount), WEI)
                                     : tokenQuantityGetValueString (amountGetTokenQuantity(amount), TOKEN_QUANTITY_TYPE_INTEGER));
-            eth_log("EWM", "Balance: %s %s", amountAsString,
-                    (AMOUNT_ETHER == amountGetType(amount) ? "ETH" : tokenGetName(amountGetToken(amount))));
+            eth_log("EWM", "Balance: %s %s (%s)", amountAsString,
+                    (AMOUNT_ETHER == amountGetType(amount) ? "ETH" : tokenGetName(amountGetToken(amount))),
+                    (AMOUNT_ETHER == amountGetType(amount) ? "WEI"    : "INTEGER"));
             free (amountAsString);
         }
     }

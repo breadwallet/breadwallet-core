@@ -1093,8 +1093,9 @@ lesThreadBootstrapSeeds (BREthereumLES les) {
 #if defined (LES_BOOTSTRAP_LCL_ONLY)
         { NODE_TYPE_PARITY,  NODE_PRIORITY_LCL, networkGetEnodesLocal (les->network, 1) },
         { NODE_TYPE_GETH,    NODE_PRIORITY_LCL, networkGetEnodesLocal (les->network, 0) },
-#else
+#elif defined (LES_BOOTSTRAP_BRD_ONLY)
         { NODE_TYPE_UNKNOWN, NODE_PRIORITY_BRD, networkGetEnodesBRD (les->network) },
+#else
         { NODE_TYPE_UNKNOWN, NODE_PRIORITY_DIS, networkGetEnodesCommunity (les->network) },
 #endif
         { NODE_TYPE_UNKNOWN, NODE_PRIORITY_DIS, NULL }
@@ -1229,6 +1230,12 @@ lesThread (BREthereumLES les) {
                                             ? ACTIVE_NODE (nodeRef)
                                             : (BREthereumNode) les->requests[index].nodeReference);
 #undef ACTIVE_NODE
+
+                // If `nodeToUse` is NULL, then there may be no active nodes.  We'll leave the
+                // request unchanged and thus will come back to handling the request once we have
+                // some active nodes.
+                //
+                // TODO: Consider a timeout on a request beging handled?
 
                 if (NULL != nodeToUse && nodeHasState (nodeToUse, NODE_ROUTE_TCP, NODE_CONNECTED)) {
 
@@ -1434,6 +1441,10 @@ lesThread (BREthereumLES les) {
                 array_count(les->availableNodes) > 0) {
                 BREthereumNode node = les->availableNodes[0];
 
+                // This blocks on Unix connect() and then loops on select() for EINPROGRESS.
+                // Really, really we need NODE_CONNECT_OPEN_SOCKET_IN_PROGRESS with a small
+                // timeout on connect().
+                
                 nodeConnect (node, NODE_ROUTE_TCP, now);
 
                 switch (nodeGetState(node, NODE_ROUTE_TCP).type) {
@@ -1584,7 +1595,11 @@ lesAddRequest (BREthereumLES les,
     if (NODE_REFERENCE_ALL != node)
         lesAddRequestSpecifically (les, node, context, callback, provision);
     else {
-        for (BREthereumNodeReference ns = NODE_REFERENCE_0; ns <= NODE_REFERENCE_4; ns++)
+        // We'll make NODE_REFERENCE_MAX - NODE_REFERENCE_MIN specific requests.  Since we have at
+        // most LES_ACTIVE_NODE_COUNT active nodes, we might not get (MAX - MIN) actual requests
+        // but only as many as the number of active nodes.  See ACTIVE_NODE above (which might
+        // discard node reference over the active nodes).
+        for (BREthereumNodeReference ns = NODE_REFERENCE_MIN; ns <= NODE_REFERENCE_MAX; ns++)
             lesAddRequestSpecifically (les, ns, context, callback,
                                        provisionCopy (&provision, ETHEREUM_BOOLEAN_FALSE));
         // Handle `OwnershipGiven`
