@@ -215,7 +215,7 @@ testCreateRippleAccountWithKey (void /* ... */) {
     BRRippleAccount account2 = rippleAccountCreateWithKey(publicKey);
     char rippleAddress2[36];
     rippleAccountGetAddressString(account2, rippleAddress2, 36);
-    assert(0 == strcmp(rippleAddress, expected_accountid_string));
+    assert(0 == strcmp(rippleAddress2, expected_accountid_string));
 
     rippleAccountFree(account);
     rippleAccountFree(account2);
@@ -255,7 +255,7 @@ testCreateRippleAccountWithSerializedAccount (void /* ... */) {
     assert(account2);
     char rippleAddress2[36];
     rippleAccountGetAddressString(account2, rippleAddress2, 36);
-    assert(0 == strcmp(rippleAddress, expected_ripple_address));
+    assert(0 == strcmp(rippleAddress2, expected_ripple_address));
     
     rippleAccountFree(account);
     rippleAccountFree(account2);
