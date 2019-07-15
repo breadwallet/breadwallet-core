@@ -45,6 +45,34 @@ public final class Wallet: Equatable {
         return Amount (core: cryptoWalletGetBalance (core), unit: unit, take: false)
     }
 
+    /// The current state.
+    public var state: WalletState {
+        return WalletState (core: cryptoWalletGetState(core))
+    }
+
+    /// The default TransferFeeBasis for created transfers.
+    public var defaultFeeBasis: TransferFeeBasis {
+        get {
+            return TransferFeeBasis (core: cryptoWalletGetDefaultFeeBasis (core), take: false) }
+        set {
+            let defaultFeeBasis = newValue // rename, for clarity
+            cryptoWalletSetDefaultFeeBasis (core, defaultFeeBasis.core);
+        }
+    }
+
+    /// The default TransferFactory for creating transfers.
+    //    var transferFactory: TransferFactory { get set }
+
+    /// An address suitable for a transfer target (receiving).  Uses the default Address Scheme
+    public var target: Address {
+        return Address (core: cryptoWalletGetAddress (core), take: false)
+    }
+
+    /// An address suitable for a transfer source (sending).  Uses the default AddressScheme
+    public var source: Address {
+        return Address (core: cryptoWalletGetAddress (core), take: false)
+    }
+
     /// The transfers of currency yielding `balance`
     public var transfers: [Transfer] {
         var transfersCount: size_t = 0
@@ -86,35 +114,6 @@ public final class Wallet: Equatable {
                             wallet: self,
                             unit: unit,
                             take: true))
-    }
-
-    /// The current state.
-    public var state: WalletState {
-        return WalletState (core: cryptoWalletGetState(core))
-    }
-
-    /// The default TransferFeeBasis for created transfers.
-    public var defaultFeeBasis: TransferFeeBasis {
-        get {
-            return TransferFeeBasis (core: cryptoWalletGetDefaultFeeBasis (core), take: false) }
-        set {
-            let defaultFeeBasis = newValue // rename, for clarity
-            cryptoWalletSetDefaultFeeBasis (core, defaultFeeBasis.core);
-//            announceEvent (WalletEvent.feeBasisUpdated (feeBasis: defaultFeeBasis))
-        }
-    }
-
-    /// The default TransferFactory for creating transfers.
-    //    var transferFactory: TransferFactory { get set }
-
-    /// An address suitable for a transfer target (receiving).  Uses the default Address Scheme
-    public var target: Address {
-        return Address (core: cryptoWalletGetAddress (core), take: false)
-    }
-
-    /// An address suitable for a transfer source (sending).  Uses the default AddressScheme
-    public var source: Address {
-        return Address (core: cryptoWalletGetAddress (core), take: false)
     }
 
     // address scheme

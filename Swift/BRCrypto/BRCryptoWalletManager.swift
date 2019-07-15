@@ -38,11 +38,25 @@ public final class WalletManager: Equatable {
     internal let query: BlockChainDB
 
     /// The default unit - as the networks default unit
-    internal lazy var unit: Unit = {
-        return network.defaultUnitFor(currency: network.currency)!
-    }()
+    internal let unit: Unit
 
-    /// The primaryWallet - holds the network's currency - this is typically the wallet where
+    /// The mode determines how the manager manages the account and wallets on network
+    public let mode: WalletManagerMode
+
+    /// The file-system path to use for persistent storage.
+    public let path: String
+
+    /// The current state
+    public var state: WalletManagerState {
+        return WalletManagerState (core: cryptoWalletManagerGetState (core))
+    }
+
+    /// The current network block height
+    internal var height: UInt64 {
+        return network.height
+    }
+
+   /// The primaryWallet - holds the network's currency - this is typically the wallet where
     /// fees are applied which may or may not differ from the specific wallet used for a
     /// transfer (like BRD transfer => ETH fee)
     public lazy var primaryWallet: Wallet = {
@@ -95,24 +109,6 @@ public final class WalletManager: Equatable {
                           take: true))
     }
 
-    // The mode determines how the manager manages the account and wallets on network
-    public private(set) lazy var mode: WalletManagerMode = {
-        return WalletManagerMode (core: cryptoWalletManagerGetMode (core))
-    }()
-
-    // The file-system path to use for persistent storage.
-    public private(set) lazy var path: String = {
-        return asUTF8String (cryptoWalletManagerGetPath(core))
-    }()
-
-    public var state: WalletManagerState {
-        return WalletManagerState (core: cryptoWalletManagerGetState (core))
-    }
-
-    internal var height: UInt64 {
-        return network.height
-    }
-
     /// The default WalletFactory for creating wallets.
     //    var walletFactory: WalletFactory { get set }
 
@@ -144,9 +140,13 @@ public final class WalletManager: Equatable {
         self.core   = take ? cryptoWalletManagerTake(core) : core
         self.system = system
 
-        // Remove Account.uids
+        let network = Network (core: cryptoWalletManagerGetNetwork (core), take: false)
+
         self.account = Account (core: cryptoWalletManagerGetAccount(core), uids: "ignore", take: false)
-        self.network = Network (core: cryptoWalletManagerGetNetwork (core), take: false)
+        self.network = network
+        self.unit    = network.defaultUnitFor (currency: network.currency)!
+        self.path    = asUTF8String (cryptoWalletManagerGetPath(core))
+        self.mode    = WalletManagerMode (core: cryptoWalletManagerGetMode (core))
         self.query   = system.query
     }
 
