@@ -63,7 +63,6 @@ public final class System {
     internal func add (manager: WalletManager) {
         if !managers.contains(where: { $0 === manager }) {
             managers.append (manager)
-//            manager.announceEvent (WalletManagerEvent.created)
             announceEvent (SystemEvent.managerAdded(manager: manager))
         }
     }
@@ -436,15 +435,6 @@ extension System {
 
                 default: precondition(false)
                 }
-
-/*
-                internal func announceEvent (_ event: WalletManagerEvent) {
-                    self.listener?.handleManagerEvent (system: system,
-                                                       manager: self,
-                                                       event: event)
-                }
-*/
-
         },
 
             walletEventCallback: { (context, cwm, wid, event) in
@@ -529,16 +519,6 @@ extension System {
 
                 default: precondition (false)
                 }
-
-/*
-                internal func announceEvent (_ event: WalletEvent) {
-                    self.listener?.handleWalletEvent (system: system,
-                                                      manager: manager,
-                                                      wallet: self,
-                                                      event: event)
-                }
-*/
-
         },
 
             transferEventCallback: { (context, cwm, wid, tid, event) in
@@ -574,17 +554,6 @@ extension System {
                                                             event: TransferEvent.deleted)
                 default: precondition(false)
                 }
-
-/*
-                internal func announceEvent (_ event: TransferEvent) {
-                    self.listener?.handleTransferEvent (system: system,
-                                                        manager: manager,
-                                                        wallet: wallet,
-                                                        transfer: self,
-                                                        event: event)
-                }
-*/
-
         })
     }
 }
@@ -649,66 +618,6 @@ extension System {
                                                     failure: { (_) in cwmAnnounceGetTransactionsComplete (cwm, sid, CRYPTO_FALSE) })
 
                 }},
-            /*
-             // We query the BlockChainDB with an array of addresses.  If there are no
-             // transactions for those addresses, then we are done.  But, if there are
-             // we need to generate more addresses and keep trying to find additional
-             // transactions.
-             //
-             // So we'll repeatedly loop and accumulate transactions until no more
-             // transactions are found for the set of addresses
-             //
-             // In order to 'generate more addresses' we'll need to announce each
-             // transaction - which will register each transaction in the wallet
-
-             // TODO: Register early transactions even if later transactions fail?  Possible?
-
-             manager.system.queue.async {
-             let semaphore = DispatchSemaphore (value: 0)
-
-             var transactionsError = false
-             var transactionsFound = false
-
-             repeat {
-             // Get a C pointer to `addressesLimit` BRAddress structures
-             let addressesLimit:Int = 25
-             let addressesPointer = BRWalletManagerGetUnusedAddrsLegacy (bid, UInt32(addressesLimit))
-             defer { free (addressesPointer) }
-
-             // Convert the C pointer into a Swift array of BRAddress
-             let addressesStructures:[BRAddress] = addressesPointer!.withMemoryRebound (to: BRAddress.self, capacity: addressesLimit) {
-             Array(UnsafeBufferPointer (start: $0, count: addressesLimit))
-             }
-
-             // Convert each BRAddress to a String
-             let addresses = addressesStructures.map {
-             return String(cString: UnsafeRawPointer([$0]).assumingMemoryBound(to: CChar.self))
-             }
-
-             transactionsFound = false
-             transactionsError = false
-
-             // Query the blockchainDB. Record each found transaction
-             manager.query.getTransactionsAsBTC (bwm: bid,
-             blockchainId: manager.network.uids,
-             addresses: addresses,
-             begBlockNumber: begBlockNumber,
-             endBlockNumber: endBlockNumber,
-             rid: rid,
-             done: { (success: Bool, rid: Int32) in
-             transactionsError = !success
-             semaphore.signal ()
-             },
-             each: { (res: BlockChainDB.BTC.Transaction) in
-             transactionsFound = true
-             bwmAnnounceTransaction (bid, res.rid, res.btc)
-             })
-
-             // Wait until the query is done
-             semaphore.wait()
-
-             } while !transactionsError && transactionsFound
-             */
 
             funcSubmitTransaction: { (context, cwm, sid, transactionBytes, transactionBytesLength, hashAsHex) in
                 precondition (nil != context  && nil != cwm)
