@@ -264,12 +264,13 @@ mapToHashDataPair (JNIEnv *env, jobject arrayObject) {
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniCreateEWM
- * Signature: (Lcom/breadwallet/core/ethereum/BREthereumEWM/Client;JLjava/lang/String;Ljava/lang/String;[Ljava/lang/String;)J
+ * Signature: (Lcom/breadwallet/core/ethereum/BREthereumEWM/Client;IJLjava/lang/String;Ljava/lang/String;[Ljava/lang/String;)J
  */
 JNIEXPORT jlong JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
         (JNIEnv *env, jclass thisClass,
          jobject clientObject,
+         jint mode,
          jlong network,
          jstring storagePathString,
          jstring paperKeyString,
@@ -316,11 +317,11 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
     };
 
     BREthereumEWM node = ewmCreateWithPaperKey((BREthereumNetwork) network,
-                                        paperKey,
-                                        ETHEREUM_TIMESTAMP_UNKNOWN,
-                                        BRD_WITH_P2P_SEND,
-                                        client,
-                                        storagePath);
+                                               paperKey,
+                                               ETHEREUM_TIMESTAMP_UNKNOWN,
+                                               (BREthereumMode) mode,
+                                               client,
+                                               storagePath);
 
     (*env)->ReleaseStringUTFChars (env, paperKeyString,    paperKey);
     (*env)->ReleaseStringUTFChars (env, storagePathString, storagePath);
@@ -330,15 +331,16 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniCreateEWM_PublicKey
- * Signature: (Lcom/breadwallet/core/ethereum/BREthereumEWM/Client;JLjava/lang/String;[B)J
+ * Signature: (Lcom/breadwallet/core/ethereum/BREthereumEWM/Client;IJLjava/lang/String;[B)J
  */
 JNIEXPORT jlong JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM_1PublicKey
-    (JNIEnv *env, jclass thisClass,
-     jobject clientObject,
-     jlong network,
-     jstring storagePathString,
-     jbyteArray publicKey) {
+        (JNIEnv *env, jclass thisClass,
+         jobject clientObject,
+         jint mode,
+         jlong network,
+         jstring storagePathString,
+         jbyteArray publicKey) {
 
     assert (65 == (*env)->GetArrayLength(env, publicKey));
 
@@ -371,11 +373,11 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM_1PublicKey
     const char *storagePath = (*env)->GetStringUTFChars (env, storagePathString, 0);
 
     BREthereumEWM node = ewmCreateWithPublicKey((BREthereumNetwork) network,
-                                                     key,
-                                                     ETHEREUM_TIMESTAMP_UNKNOWN,
-                                                     BRD_WITH_P2P_SEND,
-                                                     client,
-                                                     storagePath);
+                                                key,
+                                                ETHEREUM_TIMESTAMP_UNKNOWN,
+                                                (BREthereumMode) mode,
+                                                client,
+                                                storagePath);
 
 
     (*env)->ReleaseByteArrayElements(env, publicKey, publicKeyBytes, 0);
