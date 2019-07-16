@@ -58,7 +58,7 @@ BCS then queries that specific node.
 ### Block Chain
 
 The basic Ethereum concepts of: Account State, Block, Bloom Filter, Log, Network, Transaction,
-Transaction Status and Transaction Receipt.  These concepts are based nearly %100 on the Ethereum
+Transaction Status and Transaction Receipt.  These concepts are based nearly 100% on the Ethereum
 Yellow Paper specification.
 
 ### Base
