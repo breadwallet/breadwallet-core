@@ -32,6 +32,66 @@
 #include "bcash/BRBCashParams.h"
 #include "ethereum/BREthereum.h"
 
+/// MARK: - Network Fee
+
+static void
+cryptoNetworkFeeRelease (BRCryptoNetworkFee networkFee);
+
+struct BRCryptoNetworkFeeRecord {
+    uint64_t confirmationTimeInMilliseconds;
+    BRCryptoAmount pricePerCostFactor;
+    BRCryptoUnit   pricePerCostFactorUnit;  // Until in BRCryptoAmount
+    BRCryptoRef ref;
+};
+
+IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoNetworkFee, cryptoNetworkFee)
+
+private_extern BRCryptoNetworkFee
+cryptoNetworkFeeCreate (uint64_t confirmationTimeInMilliseconds,
+                        BRCryptoAmount pricePerCostFactor,
+                        BRCryptoUnit   pricePerCostFactorUnit) {
+    BRCryptoNetworkFee networkFee = calloc (1, sizeof (struct BRCryptoNetworkFeeRecord));
+
+    networkFee->confirmationTimeInMilliseconds = confirmationTimeInMilliseconds;
+    networkFee->pricePerCostFactor     = cryptoAmountTake (pricePerCostFactor);
+    networkFee->pricePerCostFactorUnit = cryptoUnitTake (pricePerCostFactorUnit);
+    networkFee->ref = CRYPTO_REF_ASSIGN(cryptoNetworkFeeRelease);
+
+    return networkFee;
+
+}
+extern uint64_t
+cryptoNetworkFeeGetConfirmationTimeInMilliseconds (BRCryptoNetworkFee networkFee) {
+    return networkFee->confirmationTimeInMilliseconds;
+}
+
+extern BRCryptoAmount
+cryptoNetworkFeeGetPricePerCostFactor (BRCryptoNetworkFee networkFee) {
+    return cryptoAmountTake (networkFee->pricePerCostFactor);
+}
+
+extern BRCryptoUnit
+cryptoNetworkFeeGetPricePerCostFactorUnit (BRCryptoNetworkFee networkFee) {
+    return cryptoUnitTake (networkFee->pricePerCostFactorUnit);
+}
+
+extern BRCryptoBoolean
+cryptoNetworkEqual (BRCryptoNetworkFee nf1, BRCryptoNetworkFee nf2) {
+    return AS_CRYPTO_BOOLEAN (nf1 == nf2 ||
+                              (nf1->confirmationTimeInMilliseconds == nf2->confirmationTimeInMilliseconds) &&
+                              CRYPTO_COMPARE_EQ == cryptoAmountCompare (nf1->pricePerCostFactor, nf2->pricePerCostFactor));
+}
+
+static void
+cryptoNetworkFeeRelease (BRCryptoNetworkFee networkFee) {
+    printf ("Network Fpp: Release\n");
+
+    cryptoAmountGive (networkFee->pricePerCostFactor);
+    free (networkFee);
+}
+
+/// MARK: - Network
+
 static void
 cryptoNetworkRelease (BRCryptoNetwork network);
 
@@ -43,6 +103,7 @@ typedef struct {
 } BRCryptoCurrencyAssociation;
 
 #define CRYPTO_NETWORK_DEFAULT_CURRENCY_ASSOCIATIONS        (2)
+#define CRYPTO_NETWORK_DEFAULT_FEES                         (3)
 #define CRYPTO_NETWORK_DEFAULT_NETWORKS                     (5)
 
 struct BRCryptoNetworkRecord {
@@ -53,6 +114,7 @@ struct BRCryptoNetworkRecord {
     BRCryptoBlockChainHeight height;
     BRCryptoCurrency currency;
     BRArrayOf(BRCryptoCurrencyAssociation) associations;
+    BRArrayOf(BRCryptoNetworkFee) fees;
 
     BRCryptoBlockChainType type;
     union {
@@ -85,6 +147,8 @@ cryptoNetworkCreate (const char *uids,
     network->currency = NULL;
     network->height = 0;
     array_new (network->associations, CRYPTO_NETWORK_DEFAULT_CURRENCY_ASSOCIATIONS);
+    array_new (network->fees, CRYPTO_NETWORK_DEFAULT_FEES);
+
     network->ref = CRYPTO_REF_ASSIGN(cryptoNetworkRelease);
 
     {
@@ -148,6 +212,10 @@ cryptoNetworkRelease (BRCryptoNetwork network) {
         cryptoUnitGiveAll (association->units);
     }
 
+    for (size_t index = 0; index < array_count (network->fees); index++) {
+        cryptoNetworkFeeGive (network->fees[index]);
+    }
+
     // TBD
     switch (network->type){
         case BLOCK_CHAIN_TYPE_BTC:
@@ -161,6 +229,7 @@ cryptoNetworkRelease (BRCryptoNetwork network) {
     free (network->name);
     cryptoCurrencyGive (network->currency);
     array_free (network->associations);
+    array_free (network->fees);
     pthread_mutex_destroy (&network->lock);
     free (network);
 }
@@ -376,6 +445,30 @@ cryptoNetworkAddCurrencyUnit (BRCryptoNetwork network,
     BRCryptoCurrencyAssociation *association = cryptoNetworkLookupCurrency (network, currency);
     if (NULL != association) array_add (association->units, cryptoUnitTake (unit));
     pthread_mutex_unlock (&network->lock);
+}
+
+private_extern void
+cryptoNetworkAddNetworkFee (BRCryptoNetwork network,
+                            BRCryptoNetworkFee fee) {
+    array_add (network->fees, fee);
+}
+
+extern size_t
+cryptoNetworkGetNetworkFeeCount (BRCryptoNetwork network) {
+    pthread_mutex_lock (&network->lock);
+    size_t count = array_count(network->fees);
+    pthread_mutex_unlock (&network->lock);
+    return count;
+}
+
+extern BRCryptoNetworkFee
+cryptoNetworkGetNetworkFeeAt (BRCryptoNetwork network,
+                            size_t index) {
+    pthread_mutex_lock (&network->lock);
+    assert (index < array_count(network->fees));
+    BRCryptoNetworkFee fee = cryptoNetworkFeeTake (network->fees[index]);
+    pthread_mutex_unlock (&network->lock);
+    return fee;
 }
 
 // TODO(discuss): Is it safe to give out this pointer?
