@@ -89,6 +89,11 @@ cryptoAccountGeneratePaperKey (const char *words[]) {
 }
 
 extern BRCryptoBoolean
+cryptoAccountValidatePaperKey (const char *phrase, const char *words[]) {
+    return AS_CRYPTO_BOOLEAN (BRBIP39PhraseIsValid (words, phrase));
+}
+
+extern BRCryptoBoolean
 cryptoAccountValidateWordsList (int wordsCount) {
     return AS_CRYPTO_BOOLEAN (wordsCount == BIP39_WORDLIST_COUNT);
 }

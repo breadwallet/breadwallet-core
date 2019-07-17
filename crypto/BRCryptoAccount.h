@@ -48,9 +48,30 @@ extern "C" {
     extern UInt512
     cryptoAccountDeriveSeed (const char *phrase);
 
-
+    /**
+     * Generate a BIP-39 PaperKey from a BIP-39 word list
+     *
+     * @note Asserts if words is itself an invalide BIP-39 word list
+     *
+     * @param wordList The BIP-39 word list.
+     *
+     * @return A BIP-39 PaperKey
+     */
     extern char *
-    cryptoAccountGeneratePaperKey (const char **wordList);
+    cryptoAccountGeneratePaperKey (const char *wordList[]);
+
+    /**
+     * Validate a candidate BIP-39 PaperKey with a BIP-39 word list
+     *
+     * @note Asserts if words is itself an invalide BIP-39 word list
+     *
+     * @param phrase the candiate paper key
+     * @param words the BIP-39 word list
+     *
+     * @return true if valid; false otherwise
+     */
+    extern BRCryptoBoolean
+    cryptoAccountValidatePaperKey (const char *phrase, const char *words[]);
 
     /**
      * Validate the number of words in the word list.
