@@ -508,15 +508,15 @@ cryptoTransferGetEstimatedFeeBasis (BRCryptoTransfer transfer) {
             BRTransaction *tid = transfer->u.btc.tid;
 
             uint64_t fee = transfer->u.btc.fee;
-            uint64_t feePerKb = DEFAULT_FEE_PER_KB;
-            uint64_t kb = BRTransactionVSize (tid);
+            uint32_t feePerKB = DEFAULT_FEE_PER_KB;
+            uint32_t sizeInByte = (uint32_t) BRTransactionVSize (tid);
 
             if (UINT64_MAX != fee) {
                 // round to nearest satoshi per kb
-                feePerKb = ((fee * 1000) + (kb / 2)) / kb;
+                feePerKB = (uint32_t) (((1000 * fee) + (sizeInByte/2)) / sizeInByte);
             }
 
-            feeBasis = cryptoFeeBasisCreateAsBTC (transfer->unitForFee, feePerKb, kb);
+            feeBasis = cryptoFeeBasisCreateAsBTC (transfer->unitForFee, feePerKB, sizeInByte);
             break;
         }
 

@@ -8,6 +8,7 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
+#include <math.h>
 
 #include "BRCryptoFeeBasis.h"
 #include "ethereum/ewm/BREthereumBase.h"
@@ -21,8 +22,8 @@ struct BRCryptoFeeBasisRecord {
     BRCryptoBlockChainType type;
     union {
         struct {
-            uint64_t feePerKB;
-            uint64_t kb;
+            uint32_t feePerKB;
+            uint32_t sizeInByte;
         } btc;
         BREthereumFeeBasis eth;
         struct {
@@ -50,11 +51,11 @@ cryptoFeeBasisCreateInternal (BRCryptoBlockChainType type,
 
 private_extern BRCryptoFeeBasis
 cryptoFeeBasisCreateAsBTC (BRCryptoUnit unit,
-                           uint64_t feePerKB,
-                           uint64_t kb) {
+                           uint32_t feePerKB,
+                           uint32_t sizeInByte) {
     BRCryptoFeeBasis feeBasis = cryptoFeeBasisCreateInternal (BLOCK_CHAIN_TYPE_BTC, unit);
-    feeBasis->u.btc.feePerKB = feePerKB;
-    feeBasis->u.btc.kb = kb;
+    feeBasis->u.btc.feePerKB   = feePerKB;
+    feeBasis->u.btc.sizeInByte = sizeInByte;
 
     return feeBasis;
 }
@@ -122,11 +123,11 @@ cryptoFeeBasisGetPricePerCostFactorUnit (BRCryptoFeeBasis feeBasis) {
     return cryptoUnitTake (feeBasis->unit);
 }
 
-extern uint64_t
+extern double
 cryptoFeeBasisGetCostFactor (BRCryptoFeeBasis feeBasis) {
     switch (feeBasis->type) {
         case BLOCK_CHAIN_TYPE_BTC:
-            return feeBasis->u.btc.kb;
+            return ((double) feeBasis->u.btc.sizeInByte) / 1000.0;
 
         case BLOCK_CHAIN_TYPE_ETH:
             return feeBasis->u.eth.u.gas.limit.amountOfGas;
@@ -139,21 +140,36 @@ cryptoFeeBasisGetCostFactor (BRCryptoFeeBasis feeBasis) {
 
 extern BRCryptoAmount
 cryptoFeeBasisGetFee (BRCryptoFeeBasis feeBasis) {
-    UInt256 pricePerCostFactor = cryptoFeeBasisGetPricePerCostFactorAsUInt256 (feeBasis);
-    UInt256 costFactor = createUInt256 (cryptoFeeBasisGetCostFactor (feeBasis));
+    switch (feeBasis->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            double fee = (((double) feeBasis->u.btc.feePerKB) * feeBasis->u.btc.sizeInByte) / 1000.0;
+            return cryptoAmountCreateInternal (cryptoUnitGetCurrency (feeBasis->unit),
+                                               CRYPTO_FALSE,
+                                               createUInt256 (round (fee)),
+                                               0);
+        }
+            
+        case BLOCK_CHAIN_TYPE_ETH:
+        case BLOCK_CHAIN_TYPE_GEN: {
+            UInt256 pricePerCostFactor = cryptoFeeBasisGetPricePerCostFactorAsUInt256 (feeBasis);
+            double  costFactor = cryptoFeeBasisGetCostFactor (feeBasis);
 
-    int overflow = 0;;
-    UInt256 value = mulUInt256_Overflow (pricePerCostFactor, costFactor, &overflow);
+            int overflow = 0, negative = 0;
+            double rem;
 
-    return (overflow
-            ? NULL
-            : cryptoAmountCreateInternal (cryptoUnitGetCurrency (feeBasis->unit),
-                                          CRYPTO_FALSE,
-                                          value,
-                                          0));
+            UInt256 value = mulUInt256_Double (pricePerCostFactor, costFactor, &overflow, &negative, &rem);
+
+            return (overflow
+                    ? NULL
+                    : cryptoAmountCreateInternal (cryptoUnitGetCurrency (feeBasis->unit),
+                                                  CRYPTO_FALSE,
+                                                  value,
+                                                  0));
+        }
+    }
 }
 
-private_extern uint64_t
+private_extern uint64_t // SAT-per-KB
 cryptoFeeBasisAsBTC (BRCryptoFeeBasis feeBasis) {
     assert (BLOCK_CHAIN_TYPE_BTC == feeBasis->type);
     return feeBasis->u.btc.feePerKB;

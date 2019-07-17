@@ -89,6 +89,7 @@ class WalletViewController: UITableViewController, TransferListener, WalletManag
             print ("APP: WVC: Want to Create")
             let controller = (segue.destination as! UINavigationController).topViewController as! TransferCreateController
             controller.wallet = wallet
+            controller.fee    = wallet.manager.defaultNetworkFee
             break
 
         default:

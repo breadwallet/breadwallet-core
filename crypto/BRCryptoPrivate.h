@@ -167,8 +167,8 @@ extern "C" {
 
     private_extern BRCryptoFeeBasis
     cryptoFeeBasisCreateAsBTC (BRCryptoUnit unit,
-                               uint64_t feePerKB,
-                               uint64_t kb);
+                               uint32_t feePerKB,
+                               uint32_t sizeInByte);
 
     private_extern BRCryptoFeeBasis
     cryptoFeeBasisCreateAsETH (BRCryptoUnit unit,

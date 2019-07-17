@@ -31,7 +31,7 @@ extern "C" {
     extern BRCryptoUnit
     cryptoFeeBasisGetPricePerCostFactorUnit (BRCryptoFeeBasis feeBasis);
 
-    extern uint64_t
+    extern double
     cryptoFeeBasisGetCostFactor (BRCryptoFeeBasis feeBasis);
 
     extern BRCryptoAmount

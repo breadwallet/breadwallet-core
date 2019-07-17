@@ -77,12 +77,12 @@ public final class Transfer: Equatable {
     }
 
     /// The fee paid - before the transfer is confirmed, this is the estimated fee.
-    public private(set) lazy var fee: Amount = {
+    public var fee: Amount {
         guard let feeBasis = confirmedFeeBasis ?? estimatedFeeBasis
             else { precondition (false, "Missed confirmed+estimated feeBasis") }
 
         return feeBasis.fee
-    }()
+    }
 
     /// An optional confirmation.
     public var confirmation: TransferConfirmation? {
@@ -209,8 +209,8 @@ public class TransferFeeBasis {
     /// The pricePerCostFactor as an amount in currency
     public let pricePerCostFactor: Amount
 
-    /// The costFactor which is an arbitrary scale o nthe pricePerCostFactor
-    public let costFactor: UInt64
+    /// The costFactor which is an arbitrary scale on the pricePerCostFactor
+    public let costFactor: Double
 
     /// The fee, computed as `pricePerCostFactor * costFactor`
     public let fee: Amount

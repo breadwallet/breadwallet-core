@@ -326,7 +326,7 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
             BRCryptoUnit feeUnit = cryptoWalletGetUnitForFee(wallet);
 
             BRCryptoFeeBasis feeBasis = cryptoFeeBasisCreateAsBTC (feeUnit,
-                                                                   event.u.feePerKb.value,
+                                                                   (uint32_t) event.u.feePerKb.value,
                                                                    1000);
 
             cwm->listener.walletEventCallback (cwm->listener.context,
