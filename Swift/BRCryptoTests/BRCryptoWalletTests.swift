@@ -101,7 +101,7 @@ class BRCryptoWalletTests: BRCryptoBaseTests {
     override func tearDown() {
     }
 
-
+/*
     func genericWalletTest (wallet: Wallet) {
 
         // guard let defaultUnit = wallet.manager.network.defaultUnitFor(currency: wallet.currency)
@@ -129,7 +129,7 @@ class BRCryptoWalletTests: BRCryptoBaseTests {
             break
         }
     }
-
+*/
     func testWallet() {
         #if false
         genericWalletTest(wallet: listener.btcWallet)

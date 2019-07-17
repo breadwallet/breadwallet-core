@@ -150,6 +150,8 @@ public final class WalletManager: Equatable {
         self.path    = asUTF8String (cryptoWalletManagerGetPath(core))
         self.mode    = WalletManagerMode (core: cryptoWalletManagerGetMode (core))
         self.query   = system.query
+
+        self.defaultNetworkFee = network.minimumFee
     }
 
     public convenience  init (system: System,

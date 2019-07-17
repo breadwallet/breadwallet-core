@@ -166,14 +166,18 @@ extern "C" {
     cryptoFeeBasisAsGEN (BRCryptoFeeBasis feeBasis);
 
     private_extern BRCryptoFeeBasis
-    cryptoFeeBasisCreateAsBTC (uint64_t feePerKB);
+    cryptoFeeBasisCreateAsBTC (BRCryptoUnit unit,
+                               uint32_t feePerKB,
+                               uint32_t sizeInByte);
 
     private_extern BRCryptoFeeBasis
-    cryptoFeeBasisCreateAsETH (BREthereumGas gas,
+    cryptoFeeBasisCreateAsETH (BRCryptoUnit unit,
+                               BREthereumGas gas,
                                BREthereumGasPrice gasPrice);
 
     private_extern BRCryptoFeeBasis
-    cryptoFeeBasisCreateAsGEN (BRGenericWalletManager gwm,
+    cryptoFeeBasisCreateAsGEN (BRCryptoUnit unit,
+                               BRGenericWalletManager gwm,
                                BRGenericFeeBasis bid);
 
     /// MARK: Transfer
@@ -183,17 +187,20 @@ extern "C" {
                             BRCryptoTransferState state);
 
     private_extern BRCryptoTransfer
-    cryptoTransferCreateAsBTC (BRCryptoCurrency currency,
+    cryptoTransferCreateAsBTC (BRCryptoUnit unit,
+                               BRCryptoUnit unitForFee,
                                BRWallet *wid,
                                OwnershipGiven BRTransaction *tid);
 
     private_extern BRCryptoTransfer
-    cryptoTransferCreateAsETH (BRCryptoCurrency currency,
+    cryptoTransferCreateAsETH (BRCryptoUnit unit,
+                               BRCryptoUnit unitForFee,
                                BREthereumEWM ewm,
                                BREthereumTransfer tid);
 
     extern BRCryptoTransfer
-    cryptoTransferCreateAsGEN (BRCryptoCurrency currency,
+    cryptoTransferCreateAsGEN (BRCryptoUnit unit,
+                               BRCryptoUnit unitForFee,
                                BRGenericWalletManager gwm,
                                BRGenericTransfer tid);
 
@@ -223,7 +230,16 @@ extern "C" {
     cryptoNetworkFeeCreate (uint64_t confirmationTimeInMilliseconds,
                             BRCryptoAmount pricePerCostFactor,
                             BRCryptoUnit   pricePerCostFactorUnit);
-    
+
+    private_extern uint64_t
+    cryptoNetworkFeeAsBTC (BRCryptoNetworkFee networkFee);
+
+    private_extern BREthereumGasPrice
+    cryptoNetworkFeeAsETH (BRCryptoNetworkFee networkFee);
+
+    private_extern uint64_t
+    cryptoNetworkFeeAsGEN( BRCryptoNetworkFee networkFee);
+
     /// MARK: - Network
 
     private_extern void

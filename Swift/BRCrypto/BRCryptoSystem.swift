@@ -83,8 +83,8 @@ public final class System {
                                      mode: mode,
                                      storagePath: path,
                                      listener: cryptoListener,
-                                     client: cryptoClient   )
-        
+                                     client: cryptoClient)
+
         self.add (manager: manager)
     }
 
@@ -260,9 +260,9 @@ public final class System {
                         let fees = blockchainModel.feeEstimates
                             // Well, quietly ignore a fee if we can't parse the amount.
                             .compactMap { (fee: BlockChainDB.Model.BlockchainFee) -> NetworkFee? in
-                                let timeInternal  = UInt64 (30 * 1000)
+                                let timeInterval  = 1000 * 60 * Int (fee.tier.dropLast())!
                                 return Amount.create (string: fee.amount, unit: feeUnit)
-                                    .map { NetworkFee (timeInternalInMilliseconds: timeInternal,
+                                    .map { NetworkFee (timeInternalInMilliseconds: UInt64(timeInterval),
                                                        pricePerCostFactor: $0) }
                         }
 
@@ -521,8 +521,7 @@ extension System {
                                                         event: WalletEvent.balanceUpdated(amount: amount))
 
                 case CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED:
-                    let feeBasis = TransferFeeBasis (core: event.u.feeBasisUpdated.basis,
-                                                     take: false)
+                    let feeBasis = TransferFeeBasis (core: event.u.feeBasisUpdated.basis, take: false)
                     system.listener?.handleWalletEvent (system: manager.system,
                                                         manager: manager,
                                                         wallet: wallet,

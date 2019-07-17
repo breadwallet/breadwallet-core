@@ -22,18 +22,20 @@ public final class Wallet: Equatable {
     /// The owning manager
     public let manager: WalletManager
 
+    /// The owning system
     public var system: System {
         return manager.system
     }
 
-    /// The base unit for the wallet's network.  This is used for `balance` and to derive the
-    /// currency and name
+    /// The unit for display of the wallet's balance
     public let unit: Unit
 
-    /// The currency held in wallet.
+    /// The currency held in wallet (as balance).
     public var currency: Currency {
         return unit.currency
     }
+
+    public let unitForFee: Unit
 
     /// The (default) name derived from the currency.  For example: BTC, ETH, or BRD.
     public var name: String {
@@ -51,14 +53,14 @@ public final class Wallet: Equatable {
     }
 
     /// The default TransferFeeBasis for created transfers.
-    public var defaultFeeBasis: TransferFeeBasis {
-        get {
-            return TransferFeeBasis (core: cryptoWalletGetDefaultFeeBasis (core), take: false) }
-        set {
-            let defaultFeeBasis = newValue // rename, for clarity
-            cryptoWalletSetDefaultFeeBasis (core, defaultFeeBasis.core);
-        }
-    }
+//    public var defaultFeeBasis: TransferFeeBasis {
+//        get {
+//            return TransferFeeBasis (core: cryptoWalletGetDefaultFeeBasis (core), take: false) }
+//        set {
+//            let defaultFeeBasis = newValue // rename, for clarity
+//            cryptoWalletSetDefaultFeeBasis (core, defaultFeeBasis.core);
+//        }
+//    }
 
     /// The default TransferFactory for creating transfers.
     //    var transferFactory: TransferFactory { get set }
@@ -86,7 +88,6 @@ public final class Wallet: Equatable {
         return transfers
             .map { Transfer (core: $0,
                              wallet: self,
-                             unit: unit,
                              take: false) }
     }
 
@@ -101,7 +102,6 @@ public final class Wallet: Equatable {
             ? nil
             : Transfer (core: core,
                         wallet: self,
-                        unit: unit,
                         take: true))
     }
 
@@ -112,7 +112,6 @@ public final class Wallet: Equatable {
                 ? nil
                 : Transfer (core: core,
                             wallet: self,
-                            unit: unit,
                             take: true))
     }
 
@@ -133,11 +132,10 @@ public final class Wallet: Equatable {
     ///
     public func createTransfer (target: Address,
                                 amount: Amount,
-                                feeBasis: TransferFeeBasis) -> Transfer? {
-        return cryptoWalletCreateTransfer (core, target.core, amount.core, feeBasis.core)
+                                estimatedFeeBasis: TransferFeeBasis) -> Transfer? {
+        return cryptoWalletCreateTransfer (core, target.core, amount.core, estimatedFeeBasis.core)
             .map { Transfer (core: $0,
                              wallet: self,
-                             unit: amount.unit,
                              take: false)
         }
     }
@@ -152,16 +150,24 @@ public final class Wallet: Equatable {
     ///
     /// - Returns: transfer fee
     ///
-    public func estimateFee (amount: Amount,
-                             feeBasis: TransferFeeBasis?) -> Amount {
-        precondition (amount.hasCurrency (currency))
-        let unit = Unit (core: cryptoWalletGetUnitForFee (core))
-        let feeBasis = feeBasis ?? defaultFeeBasis
-        return Amount (core: cryptoWalletEstimateFee (core, amount.core, feeBasis.core),
-                       unit: unit,
-                       take: false)
+    public func estimateFee (target: Address,
+                             amount: Amount,
+                             fee: NetworkFee,
+                             completion: @escaping (Result<TransferFeeBasis,FeeEstimationError>) -> Void) {
+        system.queue.async {
+            // For now
+            completion (cryptoWalletEstimateFeeBasis (self.core, target.core, amount.core, fee.core)
+                .map { TransferFeeBasis (core: $0, take: false) }
+                .map { Result.success($0)}
+            ?? Result.failure(FeeEstimationError.ServiceError))
+        }
     }
-    
+
+    public enum FeeEstimationError: Error {
+        case ServiceUnavailable
+        case ServiceError
+        case InsufficientFunds
+    }
     ///
     /// Create a wallet
     ///
@@ -177,6 +183,7 @@ public final class Wallet: Equatable {
         self.core = take ? cryptoWalletTake (core) : core
         self.manager = manager
         self.unit = Unit (core: cryptoWalletGetUnit(core), take: false)
+        self.unitForFee = Unit (core: cryptoWalletGetUnitForFee(core), take: false)
     }
 
     deinit {
@@ -214,12 +221,12 @@ extension Wallet {
     ///
     /// - Returns: A new transfer
     ///
-    public func createTransfer (target: Address,
-                                amount: Amount) -> Transfer? {
-        return createTransfer (target: target,
-                               amount: amount,
-                               feeBasis: defaultFeeBasis)
-    }
+//    public func createTransfer (target: Address,
+//                                amount: Amount) -> Transfer? {
+//        return createTransfer (target: target,
+//                               amount: amount,
+//                               feeBasis: defaultFeeBasis)
+//    }
 
 }
 

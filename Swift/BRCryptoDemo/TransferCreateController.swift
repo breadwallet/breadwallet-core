@@ -15,6 +15,8 @@ import BRCrypto
 class TransferCreateController: UIViewController, UITextViewDelegate {
 
     var wallet : Wallet!
+    var fee: NetworkFee!
+    var feeBasis: TransferFeeBasis?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -128,7 +130,7 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
             // let amount = Amount (value: value, unit: self.wallet.currency.defaultUnit)
             guard let transfer = self.wallet.createTransfer (target: target,
                                                              amount: amount,
-                                                             feeBasis: self.feeBasis())
+                                                             estimatedFeeBasis: self.feeBasis!)
                 else {
                     let alert = UIAlertController (title: "Submit Transfer",
                                                message: "Failed to create transfer - balance too low?",
@@ -158,10 +160,24 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
         self.dismiss(animated: true) {}
     }
 
-    func updateView () {
+    func updateFee () {
+        guard let target = Address.create (string: self.recvField.text!, network: self.wallet.manager.network)
+            else { return }
 
-        let fee = wallet.estimateFee (amount: wallet.balance, feeBasis: nil);
-        feeLabel.text = "  \(fee) (estimated)"
+        let amount = Amount.create (double: Double(self.amount()), unit: wallet.unit)
+
+        wallet.estimateFee (target: target, amount: amount, fee: fee) { (result: Result<TransferFeeBasis, Wallet.FeeEstimationError>) in
+            guard case let .success(feeBasis) = result
+                else { return }
+
+            self.feeBasis = feeBasis
+            DispatchQueue.main.async {
+                self.feeLabel.text = "  \(feeBasis.fee) (estimated)"
+            }
+        }
+    }
+    
+    func updateView () {
 
         amountMinLabel.text = amountSlider.minimumValue.description
         amountMaxLabel.text = amountSlider.maximumValue.description
@@ -170,25 +186,15 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
 
         submitButton.isEnabled = (recvField.text != "" &&
             (0.0 != amountSlider.value || oneEtherSelected || oneBitcoinSelected))
+
+        updateFee()
     }
 
     @IBAction func amountChanged(_ sender: Any) {
         amountLabel.text = amountSlider.value.description
         submitButton.isEnabled = (recvField.text != "" &&
             (0.0 != amountSlider.value || oneEtherSelected || oneBitcoinSelected))
-    }
-
-    func feeBasis () -> TransferFeeBasis {
-        return wallet.defaultFeeBasis
-//        switch wallet.currency.code {
-//        case Currency.codeAsETH:
-//            let wei = wallet.manager.network.baseUnitFor(currency: wallet.currency)!
-//            return TransferFeeBasis.ethereum (
-//                gasPrice: Amount.create(integer: Int64 (gasPrice()), unit: wei),
-//                gasLimit: gasLimit())
-//        default:
-//            return TransferFeeBasis.bitcoin(feePerKB: 1000)
-//        }
+        updateFee()
     }
 
     func amount () -> Float {
