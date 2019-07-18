@@ -68,7 +68,7 @@ typedef struct {
 
 static void
 ewmHandleAccountStateEventDispatcher(BREventHandler ignore,
-                                BREthereumHandleAccountStateEvent *event) {
+                                     BREthereumHandleAccountStateEvent *event) {
     ewmHandleAccountState(event->ewm, event->accountState);
 }
 
@@ -80,7 +80,7 @@ BREventType handleAccountStateEventType = {
 
 extern void
 ewmSignalAccountState (BREthereumEWM ewm,
-                  BREthereumAccountState accountState) {
+                       BREthereumAccountState accountState) {
     BREthereumHandleAccountStateEvent event = { { NULL, &handleAccountStateEventType }, ewm, accountState };
     eventHandlerSignalEvent(ewm->handler, (BREvent*) &event);
 }
@@ -97,7 +97,7 @@ typedef struct {
 
 static void
 ewmHandleBalanceEventDispatcher(BREventHandler ignore,
-                              BREthereumHandleBalanceEvent *event) {
+                                BREthereumHandleBalanceEvent *event) {
     ewmHandleBalance(event->ewm, event->amount);
 }
 
@@ -264,7 +264,7 @@ typedef struct {
 
 static void
 ewmHandleSaveBlocksEventDispatcher(BREventHandler ignore,
-                             BREthereumHandleSaveBlocksEvent *event) {
+                                   BREthereumHandleSaveBlocksEvent *event) {
     ewmHandleSaveBlocks(event->ewm, event->blocks);
 }
 
@@ -300,7 +300,7 @@ typedef struct {
 
 static void
 ewmHandleSaveNodesEventDispatcher(BREventHandler ignore,
-                                   BREthereumHandleSaveNodesEvent *event) {
+                                  BREthereumHandleSaveNodesEvent *event) {
     ewmHandleSaveNodes(event->ewm, event->nodes);
 }
 
@@ -333,7 +333,7 @@ typedef struct {
 
 static void
 ewmHandleSyncEventDispatcher(BREventHandler ignore,
-                            BREthereumHandleSyncEvent *event) {
+                             BREthereumHandleSyncEvent *event) {
     ewmHandleSync(event->ewm, event->type,
                   event->blockNumberStart,
                   event->blockNumberCurrent,
@@ -416,10 +416,10 @@ static void
 ewmClientWalletEventDispatcher(BREventHandler ignore,
                                BREthereumEWMClientWalletEvent *event) {
     ewmHandleWalletEvent(event->ewm,
-                               event->wid,
-                               event->event,
-                               event->status,
-                               event->errorDescription);
+                         event->wid,
+                         event->event,
+                         event->status,
+                         event->errorDescription);
 }
 
 static BREventType ewmClientWalletEventType = {
@@ -430,10 +430,10 @@ static BREventType ewmClientWalletEventType = {
 
 extern void
 ewmSignalWalletEvent(BREthereumEWM ewm,
-                           BREthereumWallet wid,
-                           BREthereumWalletEvent event,
-                           BREthereumStatus status,
-                           const char *errorDescription) {
+                     BREthereumWallet wid,
+                     BREthereumWalletEvent event,
+                     BREthereumStatus status,
+                     const char *errorDescription) {
     BREthereumEWMClientWalletEvent message =
     CLIENT_WALLET_EVENT_INITIALIZER (ewm, wid, event, status, errorDescription);
     eventHandlerSignalEvent(ewm->handler, (BREvent*) &message);
@@ -459,10 +459,10 @@ static void
 ewmClientBlockEventDispatcher(BREventHandler ignore,
                               BREthereumEWMClientBlockEvent *event) {
     ewmHandleBlockEvent(event->ewm,
-                              event->bid,
-                              event->event,
-                              event->status,
-                              event->errorDescription);
+                        event->bid,
+                        event->event,
+                        event->status,
+                        event->errorDescription);
 }
 
 static BREventType ewmClientBlockEventType = {
@@ -473,10 +473,10 @@ static BREventType ewmClientBlockEventType = {
 
 extern void
 ewmSignalBlockEvent(BREthereumEWM ewm,
-                          BREthereumBlock bid,
-                          BREthereumBlockEvent event,
-                          BREthereumStatus status,
-                          const char *errorDescription) {
+                    BREthereumBlock bid,
+                    BREthereumBlockEvent event,
+                    BREthereumStatus status,
+                    const char *errorDescription) {
     BREthereumEWMClientBlockEvent message =
     CLIENT_BLOCK_EVENT_INITIALIZER (ewm, bid, event, status, errorDescription);
     eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &message);
@@ -503,11 +503,11 @@ static void
 ewmClientTransactionEventDispatcher(BREventHandler ignore,
                                     BREthereumEWMClientTransactionEvent *event) {
     ewmHandleTransferEvent(event->ewm,
-                                 event->wid,
-                                 event->tid,
-                                 event->event,
-                                 event->status,
-                                 event->errorDescription);
+                           event->wid,
+                           event->tid,
+                           event->event,
+                           event->status,
+                           event->errorDescription);
 }
 
 static BREventType ewmClientTransactionEventType = {
@@ -518,11 +518,11 @@ static BREventType ewmClientTransactionEventType = {
 
 extern void
 ewmSignalTransferEvent(BREthereumEWM ewm,
-                             BREthereumWallet wid,
-                             BREthereumTransfer tid,
-                             BREthereumTransferEvent event,
-                             BREthereumStatus status,
-                             const char *errorDescription) {
+                       BREthereumWallet wid,
+                       BREthereumTransfer tid,
+                       BREthereumTransferEvent event,
+                       BREthereumStatus status,
+                       const char *errorDescription) {
     BREthereumEWMClientTransactionEvent message =
     CLIENT_TRANSACTION_EVENT_INITIALIZER (ewm, wid, tid, event, status, errorDescription);
     eventHandlerSignalEvent(ewm->handler, (BREvent*) &message);
@@ -558,11 +558,11 @@ static BREventType ewmClientPeerEventType = {
 
 extern void
 ewmSignalPeerEvent(BREthereumEWM ewm,
-                         // BREthereumWallet wid,
-                         // BREthereumTransaction tid,
-                         BREthereumPeerEvent event,
-                         BREthereumStatus status,
-                         const char *errorDescription) {
+                   // BREthereumWallet wid,
+                   // BREthereumTransaction tid,
+                   BREthereumPeerEvent event,
+                   BREthereumStatus status,
+                   const char *errorDescription) {
     BREthereumEWMClientPeerEvent message =
     CLIENT_PEER_EVENT_INITIALIZER (ewm, /* wid, tid,*/ event, status, errorDescription);
     eventHandlerSignalEvent(ewm->handler, (BREvent*) &message);
@@ -598,11 +598,11 @@ static BREventType ewmClientEWMEventType = {
 
 extern void
 ewmSignalEWMEvent(BREthereumEWM ewm,
-                        // BREthereumWallet wid,
-                        // BREthereumTransaction tid,
-                        BREthereumEWMEvent event,
-                        BREthereumStatus status,
-                        const char *errorDescription) {
+                  // BREthereumWallet wid,
+                  // BREthereumTransaction tid,
+                  BREthereumEWMEvent event,
+                  BREthereumStatus status,
+                  const char *errorDescription) {
     BREthereumEWMClientEWMEvent message =
     CLIENT_EWM_EVENT_INITIALIZER (ewm, /* wid, tid,*/ event, status, errorDescription);
     eventHandlerSignalEvent(ewm->handler, (BREvent*) &message);
@@ -620,7 +620,7 @@ typedef struct {
 
 static void
 ewmSignalAnnounceBlockNumberDispatcher (BREventHandler ignore,
-                                              BREthereumEWMClientAnnounceBlockNumberEvent *event) {
+                                        BREthereumEWMClientAnnounceBlockNumberEvent *event) {
     ewmHandleAnnounceBlockNumber(event->ewm, event->blockNumber, event->rid);
 }
 
@@ -632,8 +632,8 @@ static BREventType ewmClientAnnounceBlockNumberEventType = {
 
 extern void
 ewmSignalAnnounceBlockNumber (BREthereumEWM ewm,
-                                    uint64_t blockNumber,
-                                    int rid) {
+                              uint64_t blockNumber,
+                              int rid) {
     BREthereumEWMClientAnnounceBlockNumberEvent message =
     { { NULL, &ewmClientAnnounceBlockNumberEventType}, ewm, blockNumber, rid};
     eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
@@ -652,7 +652,7 @@ typedef struct {
 
 static void
 ewmSignalAnnounceNonceDispatcher (BREventHandler ignore,
-                                        BREthereumEWMClientAnnounceNonceEvent *event) {
+                                  BREthereumEWMClientAnnounceNonceEvent *event) {
     ewmHandleAnnounceNonce(event->ewm, event->address, event->nonce, event->rid);
 }
 
@@ -664,9 +664,9 @@ static BREventType ewmClientAnnounceNonceEventType = {
 
 extern void
 ewmSignalAnnounceNonce (BREthereumEWM ewm,
-                              BREthereumAddress address,
-                              uint64_t nonce,
-                              int rid) {
+                        BREthereumAddress address,
+                        uint64_t nonce,
+                        int rid) {
     BREthereumEWMClientAnnounceNonceEvent message =
     { { NULL, &ewmClientAnnounceNonceEventType}, ewm, address, nonce, rid};
     eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
@@ -718,7 +718,7 @@ typedef struct {
 
 static void
 ewmSignalAnnounceGasPriceDispatcher (BREventHandler ignore,
-                                           BREthereumEWMClientAnnounceGasPriceEvent *event) {
+                                     BREthereumEWMClientAnnounceGasPriceEvent *event) {
     ewmHandleAnnounceGasPrice(event->ewm, event->wallet, event->amount, event->rid);
 }
 
@@ -730,9 +730,9 @@ static BREventType ewmClientAnnounceGasPriceEventType = {
 
 extern void
 ewmSignalAnnounceGasPrice (BREthereumEWM ewm,
-                                 BREthereumWallet wallet,
-                                 UInt256 amount,
-                                 int rid) {
+                           BREthereumWallet wallet,
+                           UInt256 amount,
+                           int rid) {
     BREthereumEWMClientAnnounceGasPriceEvent message =
     { { NULL, &ewmClientAnnounceGasPriceEventType}, ewm, wallet, amount, rid};
     eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
@@ -752,7 +752,7 @@ typedef struct {
 
 static void
 ewmSignalAnnounceGasEstimateDispatcher (BREventHandler ignore,
-                                              BREthereumEWMClientAnnounceGasEstimateEvent *event) {
+                                        BREthereumEWMClientAnnounceGasEstimateEvent *event) {
     ewmHandleAnnounceGasEstimate(event->ewm, event->wallet, event->transfer, event->value, event->rid);
 }
 
@@ -764,10 +764,10 @@ static BREventType ewmClientAnnounceGasEstimateEventType = {
 
 extern void
 ewmSignalAnnounceGasEstimate (BREthereumEWM ewm,
-                                    BREthereumWallet wallet,
-                                    BREthereumTransfer transfer,
-                                    UInt256 value,
-                                    int rid) {
+                              BREthereumWallet wallet,
+                              BREthereumTransfer transfer,
+                              UInt256 value,
+                              int rid) {
     BREthereumEWMClientAnnounceGasEstimateEvent message =
     { { NULL, &ewmClientAnnounceGasEstimateEventType}, ewm, wallet, transfer, value, rid};
     eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
@@ -788,7 +788,7 @@ typedef struct {
 
 static void
 ewmSignalAnnounceSubmitTransferDispatcher (BREventHandler ignore,
-                                                 BREthereumEWMClientAnnounceSubmitTransferEvent *event) {
+                                           BREthereumEWMClientAnnounceSubmitTransferEvent *event) {
     ewmHandleAnnounceSubmitTransfer (event->ewm, event->wallet, event->transfer, event->errorCode, event->errorMessage, event->rid);
     if (NULL != event->errorMessage) free (event->errorMessage);
 }
@@ -833,7 +833,7 @@ typedef struct {
 
 static void
 ewmSignalAnnounceTransactionDispatcher (BREventHandler ignore,
-                                              BREthereumEWMClientAnnounceTransactionEvent *event) {
+                                        BREthereumEWMClientAnnounceTransactionEvent *event) {
     ewmHandleAnnounceTransaction(event->ewm, event->bundle, event->rid);
 }
 
@@ -851,8 +851,8 @@ static BREventType ewmClientAnnounceTransactionEventType = {
 
 extern void
 ewmSignalAnnounceTransaction(BREthereumEWM ewm,
-                                   BREthereumEWMClientAnnounceTransactionBundle *bundle,
-                                   int rid) {
+                             BREthereumEWMClientAnnounceTransactionBundle *bundle,
+                             int rid) {
     BREthereumEWMClientAnnounceTransactionEvent message =
     { { NULL, &ewmClientAnnounceTransactionEventType}, ewm, bundle, rid};
     eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
@@ -870,7 +870,7 @@ typedef struct {
 
 static void
 ewmSignalAnnounceLogDispatcher (BREventHandler ignore,
-                                      BREthereumEWMClientAnnounceLogEvent *event) {
+                                BREthereumEWMClientAnnounceLogEvent *event) {
     ewmHandleAnnounceLog(event->ewm, event->bundle, event->rid);
 }
 
@@ -888,8 +888,8 @@ static BREventType ewmClientAnnounceLogEventType = {
 
 extern void
 ewmSignalAnnounceLog (BREthereumEWM ewm,
-                            BREthereumEWMClientAnnounceLogBundle *bundle,
-                            int rid) {
+                      BREthereumEWMClientAnnounceLogBundle *bundle,
+                      int rid) {
     BREthereumEWMClientAnnounceLogEvent message =
     { { NULL, &ewmClientAnnounceLogEventType}, ewm, bundle, rid};
     eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);

@@ -243,19 +243,26 @@ size_t BRBIP32ParseMasterPrivKey(void *seed, size_t seedLen, const char *str)
     return 0;
 }
 
+#include "ethereum/util/BRUtilHex.h"
+
 // writes the base58check encoded serialized master public key (xpub) to str
 // returns number of bytes written including NULL terminator, or strLen needed if str is NULL
 size_t BRBIP32SerializeMasterPubKey(char *str, size_t strLen, BRMasterPubKey mpk)
 {
-    // TODO: XXX implement
-    return 0;
+    size_t mpkSize = 1 + 2 * sizeof (BRMasterPubKey);
+    if (NULL == str) return mpkSize;
+
+    assert (strLen >= mpkSize);
+    encodeHex (str, strLen, (const uint8_t *) &mpk, sizeof(BRMasterPubKey));
+    return mpkSize;
 }
 
 // returns a master public key give a base58check encoded serialized master public key (xpub)
 BRMasterPubKey BRBIP32ParseMasterPubKey(const char *str)
 {
-    // TODO: XXX implement
-    return BR_MASTER_PUBKEY_NONE;
+    BRMasterPubKey key;
+    decodeHex ((uint8_t *) &key, sizeof(BRMasterPubKey), str, strlen(str));
+    return key;
 }
 
 // key used for authenticated API calls, i.e. bitauth: https://github.com/bitpay/bitauth - path m/1H/0

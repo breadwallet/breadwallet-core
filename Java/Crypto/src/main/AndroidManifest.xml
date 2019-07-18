@@ -1,2 +1,3 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.breadwallet.crypto" />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.breadwallet.crypto" >
+    <uses-permission android:name="android.permission.INTERNET" />
+</manifest>

@@ -9,5 +9,11 @@
  */
 package com.breadwallet.crypto;
 
-public class Address {
+public interface Address {
+
+    String toString();
+
+    boolean equals(Object o);
+
+    int hashCode();
 }

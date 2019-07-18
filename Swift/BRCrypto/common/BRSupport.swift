@@ -8,7 +8,6 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
-
 import Foundation
 
 ///
@@ -156,6 +155,13 @@ extension Result {
         case let .failure(f): return Result.success(transform (f))
         }
     }
+
+    public func resolve (success: (Success) -> Void, failure: (Failure) -> Void) {
+        switch self {
+        case let .success (value): success(value)
+        case let .failure (error): failure(error)
+        }
+    }
 }
 
 extension Array {
@@ -174,6 +180,16 @@ extension Array {
             return result.contains { toIdentifier($0) == elementId }
                 ? result
                 : (result + [element])
+        }
+    }
+}
+
+
+extension Array {
+    // https://www.hackingwithswift.com/example-code/language/how-to-split-an-array-into-chunks
+    func chunked(into size: Int) -> [[Element]] {
+        return stride(from: 0, to: count, by: size).map {
+            Array(self[$0 ..< Swift.min($0 + size, count)])
         }
     }
 }

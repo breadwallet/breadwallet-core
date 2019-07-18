@@ -37,6 +37,13 @@ tokenGetAddressRaw (BREthereumToken token);
 extern const char *
 tokenGetAddress (BREthereumToken token);
 
+/**
+ * Check if `token` has `address` which must be a '0x'-prefixed hex string.
+ */
+extern BREthereumBoolean
+tokenHasAddress (BREthereumToken token,
+                 const char *address);
+
 extern const char *
 tokenGetSymbol (BREthereumToken token);
 

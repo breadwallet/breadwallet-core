@@ -584,7 +584,8 @@ runEWM_CONNECT_test (const char *paperKey,
     BREthereumEWM ewm = ewmCreateWithPaperKey (ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
                                                BRD_ONLY,
                                                client,
-                                               storagePath);
+                                               storagePath,
+                                               0);
     assert (NULL != ewm);
 
     BREthereumWallet wallet = ewmGetWallet(ewm);
@@ -649,7 +650,8 @@ void prepareTransaction (const char *paperKey,
     BREthereumEWM ewm = ewmCreateWithPaperKey (ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
                                                P2P_ONLY,
                                                client,
-                                               storagePath);
+                                               storagePath,
+                                               0);
     // A wallet amount Ether
     BREthereumWallet wallet = ewmGetWallet(ewm);
     // END - One Time Code Block
@@ -709,7 +711,8 @@ testReallySend (const char *storagePath) {
     BREthereumEWM ewm = ewmCreateWithPaperKey (ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
                                                P2P_ONLY,
                                                client,
-                                               storagePath);
+                                               storagePath,
+                                               0);
     BREthereumAccount account = ewmGetAccount(ewm);
     
     // A wallet amount Ether
@@ -782,7 +785,8 @@ runEWM_TOKEN_test (const char *paperKey,
     BREthereumEWM ewm = ewmCreateWithPaperKey (ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
                                                P2P_ONLY,
                                                client,
-                                               storagePath);
+                                               storagePath,
+                                               0);
     BREthereumWallet wid = ewmGetWalletHoldingToken(ewm, token);
     
     BREthereumAmount amount = ewmCreateTokenAmountString(ewm, token,
@@ -817,14 +821,16 @@ runEWM_PUBLIC_KEY_test (BREthereumNetwork network,
     BREthereumEWM ewm1 = ewmCreateWithPaperKey (ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
                                                 P2P_ONLY,
                                                 client,
-                                                storagePath);
+                                                storagePath,
+                                                0);
     BRKey publicKey = ewmGetAccountPrimaryAddressPublicKey (ewm1);
     char *addr1 = ewmGetAccountPrimaryAddress (ewm1);
     
     BREthereumEWM ewm2 = ewmCreateWithPublicKey (ethereumMainnet, publicKey, ETHEREUM_TIMESTAMP_UNKNOWN,
                                                  P2P_ONLY,
                                                  client,
-                                                 storagePath);
+                                                 storagePath,
+                                                 0);
     char *addr2 = ewmGetAccountPrimaryAddress (ewm2);
     
     
@@ -853,7 +859,7 @@ runSyncTest (BREthereumNetwork network,
     
     alarmClockCreateIfNecessary (1);
 
-    ewm = ewmCreate (ethereumMainnet, account, accountTimestamp, mode, client, storagePath);
+    ewm = ewmCreate (ethereumMainnet, account, accountTimestamp, mode, client, storagePath, 0);
 
     
     char *address = ewmGetAccountPrimaryAddress(ewm);

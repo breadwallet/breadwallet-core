@@ -20,10 +20,6 @@ class SummaryViewController: UITableViewController, WalletListener {
     var detailViewController: WalletViewController? = nil
 
     override func viewDidLoad() {
-        // Possible race
-        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
-            listener.walletListeners.append (self)
-        }
         super.viewDidLoad()
 
         if let split = splitViewController {
@@ -35,10 +31,22 @@ class SummaryViewController: UITableViewController, WalletListener {
     override func viewWillAppear (_ animated: Bool) {
         self.wallets = UIApplication.sharedSystem.wallets
 
+        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
+            listener.add (walletListener: self)
+        }
+        
         clearsSelectionOnViewWillAppear = splitViewController!.isCollapsed
         super.viewWillAppear(animated)
     }
 
+    override func viewWillDisappear(_ animated: Bool) {
+        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
+            listener.remove (walletListener: self)
+        }
+        
+        super.viewWillDisappear(animated)
+    }
+    
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
     }
@@ -122,8 +130,7 @@ class SummaryViewController: UITableViewController, WalletListener {
             // if visible ...
             switch event {
             case .created:
-                guard !self.wallets.contains(where: { $0 === wallet })
-                    else { return }
+                precondition (!self.wallets.contains (wallet))
 
                 self.wallets.append (wallet)
 
@@ -131,24 +138,19 @@ class SummaryViewController: UITableViewController, WalletListener {
                 self.tableView.insertRows (at: [path], with: .automatic)
 
             case .balanceUpdated:
-                guard let index = self.wallets.firstIndex (where: { $0 === wallet })
-                    else { return }
-
-                let path = IndexPath (row: index, section: 0)
-                let cell = self.tableView.cellForRow(at: path) as! WalletTableViewCell
-                cell.updateView ()
-
-//            case .transferSubmitted (transfer, success):
-//                break
+                if let index = self.wallets.firstIndex (of: wallet) {
+                    let path = IndexPath (row: index, section: 0)
+                    let cell = self.tableView.cellForRow(at: path) as! WalletTableViewCell
+                    cell.updateView ()
+                }
 
             case .deleted:
-                guard let index = self.wallets.firstIndex(where: { $0 === wallet })
-                    else { return }
+                if let index = self.wallets.firstIndex (of: wallet) {
+                    self.wallets.remove (at: index)
 
-                self.wallets.remove(at: index)
-
-                let path = IndexPath (row: index, section: 0)
-                self.tableView.deleteRows(at: [path], with: .automatic)
+                    let path = IndexPath (row: index, section: 0)
+                    self.tableView.deleteRows(at: [path], with: .automatic)
+                }
 
             default:
                 break

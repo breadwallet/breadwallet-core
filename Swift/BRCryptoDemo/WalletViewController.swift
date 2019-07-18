@@ -12,7 +12,7 @@
 import UIKit
 import BRCrypto
 
-class WalletViewController: UITableViewController, TransferListener {
+class WalletViewController: UITableViewController, TransferListener, WalletManagerListener {
 
     /// The wallet viewed.
     var wallet : Wallet! {
@@ -26,12 +26,6 @@ class WalletViewController: UITableViewController, TransferListener {
 
 
     override func viewDidLoad() {
-        // Seems `viewDidLoad()` is called many times... and the listener is added many times.
-        // Should only be added once or should be removed (on viewWillDisappear())
-        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
-            listener.transferListeners.append (self)
-        }
-
         super.viewDidLoad()
         self.tableView.rowHeight = 100
     }
@@ -39,13 +33,28 @@ class WalletViewController: UITableViewController, TransferListener {
     override func viewWillAppear(_ animated: Bool) {
         // If we have a wallet, then view transfers
         if wallet != nil {
-            self.transfers = wallet.transfers;
+            self.transfers = wallet.transfers.sorted { $0.isBefore ($1) }
             self.navigationItem.title = "Wallet: \(wallet.name)"
             self.tableView.reloadData()
         }
+        
+        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
+            listener.add (managerListener: self)
+            listener.add (transferListener: self)
+        }
+        
         super.viewWillAppear(animated)
     }
 
+    override func viewWillDisappear(_ animated: Bool) {
+        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
+            listener.remove (managerListener: self)
+            listener.remove (transferListener: self)
+        }
+        
+        super.viewWillDisappear(animated)
+    }
+    
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
     }
@@ -80,6 +89,7 @@ class WalletViewController: UITableViewController, TransferListener {
             print ("APP: WVC: Want to Create")
             let controller = (segue.destination as! UINavigationController).topViewController as! TransferCreateController
             controller.wallet = wallet
+            controller.fee    = wallet.manager.defaultNetworkFee
             break
 
         default:
@@ -95,39 +105,77 @@ class WalletViewController: UITableViewController, TransferListener {
 
         return cell
      }
-
+    
+    func handleManagerEvent (system: System, manager: WalletManager, event: WalletManagerEvent) {
+        DispatchQueue.main.async {
+            print ("APP: WVC: ManagerEvent: \(event)")
+            guard self.wallet.manager == manager /* && view is visible */  else { return }
+            switch event {
+            case .blockUpdated:
+                self.tableView.reloadData()
+            default:
+                break
+            }
+        }
+    }
 
     func handleTransferEvent(system: System, manager: WalletManager, wallet: Wallet, transfer: Transfer, event: TransferEvent) {
         DispatchQueue.main.async {
             print ("APP: WVC: TransferEvent: \(event)")
-            guard self.wallet === wallet /* && view is visible */  else { return }
+            guard self.wallet == wallet /* && view is visible */  else { return }
             switch event {
             case .created:
-                self.transfers.append(transfer)
+                precondition(!self.transfers.contains(transfer))
 
-                let path = IndexPath (row: (self.transfers.count - 1), section: 0)
+                // Simple, but inefficient
+                self.transfers.insert(transfer, at: 0)
+                self.transfers.sort { $0.isBefore ($1) }
+                guard let index = self.transfers.firstIndex (of: transfer) else {
+                    precondition(false); return
+                }
+
+                let path = IndexPath (row: index, section: 0)
                 self.tableView.insertRows (at: [path], with: .automatic)
 
             case .changed: //  (let old, let new)
-                if let index = self.transfers.firstIndex (where: { $0 === transfer}) {
-                    let path = IndexPath (row: index, section: 0)
-                    self.tableView.reloadRows(at: [path], with: .automatic)
-                }
-
-            case .confirmation:
-                if let index = self.transfers.firstIndex (where: { $0 === transfer}) {
+                if let index = self.transfers.firstIndex (of: transfer) {
                     let path = IndexPath (row: index, section: 0)
                     self.tableView.reloadRows(at: [path], with: .automatic)
                 }
 
             case .deleted:
-                if let index = self.transfers.firstIndex (where: { $0 === transfer}) {
+                if let index = self.transfers.firstIndex (of: transfer) {
                     self.transfers.remove(at: index)
 
                     let path = IndexPath (row: index, section: 0)
                     self.tableView.deleteRows(at: [path], with: .automatic)
                 }
             }
+        }
+    }
+}
+
+extension TransferConfirmation: Comparable {
+    public static func < (lhs: TransferConfirmation, rhs: TransferConfirmation) -> Bool {
+        return lhs.blockNumber < rhs.blockNumber
+            || (lhs.blockNumber == rhs.blockNumber && lhs.transactionIndex < rhs.transactionIndex)
+    }
+
+    public static func == (lhs: TransferConfirmation, rhs: TransferConfirmation) -> Bool {
+        return lhs.blockNumber == rhs.blockNumber
+            && lhs.transactionIndex == rhs.transactionIndex
+            && lhs.timestamp == rhs.timestamp
+    }
+}
+
+extension Transfer {
+    func isBefore (_ that: Transfer) -> Bool  {
+        switch (self.confirmation, that.confirmation) {
+        case (.none, .none): return true
+        case (.none, .some): return true
+        case (.some, .none): return false
+        case (let .some(sc), let .some(tc)):
+            return sc >= tc
         }
     }
 }

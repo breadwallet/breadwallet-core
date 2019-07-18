@@ -32,23 +32,29 @@ static void
 cryptoCurrencyRelease (BRCryptoCurrency currency);
 
 struct BRCryptoCurrencyRecord {
+    char *uids;
     char *name;
     char *code;
     char *type;
+    char *issuer;
     BRCryptoRef ref;
 };
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoCurrency, cryptoCurrency)
 
 /* private */ extern BRCryptoCurrency
-cryptoCurrencyCreate (const char *name,
+cryptoCurrencyCreate (const char *uids,
+                      const char *name,
                       const char *code,
-                      const char *type) {
+                      const char *type,
+                      const char *issuer) {
     BRCryptoCurrency currency = malloc (sizeof (struct BRCryptoCurrencyRecord));
 
+    currency->uids = strdup (uids);
     currency->name = strdup (name);
     currency->code = strdup (code);
     currency->type = strdup (type);
+    currency->issuer = (NULL == issuer ? NULL : strdup (issuer));
     currency->ref  = CRYPTO_REF_ASSIGN (cryptoCurrencyRelease);
 
     return currency;
@@ -56,11 +62,18 @@ cryptoCurrencyCreate (const char *name,
 
 static void
 cryptoCurrencyRelease (BRCryptoCurrency currency) {
-//    printf ("Currency: Release\n");
+    printf ("Currency: Release\n");
     free (currency->type);
     free (currency->code);
     free (currency->name);
+    free (currency->uids);
+    if (NULL != currency->issuer) free (currency->issuer);
     free (currency);
+}
+
+extern const char *
+cryptoCurrencyGetUids (BRCryptoCurrency currency) {
+    return currency->uids;
 }
 
 extern const char *
@@ -78,6 +91,11 @@ cryptoCurrencyGetType (BRCryptoCurrency currency) {
     return currency->type;
 }
 
+extern const char *
+cryptoCurrencyGetIssuer (BRCryptoCurrency currency) {
+    return currency->issuer;
+}
+
 // total supply
 // initial supply
 
@@ -86,20 +104,7 @@ cryptoCurrencyGetType (BRCryptoCurrency currency) {
 extern BRCryptoBoolean
 cryptoCurrencyIsIdentical (BRCryptoCurrency c1,
                            BRCryptoCurrency c2) {
-    return AS_CRYPTO_BOOLEAN (c1 == c2);
+    return AS_CRYPTO_BOOLEAN (c1 == c2
+                              || c1->uids == c2->uids
+                              || 0 == strcmp (c1->uids, c2->uids));
 }
-
-#if 0
-extern BRCryptoCurrency
-cryptoCurrencyTake (BRCryptoCurrency currency) {
-    currency->refs++;
-    return currency;
-}
-
-extern void
-cryptoCurrencyGive (BRCryptoCurrency currency) {
-    currency->refs--;
-    if (0 == currency->refs)
-        cryptoCurrencyRelease (currency);
-}
-#endif

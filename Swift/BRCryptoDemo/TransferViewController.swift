@@ -12,19 +12,13 @@
 import UIKit
 import BRCrypto
 
-class TransferViewController: UIViewController, TransferListener {
+class TransferViewController: UIViewController, TransferListener, WalletManagerListener {
     var transfer : Transfer!
     var wallet  : Wallet!
 
     var dateFormatter : DateFormatter!
 
     override func viewDidLoad() {
-        // Seems `viewDidLoad()` is called many times... and the listener is added many times.
-        // Should only be added once or should be removed (on viewWillDisappear())
-        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
-            listener.transferListeners.append (self)
-        }
-
         super.viewDidLoad()
 
         if nil == dateFormatter {
@@ -34,9 +28,24 @@ class TransferViewController: UIViewController, TransferListener {
     }
 
     override func viewWillAppear(_ animated: Bool) {
+        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
+            listener.add (managerListener: self)
+            listener.add (transferListener: self)
+        }
+        
         super.viewWillAppear(animated);
         updateView ()
     }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
+            listener.remove (managerListener: self)
+            listener.remove (transferListener: self)
+        }
+        
+        super.viewWillDisappear(animated)
+    }
+    
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
     }
@@ -68,14 +77,18 @@ class TransferViewController: UIViewController, TransferListener {
         amountLabel.text = transfer.amountDirected.description
         feeLabel.text  =  transfer.fee.description
         dateLabel.text = date.map { dateFormatter.string(from: $0) } ?? "<pending>"
-        sendLabel.text = transfer.source?.description ?? "<unknown>"
-        recvLabel.text = transfer.target?.description ?? "<unknown>"
+        sendButton.setTitle(transfer.source?.description ?? "<unknown>", for: .normal)
+        recvButton.setTitle(transfer.target?.description ?? "<unknown>", for: .normal)
 
         identifierLabel.text = hash.map { $0.description } ?? "<pending>"
 
         confLabel.text = transfer.confirmation.map { "Yes @ \($0.blockNumber)" } ?? "No"
         confCountLabel.text = transfer.confirmations?.description ?? ""
-        
+
+        if (Currency.codeAsETH != wallet.currency.code) {
+            nonceTitleLabel.isHidden = true
+            nonceLabel.isHidden = true;
+        }
         switch transfer.state {
         case .failed(let reason):
             stateLabel.text = "\(transfer.state.description): \(reason)"
@@ -209,53 +222,39 @@ class TransferViewController: UIViewController, TransferListener {
     @IBOutlet var amountLabel: UILabel!
     @IBOutlet var feeLabel: UILabel!
     @IBOutlet var dateLabel: UILabel!
-    @IBOutlet var sendLabel: CopyableLabel!
-    @IBOutlet var recvLabel: CopyableLabel!
+    @IBOutlet var sendButton: UIButton!
+    @IBOutlet var recvButton: UIButton!
     @IBOutlet var identifierLabel: UILabel!
     @IBOutlet var confLabel: UILabel!
     @IBOutlet var confCountLabel: UILabel!
     @IBOutlet var stateLabel: UILabel!
     @IBOutlet var cancelButton: UIButton!
     @IBOutlet var resubmitButton: UIButton!
+    @IBOutlet var nonceTitleLabel: UILabel!
     @IBOutlet var nonceLabel: UILabel!
     @IBOutlet var dotView: Dot!
+    @IBAction func toPasteBoard(_ sender: UIButton) {
+        UIPasteboard.general.string = sender.titleLabel?.text
+    }
 
+    func handleManagerEvent (system: System, manager: WalletManager, event: WalletManagerEvent) {
+        DispatchQueue.main.async {
+            print ("APP: TVC: ManagerEvent: \(event)")
+            guard self.wallet.manager == manager /* && view is visible */  else { return }
+            switch event {
+            case .blockUpdated:
+                self.updateView()
+            default:
+                break
+            }
+        }
+    }
+    
     func handleTransferEvent(system: System, manager: WalletManager, wallet: Wallet, transfer: Transfer, event: TransferEvent) {
         DispatchQueue.main.async {
             print ("APP: TVC: TransferEvent: \(event)")
-            guard self.wallet === wallet /* && view is visible */  else { return }
-
-            // This, for sure
-            self.dotView.mainColor = self.colorForState()
-
-            switch event {
-            case .created:
-                break // impossible...
-            case .changed (_, let new):
-                switch (new) {
-                case .created:
-                    break // impossible
-                case .signed:
-                    break
-                case .submitted:
-                    break
-                case .pending:
-                    break
-                case .included /* (let confirmation) */:
-                    self.confLabel.text = transfer.confirmation.map { "Yes @ \($0.blockNumber)" } ?? "No"
-
-                case .failed /* (let reason) */:
-                    break
-                case .deleted:
-                    break // nearly impossible
-                }
-                break
-            case .confirmation(let count):
-                self.confCountLabel.text = count.description
-                break
-            case .deleted:
-                break // nearly impossible
-            }
+            guard self.wallet.manager == manager && self.wallet == wallet && self.transfer == transfer  else { return }
+            self.updateView()
         }
     }
 }

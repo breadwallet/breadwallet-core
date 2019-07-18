@@ -15,6 +15,8 @@ import BRCrypto
 class TransferCreateController: UIViewController, UITextViewDelegate {
 
     var wallet : Wallet!
+    var fee: NetworkFee!
+    var feeBasis: TransferFeeBasis?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -27,48 +29,63 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
     }
 
     var isEthCurrency: Bool {
-        return wallet.currency.code == Currency.codeAsETH
+        return wallet.currency.code.lowercased() == Currency.codeAsETH
     }
     var isBitCurrency: Bool {
-        return wallet.currency.code == Currency.codeAsBTC || wallet.currency.code == Currency.codeAsBCH
+        return wallet.currency.code.lowercased() == Currency.codeAsBTC ||
+            wallet.currency.code.lowercased() == Currency.codeAsBCH
     }
 
     var isTokCurrency: Bool {
         return !isEthCurrency && !isBitCurrency
     }
 
+    var canUseFeeBasis: Bool = false
+
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated);
 
-        oneEtherButton.setEnabled (isEthCurrency, forSegmentAt: 0)
-        oneEtherButton.setEnabled (isEthCurrency || isTokCurrency, forSegmentAt: 1)
-        oneEtherButton.setEnabled (isBitCurrency, forSegmentAt: 2)
+        let balance: Double = wallet.balance.double (as: wallet.unit) ?? 0.0
 
-        oneEtherButton.selectedSegmentIndex = (isBitCurrency ? 2 : 1)
+        oneEtherButton.setEnabled (isEthCurrency, forSegmentAt: 0)
+        oneEtherButton.setEnabled (isEthCurrency || isTokCurrency || isBitCurrency, forSegmentAt: 1)
+        oneEtherButton.setEnabled (isBitCurrency && balance >= 0.01, forSegmentAt: 2)
+        oneEtherButton.selectedSegmentIndex = 1 // slider
 
         oneEtherSelected = 0 == oneEtherButton.selectedSegmentIndex
         oneBitcoinSelected = 2 == oneEtherButton.selectedSegmentIndex
 
         amountSlider.minimumValue = 0.0
-        amountSlider.maximumValue = 0.001  //  Float (wallet.balance.amount)!
+        amountSlider.maximumValue = Float (balance)
         amountSlider.value = 0.0
-        switch wallet.currency.code {
-        case Currency.codeAsETH:
-            recvField.text = (wallet.manager.network.isMainnet
-                ? "0x19454a70538bfbdbd7abf3ac8d274d5cb2514056" /* "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62" */
-                : "0xbDFdAd139440D2Db9BA2aa3B7081C2dE39291508");
-        case Currency.codeAsBTC:
-            recvField.text = (wallet.manager.network.isMainnet
-                ? ""
-                : "mv4rnyY3Su5gjcDNzbMLKBQkBicCtHUtFB")
-        case Currency.codeAsBCH:
-            recvField.text = (wallet.manager.network.isMainnet
-                ? ""
-                : "mv4rnyY3Su5gjcDNzbMLKBQkBicCtHUtFB")
-        default:
-            recvField.text = "Missed currency/network"
+
+        if nil != UIPasteboard.general.string {
+            recvField.text = UIPasteboard.general.string
+        }
+        else {
+            switch wallet.currency.code.lowercased() {
+            case Currency.codeAsETH:
+                recvField.text = (wallet.manager.network.isMainnet
+                    ? "0x19454a70538bfbdbd7abf3ac8d274d5cb2514056" /* "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62" */
+                    : "0xbDFdAd139440D2Db9BA2aa3B7081C2dE39291508");
+            case Currency.codeAsBTC:
+                recvField.text = (wallet.manager.network.isMainnet
+                    ? ""
+                    : "mv4rnyY3Su5gjcDNzbMLKBQkBicCtHUtFB")
+            case Currency.codeAsBCH:
+                recvField.text = (wallet.manager.network.isMainnet
+                    ? ""
+                    : "mv4rnyY3Su5gjcDNzbMLKBQkBicCtHUtFB")
+            default:
+                recvField.text = "Missed currency/network"
+            }
         }
 
+        walletAddrButton.setTitle(wallet.source.description, for: .normal)
+
+        gasPriceSegmentedController.isEnabled = isEthCurrency && canUseFeeBasis
+        gasLimitSegmentedController.isEnabled = isEthCurrency && canUseFeeBasis
+        satPerKBSegmentedController.isEnabled = isBitCurrency && canUseFeeBasis
         updateView()
     }
 
@@ -86,11 +103,7 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
     */
     @IBAction func submit(_ sender: UIBarButtonItem) {
         print ("APP: TCC: Want to submit")
-        let value = (oneBitcoinSelected
-            ? 0.01
-            : (oneEtherSelected
-                ? 1
-                : self.amountSlider.value))
+        let value = amount()
 
         let alert = UIAlertController (title: "Submit Transaction for \(value) \(wallet.name)",
             message: "Are you sure?",
@@ -112,12 +125,12 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
 
             let unit = self.wallet.unit
             let amount = Amount.create (double: Double(value), unit: unit)
-            print ("APP: TVV: Submit ETH Amount: \(amount)");
+            print ("APP: TVV: Submit \(self.isBitCurrency ? "BTC/BCH" : "ETH") Amount: \(amount)");
 
             // let amount = Amount (value: value, unit: self.wallet.currency.defaultUnit)
             guard let transfer = self.wallet.createTransfer (target: target,
                                                              amount: amount,
-                                                             feeBasis: self.feeBasis())
+                                                             estimatedFeeBasis: self.feeBasis!)
                 else {
                     let alert = UIAlertController (title: "Submit Transfer",
                                                message: "Failed to create transfer - balance too low?",
@@ -131,8 +144,8 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
             }
 
             // Will generate a WalletEvent.transferSubmitted (transfer, success)
-            self.wallet.manager.submit(transfer: transfer,
-                                       paperKey: UIApplication.paperKey);
+            self.wallet.manager.submit (transfer: transfer,
+                                        paperKey: UIApplication.paperKey);
 
             // Notify, close
             self.dismiss(animated: true) {}
@@ -147,36 +160,49 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
         self.dismiss(animated: true) {}
     }
 
-    func updateView () {
+    func updateFee () {
+        guard let target = Address.create (string: self.recvField.text!, network: self.wallet.manager.network)
+            else { return }
 
-        let fee = Double (gasPrice() * gasLimit()) / 1e18
-        feeLabel.text = "\(fee) ETH"
+        let amount = Amount.create (double: Double(self.amount()), unit: wallet.unit)
+
+        wallet.estimateFee (target: target, amount: amount, fee: fee) { (result: Result<TransferFeeBasis, Wallet.FeeEstimationError>) in
+            guard case let .success(feeBasis) = result
+                else { return }
+
+            self.feeBasis = feeBasis
+            DispatchQueue.main.async {
+                self.feeLabel.text = "  \(feeBasis.fee) (estimated)"
+            }
+        }
+    }
+    
+    func updateView () {
 
         amountMinLabel.text = amountSlider.minimumValue.description
         amountMaxLabel.text = amountSlider.maximumValue.description
-        amountLabel.text = amountSlider.value.description
+        amountLabel.text = amount().description
         amountSlider.isEnabled = !oneEtherSelected && !oneBitcoinSelected
 
         submitButton.isEnabled = (recvField.text != "" &&
             (0.0 != amountSlider.value || oneEtherSelected || oneBitcoinSelected))
+
+        updateFee()
     }
 
     @IBAction func amountChanged(_ sender: Any) {
         amountLabel.text = amountSlider.value.description
         submitButton.isEnabled = (recvField.text != "" &&
             (0.0 != amountSlider.value || oneEtherSelected || oneBitcoinSelected))
+        updateFee()
     }
 
-    func feeBasis () -> TransferFeeBasis {
-        switch wallet.currency.code {
-        case Currency.codeAsETH:
-            let wei = wallet.manager.network.baseUnitFor(currency: wallet.currency)!
-            return TransferFeeBasis.ethereum (
-                gasPrice: Amount.create(integer: Int64 (gasPrice()), unit: wei),
-                gasLimit: gasLimit())
-        default:
-            return TransferFeeBasis.bitcoin(feePerKB: 1000)
-        }
+    func amount () -> Float {
+        return (oneBitcoinSelected
+                ? 0.01
+                : (oneEtherSelected
+                    ? 1
+                    : amountSlider!.value))
     }
 
     // In WEI
@@ -208,6 +234,15 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
         }
     }
 
+    func satPerKB () -> UInt64 {
+        switch (satPerKBSegmentedController.selectedSegmentIndex) {
+        case 0: return 5000
+        case 1: return 2000
+        case 2: return 1000
+        default: return 2000
+        }
+    }
+
     @IBAction func gasLimitChanged(_ sender: UISegmentedControl) {
         updateView()
     }
@@ -222,4 +257,9 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
     @IBOutlet var gasPriceSegmentedController: UISegmentedControl!
     @IBOutlet var gasLimitSegmentedController: UISegmentedControl!
     @IBOutlet var oneEtherButton: UISegmentedControl!
+    @IBOutlet var satPerKBSegmentedController: UISegmentedControl!
+    @IBOutlet var walletAddrButton: UIButton!
+    @IBAction func toPasteBoard(_ sender: UIButton) {
+        UIPasteboard.general.string = sender.titleLabel?.text
+    }
 }

@@ -49,12 +49,20 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         //                                         paperKey: "0x8975dbc1b8f25ec994815626d070899dda896511")
         //                                         paperKey: "0xb302B06FDB1348915599D21BD54A06832637E5E8")
 
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX") // set locale to reliable US_POSIX
+
+
         let walletId = UUID (uuidString: "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96")?.uuidString ?? "empty-wallet-id"
-        guard let account = Account.createFrom (phrase: paperKey, uids: walletId) else {
+        let timestamp = dateFormatter.date (from: "2017-10-01")! // "loan ..."
+
+        guard let account = Account.createFrom (phrase: paperKey, timestamp: timestamp, uids: walletId) else {
             precondition(false, "No account")
             return false
         }
-        account.timestamp = 1514764800 // 2018-01-01
+//        account.timestamp = 1530403200 // loan: 2018-07-01
+//        account.timestamp = 1514764800 // 2018-01-01
 //        account.timestamp = 1543190400 // Tue, 26 Nov 2018 00:00:00 GMT
 
         // Ensure the storage path
@@ -75,7 +83,9 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
             print("Error: \(error.localizedDescription)")
         }
 
-        print ("APP: StoragePath: \(storagePath)");
+        print ("APP: Account PaperKey  : \(paperKey.components(separatedBy: CharacterSet.whitespaces).first ?? "<missed>") ...")
+        print ("APP: Account Timestamp : \(account.timestamp)")
+        print ("APP: StoragePath       : \(storagePath)");
 
         // Create the listener
         let listener = CoreDemoListener ()
@@ -85,17 +95,28 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
 
         // Create the system
         self.listener = listener
-        self.system = SystemBase.create (listener: listener,
-                                         account: account,
-                                         path: storagePath,
-                                         query: query)
-
+        self.system = System (listener: listener,
+                              account: account,
+                              path: storagePath,
+                              query: query)
+        
         // Subscribe to notificiations or not (Provide an endpoint if notifications are enabled).
         let subscriptionId = UIDevice.current.identifierForVendor!.uuidString
         let subscription = BlockChainDB.Subscription (id: subscriptionId, endpoint: nil);
         self.system.subscribe (using: subscription)
 
-        self.system.start (networksNeeded: ["bitcoin-mainnet","ethereum-mainnet"])
+        var networksNeeded: [String] = []
+
+        #if TESTNET
+        networksNeeded += ["bitcoin-testnet"] //, "ripple-testnet"] // ...
+        #endif
+
+        #if MAINNET
+        networksNeeded += ["bitcoin-mainnet"] // ...
+        #endif
+
+        print ("APP: Networks          : \(networksNeeded)")
+        self.system.start (networksNeeded: networksNeeded) //, */"ethereum-mainnet"])
 
         return true
     }

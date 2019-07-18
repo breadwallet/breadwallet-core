@@ -9,21 +9,21 @@
  */
 package com.breadwallet.crypto;
 
-public class Currency {
-    public final String code;
-    public final String symbol;
-    public final String name;
-    public final int decimals;
+public interface Currency {
 
-    public final Unit baseUnit;
-    public final Unit defaultUnit;
+    String CODE_AS_BTC = "btc";
+    String CODE_AS_BCH = "bch";
+    String CODE_AS_ETH = "eth";
 
-    public Currency(String code, String symbol, String name, int decimals, String baseUnitName, String baseUnitSymbol) {
-        this.code = code;
-        this.symbol = symbol;
-        this.name = name;
-        this.decimals = decimals;
-        this.baseUnit    = new Unit (this, baseUnitName, baseUnitSymbol);
-        this.defaultUnit = new Unit (code, symbol, (long) Math.pow (10, decimals), this.baseUnit);
-    }
+    String getUids();
+
+    String getName();
+
+    String getCode();
+
+    String getType();
+
+    boolean equals(Object o);
+
+    int hashCode();
 }

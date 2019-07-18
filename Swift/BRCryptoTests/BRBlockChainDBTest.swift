@@ -39,7 +39,7 @@ class BRBlockChainDBTest: XCTestCase {
 
         expectation = XCTestExpectation (description: "blockchains")
 
-        db.getBlockchains { (res: Result<[BlockChainDB.Model.Blockchain], BlockChainDB.QueryError>) in
+        db.getBlockchains (mainnet: false) { (res: Result<[BlockChainDB.Model.Blockchain], BlockChainDB.QueryError>) in
             guard case let .success (blockchains) = res
                 else { XCTAssert(false); return }
 
@@ -82,7 +82,7 @@ class BRBlockChainDBTest: XCTestCase {
     func testTransfers() {
         expectation = XCTestExpectation (description: "transfer")
 
-        let transferId = "bitcoin-mainnet:78a05731f82519762e8462f709e095908e77edd5eb740ba1202451212a884b9e:2"
+        let transferId = "bitcoin-testnet:ea4ed7efc701b5fdcfc38d4901f75f90c1a5de3e13fa38590289b2244f8887cb:0"
         db.getTransfer (transferId: transferId) { (res: Result<BlockChainDB.Model.Transfer, BlockChainDB.QueryError>) in
             guard case let .success (transfer) = res
                 else { XCTAssert(false); return }
@@ -113,13 +113,15 @@ class BRBlockChainDBTest: XCTestCase {
     func testTransactions () {
         expectation = XCTestExpectation (description: "transactions")
 
-        let transactionId = "bitcoin-mainnet:cfadf40e698a8f90452c2c5b96304638376c7aa98b4448c90e7a2192db0c8a02"
-        db.getTransaction(transactionId: transactionId, includeRaw: true) { (res: Result<BlockChainDB.Model.Transaction, BlockChainDB.QueryError>) in
-            guard case let .success (transaction) = res
-                else { XCTAssert(false); return }
+        let transactionId = "bitcoin-testnet:ea4ed7efc701b5fdcfc38d4901f75f90c1a5de3e13fa38590289b2244f8887cb"
+        db.getTransaction (transactionId: transactionId,
+                           includeRaw: true) {
+                            (res: Result<BlockChainDB.Model.Transaction, BlockChainDB.QueryError>) in
+                            guard case let .success (transaction) = res
+                                else { XCTAssert(false); return }
 
-            XCTAssertEqual (transactionId, transaction.id)
-            self.expectation.fulfill()
+                            XCTAssertEqual (transactionId, transaction.id)
+                            self.expectation.fulfill()
         }
         wait (for: [expectation], timeout: 60)
 
@@ -128,43 +130,74 @@ class BRBlockChainDBTest: XCTestCase {
         ///
         expectation = XCTestExpectation (description: "transactions")
 
-        let blockchainId = "bitcoin-mainnet"
-        db.getTransactions (blockchainId: blockchainId, addresses: [], includeRaw: true) { (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
-            guard case let .success (transactions) = res
-                else { XCTAssert(false); return }
+        let blockchainId = "bitcoin-testnet"
+        db.getTransactions (blockchainId: blockchainId,
+                            addresses: [],
+                            includeRaw: true) {
+                                (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
+                                guard case let .success (transactions) = res
+                                    else { XCTAssert(false); return }
 
-            XCTAssertTrue (transactions.isEmpty)
-            self.expectation.fulfill()
+                                XCTAssertTrue (transactions.isEmpty)
+                                self.expectation.fulfill()
         }
 
         wait (for: [expectation], timeout: 60)
 
+        ///
+        ///
+        ///
+        expectation = XCTestExpectation (description: "transactions /w addresses nonsense")
+
+        db.getTransactions (blockchainId: blockchainId,
+                            addresses: ["abc", "def"],
+                            includeRaw: true) {
+                                (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
+                                guard case let .success (transactions) = res
+                                    else { XCTAssert(false); return }
+
+                                XCTAssertTrue (transactions.isEmpty)
+                                self.expectation.fulfill()
+        }
+
+        wait (for: [expectation], timeout: 60)
+
+        ///
+        ///
+        ///
         expectation = XCTestExpectation (description: "transactions /w addresses")
 
-        db.getTransactions (blockchainId: blockchainId, addresses: ["abc", "def"], includeRaw: true) { (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
-            guard case let .success (transactions) = res
-                else { XCTAssert(false); return }
+        db.getTransactions (blockchainId: blockchainId,
+                            addresses: ["2NEpHgLvBJqGFVwQPUA3AQPjpE5gNWhETfT"],
+                            begBlockNumber: 1446080,
+                            endBlockNumber: 1446090) {
+                                (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
+                                guard case let .success (transactions) = res
+                                    else { XCTAssert(false); return }
 
-            XCTAssertTrue (transactions.isEmpty)
-            self.expectation.fulfill()
+                                XCTAssertEqual (2, transactions.count)
+                                self.expectation.fulfill()
         }
 
         wait (for: [expectation], timeout: 60)
 
         ///
         ///
-        expectation = XCTestExpectation (description: "transactions w/ [0,11000)")
+        ///
+        expectation = XCTestExpectation (description: "transactions w/ [0,11000) w/ no address")
 
         db.getTransactions (blockchainId: blockchainId,
                             addresses: [],
-                            begBlockNumber: 0,
-                            endBlockNumber: 11000,
-                           includeRaw: true) { (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
-            guard case let .success (transactions) = res
-                else { XCTAssert(false); return }
+                            begBlockNumber: 1446080,
+                            endBlockNumber: 1446090,
+                            includeRaw: true) {
+                                (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
+                                // A 'status' 400
+                                guard case let .success(transactions) = res
+                                    else { XCTAssert(false); return }
 
-            XCTAssertFalse (transactions.isEmpty)
-            self.expectation.fulfill()
+                                XCTAssert(transactions.isEmpty)
+                                self.expectation.fulfill()
         }
 
         wait (for: [expectation], timeout: 60)
@@ -174,7 +207,8 @@ class BRBlockChainDBTest: XCTestCase {
     func testBlocks () {
         expectation = XCTestExpectation (description: "block")
 
-        let blockId = "bitcoin-mainnet:0000000000000000001ed7770597decf0f98fe4f099111c6a0073ceabbd1e812"
+//        let blockId = "bitcoin-mainnet:0000000000000000001ed7770597decf0f98fe4f099111c6a0073ceabbd1e812"
+        let blockId = "bitcoin-testnet:000000000000004deedbdb977277330aa156385bbc60ddc3e49938556b436330"
         db.getBlock (blockId: blockId, includeRaw: true) { (res: Result<BlockChainDB.Model.Block, BlockChainDB.QueryError>) in
             guard case let .success (block) = res
                 else { XCTAssert(false); return }
@@ -189,19 +223,22 @@ class BRBlockChainDBTest: XCTestCase {
         ///
         expectation = XCTestExpectation (description: "blocks")
 
-        let blockchainId = "bitcoin-mainnet"
-        db.getBlocks (blockchainId: blockchainId, includeRaw: true) { (res: Result<[BlockChainDB.Model.Block], BlockChainDB.QueryError>) in
+        let blockchainId = "bitcoin-testnet"
+        db.getBlocks (blockchainId: blockchainId,
+                      begBlockNumber: 1446080,
+                      endBlockNumber: 1446090,
+                      includeRaw: true) { (res: Result<[BlockChainDB.Model.Block], BlockChainDB.QueryError>) in
             guard case let .success (blocks) = res
                 else { XCTAssert(false); return }
 
-            XCTAssertFalse (blocks.isEmpty)
+            XCTAssertEqual ((1446090 - 1446080),  blocks.count)
             self.expectation.fulfill()
         }
 
         wait (for: [expectation], timeout: 60)
     }
 
-    func testWallet () {
+    func dontTestWallet () {
         let walletId = UUID (uuidString: "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96")?.uuidString ?? "empty-wallet-id"
 
         expectation = XCTestExpectation (description: "wallet create")

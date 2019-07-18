@@ -39,7 +39,4 @@
 
 test
 .git-re*
-Swift/BRCrypto/BRCryptoA.swift
-Swift/BRCrypto/BRCryptoB.swift
-crypto/BRCryptoAmount.c
-crypto/BRCryptoNetwork.c
+Swift/CoreTests/CoreTestsConfig.json

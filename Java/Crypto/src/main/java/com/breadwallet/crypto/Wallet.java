@@ -9,54 +9,39 @@
  */
 package com.breadwallet.crypto;
 
-public abstract class Wallet {
-    public final WalletManager manager;
+import com.google.common.base.Optional;
 
-    public final String name;
+import java.util.List;
 
-    public final Currency currency;
+public interface Wallet {
 
-    public abstract Amount getBalance ();
+    Optional<? extends Transfer> createTransfer(Address target, Amount amount);
 
-    public abstract Transfer[] getTransfers();
+    Optional<? extends Transfer> createTransfer(Address target, Amount amount, TransferFeeBasis feeBasis);
 
+    Amount estimateFee(Amount amount);
 
-    /*
-    /// The owning manager
-    var manager: WalletManager { get }
+    Amount estimateFee(Amount amount, TransferFeeBasis feeBasis);
 
-    /// The name
-    var name: String { get }
+    WalletManager getWalletManager();
 
-    /// The current balance for currency
-    var balance: Amount { get }
+    Unit getBaseUnit();
 
-    /// The transfers of currency yielding `balance`
-    var transfers: [Transfer] { get }
+    Amount getBalance();
 
-    /// Use a hash to lookup a transfer
-    func lookup (transfer: TransferHash) -> Transfer?
+    List<? extends Transfer> getTransfers();
 
-    /// The current state.
-    var state: WalletState { get }
+    Optional<? extends Transfer> getTransferByHash(TransferHash hash);
 
-    /// The default TransferFeeBasis for created transfers.
-    var defaultFeeBasis: TransferFeeBasis { get set }
+    TransferFeeBasis getDefaultFeeBasis();
 
-    /// The default TransferFactory for creating transfers.
-    var transferFactory: TransferFactory { get set }
+    Address getTarget();
 
-    // func sign (transfer: Transfer)
-    // submit
-    // ... cancel, replace - if appropriate
+    Address getSource();
 
-    /// An address suitable for a transfer target (receiving).
-    var target: Address { get }
-*/
+    Currency getCurrency();
 
-    public Wallet (WalletManager manager, Currency currency, String name) {
-        this.manager = manager;
-        this.currency = currency;
-        this.name = name;
-    }
+    String getName();
+
+    WalletState getState();
 }

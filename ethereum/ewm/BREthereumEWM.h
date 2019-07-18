@@ -29,7 +29,8 @@ ewmCreate (BREthereumNetwork network,
            BREthereumTimestamp accountTimestamp,
            BREthereumMode mode,
            BREthereumClient client,
-           const char *storagePath);
+           const char *storagePath,
+           uint64_t blockHeight);
 
 extern BREthereumEWM
 ewmCreateWithPaperKey (BREthereumNetwork network,
@@ -37,7 +38,8 @@ ewmCreateWithPaperKey (BREthereumNetwork network,
                        BREthereumTimestamp accountTimestamp,
                        BREthereumMode mode,
                        BREthereumClient client,
-                       const char *storagePath);
+                       const char *storagePath,
+                       uint64_t blockHeight);
 
 extern BREthereumEWM
 ewmCreateWithPublicKey (BREthereumNetwork network,
@@ -45,7 +47,8 @@ ewmCreateWithPublicKey (BREthereumNetwork network,
                         BREthereumTimestamp accountTimestamp,
                         BREthereumMode mode,
                         BREthereumClient client,
-                        const char *storagePath);
+                        const char *storagePath,
+                        uint64_t blockHeight);
 
 extern void
 ewmDestroy (BREthereumEWM ewm);
@@ -289,14 +292,14 @@ extern uint64_t
 ewmTransferGetNonce(BREthereumEWM ewm,
                     BREthereumTransfer transfer);
 
-
-extern BREthereumGas
-ewmTransferGetGasUsed(BREthereumEWM ewm,
-                      BREthereumTransfer transfer);
-
-extern uint64_t
-ewmTransferGetTransactionIndex(BREthereumEWM ewm,
-                               BREthereumTransfer transfer);
+extern BREthereumBoolean
+ewmTransferExtractStatusIncluded (BREthereumEWM ewm,
+                                  BREthereumTransfer transfer,
+                                  BREthereumHash *blockHash,
+                                  uint64_t *blockNumber,
+                                  uint64_t *blockTransactionIndex,
+                                  uint64_t *blockTimestamp,
+                                  BREthereumGas *gasUsed);
 
 extern BREthereumHash
 ewmTransferGetBlockHash(BREthereumEWM ewm,
@@ -307,8 +310,16 @@ ewmTransferGetBlockNumber(BREthereumEWM ewm,
                           BREthereumTransfer transfer);
 
 extern uint64_t
+ewmTransferGetTransactionIndex(BREthereumEWM ewm,
+                               BREthereumTransfer transfer);
+
+extern uint64_t
 ewmTransferGetBlockTimestamp (BREthereumEWM ewm,
                               BREthereumTransfer transfer);
+
+extern BREthereumGas
+ewmTransferGetGasUsed(BREthereumEWM ewm,
+                      BREthereumTransfer transfer);
 
 extern uint64_t
 ewmTransferGetBlockConfirmations(BREthereumEWM ewm,

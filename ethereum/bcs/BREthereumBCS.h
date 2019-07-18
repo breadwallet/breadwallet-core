@@ -53,7 +53,6 @@ typedef void
                                     uint64_t headBlockNumber,
                                     uint64_t headBlockTimestamp);
 
-
 /**
  * The BCS account state has been updated.
  */

@@ -33,7 +33,10 @@ extern "C" {
 #endif
     
     typedef struct BRCryptoCurrencyRecord *BRCryptoCurrency;
-    
+
+    extern const char *
+    cryptoCurrencyGetUids (BRCryptoCurrency currency);
+
     extern const char *
     cryptoCurrencyGetName (BRCryptoCurrency currency);
     
@@ -42,6 +45,17 @@ extern "C" {
     
     extern const char *
     cryptoCurrencyGetType (BRCryptoCurrency currency);
+
+    /**
+     * Return the currency issuer or NULL if there is none.  For an ERC20-based currency, the
+     * issuer will be the Smart Contract Address.
+     *
+     * @param currency the currency
+     *
+     *@return the issuer as a string or NULL
+     */
+    extern const char *
+    cryptoCurrencyGetIssuer (BRCryptoCurrency currency);
     
     extern BRCryptoBoolean
     cryptoCurrencyIsIdentical (BRCryptoCurrency c1,

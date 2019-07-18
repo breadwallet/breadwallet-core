@@ -13,9 +13,9 @@
 
 #include "BRRippleBase.h"
 #include "BRKey.h"
+#include "support/BRSet.h"
 
 typedef struct BRRippleTransactionRecord *BRRippleTransaction;
-typedef struct BRRippleSerializedTransactionRecord *BRRippleSerializedTransaction;
 
 /**
  * Create a Ripple transaction
@@ -35,7 +35,7 @@ extern BRRippleTransaction /* caller must free - rippleTransactionFree */
 rippleTransactionCreate(BRRippleAddress sourceAddress,
                         BRRippleAddress targetAddress,
                         BRRippleUnitDrops amount, // For now assume XRP drops.
-                        BRRippleUnitDrops fee);
+                        BRRippleFeeBasis feeBasis);
 
 /**
  * Create a Ripple transaction
@@ -59,21 +59,16 @@ rippleTransactionCreateFromBytes(uint8_t *bytes, int length);
 extern void rippleTransactionFree(BRRippleTransaction transaction);
 
 /**
- * Get the size of a serialized transaction
+ * Get a copy of the serialized/signed bytes for a transaction
  *
- * @param  s     serialized transaction
- * @return size
- */
-extern uint32_t getSerializedSize(BRRippleSerializedTransaction s);
-
-/**
- * Get the raw bytes of a serialized transaction
+ * @param  transaction   handle to a serialized/signed transaction
+ * @param size           the number of bytes for the newly allocated buffer
  *
- * @param  s     serialized transaction
- * @return bytes uint8_t
+ * @return buffer        pointer to buffer (caller must free) with serialized/signed bytes
+ *                       or NULL if the transaction has not yet been serialized.
  */
-extern uint8_t* /* DO NOT FREE - owned by the transaction object */
-getSerializedBytes(BRRippleSerializedTransaction s);
+extern uint8_t * // Caller MUST free these bytes
+rippleTransactionSerialize(BRRippleTransaction transaction, size_t * bufferSize);
 
 /**
  * Get the hash of a ripple transaction
@@ -90,6 +85,15 @@ extern BRRippleTransactionHash rippleTransactionGetHash(BRRippleTransaction tran
  * @return hash          a BRRippleTransactionHash object
  */
 extern BRRippleTransactionHash rippleTransactionGetAccountTxnId(BRRippleTransaction transaction);
+
+/**
+ * Get the Fee basis for this transaction.
+ *
+ * @param  transaction   a valid ripple transaction
+ * @return feeBasis      the base fee that will be used when serializing the transaction
+ *                       NOTE: the actual tx fee might be higher depending on the tx type
+ */
+extern BRRippleFeeBasis rippleTransactionGetFeeBasis(BRRippleTransaction transaction);
 
 /**
  * Various getter methods for the transaction
@@ -110,4 +114,5 @@ extern BRRippleDestinationTag rippleTransactionGetDestinationTag(BRRippleTransac
 
 extern BRRippleAmount rippleTransactionGetAmountRaw(BRRippleTransaction transaction, BRRippleAmountType amountType);
 
+extern BRSetOf(BRRippleTransaction) rippleTransactionSetCreate (size_t initialSize);
 #endif

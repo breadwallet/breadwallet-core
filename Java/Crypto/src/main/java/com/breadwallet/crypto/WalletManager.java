@@ -9,71 +9,41 @@
  */
 package com.breadwallet.crypto;
 
-public abstract class WalletManager {
-    public interface Listener {
+import java.util.List;
 
-    }
+public interface WalletManager {
 
-    public interface PersistenceClient {
+    void connect();
 
-    }
+    void disconnect();
 
-    public interface BackendClient {
+    void sync();
 
-    }
+    void submit(Transfer transfer, byte[] phraseUtf8);
 
-    public final Account account;
+    boolean isActive();
 
-    public final Network network;
+    System getSystem();
 
-    public final Listener listener;
+    Account getAccount();
 
-/*
-    /// The listener receives Wallet, Transfer and perhaps other asynchronous events.
-    var listener: WalletManagerListener { get }
+    Network getNetwork();
 
-    /// The account
-    var account: Account { get }
+    Wallet getPrimaryWallet();
 
-    /// The network
-    var network: Network { get }
+    List<? extends Wallet> getWallets();
 
-    /// The primaryWallet
-    var primaryWallet: Wallet { get }
+    WalletManagerMode getMode();
 
-    /// The managed wallets - often will just be [primaryWallet]
-    var wallets: [Wallet] { get }
+    String getPath();
 
-    // The mode determines how the manager manages the account and wallets on network
-    var mode: WalletManagerMode { get }
+    Currency getCurrency();
 
-    // The file-system path to use for persistent storage.
-    var path: String { get }  // persistent storage
+    String getName();
 
-    var state: WalletManagerState { get }
+    Unit getBaseUnit();
 
-    #if false
-    /// The default WalletFactory for creating wallets.
-    var walletFactory: WalletFactory { get set }
-    #endif
+    Unit getDefaultUnit();
 
-    /// Connect to network and begin managing wallets for account
-    func connect ()
-
-    /// Disconnect from the network.
-    func disconnect ()
-
-    /// isConnected
-    /// sync(...)
-    /// isSyncing
-
-    /// sign(transfer)
-    /// submit(transfer)
-*/
-
-    protected WalletManager (Listener listener, Account account, Network network) {
-        this.listener = listener;
-        this.account = account;
-        this.network = network;
-    }
+    WalletManagerState getState();
 }

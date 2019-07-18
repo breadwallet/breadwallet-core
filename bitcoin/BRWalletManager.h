@@ -27,14 +27,13 @@
 #define BRWalletManager_h
 
 #include <stdio.h>
+#include "BRSyncMode.h"
+#include "BRBase.h"                 // Ownership
 #include "BRBIP32Sequence.h"        // BRMasterPubKey
 #include "BRChainParams.h"          // BRChainParams (*NOT THE STATIC DECLARATIONS*)
-
 #include "BRTransaction.h"
 #include "BRWallet.h"
 #include "BRPeerManager.h"          // Unneeded, if we shadow some functions (connect,disconnect,scan)
-
-#include "support/BRSyncMode.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -66,6 +65,8 @@ bwmAnnounceBlockNumber (BRWalletManager manager,
 typedef void
 (*BRGetTransactionsCallback) (BRWalletManagerClientContext context,
                               BRWalletManager manager,
+                              const char **addresses,
+                              size_t addressCount,
                               uint64_t begBlockNumber,
                               uint64_t endBlockNumber,
                               int rid);
@@ -73,7 +74,7 @@ typedef void
 extern int // success - data is valid
 bwmAnnounceTransaction (BRWalletManager manager,
                         int id,
-                        BRTransaction *transaction);
+                        OwnershipGiven BRTransaction *transaction);
 
 extern void
 bwmAnnounceTransactionComplete (BRWalletManager manager,
@@ -84,21 +85,54 @@ typedef void
 (*BRSubmitTransactionCallback) (BRWalletManagerClientContext context,
                                 BRWalletManager manager,
                                 BRWallet *wallet,
-                                BRTransaction *transaction,
+                                OwnershipGiven BRTransaction *transaction,
                                 int rid);
 
 extern void
 bwmAnnounceSubmit (BRWalletManager manager,
                    int rid,
-                   BRTransaction *transaction,
+                   OwnershipGiven BRTransaction *transaction,
                    int error);
 
 ///
 /// Transaction Event
 ///
 typedef enum {
+    // NOTE: The transaction is NOT owned by the event handler.
+    /**
+     * For P2P and API, this event occurs once a transaction has been created for a
+     * wallet, but is not yet signed or added.
+     */
+    BITCOIN_TRANSACTION_CREATED,
+
+    /**
+     * For P2P and API, this event occurs once a transaction has been signed for a
+     * wallet, but is not yet added.
+     */
+    BITCOIN_TRANSACTION_SIGNED,
+
+    /**
+     * For P2P and API, this event occurs once a transaction has been added to a
+     * wallet (via BRWalletRegisterTransaction). Transactions are added when they have
+     * been relayed by the P2P network or synced via BlockchainDB.
+     */
     BITCOIN_TRANSACTION_ADDED,
+
+    /**
+     * For P2P, this event occurs once a transaction has been marked as CONFIRMED/UNCONFIRMED
+     * by the P2P network.
+     *
+     * For API, this event does not occur as transactions are implicitly CONFIRMED when synced.
+     */
     BITCOIN_TRANSACTION_UPDATED,
+
+    /**
+     * For P2P, this event occurs once a transaction has been deleted from a wallet
+     * (via BRWalletRemoveTransaction) as a result of an UNCONFIRMED transaction no longer
+     * being visible in the mempools of any of connected P2P peers.
+     *
+     * For API, this event does not occur as transactions are implicitly CONFIRMED when synced.
+     */
     BITCOIN_TRANSACTION_DELETED,
 } BRTransactionEventType;
 
@@ -114,9 +148,9 @@ typedef struct {
 
 typedef void
 (*BRTransactionEventCallback) (BRWalletManagerClientContext context,
-                               BRWalletManager manager,
-                               BRWallet *wallet,
-                               BRTransaction *transaction,
+                               OwnershipKept BRWalletManager manager,
+                               OwnershipKept BRWallet *wallet,
+                               OwnershipKept BRTransaction *transaction,
                                BRTransactionEvent event);
 
 ///
@@ -126,6 +160,7 @@ typedef enum {
     BITCOIN_WALLET_CREATED,
     BITCOIN_WALLET_BALANCE_UPDATED,
     BITCOIN_WALLET_TRANSACTION_SUBMITTED,
+    BITCOIN_WALLET_FEE_PER_KB_UPDATED,
     BITCOIN_WALLET_DELETED
 } BRWalletEventType;
 
@@ -135,17 +170,22 @@ typedef struct {
         struct {
             uint64_t satoshi;
         } balance;
+
         struct {
             BRTransaction *transaction;
             int error; // 0 on success
         } submitted;
+
+        struct {
+            uint64_t value;
+        } feePerKb;
     } u;
 } BRWalletEvent;
 
 typedef void
 (*BRWalletEventCallback) (BRWalletManagerClientContext context,
-                          BRWalletManager manager,
-                          BRWallet *wallet,
+                          OwnershipKept BRWalletManager manager,
+                          OwnershipKept BRWallet *wallet,
                           BRWalletEvent event);
 
 ///
@@ -174,7 +214,7 @@ typedef struct {
 
 typedef void
 (*BRWalletManagerEventCallback) (BRWalletManagerClientContext context,
-                                 BRWalletManager manager,
+                                 OwnershipKept BRWalletManager manager,
                                  BRWalletManagerEvent event);
 
 typedef struct {
@@ -195,7 +235,8 @@ BRWalletManagerNew (BRWalletManagerClient client,
                     const BRChainParams *params,
                     uint32_t earliestKeyTime,
                     BRSyncMode mode,
-                    const char *storagePath);
+                    const char *storagePath,
+                    uint64_t blockHeight);
 
 extern void
 BRWalletManagerFree (BRWalletManager manager);
@@ -210,8 +251,15 @@ extern void
 BRWalletManagerScan (BRWalletManager manager);
 
 /**
- * Return an array of unsued addresses with up to `limit` entries.  This will generate
- * address, if needed, to provide `limit` entries.  The addresses are 'external' ones.
+ * Generate, if needed, unsued addresses up to `limit` entries in the wallet.  The
+ * addresses are both 'internal' and 'external' ones.
+ */
+extern void
+BRWalletManagerGenerateUnusedAddrs (BRWalletManager manager);
+
+/**
+ * Return an array of unused addresses.  This will generate address, if needed, to provide
+ * entries.  The addresses are 'internal' and 'external' ones.
  *
  * This is expected to be used to query the BRD BlockChainDB to identify transactions for
  * manager's wallet.
@@ -220,11 +268,20 @@ BRWalletManagerScan (BRWalletManager manager);
  */
 extern BRAddress *
 BRWalletManagerGetUnusedAddrs (BRWalletManager manager,
-                               uint32_t limit);
+                               size_t *addressCount);
 
+/**
+ * Return an array of all addresses, used and unused, tracked by the wallet. The addresses
+ * are both 'internal' and 'external' ones.
+ *
+ * This is expected to be used to query the BRD BlockChainDB to identify transactions for
+ * manager's wallet.
+ *
+ * Note: The returned array must be freed
+ */
 extern BRAddress *
-BRWalletManagerGetUnusedAddrsLegacy (BRWalletManager manager,
-                                     uint32_t limit);
+BRWalletManagerGetAllAddrs (BRWalletManager manager,
+                            size_t *addressCount);
 
 //
 // These should not be needed if the events are sufficient
@@ -235,11 +292,38 @@ BRWalletManagerGetWallet (BRWalletManager manager);
 extern BRPeerManager *
 BRWalletManagerGetPeerManager (BRWalletManager manager);
 
+/**
+ * Creates an unsigned transaction that sends the specified amount from the wallet to the given address.
+ *
+ * @returns NULL on failure, or a transaction on success; the returned transaction must be freed using BRTransactionFree()
+ */
+extern BRTransaction *
+BRWalletManagerCreateTransaction (BRWalletManager manager,
+                                  BRWallet *wallet,
+                                  uint64_t amount,
+                                  const char *addr);
+
+/**
+ * Signs any inputs in transaction that can be signed using private keys from the wallet.
+ *
+ * @seed the master private key (wallet seed) corresponding to the master public key given when the wallet was created
+ *
+ * @return true if all inputs were signed, or false if there was an error or not all inputs were able to be signed
+ */
+extern int
+BRWalletManagerSignTransaction (BRWalletManager manager,
+                                OwnershipKept BRTransaction *transaction,
+                                const void *seed,
+                                size_t seedLen);
+
 extern void
 BRWalletManagerSubmitTransaction (BRWalletManager manager,
-                                  BRTransaction *transaction,
-                                  const void *seed,
-                                  size_t seedLen);
+                                  OwnershipGiven BRTransaction *transaction);
+
+extern void
+BRWalletManagerUpdateFeePerKB (BRWalletManager manager,
+                               BRWallet *wallet,
+                               uint64_t feePerKb);
 
 #ifdef __cplusplus
 }

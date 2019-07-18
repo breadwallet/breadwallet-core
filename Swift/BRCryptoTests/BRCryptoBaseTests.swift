@@ -14,20 +14,35 @@ import BRCrypto
 
 class BRCryptoBaseTests: XCTestCase {
 
-    static let PAPER_KEY_MAINNET = "paperKeysMainnet"
-    static let PAPER_KEY_TESTNET = "paperKeysTestnet"
+    struct AccountSpecification {
+        let identifier: String
+        let network: String
+        let paperKey: String
+        let timestamp: Date
 
-    let isMainnet = 1
+        init (dict: [String: String]) {
+            self.identifier = dict["identifier"]! //as! String
+            self.network    = dict["network"]!
+            self.paperKey   = dict["paperKey"]!
 
-    var paperKeys: [String] = []
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd"
+            dateFormatter.locale = Locale(identifier: "en_US_POSIX")
 
-    var paperKey: String! {
-        return (paperKeys.count > 0
-            ? paperKeys[0]
-            : nil)
+            self.timestamp = dateFormatter.date(from: dict["timestamp"]!)!
+        }
     }
 
-    let configPath = Bundle(for: BRCryptoBaseTests.self).path(forResource: "CoreTestsConfig", ofType: "plist")!
+    var accountSpecifications: [AccountSpecification] = []
+    var accountSpecification: AccountSpecification! {
+        return accountSpecifications.count > 0
+            ? accountSpecifications[0]
+            : nil
+    }
+
+    var isMainnet = true
+
+    let configPath = Bundle(for: BRCryptoBaseTests.self).path(forResource: "CoreTestsConfig", ofType: "json")!
 
     var coreDataDir: String!
 
@@ -60,33 +75,36 @@ class BRCryptoBaseTests: XCTestCase {
         super.setUp()
 
         #if TESTNET
-        isMainnet = 0
+        isMainnet = false
         #endif
-
-        // Eth Account for the non-compromised, mainnet paperKey "e...a"
-//        var fakeEthAccount: String = "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62"
 
         // Get the paperKey from `configPath`
         if FileManager.default.fileExists(atPath: configPath) {
             let configFile = URL(fileURLWithPath: configPath)
             let configData = try! Data.init(contentsOf: configFile)
-            let configPropertyList = try! PropertyListSerialization.propertyList(from: configData, options: [], format: nil) as! [String: [String]]
+            let json = try! JSONSerialization.jsonObject(with: configData, options: []) as! [[String:String]]
+            accountSpecifications = json
+                .map { AccountSpecification (dict: $0) }
+                .filter { $0.network == (isMainnet ? "mainnet" : "testnet") }
+        }
+        else {
+            accountSpecifications = [
+                AccountSpecification (dict: [
+                    "identifier": "ginger",
+                    "paperKey":   "ginger settle marine tissue robot crane night number ramp coast roast critic",
+                    "timestamp":  "2018-01-01",
+                    "network":    (isMainnet ? "mainnet" : "testnet")
+                ])
+            ]
+        }
 
-            #if TESTNET
-            paperKeys = configPropertyList [BRCryptoBaseTests.PAPER_KEY_TESTNET]!
-            #else
-            paperKeys = configPropertyList [BRCryptoBaseTests.PAPER_KEY_MAINNET]!
-            #endif
-        }
-        else if 0 == isMainnet /* testnet */ {
-            // This is a compromised testnet paperkey
-            paperKeys = ["ginger settle marine tissue robot crane night number ramp coast roast critic"]
-//            fakeEthAccount = "0x8fB4CB96F7C15F9C39B3854595733F728E1963Bc"
-        }
+        let specifiction = accountSpecification!
 
         /// Create the account
         let walletId = UUID (uuidString: "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96")?.uuidString ?? "empty-wallet-id"
-        account = Account.createFrom (phrase: paperKey, uids: walletId)!
+        account = Account.createFrom (phrase: specifiction.paperKey,
+                                      timestamp: specifiction.timestamp,
+                                      uids: walletId)
 
         /// Create the 'storagePath'
         coreDataDir = FileManager.default

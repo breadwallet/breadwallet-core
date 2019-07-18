@@ -98,16 +98,11 @@ testRippleTransactionGetters (void /* ... */) {
     // Create an account so we can get a public key
     const char * paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
     BRRippleAccount account = rippleAccountCreate(paper_key);
-    transaction = rippleTransactionCreate(sourceAddress, targetAddress, 1000000, 12);
+    transaction = rippleTransactionCreate(sourceAddress, targetAddress, 1000000, 10);
     assert(transaction);
 
     uint64_t fee = rippleTransactionGetFee(transaction);
-    assert(fee == 12);
-
-    // Get the raw fee object
-    BRRippleAmount feeRaw = rippleTransactionGetAmountRaw(transaction, RIPPLE_AMOUNT_TYPE_FEE);
-    assert(0 == feeRaw.currencyType);
-    assert(12 == feeRaw.amount.u64Amount);
+    assert(fee == 0); // before serialization
     
     uint64_t amount = rippleTransactionGetAmount(transaction);
     assert(amount == 1000000);
@@ -127,6 +122,9 @@ testRippleTransactionGetters (void /* ... */) {
     BRRippleAddress target = rippleTransactionGetTarget(transaction);
     assert(0 == memcmp(target.bytes, targetAddress.bytes, 20));
     
+    BRRippleFeeBasis feeBasis = rippleTransactionGetFeeBasis(transaction);
+    assert(feeBasis == 10);
+
     rippleAccountFree(account);
     rippleTransactionFree(transaction);
 }
@@ -262,7 +260,7 @@ testSerializeWithSignature () {
     memcpy(sourceAddress.bytes, address.bytes, 20);
     memcpy(targetAddress.bytes, destBytes, 20);
 
-    transaction = rippleTransactionCreate(sourceAddress, targetAddress, 1000000, 12);
+    transaction = rippleTransactionCreate(sourceAddress, targetAddress, 1000000, 10);
     assert(transaction);
 
     uint32_t sequence_number = 25;
@@ -276,10 +274,10 @@ testSerializeWithSignature () {
     rippleAccountSetSequence(account, sequence_number);
 
     // Serialize and sign
-    BRRippleSerializedTransaction s = rippleAccountSignTransaction(account, transaction, paper_key);
-    assert(s);
-    int signed_size = getSerializedSize(s);
-    uint8_t *signed_bytes = getSerializedBytes(s);
+    size_t s_size = rippleAccountSignTransaction(account, transaction, paper_key);
+    size_t signed_size;
+    uint8_t *signed_bytes = rippleTransactionSerialize(transaction, &signed_size);
+    assert(s_size == signed_size);
     // Print out the bytes as a string
     if (debug_log) {
         for (int i = 0; i < signed_size; i++) {
@@ -288,6 +286,10 @@ testSerializeWithSignature () {
             if (i == (signed_size -1)) printf("\n");
         }
     }
+
+    // Now that it is serialized/signed - check out the fee
+    BRRippleUnitDrops fee =  rippleTransactionGetFee(transaction);
+    assert(10 == fee);
 
     // After calling the sign function the sequence number should match what we passed in
     sequence = rippleTransactionGetSequence(transaction);
@@ -301,6 +303,7 @@ testSerializeWithSignature () {
     
     rippleTransactionFree(transaction);
     rippleAccountFree(account);
+    free(signed_bytes);
 }
 
 extern BRRippleSignatureRecord rippleTransactionGetSignature(BRRippleTransaction transaction);
@@ -334,7 +337,7 @@ const char * serialized_transaction = "120000"
     "2280000000"
     "2400000019"
     "6140000000000F4240"
-    "68400000000000000C"
+    "68400000000000000A"
     "7321035590938D3FDA530A36DBA666C463530D830387ED68F7F6C40B38EC922C0A0885"
     "74463044022005CF72B172AAA5AA326AFA7FC90D2B3DBD0EDD9E778DA44ACC380BEAAC"
     "8BF46F02207C19625D87CCCDD29688780F95CD895913BED9F0415B92F17A1799A2CE19F258"
@@ -369,7 +372,7 @@ static void validateDeserializedTransaction(BRRippleTransaction transaction)
     assert(0 == (memcmp(expectedPubKey, pubKey.pubKey, 33)));
     
     uint64_t fee = rippleTransactionGetFee(transaction);
-    assert(12 == fee);
+    assert(10 == fee); // The fee is valid for deserialized transactions
     
     uint32_t flags = rippleTransactionGetFlags(transaction);
     assert(0x80000000 == flags);
@@ -529,8 +532,7 @@ testTransactionHash (void /* ... */) {
 
     // Serialize and sign
     rippleAccountSetSequence(account, 25);
-    BRRippleSerializedTransaction s = rippleAccountSignTransaction(account, transaction, paper_key);
-    assert(s);
+    rippleAccountSignTransaction(account, transaction, paper_key);
     
     // Compare the transaction hash
     uint8_t expected_hash[] = {
@@ -556,7 +558,7 @@ static void createAndDeleteWallet()
     rippleWalletFree(wallet);
 }
 
-static void testWalletBalance()
+static void testWalletValues()
 {
     const char * paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
     BRRippleAccount account = rippleAccountCreate(paper_key);
@@ -570,6 +572,12 @@ static void testWalletBalance()
     rippleWalletSetBalance(wallet, expected_balance);
     balance = rippleWalletGetBalance(wallet);
     assert(balance == expected_balance);
+
+    BRRippleFeeBasis feeBasis = rippleWalletGetDefaultFeeBasis(wallet);
+    assert(0 == feeBasis);
+    rippleWalletSetDefaultFeeBasis(wallet, 10);
+    feeBasis = rippleWalletGetDefaultFeeBasis(wallet);
+    assert(10 == feeBasis);
 
     rippleWalletFree(wallet);
 }
@@ -648,10 +656,20 @@ void rippleTransactionTests()
 static void runWalletTests()
 {
     createAndDeleteWallet();
-    testWalletBalance();
+    testWalletValues();
     testWalletAddress();
 }
 
+static void comparebuffers(const char *input, uint8_t * output, size_t outputSize)
+{
+    size_t input_size = strlen(input) / 2;
+    assert(input_size == outputSize);
+    uint8_t buffer[input_size];
+    hex2bin(input, buffer);
+    for(int i = 0; i < outputSize; i++) {
+        assert(buffer[i] == output[i]);
+    }
+}
 static void runDeserializeTests(const char* tx_list_name, const char* tx_list[], int num_elements)
 {
     int payments = 0;
@@ -659,7 +677,14 @@ static void runDeserializeTests(const char* tx_list_name, const char* tx_list[],
     int xrp_currency = 0;
     int other_currency = 0;
     for(int i = 0; i <= num_elements - 2; i += 2) {
+        size_t input_size = strlen(tx_list[i+1]) / 2;
+        size_t output_size;
         BRRippleTransaction transaction = transactionDeserialize(tx_list[i+1], NULL);
+        uint8_t * signed_bytes = rippleTransactionSerialize(transaction, &output_size);
+        assert(input_size == output_size);
+        comparebuffers(tx_list[i+1], signed_bytes, output_size);
+        free(signed_bytes);
+
         assert(transaction);
         
         // Check if this is a transaction

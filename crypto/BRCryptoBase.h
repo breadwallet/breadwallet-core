@@ -28,13 +28,17 @@
 
 #include <inttypes.h>
 #include <stdatomic.h>
+#include "support/BRInt.h"
 #include "support/BRSyncMode.h"
+#include "ethereum/base/BREthereumHash.h"
 // temporary
 #include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+    typedef struct BRCryptoWalletManagerRecord *BRCryptoWalletManager;
 
     typedef enum {
         CRYPTO_FALSE = 0,
@@ -51,6 +55,7 @@ extern "C" {
         BLOCK_CHAIN_TYPE_ETH,
         BLOCK_CHAIN_TYPE_GEN
     } BRCryptoBlockChainType;
+
 
     /// MARK: Reference Counting
 
@@ -71,7 +76,9 @@ extern "C" {
   }                        \
   extern void              \
   preface##Give (type obj) {        \
-    if (1 == atomic_fetch_sub (&obj->ref.count, 1))  \
+    unsigned int __count = atomic_fetch_sub (&obj->ref.count, 1); \
+    assert (0 != __count); \
+    if (1 == __count)  \
       obj->ref.free (obj); \
   }
 
