@@ -208,6 +208,7 @@ if (bytesPtr > bytesEnd) return NULL; /* overkill */ \
     // TODO: Add `bytesCount` to BRBIP32ParseMasterPubKey()
     BRMasterPubKey mpk = BRBIP32ParseMasterPubKey ((const char *) bytesPtr);
     if (mpkSize != BRBIP32SerializeMasterPubKey (NULL, 0, mpk)) return NULL;
+    BYTES_PTR_INCR_AND_CHECK (mpkSize);
 
     // ETH
     size_t ethSize = UInt32GetBE (bytesPtr);
@@ -330,6 +331,42 @@ cryptoAccountSerialize (BRCryptoAccount account, size_t *bytesCount) {
     UInt16SetBE (bytes, checksum);
 
     return bytes;
+}
+
+extern BRCryptoBoolean
+cryptoAccountValidateSerialization (BRCryptoAccount account,
+                                    const uint8_t *bytes,
+                                    size_t bytesCount) {
+
+    uint8_t *bytesPtr = (uint8_t *) bytes;
+    uint8_t *bytesEnd = bytesPtr + bytesCount;
+
+    size_t chkSize = sizeof (uint16_t); // checksum
+    size_t szSize  = sizeof (uint32_t); // size
+    size_t verSize = sizeof (uint16_t); // version
+    size_t tsSize  = sizeof (uint64_t); // timestamp
+
+    // Skip directly to the BTC MPK
+    bytesPtr += (chkSize + szSize + verSize + tsSize);
+    if (bytesPtr + szSize > bytesEnd) return CRYPTO_FALSE;
+
+    // BTC
+    size_t mpkSize = UInt32GetBE(bytesPtr);
+    bytesPtr += szSize;
+    // Not enough bytes
+    if (bytesPtr + mpkSize > bytesEnd) return CRYPTO_FALSE;
+
+    // We'll check thsee bytes
+    uint8_t *mpkBytesToCheck = bytesPtr;
+
+    // Generate a serialization from account->btc
+    size_t mpkBytesCount = BRBIP32SerializeMasterPubKey (NULL, 0, account->btc);
+    uint8_t mpkBytes[mpkBytesCount];
+    BRBIP32SerializeMasterPubKey ((char *) mpkBytes, mpkBytesCount, account->btc);
+
+    if (mpkSize != mpkBytesCount) return CRYPTO_FALSE;
+
+    return AS_CRYPTO_BOOLEAN (0 == memcmp (mpkBytesToCheck, mpkBytes, mpkBytesCount));
 }
 
 extern uint64_t
