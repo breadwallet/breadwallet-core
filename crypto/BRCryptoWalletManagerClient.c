@@ -1437,8 +1437,6 @@ cwmGetBlockNumberAsGEN (BRGenericClientContext context,
     callbackState->rid = rid;
 
     cwm->client.gen.funcGetBlockNumber (cwm->client.context, cwm, callbackState);
-
-    cryptoWalletManagerGive (cwm);
 }
 
 static void
@@ -1455,8 +1453,6 @@ cwmGetTransactionsAsGEN (BRGenericClientContext context,
     callbackState->rid = rid;
 
     cwm->client.gen.funcGetTransactions (cwm->client.context, cwm, callbackState, address, begBlockNumber, endBlockNumber);
-
-    cryptoWalletManagerGive (cwm);
 }
 
 static void
@@ -1486,7 +1482,6 @@ cwmSubmitTransactionAsGEN (BRGenericClientContext context,
     cwm->client.gen.funcSubmitTransaction (cwm->client.context, cwm, callbackState, tx, txLength, hashAsHex);
 
     free (hashAsHex);
-    cryptoWalletManagerGive (cwm);
 }
 
 // MARK: - Client Creation Functions
