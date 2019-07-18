@@ -147,7 +147,8 @@ extern "C" {
                               size_t *count);
 
     extern BRCryptoAddress
-    cryptoWalletGetAddress (BRCryptoWallet wallet);
+    cryptoWalletGetAddress (BRCryptoWallet wallet,
+                            BRCryptoAddressScheme addressScheme);
 
     extern BRCryptoFeeBasis
     cryptoWalletGetDefaultFeeBasis (BRCryptoWallet wallet);

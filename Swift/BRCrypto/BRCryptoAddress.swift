@@ -81,10 +81,33 @@ public final class Address: Equatable, CustomStringConvertible {
 /// generate different address.  For example, a Bitcoin wallet can have a 'Segwit/BECH32' address
 /// scheme or a 'Legacy' address scheme.
 ///
-public protocol AddressScheme {
-    associatedtype W: Wallet
+/// The WalletManager holds an array of AddressSchemes as well as the preferred AddressScheme.
+/// The preferred scheme is select from among the array of schemes.
+///
+public struct AddressScheme: Equatable {
 
-    // Generate a 'receive' (aka target') address for wallet.
-    func getAddress (for wallet: W) -> Address
+    /// The Core representation
+    let core: BRCryptoAddressScheme
+
+    /// The name - for BTC the names are "BTC Legacy" and "BTC Segwit" (which might serve a
+    /// purpose if the user is prompted for their preferred address scheme.
+    public let name: String
+
+    init (core: BRCryptoAddressScheme) {
+        self.core = core
+        switch core {
+        case CRYPTO_ADDRESS_SCHEME_BTC_LEGACY:
+            self.name = "BTC Legacy"
+        case CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT:
+            self.name = "BTC Segwit"
+        default:
+            self.name = "Default"
+        }
+    }
+
+    // Equatable
+    public static func == (lhs: AddressScheme, rhs: AddressScheme) -> Bool {
+        return lhs.core == rhs.core
+    }
 }
 
