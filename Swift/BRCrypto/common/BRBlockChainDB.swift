@@ -244,7 +244,9 @@ public class BlockChainDB {
             else { return nil }
 
             return (id: id, name: name, network: network, isMainnet: isMainnet, currency: currency,
-                    blockHeight: blockHeight,
+                    blockHeight: (id.hasPrefix ("ripple")
+                        ? min (25000, blockHeight)
+                        : blockHeight),
                     feeEstimates: feeEstimates)
         }
 
