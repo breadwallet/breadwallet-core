@@ -15,10 +15,16 @@ public protocol CryptoHasher {
 
 
 public enum CoreCryptoHasher: CryptoHasher {
-    case SHA1
-    case SHA256
-    case SHA224
-    case Keccak256
+    case sha1
+    case sha256
+    case sha224
+//    case SHA512
+//    case SHA3 // SHA3_256
+//    case MD160
+//    case MD5
+//    case murmer3
+//    case sip64
+    case keccak256
     // ...
 
     public func hash (data source: Data) -> Data {
@@ -29,29 +35,29 @@ public enum CoreCryptoHasher: CryptoHasher {
             var target: Data!
             switch self {
 
-            case .SHA1:
-                target = Data (capacity: 20)
+            case .sha1:
+                target = Data (count: 20)
                 target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                     let targetAddr = targetBytes.baseAddress
                     BRSHA1 (targetAddr, sourceAddr, sourceCount)
                 }
 
-            case .SHA256:
-                target = Data (capacity: 32)
+            case .sha256:
+                target = Data (count: 32)
                 target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                     let targetAddr = targetBytes.baseAddress
                     BRSHA256 (targetAddr, sourceAddr, sourceCount)
                 }
 
-            case .SHA224:
-                target = Data (capacity: 28)
+            case .sha224:
+                target = Data (count: 28)
                 target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                     let targetAddr = targetBytes.baseAddress
                     BRSHA224 (targetAddr, sourceAddr, sourceCount)
                 }
 
-            case .Keccak256:
-                target = Data (capacity: 32)
+            case .keccak256:
+                target = Data (count: 32)
                 target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                     let targetAddr = targetBytes.baseAddress
                     BRKeccak256 (targetAddr, sourceAddr, sourceCount)

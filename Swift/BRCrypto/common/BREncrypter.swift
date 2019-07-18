@@ -9,14 +9,14 @@
 import Foundation
 import BRCore
 
-public protocol CryptoEncryptor {
+public protocol CryptoEncrypter {
     func encrypt (data: Data) -> Data
     func decrypt (data: Data) -> Data
 }
 
-public enum CoreCryptoEncryptor: CryptoEncryptor {
+public enum CoreCryptoEncrypter: CryptoEncrypter {
     case aes_ecb
-    case chacha20_poly1305(key32:Data, nonce12:Data, ad:Data)
+    case chacha20_poly1305 (key32:Data, nonce12:Data, ad:Data)
 
     public func encrypt (data source: Data) -> Data {
         let sourceCount = source.count
@@ -26,7 +26,7 @@ public enum CoreCryptoEncryptor: CryptoEncryptor {
             var target: Data!
             switch self {
             case .aes_ecb:
-                target = Data (capacity: 16)
+                target = Data (count: 16)
                 target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                     let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
                     BRAESECBEncrypt(targetAddr, sourceAddr, sourceCount)
@@ -46,7 +46,7 @@ public enum CoreCryptoEncryptor: CryptoEncryptor {
                                                                sourceAddr, sourceCount,
                                                                adAddr, adCount)
 
-                            target = Data (capacity: 16)
+                            target = Data (count: 16)
                             target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                                 let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
                                 BRChacha20Poly1305AEADEncrypt (targetAddr, targetCount,
@@ -72,7 +72,7 @@ public enum CoreCryptoEncryptor: CryptoEncryptor {
             var target: Data!
             switch self {
             case .aes_ecb:
-                target = Data (capacity: 16)
+                target = Data (count: 16)
                 target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                     let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
                     BRAESECBDecrypt(targetAddr, sourceAddr, sourceCount)
@@ -92,7 +92,7 @@ public enum CoreCryptoEncryptor: CryptoEncryptor {
                                                                sourceAddr, sourceCount,
                                                                adAddr, adCount)
 
-                            target = Data (capacity: 16)
+                            target = Data (count: 16)
                             target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                                 let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
                                 BRChacha20Poly1305AEADDecrypt (targetAddr, targetCount,
