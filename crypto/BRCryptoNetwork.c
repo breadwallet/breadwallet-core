@@ -84,9 +84,11 @@ cryptoNetworkEqual (BRCryptoNetworkFee nf1, BRCryptoNetworkFee nf2) {
 
 static void
 cryptoNetworkFeeRelease (BRCryptoNetworkFee networkFee) {
-    printf ("Network Fpp: Release\n");
+    printf ("Network Fee: Release\n");
 
     cryptoAmountGive (networkFee->pricePerCostFactor);
+    cryptoUnitGive   (networkFee->pricePerCostFactorUnit);
+
     free (networkFee);
 }
 
@@ -472,7 +474,7 @@ cryptoNetworkAddCurrencyUnit (BRCryptoNetwork network,
 private_extern void
 cryptoNetworkAddNetworkFee (BRCryptoNetwork network,
                             BRCryptoNetworkFee fee) {
-    array_add (network->fees, fee);
+    array_add (network->fees, cryptoNetworkFeeTake (fee));
 }
 
 extern size_t

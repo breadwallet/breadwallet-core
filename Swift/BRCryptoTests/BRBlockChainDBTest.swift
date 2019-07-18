@@ -193,9 +193,10 @@ class BRBlockChainDBTest: XCTestCase {
                             includeRaw: true) {
                                 (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
                                 // A 'status' 400
-                                guard case .failure = res
+                                guard case let .success(transactions) = res
                                     else { XCTAssert(false); return }
 
+                                XCTAssert(transactions.isEmpty)
                                 self.expectation.fulfill()
         }
 
