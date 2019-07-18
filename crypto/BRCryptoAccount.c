@@ -208,6 +208,7 @@ if (bytesPtr > bytesEnd) return NULL; /* overkill */ \
     // TODO: Add `bytesCount` to BRBIP32ParseMasterPubKey()
     BRMasterPubKey mpk = BRBIP32ParseMasterPubKey ((const char *) bytesPtr);
     if (mpkSize != BRBIP32SerializeMasterPubKey (NULL, 0, mpk)) return NULL;
+    BYTES_PTR_INCR_AND_CHECK (mpkSize);
 
     // ETH
     size_t ethSize = UInt32GetBE (bytesPtr);
