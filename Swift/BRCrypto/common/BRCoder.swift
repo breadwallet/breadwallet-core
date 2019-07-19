@@ -11,7 +11,7 @@ import BRCore
 
 public protocol CryptoCoder {
     func encode (data: Data) -> String
-    func decode (string: String) -> Data
+    func decode (string: String) -> Data?
 }
 
 public enum CoreCryptoCoder: CryptoCoder {
@@ -59,9 +59,9 @@ public enum CoreCryptoCoder: CryptoCoder {
         }
     }
 
-    public func decode (string source: String) -> Data {
+    public func decode (string source: String) -> Data? {
         let sourceCount: Int = source.count
-        return source.withCString { (sourceAddr: UnsafePointer<Int8>) -> Data in
+        return source.withCString { (sourceAddr: UnsafePointer<Int8>) -> Data? in
             var target: Data!
             switch self {
             case .hex:
@@ -75,6 +75,7 @@ public enum CoreCryptoCoder: CryptoCoder {
 
             case .base58:
                 let targetCount = BRBase58Decode(nil, 0, sourceAddr)
+                if 0 == targetCount { return nil }
                 target = Data (count: targetCount)
                 target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                     let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
@@ -83,6 +84,7 @@ public enum CoreCryptoCoder: CryptoCoder {
 
             case .base58check:
                 let targetCount = BRBase58CheckDecode (nil, 0, sourceAddr)
+                if 0 == targetCount { return nil }
                 target = Data (count: targetCount)
                 target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                     let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
