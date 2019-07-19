@@ -81,6 +81,7 @@ public final class System {
                                      account: account,
                                      network: network,
                                      mode: mode,
+                                     addressScheme: WalletManager.defaultAddressScheme (currency: network.currency),
                                      storagePath: path,
                                      listener: cryptoListener,
                                      client: cryptoClient)

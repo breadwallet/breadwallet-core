@@ -109,7 +109,20 @@ public final class WalletManager: Equatable {
                           take: true))
     }
 
-    public var defaultNetworkFee: NetworkFee? = nil
+    /// The default network fee.
+    public var defaultNetworkFee: NetworkFee
+
+    /// The address schemes for this wallet manager.
+    public let addressSchemes: [AddressScheme]
+
+    /// The specific address scheme to use
+    public var addressScheme: AddressScheme {
+        get { return AddressScheme (core: cryptoWalletManagerGetAddressScheme (core)) }
+        set {
+            assert (addressSchemes.contains(newValue))
+            cryptoWalletManagerSetAddressScheme (core, newValue.core)
+        }
+    }
 
     /// The default WalletFactory for creating wallets.
     //    var walletFactory: WalletFactory { get set }
@@ -152,12 +165,16 @@ public final class WalletManager: Equatable {
         self.query   = system.query
 
         self.defaultNetworkFee = network.minimumFee
+
+        self.addressSchemes = WalletManager.defaultAddressSchemes (currency: network.currency)
+        self.addressScheme  = AddressScheme (core: cryptoWalletManagerGetAddressScheme (core))
     }
 
     public convenience  init (system: System,
                               account: Account,
                               network: Network,
                               mode: WalletManagerMode,
+                              addressScheme: AddressScheme,
                               storagePath: String,
                               listener: BRCryptoCWMListener,
                               client: BRCryptoCWMClient) {
@@ -165,7 +182,8 @@ public final class WalletManager: Equatable {
                                                     client,
                                                     account.core,
                                                     network.core,
-                                                    mode.asCore,
+                                                    mode.core,
+                                                    addressScheme.core,
                                                     storagePath),
                    system: system,
                    take: false)
@@ -173,6 +191,25 @@ public final class WalletManager: Equatable {
 
     deinit {
         cryptoWalletManagerGive (core)
+    }
+
+    static internal func defaultAddressScheme (currency: Currency) -> AddressScheme {
+        switch currency.code {
+        case Currency.codeAsBTC: return AddressScheme (core: CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT)
+        case Currency.codeAsBCH: return AddressScheme (core: CRYPTO_ADDRESS_SCHEME_BTC_LEGACY)
+        case Currency.codeAsETH: return AddressScheme (core: CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT)
+        default: return AddressScheme (core: CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT)
+        }
+    }
+
+    static internal func defaultAddressSchemes (currency: Currency) -> [AddressScheme] {
+        switch currency.code {
+        case Currency.codeAsBTC: return [AddressScheme (core: CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT),
+                                         AddressScheme (core: CRYPTO_ADDRESS_SCHEME_BTC_LEGACY)]
+        case Currency.codeAsBCH: return [AddressScheme (core: CRYPTO_ADDRESS_SCHEME_BTC_LEGACY)]
+        case Currency.codeAsETH: return [AddressScheme (core: CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT)]
+        default: return [AddressScheme (core: CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT)]
+        }
     }
 
     // Equatable
@@ -273,7 +310,7 @@ public enum WalletManagerMode {
         }
     }
 
-    internal var asCore: BRSyncMode {
+    internal var core: BRSyncMode {
         switch self {
         case .api_only: return SYNC_MODE_BRD_ONLY
         case .api_with_p2p_submit: return SYNC_MODE_BRD_WITH_P2P_SEND

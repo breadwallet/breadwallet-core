@@ -73,6 +73,7 @@ cryptoWalletManagerCreateInternal (BRCryptoCWMListener listener,
                                    BRCryptoBlockChainType type,
                                    BRCryptoNetwork network,
                                    BRSyncMode mode,
+                                   BRCryptoAddressScheme scheme,
                                    char *path) {
     BRCryptoWalletManager cwm = calloc (1, sizeof (struct BRCryptoWalletManagerRecord));
 
@@ -83,6 +84,7 @@ cryptoWalletManagerCreateInternal (BRCryptoCWMListener listener,
     cwm->account = cryptoAccountTake (account);
     cwm->state   = CRYPTO_WALLET_MANAGER_STATE_CREATED;
     cwm->mode = mode;
+    cwm->addressScheme = scheme;
     cwm->path = strdup (path);
 
     cwm->wallet = NULL;
@@ -108,6 +110,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                            BRCryptoAccount account,
                            BRCryptoNetwork network,
                            BRSyncMode mode,
+                           BRCryptoAddressScheme scheme,
                            const char *path) {
 
     // TODO: extend path... with network-type : network-name - or is that done by ewmCreate(), ...
@@ -119,6 +122,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                                                      cryptoNetworkGetBlockChainType (network),
                                                                      network,
                                                                      mode,
+                                                                     scheme,
                                                                      cwmPath);
 
     switch (cwm->type) {
@@ -301,6 +305,17 @@ private_extern void
 cryptoWalletManagerSetState (BRCryptoWalletManager cwm,
                              BRCryptoWalletManagerState state) {
     cwm->state = state;
+}
+
+extern BRCryptoAddressScheme
+cryptoWalletManagerGetAddressScheme (BRCryptoWalletManager cwm) {
+    return cwm->addressScheme;
+}
+
+extern void
+cryptoWalletManagerSetAddressScheme (BRCryptoWalletManager cwm,
+                                     BRCryptoAddressScheme scheme) {
+    cwm->addressScheme = scheme;
 }
 
 extern const char *

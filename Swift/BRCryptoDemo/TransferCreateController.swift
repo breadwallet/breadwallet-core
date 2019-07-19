@@ -81,7 +81,7 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
             }
         }
 
-        walletAddrButton.setTitle(wallet.source.description, for: .normal)
+        walletAddrButton.setTitle(wallet.target.description, for: .normal)
 
         gasPriceSegmentedController.isEnabled = isEthCurrency && canUseFeeBasis
         gasLimitSegmentedController.isEnabled = isEthCurrency && canUseFeeBasis
