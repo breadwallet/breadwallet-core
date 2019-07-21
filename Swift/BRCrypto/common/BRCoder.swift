@@ -71,7 +71,6 @@ public enum CoreCryptoCoder: CryptoCoder {
                     let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
                     decodeHex (targetAddr, targetCount, sourceAddr, sourceCount)
                 }
-                print ("HEX: Decode: \(target)")
 
             case .base58:
                 let targetCount = BRBase58Decode(nil, 0, sourceAddr)
