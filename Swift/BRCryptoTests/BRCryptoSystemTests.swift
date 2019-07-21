@@ -34,8 +34,15 @@ fileprivate class TestListener: SystemListener {
             // specifically, test networks are announced and having a wallet manager for a
             // testnet won't happen in a deployed App.
 
+            let mode = system.supportsMode (network: network, WalletManagerMode.p2p_only)
+                ? WalletManagerMode.p2p_only
+                : system.defaultMode(network: network)
+            let scheme = system.defaultAddressScheme(network: network)
+
+
             let _ = system.createWalletManager (network: network,
-                                                mode: WalletManagerMode.p2p_only)
+                                                mode: mode,
+                                                addressScheme: scheme)
         }
     }
 

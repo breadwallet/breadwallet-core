@@ -87,12 +87,17 @@ class CoreDemoListener: SystemListener {
             // specifically, test networks are announced and having a wallet manager for a
             // testnet won't happen in a deployed App.
 
-            let code = network.currency.code.lowercased()
+            let mode = system.supportsMode (network: network, WalletManagerMode.api_only)
+                ? WalletManagerMode.api_only
+                : system.defaultMode(network: network)
+            let scheme = system.defaultAddressScheme(network: network)
 
             let _ = system.createWalletManager (network: network,
-                                                mode: currencyCodeToModeMap[code] ?? WalletManagerMode.api_only)
+                                                mode: mode,
+                                                addressScheme: scheme)
 
         case .managerAdded (let manager):
+            //TODO: Don't connect here.
             manager.connect()
 
         }

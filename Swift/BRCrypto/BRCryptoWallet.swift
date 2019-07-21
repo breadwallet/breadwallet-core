@@ -67,13 +67,22 @@ public final class Wallet: Equatable {
 
     /// An address suitable for a transfer target (receiving).  Uses the default Address Scheme
     public var target: Address {
-        return Address (core: cryptoWalletGetAddress (core, manager.addressScheme.core), take: false)
+        return targetForScheme (manager.addressScheme)
     }
 
+    public func targetForScheme (_ scheme: AddressScheme) -> Address {
+        return Address (core: cryptoWalletGetAddress (core, scheme.core), take: false)
+    }
+
+    /// TODO: `var targets: [Address]`
+
+    /// TODO: Remove `source
     /// An address suitable for a transfer source (sending).  Uses the default AddressScheme
     public var source: Address {
         return Address (core: cryptoWalletGetAddress (core, manager.addressScheme.core), take: false)
     }
+
+    /// TODO: `var sources: [Address]`
 
     /// The transfers of currency yielding `balance`
     public var transfers: [Transfer] {
