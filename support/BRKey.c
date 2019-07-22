@@ -361,15 +361,26 @@ size_t BRKeyLegacyAddr(BRKey *key, char *addr, size_t addrLen)
 size_t BRKeySign(const BRKey *key, void *sig, size_t sigLen, UInt256 md)
 {
     secp256k1_ecdsa_signature s;
+
+    uint8_t safeSig[73];
+    size_t  safeSigLen = 73;
     
     assert(key != NULL);
     
     if (secp256k1_ecdsa_sign(_ctx, &s, md.u8, key->secret.u8, secp256k1_nonce_function_rfc6979, NULL)) {
-        if (! secp256k1_ecdsa_signature_serialize_der(_ctx, sig, &sigLen, &s)) sigLen = 0;
+        if (! secp256k1_ecdsa_signature_serialize_der(_ctx, safeSig, &safeSigLen, &s)) safeSigLen = 0;
     }
-    else sigLen = 0;
-    
-    return sigLen;
+    else safeSigLen = 0;
+
+
+    if (NULL != sig && sigLen >= safeSigLen) {
+        memcpy (sig, safeSig, safeSigLen);
+        return safeSigLen;
+    }
+    else if (NULL != sig)
+        return 0; // failed, `sig` is too small
+    else
+        return safeSigLen;
 }
 
 // returns true if the signature for md is verified to have been made by key
