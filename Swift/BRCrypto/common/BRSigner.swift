@@ -9,34 +9,132 @@
 import Foundation
 import BRCore
 
+///
+/// A pair of private+public key, or just a public key
+///
 public final class CryptoKey {
-    let core: BRKey
 
-    init (core: BRKey) {
+    // The Core representation
+    internal let core: BRKey
+
+    ///
+    /// Check if `self` and `that` have an identical public key
+    ///
+    /// - Parameter that: the other CryptoKey
+    ///
+    /// - Returns: If identical `true`; otherwise `false`
+    ///
+    public func publicKeyMatch (_ that: CryptoKey) -> Bool {
+        let selfPub = self.core.pubKey
+        let thatPub = that.core.pubKey
+        return withUnsafePointer (to: selfPub) { (selfPtr) -> Bool in
+            return withUnsafePointer (to: thatPub) { (thatPtr) -> Bool in
+                return 0 == memcmp (selfPtr, thatPtr, MemoryLayout.size (ofValue: selfPub))
+            }
+        }
+    }
+
+    ///
+    /// Initialize based on a Core BRKey - the provided BRKey might be private+public or just
+    /// a public key (such as one that is recovered from the signature.
+    ///
+    /// - Parameter core: The Core representaion
+    ///
+    internal init (core: BRKey) {
         self.core = core
+    }
+
+    ///
+    /// Initialize based on `secret` to produce a private+public key pair
+    ///
+    /// - Parameter secret: the secret
+    ///
+    internal convenience init (secret: UInt256) {
+        var core = BRKey.init()
+        var secret = secret
+
+        BRKeySetSecret (&core, &secret, 1)
+        BRKeyPubKey(&core, nil, 0)
+
+        self.init (core: core)
     }
 }
 
+///
+/// Sign 32-byte data with a private key to return a signature; optional recover the public key
+///
 public protocol CryptoSigner {
+
+    ///
+    /// Create a signature from 32-byte data using the CryptoKey (with private key provided)
+    ///
+    /// - Parameters:
+    ///   - data32: the data to be signed
+    ///   - using: the prive key
+    ///
+    /// - Returns: the signature
+    ///
     func sign (data32: Data, using: CryptoKey) -> Data
+
+    ///
+    /// Recover the CryptoKey (only the public key portion) from the signed data and the signature.
+    /// If the key cannot be revoved, because the signing algorithm doesn't support recover, then
+    /// nil is returned.
+    ///
+    /// - Parameters:
+    ///   - data32: the original data used create the signature
+    ///   - signature: the signature
+    ///
+    /// - Returns: A CryptoKey with only the public key provided.
+    ///
     func recover (data32: Data, signature: Data) -> CryptoKey?
 }
 
 public enum CoreCryptoSigner: CryptoSigner {
+    // Does not support 'recovery'
     case basic
+
+    /// Does support 'recovery'
     case compact
 
     public func sign (data32 digest: Data, using privateKey: CryptoKey) -> Data {
+        // Copy the key - prep to pass to Core C functions
+        var key = privateKey.core
+
+        // Confirm `data32 digest` is 32 bytes
         let sourceCount = digest.count
+        precondition (32 == sourceCount)
+
         return digest.withUnsafeBytes { (digestBytes: UnsafeRawBufferPointer) -> Data in
             let digestAddr  = digestBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+            let digestUInt256 = digestAsUInt256 (digestAddr!)
 
             var target: Data!
             switch self {
             case .basic:
-                break
+                var keySignRequiresANonNULLSignatue = Data (count: 72);
+                // TODO: Above not needed?
+                
+                let targetCount = keySignRequiresANonNULLSignatue.withUnsafeMutableBytes { (bytes: UnsafeMutableRawBufferPointer) -> Int in
+                    let addr  = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+                    return BRKeySign (&key, addr, 72, digestUInt256)
+                }
+
+                if 0 == targetCount { /* error */ }
+                target = Data (count: targetCount)
+                target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
+                    let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+                    BRKeySign (&key, targetAddr, targetCount, digestUInt256)
+                }
+
             case .compact:
-                break
+                let targetCount = BRKeyCompactSign (&key, nil, 0, digestUInt256)
+                if 0 == targetCount { /* error */ }
+                target = Data (count: targetCount)
+                target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
+                    let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+                    BRKeyCompactSign (&key, targetAddr, targetCount, digestUInt256)
+                }
             }
 
             return target
@@ -45,18 +143,36 @@ public enum CoreCryptoSigner: CryptoSigner {
 
     public func recover (data32 digest: Data, signature: Data) -> CryptoKey? {
         let sourceCount = digest.count
+        precondition (32 == sourceCount)
+
         return digest.withUnsafeBytes { (digestBytes: UnsafeRawBufferPointer) -> CryptoKey? in
             let digestAddr  = digestBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+            let digestUInt256 = digestAsUInt256 (digestAddr!) // : UInt256 = createUInt256(0)
 
-            var key: CryptoKey! = nil
             switch self {
-            case .basic: break
-            case .compact:
-                // ...
-                break
-            }
+            case .basic:
+                return nil
 
-            return key
+            case .compact:
+                let signatureCount = signature.count
+                return signature.withUnsafeBytes { (signatureBytes: UnsafeRawBufferPointer) -> CryptoKey? in
+                    var key = BRKey.self.init()
+                    let signatureAddr  = signatureBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+                    let success: Bool = 1 == BRKeyRecoverPubKey (&key, digestUInt256, signatureAddr, signatureCount)
+                    return success ? CryptoKey (core: key) : nil
+                }
+            }
+        }
+    }
+
+    private func digestAsUInt256 (_ dataAddr: UnsafePointer<UInt8>) -> UInt256 {
+        var digest: UInt256 = UInt256.self.init()
+        return UnsafeMutablePointer(mutating: &digest)
+            .withMemoryRebound(to: UInt8.self, capacity: 32) { (digestBytes: UnsafeMutablePointer<UInt8>) -> UInt256 in
+                for index in 0..<32 {
+                    digestBytes[index] = dataAddr[index]
+                }
+                return digest
         }
     }
 }
