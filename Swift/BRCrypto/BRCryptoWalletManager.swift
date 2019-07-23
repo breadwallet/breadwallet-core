@@ -20,7 +20,7 @@ import BRCryptoC
 /// At least conceptually, a WalletManager is an 'Active Object' (whereas Transfer and Wallet are
 /// 'Passive Objects'
 ///
-public final class WalletManager: Equatable {
+public final class WalletManager: Equatable, CustomStringConvertible {
 
     /// The Core representation
     internal private(set) var core: BRCryptoWalletManager! = nil
@@ -191,6 +191,10 @@ public final class WalletManager: Equatable {
     // Equatable
     public static func == (lhs: WalletManager, rhs: WalletManager) -> Bool {
         return lhs === rhs || lhs.core == rhs.core
+    }
+
+    public var description: String {
+        return name
     }
 }
 

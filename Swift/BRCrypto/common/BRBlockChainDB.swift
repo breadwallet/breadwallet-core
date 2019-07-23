@@ -252,16 +252,26 @@ public class BlockChainDB {
         /// specfication includes `blockHeight` (which can never be correct).
         static public let defaultBlockchains: [Blockchain] = [
             // Mainnet
-            (id: "bitcoin-mainnet",       name: "Bitcoin",       network: "mainnet", isMainnet: true,  currency: "btc", blockHeight:  654321, feeEstimates: []),
-            (id: "bitcoin-cash-mainnet",  name: "Bitcoin Cash",  network: "mainnet", isMainnet: true,  currency: "bch", blockHeight: 1000000, feeEstimates: []),
-            (id: "ethereum-mainnet",      name: "Ethereum",      network: "mainnet", isMainnet: true,  currency: "eth", blockHeight: 8000000, feeEstimates: []),
-            (id: "ripple-mainnet",   name: "Ripple",   network: "mainnet", isMainnet: true,  currency: "xrp", blockHeight: 5000000, feeEstimates: []),
+            (id: "bitcoin-mainnet",       name: "Bitcoin",       network: "mainnet", isMainnet: true,  currency: "btc", blockHeight:  654321,
+             feeEstimates: [(amount: "30", tier: "10m", confirmations: "")]),
+            (id: "bitcoin-cash-mainnet",  name: "Bitcoin Cash",  network: "mainnet", isMainnet: true,  currency: "bch", blockHeight: 1000000,
+             feeEstimates: [(amount: "30", tier: "10m", confirmations: "")]),
+            (id: "ethereum-mainnet",      name: "Ethereum",      network: "mainnet", isMainnet: true,  currency: "eth", blockHeight: 8000000,
+             feeEstimates: [(amount: "2000000000", tier: "1m", confirmations: "")]),
+            (id: "ripple-mainnet",        name: "Ripple",        network: "mainnet", isMainnet: true,  currency: "xrp", blockHeight: 5000000,
+            feeEstimates: [(amount: "20", tier: "1m", confirmations: "")]),
 
             // Testnet
-            (id: "bitcoin-testnet",       name: "Bitcoin Test",      network: "testnet", isMainnet: false, currency: "btc", blockHeight:  900000, feeEstimates: []),
-            (id: "bitcoin-cash-testnet",  name: "Bitcoin Cash Test", network: "testnet", isMainnet: false, currency: "bch", blockHeight: 1200000, feeEstimates: []),
-            (id: "ethereum-testnet",      name: "Ethereum Testnet",  network: "testnet", isMainnet: false, currency: "eth", blockHeight: 1000000, feeEstimates: []),
-            (id: "ethereum-rinkeby",      name: "Ethereum Rinkeby",  network: "rinkeby", isMainnet: false, currency: "eth", blockHeight: 2000000, feeEstimates: [])
+            (id: "bitcoin-testnet",       name: "Bitcoin Test",      network: "testnet", isMainnet: false, currency: "btc", blockHeight:  900000,
+             feeEstimates: [(amount: "30", tier: "10m", confirmations: "")]),
+            (id: "bitcoin-cash-testnet",  name: "Bitcoin Cash Test", network: "testnet", isMainnet: false, currency: "bch", blockHeight: 1200000,
+             feeEstimates: [(amount: "30", tier: "10m", confirmations: "")]),
+            (id: "ethereum-testnet",      name: "Ethereum Testnet",  network: "testnet", isMainnet: false, currency: "eth", blockHeight: 1000000,
+             feeEstimates: [(amount: "2000000000", tier: "1m", confirmations: "")]),
+            (id: "ethereum-rinkeby",      name: "Ethereum Rinkeby",  network: "rinkeby", isMainnet: false, currency: "eth", blockHeight: 2000000,
+             feeEstimates: [(amount: "2000000000", tier: "1m", confirmations: "")]),
+            (id: "ripple-testnet",        name: "Ripple Testnet",    network: "testnet", isMainnet: false, currency: "xrp", blockHeight: 25000,
+             feeEstimates: [(amount: "20", tier: "1m", confirmations: "")]),
         ]
 
         /// Currency & CurrencyDenomination
@@ -333,11 +343,11 @@ public class BlockChainDB {
                              (name: "gwei",  code: "gwei", decimals:  9, symbol: lookupSymbol ("gwei")),
                              (name: "ether", code: "eth",  decimals: 18, symbol: lookupSymbol ("eth"))]),
 
-            (id: "BRD Token", name: "BRD Token", code: "BRD", type: "erc20", blockchainID: "ethereum-mainnet", address: addressBRDMainnet,
+            (id: "BRD Token", name: "BRD Token", code: "brd", type: "erc20", blockchainID: "ethereum-mainnet", address: addressBRDMainnet,
              demoninations: [(name: "BRD_INTEGER",   code: "BRDI",  decimals:  0, symbol: "brdi"),
                              (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")]),
 
-            (id: "EOS Token", name: "EOS Token", code: "EOS", type: "erc20", blockchainID: "ethereum-mainnet", address: "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0",
+            (id: "EOS Token", name: "EOS Token", code: "eos", type: "erc20", blockchainID: "ethereum-mainnet", address: "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0",
              demoninations: [(name: "EOS_INTEGER",   code: "EOSI",  decimals:  0, symbol: "eosi"),
                              (name: "EOS",           code: "EOS",   decimals: 18, symbol: "eos")]),
 
@@ -359,10 +369,15 @@ public class BlockChainDB {
                              (name: "gwei",  code: "gwei", decimals:  9, symbol: lookupSymbol ("gwei")),
                              (name: "ether", code: "eth",  decimals: 18, symbol: lookupSymbol ("eth"))]),
 
-            (id: "BRD Token Testnet", name: "BRD Token", code: "BRD", type: "erc20", blockchainID: "ethereum-testnet", address: addressBRDTestnet,
+            (id: "BRD Token Testnet", name: "BRD Token", code: "brd", type: "erc20", blockchainID: "ethereum-testnet", address: addressBRDTestnet,
              demoninations: [(name: "BRD_INTEGER",   code: "BRDI",  decimals:  0, symbol: "brdi"),
                              (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")]),
-        ]
+
+            (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-testnet", address: nil,
+             demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
+                             (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
+
+       ]
 
         static internal let addressBRDTestnet = "0x7108ca7c4718efa810457f228305c9c71390931a" // testnet
         static internal let addressBRDMainnet = "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6" // mainnet

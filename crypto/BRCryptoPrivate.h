@@ -291,7 +291,8 @@ extern "C" {
 
     private_extern BRCryptoNetwork
     cryptoNetworkCreateAsGEN (const char *uids,
-                              const char *name);
+                              const char *name,
+                              uint8_t isMainnet);
 
     private_extern BRCryptoBlockChainType
     cryptoNetworkGetBlockChainType (BRCryptoNetwork network);

@@ -358,7 +358,7 @@ public final class System {
                         // the default currency
                         guard let currency = associations.keys.first (where: { $0.code == blockchainModel.currency.lowercased() }),
                             let feeUnit = associations[currency]?.baseUnit
-                            else { print ("SYS: START: Missed Currency (\(blockchainModel.currency)): defaultUnit"); return }
+                            else { print ("SYS: CONFIGURE: Missed Currency (\(blockchainModel.currency)): defaultUnit"); return }
 
                         let fees = blockchainModel.feeEstimates
                             // Well, quietly ignore a fee if we can't parse the amount.
@@ -368,6 +368,9 @@ public final class System {
                                     .map { NetworkFee (timeInternalInMilliseconds: UInt64(timeInterval),
                                                        pricePerCostFactor: $0) }
                         }
+
+                        guard !fees.isEmpty
+                            else { print ("SYS: CONFIGURE: Missed Fees (\(blockchainModel.name))"); return }
 
                         // define the network
                         let network = Network (uids: blockchainModel.id,
