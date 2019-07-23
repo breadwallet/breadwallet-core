@@ -1211,6 +1211,13 @@ int BRKeyTests()
     BRKeySetSecret(&key, &uint256("0000000000000000000000000000000000000000000000000000000000000001"), 1);
     msg = "Everything should be made as simple as possible, but not simpler.";
     BRSHA256(&md, msg, strlen(msg));
+
+    if (0 == BRKeySign(&key, NULL, 0, md)) // `sig` is NULL, expect size needed
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySign() test 0.1\n", __func__);
+
+    if (0 != BRKeySign(&key, sig, 65, md)) // `sig` is too small, expect 0
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySign() test 0.2\n", __func__);
+
     sigLen = BRKeySign(&key, sig, sizeof(sig), md);
     
     char sig1[] = "\x30\x44\x02\x20\x33\xa6\x9c\xd2\x06\x54\x32\xa3\x0f\x3d\x1c\xe4\xeb\x0d\x59\xb8\xab\x58\xc7\x4f\x27"
