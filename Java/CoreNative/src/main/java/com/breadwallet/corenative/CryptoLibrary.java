@@ -194,6 +194,8 @@ public interface CryptoLibrary extends Library {
                                            String gasUsed, String blockNumber, String blockHash,
                                            String blockConfirmations, String blockTransacionIndex, String blockTimestamp,
                                            String isError);
+    void cwmAnnounceGetTransactionsItemGEN(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState,
+                                           byte[] transaction, SizeT transactionLength, long timestamp, long blockHeight);
     void cwmAnnounceGetTransactionsComplete(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState, int success);
     void cwmAnnounceSubmitTransferSuccess(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState);
     void cwmAnnounceSubmitTransferSuccessForHash(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState, String hash);
