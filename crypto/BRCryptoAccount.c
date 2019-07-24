@@ -114,17 +114,10 @@ cryptoAccountCreateFromSeedInternal (UInt512 seed,
                                      uint64_t timestamp) {
     pthread_once (&_accounts_once, _accounts_init);
 
-    BRCryptoAccount account = malloc (sizeof (struct BRCryptoAccountRecord));
-
-    account->btc = BRBIP32MasterPubKey (seed.u8, sizeof (seed.u8));
-    account->eth = createAccountWithBIP32Seed(seed);
-    account->xrp = gwmAccountCreate (genericRippleHandlers->type, seed);
-    // ...
-
-    account->timestamp = timestamp;
-    account->ref = CRYPTO_REF_ASSIGN(cryptoAccountRelease);
-
-    return account;
+    return cryptoAccountCreateInternal (BRBIP32MasterPubKey (seed.u8, sizeof (seed.u8)),
+                                        createAccountWithBIP32Seed(seed),
+                                        gwmAccountCreate (genericRippleHandlers->type, seed),
+                                        timestamp);
 }
 
 extern BRCryptoAccount
@@ -147,6 +140,8 @@ cryptoAccountCreate (const char *phrase, uint64_t timestamp) {
  */
 extern BRCryptoAccount
 cryptoAccountCreateFromSerialization (const uint8_t *bytes, size_t bytesCount) {
+    pthread_once (&_accounts_once, _accounts_init);
+
     uint8_t *bytesPtr = (uint8_t *) bytes;
     uint8_t *bytesEnd = bytesPtr + bytesCount;
 
