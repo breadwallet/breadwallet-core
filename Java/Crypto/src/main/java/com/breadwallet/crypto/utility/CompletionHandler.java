@@ -5,9 +5,9 @@
  * See the LICENSE file at the project root for license information.
  * See the CONTRIBUTORS file at the project root for a list of contributors.
  */
-package com.breadwallet.crypto.blockchaindb;
+package com.breadwallet.crypto.utility;
 
-import com.breadwallet.crypto.blockchaindb.errors.QueryError;
-
-public interface CompletionHandler<T> extends com.breadwallet.crypto.utility.CompletionHandler<T, QueryError> {
+public interface CompletionHandler<T, E> {
+    void handleData(T data);
+    void handleError(E error);
 }

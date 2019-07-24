@@ -89,11 +89,14 @@ final class NetworkDiscovery {
 
                     List<NetworkFee> fees = new ArrayList<>();
                     for (BlockchainFee bdbFee: blockchainModel.getFeeEstimates()) {
-                        // TODO(fix): Don't use a constant here; get a real value!
-                        UnsignedLong timeInterval = UnsignedLong.valueOf(TimeUnit.SECONDS.toMillis(30));
-                        Optional<Amount> amount = Amount.create(bdbFee.getAmount(), false, feeUnit);
-                        if (amount.isPresent()) {
-                            fees.add(NetworkFee.create(timeInterval, amount.get(), feeUnit));
+                        String tier = bdbFee.getTier();
+                        if (!tier.isEmpty()) {
+                            tier = tier.substring(0, tier.length() - 1); // lop of the last character
+                            UnsignedLong timeInterval = UnsignedLong.valueOf(TimeUnit.MINUTES.toMillis(Long.decode(tier)));
+                            Optional<Amount> amount = Amount.create(bdbFee.getAmount(), false, feeUnit);
+                            if (amount.isPresent()) {
+                                fees.add(NetworkFee.create(timeInterval, amount.get(), feeUnit));
+                            }
                         }
                     }
 
