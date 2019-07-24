@@ -20,6 +20,12 @@ class CoreDemoListener: SystemListener {
     private var walletListeners: [WalletListener] = []
     private var transferListeners: [TransferListener] = []
 
+    private let currencyCodesNeeded: [String]
+
+    public init (currencyCodesNeeded: [String]) {
+        self.currencyCodesNeeded = currencyCodesNeeded
+    }
+
     private let currencyCodeToModeMap: [String : WalletManagerMode] = [
         Currency.codeAsBTC : WalletManagerMode.api_only,
         Currency.codeAsBCH : WalletManagerMode.p2p_only,
@@ -81,18 +87,30 @@ class CoreDemoListener: SystemListener {
             break
 
         case .networkAdded(let network):
+            var needMainnet = true
+
+            #if TESTNET
+            needMainnet = false
+            #endif
 
             // A network was created; create the corresponding wallet manager.  Note: an actual
             // App might not be interested in having a wallet manager for every network -
             // specifically, test networks are announced and having a wallet manager for a
             // testnet won't happen in a deployed App.
 
-            let code = network.currency.code.lowercased()
+            if needMainnet == network.isMainnet &&
+                currencyCodesNeeded.contains (where: { nil != network.currencyBy (code: $0) }) {
+                let mode = system.supportsMode (network: network, WalletManagerMode.api_only)
+                    ? WalletManagerMode.api_only
+                    : system.defaultMode(network: network)
+                let scheme = system.defaultAddressScheme(network: network)
 
-            let _ = system.createWalletManager (network: network,
-                                                mode: currencyCodeToModeMap[code] ?? WalletManagerMode.api_only)
-
+                let _ = system.createWalletManager (network: network,
+                                                    mode: mode,
+                                                    addressScheme: scheme)
+            }
         case .managerAdded (let manager):
+            //TODO: Don't connect here.
             manager.connect()
 
         }

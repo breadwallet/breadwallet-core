@@ -92,13 +92,17 @@ class BRCryptoAccountTests: XCTestCase {
 
     func testAddressBTC () {
         let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
+        let BTC_SATOSHI = BRCrypto.Unit (currency: btc, uids: "BTC-SAT",  name: "Satoshi", symbol: "SAT")
+
+        let fee = NetworkFee (timeInternalInMilliseconds: 1000,
+                              pricePerCostFactor: Amount.create(double: 25, unit: BTC_SATOSHI))
         let network = Network (uids: "bitcoin-mainnet",
                                name: "bitcoin-name",
                                isMainnet: true,
                                currency: btc,
                                height: 100000,
                                associations: [:],
-                               fees: [])
+                               fees: [fee])
 
         let b1 = Address.create (string: "1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj", network: network)
 

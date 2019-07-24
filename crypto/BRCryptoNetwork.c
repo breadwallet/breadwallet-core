@@ -154,6 +154,7 @@ struct BRCryptoNetworkRecord {
 
         struct {
             // TODO: TBD
+            uint8_t mainnet;
         } gen;
     } u;
     BRCryptoRef ref;
@@ -215,9 +216,11 @@ cryptoNetworkCreateAsETH (const char *uids,
 
 private_extern BRCryptoNetwork
 cryptoNetworkCreateAsGEN (const char *uids,
-                          const char *name) {
+                          const char *name,
+                          uint8_t isMainnet) {
     BRCryptoNetwork network = cryptoNetworkCreate (uids, name);
     network->type = BLOCK_CHAIN_TYPE_GEN;
+    network->u.gen.mainnet = isMainnet;
     return network;
 }
 
@@ -282,8 +285,7 @@ cryptoNetworkIsMainnet (BRCryptoNetwork network) {
         case BLOCK_CHAIN_TYPE_ETH:
             return AS_CRYPTO_BOOLEAN (network->u.eth.net == ethereumMainnet);
         case BLOCK_CHAIN_TYPE_GEN:
-            // TODO:
-            return CRYPTO_TRUE;
+            return AS_CRYPTO_BOOLEAN (network->u.gen.mainnet);
     }
 }
 

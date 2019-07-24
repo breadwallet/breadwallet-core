@@ -31,6 +31,14 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
     var listener: CoreDemoListener!
     var system: System!
 
+    #if TESTNET
+    let mainnet = false
+    #endif
+
+    #if MAINNET
+    let mainnet = true
+    #endif
+
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         let splitViewController = window!.rootViewController as! UISplitViewController
@@ -86,9 +94,20 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         print ("APP: Account PaperKey  : \(paperKey.components(separatedBy: CharacterSet.whitespaces).first ?? "<missed>") ...")
         print ("APP: Account Timestamp : \(account.timestamp)")
         print ("APP: StoragePath       : \(storagePath)");
+        print ("APP: Mainnet           : \(mainnet)")
+        var currencies: [String] = ["btc", "eth", "brd" /*, "xrp"*/]
+
+        if mainnet {
+
+        }
+        else {
+
+        }
+
+        print ("APP: Currencies        : \(currencies)")
 
         // Create the listener
-        let listener = CoreDemoListener ()
+        let listener = CoreDemoListener (currencyCodesNeeded: currencies)
 
         // Create the BlockChainDB
         let query = BlockChainDB ()
@@ -105,18 +124,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         let subscription = BlockChainDB.Subscription (id: subscriptionId, endpoint: nil);
         self.system.subscribe (using: subscription)
 
-        var networksNeeded: [String] = []
-
-        #if TESTNET
-        networksNeeded += ["bitcoin-testnet"] //, "ripple-testnet"] // ...
-        #endif
-
-        #if MAINNET
-        networksNeeded += ["bitcoin-mainnet"] // ...
-        #endif
-
-        print ("APP: Networks          : \(networksNeeded)")
-        self.system.start (networksNeeded: networksNeeded) //, */"ethereum-mainnet"])
+        self.system.configure()
 
         return true
     }

@@ -20,7 +20,7 @@ import BRCryptoC
 /// At least conceptually, a WalletManager is an 'Active Object' (whereas Transfer and Wallet are
 /// 'Passive Objects'
 ///
-public final class WalletManager: Equatable {
+public final class WalletManager: Equatable, CustomStringConvertible {
 
     /// The Core representation
     internal private(set) var core: BRCryptoWalletManager! = nil
@@ -112,14 +112,11 @@ public final class WalletManager: Equatable {
     /// The default network fee.
     public var defaultNetworkFee: NetworkFee
 
-    /// The address schemes for this wallet manager.
-    public let addressSchemes: [AddressScheme]
-
-    /// The specific address scheme to use
+    /// The address scheme to use
     public var addressScheme: AddressScheme {
         get { return AddressScheme (core: cryptoWalletManagerGetAddressScheme (core)) }
         set {
-            assert (addressSchemes.contains(newValue))
+            assert (system.supportsAddressScheme(network: network, newValue))
             cryptoWalletManagerSetAddressScheme (core, newValue.core)
         }
     }
@@ -165,9 +162,7 @@ public final class WalletManager: Equatable {
         self.query   = system.query
 
         self.defaultNetworkFee = network.minimumFee
-
-        self.addressSchemes = WalletManager.defaultAddressSchemes (currency: network.currency)
-        self.addressScheme  = AddressScheme (core: cryptoWalletManagerGetAddressScheme (core))
+        self.addressScheme     = AddressScheme (core: cryptoWalletManagerGetAddressScheme (core))
     }
 
     public convenience  init (system: System,
@@ -193,28 +188,13 @@ public final class WalletManager: Equatable {
         cryptoWalletManagerGive (core)
     }
 
-    static internal func defaultAddressScheme (currency: Currency) -> AddressScheme {
-        switch currency.code {
-        case Currency.codeAsBTC: return AddressScheme (core: CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT)
-        case Currency.codeAsBCH: return AddressScheme (core: CRYPTO_ADDRESS_SCHEME_BTC_LEGACY)
-        case Currency.codeAsETH: return AddressScheme (core: CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT)
-        default: return AddressScheme (core: CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT)
-        }
-    }
-
-    static internal func defaultAddressSchemes (currency: Currency) -> [AddressScheme] {
-        switch currency.code {
-        case Currency.codeAsBTC: return [AddressScheme (core: CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT),
-                                         AddressScheme (core: CRYPTO_ADDRESS_SCHEME_BTC_LEGACY)]
-        case Currency.codeAsBCH: return [AddressScheme (core: CRYPTO_ADDRESS_SCHEME_BTC_LEGACY)]
-        case Currency.codeAsETH: return [AddressScheme (core: CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT)]
-        default: return [AddressScheme (core: CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT)]
-        }
-    }
-
     // Equatable
     public static func == (lhs: WalletManager, rhs: WalletManager) -> Bool {
         return lhs === rhs || lhs.core == rhs.core
+    }
+
+    public var description: String {
+        return name
     }
 }
 
@@ -294,7 +274,7 @@ public enum WalletManagerState {
 ///
 /// - p2p_only: Use the network's Peer-to-Peer protocol to synchronize the account's transfers.
 ///
-public enum WalletManagerMode {
+public enum WalletManagerMode: Equatable {
     case api_only
     case api_with_p2p_submit
     case p2p_with_api_sync
@@ -318,6 +298,8 @@ public enum WalletManagerMode {
         case .p2p_only: return SYNC_MODE_P2P_ONLY
         }
     }
+
+    // Equatable: [Swift-generated]
 }
 
 ///
