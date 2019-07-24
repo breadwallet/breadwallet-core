@@ -39,7 +39,6 @@ import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.WalletManagerState;
 import com.breadwallet.crypto.WalletState;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
-import com.breadwallet.crypto.blockchaindb.CompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
@@ -73,6 +72,7 @@ import com.breadwallet.crypto.events.walletmanager.WalletManagerSyncStoppedEvent
 import com.breadwallet.crypto.events.walletmanager.WalletManagerWalletAddedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerWalletChangedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerWalletDeletedEvent;
+import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedInts;
@@ -1174,7 +1174,7 @@ final class System implements com.breadwallet.crypto.System {
         Optional<System> optSystem = getInstance(context);
 
         if (optSystem.isPresent()) {
-            optSystem.get().query.getBlockchain(coreWalletManager.getNetwork().getUids(), new CompletionHandler<Blockchain>() {
+            optSystem.get().query.getBlockchain(coreWalletManager.getNetwork().getUids(), new CompletionHandler<Blockchain, QueryError>() {
                 @Override
                 public void handleData(Blockchain blockchain) {
                     UnsignedLong blockchainHeight = blockchain.getBlockHeight();
@@ -1211,7 +1211,7 @@ final class System implements com.breadwallet.crypto.System {
 
             optSystem.get().query.getTransactions(coreWalletManager.getNetwork().getUids(), Arrays.asList(addresses), begBlockNumberUnsigned,
                     endBlockNumberUnsigned, true,
-                    false, new CompletionHandler<List<Transaction>>() {
+                    false, new CompletionHandler<List<Transaction>, QueryError>() {
                         @Override
                         public void handleData(List<Transaction> transactions) {
                             Log.d(TAG, "BRCryptoCWMBtcGetTransactionsCallback received transactions");
@@ -1259,7 +1259,7 @@ final class System implements com.breadwallet.crypto.System {
         if (optSystem.isPresent()) {
             byte[] txBytes = tx.getByteArray(0, UnsignedInts.checkedCast(txLength.longValue()));
 
-            optSystem.get().query.createTransaction(coreWalletManager.getNetwork().getUids(), hashAsHex, txBytes, new CompletionHandler<Void>() {
+            optSystem.get().query.createTransaction(coreWalletManager.getNetwork().getUids(), hashAsHex, txBytes, new CompletionHandler<Void, QueryError>() {
                 @Override
                 public void handleData(Void data) {
                     Log.d(TAG, "BRCryptoCWMBtcSubmitTransactionCallback: succeeded");
@@ -1289,7 +1289,7 @@ final class System implements com.breadwallet.crypto.System {
 
         Optional<System> optSystem = getInstance(context);
         if (optSystem.isPresent()) {
-            optSystem.get().query.getBalanceAsEth(networkName, address, new CompletionHandler<String>() {
+            optSystem.get().query.getBalanceAsEth(networkName, address, new CompletionHandler<String, QueryError>() {
                 @Override
                 public void handleData(String balance) {
                     Log.d(TAG, "BRCryptoCWMEthGetEtherBalanceCallback: succeeded");
@@ -1317,7 +1317,7 @@ final class System implements com.breadwallet.crypto.System {
 
         Optional<System> optSystem = getInstance(context);
         if (optSystem.isPresent()) {
-            optSystem.get().query.getBalanceAsTok(networkName, address, tokenAddress, new CompletionHandler<String>() {
+            optSystem.get().query.getBalanceAsTok(networkName, address, tokenAddress, new CompletionHandler<String, QueryError>() {
                 @Override
                 public void handleData(String balance) {
                     Log.d(TAG, "BRCryptoCWMEthGetTokenBalanceCallback: succeeded");
@@ -1345,7 +1345,7 @@ final class System implements com.breadwallet.crypto.System {
 
         Optional<System> optSystem = getInstance(context);
         if (optSystem.isPresent()) {
-            optSystem.get().query.getGasPriceAsEth(networkName, new CompletionHandler<String>() {
+            optSystem.get().query.getGasPriceAsEth(networkName, new CompletionHandler<String, QueryError>() {
                 @Override
                 public void handleData(String gasPrice) {
                     Log.d(TAG, "BRCryptoCWMEthGetGasPriceCallback: succeeded");
@@ -1373,7 +1373,7 @@ final class System implements com.breadwallet.crypto.System {
 
         Optional<System> optSystem = getInstance(context);
         if (optSystem.isPresent()) {
-            optSystem.get().query.getGasEstimateAsEth(networkName, from, to, amount, data, new CompletionHandler<String>() {
+            optSystem.get().query.getGasEstimateAsEth(networkName, from, to, amount, data, new CompletionHandler<String, QueryError>() {
                 @Override
                 public void handleData(String gasEstimate) {
                     Log.d(TAG, "BRCryptoCWMEthEstimateGasCallback: succeeded");
@@ -1401,7 +1401,7 @@ final class System implements com.breadwallet.crypto.System {
 
         Optional<System> optSystem = getInstance(context);
         if (optSystem.isPresent()) {
-            optSystem.get().query.submitTransactionAsEth(networkName, transaction, new CompletionHandler<String>() {
+            optSystem.get().query.submitTransactionAsEth(networkName, transaction, new CompletionHandler<String, QueryError>() {
                 @Override
                 public void handleData(String hash) {
                     Log.d(TAG, "BRCryptoCWMEthSubmitTransactionCallback: succeeded");
@@ -1430,7 +1430,7 @@ final class System implements com.breadwallet.crypto.System {
         Optional<System> optSystem = getInstance(context);
         if (optSystem.isPresent()) {
             optSystem.get().query.getTransactionsAsEth(networkName, address, UnsignedLong.fromLongBits(begBlockNumber),
-                    UnsignedLong.fromLongBits(endBlockNumber), new CompletionHandler<List<EthTransaction>>() {
+                    UnsignedLong.fromLongBits(endBlockNumber), new CompletionHandler<List<EthTransaction>, QueryError>() {
                         @Override
                         public void handleData(List<EthTransaction> transactions) {
                             Log.d(TAG, "BRCryptoCWMEthGetTransactionsCallback: succeeded");
@@ -1479,7 +1479,7 @@ final class System implements com.breadwallet.crypto.System {
         Optional<System> optSystem = getInstance(context);
         if (optSystem.isPresent()) {
             optSystem.get().query.getLogsAsEth(networkName, contract, address, event, UnsignedLong.fromLongBits(begBlockNumber),
-                    UnsignedLong.fromLongBits(endBlockNumber), new CompletionHandler<List<EthLog>>() {
+                    UnsignedLong.fromLongBits(endBlockNumber), new CompletionHandler<List<EthLog>, QueryError>() {
                         @Override
                         public void handleData(List<EthLog> logs) {
                             Log.d(TAG, "BRCryptoCWMEthGetLogsCallback: succeeded");
@@ -1523,7 +1523,7 @@ final class System implements com.breadwallet.crypto.System {
         if (optSystem.isPresent()) {
             optSystem.get().query.getBlocksAsEth(networkName, address, UnsignedInteger.fromIntBits(interests),
                     UnsignedLong.fromLongBits(blockNumberStart), UnsignedLong.fromLongBits(blockNumberStop),
-                    new CompletionHandler<List<UnsignedLong>>() {
+                    new CompletionHandler<List<UnsignedLong>, QueryError>() {
                         @Override
                         public void handleData(List<UnsignedLong> blocks) {
                             Log.d(TAG, "BRCryptoCWMEthGetBlocksCallback: succeeded");
@@ -1550,7 +1550,7 @@ final class System implements com.breadwallet.crypto.System {
 
         Optional<System> optSystem = getInstance(context);
         if (optSystem.isPresent()) {
-            optSystem.get().query.getTokensAsEth(new CompletionHandler<List<EthToken>>() {
+            optSystem.get().query.getTokensAsEth(new CompletionHandler<List<EthToken>, QueryError>() {
                 @Override
                 public void handleData(List<EthToken> tokens) {
                     Log.d(TAG, "BREthereumClientHandlerGetTokens: succeeded");
@@ -1588,7 +1588,7 @@ final class System implements com.breadwallet.crypto.System {
 
         Optional<System> optSystem = getInstance(context);
         if (optSystem.isPresent()) {
-            optSystem.get().query.getBlockNumberAsEth(networkName, new CompletionHandler<String>() {
+            optSystem.get().query.getBlockNumberAsEth(networkName, new CompletionHandler<String, QueryError>() {
                 @Override
                 public void handleData(String number) {
                     Log.d(TAG, "BRCryptoCWMEthGetBlockNumberCallback: succeeded");
@@ -1616,7 +1616,7 @@ final class System implements com.breadwallet.crypto.System {
 
         Optional<System> optSystem = getInstance(context);
         if (optSystem.isPresent()) {
-            optSystem.get().query.getNonceAsEth(networkName, address, new CompletionHandler<String>() {
+            optSystem.get().query.getNonceAsEth(networkName, address, new CompletionHandler<String, QueryError>() {
                 @Override
                 public void handleData(String nonce) {
                     Log.d(TAG, "BRCryptoCWMEthGetNonceCallback: succeeded");
@@ -1646,7 +1646,7 @@ final class System implements com.breadwallet.crypto.System {
         Optional<System> optSystem = getInstance(context);
 
         if (optSystem.isPresent()) {
-            optSystem.get().query.getBlockchain(coreWalletManager.getNetwork().getUids(), new CompletionHandler<Blockchain>() {
+            optSystem.get().query.getBlockchain(coreWalletManager.getNetwork().getUids(), new CompletionHandler<Blockchain, QueryError>() {
                 @Override
                 public void handleData(Blockchain blockchain) {
                     UnsignedLong blockchainHeight = blockchain.getBlockHeight();
@@ -1680,7 +1680,7 @@ final class System implements com.breadwallet.crypto.System {
         if (optSystem.isPresent()) {
             optSystem.get().query.getTransactions(coreWalletManager.getNetwork().getUids(), Collections.singletonList(address), begBlockNumberUnsigned,
                     endBlockNumberUnsigned, true,
-                    false, new CompletionHandler<List<Transaction>>() {
+                    false, new CompletionHandler<List<Transaction>, QueryError>() {
                         @Override
                         public void handleData(List<Transaction> transactions) {
                             Log.d(TAG, "BRCryptoCWMGenGetTransactionsCallback  received transactions");
@@ -1728,7 +1728,7 @@ final class System implements com.breadwallet.crypto.System {
         if (optSystem.isPresent()) {
             byte[] txBytes = tx.getByteArray(0, UnsignedInts.checkedCast(txLength.longValue()));
 
-            optSystem.get().query.createTransaction(coreWalletManager.getNetwork().getUids(), hashAsHex, txBytes, new CompletionHandler<Void>() {
+            optSystem.get().query.createTransaction(coreWalletManager.getNetwork().getUids(), hashAsHex, txBytes, new CompletionHandler<Void, QueryError>() {
                 @Override
                 public void handleData(Void data) {
                     Log.d(TAG, "BRCryptoCWMGenSubmitTransactionCallback: succeeded");
