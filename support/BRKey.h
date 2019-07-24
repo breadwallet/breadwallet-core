@@ -125,6 +125,9 @@ void BRKeyECDH(const BRKey *privKey, uint8_t *out32, BRKey *pubKey);
 size_t BRKeyCompactSignEthereum(const BRKey *key, void *compactSig, size_t sigLen, UInt256 md);
 int BRKeyRecoverPubKeyEthereum(BRKey *key, UInt256 md, const void *compactSig, size_t sigLen);
 
+// Set the compressed flag in `key`; this will clear the `pubKey` to allow regeneration
+// Returns true (1) if the compress flag changed; false (0) otherwise
+int BRKeySetCompressed (BRKey *key, int compressed);
 
 #ifdef __cplusplus
 }

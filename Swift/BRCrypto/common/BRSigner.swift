@@ -108,7 +108,7 @@ public enum CoreCryptoSigner: CryptoSigner {
                     var key = BRKey.self.init()
                     let signatureAddr  = signatureBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
                     let success: Bool = 1 == BRKeyRecoverPubKey (&key, digestUInt256, signatureAddr, signatureCount)
-                    return success ? CryptoKey (core: key) : nil
+                    return success ? CryptoKey (core: key, needPublicKey: false, compressedPublicKey: false) : nil
                 }
             }
         }

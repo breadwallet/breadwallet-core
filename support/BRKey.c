@@ -506,3 +506,18 @@ int BRKeyRecoverPubKeyEthereum(BRKey *key, UInt256 md, const void *compactSig, s
 
     return r;
 }
+
+int BRKeySetCompressed (BRKey *key, int compressed) {
+    compressed = (compressed ? 1 : 0); // as 1 or 0
+
+    // If no secret, we can't clear the pubKey
+    if (UInt256Eq (key->secret, UINT256_ZERO)) return 0;
+
+    // On a difference, clear the pubKey and assign compressed.
+    if (compressed != key->compressed) {
+        memset (key->pubKey, 0, 65);
+        key->compressed = compressed;
+        return 1;
+    }
+    else return 0;
+}

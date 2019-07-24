@@ -46,9 +46,9 @@ class BRCryptoCommonTests: XCTestCase {
 
         // TODO: Fix 'public key from compressed'
         // create a 'public key' and check for match with private key's public key
-//        kpub = CryptoKey.createFromSerialization(asPublic: d)
-//        XCTAssertNotNil(kpub)
-//        XCTAssertTrue (k.publicKeyMatch(kpub))
+        kpub = CryptoKey.createFromSerialization(asPublic: d)
+        XCTAssertNotNil(kpub)
+        XCTAssertTrue (k.publicKeyMatch(kpub))
 
         //
         // Compressed
