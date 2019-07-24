@@ -76,7 +76,7 @@ cryptoNetworkFeeGetPricePerCostFactorUnit (BRCryptoNetworkFee networkFee) {
 }
 
 extern BRCryptoBoolean
-cryptoNetworkEqual (BRCryptoNetworkFee nf1, BRCryptoNetworkFee nf2) {
+cryptoNetworkFeeEqual (BRCryptoNetworkFee nf1, BRCryptoNetworkFee nf2) {
     return AS_CRYPTO_BOOLEAN (nf1 == nf2 ||
                               (nf1->confirmationTimeInMilliseconds == nf2->confirmationTimeInMilliseconds) &&
                               CRYPTO_COMPARE_EQ == cryptoAmountCompare (nf1->pricePerCostFactor, nf2->pricePerCostFactor));
@@ -84,9 +84,11 @@ cryptoNetworkEqual (BRCryptoNetworkFee nf1, BRCryptoNetworkFee nf2) {
 
 static void
 cryptoNetworkFeeRelease (BRCryptoNetworkFee networkFee) {
-    printf ("Network Fpp: Release\n");
+    printf ("Network Fee: Release\n");
 
     cryptoAmountGive (networkFee->pricePerCostFactor);
+    cryptoUnitGive   (networkFee->pricePerCostFactorUnit);
+
     free (networkFee);
 }
 
@@ -472,7 +474,7 @@ cryptoNetworkAddCurrencyUnit (BRCryptoNetwork network,
 private_extern void
 cryptoNetworkAddNetworkFee (BRCryptoNetwork network,
                             BRCryptoNetworkFee fee) {
-    array_add (network->fees, fee);
+    array_add (network->fees, cryptoNetworkFeeTake (fee));
 }
 
 extern size_t

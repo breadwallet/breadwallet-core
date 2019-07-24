@@ -1,5 +1,7 @@
 package com.breadwallet.corecrypto;
 
+import android.support.annotation.Nullable;
+
 import com.breadwallet.corenative.crypto.BRCryptoCWMClient;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWallet;
@@ -7,7 +9,6 @@ import com.breadwallet.corenative.crypto.CoreBRCryptoWalletManager;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.WalletManagerState;
 import com.google.common.base.Optional;
-import com.google.common.primitives.UnsignedLong;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +45,8 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     private final Unit networkDefaultUnit;
     private final String path;
     private final WalletManagerMode mode;
+    @Nullable
+    private final NetworkFee networkFee;
 
     private CoreBRCryptoWalletManager core;
 
@@ -58,6 +61,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         // TODO(fix): Unchecked get here
         this.networkBaseUnit = network.baseUnitFor(networkCurrency).get();
         this.networkDefaultUnit = network.defaultUnitFor(networkCurrency).get();
+        this.networkFee = network.getMinimumFee().orNull();
 
         this.core = core;
     }
@@ -149,6 +153,11 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     @Override
     public Unit getDefaultUnit() {
         return networkDefaultUnit;
+    }
+
+    @Override
+    public Optional<NetworkFee> getDefaultNetworkFee() {
+        return Optional.fromNullable(networkFee);
     }
 
     @Override

@@ -7,7 +7,8 @@
  */
 package com.breadwallet.crypto.blockchaindb.apis.brd;
 
-import com.breadwallet.crypto.blockchaindb.CompletionHandler;
+import com.breadwallet.crypto.blockchaindb.errors.QueryError;
+import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -21,7 +22,7 @@ public class EthGasApi {
         this.client = client;
     }
 
-    public void getGasPriceAsEth(String networkName, int rid, CompletionHandler<String> handler) {
+    public void getGasPriceAsEth(String networkName, int rid, CompletionHandler<String, QueryError> handler) {
         JSONObject json = new JSONObject(ImmutableMap.of(
                 "jsonrpc", "2.0",
                 "method", "eth_gasPrice",
@@ -33,7 +34,7 @@ public class EthGasApi {
     }
 
     public void getGasEstimateAsEth(String networkName, String from, String to, String amount, String data, int rid,
-                                    CompletionHandler<String> handler) {
+                                    CompletionHandler<String, QueryError> handler) {
         JSONObject json = new JSONObject(ImmutableMap.of(
                 "jsonrpc", "2.0",
                 "method", "eth_estimateGas",

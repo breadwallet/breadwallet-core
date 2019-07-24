@@ -66,6 +66,9 @@ public interface CoreBRCryptoWalletManager {
                                         String blockConfirmations, String blockTransacionIndex, String blockTimestamp,
                                         String isError);
 
+    void announceGetTransactionsItemGen(BRCryptoCWMClientCallbackState callbackState, byte[] transaction, UnsignedLong timestamp,
+                                        UnsignedLong blockHeight);
+
     void announceGetTransactionsComplete(BRCryptoCWMClientCallbackState callbackState, boolean success);
 
     void announceSubmitTransferSuccess(BRCryptoCWMClientCallbackState callbackState);
