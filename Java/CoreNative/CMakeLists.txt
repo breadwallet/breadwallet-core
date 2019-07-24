@@ -240,6 +240,45 @@ target_sources (crypto
 #                src/main/cpp/core/ethereum/ewm/testEwm.c
                 )
 
+# Ripple
+target_sources (crypto
+                PUBLIC
+
+                src/main/cpp/core/ripple/BRRipplePrivateStructs.h
+                src/main/cpp/core/ripple/BRRippleBase.h
+                src/main/cpp/core/ripple/BRRipple.h
+                src/main/cpp/core/ripple/BRRippleAccount.c
+                src/main/cpp/core/ripple/BRRippleAccount.h
+                src/main/cpp/core/ripple/BRRippleBase58.c
+                src/main/cpp/core/ripple/BRRippleBase58.h
+                src/main/cpp/core/ripple/BRRippleSerialize.c
+                src/main/cpp/core/ripple/BRRippleSerialize.h
+                src/main/cpp/core/ripple/BRRippleSignature.c
+                src/main/cpp/core/ripple/BRRippleSignature.h
+                src/main/cpp/core/ripple/BRRippleTransaction.c
+                src/main/cpp/core/ripple/BRRippleTransaction.h
+                src/main/cpp/core/ripple/BRRippleWallet.c
+                src/main/cpp/core/ripple/BRRippleWallet.h
+#                src/main/cpp/core/ripple/testRipple.c
+#                src/main/cpp/core/ripple/testRippleTxList1.h
+#                src/main/cpp/core/ripple/testRippleTxList2.h
+                )
+
+# Generic
+target_sources (crypto
+                PUBLIC
+
+                src/main/cpp/core/generic/BRGenericBase.h
+                src/main/cpp/core/generic/BRGeneric.c
+                src/main/cpp/core/generic/BRGeneric.h
+                src/main/cpp/core/generic/BRGenericHandlers.c
+                src/main/cpp/core/generic/BRGenericHandlers.h
+                src/main/cpp/core/generic/BRGenericWalletManager.c
+                src/main/cpp/core/generic/BRGenericWalletManager.h
+                src/main/cpp/core/generic/BRGenericRipple.h
+                src/main/cpp/core/generic/BRGenericRipple.c
+                )
+
 # Crypto
 target_sources (crypto
                 PUBLIC

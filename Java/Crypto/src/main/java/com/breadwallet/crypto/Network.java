@@ -33,6 +33,8 @@ public interface Network {
 
     Set<? extends Currency> getCurrencies();
 
+    List<? extends NetworkFee> getFees();
+
     Optional<? extends Currency> getCurrencyByCode(String code);
 
     List<WalletManagerMode> getSupportedModes();

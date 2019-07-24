@@ -298,6 +298,6 @@ public final class NetworkFee: Equatable {
 
     // Equatable using the Core representation
     public static func == (lhs: NetworkFee, rhs: NetworkFee) -> Bool {
-        return CRYPTO_TRUE == cryptoNetworkEqual (lhs.core, rhs.core)
+        return CRYPTO_TRUE == cryptoNetworkFeeEqual (lhs.core, rhs.core)
     }
 }

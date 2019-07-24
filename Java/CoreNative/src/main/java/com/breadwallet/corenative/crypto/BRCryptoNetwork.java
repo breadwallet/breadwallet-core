@@ -56,6 +56,17 @@ public class BRCryptoNetwork extends PointerType implements CoreBRCryptoNetwork 
     }
 
     @Override
+    public UnsignedLong getFeeCount() {
+        return UnsignedLong.fromLongBits(CryptoLibrary.INSTANCE.cryptoNetworkGetNetworkFeeCount(this).longValue());
+    }
+
+    @Override
+    public CoreBRCryptoNetworkFee getFee(UnsignedLong index) {
+        return new OwnedBRCryptoNetworkFee(CryptoLibrary.INSTANCE.cryptoNetworkGetNetworkFeeAt(this,
+                new SizeT(index.longValue())));
+    }
+
+    @Override
     public String getUids() {
         return CryptoLibrary.INSTANCE.cryptoNetworkGetUids(this).getString(0, "UTF-8");
     }
@@ -78,6 +89,11 @@ public class BRCryptoNetwork extends PointerType implements CoreBRCryptoNetwork 
     @Override
     public int getType() {
         return CryptoLibrary.INSTANCE.cryptoNetworkGetType(this);
+    }
+
+    @Override
+    public void addFee(CoreBRCryptoNetworkFee fee) {
+        CryptoLibrary.INSTANCE.cryptoNetworkAddNetworkFee(this, fee.asBRCryptoNetworkFee());
     }
 
     @Override

@@ -17,6 +17,7 @@ import com.breadwallet.corenative.crypto.BRCryptoCurrency;
 import com.breadwallet.corenative.crypto.BRCryptoFeeBasis;
 import com.breadwallet.corenative.crypto.BRCryptoHash;
 import com.breadwallet.corenative.crypto.BRCryptoNetwork;
+import com.breadwallet.corenative.crypto.BRCryptoNetworkFee;
 import com.breadwallet.corenative.crypto.BRCryptoTransfer;
 import com.breadwallet.corenative.crypto.BRCryptoTransferState;
 import com.breadwallet.corenative.crypto.BRCryptoUnit;
@@ -106,8 +107,13 @@ public interface CryptoLibrary extends Library {
     int cryptoNetworkHasCurrency(BRCryptoNetwork network, BRCryptoCurrency currency);
     SizeT cryptoNetworkGetUnitCount(BRCryptoNetwork network, BRCryptoCurrency currency);
     BRCryptoUnit cryptoNetworkGetUnitAt(BRCryptoNetwork network, BRCryptoCurrency currency, SizeT index);
+    SizeT cryptoNetworkGetNetworkFeeCount(BRCryptoNetwork network);
+    BRCryptoNetworkFee cryptoNetworkGetNetworkFeeAt(BRCryptoNetwork network, SizeT index);
     BRCryptoNetwork cryptoNetworkTake(BRCryptoNetwork obj);
     void cryptoNetworkGive(BRCryptoNetwork obj);
+    long cryptoNetworkFeeGetConfirmationTimeInMilliseconds(BRCryptoNetworkFee fee);
+    int cryptoNetworkFeeEqual(BRCryptoNetworkFee nf1, BRCryptoNetworkFee nf2);
+    void cryptoNetworkFeeGive(BRCryptoNetworkFee obj);
 
     // crypto/BRCryptoPrivate.h
     BRCryptoAddress cryptoAddressCreateFromStringAsBTC(String address);
@@ -123,6 +129,8 @@ public interface CryptoLibrary extends Library {
     void cryptoNetworkAddCurrencyUnit(BRCryptoNetwork network, BRCryptoCurrency currency, BRCryptoUnit unit);
     BRCryptoUnit cryptoUnitCreateAsBase(BRCryptoCurrency currency, String uids, String name, String symbol);
     BRCryptoUnit cryptoUnitCreate(BRCryptoCurrency currency, String uids, String name, String symbol, BRCryptoUnit base, byte decimals);
+    BRCryptoNetworkFee cryptoNetworkFeeCreate(long timeInternalInMilliseconds, BRCryptoAmount pricePerCostFactor, BRCryptoUnit pricePerCostFactorUnit);
+    void cryptoNetworkAddNetworkFee(BRCryptoNetwork network, BRCryptoNetworkFee fee);
 
     // crypto/BRCryptoTransfer.h
     BRCryptoAddress cryptoTransferGetSourceAddress(BRCryptoTransfer transfer);
@@ -194,6 +202,8 @@ public interface CryptoLibrary extends Library {
                                            String gasUsed, String blockNumber, String blockHash,
                                            String blockConfirmations, String blockTransacionIndex, String blockTimestamp,
                                            String isError);
+    void cwmAnnounceGetTransactionsItemGEN(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState,
+                                           byte[] transaction, SizeT transactionLength, long timestamp, long blockHeight);
     void cwmAnnounceGetTransactionsComplete(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState, int success);
     void cwmAnnounceSubmitTransferSuccess(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState);
     void cwmAnnounceSubmitTransferSuccessForHash(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState, String hash);

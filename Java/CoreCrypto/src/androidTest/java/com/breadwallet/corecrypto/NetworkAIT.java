@@ -6,8 +6,10 @@ import com.google.common.primitives.UnsignedLong;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -28,7 +30,11 @@ public class NetworkAIT {
         Map<Currency, NetworkAssociation> associations = new HashMap();
         associations.put(btc, association);
 
-        Network network = Network.create("bitcoin-mainnet", "Bitcoin", true, btc, UnsignedLong.valueOf(100000), associations);
+        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_btc).get(), satoshi_btc);
+
+        List<NetworkFee> fees = Collections.singletonList(fee);
+
+        Network network = Network.create("bitcoin-mainnet", "Bitcoin", true, btc, UnsignedLong.valueOf(100000), associations, fees);
 
         assertEquals(network.getUids(), "bitcoin-mainnet");
         assertEquals(network.getName(), "Bitcoin");
@@ -77,7 +83,9 @@ public class NetworkAIT {
         Map<Currency, NetworkAssociation> associations = new HashMap();
         associations.put(eth, association);
 
-        Network network = Network.create("ethereum-mainnet", "Ethereum", true, eth, UnsignedLong.valueOf(100000), associations);
+        List<NetworkFee> fees = Collections.emptyList();
+
+        Network network = Network.create("ethereum-mainnet", "Ethereum", true, eth, UnsignedLong.valueOf(100000), associations, fees);
 
         assertTrue(network.hasCurrency(eth));
         assertFalse(network.hasCurrency(btc));
