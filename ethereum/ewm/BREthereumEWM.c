@@ -343,7 +343,8 @@ ewmCreate (BREthereumNetwork network,
            BREthereumTimestamp accountTimestamp,
            BREthereumMode mode,
            BREthereumClient client,
-           const char *storagePath) {
+           const char *storagePath,
+           uint64_t blockHeight) {
     BREthereumEWM ewm = (BREthereumEWM) calloc (1, sizeof (struct BREthereumEWMRecord));
 
     ewm->state = LIGHT_NODE_CREATED;
@@ -351,7 +352,7 @@ ewmCreate (BREthereumNetwork network,
     ewm->network = network;
     ewm->account = account;
     ewm->bcs = NULL;
-    ewm->blockHeight = 0;
+    ewm->blockHeight = blockHeight;
 
     {
         char address [ADDRESS_ENCODED_CHARS];
@@ -363,7 +364,7 @@ ewmCreate (BREthereumNetwork network,
     ewm->brdSync.ridTransaction = -1;
     ewm->brdSync.ridLog = -1;
     ewm->brdSync.begBlockNumber = 0;
-    ewm->brdSync.endBlockNumber = 0;
+    ewm->brdSync.endBlockNumber = ewm->blockHeight;
     ewm->brdSync.completedTransaction = 0;
     ewm->brdSync.completedLog = 0;
 
@@ -585,13 +586,15 @@ ewmCreateWithPaperKey (BREthereumNetwork network,
                        BREthereumTimestamp accountTimestamp,
                        BREthereumMode mode,
                        BREthereumClient client,
-                       const char *storagePath) {
+                       const char *storagePath,
+                       uint64_t blockHeight) {
     return ewmCreate (network,
                       createAccount (paperKey),
                       accountTimestamp,
                       mode,
                       client,
-                      storagePath);
+                      storagePath,
+                      blockHeight);
 }
 
 extern BREthereumEWM
@@ -600,13 +603,15 @@ ewmCreateWithPublicKey (BREthereumNetwork network,
                         BREthereumTimestamp accountTimestamp,
                         BREthereumMode mode,
                         BREthereumClient client,
-                        const char *storagePath) {
+                        const char *storagePath,
+                        uint64_t blockHeight) {
     return ewmCreate (network,
                       createAccountWithPublicKey(publicKey),
                       accountTimestamp,
                       mode,
                       client,
-                      storagePath);
+                      storagePath,
+                      blockHeight);
 }
 
 extern void

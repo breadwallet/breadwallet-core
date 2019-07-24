@@ -36,6 +36,14 @@
 #define BWM_BRD_SYNC_START_BLOCK_OFFSET        ((BWM_BRD_SYNC_DAYS_OFFSET * 24 * 60) / BWM_MINUTES_PER_BLOCK)
 #define BWM_BRD_SYNC_CHUNK_SIZE                 50000
 
+#if !defined (MAX)
+#define MAX(a,b) (((a)>(b))?(a):(b))
+#endif
+
+#if !defined (MIN)
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#endif
+
 /* Forward Declarations */
 static void
 bwmPeriodicDispatcher (BREventHandler handler,
@@ -394,7 +402,8 @@ BRWalletManagerNew (BRWalletManagerClient client,
                     const BRChainParams *params,
                     uint32_t earliestKeyTime,
                     BRSyncMode mode,
-                    const char *baseStoragePath) {
+                    const char *baseStoragePath,
+                    uint64_t blockHeight) {
     BRWalletManager bwm = calloc (1, sizeof (struct BRWalletManagerStruct));
     if (NULL == bwm) return bwmCreateErrorHandler (NULL, 0, "allocate");
 
@@ -525,12 +534,23 @@ BRWalletManagerNew (BRWalletManagerClient client,
                                _BRWalletManagerThreadCleanup);
 
 
+    // Initialize this instance's blockHeight.  This might be out-of-sync with a) the P2P block
+    // height which will be derived from the persistently restored blocks and then from the sync()
+    // process or b) from the API-based Blockchain DB reported block height which will be updated
+    // preriodically when in API sync modes.
+    //
+    // So, we'll start with the best block height we have and expect it to change. Doing this allows
+    // an API-based sync to start immediately rather than waiting for a bwmUpdateBlockNumber()
+    // result in period '1' and then starting the sync in period '2' - where each period is
+    // BWM_SLEEP_SECONDS and at least 1 minute.
+    bwm->blockHeight = (uint32_t) blockHeight;
+
     // Initialize the `brdSync` struct
     bwm->brdSync.rid = -1;
     bwm->brdSync.lastInternalAddress = BR_ADDRESS_NONE;
     bwm->brdSync.lastExternalAddress = BR_ADDRESS_NONE;
     bwm->brdSync.begBlockNumber = earliestCheckPoint->height;
-    bwm->brdSync.endBlockNumber = bwm->brdSync.begBlockNumber;
+    bwm->brdSync.endBlockNumber = MAX (bwm->brdSync.begBlockNumber, bwm->blockHeight);
     bwm->brdSync.chunkBegBlockNumber = bwm->brdSync.begBlockNumber;
     bwm->brdSync.chunkEndBlockNumber = bwm->brdSync.endBlockNumber;
     bwm->brdSync.completed = 0;
@@ -1223,14 +1243,6 @@ bwmSyncReset (BRWalletManager bwm) {
     bwm->brdSync.completed           = 1;
     pthread_mutex_unlock (&bwm->lock);
 }
-
-#if !defined (MAX)
-#define MAX(a,b) (((a)>(b))?(a):(b))
-#endif
-
-#if !defined (MIN)
-#define MIN(a,b) (((a)<(b))?(a):(b))
-#endif
 
 static void
 bwmSyncStart (BRWalletManager bwm) {
