@@ -11,9 +11,12 @@ import com.breadwallet.crypto.blockchaindb.CompletionHandler;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
+import com.breadwallet.crypto.blockchaindb.models.bdb.BlockchainFee;
 import com.breadwallet.crypto.blockchaindb.models.bdb.CurrencyDenomination;
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
+import com.google.common.primitives.UnsignedLong;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -22,6 +25,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /* package */
@@ -80,13 +84,27 @@ final class NetworkDiscovery {
                         associations.put(currency, new NetworkAssociation(baseUnit, defaultUnit, new HashSet<>(units)));
                     }
 
+                    Currency defaultCurrency = findCurrency(associations, blockchainModel);
+                    Unit feeUnit = associations.get(defaultCurrency).getBaseUnit();
+
+                    List<NetworkFee> fees = new ArrayList<>();
+                    for (BlockchainFee bdbFee: blockchainModel.getFeeEstimates()) {
+                        // TODO(fix): Don't use a constant here; get a real value!
+                        UnsignedLong timeInterval = UnsignedLong.valueOf(TimeUnit.SECONDS.toMillis(30));
+                        Optional<Amount> amount = Amount.create(bdbFee.getAmount(), false, feeUnit);
+                        if (amount.isPresent()) {
+                            fees.add(NetworkFee.create(timeInterval, amount.get(), feeUnit));
+                        }
+                    }
+
                     networks.add(Network.create(
                             blockchainModel.getId(),
                             blockchainModel.getName(),
                             blockchainModel.isMainnet(),
-                            findCurrency(associations, blockchainModel),
+                            defaultCurrency,
                             blockchainModel.getBlockHeight(),
-                            associations));
+                            associations,
+                            fees));
 
                     return null;
                 });

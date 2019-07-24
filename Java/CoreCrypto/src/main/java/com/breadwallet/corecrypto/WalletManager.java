@@ -4,6 +4,7 @@ import com.breadwallet.corenative.crypto.BRCryptoCWMClient;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWallet;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWalletManager;
+import com.breadwallet.crypto.NetworkFee;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.WalletManagerState;
 import com.google.common.base.Optional;
@@ -149,6 +150,12 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     @Override
     public Unit getDefaultUnit() {
         return networkDefaultUnit;
+    }
+
+    @Override
+    public Optional<NetworkFee> getDefaultNetworkFee() {
+        // TODO(fix): Implement this
+        return Optional.absent();
     }
 
     @Override

@@ -115,4 +115,8 @@ public class Blockchain {
     public UnsignedLong getBlockHeight() {
         return blockHeight;
     }
+
+    public List<BlockchainFee> getFeeEstimates() {
+        return feeEstimates;
+    }
 }
