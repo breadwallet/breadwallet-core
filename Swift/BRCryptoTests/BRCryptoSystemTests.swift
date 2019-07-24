@@ -118,10 +118,12 @@ class BRCryptoSystemTests: BRCryptoBaseTests {
         XCTAssertEqual (wallet.state, WalletState.created)
 
         let targetAddress = wallet.target
+        #if false
         let transfer = wallet.createTransfer (target: targetAddress,
                                               amount: Amount.create (integer: 1, unit: manager.baseUnit))
 
         XCTAssertNil(transfer) // no balance => no transfer
+        #endif
 
         #if false
         XCTAssertTrue (transfer.wallet === wallet)

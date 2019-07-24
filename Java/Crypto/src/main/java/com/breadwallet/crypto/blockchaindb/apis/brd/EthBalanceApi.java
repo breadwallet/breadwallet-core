@@ -7,7 +7,8 @@
  */
 package com.breadwallet.crypto.blockchaindb.apis.brd;
 
-import com.breadwallet.crypto.blockchaindb.CompletionHandler;
+import com.breadwallet.crypto.blockchaindb.errors.QueryError;
+import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -24,7 +25,7 @@ public class EthBalanceApi {
     }
 
     public void getBalanceAsEth(String networkName, String address, int rid,
-                                CompletionHandler<String> handler) {
+                                CompletionHandler<String, QueryError> handler) {
         JSONObject json = new JSONObject(ImmutableMap.of(
                 "jsonrpc", "2.0",
                 "method", "eth_getBalance",
@@ -36,7 +37,7 @@ public class EthBalanceApi {
     }
 
     public void getBalanceAsTok(String networkName, String address, String tokenAddress, int rid,
-                                CompletionHandler<String> handler) {
+                                CompletionHandler<String, QueryError> handler) {
         JSONObject json = new JSONObject(ImmutableMap.of(
                 "id", rid
         ));

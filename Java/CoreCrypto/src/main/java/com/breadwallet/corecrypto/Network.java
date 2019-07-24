@@ -23,6 +23,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 /* package */
 final class Network implements com.breadwallet.crypto.Network {
 
@@ -97,6 +99,9 @@ final class Network implements com.breadwallet.crypto.Network {
     private final Set<Currency> currencies;
     private final List<NetworkFee> fees;
 
+    @Nullable
+    private NetworkFee minFee;
+
     private Network(CoreBRCryptoNetwork core) {
         this.core = core;
 
@@ -115,7 +120,11 @@ final class Network implements com.breadwallet.crypto.Network {
         fees = new ArrayList<>();
         count = core.getFeeCount();
         for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
-            fees.add(NetworkFee.create(core.getFee(i)));
+            NetworkFee fee = NetworkFee.create(core.getFee(i));
+            if (minFee == null || fee.getConfirmationTimeInMilliseconds().compareTo(minFee.getConfirmationTimeInMilliseconds()) > 0) {
+                minFee = fee;
+            }
+            fees.add(fee);
         }
     }
 
@@ -152,6 +161,11 @@ final class Network implements com.breadwallet.crypto.Network {
     @Override
     public List<? extends NetworkFee> getFees() {
         return fees;
+    }
+
+    @Override
+    public Optional<NetworkFee> getMinimumFee() {
+        return Optional.fromNullable(minFee);
     }
 
     @Override

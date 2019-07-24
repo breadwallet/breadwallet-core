@@ -38,6 +38,11 @@ public final class Network: CustomStringConvertible {
     /// and then have their preferred fee held in WalletManager.defaultNetworkFee.
     public let fees: [NetworkFee];
 
+    /// Return the minimum fee which should be the fee with the largest confirmation time
+    public var minimumFee: NetworkFee? {
+        return fees.min { $0.timeIntervalInMilliseconds > $1.timeIntervalInMilliseconds }
+    }
+
     /// The native currency.
     public let currency: Currency
 
@@ -246,9 +251,9 @@ public protocol NetworkListener: class {
 
 ///
 /// A Network Fee represents the 'amount per cost factor' paid to mine a transfer. For BTC this
-/// amount is 'SAT/kB'; for ETH this amount is 'gasPrice'.  The actual fee for the transfer depends
-/// on properties of the transfer; for BTC, the cost factor is 'size in kB'; for ETH, the cost
-/// factor is 'gas'.
+/// amount is 'SAT/BYTE'; for ETH this amount is 'gasPrice'.  The actual fee for the transfer
+/// depends on properties of the transfer; for BTC, the cost factor is 'size in kB'; for ETH, the
+/// cost factor is 'gas'.
 ///
 /// A Network supports a variety of fees.  Essentially the higher the fee the more enticing the
 /// transfer is to a miner and thus the more quickly the transfer gets into the block chain.

@@ -7,12 +7,12 @@
  */
 package com.breadwallet.corecrypto;
 
-import com.breadwallet.crypto.blockchaindb.CompletionHandler;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
 import com.breadwallet.crypto.blockchaindb.models.bdb.BlockchainFee;
 import com.breadwallet.crypto.blockchaindb.models.bdb.CurrencyDenomination;
+import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
@@ -89,11 +89,14 @@ final class NetworkDiscovery {
 
                     List<NetworkFee> fees = new ArrayList<>();
                     for (BlockchainFee bdbFee: blockchainModel.getFeeEstimates()) {
-                        // TODO(fix): Don't use a constant here; get a real value!
-                        UnsignedLong timeInterval = UnsignedLong.valueOf(TimeUnit.SECONDS.toMillis(30));
-                        Optional<Amount> amount = Amount.create(bdbFee.getAmount(), false, feeUnit);
-                        if (amount.isPresent()) {
-                            fees.add(NetworkFee.create(timeInterval, amount.get(), feeUnit));
+                        String tier = bdbFee.getTier();
+                        if (!tier.isEmpty()) {
+                            tier = tier.substring(0, tier.length() - 1); // lop of the last character
+                            UnsignedLong timeInterval = UnsignedLong.valueOf(TimeUnit.MINUTES.toMillis(Long.decode(tier)));
+                            Optional<Amount> amount = Amount.create(bdbFee.getAmount(), false, feeUnit);
+                            if (amount.isPresent()) {
+                                fees.add(NetworkFee.create(timeInterval, amount.get(), feeUnit));
+                            }
                         }
                     }
 
@@ -119,7 +122,7 @@ final class NetworkDiscovery {
                                        boolean isMainnet,
                                        Function<Collection<Blockchain>, Void> func) {
         latch.countUp();
-        query.getBlockchains(isMainnet, new CompletionHandler<List<Blockchain>>() {
+        query.getBlockchains(isMainnet, new CompletionHandler<List<Blockchain>, QueryError>() {
             @Override
             public void handleData(List<Blockchain> newBlockchains) {
                 try {
@@ -155,7 +158,7 @@ final class NetworkDiscovery {
                                       Collection<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> defaultCurrencies,
                                       Function<Collection<com.breadwallet.crypto.blockchaindb.models.bdb.Currency>, Void> func) {
         latch.countUp();
-        query.getCurrencies(blockchainId, new CompletionHandler<List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency>>() {
+        query.getCurrencies(blockchainId, new CompletionHandler<List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency>, QueryError>() {
             @Override
             public void handleData(List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> newCurrencies) {
                 try {

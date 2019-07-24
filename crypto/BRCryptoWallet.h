@@ -27,6 +27,7 @@
 #define BRCryptoWallet_h
 
 #include "BRCryptoFeeBasis.h"
+#include "BRCryptoNetwork.h"        // NetworkFee
 #include "BRCryptoTransfer.h"
 
 #ifdef __cplusplus
@@ -102,6 +103,9 @@ extern "C" {
     extern BRCryptoUnit
     cryptoWalletGetUnit (BRCryptoWallet wallet);
 
+    extern BRCryptoCurrency
+    cryptoWalletGetCurrencyForFee (BRCryptoWallet wallet);
+    
     /**
      * Returns the wallet's fee unit.
      *
@@ -156,7 +160,7 @@ extern "C" {
     cryptoWalletCreateTransfer (BRCryptoWallet wallet,
                                 BRCryptoAddress target,
                                 BRCryptoAmount amount,
-                                BRCryptoFeeBasis feeBasis);
+                                BRCryptoFeeBasis estimatedFeeBasis);
     /**
      * Estimate the fee to transfer `amount` from `wallet` using the `feeBasis`.  Return an amount
      * represented in the wallet's fee currency.
@@ -167,10 +171,11 @@ extern "C" {
      *
      * @return the fee
      */
-    extern BRCryptoAmount
-    cryptoWalletEstimateFee (BRCryptoWallet wallet,
-                             BRCryptoAmount amount,
-                             BRCryptoFeeBasis feeBasis);
+    extern BRCryptoFeeBasis
+    cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
+                                  BRCryptoAddress target,
+                                  BRCryptoAmount  amount,
+                                  BRCryptoNetworkFee fee);
 
     extern BRCryptoBoolean
     cryptoWalletEqual (BRCryptoWallet w1, BRCryptoWallet w2);

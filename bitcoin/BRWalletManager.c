@@ -730,6 +730,15 @@ BRWalletManagerScan (BRWalletManager manager) {
                                             });
 }
 
+extern unsigned int
+BRWalletManagerGetThenIncrRequestId (BRWalletManager manager) {
+    unsigned int requestId;
+    pthread_mutex_lock (&manager->lock);
+    requestId = manager->requestId++;
+    pthread_mutex_unlock (&manager->lock);
+    return requestId;
+
+}
 extern BRTransaction *
 BRWalletManagerCreateTransaction (BRWalletManager manager,
                                   BRWallet *wallet,
@@ -785,7 +794,7 @@ BRWalletManagerSubmitTransaction (BRWalletManager manager,
                                                    manager,
                                                    manager->wallet,
                                                    transaction,
-                                                   manager->requestId++);
+                                                   BRWalletManagerGetThenIncrRequestId (manager));
             break;
 
         case SYNC_MODE_BRD_WITH_P2P_SEND:
@@ -1133,7 +1142,7 @@ bwmUpdateBlockNumber (BRWalletManager bwm) {
             assert (NULL != bwm->client.funcGetBlockNumber);
             bwm->client.funcGetBlockNumber (bwm->client.context,
                                             bwm,
-                                            bwm->requestId++);
+                                            BRWalletManagerGetThenIncrRequestId (bwm));
             break;
 
         case SYNC_MODE_P2P_ONLY:

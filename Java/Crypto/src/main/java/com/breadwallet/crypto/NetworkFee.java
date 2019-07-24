@@ -6,7 +6,7 @@ import com.google.common.primitives.UnsignedLong;
 
 /**
  * A Network Fee represents the 'amount per cost factor' paid to mine a transfer. For BTC this
- * amount is 'SAT/kB'; for ETH this amount is 'gasPrice'.  The actual fee for the transfer depends
+ * amount is 'SAT/BYTE'; for ETH this amount is 'gasPrice'.  The actual fee for the transfer depends
  * on properties of the transfer; for BTC, the cost factor is 'size in kB'; for ETH, the cost
  * factor is 'gas'.
  *

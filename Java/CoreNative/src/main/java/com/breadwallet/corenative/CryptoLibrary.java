@@ -23,6 +23,7 @@ import com.breadwallet.corenative.crypto.BRCryptoTransferState;
 import com.breadwallet.corenative.crypto.BRCryptoUnit;
 import com.breadwallet.corenative.crypto.BRCryptoWallet;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManager;
+import com.breadwallet.corenative.crypto.CoreBRCryptoUnit;
 import com.breadwallet.corenative.support.UInt256;
 import com.breadwallet.corenative.support.UInt512;
 import com.breadwallet.corenative.utility.SizeT;
@@ -83,6 +84,10 @@ public interface CryptoLibrary extends Library {
 
     // crypto/BRCryptoFeeBasis.h
     int cryptoFeeBasisGetType(BRCryptoFeeBasis feeBasis);
+    BRCryptoAmount cryptoFeeBasisGetPricePerCostFactor (BRCryptoFeeBasis feeBasis);
+    BRCryptoUnit cryptoFeeBasisGetPricePerCostFactorUnit (BRCryptoFeeBasis feeBasis);
+    double cryptoFeeBasisGetCostFactor (BRCryptoFeeBasis feeBasis);
+    BRCryptoAmount cryptoFeeBasisGetFee (BRCryptoFeeBasis feeBasis);
     BRCryptoFeeBasis cryptoFeeBasisTake(BRCryptoFeeBasis obj);
     void cryptoFeeBasisGive(BRCryptoFeeBasis obj);
 
@@ -137,11 +142,13 @@ public interface CryptoLibrary extends Library {
     BRCryptoAddress cryptoTransferGetTargetAddress(BRCryptoTransfer transfer);
     BRCryptoAmount cryptoTransferGetAmount(BRCryptoTransfer transfer);
     BRCryptoAmount cryptoTransferGetAmountDirected(BRCryptoTransfer transfer);
-    BRCryptoAmount cryptoTransferGetFee(BRCryptoTransfer transfer);
     int cryptoTransferGetDirection(BRCryptoTransfer transfer);
     BRCryptoTransferState.ByValue cryptoTransferGetState(BRCryptoTransfer transfer);
     BRCryptoHash cryptoTransferGetHash(BRCryptoTransfer transfer);
-    BRCryptoFeeBasis cryptoTransferGetFeeBasis(BRCryptoTransfer transfer);
+    BRCryptoUnit cryptoTransferGetUnitForAmount (BRCryptoTransfer transfer);
+    BRCryptoUnit cryptoTransferGetUnitForFee (BRCryptoTransfer transfer);
+    BRCryptoFeeBasis cryptoTransferGetEstimatedFeeBasis (BRCryptoTransfer transfer);
+    BRCryptoFeeBasis cryptoTransferGetConfirmedFeeBasis (BRCryptoTransfer transfer);
     int cryptoTransferEqual(BRCryptoTransfer transfer1, BRCryptoTransfer transfer2);
     BRCryptoTransfer cryptoTransferTake(BRCryptoTransfer obj);
     void cryptoTransferGive(BRCryptoTransfer obj);
@@ -169,7 +176,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoFeeBasis cryptoWalletGetDefaultFeeBasis(BRCryptoWallet wallet);
     void cryptoWalletSetDefaultFeeBasis(BRCryptoWallet wallet, BRCryptoFeeBasis feeBasis);
     BRCryptoTransfer cryptoWalletCreateTransfer(BRCryptoWallet wallet, BRCryptoAddress target, BRCryptoAmount amount, BRCryptoFeeBasis feeBasis);
-    BRCryptoAmount cryptoWalletEstimateFee(BRCryptoWallet wallet, BRCryptoAmount amount, BRCryptoFeeBasis feeBasis);
+    BRCryptoFeeBasis cryptoWalletEstimateFeeBasis(BRCryptoWallet wallet, BRCryptoAddress target, BRCryptoAmount amount, BRCryptoNetworkFee fee);
     int cryptoWalletEqual(BRCryptoWallet w1, BRCryptoWallet w2);
     BRCryptoWallet cryptoWalletTake(BRCryptoWallet obj);
     void cryptoWalletGive(BRCryptoWallet obj);

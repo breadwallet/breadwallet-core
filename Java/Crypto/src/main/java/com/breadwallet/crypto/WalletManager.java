@@ -47,7 +47,7 @@ public interface WalletManager {
 
     Unit getDefaultUnit();
 
-    Optional<NetworkFee> getDefaultNetworkFee();
+    Optional<? extends NetworkFee> getDefaultNetworkFee();
 
     WalletManagerState getState();
 }

@@ -58,8 +58,8 @@ cryptoNetworkFeeCreate (uint64_t confirmationTimeInMilliseconds,
     networkFee->ref = CRYPTO_REF_ASSIGN(cryptoNetworkFeeRelease);
 
     return networkFee;
-
 }
+
 extern uint64_t
 cryptoNetworkFeeGetConfirmationTimeInMilliseconds (BRCryptoNetworkFee networkFee) {
     return networkFee->confirmationTimeInMilliseconds;
@@ -90,6 +90,28 @@ cryptoNetworkFeeRelease (BRCryptoNetworkFee networkFee) {
     cryptoUnitGive   (networkFee->pricePerCostFactorUnit);
 
     free (networkFee);
+}
+
+private_extern uint64_t
+cryptoNetworkFeeAsBTC (BRCryptoNetworkFee networkFee) {
+    BRCryptoBoolean overflow;
+    uint64_t value = cryptoAmountGetIntegerRaw (networkFee->pricePerCostFactor, &overflow);
+    assert (CRYPTO_FALSE == overflow);
+    return value;
+}
+
+private_extern BREthereumGasPrice
+cryptoNetworkFeeAsETH (BRCryptoNetworkFee networkFee) {
+    UInt256 value = cryptoAmountGetValue (networkFee->pricePerCostFactor);
+    return gasPriceCreate (etherCreate(value));
+}
+
+private_extern uint64_t
+cryptoNetworkFeeAsGEN( BRCryptoNetworkFee networkFee) {
+    BRCryptoBoolean overflow;
+    uint64_t value = cryptoAmountGetIntegerRaw (networkFee->pricePerCostFactor, &overflow);
+    assert (CRYPTO_FALSE == overflow);
+    return value;
 }
 
 /// MARK: - Network

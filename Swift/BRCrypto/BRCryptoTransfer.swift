@@ -28,16 +28,22 @@ public final class Transfer: Equatable {
     /// The owning wallet
     public let wallet: Wallet
 
+    /// The owning manager
     public private(set) lazy var manager: WalletManager = {
         return wallet.manager
     }()
 
+    /// The owning system
     public private(set) lazy var system: System = {
         return wallet.manager.system
     }()
 
+    /// The unit for display of the transfer amount
     public let unit: Unit
 
+    /// The unit for display of the transfer fee.
+    public let unitForFee: Unit
+    
     /// The source pays the fee and sends the amount.
     public private(set) lazy var source: Address? = {
         cryptoTransferGetSourceAddress (core)
@@ -51,28 +57,31 @@ public final class Transfer: Equatable {
     }()
 
     /// The amount to transfer - always positive (from source to target)
-    public private(set) lazy var amount: Amount = {
-        return Amount (core: cryptoTransferGetAmount (core), unit: wallet.unit, take: false)
-    } ()
+    public let amount: Amount
 
     /// The amount to transfer after considering the direction.  If we received the transfer,
     /// the amount will be positive; if we sent the transfer, the amount will be negative; if
     /// the transfer is 'self directed', the amount will be zero.
-    public private(set) lazy var amountDirected: Amount = {
-        return Amount (core: cryptoTransferGetAmountDirected(core), unit: wallet.unit, take: false)
-    }()
+    public let amountDirected: Amount
+
+    /// TODO: Determine if the estimatedFeeBasis applies across program instantiations
+    ///
+    /// The basis for the estimated fee.  This is only not-nil if we have created the transfer
+    /// IN THIS MEMORY INSTANCE (assume this for now).
+    public let estimatedFeeBasis: TransferFeeBasis?
+
+    /// The basis for the confirmed fee.
+    public var confirmedFeeBasis: TransferFeeBasis? {
+        return cryptoTransferGetConfirmedFeeBasis (core)
+            .map { TransferFeeBasis (core: $0, take: false) }
+    }
 
     /// The fee paid - before the transfer is confirmed, this is the estimated fee.
-    public private(set) lazy var fee: Amount = {
-        let unit = wallet.manager.network.defaultUnitFor (currency: wallet.manager.currency)!
-        return Amount (core: cryptoTransferGetFee (core), unit: unit, take: false)
-    }()
+    public var fee: Amount {
+        guard let feeBasis = confirmedFeeBasis ?? estimatedFeeBasis
+            else { precondition (false, "Missed confirmed+estimated feeBasis") }
 
-
-    /// The basis for the fee.
-    var feeBasis: TransferFeeBasis {
-        return cryptoTransferGetFeeBasis (core)
-            .map { TransferFeeBasis (core: $0, take: false) }!
+        return feeBasis.fee
     }
 
     /// An optional confirmation.
@@ -100,12 +109,20 @@ public final class Transfer: Equatable {
 
     internal init (core: BRCryptoTransfer,
                    wallet: Wallet,
-                   unit: Unit,
                    take: Bool) {
 
-        self.core = take ? cryptoTransferTake(core) : core
+        self.core   = take ? cryptoTransferTake(core) : core
         self.wallet = wallet
-        self.unit = unit
+
+        self.unit       = Unit (core: cryptoTransferGetUnitForAmount (core), take: false)
+        self.unitForFee = Unit (core: cryptoTransferGetUnitForFee (core),    take: false)
+
+        self.estimatedFeeBasis = cryptoTransferGetEstimatedFeeBasis (core)
+            .map { TransferFeeBasis (core: $0, take: false) }
+
+        // Other properties
+        self.amount         = Amount (core: cryptoTransferGetAmount (core),        unit: wallet.unit, take: false)
+        self.amountDirected = Amount (core: cryptoTransferGetAmountDirected(core), unit: wallet.unit, take: false)
     }
 
 
@@ -168,16 +185,54 @@ public enum TransferDirection {
 }
 
 ///
-/// A TransferFeeBasis is use to estimate the fee to complete a transfer
+/// A TransferFeeBasis summarizes the fee required to complete a transfer.  This is used both
+/// when created a transfer (the 'estimated fee basis') and once a transfer is confirmed (the
+/// 'confirmed fee basis').
+///
+/// The provided properties allow the App to present detailed information - specifically the
+/// 'cost factor' and the 'price per cost factor'.
 ///
 public class TransferFeeBasis {
+
+    /// The Core representation
     internal let core: BRCryptoFeeBasis
 
-//    case bitcoin  (feePerKB: UInt64) // in satoshi
-//    case ethereum (gasPrice: Amount, gasLimit: UInt64) // Amount in ETH
+    /// The unit for both the pricePerCostFactor and fee.  This must, of course, have the same
+    /// currency as the feeBasis itself.
+    public let unit: Unit
 
+    /// The fee basis currency; this should/must be the Network's currency
+    public var currency: Currency {
+        return unit.currency
+    }
+
+    /// The pricePerCostFactor as an amount in currency
+    public let pricePerCostFactor: Amount
+
+    /// The costFactor which is an arbitrary scale on the pricePerCostFactor
+    public let costFactor: Double
+
+    /// The fee, computed as `pricePerCostFactor * costFactor`
+    public let fee: Amount
+
+    /// Initialize based on Core
     internal init (core: BRCryptoFeeBasis, take: Bool) {
         self.core = take ? cryptoFeeBasisTake (core) : core
+
+        let unit = Unit (core: cryptoFeeBasisGetPricePerCostFactorUnit(core), take: false)
+
+        self.unit = unit
+        self.pricePerCostFactor = Amount (core: cryptoFeeBasisGetPricePerCostFactor(core),
+                                          unit: unit,
+                                          take: false)
+        self.costFactor  = cryptoFeeBasisGetCostFactor (core)
+
+        // The Core fee calculation might overflow.
+        guard let fee = cryptoFeeBasisGetFee (core)
+            .map ({ Amount (core: $0, unit: unit, take: false) })
+            else { print ("Missed Fee"); precondition (false) }
+
+        self.fee = fee
     }
 
     deinit {

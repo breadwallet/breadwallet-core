@@ -144,8 +144,8 @@ extern "C" {
      *
      * @return the fee
      */
-    extern BRCryptoAmount
-    cryptoTransferGetFee (BRCryptoTransfer transfer);
+//    extern BRCryptoAmount
+//    cryptoTransferGetFee (BRCryptoTransfer transfer);
 
 //    extern BRCryptoBoolean
 //    cryptoTransferExtractConfirmation (BRCryptoTransfer transfer,
@@ -176,6 +176,12 @@ extern "C" {
     extern BRCryptoHash
     cryptoTransferGetHash (BRCryptoTransfer transfer);
 
+    extern BRCryptoUnit
+    cryptoTransferGetUnitForAmount (BRCryptoTransfer transfer);
+
+    extern BRCryptoUnit
+    cryptoTransferGetUnitForFee (BRCryptoTransfer transfer);
+
     /**
      * Returns the transfer's feeBasis.
      *
@@ -184,7 +190,10 @@ extern "C" {
      * @return the transfer's feeBasis
      */
     extern BRCryptoFeeBasis
-    cryptoTransferGetFeeBasis (BRCryptoTransfer transfer);
+    cryptoTransferGetEstimatedFeeBasis (BRCryptoTransfer transfer);
+
+    extern BRCryptoFeeBasis
+    cryptoTransferGetConfirmedFeeBasis (BRCryptoTransfer transfer);
 
     extern BRCryptoBoolean
     cryptoTransferEqual (BRCryptoTransfer transfer1, BRCryptoTransfer transfer2);

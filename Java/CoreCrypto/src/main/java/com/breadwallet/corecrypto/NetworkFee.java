@@ -5,7 +5,8 @@ import com.google.common.primitives.UnsignedLong;
 
 import java.util.Objects;
 
-public class NetworkFee implements com.breadwallet.crypto.NetworkFee {
+/* package */
+class NetworkFee implements com.breadwallet.crypto.NetworkFee {
 
     /* package */
     static NetworkFee create(UnsignedLong timeIntervalInMilliseconds,
@@ -20,6 +21,14 @@ public class NetworkFee implements com.breadwallet.crypto.NetworkFee {
     /* package */
     static NetworkFee create(CoreBRCryptoNetworkFee core) {
         return new NetworkFee(core);
+    }
+
+    /* package */
+    static NetworkFee from(com.breadwallet.crypto.NetworkFee fee) {
+        if (fee instanceof NetworkFee) {
+            return (NetworkFee) fee;
+        }
+        throw new IllegalArgumentException("Unsupported network fee instance");
     }
 
     private final CoreBRCryptoNetworkFee core;
