@@ -125,6 +125,12 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
+    public void announceGetTransactionsItemGen(BRCryptoCWMClientCallbackState callbackState, byte[] transaction,
+                                               UnsignedLong timestamp, UnsignedLong blockHeight) {
+        core.announceGetTransactionsItemGen(callbackState, transaction, timestamp, blockHeight);
+    }
+
+    @Override
     public void announceGetTransactionsComplete(BRCryptoCWMClientCallbackState callbackState, boolean success) {
         core.announceGetTransactionsComplete(callbackState, success);
     }
