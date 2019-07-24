@@ -218,6 +218,12 @@ extern "C" {
     cryptoTransferHasGEN (BRCryptoTransfer transfer,
                           BRGenericTransfer gen);
 
+    /// MARK: - Network Fee
+    private_extern BRCryptoNetworkFee
+    cryptoNetworkFeeCreate (uint64_t confirmationTimeInMilliseconds,
+                            BRCryptoAmount pricePerCostFactor,
+                            BRCryptoUnit   pricePerCostFactorUnit);
+    
     /// MARK: - Network
 
     private_extern void
@@ -242,6 +248,10 @@ extern "C" {
                                   BRCryptoCurrency currency,
                                   BRCryptoUnit unit);
 
+    private_extern void
+    cryptoNetworkAddNetworkFee (BRCryptoNetwork network,
+                                BRCryptoNetworkFee fee);
+    
     private_extern BREthereumNetwork
     cryptoNetworkAsETH (BRCryptoNetwork network);
 

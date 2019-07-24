@@ -34,6 +34,10 @@ public final class Network: CustomStringConvertible {
         set { cryptoNetworkSetHeight (core, newValue) }
     }
 
+    /// The network fees.  Expect the User to select their preferred fee, based on time-to-confirm,
+    /// and then have their preferred fee held in WalletManager.defaultNetworkFee.
+    public let fees: [NetworkFee];
+
     /// The native currency.
     public let currency: Currency
 
@@ -87,6 +91,9 @@ public final class Network: CustomStringConvertible {
         self.currencies = Set ((0..<cryptoNetworkGetCurrencyCount(core))
             .map { cryptoNetworkGetCurrencyAt (core, $0) }
             .map { Currency (core: $0, take: false)})
+        self.fees = Array ((0..<cryptoNetworkGetNetworkFeeCount(core))
+            .map { cryptoNetworkGetNetworkFeeAt (core, $0)}
+            .map { NetworkFee (core: $0, take: false) })
     }
 
     /// Create a Network
@@ -107,7 +114,8 @@ public final class Network: CustomStringConvertible {
                              isMainnet: Bool,
                              currency: Currency,
                              height: UInt64,
-                             associations: Dictionary<Currency, Association>) {
+                             associations: Dictionary<Currency, Association>,
+                             fees: [NetworkFee]) {
         var core: BRCryptoNetwork!
 
         switch currency.code.lowercased() {
@@ -154,6 +162,10 @@ public final class Network: CustomStringConvertible {
                                               currency.core,
                                               $0.core)
             }
+        }
+
+        fees.forEach {
+            cryptoNetworkAddNetworkFee (core, $0.core)
         }
 
         self.init (core: core, take: false)
@@ -232,3 +244,55 @@ public protocol NetworkListener: class {
 
 }
 
+///
+/// A Network Fee represents the 'amount per cost factor' paid to mine a transfer. For BTC this
+/// amount is 'SAT/kB'; for ETH this amount is 'gasPrice'.  The actual fee for the transfer depends
+/// on properties of the transfer; for BTC, the cost factor is 'size in kB'; for ETH, the cost
+/// factor is 'gas'.
+///
+/// A Network supports a variety of fees.  Essentially the higher the fee the more enticing the
+/// transfer is to a miner and thus the more quickly the transfer gets into the block chain.
+///
+/// A NetworkFee is Equatable on the underlying Core representation.  It is natural to compare
+/// NetworkFee based on timeIntervalInMilliseconds
+///
+public final class NetworkFee: Equatable {
+    // The Core representation
+    internal var core: BRCryptoNetworkFee
+
+    /// The estimated time internal for a transaction confirmation.
+    public let timeIntervalInMilliseconds: UInt64
+
+    /// The ammount, as a rate on 'cost factor', to pay in network fees for the desired
+    /// time internal to confirmation.  The 'cost factor' is blockchain specific - for BTC it is
+    /// 'transaction size in kB'; for ETH it is 'gas'.
+    internal let pricePerCostFactor: Amount
+
+    /// Initialize from the Core representation
+    internal init (core: BRCryptoNetworkFee, take: Bool) {
+        self.core = (take ? cryptoNetworkFeeTake(core) : core)
+        self.timeIntervalInMilliseconds = cryptoNetworkFeeGetConfirmationTimeInMilliseconds(core)
+        self.pricePerCostFactor = Amount (core: cryptoNetworkFeeGetPricePerCostFactor (core),
+                                          unit: Unit (core: cryptoNetworkFeeGetPricePerCostFactorUnit(core), take: false),
+                                          take: false)
+    }
+
+    /// Initialize based on the timeInternal and pricePerCostFactor.  Used by BlockchainDB when
+    /// parsing a NetworkFee from BlockchainDB.Model.BlockchainFee
+    internal convenience init (timeInternalInMilliseconds: UInt64,
+                               pricePerCostFactor: Amount) {
+        self.init (core: cryptoNetworkFeeCreate (timeInternalInMilliseconds,
+                                                 pricePerCostFactor.core,
+                                                 pricePerCostFactor.unit.core),
+                   take: false)
+    }
+
+    deinit {
+        cryptoNetworkFeeGive (core)
+    }
+
+    // Equatable using the Core representation
+    public static func == (lhs: NetworkFee, rhs: NetworkFee) -> Bool {
+        return CRYPTO_TRUE == cryptoNetworkFeeEqual (lhs.core, rhs.core)
+    }
+}

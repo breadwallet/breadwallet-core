@@ -208,7 +208,7 @@ public class BlockChainDB {
 
         /// Blockchain
 
-        public typealias BlockchainFee = (amount: String, tier: String, confirmations: String)
+        public typealias BlockchainFee = (amount: String, tier: String, confirmations: String) // currency?
         public typealias Blockchain = (
             id: String,
             name: String,
