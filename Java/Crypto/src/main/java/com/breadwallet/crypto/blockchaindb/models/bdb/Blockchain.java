@@ -26,6 +26,7 @@ public class Blockchain {
             new Blockchain("bitcoin-mainnet",      "Bitcoin",      "mainnet", true, "btc", UnsignedLong.valueOf(654321),  ImmutableList.of()),
             new Blockchain("bitcoin-cash-mainnet", "Bitcoin Cash", "mainnet", true, "bch", UnsignedLong.valueOf(1000000), ImmutableList.of()),
             new Blockchain("ethereum-mainnet",     "Ethereum",     "mainnet", true, "eth", UnsignedLong.valueOf(8000000), ImmutableList.of()),
+            new Blockchain("ripple-mainnet",       "Ripple",       "mainnet", true, "xrp", UnsignedLong.valueOf(5000000), ImmutableList.of()),
 
             // Testnet
             new Blockchain("bitcoin-testnet",      "Bitcoin Test",      "testnet", false, "btc", UnsignedLong.valueOf(900000),  ImmutableList.of()),
