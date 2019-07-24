@@ -21,8 +21,8 @@ import BRCryptoC
 /// the TransferHash however that hash isn't available until after a transfer is signed.
 ///
 public final class Transfer: Equatable {
-    internal private(set) weak var listener: TransferListener?
 
+    /// The Core representation
     internal let core: BRCryptoTransfer
 
     /// The owning wallet
@@ -99,13 +99,11 @@ public final class Transfer: Equatable {
 
 
     internal init (core: BRCryptoTransfer,
-                   listener: TransferListener?,
                    wallet: Wallet,
                    unit: Unit,
                    take: Bool) {
 
         self.core = take ? cryptoTransferTake(core) : core
-        self.listener = listener
         self.wallet = wallet
         self.unit = unit
     }
@@ -119,14 +117,6 @@ public final class Transfer: Equatable {
 
     deinit {
         cryptoTransferGive (core)
-    }
-
-    internal func announceEvent (_ event: TransferEvent) {
-        self.listener?.handleTransferEvent (system: system,
-                                            manager: manager,
-                                            wallet: wallet,
-                                            transfer: self,
-                                            event: event)
     }
 
     // Equatable
