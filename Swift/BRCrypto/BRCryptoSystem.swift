@@ -412,7 +412,7 @@ public final class System {
                                _ cwm: BRCryptoWalletManager!) -> (System, WalletManager)? {
         precondition (nil != context  && nil != cwm)
 
-        let index = 1 + Int32(context.distance(to: UnsafeMutableRawPointer(bitPattern: 1)!))
+        let index = 1 + Int32(UnsafeMutableRawPointer(bitPattern: 1)!.distance(to: context))
 
         return systemLookup(index: index)
             .map { ($0, WalletManager (core: cwm, system: $0, take: true)) }

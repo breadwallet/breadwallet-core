@@ -31,6 +31,8 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
     var listener: CoreDemoListener!
     var system: System!
 
+    var summaryController: SummaryViewController!
+
     #if TESTNET
     let mainnet = false
     #endif
@@ -47,8 +49,8 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         walletNavigationController.topViewController!.navigationItem.leftBarButtonItem = splitViewController.displayModeButtonItem
         splitViewController.delegate = self
 
-//        let summaryNavigationController = splitViewController.viewControllers[0] as! UINavigationController
-//        let summaryController = summaryNavigationController.topViewController as! SummaryViewController
+        let summaryNavigationController = splitViewController.viewControllers[0] as! UINavigationController
+        summaryController = (summaryNavigationController.topViewController as! SummaryViewController)
 
         paperKey = (CommandLine.argc > 1
             ? CommandLine.arguments[1]
@@ -190,6 +192,29 @@ extension UIApplication {
             print ("APP: Connecting")
             app.system.managers.forEach { $0.connect() }
         }
+    }
+
+    static func reset () {
+        guard let app = UIApplication.shared.delegate as? CoreDemoAppDelegate else { return }
+        print ("APP: Resetting")
+
+        // Create a new system
+        let system = System (listener: app.system.listener!,
+                             account: app.system.account,
+                             path: app.system.path,
+                             query: app.system.query)
+
+        // Stop the existing system
+        app.system.stop()
+        app.summaryController.reset()
+
+        
+        // Assign and then configure the new system
+        app.system = system
+        app.system.configure()
+
+        // Start
+        system.start(networksNeeded: [])
     }
 }
 
