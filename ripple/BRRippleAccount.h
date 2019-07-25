@@ -37,7 +37,7 @@ rippleAccountCreateWithSeed(UInt512 seed);
 /**
  * Create a Ripple account object
  *
- * @param  key      BRKey with valid private key
+ * @param  key      BRKey with valid compressed public key
  * @return account
  */
 extern BRRippleAccount /* caller must free - rippleAccountFree */
@@ -46,11 +46,11 @@ rippleAccountCreateWithKey(BRKey key);
 /**
  * Create a Ripple account object from a (prior) serialization of the account
  *
- * @param bytes
- * @param bytesCount
- * @return account
+ * @param bytes        raw bytes returned from rippleAccountGetSerialization
+ * @param bytesCount   number of raw bytes
+ * @return account     valid account object
  */
-extern BRRippleAccount
+extern BRRippleAccount /* caller must free - rippleAccountFree */
 rippleAccountCreateWithSerialization (uint8_t *bytes, size_t bytesCount);
 
 /**
@@ -103,7 +103,7 @@ extern BRRippleAddress
 rippleAccountGetAddress(BRRippleAccount account);
 
 // Serialize `account`; return `bytes` and set `bytesCount`
-extern uint8_t *
+extern uint8_t * /* caller must free - using "free" function */
 rippleAccountGetSerialization (BRRippleAccount account, size_t *bytesCount);
 
 /*

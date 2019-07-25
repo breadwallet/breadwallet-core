@@ -9,11 +9,11 @@ package com.breadwallet.crypto.blockchaindb.apis.brd;
 
 import android.support.annotation.Nullable;
 
-import com.breadwallet.crypto.blockchaindb.CompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryModelError;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthLog;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthTransaction;
+import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -43,7 +43,7 @@ public class EthTransferApi {
     }
 
     public void submitTransactionAsEth(String networkName, String transaction, int rid,
-                                       CompletionHandler<String> handler) {
+                                       CompletionHandler<String, QueryError> handler) {
         JSONObject json = new JSONObject(ImmutableMap.of(
                 "jsonrpc", "2.0",
                 "method", "eth_sendRawTransaction",
@@ -55,7 +55,7 @@ public class EthTransferApi {
     }
 
     public void getTransactionsAsEth(String networkName, String address, UnsignedLong begBlockNumber, UnsignedLong endBlockNumber,
-                                     int rid, CompletionHandler<List<EthTransaction>> handler) {
+                                     int rid, CompletionHandler<List<EthTransaction>, QueryError> handler) {
         JSONObject json = new JSONObject(ImmutableMap.of(
                 "id", rid,
                 "account", address
@@ -73,7 +73,7 @@ public class EthTransferApi {
     }
 
     public void getNonceAsEth(String networkName, String address, int rid,
-                              CompletionHandler<String> handler) {
+                              CompletionHandler<String, QueryError> handler) {
         JSONObject json = new JSONObject(ImmutableMap.of(
                 "jsonrpc", "2.0",
                 "method", "eth_getTransactionCount",
@@ -86,7 +86,7 @@ public class EthTransferApi {
 
     public void getLogsAsEth(String networkName, @Nullable String contract, String address, String event,
                              UnsignedLong begBlockNumber, UnsignedLong endBlockNumber, int rid,
-                             CompletionHandler<List<EthLog>> handler) {
+                             CompletionHandler<List<EthLog>, QueryError> handler) {
         JSONObject json = new JSONObject(ImmutableMap.of(
                 "id", rid
         ));
@@ -109,18 +109,18 @@ public class EthTransferApi {
     }
 
     public void getBlocksAsEth(String networkName, String address, UnsignedInteger interests, UnsignedLong blockStart, UnsignedLong blockEnd,
-                               int rid, CompletionHandler<List<UnsignedLong>> handler) {
+                               int rid, CompletionHandler<List<UnsignedLong>, QueryError> handler) {
         executorService.submit(() -> getBlocksAsEthOnExecutor(networkName, address, interests, blockStart, blockEnd,
                 rid, handler));
     }
 
     private void getBlocksAsEthOnExecutor(String networkName, String address, UnsignedInteger interests, UnsignedLong blockStart,
-                                          UnsignedLong blockEnd, int rid, CompletionHandler<List<UnsignedLong>> handler) {
+                                          UnsignedLong blockEnd, int rid, CompletionHandler<List<UnsignedLong>, QueryError> handler) {
         final QueryError[] error = {null};
 
         List<EthTransaction> transactions = new ArrayList<>();
         Semaphore transactionsSema = new Semaphore(0);
-        getTransactionsAsEth(networkName, address, blockStart, blockEnd, rid, new CompletionHandler<List<EthTransaction>>() {
+        getTransactionsAsEth(networkName, address, blockStart, blockEnd, rid, new CompletionHandler<List<EthTransaction>, QueryError>() {
             @Override
             public void handleData(List<EthTransaction> data) {
                 transactions.addAll(data);
@@ -136,7 +136,7 @@ public class EthTransferApi {
 
         List<EthLog> logs = new ArrayList<>();
         Semaphore logsSema = new Semaphore(0);
-        getLogsAsEth(networkName, null, address, ETH_EVENT_ERC20_TRANSFER, blockStart, blockEnd, rid, new CompletionHandler<List<EthLog>>() {
+        getLogsAsEth(networkName, null, address, ETH_EVENT_ERC20_TRANSFER, blockStart, blockEnd, rid, new CompletionHandler<List<EthLog>, QueryError>() {
             @Override
             public void handleData(List<EthLog> data) {
                 logs.addAll(data);

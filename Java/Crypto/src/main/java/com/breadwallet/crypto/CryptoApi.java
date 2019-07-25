@@ -22,7 +22,8 @@ public final class CryptoApi {
     public interface AccountProvider {
         Account createFromPhrase(byte[] phraseUtf8, Date timestamp, String uids);
         Optional<Account> createFromSerialization(byte[] serialization, String uids);
-        String generatePhrase(List<String> words);
+        byte[] generatePhrase(List<String> words);
+        boolean validatePhrase(byte[] phraseUtf8, List<String> words);
     }
 
     public interface AmountProvider {

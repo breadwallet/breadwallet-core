@@ -18,10 +18,14 @@ import android.widget.TextView;
 import com.breadwallet.crypto.Address;
 import com.breadwallet.crypto.Amount;
 import com.breadwallet.crypto.Network;
+import com.breadwallet.crypto.NetworkFee;
 import com.breadwallet.crypto.Transfer;
+import com.breadwallet.crypto.TransferFeeBasis;
 import com.breadwallet.crypto.Unit;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
+import com.breadwallet.crypto.errors.FeeEstimationError;
+import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
 
 public class TransferCreateActivity extends AppCompatActivity {
@@ -52,6 +56,9 @@ public class TransferCreateActivity extends AppCompatActivity {
     private WalletManager walletManager;
     private Wallet wallet;
     private Unit baseUnit;
+    private NetworkFee fee;
+    @Nullable
+    private TransferFeeBasis feeBasis;
 
     private double maxValue;
 
@@ -77,7 +84,8 @@ public class TransferCreateActivity extends AppCompatActivity {
         }
         walletManager = wallet.getWalletManager();
         network = walletManager.getNetwork();
-        baseUnit = wallet.getBaseUnit();
+        fee = walletManager.getDefaultNetworkFee().get();
+        baseUnit = wallet.getUnit();
         maxValue = wallet.getBalance().doubleAmount(baseUnit).or(MAX_VALUE);
 
         receiverView = findViewById(R.id.receiver_view);
@@ -96,6 +104,7 @@ public class TransferCreateActivity extends AppCompatActivity {
         amountView.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                updateFee();
                 updateViewOnChange(progress);
             }
 
@@ -139,10 +148,53 @@ public class TransferCreateActivity extends AppCompatActivity {
                 return;
             }
 
-            showConfirmTransfer(target.get(), amount.get());
+            TransferFeeBasis feeBasis = this.feeBasis;
+            if (feeBasis == null) {
+                showError("Invalid fee");
+                return;
+            }
+
+            showConfirmTransfer(target.get(), amount.get(), feeBasis);
         });
 
+        updateFee();
         updateView(amountViewProgress, receiverViewText);;
+    }
+
+    private void updateFee() {
+        String addressStr = receiverView.getText().toString();
+        Optional<? extends Address> target = network.addressFor(addressStr);
+        if (!target.isPresent()) {
+            return;
+        }
+
+        Optional<Amount> amount = Amount.create(calculateValue(amountView.getProgress()), baseUnit);
+        if (!amount.isPresent()) {
+            return;
+        }
+
+        wallet.estimateFee(target.get(), amount.get(), fee, new CompletionHandler<TransferFeeBasis,
+                FeeEstimationError>() {
+            @Override
+            public void handleData(TransferFeeBasis data) {
+                runOnUiThread(() -> {
+                    feeBasis = data;
+                    updateViewOnFeeEstimate();
+                });
+            }
+
+            @Override
+            public void handleError(FeeEstimationError error) {
+                runOnUiThread(() -> {
+                    feeBasis = null;
+                    updateViewOnFeeEstimate();
+                });
+            }
+        });
+    }
+
+    private void updateViewOnFeeEstimate() {
+        updateView(amountView.getProgress(), receiverView.getText());
     }
 
     private void updateViewOnChange(Editable receiver) {
@@ -155,19 +207,35 @@ public class TransferCreateActivity extends AppCompatActivity {
 
     private void updateView(int progress, CharSequence receiver) {
         double value = calculateValue(progress);
+
         Optional<Amount> amount = Amount.create(value, baseUnit);
+        Optional<? extends Address> target = network.addressFor(receiver.toString());
+
         if (!amount.isPresent()) {
+            // we don't have a valid amount...
             submitView.setEnabled(false);
             amountValueView.setText("<nan>");
             feeView.setText("");
         } else if (value == 0) {
+            // we have a valid amount but it is zero...
+            submitView.setEnabled(false);
+            amountValueView.setText(amount.get().toString());
+            feeView.setText("");
+        } else if (!target.isPresent()){
+            // we don't have a valid target...
+            submitView.setEnabled(false);
+            amountValueView.setText(amount.get().toString());
+            feeView.setText("");
+        } else if (feeBasis == null) {
+            // we have a valid target but it don't have a fee estimate...
             submitView.setEnabled(false);
             amountValueView.setText(amount.get().toString());
             feeView.setText("");
         } else {
-            submitView.setEnabled(receiver.length() != 0);
+            // we have it all!
+            submitView.setEnabled(true);
             amountValueView.setText(amount.get().toString());
-            feeView.setText(wallet.estimateFee(amount.get()).toString());
+            feeView.setText(feeBasis.getFee().toString());
         }
     }
 
@@ -175,7 +243,7 @@ public class TransferCreateActivity extends AppCompatActivity {
         return ((maxValue - MIN_VALUE) * percentage / 100) + MIN_VALUE;
     }
 
-    private void showConfirmTransfer(Address target, Amount amount) {
+    private void showConfirmTransfer(Address target, Amount amount, TransferFeeBasis feeBasis) {
         String escapedTarget = Html.escapeHtml(target.toString());
         String escapedAmount = Html.escapeHtml(amount.toString());
         Spanned message = Html.fromHtml(String.format("Send <b>%s</b> to <b>%s</b>?", escapedAmount, escapedTarget));
@@ -185,7 +253,7 @@ public class TransferCreateActivity extends AppCompatActivity {
                 .setMessage(message)
                 .setNegativeButton("Cancel", (dialog, which) -> {})
                 .setPositiveButton("Continue", (dialog, which) -> {
-                    Optional<? extends Transfer> transfer = wallet.createTransfer(target, amount);
+                    Optional<? extends Transfer> transfer = wallet.createTransfer(target, amount, feeBasis);
                     if (!transfer.isPresent()) {
                         showError("Balance too low?");
                     } else {
