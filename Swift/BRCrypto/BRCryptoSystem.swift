@@ -188,6 +188,13 @@ public final class System {
             return Unit (currency: currency, uids: uids, name: model.name, symbol: model.symbol)
         }
 
+        func currencyToDefaultBaseUnit (currency: Currency) -> Unit {
+            let symb = "\(currency.code.uppercased())I"
+            let name = "\(currency.code.uppercased())_INTEGER"
+            let uids = "\(currency.name)-\(name)"
+            return Unit (currency: currency, uids: uids, name: name, symbol: symb)
+        }
+
         func currencyDenominationToUnit (currency: Currency, model: BlockChainDB.Model.CurrencyDenomination, base: Unit) -> Unit {
             let uids = "\(currency.name)-\(model.code)"
             return Unit (currency: currency, uids: uids, name: model.name, symbol: model.symbol, base: base, decimals: model.decimals)
@@ -235,8 +242,9 @@ public final class System {
                                                          issuer: currencyModel.address)
 
                                 // Create the base unit
-                                let baseUnit = currencyModel.demoninations.first { 0 == $0.decimals}
-                                    .map { currencyDenominationToBaseUnit(currency: currency, model: $0) }!
+                                let baseUnit: Unit = currencyModel.demoninations.first { 0 == $0.decimals }
+                                    .map { currencyDenominationToBaseUnit(currency: currency, model: $0) }
+                                    ?? currencyToDefaultBaseUnit (currency: currency)
 
                                 // Create the other units
                                 var units: [Unit] = [baseUnit]
