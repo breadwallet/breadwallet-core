@@ -84,7 +84,7 @@ public class TransferCreateActivity extends AppCompatActivity {
         }
         walletManager = wallet.getWalletManager();
         network = walletManager.getNetwork();
-        fee = walletManager.getDefaultNetworkFee().get();
+        fee = walletManager.getDefaultNetworkFee();
         baseUnit = wallet.getUnit();
         maxValue = wallet.getBalance().doubleAmount(baseUnit).or(MAX_VALUE);
 

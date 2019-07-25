@@ -341,21 +341,31 @@ cryptoWalletGetTransfers (BRCryptoWallet wallet, size_t *count) {
 // wallet configuration parameters (aka the 'address scheme')
 //
 extern BRCryptoAddress
-cryptoWalletGetAddress (BRCryptoWallet wallet) {
+cryptoWalletGetAddress (BRCryptoWallet wallet,
+                        BRCryptoAddressScheme addressScheme) {
     switch (wallet->type) {
         case BLOCK_CHAIN_TYPE_BTC: {
+            assert (CRYPTO_ADDRESS_SCHEME_BTC_LEGACY == addressScheme ||
+                    CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT == addressScheme);
+
             BRWallet *wid = wallet->u.btc.wid;
 
-            BRAddress btcAddress = BRWalletReceiveAddress(wid);
+            BRAddress btcAddress = (CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT == addressScheme
+                                    ? BRWalletReceiveAddress(wid)
+                                    : BRWalletLegacyAddress (wid));
             return cryptoAddressCreateAsBTC (btcAddress);
-        }
+            }
+
         case BLOCK_CHAIN_TYPE_ETH: {
+            assert (CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT == addressScheme);
             BREthereumEWM ewm = wallet->u.eth.ewm;
 
             BREthereumAddress ethAddress = accountGetPrimaryAddress (ewmGetAccount(ewm));
             return cryptoAddressCreateAsETH (ethAddress);
         }
+            
         case BLOCK_CHAIN_TYPE_GEN: {
+            assert (CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT == addressScheme);
             BRGenericWalletManager gwm = wallet->u.gen.gwm;
             BRGenericWallet wid = wallet->u.gen.wid;
 

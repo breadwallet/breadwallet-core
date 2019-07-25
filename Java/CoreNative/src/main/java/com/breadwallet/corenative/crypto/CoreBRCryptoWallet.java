@@ -37,9 +37,9 @@ public interface CoreBRCryptoWallet {
 
     void setDefaultFeeBasis(CoreBRCryptoFeeBasis feeBasis);
 
-    CoreBRCryptoAddress getSourceAddress();
+    CoreBRCryptoAddress getSourceAddress(int addressScheme);
 
-    CoreBRCryptoAddress getTargetAddress();
+    CoreBRCryptoAddress getTargetAddress(int addressScheme);
 
     CoreBRCryptoTransfer createTransfer(CoreBRCryptoAddress target, CoreBRCryptoAmount amount, CoreBRCryptoFeeBasis estimatedFeeBasis);
 

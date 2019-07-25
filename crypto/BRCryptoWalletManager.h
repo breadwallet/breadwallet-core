@@ -123,6 +123,7 @@ extern "C" {
                                BRCryptoAccount account,
                                BRCryptoNetwork network,
                                BRSyncMode mode,
+                               BRCryptoAddressScheme scheme,
                                const char *path);
 
     extern BRCryptoNetwork
@@ -136,6 +137,13 @@ extern "C" {
 
     extern BRCryptoWalletManagerState
     cryptoWalletManagerGetState (BRCryptoWalletManager cwm);
+
+    extern BRCryptoAddressScheme
+    cryptoWalletManagerGetAddressScheme (BRCryptoWalletManager cwm);
+
+    extern void
+    cryptoWalletManagerSetAddressScheme (BRCryptoWalletManager cwm,
+                                         BRCryptoAddressScheme scheme);
 
     extern const char *
     cryptoWalletManagerGetPath (BRCryptoWalletManager cwm);

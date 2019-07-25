@@ -94,13 +94,13 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
     }
 
     @Override
-    public CoreBRCryptoAddress getSourceAddress() {
-        return new OwnedBRCryptoAddress(CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this));
+    public CoreBRCryptoAddress getSourceAddress(int addressScheme) {
+        return new OwnedBRCryptoAddress(CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this, addressScheme));
     }
 
     @Override
-    public CoreBRCryptoAddress getTargetAddress() {
-        return new OwnedBRCryptoAddress(CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this));
+    public CoreBRCryptoAddress getTargetAddress(int addressScheme) {
+        return new OwnedBRCryptoAddress(CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this, addressScheme));
     }
 
     @Override

@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import javax.annotation.Nullable;
+import static com.google.common.base.Preconditions.checkState;
 
 /* package */
 final class Network implements com.breadwallet.crypto.Network {
@@ -98,9 +98,7 @@ final class Network implements com.breadwallet.crypto.Network {
     private final Currency currency;
     private final Set<Currency> currencies;
     private final List<NetworkFee> fees;
-
-    @Nullable
-    private NetworkFee minFee;
+    private NetworkFee minimumFee;
 
     private Network(CoreBRCryptoNetwork core) {
         this.core = core;
@@ -121,11 +119,14 @@ final class Network implements com.breadwallet.crypto.Network {
         count = core.getFeeCount();
         for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
             NetworkFee fee = NetworkFee.create(core.getFee(i));
-            if (minFee == null || fee.getConfirmationTimeInMilliseconds().compareTo(minFee.getConfirmationTimeInMilliseconds()) > 0) {
-                minFee = fee;
+            if (minimumFee == null || fee.getConfirmationTimeInMilliseconds().compareTo(minimumFee.getConfirmationTimeInMilliseconds()) > 0) {
+                minimumFee = fee;
             }
             fees.add(fee);
         }
+
+        checkState(!fees.isEmpty());
+        checkState(minimumFee != null);
     }
 
     @Override
@@ -164,8 +165,8 @@ final class Network implements com.breadwallet.crypto.Network {
     }
 
     @Override
-    public Optional<NetworkFee> getMinimumFee() {
-        return Optional.fromNullable(minFee);
+    public NetworkFee getMinimumFee() {
+        return minimumFee;
     }
 
     @Override
