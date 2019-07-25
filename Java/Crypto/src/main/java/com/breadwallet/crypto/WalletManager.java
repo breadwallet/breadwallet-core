@@ -9,6 +9,8 @@
  */
 package com.breadwallet.crypto;
 
+import com.google.common.base.Optional;
+
 import java.util.List;
 
 public interface WalletManager {
@@ -45,5 +47,13 @@ public interface WalletManager {
 
     Unit getDefaultUnit();
 
+    NetworkFee getDefaultNetworkFee();
+
     WalletManagerState getState();
+
+    void setAddressScheme(AddressScheme scheme);
+
+    AddressScheme getAddressScheme();
+
+    List<AddressScheme> getAddressSchemes();
 }

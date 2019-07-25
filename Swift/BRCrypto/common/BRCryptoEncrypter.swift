@@ -9,12 +9,12 @@
 import Foundation
 import BRCore
 
-public protocol CryptoEncrypter {
+public protocol Encrypter {
     func encrypt (data: Data) -> Data
     func decrypt (data: Data) -> Data
 }
 
-public enum CoreCryptoEncrypter: CryptoEncrypter {
+public enum CoreEncrypter: Encrypter {
     case aes_ecb (key:Data) // count = 16, 24,or 32
     case chacha20_poly1305 (key32:Data, nonce12:Data, ad:Data)
 
