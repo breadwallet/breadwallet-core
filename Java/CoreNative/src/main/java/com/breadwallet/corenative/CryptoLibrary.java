@@ -175,7 +175,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoAmount cryptoWalletGetBalance(BRCryptoWallet wallet);
     Pointer cryptoWalletGetTransfers(BRCryptoWallet wallet, SizeTByReference count);
     int cryptoWalletHasTransfer(BRCryptoWallet wallet, BRCryptoTransfer transfer);
-    BRCryptoAddress cryptoWalletGetAddress(BRCryptoWallet wallet);
+    BRCryptoAddress cryptoWalletGetAddress(BRCryptoWallet wallet, int addressScheme);
     BRCryptoFeeBasis cryptoWalletGetDefaultFeeBasis(BRCryptoWallet wallet);
     void cryptoWalletSetDefaultFeeBasis(BRCryptoWallet wallet, BRCryptoFeeBasis feeBasis);
     BRCryptoTransfer cryptoWalletCreateTransfer(BRCryptoWallet wallet, BRCryptoAddress target, BRCryptoAmount amount, BRCryptoFeeBasis feeBasis);
@@ -185,7 +185,9 @@ public interface CryptoLibrary extends Library {
     void cryptoWalletGive(BRCryptoWallet obj);
 
     // crypto/BRCryptoWalletManager.h
-    BRCryptoWalletManager cryptoWalletManagerCreate(BRCryptoCWMListener.ByValue listener, BRCryptoCWMClient.ByValue client, BRCryptoAccount account, BRCryptoNetwork network, int mode, String path);
+    BRCryptoWalletManager cryptoWalletManagerCreate(BRCryptoCWMListener.ByValue listener,
+                                                    BRCryptoCWMClient.ByValue client, BRCryptoAccount account,
+                                                    BRCryptoNetwork network, int mode, int addressScheme, String path);
     BRCryptoNetwork cryptoWalletManagerGetNetwork(BRCryptoWalletManager cwm);
     BRCryptoAccount cryptoWalletManagerGetAccount(BRCryptoWalletManager cwm);
     int cryptoWalletManagerGetMode(BRCryptoWalletManager cwm);
@@ -193,6 +195,8 @@ public interface CryptoLibrary extends Library {
     BRCryptoUnit cryptoWalletGetUnitForFee(BRCryptoWallet wallet);
     BRCryptoCurrency cryptoWalletGetCurrency(BRCryptoWallet wallet);
     int cryptoWalletManagerGetState(BRCryptoWalletManager cwm);
+    int cryptoWalletManagerGetAddressScheme (BRCryptoWalletManager cwm);
+    void cryptoWalletManagerSetAddressScheme (BRCryptoWalletManager cwm, int scheme);
     Pointer cryptoWalletManagerGetPath(BRCryptoWalletManager cwm);
     BRCryptoWallet cryptoWalletManagerGetWallet(BRCryptoWalletManager cwm);
     Pointer cryptoWalletManagerGetWallets(BRCryptoWalletManager cwm, SizeTByReference count);

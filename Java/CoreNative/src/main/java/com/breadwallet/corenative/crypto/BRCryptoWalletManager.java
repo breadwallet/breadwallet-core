@@ -90,6 +90,16 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
+    public int getAddressScheme() {
+        return CryptoLibrary.INSTANCE.cryptoWalletManagerGetAddressScheme(this);
+    }
+
+    @Override
+    public void setAddressScheme(int scheme) {
+        CryptoLibrary.INSTANCE.cryptoWalletManagerSetAddressScheme(this, scheme);
+    }
+
+    @Override
     public void connect() {
         CryptoLibrary.INSTANCE.cryptoWalletManagerConnect(this);
     }
