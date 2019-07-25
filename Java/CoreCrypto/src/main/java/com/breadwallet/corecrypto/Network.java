@@ -23,12 +23,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 /* package */
 final class Network implements com.breadwallet.crypto.Network {
 
     /* package */
     static Network create(String uids, String name, boolean isMainnet, Currency currency, UnsignedLong height,
-                          Map<Currency, NetworkAssociation> associations) {
+                          Map<Currency, NetworkAssociation> associations,
+                          List<NetworkFee> fees) {
         CoreBRCryptoNetwork core;
 
         String code = currency.getCode();
@@ -66,6 +69,10 @@ final class Network implements com.breadwallet.crypto.Network {
             }
         }
 
+        for (NetworkFee fee: fees) {
+            core.addFee(fee.getCoreBRCryptoNetworkFee());
+        }
+
         return new Network(core);
     }
 
@@ -90,6 +97,10 @@ final class Network implements com.breadwallet.crypto.Network {
     private final Boolean isMainnet;
     private final Currency currency;
     private final Set<Currency> currencies;
+    private final List<NetworkFee> fees;
+
+    @Nullable
+    private NetworkFee minFee;
 
     private Network(CoreBRCryptoNetwork core) {
         this.core = core;
@@ -99,10 +110,21 @@ final class Network implements com.breadwallet.crypto.Network {
         name = core.getName();
         isMainnet = core.isMainnet();
         currency = Currency.create(core.getCurrency());
+
         currencies = new HashSet<>();
         UnsignedLong count = core.getCurrencyCount();
         for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
             currencies.add(Currency.create(core.getCurrency(i)));
+        }
+
+        fees = new ArrayList<>();
+        count = core.getFeeCount();
+        for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
+            NetworkFee fee = NetworkFee.create(core.getFee(i));
+            if (minFee == null || fee.getConfirmationTimeInMilliseconds().compareTo(minFee.getConfirmationTimeInMilliseconds()) > 0) {
+                minFee = fee;
+            }
+            fees.add(fee);
         }
     }
 
@@ -134,6 +156,16 @@ final class Network implements com.breadwallet.crypto.Network {
     @Override
     public Set<Currency> getCurrencies() {
         return new HashSet<>(currencies);
+    }
+
+    @Override
+    public List<? extends NetworkFee> getFees() {
+        return fees;
+    }
+
+    @Override
+    public Optional<NetworkFee> getMinimumFee() {
+        return Optional.fromNullable(minFee);
     }
 
     @Override
