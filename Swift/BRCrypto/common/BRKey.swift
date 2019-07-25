@@ -205,39 +205,10 @@ public final class CryptoKey {
     /// - Returns: If identical `true`; otherwise `false`
     ///
     public func publicKeyMatch (_ that: CryptoKey) -> Bool {
-        var selfAddr = BRAddress.init()
-        var thatAddr = BRAddress.init()
-
-        let selfAddrSize = MemoryLayout.size(ofValue: selfAddr)
-        return withUnsafeMutableBytes(of: &selfAddr) { (selfBytes) -> Bool in
-            let selfPtr = selfBytes.baseAddress?.assumingMemoryBound(to: Int8.self)
-            return withUnsafeMutableBytes(of: &thatAddr) { (thatBytes) -> Bool in
-                let thatPtr = thatBytes.baseAddress?.assumingMemoryBound(to: Int8.self)
-
-                BRKeyLegacyAddr (&self.core, selfPtr, selfAddrSize)
-                BRKeyLegacyAddr (&that.core, thatPtr, selfAddrSize)
-
-                return 0 == memcmp (selfPtr!, thatPtr!, selfAddrSize)
-            }
-        }
-
-//        return withUnsafeMutablePointer(to: &selfAddr) { (selfPtr) -> Bool in
-//            return withUnsafePointer(to: &thatAddr) { (thatPtr) -> Bool in
-//                BRKeyLegacyAddr (&self.core, selfPtr, MemoryLayout.size(ofValue: selfAddr))
-//                return true
-//            }
-//        }
-
-//        BRKeyLegacyAddr(&self.core, &selfAddr, MemoryLayout.size(ofValue: selfAddr))
-//        let selfPub = self.core.pubKey
-//        let thatPub = that.core.pubKey
-//        return withUnsafePointer (to: selfPub) { (selfPtr) -> Bool in
-//            return withUnsafePointer (to: thatPub) { (thatPtr) -> Bool in
-//                return 0 == memcmp (selfPtr, thatPtr, MemoryLayout.size (ofValue: selfPub)) ||
-//                    (1 == self.core.compressed && 0 == memcmp (selfPtr, thatPtr, 33))
-//            }
-//        }
-    }
+        var key1 = self.core
+        var key2 = that.core
+        return 1 == BRKeyPubKeyMatch(&key1, &key2)
+   }
 
     internal func privateKeyMatch (_ that: CryptoKey) -> Bool {
         return CryptoKey.secretMatch (self.core.secret, that.core.secret)
