@@ -70,7 +70,9 @@ final class NetworkDiscovery {
                         CurrencyDenomination baseDenomination = findFirstBaseDenomination(currencyModel.getDenominations());
                         List<CurrencyDenomination> nonBaseDenominations = findAllNonBaseDenominations(currencyModel.getDenominations());
 
-                        Unit baseUnit = currencyDenominationToBaseUnit(currency, baseDenomination);
+                        Unit baseUnit = baseDenomination == null ? currencyToDefaultBaseUnit(currency) :
+                                currencyDenominationToBaseUnit(currency, baseDenomination);
+
                         List<Unit> units = currencyDenominationToUnits(currency, nonBaseDenominations, baseUnit);
 
                         units.add(0, baseUnit);
@@ -173,7 +175,7 @@ final class NetworkDiscovery {
                 return denomination;
             }
         }
-        throw new IllegalStateException("Missing base denomination");
+        return null;
     }
 
     private static List<CurrencyDenomination> findAllNonBaseDenominations(List<CurrencyDenomination> denominations) {
@@ -184,6 +186,13 @@ final class NetworkDiscovery {
             }
         }
         return newDenominations;
+    }
+
+    private static Unit currencyToDefaultBaseUnit(Currency currency) {
+        String symb = currency.getCode().toUpperCase() + "I";
+        String name = currency.getCode().toUpperCase() + "_INTEGER";
+        String uids = String.format("%s-%s", currency.getName(), name);
+        return Unit.create(currency, uids, name, symb);
     }
 
     private static Unit currencyDenominationToBaseUnit(Currency currency,
