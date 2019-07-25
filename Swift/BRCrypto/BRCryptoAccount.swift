@@ -89,7 +89,7 @@ public final class Account {
     /// - Returns: A 12 word 'paper key'
     ///
     public static func generatePhrase (words: [String]) -> (String,Date)? {
-        precondition (CRYPTO_TRUE == cryptoAccountValidateWordsList (Int32(words.count)))
+        precondition (CRYPTO_TRUE == cryptoAccountValidateWordsList (words.count))
 
         var words = words.map { UnsafePointer<Int8> (strdup($0)) }
         defer { words.forEach { free(UnsafeMutablePointer (mutating: $0)) } }
@@ -107,7 +107,7 @@ public final class Account {
     /// - Returns: true is a valid paper key; false otherwise
     ///
     public static func validatePhrase (_ phrase: String, words: [String]) -> Bool {
-        precondition (CRYPTO_TRUE == cryptoAccountValidateWordsList (Int32(words.count)))
+        precondition (CRYPTO_TRUE == cryptoAccountValidateWordsList (words.count))
 
         var words = words.map { UnsafePointer<Int8> (strdup($0)) }
         defer { words.forEach { free(UnsafeMutablePointer (mutating: $0)) } }

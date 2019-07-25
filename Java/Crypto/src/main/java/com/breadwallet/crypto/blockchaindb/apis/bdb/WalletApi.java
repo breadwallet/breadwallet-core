@@ -7,9 +7,9 @@
  */
 package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
-import com.breadwallet.crypto.blockchaindb.CompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Wallet;
+import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.collect.ImmutableMultimap;
 
 public class WalletApi {
@@ -21,8 +21,8 @@ public class WalletApi {
     }
 
 
-    public void getOrCreateWallet(Wallet wallet, CompletionHandler<Wallet> handler) {
-        getWallet(wallet.getId(), new CompletionHandler<Wallet>() {
+    public void getOrCreateWallet(Wallet wallet, CompletionHandler<Wallet, QueryError> handler) {
+        getWallet(wallet.getId(), new CompletionHandler<Wallet, QueryError>() {
             @Override
             public void handleData(Wallet data) {
                 handler.handleData(data);
@@ -35,20 +35,20 @@ public class WalletApi {
         });
     }
 
-    public void createWallet(Wallet wallet, CompletionHandler<Wallet> handler) {
+    public void createWallet(Wallet wallet, CompletionHandler<Wallet, QueryError> handler) {
         jsonClient.sendPost("wallets", ImmutableMultimap.of(), Wallet.asJson(wallet), Wallet::asWallet, handler);
     }
 
-    public void getWallet(String id, CompletionHandler<Wallet> handler) {
+    public void getWallet(String id, CompletionHandler<Wallet, QueryError> handler) {
         jsonClient.sendGetWithId("wallets", id, ImmutableMultimap.of(), Wallet::asWallet, handler);
     }
 
-    public void updateWallet(Wallet wallet, CompletionHandler<Wallet> handler) {
+    public void updateWallet(Wallet wallet, CompletionHandler<Wallet, QueryError> handler) {
         jsonClient.sendPutWithId("wallets", wallet.getId(), ImmutableMultimap.of(), Wallet.asJson(wallet),
                 Wallet::asWallet, handler);
     }
 
-    public void deleteWallet(String id, CompletionHandler<Wallet> handler) {
+    public void deleteWallet(String id, CompletionHandler<Wallet, QueryError> handler) {
         jsonClient.sendDeleteWithId("wallets", id, ImmutableMultimap.of(), Wallet::asWallet, handler);
     }
 }

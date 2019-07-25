@@ -158,6 +158,13 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
+    public void announceGetTransactionsItemGen(BRCryptoCWMClientCallbackState callbackState, byte[] transaction,
+                                               UnsignedLong timestamp, UnsignedLong blockHeight) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetTransactionsItemGEN(this, callbackState, transaction, new SizeT(transaction.length),
+                timestamp.longValue(), blockHeight.longValue());
+    }
+
+    @Override
     public void announceGetTransactionsComplete(BRCryptoCWMClientCallbackState callbackState, boolean success) {
         CryptoLibrary.INSTANCE.cwmAnnounceGetTransactionsComplete(this, callbackState, success ? BRCryptoBoolean.CRYPTO_TRUE :
                 BRCryptoBoolean.CRYPTO_FALSE);

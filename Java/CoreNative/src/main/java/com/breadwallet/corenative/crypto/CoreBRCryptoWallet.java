@@ -7,6 +7,8 @@
  */
 package com.breadwallet.corenative.crypto;
 
+import com.google.common.base.Optional;
+
 import java.util.List;
 
 public interface CoreBRCryptoWallet {
@@ -23,7 +25,7 @@ public interface CoreBRCryptoWallet {
 
     CoreBRCryptoCurrency getCurrency();
 
-    CoreBRCryptoUnit getFeeUnit();
+    CoreBRCryptoUnit getUnitForFee();
 
     CoreBRCryptoUnit getUnit();
 
@@ -39,9 +41,9 @@ public interface CoreBRCryptoWallet {
 
     CoreBRCryptoAddress getTargetAddress();
 
-    CoreBRCryptoTransfer createTransfer(CoreBRCryptoAddress target, CoreBRCryptoAmount amount, CoreBRCryptoFeeBasis feeBasis);
+    CoreBRCryptoTransfer createTransfer(CoreBRCryptoAddress target, CoreBRCryptoAmount amount, CoreBRCryptoFeeBasis estimatedFeeBasis);
 
-    CoreBRCryptoAmount estimateFee(CoreBRCryptoAmount amount, CoreBRCryptoFeeBasis feeBasis);
+    Optional<CoreBRCryptoFeeBasis> estimateFeeBasis(CoreBRCryptoAddress target, CoreBRCryptoAmount amount, CoreBRCryptoNetworkFee fee);
 
     BRCryptoWallet asBRCryptoWallet();
 }

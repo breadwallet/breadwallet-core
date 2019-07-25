@@ -56,7 +56,7 @@ extern "C" {
     cryptoNetworkFeeGetPricePerCostFactorUnit (BRCryptoNetworkFee networkFee);
 
     extern BRCryptoBoolean
-    cryptoNetworkEqual (BRCryptoNetworkFee nf1, BRCryptoNetworkFee nf2);
+    cryptoNetworkFeeEqual (BRCryptoNetworkFee nf1, BRCryptoNetworkFee nf2);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoNetworkFee, cryptoNetworkFee);
 

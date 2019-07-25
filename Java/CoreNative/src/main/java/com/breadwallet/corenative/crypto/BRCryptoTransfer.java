@@ -43,16 +43,6 @@ public class BRCryptoTransfer extends PointerType implements CoreBRCryptoTransfe
     }
 
     @Override
-    public CoreBRCryptoAmount getFee() {
-        return new OwnedBRCryptoAmount(CryptoLibrary.INSTANCE.cryptoTransferGetFee(this));
-    }
-
-    @Override
-    public CoreBRCryptoFeeBasis getFeeBasis() {
-        return new OwnedBRCryptoFeeBasis(CryptoLibrary.INSTANCE.cryptoTransferGetFeeBasis(this));
-    }
-
-    @Override
     public Optional<CoreBRCryptoHash> getHash() {
         return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoTransferGetHash(this)).transform(OwnedBRCryptoHash::new);
     }
@@ -65,6 +55,26 @@ public class BRCryptoTransfer extends PointerType implements CoreBRCryptoTransfe
     @Override
     public BRCryptoTransferState getState() {
         return CryptoLibrary.INSTANCE.cryptoTransferGetState(this);
+    }
+
+    @Override
+    public Optional<BRCryptoFeeBasis> getEstimatedFeeBasis() {
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoTransferGetEstimatedFeeBasis(this));
+    }
+
+    @Override
+    public Optional<BRCryptoFeeBasis> getConfirmedFeeBasis() {
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoTransferGetConfirmedFeeBasis(this));
+    }
+
+    @Override
+    public CoreBRCryptoUnit getUnitForFee() {
+        return CryptoLibrary.INSTANCE.cryptoTransferGetUnitForFee(this);
+    }
+
+    @Override
+    public CoreBRCryptoUnit getUnitForAmount() {
+        return CryptoLibrary.INSTANCE.cryptoTransferGetUnitForAmount(this);
     }
 
     @Override

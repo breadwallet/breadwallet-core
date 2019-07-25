@@ -21,6 +21,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 public interface CoreBRCryptoAccount {
 
     static CoreBRCryptoAccount createFromPhrase(byte[] phraseUtf8, Date timestamp) {
@@ -49,19 +51,47 @@ public interface CoreBRCryptoAccount {
         return Optional.fromNullable(account).transform(OwnedBRCryptoAccount::new);
     }
 
-    static String generatePhrase(List<String> words) {
+    static byte[] generatePhrase(List<String> words) {
+        checkArgument(BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAccountValidateWordsList(new SizeT(words.size())));
+
         StringArray wordsArray = new StringArray(words.toArray(new String[0]), "UTF-8");
+
         Pointer phrasePtr = CryptoLibrary.INSTANCE.cryptoAccountGeneratePaperKey(wordsArray);
         try {
-            return phrasePtr.getString(0, "UTF-8");
+            return phrasePtr.getByteArray(0, (int) phrasePtr.indexOf(0, (byte) 0));
         } finally {
             Native.free(Pointer.nativeValue(phrasePtr));
+        }
+    }
+
+    static boolean validatePhrase(byte[] phraseUtf8, List<String> words) {
+        checkArgument(BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAccountValidateWordsList(new SizeT(words.size())));
+
+        StringArray wordsArray = new StringArray(words.toArray(new String[0]), "UTF-8");
+
+        // ensure string is null terminated
+        phraseUtf8 = Arrays.copyOf(phraseUtf8, phraseUtf8.length + 1);
+        try {
+            Memory phraseMemory = new Memory(phraseUtf8.length);
+            try {
+                phraseMemory.write(0, phraseUtf8, 0, phraseUtf8.length);
+                ByteBuffer phraseBuffer = phraseMemory.getByteBuffer(0, phraseUtf8.length);
+
+                return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAccountValidatePaperKey(phraseBuffer, wordsArray);
+            } finally {
+                phraseMemory.clear();
+            }
+        } finally {
+            // clear out our copy; caller responsible for original array
+            Arrays.fill(phraseUtf8, (byte) 0);
         }
     }
 
     Date getTimestamp();
 
     byte[] serialize();
+
+    boolean validate(byte[] serialization);
 
     BRCryptoAccount asBRCryptoAccount();
 }
