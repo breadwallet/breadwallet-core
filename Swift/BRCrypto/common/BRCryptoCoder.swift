@@ -9,12 +9,12 @@
 import Foundation
 import BRCore
 
-public protocol CryptoCoder {
+public protocol Coder {
     func encode (data: Data) -> String
     func decode (string: String) -> Data?
 }
 
-public enum CoreCryptoCoder: CryptoCoder {
+public enum CoreCoder: Coder {
     case hex
     case base58
     case base58check
@@ -71,7 +71,6 @@ public enum CoreCryptoCoder: CryptoCoder {
                     let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
                     decodeHex (targetAddr, targetCount, sourceAddr, sourceCount)
                 }
-                print ("HEX: Decode: \(target)")
 
             case .base58:
                 let targetCount = BRBase58Decode(nil, 0, sourceAddr)

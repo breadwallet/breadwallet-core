@@ -71,10 +71,12 @@ final class NetworkDiscovery {
                                 currencyModel.getType(),
                                 currencyModel.getAddress().orNull());
 
-                        CurrencyDenomination baseDenomination = findFirstBaseDenomination(currencyModel.getDenominations());
+                        Optional<CurrencyDenomination> baseDenomination = findFirstBaseDenomination(currencyModel.getDenominations());
                         List<CurrencyDenomination> nonBaseDenominations = findAllNonBaseDenominations(currencyModel.getDenominations());
 
-                        Unit baseUnit = currencyDenominationToBaseUnit(currency, baseDenomination);
+                        Unit baseUnit = baseDenomination.isPresent() ? currencyDenominationToBaseUnit(currency, baseDenomination.get()) :
+                                currencyToDefaultBaseUnit(currency);
+
                         List<Unit> units = currencyDenominationToUnits(currency, nonBaseDenominations, baseUnit);
 
                         units.add(0, baseUnit);
@@ -188,13 +190,13 @@ final class NetworkDiscovery {
         });
     }
 
-    private static CurrencyDenomination findFirstBaseDenomination(List<CurrencyDenomination> denominations) {
+    private static Optional<CurrencyDenomination> findFirstBaseDenomination(List<CurrencyDenomination> denominations) {
         for (CurrencyDenomination denomination : denominations) {
             if (denomination.getDecimals().equals(UnsignedInteger.ZERO)) {
-                return denomination;
+                return Optional.of(denomination);
             }
         }
-        throw new IllegalStateException("Missing base denomination");
+        return Optional.absent();
     }
 
     private static List<CurrencyDenomination> findAllNonBaseDenominations(List<CurrencyDenomination> denominations) {
@@ -205,6 +207,13 @@ final class NetworkDiscovery {
             }
         }
         return newDenominations;
+    }
+
+    private static Unit currencyToDefaultBaseUnit(Currency currency) {
+        String symb = currency.getCode().toUpperCase() + "I";
+        String name = currency.getCode().toUpperCase() + "_INTEGER";
+        String uids = String.format("%s-%s", currency.getName(), name);
+        return Unit.create(currency, uids, name, symb);
     }
 
     private static Unit currencyDenominationToBaseUnit(Currency currency,

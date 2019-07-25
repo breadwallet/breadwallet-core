@@ -73,6 +73,16 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
+    public int getAddressScheme() {
+        return core.getAddressScheme();
+    }
+
+    @Override
+    public void setAddressScheme(int scheme) {
+        core.setAddressScheme(scheme);
+    }
+
+    @Override
     public void connect() {
         core.connect();
     }
