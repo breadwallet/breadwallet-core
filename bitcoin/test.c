@@ -1231,11 +1231,13 @@ int BRKeyTests()
     if (!BRKeyPubKeyMatch (&prvKeyX1, &prvKeyX1))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 5.1\n", __func__);
 
+    BRKeyClean(&prvKeyX1); BRKeyClean(&prvKeyX2);
     BRKeySetPrivKey (&prvKeyX1, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
     BRKeySetPrivKey (&prvKeyX2, "5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF");
     if (BRKeyPubKeyMatch (&prvKeyX1, &prvKeyX2))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 5.2\n", __func__);
 
+    BRKeyClean(&prvKeyX1); BRKeyClean(&prvKeyX2);
     BRKeySetPrivKey (&prvKeyX1, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
     BRKeySetPrivKey (&prvKeyX2, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
     prvKeyX1.compressed = 0;
@@ -1247,6 +1249,7 @@ int BRKeyTests()
     if (!BRKeyPubKeyMatch (&prvKeyX1, &prvKeyX2))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 5.3.2\n", __func__);
 
+    BRKeyClean(&prvKeyX1); BRKeyClean(&prvKeyX2);
     BRKeySetPrivKey (&prvKeyX1, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
     BRKeySetPrivKey (&prvKeyX2, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
     prvKeyX1.compressed = 0;
@@ -1258,6 +1261,7 @@ int BRKeyTests()
     if (!BRKeyPubKeyMatch (&prvKeyX1, &prvKeyX2))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 5.3.2\n", __func__);
 
+    BRKeyClean(&prvKeyX1); BRKeyClean(&prvKeyX2);
     BRKeySetPrivKey (&prvKeyX1, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
     BRKeySetPrivKey (&prvKeyX2, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
     prvKeyX1.compressed = 1;
@@ -1269,6 +1273,7 @@ int BRKeyTests()
     if (!BRKeyPubKeyMatch (&prvKeyX1, &prvKeyX2))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 5.3.2\n", __func__);
 
+    BRKeyClean(&prvKeyX1); BRKeyClean(&prvKeyX2);
     BRKeySetPrivKey (&prvKeyX1, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
     BRKeySetPrivKey (&prvKeyX2, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
     prvKeyX1.compressed = 1;
