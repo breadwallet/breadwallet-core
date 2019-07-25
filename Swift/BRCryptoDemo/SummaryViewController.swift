@@ -22,6 +22,7 @@ class SummaryViewController: UITableViewController, WalletListener {
     func reset () {
         DispatchQueue.main.async {
             self.wallets = []
+            self.detailViewController.map{ $0.reset() }
             self.tableView.reloadData()
         }
     }
