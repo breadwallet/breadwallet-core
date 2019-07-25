@@ -48,6 +48,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoAccount cryptoAccountCreateFromSerialization(byte[] serialization, SizeT serializationLength);
     long cryptoAccountGetTimestamp(BRCryptoAccount account);
     Pointer cryptoAccountSerialize(BRCryptoAccount account, SizeTByReference count);
+    int cryptoAccountValidateSerialization(BRCryptoAccount account, byte[] serialization, SizeT count);
     int cryptoAccountValidateWordsList(SizeT count);
     Pointer cryptoAccountGeneratePaperKey(StringArray words);
     int cryptoAccountValidatePaperKey(ByteBuffer phraseBuffer, StringArray wordsArray);

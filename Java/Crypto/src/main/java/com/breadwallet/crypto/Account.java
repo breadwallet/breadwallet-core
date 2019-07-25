@@ -78,4 +78,13 @@ public interface Account {
      * Serialize an account.  The serialization is <b>always</b> in the current, default format.
      */
     byte[] serialize();
+
+    /**
+     * Validate a serialized account contains the same seed material
+     *
+     * @param serialization a serialized account from {@link #serialize()}
+     *
+     * @return true contains the same material; false otherwise
+     */
+    boolean validate(byte[] serialization);
 }

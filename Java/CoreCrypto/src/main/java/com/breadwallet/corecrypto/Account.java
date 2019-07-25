@@ -100,6 +100,11 @@ final class Account implements com.breadwallet.crypto.Account {
         return core.serialize();
     }
 
+    @Override
+    public boolean validate(byte[] serialization) {
+        return core.validate(serialization);
+    }
+
     /* package */
     CoreBRCryptoAccount getCoreBRCryptoAccount() {
         return core;

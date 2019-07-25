@@ -18,6 +18,7 @@ public class AccountAIT {
         byte[] phrase = "ginger settle marine tissue robot crane night number ramp coast roast critic".getBytes(StandardCharsets.UTF_8);
         String uids = "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96";
         Date timestamp = new Date(0);
+
         Account account = Account.createFromPhrase(phrase, timestamp, uids);
         assertEquals(timestamp.getTime(), account.getTimestamp().getTime());
     }
@@ -28,17 +29,28 @@ public class AccountAIT {
         String uids = "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96";
         Date timestamp = new Date(0);
         Account accountFromPhrase = Account.createFromPhrase(phrase, timestamp, uids);
-        assertEquals(timestamp.getTime(), accountFromPhrase.getTimestamp().getTime());
 
-        byte[] serialization = accountFromPhrase.serialize();
-        assertArrayEquals(serialization, accountFromPhrase.serialize());
+        // check that serialization is repeatable and valid
+        byte[] serializationFromPhrase = accountFromPhrase.serialize();
+        assertArrayEquals(serializationFromPhrase, accountFromPhrase.serialize());
+        accountFromPhrase.validate(serializationFromPhrase);
 
-        Optional<Account> optAccount = Account.createFromSerialization(serialization, uids);
+        // check that account can be deserialized
+        Optional<Account> optAccount = Account.createFromSerialization(serializationFromPhrase, uids);
         assertTrue(optAccount.isPresent());
 
+        // check that public fields of the account are properly deserialized
         Account accountFromSerialization = optAccount.get();
         assertEquals(accountFromPhrase.getTimestamp(), accountFromSerialization.getTimestamp());
-        assertArrayEquals(accountFromPhrase.serialize(), accountFromSerialization.serialize());
+
+        // check that serialization is identical to original serialization and valid
+        byte[] serializationFromSerialization = accountFromSerialization.serialize();
+        assertArrayEquals(serializationFromPhrase, serializationFromSerialization);
+        accountFromSerialization.validate(serializationFromSerialization);
+
+        // check that validity is transitive
+        accountFromPhrase.validate(serializationFromSerialization);
+        accountFromSerialization.validate(serializationFromPhrase);
     }
 
     @Test

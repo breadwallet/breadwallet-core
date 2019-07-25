@@ -91,5 +91,7 @@ public interface CoreBRCryptoAccount {
 
     byte[] serialize();
 
+    boolean validate(byte[] serialization);
+
     BRCryptoAccount asBRCryptoAccount();
 }
