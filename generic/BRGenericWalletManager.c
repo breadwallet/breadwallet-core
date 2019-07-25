@@ -112,7 +112,7 @@ gwmCreate (BRGenericClient client,
     alarmClockCreateIfNecessary(0);
 
 
-    char handlerName[4 +strlen(type) + 1], *hp = &handlerName[3]; // less 1
+    char handlerName[5 + strlen(type) + 1], *hp = &handlerName[4]; // less 1
     sprintf (handlerName, "Core %s", type);
     while (*++hp) *hp = toupper (*hp);
 
