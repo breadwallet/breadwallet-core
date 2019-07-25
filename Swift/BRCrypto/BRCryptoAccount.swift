@@ -33,6 +33,11 @@ public final class Account {
         return Data (bytes: bytes!, count: bytesCount)
     }
 
+    public func validate (serialization: Data) -> Bool {
+        var bytes = [UInt8](serialization)
+        return CRYPTO_TRUE == cryptoAccountValidateSerialization (core, &bytes, bytes.count)
+    }
+
     internal init (core: BRCryptoAccount, uids: String, take: Bool) {
         self.core = take ? cryptoAccountTake(core) : core
         self.uids = uids

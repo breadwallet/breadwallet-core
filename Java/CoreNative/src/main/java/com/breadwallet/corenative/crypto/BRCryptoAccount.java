@@ -8,6 +8,7 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.corenative.utility.SizeTByReference;
 import com.google.common.primitives.UnsignedInts;
 import com.sun.jna.Native;
@@ -40,6 +41,12 @@ public class BRCryptoAccount extends PointerType implements CoreBRCryptoAccount 
         } finally {
             Native.free(Pointer.nativeValue(serializationPtr));
         }
+    }
+
+    @Override
+    public boolean validate(byte[] serialization) {
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoAccountValidateSerialization(this,
+                serialization, new SizeT(serialization.length));
     }
 
     @Override

@@ -105,6 +105,11 @@ extern "C" {
     extern uint8_t *
     cryptoAccountSerialize (BRCryptoAccount account, size_t *bytesCount);
 
+    extern BRCryptoBoolean
+    cryptoAccountValidateSerialization (BRCryptoAccount account,
+                                        const uint8_t *bytes,
+                                        size_t bytesCount);
+    
     extern uint64_t
     cryptoAccountGetTimestamp (BRCryptoAccount account);
 
