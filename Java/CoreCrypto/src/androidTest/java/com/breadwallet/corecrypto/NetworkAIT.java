@@ -20,18 +20,17 @@ public class NetworkAIT {
 
     @Test
     public void testNetworkBtc() {
-        Currency btc = Currency.create("Bitcoin", "Bitcoin", "btc", "native", null);
+        Currency btc = Currency.create("Bitcoin", "Bitcoin", "BTC", "native", null);
 
         Unit satoshi_btc = Unit.create(btc, "BTC-SAT", "Satoshi", "SAT");
         Unit btc_btc = Unit.create(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, UnsignedInteger.valueOf(8));
 
         NetworkAssociation association = new NetworkAssociation(satoshi_btc, btc_btc, new HashSet<>(Arrays.asList(satoshi_btc, btc_btc)));
 
-        Map<Currency, NetworkAssociation> associations = new HashMap();
+        Map<Currency, NetworkAssociation> associations = new HashMap<>();
         associations.put(btc, association);
 
-        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_btc).get(), satoshi_btc);
-
+        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_btc).get());
         List<NetworkFee> fees = Collections.singletonList(fee);
 
         Network network = Network.create("bitcoin-mainnet", "Bitcoin", true, btc, UnsignedLong.valueOf(100000), associations, fees);
@@ -46,7 +45,8 @@ public class NetworkAIT {
 
         assertEquals(network.getCurrency(), btc);
         assertTrue(network.hasCurrency(btc));
-        assertTrue(network.getCurrencyByCode("btc").transform(input -> input.equals(btc)).or(false));
+        assertTrue(network.getCurrencyByCode("BTC").transform(input -> input.equals(btc)).or(false));
+        assertFalse(network.getCurrencyByIssuer("btc").isPresent());
 
         assertTrue(network.baseUnitFor(btc).transform(c -> c.equals(satoshi_btc)).or(false));
         assertTrue(network.defaultUnitFor(btc).transform(c -> c.equals(btc_btc)).or(false));
@@ -70,25 +70,42 @@ public class NetworkAIT {
 
     @Test
     public void testNetworkEth() {
-        Currency eth = Currency.create("Ethereum", "Ethereum", "eth", "native", null);
+        Currency eth = Currency.create("Ethereum", "Ethereum", "ETH", "native", null);
 
         Unit wei_eth = Unit.create(eth, "ETH-WEI", "WEI", "wei");
         Unit gwei_eth = Unit.create(eth, "ETH-GWEI", "GWEI",  "gwei", wei_eth, UnsignedInteger.valueOf(9));
         Unit ether_eth = Unit.create(eth, "ETH-ETH", "ETHER", "E",    wei_eth, UnsignedInteger.valueOf(18));
 
+        NetworkAssociation association_eth = new NetworkAssociation(wei_eth, ether_eth, new HashSet<>(Arrays.asList(wei_eth, gwei_eth, ether_eth)));
+
+        Currency brd = Currency.create("BRD", "BRD Token", "brd", "erc20", "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6");
+
+        Unit brdi_brd = Unit.create(brd, "BRD_Integer", "BRD Integer", "BRDI");
+        Unit brd_brd  = Unit.create(brd, "BRD_Decimal", "BRD_Decimal", "BRD", brdi_brd, UnsignedInteger.valueOf(8));
+
+        NetworkAssociation association_brd = new NetworkAssociation(brdi_brd, brd_brd, new HashSet<>(Arrays.asList(brdi_brd, brd_brd)));
+
         Currency btc = Currency.create("Bitcoin", "Bitcoin", "btc", "native", null);
 
-        NetworkAssociation association = new NetworkAssociation(wei_eth, ether_eth, new HashSet<>(Arrays.asList(wei_eth, gwei_eth, ether_eth)));
+        Map<Currency, NetworkAssociation> associations = new HashMap<>();
+        associations.put(eth, association_eth);
+        associations.put(brd, association_brd);
 
-        Map<Currency, NetworkAssociation> associations = new HashMap();
-        associations.put(eth, association);
-
-        List<NetworkFee> fees = Collections.emptyList();
+        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(1000), Amount.create(2.0, gwei_eth).get());
+        List<NetworkFee> fees = Collections.singletonList(fee);
 
         Network network = Network.create("ethereum-mainnet", "Ethereum", true, eth, UnsignedLong.valueOf(100000), associations, fees);
 
         assertTrue(network.hasCurrency(eth));
+        assertTrue(network.hasCurrency(brd));
         assertFalse(network.hasCurrency(btc));
+
+        assertTrue(network.getCurrencyByCode("ETH").isPresent());
+        assertTrue(network.getCurrencyByCode("brd").isPresent());
+
+        assertTrue(network.getCurrencyByIssuer("0x558ec3152e2eb2174905cd19aea4e34a23de9ad6").isPresent());
+        assertTrue(network.getCurrencyByIssuer("0x558ec3152e2eb2174905cd19aea4e34a23de9ad6".toUpperCase()).isPresent());
+        assertFalse(network.getCurrencyByIssuer("foo").isPresent());
 
         assertTrue(network.hasUnitFor(eth, wei_eth).or(false));
         assertTrue(network.hasUnitFor(eth, gwei_eth).or(false));

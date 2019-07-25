@@ -18,15 +18,12 @@ fileprivate class TestListener: SystemListener {
     // XCTestExpectation ::  expectation = XCTestExpectation (description: "")
 
     func handleSystemEvent(system: System, event: SystemEvent) {
-        switch event {
-        default:
-            break
-        }
-    }
-    
-    func handleNetworkEvent(system: System, network: Network, event: NetworkEvent) {
+        
         switch event {
         case .created:
+            break
+
+        case .networkAdded(let network):
             networkExpectation.fulfill()
 
             // A network was created; create the corresponding wallet manager.  Note: an actual
@@ -34,21 +31,25 @@ fileprivate class TestListener: SystemListener {
             // specifically, test networks are announced and having a wallet manager for a
             // testnet won't happen in a deployed App.
 
+            let mode = system.supportsMode (network: network, WalletManagerMode.p2p_only)
+                ? WalletManagerMode.p2p_only
+                : system.defaultMode(network: network)
+            let scheme = system.defaultAddressScheme(network: network)
+
+
             let _ = system.createWalletManager (network: network,
-                                                mode: WalletManagerMode.p2p_only)
+                                                mode: mode,
+                                                addressScheme: scheme)
+
+        case .managerAdded (let _):
+            managerExpectation.fulfill()
         }
+    }
+    
+    func handleNetworkEvent(system: System, network: Network, event: NetworkEvent) {
     }
 
     func handleManagerEvent (system: System, manager: WalletManager, event: WalletManagerEvent) {
-        switch event {
-        case .created:
-            managerExpectation.fulfill()
-//            manager.connect()
-            // A WalletManager was created; create a wallet for each currency.
-            break
-        default:
-            break
-        }
     }
 
     func handleWalletEvent(system: System, manager: WalletManager, wallet: Wallet, event: WalletEvent) {
@@ -80,15 +81,12 @@ class BRCryptoSystemTests: BRCryptoBaseTests {
                           path: coreDataDir,
                           query: query)
 
-//        sys.start (networksNeeded: ["bitcoin-mainnet", "ethereum-mainnet"]);
-//        sleep(10)
-
         XCTAssertEqual (coreDataDir, sys.path)
         XCTAssertTrue  (query === sys.query)
         XCTAssertEqual (account.uids, sys.account.uids)
 
         // Create the network and wallet manager - don't connect
-        sys.start (networksNeeded: ["bitcoin-mainnet"])
+        sys.configure()
         wait(for: [listener.networkExpectation], timeout: 5)
 
         XCTAssertEqual (1, sys.networks.count)
@@ -99,9 +97,9 @@ class BRCryptoSystemTests: BRCryptoBaseTests {
         XCTAssertEqual (1, sys.managers.count)
         let manager = sys.managers[0]
 
-        XCTAssertTrue (sys === manager.system)
-        XCTAssertTrue (account === manager.account)
-        XCTAssertTrue (network === manager.network)
+        XCTAssertTrue (sys     === manager.system)
+//        XCTAssertTrue (account === manager.account)
+        XCTAssertTrue (network  == manager.network)
         XCTAssertTrue (query   === manager.query)
 
         XCTAssertTrue (manager === sys.managerBy(core: manager.core))

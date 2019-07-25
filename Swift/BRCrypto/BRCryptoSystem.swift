@@ -35,6 +35,99 @@ public final class System {
     public internal(set) var networks: [Network] = []
 
     ///
+    /// Return the AddressSchemes support for `network`
+    ///
+    /// - Parameter network: the network
+    ///
+    /// - Returns: An array of AddressScheme
+    ///
+    public func supportedAddressSchemes (network: Network) -> [AddressScheme] {
+        switch network.currency.code {
+        case Currency.codeAsBTC: return [AddressScheme (core: CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT),
+                                         AddressScheme (core: CRYPTO_ADDRESS_SCHEME_BTC_LEGACY)]
+        case Currency.codeAsBCH: return [AddressScheme (core: CRYPTO_ADDRESS_SCHEME_BTC_LEGACY)]
+        case Currency.codeAsETH: return [AddressScheme (core: CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT)]
+        default: return [AddressScheme (core: CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT)]
+        }
+    }
+
+    ///
+    /// Check if `network` supports `scheme`
+    ///
+    /// - Parameters:
+    ///   - network: the network
+    ///   - scheme: the scheme
+    ///
+    /// - Returns: If supported `true`; otherwise `false`.
+    ///
+    public func supportsAddressScheme (network: Network, _ scheme: AddressScheme) -> Bool {
+        return supportedAddressSchemes(network: network).contains (scheme)
+    }
+
+    ///
+    /// Return the default AddressScheme for `network`
+    ///
+    /// - Parameter network: the network
+    ///
+    /// - Returns: The default AddressScheme
+    ///
+    public func defaultAddressScheme (network: Network) -> AddressScheme {
+        switch network.currency.code {
+        case Currency.codeAsBTC: return AddressScheme (core: CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT)
+        case Currency.codeAsBCH: return AddressScheme (core: CRYPTO_ADDRESS_SCHEME_BTC_LEGACY)
+        case Currency.codeAsETH: return AddressScheme (core: CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT)
+        default: return AddressScheme (core: CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT)
+        }
+    }
+
+    ///
+    /// Return the WalletManagerModes supported by `network`
+    ///
+    /// - Parameter network: the network
+    ///
+    /// - Returns: an aray of WalletManagerMode
+    ///
+    public func supportedModes (network: Network) -> [WalletManagerMode] {
+        switch network.currency.code {
+        case Currency.codeAsBTC: return [WalletManagerMode.api_only,
+                                         WalletManagerMode.p2p_only]
+        case Currency.codeAsBCH: return [WalletManagerMode.p2p_only]
+        case Currency.codeAsETH: return [WalletManagerMode.api_only,
+                                         WalletManagerMode.api_with_p2p_submit]
+        default: return [WalletManagerMode.api_only]
+        }
+    }
+
+    ///
+    /// Check if `network` supports `mode`
+    ///
+    /// - Parameters:
+    ///   - network: the network
+    ///   - mode: the mode
+    ///
+    /// - Returns: If supported `true`; otherwise `false`
+    ///
+    public func supportsMode (network: Network, _ mode: WalletManagerMode) -> Bool {
+        return supportedModes (network: network).contains (mode)
+    }
+
+    ///
+    /// Return the default WalletManagerMode for `network`
+    ///
+    /// - Parameter network: the network
+    ///
+    /// - Returns: the default mode
+    ///
+    public func defaultMode (network: Network) -> WalletManagerMode {
+        switch network.currency.code {
+        case Currency.codeAsBTC: return WalletManagerMode.p2p_only
+        case Currency.codeAsBCH: return WalletManagerMode.p2p_only
+        case Currency.codeAsETH: return WalletManagerMode.api_only
+        default: return WalletManagerMode.api_only
+        }
+    }
+
+    ///
     /// Add `network` to `networks`
     ///
     /// - Parameter network: the network to add
@@ -75,13 +168,14 @@ public final class System {
     ///   - mode: the mode to use
     ///
     public func createWalletManager (network: Network,
-                                     mode: WalletManagerMode) {
+                                     mode: WalletManagerMode,
+                                     addressScheme: AddressScheme) {
         
         let manager = WalletManager (system: self,
                                      account: account,
                                      network: network,
                                      mode: mode,
-                                     addressScheme: WalletManager.defaultAddressScheme (currency: network.currency),
+                                     addressScheme: addressScheme,
                                      storagePath: path,
                                      listener: cryptoListener,
                                      client: cryptoClient)
@@ -158,22 +252,14 @@ public final class System {
     }
 
     ///
-    /// Start the system.  This will query various BRD services, notably the BlockChainDB, to
-    /// establish the available networks (aka blockchains) and their currencies.  If the
-    /// `networksNeeded` array includes the name of an available network, then a `Network`
-    /// will be created for that network.  (This generates a `SystemEvent` which can be used by
-    /// the App to create a `WalletManager`)
+    /// Configure the system.  This will query various BRD services, notably the BlockChainDB, to
+    /// establish the available networks (aka blockchains) and their currencies.  For each
+    /// `Network` there will be `SystemEvent` which can be used by the App to create a
+    /// `WalletManager`
     ///
-    /// This method can be called repeatedly; however ONLY THE FIRST invocation will create
-    /// Networks for needed networks.  Subsequent calls will simple restart `System` processing.
+    /// @Note: This should only be called one.
     ///
-    /// - Parameter networksNeeded: Then needed networks
-    ///
-    public func start (networksNeeded: [String]) {
-        if !networks.isEmpty {
-            managers.forEach { $0.connect() }
-            return
-        }
+    public func configure () {
 
         #if MAINNET
         var mainnet = true
@@ -210,7 +296,7 @@ public final class System {
                     return BlockChainDB.Model.defaultBlockchains
                 }.get()
 
-            blockChainModels.filter { networksNeeded.contains($0.id) }
+            blockChainModels
                 .forEach { (blockchainModel: BlockChainDB.Model.Blockchain) in
 
                     // query currencies
@@ -264,7 +350,7 @@ public final class System {
                         // the default currency
                         guard let currency = associations.keys.first (where: { $0.code == blockchainModel.currency.lowercased() }),
                             let feeUnit = associations[currency]?.baseUnit
-                            else { print ("SYS: START: Missed Currency (\(blockchainModel.currency)): defaultUnit"); return }
+                            else { print ("SYS: CONFIGURE: Missed Currency (\(blockchainModel.currency)): defaultUnit"); return }
 
                         let fees = blockchainModel.feeEstimates
                             // Well, quietly ignore a fee if we can't parse the amount.
@@ -274,6 +360,9 @@ public final class System {
                                     .map { NetworkFee (timeInternalInMilliseconds: UInt64(timeInterval),
                                                        pricePerCostFactor: $0) }
                         }
+
+                        guard !fees.isEmpty
+                            else { print ("SYS: CONFIGURE: Missed Fees (\(blockchainModel.name))"); return }
 
                         // define the network
                         let network = Network (uids: blockchainModel.id,

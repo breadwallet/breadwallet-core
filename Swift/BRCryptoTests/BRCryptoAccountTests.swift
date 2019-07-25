@@ -63,13 +63,17 @@ class BRCryptoAccountTests: XCTestCase {
 
     func testAddressETH () {
         let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native", issuer: nil)
+        let eth_wei = BRCrypto.Unit(currency: eth, uids: "eth-wwi", name: "WEI", symbol: "wei")
+
+        let fee = NetworkFee (timeInternalInMilliseconds: 1000,
+                              pricePerCostFactor: Amount.create(double: 2000000000, unit: eth_wei))
         let network = Network (uids: "ethereum-mainnet",
                                name: "ethereum-name",
                                isMainnet: true,
                                currency: eth,
                                height: 100000,
                                associations: [:],
-                               fees: [])
+                               fees: [fee])
 
         let e1 = Address.create (string: "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", network: network)
         let e2 = Address.create (string: "0xd3CFBA03Fc13dc01F0C67B88CBEbE776D8F3DE8f", network: network)
@@ -92,13 +96,17 @@ class BRCryptoAccountTests: XCTestCase {
 
     func testAddressBTC () {
         let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
+        let BTC_SATOSHI = BRCrypto.Unit (currency: btc, uids: "BTC-SAT",  name: "Satoshi", symbol: "SAT")
+
+        let fee = NetworkFee (timeInternalInMilliseconds: 1000,
+                              pricePerCostFactor: Amount.create(double: 25, unit: BTC_SATOSHI))
         let network = Network (uids: "bitcoin-mainnet",
                                name: "bitcoin-name",
                                isMainnet: true,
                                currency: btc,
                                height: 100000,
                                associations: [:],
-                               fees: [])
+                               fees: [fee])
 
         let b1 = Address.create (string: "1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj", network: network)
 

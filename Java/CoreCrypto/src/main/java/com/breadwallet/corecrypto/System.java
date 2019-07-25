@@ -34,6 +34,7 @@ import com.breadwallet.corenative.crypto.CoreBRCryptoTransfer;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWallet;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWalletManager;
 import com.breadwallet.corenative.utility.SizeT;
+import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.TransferState;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.WalletManagerState;
@@ -207,13 +208,8 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     @Override
-    public void subscribe(String subscriptionToken) {
-        // TODO(fix): Implement this!
-    }
-
-    @Override
-    public void initialize(List<String> networksNeeded, boolean isMainnet) {
-        NetworkDiscovery.discoverNetworks(query, networksNeeded, isMainnet, discoveredNetworks -> {
+    public void configure() {
+        NetworkDiscovery.discoverNetworks(query, discoveredNetworks -> {
             for (Network network: discoveredNetworks) {
                 if (addNetwork(network)) {
                     announcer.announceNetworkEvent(network, new NetworkCreatedEvent());
@@ -224,10 +220,10 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     @Override
-    public void start() {
-        for (WalletManager manager: getWalletManagers()) {
-            manager.connect();
-        }
+    public void createWalletManager(com.breadwallet.crypto.Network network, WalletManagerMode mode, AddressScheme scheme) {
+        WalletManager walletManager = WalletManager.create(cwmListener, cwmClient, account, Network.from(network), mode, scheme, path, this);
+        addWalletManager(walletManager);
+        announcer.announceSystemEvent(new SystemManagerAddedEvent(walletManager));
     }
 
     @Override
@@ -238,26 +234,8 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     @Override
-    public void sync() {
-        for (WalletManager manager: getWalletManagers()) {
-            manager.sync();
-        }
-    }
-
-    @Override
-    public void createWalletManager(com.breadwallet.crypto.Network network, WalletManagerMode mode) {
-        if (network.getSupportedModes().contains(mode)) {
-            WalletManager walletManager = WalletManager.create(cwmListener, cwmClient, account, Network.from(network), mode, path, this);
-            addWalletManager(walletManager);
-            announcer.announceSystemEvent(new SystemManagerAddedEvent(walletManager));
-        } else {
-            throw new IllegalArgumentException("Unsupported network type");
-        }
-    }
-
-    @Override
-    public Optional<SystemListener> getSystemListener() {
-        return announcer.getListener();
+    public void subscribe(String subscriptionToken) {
+        // TODO(fix): Implement this!
     }
 
     @Override
@@ -307,6 +285,84 @@ final class System implements com.breadwallet.crypto.System {
             wallets.addAll(manager.getWallets());
         }
         return wallets;
+    }
+
+    @Override
+    public AddressScheme getDefaultAddressScheme(com.breadwallet.crypto.Network network) {
+        switch (network.getCurrency().getCode()) {
+            case com.breadwallet.crypto.Currency.CODE_AS_BTC:
+                return AddressScheme.BTC_SEGWIT;
+
+            case com.breadwallet.crypto.Currency.CODE_AS_BCH:
+                return AddressScheme.BTC_LEGACY;
+
+            case com.breadwallet.crypto.Currency.CODE_AS_ETH:
+                return AddressScheme.ETH_DEFAULT;
+
+            default:
+                return AddressScheme.GEN_DEFAULT;
+        }
+    }
+
+    @Override
+    public List<AddressScheme> getSupportedAddressSchemes(com.breadwallet.crypto.Network network) {
+        switch (network.getCurrency().getCode()) {
+            case com.breadwallet.crypto.Currency.CODE_AS_BTC:
+                return Arrays.asList(AddressScheme.BTC_SEGWIT, AddressScheme.BTC_LEGACY);
+
+            case com.breadwallet.crypto.Currency.CODE_AS_BCH:
+                return Collections.singletonList(AddressScheme.BTC_LEGACY);
+
+            case com.breadwallet.crypto.Currency.CODE_AS_ETH:
+                return Collections.singletonList(AddressScheme.ETH_DEFAULT);
+
+            default:
+                return Collections.singletonList(AddressScheme.GEN_DEFAULT);
+        }
+    }
+
+    @Override
+    public boolean supportsAddressScheme(com.breadwallet.crypto.Network network, AddressScheme addressScheme) {
+        return getSupportedAddressSchemes(network).contains(addressScheme);
+    }
+
+    @Override
+    public WalletManagerMode getDefaultWalletManagerMode(com.breadwallet.crypto.Network network) {
+        switch (network.getCurrency().getCode()) {
+            case com.breadwallet.crypto.Currency.CODE_AS_BTC:
+                return WalletManagerMode.P2P_ONLY;
+
+            case com.breadwallet.crypto.Currency.CODE_AS_BCH:
+                return WalletManagerMode.P2P_ONLY;
+
+            case com.breadwallet.crypto.Currency.CODE_AS_ETH:
+                return WalletManagerMode.API_ONLY;
+
+            default:
+                return WalletManagerMode.API_ONLY;
+        }
+    }
+
+    @Override
+    public List<WalletManagerMode> getSupportedWalletManagerModes(com.breadwallet.crypto.Network network) {
+        switch (network.getCurrency().getCode()) {
+            case com.breadwallet.crypto.Currency.CODE_AS_BTC:
+                return Arrays.asList(WalletManagerMode.API_ONLY, WalletManagerMode.P2P_ONLY);
+
+            case com.breadwallet.crypto.Currency.CODE_AS_BCH:
+                return Collections.singletonList(WalletManagerMode.P2P_ONLY);
+
+            case com.breadwallet.crypto.Currency.CODE_AS_ETH:
+                return Arrays.asList(WalletManagerMode.API_ONLY, WalletManagerMode.API_WITH_P2P_SUBMIT);
+
+            default:
+                return Collections.singletonList(WalletManagerMode.API_ONLY);
+        }
+    }
+
+    @Override
+    public boolean supportsWalletManagerModes(com.breadwallet.crypto.Network network, WalletManagerMode mode) {
+        return getSupportedWalletManagerModes(network).contains(mode);
     }
 
     @Override

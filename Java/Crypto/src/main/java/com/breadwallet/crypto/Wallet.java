@@ -35,6 +35,8 @@ public interface Wallet {
 
     Address getTarget();
 
+    Address getTargetForScheme(AddressScheme scheme);
+
     Address getSource();
 
     Currency getCurrency();

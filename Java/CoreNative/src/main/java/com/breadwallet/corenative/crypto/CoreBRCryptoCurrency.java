@@ -23,6 +23,8 @@ public interface CoreBRCryptoCurrency {
 
     String getType();
 
+    String getIssuer();
+
     boolean isIdentical(CoreBRCryptoCurrency coreBRCryptoCurrency);
 
     BRCryptoCurrency asBRCryptoCurrency();

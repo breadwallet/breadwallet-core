@@ -49,8 +49,16 @@ public final class Network: CustomStringConvertible {
     /// All currencies - at least those we are handling/interested-in.
     public let currencies: Set<Currency>
 
-    func currencyBy (code: String) -> Currency? {
+    public func currencyBy (code: String) -> Currency? {
         return currencies.first { $0.code == code } // sloppily
+    }
+
+    public func currencyBy (issuer: String) -> Currency? {
+        let issuerLowercased = issuer.lowercased()
+        return currencies.first {
+            // Not the best way to compare - but avoid Foundation
+            $0.issuer.map { $0.lowercased() == issuerLowercased } ?? false
+        }
     }
 
     public func hasCurrency(_ currency: Currency) -> Bool {
@@ -151,7 +159,7 @@ public final class Network: CustomStringConvertible {
             }
 
         default:
-            core = cryptoNetworkCreateAsGEN (uids, name)
+            core = cryptoNetworkCreateAsGEN (uids, name, (isMainnet ? 1 : 0))
             break
         }
 

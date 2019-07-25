@@ -10,6 +10,7 @@ package com.breadwallet.corecrypto;
 import android.support.annotation.Nullable;
 
 import com.breadwallet.corenative.crypto.CoreBRCryptoCurrency;
+import com.google.common.base.Optional;
 
 import java.util.Objects;
 
@@ -41,6 +42,9 @@ final class Currency implements com.breadwallet.crypto.Currency {
     private final String code;
     private final String type;
 
+    @Nullable
+    private final String issuer;
+
     private Currency(CoreBRCryptoCurrency core) {
         this.core = core;
 
@@ -48,6 +52,7 @@ final class Currency implements com.breadwallet.crypto.Currency {
         this.name = core.getName();
         this.code = core.getCode();
         this.type = core.getType();
+        this.issuer = core.getIssuer();
     }
 
     @Override
@@ -68,6 +73,11 @@ final class Currency implements com.breadwallet.crypto.Currency {
     @Override
     public String getType() {
         return type;
+    }
+
+    @Override
+    public Optional<String> getIssuer() {
+        return Optional.fromNullable(issuer);
     }
 
     @Override

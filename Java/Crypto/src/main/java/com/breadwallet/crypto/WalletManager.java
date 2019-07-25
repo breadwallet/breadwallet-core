@@ -54,6 +54,4 @@ public interface WalletManager {
     void setAddressScheme(AddressScheme scheme);
 
     AddressScheme getAddressScheme();
-
-    List<AddressScheme> getAddressSchemes();
 }
