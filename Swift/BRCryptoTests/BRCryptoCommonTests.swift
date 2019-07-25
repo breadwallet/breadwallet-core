@@ -16,6 +16,69 @@ class BRCryptoCommonTests: XCTestCase {
 
     override func tearDown() { }
 
+    func testKey () {
+        var d: Data!
+        var k: Key!
+        var kpub: Key!
+
+        //
+        // Uncompressed
+        //
+
+        d = "5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF".data(using: .utf8)!
+        k = Key.createFromSerialization(asPrivate: d)
+        XCTAssertNotNil(k)
+        XCTAssertEqual (d, k.serialize(asPrivate: Key.PrivateEncoding.wifUncompressed))
+        XCTAssertNotEqual (d, k.serialize(asPrivate: Key.PrivateEncoding.wifCompressed))
+
+        // serialize public key - uncompressed
+        d = k.serialize(asPublic: Key.PublicEncoding.derUncompressed)
+        XCTAssertNotNil(d)
+
+        // create a 'public key' and check for match with private key's public key
+        kpub = Key.createFromSerialization(asPublic: d)
+        XCTAssertNotNil(kpub)
+        XCTAssertTrue (k.publicKeyMatch(kpub))
+
+        // serialize public key - compressed
+        d = k.serialize(asPublic: Key.PublicEncoding.derCompressed)
+        XCTAssertNotNil(d)
+
+        // TODO: Fix 'public key from compressed'
+        // create a 'public key' and check for match with private key's public key
+        kpub = Key.createFromSerialization(asPublic: d)
+        XCTAssertNotNil(kpub)
+        XCTAssertTrue (k.publicKeyMatch(kpub))
+
+        //
+        // Compressed
+        //
+        d = "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL".data(using: .utf8)!
+        k = Key.createFromSerialization(asPrivate: d)
+        XCTAssertNotNil(k)
+        XCTAssertEqual (d, k.serialize(asPrivate: Key.PrivateEncoding.wifCompressed))
+        XCTAssertNotEqual (d, k.serialize(asPrivate: Key.PrivateEncoding.wifUncompressed))
+
+        // serialize public key - uncompressed
+        d = k.serialize(asPublic: Key.PublicEncoding.derUncompressed)
+        XCTAssertNotNil(d)
+
+        // create a 'public key' and check for match with private key's public key
+        kpub = Key.createFromSerialization(asPublic: d)
+        XCTAssertNotNil(kpub)
+        XCTAssertTrue (k.publicKeyMatch(kpub))
+
+        // serialize public key - compressed
+        d = k.serialize(asPublic: Key.PublicEncoding.derCompressed)
+        XCTAssertNotNil(d)
+
+        // TODO: Fix 'public key from compressed'
+        // create a 'public key' and check for match with private key's public key
+//        kpub = CryptoKey.createFromSerialization(asPublic: d)
+//        XCTAssertNotNil(kpub)
+//        XCTAssertTrue (k.publicKeyMatch(kpub))
+    }
+
     func testHasher() {
         var d: Data!
         var a: Data!
@@ -144,7 +207,7 @@ class BRCryptoCommonTests: XCTestCase {
         var signer: CoreSigner!
         var answer: Data!
 
-        let key = CryptoKey (
+        let key = Key (
             secret: UInt256.init(u8: (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1)))
         
         // Basic

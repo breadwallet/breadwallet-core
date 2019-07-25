@@ -10,57 +10,6 @@ import Foundation
 import BRCore
 
 ///
-/// A pair of private+public key, or just a public key
-///
-public final class CryptoKey {
-
-    // The Core representation
-    internal let core: BRKey
-
-    ///
-    /// Check if `self` and `that` have an identical public key
-    ///
-    /// - Parameter that: the other CryptoKey
-    ///
-    /// - Returns: If identical `true`; otherwise `false`
-    ///
-    public func publicKeyMatch (_ that: CryptoKey) -> Bool {
-        let selfPub = self.core.pubKey
-        let thatPub = that.core.pubKey
-        return withUnsafePointer (to: selfPub) { (selfPtr) -> Bool in
-            return withUnsafePointer (to: thatPub) { (thatPtr) -> Bool in
-                return 0 == memcmp (selfPtr, thatPtr, MemoryLayout.size (ofValue: selfPub))
-            }
-        }
-    }
-
-    ///
-    /// Initialize based on a Core BRKey - the provided BRKey might be private+public or just
-    /// a public key (such as one that is recovered from the signature.
-    ///
-    /// - Parameter core: The Core representaion
-    ///
-    internal init (core: BRKey) {
-        self.core = core
-    }
-
-    ///
-    /// Initialize based on `secret` to produce a private+public key pair
-    ///
-    /// - Parameter secret: the secret
-    ///
-    internal convenience init (secret: UInt256) {
-        var core = BRKey.init()
-        var secret = secret
-
-        BRKeySetSecret (&core, &secret, 1)
-        BRKeyPubKey(&core, nil, 0)
-
-        self.init (core: core)
-    }
-}
-
-///
 /// Sign 32-byte data with a private key to return a signature; optional recover the public key
 ///
 public protocol Signer {
@@ -74,7 +23,7 @@ public protocol Signer {
     ///
     /// - Returns: the signature
     ///
-    func sign (data32: Data, using: CryptoKey) -> Data
+    func sign (data32: Data, using: Key) -> Data
 
     ///
     /// Recover the CryptoKey (only the public key portion) from the signed data and the signature.
@@ -87,7 +36,7 @@ public protocol Signer {
     ///
     /// - Returns: A CryptoKey with only the public key provided.
     ///
-    func recover (data32: Data, signature: Data) -> CryptoKey?
+    func recover (data32: Data, signature: Data) -> Key?
 }
 
 public enum CoreSigner: Signer {
@@ -97,7 +46,7 @@ public enum CoreSigner: Signer {
     /// Does support 'recovery'
     case compact
 
-    public func sign (data32 digest: Data, using privateKey: CryptoKey) -> Data {
+    public func sign (data32 digest: Data, using privateKey: Key) -> Data {
         // Copy the key - prep to pass to Core C functions
         var key = privateKey.core
 
@@ -141,11 +90,11 @@ public enum CoreSigner: Signer {
         }
     }
 
-    public func recover (data32 digest: Data, signature: Data) -> CryptoKey? {
+    public func recover (data32 digest: Data, signature: Data) -> Key? {
         let sourceCount = digest.count
         precondition (32 == sourceCount)
 
-        return digest.withUnsafeBytes { (digestBytes: UnsafeRawBufferPointer) -> CryptoKey? in
+        return digest.withUnsafeBytes { (digestBytes: UnsafeRawBufferPointer) -> Key? in
             let digestAddr  = digestBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
             let digestUInt256 = digestAsUInt256 (digestAddr!) // : UInt256 = createUInt256(0)
 
@@ -155,11 +104,11 @@ public enum CoreSigner: Signer {
 
             case .compact:
                 let signatureCount = signature.count
-                return signature.withUnsafeBytes { (signatureBytes: UnsafeRawBufferPointer) -> CryptoKey? in
+                return signature.withUnsafeBytes { (signatureBytes: UnsafeRawBufferPointer) -> Key? in
                     var key = BRKey.self.init()
                     let signatureAddr  = signatureBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
                     let success: Bool = 1 == BRKeyRecoverPubKey (&key, digestUInt256, signatureAddr, signatureCount)
-                    return success ? CryptoKey (core: key) : nil
+                    return success ? Key (core: key, needPublicKey: false, compressedPublicKey: false) : nil
                 }
             }
         }
