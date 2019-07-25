@@ -9,8 +9,9 @@ package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
 import android.support.annotation.Nullable;
 
-import com.breadwallet.crypto.blockchaindb.CompletionHandler;
+import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Currency;
+import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
@@ -25,17 +26,17 @@ public class CurrencyApi {
         this.jsonClient = jsonClient;
     }
 
-    public void getCurrencies(CompletionHandler<List<Currency>> handler) {
+    public void getCurrencies(CompletionHandler<List<Currency>, QueryError> handler) {
         getCurrencies(null, handler);
     }
 
-    public void getCurrencies(@Nullable String id, CompletionHandler<List<Currency>> handler) {
+    public void getCurrencies(@Nullable String id, CompletionHandler<List<Currency>, QueryError> handler) {
         Multimap<String, String> params = id == null ? ImmutableMultimap.of() : ImmutableListMultimap.of(
                 "blockchain_id", id);
         jsonClient.sendGetForArray("currencies", params, Currency::asCurrencies, handler);
     }
 
-    public void getCurrency(String id, CompletionHandler<Currency> handler) {
+    public void getCurrency(String id, CompletionHandler<Currency, QueryError> handler) {
         jsonClient.sendGetWithId("currencies", id, ImmutableMultimap.of(), Currency::asCurrency, handler);
     }
 
