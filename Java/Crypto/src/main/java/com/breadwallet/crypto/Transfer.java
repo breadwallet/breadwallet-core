@@ -28,11 +28,17 @@ public interface Transfer {
 
     Amount getFee();
 
-    TransferFeeBasis getFeeBasis();
+    Optional<? extends TransferFeeBasis> getEstimatedFeeBasis();
+
+    Optional<? extends TransferFeeBasis> getConfirmedFeeBasis();
 
     TransferDirection getDirection();
 
     Optional<? extends TransferHash> getHash();
+
+    Unit getUnit();
+
+    Unit getUnitForFee();
 
     default Optional<TransferConfirmation> getConfirmation() {
         return getState().getIncludedConfirmation();

@@ -4,12 +4,14 @@ import com.breadwallet.corenative.crypto.BRCryptoCWMClient;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWallet;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWalletManager;
+import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.WalletManagerState;
 import com.google.common.base.Optional;
-import com.google.common.primitives.UnsignedLong;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -17,18 +19,60 @@ import java.util.Objects;
 final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
     /* package */
+    static AddressScheme defaultAddressScheme(com.breadwallet.crypto.Currency currency) {
+        String code = currency.getCode();
+        if (code.equals(com.breadwallet.crypto.Currency.CODE_AS_BTC)) {
+            return AddressScheme.BTC_SEGWIT;
+
+        } else if (code.equals(com.breadwallet.crypto.Currency.CODE_AS_BCH)) {
+            return AddressScheme.BTC_LEGACY;
+
+        } else if (code.equals(com.breadwallet.crypto.Currency.CODE_AS_ETH)) {
+            return AddressScheme.ETH_DEFAULT;
+
+        } else {
+            return AddressScheme.GEN_DEFAULT;
+        }
+    }
+
+    /* package */
+    static List<AddressScheme> defaultAddressSchemes(com.breadwallet.crypto.Currency currency) {
+        String code = currency.getCode();
+        if (code.equals(com.breadwallet.crypto.Currency.CODE_AS_BTC)) {
+            return Arrays.asList(AddressScheme.BTC_SEGWIT, AddressScheme.BTC_LEGACY);
+
+        } else if (code.equals(com.breadwallet.crypto.Currency.CODE_AS_BCH)) {
+            return Collections.singletonList(AddressScheme.BTC_LEGACY);
+
+        } else if (code.equals(com.breadwallet.crypto.Currency.CODE_AS_ETH)) {
+            return Collections.singletonList(AddressScheme.ETH_DEFAULT);
+
+        } else {
+            return Collections.singletonList(AddressScheme.GEN_DEFAULT);
+        }
+    }
+
+    /* package */
     static WalletManager create(BRCryptoCWMListener.ByValue listener, BRCryptoCWMClient.ByValue client,
-                                Account account, Network network, WalletManagerMode mode, String path,
-                                System system) {
+                                Account account, Network network, WalletManagerMode mode, AddressScheme addressScheme,
+                                String path, System system) {
         CoreBRCryptoWalletManager core = CoreBRCryptoWalletManager.create(
                 listener,
                 client,
                 account.getCoreBRCryptoAccount(),
                 network.getCoreBRCryptoNetwork(),
                 Utilities.walletManagerModeToCrypto(mode),
+                Utilities.addressSchemeToCrypto(addressScheme),
                 path);
 
         return new WalletManager(core, system);
+    }
+
+    /* package */
+    static WalletManager create(BRCryptoCWMListener.ByValue listener, BRCryptoCWMClient.ByValue client,
+                                Account account, Network network, WalletManagerMode mode,
+                                String path, System system) {
+        return create(listener, client, account, network, mode, defaultAddressScheme(network.getCurrency()), path, system);
     }
 
     /* package */
@@ -44,6 +88,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     private final Unit networkDefaultUnit;
     private final String path;
     private final WalletManagerMode mode;
+    private final NetworkFee networkFee;
 
     private CoreBRCryptoWalletManager core;
 
@@ -58,6 +103,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         // TODO(fix): Unchecked get here
         this.networkBaseUnit = network.baseUnitFor(networkCurrency).get();
         this.networkDefaultUnit = network.defaultUnitFor(networkCurrency).get();
+        this.networkFee = network.getMinimumFee();
 
         this.core = core;
     }
@@ -152,8 +198,28 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     }
 
     @Override
+    public NetworkFee getDefaultNetworkFee() {
+        return networkFee;
+    }
+
+    @Override
     public WalletManagerState getState() {
         return Utilities.walletManagerStateFromCrypto(core.getState());
+    }
+
+    @Override
+    public void setAddressScheme(AddressScheme scheme) {
+        core.setAddressScheme(Utilities.addressSchemeToCrypto(scheme));
+    }
+
+    @Override
+    public AddressScheme getAddressScheme() {
+        return Utilities.addressSchemeFromCrypto(core.getAddressScheme());
+    }
+
+    @Override
+    public List<AddressScheme> getAddressSchemes() {
+        return defaultAddressSchemes(networkCurrency);
     }
 
     @Override

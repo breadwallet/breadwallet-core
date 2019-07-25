@@ -68,4 +68,16 @@ public class BlockchainFee {
         this.tier = tier;
         this.confirmations = confirmations;
     }
+
+    public String getAmount() {
+        return amount;
+    }
+
+    public String getTier() {
+        return tier;
+    }
+
+    public String getConfirmations() {
+        return confirmations;
+    }
 }

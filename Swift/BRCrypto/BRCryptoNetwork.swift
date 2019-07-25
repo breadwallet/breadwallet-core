@@ -34,13 +34,13 @@ public final class Network: CustomStringConvertible {
         set { cryptoNetworkSetHeight (core, newValue) }
     }
 
-    /// The network fees.  Expect the User to select their preferred fee, based on time-to-confirm,
+     /// The network fees.  Expect the User to select their preferred fee, based on time-to-confirm,
     /// and then have their preferred fee held in WalletManager.defaultNetworkFee.
-    public let fees: [NetworkFee];
+    public let fees: [NetworkFee]
 
     /// Return the minimum fee which should be the fee with the largest confirmation time
-    public var minimumFee: NetworkFee? {
-        return fees.min { $0.timeIntervalInMilliseconds > $1.timeIntervalInMilliseconds }
+    public var minimumFee: NetworkFee {
+        return fees.min { $0.timeIntervalInMilliseconds > $1.timeIntervalInMilliseconds }!
     }
 
     /// The native currency.
@@ -121,6 +121,8 @@ public final class Network: CustomStringConvertible {
                              height: UInt64,
                              associations: Dictionary<Currency, Association>,
                              fees: [NetworkFee]) {
+        precondition (!fees.isEmpty)
+        
         var core: BRCryptoNetwork!
 
         switch currency.code.lowercased() {
@@ -298,6 +300,6 @@ public final class NetworkFee: Equatable {
 
     // Equatable using the Core representation
     public static func == (lhs: NetworkFee, rhs: NetworkFee) -> Bool {
-        return CRYPTO_TRUE == cryptoNetworkEqual (lhs.core, rhs.core)
+        return CRYPTO_TRUE == cryptoNetworkFeeEqual (lhs.core, rhs.core)
     }
 }

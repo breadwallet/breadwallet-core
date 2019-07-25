@@ -81,10 +81,40 @@ public final class Address: Equatable, CustomStringConvertible {
 /// generate different address.  For example, a Bitcoin wallet can have a 'Segwit/BECH32' address
 /// scheme or a 'Legacy' address scheme.
 ///
-public protocol AddressScheme {
-    associatedtype W: Wallet
+/// The WalletManager holds an array of AddressSchemes as well as the preferred AddressScheme.
+/// The preferred scheme is selected from among the array of schemes.
+///
+public enum AddressScheme: Equatable, CustomStringConvertible {
+    case btcLegacy
+    case btcSegwit
+    case ethDefault
+    case genDefault
 
-    // Generate a 'receive' (aka target') address for wallet.
-    func getAddress (for wallet: W) -> Address
+    internal init (core: BRCryptoAddressScheme) {
+        switch core {
+        case CRYPTO_ADDRESS_SCHEME_BTC_LEGACY:  self = .btcLegacy
+        case CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT:  self = .btcSegwit
+        case CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT: self = .ethDefault
+        case CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT: self = .genDefault
+        default: self = .genDefault;  precondition(false)
+        }
+    }
+
+    internal var core: BRCryptoAddressScheme {
+        switch self {
+        case .btcLegacy:  return CRYPTO_ADDRESS_SCHEME_BTC_LEGACY
+        case .btcSegwit:  return CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT
+        case .ethDefault: return CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT
+        case .genDefault: return CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT
+        }
+    }
+
+    public var description: String {
+        switch self {
+        case .btcLegacy: return "BTC Legacy"
+        case .btcSegwit: return "BTC Segwit"
+        case .ethDefault: return "ETH Default"
+        case .genDefault: return "GEN Default"
+        }
+    }
 }
-

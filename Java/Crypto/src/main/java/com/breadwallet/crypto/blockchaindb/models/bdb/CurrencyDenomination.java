@@ -61,6 +61,13 @@ public class CurrencyDenomination {
             "EOS", "EOS", UnsignedInteger.valueOf(18), lookupSymbol("eos"));
 
 
+    public static CurrencyDenomination XRP_DROP = new CurrencyDenomination(
+            "drop", "drop", UnsignedInteger.valueOf(0), lookupSymbol("drop"));
+
+    public static CurrencyDenomination XRP_XRP = new CurrencyDenomination(
+            "xrp", "xrp", UnsignedInteger.valueOf(6), lookupSymbol("xrp"));
+
+
     public static Optional<CurrencyDenomination> asDenomination(JSONObject json) {
         try {
             String name = json.getString("name");

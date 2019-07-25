@@ -10,7 +10,6 @@ package com.breadwallet.crypto.blockchaindb.apis.bdb;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
-import com.breadwallet.crypto.blockchaindb.CompletionHandler;
 import com.breadwallet.crypto.blockchaindb.DataTask;
 import com.breadwallet.crypto.blockchaindb.apis.ArrayResponseParser;
 import com.breadwallet.crypto.blockchaindb.apis.ObjectResponseParser;
@@ -21,6 +20,7 @@ import com.breadwallet.crypto.blockchaindb.errors.QueryNoDataError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryResponseError;
 import com.breadwallet.crypto.blockchaindb.errors.QuerySubmissionError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryUrlError;
+import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
 import com.google.common.collect.Multimap;
 
@@ -65,7 +65,7 @@ public class BdbApiClient {
     // Create (Crud)
 
     <T> void sendPost(String resource, Multimap<String, String> params, JSONObject json, ObjectResponseParser<T> parser,
-                      CompletionHandler<T> handler) {
+                      CompletionHandler<T, QueryError> handler) {
         makeAndSendRequest(
                 Collections.singletonList(resource),
                 params,
@@ -78,7 +78,7 @@ public class BdbApiClient {
 
     /* package */
     <T> void sendGet(String resource, Multimap<String, String> params, ObjectResponseParser<T> parser,
-                     CompletionHandler<T> handler) {
+                     CompletionHandler<T, QueryError> handler) {
         makeAndSendRequest(
                 Collections.singletonList(resource),
                 params,
@@ -89,7 +89,7 @@ public class BdbApiClient {
 
     /* package */
     <T> void sendGetForArray(String resource, Multimap<String, String> params, ArrayResponseParser<T> parser,
-                             CompletionHandler<T> handler) {
+                             CompletionHandler<T, QueryError> handler) {
         makeAndSendRequest(
                 Collections.singletonList(resource),
                 params,
@@ -100,7 +100,7 @@ public class BdbApiClient {
 
     /* package */
     <T> void sendGetWithId(String resource, String id, Multimap<String, String> params, ObjectResponseParser<T> parser,
-                           CompletionHandler<T> handler) {
+                           CompletionHandler<T, QueryError> handler) {
         makeAndSendRequest(
                 Arrays.asList(resource, id),
                 params,
@@ -112,7 +112,7 @@ public class BdbApiClient {
     // Update (crUd)
 
     <T> void sendPut(String resource, Multimap<String, String> params, JSONObject json,
-                     ObjectResponseParser<T> parser, CompletionHandler<T> handler) {
+                     ObjectResponseParser<T> parser, CompletionHandler<T, QueryError> handler) {
         makeAndSendRequest(
                 Collections.singletonList(resource),
                 params,
@@ -122,7 +122,7 @@ public class BdbApiClient {
     }
 
     <T> void sendPutWithId(String resource, String id, Multimap<String, String> params, JSONObject json,
-                           ObjectResponseParser<T> parser, CompletionHandler<T> handler) {
+                           ObjectResponseParser<T> parser, CompletionHandler<T, QueryError> handler) {
         makeAndSendRequest(
                 Arrays.asList(resource, id),
                 params,
@@ -136,7 +136,7 @@ public class BdbApiClient {
     /* package */
     <T> void sendDeleteWithId(String resource, String id, Multimap<String, String> params,
                               ObjectResponseParser<T> parser,
-                              CompletionHandler<T> handler) {
+                              CompletionHandler<T, QueryError> handler) {
         makeAndSendRequest(
                 Arrays.asList(resource, id),
                 params,
@@ -214,9 +214,9 @@ public class BdbApiClient {
     private static class ObjectHandler<T> implements ResponseHandler {
 
         private final ObjectResponseParser<T> parser;
-        private final CompletionHandler<T> handler;
+        private final CompletionHandler<T, QueryError> handler;
 
-        ObjectHandler(ObjectResponseParser<T> parser, CompletionHandler<T> handler) {
+        ObjectHandler(ObjectResponseParser<T> parser, CompletionHandler<T, QueryError> handler) {
             this.parser = parser;
             this.handler = handler;
         }
@@ -244,10 +244,10 @@ public class BdbApiClient {
 
         private final String path;
         private final ArrayResponseParser<T> parser;
-        private final CompletionHandler<T> handler;
+        private final CompletionHandler<T, QueryError> handler;
 
 
-        ArrayHandler(String path, ArrayResponseParser<T> parser, CompletionHandler<T> handler) {
+        ArrayHandler(String path, ArrayResponseParser<T> parser, CompletionHandler<T, QueryError> handler) {
             this.path = path;
             this.parser = parser;
             this.handler = handler;
