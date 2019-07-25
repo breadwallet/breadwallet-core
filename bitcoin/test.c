@@ -1222,7 +1222,64 @@ int BRKeyTests()
     if (strcmp(privKey2, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL") != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 2\n", __func__);
 #endif
-    
+
+    // pubkey match
+    BRKey prvKeyX1, prvKeyX2;
+    BRKey pubKeyX1, pubKeyX2;
+
+    BRKeySetPrivKey (&prvKeyX1, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
+    if (!BRKeyPubKeyMatch (&prvKeyX1, &prvKeyX1))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 5.1\n", __func__);
+
+    BRKeySetPrivKey (&prvKeyX1, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
+    BRKeySetPrivKey (&prvKeyX2, "5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF");
+    if (BRKeyPubKeyMatch (&prvKeyX1, &prvKeyX2))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 5.2\n", __func__);
+
+    BRKeySetPrivKey (&prvKeyX1, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
+    BRKeySetPrivKey (&prvKeyX2, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
+    prvKeyX1.compressed = 0;
+    prvKeyX2.compressed = 0;
+   if (!BRKeyPubKeyMatch (&prvKeyX1, &prvKeyX2))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 5.3.1\n", __func__);
+    BRKeySetPubKey (&pubKeyX1, prvKeyX1.pubKey, 65);
+    BRKeySetPubKey (&pubKeyX2, prvKeyX2.pubKey, 65);
+    if (!BRKeyPubKeyMatch (&prvKeyX1, &prvKeyX2))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 5.3.2\n", __func__);
+
+    BRKeySetPrivKey (&prvKeyX1, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
+    BRKeySetPrivKey (&prvKeyX2, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
+    prvKeyX1.compressed = 0;
+    prvKeyX2.compressed = 1;
+    if (!BRKeyPubKeyMatch (&prvKeyX1, &prvKeyX2))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 5.3.1\n", __func__);
+    BRKeySetPubKey (&pubKeyX1, prvKeyX1.pubKey, 65);
+    BRKeySetPubKey (&pubKeyX2, prvKeyX2.pubKey, 33);
+    if (!BRKeyPubKeyMatch (&prvKeyX1, &prvKeyX2))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 5.3.2\n", __func__);
+
+    BRKeySetPrivKey (&prvKeyX1, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
+    BRKeySetPrivKey (&prvKeyX2, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
+    prvKeyX1.compressed = 1;
+    prvKeyX2.compressed = 0;
+    if (!BRKeyPubKeyMatch (&prvKeyX1, &prvKeyX2))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 5.3.1\n", __func__);
+    BRKeySetPubKey (&pubKeyX1, prvKeyX1.pubKey, 33);
+    BRKeySetPubKey (&pubKeyX2, prvKeyX2.pubKey, 65);
+    if (!BRKeyPubKeyMatch (&prvKeyX1, &prvKeyX2))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 5.3.2\n", __func__);
+
+    BRKeySetPrivKey (&prvKeyX1, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
+    BRKeySetPrivKey (&prvKeyX2, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
+    prvKeyX1.compressed = 1;
+    prvKeyX2.compressed = 1;
+    if (!BRKeyPubKeyMatch (&prvKeyX1, &prvKeyX2))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 5.3.1\n", __func__);
+    BRKeySetPubKey (&pubKeyX1, prvKeyX1.pubKey, 33);
+    BRKeySetPubKey (&pubKeyX2, prvKeyX2.pubKey, 33);
+    if (!BRKeyPubKeyMatch (&prvKeyX1, &prvKeyX2))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 5.3.2\n", __func__);
+
     // signing
     BRKeySetSecret(&key, &uint256("0000000000000000000000000000000000000000000000000000000000000001"), 1);
     msg = "Everything should be made as simple as possible, but not simpler.";
