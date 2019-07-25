@@ -81,7 +81,7 @@ extern "C" {
      * @return CRYPTO_TRUE if valid; false otherwise.
      */
     extern BRCryptoBoolean
-    cryptoAccountValidateWordsList (int wordsCount);
+    cryptoAccountValidateWordsList (size_t wordsCount);
 
     extern BRCryptoAccount
     cryptoAccountCreate (const char *paperKey, uint64_t timestamp);
