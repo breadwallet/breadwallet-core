@@ -63,7 +63,7 @@ public final class CryptoKey {
 ///
 /// Sign 32-byte data with a private key to return a signature; optional recover the public key
 ///
-public protocol CryptoSigner {
+public protocol Signer {
 
     ///
     /// Create a signature from 32-byte data using the CryptoKey (with private key provided)
@@ -90,7 +90,7 @@ public protocol CryptoSigner {
     func recover (data32: Data, signature: Data) -> CryptoKey?
 }
 
-public enum CoreCryptoSigner: CryptoSigner {
+public enum CoreSigner: Signer {
     // Does not support 'recovery'
     case basic
 
