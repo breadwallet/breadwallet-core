@@ -9,6 +9,7 @@ package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
 import com.breadwallet.corenative.utility.SizeTByReference;
+import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInts;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
@@ -63,7 +64,7 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
     }
 
     @Override
-    public CoreBRCryptoUnit getFeeUnit() {
+    public CoreBRCryptoUnit getUnitForFee() {
         return new OwnedBRCryptoUnit(CryptoLibrary.INSTANCE.cryptoWalletGetUnitForFee(this));
     }
 
@@ -93,27 +94,28 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
     }
 
     @Override
-    public CoreBRCryptoAddress getSourceAddress() {
-        return new OwnedBRCryptoAddress(CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this));
+    public CoreBRCryptoAddress getSourceAddress(int addressScheme) {
+        return new OwnedBRCryptoAddress(CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this, addressScheme));
     }
 
     @Override
-    public CoreBRCryptoAddress getTargetAddress() {
-        return new OwnedBRCryptoAddress(CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this));
+    public CoreBRCryptoAddress getTargetAddress(int addressScheme) {
+        return new OwnedBRCryptoAddress(CryptoLibrary.INSTANCE.cryptoWalletGetAddress(this, addressScheme));
     }
 
     @Override
     public CoreBRCryptoTransfer createTransfer(CoreBRCryptoAddress target, CoreBRCryptoAmount amount,
-                                               CoreBRCryptoFeeBasis feeBasis) {
+                                               CoreBRCryptoFeeBasis estimatedFeeBasis) {
         // TODO(discuss): This could return NULL, should be optional?
         return new OwnedBRCryptoTransfer(CryptoLibrary.INSTANCE.cryptoWalletCreateTransfer(this,
-                target.asBRCryptoAddress(), amount.asBRCryptoAmount(), feeBasis.asBRCryptoFeeBasis()));
+                target.asBRCryptoAddress(), amount.asBRCryptoAmount(), estimatedFeeBasis.asBRCryptoFeeBasis()));
     }
 
     @Override
-    public CoreBRCryptoAmount estimateFee(CoreBRCryptoAmount amount, CoreBRCryptoFeeBasis feeBasis) {
-        return new OwnedBRCryptoAmount(CryptoLibrary.INSTANCE.cryptoWalletEstimateFee(this, amount.asBRCryptoAmount(),
-                feeBasis.asBRCryptoFeeBasis()));
+    public Optional<CoreBRCryptoFeeBasis> estimateFeeBasis(CoreBRCryptoAddress target, CoreBRCryptoAmount amount,
+                                                           CoreBRCryptoNetworkFee fee) {
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoWalletEstimateFeeBasis(this,
+                target.asBRCryptoAddress(), amount.asBRCryptoAmount(), fee.asBRCryptoNetworkFee())).transform(OwnedBRCryptoFeeBasis::new);
     }
 
     @Override

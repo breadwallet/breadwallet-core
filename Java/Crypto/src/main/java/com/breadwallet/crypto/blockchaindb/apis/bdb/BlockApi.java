@@ -7,9 +7,9 @@
  */
 package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
-import com.breadwallet.crypto.blockchaindb.CompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Block;
+import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
@@ -37,14 +37,14 @@ public class BlockApi {
 
     public void getBlocks(String id, UnsignedLong beginBlockNumber, UnsignedLong endBlockNumber, boolean includeRaw,
                           boolean includeTx, boolean includeTxRaw, boolean includeTxProof,
-                          CompletionHandler<List<Block>> handler) {
+                          CompletionHandler<List<Block>, QueryError> handler) {
         executorService.submit(() -> getBlocksOnExecutor(id, beginBlockNumber, endBlockNumber, includeRaw, includeTx,
                 includeTxRaw, includeTxProof, handler));
     }
 
     public void getBlock(String id, boolean includeRaw,
                          boolean includeTx, boolean includeTxRaw, boolean includeTxProof,
-                         CompletionHandler<Block> handler) {
+                         CompletionHandler<Block, QueryError> handler) {
         Multimap<String, String> params = ImmutableListMultimap.of(
                 "include_raw", String.valueOf(includeRaw),
                 "include_tx", String.valueOf(includeTx),
@@ -56,7 +56,7 @@ public class BlockApi {
 
     private void getBlocksOnExecutor(String id, UnsignedLong beginBlockNumber, UnsignedLong endBlockNumber, boolean includeRaw,
                                      boolean includeTx, boolean includeTxRaw, boolean includeTxProof,
-                                     CompletionHandler<List<Block>> handler) {
+                                     CompletionHandler<List<Block>, QueryError> handler) {
         final QueryError[] error = {null};
         List<Block> allBlocks = new ArrayList<>();
         Semaphore sema = new Semaphore(0);
@@ -77,7 +77,7 @@ public class BlockApi {
             ImmutableMultimap<String, String> params = paramsBuilder.build();
 
             jsonClient.sendGetForArray("blocks", params, Block::asBlocks,
-                    new CompletionHandler<List<Block>>() {
+                    new CompletionHandler<List<Block>, QueryError>() {
                 @Override
                 public void handleData(List<Block> blocks) {
                     allBlocks.addAll(blocks);

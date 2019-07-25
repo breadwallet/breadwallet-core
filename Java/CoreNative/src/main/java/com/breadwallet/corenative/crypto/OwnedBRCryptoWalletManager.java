@@ -73,6 +73,16 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
+    public int getAddressScheme() {
+        return core.getAddressScheme();
+    }
+
+    @Override
+    public void setAddressScheme(int scheme) {
+        core.setAddressScheme(scheme);
+    }
+
+    @Override
     public void connect() {
         core.connect();
     }
@@ -122,6 +132,12 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
         core.announceGetTransactionsItemEth(callbackState,hash, sourceAddr, targetAddr, contractAddr, amount, gasLimit,
                 gasPrice, data, nonce, gasUsed, blockNumber, blockHash, blockConfirmations, blockTransacionIndex,
                 blockTimestamp, isError);
+    }
+
+    @Override
+    public void announceGetTransactionsItemGen(BRCryptoCWMClientCallbackState callbackState, byte[] transaction,
+                                               UnsignedLong timestamp, UnsignedLong blockHeight) {
+        core.announceGetTransactionsItemGen(callbackState, transaction, timestamp, blockHeight);
     }
 
     @Override

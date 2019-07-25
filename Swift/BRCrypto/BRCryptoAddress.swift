@@ -82,32 +82,39 @@ public final class Address: Equatable, CustomStringConvertible {
 /// scheme or a 'Legacy' address scheme.
 ///
 /// The WalletManager holds an array of AddressSchemes as well as the preferred AddressScheme.
-/// The preferred scheme is select from among the array of schemes.
+/// The preferred scheme is selected from among the array of schemes.
 ///
-public struct AddressScheme: Equatable {
+public enum AddressScheme: Equatable, CustomStringConvertible {
+    case btcLegacy
+    case btcSegwit
+    case ethDefault
+    case genDefault
 
-    /// The Core representation
-    let core: BRCryptoAddressScheme
-
-    /// The name - for BTC the names are "BTC Legacy" and "BTC Segwit" (which might serve a
-    /// purpose if the user is prompted for their preferred address scheme.
-    public let name: String
-
-    init (core: BRCryptoAddressScheme) {
-        self.core = core
+    internal init (core: BRCryptoAddressScheme) {
         switch core {
-        case CRYPTO_ADDRESS_SCHEME_BTC_LEGACY:
-            self.name = "BTC Legacy"
-        case CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT:
-            self.name = "BTC Segwit"
-        default:
-            self.name = "Default"
+        case CRYPTO_ADDRESS_SCHEME_BTC_LEGACY:  self = .btcLegacy
+        case CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT:  self = .btcSegwit
+        case CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT: self = .ethDefault
+        case CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT: self = .genDefault
+        default: self = .genDefault;  precondition(false)
         }
     }
 
-    // Equatable
-    public static func == (lhs: AddressScheme, rhs: AddressScheme) -> Bool {
-        return lhs.core == rhs.core
+    internal var core: BRCryptoAddressScheme {
+        switch self {
+        case .btcLegacy:  return CRYPTO_ADDRESS_SCHEME_BTC_LEGACY
+        case .btcSegwit:  return CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT
+        case .ethDefault: return CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT
+        case .genDefault: return CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT
+        }
+    }
+
+    public var description: String {
+        switch self {
+        case .btcLegacy: return "BTC Legacy"
+        case .btcSegwit: return "BTC Segwit"
+        case .ethDefault: return "ETH Default"
+        case .genDefault: return "GEN Default"
+        }
     }
 }
-

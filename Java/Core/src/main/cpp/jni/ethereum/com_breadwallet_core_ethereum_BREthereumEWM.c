@@ -320,7 +320,8 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
                                         ETHEREUM_TIMESTAMP_UNKNOWN,
                                         BRD_WITH_P2P_SEND,
                                         client,
-                                        storagePath);
+                                        storagePath,
+                                        0);
 
     (*env)->ReleaseStringUTFChars (env, paperKeyString,    paperKey);
     (*env)->ReleaseStringUTFChars (env, storagePathString, storagePath);
@@ -375,7 +376,8 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM_1PublicKey
                                                      ETHEREUM_TIMESTAMP_UNKNOWN,
                                                      BRD_WITH_P2P_SEND,
                                                      client,
-                                                     storagePath);
+                                                     storagePath,
+                                                     0);
 
 
     (*env)->ReleaseByteArrayElements(env, publicKey, publicKeyBytes, 0);
@@ -921,9 +923,9 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnounceToken
                               : (*env)->GetStringUTFChars (env, defaultGasPrice, 0);
 
     ewmAnnounceToken(node,
+                     rid,
                      strAddress, strSymbol, strName, strDescription,
-                     decimals, strGasLimit, strGasPrice,
-                     rid);
+                     decimals, strGasLimit, strGasPrice);
 
     (*env)->ReleaseStringUTFChars (env, address, strAddress);
     (*env)->ReleaseStringUTFChars (env, symbol, strSymbol);

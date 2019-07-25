@@ -54,10 +54,22 @@ public interface Account {
      *
      * Use {@link Account#createFromPhrase(byte[], Date, String)} to get the account
      *
-     * @return The 12 word 'paper key
+     * @return A UTF-8 NFKD normalized BIP-39 paper key
      */
-    static String generatePhrase(List<String> words) {
+    static byte[] generatePhrase(List<String> words) {
         return CryptoApi.getProvider().accountProvider().generatePhrase(words);
+    }
+
+    /**
+     * Validate a phrase as a BIP-39 'paper key'
+     *
+     * @param phraseUtf8 The UTF-8 NFKD normalized BIP-39 paper key
+     * @param words A locale-specific BIP-39-defined array of 2048 words.
+     *
+     * @return true is a valid paper key; false otherwise
+     */
+    static boolean validatePhrase(byte[] phraseUtf8, List<String> words) {
+        return CryptoApi.getProvider().accountProvider().validatePhrase(phraseUtf8, words);
     }
 
     Date getTimestamp();
@@ -66,4 +78,13 @@ public interface Account {
      * Serialize an account.  The serialization is <b>always</b> in the current, default format.
      */
     byte[] serialize();
+
+    /**
+     * Validate a serialized account contains the same seed material
+     *
+     * @param serialization a serialized account from {@link #serialize()}
+     *
+     * @return true contains the same material; false otherwise
+     */
+    boolean validate(byte[] serialization);
 }

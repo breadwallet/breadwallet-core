@@ -9,31 +9,29 @@
  */
 package com.breadwallet.crypto;
 
+import com.breadwallet.crypto.errors.FeeEstimationError;
+import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
 
 import java.util.List;
 
 public interface Wallet {
 
-    Optional<? extends Transfer> createTransfer(Address target, Amount amount);
+    Optional<? extends Transfer> createTransfer(Address target, Amount amount, TransferFeeBasis estimatedFeeBasis);
 
-    Optional<? extends Transfer> createTransfer(Address target, Amount amount, TransferFeeBasis feeBasis);
-
-    Amount estimateFee(Amount amount);
-
-    Amount estimateFee(Amount amount, TransferFeeBasis feeBasis);
+    void estimateFee(Address target, Amount amount, NetworkFee fee, CompletionHandler<TransferFeeBasis, FeeEstimationError> completion);
 
     WalletManager getWalletManager();
 
-    Unit getBaseUnit();
+    Unit getUnit();
+
+    Unit getUnitForFee();
 
     Amount getBalance();
 
     List<? extends Transfer> getTransfers();
 
     Optional<? extends Transfer> getTransferByHash(TransferHash hash);
-
-    TransferFeeBasis getDefaultFeeBasis();
 
     Address getTarget();
 

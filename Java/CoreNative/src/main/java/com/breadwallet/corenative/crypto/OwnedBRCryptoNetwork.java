@@ -62,6 +62,16 @@ class OwnedBRCryptoNetwork implements CoreBRCryptoNetwork {
     }
 
     @Override
+    public UnsignedLong getFeeCount() {
+        return core.getFeeCount();
+    }
+
+    @Override
+    public CoreBRCryptoNetworkFee getFee(UnsignedLong i) {
+        return core.getFee(i);
+    }
+
+    @Override
     public String getUids() {
         return core.getUids();
     }
@@ -84,6 +94,11 @@ class OwnedBRCryptoNetwork implements CoreBRCryptoNetwork {
     @Override
     public int getType() {
         return core.getType();
+    }
+
+    @Override
+    public void addFee(CoreBRCryptoNetworkFee fee) {
+        core.addFee(fee);
     }
 
     @Override

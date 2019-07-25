@@ -9,12 +9,12 @@
 import Foundation // for Data
 import BRCore
 
-public protocol CryptoHasher {
+public protocol HasherX {
     func hash (data: Data) -> Data
 }
 
 
-public enum CoreCryptoHasher: CryptoHasher {
+public enum CoreHasher: HasherX {
     case sha1
     case sha256
     case sha224

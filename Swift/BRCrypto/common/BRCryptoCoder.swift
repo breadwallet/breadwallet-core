@@ -9,12 +9,12 @@
 import Foundation
 import BRCore
 
-public protocol CryptoCoder {
+public protocol Coder {
     func encode (data: Data) -> String
     func decode (string: String) -> Data?
 }
 
-public enum CoreCryptoCoder: CryptoCoder {
+public enum CoreCoder: Coder {
     case hex
     case base58
     case base58check

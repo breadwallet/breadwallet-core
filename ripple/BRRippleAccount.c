@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
+#include <stdbool.h>
 #include "support/BRCrypto.h"
 #include "support/BRKey.h"
 #include "support/BRBIP32Sequence.h"
@@ -54,21 +55,28 @@ extern UInt512 getSeed(const char *paperKey)
     return seed;
 }
 
-extern BRKey deriveRippleKeyFromSeed (UInt512 seed, uint32_t index)
+static BRKey deriveRippleKeyFromSeed (UInt512 seed, uint32_t index, bool cleanPrivateKey)
 {
-    BRKey privateKey;
+    BRKey key;
+    mem_clean(&key, sizeof(BRKey));
     
     // The BIP32 privateKey for m/44'/60'/0'/0/index
-    BRBIP32PrivKeyPath(&privateKey, &seed, sizeof(UInt512), 5,
+    BRBIP32PrivKeyPath(&key, &seed, sizeof(UInt512), 5,
                        44 | BIP32_HARD,          // purpose  : BIP-44
                        144 | BIP32_HARD,        // coin_type: Ripple
                        0 | BIP32_HARD,          // account  : <n/a>
                        0,                        // change   : not change
                        index);                   // index    :
-    
-    privateKey.compressed = 0;
-    
-    return privateKey;
+
+    // Generate the compressed public key
+    key.compressed = 1;
+    BRKeyPubKey(&key, &key.pubKey, 33);
+    if (cleanPrivateKey) {
+        // In some cases we don't want to wipe the secret: i.e. during signing
+        mem_clean(&key.secret, sizeof(key.secret));
+    }
+
+    return key;
 }
 
 extern char * createRippleAddressString (BRRippleAddress address, int useChecksum)
@@ -102,13 +110,13 @@ extern char * createRippleAddressString (BRRippleAddress address, int useChecksu
  * 2. In DEBUG mode unit tests can pass in a private key instead
  *
  */
-BRKey getKey(const char* paperKey)
+BRKey getKey(const char* paperKey, bool cleanPrivateKey)
 {
 #ifndef DEBUG
     // In release mode we assume we only support mnemonic paper key
     // Create the seed and the keys
     UInt512 seed = getSeed(paperKey);
-    return deriveRippleKeyFromSeed (seed, 0);
+    return deriveRippleKeyFromSeed (seed, 0, cleanPrivateKey);
 #else
     // See if this key has any embedded spaces. If it does then
     // it is a real paper key
@@ -123,10 +131,15 @@ BRKey getKey(const char* paperKey)
     if (1 == is_paper_key) {
         // Create the seed and the keys
         UInt512 seed = getSeed(paperKey);
-        return deriveRippleKeyFromSeed (seed, 0);
+        return deriveRippleKeyFromSeed (seed, 0, cleanPrivateKey);
     } else {
+        // The following is for testing purposes only. I have a couple
+        // of tests that create a private key from a string.
         BRKey key;
+        mem_clean(&key, sizeof(key));
         BRKeySetPrivKey(&key, paperKey);
+        key.compressed = 1;
+        BRKeyPubKey(&key, &key.pubKey, 33);
         return key;
     }
 #endif
@@ -134,20 +147,21 @@ BRKey getKey(const char* paperKey)
 
 static BRRippleAccount createAccountObject(BRKey * key)
 {
+    if (0 == key->compressed) {
+        // The expectation is that this key contains the compressed public key
+        return NULL;
+    }
+
     BRRippleAccount account = (BRRippleAccount) calloc (1, sizeof (struct BRRippleAccountRecord));
 
     // Take a copy of the key since we are changing at least once property
-    BRKey tmpKey = *key;
+    account->publicKey = *key;
 
-    // Get the public key and store with the account object
-    tmpKey.compressed = 1;
-    uint8_t pubkey[33];
-    BRKeyPubKey(&tmpKey, pubkey, 33);
-    memcpy(account->publicKey.pubKey, pubkey, 33);
-    account->publicKey.compressed = 1;
+    // Before returning the account - wipe out the secret just in case someone forgot
+    mem_clean(&account->publicKey.secret, sizeof(account->publicKey.secret));
 
     // Create the raw bytes for the 20 byte account id
-    UInt160 hash = BRKeyHash160(&tmpKey);
+    UInt160 hash = BRKeyHash160(&account->publicKey);
     memcpy(account->raw.bytes, hash.u8, 20);
 
     return account;
@@ -156,15 +170,14 @@ static BRRippleAccount createAccountObject(BRKey * key)
 // Create an account from the paper key
 extern BRRippleAccount rippleAccountCreate (const char *paperKey)
 {
-    BRKey key = getKey(paperKey);
-
+    BRKey key = getKey(paperKey, true);
     return createAccountObject(&key);
 }
 
 // Create an account object with the seed
 extern BRRippleAccount rippleAccountCreateWithSeed(UInt512 seed)
 {
-    BRKey key = deriveRippleKeyFromSeed (seed, 0);
+    BRKey key = deriveRippleKeyFromSeed (seed, 0, true);
     return createAccountObject(&key);
 }
 
@@ -175,8 +188,15 @@ extern BRRippleAccount rippleAccountCreateWithKey(BRKey key)
 }
 
 extern BRRippleAccount rippleAccountCreateWithSerialization (uint8_t *bytes, size_t bytesCount) {
+    if (!bytes || bytesCount != 33) {
+        // We only support a compressed public key
+        return NULL;
+    }
     BRKey key;
     BRKeySetPubKey(&key, bytes, bytesCount);
+    if (0 == key.compressed) {
+        return NULL;
+    }
     return createAccountObject(&key);
 }
 
@@ -202,9 +222,11 @@ extern BRRippleAddress rippleAccountGetAddress(BRRippleAccount account)
 
 extern uint8_t *rippleAccountGetSerialization (BRRippleAccount account, size_t *bytesCount) {
     assert (NULL != bytesCount);
+    assert (NULL != account);
+
     *bytesCount = BRKeyPubKey (&account->publicKey, NULL, 0);
     uint8_t *bytes = calloc (1, *bytesCount);
-    BRKeyPubKey(&account->publicKey, bytes, (uint32_t) &bytesCount);
+    BRKeyPubKey(&account->publicKey, bytes, *bytesCount);
     return bytes;
 }
 
@@ -258,7 +280,7 @@ rippleAccountSignTransaction(BRRippleAccount account, BRRippleTransaction transa
     assert(paperKey);
 
     // Create the private key from the paperKey
-    BRKey key = getKey(paperKey);
+    BRKey key = getKey(paperKey, false);
 
     size_t tx_size =
         rippleTransactionSerializeAndSign(transaction, &key, &account->publicKey,
