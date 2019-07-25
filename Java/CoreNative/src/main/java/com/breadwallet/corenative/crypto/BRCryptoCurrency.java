@@ -42,6 +42,12 @@ public class BRCryptoCurrency extends PointerType implements CoreBRCryptoCurrenc
     }
 
     @Override
+    public String getIssuer() {
+        Pointer issuer = CryptoLibrary.INSTANCE.cryptoCurrencyGetIssuer(this);
+        return issuer == null ? null : issuer.getString(0, "UTF-8");
+    }
+
+    @Override
     public boolean isIdentical(CoreBRCryptoCurrency coreBRCryptoCurrency) {
         return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoCurrencyIsIdentical(this, coreBRCryptoCurrency.asBRCryptoCurrency());
     }

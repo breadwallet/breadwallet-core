@@ -38,10 +38,10 @@ public class Currency {
                     ImmutableList.of(CurrencyDenomination.ETH_WEI, CurrencyDenomination.ETH_GWEI,
                             CurrencyDenomination.ETH_ETHER)),
 
-            new Currency("BRD Token", "BRD Token", "BRD", "erc20", "ethereum-mainnet", ADDRESS_BRD_MAINNET,
+            new Currency("BRD Token", "BRD Token", "brd", "erc20", "ethereum-mainnet", ADDRESS_BRD_MAINNET,
                     ImmutableList.of(CurrencyDenomination.BRD_INT, CurrencyDenomination.BRD_BRD)),
 
-            new Currency("EOS Token", "EOS Token", "EOS", "erc20", "ethereum-mainnet", ADDRESS_EOS_MAINNET,
+            new Currency("EOS Token", "EOS Token", "eos", "erc20", "ethereum-mainnet", ADDRESS_EOS_MAINNET,
                     ImmutableList.of(CurrencyDenomination.EOS_INT, CurrencyDenomination.EOS_EOS)),
 
             new Currency("Ripple", "Ripple", "xrp", "native", "ripple-mainnet", null,
@@ -58,8 +58,11 @@ public class Currency {
                     ImmutableList.of(CurrencyDenomination.ETH_WEI, CurrencyDenomination.ETH_GWEI,
                             CurrencyDenomination.ETH_ETHER)),
 
-            new Currency("BRD Token Testnet", "BRD Token Testnet", "BRD", "erc20", "ethereum-testnet", ADDRESS_BRD_TESTNET,
-                    ImmutableList.of(CurrencyDenomination.BRD_INT, CurrencyDenomination.BRD_BRD))
+            new Currency("BRD Token Testnet", "BRD Token Testnet", "brd", "erc20", "ethereum-testnet", ADDRESS_BRD_TESTNET,
+                    ImmutableList.of(CurrencyDenomination.BRD_INT, CurrencyDenomination.BRD_BRD)),
+
+            new Currency("Ripple", "Ripple", "xrp", "native", "ripple-testnet", null,
+                         ImmutableList.of(CurrencyDenomination.XRP_DROP, CurrencyDenomination.XRP_XRP))
     );
 
     public static Optional<Currency> asCurrency(JSONObject json) {

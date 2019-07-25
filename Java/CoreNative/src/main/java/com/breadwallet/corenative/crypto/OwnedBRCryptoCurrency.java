@@ -50,6 +50,11 @@ class OwnedBRCryptoCurrency implements CoreBRCryptoCurrency {
     }
 
     @Override
+    public String getIssuer() {
+        return core.getIssuer();
+    }
+
+    @Override
     public boolean isIdentical(CoreBRCryptoCurrency other) {
         return core.isIdentical(other);
     }

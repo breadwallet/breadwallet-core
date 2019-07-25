@@ -9,6 +9,8 @@
  */
 package com.breadwallet.crypto;
 
+import com.google.common.base.Optional;
+
 public interface Currency {
 
     String CODE_AS_BTC = "btc";
@@ -22,6 +24,8 @@ public interface Currency {
     String getCode();
 
     String getType();
+
+    Optional<String> getIssuer();
 
     boolean equals(Object o);
 

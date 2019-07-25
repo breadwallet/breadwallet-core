@@ -3,6 +3,8 @@ package com.breadwallet.cryptodemo;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import com.breadwallet.crypto.AddressScheme;
+import com.breadwallet.crypto.Currency;
 import com.breadwallet.crypto.Network;
 import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Transfer;
@@ -23,7 +25,9 @@ import com.breadwallet.crypto.events.wallet.WalletEvent;
 import com.breadwallet.crypto.events.wallet.WalletListener;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerListener;
+import com.google.common.base.Optional;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -40,9 +44,11 @@ public class CoreSystemListener implements SystemListener {
     private final Set<TransferListener> transferListeners = Collections.newSetFromMap(new WeakHashMap<>());
 
     private final WalletManagerMode mode;
+    private final List<String> currencyCodesNeeded;
 
-    public CoreSystemListener(WalletManagerMode mode) {
+    public CoreSystemListener(WalletManagerMode mode, List<String> currencyCodesNeeded) {
         this.mode = mode;
+        this.currencyCodesNeeded = new ArrayList<>(currencyCodesNeeded);
     }
 
     public void addListener(WalletManagerListener listener) {
@@ -114,8 +120,24 @@ public class CoreSystemListener implements SystemListener {
             @Nullable
             @Override
             public Void visit(SystemNetworkAddedEvent event) {
-                List<WalletManagerMode> supportedModes = event.getNetwork().getSupportedModes();
-                system.createWalletManager(event.getNetwork(), supportedModes.contains(mode) ? mode : supportedModes.get(0));
+                Network network = event.getNetwork();
+
+                boolean isNetworkNeeded = false;
+                for (String currencyCode: currencyCodesNeeded) {
+                    Optional<? extends Currency> currency = network.getCurrencyByCode(currencyCode);
+                    if (currency.isPresent()) {
+                        isNetworkNeeded = true;
+                        break;
+                    }
+                }
+
+                if (CoreCryptoApplication.isMainnet() == network.isMainnet() && isNetworkNeeded) {
+                    WalletManagerMode wmMode = system.supportsWalletManagerModes(network, mode) ?
+                            mode : system.getDefaultWalletManagerMode(network);
+
+                    AddressScheme addressScheme = system.getDefaultAddressScheme(network);
+                    system.createWalletManager(event.getNetwork(), wmMode, addressScheme);
+                }
                 return null;
             }
         });

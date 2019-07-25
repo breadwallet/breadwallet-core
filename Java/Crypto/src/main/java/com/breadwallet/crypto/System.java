@@ -23,23 +23,13 @@ public interface System {
         return CryptoApi.getProvider().systemProvider().create(listenerExecutor, listener, account, path, query);
     }
 
-    void subscribe(String subscriptionToken);
+    void configure();
 
-    default void initialize(List<String> networksNeeded) {
-        initialize(networksNeeded, true);
-    }
-
-    void initialize(List<String> networksNeeded, boolean isMainnet);
-
-    void start();
+    void createWalletManager(Network network, WalletManagerMode mode, AddressScheme addressScheme);
 
     void stop();
 
-    void sync();
-
-    void createWalletManager(Network network, WalletManagerMode mode);
-
-    Optional<SystemListener> getSystemListener();
+    void subscribe(String subscriptionToken);
 
     Account getAccount();
 
@@ -50,4 +40,16 @@ public interface System {
     List<? extends WalletManager> getWalletManagers();
 
     List<? extends Wallet> getWallets();
+
+    AddressScheme getDefaultAddressScheme(Network network);
+
+    List<AddressScheme> getSupportedAddressSchemes(Network network);
+
+    boolean supportsAddressScheme(Network network, AddressScheme addressScheme);
+
+    WalletManagerMode getDefaultWalletManagerMode(Network network);
+
+    List<WalletManagerMode> getSupportedWalletManagerModes(Network network);
+
+    boolean supportsWalletManagerModes(Network network, WalletManagerMode mode);
 }
