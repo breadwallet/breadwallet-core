@@ -17,9 +17,9 @@ public interface CoreBRCryptoWalletManager {
 
     static CoreBRCryptoWalletManager create(BRCryptoCWMListener.ByValue listener, BRCryptoCWMClient.ByValue client,
                                             CoreBRCryptoAccount account, CoreBRCryptoNetwork network, int mode,
-                                            String path) {
+                                            int scheme, String path) {
         return new OwnedBRCryptoWalletManager(CryptoLibrary.INSTANCE.cryptoWalletManagerCreate(
-                listener, client, account.asBRCryptoAccount(), network.asBRCryptoNetwork(), mode, path));
+                listener, client, account.asBRCryptoAccount(), network.asBRCryptoNetwork(), mode, scheme, path));
     }
 
     static CoreBRCryptoWalletManager createOwned(BRCryptoWalletManager manager) {
@@ -41,6 +41,10 @@ public interface CoreBRCryptoWalletManager {
     String getPath();
 
     int getState();
+
+    int getAddressScheme();
+
+    void setAddressScheme(int scheme);
 
     void connect();
 

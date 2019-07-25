@@ -7,9 +7,9 @@
  */
 package com.breadwallet.corenative.crypto;
 
-public class BRCryptoBlockChainType {
+public interface BRCryptoBlockChainType {
 
-    public static final int BLOCK_CHAIN_TYPE_BTC = 0;
-    public static final int BLOCK_CHAIN_TYPE_ETH = 1;
-    public static final int BLOCK_CHAIN_TYPE_GEN = 2;
+    int BLOCK_CHAIN_TYPE_BTC = 0;
+    int BLOCK_CHAIN_TYPE_ETH = 1;
+    int BLOCK_CHAIN_TYPE_GEN = 2;
 }

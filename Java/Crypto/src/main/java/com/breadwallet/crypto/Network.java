@@ -35,7 +35,7 @@ public interface Network {
 
     List<? extends NetworkFee> getFees();
 
-    Optional<? extends NetworkFee> getMinimumFee();
+    NetworkFee getMinimumFee();
 
     Optional<? extends Currency> getCurrencyByCode(String code);
 

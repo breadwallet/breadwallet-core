@@ -47,7 +47,13 @@ public interface WalletManager {
 
     Unit getDefaultUnit();
 
-    Optional<? extends NetworkFee> getDefaultNetworkFee();
+    NetworkFee getDefaultNetworkFee();
 
     WalletManagerState getState();
+
+    void setAddressScheme(AddressScheme scheme);
+
+    AddressScheme getAddressScheme();
+
+    List<AddressScheme> getAddressSchemes();
 }

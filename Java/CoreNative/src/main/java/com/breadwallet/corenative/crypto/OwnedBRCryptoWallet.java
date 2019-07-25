@@ -82,13 +82,13 @@ class OwnedBRCryptoWallet implements CoreBRCryptoWallet {
     }
 
     @Override
-    public CoreBRCryptoAddress getSourceAddress() {
-        return core.getSourceAddress();
+    public CoreBRCryptoAddress getSourceAddress(int addressScheme) {
+        return core.getSourceAddress(addressScheme);
     }
 
     @Override
-    public CoreBRCryptoAddress getTargetAddress() {
-        return core.getTargetAddress();
+    public CoreBRCryptoAddress getTargetAddress(int addressScheme) {
+        return core.getTargetAddress(addressScheme);
     }
 
     @Override

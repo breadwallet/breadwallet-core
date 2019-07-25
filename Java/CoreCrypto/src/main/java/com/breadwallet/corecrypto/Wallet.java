@@ -124,12 +124,12 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
 
     @Override
     public Address getTarget() {
-        return Address.create(core.getTargetAddress());
+        return Address.create(core.getTargetAddress(Utilities.addressSchemeToCrypto(walletManager.getAddressScheme())));
     }
 
     @Override
     public Address getSource() {
-        return Address.create(core.getSourceAddress());
+        return Address.create(core.getSourceAddress(Utilities.addressSchemeToCrypto(walletManager.getAddressScheme())));
     }
 
     @Override
