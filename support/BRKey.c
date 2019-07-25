@@ -306,6 +306,27 @@ size_t BRKeyPubKey(BRKey *key, void *pubKey, size_t pkLen)
     return (! pubKey || size <= pkLen) ? size : 0;
 }
 
+// compare public keys (generate public keys if needed) and return 1 on match or 0 otherwise
+int BRKeyPubKeyMatch (BRKey *key1, BRKey *key2) {
+    if (key1 == key2) return 1;
+
+    // Generate both public keys by default.
+    BRKeyPubKey(key1, NULL, 0);
+    BRKeyPubKey(key2, NULL, 0);
+
+    // Now compare with respect to compressed encodings
+    if (key1->compressed && key2->compressed)
+        return 0 == memcmp (key1->pubKey, key2->pubKey, 33);
+    else if (!key1->compressed && !key2->compressed)
+        return 0 == memcmp (key1->pubKey, key2->pubKey, 65);
+    else if (!key1->compressed && key2->compressed)
+        return key2->pubKey[0] == ((key1->pubKey[64] % 2) ? 0x03 : 0x02) &&
+        0 == memcmp (&key1->pubKey[1], &key2->pubKey[1], 32);
+    else
+        return key1->pubKey[0] == ((key2->pubKey[64] % 2) ? 0x03 : 0x02) &&
+        0 == memcmp (&key1->pubKey[1], &key2->pubKey[1], 32);
+}
+
 // returns the ripemd160 hash of the sha256 hash of the public key
 UInt160 BRKeyHash160(BRKey *key)
 {
