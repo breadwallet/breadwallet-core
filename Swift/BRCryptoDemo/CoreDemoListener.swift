@@ -110,7 +110,7 @@ class CoreDemoListener: SystemListener {
                                                     addressScheme: scheme)
             }
         case .managerAdded (let manager):
-            //TODO: Don't connect here.
+            //TODO: Don't connect here. connect on touch...
             manager.connect()
 
         }

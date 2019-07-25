@@ -252,21 +252,13 @@ public final class System {
     }
 
     ///
-    /// Start the system.  This will query various BRD services, notably the BlockChainDB, to
-    /// establish the available networks (aka blockchains) and their currencies.  If the
-    /// `networksNeeded` array includes the name of an available network, then a `Network`
-    /// will be created for that network.  (This generates a `SystemEvent` which can be used by
-    /// the App to create a `WalletManager`)
+    /// Configure the system.  This will query various BRD services, notably the BlockChainDB, to
+    /// establish the available networks (aka blockchains) and their currencies.  For each
+    /// `Network` there will be `SystemEvent` which can be used by the App to create a
+    /// `WalletManager`
     ///
-    /// This method can be called repeatedly; however ONLY THE FIRST invocation will create
-    /// Networks for needed networks.  Subsequent calls will simple restart `System` processing.
+    /// @Note: This should only be called one.
     ///
-    /// - Parameter networksNeeded: Then needed networks
-    ///
-    public func start (networksNeeded: [String]) {
-        managers.forEach { $0.connect() }
-    }
-
     public func configure () {
 
         #if MAINNET
