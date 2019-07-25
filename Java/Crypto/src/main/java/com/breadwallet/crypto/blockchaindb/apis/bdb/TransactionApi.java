@@ -7,10 +7,10 @@
  */
 package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
-import com.breadwallet.crypto.blockchaindb.CompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryResponseError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
+import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -43,25 +43,25 @@ public class TransactionApi {
 
     public void getTransactions(String id, List<String> addresses, UnsignedLong beginBlockNumber, UnsignedLong endBlockNumber,
                                 boolean includeRaw, boolean includeProof,
-                                CompletionHandler<List<Transaction>> handler) {
+                                CompletionHandler<List<Transaction>, QueryError> handler) {
         executorService.submit(() -> getTransactionsOnExecutor(id, addresses, beginBlockNumber, endBlockNumber,
                 includeRaw, includeProof, handler));
     }
 
     public void getTransaction(String id, boolean includeRaw, boolean includeProof,
-                               CompletionHandler<Transaction> handler) {
+                               CompletionHandler<Transaction, QueryError> handler) {
         Multimap<String, String> params = ImmutableListMultimap.of("include_proof", String.valueOf(includeProof),
                 "include_raw", String.valueOf(includeRaw));
 
         jsonClient.sendGetWithId("transactions", id, params, Transaction::asTransaction, handler);
     }
 
-    public void createTransaction(String id, String hashAsHex, byte[] tx, CompletionHandler<Void> handler) {
+    public void createTransaction(String id, String hashAsHex, byte[] tx, CompletionHandler<Void, QueryError> handler) {
         JSONObject json = new JSONObject(ImmutableMap.of(
                 "blockchain_id", id,
                 "transaction_id", hashAsHex,
                 "data", BaseEncoding.base64().encode(tx)));
-        jsonClient.sendPost("transactions", ImmutableMultimap.of(), json, Optional::of, new CompletionHandler<Object>() {
+        jsonClient.sendPost("transactions", ImmutableMultimap.of(), json, Optional::of, new CompletionHandler<Object, QueryError>() {
             @Override
             public void handleData(Object data) {
                 handler.handleData(null);
@@ -86,7 +86,7 @@ public class TransactionApi {
 
     private void getTransactionsOnExecutor(String id, List<String> addresses, UnsignedLong beginBlockNumber,
                                            UnsignedLong endBlockNumber, boolean includeRaw, boolean includeProof,
-                                           CompletionHandler<List<Transaction>> handler) {
+                                           CompletionHandler<List<Transaction>, QueryError> handler) {
         final QueryError[] error = {null};
         List<Transaction> allTransactions = new ArrayList<>();
         Semaphore sema = new Semaphore(0);
@@ -110,7 +110,7 @@ public class TransactionApi {
                 ImmutableMultimap<String, String> params = paramsBuilder.build();
 
                 jsonClient.sendGetForArray("transactions", params, Transaction::asTransactions,
-                        new CompletionHandler<List<Transaction>>() {
+                        new CompletionHandler<List<Transaction>, QueryError>() {
                             @Override
                             public void handleData(List<Transaction> transactions) {
                                 allTransactions.addAll(transactions);

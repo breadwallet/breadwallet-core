@@ -44,6 +44,9 @@ public class Currency {
             new Currency("EOS Token", "EOS Token", "EOS", "erc20", "ethereum-mainnet", ADDRESS_EOS_MAINNET,
                     ImmutableList.of(CurrencyDenomination.EOS_INT, CurrencyDenomination.EOS_EOS)),
 
+            new Currency("Ripple", "Ripple", "xrp", "native", "ripple-mainnet", null,
+                    ImmutableList.of(CurrencyDenomination.XRP_DROP, CurrencyDenomination.XRP_XRP)),
+
             // Testnet
             new Currency("Bitcoin-Testnet", "Bitcoin Test", "btc", "native", "bitcoin-testnet", null,
                     ImmutableList.of(CurrencyDenomination.BTC_SATOSHI, CurrencyDenomination.BTC_BITCOIN)),
