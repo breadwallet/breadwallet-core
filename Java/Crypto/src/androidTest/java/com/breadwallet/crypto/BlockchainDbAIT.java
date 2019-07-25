@@ -1,6 +1,5 @@
 package com.breadwallet.crypto;
 
-import com.breadwallet.crypto.blockchaindb.CompletionHandler;
 import com.breadwallet.crypto.blockchaindb.DataTask;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
@@ -11,6 +10,7 @@ import com.breadwallet.crypto.blockchaindb.models.bdb.Transfer;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthLog;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthToken;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthTransaction;
+import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.primitives.UnsignedLong;
 
 import org.junit.Before;
@@ -251,7 +251,7 @@ public class BlockchainDbAIT {
 
     // Helpers
 
-    private static class SynchronousCompletionHandler<T> implements CompletionHandler<T> {
+    private static class SynchronousCompletionHandler<T> implements CompletionHandler<T, QueryError> {
 
         private final Semaphore sema = new Semaphore(0);
 

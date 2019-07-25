@@ -23,15 +23,19 @@ public interface CoreBRCryptoTransfer {
 
     CoreBRCryptoAmount getAmountDirected();
 
-    CoreBRCryptoAmount getFee();
-
-    CoreBRCryptoFeeBasis getFeeBasis();
-
     Optional<CoreBRCryptoHash> getHash();
 
     int getDirection();
 
     BRCryptoTransferState getState();
+
+    Optional<BRCryptoFeeBasis> getEstimatedFeeBasis();
+
+    Optional<BRCryptoFeeBasis> getConfirmedFeeBasis();
+
+    CoreBRCryptoUnit getUnitForFee();
+    
+    CoreBRCryptoUnit getUnitForAmount();
 
     boolean isIdentical(CoreBRCryptoTransfer other);
 

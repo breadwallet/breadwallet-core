@@ -90,6 +90,16 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
+    public int getAddressScheme() {
+        return CryptoLibrary.INSTANCE.cryptoWalletManagerGetAddressScheme(this);
+    }
+
+    @Override
+    public void setAddressScheme(int scheme) {
+        CryptoLibrary.INSTANCE.cryptoWalletManagerSetAddressScheme(this, scheme);
+    }
+
+    @Override
     public void connect() {
         CryptoLibrary.INSTANCE.cryptoWalletManagerConnect(this);
     }
@@ -155,6 +165,13 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
         CryptoLibrary.INSTANCE.cwmAnnounceGetTransactionsItemETH(this, callbackState, hash, sourceAddr, targetAddr, contractAddr,
                 amount, gasLimit, gasPrice, data, nonce, gasUsed, blockNumber, blockHash, blockConfirmations,
                 blockTransacionIndex, blockTimestamp, isError);
+    }
+
+    @Override
+    public void announceGetTransactionsItemGen(BRCryptoCWMClientCallbackState callbackState, byte[] transaction,
+                                               UnsignedLong timestamp, UnsignedLong blockHeight) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetTransactionsItemGEN(this, callbackState, transaction, new SizeT(transaction.length),
+                timestamp.longValue(), blockHeight.longValue());
     }
 
     @Override

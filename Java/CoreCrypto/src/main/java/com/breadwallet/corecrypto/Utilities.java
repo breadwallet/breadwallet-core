@@ -7,12 +7,14 @@
  */
 package com.breadwallet.corecrypto;
 
+import com.breadwallet.corenative.crypto.BRCryptoAddressScheme;
 import com.breadwallet.corenative.crypto.BRCryptoTransferDirection;
 import com.breadwallet.corenative.crypto.BRCryptoTransferState;
 import com.breadwallet.corenative.crypto.BRCryptoTransferStateType;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerState;
 import com.breadwallet.corenative.crypto.BRCryptoWalletState;
 import com.breadwallet.corenative.support.BRSyncMode;
+import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.TransferConfirmation;
 import com.breadwallet.crypto.TransferDirection;
 import com.breadwallet.crypto.TransferState;
@@ -125,6 +127,28 @@ final class Utilities {
                         Optional.absent()
                 ));
             default: throw new IllegalArgumentException("Unsupported state");
+        }
+    }
+
+    /* package */
+    static int addressSchemeToCrypto(AddressScheme scheme) {
+        switch (scheme) {
+            case BTC_LEGACY: return BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_BTC_LEGACY;
+            case BTC_SEGWIT: return BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT;
+            case ETH_DEFAULT: return BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT;
+            case GEN_DEFAULT: return BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT;
+            default: throw new IllegalArgumentException("Unsupported scheme");
+        }
+    }
+
+    /* package */
+    static AddressScheme addressSchemeFromCrypto(int scheme) {
+        switch (scheme) {
+            case BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_BTC_LEGACY: return AddressScheme.BTC_LEGACY;
+            case BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT: return AddressScheme.BTC_SEGWIT;
+            case BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT: return AddressScheme.ETH_DEFAULT;
+            case BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT: return AddressScheme.GEN_DEFAULT;
+            default: throw new IllegalArgumentException("Unsupported scheme");
         }
     }
 }

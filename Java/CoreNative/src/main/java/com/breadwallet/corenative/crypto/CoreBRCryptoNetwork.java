@@ -58,6 +58,10 @@ public interface CoreBRCryptoNetwork {
 
     CoreBRCryptoCurrency getCurrency(UnsignedLong index);
 
+    UnsignedLong getFeeCount();
+
+    CoreBRCryptoNetworkFee getFee(UnsignedLong i);
+
     String getUids();
 
     boolean isMainnet();
@@ -67,6 +71,8 @@ public interface CoreBRCryptoNetwork {
     String getName();
 
     int getType();
+
+    void addFee(CoreBRCryptoNetworkFee fee);
 
     void addCurrency(CoreBRCryptoCurrency currency, CoreBRCryptoUnit baseUnit, CoreBRCryptoUnit defaultUnit);
 
