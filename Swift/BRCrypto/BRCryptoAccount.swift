@@ -33,6 +33,15 @@ public final class Account {
         return Data (bytes: bytes!, count: bytesCount)
     }
 
+    internal init (core: BRCryptoAccount, uids: String, take: Bool) {
+        self.core = take ? cryptoAccountTake(core) : core
+        self.uids = uids
+    }
+
+    deinit {
+        cryptoAccountGive (core)
+    }
+
     ///
     /// Recover an account from a BIP-39 'paper key'
     ///
@@ -70,27 +79,37 @@ public final class Account {
     /// wordList is the locale-specifc BIP-39-defined array of BIP39_WORDLIST_COUNT words.  This
     /// function has a precondition on the size of the wordList.
     ///
-    /// - Parameter wordList: A local-specific BIP-39-defined array of BIP39_WORDLIST_COUNT words.
+    /// - Parameter words: A local-specific BIP-39-defined array of BIP39_WORDLIST_COUNT words.
     ///
     /// - Returns: A 12 word 'paper key'
     ///
-    public static func generatePhrase (wordList: [String]) -> (String,Date)? {
-        precondition (CRYPTO_TRUE == cryptoAccountValidateWordsList (Int32(wordList.count)))
+    public static func generatePhrase (words: [String]) -> (String,Date)? {
+        precondition (CRYPTO_TRUE == cryptoAccountValidateWordsList (words.count))
 
-        var words = wordList.map { UnsafePointer<Int8> (strdup($0)) }
+        var words = words.map { UnsafePointer<Int8> (strdup($0)) }
         defer { words.forEach { free(UnsafeMutablePointer (mutating: $0)) } }
+
         return (asUTF8String (cryptoAccountGeneratePaperKey (&words)), Date())
     }
 
-    internal init (core: BRCryptoAccount, uids: String, take: Bool) {
-        self.core = take ? cryptoAccountTake(core) : core
-        self.uids = uids
-    }
+    ///
+    /// Validate a phrase as a BIP-39 'paper key'; returns true if validated, false otherwise
+    ///
+    /// - Parameters:
+    ///   - phrase: the candidate paper key
+    ///   - words: A local-specific BIP-39-defined array of BIP39_WORDLIST_COUNT words.
+    ///
+    /// - Returns: true is a valid paper key; false otherwise
+    ///
+    public static func validatePhrase (_ phrase: String, words: [String]) -> Bool {
+        precondition (CRYPTO_TRUE == cryptoAccountValidateWordsList (words.count))
 
-    deinit {
-        cryptoAccountGive (core)
-    }
+        var words = words.map { UnsafePointer<Int8> (strdup($0)) }
+        defer { words.forEach { free(UnsafeMutablePointer (mutating: $0)) } }
 
+        return CRYPTO_TRUE == cryptoAccountValidatePaperKey (phrase, &words)
+    }
+    
     // Test Only
     internal var addressAsETH: String {
         return asUTF8String (cryptoAccountAddressAsETH(core)!)

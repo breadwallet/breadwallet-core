@@ -37,8 +37,13 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
         }
 
         @Override
-        public String generatePhrase(List<String> words) {
+        public byte[] generatePhrase(List<String> words) {
             return Account.generatePhrase(words);
+        }
+
+        @Override
+        public boolean validatePhrase(byte[] phraseUtf8, List<String> words) {
+            return Account.validatePhrase(phraseUtf8, words);
         }
     };
 
