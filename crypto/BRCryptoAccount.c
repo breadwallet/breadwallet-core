@@ -46,6 +46,9 @@ static void _accounts_init (void) {
 static uint16_t
 checksumFletcher16 (const uint8_t *data, size_t count);
 
+static void
+randomBytes (void *bytes, size_t bytesCount);
+
 #define ACCOUNT_SERIALIZE_DEFAULT_VERSION  1
 
 static void
@@ -78,7 +81,7 @@ cryptoAccountDeriveSeed (const char *phrase) {
 extern char *
 cryptoAccountGeneratePaperKey (const char *words[]) {
     UInt128 entropy;
-    arc4random_buf (entropy.u8, sizeof (entropy));
+    randomBytes (entropy.u8, sizeof(entropy));
 
     size_t phraseLen = BRBIP39Encode (NULL, 0, words, entropy.u8, sizeof(entropy));
     char  *phrase    = calloc (phraseLen, 1);
@@ -367,3 +370,19 @@ checksumFletcher16(const uint8_t *data, size_t count )
     }
     return (sum2 << 8) | sum1;
 }
+
+#if defined (__ANDROID__)
+static void
+randomBytes (void *bytes, size_t bytesCount) {
+    arc4random_buf (bytes, bytesCount);
+}
+
+#else // IOS, MacOS
+#include <Security/Security.h>
+
+static void
+randomBytes (void *bytes, size_t bytesCount) {
+    if (0 != SecRandomCopyBytes(kSecRandomDefault, bytesCount, bytes))
+        arc4random_buf (bytes, bytesCount); // fallback
+}
+#endif
