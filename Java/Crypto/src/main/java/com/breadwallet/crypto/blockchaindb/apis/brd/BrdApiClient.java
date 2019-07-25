@@ -10,7 +10,6 @@ package com.breadwallet.crypto.blockchaindb.apis.brd;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
-import com.breadwallet.crypto.blockchaindb.CompletionHandler;
 import com.breadwallet.crypto.blockchaindb.DataTask;
 import com.breadwallet.crypto.blockchaindb.apis.ArrayResponseParser;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
@@ -20,6 +19,7 @@ import com.breadwallet.crypto.blockchaindb.errors.QueryNoDataError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryResponseError;
 import com.breadwallet.crypto.blockchaindb.errors.QuerySubmissionError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryUrlError;
+import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
@@ -61,27 +61,27 @@ public class BrdApiClient {
     }
 
     /* package */
-    void sendJsonRequest(String networkName, JSONObject json, CompletionHandler<String> handler) {
+    void sendJsonRequest(String networkName, JSONObject json, CompletionHandler<String, QueryError> handler) {
         makeAndSendRequest(Arrays.asList("ethq", networkName, "proxy"), ImmutableMultimap.of(), json, "POST",
                 new EmbeddedStringHandler(handler));
     }
 
     /* package */
     void sendQueryRequest(String networkName, Multimap<String, String> params, JSONObject json,
-                          CompletionHandler<String> handler) {
+                          CompletionHandler<String, QueryError> handler) {
         makeAndSendRequest(Arrays.asList("ethq", networkName, "query"), params, json, "POST",
                 new EmbeddedStringHandler(handler));
     }
 
     /* package */
     <T> void sendQueryForArrayRequest(String networkName, Multimap<String, String> params, JSONObject json,
-                                      ArrayResponseParser<T> parser, CompletionHandler<T> handler) {
+                                      ArrayResponseParser<T> parser, CompletionHandler<T, QueryError> handler) {
         makeAndSendRequest(Arrays.asList("ethq", networkName, "query"), params, json, "POST",
                 new EmbeddedArrayHandler<T>(parser, handler));
     }
 
     /* package */
-    <T> void sendTokenRequest(ArrayResponseParser<T> parser, CompletionHandler<T> handler) {
+    <T> void sendTokenRequest(ArrayResponseParser<T> parser, CompletionHandler<T, QueryError> handler) {
         makeAndSendRequest(Collections.singletonList("currencies"), ImmutableMultimap.of("type", "erc20"), null, "GET",
                 new RootArrayHandler<T>(parser, handler));
     }
@@ -161,9 +161,9 @@ public class BrdApiClient {
 
     private static class EmbeddedStringHandler implements ResponseHandler<JSONObject> {
 
-        private final CompletionHandler<String> handler;
+        private final CompletionHandler<String, QueryError> handler;
 
-        EmbeddedStringHandler(CompletionHandler<String> handler) {
+        EmbeddedStringHandler(CompletionHandler<String, QueryError> handler) {
             this.handler = handler;
         }
 
@@ -194,9 +194,9 @@ public class BrdApiClient {
     private static class EmbeddedArrayHandler<T> implements ResponseHandler<JSONObject> {
 
         private final ArrayResponseParser<T> parser;
-        private final CompletionHandler<T> handler;
+        private final CompletionHandler<T, QueryError> handler;
 
-        EmbeddedArrayHandler(ArrayResponseParser<T> parser, CompletionHandler<T> handler) {
+        EmbeddedArrayHandler(ArrayResponseParser<T> parser, CompletionHandler<T, QueryError> handler) {
             this.parser = parser;
             this.handler = handler;
         }
@@ -248,9 +248,9 @@ public class BrdApiClient {
     private static class RootArrayHandler<T> implements ResponseHandler<JSONArray> {
 
         private final ArrayResponseParser<T> parser;
-        private final CompletionHandler<T> handler;
+        private final CompletionHandler<T, QueryError> handler;
 
-        RootArrayHandler(ArrayResponseParser<T> parser, CompletionHandler<T> handler) {
+        RootArrayHandler(ArrayResponseParser<T> parser, CompletionHandler<T, QueryError> handler) {
             this.parser = parser;
             this.handler = handler;
         }

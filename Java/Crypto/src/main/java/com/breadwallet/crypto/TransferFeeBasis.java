@@ -11,4 +11,13 @@ package com.breadwallet.crypto;
 
 public interface TransferFeeBasis {
 
+    Unit getUnit();
+
+    Currency getCurrency();
+
+    Amount getPricePerCostFactor();
+
+    double getCostFactor();
+
+    Amount getFee();
 }
