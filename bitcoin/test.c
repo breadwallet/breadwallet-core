@@ -1779,8 +1779,19 @@ int BRBIP32SequenceTests()
         r = 0, fprintf(stderr, "***FAILED*** %s: BRBIP32BitIDKey() test\n", __func__);
 #endif
     
-    // TODO: XXX test BRBIP32SerializeMasterPrivKey()
-    // TODO: XXX test BRBIP32SerializeMasterPubKey()
+    char mpks[] =
+    "xpub68Gmy5EdvgibQVfPdqkBBCHxA5htiqg55crXYuXoQRKfDBFA1WEjWgP6LHhwBZeNK1VTsfTFUHCdrfp1bgwQ9xv5ski8PX9rL2dZXvgGDnw";
+    char s[sizeof(mpks)];
+    
+    mpk = BRBIP32ParseMasterPubKey(mpks);
+    BRBIP32SerializeMasterPubKey(s, sizeof(s), mpk);
+    if (strncmp(s, mpks, sizeof(mpks)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRBIP32ParseMasterPubKey() test\n", __func__);
+
+    BRBIP32SerializeMasterPrivKey(s, sizeof(s), &seed, sizeof(seed));
+    if (strncmp(s, "xprv9s21ZrQH143K3QTDL4LXw2F7HEK3wJUD2nW2nRk4stbPy6cq3jPPqjiChkVvvNKmPGJxWUtg6LnF5kejMRNNU3TGtRBeJgk"
+                "33yuGBxrMPHi", sizeof(s)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRBIP32SerializeMasterPrivKey() test\n", __func__);
 
     printf("                                    ");
     return r;
