@@ -212,9 +212,6 @@ extension UIApplication {
         // Assign and then configure the new system
         app.system = system
         app.system.configure()
-
-        // Start
-        system.start(networksNeeded: [])
     }
 }
 
