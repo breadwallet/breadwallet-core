@@ -19,6 +19,14 @@ class SummaryViewController: UITableViewController, WalletListener {
 
     var detailViewController: WalletViewController? = nil
 
+    func reset () {
+        DispatchQueue.main.async {
+            self.wallets = []
+            self.detailViewController.map{ $0.reset() }
+            self.tableView.reloadData()
+        }
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -71,6 +79,11 @@ class SummaryViewController: UITableViewController, WalletListener {
                                        message: nil,
                                        preferredStyle: UIAlertController.Style.alert)
 
+        alert.addAction (UIAlertAction (title: "Reset", style: UIAlertAction.Style.default) { (action) in
+            UIApplication.reset()
+            alert.dismiss(animated: true) {}
+        })
+
         alert.addAction (UIAlertAction (title: "Sync", style: UIAlertAction.Style.default) { (action) in
             UIApplication.sync()
             alert.dismiss(animated: true) {}
@@ -81,7 +94,7 @@ class SummaryViewController: UITableViewController, WalletListener {
             alert.dismiss(animated: true) {}
         })
 
-        alert.addAction(UIAlertAction (title: "Cancel", style: UIAlertAction.Style.cancel))
+        alert.addAction (UIAlertAction (title: "Cancel", style: UIAlertAction.Style.cancel))
 
         self.present (alert, animated: true) {}
     }
