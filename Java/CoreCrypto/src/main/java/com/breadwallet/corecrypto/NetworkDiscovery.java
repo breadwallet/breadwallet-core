@@ -7,6 +7,9 @@
  */
 package com.breadwallet.corecrypto;
 
+import android.util.Log;
+
+import com.breadwallet.crypto.BuildConfig;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
@@ -28,8 +31,12 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.google.common.base.Preconditions.checkState;
+
 /* package */
 final class NetworkDiscovery {
+
+    private static final String TAG = NetworkDiscovery.class.getName();
 
     /* package */
     interface Callback {
@@ -37,16 +44,15 @@ final class NetworkDiscovery {
     }
 
     /* package */
-    static void discoverNetworks(BlockchainDb query, List<String> networksNeeded, boolean isMainnet, Callback callback) {
+    static void discoverNetworks(BlockchainDb query, Callback callback) {
+        boolean isMainnet = BuildConfig.IS_MAINNET;
+
         List<Network> networks = new ArrayList<>();
         CountUpAndDownLatch latch = new CountUpAndDownLatch(() -> callback.discovered(networks));
 
         getBlockChains(latch, query, Blockchain.DEFAULT_BLOCKCHAINS, isMainnet, blockchainModels -> {
             for (Blockchain blockchainModel : blockchainModels) {
                 String blockchainModelId = blockchainModel.getId();
-                if (!networksNeeded.contains(blockchainModelId)) {
-                    continue;
-                }
 
                 final List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> defaultCurrencies = new ArrayList<>();
                 for (com.breadwallet.crypto.blockchaindb.models.bdb.Currency currency :
@@ -86,8 +92,21 @@ final class NetworkDiscovery {
                         associations.put(currency, new NetworkAssociation(baseUnit, defaultUnit, new HashSet<>(units)));
                     }
 
-                    Currency defaultCurrency = findCurrency(associations, blockchainModel);
-                    Unit feeUnit = associations.get(defaultCurrency).getBaseUnit();
+                    Optional<Currency> maybeDefaultCurrency = findCurrency(associations, blockchainModel);
+                    if (!maybeDefaultCurrency.isPresent()) {
+                        Log.d(TAG, String.format("Missed Currency %s: defaultUnit", blockchainModel.getCurrency()));
+                        return null;
+                    }
+
+                    Currency defaultCurrency = maybeDefaultCurrency.get();
+
+                    NetworkAssociation maybeAssociation = associations.get(defaultCurrency);
+                    if (null == maybeAssociation) {
+                        Log.d(TAG, String.format("Missed Currency Association %s: defaultUnit", blockchainModel.getCurrency()));
+                        return null;
+                    }
+
+                    Unit feeUnit = maybeAssociation.getBaseUnit();
 
                     List<NetworkFee> fees = new ArrayList<>();
                     for (BlockchainFee bdbFee: blockchainModel.getFeeEstimates()) {
@@ -97,9 +116,14 @@ final class NetworkDiscovery {
                             UnsignedLong timeInterval = UnsignedLong.valueOf(TimeUnit.MINUTES.toMillis(Long.decode(tier)));
                             Optional<Amount> amount = Amount.create(bdbFee.getAmount(), false, feeUnit);
                             if (amount.isPresent()) {
-                                fees.add(NetworkFee.create(timeInterval, amount.get(), feeUnit));
+                                fees.add(NetworkFee.create(timeInterval, amount.get()));
                             }
                         }
+                    }
+
+                    if (fees.isEmpty()) {
+                        Log.d(TAG, String.format("Missed Fees %s", blockchainModel.getName()));
+                        return null;
                     }
 
                     networks.add(Network.create(
@@ -234,16 +258,15 @@ final class NetworkDiscovery {
         return units;
     }
 
-    private static Currency findCurrency(Map<Currency,
+    private static Optional<Currency> findCurrency(Map<Currency,
             NetworkAssociation> associations, Blockchain blockchainModel) {
         String code = blockchainModel.getCurrency().toLowerCase();
         for (Currency currency : associations.keySet()) {
             if (code.equals(currency.getCode())) {
-                return currency;
+                return Optional.of(currency);
             }
         }
-        throw new IllegalStateException(String.format("Missing currency %s: defaultUnit",
-                blockchainModel.getCurrency()));
+        return Optional.absent();
     }
 
     private static class CountUpAndDownLatch {

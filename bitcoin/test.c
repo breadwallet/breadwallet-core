@@ -1206,7 +1206,7 @@ int BRKeyTests()
     if (strcmp(privKey2, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL") != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 2\n", __func__);
 #endif
-    
+
     // signing
     BRKeySetSecret(&key, &uint256("0000000000000000000000000000000000000000000000000000000000000001"), 1);
     msg = "Everything should be made as simple as possible, but not simpler.";

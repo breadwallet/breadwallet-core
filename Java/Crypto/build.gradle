@@ -21,10 +21,12 @@ android {
 
         onMainnet {
             dimension "network"
+            buildConfigField 'boolean', 'IS_MAINNET', 'true'
         }
 
         onTestnet {
             dimension "network"
+            buildConfigField 'boolean', 'IS_MAINNET', 'false'
         }
     }
 

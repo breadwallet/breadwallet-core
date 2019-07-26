@@ -13,6 +13,7 @@ import com.breadwallet.corenative.crypto.CoreBRCryptoFeeBasis;
 import com.breadwallet.corenative.crypto.CoreBRCryptoNetworkFee;
 import com.breadwallet.corenative.crypto.CoreBRCryptoTransfer;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWallet;
+import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.WalletState;
 import com.breadwallet.crypto.errors.FeeEstimationError;
 import com.breadwallet.crypto.errors.FeeEstimationServiceFailureError;
@@ -124,7 +125,12 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
 
     @Override
     public Address getTarget() {
-        return Address.create(core.getTargetAddress(Utilities.addressSchemeToCrypto(walletManager.getAddressScheme())));
+        return getTargetForScheme(walletManager.getAddressScheme());
+    }
+
+    @Override
+    public Address getTargetForScheme(AddressScheme scheme) {
+        return Address.create(core.getTargetAddress(Utilities.addressSchemeToCrypto(scheme)));
     }
 
     @Override

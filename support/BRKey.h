@@ -90,6 +90,9 @@ size_t BRKeyPrivKey(const BRKey *key, char *privKey, size_t pkLen);
 // writes the DER encoded public key to pubKey and returns number of bytes written, or pkLen needed if pubKey is NULL
 size_t BRKeyPubKey(BRKey *key, void *pubKey, size_t pkLen);
 
+// compare public keys (generate public keys if needed) and return 1 on match or 0 otherwise
+int BRKeyPubKeyMatch (BRKey *key1, BRKey *key2);
+
 // returns the ripemd160 hash of the sha256 hash of the public key, or UINT160_ZERO on error
 UInt160 BRKeyHash160(BRKey *key);
 
@@ -125,6 +128,9 @@ void BRKeyECDH(const BRKey *privKey, uint8_t *out32, BRKey *pubKey);
 size_t BRKeyCompactSignEthereum(const BRKey *key, void *compactSig, size_t sigLen, UInt256 md);
 int BRKeyRecoverPubKeyEthereum(BRKey *key, UInt256 md, const void *compactSig, size_t sigLen);
 
+// Set the compressed flag in `key`; this will clear the `pubKey` to allow regeneration
+// Returns true (1) if the compress flag changed; false (0) otherwise
+int BRKeySetCompressed (BRKey *key, int compressed);
 
 #ifdef __cplusplus
 }

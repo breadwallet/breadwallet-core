@@ -10,12 +10,11 @@ class NetworkFee implements com.breadwallet.crypto.NetworkFee {
 
     /* package */
     static NetworkFee create(UnsignedLong timeIntervalInMilliseconds,
-                             Amount pricePerCostFactor,
-                             Unit pricePerCostFactorUnit) {
+                             Amount pricePerCostFactor) {
         return new NetworkFee(CoreBRCryptoNetworkFee.create(
                 timeIntervalInMilliseconds,
                 pricePerCostFactor.getCoreBRCryptoAmount(),
-                pricePerCostFactorUnit.getCoreBRCryptoUnit()));
+                pricePerCostFactor.getUnit().getCoreBRCryptoUnit()));
     }
 
     /* package */

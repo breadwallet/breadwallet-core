@@ -9,17 +9,16 @@
 import Foundation // Data
 import BRCryptoC
 
-public final class CryptoKey {
+public final class Key {
     static public var wordList: [String]?
 
-    static public func createFrom (phrase: String, words: [String]? = wordList) -> CryptoKey? {
+    static public func createFrom (phrase: String, words: [String]? = wordList) -> Key? {
         guard var words = words?.map ({ UnsafePointer<Int8> (strdup($0)) }) else { return nil }
         defer { words.forEach { free(UnsafeMutablePointer (mutating: $0)) } }
 
         guard 1 == BRBIP39PhraseIsValid (&words, phrase) else { return nil }
 
         var seed = UInt512.self.init()
-        var key  = BRKey.self.init()
 
         BRBIP39DeriveKey (&seed, phrase, nil)
         defer { seed = UInt512() }
@@ -27,21 +26,13 @@ public final class CryptoKey {
         var smallSeed = UInt256 (u64: (seed.u64.0, seed.u64.1, seed.u64.2, seed.u64.3))
         defer { smallSeed = UInt256() }
 
-        BRKeySetSecret (&key, &smallSeed, 0)
-        defer { BRKeyClean (&key) }
-
-        //        UInt512 seed;
-        //        BRBIP39DeriveKey (seed.u8, phrase, NULL);
-        //        return seed;
-        //        int BRKeySetSecret(BRKey *key, const UInt256 *secret, int compressed);
-
-        return CryptoKey (core: key)
+        return Key (secret: smallSeed)
     }
 
-    static public func createFromSerialization (asPrivate data: Data) -> CryptoKey? {
+    static public func createFromSerialization (asPrivate data: Data) -> Key? {
         let str = String (data: data, encoding: .utf8)!
 
-        return str.withCString { (strPtr: UnsafePointer<Int8>) -> CryptoKey? in
+        return str.withCString { (strPtr: UnsafePointer<Int8>) -> Key? in
             guard 1 == BRPrivKeyIsValid (strPtr) else { return nil }
 
             var key = BRKey()
@@ -49,15 +40,15 @@ public final class CryptoKey {
 
             BRKeySetPrivKey (&key, strPtr)
 
-            return CryptoKey (core: key)
+            return Key (core: key, needPublicKey: true, compressedPublicKey: false)
         }
     }
 
-    static public func createFromSerialization (asPublic data: Data) -> CryptoKey? {
+    static public func createFromSerialization (asPublic data: Data) -> Key? {
         var data = data
 
         let dataCount = data.count
-        return data.withUnsafeMutableBytes { (dataBytes: UnsafeMutableRawBufferPointer) -> CryptoKey? in
+        return data.withUnsafeMutableBytes { (dataBytes: UnsafeMutableRawBufferPointer) -> Key? in
             let dataAddr = dataBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
 
             var key = BRKey()
@@ -65,13 +56,13 @@ public final class CryptoKey {
 
 
             return (1 == BRKeySetPubKey (&key, dataAddr, dataCount)
-                ? CryptoKey (core: key)
+                ? Key (core: key, needPublicKey: false, compressedPublicKey: false)
                 : nil)
         }
     }
 
-    static public func createForPigeonFrom (key: CryptoKey, nonce: Data) -> CryptoKey {
-        return nonce.withUnsafeBytes { (nonceBytes: UnsafeRawBufferPointer) -> CryptoKey in
+    static public func createForPigeonFrom (key: Key, nonce: Data) -> Key {
+        return nonce.withUnsafeBytes { (nonceBytes: UnsafeRawBufferPointer) -> Key in
             let nonceAddr  = nonceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
 
             var pairingKey = BRKey()
@@ -81,16 +72,11 @@ public final class CryptoKey {
 
             BRKeyPigeonPairingKey (&privateKey, &pairingKey, nonceAddr, nonce.count)
 
-            //        let nonce = Array(remoteIdentifier)
-            //        var privKey = authKey
-            //        var pairingKey = BRKey()
-            //        BRKeyPigeonPairingKey(&privKey, &pairingKey, nonce, nonce.count)
-
-            return CryptoKey (core: pairingKey)
+            return Key (core: pairingKey, needPublicKey: true, compressedPublicKey: false)
         }
     }
 
-    static public func createForBIP32ApiAuth (phrase: String, words: [String]? = wordList) -> CryptoKey? {
+    static public func createForBIP32ApiAuth (phrase: String, words: [String]? = wordList) -> Key? {
         guard var words = words?.map ({ UnsafePointer<Int8> (strdup($0)) }) else { return nil }
         defer { words.forEach { free(UnsafeMutablePointer (mutating: $0)) } }
 
@@ -114,10 +100,10 @@ public final class CryptoKey {
         //        guard pkData.withUnsafeMutableBytes({ BRKeyPrivKey(&key, $0.baseAddress?.assumingMemoryBound(to: Int8.self), pkLen) }) == pkLen else { return nil }
         //        key.clean()
 
-        return CryptoKey (core: key)
+        return Key (core: key, needPublicKey: true, compressedPublicKey: false)
     }
 
-    static public func createForBIP32BitID (phrase: String, index: Int, uri:String, words: [String]? = wordList) -> CryptoKey? {
+    static public func createForBIP32BitID (phrase: String, index: Int, uri:String, words: [String]? = wordList) -> Key? {
         guard var words = words?.map ({ UnsafePointer<Int8> (strdup($0)) }) else { return nil }
         defer { words.forEach { free(UnsafeMutablePointer (mutating: $0)) } }
 
@@ -132,7 +118,7 @@ public final class CryptoKey {
         BRBIP32BitIDKey (&key, &seed, MemoryLayout<UInt512>.size, UInt32(index), uri)
         defer { BRKeyClean (&key) }
 
-        return CryptoKey (core: key)
+        return Key (core: key, needPublicKey: true, compressedPublicKey: false)
     }
 
     // The Core representation
@@ -141,7 +127,7 @@ public final class CryptoKey {
     deinit { BRKeyClean (&core) }
 
     public var hasSecret: Bool {
-        return !CryptoKey.secretMatch (core.secret, UInt256()) // non-all-zeros => has secret
+        return !Key.secretMatch (core.secret, UInt256()) // non-all-zeros => has secret
     }
 
     // Serialization - Public Key
@@ -185,33 +171,14 @@ public final class CryptoKey {
     ///
     /// - Parameter core: The Core representaion
     ///
-    internal init (core: BRKey) {
+    internal init (core: BRKey, needPublicKey: Bool, compressedPublicKey: Bool) {
         self.core = core
 
-        // Ensure that the public key is provided
-        self.core.compressed = 0 // uncompressed
-        BRKeyPubKey (&self.core, nil, 0)
-    }
-
-    ///
-    /// Check if `self` and `that` have an identical public key
-    ///
-    /// - Parameter that: the other CryptoKey
-    ///
-    /// - Returns: If identical `true`; otherwise `false`
-    ///
-    public func publicKeyMatch (_ that: CryptoKey) -> Bool {
-        let selfPub = self.core.pubKey
-        let thatPub = that.core.pubKey
-        return withUnsafePointer (to: selfPub) { (selfPtr) -> Bool in
-            return withUnsafePointer (to: thatPub) { (thatPtr) -> Bool in
-                return 0 == memcmp (selfPtr, thatPtr, MemoryLayout.size (ofValue: selfPub))
-            }
+        if needPublicKey {
+            // Uncompressed; Ensure that the public key is provided
+            BRKeySetCompressed (&self.core, (compressedPublicKey ? 1 : 0))
+            BRKeyPubKey (&self.core, nil, 0)
         }
-    }
-
-    internal func privateKeyMatch (_ that: CryptoKey) -> Bool {
-        return CryptoKey.secretMatch (self.core.secret, that.core.secret)
     }
 
     ///
@@ -227,7 +194,24 @@ public final class CryptoKey {
         defer { secret = UInt256() }
 
         BRKeySetSecret (&core, &secret, 1)
-        self.init (core: core)
+        self.init (core: core, needPublicKey: true, compressedPublicKey: false)
+    }
+
+    ///
+    /// Check if `self` and `that` have an identical public key
+    ///
+    /// - Parameter that: the other CryptoKey
+    ///
+    /// - Returns: If identical `true`; otherwise `false`
+    ///
+    public func publicKeyMatch (_ that: Key) -> Bool {
+        var key1 = self.core
+        var key2 = that.core
+        return 1 == BRKeyPubKeyMatch(&key1, &key2)
+   }
+
+    internal func privateKeyMatch (_ that: Key) -> Bool {
+        return Key.secretMatch (self.core.secret, that.core.secret)
     }
 
     ///
@@ -241,10 +225,11 @@ public final class CryptoKey {
     ///
     private func serializePublicKeyDER (key: BRKey, compressed: Bool) -> Data {
         var key = key
-        key.compressed = (compressed ? 1 : 0)
+
+        BRKeySetCompressed(&key, (compressed ? 1 : 0))
+
         let dataCount = BRKeyPubKey (&key, nil, 0)
         var data = Data (count: dataCount)
-
         data.withUnsafeMutableBytes { (dataBytes: UnsafeMutableRawBufferPointer) -> Void in
             let dataAddr = dataBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
             BRKeyPubKey (&key, dataAddr, dataCount)

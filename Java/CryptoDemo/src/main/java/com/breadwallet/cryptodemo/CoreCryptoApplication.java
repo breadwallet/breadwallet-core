@@ -12,6 +12,7 @@ import android.os.StrictMode;
 import com.breadwallet.corecrypto.CryptoApiProvider;
 import com.breadwallet.crypto.Account;
 import com.breadwallet.crypto.CryptoApi;
+import com.breadwallet.crypto.WalletManager;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.System;
@@ -34,7 +35,7 @@ public class CoreCryptoApplication extends Application {
 
     private static final String BDB_BASE_URL = BuildConfig.BDB_BASE_URL;
     private static final String API_BASE_URL = BuildConfig.API_BASE_URL;
-    private static final boolean IS_MAINNET = BuildConfig.IS_MAINNET;
+    private static final boolean IS_MAINNET = com.breadwallet.crypto.BuildConfig.IS_MAINNET;
 
     private static final String EXTRA_WIPE = "WIPE";
     private static final String EXTRA_TIMESTAMP = "TIMESTAMP";
@@ -55,7 +56,9 @@ public class CoreCryptoApplication extends Application {
     private static LifecycleObserver observer = new LifecycleObserver() {
         @OnLifecycleEvent(Lifecycle.Event.ON_START)
         void onEnterForeground() {
-            system.start();
+            for (WalletManager manager: system.getWalletManagers()) {
+                manager.connect();
+            }
         }
 
         @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
@@ -83,14 +86,15 @@ public class CoreCryptoApplication extends Application {
 
             CryptoApi.initialize(CryptoApiProvider.getInstance());
 
-            listener = new CoreSystemListener(mode);
+            List<String> currencyCodesNeeded = Arrays.asList("btc", "eth", "brd");
+            listener = new CoreSystemListener(mode, currencyCodesNeeded);
 
             String uids = UUID.nameUUIDFromBytes(paperKey).toString();
             Account account = Account.createFromPhrase(paperKey, new Date(TimeUnit.SECONDS.toMillis(timestamp)), uids);
 
             BlockchainDb query = new BlockchainDb(new OkHttpClient(), BDB_BASE_URL, API_BASE_URL);
             system = System.create(Executors.newSingleThreadExecutor(), listener, account, storageFile.getAbsolutePath(), query);
-            system.initialize(getNetworks(IS_MAINNET), IS_MAINNET);
+            system.configure();
 
             ProcessLifecycleOwner.get().getLifecycle().addObserver(observer);
         }
@@ -108,7 +112,7 @@ public class CoreCryptoApplication extends Application {
         return paperKey;
     }
 
-    public static boolean isIsMainnet() {
+    public static boolean isMainnet() {
         return IS_MAINNET;
     }
 
@@ -119,11 +123,6 @@ public class CoreCryptoApplication extends Application {
             }
         }
         file.delete();
-    }
-
-    private static List<String> getNetworks(boolean isMainnet) {
-        String suffix = isMainnet ? "mainnet" : "testnet";
-        return Arrays.asList("bitcoin-" + suffix, "ethereum-" + suffix);
     }
 
     @Override

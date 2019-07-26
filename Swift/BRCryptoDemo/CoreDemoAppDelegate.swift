@@ -145,7 +145,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
     func applicationWillEnterForeground(_ application: UIApplication) {
         // Called as part of the transition from the background to the active state; here you can
         // undo many of the changes made on entering the background.
-        system.start(networksNeeded: [])
+        system.managers.forEach { $0.connect() }
     }
 
     func applicationDidBecomeActive(_ application: UIApplication) {

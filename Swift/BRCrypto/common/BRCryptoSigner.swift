@@ -23,7 +23,7 @@ public protocol Signer {
     ///
     /// - Returns: the signature
     ///
-    func sign (data32: Data, using: CryptoKey) -> Data
+    func sign (data32: Data, using: Key) -> Data
 
     ///
     /// Recover the CryptoKey (only the public key portion) from the signed data and the signature.
@@ -36,7 +36,7 @@ public protocol Signer {
     ///
     /// - Returns: A CryptoKey with only the public key provided.
     ///
-    func recover (data32: Data, signature: Data) -> CryptoKey?
+    func recover (data32: Data, signature: Data) -> Key?
 }
 
 public enum CoreSigner: Signer {
@@ -46,7 +46,7 @@ public enum CoreSigner: Signer {
     /// Does support 'recovery'
     case compact
 
-    public func sign (data32 digest: Data, using privateKey: CryptoKey) -> Data {
+    public func sign (data32 digest: Data, using privateKey: Key) -> Data {
         // Copy the key - prep to pass to Core C functions
         var key = privateKey.core
 
@@ -90,11 +90,11 @@ public enum CoreSigner: Signer {
         }
     }
 
-    public func recover (data32 digest: Data, signature: Data) -> CryptoKey? {
+    public func recover (data32 digest: Data, signature: Data) -> Key? {
         let sourceCount = digest.count
         precondition (32 == sourceCount)
 
-        return digest.withUnsafeBytes { (digestBytes: UnsafeRawBufferPointer) -> CryptoKey? in
+        return digest.withUnsafeBytes { (digestBytes: UnsafeRawBufferPointer) -> Key? in
             let digestAddr  = digestBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
             let digestUInt256 = digestAsUInt256 (digestAddr!) // : UInt256 = createUInt256(0)
 
@@ -104,11 +104,11 @@ public enum CoreSigner: Signer {
 
             case .compact:
                 let signatureCount = signature.count
-                return signature.withUnsafeBytes { (signatureBytes: UnsafeRawBufferPointer) -> CryptoKey? in
+                return signature.withUnsafeBytes { (signatureBytes: UnsafeRawBufferPointer) -> Key? in
                     var key = BRKey.self.init()
                     let signatureAddr  = signatureBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
                     let success: Bool = 1 == BRKeyRecoverPubKey (&key, digestUInt256, signatureAddr, signatureCount)
-                    return success ? CryptoKey (core: key) : nil
+                    return success ? Key (core: key, needPublicKey: false, compressedPublicKey: false) : nil
                 }
             }
         }

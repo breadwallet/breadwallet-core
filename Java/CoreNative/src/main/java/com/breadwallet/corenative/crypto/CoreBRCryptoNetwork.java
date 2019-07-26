@@ -42,8 +42,8 @@ public interface CoreBRCryptoNetwork {
         }
     }
 
-    static CoreBRCryptoNetwork createAsGen(String uids, String name) {
-        return new OwnedBRCryptoNetwork(CryptoLibrary.INSTANCE.cryptoNetworkCreateAsGEN(uids, name));
+    static CoreBRCryptoNetwork createAsGen(String uids, String name, boolean isMainnet) {
+        return new OwnedBRCryptoNetwork(CryptoLibrary.INSTANCE.cryptoNetworkCreateAsGEN(uids, name, isMainnet ? (byte) 1 : 0));
     }
 
     void setHeight(UnsignedLong height);
