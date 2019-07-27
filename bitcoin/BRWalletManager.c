@@ -105,19 +105,6 @@ getCurrencyName (const BRChainParams *params) {
     return NULL;
 }
 
-static BRWalletForkId
-getForkId (const BRChainParams *params) {
-    if (params->magicNumber == BRMainNetParams->magicNumber ||
-        params->magicNumber == BRTestNetParams->magicNumber)
-        return WALLET_FORKID_BITCOIN;
-
-    if (params->magicNumber == BRBCashParams->magicNumber ||
-        params->magicNumber == BRBCashTestNetParams->magicNumber)
-        return WALLET_FORKID_BITCASH;
-
-    return (BRWalletForkId) -1;
-}
-
 /// MARK: - Transaction File Service
 
 static const char *fileServiceTypeTransactions = "transactions";
@@ -411,7 +398,6 @@ BRWalletManagerNew (BRWalletManagerClient client,
     bwm->client = client;
     bwm->requestId = 0;
 
-    BRWalletForkId fork = getForkId (params);
     const char *networkName  = getNetworkName  (params);
     const char *currencyName = getCurrencyName (params);
     //    manager->walletForkId = fork;
@@ -498,7 +484,7 @@ BRWalletManagerNew (BRWalletManagerClient client,
         else array_clear(peers);
     }
 
-    bwm->wallet = BRWalletNew (transactions, array_count(transactions), mpk, fork);
+    bwm->wallet = BRWalletNew (params->addrParams, transactions, array_count(transactions), mpk);
     BRWalletSetCallbacks (bwm->wallet, bwm,
                           _BRWalletManagerBalanceChanged,
                           _BRWalletManagerTxAdded,
@@ -764,7 +750,9 @@ BRWalletManagerSignTransaction (BRWalletManager manager,
                                 OwnershipKept BRTransaction *transaction,
                                 const void *seed,
                                 size_t seedLen) {
-    int r = (1 == BRWalletSignTransaction (manager->wallet, transaction, seed, seedLen) ? 1 : 0);
+    int forkId = BRPeerManagerChainParams(manager->peerManager)->forkId;
+
+    int r = (1 == BRWalletSignTransaction (manager->wallet, transaction, forkId, seed, seedLen) ? 1 : 0);
     if (r) {
         assert (NULL != manager->client.funcTransactionEvent);
         manager->client.funcTransactionEvent (manager->client.context,
@@ -826,11 +814,8 @@ BRWalletManagerUpdateFeePerKB (BRWalletManager manager,
 }
 
 static void
-BRWalletManagerAddressToLegacy (BRAddress *addr) {
-    uint8_t script[] = { OP_DUP, OP_HASH160, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, OP_EQUALVERIFY, OP_CHECKSIG };
-
-    if (BRAddressHash160(&script[3], addr->s)) BRAddressFromScriptPubKey(addr->s, sizeof(BRAddress), script, sizeof(script));
+BRWalletManagerAddressToLegacy (BRWalletManager manager, BRAddress *addr) {
+    *addr = BRWalletAddressToLegacy (manager->wallet, addr);
 }
 
 extern void
@@ -854,7 +839,7 @@ BRWalletManagerGetUnusedAddrs (BRWalletManager manager,
 
     memcpy (addrs + addrCount, addrs, addrCount * sizeof(BRAddress));
     for (size_t index = 0; index < addrCount; index++)
-        BRWalletManagerAddressToLegacy (&addrs[addrCount + index]);
+        BRWalletManagerAddressToLegacy (manager, &addrs[addrCount + index]);
 
     *addressCount = 2 * addrCount;
     return addrs;
@@ -898,7 +883,7 @@ BRWalletManagerGetAllAddrs (BRWalletManager manager,
 
     memcpy (addrs + addrCount, addrs, addrCount * sizeof(BRAddress));
     for (size_t index = 0; index < addrCount; index++)
-        BRWalletManagerAddressToLegacy (&addrs[addrCount + index]);
+        BRWalletManagerAddressToLegacy (manager, &addrs[addrCount + index]);
 
     *addressCount = 2 * addrCount;
     return addrs;

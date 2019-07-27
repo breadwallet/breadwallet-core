@@ -62,15 +62,15 @@ extern const BRChainParams *BRTestNetParams;
 static inline const BRChainParams *BRChainParamsGetBitcoin (int mainnet) {
     return mainnet ? BRMainNetParams : BRTestNetParams;
 }
-    
-#ifdef __cplusplus
-}
-#endif
 
 static inline int BRChainParamsIsBitcoin (const BRChainParams *params) {
     return BRMainNetParams == params || BRTestNetParams == params;
 }
 
 extern const BRCheckPoint *BRChainParamsGetCheckpointBefore (const BRChainParams *params, uint32_t timestamp);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // BRChainParams_h

@@ -29,20 +29,20 @@ public final class Key {
         return Key (secret: smallSeed)
     }
 
-    static public func createFromSerialization (asPrivate data: Data) -> Key? {
-        let str = String (data: data, encoding: .utf8)!
-
-        return str.withCString { (strPtr: UnsafePointer<Int8>) -> Key? in
-            guard 1 == BRPrivKeyIsValid (strPtr) else { return nil }
-
-            var key = BRKey()
-            defer { BRKeyClean (&key) }
-
-            BRKeySetPrivKey (&key, strPtr)
-
-            return Key (core: key, needPublicKey: true, compressedPublicKey: false)
-        }
-    }
+//    static public func createFromSerialization (asPrivate data: Data) -> Key? {
+//        let str = String (data: data, encoding: .utf8)!
+//
+//        return str.withCString { (strPtr: UnsafePointer<Int8>) -> Key? in
+//            guard 1 == BRPrivKeyIsValid (strPtr) else { return nil }
+//
+//            var key = BRKey()
+//            defer { BRKeyClean (&key) }
+//
+//            BRKeySetPrivKey (&key, strPtr)
+//
+//            return Key (core: key, needPublicKey: true, compressedPublicKey: false)
+//        }
+//    }
 
     static public func createFromSerialization (asPublic data: Data) -> Key? {
         var data = data
@@ -149,21 +149,21 @@ public final class Key {
 
     // Serialization - Private Key
 
-    public enum PrivateEncoding {
-        case wifCompressed
-        case wifUncompressed
-    }
-
-    public func serialize (asPrivate: PrivateEncoding) -> Data? {
-        guard hasSecret else { return nil }
-        switch asPrivate {
-        case .wifCompressed:
-            return serializePrivateKeyWIF (key: core, compressed: true)
-
-        case .wifUncompressed:
-            return serializePrivateKeyWIF (key: core, compressed: false)
-        }
-    }
+//    public enum PrivateEncoding {
+//        case wifCompressed
+//        case wifUncompressed
+//    }
+//
+//    public func serialize (asPrivate: PrivateEncoding) -> Data? {
+//        guard hasSecret else { return nil }
+//        switch asPrivate {
+//        case .wifCompressed:
+//            return serializePrivateKeyWIF (key: core, compressed: true)
+//
+//        case .wifUncompressed:
+//            return serializePrivateKeyWIF (key: core, compressed: false)
+//        }
+//    }
 
     ///
     /// Initialize based on a Core BRKey - the provided BRKey might be private+public or just
@@ -247,22 +247,22 @@ public final class Key {
     ///
     /// - Returns: the serialization as `Data`
     ///
-    private func serializePrivateKeyWIF (key: BRKey, compressed: Bool) -> Data {
-        var key = key
-        key.compressed = (compressed ? 1 : 0)
-        defer { BRKeyClean (&key) }
-
-        let dataCount = BRKeyPrivKey (&key, nil, 0)
-        var data = Data (count: dataCount)
-        
-        return data.withUnsafeMutableBytes { (dataBytes: UnsafeMutableRawBufferPointer) -> Data in
-            let dataAddr = dataBytes.baseAddress?.assumingMemoryBound(to: CChar.self)
-            BRKeyPrivKey (&key, dataAddr, dataCount)
-            // `dataAddr` has a trailing zero - which we don't think we want... So, convert to
-            // a zero-terminated string and then back to the required Data
-            return String (cString: dataAddr!).data(using: .utf8)!
-        }
-    }
+//    private func serializePrivateKeyWIF (key: BRKey, compressed: Bool) -> Data {
+//        var key = key
+//        key.compressed = (compressed ? 1 : 0)
+//        defer { BRKeyClean (&key) }
+//
+//        let dataCount = BRKeyPrivKey (&key, nil, 0)
+//        var data = Data (count: dataCount)
+//
+//        return data.withUnsafeMutableBytes { (dataBytes: UnsafeMutableRawBufferPointer) -> Data in
+//            let dataAddr = dataBytes.baseAddress?.assumingMemoryBound(to: CChar.self)
+//            BRKeyPrivKey (&key, dataAddr, dataCount)
+//            // `dataAddr` has a trailing zero - which we don't think we want... So, convert to
+//            // a zero-terminated string and then back to the required Data
+//            return String (cString: dataAddr!).data(using: .utf8)!
+//        }
+//    }
 
     ///
     /// Check equality of `this` and `that` UInt256 values

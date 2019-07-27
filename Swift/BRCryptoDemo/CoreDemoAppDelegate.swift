@@ -26,20 +26,12 @@ extension UIApplication: SharedSystem {
 class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDelegate {
 
     var window: UIWindow?
-    var paperKey: String!
+    var summaryController: SummaryViewController!
 
     var listener: CoreDemoListener!
     var system: System!
-
-    var summaryController: SummaryViewController!
-
-    #if TESTNET
-    let mainnet = false
-    #endif
-
-    #if MAINNET
-    let mainnet = true
-    #endif
+    var mainnet = true
+    var accountSpecification: AccountSpecification!
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
@@ -52,28 +44,33 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         let summaryNavigationController = splitViewController.viewControllers[0] as! UINavigationController
         summaryController = (summaryNavigationController.topViewController as! SummaryViewController)
 
-        paperKey = (CommandLine.argc > 1
-            ? CommandLine.arguments[1]
-            : "0xa9de3dbd7d561e67527bc1ecb025c59d53b9f7ef");
-        //                                         paperKey: "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62")
-        //                                         paperKey: "0x8975dbc1b8f25ec994815626d070899dda896511")
-        //                                         paperKey: "0xb302B06FDB1348915599D21BD54A06832637E5E8")
+        print ("APP: Bundle Path       : \(Bundle(for: CoreDemoAppDelegate.self).bundlePath)")
+
+        let accountSpecificationsPath = Bundle(for: CoreDemoAppDelegate.self).path(forResource: "CoreTestsConfig", ofType: "json")!
+        let accountSpecifications     = AccountSpecification.loadFrom(configPath: accountSpecificationsPath)
+        let accountIdentifier         = CommandLine.arguments[1]
+
+        guard let accountSpecification = accountSpecifications.first (where: { $0.identifier == accountIdentifier })
+            else {
+                precondition (false, "No AccountSpecification: \(accountIdentifier)");
+                return false
+        }
+        self.accountSpecification = accountSpecification
 
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
         dateFormatter.locale = Locale(identifier: "en_US_POSIX") // set locale to reliable US_POSIX
 
-
         let walletId = UUID (uuidString: "5766b9fa-e9aa-4b6d-9b77-b5f1136e5e96")?.uuidString ?? "empty-wallet-id"
-        let timestamp = dateFormatter.date (from: "2017-10-01")! // "loan ..."
 
-        guard let account = Account.createFrom (phrase: paperKey, timestamp: timestamp, uids: walletId) else {
+        guard let account = Account.createFrom (phrase: accountSpecification.paperKey,
+                                                timestamp: accountSpecification.timestamp,
+                                                uids: walletId) else {
             precondition(false, "No account")
             return false
         }
-//        account.timestamp = 1530403200 // loan: 2018-07-01
-//        account.timestamp = 1514764800 // 2018-01-01
-//        account.timestamp = 1543190400 // Tue, 26 Nov 2018 00:00:00 GMT
+
+        mainnet = (accountSpecification.network == "mainnet")
 
         // Ensure the storage path
         let storagePath = FileManager.default
@@ -93,7 +90,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
             print("Error: \(error.localizedDescription)")
         }
 
-        print ("APP: Account PaperKey  : \(paperKey.components(separatedBy: CharacterSet.whitespaces).first ?? "<missed>") ...")
+        print ("APP: Account PaperKey  : \(accountSpecification.paperKey.components(separatedBy: CharacterSet.whitespaces).first ?? "<missed>") ...")
         print ("APP: Account Timestamp : \(account.timestamp)")
         print ("APP: StoragePath       : \(storagePath)");
         print ("APP: Mainnet           : \(mainnet)")
@@ -109,7 +106,8 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         print ("APP: Currencies        : \(currencies)")
 
         // Create the listener
-        let listener = CoreDemoListener (currencyCodesNeeded: currencies)
+        let listener = CoreDemoListener (currencyCodesNeeded: currencies,
+                                         isMainnet: mainnet)
 
         // Create the BlockChainDB
         let query = BlockChainDB ()
@@ -118,6 +116,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         self.listener = listener
         self.system = System (listener: listener,
                               account: account,
+                              onMainnet: mainnet,
                               path: storagePath,
                               query: query)
         
@@ -175,7 +174,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
 
 extension UIApplication {
     static var paperKey: String {
-        return (UIApplication.shared.delegate as! CoreDemoAppDelegate).paperKey
+        return (UIApplication.shared.delegate as! CoreDemoAppDelegate).accountSpecification.paperKey
     }
 
     static func sync () {
@@ -201,6 +200,7 @@ extension UIApplication {
         // Create a new system
         let system = System (listener: app.system.listener!,
                              account: app.system.account,
+                             onMainnet: app.system.onMainnet,
                              path: app.system.path,
                              query: app.system.query)
 

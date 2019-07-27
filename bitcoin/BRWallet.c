@@ -496,6 +496,10 @@ void BRWalletSetFeePerKb(BRWallet *wallet, uint64_t feePerKb)
     pthread_mutex_unlock(&wallet->lock);
 }
 
+BRAddressParams BRWalletGetAddressParams (BRWallet *wallet) {
+    return wallet->addrParams;
+}
+
 // returns the first unused external address (bech32 pay-to-witness-pubkey-hash)
 BRAddress BRWalletReceiveAddress(BRWallet *wallet)
 {
@@ -517,6 +521,17 @@ BRAddress BRWalletLegacyAddress(BRWallet *wallet)
     if (BRAddressHash160(&script[3], wallet->addrParams, addr.s)) {
         BRAddressFromScriptPubKey(addr.s, sizeof(addr), wallet->addrParams, script, sizeof(script));
     }
+
+    return addr;
+}
+
+BRAddress BRWalletAddressToLegacy (BRWallet *wallet, BRAddress *addrPtr) {
+    BRAddress addr = *addrPtr;
+    //    BRAddressParams params =
+    uint8_t script[] = { OP_DUP, OP_HASH160, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, OP_EQUALVERIFY, OP_CHECKSIG };
+
+    if (BRAddressHash160(&script[3], wallet->addrParams, addr.s)) BRAddressFromScriptPubKey(addr.s, sizeof(BRAddress), wallet->addrParams, script, sizeof(script));
 
     return addr;
 }

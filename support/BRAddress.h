@@ -141,9 +141,9 @@ inline static int BRAddressEq(const void *addr, const void *otherAddr)
     return (addr == otherAddr || strncmp((const char *)addr, (const char *)otherAddr, sizeof(BRAddress)) == 0);
 }
 
-inline static BRAddress BRAddressFill (const char *string) {
+inline static BRAddress BRAddressFill (BRAddressParams params, const char *string) {
     BRAddress address = BR_ADDRESS_NONE;
-    if (BRAddressIsValid (string))
+    if (BRAddressIsValid (params, string))
         strlcpy (address.s, string, 75);
     return address;
 }
