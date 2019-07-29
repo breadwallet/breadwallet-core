@@ -7,6 +7,9 @@
  */
 package com.breadwallet.corecrypto;
 
+import com.breadwallet.corenative.crypto.BRCryptoBoolean;
+import com.breadwallet.corenative.crypto.BRCryptoWalletEstimateFeeBasisCallback;
+import com.breadwallet.corenative.crypto.BRCryptoWalletEstimateFeeBasisResult;
 import com.breadwallet.corenative.crypto.CoreBRCryptoAddress;
 import com.breadwallet.corenative.crypto.CoreBRCryptoAmount;
 import com.breadwallet.corenative.crypto.CoreBRCryptoFeeBasis;
@@ -19,6 +22,7 @@ import com.breadwallet.crypto.errors.FeeEstimationError;
 import com.breadwallet.crypto.errors.FeeEstimationServiceFailureError;
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
+import com.sun.jna.Pointer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,13 +69,14 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
         CoreBRCryptoAmount coreAmount = Amount.from(amount).getCoreBRCryptoAmount();
         CoreBRCryptoNetworkFee coreFee = NetworkFee.from(fee).getCoreBRCryptoNetworkFee();
 
-        // TODO(fix): Figure out how we want to handle which thread/executor runs this
-        Optional<TransferFeeBasis> optFeeBasis = core.estimateFeeBasis(coreAddress, coreAmount, coreFee).transform(TransferFeeBasis::create);
-        if (optFeeBasis.isPresent()) {
-            completion.handleData(optFeeBasis.get());
-        } else {
-            completion.handleError(new FeeEstimationServiceFailureError());
-        }
+        // TODO(fix): This is not safe! We need to pass in a static callback
+        core.estimateFeeBasis(coreAddress, coreAmount, coreFee, null, (context, result) -> {
+            if (result.success == BRCryptoBoolean.CRYPTO_TRUE) {
+                completion.handleData(TransferFeeBasis.create(CoreBRCryptoFeeBasis.createOwned(result.u.success.feeBasis)));
+            } else {
+                completion.handleError(new FeeEstimationServiceFailureError());
+            }
+        });
     }
 
     @Override

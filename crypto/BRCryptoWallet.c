@@ -35,6 +35,7 @@
 #include "bitcoin/BRWallet.h"
 #include "bitcoin/BRWalletManager.h"
 #include "ethereum/BREthereum.h"
+#include "ethereum/ewm/BREthereumTransfer.h"
 
 /**
  *
@@ -544,15 +545,47 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
     return transfer;
 }
 
-extern BRCryptoFeeBasis
-cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
-                              BRCryptoAddress target,
-                              BRCryptoAmount  amount,
-                              BRCryptoNetworkFee fee) {
+typedef struct {
+    BRCryptoWalletEstimateFeeBasisContext context;
+    BRCryptoWalletEstimateFeeBasisCallback callback;
+    BRCryptoUnit unitForFee;
+    BREthereumGasPrice gasPrice;
+} BRCryptoWalletEstimateFeeBasisETHContext;
+
+static void
+    cryptoWalletEstimateFeeBasisETHCallback (void *context,
+                                             BREthereumWalletEstimateFeeResult result) {
+    BRCryptoWalletEstimateFeeBasisETHContext *state = (BRCryptoWalletEstimateFeeBasisETHContext *) context;
+
+    if (ETHEREUM_BOOLEAN_TRUE == result.success) {
+            state->callback (state->context,
+                         (BRCryptoWalletEstimateFeeBasisResult) {
+                             CRYPTO_TRUE, {
+                                 .success = cryptoFeeBasisCreateAsETH (state->unitForFee,
+                                                                       result.u.success.gasEstimate,
+                                                                       state->gasPrice)
+                             }
+                         });
+    } else {
+        state->callback (state->context,
+                         (BRCryptoWalletEstimateFeeBasisResult) {
+                             CRYPTO_FALSE
+                         });
+    }
+
+    cryptoUnitGive (state->unitForFee);
+    free (state);
+}
+
+extern void
+    cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
+                                  BRCryptoAddress target,
+                                  BRCryptoAmount  amount,
+                                  BRCryptoNetworkFee fee,
+                                  BRCryptoWalletEstimateFeeBasisContext context,
+                                  BRCryptoWalletEstimateFeeBasisCallback callback) {
     //    assert (cryptoWalletGetType (wallet) == cryptoFeeBasisGetType(feeBasis));
     BRCryptoBoolean overflow = CRYPTO_FALSE;
-    BRCryptoFeeBasis feeBasis;
-
     BRCryptoUnit unitForFee = cryptoWalletGetUnitForFee (wallet);
 
     switch (wallet->type) {
@@ -571,7 +604,8 @@ cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
             BRWalletSetFeePerKb (wid, feePerKBSaved);
             // TODO: Unlock
 
-            feeBasis = cryptoFeeBasisCreateAsBTC (unitForFee, (uint32_t) feePerKB, sizeInByte);
+            BRCryptoFeeBasis feeBasis = cryptoFeeBasisCreateAsBTC (unitForFee, (uint32_t) feePerKB, sizeInByte);
+            callback (context, (BRCryptoWalletEstimateFeeBasisResult) { CRYPTO_TRUE, { .success = feeBasis } });
             break;
         }
 
@@ -579,18 +613,24 @@ cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
             BREthereumEWM ewm = wallet->u.eth.ewm;
             BREthereumWallet wid = wallet->u.eth.wid;
 
-            UInt256 ethValue  = cryptoAmountGetValue (amount);
-            BREthereumToken  ethToken  = ewmWalletGetToken (ewm, wid);
-            BREthereumAmount ethAmount = (NULL != ethToken
-                                          ? amountCreateToken (createTokenQuantity (ethToken, ethValue))
-                                          : amountCreateEther (etherCreate (ethValue)));
-            (void) ethAmount;
+            BRCryptoAddress source = cryptoWalletGetAddress (wallet, CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT);
+            UInt256 ethValue       = cryptoAmountGetValue (amount);
 
-            // TODO: Actually estimate the fee
+            BRCryptoWalletEstimateFeeBasisETHContext *callbackContext = calloc (1, sizeof(BRCryptoWalletEstimateFeeBasisETHContext));
+            callbackContext->context    = context;
+            callbackContext->callback   = callback;
+            callbackContext->unitForFee = cryptoUnitTake (unitForFee);
+            callbackContext->gasPrice   = cryptoNetworkFeeAsETH (fee);
 
-            feeBasis = cryptoFeeBasisCreateAsETH (unitForFee,
-                                                  ewmWalletGetDefaultGasLimit (ewm, wid),
-                                                  cryptoNetworkFeeAsETH (fee));
+            ewmWalletEstimateTransferFeeForTransfer (ewm,
+                                                     wid,
+                                                     cryptoAddressAsETH (source),
+                                                     cryptoAddressAsETH (target),
+                                                     ethValue,
+                                                     cryptoNetworkFeeAsETH (fee),
+                                                     ewmWalletGetDefaultGasLimit (ewm, wid),
+                                                     callbackContext,
+                                                     cryptoWalletEstimateFeeBasisETHCallback);
 
             break;
         }
@@ -614,7 +654,6 @@ cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
     }
 
     cryptoUnitGive (unitForFee);
-    return feeBasis;
 }
 
 static int

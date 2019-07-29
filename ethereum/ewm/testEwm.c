@@ -162,13 +162,13 @@ static void
 clientEstimateGas (BREthereumClientContext context,
                    BREthereumEWM ewm,
                    BREthereumWallet wid,
-                   BREthereumTransfer tid,
+                   BREtheruemClientState state,
                    const char *from,
                    const char *to,
                    const char *amount,
                    const char *data,
                    int rid) {
-    ewmAnnounceGasEstimate(ewm, wid, tid, "0x77", rid);
+    ewmAnnounceGasEstimateSuccess(ewm, wid, state, "0x77", rid);
 }
 
 static void

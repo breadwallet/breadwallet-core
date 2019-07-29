@@ -122,21 +122,23 @@ ewmAnnounceGasPrice(BREthereumEWM ewm,
 // Transaction Gas Estimate
 //
 
+typedef struct {
+    BREthereumWalletEstimateFeeContext context;
+    BREthereumWalletEstimateFeeCallback callback;
+} ewmGetGasEstimateCompletionState;
+
 extern void
-ewmUpdateGasEstimate (BREthereumEWM ewm,
-                      BREthereumWallet wallet,
-                      BREthereumTransfer transfer) {
+ewmGetGasEstimate (BREthereumEWM ewm,
+                   BREthereumWallet wallet,
+                   BREthereumTransfer transfer,
+                   BREthereumWalletEstimateFeeContext context,
+                   BREthereumWalletEstimateFeeCallback callback) {
     if (NULL == transfer) {
-        ewmSignalTransferEvent(ewm, wallet, transfer,
-                               TRANSFER_EVENT_GAS_ESTIMATE_UPDATED,
-                               ERROR_UNKNOWN_WALLET,
-                               NULL);
-        
+        ewmSignalGasEstimateFailure(ewm, wallet, context, callback);
+
     } else if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) {
-        ewmSignalTransferEvent(ewm, wallet, transfer,
-                               TRANSFER_EVENT_GAS_ESTIMATE_UPDATED,
-                               ERROR_NODE_NOT_CONNECTED,
-                               NULL);
+        ewmSignalGasEstimateFailure(ewm, wallet, context, callback);
+
     } else {
         switch (ewm->mode) {
             case BRD_ONLY:
@@ -151,10 +153,14 @@ ewmUpdateGasEstimate (BREthereumEWM ewm,
                 char *to = (char *) addressGetEncodedString(transactionGetTargetAddress(transaction), 0);
                 char *amount = coerceStringPrefaced(amountInEther.valueInWEI, 16, "0x");
 
+                ewmGetGasEstimateCompletionState *state = calloc (1, sizeof(ewmGetGasEstimateCompletionState));
+                state->context  = context;
+                state->callback = callback;
+
                 ewm->client.funcEstimateGas (ewm->client.context,
                                              ewm,
                                              wallet,
-                                             transfer,
+                                             state,
                                              from,
                                              to,
                                              amount,
@@ -162,46 +168,69 @@ ewmUpdateGasEstimate (BREthereumEWM ewm,
                                              ++ewm->requestId);
 
                 free (from);
-                free(to);
-                free(amount);
+                free (to);
+                free (amount);
                 break;
             }
 
             case P2P_WITH_BRD_SYNC:
             case P2P_ONLY:
                 // TODO: LES Update Wallet Balance
+                assert (0);
                 break;
         }
     }
 }
 
-extern void
-ewmHandleAnnounceGasEstimate (BREthereumEWM ewm,
-                              BREthereumWallet wallet,
-                              BREthereumTransfer transfer,
-                              UInt256 value,
-                              int rid) {
-    ewmSignalGasEstimate(ewm, wallet, transfer, gasCreate(value.u64[0]));
+extern BREthereumStatus
+ewmAnnounceGasEstimateSuccess (BREthereumEWM ewm,
+                               BREthereumWallet wallet,
+                               BREtheruemClientState requestState,
+                               const char *gasEstimate,
+                               int rid) {
+    ewmGetGasEstimateCompletionState *state = (ewmGetGasEstimateCompletionState *) requestState;
+    BRCoreParseStatus parseStatus           = CORE_PARSE_OK;
+    UInt256 gas                             = createUInt256Parse(gasEstimate, 0, &parseStatus);
+
+    if (CORE_PARSE_OK != parseStatus || 0 != gas.u64[1] || 0 != gas.u64[2] || 0 != gas.u64[3]) {
+        ewmSignalGasEstimateFailure(ewm, wallet, state->context, state->callback);
+
+    } else {
+        ewmSignalGasEstimateSuccess(ewm, wallet, state->context, state->callback, gasCreate(gas.u64[0]));
+    }
+
+    free (state);
+    return SUCCESS;
 }
 
 extern BREthereumStatus
-ewmAnnounceGasEstimate (BREthereumEWM ewm,
-                        BREthereumWallet wallet,
-                        BREthereumTransfer transfer,
-                        const char *gasEstimate,
-                        int rid) {
-    if (NULL == wallet) { return ERROR_UNKNOWN_WALLET; }
-    if (NULL == transfer) { return ERROR_UNKNOWN_TRANSACTION; }
-    
-    BRCoreParseStatus parseStatus;
-    UInt256 gas = createUInt256Parse(gasEstimate, 0, &parseStatus);
-    
-    if (CORE_PARSE_OK != parseStatus ||
-        0 != gas.u64[1] || 0 != gas.u64[2] || 0 != gas.u64[3]) { return ERROR_NUMERIC_PARSE; }
-    
-    
-    ewmSignalAnnounceGasEstimate(ewm, wallet, transfer, gas, rid);
+ewmAnnounceGasEstimateFailure (BREthereumEWM ewm,
+                               BREthereumWallet wallet,
+                               BREtheruemClientState requestState,
+                               int rid) {
+    ewmGetGasEstimateCompletionState *state = (ewmGetGasEstimateCompletionState *) requestState;
+
+    ewmSignalGasEstimateFailure(ewm, wallet, state->context, state->callback);
+
+    free (state);
     return SUCCESS;
+}
+
+extern void
+ewmHandlGasEstimateSuccess (BREthereumEWM ewm,
+                            BREthereumWallet wallet,
+                            BREthereumWalletEstimateFeeContext context,
+                            BREthereumWalletEstimateFeeCallback callback,
+                            BREthereumGas gasEstimate) {
+    callback (context, (BREthereumWalletEstimateFeeResult) {ETHEREUM_BOOLEAN_TRUE, {.success = gasEstimate}});
+}
+
+extern void
+ewmHandlGasEstimateFailure (BREthereumEWM ewm,
+                            BREthereumWallet wallet,
+                            BREthereumWalletEstimateFeeContext context,
+                            BREthereumWalletEstimateFeeCallback callback) {
+    callback (context, (BREthereumWalletEstimateFeeResult) {ETHEREUM_BOOLEAN_FALSE});
 }
 
 // ==============================================================================================

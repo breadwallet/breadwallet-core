@@ -28,6 +28,7 @@ extern "C" {
     //
     typedef void *BREthereumClientContext;
 
+    typedef void *BREtheruemClientState;
 
     /// MARK: - Balance
 
@@ -68,7 +69,7 @@ extern "C" {
     (*BREthereumClientHandlerEstimateGas) (BREthereumClientContext context,
                                            BREthereumEWM ewm,
                                            BREthereumWallet wid,
-                                           BREthereumTransfer tid,
+                                           BREtheruemClientState requestState,
                                            const char *from,
                                            const char *to,
                                            const char *amount,
@@ -76,16 +77,39 @@ extern "C" {
                                            int rid);
 
     extern BREthereumStatus
-    ewmAnnounceGasEstimate (BREthereumEWM ewm,
-                            BREthereumWallet wid,
-                            BREthereumTransfer tid,
-                            const char *gasEstimate,
-                            int rid);
+    ewmAnnounceGasEstimateSuccess (BREthereumEWM ewm,
+                                   BREthereumWallet wallet,
+                                   BREtheruemClientState requestState,
+                                   const char *gasEstimate,
+                                   int rid);
+
+    extern BREthereumStatus
+    ewmAnnounceGasEstimateFailure (BREthereumEWM ewm,
+                                   BREthereumWallet wallet,
+                                   BREtheruemClientState requestState,
+                                   int rid);
+
+    typedef void *BREthereumWalletEstimateFeeContext;
+
+    typedef struct {
+        BREthereumBoolean success;
+        union  {
+            struct {
+                BREthereumGas gasEstimate;
+            } success;
+        } u;
+    } BREthereumWalletEstimateFeeResult;
+
+    typedef void
+    (*BREthereumWalletEstimateFeeCallback) (BREthereumWalletEstimateFeeContext context,
+                                            BREthereumWalletEstimateFeeResult result);
 
     extern void
-    ewmUpdateGasEstimate (BREthereumEWM ewm,
-                          BREthereumWallet wid,
-                          BREthereumTransfer tid);
+    ewmGetGasEstimate (BREthereumEWM ewm,
+                       BREthereumWallet wallet,
+                       BREthereumTransfer transfer,
+                       BREthereumWalletEstimateFeeContext context,
+                       BREthereumWalletEstimateFeeCallback callback);
 
     /// MARK: - Submit Transfer
 

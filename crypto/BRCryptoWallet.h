@@ -26,6 +26,7 @@
 #ifndef BRCryptoWallet_h
 #define BRCryptoWallet_h
 
+#include "BRBase.h"
 #include "BRCryptoFeeBasis.h"
 #include "BRCryptoNetwork.h"        // NetworkFee
 #include "BRCryptoTransfer.h"
@@ -79,6 +80,21 @@ extern "C" {
             } feeBasisUpdated;
         } u;
     } BRCryptoWalletEvent;
+
+    typedef void *BRCryptoWalletEstimateFeeBasisContext;
+
+    typedef struct {
+        BRCryptoBoolean success;
+        union  {
+            struct {
+                BRCryptoFeeBasis feeBasis;
+            } success;
+        } u;
+    } BRCryptoWalletEstimateFeeBasisResult;
+
+    typedef void
+        (*BRCryptoWalletEstimateFeeBasisCallback) (BRCryptoWalletEstimateFeeBasisContext context,
+                                                   OwnershipGiven BRCryptoWalletEstimateFeeBasisResult result);
 
     extern BRCryptoWalletState
     cryptoWalletGetState (BRCryptoWallet wallet);
@@ -172,11 +188,13 @@ extern "C" {
      *
      * @return the fee
      */
-    extern BRCryptoFeeBasis
+    extern void
     cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
                                   BRCryptoAddress target,
                                   BRCryptoAmount  amount,
-                                  BRCryptoNetworkFee fee);
+                                  BRCryptoNetworkFee fee,
+                                  BRCryptoWalletEstimateFeeBasisContext context,
+                                  BRCryptoWalletEstimateFeeBasisCallback callback);
 
     extern BRCryptoBoolean
     cryptoWalletEqual (BRCryptoWallet w1, BRCryptoWallet w2);

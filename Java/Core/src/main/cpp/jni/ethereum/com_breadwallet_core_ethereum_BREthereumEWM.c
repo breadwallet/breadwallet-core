@@ -42,7 +42,7 @@ static void
 clientEstimateGas(BREthereumClientContext context,
                   BREthereumEWM node,
                   BREthereumWallet wid,
-                  BREthereumTransfer tid,
+                  BREtheruemClientState requestState,
                   const char *from,
                   const char *to,
                   const char *amount,
@@ -824,11 +824,11 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnounceGasEstimate
     BREthereumWallet wallet = getWallet (env, wid);
     BREthereumTransfer transfer = getTransfer (env, tid);
     const char *strGasEstimate = (*env)->GetStringUTFChars(env, gasEstimate, 0);
-    ewmAnnounceGasEstimate(node,
-                                 wallet,
-                                 transfer,
-                                 strGasEstimate,
-                                 rid);
+    // ewmAnnounceGasEstimate(node,
+    //                              wallet,
+    //                              transfer,
+    //                              strGasEstimate,
+    //                              rid);
     (*env)->ReleaseStringUTFChars(env, gasEstimate, strGasEstimate);
 }
 
@@ -1205,7 +1205,7 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionEstimateGas
     BREthereumWallet   wallet   = getWallet (env, wid);
     BREthereumTransfer transfer = getTransfer (env, tid);
 
-    ewmUpdateGasEstimate (node, wallet, transfer);
+    // ewmUpdateGasEstimate (node, wallet, transfer);
 }
 
 /*
@@ -1552,9 +1552,10 @@ clientGetGasPrice(BREthereumClientContext context,
 }
 
 static void
-clientEstimateGas(BREthereumClientContext context, BREthereumEWM node,
+clientEstimateGas(BREthereumClientContext context,
+                  BREthereumEWM node,
                   BREthereumWallet wid,
-                  BREthereumTransfer tid,
+                  BREtheruemClientState requestState,
                   const char *fromStr,
                   const char *toStr,
                   const char *amountStr,
@@ -1568,15 +1569,15 @@ clientEstimateGas(BREthereumClientContext context, BREthereumEWM node,
     jobject amount = (*env)->NewStringUTF(env, amountStr);
     jobject data = (*env)->NewStringUTF(env, dataStr);
 
-    (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineGetGasEstimate,
-                                 (jlong) node,
-                                 (jlong) wid,
-                                 (jlong) tid,
-                                 from,
-                                 to,
-                                 amount,
-                                 data,
-                                 (jint) id);
+    // (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineGetGasEstimate,
+    //                              (jlong) node,
+    //                              (jlong) wid,
+    //                              (jlong) tid,
+    //                              from,
+    //                              to,
+    //                              amount,
+    //                              data,
+    //                              (jint) id);
 
     (*env)->DeleteLocalRef(env, data);
     (*env)->DeleteLocalRef(env, amount);

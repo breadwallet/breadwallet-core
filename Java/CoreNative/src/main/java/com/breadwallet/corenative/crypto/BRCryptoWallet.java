@@ -112,10 +112,16 @@ public class BRCryptoWallet extends PointerType implements CoreBRCryptoWallet {
     }
 
     @Override
-    public Optional<CoreBRCryptoFeeBasis> estimateFeeBasis(CoreBRCryptoAddress target, CoreBRCryptoAmount amount,
-                                                           CoreBRCryptoNetworkFee fee) {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoWalletEstimateFeeBasis(this,
-                target.asBRCryptoAddress(), amount.asBRCryptoAmount(), fee.asBRCryptoNetworkFee())).transform(OwnedBRCryptoFeeBasis::new);
+    public void estimateFeeBasis(CoreBRCryptoAddress target, CoreBRCryptoAmount amount,
+                                 CoreBRCryptoNetworkFee fee, Pointer context,
+                                 BRCryptoWalletEstimateFeeBasisCallback callback) {
+        CryptoLibrary.INSTANCE.cryptoWalletEstimateFeeBasis(
+                this,
+                target.asBRCryptoAddress(),
+                amount.asBRCryptoAmount(),
+                fee.asBRCryptoNetworkFee(),
+                context,
+                callback);
     }
 
     @Override

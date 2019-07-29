@@ -1222,6 +1222,34 @@ ewmWalletEstimateTransferFeeForBasis(BREthereumEWM ewm,
     return walletEstimateTransferFeeDetailed (wallet, amount, price, gas, overflow);
 }
 
+extern void
+ewmWalletEstimateTransferFeeForTransfer (BREthereumEWM ewm,
+                                         BREthereumWallet wallet,
+                                         BREthereumAddress source,
+                                         BREthereumAddress target,
+                                         UInt256 amount,
+                                         BREthereumGasPrice gasPrice,
+                                         BREthereumGas gasLimit,
+                                         BREthereumWalletEstimateFeeContext context,
+                                         BREthereumWalletEstimateFeeCallback callback) {
+    BREthereumToken  ethToken  = ewmWalletGetToken (ewm, wallet);
+    BREthereumAmount ethAmount = (NULL != ethToken
+                                    ? amountCreateToken (createTokenQuantity (ethToken, amount))
+                                    : amountCreateEther (etherCreate (amount)));
+
+    // use transfer, instead of transaction, due to the need to fill out the transaction data based on if
+    // it is a token transfer or not
+    BREthereumTransfer transfer = transferCreate (source,
+                                                  target,
+                                                  ethAmount,
+                                                  (BREthereumFeeBasis) {FEE_BASIS_GAS, {.gas = {gasLimit, gasPrice}}},
+                                                  (NULL == ethToken ? TRANSFER_BASIS_TRANSACTION : TRANSFER_BASIS_LOG));
+
+    ewmGetGasEstimate (ewm, wallet, transfer, context, callback);
+
+    transferRelease (transfer);
+}
+
 extern BREthereumBoolean
 ewmWalletCanCancelTransfer (BREthereumEWM ewm,
                             BREthereumWallet wallet,

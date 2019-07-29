@@ -104,14 +104,16 @@ final class System implements com.breadwallet.crypto.System {
 
     private static final Map<Pointer, WeakReference<System>> SYSTEMS = new ConcurrentHashMap<>();
 
-    // keep a static reference to the callbacks so that they are never GC'ed
+    //
+    // Keep a static reference to the callbacks so that they are never GC'ed
+    //
+
     private static final BRCryptoCWMClientBtc CWM_CLIENT_BTC = new BRCryptoCWMClientBtc(
             System::btcGetBlockNumber,
             System::btcGetTransactions,
             System::btcSubmitTransaction
     );
 
-    // keep a static reference to the callbacks so that they are never GC'ed
     private static final BRCryptoCWMClientEth CWM_CLIENT_ETH = new BRCryptoCWMClientEth(
             System::ethGetEtherBalance,
             System::ethGetTokenBalance,
@@ -126,14 +128,12 @@ final class System implements com.breadwallet.crypto.System {
             System::ethGetNonce
     );
 
-    // keep a static reference to the callbacks so that they are never GC'ed
     private static final BRCryptoCWMClientGen CWM_CLIENT_GEN = new BRCryptoCWMClientGen(
             System::genGetBlockNumber,
             System::genGetTransactions,
             System::genSubmitTransaction
     );
 
-    // keep these as static references to the callbacks so that they are never GC'ed
     private static final BRCryptoCWMListenerWalletManagerEvent CWM_LISTENER_WALLET_MANAGER_CALLBACK = System::walletManagerEventCallback;
     private static final BRCryptoCWMListenerWalletEvent CWM_LISTENER_WALLET_CALLBACK = System::walletEventCallback;
     private static final BRCryptoCWMListenerTransferEvent CWM_LISTENER_TRANSFER_CALLBACK = System::transferEventCallback;
