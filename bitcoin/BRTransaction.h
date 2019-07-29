@@ -61,6 +61,7 @@ typedef struct {
     uint32_t sequence;
 } BRTxInput;
 
+size_t BRTxInputAddress(const BRTxInput *input, char *address, size_t addrLen, BRAddressParams params);
 void BRTxInputSetAddress(BRTxInput *input, BRAddressParams params, const char *address);
 void BRTxInputSetScript(BRTxInput *input, const uint8_t *script, size_t scriptLen);
 void BRTxInputSetSignature(BRTxInput *input, const uint8_t *signature, size_t sigLen);
@@ -75,6 +76,7 @@ typedef struct {
 #define BR_TX_OUTPUT_NONE ((const BRTxOutput) { 0, NULL, 0 })
 
 // when creating a BRTxOutput struct outside of a BRTransaction, set address or script to NULL when done to free memory
+size_t BRTxOutputAddress(const BRTxOutput *output, char *address, size_t addrLen, BRAddressParams params);
 void BRTxOutputSetAddress(BRTxOutput *output, BRAddressParams params, const char *address);
 void BRTxOutputSetScript(BRTxOutput *output, const uint8_t *script, size_t scriptLen);
 

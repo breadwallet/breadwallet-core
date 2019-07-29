@@ -32,7 +32,7 @@
 #define VAR_INT16_HEADER  0xfd
 #define VAR_INT32_HEADER  0xfe
 #define VAR_INT64_HEADER  0xff
-#define MAX_SCRIPT_LENGTH 0x100 // scripts over this size will not be parsed for an address
+#define MAX_SCRIPT_LENGTH 520  // scripts over this size will not be parsed for an address
 
 // reads a varint from buf and stores its length in intLen if intLen is non-NULL
 // returns the varint value
@@ -280,11 +280,6 @@ int BRScriptPubKeyIsValid(const uint8_t *script, size_t scriptLen)
     return r;
 }
 
-// NOTE: It's important here to be permissive with scriptSig (spends) and strict with scriptPubKey (receives). If we
-// miss a receive transaction, only that transaction's funds are missed, however if we accept a receive transaction that
-// we are unable to correctly sign later, then the entire wallet balance after that point would become stuck with the
-// current coin selection code
-
 // writes the bitcoin address for a scriptPubKey to addr
 // returns the number of bytes written, or addrLen needed if addr is NULL
 size_t BRAddressFromScriptPubKey(char *addr, size_t addrLen, BRAddressParams params,
@@ -313,10 +308,6 @@ size_t BRAddressFromScriptPubKey(char *addr, size_t addrLen, BRAddressParams par
     }
 //    else if (count == 2 && (*elems[0] == 65 || *elems[0] == 33) && *elems[1] == OP_CHECKSIG) {
 //        // pay-to-pubkey scriptPubKey
-//        data[0] = params.p2pkhPrefix;
-//        d = BRScriptData(elems[0], &l);
-//        BRHash160(&data[1], d, l);
-//        r = BRBase58CheckEncode(addr, addrLen, data, 21);
 //    }
     else if (count == 2 && ((*elems[0] == OP_0 && (*elems[1] == 20 || *elems[1] == 32)) ||
                             (*elems[0] >= OP_1 && *elems[0] <= OP_16 && *elems[1] >= 2 && *elems[1] <= 40))) {
@@ -341,22 +332,22 @@ size_t BRAddressFromScriptSig(char *addr, size_t addrLen, BRAddressParams params
     const uint8_t *d = NULL, *elems[BRScriptElements(NULL, 0, script, scriptLen)];
     size_t l = 0, count = BRScriptElements(elems, sizeof(elems)/sizeof(*elems), script, scriptLen);
     
-    if (count >= 2 && *elems[count - 2] <= OP_PUSHDATA4 &&
-        (*elems[count - 1] == 65 || *elems[count - 1] == 33)) { // pay-to-pubkey-hash scriptSig
+    if (count == 2 && *elems[0] <= OP_PUSHDATA4 && (*elems[1] == 65 || *elems[1] == 33)) {
+        // pay-to-pubkey-hash scriptSig
         data[0] = params.pubKeyPrefix;
-        d = BRScriptData(elems[count - 1], &l);
+        d = BRScriptData(elems[1], &l);
         if (l != 65 && l != 33) d = NULL;
         if (d) BRHash160(&data[1], d, l);
     }
-    else if (count >= 2 && *elems[count - 2] <= OP_PUSHDATA4 && *elems[count - 1] <= OP_PUSHDATA4 &&
-             *elems[count - 1] > 0) { // pay-to-script-hash scriptSig
+    else if (count >= 1 && *elems[count - 1] <= OP_PUSHDATA4 && *elems[count - 1] > 0 &&
+             (count >= 2 || ((d = BRScriptData(elems[0], &l)) && (d[0] == OP_0 || (d[0] >= OP_1 && d[0] <= OP_16))))) {
+        // pay-to-script-hash scriptSig
         data[0] = params.scriptPrefix;
         d = BRScriptData(elems[count - 1], &l);
         if (d) BRHash160(&data[1], d, l);
     }
-    else if (count >= 1 && *elems[count - 1] <= OP_PUSHDATA4 && *elems[count - 1] > 0) { // pay-to-pubkey scriptSig
-        // TODO: implement Peter Wullie's pubKey recovery from signature
-    }
+//    else if (count == 1 && *elems[0] <= OP_PUSHDATA4 && *elems[0] > 0) { // pay-to-pubkey scriptSig
+//    }
     // pay-to-witness scriptSig's are empty
     
     return (d) ? BRBase58CheckEncode(addr, addrLen, data, 21) : 0;
@@ -367,7 +358,33 @@ size_t BRAddressFromScriptSig(char *addr, size_t addrLen, BRAddressParams params
 size_t BRAddressFromWitness(char *addr, size_t addrLen, BRAddressParams params,
                             const uint8_t *witness, size_t witLen)
 {
-    return 0; // TODO: XXX implement
+    assert(witness != NULL || witLen == 0);
+    if (! witness || witLen == 0 || witLen > MAX_SCRIPT_LENGTH) return 0;
+    
+    char addr91[91];
+    uint8_t data[34];
+    const uint8_t *d = NULL, *elems[BRScriptElements(NULL, 0, witness, witLen)];
+    size_t l = 0, count = BRScriptElements(elems, sizeof(elems)/sizeof(*elems), witness, witLen);
+    
+    if (count == 2 && *elems[0] <= OP_PUSHDATA4 && *elems[0] > 0 && (*elems[1] == 65 || *elems[1] == 33)) {
+        // pay-to-witness-pubkey-hash
+        data[0] = 0;
+        data[1] = 20;
+        d = BRScriptData(elems[count - 1], &l);
+        if (l != 65 && l != 33) d = NULL;
+        if (d) BRHash160(&data[2], d, l);
+    }
+    else if (count >= 2 && (*elems[0] == OP_0 || (*elems[0] >= OP_1 && *elems[0] <= OP_16)) &&
+             *elems[count - 1] <= OP_PUSHDATA4 && *elems[count - 1] > 0) { // pay-to-witness-script-hash
+        data[0] = *elems[0];
+        data[1] = 32;
+        d = BRScriptData(elems[count - 1], &l);
+        if (d) BRSHA256(&data[2], d, l);
+    }
+
+    l = (d) ? BRBech32Encode(addr91, params.bech32Prefix, data) : 0;
+    if (addr && l <= addrLen) memcpy(addr, addr91, l);
+    return (! addr || l <= addrLen) ? l : 0;
 }
 
 // writes the bech32 pay-to-witness-pubkey-hash address for a hash160 to addr

@@ -36,6 +36,15 @@
 #define SIGHASH_ANYONECANPAY 0x80 // let other people add inputs, I don't care where the rest of the bitcoins come from
 #define SIGHASH_FORKID       0x40 // use BIP143 digest method (for b-cash/b-gold signatures)
 
+size_t BRTxInputAddress(const BRTxInput *input, char *address, size_t addrLen, BRAddressParams params)
+{
+    size_t r = BRAddressFromScriptPubKey(address, addrLen, params, input->script, input->scriptLen);
+    
+    if (r == 0) r = BRAddressFromScriptSig(address, addrLen, params, input->signature, input->sigLen);
+    if (r == 0) r = BRAddressFromWitness(address, addrLen, params, input->witness, input->witLen);
+    return r;
+}
+
 void BRTxInputSetAddress(BRTxInput *input, BRAddressParams params, const char *address)
 {
     assert(input != NULL);
@@ -119,6 +128,11 @@ static size_t _BRTxInputData(const BRTxInput *input, uint8_t *data, size_t dataL
     if (data && off + sizeof(uint32_t) <= dataLen) UInt32SetLE(&data[off], input->sequence);
     off += sizeof(uint32_t);
     return (! data || off <= dataLen) ? off : 0;
+}
+
+size_t BRTxOutputAddress(const BRTxOutput *output, char *address, size_t addrLen, BRAddressParams params)
+{
+    return BRAddressFromScriptPubKey(address, addrLen, params, output->script, output->scriptLen);
 }
 
 void BRTxOutputSetAddress(BRTxOutput *output, BRAddressParams params, const char *address)
