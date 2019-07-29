@@ -28,6 +28,9 @@ extern "C" {
     //
     typedef void *BREthereumClientContext;
 
+    // Certain operations have per-invocation state associated with them (ex: fee estimation that
+    // require additional context that is not common to the client (ala BREthereumClientContext).
+    // This state is operation-specific and is modelled as a void pointer to allow flexibilty.
     typedef void *BREtheruemClientState;
 
     /// MARK: - Balance
