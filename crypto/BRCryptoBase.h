@@ -45,6 +45,8 @@ extern "C" {
         CRYPTO_TRUE  = 1
     } BRCryptoBoolean;
 
+    typedef void *BRCryptoCookie;
+
 #define AS_CRYPTO_BOOLEAN(zeroIfFalse)   ((zeroIfFalse) ? CRYPTO_TRUE : CRYPTO_FALSE)
 
     typedef uint64_t BRCryptoBlockChainHeight;

@@ -17,6 +17,8 @@
 extern "C" {
 #endif
 
+    typedef void *BREthereumCookie;
+
     //
     // BREthereumClient
     //
@@ -27,7 +29,6 @@ extern "C" {
     // signifying changes in EWM state.
     //
     typedef void *BREthereumClientContext;
-
 
     /// MARK: - Balance
 
@@ -68,24 +69,33 @@ extern "C" {
     (*BREthereumClientHandlerEstimateGas) (BREthereumClientContext context,
                                            BREthereumEWM ewm,
                                            BREthereumWallet wid,
-                                           BREthereumTransfer tid,
+                                           BREthereumCookie cookie,
                                            const char *from,
                                            const char *to,
                                            const char *amount,
+                                           const char *gasPrice,
                                            const char *data,
                                            int rid);
 
     extern BREthereumStatus
-    ewmAnnounceGasEstimate (BREthereumEWM ewm,
-                            BREthereumWallet wid,
-                            BREthereumTransfer tid,
-                            const char *gasEstimate,
-                            int rid);
+    ewmAnnounceGasEstimateSuccess (BREthereumEWM ewm,
+                                   BREthereumWallet wallet,
+                                   BREthereumCookie cookie,
+                                   const char *gasEstimate,
+                                   const char *gasPrice,
+                                   int rid);
+
+    extern BREthereumStatus
+    ewmAnnounceGasEstimateFailure (BREthereumEWM ewm,
+                                   BREthereumWallet wallet,
+                                   BREthereumCookie cookie,
+                                   int rid);
 
     extern void
-    ewmUpdateGasEstimate (BREthereumEWM ewm,
-                          BREthereumWallet wid,
-                          BREthereumTransfer tid);
+    ewmGetGasEstimate (BREthereumEWM ewm,
+                       BREthereumWallet wallet,
+                       BREthereumTransfer transfer,
+                       BREthereumCookie cookie);
 
     /// MARK: - Submit Transfer
 
@@ -272,10 +282,22 @@ extern "C" {
         WALLET_EVENT_BALANCE_UPDATED,
         WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED,
         WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
-        WALLET_EVENT_DELETED
+        WALLET_EVENT_DELETED,
+        WALLET_EVENT_FEE_ESTIMATED
+    } BREthereumWalletEventType;
+
+    typedef struct {
+        BREthereumWalletEventType type;
+        union {
+            struct {
+                BREthereumCookie cookie;
+                BREthereumGas gasEstimate;
+                BREthereumGasPrice gasPrice;
+            } feeEstimate;
+        } u;
     } BREthereumWalletEvent;
 
-#define WALLET_NUMBER_OF_EVENTS  (1 + WALLET_EVENT_DELETED)
+#define WALLET_NUMBER_OF_EVENTS  (1 + WALLET_EVENT_FEE_ESTIMATED)
 
     typedef void (*BREthereumClientHandlerWalletEvent) (BREthereumClientContext context,
                                                         BREthereumEWM ewm,

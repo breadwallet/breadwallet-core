@@ -1078,8 +1078,8 @@ ewmInsertWallet (BREthereumEWM ewm,
                  BREthereumWallet wallet) {
     pthread_mutex_lock(&ewm->lock);
     array_add (ewm->wallets, wallet);
-    ewmSignalWalletEvent (ewm, wallet, WALLET_EVENT_CREATED, SUCCESS, NULL);
-    ewmSignalWalletEvent (ewm, wallet, WALLET_EVENT_BALANCE_UPDATED, SUCCESS, NULL);
+    ewmSignalWalletEvent (ewm, wallet, (BREthereumWalletEvent) { WALLET_EVENT_CREATED }, SUCCESS, NULL);
+    ewmSignalWalletEvent (ewm, wallet, (BREthereumWalletEvent) { WALLET_EVENT_BALANCE_UPDATED }, SUCCESS, NULL);
     pthread_mutex_unlock(&ewm->lock);
 }
 
@@ -1220,6 +1220,30 @@ ewmWalletEstimateTransferFeeForBasis(BREthereumEWM ewm,
                                      BREthereumGas gas,
                                      int *overflow) {
     return walletEstimateTransferFeeDetailed (wallet, amount, price, gas, overflow);
+}
+
+extern void
+ewmWalletEstimateTransferFeeForTransfer (BREthereumEWM ewm,
+                                         BREthereumWallet wallet,
+                                         BREthereumCookie cookie,
+                                         BREthereumAddress source,
+                                         BREthereumAddress target,
+                                         BREthereumAmount amount,
+                                         BREthereumGasPrice gasPrice,
+                                         BREthereumGas gasLimit) {
+    BREthereumToken  ethToken  = ewmWalletGetToken (ewm, wallet);
+
+    // use transfer, instead of transaction, due to the need to fill out the transaction data based on if
+    // it is a token transfer or not
+    BREthereumTransfer transfer = transferCreate (source,
+                                                  target,
+                                                  amount,
+                                                  (BREthereumFeeBasis) {FEE_BASIS_GAS, {.gas = {gasLimit, gasPrice}}},
+                                                  (NULL == ethToken ? TRANSFER_BASIS_TRANSACTION : TRANSFER_BASIS_LOG));
+
+    ewmGetGasEstimate (ewm, wallet, transfer, cookie);
+
+    transferRelease (transfer);
 }
 
 extern BREthereumBoolean
@@ -1426,7 +1450,7 @@ ewmWalletSetDefaultGasLimit(BREthereumEWM ewm,
     walletSetDefaultGasLimit(wallet, gasLimit);
     ewmSignalWalletEvent(ewm,
                          wallet,
-                         WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED,
+                         (BREthereumWalletEvent) { WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED },
                          SUCCESS,
                          NULL);
 }
@@ -1444,7 +1468,7 @@ ewmWalletSetDefaultGasPrice(BREthereumEWM ewm,
     walletSetDefaultGasPrice(wallet, gasPrice);
     ewmSignalWalletEvent(ewm,
                          wallet,
-                         WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
+                         (BREthereumWalletEvent) { WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED },
                          SUCCESS,
                          NULL);
 }
@@ -1469,7 +1493,7 @@ ewmHandleGasPrice (BREthereumEWM ewm,
     
     ewmSignalWalletEvent(ewm,
                          wallet,
-                         WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
+                         (BREthereumWalletEvent) { WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED },
                          SUCCESS, NULL);
     
     pthread_mutex_unlock(&ewm->lock);
@@ -1581,7 +1605,7 @@ ewmHandleBalance (BREthereumEWM ewm,
         walletSetBalance(wallet, amount);
         ewmSignalWalletEvent (ewm,
                               wallet,
-                              WALLET_EVENT_BALANCE_UPDATED,
+                              (BREthereumWalletEvent) { WALLET_EVENT_BALANCE_UPDATED },
                               SUCCESS,
                               NULL);
     }
@@ -1711,7 +1735,8 @@ ewmHandleTransaction (BREthereumEWM ewm,
                                 TRANSFER_EVENT_CREATED,
                                 SUCCESS, NULL);
 
-        ewmSignalWalletEvent (ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
+        ewmSignalWalletEvent (ewm, wallet,
+                              (BREthereumWalletEvent) { WALLET_EVENT_BALANCE_UPDATED },
                               SUCCESS,
                               NULL);
 
@@ -1786,7 +1811,8 @@ ewmHandleLog (BREthereumEWM ewm,
                                 TRANSFER_EVENT_CREATED,
                                 SUCCESS, NULL);
 
-        ewmSignalWalletEvent (ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
+        ewmSignalWalletEvent (ewm, wallet,
+                              (BREthereumWalletEvent) { WALLET_EVENT_BALANCE_UPDATED },
                               SUCCESS,
                               NULL);
 
@@ -1923,12 +1949,14 @@ ewmUpdateWalletBalance(BREthereumEWM ewm,
                        BREthereumWallet wallet) {
 
     if (NULL == wallet) {
-        ewmSignalWalletEvent(ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
+        ewmSignalWalletEvent(ewm, wallet,
+                             (BREthereumWalletEvent) { WALLET_EVENT_BALANCE_UPDATED },
                              ERROR_UNKNOWN_WALLET,
                              NULL);
 
     } else if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) {
-        ewmSignalWalletEvent(ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
+        ewmSignalWalletEvent(ewm, wallet,
+                             (BREthereumWalletEvent) { WALLET_EVENT_BALANCE_UPDATED },
                              ERROR_NODE_NOT_CONNECTED,
                              NULL);
     } else {

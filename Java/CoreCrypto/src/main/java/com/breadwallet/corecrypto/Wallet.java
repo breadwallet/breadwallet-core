@@ -16,9 +16,9 @@ import com.breadwallet.corenative.crypto.CoreBRCryptoWallet;
 import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.WalletState;
 import com.breadwallet.crypto.errors.FeeEstimationError;
-import com.breadwallet.crypto.errors.FeeEstimationServiceFailureError;
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
+import com.sun.jna.Pointer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +34,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
 
     private final CoreBRCryptoWallet core;
     private final WalletManager walletManager;
+    private final CallbackManager callbackManager;
 
     private final Unit unitForFee;
     private final Unit unit;
@@ -42,6 +43,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     private Wallet(CoreBRCryptoWallet core, WalletManager walletManager) {
         this.core = core;
         this.walletManager = walletManager;
+        this.callbackManager = walletManager.getCallbackManager();
 
         this.unit = Unit.create(core.getUnit());
         this.unitForFee = Unit.create(core.getUnitForFee());
@@ -60,18 +62,11 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
 
     @Override
     public void estimateFee(com.breadwallet.crypto.Address target, com.breadwallet.crypto.Amount amount,
-                            com.breadwallet.crypto.NetworkFee fee, CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError> completion) {
+                            com.breadwallet.crypto.NetworkFee fee, CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError> handler) {
         CoreBRCryptoAddress coreAddress = Address.from(target).getCoreBRCryptoAddress();
         CoreBRCryptoAmount coreAmount = Amount.from(amount).getCoreBRCryptoAmount();
         CoreBRCryptoNetworkFee coreFee = NetworkFee.from(fee).getCoreBRCryptoNetworkFee();
-
-        // TODO(fix): Figure out how we want to handle which thread/executor runs this
-        Optional<TransferFeeBasis> optFeeBasis = core.estimateFeeBasis(coreAddress, coreAmount, coreFee).transform(TransferFeeBasis::create);
-        if (optFeeBasis.isPresent()) {
-            completion.handleData(optFeeBasis.get());
-        } else {
-            completion.handleError(new FeeEstimationServiceFailureError());
-        }
+        core.estimateFeeBasis(callbackManager.registerFeeBasisEstimateHandler(handler), coreAddress, coreAmount, coreFee);
     }
 
     @Override

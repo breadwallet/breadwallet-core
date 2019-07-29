@@ -216,8 +216,8 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
-    public void announceGetGasEstimateSuccess(BRCryptoCWMClientCallbackState callbackState, String gasEstimate) {
-        CryptoLibrary.INSTANCE.cwmAnnounceGetGasEstimateSuccess(this, callbackState, gasEstimate);
+    public void announceGetGasEstimateSuccess(BRCryptoCWMClientCallbackState callbackState, String gasEstimate, String gasPrice) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetGasEstimateSuccess(this, callbackState, gasEstimate, gasPrice);
     }
 
     @Override

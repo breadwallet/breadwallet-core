@@ -73,6 +73,7 @@ extern "C" {
                                               OwnershipKept const char *from,
                                               OwnershipKept const char *to,
                                               OwnershipKept const char *amount,
+                                              OwnershipKept const char *price,
                                               OwnershipKept const char *data);
 
     typedef void
@@ -319,7 +320,8 @@ extern "C" {
     extern void
     cwmAnnounceGetGasEstimateSuccess (OwnershipKept BRCryptoWalletManager cwm,
                                       OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
-                                      const char *gasEstimate);
+                                      const char *gasEstimate,
+                                      const char *gasPrice);
 
     extern void
     cwmAnnounceGetGasEstimateFailure (OwnershipKept BRCryptoWalletManager cwm,

@@ -153,14 +153,20 @@ typedef struct {
     BREvent base;
     BREthereumEWM ewm;
     BREthereumWallet wallet;
-    BREthereumTransfer transfer;
+    BREthereumCookie cookie;
+    BREthereumStatus status;
     BREthereumGas gasEstimate;
+    BREthereumGasPrice gasPrice;
 } BREthereumHandleGasEstimateEvent;
 
 static void
 ewmHandleGasEstimateEventDispatcher(BREventHandler ignore,
                                     BREthereumHandleGasEstimateEvent *event) {
-    ewmHandleGasEstimate(event->ewm, event->wallet, event->transfer, event->gasEstimate);
+    if (SUCCESS == event->status) {
+        ewmHandlGasEstimateSuccess (event->ewm, event->wallet, event->cookie, event->gasEstimate, event->gasPrice);
+    } else {
+        ewmHandlGasEstimateFailure (event->ewm, event->wallet, event->cookie, event->status);
+    }
 }
 
 BREventType handleGasEstimateEventType = {
@@ -170,11 +176,21 @@ BREventType handleGasEstimateEventType = {
 };
 
 extern void
-ewmSignalGasEstimate (BREthereumEWM ewm,
-                      BREthereumWallet wallet,
-                      BREthereumTransfer transfer,
-                      BREthereumGas gasEstimate) {
-    BREthereumHandleGasEstimateEvent event = { { NULL, &handleGasEstimateEventType }, ewm, wallet, transfer, gasEstimate };
+ewmSignalGasEstimateSuccess(BREthereumEWM ewm,
+                            BREthereumWallet wallet,
+                            BREthereumCookie cookie,
+                            BREthereumGas gasEstimate,
+                            BREthereumGasPrice gasPrice) {
+    BREthereumHandleGasEstimateEvent event = { { NULL, &handleGasEstimateEventType }, ewm, wallet, cookie, SUCCESS, gasEstimate, gasPrice };
+    eventHandlerSignalEvent(ewm->handler, (BREvent*) &event);
+}
+
+extern void
+ewmSignalGasEstimateFailure(BREthereumEWM ewm,
+                            BREthereumWallet wallet,
+                            BREthereumCookie cookie,
+                            BREthereumStatus status) {
+    BREthereumHandleGasEstimateEvent event = { { NULL, &handleGasEstimateEventType }, ewm, wallet, cookie, status };
     eventHandlerSignalEvent(ewm->handler, (BREvent*) &event);
 }
 
@@ -739,41 +755,6 @@ ewmSignalAnnounceGasPrice (BREthereumEWM ewm,
 }
 
 //
-// Announce Gas Estimate
-//
-typedef struct {
-    struct BREventRecord base;
-    BREthereumEWM ewm;
-    BREthereumWallet wallet;
-    BREthereumTransfer transfer;
-    UInt256 value;
-    int rid;
-} BREthereumEWMClientAnnounceGasEstimateEvent;
-
-static void
-ewmSignalAnnounceGasEstimateDispatcher (BREventHandler ignore,
-                                        BREthereumEWMClientAnnounceGasEstimateEvent *event) {
-    ewmHandleAnnounceGasEstimate(event->ewm, event->wallet, event->transfer, event->value, event->rid);
-}
-
-static BREventType ewmClientAnnounceGasEstimateEventType = {
-    "EWM: Client Announce GasEstimate Event",
-    sizeof (BREthereumEWMClientAnnounceGasEstimateEvent),
-    (BREventDispatcher) ewmSignalAnnounceGasEstimateDispatcher
-};
-
-extern void
-ewmSignalAnnounceGasEstimate (BREthereumEWM ewm,
-                              BREthereumWallet wallet,
-                              BREthereumTransfer transfer,
-                              UInt256 value,
-                              int rid) {
-    BREthereumEWMClientAnnounceGasEstimateEvent message =
-    { { NULL, &ewmClientAnnounceGasEstimateEventType}, ewm, wallet, transfer, value, rid};
-    eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
-}
-
-//
 // Announce Submit Transaction
 //
 typedef struct {
@@ -1022,7 +1003,6 @@ const BREventType *ewmEventTypes[] = {
     &ewmClientAnnounceNonceEventType,
     &ewmClientAnnounceBalanceEventType,
     &ewmClientAnnounceGasPriceEventType,
-    &ewmClientAnnounceGasEstimateEventType,
     &ewmClientAnnounceSubmitTransferEventType,
     &ewmClientAnnounceTransactionEventType,
     &ewmClientAnnounceLogEventType,

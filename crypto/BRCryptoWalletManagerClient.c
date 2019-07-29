@@ -65,6 +65,10 @@ struct BRCryptoCWMClientCallbackStateRecord {
         } ethWithWallet;
         struct {
             BREthereumWallet wid;
+            BREthereumCookie cookie;
+        } ethWithWalletAndCookie;
+        struct {
+            BREthereumWallet wid;
             BREthereumTransfer tid;
         } ethWithTransaction;
 
@@ -319,6 +323,25 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
                                                    { .balanceUpdated = { amount }}
                                                });
 
+            break;
+        }
+
+        case BITCOIN_WALLET_FEE_ESTIMATED: {
+            BRCryptoUnit feeUnit = cryptoWalletGetUnitForFee (wallet);
+
+            BRCryptoFeeBasis feeBasis = cryptoFeeBasisCreateAsBTC (feeUnit,
+                                                                   (uint32_t) event.u.feeEstimated.feePerKb,
+                                                                   event.u.feeEstimated.sizeInByte);
+
+            cwm->listener.walletEventCallback (cwm->listener.context,
+                                               cryptoWalletManagerTake (cwm),
+                                               wallet,
+                                               (BRCryptoWalletEvent) {
+                                                   CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED,
+                                                   { .feeBasisEstimated = { event.u.feeEstimated.cookie, feeBasis }}
+                                               });
+
+            cryptoUnitGive (feeUnit);
             break;
         }
 
@@ -811,7 +834,7 @@ cwmWalletEventAsETH (BREthereumClientContext context,
 
     // TODO: crypto{Wallet,Transfer}Give()
 
-    switch (event) {
+    switch (event.type) {
         case WALLET_EVENT_CREATED:
             if (NULL == wallet) {
                 BREthereumToken token = ewmWalletGetToken (ewm, wid);
@@ -925,6 +948,23 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                                                   });
             }
             break;
+        case WALLET_EVENT_FEE_ESTIMATED:
+            if (NULL != wallet) {
+                if (SUCCESS == status) {
+                    BRCryptoUnit feeUnit = cryptoWalletGetUnitForFee(wallet);
+
+                    BRCryptoFeeBasis feeBasis = cryptoFeeBasisCreateAsETH (feeUnit, event.u.feeEstimate.gasEstimate, event.u.feeEstimate.gasPrice);
+                    cwm->listener.walletEventCallback(cwm->listener.context,
+                                                      cryptoWalletManagerTake(cwm),
+                                                      wallet,
+                                                      (BRCryptoWalletEvent) {
+                                                       CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED,
+                                                       { .feeBasisEstimated = { event.u.feeEstimate.cookie, feeBasis }}
+                                                   });
+                } else {
+                    // TODO(fix): How do we want to handle failure
+                }
+            }
     }
 }
 
@@ -1213,18 +1253,19 @@ static void
 cwmGetGasEstimateAsETH (BREthereumClientContext context,
                         BREthereumEWM ewm,
                         BREthereumWallet wid,
-                        BREthereumTransfer tid,
+                        BREthereumCookie cookie,
                         const char *from,
                         const char *to,
                         const char *amount,
+                        const char *price,
                         const char *data,
                         int rid) {
     BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
 
     BRCryptoCWMClientCallbackState callbackState = calloc (1, sizeof(struct BRCryptoCWMClientCallbackStateRecord));
     callbackState->type = CWM_CALLBACK_TYPE_ETH_ESTIMATE_GAS;
-    callbackState->u.ethWithTransaction.wid = wid;
-    callbackState->u.ethWithTransaction.tid = tid;
+    callbackState->u.ethWithWalletAndCookie.wid = wid;
+    callbackState->u.ethWithWalletAndCookie.cookie = cookie;
     callbackState->rid = rid;
 
     BREthereumNetwork network = ewmGetNetwork (ewm);
@@ -1237,6 +1278,7 @@ cwmGetGasEstimateAsETH (BREthereumClientContext context,
                                      from,
                                      to,
                                      amount,
+                                     price,
                                      data);
 
     free (networkName);
@@ -1872,15 +1914,17 @@ cwmAnnounceGetGasPriceFailure (OwnershipKept BRCryptoWalletManager cwm,
 extern void
 cwmAnnounceGetGasEstimateSuccess (OwnershipKept BRCryptoWalletManager cwm,
                                   OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
-                                  OwnershipKept const char *gasEstimate) {
+                                  OwnershipKept const char *gasEstimate,
+                                  OwnershipKept const char *gasPrice) {
     assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_ETH_ESTIMATE_GAS == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
-    ewmAnnounceGasEstimate (cwm->u.eth,
-                            callbackState->u.ethWithTransaction.wid,
-                            callbackState->u.ethWithTransaction.tid,
-                            gasEstimate,
-                            callbackState->rid);
+    ewmAnnounceGasEstimateSuccess (cwm->u.eth,
+                                   callbackState->u.ethWithWalletAndCookie.wid,
+                                   callbackState->u.ethWithWalletAndCookie.cookie,
+                                   gasEstimate,
+                                   gasPrice,
+                                   callbackState->rid);
 
     cryptoWalletManagerGive (cwm);
     free (callbackState);
@@ -1890,6 +1934,11 @@ extern void
 cwmAnnounceGetGasEstimateFailure (OwnershipKept BRCryptoWalletManager cwm,
                                   OwnershipGiven BRCryptoCWMClientCallbackState callbackState) {
     assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_ETH_ESTIMATE_GAS == callbackState->type);
+
+    ewmAnnounceGasEstimateFailure (cwm->u.eth,
+                                   callbackState->u.ethWithWalletAndCookie.wid,
+                                   callbackState->u.ethWithWalletAndCookie.cookie,
+                                   callbackState->rid);
     free (callbackState);
 }
 

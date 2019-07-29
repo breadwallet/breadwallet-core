@@ -104,10 +104,6 @@ public class CoreCryptoApplication extends Application {
         return system;
     }
 
-    public static CoreSystemListener getListener() {
-        return listener;
-    }
-
     public static byte[] getPaperKey() {
         return paperKey;
     }

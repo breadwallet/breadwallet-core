@@ -52,4 +52,20 @@ public interface System {
     List<WalletManagerMode> getSupportedWalletManagerModes(Network network);
 
     boolean supportsWalletManagerModes(Network network, WalletManagerMode mode);
+
+    void addSystemListener(SystemListener listener);
+
+    void removeSystemListener(SystemListener listener);
+
+    void addWalletManagerListener(WalletManager manager, SystemListener listener);
+
+    void removeWalletManagerListener(WalletManager manager, SystemListener listener);
+
+    void addWalletListener(Wallet wallet, SystemListener listener);
+
+    void removeWalletListener(Wallet wallet, SystemListener listener);
+
+    void addTransferListener(Transfer transfer, SystemListener listener);
+
+    void removeTransferListener(Transfer transfer, SystemListener listener);
 }

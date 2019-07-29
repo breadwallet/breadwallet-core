@@ -135,6 +135,9 @@ extern "C" {
     cryptoAddressCreateAsGEN (BRGenericWalletManager gwm,
                               BRGenericAddress aid);
 
+    private_extern BREthereumAddress
+    cryptoAddressAsETH (BRCryptoAddress address);
+
     private_extern BRGenericAddress
     cryptoAddressAsGEN (BRCryptoAddress address);
     

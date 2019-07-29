@@ -161,7 +161,8 @@ typedef enum {
     BITCOIN_WALLET_BALANCE_UPDATED,
     BITCOIN_WALLET_TRANSACTION_SUBMITTED,
     BITCOIN_WALLET_FEE_PER_KB_UPDATED,
-    BITCOIN_WALLET_DELETED
+    BITCOIN_WALLET_DELETED,
+    BITCOIN_WALLET_FEE_ESTIMATED,
 } BRWalletEventType;
 
 typedef struct {
@@ -179,6 +180,12 @@ typedef struct {
         struct {
             uint64_t value;
         } feePerKb;
+
+        struct {
+            void *cookie;
+            uint64_t feePerKb;
+            uint32_t sizeInByte;
+        } feeEstimated;
     } u;
 } BRWalletEvent;
 
@@ -324,6 +331,13 @@ extern void
 BRWalletManagerUpdateFeePerKB (BRWalletManager manager,
                                BRWallet *wallet,
                                uint64_t feePerKb);
+
+extern void
+BRWalletManagerEstimateFeeForTransfer (BRWalletManager manager,
+                                       BRWallet *wallet,
+                                       void *cookie,
+                                       uint64_t transferAmount,
+                                       uint64_t feePerKb);
 
 #ifdef __cplusplus
 }

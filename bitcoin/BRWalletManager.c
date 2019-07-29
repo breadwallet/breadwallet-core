@@ -825,6 +825,28 @@ BRWalletManagerUpdateFeePerKB (BRWalletManager manager,
                                      });
 }
 
+extern void
+BRWalletManagerEstimateFeeForTransfer (BRWalletManager manager,
+                                       BRWallet *wallet,
+                                       void *cookie,
+                                       uint64_t transferAmount,
+                                       uint64_t feePerKb) {
+    uint64_t feePerKBSaved = BRWalletFeePerKb (wallet);
+    BRWalletSetFeePerKb (wallet, feePerKb);
+    uint64_t fee  = (0 == transferAmount ? 0 : BRWalletFeeForTxAmount (wallet, transferAmount));
+    uint32_t sizeInByte = (uint32_t) ((1000 * fee)/ feePerKb);
+    BRWalletSetFeePerKb (wallet, feePerKBSaved);
+
+    // TODO(fix): this should be on a thread
+    manager->client.funcWalletEvent (manager->client.context,
+                                     manager,
+                                     wallet,
+                                     (BRWalletEvent) {
+                                         BITCOIN_WALLET_FEE_ESTIMATED,
+                                         { .feeEstimated = { cookie, feePerKb, sizeInByte }}
+                                     });
+}
+
 static void
 BRWalletManagerAddressToLegacy (BRAddress *addr) {
     uint8_t script[] = { OP_DUP, OP_HASH160, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,

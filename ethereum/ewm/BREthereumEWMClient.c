@@ -67,14 +67,16 @@ ewmUpdateGasPrice (BREthereumEWM ewm,
                                 BREthereumWallet wallet) {
 
     if (NULL == wallet) {
-        ewmSignalWalletEvent(ewm, wallet, WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
-                                     ERROR_UNKNOWN_WALLET,
-                                     NULL);
-        
+        ewmSignalWalletEvent(ewm, wallet,
+                             (BREthereumWalletEvent) { WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED },
+                             ERROR_UNKNOWN_WALLET,
+                             NULL);
+
     } else if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) {
-        ewmSignalWalletEvent(ewm, wallet, WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
-                                     ERROR_NODE_NOT_CONNECTED,
-                                     NULL);
+        ewmSignalWalletEvent(ewm, wallet,
+                             (BREthereumWalletEvent) { WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED },
+                             ERROR_NODE_NOT_CONNECTED,
+                             NULL);
     } else {
         switch (ewm->mode) {
             case BRD_ONLY:
@@ -108,11 +110,11 @@ ewmAnnounceGasPrice(BREthereumEWM ewm,
                     const char *gasPrice,
                     int rid) {
     if (NULL == wallet) { return ERROR_UNKNOWN_WALLET; }
-    
+
     BRCoreParseStatus parseStatus;
     UInt256 amount = createUInt256Parse(gasPrice, 0, &parseStatus);
     if (CORE_PARSE_OK != parseStatus) { return ERROR_NUMERIC_PARSE; }
-    
+
     ewmSignalAnnounceGasPrice(ewm, wallet, amount, rid);
     return SUCCESS;
 }
@@ -123,85 +125,115 @@ ewmAnnounceGasPrice(BREthereumEWM ewm,
 //
 
 extern void
-ewmUpdateGasEstimate (BREthereumEWM ewm,
-                      BREthereumWallet wallet,
-                      BREthereumTransfer transfer) {
+ewmGetGasEstimate (BREthereumEWM ewm,
+                   BREthereumWallet wallet,
+                   BREthereumTransfer transfer,
+                   BREthereumCookie cookie) {
     if (NULL == transfer) {
-        ewmSignalTransferEvent(ewm, wallet, transfer,
-                               TRANSFER_EVENT_GAS_ESTIMATE_UPDATED,
-                               ERROR_UNKNOWN_WALLET,
-                               NULL);
-        
+        ewmSignalGasEstimateFailure(ewm, wallet, cookie, ERROR_UNKNOWN_TRANSACTION);
+
     } else if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) {
-        ewmSignalTransferEvent(ewm, wallet, transfer,
-                               TRANSFER_EVENT_GAS_ESTIMATE_UPDATED,
-                               ERROR_NODE_NOT_CONNECTED,
-                               NULL);
+        ewmSignalGasEstimateFailure(ewm, wallet, cookie, ERROR_NODE_NOT_CONNECTED);
+
     } else {
         switch (ewm->mode) {
             case BRD_ONLY:
             case BRD_WITH_P2P_SEND: {
                 // This will be ZERO if transaction amount is in TOKEN.
                 BREthereumEther amountInEther = transferGetEffectiveAmountInEther(transfer);
-                BREthereumAddress fromAddress = transferGetSourceAddress(transfer);
-
+                BREthereumFeeBasis feeBasis = transferGetFeeBasis (transfer);
+                BREthereumGasPrice gasPrice = feeBasisGetGasPrice (feeBasis);
                 BREthereumTransaction transaction = transferGetOriginatingTransaction(transfer);
 
-                char *from = addressGetEncodedString(fromAddress, 1);
-                char *to = (char *) addressGetEncodedString(transactionGetTargetAddress(transaction), 0);
+                char *from = addressGetEncodedString(transferGetSourceAddress(transfer), 1);
+                char *to = addressGetEncodedString(transferGetTargetAddress(transfer), 0);
                 char *amount = coerceStringPrefaced(amountInEther.valueInWEI, 16, "0x");
+                char *price = coerceStringPrefaced(gasPrice.etherPerGas.valueInWEI, 16, "0x");
+                char *data = (char *) transactionGetData(transaction);
 
                 ewm->client.funcEstimateGas (ewm->client.context,
                                              ewm,
                                              wallet,
-                                             transfer,
+                                             cookie,
                                              from,
                                              to,
                                              amount,
-                                             transactionGetData(transaction),
+                                             price,
+                                             data,
                                              ++ewm->requestId);
 
                 free (from);
-                free(to);
-                free(amount);
+                free (to);
+                free (amount);
+                free (price);
                 break;
             }
 
             case P2P_WITH_BRD_SYNC:
             case P2P_ONLY:
                 // TODO: LES Update Wallet Balance
+                assert (0);
                 break;
         }
     }
 }
 
-extern void
-ewmHandleAnnounceGasEstimate (BREthereumEWM ewm,
-                              BREthereumWallet wallet,
-                              BREthereumTransfer transfer,
-                              UInt256 value,
-                              int rid) {
-    ewmSignalGasEstimate(ewm, wallet, transfer, gasCreate(value.u64[0]));
+extern BREthereumStatus
+ewmAnnounceGasEstimateSuccess (BREthereumEWM ewm,
+                               BREthereumWallet wallet,
+                               BREthereumCookie cookie,
+                               const char *gasEstimate,
+                               const char *gasPrice,
+                               int rid) {
+    BRCoreParseStatus estimateStatus        = CORE_PARSE_OK;
+    BRCoreParseStatus priceStatus           = CORE_PARSE_OK;
+    UInt256 estimate                        = createUInt256Parse(gasEstimate, 0, &estimateStatus);
+    UInt256 price                           = createUInt256Parse(gasPrice, 0, &priceStatus);
+
+    if (CORE_PARSE_OK != estimateStatus || 0 != estimate.u64[1] || 0 != estimate.u64[2] || 0 != estimate.u64[3] ||
+        CORE_PARSE_OK != priceStatus    || 0 != price.u64[1]    || 0 != price.u64[2]    || 0 != price.u64[3]) {
+        ewmSignalGasEstimateFailure(ewm, wallet, cookie, ERROR_NUMERIC_PARSE);
+
+    } else {
+        ewmSignalGasEstimateSuccess(ewm, wallet, cookie, gasCreate(estimate.u64[0]), gasPriceCreate(etherCreate(price)));
+    }
+
+    return SUCCESS;
 }
 
 extern BREthereumStatus
-ewmAnnounceGasEstimate (BREthereumEWM ewm,
-                        BREthereumWallet wallet,
-                        BREthereumTransfer transfer,
-                        const char *gasEstimate,
-                        int rid) {
-    if (NULL == wallet) { return ERROR_UNKNOWN_WALLET; }
-    if (NULL == transfer) { return ERROR_UNKNOWN_TRANSACTION; }
-    
-    BRCoreParseStatus parseStatus;
-    UInt256 gas = createUInt256Parse(gasEstimate, 0, &parseStatus);
-    
-    if (CORE_PARSE_OK != parseStatus ||
-        0 != gas.u64[1] || 0 != gas.u64[2] || 0 != gas.u64[3]) { return ERROR_NUMERIC_PARSE; }
-    
-    
-    ewmSignalAnnounceGasEstimate(ewm, wallet, transfer, gas, rid);
+ewmAnnounceGasEstimateFailure (BREthereumEWM ewm,
+                               BREthereumWallet wallet,
+                               BREthereumCookie cookie,
+                               int rid) {
+    // TODO(fix: Expose error reasons?
+    ewmSignalGasEstimateFailure(ewm, wallet, cookie, ERROR_NODE_NOT_CONNECTED);
     return SUCCESS;
+}
+
+extern void
+ewmHandlGasEstimateSuccess (BREthereumEWM ewm,
+                            BREthereumWallet wallet,
+                            BREthereumCookie cookie,
+                            BREthereumGas gasEstimate,
+                            BREthereumGasPrice gasPrice) {
+    ewmSignalWalletEvent (ewm,
+                          wallet,
+                          (BREthereumWalletEvent) {WALLET_EVENT_FEE_ESTIMATED, {.feeEstimate = {cookie, gasEstimate, gasPrice}}},
+                          SUCCESS,
+                          NULL);
+}
+
+extern void
+ewmHandlGasEstimateFailure (BREthereumEWM ewm,
+                            BREthereumWallet wallet,
+                            BREthereumCookie cookie,
+                            BREthereumStatus status) {
+    ewmSignalWalletEvent (ewm,
+                          wallet,
+                          (BREthereumWalletEvent) {WALLET_EVENT_FEE_ESTIMATED, {.feeEstimate = {cookie}}},
+                          status,
+                          NULL);
 }
 
 // ==============================================================================================

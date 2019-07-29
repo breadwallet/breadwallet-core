@@ -46,6 +46,7 @@ import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthLog;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthToken;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthTransaction;
+import com.breadwallet.crypto.errors.FeeEstimationError;
 import com.breadwallet.crypto.events.network.NetworkCreatedEvent;
 import com.breadwallet.crypto.events.system.SystemCreatedEvent;
 import com.breadwallet.crypto.events.system.SystemListener;
@@ -90,7 +91,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -100,18 +101,19 @@ final class System implements com.breadwallet.crypto.System {
 
     private static final String TAG = System.class.getName();
 
-    private static final AtomicLong SYSTEM_IDS = new AtomicLong(0);
-
     private static final Map<Pointer, WeakReference<System>> SYSTEMS = new ConcurrentHashMap<>();
+    private static final AtomicInteger SYSTEM_IDS = new AtomicInteger(0);
 
-    // keep a static reference to the callbacks so that they are never GC'ed
+    //
+    // Keep a static reference to the callbacks so that they are never GC'ed
+    //
+
     private static final BRCryptoCWMClientBtc CWM_CLIENT_BTC = new BRCryptoCWMClientBtc(
             System::btcGetBlockNumber,
             System::btcGetTransactions,
             System::btcSubmitTransaction
     );
 
-    // keep a static reference to the callbacks so that they are never GC'ed
     private static final BRCryptoCWMClientEth CWM_CLIENT_ETH = new BRCryptoCWMClientEth(
             System::ethGetEtherBalance,
             System::ethGetTokenBalance,
@@ -126,20 +128,18 @@ final class System implements com.breadwallet.crypto.System {
             System::ethGetNonce
     );
 
-    // keep a static reference to the callbacks so that they are never GC'ed
     private static final BRCryptoCWMClientGen CWM_CLIENT_GEN = new BRCryptoCWMClientGen(
             System::genGetBlockNumber,
             System::genGetTransactions,
             System::genSubmitTransaction
     );
 
-    // keep these as static references to the callbacks so that they are never GC'ed
     private static final BRCryptoCWMListenerWalletManagerEvent CWM_LISTENER_WALLET_MANAGER_CALLBACK = System::walletManagerEventCallback;
     private static final BRCryptoCWMListenerWalletEvent CWM_LISTENER_WALLET_CALLBACK = System::walletEventCallback;
     private static final BRCryptoCWMListenerTransferEvent CWM_LISTENER_TRANSFER_CALLBACK = System::transferEventCallback;
 
     /* package */
-    static System create(ExecutorService listenerExecutor, SystemListener listener, com.breadwallet.crypto.Account account, String path, BlockchainDb query) {
+    static System create(ExecutorService asyncExecutor, SystemListener listener, com.breadwallet.crypto.Account account, String path, BlockchainDb query) {
         Pointer context = Pointer.createConstant(SYSTEM_IDS.incrementAndGet());
 
         BRCryptoCWMListener.ByValue cwmListener = new BRCryptoCWMListener.ByValue(context,
@@ -152,7 +152,7 @@ final class System implements com.breadwallet.crypto.System {
                 CWM_CLIENT_ETH,
                 CWM_CLIENT_GEN);
 
-        System system = new System(listenerExecutor,
+        System system = new System(asyncExecutor,
                 listener,
                 account,
                 path,
@@ -166,12 +166,12 @@ final class System implements com.breadwallet.crypto.System {
         return system;
     }
 
-    private static Optional<System> getInstance(Pointer context) {
+    private static Optional<System> getSystem(Pointer context) {
         WeakReference<System> ref = SYSTEMS.get(context);
         return null != ref ? Optional.fromNullable(ref.get()): Optional.absent();
     }
 
-    private final SystemAnnouncer announcer;
+    private final CallbackManager callbackManager;
     private final Account account;
     private final String path;
     private final BlockchainDb query;
@@ -187,7 +187,7 @@ final class System implements com.breadwallet.crypto.System {
 
     private System(ExecutorService listenerExecutor, SystemListener listener, com.breadwallet.crypto.Account account, String path,
                    BlockchainDb query, BRCryptoCWMListener.ByValue cwmListener, BRCryptoCWMClient.ByValue cwmClient) {
-        this.announcer = new SystemAnnouncer(this, listenerExecutor, listener);
+        this.callbackManager = new CallbackManager(this, listenerExecutor, listener);
         this.account = Account.from(account);
         this.path = path;
         this.query = query;
@@ -204,7 +204,7 @@ final class System implements com.breadwallet.crypto.System {
         this.walletManagersWriteLock = walletManagersRwLock.writeLock();
         this.walletManagers = new ArrayList<>();
 
-        announcer.announceSystemEvent(new SystemCreatedEvent());
+        callbackManager.announceSystemEvent(new SystemCreatedEvent());
     }
 
     @Override
@@ -212,8 +212,8 @@ final class System implements com.breadwallet.crypto.System {
         NetworkDiscovery.discoverNetworks(query, discoveredNetworks -> {
             for (Network network: discoveredNetworks) {
                 if (addNetwork(network)) {
-                    announcer.announceNetworkEvent(network, new NetworkCreatedEvent());
-                    announcer.announceSystemEvent(new SystemNetworkAddedEvent(network));
+                    callbackManager.announceNetworkEvent(network, new NetworkCreatedEvent());
+                    callbackManager.announceSystemEvent(new SystemNetworkAddedEvent(network));
                 }
             }
         });
@@ -223,7 +223,7 @@ final class System implements com.breadwallet.crypto.System {
     public void createWalletManager(com.breadwallet.crypto.Network network, WalletManagerMode mode, AddressScheme scheme) {
         WalletManager walletManager = WalletManager.create(cwmListener, cwmClient, account, Network.from(network), mode, scheme, path, this);
         addWalletManager(walletManager);
-        announcer.announceSystemEvent(new SystemManagerAddedEvent(walletManager));
+        callbackManager.announceSystemEvent(new SystemManagerAddedEvent(walletManager));
     }
 
     @Override
@@ -246,6 +246,15 @@ final class System implements com.breadwallet.crypto.System {
     @Override
     public String getPath() {
         return path;
+    }
+
+    @Override
+    public List<Wallet> getWallets() {
+        List<Wallet> wallets = new ArrayList<>();
+        for (WalletManager manager: getWalletManagers()) {
+            wallets.addAll(manager.getWallets());
+        }
+        return wallets;
     }
 
     // Network management
@@ -279,13 +288,54 @@ final class System implements com.breadwallet.crypto.System {
     // WalletManager management
 
     @Override
-    public List<Wallet> getWallets() {
-        List<Wallet> wallets = new ArrayList<>();
-        for (WalletManager manager: getWalletManagers()) {
-            wallets.addAll(manager.getWallets());
+    public List<WalletManager> getWalletManagers() {
+        walletManagersReadLock.lock();
+        try {
+            return new ArrayList<>(walletManagers);
+        } finally {
+            walletManagersReadLock.unlock();
         }
-        return wallets;
     }
+
+    private void addWalletManager(WalletManager walletManager) {
+        walletManagersWriteLock.lock();
+        try {
+            if (!walletManagers.contains(walletManager)) {
+                walletManagers.add(walletManager);
+            }
+        } finally {
+            walletManagersWriteLock.unlock();
+        }
+    }
+
+    private Optional<WalletManager> getWalletManager(CoreBRCryptoWalletManager coreWalletManager) {
+        WalletManager walletManager = WalletManager.create(coreWalletManager, this);
+        walletManagersReadLock.lock();
+        try {
+            int index = walletManagers.indexOf(walletManager);
+            return Optional.fromNullable(index == -1 ? null : walletManagers.get(index));
+        } finally {
+            walletManagersReadLock.unlock();
+        }
+    }
+
+    private WalletManager getWalletManagerOrCreate(CoreBRCryptoWalletManager coreWalletManager) {
+        WalletManager walletManager = WalletManager.create(coreWalletManager, this);
+        walletManagersWriteLock.lock();
+        try {
+            int index = walletManagers.indexOf(walletManager);
+            if (index == -1) {
+                walletManagers.add(walletManager);
+            } else {
+                walletManager = walletManagers.get(index);
+            }
+            return walletManager;
+        } finally {
+            walletManagersWriteLock.unlock();
+        }
+    }
+
+    // Miscellaneous
 
     @Override
     public AddressScheme getDefaultAddressScheme(com.breadwallet.crypto.Network network) {
@@ -366,51 +416,43 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     @Override
-    public List<WalletManager> getWalletManagers() {
-        walletManagersReadLock.lock();
-        try {
-            return new ArrayList<>(walletManagers);
-        } finally {
-            walletManagersReadLock.unlock();
-        }
+    public void addSystemListener(SystemListener listener) {
+        callbackManager.addSystemListener(listener);
     }
 
-    private void addWalletManager(WalletManager walletManager) {
-        walletManagersWriteLock.lock();
-        try {
-            if (!walletManagers.contains(walletManager)) {
-                walletManagers.add(walletManager);
-            }
-        } finally {
-            walletManagersWriteLock.unlock();
-        }
+    @Override
+    public void removeSystemListener(SystemListener listener) {
+        callbackManager.removeSystemListener(listener);
     }
 
-    private Optional<WalletManager> getWalletManager(CoreBRCryptoWalletManager coreWalletManager) {
-        WalletManager walletManager = WalletManager.create(coreWalletManager, this);
-        walletManagersReadLock.lock();
-        try {
-            int index = walletManagers.indexOf(walletManager);
-            return Optional.fromNullable(index == -1 ? null : walletManagers.get(index));
-        } finally {
-            walletManagersReadLock.unlock();
-        }
+    @Override
+    public void addWalletManagerListener(com.breadwallet.crypto.WalletManager manager, SystemListener listener) {
+        callbackManager.addWalletManagerListener(manager, listener);
     }
 
-    private WalletManager getWalletManagerOrCreate(CoreBRCryptoWalletManager coreWalletManager) {
-        WalletManager walletManager = WalletManager.create(coreWalletManager, this);
-        walletManagersWriteLock.lock();
-        try {
-            int index = walletManagers.indexOf(walletManager);
-            if (index == -1) {
-                walletManagers.add(walletManager);
-            } else {
-                walletManager = walletManagers.get(index);
-            }
-            return walletManager;
-        } finally {
-            walletManagersWriteLock.unlock();
-        }
+    @Override
+    public void removeWalletManagerListener(com.breadwallet.crypto.WalletManager manager, SystemListener listener) {
+        callbackManager.removeWalletManagerListener(manager, listener);
+    }
+
+    @Override
+    public void addWalletListener(com.breadwallet.crypto.Wallet wallet, SystemListener listener) {
+        callbackManager.addWalletListener(wallet, listener);
+    }
+
+    @Override
+    public void removeWalletListener(com.breadwallet.crypto.Wallet wallet, SystemListener listener) {
+        callbackManager.removeWalletListener(wallet, listener);
+    }
+
+    @Override
+    public void addTransferListener(com.breadwallet.crypto.Transfer transfer, SystemListener listener) {
+        callbackManager.addTransferListener(transfer, listener);
+    }
+
+    @Override
+    public void removeTransferListener(com.breadwallet.crypto.Transfer transfer, SystemListener listener) {
+        callbackManager.removeTransferListener(transfer, listener);
     }
 
     //
@@ -470,12 +512,12 @@ final class System implements com.breadwallet.crypto.System {
     private static void handleWalletManagerCreated(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
         Log.d(TAG, "WalletManagerCreated");
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             System system = optSystem.get();
 
             WalletManager walletManager = system.getWalletManagerOrCreate(coreWalletManager);
-            system.announcer.announceWalletManagerEvent(walletManager, new WalletManagerCreatedEvent());
+            system.callbackManager.announceWalletManagerEvent(walletManager, new WalletManagerCreatedEvent());
 
         } else {
             Log.e(TAG, "WalletManagerCreated: missed system");
@@ -488,14 +530,14 @@ final class System implements com.breadwallet.crypto.System {
 
         Log.d(TAG, String.format("WalletManagerChanged (%s -> %s)", oldState, newState));
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             System system = optSystem.get();
 
             Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
             if (optWalletManager.isPresent()) {
                 WalletManager walletManager = optWalletManager.get();
-                system.announcer.announceWalletManagerEvent(walletManager, new WalletManagerChangedEvent(oldState, newState));
+                system.callbackManager.announceWalletManagerEvent(walletManager, new WalletManagerChangedEvent(oldState, newState));
 
             } else {
                 Log.e(TAG, "WalletManagerChanged: missed wallet manager");
@@ -509,14 +551,14 @@ final class System implements com.breadwallet.crypto.System {
     private static void handleWalletManagerDeleted(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
         Log.d(TAG, "WalletManagerDeleted");
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             System system = optSystem.get();
 
             Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
             if (optWalletManager.isPresent()) {
                 WalletManager walletManager = optWalletManager.get();
-                system.announcer.announceWalletManagerEvent(walletManager, new WalletManagerDeletedEvent());
+                system.callbackManager.announceWalletManagerEvent(walletManager, new WalletManagerDeletedEvent());
 
             } else {
                 Log.e(TAG, "WalletManagerDeleted: missed wallet manager");
@@ -532,7 +574,7 @@ final class System implements com.breadwallet.crypto.System {
 
         CoreBRCryptoWallet coreWallet = CoreBRCryptoWallet.createOwned(event.u.wallet.value);
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             System system = optSystem.get();
 
@@ -543,7 +585,7 @@ final class System implements com.breadwallet.crypto.System {
                 Optional<Wallet> optional = walletManager.getWallet(coreWallet);
                 if (optional.isPresent()) {
                     Wallet wallet = optional.get();
-                    system.announcer.announceWalletManagerEvent(walletManager, new WalletManagerWalletAddedEvent(wallet));
+                    system.callbackManager.announceWalletManagerEvent(walletManager, new WalletManagerWalletAddedEvent(wallet));
 
                 } else {
                     Log.e(TAG, "WalletManagerWalletAdded: missed wallet");
@@ -563,7 +605,7 @@ final class System implements com.breadwallet.crypto.System {
 
         CoreBRCryptoWallet coreWallet = CoreBRCryptoWallet.createOwned(event.u.wallet.value);
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             System system = optSystem.get();
 
@@ -574,7 +616,7 @@ final class System implements com.breadwallet.crypto.System {
                 Optional<Wallet> optional = walletManager.getWallet(coreWallet);
                 if (optional.isPresent()) {
                     Wallet wallet = optional.get();
-                    system.announcer.announceWalletManagerEvent(walletManager, new WalletManagerWalletChangedEvent(wallet));
+                    system.callbackManager.announceWalletManagerEvent(walletManager, new WalletManagerWalletChangedEvent(wallet));
 
                 } else {
                     Log.e(TAG, "WalletManagerWalletChanged: missed wallet");
@@ -594,7 +636,7 @@ final class System implements com.breadwallet.crypto.System {
 
         CoreBRCryptoWallet coreWallet = CoreBRCryptoWallet.createOwned(event.u.wallet.value);
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             System system = optSystem.get();
 
@@ -605,7 +647,7 @@ final class System implements com.breadwallet.crypto.System {
                 Optional<Wallet> optional = walletManager.getWallet(coreWallet);
                 if (optional.isPresent()) {
                     Wallet wallet = optional.get();
-                    system.announcer.announceWalletManagerEvent(walletManager, new WalletManagerWalletDeletedEvent(wallet));
+                    system.callbackManager.announceWalletManagerEvent(walletManager, new WalletManagerWalletDeletedEvent(wallet));
 
                 } else {
                     Log.e(TAG, "WalletManagerWalletDeleted: missed wallet");
@@ -623,14 +665,14 @@ final class System implements com.breadwallet.crypto.System {
     private static void handleWalletManagerSyncStarted(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
         Log.d(TAG, "WalletManagerSyncStarted");
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             System system = optSystem.get();
 
             Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
             if (optWalletManager.isPresent()) {
                 WalletManager walletManager = optWalletManager.get();
-                system.announcer.announceWalletManagerEvent(walletManager, new WalletManagerSyncStartedEvent());
+                system.callbackManager.announceWalletManagerEvent(walletManager, new WalletManagerSyncStartedEvent());
 
             } else {
                 Log.e(TAG, "WalletManagerSyncStarted: missed wallet manager");
@@ -646,14 +688,14 @@ final class System implements com.breadwallet.crypto.System {
 
         Log.d(TAG, String.format("WalletManagerSyncProgress (%s)", percent));
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             System system = optSystem.get();
 
             Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
             if (optWalletManager.isPresent()) {
                 WalletManager walletManager = optWalletManager.get();
-                system.announcer.announceWalletManagerEvent(walletManager, new WalletManagerSyncProgressEvent(percent));
+                system.callbackManager.announceWalletManagerEvent(walletManager, new WalletManagerSyncProgressEvent(percent));
 
             } else {
                 Log.e(TAG, "WalletManagerSyncProgress: missed wallet manager");
@@ -667,7 +709,7 @@ final class System implements com.breadwallet.crypto.System {
     private static void handleWalletManagerSyncStopped(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
         Log.d(TAG, "WalletManagerSyncStopped");
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             System system = optSystem.get();
 
@@ -675,7 +717,7 @@ final class System implements com.breadwallet.crypto.System {
             if (optWalletManager.isPresent()) {
                 WalletManager walletManager = optWalletManager.get();
                 // TODO(fix): fill in message
-                system.announcer.announceWalletManagerEvent(walletManager, new WalletManagerSyncStoppedEvent(""));
+                system.callbackManager.announceWalletManagerEvent(walletManager, new WalletManagerSyncStoppedEvent(""));
 
             } else {
                 Log.e(TAG, "WalletManagerSyncStopped: missed wallet manager");
@@ -691,14 +733,14 @@ final class System implements com.breadwallet.crypto.System {
 
         Log.d(TAG, String.format("WalletManagerBlockHeightUpdated (%s)", blockHeight));
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             System system = optSystem.get();
 
             Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
             if (optWalletManager.isPresent()) {
                 WalletManager walletManager = optWalletManager.get();
-                system.announcer.announceWalletManagerEvent(walletManager, new WalletManagerBlockUpdatedEvent(blockHeight));
+                system.callbackManager.announceWalletManagerEvent(walletManager, new WalletManagerBlockUpdatedEvent(blockHeight));
 
             } else {
                 Log.e(TAG, "WalletManagerBlockHeightUpdated: missed wallet manager");
@@ -754,7 +796,11 @@ final class System implements com.breadwallet.crypto.System {
                 break;
             }
             case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED: {
-                handleWalletFeeBasisUpdate(context, walletManager, wallet, event);
+                handleWalletFeeBasisUpdated(context, walletManager, wallet, event);
+                break;
+            }
+            case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED: {
+                handleWalletFeeBasisEstimated(context, walletManager, wallet, event);
                 break;
             }
         }
@@ -763,7 +809,7 @@ final class System implements com.breadwallet.crypto.System {
     private static void handleWalletCreated(Pointer context, CoreBRCryptoWalletManager coreWalletManager, CoreBRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
         Log.d(TAG, "WalletCreated");
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             System system = optSystem.get();
 
@@ -774,7 +820,7 @@ final class System implements com.breadwallet.crypto.System {
                 Optional<Wallet> optWallet = walletManager.getWalletOrCreate(coreWallet);
                 if (optWallet.isPresent()) {
                     Wallet wallet = optWallet.get();
-                    system.announcer.announceWalletEvent(walletManager, wallet, new WalletCreatedEvent());
+                    system.callbackManager.announceWalletEvent(walletManager, wallet, new WalletCreatedEvent());
 
                 } else {
                     Log.e(TAG, "WalletCreated: missed wallet");
@@ -795,7 +841,7 @@ final class System implements com.breadwallet.crypto.System {
 
         Log.d(TAG, String.format("WalletChanged (%s -> %s)", oldState, newState));
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             System system = optSystem.get();
 
@@ -806,7 +852,7 @@ final class System implements com.breadwallet.crypto.System {
                 Optional<Wallet> optWallet = walletManager.getWallet(coreWallet);
                 if (optWallet.isPresent()) {
                     Wallet wallet = optWallet.get();
-                    system.announcer.announceWalletEvent(walletManager, wallet, new WalletChangedEvent(oldState, newState));
+                    system.callbackManager.announceWalletEvent(walletManager, wallet, new WalletChangedEvent(oldState, newState));
 
                 } else {
                     Log.e(TAG, "WalletChanged: missed wallet");
@@ -824,7 +870,7 @@ final class System implements com.breadwallet.crypto.System {
     private static void handleWalletDeleted(Pointer context, CoreBRCryptoWalletManager coreWalletManager, CoreBRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
         Log.d(TAG, "WalletDeleted");
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             System system = optSystem.get();
 
@@ -835,7 +881,7 @@ final class System implements com.breadwallet.crypto.System {
                 Optional<Wallet> optWallet = walletManager.getWallet(coreWallet);
                 if (optWallet.isPresent()) {
                     Wallet wallet = optWallet.get();
-                    system.announcer.announceWalletEvent(walletManager, wallet, new WalletDeletedEvent());
+                    system.callbackManager.announceWalletEvent(walletManager, wallet, new WalletDeletedEvent());
 
                 } else {
                     Log.e(TAG, "WalletDeleted: missed wallet");
@@ -855,7 +901,7 @@ final class System implements com.breadwallet.crypto.System {
 
         CoreBRCryptoTransfer coreTransfer = CoreBRCryptoTransfer.createOwned(event.u.transfer.value);
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             System system = optSystem.get();
 
@@ -870,7 +916,7 @@ final class System implements com.breadwallet.crypto.System {
 
                     if (optional.isPresent()) {
                         Transfer transfer = optional.get();
-                        system.announcer.announceWalletEvent(walletManager, wallet, new WalletTransferAddedEvent(transfer));
+                        system.callbackManager.announceWalletEvent(walletManager, wallet, new WalletTransferAddedEvent(transfer));
 
                     } else {
                         Log.e(TAG, "WalletTransferAdded: missed transfer");
@@ -894,7 +940,7 @@ final class System implements com.breadwallet.crypto.System {
 
         CoreBRCryptoTransfer coreTransfer = CoreBRCryptoTransfer.createOwned(event.u.transfer.value);
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             System system = optSystem.get();
 
@@ -909,7 +955,7 @@ final class System implements com.breadwallet.crypto.System {
 
                     if (optional.isPresent()) {
                         Transfer transfer = optional.get();
-                        system.announcer.announceWalletEvent(walletManager, wallet, new WalletTransferChangedEvent(transfer));
+                        system.callbackManager.announceWalletEvent(walletManager, wallet, new WalletTransferChangedEvent(transfer));
 
                     } else {
                         Log.e(TAG, "WalletTransferChanged: missed transfer");
@@ -933,7 +979,7 @@ final class System implements com.breadwallet.crypto.System {
 
         CoreBRCryptoTransfer coreTransfer = CoreBRCryptoTransfer.createOwned(event.u.transfer.value);
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             System system = optSystem.get();
 
@@ -948,7 +994,7 @@ final class System implements com.breadwallet.crypto.System {
 
                     if (optional.isPresent()) {
                         Transfer transfer = optional.get();
-                        system.announcer.announceWalletEvent(walletManager, wallet, new WalletTransferSubmittedEvent(transfer));
+                        system.callbackManager.announceWalletEvent(walletManager, wallet, new WalletTransferSubmittedEvent(transfer));
 
                     } else {
                         Log.e(TAG, "WalletTransferSubmitted: missed transfer");
@@ -972,7 +1018,7 @@ final class System implements com.breadwallet.crypto.System {
 
         CoreBRCryptoTransfer coreTransfer = CoreBRCryptoTransfer.createOwned(event.u.transfer.value);
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             System system = optSystem.get();
 
@@ -987,7 +1033,7 @@ final class System implements com.breadwallet.crypto.System {
 
                     if (optional.isPresent()) {
                         Transfer transfer = optional.get();
-                        system.announcer.announceWalletEvent(walletManager, wallet, new WalletTransferDeletedEvent(transfer));
+                        system.callbackManager.announceWalletEvent(walletManager, wallet, new WalletTransferDeletedEvent(transfer));
 
                     } else {
                         Log.e(TAG, "WalletTransferDeleted: missed transfer");
@@ -1011,7 +1057,7 @@ final class System implements com.breadwallet.crypto.System {
 
         CoreBRCryptoAmount coreAmount = CoreBRCryptoAmount.createOwned(event.u.balanceUpdated.amount);
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             System system = optSystem.get();
 
@@ -1024,7 +1070,7 @@ final class System implements com.breadwallet.crypto.System {
                     Wallet wallet = optWallet.get();
                     Amount amount = Amount.create(coreAmount, wallet.getUnit());
                     Log.d(TAG, String.format("WalletBalanceUpdated: %s", amount));
-                    system.announcer.announceWalletEvent(walletManager, wallet, new WalletBalanceUpdatedEvent(amount));
+                    system.callbackManager.announceWalletEvent(walletManager, wallet, new WalletBalanceUpdatedEvent(amount));
 
                 } else {
                     Log.e(TAG, "WalletBalanceUpdated: missed wallet");
@@ -1039,12 +1085,12 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
-    private static void handleWalletFeeBasisUpdate(Pointer context, CoreBRCryptoWalletManager coreWalletManager, CoreBRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
+    private static void handleWalletFeeBasisUpdated(Pointer context, CoreBRCryptoWalletManager coreWalletManager, CoreBRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
         Log.d(TAG, "WalletFeeBasisUpdate");
 
         CoreBRCryptoFeeBasis coreFeeBasis = CoreBRCryptoFeeBasis.createOwned(event.u.feeBasisUpdated.basis);
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             System system = optSystem.get();
 
@@ -1057,7 +1103,7 @@ final class System implements com.breadwallet.crypto.System {
                     Wallet wallet = optWallet.get();
                     TransferFeeBasis feeBasis = TransferFeeBasis.create(coreFeeBasis);
                     Log.d(TAG, String.format("WalletFeeBasisUpdate: %s", feeBasis));
-                    system.announcer.announceWalletEvent(walletManager, wallet, new WalletFeeBasisUpdatedEvent(feeBasis));
+                    system.callbackManager.announceWalletEvent(walletManager, wallet, new WalletFeeBasisUpdatedEvent(feeBasis));
 
                 } else {
                     Log.e(TAG, "WalletFeeBasisUpdate: missed wallet");
@@ -1069,6 +1115,39 @@ final class System implements com.breadwallet.crypto.System {
 
         } else {
             Log.e(TAG, "WalletFeeBasisUpdate: missed system");
+        }
+    }
+
+    private static void handleWalletFeeBasisEstimated(Pointer context, CoreBRCryptoWalletManager coreWalletManager, CoreBRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
+        Log.d(TAG, "WalletFeeBasisEstimated");
+
+        CoreBRCryptoFeeBasis coreFeeBasis = CoreBRCryptoFeeBasis.createOwned(event.u.feeBasisEstimated.basis);
+
+        Optional<System> optSystem = getSystem(context);
+        if (optSystem.isPresent()) {
+            System system = optSystem.get();
+
+            Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
+            if (optWalletManager.isPresent()) {
+                WalletManager walletManager = optWalletManager.get();
+
+                Optional<Wallet> optWallet = walletManager.getWallet(coreWallet);
+                if (optWallet.isPresent()) {
+                    Wallet wallet = optWallet.get();
+                    TransferFeeBasis feeBasis = TransferFeeBasis.create(coreFeeBasis);
+                    Log.d(TAG, String.format("WalletFeeBasisEstimated: %s", feeBasis));
+                    system.callbackManager.completeFeeBasisEstimateHandlerWithSuccess(event.u.feeBasisEstimated.cookie, feeBasis);
+
+                } else {
+                    Log.e(TAG, "WalletFeeBasisEstimated: missed wallet");
+                }
+
+            } else {
+                Log.e(TAG, "WalletFeeBasisEstimated: missed wallet manager");
+            }
+
+        } else {
+            Log.e(TAG, "WalletFeeBasisEstimated: missed system");
         }
     }
 
@@ -1105,7 +1184,7 @@ final class System implements com.breadwallet.crypto.System {
                                        BRCryptoTransferEvent event) {
         Log.d(TAG, "TransferCreated");
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             System system = optSystem.get();
 
@@ -1120,7 +1199,7 @@ final class System implements com.breadwallet.crypto.System {
                     Optional<Transfer> optTransfer = wallet.getTransferOrCreate(coreTransfer);
                     if (optTransfer.isPresent()) {
                         Transfer transfer = optTransfer.get();
-                        system.announcer.announceTransferEvent(walletManager, wallet, transfer, new TransferCreatedEvent());
+                        system.callbackManager.announceTransferEvent(walletManager, wallet, transfer, new TransferCreatedEvent());
 
                     } else {
                         Log.e(TAG, "TransferCreated: missed transfer");
@@ -1147,7 +1226,7 @@ final class System implements com.breadwallet.crypto.System {
 
         Log.d(TAG, String.format("TransferChanged (%s -> %s)", oldState, newState));
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             System system = optSystem.get();
 
@@ -1163,7 +1242,7 @@ final class System implements com.breadwallet.crypto.System {
                     if (optTransfer.isPresent()) {
                         Transfer transfer = optTransfer.get();
 
-                        system.announcer.announceTransferEvent(walletManager, wallet, transfer, new TransferChangedEvent(oldState, newState));
+                        system.callbackManager.announceTransferEvent(walletManager, wallet, transfer, new TransferChangedEvent(oldState, newState));
 
                     } else {
                         Log.e(TAG, "TransferChanged: missed transfer");
@@ -1186,7 +1265,7 @@ final class System implements com.breadwallet.crypto.System {
                                        BRCryptoTransferEvent event) {
         Log.d(TAG, "TransferDeleted");
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             System system = optSystem.get();
 
@@ -1201,7 +1280,7 @@ final class System implements com.breadwallet.crypto.System {
                     Optional<Transfer> optTransfer = wallet.getTransfer(coreTransfer);
                     if (optTransfer.isPresent()) {
                         Transfer transfer = optTransfer.get();
-                        system.announcer.announceTransferEvent(walletManager, wallet, transfer, new TransferDeletedEvent());
+                        system.callbackManager.announceTransferEvent(walletManager, wallet, transfer, new TransferDeletedEvent());
 
                     } else {
                         Log.e(TAG, "TransferDeleted: missed transfer");
@@ -1227,7 +1306,7 @@ final class System implements com.breadwallet.crypto.System {
 
         CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
 
         if (optSystem.isPresent()) {
             optSystem.get().query.getBlockchain(coreWalletManager.getNetwork().getUids(), new CompletionHandler<Blockchain, QueryError>() {
@@ -1260,7 +1339,7 @@ final class System implements com.breadwallet.crypto.System {
 
         CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             int addressesCount = UnsignedInts.checkedCast(addrCount.longValue());
             String[] addresses = addrs.getStringArray(0, addressesCount, "UTF-8");
@@ -1311,7 +1390,7 @@ final class System implements com.breadwallet.crypto.System {
 
         CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             byte[] txBytes = tx.getByteArray(0, UnsignedInts.checkedCast(txLength.longValue()));
 
@@ -1343,7 +1422,7 @@ final class System implements com.breadwallet.crypto.System {
 
         CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             optSystem.get().query.getBalanceAsEth(networkName, address, new CompletionHandler<String, QueryError>() {
                 @Override
@@ -1371,7 +1450,7 @@ final class System implements com.breadwallet.crypto.System {
 
         CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             optSystem.get().query.getBalanceAsTok(networkName, address, tokenAddress, new CompletionHandler<String, QueryError>() {
                 @Override
@@ -1399,7 +1478,7 @@ final class System implements com.breadwallet.crypto.System {
 
         CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             optSystem.get().query.getGasPriceAsEth(networkName, new CompletionHandler<String, QueryError>() {
                 @Override
@@ -1422,18 +1501,18 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void ethEstimateGas(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState,
-                                String networkName, String from, String to, String amount, String data) {
+                                String networkName, String from, String to, String amount, String gasPrice, String data) {
         Log.d(TAG, "BRCryptoCWMEthEstimateGasCallback");
 
         CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             optSystem.get().query.getGasEstimateAsEth(networkName, from, to, amount, data, new CompletionHandler<String, QueryError>() {
                 @Override
                 public void handleData(String gasEstimate) {
                     Log.d(TAG, "BRCryptoCWMEthEstimateGasCallback: succeeded");
-                    coreWalletManager.announceGetGasEstimateSuccess(callbackState, gasEstimate);
+                    coreWalletManager.announceGetGasEstimateSuccess(callbackState, gasEstimate, gasPrice);
                 }
 
                 @Override
@@ -1455,7 +1534,7 @@ final class System implements com.breadwallet.crypto.System {
 
         CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             optSystem.get().query.submitTransactionAsEth(networkName, transaction, new CompletionHandler<String, QueryError>() {
                 @Override
@@ -1483,7 +1562,7 @@ final class System implements com.breadwallet.crypto.System {
 
         CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             optSystem.get().query.getTransactionsAsEth(networkName, address, UnsignedLong.fromLongBits(begBlockNumber),
                     UnsignedLong.fromLongBits(endBlockNumber), new CompletionHandler<List<EthTransaction>, QueryError>() {
@@ -1532,7 +1611,7 @@ final class System implements com.breadwallet.crypto.System {
 
         CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             optSystem.get().query.getLogsAsEth(networkName, contract, address, event, UnsignedLong.fromLongBits(begBlockNumber),
                     UnsignedLong.fromLongBits(endBlockNumber), new CompletionHandler<List<EthLog>, QueryError>() {
@@ -1575,7 +1654,7 @@ final class System implements com.breadwallet.crypto.System {
 
         CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             optSystem.get().query.getBlocksAsEth(networkName, address, UnsignedInteger.fromIntBits(interests),
                     UnsignedLong.fromLongBits(blockNumberStart), UnsignedLong.fromLongBits(blockNumberStop),
@@ -1604,7 +1683,7 @@ final class System implements com.breadwallet.crypto.System {
 
         CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             optSystem.get().query.getTokensAsEth(new CompletionHandler<List<EthToken>, QueryError>() {
                 @Override
@@ -1642,7 +1721,7 @@ final class System implements com.breadwallet.crypto.System {
 
         CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             optSystem.get().query.getBlockNumberAsEth(networkName, new CompletionHandler<String, QueryError>() {
                 @Override
@@ -1670,7 +1749,7 @@ final class System implements com.breadwallet.crypto.System {
 
         CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             optSystem.get().query.getNonceAsEth(networkName, address, new CompletionHandler<String, QueryError>() {
                 @Override
@@ -1699,7 +1778,7 @@ final class System implements com.breadwallet.crypto.System {
 
         CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
 
         if (optSystem.isPresent()) {
             optSystem.get().query.getBlockchain(coreWalletManager.getNetwork().getUids(), new CompletionHandler<Blockchain, QueryError>() {
@@ -1732,7 +1811,7 @@ final class System implements com.breadwallet.crypto.System {
 
         CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             optSystem.get().query.getTransactions(coreWalletManager.getNetwork().getUids(), Collections.singletonList(address), begBlockNumberUnsigned,
                     endBlockNumberUnsigned, true,
@@ -1780,7 +1859,7 @@ final class System implements com.breadwallet.crypto.System {
 
         CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
 
-        Optional<System> optSystem = getInstance(context);
+        Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             byte[] txBytes = tx.getByteArray(0, UnsignedInts.checkedCast(txLength.longValue()));
 
@@ -1804,4 +1883,10 @@ final class System implements com.breadwallet.crypto.System {
         }
     }
 
+    // Operation Callbacks
+
+    /* package */
+    CallbackManager getCallbackManager() {
+        return callbackManager;
+    }
 }

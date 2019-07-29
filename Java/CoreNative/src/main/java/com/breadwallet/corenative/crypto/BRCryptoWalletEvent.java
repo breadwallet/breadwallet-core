@@ -24,6 +24,7 @@ public class BRCryptoWalletEvent extends Structure {
 		public transfer_struct transfer;
 		public balanceUpdated_struct balanceUpdated;
 		public feeBasisUpdated_struct feeBasisUpdated;
+		public feeBasisEstimated_struct feeBasisEstimated;
 
 		public static class state_struct extends Structure {
 
@@ -147,6 +148,38 @@ public class BRCryptoWalletEvent extends Structure {
 			}
 		}
 
+		public static class feeBasisEstimated_struct extends Structure {
+
+			public Pointer cookie;
+			public BRCryptoFeeBasis basis;
+
+			public feeBasisEstimated_struct() {
+				super();
+			}
+
+			protected List<String> getFieldOrder() {
+				return Arrays.asList("cookie", "basis");
+			}
+
+			public feeBasisEstimated_struct(Pointer cookie, BRCryptoFeeBasis basis) {
+				super();
+				this.cookie = cookie;
+				this.basis = basis;
+			}
+
+			public feeBasisEstimated_struct(Pointer peer) {
+				super(peer);
+			}
+
+			public static class ByReference extends feeBasisEstimated_struct implements Structure.ByReference {
+
+			}
+
+			public static class ByValue extends feeBasisEstimated_struct implements Structure.ByValue {
+
+			}
+		}
+
 		public u_union() {
 			super();
 		}
@@ -173,6 +206,12 @@ public class BRCryptoWalletEvent extends Structure {
 			super();
 			this.feeBasisUpdated = feeBasisUpdated;
 			setType(feeBasisUpdated_struct.class);
+		}
+
+		public u_union(feeBasisEstimated_struct feeBasisEstimated) {
+			super();
+			this.feeBasisEstimated = feeBasisEstimated;
+			setType(feeBasisEstimated_struct.class);
 		}
 
 		public u_union(Pointer peer) {
@@ -223,6 +262,10 @@ public class BRCryptoWalletEvent extends Structure {
 				break;
 			case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED:
 				u.setType(u_union.feeBasisUpdated_struct.class);
+				u.read();
+				break;
+			case BRCryptoWalletEventType.CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED:
+				u.setType(u_union.feeBasisEstimated_struct.class);
 				u.read();
 				break;
 		}

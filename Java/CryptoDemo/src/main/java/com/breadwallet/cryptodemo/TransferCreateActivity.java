@@ -122,6 +122,7 @@ public class TransferCreateActivity extends AppCompatActivity {
         receiverView.addTextChangedListener(new TextWatcher() {
             @Override
             public void afterTextChanged(Editable s) {
+                updateFee();
                 updateViewOnChange(s);
             }
 
