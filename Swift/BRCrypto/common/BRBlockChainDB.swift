@@ -266,7 +266,7 @@ public class BlockChainDB {
              feeEstimates: [(amount: "30", tier: "10m", confirmations: "")]),
             (id: "bitcoin-cash-testnet",  name: "Bitcoin Cash Test", network: "testnet", isMainnet: false, currency: "bch", blockHeight: 1200000,
              feeEstimates: [(amount: "30", tier: "10m", confirmations: "")]),
-            (id: "ethereum-testnet",      name: "Ethereum Testnet",  network: "testnet", isMainnet: false, currency: "eth", blockHeight: 1000000,
+            (id: "ethereum-testnet",      name: "Ethereum Testnet",  network: "ropsten", isMainnet: false, currency: "eth", blockHeight: 1000000,
              feeEstimates: [(amount: "2000000000", tier: "1m", confirmations: "")]),
             (id: "ethereum-rinkeby",      name: "Ethereum Rinkeby",  network: "rinkeby", isMainnet: false, currency: "eth", blockHeight: 2000000,
              feeEstimates: [(amount: "2000000000", tier: "1m", confirmations: "")]),
