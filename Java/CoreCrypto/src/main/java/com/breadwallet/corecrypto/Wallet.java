@@ -7,8 +7,9 @@
  */
 package com.breadwallet.corecrypto;
 
+import android.util.Log;
+
 import com.breadwallet.corenative.crypto.BRCryptoBoolean;
-import com.breadwallet.corenative.crypto.BRCryptoWalletEstimateFeeBasisCallback;
 import com.breadwallet.corenative.crypto.BRCryptoWalletEstimateFeeBasisResult;
 import com.breadwallet.corenative.crypto.CoreBRCryptoAddress;
 import com.breadwallet.corenative.crypto.CoreBRCryptoAmount;
@@ -26,10 +27,19 @@ import com.sun.jna.Pointer;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /* package */
 final class Wallet implements com.breadwallet.crypto.Wallet {
+
+    private static final String TAG = System.class.getName();
+
+    private static final AtomicInteger ESTIMATE_FEE_CALLBACK_IDS = new AtomicInteger(0);
+
+    private static final Map<Pointer, CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError>> ESTIMATE_FEE_CALLBACKS = new ConcurrentHashMap<>();
 
     /* package */
     static Wallet create(CoreBRCryptoWallet wallet, WalletManager walletManager) {
@@ -68,15 +78,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
         CoreBRCryptoAddress coreAddress = Address.from(target).getCoreBRCryptoAddress();
         CoreBRCryptoAmount coreAmount = Amount.from(amount).getCoreBRCryptoAmount();
         CoreBRCryptoNetworkFee coreFee = NetworkFee.from(fee).getCoreBRCryptoNetworkFee();
-
-        // TODO(fix): This is not safe! We need to pass in a static callback
-        core.estimateFeeBasis(coreAddress, coreAmount, coreFee, null, (context, result) -> {
-            if (result.success == BRCryptoBoolean.CRYPTO_TRUE) {
-                completion.handleData(TransferFeeBasis.create(CoreBRCryptoFeeBasis.createOwned(result.u.success.feeBasis)));
-            } else {
-                completion.handleError(new FeeEstimationServiceFailureError());
-            }
-        });
+        core.estimateFeeBasis(coreAddress, coreAmount, coreFee, addEstimateFeeBasisCallback(completion), Wallet::estimateFeeBasisCallback);
     }
 
     @Override
@@ -203,5 +205,34 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
     /* package */
     CoreBRCryptoWallet getCoreBRCryptoWallet() {
         return core;
+    }
+
+    // static callbacks
+
+    private static Pointer addEstimateFeeBasisCallback(CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError> completion) {
+        Pointer context = Pointer.createConstant(ESTIMATE_FEE_CALLBACK_IDS.incrementAndGet());
+        ESTIMATE_FEE_CALLBACKS.put(context, completion);
+        return context;
+    }
+
+    private static Optional<CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError>> removeEstimateFeeBasisCallback(Pointer context) {
+        return Optional.fromNullable(ESTIMATE_FEE_CALLBACKS.remove(context));
+    }
+
+    private static void estimateFeeBasisCallback(Pointer pointer, BRCryptoWalletEstimateFeeBasisResult.ByValue result) {
+        Log.d(TAG, "BRCryptoWalletEstimateFeeBasisCallback");
+
+        Optional<CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError>> maybeCompletion = removeEstimateFeeBasisCallback(pointer);
+        if (maybeCompletion.isPresent()) {
+            Log.d(TAG, "BRCryptoWalletEstimateFeeBasisCallback: executing callback");
+
+            if (result.success == BRCryptoBoolean.CRYPTO_TRUE) {
+                maybeCompletion.get().handleData(TransferFeeBasis.create(CoreBRCryptoFeeBasis.createOwned(result.u.success.feeBasis)));
+            } else {
+                maybeCompletion.get().handleError(new FeeEstimationServiceFailureError());
+            }
+        } else {
+            Log.e(TAG, "BRCryptoWalletEstimateFeeBasisCallback: missing callback");
+        }
     }
 }
