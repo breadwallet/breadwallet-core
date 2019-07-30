@@ -27,6 +27,15 @@ import static com.breadwallet.core.ethereum.BREthereumToken.jniTokenAll;
  */
 
 public class BREthereumEWM extends BRCoreJniReference {
+
+    // The LES sync mode
+    public enum Mode {
+        API_ONLY,
+        API_WITH_P2P_SEND,
+        P2P_WITH_API_SYNC,
+        P2P_ONLY
+    }
+
     public enum Status {
         SUCCESS,
 
@@ -479,7 +488,7 @@ public class BREthereumEWM extends BRCoreJniReference {
         return tokensByReference.get(reference);
     }
 
-    protected BREthereumToken addTokenByReference (long reference) {
+    protected synchronized BREthereumToken addTokenByReference (long reference) {
         BREthereumToken token = new BREthereumToken (reference);
         tokensByReference.put (token.getIdentifier(),            token);
         tokensByAddress.put   (token.getAddress().toLowerCase(), token);
@@ -499,13 +508,13 @@ public class BREthereumEWM extends BRCoreJniReference {
     // Constructor
     //
 
-    public BREthereumEWM(Client client, BREthereumNetwork network, String storagePath, String paperKey, String[] wordList) {
-        this(BREthereumEWM.jniCreateEWM(client, network.getIdentifier(), storagePath, paperKey, wordList),
+    public BREthereumEWM(Client client, Mode mode, BREthereumNetwork network, String storagePath, String paperKey, String[] wordList) {
+        this(BREthereumEWM.jniCreateEWM(client, mode.ordinal(), network.getIdentifier(), storagePath, paperKey, wordList),
                 client, network);
     }
 
-    public BREthereumEWM(Client client, BREthereumNetwork network, String storagePath, byte[] publicKey) {
-        this(BREthereumEWM.jniCreateEWM_PublicKey(client, network.getIdentifier(), storagePath, publicKey),
+    public BREthereumEWM(Client client, Mode mode, BREthereumNetwork network, String storagePath, byte[] publicKey) {
+        this(BREthereumEWM.jniCreateEWM_PublicKey(client, mode.ordinal(), network.getIdentifier(), storagePath, publicKey),
                 client, network);
     }
 
@@ -545,9 +554,9 @@ public class BREthereumEWM extends BRCoreJniReference {
     //
     // JNI: Constructors
     //
-    protected static native long jniCreateEWM(Client client, long network, String storagePath, String paperKey, String[] wordList);
+    protected static native long jniCreateEWM(Client client, int mode, long network, String storagePath, String paperKey, String[] wordList);
 
-    protected static native long jniCreateEWM_PublicKey(Client client, long network, String storagePath, byte[] publicKey);
+    protected static native long jniCreateEWM_PublicKey(Client client, int mode, long network, String storagePath, byte[] publicKey);
 
     protected static native boolean jniAddressIsValid (String address);
 
@@ -697,6 +706,8 @@ public class BREthereumEWM extends BRCoreJniReference {
 
     protected native String jniTransactionGetIdentifier(long transactionId);
 
+    protected native String jniTransactionOriginatingTransactionHash(long transactionId);
+
     protected native String jniTransactionGetGasPrice(long transactionId, long unit);
 
     protected native long jniTransactionGetGasLimit(long transactionId);
@@ -716,6 +727,10 @@ public class BREthereumEWM extends BRCoreJniReference {
     protected native boolean jniTransactionIsConfirmed(long transactionId);
 
     protected native boolean jniTransactionIsSubmitted(long transactionId);
+
+    protected native boolean jniTransactionIsErrored(long transactionId);
+
+    protected native String jniTransactionGetErrorDescription(long transactionId);
 
     //
     // JNI: Tokens

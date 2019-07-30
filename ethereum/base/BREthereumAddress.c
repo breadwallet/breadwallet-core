@@ -43,9 +43,6 @@ extern BREthereumAddress
 addressCreateKey (const BRKey *key) {
     BREthereumAddress address;
 
-    //assert ( 0 == key->compressed);
-    //assert (65 == BRKeyPubKey(key, NULL, 0));
-
     // We interrupt your regularly scheduled programming...
 
     // "Use any method you like to get it in the form of an hexadecimal string

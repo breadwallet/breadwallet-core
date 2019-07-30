@@ -85,6 +85,10 @@ transferGetAmount (BREthereumTransfer transfer);
 extern BREthereumFeeBasis
 transferGetFeeBasis (BREthereumTransfer transfer);
 
+extern void // Private-ish
+transferSetFeeBasis (BREthereumTransfer transfer,
+                     BREthereumFeeBasis feeBasis);
+
 extern BREthereumGas
 transferGetGasEstimate (BREthereumTransfer transfer);
 

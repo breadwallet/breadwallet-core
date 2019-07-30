@@ -24,6 +24,7 @@
 
 #include "BRBIP32Sequence.h"
 #include "BRCrypto.h"
+#include "BRBase58.h"
 #include <string.h>
 #include <assert.h>
 
@@ -227,42 +228,69 @@ void BRBIP32vPrivKeyPath(BRKey *key, const void *seed, size_t seedLen, int depth
     }
 }
 
+// helper function for serializing BIP32 master public/private keys to standard export format
+size_t _BRBIP32Serialize(char *str, size_t strLen, uint8_t depth, uint32_t fingerprint, uint32_t child, UInt256 chain,
+                         const void *key, size_t keyLen)
+{
+    size_t len, off = 0;
+    uint8_t data[4 + sizeof(depth) + sizeof(fingerprint) + sizeof(child) + sizeof(chain) + 1 + keyLen];
+    
+    memcpy(&data[off], (keyLen < 33 ? BIP32_XPRV : BIP32_XPUB), 4);
+    off += 4;
+    data[off] = depth;
+    off += sizeof(depth);
+    UInt32SetBE(&data[off], fingerprint);
+    off += sizeof(fingerprint);
+    UInt32SetBE(&data[off], child);
+    off += sizeof(child);
+    UInt256Set(&data[off], chain);
+    off += sizeof(chain);
+    if (keyLen < 33) data[off++] = 0;
+    memcpy(&data[off], key, keyLen);
+    off += keyLen;
+    len = BRBase58CheckEncode(str, strLen, data, off);
+    mem_clean(data, sizeof(data));
+    return len;
+}
+
 // writes the base58check encoded serialized master private key (xprv) to str
 // returns number of bytes written including NULL terminator, or strLen needed if str is NULL
 size_t BRBIP32SerializeMasterPrivKey(char *str, size_t strLen, const void *seed, size_t seedLen)
 {
-    // TODO: XXX implement
-    return 0;
+    UInt512 I;
+    size_t len;
+    
+    assert(seed != NULL);
+    assert(seedLen > 0);
+    
+    BRHMAC(&I, BRSHA512, sizeof(I), BIP32_SEED_KEY, strlen(BIP32_SEED_KEY), seed, seedLen);
+    len = _BRBIP32Serialize(str, strLen, 0, 0, 0, *(UInt256 *)&I.u8[sizeof(UInt256)], &I, sizeof(UInt256));
+    var_clean(&I);
+    return len;
 }
-
-// writes a master private key to seed given a base58check encoded serialized master private key (xprv)
-// returns number of bytes written, or seedLen needed if seed is NULL
-size_t BRBIP32ParseMasterPrivKey(void *seed, size_t seedLen, const char *str)
-{
-    // TODO: XXX implement
-    return 0;
-}
-
-#include "ethereum/util/BRUtilHex.h"
 
 // writes the base58check encoded serialized master public key (xpub) to str
 // returns number of bytes written including NULL terminator, or strLen needed if str is NULL
 size_t BRBIP32SerializeMasterPubKey(char *str, size_t strLen, BRMasterPubKey mpk)
 {
-    size_t mpkSize = 1 + 2 * sizeof (BRMasterPubKey);
-    if (NULL == str) return mpkSize;
-
-    assert (strLen >= mpkSize);
-    encodeHex (str, strLen, (const uint8_t *) &mpk, sizeof(BRMasterPubKey));
-    return mpkSize;
+    return _BRBIP32Serialize(str, strLen, 1, UInt32GetBE(&mpk.fingerPrint), 0 | BIP32_HARD, mpk.chainCode,
+                             mpk.pubKey, sizeof(mpk.pubKey));
 }
 
 // returns a master public key give a base58check encoded serialized master public key (xpub)
 BRMasterPubKey BRBIP32ParseMasterPubKey(const char *str)
 {
-    BRMasterPubKey key;
-    decodeHex ((uint8_t *) &key, sizeof(BRMasterPubKey), str, strlen(str));
-    return key;
+    BRMasterPubKey mpk = BR_MASTER_PUBKEY_NONE;
+    uint8_t data[4 + sizeof(uint8_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(UInt256) + 33];
+    size_t dataLen = BRBase58CheckDecode(data, sizeof(data), str);
+    
+    if (dataLen == sizeof(data) && memcmp(data, BIP32_XPUB, 4) == 0) {
+        mpk.fingerPrint = ((union { uint8_t u8[4]; uint32_t u32; }){ data[5], data[6], data[7], data[8] }).u32;
+        mpk.chainCode = UInt256Get(&data[13]);
+        memcpy(mpk.pubKey, &data[45], sizeof(mpk.pubKey));
+    }
+    
+    return mpk;
 }
 
 // key used for authenticated API calls, i.e. bitauth: https://github.com/bitpay/bitauth - path m/1H/0
