@@ -118,16 +118,15 @@ public interface CryptoLibrary extends Library {
     BRCryptoUnit cryptoNetworkGetUnitAt(BRCryptoNetwork network, BRCryptoCurrency currency, SizeT index);
     SizeT cryptoNetworkGetNetworkFeeCount(BRCryptoNetwork network);
     BRCryptoNetworkFee cryptoNetworkGetNetworkFeeAt(BRCryptoNetwork network, SizeT index);
+    BRCryptoAddress cryptoNetworkCreateAddressFromString(BRCryptoNetwork network, String address);
     BRCryptoNetwork cryptoNetworkTake(BRCryptoNetwork obj);
     void cryptoNetworkGive(BRCryptoNetwork obj);
+
     long cryptoNetworkFeeGetConfirmationTimeInMilliseconds(BRCryptoNetworkFee fee);
     int cryptoNetworkFeeEqual(BRCryptoNetworkFee nf1, BRCryptoNetworkFee nf2);
     void cryptoNetworkFeeGive(BRCryptoNetworkFee obj);
 
     // crypto/BRCryptoPrivate.h
-    BRCryptoAddress cryptoAddressCreateFromStringAsBTC(String address);
-    BRCryptoAddress cryptoAddressCreateFromStringAsETH(String address);
-    BRCryptoAmount cryptoAmountCreate (BRCryptoCurrency currency, int isNegative, UInt256.ByValue value);
     BRCryptoCurrency cryptoCurrencyCreate(String uids, String name, String code, String type, String issuer);
     void cryptoNetworkSetHeight(BRCryptoNetwork network, long height);
     void cryptoNetworkSetCurrency(BRCryptoNetwork network, BRCryptoCurrency currency);

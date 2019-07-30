@@ -86,5 +86,7 @@ public interface CoreBRCryptoNetwork {
 
     Optional<CoreBRCryptoUnit> getUnitAt(CoreBRCryptoCurrency currency, UnsignedLong index);
 
+    Optional<CoreBRCryptoAddress> addressFor(String address);
+
     BRCryptoNetwork asBRCryptoNetwork();
 }

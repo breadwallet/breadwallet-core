@@ -132,6 +132,11 @@ class OwnedBRCryptoNetwork implements CoreBRCryptoNetwork {
     }
 
     @Override
+    public Optional<CoreBRCryptoAddress> addressFor(String address) {
+        return core.addressFor(address);
+    }
+
+    @Override
     public BRCryptoNetwork asBRCryptoNetwork() {
         return core;
     }

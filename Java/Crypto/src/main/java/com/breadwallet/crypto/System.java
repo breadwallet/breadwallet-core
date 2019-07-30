@@ -19,8 +19,8 @@ import java.util.concurrent.ExecutorService;
 
 public interface System {
 
-    static System create(ExecutorService listenerExecutor, SystemListener listener, Account account, String path, BlockchainDb query) {
-        return CryptoApi.getProvider().systemProvider().create(listenerExecutor, listener, account, path, query);
+    static System create(ExecutorService listenerExecutor, SystemListener listener, Account account, boolean isMainnet, String path, BlockchainDb query) {
+        return CryptoApi.getProvider().systemProvider().create(listenerExecutor, listener, account, isMainnet,path, query);
     }
 
     void configure();

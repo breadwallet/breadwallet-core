@@ -243,20 +243,7 @@ final class Network implements com.breadwallet.crypto.Network {
 
     @Override
     public Optional<Address> addressFor(String address) {
-        switch (type) {
-            case BRCryptoBlockChainType.BLOCK_CHAIN_TYPE_BTC: {
-                return Address.createAsBtc(address);
-            }
-            case BRCryptoBlockChainType.BLOCK_CHAIN_TYPE_ETH: {
-                return Address.createAsEth(address);
-            }
-            case BRCryptoBlockChainType.BLOCK_CHAIN_TYPE_GEN: {
-                // TODO(fix): Implement this
-                return Optional.absent();
-            }
-            default:
-                throw new IllegalStateException("Invalid network type");
-        }
+        return core.addressFor(address).transform(Address::create);
     }
 
     @Override
