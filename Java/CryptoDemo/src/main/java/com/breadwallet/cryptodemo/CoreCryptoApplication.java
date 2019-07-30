@@ -93,7 +93,7 @@ public class CoreCryptoApplication extends Application {
             Account account = Account.createFromPhrase(paperKey, new Date(TimeUnit.SECONDS.toMillis(timestamp)), uids);
 
             BlockchainDb query = new BlockchainDb(new OkHttpClient(), BDB_BASE_URL, API_BASE_URL);
-            system = System.create(Executors.newSingleThreadExecutor(), listener, account, storageFile.getAbsolutePath(), query);
+            system = System.create(Executors.newSingleThreadScheduledExecutor(), listener, account, storageFile.getAbsolutePath(), query);
             system.configure();
 
             ProcessLifecycleOwner.get().getLifecycle().addObserver(observer);

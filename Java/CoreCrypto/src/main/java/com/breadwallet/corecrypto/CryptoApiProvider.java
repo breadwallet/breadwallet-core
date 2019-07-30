@@ -16,6 +16,7 @@ import com.google.common.base.Optional;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
 
 public final class CryptoApiProvider implements CryptoApi.Provider {
 
@@ -66,8 +67,8 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
 
     private static final CryptoApi.SystemProvider systemProvider = new CryptoApi.SystemProvider() {
         @Override
-        public com.breadwallet.crypto.System create(ExecutorService listenerExecutor, SystemListener listener, com.breadwallet.crypto.Account account, String path, BlockchainDb query) {
-            return System.create(listenerExecutor, listener, account, path, query);
+        public com.breadwallet.crypto.System create(ScheduledExecutorService executor, SystemListener listener, com.breadwallet.crypto.Account account, String path, BlockchainDb query) {
+            return System.create(executor, listener, account, path, query);
         }
     };
 

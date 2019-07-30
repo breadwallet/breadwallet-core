@@ -10,8 +10,6 @@ import com.breadwallet.crypto.WalletManagerState;
 import com.google.common.base.Optional;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -21,9 +19,15 @@ import static com.google.common.base.Preconditions.checkState;
 final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
     /* package */
-    static WalletManager create(BRCryptoCWMListener.ByValue listener, BRCryptoCWMClient.ByValue client,
-                                Account account, Network network, WalletManagerMode mode, AddressScheme addressScheme,
-                                String path, System system) {
+    static WalletManager create(BRCryptoCWMListener.ByValue listener,
+                                BRCryptoCWMClient.ByValue client,
+                                Account account,
+                                Network network,
+                                WalletManagerMode mode,
+                                AddressScheme addressScheme,
+                                String path,
+                                System system,
+                                SystemCallbackCoordinator callbackCoordinator) {
         CoreBRCryptoWalletManager core = CoreBRCryptoWalletManager.create(
                 listener,
                 client,
@@ -33,17 +37,17 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                 Utilities.addressSchemeToCrypto(addressScheme),
                 path);
 
-        return new WalletManager(core, system);
+        return new WalletManager(core, system, callbackCoordinator);
     }
 
     /* package */
-    static WalletManager create(CoreBRCryptoWalletManager core, System system) {
-        return new WalletManager(core, system);
+    static WalletManager create(CoreBRCryptoWalletManager core, System system, SystemCallbackCoordinator callbackCoordinator) {
+        return new WalletManager(core, system, callbackCoordinator);
     }
 
     private CoreBRCryptoWalletManager core;
     private final System system;
-    private final CallbackManager callbackManager;
+    private final SystemCallbackCoordinator callbackCoordinator;
 
     private final Account account;
     private final Network network;
@@ -54,10 +58,10 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     private final WalletManagerMode mode;
     private final NetworkFee networkFee;
 
-    private WalletManager(CoreBRCryptoWalletManager core, System system) {
+    private WalletManager(CoreBRCryptoWalletManager core, System system, SystemCallbackCoordinator callbackCoordinator) {
         this.core = core;
         this.system = system;
-        this.callbackManager = system.getCallbackManager();
+        this.callbackCoordinator = callbackCoordinator;
 
         this.account = Account.create(core.getAccount());
         this.network = Network.create(core.getNetwork());
@@ -116,7 +120,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
     @Override
     public Wallet getPrimaryWallet() {
-        return Wallet.create(core.getWallet(), this);
+        return Wallet.create(core.getWallet(), this, callbackCoordinator);
     }
 
     @Override
@@ -124,7 +128,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         List<Wallet> wallets = new ArrayList<>();
 
         for (CoreBRCryptoWallet wallet: core.getWallets()) {
-            wallets.add(Wallet.create(wallet, this));
+            wallets.add(Wallet.create(wallet, this, callbackCoordinator));
         }
 
         return wallets;
@@ -208,7 +212,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     /* package */
     Optional<Wallet> getWallet(CoreBRCryptoWallet wallet) {
         return core.containsWallet(wallet) ?
-                Optional.of(Wallet.create(wallet, this)):
+                Optional.of(Wallet.create(wallet, this, callbackCoordinator)):
                 Optional.absent();
     }
 
@@ -219,12 +223,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
             return optional;
 
         } else {
-            return Optional.of(Wallet.create(wallet, this));
+            return Optional.of(Wallet.create(wallet, this, callbackCoordinator));
         }
-    }
-
-    /* package */
-    CallbackManager getCallbackManager() {
-        return callbackManager;
     }
 }

@@ -65,7 +65,7 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
     protected void onPause() {
         super.onPause();
 
-        CoreCryptoApplication.getSystem().addSystemListener(this);
+        CoreCryptoApplication.getSystem().removeSystemListener(this);
     }
 
     @Override

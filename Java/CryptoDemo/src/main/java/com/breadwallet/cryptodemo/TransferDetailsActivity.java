@@ -20,18 +20,19 @@ import com.breadwallet.crypto.TransferConfirmation;
 import com.breadwallet.crypto.TransferHash;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
-import com.breadwallet.crypto.events.system.DefaultSystemListener;
 import com.breadwallet.crypto.events.transfer.TranferEvent;
+import com.breadwallet.crypto.events.transfer.TransferListener;
 import com.breadwallet.crypto.events.walletmanager.DefaultWalletManagerEventVisitor;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerBlockUpdatedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerEvent;
+import com.breadwallet.crypto.events.walletmanager.WalletManagerListener;
 import com.google.common.base.Optional;
 
 import java.text.DateFormat;
 
 import javax.annotation.Nullable;
 
-public class TransferDetailsActivity extends AppCompatActivity implements DefaultSystemListener {
+public class TransferDetailsActivity extends AppCompatActivity implements WalletManagerListener, TransferListener {
 
     private static final DateFormat DATE_FORMAT = DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG);
 

@@ -11,16 +11,17 @@ package com.breadwallet.crypto;
 
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.events.system.SystemListener;
-import com.google.common.base.Optional;
+import com.breadwallet.crypto.events.transfer.TransferListener;
+import com.breadwallet.crypto.events.wallet.WalletListener;
+import com.breadwallet.crypto.events.walletmanager.WalletManagerListener;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
 
 public interface System {
 
-    static System create(ExecutorService listenerExecutor, SystemListener listener, Account account, String path, BlockchainDb query) {
-        return CryptoApi.getProvider().systemProvider().create(listenerExecutor, listener, account, path, query);
+    static System create(ScheduledExecutorService executor, SystemListener listener, Account account, String path, BlockchainDb query) {
+        return CryptoApi.getProvider().systemProvider().create(executor, listener, account, path, query);
     }
 
     void configure();
@@ -57,15 +58,15 @@ public interface System {
 
     void removeSystemListener(SystemListener listener);
 
-    void addWalletManagerListener(WalletManager manager, SystemListener listener);
+    void addWalletManagerListener(WalletManager manager, WalletManagerListener listener);
 
-    void removeWalletManagerListener(WalletManager manager, SystemListener listener);
+    void removeWalletManagerListener(WalletManager manager, WalletManagerListener listener);
 
-    void addWalletListener(Wallet wallet, SystemListener listener);
+    void addWalletListener(Wallet wallet, WalletListener listener);
 
-    void removeWalletListener(Wallet wallet, SystemListener listener);
+    void removeWalletListener(Wallet wallet, WalletListener listener);
 
-    void addTransferListener(Transfer transfer, SystemListener listener);
+    void addTransferListener(Transfer transfer, TransferListener listener);
 
-    void removeTransferListener(Transfer transfer, SystemListener listener);
+    void removeTransferListener(Transfer transfer, TransferListener listener);
 }

@@ -253,34 +253,23 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
 
     assert (BLOCK_CHAIN_TYPE_BTC == cwm->type);
 
-    // Get `currency` (it is 'taken')
-    BRCryptoCurrency currency = cryptoNetworkGetCurrency (cwm->network);
-
-    // Get `wallet`.  For 'CREATED" this *will* be NULL
-    BRCryptoWallet wallet   = cryptoWalletManagerFindWalletAsBTC (cwm, btcWallet); // taken
-
-    // Demand 'wallet' otherwise
-    assert (NULL != wallet || BITCOIN_WALLET_CREATED == event.type );
-
     switch (event.type) {
         case BITCOIN_WALLET_CREATED: {
-            // Demand no 'wallet'
-            assert (NULL == wallet);
+            // Get `currency` (it is 'taken')
+            BRCryptoCurrency currency = cryptoNetworkGetCurrency (cwm->network);
 
             // We'll create a wallet using the currency's default unit.
             BRCryptoUnit unit = cryptoNetworkGetUnitAsDefault (cwm->network, currency);
 
-            // The wallet, finally.
-            wallet = cryptoWalletCreateAsBTC (unit, unit, cwm->u.btc, btcWallet);
+            // Demand no 'wallet'
+            assert (NULL == cryptoWalletManagerFindWalletAsBTC (cwm, btcWallet));
+            BRCryptoWallet wallet = cryptoWalletCreateAsBTC (unit, unit, cwm->u.btc, btcWallet);
 
             // Avoid a race condition on the CWM's 'primaryWallet'
             if (NULL == cwm->wallet) cwm->wallet = cryptoWalletTake (wallet);
 
             // Update CWM with the new wallet.
             cryptoWalletManagerAddWallet (cwm, wallet);
-
-            // Done with `unit1
-            cryptoUnitGive (unit);
 
             // Generate a CRYPTO wallet event for CREATED...
             cwm->listener.walletEventCallback (cwm->listener.context,
@@ -295,83 +284,96 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
                                                       cryptoWalletManagerTake (cwm),
                                                       (BRCryptoWalletManagerEvent) {
                                                           CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED,
-                                                          { .wallet = { wallet }}
+                                                          { .wallet = { cryptoWalletTake (wallet) }}
                                                       });
 
+            cryptoWalletGive (wallet);
+            cryptoUnitGive (unit);
+            cryptoCurrencyGive (currency);
             break;
         }
 
         case BITCOIN_WALLET_BALANCE_UPDATED: {
-            // Demand 'wallet'
-            assert (NULL != wallet);
+            // Get `currency` (it is 'taken')
+            BRCryptoCurrency currency = cryptoNetworkGetCurrency (cwm->network);
 
             // The balance value will be 'SATOSHI', so use the currency's base unit.
-            BRCryptoUnit     unit     = cryptoNetworkGetUnitAsBase (cwm->network, currency);
+            BRCryptoUnit unit = cryptoNetworkGetUnitAsBase (cwm->network, currency);
+
+            // Demand 'wallet'
+            BRCryptoWallet wallet = cryptoWalletManagerFindWalletAsBTC (cwm, btcWallet);
+            assert (NULL != wallet);
 
             // Get the amount (it is 'taken')
-            BRCryptoAmount amount     = cryptoAmountCreateInteger (event.u.balance.satoshi, unit); // taken
-
-            // Done with 'unit'
-            cryptoUnitGive (unit);
+            BRCryptoAmount amount = cryptoAmountCreateInteger (event.u.balance.satoshi, unit); // taken
 
             // Generate BALANCE_UPDATED with 'amount' (taken)
             cwm->listener.walletEventCallback (cwm->listener.context,
                                                cryptoWalletManagerTake (cwm),
-                                               wallet,
+                                               cryptoWalletTake (wallet),
                                                (BRCryptoWalletEvent) {
                                                    CRYPTO_WALLET_EVENT_BALANCE_UPDATED,
-                                                   { .balanceUpdated = { amount }}
+                                                   { .balanceUpdated = { cryptoAmountTake (amount) }}
                                                });
 
-            break;
-        }
+            // ... and then a CRYPTO wallet manager event for WALLET_CHANGED
+            cwm->listener.walletManagerEventCallback (cwm->listener.context,
+                                                      cryptoWalletManagerTake (cwm),
+                                                      (BRCryptoWalletManagerEvent) {
+                                                          CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED,
+                                                          { .wallet = { cryptoWalletTake (wallet) }}
+                                                      });
 
-        case BITCOIN_WALLET_FEE_ESTIMATED: {
-            BRCryptoUnit feeUnit = cryptoWalletGetUnitForFee (wallet);
-
-            BRCryptoFeeBasis feeBasis = cryptoFeeBasisCreateAsBTC (feeUnit,
-                                                                   (uint32_t) event.u.feeEstimated.feePerKb,
-                                                                   event.u.feeEstimated.sizeInByte);
-
-            cwm->listener.walletEventCallback (cwm->listener.context,
-                                               cryptoWalletManagerTake (cwm),
-                                               wallet,
-                                               (BRCryptoWalletEvent) {
-                                                   CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED,
-                                                   { .feeBasisEstimated = { event.u.feeEstimated.cookie, feeBasis }}
-                                               });
-
-            cryptoUnitGive (feeUnit);
+            cryptoAmountGive (amount);
+            cryptoWalletGive (wallet);
+            cryptoUnitGive (unit);
+            cryptoCurrencyGive (currency);
             break;
         }
 
         case BITCOIN_WALLET_FEE_PER_KB_UPDATED: {
+            // Demand 'wallet'
+            BRCryptoWallet wallet = cryptoWalletManagerFindWalletAsBTC (cwm, btcWallet);
+            assert (NULL != wallet);
+
+            // Use the wallet's fee unit
             BRCryptoUnit feeUnit = cryptoWalletGetUnitForFee(wallet);
 
+            // Create the fee basis using a default transaction size, in bytes, and the new fee per KB
             BRCryptoFeeBasis feeBasis = cryptoFeeBasisCreateAsBTC (feeUnit,
                                                                    (uint32_t) event.u.feePerKb.value,
                                                                    1000);
 
+            // Generate FEE_BASIS_UPDATED for default fee basis change
             cwm->listener.walletEventCallback (cwm->listener.context,
                                                cryptoWalletManagerTake (cwm),
-                                               wallet,
+                                               cryptoWalletTake (wallet),
                                                (BRCryptoWalletEvent) {
                                                    CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED,
-                                                   { .feeBasisUpdated = { feeBasis }}
+                                                   { .feeBasisUpdated = { cryptoFeeBasisTake (feeBasis) }}
                                                });
 
+            // ... and then a CRYPTO wallet manager event for WALLET_CHANGED
+            cwm->listener.walletManagerEventCallback (cwm->listener.context,
+                                                      cryptoWalletManagerTake (cwm),
+                                                      (BRCryptoWalletManagerEvent) {
+                                                          CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED,
+                                                          { .wallet = { cryptoWalletTake (wallet) }}
+                                                      });
+
+            cryptoFeeBasisGive (feeBasis);
             cryptoUnitGive (feeUnit);
+            cryptoWalletGive (wallet);
             break;
         }
 
         case BITCOIN_WALLET_TRANSACTION_SUBMITTED: {
             // Demand 'wallet'
+            BRCryptoWallet wallet = cryptoWalletManagerFindWalletAsBTC (cwm, btcWallet);
             assert (NULL != wallet);
 
-            // Find the wallet's transfer for 'btc'. (it is 'taken')
+            // Find the wallet's transfer for 'btc'. (it is 'taken'); t must exist already in wallet (otherwise how could it have been submitted?)
             BRCryptoTransfer transfer = cryptoWalletFindTransferAsBTC (wallet, event.u.submitted.transaction);
-
-            // It must exist already in wallet (otherwise how could it have been submitted?)
             assert (NULL != transfer);
 
             BRCryptoTransferState oldState = cryptoTransferGetState (transfer);
@@ -384,8 +386,8 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
                 cryptoTransferSetState (transfer, newState);
                 cwm->listener.transferEventCallback (cwm->listener.context,
                                                      cryptoWalletManagerTake (cwm),
-                                                     wallet,
-                                                     transfer,
+                                                     cryptoWalletTake (wallet),
+                                                     cryptoTransferTake (transfer),
                                                      (BRCryptoTransferEvent) {
                                                          CRYPTO_TRANSFER_EVENT_CHANGED,
                                                          { .state = { oldState, newState }}
@@ -398,22 +400,26 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
                 cryptoTransferSetState (transfer, newState);
                 cwm->listener.transferEventCallback (cwm->listener.context,
                                                      cryptoWalletManagerTake (cwm),
-                                                     wallet,
-                                                     transfer,
+                                                     cryptoWalletTake (wallet),
+                                                     cryptoTransferTake (transfer),
                                                      (BRCryptoTransferEvent) {
                                                          CRYPTO_TRANSFER_EVENT_CHANGED,
                                                          { .state = { oldState, newState }}
                                                      });
             }
+
+            cryptoTransferGive (transfer);
+            cryptoWalletGive (wallet);
             break;
         }
 
         case BITCOIN_WALLET_DELETED: {
             // Demand 'wallet' ...
+            BRCryptoWallet wallet = cryptoWalletManagerFindWalletAsBTC (cwm, btcWallet);
             assert (NULL != wallet);
 
             // ...and CWM holding 'wallet'
-           assert (CRYPTO_TRUE == cryptoWalletManagerHasWallet (cwm, wallet));
+            assert (CRYPTO_TRUE == cryptoWalletManagerHasWallet (cwm, wallet));
 
             // Update cwm to remove 'wallet'
             cryptoWalletManagerRemWallet (cwm, wallet);
@@ -429,16 +435,43 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
             // ... and then a CRYPTO wallet event for DELETED.
             cwm->listener.walletEventCallback (cwm->listener.context,
                                                cryptoWalletManagerTake (cwm),
-                                               wallet,
+                                               cryptoWalletTake (wallet),
                                                (BRCryptoWalletEvent) {
                                                    CRYPTO_WALLET_EVENT_DELETED
                                                });
 
+            cryptoWalletGive (wallet);
+            break;
+        }
+
+        case BITCOIN_WALLET_FEE_ESTIMATED: {
+            // Demand 'wallet'
+            BRCryptoWallet wallet = cryptoWalletManagerFindWalletAsBTC (cwm, btcWallet);
+            assert (NULL != wallet);
+
+            // Use the wallet's fee unit
+            BRCryptoUnit feeUnit = cryptoWalletGetUnitForFee (wallet);
+
+            // Create the fee basis using the transaction size, in bytes, and the fee per KB
+            BRCryptoFeeBasis feeBasis = cryptoFeeBasisCreateAsBTC (feeUnit,
+                                                                   (uint32_t) event.u.feeEstimated.feePerKb,
+                                                                   event.u.feeEstimated.sizeInByte);
+
+            // Generate FEE_BASIS_ESTIMATED
+            cwm->listener.walletEventCallback (cwm->listener.context,
+                                               cryptoWalletManagerTake (cwm),
+                                               cryptoWalletTake (wallet),
+                                               (BRCryptoWalletEvent) {
+                                                   CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED,
+                                                   { .feeBasisEstimated = { event.u.feeEstimated.cookie, cryptoFeeBasisTake(feeBasis) }}
+                                               });
+
+            cryptoFeeBasisGive (feeBasis);
+            cryptoUnitGive (feeUnit);
+            cryptoWalletGive (wallet);
             break;
         }
     }
-
-    cryptoCurrencyGive (currency);
 }
 
 static void
@@ -907,13 +940,22 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                 cryptoUnitGive(unit);
                 cryptoCurrencyGive(currency);
 
+                // Generate a BALANCE_UPDATED for the wallet
                 cwm->listener.walletEventCallback(cwm->listener.context,
                                                   cryptoWalletManagerTake(cwm),
-                                                  wallet,
+                                                  cryptoWalletTake (wallet),
                                                   (BRCryptoWalletEvent) {
                                                       CRYPTO_WALLET_EVENT_BALANCE_UPDATED,
                                                       {.balanceUpdated = {cryptoAmount}}
                                                   });
+
+                // ... and then a CRYPTO wallet manager event for WALLET_CHANGED
+                cwm->listener.walletManagerEventCallback (cwm->listener.context,
+                                                          cryptoWalletManagerTake (cwm),
+                                                          (BRCryptoWalletManagerEvent) {
+                                                              CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED,
+                                                              { .wallet = { wallet }}
+                                                          });
             }
             break;
         }
@@ -926,26 +968,43 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                 BRCryptoFeeBasis feeBasis = cryptoFeeBasisCreateAsETH (feeUnit,
                                                                        ewmWalletGetDefaultGasLimit(cwm->u.eth, wid),
                                                                        ewmWalletGetDefaultGasPrice(cwm->u.eth,wid));
+                // Generate a FEE_BASIS_UPDATED for the wallet
                 cwm->listener.walletEventCallback(cwm->listener.context,
                                                   cryptoWalletManagerTake(cwm),
-                                                  wallet,
+                                                  cryptoWalletTake (wallet),
                                                   (BRCryptoWalletEvent) {
                                                       CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED,
                                                       {.feeBasisUpdated = {feeBasis}}
                                                   });
 
+                // ... and then a CRYPTO wallet manager event for WALLET_CHANGED
+                cwm->listener.walletManagerEventCallback (cwm->listener.context,
+                                                          cryptoWalletManagerTake (cwm),
+                                                          (BRCryptoWalletManagerEvent) {
+                                                              CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED,
+                                                              { .wallet = { wallet }}
+                                                          });
                 cryptoUnitGive (feeUnit);
             }
             break;
 
         case WALLET_EVENT_DELETED:
             if (NULL != wallet) {
-                cwm->listener.walletEventCallback(cwm->listener.context,
-                                                  cryptoWalletManagerTake(cwm),
-                                                  wallet,
-                                                  (BRCryptoWalletEvent) {
-                                                      CRYPTO_WALLET_EVENT_DELETED
-                                                  });
+                // Generate a CRYPTO wallet manager event for WALLET_DELETED...
+                cwm->listener.walletManagerEventCallback (cwm->listener.context,
+                                                          cryptoWalletManagerTake (cwm),
+                                                          (BRCryptoWalletManagerEvent) {
+                                                              CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED,
+                                                              { .wallet = { cryptoWalletTake (wallet) }}
+                                                          });
+
+                // ... and then a CRYPTO wallet event for DELETED.
+                cwm->listener.walletEventCallback (cwm->listener.context,
+                                                   cryptoWalletManagerTake (cwm),
+                                                   wallet,
+                                                   (BRCryptoWalletEvent) {
+                                                       CRYPTO_WALLET_EVENT_DELETED
+                                                   });
             }
             break;
         case WALLET_EVENT_FEE_ESTIMATED:
@@ -954,6 +1013,7 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                     BRCryptoUnit feeUnit = cryptoWalletGetUnitForFee(wallet);
 
                     BRCryptoFeeBasis feeBasis = cryptoFeeBasisCreateAsETH (feeUnit, event.u.feeEstimate.gasEstimate, event.u.feeEstimate.gasPrice);
+
                     cwm->listener.walletEventCallback(cwm->listener.context,
                                                       cryptoWalletManagerTake(cwm),
                                                       wallet,
@@ -961,6 +1021,8 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                                                        CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED,
                                                        { .feeBasisEstimated = { event.u.feeEstimate.cookie, feeBasis }}
                                                    });
+
+                    cryptoUnitGive (feeUnit);
                 } else {
                     // TODO(fix): How do we want to handle failure
                 }

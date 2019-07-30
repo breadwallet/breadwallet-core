@@ -18,7 +18,6 @@ import com.breadwallet.crypto.WalletState;
 import com.breadwallet.crypto.errors.FeeEstimationError;
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
-import com.sun.jna.Pointer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,22 +27,22 @@ import java.util.Objects;
 final class Wallet implements com.breadwallet.crypto.Wallet {
 
     /* package */
-    static Wallet create(CoreBRCryptoWallet wallet, WalletManager walletManager) {
-        return new Wallet(wallet, walletManager);
+    static Wallet create(CoreBRCryptoWallet wallet, WalletManager walletManager, SystemCallbackCoordinator callbackCoordinator) {
+        return new Wallet(wallet, walletManager, callbackCoordinator);
     }
 
     private final CoreBRCryptoWallet core;
     private final WalletManager walletManager;
-    private final CallbackManager callbackManager;
+    private final SystemCallbackCoordinator callbackCoordinator;
 
     private final Unit unitForFee;
     private final Unit unit;
     private final Currency defaultUnitCurrency;
 
-    private Wallet(CoreBRCryptoWallet core, WalletManager walletManager) {
+    private Wallet(CoreBRCryptoWallet core, WalletManager walletManager, SystemCallbackCoordinator callbackCoordinator) {
         this.core = core;
         this.walletManager = walletManager;
-        this.callbackManager = walletManager.getCallbackManager();
+        this.callbackCoordinator = callbackCoordinator;
 
         this.unit = Unit.create(core.getUnit());
         this.unitForFee = Unit.create(core.getUnitForFee());
@@ -66,7 +65,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
         CoreBRCryptoAddress coreAddress = Address.from(target).getCoreBRCryptoAddress();
         CoreBRCryptoAmount coreAmount = Amount.from(amount).getCoreBRCryptoAmount();
         CoreBRCryptoNetworkFee coreFee = NetworkFee.from(fee).getCoreBRCryptoNetworkFee();
-        core.estimateFeeBasis(callbackManager.registerFeeBasisEstimateHandler(handler), coreAddress, coreAmount, coreFee);
+        core.estimateFeeBasis(callbackCoordinator.registerFeeBasisEstimateHandler(handler), coreAddress, coreAmount, coreFee);
     }
 
     @Override

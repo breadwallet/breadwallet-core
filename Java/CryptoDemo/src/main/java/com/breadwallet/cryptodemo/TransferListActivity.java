@@ -29,9 +29,9 @@ import com.breadwallet.crypto.TransferConfirmation;
 import com.breadwallet.crypto.TransferHash;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
-import com.breadwallet.crypto.events.system.DefaultSystemListener;
 import com.breadwallet.crypto.events.wallet.DefaultWalletEventVisitor;
 import com.breadwallet.crypto.events.wallet.WalletEvent;
+import com.breadwallet.crypto.events.wallet.WalletListener;
 import com.breadwallet.crypto.events.wallet.WalletTransferAddedEvent;
 import com.breadwallet.crypto.events.wallet.WalletTransferChangedEvent;
 import com.breadwallet.crypto.events.wallet.WalletTransferDeletedEvent;
@@ -46,7 +46,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-public class TransferListActivity extends AppCompatActivity implements DefaultSystemListener {
+public class TransferListActivity extends AppCompatActivity implements WalletListener {
 
     private static final DateFormat DATE_FORMAT = DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG);
 

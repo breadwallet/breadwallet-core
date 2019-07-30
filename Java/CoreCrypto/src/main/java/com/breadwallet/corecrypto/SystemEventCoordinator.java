@@ -12,7 +12,6 @@ import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Transfer;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
-import com.breadwallet.crypto.errors.FeeEstimationError;
 import com.breadwallet.crypto.events.network.NetworkEvent;
 import com.breadwallet.crypto.events.system.SystemEvent;
 import com.breadwallet.crypto.events.system.SystemListener;
@@ -22,37 +21,27 @@ import com.breadwallet.crypto.events.wallet.WalletEvent;
 import com.breadwallet.crypto.events.wallet.WalletListener;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerListener;
-import com.breadwallet.crypto.utility.CompletionHandler;
-import com.sun.jna.Pointer;
 
 import java.lang.ref.WeakReference;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /* package */
-final class CallbackManager {
-
-    private static final AtomicInteger HANDLER_IDS = new AtomicInteger(0);
+final class SystemEventCoordinator {
 
     private final ExecutorService executor;
     private final System system;
 
     private final CopyOnWriteArraySet<SystemListener> listeners;
 
-    private final Map<Pointer, CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError>> handlers;
-
     /* package */
-    CallbackManager(System system, ExecutorService executor, SystemListener systemListener) {
-        this.system = system;
+    SystemEventCoordinator(ExecutorService executor, System system, SystemListener baseListener) {
         this.executor = executor;
-        this.handlers = new ConcurrentHashMap<>();
+        this.system = system;
         this.listeners = new CopyOnWriteArraySet<>();
-        this.listeners.add(new WeakSystemListener(systemListener));
+        this.listeners.add(new WeakSystemListener(baseListener));
     }
 
     // Event callbacks
@@ -107,31 +96,6 @@ final class CallbackManager {
         });
     }
 
-    // Operation callbacks
-
-    /* package */
-    Pointer registerFeeBasisEstimateHandler(CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError> handler) {
-        Pointer cookie = Pointer.createConstant(HANDLER_IDS.incrementAndGet());
-        handlers.put(cookie, handler);
-        return cookie;
-    }
-
-    /* package */
-    void completeFeeBasisEstimateHandlerWithSuccess(Pointer cookie, TransferFeeBasis feeBasis) {
-        CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError> handler = handlers.remove(cookie);
-        if (null != handler) {
-            handler.handleData(feeBasis);
-        }
-    }
-
-    /* package */
-    void completeFeeBasisEstimateHandlerWithError(Pointer cookie, FeeEstimationError error) {
-        CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError> handler = handlers.remove(cookie);
-        if (null != handler) {
-            handler.handleError(error);
-        }
-    }
-
     // Filtered Listeners
 
     private Set<SystemListener> getListeners() {
@@ -150,33 +114,33 @@ final class CallbackManager {
 
 
     /* package */
-    void addWalletManagerListener(WalletManager manager, SystemListener listener) {
+    void addWalletManagerListener(WalletManager manager, WalletManagerListener listener) {
         listeners.add(new ScopedWalletManagerListener(manager, listener));
     }
 
     /* package */
-    void removeWalletManagerListener(WalletManager manager, SystemListener listener) {
+    void removeWalletManagerListener(WalletManager manager, WalletManagerListener listener) {
         listeners.remove(new ScopedWalletManagerListener(manager, listener));
     }
 
     /* package */
-    void addWalletListener(Wallet wallet, SystemListener listener) {
+    void addWalletListener(Wallet wallet, WalletListener listener) {
         listeners.add(new ScopedWalletListener(wallet, listener));
     }
 
     /* package */
-    void removeWalletListener(Wallet wallet, SystemListener listener) {
+    void removeWalletListener(Wallet wallet, WalletListener listener) {
         listeners.remove(new ScopedWalletListener(wallet, listener));
     }
 
 
     /* package */
-    void addTransferListener(Transfer transfer, SystemListener listener) {
+    void addTransferListener(Transfer transfer, TransferListener listener) {
         listeners.add(new ScopedTransferListener(transfer, listener));
     }
 
     /* package */
-    void removeTransferListener(Transfer transfer, SystemListener listener) {
+    void removeTransferListener(Transfer transfer, TransferListener listener) {
         listeners.remove(new ScopedTransferListener(transfer, listener));
     }
 
@@ -250,9 +214,9 @@ final class CallbackManager {
 
         private final int filterHash;
         private final int identityHash;
-        private final WeakReference<SystemListener> listener;
+        private final WeakReference<WalletManagerListener> listener;
 
-        ScopedWalletManagerListener(WalletManager manager, SystemListener listener) {
+        ScopedWalletManagerListener(WalletManager manager, WalletManagerListener listener) {
             this.filterHash = Objects.hash(manager);
             this.identityHash = Objects.hash(manager, listener);
             this.listener = new WeakReference<>(listener);
@@ -292,9 +256,9 @@ final class CallbackManager {
 
         private final int filterHash;
         private final int identityHash;
-        private final WeakReference<SystemListener> listener;
+        private final WeakReference<WalletListener> listener;
 
-        ScopedWalletListener(Wallet wallet, SystemListener listener) {
+        ScopedWalletListener(Wallet wallet, WalletListener listener) {
             this.filterHash = Objects.hash(wallet);
             this.identityHash = Objects.hash(wallet, listener);
             this.listener = new WeakReference<>(listener);
@@ -334,9 +298,9 @@ final class CallbackManager {
 
         private final int filterHash;
         private final int identityHash;
-        private final WeakReference<SystemListener> listener;
+        private final WeakReference<TransferListener> listener;
 
-        ScopedTransferListener(Transfer transfer, SystemListener listener) {
+        ScopedTransferListener(Transfer transfer, TransferListener listener) {
             this.filterHash = Objects.hash(transfer);
             this.identityHash = Objects.hash(transfer, listener);
             this.listener = new WeakReference<>(listener);
