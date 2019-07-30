@@ -22,7 +22,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#include "BRCrypto.h"
+#include "support/BRCrypto.h"
 #include "BRBloomFilter.h"
 #include "BRMerkleBlock.h"
 #include "BRWallet.h"
@@ -1214,7 +1214,69 @@ int BRKeyTests()
     printf("privKey:%s\n", privKey2);
     if (strcmp(privKey2, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL") != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 2\n", __func__);
-    
+
+    // pubkey match
+    BRKey prvKeyX1, prvKeyX2;
+    BRKey pubKeyX1, pubKeyX2;
+
+    BRKeySetPrivKey (&prvKeyX1, BRMainNetParams->addrParams, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
+    if (!BRKeyPubKeyMatch (&prvKeyX1, &prvKeyX1))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 5.1\n", __func__);
+
+    BRKeyClean(&prvKeyX1); BRKeyClean(&prvKeyX2);
+    BRKeySetPrivKey (&prvKeyX1, BRMainNetParams->addrParams, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
+    BRKeySetPrivKey (&prvKeyX2, BRMainNetParams->addrParams, "5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF");
+    if (BRKeyPubKeyMatch (&prvKeyX1, &prvKeyX2))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 5.2\n", __func__);
+
+    BRKeyClean(&prvKeyX1); BRKeyClean(&prvKeyX2);
+    BRKeySetPrivKey (&prvKeyX1, BRMainNetParams->addrParams, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
+    BRKeySetPrivKey (&prvKeyX2, BRMainNetParams->addrParams, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
+    prvKeyX1.compressed = 0;
+    prvKeyX2.compressed = 0;
+   if (!BRKeyPubKeyMatch (&prvKeyX1, &prvKeyX2))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 5.3.1\n", __func__);
+    BRKeySetPubKey (&pubKeyX1, prvKeyX1.pubKey, 65);
+    BRKeySetPubKey (&pubKeyX2, prvKeyX2.pubKey, 65);
+    if (!BRKeyPubKeyMatch (&prvKeyX1, &prvKeyX2))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 5.3.2\n", __func__);
+
+    BRKeyClean(&prvKeyX1); BRKeyClean(&prvKeyX2);
+    BRKeySetPrivKey (&prvKeyX1, BRMainNetParams->addrParams, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
+    BRKeySetPrivKey (&prvKeyX2, BRMainNetParams->addrParams, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
+    prvKeyX1.compressed = 0;
+    prvKeyX2.compressed = 1;
+    if (!BRKeyPubKeyMatch (&prvKeyX1, &prvKeyX2))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 5.3.1\n", __func__);
+    BRKeySetPubKey (&pubKeyX1, prvKeyX1.pubKey, 65);
+    BRKeySetPubKey (&pubKeyX2, prvKeyX2.pubKey, 33);
+    if (!BRKeyPubKeyMatch (&prvKeyX1, &prvKeyX2))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 5.3.2\n", __func__);
+
+    BRKeyClean(&prvKeyX1); BRKeyClean(&prvKeyX2);
+    BRKeySetPrivKey (&prvKeyX1, BRMainNetParams->addrParams, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
+    BRKeySetPrivKey (&prvKeyX2, BRMainNetParams->addrParams, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
+    prvKeyX1.compressed = 1;
+    prvKeyX2.compressed = 0;
+    if (!BRKeyPubKeyMatch (&prvKeyX1, &prvKeyX2))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 5.3.1\n", __func__);
+    BRKeySetPubKey (&pubKeyX1, prvKeyX1.pubKey, 33);
+    BRKeySetPubKey (&pubKeyX2, prvKeyX2.pubKey, 65);
+    if (!BRKeyPubKeyMatch (&prvKeyX1, &prvKeyX2))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 5.3.2\n", __func__);
+
+    BRKeyClean(&prvKeyX1); BRKeyClean(&prvKeyX2);
+    BRKeySetPrivKey (&prvKeyX1, BRMainNetParams->addrParams, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
+    BRKeySetPrivKey (&prvKeyX2, BRMainNetParams->addrParams, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
+    prvKeyX1.compressed = 1;
+    prvKeyX2.compressed = 1;
+    if (!BRKeyPubKeyMatch (&prvKeyX1, &prvKeyX2))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 5.3.1\n", __func__);
+    BRKeySetPubKey (&pubKeyX1, prvKeyX1.pubKey, 33);
+    BRKeySetPubKey (&pubKeyX2, prvKeyX2.pubKey, 33);
+    if (!BRKeyPubKeyMatch (&prvKeyX1, &prvKeyX2))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 5.3.2\n", __func__);
+
     // signing
     BRKeySetSecret(&key, &uint256("0000000000000000000000000000000000000000000000000000000000000001"), 1);
     msg = "Everything should be made as simple as possible, but not simpler.";
@@ -1800,8 +1862,19 @@ int BRBIP32SequenceTests()
     if (strncmp(addr.s, "mxZ2Dn9vcyNeKh9DNHZw6d6NrxeYCVNjc2", sizeof(addr)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRBIP32BitIDKey() test 2\n", __func__);
     
-    // TODO: XXX test BRBIP32SerializeMasterPrivKey()
-    // TODO: XXX test BRBIP32SerializeMasterPubKey()
+    char mpks[] =
+    "xpub68Gmy5EdvgibQVfPdqkBBCHxA5htiqg55crXYuXoQRKfDBFA1WEjWgP6LHhwBZeNK1VTsfTFUHCdrfp1bgwQ9xv5ski8PX9rL2dZXvgGDnw";
+    char s[sizeof(mpks)];
+    
+    mpk = BRBIP32ParseMasterPubKey(mpks);
+    BRBIP32SerializeMasterPubKey(s, sizeof(s), mpk);
+    if (strncmp(s, mpks, sizeof(mpks)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRBIP32ParseMasterPubKey() test\n", __func__);
+
+    BRBIP32SerializeMasterPrivKey(s, sizeof(s), &seed, sizeof(seed));
+    if (strncmp(s, "xprv9s21ZrQH143K3QTDL4LXw2F7HEK3wJUD2nW2nRk4stbPy6cq3jPPqjiChkVvvNKmPGJxWUtg6LnF5kejMRNNU3TGtRBeJgk"
+                "33yuGBxrMPHi", sizeof(s)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRBIP32SerializeMasterPrivKey() test\n", __func__);
 
     printf("                                    ");
     return r;

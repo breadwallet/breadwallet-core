@@ -80,10 +80,6 @@ void BRBIP32vPrivKeyPath(BRKey *key, const void *seed, size_t seedLen, int depth
 // returns number of bytes written including NULL terminator, or strLen needed if str is NULL
 size_t BRBIP32SerializeMasterPrivKey(char *str, size_t strLen, const void *seed, size_t seedLen);
 
-// writes a master private key to seed given a base58check encoded serialized master private key (xprv)
-// returns number of bytes written, or seedLen needed if seed is NULL
-size_t BRBIP32ParseMasterPrivKey(void *seed, size_t seedLen, const char *str);
-
 // writes the base58check encoded serialized master public key (xpub) to str
 // returns number of bytes written including NULL terminator, or strLen needed if str is NULL
 size_t BRBIP32SerializeMasterPubKey(char *str, size_t strLen, BRMasterPubKey mpk);
