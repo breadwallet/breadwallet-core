@@ -205,9 +205,10 @@ extern BREthereumStatus
 ewmAnnounceGasEstimateFailure (BREthereumEWM ewm,
                                BREthereumWallet wallet,
                                BREthereumCookie cookie,
+                               BREthereumStatus status,
                                int rid) {
     // TODO(fix): Expose error reasons?
-    ewmSignalGasEstimateFailure(ewm, wallet, cookie, ERROR_NODE_NOT_CONNECTED);
+    ewmSignalGasEstimateFailure(ewm, wallet, cookie, status);
     return SUCCESS;
 }
 

@@ -186,8 +186,8 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
-    public void announceGetGasEstimateFailure(BRCryptoCWMClientCallbackState callbackState) {
-        core.announceGetGasEstimateFailure(callbackState);
+    public void announceGetGasEstimateFailure(BRCryptoCWMClientCallbackState callbackState, int status) {
+        core.announceGetGasEstimateFailure(callbackState, status);
     }
 
     @Override

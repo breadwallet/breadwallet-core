@@ -2015,12 +2015,14 @@ cwmAnnounceGetGasEstimateSuccess (OwnershipKept BRCryptoWalletManager cwm,
 
 extern void
 cwmAnnounceGetGasEstimateFailure (OwnershipKept BRCryptoWalletManager cwm,
-                                  OwnershipGiven BRCryptoCWMClientCallbackState callbackState) {
+                                  OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                  BRCryptoStatus status) {
     assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_ETH_ESTIMATE_GAS == callbackState->type);
 
     ewmAnnounceGasEstimateFailure (cwm->u.eth,
                                    callbackState->u.ethWithWalletAndCookie.wid,
                                    callbackState->u.ethWithWalletAndCookie.cookie,
+                                   cryptoStatusAsETH (status),
                                    callbackState->rid);
     free (callbackState);
 }

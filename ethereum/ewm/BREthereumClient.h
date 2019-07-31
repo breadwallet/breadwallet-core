@@ -91,6 +91,7 @@ extern "C" {
     ewmAnnounceGasEstimateFailure (BREthereumEWM ewm,
                                    BREthereumWallet wallet,
                                    BREthereumCookie cookie,
+                                   BREthereumStatus status,
                                    int rid);
 
     extern void

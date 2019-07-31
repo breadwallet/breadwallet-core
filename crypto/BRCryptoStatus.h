@@ -35,7 +35,10 @@ extern "C" {
 
     typedef enum {
         CRYPTO_SUCCESS = 0,
-        CRYPTO_ERROR_UNKNOWN,
+        // Generic catch-all failure. This should only be used as if creating a
+        // specific error code does not make sense (you really should create
+        // a specifc error code...).
+        CRYPTO_ERROR_FAILED,
 
         // Reference access
         CRYPTO_ERROR_UNKNOWN_NODE = 10000,
@@ -63,6 +66,9 @@ extern "C" {
 
     extern BRCryptoStatus
         cryptoStatusFromETH (BREthereumStatus status);
+
+    extern BREthereumStatus
+        cryptoStatusAsETH (BRCryptoStatus status);
 
 #ifdef __cplusplus
 }

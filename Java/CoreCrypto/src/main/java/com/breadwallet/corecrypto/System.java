@@ -1505,13 +1505,16 @@ final class System implements com.breadwallet.crypto.System {
                 @Override
                 public void handleError(QueryError error) {
                     Log.e(TAG, "BRCryptoCWMEthEstimateGasCallback: failed", error);
-                    coreWalletManager.announceGetGasEstimateFailure(callbackState);
+                    coreWalletManager.announceGetGasEstimateFailure(callbackState, BRCryptoStatus.CRYPTO_ERROR_NODE_NOT_CONNECTED);
                 }
             });
 
         } else {
-            Log.e(TAG, "BRCryptoCWMEthEstimateGasCallback: missing sytem");
-            coreWalletManager.announceGetGasEstimateFailure(callbackState);
+            // using the CRYPTO_ERROR_FAILED status code as this represents a situation where the system that this estimation
+            // was queued for, is now GC'ed. As a result, no one is really listening for this estimation so return an error
+            // code indicating failure and leave it at that.
+            Log.e(TAG, "BRCryptoCWMEthEstimateGasCallback: missing system");
+            coreWalletManager.announceGetGasEstimateFailure(callbackState, BRCryptoStatus.CRYPTO_ERROR_FAILED);
         }
     }
 

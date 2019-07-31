@@ -3,7 +3,7 @@ package com.breadwallet.corenative.crypto;
 public interface BRCryptoStatus {
 
     int CRYPTO_SUCCESS                              = 0;
-    int CRYPTO_ERROR_UNKNOWN                        = 1;
+    int CRYPTO_ERROR_FAILED                         = 1;
 
     // Reference access
     int CRYPTO_ERROR_UNKNOWN_NODE                   = 10000;

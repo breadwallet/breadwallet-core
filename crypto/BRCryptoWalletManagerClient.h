@@ -29,6 +29,7 @@
 #include "BRCryptoBase.h"
 #include "BRCryptoNetwork.h"
 #include "BRCryptoAccount.h"
+#include "BRCryptoStatus.h"
 #include "BRCryptoTransfer.h"
 #include "BRCryptoWallet.h"
 
@@ -325,7 +326,8 @@ extern "C" {
 
     extern void
     cwmAnnounceGetGasEstimateFailure (OwnershipKept BRCryptoWalletManager cwm,
-                                      OwnershipGiven BRCryptoCWMClientCallbackState callbackState);
+                                      OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                      BRCryptoStatus status);
 
     extern void
     cwmAnnounceGetLogsItem(OwnershipKept BRCryptoWalletManager cwm,
