@@ -40,7 +40,7 @@ public final class Key {
 
             BRKeySetPrivKey (&key, strPtr)
 
-            return Key (core: key, needPublicKey: true, compressedPublicKey: false)
+            return Key (core: key, needPublicKey: true)
         }
     }
 
@@ -56,7 +56,7 @@ public final class Key {
 
 
             return (1 == BRKeySetPubKey (&key, dataAddr, dataCount)
-                ? Key (core: key, needPublicKey: false, compressedPublicKey: false)
+                ? Key (core: key, needPublicKey: false)
                 : nil)
         }
     }
@@ -72,7 +72,7 @@ public final class Key {
 
             BRKeyPigeonPairingKey (&privateKey, &pairingKey, nonceAddr, nonce.count)
 
-            return Key (core: pairingKey, needPublicKey: true, compressedPublicKey: false)
+            return Key (core: pairingKey, needPublicKey: true)
         }
     }
 
@@ -100,7 +100,7 @@ public final class Key {
         //        guard pkData.withUnsafeMutableBytes({ BRKeyPrivKey(&key, $0.baseAddress?.assumingMemoryBound(to: Int8.self), pkLen) }) == pkLen else { return nil }
         //        key.clean()
 
-        return Key (core: key, needPublicKey: true, compressedPublicKey: false)
+        return Key (core: key, needPublicKey: true)
     }
 
     static public func createForBIP32BitID (phrase: String, index: Int, uri:String, words: [String]? = wordList) -> Key? {
@@ -118,7 +118,7 @@ public final class Key {
         BRBIP32BitIDKey (&key, &seed, MemoryLayout<UInt512>.size, UInt32(index), uri)
         defer { BRKeyClean (&key) }
 
-        return Key (core: key, needPublicKey: true, compressedPublicKey: false)
+        return Key (core: key, needPublicKey: true)
     }
 
     // The Core representation
@@ -171,12 +171,10 @@ public final class Key {
     ///
     /// - Parameter core: The Core representaion
     ///
-    internal init (core: BRKey, needPublicKey: Bool, compressedPublicKey: Bool) {
+    internal init (core: BRKey, needPublicKey: Bool) {
         self.core = core
 
         if needPublicKey {
-            // Uncompressed; Ensure that the public key is provided
-            BRKeySetCompressed (&self.core, (compressedPublicKey ? 1 : 0))
             BRKeyPubKey (&self.core, nil, 0)
         }
     }
@@ -194,7 +192,7 @@ public final class Key {
         defer { secret = UInt256() }
 
         BRKeySetSecret (&core, &secret, 1)
-        self.init (core: core, needPublicKey: true, compressedPublicKey: false)
+        self.init (core: core, needPublicKey: true)
     }
 
     ///
