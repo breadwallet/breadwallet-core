@@ -29,6 +29,7 @@
 #include "BRBase.h"
 #include "BRCryptoFeeBasis.h"
 #include "BRCryptoNetwork.h"        // NetworkFee
+#include "BRCryptoStatus.h"
 #include "BRCryptoTransfer.h"
 
 #ifdef __cplusplus
@@ -83,6 +84,7 @@ extern "C" {
 
             struct {
                 /// Handler must 'give' basis
+                BRCryptoStatus status;
                 BRCryptoCookie cookie;
                 BRCryptoFeeBasis basis;
             } feeBasisEstimated;

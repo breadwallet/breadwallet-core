@@ -206,7 +206,7 @@ ewmAnnounceGasEstimateFailure (BREthereumEWM ewm,
                                BREthereumWallet wallet,
                                BREthereumCookie cookie,
                                int rid) {
-    // TODO(fix: Expose error reasons?
+    // TODO(fix): Expose error reasons?
     ewmSignalGasEstimateFailure(ewm, wallet, cookie, ERROR_NODE_NOT_CONNECTED);
     return SUCCESS;
 }

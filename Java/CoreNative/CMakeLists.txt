@@ -298,6 +298,8 @@ target_sources (crypto
                 src/main/cpp/core/crypto/BRCryptoHash.h
                 src/main/cpp/core/crypto/BRCryptoNetwork.c
                 src/main/cpp/core/crypto/BRCryptoNetwork.h
+                src/main/cpp/core/crypto/BRCryptoStatus.c
+                src/main/cpp/core/crypto/BRCryptoStatus.h
                 src/main/cpp/core/crypto/BRCryptoPrivate.h
                 src/main/cpp/core/crypto/BRCryptoTransfer.c
                 src/main/cpp/core/crypto/BRCryptoTransfer.h

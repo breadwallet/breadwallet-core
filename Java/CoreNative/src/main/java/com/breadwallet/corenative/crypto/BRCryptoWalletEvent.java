@@ -150,6 +150,7 @@ public class BRCryptoWalletEvent extends Structure {
 
 		public static class feeBasisEstimated_struct extends Structure {
 
+			public int status;
 			public Pointer cookie;
 			public BRCryptoFeeBasis basis;
 
@@ -158,11 +159,12 @@ public class BRCryptoWalletEvent extends Structure {
 			}
 
 			protected List<String> getFieldOrder() {
-				return Arrays.asList("cookie", "basis");
+				return Arrays.asList("status", "cookie", "basis");
 			}
 
-			public feeBasisEstimated_struct(Pointer cookie, BRCryptoFeeBasis basis) {
+			public feeBasisEstimated_struct(int status, Pointer cookie, BRCryptoFeeBasis basis) {
 				super();
+				this.status = status;
 				this.cookie = cookie;
 				this.basis = basis;
 			}

@@ -19,6 +19,7 @@ import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener.BRCryptoCWMListenerWalletManagerEvent;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener.BRCryptoCWMListenerWalletEvent;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener.BRCryptoCWMListenerTransferEvent;
+import com.breadwallet.corenative.crypto.BRCryptoStatus;
 import com.breadwallet.corenative.crypto.BRCryptoTransfer;
 import com.breadwallet.corenative.crypto.BRCryptoTransferEvent;
 import com.breadwallet.corenative.crypto.BRCryptoTransferEventType;
@@ -46,6 +47,7 @@ import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthLog;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthToken;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthTransaction;
+import com.breadwallet.crypto.errors.FeeEstimationError;
 import com.breadwallet.crypto.events.network.NetworkCreatedEvent;
 import com.breadwallet.crypto.events.network.NetworkEvent;
 import com.breadwallet.crypto.events.system.SystemCreatedEvent;
@@ -1110,17 +1112,26 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void handleWalletFeeBasisEstimated(Pointer context, CoreBRCryptoWalletManager coreWalletManager, CoreBRCryptoWallet coreWallet, BRCryptoWalletEvent event) {
-        Log.d(TAG, "WalletFeeBasisEstimated");
+        int status = event.u.feeBasisEstimated.status;
 
-        CoreBRCryptoFeeBasis coreFeeBasis = CoreBRCryptoFeeBasis.createOwned(event.u.feeBasisEstimated.basis);
+        Log.d(TAG, String.format("WalletFeeBasisEstimated (%s)", status));
+
+        boolean success = status == BRCryptoStatus.CRYPTO_SUCCESS;
+        CoreBRCryptoFeeBasis coreFeeBasis = success ? CoreBRCryptoFeeBasis.createOwned(event.u.feeBasisEstimated.basis) : null;
 
         Optional<System> optSystem = getSystem(context);
         if (optSystem.isPresent()) {
             System system = optSystem.get();
 
-            TransferFeeBasis feeBasis = TransferFeeBasis.create(coreFeeBasis);
-            Log.d(TAG, String.format("WalletFeeBasisEstimated: %s", feeBasis));
-            system.callbackCoordinator.completeFeeBasisEstimateHandlerWithSuccess(event.u.feeBasisEstimated.cookie, feeBasis);
+            if (success) {
+                TransferFeeBasis feeBasis = TransferFeeBasis.create(coreFeeBasis);
+                Log.d(TAG, String.format("WalletFeeBasisEstimated: %s", feeBasis));
+                system.callbackCoordinator.completeFeeBasisEstimateHandlerWithSuccess(event.u.feeBasisEstimated.cookie, feeBasis);
+            } else {
+                FeeEstimationError error = Utilities.feeEstimationErrorFromStatus(status);
+                Log.d(TAG, String.format("WalletFeeBasisEstimated: %s", error));
+                system.callbackCoordinator.completeFeeBasisEstimateHandlerWithError(event.u.feeBasisEstimated.cookie, error);
+            }
 
         } else {
             Log.e(TAG, "WalletFeeBasisEstimated: missed system");

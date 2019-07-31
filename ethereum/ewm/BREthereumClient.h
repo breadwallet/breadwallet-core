@@ -17,6 +17,8 @@
 extern "C" {
 #endif
 
+    // Cookies are used as markers to match up an asynchronous operation
+    // request with its corresponding event.
     typedef void *BREthereumCookie;
 
     //

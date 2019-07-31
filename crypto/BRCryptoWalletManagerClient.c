@@ -23,6 +23,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 #include "BRCryptoBase.h"
+#include "BRCryptoStatus.h"
 #include "BRCryptoPrivate.h"
 #include "BRCryptoWalletManager.h"
 #include "BRCryptoWalletManagerClient.h"
@@ -464,7 +465,11 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
                                                cryptoWalletTake (wallet),
                                                (BRCryptoWalletEvent) {
                                                    CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED,
-                                                   { .feeBasisEstimated = { event.u.feeEstimated.cookie, cryptoFeeBasisTake(feeBasis) }}
+                                                   { .feeBasisEstimated = {
+                                                       CRYPTO_SUCCESS,
+                                                       event.u.feeEstimated.cookie,
+                                                       cryptoFeeBasisTake(feeBasis)
+                                                   }}
                                                });
 
             cryptoFeeBasisGive (feeBasis);
@@ -1019,13 +1024,26 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                                                       cryptoWalletManagerTake(cwm),
                                                       wallet,
                                                       (BRCryptoWalletEvent) {
-                                                       CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED,
-                                                       { .feeBasisEstimated = { event.u.feeEstimate.cookie, feeBasis }}
-                                                   });
+                                                           CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED,
+                                                           { .feeBasisEstimated = {
+                                                               CRYPTO_SUCCESS,
+                                                               event.u.feeEstimate.cookie,
+                                                               feeBasis
+                                                           }}
+                                                       });
 
                     cryptoUnitGive (feeUnit);
                 } else {
-                    // TODO(fix): How do we want to handle failure
+                    cwm->listener.walletEventCallback(cwm->listener.context,
+                                                      cryptoWalletManagerTake(cwm),
+                                                      wallet,
+                                                      (BRCryptoWalletEvent) {
+                                                           CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED,
+                                                           { .feeBasisEstimated = {
+                                                               cryptoStatusFromETH (status),
+                                                               event.u.feeEstimate.cookie,
+                                                           }}
+                                                       });
                 }
             }
     }

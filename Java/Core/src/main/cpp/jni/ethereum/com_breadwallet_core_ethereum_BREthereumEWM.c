@@ -46,6 +46,7 @@ clientEstimateGas(BREthereumClientContext context,
                   const char *from,
                   const char *to,
                   const char *amount,
+                  const char *gasPrice,
                   const char *data,
                   int id);
 
@@ -1559,6 +1560,7 @@ clientEstimateGas(BREthereumClientContext context,
                   const char *fromStr,
                   const char *toStr,
                   const char *amountStr,
+                  const char *gasPriceStr,
                   const char *dataStr,
                   int id) {
     JNIEnv *env = getEnv();

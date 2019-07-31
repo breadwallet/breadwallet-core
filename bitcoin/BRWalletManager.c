@@ -828,7 +828,7 @@ BRWalletManagerUpdateFeePerKB (BRWalletManager manager,
 extern void
 BRWalletManagerEstimateFeeForTransfer (BRWalletManager manager,
                                        BRWallet *wallet,
-                                       void *cookie,
+                                       BRCookie cookie,
                                        uint64_t transferAmount,
                                        uint64_t feePerKb) {
     uint64_t feePerKBSaved = BRWalletFeePerKb (wallet);
