@@ -144,7 +144,7 @@ final class System implements com.breadwallet.crypto.System {
     private static final BRCryptoCWMListenerTransferEvent CWM_LISTENER_TRANSFER_CALLBACK = System::transferEventCallback;
 
     /* package */
-    static System create(ScheduledExecutorService asyncExecutor, SystemListener listener, com.breadwallet.crypto.Account account, String path, BlockchainDb query) {
+    static System create(ScheduledExecutorService executor, SystemListener listener, com.breadwallet.crypto.Account account, String path, BlockchainDb query) {
         Pointer context = Pointer.createConstant(SYSTEM_IDS.incrementAndGet());
 
         BRCryptoCWMListener.ByValue cwmListener = new BRCryptoCWMListener.ByValue(context,
@@ -157,7 +157,7 @@ final class System implements com.breadwallet.crypto.System {
                 CWM_CLIENT_ETH,
                 CWM_CLIENT_GEN);
 
-        System system = new System(asyncExecutor,
+        System system = new System(executor,
                 listener,
                 account,
                 path,

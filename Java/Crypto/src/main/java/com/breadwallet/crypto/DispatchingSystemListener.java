@@ -1,6 +1,7 @@
 package com.breadwallet.crypto;
 
 import com.breadwallet.crypto.events.network.NetworkEvent;
+import com.breadwallet.crypto.events.system.DefaultSystemListener;
 import com.breadwallet.crypto.events.system.SystemEvent;
 import com.breadwallet.crypto.events.system.SystemListener;
 import com.breadwallet.crypto.events.transfer.TranferEvent;
@@ -94,24 +95,6 @@ public final class DispatchingSystemListener implements SystemListener {
 
     public void removeTransferListener(Transfer transfer, TransferListener listener) {
         listeners.remove(new ScopedTransferListener(transfer, listener));
-    }
-
-
-    private interface DefaultSystemListener extends SystemListener {
-        default void handleSystemEvent(System system, SystemEvent event) {
-        }
-
-        default void handleNetworkEvent(System system, Network network, NetworkEvent event) {
-        }
-
-        default void handleTransferEvent(System system, WalletManager manager, Wallet wallet, Transfer transfer, TranferEvent event) {
-        }
-
-        default void handleWalletEvent(System system, WalletManager manager, Wallet wallet, WalletEvent event) {
-        }
-
-        default void handleManagerEvent(System system, WalletManager manager, WalletManagerEvent event) {
-        }
     }
 
     private static class ScopedWalletManagerListener implements DefaultSystemListener {

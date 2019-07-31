@@ -372,7 +372,8 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
             BRCryptoWallet wallet = cryptoWalletManagerFindWalletAsBTC (cwm, btcWallet);
             assert (NULL != wallet);
 
-            // Find the wallet's transfer for 'btc'. (it is 'taken'); t must exist already in wallet (otherwise how could it have been submitted?)
+            // Find the wallet's transfer for 'btc'. (it is 'taken'); it must exist already in wallet (otherwise how
+            // could it have been submitted?)
             BRCryptoTransfer transfer = cryptoWalletFindTransferAsBTC (wallet, event.u.submitted.transaction);
             assert (NULL != transfer);
 
