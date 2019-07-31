@@ -415,37 +415,6 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
             break;
         }
 
-        case BITCOIN_WALLET_DELETED: {
-            // Demand 'wallet' ...
-            BRCryptoWallet wallet = cryptoWalletManagerFindWalletAsBTC (cwm, btcWallet);
-            assert (NULL != wallet);
-
-            // ...and CWM holding 'wallet'
-            assert (CRYPTO_TRUE == cryptoWalletManagerHasWallet (cwm, wallet));
-
-            // Update cwm to remove 'wallet'
-            cryptoWalletManagerRemWallet (cwm, wallet);
-
-            // Generate a CRYPTO wallet manager event for WALLET_DELETED...
-            cwm->listener.walletManagerEventCallback (cwm->listener.context,
-                                                      cryptoWalletManagerTake (cwm),
-                                                      (BRCryptoWalletManagerEvent) {
-                                                          CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED,
-                                                          { .wallet = { cryptoWalletTake (wallet) }}
-                                                      });
-
-            // ... and then a CRYPTO wallet event for DELETED.
-            cwm->listener.walletEventCallback (cwm->listener.context,
-                                               cryptoWalletManagerTake (cwm),
-                                               cryptoWalletTake (wallet),
-                                               (BRCryptoWalletEvent) {
-                                                   CRYPTO_WALLET_EVENT_DELETED
-                                               });
-
-            cryptoWalletGive (wallet);
-            break;
-        }
-
         case BITCOIN_WALLET_FEE_ESTIMATED: {
             // Demand 'wallet'
             BRCryptoWallet wallet = cryptoWalletManagerFindWalletAsBTC (cwm, btcWallet);
@@ -474,6 +443,37 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
 
             cryptoFeeBasisGive (feeBasis);
             cryptoUnitGive (feeUnit);
+            cryptoWalletGive (wallet);
+            break;
+        }
+
+        case BITCOIN_WALLET_DELETED: {
+            // Demand 'wallet' ...
+            BRCryptoWallet wallet = cryptoWalletManagerFindWalletAsBTC (cwm, btcWallet);
+            assert (NULL != wallet);
+
+            // ...and CWM holding 'wallet'
+            assert (CRYPTO_TRUE == cryptoWalletManagerHasWallet (cwm, wallet));
+
+            // Update cwm to remove 'wallet'
+            cryptoWalletManagerRemWallet (cwm, wallet);
+
+            // Generate a CRYPTO wallet manager event for WALLET_DELETED...
+            cwm->listener.walletManagerEventCallback (cwm->listener.context,
+                                                      cryptoWalletManagerTake (cwm),
+                                                      (BRCryptoWalletManagerEvent) {
+                                                          CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED,
+                                                          { .wallet = { cryptoWalletTake (wallet) }}
+                                                      });
+
+            // ... and then a CRYPTO wallet event for DELETED.
+            cwm->listener.walletEventCallback (cwm->listener.context,
+                                               cryptoWalletManagerTake (cwm),
+                                               cryptoWalletTake (wallet),
+                                               (BRCryptoWalletEvent) {
+                                                   CRYPTO_WALLET_EVENT_DELETED
+                                               });
+
             cryptoWalletGive (wallet);
             break;
         }
@@ -994,25 +994,6 @@ cwmWalletEventAsETH (BREthereumClientContext context,
             }
             break;
 
-        case WALLET_EVENT_DELETED:
-            if (NULL != wallet) {
-                // Generate a CRYPTO wallet manager event for WALLET_DELETED...
-                cwm->listener.walletManagerEventCallback (cwm->listener.context,
-                                                          cryptoWalletManagerTake (cwm),
-                                                          (BRCryptoWalletManagerEvent) {
-                                                              CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED,
-                                                              { .wallet = { cryptoWalletTake (wallet) }}
-                                                          });
-
-                // ... and then a CRYPTO wallet event for DELETED.
-                cwm->listener.walletEventCallback (cwm->listener.context,
-                                                   cryptoWalletManagerTake (cwm),
-                                                   wallet,
-                                                   (BRCryptoWalletEvent) {
-                                                       CRYPTO_WALLET_EVENT_DELETED
-                                                   });
-            }
-            break;
         case WALLET_EVENT_FEE_ESTIMATED:
             if (NULL != wallet) {
                 if (SUCCESS == status) {
@@ -1046,6 +1027,27 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                                                        });
                 }
             }
+            break;
+
+        case WALLET_EVENT_DELETED:
+            if (NULL != wallet) {
+                // Generate a CRYPTO wallet manager event for WALLET_DELETED...
+                cwm->listener.walletManagerEventCallback (cwm->listener.context,
+                                                          cryptoWalletManagerTake (cwm),
+                                                          (BRCryptoWalletManagerEvent) {
+                                                              CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED,
+                                                              { .wallet = { cryptoWalletTake (wallet) }}
+                                                          });
+
+                // ... and then a CRYPTO wallet event for DELETED.
+                cwm->listener.walletEventCallback (cwm->listener.context,
+                                                   cryptoWalletManagerTake (cwm),
+                                                   wallet,
+                                                   (BRCryptoWalletEvent) {
+                                                       CRYPTO_WALLET_EVENT_DELETED
+                                                   });
+            }
+            break;
     }
 }
 

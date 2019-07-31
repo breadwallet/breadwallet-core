@@ -284,8 +284,8 @@ extern "C" {
         WALLET_EVENT_BALANCE_UPDATED,
         WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED,
         WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
+        WALLET_EVENT_FEE_ESTIMATED,
         WALLET_EVENT_DELETED,
-        WALLET_EVENT_FEE_ESTIMATED
     } BREthereumWalletEventType;
 
     typedef struct {
@@ -299,7 +299,7 @@ extern "C" {
         } u;
     } BREthereumWalletEvent;
 
-#define WALLET_NUMBER_OF_EVENTS  (1 + WALLET_EVENT_FEE_ESTIMATED)
+#define WALLET_NUMBER_OF_EVENTS  (1 + WALLET_EVENT_DELETED)
 
     typedef void (*BREthereumClientHandlerWalletEvent) (BREthereumClientContext context,
                                                         BREthereumEWM ewm,
