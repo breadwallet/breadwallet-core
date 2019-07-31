@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import BRCryptoC
 import BRCore
 
 ///
@@ -66,23 +67,24 @@ public enum CoreSigner: Signer {
                 
                 let targetCount = keySignRequiresANonNULLSignatue.withUnsafeMutableBytes { (bytes: UnsafeMutableRawBufferPointer) -> Int in
                     let addr  = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                    return BRKeySign (&key, addr, 72, digestUInt256)
+                    return BRKeySign (cryptoKeyGetCore(key), addr, 72, digestUInt256)
                 }
 
                 if 0 == targetCount { /* error */ }
                 target = Data (count: targetCount)
                 target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                     let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                    BRKeySign (&key, targetAddr, targetCount, digestUInt256)
+
+                    BRKeySign (cryptoKeyGetCore(key), targetAddr, targetCount, digestUInt256)
                 }
 
             case .compact:
-                let targetCount = BRKeyCompactSign (&key, nil, 0, digestUInt256)
+                let targetCount = BRKeyCompactSign (cryptoKeyGetCore(key), nil, 0, digestUInt256)
                 if 0 == targetCount { /* error */ }
                 target = Data (count: targetCount)
                 target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                     let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                    BRKeyCompactSign (&key, targetAddr, targetCount, digestUInt256)
+                    BRKeyCompactSign (cryptoKeyGetCore(key), targetAddr, targetCount, digestUInt256)
                 }
             }
 
@@ -108,7 +110,9 @@ public enum CoreSigner: Signer {
                     var key = BRKey.self.init()
                     let signatureAddr  = signatureBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
                     let success: Bool = 1 == BRKeyRecoverPubKey (&key, digestUInt256, signatureAddr, signatureCount)
-                    return success ? Key (core: key, needPublicKey: false, compressedPublicKey: false) : nil
+                    return success
+                        ? Key (core: cryptoKeyCreateFromKey(&key), needPublicKey: false, compressedPublicKey: false)
+                        : nil
                 }
             }
         }
