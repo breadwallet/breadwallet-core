@@ -30,7 +30,7 @@ public final class Key {
     }
 
     static public func createFromSerialization (asPrivate data: Data) -> Key? {
-        let str = String (data: data, encoding: .utf8)!
+        guard let str = String (data: data, encoding: .utf8) else { return nil }
 
         return str.withCString { (strPtr: UnsafePointer<Int8>) -> Key? in
             guard 1 == BRPrivKeyIsValid (strPtr) else { return nil }
