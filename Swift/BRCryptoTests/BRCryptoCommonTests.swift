@@ -28,11 +28,12 @@ class BRCryptoCommonTests: XCTestCase {
         d = "5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF".data(using: .utf8)!
         k = Key.createFromSerialization(asPrivate: d)
         XCTAssertNotNil(k)
-        XCTAssertEqual (d, k.serialize(asPrivate: Key.PrivateEncoding.wifUncompressed))
-        XCTAssertNotEqual (d, k.serialize(asPrivate: Key.PrivateEncoding.wifCompressed))
+        XCTAssertEqual (d, k.serializeAsPrivate ())
+        XCTAssertEqual (d, k.serializeAsPrivate (compressed: false))
+        XCTAssertNotEqual (d, k.serializeAsPrivate (compressed: true))
 
         // serialize public key - uncompressed
-        d = k.serialize(asPublic: Key.PublicEncoding.derUncompressed)
+        d = k.serializeAsPublic (compressed: false)
         XCTAssertNotNil(d)
 
         // create a 'public key' and check for match with private key's public key
@@ -41,7 +42,7 @@ class BRCryptoCommonTests: XCTestCase {
         XCTAssertTrue (k.publicKeyMatch(kpub))
 
         // serialize public key - compressed
-        d = k.serialize(asPublic: Key.PublicEncoding.derCompressed)
+        d = k.serializeAsPublic (compressed: true)
         XCTAssertNotNil(d)
 
         // TODO: Fix 'public key from compressed'
@@ -56,11 +57,12 @@ class BRCryptoCommonTests: XCTestCase {
         d = "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL".data(using: .utf8)!
         k = Key.createFromSerialization(asPrivate: d)
         XCTAssertNotNil(k)
-        XCTAssertEqual (d, k.serialize(asPrivate: Key.PrivateEncoding.wifCompressed))
-        XCTAssertNotEqual (d, k.serialize(asPrivate: Key.PrivateEncoding.wifUncompressed))
+        XCTAssertEqual (d, k.serializeAsPrivate ())
+        XCTAssertEqual (d, k.serializeAsPrivate (compressed: true))
+        XCTAssertNotEqual (d, k.serializeAsPrivate (compressed: false))
 
         // serialize public key - uncompressed
-        d = k.serialize(asPublic: Key.PublicEncoding.derUncompressed)
+        d = k.serializeAsPublic (compressed: false)
         XCTAssertNotNil(d)
 
         // create a 'public key' and check for match with private key's public key
@@ -69,7 +71,7 @@ class BRCryptoCommonTests: XCTestCase {
         XCTAssertTrue (k.publicKeyMatch(kpub))
 
         // serialize public key - compressed
-        d = k.serialize(asPublic: Key.PublicEncoding.derCompressed)
+        d = k.serializeAsPublic (compressed: true)
         XCTAssertNotNil(d)
 
         // TODO: Fix 'public key from compressed'

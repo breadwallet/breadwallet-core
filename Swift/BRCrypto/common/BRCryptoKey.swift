@@ -132,37 +132,17 @@ public final class Key {
 
     // Serialization - Public Key
 
-    public enum PublicEncoding {
-        case derCompressed
-        case derUncompressed
-    }
-
-    public func serialize (asPublic: PublicEncoding) -> Data {
-        switch asPublic {
-        case .derCompressed:
-            return serializePublicKeyDER (key: self.core, compressed: true)
-
-        case .derUncompressed:
-            return serializePublicKeyDER (key: self.core, compressed: false)
-        }
+    public func serializeAsPublic (compressed override: Bool? = nil) -> Data {
+        let compressed = override ?? (self.core.compressed == 1)
+        return serializePublicKeyDER (key: self.core, compressed: compressed)
     }
 
     // Serialization - Private Key
 
-    public enum PrivateEncoding {
-        case wifCompressed
-        case wifUncompressed
-    }
-
-    public func serialize (asPrivate: PrivateEncoding) -> Data? {
+    public func serializeAsPrivate (compressed override: Bool? = nil) -> Data? {
         guard hasSecret else { return nil }
-        switch asPrivate {
-        case .wifCompressed:
-            return serializePrivateKeyWIF (key: core, compressed: true)
-
-        case .wifUncompressed:
-            return serializePrivateKeyWIF (key: core, compressed: false)
-        }
+        let compressed = override ?? (self.core.compressed == 1)
+        return serializePrivateKeyWIF (key: core, compressed: compressed)
     }
 
     ///
