@@ -92,7 +92,6 @@ public class CoreSystemListener implements SystemListener {
     @Override
     public void handleManagerEvent(System system, WalletManager manager, WalletManagerEvent event) {
         Log.d(TAG, String.format("Manager (%s): %s", manager.getName(), event));
-
     }
 
     @Override

@@ -56,7 +56,7 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
     protected void onResume() {
         super.onResume();
 
-        CoreCryptoApplication.getSystem().addSystemListener(this);
+        CoreCryptoApplication.getDispatchingSystemListener().addSystemListener(this);
 
         walletsAdapter.set(new ArrayList<>(CoreCryptoApplication.getSystem().getWallets()));
     }
@@ -65,7 +65,7 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
     protected void onPause() {
         super.onPause();
 
-        CoreCryptoApplication.getSystem().removeSystemListener(this);
+        CoreCryptoApplication.getDispatchingSystemListener().removeSystemListener(this);
     }
 
     @Override

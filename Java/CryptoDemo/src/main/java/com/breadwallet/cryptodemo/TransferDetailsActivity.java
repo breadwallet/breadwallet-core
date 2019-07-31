@@ -127,8 +127,8 @@ public class TransferDetailsActivity extends AppCompatActivity implements Wallet
     protected void onResume() {
         super.onResume();
 
-        CoreCryptoApplication.getSystem().addWalletManagerListener(walletManager, this);
-        CoreCryptoApplication.getSystem().addTransferListener(transfer, this);
+        CoreCryptoApplication.getDispatchingSystemListener().addWalletManagerListener(walletManager, this);
+        CoreCryptoApplication.getDispatchingSystemListener().addTransferListener(transfer, this);
 
         updateView();
     }
@@ -137,8 +137,8 @@ public class TransferDetailsActivity extends AppCompatActivity implements Wallet
     protected void onPause() {
         super.onPause();
 
-        CoreCryptoApplication.getSystem().removeTransferListener(transfer, this);
-        CoreCryptoApplication.getSystem().removeWalletManagerListener(walletManager, this);
+        CoreCryptoApplication.getDispatchingSystemListener().removeTransferListener(transfer, this);
+        CoreCryptoApplication.getDispatchingSystemListener().removeWalletManagerListener(walletManager, this);
     }
 
     private void updateView() {

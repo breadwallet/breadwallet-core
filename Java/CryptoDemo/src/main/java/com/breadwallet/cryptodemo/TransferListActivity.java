@@ -142,7 +142,7 @@ public class TransferListActivity extends AppCompatActivity implements WalletLis
     protected void onResume() {
         super.onResume();
 
-        CoreCryptoApplication.getSystem().addWalletListener(wallet, this);
+        CoreCryptoApplication.getDispatchingSystemListener().addWalletListener(wallet, this);
 
         transferAdapter.set(new ArrayList<>(wallet.getTransfers()));
     }
@@ -151,7 +151,7 @@ public class TransferListActivity extends AppCompatActivity implements WalletLis
     protected void onPause() {
         super.onPause();
 
-        CoreCryptoApplication.getSystem().removeWalletListener(wallet, this);
+        CoreCryptoApplication.getDispatchingSystemListener().removeWalletListener(wallet, this);
     }
 
     @Override

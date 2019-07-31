@@ -11,9 +11,6 @@ package com.breadwallet.crypto;
 
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.events.system.SystemListener;
-import com.breadwallet.crypto.events.transfer.TransferListener;
-import com.breadwallet.crypto.events.wallet.WalletListener;
-import com.breadwallet.crypto.events.walletmanager.WalletManagerListener;
 
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
@@ -53,20 +50,4 @@ public interface System {
     List<WalletManagerMode> getSupportedWalletManagerModes(Network network);
 
     boolean supportsWalletManagerModes(Network network, WalletManagerMode mode);
-
-    void addSystemListener(SystemListener listener);
-
-    void removeSystemListener(SystemListener listener);
-
-    void addWalletManagerListener(WalletManager manager, WalletManagerListener listener);
-
-    void removeWalletManagerListener(WalletManager manager, WalletManagerListener listener);
-
-    void addWalletListener(Wallet wallet, WalletListener listener);
-
-    void removeWalletListener(Wallet wallet, WalletListener listener);
-
-    void addTransferListener(Transfer transfer, TransferListener listener);
-
-    void removeTransferListener(Transfer transfer, TransferListener listener);
 }
