@@ -28,6 +28,7 @@
 #include "BRBIP39Mnemonic.h"
 #include "BRBIP32Sequence.h"
 #include "BRKeyECIES.h"
+#include "ethereum/util/BRUtil.h"
 
 // We create an arbitary BRAddressParams - disconnected from any know BITCOIN, etc address params.
 // We do this until we know how the Key is used.  Right now, the only accessors are to get the
@@ -80,6 +81,18 @@ cryptoKeyCreateFromKey (BRKey *key) {
 }
 
 extern BRCryptoKey
+cryptoKeyCreateFromSecret (UInt256 secret) {
+    BRKey key;
+    BRKeySetSecret (&key, &secret, 1);
+    BRCryptoKey result = cryptoKeyCreateInternal (key, CRYPTO_ADDRESS_PARAMS);
+
+    BRKeyClean(&key);
+    secret = UINT256_ZERO;
+
+    return result;
+}
+
+extern BRCryptoKey
 cryptoKeyCreateFromPhraseWithWords (const char *phrase, const char *words[]) {
     if (!BRBIP39PhraseIsValid (words, phrase)) return NULL;
 
@@ -108,6 +121,19 @@ cryptoKeyCreateFromStringPrivate (const char *string) {
 
     return (1 == BRKeySetPrivKey (&core, params, string)
             ? cryptoKeyCreateInternal (core, params)
+            : NULL);
+}
+
+extern BRCryptoKey
+cryptoKeyCreateFromStringPublic (const char *string) {
+    size_t  targetLen = strlen (string) / 2;
+    uint8_t target [targetLen];
+    decodeHex(target, targetLen, string, strlen (string));
+
+    BRKey key;
+
+    return (1 == BRKeySetPubKey (&key, target, targetLen)
+            ? cryptoKeyCreateInternal (key, CRYPTO_ADDRESS_PARAMS)
             : NULL);
 }
 
@@ -158,6 +184,7 @@ cryptoKeyCreateForBIP32BitID (const char *phrase, int index, const char *uri,  c
     return cryptoKeyCreateInternal(core, CRYPTO_ADDRESS_PARAMS);
 }
 
+#if 0
 typedef enum {
     SERIALIZE_PUBLIC_IDENTIFIER = 1,
     SERIALIZE_PRIVATE_IDENTIFIER = 2
@@ -230,8 +257,7 @@ cryptoKeySerializePrivate (BRCryptoKey key, /* ... */ uint8_t *data, size_t data
             ? dataCount
             : 0);
 }
-
-
+#endif
 
 extern int
 cryptoKeyHasSecret (BRCryptoKey key) {
@@ -248,6 +274,19 @@ cryptoKeyEncodePrivate (BRCryptoKey key) {
     return encoded;
 }
 
+extern char *
+cryptoKeyEncodePublic (BRCryptoKey key) {
+    size_t encodedLength = BRKeyPubKey (&key->core, NULL, 0);
+    uint8_t encoded[encodedLength];
+
+    BRKeyPubKey(&key->core, encoded, encodedLength);
+    return encodeHexCreate (NULL, encoded, encodedLength);
+}
+
+extern UInt256
+cryptoKeyGetSecret (BRCryptoKey key) {
+    return key->core.secret;
+}
 
 extern int
 cryptoKeySecretMatch (BRCryptoKey key1, BRCryptoKey key2) {

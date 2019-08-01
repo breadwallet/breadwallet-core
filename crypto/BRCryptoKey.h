@@ -41,17 +41,23 @@ extern "C" {
     cryptoKeyCreateFromKey (BRKey *key);
 
     extern BRCryptoKey
+    cryptoKeyCreateFromSecret (UInt256 secret);
+    
+    extern BRCryptoKey
     cryptoKeyCreateFromPhraseWithWords (const char *phrase, const char *words[]);
 
     extern BRCryptoKey
     cryptoKeyCreateFromStringPrivate (const char *string);
 
     extern BRCryptoKey
-    cryptoKeyCreateFromSerializationPublic (uint8_t *data, size_t dataCount);
+    cryptoKeyCreateFromStringPublic (const char *string);
 
-    extern BRCryptoKey
-    cryptoKeyCreateFromSerializationPrivate (uint8_t *data, size_t dataCount);
-
+//    extern BRCryptoKey
+//    cryptoKeyCreateFromSerializationPublic (uint8_t *data, size_t dataCount);
+//
+//    extern BRCryptoKey
+//    cryptoKeyCreateFromSerializationPrivate (uint8_t *data, size_t dataCount);
+//
     extern BRCryptoKey
     cryptoKeyCreateForPigeon (BRCryptoKey key, uint8_t *nonce, size_t nonceCount);
 
@@ -73,6 +79,12 @@ extern "C" {
     extern char *
     cryptoKeyEncodePrivate (BRCryptoKey key);
 
+    extern char *
+    cryptoKeyEncodePublic (BRCryptoKey key);
+
+    extern UInt256
+    cryptoKeyGetSecret (BRCryptoKey key);
+    
     extern int
     cryptoKeySecretMatch (BRCryptoKey key1, BRCryptoKey key2);
 

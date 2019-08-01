@@ -43,7 +43,21 @@ public final class Key {
         return cryptoKeyCreateFromStringPrivate (string)
             .map { Key (core: $0) }
     }
-    
+
+    ///
+    /// Create `Key`, as a public key, from `string`.  The string must be the hex-encoded
+    /// DER-encoded public key that is produced by `encodeAsPublic`
+    ///
+    /// - Parameter string:
+    ///
+    /// - Returns: A Key, if one exists
+    ///
+    static public func createFromString (asPublic string: String) -> Key? {
+        return cryptoKeyCreateFromStringPublic (string)
+            .map { Key (core: $0) }
+    }
+
+
     static public func createForPigeonFrom (key: Key, nonce: Data) -> Key {
         let nonceCount = nonce.count
         var nonce = nonce
@@ -105,8 +119,18 @@ public final class Key {
         return 1 == cryptoKeyHasSecret  (self.core)
     }
 
+    /// Return the WIF-encoded private key
     public var encodeAsPrivate: String {
         return asUTF8String(cryptoKeyEncodePrivate(self.core), true)
+    }
+
+    /// Return the hex-encoded, DER-encoded public key
+    public var encodeAsPublic: String {
+        return asUTF8String (cryptoKeyEncodePublic (self.core), true)
+    }
+
+    public var secret: UInt256 {
+        return cryptoKeyGetSecret (self.core)
     }
     
     ///
@@ -143,15 +167,7 @@ public final class Key {
     /// - Parameter secret: the secret
     ///
     internal convenience init (secret: UInt256) {
-        var core = BRKey.init()
-        defer { BRKeyClean (&core) }
-
-        var secret = secret
-        defer { secret = UInt256() }
-        // Serialization - Public Key
-
-        BRKeySetSecret (&core, &secret, 1)
-        self.init (core: cryptoKeyCreateFromKey (&core))
+        self.init (core: cryptoKeyCreateFromSecret (secret))
     }
 
 //    // Serialization - Public Key
