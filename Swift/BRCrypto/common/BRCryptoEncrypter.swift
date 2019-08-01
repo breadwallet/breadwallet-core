@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import BRCryptoC
 import BRCore
 
 public protocol Encrypter {
@@ -17,6 +18,7 @@ public protocol Encrypter {
 public enum CoreEncrypter: Encrypter {
     case aes_ecb (key:Data) // count = 16, 24,or 32
     case chacha20_poly1305 (key:Key, nonce12:Data, ad:Data)
+    case pigeon (privKey:Key, pubKey:Key, nonce12:Data)
 
     public func encrypt (data source: Data) -> Data {
         var target: Data!
@@ -65,6 +67,29 @@ public enum CoreEncrypter: Encrypter {
                     }
                 }
                 secret = UInt256() // Zero
+            }
+
+        case let .pigeon (privKey, pubKey, nonce12):
+            let sourceCount = source.count
+            source.withUnsafeBytes { (sourceBytes: UnsafeRawBufferPointer) -> Void in
+                let sourceAddr  = sourceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+
+                nonce12.withUnsafeBytes { (nonceBytes: UnsafeRawBufferPointer) -> Void in
+                    let targetCount =
+                        BRKeyPigeonEncrypt (nil, nil, 0, nil,
+                                            nonceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self),
+                                            sourceAddr, sourceCount)
+
+                    target = Data (count: targetCount)
+                    target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
+                        let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+                        BRKeyPigeonEncrypt (cryptoKeyGetCore(privKey.core),
+                                            targetAddr, targetCount,
+                                            cryptoKeyGetCore(pubKey.core),
+                                            nonceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self),
+                                            sourceAddr, sourceCount)
+                    }
+                }
             }
         }
         return target
@@ -118,6 +143,29 @@ public enum CoreEncrypter: Encrypter {
                     }
                 }
                 secret = UInt256() // Zero
+            }
+
+        case let .pigeon (privKey, pubKey, nonce12):
+            let sourceCount = source.count
+            source.withUnsafeBytes { (sourceBytes: UnsafeRawBufferPointer) -> Void in
+                let sourceAddr  = sourceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+
+                nonce12.withUnsafeBytes { (nonceBytes: UnsafeRawBufferPointer) -> Void in
+                    let targetCount =
+                        BRKeyPigeonDecrypt (nil, nil, 0, nil,
+                                            nonceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self),
+                                            sourceAddr, sourceCount)
+
+                    target = Data (count: targetCount)
+                    target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
+                        let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+                        BRKeyPigeonDecrypt (cryptoKeyGetCore(privKey.core),
+                                            targetAddr, targetCount,
+                                            cryptoKeyGetCore(pubKey.core),
+                                            nonceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self),
+                                            sourceAddr, sourceCount)
+                    }
+                }
             }
         }
 
