@@ -26,6 +26,7 @@
 #include "BRCryptoKey.h"
 #include "BRKey.h"
 #include "BRBIP39Mnemonic.h"
+#include "BRBIP38Key.h"
 #include "BRBIP32Sequence.h"
 #include "BRKeyECIES.h"
 #include "ethereum/util/BRUtil.h"
@@ -64,6 +65,9 @@ cryptoKeyCreateInternal (BRKey core, BRAddressParams params) {
     key->coreAddressParams = params;
     key->ref = CRYPTO_REF_ASSIGN(cryptoKeyRelease);
 
+    // clean up the key from the stack
+    BRKeyClean (&core);
+
     return key;
 }
 
@@ -75,6 +79,11 @@ cryptoKeyRelease (BRCryptoKey key) {
     free (key);
 }
 
+extern BRCryptoBoolean
+cryptoKeyIsProtectedPrivate (const char *privateKey) {
+    return BRBIP38KeyIsValid (privateKey);
+}
+
 private_extern BRCryptoKey
 cryptoKeyCreateFromKey (BRKey *key) {
     return cryptoKeyCreateInternal (*key, CRYPTO_ADDRESS_PARAMS);
@@ -82,11 +91,11 @@ cryptoKeyCreateFromKey (BRKey *key) {
 
 extern BRCryptoKey
 cryptoKeyCreateFromSecret (UInt256 secret) {
-    BRKey key;
-    BRKeySetSecret (&key, &secret, 1);
-    BRCryptoKey result = cryptoKeyCreateInternal (key, CRYPTO_ADDRESS_PARAMS);
+    BRKey core;
+    BRKeySetSecret (&core, &secret, 1);
+    BRCryptoKey result = cryptoKeyCreateInternal (core, CRYPTO_ADDRESS_PARAMS);
 
-    BRKeyClean(&key);
+    BRKeyClean(&core);
     secret = UINT256_ZERO;
 
     return result;
@@ -98,12 +107,16 @@ cryptoKeyCreateFromPhraseWithWords (const char *phrase, const char *words[]) {
 
     UInt512 seed;
     BRBIP39DeriveKey (seed.u8, phrase, NULL);
-
     UInt256 *secret = (UInt256*) &seed;
+
     BRKey core;
     BRKeySetSecret(&core, secret, 1);
+    BRCryptoKey result = cryptoKeyCreateInternal(core, CRYPTO_ADDRESS_PARAMS);
 
-    return cryptoKeyCreateInternal(core, CRYPTO_ADDRESS_PARAMS);
+    BRKeyClean(&core);
+    seed = UINT512_ZERO;
+
+    return result;
 }
 
 static BRAddressParams
@@ -114,14 +127,33 @@ cryptoKeyFindAddressParams (const char *string) {
 }
 
 extern BRCryptoKey
+cryptoKeyCreateFromStringProtectedPrivate (const char *privateKey, const char * passphrase) {
+    if (!BRBIP38KeyIsValid (privateKey)) return NULL;
+
+    BRKey core;
+    BRCryptoKey result = (1 == BRKeySetBIP38Key(&core, privateKey, passphrase, BITCOIN_ADDRESS_PARAMS)
+                          ? cryptoKeyCreateInternal (core, BITCOIN_ADDRESS_PARAMS)
+                          : (1 == BRKeySetBIP38Key(&core, privateKey, passphrase, BITCOIN_TEST_ADDRESS_PARAMS)
+                             ? cryptoKeyCreateInternal (core, BITCOIN_TEST_ADDRESS_PARAMS)
+                             : NULL));
+
+    BRKeyClean (&core);
+
+    return result;
+}
+
+extern BRCryptoKey
 cryptoKeyCreateFromStringPrivate (const char *string) {
     BRAddressParams params = cryptoKeyFindAddressParams(string);
 
     BRKey core;
+    BRCryptoKey result = (1 == BRKeySetPrivKey (&core, params, string)
+                          ? cryptoKeyCreateInternal (core, params)
+                          : NULL);
 
-    return (1 == BRKeySetPrivKey (&core, params, string)
-            ? cryptoKeyCreateInternal (core, params)
-            : NULL);
+    BRKeyClean (&core);
+
+    return result;
 }
 
 extern BRCryptoKey
@@ -130,11 +162,13 @@ cryptoKeyCreateFromStringPublic (const char *string) {
     uint8_t target [targetLen];
     decodeHex(target, targetLen, string, strlen (string));
 
-    BRKey key;
+    BRKey core;
+    BRCryptoKey result = (1 == BRKeySetPubKey (&core, target, targetLen)
+                          ? cryptoKeyCreateInternal (core, CRYPTO_ADDRESS_PARAMS)
+                          : NULL);
 
-    return (1 == BRKeySetPubKey (&key, target, targetLen)
-            ? cryptoKeyCreateInternal (key, CRYPTO_ADDRESS_PARAMS)
-            : NULL);
+    // key doesn't need to be cleaned; just a silly public key
+    return result;
 }
 
 extern BRCryptoKey
@@ -142,14 +176,15 @@ cryptoKeyCreateForPigeon (BRCryptoKey privateKey, uint8_t *nonce, size_t nonceCo
     BRKey pairingKey;
 
     BRKeyPigeonPairingKey (&privateKey->core, &pairingKey, nonce, nonceCount);
+    BRCryptoKey result = cryptoKeyCreateInternal (pairingKey, CRYPTO_ADDRESS_PARAMS);
 
-    return cryptoKeyCreateInternal (pairingKey, CRYPTO_ADDRESS_PARAMS);
+    BRKeyClean (&pairingKey);
+    return result;
 }
 
 extern BRCryptoKey
 cryptoKeyCreateForBIP32ApiAuth (const char *phrase, const char *words[]) {
     if (!BRBIP39PhraseIsValid (words, phrase)) return NULL;
-
 
     UInt512 seed;
     BRBIP39DeriveKey (seed.u8, phrase, NULL);
@@ -167,13 +202,17 @@ cryptoKeyCreateForBIP32ApiAuth (const char *phrase, const char *words[]) {
     //        guard pkData.withUnsafeMutableBytes({ BRKeyPrivKey(&key, $0.baseAddress?.assumingMemoryBound(to: Int8.self), pkLen) }) == pkLen else { return nil }
     //        key.clean()
 
-    return cryptoKeyCreateInternal(core, CRYPTO_ADDRESS_PARAMS);
+    BRCryptoKey result = cryptoKeyCreateInternal(core, CRYPTO_ADDRESS_PARAMS);
+
+    BRKeyClean (&core);
+    seed = UINT512_ZERO;
+
+    return result;
 }
 
 extern BRCryptoKey
 cryptoKeyCreateForBIP32BitID (const char *phrase, int index, const char *uri,  const char *words[]) {
     if (!BRBIP39PhraseIsValid (words, phrase)) return NULL;
-
 
     UInt512 seed;
     BRBIP39DeriveKey (seed.u8, phrase, NULL);
@@ -181,7 +220,12 @@ cryptoKeyCreateForBIP32BitID (const char *phrase, int index, const char *uri,  c
     BRKey core;
     BRBIP32BitIDKey (&core, &seed, sizeof(UInt512), index, uri);
 
-    return cryptoKeyCreateInternal(core, CRYPTO_ADDRESS_PARAMS);
+    BRCryptoKey result = cryptoKeyCreateInternal(core, CRYPTO_ADDRESS_PARAMS);
+
+    BRKeyClean (&core);
+    seed = UINT512_ZERO;
+
+    return result;
 }
 
 #if 0

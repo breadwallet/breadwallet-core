@@ -107,7 +107,7 @@ int BRBIP38KeyIsValid(const char *bip38Key)
 
 // decrypts a BIP38 key using the given passphrase and returns false if passphrase is incorrect
 // passphrase must be unicode NFC normalized: http://www.unicode.org/reports/tr15/#Norm_Forms
-int BRKeySetBIP38Key(BRKey *key, const char *bip38Key, const char *passphrase)
+int BRKeySetBIP38Key(BRKey *key, const char *bip38Key, const char *passphrase, BRAddressParams params)
 {
     int r = 1;
     uint8_t data[39];
@@ -181,7 +181,7 @@ int BRKeySetBIP38Key(BRKey *key, const char *bip38Key, const char *passphrase)
     
     BRKeySetSecret(key, &secret, flag & BIP38_COMPRESSED_FLAG);
     var_clean(&secret);
-    BRKeyLegacyAddr(key, address.s, sizeof(address), BIP38_ADDR_PARAMS);
+    BRKeyLegacyAddr(key, address.s, sizeof(address), params);
     BRSHA256_2(&hash, address.s, strlen(address.s));
     if (! address.s[0] || memcmp(&hash, addresshash, sizeof(uint32_t)) != 0) r = 0;
     return r;
