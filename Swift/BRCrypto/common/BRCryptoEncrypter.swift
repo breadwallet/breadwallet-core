@@ -16,7 +16,7 @@ public protocol Encrypter {
 
 public enum CoreEncrypter: Encrypter {
     case aes_ecb (key:Data) // count = 16, 24,or 32
-    case chacha20_poly1305 (key32:Data, nonce12:Data, ad:Data)
+    case chacha20_poly1305 (key:Key, nonce12:Data, ad:Data)
 
     public func encrypt (data source: Data) -> Data {
         var target: Data!
@@ -33,12 +33,13 @@ public enum CoreEncrypter: Encrypter {
                 }
             }
 
-        case let .chacha20_poly1305 (key32, nonce12, ad):
+        case let .chacha20_poly1305 (key, nonce12, ad):
             let sourceCount = source.count
              source.withUnsafeBytes { (sourceBytes: UnsafeRawBufferPointer) -> Void in
                 let sourceAddr  = sourceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-
-                key32.withUnsafeBytes { (keyBytes: UnsafeRawBufferPointer) -> Void in
+                var secret = key.secret
+                UnsafeMutablePointer (mutating: &secret)
+                    .withMemoryRebound(to: UInt8.self, capacity: 32) { (secretBytes: UnsafeMutablePointer<UInt8>) -> Void in
                     nonce12.withUnsafeBytes { (nonceBytes: UnsafeRawBufferPointer) -> Void in
                         ad.withUnsafeBytes { (adBytes: UnsafeRawBufferPointer) -> Void in
                             let adCount = ad.count
@@ -46,7 +47,7 @@ public enum CoreEncrypter: Encrypter {
 
                             let targetCount =
                                 BRChacha20Poly1305AEADEncrypt (nil, 0,
-                                                               keyBytes.baseAddress?.assumingMemoryBound(to: UInt8.self),
+                                                               secretBytes,
                                                                nonceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self),
                                                                sourceAddr, sourceCount,
                                                                adAddr, adCount)
@@ -55,7 +56,7 @@ public enum CoreEncrypter: Encrypter {
                             target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                                 let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
                                 BRChacha20Poly1305AEADEncrypt (targetAddr, targetCount,
-                                                               keyBytes.baseAddress?.assumingMemoryBound(to: UInt8.self),
+                                                               secretBytes,
                                                                nonceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self),
                                                                sourceAddr, sourceCount,
                                                                adAddr, adCount)
@@ -63,6 +64,7 @@ public enum CoreEncrypter: Encrypter {
                         }
                     }
                 }
+                secret = UInt256() // Zero
             }
         }
         return target
@@ -83,12 +85,14 @@ public enum CoreEncrypter: Encrypter {
                 }
             }
 
-        case let .chacha20_poly1305 (key32, nonce12, ad):
+        case let .chacha20_poly1305 (key, nonce12, ad):
             let sourceCount = source.count
             source.withUnsafeBytes { (sourceBytes: UnsafeRawBufferPointer) -> Void in
                 let sourceAddr  = sourceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
 
-                key32.withUnsafeBytes { (keyBytes: UnsafeRawBufferPointer) -> Void in
+                var secret = key.secret
+                UnsafeMutablePointer (mutating: &secret)
+                    .withMemoryRebound(to: UInt8.self, capacity: 32) { (secretBytes: UnsafeMutablePointer<UInt8>) -> Void in
                     nonce12.withUnsafeBytes { (nonceBytes: UnsafeRawBufferPointer) -> Void in
                         ad.withUnsafeBytes { (adBytes: UnsafeRawBufferPointer) -> Void in
                             let adCount = ad.count
@@ -96,7 +100,7 @@ public enum CoreEncrypter: Encrypter {
 
                             let targetCount =
                                 BRChacha20Poly1305AEADDecrypt (nil, 0,
-                                                               keyBytes.baseAddress?.assumingMemoryBound(to: UInt8.self),
+                                                               secretBytes,
                                                                nonceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self),
                                                                sourceAddr, sourceCount,
                                                                adAddr, adCount)
@@ -105,7 +109,7 @@ public enum CoreEncrypter: Encrypter {
                             target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                                 let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
                                 BRChacha20Poly1305AEADDecrypt (targetAddr, targetCount,
-                                                               keyBytes.baseAddress?.assumingMemoryBound(to: UInt8.self),
+                                                               secretBytes,
                                                                nonceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self),
                                                                sourceAddr, sourceCount,
                                                                adAddr, adCount)
@@ -113,6 +117,7 @@ public enum CoreEncrypter: Encrypter {
                         }
                     }
                 }
+                secret = UInt256() // Zero
             }
         }
 

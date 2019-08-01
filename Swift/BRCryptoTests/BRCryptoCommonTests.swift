@@ -17,68 +17,43 @@ class BRCryptoCommonTests: XCTestCase {
     override func tearDown() { }
 
     func testKey () {
-        #if false
-        var d: Data!
+        var s: String!
+        var t: String!
+        //var d: Data!
         var k: Key!
-        var kpub: Key!
+        var l: Key!
 
         //
         // Uncompressed
         //
 
-        d = "5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF".data(using: .utf8)!
-        k = Key.createFromSerialization(asPrivate: d)
+        s = "5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF"
+        k = Key.createFromString(asPrivate: s)
         XCTAssertNotNil(k)
-        XCTAssertEqual (d, k.serialize(asPrivate: Key.PrivateEncoding.wifUncompressed))
-        XCTAssertNotEqual (d, k.serialize(asPrivate: Key.PrivateEncoding.wifCompressed))
-
-        // serialize public key - uncompressed
-        d = k.serialize(asPublic: Key.PublicEncoding.derUncompressed)
-        XCTAssertNotNil(d)
-
-        // create a 'public key' and check for match with private key's public key
-        kpub = Key.createFromSerialization(asPublic: d)
-        XCTAssertNotNil(kpub)
-        XCTAssertTrue (k.publicKeyMatch(kpub))
-
-        // serialize public key - compressed
-        d = k.serialize(asPublic: Key.PublicEncoding.derCompressed)
-        XCTAssertNotNil(d)
-
-        // TODO: Fix 'public key from compressed'
-        // create a 'public key' and check for match with private key's public key
-        kpub = Key.createFromSerialization(asPublic: d)
-        XCTAssertNotNil(kpub)
-        XCTAssertTrue (k.publicKeyMatch(kpub))
+        XCTAssertEqual (s, k.encodeAsPrivate)
 
         //
         // Compressed
         //
-        d = "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL".data(using: .utf8)!
-        k = Key.createFromSerialization(asPrivate: d)
+
+        s = "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL"
+        k = Key.createFromString(asPrivate: s)
         XCTAssertNotNil(k)
-        XCTAssertEqual (d, k.serialize(asPrivate: Key.PrivateEncoding.wifCompressed))
-        XCTAssertNotEqual (d, k.serialize(asPrivate: Key.PrivateEncoding.wifUncompressed))
+        XCTAssertEqual (s, k.encodeAsPrivate)
 
-        // serialize public key - uncompressed
-        d = k.serialize(asPublic: Key.PublicEncoding.derUncompressed)
-        XCTAssertNotNil(d)
+        t = k.encodeAsPublic
+        l = Key.createFromString(asPublic: t)
+        XCTAssertNotNil (l)
+        XCTAssertEqual (t, l.encodeAsPublic)
 
-        // create a 'public key' and check for match with private key's public key
-        kpub = Key.createFromSerialization(asPublic: d)
-        XCTAssertNotNil(kpub)
-        XCTAssertTrue (k.publicKeyMatch(kpub))
-
-        // serialize public key - compressed
-        d = k.serialize(asPublic: Key.PublicEncoding.derCompressed)
-        XCTAssertNotNil(d)
-
-        // TODO: Fix 'public key from compressed'
-        // create a 'public key' and check for match with private key's public key
-//        kpub = CryptoKey.createFromSerialization(asPublic: d)
-//        XCTAssertNotNil(kpub)
-//        XCTAssertTrue (k.publicKeyMatch(kpub))
-        #endif
+        XCTAssertTrue (l.publicKeyMatch(k))
+        
+        //
+        // Bad Key
+        //
+        s = "XyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL"
+        k = Key.createFromString(asPrivate: s)
+        XCTAssertNil(k)
     }
 
     func testHasher() {
@@ -190,12 +165,13 @@ class BRCryptoCommonTests: XCTestCase {
         XCTAssertEqual (d, CoreEncrypter.aes_ecb(key: k).decrypt(data: a))
 
         // cha-cha
-        let key32: Data = Data([0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8a, 0x8b, 0x8c, 0x8d, 0x8e, 0x8f, 0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9a, 0x9b, 0x9c, 0x9d, 0x9e, 0x9f])
+        let secret = UInt256.init(u8: (0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8a, 0x8b, 0x8c, 0x8d, 0x8e, 0x8f, 0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9a, 0x9b, 0x9c, 0x9d, 0x9e, 0x9f))
+        let key = Key (secret: secret)
         let nonce12: Data = Data([0x07, 0x00, 0x00, 0x00, 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47])
         let ad: Data = Data([0x50, 0x51, 0x52, 0x53, 0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7])
         let msg: Data! = "Ladies and Gentlemen of the class of '99: If I could offer you only one tip for the future, sunscreen would be it."
             .data (using: .utf8)
-        let alg = CoreEncrypter.chacha20_poly1305 (key32: key32, nonce12: nonce12, ad: ad)
+        let alg = CoreEncrypter.chacha20_poly1305 (key: key, nonce12: nonce12, ad: ad)
 
         let cipher = Data([0xd3, 0x1a, 0x8d, 0x34, 0x64, 0x8e, 0x60, 0xdb, 0x7b, 0x86, 0xaf, 0xbc, 0x53, 0xef, 0x7e, 0xc2, 0xa4, 0xad, 0xed, 0x51, 0x29, 0x6e, 0x08, 0xfe, 0xa9, 0xe2, 0xb5, 0xa7, 0x36, 0xee, 0x62, 0xd6, 0x3d, 0xbe, 0xa4, 0x5e, 0x8c, 0xa9, 0x67, 0x12, 0x82, 0xfa, 0xfb, 0x69, 0xda, 0x92, 0x72, 0x8b, 0x1a, 0x71, 0xde, 0x0a, 0x9e, 0x06, 0x0b, 0x29, 0x05, 0xd6, 0xa5, 0xb6, 0x7e, 0xcd, 0x3b, 0x36, 0x92, 0xdd, 0xbd, 0x7f, 0x2d, 0x77, 0x8b, 0x8c, 0x98, 0x03, 0xae, 0xe3, 0x28, 0x09, 0x1b, 0x58, 0xfa, 0xb3, 0x24, 0xe4, 0xfa, 0xd6, 0x75, 0x94, 0x55, 0x85, 0x80, 0x8b, 0x48, 0x31, 0xd7, 0xbc, 0x3f, 0xf4, 0xde, 0xf0, 0x8e, 0x4b, 0x7a, 0x9d, 0xe5, 0x76, 0xd2, 0x65, 0x86, 0xce, 0xc6, 0x4b, 0x61, 0x16, 0x1a, 0xe1, 0x0b, 0x59, 0x4f, 0x09, 0xe2, 0x6a, 0x7e, 0x90, 0x2e, 0xcb, 0xd0, 0x60, 0x06, 0x91])
         XCTAssertEqual (cipher, alg.encrypt(data: msg))
@@ -231,5 +207,34 @@ class BRCryptoCommonTests: XCTestCase {
         let keyPublic = signer.recover(data32: digest, signature: signature)
         XCTAssertNotNil(keyPublic)
         XCTAssertTrue(key.publicKeyMatch(keyPublic!))
+    }
+
+    func testCompactSigner() {
+        let secrets = [
+            "5HxWvvfubhXpYYpS3tJkw6fq9jE9j18THftkZjHHfmFiWtmAbrj",
+            "5KC4ejrDjv152FGwP386VD1i2NYc5KkfSMyv1nGy1VGDxGHqVY3",
+            "Kwr371tjA9u2rFSMZjTNun2PXXP3WPZu2afRHTcta6KxEUdm1vEw", // compressed
+            "L3Hq7a8FEQwJkW1M2GNKDW28546Vp5miewcCzSqUD9kCAXrJdS3g"
+        ] // compressed
+
+        let signatures = [
+            "1c5dbbddda71772d95ce91cd2d14b592cfbc1dd0aabd6a394b6c2d377bbe59d31d14ddda21494a4e221f0824f0b8b924c43fa43c0ad57dccdaa11f81a6bd4582f6",
+            "1c52d8a32079c11e79db95af63bb9600c5b04f21a9ca33dc129c2bfa8ac9dc1cd561d8ae5e0f6c1a16bde3719c64c2fd70e404b6428ab9a69566962e8771b5944d",
+            "205dbbddda71772d95ce91cd2d14b592cfbc1dd0aabd6a394b6c2d377bbe59d31d14ddda21494a4e221f0824f0b8b924c43fa43c0ad57dccdaa11f81a6bd4582f6",
+            "2052d8a32079c11e79db95af63bb9600c5b04f21a9ca33dc129c2bfa8ac9dc1cd561d8ae5e0f6c1a16bde3719c64c2fd70e404b6428ab9a69566962e8771b5944d"
+        ]
+
+        let message =  "Very deterministic message".data(using: .utf8)
+            .map { CoreHasher.sha256_2.hash(data: $0 ) }
+        XCTAssertNotNil(message)
+
+        zip (secrets, signatures).forEach { secret, signature in
+            let key = Key.createFromString (asPrivate: secret)
+            XCTAssertNotNil(key)
+
+            let outputSig = CoreSigner.compact.sign(data32: message!, using: key!)
+            //print (CoreCoder.hex.encode(data: outputSig))
+            XCTAssert(CoreCoder.hex.encode(data: outputSig) == signature)
+        }
     }
 }
