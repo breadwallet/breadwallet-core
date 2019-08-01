@@ -113,8 +113,9 @@ typedef struct {
 BRPaymentProtocolPayment *BRPaymentProtocolPaymentNew(const uint8_t *merchantData, size_t merchDataLen,
                                                       BRTransaction *transactions[], size_t txCount,
                                                       const uint64_t refundToAmounts[],
-                                                      const BRAddress refundToAddresses[], size_t refundToCount,
-                                                      const char *memo);
+                                                      BRAddressParams params,
+                                                      const BRAddress refundToAddresses[],
+                                                      size_t refundToCount, const char *memo);
 
 // buf must contain a serialized payment struct
 // returns a payment struct that must be freed by calling BRPaymentProtocolPaymentFree()

@@ -139,8 +139,9 @@ addressDetailFillSeed (BREthereumAddressDetail *address, UInt512 seed, uint32_t 
     // "The private key must be 32 bytes and not begin with 0x00 and the public one must be
     // uncompressed and 64 bytes long or 65 with the constant 0x04 prefix. More on that in the
     // next section. ...
-    
-    assert (65 == BRKeyPubKey(&key, NULL, 0));
+
+    size_t keyLen = BRKeyPubKey(&key, NULL, 0);
+    assert (65 == keyLen);
     
     // "The public key is what we need in order to derive its Ethereum address. Every EC public key
     // begins with the 0x04 prefix before giving the location of the two point on the curve. You

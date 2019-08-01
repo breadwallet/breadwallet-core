@@ -40,7 +40,11 @@ size_t BRKeyECIESAES128SHA256Encrypt(BRKey *pubKey, void *out, size_t outLen, BR
     assert(pkLen > 0);
     if (! out) return pkLen + sizeof(iv) + dataLen + 32;
     if (outLen < pkLen + sizeof(iv) + dataLen + 32) return 0;
-    assert(pubKey != NULL && BRKeyPubKey(pubKey, NULL, 0) > 0);
+
+    assert(pubKey != NULL);
+    size_t pubKeyLen = BRKeyPubKey(pubKey, NULL, 0);
+    assert(pubKeyLen > 0);
+
     assert(data != NULL || dataLen == 0);
 
     // shared-secret = kdf(ecdh(ephemKey, pubKey))
@@ -78,7 +82,7 @@ size_t BRKeyECIESAES128SHA256Decrypt(BRKey *privKey, void *out, size_t outLen, c
     if (BRKeySetPubKey(&pubKey, data, pkLen) == 0) return 0;
     if (! out) return dataLen - (pkLen + sizeof(iv) + 32);
     if (pkLen + sizeof(iv) + outLen + 32 < dataLen) return 0;
-    assert(privKey != NULL && BRKeyPrivKey(privKey, NULL, 0) > 0);
+    assert(privKey != NULL && BRKeyIsPrivKey(privKey));
 
     // shared-secret = kdf(ecdh(privKey, pubKey))
     BRKeyECDH(privKey, &buf[4], &pubKey);

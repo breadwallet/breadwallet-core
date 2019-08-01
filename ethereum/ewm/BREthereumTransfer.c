@@ -368,6 +368,12 @@ transferGetFeeBasis (BREthereumTransfer transfer) {
     return transfer->feeBasis;
 }
 
+extern void
+transferSetFeeBasis (BREthereumTransfer transfer,
+                     BREthereumFeeBasis feeBasis) {
+    transfer->feeBasis = feeBasis;
+}
+
 extern BREthereumGas
 transferGetGasEstimate (BREthereumTransfer transfer) {
     return transfer->gasEstimate;

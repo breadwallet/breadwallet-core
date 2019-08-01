@@ -66,8 +66,13 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
 
     private static final CryptoApi.SystemProvider systemProvider = new CryptoApi.SystemProvider() {
         @Override
-        public com.breadwallet.crypto.System create(ExecutorService listenerExecutor, SystemListener listener, com.breadwallet.crypto.Account account, String path, BlockchainDb query) {
-            return System.create(listenerExecutor, listener, account, path, query);
+        public com.breadwallet.crypto.System create(ExecutorService listenerExecutor,
+                                                    SystemListener listener,
+                                                    com.breadwallet.crypto.Account account,
+                                                    boolean isMainnet,
+                                                    String path,
+                                                    BlockchainDb query) {
+            return System.create(listenerExecutor, listener, account, isMainnet, path, query);
         }
     };
 

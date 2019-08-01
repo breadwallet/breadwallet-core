@@ -75,10 +75,6 @@ class CoreTests: XCTestCase {
     override func setUp() {
         super.setUp()
 
-        #if TESTNET
-        isMainnet = false
-        #endif
-
         // Get the paperKey from `configPath`
         if FileManager.default.fileExists(atPath: configPath) {
             let configFile = URL(fileURLWithPath: configPath)
@@ -124,11 +120,7 @@ class CoreTests: XCTestCase {
             let configData = try! Data.init(contentsOf: configFile)
             let configPropertyList = try! PropertyListSerialization.propertyList(from: configData, options: [], format: nil) as! [String: [String]]
 
-            #if TESTNET
-            paperKeys = configPropertyList [CoreTests.PAPER_KEY_TESTNET]!
-            #else
             paperKeys = configPropertyList [CoreTests.PAPER_KEY_MAINNET]!
-            #endif
         }
         else if 0 == isMainnet /* testnet */ {
             // This is a compromised testnet paperkey

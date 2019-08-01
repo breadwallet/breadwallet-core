@@ -151,21 +151,22 @@ Java_com_breadwallet_core_BRCoreMasterPubKey_createJniCoreMasterPubKeyFromSerial
 JNIEXPORT jbyteArray JNICALL
 Java_com_breadwallet_core_BRCoreMasterPubKey_bip32BitIDKey
         (JNIEnv *env, jclass thisClass, jbyteArray seed, jint index, jstring strUri) {
-    int seedLength = (*env)->GetArrayLength(env, seed);
-    const char *uri = (*env)->GetStringUTFChars(env, strUri, NULL);
-    jbyte *byteSeed = (*env)->GetByteArrayElements(env, seed, 0);
-
-    BRKey key;
-
-    BRBIP32BitIDKey(&key, byteSeed, (size_t) seedLength, (uint32_t) index, uri);
-
-    char rawKey[BRKeyPrivKey(&key, NULL, 0)];
-    BRKeyPrivKey(&key, rawKey, sizeof(rawKey));
-
-    jbyteArray result = (*env)->NewByteArray(env, (jsize) sizeof(rawKey));
-    (*env)->SetByteArrayRegion(env, result, 0, (jsize) sizeof(rawKey), (jbyte *) rawKey);
-
-    return result;
+//    int seedLength = (*env)->GetArrayLength(env, seed);
+//    const char *uri = (*env)->GetStringUTFChars(env, strUri, NULL);
+//    jbyte *byteSeed = (*env)->GetByteArrayElements(env, seed, 0);
+//
+//    BRKey key;
+//
+//    BRBIP32BitIDKey(&key, byteSeed, (size_t) seedLength, (uint32_t) index, uri);
+//
+//    char rawKey[BRKeyPrivKey(&key, NULL, 0)];
+//    BRKeyPrivKey(&key, rawKey, sizeof(rawKey));
+//
+//    jbyteArray result = (*env)->NewByteArray(env, (jsize) sizeof(rawKey));
+//    (*env)->SetByteArrayRegion(env, result, 0, (jsize) sizeof(rawKey), (jbyte *) rawKey);
+//
+//    return result;
+    return NULL;
 }
 
 /*

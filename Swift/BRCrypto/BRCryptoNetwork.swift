@@ -135,14 +135,12 @@ public final class Network: CustomStringConvertible {
 
         switch currency.code.lowercased() {
         case Currency.codeAsBTC:
-            core = cryptoNetworkCreateAsBTC (uids, name,
-                                             (isMainnet ? 0x00 : 0x40),
-                                             (isMainnet ? BRMainNetParams : BRTestNetParams))
+            let chainParams = (isMainnet ? BRMainNetParams : BRTestNetParams)
+            core = cryptoNetworkCreateAsBTC (uids, name, chainParams!.pointee.forkId, chainParams)
 
         case Currency.codeAsBCH:
-            core = cryptoNetworkCreateAsBTC (uids, name,
-                                             (isMainnet ? 0x00 : 0x40),
-                                             (isMainnet ? BRBCashParams : BRBCashTestNetParams))
+            let chainParams = (isMainnet ? BRBCashParams : BRBCashTestNetParams)
+            core = cryptoNetworkCreateAsBTC (uids, name, chainParams!.pointee.forkId, chainParams)
 
         case Currency.codeAsETH:
             if uids.contains("mainnet") {
@@ -209,20 +207,8 @@ public final class Network: CustomStringConvertible {
 
     /// TODO: Should use the network's/manager's default address scheme
     public func addressFor (_ string: String) -> Address? {
-        switch cryptoNetworkGetType (core) {
-        case BLOCK_CHAIN_TYPE_BTC:
-            return cryptoAddressCreateFromStringAsBTC(string)
-                .map { Address (core: $0, take: false)}
-
-        case BLOCK_CHAIN_TYPE_ETH:
-            return cryptoAddressCreateFromStringAsETH(string)
-                .map { Address (core: $0, take: false) }
-
-        case BLOCK_CHAIN_TYPE_GEN:
-            return nil
-
-        default: precondition (false)
-        }
+        return cryptoNetworkCreateAddressFromString (core, string)
+            .map { Address (core: $0, take: false) }
     }
 }
 

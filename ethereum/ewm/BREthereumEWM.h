@@ -92,7 +92,8 @@ extern BREthereumBoolean
 ewmIsConnected (BREthereumEWM ewm);
 
 extern BREthereumBoolean
-ewmSync (BREthereumEWM ewm);
+ewmSync (BREthereumEWM ewm,
+         BREthereumBoolean pendExistingTransfers);
 
 extern void
 ewmLock (BREthereumEWM ewm);
@@ -132,6 +133,9 @@ extern BREthereumAmount
 ewmWalletGetBalance(BREthereumEWM ewm,
                     BREthereumWallet wallet);
 
+extern void
+ewmUpdateWalletBalance(BREthereumEWM ewm,
+                       BREthereumWallet wallet);
 
 extern BREthereumGas
 ewmWalletGetGasEstimate(BREthereumEWM ewm,

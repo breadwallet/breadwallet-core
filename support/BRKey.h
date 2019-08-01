@@ -25,6 +25,7 @@
 #ifndef BRKey_h
 #define BRKey_h
 
+#include "BRAddress.h"
 #include "BRInt.h"
 #include <stddef.h>
 #include <inttypes.h>
@@ -33,12 +34,11 @@
 extern "C" {
 #endif
 
-#define BR_RAND_MAX          ((RAND_MAX > 0x7fffffff) ? 0x7fffffff : RAND_MAX)
+#define BR_RAND_MAX ((RAND_MAX > 0x7fffffff) ? 0x7fffffff : RAND_MAX)
 
 // returns a random number less than upperBound (for non-cryptographic use only)
 uint32_t BRRand(uint32_t upperBound);
 
-    
 typedef struct {
     uint8_t p[33];
 } BRECPoint;
@@ -65,7 +65,7 @@ int BRSecp256k1PointMul(BRECPoint *p, const UInt256 *i);
 
 // returns true if privKey is a valid private key
 // supported formats are wallet import format (WIF), mini private key format, or hex string
-int BRPrivKeyIsValid(const char *privKey);
+int BRPrivKeyIsValid(BRAddressParams params, const char *privKey);
 
 typedef struct {
     UInt256 secret;
@@ -78,14 +78,17 @@ int BRKeySetSecret(BRKey *key, const UInt256 *secret, int compressed);
 
 // assigns privKey to key and returns true on success
 // privKey must be wallet import format (WIF), mini private key format, or hex string
-int BRKeySetPrivKey(BRKey *key, const char *privKey);
+int BRKeySetPrivKey(BRKey *key, BRAddressParams params, const char *privKey);
 
 // assigns DER encoded pubKey to key and returns true on success
 int BRKeySetPubKey(BRKey *key, const uint8_t *pubKey, size_t pkLen);
 
+// returns true if key contains a valid private key
+int BRKeyIsPrivKey(const BRKey *key);
+    
 // writes the WIF private key to privKey and returns the number of bytes writen, or pkLen needed if privKey is NULL
 // returns 0 on failure
-size_t BRKeyPrivKey(const BRKey *key, char *privKey, size_t pkLen);
+size_t BRKeyPrivKey(const BRKey *key, char *privKey, size_t pkLen, BRAddressParams params);
 
 // writes the DER encoded public key to pubKey and returns number of bytes written, or pkLen needed if pubKey is NULL
 size_t BRKeyPubKey(BRKey *key, void *pubKey, size_t pkLen);
@@ -98,11 +101,11 @@ UInt160 BRKeyHash160(BRKey *key);
 
 // writes the bech32 pay-to-witness-pubkey-hash bitcoin address for key to addr
 // returns the number of bytes written, or addrLen needed if addr is NULL
-size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen);
+size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen, BRAddressParams params);
 
 // writes the legacy pay-to-pubkey-hash address for key to addr
 // returns the number of bytes written, or addrLen needed if addr is NULL
-size_t BRKeyLegacyAddr(BRKey *key, char *addr, size_t addrLen);
+size_t BRKeyLegacyAddr(BRKey *key, char *addr, size_t addrLen, BRAddressParams params);
 
 // signs md with key and writes signature to sig
 // returns the number of bytes written, or sigLen needed if sig is NULL

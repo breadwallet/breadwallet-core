@@ -439,7 +439,7 @@ cryptoWalletManagerSync (BRCryptoWalletManager cwm) {
             BRWalletManagerScan (cwm->u.btc);
             break;
         case BLOCK_CHAIN_TYPE_ETH:
-            ewmSync (cwm->u.eth);
+            ewmSync (cwm->u.eth, ETHEREUM_BOOLEAN_FALSE);
             break;
         case BLOCK_CHAIN_TYPE_GEN:
             gwmSync(cwm->u.gen);

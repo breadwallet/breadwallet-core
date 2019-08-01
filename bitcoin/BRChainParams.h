@@ -28,7 +28,14 @@
 #include "BRMerkleBlock.h"
 #include "BRSet.h"
 #include "BRPeer.h"
+#include "BRAddress.h"
 #include <assert.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+    
+#define BITCOIN_FORKID 0x00
 
 typedef struct {
     uint32_t height;
@@ -45,6 +52,8 @@ typedef struct {
     int (*verifyDifficulty)(const BRMerkleBlock *block, const BRSet *blockSet); // blockSet must have last 2016 blocks
     const BRCheckPoint *checkpoints;
     size_t checkpointsCount;
+    BRAddressParams addrParams;
+    uint8_t forkId;
 } BRChainParams;
 
 extern const BRChainParams *BRMainNetParams;
@@ -59,5 +68,9 @@ static inline int BRChainParamsIsBitcoin (const BRChainParams *params) {
 }
 
 extern const BRCheckPoint *BRChainParamsGetCheckpointBefore (const BRChainParams *params, uint32_t timestamp);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // BRChainParams_h

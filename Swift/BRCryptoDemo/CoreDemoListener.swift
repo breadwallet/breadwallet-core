@@ -21,9 +21,11 @@ class CoreDemoListener: SystemListener {
     private var transferListeners: [TransferListener] = []
 
     private let currencyCodesNeeded: [String]
+    private let isMainnet: Bool
 
-    public init (currencyCodesNeeded: [String]) {
+    public init (currencyCodesNeeded: [String], isMainnet: Bool) {
         self.currencyCodesNeeded = currencyCodesNeeded
+        self.isMainnet = isMainnet
     }
 
     private let currencyCodeToModeMap: [String : WalletManagerMode] = [
@@ -87,18 +89,12 @@ class CoreDemoListener: SystemListener {
             break
 
         case .networkAdded(let network):
-            var needMainnet = true
-
-            #if TESTNET
-            needMainnet = false
-            #endif
-
             // A network was created; create the corresponding wallet manager.  Note: an actual
             // App might not be interested in having a wallet manager for every network -
             // specifically, test networks are announced and having a wallet manager for a
             // testnet won't happen in a deployed App.
 
-            if needMainnet == network.isMainnet &&
+            if isMainnet == network.isMainnet &&
                 currencyCodesNeeded.contains (where: { nil != network.currencyBy (code: $0) }) {
                 let mode = system.supportsMode (network: network, WalletManagerMode.api_only)
                     ? WalletManagerMode.api_only

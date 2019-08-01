@@ -46,15 +46,16 @@ Java_com_breadwallet_core_BRCoreAddress_createCoreAddress
  */
 JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreAddress_createCoreAddressFromScriptPubKey
         (JNIEnv *env, jclass thisClass, jbyteArray scriptByteArray) {
-    BRAddress *address = (BRAddress *) calloc (1, sizeof (BRAddress));
-
-    size_t scriptLen = (size_t) (*env)->GetArrayLength (env, scriptByteArray);
-    const uint8_t *script = (const uint8_t *) (*env)->GetByteArrayElements (env, scriptByteArray, 0);
-
-    // TODO: Error handling
-    BRAddressFromScriptPubKey(address->s, sizeof(address->s), script, scriptLen);
-
-    return (jlong) address;
+//    BRAddress *address = (BRAddress *) calloc (1, sizeof (BRAddress));
+//
+//    size_t scriptLen = (size_t) (*env)->GetArrayLength (env, scriptByteArray);
+//    const uint8_t *script = (const uint8_t *) (*env)->GetByteArrayElements (env, scriptByteArray, 0);
+//
+//    // TODO: Error handling
+//     BRAddressFromScriptPubKey(address->s, sizeof(address->s), script, scriptLen);
+//
+//    return (jlong) address;
+    return 0;
 }
 
 /*
@@ -64,15 +65,16 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreAddress_createCoreAddres
  */
 JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreAddress_createCoreAddressFromScriptSignature
         (JNIEnv *env, jclass thisClass, jbyteArray scriptByteArray) {
-    BRAddress *address = (BRAddress *) calloc(1, sizeof(BRAddress));
-
-    size_t scriptLen = (size_t) (*env)->GetArrayLength(env, scriptByteArray);
-    const uint8_t *script = (const uint8_t *) (*env)->GetByteArrayElements(env, scriptByteArray, 0);
-
-    // TODO: Error handling
-    BRAddressFromScriptSig(address->s, sizeof(address->s), script, scriptLen);
-
-    return (jlong) address;
+//    BRAddress *address = (BRAddress *) calloc(1, sizeof(BRAddress));
+//
+//    size_t scriptLen = (size_t) (*env)->GetArrayLength(env, scriptByteArray);
+//    const uint8_t *script = (const uint8_t *) (*env)->GetByteArrayElements(env, scriptByteArray, 0);
+//
+//    // TODO: Error handling
+//    BRAddressFromScriptSig(address->s, sizeof(address->s), script, scriptLen);
+//
+//    return (jlong) address;
+    return 0;
 }
 
 /*
@@ -95,10 +97,11 @@ Java_com_breadwallet_core_BRCoreAddress_stringify
 JNIEXPORT jboolean JNICALL
 Java_com_breadwallet_core_BRCoreAddress_isValid
         (JNIEnv *env, jobject thisObject) {
-    BRAddress *address = (BRAddress *) getJNIReference(env, thisObject);
-    return (jboolean) (BRAddressIsValid(address->s)
-                       ? JNI_TRUE
-                       : JNI_FALSE);
+//    BRAddress *address = (BRAddress *) getJNIReference(env, thisObject);
+//    return (jboolean) (BRAddressIsValid(address->s)
+//                       ? JNI_TRUE
+//                       : JNI_FALSE);
+    return JNI_FALSE;
 }
 
 /*
@@ -109,16 +112,17 @@ Java_com_breadwallet_core_BRCoreAddress_isValid
 JNIEXPORT jbyteArray JNICALL
 Java_com_breadwallet_core_BRCoreAddress_getPubKeyScript
         (JNIEnv *env, jobject thisObject) {
-    BRAddress *address = (BRAddress *) getJNIReference(env, thisObject);
-
-    size_t pubKeyLen = BRAddressScriptPubKey(NULL, 0, address->s);
-    uint8_t pubKey[pubKeyLen];
-    BRAddressScriptPubKey(pubKey, pubKeyLen, address->s);
-
-    jbyteArray result = (*env)->NewByteArray (env, (jsize) pubKeyLen);
-    (*env)->SetByteArrayRegion (env, result, 0, (jsize) pubKeyLen, (const jbyte *) pubKey);
-
-    return result;
+//    BRAddress *address = (BRAddress *) getJNIReference(env, thisObject);
+//
+//    size_t pubKeyLen = BRAddressScriptPubKey(NULL, 0, address->s);
+//    uint8_t pubKey[pubKeyLen];
+//    BRAddressScriptPubKey(pubKey, pubKeyLen, address->s);
+//
+//    jbyteArray result = (*env)->NewByteArray (env, (jsize) pubKeyLen);
+//    (*env)->SetByteArrayRegion (env, result, 0, (jsize) pubKeyLen, (const jbyte *) pubKey);
+//
+//    return result;
+    return NULL;
 }
 
 /*

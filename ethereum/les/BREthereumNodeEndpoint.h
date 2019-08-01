@@ -63,6 +63,13 @@ nodeEndpointCreate (BREthereumDISNeighbor dis);
 extern BREthereumNodeEndpoint
 nodeEndpointCreateLocal (BREthereumLESRandomContext randomContext);
 
+/**
+ * Create a Node Endpoint from `enode`.  If `enode` cannot be parsed then NULL is returned.
+ *
+ * @param enode the node endpoint specification
+ *
+ * @return a new endpoint or NULL
+ */
 extern BREthereumNodeEndpoint
 nodeEndpointCreateEnode (const char *enode);
 

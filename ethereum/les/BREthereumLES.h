@@ -79,6 +79,10 @@ typedef void *BREthereumNodeReference;
 #define NODE_REFERENCE_3      ((BREthereumNodeReference) 3)
 #define NODE_REFERENCE_4      ((BREthereumNodeReference) 4)
 
+/** Convenient macros for reference bounds */
+#define NODE_REFERENCE_MIN  NODE_REFERENCE_0
+#define NODE_REFERENCE_MAX  NODE_REFERENCE_4
+
 #if 5 < LES_ACTIVE_NODE_COUNT  // 5 <= 1 + NODE_REFERENCE_4
 #error Not enough NODE_REFERENCE declarations
 #endif
