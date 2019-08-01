@@ -170,6 +170,8 @@ static const BRChainParams BRBCashParamsRecord = {
     BRBCashVerifyDifficulty,
     BRBCashCheckpoints,
     sizeof(BRBCashCheckpoints)/sizeof(*BRBCashCheckpoints),
+    { BITCOIN_PUBKEY_PREFIX, BITCOIN_SCRIPT_PREFIX, BITCOIN_PRIVKEY_PREFIX, NULL },
+    BCASH_FORKID
 };
 const BRChainParams *BRBCashParams = &BRBCashParamsRecord;
 
@@ -180,6 +182,8 @@ static const BRChainParams BRBCashTestNetParamsRecord = {
     SERVICES_NODE_BCASH, // services
     BRBCashTestNetVerifyDifficulty,
     BRBCashTestNetCheckpoints,
-    sizeof(BRBCashTestNetCheckpoints)/sizeof(*BRBCashTestNetCheckpoints)
+    sizeof(BRBCashTestNetCheckpoints)/sizeof(*BRBCashTestNetCheckpoints),
+    { BITCOIN_PUBKEY_PREFIX_TEST, BITCOIN_SCRIPT_PREFIX_TEST, BITCOIN_PRIVKEY_PREFIX_TEST, NULL },
+    BCASH_FORKID
 };
 const BRChainParams *BRBCashTestNetParams = &BRBCashTestNetParamsRecord;

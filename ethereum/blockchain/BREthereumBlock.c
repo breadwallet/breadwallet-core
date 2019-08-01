@@ -896,7 +896,9 @@ blockLinkLogsWithTransactions (BREthereumBlock block) {
         BREthereumLog log = block->status.logs[index];
         BREthereumTransactionStatus status = logGetStatus(log);
         uint64_t transactionIndex; size_t logIndex;
-        assert (transactionStatusExtractIncluded(&status, NULL, NULL, &transactionIndex, NULL, NULL));
+
+        int transactionIncluded = transactionStatusExtractIncluded (&status, NULL, NULL, &transactionIndex, NULL, NULL);
+        assert (transactionIncluded);
 
         // Importantly, note that the log has no reference to the transaction itself.  And, if only
         // implicitly, we assume that `block` has the correct transaction at transactionIndex.

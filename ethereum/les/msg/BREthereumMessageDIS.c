@@ -100,17 +100,18 @@ endpointDISEncode (const BREthereumDISEndpoint *endpoint, BRRlpCoder coder) {
 
 extern BREthereumDISEndpoint
 endpointDISDecode (BRRlpItem item, BRRlpCoder coder) {
-    BREthereumDISEndpoint endpoint;
+    BREthereumDISEndpoint endpoint = {};
 
     // Zero out - we'll be hashing this and don't need random, untouched memory.
     memset (&endpoint, 0, sizeof (BREthereumDISEndpoint));
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
-    assert (3 == itemsCount);
+    if (3 != itemsCount) { rlpCoderSetFailed (coder); return endpoint; }
 
     BRRlpData addrData = rlpDecodeBytesSharedDontRelease (coder, items[0]);
-    assert (4 == addrData.bytesCount || 16 == addrData.bytesCount);
+    if (4 != addrData.bytesCount && 16 != addrData.bytesCount)  { rlpCoderSetFailed (coder); return endpoint; }
+
     endpoint.domain = (4 == addrData.bytesCount ? AF_INET : AF_INET6);
     memcpy ((endpoint.domain == AF_INET ? endpoint.addr.ipv4 : endpoint.addr.ipv6),
             addrData.bytes,
@@ -126,26 +127,27 @@ endpointDISDecode (BRRlpItem item, BRRlpCoder coder) {
 
 static BREthereumDISNeighbor
 neighborDISDecode (BRRlpItem item, BREthereumMessageCoder coder) {
-    BREthereumDISNeighbor neighbor;
+    BREthereumDISNeighbor neighbor = {};
 
     // Zero out - we'll be hashing this and don't need random, untouched memory.
     memset (&neighbor, 0, sizeof (BREthereumDISNeighbor));
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
-    assert (4 == itemsCount);
+    if (4 != itemsCount) { rlpCoderSetFailed (coder.rlp); return neighbor; }
 
     // Node ID
     // Endpoint - Somehow GETH explodes it.
     BRRlpData addrData = rlpDecodeBytesSharedDontRelease (coder.rlp, items[0]);
-    assert (4 == addrData.bytesCount || 16 == addrData.bytesCount);
+    if (4 != addrData.bytesCount && 16 != addrData.bytesCount) { rlpCoderSetFailed (coder.rlp); return neighbor; }
+
     neighbor.node.domain = (4 == addrData.bytesCount ? AF_INET : AF_INET6);
     memcpy ((neighbor.node.domain == AF_INET ? neighbor.node.addr.ipv4 : neighbor.node.addr.ipv6),
             addrData.bytes,
             addrData.bytesCount);
 
     BRRlpData nodeIDData = rlpDecodeBytesSharedDontRelease (coder.rlp, items[3]);
-    assert (64 == nodeIDData.bytesCount);
+    if (64 != nodeIDData.bytesCount) { rlpCoderSetFailed (coder.rlp); return neighbor; }
 
     // Get the 65-byte 0x04-prefaced public key.
     uint8_t key[65] = { 0x04 };
@@ -390,10 +392,19 @@ messageDISDecode (BRRlpItem item,
     BREthereumDISMessagePacket *packet = (BREthereumDISMessagePacket*) packetData.bytes;
     size_t packetSize = sizeof (BREthereumDISMessagePacket);
 
-    // TODO: Use packet->hash + packet->signature to validate the packet.
-
     // Get the identifier and then decode the message contents
     BREthereumDISMessageIdentifier identifier = packet->identifier;
+
+    // Perform the most basic validation - just of identifier
+    if (DIS_MESSAGE_PING != identifier &&
+        DIS_MESSAGE_PONG != identifier &&
+        DIS_MESSAGE_FIND_NEIGHBORS != identifier &&
+        DIS_MESSAGE_NEIGHBORS != identifier) {
+        rlpCoderHasFailed (coder.rlp);
+        return (BREthereumDISMessage) { (BREthereumDISMessageIdentifier) NULL };
+    }
+
+    // TODO: Use packet->hash + packet->signature to validate the packet.
 
     // Get the rlpItem from packet->data
     BRRlpData messageData = { packetData.bytesCount - packetSize, &packetData.bytes[packetSize] };

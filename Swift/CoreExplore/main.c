@@ -380,6 +380,24 @@ handleAddressFromString (const char *hex, BRRlpCoder coder) {
     rlpShowItem(coder, item, "ADDR");
     rlpReleaseItem(coder, item);
 }
+void handleLogDecode (BRRlpCoder coder) {
+    FILE *foo = fopen ("/Users/ebg/log-item", "r");
+
+    uint8_t bytes[1024];
+    memset (bytes, 0, 1024);
+
+    size_t bytesCount = fread (bytes, 1, 1024, foo);
+
+    BRRlpData data = { bytesCount, bytes };
+
+    BRRlpItem  item  = rlpGetItem (coder, data);
+
+    BREthereumLog log = logRlpDecode(item, RLP_TYPE_ARCHIVE, coder);
+
+    rlpReleaseItem (coder, item);
+
+    logRelease(log);
+}
 
 int main(int argc, const char * argv[]) {
     BRRlpCoder coder = rlpCoderCreate();
@@ -449,6 +467,10 @@ int main(int argc, const char * argv[]) {
     handleBRBCashAddrDecode();
 #endif
 
+
+#if 0
+    handleLogDecode(coder);
+#endif
     rlpCoderRelease(coder);
     return 0;
 }

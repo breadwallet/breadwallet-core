@@ -41,7 +41,7 @@ fileprivate class TestListener: SystemListener {
                                                 mode: mode,
                                                 addressScheme: scheme)
 
-        case .managerAdded (let _):
+        case .managerAdded:
             managerExpectation.fulfill()
         }
     }
@@ -78,6 +78,7 @@ class BRCryptoSystemTests: BRCryptoBaseTests {
 
         let sys = System (listener: listener,
                           account: account,
+                          onMainnet: true,
                           path: coreDataDir,
                           query: query)
 

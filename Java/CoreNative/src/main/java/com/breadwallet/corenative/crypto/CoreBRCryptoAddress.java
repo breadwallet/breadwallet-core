@@ -12,14 +12,6 @@ import com.google.common.base.Optional;
 
 public interface CoreBRCryptoAddress {
 
-    static Optional<CoreBRCryptoAddress> createFromStringAsBtc(String address) {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoAddressCreateFromStringAsBTC(address)).transform(OwnedBRCryptoAddress::new);
-    }
-
-    static Optional<CoreBRCryptoAddress> createFromStringAsEth(String address) {
-        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoAddressCreateFromStringAsETH(address)).transform(OwnedBRCryptoAddress::new);
-    }
-
     boolean isIdentical(CoreBRCryptoAddress address);
 
     String toString();

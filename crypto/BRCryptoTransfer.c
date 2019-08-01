@@ -116,7 +116,8 @@ cryptoTransferCreateAsBTC (BRCryptoUnit unit,
                            BRCryptoUnit unitForFee,
                            BRWallet *wid,
                            BRTransaction *tid) {
-    BRCryptoTransfer transfer = cryptoTransferCreateInternal (BLOCK_CHAIN_TYPE_BTC, unit, unitForFee);
+    BRAddressParams  addressParams = BRWalletGetAddressParams (wid);
+    BRCryptoTransfer transfer      = cryptoTransferCreateInternal (BLOCK_CHAIN_TYPE_BTC, unit, unitForFee);
     transfer->u.btc.tid = tid;
 
     // cache the values that require the wallet
@@ -131,10 +132,14 @@ cryptoTransferCreateAsBTC (BRCryptoUnit unit,
         int inputsContain = (UINT64_MAX != transfer->u.btc.fee ? 1 : 0);
 
         for (size_t index = 0; index < inputsCount; index++) {
-            if (inputsContain == BRWalletContainsAddress(wid, inputs[index].address)) {
-                BRAddress address;
-                memcpy (address.s, inputs[index].address, sizeof (address.s));
-                transfer->sourceAddress = cryptoAddressCreateAsBTC (address);
+            size_t addressSize = BRTxInputAddress (&inputs[index], NULL, 0, addressParams);
+            char address [addressSize];
+
+            BRTxInputAddress (&inputs[index], address, addressSize, addressParams);
+
+            if (inputsContain == BRWalletContainsAddress(wid, address)) {
+                assert (addressSize < sizeof (BRAddress));
+                transfer->sourceAddress = cryptoAddressCreateAsBTC (BRAddressFill (addressParams, address));
                 break;
             }
         }
@@ -147,10 +152,14 @@ cryptoTransferCreateAsBTC (BRCryptoUnit unit,
         int outputsContain = (UINT64_MAX == transfer->u.btc.fee ? 1 : 0);
 
         for (size_t index = 0; index < outputsCount; index++) {
-            if (outputsContain == BRWalletContainsAddress(wid, outputs[index].address)) {
-                BRAddress address;
-                memcpy (address.s, outputs[index].address, sizeof (address.s));
-                transfer->targetAddress = cryptoAddressCreateAsBTC (address);
+            size_t addressSize = BRTxOutputAddress (&outputs[index], NULL, 0, addressParams);
+            char address [addressSize];
+
+            BRTxOutputAddress (&outputs[index], address, addressSize, addressParams);
+
+            if (outputsContain == BRWalletContainsAddress(wid, address)) {
+                assert (addressSize < sizeof (BRAddress));
+                transfer->targetAddress = cryptoAddressCreateAsBTC (BRAddressFill (addressParams, address));
                 break;
             }
         }

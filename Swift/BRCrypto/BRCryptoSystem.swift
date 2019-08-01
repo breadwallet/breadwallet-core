@@ -26,6 +26,9 @@ public final class System {
     /// The path for persistent storage
     public let path: String
 
+    /// If on mainnet
+    public let onMainnet: Bool
+
     /// The 'blockchain DB' to use for BRD Server Assisted queries
     public let query: BlockChainDB
 
@@ -190,11 +193,13 @@ public final class System {
     
     public init (listener: SystemListener,
                  account: Account,
+                 onMainnet: Bool,
                  path: String,
                  query: BlockChainDB) {
-        self.listener = listener
-        self.account = account
-        self.path = path
+        self.listener  = listener
+        self.account   = account
+        self.onMainnet = onMainnet
+        self.path  = path
         self.query = query
 
         let _ = System.systemExtend(with: self)
@@ -260,15 +265,6 @@ public final class System {
     /// @Note: This should only be called one.
     ///
     public func configure () {
-
-        #if MAINNET
-        var mainnet = true
-        #endif
-
-        #if TESTNET
-        var mainnet = false
-        #endif
-
         func currencyDenominationToBaseUnit (currency: Currency, model: BlockChainDB.Model.CurrencyDenomination) -> Unit {
             let uids = "\(currency.name)-\(model.code)"
             return Unit (currency: currency, uids: uids, name: model.name, symbol: model.symbol)
@@ -287,7 +283,7 @@ public final class System {
         }
 
         // query blockchains
-        self.query.getBlockchains (mainnet: mainnet) { (blockchainResult: Result<[BlockChainDB.Model.Blockchain],BlockChainDB.QueryError>) in
+        self.query.getBlockchains (mainnet: self.onMainnet) { (blockchainResult: Result<[BlockChainDB.Model.Blockchain],BlockChainDB.QueryError>) in
             let blockChainModels = try! blockchainResult
                 // On success, always merge `defaultBlockchains`
                 .map { $0.unionOf (BlockChainDB.Model.defaultBlockchains) { $0.id } }
