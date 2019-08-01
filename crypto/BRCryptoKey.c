@@ -93,6 +93,24 @@ cryptoKeyCreateFromPhraseWithWords (const char *phrase, const char *words[]) {
     return cryptoKeyCreateInternal(core, CRYPTO_ADDRESS_PARAMS);
 }
 
+static BRAddressParams
+cryptoKeyFindAddressParams (const char *string) {
+    if (BRPrivKeyIsValid (BITCOIN_ADDRESS_PARAMS, string)) return BITCOIN_ADDRESS_PARAMS;
+    if (BRPrivKeyIsValid (BITCOIN_TEST_ADDRESS_PARAMS, string)) return BITCOIN_TEST_ADDRESS_PARAMS;
+    return EMPTY_ADDRESS_PARAMS;
+}
+
+extern BRCryptoKey
+cryptoKeyCreateFromStringPrivate (const char *string) {
+    BRAddressParams params = cryptoKeyFindAddressParams(string);
+
+    BRKey core;
+
+    return (1 == BRKeySetPrivKey (&core, params, string)
+            ? cryptoKeyCreateInternal (core, params)
+            : NULL);
+}
+
 extern BRCryptoKey
 cryptoKeyCreateForPigeon (BRCryptoKey privateKey, uint8_t *nonce, size_t nonceCount) {
     BRKey pairingKey;
@@ -148,8 +166,6 @@ typedef enum {
 
 extern BRCryptoKey
 cryptoKeyCreateFromSerializationPublic (uint8_t *data, size_t dataCount) {
-    assert (1 == sizeof (BRCryptoKeySerializeIdentifier));
-
     if (dataCount < 1) return NULL;
     if (SERIALIZE_PUBLIC_IDENTIFIER != (BRCryptoKeySerializeIdentifier) data[0]) return NULL;
 
@@ -162,8 +178,6 @@ cryptoKeyCreateFromSerializationPublic (uint8_t *data, size_t dataCount) {
 
 extern size_t
 cryptoKeySerializePublic (BRCryptoKey key, /* ... */ uint8_t *data, size_t dataCount) {
-    assert (1 == sizeof (BRCryptoKeySerializeIdentifier));
-
     size_t publicKeySize = BRKeyPubKey (&key->core, NULL, 0);
     size_t serializeSize = 1 + publicKeySize;
 
@@ -177,8 +191,6 @@ cryptoKeySerializePublic (BRCryptoKey key, /* ... */ uint8_t *data, size_t dataC
 
 extern BRCryptoKey
 cryptoKeyCreateFromSerializationPrivate (uint8_t *data, size_t dataCount) {
-    assert (1 == sizeof (BRCryptoKeySerializeIdentifier));
-
     if (dataCount < 1) return NULL;
     if (SERIALIZE_PRIVATE_IDENTIFIER != (BRCryptoKeySerializeIdentifier) data[0]) return NULL;
 
@@ -200,8 +212,6 @@ cryptoKeyCreateFromSerializationPrivate (uint8_t *data, size_t dataCount) {
 
 extern size_t
 cryptoKeySerializePrivate (BRCryptoKey key, /* ... */ uint8_t *data, size_t dataCount) {
-    assert (1 == sizeof (BRCryptoKeySerializeIdentifier));
-
     // If we encode the BRAddressParams, we'll need to increate the required dataCount
     size_t privateKeySize = BRKeyPrivKey (&key->core, NULL, 0, key->coreAddressParams);
     size_t serializeSize  = 1 + privateKeySize;
@@ -229,6 +239,16 @@ cryptoKeyHasSecret (BRCryptoKey key) {
     return 0 != memcmp (key->core.secret.u8, zero.u8, sizeof (zero.u8));
 }
 
+extern char *
+cryptoKeyEncodePrivate (BRCryptoKey key) {
+    size_t encodedLength = BRKeyPrivKey (&key->core, NULL, 0, key->coreAddressParams);
+    char  *encoded = malloc (encodedLength + 1);
+    BRKeyPrivKey (&key->core, encoded, encodedLength, key->coreAddressParams);
+    encoded[encodedLength] = '\0';
+    return encoded;
+}
+
+
 extern int
 cryptoKeySecretMatch (BRCryptoKey key1, BRCryptoKey key2) {
     return 0 == memcmp (key1->core.secret.u8, key2->core.secret.u8, sizeof (key1->core.secret));
@@ -250,8 +270,8 @@ cryptoKeyGetCore (BRCryptoKey key) {
 }
 
 extern void
-cryptoKeyProvidePublicKey (BRCryptoKey key, int compressed) {
-    BRKeySetCompressed (&key->core, compressed);
+cryptoKeyProvidePublicKey (BRCryptoKey key, int useCompressed, int compressed) {
+    if (useCompressed) BRKeySetCompressed (&key->core, compressed);
     BRKeyPubKey (&key->core, NULL, 0);
 }
 

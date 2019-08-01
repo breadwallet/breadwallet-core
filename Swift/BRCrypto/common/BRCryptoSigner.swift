@@ -49,7 +49,7 @@ public enum CoreSigner: Signer {
 
     public func sign (data32 digest: Data, using privateKey: Key) -> Data {
         // Copy the key - prep to pass to Core C functions
-        var key = privateKey.core
+        let key = privateKey.core
 
         // Confirm `data32 digest` is 32 bytes
         let sourceCount = digest.count
@@ -111,7 +111,7 @@ public enum CoreSigner: Signer {
                     let signatureAddr  = signatureBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
                     let success: Bool = 1 == BRKeyRecoverPubKey (&key, digestUInt256, signatureAddr, signatureCount)
                     return success
-                        ? Key (core: cryptoKeyCreateFromKey(&key), needPublicKey: false, compressedPublicKey: false)
+                        ? Key (core: cryptoKeyCreateFromKey(&key))
                         : nil
                 }
             }

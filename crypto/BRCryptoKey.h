@@ -44,6 +44,9 @@ extern "C" {
     cryptoKeyCreateFromPhraseWithWords (const char *phrase, const char *words[]);
 
     extern BRCryptoKey
+    cryptoKeyCreateFromStringPrivate (const char *string);
+
+    extern BRCryptoKey
     cryptoKeyCreateFromSerializationPublic (uint8_t *data, size_t dataCount);
 
     extern BRCryptoKey
@@ -67,6 +70,9 @@ extern "C" {
     extern int
     cryptoKeyHasSecret (BRCryptoKey key);
 
+    extern char *
+    cryptoKeyEncodePrivate (BRCryptoKey key);
+
     extern int
     cryptoKeySecretMatch (BRCryptoKey key1, BRCryptoKey key2);
 
@@ -80,7 +86,7 @@ extern "C" {
     cryptoKeyGetCore (BRCryptoKey key);
 
     extern void
-    cryptoKeyProvidePublicKey (BRCryptoKey key, int compressed);
+    cryptoKeyProvidePublicKey (BRCryptoKey key, int useCompressed, int compressed);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoKey, cryptoKey);
 

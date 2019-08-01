@@ -91,7 +91,21 @@ typedef struct {
     uint8_t privKeyPrefix;
     const char *bech32Prefix;
 } BRAddressParams;
-    
+
+#define BITCOIN_ADDRESS_PARAMS  ((BRAddressParams) { \
+    BITCOIN_PUBKEY_PREFIX,  \
+    BITCOIN_SCRIPT_PREFIX,  \
+    BITCOIN_PRIVKEY_PREFIX, \
+    BITCOIN_BECH32_PREFIX })
+
+#define BITCOIN_TEST_ADDRESS_PARAMS  ((BRAddressParams) { \
+    BITCOIN_PUBKEY_PREFIX_TEST,  \
+    BITCOIN_SCRIPT_PREFIX_TEST,  \
+    BITCOIN_PRIVKEY_PREFIX_TEST, \
+    BITCOIN_BECH32_PREFIX_TEST })
+
+#define EMPTY_ADDRESS_PARAMS   ((BRAddressParams) { 0, 0, 0, "" })
+
 typedef struct {
     char s[75];
 } BRAddress;

@@ -12,38 +12,38 @@ import BRCryptoC
 public final class Key {
     static public var wordList: [String]?
 
+    ///
+    /// Create `Key` from a BIP-39 phrase
+    ///
+    /// - Parameters:
+    ///   - phrase: A 12 word phrase (aka paper key)
+    ///   - words: Official BIP-39 list of words, with 2048 entries, in the language for `phrase`
+    ///
+    /// - Returns: A Key, if the phrase if valid
+    ///
     static public func createFrom (phrase: String, words: [String]? = wordList) -> Key? {
         guard var words = words?.map ({ UnsafePointer<Int8> (strdup($0)) }) else { return nil }
         defer { words.forEach { free(UnsafeMutablePointer (mutating: $0)) } }
 
         return cryptoKeyCreateFromPhraseWithWords (phrase, &words)
-            .map { Key (core: $0, needPublicKey: true, compressedPublicKey: true)}
+            .map { Key (core: $0)}
     }
 
-    static public func createFromSerialization (asPrivate data: Data) -> Key? {
-        var data = data
-
-        let dataCount = data.count
-        return data.withUnsafeMutableBytes { (dataBytes: UnsafeMutableRawBufferPointer) -> Key? in
-            let dataAddr = dataBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-
-            return cryptoKeyCreateFromSerializationPrivate (dataAddr, dataCount)
-                .map { Key (core: $0, needPublicKey: true, compressedPublicKey: false)}
-        }
+    ///
+    /// Create `Key` from `string`.  The string must be wallet import format (WIF), mini private
+    /// key format, or hex string for example: 5HxWvvfubhXpYYpS3tJkw6fq9jE9j18THftkZjHHfmFiWtmAbrj
+    /// Different crypto currencies have different formats; this function will look for a valid
+    /// string using BITCOIN mainnet and BITCOIN testnet.
+    ///
+    /// - Parameter string
+    ///
+    /// - Returns: A Key if one exists
+    ///
+    static public func createFromString (asPrivate string: String) -> Key? {
+        return cryptoKeyCreateFromStringPrivate (string)
+            .map { Key (core: $0) }
     }
-
-    static public func createFromSerialization (asPublic data: Data) -> Key? {
-        var data = data
-
-        let dataCount = data.count
-        return data.withUnsafeMutableBytes { (dataBytes: UnsafeMutableRawBufferPointer) -> Key? in
-            let dataAddr = dataBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-
-            return cryptoKeyCreateFromSerializationPublic (dataAddr, dataCount)
-                .map { Key (core: $0, needPublicKey: false, compressedPublicKey: false)}
-        }
-    }
-
+    
     static public func createForPigeonFrom (key: Key, nonce: Data) -> Key {
         let nonceCount = nonce.count
         var nonce = nonce
@@ -51,7 +51,7 @@ public final class Key {
             let nonceAddr  = nonceBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
 
             return cryptoKeyCreateForPigeon (key.core, nonceAddr, nonceCount)
-                .map { Key (core: $0, needPublicKey: true, compressedPublicKey: false) }!
+                .map { Key (core: $0) }!
         }
     }
 
@@ -60,7 +60,7 @@ public final class Key {
         defer { words.forEach { free(UnsafeMutablePointer (mutating: $0)) } }
 
         return cryptoKeyCreateForBIP32ApiAuth (phrase, &words)
-            .map { Key (core: $0, needPublicKey: true, compressedPublicKey: false) }
+            .map { Key (core: $0) }
     }
 
     static public func createForBIP32BitID (phrase: String, index: Int, uri:String, words: [String]? = wordList) -> Key? {
@@ -68,8 +68,33 @@ public final class Key {
         defer { words.forEach { free(UnsafeMutablePointer (mutating: $0)) } }
 
         return cryptoKeyCreateForBIP32BitID (phrase, Int32(index), uri, &words)
-            .map { Key (core: $0, needPublicKey: true, compressedPublicKey: false) }
+            .map { Key (core: $0) }
     }
+
+//    static public func createFromSerialization (asPrivate data: Data) -> Key? {
+//        var data = data
+//
+//        let dataCount = data.count
+//        return data.withUnsafeMutableBytes { (dataBytes: UnsafeMutableRawBufferPointer) -> Key? in
+//            let dataAddr = dataBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+//
+//            return cryptoKeyCreateFromSerializationPrivate (dataAddr, dataCount)
+//                .map { Key (core: $0)}
+//        }
+//    }
+//
+//    static public func createFromSerialization (asPublic data: Data) -> Key? {
+//        var data = data
+//
+//        let dataCount = data.count
+//        return data.withUnsafeMutableBytes { (dataBytes: UnsafeMutableRawBufferPointer) -> Key? in
+//            let dataAddr = dataBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+//
+//            return cryptoKeyCreateFromSerializationPublic (dataAddr, dataCount)
+//                .map { Key (core: $0)}
+//        }
+//    }
+
 
     // The Core representation
     internal let core: BRCryptoKey
@@ -80,6 +105,10 @@ public final class Key {
         return 1 == cryptoKeyHasSecret  (self.core)
     }
 
+    public var encodeAsPrivate: String {
+        return asUTF8String(cryptoKeyEncodePrivate(self.core), true)
+    }
+    
     ///
     /// Check if `self` and `that` have an identical public key
     ///
@@ -103,10 +132,9 @@ public final class Key {
     ///
     /// - Parameter core: The Core representaion
     ///
-    internal init (core: BRCryptoKey, needPublicKey: Bool, compressedPublicKey: Bool) {
+    internal init (core: BRCryptoKey) {
         self.core = core
-
-        if needPublicKey { cryptoKeyProvidePublicKey (core, (compressedPublicKey ? 1 : 0)) }
+        cryptoKeyProvidePublicKey (core, 0, 0)
     }
 
     ///
@@ -123,42 +151,42 @@ public final class Key {
         // Serialization - Public Key
 
         BRKeySetSecret (&core, &secret, 1)
-        self.init (core: cryptoKeyCreateFromKey (&core), needPublicKey: true, compressedPublicKey: false)
+        self.init (core: cryptoKeyCreateFromKey (&core))
     }
 
-    // Serialization - Public Key
-
-    public enum PublicEncoding {
-        case derCompressed
-        case derUncompressed
-    }
-    
-    public func serialize (asPublic: PublicEncoding) -> Data {
-        let dataCount = cryptoKeySerializePublic (core, /* compressed */ nil, 0)
-        var data = Data (count: dataCount)
-        data.withUnsafeMutableBytes { (dataBytes: UnsafeMutableRawBufferPointer) -> Void in
-            let dataAddr = dataBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-            cryptoKeySerializePublic (core, /* compressed */ dataAddr, dataCount)
-        }
-
-        return data
-    }
-
- // Serialization - Private Key
-
-    public enum PrivateEncoding {
-        case wifCompressed
-        case wifUncompressed
-    }
-
-    public func serialize (asPrivate: PrivateEncoding) -> Data? {
-        let dataCount = cryptoKeySerializePrivate (core, /* compressed */ nil, 0)
-        var data = Data (count: dataCount)
-        data.withUnsafeMutableBytes { (dataBytes: UnsafeMutableRawBufferPointer) -> Void in
-            let dataAddr = dataBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-            cryptoKeySerializePrivate (core, /* compressed */ dataAddr, dataCount)
-        }
-
-        return data
-    }
+//    // Serialization - Public Key
+//
+//    public enum PublicEncoding {
+//        case derCompressed
+//        case derUncompressed
+//    }
+//    
+//    public func serialize (asPublic: PublicEncoding) -> Data {
+//        let dataCount = cryptoKeySerializePublic (core, /* compressed */ nil, 0)
+//        var data = Data (count: dataCount)
+//        data.withUnsafeMutableBytes { (dataBytes: UnsafeMutableRawBufferPointer) -> Void in
+//            let dataAddr = dataBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+//            cryptoKeySerializePublic (core, /* compressed */ dataAddr, dataCount)
+//        }
+//
+//        return data
+//    }
+//
+// // Serialization - Private Key
+//
+//    public enum PrivateEncoding {
+//        case wifCompressed
+//        case wifUncompressed
+//    }
+//
+//    public func serialize (asPrivate: PrivateEncoding) -> Data? {
+//        let dataCount = cryptoKeySerializePrivate (core, /* compressed */ nil, 0)
+//        var data = Data (count: dataCount)
+//        data.withUnsafeMutableBytes { (dataBytes: UnsafeMutableRawBufferPointer) -> Void in
+//            let dataAddr = dataBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+//            cryptoKeySerializePrivate (core, /* compressed */ dataAddr, dataCount)
+//        }
+//
+//        return data
+//    }
 }
