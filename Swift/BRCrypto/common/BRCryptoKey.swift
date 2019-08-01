@@ -12,6 +12,22 @@ import BRCryptoC
 public final class Key {
     static public var wordList: [String]?
 
+    static public func isWIFPrivateKey (key: Data) -> Bool {
+        let keyStr = String (data: key, encoding: .utf8)!
+
+        return keyStr.withCString { (keyPtr: UnsafePointer<Int8>) -> Bool in
+            return 1 == BRPrivKeyIsValid (keyPtr)
+        }
+    }
+
+    static public func isBIP38PrivateKey (key: Data) -> Bool {
+        let keyStr = String (data: key, encoding: .utf8)!
+
+        return keyStr.withCString { (keyPtr: UnsafePointer<Int8>) -> Bool in
+            return 1 == BRBIP38KeyIsValid (keyPtr)
+        }
+    }
+
     static public func createFrom (phrase: String, words: [String]? = wordList) -> Key? {
         guard var words = words?.map ({ UnsafePointer<Int8> (strdup($0)) }) else { return nil }
         defer { words.forEach { free(UnsafeMutablePointer (mutating: $0)) } }
@@ -58,6 +74,23 @@ public final class Key {
             return (1 == BRKeySetPubKey (&key, dataAddr, dataCount)
                 ? Key (core: key, needPublicKey: false, compressedPublicKey: false)
                 : nil)
+        }
+    }
+
+    static public func createFromBIP38Key(bip38Key: Data, passphrase: String) -> Key? {
+        let bip38KeyStr = String (data: bip38Key, encoding: .utf8)!
+
+        return passphrase.withCString { (passphrasePtr: UnsafePointer<Int8>) -> Key? in
+            return bip38KeyStr.withCString { (bip38KeyPtr: UnsafePointer<Int8>) -> Key? in
+                guard 1 == BRBIP38KeyIsValid (bip38KeyPtr) else { return nil }
+
+                var key = BRKey()
+                defer { BRKeyClean (&key) }
+
+                BRKeySetBIP38Key (&key, bip38KeyPtr, passphrasePtr)
+
+                return Key (core: key, needPublicKey: true, compressedPublicKey: false)
+            }
         }
     }
 
@@ -163,6 +196,16 @@ public final class Key {
         case .wifUncompressed:
             return serializePrivateKeyWIF (key: core, compressed: false)
         }
+    }
+
+    public func address (legacy: Bool) -> String? {
+        var addr = [CChar](repeating: 0, count: MemoryLayout<BRAddress>.size)
+        if legacy {
+            guard BRKeyLegacyAddr(&core, &addr, addr.count) > 0 else { return nil }
+        } else {
+            guard BRKeyAddress(&core, &addr, addr.count) > 0 else { return nil }
+        }
+        return String(cString: addr)
     }
 
     ///
