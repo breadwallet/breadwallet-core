@@ -16,6 +16,7 @@ import com.breadwallet.corenative.crypto.BRCryptoCWMClientCallbackState;
 import com.breadwallet.corenative.crypto.BRCryptoCurrency;
 import com.breadwallet.corenative.crypto.BRCryptoFeeBasis;
 import com.breadwallet.corenative.crypto.BRCryptoHash;
+import com.breadwallet.corenative.crypto.BRCryptoKey;
 import com.breadwallet.corenative.crypto.BRCryptoNetwork;
 import com.breadwallet.corenative.crypto.BRCryptoNetworkFee;
 import com.breadwallet.corenative.crypto.BRCryptoTransfer;
@@ -94,6 +95,21 @@ public interface CryptoLibrary extends Library {
     BRCryptoAmount cryptoFeeBasisGetFee (BRCryptoFeeBasis feeBasis);
     BRCryptoFeeBasis cryptoFeeBasisTake(BRCryptoFeeBasis obj);
     void cryptoFeeBasisGive(BRCryptoFeeBasis obj);
+
+    // crypto/BRCryptoKey.h
+    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateFromPhraseWithWords(ByteBuffer phraseBuffer, StringArray wordsArray);
+    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateFromStringPrivate(ByteBuffer stringBuffer);
+    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateFromStringPublic(ByteBuffer stringBuffer);
+    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateForPigeon(BRCryptoKey key, byte[] nonce, SizeT nonceCount);
+    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateForBIP32ApiAuth(ByteBuffer phraseBuffer, StringArray wordsArray);
+    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateForBIP32BitID(ByteBuffer phraseBuffer, int index, String uri, StringArray wordsArray);
+    int cryptoKeyHasSecret(BRCryptoKey key);
+    int cryptoKeyPublicMatch(BRCryptoKey key, BRCryptoKey other);
+    int cryptoKeySecretMatch(BRCryptoKey key, BRCryptoKey other);
+    Pointer cryptoKeyEncodePrivate(BRCryptoKey key);
+    Pointer cryptoKeyEncodePublic(BRCryptoKey key);
+    UInt256.ByValue cryptoKeyGetSecret(BRCryptoKey key);
+    void cryptoKeyGive(BRCryptoKey key);
 
     // crypto/BRCryptoHash.h
     int cryptoHashEqual(BRCryptoHash h1, BRCryptoHash h2);
