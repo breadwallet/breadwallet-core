@@ -55,6 +55,7 @@ final class Key implements com.breadwallet.crypto.Key {
 
     private Key(BRCryptoKey core) {
         this.core = core;
+        this.core.providePublicKey(0, 0);
     }
 
     @Override
@@ -79,13 +80,11 @@ final class Key implements com.breadwallet.crypto.Key {
 
     @Override
     public boolean privateKeyMatch(com.breadwallet.crypto.Key other) {
-        Key cryptoKey = from(other);
-        return core.privateKeyMatch(cryptoKey.core);
+        return core.privateKeyMatch(from(other).core);
     }
 
     @Override
     public boolean publicKeyMatch(com.breadwallet.crypto.Key other) {
-        Key cryptoKey = from(other);
-        return core.publicKeyMatch(cryptoKey.core);
+        return core.publicKeyMatch(from(other).core);
     }
 }

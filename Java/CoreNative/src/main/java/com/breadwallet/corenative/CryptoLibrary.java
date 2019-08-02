@@ -103,6 +103,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateForPigeon(BRCryptoKey key, byte[] nonce, SizeT nonceCount);
     BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateForBIP32ApiAuth(ByteBuffer phraseBuffer, StringArray wordsArray);
     BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateForBIP32BitID(ByteBuffer phraseBuffer, int index, String uri, StringArray wordsArray);
+    void cryptoKeyProvidePublicKey(BRCryptoKey key, int useCompressed, int compressed);
     int cryptoKeyHasSecret(BRCryptoKey key);
     int cryptoKeyPublicMatch(BRCryptoKey key, BRCryptoKey other);
     int cryptoKeySecretMatch(BRCryptoKey key, BRCryptoKey other);

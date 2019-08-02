@@ -165,6 +165,10 @@ public class BRCryptoKey extends PointerType {
         return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoKeyPublicMatch(this, other);
     }
 
+    public void providePublicKey(int useCompressed, int compressed) {
+        CryptoLibrary.INSTANCE.cryptoKeyProvidePublicKey(this, useCompressed, compressed);
+    }
+
     public static class OwnedBRCryptoKey extends BRCryptoKey {
 
         public OwnedBRCryptoKey(Pointer address) {
