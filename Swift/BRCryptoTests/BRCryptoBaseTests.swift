@@ -74,10 +74,6 @@ class BRCryptoBaseTests: XCTestCase {
     override func setUp() {
         super.setUp()
 
-        #if TESTNET
-        isMainnet = false
-        #endif
-
         // Get the paperKey from `configPath`
         if FileManager.default.fileExists(atPath: configPath) {
             let configFile = URL(fileURLWithPath: configPath)

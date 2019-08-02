@@ -58,24 +58,25 @@ Java_com_breadwallet_core_BRCoreWallet_createJniCoreWallet
          jobject objMasterPubKey,
          jint forkId) {
 
-    BRMasterPubKey *masterPubKey = (BRMasterPubKey *) getJNIReference(env, objMasterPubKey);
-
-    // Transactions
-    size_t transactionsCount = (*env)->GetArrayLength(env, objTransactionsArray);
-    BRTransaction **transactions = (BRTransaction **) calloc (transactionsCount, sizeof (BRTransaction *));
-
-    for (int index = 0; index < transactionsCount; index++) {
-        jobject objTransaction = (*env)->GetObjectArrayElement (env, objTransactionsArray, index);
-        // TODO: Transaction Copy?  Confirm isRegistered.
-        transactions[index] = (BRTransaction *) getJNIReference(env, objTransaction);
-        (*env)->DeleteLocalRef (env, objTransaction);
-    }
-
-    BRWallet *wallet = BRWalletNew(transactions, transactionsCount, *masterPubKey, forkId);
-
-    if (NULL != transactions) free (transactions);
-
-    return (jlong) wallet;
+//    BRMasterPubKey *masterPubKey = (BRMasterPubKey *) getJNIReference(env, objMasterPubKey);
+//
+//    // Transactions
+//    size_t transactionsCount = (*env)->GetArrayLength(env, objTransactionsArray);
+//    BRTransaction **transactions = (BRTransaction **) calloc (transactionsCount, sizeof (BRTransaction *));
+//
+//    for (int index = 0; index < transactionsCount; index++) {
+//        jobject objTransaction = (*env)->GetObjectArrayElement (env, objTransactionsArray, index);
+//        // TODO: Transaction Copy?  Confirm isRegistered.
+//        transactions[index] = (BRTransaction *) getJNIReference(env, objTransaction);
+//        (*env)->DeleteLocalRef (env, objTransaction);
+//    }
+//
+//    BRWallet *wallet = BRWalletNew(transactions, transactionsCount, *masterPubKey, forkId);
+//
+//    if (NULL != transactions) free (transactions);
+//
+//    return (jlong) wallet;
+    return 0;
 }
 
 /*
@@ -398,25 +399,26 @@ Java_com_breadwallet_core_BRCoreWallet_signTransaction
         (JNIEnv *env, jobject thisObject,
          jobject transactionObject,
          jbyteArray phraseByteArray) {
-    BRWallet *wallet = (BRWallet *) getJNIReference(env, thisObject);
-    BRTransaction *transaction = (BRTransaction *) getJNIReference(env, transactionObject);
-
-    // Convert phraseByteArray to a char* phrase
-    size_t phraseLen = (size_t) (*env)->GetArrayLength(env, phraseByteArray);
-    const jbyte *phraseBytes = (const jbyte *) (*env)->GetByteArrayElements(env, phraseByteArray, 0);
-
-    char phrase [1 + phraseLen];
-    memcpy (phrase, phraseBytes, phraseLen);
-    phrase[phraseLen] = '\0';
-
-    // Convert phrase to its BIP38 512 bit seed.
-    UInt512 seed;
-    BRBIP39DeriveKey (&seed, phrase, NULL);
-
-    // Sign with the seed
-    return (jboolean) (1 == BRWalletSignTransaction(wallet, transaction, &seed, sizeof(seed))
-                       ? JNI_TRUE
-                       : JNI_FALSE);
+//    BRWallet *wallet = (BRWallet *) getJNIReference(env, thisObject);
+//    BRTransaction *transaction = (BRTransaction *) getJNIReference(env, transactionObject);
+//
+//    // Convert phraseByteArray to a char* phrase
+//    size_t phraseLen = (size_t) (*env)->GetArrayLength(env, phraseByteArray);
+//    const jbyte *phraseBytes = (const jbyte *) (*env)->GetByteArrayElements(env, phraseByteArray, 0);
+//
+//    char phrase [1 + phraseLen];
+//    memcpy (phrase, phraseBytes, phraseLen);
+//    phrase[phraseLen] = '\0';
+//
+//    // Convert phrase to its BIP38 512 bit seed.
+//    UInt512 seed;
+//    BRBIP39DeriveKey (&seed, phrase, NULL);
+//
+//    // Sign with the seed
+//    return (jboolean) (1 == BRWalletSignTransaction(wallet, transaction, &seed, sizeof(seed))
+//                       ? JNI_TRUE
+//                       : JNI_FALSE);
+    return JNI_FALSE;
 }
 
 /*

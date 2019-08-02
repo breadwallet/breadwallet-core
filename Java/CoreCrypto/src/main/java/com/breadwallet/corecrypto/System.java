@@ -146,7 +146,12 @@ final class System implements com.breadwallet.crypto.System {
     private static final BRCryptoCWMListenerTransferEvent CWM_LISTENER_TRANSFER_CALLBACK = System::transferEventCallback;
 
     /* package */
-    static System create(ScheduledExecutorService executor, SystemListener listener, com.breadwallet.crypto.Account account, String path, BlockchainDb query) {
+    static System create(ScheduledExecutorService executor,
+                         SystemListener listener,
+                         com.breadwallet.crypto.Account account,
+                         boolean isMainnet,
+                         String path,
+                         BlockchainDb query) {
         Pointer context = Pointer.createConstant(SYSTEM_IDS.incrementAndGet());
 
         BRCryptoCWMListener.ByValue cwmListener = new BRCryptoCWMListener.ByValue(context,
@@ -162,6 +167,7 @@ final class System implements com.breadwallet.crypto.System {
         System system = new System(executor,
                 listener,
                 account,
+                isMainnet,
                 path,
                 query,
                 cwmListener,
@@ -182,6 +188,7 @@ final class System implements com.breadwallet.crypto.System {
     private final SystemListener listener;
     private final SystemCallbackCoordinator callbackCoordinator;
     private final Account account;
+    private final boolean isMainnet;
     private final String path;
     private final BlockchainDb query;
     private final BRCryptoCWMListener.ByValue cwmListener;
@@ -194,12 +201,19 @@ final class System implements com.breadwallet.crypto.System {
     private final Lock walletManagersWriteLock;
     private final List<WalletManager> walletManagers;
 
-    private System(ScheduledExecutorService executor, SystemListener listener, com.breadwallet.crypto.Account account, String path,
-                   BlockchainDb query, BRCryptoCWMListener.ByValue cwmListener, BRCryptoCWMClient.ByValue cwmClient) {
+    private System(ScheduledExecutorService executor,
+                   SystemListener listener,
+                   com.breadwallet.crypto.Account account,
+                   boolean isMainnet,
+                   String path,
+                   BlockchainDb query,
+                   BRCryptoCWMListener.ByValue cwmListener,
+                   BRCryptoCWMClient.ByValue cwmClient) {
         this.executor = executor;
         this.listener = listener;
         this.callbackCoordinator = new SystemCallbackCoordinator(executor);
         this.account = Account.from(account);
+        this.isMainnet = isMainnet;
         this.path = path;
         this.query = query;
         this.cwmListener = cwmListener;
@@ -220,7 +234,7 @@ final class System implements com.breadwallet.crypto.System {
 
     @Override
     public void configure() {
-        NetworkDiscovery.discoverNetworks(query, discoveredNetworks -> {
+        NetworkDiscovery.discoverNetworks(query, isMainnet, discoveredNetworks -> {
             for (Network network: discoveredNetworks) {
                 if (addNetwork(network)) {
                     announceNetworkEvent(network, new NetworkCreatedEvent());

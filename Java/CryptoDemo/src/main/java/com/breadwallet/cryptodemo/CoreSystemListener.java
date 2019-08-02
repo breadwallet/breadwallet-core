@@ -39,10 +39,12 @@ public class CoreSystemListener implements SystemListener {
     private static final String TAG = CoreSystemListener.class.getName();
 
     private final WalletManagerMode mode;
+    private final boolean isMainnet;
     private final List<String> currencyCodesNeeded;
 
-    public CoreSystemListener(WalletManagerMode mode, List<String> currencyCodesNeeded) {
+    public CoreSystemListener(WalletManagerMode mode, boolean isMainnet, List<String> currencyCodesNeeded) {
         this.mode = mode;
+        this.isMainnet = isMainnet;
         this.currencyCodesNeeded = new ArrayList<>(currencyCodesNeeded);
     }
 
@@ -72,7 +74,7 @@ public class CoreSystemListener implements SystemListener {
                     }
                 }
 
-                if (CoreCryptoApplication.isMainnet() == network.isMainnet() && isNetworkNeeded) {
+                if (isMainnet == network.isMainnet() && isNetworkNeeded) {
                     WalletManagerMode wmMode = system.supportsWalletManagerModes(network, mode) ?
                             mode : system.getDefaultWalletManagerMode(network);
 

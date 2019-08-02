@@ -35,6 +35,10 @@ public class BREthereumTransfer extends BREthereumEWM.ReferenceWithDefaultUnit {
         return ewm.get().jniTransactionIsSubmitted(identifier);
     }
 
+    public boolean isErrored () {
+        return ewm.get().jniTransactionIsErrored(identifier);
+    }
+
     public String getSourceAddress () {
         return ewm.get().jniTransactionSourceAddress(identifier);
     }
@@ -47,6 +51,10 @@ public class BREthereumTransfer extends BREthereumEWM.ReferenceWithDefaultUnit {
         return ewm.get().jniTransactionGetIdentifier(identifier);
     }
 
+    public String getOriginationTransactionHash() {
+        return ewm.get().jniTransactionOriginatingTransactionHash(identifier);
+    }
+    
     //
     // Amount
     //
@@ -195,5 +203,9 @@ public class BREthereumTransfer extends BREthereumEWM.ReferenceWithDefaultUnit {
 
     public long getBlockConfirmations () {
         return ewm.get().jniTransactionGetBlockConfirmations(identifier);
+    }
+
+    public String getErrorDescription () {
+        return ewm.get().jniTransactionGetErrorDescription(identifier);
     }
 }

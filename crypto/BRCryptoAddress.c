@@ -103,6 +103,17 @@ cryptoAddressAsGEN (BRCryptoAddress address) {
 
 
 extern BRCryptoAddress
+cryptoAddressCreateFromStringAsBTC (BRAddressParams params, const char *btcAddress) {
+    assert (btcAddress);
+    BRCryptoAddress address = NULL;
+    if (BRAddressIsValid (params, btcAddress)) {
+        address = cryptoAddressCreate (BLOCK_CHAIN_TYPE_BTC);
+        address->u.btc = BRAddressFill (params, btcAddress);
+    }
+    return address;
+}
+
+extern BRCryptoAddress
 cryptoAddressCreateFromStringAsETH (const char *ethAddress) {
     assert (ethAddress);
     BRCryptoAddress address = NULL;
@@ -114,14 +125,9 @@ cryptoAddressCreateFromStringAsETH (const char *ethAddress) {
 }
 
 extern BRCryptoAddress
-cryptoAddressCreateFromStringAsBTC (const char *btcAddress) {
-    assert (btcAddress);
-    BRCryptoAddress address = NULL;
-    if (BRAddressIsValid (btcAddress)) {
-        address = cryptoAddressCreate (BLOCK_CHAIN_TYPE_BTC);
-        address->u.btc = BRAddressFill (btcAddress);
-    }
-    return address;
+cryptoAddressCreateFromStringAsGEN (const char *ethAddress) {
+    assert (0);
+    return NULL;
 }
 
 extern char *

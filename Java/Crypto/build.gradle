@@ -16,20 +16,6 @@ android {
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
-    flavorDimensions "network"
-    productFlavors {
-
-        onMainnet {
-            dimension "network"
-            buildConfigField 'boolean', 'IS_MAINNET', 'true'
-        }
-
-        onTestnet {
-            dimension "network"
-            buildConfigField 'boolean', 'IS_MAINNET', 'false'
-        }
-    }
-
     buildTypes {
         release {
             minifyEnabled false

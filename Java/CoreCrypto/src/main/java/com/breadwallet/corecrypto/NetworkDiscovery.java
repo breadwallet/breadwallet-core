@@ -9,7 +9,6 @@ package com.breadwallet.corecrypto;
 
 import android.util.Log;
 
-import com.breadwallet.crypto.BuildConfig;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
@@ -31,8 +30,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.google.common.base.Preconditions.checkState;
-
 /* package */
 final class NetworkDiscovery {
 
@@ -44,9 +41,7 @@ final class NetworkDiscovery {
     }
 
     /* package */
-    static void discoverNetworks(BlockchainDb query, Callback callback) {
-        boolean isMainnet = BuildConfig.IS_MAINNET;
-
+    static void discoverNetworks(BlockchainDb query, boolean isMainnet, Callback callback) {
         List<Network> networks = new ArrayList<>();
         CountUpAndDownLatch latch = new CountUpAndDownLatch(() -> callback.discovered(networks));
 

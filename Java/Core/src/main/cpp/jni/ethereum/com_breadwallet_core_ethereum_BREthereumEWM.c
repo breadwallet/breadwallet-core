@@ -265,12 +265,13 @@ mapToHashDataPair (JNIEnv *env, jobject arrayObject) {
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniCreateEWM
- * Signature: (Lcom/breadwallet/core/ethereum/BREthereumEWM/Client;JLjava/lang/String;Ljava/lang/String;[Ljava/lang/String;)J
+ * Signature: (Lcom/breadwallet/core/ethereum/BREthereumEWM/Client;IJLjava/lang/String;Ljava/lang/String;[Ljava/lang/String;)J
  */
 JNIEXPORT jlong JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
         (JNIEnv *env, jclass thisClass,
          jobject clientObject,
+         jint mode,
          jlong network,
          jstring storagePathString,
          jstring paperKeyString,
@@ -319,7 +320,7 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
     BREthereumEWM node = ewmCreateWithPaperKey((BREthereumNetwork) network,
                                         paperKey,
                                         ETHEREUM_TIMESTAMP_UNKNOWN,
-                                        BRD_WITH_P2P_SEND,
+                                        (BREthereumMode) mode,
                                         client,
                                         storagePath,
                                         0);
@@ -332,15 +333,16 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniCreateEWM_PublicKey
- * Signature: (Lcom/breadwallet/core/ethereum/BREthereumEWM/Client;JLjava/lang/String;[B)J
+ * Signature: (Lcom/breadwallet/core/ethereum/BREthereumEWM/Client;IJLjava/lang/String;[B)J
  */
 JNIEXPORT jlong JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM_1PublicKey
-    (JNIEnv *env, jclass thisClass,
-     jobject clientObject,
-     jlong network,
-     jstring storagePathString,
-     jbyteArray publicKey) {
+        (JNIEnv *env, jclass thisClass,
+         jobject clientObject,
+         jint mode,
+         jlong network,
+         jstring storagePathString,
+         jbyteArray publicKey) {
 
     assert (65 == (*env)->GetArrayLength(env, publicKey));
 
@@ -375,7 +377,7 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM_1PublicKey
     BREthereumEWM node = ewmCreateWithPublicKey((BREthereumNetwork) network,
                                                      key,
                                                      ETHEREUM_TIMESTAMP_UNKNOWN,
-                                                     BRD_WITH_P2P_SEND,
+                                                    (BREthereumMode) mode,
                                                      client,
                                                      storagePath,
                                                      0);
@@ -1297,6 +1299,19 @@ JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTr
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
+ * Method:    jniTransactionOriginatingTransactionHash
+ * Signature: (J)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionOriginatingTransactionHash
+        (JNIEnv *env, jobject thisObject, jlong tid) {
+    BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
+    BREthereumTransfer transfer = getTransfer (env, tid);
+    BREthereumHash hash = ewmTransferGetOriginatingTransactionHash(node, transfer);
+    return asJniString(env, hashAsString(hash));
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniTransactionGetGasPrice
  * Signature: (JJ)Ljava/lang/String;
  */
@@ -1432,8 +1447,36 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionIsSubmitted
     return (jboolean) (ETHEREUM_BOOLEAN_TRUE == ewmTransferIsSubmitted (node, transfer)
                        ? JNI_TRUE
                        : JNI_FALSE);
-
 }
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumEWM
+ * Method:    jniTransactionIsErrored
+ * Signature: (J)Z
+ */
+JNIEXPORT jboolean JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionIsErrored
+        (JNIEnv *env, jobject thisObject, jlong tid) {
+    BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
+    BREthereumTransfer transfer = getTransfer (env, tid);
+    return (jboolean) (TRANSFER_STATUS_ERRORED == ewmTransferGetStatus (node, transfer)
+                       ? JNI_TRUE
+                       : JNI_FALSE);
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumEWM
+ * Method:    jniTransactionGetErrorDescription
+ * Signature: (J)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionGetErrorDescription
+        (JNIEnv *env, jobject thisObject, jlong tid) {
+    BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
+    BREthereumTransfer transfer = getTransfer (env, tid);
+    char *errorDescription = ewmTransferStatusGetError(node, transfer);
+    return NULL == errorDescription ? NULL : asJniString(env, errorDescription);
+}
+
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM

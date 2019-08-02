@@ -127,6 +127,11 @@ public class BRCryptoNetwork extends PointerType implements CoreBRCryptoNetwork 
     }
 
     @Override
+    public Optional<CoreBRCryptoAddress> addressFor(String address) {
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoNetworkCreateAddressFromString(this, address));
+    }
+
+    @Override
     public BRCryptoNetwork asBRCryptoNetwork() {
         return this;
     }

@@ -16,18 +16,6 @@ android {
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
-    flavorDimensions "network"
-    productFlavors {
-
-        onMainnet {
-            dimension "network"
-        }
-
-        onTestnet {
-            dimension "network"
-        }
-    }
-
     buildTypes {
         release {
             minifyEnabled false

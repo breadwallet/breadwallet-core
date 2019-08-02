@@ -188,6 +188,7 @@ cryptoNetworkCreate (const char *uids,
     return network;
 }
 
+// TODO: Remove forkId; derivable from BRChainParams (after CORE-284)
 private_extern BRCryptoNetwork
 cryptoNetworkCreateAsBTC (const char *uids,
                           const char *name,
@@ -495,6 +496,22 @@ cryptoNetworkGetNetworkFeeAt (BRCryptoNetwork network,
     BRCryptoNetworkFee fee = cryptoNetworkFeeTake (network->fees[index]);
     pthread_mutex_unlock (&network->lock);
     return fee;
+}
+
+extern BRCryptoAddress
+cryptoNetworkCreateAddressFromString (BRCryptoNetwork network,
+                                      const char *string) {
+    switch (network->type) {
+
+        case BLOCK_CHAIN_TYPE_BTC:
+            return cryptoAddressCreateFromStringAsBTC (network->u.btc.params->addrParams, string);
+
+        case BLOCK_CHAIN_TYPE_ETH:
+            return cryptoAddressCreateFromStringAsETH (string);
+
+        case BLOCK_CHAIN_TYPE_GEN:
+            return cryptoAddressCreateFromStringAsGEN (string);
+    }
 }
 
 // TODO(discuss): Is it safe to give out this pointer?

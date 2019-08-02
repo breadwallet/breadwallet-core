@@ -42,7 +42,7 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
                                   String storagePath,
                                   String paperKey) {
         this.network = network;
-        this.ewm = new BREthereumEWM (this, network, storagePath, paperKey, words);
+        this.ewm = new BREthereumEWM (this, BREthereumEWM.Mode.API_ONLY, network, storagePath, paperKey, words);
     }
 
     @Override

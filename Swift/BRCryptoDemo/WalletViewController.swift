@@ -24,7 +24,14 @@ class WalletViewController: UITableViewController, TransferListener, WalletManag
     /// The wallet's transfers
     var transfers : [Transfer] = []
 
-
+    func reset () {
+        DispatchQueue.main.async {
+            self.wallet = nil
+            self.transfers = []
+            self.tableView.reloadData()
+        }
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         self.tableView.rowHeight = 100

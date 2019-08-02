@@ -29,23 +29,6 @@ android {
         }
     }
 
-    flavorDimensions "network"
-    productFlavors {
-
-        onMainnet {
-            dimension "network"
-        }
-
-        onTestnet {
-            dimension "network"
-            externalNativeBuild {
-                cmake {
-                    cFlags "-DBITCOIN_TESTNET"
-                }
-            }
-        }
-    }
-
     buildTypes {
         release {
             minifyEnabled false

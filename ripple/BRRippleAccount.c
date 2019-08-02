@@ -25,6 +25,8 @@
 #include "BRRippleBase58.h"
 //#include "BRBase58.h"
 
+#define RIPPLE_ADDRESS_PARAMS  ((BRAddressParams) { BITCOIN_PUBKEY_PREFIX, BITCOIN_SCRIPT_PREFIX, BITCOIN_PRIVKEY_PREFIX, BITCOIN_BECH32_PREFIX })
+
 #define PRIMARY_ADDRESS_BIP44_INDEX 0
 
 #define WORD_LIST_LENGTH 2048
@@ -137,7 +139,7 @@ BRKey getKey(const char* paperKey, bool cleanPrivateKey)
         // of tests that create a private key from a string.
         BRKey key;
         mem_clean(&key, sizeof(key));
-        BRKeySetPrivKey(&key, paperKey);
+        BRKeySetPrivKey(&key, RIPPLE_ADDRESS_PARAMS, paperKey);
         key.compressed = 1;
         BRKeyPubKey(&key, &key.pubKey, 33);
         return key;

@@ -26,6 +26,7 @@
 #ifndef BRCryptoNetwork_h
 #define BRCryptoNetwork_h
 
+#include "BRCryptoAddress.h"
 #include "BRCryptoAmount.h"
 
 #include "../support/BRArray.h"
@@ -229,6 +230,10 @@ extern "C" {
     extern BRCryptoNetworkFee
     cryptoNetworkGetNetworkFeeAt (BRCryptoNetwork network,
                                   size_t index);
+
+    extern BRCryptoAddress
+    cryptoNetworkCreateAddressFromString (BRCryptoNetwork network,
+                                          const char *string);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoNetwork, cryptoNetwork);
 

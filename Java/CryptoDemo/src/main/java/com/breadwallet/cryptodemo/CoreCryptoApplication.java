@@ -8,6 +8,7 @@ import android.arch.lifecycle.OnLifecycleEvent;
 import android.arch.lifecycle.ProcessLifecycleOwner;
 import android.content.Intent;
 import android.os.StrictMode;
+import android.util.Log;
 
 import com.breadwallet.corecrypto.CryptoApiProvider;
 import com.breadwallet.crypto.Account;
@@ -34,15 +35,18 @@ import static com.google.common.base.Preconditions.checkState;
 
 public class CoreCryptoApplication extends Application {
 
+    private static final String TAG = CoreCryptoApplication.class.getName();
+
     private static final String BDB_BASE_URL = BuildConfig.BDB_BASE_URL;
     private static final String API_BASE_URL = BuildConfig.API_BASE_URL;
-    private static final boolean IS_MAINNET = com.breadwallet.crypto.BuildConfig.IS_MAINNET;
 
     private static final String EXTRA_WIPE = "WIPE";
     private static final String EXTRA_TIMESTAMP = "TIMESTAMP";
     private static final String EXTRA_PAPER_KEY = "PAPER_KEY";
     private static final String EXTRA_MODE = "MODE";
+    private static final String EXTRA_IS_MAINNET = "IS_MAINNET";
 
+    private static final boolean DEFAULT_IS_MAINNET = true;
     private static final boolean DEFAULT_WIPE = true;
     private static final long DEFAULT_TIMESTAMP = 0;
     private static final String DEFAULT_PAPER_KEY = "boring head harsh green empty clip fatal typical found crane dinner timber";
@@ -72,8 +76,10 @@ public class CoreCryptoApplication extends Application {
         if (!runOnce.getAndSet(true)) {
             Intent intent = startingActivity.getIntent();
 
-            paperKey = (intent.hasExtra(EXTRA_PAPER_KEY) ? intent.getStringExtra(EXTRA_PAPER_KEY) : DEFAULT_PAPER_KEY)
-                    .getBytes(StandardCharsets.UTF_8);
+            String paperKeyString = (intent.hasExtra(EXTRA_PAPER_KEY) ? intent.getStringExtra(EXTRA_PAPER_KEY) : DEFAULT_PAPER_KEY);
+            paperKey = paperKeyString.getBytes(StandardCharsets.UTF_8);
+
+            boolean isMainnet = intent.getBooleanExtra(EXTRA_IS_MAINNET, DEFAULT_IS_MAINNET);
 
             boolean wipe = intent.getBooleanExtra(EXTRA_WIPE, DEFAULT_WIPE);
             long timestamp = intent.getLongExtra(EXTRA_TIMESTAMP, DEFAULT_TIMESTAMP);
@@ -85,17 +91,22 @@ public class CoreCryptoApplication extends Application {
                 checkState(storageFile.mkdirs());
             }
 
+            Log.d(TAG, String.format("Account PaperKey: %s", paperKeyString));
+            Log.d(TAG, String.format("Account Timestamp: %s", timestamp));
+            Log.d(TAG, String.format("StoragePath:       %s", storageFile.getAbsolutePath()));
+            Log.d(TAG, String.format("Mainnet:           %s", isMainnet));
+
             CryptoApi.initialize(CryptoApiProvider.getInstance());
 
             List<String> currencyCodesNeeded = Arrays.asList("btc", "eth", "brd");
             systemListener = new DispatchingSystemListener();
-            systemListener.addSystemListener(new CoreSystemListener(mode, currencyCodesNeeded));
+            systemListener.addSystemListener(new CoreSystemListener(mode, isMainnet, currencyCodesNeeded));
 
             String uids = UUID.nameUUIDFromBytes(paperKey).toString();
             Account account = Account.createFromPhrase(paperKey, new Date(TimeUnit.SECONDS.toMillis(timestamp)), uids);
 
             BlockchainDb query = new BlockchainDb(new OkHttpClient(), BDB_BASE_URL, API_BASE_URL);
-            system = System.create(Executors.newSingleThreadScheduledExecutor(), systemListener, account, storageFile.getAbsolutePath(), query);
+            system = System.create(Executors.newSingleThreadScheduledExecutor(), systemListener, account, isMainnet, storageFile.getAbsolutePath(), query);
             system.configure();
 
             ProcessLifecycleOwner.get().getLifecycle().addObserver(observer);
@@ -112,10 +123,6 @@ public class CoreCryptoApplication extends Application {
 
     public static byte[] getPaperKey() {
         return paperKey;
-    }
-
-    public static boolean isMainnet() {
-        return IS_MAINNET;
     }
 
     private static void deleteRecursively (File file) {

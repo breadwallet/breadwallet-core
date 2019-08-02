@@ -943,7 +943,7 @@ ewmSignalAnnounceToken (BREthereumEWM ewm,
                         int rid) {
     BREthereumEWMClientAnnounceTokenEvent message =
     { { NULL, &ewmClientAnnounceTokenEventType}, ewm, bundle, rid};
-    eventHandlerSignalEvent (ewm->handler, (BREvent*) &message);
+    eventHandlerSignalEventOOB (ewm->handler, (BREvent*) &message);
 }
 
 //

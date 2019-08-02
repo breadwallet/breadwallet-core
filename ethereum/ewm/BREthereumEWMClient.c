@@ -460,11 +460,18 @@ ewmHandleAnnounceLog (BREthereumEWM ewm,
                                              bundle->blockNumber,
                                              bundle->blockTransactionIndex,
                                              bundle->blockTimestamp,
-                                             gasCreate(0));
+                                             gasCreate(bundle->gasUsed));
             logSetStatus(log, status);
 
             // If we had a `bcs` we might think about `bcsSignalLog(ewm->bcs, log);`
             ewmSignalLog(ewm, BCS_CALLBACK_LOG_UPDATED, log);
+
+            // The `bundle` has `gasPrice` and `gasUsed` values.  The above `ewmSignalLog()` is
+            // going to create a `transfer` and that transfer needs a correct `feeBasis`.  We will
+            // not use this bundle's feeBasis and put in place something that works for P2P modes
+            // as well.  So instead will use the feeBasis derived from this log transfer's
+            // transaction.  See ewmHandleLog, ewmHandleTransaction and their calls to
+            // ewmHandleLogFeeBasis.
 
             // Do we need a transaction here?  No, if another originated this Log, then we can't ever
             // care and if we originated this Log, then we'll get the transaction (as part of the BRD
@@ -807,7 +814,7 @@ ewmHandleAnnounceTokenComplete (BREthereumEWM ewm,
                                 int rid,
                                 BREthereumBoolean success) {
     if (ETHEREUM_BOOLEAN_IS_TRUE (success))
-        ewmSync (ewm);
+        ewmSync (ewm, ETHEREUM_BOOLEAN_FALSE);
 }
 
 extern void

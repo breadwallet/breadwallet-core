@@ -59,14 +59,19 @@ android {
         // Default: required
         release {
             minifyEnabled false
-            //proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+
+            // Ensure that the -DNDEBUG compiler flag IS NOT set thereby ensuring that `assert(c)``
+            // evaluates `c` (for side-effects - but we've removed side-effects anyhow)
+            debuggable true
+            jniDebuggable true
         }
 
         // Default: created on demand with 'debuggable true'
         debug {
+            minifyEnabled false
+
             debuggable true
             jniDebuggable true
-            minifyEnabled false
             externalNativeBuild {
                 cmake {
                     cFlags "-DDEBUG", "-DBITCOIN_DEBUG"

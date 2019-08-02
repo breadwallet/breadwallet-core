@@ -17,8 +17,8 @@ import java.util.concurrent.ScheduledExecutorService;
 
 public interface System {
 
-    static System create(ScheduledExecutorService executor, SystemListener listener, Account account, String path, BlockchainDb query) {
-        return CryptoApi.getProvider().systemProvider().create(executor, listener, account, path, query);
+    static System create(ScheduledExecutorService executor, SystemListener listener, Account account, boolean isMainnet, String path, BlockchainDb query) {
+        return CryptoApi.getProvider().systemProvider().create(executor, listener, account, isMainnet,path, query);
     }
 
     void configure();
