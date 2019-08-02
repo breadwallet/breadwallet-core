@@ -121,7 +121,7 @@ public class BRCryptoKey extends PointerType {
                 ByteBuffer phraseBuffer = phraseMemory.getByteBuffer(0, phraseUtf8.length);
 
                 return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoKeyCreateForBIP32BitID(phraseBuffer, index, uri, wordsArray));
-                
+
             } finally {
                 phraseMemory.clear();
             }
@@ -129,10 +129,6 @@ public class BRCryptoKey extends PointerType {
             // clear out our copy; caller responsible for original array
             Arrays.fill(phraseUtf8, (byte) 0);
         }
-    }
-
-    public boolean hasSecret() {
-        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoKeyHasSecret(this);
     }
 
     public byte[] encodeAsPrivate() {
@@ -151,6 +147,10 @@ public class BRCryptoKey extends PointerType {
         } finally {
             Native.free(Pointer.nativeValue(ptr));
         }
+    }
+
+    public boolean hasSecret() {
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoKeyHasSecret(this);
     }
 
     public byte[] getSecret() {

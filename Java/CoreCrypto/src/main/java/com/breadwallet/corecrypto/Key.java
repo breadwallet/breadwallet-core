@@ -59,11 +59,6 @@ final class Key implements com.breadwallet.crypto.Key {
     }
 
     @Override
-    public boolean hasSecret() {
-        return core.hasSecret();
-    }
-
-    @Override
     public byte[] encodeAsPrivate() {
         return core.encodeAsPrivate();
     }
@@ -71,6 +66,11 @@ final class Key implements com.breadwallet.crypto.Key {
     @Override
     public byte[] encodeAsPublic() {
         return core.encodeAsPublic();
+    }
+
+    @Override
+    public boolean hasSecret() {
+        return core.hasSecret();
     }
 
     @Override
