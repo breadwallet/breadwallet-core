@@ -163,7 +163,7 @@ public class BlockChainDB {
         #if DEBUG
         self.apiBaseURL = "https://stage2.breadwallet.com"
         #else
-        self.ethBaseURL = apiBaseURL
+        self.apiBaseURL = apiBaseURL
         #endif
         self.apiDataTaskFunc = apiDataTaskFunc ?? BlockChainDB.defaultDataTaskFunc
     }
