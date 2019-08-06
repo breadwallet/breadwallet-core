@@ -48,6 +48,10 @@
 		3C54A7FF2121F1D200C57B1B /* BREthereumMessage.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C54A7FE2121F1D200C57B1B /* BREthereumMessage.c */; };
 		3C54A8022122284900C57B1B /* BREthereumNode.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C54A8012122284900C57B1B /* BREthereumNode.c */; };
 		3C54A80521234C9700C57B1B /* BREthereumNodeEndpoint.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C54A80421234C9700C57B1B /* BREthereumNodeEndpoint.c */; };
+		3C56C97F22FA27DD0054AD21 /* TransferCreateRecvController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C56C97E22FA27DD0054AD21 /* TransferCreateRecvController.swift */; };
+		3C56C98122FA28190054AD21 /* TransferCreatePaymentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C56C98022FA28190054AD21 /* TransferCreatePaymentController.swift */; };
+		3C56C98322FA28310054AD21 /* TransferCreateSweepController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C56C98222FA28310054AD21 /* TransferCreateSweepController.swift */; };
+		3C56C98522FA2B630054AD21 /* TransferCreateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C56C98422FA2B620054AD21 /* TransferCreateController.swift */; };
 		3C5C02392212035B0052E010 /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CEF5FC9220513FC0010A811 /* libresolv.tbd */; };
 		3C5F5E75212C82310038B732 /* BREthereumMPT.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C5F5E74212C82310038B732 /* BREthereumMPT.c */; };
 		3C6B172F2131CB5B003C313B /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C6B172E2131CB5B003C313B /* main.c */; };
@@ -203,7 +207,7 @@
 		3CAB60E720AF8ED800810CE4 /* test.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53A620AF595400C430F6 /* test.c */; };
 		3CAB60E820AF8EE000810CE4 /* test.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C42EF8E209763AB000E58E0 /* test.c */; };
 		3CAB613320B3536000810CE4 /* testLES.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A538920AF595400C430F6 /* testLES.c */; };
-		3CBE455B22779F1D00A70C78 /* TransferCreateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36B821AC90850032637A /* TransferCreateController.swift */; };
+		3CBE455B22779F1D00A70C78 /* TransferCreateSendController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCD36B821AC90850032637A /* TransferCreateSendController.swift */; };
 		3CCB1349224D1B1700ADCDB9 /* BRBlockChainDB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCB1343224D1B1700ADCDB9 /* BRBlockChainDB.swift */; };
 		3CCB134C224D1B1700ADCDB9 /* BRCryptoSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CCB1347224D1B1700ADCDB9 /* BRCryptoSystem.swift */; };
 		3CCB1355224D3F7500ADCDB9 /* testCrypto.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CCB1354224D3F7500ADCDB9 /* testCrypto.c */; };
@@ -464,6 +468,10 @@
 		3C54A8012122284900C57B1B /* BREthereumNode.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumNode.c; sourceTree = "<group>"; };
 		3C54A80321234C9700C57B1B /* BREthereumNodeEndpoint.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumNodeEndpoint.h; sourceTree = "<group>"; };
 		3C54A80421234C9700C57B1B /* BREthereumNodeEndpoint.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumNodeEndpoint.c; sourceTree = "<group>"; };
+		3C56C97E22FA27DD0054AD21 /* TransferCreateRecvController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferCreateRecvController.swift; sourceTree = "<group>"; };
+		3C56C98022FA28190054AD21 /* TransferCreatePaymentController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferCreatePaymentController.swift; sourceTree = "<group>"; };
+		3C56C98222FA28310054AD21 /* TransferCreateSweepController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferCreateSweepController.swift; sourceTree = "<group>"; };
+		3C56C98422FA2B620054AD21 /* TransferCreateController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferCreateController.swift; sourceTree = "<group>"; };
 		3C590F3220950C720005597B /* BRBIP32Sequence.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRBIP32Sequence.c; sourceTree = "<group>"; };
 		3C590F3320950C720005597B /* BRBIP39Mnemonic.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRBIP39Mnemonic.h; sourceTree = "<group>"; };
 		3C590F3420950C720005597B /* BRAddress.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRAddress.c; sourceTree = "<group>"; };
@@ -583,7 +591,7 @@
 		3CCD36AF21A5BB8D0032637A /* BRWalletManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRWalletManager.h; sourceTree = "<group>"; };
 		3CCD36B021A5BB8D0032637A /* BRWalletManager.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRWalletManager.c; sourceTree = "<group>"; };
 		3CCD36B721AC90850032637A /* WalletViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WalletViewController.swift; sourceTree = "<group>"; };
-		3CCD36B821AC90850032637A /* TransferCreateController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TransferCreateController.swift; sourceTree = "<group>"; };
+		3CCD36B821AC90850032637A /* TransferCreateSendController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TransferCreateSendController.swift; sourceTree = "<group>"; };
 		3CCD36B921AC90850032637A /* TransferViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TransferViewController.swift; sourceTree = "<group>"; };
 		3CCD36BA21AC90850032637A /* SummaryViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SummaryViewController.swift; sourceTree = "<group>"; };
 		3CCD36BB21AC90850032637A /* TransferTableViewCell.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TransferTableViewCell.swift; sourceTree = "<group>"; };
@@ -770,7 +778,11 @@
 				3CCD36B721AC90850032637A /* WalletViewController.swift */,
 				3CCD36BB21AC90850032637A /* TransferTableViewCell.swift */,
 				3CCD36B921AC90850032637A /* TransferViewController.swift */,
-				3CCD36B821AC90850032637A /* TransferCreateController.swift */,
+				3C56C98422FA2B620054AD21 /* TransferCreateController.swift */,
+				3CCD36B821AC90850032637A /* TransferCreateSendController.swift */,
+				3C56C97E22FA27DD0054AD21 /* TransferCreateRecvController.swift */,
+				3C56C98022FA28190054AD21 /* TransferCreatePaymentController.swift */,
+				3C56C98222FA28310054AD21 /* TransferCreateSweepController.swift */,
 				3CCD36C321AC92210032637A /* Support.swift */,
 				3C18F8B721950746006F738F /* Main.storyboard */,
 				3C18F8BA21950748006F738F /* Assets.xcassets */,
@@ -1650,13 +1662,17 @@
 			files = (
 				3C18F8CC219507E2006F738F /* CoreDemoListener.swift in Sources */,
 				3CCD36C021AC90860032637A /* SummaryViewController.swift in Sources */,
+				3C56C97F22FA27DD0054AD21 /* TransferCreateRecvController.swift in Sources */,
+				3C56C98522FA2B630054AD21 /* TransferCreateController.swift in Sources */,
+				3C56C98322FA28310054AD21 /* TransferCreateSweepController.swift in Sources */,
 				3CCD36C221AC90860032637A /* WalletTableViewCell.swift in Sources */,
 				3C25ED382254079400CFB88D /* TransferViewController.swift in Sources */,
 				3C18F8B221950746006F738F /* CoreDemoAppDelegate.swift in Sources */,
 				3CCD36BD21AC90860032637A /* WalletViewController.swift in Sources */,
 				3C25ED372254066000CFB88D /* TransferTableViewCell.swift in Sources */,
+				3C56C98122FA28190054AD21 /* TransferCreatePaymentController.swift in Sources */,
 				3CCD36C421AC92220032637A /* Support.swift in Sources */,
-				3CBE455B22779F1D00A70C78 /* TransferCreateController.swift in Sources */,
+				3CBE455B22779F1D00A70C78 /* TransferCreateSendController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
