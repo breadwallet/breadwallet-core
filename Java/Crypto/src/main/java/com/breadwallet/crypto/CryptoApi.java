@@ -36,6 +36,15 @@ public final class CryptoApi {
         System create(ScheduledExecutorService executor, SystemListener listener, Account account, boolean isMainnet, String path, BlockchainDb query);
     }
 
+    public interface PrimitivesProvider {
+        Optional<Key> createFromPhrase(byte[] phraseUtf8, List<String> words);
+        Optional<Key> createFromPrivateKeyString(byte[] keyStringUtf8);
+        Optional<Key> createFromPublicKeyString(byte[] keyStringUtf8);
+        Optional<Key> createForPigeon(Key key, byte[] nonce);
+        Optional<Key> createForBIP32ApiAuth(byte[] phraseUtf8, List<String> words);
+        Optional<Key> createForBIP32BitID(byte[] phraseUtf8, int index, String uri, List<String> words);
+    }
+
     public interface Provider {
 
         AccountProvider accountProvider();
@@ -43,6 +52,8 @@ public final class CryptoApi {
         AmountProvider amountProvider();
 
         SystemProvider systemProvider();
+
+        PrimitivesProvider primitivesProvider();
     }
 
     private static Provider provider;

@@ -62,21 +62,21 @@ public class BrdApiClient {
 
     /* package */
     void sendJsonRequest(String networkName, JSONObject json, CompletionHandler<String, QueryError> handler) {
-        makeAndSendRequest(Arrays.asList("ethq", networkName, "proxy"), ImmutableMultimap.of(), json, "POST",
+        makeAndSendRequest(Arrays.asList("ethq", getNetworkName(networkName), "proxy"), ImmutableMultimap.of(), json, "POST",
                 new EmbeddedStringHandler(handler));
     }
 
     /* package */
     void sendQueryRequest(String networkName, Multimap<String, String> params, JSONObject json,
                           CompletionHandler<String, QueryError> handler) {
-        makeAndSendRequest(Arrays.asList("ethq", networkName, "query"), params, json, "POST",
+        makeAndSendRequest(Arrays.asList("ethq", getNetworkName(networkName), "query"), params, json, "POST",
                 new EmbeddedStringHandler(handler));
     }
 
     /* package */
     <T> void sendQueryForArrayRequest(String networkName, Multimap<String, String> params, JSONObject json,
                                       ArrayResponseParser<T> parser, CompletionHandler<T, QueryError> handler) {
-        makeAndSendRequest(Arrays.asList("ethq", networkName, "query"), params, json, "POST",
+        makeAndSendRequest(Arrays.asList("ethq", getNetworkName(networkName), "query"), params, json, "POST",
                 new EmbeddedArrayHandler<T>(parser, handler));
     }
 
@@ -84,6 +84,11 @@ public class BrdApiClient {
     <T> void sendTokenRequest(ArrayResponseParser<T> parser, CompletionHandler<T, QueryError> handler) {
         makeAndSendRequest(Collections.singletonList("currencies"), ImmutableMultimap.of("type", "erc20"), null, "GET",
                 new RootArrayHandler<T>(parser, handler));
+    }
+
+    private String getNetworkName(String networkName) {
+        networkName = networkName.toLowerCase();
+        return networkName.equals("testnet") ? "ropsten" : networkName;
     }
 
     private <T> void makeAndSendRequest(List<String> pathSegments,

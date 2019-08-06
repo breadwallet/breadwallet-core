@@ -201,7 +201,7 @@ public final class Network: CustomStringConvertible {
                     WalletManagerMode.api_with_p2p_submit]
         case BLOCK_CHAIN_TYPE_GEN:
             return [WalletManagerMode.api_only]
-        default: precondition (false)
+        default: preconditionFailure ()
         }
     }
 

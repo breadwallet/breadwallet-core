@@ -79,7 +79,7 @@ public final class Transfer: Equatable {
     /// The fee paid - before the transfer is confirmed, this is the estimated fee.
     public var fee: Amount {
         guard let feeBasis = confirmedFeeBasis ?? estimatedFeeBasis
-            else { precondition (false, "Missed confirmed+estimated feeBasis") }
+            else { preconditionFailure ("Missed confirmed+estimated feeBasis") }
 
         return feeBasis.fee
     }
@@ -230,7 +230,7 @@ public class TransferFeeBasis {
         // The Core fee calculation might overflow.
         guard let fee = cryptoFeeBasisGetFee (core)
             .map ({ Amount (core: $0, unit: unit, take: false) })
-            else { print ("Missed Fee"); precondition (false) }
+            else { print ("Missed Fee"); preconditionFailure () }
 
         self.fee = fee
     }

@@ -163,7 +163,7 @@ public class BlockChainDB {
         #if DEBUG
         self.apiBaseURL = "https://stage2.breadwallet.com"
         #else
-        self.ethBaseURL = apiBaseURL
+        self.apiBaseURL = apiBaseURL
         #endif
         self.apiDataTaskFunc = apiDataTaskFunc ?? BlockChainDB.defaultDataTaskFunc
     }
@@ -1565,10 +1565,15 @@ public class BlockChainDB {
         }
     }
 
+    private func apiGetNetworkName (_ name: String) -> String {
+        let name = name.lowercased()
+        return name == "testnet" ? "ropsten" : name
+    }
+    
     internal func apiMakeRequestJSON (network: String,
                                       data: JSON.Dict,
                                       completion: @escaping (Result<JSON, QueryError>) -> Void) {
-        let path = "/ethq/\(network.lowercased())/proxy"
+        let path = "/ethq/\(apiGetNetworkName(network))/proxy"
         makeRequest (apiDataTaskFunc, apiBaseURL,
                      path: path,
                      query: nil,
@@ -1582,7 +1587,7 @@ public class BlockChainDB {
                                        query: Zip2Sequence<[String],[String]>?,
                                        data: JSON.Dict,
                                        completion: @escaping (Result<JSON, QueryError>) -> Void) {
-        let path = "/ethq/\(network.lowercased())/query"
+        let path = "/ethq/\(apiGetNetworkName(network))/query"
         makeRequest (apiDataTaskFunc, apiBaseURL,
                      path: path,
                      query: query,
