@@ -76,6 +76,37 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
         }
     };
 
+    private static final CryptoApi.PrimitivesProvider primitivesProvider = new CryptoApi.PrimitivesProvider() {
+        @Override
+        public Optional<com.breadwallet.crypto.Key> createFromPhrase(byte[] phraseUtf8, List<String> words) {
+            return Key.createFromPhrase(phraseUtf8, words).transform(a -> a);
+        }
+
+        @Override
+        public Optional<com.breadwallet.crypto.Key> createFromPrivateKeyString(byte[] keyStringUtf8) {
+            return Key.createFromPrivateKeyString(keyStringUtf8).transform(a -> a);
+        }
+
+        @Override
+        public Optional<com.breadwallet.crypto.Key> createFromPublicKeyString(byte[] keyStringUtf8) {
+            return Key.createFromPublicKeyString(keyStringUtf8).transform(a -> a);
+        }
+
+        public Optional<com.breadwallet.crypto.Key> createForPigeon(com.breadwallet.crypto.Key key, byte[] nonce) {
+            return Key.createForPigeon(key, nonce).transform(a -> a);
+        }
+
+        @Override
+        public Optional<com.breadwallet.crypto.Key> createForBIP32ApiAuth(byte[] phraseUtf8, List<String> words) {
+            return Key.createForBIP32ApiAuth(phraseUtf8, words).transform(a -> a);
+        }
+
+        @Override
+        public Optional<com.breadwallet.crypto.Key> createForBIP32BitID(byte[] phraseUtf8, int index, String uri, List<String> words) {
+            return Key.createForBIP32BitID(phraseUtf8, index, uri, words).transform(a -> a);
+        }
+    };
+
     private CryptoApiProvider() {
 
     }
@@ -93,5 +124,10 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
     @Override
     public CryptoApi.SystemProvider systemProvider() {
         return systemProvider;
+    }
+
+    @Override
+    public CryptoApi.PrimitivesProvider primitivesProvider() {
+        return primitivesProvider;
     }
 }
