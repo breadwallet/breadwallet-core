@@ -183,7 +183,7 @@ public final class Wallet: Equatable {
         static func fromStatus (_ status: BRCryptoStatus) -> FeeEstimationError {
             switch status {
             case CRYPTO_ERROR_FAILED: return .ServiceError
-            default: preconditionFailure ("Unknown FeeEstimateError")
+            default: return .ServiceError // preconditionFailure ("Unknown FeeEstimateError")
             }
         }
     }

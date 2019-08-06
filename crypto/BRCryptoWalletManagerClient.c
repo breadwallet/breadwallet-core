@@ -897,16 +897,23 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                 if (NULL == currency) return;
 
                 // Find the default unit; it too must exist.
-                BRCryptoUnit     unit     = cryptoNetworkGetUnitAsDefault (cwm->network, currency);
+                BRCryptoUnit    unit = cryptoNetworkGetUnitAsDefault (cwm->network, currency);
                 assert (NULL != unit);
 
+                // Find the fee Unit
+                BRCryptoCurrency feeCurrency = cryptoNetworkGetCurrency (cwm->network);
+                BRCryptoUnit     feeUnit     = cryptoNetworkGetUnitAsDefault (cwm->network, feeCurrency);
+
                 // Create the appropriate wallet based on currency
-                wallet = cryptoWalletCreateAsETH (unit, unit, cwm->u.eth, wid); // taken
+                wallet = cryptoWalletCreateAsETH (unit, feeUnit, cwm->u.eth, wid); // taken
 
                 // Avoid a race on cwm->wallet - but be sure to assign the ETH wallet (not a TOK one).
                 if (NULL == cwm->wallet && NULL == token) cwm->wallet = cryptoWalletTake (wallet);
 
                 cryptoWalletManagerAddWallet (cwm, wallet);
+
+                cryptoUnitGive (feeUnit);
+                cryptoCurrencyGive (feeCurrency);
 
                 cryptoUnitGive (unit);
                 cryptoCurrencyGive (currency);

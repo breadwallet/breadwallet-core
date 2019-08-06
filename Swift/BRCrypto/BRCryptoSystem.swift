@@ -676,8 +676,9 @@ extension System {
 
                 case CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED:
                     let cookie = event.u.feeBasisEstimated.cookie!
-                    if (CRYPTO_SUCCESS == event.u.feeBasisEstimated.status) {
-                        let feeBasis = TransferFeeBasis (core: event.u.feeBasisUpdated.basis, take: false)
+                    if CRYPTO_SUCCESS == event.u.feeBasisEstimated.status,
+                        let feeBasis = event.u.feeBasisEstimated.basis
+                            .map ({ TransferFeeBasis (core: $0, take: false) }) {
                         system.callbackCoordinator.handleWalletFeeEstimateSuccess (cookie, estimate: feeBasis)
                     }
                     else {
@@ -868,6 +869,9 @@ extension System {
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
                     else { print ("SYS: ETH: EstimateGas: Missed {cwm}"); return }
+
+                guard let price = price.map (asUTF8String)
+                    else { print ("SYS: ETH: EstimateGas: Missed {price}"); return }
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
