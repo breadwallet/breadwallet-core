@@ -27,6 +27,8 @@ public final class Wallet: Equatable {
         return manager.system
     }
 
+    internal var callbackCoordinator: SystemCallbackCoordinator
+    
     /// The unit for display of the wallet's balance
     public let unit: Unit
 
@@ -148,7 +150,10 @@ public final class Wallet: Equatable {
                              take: false)
         }
     }
-    
+
+    /// A `WalletEstimateFeeHandler` is a function to handle the result of a Wallet.estimateFee.
+    public typealias EstimateFeeHandler = (Result<TransferFeeBasis,FeeEstimationError>) -> Void
+
     ///
     /// Estimate the fee for a transfer with `amount` from `wallet`.  If provided use the `feeBasis`
     /// otherwise use the wallet's `defaultFeeBasis`
@@ -162,21 +167,28 @@ public final class Wallet: Equatable {
     public func estimateFee (target: Address,
                              amount: Amount,
                              fee: NetworkFee,
-                             completion: @escaping (Result<TransferFeeBasis,FeeEstimationError>) -> Void) {
-        system.queue.async {
-            // For now
-            completion (cryptoWalletEstimateFeeBasis (self.core, target.core, amount.core, fee.core)
-                .map { TransferFeeBasis (core: $0, take: false) }
-                .map { Result.success($0)}
-            ?? Result.failure(FeeEstimationError.ServiceError))
-        }
+                             completion: @escaping Wallet.EstimateFeeHandler) {
+        cryptoWalletEstimateFeeBasis (self.core,
+                                      callbackCoordinator.addWalletFeeEstimateHandler(completion),
+                                      target.core,
+                                      amount.core,
+                                      fee.core)
     }
 
     public enum FeeEstimationError: Error {
         case ServiceUnavailable
         case ServiceError
         case InsufficientFunds
+
+        static func fromStatus (_ status: BRCryptoStatus) -> FeeEstimationError {
+            switch status {
+            case CRYPTO_ERROR_FAILED: return .ServiceError
+            default: preconditionFailure ("Unknown FeeEstimateError")
+            }
+        }
     }
+
+
     ///
     /// Create a wallet
     ///
@@ -188,9 +200,11 @@ public final class Wallet: Equatable {
     ///
     internal init (core: BRCryptoWallet,
                    manager: WalletManager,
+                   callbackCoordinator: SystemCallbackCoordinator,
                    take: Bool) {
         self.core = take ? cryptoWalletTake (core) : core
         self.manager = manager
+        self.callbackCoordinator = callbackCoordinator
         self.unit = Unit (core: cryptoWalletGetUnit(core), take: false)
         self.unitForFee = Unit (core: cryptoWalletGetUnitForFee(core), take: false)
     }
@@ -271,8 +285,9 @@ public enum WalletEvent {
     case transferDeleted   (transfer: Transfer)
     case transferSubmitted (transfer: Transfer, success: Bool)
 
-    case balanceUpdated  (amount: Amount)
-    case feeBasisUpdated (feeBasis: TransferFeeBasis)
+    case balanceUpdated    (amount: Amount)
+    case feeBasisUpdated   (feeBasis: TransferFeeBasis)
+    case feeBasisEstimated (feeBasis: TransferFeeBasis)
 }
 
 extension WalletEvent: CustomStringConvertible {
@@ -287,6 +302,7 @@ extension WalletEvent: CustomStringConvertible {
         case .transferSubmitted: return "TransferSubmitted"
         case .balanceUpdated:    return "BalanceUpdated"
         case .feeBasisUpdated:   return "FeeBasisUpdated"
+        case .feeBasisEstimated: return "FeeBasisEstimated"
         }
     }
 }

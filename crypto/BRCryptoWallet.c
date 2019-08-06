@@ -546,11 +546,11 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
 }
 
 extern void
-    cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
-                                  BRCryptoCookie cookie,
-                                  BRCryptoAddress target,
-                                  BRCryptoAmount  amount,
-                                  BRCryptoNetworkFee fee) {
+cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
+                              BRCryptoCookie cookie,
+                              BRCryptoAddress target,
+                              BRCryptoAmount  amount,
+                              BRCryptoNetworkFee fee) {
     //    assert (cryptoWalletGetType (wallet) == cryptoFeeBasisGetType(feeBasis));
     switch (wallet->type) {
         case BLOCK_CHAIN_TYPE_BTC: {

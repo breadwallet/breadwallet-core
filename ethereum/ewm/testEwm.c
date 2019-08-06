@@ -462,8 +462,8 @@ clientEventWallet (BREthereumClientContext context,
                    BREthereumWalletEvent event,
                    BREthereumStatus status,
                    const char *errorDescription) {
-    fprintf (stdout, "ETH: TST: WalletEvent: wid=%p, ev=%d\n", wid, event);
-    switch (event) {
+    fprintf (stdout, "ETH: TST: WalletEvent: wid=%p, ev=%d\n", wid, event.type);
+    switch (event.type) {
         case WALLET_EVENT_BALANCE_UPDATED:
             signalBalance(context);
             break;
