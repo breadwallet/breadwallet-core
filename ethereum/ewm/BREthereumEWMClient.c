@@ -145,10 +145,10 @@ ewmGetGasEstimate (BREthereumEWM ewm,
                 BREthereumGasPrice gasPrice = feeBasisGetGasPrice (feeBasis);
                 BREthereumTransaction transaction = transferGetOriginatingTransaction(transfer);
 
-                char *from = addressGetEncodedString(transferGetSourceAddress(transfer), 1);
-                char *to = addressGetEncodedString(transferGetTargetAddress(transfer), 0);
-                char *amount = coerceStringPrefaced(amountInEther.valueInWEI, 16, "0x");
-                char *price = coerceStringPrefaced(gasPrice.etherPerGas.valueInWEI, 16, "0x");
+                char *from = addressGetEncodedString (transferGetEffectiveSourceAddress(transfer), 0);
+                char *to   = addressGetEncodedString (transferGetEffectiveTargetAddress(transfer), 0);
+                char *amount = coerceStringPrefaced (amountInEther.valueInWEI, 16, "0x");
+                char *price  = coerceStringPrefaced (gasPrice.etherPerGas.valueInWEI, 16, "0x");
                 char *data = (char *) transactionGetData(transaction);
 
                 ewm->client.funcEstimateGas (ewm->client.context,
