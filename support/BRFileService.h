@@ -38,7 +38,7 @@
 // stuff in a subdirectory specific to the manager+network+whatever for a given base path).  Allow
 // each WalletManager to further define 'persistent types' (peers, blocks, etc) saved.  Allow for
 // a versioning system (at least on read; everything gets written/saved w/ the latest version).
-// Allow an upgrade path from existing IOS/Andriod Sqlite3 databases.
+// Allow an upgrade path from existing IOS/Android Sqlite3 databases.
 //
 typedef struct BRFileServiceRecord *BRFileService;
 
@@ -129,8 +129,8 @@ extern void
 fileServiceClearAll (BRFileService fs);
 
 /**
- * A function type to produce an identifer from an entity.  The identifer must be constant for
- * a particulary entity through time.  The identifier is used to derive a filename (more generally
+ * A function type to produce an identifier from an entity.  The identifier must be constant for
+ * a particularly entity through time.  The identifier is used to derive a filename (more generally
  * a path and filename).
  */
 typedef UInt256

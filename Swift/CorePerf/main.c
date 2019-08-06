@@ -22,7 +22,7 @@ extern void
 runEWM_freeClient (BREthereumClient client);
 
 static void
-runSyncMany (BREthereumNetwork newtork,
+runSyncMany (BREthereumNetwork network,
              BREthereumMode mode,
              unsigned int durationInSeconds,
              unsigned int accounts) {

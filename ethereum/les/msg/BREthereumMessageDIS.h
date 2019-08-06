@@ -39,7 +39,7 @@ messageDISGetIdentifierName (BREthereumDISMessageIdentifier identifier);
 
 /**
  * A DIS Endpoint is commonly used to identify an INET address.  Sometimes a DIS Endpoint is
- * provided to identify from/to (like in the Ping/Pong mesages) and, most importantly, to identify
+ * provided to identify from/to (like in the Ping/Pong messages) and, most importantly, to identify
  * peers (like in the Neighbor message).
  */
 typedef struct {

@@ -54,7 +54,7 @@ struct BREventTypeRecord{
 };
 
 /**
- * A Event is an asynchronous occurance with an arbitrary set of data and a specified type.
+ * A Event is an asynchronous occurrence with an arbitrary set of data and a specified type.
  */
 struct BREventRecord {
     struct BREventRecord *next;
@@ -96,7 +96,7 @@ typedef struct {
 
 
 /**
- * Craete an event handler.
+ * Create an event handler.
  *
  * @param name the pthread name
  * @param types an array of event types

@@ -73,7 +73,7 @@
 
 int BRIntsTests()
 {
-    // test endianess
+    // test endianness
     
     int r = 1;
     union {

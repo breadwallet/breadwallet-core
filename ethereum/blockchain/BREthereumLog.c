@@ -23,10 +23,10 @@
  *
  * We have the same issue with transactions.  When a transaction is pending and a new block is
  * announced we search the pending transactions for a matching hash - if found we update the
- * transation to included.
+ * transaction to included.
  *
  * Referring to the Ethereum Yellow Paper, it appears that the only way to disambiguate Logs is
- * using the pair {Transaction-Hash, Receipt-Index}.  [One asumption here is that a given
+ * using the pair {Transaction-Hash, Receipt-Index}.  [One assumption here is that a given
  * transaction's contract execution must produced Logs is an deterministic order.]
  *
  * General Note: We only see Logs when they are included in a Block.  For every Log we thus know:
@@ -165,7 +165,7 @@ struct BREthereumLogRecord {
     BRRlpData data;
 
     /**
-     * A unique identifer - derived from the transactionHash and the transactionReceiptIndex
+     * A unique identifier - derived from the transactionHash and the transactionReceiptIndex
      */
     struct {
         /**

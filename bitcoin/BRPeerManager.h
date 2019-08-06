@@ -55,7 +55,7 @@ BRPeerManager *BRPeerManagerNew(const BRChainParams *params, BRWallet *wallet, u
 // void savePeers(void *, int, const BRPeer[], size_t) - called when peers should be saved to the persistent store
 // - if replace is true, remove any previously saved peers first
 // int networkIsReachable(void *) - must return true when networking is available, false otherwise
-// void threadCleanup(void *) - called before a thread terminates to faciliate any needed cleanup
+// void threadCleanup(void *) - called before a thread terminates to facilitate any needed cleanup
 void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
                                void (*syncStarted)(void *info),
                                void (*syncStopped)(void *info, int error),

@@ -387,7 +387,7 @@ runLogTests (void) {
 }
 
 //
-// Acount State
+// Account State
 //
 #define ACCOUNT_STATE_NONCE  1234
 #define ACCOUNT_STATE_BALANCE   5000000000

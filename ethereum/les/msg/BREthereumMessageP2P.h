@@ -130,7 +130,7 @@ messageP2PEncode (BREthereumP2PMessage message,
 extern BREthereumP2PMessage
 messageP2PDecode (BRRlpItem item,
                   BREthereumMessageCoder coder,
-                  BREthereumP2PMessageIdentifier identifer);
+                  BREthereumP2PMessageIdentifier identifier);
 
 extern void
 messageP2PRelease (BREthereumP2PMessage *message);

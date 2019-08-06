@@ -283,7 +283,7 @@ nodeStateDecode (BRRlpItem item,
  * will the provisioner be complete.
  */
 typedef struct {
-    /** The provision as a union of {reqeust, response} for each provision type. */
+    /** The provision as a union of {request, response} for each provision type. */
     BREthereumProvision provision;
 
     /** The node handling this provision.  How the provision is completed is determined by this
@@ -291,7 +291,7 @@ typedef struct {
     BREthereumNode node;
 
     /** The base message identifier.  If the provision applies to multiple messages, then
-     * the messages identifers will be sequential starting at this identifier */
+     * the messages identifiers will be sequential starting at this identifier */
     size_t messageIdentifier;
 
     /** The count of messages */
@@ -456,7 +456,7 @@ provisionerRelease (BREthereumNodeProvisioner *provisioner,
 struct BREthereumNodeRecord {
     // Must be first to support BRSet.
     /**
-     * The identifer is the hash of the remote node endpoing.
+     * The identifier is the hash of the remote node endpoing.
      */
     BREthereumHash hash;
 
@@ -668,7 +668,7 @@ nodeCreate (BREthereumNodePriority priority,
         node->states[route] = nodeStateCreate(NODE_AVAILABLE);
 
     // Save the local and remote nodes.
-    *((BREthereumNodeEndpoint *) &node->local)  = local; // this allows assignement to 'const'
+    *((BREthereumNodeEndpoint *) &node->local)  = local; // this allows assignment to 'const'
     node->remote = remote;
 
     // Compute the 'DIS Distance' between the two endpoints.  We'll favor nodes with a
@@ -953,7 +953,7 @@ nodeProcessRecvP2P (BREthereumNode node,
             break;
 
         case P2P_MESSAGE_PING: {
-            // Immediately send a poing message
+            // Immediately send a pong message
             BREthereumMessage pong = {
                 MESSAGE_P2P,
                 { .p2p = {
@@ -1288,7 +1288,7 @@ nodeStatusIsSufficient (BREthereumNode node) {
             return 0;
     }
 
-    // Must Relay Tranactions
+    // Must Relay Transactions
     if (!messageP2PStatusExtractValue( &remStatus, P2P_MESSAGE_STATUS_TX_RELAY, &remValue) ||
         ETHEREUM_BOOLEAN_IS_FALSE(remValue.u.boolean))
         return 0;
@@ -1361,7 +1361,7 @@ nodeProcess (BREthereumNode node,
                 nodeUpdateTimeoutRecv(node, now);   // override prior timeout; expect a response.
 
                 // Send if we can.  Really only applies to provision messages, for PIP and LES, using
-                // the TCP route.  We might have multiple provisiones to deal with but we'll send them
+                // the TCP route.  We might have multiple provisions to deal with but we'll send them
                 // one at a time to avoid potential blocking.
                 switch (route) {
                     case NODE_ROUTE_UDP:
@@ -1430,7 +1430,7 @@ nodeProcess (BREthereumNode node,
                         return nodeProcessFailure (node, NODE_ROUTE_TCP, NULL, nodeStateCreateErrorProtocol(NODE_PROTOCOL_TCP_AUTHENTICATION));
                     }
 
-                    // Initilize the frameCoder with the information from the auth
+                    // Initialize the frameCoder with the information from the auth
                     frameCoderInit(node->frameCoder,
                                    nodeEndpointGetEphemeralKey(node->remote), nodeEndpointGetNonce(node->remote),
                                    nodeEndpointGetEphemeralKey(node->local), nodeEndpointGetNonce(node->local),
@@ -1654,7 +1654,7 @@ nodeProcess (BREthereumNode node,
                     // Finally, CONNECTED
                     nodeProcessSuccess (node, NODE_ROUTE_TCP, NULL, nodeStateCreateConnected());
 
-                    // 'Announce' the STATUS message.  Pass owership of 'message'
+                    // 'Announce' the STATUS message.  Pass ownership of 'message'
                     switch (node->type) {
                         case NODE_TYPE_UNKNOWN:
                             assert (0);

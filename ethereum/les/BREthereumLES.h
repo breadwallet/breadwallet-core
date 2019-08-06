@@ -57,7 +57,7 @@ nodeConfigHashEqual (const void *h1, const void *h2);
  * @typedef BREthereumLES
  *
  * @abstract
- * An instance to handle LES functionalty.
+ * An instance to handle LES functionality.
  */
 typedef struct BREthereumLESRecord *BREthereumLES;
 
@@ -106,7 +106,7 @@ typedef void *BREthereumNodeReference;
  *@typedef BREthereumLESStatus
  *
  * @abstract
- * An enumeration for deteremining the error that occured when submitting messages using LES
+ * An enumeration for deteremining the error that occurred when submitting messages using LES
  */
 typedef enum {
     LES_SUCCESS                   = 0x00,  // No error was generated after submtting a message using LES

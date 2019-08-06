@@ -20,7 +20,7 @@ extern "C" {
 /**
  * An Ethereum Transaction Status Type is an enumeration of the results of transaction
  * submission to the Ethereum P2P network.  [In practice, these may only be specified in
- * the Geth LESv{1,2} specification; not more generally in the Ethereum specifcation}.
+ * the Geth LESv{1,2} specification; not more generally in the Ethereum specification].
  */
 typedef enum {
     /**
@@ -187,7 +187,7 @@ lookupTransactionErrorType (const char *reasons[],
 //     // maximum allowance of the current block.
 //     ErrGasLimit = errors.New("exceeds block gas limit")
 //
-//     // ErrNegativeValue is a sanity error to ensure noone is able to specify a
+//     // ErrNegativeValue is a sanity error to ensure no one is able to specify a
 //     // transaction with a negative value.
 //     ErrNegativeValue = errors.New("negative value")
 //
@@ -240,7 +240,7 @@ lookupTransactionErrorType (const char *reasons[],
 //    InvalidGasLimit(OutOfBounds<U256>),
 //    /// Transaction sender is banned.
 //    SenderBanned,
-//    /// Transaction receipient is banned.
+//    /// Transaction recipient is banned.
 //    RecipientBanned,
 //    /// Contract creation code is banned.
 //    CodeBanned,

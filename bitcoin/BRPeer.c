@@ -61,7 +61,7 @@
 // - remote peer reponds with inv containing up to 500 block hashes
 // - local peer sends getdata with the block hashes
 // - remote peer responds with multiple merkleblock and tx messages
-// - remote peer sends inv containg 1 hash, of the most recent block
+// - remote peer sends inv containing 1 hash, of the most recent block
 // - local peer sends getdata with the most recent block hash
 // - remote peer responds with merkleblock
 // - if local peer can't connect the most recent block to the chain (because it started more than 500 blocks behind), go
@@ -885,7 +885,7 @@ static int _BRPeerOpenSocket(BRPeer *peer, int domain, double timeout, int *erro
         setsockopt(ctx->socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
         setsockopt(ctx->socket, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
         setsockopt(ctx->socket, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on));
-#ifdef SO_NOSIGPIPE // BSD based systems have a SO_NOSIGPIPE socket option to supress SIGPIPE signals
+#ifdef SO_NOSIGPIPE // BSD based systems have a SO_NOSIGPIPE socket option to suppress SIGPIPE signals
         setsockopt(ctx->socket, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
 #endif
         arg = fcntl(ctx->socket, F_GETFL, NULL);
@@ -1157,7 +1157,7 @@ BRPeer *BRPeerNew(uint32_t magicNumber)
 // void notfound(void *, const UInt256[], size_t, const UInt256[], size_t) - called when "notfound" message is received
 // BRTransaction *requestedTx(void *, UInt256) - called when "getdata" message with a tx hash is received from peer
 // int networkIsReachable(void *) - must return true when networking is available, false otherwise
-// void threadCleanup(void *) - called before a thread terminates to faciliate any needed cleanup
+// void threadCleanup(void *) - called before a thread terminates to facilitate any needed cleanup
 void BRPeerSetCallbacks(BRPeer *peer, void *info,
                         void (*connected)(void *info),
                         void (*disconnected)(void *info, int error),
@@ -1344,7 +1344,7 @@ uint64_t BRPeerFeePerKb(BRPeer *peer)
     return feePerKb;
 }
 
-#ifndef MSG_NOSIGNAL   // linux based systems have a MSG_NOSIGNAL send flag, useful for supressing SIGPIPE signals
+#ifndef MSG_NOSIGNAL   // linux based systems have a MSG_NOSIGNAL send flag, useful for suppressing SIGPIPE signals
 #define MSG_NOSIGNAL 0 // set to 0 if undefined (BSD has the SO_NOSIGPIPE sockopt, and windows has no signals at all)
 #endif
 

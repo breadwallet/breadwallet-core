@@ -56,7 +56,7 @@ installSharedWordList (const char *wordList[], int wordListLength) {
 // Address Detail
 
 /**
- * An EthereumAddress is as '0x'-prefixed, hex-encoded string with an overall lenght of 42
+ * An EthereumAddress is as '0x'-prefixed, hex-encoded string with an overall length of 42
  * characters.  Addresses can be explicitly provided - such as with a 'send to' addresses; or can
  * be derived using BIP44 scheme - such as with internal addresses.
  */

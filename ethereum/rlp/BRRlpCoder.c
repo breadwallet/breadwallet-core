@@ -318,7 +318,7 @@ itemCreateList (BRRlpCoder coder,
 
 /**
  * Return a new BRRlpContext by appending the two provided contexts.  Both provided contexts
- * must be for CODER_ITEM (othewise an 'assert' is raised); the appending is performed by simply
+ * must be for CODER_ITEM (otherwise an 'assert' is raised); the appending is performed by simply
  * concatenating the two context's byte arrays.
  *
  * If release is TRUE, then both the provided contexts are released; thereby freeing their memory.
@@ -466,7 +466,7 @@ coderEncodeLength (BRRlpCoder coder, uint64_t length, uint8_t baseline) {
 #endif
 
 /**
- * The value of `length` is used throughout for memcpy() and releated functions; it must
+ * The value of `length` is used throughout for memcpy() and related functions; it must
  * be a valid `size_t` type.  Ethereum RLP defines a length as a maximum of 8 bytes which
  * for some (32-bit) architures will be larger then size_t.  On such an architecute,
  * which is becoming ever rarer, we'll uncerimoniously fatal if `length` is too big.
@@ -619,7 +619,7 @@ coderEncodeList (BRRlpCoder coder, BRRlpItem *items, size_t itemsCount) {
     // Acquire an item
     BRRlpItem item = rlpCoderAcquireItem(coder);
 
-    // Eventually fill these by concatentating bytes from each of `items`
+    // Eventually fill these by concatenating bytes from each of `items`
     size_t bytesCount = 0;
 
     // Determine the number of concatenated bytes...
@@ -955,7 +955,7 @@ rlpGetItem_FillData (BRRlpCoder coder, uint8_t *bytes) {
 #define DEFAULT_ITEM_INCREMENT 20
 
 /**
- * Convet the bytes in `data` into an `item`.  If `data` represents a RLP list, then `item` will
+ * Convert the bytes in `data` into an `item`.  If `data` represents a RLP list, then `item` will
  * represent a list.
  */
 extern BRRlpItem

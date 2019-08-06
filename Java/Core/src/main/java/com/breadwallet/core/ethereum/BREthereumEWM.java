@@ -53,7 +53,7 @@ public class BREthereumEWM extends BRCoreJniReference {
         // Transaction
         ERROR_TRANSACTION_X,
 
-        // Acount
+        // Account
         // Wallet
         // Block
         // Listener

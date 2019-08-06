@@ -36,7 +36,7 @@ bloomFilterCreateEmpty (void) {
 }
 
 /**
- * 'Designated Contructor' for BloomFilter
+ * 'Designated Constructor' for BloomFilter
  */
 extern BREthereumBloomFilter
 bloomFilterCreateHash (const BREthereumHash hash) {

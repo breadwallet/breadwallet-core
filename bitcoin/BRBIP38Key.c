@@ -144,7 +144,7 @@ int BRKeySetBIP38Key(BRKey *key, const char *bip38Key, const char *passphrase)
         var_clean(&derived1, &derived2);
         var_clean(&encrypted1, &encrypted2);
     }
-    else if (prefix == BIP38_EC_PREFIX) { // EC multipled key
+    else if (prefix == BIP38_EC_PREFIX) { // EC multiplied key
         // data = prefix + flag + addresshash + entropy + encrypted1[0...7] + encrypted2
         const uint8_t *entropy = &data[7];
         UInt128 encrypted1 = UINT128_ZERO, encrypted2 = UInt128Get(&data[23]);

@@ -21,10 +21,10 @@ The EWM uses a 'client' - typically implemented in the IOS or Android applicatio
 used to gather data from BRD Services and to announce Events related to changes in EWM, Wallet or
 Transaction states. 
 
-The EWM synchronizes based on a specfied mode.  If the mode is 'BRD_ONLY' then EWM uses BRD (cloud)
+The EWM synchronizes based on a specified mode.  If the mode is 'BRD_ONLY' then EWM uses BRD (cloud)
 services to get a User's transactions and logs (using the public address).  If the mode is
 'P2P_ONLY' then EWM uses the P2P network for synchronization.  A unique algorithm is used to rapidly
-sync the entire block chain (however, a limitation in the algorihm requires BRD services to provide
+sync the entire block chain (however, a limitation in the algorithm requires BRD services to provide
 ERC20  events there address is the target). There are other intermeiate modes which use a
 combination of BRD+P2P for synchronization and transfer submission.
 
@@ -33,9 +33,9 @@ transaction and log), Amount and Account.
 
 ### BCS
 
-Implements a 'Block Chain Slice' (BCS) which is the 'slice' of the Ethereum block chain relevent to
+Implements a 'Block Chain Slice' (BCS) which is the 'slice' of the Ethereum block chain relevant to
 the User's address.  The BCS chains together blocks (as blocks are announced by the P2P network) and
-keeps set of transations and logs.  When a transaction or log is discovered it is announced to the
+keeps set of transactions and logs.  When a transaction or log is discovered it is announced to the
 EWM where it is maintained in the corresponding wallet (ETH for transactions, a 'wallet holding
 <TOKEN>' or logs).
 

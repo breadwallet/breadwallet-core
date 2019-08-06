@@ -467,7 +467,7 @@ size_t BRWalletTxUnconfirmedBefore(BRWallet *wallet, BRTransaction *transactions
     return txCount;
 }
 
-// total amount spent from the wallet (exluding change)
+// total amount spent from the wallet (excluding change)
 uint64_t BRWalletTotalSent(BRWallet *wallet)
 {
     uint64_t totalSent;
@@ -479,7 +479,7 @@ uint64_t BRWalletTotalSent(BRWallet *wallet)
     return totalSent;
 }
 
-// total amount received by the wallet (exluding change)
+// total amount received by the wallet (excluding change)
 uint64_t BRWalletTotalReceived(BRWallet *wallet)
 {
     uint64_t totalReceived;
@@ -532,7 +532,7 @@ BRAddress BRWalletLegacyAddress(BRWallet *wallet)
     return addr;
 }
 
-// writes all addresses previously genereated with BRWalletUnusedAddrs() to addrs
+// writes all addresses previously generated with BRWalletUnusedAddrs() to addrs
 // returns the number addresses written, or total number available if addrs is NULL
 size_t BRWalletAllAddrs(BRWallet *wallet, BRAddress addrs[], size_t addrsCount)
 {
@@ -602,7 +602,7 @@ BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, uint64_t amount, cons
     return BRWalletCreateTxForOutputs(wallet, &o, 1);
 }
 
-// returns an unsigned transaction that satisifes the given transaction outputs
+// returns an unsigned transaction that satisfies the given transaction outputs
 // result must be freed by calling BRTransactionFree()
 BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput outputs[], size_t outCount)
 {
@@ -811,7 +811,7 @@ void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash)
     if (tx) {
         array_new(hashes, 0);
 
-        for (size_t i = array_count(wallet->transactions); i > 0; i--) { // find depedent transactions
+        for (size_t i = array_count(wallet->transactions); i > 0; i--) { // find dependent transactions
             t = wallet->transactions[i - 1];
             if (t->blockHeight < tx->blockHeight) break;
             if (BRTransactionEq(tx, t)) continue;
@@ -1055,7 +1055,7 @@ uint64_t BRWalletAmountReceivedFromTx(BRWallet *wallet, const BRTransaction *tx)
     return amount;
 }
 
-// returns the amount sent from the wallet by the trasaction (total wallet outputs consumed, change and fee included)
+// returns the amount sent from the wallet by the transaction (total wallet outputs consumed, change and fee included)
 uint64_t BRWalletAmountSentByTx(BRWallet *wallet, const BRTransaction *tx)
 {
     uint64_t amount = 0;

@@ -106,7 +106,7 @@ bcsCreateInitializeBlocks (BREthereumBCS bcs,
     // `blocks` - might have gaps (missing parent/child); might have duplicates.  Likely, we must
     // be willing to create orphans, to discard/ignore blocks, and what.
     //
-    // We'll sort `blocks` ascending by {blockNumber, timestamp}. Then we'll interate and chain
+    // We'll sort `blocks` ascending by {blockNumber, timestamp}. Then we'll iterate and chain
     // them together while ignoring any duplicates/orphans.
     size_t sortedBlocksCount = BRSetCount(blocks);
     BREthereumBlock sortedBlocks[sortedBlocksCount];
@@ -122,7 +122,7 @@ bcsCreateInitializeBlocks (BREthereumBCS bcs,
             blockGetNumber(block) == blockGetNumber(sortedBlocks[i+1]))
             continue;
 
-        // TODO: Check for orpahns
+        // TODO: Check for orphans
 
         BRSetAdd(bcs->blocks, block);
         bcsExtendChain(bcs, block, "Chained (from Saved)");
@@ -791,7 +791,7 @@ bcsExtendChain (BREthereumBCS bcs,
 }
 
 /**
- * Find the minumum block number amoung orphans. I think we can use this to identify when
+ * Find the minimum block number among orphans. I think we can use this to identify when
  * syncing is done... except when the block is a true orphan.
  */
 static uint64_t
@@ -817,7 +817,7 @@ bcsPurgeOrphans (BREthereumBCS bcs,
     // don't orphan when we are syncing from the genesis block.
     if (blockNumber <= BCS_ORPHAN_AGE_OFFSET) return;
 
-    // Modify blockNumber for comparision with orphans
+    // Modify blockNumber for comparison with orphans
     blockNumber -= BCS_ORPHAN_AGE_OFFSET;
 
     // Look through all the orphans; remove those with old/small block numbers.  But, don't purge
@@ -1059,7 +1059,7 @@ bcsIsBlockValid (BREthereumBCS bcs,
 }
 
 /**
- * Extends `bcs->transactions` and `bcs->logs` with the tranactions and logs within `block`.
+ * Extends `bcs->transactions` and `bcs->logs` with the transactions and logs within `block`.
  * Requires `block` to be in 'complete' and in `bcs->chain`.
  */
 static void
@@ -1163,18 +1163,18 @@ bcsExtendChainIfPossible (BREthereumBCS bcs,
             // If `block` is an orphan, then it's parent is not in bcs->chain.  That could be
             // because there is just a fork developing or that we've fallen behind.  Attempt a
             // sync to recover (might not actually perform a sync - just attempt).
-            uint64_t orphanBlockNumberMinumum = bcsGetOrphanBlockNumberMinimum(bcs);
-            if (UINT64_MAX != orphanBlockNumberMinumum)
+            uint64_t orphanBlockNumberMinimum = bcsGetOrphanBlockNumberMinimum(bcs);
+            if (UINT64_MAX != orphanBlockNumberMinimum)
 #if defined (BCS_SHOW_ORPHANS)
                 if (ETHEREUM_BOOLEAN_IS_FALSE (bcsSyncIsActive(bcs->sync)))
                     bcsOrphansShow (bcs, ETHEREUM_BOOLEAN_TRUE);
 #endif
                 // Note: This can be an invalid range.  Say we have a old orphan that hasn't
-                // been purged yet.. might be that orphanBlockNumberMinumum is in the past.
+                // been purged yet.. might be that orphanBlockNumberMinimum is in the past.
                 // In `bcsSyncRange()` we'll check for a valid range.
                 bcsSyncRange (bcs, node,
                               blockGetNumber(bcs->chain),
-                              orphanBlockNumberMinumum);
+                              orphanBlockNumberMinimum);
 
             return;
         }
@@ -1201,7 +1201,7 @@ bcsExtendChainIfPossible (BREthereumBCS bcs,
         }
     }
 
-    // 3) othewise, we have a new `block` that links to a parent that is somewhere in the
+    // 3) otherwise, we have a new `block` that links to a parent that is somewhere in the
     // chain.  All headers from chain back to parent are now orphans.  In practice, there might
     // be only one (or two or three) orphans.
     //
@@ -1316,7 +1316,7 @@ bcsHandleBlockHeaderInternal (BREthereumBCS bcs,
     // and avoid account state (getting account state might allow us to avoid getting block bodies;
     // however, the client cost to get the account state is ~2.5 times more then getting block
     // bodies so we'll just get block bodies and compute the account state).  We'll need the 'header
-    // proof' occassionally so that we can build on the block chain's total difficulty and
+    // proof' occasionally so that we can build on the block chain's total difficulty and
     // ultimately our Proof-of-Work validations.
     BREthereumBoolean needBodies   = bcsBlockHasMatchingTransactions(bcs, block);
     BREthereumBoolean needReceipts = bcsBlockHasMatchingLogs(bcs, block);
@@ -1539,7 +1539,7 @@ bcsHandleBlockBody (BREthereumBCS bcs,
             eth_log("BCS", "Bodies %" PRIu64 " Found Transaction at %d",
                     blockGetNumber(block), i);
 
-            // We'll need a copy of the transaction as the orginal transaction is held in `block`
+            // We'll need a copy of the transaction as the original transaction is held in `block`
             // and this transaction (the copy) will go into `needTransactions` for 'block status'
             // reporting.
             tx = transactionCopy(tx);
@@ -1564,7 +1564,7 @@ bcsHandleBlockBody (BREthereumBCS bcs,
     if (NULL != neededTransactions) {
         // Once we've identified a transaction we must get additional information:
 
-        // 1) Get the receipts - because the receipts hold the cummulative gasUsed which will use
+        // 1) Get the receipts - because the receipts hold the cumulative gasUsed which will use
         //    to compute the gasUsed by each transaction.
         if (ETHEREUM_BOOLEAN_IS_TRUE (blockHasStatusLogsRequest (block, BLOCK_REQUEST_NOT_NEEDED))) {
             blockReportStatusLogsRequest (block, BLOCK_REQUEST_PENDING);
@@ -1761,7 +1761,7 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
                     // transaction status - which must be distinct from the receipts.
                     log = logCopy(log);
 
-                    // We must save `li`, it identifies this log amoung other logs in transaction.
+                    // We must save `li`, it identifies this log among other logs in transaction.
                     // We won't have the transaction hash so we'll use an empty one.
                     logInitializeIdentifier(log, emptyHash, logIndexInBlock);
 
@@ -1784,7 +1784,7 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
         else logIndexInBlock += transactionReceiptGetLogsCount (receipt);
     }
 
-    // Use the cummulative gasUsed, in each receipt, to compute the gasUsed for each transaction.
+    // Use the cumulative gasUsed, in each receipt, to compute the gasUsed for each transaction.
     // Note that we compute gasUsed for each and every transaction, even if the transaction is not
     // one of ours - simply because we can't know our transactions here.  (We do know transactions
     // for our logs here, but only those transactions).
@@ -1862,7 +1862,7 @@ bcsHandleTransactionReceiptsMultiple (BREthereumBCS bcs,
 // the status (leave the hash in `bcs->pendingTransactions` list) unless the state is ERORRED.
 // (If the new state is INCLUDED, we'll fall back to 'a' in a subsequent handler call.
 //
-// In case 'b' the transaction is INCLUDED in the chain but the BlockBodies tranaction data
+// In case 'b' the transaction is INCLUDED in the chain but the BlockBodies transaction data
 // does not include `gasUsed`.  We want the 'gasUsed' value.
 //
 
@@ -1877,7 +1877,7 @@ bcsHandleTransactionReceiptsMultiple (BREthereumBCS bcs,
  *
  * A status is requested from *all* connected nodes.  Those nodes have been observed to report
  * nearly anything.  Specifically, some apparently busy nodes transition to QUEUED or PENDING
- * back to UNKNONWN, mysteriously.  Another node might progress to INCLUDED while the other nodes
+ * back to UNKNOWN, mysteriously.  Another node might progress to INCLUDED while the other nodes
  * are still in PENDING.  We also anticipate that some nodes may be broken (or worse malicious) and
  * report something randomish (always ERROR, always UNKNOWN, etc).  How to resolve the conflicts?
  *
@@ -1896,7 +1896,7 @@ bcsHandleTransactionReceiptsMultiple (BREthereumBCS bcs,
  *
  *  b) if a node reports a transaction as errored (other than 'dropped'), we'll remove the
  *     transaction from pending and mark the transaction as ERRORED.  It is posslble that the
- *     transaction does get included in a subsequently announced block.  Having the tranaction
+ *     transaction does get included in a subsequently announced block.  Having the transaction
  *     subsequently included implies a race condition between nodes, I think.  Note: we'll only
  *     remote from pending if two back-to-back statuses report the same error.
  *
@@ -1929,7 +1929,7 @@ bcsHandleTransactionStatus (BREthereumBCS bcs,
     BREthereumTransaction transaction = BRSetGet(bcs->transactions, &transactionHash);
     if (NULL == transaction) return;
 
-    // Get the hash string - soley for eth_log() output.
+    // Get the hash string - solely for eth_log() output.
     BREthereumHashString hashString;
     hashFillString(transactionHash, hashString);
 
@@ -2023,7 +2023,7 @@ bcsHandleTransactionStatuses (BREthereumBCS bcs,
 }
 
 //
-// Periodicaly get the transaction status for all pending transaction.  The event will be NULL
+// Periodically get the transaction status for all pending transaction.  The event will be NULL
 // (as specified for a 'period dispatcher' - See `eventHandlerSetTimeoutDispatcher()`)
 //
 static void
@@ -2073,9 +2073,9 @@ bcsPeriodicDispatcher (BREventHandler handler,
  * Handle a transaction by adding it to the set of BCS transactions and then announcing the
  * transaction with the listener's `transactionCallback`.
  *
- * NOTE: For implementation, this is the *only place* where `bcs->transactions` is extented w/ the
+ * NOTE: For implementation, this is the *only place* where `bcs->transactions` is extended w/ the
  * transaction and also the *only place* where the callback is invoked.  This method in invoked
- * when a tranaction: a) is submitted, b) is found in a block, c) is provided during BCS
+ * when a transaction: a) is submitted, b) is found in a block, c) is provided during BCS
  * initialization and d) has its status updated.  For a, b & c, the transaction will be added to
  * bcs->transactions.
  *

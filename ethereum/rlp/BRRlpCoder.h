@@ -69,7 +69,7 @@ extern void
 rlpReleaseItem (BRRlpCoder coder, BRRlpItem item);
 
 /**
- * Convet the bytes in `data` into an `item`.  If `data` represents a RLP list, then `item` will
+ * Convert the bytes in `data` into an `item`.  If `data` represents a RLP list, then `item` will
  * represent a list (thus `data` is 'walked' to identify subitems, including sublists).
  */
 extern BRRlpItem

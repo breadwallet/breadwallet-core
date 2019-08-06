@@ -52,7 +52,7 @@ extern BREthereumLESRandomContext randomCreate(const void *seed, size_t seedLen)
     // K and V must point to buffers of size hashLen, and ps (personalization string) may be NULL
     // to generate additional drbg output, use K and V from the previous call, and set seed, nonce and ps to NULL
     uint8_t dummy;
-    //Run the DRB intially to set the K and V for subsequent calls to random context
+    //Run the DRB initially to set the K and V for subsequent calls to random context
     BRHMACDRBG(&dummy, 0, ctx->k, ctx->v, BRKeccak256, KECCAK_HASH_SIZE, seed, seedLen, nonce, NONCE_SIZE, NULL, 0);
     
     return ctx;

@@ -215,8 +215,8 @@ messageP2PEncode (BREthereumP2PMessage message, BREthereumMessageCoder coder) {
 extern BREthereumP2PMessage
 messageP2PDecode (BRRlpItem item,
                   BREthereumMessageCoder coder,
-                  BREthereumP2PMessageIdentifier identifer) {
-    switch (identifer) {
+                  BREthereumP2PMessageIdentifier identifier) {
+    switch (identifier) {
         case P2P_MESSAGE_HELLO:
             return (BREthereumP2PMessage) {
                 P2P_MESSAGE_HELLO,

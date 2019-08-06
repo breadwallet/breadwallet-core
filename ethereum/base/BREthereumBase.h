@@ -76,8 +76,8 @@ typedef enum {
     BRD_WITH_P2P_SEND,
 
     /**
-     * We'll use the BRD endpoint to identiy blocks of interest based on ETH and TOK transfer
-     * where our addres is the SOURCE or TARGET. We'll only process blocks from the last N (~ 2000)
+     * We'll use the BRD endpoint to identity blocks of interest based on ETH and TOK transfer
+     * where our address is the SOURCE or TARGET. We'll only process blocks from the last N (~ 2000)
      * blocks in the chain.
      */
     P2P_WITH_BRD_SYNC,
@@ -119,7 +119,7 @@ syncInterestMatch(BREthereumSyncInterestSet interests,
  * An Ethereum Transfer Status is an enumeration of a transfer's states/status.
  *
  * A transfer status extends the 'Ethereum Transaction Status' (which is defined in the Ethereum
- * specfication) to include more 'life cycle' events such as 'created', 'cancelled, 'replaced' and
+ * specification) to include more 'life cycle' events such as 'created', 'cancelled, 'replaced' and
  * 'deleted'.  Thus a transfer status is IOS/Android application focused - not P2P network focused.
  */
 typedef enum {

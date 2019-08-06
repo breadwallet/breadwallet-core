@@ -34,7 +34,7 @@ decodeHex (uint8_t *target, size_t targetLen, const char *source, size_t sourceL
 /**
  * Return the number `uint8_t *' elements needed to decode stringLen characters.  The provided
  * stringLen is the strlen() return (and even number is required); the provided stringLen *DOES NOT*
- * include the null terminator.  the return value is appropraite for malloc() or alloca() calls.
+ * include the null terminator.  the return value is appropriate for malloc() or alloca() calls.
  *
  * @param stringLen
  * @return

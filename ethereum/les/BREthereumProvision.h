@@ -166,7 +166,7 @@ provisionSubmissionConsume (BREthereumProvisionSubmission *provision,
 /// MARK: - Provision
 
 /**
- * A Provision Identifer.
+ * A Provision Identifier.
  */
 typedef size_t BREthereumProvisionIdentifier;
 

@@ -258,7 +258,7 @@ _checkBlockHeaderWithTest (BREthereumLESProvisionContext context,
     return ETHEREUM_BOOLEAN_TRUE;
 }
 
-void _GetBlockHeaders_Calllback_Test5 (BREthereumLESProvisionContext context,
+void _GetBlockHeaders_Callback_Test5 (BREthereumLESProvisionContext context,
                                        BREthereumLES les,
                                        BREthereumNodeReference node,
                                        BREthereumProvisionResult result) {
@@ -279,7 +279,7 @@ void _GetBlockHeaders_Calllback_Test5 (BREthereumLESProvisionContext context,
 }
 
 
-void _GetBlockHeaders_Calllback_Test4 (BREthereumLESProvisionContext context,
+void _GetBlockHeaders_Callback_Test4 (BREthereumLESProvisionContext context,
                                        BREthereumLES les,
                                        BREthereumNodeReference node,
                                        BREthereumProvisionResult result) {
@@ -293,7 +293,7 @@ void _GetBlockHeaders_Calllback_Test4 (BREthereumLESProvisionContext context,
     _signalTestComplete();
 }
 
-void _GetBlockHeaders_Calllback_Test3 (BREthereumLESProvisionContext context,
+void _GetBlockHeaders_Callback_Test3 (BREthereumLESProvisionContext context,
                                        BREthereumLES les,
                                        BREthereumNodeReference node,
                                        BREthereumProvisionResult result) {
@@ -306,7 +306,7 @@ void _GetBlockHeaders_Calllback_Test3 (BREthereumLESProvisionContext context,
     _checkBlockHeaderWithTest (context, result, &_blockHeaderTestData[_GetBlockHeaders_Context3], 2);
     _signalTestComplete();
 }
-void _GetBlockHeaders_Calllback_Test2 (BREthereumLESProvisionContext context,
+void _GetBlockHeaders_Callback_Test2 (BREthereumLESProvisionContext context,
                                        BREthereumLES les,
                                        BREthereumNodeReference node,
                                        BREthereumProvisionResult result) {
@@ -320,7 +320,7 @@ void _GetBlockHeaders_Calllback_Test2 (BREthereumLESProvisionContext context,
     _signalTestComplete();
 }
 
-void _GetBlockHeaders_Calllback_Test1 (BREthereumLESProvisionContext context,
+void _GetBlockHeaders_Callback_Test1 (BREthereumLESProvisionContext context,
                                        BREthereumLES les,
                                        BREthereumNodeReference node,
                                        BREthereumProvisionResult result) {
@@ -336,14 +336,14 @@ void _GetBlockHeaders_Calllback_Test1 (BREthereumLESProvisionContext context,
 
 static void
 run_GetBlockHeaders_Tests (BREthereumLES les){
-    //Initialze test
+    //Initialize test
     _initTest(5);
 
     //Request block headers 4732522, 4732523, 4732524
     _GetBlockHeaders_Context1 = BLOCK_4732522_IDX;
     lesProvideBlockHeaders (les, NODE_REFERENCE_ANY,
                             (void*)&_GetBlockHeaders_Context1,
-                            _GetBlockHeaders_Calllback_Test1,
+                            _GetBlockHeaders_Callback_Test1,
                             _blockHeaderTestData[BLOCK_4732522_IDX].blockNum,
                             3, 0, ETHEREUM_BOOLEAN_FALSE);
 
@@ -351,7 +351,7 @@ run_GetBlockHeaders_Tests (BREthereumLES les){
     _GetBlockHeaders_Context2 = BLOCK_4732522_IDX;
     lesProvideBlockHeaders (les, NODE_REFERENCE_ANY,
                             (void*)&_GetBlockHeaders_Context2,
-                            _GetBlockHeaders_Calllback_Test2,
+                            _GetBlockHeaders_Callback_Test2,
                             _blockHeaderTestData[BLOCK_4732522_IDX].blockNum,
                             3, 0, ETHEREUM_BOOLEAN_TRUE);
 
@@ -359,7 +359,7 @@ run_GetBlockHeaders_Tests (BREthereumLES les){
     _GetBlockHeaders_Context3 = BLOCK_4732522_IDX;
     lesProvideBlockHeaders (les, NODE_REFERENCE_ANY,
                             (void*)&_GetBlockHeaders_Context3,
-                            _GetBlockHeaders_Calllback_Test3,
+                            _GetBlockHeaders_Callback_Test3,
                             _blockHeaderTestData[BLOCK_4732522_IDX].blockNum,
                             2, 1, ETHEREUM_BOOLEAN_FALSE);
 
@@ -367,14 +367,14 @@ run_GetBlockHeaders_Tests (BREthereumLES les){
     _GetBlockHeaders_Context4 = BLOCK_4732522_IDX;
     lesProvideBlockHeaders (les, NODE_REFERENCE_ANY,
                             (void*)&_GetBlockHeaders_Context4,
-                            _GetBlockHeaders_Calllback_Test4,
+                            _GetBlockHeaders_Callback_Test4,
                             _blockHeaderTestData[BLOCK_4732522_IDX].blockNum,
                             2, 1, ETHEREUM_BOOLEAN_TRUE) ;
 
     _GetBlockHeaders_Context5 = BLOCK_4732522_IDX;
     lesProvideBlockHeaders (les, NODE_REFERENCE_ANY,
                             (void*)&_GetBlockHeaders_Context5,
-                            _GetBlockHeaders_Calllback_Test5,
+                            _GetBlockHeaders_Callback_Test5,
                             _blockHeaderTestData[BLOCK_4732522_IDX].blockNum,
                             200, 0, ETHEREUM_BOOLEAN_FALSE) ;
 
@@ -389,7 +389,7 @@ run_GetBlockHeaders_Tests (BREthereumLES les){
 //
 static const int _GetBlockProofs_Context1 = 1;
 
-void _GetBlockProofs_Calllback_Test1 (BREthereumLESProvisionContext context,
+void _GetBlockProofs_Callback_Test1 (BREthereumLESProvisionContext context,
                                       BREthereumLES les,
                                       BREthereumNodeReference node,
                                       BREthereumProvisionResult result) {
@@ -423,7 +423,7 @@ run_GetBlookProofs_Tests (BREthereumLES les) {
 
     lesProvideBlockProofsOne (les, NODE_REFERENCE_ANY,
                               (void*)&_GetBlockProofs_Context1,
-                              _GetBlockProofs_Calllback_Test1,
+                              _GetBlockProofs_Callback_Test1,
                               6000000);
     _waitForTests();
 
@@ -550,11 +550,11 @@ _GetTxStatus_Test1_Callback (BREthereumLESProvisionContext context,
 static void
 run_GetTxStatus_Tests (BREthereumLES les) {
     
-    // Prepare values to be given to a send tranactions status message
+    // Prepare values to be given to a send transactions status message
     BREthereumHash transaction1Hash = hashCreate("0xc070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c");
     BREthereumHash transaction2Hash = hashCreate("0x78453edd2955e6ef6b200f5f9b98b3940d0d3f1528f902e7e855df56bf934cc5");
     
-    //Initilize testing state
+    //Initialize testing state
     _initTest(2);
     
     lesProvideTransactionStatusOne (les, NODE_REFERENCE_ANY,
@@ -649,7 +649,7 @@ _GetBlockBodies_Callback_Test2 (BREthereumLESProvisionContext context,
 static void
 run_GetBlockBodies_Tests (BREthereumLES les) {
     
-    //Initilize testing state
+    //Initialize testing state
     _initTest(2);
     
     //Request block bodies 4732522
@@ -746,7 +746,7 @@ _GetReceipts_Callback_Test2 (BREthereumLESProvisionContext context,
 static void
 run_GetReceipts_Tests (BREthereumLES les) {
     
-    //Initilize testing state
+    //Initialize testing state
     _initTest(2);
     
     //Request receipts for block 4732522
@@ -809,15 +809,15 @@ static size_t blockCount = sizeof (blockHashes) / sizeof(BREthereumHash);
 
 static void run_GetProofsV2_Tests(BREthereumLES les){
     
-    //Initilize testing state
+    //Initialize testing state
     _initTest((int) blockCount);
     
     BREthereumAddress address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
     
     BREthereumHash addr  = addressGetHash(address);
     
-    // Have mucked with combinations of key1, key2 being: key1 empty, key2 empty, both key1 adn
-    // key2 provided.  With key1, key2 being: the addres, the hash of address.
+    // Have mucked with combinations of key1, key2 being: key1 empty, key2 empty, both key1 and
+    // key2 provided.  With key1, key2 being: the address, the hash of address.
     //
     // Have mucked with the Go Ethereum test case - to explore the meanings of key1, key2.
     //
@@ -900,7 +900,7 @@ static void _GetAccountState_Callback_Test2 (BREthereumLESProvisionContext conte
 }
 
 static void run_GetAccountState_Tests (BREthereumLES les){
-    //Initilize testing state
+    //Initialize testing state
     _initTest(3);
 
     BREthereumAddress address = addressCreate("0x52bc44d5378309ee2abf1539bf71de1b7d7be3b5");

@@ -109,7 +109,7 @@ typedef void* (*ThreadRoutine) (void*);         // pthread_create
 ///
 /// Worker
 ///
-/// This represents an arbitary computation.  It runs in its own thread and will randomly fail.
+/// This represents an arbitrary computation.  It runs in its own thread and will randomly fail.
 /// It must be disconnected if an error occurs.
 ///
 /// Multiple workers are owned by 'main'; on an error 'main' is responsible for disconnecting all
@@ -236,7 +236,7 @@ supMainRelease (SupMain main) {
 static void
 supMainConnect (SupMain main);
 
-/// Disconnect the workers (waiting for each) and then disconect and wait on itself.
+/// Disconnect the workers (waiting for each) and then disconnect and wait on itself.
 static void
 supMainDisconnect (SupMain main) {
     pthread_mutex_lock (&main->lock);

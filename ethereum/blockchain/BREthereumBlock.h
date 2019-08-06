@@ -265,7 +265,7 @@ extern BREthereumBoolean
 blockHasTotalDifficulty (BREthereumBlock block);
 
 /**
- * Update the totalDifficulty for `block` by recusively updating the totalDifficutly for
+ * Update the totalDifficulty for `block` by recursively updating the totalDifficutly for
  * block->next until block->next is NULL or block->next already has a totalDifficulty.
  *
  * Note: this is not a tail recursive algorithm and may overflow stack memory.  In practice we
@@ -447,7 +447,7 @@ blockReportStatusLogs (BREthereumBlock block,
 
 
 //
-// Account State Reqeust
+// Account State Request
 //
 extern BREthereumBoolean
 blockHasStatusAccountStateRequest (BREthereumBlock block,

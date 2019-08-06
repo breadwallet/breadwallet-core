@@ -522,7 +522,7 @@ transferGetIdentifier (BREthereumTransfer transfer) {
 
 extern const BREthereumHash
 transferGetOriginatingTransactionHash (BREthereumTransfer transfer) {
-    // If we have an originatingTransaction - becasue we created the transfer - then return its
+    // If we have an originatingTransaction - because we created the transfer - then return its
     // hash.  Otherwise use the transfer's basis to get the hash
     return  (NULL != transfer->originatingTransaction
              ? transactionGetHash (transfer->originatingTransaction)

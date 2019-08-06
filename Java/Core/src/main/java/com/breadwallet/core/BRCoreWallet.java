@@ -81,7 +81,7 @@ public class BRCoreWallet extends BRCoreJniReference
     // BRAddress BRWalletLegacyAddress(BRWallet *wallet);
     public native BRCoreAddress getLegacyAddress ();
 
-    // writes all addresses previously genereated with BRWalletUnusedAddrs() to addrs
+    // writes all addresses previously generated with BRWalletUnusedAddrs() to addrs
     // returns the number addresses written, or total number available if addrs is NULL
     public native BRCoreAddress[] getAllAddresses ();
 

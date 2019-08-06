@@ -136,7 +136,7 @@ mulUInt256 (const UInt256 x, const UInt256 y) {
     unsigned int count = sizeof (UInt256) / sizeof(uint32_t);
     
     // Use 'grade school' long multiplication in base 32.  For UInt256 we'll have 8 32-bit value
-    // and perform 64 32-bit multiplications.  A more sophisticated algorith, e.g. Katasuba, can
+    // and perform 64 32-bit multiplications.  A more sophisticated algorithm, e.g. Katasuba, can
     // perform just 27 32-bit multiplications.  For our application, not a big enough savings for
     // the added complexity.
     for (int xi = 0; xi < count; xi++) {

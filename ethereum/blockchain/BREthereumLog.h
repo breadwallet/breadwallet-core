@@ -24,7 +24,7 @@ extern "C" {
 #define LOG_TOPIC_BYTES_COUNT   32
 
 /**
- * An Ethereum Log Topic is 32 bytes of arbitary data.
+ * An Ethereum Log Topic is 32 bytes of arbitrary data.
  */
 typedef struct {
     uint8_t bytes[LOG_TOPIC_BYTES_COUNT];

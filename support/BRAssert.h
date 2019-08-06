@@ -35,7 +35,7 @@ extern "C" {
  * BRAssert() is meant to replace assert() so as to provide a meaningful assert in 'release'
  * builds. Normally assert() is disabled in a 'release' build - the condition is evaluated and a
  * log message is produce, but the program doesn't exit.  Thus to program continues only to fail
- * later, unceremoniously killing the App in some way.  In Core code a failed assertion is truely
+ * later, unceremoniously killing the App in some way.  In Core code a failed assertion is truly
  * fatal - it is not meaningful for Core to continue.
  *
  * When `condition` is false(0), BRAssert() invokes __BRFail().

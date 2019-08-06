@@ -120,7 +120,7 @@ transactionStatusRLPDecode (BRRlpItem item,
     assert (3 == itemsCount); // [type, [blockHash, blockNumber, txIndex], error]
 
     // We have seen (many) cases where the `type` is `unknown` but there is an `error`.  That
-    // appears to violate the LES specfication.  Anyways, if we see an `error` we'll force the
+    // appears to violate the LES specification.  Anyways, if we see an `error` we'll force the
     // type to be TRANSACTION_STATUS_ERRORED.
     char *reason = rlpDecodeString(coder, items[2]);
     if (NULL != reason && 0 != strcmp (reason, "") && 0 != strcmp (reason, "0x")) {

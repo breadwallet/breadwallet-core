@@ -21,7 +21,7 @@ extern "C" {
 
 /**
  * An Ethereum Ether Unit defines ETH units in powers of 10^3.   The 'base Unit' is WEI - the
- * smallest demonination of ETH and the one in which all integer values of the currency are counted.
+ * smallest denominations of ETH and the one in which all integer values of the currency are counted.
  * Common 'derived units' are GWEI (3 => 10^9) and ETHER (6 => 10^18).
  */
 typedef enum {
@@ -76,7 +76,7 @@ etherCreateNumber (uint64_t number, BREthereumEtherUnit unit);
 
 /**
  * Create Ether from a decimal string in unit.  The `number` must be either an integer or have
- * a single decimal point with at least one preceeding characters.  Thus: 0.001, 1.0000, 12
+ * a single decimal point with at least one preceding characters.  Thus: 0.001, 1.0000, 12
  * and 12.100 are all valid.  But .1 is invalid (required 0.1).
  *
  * @warn what happens if invalid

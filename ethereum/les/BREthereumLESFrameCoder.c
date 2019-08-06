@@ -237,7 +237,7 @@ BREthereumBoolean frameCoderInit(BREthereumLESFrameCoder fcoder,
     uint8_t keyMaterial[64];
    
     /********
-    * The initialzation of the coder is all described here:
+    * The initialization of the coder is all described here:
     * 1. https://github.com/ethereum/devp2p/blob/master/rlpx.md#encrypted-handshake
     * 2. https://github.com/ethereum/devp2p/blob/master/rlpx.md#framing
     ******/

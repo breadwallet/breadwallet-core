@@ -550,7 +550,7 @@ ewmAnnounceBlocks (BREthereumEWM ewm,
 
 
 /**
- * Submit the specfied transfer.  The transfer may represent the exchange of ETH or of TOK (an
+ * Submit the specified transfer.  The transfer may represent the exchange of ETH or of TOK (an
  * ERC20 token).  In the former the transfer's basis is a transaction; in the later a log.
  *
  * @param ewm ewm
@@ -1025,7 +1025,7 @@ BREthereumGas gasUsed = gasCreate(bundle->gasUsed);
 // Create a token transaction
 if (NULL == transaction) {
 
-    // Parse the topic data - we fake it becasue we 'know' topics indices
+    // Parse the topic data - we fake it because we 'know' topics indices
     BREthereumAddress sourceAddr =
     addressCreate(eventERC20TransferDecodeAddress(event, bundle->arrayTopics[1]));
 

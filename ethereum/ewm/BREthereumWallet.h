@@ -117,7 +117,7 @@ walletGetRawTransfer(BREthereumWallet wallet,
                         BREthereumTransfer transfer);
 
 /**
- * For `transfer`, get the `signed transation data`, encoded in hex with an optional prefix
+ * For `transfer`, get the `signed transaction data`, encoded in hex with an optional prefix
  * (typically "0x"), suitable for use in the RPC-JSON Ethereum method 'eth_sendRawTransfer"
  *
  */

@@ -172,7 +172,7 @@ public class EthereumToken {
 }
 
 ///
-/// An EthereumtokenEvent represents a asynchronous announcment of a token's state change.
+/// An EthereumtokenEvent represents a asynchronous announcement of a token's state change.
 ///
 public enum EthereumTokenEvent {
     case created

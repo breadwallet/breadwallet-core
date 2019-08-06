@@ -239,7 +239,7 @@ typedef struct {
     BREthereumProvision provision;
 
     /**
-     * The node that should handle this reqeust or a GENERIC node (NIL, ANY, ALL).  If non-generic
+     * The node that should handle this request or a GENERIC node (NIL, ANY, ALL).  If non-generic
      * we'll *must* use it when handling the provion - if we use any other node, it might not have
      * a suitable block-chain state.  If generic, we'll select some active node.
      */
@@ -295,7 +295,7 @@ requestsRelease (OwnershipGiven BRArrayOf(BREthereumLESRequest) requests) {
  * The lesProvideXYZ functions provide a data abstracction over the specific node's light
  * ethereum protocol.  Specifically, an individual node might be a GETH (LESv2) or a Parity (PIPv1)
  * node with each type having protocol specific data structures, the lesProvideXYZ interface has
- * an abstraction of the node specfic data.
+ * an abstraction of the node specific data.
  */
 struct BREthereumLESRecord {
 
@@ -1149,7 +1149,7 @@ lesThread (BREthereumLES les) {
     struct timespec timeout = { 0, 250000000 }; // .250 seconds
 
     //
-    fd_set readDescriptors, writeDesciptors;
+    fd_set readDescriptors, writeDescriptors;
     int maximumDescriptor = -1;
 
     // See CORE-260: the process of finding seeds, using DNS TXT fields, can take a while.
@@ -1208,12 +1208,12 @@ lesThread (BREthereumLES les) {
         //
         for (size_t index = 0; index < array_count (les->requests); index++)
 
-            // Only handle a reqeust if it hasn't been previously handled.
+            // Only handle a request if it hasn't been previously handled.
             if (NULL == les->requests[index].node) {
                 BREthereumNodeReference nodeRef = les->requests[index].nodeReference;
 
-                // We require all arbitary references to have been resolved when the
-                // provision was added as a request.  An `arbitary` reference is something like
+                // We require all arbitrary references to have been resolved when the
+                // provision was added as a request.  An `arbitrary` reference is something like
                 // NODE_REFERENCE_{ANY,ALL} where the request did not specify a specific node
                 assert (!NODE_REFERENCE_IS_ARBITRARY(nodeRef));
 
@@ -1235,7 +1235,7 @@ lesThread (BREthereumLES les) {
                 // request unchanged and thus will come back to handling the request once we have
                 // some active nodes.
                 //
-                // TODO: Consider a timeout on a request beging handled?
+                // TODO: Consider a timeout on a request being handled?
 
                 if (NULL != nodeToUse && nodeHasState (nodeToUse, NODE_ROUTE_TCP, NODE_CONNECTED)) {
 
@@ -1303,7 +1303,7 @@ lesThread (BREthereumLES les) {
         //
         maximumDescriptor = -1;
         FD_ZERO (&readDescriptors);
-        FD_ZERO (&writeDesciptors);
+        FD_ZERO (&writeDescriptors);
 
         FOR_EACH_ROUTE(route) {
             BRArrayOf(BREthereumNode) nodes = les->activeNodesByRoute[route];
@@ -1312,11 +1312,11 @@ lesThread (BREthereumLES les) {
                                              nodeUpdateDescriptors (nodes[index],
                                                                     route,
                                                                     &readDescriptors,
-                                                                    &writeDesciptors));
+                                                                    &writeDescriptors));
         }
 
         pthread_mutex_unlock (&les->lock);
-        int selectCount = pselect (1 + maximumDescriptor, &readDescriptors, &writeDesciptors, NULL, &timeout, NULL);
+        int selectCount = pselect (1 + maximumDescriptor, &readDescriptors, &writeDescriptors, NULL, &timeout, NULL);
         pthread_mutex_lock (&les->lock);
         if (les->theTimeToQuitIsNow) continue;
 
@@ -1331,8 +1331,8 @@ lesThread (BREthereumLES les) {
         }
 
         // The block head has updated (presumably a fully validated block head - it must have
-        // a valid total difficutly and it is non-trivial to have a valid total difficulty).  The
-        // new, valid blcok head impacts our local 'status' (message).  When connecting to peer
+        // a valid total difficulty and it is non-trivial to have a valid total difficulty).  The
+        // new, valid block head impacts our local 'status' (message).  When connecting to peer
         // nodes, we can confidently report a 'status' as the new block header - rather than as
         // the genesis block, or other checkpoint we maintain.
         if (les->theTimeToUpdateBlockHeadIsNow) {
@@ -1370,7 +1370,7 @@ lesThread (BREthereumLES les) {
                     int isConnected = nodeHasState (node, route, NODE_CONNECTED);
 
                     // Process the node - based on the read/write descriptors.
-                    nodeProcess (node, route, now, &readDescriptors, &writeDesciptors);
+                    nodeProcess (node, route, now, &readDescriptors, &writeDescriptors);
 
                     // Any node that is not CONNECTING or CONNECTED is no longer active.  Note that
                     // we can't just remove `node` at `index` because we are iterating on the array.
@@ -1856,7 +1856,7 @@ lesRetryProvision (BREthereumLES les,
  * Each Node has a defined amount of 'credits'.  When a message is sent, the remote Node adjusts
  * the remaining credits (sometimes replenishing them as time goes by) and then reports the credits
  * in the response message.  We'd like to only send a request to a node w/ enough credits to handle
- * the reqeust successfully.
+ * the request successfully.
  *
  * Since we don't keep an estimate of our credits, the node's current credits could be way off when
  * this function, lesSendAllRequests(), is called.  Imagine we have N requests that have already

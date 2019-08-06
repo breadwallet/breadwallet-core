@@ -22,7 +22,7 @@ extern "C" {
 /**
  * A Node is a proxy for an Ethereum Node.  This Core Ethereum code uses nodes to connect
  * to Ethereum nodes supporting a light client protocol (for GETH, LESv2; for Parity, PIPv1),
- * to send requests, and to recv respones.
+ * to send requests, and to recv responses.
  *
  * The Node interface abstracts over the specific light client protocol (LESv2, PIPv1). Thus,
  * the Node interface provides for Status, Block Header, Block Body, Transaction Receipt,

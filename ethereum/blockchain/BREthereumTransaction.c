@@ -325,7 +325,7 @@ transactionExtractAddress(BREthereumTransaction transaction,
 }
 
 //
-// Tranaction RLP Encode
+// Transaction RLP Encode
 //
 extern BRRlpItem
 transactionRlpEncode(BREthereumTransaction transaction,
@@ -398,7 +398,7 @@ transactionRlpEncode(BREthereumTransaction transaction,
 }
 
 //
-// Tranaction RLP Decode
+// Transaction RLP Decode
 //
 extern BREthereumTransaction
 transactionRlpDecode (BRRlpItem item,
@@ -887,7 +887,7 @@ transactionsRelease (BRArrayOf(BREthereumTransaction) transactions) {
     stored in :attr:`_cached_rlp` if it is empty and :meth:`rlp.Serializable.make_immutable` will
     be invoked on `obj`.
     :param sedes: an object implementing a function ``serialize(obj)`` which will be used to
-                  serialize ``obj`` before encoding, or ``None`` to use the infered one (if any)
+                  serialize ``obj`` before encoding, or ``None`` to use the inferred one (if any)
     :param infer_serializer: if ``True`` an appropriate serializer will be selected using
                              :func:`rlp.infer_sedes` to serialize `obj` before encoding
     :param cache: cache the return value in `obj._cached_rlp` if possible and make `obj` immutable

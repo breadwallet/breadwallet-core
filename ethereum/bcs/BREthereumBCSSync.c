@@ -55,7 +55,7 @@ typedef enum {
 
 /**
  * The Sync Result State identifies the current state of the sync processing.  Depending on the
- * Sync Type we may require a LES request for headers and account state.  We mark our progess
+ * Sync Type we may require a LES request for headers and account state.  We mark our progress
  * as NONE, HEADER, and ACCOUNT.
  */
 typedef enum {
@@ -86,7 +86,7 @@ typedef void
  */
 struct BREthereumBCSSyncRangeRecord {
 
-    /** Addres of interest */
+    /** Address of interest */
     BREthereumAddress address;
 
     /** LES for Node interactions */
@@ -127,7 +127,7 @@ struct BREthereumBCSSyncRangeRecord {
     /**
      * The result headers.  Once we get a set of headers, we make/will ask for the account state
      * at each header.  If the account state changed between two headers, we'll need to make
-     * a recusive request for headers - for that request we'll need the header block number.
+     * a recursive request for headers - for that request we'll need the header block number.
      */
     BRArrayOf(BREthereumBlockHeader) headers;
 
@@ -167,7 +167,7 @@ syncRangeReport (BREthereumBCSSyncRange range,
 }
 
 /**
- * Create a Sync Range will all the paremeters provided
+ * Create a Sync Range will all the parameters provided
  */
 static BREthereumBCSSyncRange
 syncRangeCreateDetailed (BREthereumAddress address,
@@ -484,11 +484,11 @@ syncRangeComplete (BREthereumBCSSyncRange child) {
 /// MARK: - Sync
 
 /**
- * A BCS Sync handles ongoing sync reqeusts.  A call to bcsSyncContinue() will start a sync as
+ * A BCS Sync handles ongoing sync requests.  A call to bcsSyncContinue() will start a sync as
  * needed.
  */
 struct BREthereumBCSSyncStruct {
-    /** Addres of interest */
+    /** Address of interest */
     BREthereumAddress address;
 
     /** LES for Node interactions */
@@ -700,7 +700,7 @@ bcsSyncStart (BREthereumBCSSync sync,
                                             linearStartBlockNumber,
                                             SYNC_LINEAR_LIMIT));
 
-        // Add the second child; we've orchastrated this is be a LINEAR sync.
+        // Add the second child; we've orchestrated this is be a LINEAR sync.
         syncRangeAddChild (sync->root,
                            syncRangeCreate (sync->address,
                                             sync->les,

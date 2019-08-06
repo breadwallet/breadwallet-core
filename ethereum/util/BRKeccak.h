@@ -33,7 +33,7 @@ typedef struct BRKeccakContext* BRKeccak;
 /**
  * Initializes the keccak context to a 256 hash size
  *
- * @param hashCtx - the context that will be initialzed
+ * @param hashCtx - the context that will be initialized
  */
 extern BRKeccak
     keccak_create256(void);
@@ -41,7 +41,7 @@ extern BRKeccak
 /**
  * Initializes the keccak context to a 384 hash size
  *
- * @param hashCtx - the context that will be initialzed
+ * @param hashCtx - the context that will be initialized
  */
 extern BRKeccak
   keccak_create384(void);
@@ -49,7 +49,7 @@ extern BRKeccak
 /**
  * Initializes the keccak context to a 512 hash size
  *
- * @param hashCtx - the context that will be initialzed
+ * @param hashCtx - the context that will be initialized
  */
 extern BRKeccak
     keccak_create512(void);

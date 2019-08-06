@@ -26,7 +26,7 @@ typedef struct BREthereumLESRandomRecord* BREthereumLESRandomContext;
 
 /**
  * Creates a random generator context
- * @param seed - the seed to initialze the random generator
+ * @param seed - the seed to initialize the random generator
  * @param seedLen - the length of the seed parameter
  * @return BREthereumRandomContext,
  * @post - the returned BREthereumRandomContext needs to be released using ethereumRandomRelease
@@ -34,7 +34,7 @@ typedef struct BREthereumLESRandomRecord* BREthereumLESRandomContext;
 extern BREthereumLESRandomContext randomCreate(const void *seed, size_t seedLen);
 
 /**
- * Frees the memeory associated with a random context
+ * Frees the memory associated with a random context
  * @param ctx - the random generator context
  **/
 extern void randomRelease(BREthereumLESRandomContext ctx);

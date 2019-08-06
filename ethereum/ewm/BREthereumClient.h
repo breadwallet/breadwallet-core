@@ -21,7 +21,7 @@ extern "C" {
     // BREthereumClient
     //
     // Type definitions for client functions.  When configuring a EWM these functions must be
-    // provided.  A EWM has limited cababilities; these callbacks provide data back into the
+    // provided.  A EWM has limited capabilities; these callbacks provide data back into the
     // EWM (such as with the 'gas price' or with the BRD-indexed logs for a given address) or they
     // request certain data be saved to reestablish EWM state on start or they announce events
     // signifying changes in EWM state.

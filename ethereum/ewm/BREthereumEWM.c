@@ -2132,7 +2132,7 @@ ewmUpdateLogs (BREthereumEWM ewm,
 }
 
 //
-// Periodicaly query the BRD backend to get current status (block number, nonce, balances,
+// Periodically query the BRD backend to get current status (block number, nonce, balances,
 // transactions and logs) The event will be NULL (as specified for a 'period dispatcher' - See
 // `eventHandlerSetTimeoutDispatcher()`)
 //

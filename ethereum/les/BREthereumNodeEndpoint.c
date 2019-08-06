@@ -35,7 +35,7 @@
 # endif
 #endif /* HOST_NAME_MAX */
 
-#ifndef MSG_NOSIGNAL   // linux based systems have a MSG_NOSIGNAL send flag, useful for supressing SIGPIPE signals
+#ifndef MSG_NOSIGNAL   // linux based systems have a MSG_NOSIGNAL send flag, useful for suppressing SIGPIPE signals
 #define MSG_NOSIGNAL 0 // set to 0 if undefined (BSD has the SO_NOSIGPIPE sockopt, and windows has no signals at all)
 #endif
 
@@ -372,7 +372,7 @@ nodeEndpointClose (BREthereumNodeEndpoint endpoint,
 
     socket = endpoint->sockets[route];
     if (socket >= 0) {
-        // TOOO: Only assign -1 if closer is successful?
+        // TODO: Only assign -1 if closer is successful?
         endpoint->sockets[route] = -1;
 
         if (needShutdown && shutdown (socket, SHUT_RDWR) < 0) {
@@ -574,7 +574,7 @@ openSocket(BREthereumNodeEndpoint endpoint, int *socketToAssign, int port, int d
     setsockopt(*socketToAssign, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
     setsockopt(*socketToAssign, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
     setsockopt(*socketToAssign, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on));
-#ifdef SO_NOSIGPIPE // BSD based systems have a SO_NOSIGPIPE socket option to supress SIGPIPE signals
+#ifdef SO_NOSIGPIPE // BSD based systems have a SO_NOSIGPIPE socket option to suppress SIGPIPE signals
     setsockopt(*socketToAssign, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
 #endif
 

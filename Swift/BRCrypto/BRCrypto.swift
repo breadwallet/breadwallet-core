@@ -118,7 +118,7 @@ public class Unit {
     }
 
 
-    /// Initilize as a 'derivedUnit'
+    /// Initialize as a 'derivedUnit'
     ///
     /// - Parameters:
     ///   - name: The name, such a BTC
@@ -378,15 +378,15 @@ extension CurrencyPair: CustomStringConvertible {
 }
 
 ///
-/// An `Accouint` represents the User's paperKey.  An App generally has one instace of an
+/// An `Accouint` represents the User's paperKey.  An App generally has one instance of an
 /// account; that account generates bitcoin, ethereum, ... addresses
 ///
 public struct Account {
 
-    /// The Bitcoin masterPublicKey - publically-accessible.
+    /// The Bitcoin masterPublicKey - publicly-accessible.
     let masterPublicKey: BRMasterPubKey
 
-    /// The Ethereum account - publically-accessible
+    /// The Ethereum account - publicly-accessible
     let ethereumAccount: BREthereumAccount
 
     ///
@@ -399,7 +399,7 @@ public struct Account {
     }
 
     ///
-    /// Initialize an Account from a seed.  The seed is not stored, only publically-accessible
+    /// Initialize an Account from a seed.  The seed is not stored, only publicly-accessible
     /// values, derived from the seed, are stored.
     ///
     /// - Parameter seed: The UInt512 seed
@@ -682,7 +682,7 @@ extension TransferState: CustomStringConvertible {
 }
 
 ///
-/// A TransferEvent represents a asynchronous announcment of a transfer's state change.
+/// A TransferEvent represents a asynchronous announcement of a transfer's state change.
 ///
 public enum TransferEvent {
     case created
@@ -754,7 +754,7 @@ extension Wallet {
     ///   - source: The source spends 'amount + fee'
     ///   - target: The target receives 'amount
     ///   - amount: The amount
-    ///   - feeBasis: Teh basis for 'fee'
+    ///   - feeBasis: The basis for 'fee'
     ///
     /// - Returns: A new transfer
     ///
@@ -809,7 +809,7 @@ public enum WalletState {
 }
 
 ///
-/// A WalletEvent represents a asynchronous announcment of a wallet's state change.
+/// A WalletEvent represents a asynchronous announcement of a wallet's state change.
 ///
 public enum WalletEvent {
     case created
@@ -970,7 +970,7 @@ public enum WalletManagerState {
 }
 
 ///
-/// A WalletManager Event represents a asynchronous announcment of a managera's state change.
+/// A WalletManager Event represents a asynchronous announcement of a manager's state change.
 ///
 public enum WalletManagerEvent {
     case created
@@ -1007,7 +1007,7 @@ public enum WalletManagerMode {
 }
 
 ///
-/// A WalletManagerListener recieves asynchronous events announcing state changes to Managers, to
+/// A WalletManagerListener receives asynchronous events announcing state changes to Managers, to
 /// Wallets and to Transfers.  This is an application's sole mechanism to learn of asynchronous
 /// state changes.
 ///

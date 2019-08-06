@@ -78,7 +78,7 @@ typedef struct BREthereumWalletRecord *BREthereumWallet;
  * applications with Ethereum wallets.
  *
  * An EWM defines a 'client' with a set of callback interfaces that must be implemented by the
- * IOS and Android applications.  These callbacks privide functionality that is architecturally
+ * IOS and Android applications.  These callbacks provide functionality that is architecturally
  * inappropriate to include in Core code - such as HTTP queries which use libraries that are not
  * and will not be part of Core code.
  *
@@ -87,7 +87,7 @@ typedef struct BREthereumWalletRecord *BREthereumWallet;
  * testing feature).  All EWMs are expected to share a single account - although the interface
  * allows a per EWM account.
  *
- * An EWM holds multipe wallets with one ETH wallet and zero or more ERC20 (or other smart
+ * An EWM holds multiple wallets with one ETH wallet and zero or more ERC20 (or other smart
  * contract) token wallets.  Generally wallets for tokens are created as needed - specifically while
  * scanning the block chain for logs applicable to the account; any log representing an ERC20
  * transfer for a known token will produce a new wallet.  The client interface includes a callback
@@ -148,7 +148,7 @@ typedef enum {
     ERROR_TRANSACTION_HASH_MISMATCH,
     ERROR_TRANSACTION_SUBMISSION,
 
-    // Acount
+    // Account
     // Wallet
     // Block
     // Listener

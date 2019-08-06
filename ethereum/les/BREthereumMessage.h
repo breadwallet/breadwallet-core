@@ -76,26 +76,26 @@ messagesRelease (BRArrayOf(BREthereumMessage) messages);
  * Check if `message` has the provided `identifier`
  *
  * @param message
- * @param identifer
+ * @param identifier
  *
  * @return TRUE (1) if message has identifier, FALSE (0) otherwise.
  */
 extern int
 messageHasIdentifier (BREthereumMessage *message,
-                      BREthereumMessageIdentifier identifer);
+                      BREthereumMessageIdentifier identifier);
 
 /**
  * Check if `message` has the provided `identifier` and 'sub identifier`
  *
  * @param message
- * @param identifer
+ * @param identifier
  * @param anyIdentifer
  *
  * @return TRUE (1) if message has both identifiers, FALSE (0) otherwise.
  */
 extern int
 messageHasIdentifiers (BREthereumMessage *message,
-                       BREthereumMessageIdentifier identifer,
+                       BREthereumMessageIdentifier identifier,
                        BREthereumANYMessageIdentifier anyIdentifier);
 
 const char *

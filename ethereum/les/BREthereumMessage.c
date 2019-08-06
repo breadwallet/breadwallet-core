@@ -63,15 +63,15 @@ messageDecode (BRRlpItem item,
 
 extern int
 messageHasIdentifier (BREthereumMessage *message,
-                      BREthereumMessageIdentifier identifer) {
-    return identifer == message->identifier;
+                      BREthereumMessageIdentifier identifier) {
+    return identifier == message->identifier;
 }
 
 extern int
 messageHasIdentifiers (BREthereumMessage *message,
-                       BREthereumMessageIdentifier identifer,
+                       BREthereumMessageIdentifier identifier,
                        BREthereumANYMessageIdentifier anyIdentifier) {
-    if (identifer != message->identifier) return 0;
+    if (identifier != message->identifier) return 0;
 
     switch (message->identifier) {
         case MESSAGE_P2P: return anyIdentifier == message->u.p2p.identifier;

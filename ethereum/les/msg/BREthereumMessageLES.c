@@ -50,8 +50,8 @@ BREthereumLESMessageSpec messageLESSpecs [NUMBER_OF_LES_MESSAGE_IDENTIFIERS] = {
     { "TxStatus",         LES_MESSAGE_USE_RESPONSE         }
 };
 extern const char *
-messageLESGetIdentifierName (BREthereumLESMessageIdentifier identifer) {
-    return messageLESSpecs[identifer].name;
+messageLESGetIdentifierName (BREthereumLESMessageIdentifier identifier) {
+    return messageLESSpecs[identifier].name;
 }
 
 /// MARK: - LES Status

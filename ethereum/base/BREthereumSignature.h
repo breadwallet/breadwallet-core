@@ -66,7 +66,7 @@ typedef struct {
 
 
 /**
- * An Ethereum Signature is the result of crytographically signing an arbitary piece of data.
+ * An Ethereum Signature is the result of crytographically signing an arbitrary piece of data.
  *
  * Commonly used for signing a transaction for submission to the Ehterehm P2P network.  In this
  * case the transaction is RLP encoded *without* the signature, the unsigned RLP data is signed,

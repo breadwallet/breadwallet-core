@@ -64,7 +64,7 @@ extern UInt256
 createUInt256Parse (const char *number, int base, BRCoreParseStatus *status);
 
 /**
- * Create from a string with the specificed number of decimals (values after a decimal point).
+ * Create from a string with the specified number of decimals (values after a decimal point).
  * Example w/ decimals = 5:
  *   "12"        -> 1200000
  *   "12.34"     -> 1234000
@@ -121,7 +121,7 @@ extern UInt256
 mulUInt256_Small (UInt256 x, uint32_t y, int *overflow);
 
 /**
- * Multiply as `x * y` where `y` is a postive double.  If `y` is negative, then this function
+ * Multiply as `x * y` where `y` is a positive double.  If `y` is negative, then this function
  * sets *negative to 1 and performs `x * -y`.  If the result is too big then overflow is set to 1
  * and zero is returned. `overflow` must not be NULL; `negative` must not be NULL.
  *
@@ -161,7 +161,7 @@ extern char *
 coerceStringPrefaced (UInt256 x, int base, const char *preface);
 
 /**
- * Returns a decimal string represention of `x` in base `0 with `decimals` digits after the
+ * Returns a decimal string representing of `x` in base `0 with `decimals` digits after the
  * decimal-point.
  *
  * @warn YOU OWN THE RETURNED MEMORY
