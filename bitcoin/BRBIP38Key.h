@@ -60,7 +60,7 @@ void BRKeySetBIP38ItermediateCode(BRKey *key, const char *code, const uint8_t *s
 // encrypts key with passphrase
 // passphrase must be unicode NFC normalized
 // returns number of bytes written to bip38Key including NULL terminator or total bip38KeyLen needed if bip38Key is NULL
-size_t BRKeyBIP38Key(BRKey *key, char *bip38Key, size_t bip38KeyLen, const char *passphrase);
+size_t BRKeyBIP38Key(BRKey *key, char *bip38Key, size_t bip38KeyLen, const char *passphrase, BRAddressParams params);
 
 #ifdef __cplusplus
 }

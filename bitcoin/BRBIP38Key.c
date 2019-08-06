@@ -43,7 +43,6 @@
 #define BIP38_SCRYPT_EC_N      1024
 #define BIP38_SCRYPT_EC_R      1
 #define BIP38_SCRYPT_EC_P      1
-#define BIP38_ADDR_PARAMS      ((BRAddressParams) { BITCOIN_PUBKEY_PREFIX, 0, 0, NULL })
 
 // BIP38 is a method for encrypting private keys with a passphrase
 // https://github.com/bitcoin/bips/blob/master/bip-0038.mediawiki
@@ -218,7 +217,7 @@ void BRKeySetBIP38ItermediateCode(BRKey *key, const char *code, const uint8_t *s
 // encrypts key with passphrase
 // passphrase must be unicode NFC normalized
 // returns number of bytes written to bip38Key including NULL terminator or total bip38KeyLen needed if bip38Key is NULL
-size_t BRKeyBIP38Key(BRKey *key, char *bip38Key, size_t bip38KeyLen, const char *passphrase)
+size_t BRKeyBIP38Key(BRKey *key, char *bip38Key, size_t bip38KeyLen, const char *passphrase, BRAddressParams params)
 {
     uint16_t prefix = BIP38_NOEC_PREFIX;
     uint8_t buf[39], flag = BIP38_NOEC_FLAG;
@@ -235,7 +234,7 @@ size_t BRKeyBIP38Key(BRKey *key, char *bip38Key, size_t bip38KeyLen, const char 
     assert(passphrase != NULL);
    
     if (key->compressed) flag |= BIP38_COMPRESSED_FLAG;
-    BRKeyLegacyAddr(key, address.s, sizeof(address), BIP38_ADDR_PARAMS);
+    BRKeyLegacyAddr(key, address.s, sizeof(address), params);
     BRSHA256_2(&hash, address.s, strlen(address.s));
     salt = hash.u32[0];
 
