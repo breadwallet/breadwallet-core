@@ -194,14 +194,22 @@ class BRCryptoCommonTests: XCTestCase {
         let key = Key (
             secret: UInt256.init(u8: (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1)))
         
-        // Basic
+        // Basic DER-encoded
         msg = "How wonderful that we have met with a paradox. Now we have some hope of making progress."
         digest = CoreHasher.sha256.hash(data: msg.data(using: .utf8)!)
-        signer = CoreSigner.basic
+        signer = CoreSigner.basicDER
         signature = signer.sign(data32: digest, using: key)
 
         answer = Data([0x30, 0x45, 0x02, 0x21, 0x00, 0xc0, 0xda, 0xfe, 0xc8, 0x25, 0x1f, 0x1d, 0x50, 0x10, 0x28, 0x9d, 0x21, 0x02, 0x32, 0x22, 0x0b, 0x03, 0x20, 0x2c, 0xba, 0x34, 0xec, 0x11, 0xfe, 0xc5, 0x8b, 0x3e, 0x93, 0xa8, 0x5b, 0x91, 0xd3, 0x02, 0x20, 0x75, 0xaf, 0xdc, 0x06, 0xb7, 0xd6, 0x32, 0x2a, 0x59, 0x09, 0x55, 0xbf, 0x26, 0x4e, 0x7a, 0xaa, 0x15, 0x58, 0x47, 0xf6, 0x14, 0xd8, 0x00, 0x78, 0xa9, 0x02, 0x92, 0xfe, 0x20, 0x50, 0x64, 0xd3])
         XCTAssertEqual(answer, signature)
+        
+        // Basic raw
+        digest = CoreHasher.sha256.hash(data: msg.data(using: .utf8)!)
+        signer = CoreSigner.basicRaw
+        signature = signer.sign(data32: digest, using: key)
+        answer = CoreCoder.hex.decode(string: "c0dafec8251f1d5010289d210232220b03202cba34ec11fec58b3e93a85b91d375afdc06b7d6322a590955bf264e7aaa155847f614d80078a90292fe205064d3")
+        XCTAssertEqual(signature.count, 64)
+        XCTAssertEqual(signature, answer)
 
         // Compact
         signer = CoreSigner.compact

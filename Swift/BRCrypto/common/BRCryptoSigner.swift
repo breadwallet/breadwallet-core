@@ -42,7 +42,8 @@ public protocol Signer {
 
 public enum CoreSigner: Signer {
     // Does not support 'recovery'
-    case basic
+    case basicDER
+    case basicRaw
 
     /// Does support 'recovery'
     case compact
@@ -61,7 +62,7 @@ public enum CoreSigner: Signer {
 
             var target: Data!
             switch self {
-            case .basic:
+            case .basicDER:
                 var keySignRequiresANonNULLSignatue = Data (count: 72);
                 // TODO: Above not needed?
                 
@@ -76,6 +77,15 @@ public enum CoreSigner: Signer {
                     let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
 
                     BRKeySign (cryptoKeyGetCore(key), targetAddr, targetCount, digestUInt256)
+                }
+                
+            case .basicRaw:
+                let targetCount = BRKeySignRaw (cryptoKeyGetCore(key), nil, 0, digestUInt256)
+                if 0 == targetCount { /* error */ }
+                target = Data (count: targetCount)
+                target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
+                    let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+                    BRKeySignRaw (cryptoKeyGetCore(key), targetAddr, targetCount, digestUInt256)
                 }
 
             case .compact:
@@ -101,7 +111,7 @@ public enum CoreSigner: Signer {
             let digestUInt256 = digestAsUInt256 (digestAddr!) // : UInt256 = createUInt256(0)
 
             switch self {
-            case .basic:
+            case .basicDER, .basicRaw:
                 return nil
 
             case .compact:

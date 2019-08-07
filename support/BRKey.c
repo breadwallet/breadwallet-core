@@ -53,6 +53,14 @@
 #pragma clang diagnostic pop
 #pragma GCC diagnostic pop
 
+#if !defined (MAX)
+#define MAX(a,b) (((a)>(b))?(a):(b))
+#endif
+
+#if !defined (MIN)
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#endif
+
 static pthread_once_t _rand_once = PTHREAD_ONCE_INIT;
 
 static void _rand_init (void) {
@@ -364,7 +372,84 @@ size_t BRKeyLegacyAddr(BRKey *key, char *addr, size_t addrLen, BRAddressParams p
     return addrLen;
 }
 
-// signs md with key and writes signature to sig
+// convert signature from DER to raw encoding
+int BRSignatureDERToRaw (const uint8_t *derSig, size_t derSigLen, uint8_t *rawSig, size_t rawSigLen)
+{
+    const int sigLen = 64;
+    const int size = 32;
+    
+    if (NULL == rawSig) {
+        return sigLen;
+    } else if (rawSigLen < sigLen) {
+        return 0;
+    }
+    
+    //Skip 0x30
+    int offset = 1;
+    if (derSig[1] == 0x81) {
+        //Skip sign
+        offset++;
+    }
+    
+    //Convert to unsigned. Should match DER length - offset
+    int encodedLength = derSig[offset++] & 0xff;
+    assert(encodedLength == derSigLen - offset);
+    
+    //Skip 0x02
+    offset++;
+    
+    //Obtain R number length (Includes padding) and skip it
+    int lenR = derSig[offset++];
+    assert(lenR <= (size+1));
+    int rPadding = size - lenR;
+    //Retrieve R number
+    memcpy(rawSig + MAX(rPadding, 0), derSig + (offset + MAX(-rPadding, 0)), lenR + MIN(rPadding, 0));
+    
+    //Skip R number and 0x02
+    offset += lenR + 1;
+    
+    //Obtain S number length. (Includes padding)
+    int lenS = derSig[offset++];
+    assert(lenS <= (size+1));
+    int sPadding = size - lenS;
+    //Retrieve S number
+    memcpy(rawSig + size + MAX(sPadding, 0), derSig + (offset + MAX(-sPadding, 0)), lenS + MIN(sPadding, 0));
+    
+    return 1;
+}
+
+// signs md with key and writes signature to sig in raw/JOSE format
+// returns the number of bytes written, or sigLen needed if sig is NULL
+// returns 0 on failure
+size_t BRKeySignRaw(const BRKey *key, void *sig, size_t sigLen, UInt256 md)
+{
+    secp256k1_ecdsa_signature s;
+    
+    uint8_t safeSig[73];
+    size_t  safeSigLen = 73;
+    
+    uint8_t rawSig[64];
+    size_t rawSigLen = 64;
+    
+    assert(key != NULL);
+    
+    if (secp256k1_ecdsa_sign(_ctx, &s, md.u8, key->secret.u8, secp256k1_nonce_function_rfc6979, NULL)) {
+        if (! secp256k1_ecdsa_signature_serialize_der(_ctx, safeSig, &safeSigLen, &s)) rawSigLen = 0;
+        if (! BRSignatureDERToRaw(safeSig, safeSigLen, rawSig, rawSigLen)) rawSigLen = 0;
+    }
+    else rawSigLen = 0;
+    
+    if (NULL != sig && sigLen >= rawSigLen) {
+        memcpy (sig, rawSig, rawSigLen);
+        return rawSigLen;
+    }
+    else if (NULL != sig)
+        return 0; // failed, `sig` is too small
+    else
+        return rawSigLen;
+}
+
+// signs md with key and writes signature to sig in DER format
 // returns the number of bytes written, or sigLen needed if sig is NULL
 // returns 0 on failure
 size_t BRKeySign(const BRKey *key, void *sig, size_t sigLen, UInt256 md)

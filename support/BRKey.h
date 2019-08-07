@@ -107,7 +107,12 @@ size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen, BRAddressParams para
 // returns the number of bytes written, or addrLen needed if addr is NULL
 size_t BRKeyLegacyAddr(BRKey *key, char *addr, size_t addrLen, BRAddressParams params);
 
-// signs md with key and writes signature to sig
+// signs md with key and writes signature to sig in raw format
+// returns the number of bytes written, or sigLen needed if sig is NULL
+// returns 0 on failure
+size_t BRKeySignRaw(const BRKey *key, void *sig, size_t sigLen, UInt256 md);
+
+// signs md with key and writes signature to sig in DER format
 // returns the number of bytes written, or sigLen needed if sig is NULL
 // returns 0 on failure
 size_t BRKeySign(const BRKey *key, void *sig, size_t sigLen, UInt256 md);
