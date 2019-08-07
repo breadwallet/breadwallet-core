@@ -613,6 +613,47 @@ cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
     }
 }
 
+extern BRCryptoFeeBasis
+cryptoWalletCreateFeeBasis (BRCryptoWallet wallet,
+                            BRCryptoAmount pricePerCostFactor,
+                            double costFactor) {
+
+    BRCryptoCurrency feeCurrency = cryptoUnitGetCurrency (wallet->unitForFee);
+    if (CRYPTO_FALSE == cryptoAmountHasCurrency (pricePerCostFactor, feeCurrency)) {
+        cryptoCurrencyGive (feeCurrency);
+        return NULL;
+    }
+    cryptoCurrencyGive (feeCurrency);
+
+    UInt256 value = cryptoAmountGetValue (pricePerCostFactor);
+
+    switch (wallet->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            uint32_t feePerKB = value.u32[0];
+
+            // Expect all other fields in `value` to be zero
+            value.u32[0] = 0;
+            if (!eqUInt256 (value, UINT256_ZERO)) return NULL;
+
+            uint32_t sizeInBytes = (uint32_t) (1000 * costFactor);
+
+            return cryptoFeeBasisCreateAsBTC (wallet->unitForFee, feePerKB, sizeInBytes);
+        }
+
+        case BLOCK_CHAIN_TYPE_ETH: {
+            BREthereumGas gas = gasCreate((uint64_t) costFactor);
+            BREthereumGasPrice gasPrice = gasPriceCreate (etherCreate(value));
+
+            return cryptoFeeBasisCreateAsETH (wallet->unitForFee, gas, gasPrice);
+        }
+
+        case BLOCK_CHAIN_TYPE_GEN: {
+            BRGenericFeeBasis feeBasis = NULL; 
+            return cryptoFeeBasisCreateAsGEN (wallet->unitForFee, wallet->u.gen.gwm, feeBasis);
+        }
+    }
+}
+
 static int
 cryptoWalletEqualAsBTC (BRCryptoWallet w1, BRCryptoWallet w2) {
     return (w1->u.btc.bwm == w2->u.btc.bwm &&
