@@ -25,6 +25,8 @@ public final class WalletManager: Equatable, CustomStringConvertible {
     /// The Core representation
     internal private(set) var core: BRCryptoWalletManager! = nil
 
+    internal let callbackCoordinator: SystemCallbackCoordinator
+
     /// The owning system
     public unowned let system: System
 
@@ -64,6 +66,7 @@ public final class WalletManager: Equatable, CustomStringConvertible {
         let coreWallet = cryptoWalletManagerGetWallet(core)!
         return Wallet (core: coreWallet,
                        manager: self,
+                       callbackCoordinator: callbackCoordinator,
                        take: false)
     }()
 
@@ -77,11 +80,12 @@ public final class WalletManager: Equatable, CustomStringConvertible {
         
         let wallets: [BRCryptoWallet] = walletsPtr?.withMemoryRebound(to: BRCryptoWallet.self, capacity: walletsCount) {
             Array(UnsafeBufferPointer (start: $0, count: walletsCount))
-        } ?? []
+            } ?? []
         
         return wallets
             .map { Wallet (core: $0,
                            manager: self,
+                           callbackCoordinator: callbackCoordinator,
                            take: false) }
     }
 
@@ -96,6 +100,7 @@ public final class WalletManager: Equatable, CustomStringConvertible {
             ? nil
             : Wallet (core: core,
                       manager: self,
+                      callbackCoordinator: callbackCoordinator,
                       take: true))
     }
 
@@ -106,6 +111,7 @@ public final class WalletManager: Equatable, CustomStringConvertible {
                 ? nil
                 : Wallet (core: core,
                           manager: self,
+                          callbackCoordinator: callbackCoordinator,
                           take: true))
     }
 
@@ -147,10 +153,12 @@ public final class WalletManager: Equatable, CustomStringConvertible {
 
     internal init (core: BRCryptoWalletManager,
                    system: System,
+                   callbackCoordinator: SystemCallbackCoordinator,
                    take: Bool) {
 
         self.core   = take ? cryptoWalletManagerTake(core) : core
         self.system = system
+        self.callbackCoordinator = callbackCoordinator
 
         let network = Network (core: cryptoWalletManagerGetNetwork (core), take: false)
 
@@ -165,14 +173,15 @@ public final class WalletManager: Equatable, CustomStringConvertible {
         self.addressScheme     = AddressScheme (core: cryptoWalletManagerGetAddressScheme (core))
     }
 
-    public convenience  init (system: System,
-                              account: Account,
-                              network: Network,
-                              mode: WalletManagerMode,
-                              addressScheme: AddressScheme,
-                              storagePath: String,
-                              listener: BRCryptoCWMListener,
-                              client: BRCryptoCWMClient) {
+    public convenience init (system: System,
+                             callbackCoordinator: SystemCallbackCoordinator,
+                             account: Account,
+                             network: Network,
+                             mode: WalletManagerMode,
+                             addressScheme: AddressScheme,
+                             storagePath: String,
+                             listener: BRCryptoCWMListener,
+                             client: BRCryptoCWMClient) {
         self.init (core: cryptoWalletManagerCreate (listener,
                                                     client,
                                                     account.core,
@@ -181,6 +190,7 @@ public final class WalletManager: Equatable, CustomStringConvertible {
                                                     addressScheme.core,
                                                     storagePath),
                    system: system,
+                   callbackCoordinator: callbackCoordinator,
                    take: false)
     }
 

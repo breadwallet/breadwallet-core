@@ -13,6 +13,7 @@ import android.util.Log;
 import com.breadwallet.corecrypto.CryptoApiProvider;
 import com.breadwallet.crypto.Account;
 import com.breadwallet.crypto.CryptoApi;
+import com.breadwallet.crypto.DispatchingSystemListener;
 import com.breadwallet.crypto.WalletManager;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
@@ -52,7 +53,7 @@ public class CoreCryptoApplication extends Application {
     private static final WalletManagerMode DEFAULT_MODE = WalletManagerMode.API_ONLY;
 
     private static System system;
-    private static CoreSystemListener listener;
+    private static DispatchingSystemListener systemListener;
     private static byte[] paperKey;
 
     private static AtomicBoolean runOnce = new AtomicBoolean(false);
@@ -98,13 +99,14 @@ public class CoreCryptoApplication extends Application {
             CryptoApi.initialize(CryptoApiProvider.getInstance());
 
             List<String> currencyCodesNeeded = Arrays.asList("btc", "eth", "brd");
-            listener = new CoreSystemListener(mode, isMainnet, currencyCodesNeeded);
+            systemListener = new DispatchingSystemListener();
+            systemListener.addSystemListener(new CoreSystemListener(mode, isMainnet, currencyCodesNeeded));
 
             String uids = UUID.nameUUIDFromBytes(paperKey).toString();
             Account account = Account.createFromPhrase(paperKey, new Date(TimeUnit.SECONDS.toMillis(timestamp)), uids);
 
             BlockchainDb query = new BlockchainDb(new OkHttpClient(), BDB_BASE_URL, API_BASE_URL);
-            system = System.create(Executors.newSingleThreadExecutor(), listener, account, isMainnet, storageFile.getAbsolutePath(), query);
+            system = System.create(Executors.newSingleThreadScheduledExecutor(), systemListener, account, isMainnet, storageFile.getAbsolutePath(), query);
             system.configure();
 
             ProcessLifecycleOwner.get().getLifecycle().addObserver(observer);
@@ -115,8 +117,8 @@ public class CoreCryptoApplication extends Application {
         return system;
     }
 
-    public static CoreSystemListener getListener() {
-        return listener;
+    public static DispatchingSystemListener getDispatchingSystemListener() {
+        return systemListener;
     }
 
     public static byte[] getPaperKey() {

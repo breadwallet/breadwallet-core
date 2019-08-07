@@ -26,8 +26,10 @@
 #ifndef BRCryptoWallet_h
 #define BRCryptoWallet_h
 
+#include "BRBase.h"
 #include "BRCryptoFeeBasis.h"
 #include "BRCryptoNetwork.h"        // NetworkFee
+#include "BRCryptoStatus.h"
 #include "BRCryptoTransfer.h"
 
 #ifdef __cplusplus
@@ -53,6 +55,8 @@ extern "C" {
 
         CRYPTO_WALLET_EVENT_BALANCE_UPDATED,
         CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED,
+
+        CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED,
     } BRCryptoWalletEventType;
 
     typedef struct {
@@ -77,6 +81,13 @@ extern "C" {
                 /// Handler must 'give'
                 BRCryptoFeeBasis basis;
             } feeBasisUpdated;
+
+            struct {
+                /// Handler must 'give' basis
+                BRCryptoStatus status;
+                BRCryptoCookie cookie;
+                BRCryptoFeeBasis basis;
+            } feeBasisEstimated;
         } u;
     } BRCryptoWalletEvent;
 
@@ -172,8 +183,9 @@ extern "C" {
      *
      * @return the fee
      */
-    extern BRCryptoFeeBasis
+    extern void
     cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
+                                  BRCryptoCookie cookie,
                                   BRCryptoAddress target,
                                   BRCryptoAmount  amount,
                                   BRCryptoNetworkFee fee);

@@ -162,13 +162,14 @@ static void
 clientEstimateGas (BREthereumClientContext context,
                    BREthereumEWM ewm,
                    BREthereumWallet wid,
-                   BREthereumTransfer tid,
+                   BREthereumCookie cookie,
                    const char *from,
                    const char *to,
                    const char *amount,
+                   const char *price,
                    const char *data,
                    int rid) {
-    ewmAnnounceGasEstimate(ewm, wid, tid, "0x77", rid);
+    ewmAnnounceGasEstimateSuccess(ewm, wid, cookie, "0x77", price, rid);
 }
 
 static void
@@ -461,8 +462,8 @@ clientEventWallet (BREthereumClientContext context,
                    BREthereumWalletEvent event,
                    BREthereumStatus status,
                    const char *errorDescription) {
-    fprintf (stdout, "ETH: TST: WalletEvent: wid=%p, ev=%d\n", wid, event);
-    switch (event) {
+    fprintf (stdout, "ETH: TST: WalletEvent: wid=%p, ev=%d\n", wid, event.type);
+    switch (event.type) {
         case WALLET_EVENT_BALANCE_UPDATED:
             signalBalance(context);
             break;

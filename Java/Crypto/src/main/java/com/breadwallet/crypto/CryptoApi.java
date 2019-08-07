@@ -13,7 +13,7 @@ import com.google.common.base.Optional;
 
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -33,7 +33,7 @@ public final class CryptoApi {
     }
 
     public interface SystemProvider {
-        System create(ExecutorService listenerExecutor, SystemListener listener, Account account, boolean isMainnet, String path, BlockchainDb query);
+        System create(ScheduledExecutorService executor, SystemListener listener, Account account, boolean isMainnet, String path, BlockchainDb query);
     }
 
     public interface CoderProvider {

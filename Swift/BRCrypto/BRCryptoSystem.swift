@@ -37,6 +37,8 @@ public final class System {
     /// the networks, unsorted.
     public internal(set) var networks: [Network] = []
 
+    internal let callbackCoordinator: SystemCallbackCoordinator
+
     ///
     /// Return the AddressSchemes support for `network`
     ///
@@ -175,6 +177,7 @@ public final class System {
                                      addressScheme: AddressScheme) {
         
         let manager = WalletManager (system: self,
+                                     callbackCoordinator: callbackCoordinator,
                                      account: account,
                                      network: network,
                                      mode: mode,
@@ -201,6 +204,7 @@ public final class System {
         self.onMainnet = onMainnet
         self.path  = path
         self.query = query
+        self.callbackCoordinator = SystemCallbackCoordinator()
 
         let _ = System.systemExtend(with: self)
         listener.handleSystemEvent (system: self, event: SystemEvent.created)
@@ -403,7 +407,11 @@ public final class System {
         let index = 1 + Int32(UnsafeMutableRawPointer(bitPattern: 1)!.distance(to: context))
 
         return systemLookup(index: index)
-            .map { ($0, WalletManager (core: cwm, system: $0, take: true)) }
+            .map { ($0, WalletManager (core: cwm,
+                                       system: $0,
+                                       callbackCoordinator: $0.callbackCoordinator,
+                                       take: true))
+        }
     }
 
     static func systemExtract (_ context: BRCryptoCWMListenerContext!,
@@ -465,6 +473,51 @@ public protocol SystemListener : /* class, */ WalletManagerListener, WalletListe
     func handleSystemEvent (system: System,
                             event: SystemEvent)
 }
+
+public final class SystemCallbackCoordinator {
+    enum Handler {
+        case walletFeeEstimate (Wallet.EstimateFeeHandler)
+    }
+
+    var index: Int32 = 0;
+    var handlers: [Int32: Handler] = [:]
+
+    var cookie: UnsafeMutableRawPointer {
+        let index = Int(self.index)
+        return UnsafeMutableRawPointer (bitPattern: index)!
+    }
+
+    func cookieToIndex (_ cookie: UnsafeMutableRawPointer) -> Int32 {
+        return 1 + Int32(UnsafeMutableRawPointer(bitPattern: 1)!.distance(to: cookie))
+    }
+
+    public func addWalletFeeEstimateHandler(_ handler: @escaping Wallet.EstimateFeeHandler) -> UnsafeMutableRawPointer {
+        index = OSAtomicIncrement32 (&index)
+        handlers[index] = Handler.walletFeeEstimate(handler)
+        return cookie
+    }
+
+    func remWalletFeeEstimateHandler (_ cookie: UnsafeMutableRawPointer) -> Wallet.EstimateFeeHandler? {
+        return handlers.removeValue (forKey: cookieToIndex(cookie))
+            .flatMap {
+                switch $0 {
+                case .walletFeeEstimate (let handler): return handler
+                }
+        }
+    }
+    func handleWalletFeeEstimateSuccess (_ cookie: UnsafeMutableRawPointer, estimate: TransferFeeBasis) {
+        if let handler = remWalletFeeEstimateHandler(cookie) {
+            handler (Result.success (estimate))
+        }
+    }
+
+    func handleWalletFeeEstimateFailure (_ cookie: UnsafeMutableRawPointer, error: Wallet.FeeEstimationError) {
+        if let handler = remWalletFeeEstimateHandler(cookie) {
+            handler (Result.failure(error))
+        }
+    }
+}
+
 
 extension System {
     internal var cryptoListener: BRCryptoCWMListener {
@@ -621,6 +674,17 @@ extension System {
                                                         wallet: wallet,
                                                         event: WalletEvent.feeBasisUpdated(feeBasis: feeBasis))
 
+                case CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED:
+                    let cookie = event.u.feeBasisEstimated.cookie!
+                    if CRYPTO_SUCCESS == event.u.feeBasisEstimated.status,
+                        let feeBasis = event.u.feeBasisEstimated.basis
+                            .map ({ TransferFeeBasis (core: $0, take: false) }) {
+                        system.callbackCoordinator.handleWalletFeeEstimateSuccess (cookie, estimate: feeBasis)
+                    }
+                    else {
+                        let feeError = Wallet.FeeEstimationError.fromStatus(event.u.feeBasisEstimated.status)
+                        system.callbackCoordinator.handleWalletFeeEstimateFailure (cookie, error: feeError)
+                    }
                 default: precondition (false)
                 }
         },
@@ -800,11 +864,14 @@ extension System {
                         failure: { (_) in cwmAnnounceGetGasPriceFailure (cwm, sid) })
                 }},
 
-            funcEstimateGas: { (context, cwm, sid, network, from, to, amount, data) in
+            funcEstimateGas: { (context, cwm, sid, network, from, to, amount, price, data) in
                 precondition (nil != context  && nil != cwm)
 
                 guard let (system, manager) = System.systemExtract (context, cwm)
                     else { print ("SYS: ETH: EstimateGas: Missed {cwm}"); return }
+
+                guard let price = price.map (asUTF8String)
+                    else { print ("SYS: ETH: EstimateGas: Missed {price}"); return }
 
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network  = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
@@ -817,8 +884,8 @@ extension System {
                                                     (res: Result<String, BlockChainDB.QueryError>) in
                                                     defer { cryptoWalletManagerGive (cwm!) }
                                                     res.resolve (
-                                                        success: { cwmAnnounceGetGasEstimateSuccess (cwm, sid, $0) },
-                                                        failure: { (_) in cwmAnnounceGetGasEstimateFailure (cwm, sid) })
+                                                        success: { cwmAnnounceGetGasEstimateSuccess (cwm, sid, $0, price) },
+                                                        failure: { (_) in cwmAnnounceGetGasEstimateFailure (cwm, sid, CRYPTO_ERROR_FAILED) })
                 }},
 
             funcSubmitTransaction: { (context, cwm, sid, network, transaction) in
@@ -1166,13 +1233,14 @@ extension BREthereumTransferEvent: CustomStringConvertible {
     }
 }
 
-extension BREthereumWalletEvent: CustomStringConvertible {
+extension BREthereumWalletEventType: CustomStringConvertible {
     public var description: String {
         switch self {
         case WALLET_EVENT_CREATED: return "Created"
         case WALLET_EVENT_BALANCE_UPDATED: return "Balance Updated"
         case WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED: return "Default Gas Limit Updated"
         case WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED: return "Default Gas Price Updated"
+        case WALLET_EVENT_FEE_ESTIMATED: return "Fee Estimated"
         case WALLET_EVENT_DELETED: return "Deleted"
         default: return "<<unknown>>"
         }
