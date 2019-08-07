@@ -151,6 +151,21 @@ public final class Wallet: Equatable {
         }
     }
 
+    public func createTransferToImportFrom(key: Key,
+                                           estimatedFeeBasis: TransferFeeBasis,
+                                           completion: @escaping (Result<Transfer, CreateTransferError>) -> Void ) {
+        precondition (false)
+    }
+
+    public enum CreateTransferError: Error {
+        case ServiceUnavailable
+        case ServiceError
+        case InsufficientFunds
+        case InvalidAddress
+        case OwnAddress
+        case OutputTooSmall(Amount)
+    }
+
     /// A `WalletEstimateFeeHandler` is a function to handle the result of a Wallet.estimateFee.
     public typealias EstimateFeeHandler = (Result<TransferFeeBasis,FeeEstimationError>) -> Void
 
@@ -173,6 +188,12 @@ public final class Wallet: Equatable {
                                       target.core,
                                       amount.core,
                                       fee.core)
+    }
+
+    public func estimateFeeToImportFrom (key: Key,
+                                         fee: NetworkFee,
+                                         completion: @escaping (Result<TransferFeeBasis,FeeEstimationError>) -> Void) {
+        precondition (false)
     }
 
     public enum FeeEstimationError: Error {

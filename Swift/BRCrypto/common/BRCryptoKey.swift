@@ -13,6 +13,14 @@ public final class Key {
     static public var wordList: [String]?
 
     ///
+    /// Check if a private key `string` is a valid passphrase-protected private key. The string
+    /// must be BIP38 format.
+    ///
+    static public func isProtected(asPrivate string: String) -> Bool {
+        return CRYPTO_TRUE == cryptoKeyIsProtectedPrivate (string)
+    }
+
+    ///
     /// Create `Key` from a BIP-39 phrase
     ///
     /// - Parameters:
@@ -27,6 +35,21 @@ public final class Key {
 
         return cryptoKeyCreateFromPhraseWithWords (phrase, &words)
             .map { Key (core: $0)}
+    }
+
+    ///
+    /// Create `Key` from `string` using the passphrase to decrypt it. The string must be BIP38
+    /// format. Different crypto currencies have different implementations; this function will
+    /// look for a valid string using BITCOIN mainnet and BITCOIN testnet.
+    ///
+    /// - Parameter string
+    /// - Parameter passphrase
+    ///
+    /// - Returns: A Key if one exists
+    ///
+    static public func createFromString (asPrivate string: String, withPassphrase: String) -> Key? {
+        return cryptoKeyCreateFromStringProtectedPrivate (string, withPassphrase)
+            .map { Key (core: $0) }
     }
 
     ///

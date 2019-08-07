@@ -36,7 +36,21 @@ public final class CryptoApi {
         System create(ScheduledExecutorService executor, SystemListener listener, Account account, boolean isMainnet, String path, BlockchainDb query);
     }
 
-    public interface PrimitivesProvider {
+    public interface CoderProvider {
+        Coder createCoderForAlgorithm(Coder.Algorithm algorithm);
+    }
+
+    public interface EncrypterProvider {
+        Encrypter createEncrypterrForAesEcb(byte[] key);
+        Encrypter createEncrypterForChaCha20Poly1305(Key key, byte[] nonce12, byte[] ad);
+        Encrypter createEncrypterForPigeon(Key privKey, Key pubKey, byte[] nonce12);
+    }
+
+    public interface HasherProvider {
+        Hasher createHasherForAlgorithm(Hasher.Algorithm algorithm);
+    }
+
+    public interface KeyProvider {
         Optional<Key> createFromPhrase(byte[] phraseUtf8, List<String> words);
         Optional<Key> createFromPrivateKeyString(byte[] keyStringUtf8);
         Optional<Key> createFromPublicKeyString(byte[] keyStringUtf8);
@@ -45,15 +59,20 @@ public final class CryptoApi {
         Optional<Key> createForBIP32BitID(byte[] phraseUtf8, int index, String uri, List<String> words);
     }
 
+    public interface SignerProvider {
+        Signer createSignerForAlgorithm(Signer.Algorithm algorithm);
+    }
+
     public interface Provider {
-
         AccountProvider accountProvider();
-
         AmountProvider amountProvider();
-
         SystemProvider systemProvider();
 
-        PrimitivesProvider primitivesProvider();
+        CoderProvider coderPrivider();
+        EncrypterProvider encrypterProvider();
+        HasherProvider hasherProvider();
+        KeyProvider keyProvider();
+        SignerProvider signerProvider();
     }
 
     private static Provider provider;

@@ -77,7 +77,39 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
         }
     };
 
-    private static final CryptoApi.PrimitivesProvider primitivesProvider = new CryptoApi.PrimitivesProvider() {
+    private static final CryptoApi.CoderProvider coderProvider = new CryptoApi.CoderProvider() {
+        @Override
+        public Coder createCoderForAlgorithm(Coder.Algorithm algorithm) {
+            return Coder.createForAlgorithm(algorithm);
+        }
+    };
+
+    private static final CryptoApi.EncrypterProvider encrypterProvider = new CryptoApi.EncrypterProvider() {
+        @Override
+        public Encrypter createEncrypterrForAesEcb(byte[] key) {
+            return Encrypter.createForAesEcb(key);
+        }
+
+        @Override
+        public Encrypter createEncrypterForChaCha20Poly1305(com.breadwallet.crypto.Key key, byte[] nonce12, byte[] ad) {
+            return Encrypter.createForChaCha20Poly1305(key, nonce12, ad);
+        }
+
+        @Override
+        public Encrypter createEncrypterForPigeon(com.breadwallet.crypto.Key privKey,
+                                                  com.breadwallet.crypto.Key pubKey, byte[] nonce12) {
+            return Encrypter.createForPigeon(privKey, pubKey, nonce12);
+        }
+    };
+
+    private static final CryptoApi.HasherProvider hasherProvider = new CryptoApi.HasherProvider() {
+        @Override
+        public Hasher createHasherForAlgorithm(Hasher.Algorithm algorithm) {
+            return Hasher.createForAlgorithm(algorithm);
+        }
+    };
+
+    private static final CryptoApi.KeyProvider keyProvider = new CryptoApi.KeyProvider() {
         @Override
         public Optional<com.breadwallet.crypto.Key> createFromPhrase(byte[] phraseUtf8, List<String> words) {
             return Key.createFromPhrase(phraseUtf8, words).transform(a -> a);
@@ -108,6 +140,13 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
         }
     };
 
+    private static final CryptoApi.SignerProvider signerProvider = new CryptoApi.SignerProvider() {
+        @Override
+        public Signer createSignerForAlgorithm(Signer.Algorithm algorithm) {
+            return Signer.createForAlgorithm(algorithm);
+        }
+    };
+
     private CryptoApiProvider() {
 
     }
@@ -128,7 +167,27 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
     }
 
     @Override
-    public CryptoApi.PrimitivesProvider primitivesProvider() {
-        return primitivesProvider;
+    public CryptoApi.CoderProvider coderPrivider() {
+        return coderProvider;
+    }
+
+    @Override
+    public CryptoApi.EncrypterProvider encrypterProvider() {
+        return encrypterProvider;
+    }
+
+    @Override
+    public CryptoApi.HasherProvider hasherProvider() {
+        return hasherProvider;
+    }
+
+    @Override
+    public CryptoApi.KeyProvider keyProvider() {
+        return keyProvider;
+    }
+
+    @Override
+    public CryptoApi.SignerProvider signerProvider() {
+        return signerProvider;
     }
 }
