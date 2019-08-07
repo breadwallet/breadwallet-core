@@ -205,7 +205,7 @@ class BRCryptoCommonTests: XCTestCase {
         
         // Basic raw
         digest = CoreHasher.sha256.hash(data: msg.data(using: .utf8)!)
-        signer = CoreSigner.basicRaw
+        signer = CoreSigner.basicJOSE
         signature = signer.sign(data32: digest, using: key)
         answer = CoreCoder.hex.decode(string: "c0dafec8251f1d5010289d210232220b03202cba34ec11fec58b3e93a85b91d375afdc06b7d6322a590955bf264e7aaa155847f614d80078a90292fe205064d3")
         XCTAssertEqual(signature.count, 64)
