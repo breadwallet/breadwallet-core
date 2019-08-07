@@ -43,7 +43,7 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
     // Can't select gasPrice, gasLimit nor SAT/KB because we can't create a TransferFeeBasis
     // from them - no exposed interface.
     //
-    var canUseFeeBasis: Bool = false
+    let canUseFeeBasis: Bool = true
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated);
@@ -213,7 +213,13 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
                     : amountSlider!.value))
     }
 
-    // In WEI
+    @IBAction func amountOneEther(_ sender: UISegmentedControl) {
+        oneEtherSelected = 0 == oneEtherButton.selectedSegmentIndex
+        oneBitcoinSelected = 2 == oneEtherButton.selectedSegmentIndex
+        updateView()
+    }
+
+   // In WEI
     func gasPrice () -> UInt64 {
         switch (gasPriceSegmentedController.selectedSegmentIndex) {
         case 0: return   15 * 1000000000 // 15    GWEI
@@ -221,16 +227,6 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
         case 2: return 1001 *    1000000 // 1.001 GWEI
         default: return 5
         }
-    }
-
-    @IBAction func amountOneEther(_ sender: UISegmentedControl) {
-        oneEtherSelected = 0 == oneEtherButton.selectedSegmentIndex
-        oneBitcoinSelected = 2 == oneEtherButton.selectedSegmentIndex
-        updateView()
-    }
-
-    @IBAction func gasPriceChanged(_ sender: UISegmentedControl) {
-        updateView()
     }
 
     func gasLimit () -> UInt64 {
@@ -242,6 +238,28 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
         }
     }
 
+    func updateFeeBasisETH () {
+        guard let pricePerCostFactorUnit = wallet.manager.network.baseUnitFor (currency: wallet.unitForFee.currency)
+            else { return }
+
+        let pricePerCostFactor = Amount.create(integer: Int64(gasPrice()), unit: pricePerCostFactorUnit)
+        let costFactor = Double (gasLimit())
+
+        if let feeBasis = wallet.createTransferFeeBasis(pricePerCostFactor: pricePerCostFactor, costFactor: costFactor) {
+            DispatchQueue.main.async {
+                self.feeLabel.text = "  \(feeBasis.fee)"
+            }
+        }
+    }
+
+    @IBAction func gasPriceChanged(_ sender: UISegmentedControl) {
+        updateFeeBasisETH()
+     }
+
+    @IBAction func gasLimitChanged(_ sender: UISegmentedControl) {
+        updateFeeBasisETH()
+    }
+
     func satPerKB () -> UInt64 {
         switch (satPerKBSegmentedController.selectedSegmentIndex) {
         case 0: return 5000
@@ -251,12 +269,21 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
         }
     }
 
-    @IBAction func gasLimitChanged(_ sender: UISegmentedControl) {
-        updateView()
+    @IBAction func satPerKBChanged(_ sender: UISegmentedControl) {
+        guard let pricePerCostFactorUnit = wallet.manager.network.baseUnitFor (currency: wallet.unitForFee.currency)
+            else { return }
+        
+        let pricePerCostFactor = Amount.create(integer: Int64(satPerKB()), unit: pricePerCostFactorUnit)
+        let costFactor = Double (1) // sizeInKB
+        
+        if let feeBasis = wallet.createTransferFeeBasis(pricePerCostFactor: pricePerCostFactor, costFactor: costFactor) {
+            DispatchQueue.main.async {
+                self.feeLabel.text = "  \(feeBasis.fee)"
+            }
+        }
     }
 
-    @IBAction func satPerKBChanged(_ sender: UISegmentedControl) {
-    }
+    // Network Fee Picker
 
     func numberOfComponents(in pickerView: UIPickerView) -> Int {
         return 1

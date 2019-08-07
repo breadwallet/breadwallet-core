@@ -215,3 +215,14 @@ extension UIApplication {
     }
 }
 
+extension Network {
+    var scheme: String? {
+        switch self.currency.code {
+        case Currency.codeAsBTC: return "bitcoin"
+        case Currency.codeAsBCH: return "bitcoincash" // bchtest
+        case Currency.codeAsETH: return "ethereum"
+        default: return nil
+        }
+    }
+}
+

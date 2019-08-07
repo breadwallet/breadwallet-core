@@ -178,6 +178,11 @@ extern "C" {
                                   BRCryptoAmount  amount,
                                   BRCryptoNetworkFee fee);
 
+    extern BRCryptoFeeBasis
+    cryptoWalletCreateFeeBasis (BRCryptoWallet wallet,
+                                BRCryptoAmount pricePerCostFactor,
+                                double costFactor);
+
     extern BRCryptoBoolean
     cryptoWalletEqual (BRCryptoWallet w1, BRCryptoWallet w2);
 

@@ -29,10 +29,16 @@ class TransferCreateRecvController: TransferCreateController {
                                    for: .normal)
 
         // Generate a QR Code
-        let uri = "bitcoin:\(target.description)"
-        qrCodeImage.image = UIImage
-            .qrCode(data: uri.data(using: .utf8)!)!
-            .resize(qrCodeSize)
+        if let scheme = wallet.manager.network.scheme {
+            let uri = "\(scheme):\(target.description)"
+            qrCodeImage.isHidden = false
+            qrCodeImage.image = UIImage
+                .qrCode(data: uri.data(using: .utf8)!)!
+                .resize(qrCodeSize)
+        }
+        else {
+            qrCodeImage.isHidden = true
+        }
     }
 
     @IBAction func done(_ sender: UIBarButtonItem) {
