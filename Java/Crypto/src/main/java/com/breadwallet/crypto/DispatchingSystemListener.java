@@ -5,11 +5,8 @@ import com.breadwallet.crypto.events.system.DefaultSystemListener;
 import com.breadwallet.crypto.events.system.SystemEvent;
 import com.breadwallet.crypto.events.system.SystemListener;
 import com.breadwallet.crypto.events.transfer.TranferEvent;
-import com.breadwallet.crypto.events.transfer.TransferListener;
 import com.breadwallet.crypto.events.wallet.WalletEvent;
-import com.breadwallet.crypto.events.wallet.WalletListener;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerEvent;
-import com.breadwallet.crypto.events.walletmanager.WalletManagerListener;
 
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -59,50 +56,80 @@ public final class DispatchingSystemListener implements SystemListener {
 
     // SystemListener registration
 
+    /**
+     * Add a listener for all events.
+     */
     public void addSystemListener(SystemListener listener) {
         listeners.add(listener);
     }
 
+    /**
+     * Remove a listener for all events.
+     */
     public void removeSystemListener(SystemListener listener) {
         listeners.remove(listener);
     }
 
     // WalletManagerListener registration
 
-    public void addWalletManagerListener(WalletManager manager, WalletManagerListener listener) {
+    /**
+     * Add a listener for events scoped to a {@link WalletManager}.
+     *
+     * This includes {@link WalletManagerEvent}, {@link WalletEvent} and {@link TranferEvent} events.
+     */
+    public void addWalletManagerListener(WalletManager manager, SystemListener listener) {
         listeners.add(new ScopedWalletManagerListener(manager, listener));
     }
 
-    public void removeWalletManagerListener(WalletManager manager, WalletManagerListener listener) {
+    /**
+     * Remove a listener for events scoped to a {@link WalletManager}.
+     */
+    public void removeWalletManagerListener(WalletManager manager, SystemListener listener) {
         listeners.remove(new ScopedWalletManagerListener(manager, listener));
     }
 
     // WalletListener registration
 
-    public void addWalletListener(Wallet wallet, WalletListener listener) {
+    /**
+     * Add a listener for events scoped to a {@link Wallet}.
+     *
+     * This includes {@link WalletEvent} and {@link TranferEvent} events.
+     */
+    public void addWalletListener(Wallet wallet, SystemListener listener) {
         listeners.add(new ScopedWalletListener(wallet, listener));
     }
 
-    public void removeWalletListener(Wallet wallet, WalletListener listener) {
+    /**
+     * Remove a listener for events scoped to a {@link Wallet}.
+     */
+    public void removeWalletListener(Wallet wallet, SystemListener listener) {
         listeners.remove(new ScopedWalletListener(wallet, listener));
     }
 
     // TransferListener registration
 
-    public void addTransferListener(Transfer transfer, TransferListener listener) {
+    /**
+     * Add a listener for events scoped to a {@link Transfer}.
+     *
+     * This includes {@link TranferEvent} events.
+     */
+    public void addTransferListener(Transfer transfer, SystemListener listener) {
         listeners.add(new ScopedTransferListener(transfer, listener));
     }
 
-    public void removeTransferListener(Transfer transfer, TransferListener listener) {
+    /**
+     * Remove a listener for events scoped to a {@link Transfer}.
+     */
+    public void removeTransferListener(Transfer transfer, SystemListener listener) {
         listeners.remove(new ScopedTransferListener(transfer, listener));
     }
 
     private static class ScopedWalletManagerListener implements DefaultSystemListener {
 
         private final WalletManager manager;
-        private final WalletManagerListener listener;
+        private final SystemListener listener;
 
-        ScopedWalletManagerListener(WalletManager manager, WalletManagerListener listener) {
+        ScopedWalletManagerListener(WalletManager manager, SystemListener listener) {
             this.manager = manager;
             this.listener = listener;
         }
@@ -111,6 +138,20 @@ public final class DispatchingSystemListener implements SystemListener {
         public void handleManagerEvent(System system, WalletManager manager, WalletManagerEvent event) {
             if (this.manager.equals(manager)) {
                 listener.handleManagerEvent(system, manager, event);
+            }
+        }
+
+        @Override
+        public void handleWalletEvent(System system, WalletManager manager, Wallet wallet, WalletEvent event) {
+            if (this.manager.equals(manager)) {
+                listener.handleWalletEvent(system, manager, wallet, event);
+            }
+        }
+
+        @Override
+        public void handleTransferEvent(System system, WalletManager manager, Wallet wallet, Transfer transfer, TranferEvent event) {
+            if (this.manager.equals(manager)) {
+                listener.handleTransferEvent(system, manager, wallet, transfer, event);
             }
         }
 
@@ -138,9 +179,9 @@ public final class DispatchingSystemListener implements SystemListener {
     private static class ScopedWalletListener implements DefaultSystemListener {
 
         private final Wallet wallet;
-        private final WalletListener listener;
+        private final SystemListener listener;
 
-        ScopedWalletListener(Wallet wallet, WalletListener listener) {
+        ScopedWalletListener(Wallet wallet, SystemListener listener) {
             this.wallet = wallet;
             this.listener = listener;
         }
@@ -149,6 +190,13 @@ public final class DispatchingSystemListener implements SystemListener {
         public void handleWalletEvent(System system, WalletManager manager, Wallet wallet, WalletEvent event) {
             if (this.wallet.equals(wallet)) {
                 listener.handleWalletEvent(system, manager, wallet, event);
+            }
+        }
+
+        @Override
+        public void handleTransferEvent(System system, WalletManager manager, Wallet wallet, Transfer transfer, TranferEvent event) {
+            if (this.wallet.equals(wallet)) {
+                listener.handleTransferEvent(system, manager, wallet, transfer, event);
             }
         }
 
@@ -176,9 +224,9 @@ public final class DispatchingSystemListener implements SystemListener {
     private static class ScopedTransferListener implements DefaultSystemListener {
 
         private final Transfer transfer;
-        private final TransferListener listener;
+        private final SystemListener listener;
 
-        ScopedTransferListener(Transfer transfer, TransferListener listener) {
+        ScopedTransferListener(Transfer transfer, SystemListener listener) {
             this.transfer = transfer;
             this.listener = listener;
         }
