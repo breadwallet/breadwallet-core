@@ -174,11 +174,60 @@ cwmWalletManagerEventAsBTC (BRWalletManagerClientContext context,
     BRCryptoWalletManagerEvent cwmEvent = { CRYPTO_WALLET_MANAGER_EVENT_CREATED };
 
     switch (event.type) {
-        case BITCOIN_WALLET_MANAGER_CREATED:
-            cwmEvent = (BRCryptoWalletManagerEvent) {
-                CRYPTO_WALLET_MANAGER_EVENT_CREATED
-            };
+        case BITCOIN_WALLET_MANAGER_CREATED: {
+            // Demand no 'wallet'
+            BRWallet *btcWallet = BRWalletManagerGetWallet (btcManager);
+            assert (NULL == cryptoWalletManagerFindWalletAsBTC (cwm, btcWallet));
+
+            // Get `currency` (it is 'taken')
+            BRCryptoCurrency currency = cryptoNetworkGetCurrency (cwm->network);
+            assert (NULL != currency);
+
+            // We'll create a wallet using the currency's default unit.
+            BRCryptoUnit unit = cryptoNetworkGetUnitAsDefault (cwm->network, currency);
+            assert (NULL != unit);
+
+            // Create a wallet using the currency's default unit
+            BRCryptoWallet wallet = cryptoWalletCreateAsBTC (unit, unit, cwm->u.btc, btcWallet);
+
+            // Set the primary wallet
+            assert (NULL == cwm->wallet);
+            cwm->wallet = cryptoWalletTake (wallet);
+
+            // Update CWM with the new wallet.
+            cryptoWalletManagerAddWallet (cwm, wallet);
+
+            // Clear need for event as we propagate them here
+            needEvent = 0;
+
+            // Generate a CRYPTO wallet manager event for CREATED...
+            cwm->listener.walletManagerEventCallback (cwm->listener.context,
+                                                      cryptoWalletManagerTake (cwm),
+                                                      (BRCryptoWalletManagerEvent) {
+                                                          CRYPTO_WALLET_MANAGER_EVENT_CREATED
+                                                      });
+
+            // Generate a CRYPTO wallet event for CREATED...
+            cwm->listener.walletEventCallback (cwm->listener.context,
+                                               cryptoWalletManagerTake (cwm),
+                                               cryptoWalletTake (wallet),
+                                               (BRCryptoWalletEvent) {
+                                                   CRYPTO_WALLET_EVENT_CREATED
+                                               });
+
+            // ... and then a CRYPTO wallet manager event for WALLET_ADDED
+            cwm->listener.walletManagerEventCallback (cwm->listener.context,
+                                                      cryptoWalletManagerTake (cwm),
+                                                      (BRCryptoWalletManagerEvent) {
+                                                          CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED,
+                                                          { .wallet = { cryptoWalletTake (wallet) }}
+                                                      });
+
+            cryptoWalletGive (wallet);
+            cryptoUnitGive (unit);
+            cryptoCurrencyGive (currency);
             break;
+        }
 
         case BITCOIN_WALLET_MANAGER_CONNECTED:
             cwmEvent = (BRCryptoWalletManagerEvent) {
@@ -256,41 +305,11 @@ cwmWalletEventAsBTC (BRWalletManagerClientContext context,
 
     switch (event.type) {
         case BITCOIN_WALLET_CREATED: {
-            // Get `currency` (it is 'taken')
-            BRCryptoCurrency currency = cryptoNetworkGetCurrency (cwm->network);
-
-            // We'll create a wallet using the currency's default unit.
-            BRCryptoUnit unit = cryptoNetworkGetUnitAsDefault (cwm->network, currency);
-
-            // Demand no 'wallet'
-            assert (NULL == cryptoWalletManagerFindWalletAsBTC (cwm, btcWallet));
-            BRCryptoWallet wallet = cryptoWalletCreateAsBTC (unit, unit, cwm->u.btc, btcWallet);
-
-            // Avoid a race condition on the CWM's 'primaryWallet'
-            if (NULL == cwm->wallet) cwm->wallet = cryptoWalletTake (wallet);
-
-            // Update CWM with the new wallet.
-            cryptoWalletManagerAddWallet (cwm, wallet);
-
-            // Generate a CRYPTO wallet event for CREATED...
-            cwm->listener.walletEventCallback (cwm->listener.context,
-                                               cryptoWalletManagerTake (cwm),
-                                               cryptoWalletTake (wallet),
-                                               (BRCryptoWalletEvent) {
-                                                   CRYPTO_WALLET_EVENT_CREATED
-                                               });
-
-            // ... and then a CRYPTO wallet manager event for WALLET_ADDED
-            cwm->listener.walletManagerEventCallback (cwm->listener.context,
-                                                      cryptoWalletManagerTake (cwm),
-                                                      (BRCryptoWalletManagerEvent) {
-                                                          CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED,
-                                                          { .wallet = { cryptoWalletTake (wallet) }}
-                                                      });
+            // Demand 'wallet'
+            BRCryptoWallet wallet = cryptoWalletManagerFindWalletAsBTC (cwm, btcWallet);
+            assert (NULL != wallet);
 
             cryptoWalletGive (wallet);
-            cryptoUnitGive (unit);
-            cryptoCurrencyGive (currency);
             break;
         }
 
@@ -771,12 +790,71 @@ cwmWalletManagerEventAsETH (BREthereumClientContext context,
     BRCryptoWalletManagerEvent cwmEvent;
 
     switch (event) {
-        case EWM_EVENT_CREATED:
+        case EWM_EVENT_CREATED: {
+            // Demand no 'wallet'
+            BREthereumWallet wid = ewmGetWallet (ewm);
+            assert (NULL == cryptoWalletManagerFindWalletAsETH (cwm, wid));
+
+            // Find the wallet's currency.
+            BRCryptoCurrency currency = cryptoNetworkGetCurrency (cwm->network);
+            assert (NULL != currency);
+
+            // Find the default unit; it too must exist.
+            BRCryptoUnit    unit = cryptoNetworkGetUnitAsDefault (cwm->network, currency);
+            assert (NULL != unit);
+
+            // Find the fee Unit
+            BRCryptoCurrency feeCurrency = cryptoNetworkGetCurrency (cwm->network);
+            assert (NULL != feeCurrency);
+
+            BRCryptoUnit     feeUnit     = cryptoNetworkGetUnitAsDefault (cwm->network, feeCurrency);
+            assert (NULL != feeUnit);
+
+            // Create the appropriate wallet based on currency
+            BRCryptoWallet wallet = cryptoWalletCreateAsETH (unit, feeUnit, cwm->u.eth, wid); // taken
+
+            // Set the primary wallet
+            assert (NULL == cwm->wallet);
+            cwm->wallet = cryptoWalletTake (wallet);
+
+            // Update CWM with the new wallet.
+            cryptoWalletManagerAddWallet (cwm, wallet);
+
+            // Clear need for event as we propagate them here
             needEvent = 0;
-            cwmEvent = (BRCryptoWalletManagerEvent) {
-                CRYPTO_WALLET_MANAGER_EVENT_CREATED
-            };
+
+            // Generate a CRYPTO wallet manager event for CREATED...
+            cwm->listener.walletManagerEventCallback (cwm->listener.context,
+                                                      cryptoWalletManagerTake (cwm),
+                                                      (BRCryptoWalletManagerEvent) {
+                                                          CRYPTO_WALLET_MANAGER_EVENT_CREATED
+                                                      });
+
+            // Generate a CRYPTO wallet event for CREATED...
+            cwm->listener.walletEventCallback (cwm->listener.context,
+                                               cryptoWalletManagerTake (cwm),
+                                               cryptoWalletTake (wallet),
+                                               (BRCryptoWalletEvent) {
+                                                   CRYPTO_WALLET_EVENT_CREATED
+                                               });
+
+            // ... and then a CRYPTO wallet manager event for WALLET_ADDED
+            cwm->listener.walletManagerEventCallback (cwm->listener.context,
+                                                      cryptoWalletManagerTake (cwm),
+                                                      (BRCryptoWalletManagerEvent) {
+                                                          CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED,
+                                                          { .wallet = { cryptoWalletTake (wallet) }}
+                                                      });
+
+            cryptoWalletGive (wallet);
+
+            cryptoUnitGive (feeUnit);
+            cryptoCurrencyGive (feeCurrency);
+
+            cryptoUnitGive (unit);
+            cryptoCurrencyGive (currency);
             break;
+        }
 
         case EWM_EVENT_SYNC_STARTED:
             cwmEvent = (BRCryptoWalletManagerEvent) {
@@ -875,13 +953,14 @@ cwmWalletEventAsETH (BREthereumClientContext context,
 
     switch (event.type) {
         case WALLET_EVENT_CREATED:
+            // The primary wallet was created/added in the EWM_EVENT_CREATED handler;
+            // we only need to handle newly observed token wallets here
             if (NULL == wallet) {
                 BREthereumToken token = ewmWalletGetToken (ewm, wid);
+                assert (NULL != token);
 
                 // Find the wallet's currency.
-                BRCryptoCurrency currency = (NULL == token
-                                             ? cryptoNetworkGetCurrency (cwm->network)
-                                             : cryptoNetworkGetCurrencyforTokenETH (cwm->network, token));
+                BRCryptoCurrency currency = cryptoNetworkGetCurrencyforTokenETH (cwm->network, token);
 
                 // The currency might not exist.  We installed all tokens announced by
                 // `ewmGetTokens()` but, at least during debugging, not all of those tokens will
@@ -902,13 +981,13 @@ cwmWalletEventAsETH (BREthereumClientContext context,
 
                 // Find the fee Unit
                 BRCryptoCurrency feeCurrency = cryptoNetworkGetCurrency (cwm->network);
+                assert (NULL != feeCurrency);
+
                 BRCryptoUnit     feeUnit     = cryptoNetworkGetUnitAsDefault (cwm->network, feeCurrency);
+                assert (NULL != feeUnit);
 
                 // Create the appropriate wallet based on currency
                 wallet = cryptoWalletCreateAsETH (unit, feeUnit, cwm->u.eth, wid); // taken
-
-                // Avoid a race on cwm->wallet - but be sure to assign the ETH wallet (not a TOK one).
-                if (NULL == cwm->wallet && NULL == token) cwm->wallet = cryptoWalletTake (wallet);
 
                 cryptoWalletManagerAddWallet (cwm, wallet);
 
