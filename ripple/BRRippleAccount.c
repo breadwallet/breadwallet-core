@@ -105,48 +105,6 @@ extern char * createRippleAddressString (BRRippleAddress address, int useChecksu
     return string;
 }
 
-/**
- * Optional way to create the BRKey
- *
- * 1. The normal way using the mnemonic paper_key
- * 2. In DEBUG mode unit tests can pass in a private key instead
- *
- */
-BRKey getKey(const char* paperKey, bool cleanPrivateKey)
-{
-#ifndef DEBUG
-    // In release mode we assume we only support mnemonic paper key
-    // Create the seed and the keys
-    UInt512 seed = getSeed(paperKey);
-    return deriveRippleKeyFromSeed (seed, 0, cleanPrivateKey);
-#else
-    // See if this key has any embedded spaces. If it does then
-    // it is a real paper key
-    int is_paper_key = 0;
-    unsigned long size = strlen(paperKey);
-    for(unsigned long i = 0; i < size; i++) {
-        if (paperKey[i] == ' ') {
-            is_paper_key = 1;
-            break;
-        }
-    }
-    if (1 == is_paper_key) {
-        // Create the seed and the keys
-        UInt512 seed = getSeed(paperKey);
-        return deriveRippleKeyFromSeed (seed, 0, cleanPrivateKey);
-    } else {
-        // The following is for testing purposes only. I have a couple
-        // of tests that create a private key from a string.
-        BRKey key;
-        mem_clean(&key, sizeof(key));
-        BRKeySetPrivKey(&key, RIPPLE_ADDRESS_PARAMS, paperKey);
-        key.compressed = 1;
-        BRKeyPubKey(&key, &key.pubKey, 33);
-        return key;
-    }
-#endif
-}
-
 static BRRippleAccount createAccountObject(BRKey * key)
 {
     if (0 == key->compressed) {
@@ -172,7 +130,8 @@ static BRRippleAccount createAccountObject(BRKey * key)
 // Create an account from the paper key
 extern BRRippleAccount rippleAccountCreate (const char *paperKey)
 {
-    BRKey key = getKey(paperKey, true);
+    UInt512 seed = getSeed(paperKey);
+    BRKey key = deriveRippleKeyFromSeed (seed, 0, true);
     return createAccountObject(&key);
 }
 
@@ -282,7 +241,8 @@ rippleAccountSignTransaction(BRRippleAccount account, BRRippleTransaction transa
     assert(paperKey);
 
     // Create the private key from the paperKey
-    BRKey key = getKey(paperKey, false);
+    UInt512 seed = getSeed(paperKey);
+    BRKey key = deriveRippleKeyFromSeed (seed, 0, false);
 
     size_t tx_size =
         rippleTransactionSerializeAndSign(transaction, &key, &account->publicKey,

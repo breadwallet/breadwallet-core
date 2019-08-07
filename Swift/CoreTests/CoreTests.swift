@@ -201,7 +201,7 @@ class CoreTests: XCTestCase {
     /// Ripple
     ///
     func testRipple () {
-//        runRippleTest ()
+        runRippleTest ()
     }
 
     /// Run an Etheruem Sync.  Two syncs are run back-to-back with the second sync meant to
