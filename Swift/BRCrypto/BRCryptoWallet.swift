@@ -148,7 +148,22 @@ public final class Wallet: Equatable {
                              take: false)
         }
     }
-    
+
+    public func createTransferToImportFrom(key: Key,
+                                           estimatedFeeBasis: TransferFeeBasis,
+                                           completion: @escaping (Result<Transfer, CreateTransferError>) -> Void ) {
+        precondition (false)
+    }
+
+    public enum CreateTransferError: Error {
+        case ServiceUnavailable
+        case ServiceError
+        case InsufficientFunds
+        case InvalidAddress
+        case OwnAddress
+        case OutputTooSmall(Amount)
+    }
+
     ///
     /// Estimate the fee for a transfer with `amount` from `wallet`.  If provided use the `feeBasis`
     /// otherwise use the wallet's `defaultFeeBasis`
@@ -170,6 +185,12 @@ public final class Wallet: Equatable {
                 .map { Result.success($0)}
             ?? Result.failure(FeeEstimationError.ServiceError))
         }
+    }
+
+    public func estimateFeeToImportFrom (key: Key,
+                                         fee: NetworkFee,
+                                         completion: @escaping (Result<TransferFeeBasis,FeeEstimationError>) -> Void) {
+        precondition (false)
     }
 
     public enum FeeEstimationError: Error {
