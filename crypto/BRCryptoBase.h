@@ -40,6 +40,10 @@ extern "C" {
 
     typedef struct BRCryptoWalletManagerRecord *BRCryptoWalletManager;
 
+    // Cookies are used as markers to match up an asynchronous operation
+    // request with its corresponding event.
+    typedef void *BRCryptoCookie;
+
     typedef enum {
         CRYPTO_FALSE = 0,
         CRYPTO_TRUE  = 1

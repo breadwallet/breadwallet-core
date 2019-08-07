@@ -32,7 +32,7 @@ public class BRCryptoCWMClientEth extends Structure {
 
     public interface BRCryptoCWMEthEstimateGasCallback extends Callback {
         void apply(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState, String networkName,
-                   String from, String to, String amount, String data);
+                   String from, String to, String amount, String gasPrice, String data);
     }
 
     public interface BRCryptoCWMEthSubmitTransactionCallback extends Callback {

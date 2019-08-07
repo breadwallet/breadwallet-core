@@ -133,6 +133,11 @@ feeBasisCreate (BREthereumGas limit,
 typedef enum {
     SUCCESS,
 
+    // Generic catch-all failure. This should only be used as if creating a
+    // specific error code does not make sense (you really should create
+    // a specifc error code...).
+    ERROR_FAILED,
+
     // Reference access
     ERROR_UNKNOWN_NODE,
     ERROR_UNKNOWN_TRANSACTION,

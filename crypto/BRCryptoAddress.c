@@ -89,6 +89,12 @@ cryptoAddressCreateAsGEN (BRGenericWalletManager gwm,
     return address;
 }
 
+private_extern BREthereumAddress
+cryptoAddressAsETH (BRCryptoAddress address) {
+    assert (BLOCK_CHAIN_TYPE_ETH == address->type);
+    return address->u.eth;
+}
+
 private_extern BRGenericAddress
 cryptoAddressAsGEN (BRCryptoAddress address) {
     assert (BLOCK_CHAIN_TYPE_GEN == address->type);

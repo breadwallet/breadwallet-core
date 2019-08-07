@@ -52,6 +52,7 @@
 		3C56C98122FA28190054AD21 /* TransferCreatePaymentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C56C98022FA28190054AD21 /* TransferCreatePaymentController.swift */; };
 		3C56C98322FA28310054AD21 /* TransferCreateSweepController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C56C98222FA28310054AD21 /* TransferCreateSweepController.swift */; };
 		3C56C98522FA2B630054AD21 /* TransferCreateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C56C98422FA2B620054AD21 /* TransferCreateController.swift */; };
+		3C56C97D22F8F8C20054AD21 /* BRCryptoStatus.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C56C97C22F8F8C20054AD21 /* BRCryptoStatus.c */; };
 		3C5C02392212035B0052E010 /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CEF5FC9220513FC0010A811 /* libresolv.tbd */; };
 		3C5F5E75212C82310038B732 /* BREthereumMPT.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C5F5E74212C82310038B732 /* BREthereumMPT.c */; };
 		3C6B172F2131CB5B003C313B /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C6B172E2131CB5B003C313B /* main.c */; };
@@ -472,6 +473,8 @@
 		3C56C98022FA28190054AD21 /* TransferCreatePaymentController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferCreatePaymentController.swift; sourceTree = "<group>"; };
 		3C56C98222FA28310054AD21 /* TransferCreateSweepController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferCreateSweepController.swift; sourceTree = "<group>"; };
 		3C56C98422FA2B620054AD21 /* TransferCreateController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferCreateController.swift; sourceTree = "<group>"; };
+		3C56C97B22F8F8C20054AD21 /* BRCryptoStatus.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoStatus.h; sourceTree = "<group>"; };
+		3C56C97C22F8F8C20054AD21 /* BRCryptoStatus.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRCryptoStatus.c; sourceTree = "<group>"; };
 		3C590F3220950C720005597B /* BRBIP32Sequence.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRBIP32Sequence.c; sourceTree = "<group>"; };
 		3C590F3320950C720005597B /* BRBIP39Mnemonic.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRBIP39Mnemonic.h; sourceTree = "<group>"; };
 		3C590F3420950C720005597B /* BRAddress.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRAddress.c; sourceTree = "<group>"; };
@@ -1182,6 +1185,8 @@
 			children = (
 				3C97E25322416D4D003FD88F /* BRCryptoBase.h */,
 				3C97E25D22430AA1003FD88F /* BRCryptoPrivate.h */,
+				3C56C97B22F8F8C20054AD21 /* BRCryptoStatus.h */,
+				3C56C97C22F8F8C20054AD21 /* BRCryptoStatus.c */,
 				3CCC61E6228C6C2000C0A13E /* BRCryptoHash.h */,
 				3CCC61E7228C6C2000C0A13E /* BRCryptoHash.c */,
 				3C97E2342241658E003FD88F /* BRCryptoCurrency.h */,
@@ -1872,6 +1877,7 @@
 				3C386DC720C6F4AF0065E355 /* BREthereumLESRandom.c in Sources */,
 				3C386DD420C6F6070065E355 /* BREthereumEWMEvent.c in Sources */,
 				3CAB60E520AF8D1A00810CE4 /* BRTransaction.c in Sources */,
+				3C56C97D22F8F8C20054AD21 /* BRCryptoStatus.c in Sources */,
 				3CD3049D213F281500A0CCED /* BREthereumProvision.c in Sources */,
 				3C386DD320C6F6070065E355 /* BREthereumEWMClient.c in Sources */,
 				3C9B8DE922BD52940060C3A9 /* BRGeneric.c in Sources */,

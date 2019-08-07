@@ -38,10 +38,6 @@ public class CoreSystemListener implements SystemListener {
 
     private static final String TAG = CoreSystemListener.class.getName();
 
-    private final Set<WalletManagerListener> walletManagerListeners = Collections.newSetFromMap(new WeakHashMap<>());
-    private final Set<WalletListener> walletListeners = Collections.newSetFromMap(new WeakHashMap<>());
-    private final Set<TransferListener> transferListeners = Collections.newSetFromMap(new WeakHashMap<>());
-
     private final WalletManagerMode mode;
     private final boolean isMainnet;
     private final List<String> currencyCodesNeeded;
@@ -50,60 +46,6 @@ public class CoreSystemListener implements SystemListener {
         this.mode = mode;
         this.isMainnet = isMainnet;
         this.currencyCodesNeeded = new ArrayList<>(currencyCodesNeeded);
-    }
-
-    public void addListener(WalletManagerListener listener) {
-        synchronized (walletManagerListeners) {
-            walletManagerListeners.add(listener);
-        }
-    }
-
-    public void removeListener(WalletManagerListener  listener) {
-        synchronized (walletManagerListeners) {
-            walletManagerListeners.remove(listener);
-        }
-    }
-
-    public void addListener(WalletListener listener) {
-        synchronized (walletListeners) {
-            walletListeners.add(listener);
-        }
-    }
-
-    public void removeListener(WalletListener listener) {
-        synchronized (walletListeners) {
-            walletListeners.remove(listener);
-        }
-    }
-
-    public void addListener(TransferListener listener) {
-        synchronized (transferListeners) {
-            transferListeners.add(listener);
-        }
-    }
-
-    public void removeListener(TransferListener listener) {
-        synchronized (transferListeners) {
-            transferListeners.remove(listener);
-        }
-    }
-
-    private Set<WalletListener> copyWalletListeners() {
-        synchronized (walletListeners) {
-            return new HashSet<>(walletListeners);
-        }
-    }
-
-    private Set<WalletManagerListener> copyWalletManagerListeners() {
-        synchronized (walletManagerListeners) {
-            return new HashSet<>(walletManagerListeners);
-        }
-    }
-
-    private Set<TransferListener> copyTransferListeners() {
-        synchronized (transferListeners) {
-            return new HashSet<>(transferListeners);
-        }
     }
 
     @Override
@@ -152,17 +94,11 @@ public class CoreSystemListener implements SystemListener {
     @Override
     public void handleManagerEvent(System system, WalletManager manager, WalletManagerEvent event) {
         Log.d(TAG, String.format("Manager (%s): %s", manager.getName(), event));
-        for(WalletManagerListener listener: copyWalletManagerListeners()) {
-            listener.handleManagerEvent(system, manager, event);
-        }
     }
 
     @Override
     public void handleWalletEvent(System system, WalletManager manager, Wallet wallet, WalletEvent event) {
         Log.d(TAG, String.format("Wallet (%s:%s): %s", manager.getName(), wallet.getName(), event));
-        for(WalletListener listener: copyWalletListeners()) {
-            listener.handleWalletEvent(system, manager, wallet, event);
-        }
 
         event.accept(new DefaultWalletEventVisitor<Void>() {
             @Nullable
@@ -178,8 +114,5 @@ public class CoreSystemListener implements SystemListener {
     @Override
     public void handleTransferEvent(System system, WalletManager manager, Wallet wallet, Transfer transfer, TranferEvent event) {
         Log.d(TAG, String.format("Transfer (%s:%s): %s", manager.getName(), wallet.getName(), event));
-        for(TransferListener listener: copyTransferListeners()) {
-            listener.handleTransferEvent(system, manager, wallet, transfer, event);
-        }
     }
 }

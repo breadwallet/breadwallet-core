@@ -206,15 +206,30 @@ ewmSignalGasPrice (BREthereumEWM ewm,
 // Signal/Handle GasEstimate (BCS Callback)
 //
 extern void
-ewmHandleGasEstimate (BREthereumEWM ewm,
-                      BREthereumWallet wallet,
-                      BREthereumTransfer transfer,
-                      BREthereumGas gasEstimate);
+ewmHandlGasEstimateSuccess (BREthereumEWM ewm,
+                            BREthereumWallet wallet,
+                            BREthereumCookie cookie,
+                            BREthereumGas gasEstimate,
+                            BREthereumGasPrice gasPrice);
+
 extern void
-ewmSignalGasEstimate (BREthereumEWM ewm,
-                      BREthereumWallet wallet,
-                      BREthereumTransfer transfer,
-                      BREthereumGas gasEstimate);
+ewmHandlGasEstimateFailure (BREthereumEWM ewm,
+                            BREthereumWallet wallet,
+                            BREthereumCookie cookie,
+                            BREthereumStatus status);
+
+extern void
+ewmSignalGasEstimateSuccess(BREthereumEWM ewm,
+                            BREthereumWallet wallet,
+                            BREthereumCookie cookie,
+                            BREthereumGas gasEstimate,
+                            BREthereumGasPrice gasPrice);
+
+extern void
+ewmSignalGasEstimateFailure(BREthereumEWM ewm,
+                            BREthereumWallet wallet,
+                            BREthereumCookie cookie,
+                            BREthereumStatus status);
 
 //
 // Signal/Handle Transaction (BCS Callback)
@@ -346,22 +361,6 @@ ewmHandleAnnounceGasPrice (BREthereumEWM ewm,
                                  BREthereumWallet wallet,
                                  UInt256 value,
                                  int rid);
-
-/// MARK: - Estimate Gas
-
-extern void
-ewmHandleAnnounceGasEstimate (BREthereumEWM ewm,
-                                    BREthereumWallet wallet,
-                                    BREthereumTransfer transfer,
-                                    UInt256 value,
-                                    int rid);
-
-extern void
-ewmSignalAnnounceGasEstimate (BREthereumEWM ewm,
-                                    BREthereumWallet wallet,
-                                    BREthereumTransfer transfer,
-                                    UInt256 value,
-                                    int rid);
 
 /// MARK: - Submit Transaction
 
