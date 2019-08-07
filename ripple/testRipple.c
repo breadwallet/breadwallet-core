@@ -558,47 +558,6 @@ const char * tx_one = "120000228007000024002BD71F201B02CF99B861D5838D7EA4C680000
 
 const char * tx_two = "1200002200000000240000003E6140000002540BE40068400000000000000A7321034AADB09CFF4A4804073701EC53C3510CDC95917C2BB0150FB742D0C66E6CEE9E74473045022022EB32AECEF7C644C891C19F87966DF9C62B1F34BABA6BE774325E4BB8E2DD62022100A51437898C28C2B297112DF8131F2BB39EA5FE613487DDD611525F17962646398114550FC62003E785DC231A1058A05E56E3F09CF4E68314D4CC8AB5B21D86A82C3E9E8D0ECF2404B77FECBA";
 
-static void
-testTransactionHash (void /* ... */) {
-    BRRippleTransaction transaction;
-
-    // Here are the 20 byte addresses
-    uint8_t destBytes[] = { 0xAF, 0x65, 0x53, 0xEE, 0x2C, 0xDC, 0xA1, 0x65, 0xAB, 0x03,
-        0x75, 0xA3, 0xEF, 0xB0, 0xC7, 0x65, 0x0E, 0xA5, 0x53, 0x50 };
-    
-    // Create an account so we can get a public key
-    const char * paper_key = "F603971FCF8366465537B6AD793B37BED5FF730D3764A9DC0F7F4AD911E7372C";
-    BRRippleAccount account = createTestRippleAccount(paper_key, NULL);
-    // Get the 20 bytes that were created for the account
-    BRRippleAddress address = rippleAccountGetAddress(account);
-    
-    BRRippleAddress sourceAddress;
-    BRRippleAddress targetAddress;
-    memcpy(sourceAddress.bytes, address.bytes, 20);
-    memcpy(targetAddress.bytes, destBytes, 20);
-    
-    transaction = rippleTransactionCreate(sourceAddress, targetAddress, 1000000, 12);
-    assert(transaction);
-
-    // Serialize and sign
-    rippleAccountSetSequence(account, 25);
-    rippleAccountSignTransaction(account, transaction, paper_key);
-    
-    // Compare the transaction hash
-    uint8_t expected_hash[] = {
-        0xC0, 0x33, 0x01, 0x0E, 0x2A, 0x32, 0x69, 0xBF,
-        0x21, 0x2A, 0xDB, 0x62, 0x81, 0x58, 0xD8, 0xB6,
-        0x89, 0x7D, 0x15, 0x53, 0x54, 0x8F, 0xCB, 0xBD,
-        0x9A, 0x2A, 0xC7, 0x43, 0xED, 0xB3, 0x09, 0x0F
-    };
-    BRRippleTransactionHash hash = rippleTransactionGetHash(transaction);
-    assert(0 == memcmp(hash.bytes, expected_hash, 32));
-
-    rippleTransactionFree(transaction);
-    rippleAccountFree(account);
-}
-
-
 static void createAndDeleteWallet()
 {
     const char * paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
@@ -679,6 +638,59 @@ static void testRippleAddressEqual()
     assert(0 == result);
 }
 
+static void
+testTransactionId (void /* ... */) {
+    // NOTE - this transaction was created and sent to the Ripple TESTNET server and:
+    // - was successful
+    // - I captured the hash that was returned from the server
+
+    // Create an account so we can get a public key
+    const char * source_paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
+    BRRippleAccount sourceAccount = rippleAccountCreate(source_paper_key);
+    const char * target_paper_key = "choose color rich dose toss winter dutch cannon over air cash market"; // rwjruMZqtebGhobxYuFVoNg6KmVMbEUws3
+    BRRippleAccount targetAccount = rippleAccountCreate(target_paper_key);
+
+    BRRippleAddress sourceAddress = rippleAccountGetAddress(sourceAccount);
+    BRRippleAddress targetAddress = rippleAccountGetAddress(targetAccount);
+    BRRippleTransaction transaction = rippleTransactionCreate(sourceAddress, targetAddress, 50000000, 12);
+
+    // Serialize and sign
+    rippleAccountSetSequence(sourceAccount, 2);
+    rippleAccountSignTransaction(sourceAccount, transaction, source_paper_key);
+
+    // Compare the transaction hash
+    const char * expected_hash = "0422880D4F88A7DE9A586D536119CAD2DEBFEACDAEA850E10A8E7155FF8DB2C6";
+    uint8_t expected_tx_id[32];
+    hex2bin(expected_hash, expected_tx_id);
+
+    // Sign the transaction
+    size_t signedBytesSize = 0;
+    uint8_t * signedBytes = rippleTransactionSerialize(transaction, &signedBytesSize);
+    if (debug_log) {
+        for (int i = 0; i < signedBytesSize; i++) {
+            if (i == 0) printf("Signed bytes: \n");
+            printf("%02X", signedBytes[i]);
+        }
+        printf("\n");
+    }
+
+    // Compare the hash
+    BRRippleTransactionHash hash = rippleTransactionGetHash(transaction);
+    assert(memcmp(expected_tx_id, hash.bytes, 32) == 0);
+    if (debug_log) {
+        for (int i = 0; i < 32; i++) {
+            if (i == 0) printf("HASH: \n");
+            printf("%02X", hash.bytes[i]);
+        }
+        printf("\n");
+    }
+
+    rippleAccountFree(sourceAccount);
+    rippleAccountFree(targetAccount);
+    rippleTransactionFree(transaction);
+    free(signedBytes);
+}
+
 void rippleAccountTests()
 {
     testCreateRippleAccountWithPaperKey();
@@ -694,7 +706,7 @@ void rippleTransactionTests()
     testRippleTransaction();
     testRippleTransactionGetters();
     testSerializeWithSignature();
-    testTransactionHash();
+    testTransactionId();
     testTransactionDeserialize();
     testTransactionDeserializeUnknownFields();
     testTransactionDeserializeOptionalFields();
@@ -762,6 +774,46 @@ static void runDeserializeTests(const char* tx_list_name, const char* tx_list[],
            tx_list_name, num_elements/2, payments, other_type, xrp_currency, other_currency);
 }
 
+static void
+createSubmittableTransaction (void /* ... */) {
+    BRRippleTransaction transaction;
+
+    // Create an account so we can get a public key
+    const char * source_paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
+    BRRippleAccount sourceAccount = rippleAccountCreate(source_paper_key);
+    const char * target_paper_key = "choose color rich dose toss winter dutch cannon over air cash market"; // rwjruMZqtebGhobxYuFVoNg6KmVMbEUws3
+    BRRippleAccount targetAccount = rippleAccountCreate(target_paper_key);
+
+    BRRippleAddress sourceAddress = rippleAccountGetAddress(sourceAccount);
+    BRRippleAddress targetAddress = rippleAccountGetAddress(targetAccount);
+    transaction = rippleTransactionCreate(sourceAddress, targetAddress, 50000000, 12);
+
+    // Serialize and sign
+    rippleAccountSetSequence(sourceAccount, 2);
+    rippleAccountSignTransaction(sourceAccount, transaction, source_paper_key);
+
+    // Sign the transaction
+    size_t signedBytesSize = 0;
+    uint8_t * signedBytes = rippleTransactionSerialize(transaction, &signedBytesSize);
+    for (int i = 0; i < signedBytesSize; i++) {
+        if (i == 0) printf("Signed bytes: \n");
+        printf("%02X", signedBytes[i]);
+    }
+    printf("\n");
+
+    // Print out the hash (transactionID)
+    BRRippleTransactionHash hash = rippleTransactionGetHash(transaction);
+    for (int i = 0; i < 32; i++) {
+        if (i == 0) printf("HASH: \n");
+        printf("%02X", hash.bytes[i]);
+    }
+    printf("\n");
+    rippleAccountFree(sourceAccount);
+    rippleAccountFree(targetAccount);
+    rippleTransactionFree(transaction);
+    free(signedBytes);
+}
+
 extern void
 runRippleTest (void /* ... */) {
 
@@ -779,7 +831,9 @@ runRippleTest (void /* ... */) {
     runWalletTests();
 
     // getAccountInfo is just a utility to print out info if needed
-    const char* paper_key = "996F8505F48FCB74D291F7B459A5EA20FEA97ACEC803D7459B3742AF3DCF4B9D";
-    const char* ripple_address = "rGzQdxGFHLtiP16x8k458Am5sy8mBcnhpD";
+    const char * paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
+    const char* ripple_address = "r41vZ8exoVyUfVzs56yeN8xB5gDhSkho9a";
     getAccountInfo(paper_key, ripple_address);
+
+    //createSubmittableTransaction();
 }
