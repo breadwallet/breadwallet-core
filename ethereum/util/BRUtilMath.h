@@ -36,6 +36,9 @@ typedef enum {
 extern UInt256
 createUInt256 (uint64_t value);
 
+extern UInt256
+createUInt256Double (double value, int decimals, int *overflow);
+
 /**
  * Create as `(expt 10 power)` where power < 20 is required.
  */

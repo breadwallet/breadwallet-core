@@ -23,6 +23,22 @@ createUInt256 (uint64_t value) {
 }
 
 extern UInt256
+createUInt256Double (double value, int decimals, int *overflow) {
+    assert (NULL != overflow);
+
+    UInt256 result = UINT256_ZERO;
+    long double y = fabs(value) * powl (10.0, decimals);
+
+    y = roundl(y);  // (extraneous) Axe any fraction; can't participate in a UInt
+
+    for (size_t index = 0; index < 4; index++)
+        result.u64[index] = UINT64_MAX * modfl(y/UINT64_MAX, &y);
+    *overflow = (y != 0);
+
+    return *overflow ? UINT256_ZERO : result;
+}
+
+extern UInt256
 createUInt256Power (uint8_t digits, int *overflow) {
     if (digits < 20) {    // 10^19 fits in uint64_t
         uint64_t value = 1;
