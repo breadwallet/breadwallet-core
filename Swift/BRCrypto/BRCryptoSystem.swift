@@ -1066,7 +1066,10 @@ extension System {
                 let ewm = cryptoWalletManagerAsETH (cwm);
                 let network = asUTF8String (networkGetName (ewmGetNetwork (ewm)))
 
-                manager.query.getNonceAsETH (network: network, address: asUTF8String(address!)) {
+                guard let address = address.map (asUTF8String)
+                    else { print ("SYS: ETH: GetNonce: Missed {address}"); return }
+
+                 manager.query.getNonceAsETH (network: network, address: address) {
                     (res: Result<String, BlockChainDB.QueryError>) in
                     defer { cryptoWalletManagerGive (cwm!) }
                     res.resolve (
