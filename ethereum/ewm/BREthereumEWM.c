@@ -639,6 +639,7 @@ ewmDestroy (BREthereumEWM ewm) {
     walletsRelease (ewm->wallets);
     ewm->wallets = NULL;
 
+    fileServiceRelease (ewm->fs);
     eventHandlerDestroy(ewm->handler);
     rlpCoderRelease(ewm->coder);
 
@@ -647,6 +648,8 @@ ewmDestroy (BREthereumEWM ewm) {
 
     pthread_mutex_unlock (&ewm->lock);
     pthread_mutex_destroy (&ewm->lock);
+
+    memset (ewm, 0, sizeof(*ewm));
     free (ewm);
 }
 
