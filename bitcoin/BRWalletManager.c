@@ -638,9 +638,18 @@ BRWalletManagerNew (BRWalletManagerClient client,
 
 extern void
 BRWalletManagerFree (BRWalletManager manager) {
-    fileServiceRelease(manager->fileService);
-    BRPeerManagerFree(manager->peerManager);
-    BRWalletFree(manager->wallet);
+    BRPeerManagerDisconnect (manager->peerManager);
+    BRPeerManagerFree (manager->peerManager);
+
+    BRWalletFree (manager->wallet);
+
+    fileServiceRelease (manager->fileService);
+
+    eventHandlerDestroy (manager->handler);
+
+    pthread_mutex_destroy (&manager->lock);
+
+    memset (manager, 0, sizeof(*manager));
     free (manager);
 }
 
