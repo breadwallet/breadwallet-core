@@ -63,25 +63,17 @@ public enum CoreSigner: Signer {
             var target: Data!
             switch self {
             case .basicDER:
-                var keySignRequiresANonNULLSignatue = Data (count: 72);
-                // TODO: Above not needed?
-                
-                let targetCount = keySignRequiresANonNULLSignatue.withUnsafeMutableBytes { (bytes: UnsafeMutableRawBufferPointer) -> Int in
-                    let addr  = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                    return BRKeySign (cryptoKeyGetCore(key), addr, 72, digestUInt256)
-                }
-
-                if 0 == targetCount { /* error */ }
+                let targetCount = BRKeySign (cryptoKeyGetCore(key), nil, 0, digestUInt256)
+                assert(targetCount > 0)
                 target = Data (count: targetCount)
                 target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                     let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-
                     BRKeySign (cryptoKeyGetCore(key), targetAddr, targetCount, digestUInt256)
                 }
                 
             case .basicJOSE:
                 let targetCount = BRKeySignJOSE (cryptoKeyGetCore(key), nil, 0, digestUInt256)
-                if 0 == targetCount { /* error */ }
+                assert(targetCount > 0)
                 target = Data (count: targetCount)
                 target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                     let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
@@ -90,7 +82,7 @@ public enum CoreSigner: Signer {
 
             case .compact:
                 let targetCount = BRKeyCompactSign (cryptoKeyGetCore(key), nil, 0, digestUInt256)
-                if 0 == targetCount { /* error */ }
+                assert(targetCount > 0)
                 target = Data (count: targetCount)
                 target.withUnsafeMutableBytes { (targetBytes: UnsafeMutableRawBufferPointer) -> Void in
                     let targetAddr  = targetBytes.baseAddress?.assumingMemoryBound(to: UInt8.self)

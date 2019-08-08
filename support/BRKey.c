@@ -53,14 +53,6 @@
 #pragma clang diagnostic pop
 #pragma GCC diagnostic pop
 
-#if !defined (MAX)
-#define MAX(a,b) (((a)>(b))?(a):(b))
-#endif
-
-#if !defined (MIN)
-#define MIN(a,b) (((a)<(b))?(a):(b))
-#endif
-
 static pthread_once_t _rand_once = PTHREAD_ONCE_INIT;
 
 static void _rand_init (void) {
