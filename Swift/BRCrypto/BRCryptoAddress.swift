@@ -28,7 +28,7 @@ public final class Address: Equatable, CustomStringConvertible {
     }
 
     public private(set) lazy var description: String = {
-        return asUTF8String (cryptoAddressAsString (core))
+        return asUTF8String (cryptoAddressAsString (core), true)
     }()
 
     ///

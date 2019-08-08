@@ -608,6 +608,7 @@ cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
                                                      cryptoNetworkFeeAsETH (fee),
                                                      ewmWalletGetDefaultGasLimit (ewm, wid));
 
+            cryptoAddressGive (source);
             break;
         }
 
