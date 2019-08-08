@@ -364,7 +364,7 @@ cryptoWalletGetAddress (BRCryptoWallet wallet,
             BREthereumAddress ethAddress = accountGetPrimaryAddress (ewmGetAccount(ewm));
             return cryptoAddressCreateAsETH (ethAddress);
         }
-            
+
         case BLOCK_CHAIN_TYPE_GEN: {
             assert (CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT == addressScheme);
             BRGenericWalletManager gwm = wallet->u.gen.gwm;
@@ -556,9 +556,6 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
     cryptoUnitGive (unitForFee);
     cryptoUnitGive (unit);
 
-    // Required?  Or just 'better safe than sorry'
-    if (NULL != transfer) cryptoWalletAddTransfer (wallet, transfer);
-
     return transfer;
 }
 
@@ -665,7 +662,7 @@ cryptoWalletCreateFeeBasis (BRCryptoWallet wallet,
         }
 
         case BLOCK_CHAIN_TYPE_GEN: {
-            BRGenericFeeBasis feeBasis = NULL; 
+            BRGenericFeeBasis feeBasis = NULL;
             return cryptoFeeBasisCreateAsGEN (wallet->unitForFee, wallet->u.gen.gwm, feeBasis);
         }
     }
