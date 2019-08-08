@@ -1172,10 +1172,14 @@ public class BlockChainDB {
                                      amount: String,
                                      data: String,
                                      completion: @escaping (Result<String,QueryError>) -> Void) {
+        var param = ["from":from, "to":to]
+        if amount != "0x" { param["value"] = amount }
+        if data   != "0x" { param["data"]  = data }
+
         let json: JSON.Dict = [
             "jsonrpc" : "2.0",
-            "method"  : "eth_getBalance",
-            "params"  : [["from":from, "to":to, "value":amount, "data":data]],
+            "method"  : "eth_estimateGas",
+            "params"  : [param],
             "id"      : ridIncr
         ]
 

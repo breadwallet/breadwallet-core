@@ -477,6 +477,9 @@ ewmCreate (BREthereumNetwork network,
 
     array_new(ewm->wallets, DEFAULT_WALLET_CAPACITY);
 
+    // Queue the CREATED event so that it is the first event delievered to the BREthereumClient
+    ewmSignalEWMEvent (ewm, EWM_EVENT_CREATED, SUCCESS, NULL);
+
     // Create a default ETH wallet; other wallets will be created 'on demand'
     ewm->walletHoldingEther = walletCreate(ewm->account,
                                            ewm->network);
@@ -572,7 +575,7 @@ ewmCreate (BREthereumNetwork network,
             break;
         }
 
-        case P2P_WITH_BRD_SYNC:  // 
+        case P2P_WITH_BRD_SYNC:  //
         case P2P_ONLY: {
             ewm->bcs = bcsCreate (network,
                                   accountGetPrimaryAddress (account),
@@ -809,7 +812,7 @@ ewmSyncUpdateTransferPredicate (BREthereumSyncTransferContext *context,
     // answer is 'no - because the blockchain has no information about non-included transactios
     // and logs'.  The other status types (created, submitted, etc) will either be resolved by
     // another sync or won't matter.
-    
+
     return (transferExtractStatusIncluded (transfer, NULL, &blockNumber, NULL, NULL, NULL) &&
             context->begBlockNumber <= blockNumber && blockNumber <= context->endBlockNumber);
 }
@@ -862,7 +865,7 @@ ewmSync (BREthereumEWM ewm,
 
                 free (wallets);
             }
-            
+
             // Start a sync from block 0
             ewm->brdSync.begBlockNumber = 0;
 
@@ -1093,7 +1096,7 @@ ewmInsertWallet (BREthereumEWM ewm,
                  BREthereumWallet wallet) {
     pthread_mutex_lock(&ewm->lock);
     array_add (ewm->wallets, wallet);
-    ewmSignalWalletEvent (ewm, wallet, WALLET_EVENT_CREATED, SUCCESS, NULL);
+    ewmSignalWalletEvent (ewm, wallet, (BREthereumWalletEvent) { WALLET_EVENT_CREATED }, SUCCESS, NULL);
     pthread_mutex_unlock(&ewm->lock);
 }
 
@@ -1234,6 +1237,30 @@ ewmWalletEstimateTransferFeeForBasis(BREthereumEWM ewm,
                                      BREthereumGas gas,
                                      int *overflow) {
     return walletEstimateTransferFeeDetailed (wallet, amount, price, gas, overflow);
+}
+
+extern void
+ewmWalletEstimateTransferFeeForTransfer (BREthereumEWM ewm,
+                                         BREthereumWallet wallet,
+                                         BREthereumCookie cookie,
+                                         BREthereumAddress source,
+                                         BREthereumAddress target,
+                                         BREthereumAmount amount,
+                                         BREthereumGasPrice gasPrice,
+                                         BREthereumGas gasLimit) {
+    BREthereumToken  ethToken  = ewmWalletGetToken (ewm, wallet);
+
+    // use transfer, instead of transaction, due to the need to fill out the transaction data based on if
+    // it is a token transfer or not
+    BREthereumTransfer transfer = transferCreate (source,
+                                                  target,
+                                                  amount,
+                                                  (BREthereumFeeBasis) {FEE_BASIS_GAS, {.gas = {gasLimit, gasPrice}}},
+                                                  (NULL == ethToken ? TRANSFER_BASIS_TRANSACTION : TRANSFER_BASIS_LOG));
+
+    ewmGetGasEstimate (ewm, wallet, transfer, cookie);
+
+    transferRelease (transfer);
 }
 
 extern BREthereumBoolean
@@ -1424,7 +1451,7 @@ ewmWalletGetGasEstimate(BREthereumEWM ewm,
                         BREthereumWallet wallet,
                         BREthereumTransfer transfer) {
     return transferGetGasEstimate(transfer);
-    
+
 }
 
 extern BREthereumGas
@@ -1440,7 +1467,7 @@ ewmWalletSetDefaultGasLimit(BREthereumEWM ewm,
     walletSetDefaultGasLimit(wallet, gasLimit);
     ewmSignalWalletEvent(ewm,
                          wallet,
-                         WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED,
+                         (BREthereumWalletEvent) { WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED },
                          SUCCESS,
                          NULL);
 }
@@ -1458,7 +1485,7 @@ ewmWalletSetDefaultGasPrice(BREthereumEWM ewm,
     walletSetDefaultGasPrice(wallet, gasPrice);
     ewmSignalWalletEvent(ewm,
                          wallet,
-                         WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
+                         (BREthereumWalletEvent) { WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED },
                          SUCCESS,
                          NULL);
 }
@@ -1478,14 +1505,14 @@ ewmHandleGasPrice (BREthereumEWM ewm,
                    BREthereumWallet wallet,
                    BREthereumGasPrice gasPrice) {
     pthread_mutex_lock(&ewm->lock);
-    
+
     walletSetDefaultGasPrice(wallet, gasPrice);
-    
+
     ewmSignalWalletEvent(ewm,
                          wallet,
-                         WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
+                         (BREthereumWalletEvent) { WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED },
                          SUCCESS, NULL);
-    
+
     pthread_mutex_unlock(&ewm->lock);
 }
 
@@ -1504,15 +1531,15 @@ ewmHandleGasEstimate (BREthereumEWM ewm,
                       BREthereumTransfer transfer,
                       BREthereumGas gasEstimate) {
     pthread_mutex_lock(&ewm->lock);
-    
+
     transferSetGasEstimate(transfer, gasEstimate);
-    
+
     ewmSignalTransferEvent(ewm,
                            wallet,
                            transfer,
                            TRANSFER_EVENT_GAS_ESTIMATE_UPDATED,
                            SUCCESS, NULL);
-    
+
     pthread_mutex_unlock(&ewm->lock);
 
 }
@@ -1588,14 +1615,14 @@ ewmHandleBalance (BREthereumEWM ewm,
     BREthereumWallet wallet = (AMOUNT_ETHER == amountGetType(amount)
                                ? ewmGetWallet(ewm)
                                : ewmGetWalletHoldingToken(ewm, amountGetToken (amount)));
-    
+
     int amountTypeMismatch;
-    
+
     if (ETHEREUM_COMPARISON_EQ != amountCompare(amount, walletGetBalance(wallet), &amountTypeMismatch)) {
         walletSetBalance(wallet, amount);
         ewmSignalWalletEvent (ewm,
                               wallet,
-                              WALLET_EVENT_BALANCE_UPDATED,
+                              (BREthereumWalletEvent) { WALLET_EVENT_BALANCE_UPDATED },
                               SUCCESS,
                               NULL);
 
@@ -1964,7 +1991,7 @@ ewmHandleSync (BREthereumEWM ewm,
                                    ? EWM_EVENT_SYNC_STOPPED
                                    : EWM_EVENT_SYNC_CONTINUES));
     double syncCompletePercent = 100.0 * (blockNumberCurrent - blockNumberStart) / (blockNumberStop - blockNumberStart);
-    
+
     ewmSignalEWMEvent (ewm, event, SUCCESS, NULL);
 
     eth_log ("EWM", "Sync: %d, %.2f%%", type, syncCompletePercent);
@@ -1998,12 +2025,14 @@ ewmUpdateWalletBalance(BREthereumEWM ewm,
                        BREthereumWallet wallet) {
 
     if (NULL == wallet) {
-        ewmSignalWalletEvent(ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
+        ewmSignalWalletEvent(ewm, wallet,
+                             (BREthereumWalletEvent) { WALLET_EVENT_BALANCE_UPDATED },
                              ERROR_UNKNOWN_WALLET,
                              NULL);
 
     } else if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) {
-        ewmSignalWalletEvent(ewm, wallet, WALLET_EVENT_BALANCE_UPDATED,
+        ewmSignalWalletEvent(ewm, wallet,
+                             (BREthereumWalletEvent) { WALLET_EVENT_BALANCE_UPDATED },
                              ERROR_NODE_NOT_CONNECTED,
                              NULL);
     } else {
@@ -2159,7 +2188,7 @@ static void
 ewmPeriodicDispatcher (BREventHandler handler,
                        BREventTimeout *event) {
     BREthereumEWM ewm = (BREthereumEWM) event->context;
-    
+
     if (ewm->state != LIGHT_NODE_CONNECTED) return;
     if (P2P_ONLY == ewm->mode || P2P_WITH_BRD_SYNC == ewm->mode) return;
 
@@ -2197,7 +2226,7 @@ ewmPeriodicDispatcher (BREventHandler handler,
         // Record an 'update transaction' as in progress
         ewm->brdSync.ridTransaction = ewm->requestId;
         ewm->brdSync.completedTransaction = 0;
-    
+
         // 3b) Similarly, we'll query all logs for this ewm's account.  We'll process these into
         // (token) transactions and associate with their wallet.
         ewmUpdateLogs(ewm, NULL, eventERC20Transfer);
@@ -2208,7 +2237,7 @@ ewmPeriodicDispatcher (BREventHandler handler,
     }
 
     // End handling a BRD Sync
-    
+
     if (NULL != ewm->bcs) bcsClean (ewm->bcs);
 }
 

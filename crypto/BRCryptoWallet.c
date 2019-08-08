@@ -35,6 +35,7 @@
 #include "bitcoin/BRWallet.h"
 #include "bitcoin/BRWalletManager.h"
 #include "ethereum/BREthereum.h"
+#include "ethereum/ewm/BREthereumTransfer.h"
 
 /**
  *
@@ -502,7 +503,24 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
             BRTransaction *tid = BRWalletManagerCreateTransaction (bwm, wid, value, addr);
             BRWalletSetFeePerKb (wid, feePerKbSaved);
 
-            transfer = NULL == tid ? NULL : cryptoTransferCreateAsBTC (unit, unitForFee, wid, tid);
+            // The above BRWalletManagerCreateTransaction call resulted in a
+            // BITCOIN_TRANSACTION_CREATED event occuring inline, on this same
+            // thread. That resulted in cwmTransactionEventAsBTC being called
+            // where we created the transfer (via cryptoTransferCreateAsBTC) and
+            // added it to the wallet (via cryptoWalletAddTransfer). So, instead
+            // of creating a BRCryptoTransfer here, we find it in the wallet.
+
+            // We do this because `bwm` BRWalletManager does not own the `tid` transaction,
+            // in the same way that the BREthereumEWM owns its transactions. So, we
+            // have the BRCryptoWallet own it. Since the transaction is not signed
+            // we can't do an equality check on a copy, as the txHash is all zeroes. As
+            // a result, the transaction equality check uses identity for BTC transactions that
+            // are unsigned to prevent multiple unsigned transactions from being erroneously
+            // reported as equal. As a consequence of all this, we need to return the wallet's
+            // RCryptoTransfer wrapping `tid` directly, rather than create a new wrapping
+            // instance (like we do in the below ETH case). Thus, cryptoWalletFindTransferAsBTC
+            // instead of cryptoTransferCreateAsBTC.
+            transfer = NULL == tid ? NULL : cryptoWalletFindTransferAsBTC (wallet, tid);
             break;
         }
 
@@ -544,34 +562,28 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
     return transfer;
 }
 
-extern BRCryptoFeeBasis
+extern void
 cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
+                              BRCryptoCookie cookie,
                               BRCryptoAddress target,
                               BRCryptoAmount  amount,
                               BRCryptoNetworkFee fee) {
     //    assert (cryptoWalletGetType (wallet) == cryptoFeeBasisGetType(feeBasis));
-    BRCryptoBoolean overflow = CRYPTO_FALSE;
-    BRCryptoFeeBasis feeBasis;
-
-    BRCryptoUnit unitForFee = cryptoWalletGetUnitForFee (wallet);
-
     switch (wallet->type) {
         case BLOCK_CHAIN_TYPE_BTC: {
+            BRWalletManager bwm = wallet->u.btc.bwm;
             BRWallet *wid = wallet->u.btc.wid;
 
-            // TODO: Lock
-            uint64_t feePerKBSaved = BRWalletFeePerKb (wid);
-            uint64_t feePerKB      = 1000 * cryptoNetworkFeeAsBTC (fee);
-            uint64_t btcAmount     = cryptoAmountGetIntegerRaw (amount, &overflow);
-            assert (CRYPTO_FALSE == overflow);
+            BRCryptoBoolean overflow = CRYPTO_FALSE;
+            uint64_t feePerKB        = 1000 * cryptoNetworkFeeAsBTC (fee);
+            uint64_t btcAmount       = cryptoAmountGetIntegerRaw (amount, &overflow);
+            assert(CRYPTO_FALSE == overflow);
 
-            BRWalletSetFeePerKb (wid, feePerKB);
-            uint64_t fee  = (0 == btcAmount ? 0 : BRWalletFeeForTxAmount (wid, btcAmount));
-            uint32_t sizeInByte = (uint32_t) ((1000 * fee)/ feePerKB);
-            BRWalletSetFeePerKb (wid, feePerKBSaved);
-            // TODO: Unlock
-
-            feeBasis = cryptoFeeBasisCreateAsBTC (unitForFee, (uint32_t) feePerKB, sizeInByte);
+            BRWalletManagerEstimateFeeForTransfer (bwm,
+                                                   wid,
+                                                   cookie,
+                                                   btcAmount,
+                                                   feePerKB);
             break;
         }
 
@@ -579,18 +591,22 @@ cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
             BREthereumEWM ewm = wallet->u.eth.ewm;
             BREthereumWallet wid = wallet->u.eth.wid;
 
-            UInt256 ethValue  = cryptoAmountGetValue (amount);
+            BRCryptoAddress source = cryptoWalletGetAddress (wallet, CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT);
+            UInt256 ethValue       = cryptoAmountGetValue (amount);
+
             BREthereumToken  ethToken  = ewmWalletGetToken (ewm, wid);
             BREthereumAmount ethAmount = (NULL != ethToken
-                                          ? amountCreateToken (createTokenQuantity (ethToken, ethValue))
-                                          : amountCreateEther (etherCreate (ethValue)));
-            (void) ethAmount;
+                                    ? amountCreateToken (createTokenQuantity (ethToken, ethValue))
+                                    : amountCreateEther (etherCreate (ethValue)));
 
-            // TODO: Actually estimate the fee
-
-            feeBasis = cryptoFeeBasisCreateAsETH (unitForFee,
-                                                  ewmWalletGetDefaultGasLimit (ewm, wid),
-                                                  cryptoNetworkFeeAsETH (fee));
+            ewmWalletEstimateTransferFeeForTransfer (ewm,
+                                                     wid,
+                                                     cookie,
+                                                     cryptoAddressAsETH (source),
+                                                     cryptoAddressAsETH (target),
+                                                     ethAmount,
+                                                     cryptoNetworkFeeAsETH (fee),
+                                                     ewmWalletGetDefaultGasLimit (ewm, wid));
 
             break;
         }
@@ -612,9 +628,47 @@ cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
             //            feeValue = genFee;
         }
     }
+}
 
-    cryptoUnitGive (unitForFee);
-    return feeBasis;
+extern BRCryptoFeeBasis
+cryptoWalletCreateFeeBasis (BRCryptoWallet wallet,
+                            BRCryptoAmount pricePerCostFactor,
+                            double costFactor) {
+
+    BRCryptoCurrency feeCurrency = cryptoUnitGetCurrency (wallet->unitForFee);
+    if (CRYPTO_FALSE == cryptoAmountHasCurrency (pricePerCostFactor, feeCurrency)) {
+        cryptoCurrencyGive (feeCurrency);
+        return NULL;
+    }
+    cryptoCurrencyGive (feeCurrency);
+
+    UInt256 value = cryptoAmountGetValue (pricePerCostFactor);
+
+    switch (wallet->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            uint32_t feePerKB = value.u32[0];
+
+            // Expect all other fields in `value` to be zero
+            value.u32[0] = 0;
+            if (!eqUInt256 (value, UINT256_ZERO)) return NULL;
+
+            uint32_t sizeInBytes = (uint32_t) (1000 * costFactor);
+
+            return cryptoFeeBasisCreateAsBTC (wallet->unitForFee, feePerKB, sizeInBytes);
+        }
+
+        case BLOCK_CHAIN_TYPE_ETH: {
+            BREthereumGas gas = gasCreate((uint64_t) costFactor);
+            BREthereumGasPrice gasPrice = gasPriceCreate (etherCreate(value));
+
+            return cryptoFeeBasisCreateAsETH (wallet->unitForFee, gas, gasPrice);
+        }
+
+        case BLOCK_CHAIN_TYPE_GEN: {
+            BRGenericFeeBasis feeBasis = NULL; 
+            return cryptoFeeBasisCreateAsGEN (wallet->unitForFee, wallet->u.gen.gwm, feeBasis);
+        }
+    }
 }
 
 static int

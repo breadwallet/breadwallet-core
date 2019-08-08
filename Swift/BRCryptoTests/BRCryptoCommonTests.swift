@@ -22,6 +22,39 @@ class BRCryptoCommonTests: XCTestCase {
         //var d: Data!
         var k: Key!
         var l: Key!
+        var p: Bool!
+
+        //
+        // Password Proected
+        //
+
+        // mainnet (https://bitcoinpaperwallet.com/bitcoinpaperwallet/generate-wallet.html?design=alt-testnet)
+        s = "6PRPGFR3vou5h9VXHVTUpnDisZpnKik5c7zWJrw8abi4AYW8fy4uPFYFXk"
+        p = Key.isProtected(asPrivate: s)
+        XCTAssertTrue(p)
+        k = Key.createFromString(asPrivate: s, withPassphrase: "hodl")
+        XCTAssertNotNil(k)
+        XCTAssertEqual ("5KYkuC2SX6twF8C4yhDRJsy9tgBnn9aFsEXgaMLwRciopuRnBfT", k.encodeAsPrivate)
+
+        // testnet (https://bitcoinpaperwallet.com/bitcoinpaperwallet/generate-wallet.html?design=alt-testnet)
+        s = "6PRVDGjn5m1Tj6wbP8kG6YozjE5qBHxE9BPfF8HxZHLdd1tAkENLjjsQve"
+        p = Key.isProtected(asPrivate: s)
+        XCTAssertTrue(p)
+        k = Key.createFromString(asPrivate: s, withPassphrase: "hodl")
+        XCTAssertNotNil(k)
+        XCTAssertEqual ("92HBCaQbnqkGkSm8z2rxKA3DRdSrsniEswiWFe5CQXdfPqThR9N", k.encodeAsPrivate)
+
+        s = "5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF"
+        p = Key.isProtected(asPrivate: s)
+        XCTAssertFalse(p)
+        k = Key.createFromString(asPrivate: s, withPassphrase: "hodl")
+        XCTAssertNil(k)
+
+        s = "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL"
+        p = Key.isProtected(asPrivate: s)
+        XCTAssertFalse(p)
+        k = Key.createFromString(asPrivate: s, withPassphrase: "hodl")
+        XCTAssertNil(k)
 
         //
         // Uncompressed

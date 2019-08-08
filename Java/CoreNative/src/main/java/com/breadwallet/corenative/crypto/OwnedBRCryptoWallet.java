@@ -9,6 +9,7 @@ package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
 import com.google.common.base.Optional;
+import com.sun.jna.Pointer;
 
 import java.util.List;
 import java.util.Objects;
@@ -97,9 +98,8 @@ class OwnedBRCryptoWallet implements CoreBRCryptoWallet {
     }
 
     @Override
-    public Optional<CoreBRCryptoFeeBasis> estimateFeeBasis(CoreBRCryptoAddress target, CoreBRCryptoAmount amount,
-                                                           CoreBRCryptoNetworkFee fee) {
-        return core.estimateFeeBasis(target, amount, fee);
+    public void estimateFeeBasis(Pointer cookie, CoreBRCryptoAddress target, CoreBRCryptoAmount amount, CoreBRCryptoNetworkFee fee) {
+        core.estimateFeeBasis(cookie, target, amount, fee);
     }
 
     @Override

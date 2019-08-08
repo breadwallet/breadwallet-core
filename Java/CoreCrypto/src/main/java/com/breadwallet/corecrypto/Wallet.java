@@ -16,7 +16,6 @@ import com.breadwallet.corenative.crypto.CoreBRCryptoWallet;
 import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.WalletState;
 import com.breadwallet.crypto.errors.FeeEstimationError;
-import com.breadwallet.crypto.errors.FeeEstimationServiceFailureError;
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
 
@@ -28,20 +27,22 @@ import java.util.Objects;
 final class Wallet implements com.breadwallet.crypto.Wallet {
 
     /* package */
-    static Wallet create(CoreBRCryptoWallet wallet, WalletManager walletManager) {
-        return new Wallet(wallet, walletManager);
+    static Wallet create(CoreBRCryptoWallet wallet, WalletManager walletManager, SystemCallbackCoordinator callbackCoordinator) {
+        return new Wallet(wallet, walletManager, callbackCoordinator);
     }
 
     private final CoreBRCryptoWallet core;
     private final WalletManager walletManager;
+    private final SystemCallbackCoordinator callbackCoordinator;
 
     private final Unit unitForFee;
     private final Unit unit;
     private final Currency defaultUnitCurrency;
 
-    private Wallet(CoreBRCryptoWallet core, WalletManager walletManager) {
+    private Wallet(CoreBRCryptoWallet core, WalletManager walletManager, SystemCallbackCoordinator callbackCoordinator) {
         this.core = core;
         this.walletManager = walletManager;
+        this.callbackCoordinator = callbackCoordinator;
 
         this.unit = Unit.create(core.getUnit());
         this.unitForFee = Unit.create(core.getUnitForFee());
@@ -60,18 +61,11 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
 
     @Override
     public void estimateFee(com.breadwallet.crypto.Address target, com.breadwallet.crypto.Amount amount,
-                            com.breadwallet.crypto.NetworkFee fee, CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError> completion) {
+                            com.breadwallet.crypto.NetworkFee fee, CompletionHandler<com.breadwallet.crypto.TransferFeeBasis, FeeEstimationError> handler) {
         CoreBRCryptoAddress coreAddress = Address.from(target).getCoreBRCryptoAddress();
         CoreBRCryptoAmount coreAmount = Amount.from(amount).getCoreBRCryptoAmount();
         CoreBRCryptoNetworkFee coreFee = NetworkFee.from(fee).getCoreBRCryptoNetworkFee();
-
-        // TODO(fix): Figure out how we want to handle which thread/executor runs this
-        Optional<TransferFeeBasis> optFeeBasis = core.estimateFeeBasis(coreAddress, coreAmount, coreFee).transform(TransferFeeBasis::create);
-        if (optFeeBasis.isPresent()) {
-            completion.handleData(optFeeBasis.get());
-        } else {
-            completion.handleError(new FeeEstimationServiceFailureError());
-        }
+        core.estimateFeeBasis(callbackCoordinator.registerFeeBasisEstimateHandler(handler), coreAddress, coreAmount, coreFee);
     }
 
     @Override

@@ -48,6 +48,10 @@ typedef enum {
     WALLET_FORKID_BITGOLD = 0x4f
 } BRWalletForkId;
 
+// Cookies are used as markers to match up an asynchronous operation
+// request with its corresponding event.
+typedef void *BRCookie;
+
 typedef void *BRWalletManagerClientContext;
 
 /// MARK: - Callbacks
@@ -161,7 +165,8 @@ typedef enum {
     BITCOIN_WALLET_BALANCE_UPDATED,
     BITCOIN_WALLET_TRANSACTION_SUBMITTED,
     BITCOIN_WALLET_FEE_PER_KB_UPDATED,
-    BITCOIN_WALLET_DELETED
+    BITCOIN_WALLET_FEE_ESTIMATED,
+    BITCOIN_WALLET_DELETED,
 } BRWalletEventType;
 
 typedef struct {
@@ -179,6 +184,12 @@ typedef struct {
         struct {
             uint64_t value;
         } feePerKb;
+
+        struct {
+            BRCookie cookie;
+            uint64_t feePerKb;
+            uint32_t sizeInByte;
+        } feeEstimated;
     } u;
 } BRWalletEvent;
 
@@ -324,6 +335,13 @@ extern void
 BRWalletManagerUpdateFeePerKB (BRWalletManager manager,
                                BRWallet *wallet,
                                uint64_t feePerKb);
+
+extern void
+BRWalletManagerEstimateFeeForTransfer (BRWalletManager manager,
+                                       BRWallet *wallet,
+                                       BRCookie cookie,
+                                       uint64_t transferAmount,
+                                       uint64_t feePerKb);
 
 #ifdef __cplusplus
 }

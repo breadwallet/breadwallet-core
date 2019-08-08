@@ -8,6 +8,7 @@
 package com.breadwallet.corecrypto;
 
 import com.breadwallet.corenative.crypto.BRCryptoAddressScheme;
+import com.breadwallet.corenative.crypto.BRCryptoStatus;
 import com.breadwallet.corenative.crypto.BRCryptoTransferDirection;
 import com.breadwallet.corenative.crypto.BRCryptoTransferState;
 import com.breadwallet.corenative.crypto.BRCryptoTransferStateType;
@@ -21,6 +22,9 @@ import com.breadwallet.crypto.TransferState;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.WalletManagerState;
 import com.breadwallet.crypto.WalletState;
+import com.breadwallet.crypto.errors.FeeEstimationError;
+import com.breadwallet.crypto.errors.FeeEstimationServiceFailureError;
+import com.breadwallet.crypto.errors.FeeEstimationServiceUnavailableError;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedLong;
 
@@ -149,6 +153,14 @@ final class Utilities {
             case BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT: return AddressScheme.ETH_DEFAULT;
             case BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT: return AddressScheme.GEN_DEFAULT;
             default: throw new IllegalArgumentException("Unsupported scheme");
+        }
+    }
+
+    /* package */
+    static FeeEstimationError feeEstimationErrorFromStatus(int status) {
+        switch (status) {
+            case BRCryptoStatus.CRYPTO_ERROR_NODE_NOT_CONNECTED: return new FeeEstimationServiceUnavailableError();
+            default: return new FeeEstimationServiceFailureError();
         }
     }
 }

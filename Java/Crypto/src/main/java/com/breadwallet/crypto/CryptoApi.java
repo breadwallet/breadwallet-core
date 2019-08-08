@@ -13,7 +13,7 @@ import com.google.common.base.Optional;
 
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -33,16 +33,46 @@ public final class CryptoApi {
     }
 
     public interface SystemProvider {
-        System create(ExecutorService listenerExecutor, SystemListener listener, Account account, boolean isMainnet, String path, BlockchainDb query);
+        System create(ScheduledExecutorService executor, SystemListener listener, Account account, boolean isMainnet, String path, BlockchainDb query);
+    }
+
+    public interface CoderProvider {
+        Coder createCoderForAlgorithm(Coder.Algorithm algorithm);
+    }
+
+    public interface EncrypterProvider {
+        Encrypter createEncrypterrForAesEcb(byte[] key);
+        Encrypter createEncrypterForChaCha20Poly1305(Key key, byte[] nonce12, byte[] ad);
+        Encrypter createEncrypterForPigeon(Key privKey, Key pubKey, byte[] nonce12);
+    }
+
+    public interface HasherProvider {
+        Hasher createHasherForAlgorithm(Hasher.Algorithm algorithm);
+    }
+
+    public interface KeyProvider {
+        Optional<Key> createFromPhrase(byte[] phraseUtf8, List<String> words);
+        Optional<Key> createFromPrivateKeyString(byte[] keyStringUtf8);
+        Optional<Key> createFromPublicKeyString(byte[] keyStringUtf8);
+        Optional<Key> createForPigeon(Key key, byte[] nonce);
+        Optional<Key> createForBIP32ApiAuth(byte[] phraseUtf8, List<String> words);
+        Optional<Key> createForBIP32BitID(byte[] phraseUtf8, int index, String uri, List<String> words);
+    }
+
+    public interface SignerProvider {
+        Signer createSignerForAlgorithm(Signer.Algorithm algorithm);
     }
 
     public interface Provider {
-
         AccountProvider accountProvider();
-
         AmountProvider amountProvider();
-
         SystemProvider systemProvider();
+
+        CoderProvider coderPrivider();
+        EncrypterProvider encrypterProvider();
+        HasherProvider hasherProvider();
+        KeyProvider keyProvider();
+        SignerProvider signerProvider();
     }
 
     private static Provider provider;

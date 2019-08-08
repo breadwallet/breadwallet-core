@@ -35,10 +35,16 @@ public class EthGasApi {
 
     public void getGasEstimateAsEth(String networkName, String from, String to, String amount, String data, int rid,
                                     CompletionHandler<String, QueryError> handler) {
+        ImmutableMap.Builder<String, String> paramsBuilder = new ImmutableMap.Builder<>();
+        paramsBuilder.put("from", from);
+        paramsBuilder.put("to", to);
+        if (!amount.equals("0x")) paramsBuilder.put("value", amount);
+        if (!data.equals("0x")) paramsBuilder.put("data", data);
+
         JSONObject json = new JSONObject(ImmutableMap.of(
                 "jsonrpc", "2.0",
                 "method", "eth_estimateGas",
-                "params", ImmutableList.of(ImmutableMap.of("from", from, "to", to, "amount", amount, "data", data)),
+                "params", ImmutableList.of(paramsBuilder.build()),
                 "id", rid
         ));
 

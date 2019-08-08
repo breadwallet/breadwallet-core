@@ -16,6 +16,7 @@ import com.breadwallet.corenative.crypto.BRCryptoCWMClientCallbackState;
 import com.breadwallet.corenative.crypto.BRCryptoCurrency;
 import com.breadwallet.corenative.crypto.BRCryptoFeeBasis;
 import com.breadwallet.corenative.crypto.BRCryptoHash;
+import com.breadwallet.corenative.crypto.BRCryptoKey;
 import com.breadwallet.corenative.crypto.BRCryptoNetwork;
 import com.breadwallet.corenative.crypto.BRCryptoNetworkFee;
 import com.breadwallet.corenative.crypto.BRCryptoTransfer;
@@ -23,9 +24,7 @@ import com.breadwallet.corenative.crypto.BRCryptoTransferState;
 import com.breadwallet.corenative.crypto.BRCryptoUnit;
 import com.breadwallet.corenative.crypto.BRCryptoWallet;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManager;
-import com.breadwallet.corenative.crypto.CoreBRCryptoUnit;
 import com.breadwallet.corenative.support.UInt256;
-import com.breadwallet.corenative.support.UInt512;
 import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.corenative.utility.SizeTByReference;
 import com.sun.jna.Library;
@@ -94,6 +93,22 @@ public interface CryptoLibrary extends Library {
     BRCryptoAmount cryptoFeeBasisGetFee (BRCryptoFeeBasis feeBasis);
     BRCryptoFeeBasis cryptoFeeBasisTake(BRCryptoFeeBasis obj);
     void cryptoFeeBasisGive(BRCryptoFeeBasis obj);
+
+    // crypto/BRCryptoKey.h
+    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateFromPhraseWithWords(ByteBuffer phraseBuffer, StringArray wordsArray);
+    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateFromStringPrivate(ByteBuffer stringBuffer);
+    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateFromStringPublic(ByteBuffer stringBuffer);
+    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateForPigeon(BRCryptoKey key, byte[] nonce, SizeT nonceCount);
+    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateForBIP32ApiAuth(ByteBuffer phraseBuffer, StringArray wordsArray);
+    BRCryptoKey.OwnedBRCryptoKey cryptoKeyCreateForBIP32BitID(ByteBuffer phraseBuffer, int index, String uri, StringArray wordsArray);
+    void cryptoKeyProvidePublicKey(BRCryptoKey key, int useCompressed, int compressed);
+    int cryptoKeyHasSecret(BRCryptoKey key);
+    int cryptoKeyPublicMatch(BRCryptoKey key, BRCryptoKey other);
+    int cryptoKeySecretMatch(BRCryptoKey key, BRCryptoKey other);
+    Pointer cryptoKeyEncodePrivate(BRCryptoKey key);
+    Pointer cryptoKeyEncodePublic(BRCryptoKey key);
+    UInt256.ByValue cryptoKeyGetSecret(BRCryptoKey key);
+    void cryptoKeyGive(BRCryptoKey key);
 
     // crypto/BRCryptoHash.h
     int cryptoHashEqual(BRCryptoHash h1, BRCryptoHash h2);
@@ -179,7 +194,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoFeeBasis cryptoWalletGetDefaultFeeBasis(BRCryptoWallet wallet);
     void cryptoWalletSetDefaultFeeBasis(BRCryptoWallet wallet, BRCryptoFeeBasis feeBasis);
     BRCryptoTransfer cryptoWalletCreateTransfer(BRCryptoWallet wallet, BRCryptoAddress target, BRCryptoAmount amount, BRCryptoFeeBasis feeBasis);
-    BRCryptoFeeBasis cryptoWalletEstimateFeeBasis(BRCryptoWallet wallet, BRCryptoAddress target, BRCryptoAmount amount, BRCryptoNetworkFee fee);
+    BRCryptoFeeBasis cryptoWalletEstimateFeeBasis(BRCryptoWallet wallet, Pointer cookie, BRCryptoAddress target, BRCryptoAmount amount, BRCryptoNetworkFee fee);
     int cryptoWalletEqual(BRCryptoWallet w1, BRCryptoWallet w2);
     BRCryptoWallet cryptoWalletTake(BRCryptoWallet obj);
     void cryptoWalletGive(BRCryptoWallet obj);
@@ -228,8 +243,8 @@ public interface CryptoLibrary extends Library {
     void cwmAnnounceGetBlocksFailure(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState);
     void cwmAnnounceGetGasPriceSuccess(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState, String gasPrice);
     void cwmAnnounceGetGasPriceFailure(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState);
-    void cwmAnnounceGetGasEstimateSuccess(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState, String gasEstimate);
-    void cwmAnnounceGetGasEstimateFailure(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState);
+    void cwmAnnounceGetGasEstimateSuccess(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState, String gasEstimate, String gasPrice);
+    void cwmAnnounceGetGasEstimateFailure(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState, int status);
     void cwmAnnounceGetLogsItem(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState, String hash,
                                 String contract, int size, StringArray topicsArray, String data, String gasPrice,
                                 String gasUsed, String logIndex, String blockNumber, String blockTransactionIndex,

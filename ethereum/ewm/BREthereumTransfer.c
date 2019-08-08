@@ -760,6 +760,16 @@ transferGetEffectiveAmountInEther(BREthereumTransfer transfer) {
     }
 }
 
+private_extern BREthereumAddress
+transferGetEffectiveTargetAddress (BREthereumTransfer transfer) {
+    return transferProvideOriginatingTransactionTargetAddress (transfer);
+}
+
+private_extern BREthereumAddress
+transferGetEffectiveSourceAddress (BREthereumTransfer transfer) {
+    return transfer->sourceAddress;
+}
+
 extern BREthereumComparison
 transferCompare (BREthereumTransfer t1,
                  BREthereumTransfer t2) {

@@ -92,19 +92,62 @@ class WalletViewController: UITableViewController, TransferListener, WalletManag
             }
             break
             
-        case "createTransfer":
-            print ("APP: WVC: Want to Create")
-            let controller = (segue.destination as! UINavigationController).topViewController as! TransferCreateController
-            controller.wallet = wallet
-            controller.fee    = wallet.manager.defaultNetworkFee
-            break
+//        case "createTransfer":
+//            print ("APP: WVC: Want to Create")
+//            let controller = (segue.destination as! UINavigationController).topViewController as! TransferCreateController
+//            controller.wallet = wallet
+//            controller.fee    = wallet.manager.defaultNetworkFee
+//            break
 
         default:
             break;
         }
     }
 
-     override func tableView (_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+    func showCreateTransferController (named: String) {
+        if let navigationController = self.storyboard?.instantiateViewController(withIdentifier: named) as? UINavigationController,
+            let controller = navigationController.topViewController as? TransferCreateController {
+            controller.wallet = self.wallet
+            controller.fee    = self.wallet.manager.defaultNetworkFee
+            self.present (navigationController, animated: true, completion: nil)
+        }
+    }
+
+    @IBAction func createTransfer (_ sender: UIBarButtonItem) {
+        let alert = UIAlertController (title: "Create Transfer",
+                                       message: nil,
+                                       preferredStyle: UIAlertController.Style.actionSheet)
+
+        alert.addAction (UIAlertAction (title: "Send", style: UIAlertAction.Style.default) { (action) in
+            print ("APP: WVC: Want to Send")
+            self.showCreateTransferController(named: "createTransferSendNC")
+            alert.dismiss(animated: true) {}
+        })
+
+        alert.addAction (UIAlertAction (title: "Receive", style: UIAlertAction.Style.default) { (action) in
+            print ("APP: WVC: Want to Receive")
+            self.showCreateTransferController(named: "createTransferRecvNC")
+           alert.dismiss(animated: true) {}
+        })
+
+        alert.addAction (UIAlertAction (title: "Payment", style: UIAlertAction.Style.default) { (action) in
+            print ("APP: WVC: Want to Pay")
+            self.showCreateTransferController(named: "createTransferPayNC")
+           alert.dismiss(animated: true) {}
+        })
+
+        alert.addAction (UIAlertAction (title: "Sweep", style: UIAlertAction.Style.default) { (action) in
+            print ("APP: WVC: Want to Sweep")
+            self.showCreateTransferController(named: "createTransferSweepNC")
+           alert.dismiss(animated: true) {}
+        })
+
+        alert.addAction (UIAlertAction (title: "Cancel", style: UIAlertAction.Style.cancel))
+
+        self.present (alert, animated: true) {}
+    }
+
+    override func tableView (_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TransferCell", for: indexPath) as! TransferTableViewCell
 
         cell.transfer = transfers[indexPath.row]

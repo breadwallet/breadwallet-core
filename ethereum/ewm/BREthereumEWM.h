@@ -214,6 +214,16 @@ ewmWalletEstimateTransferFeeForBasis (BREthereumEWM ewm,
                                       BREthereumGas gas,
                                       int *overflow);
 
+extern void
+ewmWalletEstimateTransferFeeForTransfer (BREthereumEWM ewm,
+                                         BREthereumWallet wallet,
+                                         BREthereumCookie cookie,
+                                         BREthereumAddress source,
+                                         BREthereumAddress target,
+                                         BREthereumAmount amount,
+                                         BREthereumGasPrice gasPrice,
+                                         BREthereumGas gasLimit);
+
 extern void // status, error
 ewmWalletSignTransfer(BREthereumEWM ewm,
                       BREthereumWallet wallet,

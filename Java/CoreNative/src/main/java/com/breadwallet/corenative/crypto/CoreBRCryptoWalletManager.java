@@ -89,9 +89,9 @@ public interface CoreBRCryptoWalletManager {
 
     void announceGetGasPriceFailure(BRCryptoCWMClientCallbackState callbackState);
 
-    void announceGetGasEstimateSuccess(BRCryptoCWMClientCallbackState callbackState, String gasEstimate);
+    void announceGetGasEstimateSuccess(BRCryptoCWMClientCallbackState callbackState, String gasEstimate, String gasPrice);
 
-    void announceGetGasEstimateFailure(BRCryptoCWMClientCallbackState callbackState);
+    void announceGetGasEstimateFailure(BRCryptoCWMClientCallbackState callbackState, int status);
 
     void announceGetLogsItem(BRCryptoCWMClientCallbackState callbackState, String hash, String contract, List<String> topics,
                              String data, String gasPrice, String gasUsed, String logIndex, String blockNumber,

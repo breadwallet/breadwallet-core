@@ -17,23 +17,18 @@ import com.breadwallet.crypto.Amount;
 import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
+import com.breadwallet.crypto.events.system.DefaultSystemListener;
+import com.breadwallet.crypto.events.wallet.DefaultWalletEventVisitor;
 import com.breadwallet.crypto.events.wallet.WalletBalanceUpdatedEvent;
 import com.breadwallet.crypto.events.wallet.WalletChangedEvent;
 import com.breadwallet.crypto.events.wallet.WalletCreatedEvent;
 import com.breadwallet.crypto.events.wallet.WalletDeletedEvent;
 import com.breadwallet.crypto.events.wallet.WalletEvent;
-import com.breadwallet.crypto.events.wallet.WalletEventVisitor;
-import com.breadwallet.crypto.events.wallet.WalletFeeBasisUpdatedEvent;
-import com.breadwallet.crypto.events.wallet.WalletListener;
-import com.breadwallet.crypto.events.wallet.WalletTransferAddedEvent;
-import com.breadwallet.crypto.events.wallet.WalletTransferChangedEvent;
-import com.breadwallet.crypto.events.wallet.WalletTransferDeletedEvent;
-import com.breadwallet.crypto.events.wallet.WalletTransferSubmittedEvent;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class WalletListActivity extends AppCompatActivity implements WalletListener {
+public class WalletListActivity extends AppCompatActivity implements DefaultSystemListener {
 
     private Adapter walletsAdapter;
     private RecyclerView walletsView;
@@ -61,7 +56,7 @@ public class WalletListActivity extends AppCompatActivity implements WalletListe
     protected void onResume() {
         super.onResume();
 
-        CoreCryptoApplication.getListener().addListener(this);
+        CoreCryptoApplication.getDispatchingSystemListener().addSystemListener(this);
 
         walletsAdapter.set(new ArrayList<>(CoreCryptoApplication.getSystem().getWallets()));
     }
@@ -70,13 +65,13 @@ public class WalletListActivity extends AppCompatActivity implements WalletListe
     protected void onPause() {
         super.onPause();
 
-        CoreCryptoApplication.getListener().removeListener(this);
+        CoreCryptoApplication.getDispatchingSystemListener().removeSystemListener(this);
     }
 
     @Override
     public void handleWalletEvent(System system, WalletManager manager, Wallet wallet, WalletEvent event) {
         runOnUiThread(() -> {
-            event.accept(new WalletEventVisitor<Void>() {
+            event.accept(new DefaultWalletEventVisitor<Void>() {
                 @Override
                 public Void visit(WalletBalanceUpdatedEvent event) {
                     walletsAdapter.changed(wallet);
@@ -98,31 +93,6 @@ public class WalletListActivity extends AppCompatActivity implements WalletListe
                 @Override
                 public Void visit(WalletDeletedEvent event) {
                     walletsAdapter.remove(wallet);
-                    return null;
-                }
-
-                @Override
-                public Void visit(WalletFeeBasisUpdatedEvent event) {
-                    return null;
-                }
-
-                @Override
-                public Void visit(WalletTransferAddedEvent event) {
-                    return null;
-                }
-
-                @Override
-                public Void visit(WalletTransferChangedEvent event) {
-                    return null;
-                }
-
-                @Override
-                public Void visit(WalletTransferDeletedEvent event) {
-                    return null;
-                }
-
-                @Override
-                public Void visit(WalletTransferSubmittedEvent event) {
                     return null;
                 }
             });

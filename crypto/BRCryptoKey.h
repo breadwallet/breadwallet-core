@@ -37,14 +37,20 @@ extern "C" {
 
     typedef struct BRCryptoKeyRecord *BRCryptoKey;
 
+    extern BRCryptoBoolean
+    cryptoKeyIsProtectedPrivate (const char *privateKey);
+
     private_extern BRCryptoKey
     cryptoKeyCreateFromKey (BRKey *key);
 
     extern BRCryptoKey
     cryptoKeyCreateFromSecret (UInt256 secret);
-    
+
     extern BRCryptoKey
     cryptoKeyCreateFromPhraseWithWords (const char *phrase, const char *words[]);
+
+    extern BRCryptoKey
+    cryptoKeyCreateFromStringProtectedPrivate (const char *privateKey, const char * passphrase);
 
     extern BRCryptoKey
     cryptoKeyCreateFromStringPrivate (const char *string);
