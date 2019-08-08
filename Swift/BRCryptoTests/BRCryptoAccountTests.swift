@@ -59,6 +59,8 @@ class BRCryptoAccountTests: XCTestCase {
             else { XCTAssert (false); return }
 
         XCTAssertFalse (a3.validate(serialization: a1.serialize))
+
+        let _ = Account (core: a2.core, uids: a2.uids, take: true)
     }
 
     func testAddressETH () {
@@ -92,6 +94,9 @@ class BRCryptoAccountTests: XCTestCase {
 
         XCTAssertNotEqual (e1, e2)
         XCTAssertNotEqual (e2, e1)
+
+        let _ = Address (core: e3!.core, take: true)
+        let _ = Address (core: e3!.core)
     }
 
     func testAddressBTC () {
@@ -112,6 +117,19 @@ class BRCryptoAccountTests: XCTestCase {
 
         XCTAssertNotNil (b1)
         XCTAssertEqual("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj",  b1?.description)
+
+    }
+
+    func testAddressScheme () {
+        XCTAssertEqual (AddressScheme.btcLegacy,  AddressScheme(core: AddressScheme.btcLegacy.core))
+        XCTAssertEqual (AddressScheme.btcSegwit,  AddressScheme(core: AddressScheme.btcSegwit.core))
+        XCTAssertEqual (AddressScheme.ethDefault, AddressScheme(core: AddressScheme.ethDefault.core))
+        XCTAssertEqual (AddressScheme.genDefault, AddressScheme(core: AddressScheme.genDefault.core))
+
+        XCTAssertEqual("BTC Legacy",  AddressScheme.btcLegacy.description)
+        XCTAssertEqual("BTC Segwit",  AddressScheme.btcSegwit.description)
+        XCTAssertEqual("ETH Default", AddressScheme.ethDefault.description)
+        XCTAssertEqual("GEN Default", AddressScheme.genDefault.description)
 
     }
 
