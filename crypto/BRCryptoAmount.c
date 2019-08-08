@@ -84,15 +84,15 @@ cryptoAmountCreateUInt256 (UInt256 v,
 extern BRCryptoAmount
 cryptoAmountCreateDouble (double value,
                           BRCryptoUnit unit) {
-    uint8_t decimals = cryptoUnitGetBaseDecimalOffset (unit);
-    long double v = fabs(value) * powl (10.0, decimals);
+    int overflow;
+    UInt256 valueAsUInt256 = createUInt256Double (value, cryptoUnitGetBaseDecimalOffset (unit), &overflow);
 
-    if (v > INT64_MAX) return NULL;
-
-    return cryptoAmountCreateInternal (cryptoUnitGetCurrency(unit),
-                                       (value < 0.0 ? CRYPTO_TRUE : CRYPTO_FALSE),
-                                       createUInt256((uint64_t) v),
-                                       0);
+    return (overflow
+            ? NULL
+            : cryptoAmountCreateInternal (cryptoUnitGetCurrency(unit),
+                                          (value < 0.0 ? CRYPTO_TRUE : CRYPTO_FALSE),
+                                          valueAsUInt256,
+                                          0));
 }
 
 extern BRCryptoAmount
