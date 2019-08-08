@@ -29,13 +29,13 @@ import com.breadwallet.crypto.TransferConfirmation;
 import com.breadwallet.crypto.TransferHash;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
-import com.breadwallet.crypto.events.wallet.DefaultWalletEventVisitor;
-import com.breadwallet.crypto.events.wallet.WalletEvent;
-import com.breadwallet.crypto.events.wallet.WalletListener;
-import com.breadwallet.crypto.events.wallet.WalletTransferAddedEvent;
-import com.breadwallet.crypto.events.wallet.WalletTransferChangedEvent;
-import com.breadwallet.crypto.events.wallet.WalletTransferDeletedEvent;
-import com.breadwallet.crypto.events.wallet.WalletTransferSubmittedEvent;
+import com.breadwallet.crypto.events.system.DefaultSystemListener;
+import com.breadwallet.crypto.events.system.SystemListener;
+import com.breadwallet.crypto.events.transfer.DefaultTransferEventVisitor;
+import com.breadwallet.crypto.events.transfer.TranferEvent;
+import com.breadwallet.crypto.events.transfer.TransferChangedEvent;
+import com.breadwallet.crypto.events.transfer.TransferCreatedEvent;
+import com.breadwallet.crypto.events.transfer.TransferDeletedEvent;
 import com.google.common.base.Optional;
 
 import java.text.DateFormat;
@@ -46,7 +46,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-public class TransferListActivity extends AppCompatActivity implements WalletListener {
+public class TransferListActivity extends AppCompatActivity {
 
     private static final DateFormat DATE_FORMAT = DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG);
 
@@ -104,6 +104,34 @@ public class TransferListActivity extends AppCompatActivity implements WalletLis
 
     private ClipboardManager clipboardManager;
 
+    private final SystemListener walletListener = new DefaultSystemListener() {
+        @Override
+        public void handleTransferEvent(System system, WalletManager manager, Wallet wallet, Transfer transfer, TranferEvent event) {
+            runOnUiThread(() -> {
+                event.accept(new DefaultTransferEventVisitor<Void>() {
+                    @Override
+                    public Void visit(TransferCreatedEvent event) {
+                        transferAdapter.add(transfer);
+                        return null;
+                    }
+
+                    @Override
+                    public Void visit(TransferChangedEvent event) {
+                        transferAdapter.changed(transfer);
+                        return null;
+                    }
+
+
+                    @Override
+                    public Void visit(TransferDeletedEvent event) {
+                        transferAdapter.remove(transfer);
+                        return null;
+                    }
+                });
+            });
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -142,7 +170,7 @@ public class TransferListActivity extends AppCompatActivity implements WalletLis
     protected void onResume() {
         super.onResume();
 
-        CoreCryptoApplication.getDispatchingSystemListener().addWalletListener(wallet, this);
+        CoreCryptoApplication.getDispatchingSystemListener().addWalletListener(wallet, walletListener);
 
         transferAdapter.set(new ArrayList<>(wallet.getTransfers()));
     }
@@ -151,38 +179,7 @@ public class TransferListActivity extends AppCompatActivity implements WalletLis
     protected void onPause() {
         super.onPause();
 
-        CoreCryptoApplication.getDispatchingSystemListener().removeWalletListener(wallet, this);
-    }
-
-    @Override
-    public void handleWalletEvent(System system, WalletManager manager, Wallet wallet, WalletEvent event) {
-        runOnUiThread(() -> {
-            event.accept(new DefaultWalletEventVisitor<Void>() {
-                @Override
-                public Void visit(WalletTransferAddedEvent event) {
-                    transferAdapter.add(event.getTransfer());
-                    return null;
-                }
-
-                @Override
-                public Void visit(WalletTransferChangedEvent event) {
-                    transferAdapter.changed(event.getTransfer());
-                    return null;
-                }
-
-                @Override
-                public Void visit(WalletTransferDeletedEvent event) {
-                    transferAdapter.remove(event.getTransfer());
-                    return null;
-                }
-
-                @Override
-                public Void visit(WalletTransferSubmittedEvent event) {
-                    transferAdapter.changed(event.getTransfer());
-                    return null;
-                }
-            });
-        });
+        CoreCryptoApplication.getDispatchingSystemListener().removeWalletListener(wallet, walletListener);
     }
 
     private void copyReceiveAddress() {
