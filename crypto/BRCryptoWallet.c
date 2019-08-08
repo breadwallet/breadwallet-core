@@ -162,6 +162,8 @@ cryptoWalletRelease (BRCryptoWallet wallet) {
     array_free (wallet->transfers);
 
     pthread_mutex_destroy (&wallet->lock);
+
+    memset (wallet, 0, sizeof(*wallet));
     free (wallet);
 }
 
