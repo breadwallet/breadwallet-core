@@ -194,14 +194,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                     GEN_DISPATCHER_PERIOD,
                                     cryptoNetworkGetHeight(network));
 
-            // Announce the new wallet manager;
-            cwm->listener.walletManagerEventCallback (cwm->listener.context,
-                                                      cryptoWalletManagerTake (cwm),
-                                                      (BRCryptoWalletManagerEvent) {
-                                                          CRYPTO_WALLET_MANAGER_EVENT_CREATED
-                                                      });
-
-            // Create the primary wallet...
+            // ... and create the primary wallet
             BRCryptoCurrency currency = cryptoNetworkGetCurrency (cwm->network);
             BRCryptoUnit     unit     = cryptoNetworkGetUnitAsDefault (cwm->network, currency);
 
@@ -210,6 +203,16 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
             cryptoUnitGive(unit);
             cryptoCurrencyGive(currency);
 
+            // ... and add the primary wallet to the wallet manager...
+            cryptoWalletManagerAddWallet (cwm, cwm->wallet);
+
+            // Announce the new wallet manager;
+            cwm->listener.walletManagerEventCallback (cwm->listener.context,
+                                                      cryptoWalletManagerTake (cwm),
+                                                      (BRCryptoWalletManagerEvent) {
+                                                          CRYPTO_WALLET_MANAGER_EVENT_CREATED
+                                                      });
+
             // ... and announce the created wallet.
             cwm->listener.walletEventCallback (cwm->listener.context,
                                                cryptoWalletManagerTake (cwm),
@@ -217,9 +220,6 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                                (BRCryptoWalletEvent) {
                                                    CRYPTO_WALLET_EVENT_CREATED
                                                });
-
-            // Add the primary wallet to the wallet manager...
-            cryptoWalletManagerAddWallet (cwm, cwm->wallet);
 
             // ... and announce the manager's new wallet.
             cwm->listener.walletManagerEventCallback (cwm->listener.context,

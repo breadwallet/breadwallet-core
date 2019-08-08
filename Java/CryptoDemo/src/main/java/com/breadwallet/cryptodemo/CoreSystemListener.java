@@ -104,7 +104,6 @@ public class CoreSystemListener implements SystemListener {
             @Nullable
             @Override
             public Void visit(WalletCreatedEvent event) {
-                Wallet wallet = manager.getPrimaryWallet();
                 Log.d(TAG, String.format("Wallet addresses: %s <--> %s", wallet.getSource(), wallet.getTarget()));
                 return null;
             }
