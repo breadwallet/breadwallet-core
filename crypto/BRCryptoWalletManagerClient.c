@@ -949,13 +949,14 @@ cwmWalletEventAsETH (BREthereumClientContext context,
 
     BRCryptoWallet wallet = cryptoWalletManagerFindWalletAsETH (cwm, wid); // taken
 
-    // TODO: crypto{Wallet,Transfer}Give()
-
     switch (event.type) {
-        case WALLET_EVENT_CREATED:
-            // The primary wallet was created/added in the EWM_EVENT_CREATED handler;
-            // we only need to handle newly observed token wallets here
-            if (NULL == wallet) {
+        case WALLET_EVENT_CREATED: {
+            // The primary wallet was created/added in the EWM_EVENT_CREATED handler
+            if (NULL != wallet) {
+                cryptoWalletGive (wallet);
+
+            // We only need to handle newly observed token wallets here
+            } else  {
                 BREthereumToken token = ewmWalletGetToken (ewm, wid);
                 assert (NULL != token);
 
@@ -1012,6 +1013,7 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                                                           });
             }
             break;
+        }
 
         case WALLET_EVENT_BALANCE_UPDATED: {
             if (NULL != wallet) {
