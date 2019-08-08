@@ -200,6 +200,7 @@ cryptoTransferCreateAsGEN (BRCryptoUnit unit,
 
 static void
 cryptoTransferRelease (BRCryptoTransfer transfer) {
+    printf ("Transfer: Release\n");
     if (BLOCK_CHAIN_TYPE_BTC == transfer->type) BRTransactionFree (transfer->u.btc.tid);
     if (NULL != transfer->sourceAddress) cryptoAddressGive (transfer->sourceAddress);
     if (NULL != transfer->targetAddress) cryptoAddressGive (transfer->targetAddress);
