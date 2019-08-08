@@ -238,11 +238,14 @@ cryptoNetworkRelease (BRCryptoNetwork network) {
         cryptoUnitGive (association->baseUnit);
         cryptoUnitGive (association->defaultUnit);
         cryptoUnitGiveAll (association->units);
+        array_free (association->units);
     }
+    array_free (network->associations);
 
     for (size_t index = 0; index < array_count (network->fees); index++) {
         cryptoNetworkFeeGive (network->fees[index]);
     }
+    array_free (network->fees);
 
     // TBD
     switch (network->type){
@@ -255,9 +258,8 @@ cryptoNetworkRelease (BRCryptoNetwork network) {
     }
 
     free (network->name);
-    cryptoCurrencyGive (network->currency);
-    array_free (network->associations);
-    array_free (network->fees);
+    free (network->uids);
+    if (NULL != network->currency) cryptoCurrencyGive (network->currency);
     pthread_mutex_destroy (&network->lock);
     free (network);
 }
