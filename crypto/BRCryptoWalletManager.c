@@ -273,11 +273,23 @@ cryptoWalletManagerRelease (BRCryptoWalletManager cwm) {
         cryptoWalletGive (cwm->wallets[index]);
     array_free (cwm->wallets);
 
-    // TODO: btc, eth, gen
-    
+    switch (cwm->type) {
+        case BLOCK_CHAIN_TYPE_BTC:
+            BRWalletManagerFree (cwm->u.btc);
+            break;
+        case BLOCK_CHAIN_TYPE_ETH:
+            ewmDestroy (cwm->u.eth);
+            break;
+        case BLOCK_CHAIN_TYPE_GEN:
+            gwmRelease (cwm->u.gen);
+            break;
+    }
+
     free (cwm->path);
 
     pthread_mutex_destroy (&cwm->lock);
+
+    memset (cwm, 0, sizeof(*cwm));
     free (cwm);
 }
 
