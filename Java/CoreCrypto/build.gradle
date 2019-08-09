@@ -16,6 +16,22 @@ android {
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
+    flavorDimensions "api"
+
+    productFlavors {
+        minApi27 {
+            minSdkVersion 27
+            versionCode 270000 + android.defaultConfig.versionCode
+            versionNameSuffix "-minApi27"
+        }
+
+        minApi23 {
+            minSdkVersion 23
+            versionCode 230000 + android.defaultConfig.versionCode
+            versionNameSuffix "-minApi23"
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
