@@ -41,8 +41,7 @@ public final class Unit: Hashable {
     }
 
     public var base: Unit {
-        return cryptoUnitGetBaseUnit (core)
-            .map { Unit (core: $0, take: false) } ?? self
+        return Unit (core: cryptoUnitGetBaseUnit (core), take: false)
     }
 
     public var decimals: UInt8 {

@@ -6,12 +6,20 @@ import java.util.List;
 
 public interface Key {
 
+    static boolean isProtectedPrivateKeyString(byte[] privatekeyUtf8) {
+        return CryptoApi.getProvider().keyProvider().isProtectedPrivateKeyString(privatekeyUtf8);
+    }
+
     static Optional<Key> createFromPhrase(byte[] phraseUtf8, List<String> words) {
         return CryptoApi.getProvider().keyProvider().createFromPhrase(phraseUtf8, words);
     }
 
     static Optional<Key> createFromPrivateKeyString(byte[] privatekeyUtf8) {
         return CryptoApi.getProvider().keyProvider().createFromPrivateKeyString(privatekeyUtf8);
+    }
+
+    static Optional<Key> createFromPrivateKeyString(byte[] privatekeyUtf8, byte[] passphraseUtf8) {
+        return CryptoApi.getProvider().keyProvider().createFromPrivateKeyString(privatekeyUtf8, passphraseUtf8);
     }
 
     static Optional<Key> createFromPublicKeyString(byte[] publicKeyUtf8) {

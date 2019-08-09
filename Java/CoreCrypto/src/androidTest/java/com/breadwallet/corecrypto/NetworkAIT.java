@@ -30,7 +30,7 @@ public class NetworkAIT {
         Map<Currency, NetworkAssociation> associations = new HashMap<>();
         associations.put(btc, association);
 
-        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_btc).get());
+        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_btc));
         List<NetworkFee> fees = Collections.singletonList(fee);
 
         Network network = Network.create("bitcoin-mainnet", "Bitcoin", true, btc, UnsignedLong.valueOf(100000), associations, fees);
@@ -91,11 +91,13 @@ public class NetworkAIT {
         associations.put(eth, association_eth);
         associations.put(brd, association_brd);
 
-        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(1000), Amount.create(2.0, gwei_eth).get());
-        List<NetworkFee> fees = Collections.singletonList(fee);
+        NetworkFee fee1 = NetworkFee.create(UnsignedLong.valueOf(1000), Amount.create(2.0, gwei_eth));
+        NetworkFee fee2 = NetworkFee.create(UnsignedLong.valueOf(500), Amount.create(3.0, gwei_eth));
+        List<NetworkFee> fees = Arrays.asList(fee1, fee2);
 
-        Network network = Network.create("ethereum-mainnet", "Ethereum", true, eth, UnsignedLong.valueOf(100000), associations, fees);
+        Network network = Network.create("ethereum-mainnet", "ethereum-name", true, eth, UnsignedLong.valueOf(100000), associations, fees);
 
+        assertEquals("ethereum-name", network.toString());
         assertTrue(network.hasCurrency(eth));
         assertTrue(network.hasCurrency(brd));
         assertFalse(network.hasCurrency(btc));
@@ -110,5 +112,10 @@ public class NetworkAIT {
         assertTrue(network.hasUnitFor(eth, wei_eth).or(false));
         assertTrue(network.hasUnitFor(eth, gwei_eth).or(false));
         assertTrue(network.hasUnitFor(eth, ether_eth).or(false));
+
+        assertEquals(fee1, network.getMinimumFee());
+
+        assertFalse(network.defaultUnitFor(btc).isPresent());
+        assertFalse(network.baseUnitFor(btc).isPresent());
     }
 }

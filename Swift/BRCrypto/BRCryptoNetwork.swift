@@ -192,19 +192,6 @@ public final class Network: CustomStringConvertible {
         cryptoNetworkGive (core)
     }
 
-    public var supportedModes: [WalletManagerMode] {
-        switch cryptoNetworkGetType (core) {
-        case BLOCK_CHAIN_TYPE_BTC:
-            return [WalletManagerMode.p2p_only]
-        case BLOCK_CHAIN_TYPE_ETH:
-            return [WalletManagerMode.api_only,
-                    WalletManagerMode.api_with_p2p_submit]
-        case BLOCK_CHAIN_TYPE_GEN:
-            return [WalletManagerMode.api_only]
-        default: preconditionFailure ()
-        }
-    }
-
     /// TODO: Should use the network's/manager's default address scheme
     public func addressFor (_ string: String) -> Address? {
         return cryptoNetworkCreateAddressFromString (core, string)

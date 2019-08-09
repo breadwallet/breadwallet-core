@@ -63,6 +63,7 @@ class BRCryptoCommonTests: XCTestCase {
         s = "5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF"
         k = Key.createFromString(asPrivate: s)
         XCTAssertNotNil(k)
+        XCTAssertTrue (k.hasSecret)
         XCTAssertEqual (s, k.encodeAsPrivate)
 
         //
@@ -73,10 +74,16 @@ class BRCryptoCommonTests: XCTestCase {
         k = Key.createFromString(asPrivate: s)
         XCTAssertNotNil(k)
         XCTAssertEqual (s, k.encodeAsPrivate)
+        l = Key.createFromString (asPrivate: k.encodeAsPrivate)
+        XCTAssertTrue (k.privateKeyMatch(l))
+        l = Key (secret: k.secret)
+        XCTAssertTrue (k.privateKeyMatch(l))
+
 
         t = k.encodeAsPublic
         l = Key.createFromString(asPublic: t)
         XCTAssertNotNil (l)
+        XCTAssertFalse (l.hasSecret)
         XCTAssertEqual (t, l.encodeAsPublic)
 
         XCTAssertTrue (l.publicKeyMatch(k))
@@ -87,6 +94,20 @@ class BRCryptoCommonTests: XCTestCase {
         s = "XyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL"
         k = Key.createFromString(asPrivate: s)
         XCTAssertNil(k)
+
+        //
+        // Phrase
+        //
+        k = Key.createFrom (phrase: "nothing", words: BRCryptoAccountTests.words)
+        XCTAssertNil(k)
+        k = Key.createFrom (phrase: "ginger settle marine tissue robot crane night number ramp coast roast critic", words: BRCryptoAccountTests.words)
+        XCTAssertNotNil(k)
+
+        // Pigeon
+
+        // BIP32ApiAuth
+
+        // BIP32BitID
     }
 
     func testHasher() {
@@ -107,10 +128,26 @@ class BRCryptoCommonTests: XCTestCase {
         XCTAssertEqual (a, CoreHasher.sha256.hash(data: d))
 
         // sha224
+        d = "Free online SHA224 Calculator, type text here..."
+            .data(using: String.Encoding.utf8)
+        a = Data([0x09, 0xcd, 0xa9, 0x39, 0xab, 0x1d, 0x6e, 0x7c, 0x3f, 0x81, 0x3b, 0xa2, 0x3a, 0xf3, 0x4b, 0xdf,
+                  0xe9, 0x35, 0x50, 0x6d, 0xc4, 0x92, 0xeb, 0x77, 0xd8, 0x22, 0x6a, 0x64])
+        XCTAssertEqual (a, CoreHasher.sha224.hash(data: d))
 
         // sha256_2
+        d = "Free online SHA256_2 Calculator, type text here..."
+            .data(using: String.Encoding.utf8)
+        a = Data([0xe3, 0x9a, 0xee, 0xfe, 0xd2, 0x39, 0x02, 0xd7, 0x81, 0xef, 0xdc, 0x83, 0x8a, 0x0b, 0x5d, 0x16,
+                  0xc0, 0xab, 0x90, 0x1d, 0xc9, 0x26, 0xbb, 0x6e, 0x2c, 0x1e, 0xdf, 0xb9, 0xc1, 0x8d, 0x89, 0xb8])
+        XCTAssertEqual (a, CoreHasher.sha256_2.hash(data: d))
 
         // sha384
+        d = "Free online SHA384 Calculator, type text here..."
+            .data(using: String.Encoding.utf8)
+        a = Data([0xef, 0x82, 0x38, 0x77, 0xa4, 0x66, 0x4c, 0x96, 0x41, 0xc5, 0x3a, 0xc2, 0x05, 0x59, 0xc3, 0x4b,
+                  0x5d, 0x2c, 0x67, 0x94, 0x77, 0xde, 0x22, 0xff, 0xfa, 0xb3, 0x51, 0xe5, 0xe3, 0x3e, 0xa5, 0x3e,
+                  0x42, 0x36, 0x15, 0xe1, 0xee, 0x3c, 0x85, 0xe0, 0xd7, 0xfa, 0xcb, 0x84, 0xdf, 0x2b, 0xa2, 0x17])
+        XCTAssertEqual (a, CoreHasher.sha384.hash(data: d))
 
         // sha512
         d = "Free online SHA512 Calculator, type text here..."
@@ -128,7 +165,11 @@ class BRCryptoCommonTests: XCTestCase {
         XCTAssertEqual (a, CoreHasher.rmd160.hash(data: d))
 
         // hash160
-        
+        d = "Free online HASH160 Calculator, type text here..."
+            .data(using: String.Encoding.utf8)
+        a = Data([0x62, 0x0a, 0x75, 0x2d, 0x20, 0x09, 0xd4, 0xc6, 0x59, 0x8b, 0x7f, 0x63, 0x4d, 0x34, 0xc5, 0xec, 0xd5, 0x23, 0x36, 0x72])
+        XCTAssertEqual (a, CoreHasher.hash160.hash(data: d))
+
         // sha3
         d = "abc"
             .data(using: String.Encoding.utf8)

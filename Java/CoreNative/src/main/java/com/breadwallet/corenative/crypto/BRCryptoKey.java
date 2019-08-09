@@ -25,6 +25,25 @@ public class BRCryptoKey extends PointerType {
         super();
     }
 
+    public static boolean isProtectedPrivateKeyString(byte[] keyString) {
+        // ensure string is null terminated
+        keyString = Arrays.copyOf(keyString, keyString.length + 1);
+        try {
+            Memory keyMemory = new Memory(keyString.length);
+            try {
+                keyMemory.write(0, keyString, 0, keyString.length);
+                ByteBuffer keyBuffer = keyMemory.getByteBuffer(0, keyString.length);
+
+                return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoKeyIsProtectedPrivate(keyBuffer);
+            } finally {
+                keyMemory.clear();
+            }
+        } finally {
+            // clear out our copy; caller responsible for original array
+            Arrays.fill(keyString, (byte) 0);
+        }
+    }
+
     public static Optional<BRCryptoKey> createFromPhrase(byte[] phraseUtf8, List<String> words) {
         StringArray wordsArray = new StringArray(words.toArray(new String[0]), "UTF-8");
 
@@ -62,6 +81,30 @@ public class BRCryptoKey extends PointerType {
         } finally {
             // clear out our copy; caller responsible for original array
             Arrays.fill(keyString, (byte) 0);
+        }
+    }
+
+    public static Optional<BRCryptoKey> createFromPrivateKeyString(byte[] keyString, byte[] phraseString) {
+        // ensure strings are null terminated
+        keyString = Arrays.copyOf(keyString, keyString.length + 1);
+        phraseString = Arrays.copyOf(phraseString, phraseString.length + 1);
+        try {
+            Memory memory = new Memory(keyString.length + phraseString.length);
+            try {
+                memory.write(0, keyString, 0, keyString.length);
+                memory.write(keyString.length, phraseString, 0, phraseString.length);
+
+                ByteBuffer keyBuffer = memory.getByteBuffer(0, keyString.length);
+                ByteBuffer phraseBuffer = memory.getByteBuffer(keyString.length, phraseString.length);
+
+                return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoKeyCreateFromStringProtectedPrivate(keyBuffer, phraseBuffer));
+            } finally {
+                memory.clear();
+            }
+        } finally {
+            // clear out our copies; caller responsible for original arrays
+            Arrays.fill(keyString, (byte) 0);
+            Arrays.fill(phraseString, (byte) 0);
         }
     }
 

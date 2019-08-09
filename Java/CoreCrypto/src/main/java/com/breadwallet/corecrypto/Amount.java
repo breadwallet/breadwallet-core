@@ -28,15 +28,15 @@ import static com.google.common.base.Preconditions.checkArgument;
 final class Amount implements com.breadwallet.crypto.Amount {
 
     /* package */
-    static Optional<Amount> create(double value, com.breadwallet.crypto.Unit unit) {
+    static Amount create(double value, com.breadwallet.crypto.Unit unit) {
         Unit cryptoUnit = Unit.from(unit);
-        return CoreBRCryptoAmount.create(value, cryptoUnit.getCoreBRCryptoUnit()).transform((amount) -> new Amount(amount, cryptoUnit));
+        return new Amount(CoreBRCryptoAmount.create(value, cryptoUnit.getCoreBRCryptoUnit()), cryptoUnit);
     }
 
     /* package */
-    static Optional<Amount> create(long value, com.breadwallet.crypto.Unit unit) {
+    static Amount create(long value, com.breadwallet.crypto.Unit unit) {
         Unit cryptoUnit = Unit.from(unit);
-        return CoreBRCryptoAmount.create(value, cryptoUnit.getCoreBRCryptoUnit()).transform((amount) -> new Amount(amount, cryptoUnit));
+        return new Amount(CoreBRCryptoAmount.create(value, cryptoUnit.getCoreBRCryptoUnit()), cryptoUnit);
     }
 
     /* package */
