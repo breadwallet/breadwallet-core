@@ -6,7 +6,9 @@
 cmake_minimum_required(VERSION 3.4.1)
 
 # now build app's shared lib
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -DANDROID_STL=gnustl_static -DANDROID_TOOLCHAIN=clang")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -DANDROID_TOOLCHAIN=clang")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DANDROID_STL=system -DANDROID_ARM_MODE=arm -fsanitize=address -fno-omit-frame-pointer")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -DANDROID_STL=gnustl_static")
 
 # -Wimplicit-function-declaration
 # -Wno-missing-prototypes -Werror=return-type -Wdocumentation -Wunreachable-code-aggressive -Wno-missing-braces
