@@ -12,37 +12,36 @@
 import XCTest
 @testable import BRCrypto
 
-#if false
-class Listener : BitcoinListener, EthereumListener {
-    func handleTokenEvent(manager: WalletManager, token: EthereumToken, event: EthereumTokenEvent) {
-
-    }
-
-    func handleManagerEvent(manager: WalletManager, event: WalletManagerEvent) {
-    }
-
-    func handleWalletEvent(manager: WalletManager, wallet: Wallet, event: WalletEvent) {
-    }
-
-    func handleTransferEvent(manager: WalletManager, wallet: Wallet, transfer: Transfer, event: TransferEvent) {
-    }
-}
-#endif
-
-class BRCryptoWalletManagerTests: XCTestCase {
-
-    #if false
-    var listener: Listener!
-    #endif
-
+class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
+    
     override func setUp() {
+        super.setUp()
     }
 
     override func tearDown() {
     }
 
-    // Bitcoin
+    func testWalletManagerBTC() {
+        isMainnet = false
+        currencyCodesNeeded = ["btc"]
+        prepareSystem()
 
-    // Ethereum
+        let network: Network! = system.networks.first { "btc" == $0.currency.code && isMainnet == $0.isMainnet }
+        XCTAssertNotNil (network)
 
+        let manager: WalletManager! = system.managers.first { $0.network == network }
+        XCTAssertNotNil (manager)
+    }
+
+    func testWalletManagerETH () {
+        isMainnet = false
+        currencyCodesNeeded = ["eth"]
+        prepareSystem()
+
+        let network: Network! = system.networks.first { "eth" == $0.currency.code && isMainnet == $0.isMainnet }
+        XCTAssertNotNil (network)
+
+        let manager: WalletManager! = system.managers.first { $0.network == network }
+        XCTAssertNotNil (manager)
+    }
 }

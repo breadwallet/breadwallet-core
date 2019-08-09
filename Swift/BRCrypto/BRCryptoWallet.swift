@@ -362,6 +362,9 @@ public protocol WalletListener: class {
                             wallet: Wallet,
                             event: WalletEvent)
 }
+/// A Functional Interface for a Handler
+public typealias WalletEventHandler = (System, WalletManager, Wallet, WalletEvent) -> Void
+
 
 ///
 /// A WalletFactory is a customization point for Wallet creation.

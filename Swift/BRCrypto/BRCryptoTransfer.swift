@@ -350,6 +350,9 @@ public protocol TransferListener: class {
                               event: TransferEvent)
 }
 
+/// A Functional Interface for a Handler
+public typealias TransferEventHandler = (System, WalletManager, Wallet, Transfer, TransferEvent) -> Void
+
 ///
 /// A `TransferFectory` is a customization point for `Transfer` creation.
 ///

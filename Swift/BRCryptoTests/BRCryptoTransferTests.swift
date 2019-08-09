@@ -11,40 +11,71 @@
 
 import XCTest
 @testable import BRCrypto
+import BRCryptoC
 
-class BRCryptoTransferTests: XCTestCase {
-
-    var system: System! = nil
-    var manager: WalletManager! = nil
-    var wallet: Wallet! = nil
-
+class BRCryptoTransferTests: BRCryptoSystemBaseTests {
     override func setUp() {
-/*
-        system = System (listener: <#T##SystemListener#>,
-                         account: <#T##Account#>,
-                         path: <#T##String#>,
-                         query: <#T##BlockChainDB#>)
-
-        manager = WalletManager (system: <#T##System#>,
-                                 listener: <#T##WalletManagerListener#>,
-                                 account: <#T##Account#>,
-                                 network: <#T##Network#>,
-                                 mode: <#T##WalletManagerMode#>,
-                                 storagePath: <#T##String#>)
-
-        wallet = Wallet (core: <#T##BRCryptoWallet#>,
-                         listener: <#T##WalletListener?#>,
-                         manager: <#T##WalletManager#>,
-                         unit: <#T##Unit#>)
-*/
+        super.setUp()
     }
 
     override func tearDown() {
     }
 
-//    func testTransferA() {
-//    }
+    func testTransferBTC() {
+        isMainnet = false
+        currencyCodesNeeded = ["btc"]
+        prepareSystem()
 
+        let network: Network! = system.networks.first { "btc" == $0.currency.code && isMainnet == $0.isMainnet }
+        XCTAssertNotNil (network)
+
+        let manager: WalletManager! = system.managers.first { $0.network == network }
+        XCTAssertNotNil (manager)
+    }
+
+    func testTransferETH () {
+        isMainnet = false
+        currencyCodesNeeded = ["eth"]
+        prepareSystem()
+
+        let network: Network! = system.networks.first { "eth" == $0.currency.code && isMainnet == $0.isMainnet }
+        XCTAssertNotNil (network)
+
+        let manager: WalletManager! = system.managers.first { $0.network == network }
+        XCTAssertNotNil (manager)
+    }
+
+    
+    func testTransferConfirmation () {
+        let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
+        let BTC_SATOSHI = BRCrypto.Unit (currency: btc, uids: "BTC-SAT",  name: "Satoshi", symbol: "SAT")
+
+        let confirmation = TransferConfirmation (blockNumber: 1,
+                                                 transactionIndex: 2,
+                                                 timestamp: 3,
+                                                 fee: nil)
+        XCTAssertEqual(1, confirmation.blockNumber)
+        XCTAssertEqual(2, confirmation.transactionIndex)
+        XCTAssertEqual(3, confirmation.timestamp)
+        XCTAssertNil(confirmation.fee)
+    }
+
+    func testTransferDirection () {
+        XCTAssertEqual(TransferDirection.sent,      TransferDirection (core: BRCryptoTransferDirection (rawValue: 0)))
+        XCTAssertEqual(TransferDirection.received,  TransferDirection (core: BRCryptoTransferDirection (rawValue: 1)))
+        XCTAssertEqual(TransferDirection.recovered, TransferDirection (core: BRCryptoTransferDirection (rawValue: 2)))
+    }
+
+    func testTransferHash () {
+    }
+
+    func testTransferFeeBasis () {
+    }
+
+    func testTransferState () {
+        // XCTAssertEqual (TransferState.created, TransferState(core: CRYPTO_TRANSFER_STATE_CREATED))
+        // ...
+    }
     func testTransfer () {
 /*
         let wid = BRWalletNew ()
