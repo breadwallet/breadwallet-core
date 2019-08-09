@@ -242,20 +242,20 @@ cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNega
             switch (cryptoTransferGetDirection(transfer)) {
                 case CRYPTO_TRANSFER_RECOVERED:
                     amount = cryptoAmountCreate (currency,
-                                               isNegative,
-                                               createUInt256(send));
+                                                 isNegative,
+                                                 createUInt256(send));
                     break;
 
                 case CRYPTO_TRANSFER_SENT:
                     amount = cryptoAmountCreate (currency,
-                                               isNegative,
-                                               createUInt256(send - fee - recv));
+                                                 isNegative,
+                                                 createUInt256(send - fee - recv));
                     break;
 
                 case CRYPTO_TRANSFER_RECEIVED:
                     amount = cryptoAmountCreate (currency,
-                                               isNegative,
-                                               createUInt256(recv));
+                                                 isNegative,
+                                                 createUInt256(recv));
                     break;
                     
                 default: assert(0);

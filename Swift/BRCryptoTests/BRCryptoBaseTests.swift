@@ -13,26 +13,6 @@ import XCTest
 @testable import BRCrypto
 
 class BRCryptoBaseTests: XCTestCase {
-
-    struct AccountSpecification {
-        let identifier: String
-        let network: String
-        let paperKey: String
-        let timestamp: Date
-
-        init (dict: [String: String]) {
-            self.identifier = dict["identifier"]! //as! String
-            self.network    = dict["network"]!
-            self.paperKey   = dict["paperKey"]!
-
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "yyyy-MM-dd"
-            dateFormatter.locale = Locale(identifier: "en_US_POSIX")
-
-            self.timestamp = dateFormatter.date(from: dict["timestamp"]!)!
-        }
-    }
-
     var accountSpecifications: [AccountSpecification] = []
     var accountSpecification: AccountSpecification! {
         return accountSpecifications.count > 0
@@ -71,28 +51,18 @@ class BRCryptoBaseTests: XCTestCase {
 
     var account: Account!
 
-    override func setUp() {
-        super.setUp()
+    func prepareAccount (_ spec: AccountSpecification? = nil) {
+        let defaultSpecification = AccountSpecification (dict: [
+            "identifier": "ginger",
+            "paperKey":   "ginger settle marine tissue robot crane night number ramp coast roast critic",
+            "timestamp":  "2018-01-01",
+            "network":    (isMainnet ? "mainnet" : "testnet")
+            ])
 
-        // Get the paperKey from `configPath`
-        if FileManager.default.fileExists(atPath: configPath) {
-            let configFile = URL(fileURLWithPath: configPath)
-            let configData = try! Data.init(contentsOf: configFile)
-            let json = try! JSONSerialization.jsonObject(with: configData, options: []) as! [[String:String]]
-            accountSpecifications = json
-                .map { AccountSpecification (dict: $0) }
-                .filter { $0.network == (isMainnet ? "mainnet" : "testnet") }
-        }
-        else {
-            accountSpecifications = [
-                AccountSpecification (dict: [
-                    "identifier": "ginger",
-                    "paperKey":   "ginger settle marine tissue robot crane night number ramp coast roast critic",
-                    "timestamp":  "2018-01-01",
-                    "network":    (isMainnet ? "mainnet" : "testnet")
-                ])
-            ]
-        }
+        self.accountSpecifications = (spec != nil
+            ? [spec!]
+            : AccountSpecification.loadFrom(configPath: configPath, defaultSpecification: defaultSpecification))
+            .filter { $0.network == (isMainnet ? "mainnet" : "testnet") }
 
         let specifiction = accountSpecification!
 
@@ -101,6 +71,10 @@ class BRCryptoBaseTests: XCTestCase {
         account = Account.createFrom (phrase: specifiction.paperKey,
                                       timestamp: specifiction.timestamp,
                                       uids: walletId)
+    }
+    
+    override func setUp() {
+        super.setUp()
 
         /// Create the 'storagePath'
         coreDataDir = FileManager.default
@@ -187,6 +161,7 @@ class CryptoTestSystemListener: SystemListener {
     }
 
     func handleSystemEvent(system: System, event: SystemEvent) {
+        print ("TST: System Event: \(event)")
         switch event {
         case .networkAdded (let network):
             if isMainnet == network.isMainnet &&
@@ -213,6 +188,7 @@ class CryptoTestSystemListener: SystemListener {
     var managerHandlers: [WalletManagerEventHandler] = []
 
     func handleManagerEvent(system: System, manager: WalletManager, event: WalletManagerEvent) {
+        print ("TST: Manager Event: \(event)")
         if case .walletAdded = event { walletExpectation.fulfill() }
         managerHandlers.forEach { $0 (system, manager, event) }
     }
@@ -220,57 +196,24 @@ class CryptoTestSystemListener: SystemListener {
     var walletHandlers: [WalletEventHandler] = []
 
     func handleWalletEvent(system: System, manager: WalletManager, wallet: Wallet, event: WalletEvent) {
+        print ("TST: Wallet Event: \(event)")
         walletHandlers.forEach { $0 (system, manager, wallet, event) }
     }
 
     var transferHandlers: [TransferEventHandler] = []
 
     func handleTransferEvent(system: System, manager: WalletManager, wallet: Wallet, transfer: Transfer, event: TransferEvent) {
+        print ("TST: Transfer Event: \(event)")
         transferHandlers.forEach { $0 (system, manager, wallet, transfer, event) }
     }
 
     var networkHandlers: [NetworkEventHandler] = []
 
     func handleNetworkEvent(system: System, network: Network, event: NetworkEvent) {
+        print ("TST: Network Event: \(event)")
         networkHandlers.forEach { $0 (system, network, event) }
     }
 }
-
-/*
- fileprivate class BRCryptoBaseTestSystemListner: SystemListener {
-
-        case .networkAdded(let network):
-            if isMainnet == network.isMainnet &&
-                currencyCodesNeeded.contains (where: { nil != network.currencyBy (code: $0) }) {
-                let mode = system.supportsMode (network: network, WalletManagerMode.api_only)
-                    ? WalletManagerMode.api_only
-                    : system.defaultMode(network: network)
-                let scheme = system.defaultAddressScheme(network: network)
-
-                let _ = system.createWalletManager (network: network,
-                                                    mode: mode,
-                                                    addressScheme: scheme)
-            }
-
-
-            networkExpectation.fulfill()
-
-            // A network was created; create the corresponding wallet manager.  Note: an actual
-            // App might not be interested in having a wallet manager for every network -
-            // specifically, test networks are announced and having a wallet manager for a
-            // testnet won't happen in a deployed App.
-
-            let mode = system.supportsMode (network: network, WalletManagerMode.p2p_only)
-                ? WalletManagerMode.p2p_only
-                : system.defaultMode(network: network)
-            let scheme = system.defaultAddressScheme(network: network)
-
-
-            let _ = system.createWalletManager (network: network,
-                                                mode: mode,
-                                                addressScheme: scheme)
-}
-*/
 
 class BRCryptoSystemBaseTests: BRCryptoBaseTests {
 

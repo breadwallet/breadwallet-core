@@ -252,7 +252,7 @@ extension WalletManager {
 ///
 /// The WalletManager state.
 ///
-public enum WalletManagerState {
+public enum WalletManagerState: Equatable {
     case created
     case disconnected
     case connected

@@ -296,7 +296,7 @@ extension Wallet {
 /// - created: The wallet was created (and remains in existence).
 /// - deleted: The wallet was deleted.
 ///
-public enum WalletState {
+public enum WalletState: Equatable {
     case created
     case deleted
 

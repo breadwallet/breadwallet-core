@@ -24,6 +24,7 @@ class BRCryptoSystemTests: BRCryptoSystemBaseTests {
     func testSystemBTC() {
         isMainnet = false
         currencyCodesNeeded = ["btc"]
+        prepareAccount()
         prepareSystem()
 
         XCTAssertTrue (system.networks.count >= 1)
@@ -51,21 +52,5 @@ class BRCryptoSystemTests: BRCryptoSystemBaseTests {
         XCTAssertTrue  (network.defaultUnitFor(currency: network.currency).map { $0 == wallet.unit } ?? false)
         XCTAssertEqual (wallet.balance, Amount.create(integer: 0, unit: manager.baseUnit))
         XCTAssertEqual (wallet.state, WalletState.created)
-
-        #if false
-        let transfer = wallet.createTransfer (target: targetAddress,
-                                              amount: Amount.create (integer: 1, unit: manager.baseUnit))
-
-        XCTAssertNil(transfer) // no balance => no transfer
-        #endif
-
-        #if false
-        XCTAssertTrue (transfer.wallet === wallet)
-        XCTAssertTrue (transfer.manager === manager)
-        XCTAssertTrue (transfer.system  === sys)
-
-        XCTAssertEqual (transfer.target, targetAddress)
-        XCTAssertEqual (transfer.source, wallet.source)
-        #endif
     }
 }

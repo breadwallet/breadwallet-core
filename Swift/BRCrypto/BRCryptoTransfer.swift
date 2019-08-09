@@ -169,7 +169,7 @@ extension Transfer {
     }
 }
 
-public enum TransferDirection {
+public enum TransferDirection: Equatable {
     case sent
     case received
     case recovered
