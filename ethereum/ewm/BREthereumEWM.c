@@ -480,7 +480,8 @@ ewmCreate (BREthereumNetwork network,
     // Queue the CREATED event so that it is the first event delievered to the BREthereumClient
     ewmSignalEWMEvent (ewm, EWM_EVENT_CREATED, SUCCESS, NULL);
 
-    // Create a default ETH wallet; other wallets will be created 'on demand'
+    // Create a default ETH wallet; other wallets will be created 'on demand'.  This will signal
+    // a WALLET_EVENT_CREATED event.
     ewm->walletHoldingEther = walletCreate(ewm->account,
                                            ewm->network);
     ewmInsertWallet(ewm, ewm->walletHoldingEther);
@@ -632,7 +633,16 @@ ewmCreateWithPublicKey (BREthereumNetwork network,
 extern void
 ewmDestroy (BREthereumEWM ewm) {
     pthread_mutex_lock(&ewm->lock);
+
+    // Disconnect BCS - Note ewm->lock is recursive so there is no deadlock here.
     ewmDisconnect(ewm);
+
+    // TODO: Before DISCONNECT... so disconnect events are not handled (but still queued?)
+    ewmStop (ewm);
+
+    //
+    // Begin destroy
+    //
 
     bcsDestroy(ewm->bcs);
 
@@ -651,6 +661,27 @@ ewmDestroy (BREthereumEWM ewm) {
 
     memset (ewm, 0, sizeof(*ewm));
     free (ewm);
+}
+
+/// MARK: - Start/Stop
+
+extern void
+ewmStart (BREthereumEWM ewm) {
+    // Start the alarm clock.
+    alarmClockStart(alarmClock);
+
+    // Start the EWM thread
+    eventHandlerStart(ewm->handler);
+}
+
+extern void
+ewmStop (BREthereumEWM ewm) {
+    // Stop the alarm clock
+    alarmClockStop (alarmClock);
+
+    // Stop the EWM thread
+    eventHandlerStop(ewm->handler);
+
 }
 
 /// MARK: - Connect / Disconnect
@@ -675,9 +706,6 @@ ewmConnect(BREthereumEWM ewm) {
         // with `ewmPeriodicDispatcher`.
         ewm->state = LIGHT_NODE_CONNECTED;
 
-        // Start the alarm clock, if needed.
-        alarmClockStart(alarmClock);
-
         switch (ewm->mode) {
             case BRD_ONLY:
                 break;
@@ -688,13 +716,10 @@ ewmConnect(BREthereumEWM ewm) {
                 break;
         }
 
-        eventHandlerStart(ewm->handler);
-
         result = ETHEREUM_BOOLEAN_TRUE;
     }
 
     ewmUnlock (ewm);
-
     return result;
 }
 
@@ -714,9 +739,6 @@ ewmDisconnect (BREthereumEWM ewm) {
         // Set ewm->state thereby stopping handlers (in a race with bcs/event calls).
         ewm->state = LIGHT_NODE_DISCONNECTED;
 
-        // What order for these stop functions?  See comment in `bcsStop()`.
-        alarmClockStop (alarmClock);
-
         switch (ewm->mode) {
             case BRD_ONLY:
                 break;
@@ -727,16 +749,10 @@ ewmDisconnect (BREthereumEWM ewm) {
                 break;
         }
 
-        // Unlock here - required for eventHandlerStop() to run and succeed on pthread_join(). This
-        // could be moved to immediately after `ewm->state = ...` as the lock *only* protects
-        // that EWM field.
-        ewmUnlock(ewm);
-        eventHandlerStop(ewm->handler);
-
         result = ETHEREUM_BOOLEAN_TRUE;
     }
-    else ewmUnlock(ewm);
 
+    ewmUnlock(ewm);
     return result;
 }
 
@@ -759,6 +775,7 @@ ewmIsConnected (BREthereumEWM ewm) {
                 break;
         }
     }
+
     ewmUnlock (ewm);
     return result;
 }
