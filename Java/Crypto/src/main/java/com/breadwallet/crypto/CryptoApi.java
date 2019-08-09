@@ -27,8 +27,8 @@ public final class CryptoApi {
     }
 
     public interface AmountProvider {
-        Optional<Amount> create(long value, Unit unit);
-        Optional<Amount> create(double value, Unit unit);
+        Amount create(long value, Unit unit);
+        Amount create(double value, Unit unit);
         Optional<Amount> create(String value, boolean isNegative, Unit unit);
     }
 
@@ -51,8 +51,10 @@ public final class CryptoApi {
     }
 
     public interface KeyProvider {
+        boolean isProtectedPrivateKeyString(byte[] keyStringUtf8);
         Optional<Key> createFromPhrase(byte[] phraseUtf8, List<String> words);
         Optional<Key> createFromPrivateKeyString(byte[] keyStringUtf8);
+        Optional<Key> createFromPrivateKeyString(byte[] keyStringUtf8, byte[] passphraseUtf8);
         Optional<Key> createFromPublicKeyString(byte[] keyStringUtf8);
         Optional<Key> createForPigeon(Key key, byte[] nonce);
         Optional<Key> createForBIP32ApiAuth(byte[] phraseUtf8, List<String> words);

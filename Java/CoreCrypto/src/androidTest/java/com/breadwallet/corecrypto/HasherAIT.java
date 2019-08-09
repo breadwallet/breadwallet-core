@@ -40,9 +40,47 @@ public class HasherAIT {
 
         // SHA256_2
 
+        d = "Free online SHA256_2 Calculator, type text here...".getBytes(StandardCharsets.UTF_8);
+        a = new byte[] {
+                (byte) 0xe3, (byte) 0x9a, (byte) 0xee, (byte) 0xfe, (byte) 0xd2,
+                (byte) 0x39, (byte) 0x02, (byte) 0xd7, (byte) 0x81, (byte) 0xef,
+                (byte) 0xdc, (byte) 0x83, (byte) 0x8a, (byte) 0x0b, (byte) 0x5d,
+                (byte) 0x16, (byte) 0xc0, (byte) 0xab, (byte) 0x90, (byte) 0x1d,
+                (byte) 0xc9, (byte) 0x26, (byte) 0xbb, (byte) 0x6e, (byte) 0x2c,
+                (byte) 0x1e, (byte) 0xdf, (byte) 0xb9, (byte) 0xc1, (byte) 0x8d,
+                (byte) 0x89, (byte) 0xb8
+        };
+        assertArrayEquals(a, Hasher.createForAlgorithm(com.breadwallet.crypto.Hasher.Algorithm.SHA256_2).hash(d));
+
         // SHA224
 
+        d = "Free online SHA224 Calculator, type text here...".getBytes(StandardCharsets.UTF_8);
+        a = new byte[] {
+                (byte) 0x09, (byte) 0xcd, (byte) 0xa9, (byte) 0x39, (byte) 0xab,
+                (byte) 0x1d, (byte) 0x6e, (byte) 0x7c, (byte) 0x3f, (byte) 0x81,
+                (byte) 0x3b, (byte) 0xa2, (byte) 0x3a, (byte) 0xf3, (byte) 0x4b,
+                (byte) 0xdf, (byte) 0xe9, (byte) 0x35, (byte) 0x50, (byte) 0x6d,
+                (byte) 0xc4, (byte) 0x92, (byte) 0xeb, (byte) 0x77, (byte) 0xd8,
+                (byte) 0x22, (byte) 0x6a, (byte) 0x64
+        };
+        assertArrayEquals(a, Hasher.createForAlgorithm(com.breadwallet.crypto.Hasher.Algorithm.SHA224).hash(d));
+
         // SHA384
+
+        d = "Free online SHA384 Calculator, type text here...".getBytes(StandardCharsets.UTF_8);
+        a = new byte[] {
+                (byte) 0xef, (byte) 0x82, (byte) 0x38, (byte) 0x77, (byte) 0xa4,
+                (byte) 0x66, (byte) 0x4c, (byte) 0x96, (byte) 0x41, (byte) 0xc5,
+                (byte) 0x3a, (byte) 0xc2, (byte) 0x05, (byte) 0x59, (byte) 0xc3,
+                (byte) 0x4b, (byte) 0x5d, (byte) 0x2c, (byte) 0x67, (byte) 0x94,
+                (byte) 0x77, (byte) 0xde, (byte) 0x22, (byte) 0xff, (byte) 0xfa,
+                (byte) 0xb3, (byte) 0x51, (byte) 0xe5, (byte) 0xe3, (byte) 0x3e,
+                (byte) 0xa5, (byte) 0x3e, (byte) 0x42, (byte) 0x36, (byte) 0x15,
+                (byte) 0xe1, (byte) 0xee, (byte) 0x3c, (byte) 0x85, (byte) 0xe0,
+                (byte) 0xd7, (byte) 0xfa, (byte) 0xcb, (byte) 0x84, (byte) 0xdf,
+                (byte) 0x2b, (byte) 0xa2, (byte) 0x17
+        };
+        assertArrayEquals(a, Hasher.createForAlgorithm(com.breadwallet.crypto.Hasher.Algorithm.SHA384).hash(d));
 
         // SHA512
 
@@ -90,6 +128,15 @@ public class HasherAIT {
         assertArrayEquals(a, Hasher.createForAlgorithm(com.breadwallet.crypto.Hasher.Algorithm.RMD160).hash(d));
 
         // HASH160
+
+        d = "Free online HASH160 Calculator, type text here...".getBytes(StandardCharsets.UTF_8);
+        a = new byte[] {
+                (byte) 0x62, (byte) 0x0a, (byte) 0x75, (byte) 0x2d, (byte) 0x20,
+                (byte) 0x09, (byte) 0xd4, (byte) 0xc6, (byte) 0x59, (byte) 0x8b,
+                (byte) 0x7f, (byte) 0x63, (byte) 0x4d, (byte) 0x34, (byte) 0xc5,
+                (byte) 0xec, (byte) 0xd5, (byte) 0x23, (byte) 0x36, (byte) 0x72
+        };
+        assertArrayEquals(a, Hasher.createForAlgorithm(com.breadwallet.crypto.Hasher.Algorithm.HASH160).hash(d));
 
         // KECCAK256
 

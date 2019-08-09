@@ -9,18 +9,28 @@ import java.util.List;
 final class Key implements com.breadwallet.crypto.Key {
 
     /* package */
+    static boolean isProtectedPrivateKeyString(byte[] keyStringUtf8) {
+        return BRCryptoKey.isProtectedPrivateKeyString(keyStringUtf8);
+    }
+
+    /* package */
     static Optional<Key> createFromPhrase(byte[] phraseUtf8, List<String> words) {
         return BRCryptoKey.createFromPhrase(phraseUtf8, words).transform(Key::new);
     }
 
     /* package */
-    static Optional<Key> createFromPrivateKeyString(byte[] privateData) {
-        return BRCryptoKey.createFromPrivateKeyString(privateData).transform(Key::new);
+    static Optional<Key> createFromPrivateKeyString(byte[] keyStringUtf8) {
+        return BRCryptoKey.createFromPrivateKeyString(keyStringUtf8).transform(Key::new);
     }
 
     /* package */
-    static Optional<Key> createFromPublicKeyString(byte[] publicData) {
-        return BRCryptoKey.createFromPublicKeyString(publicData).transform(Key::new);
+    static Optional<Key> createFromPrivateKeyString(byte[] keyStringUtf8, byte[] phraseUtf8) {
+        return BRCryptoKey.createFromPrivateKeyString(keyStringUtf8, phraseUtf8).transform(Key::new);
+    }
+
+    /* package */
+    static Optional<Key> createFromPublicKeyString(byte[] keyStringUtf8) {
+        return BRCryptoKey.createFromPublicKeyString(keyStringUtf8).transform(Key::new);
     }
 
     /* package */

@@ -15,11 +15,11 @@ import java.text.NumberFormat;
 
 public interface Amount extends Comparable<Amount> {
 
-    static Optional<Amount> create(double value, Unit unit) {
+    static Amount create(double value, Unit unit) {
         return CryptoApi.getProvider().amountProvider().create(value, unit);
     }
 
-    static Optional<Amount> create(long value, Unit unit) {
+    static Amount create(long value, Unit unit) {
         return CryptoApi.getProvider().amountProvider().create(value, unit);
     }
 

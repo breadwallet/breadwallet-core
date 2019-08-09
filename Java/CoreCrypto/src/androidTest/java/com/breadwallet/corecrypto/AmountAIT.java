@@ -13,7 +13,7 @@ public class AmountAIT {
         Unit satoshi_btc = Unit.create(btc, "BTC-SAT", "Satoshi", "SAT");
         Unit btc_btc = Unit.create(btc, "BTC-BTC", "Bitcoin", "B", satoshi_btc, UnsignedInteger.valueOf(8));
 
-        Amount btc1 = Amount.create(100000000, satoshi_btc).get();
+        Amount btc1 = Amount.create(100000000, satoshi_btc);
         assertEquals(new Double(100000000), btc1.doubleAmount(satoshi_btc).get());
         assertEquals(new Double(1), btc1.doubleAmount(btc_btc).get());
         assertFalse(btc1.isNegative());
@@ -24,17 +24,17 @@ public class AmountAIT {
         assertTrue(btc1n.isNegative());
         assertFalse(btc1n.negate().isNegative());
 
-        Amount btc2 = Amount.create(1, btc_btc).get();
+        Amount btc2 = Amount.create(1, btc_btc);
         assertEquals(new Double(1), btc1.doubleAmount(btc_btc).get());
         assertEquals(new Double(100000000), btc1.doubleAmount(satoshi_btc).get());
 
         assertEquals(btc1, btc2);
 
-        Amount btc3 = Amount.create(1.5, btc_btc).get();
+        Amount btc3 = Amount.create(1.5, btc_btc);
         assertEquals(new Double(1.5), btc3.doubleAmount(btc_btc).get());
         assertEquals(new Double(150000000), btc3.doubleAmount(satoshi_btc).get());
 
-        Amount btc4 = Amount.create(-1.5, btc_btc).get();
+        Amount btc4 = Amount.create(-1.5, btc_btc);
         assertTrue(btc4.isNegative());
         assertEquals(new Double(-1.5), btc4.doubleAmount(btc_btc).get());
         assertEquals(new Double(-150000000), btc4.doubleAmount(satoshi_btc).get());
@@ -104,9 +104,9 @@ public class AmountAIT {
         Unit gwei_eth = Unit.create(eth, "ETH-GWEI", "GWEI",  "gwei", wei_eth, UnsignedInteger.valueOf(9));
         Unit ether_eth = Unit.create(eth, "ETH-ETH", "ETHER", "E",    wei_eth, UnsignedInteger.valueOf(18));
 
-        Amount eth1 = Amount.create(1e9, gwei_eth).get();
-        Amount eth2 = Amount.create(1.0, ether_eth).get();
-        Amount eth3 = Amount.create(1.1, ether_eth).get();
+        Amount eth1 = Amount.create(1e9, gwei_eth);
+        Amount eth2 = Amount.create(1.0, ether_eth);
+        Amount eth3 = Amount.create(1.1, ether_eth);
 
         assertEquals(eth1, eth2);
         assertTrue(eth1.compareTo(eth3) < 0);
@@ -146,5 +146,29 @@ public class AmountAIT {
         Amount a6 = Amount.create("1", false, ether_eth).get();
         assertEquals("1000000000000000000", a6.toStringWithBase(10, ""));
         assertEquals("0xDE0B6B3A7640000".toLowerCase(), a6.toStringWithBase(16, "0x"));
+    }
+
+    @Test
+    public void testAmountExtended() {
+        Currency btc = Currency.create("Bitcoin", "Bitcoin", "btc", "native", null);
+
+        Unit satoshi_btc = Unit.create(btc, "BTC-SAT", "Satoshi", "SAT");
+        Unit btc_mongo = Unit.create(btc, "BTC-MONGO", "BitMongo", "BM", satoshi_btc, UnsignedInteger.valueOf(70));
+
+        Amount btc1 = Amount.create (100000000, satoshi_btc);
+        Amount btc2 = Amount.create (100000001, satoshi_btc);
+        assertFalse(btc1.compareTo(btc2) > 0);
+        assertFalse(btc1.compareTo(btc1) > 0);
+        assertTrue (btc2.compareTo(btc1) > 0);
+        assertTrue (btc1.compareTo(btc2) <= 0);
+        assertTrue (btc1.compareTo(btc1) <= 0);
+        assertTrue (btc2.compareTo(btc1) >= 0);
+        assertTrue (btc2.compareTo(btc2) >= 0);
+
+        assertEquals (btc1.getCurrency(), btc);
+        assertTrue  (btc1.hasCurrency(btc));
+
+        Amount btc3 = Amount.create(1e20, satoshi_btc);
+        assertTrue (btc3.doubleAmount(btc_mongo).isPresent());
     }
 }

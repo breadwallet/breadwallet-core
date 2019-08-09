@@ -15,14 +15,14 @@ import com.sun.jna.ptr.IntByReference;
 
 public interface CoreBRCryptoAmount {
 
-    static Optional<CoreBRCryptoAmount> create(double value, CoreBRCryptoUnit unit) {
+    static CoreBRCryptoAmount create(double value, CoreBRCryptoUnit unit) {
         BRCryptoAmount amount = CryptoLibrary.INSTANCE.cryptoAmountCreateDouble(value, unit.asBRCryptoUnit());
-        return Optional.fromNullable(amount).transform(OwnedBRCryptoAmount::new);
+        return new OwnedBRCryptoAmount(amount);
     }
 
-    static Optional<CoreBRCryptoAmount> create(long value, CoreBRCryptoUnit unit) {
+    static CoreBRCryptoAmount create(long value, CoreBRCryptoUnit unit) {
         BRCryptoAmount amount = CryptoLibrary.INSTANCE.cryptoAmountCreateInteger(value, unit.asBRCryptoUnit());
-        return Optional.fromNullable(amount).transform(OwnedBRCryptoAmount::new);
+        return new OwnedBRCryptoAmount(amount);
     }
 
     static Optional<CoreBRCryptoAmount> create(String value, boolean isNegative, CoreBRCryptoUnit unit) {
