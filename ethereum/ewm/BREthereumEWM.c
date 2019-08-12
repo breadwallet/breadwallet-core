@@ -634,10 +634,7 @@ extern void
 ewmDestroy (BREthereumEWM ewm) {
     pthread_mutex_lock(&ewm->lock);
 
-    // Disconnect BCS - Note ewm->lock is recursive so there is no deadlock here.
-    ewmDisconnect(ewm);
-
-    // TODO: Before DISCONNECT... so disconnect events are not handled (but still queued?)
+    // Stop, including disconnect.
     ewmStop (ewm);
 
     //
@@ -667,6 +664,8 @@ ewmDestroy (BREthereumEWM ewm) {
 
 extern void
 ewmStart (BREthereumEWM ewm) {
+    // TODO: Check on a current state before starting.
+
     // Start the alarm clock.
     alarmClockStart(alarmClock);
 
@@ -676,12 +675,17 @@ ewmStart (BREthereumEWM ewm) {
 
 extern void
 ewmStop (BREthereumEWM ewm) {
+    // TODO: Check on a current state before stopping.
+    
+    // Disconnect
+    ewmDisconnect(ewm);
+    // TODO: Are their disconnect events that we need to process before stopping the handler?
+
     // Stop the alarm clock
     alarmClockStop (alarmClock);
 
     // Stop the EWM thread
     eventHandlerStop(ewm->handler);
-
 }
 
 /// MARK: - Connect / Disconnect
