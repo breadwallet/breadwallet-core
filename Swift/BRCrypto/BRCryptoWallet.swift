@@ -46,7 +46,7 @@ public final class Wallet: Equatable {
 
     /// The current balance for currency
     public var balance: Amount {
-        return Amount (core: cryptoWalletGetBalance (core), unit: unit, take: false)
+        return Amount (core: cryptoWalletGetBalance (core), take: false)
     }
 
     /// The current state.

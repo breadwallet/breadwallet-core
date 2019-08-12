@@ -119,6 +119,9 @@ class BRCryptoAmountTests: XCTestCase {
         XCTAssert ("-B1.50"          == btc4.string (as: BTC_BTC))
         XCTAssert ("-SAT150,000,000" == btc4.string (as: BTC_SATOSHI))
 
+        XCTAssertEqual (btc1.double(as: BTC_BTC),     btc1.convert(to: BTC_SATOSHI)?.double(as: BTC_BTC))
+        XCTAssertEqual (btc1.double(as: BTC_SATOSHI), btc1.convert(to: BTC_BTC)?.double(as: BTC_SATOSHI))
+
         let formatter = NumberFormatter()
         formatter.minimumFractionDigits = 2
         formatter.generatesDecimalNumbers = true
@@ -267,7 +270,8 @@ class BRCryptoAmountTests: XCTestCase {
         let btc3 = Amount.create(double: 1e20, unit: BTC_SATOSHI)
         XCTAssertNotNil (btc3.double(as: BTC_MONGO))
 
-        let _ = Amount (core: btc1.core, unit: BTC_SATOSHI, take: true)
+        let btc4 = Amount (core: btc1.core, take: true)
+        XCTAssertTrue (btc4.core == btc1.core)
     }
 
     func testCurrencyPair () {

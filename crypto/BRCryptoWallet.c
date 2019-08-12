@@ -210,9 +210,7 @@ cryptoWalletGetBalance (BRCryptoWallet wallet) {
             BRWallet *wid = wallet->u.btc.wid;
 
             UInt256 value = createUInt256 (BRWalletBalance (wid));
-            BRCryptoCurrency currency = cryptoWalletGetCurrency (wallet);
-            BRCryptoAmount amount = cryptoAmountCreate (currency, CRYPTO_FALSE, value);
-            cryptoCurrencyGive (currency);
+            BRCryptoAmount amount = cryptoAmountCreate (wallet->unit, CRYPTO_FALSE, value);
             return amount;
         }
         case BLOCK_CHAIN_TYPE_ETH: {
@@ -221,9 +219,7 @@ cryptoWalletGetBalance (BRCryptoWallet wallet) {
 
             BREthereumAmount balance = ewmWalletGetBalance (ewm, wid);
             UInt256 value = balance.type == AMOUNT_ETHER ? balance.u.ether.valueInWEI : balance.u.tokenQuantity.valueAsInteger;
-            BRCryptoCurrency currency = cryptoWalletGetCurrency (wallet);
-            BRCryptoAmount amount = cryptoAmountCreate (currency, CRYPTO_FALSE, value);
-            cryptoCurrencyGive (currency);
+            BRCryptoAmount amount = cryptoAmountCreate (wallet->unit, CRYPTO_FALSE, value);
             return amount;
         }
         case BLOCK_CHAIN_TYPE_GEN: {
@@ -232,9 +228,7 @@ cryptoWalletGetBalance (BRCryptoWallet wallet) {
 
             // TODO: How does the GEN wallet know the balance?  Holds tranactions? (not currently)
             UInt256 value = gwmWalletGetBalance (gwm, wid);
-            BRCryptoCurrency currency = cryptoWalletGetCurrency (wallet);
-            BRCryptoAmount amount = cryptoAmountCreate (currency, CRYPTO_FALSE, value);
-            cryptoCurrencyGive (currency);
+            BRCryptoAmount amount = cryptoAmountCreate (wallet->unit, CRYPTO_FALSE, value);
             return amount;
         }
     }

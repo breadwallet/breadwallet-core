@@ -36,7 +36,7 @@ static void
 cryptoAmountRelease (BRCryptoAmount amount);
 
 struct BRCryptoAmountRecord {
-    BRCryptoCurrency currency;
+    BRCryptoUnit unit;
     BRCryptoBoolean isNegative;
     UInt256 value;
     BRCryptoRef ref;
@@ -45,13 +45,13 @@ struct BRCryptoAmountRecord {
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoAmount, cryptoAmount);
 
 private_extern BRCryptoAmount
-cryptoAmountCreateInternal (BRCryptoCurrency currency,
+cryptoAmountCreateInternal (BRCryptoUnit unit,
                             BRCryptoBoolean isNegative,
                             UInt256 value,
-                            int takeCurrency) {
+                            int takeUnit) {
     BRCryptoAmount amount = malloc (sizeof (struct BRCryptoAmountRecord));
 
-    amount->currency = takeCurrency ? cryptoCurrencyTake (currency) : currency;
+    amount->unit = takeUnit ? cryptoUnitTake (unit) : unit;
     amount->isNegative = isNegative;
     amount->value = value;
     amount->ref = CRYPTO_REF_ASSIGN (cryptoAmountRelease);
@@ -60,10 +60,11 @@ cryptoAmountCreateInternal (BRCryptoCurrency currency,
 }
 
 private_extern BRCryptoAmount
-cryptoAmountCreate (BRCryptoCurrency currency,
+cryptoAmountCreate (BRCryptoUnit unit,
                     BRCryptoBoolean isNegative,
                     UInt256 value) {
-    return cryptoAmountCreateInternal (currency, isNegative, value, 1);
+    // Given a UInt256 -> conversion to unit already complete.
+    return cryptoAmountCreateInternal (unit, isNegative, value, 1);
 }
 
 static BRCryptoAmount
@@ -78,7 +79,7 @@ cryptoAmountCreateUInt256 (UInt256 v,
         v = mulUInt256_Overflow (v, createUInt256Power(decimals, &powOverflow), &mulOverflow);
 
     return (powOverflow || mulOverflow ? NULL
-            : cryptoAmountCreateInternal (cryptoUnitGetCurrency (unit), isNegative, v, 0));
+            : cryptoAmountCreateInternal (unit, isNegative, v, 1));
 }
 
 extern BRCryptoAmount
@@ -89,10 +90,10 @@ cryptoAmountCreateDouble (double value,
 
     return (overflow
             ? NULL
-            : cryptoAmountCreateInternal (cryptoUnitGetCurrency(unit),
+            : cryptoAmountCreateInternal (unit,
                                           (value < 0.0 ? CRYPTO_TRUE : CRYPTO_FALSE),
                                           valueAsUInt256,
-                                          0));
+                                          1));
 }
 
 extern BRCryptoAmount
@@ -126,19 +127,24 @@ cryptoAmountCreateString (const char *value,
 static void
 cryptoAmountRelease (BRCryptoAmount amount) {
 //    printf ("Amount: Release\n");
-    cryptoCurrencyGive (amount->currency);
+    cryptoUnitGive (amount->unit);
     free (amount);
+}
+
+extern BRCryptoUnit
+cryptoAmountGetUnit (BRCryptoAmount amount) {
+    return cryptoUnitTake (amount->unit);
 }
 
 extern BRCryptoCurrency
 cryptoAmountGetCurrency (BRCryptoAmount amount) {
-    return cryptoCurrencyTake (amount->currency);
+    return cryptoUnitGetCurrency(amount->unit);
 }
 
 extern BRCryptoBoolean
 cryptoAmountHasCurrency (BRCryptoAmount amount,
                          BRCryptoCurrency currency) {
-    return AS_CRYPTO_BOOLEAN (amount->currency == currency);
+    return cryptoUnitHasCurrency(amount->unit, currency);
 }
 
 extern BRCryptoBoolean
@@ -149,7 +155,7 @@ cryptoAmountIsNegative (BRCryptoAmount amount) {
 extern BRCryptoBoolean
 cryptoAmountIsCompatible (BRCryptoAmount a1,
                           BRCryptoAmount a2) {
-    return cryptoCurrencyIsIdentical (a1->currency, a2->currency);
+    return cryptoUnitIsCompatible (a1->unit, a2->unit);
 }
 
 static BRCryptoComparison
@@ -182,12 +188,12 @@ cryptoAmountCompare (BRCryptoAmount a1,
 extern BRCryptoAmount
 cryptoAmountAdd (BRCryptoAmount a1,
                  BRCryptoAmount a2) {
-    assert (CRYPTO_TRUE == cryptoAmountIsCompatible(a1, a2));
+    assert (CRYPTO_TRUE == cryptoAmountIsCompatible (a1, a2));
 
     int overflow = 0;
     UInt256 sum = addUInt256_Overflow(a1->value, a2->value, &overflow);
 
-    return overflow ? NULL : cryptoAmountCreate (a1->currency, CRYPTO_FALSE, sum);
+    return overflow ? NULL : cryptoAmountCreate (a1->unit, CRYPTO_FALSE, sum);
 }
 
 extern BRCryptoAmount
@@ -199,29 +205,37 @@ cryptoAmountSub (BRCryptoAmount a1,
     if (CRYPTO_TRUE == a1->isNegative && CRYPTO_TRUE != a2->isNegative) {
         // (-x) - y = - (x + y)
         UInt256 value = addUInt256_Overflow (a1->value, a2->value, &overflow);
-        return overflow ? NULL : cryptoAmountCreate (a1->currency, CRYPTO_TRUE, value);
+        return overflow ? NULL : cryptoAmountCreate (a1->unit, CRYPTO_TRUE, value);
     }
     else if (CRYPTO_TRUE != a1->isNegative && CRYPTO_TRUE == a2->isNegative) {
         // x - (-y) = x + y
         UInt256 value = addUInt256_Overflow (a1->value, a2->value, &overflow);
-        return overflow ? NULL : cryptoAmountCreate(a1->currency, CRYPTO_FALSE, value);
+        return overflow ? NULL : cryptoAmountCreate(a1->unit, CRYPTO_FALSE, value);
     }
     else if (CRYPTO_TRUE == a1->isNegative && CRYPTO_TRUE == a2->isNegative) {
         // (-x) - (-y) = y - x
         UInt256 value = subUInt256_Negative (a2->value, a1->value, &negative);
-        return cryptoAmountCreate (a1->currency, AS_CRYPTO_BOOLEAN(negative), value);
+        return cryptoAmountCreate (a1->unit, AS_CRYPTO_BOOLEAN(negative), value);
     }
     else {
         UInt256 value = subUInt256_Negative (a1->value, a2->value, &negative);
-        return cryptoAmountCreate (a1->currency, AS_CRYPTO_BOOLEAN(negative), value);
+        return cryptoAmountCreate (a1->unit, AS_CRYPTO_BOOLEAN(negative), value);
     }
 }
 
 extern BRCryptoAmount
 cryptoAmountNegate (BRCryptoAmount amount) {
-    return cryptoAmountCreate (amount->currency,
+    return cryptoAmountCreate (amount->unit,
                                CRYPTO_TRUE == amount->isNegative ? CRYPTO_FALSE : CRYPTO_TRUE,
                                amount->value);
+}
+
+extern BRCryptoAmount
+cryptoAmountConvertToUnit (BRCryptoAmount amount,
+                           BRCryptoUnit unit) {
+    return (CRYPTO_TRUE != cryptoUnitIsCompatible (amount->unit, unit)
+            ? NULL
+            : cryptoAmountCreate (unit, amount->isNegative, amount->value));
 }
 
 extern double

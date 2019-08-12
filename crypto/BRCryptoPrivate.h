@@ -113,12 +113,12 @@ extern "C" {
     /// MARK: - Amount
 
     private_extern BRCryptoAmount
-    cryptoAmountCreate (BRCryptoCurrency currency,
+    cryptoAmountCreate (BRCryptoUnit unit,
                         BRCryptoBoolean isNegative,
                         UInt256 value);
 
     private_extern BRCryptoAmount
-    cryptoAmountCreateInternal (BRCryptoCurrency currency,
+    cryptoAmountCreateInternal (BRCryptoUnit unit,
                                 BRCryptoBoolean isNegative,
                                 UInt256 value,
                                 int takeCurrency);
