@@ -23,6 +23,7 @@ class BRCryptoCommonTests: XCTestCase {
         var k: Key!
         var l: Key!
         var p: Bool!
+        var n: Data!
 
         //
         // Password Proected
@@ -98,16 +99,44 @@ class BRCryptoCommonTests: XCTestCase {
         //
         // Phrase
         //
-        k = Key.createFrom (phrase: "nothing", words: BRCryptoAccountTests.words)
-        XCTAssertNil(k)
         k = Key.createFrom (phrase: "ginger settle marine tissue robot crane night number ramp coast roast critic", words: BRCryptoAccountTests.words)
         XCTAssertNotNil(k)
+        k = Key.createFrom (phrase: "ginger settle marine tissue robot crane night number ramp coast roast critic", words: nil)
+        XCTAssertNil(k)
+        k = Key.createFrom (phrase: "not-a-chance", words: BRCryptoAccountTests.words)
+        XCTAssertNil(k)
 
         // Pigeon
+        s = "5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF"
+        k = Key.createFromString(asPrivate: s)
+        n = "nonce".data(using: .utf8)
+        l = Key.createForPigeonFrom(key: k, nonce: n)
 
         // BIP32ApiAuth
+        k = Key.createForBIP32ApiAuth (phrase: "ginger settle marine tissue robot crane night number ramp coast roast critic", words: BRCryptoAccountTests.words)
+        XCTAssertNotNil(k)
+        k = Key.createForBIP32ApiAuth (phrase: "ginger settle marine tissue robot crane night number ramp coast roast critic", words: nil)
+        XCTAssertNil(k)
+        k = Key.createForBIP32ApiAuth (phrase: "not-a-chance", words: BRCryptoAccountTests.words)
+        XCTAssertNil(k)
 
         // BIP32BitID
+        k = Key.createForBIP32BitID (phrase: "ginger settle marine tissue robot crane night number ramp coast roast critic",
+                                     index: 2,
+                                     uri: "some uri",
+                                     words: BRCryptoAccountTests.words)
+        XCTAssertNotNil(k)
+        k = Key.createForBIP32BitID (phrase: "ginger settle marine tissue robot crane night number ramp coast roast critic",
+                                     index: 2,
+                                     uri: "some uri",
+                                     words: nil)
+        XCTAssertNil(k)
+        k = Key.createForBIP32BitID (phrase: "not-a-chance",
+                                     index: 2,
+                                     uri: "some uri",
+                                     words: BRCryptoAccountTests.words)
+        XCTAssertNil(k)
+
     }
 
     func testHasher() {
