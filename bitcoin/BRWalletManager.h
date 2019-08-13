@@ -253,6 +253,12 @@ extern void
 BRWalletManagerFree (BRWalletManager manager);
 
 extern void
+BRWalletManagerStart (BRWalletManager manager);
+
+extern void
+BRWalletManagerStop (BRWalletManager manager);
+
+extern void
 BRWalletManagerConnect (BRWalletManager manager);
 
 extern void
@@ -261,47 +267,11 @@ BRWalletManagerDisconnect (BRWalletManager manager);
 extern void
 BRWalletManagerScan (BRWalletManager manager);
 
-/**
- * Generate, if needed, unsued addresses up to `limit` entries in the wallet.  The
- * addresses are both 'internal' and 'external' ones.
- */
-extern void
-BRWalletManagerGenerateUnusedAddrs (BRWalletManager manager);
-
-/**
- * Return an array of unused addresses.  This will generate address, if needed, to provide
- * entries.  The addresses are 'internal' and 'external' ones.
- *
- * This is expected to be used to query the BRD BlockChainDB to identify transactions for
- * manager's wallet.
- *
- * Note: The returned array must be freed
- */
-extern BRAddress *
-BRWalletManagerGetUnusedAddrs (BRWalletManager manager,
-                               size_t *addressCount);
-
-/**
- * Return an array of all addresses, used and unused, tracked by the wallet. The addresses
- * are both 'internal' and 'external' ones.
- *
- * This is expected to be used to query the BRD BlockChainDB to identify transactions for
- * manager's wallet.
- *
- * Note: The returned array must be freed
- */
-extern BRAddress *
-BRWalletManagerGetAllAddrs (BRWalletManager manager,
-                            size_t *addressCount);
-
 //
 // These should not be needed if the events are sufficient
 //
 extern BRWallet *
 BRWalletManagerGetWallet (BRWalletManager manager);
-
-extern BRPeerManager *
-BRWalletManagerGetPeerManager (BRWalletManager manager);
 
 /**
  * Creates an unsigned transaction that sends the specified amount from the wallet to the given address.

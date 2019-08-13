@@ -14,6 +14,102 @@
 #include "BRWalletManagerPrivate.h"
 
 //
+// WalletManager Event
+//
+
+typedef struct {
+    struct BREventRecord base;
+    BRWalletManager manager;
+    BRWalletManagerEvent event;
+} BRWalletManagerWMEvent;
+
+static void
+bwmSignalWalletManagerWMEventDispatcher (BREventHandler ignore,
+                                         BRWalletManagerWMEvent *event) {
+    bwmHandleWalletManagerEvent(event->manager, event->event);
+}
+
+static BREventType bwmWalletManagerEventType = {
+    "BTC: WalletManager Event",
+    sizeof (BRWalletManagerWMEvent),
+    (BREventDispatcher) bwmSignalWalletManagerWMEventDispatcher
+};
+
+extern void
+bwmSignalWalletManagerEvent (BRWalletManager manager,
+                             BRWalletManagerEvent event) {
+    BRWalletManagerWMEvent message =
+    { { NULL, &bwmWalletManagerEventType}, manager, event};
+    eventHandlerSignalEvent (manager->handler, (BREvent*) &message);
+}
+
+//
+// Wallet Event
+//
+
+typedef struct {
+    struct BREventRecord base;
+    BRWalletManager manager;
+    BRWallet *wallet;
+    BRWalletEvent event;
+} BRWalletManagerWalletEvent;
+
+static void
+bwmSignalWalletEventDispatcher (BREventHandler ignore,
+                                BRWalletManagerWalletEvent *event) {
+    bwmHandleWalletEvent(event->manager, event->wallet, event->event);
+}
+
+static BREventType bwmWalletEventType = {
+    "BTC: Wallet Event",
+    sizeof (BRWalletManagerWalletEvent),
+    (BREventDispatcher) bwmSignalWalletEventDispatcher
+};
+
+extern void
+bwmSignalWalletEvent (BRWalletManager manager,
+                      BRWallet *wallet,
+                      BRWalletEvent event) {
+    BRWalletManagerWalletEvent message =
+    { { NULL, &bwmWalletEventType}, manager, wallet, event};
+    eventHandlerSignalEvent (manager->handler, (BREvent*) &message);
+}
+
+//
+// Wallet Event
+//
+
+typedef struct {
+    struct BREventRecord base;
+    BRWalletManager manager;
+    BRWallet *wallet;
+    BRTransaction *transaction;
+    BRTransactionEvent event;
+} BRWalletManagerTransactionEvent;
+
+static void
+bwmSignalTransactionEventDispatcher (BREventHandler ignore,
+                                     BRWalletManagerTransactionEvent *event) {
+    bwmHandleTransactionEvent(event->manager, event->wallet, event->transaction, event->event);
+}
+
+static BREventType bwmTransactionEventType = {
+    "BTC: Transaction Event",
+    sizeof (BRWalletManagerTransactionEvent),
+    (BREventDispatcher) bwmSignalTransactionEventDispatcher
+};
+
+extern void
+bwmSignalTransactionEvent (BRWalletManager manager,
+                           BRWallet *wallet,
+                           BRTransaction *transaction,
+                           BRTransactionEvent event) {
+    BRWalletManagerTransactionEvent message =
+    { { NULL, &bwmTransactionEventType}, manager, wallet, transaction, event};
+    eventHandlerSignalEvent (manager->handler, (BREvent*) &message);
+}
+
+//
 // Announce Block Number
 //
 
@@ -160,6 +256,10 @@ bwmSignalAnnounceSubmit (BRWalletManager manager,
 // All Event Types
 //
 const BREventType *bwmEventTypes[] = {
+    &bwmWalletManagerEventType,
+    &bwmWalletEventType,
+    &bwmTransactionEventType,
+
     &bwmClientAnnounceBlockNumberEventType,
     &bwmClientAnnounceTransactionEventType,
     &bwmClientAnnounceTransactionCompleteEventType,

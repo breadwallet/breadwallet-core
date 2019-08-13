@@ -138,6 +138,8 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                              cwmPath,
                                              cryptoNetworkGetHeight(network));
 
+            BRWalletManagerStart (cwm->u.btc);
+
             break;
         }
 
@@ -275,6 +277,7 @@ cryptoWalletManagerRelease (BRCryptoWalletManager cwm) {
 
     switch (cwm->type) {
         case BLOCK_CHAIN_TYPE_BTC:
+            BRWalletManagerStop (cwm->u.btc);
             BRWalletManagerFree (cwm->u.btc);
             break;
         case BLOCK_CHAIN_TYPE_ETH:
