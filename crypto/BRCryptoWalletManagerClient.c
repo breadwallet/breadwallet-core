@@ -1029,7 +1029,7 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                                  : amountGetTokenQuantity(amount).valueAsInteger);
 
                 // Use currency to create a cyrptoAmount in the base unit (implicitly).
-                BRCryptoAmount cryptoAmount = cryptoAmountCreate(currency, CRYPTO_FALSE, value);
+                BRCryptoAmount cryptoAmount = cryptoAmountCreate(unit, CRYPTO_FALSE, value);
 
                 cryptoUnitGive(unit);
                 cryptoCurrencyGive(currency);

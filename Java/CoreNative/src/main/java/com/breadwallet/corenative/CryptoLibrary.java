@@ -64,6 +64,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoAmount cryptoAmountCreateInteger(long value, BRCryptoUnit unit);
     BRCryptoAmount cryptoAmountCreateString(String value, int isNegative, BRCryptoUnit unit);
     BRCryptoCurrency cryptoAmountGetCurrency(BRCryptoAmount amount);
+    BRCryptoUnit cryptoAmountGetUnit(BRCryptoAmount brCryptoAmount);
     int cryptoAmountHasCurrency(BRCryptoAmount amount, BRCryptoCurrency currency);
     int cryptoAmountIsNegative(BRCryptoAmount amount);
     int cryptoAmountIsCompatible(BRCryptoAmount a1, BRCryptoAmount a2);
@@ -71,9 +72,11 @@ public interface CryptoLibrary extends Library {
     BRCryptoAmount cryptoAmountAdd(BRCryptoAmount a1, BRCryptoAmount a2);
     BRCryptoAmount cryptoAmountSub(BRCryptoAmount a1, BRCryptoAmount a2);
     BRCryptoAmount cryptoAmountNegate(BRCryptoAmount amount);
+    BRCryptoAmount cryptoAmountConvertToUnit(BRCryptoAmount amount, BRCryptoUnit unit);
     double cryptoAmountGetDouble(BRCryptoAmount amount, BRCryptoUnit unit, IntByReference overflow);
     long cryptoAmountGetIntegerRaw(BRCryptoAmount amount, IntByReference overflow);
     UInt256.ByValue cryptoAmountGetValue(BRCryptoAmount amount);
+    BRCryptoAmount cryptoAmountTake(BRCryptoAmount obj);
     void cryptoAmountGive(BRCryptoAmount obj);
 
     // crypto/BRCryptoCurrency.h

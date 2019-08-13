@@ -660,7 +660,6 @@ extension System {
 
                 case CRYPTO_WALLET_EVENT_BALANCE_UPDATED:
                     let amount = Amount (core: event.u.balanceUpdated.amount,
-                                         unit: wallet.unit,
                                          take: false)
                     system.listener?.handleWalletEvent (system: manager.system,
                                                         manager: manager,
