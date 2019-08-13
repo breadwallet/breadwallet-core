@@ -107,12 +107,20 @@ size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen, BRAddressParams para
 // returns the number of bytes written, or addrLen needed if addr is NULL
 size_t BRKeyLegacyAddr(BRKey *key, char *addr, size_t addrLen, BRAddressParams params);
 
-// signs md with key and writes signature to sig
+// signs md with key and writes signature to sig in compact/JOSE format
+// returns the number of bytes written, or sigLen needed if sig is NULL
+// returns 0 on failure
+size_t BRKeySignJOSE(const BRKey *key, void *sig, size_t sigLen, UInt256 md);
+
+// returns true if the compact-serialized signature for md is verified to have been made by key
+int BRKeyVerifyJOSE(BRKey *key, UInt256 md, const void *sig, size_t sigLen);
+    
+// signs md with key and writes signature to sig in DER format
 // returns the number of bytes written, or sigLen needed if sig is NULL
 // returns 0 on failure
 size_t BRKeySign(const BRKey *key, void *sig, size_t sigLen, UInt256 md);
 
-// returns true if the signature for md is verified to have been made by key
+// returns true if the DER-encoded signature for md is verified to have been made by key
 int BRKeyVerify(BRKey *key, UInt256 md, const void *sig, size_t sigLen);
 
 // wipes key material from key

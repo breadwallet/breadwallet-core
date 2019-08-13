@@ -1391,6 +1391,122 @@ int BRKeyTests()
     
     if (! BRKeyVerify(&key, md, sig, sigLen))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyVerify() test 7\n", __func__);
+    
+    // signing with JOSE/compact serialization
+    memset(sig, 0, sizeof(sig));
+    BRKeySetSecret(&key, &uint256("0000000000000000000000000000000000000000000000000000000000000001"), 1);
+    msg = "Everything should be made as simple as possible, but not simpler.";
+    BRSHA256(&md, msg, strlen(msg));
+    
+    if (0 == BRKeySignJOSE(&key, NULL, 0, md)) // `sig` is NULL, expect size needed
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySignJOSE() test 0.1\n", __func__);
+    
+    if (0 != BRKeySignJOSE(&key, sig, 63, md)) // `sig` is too small, expect 0
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySignJOSE() test 0.2\n", __func__);
+    
+    sigLen = BRKeySignJOSE(&key, sig, sizeof(sig), md);
+    
+    char jsig1[] = "\x33\xa6\x9c\xd2\x06\x54\x32\xa3\x0f\x3d\x1c\xe4\xeb\x0d\x59\xb8\xab\x58\xc7\x4f\x27"
+    "\xc4\x1a\x7f\xdb\x56\x96\xad\x4e\x61\x08\xc9\x6f\x80\x79\x82\x86\x6f\x78\x5d\x3f\x64\x18\xd2\x41\x63\xdd"
+    "\xae\x11\x7b\x7d\xb4\xd5\xfd\xf0\x07\x1d\xe0\x69\xfa\x54\x34\x22\x62";
+    
+    if (sigLen != sizeof(jsig1) - 1 || memcmp(sig, jsig1, sigLen) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySignJOSE() test 1.1\n", __func__);
+    
+    if (! BRKeyVerifyJOSE(&key, md, sig, sigLen))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyVerifyJOSE() test 1.2\n", __func__);
+    
+    BRKeySetSecret(&key, &uint256("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364140"), 1);
+    msg = "Equations are more important to me, because politics is for the present, but an equation is something for "
+    "eternity.";
+    BRSHA256(&md, msg, strlen(msg));
+    sigLen = BRKeySignJOSE(&key, sig, sizeof(sig), md);
+    
+    char jsig2[] = "\x54\xc4\xa3\x3c\x64\x23\xd6\x89\x37\x8f\x16\x0a\x7f\xf8\xb6\x13\x30\x44\x4a\xbb\x58"
+    "\xfb\x47\x0f\x96\xea\x16\xd9\x9d\x4a\x2f\xed\x07\x08\x23\x04\x41\x0e\xfa\x6b\x29\x43\x11\x1b\x6a\x4e\x0a"
+    "\xaa\x7b\x7d\xb5\x5a\x07\xe9\x86\x1d\x1f\xb3\xcb\x1f\x42\x10\x44\xa5";
+    
+    if (sigLen != sizeof(jsig2) - 1 || memcmp(sig, jsig2, sigLen) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySignJOSE() test 2.1\n", __func__);
+    
+    if (! BRKeyVerifyJOSE(&key, md, sig, sigLen))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyVerifyJOSE() test 2.2\n", __func__);
+    
+    BRKeySetSecret(&key, &uint256("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364140"), 1);
+    msg = "Not only is the Universe stranger than we think, it is stranger than we can think.";
+    BRSHA256(&md, msg, strlen(msg));
+    sigLen = BRKeySignJOSE(&key, sig, sizeof(sig), md);
+    
+    char jsig3[] = "\xff\x46\x6a\x9f\x1b\x7b\x27\x3e\x2f\x4c\x3f\xfe\x03\x2e\xb2\xe8\x14\x12\x1e\xd1"
+    "\x8e\xf8\x46\x65\xd0\xf5\x15\x36\x0d\xab\x3d\xd0\x6f\xc9\x5f\x51\x32\xe5\xec\xfd\xc8\xe5\xe6\xe6\x16\xcc"
+    "\x77\x15\x14\x55\xd4\x6e\xd4\x8f\x55\x89\xb7\xdb\x77\x71\xa3\x32\xb2\x83";
+    
+    if (sigLen != sizeof(jsig3) - 1 || memcmp(sig, jsig3, sigLen) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySignJOSE() test 3.1\n", __func__);
+    
+    if (! BRKeyVerifyJOSE(&key, md, sig, sigLen))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyVerifyJOSE() test 3.2\n", __func__);
+    
+    BRKeySetSecret(&key, &uint256("0000000000000000000000000000000000000000000000000000000000000001"), 1);
+    msg = "How wonderful that we have met with a paradox. Now we have some hope of making progress.";
+    BRSHA256(&md, msg, strlen(msg));
+    sigLen = BRKeySignJOSE(&key, sig, sizeof(sig), md);
+    
+    char jsig4[] = "\xc0\xda\xfe\xc8\x25\x1f\x1d\x50\x10\x28\x9d\x21\x02\x32\x22\x0b\x03\x20\x2c\xba"
+    "\x34\xec\x11\xfe\xc5\x8b\x3e\x93\xa8\x5b\x91\xd3\x75\xaf\xdc\x06\xb7\xd6\x32\x2a\x59\x09\x55\xbf\x26\x4e"
+    "\x7a\xaa\x15\x58\x47\xf6\x14\xd8\x00\x78\xa9\x02\x92\xfe\x20\x50\x64\xd3";
+    
+    if (sigLen != sizeof(jsig4) - 1 || memcmp(sig, jsig4, sigLen) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySignJOSE() test 4.1\n", __func__);
+    
+    if (! BRKeyVerifyJOSE(&key, md, sig, sigLen))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyVerifyJOSE() test 4.2\n", __func__);
+    
+    BRKeySetSecret(&key, &uint256("69ec59eaa1f4f2e36b639716b7c30ca86d9a5375c7b38d8918bd9c0ebc80ba64"), 1);
+    msg = "Computer science is no more about computers than astronomy is about telescopes.";
+    BRSHA256(&md, msg, strlen(msg));
+    sigLen = BRKeySignJOSE(&key, sig, sizeof(sig), md);
+    
+    char jsig5[] = "\x71\x86\x36\x35\x71\xd6\x5e\x08\x4e\x7f\x02\xb0\xb7\x7c\x3e\xc4\x4f\xb1\xb2\x57\xde"
+    "\xe2\x62\x74\xc3\x8c\x92\x89\x86\xfe\xa4\x5d\x0d\xe0\xb3\x8e\x06\x80\x7e\x46\xbd\xa1\xf1\xe2\x93\xf4\xf6"
+    "\x32\x3e\x85\x4c\x86\xd5\x8a\xbd\xd0\x0c\x46\xc1\x64\x41\x08\x5d\xf6";
+    
+    if (sigLen != sizeof(jsig5) - 1 || memcmp(sig, jsig5, sigLen) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySignJOSE() test 5.1\n", __func__);
+    
+    if (! BRKeyVerifyJOSE(&key, md, sig, sigLen))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyVerifyJOSE() test 5.2\n", __func__);
+    
+    BRKeySetSecret(&key, &uint256("00000000000000000000000000007246174ab1e92e9149c6e446fe194d072637"), 1);
+    msg = "...if you aren't, at any given time, scandalized by code you wrote five or even three years ago, you're not"
+    " learning anywhere near enough";
+    BRSHA256(&md, msg, strlen(msg));
+    sigLen = BRKeySignJOSE(&key, sig, sizeof(sig), md);
+    
+    char jsig6[] = "\xfb\xfe\x50\x76\xa1\x58\x60\xba\x8e\xd0\x0e\x75\xe9\xbd\x22\xe0\x5d\x23\x0f\x02"
+    "\xa9\x36\xb6\x53\xeb\x55\xb6\x1c\x99\xdd\xa4\x87\x0e\x68\x88\x0e\xbb\x00\x50\xfe\x43\x12\xb1\xb1\xeb\x08"
+    "\x99\xe1\xb8\x2d\xa8\x9b\xaa\x5b\x89\x5f\x61\x26\x19\xed\xf3\x4c\xbd\x37";
+    
+    if (sigLen != sizeof(jsig6) - 1 || memcmp(sig, jsig6, sigLen) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySignJOSE() test 6.1\n", __func__);
+    
+    if (! BRKeyVerifyJOSE(&key, md, sig, sigLen))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyVerifyJOSE() test 6.2\n", __func__);
+    
+    BRKeySetSecret(&key, &uint256("000000000000000000000000000000000000000000056916d0f9b31dc9b637f3"), 1);
+    msg = "The question of whether computers can think is like the question of whether submarines can swim.";
+    BRSHA256(&md, msg, strlen(msg));
+    sigLen = BRKeySignJOSE(&key, sig, sizeof(sig), md);
+    
+    char jsig7[] = "\xcd\xe1\x30\x2d\x83\xf8\xdd\x83\x5d\x89\xae\xf8\x03\xc7\x4a\x11\x9f\x56\x1f\xba"
+    "\xef\x3e\xb9\x12\x9e\x45\xf3\x0d\xe8\x6a\xbb\xf9\x06\xce\x64\x3f\x50\x49\xee\x1f\x27\x89\x04\x67\xb7\x7a"
+    "\x6a\x8e\x11\xec\x46\x61\xcc\x38\xcd\x8b\xad\xf9\x01\x15\xfb\xd0\x3c\xef";
+    
+    if (sigLen != sizeof(jsig7) - 1 || memcmp(sig, jsig7, sigLen) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySignJOSE() test 7.1\n", __func__);
+    
+    if (! BRKeyVerifyJOSE(&key, md, sig, sigLen))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyVerifyJOSE() test 7.2\n", __func__);
 
     // compact signing
     BRKeySetSecret(&key, &uint256("0000000000000000000000000000000000000000000000000000000000000001"), 1);
