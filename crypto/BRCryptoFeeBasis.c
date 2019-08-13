@@ -76,7 +76,7 @@ cryptoFeeBasisCreateAsETH (BRCryptoUnit unit,
 private_extern BRCryptoFeeBasis
 cryptoFeeBasisCreateAsGEN (BRCryptoUnit unit,
                            BRGenericWalletManager gwm,
-                           BRGenericFeeBasis bid) {
+                           OwnershipGiven BRGenericFeeBasis bid) {
     BRCryptoFeeBasis feeBasis = cryptoFeeBasisCreateInternal (BLOCK_CHAIN_TYPE_GEN, unit);
     feeBasis->u.gen.gwm = gwm;
     feeBasis->u.gen.bid = bid;
@@ -87,6 +87,14 @@ cryptoFeeBasisCreateAsGEN (BRCryptoUnit unit,
 static void
 cryptoFeeBasisRelease (BRCryptoFeeBasis feeBasis) {
     cryptoUnitGive (feeBasis->unit);
+    switch (feeBasis->type) {
+        case BLOCK_CHAIN_TYPE_BTC: break;
+        case BLOCK_CHAIN_TYPE_ETH: break;
+
+        case BLOCK_CHAIN_TYPE_GEN:
+            // TODO: Release BRGenericFeeBasis
+            break;
+    }
     free (feeBasis);
 }
 
