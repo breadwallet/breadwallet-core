@@ -570,10 +570,6 @@ BRClientSyncManagerNew(BRSyncManagerEventContext eventContext,
     manager->lastBlockHeight = blockHeight;
     manager->connectionState = SYNC_MANAGER_CSTATE_DISCONNECTED;
 
-    // There might be BTC calculations based on adding to earliestKeyTime.  Try to avoid having
-    // those computations overflow, hackily.  Back up one year before the end of time.
-    earliestKeyTime = UINT32_MAX - 365 * 24 * 60 * 60;
-
     // Find the BRCheckpoint that is at least one week before earliestKeyTime.
 #define ONE_WEEK_IN_SECONDS      (7*24*60*60)
     const BRCheckPoint *earliestCheckPoint = BRChainParamsGetCheckpointBefore (params, earliestKeyTime - ONE_WEEK_IN_SECONDS);
