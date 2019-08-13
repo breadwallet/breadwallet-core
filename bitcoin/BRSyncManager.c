@@ -74,9 +74,9 @@ struct BRClientSyncManagerStruct {
     BRSyncManagerConnectionState connectionState;
 
     /**
-     * An identiifer for a BRD Request
+     * An identiifer generator for a BRD Request
      */
-    unsigned int requestId;
+    unsigned int requestIdGenerator;
 
     /**
      * If we are syncing with BRD, instead of as P2P with PeerManager, then we'll keep a record to
@@ -100,6 +100,7 @@ struct BRClientSyncManagerStruct {
      *    ultimately lead to a more responsive user experience.
      */
     struct {
+        int requestId;
         BRAddress lastExternalAddress;
         BRAddress lastInternalAddress;
         uint64_t begBlockNumber;
@@ -107,11 +108,7 @@ struct BRClientSyncManagerStruct {
         uint64_t chunkSize;
         uint64_t chunkBegBlockNumber;
         uint64_t chunkEndBlockNumber;
-
-        int rid;
-
-        int inProgress:1;
-        int isSync:1;
+        int isFullSync:1;
     } brdSync;
 };
 
@@ -190,7 +187,10 @@ static void
 BRClientSyncManagerStartSyncIfNeeded (BRClientSyncManager manager);
 
 static unsigned int
-BRClientSyncManagerGetThenIncrRequestId (BRClientSyncManager manager);
+BRClientSyncManagerGenerateRid (BRClientSyncManager manager);
+
+static unsigned int
+BRClientSyncManagerGenerateRidLocked (BRClientSyncManager manager);
 
 static void
 BRClientSyncManagerAddressToLegacy (BRClientSyncManager manager,
@@ -658,10 +658,7 @@ BRClientSyncManagerDisconnect(BRClientSyncManager manager) {
     if (SYNC_MANAGER_CSTATE_CONNECTED == manager->connectionState) {
         manager->connectionState = SYNC_MANAGER_CSTATE_DISCONNECTED;
         needConnectionEvent = 1;
-    }
-
-    if (manager->brdSync.inProgress) {
-        needSyncingEvent = manager->brdSync.isSync;
+        needSyncingEvent = manager->brdSync.isFullSync;
         memset(&manager->brdSync, 0, sizeof(manager->brdSync));
     }
     pthread_mutex_unlock (&manager->lock);
@@ -691,10 +688,8 @@ BRClientSyncManagerScan(BRClientSyncManager manager) {
     if (SYNC_MANAGER_CSTATE_DISCONNECTED == manager->connectionState) {
         manager->connectionState = SYNC_MANAGER_CSTATE_CONNECTED;
         needConnectionEvent = 1;
-    }
-
-    if (manager->brdSync.inProgress) {
-        needSyncingEvent = manager->brdSync.isSync;
+    } else {
+        needSyncingEvent = manager->brdSync.isFullSync;
         memset(&manager->brdSync, 0, sizeof(manager->brdSync));
     }
 
@@ -722,7 +717,7 @@ BRClientSyncManagerSubmit(BRClientSyncManager manager,
     manager->clientCallbacks.funcSubmitTransaction (manager->clientContext,
                                                     BRClientSyncManagerAsSyncManager (manager),
                                                     transaction,
-                                                    BRClientSyncManagerGetThenIncrRequestId (manager));
+                                                    BRClientSyncManagerGenerateRid (manager));
 }
 
 static void
@@ -772,7 +767,7 @@ static void
 BRClientSyncManagerUpdateBlockNumber(BRClientSyncManager manager) {
     manager->clientCallbacks.funcGetBlockNumber (manager->clientContext,
                                                  BRClientSyncManagerAsSyncManager (manager),
-                                                 BRClientSyncManagerGetThenIncrRequestId (manager));
+                                                 BRClientSyncManagerGenerateRid (manager));
 }
 
 static void
@@ -788,8 +783,8 @@ BRClientSyncManagerStartSyncIfNeeded (BRClientSyncManager manager) {
 
     pthread_mutex_lock (&manager->lock);
     // check if we are connect and the prior sync has completed.
-    if (SYNC_MANAGER_CSTATE_CONNECTED == manager->connectionState &&
-        0 == manager->brdSync.inProgress) {
+    if (0 == manager->brdSync.requestId &&
+        SYNC_MANAGER_CSTATE_CONNECTED == manager->connectionState) {
         // update the `endBlockNumber` to the current block height;
         // since this is exclusive on the end height, we need to increment by
         // one to make sure we get the last block
@@ -821,21 +816,18 @@ BRClientSyncManagerStartSyncIfNeeded (BRClientSyncManager manager) {
                                                  &addressArray);
 
         // save the current requestId
-        manager->brdSync.rid = manager->requestId++;
-
-        // mark as not completed
-        manager->brdSync.inProgress = 1;
+        manager->brdSync.requestId = BRClientSyncManagerGenerateRidLocked (manager);
 
         // mark as sync or not
-        manager->brdSync.isSync = (manager->brdSync.endBlockNumber - manager->brdSync.begBlockNumber) > BWM_BRD_SYNC_START_BLOCK_OFFSET;
+        manager->brdSync.isFullSync = (manager->brdSync.endBlockNumber - manager->brdSync.begBlockNumber) > BWM_BRD_SYNC_START_BLOCK_OFFSET;
 
         // store sync data for callback outside of lock
         begBlockNumber = manager->brdSync.chunkBegBlockNumber;
         endBlockNumber = manager->brdSync.chunkEndBlockNumber;
-        rid = manager->brdSync.rid;
+        rid = manager->brdSync.requestId;
 
         // store control flow flags
-        needSyncEvent = manager->brdSync.isSync;
+        needSyncEvent = manager->brdSync.isFullSync;
         needGetRequest = 1;
     }
     pthread_mutex_unlock (&manager->lock);
@@ -877,9 +869,8 @@ BRClientSyncManagerAnnounceGetTransactionsItem (BRClientSyncManager manager,
     pthread_mutex_lock (&manager->lock);
 
     // confirm completion is for in-progress sync
-    if (rid == manager->brdSync.rid &&
+    if (rid == manager->brdSync.requestId &&
         SYNC_MANAGER_CSTATE_CONNECTED == manager->connectionState &&
-        0 != manager->brdSync.inProgress &&
         BRTransactionIsSigned (transaction)) {
 
         BRWalletRegisterTransaction (manager->wallet, transaction);
@@ -910,9 +901,8 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
     pthread_mutex_lock (&manager->lock);
 
     // confirm completion is for in-progress sync
-    if (rid == manager->brdSync.rid &&
-        SYNC_MANAGER_CSTATE_CONNECTED == manager->connectionState &&
-        0 != manager->brdSync.inProgress) {
+    if (rid == manager->brdSync.requestId &&
+        SYNC_MANAGER_CSTATE_CONNECTED == manager->connectionState) {
         // check for a successful completion
         if (success) {
             BRAddress externalAddress = BR_ADDRESS_NONE;
@@ -986,7 +976,7 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
                 manager->syncedBlockHeight = manager->brdSync.endBlockNumber - 1;
 
                 // store control flow flags
-                needSyncEvent = manager->brdSync.isSync;
+                needSyncEvent = manager->brdSync.isFullSync;
                 syncEvent = (BRSyncManagerEvent) {SYNC_MANAGER_SYNC_STOPPED, { .syncStopped = { 0 }}};
 
                 // reset sync state
@@ -995,7 +985,7 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
             }
         } else {
             // store control flow flags
-            needSyncEvent = manager->brdSync.isSync;
+            needSyncEvent = manager->brdSync.isFullSync;
             syncEvent = (BRSyncManagerEvent) {SYNC_MANAGER_SYNC_STOPPED, { .syncStopped = { -1 }}};
 
             // reset sync state on failure
@@ -1034,13 +1024,17 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
 }
 
 static unsigned int
-BRClientSyncManagerGetThenIncrRequestId (BRClientSyncManager manager) {
+BRClientSyncManagerGenerateRid (BRClientSyncManager manager) {
     unsigned int requestId;
     pthread_mutex_lock (&manager->lock);
-    requestId = manager->requestId++;
+    requestId = BRClientSyncManagerGenerateRidLocked (manager);
     pthread_mutex_unlock (&manager->lock);
     return requestId;
+}
 
+static unsigned int
+BRClientSyncManagerGenerateRidLocked (BRClientSyncManager manager) {
+    return ++manager->requestIdGenerator;
 }
 
 static void
