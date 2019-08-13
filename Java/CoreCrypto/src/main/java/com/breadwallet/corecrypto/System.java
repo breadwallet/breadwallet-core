@@ -1075,7 +1075,7 @@ final class System implements com.breadwallet.crypto.System {
                 Optional<Wallet> optWallet = walletManager.getWallet(coreWallet);
                 if (optWallet.isPresent()) {
                     Wallet wallet = optWallet.get();
-                    Amount amount = Amount.create(coreAmount, wallet.getUnit());
+                    Amount amount = Amount.create(coreAmount);
                     Log.d(TAG, String.format("WalletBalanceUpdated: %s", amount));
                     system.announceWalletEvent(walletManager, wallet, new WalletBalanceUpdatedEvent(amount));
 

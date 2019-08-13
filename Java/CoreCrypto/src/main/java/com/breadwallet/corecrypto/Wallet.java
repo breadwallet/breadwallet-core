@@ -109,7 +109,7 @@ final class Wallet implements com.breadwallet.crypto.Wallet {
 
     @Override
     public Amount getBalance() {
-        return Amount.create(core.getBalance(), unit);
+        return Amount.create(core.getBalance());
     }
 
     @Override
