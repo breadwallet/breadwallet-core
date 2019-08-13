@@ -32,34 +32,24 @@
 
 /// MARK: - Common Decls & Defs
 
+#if !defined (MAX)
+#define MAX(a,b) (((a)>(b))?(a):(b))
+#endif
+
+#if !defined (MIN)
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#endif
+
 typedef enum {
     SYNC_MANAGER_CSTATE_CONNECTED,
     SYNC_MANAGER_CSTATE_DISCONNECTED,
 } BRSyncManagerConnectionState;
 
-/// MARK: - Client Sync Manager Decls & Defs
-
 struct BRSyncManagerStruct {
     BRSyncMode mode;
 };
 
-struct BRPeerSyncManagerStruct {
-    // !!! must be first !!!
-    struct BRSyncManagerStruct common;
-
-    // immutables
-    BRWallet *wallet;
-    BRPeerManager *peerManager;
-
-    BRSyncManagerEventContext eventContext;
-    BRSyncManagerEventCallback eventCallback;
-
-    pthread_mutex_t lock;
-
-    // mutables
-    uint32_t networkBlockHeight;
-    BRSyncManagerConnectionState connectionState;
-};
+/// MARK: - Sync Manager Decls & Defs
 
 struct BRClientSyncManagerStruct {
     // !!! must be first !!!
@@ -125,8 +115,6 @@ struct BRClientSyncManagerStruct {
     } brdSync;
 };
 
-typedef struct BRPeerSyncManagerStruct * BRPeerSyncManager;
-
 typedef struct BRClientSyncManagerStruct * BRClientSyncManager;
 
 // When using a BRD sync, offset the start block by N days of Bitcoin blocks; the value of N is
@@ -135,14 +123,6 @@ typedef struct BRClientSyncManagerStruct * BRClientSyncManager;
 #define BWM_BRD_SYNC_DAYS_OFFSET                 1
 #define BWM_BRD_SYNC_START_BLOCK_OFFSET        ((BWM_BRD_SYNC_DAYS_OFFSET * 24 * 60) / BWM_MINUTES_PER_BLOCK)
 #define BWM_BRD_SYNC_CHUNK_SIZE                 50000
-
-#if !defined (MAX)
-#define MAX(a,b) (((a)>(b))?(a):(b))
-#endif
-
-#if !defined (MIN)
-#define MIN(a,b) (((a)<(b))?(a):(b))
-#endif
 
 #define BRClientSyncManagerAsSyncManager(x)     ((BRSyncManager) (x))
 
@@ -207,7 +187,7 @@ static void
 BRClientSyncManagerUpdateBlockNumber (BRClientSyncManager manager);
 
 static void
-BRClientSyncManagerStartSync (BRClientSyncManager manager);
+BRClientSyncManagerStartSyncIfNeeded (BRClientSyncManager manager);
 
 static unsigned int
 BRClientSyncManagerGetThenIncrRequestId (BRClientSyncManager manager);
@@ -230,6 +210,26 @@ BRClientSyncManagerGetAllAddrsAsStrings (BRClientSyncManager manager,
                                          BRAddress **addressArray);
 
 /// MARK: - Peer Sync Manager Decls & Defs
+
+struct BRPeerSyncManagerStruct {
+    // !!! must be first !!!
+    struct BRSyncManagerStruct common;
+
+    // immutables
+    BRWallet *wallet;
+    BRPeerManager *peerManager;
+
+    BRSyncManagerEventContext eventContext;
+    BRSyncManagerEventCallback eventCallback;
+
+    pthread_mutex_t lock;
+
+    // mutables
+    uint32_t networkBlockHeight;
+    BRSyncManagerConnectionState connectionState;
+};
+
+typedef struct BRPeerSyncManagerStruct * BRPeerSyncManager;
 
 #define BRPeerSyncManagerAsSyncManager(x)     ((BRSyncManager) (x))
 
@@ -601,7 +601,7 @@ BRClientSyncManagerNew(BRSyncManagerEventContext eventContext,
     manager->initBlockHeight    = MIN (earliestCheckPoint->height, blockHeight);
     manager->syncedBlockHeight  = manager->initBlockHeight;
     manager->networkBlockHeight = MAX (earliestCheckPoint->height, blockHeight);
-    manager->connectionState = SYNC_MANAGER_CSTATE_DISCONNECTED;
+    manager->connectionState    = SYNC_MANAGER_CSTATE_DISCONNECTED;
 
     // The `brdSync` struct is zeroed out by the calloc call
 
@@ -634,9 +634,6 @@ BRClientSyncManagerConnect(BRClientSyncManager manager) {
     if (SYNC_MANAGER_CSTATE_DISCONNECTED == manager->connectionState) {
         manager->connectionState = SYNC_MANAGER_CSTATE_CONNECTED;
         needConnectionEvent = 1;
-
-        // clear out the sync structure, clearing the inProgress field
-        memset(&manager->brdSync, 0, sizeof(manager->brdSync));
     }
     pthread_mutex_unlock (&manager->lock);
 
@@ -645,6 +642,8 @@ BRClientSyncManagerConnect(BRClientSyncManager manager) {
                                 BRClientSyncManagerAsSyncManager (manager),
                                 connectionEvent);
     }
+
+    BRClientSyncManagerStartSyncIfNeeded (manager);
 }
 
 static void
@@ -652,12 +651,17 @@ BRClientSyncManagerDisconnect(BRClientSyncManager manager) {
     uint8_t needConnectionEvent = 0;
     BRSyncManagerEvent connectionEvent = (BRSyncManagerEvent) { SYNC_MANAGER_DISCONNECTED };
 
+    uint8_t needSyncingEvent = 0;
+    BRSyncManagerEvent syncingEvent = (BRSyncManagerEvent) { SYNC_MANAGER_SYNC_STOPPED, { .syncStopped = { -1 }} };
+
     pthread_mutex_lock (&manager->lock);
     if (SYNC_MANAGER_CSTATE_CONNECTED == manager->connectionState) {
         manager->connectionState = SYNC_MANAGER_CSTATE_DISCONNECTED;
         needConnectionEvent = 1;
+    }
 
-        // clear out the sync structure, clearing the inProgress field
+    if (manager->brdSync.inProgress) {
+        needSyncingEvent = manager->brdSync.isSync;
         memset(&manager->brdSync, 0, sizeof(manager->brdSync));
     }
     pthread_mutex_unlock (&manager->lock);
@@ -666,6 +670,12 @@ BRClientSyncManagerDisconnect(BRClientSyncManager manager) {
         manager->eventCallback (manager->eventContext,
                                 BRClientSyncManagerAsSyncManager (manager),
                                 connectionEvent);
+    }
+
+    if (needSyncingEvent) {
+        manager->eventCallback (manager->eventContext,
+                                BRClientSyncManagerAsSyncManager (manager),
+                                syncingEvent);
     }
 }
 
@@ -674,15 +684,21 @@ BRClientSyncManagerScan(BRClientSyncManager manager) {
     uint8_t needConnectionEvent = 0;
     BRSyncManagerEvent connectionEvent = (BRSyncManagerEvent) { SYNC_MANAGER_CONNECTED };
 
+    uint8_t needSyncingEvent = 0;
+    BRSyncManagerEvent syncingEvent = (BRSyncManagerEvent) { SYNC_MANAGER_SYNC_STOPPED, { .syncStopped = { -1 }} };
+
     pthread_mutex_lock (&manager->lock);
     if (SYNC_MANAGER_CSTATE_DISCONNECTED == manager->connectionState) {
         manager->connectionState = SYNC_MANAGER_CSTATE_CONNECTED;
         needConnectionEvent = 1;
     }
 
-    manager->syncedBlockHeight = manager->initBlockHeight;
-    memset(&manager->brdSync, 0, sizeof(manager->brdSync));
+    if (manager->brdSync.inProgress) {
+        needSyncingEvent = manager->brdSync.isSync;
+        memset(&manager->brdSync, 0, sizeof(manager->brdSync));
+    }
 
+    manager->syncedBlockHeight = manager->initBlockHeight;
     pthread_mutex_unlock (&manager->lock);
 
     if (needConnectionEvent) {
@@ -690,6 +706,14 @@ BRClientSyncManagerScan(BRClientSyncManager manager) {
                                 BRClientSyncManagerAsSyncManager (manager),
                                 connectionEvent);
     }
+
+    if (needSyncingEvent) {
+        manager->eventCallback (manager->eventContext,
+                                BRClientSyncManagerAsSyncManager (manager),
+                                syncingEvent);
+    }
+
+    BRClientSyncManagerStartSyncIfNeeded (manager);
 }
 
 static void
@@ -704,7 +728,7 @@ BRClientSyncManagerSubmit(BRClientSyncManager manager,
 static void
 BRClientSyncManagerTickTock(BRClientSyncManager manager) {
     BRClientSyncManagerUpdateBlockNumber (manager);
-    BRClientSyncManagerStartSync (manager);
+    BRClientSyncManagerStartSyncIfNeeded (manager);
 }
 
 static void
@@ -752,7 +776,7 @@ BRClientSyncManagerUpdateBlockNumber(BRClientSyncManager manager) {
 }
 
 static void
-BRClientSyncManagerStartSync (BRClientSyncManager manager) {
+BRClientSyncManagerStartSyncIfNeeded (BRClientSyncManager manager) {
     int rid                     = 0;
     uint8_t needSyncEvent       = 0;
     uint8_t needGetRequest      = 0;
@@ -1329,7 +1353,6 @@ _BRPeerSyncManagerTxStatusUpdate (void *info) {
     uint8_t needBlockHeightEvent = 0;
     BRSyncManagerEvent blockHeightEvent = {0};
     uint32_t blockHeight = BRPeerManagerLastBlockHeight (manager->peerManager);
-
 
     if (0 == pthread_mutex_lock (&manager->lock)) {
         if (connectStatus != BRPeerStatusDisconnected && manager->connectionState == SYNC_MANAGER_CSTATE_DISCONNECTED) {
