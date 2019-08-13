@@ -1170,6 +1170,7 @@ extension BRWalletManagerEventType: CustomStringConvertible {
         case BITCOIN_WALLET_MANAGER_CONNECTED: return "Connected"
         case BITCOIN_WALLET_MANAGER_DISCONNECTED: return "Disconnected"
         case BITCOIN_WALLET_MANAGER_SYNC_STARTED: return "Sync Started"
+        case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS: return "Sync Progress"
         case BITCOIN_WALLET_MANAGER_SYNC_STOPPED: return "Sync Stopped"
         case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED: return "Block Height Updated"
         default: return "<<unknown>>"

@@ -85,6 +85,7 @@ typedef enum {
     SYNC_MANAGER_DISCONNECTED,
 
     SYNC_MANAGER_SYNC_STARTED,
+    SYNC_MANAGER_SYNC_PROGRESS,
     SYNC_MANAGER_SYNC_STOPPED,
 
     SYNC_MANAGER_TXN_SUBMITTED,
@@ -104,6 +105,9 @@ typedef struct {
             BRPeer *peers;
             size_t count;
         } peers;
+        struct {
+            uint32_t percentComplete;
+        } syncProgress;
         struct {
             int reason;
         } syncStopped;

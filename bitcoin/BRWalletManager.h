@@ -207,6 +207,7 @@ typedef enum {
     BITCOIN_WALLET_MANAGER_CONNECTED,
     BITCOIN_WALLET_MANAGER_DISCONNECTED,
     BITCOIN_WALLET_MANAGER_SYNC_STARTED,
+    BITCOIN_WALLET_MANAGER_SYNC_PROGRESS,
     BITCOIN_WALLET_MANAGER_SYNC_STOPPED,
     BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED
 } BRWalletManagerEventType;
@@ -214,6 +215,9 @@ typedef enum {
 typedef struct {
     BRWalletManagerEventType type;
     union {
+        struct {
+            uint32_t percentComplete;
+        } syncProgress;
         struct {
             int error;
         } syncStopped;

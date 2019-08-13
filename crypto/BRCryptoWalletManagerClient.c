@@ -260,6 +260,16 @@ cwmWalletManagerEventAsBTC (BRWalletManagerClientContext context,
             cryptoWalletManagerSetState (cwm, CRYPTO_WALLET_MANAGER_STATE_SYNCING);
            break;
 
+        case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
+            cwmEvent = (BRCryptoWalletManagerEvent) {
+                CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES,
+                { .sync = { event.u.syncProgress.percentComplete }}
+            };
+            cwm->listener.walletManagerEventCallback (cwm->listener.context,
+                                                      cryptoWalletManagerTake (cwm),
+                                                      cwmEvent);
+            break;
+
         case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
             cwmEvent = (BRCryptoWalletManagerEvent) {
                 CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED

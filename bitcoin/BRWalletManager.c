@@ -817,10 +817,18 @@ _BRWalletManagerSyncEvent(void * context,
                                         });
             break;
         }
+        case SYNC_MANAGER_SYNC_PROGRESS: {
+            bwmSignalWalletManagerEvent(bwm,
+                                        (BRWalletManagerEvent) {
+                                            BITCOIN_WALLET_MANAGER_SYNC_PROGRESS,
+                                            { .syncProgress = { event.u.syncProgress.percentComplete }}
+                                        });
+            break;
+        }
         case SYNC_MANAGER_SYNC_STOPPED: {
             bwmSignalWalletManagerEvent(bwm,
                                         (BRWalletManagerEvent) {
-                                        BITCOIN_WALLET_MANAGER_SYNC_STOPPED,
+                                            BITCOIN_WALLET_MANAGER_SYNC_STOPPED,
                                             { .syncStopped = { event.u.syncStopped.reason }}
                                         });
             break;

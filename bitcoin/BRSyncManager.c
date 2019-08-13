@@ -57,7 +57,7 @@ struct BRPeerSyncManagerStruct {
     pthread_mutex_t lock;
 
     // mutables
-    uint32_t lastBlockHeight;
+    uint32_t networkBlockHeight;
     BRSyncManagerConnectionState connectionState;
 };
 
@@ -74,10 +74,13 @@ struct BRClientSyncManagerStruct {
     BRSyncManagerClientContext clientContext;
     BRSyncManagerClientCallbacks clientCallbacks;
 
+    uint32_t initBlockHeight;
+
     pthread_mutex_t lock;
 
     // mutables
-    uint32_t lastBlockHeight;
+    uint32_t syncedBlockHeight;
+    uint32_t networkBlockHeight;
     BRSyncManagerConnectionState connectionState;
 
     /**
@@ -111,12 +114,14 @@ struct BRClientSyncManagerStruct {
         BRAddress lastInternalAddress;
         uint64_t begBlockNumber;
         uint64_t endBlockNumber;
+        uint64_t chunkSize;
         uint64_t chunkBegBlockNumber;
         uint64_t chunkEndBlockNumber;
 
         int rid;
 
-        int completed:1;
+        int inProgress:1;
+        int isSync:1;
     } brdSync;
 };
 
@@ -198,17 +203,31 @@ BRClientSyncManagerAnnounceSubmitTransaction (BRClientSyncManager manager,
                                               BRTransaction *transaction,
                                               int error);
 
-static unsigned int
-BRClientSyncManagerGetThenIncrRequestId (BRClientSyncManager manager);
-
 static void
 BRClientSyncManagerUpdateBlockNumber (BRClientSyncManager manager);
 
 static void
-BRClientSyncManagerResetSync (BRClientSyncManager manager);
+BRClientSyncManagerStartSync (BRClientSyncManager manager);
+
+static unsigned int
+BRClientSyncManagerGetThenIncrRequestId (BRClientSyncManager manager);
 
 static void
-BRClientSyncManagerStartSync (BRClientSyncManager manager);
+BRClientSyncManagerAddressToLegacy (BRClientSyncManager manager,
+                                    BRAddress *addr);
+
+static void
+BRClientSyncManagerGenerateUnusedAddrs (BRClientSyncManager manager);
+
+static BRAddress *
+BRClientSyncManagerGetAllAddrs (BRClientSyncManager manager,
+                                size_t *addressCount);
+
+static void
+BRClientSyncManagerGetAllAddrsAsStrings (BRClientSyncManager manager,
+                                         size_t *addressCount,
+                                         const char ***addressStrings,
+                                         BRAddress **addressArray);
 
 /// MARK: - Peer Sync Manager Decls & Defs
 
@@ -243,6 +262,9 @@ BRPeerSyncManagerScan(BRPeerSyncManager manager);
 
 static void
 BRPeerSyncManagerSubmit(BRPeerSyncManager manager, BRTransaction *transaction);
+
+static void
+BRPeerSyncManagerTickTock(BRPeerSyncManager manager);
 
 // PeerManager callbacks
 static void _BRPeerSyncManagerSyncStarted (void *info);
@@ -450,7 +472,7 @@ BRSyncManagerTickTock(BRSyncManager manager) {
         BRClientSyncManagerTickTock (BRSyncManagerAsClientSyncManager (manager));
         break;
         case SYNC_MODE_P2P_ONLY:
-        // do nothing
+        BRPeerSyncManagerTickTock (BRSyncManagerAsPeerSyncManager (manager));
         break;
         default:
         assert (0);
@@ -557,6 +579,15 @@ BRClientSyncManagerNew(BRSyncManagerEventContext eventContext,
     manager->wallet = wallet;
     manager->eventContext = eventContext;
     manager->eventCallback = eventCallback;
+    manager->clientContext = clientContext;
+    manager->clientCallbacks = clientCallbacks;
+
+    pthread_mutex_init(&manager->lock, NULL);
+
+    // Find the BRCheckpoint that is at least one week before earliestKeyTime.
+#define ONE_WEEK_IN_SECONDS      (7*24*60*60)
+    const BRCheckPoint *earliestCheckPoint = BRChainParamsGetCheckpointBefore (params, earliestKeyTime - ONE_WEEK_IN_SECONDS);
+    assert (NULL != earliestCheckPoint);
 
     // Initialize this instance's blockHeight.  This might be out-of-sync with a) the P2P block
     // height which will be derived from the persistently restored blocks and then from the sync()
@@ -567,27 +598,12 @@ BRClientSyncManagerNew(BRSyncManagerEventContext eventContext,
     // an API-based sync to start immediately rather than waiting for a BRClientSyncManagerUpdateBlockNumber()
     // result in period '1' and then starting the sync in period '2' - where each period is
     // BWM_SLEEP_SECONDS and at least 1 minute.
-    manager->lastBlockHeight = blockHeight;
+    manager->initBlockHeight    = MIN (earliestCheckPoint->height, blockHeight);
+    manager->syncedBlockHeight  = manager->initBlockHeight;
+    manager->networkBlockHeight = MAX (earliestCheckPoint->height, blockHeight);
     manager->connectionState = SYNC_MANAGER_CSTATE_DISCONNECTED;
 
-    // Find the BRCheckpoint that is at least one week before earliestKeyTime.
-#define ONE_WEEK_IN_SECONDS      (7*24*60*60)
-    const BRCheckPoint *earliestCheckPoint = BRChainParamsGetCheckpointBefore (params, earliestKeyTime - ONE_WEEK_IN_SECONDS);
-    assert (NULL != earliestCheckPoint);
-
-    // Initialize the `brdSync` struct
-    manager->brdSync.rid = -1;
-    manager->brdSync.lastInternalAddress = BR_ADDRESS_NONE;
-    manager->brdSync.lastExternalAddress = BR_ADDRESS_NONE;
-    manager->brdSync.begBlockNumber = earliestCheckPoint->height;
-    manager->brdSync.endBlockNumber = MAX (manager->brdSync.begBlockNumber, manager->lastBlockHeight);
-    manager->brdSync.chunkBegBlockNumber = manager->brdSync.begBlockNumber;
-    manager->brdSync.chunkEndBlockNumber = manager->brdSync.endBlockNumber;
-    manager->brdSync.completed = 0;
-
-    manager->clientContext = clientContext;
-    manager->clientCallbacks = clientCallbacks;
-    pthread_mutex_init(&manager->lock, NULL);
+    // The `brdSync` struct is zeroed out by the calloc call
 
     return manager;
 }
@@ -611,17 +627,69 @@ BRClientSyncManagerFree(BRClientSyncManager manager) {
 
 static void
 BRClientSyncManagerConnect(BRClientSyncManager manager) {
-    BRClientSyncManagerResetSync (manager);
+    uint8_t needConnectionEvent = 0;
+    BRSyncManagerEvent connectionEvent = (BRSyncManagerEvent) { SYNC_MANAGER_CONNECTED };
+
+    pthread_mutex_lock (&manager->lock);
+    if (SYNC_MANAGER_CSTATE_DISCONNECTED == manager->connectionState) {
+        manager->connectionState = SYNC_MANAGER_CSTATE_CONNECTED;
+        needConnectionEvent = 1;
+
+        // clear out the sync structure, clearing the inProgress field
+        memset(&manager->brdSync, 0, sizeof(manager->brdSync));
+    }
+    pthread_mutex_unlock (&manager->lock);
+
+    if (needConnectionEvent) {
+        manager->eventCallback (manager->eventContext,
+                                BRClientSyncManagerAsSyncManager (manager),
+                                connectionEvent);
+    }
 }
 
 static void
 BRClientSyncManagerDisconnect(BRClientSyncManager manager) {
-    // TODO(fix): How do we stop this?
+    uint8_t needConnectionEvent = 0;
+    BRSyncManagerEvent connectionEvent = (BRSyncManagerEvent) { SYNC_MANAGER_DISCONNECTED };
+
+    pthread_mutex_lock (&manager->lock);
+    if (SYNC_MANAGER_CSTATE_CONNECTED == manager->connectionState) {
+        manager->connectionState = SYNC_MANAGER_CSTATE_DISCONNECTED;
+        needConnectionEvent = 1;
+
+        // clear out the sync structure, clearing the inProgress field
+        memset(&manager->brdSync, 0, sizeof(manager->brdSync));
+    }
+    pthread_mutex_unlock (&manager->lock);
+
+    if (needConnectionEvent) {
+        manager->eventCallback (manager->eventContext,
+                                BRClientSyncManagerAsSyncManager (manager),
+                                connectionEvent);
+    }
 }
 
 static void
 BRClientSyncManagerScan(BRClientSyncManager manager) {
-    // TODO(fix): What is the intended behaviour here?
+    uint8_t needConnectionEvent = 0;
+    BRSyncManagerEvent connectionEvent = (BRSyncManagerEvent) { SYNC_MANAGER_CONNECTED };
+
+    pthread_mutex_lock (&manager->lock);
+    if (SYNC_MANAGER_CSTATE_DISCONNECTED == manager->connectionState) {
+        manager->connectionState = SYNC_MANAGER_CSTATE_CONNECTED;
+        needConnectionEvent = 1;
+    }
+
+    manager->syncedBlockHeight = manager->initBlockHeight;
+    memset(&manager->brdSync, 0, sizeof(manager->brdSync));
+
+    pthread_mutex_unlock (&manager->lock);
+
+    if (needConnectionEvent) {
+        manager->eventCallback (manager->eventContext,
+                                BRClientSyncManagerAsSyncManager (manager),
+                                connectionEvent);
+    }
 }
 
 static void
@@ -647,8 +715,8 @@ BRClientSyncManagerAnnounceGetBlockNumber(BRClientSyncManager manager,
     BRSyncManagerEvent blockHeightEvent = {0};
 
     if (0 == pthread_mutex_lock (&manager->lock)) {
-        if (blockHeight != manager->lastBlockHeight) {
-            manager->lastBlockHeight = blockHeight;
+        if (blockHeight > manager->networkBlockHeight) {
+            manager->networkBlockHeight = blockHeight;
             needBlockHeightEvent = 1;
             blockHeightEvent = (BRSyncManagerEvent) { SYNC_MANAGER_BLOCK_HEIGHT_UPDATED, { .blockHeightUpdated = { blockHeight }} };
         }
@@ -660,6 +728,284 @@ BRClientSyncManagerAnnounceGetBlockNumber(BRClientSyncManager manager,
         manager->eventCallback (manager->eventContext,
                                 BRClientSyncManagerAsSyncManager (manager),
                                 blockHeightEvent);
+    }
+}
+
+static void
+BRClientSyncManagerAnnounceSubmitTransaction (BRClientSyncManager manager,
+                                              int rid,
+                                              BRTransaction *transaction,
+                                              int error) {
+    manager->eventCallback (manager->eventContext,
+                            BRClientSyncManagerAsSyncManager (manager),
+                            (BRSyncManagerEvent) {
+                                SYNC_MANAGER_TXN_SUBMITTED,
+                                { .submitted = {transaction, error} },
+                            });
+}
+
+static void
+BRClientSyncManagerUpdateBlockNumber(BRClientSyncManager manager) {
+    manager->clientCallbacks.funcGetBlockNumber (manager->clientContext,
+                                                 BRClientSyncManagerAsSyncManager (manager),
+                                                 BRClientSyncManagerGetThenIncrRequestId (manager));
+}
+
+static void
+BRClientSyncManagerStartSync (BRClientSyncManager manager) {
+    int rid                     = 0;
+    uint8_t needSyncEvent       = 0;
+    uint8_t needGetRequest      = 0;
+    size_t addressCount         = 0;
+    uint64_t begBlockNumber     = 0;
+    uint64_t endBlockNumber     = 0;
+    BRAddress *addressArray     = NULL;
+    const char **addressStrings = NULL;
+
+    pthread_mutex_lock (&manager->lock);
+    // check if we are connect and the prior sync has completed.
+    if (SYNC_MANAGER_CSTATE_CONNECTED == manager->connectionState &&
+        0 == manager->brdSync.inProgress) {
+        // update the `endBlockNumber` to the current block height;
+        // since this is exclusive on the end height, we need to increment by
+        // one to make sure we get the last block
+        manager->brdSync.endBlockNumber = MAX (manager->syncedBlockHeight, manager->networkBlockHeight) + 1;
+
+        // update the `startBlockNumber` to the last synced height;
+        // provide a bit of buffer and request the last X blocks, regardless
+        manager->brdSync.begBlockNumber = MIN (manager->syncedBlockHeight, (manager->brdSync.endBlockNumber >=  BWM_BRD_SYNC_START_BLOCK_OFFSET
+                                                                            ? manager->brdSync.endBlockNumber - BWM_BRD_SYNC_START_BLOCK_OFFSET
+                                                                            : 0));
+
+        // update the chunk range
+        manager->brdSync.chunkSize = BWM_BRD_SYNC_CHUNK_SIZE;
+        manager->brdSync.chunkBegBlockNumber = manager->brdSync.begBlockNumber;
+        manager->brdSync.chunkEndBlockNumber = MIN (manager->brdSync.begBlockNumber + manager->brdSync.chunkSize,
+                                                    manager->brdSync.endBlockNumber);
+
+        // generate addresses
+        BRClientSyncManagerGenerateUnusedAddrs (manager);
+
+        // save the last known external and internal addresses
+        BRWalletUnusedAddrs(manager->wallet, &manager->brdSync.lastExternalAddress, 1, 0);
+        BRWalletUnusedAddrs(manager->wallet, &manager->brdSync.lastInternalAddress, 1, 1);
+
+        // get the addresses to query the BDB with
+        BRClientSyncManagerGetAllAddrsAsStrings (manager,
+                                                 &addressCount,
+                                                 &addressStrings,
+                                                 &addressArray);
+
+        // save the current requestId
+        manager->brdSync.rid = manager->requestId++;
+
+        // mark as not completed
+        manager->brdSync.inProgress = 1;
+
+        // mark as sync or not
+        manager->brdSync.isSync = (manager->brdSync.endBlockNumber - manager->brdSync.begBlockNumber) > BWM_BRD_SYNC_START_BLOCK_OFFSET;
+
+        // store sync data for callback outside of lock
+        begBlockNumber = manager->brdSync.chunkBegBlockNumber;
+        endBlockNumber = manager->brdSync.chunkEndBlockNumber;
+        rid = manager->brdSync.rid;
+
+        // store control flow flags
+        needSyncEvent = manager->brdSync.isSync;
+        needGetRequest = 1;
+    }
+    pthread_mutex_unlock (&manager->lock);
+
+    if (needSyncEvent) {
+        manager->eventCallback (manager->eventContext,
+                                BRClientSyncManagerAsSyncManager (manager),
+                                (BRSyncManagerEvent) {
+                                    SYNC_MANAGER_SYNC_STARTED,
+                                });
+    }
+
+    if (needGetRequest) {
+        // Callback to 'client' to get all transactions (for all wallet addresses) between
+        // a {beg,end}BlockNumber.  The client will gather the transactions and then call
+        // bwmAnnounceTransaction()  (for each one or with all of them).
+        manager->clientCallbacks.funcGetTransactions (manager->clientContext,
+                                                      BRClientSyncManagerAsSyncManager (manager),
+                                                      addressStrings,
+                                                      addressCount,
+                                                      begBlockNumber,
+                                                      endBlockNumber,
+                                                      rid);
+    }
+
+    if (addressStrings) {
+        free (addressStrings);
+    }
+
+    if (addressArray) {
+        free (addressArray);
+    }
+}
+
+static void
+BRClientSyncManagerAnnounceGetTransactionsItem (BRClientSyncManager manager,
+                                                int rid,
+                                                BRTransaction *transaction) {
+    pthread_mutex_lock (&manager->lock);
+
+    // confirm completion is for in-progress sync
+    if (rid == manager->brdSync.rid &&
+        SYNC_MANAGER_CSTATE_CONNECTED == manager->connectionState &&
+        0 != manager->brdSync.inProgress &&
+        BRTransactionIsSigned (transaction)) {
+
+        BRWalletRegisterTransaction (manager->wallet, transaction);
+        if (BRWalletTransactionForHash (manager->wallet, transaction->txHash) != transaction) {
+            BRTransactionFree (transaction);
+        }
+
+    } else {
+        BRTransactionFree (transaction);
+    }
+
+    pthread_mutex_unlock (&manager->lock);
+}
+
+static void
+BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
+                                                int rid,
+                                                int success) {
+    size_t addressCount          = 0;
+    uint8_t needSyncEvent        = 0;
+    uint8_t needGetRequest       = 0;
+    uint64_t begBlockNumber      = 0;
+    uint64_t endBlockNumber      = 0;
+    BRAddress *addressArray      = NULL;
+    const char **addressStrings  = NULL;
+    BRSyncManagerEvent syncEvent = {0};
+
+    pthread_mutex_lock (&manager->lock);
+
+    // confirm completion is for in-progress sync
+    if (rid == manager->brdSync.rid &&
+        SYNC_MANAGER_CSTATE_CONNECTED == manager->connectionState &&
+        0 != manager->brdSync.inProgress) {
+        // check for a successful completion
+        if (success) {
+            BRAddress externalAddress = BR_ADDRESS_NONE;
+            BRAddress internalAddress = BR_ADDRESS_NONE;
+
+            // generate addresses
+            BRClientSyncManagerGenerateUnusedAddrs (manager);
+
+            // get the first unused address
+            BRWalletUnusedAddrs (manager->wallet, &externalAddress, 1, 0);
+            BRWalletUnusedAddrs (manager->wallet, &internalAddress, 1, 1);
+
+            // check if the first unused addresses have changed since last completion
+            if (!BRAddressEq (&externalAddress, &manager->brdSync.lastExternalAddress) ||
+                !BRAddressEq (&internalAddress, &manager->brdSync.lastInternalAddress)) {
+                // ... we've discovered a new address (i.e. there were transactions announce)
+                // so we need to requery the same range including the newly derived addresses
+
+                // store the first unused addresses for comparison in the next complete call
+                manager->brdSync.lastExternalAddress = externalAddress;
+                manager->brdSync.lastInternalAddress = internalAddress;
+
+                // get the addresses to query the BDB with
+                BRClientSyncManagerGetAllAddrsAsStrings (manager,
+                                                         &addressCount,
+                                                         &addressStrings,
+                                                         &addressArray);
+
+                // don't need to alter the range (we haven't found all transactions yet)
+
+                // store sync data for callback outside of lock
+                begBlockNumber = manager->brdSync.chunkBegBlockNumber;
+                endBlockNumber = manager->brdSync.chunkEndBlockNumber;
+
+                // store control flow flags
+                needGetRequest = 1;
+
+            } else if (manager->brdSync.chunkEndBlockNumber != manager->brdSync.endBlockNumber) {
+                // .. we haven't discovered any new addresses but we haven't gone through the whole range yet
+
+                // don't need to store the first unused addresses (we just confirmed they are equal)
+
+                // get the addresses to query the BDB with
+                BRClientSyncManagerGetAllAddrsAsStrings (manager,
+                                                         &addressCount,
+                                                         &addressStrings,
+                                                         &addressArray);
+
+                // store the new range
+                manager->brdSync.chunkBegBlockNumber = manager->brdSync.chunkEndBlockNumber;
+                manager->brdSync.chunkEndBlockNumber = MIN (manager->brdSync.chunkEndBlockNumber + manager->brdSync.chunkSize,
+                                                            manager->brdSync.endBlockNumber);
+
+                // store sync data for callback outside of lock
+                begBlockNumber = manager->brdSync.chunkBegBlockNumber;
+                endBlockNumber = manager->brdSync.chunkEndBlockNumber;
+
+                // store control flow flags
+                needGetRequest = 1;
+                needSyncEvent = 1;
+                syncEvent = (BRSyncManagerEvent) {
+                    SYNC_MANAGER_SYNC_PROGRESS,
+                    { .syncProgress = { (((manager->brdSync.chunkBegBlockNumber - manager->brdSync.begBlockNumber) * 100) /
+                                         (manager->brdSync.endBlockNumber - manager->brdSync.begBlockNumber)) }}
+                };
+
+            } else {
+                // .. we haven't discovered any new addresses and we just finished the last chunk
+
+                // store synced block height
+                manager->syncedBlockHeight = manager->brdSync.endBlockNumber - 1;
+
+                // store control flow flags
+                needSyncEvent = manager->brdSync.isSync;
+                syncEvent = (BRSyncManagerEvent) {SYNC_MANAGER_SYNC_STOPPED, { .syncStopped = { 0 }}};
+
+                // reset sync state
+                memset(&manager->brdSync, 0, sizeof(manager->brdSync));
+
+            }
+        } else {
+            // store control flow flags
+            needSyncEvent = manager->brdSync.isSync;
+            syncEvent = (BRSyncManagerEvent) {SYNC_MANAGER_SYNC_STOPPED, { .syncStopped = { -1 }}};
+
+            // reset sync state on failure
+            memset(&manager->brdSync, 0, sizeof(manager->brdSync));
+        }
+    }
+
+    pthread_mutex_unlock (&manager->lock);
+
+    if (needSyncEvent) {
+        manager->eventCallback (manager->eventContext,
+                                BRClientSyncManagerAsSyncManager (manager),
+                                syncEvent);
+    }
+
+    if (needGetRequest) {
+        // Callback to 'client' to get all transactions (for all wallet addresses) between
+        // a {beg,end}BlockNumber.  The client will gather the transactions and then call
+        // bwmAnnounceTransaction()  (for each one or with all of them).
+        manager->clientCallbacks.funcGetTransactions (manager->clientContext,
+                                                      BRClientSyncManagerAsSyncManager (manager),
+                                                      addressStrings,
+                                                      addressCount,
+                                                      begBlockNumber,
+                                                      endBlockNumber,
+                                                      rid);
+    }
+
+    if (addressStrings) {
+        free (addressStrings);
+    }
+
+    if (addressArray) {
+        free (addressArray);
     }
 }
 
@@ -732,255 +1078,6 @@ BRClientSyncManagerGetAllAddrsAsStrings (BRClientSyncManager manager,
     *addressArray = addrArray;
 }
 
-static void
-BRClientSyncManagerUpdateBlockNumber(BRClientSyncManager manager) {
-    manager->clientCallbacks.funcGetBlockNumber (manager->clientContext,
-                                                 BRClientSyncManagerAsSyncManager (manager),
-                                                 BRClientSyncManagerGetThenIncrRequestId (manager));
-}
-
-static void
-BRClientSyncManagerResetSync (BRClientSyncManager manager) {
-    pthread_mutex_lock (&manager->lock);
-    manager->brdSync.chunkBegBlockNumber = manager->brdSync.begBlockNumber;
-    manager->brdSync.chunkEndBlockNumber = manager->brdSync.endBlockNumber;
-    manager->brdSync.lastInternalAddress = BR_ADDRESS_NONE;
-    manager->brdSync.lastExternalAddress = BR_ADDRESS_NONE;
-    manager->brdSync.completed           = 1;
-    pthread_mutex_unlock (&manager->lock);
-}
-
-static void
-BRClientSyncManagerStartSync (BRClientSyncManager manager) {
-    int rid                     = 0;
-    size_t addressCount         = 0;
-    uint64_t begBlockNumber     = 0;
-    uint64_t endBlockNumber     = 0;
-    BRAddress *addressArray     = NULL;
-    const char **addressStrings = NULL;
-
-    pthread_mutex_lock (&manager->lock);
-    // check if the prior sync has completed.
-    if (manager->brdSync.completed) {
-        // update the `endBlockNumber` to the current block height;
-        // since this is exclusive on the end height, we need to increment by
-        // one to make sure we get the last block
-        manager->brdSync.endBlockNumber = MAX (manager->lastBlockHeight == 0 ? 0 : manager->lastBlockHeight + 1,
-                                               manager->brdSync.begBlockNumber);
-
-        // we'll update transactions if there are more blocks to examine
-        if (manager->brdSync.begBlockNumber != manager->brdSync.endBlockNumber) {
-
-            // save the current requestId
-            manager->brdSync.rid = manager->requestId++;
-
-            // generate addresses
-            BRClientSyncManagerGenerateUnusedAddrs (manager);
-
-            // save the last known external and internal addresses
-            BRWalletUnusedAddrs(manager->wallet, &manager->brdSync.lastExternalAddress, 1, 0);
-            BRWalletUnusedAddrs(manager->wallet, &manager->brdSync.lastInternalAddress, 1, 1);
-
-            // get the addresses to query the BDB with
-            BRClientSyncManagerGetAllAddrsAsStrings (manager,
-                                                     &addressCount,
-                                                     &addressStrings,
-                                                     &addressArray);
-
-            // update the chunk range
-            manager->brdSync.chunkBegBlockNumber = manager->brdSync.begBlockNumber;
-            manager->brdSync.chunkEndBlockNumber = MIN (manager->brdSync.begBlockNumber + BWM_BRD_SYNC_CHUNK_SIZE,
-                                                        manager->brdSync.endBlockNumber);
-
-            // mark as not completed
-            manager->brdSync.completed = 0;
-
-            // store sync data for callback outside of lock
-            begBlockNumber = manager->brdSync.chunkBegBlockNumber;
-            endBlockNumber = manager->brdSync.chunkEndBlockNumber;
-            rid = manager->brdSync.rid;
-        }
-    }
-    pthread_mutex_unlock (&manager->lock);
-
-    // addressCount is only set if a) we are querying a chunk for the first time or b) we need to
-    // re-query a chunk, as new addresses have been discovered due to to announced transactions.
-    // In either case, call back to the client, outside of the wallet manager's lock, asking for
-    // transactions.
-    if (addressCount) {
-        // Callback to 'client' to get all transactions (for all wallet addresses) between
-        // a {beg,end}BlockNumber.  The client will gather the transactions and then call
-        // bwmAnnounceTransaction()  (for each one or with all of them).
-        manager->clientCallbacks.funcGetTransactions (manager->clientContext,
-                                                      BRClientSyncManagerAsSyncManager (manager),
-                                                      addressStrings,
-                                                      addressCount,
-                                                      begBlockNumber,
-                                                      endBlockNumber,
-                                                      rid);
-    }
-
-    if (addressStrings) {
-        free (addressStrings);
-    }
-
-    if (addressArray) {
-        free (addressArray);
-    }
-}
-
-static void
-BRClientSyncManagerAnnounceGetTransactionsItem (BRClientSyncManager manager,
-                                                int rid,
-                                                BRTransaction *transaction) {
-    pthread_mutex_lock (&manager->lock);
-
-    // confirm completion is for in-progress sync
-    if (rid == manager->brdSync.rid &&
-        !manager->brdSync.completed &&
-        BRTransactionIsSigned (transaction)) {
-
-        BRWalletRegisterTransaction (manager->wallet, transaction);
-        if (BRWalletTransactionForHash (manager->wallet, transaction->txHash) != transaction) {
-            BRTransactionFree (transaction);
-        }
-
-    } else {
-        BRTransactionFree (transaction);
-    }
-
-    pthread_mutex_unlock (&manager->lock);
-}
-
-static void
-BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
-                                                int rid,
-                                                int success) {
-    size_t addressCount         = 0;
-    uint64_t begBlockNumber     = 0;
-    uint64_t endBlockNumber     = 0;
-    BRAddress *addressArray     = NULL;
-    const char **addressStrings = NULL;
-
-    pthread_mutex_lock (&manager->lock);
-
-    // confirm completion is for in-progress sync
-    if (rid == manager->brdSync.rid &&
-        !manager->brdSync.completed) {
-        // check for a successful completion
-        if (success) {
-            BRAddress externalAddress = BR_ADDRESS_NONE;
-            BRAddress internalAddress = BR_ADDRESS_NONE;
-
-            // generate addresses
-            BRClientSyncManagerGenerateUnusedAddrs (manager);
-
-            // get the first unused address
-            BRWalletUnusedAddrs (manager->wallet, &externalAddress, 1, 0);
-            BRWalletUnusedAddrs (manager->wallet, &internalAddress, 1, 1);
-
-            // check if the first unused addresses have changed since last completion
-            if (!BRAddressEq (&externalAddress, &manager->brdSync.lastExternalAddress) ||
-                !BRAddressEq (&internalAddress, &manager->brdSync.lastInternalAddress)) {
-                // ... we've discovered a new address (i.e. there were transactions announce)
-                // so we need to requery the same range including the newly derived addresses
-
-                // store the first unused addresses for comparison in the next complete call
-                manager->brdSync.lastExternalAddress = externalAddress;
-                manager->brdSync.lastInternalAddress = internalAddress;
-
-                // get the addresses to query the BDB with
-                BRClientSyncManagerGetAllAddrsAsStrings (manager,
-                                                         &addressCount,
-                                                         &addressStrings,
-                                                         &addressArray);
-
-                // don't need to alter the range (we haven't found all transactions yet)
-
-                // store sync data for callback outside of lock
-                begBlockNumber = manager->brdSync.chunkBegBlockNumber;
-                endBlockNumber = manager->brdSync.chunkEndBlockNumber;
-
-            } else if (manager->brdSync.chunkEndBlockNumber != manager->brdSync.endBlockNumber) {
-                // .. we haven't discovered any new addresses but we haven't gone through the whole range yet
-
-                // don't need to store the first unused addresses (we just confirmed they are equal)
-
-                // get the addresses to query the BDB with
-                BRClientSyncManagerGetAllAddrsAsStrings (manager,
-                                                         &addressCount,
-                                                         &addressStrings,
-                                                         &addressArray);
-
-                // store the new range
-                manager->brdSync.chunkBegBlockNumber = manager->brdSync.chunkEndBlockNumber;
-                manager->brdSync.chunkEndBlockNumber = MIN (manager->brdSync.chunkEndBlockNumber + BWM_BRD_SYNC_CHUNK_SIZE,
-                                                            manager->brdSync.endBlockNumber);
-
-                // store sync data for callback outside of lock
-                begBlockNumber = manager->brdSync.chunkBegBlockNumber;
-                endBlockNumber = manager->brdSync.chunkEndBlockNumber;
-
-            } else {
-                // .. we haven't discovered any new addresses and we just finished the last chunk
-
-                // reset sync state and advance the sync range by updating `begBlockNumber`
-                manager->brdSync.completed           = 1;
-                manager->brdSync.lastInternalAddress = BR_ADDRESS_NONE;
-                manager->brdSync.lastExternalAddress = BR_ADDRESS_NONE;
-                manager->brdSync.begBlockNumber      = (manager->brdSync.endBlockNumber >=  BWM_BRD_SYNC_START_BLOCK_OFFSET
-                                                        ? manager->brdSync.endBlockNumber - BWM_BRD_SYNC_START_BLOCK_OFFSET
-                                                        : 0);
-            }
-        } else {
-            // reset sync state on failure
-            manager->brdSync.lastInternalAddress = BR_ADDRESS_NONE;
-            manager->brdSync.lastExternalAddress = BR_ADDRESS_NONE;
-            manager->brdSync.completed           = 1;
-        }
-    }
-
-    pthread_mutex_unlock (&manager->lock);
-
-    // addressCount is only set if a) we are querying a chunk for the first time or b) we need to
-    // re-query a chunk, as new addresses have been discovered due to to announced transactions.
-    // In either case, call back to the client, outside of the wallet manager's lock, asking for
-    // transactions.
-    if (addressCount) {
-        // Callback to 'client' to get all transactions (for all wallet addresses) between
-        // a {beg,end}BlockNumber.  The client will gather the transactions and then call
-        // bwmAnnounceTransaction()  (for each one or with all of them).
-        manager->clientCallbacks.funcGetTransactions (manager->clientContext,
-                                                      BRClientSyncManagerAsSyncManager (manager),
-                                                      addressStrings,
-                                                      addressCount,
-                                                      begBlockNumber,
-                                                      endBlockNumber,
-                                                      rid);
-    }
-
-    if (addressStrings) {
-        free (addressStrings);
-    }
-
-    if (addressArray) {
-        free (addressArray);
-    }
-}
-
-static void
-BRClientSyncManagerAnnounceSubmitTransaction (BRClientSyncManager manager,
-                                              int rid,
-                                              BRTransaction *transaction,
-                                              int error) {
-    manager->eventCallback (manager->eventContext,
-                            BRClientSyncManagerAsSyncManager (manager),
-                            (BRSyncManagerEvent) {
-                                SYNC_MANAGER_TXN_SUBMITTED,
-                                { .submitted = {transaction, error} },
-                            });
-}
-
 /// MARK: - Peer Sync Manager Implementation
 
 static BRPeerSyncManager
@@ -1001,9 +1098,9 @@ BRPeerSyncManagerNew(BRSyncManagerEventContext eventContext,
     manager->eventContext = eventContext;
     manager->eventCallback = eventCallback;
 
-    manager->lastBlockHeight = 0;  // TODO(fix): Should this be initialized to blockHeight?
-    manager->connectionState = SYNC_MANAGER_CSTATE_DISCONNECTED;
     pthread_mutex_init(&manager->lock, NULL);
+    manager->networkBlockHeight = 0;  // TODO(fix): Should this be initialized to blockHeight?
+    manager->connectionState = SYNC_MANAGER_CSTATE_DISCONNECTED;
 
     manager->peerManager = BRPeerManagerNew (params,
                                              wallet,
@@ -1110,6 +1207,19 @@ BRPeerSyncManagerSubmit(BRPeerSyncManager manager,
                             transaction,
                             info,
                             _BRPeerSyncManagerTxPublished);
+}
+
+static void
+BRPeerSyncManagerTickTock(BRPeerSyncManager manager) {
+    double progress = BRPeerManagerSyncProgress (manager->peerManager, 0);
+    if (progress > 0.0 && progress < 1.0) {
+        manager->eventCallback (manager->eventContext,
+                                BRPeerSyncManagerAsSyncManager (manager),
+                                (BRSyncManagerEvent) {
+                                    SYNC_MANAGER_SYNC_PROGRESS,
+                                    { .syncProgress = { progress * 100 }}
+                                });
+    }
 }
 
 /// MARK: - Peer Manager Callbacks
@@ -1233,8 +1343,8 @@ _BRPeerSyncManagerTxStatusUpdate (void *info) {
             connectionEvent = (BRSyncManagerEvent) { SYNC_MANAGER_DISCONNECTED };
         }
 
-        if (blockHeight != manager->lastBlockHeight) {
-            manager->lastBlockHeight = blockHeight;
+        if (blockHeight != manager->networkBlockHeight) {
+            manager->networkBlockHeight = blockHeight;
             needBlockHeightEvent = 1;
             blockHeightEvent = (BRSyncManagerEvent) { SYNC_MANAGER_BLOCK_HEIGHT_UPDATED, { .blockHeightUpdated = { blockHeight }} };
         }
