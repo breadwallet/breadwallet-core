@@ -247,14 +247,14 @@ cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNega
 
                 case CRYPTO_TRANSFER_SENT:
                     amount = cryptoAmountCreate (transfer->unit,
-                                               isNegative,
-                                               createUInt256(send - fee - recv));
+                                                 isNegative,
+                                                 createUInt256(send - fee - recv));
                     break;
 
                 case CRYPTO_TRANSFER_RECEIVED:
                     amount = cryptoAmountCreate (transfer->unit,
-                                               isNegative,
-                                               createUInt256(recv));
+                                                 isNegative,
+                                                 createUInt256(recv));
                     break;
                     
                 default: assert(0);
@@ -267,8 +267,8 @@ cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNega
             switch (amountGetType(ethAmount)) {
                 case AMOUNT_ETHER:
                     amount = cryptoAmountCreate (transfer->unit,
-                                               isNegative,
-                                               etherGetValue(amountGetEther(ethAmount), WEI));
+                                                 isNegative,
+                                                 etherGetValue(amountGetEther(ethAmount), WEI));
                     break;
 
                 case AMOUNT_TOKEN:
@@ -287,8 +287,8 @@ cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNega
             BRGenericTransfer tid = transfer->u.gen.tid;
 
             amount = cryptoAmountCreate (transfer->unit,
-                                       isNegative,
-                                       gwmTransferGetAmount (gwm, tid));
+                                         isNegative,
+                                         gwmTransferGetAmount (gwm, tid));
             break;
         }
     }

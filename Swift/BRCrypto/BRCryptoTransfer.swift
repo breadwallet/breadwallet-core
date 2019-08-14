@@ -169,7 +169,7 @@ extension Transfer {
     }
 }
 
-public enum TransferDirection {
+public enum TransferDirection: Equatable {
     case sent
     case received
     case recovered
@@ -347,6 +347,9 @@ public protocol TransferListener: class {
                               transfer: Transfer,
                               event: TransferEvent)
 }
+
+/// A Functional Interface for a Handler
+public typealias TransferEventHandler = (System, WalletManager, Wallet, Transfer, TransferEvent) -> Void
 
 ///
 /// A `TransferFectory` is a customization point for `Transfer` creation.
