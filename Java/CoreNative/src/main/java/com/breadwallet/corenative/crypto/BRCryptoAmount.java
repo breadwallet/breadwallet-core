@@ -34,6 +34,11 @@ public class BRCryptoAmount extends PointerType implements CoreBRCryptoAmount {
     }
 
     @Override
+    public CoreBRCryptoUnit getUnit() {
+        return new OwnedBRCryptoUnit(CryptoLibrary.INSTANCE.cryptoAmountGetUnit(this));
+    }
+
+    @Override
     public Optional<Double> getDouble(CoreBRCryptoUnit unit) {
         BRCryptoUnit unitCore = unit.asBRCryptoUnit();
         IntByReference overflowRef = new IntByReference(BRCryptoBoolean.CRYPTO_FALSE);
@@ -56,6 +61,11 @@ public class BRCryptoAmount extends PointerType implements CoreBRCryptoAmount {
     @Override
     public CoreBRCryptoAmount negate() {
         return new OwnedBRCryptoAmount(CryptoLibrary.INSTANCE.cryptoAmountNegate(this));
+    }
+
+    @Override
+    public Optional<CoreBRCryptoAmount> convert(CoreBRCryptoUnit toUnit) {
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoAmountConvertToUnit(this, toUnit.asBRCryptoUnit())).transform(OwnedBRCryptoAmount::new);
     }
 
     @Override

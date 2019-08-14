@@ -14,6 +14,7 @@ import com.breadwallet.corenative.crypto.BRCryptoTransferState;
 import com.breadwallet.corenative.crypto.BRCryptoTransferStateType;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerState;
 import com.breadwallet.corenative.crypto.BRCryptoWalletState;
+import com.breadwallet.corenative.crypto.CoreBRCryptoAmount;
 import com.breadwallet.corenative.support.BRSyncMode;
 import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.TransferConfirmation;
@@ -123,12 +124,11 @@ final class Utilities {
                 }
                 return TransferState.FAILED(message.substring(0, end));
             case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_INCLUDED:
-                // TODO(fix): Fill in the fee
                 return TransferState.INCLUDED(new TransferConfirmation(
                         UnsignedLong.fromLongBits(state.u.included.blockNumber),
                         UnsignedLong.fromLongBits(state.u.included.transactionIndex),
                         UnsignedLong.fromLongBits(state.u.included.timestamp),
-                        Optional.absent()
+                        Optional.fromNullable(state.u.included.fee).transform(Amount::takeAndCreate)
                 ));
             default: throw new IllegalArgumentException("Unsupported state");
         }

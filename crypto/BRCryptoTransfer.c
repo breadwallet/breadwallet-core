@@ -229,7 +229,6 @@ cryptoTransferGetTargetAddress (BRCryptoTransfer transfer) {
 static BRCryptoAmount
 cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNegative) {
     BRCryptoAmount   amount;
-    BRCryptoCurrency currency = cryptoUnitGetCurrency (transfer->unit);
 
     switch (transfer->type) {
         case BLOCK_CHAIN_TYPE_BTC: {
@@ -241,19 +240,19 @@ cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNega
 
             switch (cryptoTransferGetDirection(transfer)) {
                 case CRYPTO_TRANSFER_RECOVERED:
-                    amount = cryptoAmountCreate (currency,
+                    amount = cryptoAmountCreate (transfer->unit,
                                                  isNegative,
                                                  createUInt256(send));
                     break;
 
                 case CRYPTO_TRANSFER_SENT:
-                    amount = cryptoAmountCreate (currency,
+                    amount = cryptoAmountCreate (transfer->unit,
                                                  isNegative,
                                                  createUInt256(send - fee - recv));
                     break;
 
                 case CRYPTO_TRANSFER_RECEIVED:
-                    amount = cryptoAmountCreate (currency,
+                    amount = cryptoAmountCreate (transfer->unit,
                                                  isNegative,
                                                  createUInt256(recv));
                     break;
@@ -267,13 +266,13 @@ cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNega
             BREthereumAmount ethAmount = transferGetAmount(transfer->u.eth.tid);
             switch (amountGetType(ethAmount)) {
                 case AMOUNT_ETHER:
-                    amount = cryptoAmountCreate (currency,
-                                               isNegative,
-                                               etherGetValue(amountGetEther(ethAmount), WEI));
+                    amount = cryptoAmountCreate (transfer->unit,
+                                                 isNegative,
+                                                 etherGetValue(amountGetEther(ethAmount), WEI));
                     break;
 
                 case AMOUNT_TOKEN:
-                    amount = cryptoAmountCreate (currency,
+                    amount = cryptoAmountCreate (transfer->unit,
                                                isNegative,
                                                amountGetTokenQuantity(ethAmount).valueAsInteger);
                     break;
@@ -287,14 +286,13 @@ cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNega
             BRGenericWalletManager gwm = transfer->u.gen.gwm;
             BRGenericTransfer tid = transfer->u.gen.tid;
 
-            amount = cryptoAmountCreate (currency,
-                                       isNegative,
-                                       gwmTransferGetAmount (gwm, tid));
+            amount = cryptoAmountCreate (transfer->unit,
+                                         isNegative,
+                                         gwmTransferGetAmount (gwm, tid));
             break;
         }
     }
 
-    cryptoCurrencyGive (currency);
     return amount;
 }
 
@@ -306,11 +304,10 @@ cryptoTransferGetAmount (BRCryptoTransfer transfer) {
 extern BRCryptoAmount
 cryptoTransferGetAmountDirected (BRCryptoTransfer transfer) {
     BRCryptoAmount   amount;
-    BRCryptoCurrency currency = cryptoUnitGetCurrency (transfer->unit);
 
     switch (cryptoTransferGetDirection(transfer)) {
         case CRYPTO_TRANSFER_RECOVERED: {
-            amount = cryptoAmountCreate (currency,
+            amount = cryptoAmountCreate (transfer->unit,
                                          CRYPTO_FALSE,
                                          UINT256_ZERO);
             break;
@@ -330,7 +327,6 @@ cryptoTransferGetAmountDirected (BRCryptoTransfer transfer) {
         default: assert(0);
     }
 
-    cryptoCurrencyGive (currency);
     return amount;
 }
 

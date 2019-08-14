@@ -55,8 +55,8 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
 
         this.sourceSupplier = Suppliers.memoize(() -> core.getSourceAddress().transform(Address::create));
         this.targetSupplier = Suppliers.memoize(() -> core.getTargetAddress().transform(Address::create));
-        this.amountSupplier = Suppliers.memoize(() -> Amount.create(core.getAmount(), unit));
-        this.directedSupplier = Suppliers.memoize(() -> Amount.create(core.getAmountDirected(), unit));
+        this.amountSupplier = Suppliers.memoize(() -> Amount.create(core.getAmount()));
+        this.directedSupplier = Suppliers.memoize(() -> Amount.create(core.getAmountDirected()));
         this.directionSupplier = Suppliers.memoize(() -> Utilities.transferDirectionFromCrypto(core.getDirection()));
         this.hashSupplier = Suppliers.memoize(() -> core.getHash().transform(TransferHash::create));
     }

@@ -32,10 +32,10 @@ class TransferFeeBasis implements com.breadwallet.crypto.TransferFeeBasis {
 
         this.unit= Unit.create(core.getPricePerCostFactorUnit());
         this.costFactorSupplier = Suppliers.memoize(core::getCostFactor);
-        this.pricePerCostFactorSupplier = Suppliers.memoize(() -> Amount.create(core.getPricePerCostFactor(), unit));
+        this.pricePerCostFactorSupplier = Suppliers.memoize(() -> Amount.create(core.getPricePerCostFactor()));
 
         // TODO(fix): Unchecked get here
-        this.feeSupplier = Suppliers.memoize(() -> Amount.create(core.getFee().get(), unit));
+        this.feeSupplier = Suppliers.memoize(() -> Amount.create(core.getFee().get()));
     }
 
     @Override

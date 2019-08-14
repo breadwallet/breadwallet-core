@@ -121,8 +121,8 @@ public final class Transfer: Equatable {
             .map { TransferFeeBasis (core: $0, take: false) }
 
         // Other properties
-        self.amount         = Amount (core: cryptoTransferGetAmount (core),        unit: wallet.unit, take: false)
-        self.amountDirected = Amount (core: cryptoTransferGetAmountDirected(core), unit: wallet.unit, take: false)
+        self.amount         = Amount (core: cryptoTransferGetAmount (core),        take: false)
+        self.amountDirected = Amount (core: cryptoTransferGetAmountDirected(core), take: false)
     }
 
 
@@ -222,14 +222,12 @@ public class TransferFeeBasis {
         let unit = Unit (core: cryptoFeeBasisGetPricePerCostFactorUnit(core), take: false)
 
         self.unit = unit
-        self.pricePerCostFactor = Amount (core: cryptoFeeBasisGetPricePerCostFactor(core),
-                                          unit: unit,
-                                          take: false)
+        self.pricePerCostFactor = Amount (core: cryptoFeeBasisGetPricePerCostFactor(core), take: false)
         self.costFactor  = cryptoFeeBasisGetCostFactor (core)
 
         // The Core fee calculation might overflow.
         guard let fee = cryptoFeeBasisGetFee (core)
-            .map ({ Amount (core: $0, unit: unit, take: false) })
+            .map ({ Amount (core: $0, take: false) })
             else { print ("Missed Fee"); preconditionFailure () }
 
         self.fee = fee
@@ -298,7 +296,7 @@ public enum TransferState {
             confirmation: TransferConfirmation (blockNumber: core.u.included.blockNumber,
                                                 transactionIndex: core.u.included.transactionIndex,
                                                 timestamp: core.u.included.timestamp,
-                                                fee: nil))
+                                                fee: core.u.included.fee.map { Amount (core: $0, take: true) }))
         case CRYPTO_TRANSFER_STATE_ERRORRED:  self = .failed(reason: asUTF8String(cryptoTransferStateGetErrorMessage (core)))
         case CRYPTO_TRANSFER_STATE_DELETED:   self = .deleted
         default: /* ignore this */ self = .pending; precondition(false)

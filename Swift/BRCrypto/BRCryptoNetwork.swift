@@ -262,7 +262,6 @@ public final class NetworkFee: Equatable {
         self.core = (take ? cryptoNetworkFeeTake(core) : core)
         self.timeIntervalInMilliseconds = cryptoNetworkFeeGetConfirmationTimeInMilliseconds(core)
         self.pricePerCostFactor = Amount (core: cryptoNetworkFeeGetPricePerCostFactor (core),
-                                          unit: Unit (core: cryptoNetworkFeeGetPricePerCostFactorUnit(core), take: false),
                                           take: false)
     }
 

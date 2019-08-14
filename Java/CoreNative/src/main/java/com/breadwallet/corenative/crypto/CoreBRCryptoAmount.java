@@ -36,7 +36,13 @@ public interface CoreBRCryptoAmount {
         return new OwnedBRCryptoAmount(amount);
     }
 
+    static CoreBRCryptoAmount takeAndCreateOwned(BRCryptoAmount amount) {
+        return new OwnedBRCryptoAmount(CryptoLibrary.INSTANCE.cryptoAmountTake(amount));
+    }
+
     CoreBRCryptoCurrency getCurrency();
+
+    CoreBRCryptoUnit getUnit();
 
     Optional<Double> getDouble(CoreBRCryptoUnit unit);
 
@@ -45,6 +51,8 @@ public interface CoreBRCryptoAmount {
     Optional<CoreBRCryptoAmount> sub(CoreBRCryptoAmount amount);
 
     CoreBRCryptoAmount negate();
+
+    Optional<CoreBRCryptoAmount> convert(CoreBRCryptoUnit toUnit);
 
     boolean isNegative();
 
