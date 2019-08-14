@@ -247,9 +247,8 @@ struct BRPeerSyncManagerStruct {
     pthread_mutex_t lock;
 
     /**
-     * Wallet and P2P peer manager being synced
+     * P2P syncing manager
      */
-    BRWallet *wallet;
     BRPeerManager *peerManager;
 
     /**
@@ -1222,7 +1221,6 @@ BRPeerSyncManagerNew(BRSyncManagerEventContext eventContext,
     BRPeerSyncManager manager = (BRPeerSyncManager) calloc (1, sizeof(struct BRPeerSyncManagerStruct));
     manager->common.mode = SYNC_MODE_P2P_ONLY;
 
-    manager->wallet = wallet;
     manager->eventContext = eventContext;
     manager->eventCallback = eventCallback;
 
