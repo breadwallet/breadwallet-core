@@ -34,22 +34,6 @@ static void
 bwmPeriodicDispatcher (BREventHandler handler,
                        BREventTimeout *event);
 
-static void
-bwmSyncReset (BRWalletManager bwm);
-
-static void
-bwmSyncStart (BRWalletManager bwm);
-
-static void
-bwmSyncTransaction (BRWalletManager bwm,
-                    int rid,
-                    BRTransaction *transaction);
-
-static void
-bwmSyncComplete (BRWalletManager bwm,
-                 int rid,
-                 int success);
-
 static void _BRWalletManagerGetBlockNumber(void * context, BRSyncManager manager, int rid);
 static void _BRWalletManagerGetTransactions(void * context, BRSyncManager manager, const char **addresses, size_t addressCount, uint64_t begBlockNumber, uint64_t endBlockNumber, int rid);
 static void _BRWalletManagerSubmitTransaction(void * context, BRSyncManager manager, BRTransaction *transaction, int rid);
@@ -59,7 +43,6 @@ static void _BRWalletManagerBalanceChanged (void *info, uint64_t balanceInSatosh
 static void _BRWalletManagerTxAdded   (void *info, BRTransaction *tx);
 static void _BRWalletManagerTxUpdated (void *info, const UInt256 *hashes, size_t count, uint32_t blockHeight, uint32_t timestamp);
 static void _BRWalletManagerTxDeleted (void *info, UInt256 hash, int notifyUser, int recommendRescan);
-static void _BRWalletManagerTxPublished (void *info, int error);
 
 static const char *
 getNetworkName (const BRChainParams *params) {
@@ -329,8 +312,6 @@ static void
 bwmFileServiceErrorHandler (BRFileServiceContext context,
                             BRFileService fs,
                             BRFileServiceError error) {
-    BRWalletManager bwm = (BRWalletManager) context;
-
     switch (error.type) {
         case FILE_SERVICE_IMPL:
             // This actually a FATAL - an unresolvable coding error.
@@ -348,6 +329,7 @@ bwmFileServiceErrorHandler (BRFileServiceContext context,
     }
     _peer_log ("bread: FileService Error: FORCED SYNC%s", "");
 
+    // BRWalletManager bwm = (BRWalletManager) context;
     // TODO(fix): What do we actually want to happen here?
     // if (NULL != bwm->peerManager)
     //     BRPeerManagerRescan (bwm->peerManager);
@@ -597,10 +579,9 @@ BRWalletManagerScan (BRWalletManager manager) {
 
 extern BRTransaction *
 BRWalletManagerCreateTransaction (BRWalletManager manager,
-                                  BRWallet *wallet,
                                   uint64_t amount,
                                   const char *addr) {
-    BRTransaction *transaction = BRWalletCreateTransaction (wallet, amount, addr);
+    BRTransaction *transaction = BRWalletCreateTransaction (manager->wallet, amount, addr);
     if (NULL != transaction) {
         // TODO(fix): Once transactions are "owned" by the wallet manager, this should be
         //            changed to bwmSignalTransactionEvent. We can't do that now
@@ -639,8 +620,8 @@ BRWalletManagerSignTransaction (BRWalletManager manager,
 
 extern void
 BRWalletManagerSubmitTransaction (BRWalletManager manager,
-                                  OwnershipGiven BRTransaction *transaction) {
-    BRSyncManagerSubmit (manager->syncManager, transaction);
+                                  OwnershipKept BRTransaction *transaction) {
+    BRSyncManagerSubmit (manager->syncManager, BRTransactionCopy (transaction));
 }
 
 extern void
@@ -766,7 +747,7 @@ _BRWalletManagerTxDeleted (void *info,
 static void
 _BRWalletManagerSyncEvent(void * context,
                           BRSyncManager manager,
-                          BRSyncManagerEvent event) {
+                          OwnershipKept BRSyncManagerEvent event) {
     BRWalletManager bwm = (BRWalletManager) context;
     switch (event.type) {
         case SYNC_MANAGER_SET_BLOCKS: {
@@ -880,7 +861,7 @@ static void _BRWalletManagerGetBlockNumber(void * context,
 }
 static void _BRWalletManagerGetTransactions(void * context,
                                             BRSyncManager manager,
-                                            const char **addresses,
+                                            OwnershipGiven const char **addresses,
                                             size_t addressCount,
                                             uint64_t begBlockNumber,
                                             uint64_t endBlockNumber,
@@ -900,7 +881,7 @@ static void _BRWalletManagerGetTransactions(void * context,
 static void
 _BRWalletManagerSubmitTransaction(void * context,
                                   BRSyncManager manager,
-                                  BRTransaction *transaction,
+                                  OwnershipGiven BRTransaction *transaction,
                                   int rid) {
     BRWalletManager bwm = (BRWalletManager) context;
 

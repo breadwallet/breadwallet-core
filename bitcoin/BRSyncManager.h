@@ -31,6 +31,7 @@
 #include "BRMerkleBlock.h"
 #include "BRPeer.h"
 #include "BRWallet.h"
+#include "support/BRBase.h"
 #include "support/BRSyncMode.h"
 
 #ifdef __cplusplus
@@ -56,7 +57,7 @@ typedef void
 typedef void
 (*BRSyncManagerGetTransactionsCallback) (BRSyncManagerClientContext context,
                                          BRSyncManager manager,
-                                         const char **addresses,
+                                         OwnershipGiven const char **addresses,
                                          size_t addressCount,
                                          uint64_t begBlockNumber,
                                          uint64_t endBlockNumber,
@@ -65,7 +66,7 @@ typedef void
 typedef void
 (*BRSyncManagerSubmitTransactionCallback) (BRSyncManagerClientContext context,
                                            BRSyncManager manager,
-                                           BRTransaction *transaction,
+                                           OwnershipGiven BRTransaction *transaction,
                                            int rid);
 
 typedef struct {
@@ -112,7 +113,7 @@ typedef struct {
             int reason;
         } syncStopped;
         struct {
-            uint32_t value;
+            uint64_t value;
         } blockHeightUpdated;
         struct {
             BRTransaction *transaction;
@@ -126,7 +127,7 @@ typedef void *BRSyncManagerEventContext;
 typedef void
 (*BRSyncManagerEventCallback) (void * context,
                                BRSyncManager manager,
-                               BRSyncManagerEvent event);
+                               OwnershipKept BRSyncManagerEvent event);
 
 extern BRSyncManager
 BRSyncManagerNewForMode(BRSyncMode mode,
@@ -134,13 +135,13 @@ BRSyncManagerNewForMode(BRSyncMode mode,
                         BRSyncManagerEventCallback eventCallback,
                         BRSyncManagerClientContext clientContext,
                         BRSyncManagerClientCallbacks client,
-                        const BRChainParams *params,
-                        BRWallet *wallet,
+                        OwnershipKept const BRChainParams *params,
+                        OwnershipKept BRWallet *wallet,
                         uint32_t earliestKeyTime,
-                        uint32_t blockHeight,
-                        BRMerkleBlock *blocks[],
+                        uint64_t blockHeight,
+                        OwnershipKept BRMerkleBlock *blocks[],
                         size_t blocksCount,
-                        const BRPeer peers[],
+                        OwnershipKept const BRPeer peers[],
                         size_t peersCount);
 
 extern BRSyncManager
@@ -148,25 +149,25 @@ BRSyncManagerNewForClient(BRSyncManagerEventContext eventContext,
                           BRSyncManagerEventCallback eventCallback,
                           BRSyncManagerClientContext clientContext,
                           BRSyncManagerClientCallbacks client,
-                          const BRChainParams *params,
-                          BRWallet *wallet,
+                          OwnershipKept const BRChainParams *params,
+                          OwnershipKept BRWallet *wallet,
                           uint32_t earliestKeyTime,
-                          uint32_t blockHeight,
-                          BRMerkleBlock *blocks[],
+                          uint64_t blockHeight,
+                          OwnershipKept BRMerkleBlock *blocks[],
                           size_t blocksCount,
-                          const BRPeer peers[],
+                          OwnershipKept const BRPeer peers[],
                           size_t peersCount);
 
 extern BRSyncManager
 BRSyncManagerNewForP2P(BRSyncManagerEventContext eventContext,
                        BRSyncManagerEventCallback eventCallback,
-                       const BRChainParams *params,
-                       BRWallet *wallet,
+                       OwnershipKept const BRChainParams *params,
+                       OwnershipKept BRWallet *wallet,
                        uint32_t earliestKeyTime,
-                       uint32_t blockHeight,
-                       BRMerkleBlock *blocks[],
+                       uint64_t blockHeight,
+                       OwnershipKept BRMerkleBlock *blocks[],
                        size_t blocksCount,
-                       const BRPeer peers[],
+                       OwnershipKept const BRPeer peers[],
                        size_t peersCount);
 
 extern void
@@ -183,7 +184,7 @@ BRSyncManagerScan(BRSyncManager manager);
 
 extern void
 BRSyncManagerSubmit(BRSyncManager manager,
-                    BRTransaction *transaction);
+                    OwnershipGiven BRTransaction *transaction);
 
 extern void
 BRSyncManagerTickTock(BRSyncManager manager);
@@ -191,12 +192,12 @@ BRSyncManagerTickTock(BRSyncManager manager);
 extern void
 BRSyncManagerAnnounceGetBlockNumber(BRSyncManager manager,
                                     int rid,
-                                    uint32_t blockHeight);
+                                    uint64_t blockHeight);
 
 extern void
 BRSyncManagerAnnounceGetTransactionsItem(BRSyncManager manager,
                                          int rid,
-                                         BRTransaction *transaction);
+                                         OwnershipGiven BRTransaction *transaction);
 
 extern void
 BRSyncManagerAnnounceGetTransactionsDone(BRSyncManager manager,
@@ -206,7 +207,7 @@ BRSyncManagerAnnounceGetTransactionsDone(BRSyncManager manager,
 extern void
 BRSyncManagerAnnounceSubmitTransaction(BRSyncManager manager,
                                        int rid,
-                                       BRTransaction *transaction,
+                                       OwnershipGiven BRTransaction *transaction,
                                        int error);
 
 #ifdef __cplusplus

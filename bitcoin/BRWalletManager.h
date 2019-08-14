@@ -69,7 +69,7 @@ bwmAnnounceBlockNumber (BRWalletManager manager,
 typedef void
 (*BRGetTransactionsCallback) (BRWalletManagerClientContext context,
                               BRWalletManager manager,
-                              const char **addresses,
+                              OwnershipGiven const char **addresses,
                               size_t addressCount,
                               uint64_t begBlockNumber,
                               uint64_t endBlockNumber,
@@ -144,7 +144,7 @@ typedef struct {
     BRTransactionEventType type;
     union {
         struct {
-            uint32_t blockHeight;
+            uint64_t blockHeight;
             uint32_t timestamp;
         } updated;
     } u;
@@ -222,7 +222,7 @@ typedef struct {
             int error;
         } syncStopped;
         struct {
-            uint32_t value;
+            uint64_t value;
         } blockHeightUpdated;
     } u;
 } BRWalletManagerEvent;
@@ -284,7 +284,6 @@ BRWalletManagerGetWallet (BRWalletManager manager);
  */
 extern BRTransaction *
 BRWalletManagerCreateTransaction (BRWalletManager manager,
-                                  BRWallet *wallet,
                                   uint64_t amount,
                                   const char *addr);
 
@@ -303,7 +302,7 @@ BRWalletManagerSignTransaction (BRWalletManager manager,
 
 extern void
 BRWalletManagerSubmitTransaction (BRWalletManager manager,
-                                  OwnershipGiven BRTransaction *transaction);
+                                  OwnershipKept BRTransaction *transaction);
 
 extern void
 BRWalletManagerUpdateFeePerKB (BRWalletManager manager,

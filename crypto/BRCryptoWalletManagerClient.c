@@ -106,7 +106,7 @@ cwmGetBlockNumberAsBTC (BRWalletManagerClientContext context,
 static void
 cwmGetTransactionsAsBTC (BRWalletManagerClientContext context,
                          BRWalletManager manager,
-                         const char **addresses,
+                         OwnershipGiven const char **addresses,
                          size_t addressCount,
                          uint64_t begBlockNumber,
                          uint64_t endBlockNumber,
@@ -125,6 +125,7 @@ cwmGetTransactionsAsBTC (BRWalletManagerClientContext context,
                                          begBlockNumber,
                                          endBlockNumber);
 
+    free (addresses);
     cryptoWalletManagerGive (cwm);
 }
 

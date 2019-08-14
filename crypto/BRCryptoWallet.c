@@ -502,7 +502,7 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
             uint64_t feePerKb      = cryptoFeeBasisAsBTC(estimatedFeeBasis);
 
             BRWalletSetFeePerKb (wid, feePerKb);
-            BRTransaction *tid = BRWalletManagerCreateTransaction (bwm, wid, value, addr);
+            BRTransaction *tid = BRWalletManagerCreateTransaction (bwm, value, addr);
             BRWalletSetFeePerKb (wid, feePerKbSaved);
 
             // The above BRWalletManagerCreateTransaction call resulted in a
