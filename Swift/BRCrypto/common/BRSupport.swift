@@ -212,22 +212,15 @@ public struct AccountSpecification {
         self.timestamp = dateFormatter.date(from: dict["timestamp"]!)!
     }
 
-    static public func loadFrom (configPath: String, withDefault: Bool = true) -> [AccountSpecification] {
+    static public func loadFrom (configPath: String, defaultSpecification: AccountSpecification? = nil) -> [AccountSpecification] {
         if FileManager.default.fileExists(atPath: configPath) {
             let configFile = URL(fileURLWithPath: configPath)
             let configData = try! Data.init(contentsOf: configFile)
             let json = try! JSONSerialization.jsonObject(with: configData, options: []) as! [[String:String]]
             return json.map { AccountSpecification (dict: $0) }
         }
-        else if withDefault {
-            return [
-                AccountSpecification (dict: [
-                    "identifier": "ginger",
-                    "paperKey":   "ginger settle marine tissue robot crane night number ramp coast roast critic",
-                    "timestamp":  "2018-01-01",
-                    "network":    "testnet",
-                    ])
-            ]
+        else if let defaultSpecification = defaultSpecification {
+            return [defaultSpecification]
         }
         else {
             return []

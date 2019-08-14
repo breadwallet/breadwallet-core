@@ -5,7 +5,8 @@ import com.google.common.base.Optional;
 public interface Signer {
 
     enum Algorithm {
-        BASIC,
+        BASIC_DER,
+        BASIC_JOSE,
         COMPACT
     }
 

@@ -581,10 +581,17 @@ extern BRTransaction *
 BRWalletManagerCreateTransaction (BRWalletManager manager,
                                   BRWallet *wallet,
                                   uint64_t amount,
-                                  const char *addr) {
+                                  const char *addr,
+                                  uint64_t feePerKb) {
     assert (wallet == manager->wallet);
 
+    pthread_mutex_lock (&manager->lock);
+    uint64_t feePerKbSaved = BRWalletFeePerKb (wallet);
+    BRWalletSetFeePerKb (wallet, feePerKb);
     BRTransaction *transaction = BRWalletCreateTransaction (wallet, amount, addr);
+    BRWalletSetFeePerKb (wallet, feePerKbSaved);
+    pthread_mutex_unlock (&manager->lock);
+
     if (NULL != transaction) {
         // TODO(fix): Once transactions are "owned" by the wallet manager, this should be
         //            changed to bwmSignalTransactionEvent. We can't do that now

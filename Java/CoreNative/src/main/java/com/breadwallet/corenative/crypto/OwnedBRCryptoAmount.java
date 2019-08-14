@@ -38,6 +38,11 @@ class OwnedBRCryptoAmount implements CoreBRCryptoAmount {
     }
 
     @Override
+    public CoreBRCryptoUnit getUnit() {
+        return core.getUnit();
+    }
+
+    @Override
     public Optional<Double> getDouble(CoreBRCryptoUnit unit) {
         return core.getDouble(unit);
     }
@@ -55,6 +60,11 @@ class OwnedBRCryptoAmount implements CoreBRCryptoAmount {
     @Override
     public CoreBRCryptoAmount negate() {
         return core.negate();
+    }
+
+    @Override
+    public Optional<CoreBRCryptoAmount> convert(CoreBRCryptoUnit toUnit) {
+        return core.convert(toUnit);
     }
 
     @Override

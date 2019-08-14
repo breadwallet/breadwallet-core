@@ -48,11 +48,11 @@
 		3C54A7FF2121F1D200C57B1B /* BREthereumMessage.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C54A7FE2121F1D200C57B1B /* BREthereumMessage.c */; };
 		3C54A8022122284900C57B1B /* BREthereumNode.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C54A8012122284900C57B1B /* BREthereumNode.c */; };
 		3C54A80521234C9700C57B1B /* BREthereumNodeEndpoint.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C54A80421234C9700C57B1B /* BREthereumNodeEndpoint.c */; };
+		3C56C97D22F8F8C20054AD21 /* BRCryptoStatus.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C56C97C22F8F8C20054AD21 /* BRCryptoStatus.c */; };
 		3C56C97F22FA27DD0054AD21 /* TransferCreateRecvController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C56C97E22FA27DD0054AD21 /* TransferCreateRecvController.swift */; };
 		3C56C98122FA28190054AD21 /* TransferCreatePaymentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C56C98022FA28190054AD21 /* TransferCreatePaymentController.swift */; };
 		3C56C98322FA28310054AD21 /* TransferCreateSweepController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C56C98222FA28310054AD21 /* TransferCreateSweepController.swift */; };
 		3C56C98522FA2B630054AD21 /* TransferCreateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C56C98422FA2B620054AD21 /* TransferCreateController.swift */; };
-		3C56C97D22F8F8C20054AD21 /* BRCryptoStatus.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C56C97C22F8F8C20054AD21 /* BRCryptoStatus.c */; };
 		3C5C02392212035B0052E010 /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CEF5FC9220513FC0010A811 /* libresolv.tbd */; };
 		3C5F5E75212C82310038B732 /* BREthereumMPT.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C5F5E74212C82310038B732 /* BREthereumMPT.c */; };
 		3C6B172F2131CB5B003C313B /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C6B172E2131CB5B003C313B /* main.c */; };
@@ -158,6 +158,7 @@
 		3C9B8DF322BD55CA0060C3A9 /* BRRippleTransaction.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C453DE226E2C62004CC0C7 /* BRRippleTransaction.c */; };
 		3C9B8DF422BD55CA0060C3A9 /* BRRippleWallet.c in Sources */ = {isa = PBXBuildFile; fileRef = C3C864A3227C6B490055120E /* BRRippleWallet.c */; };
 		3CA15F80221648D200C84E65 /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CA15F7F221648D200C84E65 /* libresolv.tbd */; };
+		3CA63972230336D9006DD57B /* BREthereumFeeBasis.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CA63971230336D9006DD57B /* BREthereumFeeBasis.c */; };
 		3CAB60A920AF8C8500810CE4 /* CoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB60A820AF8C8500810CE4 /* CoreTests.swift */; };
 		3CAB60AB20AF8C8500810CE4 /* libCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CAB609B20AF8C5D00810CE4 /* libCore.a */; };
 		3CAB60B120AF8D1A00810CE4 /* BREthereumEther.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53B320AF595400C430F6 /* BREthereumEther.c */; };
@@ -470,12 +471,12 @@
 		3C54A8012122284900C57B1B /* BREthereumNode.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumNode.c; sourceTree = "<group>"; };
 		3C54A80321234C9700C57B1B /* BREthereumNodeEndpoint.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumNodeEndpoint.h; sourceTree = "<group>"; };
 		3C54A80421234C9700C57B1B /* BREthereumNodeEndpoint.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumNodeEndpoint.c; sourceTree = "<group>"; };
+		3C56C97B22F8F8C20054AD21 /* BRCryptoStatus.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoStatus.h; sourceTree = "<group>"; };
+		3C56C97C22F8F8C20054AD21 /* BRCryptoStatus.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRCryptoStatus.c; sourceTree = "<group>"; };
 		3C56C97E22FA27DD0054AD21 /* TransferCreateRecvController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferCreateRecvController.swift; sourceTree = "<group>"; };
 		3C56C98022FA28190054AD21 /* TransferCreatePaymentController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferCreatePaymentController.swift; sourceTree = "<group>"; };
 		3C56C98222FA28310054AD21 /* TransferCreateSweepController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferCreateSweepController.swift; sourceTree = "<group>"; };
 		3C56C98422FA2B620054AD21 /* TransferCreateController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferCreateController.swift; sourceTree = "<group>"; };
-		3C56C97B22F8F8C20054AD21 /* BRCryptoStatus.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRCryptoStatus.h; sourceTree = "<group>"; };
-		3C56C97C22F8F8C20054AD21 /* BRCryptoStatus.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRCryptoStatus.c; sourceTree = "<group>"; };
 		3C590F3220950C720005597B /* BRBIP32Sequence.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRBIP32Sequence.c; sourceTree = "<group>"; };
 		3C590F3320950C720005597B /* BRBIP39Mnemonic.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRBIP39Mnemonic.h; sourceTree = "<group>"; };
 		3C590F3420950C720005597B /* BRAddress.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRAddress.c; sourceTree = "<group>"; };
@@ -571,6 +572,8 @@
 		3C9B8DE622BD52940060C3A9 /* BRGenericHandlers.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRGenericHandlers.c; sourceTree = "<group>"; };
 		3CA15F7E221645B400C84E65 /* test.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = test.h; sourceTree = "<group>"; };
 		3CA15F7F221648D200C84E65 /* libresolv.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libresolv.tbd; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk/usr/lib/libresolv.tbd; sourceTree = DEVELOPER_DIR; };
+		3CA63970230336D9006DD57B /* BREthereumFeeBasis.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumFeeBasis.h; sourceTree = "<group>"; };
+		3CA63971230336D9006DD57B /* BREthereumFeeBasis.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumFeeBasis.c; sourceTree = "<group>"; };
 		3CA74EA920AF622D00EDF3E7 /* BRKeyECIES.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRKeyECIES.c; sourceTree = "<group>"; };
 		3CA74EAA20AF622D00EDF3E7 /* BRKeyECIES.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRKeyECIES.h; sourceTree = "<group>"; };
 		3CAB609B20AF8C5D00810CE4 /* libCore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libCore.a; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -963,6 +966,8 @@
 				3C2A53B320AF595400C430F6 /* BREthereumEther.c */,
 				3C2A53AF20AF595400C430F6 /* BREthereumGas.h */,
 				3C2A53B520AF595400C430F6 /* BREthereumGas.c */,
+				3CA63970230336D9006DD57B /* BREthereumFeeBasis.h */,
+				3CA63971230336D9006DD57B /* BREthereumFeeBasis.c */,
 				3C2A53B420AF595400C430F6 /* BREthereumHash.h */,
 				3C2A53B020AF595400C430F6 /* BREthereumHash.c */,
 				3CF0FC8E21657D7A000DE3FE /* BREthereumData.h */,
@@ -1836,6 +1841,7 @@
 				3C386DD020C6F5E40065E355 /* BREthereumBCSEvent.c in Sources */,
 				3C3B37FD20D82335004F9928 /* BREventAlarm.c in Sources */,
 				3CCB136A2253C84E00ADCDB9 /* BRSyncMode.c in Sources */,
+				3CA63972230336D9006DD57B /* BREthereumFeeBasis.c in Sources */,
 				3CAB60CA20AF8D1A00810CE4 /* BREthereumLESFrameCoder.c in Sources */,
 				3CCD36B121A5BB8D0032637A /* BRWalletManager.c in Sources */,
 				CA92F7902100F9CA0015C966 /* BRKeccak.c in Sources */,

@@ -364,7 +364,56 @@ size_t BRKeyLegacyAddr(BRKey *key, char *addr, size_t addrLen, BRAddressParams p
     return addrLen;
 }
 
-// signs md with key and writes signature to sig
+// signs md with key and writes signature to sig in compact/JOSE format
+// returns the number of bytes written, or sigLen needed if sig is NULL
+// returns 0 on failure
+size_t BRKeySignJOSE(const BRKey *key, void *sig, size_t sigLen, UInt256 md)
+{
+    secp256k1_ecdsa_signature s;
+    
+    uint8_t compactSig[64];
+    size_t compactSigLen = 64;
+    
+    assert(key != NULL);
+    
+    if (secp256k1_ecdsa_sign(_ctx, &s, md.u8, key->secret.u8, secp256k1_nonce_function_rfc6979, NULL)) {
+        if (! secp256k1_ecdsa_signature_serialize_compact(_ctx, compactSig, &s)) compactSigLen = 0;
+    }
+    else compactSigLen = 0;
+    
+    if (NULL != sig && sigLen >= compactSigLen) {
+        memcpy (sig, compactSig, compactSigLen);
+        return compactSigLen;
+    }
+    else if (NULL != sig)
+        return 0; // failed, `sig` is too small
+    else
+        return compactSigLen;
+}
+
+// returns true if the signature for md is verified to have been made by key
+int BRKeyVerifyJOSE(BRKey *key, UInt256 md, const void *sig, size_t sigLen)
+{
+    secp256k1_pubkey pk;
+    secp256k1_ecdsa_signature s;
+    size_t len;
+    int r = 0;
+    
+    assert(key != NULL);
+    assert(sig != NULL || sigLen == 0);
+    assert(sigLen == 64);
+    
+    len = BRKeyPubKey(key, NULL, 0);
+    
+    if (len > 0 && secp256k1_ec_pubkey_parse(_ctx, &pk, key->pubKey, len) &&
+        secp256k1_ecdsa_signature_parse_compact(_ctx, &s, sig)) {
+        if (secp256k1_ecdsa_verify(_ctx, &s, md.u8, &pk) == 1) r = 1; // success is 1, all other values are fail
+    }
+    
+    return r;
+}
+
+// signs md with key and writes signature to sig in DER format
 // returns the number of bytes written, or sigLen needed if sig is NULL
 // returns 0 on failure
 size_t BRKeySign(const BRKey *key, void *sig, size_t sigLen, UInt256 md)

@@ -22,11 +22,11 @@ public class SignerAIT {
 
         Key key = Key.createFromPrivateKeyString("5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF".getBytes(StandardCharsets.UTF_8)).get();
 
-        // Basic
+        // Basic DER
 
         msg = "How wonderful that we have met with a paradox. Now we have some hope of making progress.";
         digest = Hasher.createForAlgorithm(com.breadwallet.crypto.Hasher.Algorithm.SHA256).hash(msg.getBytes(StandardCharsets.UTF_8));
-        signer = Signer.createForAlgorithm(com.breadwallet.crypto.Signer.Algorithm.BASIC);
+        signer = Signer.createForAlgorithm(com.breadwallet.crypto.Signer.Algorithm.BASIC_DER);
         signature = signer.sign(digest, key);
 
         answer = new byte[] {
@@ -45,6 +45,29 @@ public class SignerAIT {
                 (byte) 0xd8, (byte) 0x00, (byte) 0x78, (byte) 0xa9, (byte) 0x02,
                 (byte) 0x92, (byte) 0xfe, (byte) 0x20, (byte) 0x50, (byte) 0x64,
                 (byte) 0xd3};
+        assertArrayEquals(answer, signature);
+
+        // Basic JOSE
+
+        msg = "How wonderful that we have met with a paradox. Now we have some hope of making progress.";
+        digest = Hasher.createForAlgorithm(com.breadwallet.crypto.Hasher.Algorithm.SHA256).hash(msg.getBytes(StandardCharsets.UTF_8));
+        signer = Signer.createForAlgorithm(com.breadwallet.crypto.Signer.Algorithm.BASIC_JOSE);
+        signature = signer.sign(digest, key);
+
+        answer = new byte[] {
+                (byte) 0xc0, (byte) 0xda, (byte) 0xfe, (byte) 0xc8, (byte) 0x25,
+                (byte) 0x1f, (byte) 0x1d, (byte) 0x50, (byte) 0x10, (byte) 0x28,
+                (byte) 0x9d, (byte) 0x21, (byte) 0x02, (byte) 0x32, (byte) 0x22,
+                (byte) 0x0b, (byte) 0x03, (byte) 0x20, (byte) 0x2c, (byte) 0xba,
+                (byte) 0x34, (byte) 0xec, (byte) 0x11, (byte) 0xfe, (byte) 0xc5,
+                (byte) 0x8b, (byte) 0x3e, (byte) 0x93, (byte) 0xa8, (byte) 0x5b,
+                (byte) 0x91, (byte) 0xd3, (byte) 0x75, (byte) 0xaf, (byte) 0xdc,
+                (byte) 0x06, (byte) 0xb7, (byte) 0xd6, (byte) 0x32, (byte) 0x2a,
+                (byte) 0x59, (byte) 0x09, (byte) 0x55, (byte) 0xbf, (byte) 0x26,
+                (byte) 0x4e, (byte) 0x7a, (byte) 0xaa, (byte) 0x15, (byte) 0x58,
+                (byte) 0x47, (byte) 0xf6, (byte) 0x14, (byte) 0xd8, (byte) 0x00,
+                (byte) 0x78, (byte) 0xa9, (byte) 0x02, (byte) 0x92, (byte) 0xfe,
+                (byte) 0x20, (byte) 0x50, (byte) 0x64, (byte) 0xd3};
         assertArrayEquals(answer, signature);
 
         // Compact

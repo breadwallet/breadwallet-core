@@ -43,6 +43,8 @@ public interface Amount extends Comparable<Amount> {
 
     Amount negate();
 
+    Optional<? extends Amount> convert(Unit toUnit);
+
     Optional<String> toStringAsUnit(Unit asUnit);
 
     Optional<String> toStringAsUnit(Unit asUnit, NumberFormat numberFormatter);

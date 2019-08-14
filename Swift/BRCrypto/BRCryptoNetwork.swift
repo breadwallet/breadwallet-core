@@ -217,7 +217,6 @@ public enum NetworkEvent {
 /// Listener for NetworkEvent
 ///
 public protocol NetworkListener: class {
-
     ///
     /// Handle a NetworkEvent
     ///
@@ -229,8 +228,10 @@ public protocol NetworkListener: class {
     func handleNetworkEvent (system: System,
                              network: Network,
                              event: NetworkEvent)
-
 }
+
+/// A Functional Interface for a Handler
+public typealias NetworkEventHandler = (System, Network, NetworkEvent) -> Void
 
 ///
 /// A Network Fee represents the 'amount per cost factor' paid to mine a transfer. For BTC this
@@ -261,7 +262,6 @@ public final class NetworkFee: Equatable {
         self.core = (take ? cryptoNetworkFeeTake(core) : core)
         self.timeIntervalInMilliseconds = cryptoNetworkFeeGetConfirmationTimeInMilliseconds(core)
         self.pricePerCostFactor = Amount (core: cryptoNetworkFeeGetPricePerCostFactor (core),
-                                          unit: Unit (core: cryptoNetworkFeeGetPricePerCostFactorUnit(core), take: false),
                                           take: false)
     }
 

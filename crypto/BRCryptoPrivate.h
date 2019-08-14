@@ -113,12 +113,12 @@ extern "C" {
     /// MARK: - Amount
 
     private_extern BRCryptoAmount
-    cryptoAmountCreate (BRCryptoCurrency currency,
+    cryptoAmountCreate (BRCryptoUnit unit,
                         BRCryptoBoolean isNegative,
                         UInt256 value);
 
     private_extern BRCryptoAmount
-    cryptoAmountCreateInternal (BRCryptoCurrency currency,
+    cryptoAmountCreateInternal (BRCryptoUnit unit,
                                 BRCryptoBoolean isNegative,
                                 UInt256 value,
                                 int takeCurrency);
@@ -181,7 +181,7 @@ extern "C" {
     private_extern BRCryptoFeeBasis
     cryptoFeeBasisCreateAsGEN (BRCryptoUnit unit,
                                BRGenericWalletManager gwm,
-                               BRGenericFeeBasis bid);
+                               OwnershipGiven BRGenericFeeBasis bid);
 
     /// MARK: Transfer
 
@@ -199,7 +199,8 @@ extern "C" {
     cryptoTransferCreateAsETH (BRCryptoUnit unit,
                                BRCryptoUnit unitForFee,
                                BREthereumEWM ewm,
-                               BREthereumTransfer tid);
+                               BREthereumTransfer tid,
+                               BRCryptoFeeBasis feeBasisEstimated);
 
     extern BRCryptoTransfer
     cryptoTransferCreateAsGEN (BRCryptoUnit unit,
@@ -207,6 +208,10 @@ extern "C" {
                                BRGenericWalletManager gwm,
                                BRGenericTransfer tid);
 
+    private_extern void
+    cryptoTransferSetConfirmedFeeBasis (BRCryptoTransfer transfer,
+                                        BRCryptoFeeBasis feeBasisConfirmed);
+    
     private_extern BRTransaction *
     cryptoTransferAsBTC (BRCryptoTransfer transfer);
 
