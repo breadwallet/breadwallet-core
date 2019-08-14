@@ -148,6 +148,8 @@ target_sources (crypto
                 src/main/cpp/core/ethereum/base/BREthereumEther.h
                 src/main/cpp/core/ethereum/base/BREthereumGas.c
                 src/main/cpp/core/ethereum/base/BREthereumGas.h
+                src/main/cpp/core/ethereum/base/BREthereumFeeBasis.c
+                src/main/cpp/core/ethereum/base/BREthereumFeeBasis.h
                 src/main/cpp/core/ethereum/base/BREthereumHash.c
                 src/main/cpp/core/ethereum/base/BREthereumHash.h
                 src/main/cpp/core/ethereum/base/BREthereumData.c
