@@ -69,6 +69,8 @@ target_sources (core
                 src/main/cpp/core/bitcoin/BRPeer.h
                 src/main/cpp/core/bitcoin/BRPeerManager.c
                 src/main/cpp/core/bitcoin/BRPeerManager.h
+                src/main/cpp/core/bitcoin/BRSyncManager.c
+                src/main/cpp/core/bitcoin/BRSyncManager.h
                 src/main/cpp/core/bitcoin/BRTransaction.c
                 src/main/cpp/core/bitcoin/BRTransaction.h
                 src/main/cpp/core/bitcoin/BRWallet.c

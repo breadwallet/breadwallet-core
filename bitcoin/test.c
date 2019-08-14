@@ -3357,10 +3357,10 @@ extern int BRRunTestWalletManagerSync (const char *paperKey,
 
     BRWalletManager manager = BRWalletManagerNew (client, mpk, params, epoch, mode, storagePath, 0);
 
-    BRPeerManager *pm = BRWalletManagerGetPeerManager(manager);
+    BRWalletManagerStart (manager);
 
     syncDone = 0;
-    BRPeerManagerConnect (pm);
+    BRWalletManagerConnect (manager);
 
     int err = 0;
     while (err == 0 && !syncDone) {
@@ -3374,7 +3374,9 @@ extern int BRRunTestWalletManagerSync (const char *paperKey,
     }
 
     printf ("***\n***\nPaperKey (Done): \"%s\"\n***\n***\n", paperKey);
-    BRPeerManagerDisconnect(pm);
+    BRWalletManagerDisconnect (manager);
+    sleep (2);
+    BRWalletManagerStop (manager);
     sleep (2);
     BRWalletManagerFree (manager);
     return 1;

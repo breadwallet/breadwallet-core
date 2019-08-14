@@ -54,6 +54,8 @@ public class CoreCryptoApplication extends Application {
 
     private static System system;
     private static DispatchingSystemListener systemListener;
+    private static boolean isMainnet;
+    private static BlockchainDb blockchainDb;
     private static byte[] paperKey;
 
     private static AtomicBoolean runOnce = new AtomicBoolean(false);
@@ -79,7 +81,7 @@ public class CoreCryptoApplication extends Application {
             String paperKeyString = (intent.hasExtra(EXTRA_PAPER_KEY) ? intent.getStringExtra(EXTRA_PAPER_KEY) : DEFAULT_PAPER_KEY);
             paperKey = paperKeyString.getBytes(StandardCharsets.UTF_8);
 
-            boolean isMainnet = intent.getBooleanExtra(EXTRA_IS_MAINNET, DEFAULT_IS_MAINNET);
+            isMainnet = intent.getBooleanExtra(EXTRA_IS_MAINNET, DEFAULT_IS_MAINNET);
 
             boolean wipe = intent.getBooleanExtra(EXTRA_WIPE, DEFAULT_WIPE);
             long timestamp = intent.getLongExtra(EXTRA_TIMESTAMP, DEFAULT_TIMESTAMP);
@@ -105,8 +107,8 @@ public class CoreCryptoApplication extends Application {
             String uids = UUID.nameUUIDFromBytes(paperKey).toString();
             Account account = Account.createFromPhrase(paperKey, new Date(TimeUnit.SECONDS.toMillis(timestamp)), uids);
 
-            BlockchainDb query = new BlockchainDb(new OkHttpClient(), BDB_BASE_URL, API_BASE_URL);
-            system = System.create(Executors.newSingleThreadScheduledExecutor(), systemListener, account, isMainnet, storageFile.getAbsolutePath(), query);
+            blockchainDb = new BlockchainDb(new OkHttpClient(), BDB_BASE_URL, API_BASE_URL);
+            system = System.create(Executors.newSingleThreadScheduledExecutor(), systemListener, account, isMainnet, storageFile.getAbsolutePath(), blockchainDb);
             system.configure();
 
             ProcessLifecycleOwner.get().getLifecycle().addObserver(observer);
@@ -115,6 +117,18 @@ public class CoreCryptoApplication extends Application {
 
     public static System getSystem() {
         return system;
+    }
+
+    public static void resetSystem() {
+        CoreCryptoApplication.system.stop();
+        CoreCryptoApplication.system = System.create(
+                Executors.newSingleThreadScheduledExecutor(),
+                systemListener,
+                CoreCryptoApplication.system.getAccount(),
+                isMainnet,
+                CoreCryptoApplication.system.getPath(),
+                blockchainDb);
+        CoreCryptoApplication.system.configure();
     }
 
     public static DispatchingSystemListener getDispatchingSystemListener() {

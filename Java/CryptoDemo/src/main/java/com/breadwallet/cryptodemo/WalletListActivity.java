@@ -11,6 +11,7 @@ import android.support.v7.widget.util.SortedListAdapterCallback;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 
 import com.breadwallet.crypto.Amount;
@@ -30,10 +31,11 @@ import java.util.List;
 
 public class WalletListActivity extends AppCompatActivity implements DefaultSystemListener {
 
+    private Button syncView;
+    private Button resetView;
     private Adapter walletsAdapter;
     private RecyclerView walletsView;
     private RecyclerView.LayoutManager walletsLayoutManager;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,6 +43,17 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
         setContentView(R.layout.activity_wallet_list);
 
         CoreCryptoApplication.initialize(this);
+
+        syncView = findViewById(R.id.sync_view);
+        syncView.setOnClickListener(v -> {
+            for (WalletManager wm: CoreCryptoApplication.getSystem().getWalletManagers()) wm.sync();
+        });
+
+        resetView = findViewById(R.id.reset_view);
+        resetView.setOnClickListener(v -> {
+            CoreCryptoApplication.resetSystem();
+            walletsAdapter.clear();
+        });
 
         walletsView = findViewById(R.id.wallet_recycler_view);
         walletsView.addItemDecoration(new DividerItemDecoration(getApplicationContext(), DividerItemDecoration.VERTICAL));
@@ -144,7 +157,8 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
             String currencyText = String.format("%s (%s)", wallet.getName(), wallet.getWalletManager().getNetwork());
             String balanceText = balance.toStringAsUnit(balance.getUnit(), null).or("---");
 
-            vh.itemView.setOnClickListener(v -> listener.onItemClick(wallet));
+
+            vh.itemView.setOnClickListener(v -> listener.onItemClick(wallets.get(i)));
             vh.currencyView.setText(currencyText);
             vh.symbolView.setText(balanceText);
         }
@@ -171,6 +185,10 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
             if (index != -1) {
                 wallets.updateItemAt(index, wallet);
             }
+        }
+
+        private void clear() {
+            wallets.clear();
         }
     }
 

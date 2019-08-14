@@ -107,7 +107,7 @@ cwmGetBlockNumberAsBTC (BRWalletManagerClientContext context,
 static void
 cwmGetTransactionsAsBTC (BRWalletManagerClientContext context,
                          BRWalletManager manager,
-                         const char **addresses,
+                         OwnershipGiven const char **addresses,
                          size_t addressCount,
                          uint64_t begBlockNumber,
                          uint64_t endBlockNumber,
@@ -126,6 +126,7 @@ cwmGetTransactionsAsBTC (BRWalletManagerClientContext context,
                                          begBlockNumber,
                                          endBlockNumber);
 
+    free (addresses);
     cryptoWalletManagerGive (cwm);
 }
 
@@ -260,6 +261,13 @@ cwmWalletManagerEventAsBTC (BRWalletManagerClientContext context,
             };
             cryptoWalletManagerSetState (cwm, CRYPTO_WALLET_MANAGER_STATE_SYNCING);
            break;
+
+        case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
+            cwmEvent = (BRCryptoWalletManagerEvent) {
+                CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES,
+                { .sync = { event.u.syncProgress.percentComplete }}
+            };
+            break;
 
         case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
             cwmEvent = (BRCryptoWalletManagerEvent) {

@@ -138,6 +138,8 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                              cwmPath,
                                              cryptoNetworkGetHeight(network));
 
+            BRWalletManagerStart (cwm->u.btc);
+
             break;
         }
 
@@ -275,6 +277,7 @@ cryptoWalletManagerRelease (BRCryptoWalletManager cwm) {
 
     switch (cwm->type) {
         case BLOCK_CHAIN_TYPE_BTC:
+            BRWalletManagerStop (cwm->u.btc);
             BRWalletManagerFree (cwm->u.btc);
             break;
         case BLOCK_CHAIN_TYPE_ETH:
@@ -470,12 +473,13 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
             UInt512 seed = cryptoAccountDeriveSeed(paperKey);
 
             if (BRWalletManagerSignTransaction (cwm->u.btc,
+                                                cryptoWalletAsBTC (wallet),
                                                 cryptoTransferAsBTC(transfer),
                                                 &seed,
                                                 sizeof (seed))) {
-                // Submit a copy of the transaction as we lose ownership of it once it has been submitted
                 BRWalletManagerSubmitTransaction (cwm->u.btc,
-                                                  BRTransactionCopy (cryptoTransferAsBTC(transfer)));
+                                                  cryptoWalletAsBTC (wallet),
+                                                  cryptoTransferAsBTC(transfer));
             }
             break;
         }
