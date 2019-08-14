@@ -43,21 +43,9 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
         XCTAssertNotNil(wallet)
 
         // Connect and wait for a number of transfers
-        var transferCount: Int = 10
-        let transferExpectation = XCTestExpectation (description: "Transfer")
-        listener.walletHandlers += [
-            { (system: System, manager: WalletManager, wallet: Wallet, event: WalletEvent) -> Void in
-                switch event {
-                case .transferAdded:
-                    transferCount -= 1
-                    if 0 == transferCount {
-                        transferExpectation.fulfill()
-                    }
-                default: break
-                }
-            }]
+        listener.transferCount = 10
         manager.connect()
-        wait (for: [transferExpectation ], timeout: 70)
+        wait (for: [listener.transferExpectation], timeout: 70)
 
         XCTAssertFalse (wallet.transfers.isEmpty)
         XCTAssertTrue  (wallet.transfers.count >= 10)
@@ -110,21 +98,9 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
         XCTAssertNotNil(wallet)
 
         // Connect and wait for a number of transfers
-        var transferCount: Int = 3
-        let transferExpectation = XCTestExpectation (description: "Transfer")
-        listener.walletHandlers += [
-            { (system: System, manager: WalletManager, wallet: Wallet, event: WalletEvent) -> Void in
-                switch event {
-                case .transferAdded:
-                    transferCount -= 1
-                    if 0 == transferCount {
-                        transferExpectation.fulfill()
-                    }
-                default: break
-                }
-            }]
+        listener.transferCount = 3
         manager.connect()
-        wait (for: [transferExpectation ], timeout: 70)
+        wait (for: [listener.transferExpectation], timeout: 70)
 
         XCTAssertFalse (wallet.transfers.isEmpty)
         XCTAssertTrue  (wallet.transfers.count >= 3)

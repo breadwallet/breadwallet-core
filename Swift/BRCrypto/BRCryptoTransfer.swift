@@ -192,8 +192,7 @@ public enum TransferDirection: Equatable {
 /// The provided properties allow the App to present detailed information - specifically the
 /// 'cost factor' and the 'price per cost factor'.
 ///
-public class TransferFeeBasis {
-
+public class TransferFeeBasis: Equatable {
     /// The Core representation
     internal let core: BRCryptoFeeBasis
 
@@ -236,12 +235,18 @@ public class TransferFeeBasis {
     deinit {
         cryptoFeeBasisGive (core)
     }
+
+    public static func == (lhs: TransferFeeBasis, rhs: TransferFeeBasis) -> Bool {
+        return (lhs.currency == rhs.currency &&
+            lhs.pricePerCostFactor == rhs.pricePerCostFactor &&
+            lhs.costFactor == rhs.costFactor)
+    }
 }
 
 ///
 /// A TransferConfirmation holds confirmation information.
 ///
-public struct TransferConfirmation {
+public struct TransferConfirmation: Equatable {
     public let blockNumber: UInt64
     public let transactionIndex: UInt64
     public let timestamp: UInt64
@@ -303,6 +308,8 @@ public enum TransferState {
         }
     }
 }
+
+extension TransferState: Equatable {}
 
 extension TransferState: CustomStringConvertible {
     public var description: String {

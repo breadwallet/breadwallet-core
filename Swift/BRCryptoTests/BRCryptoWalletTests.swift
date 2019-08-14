@@ -76,23 +76,12 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
         XCTAssertNil(transfer)
 
         // Connect and wait for a number of transfers
-        var transferCount: Int = 10
-        let transferExpectation = XCTestExpectation (description: "Transfer")
-        listener.walletHandlers += [
-            { (system: System, manager: WalletManager, wallet: Wallet, event: WalletEvent) -> Void in
-                switch event {
-                case .transferAdded:
-                    transferCount -= 1
-                    if 0 == transferCount {
-                        transferExpectation.fulfill()
-                    }
-                default: break
-                }
-            }]
+        listener.transferCount = 10
         manager.connect()
-        wait (for: [transferExpectation ], timeout: 70)
+        wait (for: [listener.transferExpectation], timeout: 70)
 
         // Try again
+        sleep (30)
         transfer = wallet.createTransfer (target: transferTargetAddress,
                                           amount: transferAmount,
                                           estimatedFeeBasis: feeBasis)
@@ -103,10 +92,14 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
         // the transfer's estimatedFeeBasis is the original feeBasis but w/ a correct cost factor
         XCTAssertNotEqual (transfer.estimatedFeeBasis!.fee, feeBasis.fee)
         XCTAssertNotEqual (transfer.fee, feeBasis.fee)
+
+        // Because we sent this to outself, our `transfer.target` will be `nil`
         XCTAssertEqual (transfer.target, transferTargetAddress)
         XCTAssertEqual (transfer.unit, wallet.unit)
+        // Because we sent this to ourself, the transfer.amount is going to be some random value
+        // (literally random) from amoug the UTXOs.
         XCTAssertEqual (transfer.amount, transferAmount)
-        XCTAssertEqual (transfer.amountDirected, transferAmount)
+        XCTAssertEqual (transfer.amountDirected, Amount.create(integer: 0, unit: transferBaseUnit))
 
         XCTAssertNil   (transfer.confirmedFeeBasis)
         XCTAssertNil   (transfer.confirmation)
@@ -131,6 +124,25 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
         if case .success = feeEstimateResult! {} else { XCTAssertTrue(false) }
 
         manager.disconnect()
+
+        // Events
+
+        XCTAssertTrue (listener.checkSystemEvents(
+            [EventMatcher (event: SystemEvent.managerAdded(manager: manager), strict: true, scan: true)
+            ]))
+
+        XCTAssertTrue (listener.checkManagerEvents(
+            [WalletManagerEvent.created,
+             WalletManagerEvent.walletAdded(wallet: wallet),
+             WalletManagerEvent.changed(oldState: WalletManagerState.created,   newState: WalletManagerState.connected),
+             WalletManagerEvent.changed(oldState: WalletManagerState.connected, newState: WalletManagerState.created)
+            ], strict: true))
+
+        XCTAssertTrue (listener.checkWalletEvents(
+            [EventMatcher (event: WalletEvent.created),
+             EventMatcher (event: WalletEvent.transferAdded(transfer: transfer), strict: true, scan: true),
+             EventMatcher (event: WalletEvent.balanceUpdated(amount: wallet.balance), strict: true, scan: true)
+            ]))
     }
 
     func testWalletETH() {

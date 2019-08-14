@@ -159,6 +159,9 @@ cryptoTransferCreateAsBTC (BRCryptoUnit unit,
 
             BRTxOutputAddress (&outputs[index], address, addressSize, addressParams);
 
+            // There will be no targetAddress if we send the amount to ourselves.  In that
+            // case `outputsContain = 0` and every output is our own address and thus 1 is always
+            // returned by `BRWalletContainsAddress()`
             if (outputsContain == BRWalletContainsAddress(wid, address)) {
                 assert (addressSize < sizeof (BRAddress));
                 transfer->targetAddress = cryptoAddressCreateAsBTC (BRAddressFill (addressParams, address));
