@@ -775,6 +775,22 @@ static void
 _BRWalletManagerSyncEvent(void * context,
                           BRSyncManager manager,
                           OwnershipKept BRSyncManagerEvent event) {
+    /**
+     * The `BRSyncManagerEvent` event is `OwnershipKept`. That means that the
+     * event needs to be handled inline or copies of the event data need to be
+     * made.
+     *
+     * For BLOCKS and PEERS events, we handle them inline, rather than copy them.
+     *
+     * For CONNECTIVITY/SYNCING/HEIGHT events, we queue them, as they contain no out
+     * of band data (i.e. pointers).
+     *
+     * For SYNC_MANAGER_TXN_SUBMITTED, we call out immediately to our client listener.
+     * When the wallet manager owns all transactions, we should switch to
+     * `bwmSignalWalletEvent` from `bwmHandleWalletEvent` but that is not possible at
+     * the moment.
+     */
+
     BRWalletManager bwm = (BRWalletManager) context;
     switch (event.type) {
         case SYNC_MANAGER_SET_BLOCKS: {
