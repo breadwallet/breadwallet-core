@@ -660,6 +660,11 @@ BRWalletManagerEstimateFeeForTransfer (BRWalletManager manager,
 
 /// MARK: Wallet Callbacks
 
+// This callback comes from the BRWallet. That component has no
+// inherent threading model of its own. As such, these callbacks can
+// occur on any thread (including that of the caller that triggered
+// the callback).
+
 static void
 _BRWalletManagerBalanceChanged (void *info,
                                 uint64_t balanceInSatoshi) {
@@ -743,6 +748,11 @@ _BRWalletManagerTxDeleted (void *info,
 ///
 /// Mark: SyncManager Events
 ///
+
+// This callback comes from the BRSyncManager. That component has no
+// inherent threading model of its own. As such, these callbacks can
+// occur on any thread (including that of the caller that triggered
+// the event).
 
 static void
 _BRWalletManagerSyncEvent(void * context,
@@ -849,6 +859,11 @@ _BRWalletManagerSyncEvent(void * context,
 /// Mark: BRSyncManager Client Callbacks
 ///
 
+// These callbacks come from the BRSyncManager. That component has no
+// inherent threading model of its own. As such, these callbacks can
+// occur on any thread (including that of the caller that triggered
+// the event).
+
 static void _BRWalletManagerGetBlockNumber(void * context,
                                            BRSyncManager manager,
                                            int rid) {
@@ -897,6 +912,10 @@ _BRWalletManagerSubmitTransaction(void * context,
 /// MARK: BRWalletManagerClient Completion Routines
 //
 
+// These announcers are called by a client once it has completed
+// a request. The threading model of a client is unknown. As such,
+// these callbacks can occur on any thread.
+
 extern int
 bwmAnnounceBlockNumber (BRWalletManager manager,
                         int rid,
@@ -906,18 +925,35 @@ bwmAnnounceBlockNumber (BRWalletManager manager,
 }
 
 extern int
-bwmHandleAnnounceBlockNumber (BRWalletManager manager,
-                              int rid,
-                              uint64_t blockNumber) {
-    BRSyncManagerAnnounceGetBlockNumber (manager->syncManager, rid, (int32_t) blockNumber);
-    return 1;
-}
-
-extern int
 bwmAnnounceTransaction (BRWalletManager manager,
                         int id,
                         OwnershipGiven BRTransaction *transaction) {
     bwmSignalAnnounceTransaction (manager, id, transaction);
+    return 1;
+}
+
+extern void
+bwmAnnounceTransactionComplete (BRWalletManager manager,
+                                int rid,
+                                int success) {
+    bwmSignalAnnounceTransactionComplete (manager, rid, success);
+}
+
+extern void
+bwmAnnounceSubmit (BRWalletManager manager,
+                   int rid,
+                   OwnershipGiven BRTransaction *transaction,
+                   int error) {
+    bwmSignalAnnounceSubmit (manager, rid, transaction, error);
+}
+
+// These handlers are called by the event handler thread.
+
+extern int
+bwmHandleAnnounceBlockNumber (BRWalletManager manager,
+                              int rid,
+                              uint64_t blockNumber) {
+    BRSyncManagerAnnounceGetBlockNumber (manager->syncManager, rid, (int32_t) blockNumber);
     return 1;
 }
 
@@ -930,25 +966,10 @@ bwmHandleAnnounceTransaction (BRWalletManager manager,
 }
 
 extern void
-bwmAnnounceTransactionComplete (BRWalletManager manager,
-                                int rid,
-                                int success) {
-    bwmSignalAnnounceTransactionComplete (manager, rid, success);
-}
-
-extern void
 bwmHandleAnnounceTransactionComplete (BRWalletManager manager,
                                       int rid,
                                       int success) {
     BRSyncManagerAnnounceGetTransactionsDone (manager->syncManager, rid, success);
-}
-
-extern void
-bwmAnnounceSubmit (BRWalletManager manager,
-                   int rid,
-                   OwnershipGiven BRTransaction *transaction,
-                   int error) {
-    bwmSignalAnnounceSubmit (manager, rid, transaction, error);
 }
 
 extern void
@@ -962,6 +983,11 @@ bwmHandleAnnounceSubmit (BRWalletManager manager,
 ///
 /// MARK: BRWalletManager Events
 //
+
+// TODO(fix): Update this comment once these handlers are no longer
+//            called directly in the case of transaction ownership
+// These handlers *SHOULD* be called by the event handler thread. Once
+// transaction ownership is sorted out, that should be the case.
 
 extern void
 bwmHandleWalletManagerEvent(BRWalletManager bwm,
@@ -999,7 +1025,7 @@ bwmHandleTransactionEvent(BRWalletManager bwm,
 //
 // Periodicaly query the BRD backend to get current status (block number, nonce, balances,
 // transactions and logs) The event will be NULL (as specified for a 'period dispatcher' - See
-// `eventHandlerSetTimeoutDispatcher()`)
+// `eventHandlerSetTimeoutDispatcher()`). This is called by the event handler thread.
 //
 static void
 bwmPeriodicDispatcher (BREventHandler handler,
