@@ -14,6 +14,7 @@ public class KeyAIT {
     public void testKey() {
         byte[] s;
         byte[] t;
+        byte[] n;
         Optional<Key> k;
         Optional<Key> l;
         boolean p;
@@ -91,15 +92,53 @@ public class KeyAIT {
         //
         // Phrase
         //
-        k = Key.createFromPhrase("nothing".getBytes(StandardCharsets.UTF_8), HelpersAIT.BIP39_WORDS_EN);
+
+        s = "ginger settle marine tissue robot crane night number ramp coast roast critic".getBytes(StandardCharsets.UTF_8);
+        k = Key.createFromPhrase(s, HelpersAIT.BIP39_WORDS_EN);
+        assertTrue(k.isPresent());
+
+        s = "ginger settle marine tissue robot crane night number ramp coast roast critic".getBytes(StandardCharsets.UTF_8);
+        k = Key.createFromPhrase(s, null);
         assertFalse(k.isPresent());
-        k = Key.createFromPhrase("ginger settle marine tissue robot crane night number ramp coast roast critic".getBytes(StandardCharsets.UTF_8), HelpersAIT.BIP39_WORDS_EN);
-        assertTrue(k.isPresent());;
+
+        s = "not-a-chance".getBytes(StandardCharsets.UTF_8);
+        k = Key.createFromPhrase(s, HelpersAIT.BIP39_WORDS_EN);
+        assertFalse(k.isPresent());
 
         // Pigeon
 
+        s = "5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF".getBytes(StandardCharsets.UTF_8);
+        k = Key.createFromPrivateKeyString(s);
+        n = "nonce".getBytes(StandardCharsets.UTF_8);
+        l = Key.createForPigeon(k.get(), n);
+        assertTrue(l.isPresent());
+
         // BIP32ApiAuth
 
+        s = "ginger settle marine tissue robot crane night number ramp coast roast critic".getBytes(StandardCharsets.UTF_8);
+        k = Key.createForBIP32ApiAuth (s, HelpersAIT.BIP39_WORDS_EN);
+        assertTrue(k.isPresent());
+
+        s = "ginger settle marine tissue robot crane night number ramp coast roast critic".getBytes(StandardCharsets.UTF_8);
+        k = Key.createForBIP32ApiAuth (s, null);
+        assertFalse(k.isPresent());
+
+        s = "not-a-chance".getBytes(StandardCharsets.UTF_8);
+        k = Key.createForBIP32ApiAuth (s, HelpersAIT.BIP39_WORDS_EN);
+        assertFalse(k.isPresent());
+
         // BIP32BitID
+
+        s = "ginger settle marine tissue robot crane night number ramp coast roast critic".getBytes(StandardCharsets.UTF_8);
+        k = Key.createForBIP32BitID (s,2, "some uri", HelpersAIT.BIP39_WORDS_EN);
+        assertTrue(k.isPresent());
+
+        s = "ginger settle marine tissue robot crane night number ramp coast roast critic".getBytes(StandardCharsets.UTF_8);
+        k = Key.createForBIP32BitID (s,2, "some uri", null);
+        assertFalse(k.isPresent());
+
+        s = "not-a-chance".getBytes(StandardCharsets.UTF_8);
+        k = Key.createForBIP32BitID (s,2, "some uri", HelpersAIT.BIP39_WORDS_EN);
+        assertFalse(k.isPresent());
     }
 }

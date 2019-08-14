@@ -6,6 +6,14 @@ import java.util.List;
 
 public interface Key {
 
+    static void setDefaultWordList(List<String> wordList) {
+        CryptoApi.getProvider().keyProvider().setDefaultWordList(wordList);
+    }
+
+    static List<String> getDefaultWordList() {
+        return CryptoApi.getProvider().keyProvider().getDefaultWordList();
+    }
+
     static boolean isProtectedPrivateKeyString(byte[] privatekeyUtf8) {
         return CryptoApi.getProvider().keyProvider().isProtectedPrivateKeyString(privatekeyUtf8);
     }
