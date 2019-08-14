@@ -491,13 +491,8 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
             uint64_t value = cryptoAmountGetIntegerRaw (amount, &overflow);
             if (CRYPTO_TRUE == overflow) { return NULL; }
 
-            // TODO: Set Wallet FeePerKB
-            uint64_t feePerKbSaved = BRWalletFeePerKb (wid);
-            uint64_t feePerKb      = cryptoFeeBasisAsBTC(estimatedFeeBasis);
-
-            BRWalletSetFeePerKb (wid, feePerKb);
-            BRTransaction *tid = BRWalletManagerCreateTransaction (bwm, wid, value, addr);
-            BRWalletSetFeePerKb (wid, feePerKbSaved);
+            BRTransaction *tid = BRWalletManagerCreateTransaction (bwm, wid, value, addr,
+                                                                   cryptoFeeBasisAsBTC(estimatedFeeBasis));
 
             // The above BRWalletManagerCreateTransaction call resulted in a
             // BITCOIN_TRANSACTION_CREATED event occuring inline, on this same
@@ -531,8 +526,18 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
                                           : amountCreateEther (etherCreate (ethValue)));
             BREthereumFeeBasis ethFeeBasis = cryptoFeeBasisAsETH (estimatedFeeBasis);
 
+            //
+            // We have a race condition here. `ewmWalletCreateTransferWithFeeBasis()` will generate
+            // a `TRANSFER_EVENT_CREATED` event; `cwmTransactionEventAsETH()` will eventually get
+            // called and attempt to find or create the BRCryptoTransfer.
+            //
+            // We might think about locking the wallet around the following two statements and then
+            // locking in `cwmTransactionEventAsETH()` too - perhaps justifying it with 'we are
+            // mucking w/ the wallet's transactions' so we should lock it (over a block of
+            // statements).
+            //
             BREthereumTransfer tid = ewmWalletCreateTransferWithFeeBasis (ewm, wid, addr, ethAmount, ethFeeBasis);
-            transfer = NULL == tid ? NULL : cryptoTransferCreateAsETH (unit, unitForFee, ewm, tid);
+            transfer = NULL == tid ? NULL : cryptoTransferCreateAsETH (unit, unitForFee, ewm, tid, estimatedFeeBasis);
             break;
         }
 

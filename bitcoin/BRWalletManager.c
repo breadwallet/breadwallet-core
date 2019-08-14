@@ -738,8 +738,15 @@ extern BRTransaction *
 BRWalletManagerCreateTransaction (BRWalletManager manager,
                                   BRWallet *wallet,
                                   uint64_t amount,
-                                  const char *addr) {
+                                  const char *addr,
+                                  uint64_t feePerKb) {
+    pthread_mutex_lock (&manager->lock);
+    uint64_t feePerKbSaved = BRWalletFeePerKb (wallet);
+    BRWalletSetFeePerKb (wallet, feePerKb);
     BRTransaction *transaction = BRWalletCreateTransaction (wallet, amount, addr);
+    BRWalletSetFeePerKb (wallet, feePerKbSaved);
+    pthread_mutex_unlock (&manager->lock);
+
     if (NULL != transaction) {
         assert (NULL != manager->client.funcTransactionEvent);
         manager->client.funcTransactionEvent (manager->client.context,

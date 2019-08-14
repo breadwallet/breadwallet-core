@@ -68,7 +68,10 @@ public final class Transfer: Equatable {
     ///
     /// The basis for the estimated fee.  This is only not-nil if we have created the transfer
     /// IN THIS MEMORY INSTANCE (assume this for now).
-    public let estimatedFeeBasis: TransferFeeBasis?
+    public var estimatedFeeBasis: TransferFeeBasis? {
+        return cryptoTransferGetEstimatedFeeBasis (core)
+            .map { TransferFeeBasis (core: $0, take: false) }
+    }
 
     /// The basis for the confirmed fee.
     public var confirmedFeeBasis: TransferFeeBasis? {
@@ -116,9 +119,6 @@ public final class Transfer: Equatable {
 
         self.unit       = Unit (core: cryptoTransferGetUnitForAmount (core), take: false)
         self.unitForFee = Unit (core: cryptoTransferGetUnitForFee (core),    take: false)
-
-        self.estimatedFeeBasis = cryptoTransferGetEstimatedFeeBasis (core)
-            .map { TransferFeeBasis (core: $0, take: false) }
 
         // Other properties
         self.amount         = Amount (core: cryptoTransferGetAmount (core),        take: false)

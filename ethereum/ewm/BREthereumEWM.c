@@ -2567,13 +2567,3 @@ ewmTransferDelete (BREthereumEWM ewm,
     // Null the ewm's `tid` - MUST NOT array_rm() as all `tid` holders will be dead.
     transferRelease(transfer);
 }
-
-extern BREthereumFeeBasis
-feeBasisCreate (BREthereumGas limit,
-                BREthereumGasPrice price) {
-    return (BREthereumFeeBasis) {
-        FEE_BASIS_GAS,
-        { .gas = { limit, price }}
-    };
-}
-
