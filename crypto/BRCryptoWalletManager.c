@@ -473,10 +473,12 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
             UInt512 seed = cryptoAccountDeriveSeed(paperKey);
 
             if (BRWalletManagerSignTransaction (cwm->u.btc,
+                                                cryptoWalletAsBTC (wallet),
                                                 cryptoTransferAsBTC(transfer),
                                                 &seed,
                                                 sizeof (seed))) {
                 BRWalletManagerSubmitTransaction (cwm->u.btc,
+                                                  cryptoWalletAsBTC (wallet),
                                                   cryptoTransferAsBTC(transfer));
             }
             break;

@@ -284,6 +284,7 @@ BRWalletManagerGetWallet (BRWalletManager manager);
  */
 extern BRTransaction *
 BRWalletManagerCreateTransaction (BRWalletManager manager,
+                                  BRWallet *wallet,
                                   uint64_t amount,
                                   const char *addr);
 
@@ -296,12 +297,14 @@ BRWalletManagerCreateTransaction (BRWalletManager manager,
  */
 extern int
 BRWalletManagerSignTransaction (BRWalletManager manager,
+                                BRWallet *wallet,
                                 OwnershipKept BRTransaction *transaction,
                                 const void *seed,
                                 size_t seedLen);
 
 extern void
 BRWalletManagerSubmitTransaction (BRWalletManager manager,
+                                  BRWallet *wallet,
                                   OwnershipKept BRTransaction *transaction);
 
 extern void

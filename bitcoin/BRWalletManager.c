@@ -579,15 +579,18 @@ BRWalletManagerScan (BRWalletManager manager) {
 
 extern BRTransaction *
 BRWalletManagerCreateTransaction (BRWalletManager manager,
+                                  BRWallet *wallet,
                                   uint64_t amount,
                                   const char *addr) {
-    BRTransaction *transaction = BRWalletCreateTransaction (manager->wallet, amount, addr);
+    assert (wallet == manager->wallet);
+
+    BRTransaction *transaction = BRWalletCreateTransaction (wallet, amount, addr);
     if (NULL != transaction) {
         // TODO(fix): Once transactions are "owned" by the wallet manager, this should be
         //            changed to bwmSignalTransactionEvent. We can't do that now
         //            because the transaction could be deleted before the even is handled.
         bwmHandleTransactionEvent(manager,
-                                  manager->wallet,
+                                  wallet,
                                   transaction,
                                   (BRTransactionEvent) {
                                       BITCOIN_TRANSACTION_CREATED
@@ -599,16 +602,19 @@ BRWalletManagerCreateTransaction (BRWalletManager manager,
 
 extern int
 BRWalletManagerSignTransaction (BRWalletManager manager,
+                                BRWallet *wallet,
                                 OwnershipKept BRTransaction *transaction,
                                 const void *seed,
                                 size_t seedLen) {
-    int r = (1 == BRWalletSignTransaction (manager->wallet, transaction, manager->forkId, seed, seedLen) ? 1 : 0);
+    assert (wallet == manager->wallet);
+
+    int r = (1 == BRWalletSignTransaction (wallet, transaction, manager->forkId, seed, seedLen) ? 1 : 0);
     if (r) {
         // TODO(fix): Once transactions are "owned" by the wallet manager, this should be
         //            changed to bwmSignalTransactionEvent. We can't do that now
         //            because the transaction could be deleted before the even is handled.
         bwmHandleTransactionEvent(manager,
-                                  manager->wallet,
+                                  wallet,
                                   transaction,
                                   (BRTransactionEvent) {
                                       BITCOIN_TRANSACTION_SIGNED
@@ -620,6 +626,7 @@ BRWalletManagerSignTransaction (BRWalletManager manager,
 
 extern void
 BRWalletManagerSubmitTransaction (BRWalletManager manager,
+                                  BRWallet *wallet,
                                   OwnershipKept BRTransaction *transaction) {
     BRSyncManagerSubmit (manager->syncManager, BRTransactionCopy (transaction));
 }
@@ -628,10 +635,11 @@ extern void
 BRWalletManagerUpdateFeePerKB (BRWalletManager manager,
                                BRWallet *wallet,
                                uint64_t feePerKb) {
-    BRWalletSetFeePerKb (wallet, feePerKb);
+    assert (wallet == manager->wallet);
 
+    BRWalletSetFeePerKb (wallet, feePerKb);
     bwmSignalWalletEvent(manager,
-                         manager->wallet,
+                         wallet,
                          (BRWalletEvent) {
                              BITCOIN_WALLET_FEE_PER_KB_UPDATED,
                              { .feePerKb = { feePerKb }}
@@ -644,6 +652,8 @@ BRWalletManagerEstimateFeeForTransfer (BRWalletManager manager,
                                        BRCookie cookie,
                                        uint64_t transferAmount,
                                        uint64_t feePerKb) {
+    assert (wallet == manager->wallet);
+
     uint64_t feePerKBSaved = BRWalletFeePerKb (wallet);
     BRWalletSetFeePerKb (wallet, feePerKb);
     uint64_t fee  = (0 == transferAmount ? 0 : BRWalletFeeForTxAmount (wallet, transferAmount));
@@ -651,7 +661,7 @@ BRWalletManagerEstimateFeeForTransfer (BRWalletManager manager,
     BRWalletSetFeePerKb (wallet, feePerKBSaved);
 
     bwmSignalWalletEvent(manager,
-                         manager->wallet,
+                         wallet,
                          (BRWalletEvent) {
                              BITCOIN_WALLET_FEE_ESTIMATED,
                                 { .feeEstimated = { cookie, feePerKb, sizeInByte }}

@@ -1,4 +1,4 @@
-//  BRSyncManager.h
+//  BRSyncManager.c
 //
 //  Created by Michael Carrara on 12/08/19.
 //  Copyright (c) 2019 breadwallet LLC.
@@ -341,99 +341,41 @@ BRSyncManagerNewForMode(BRSyncMode mode,
                         size_t blocksCount,
                         OwnershipKept const BRPeer peers[],
                         size_t peersCount) {
+    assert (NULL != eventCallback);
+    assert (NULL != params);
+    assert (NULL != wallet);
+    assert(blocks != NULL || blocksCount == 0);
+    assert(peers != NULL || peersCount == 0);
+
     switch (mode) {
         case SYNC_MODE_BRD_ONLY:
-        return BRSyncManagerNewForClient (eventContext,
-                                          eventCallback,
-                                          clientContext,
-                                          clientCallbacks,
-                                          params,
-                                          wallet,
-                                          earliestKeyTime,
-                                          blockHeight,
-                                          blocks,
-                                          blocksCount,
-                                          peers,
-                                          peersCount);
+        return BRClientSyncManagerAsSyncManager (BRClientSyncManagerNew (eventContext,
+                                                                         eventCallback,
+                                                                         clientContext,
+                                                                         clientCallbacks,
+                                                                         params,
+                                                                         wallet,
+                                                                         earliestKeyTime,
+                                                                         blockHeight,
+                                                                         blocks,
+                                                                         blocksCount,
+                                                                         peers,
+                                                                         peersCount));
         case SYNC_MODE_P2P_ONLY:
-        return BRSyncManagerNewForP2P (eventContext,
-                                       eventCallback,
-                                       params,
-                                       wallet,
-                                       earliestKeyTime,
-                                       blockHeight,
-                                       blocks,
-                                       blocksCount,
-                                       peers,
-                                       peersCount);
+        return BRPeerSyncManagerAsSyncManager (BRPeerSyncManagerNew (eventContext,
+                                                                     eventCallback,
+                                                                     params,
+                                                                     wallet,
+                                                                     earliestKeyTime,
+                                                                     blockHeight,
+                                                                     blocks,
+                                                                     blocksCount,
+                                                                     peers,
+                                                                     peersCount));
         default:
         assert (0);
         return NULL;
     }
-}
-
-extern BRSyncManager
-BRSyncManagerNewForClient(BRSyncManagerEventContext eventContext,
-                          BRSyncManagerEventCallback eventCallback,
-                          BRSyncManagerClientContext clientContext,
-                          BRSyncManagerClientCallbacks clientCallbacks,
-                          OwnershipKept const BRChainParams *params,
-                          OwnershipKept BRWallet *wallet,
-                          uint32_t earliestKeyTime,
-                          uint64_t blockHeight,
-                          OwnershipKept BRMerkleBlock *blocks[],
-                          size_t blocksCount,
-                          OwnershipKept const BRPeer peers[],
-                          size_t peersCount) {
-    assert (NULL != eventCallback);
-    assert (NULL != params);
-    assert (NULL != wallet);
-    assert(blocks != NULL || blocksCount == 0);
-    assert(peers != NULL || peersCount == 0);
-
-    BRClientSyncManager clientManager = BRClientSyncManagerNew(eventContext,
-                                                               eventCallback,
-                                                               clientContext,
-                                                               clientCallbacks,
-                                                               params,
-                                                               wallet,
-                                                               earliestKeyTime,
-                                                               blockHeight,
-                                                               blocks,
-                                                               blocksCount,
-                                                               peers,
-                                                               peersCount);
-    return BRClientSyncManagerAsSyncManager (clientManager);
-}
-
-extern BRSyncManager
-BRSyncManagerNewForP2P(BRSyncManagerEventContext eventContext,
-                       BRSyncManagerEventCallback eventCallback,
-                       OwnershipKept const BRChainParams *params,
-                       OwnershipKept BRWallet *wallet,
-                       uint32_t earliestKeyTime,
-                       uint64_t blockHeight,
-                       OwnershipKept BRMerkleBlock *blocks[],
-                       size_t blocksCount,
-                       OwnershipKept const BRPeer peers[],
-                       size_t peersCount) {
-    assert (NULL != eventCallback);
-    assert (NULL != params);
-    assert (NULL != wallet);
-    assert(blocks != NULL || blocksCount == 0);
-    assert(peers != NULL || peersCount == 0);
-
-    BRPeerSyncManager peerManager = BRPeerSyncManagerNew(eventContext,
-                                                         eventCallback,
-                                                         params,
-                                                         wallet,
-                                                         earliestKeyTime,
-                                                         blockHeight,
-                                                         blocks,
-                                                         blocksCount,
-                                                         peers,
-                                                         peersCount);
-    return BRPeerSyncManagerAsSyncManager (peerManager);
 }
 
 extern void
@@ -1346,7 +1288,7 @@ BRPeerSyncManagerSubmit(BRPeerSyncManager manager,
 static void
 BRPeerSyncManagerTickTock(BRPeerSyncManager manager) {
     double progress = BRPeerManagerSyncProgress (manager->peerManager, 0);
-    uint8_t needSyncEvent = progress < 1.0;
+    uint8_t needSyncEvent = progress > 0.0 && progress < 1.0;
     if (needSyncEvent) {
         if (0 == pthread_mutex_lock (&manager->lock)) {
             needSyncEvent &= manager->isConnected && manager->isFullScan;

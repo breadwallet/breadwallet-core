@@ -144,32 +144,6 @@ BRSyncManagerNewForMode(BRSyncMode mode,
                         OwnershipKept const BRPeer peers[],
                         size_t peersCount);
 
-extern BRSyncManager
-BRSyncManagerNewForClient(BRSyncManagerEventContext eventContext,
-                          BRSyncManagerEventCallback eventCallback,
-                          BRSyncManagerClientContext clientContext,
-                          BRSyncManagerClientCallbacks client,
-                          OwnershipKept const BRChainParams *params,
-                          OwnershipKept BRWallet *wallet,
-                          uint32_t earliestKeyTime,
-                          uint64_t blockHeight,
-                          OwnershipKept BRMerkleBlock *blocks[],
-                          size_t blocksCount,
-                          OwnershipKept const BRPeer peers[],
-                          size_t peersCount);
-
-extern BRSyncManager
-BRSyncManagerNewForP2P(BRSyncManagerEventContext eventContext,
-                       BRSyncManagerEventCallback eventCallback,
-                       OwnershipKept const BRChainParams *params,
-                       OwnershipKept BRWallet *wallet,
-                       uint32_t earliestKeyTime,
-                       uint64_t blockHeight,
-                       OwnershipKept BRMerkleBlock *blocks[],
-                       size_t blocksCount,
-                       OwnershipKept const BRPeer peers[],
-                       size_t peersCount);
-
 extern void
 BRSyncManagerFree(BRSyncManager manager);
 
