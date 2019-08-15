@@ -300,7 +300,7 @@ eventHandlerStop (BREventHandler handler) {
         // A mini-race here?
         handler->thread = PTHREAD_NULL;
 
-        // Empty the queue completely.
+        // TODO: Empty the queue completely?  Or not?
         eventHandlerClear (handler);
     }
     pthread_mutex_unlock(&handler->lockOnStartStop);
