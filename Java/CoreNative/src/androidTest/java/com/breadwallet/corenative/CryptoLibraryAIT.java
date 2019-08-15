@@ -18,6 +18,7 @@ public class CryptoLibraryAIT {
 
     private String paperKey;
     private File coreDataDir;
+    private int epoch;
 
     @Before
     public void setup() {
@@ -26,6 +27,7 @@ public class CryptoLibraryAIT {
         // this is a compromised testnet paperkey
         paperKey = "ginger settle marine tissue robot crane night number ramp coast roast critic";
         coreDataDir = new File (context.getFilesDir(), "corenative");
+        epoch = 1504704195;
 
         coreDirCreate();
         coreDirClear();
@@ -57,8 +59,76 @@ public class CryptoLibraryAIT {
     @Test
     public void testBitcoinWalletManagerSync () {
         coreDirClear();
-        TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSync (paperKey, coreDataDir.getAbsolutePath(), 1, 1);
-        TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSync (paperKey, coreDataDir.getAbsolutePath(), 1, 1);
+        int success = 0;
+
+        success = TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSync (paperKey, coreDataDir.getAbsolutePath(), 1, 1);
+        assertEquals(1, success);
+
+        success = TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSync (paperKey, coreDataDir.getAbsolutePath(), 1, 1);
+        assertEquals(1, success);
+    }
+    @Test
+    public void testBitcoinWalletManagerSyncModes () {
+        int success = 0;
+        int isBTC = 0;
+        int isMainnet = 0;
+        long blockHeight = 0;
+
+        // BTC mainnet
+
+        isBTC = 1;
+        isMainnet = 1;
+        blockHeight = 500000;
+
+        coreDirClear();
+        success = TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSyncP2P(paperKey, coreDataDir.getAbsolutePath(), epoch, blockHeight, isBTC, isMainnet);
+        assertEquals(1, success);
+
+        coreDirClear();
+        success = TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSyncBRD(paperKey, coreDataDir.getAbsolutePath(), epoch, blockHeight, isBTC, isMainnet);
+        assertEquals(1, success);
+
+        // BTC testnet
+
+        isBTC = 1;
+        isMainnet = 0;
+        blockHeight = 1500000;
+
+        coreDirClear();
+        success = TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSyncP2P(paperKey, coreDataDir.getAbsolutePath(), epoch, blockHeight, isBTC, isMainnet);
+        assertEquals(1, success);
+
+        coreDirClear();
+        success = TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSyncBRD(paperKey, coreDataDir.getAbsolutePath(), epoch, blockHeight, isBTC, isMainnet);
+        assertEquals(1, success);
+
+        // BCH mainnet
+
+        isBTC = 0;
+        isMainnet = 1;
+        blockHeight = 500000;
+
+        coreDirClear();
+        success = TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSyncP2P(paperKey, coreDataDir.getAbsolutePath(), epoch, blockHeight, isBTC, isMainnet);
+        assertEquals(1, success);
+
+        coreDirClear();
+        success = TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSyncBRD(paperKey, coreDataDir.getAbsolutePath(), epoch, blockHeight, isBTC, isMainnet);
+        assertEquals(1, success);
+
+        // BCH testnet
+
+        isBTC = 0;
+        isMainnet = 0;
+        blockHeight = 1500000;
+
+        coreDirClear();
+        success = TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSyncP2P(paperKey, coreDataDir.getAbsolutePath(), epoch, blockHeight, isBTC, isMainnet);
+        assertEquals(1, success);
+
+        coreDirClear();
+        success = TestCryptoLibrary.INSTANCE.BRRunTestWalletManagerSyncBRD(paperKey, coreDataDir.getAbsolutePath(), epoch, blockHeight, isBTC, isMainnet);
+        assertEquals(1, success);
     }
 
     // Support
@@ -156,6 +226,8 @@ public class CryptoLibraryAIT {
         int BRRunSupTests();
         int BRRunTestsSync (String paperKey, int isBTC, int isMainnet);
         int BRRunTestWalletManagerSync (String paperKey, String storagePath, int isBTC, int isMainnet);
+        int BRRunTestWalletManagerSyncP2P(String paperKey, String storagePath, int epoch, long blockHeight, int isBTC, int isMainnet);
+        int BRRunTestWalletManagerSyncBRD(String paperKey, String storagePath, int epoch, long blockHeight, int isBTC, int isMainnet);
 
         void runCryptoTests();
 
