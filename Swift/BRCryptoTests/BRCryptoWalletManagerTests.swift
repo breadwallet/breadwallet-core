@@ -112,9 +112,6 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
              EventMatcher (event: WalletManagerEvent.syncEnded(error: nil), strict: false, scan: true),
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.syncing, newState: WalletManagerState.connected)),
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected, newState: WalletManagerState.disconnected)),
-//             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.syncing, newState: WalletManagerState.disconnected), scan: true),
-//             EventMatcher (event: WalletManagerEvent.syncEnded(error: nil), strict: false),
-//             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.disconnected, newState: WalletManagerState.connected)),
              ]))
     }
 
@@ -123,7 +120,10 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
         currencyCodesNeeded = ["eth", "brd"]
         modeMap = ["eth":WalletManagerMode.api_only]
         prepareAccount()
-        prepareSystem ()
+
+        let listener = CryptoTestSystemListener (currencyCodesNeeded: currencyCodesNeeded,
+                                                 isMainnet: isMainnet,
+                                                 modeMap: modeMap)
 
         // Listen for a non-primary wallet - specifically the BRD wallet
         var walletBRD: Wallet! = nil
@@ -136,6 +136,16 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
                 }
             }]
 
+        let walletManagerDisconnectExpectation = XCTestExpectation (description: "Wallet Manager Disconnect")
+        listener.managerHandlers += [
+            { (system: System, manager:WalletManager, event: WalletManagerEvent) in
+                if case let .changed(_, newState) = event, case .disconnected = newState {
+                    walletManagerDisconnectExpectation.fulfill()
+                }
+            }]
+
+        prepareSystem (listener: listener)
+
         let network: Network! = system.networks.first { "eth" == $0.currency.code && isMainnet == $0.isMainnet }
         XCTAssertNotNil (network)
 
@@ -143,7 +153,7 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
         XCTAssertNotNil (manager)
 
         let walletETH = manager.primaryWallet
-        wait (for: [walletBRDExpectation], timeout: 5)
+        wait (for: [walletBRDExpectation], timeout: 10)
 
         // Events
 
@@ -167,5 +177,27 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
         XCTAssertTrue (listener.checkTransferEvents(
             [],
             strict: true))
+
+        // Connect
+        listener.transferCount = 2
+        manager.connect()
+        wait (for: [self.listener.transferExpectation], timeout: 60)
+
+        manager.disconnect()
+        wait (for: [walletManagerDisconnectExpectation], timeout: 5)
+
+        // Same as BTC
+        XCTAssertTrue (listener.checkManagerEvents (
+            [EventMatcher (event: WalletManagerEvent.created),
+             EventMatcher (event: WalletManagerEvent.walletAdded(wallet: walletETH)),
+             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.created,   newState: WalletManagerState.connected)),
+             EventMatcher (event: WalletManagerEvent.syncStarted),
+             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected, newState: WalletManagerState.syncing)),
+             EventMatcher (event: WalletManagerEvent.syncProgress(percentComplete: 0), strict: false),
+
+             EventMatcher (event: WalletManagerEvent.syncEnded(error: nil), strict: false, scan: true),
+             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.syncing, newState: WalletManagerState.connected)),
+             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected, newState: WalletManagerState.disconnected)),
+            ]))
     }
 }
