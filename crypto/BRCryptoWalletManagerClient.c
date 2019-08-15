@@ -945,11 +945,7 @@ cwmWalletManagerEventAsETH (BREthereumClientContext context,
 static void
 cwmPeerEventAsETH (BREthereumClientContext context,
                    BREthereumEWM ewm,
-                   //BREthereumWallet wid,
-                   //BREthereumTransactionId tid,
-                   BREthereumPeerEvent event,
-                   BREthereumStatus status,
-                   const char *errorDescription) {
+                   BREthereumPeerEvent event) {
     BRCryptoWalletManager cwm = context;
     (void) cwm;
 }
@@ -1162,7 +1158,7 @@ cwmEventTokenAsETH (BREthereumClientContext context,
 
     BRCryptoWalletManager cwm = context;
 
-    switch (event) {
+    switch (event.type) {
         case TOKEN_EVENT_CREATED: {
             BRCryptoNetwork network = cryptoWalletManagerGetNetwork (cwm);
 

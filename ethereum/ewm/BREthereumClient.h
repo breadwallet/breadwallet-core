@@ -358,25 +358,34 @@ extern "C" {
         PEER_EVENT_CREATED = 0,
         PEER_EVENT_DELETED
         // added/removed/updated
-    } BREthereumPeerEvent;
+    } BREthereumPeerEventType;
 
-#define PEER_NUMBER_OF_EVENTS   (1 + PEER_EVENT_DELETED)
+#define PEER_NUMBER_OF_EVENT_TYPES   (1 + PEER_EVENT_DELETED)
+    typedef struct {
+        BREthereumPeerEventType type;
+        BREthereumStatus status;
+        // union { } u;
+        char errorDescription[16];
+    } BREthereumPeerEvent;
 
     typedef void (*BREthereumClientHandlerPeerEvent) (BREthereumClientContext context,
                                                       BREthereumEWM ewm,
-                                                      // BREthereumWallet wid,
-                                                      // BREthereumTransaction tid,
-                                                      BREthereumPeerEvent event,
-                                                      BREthereumStatus status,
-                                                      const char *errorDescription);
+                                                      BREthereumPeerEvent event);
 
     typedef enum {
         TOKEN_EVENT_CREATED = 0,
         TOKEN_EVENT_DELETED
+    } BREthereumTokenEventType;
+
+#define TOKEN_NUMBER_OF_EVENT_TYPES  (1 + TOKEN_EVENT_DELETED)
+
+    typedef struct {
+        BREthereumTokenEventType type;
+        BREthereumStatus status;
+        // union {} u;
+        char errorDescription[16];
     } BREthereumTokenEvent;
-
-#define TOKEN_NUMBER_OF_EVENTS  (1 + TOKEN_EVENT_DELETED)
-
+    
     typedef void (*BREthereumClientHandlerTokenEvent) (BREthereumClientContext context,
                                                        BREthereumEWM ewm,
                                                        BREthereumToken token,

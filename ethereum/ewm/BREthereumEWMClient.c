@@ -755,7 +755,7 @@ ewmHandleAnnounceToken (BREthereumEWM ewm,
     ewm->client.funcTokenEvent (ewm->client.context,
                                 ewm,
                                 token,
-                                TOKEN_EVENT_CREATED);
+                                (BREthereumTokenEvent) {TOKEN_EVENT_CREATED, SUCCESS });
 
     ewmClientAnnounceTokenBundleRelease(bundle);
 }
@@ -925,23 +925,15 @@ ewmHandleTransferEvent (BREthereumEWM ewm,
 
 extern void
 ewmHandlePeerEvent(BREthereumEWM ewm,
-                         // BREthereumWallet wid,
-                         // BREthereumTransaction tid,
-                         BREthereumPeerEvent event,
-                         BREthereumStatus status,
-                         const char *errorDescription) {
+                   BREthereumPeerEvent event) {
     ewm->client.funcPeerEvent (ewm->client.context,
                                ewm,
-                               // event->wid,
-                               // event->tid,
-                               event,
-                               status,
-                               errorDescription);
+                               event);
 }
 
 extern void
 ewmHandleEWMEvent(BREthereumEWM ewm,
-                        BREthereumEWMEvent event) {
+                  BREthereumEWMEvent event) {
     ewm->client.funcEWMEvent (ewm->client.context,
                               ewm,
                               event);

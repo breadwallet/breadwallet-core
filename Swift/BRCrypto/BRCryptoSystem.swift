@@ -1204,7 +1204,7 @@ extension BRTransactionEventType: CustomStringConvertible {
     }
 }
 
-extension BREthereumTokenEvent: CustomStringConvertible {
+extension BREthereumTokenEventType: CustomStringConvertible {
     public var description: String {
         switch self {
         case TOKEN_EVENT_CREATED: return "Created"
@@ -1214,7 +1214,7 @@ extension BREthereumTokenEvent: CustomStringConvertible {
     }
 }
 
-extension BREthereumPeerEvent: CustomStringConvertible {
+extension BREthereumPeerEventType: CustomStringConvertible {
     public var description: String {
         switch self {
         case PEER_EVENT_CREATED: return "Created"

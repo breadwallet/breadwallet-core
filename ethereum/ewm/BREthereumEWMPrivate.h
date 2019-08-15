@@ -585,19 +585,11 @@ ewmHandleTransferEvent(BREthereumEWM ewm,
 //
 extern void
 ewmSignalPeerEvent(BREthereumEWM ewm,
-                         // BREthereumWallet wid,
-                         // BREthereumTransaction tid,
-                         BREthereumPeerEvent event,
-                         BREthereumStatus status,
-                         const char *errorDescription);
+                   BREthereumPeerEvent event);
 
 extern void
 ewmHandlePeerEvent(BREthereumEWM ewm,
-                         // BREthereumWallet wid,
-                         // BREthereumTransaction tid,
-                         BREthereumPeerEvent event,
-                         BREthereumStatus status,
-                         const char *errorDescription);
+                   BREthereumPeerEvent event);
 
 //
 // EWM Event

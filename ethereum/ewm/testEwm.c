@@ -477,7 +477,7 @@ clientEventToken (BREthereumClientContext context,
                    BREthereumEWM ewm,
                    BREthereumToken token,
                    BREthereumTokenEvent event) {
-    fprintf (stdout, "ETH: TST: TokenEvent: wid=%p, ev=%d\n", token, event);
+    fprintf (stdout, "ETH: TST: TokenEvent: wid=%p, ev=%d\n", token, event.type);
 }
 
 #if defined (NEVER_DEFINED)
@@ -506,12 +506,8 @@ clientEventTransfer (BREthereumClientContext context,
 static void
 clientEventPeer (BREthereumClientContext context,
                  BREthereumEWM ewm,
-                 //BREthereumWallet wid,
-                 //BREthereumTransactionId tid,
-                 BREthereumPeerEvent event,
-                 BREthereumStatus status,
-                 const char *errorDescription) {
-    fprintf (stdout, "ETH: TST: PeerEvent: ev=%d\n", event);
+                 BREthereumPeerEvent event) {
+    fprintf (stdout, "ETH: TST: PeerEvent: ev=%d\n", event.type);
 }
 
 static void
