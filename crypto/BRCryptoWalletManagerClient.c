@@ -1043,8 +1043,7 @@ cwmWalletEventAsETH (BREthereumClientContext context,
 
         case WALLET_EVENT_BALANCE_UPDATED: {
             if (NULL != wallet) {
-                BRCryptoCurrency currency = cryptoNetworkGetCurrency(cwm->network);
-                BRCryptoUnit unit = cryptoNetworkGetUnitAsBase(cwm->network, currency);
+                BRCryptoUnit unit = cryptoWalletGetUnit(wallet);
 
                 // Get the wallet's amount...
                 BREthereumAmount amount = ewmWalletGetBalance(cwm->u.eth, wid);
@@ -1054,11 +1053,10 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                                  ? amountGetEther(amount).valueInWEI
                                  : amountGetTokenQuantity(amount).valueAsInteger);
 
-                // Use currency to create a cyrptoAmount in the base unit (implicitly).
-                BRCryptoAmount cryptoAmount = cryptoAmountCreate(unit, CRYPTO_FALSE, value);
+                // Create a cryptoAmount in the wallet's unit.
+                BRCryptoAmount cryptoAmount = cryptoAmountCreate (unit, CRYPTO_FALSE, value);
 
                 cryptoUnitGive(unit);
-                cryptoCurrencyGive(currency);
 
                 // Generate a BALANCE_UPDATED for the wallet
                 cwm->listener.walletEventCallback(cwm->listener.context,
