@@ -51,6 +51,8 @@ public final class CryptoApi {
     }
 
     public interface KeyProvider {
+        void setDefaultWordList(List<String> wordList);
+        List<String> getDefaultWordList();
         boolean isProtectedPrivateKeyString(byte[] keyStringUtf8);
         Optional<Key> createFromPhrase(byte[] phraseUtf8, List<String> words);
         Optional<Key> createFromPrivateKeyString(byte[] keyStringUtf8);

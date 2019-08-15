@@ -5,8 +5,23 @@ import com.google.common.base.Optional;
 
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 /* package */
 final class Key implements com.breadwallet.crypto.Key {
+
+    @Nullable
+    static private List<String> wordList;
+
+    /* package */
+    static void setDefaultWordList(List<String> wordList) {
+        Key.wordList = wordList;
+    }
+
+    /* package */
+    static List<String> getDefaultWordList() {
+        return Key.wordList;
+    }
 
     /* package */
     static boolean isProtectedPrivateKeyString(byte[] keyStringUtf8) {
@@ -14,7 +29,15 @@ final class Key implements com.breadwallet.crypto.Key {
     }
 
     /* package */
-    static Optional<Key> createFromPhrase(byte[] phraseUtf8, List<String> words) {
+    static Optional<Key> createFromPhrase(byte[] phraseUtf8, @Nullable List<String> words) {
+        if (words == null) {
+            words = Key.wordList;
+        }
+
+        if (words == null) {
+            return Optional.absent();
+        }
+
         return BRCryptoKey.createFromPhrase(phraseUtf8, words).transform(Key::new);
     }
 
@@ -39,12 +62,28 @@ final class Key implements com.breadwallet.crypto.Key {
     }
 
     /* package */
-    static Optional<Key> createForBIP32ApiAuth(byte[] phraseUtf8, List<String> words) {
+    static Optional<Key> createForBIP32ApiAuth(byte[] phraseUtf8, @Nullable List<String> words) {
+        if (words == null) {
+            words = Key.wordList;
+        }
+
+        if (words == null) {
+            return Optional.absent();
+        }
+
         return BRCryptoKey.createForBIP32ApiAuth(phraseUtf8, words).transform(Key::new);
     }
 
     /* package */
-    static Optional<Key> createForBIP32BitID(byte[] phraseUtf8, int index, String uri, List<String> words) {
+    static Optional<Key> createForBIP32BitID(byte[] phraseUtf8, int index, String uri, @Nullable List<String> words) {
+        if (words == null) {
+            words = Key.wordList;
+        }
+
+        if (words == null) {
+            return Optional.absent();
+        }
+
         return BRCryptoKey.createForBIP32BitID(phraseUtf8, index, uri, words).transform(Key::new);
     }
 
