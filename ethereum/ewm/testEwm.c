@@ -497,10 +497,8 @@ clientEventTransfer (BREthereumClientContext context,
                      BREthereumEWM ewm,
                      BREthereumWallet wid,
                      BREthereumTransfer tid,
-                     BREthereumTransferEvent event,
-                     BREthereumStatus status,
-                     const char *errorDescription) {
-    fprintf (stdout, "ETH: TST: TransferEvent: tid=%p, ev=%d\n", tid, event);
+                     BREthereumTransferEvent event) {
+    fprintf (stdout, "ETH: TST: TransferEvent: tid=%p, ev=%d\n", tid, event.type);
 }
 
 static void

@@ -863,16 +863,14 @@ ewmHandleBlockEvent(BREthereumEWM ewm,
 static int
 ewmNeedTransferSave (BREthereumEWM ewm,
                      BREthereumTransferEvent event) {
-    return (TRANSFER_EVENT_GAS_ESTIMATE_UPDATED != event);
+    return (TRANSFER_EVENT_GAS_ESTIMATE_UPDATED != event.type);
 }
 
 extern void
 ewmHandleTransferEvent (BREthereumEWM ewm,
                         BREthereumWallet wallet,
                         BREthereumTransfer transfer,
-                        BREthereumTransferEvent event,
-                        BREthereumStatus status,
-                        const char *errorDescription) {
+                        BREthereumTransferEvent event) {
 
     // If `transfer` represents a token transfer that we've created/submitted, then we won't have
     // the actual `log` until the corresponding originating transaction is included.  We won't
@@ -898,10 +896,10 @@ ewmHandleTransferEvent (BREthereumEWM ewm,
             // We know that only on SIGNED do we have a transaction hash.  Only on
             // included do we have a log hash.  Thus we might see CHANGE_UPD w/o a
             // CHANGE_ADD - and that is NOT a problem.
-            BREthereumClientChangeType type = ((event == TRANSFER_EVENT_CREATED ||
-                                                event == TRANSFER_EVENT_SIGNED)
+            BREthereumClientChangeType type = ((event.type == TRANSFER_EVENT_CREATED ||
+                                                event.type == TRANSFER_EVENT_SIGNED)
                                                ? CLIENT_CHANGE_ADD
-                                               : (event == TRANSFER_EVENT_DELETED
+                                               : (event.type == TRANSFER_EVENT_DELETED
                                                   ? CLIENT_CHANGE_REM
                                                   : CLIENT_CHANGE_UPD));
 
@@ -918,9 +916,7 @@ ewmHandleTransferEvent (BREthereumEWM ewm,
                                    ewm,
                                    wallet,
                                    transfer,
-                                   event,
-                                   status,
-                                   errorDescription);
+                                   event);
 }
 
 extern void

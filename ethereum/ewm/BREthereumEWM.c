@@ -1198,7 +1198,10 @@ ewmWalletCreateTransfer(BREthereumEWM ewm,
 
     // Transfer DOES NOT have a hash yet because it is not signed; but it is inserted in the
     // wallet and can be display, in order, w/o the hash
-    ewmSignalTransferEvent (ewm, wallet, transfer, TRANSFER_EVENT_CREATED, SUCCESS, NULL);
+    ewmSignalTransferEvent (ewm, wallet, transfer, (BREthereumTransferEvent) {
+        TRANSFER_EVENT_CREATED,
+        SUCCESS
+    });
 
     return transfer;
 }
@@ -1226,7 +1229,10 @@ ewmWalletCreateTransferGeneric(BREthereumEWM ewm,
 
     // Transfer DOES NOT have a hash yet because it is not signed; but it is inserted in the
     // wallet and can be display, in order, w/o the hash
-    ewmSignalTransferEvent(ewm, wallet, transfer, TRANSFER_EVENT_CREATED, SUCCESS, NULL);
+    ewmSignalTransferEvent(ewm, wallet, transfer, (BREthereumTransferEvent) {
+        TRANSFER_EVENT_CREATED,
+        SUCCESS
+    });
 
     return transfer;
 }
@@ -1247,7 +1253,10 @@ ewmWalletCreateTransferWithFeeBasis (BREthereumEWM ewm,
 
     // Transfer DOES NOT have a hash yet because it is not signed; but it is inserted in the
     // wallet and can be display, in order, w/o the hash
-    ewmSignalTransferEvent (ewm, wallet, transfer, TRANSFER_EVENT_CREATED, SUCCESS, NULL);
+    ewmSignalTransferEvent (ewm, wallet, transfer, (BREthereumTransferEvent) {
+        TRANSFER_EVENT_CREATED,
+        SUCCESS
+    });
 
     return transfer;
 }
@@ -1411,7 +1420,10 @@ static void
 ewmWalletSignTransferAnnounce (BREthereumEWM ewm,
                                BREthereumWallet wallet,
                                BREthereumTransfer transfer) {
-    ewmSignalTransferEvent (ewm, wallet, transfer, TRANSFER_EVENT_SIGNED,  SUCCESS, NULL);
+    ewmSignalTransferEvent (ewm, wallet, transfer, (BREthereumTransferEvent) {
+        TRANSFER_EVENT_SIGNED,
+        SUCCESS
+    });
 }
 
 extern void // status, error
@@ -1568,8 +1580,10 @@ ewmHandleGasEstimate (BREthereumEWM ewm,
     ewmSignalTransferEvent(ewm,
                            wallet,
                            transfer,
-                           TRANSFER_EVENT_GAS_ESTIMATE_UPDATED,
-                           SUCCESS, NULL);
+                           (BREthereumTransferEvent) {
+                               TRANSFER_EVENT_GAS_ESTIMATE_UPDATED,
+                               SUCCESS
+                           });
 
     pthread_mutex_unlock(&ewm->lock);
 
@@ -1686,22 +1700,26 @@ ewmReportTransferStatusAsEvent (BREthereumEWM ewm,
                                 BREthereumWallet wallet,
                                 BREthereumTransfer transfer) {
     if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_SUBMITTED)))
-        ewmSignalTransferEvent(ewm, wallet, transfer,
-                               TRANSFER_EVENT_SUBMITTED,
-                               SUCCESS, NULL);
+        ewmSignalTransferEvent(ewm, wallet, transfer, (BREthereumTransferEvent) {
+            TRANSFER_EVENT_SUBMITTED,
+            SUCCESS
+        });
 
     else if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_INCLUDED)))
-        ewmSignalTransferEvent(ewm, wallet, transfer,
-                               TRANSFER_EVENT_INCLUDED,
-                               SUCCESS, NULL);
+        ewmSignalTransferEvent(ewm, wallet, transfer, (BREthereumTransferEvent) {
+            TRANSFER_EVENT_INCLUDED,
+            SUCCESS
+        });
 
     else if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_ERRORED))) {
         char *reason = NULL;
         transferExtractStatusError (transfer, &reason);
-        ewmSignalTransferEvent(ewm, wallet, transfer,
-                               TRANSFER_EVENT_ERRORED,
-                               ERROR_TRANSACTION_SUBMISSION,
-                               (NULL == reason ? "" : reason));
+        BREthereumTransferEvent event = { TRANSFER_EVENT_ERRORED,  ERROR_TRANSACTION_SUBMISSION };
+        memset (event.errorDescription, 0, sizeof (event.errorDescription));
+        strncpy (event.errorDescription, reason, sizeof (event.errorDescription) - 1);
+
+        ewmSignalTransferEvent(ewm, wallet, transfer, event);
+
         // TODO: free(reason)?
         // Note: ewmSignalTransferEvent expects the 'reason' to stick around an never frees it.
         // If we free here, the string will be gone by the time it is handled.
@@ -1835,9 +1853,10 @@ ewmHandleTransaction (BREthereumEWM ewm,
         //
         // walletUpdateBalance (wallet);
 
-        ewmSignalTransferEvent (ewm, wallet, transfer,
-                                TRANSFER_EVENT_CREATED,
-                                SUCCESS, NULL);
+        ewmSignalTransferEvent (ewm, wallet, transfer, (BREthereumTransferEvent) {
+            TRANSFER_EVENT_CREATED,
+            SUCCESS
+        });
 
          // If this transfer is referenced by a log, fill out the log's fee basis.
         ewmHandleLogFeeBasis (ewm, hash, transfer, NULL);
@@ -1916,9 +1935,10 @@ ewmHandleLog (BREthereumEWM ewm,
         //
         // walletUpdateBalance (wallet);
 
-        ewmSignalTransferEvent (ewm, wallet, transfer,
-                                TRANSFER_EVENT_CREATED,
-                                SUCCESS, NULL);
+        ewmSignalTransferEvent (ewm, wallet, transfer, (BREthereumTransferEvent) {
+            TRANSFER_EVENT_CREATED,
+            SUCCESS
+        });
 
         // If this transfer references a transaction, fill out this log's fee basis
         ewmHandleLogFeeBasis (ewm, transactionHash, NULL, transfer);
@@ -2606,7 +2626,10 @@ ewmTransferDelete (BREthereumEWM ewm,
         BREthereumWallet wallet = ewm->wallets[wid];
         if (walletHasTransfer(wallet, transfer)) {
             walletUnhandleTransfer(wallet, transfer);
-            ewmSignalTransferEvent(ewm, wallet, transfer, TRANSFER_EVENT_DELETED, SUCCESS, NULL);
+            ewmSignalTransferEvent(ewm, wallet, transfer, (BREthereumTransferEvent) {
+                TRANSFER_EVENT_DELETED,
+                SUCCESS
+            });
         }
     }
     // Null the ewm's `tid` - MUST NOT array_rm() as all `tid` holders will be dead.

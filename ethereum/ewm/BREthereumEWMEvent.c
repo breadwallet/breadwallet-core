@@ -508,12 +508,10 @@ typedef struct {
     BREthereumWallet wid;
     BREthereumTransfer tid;
     BREthereumTransferEvent event;
-    BREthereumStatus status;
-    const char *errorDescription;
 } BREthereumEWMClientTransactionEvent;
 
-#define CLIENT_TRANSACTION_EVENT_INITIALIZER(ewm, wid, tid, event, status, desc)  \
-{ { NULL, &ewmClientTransactionEventType }, (ewm), (wid), (tid), (event), (status), (desc) }
+#define CLIENT_TRANSACTION_EVENT_INITIALIZER(ewm, wid, tid, event)  \
+{ { NULL, &ewmClientTransactionEventType }, (ewm), (wid), (tid), (event) }
 
 static void
 ewmClientTransactionEventDispatcher(BREventHandler ignore,
@@ -521,9 +519,7 @@ ewmClientTransactionEventDispatcher(BREventHandler ignore,
     ewmHandleTransferEvent(event->ewm,
                            event->wid,
                            event->tid,
-                           event->event,
-                           event->status,
-                           event->errorDescription);
+                           event->event);
 }
 
 static BREventType ewmClientTransactionEventType = {
@@ -536,11 +532,9 @@ extern void
 ewmSignalTransferEvent(BREthereumEWM ewm,
                        BREthereumWallet wid,
                        BREthereumTransfer tid,
-                       BREthereumTransferEvent event,
-                       BREthereumStatus status,
-                       const char *errorDescription) {
+                       BREthereumTransferEvent event) {
     BREthereumEWMClientTransactionEvent message =
-    CLIENT_TRANSACTION_EVENT_INITIALIZER (ewm, wid, tid, event, status, errorDescription);
+    CLIENT_TRANSACTION_EVENT_INITIALIZER (ewm, wid, tid, event);
     eventHandlerSignalEvent(ewm->handler, (BREvent*) &message);
 }
 

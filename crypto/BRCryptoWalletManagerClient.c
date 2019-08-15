@@ -1193,9 +1193,7 @@ cwmTransactionEventAsETH (BREthereumClientContext context,
                           BREthereumEWM ewm,
                           BREthereumWallet wid,
                           BREthereumTransfer tid,
-                          BREthereumTransferEvent event,
-                          BREthereumStatus status,
-                          const char *errorDescription) {
+                          BREthereumTransferEvent event) {
     BRCryptoWalletManager cwm = context;
     BRCryptoWallet wallet     = cryptoWalletManagerFindWalletAsETH (cwm, wid); // taken
 
@@ -1204,14 +1202,14 @@ cwmTransactionEventAsETH (BREthereumClientContext context,
 
     BRCryptoTransfer transfer = cryptoWalletFindTransferAsETH (wallet, tid);   // taken
 
-    assert (NULL != transfer || TRANSFER_EVENT_CREATED == event);
+    assert (NULL != transfer || TRANSFER_EVENT_CREATED == event.type);
 
     // We'll transition from `oldState` to `newState`; get some placeholder values in place.
     BRCryptoTransferState oldState = { CRYPTO_TRANSFER_STATE_CREATED };
     BRCryptoTransferState newState = { CRYPTO_TRANSFER_STATE_CREATED };
     if (NULL != transfer) oldState = cryptoTransferGetState (transfer);
 
-    switch (event) {
+    switch (event.type) {
         case TRANSFER_EVENT_CREATED: {
             assert (NULL == transfer);
 

@@ -1224,7 +1224,7 @@ extension BREthereumPeerEventType: CustomStringConvertible {
     }
 }
 
-extension BREthereumTransferEvent: CustomStringConvertible {
+extension BREthereumTransferEventType: CustomStringConvertible {
     public var description: String {
         switch self {
         case TRANSFER_EVENT_CREATED: return "Created"

@@ -342,17 +342,22 @@ extern "C" {
         TRANSFER_EVENT_GAS_ESTIMATE_UPDATED,
 
         TRANSFER_EVENT_DELETED
-    } BREthereumTransferEvent;
+    } BREthereumTransferEventType;
 
-#define TRANSACTION_NUMBER_OF_EVENTS (1 + TRANSACTION_EVENT_DELETED)
+#define TRANSACTION_NUMBER_OF_EVENT_TYPES (1 + TRANSACTION_EVENT_DELETED)
+
+    typedef struct {
+        BREthereumTransferEventType type;
+        BREthereumStatus status;
+        // uniont {} u;
+        char errorDescription[16];
+    } BREthereumTransferEvent;
 
     typedef void (*BREthereumClientHandlerTransferEvent) (BREthereumClientContext context,
                                                           BREthereumEWM ewm,
                                                           BREthereumWallet wid,
                                                           BREthereumTransfer tid,
-                                                          BREthereumTransferEvent event,
-                                                          BREthereumStatus status,
-                                                          const char *errorDescription);
+                                                          BREthereumTransferEvent event);
 
     typedef enum {
         PEER_EVENT_CREATED = 0,
