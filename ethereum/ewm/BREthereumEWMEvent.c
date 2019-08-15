@@ -421,21 +421,17 @@ typedef struct {
     BREthereumEWM ewm;
     BREthereumWallet wid;
     BREthereumWalletEvent event;
-    BREthereumStatus status;
-    const char *errorDescription;
 } BREthereumEWMClientWalletEvent;
 
-#define CLIENT_WALLET_EVENT_INITIALIZER(ewm, wid, vent, status, desc)  \
-{ { NULL, &ewmClientWalletEventType }, (ewm), (wid), (event), (status), (desc) }
+#define CLIENT_WALLET_EVENT_INITIALIZER(ewm, wid, event)  \
+{ { NULL, &ewmClientWalletEventType }, (ewm), (wid), (event) }
 
 static void
 ewmClientWalletEventDispatcher(BREventHandler ignore,
                                BREthereumEWMClientWalletEvent *event) {
     ewmHandleWalletEvent(event->ewm,
                          event->wid,
-                         event->event,
-                         event->status,
-                         event->errorDescription);
+                         event->event);
 }
 
 static BREventType ewmClientWalletEventType = {
@@ -447,11 +443,9 @@ static BREventType ewmClientWalletEventType = {
 extern void
 ewmSignalWalletEvent(BREthereumEWM ewm,
                      BREthereumWallet wid,
-                     BREthereumWalletEvent event,
-                     BREthereumStatus status,
-                     const char *errorDescription) {
+                     BREthereumWalletEvent event) {
     BREthereumEWMClientWalletEvent message =
-    CLIENT_WALLET_EVENT_INITIALIZER (ewm, wid, event, status, errorDescription);
+    CLIENT_WALLET_EVENT_INITIALIZER (ewm, wid, event);
     eventHandlerSignalEvent(ewm->handler, (BREvent*) &message);
 }
 

@@ -954,9 +954,7 @@ static void
 cwmWalletEventAsETH (BREthereumClientContext context,
                      BREthereumEWM ewm,
                      BREthereumWallet wid,
-                     BREthereumWalletEvent event,
-                     BREthereumStatus status,
-                     const char *errorDescription) {
+                     BREthereumWalletEvent event) {
     BRCryptoWalletManager cwm = context;
     if (NULL == cwm->u.eth) cwm->u.eth = ewm;
 
@@ -1095,7 +1093,7 @@ cwmWalletEventAsETH (BREthereumClientContext context,
 
         case WALLET_EVENT_FEE_ESTIMATED:
             if (NULL != wallet) {
-                if (SUCCESS == status) {
+                if (SUCCESS == event.status) {
                     BRCryptoUnit feeUnit = cryptoWalletGetUnitForFee(wallet);
 
                     BRCryptoFeeBasis feeBasis = cryptoFeeBasisCreateAsETH (feeUnit, event.u.feeEstimate.gasEstimate, event.u.feeEstimate.gasPrice);
@@ -1120,7 +1118,7 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                                                       (BRCryptoWalletEvent) {
                                                            CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED,
                                                            { .feeBasisEstimated = {
-                                                               cryptoStatusFromETH (status),
+                                                               cryptoStatusFromETH (event.status),
                                                                event.u.feeEstimate.cookie,
                                                            }}
                                                        });

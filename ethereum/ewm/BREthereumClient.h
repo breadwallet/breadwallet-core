@@ -291,6 +291,7 @@ extern "C" {
 
     typedef struct {
         BREthereumWalletEventType type;
+        BREthereumStatus status;
         union {
             struct {
                 BREthereumCookie cookie;
@@ -298,16 +299,15 @@ extern "C" {
                 BREthereumGasPrice gasPrice;
             } feeEstimate;
         } u;
+        char errorDescription[16];
     } BREthereumWalletEvent;
 
-#define WALLET_NUMBER_OF_EVENTS  (1 + WALLET_EVENT_DELETED)
+#define WALLET_NUMBER_OF_EVENT_TYPES  (1 + WALLET_EVENT_DELETED)
 
     typedef void (*BREthereumClientHandlerWalletEvent) (BREthereumClientContext context,
                                                         BREthereumEWM ewm,
                                                         BREthereumWallet wid,
-                                                        BREthereumWalletEvent event,
-                                                        BREthereumStatus status,
-                                                        const char *errorDescription);
+                                                        BREthereumWalletEvent event);
 
     typedef enum {
         BLOCK_EVENT_CREATED = 0,

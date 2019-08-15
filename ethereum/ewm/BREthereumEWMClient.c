@@ -68,15 +68,17 @@ ewmUpdateGasPrice (BREthereumEWM ewm,
 
     if (NULL == wallet) {
         ewmSignalWalletEvent(ewm, wallet,
-                             (BREthereumWalletEvent) { WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED },
-                             ERROR_UNKNOWN_WALLET,
-                             NULL);
+                             (BREthereumWalletEvent) {
+                                 WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
+                                 ERROR_UNKNOWN_WALLET
+                             });
 
     } else if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) {
         ewmSignalWalletEvent(ewm, wallet,
-                             (BREthereumWalletEvent) { WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED },
-                             ERROR_NODE_NOT_CONNECTED,
-                             NULL);
+                             (BREthereumWalletEvent) {
+                                 WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
+                                 ERROR_NODE_NOT_CONNECTED
+                             });
     } else {
         switch (ewm->mode) {
             case BRD_ONLY:
@@ -220,9 +222,11 @@ ewmHandlGasEstimateSuccess (BREthereumEWM ewm,
                             BREthereumGasPrice gasPrice) {
     ewmSignalWalletEvent (ewm,
                           wallet,
-                          (BREthereumWalletEvent) {WALLET_EVENT_FEE_ESTIMATED, {.feeEstimate = {cookie, gasEstimate, gasPrice}}},
-                          SUCCESS,
-                          NULL);
+                          (BREthereumWalletEvent) {
+                              WALLET_EVENT_FEE_ESTIMATED,
+                              SUCCESS,
+                              {.feeEstimate = {cookie, gasEstimate, gasPrice }}
+                          });
 }
 
 extern void
@@ -232,9 +236,11 @@ ewmHandlGasEstimateFailure (BREthereumEWM ewm,
                             BREthereumStatus status) {
     ewmSignalWalletEvent (ewm,
                           wallet,
-                          (BREthereumWalletEvent) {WALLET_EVENT_FEE_ESTIMATED, {.feeEstimate = {cookie}}},
-                          status,
-                          NULL);
+                          (BREthereumWalletEvent) {
+                              WALLET_EVENT_FEE_ESTIMATED,
+                              SUCCESS,
+                              {.feeEstimate = {cookie}}
+                          });
 }
 
 // ==============================================================================================
@@ -831,17 +837,12 @@ ewmAnnounceTokenComplete (BREthereumEWM ewm,
 
 extern void
 ewmHandleWalletEvent(BREthereumEWM ewm,
-                           BREthereumWallet wid,
-                           BREthereumWalletEvent event,
-                           BREthereumStatus status,
-                           const char *errorDescription) {
-    ewm->client.funcWalletEvent
-    (ewm->client.context,
-     ewm,
-     wid,
-     event,
-     status,
-     errorDescription);
+                     BREthereumWallet wid,
+                     BREthereumWalletEvent event) {
+    ewm->client.funcWalletEvent (ewm->client.context,
+                                 ewm,
+                                 wid,
+                                 event);
 }
 
 #if defined (NEVER_DEFINED)

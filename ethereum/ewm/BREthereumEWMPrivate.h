@@ -532,16 +532,12 @@ ewmSignalAnnounceNonce (BREthereumEWM ewm,
 extern void
 ewmHandleWalletEvent(BREthereumEWM ewm,
                            BREthereumWallet wid,
-                           BREthereumWalletEvent event,
-                           BREthereumStatus status,
-                           const char *errorDescription);
+                           BREthereumWalletEvent event);
 
 extern void
 ewmSignalWalletEvent(BREthereumEWM ewm,
                            BREthereumWallet wid,
-                           BREthereumWalletEvent event,
-                           BREthereumStatus status,
-                           const char *errorDescription);
+                           BREthereumWalletEvent event);
 
 //
 // Block Event

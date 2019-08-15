@@ -459,9 +459,7 @@ static void
 clientEventWallet (BREthereumClientContext context,
                    BREthereumEWM ewm,
                    BREthereumWallet wid,
-                   BREthereumWalletEvent event,
-                   BREthereumStatus status,
-                   const char *errorDescription) {
+                   BREthereumWalletEvent event) {
     fprintf (stdout, "ETH: TST: WalletEvent: wid=%p, ev=%d\n", wid, event.type);
     switch (event.type) {
         case WALLET_EVENT_BALANCE_UPDATED:
