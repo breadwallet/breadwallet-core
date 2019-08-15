@@ -309,6 +309,7 @@ extern "C" {
                                                         BREthereumWallet wid,
                                                         BREthereumWalletEvent event);
 
+#if defined (NEVER_DEFINED)
     typedef enum {
         BLOCK_EVENT_CREATED = 0,
 
@@ -316,17 +317,20 @@ extern "C" {
         BLOCK_EVENT_ORPHANED,
 
         BLOCK_EVENT_DELETED
+    } BREthereumBlockEventType;
+
+#define BLOCK_NUMBER_OF_EVENT_TYPES (1 + BLOCK_EVENT_DELETED)
+
+    typedef struct {
+        BREthereumBlockEventType type;
+        BREthereumStatus status;
+        char errorDescription[16];
     } BREthereumBlockEvent;
 
-#define BLOCK_NUMBER_OF_EVENTS (1 + BLOCK_EVENT_DELETED)
-
-#if defined (NEVER_DEFINED)
     typedef void (*BREthereumClientHandlerBlockEvent) (BREthereumClientContext context,
                                                        BREthereumEWM ewm,
                                                        BREthereumBlock bid,
-                                                       BREthereumBlockEvent event,
-                                                       BREthereumStatus status,
-                                                       const char *errorDescription);
+                                                       BREthereumBlockEvent event);
 #endif
 
     typedef enum {

@@ -849,15 +849,11 @@ ewmHandleWalletEvent(BREthereumEWM ewm,
 extern void
 ewmHandleBlockEvent(BREthereumEWM ewm,
                           BREthereumBlock block,
-                          BREthereumBlockEvent event,
-                          BREthereumStatus status,
-                          const char *errorDescription) {
+                          BREthereumBlockEvent event) {
     ewm->client.funcBlockEvent (ewm->client.context,
                                 ewm,
                                 block,
-                                event,
-                                status,
-                                errorDescription);
+                                event);
 }
 #endif
 

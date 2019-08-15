@@ -458,21 +458,17 @@ typedef struct {
     BREthereumEWM ewm;
     BREthereumBlock bid;
     BREthereumBlockEvent event;
-    BREthereumStatus status;
-    const char *errorDescription;
 } BREthereumEWMClientBlockEvent;
 
-#define CLIENT_BLOCK_EVENT_INITIALIZER(ewm, bid, event, status, desc)  \
-{ { NULL, &ewmClientBlockEventType }, (ewm), (bid), (event), (status), (desc) }
+#define CLIENT_BLOCK_EVENT_INITIALIZER(ewm, bid, event)  \
+{ { NULL, &ewmClientBlockEventType }, (ewm), (bid), (event) }
 
 static void
 ewmClientBlockEventDispatcher(BREventHandler ignore,
                               BREthereumEWMClientBlockEvent *event) {
     ewmHandleBlockEvent(event->ewm,
                         event->bid,
-                        event->event,
-                        event->status,
-                        event->errorDescription);
+                        event->event);
 }
 
 static BREventType ewmClientBlockEventType = {
@@ -484,11 +480,9 @@ static BREventType ewmClientBlockEventType = {
 extern void
 ewmSignalBlockEvent(BREthereumEWM ewm,
                     BREthereumBlock bid,
-                    BREthereumBlockEvent event,
-                    BREthereumStatus status,
-                    const char *errorDescription) {
+                    BREthereumBlockEvent event) {
     BREthereumEWMClientBlockEvent message =
-    CLIENT_BLOCK_EVENT_INITIALIZER (ewm, bid, event, status, errorDescription);
+    CLIENT_BLOCK_EVENT_INITIALIZER (ewm, bid, event);
     eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &message);
 }
 #endif

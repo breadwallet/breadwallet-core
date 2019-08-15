@@ -546,16 +546,12 @@ ewmSignalWalletEvent(BREthereumEWM ewm,
 extern void
 ewmSignalBlockEvent(BREthereumEWM ewm,
                           BREthereumBlock bid,
-                          BREthereumBlockEvent event,
-                          BREthereumStatus status,
-                          const char *errorDescription);
+                          BREthereumBlockEvent event);
 
 extern void
 ewmHandleBlockEvent(BREthereumEWM ewm,
                           BREthereumBlock bid,
-                          BREthereumBlockEvent event,
-                          BREthereumStatus status,
-                          const char *errorDescription);
+                          BREthereumBlockEvent event);
 #endif
 //
 // Transfer Event

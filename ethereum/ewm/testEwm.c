@@ -483,10 +483,8 @@ static void
 clientEventBlock (BREthereumClientContext context,
                   BREthereumEWM ewm,
                   BREthereumBlockId bid,
-                  BREthereumBlockEvent event,
-                  BREthereumStatus status,
-                  const char *errorDescription) {
-    fprintf (stdout, "ETH: TST: BlockEvent: bid=%d, ev=%d\n", bid, event);
+                  BREthereumBlockEvent event) {
+    fprintf (stdout, "ETH: TST: BlockEvent: bid=%d, ev=%d\n", bid, event.type);
 }
 #endif
 
