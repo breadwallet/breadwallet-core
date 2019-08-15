@@ -383,24 +383,49 @@ extern "C" {
                                                        BREthereumTokenEvent event);
 
     typedef enum {
-        EWM_EVENT_CREATED = 0,
-        EWM_EVENT_SYNC_STARTED,
-        EWM_EVENT_SYNC_CONTINUES,
-        EWM_EVENT_SYNC_STOPPED,
-        EWM_EVENT_NETWORK_UNAVAILABLE,
-        EWM_EVENT_BLOCK_HEIGHT_UPDATED,
-        EWM_EVENT_DELETED
-    } BREthereumEWMEvent;
+        EWM_STATE_CREATED,
+        EWM_STATE_CONNECTED,
+        EWM_STATE_SYNCING,
+        EWM_STATE_DISCONNECTED,
+        EWM_STATE_DELETED
+    } BREthereumEWMState;
 
-#define EWM_NUMBER_OF_EVENTS   (1 + EWM_EVENT_DELETED)
+    typedef enum {
+        EWM_EVENT_CREATED = 0,
+        EWM_EVENT_CHANGED,
+
+        EWM_EVENT_SYNC_PROGRESS,
+        EWM_EVENT_BLOCK_HEIGHT_UPDATED,
+        EWM_EVENT_NETWORK_UNAVAILABLE,
+
+        EWM_EVENT_DELETED,
+    } BREthereumEWMEventType;
+
+#define EWM_NUMBER_OF_EVENT_TYPES   (1 + EWM_EVENT_DELETED)
+
+    typedef struct {
+        BREthereumEWMEventType type;
+        BREthereumStatus status;
+        union {
+            struct {
+                BREthereumEWMState oldState;
+                BREthereumEWMState newState;
+            } changed;
+            struct {
+                double percent;
+            } syncProgress;
+            struct {
+                uint64_t value;
+            } blockHeight;
+        } u;
+        char errorDescription[16];
+    } BREthereumEWMEvent;
 
     typedef void (*BREthereumClientHandlerEWMEvent) (BREthereumClientContext context,
                                                      BREthereumEWM ewm,
                                                      // BREthereumWallet wid,
                                                      // BREthereumTransaction tid,
-                                                     BREthereumEWMEvent event,
-                                                     BREthereumStatus status,
-                                                     const char *errorDescription);
+                                                     BREthereumEWMEvent event);
 
     //
     // EWM Configuration

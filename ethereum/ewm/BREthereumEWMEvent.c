@@ -590,20 +590,16 @@ ewmSignalPeerEvent(BREthereumEWM ewm,
 typedef struct {
     struct BREventRecord base;
     BREthereumEWM ewm;
-    // BREthereumWallet wid;
-    // BREthereumTransaction tid;
     BREthereumEWMEvent event;
-    BREthereumStatus status;
-    const char *errorDescription;
 } BREthereumEWMClientEWMEvent;
 
-#define CLIENT_EWM_EVENT_INITIALIZER(ewm, /* wid, tid,*/ event, status, desc)  \
-{ { NULL, &ewmClientEWMEventType }, (ewm), /*(wid), (tid),*/ (event), (status), (desc) }
+#define CLIENT_EWM_EVENT_INITIALIZER(ewm, /* wid, tid,*/ event)  \
+{ { NULL, &ewmClientEWMEventType }, (ewm), /*(wid), (tid),*/ (event) }
 
 static void
 ewmClientEWMEventDispatcher(BREventHandler ignore,
                             BREthereumEWMClientEWMEvent *event) {
-    ewmHandleEWMEvent(event->ewm, event->event, event->status, event->errorDescription);
+    ewmHandleEWMEvent(event->ewm, event->event);
 }
 
 static BREventType ewmClientEWMEventType = {
@@ -614,13 +610,9 @@ static BREventType ewmClientEWMEventType = {
 
 extern void
 ewmSignalEWMEvent(BREthereumEWM ewm,
-                  // BREthereumWallet wid,
-                  // BREthereumTransaction tid,
-                  BREthereumEWMEvent event,
-                  BREthereumStatus status,
-                  const char *errorDescription) {
+                  BREthereumEWMEvent event) {
     BREthereumEWMClientEWMEvent message =
-    CLIENT_EWM_EVENT_INITIALIZER (ewm, /* wid, tid,*/ event, status, errorDescription);
+    CLIENT_EWM_EVENT_INITIALIZER (ewm, /* wid, tid,*/ event);
     eventHandlerSignalEvent(ewm->handler, (BREvent*) &message);
 }
 

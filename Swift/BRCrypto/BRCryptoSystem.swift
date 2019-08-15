@@ -1253,15 +1253,14 @@ extension BREthereumWalletEventType: CustomStringConvertible {
     }
 }
 
-extension BREthereumEWMEvent: CustomStringConvertible {
+extension BREthereumEWMEventType: CustomStringConvertible {
     public var description: String {
         switch self {
         case EWM_EVENT_CREATED: return "Created"
-        case EWM_EVENT_SYNC_STARTED: return "Sync Started"
-        case EWM_EVENT_SYNC_CONTINUES: return "Sync Continues"
-        case EWM_EVENT_SYNC_STOPPED: return "Sync Stopped"
-        case EWM_EVENT_NETWORK_UNAVAILABLE: return "Network Unavailable"
+        case EWM_EVENT_CHANGED: return "Changed"
+        case EWM_EVENT_SYNC_PROGRESS: return "Sync Progress"
         case EWM_EVENT_BLOCK_HEIGHT_UPDATED: return "Block Height Updated"
+        case EWM_EVENT_NETWORK_UNAVAILABLE: return "Network Unavailable"
         case EWM_EVENT_DELETED: return "Deleted"
         default: return "<<unknown>>"
         }

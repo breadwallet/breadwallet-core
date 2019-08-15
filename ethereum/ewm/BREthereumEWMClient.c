@@ -941,18 +941,10 @@ ewmHandlePeerEvent(BREthereumEWM ewm,
 
 extern void
 ewmHandleEWMEvent(BREthereumEWM ewm,
-                        // BREthereumWallet wid,
-                        // BREthereumTransaction tid,
-                        BREthereumEWMEvent event,
-                        BREthereumStatus status,
-                        const char *errorDescription) {
+                        BREthereumEWMEvent event) {
     ewm->client.funcEWMEvent (ewm->client.context,
                               ewm,
-                              //event->wid,
-                              // event->tid,
-                              event,
-                              status,
-                              errorDescription);
+                              event);
 }
 
 

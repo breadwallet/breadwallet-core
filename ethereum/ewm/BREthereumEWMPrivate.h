@@ -44,15 +44,6 @@ typedef enum {
 #define DEFAULT_BLOCK_CAPACITY 100
 #define DEFAULT_TRANSACTION_CAPACITY 1000
 
-typedef enum {
-    LIGHT_NODE_CREATED,
-    LIGHT_NODE_CONNECTING,
-    LIGHT_NODE_CONNECTED,
-    LIGHT_NODE_DISCONNECTING,
-    LIGHT_NODE_DISCONNECTED,
-    LIGHT_NODE_ERRORED
-} BREthereumEWMState;
-
 /// MISPLACED
 extern void
 ewmInsertWallet (BREthereumEWM ewm,
@@ -613,19 +604,11 @@ ewmHandlePeerEvent(BREthereumEWM ewm,
 //
 extern void
 ewmSignalEWMEvent(BREthereumEWM ewm,
-                        // BREthereumWallet wid,
-                        // BREthereumTransaction tid,
-                        BREthereumEWMEvent event,
-                        BREthereumStatus status,
-                        const char *errorDescription);
+                  BREthereumEWMEvent event);
 
 extern void
 ewmHandleEWMEvent(BREthereumEWM ewm,
-                        // BREthereumWallet wid,
-                        // BREthereumTransaction tid,
-                        BREthereumEWMEvent event,
-                        BREthereumStatus status,
-                        const char *errorDescription);
+                  BREthereumEWMEvent event);
 
 /// MARK: - Handler For Main
 

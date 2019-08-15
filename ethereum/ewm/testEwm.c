@@ -517,12 +517,8 @@ clientEventPeer (BREthereumClientContext context,
 static void
 clientEventEWM (BREthereumClientContext context,
                 BREthereumEWM ewm,
-                //BREthereumWallet wid,
-                //BREthereumTransactionId tid,
-                BREthereumEWMEvent event,
-                BREthereumStatus status,
-                const char *errorDescription) {
-    fprintf (stdout, "ETH: TST: EWMEvent: ev=%d\n", event);
+                BREthereumEWMEvent event) {
+    fprintf (stdout, "ETH: TST: EWMEvent: ev=%d\n", event.type);
 }
 
 static void
