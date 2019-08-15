@@ -24,8 +24,17 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
     func testWalletManagerBTC() {
         isMainnet = false
         currencyCodesNeeded = ["btc"]
+        modeMap = ["btc":WalletManagerMode.api_only]
         prepareAccount()
         prepareSystem()
+
+        let walletManagerDisconnectExpectation = XCTestExpectation (description: "Wallet Manager Disconnect")
+        listener.managerHandlers += [
+            { (system: System, manager:WalletManager, event: WalletManagerEvent) in
+                if case let .changed(_, newState) = event, case .disconnected = newState {
+                    walletManagerDisconnectExpectation.fulfill()
+                }
+            }]
 
         let network: Network! = system.networks.first { "btc" == $0.currency.code && isMainnet == $0.isMainnet }
         XCTAssertNotNil (network)
@@ -66,23 +75,31 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
         // Events
         
         XCTAssertTrue (listener.checkSystemEvents(
-            [EventMatcher (event: SystemEvent.managerAdded(manager: manager), strict: true, scan: true)
+            [EventMatcher (event: SystemEvent.created),
+             EventMatcher (event: SystemEvent.networkAdded(network: network), strict: true, scan: true),
+             EventMatcher (event: SystemEvent.managerAdded(manager: manager), strict: true, scan: true)
             ]))
 
         XCTAssertTrue (listener.checkManagerEvents(
             [WalletManagerEvent.created,
-             WalletManagerEvent.walletAdded(wallet: wallet)], strict: true))
+             WalletManagerEvent.walletAdded(wallet: wallet)],
+            strict: true))
 
         XCTAssertTrue (listener.checkWalletEvents(
-            [WalletEvent.created], strict: true))
+            [WalletEvent.created],
+            strict: true))
+
+        XCTAssertTrue (listener.checkTransferEvents(
+            [],
+            strict: true))
 
         // Connect
         listener.transferCount = 5
         manager.connect()
-        wait (for: [self.listener.transferExpectation ], timeout: 5)
+        wait (for: [self.listener.transferExpectation], timeout: 5)
 
         manager.disconnect()
-        sleep (1) // wait for disconnect....
+        wait (for: [walletManagerDisconnectExpectation], timeout: 5)
 
         XCTAssertTrue (listener.checkManagerEvents (
             [EventMatcher (event: WalletManagerEvent.created),
@@ -103,9 +120,21 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
 
     func testWalletManagerETH () {
         isMainnet = false
-        currencyCodesNeeded = ["eth"]
+        currencyCodesNeeded = ["eth", "brd"]
+        modeMap = ["eth":WalletManagerMode.api_only]
         prepareAccount()
-        prepareSystem()
+        prepareSystem ()
+
+        // Listen for a non-primary wallet - specifically the BRD wallet
+        var walletBRD: Wallet! = nil
+        let walletBRDExpectation = XCTestExpectation (description: "BRD Wallet")
+        listener.managerHandlers += [
+            { (system: System, manager:WalletManager, event: WalletManagerEvent) in
+                if case let .walletAdded(wallet) = event, "brd" == wallet.name {
+                    walletBRD = wallet
+                    walletBRDExpectation.fulfill()
+                }
+            }]
 
         let network: Network! = system.networks.first { "eth" == $0.currency.code && isMainnet == $0.isMainnet }
         XCTAssertNotNil (network)
@@ -113,24 +142,30 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
         let manager: WalletManager! = system.managers.first { $0.network == network }
         XCTAssertNotNil (manager)
 
-        let wallet = manager.primaryWallet
+        let walletETH = manager.primaryWallet
+        wait (for: [walletBRDExpectation], timeout: 5)
 
-        /* PENDING: CORE-480
-        XCTAssertTrue(listener.systemEvents.contains { (event: SystemEvent) -> Bool in
-            switch event {
-            case let .managerAdded(manager: eventManager):
-                return manager == eventManager
-            default:
-                return false
-            }
-        })
+        // Events
+
+        XCTAssertTrue (listener.checkSystemEvents(
+            [EventMatcher (event: SystemEvent.created),
+             EventMatcher (event: SystemEvent.networkAdded(network: network), strict: true, scan: true),
+             EventMatcher (event: SystemEvent.managerAdded(manager: manager), strict: true, scan: true)
+            ]))
 
         XCTAssertTrue (listener.checkManagerEvents(
             [WalletManagerEvent.created,
-             WalletManagerEvent.walletAdded(wallet: wallet)], strict: true))
+             WalletManagerEvent.walletAdded(wallet: walletETH),
+             WalletManagerEvent.walletAdded(wallet: walletBRD)],
+            strict: true))
 
         XCTAssertTrue (listener.checkWalletEvents(
-            [WalletEvent.created], strict: true))
-         */
+            [WalletEvent.created,
+             WalletEvent.created],
+            strict: true))
+
+        XCTAssertTrue (listener.checkTransferEvents(
+            [],
+            strict: true))
     }
 }

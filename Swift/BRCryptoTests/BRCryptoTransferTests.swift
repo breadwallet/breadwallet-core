@@ -21,18 +21,9 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
     override func tearDown() {
     }
 
-    func testTransferBTC() {
-        isMainnet = false
-        currencyCodesNeeded = ["btc"]
-        prepareAccount (AccountSpecification (dict: [
-            "identifier": "ginger",
-            "paperKey":   "ginger settle marine tissue robot crane night number ramp coast roast critic",
-            "timestamp":  "2018-01-01",
-            "network":    (isMainnet ? "mainnet" : "testnet")
-            ]))
-        let listener = CryptoTestSystemListener (currencyCodesNeeded: currencyCodesNeeded, isMainnet: isMainnet)
-        prepareSystem(listener: listener)
+    /// MARK: - BTC
 
+    func runTransferBTCTest () {
         let network: Network! = system.networks.first { "btc" == $0.currency.code && isMainnet == $0.isMainnet }
         XCTAssertNotNil (network)
 
@@ -76,18 +67,39 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
         manager.disconnect()
     }
 
-    func testTransferETH () {
+    func testTransferBTC_API() {
         isMainnet = false
-        currencyCodesNeeded = ["eth"]
+        currencyCodesNeeded = ["btc"]
+        modeMap = ["btc":WalletManagerMode.api_only]
         prepareAccount (AccountSpecification (dict: [
             "identifier": "ginger",
             "paperKey":   "ginger settle marine tissue robot crane night number ramp coast roast critic",
             "timestamp":  "2018-01-01",
             "network":    (isMainnet ? "mainnet" : "testnet")
             ]))
-        let listener = CryptoTestSystemListener (currencyCodesNeeded: currencyCodesNeeded, isMainnet: isMainnet)
-        prepareSystem(listener: listener)
+        prepareSystem()
 
+        runTransferBTCTest()
+    }
+
+    func XtestTransferBTC_P2P() {
+        isMainnet = false
+        currencyCodesNeeded = ["btc"]
+        modeMap = ["btc":WalletManagerMode.p2p_only]
+        prepareAccount (AccountSpecification (dict: [
+            "identifier": "ginger",
+            "paperKey":   "ginger settle marine tissue robot crane night number ramp coast roast critic",
+            "timestamp":  "2018-01-01",
+            "network":    (isMainnet ? "mainnet" : "testnet")
+            ]))
+        prepareSystem()
+
+        runTransferBTCTest()
+    }
+
+    /// MARK: - BTC
+
+    func runTransferETHTest () {
         let network: Network! = system.networks.first { "eth" == $0.currency.code && isMainnet == $0.isMainnet }
         XCTAssertNotNil (network)
 
@@ -137,6 +149,21 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
         // direction
 
         manager.disconnect()
+    }
+
+    func testTransferETH_API () {
+        isMainnet = false
+        currencyCodesNeeded = ["eth"]
+        modeMap = ["eth":WalletManagerMode.api_only]
+        prepareAccount (AccountSpecification (dict: [
+            "identifier": "ginger",
+            "paperKey":   "ginger settle marine tissue robot crane night number ramp coast roast critic",
+            "timestamp":  "2018-01-01",
+            "network":    (isMainnet ? "mainnet" : "testnet")
+            ]))
+        prepareSystem()
+
+        runTransferETHTest()
     }
 
     

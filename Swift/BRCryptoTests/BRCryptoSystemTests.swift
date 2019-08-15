@@ -24,6 +24,7 @@ class BRCryptoSystemTests: BRCryptoSystemBaseTests {
     func testSystemBTC() {
         isMainnet = false
         currencyCodesNeeded = ["btc"]
+        modeMap = ["btc":WalletManagerMode.api_only]
         prepareAccount()
         prepareSystem()
 
