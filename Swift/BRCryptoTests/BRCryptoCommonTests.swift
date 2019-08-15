@@ -111,6 +111,7 @@ class BRCryptoCommonTests: XCTestCase {
         k = Key.createFromString(asPrivate: s)
         n = "nonce".data(using: .utf8)
         l = Key.createForPigeonFrom(key: k, nonce: n)
+        XCTAssertNotNil(l)
 
         // BIP32ApiAuth
         k = Key.createForBIP32ApiAuth (phrase: "ginger settle marine tissue robot crane night number ramp coast roast critic", words: BRCryptoAccountTests.words)
