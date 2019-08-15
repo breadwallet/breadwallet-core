@@ -192,19 +192,6 @@ public final class Network: CustomStringConvertible {
         cryptoNetworkGive (core)
     }
 
-    public var supportedModes: [WalletManagerMode] {
-        switch cryptoNetworkGetType (core) {
-        case BLOCK_CHAIN_TYPE_BTC:
-            return [WalletManagerMode.p2p_only]
-        case BLOCK_CHAIN_TYPE_ETH:
-            return [WalletManagerMode.api_only,
-                    WalletManagerMode.api_with_p2p_submit]
-        case BLOCK_CHAIN_TYPE_GEN:
-            return [WalletManagerMode.api_only]
-        default: preconditionFailure ()
-        }
-    }
-
     /// TODO: Should use the network's/manager's default address scheme
     public func addressFor (_ string: String) -> Address? {
         return cryptoNetworkCreateAddressFromString (core, string)
@@ -230,7 +217,6 @@ public enum NetworkEvent {
 /// Listener for NetworkEvent
 ///
 public protocol NetworkListener: class {
-
     ///
     /// Handle a NetworkEvent
     ///
@@ -242,8 +228,10 @@ public protocol NetworkListener: class {
     func handleNetworkEvent (system: System,
                              network: Network,
                              event: NetworkEvent)
-
 }
+
+/// A Functional Interface for a Handler
+public typealias NetworkEventHandler = (System, Network, NetworkEvent) -> Void
 
 ///
 /// A Network Fee represents the 'amount per cost factor' paid to mine a transfer. For BTC this
@@ -274,7 +262,6 @@ public final class NetworkFee: Equatable {
         self.core = (take ? cryptoNetworkFeeTake(core) : core)
         self.timeIntervalInMilliseconds = cryptoNetworkFeeGetConfirmationTimeInMilliseconds(core)
         self.pricePerCostFactor = Amount (core: cryptoNetworkFeeGetPricePerCostFactor (core),
-                                          unit: Unit (core: cryptoNetworkFeeGetPricePerCostFactorUnit(core), take: false),
                                           take: false)
     }
 

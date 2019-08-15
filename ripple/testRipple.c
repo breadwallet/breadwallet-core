@@ -473,8 +473,8 @@ static void testTransactionDeserializeUnknownFields()
     validateDeserializedTransaction(transaction);
     rippleTransactionFree(transaction);
 
-    // Test with the STArray
-    transaction = transactionDeserialize(serialized_transaction, "F000");
+    // Test with the STArray - an 0 length array with a terminating byte
+    transaction = transactionDeserialize(serialized_transaction, "F000F1");
     validateDeserializedTransaction(transaction);
     rippleTransactionFree(transaction);
 
@@ -834,6 +834,5 @@ runRippleTest (void /* ... */) {
     const char * paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
     const char* ripple_address = "r41vZ8exoVyUfVzs56yeN8xB5gDhSkho9a";
     getAccountInfo(paper_key, ripple_address);
-
     //createSubmittableTransaction();
 }

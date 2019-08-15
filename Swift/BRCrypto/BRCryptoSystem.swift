@@ -350,7 +350,7 @@ public final class System {
                         // the default currency
                         guard let currency = associations.keys.first (where: { $0.code == blockchainModel.currency.lowercased() }),
                             let feeUnit = associations[currency]?.baseUnit
-                            else { print ("SYS: CONFIGURE: Missed Currency (\(blockchainModel.currency)): defaultUnit"); return }
+                            else { print ("SYS: CONFIGURE: Missed Currency (\(blockchainModel.currency)) on '\(blockchainModel.network)': defaultUnit"); return }
 
                         let fees = blockchainModel.feeEstimates
                             // Well, quietly ignore a fee if we can't parse the amount.
@@ -362,7 +362,7 @@ public final class System {
                         }
 
                         guard !fees.isEmpty
-                            else { print ("SYS: CONFIGURE: Missed Fees (\(blockchainModel.name))"); return }
+                            else { print ("SYS: CONFIGURE: Missed Fees (\(blockchainModel.name)) on '\(blockchainModel.network)'"); return }
 
                         // define the network
                         let network = Network (uids: blockchainModel.id,
@@ -473,6 +473,9 @@ public protocol SystemListener : /* class, */ WalletManagerListener, WalletListe
     func handleSystemEvent (system: System,
                             event: SystemEvent)
 }
+
+/// A Functional Interface for a Handler
+public typealias SystemEventHandler = (System, SystemEvent) -> Void
 
 public final class SystemCallbackCoordinator {
     enum Handler {
@@ -660,7 +663,6 @@ extension System {
 
                 case CRYPTO_WALLET_EVENT_BALANCE_UPDATED:
                     let amount = Amount (core: event.u.balanceUpdated.amount,
-                                         unit: wallet.unit,
                                          take: false)
                     system.listener?.handleWalletEvent (system: manager.system,
                                                         manager: manager,
@@ -1170,6 +1172,7 @@ extension BRWalletManagerEventType: CustomStringConvertible {
         case BITCOIN_WALLET_MANAGER_CONNECTED: return "Connected"
         case BITCOIN_WALLET_MANAGER_DISCONNECTED: return "Disconnected"
         case BITCOIN_WALLET_MANAGER_SYNC_STARTED: return "Sync Started"
+        case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS: return "Sync Progress"
         case BITCOIN_WALLET_MANAGER_SYNC_STOPPED: return "Sync Stopped"
         case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED: return "Block Height Updated"
         default: return "<<unknown>>"

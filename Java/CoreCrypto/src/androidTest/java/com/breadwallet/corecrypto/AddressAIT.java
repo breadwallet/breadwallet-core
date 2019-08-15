@@ -1,5 +1,6 @@
 package com.breadwallet.corecrypto;
 
+import com.breadwallet.crypto.AddressScheme;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
@@ -30,7 +31,7 @@ public class AddressAIT {
         Map<Currency, NetworkAssociation> associations = new HashMap<>();
         associations.put(eth, association_eth);
 
-        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(1000), Amount.create(2.0, gwei_eth).get());
+        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(1000), Amount.create(2.0, gwei_eth));
         List<NetworkFee> fees = Collections.singletonList(fee);
 
         Network network = Network.create("ethereum-mainnet", "Ethereum", true, eth, UnsignedLong.valueOf(100000), associations, fees);
@@ -70,7 +71,7 @@ public class AddressAIT {
         Map<Currency, NetworkAssociation> associations = new HashMap<>();
         associations.put(btc, association);
 
-        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_btc).get());
+        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_btc));
         List<NetworkFee> fees = Collections.singletonList(fee);
 
         Network network = Network.create("bitcoin-mainnet", "Bitcoin", true, btc, UnsignedLong.valueOf(100000), associations, fees);
@@ -99,7 +100,7 @@ public class AddressAIT {
         Map<Currency, NetworkAssociation> associations = new HashMap<>();
         associations.put(btc, association);
 
-        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_btc).get());
+        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_btc));
         List<NetworkFee> fees = Collections.singletonList(fee);
 
         Network network_btc = Network.create("bitcoin-mainnet", "Bitcoin", true, btc, UnsignedLong.valueOf(100000), associations, fees);
@@ -119,7 +120,7 @@ public class AddressAIT {
         associations = new HashMap<>();
         associations.put(eth, association_eth);
 
-        fee = NetworkFee.create(UnsignedLong.valueOf(1000), Amount.create(2.0, gwei_eth).get());
+        fee = NetworkFee.create(UnsignedLong.valueOf(1000), Amount.create(2.0, gwei_eth));
         fees = Collections.singletonList(fee);
 
         Network network_eth = Network.create("ethereum-mainnet", "Ethereum", true, eth, UnsignedLong.valueOf(100000), associations, fees);
@@ -144,7 +145,7 @@ public class AddressAIT {
         Map<Currency, NetworkAssociation> associations = new HashMap<>();
         associations.put(eth, association_eth);
 
-        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(1000), Amount.create(2.0, gwei_eth).get());
+        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(1000), Amount.create(2.0, gwei_eth));
         List<NetworkFee> fees = Collections.singletonList(fee);
 
         Network network = Network.create("ethereum-testnet", "Ethereum Testnet", false, eth, UnsignedLong.valueOf(100000), associations, fees);
@@ -184,7 +185,7 @@ public class AddressAIT {
         Map<Currency, NetworkAssociation> associations = new HashMap<>();
         associations.put(btc, association);
 
-        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_btc).get());
+        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_btc));
         List<NetworkFee> fees = Collections.singletonList(fee);
 
         Network network = Network.create("bitcoin-testnet", "Bitcoin Testnet", false, btc, UnsignedLong.valueOf(100000), associations, fees);
@@ -213,7 +214,7 @@ public class AddressAIT {
         Map<Currency, NetworkAssociation> associations = new HashMap<>();
         associations.put(btc, association);
 
-        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_btc).get());
+        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_btc));
         List<NetworkFee> fees = Collections.singletonList(fee);
 
         Network network_btc = Network.create("bitcoin-testnet", "Bitcoin Testnet", false, btc, UnsignedLong.valueOf(100000), associations, fees);
@@ -233,7 +234,7 @@ public class AddressAIT {
         associations = new HashMap<>();
         associations.put(eth, association_eth);
 
-        fee = NetworkFee.create(UnsignedLong.valueOf(1000), Amount.create(2.0, gwei_eth).get());
+        fee = NetworkFee.create(UnsignedLong.valueOf(1000), Amount.create(2.0, gwei_eth));
         fees = Collections.singletonList(fee);
 
         Network network_eth = Network.create("ethereum-testnet", "Ethereum Testnet", false, eth, UnsignedLong.valueOf(100000), associations, fees);
@@ -243,5 +244,13 @@ public class AddressAIT {
 
         assertNotEquals(e1, b1);
         assertNotEquals(b1, e1);
+    }
+
+    @Test
+    public void testAddressScheme() {
+        assertEquals("BTC Legacy",  AddressScheme.BTC_LEGACY.toString());
+        assertEquals("BTC Segwit",  AddressScheme.BTC_SEGWIT.toString());
+        assertEquals("ETH Default", AddressScheme.ETH_DEFAULT.toString());
+        assertEquals("GEN Default", AddressScheme.GEN_DEFAULT.toString());
     }
 }

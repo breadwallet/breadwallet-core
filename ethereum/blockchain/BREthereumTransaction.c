@@ -175,22 +175,34 @@ transactionGetAmount(BREthereumTransaction transaction) {
     return transaction->amount;
 }
 
+extern BREthereumFeeBasis
+transactionGetFeeBasis (BREthereumTransaction transaction) {
+    BREthereumGas gas = (ETHEREUM_BOOLEAN_IS_TRUE(transactionIsConfirmed(transaction))
+                         ? transaction->status.u.included.gasUsed
+                         : transaction->gasLimit);
+
+    return (BREthereumFeeBasis) {
+        FEE_BASIS_GAS,
+        { gas, transaction->gasPrice }
+    };
+}
+
 extern BREthereumEther
 transactionGetFee (BREthereumTransaction transaction, int *overflow) {
-    return etherCreate
-    (mulUInt256_Overflow(transaction->gasPrice.etherPerGas.valueInWEI,
-                         createUInt256 (ETHEREUM_BOOLEAN_IS_TRUE(transactionIsConfirmed(transaction))
-                                        ? transaction->status.u.included.gasUsed.amountOfGas
-                                        : transaction->gasLimit.amountOfGas),
-                         overflow));
+    return feeBasisGetFee (transactionGetFeeBasis(transaction), overflow);
+}
+
+extern BREthereumFeeBasis
+transactionGetFeeBasisLimit (BREthereumTransaction transaction) {
+    return (BREthereumFeeBasis) {
+        FEE_BASIS_GAS,
+        { transaction-> gasLimit, transaction->gasPrice }
+    };
 }
 
 extern BREthereumEther
 transactionGetFeeLimit (BREthereumTransaction transaction, int *overflow) {
-    return etherCreate
-    (mulUInt256_Overflow(transaction->gasPrice.etherPerGas.valueInWEI,
-                         createUInt256 (transaction->gasLimit.amountOfGas),
-                         overflow));
+    return feeBasisGetFee (transactionGetFeeBasisLimit(transaction), overflow);
 }
 
 extern BREthereumGasPrice

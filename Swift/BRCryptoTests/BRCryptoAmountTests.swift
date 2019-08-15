@@ -35,6 +35,12 @@ class BRCryptoAmountTests: XCTestCase {
         XCTAssertFalse (btc.name == eth.name)
         XCTAssertFalse (btc.code == eth.code)
         XCTAssertTrue  (btc.type == eth.type)
+
+        // Not normally how a Currency is created; but used internally
+        let eth_too = Currency (core: eth.core)
+        XCTAssert (eth_too.name == "Ethereum")
+        XCTAssert (eth_too.code == "ETH")
+        XCTAssert (eth_too.type == "native")
      }
 
     func testUnit () {
@@ -61,6 +67,16 @@ class BRCryptoAmountTests: XCTestCase {
         let ETH_WEI = BRCrypto.Unit (currency: eth, uids: "ETH-WEI", name: "WEI", symbol: "wei")
         XCTAssertFalse (ETH_WEI.isCompatible (with: BTC_BTC))
         XCTAssertFalse (BTC_BTC.isCompatible (with: ETH_WEI))
+
+        // Not normally how a Unit is created; but used internally
+        let BTC_SATOSHI_TOO = Unit (core: BTC_SATOSHI.core)
+        XCTAssert (BTC_SATOSHI_TOO.currency.code == btc.code)
+        XCTAssert (BTC_SATOSHI_TOO.name == "Satoshi")
+        XCTAssert (BTC_SATOSHI_TOO.symbol == "SAT");
+        XCTAssertTrue  (BTC_SATOSHI_TOO.hasCurrency (btc))
+        XCTAssertFalse (BTC_SATOSHI_TOO.hasCurrency (eth))
+        XCTAssertTrue  (BTC_SATOSHI_TOO.isCompatible (with: BTC_SATOSHI))
+
     }
 
     func testAmount () {
@@ -102,6 +118,9 @@ class BRCryptoAmountTests: XCTestCase {
 
         XCTAssert ("-B1.50"          == btc4.string (as: BTC_BTC))
         XCTAssert ("-SAT150,000,000" == btc4.string (as: BTC_SATOSHI))
+
+        XCTAssertEqual (btc1.double(as: BTC_BTC),     btc1.convert(to: BTC_SATOSHI)?.double(as: BTC_BTC))
+        XCTAssertEqual (btc1.double(as: BTC_SATOSHI), btc1.convert(to: BTC_BTC)?.double(as: BTC_SATOSHI))
 
         let formatter = NumberFormatter()
         formatter.minimumFractionDigits = 2
@@ -221,30 +240,65 @@ class BRCryptoAmountTests: XCTestCase {
         let BTC_SATOSHI = BRCrypto.Unit (currency: btc, uids: "BTC-SAT",  name: "Satoshi", symbol: "SAT")
         let BTC_BTC = BRCrypto.Unit (currency: btc, uids: "BTC-BTC",  name: "Bitcoin", symbol: "B", base: BTC_SATOSHI, decimals: 8)
 
+        XCTAssertEqual (btc, BTC_SATOSHI.currency)
 
         let btc1 = Amount.create (integer: 100000000, unit: BTC_SATOSHI)
         XCTAssert (100000000 == btc1.double (as: BTC_SATOSHI))
         XCTAssert (1         == btc1.double (as: BTC_BTC))
         XCTAssertFalse (btc1.isNegative)
-
-
     }
-    func testCurrencyPair () {
-        #if false
-        let BTC = Bitcoin.currency.defaultUnit!
-        let USD = Fiat.US.defaultUnit!
 
-        let pair = CurrencyPair (baseUnit: BTC, quoteUnit: USD, exchangeRate: 6000)
+    func testAmountExtended () {
+        let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
+
+        let BTC_SATOSHI = BRCrypto.Unit (currency: btc, uids: "BTC-SAT",   name: "Satoshi",  symbol: "SAT")
+        let BTC_MONGO   = BRCrypto.Unit (currency: btc, uids: "BTC-MONGO", name: "BitMongo", symbol: "BM", base: BTC_SATOSHI, decimals: 70)
+
+        let btc1 = Amount.create (integer: 100000000, unit: BTC_SATOSHI)
+        let btc2 = Amount.create (integer: 100000001, unit: BTC_SATOSHI)
+        XCTAssertFalse(btc1 > btc2)
+        XCTAssertFalse(btc1 > btc1)
+        XCTAssertTrue (btc2 > btc1)
+        XCTAssertTrue (btc1 <= btc2)
+        XCTAssertTrue (btc1 <= btc1)
+        XCTAssertTrue (btc2 >= btc1)
+        XCTAssertTrue (btc2 >= btc2)
+
+        XCTAssertEqual (btc1.currency, btc)
+        XCTAssertTrue  (btc1.hasCurrency(btc))
+
+        let btc3 = Amount.create(double: 1e20, unit: BTC_SATOSHI)
+        XCTAssertNotNil (btc3.double(as: BTC_MONGO))
+
+        let btc4 = Amount (core: btc1.core, take: true)
+        XCTAssertTrue (btc4.core == btc1.core)
+    }
+
+    func testCurrencyPair () {
+        let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
+
+        let BTC_SATOSHI = BRCrypto.Unit (currency: btc, uids: "BTC-SAT",  name: "Satoshi", symbol: "SAT")
+        let BTC_BTC = BRCrypto.Unit (currency: btc, uids: "BTC-BTC",  name: "Bitcoin", symbol: "B", base: BTC_SATOSHI, decimals: 8)
+
+        let usd = Currency (uids: "USDollar", name: "USDollar", code: "USD", type: "fiat", issuer: nil)
+
+        let usd_cents  = BRCrypto.Unit (currency: usd, uids: "USD-Cents", name: "Cents", symbol: "c")
+        let usd_dollar = BRCrypto.Unit (currency: usd, uids: "USD-Dollar", name: "Dollars", symbol: "$", base: usd_cents, decimals: 2)
+
+        let pair = CurrencyPair (baseUnit: BTC_BTC, quoteUnit: usd_dollar, exchangeRate: 10000)
+        XCTAssertEqual("Bitcoin/Dollars=10000.0", pair.description)
 
         // BTC -> USD
-        let inUSD = pair.exchange(asBase: Amount (value: 1.0, unit: BTC))
-        XCTAssertEqual(6000, inUSD?.double ?? 0, accuracy: 1e-6)
+        let oneBTCinUSD = pair.exchange(asBase: Amount.create(double: 1.0, unit: BTC_BTC))
+        XCTAssertNotNil(oneBTCinUSD)
+        XCTAssertEqual (10000.0, oneBTCinUSD!.double(as: usd_dollar)!, accuracy: 1e-6)
 
         // USD -> BTC
-        let inBTC = pair.exchange(asQuote: Amount (value: 6000.0, unit: USD))
-        XCTAssertEqual(1.0, inBTC?.double ?? 0, accuracy: 1e-6)
+        let oneUSDinBTC = pair.exchange(asQuote: Amount.create(double: 1.0, unit: usd_dollar))
+        XCTAssertNotNil (oneUSDinBTC)
+        XCTAssertEqual (1/10000.0, oneUSDinBTC!.double(as: BTC_BTC)!, accuracy: 1e-6)
 
-        XCTAssertEqual("\(BTC.name)/\(USD.name)=\(6000.0)", pair.description)
-        #endif
+        let oneBTC = Amount.create(double: 1.0, unit: BTC_BTC)
+        XCTAssertEqual("$10,000.00", oneBTC.string(pair: pair))
     }
 }

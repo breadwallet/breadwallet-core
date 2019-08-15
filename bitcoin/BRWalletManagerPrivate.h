@@ -26,6 +26,7 @@
 #ifndef BRWalletManagerPrivate_h
 #define BRWalletManagerPrivate_h
 
+#include "BRSyncManager.h"
 #include "ethereum/event/BREvent.h"
 #include "support/BRBase.h"
 #include "support/BRFileService.h"
@@ -44,8 +45,7 @@ struct BRWalletManagerStruct {
     /** The wallet */
     BRWallet *wallet;
 
-    /** The peer manager */
-    BRPeerManager  *peerManager;
+    BRSyncManager syncManager;
 
     /** The client */
     BRWalletManagerClient client;
@@ -54,14 +54,9 @@ struct BRWalletManagerStruct {
     BRFileService fileService;
 
     /**
-     * The BlockHeight is the largest block number seen
+     * The forkId of the chain parameters associated with the wallet
      */
-    uint32_t blockHeight;
-
-    /**
-     * An identiifer for a BRD Request
-     */
-    unsigned int requestId;
+    uint8_t forkId;
 
     /**
      * An EventHandler for Main.  All 'announcements' (via PeerManager (or BRD) hit here.
@@ -72,41 +67,39 @@ struct BRWalletManagerStruct {
      * The Lock ensuring single thread access to BWM state.
      */
     pthread_mutex_t lock;
-
-    /**
-     * If we are syncing with BRD, instead of as P2P with PeerManager, then we'll keep a record to
-     * ensure we've successfully completed the getTransactions() callbacks to the client.
-     *
-     * We sync, using chunks, through the total range being synced on rather than using the range
-     * in its entirety.
-     *
-     *  The reasons for this are:
-     *
-     * 1) As transactions are announced, the set of addresses that need to be queried for transactions
-     *    will grow. By splitting the range into smaller chunks, we will pick up addresses as we move
-     *    through the range.
-     *
-     * 2) Chunking the sync range allows us to measure progress organically. If the whole range was
-     *    requested, we would need to enhance the client/announceCallback relationship to provide
-     *    additional data points on its progress and add complexity as a byproduct.
-     *
-     * 3) For naive implemenations that announce transactions once all of them have been discovered,
-     *    the use of chunking forces them to announce transactions more frequently. This should
-     *    ultimately lead to a more responsive user experience.
-     */
-    struct {
-        BRAddress lastExternalAddress;
-        BRAddress lastInternalAddress;
-        uint64_t begBlockNumber;
-        uint64_t endBlockNumber;
-        uint64_t chunkBegBlockNumber;
-        uint64_t chunkEndBlockNumber;
-
-        int rid;
-
-        int completed:1;
-    } brdSync;
 };
+
+/// Mark: - WalletManager Events
+
+extern void
+bwmHandleWalletManagerEvent(BRWalletManager bwm,
+                            BRWalletManagerEvent event);
+
+extern void
+bwmSignalWalletManagerEvent (BRWalletManager manager,
+                             BRWalletManagerEvent event);
+
+extern void
+bwmHandleWalletEvent(BRWalletManager bwm,
+                     BRWallet *wallet,
+                     BRWalletEvent event);
+
+extern void
+bwmSignalWalletEvent (BRWalletManager manager,
+                      BRWallet *wallet,
+                      BRWalletEvent event);
+
+extern void
+bwmHandleTransactionEvent(BRWalletManager bwm,
+                          BRWallet *wallet,
+                          BRTransaction *transaction,
+                          BRTransactionEvent event);
+
+extern void
+bwmSignalTransactionEvent (BRWalletManager manager,
+                           BRWallet *wallet,
+                           BRTransaction *transaction,
+                           BRTransactionEvent event);
 
 /// MARK: - BlockNumber
 

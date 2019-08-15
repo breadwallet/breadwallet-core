@@ -21,6 +21,7 @@
 #include "BREthereumLogic.h"
 #include "BREthereumEther.h"
 #include "BREthereumGas.h"
+#include "BREthereumFeeBasis.h"
 #include "BREthereumHash.h"
 #include "BREthereumData.h"
 #include "BREthereumAddress.h"

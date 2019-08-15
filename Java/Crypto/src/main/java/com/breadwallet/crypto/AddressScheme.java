@@ -13,6 +13,10 @@ public enum  AddressScheme {
                 return "BTC Legacy";
             case BTC_SEGWIT:
                 return "BTC Segwit";
+            case ETH_DEFAULT:
+                return "ETH Default";
+            case GEN_DEFAULT:
+                return "GEN Default";
             default:
                 return "Default";
         }

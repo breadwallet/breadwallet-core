@@ -32,6 +32,8 @@ class BRCryptoNetworkTests: XCTestCase {
         let fee = NetworkFee (timeInternalInMilliseconds: 30 * 1000,
                               pricePerCostFactor: Amount.create(integer: 1000, unit: BTC_SATOSHI))
 
+        let _ = NetworkFee (core: fee.core, take: true)
+
         let network = Network (uids: "bitcoin-mainnet",
                                name: "bitcoin-name",
                                isMainnet: true,
@@ -72,6 +74,10 @@ class BRCryptoNetworkTests: XCTestCase {
         XCTAssertFalse (network.hasUnitFor(currency: btc, unit: ETH_WEI) ?? false)
 
         XCTAssertEqual(1, network.fees.count)
+
+        // Hashable
+        let networksTable: [Network: Int] = [network : 1]
+        XCTAssertEqual(1, networksTable[network])
     }
 
     func testNetworkETH () {
@@ -95,17 +101,20 @@ class BRCryptoNetworkTests: XCTestCase {
 
         let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
 
-        let fee = NetworkFee (timeInternalInMilliseconds: 1000,
-                                pricePerCostFactor: Amount.create(double: 2.0, unit: ETH_GWEI))
+        let fee1 = NetworkFee (timeInternalInMilliseconds: 1000,
+                               pricePerCostFactor: Amount.create(double: 2.0, unit: ETH_GWEI))
+        let fee2 = NetworkFee (timeInternalInMilliseconds: 500,
+                               pricePerCostFactor: Amount.create(double: 3.0, unit: ETH_GWEI))
 
         let network = Network (uids: "ethereum-mainnet",
-                               name: "ethereump-name",
+                               name: "ethereum-name",
                                isMainnet: true,
                                currency: eth,
                                height: 100000,
                                associations: [eth:ETH_associations, brd:BRD_associations],
-                               fees: [fee])
+                               fees: [fee1, fee2])
 
+        XCTAssertEqual ("ethereum-name", network.description)
         XCTAssertTrue  (network.hasCurrency(eth))
         XCTAssertTrue  (network.hasCurrency(brd))
         XCTAssertFalse (network.hasCurrency(btc))
@@ -120,5 +129,12 @@ class BRCryptoNetworkTests: XCTestCase {
         XCTAssertTrue (network.hasUnitFor(currency: eth, unit: ETH_WEI)   ?? false)
         XCTAssertTrue (network.hasUnitFor(currency: eth, unit: ETH_GWEI)  ?? false)
         XCTAssertTrue (network.hasUnitFor(currency: eth, unit: ETH_ETHER) ?? false)
+
+        XCTAssertEqual(fee1, network.minimumFee)
+
+        XCTAssertNil (network.defaultUnitFor(currency: btc))
+        XCTAssertNil (network.baseUnitFor(currency: btc))
+
+        let _ = Network (core: network.core, take: true)
     }
 }

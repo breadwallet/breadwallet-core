@@ -252,7 +252,7 @@ extension WalletManager {
 ///
 /// The WalletManager state.
 ///
-public enum WalletManagerState {
+public enum WalletManagerState: Equatable {
     case created
     case disconnected
     case connected
@@ -351,7 +351,9 @@ public protocol WalletManagerListener: class {
     func handleManagerEvent (system: System,
                              manager: WalletManager,
                              event: WalletManagerEvent)
-
 }
+
+/// A Functional Interface for a Handler
+public typealias WalletManagerEventHandler = (System, WalletManager, WalletManagerEvent) -> Void
 
 public protocol WalletManagerFactory { }

@@ -46,7 +46,7 @@ public final class Wallet: Equatable {
 
     /// The current balance for currency
     public var balance: Amount {
-        return Amount (core: cryptoWalletGetBalance (core), unit: unit, take: false)
+        return Amount (core: cryptoWalletGetBalance (core), take: false)
     }
 
     /// The current state.
@@ -296,7 +296,7 @@ extension Wallet {
 /// - created: The wallet was created (and remains in existence).
 /// - deleted: The wallet was deleted.
 ///
-public enum WalletState {
+public enum WalletState: Equatable {
     case created
     case deleted
 
@@ -362,6 +362,9 @@ public protocol WalletListener: class {
                             wallet: Wallet,
                             event: WalletEvent)
 }
+/// A Functional Interface for a Handler
+public typealias WalletEventHandler = (System, WalletManager, Wallet, WalletEvent) -> Void
+
 
 ///
 /// A WalletFactory is a customization point for Wallet creation.

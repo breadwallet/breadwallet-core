@@ -210,9 +210,7 @@ cryptoWalletGetBalance (BRCryptoWallet wallet) {
             BRWallet *wid = wallet->u.btc.wid;
 
             UInt256 value = createUInt256 (BRWalletBalance (wid));
-            BRCryptoCurrency currency = cryptoWalletGetCurrency (wallet);
-            BRCryptoAmount amount = cryptoAmountCreate (currency, CRYPTO_FALSE, value);
-            cryptoCurrencyGive (currency);
+            BRCryptoAmount amount = cryptoAmountCreate (wallet->unit, CRYPTO_FALSE, value);
             return amount;
         }
         case BLOCK_CHAIN_TYPE_ETH: {
@@ -221,9 +219,7 @@ cryptoWalletGetBalance (BRCryptoWallet wallet) {
 
             BREthereumAmount balance = ewmWalletGetBalance (ewm, wid);
             UInt256 value = balance.type == AMOUNT_ETHER ? balance.u.ether.valueInWEI : balance.u.tokenQuantity.valueAsInteger;
-            BRCryptoCurrency currency = cryptoWalletGetCurrency (wallet);
-            BRCryptoAmount amount = cryptoAmountCreate (currency, CRYPTO_FALSE, value);
-            cryptoCurrencyGive (currency);
+            BRCryptoAmount amount = cryptoAmountCreate (wallet->unit, CRYPTO_FALSE, value);
             return amount;
         }
         case BLOCK_CHAIN_TYPE_GEN: {
@@ -232,9 +228,7 @@ cryptoWalletGetBalance (BRCryptoWallet wallet) {
 
             // TODO: How does the GEN wallet know the balance?  Holds tranactions? (not currently)
             UInt256 value = gwmWalletGetBalance (gwm, wid);
-            BRCryptoCurrency currency = cryptoWalletGetCurrency (wallet);
-            BRCryptoAmount amount = cryptoAmountCreate (currency, CRYPTO_FALSE, value);
-            cryptoCurrencyGive (currency);
+            BRCryptoAmount amount = cryptoAmountCreate (wallet->unit, CRYPTO_FALSE, value);
             return amount;
         }
     }
@@ -497,13 +491,8 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
             uint64_t value = cryptoAmountGetIntegerRaw (amount, &overflow);
             if (CRYPTO_TRUE == overflow) { return NULL; }
 
-            // TODO: Set Wallet FeePerKB
-            uint64_t feePerKbSaved = BRWalletFeePerKb (wid);
-            uint64_t feePerKb      = cryptoFeeBasisAsBTC(estimatedFeeBasis);
-
-            BRWalletSetFeePerKb (wid, feePerKb);
-            BRTransaction *tid = BRWalletManagerCreateTransaction (bwm, wid, value, addr);
-            BRWalletSetFeePerKb (wid, feePerKbSaved);
+            BRTransaction *tid = BRWalletManagerCreateTransaction (bwm, wid, value, addr,
+                                                                   cryptoFeeBasisAsBTC(estimatedFeeBasis));
 
             // The above BRWalletManagerCreateTransaction call resulted in a
             // BITCOIN_TRANSACTION_CREATED event occuring inline, on this same
@@ -537,8 +526,18 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
                                           : amountCreateEther (etherCreate (ethValue)));
             BREthereumFeeBasis ethFeeBasis = cryptoFeeBasisAsETH (estimatedFeeBasis);
 
+            //
+            // We have a race condition here. `ewmWalletCreateTransferWithFeeBasis()` will generate
+            // a `TRANSFER_EVENT_CREATED` event; `cwmTransactionEventAsETH()` will eventually get
+            // called and attempt to find or create the BRCryptoTransfer.
+            //
+            // We might think about locking the wallet around the following two statements and then
+            // locking in `cwmTransactionEventAsETH()` too - perhaps justifying it with 'we are
+            // mucking w/ the wallet's transactions' so we should lock it (over a block of
+            // statements).
+            //
             BREthereumTransfer tid = ewmWalletCreateTransferWithFeeBasis (ewm, wid, addr, ethAmount, ethFeeBasis);
-            transfer = NULL == tid ? NULL : cryptoTransferCreateAsETH (unit, unitForFee, ewm, tid);
+            transfer = NULL == tid ? NULL : cryptoTransferCreateAsETH (unit, unitForFee, ewm, tid, estimatedFeeBasis);
             break;
         }
 

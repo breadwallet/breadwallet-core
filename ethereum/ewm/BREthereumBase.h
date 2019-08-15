@@ -108,25 +108,6 @@ typedef struct BREthereumWalletRecord *BREthereumWallet;
  */
 typedef struct BREthereumEWMRecord *BREthereumEWM;
 
-typedef enum {
-    FEE_BASIS_NONE,
-    FEE_BASIS_GAS
-} BREthereumFeeBasisType;
-
-typedef struct {
-    BREthereumFeeBasisType type;
-    union {
-        struct {
-            BREthereumGas limit;
-            BREthereumGasPrice price;
-        } gas;
-    } u;
-} BREthereumFeeBasis;
-
-extern BREthereumFeeBasis
-feeBasisCreate (BREthereumGas limit,
-                BREthereumGasPrice price);
-
 //
 // Errors - Right Up Front - 'The Emperor Has No Clothes' ??
 //

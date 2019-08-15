@@ -50,13 +50,13 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
 
     private static final CryptoApi.AmountProvider amountProvider = new CryptoApi.AmountProvider() {
         @Override
-        public Optional<com.breadwallet.crypto.Amount> create(long value, Unit unit) {
-            return Amount.create(value, unit).transform(a -> a);
+        public com.breadwallet.crypto.Amount create(long value, Unit unit) {
+            return Amount.create(value, unit);
         }
 
         @Override
-        public Optional<com.breadwallet.crypto.Amount> create(double value, Unit unit) {
-            return Amount.create(value, unit).transform(a -> a);
+        public com.breadwallet.crypto.Amount create(double value, Unit unit) {
+            return Amount.create(value, unit);
         }
 
         @Override
@@ -111,6 +111,21 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
 
     private static final CryptoApi.KeyProvider keyProvider = new CryptoApi.KeyProvider() {
         @Override
+        public void setDefaultWordList(List<String> wordList) {
+            Key.setDefaultWordList(wordList);
+        }
+
+        @Override
+        public List<String> getDefaultWordList() {
+            return Key.getDefaultWordList();
+        }
+
+        @Override
+        public boolean isProtectedPrivateKeyString(byte[] keyStringUtf8) {
+            return Key.isProtectedPrivateKeyString(keyStringUtf8);
+        }
+
+        @Override
         public Optional<com.breadwallet.crypto.Key> createFromPhrase(byte[] phraseUtf8, List<String> words) {
             return Key.createFromPhrase(phraseUtf8, words).transform(a -> a);
         }
@@ -118,6 +133,11 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
         @Override
         public Optional<com.breadwallet.crypto.Key> createFromPrivateKeyString(byte[] keyStringUtf8) {
             return Key.createFromPrivateKeyString(keyStringUtf8).transform(a -> a);
+        }
+
+        @Override
+        public Optional<com.breadwallet.crypto.Key> createFromPrivateKeyString(byte[] keyStringUtf8, byte[] passphraseUtf8) {
+            return Key.createFromPrivateKeyString(keyStringUtf8, passphraseUtf8).transform(a -> a);
         }
 
         @Override

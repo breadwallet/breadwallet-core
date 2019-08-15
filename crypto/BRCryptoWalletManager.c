@@ -125,6 +125,10 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                                                      scheme,
                                                                      cwmPath);
 
+    // Primary wallet currency and unit.
+    BRCryptoCurrency currency = cryptoNetworkGetCurrency (cwm->network);
+    BRCryptoUnit     unit     = cryptoNetworkGetUnitAsDefault (cwm->network, currency);
+
     switch (cwm->type) {
         case BLOCK_CHAIN_TYPE_BTC: {
             BRWalletManagerClient client = cryptoWalletManagerClientCreateBTCClient (cwm);
@@ -138,13 +142,15 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                              cwmPath,
                                              cryptoNetworkGetHeight(network));
 
+            BRWalletManagerStart (cwm->u.btc);
+
             break;
         }
 
         case BLOCK_CHAIN_TYPE_ETH: {
             BREthereumClient client = cryptoWalletManagerClientCreateETHClient (cwm);
 
-            // Race Here - WalletEvent before cwm->u.eth is assigned.
+            // Create EWM - will also create the EWM primary wallet....
             cwm->u.eth = ewmCreate (cryptoNetworkAsETH(network),
                                     cryptoAccountAsETH(account),
                                     (BREthereumTimestamp) cryptoAccountGetTimestamp(account),
@@ -152,6 +158,15 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                     client,
                                     cwmPath,
                                     cryptoNetworkGetHeight(network));
+
+            // ... get the CWM primary wallet in place...
+            cwm->wallet = cryptoWalletCreateAsETH (unit, unit, cwm->u.eth, ewmGetWallet(cwm->u.eth));
+
+            // ... add the CWM primary wallet to CWM
+            cryptoWalletManagerAddWallet (cwm, cwm->wallet);
+
+            // ... and finally start the EWM event handling (with CWM fully in place).
+            ewmStart (cwm->u.eth);
 
             // During the creation of both the BTC and ETH wallet managers, the primary wallet will
             // be created and will have wallet events generated.  There will be a race on `cwm->wallet` but
@@ -195,13 +210,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                     cryptoNetworkGetHeight(network));
 
             // ... and create the primary wallet
-            BRCryptoCurrency currency = cryptoNetworkGetCurrency (cwm->network);
-            BRCryptoUnit     unit     = cryptoNetworkGetUnitAsDefault (cwm->network, currency);
-
             cwm->wallet = cryptoWalletCreateAsGEN (unit, unit, cwm->u.gen, gwmCreatePrimaryWallet (cwm->u.gen));
-
-            cryptoUnitGive(unit);
-            cryptoCurrencyGive(currency);
 
             // ... and add the primary wallet to the wallet manager...
             cryptoWalletManagerAddWallet (cwm, cwm->wallet);
@@ -251,6 +260,9 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
         }
     }
 
+    cryptoUnitGive(unit);
+    cryptoCurrencyGive(currency);
+
     // NOTE: Race on cwm->u.{btc,eth} is resolved in the event handlers
 
 
@@ -275,6 +287,7 @@ cryptoWalletManagerRelease (BRCryptoWalletManager cwm) {
 
     switch (cwm->type) {
         case BLOCK_CHAIN_TYPE_BTC:
+            BRWalletManagerStop (cwm->u.btc);
             BRWalletManagerFree (cwm->u.btc);
             break;
         case BLOCK_CHAIN_TYPE_ETH:
@@ -470,12 +483,13 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
             UInt512 seed = cryptoAccountDeriveSeed(paperKey);
 
             if (BRWalletManagerSignTransaction (cwm->u.btc,
+                                                cryptoWalletAsBTC (wallet),
                                                 cryptoTransferAsBTC(transfer),
                                                 &seed,
                                                 sizeof (seed))) {
-                // Submit a copy of the transaction as we lose ownership of it once it has been submitted
                 BRWalletManagerSubmitTransaction (cwm->u.btc,
-                                                  BRTransactionCopy (cryptoTransferAsBTC(transfer)));
+                                                  cryptoWalletAsBTC (wallet),
+                                                  cryptoTransferAsBTC(transfer));
             }
             break;
         }

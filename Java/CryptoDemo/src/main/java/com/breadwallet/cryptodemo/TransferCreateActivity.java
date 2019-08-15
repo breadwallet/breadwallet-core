@@ -96,8 +96,8 @@ public class TransferCreateActivity extends AppCompatActivity {
         feeView = findViewById(R.id.fee_view);
         submitView = findViewById(R.id.submit_view);
 
-        amountMinView.setText(Amount.create(MIN_VALUE, baseUnit).transform(Amount::toString).or(String.valueOf(MIN_VALUE)));
-        amountMaxView.setText(Amount.create(maxValue, baseUnit).transform(Amount::toString).or(String.valueOf(maxValue)));
+        amountMinView.setText(Amount.create(MIN_VALUE, baseUnit).toString());
+        amountMaxView.setText(Amount.create(maxValue, baseUnit).toString());
 
         int amountViewProgress = 50;
         amountView.setProgress(amountViewProgress);
@@ -143,19 +143,14 @@ public class TransferCreateActivity extends AppCompatActivity {
                 return;
             }
 
-            Optional<Amount> amount = Amount.create(calculateValue(amountView.getProgress()), baseUnit);
-            if (!amount.isPresent()) {
-                showError("Invalid amount");
-                return;
-            }
-
             TransferFeeBasis feeBasis = this.feeBasis;
             if (feeBasis == null) {
                 showError("Invalid fee");
                 return;
             }
 
-            showConfirmTransfer(target.get(), amount.get(), feeBasis);
+            Amount amount = Amount.create(calculateValue(amountView.getProgress()), baseUnit);
+            showConfirmTransfer(target.get(), amount, feeBasis);
         });
 
         updateFee();
@@ -169,12 +164,8 @@ public class TransferCreateActivity extends AppCompatActivity {
             return;
         }
 
-        Optional<Amount> amount = Amount.create(calculateValue(amountView.getProgress()), baseUnit);
-        if (!amount.isPresent()) {
-            return;
-        }
-
-        wallet.estimateFee(target.get(), amount.get(), fee, new CompletionHandler<TransferFeeBasis,
+        Amount amount = Amount.create(calculateValue(amountView.getProgress()), baseUnit);
+        wallet.estimateFee(target.get(), amount, fee, new CompletionHandler<TransferFeeBasis,
                 FeeEstimationError>() {
             @Override
             public void handleData(TransferFeeBasis data) {
@@ -209,33 +200,28 @@ public class TransferCreateActivity extends AppCompatActivity {
     private void updateView(int progress, CharSequence receiver) {
         double value = calculateValue(progress);
 
-        Optional<Amount> amount = Amount.create(value, baseUnit);
+        Amount amount = Amount.create(value, baseUnit);
         Optional<? extends Address> target = network.addressFor(receiver.toString());
 
-        if (!amount.isPresent()) {
-            // we don't have a valid amount...
-            submitView.setEnabled(false);
-            amountValueView.setText("<nan>");
-            feeView.setText("");
-        } else if (value == 0) {
+        if (value == 0) {
             // we have a valid amount but it is zero...
             submitView.setEnabled(false);
-            amountValueView.setText(amount.get().toString());
+            amountValueView.setText(amount.toString());
             feeView.setText("");
         } else if (!target.isPresent()){
             // we don't have a valid target...
             submitView.setEnabled(false);
-            amountValueView.setText(amount.get().toString());
+            amountValueView.setText(amount.toString());
             feeView.setText("");
         } else if (feeBasis == null) {
             // we have a valid target but it don't have a fee estimate...
             submitView.setEnabled(false);
-            amountValueView.setText(amount.get().toString());
+            amountValueView.setText(amount.toString());
             feeView.setText("");
         } else {
             // we have it all!
             submitView.setEnabled(true);
-            amountValueView.setText(amount.get().toString());
+            amountValueView.setText(amount.toString());
             feeView.setText(feeBasis.getFee().toString());
         }
     }
