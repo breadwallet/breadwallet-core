@@ -741,14 +741,14 @@ ewmConnect(BREthereumEWM ewm) {
         result = ETHEREUM_BOOLEAN_TRUE;
     }
 
-    ewmUnlock (ewm);
-
     if (oldState != newState)
         ewmSignalEWMEvent (ewm, (BREthereumEWMEvent) {
             EWM_EVENT_CHANGED,
             SUCCESS,
             { .changed = { oldState, newState }}
         });
+
+    ewmUnlock (ewm);
 
     return result;
 }
@@ -812,14 +812,14 @@ ewmDisconnect (BREthereumEWM ewm) {
         result = ETHEREUM_BOOLEAN_TRUE;
     }
 
-    ewmUnlock(ewm);
-
     if (oldState != newState)
         ewmSignalEWMEvent (ewm, (BREthereumEWMEvent) {
             EWM_EVENT_CHANGED,
             SUCCESS,
             { .changed = { oldState, newState }}
         });
+
+    ewmUnlock(ewm);
 
     return result;
 }
