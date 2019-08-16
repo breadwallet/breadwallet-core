@@ -81,7 +81,7 @@ struct BRTransactionWithStateStruct {
     BRTransaction *ownedTransaction;
 };
 
-static BRTransactionWithState BRTransactionWithStateNewOwned(BRTransaction *transaction) {
+static BRTransactionWithState BRTransactionWithStateNewFromOwned(BRTransaction *transaction) {
     BRTransactionWithState txnWithState = calloc (1, sizeof(struct BRTransactionWithStateStruct));
     txnWithState->isDeleted = 0;
     txnWithState->ownedTransaction = transaction;
@@ -89,7 +89,11 @@ static BRTransactionWithState BRTransactionWithStateNewOwned(BRTransaction *tran
     return txnWithState;
 }
 
-static BRTransactionWithState BRTransactionWithStateNewRefed(BRTransaction *transaction) {
+static BRTransaction * BRTransactionWithStateGetOwned(BRTransactionWithState txnWithState) {
+    return txnWithState->ownedTransaction;
+}
+
+static BRTransactionWithState BRTransactionWithStateNewFromReference(BRTransaction *transaction) {
     BRTransactionWithState txnWithState = calloc (1, sizeof(struct BRTransactionWithStateStruct));
     txnWithState->isDeleted = 0;
     txnWithState->ownedTransaction = BRTransactionCopy (transaction);
@@ -97,7 +101,7 @@ static BRTransactionWithState BRTransactionWithStateNewRefed(BRTransaction *tran
     return txnWithState;
 }
 
-static BRTransactionWithState BRTransactionWithStateSetRefed(BRTransactionWithState txnWithState, BRTransaction *transaction) {
+static BRTransactionWithState BRTransactionWithStateSetReferenced(BRTransactionWithState txnWithState, BRTransaction *transaction) {
     assert (txnWithState->refedTransaction == NULL);
     txnWithState->refedTransaction = transaction;
     txnWithState->ownedTransaction->blockHeight = transaction->blockHeight;
@@ -123,14 +127,14 @@ static void BRTransactionWithStateFree(BRTransactionWithState txn) {
 
 static BRTransactionWithState
 BRWalletManagerAddOwnedTransaction(BRWalletManager manager, BRTransaction *transaction) {
-    BRTransactionWithState txnWithState = BRTransactionWithStateNewOwned (transaction);
+    BRTransactionWithState txnWithState = BRTransactionWithStateNewFromOwned (transaction);
     array_add (manager->transactions, txnWithState);
     return txnWithState;
 }
 
 static BRTransactionWithState
-BRWalletManagerAddRefedTransaction(BRWalletManager manager, BRTransaction *transaction) {
-    BRTransactionWithState txnWithState = BRTransactionWithStateNewRefed (transaction);
+BRWalletManagerAddReferencedTransaction(BRWalletManager manager, BRTransaction *transaction) {
+    BRTransactionWithState txnWithState = BRTransactionWithStateNewFromReference (transaction);
     array_add (manager->transactions, txnWithState);
     return txnWithState;
 }
@@ -596,24 +600,24 @@ BRWalletManagerNew (BRWalletManagerClient client,
             // Create a new wallet-based transaction. No lock is held here because we
             // are still in the "ctor" and callbacks are not being made until the
             // event handler is started in a later call.
-            BRTransactionWithState txnWithState = BRWalletManagerAddRefedTransaction (bwm,
-                                                                                      txns[i]);
+            BRTransactionWithState txnWithState = BRWalletManagerAddReferencedTransaction (bwm,
+                                                                                           txns[i]);
 
             bwmSignalTransactionEvent (bwm,
                                     bwm->wallet,
-                                    txnWithState->ownedTransaction,
+                                    BRTransactionWithStateGetOwned (txnWithState),
                                     (BRTransactionEvent) {
                                         BITCOIN_TRANSACTION_ADDED
                                     });
 
             bwmSignalTransactionEvent (bwm,
                                     bwm->wallet,
-                                    txnWithState->ownedTransaction,
+                                    BRTransactionWithStateGetOwned (txnWithState),
                                     (BRTransactionEvent) {
                                     BITCOIN_TRANSACTION_UPDATED,
                                         { .updated = {
-                                            txnWithState->ownedTransaction->blockHeight,
-                                            txnWithState->ownedTransaction->timestamp }}
+                                            BRTransactionWithStateGetOwned (txnWithState)->blockHeight,
+                                            BRTransactionWithStateGetOwned (txnWithState)->timestamp }}
                                     });
         }
 
@@ -712,7 +716,7 @@ BRWalletManagerCreateTransaction (BRWalletManager manager,
     if (NULL != txnWithState) {
         bwmSignalTransactionEvent(manager,
                                   wallet,
-                                  txnWithState->ownedTransaction,
+                                  BRTransactionWithStateGetOwned (txnWithState),
                                   (BRTransactionEvent) {
                                       BITCOIN_TRANSACTION_CREATED
                                   });
@@ -736,14 +740,14 @@ BRWalletManagerSignTransaction (BRWalletManager manager,
     int success = 0;
     if (NULL != txnWithState &&
         1 == BRWalletSignTransaction (wallet,
-                                      txnWithState->ownedTransaction,
+                                      BRTransactionWithStateGetOwned (txnWithState),
                                       manager->forkId,
                                       seed,
                                       seedLen)) {
         success = 1;
         bwmSignalTransactionEvent(manager,
                                   wallet,
-                                  txnWithState->ownedTransaction,
+                                  BRTransactionWithStateGetOwned (txnWithState),
                                   (BRTransactionEvent) {
                                       BITCOIN_TRANSACTION_SIGNED
                                   });
@@ -764,7 +768,7 @@ BRWalletManagerSubmitTransaction (BRWalletManager manager,
 
     if (NULL != txnWithState) {
         BRSyncManagerSubmit (manager->syncManager,
-                             txnWithState->ownedTransaction);
+                             BRTransactionWithStateGetOwned (txnWithState));
     }
 }
 
@@ -838,20 +842,20 @@ _BRWalletManagerTxAdded (void *info,
     BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByHash (manager, tx->txHash);
     if (NULL == txnWithState) {
         // first we've seen it, so it came from the network; add it to our list
-        txnWithState = BRWalletManagerAddRefedTransaction (manager, tx);
+        txnWithState = BRWalletManagerAddReferencedTransaction (manager, tx);
     } else {
         // this is a transaction we've submitted; set the reference transaction from the wallet
-        txnWithState = BRTransactionWithStateSetRefed(txnWithState, tx);
+        txnWithState = BRTransactionWithStateSetReferenced(txnWithState, tx);
     }
     assert (NULL != txnWithState);
     pthread_mutex_unlock (&manager->lock);
 
     // filestystem changes are NOT queued; they are acted upon immediately
-    fileServiceSave(manager->fileService, fileServiceTypeTransactions, txnWithState->ownedTransaction);
+    fileServiceSave(manager->fileService, fileServiceTypeTransactions, BRTransactionWithStateGetOwned (txnWithState));
 
     bwmSignalTransactionEvent(manager,
                               manager->wallet,
-                              txnWithState->ownedTransaction,
+                              BRTransactionWithStateGetOwned (txnWithState),
                               (BRTransactionEvent) {
                                   BITCOIN_TRANSACTION_ADDED
                               });
@@ -868,18 +872,18 @@ _BRWalletManagerTxUpdated (void *info,
     for (size_t index = 0; index < count; index++) {
         pthread_mutex_lock (&manager->lock);
         BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByHash (manager, hashes[index]);
-        assert (NULL != txnWithState && BRTransactionIsSigned (txnWithState->ownedTransaction));
+        assert (NULL != txnWithState && BRTransactionIsSigned (BRTransactionWithStateGetOwned (txnWithState)));
 
         BRTransactionWithStateSetBlock (txnWithState, blockHeight, timestamp);
         pthread_mutex_unlock (&manager->lock);
 
         // assert timestamp and blockHeight in transaction
         // filestystem changes are NOT queued; they are acted upon immediately
-        fileServiceSave (manager->fileService, fileServiceTypeTransactions, txnWithState->ownedTransaction);
+        fileServiceSave (manager->fileService, fileServiceTypeTransactions, BRTransactionWithStateGetOwned (txnWithState));
 
         bwmSignalTransactionEvent(manager,
                                   manager->wallet,
-                                  txnWithState->ownedTransaction,
+                                  BRTransactionWithStateGetOwned (txnWithState),
                                   (BRTransactionEvent) {
                                       BITCOIN_TRANSACTION_UPDATED,
                                       { .updated = { blockHeight, timestamp }}
@@ -899,14 +903,14 @@ _BRWalletManagerTxDeleted (void *info,
 
     pthread_mutex_lock (&manager->lock);
     BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByHash (manager, hash);
-    assert (NULL != txnWithState && BRTransactionIsSigned (txnWithState->ownedTransaction));
+    assert (NULL != txnWithState && BRTransactionIsSigned (BRTransactionWithStateGetOwned (txnWithState)));
 
     BRTransactionWithStateSetDeleted (txnWithState);
     pthread_mutex_unlock (&manager->lock);
 
     bwmSignalTransactionEvent(manager,
                               manager->wallet,
-                              txnWithState->ownedTransaction,
+                              BRTransactionWithStateGetOwned (txnWithState),
                               (BRTransactionEvent) {
                                   BITCOIN_TRANSACTION_DELETED
                               });
@@ -1030,7 +1034,7 @@ _BRWalletManagerSyncEvent(void * context,
                                  bwm->wallet,
                                  (BRWalletEvent) {
                                      BITCOIN_WALLET_TRANSACTION_SUBMITTED,
-                                     { .submitted = { txnWithState->ownedTransaction, event.u.submitted.error }}
+                                     { .submitted = { BRTransactionWithStateGetOwned (txnWithState), event.u.submitted.error }}
                                  });
             break;
         }
