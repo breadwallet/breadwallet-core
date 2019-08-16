@@ -8,8 +8,7 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
-import Foundation
-import Darwin.C.stdatomic // atomic_fetch_add
+import Foundation  // Data, DispatchQueue
 import BRCryptoC
 
 ///
@@ -1162,109 +1161,6 @@ extension System {
                                   btc: clientBTC,
                                   eth: clientETH,
                                   gen: clientGEN)
-    }
-}
-
-extension BRWalletManagerEventType: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case BITCOIN_WALLET_MANAGER_CREATED: return "Created"
-        case BITCOIN_WALLET_MANAGER_CONNECTED: return "Connected"
-        case BITCOIN_WALLET_MANAGER_DISCONNECTED: return "Disconnected"
-        case BITCOIN_WALLET_MANAGER_SYNC_STARTED: return "Sync Started"
-        case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS: return "Sync Progress"
-        case BITCOIN_WALLET_MANAGER_SYNC_STOPPED: return "Sync Stopped"
-        case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED: return "Block Height Updated"
-        default: return "<<unknown>>"
-        }
-    }
-}
-
-extension BRWalletEventType: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case BITCOIN_WALLET_CREATED: return "Created"
-        case BITCOIN_WALLET_BALANCE_UPDATED: return "Balance Updated"
-        case BITCOIN_WALLET_TRANSACTION_SUBMITTED: return "Transaction Submitted"
-        case BITCOIN_WALLET_FEE_PER_KB_UPDATED: return "FeePerKB Updated"
-        case BITCOIN_WALLET_DELETED: return "Deleted"
-        default: return "<<unknown>>"
-        }
-    }
-}
-
-extension BRTransactionEventType: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case BITCOIN_TRANSACTION_ADDED: return "Added"
-        case BITCOIN_TRANSACTION_UPDATED: return "Updated"
-        case BITCOIN_TRANSACTION_DELETED: return "Deleted"
-        default: return "<<unknown>>"
-        }
-    }
-}
-
-extension BREthereumTokenEvent: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case TOKEN_EVENT_CREATED: return "Created"
-        case TOKEN_EVENT_DELETED: return "Deleted"
-        default: return "<<unknown>>"
-        }
-    }
-}
-
-extension BREthereumPeerEvent: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case PEER_EVENT_CREATED: return "Created"
-        case PEER_EVENT_DELETED: return "Deleted"
-        default: return "<<unknown>>"
-        }
-    }
-}
-
-extension BREthereumTransferEvent: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case TRANSFER_EVENT_CREATED: return "Created"
-        case TRANSFER_EVENT_SIGNED: return "Signed"
-        case TRANSFER_EVENT_SUBMITTED: return "Submitted"
-        case TRANSFER_EVENT_INCLUDED: return "Included"
-        case TRANSFER_EVENT_ERRORED: return "Errored"
-        case TRANSFER_EVENT_GAS_ESTIMATE_UPDATED: return "Gas Estimate Updated"
-        case TRANSFER_EVENT_DELETED: return "Deleted"
-        default: return "<<unknown>>"
-        }
-    }
-}
-
-extension BREthereumWalletEventType: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case WALLET_EVENT_CREATED: return "Created"
-        case WALLET_EVENT_BALANCE_UPDATED: return "Balance Updated"
-        case WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED: return "Default Gas Limit Updated"
-        case WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED: return "Default Gas Price Updated"
-        case WALLET_EVENT_FEE_ESTIMATED: return "Fee Estimated"
-        case WALLET_EVENT_DELETED: return "Deleted"
-        default: return "<<unknown>>"
-        }
-    }
-}
-
-extension BREthereumEWMEvent: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case EWM_EVENT_CREATED: return "Created"
-        case EWM_EVENT_SYNC_STARTED: return "Sync Started"
-        case EWM_EVENT_SYNC_CONTINUES: return "Sync Continues"
-        case EWM_EVENT_SYNC_STOPPED: return "Sync Stopped"
-        case EWM_EVENT_NETWORK_UNAVAILABLE: return "Network Unavailable"
-        case EWM_EVENT_BLOCK_HEIGHT_UPDATED: return "Block Height Updated"
-        case EWM_EVENT_DELETED: return "Deleted"
-        default: return "<<unknown>>"
-        }
     }
 }
 
