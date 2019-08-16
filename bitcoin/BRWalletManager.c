@@ -139,13 +139,17 @@ BRWalletManagerAddReferencedTransaction(BRWalletManager manager, BRTransaction *
     return txnWithState;
 }
 
+/**
+ * Find the tracked transaction using the `owned` transaction pointer. Deleted transactions
+ * are not checked (i.e. they are skipped).
+ */
 static BRTransactionWithState
 BRWalletManagerFindTransactionByOwned (BRWalletManager manager, BRTransaction *transaction) {
     BRTransactionWithState txnWithState = NULL;
 
     for (size_t index = 0; index < array_count(manager->transactions); index++) {
         if (!manager->transactions[index]->isDeleted &&
-            BRTransactionEq (manager->transactions[index]->ownedTransaction, transaction)) {
+            manager->transactions[index]->ownedTransaction == transaction) {
             txnWithState = manager->transactions[index];
             break;
         }
@@ -154,6 +158,10 @@ BRWalletManagerFindTransactionByOwned (BRWalletManager manager, BRTransaction *t
     return txnWithState;
 }
 
+/**
+ * Find the tracked transaction using the `owned` transaction's hash. Deleted transactions
+ * are not checked (i.e. they are skipped).
+ */
 static BRTransactionWithState
 BRWalletManagerFindTransactionByHash (BRWalletManager manager, UInt256 hash) {
     BRTransactionWithState txnWithState = NULL;
@@ -572,13 +580,13 @@ BRWalletManagerNew (BRWalletManagerClient client,
                                                 blocks, array_count(blocks),
                                                 peers,  array_count(peers));
 
-    // Not longer need the loaded txns/blocks/peers
+    array_new(bwm->transactions, DEFAULT_TRANSACTION_CAPACITY);
+
+    // No longer need the loaded txns/blocks/peers
     array_free(transactions); array_free(blocks); array_free(peers);
 
     // Create initial events for wallet manager creation, wallet addition and
     // events for any transactions loaded from disk.
-
-    array_new(bwm->transactions, DEFAULT_TRANSACTION_CAPACITY);
 
     bwmSignalWalletManagerEvent(bwm,
                                 (BRWalletManagerEvent) {

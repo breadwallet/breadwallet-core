@@ -29,6 +29,7 @@
 #include "BRSyncManager.h"
 #include "ethereum/event/BREvent.h"
 #include "support/BRBase.h"
+#include "support/BRArray.h"
 #include "support/BRFileService.h"
 
 #ifdef __cplusplus
@@ -71,36 +72,10 @@ struct BRWalletManagerStruct {
     pthread_mutex_t lock;
 
     /*
-     * Transfers - these are sorted from oldest [index 0] to newest.  As transfers are added
-     * we'll maintain the ordering using an 'insertion sort' - while starting at the end and
-     * working backwards.
-     *
-     * We are often faced with looking up a transfer based on a hash.  For example, BCS found
-     * a transaction for our address and we need to find the corresponding transfer.  Or, instead
-     * of BCS, the BRD endpoint reports a transaction/log of interest.  How do we lookup based
-     * on a hash?
-     *
-     * Further complicating the lookup are:
-     *  a) a transfer is only guaranteed to have a hash if we originated the transfer.  In this
-     *     case we have an 'originating transaction' and can compare its hash.
-     *  b) a log doesn't have a transaction hash until it has been included.
-     *  c) one hash can produce multiple logs.  The logs will have a unique identifier, as
-     *     {hash,indexInBlock} when included, but the hash itself need not be unique.  Note: this
-     *     does not apply to ERC20 transfers, which have one hash and one log.
-     *
-     * FOR NOW, WE'LL ASSUME: ONE HASH <==> ONE TRANSFER (transaction or log)
-     *
-     * Given a hash, to find a corresponding transfers we'll iterate through `transfers` and
-     * compare: a) the hash for the originating transaction, if it exists, b) the hash for the
-     * basis, if it exists.  If the basis is a log, we'll extranct the transaction hash and compare
-     * that.
-     *
-     * We might consider:
-     *   BRSetOf (BRArrayOf ({hash, transfer}) transfersByHashPairs;
-     * which would speed lookup of a transfer.
-     *
+     * The collection of all transfers, including those that have been "deleted",
+     * associated with the `wallet`.
      */
-    BRTransactionWithState* transactions;
+    BRArrayOf(BRTransactionWithState) transactions;
 };
 
 /// Mark: - WalletManager Events
