@@ -238,6 +238,7 @@ class CryptoTestSystemListener: SystemListener {
 
     // MARK: - Transfer Handler
 
+    var transferIncluded: Bool = false
     var transferCount: Int = 0;
     var transferHandlers: [TransferEventHandler] = []
     var transferEvents: [TransferEvent] = []
@@ -246,11 +247,13 @@ class CryptoTestSystemListener: SystemListener {
     func handleTransferEvent(system: System, manager: WalletManager, wallet: Wallet, transfer: Transfer, event: TransferEvent) {
         print ("TST: Transfer Event: \(event)")
         transferEvents.append (event)
-        switch event {
-        case .created:
+        if transferIncluded, case .included = transfer.state {
             if 1 == transferCount { transferExpectation.fulfill()}
             if 1 <= transferCount { transferCount -= 1 }
-        default: break
+        }
+        else if case .created = transfer.state {
+            if 1 == transferCount { transferExpectation.fulfill()}
+            if 1 <= transferCount { transferCount -= 1 }
         }
         transferHandlers.forEach { $0 (system, manager, wallet, transfer, event) }
     }

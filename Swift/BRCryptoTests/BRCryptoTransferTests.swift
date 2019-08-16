@@ -13,7 +13,72 @@ import XCTest
 @testable import BRCrypto
 import BRCryptoC
 
+struct TransferResult {
+    let target: Bool
+    let address: String
+    let confirmation: TransferConfirmation
+    let hash: String
+    let amount: UInt64
+
+    func validate (transfer: Transfer) -> Bool {
+        guard address == (target ? transfer.target : transfer.source)?.description
+            else { return false }
+
+        guard let transferHash = transfer.hash?.description, self.hash == transferHash
+            else { return false }
+
+        var overflow: BRCryptoBoolean = CRYPTO_FALSE
+        guard amount == cryptoAmountGetIntegerRaw(transfer.amount.core, &overflow)
+            else { return false }
+
+       guard let transferConfirmation = transfer.confirmation // , self.confirmation == transferConfirmation
+            else { return false }
+
+         // If we have a result confirmation fee, compare to transfer fee
+        guard nil == confirmation.fee || confirmation.fee == transfer.fee
+            else { return false }
+
+        // If the transfer's confirmations's transactionIndex is non-zero, compare it
+        guard 0 == transferConfirmation.transactionIndex ||
+            confirmation.transactionIndex == transferConfirmation.transactionIndex
+            else { return false }
+
+        guard transferConfirmation.blockNumber == confirmation.blockNumber,
+            transferConfirmation.timestamp == confirmation.timestamp
+            else { return false }
+
+        return true
+    }
+}
+
 class BRCryptoTransferTests: BRCryptoSystemBaseTests {
+    let syncTimeoutInSeconds = 120.0
+
+    /// Recv: 0.00010000
+    ///
+    /// Address: https://live.blockcypher.com/btc-testnet/address/mzjmRwzABk67iPSrLys1ACDdGkuLcS6WQ4/
+    /// Transactions:
+    ///    0: https://live.blockcypher.com/btc-testnet/tx/f6d9bca3d4346ce75c151d1d8f061d56ff25e41a89553544b80d316f7d9ccedc/
+    ///    1:
+    let knownAccountSpecification = AccountSpecification (dict: [
+        "identifier": "general",
+        "paperKey":   "general shaft mirror pave page talk basket crumble thrive gaze bamboo maid",
+        "timestamp":  "2019-08-15",
+        "network":    "testnet"
+    ])
+
+    let knownTransferResults: [TransferResult] = [
+        // P2P timestamp is: 1565974068 - will fail.
+        TransferResult (target: true,
+                        address: "mzjmRwzABk67iPSrLys1ACDdGkuLcS6WQ4",
+                        confirmation: TransferConfirmation (blockNumber: 1574853,
+                                                            transactionIndex: 26,
+                                                            timestamp: 1565974410, // 2019-08-16T16:53:30Z
+                            fee: nil),
+                        hash: "f6d9bca3d4346ce75c151d1d8f061d56ff25e41a89553544b80d316f7d9ccedc",
+                        amount: UInt64(1000000))
+    ]
+
     override func setUp() {
         super.setUp()
     }
@@ -24,74 +89,101 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
     /// MARK: - BTC
 
     func runTransferBTCTest () {
+
+        let walletManagerDisconnectExpectation = XCTestExpectation (description: "Wallet Manager Disconnect")
+        listener.managerHandlers += [
+            { (system: System, manager:WalletManager, event: WalletManagerEvent) in
+                if case let .changed(_, newState) = event, case .disconnected = newState {
+                    walletManagerDisconnectExpectation.fulfill()
+                }
+            }]
+
+
         let network: Network! = system.networks.first { "btc" == $0.currency.code && isMainnet == $0.isMainnet }
         XCTAssertNotNil (network)
 
         let manager: WalletManager! = system.managers.first { $0.network == network }
         XCTAssertNotNil (manager)
+        manager.addressScheme = AddressScheme.btcLegacy
 
         let wallet = manager.primaryWallet
         XCTAssertNotNil(wallet)
 
         // Connect and wait for a number of transfers
-        listener.transferCount = 10
+        listener.transferIncluded = true
+        listener.transferCount = knownTransferResults.count
         manager.connect()
-        wait (for: [listener.transferExpectation], timeout: 70)
-
-        XCTAssertFalse (wallet.transfers.isEmpty)
-        XCTAssertTrue  (wallet.transfers.count >= 10)
-        let t0 = wallet.transfers[0]
-        let t1  = wallet.transfers[1]
-
-        XCTAssertEqual (t0.wallet,  wallet)
-        XCTAssertEqual (t0.manager, manager)
-        XCTAssertNotNil (t0.confirmedFeeBasis)
-
-        XCTAssertNotNil (t0.confirmation)
-        // confirmations
-        // confirmationsAs
-        let t0c = t0.confirmation!
-
-        // Fails until TransferState(core: ...) fills in Fee - requires unit...CORE-421
-        XCTAssertNotNil (t0c.fee)
-
-        XCTAssertNotNil (t0.hash)
-        XCTAssertNotNil (wallet.transferBy(hash: t0.hash!))
-        XCTAssertNotNil (wallet.transferBy(hash: t1.hash!))
-        XCTAssertNotNil (wallet.transferBy(core: t0.core))
-        XCTAssertNotNil (wallet.transferBy(core: t1.core))
-
-        if case .included = t0.state {} else { XCTAssertTrue (false)}
-        // direction
+        wait (for: [listener.transferExpectation], timeout: syncTimeoutInSeconds)
 
         manager.disconnect()
+        wait (for: [walletManagerDisconnectExpectation], timeout: 5)
+
+        let transfers = wallet.transfers
+        XCTAssertEqual  (transfers.count, knownTransferResults.count)
+
+        XCTAssertTrue (zip (knownTransferResults, transfers).reduce(true) {
+            (result:Bool, pair:(TransferResult, Transfer)) -> Bool in
+            return result && pair.0.validate(transfer: pair.1)
+        })
+
+        let transfer = transfers[0]
+        XCTAssertNotNil (transfer.confirmation)
+        XCTAssertNotNil (transfer.hash)
+
+        XCTAssertNotNil (wallet.transferBy(hash: transfer.hash!))
+        XCTAssertNotNil (wallet.transferBy(core: transfer.core))
+
+        // Events
+        
+        XCTAssertTrue (listener.checkSystemEvents(
+            [EventMatcher (event: SystemEvent.created),
+             EventMatcher (event: SystemEvent.networkAdded(network: network), strict: true, scan: true),
+             EventMatcher (event: SystemEvent.managerAdded(manager: manager), strict: true, scan: true)
+            ]))
+
+        XCTAssertTrue (listener.checkManagerEvents(
+            [EventMatcher (event: WalletManagerEvent.created),
+             EventMatcher (event: WalletManagerEvent.walletAdded(wallet: wallet)),
+             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.created,   newState: WalletManagerState.connected)),
+             EventMatcher (event: WalletManagerEvent.syncStarted),
+             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected, newState: WalletManagerState.syncing)),
+
+             EventMatcher (event: WalletManagerEvent.syncProgress(percentComplete: 0), strict: false),
+             EventMatcher (event: WalletManagerEvent.walletChanged(wallet: wallet), strict: true, scan: true),
+
+             EventMatcher (event: WalletManagerEvent.syncEnded(error: nil), strict: false, scan: true),
+             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.syncing, newState: WalletManagerState.connected)),
+             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected, newState: WalletManagerState.disconnected))
+            ]))
+
+         XCTAssertTrue (listener.checkWalletEvents(
+            [EventMatcher (event: WalletEvent.created),
+             EventMatcher (event: WalletEvent.transferAdded(transfer: transfer), strict: true, scan: true),
+             EventMatcher (event: WalletEvent.balanceUpdated(amount: wallet.balance), strict: true, scan: true)
+            ]))
+
+        XCTAssertTrue (listener.checkTransferEvents(
+            [EventMatcher (event: TransferEvent.created),
+             EventMatcher (event: TransferEvent.changed(old: TransferState.created,
+                                                        new: TransferState.included(confirmation: transfer.confirmation!)))
+                ]))
     }
 
     func testTransferBTC_API() {
         isMainnet = false
         currencyCodesNeeded = ["btc"]
         modeMap = ["btc":WalletManagerMode.api_only]
-        prepareAccount (AccountSpecification (dict: [
-            "identifier": "ginger",
-            "paperKey":   "ginger settle marine tissue robot crane night number ramp coast roast critic",
-            "timestamp":  "2018-01-01",
-            "network":    (isMainnet ? "mainnet" : "testnet")
-            ]))
+        prepareAccount (knownAccountSpecification)
         prepareSystem()
 
         runTransferBTCTest()
     }
 
-    func XtestTransferBTC_P2P() {
+    func testTransferBTC_P2P() {
         isMainnet = false
         currencyCodesNeeded = ["btc"]
         modeMap = ["btc":WalletManagerMode.p2p_only]
-        prepareAccount (AccountSpecification (dict: [
-            "identifier": "ginger",
-            "paperKey":   "ginger settle marine tissue robot crane night number ramp coast roast critic",
-            "timestamp":  "2018-01-01",
-            "network":    (isMainnet ? "mainnet" : "testnet")
-            ]))
+        prepareAccount (knownAccountSpecification)
         prepareSystem()
 
         runTransferBTCTest()
@@ -148,7 +240,6 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
         if case .included = t0.state {} else { XCTAssertTrue (false)}
         // direction
 
-        manager.disconnect()
     }
 
     func testTransferETH_API () {
