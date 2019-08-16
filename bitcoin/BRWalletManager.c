@@ -1255,3 +1255,66 @@ bwmPeriodicDispatcher (BREventHandler handler,
     BRWalletManager bwm = (BRWalletManager) event->context;
     BRSyncManagerTickTock (bwm->syncManager);
 }
+
+extern const char *
+BRWalletManagerEventTypeString (BRWalletManagerEventType t) {
+    switch (t) {
+        case BITCOIN_WALLET_MANAGER_CONNECTED:
+        return "BITCOIN_WALLET_MANAGER_CONNECTED";
+
+        case BITCOIN_WALLET_MANAGER_CREATED:
+        return "BITCOIN_WALLET_MANAGER_CREATED";
+
+        case BITCOIN_WALLET_MANAGER_DISCONNECTED:
+        return "BITCOIN_WALLET_MANAGER_DISCONNECTED";
+
+        case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
+        return "BITCOIN_WALLET_MANAGER_SYNC_STARTED";
+
+        case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
+        return "BITCOIN_WALLET_MANAGER_SYNC_PROGRESS";
+
+        case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
+        return "BITCOIN_WALLET_MANAGER_SYNC_STOPPED";
+
+        case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+        return "BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED";
+    }
+    return "<BITCOIN_WALLET_MANAGER_EVENT_TYPE_UNKNOWN>";
+}
+
+extern const char *
+BRWalletEventTypeString (BRWalletEventType t) {
+    switch (t) {
+        case BITCOIN_WALLET_CREATED:
+        return "BITCOIN_WALLET_CREATED";
+        case BITCOIN_WALLET_BALANCE_UPDATED:
+        return "BITCOIN_WALLET_BALANCE_UPDATED";
+        case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
+        return "BITCOIN_WALLET_TRANSACTION_SUBMITTED";
+        case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
+        return "BITCOIN_WALLET_FEE_PER_KB_UPDATED";
+        case BITCOIN_WALLET_FEE_ESTIMATED:
+        return "BITCOIN_WALLET_FEE_ESTIMATED";
+        case BITCOIN_WALLET_DELETED:
+        return "BITCOIN_WALLET_DELETED";
+    }
+    return "<BITCOIN_WALLET_EVENT_TYPE_UNKNOWN>";
+}
+
+extern const char *
+BRTransactionEventTypeString (BRTransactionEventType t) {
+    switch (t) {
+        case BITCOIN_TRANSACTION_CREATED:
+        return "BITCOIN_TRANSACTION_CREATED";
+        case BITCOIN_TRANSACTION_SIGNED:
+        return "BITCOIN_TRANSACTION_SIGNED";
+        case BITCOIN_TRANSACTION_ADDED:
+        return "BITCOIN_TRANSACTION_ADDED";
+        case BITCOIN_TRANSACTION_UPDATED:
+        return "BITCOIN_TRANSACTION_UPDATED";
+        case BITCOIN_TRANSACTION_DELETED:
+        return "BITCOIN_TRANSACTION_DELETED";
+    }
+    return "<BITCOIN_TRANSACTION_EVENT_TYPE_UNKNOWN>";
+}

@@ -38,13 +38,6 @@
 extern "C" {
 #endif
 
-/**
- * Thread model:
- *  - No explicitly managed thread or event handler contained in BRSyncManager
- *  - Defers threading to external components (i.e. parent, BRWalletManager,
- *    and children, BRPeerManager)
- */
-
 typedef struct BRSyncManagerStruct *BRSyncManager;
 
 typedef void *BRSyncManagerClientContext;
@@ -131,12 +124,25 @@ typedef void
                                BRSyncManager manager,
                                OwnershipKept BRSyncManagerEvent event);
 
+/**
+ * Create a new BRSyncManager for the desired mode.
+ *
+ * A note on the threading model:
+ *  - No explicitly managed thread or event handler contained in BRSyncManager
+ *  - Defers threading to external components (i.e. owning BRWalletManager
+ *    and/or owned BRPeerManager)
+ *  - Locking does occur both internally in the BRSyncManager as well as
+ *    its subordinate objects (ex: BRPeerManager).
+ *  - Callbacks (both `eventCallback` and `clientCallbacks`) MAY be
+ *    called with non-reentrant locks held. As such, calls back
+ *    into the BRSyncManager MUST NOT occur in a callback.
+ */
 extern BRSyncManager
 BRSyncManagerNewForMode(BRSyncMode mode,
                         BRSyncManagerEventContext eventContext,
                         BRSyncManagerEventCallback eventCallback,
                         BRSyncManagerClientContext clientContext,
-                        BRSyncManagerClientCallbacks client,
+                        BRSyncManagerClientCallbacks clientCallbacks,
                         OwnershipKept const BRChainParams *params,
                         OwnershipKept BRWallet *wallet,
                         uint32_t earliestKeyTime,

@@ -271,6 +271,7 @@
 		CE0DBEB923032F1B00FC72BD /* BRSyncManager.c in Sources */ = {isa = PBXBuildFile; fileRef = CE0DBEB823032F1A00FC72BD /* BRSyncManager.c */; };
 		CE6040C222BD69E40003967B /* BRWalletManagerEvent.c in Sources */ = {isa = PBXBuildFile; fileRef = CE6040C022BD69E40003967B /* BRWalletManagerEvent.c */; };
 		CE6040C322BD69E40003967B /* BRWalletManagerEvent.c in Sources */ = {isa = PBXBuildFile; fileRef = CE6040C022BD69E40003967B /* BRWalletManagerEvent.c */; };
+		CEE6CDE92305DDC8006724EB /* testBwm.c in Sources */ = {isa = PBXBuildFile; fileRef = CEE6CDE82305DDA6006724EB /* testBwm.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -667,6 +668,7 @@
 		CE6040C022BD69E40003967B /* BRWalletManagerEvent.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRWalletManagerEvent.c; sourceTree = "<group>"; };
 		CE6040C122BD69E40003967B /* BRWalletManagerPrivate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRWalletManagerPrivate.h; sourceTree = "<group>"; };
 		CEA3F92D22CB8282006A330E /* BRBase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRBase.h; sourceTree = "<group>"; };
+		CEE6CDE82305DDA6006724EB /* testBwm.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testBwm.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -833,6 +835,7 @@
 				3CCD36AF21A5BB8D0032637A /* BRWalletManager.h */,
 				CE6040C022BD69E40003967B /* BRWalletManagerEvent.c */,
 				3C42EF8E209763AB000E58E0 /* test.c */,
+				CEE6CDE82305DDA6006724EB /* testBwm.c */,
 			);
 			name = bitcoin;
 			path = ../../bitcoin;
@@ -1911,6 +1914,7 @@
 				3C9025F321064B6700143B69 /* testEvent.c in Sources */,
 				3CEF5FB121FB972B0010A811 /* testSup.c in Sources */,
 				3C9025FB2106613600143B69 /* testContract.c in Sources */,
+				CEE6CDE92305DDC8006724EB /* testBwm.c in Sources */,
 				3CAB60E820AF8EE000810CE4 /* test.c in Sources */,
 				3C9025F92106511700143B69 /* testEwm.c in Sources */,
 				3C812EC22266721E0007D335 /* testRipple.c in Sources */,
