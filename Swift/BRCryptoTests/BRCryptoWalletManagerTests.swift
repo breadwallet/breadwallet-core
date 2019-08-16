@@ -183,6 +183,7 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
         manager.connect()
         wait (for: [self.listener.transferExpectation], timeout: 60)
 
+        sleep (30) // allow some 'ongoing' syncs to occur; don't want to see events for these.
         manager.disconnect()
         wait (for: [walletManagerDisconnectExpectation], timeout: 5)
 
@@ -190,8 +191,10 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
         XCTAssertTrue (listener.checkManagerEvents (
             [EventMatcher (event: WalletManagerEvent.created),
              EventMatcher (event: WalletManagerEvent.walletAdded(wallet: walletETH)),
+             EventMatcher (event: WalletManagerEvent.walletAdded(wallet: walletBRD)),
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.created,   newState: WalletManagerState.connected)),
-             EventMatcher (event: WalletManagerEvent.syncStarted),
+             // wallet changed?
+             EventMatcher (event: WalletManagerEvent.syncStarted, strict: true, scan:true),
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected, newState: WalletManagerState.syncing)),
              EventMatcher (event: WalletManagerEvent.syncProgress(percentComplete: 0), strict: false),
 
