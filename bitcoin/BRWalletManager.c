@@ -31,6 +31,50 @@
 
 #define DEFAULT_TRANSACTION_CAPACITY     20
 
+/* Forward Declarations */
+static void
+bwmPeriodicDispatcher (BREventHandler handler,
+                       BREventTimeout *event);
+
+static void _BRWalletManagerGetBlockNumber(void * context, BRSyncManager manager, int rid);
+static void _BRWalletManagerGetTransactions(void * context, BRSyncManager manager, const char **addresses, size_t addressCount, uint64_t begBlockNumber, uint64_t endBlockNumber, int rid);
+static void _BRWalletManagerSubmitTransaction(void * context, BRSyncManager manager, uint8_t *tx, size_t txLength, UInt256 txHash, int rid);
+static void _BRWalletManagerSyncEvent(void * context, BRSyncManager manager, BRSyncManagerEvent event);
+
+static void _BRWalletManagerBalanceChanged (void *info, uint64_t balanceInSatoshi);
+static void _BRWalletManagerTxAdded   (void *info, BRTransaction *tx);
+static void _BRWalletManagerTxUpdated (void *info, const UInt256 *hashes, size_t count, uint32_t blockHeight, uint32_t timestamp);
+static void _BRWalletManagerTxDeleted (void *info, UInt256 hash, int notifyUser, int recommendRescan);
+
+static const char *
+getNetworkName (const BRChainParams *params) {
+    if (params->magicNumber == BRMainNetParams->magicNumber ||
+        params->magicNumber == BRBCashParams->magicNumber)
+        return "mainnet";
+
+    if (params->magicNumber == BRTestNetParams->magicNumber ||
+        params->magicNumber == BRBCashTestNetParams->magicNumber)
+        return "testnet";
+
+    return NULL;
+}
+
+static const char *
+getCurrencyName (const BRChainParams *params) {
+    if (params->magicNumber == BRMainNetParams->magicNumber ||
+        params->magicNumber == BRTestNetParams->magicNumber)
+        return "btc";
+
+    if (params->magicNumber == BRBCashParams->magicNumber ||
+        params->magicNumber == BRBCashTestNetParams->magicNumber)
+        return "bch";
+
+    return NULL;
+}
+
+
+/// MARK: - Transaction Tracking
+
 struct BRTransactionWithStateStruct {
     uint8_t isDeleted;
     BRTransaction *refedTransaction;
@@ -119,47 +163,6 @@ BRWalletManagerFindTransactionByHash (BRWalletManager manager, UInt256 hash) {
     }
 
     return txnWithState;
-}
-
-/* Forward Declarations */
-static void
-bwmPeriodicDispatcher (BREventHandler handler,
-                       BREventTimeout *event);
-
-static void _BRWalletManagerGetBlockNumber(void * context, BRSyncManager manager, int rid);
-static void _BRWalletManagerGetTransactions(void * context, BRSyncManager manager, const char **addresses, size_t addressCount, uint64_t begBlockNumber, uint64_t endBlockNumber, int rid);
-static void _BRWalletManagerSubmitTransaction(void * context, BRSyncManager manager, BRTransaction *transaction, int rid);
-static void _BRWalletManagerSyncEvent(void * context, BRSyncManager manager, BRSyncManagerEvent event);
-
-static void _BRWalletManagerBalanceChanged (void *info, uint64_t balanceInSatoshi);
-static void _BRWalletManagerTxAdded   (void *info, BRTransaction *tx);
-static void _BRWalletManagerTxUpdated (void *info, const UInt256 *hashes, size_t count, uint32_t blockHeight, uint32_t timestamp);
-static void _BRWalletManagerTxDeleted (void *info, UInt256 hash, int notifyUser, int recommendRescan);
-
-static const char *
-getNetworkName (const BRChainParams *params) {
-    if (params->magicNumber == BRMainNetParams->magicNumber ||
-        params->magicNumber == BRBCashParams->magicNumber)
-        return "mainnet";
-
-    if (params->magicNumber == BRTestNetParams->magicNumber ||
-        params->magicNumber == BRBCashTestNetParams->magicNumber)
-        return "testnet";
-
-    return NULL;
-}
-
-static const char *
-getCurrencyName (const BRChainParams *params) {
-    if (params->magicNumber == BRMainNetParams->magicNumber ||
-        params->magicNumber == BRTestNetParams->magicNumber)
-        return "btc";
-
-    if (params->magicNumber == BRBCashParams->magicNumber ||
-        params->magicNumber == BRBCashTestNetParams->magicNumber)
-        return "bch";
-
-    return NULL;
 }
 
 /// MARK: - Transaction File Service
@@ -728,15 +731,16 @@ BRWalletManagerSignTransaction (BRWalletManager manager,
 
     pthread_mutex_lock (&manager->lock);
     BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByOwned (manager, transaction);
-    assert (NULL != txnWithState && NULL == txnWithState->refedTransaction);
     pthread_mutex_unlock (&manager->lock);
 
-    int success = 1 == BRWalletSignTransaction (wallet,
-                                                txnWithState->ownedTransaction,
-                                                manager->forkId,
-                                                seed,
-                                                seedLen);
-    if (success) {
+    int success = 0;
+    if (NULL != txnWithState &&
+        1 == BRWalletSignTransaction (wallet,
+                                      txnWithState->ownedTransaction,
+                                      manager->forkId,
+                                      seed,
+                                      seedLen)) {
+        success = 1;
         bwmSignalTransactionEvent(manager,
                                   wallet,
                                   txnWithState->ownedTransaction,
@@ -756,11 +760,12 @@ BRWalletManagerSubmitTransaction (BRWalletManager manager,
 
     pthread_mutex_lock (&manager->lock);
     BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByOwned (manager, transaction);
-    assert (NULL != txnWithState && NULL == txnWithState->refedTransaction);
     pthread_mutex_unlock (&manager->lock);
 
-    BRSyncManagerSubmit (manager->syncManager,
-                         txnWithState->ownedTransaction);
+    if (NULL != txnWithState) {
+        BRSyncManagerSubmit (manager->syncManager,
+                             txnWithState->ownedTransaction);
+    }
 }
 
 extern void
@@ -827,6 +832,7 @@ static void
 _BRWalletManagerTxAdded (void *info,
                          OwnershipKept BRTransaction *tx) {
     BRWalletManager manager = (BRWalletManager) info;
+    assert (BRTransactionIsSigned (tx));
 
     pthread_mutex_lock (&manager->lock);
     BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByHash (manager, tx->txHash);
@@ -862,7 +868,7 @@ _BRWalletManagerTxUpdated (void *info,
     for (size_t index = 0; index < count; index++) {
         pthread_mutex_lock (&manager->lock);
         BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByHash (manager, hashes[index]);
-        assert (NULL != txnWithState);
+        assert (NULL != txnWithState && BRTransactionIsSigned (txnWithState->ownedTransaction));
 
         BRTransactionWithStateSetBlock (txnWithState, blockHeight, timestamp);
         pthread_mutex_unlock (&manager->lock);
@@ -887,12 +893,13 @@ _BRWalletManagerTxDeleted (void *info,
                            int notifyUser,
                            int recommendRescan) {
     BRWalletManager manager = (BRWalletManager) info;
+
     // filestystem changes are NOT queued; they are acted upon immediately
     fileServiceRemove(manager->fileService, fileServiceTypeTransactions, hash);
 
     pthread_mutex_lock (&manager->lock);
     BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByHash (manager, hash);
-    assert (NULL != txnWithState);
+    assert (NULL != txnWithState && BRTransactionIsSigned (txnWithState->ownedTransaction));
 
     BRTransactionWithStateSetDeleted (txnWithState);
     pthread_mutex_unlock (&manager->lock);
@@ -923,7 +930,8 @@ _BRWalletManagerSyncEvent(void * context,
      * event needs to be handled inline or copies of the event data need to be
      * made.
      *
-     * For BLOCKS and PEERS events, we handle them inline, rather than copy them.
+     * For BLOCKS and PEERS events, we handle them inline, rather than copy them
+     * as filestystem changes are acted upon immediately.
      *
      * For CONNECTIVITY/SYNCING/HEIGHT events, we queue them, as they contain no out
      * of band data (i.e. pointers).
@@ -1014,7 +1022,8 @@ _BRWalletManagerSyncEvent(void * context,
 
         case SYNC_MANAGER_TXN_SUBMITTED: {
             pthread_mutex_lock (&bwm->lock);
-            BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByOwned (bwm, event.u.submitted.transaction);
+            BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByHash (bwm, event.u.submitted.txHash);
+            assert (NULL != txnWithState);
             pthread_mutex_unlock (&bwm->lock);
 
             bwmSignalWalletEvent(bwm,
@@ -1074,7 +1083,9 @@ static void _BRWalletManagerGetTransactions(void * context,
 static void
 _BRWalletManagerSubmitTransaction(void * context,
                                   BRSyncManager manager,
-                                  OwnershipKept BRTransaction *transaction,
+                                  OwnershipKept uint8_t *transaction,
+                                  size_t transactionLength,
+                                  UInt256 transactionHash,
                                   int rid) {
     BRWalletManager bwm = (BRWalletManager) context;
 
@@ -1083,6 +1094,8 @@ _BRWalletManagerSubmitTransaction(void * context,
                                        bwm,
                                        bwm->wallet,
                                        transaction,
+                                       transactionLength,
+                                       transactionHash,
                                        rid);
 }
 
@@ -1132,11 +1145,11 @@ bwmAnnounceTransactionComplete (BRWalletManager manager,
 extern void
 bwmAnnounceSubmit (BRWalletManager manager,
                    int rid,
-                   OwnershipKept BRTransaction *transaction,
+                   UInt256 txHash,
                    int error) {
     bwmSignalAnnounceSubmit (manager,
                              rid,
-                             transaction,
+                             txHash,
                              error);
 }
 
@@ -1180,11 +1193,11 @@ bwmHandleAnnounceTransactionComplete (BRWalletManager manager,
 extern void
 bwmHandleAnnounceSubmit (BRWalletManager manager,
                          int rid,
-                         OwnershipKept BRTransaction *transaction,
+                         UInt256 txHash,
                          int error) {
     BRSyncManagerAnnounceSubmitTransaction (manager->syncManager,
                                             rid,
-                                            transaction,
+                                            txHash,
                                             error);
 }
 

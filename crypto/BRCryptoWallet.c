@@ -538,6 +538,7 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
 
     cryptoUnitGive (unitForFee);
     cryptoUnitGive (unit);
+    free (addr);
 
     return transfer;
 }

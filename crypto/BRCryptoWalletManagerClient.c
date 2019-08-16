@@ -60,7 +60,7 @@ struct BRCryptoCWMClientCallbackStateRecord {
     BRCryptoCWMCallbackType type;
     union {
         struct {
-            BRTransaction *transaction;
+            UInt256 txHash;
         } btcSubmit;
         struct {
             BREthereumWallet wid;
@@ -133,30 +133,27 @@ static void
 cwmSubmitTransactionAsBTC (BRWalletManagerClientContext context,
                            BRWalletManager manager,
                            BRWallet *wallet,
-                           OwnershipKept BRTransaction *transaction,
+                           OwnershipKept uint8_t *transaction,
+                           size_t transactionLength,
+                           UInt256 transactionHash,
                            int rid) {
     BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
 
     BRCryptoCWMClientCallbackState callbackState = calloc (1, sizeof(struct BRCryptoCWMClientCallbackStateRecord));
     callbackState->type = CWM_CALLBACK_TYPE_BTC_SUBMIT_TRANSACTION;
-    callbackState->u.btcSubmit.transaction = transaction;
+    callbackState->u.btcSubmit.txHash = transactionHash;
     callbackState->rid = rid;
 
-    UInt256 txHash = UInt256Reverse (transaction->txHash);
+    UInt256 txHash = UInt256Reverse (transactionHash);
     char *hashAsHex = encodeHexCreate (NULL, txHash.u8, sizeof(txHash.u8));
-
-    size_t txLength = BRTransactionSerialize (transaction, NULL, 0);
-    uint8_t *tx = calloc (txLength, sizeof(uint8_t));
-    BRTransactionSerialize(transaction, tx, txLength);
 
     cwm->client.btc.funcSubmitTransaction (cwm->client.context,
                                            cryptoWalletManagerTake (cwm),
                                            callbackState,
-                                           tx,
-                                           txLength,
+                                           transaction,
+                                           transactionLength,
                                            hashAsHex);
 
-    free (tx);
     free (hashAsHex);
     cryptoWalletManagerGive (cwm);
 }
@@ -1899,7 +1896,7 @@ cwmAnnounceSubmitTransferSuccess (OwnershipKept BRCryptoWalletManager cwm,
     if (CWM_CALLBACK_TYPE_BTC_SUBMIT_TRANSACTION == callbackState->type && BLOCK_CHAIN_TYPE_BTC == cwm->type) {
         bwmAnnounceSubmit (cwm->u.btc,
                            callbackState->rid,
-                           callbackState->u.btcSubmit.transaction,
+                           callbackState->u.btcSubmit.txHash,
                            0);
     }
 
@@ -1945,7 +1942,7 @@ cwmAnnounceSubmitTransferFailure (OwnershipKept BRCryptoWalletManager cwm,
     if (CWM_CALLBACK_TYPE_BTC_SUBMIT_TRANSACTION == callbackState->type && BLOCK_CHAIN_TYPE_BTC == cwm->type) {
         bwmAnnounceSubmit (cwm->u.btc,
                            callbackState->rid,
-                           callbackState->u.btcSubmit.transaction,
+                           callbackState->u.btcSubmit.txHash,
                            1);
 
     } else if (CWM_CALLBACK_TYPE_ETH_SUBMIT_TRANSACTION == callbackState->type && BLOCK_CHAIN_TYPE_ETH == cwm->type) {

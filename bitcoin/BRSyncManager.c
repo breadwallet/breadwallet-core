@@ -207,7 +207,7 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
 static void
 BRClientSyncManagerAnnounceSubmitTransaction (BRClientSyncManager manager,
                                               int rid,
-                                              OwnershipKept BRTransaction *transaction,
+                                              UInt256 txHash,
                                               int error);
 
 static void
@@ -540,13 +540,13 @@ BRSyncManagerAnnounceGetTransactionsDone(BRSyncManager manager,
 extern void
 BRSyncManagerAnnounceSubmitTransaction(BRSyncManager manager,
                                        int rid,
-                                       OwnershipKept BRTransaction *transaction,
+                                       UInt256 txHash,
                                        int error) {
     switch (manager->mode) {
         case SYNC_MODE_BRD_ONLY:
         BRClientSyncManagerAnnounceSubmitTransaction (BRSyncManagerAsClientSyncManager (manager),
                                                       rid,
-                                                      transaction,
+                                                      txHash,
                                                       error);
         break;
         case SYNC_MODE_P2P_ONLY:
@@ -746,17 +746,25 @@ BRClientSyncManagerSubmit(BRClientSyncManager manager,
     }
 
     if (needClientCall) {
+        size_t txLength = BRTransactionSerialize (transaction, NULL, 0);
+        uint8_t *tx = calloc (txLength, sizeof(uint8_t));
+        BRTransactionSerialize(transaction, tx, txLength);
+
         manager->clientCallbacks.funcSubmitTransaction (manager->clientContext,
                                                         BRClientSyncManagerAsSyncManager (manager),
-                                                        transaction,
+                                                        tx,
+                                                        txLength,
+                                                        transaction->txHash,
                                                         rid);
+
+        free (tx);
     } else {
         // TODO(fix): What should the error code be?
         manager->eventCallback (manager->eventContext,
                                 BRClientSyncManagerAsSyncManager (manager),
                                 (BRSyncManagerEvent) {
                                     SYNC_MANAGER_TXN_SUBMITTED,
-                                    { .submitted = {transaction, -1} },
+                                    { .submitted = {transaction->txHash, -1} },
                                 });
     }
 }
@@ -797,13 +805,13 @@ BRClientSyncManagerAnnounceGetBlockNumber(BRClientSyncManager manager,
 static void
 BRClientSyncManagerAnnounceSubmitTransaction (BRClientSyncManager manager,
                                               int rid,
-                                              OwnershipKept BRTransaction *transaction,
+                                              UInt256 txHash,
                                               int error) {
     manager->eventCallback (manager->eventContext,
                             BRClientSyncManagerAsSyncManager (manager),
                             (BRSyncManagerEvent) {
                                 SYNC_MANAGER_TXN_SUBMITTED,
-                                { .submitted = {transaction, error} },
+                                { .submitted = {txHash, error} },
                             });
 }
 
@@ -829,10 +837,17 @@ BRClientSyncManagerAnnounceGetTransactionsItem (BRClientSyncManager manager,
     if (needRegistration) {
         transaction->timestamp = (uint32_t) timestamp;
         transaction->blockHeight = (uint32_t) blockHeight;
+
+        // BRWalletRegisterTransaction doesn't reliable report if the txn made it into the
+        // wallet. Check that it has and free it if required.
         BRWalletRegisterTransaction (manager->wallet, transaction);
-        if (BRWalletTransactionForHash (manager->wallet, transaction->txHash) != transaction) {
-            BRTransactionFree (transaction);
+        if (BRWalletTransactionForHash (manager->wallet, transaction->txHash) == transaction) {
+            transaction = NULL;
         }
+    }
+
+    if (NULL != transaction) {
+        BRTransactionFree (transaction);
     }
 }
 
@@ -1280,7 +1295,7 @@ BRPeerSyncManagerScan(BRPeerSyncManager manager) {
 
 typedef struct {
     BRPeerSyncManager manager;
-    BRTransaction *transaction;
+    UInt256 txHash;
 } SubmitTransactionInfo;
 
 static void
@@ -1288,7 +1303,7 @@ BRPeerSyncManagerSubmit(BRPeerSyncManager manager,
                         OwnershipKept BRTransaction *transaction) {
     SubmitTransactionInfo *info = malloc (sizeof (SubmitTransactionInfo));
     info->manager = manager;
-    info->transaction = transaction;
+    info->txHash = transaction->txHash;
 
     // create a copy to hand to the wallet as once that is done, ownership is lost
     transaction = BRTransactionCopy (transaction);
@@ -1492,13 +1507,13 @@ static void
 _BRPeerSyncManagerTxPublished (void *info,
                                int error) {
     BRPeerSyncManager manager    = ((SubmitTransactionInfo*) info)->manager;
-    BRTransaction *transaction = ((SubmitTransactionInfo*) info)->transaction;
+    UInt256 txHash = ((SubmitTransactionInfo*) info)->txHash;
     free (info);
 
     manager->eventCallback (manager->eventContext,
                             BRPeerSyncManagerAsSyncManager (manager),
                             (BRSyncManagerEvent) {
                                 SYNC_MANAGER_TXN_SUBMITTED,
-                                { .submitted = {transaction, error} },
+                                { .submitted = {txHash, error} },
                             });
 }

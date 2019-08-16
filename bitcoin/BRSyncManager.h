@@ -66,7 +66,9 @@ typedef void
 typedef void
 (*BRSyncManagerSubmitTransactionCallback) (BRSyncManagerClientContext context,
                                            BRSyncManager manager,
-                                           OwnershipKept BRTransaction *transaction,
+                                           OwnershipKept uint8_t *transaction,
+                                           size_t transactionLength,
+                                           UInt256 transactionHash,
                                            int rid);
 
 typedef struct {
@@ -116,7 +118,7 @@ typedef struct {
             uint64_t value;
         } blockHeightUpdated;
         struct {
-            BRTransaction *transaction;
+            UInt256 txHash;
             int error;
         } submitted;
     } u;
@@ -184,7 +186,7 @@ BRSyncManagerAnnounceGetTransactionsDone(BRSyncManager manager,
 extern void
 BRSyncManagerAnnounceSubmitTransaction(BRSyncManager manager,
                                        int rid,
-                                       OwnershipKept BRTransaction *transaction,
+                                       UInt256 txHash,
                                        int error);
 
 #ifdef __cplusplus

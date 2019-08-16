@@ -92,13 +92,15 @@ typedef void
 (*BRSubmitTransactionCallback) (BRWalletManagerClientContext context,
                                 BRWalletManager manager,
                                 BRWallet *wallet,
-                                OwnershipGiven BRTransaction *transaction,
+                                OwnershipKept uint8_t *transaction,
+                                size_t transactionLength,
+                                UInt256 transactionHash,
                                 int rid);
 
 extern void
 bwmAnnounceSubmit (BRWalletManager manager,
                    int rid,
-                   OwnershipGiven BRTransaction *transaction,
+                   UInt256 txHash,
                    int error);
 
 ///

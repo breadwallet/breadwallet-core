@@ -232,14 +232,14 @@ typedef struct {
     struct BREventRecord base;
     BRWalletManager manager;
     int rid;
-    BRTransaction *transaction;
+    UInt256 txHash;
     int error;
 } BRWalletManagerClientAnnounceSubmitEvent;
 
 static void
 bwmSignalAnnounceSubmitDispatcher (BREventHandler ignore,
                                    BRWalletManagerClientAnnounceSubmitEvent *event) {
-    bwmHandleAnnounceSubmit(event->manager, event->rid, event->transaction, event->error);
+    bwmHandleAnnounceSubmit(event->manager, event->rid, event->txHash, event->error);
 }
 
 static BREventType bwmClientAnnounceSubmitEventType = {
@@ -251,10 +251,10 @@ static BREventType bwmClientAnnounceSubmitEventType = {
 extern void
 bwmSignalAnnounceSubmit (BRWalletManager manager,
                          int rid,
-                         OwnershipGiven BRTransaction *transaction,
+                         UInt256 txHash,
                          int error) {
     BRWalletManagerClientAnnounceSubmitEvent message =
-    { { NULL, &bwmClientAnnounceSubmitEventType}, manager, rid, transaction, error};
+    { { NULL, &bwmClientAnnounceSubmitEventType}, manager, rid, txHash, error};
     eventHandlerSignalEvent (manager->handler, (BREvent*) &message);
 }
 

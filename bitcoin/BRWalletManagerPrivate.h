@@ -180,13 +180,13 @@ bwmSignalAnnounceTransactionComplete (BRWalletManager manager,
 extern void
 bwmHandleAnnounceSubmit (BRWalletManager manager,
                          int rid,
-                         OwnershipGiven BRTransaction *transaction,
+                         UInt256 txHash,
                          int error);
 
 extern void
 bwmSignalAnnounceSubmit (BRWalletManager manager,
                         int rid,
-                        OwnershipGiven BRTransaction *transaction,
+                        UInt256 txHash,
                         int error);
 
 extern const BREventType *bwmEventTypes[];
