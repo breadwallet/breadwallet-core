@@ -111,6 +111,16 @@ public final class CryptoApiProvider implements CryptoApi.Provider {
 
     private static final CryptoApi.KeyProvider keyProvider = new CryptoApi.KeyProvider() {
         @Override
+        public void setDefaultWordList(List<String> wordList) {
+            Key.setDefaultWordList(wordList);
+        }
+
+        @Override
+        public List<String> getDefaultWordList() {
+            return Key.getDefaultWordList();
+        }
+
+        @Override
         public boolean isProtectedPrivateKeyString(byte[] keyStringUtf8) {
             return Key.isProtectedPrivateKeyString(keyStringUtf8);
         }

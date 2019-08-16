@@ -53,6 +53,24 @@ ewmCreateWithPublicKey (BREthereumNetwork network,
 extern void
 ewmDestroy (BREthereumEWM ewm);
 
+/// MARK: Start Stop
+
+/**
+ * Starts the EWM event queue.  Must be called after ewmCreate() and ewmStop()
+ *
+ * @param ewm
+ */
+extern void
+ewmStart (BREthereumEWM ewm);
+
+/**
+ * Stops the EWM event queue (but does not purge existing, queued events).
+ *
+ * @param ewm 
+ */
+extern void
+ewmStop (BREthereumEWM ewm);
+
 extern BREthereumNetwork
 ewmGetNetwork (BREthereumEWM ewm);
 

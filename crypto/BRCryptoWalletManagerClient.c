@@ -813,38 +813,14 @@ cwmWalletManagerEventAsETH (BREthereumClientContext context,
     if (NULL == cwm->u.eth) cwm->u.eth = ewm;
 
     int needEvent = 1;
-    BRCryptoWalletManagerEvent cwmEvent;
+    BRCryptoWalletManagerEvent cwmEvent = { CRYPTO_WALLET_MANAGER_EVENT_CREATED };  // avoid warning
 
     switch (event) {
         case EWM_EVENT_CREATED: {
-            // Demand no 'wallet'
-            BREthereumWallet wid = ewmGetWallet (ewm);
-            assert (NULL == cryptoWalletManagerFindWalletAsETH (cwm, wid));
-
-            // Find the wallet's currency.
-            BRCryptoCurrency currency = cryptoNetworkGetCurrency (cwm->network);
-            assert (NULL != currency);
-
-            // Find the default unit; it too must exist.
-            BRCryptoUnit    unit = cryptoNetworkGetUnitAsDefault (cwm->network, currency);
-            assert (NULL != unit);
-
-            // Find the fee Unit
-            BRCryptoCurrency feeCurrency = cryptoNetworkGetCurrency (cwm->network);
-            assert (NULL != feeCurrency);
-
-            BRCryptoUnit     feeUnit     = cryptoNetworkGetUnitAsDefault (cwm->network, feeCurrency);
-            assert (NULL != feeUnit);
-
-            // Create the appropriate wallet based on currency
-            BRCryptoWallet wallet = cryptoWalletCreateAsETH (unit, feeUnit, cwm->u.eth, wid); // taken
-
-            // Set the primary wallet
-            assert (NULL == cwm->wallet);
-            cwm->wallet = cryptoWalletTake (wallet);
-
-            // Update CWM with the new wallet.
-            cryptoWalletManagerAddWallet (cwm, wallet);
+            // Demand a 'wallet'
+            BRCryptoWallet wallet = cryptoWalletManagerFindWalletAsETH (cwm, ewmGetWallet (ewm));
+            assert (NULL != wallet);
+            cryptoWalletGive (wallet);
 
             // Clear need for event as we propagate them here
             needEvent = 0;
@@ -859,7 +835,7 @@ cwmWalletManagerEventAsETH (BREthereumClientContext context,
             // Generate a CRYPTO wallet event for CREATED...
             cwm->listener.walletEventCallback (cwm->listener.context,
                                                cryptoWalletManagerTake (cwm),
-                                               cryptoWalletTake (wallet),
+                                               cryptoWalletTake (cwm->wallet),
                                                (BRCryptoWalletEvent) {
                                                    CRYPTO_WALLET_EVENT_CREATED
                                                });
@@ -869,16 +845,9 @@ cwmWalletManagerEventAsETH (BREthereumClientContext context,
                                                       cryptoWalletManagerTake (cwm),
                                                       (BRCryptoWalletManagerEvent) {
                                                           CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED,
-                                                          { .wallet = { cryptoWalletTake (wallet) }}
+                                                          { .wallet = { cryptoWalletTake (cwm->wallet) }}
                                                       });
 
-            cryptoWalletGive (wallet);
-
-            cryptoUnitGive (feeUnit);
-            cryptoCurrencyGive (feeCurrency);
-
-            cryptoUnitGive (unit);
-            cryptoCurrencyGive (currency);
             break;
         }
 
@@ -1043,8 +1012,7 @@ cwmWalletEventAsETH (BREthereumClientContext context,
 
         case WALLET_EVENT_BALANCE_UPDATED: {
             if (NULL != wallet) {
-                BRCryptoCurrency currency = cryptoNetworkGetCurrency(cwm->network);
-                BRCryptoUnit unit = cryptoNetworkGetUnitAsBase(cwm->network, currency);
+                BRCryptoUnit unit = cryptoWalletGetUnit(wallet);
 
                 // Get the wallet's amount...
                 BREthereumAmount amount = ewmWalletGetBalance(cwm->u.eth, wid);
@@ -1054,11 +1022,10 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                                  ? amountGetEther(amount).valueInWEI
                                  : amountGetTokenQuantity(amount).valueAsInteger);
 
-                // Use currency to create a cyrptoAmount in the base unit (implicitly).
-                BRCryptoAmount cryptoAmount = cryptoAmountCreate(unit, CRYPTO_FALSE, value);
+                // Create a cryptoAmount in the wallet's unit.
+                BRCryptoAmount cryptoAmount = cryptoAmountCreate (unit, CRYPTO_FALSE, value);
 
                 cryptoUnitGive(unit);
-                cryptoCurrencyGive(currency);
 
                 // Generate a BALANCE_UPDATED for the wallet
                 cwm->listener.walletEventCallback(cwm->listener.context,
