@@ -30,6 +30,17 @@
 // When using a BRD sync, offset the start block by N days of Ethereum blocks
 #define EWM_BRD_SYNC_START_BLOCK_OFFSET        (3 * 24 * 60 * 4)   /* 4 per minute (every 15 seconds) */
 
+// An ongoing sync is one that has a `end - beg` block difference of
+// EWM_BRD_SYNC_START_BLOCK_OFFSET or so (with some slop).  If the block difference is large
+// enough we'll transition to an EWM state of SYNCING; otherwise we'll consider the sync as an
+// ongoing sync (as when the blockchain is extended).
+static int
+ewmIsNotAnOngoingSync (BREthereumEWM ewm) {
+    return ewm->brdSync.endBlockNumber - ewm->brdSync.begBlockNumber >
+    (EWM_BRD_SYNC_START_BLOCK_OFFSET + EWM_BRD_SYNC_START_BLOCK_OFFSET/10);
+}
+
+
 #define EWM_INITIAL_SET_SIZE_DEFAULT         (25)
 
 /* Forward Declaration */
@@ -707,9 +718,13 @@ ewmConnect(BREthereumEWM ewm) {
 
     ewmLock (ewm);
 
+    BREthereumEWMState oldState = ewm->state;
+    BREthereumEWMState newState = ewm->state;
+
     // Nothing to do if already connected
     if (ETHEREUM_BOOLEAN_IS_FALSE (ewmIsConnected(ewm))) {
-        // Set ewm {client,state} prior to bcs/event start.  Avoid race conditions, particularly
+
+         // Set ewm {client,state} prior to bcs/event start.  Avoid race conditions, particularly
         // with `ewmPeriodicDispatcher`.
         ewm->state = EWM_STATE_CONNECTED;
 
@@ -727,6 +742,14 @@ ewmConnect(BREthereumEWM ewm) {
     }
 
     ewmUnlock (ewm);
+
+    if (oldState != newState)
+        ewmSignalEWMEvent (ewm, (BREthereumEWMEvent) {
+            EWM_EVENT_CHANGED,
+            SUCCESS,
+            { .changed = { oldState, newState }}
+        });
+
     return result;
 }
 
@@ -742,10 +765,40 @@ ewmDisconnect (BREthereumEWM ewm) {
 
     ewmLock (ewm);
 
+    BREthereumEWMState oldState = ewm->state;
+    BREthereumEWMState newState = ewm->state;
+
     if (ETHEREUM_BOOLEAN_IS_TRUE (ewmIsConnected(ewm))) {
         // Set ewm->state thereby stopping handlers (in a race with bcs/event calls).
         ewm->state = EWM_STATE_DISCONNECTED;
 
+        // Stop an ongoing sync
+        switch (ewm->mode) {
+            case BRD_ONLY:
+            case BRD_WITH_P2P_SEND:
+                // If we are in the middle of a sync, the end it.
+                if (!ewm->brdSync.completedTransaction || !ewm->brdSync.completedLog) {
+
+                    // but only announce if it is not an 'ongoing' sync
+                    if (ewmIsNotAnOngoingSync(ewm)) {
+                        ewmSignalEWMEvent (ewm, (BREthereumEWMEvent) {
+                            EWM_EVENT_CHANGED,
+                            SUCCESS,
+                            { .changed = { EWM_STATE_SYNCING, EWM_STATE_CONNECTED }}
+                        });
+                        oldState = EWM_STATE_CONNECTED;
+                    }
+
+                    ewm->brdSync.begBlockNumber = 0;
+                    ewm->brdSync.endBlockNumber = ewm->blockHeight;
+                    ewm->brdSync.completedTransaction = 0;
+                    ewm->brdSync.completedLog = 0;
+                }
+                break;
+            default: break;
+        }
+
+        // Stop BCS
         switch (ewm->mode) {
             case BRD_ONLY:
                 break;
@@ -760,6 +813,14 @@ ewmDisconnect (BREthereumEWM ewm) {
     }
 
     ewmUnlock(ewm);
+
+    if (oldState != newState)
+        ewmSignalEWMEvent (ewm, (BREthereumEWMEvent) {
+            EWM_EVENT_CHANGED,
+            SUCCESS,
+            { .changed = { oldState, newState }}
+        });
+
     return result;
 }
 
@@ -2283,6 +2344,13 @@ ewmPeriodicDispatcher (BREventHandler handler,
 
     // 1) check if the prior sync has completed.
     if (ewm->brdSync.completedTransaction && ewm->brdSync.completedLog) {
+        // If this was not an 'ongoing' sync, then signal back to 'connected'
+        if (ewmIsNotAnOngoingSync(ewm))
+            ewmSignalEWMEvent (ewm, (BREthereumEWMEvent) {
+                EWM_EVENT_CHANGED,
+                SUCCESS,
+                { .changed = { EWM_STATE_SYNCING, EWM_STATE_CONNECTED }}
+            });
 
         // 1a) if so, advance the sync range by updating `begBlockNumber`
         ewm->brdSync.begBlockNumber = (ewm->brdSync.endBlockNumber >=  EWM_BRD_SYNC_START_BLOCK_OFFSET
@@ -2296,6 +2364,14 @@ ewmPeriodicDispatcher (BREventHandler handler,
     // 3) if the `endBlockNumber` differs from the `begBlockNumber` then perform a 'sync'
     if (ewm->brdSync.begBlockNumber != ewm->brdSync.endBlockNumber) {
 
+        // If this is not an 'ongoing' sync, then signal 'syncing'
+        if (ewmIsNotAnOngoingSync(ewm))
+            ewmSignalEWMEvent (ewm, (BREthereumEWMEvent) {
+                EWM_EVENT_CHANGED,
+                SUCCESS,
+                { .changed = { EWM_STATE_CONNECTED, EWM_STATE_SYNCING }}
+            });
+
         // 3a) We'll query all transactions for this ewm's account.  That will give us a shot at
         // getting the nonce for the account's address correct.  We'll save all the transactions and
         // then process them into wallet as wallets exist.
@@ -2304,6 +2380,15 @@ ewmPeriodicDispatcher (BREventHandler handler,
         // Record an 'update transaction' as in progress
         ewm->brdSync.ridTransaction = ewm->requestId;
         ewm->brdSync.completedTransaction = 0;
+
+        // If this is not an 'ongoing' sync, then arbitrarily report progress - half way
+        // between transactions and logs
+        if (ewmIsNotAnOngoingSync(ewm))
+            ewmSignalEWMEvent (ewm, (BREthereumEWMEvent) {
+                EWM_EVENT_SYNC_PROGRESS,
+                SUCCESS,
+                { .syncProgress = { 50.0 }}
+            });
 
         // 3b) Similarly, we'll query all logs for this ewm's account.  We'll process these into
         // (token) transactions and associate with their wallet.
