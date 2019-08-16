@@ -162,7 +162,7 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
 
         XCTAssertTrue (listener.checkWalletEvents(
             [EventMatcher (event: WalletEvent.created),
-             EventMatcher (event: WalletEvent.transferAdded(transfer: transfer), strict: true, scan: true),
+             EventMatcher (event: WalletEvent.transferAdded(transfer: wallet.transfers[0]), strict: true, scan: true),
              EventMatcher (event: WalletEvent.balanceUpdated(amount: wallet.balance), strict: true, scan: true)
             ]))
     }
