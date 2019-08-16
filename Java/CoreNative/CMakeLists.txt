@@ -99,6 +99,7 @@ if (CMAKE_BUILD_TYPE MATCHES Debug)
                     PUBLIC
 
                     src/main/cpp/core/bitcoin/test.c
+                    src/main/cpp/core/bitcoin/testBwm.c
                     )
 endif(CMAKE_BUILD_TYPE MATCHES Debug)
 

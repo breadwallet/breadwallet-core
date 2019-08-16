@@ -69,7 +69,7 @@ bwmAnnounceBlockNumber (BRWalletManager manager,
 typedef void
 (*BRGetTransactionsCallback) (BRWalletManagerClientContext context,
                               BRWalletManager manager,
-                              OwnershipGiven const char **addresses,
+                              OwnershipKept const char **addresses,
                               size_t addressCount,
                               uint64_t begBlockNumber,
                               uint64_t endBlockNumber,
@@ -78,7 +78,10 @@ typedef void
 extern int // success - data is valid
 bwmAnnounceTransaction (BRWalletManager manager,
                         int id,
-                        OwnershipGiven BRTransaction *transaction);
+                        OwnershipKept uint8_t *transaction,
+                        size_t transactionLength,
+                        uint64_t timestamp,
+                        uint64_t blockHeight);
 
 extern void
 bwmAnnounceTransactionComplete (BRWalletManager manager,
@@ -89,13 +92,15 @@ typedef void
 (*BRSubmitTransactionCallback) (BRWalletManagerClientContext context,
                                 BRWalletManager manager,
                                 BRWallet *wallet,
-                                OwnershipGiven BRTransaction *transaction,
+                                OwnershipKept uint8_t *transaction,
+                                size_t transactionLength,
+                                UInt256 transactionHash,
                                 int rid);
 
 extern void
 bwmAnnounceSubmit (BRWalletManager manager,
                    int rid,
-                   OwnershipGiven BRTransaction *transaction,
+                   UInt256 txHash,
                    int error);
 
 ///
@@ -157,6 +162,9 @@ typedef void
                                OwnershipKept BRTransaction *transaction,
                                BRTransactionEvent event);
 
+extern const char *
+BRTransactionEventTypeString (BRTransactionEventType t);
+
 ///
 /// Wallet Event
 ///
@@ -199,6 +207,9 @@ typedef void
                           OwnershipKept BRWallet *wallet,
                           BRWalletEvent event);
 
+extern const char *
+BRWalletEventTypeString (BRWalletEventType t);
+
 ///
 /// WalletManager Event
 ///
@@ -232,6 +243,12 @@ typedef void
                                  OwnershipKept BRWalletManager manager,
                                  BRWalletManagerEvent event);
 
+extern const char *
+BRWalletManagerEventTypeString (BRWalletManagerEventType t);
+
+///
+/// WalletManager
+///
 typedef struct {
     BRWalletManagerClientContext context;
 

@@ -30,6 +30,17 @@
 // When using a BRD sync, offset the start block by N days of Ethereum blocks
 #define EWM_BRD_SYNC_START_BLOCK_OFFSET        (3 * 24 * 60 * 4)   /* 4 per minute (every 15 seconds) */
 
+// An ongoing sync is one that has a `end - beg` block difference of
+// EWM_BRD_SYNC_START_BLOCK_OFFSET or so (with some slop).  If the block difference is large
+// enough we'll transition to an EWM state of SYNCING; otherwise we'll consider the sync as an
+// ongoing sync (as when the blockchain is extended).
+static int
+ewmIsNotAnOngoingSync (BREthereumEWM ewm) {
+    return ewm->brdSync.endBlockNumber - ewm->brdSync.begBlockNumber >
+    (EWM_BRD_SYNC_START_BLOCK_OFFSET + EWM_BRD_SYNC_START_BLOCK_OFFSET/10);
+}
+
+
 #define EWM_INITIAL_SET_SIZE_DEFAULT         (25)
 
 /* Forward Declaration */
@@ -347,7 +358,7 @@ ewmCreate (BREthereumNetwork network,
            uint64_t blockHeight) {
     BREthereumEWM ewm = (BREthereumEWM) calloc (1, sizeof (struct BREthereumEWMRecord));
 
-    ewm->state = LIGHT_NODE_CREATED;
+    ewm->state = EWM_STATE_CREATED;
     ewm->mode = mode;
     ewm->network = network;
     ewm->account = account;
@@ -478,7 +489,10 @@ ewmCreate (BREthereumNetwork network,
     array_new(ewm->wallets, DEFAULT_WALLET_CAPACITY);
 
     // Queue the CREATED event so that it is the first event delievered to the BREthereumClient
-    ewmSignalEWMEvent (ewm, EWM_EVENT_CREATED, SUCCESS, NULL);
+    ewmSignalEWMEvent (ewm, (BREthereumEWMEvent) {
+        EWM_EVENT_CREATED,
+        SUCCESS
+    });
 
     // Create a default ETH wallet; other wallets will be created 'on demand'.  This will signal
     // a WALLET_EVENT_CREATED event.
@@ -704,11 +718,15 @@ ewmConnect(BREthereumEWM ewm) {
 
     ewmLock (ewm);
 
+    BREthereumEWMState oldState = ewm->state;
+    BREthereumEWMState newState = ewm->state;
+
     // Nothing to do if already connected
     if (ETHEREUM_BOOLEAN_IS_FALSE (ewmIsConnected(ewm))) {
-        // Set ewm {client,state} prior to bcs/event start.  Avoid race conditions, particularly
+
+         // Set ewm {client,state} prior to bcs/event start.  Avoid race conditions, particularly
         // with `ewmPeriodicDispatcher`.
-        ewm->state = LIGHT_NODE_CONNECTED;
+        ewm->state = EWM_STATE_CONNECTED;
 
         switch (ewm->mode) {
             case BRD_ONLY:
@@ -723,7 +741,15 @@ ewmConnect(BREthereumEWM ewm) {
         result = ETHEREUM_BOOLEAN_TRUE;
     }
 
+    if (oldState != newState)
+        ewmSignalEWMEvent (ewm, (BREthereumEWMEvent) {
+            EWM_EVENT_CHANGED,
+            SUCCESS,
+            { .changed = { oldState, newState }}
+        });
+
     ewmUnlock (ewm);
+
     return result;
 }
 
@@ -739,10 +765,40 @@ ewmDisconnect (BREthereumEWM ewm) {
 
     ewmLock (ewm);
 
+    BREthereumEWMState oldState = ewm->state;
+    BREthereumEWMState newState = ewm->state;
+
     if (ETHEREUM_BOOLEAN_IS_TRUE (ewmIsConnected(ewm))) {
         // Set ewm->state thereby stopping handlers (in a race with bcs/event calls).
-        ewm->state = LIGHT_NODE_DISCONNECTED;
+        ewm->state = EWM_STATE_DISCONNECTED;
 
+        // Stop an ongoing sync
+        switch (ewm->mode) {
+            case BRD_ONLY:
+            case BRD_WITH_P2P_SEND:
+                // If we are in the middle of a sync, the end it.
+                if (!ewm->brdSync.completedTransaction || !ewm->brdSync.completedLog) {
+
+                    // but only announce if it is not an 'ongoing' sync
+                    if (ewmIsNotAnOngoingSync(ewm)) {
+                        ewmSignalEWMEvent (ewm, (BREthereumEWMEvent) {
+                            EWM_EVENT_CHANGED,
+                            SUCCESS,
+                            { .changed = { EWM_STATE_SYNCING, EWM_STATE_CONNECTED }}
+                        });
+                        oldState = EWM_STATE_CONNECTED;
+                    }
+
+                    ewm->brdSync.begBlockNumber = 0;
+                    ewm->brdSync.endBlockNumber = ewm->blockHeight;
+                    ewm->brdSync.completedTransaction = 0;
+                    ewm->brdSync.completedLog = 0;
+                }
+                break;
+            default: break;
+        }
+
+        // Stop BCS
         switch (ewm->mode) {
             case BRD_ONLY:
                 break;
@@ -756,7 +812,15 @@ ewmDisconnect (BREthereumEWM ewm) {
         result = ETHEREUM_BOOLEAN_TRUE;
     }
 
+    if (oldState != newState)
+        ewmSignalEWMEvent (ewm, (BREthereumEWMEvent) {
+            EWM_EVENT_CHANGED,
+            SUCCESS,
+            { .changed = { oldState, newState }}
+        });
+
     ewmUnlock(ewm);
+
     return result;
 }
 
@@ -766,7 +830,7 @@ ewmIsConnected (BREthereumEWM ewm) {
 
     ewmLock (ewm);
 
-    if (LIGHT_NODE_CONNECTED == ewm->state) {
+    if (EWM_STATE_CONNECTED == ewm->state || EWM_STATE_SYNCING == ewm->state) {
         switch (ewm->mode) {
             case BRD_ONLY:
                 result = ETHEREUM_BOOLEAN_TRUE;
@@ -870,7 +934,7 @@ ewmSyncUpdateTransfer (BREthereumSyncTransferContext *context,
 extern BREthereumBoolean
 ewmSync (BREthereumEWM ewm,
          BREthereumBoolean pendExistingTransfers) {
-    if (LIGHT_NODE_CONNECTED != ewm->state) return ETHEREUM_BOOLEAN_FALSE;
+    if (EWM_STATE_CONNECTED != ewm->state) return ETHEREUM_BOOLEAN_FALSE;
 
     switch (ewm->mode) {
         case BRD_ONLY:
@@ -986,7 +1050,11 @@ ewmUpdateBlockHeight(BREthereumEWM ewm,
     pthread_mutex_lock(&ewm->lock);
     if (blockHeight != ewm->blockHeight) {
         ewm->blockHeight = blockHeight;
-        ewmSignalEWMEvent (ewm, EWM_EVENT_BLOCK_HEIGHT_UPDATED, SUCCESS, NULL);
+        ewmSignalEWMEvent (ewm, ((BREthereumEWMEvent) {
+            EWM_EVENT_BLOCK_HEIGHT_UPDATED,
+            SUCCESS,
+            { .blockHeight = { blockHeight }}
+        }));
     }
     pthread_mutex_unlock(&ewm->lock);
 }
@@ -1120,7 +1188,10 @@ ewmInsertWallet (BREthereumEWM ewm,
                  BREthereumWallet wallet) {
     pthread_mutex_lock(&ewm->lock);
     array_add (ewm->wallets, wallet);
-    ewmSignalWalletEvent (ewm, wallet, (BREthereumWalletEvent) { WALLET_EVENT_CREATED }, SUCCESS, NULL);
+    ewmSignalWalletEvent (ewm, wallet, (BREthereumWalletEvent) {
+        WALLET_EVENT_CREATED,
+        SUCCESS
+    });
     pthread_mutex_unlock(&ewm->lock);
 }
 
@@ -1191,7 +1262,10 @@ ewmWalletCreateTransfer(BREthereumEWM ewm,
 
     // Transfer DOES NOT have a hash yet because it is not signed; but it is inserted in the
     // wallet and can be display, in order, w/o the hash
-    ewmSignalTransferEvent (ewm, wallet, transfer, TRANSFER_EVENT_CREATED, SUCCESS, NULL);
+    ewmSignalTransferEvent (ewm, wallet, transfer, (BREthereumTransferEvent) {
+        TRANSFER_EVENT_CREATED,
+        SUCCESS
+    });
 
     return transfer;
 }
@@ -1219,7 +1293,10 @@ ewmWalletCreateTransferGeneric(BREthereumEWM ewm,
 
     // Transfer DOES NOT have a hash yet because it is not signed; but it is inserted in the
     // wallet and can be display, in order, w/o the hash
-    ewmSignalTransferEvent(ewm, wallet, transfer, TRANSFER_EVENT_CREATED, SUCCESS, NULL);
+    ewmSignalTransferEvent(ewm, wallet, transfer, (BREthereumTransferEvent) {
+        TRANSFER_EVENT_CREATED,
+        SUCCESS
+    });
 
     return transfer;
 }
@@ -1240,7 +1317,10 @@ ewmWalletCreateTransferWithFeeBasis (BREthereumEWM ewm,
 
     // Transfer DOES NOT have a hash yet because it is not signed; but it is inserted in the
     // wallet and can be display, in order, w/o the hash
-    ewmSignalTransferEvent (ewm, wallet, transfer, TRANSFER_EVENT_CREATED, SUCCESS, NULL);
+    ewmSignalTransferEvent (ewm, wallet, transfer, (BREthereumTransferEvent) {
+        TRANSFER_EVENT_CREATED,
+        SUCCESS
+    });
 
     return transfer;
 }
@@ -1404,7 +1484,10 @@ static void
 ewmWalletSignTransferAnnounce (BREthereumEWM ewm,
                                BREthereumWallet wallet,
                                BREthereumTransfer transfer) {
-    ewmSignalTransferEvent (ewm, wallet, transfer, TRANSFER_EVENT_SIGNED,  SUCCESS, NULL);
+    ewmSignalTransferEvent (ewm, wallet, transfer, (BREthereumTransferEvent) {
+        TRANSFER_EVENT_SIGNED,
+        SUCCESS
+    });
 }
 
 extern void // status, error
@@ -1491,9 +1574,10 @@ ewmWalletSetDefaultGasLimit(BREthereumEWM ewm,
     walletSetDefaultGasLimit(wallet, gasLimit);
     ewmSignalWalletEvent(ewm,
                          wallet,
-                         (BREthereumWalletEvent) { WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED },
-                         SUCCESS,
-                         NULL);
+                         (BREthereumWalletEvent) {
+                             WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED,
+                             SUCCESS
+                         });
 }
 
 extern BREthereumGasPrice
@@ -1509,9 +1593,10 @@ ewmWalletSetDefaultGasPrice(BREthereumEWM ewm,
     walletSetDefaultGasPrice(wallet, gasPrice);
     ewmSignalWalletEvent(ewm,
                          wallet,
-                         (BREthereumWalletEvent) { WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED },
-                         SUCCESS,
-                         NULL);
+                         (BREthereumWalletEvent) {
+                             WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
+                             SUCCESS
+                         });
 }
 
 
@@ -1534,8 +1619,10 @@ ewmHandleGasPrice (BREthereumEWM ewm,
 
     ewmSignalWalletEvent(ewm,
                          wallet,
-                         (BREthereumWalletEvent) { WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED },
-                         SUCCESS, NULL);
+                         (BREthereumWalletEvent) {
+                             WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
+                             SUCCESS
+                         });
 
     pthread_mutex_unlock(&ewm->lock);
 }
@@ -1561,8 +1648,10 @@ ewmHandleGasEstimate (BREthereumEWM ewm,
     ewmSignalTransferEvent(ewm,
                            wallet,
                            transfer,
-                           TRANSFER_EVENT_GAS_ESTIMATE_UPDATED,
-                           SUCCESS, NULL);
+                           (BREthereumTransferEvent) {
+                               TRANSFER_EVENT_GAS_ESTIMATE_UPDATED,
+                               SUCCESS
+                           });
 
     pthread_mutex_unlock(&ewm->lock);
 
@@ -1646,9 +1735,10 @@ ewmHandleBalance (BREthereumEWM ewm,
         walletSetBalance(wallet, amount);
         ewmSignalWalletEvent (ewm,
                               wallet,
-                              (BREthereumWalletEvent) { WALLET_EVENT_BALANCE_UPDATED },
-                              SUCCESS,
-                              NULL);
+                              (BREthereumWalletEvent) {
+                                  WALLET_EVENT_BALANCE_UPDATED,
+                                  SUCCESS
+                              });
 
         {
             char *amountAsString = (AMOUNT_ETHER == amountGetType(amount)
@@ -1679,22 +1769,26 @@ ewmReportTransferStatusAsEvent (BREthereumEWM ewm,
                                 BREthereumWallet wallet,
                                 BREthereumTransfer transfer) {
     if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_SUBMITTED)))
-        ewmSignalTransferEvent(ewm, wallet, transfer,
-                               TRANSFER_EVENT_SUBMITTED,
-                               SUCCESS, NULL);
+        ewmSignalTransferEvent(ewm, wallet, transfer, (BREthereumTransferEvent) {
+            TRANSFER_EVENT_SUBMITTED,
+            SUCCESS
+        });
 
     else if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_INCLUDED)))
-        ewmSignalTransferEvent(ewm, wallet, transfer,
-                               TRANSFER_EVENT_INCLUDED,
-                               SUCCESS, NULL);
+        ewmSignalTransferEvent(ewm, wallet, transfer, (BREthereumTransferEvent) {
+            TRANSFER_EVENT_INCLUDED,
+            SUCCESS
+        });
 
     else if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_ERRORED))) {
         char *reason = NULL;
         transferExtractStatusError (transfer, &reason);
-        ewmSignalTransferEvent(ewm, wallet, transfer,
-                               TRANSFER_EVENT_ERRORED,
-                               ERROR_TRANSACTION_SUBMISSION,
-                               (NULL == reason ? "" : reason));
+        BREthereumTransferEvent event = { TRANSFER_EVENT_ERRORED,  ERROR_TRANSACTION_SUBMISSION };
+        memset (event.errorDescription, 0, sizeof (event.errorDescription));
+        strncpy (event.errorDescription, reason, sizeof (event.errorDescription) - 1);
+
+        ewmSignalTransferEvent(ewm, wallet, transfer, event);
+
         // TODO: free(reason)?
         // Note: ewmSignalTransferEvent expects the 'reason' to stick around an never frees it.
         // If we free here, the string will be gone by the time it is handled.
@@ -1828,9 +1922,10 @@ ewmHandleTransaction (BREthereumEWM ewm,
         //
         // walletUpdateBalance (wallet);
 
-        ewmSignalTransferEvent (ewm, wallet, transfer,
-                                TRANSFER_EVENT_CREATED,
-                                SUCCESS, NULL);
+        ewmSignalTransferEvent (ewm, wallet, transfer, (BREthereumTransferEvent) {
+            TRANSFER_EVENT_CREATED,
+            SUCCESS
+        });
 
          // If this transfer is referenced by a log, fill out the log's fee basis.
         ewmHandleLogFeeBasis (ewm, hash, transfer, NULL);
@@ -1909,9 +2004,10 @@ ewmHandleLog (BREthereumEWM ewm,
         //
         // walletUpdateBalance (wallet);
 
-        ewmSignalTransferEvent (ewm, wallet, transfer,
-                                TRANSFER_EVENT_CREATED,
-                                SUCCESS, NULL);
+        ewmSignalTransferEvent (ewm, wallet, transfer, (BREthereumTransferEvent) {
+            TRANSFER_EVENT_CREATED,
+            SUCCESS
+        });
 
         // If this transfer references a transaction, fill out this log's fee basis
         ewmHandleLogFeeBasis (ewm, transactionHash, NULL, transfer);
@@ -2009,14 +2105,33 @@ ewmHandleSync (BREthereumEWM ewm,
                uint64_t blockNumberStop) {
     assert (P2P_ONLY == ewm->mode || P2P_WITH_BRD_SYNC == ewm->mode);
 
-    BREthereumEWMEvent event = (blockNumberCurrent == blockNumberStart
-                                ? EWM_EVENT_SYNC_STARTED
-                                : (blockNumberCurrent == blockNumberStop
-                                   ? EWM_EVENT_SYNC_STOPPED
-                                   : EWM_EVENT_SYNC_CONTINUES));
     double syncCompletePercent = 100.0 * (blockNumberCurrent - blockNumberStart) / (blockNumberStop - blockNumberStart);
 
-    ewmSignalEWMEvent (ewm, event, SUCCESS, NULL);
+    BREthereumEWMEvent event;
+
+    if (blockNumberCurrent == blockNumberStart) {
+        event = (BREthereumEWMEvent) {
+            EWM_EVENT_CHANGED,
+            SUCCESS,
+            { .changed = { ewm->state, EWM_STATE_SYNCING }}
+        };
+    }
+    else if (blockNumberCurrent == blockNumberStop) {
+        event = (BREthereumEWMEvent) {
+            EWM_EVENT_CHANGED,
+            SUCCESS,
+            { .changed = { ewm->state, EWM_STATE_CONNECTED }}
+        };
+    }
+    else {
+        event = (BREthereumEWMEvent) {
+            EWM_EVENT_SYNC_PROGRESS,
+            SUCCESS,
+            { .syncProgress = { syncCompletePercent }}
+        };
+    }
+
+    ewmSignalEWMEvent (ewm, event);
 
     eth_log ("EWM", "Sync: %d, %.2f%%", type, syncCompletePercent);
 }
@@ -2050,15 +2165,17 @@ ewmUpdateWalletBalance(BREthereumEWM ewm,
 
     if (NULL == wallet) {
         ewmSignalWalletEvent(ewm, wallet,
-                             (BREthereumWalletEvent) { WALLET_EVENT_BALANCE_UPDATED },
-                             ERROR_UNKNOWN_WALLET,
-                             NULL);
+                             (BREthereumWalletEvent) {
+                                 WALLET_EVENT_BALANCE_UPDATED,
+                                 ERROR_UNKNOWN_WALLET
+                             });
 
     } else if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) {
         ewmSignalWalletEvent(ewm, wallet,
-                             (BREthereumWalletEvent) { WALLET_EVENT_BALANCE_UPDATED },
-                             ERROR_NODE_NOT_CONNECTED,
-                             NULL);
+                             (BREthereumWalletEvent) {
+                                 WALLET_EVENT_BALANCE_UPDATED,
+                                 ERROR_NODE_NOT_CONNECTED
+                             });
     } else {
         switch (ewm->mode) {
             case BRD_ONLY:
@@ -2213,7 +2330,7 @@ ewmPeriodicDispatcher (BREventHandler handler,
                        BREventTimeout *event) {
     BREthereumEWM ewm = (BREthereumEWM) event->context;
 
-    if (ewm->state != LIGHT_NODE_CONNECTED) return;
+    if (ewm->state != EWM_STATE_CONNECTED) return;
     if (P2P_ONLY == ewm->mode || P2P_WITH_BRD_SYNC == ewm->mode) return;
 
     ewmUpdateBlockNumber(ewm);
@@ -2227,7 +2344,13 @@ ewmPeriodicDispatcher (BREventHandler handler,
 
     // 1) check if the prior sync has completed.
     if (ewm->brdSync.completedTransaction && ewm->brdSync.completedLog) {
-        ewmSignalEWMEvent (ewm, EWM_EVENT_SYNC_STOPPED, SUCCESS, NULL);
+        // If this was not an 'ongoing' sync, then signal back to 'connected'
+        if (ewmIsNotAnOngoingSync(ewm))
+            ewmSignalEWMEvent (ewm, (BREthereumEWMEvent) {
+                EWM_EVENT_CHANGED,
+                SUCCESS,
+                { .changed = { EWM_STATE_SYNCING, EWM_STATE_CONNECTED }}
+            });
 
         // 1a) if so, advance the sync range by updating `begBlockNumber`
         ewm->brdSync.begBlockNumber = (ewm->brdSync.endBlockNumber >=  EWM_BRD_SYNC_START_BLOCK_OFFSET
@@ -2240,7 +2363,14 @@ ewmPeriodicDispatcher (BREventHandler handler,
 
     // 3) if the `endBlockNumber` differs from the `begBlockNumber` then perform a 'sync'
     if (ewm->brdSync.begBlockNumber != ewm->brdSync.endBlockNumber) {
-        ewmSignalEWMEvent (ewm, EWM_EVENT_SYNC_STARTED, SUCCESS, NULL);
+
+        // If this is not an 'ongoing' sync, then signal 'syncing'
+        if (ewmIsNotAnOngoingSync(ewm))
+            ewmSignalEWMEvent (ewm, (BREthereumEWMEvent) {
+                EWM_EVENT_CHANGED,
+                SUCCESS,
+                { .changed = { EWM_STATE_CONNECTED, EWM_STATE_SYNCING }}
+            });
 
         // 3a) We'll query all transactions for this ewm's account.  That will give us a shot at
         // getting the nonce for the account's address correct.  We'll save all the transactions and
@@ -2250,6 +2380,15 @@ ewmPeriodicDispatcher (BREventHandler handler,
         // Record an 'update transaction' as in progress
         ewm->brdSync.ridTransaction = ewm->requestId;
         ewm->brdSync.completedTransaction = 0;
+
+        // If this is not an 'ongoing' sync, then arbitrarily report progress - half way
+        // between transactions and logs
+        if (ewmIsNotAnOngoingSync(ewm))
+            ewmSignalEWMEvent (ewm, (BREthereumEWMEvent) {
+                EWM_EVENT_SYNC_PROGRESS,
+                SUCCESS,
+                { .syncProgress = { 50.0 }}
+            });
 
         // 3b) Similarly, we'll query all logs for this ewm's account.  We'll process these into
         // (token) transactions and associate with their wallet.
@@ -2582,7 +2721,10 @@ ewmTransferDelete (BREthereumEWM ewm,
         BREthereumWallet wallet = ewm->wallets[wid];
         if (walletHasTransfer(wallet, transfer)) {
             walletUnhandleTransfer(wallet, transfer);
-            ewmSignalTransferEvent(ewm, wallet, transfer, TRANSFER_EVENT_DELETED, SUCCESS, NULL);
+            ewmSignalTransferEvent(ewm, wallet, transfer, (BREthereumTransferEvent) {
+                TRANSFER_EVENT_DELETED,
+                SUCCESS
+            });
         }
     }
     // Null the ewm's `tid` - MUST NOT array_rm() as all `tid` holders will be dead.

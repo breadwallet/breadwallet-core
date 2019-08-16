@@ -459,9 +459,7 @@ static void
 clientEventWallet (BREthereumClientContext context,
                    BREthereumEWM ewm,
                    BREthereumWallet wid,
-                   BREthereumWalletEvent event,
-                   BREthereumStatus status,
-                   const char *errorDescription) {
+                   BREthereumWalletEvent event) {
     fprintf (stdout, "ETH: TST: WalletEvent: wid=%p, ev=%d\n", wid, event.type);
     switch (event.type) {
         case WALLET_EVENT_BALANCE_UPDATED:
@@ -477,7 +475,7 @@ clientEventToken (BREthereumClientContext context,
                    BREthereumEWM ewm,
                    BREthereumToken token,
                    BREthereumTokenEvent event) {
-    fprintf (stdout, "ETH: TST: TokenEvent: wid=%p, ev=%d\n", token, event);
+    fprintf (stdout, "ETH: TST: TokenEvent: wid=%p, ev=%d\n", token, event.type);
 }
 
 #if defined (NEVER_DEFINED)
@@ -485,10 +483,8 @@ static void
 clientEventBlock (BREthereumClientContext context,
                   BREthereumEWM ewm,
                   BREthereumBlockId bid,
-                  BREthereumBlockEvent event,
-                  BREthereumStatus status,
-                  const char *errorDescription) {
-    fprintf (stdout, "ETH: TST: BlockEvent: bid=%d, ev=%d\n", bid, event);
+                  BREthereumBlockEvent event) {
+    fprintf (stdout, "ETH: TST: BlockEvent: bid=%d, ev=%d\n", bid, event.type);
 }
 #endif
 
@@ -497,32 +493,22 @@ clientEventTransfer (BREthereumClientContext context,
                      BREthereumEWM ewm,
                      BREthereumWallet wid,
                      BREthereumTransfer tid,
-                     BREthereumTransferEvent event,
-                     BREthereumStatus status,
-                     const char *errorDescription) {
-    fprintf (stdout, "ETH: TST: TransferEvent: tid=%p, ev=%d\n", tid, event);
+                     BREthereumTransferEvent event) {
+    fprintf (stdout, "ETH: TST: TransferEvent: tid=%p, ev=%d\n", tid, event.type);
 }
 
 static void
 clientEventPeer (BREthereumClientContext context,
                  BREthereumEWM ewm,
-                 //BREthereumWallet wid,
-                 //BREthereumTransactionId tid,
-                 BREthereumPeerEvent event,
-                 BREthereumStatus status,
-                 const char *errorDescription) {
-    fprintf (stdout, "ETH: TST: PeerEvent: ev=%d\n", event);
+                 BREthereumPeerEvent event) {
+    fprintf (stdout, "ETH: TST: PeerEvent: ev=%d\n", event.type);
 }
 
 static void
 clientEventEWM (BREthereumClientContext context,
                 BREthereumEWM ewm,
-                //BREthereumWallet wid,
-                //BREthereumTransactionId tid,
-                BREthereumEWMEvent event,
-                BREthereumStatus status,
-                const char *errorDescription) {
-    fprintf (stdout, "ETH: TST: EWMEvent: ev=%d\n", event);
+                BREthereumEWMEvent event) {
+    fprintf (stdout, "ETH: TST: EWMEvent: ev=%d\n", event.type);
 }
 
 static void

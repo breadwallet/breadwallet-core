@@ -117,7 +117,7 @@ extern BRCryptoTransfer
 cryptoTransferCreateAsBTC (BRCryptoUnit unit,
                            BRCryptoUnit unitForFee,
                            BRWallet *wid,
-                           BRTransaction *tid) {
+                           OwnershipKept BRTransaction *tid) {
     BRAddressParams  addressParams = BRWalletGetAddressParams (wid);
     BRCryptoTransfer transfer      = cryptoTransferCreateInternal (BLOCK_CHAIN_TYPE_BTC, unit, unitForFee);
     transfer->u.btc.tid = tid;
@@ -229,7 +229,6 @@ cryptoTransferCreateAsGEN (BRCryptoUnit unit,
 static void
 cryptoTransferRelease (BRCryptoTransfer transfer) {
     printf ("Transfer: Release\n");
-    if (BLOCK_CHAIN_TYPE_BTC == transfer->type) BRTransactionFree (transfer->u.btc.tid);
     if (NULL != transfer->sourceAddress) cryptoAddressGive (transfer->sourceAddress);
     if (NULL != transfer->targetAddress) cryptoAddressGive (transfer->targetAddress);
     cryptoUnitGive (transfer->unit);
@@ -285,7 +284,7 @@ cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNega
                                                  isNegative,
                                                  createUInt256(recv));
                     break;
-                    
+
                 default: assert(0);
             }
             break;
@@ -642,12 +641,7 @@ cryptoTransferHasGEN (BRCryptoTransfer transfer,
 
 static int
 cryptoTransferEqualAsBTC (BRCryptoTransfer t1, BRCryptoTransfer t2) {
-    // Since BTC transactions that are not yet signed do not have a txHash, only
-    // use the BRTransactionEq check when at least one party is signed. For cases
-    // where that is not true, use an identity check.
-    return (BRTransactionIsSigned (t1->u.btc.tid)
-            ? BRTransactionEq (t1->u.btc.tid, t2->u.btc.tid)
-            : t1->u.btc.tid == t2->u.btc.tid);
+    return t1->u.btc.tid == t2->u.btc.tid;
 }
 
 static int

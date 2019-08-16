@@ -38,13 +38,6 @@
 extern "C" {
 #endif
 
-/**
- * Thread model:
- *  - No explicitly managed thread or event handler contained in BRSyncManager
- *  - Defers threading to external components (i.e. parent, BRWalletManager,
- *    and children, BRPeerManager)
- */
-
 typedef struct BRSyncManagerStruct *BRSyncManager;
 
 typedef void *BRSyncManagerClientContext;
@@ -57,7 +50,7 @@ typedef void
 typedef void
 (*BRSyncManagerGetTransactionsCallback) (BRSyncManagerClientContext context,
                                          BRSyncManager manager,
-                                         OwnershipGiven const char **addresses,
+                                         OwnershipKept const char **addresses,
                                          size_t addressCount,
                                          uint64_t begBlockNumber,
                                          uint64_t endBlockNumber,
@@ -66,7 +59,9 @@ typedef void
 typedef void
 (*BRSyncManagerSubmitTransactionCallback) (BRSyncManagerClientContext context,
                                            BRSyncManager manager,
-                                           OwnershipGiven BRTransaction *transaction,
+                                           OwnershipKept uint8_t *transaction,
+                                           size_t transactionLength,
+                                           UInt256 transactionHash,
                                            int rid);
 
 typedef struct {
@@ -116,7 +111,7 @@ typedef struct {
             uint64_t value;
         } blockHeightUpdated;
         struct {
-            BRTransaction *transaction;
+            UInt256 txHash;
             int error;
         } submitted;
     } u;
@@ -129,12 +124,25 @@ typedef void
                                BRSyncManager manager,
                                OwnershipKept BRSyncManagerEvent event);
 
+/**
+ * Create a new BRSyncManager for the desired mode.
+ *
+ * A note on the threading model:
+ *  - No explicitly managed thread or event handler contained in BRSyncManager
+ *  - Defers threading to external components (i.e. owning BRWalletManager
+ *    and/or owned BRPeerManager)
+ *  - Locking does occur both internally in the BRSyncManager as well as
+ *    its subordinate objects (ex: BRPeerManager).
+ *  - Callbacks (both `eventCallback` and `clientCallbacks`) MAY be
+ *    called with non-reentrant locks held. As such, calls back
+ *    into the BRSyncManager MUST NOT occur in a callback.
+ */
 extern BRSyncManager
 BRSyncManagerNewForMode(BRSyncMode mode,
                         BRSyncManagerEventContext eventContext,
                         BRSyncManagerEventCallback eventCallback,
                         BRSyncManagerClientContext clientContext,
-                        BRSyncManagerClientCallbacks client,
+                        BRSyncManagerClientCallbacks clientCallbacks,
                         OwnershipKept const BRChainParams *params,
                         OwnershipKept BRWallet *wallet,
                         uint32_t earliestKeyTime,
@@ -158,7 +166,7 @@ BRSyncManagerScan(BRSyncManager manager);
 
 extern void
 BRSyncManagerSubmit(BRSyncManager manager,
-                    OwnershipGiven BRTransaction *transaction);
+                    OwnershipKept BRTransaction *transaction);
 
 extern void
 BRSyncManagerTickTock(BRSyncManager manager);
@@ -171,7 +179,10 @@ BRSyncManagerAnnounceGetBlockNumber(BRSyncManager manager,
 extern void
 BRSyncManagerAnnounceGetTransactionsItem(BRSyncManager manager,
                                          int rid,
-                                         OwnershipGiven BRTransaction *transaction);
+                                         OwnershipKept uint8_t *transaction,
+                                         size_t transactionLength,
+                                         uint64_t timestamp,
+                                         uint64_t blockHeight);
 
 extern void
 BRSyncManagerAnnounceGetTransactionsDone(BRSyncManager manager,
@@ -181,7 +192,7 @@ BRSyncManagerAnnounceGetTransactionsDone(BRSyncManager manager,
 extern void
 BRSyncManagerAnnounceSubmitTransaction(BRSyncManager manager,
                                        int rid,
-                                       OwnershipGiven BRTransaction *transaction,
+                                       UInt256 txHash,
                                        int error);
 
 #ifdef __cplusplus
