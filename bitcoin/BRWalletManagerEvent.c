@@ -149,19 +149,27 @@ typedef struct {
     struct BREventRecord base;
     BRWalletManager manager;
     int rid;
-    BRTransaction *transaction;
+    uint8_t *transaction;
+    size_t transactionLength;
+    uint64_t timestamp;
+    uint64_t blockHeight;
 } BRWalletManagerClientAnnounceTransactionEvent;
 
 static void
 bwmSignalAnnounceTransactionDispatcher (BREventHandler ignore,
                                         BRWalletManagerClientAnnounceTransactionEvent *event) {
-    bwmHandleAnnounceTransaction(event->manager, event->rid, event->transaction);
+    bwmHandleAnnounceTransaction(event->manager,
+                                 event->rid,
+                                 event->transaction,
+                                 event->transactionLength,
+                                 event->timestamp,
+                                 event->blockHeight);
+    free (event->transaction);
 }
 
 static void
 bwmSignalAnnounceTransactionDestroyer (BRWalletManagerClientAnnounceTransactionEvent *event) {
-    assert (event->transaction);
-    BRTransactionFree (event->transaction);
+    free (event->transaction);
 }
 
 static BREventType bwmClientAnnounceTransactionEventType = {
@@ -174,9 +182,15 @@ static BREventType bwmClientAnnounceTransactionEventType = {
 extern void
 bwmSignalAnnounceTransaction(BRWalletManager manager,
                              int rid,
-                             OwnershipGiven BRTransaction *transaction) {
+                             OwnershipKept uint8_t *transaction,
+                             size_t transactionLength,
+                             uint64_t timestamp,
+                             uint64_t blockHeight) {
+    uint8_t *transactionCopy = malloc (transactionLength);
+    memcpy (transactionCopy, transaction, transactionLength);
+
     BRWalletManagerClientAnnounceTransactionEvent message =
-    { { NULL, &bwmClientAnnounceTransactionEventType}, manager, rid, transaction};
+    { { NULL, &bwmClientAnnounceTransactionEventType}, manager, rid, transactionCopy, transactionLength, timestamp, blockHeight};
     eventHandlerSignalEvent (manager->handler, (BREvent*) &message);
 }
 
@@ -228,17 +242,10 @@ bwmSignalAnnounceSubmitDispatcher (BREventHandler ignore,
     bwmHandleAnnounceSubmit(event->manager, event->rid, event->transaction, event->error);
 }
 
-static void
-bwmSignalAnnounceSubmitDestroyer (BRWalletManagerClientAnnounceSubmitEvent *event) {
-    assert (event->transaction);
-    BRTransactionFree (event->transaction);
-}
-
 static BREventType bwmClientAnnounceSubmitEventType = {
     "BTC: Client Announce Submit Event",
     sizeof (BRWalletManagerClientAnnounceSubmitEvent),
-    (BREventDispatcher) bwmSignalAnnounceSubmitDispatcher,
-    (BREventDestroyer) bwmSignalAnnounceSubmitDestroyer
+    (BREventDispatcher) bwmSignalAnnounceSubmitDispatcher
 };
 
 extern void

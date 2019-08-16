@@ -181,7 +181,7 @@ BRClientSyncManagerScan(BRClientSyncManager manager);
 
 static void
 BRClientSyncManagerSubmit(BRClientSyncManager manager,
-                          OwnershipGiven BRTransaction *transaction);
+                          OwnershipKept BRTransaction *transaction);
 
 static void
 BRClientSyncManagerTickTock(BRClientSyncManager manager);
@@ -194,7 +194,10 @@ BRClientSyncManagerAnnounceGetBlockNumber(BRClientSyncManager manager,
 static void
 BRClientSyncManagerAnnounceGetTransactionsItem (BRClientSyncManager manager,
                                                 int rid,
-                                                OwnershipGiven BRTransaction *transaction);
+                                                OwnershipKept uint8_t *transaction,
+                                                size_t transactionLength,
+                                                uint64_t timestamp,
+                                                uint64_t blockHeight);
 
 static void
 BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
@@ -204,7 +207,7 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
 static void
 BRClientSyncManagerAnnounceSubmitTransaction (BRClientSyncManager manager,
                                               int rid,
-                                              OwnershipGiven BRTransaction *transaction,
+                                              OwnershipKept BRTransaction *transaction,
                                               int error);
 
 static void
@@ -310,7 +313,7 @@ BRPeerSyncManagerScan(BRPeerSyncManager manager);
 
 static void
 BRPeerSyncManagerSubmit(BRPeerSyncManager manager,
-                        OwnershipGiven BRTransaction *transaction);
+                        OwnershipKept BRTransaction *transaction);
 
 static void
 BRPeerSyncManagerTickTock(BRPeerSyncManager manager);
@@ -440,7 +443,7 @@ BRSyncManagerScan(BRSyncManager manager) {
 
 extern void
 BRSyncManagerSubmit(BRSyncManager manager,
-                    OwnershipGiven BRTransaction *transaction) {
+                    OwnershipKept BRTransaction *transaction) {
     switch (manager->mode) {
         case SYNC_MODE_BRD_ONLY:
         BRClientSyncManagerSubmit (BRSyncManagerAsClientSyncManager (manager),
@@ -493,16 +496,21 @@ BRSyncManagerAnnounceGetBlockNumber(BRSyncManager manager,
 extern void
 BRSyncManagerAnnounceGetTransactionsItem(BRSyncManager manager,
                                          int rid,
-                                         OwnershipGiven BRTransaction *transaction) {
+                                         OwnershipKept uint8_t *transaction,
+                                         size_t transactionLength,
+                                         uint64_t timestamp,
+                                         uint64_t blockHeight) {
     switch (manager->mode) {
         case SYNC_MODE_BRD_ONLY:
         BRClientSyncManagerAnnounceGetTransactionsItem (BRSyncManagerAsClientSyncManager (manager),
                                                         rid,
-                                                        transaction);
+                                                        transaction,
+                                                        transactionLength,
+                                                        timestamp,
+                                                        blockHeight);
         break;
         case SYNC_MODE_P2P_ONLY:
-        // This case might arise if we swap a BRWalletManager's syncManager
-        BRTransactionFree (transaction);
+        // do nothing
         break;
         default:
         assert (0);
@@ -532,7 +540,7 @@ BRSyncManagerAnnounceGetTransactionsDone(BRSyncManager manager,
 extern void
 BRSyncManagerAnnounceSubmitTransaction(BRSyncManager manager,
                                        int rid,
-                                       OwnershipGiven BRTransaction *transaction,
+                                       OwnershipKept BRTransaction *transaction,
                                        int error) {
     switch (manager->mode) {
         case SYNC_MODE_BRD_ONLY:
@@ -542,8 +550,7 @@ BRSyncManagerAnnounceSubmitTransaction(BRSyncManager manager,
                                                       error);
         break;
         case SYNC_MODE_P2P_ONLY:
-        // This case might arise if we swap a BRWalletManager's syncManager
-        BRTransactionFree (transaction);
+        // do nothing
         break;
         default:
         assert (0);
@@ -725,7 +732,7 @@ BRClientSyncManagerScan(BRClientSyncManager manager) {
 
 static void
 BRClientSyncManagerSubmit(BRClientSyncManager manager,
-                          OwnershipGiven BRTransaction *transaction) {
+                          OwnershipKept BRTransaction *transaction) {
     uint8_t needClientCall = 0;
     int rid                = -1;
 
@@ -751,8 +758,6 @@ BRClientSyncManagerSubmit(BRClientSyncManager manager,
                                     SYNC_MANAGER_TXN_SUBMITTED,
                                     { .submitted = {transaction, -1} },
                                 });
-
-        BRTransactionFree (transaction);
     }
 }
 
@@ -792,7 +797,7 @@ BRClientSyncManagerAnnounceGetBlockNumber(BRClientSyncManager manager,
 static void
 BRClientSyncManagerAnnounceSubmitTransaction (BRClientSyncManager manager,
                                               int rid,
-                                              OwnershipGiven BRTransaction *transaction,
+                                              OwnershipKept BRTransaction *transaction,
                                               int error) {
     manager->eventCallback (manager->eventContext,
                             BRClientSyncManagerAsSyncManager (manager),
@@ -800,15 +805,17 @@ BRClientSyncManagerAnnounceSubmitTransaction (BRClientSyncManager manager,
                                 SYNC_MANAGER_TXN_SUBMITTED,
                                 { .submitted = {transaction, error} },
                             });
-
-    BRTransactionFree (transaction);
 }
 
 static void
 BRClientSyncManagerAnnounceGetTransactionsItem (BRClientSyncManager manager,
                                                 int rid,
-                                                OwnershipGiven BRTransaction *transaction) {
-    uint8_t needRegistration = BRTransactionIsSigned (transaction);
+                                                OwnershipKept uint8_t *txn,
+                                                size_t txnLength,
+                                                uint64_t timestamp,
+                                                uint64_t blockHeight) {
+    BRTransaction *transaction = BRTransactionParse (txn, txnLength);
+    uint8_t needRegistration = NULL != transaction && BRTransactionIsSigned (transaction);
     if (needRegistration) {
         if (0 == pthread_mutex_lock (&manager->lock)) {
             // confirm completion is for in-progress sync
@@ -820,12 +827,12 @@ BRClientSyncManagerAnnounceGetTransactionsItem (BRClientSyncManager manager,
     }
 
     if (needRegistration) {
+        transaction->timestamp = (uint32_t) timestamp;
+        transaction->blockHeight = (uint32_t) blockHeight;
         BRWalletRegisterTransaction (manager->wallet, transaction);
         if (BRWalletTransactionForHash (manager->wallet, transaction->txHash) != transaction) {
             BRTransactionFree (transaction);
         }
-    } else {
-        BRTransactionFree (transaction);
     }
 }
 
@@ -960,7 +967,9 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
                                                       begBlockNumber,
                                                       endBlockNumber,
                                                       rid);
-    } else if (addressStrings) {
+    }
+
+    if (addressStrings) {
         free (addressStrings);
     }
 
@@ -1053,7 +1062,9 @@ BRClientSyncManagerStartScanIfNeeded (BRClientSyncManager manager) {
                                                       begBlockNumber,
                                                       endBlockNumber,
                                                       rid);
-    } else if (addressStrings) {
+    }
+
+    if (addressStrings) {
         free (addressStrings);
     }
 
@@ -1274,11 +1285,13 @@ typedef struct {
 
 static void
 BRPeerSyncManagerSubmit(BRPeerSyncManager manager,
-                        OwnershipGiven BRTransaction *transaction) {
+                        OwnershipKept BRTransaction *transaction) {
     SubmitTransactionInfo *info = malloc (sizeof (SubmitTransactionInfo));
     info->manager = manager;
     info->transaction = transaction;
 
+    // create a copy to hand to the wallet as once that is done, ownership is lost
+    transaction = BRTransactionCopy (transaction);
     BRPeerManagerPublishTx (manager->peerManager,
                             transaction,
                             info,

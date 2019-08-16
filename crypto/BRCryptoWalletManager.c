@@ -133,7 +133,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
         case BLOCK_CHAIN_TYPE_BTC: {
             BRWalletManagerClient client = cryptoWalletManagerClientCreateBTCClient (cwm);
 
-            // Race Here - WalletEvent before cwm->u.btc is assigned.
+            // Create BWM - will also create the BWM primary wallet....
             cwm->u.btc = BRWalletManagerNew (client,
                                              cryptoAccountAsBTC (account),
                                              cryptoNetworkAsBTC (network),
@@ -142,6 +142,13 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                              cwmPath,
                                              cryptoNetworkGetHeight(network));
 
+            // ... get the CWM primary wallet in place...
+            cwm->wallet = cryptoWalletCreateAsBTC (unit, unit, cwm->u.btc, BRWalletManagerGetWallet (cwm->u.btc));
+
+            // ... add the CWM primary wallet to CWM
+            cryptoWalletManagerAddWallet (cwm, cwm->wallet);
+
+            // ... and finally start the BWM event handling (with CWM fully in place).
             BRWalletManagerStart (cwm->u.btc);
 
             break;
@@ -255,7 +262,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                                    CRYPTO_WALLET_EVENT_BALANCE_UPDATED,
                                                    { .balanceUpdated = { balance }}
                                                });
-            
+
             break;
         }
     }
@@ -508,7 +515,7 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
 
         case BLOCK_CHAIN_TYPE_GEN: {
             UInt512 seed = cryptoAccountDeriveSeed(paperKey);
-            
+
             gwmWalletSubmitTransfer (cwm->u.gen,
                                      cryptoWalletAsGEN (wallet),
                                      cryptoTransferAsGEN (transfer),
