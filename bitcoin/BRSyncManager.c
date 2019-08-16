@@ -862,17 +862,25 @@ BRClientSyncManagerAnnounceGetTransactionsItem (BRClientSyncManager manager,
     }
 
     if (needRegistration) {
-        transaction->timestamp = (uint32_t) timestamp;
-        transaction->blockHeight = (uint32_t) blockHeight;
+        BRTransaction *walletTxn = BRWalletTransactionForHash (manager->wallet, transaction->txHash);
+        if (NULL != walletTxn) {
+            // Wallet already knows about this txn; so just update the block info
+            BRWalletUpdateTransactions (manager->wallet, &transaction->txHash, 1, (uint32_t) blockHeight, (uint32_t) timestamp);
+        } else {
+            // Set the transaction's block info according to what has been announced
+            transaction->timestamp = (uint32_t) timestamp;
+            transaction->blockHeight = (uint32_t) blockHeight;
 
-        // BRWalletRegisterTransaction doesn't reliable report if the txn made it into the
-        // wallet. Check that it has and free it if required.
-        BRWalletRegisterTransaction (manager->wallet, transaction);
-        if (BRWalletTransactionForHash (manager->wallet, transaction->txHash) == transaction) {
-            transaction = NULL;
+            // BRWalletRegisterTransaction doesn't reliably report if the txn was added to the wallet.
+            BRWalletRegisterTransaction (manager->wallet, transaction);
+            if (BRWalletTransactionForHash (manager->wallet, transaction->txHash) == transaction) {
+                // If our transaction made it into the wallet, do not deallocate it
+                transaction = NULL;
+            }
         }
     }
 
+    // Free if ownership hasn't been passed
     if (NULL != transaction) {
         BRTransactionFree (transaction);
     }
