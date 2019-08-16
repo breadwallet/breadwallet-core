@@ -422,23 +422,23 @@ _testGetBlockNumberNopCallback (BRWalletManagerClientContext context,
 static void
 _testGetTransactionsNopCallback (BRWalletManagerClientContext context,
                                  BRWalletManager manager,
-                                 OwnershipGiven const char **addresses,
+                                 OwnershipKept const char **addresses,
                                  size_t addressCount,
                                  uint64_t begBlockNumber,
                                  uint64_t endBlockNumber,
                                  int rid) {
     // do nothing
-    free (addresses);
 }
 
 static void
 _testSubmitTransactionNopCallback (BRWalletManagerClientContext context,
                                    BRWalletManager manager,
                                    BRWallet *wallet,
-                                   OwnershipGiven BRTransaction *transaction,
+                                   OwnershipKept uint8_t *transaction,
+                                   size_t transactionLength,
+                                   UInt256 transactionHash,
                                    int rid) {
     // do nothing
-    BRTransactionFree (transaction);
 }
 
 static void

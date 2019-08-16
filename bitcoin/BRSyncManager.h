@@ -50,7 +50,7 @@ typedef void
 typedef void
 (*BRSyncManagerGetTransactionsCallback) (BRSyncManagerClientContext context,
                                          BRSyncManager manager,
-                                         OwnershipGiven const char **addresses,
+                                         OwnershipKept const char **addresses,
                                          size_t addressCount,
                                          uint64_t begBlockNumber,
                                          uint64_t endBlockNumber,
@@ -59,7 +59,9 @@ typedef void
 typedef void
 (*BRSyncManagerSubmitTransactionCallback) (BRSyncManagerClientContext context,
                                            BRSyncManager manager,
-                                           OwnershipGiven BRTransaction *transaction,
+                                           OwnershipKept uint8_t *transaction,
+                                           size_t transactionLength,
+                                           UInt256 transactionHash,
                                            int rid);
 
 typedef struct {
@@ -109,7 +111,7 @@ typedef struct {
             uint64_t value;
         } blockHeightUpdated;
         struct {
-            BRTransaction *transaction;
+            UInt256 txHash;
             int error;
         } submitted;
     } u;
@@ -164,7 +166,7 @@ BRSyncManagerScan(BRSyncManager manager);
 
 extern void
 BRSyncManagerSubmit(BRSyncManager manager,
-                    OwnershipGiven BRTransaction *transaction);
+                    OwnershipKept BRTransaction *transaction);
 
 extern void
 BRSyncManagerTickTock(BRSyncManager manager);
@@ -177,7 +179,10 @@ BRSyncManagerAnnounceGetBlockNumber(BRSyncManager manager,
 extern void
 BRSyncManagerAnnounceGetTransactionsItem(BRSyncManager manager,
                                          int rid,
-                                         OwnershipGiven BRTransaction *transaction);
+                                         OwnershipKept uint8_t *transaction,
+                                         size_t transactionLength,
+                                         uint64_t timestamp,
+                                         uint64_t blockHeight);
 
 extern void
 BRSyncManagerAnnounceGetTransactionsDone(BRSyncManager manager,
@@ -187,7 +192,7 @@ BRSyncManagerAnnounceGetTransactionsDone(BRSyncManager manager,
 extern void
 BRSyncManagerAnnounceSubmitTransaction(BRSyncManager manager,
                                        int rid,
-                                       OwnershipGiven BRTransaction *transaction,
+                                       UInt256 txHash,
                                        int error);
 
 #ifdef __cplusplus

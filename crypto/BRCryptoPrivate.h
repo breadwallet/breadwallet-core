@@ -65,7 +65,7 @@ extern "C" {
 
     private_extern BRCryptoHash
     cryptoHashCreateAsGEN (BRGenericHash gen);
-    
+
     /// MARK: - Currency
 
     /**
@@ -140,7 +140,7 @@ extern "C" {
 
     private_extern BRGenericAddress
     cryptoAddressAsGEN (BRCryptoAddress address);
-    
+
 
     /// MARK: - Account
 
@@ -150,7 +150,7 @@ extern "C" {
     private_extern BRGenericAccount
     cryptoAccountAsGEN (BRCryptoAccount account,
                         const char *type);
-    
+
     private_extern const char *
     cryptoAccountAddressAsETH (BRCryptoAccount account);
 
@@ -193,7 +193,7 @@ extern "C" {
     cryptoTransferCreateAsBTC (BRCryptoUnit unit,
                                BRCryptoUnit unitForFee,
                                BRWallet *wid,
-                               OwnershipGiven BRTransaction *tid);
+                               OwnershipKept BRTransaction *tid);
 
     private_extern BRCryptoTransfer
     cryptoTransferCreateAsETH (BRCryptoUnit unit,
@@ -211,7 +211,7 @@ extern "C" {
     private_extern void
     cryptoTransferSetConfirmedFeeBasis (BRCryptoTransfer transfer,
                                         BRCryptoFeeBasis feeBasisConfirmed);
-    
+
     private_extern BRTransaction *
     cryptoTransferAsBTC (BRCryptoTransfer transfer);
 
@@ -275,7 +275,7 @@ extern "C" {
     private_extern void
     cryptoNetworkAddNetworkFee (BRCryptoNetwork network,
                                 BRCryptoNetworkFee fee);
-    
+
     private_extern BREthereumNetwork
     cryptoNetworkAsETH (BRCryptoNetwork network);
 
@@ -284,7 +284,7 @@ extern "C" {
 
     private_extern void *
     cryptoNetworkAsGEN (BRCryptoNetwork network);
-    
+
     private_extern BRCryptoNetwork
     cryptoNetworkCreateAsBTC (const char *uids,
                               const char *name,
@@ -326,7 +326,7 @@ extern "C" {
 
     private_extern BRGenericWallet
     cryptoWalletAsGEN (BRCryptoWallet wallet);
-    
+
     private_extern BRCryptoWallet
     cryptoWalletCreateAsBTC (BRCryptoUnit unit,
                              BRCryptoUnit unitForFee,
@@ -410,7 +410,7 @@ extern "C" {
     extern void
     cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
                                           BRGenericTransfer transferGeneric);
-    
+
 #ifdef __cplusplus
 }
 #endif

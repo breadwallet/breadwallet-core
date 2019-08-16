@@ -493,25 +493,7 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
 
             BRTransaction *tid = BRWalletManagerCreateTransaction (bwm, wid, value, addr,
                                                                    cryptoFeeBasisAsBTC(estimatedFeeBasis));
-
-            // The above BRWalletManagerCreateTransaction call resulted in a
-            // BITCOIN_TRANSACTION_CREATED event occuring inline, on this same
-            // thread. That resulted in cwmTransactionEventAsBTC being called
-            // where we created the transfer (via cryptoTransferCreateAsBTC) and
-            // added it to the wallet (via cryptoWalletAddTransfer). So, instead
-            // of creating a BRCryptoTransfer here, we find it in the wallet.
-
-            // We do this because `bwm` BRWalletManager does not own the `tid` transaction,
-            // in the same way that the BREthereumEWM owns its transactions. So, we
-            // have the BRCryptoWallet own it. Since the transaction is not signed
-            // we can't do an equality check on a copy, as the txHash is all zeroes. As
-            // a result, the transaction equality check uses identity for BTC transactions that
-            // are unsigned to prevent multiple unsigned transactions from being erroneously
-            // reported as equal. As a consequence of all this, we need to return the wallet's
-            // RCryptoTransfer wrapping `tid` directly, rather than create a new wrapping
-            // instance (like we do in the below ETH case). Thus, cryptoWalletFindTransferAsBTC
-            // instead of cryptoTransferCreateAsBTC.
-            transfer = NULL == tid ? NULL : cryptoWalletFindTransferAsBTC (wallet, tid);
+            transfer = NULL == tid ? NULL : cryptoTransferCreateAsBTC (unit, unitForFee, wid, tid);
             break;
         }
 
@@ -556,6 +538,7 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
 
     cryptoUnitGive (unitForFee);
     cryptoUnitGive (unit);
+    free (addr);
 
     return transfer;
 }
