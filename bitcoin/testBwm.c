@@ -64,52 +64,6 @@ _BRSyncModeString (BRSyncMode m) {
     }
 }
 
-static const char *
-_BRWalletManagerEventTypeString (BRWalletManagerEventType t) {
-    switch (t) {
-        case BITCOIN_WALLET_MANAGER_CONNECTED:
-        return "BITCOIN_WALLET_MANAGER_CONNECTED";
-
-        case BITCOIN_WALLET_MANAGER_CREATED:
-        return "BITCOIN_WALLET_MANAGER_CREATED";
-
-        case BITCOIN_WALLET_MANAGER_DISCONNECTED:
-        return "BITCOIN_WALLET_MANAGER_DISCONNECTED";
-
-        case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
-        return "BITCOIN_WALLET_MANAGER_SYNC_STARTED";
-
-        case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
-        return "BITCOIN_WALLET_MANAGER_SYNC_PROGRESS";
-
-        case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
-        return "BITCOIN_WALLET_MANAGER_SYNC_STOPPED";
-
-        case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
-        return "BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED";
-    }
-    return "<BITCOIN_WALLET_MANAGER_TYPE_UNKNOWN>";
-}
-
-static const char *
-_BRWalletEventTypeString (BRWalletEventType t) {
-    switch (t) {
-        case BITCOIN_WALLET_CREATED:
-        return "BITCOIN_WALLET_CREATED";
-        case BITCOIN_WALLET_BALANCE_UPDATED:
-        return "BITCOIN_WALLET_BALANCE_UPDATED";
-        case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
-        return "BITCOIN_WALLET_TRANSACTION_SUBMITTED";
-        case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
-        return "BITCOIN_WALLET_FEE_PER_KB_UPDATED";
-        case BITCOIN_WALLET_FEE_ESTIMATED:
-        return "BITCOIN_WALLET_FEE_ESTIMATED";
-        case BITCOIN_WALLET_DELETED:
-        return "BITCOIN_WALLET_DELETED";
-    }
-    return "<BITCOIN_WALLET_TYPE_UNKNOWN>";
-}
-
 static int
 _isValidWalletManagerEventPair (BRWalletManagerEvent *e1, BRWalletManagerEvent *e2) {
     int isValid = 0;
@@ -428,17 +382,20 @@ extern int BRRunTestWalletManagerSync (const char *paperKey,
 ///
 
 struct BRWalletManagerEventRecord {
+    size_t sequenceId;
     BRWalletManager manager;
     BRWalletManagerEvent event;
 };
 
 struct BRWalletEventRecord {
+    size_t sequenceId;
     BRWalletManager manager;
     BRWallet *wallet;
     BRWalletEvent event;
 };
 
 struct BRTransactionEventRecord {
+    size_t sequenceId;
     BRWalletManager manager;
     BRWallet *wallet;
     BRTransaction *transaction;
@@ -447,6 +404,7 @@ struct BRTransactionEventRecord {
 
 typedef struct {
     uint64_t blockHeight;
+    size_t sequenceIdGenerator;
     BRArrayOf(struct BRWalletManagerEventRecord *) managerEvents;
     BRArrayOf(struct BRWalletEventRecord *) walletEvents;
     BRArrayOf(struct BRTransactionEventRecord *) transactionEvents;
@@ -495,7 +453,9 @@ _testTransactionEventRecordingCallback (BRWalletManagerClientContext context,
     record->wallet= wallet;
     record->transaction = transaction;
     record->event = event;
+
     pthread_mutex_lock (&state->lock);
+    record->sequenceId = state->sequenceIdGenerator++;
     array_add (state->transactionEvents, record);
     pthread_mutex_unlock (&state->lock);
 }
@@ -512,6 +472,7 @@ _testWalletEventRecordingCallback (BRWalletManagerClientContext context,
     record->event = event;
 
     pthread_mutex_lock (&state->lock);
+    record->sequenceId = state->sequenceIdGenerator++;
     array_add (state->walletEvents, record);
     pthread_mutex_unlock (&state->lock);
 }
@@ -526,6 +487,7 @@ _testWalletManagerEventRecordingCallback (BRWalletManagerClientContext context,
     record->event = event;
 
     pthread_mutex_lock (&state->lock);
+    record->sequenceId = state->sequenceIdGenerator++;
     array_add (state->managerEvents, record);
     pthread_mutex_unlock (&state->lock);
 }
@@ -565,9 +527,10 @@ _testBRWalletManagerScanThread (void *context) {
 static void
 BRRunTestWalletManagerSyncTestSetup (BRRunTestWalletManagerSyncState *state, uint64_t blockHeight) {
     state->blockHeight = blockHeight;
-    array_new (state->managerEvents, 1);
-    array_new (state->walletEvents, 1);
-    array_new (state->transactionEvents, 1);
+    state->sequenceIdGenerator = 0;
+    array_new (state->managerEvents, 100);
+    array_new (state->walletEvents, 100);
+    array_new (state->transactionEvents, 100);
     pthread_mutex_init (&state->lock, NULL);
 }
 
@@ -575,31 +538,92 @@ static int
 BRRunTestWalletManagerSyncTestVerification (BRRunTestWalletManagerSyncState *state) {
     int success = 1;
     pthread_mutex_lock (&state->lock);
-    if (success) {
-        for (size_t index = 0; array_count(state->managerEvents) > 1 && index < array_count(state->managerEvents) - 1; index++) {
-            if (!_isValidWalletManagerEventPair (&state->managerEvents[index]->event, &state->managerEvents[index+1]->event)) {
-                success = 0;
-                fprintf(stderr,
-                        "***FAILED*** %s: _isValidWalletManagerEventPair(%s, %s) test\n",
-                        __func__,
-                        _BRWalletManagerEventTypeString (state->managerEvents[index]->event.type),
-                        _BRWalletManagerEventTypeString (state->managerEvents[index+1]->event.type));
-                break;
-            }
+
+    // WalletManagerEvent checks
+
+    // check for presence of wallet events
+    if (success &&
+        array_count(state->managerEvents) == 0) {
+        success = 0;
+        fprintf(stderr,
+                "***FAILED*** %s: no manager events\n",
+                __func__);
+    }
+
+    // check that each event pair is allowed
+    for (size_t index = 0; success && array_count(state->managerEvents) > 1 && index < array_count(state->managerEvents) - 1; index++) {
+        if (!_isValidWalletManagerEventPair (&state->managerEvents[index]->event, &state->managerEvents[index+1]->event)) {
+            success = 0;
+            fprintf(stderr,
+                    "***FAILED*** %s: _isValidWalletManagerEventPair(%s, %s) test\n",
+                    __func__,
+                    BRWalletManagerEventTypeString (state->managerEvents[index]->event.type),
+                    BRWalletManagerEventTypeString (state->managerEvents[index+1]->event.type));
+            break;
         }
     }
 
-    if (success) {
-        for (size_t index = 0; array_count(state->walletEvents) > 1 && index < array_count(state->walletEvents) - 1; index++) {
-            if (!_isValidWalletEventPair (&state->walletEvents[index]->event, &state->walletEvents[index+1]->event)) {
-                success = 0;
-                fprintf(stderr,
-                        "***FAILED*** %s: _isValidWalletEventPair(%s, %s) test\n",
-                        __func__,
-                        _BRWalletEventTypeString (state->walletEvents[index]->event.type),
-                        _BRWalletEventTypeString (state->walletEvents[index+1]->event.type));
-                break;
-            }
+    // WalletEvent checks
+
+    // check for presence of wallet events
+    if (success &&
+        array_count(state->walletEvents) == 0) {
+        success = 0;
+        fprintf(stderr,
+                "***FAILED*** %s: no wallet events\n",
+                __func__);
+    }
+
+    // check that each event pair is allowed
+    for (size_t index = 0; success && array_count(state->walletEvents) > 1 && index < array_count(state->walletEvents) - 1; index++) {
+        if (!_isValidWalletEventPair (&state->walletEvents[index]->event, &state->walletEvents[index+1]->event)) {
+            success = 0;
+            fprintf(stderr,
+                    "***FAILED*** %s: _isValidWalletEventPair(%s, %s) test\n",
+                    __func__,
+                    BRWalletEventTypeString (state->walletEvents[index]->event.type),
+                    BRWalletEventTypeString (state->walletEvents[index+1]->event.type));
+            break;
+        }
+    }
+
+    // Sequencing checks
+
+    // check that second event received is BITCOIN_WALLET_MANAGER_CREATED
+    {
+        if (success &&
+            state->managerEvents[0]->sequenceId != 0) {
+            success = 0;
+            fprintf(stderr,
+                    "***FAILED*** %s: first event is not manager event\n",
+                    __func__);
+        }
+
+        if (success &&
+            state->managerEvents[0]->event.type != BITCOIN_WALLET_MANAGER_CREATED) {
+            success = 0;
+            fprintf(stderr,
+                    "***FAILED*** %s: first manager event is not BITCOIN_WALLET_MANAGER_CREATED\n",
+                    __func__);
+        }
+    }
+
+    // check that second event received is BITCOIN_WALLET_CREATED
+    {
+        if (success &&
+            state->walletEvents[0]->sequenceId != 1) {
+            success = 0;
+            fprintf(stderr,
+                    "***FAILED*** %s: second event is not wallet event\n",
+                    __func__);
+        }
+
+        if (success &&
+            state->walletEvents[0]->event.type != BITCOIN_WALLET_CREATED) {
+            success = 0;
+            fprintf(stderr,
+                    "***FAILED*** %s: first wallet event is not BITCOIN_WALLET_CREATED\n",
+                    __func__);
         }
     }
 

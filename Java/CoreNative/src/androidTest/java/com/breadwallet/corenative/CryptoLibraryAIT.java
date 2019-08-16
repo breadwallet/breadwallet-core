@@ -11,6 +11,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.util.Calendar;
+import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
 
@@ -27,7 +30,9 @@ public class CryptoLibraryAIT {
         // this is a compromised testnet paperkey
         paperKey = "ginger settle marine tissue robot crane night number ramp coast roast critic";
         coreDataDir = new File (context.getFilesDir(), "corenative");
-        epoch = 1504704195;
+        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        calendar.set(2017, /* September */ 8, 6);
+        epoch = (int) TimeUnit.MILLISECONDS.toSeconds(calendar.getTimeInMillis());
 
         coreDirCreate();
         coreDirClear();

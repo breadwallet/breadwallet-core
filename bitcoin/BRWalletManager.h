@@ -157,6 +157,9 @@ typedef void
                                OwnershipKept BRTransaction *transaction,
                                BRTransactionEvent event);
 
+extern const char *
+BRTransactionEventTypeString (BRTransactionEventType t);
+
 ///
 /// Wallet Event
 ///
@@ -199,6 +202,9 @@ typedef void
                           OwnershipKept BRWallet *wallet,
                           BRWalletEvent event);
 
+extern const char *
+BRWalletEventTypeString (BRWalletEventType t);
+
 ///
 /// WalletManager Event
 ///
@@ -232,6 +238,12 @@ typedef void
                                  OwnershipKept BRWalletManager manager,
                                  BRWalletManagerEvent event);
 
+extern const char *
+BRWalletManagerEventTypeString (BRWalletManagerEventType t);
+
+///
+/// WalletManager
+///
 typedef struct {
     BRWalletManagerClientContext context;
 
