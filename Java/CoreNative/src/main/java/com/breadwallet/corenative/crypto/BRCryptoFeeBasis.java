@@ -43,6 +43,13 @@ public class BRCryptoFeeBasis extends PointerType implements CoreBRCryptoFeeBasi
     }
 
     @Override
+    public boolean isIdentical(CoreBRCryptoFeeBasis core) {
+        return getPricePerCostFactorUnit().isIdentical(core.getPricePerCostFactorUnit()) &&
+                getPricePerCostFactor().compare(core.getPricePerCostFactor()) == 0 &&
+                getCostFactor() == core.getCostFactor();
+    }
+
+    @Override
     public BRCryptoFeeBasis asBRCryptoFeeBasis() {
         return this;
     }
