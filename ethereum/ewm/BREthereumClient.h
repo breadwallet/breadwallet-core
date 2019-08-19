@@ -304,6 +304,11 @@ extern "C" {
 
 #define WALLET_NUMBER_OF_EVENT_TYPES  (1 + WALLET_EVENT_DELETED)
 
+    extern BREthereumWalletEvent
+    walletEventCreateError (BREthereumWalletEventType type,
+                            BREthereumStatus status,
+                            const char *errorDescription);
+    
     typedef void (*BREthereumClientHandlerWalletEvent) (BREthereumClientContext context,
                                                         BREthereumEWM ewm,
                                                         BREthereumWallet wid,
@@ -356,6 +361,11 @@ extern "C" {
         // uniont {} u;
         char errorDescription[16];
     } BREthereumTransferEvent;
+
+    extern BREthereumTransferEvent
+    transferEventCreateError (BREthereumTransferEventType type,
+                              BREthereumStatus status,
+                              const char *errorDescription);
 
     typedef void (*BREthereumClientHandlerTransferEvent) (BREthereumClientContext context,
                                                           BREthereumEWM ewm,
@@ -438,6 +448,11 @@ extern "C" {
         } u;
         char errorDescription[16];
     } BREthereumEWMEvent;
+
+    extern BREthereumEWMEvent
+    ewmEventCreateError (BREthereumEWMEventType type,
+                         BREthereumStatus status,
+                         const char *errorDescription);
 
     typedef void (*BREthereumClientHandlerEWMEvent) (BREthereumClientContext context,
                                                      BREthereumEWM ewm,

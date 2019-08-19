@@ -16,6 +16,36 @@
 #include "support/BRArray.h"
 #include "BREthereumEWMPrivate.h"
 
+extern BREthereumWalletEvent
+walletEventCreateError (BREthereumWalletEventType type,
+                        BREthereumStatus status,
+                        const char *errorDescription) {
+    BREthereumWalletEvent event = { type, status, {}, { '\0' } };
+    if (NULL != errorDescription)
+        strlcpy (event.errorDescription, errorDescription, sizeof (event.errorDescription));
+    return event;
+}
+
+extern BREthereumTransferEvent
+transferEventCreateError (BREthereumTransferEventType type,
+                          BREthereumStatus status,
+                          const char *errorDescription) {
+    BREthereumTransferEvent event = { type, status, { '\0' } };
+    if (NULL != errorDescription)
+        strlcpy (event.errorDescription, errorDescription, sizeof (event.errorDescription));
+    return event;
+}
+
+extern BREthereumEWMEvent
+ewmEventCreateError (BREthereumEWMEventType type,
+                     BREthereumStatus status,
+                     const char *errorDescription) {
+    BREthereumEWMEvent event = { type, status, {}, { '\0' } };
+    if (NULL != errorDescription)
+        strlcpy (event.errorDescription, errorDescription, sizeof (event.errorDescription));
+    return event;
+}
+
 // ==============================================================================================
 //
 // Wallet Balance
@@ -68,17 +98,16 @@ ewmUpdateGasPrice (BREthereumEWM ewm,
 
     if (NULL == wallet) {
         ewmSignalWalletEvent(ewm, wallet,
-                             (BREthereumWalletEvent) {
-                                 WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
-                                 ERROR_UNKNOWN_WALLET
-                             });
+                             walletEventCreateError (WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
+                                                     ERROR_UNKNOWN_WALLET,
+                                                     NULL));
 
     } else if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) {
         ewmSignalWalletEvent(ewm, wallet,
-                             (BREthereumWalletEvent) {
-                                 WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
-                                 ERROR_NODE_NOT_CONNECTED
-                             });
+                             walletEventCreateError (WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
+                                                     ERROR_NODE_NOT_CONNECTED,
+                                                     NULL));
+
     } else {
         switch (ewm->mode) {
             case BRD_ONLY:
