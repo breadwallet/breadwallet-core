@@ -535,7 +535,8 @@ _testBRWalletManagerSwapThread (void *context) {
             case SYNC_MODE_P2P_ONLY:
                 BRWalletManagerSetMode (state->manager, SYNC_MODE_BRD_ONLY);
                 break;
-
+            default:
+                break;
         }
     }
     return NULL;
