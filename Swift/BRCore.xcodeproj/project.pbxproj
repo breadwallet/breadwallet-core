@@ -160,6 +160,7 @@
 		3CA15F80221648D200C84E65 /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CA15F7F221648D200C84E65 /* libresolv.tbd */; };
 		3CA6396F2301FD97006DD57B /* BRSupportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CA6396E2301FD97006DD57B /* BRSupportTests.swift */; };
 		3CA63972230336D9006DD57B /* BREthereumFeeBasis.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CA63971230336D9006DD57B /* BREthereumFeeBasis.c */; };
+		3CA639742305B4DF006DD57B /* BRCryptoDebugSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CA639732305B4DF006DD57B /* BRCryptoDebugSupport.swift */; };
 		3CAB60A920AF8C8500810CE4 /* CoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB60A820AF8C8500810CE4 /* CoreTests.swift */; };
 		3CAB60AB20AF8C8500810CE4 /* libCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CAB609B20AF8C5D00810CE4 /* libCore.a */; };
 		3CAB60B120AF8D1A00810CE4 /* BREthereumEther.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53B320AF595400C430F6 /* BREthereumEther.c */; };
@@ -577,6 +578,7 @@
 		3CA6396E2301FD97006DD57B /* BRSupportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRSupportTests.swift; sourceTree = "<group>"; };
 		3CA63970230336D9006DD57B /* BREthereumFeeBasis.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumFeeBasis.h; sourceTree = "<group>"; };
 		3CA63971230336D9006DD57B /* BREthereumFeeBasis.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumFeeBasis.c; sourceTree = "<group>"; };
+		3CA639732305B4DF006DD57B /* BRCryptoDebugSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRCryptoDebugSupport.swift; sourceTree = "<group>"; };
 		3CA74EA920AF622D00EDF3E7 /* BRKeyECIES.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRKeyECIES.c; sourceTree = "<group>"; };
 		3CA74EAA20AF622D00EDF3E7 /* BRKeyECIES.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BRKeyECIES.h; sourceTree = "<group>"; };
 		3CAB609B20AF8C5D00810CE4 /* libCore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libCore.a; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -777,6 +779,7 @@
 				3CA6396E2301FD97006DD57B /* BRSupportTests.swift */,
 				3C1C1D812264D01900597848 /* BRBlockChainDBTest.swift */,
 				3C915B1022E0EBE900AAD000 /* BRCryptoCommonTests.swift */,
+				3CA639732305B4DF006DD57B /* BRCryptoDebugSupport.swift */,
 				3C0EADFA2188D920000577A6 /* Info.plist */,
 			);
 			path = BRCryptoTests;
@@ -1669,6 +1672,7 @@
 				3CE48BF921E938370067BFC9 /* BRCryptoWalletTests.swift in Sources */,
 				3C0EADF92188D920000577A6 /* BRCryptoAmountTests.swift in Sources */,
 				3C97E2612243E5EE003FD88F /* BRCryptoNetworkTests.swift in Sources */,
+				3CA639742305B4DF006DD57B /* BRCryptoDebugSupport.swift in Sources */,
 				3C1C1D822264D01900597848 /* BRBlockChainDBTest.swift in Sources */,
 				3C915B1122E0EBE900AAD000 /* BRCryptoCommonTests.swift in Sources */,
 				3C97E269224996C3003FD88F /* BRCryptoSystemTests.swift in Sources */,

@@ -454,6 +454,7 @@ public enum SystemEvent {
     case networkAdded (network: Network)
     case managerAdded (manager: WalletManager)
 }
+
 ///
 /// A SystemListener recieves asynchronous events announcing state changes to Networks, to Managers,
 /// to Wallets and to Transfers.  This is an application's sole mechanism to learn of asynchronous
@@ -537,8 +538,9 @@ extension System {
 
                 switch event.type {
                 case CRYPTO_WALLET_MANAGER_EVENT_CREATED:
-                    // We are only here in response to system.createWalletManager...
-                    break
+                    system.listener?.handleManagerEvent (system: manager.system,
+                                                         manager: manager,
+                                                         event: WalletManagerEvent.created)
 
                 case CRYPTO_WALLET_MANAGER_EVENT_CHANGED:
                     system.listener?.handleManagerEvent (system: manager.system,

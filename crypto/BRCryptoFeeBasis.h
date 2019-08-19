@@ -37,6 +37,10 @@ extern "C" {
     extern BRCryptoAmount
     cryptoFeeBasisGetFee (BRCryptoFeeBasis feeBasis);
 
+    extern BRCryptoBoolean
+    cryptoFeeBasisIsIdentical (BRCryptoFeeBasis feeBasis1,
+                               BRCryptoFeeBasis feeBasis2);
+    
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoFeeBasis, cryptoFeeBasis);
 
 #ifdef __cplusplus
