@@ -51,8 +51,8 @@ class OwnedBRCryptoFeeBasis implements CoreBRCryptoFeeBasis {
     }
 
     @Override
-    public boolean isIdentical(CoreBRCryptoFeeBasis core) {
-        return core.isIdentical(core);
+    public boolean isIdentical(CoreBRCryptoFeeBasis other) {
+        return core.isIdentical(other);
     }
 
     @Override
