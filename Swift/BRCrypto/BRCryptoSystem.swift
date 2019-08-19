@@ -1166,6 +1166,93 @@ extension System {
     }
 }
 
+extension System {
+    public typealias TransactionBlob = (
+        bytes: [UInt8],
+        blockheight: UInt32?,
+        timestamp: UInt32?)
+
+    public typealias BlockBlob = (
+        height: UInt32,
+        nonce: UInt32,
+        target: UInt32,
+        txCount: UInt32,
+        version: UInt32,
+        timestamp: UInt32?,
+        flags: [UInt8],
+        hashes: [UInt256],    // Hash
+        merkleRoot: UInt256,  // Hash
+        prevBlock: UInt256    // Hash
+    )
+
+    public typealias PeerBlob = (
+    )
+
+    ///
+    /// Migrate the storage for a network given transaction, block and peer blobs.
+    ///
+    /// - Parameters:
+    ///   - network:
+    ///   - transactionBlobs:
+    ///   - blockBlobs:
+    ///   - peerBlobs:
+    ///
+    public func migrateStorage (network: Network,
+                                transactionBlobs: [TransactionBlob],
+                                blockBlobs: [BlockBlob],
+                                peerBlobs: [PeerBlob]) {
+        switch network.currency.code.lowercased() {
+            case Currency.codeAsBTC,
+                 Currency.codeAsBCH:
+                break;
+        default:
+            preconditionFailure ("Migration only applies to BTC and BCH")
+        }
+
+        let migrator = cryptoWalletMigratorCreate (network.core, path)
+        defer { cryptoWalletMigratorRelease (migrator) }
+
+        transactionBlobs.forEach { (blob: TransactionBlob) in
+            var bytes = blob.bytes
+            cryptoWalletMigratorHandleTransaction (migrator,
+                                                   &bytes, bytes.count,
+                                                   blob.blockheight ?? 0,
+                                                   blob.timestamp ?? 0)
+        }
+
+        blockBlobs.forEach { (blob: BlockBlob) in
+            cryptoWalletMigratorHandleBlock (migrator,
+                                             blob.height,
+                                             blob.nonce,
+                                             blob.target)
+        }
+
+        peerBlobs.forEach { (blob: PeerBlob) in
+            cryptoWalletMigratorHandlePeer (migrator)
+        }
+    }
+
+    ///
+    /// If migration is required, return the currency code; otherwise, return nil.
+    ///
+    /// - Note: it is not an error not to migrate.
+    ///
+    /// - Parameter network:
+    ///
+    /// - Returns: The currency code or nil
+    ///
+    public func migrateRequired (network: Network) -> String? {
+        let code = network.currency.code.lowercased()
+        switch code {
+        case Currency.codeAsBTC,
+             Currency.codeAsBCH:
+            return code
+        default:
+            return nil
+        }
+    }
+}
+
 extension BRCryptoTransferEventType: CustomStringConvertible {
     public var description: String {
         switch self {

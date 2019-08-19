@@ -642,3 +642,95 @@ cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
     cryptoCurrencyGive(currency);
 }
 
+/// MARK: Wallet Migrator
+
+struct BRCryptoWalletMigratorRecord {
+    BRFileService fileService;
+    const char *fileServiceTransactionType;
+    const char *fileServiceBlockType;
+    const char *fileServicePeerType;
+};
+
+static void
+cryptoWalletMigratorErrorHandler (BRFileServiceContext context,
+                                 BRFileService fs,
+                                 BRFileServiceError error) {
+    BRCryptoWalletMigrator migrator = (BRCryptoWalletMigrator) context;
+
+    // Failed to write a transaction, block or peer.
+    (void) migrator;
+}
+
+extern BRCryptoWalletMigrator
+cryptoWalletMigratorCreate (BRCryptoNetwork network,
+                            const char *storagePath) {
+    BRCryptoWalletMigrator migrator = calloc (1, sizeof (struct BRCryptoWalletMigratorRecord));
+
+    migrator->fileService = BRWalletManagerCreateFileService (cryptoNetworkAsBTC(network),
+                                                              storagePath,
+                                                              migrator,
+                                                              cryptoWalletMigratorErrorHandler);
+    if (NULL == migrator->fileService) { cryptoWalletMigratorRelease(migrator); return NULL; }
+
+    BRWalletManagerExtractFileServiceTypes (migrator->fileService,
+                                            &migrator->fileServiceTransactionType,
+                                            &migrator->fileServiceBlockType,
+                                            &migrator->fileServicePeerType);
+
+    return migrator;
+}
+
+extern void
+cryptoWalletMigratorRelease (BRCryptoWalletMigrator migrator) {
+    if (NULL != migrator->fileService) fileServiceRelease(migrator->fileService);
+    free (migrator);
+}
+
+extern void
+cryptoWalletMigratorHandleTransaction (BRCryptoWalletMigrator migrator,
+                                       const uint8_t *bytes,
+                                       size_t bytesCount,
+                                       uint32_t blockHeight,
+                                       uint32_t timestamp) {
+    BRTransaction *tx = BRTransactionParse(bytes, bytesCount);
+    if (NULL == tx) {
+        cryptoWalletMigratorErrorHandler (migrator,
+                                          migrator->fileService,
+                                          (BRFileServiceError) {
+                                              FILE_SERVICE_ENTITY,
+                                              { .entity = {
+                                                  migrator->fileServiceTransactionType,
+                                                  "transaction parse"
+                                              }}
+                                          });
+        return;
+    }
+
+    tx->blockHeight = blockHeight;
+    tx->timestamp   = timestamp;
+
+    // Calls cryptoWalletMigratorErrorHandler on error.
+    fileServiceSave (migrator->fileService, migrator->fileServiceTransactionType, tx);
+    BRTransactionFree(tx);
+}
+
+extern void
+cryptoWalletMigratorHandleBlock (BRCryptoWalletMigrator migrator,
+                                 uint32_t height,
+                                 uint32_t nonce,
+                                 uint32_t target) {
+    BRMerkleBlock *block = BRMerkleBlockNew();
+    block->height = height;
+    block->nonce  = nonce;
+    block->target = target;
+    // ...
+
+    fileServiceSave (migrator->fileService, migrator->fileServiceBlockType, block);
+}
+
+extern void
+cryptoWalletMigratorHandlePeer (BRCryptoWalletMigrator migrator /* ... */) {
+//    BRPeer peer;
+//    memset (&peer, 0, sizeof (BRPeer));
+//    fileServiceSave (migrator->fileService, migrator->fileServicePeerType, &peer);
+}

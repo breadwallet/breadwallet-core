@@ -192,6 +192,35 @@ extern "C" {
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoWalletManager, cryptoWalletManager);
 
+    /// MARK: Wallet Migrator
+    
+    typedef struct BRCryptoWalletMigratorRecord *BRCryptoWalletMigrator;
+
+    extern BRCryptoWalletMigrator
+    cryptoWalletMigratorCreate (BRCryptoNetwork network,
+                                const char *storagePath);
+
+    extern void
+    cryptoWalletMigratorRelease (BRCryptoWalletMigrator migrator);
+
+    extern void
+    cryptoWalletMigratorHandleTransaction (BRCryptoWalletMigrator migrator,
+                                           const uint8_t *bytes,
+                                           size_t bytesCount,
+                                           uint32_t blockHeight,
+                                           uint32_t timestamp);
+
+    extern void
+    cryptoWalletMigratorHandleBlock (BRCryptoWalletMigrator migrator,
+                                     uint32_t height,
+                                     uint32_t nonce,
+                                     uint32_t target
+                                     // ...
+    );
+
+    extern void
+    cryptoWalletMigratorHandlePeer (BRCryptoWalletMigrator migrator /* ... */);
+
 #ifdef __cplusplus
 }
 #endif
