@@ -24,6 +24,7 @@ class BRCryptoSystemTests: BRCryptoSystemBaseTests {
     func testSystemBTC() {
         isMainnet = false
         currencyCodesNeeded = ["btc"]
+        modeMap = ["btc":WalletManagerMode.api_only]
         prepareAccount()
         prepareSystem()
 
@@ -52,5 +53,16 @@ class BRCryptoSystemTests: BRCryptoSystemBaseTests {
         XCTAssertTrue  (network.defaultUnitFor(currency: network.currency).map { $0 == wallet.unit } ?? false)
         XCTAssertEqual (wallet.balance, Amount.create(integer: 0, unit: manager.baseUnit))
         XCTAssertEqual (wallet.state, WalletState.created)
+
+        XCTAssertTrue (listener.checkSystemEvents(
+            [EventMatcher (event: SystemEvent.managerAdded(manager: manager), strict: true, scan: true)
+            ]))
+
+        XCTAssertTrue (listener.checkManagerEvents(
+            [WalletManagerEvent.created,
+             WalletManagerEvent.walletAdded(wallet: wallet)], strict: true))
+
+        XCTAssertTrue (listener.checkWalletEvents(
+            [WalletEvent.created], strict: true))
     }
 }

@@ -35,4 +35,8 @@ feeBasisCreate (BREthereumGas limit,
 extern BREthereumEther
 feeBasisGetFee (BREthereumFeeBasis feeBasis, int *overflow);
 
+extern BREthereumBoolean
+feeBasisEqual (const BREthereumFeeBasis *feeBasis1,
+               const BREthereumFeeBasis *feeBasis2);
+
 #endif /* BR_Ethereum_Fee_Basis_h */

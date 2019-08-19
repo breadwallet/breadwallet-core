@@ -192,13 +192,11 @@ public enum TransferDirection: Equatable {
 /// The provided properties allow the App to present detailed information - specifically the
 /// 'cost factor' and the 'price per cost factor'.
 ///
-public class TransferFeeBasis {
-
+public class TransferFeeBasis: Equatable {
     /// The Core representation
     internal let core: BRCryptoFeeBasis
 
-    /// The unit for both the pricePerCostFactor and fee.  This must, of course, have the same
-    /// currency as the feeBasis itself.
+    /// The unit for both the pricePerCostFactor and fee.
     public let unit: Unit
 
     /// The fee basis currency; this should/must be the Network's currency
@@ -219,13 +217,11 @@ public class TransferFeeBasis {
     internal init (core: BRCryptoFeeBasis, take: Bool) {
         self.core = take ? cryptoFeeBasisTake (core) : core
 
-        let unit = Unit (core: cryptoFeeBasisGetPricePerCostFactorUnit(core), take: false)
-
-        self.unit = unit
+        self.unit = Unit (core: cryptoFeeBasisGetPricePerCostFactorUnit(core), take: false)
         self.pricePerCostFactor = Amount (core: cryptoFeeBasisGetPricePerCostFactor(core), take: false)
         self.costFactor  = cryptoFeeBasisGetCostFactor (core)
 
-        // The Core fee calculation might overflow.
+        // TODO: The Core fee calculation might overflow.
         guard let fee = cryptoFeeBasisGetFee (core)
             .map ({ Amount (core: $0, take: false) })
             else { print ("Missed Fee"); preconditionFailure () }
@@ -236,12 +232,16 @@ public class TransferFeeBasis {
     deinit {
         cryptoFeeBasisGive (core)
     }
+
+    public static func == (lhs: TransferFeeBasis, rhs: TransferFeeBasis) -> Bool {
+        return CRYPTO_TRUE == cryptoFeeBasisIsIdentical (lhs.core, rhs.core)
+    }
 }
 
 ///
 /// A TransferConfirmation holds confirmation information.
 ///
-public struct TransferConfirmation {
+public struct TransferConfirmation: Equatable {
     public let blockNumber: UInt64
     public let transactionIndex: UInt64
     public let timestamp: UInt64
@@ -303,6 +303,8 @@ public enum TransferState {
         }
     }
 }
+
+extension TransferState: Equatable {}
 
 extension TransferState: CustomStringConvertible {
     public var description: String {

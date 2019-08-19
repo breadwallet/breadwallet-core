@@ -23,5 +23,7 @@ public interface CoreBRCryptoFeeBasis {
 
     Optional<CoreBRCryptoAmount> getFee();
 
+    boolean isIdentical(CoreBRCryptoFeeBasis core);
+
     BRCryptoFeeBasis asBRCryptoFeeBasis();
 }
