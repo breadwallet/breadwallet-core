@@ -40,6 +40,15 @@
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #endif
 
+/**
+ * `BRSyncManagerStruct` only contains the minimum amount of information needed
+ *  to be able to downcast to the appropriate sync manager implementation.
+ *
+ *  Fields that look common (like lock, isConnected, etc.) are not placed in the
+ *  common structure as it is anticipated that `BRClientSyncManagerStruct` will be
+ *  refactored out into a generic component, at some point. If it depended on
+ *  fields in `BRSyncManagerStruct`, that refactoring would become more difficult.
+ */
 struct BRSyncManagerStruct {
     BRSyncMode mode;
 };
@@ -158,17 +167,16 @@ BRClientSyncManagerNew(BRSyncManagerEventContext eventContext,
                        OwnershipKept const BRChainParams *params,
                        OwnershipKept BRWallet *wallet,
                        uint32_t earliestKeyTime,
-                       uint64_t blockHeight,
-                       OwnershipKept BRMerkleBlock *blocks[],
-                       size_t blocksCount,
-                       OwnershipKept const BRPeer peers[],
-                       size_t peersCount);
+                       uint64_t blockHeight);
 
 static BRClientSyncManager
 BRSyncManagerAsClientSyncManager(BRSyncManager manager);
 
 static void
 BRClientSyncManagerFree(BRClientSyncManager manager);
+
+static uint64_t
+BRClientSyncManagerGetBlockHeight(BRClientSyncManager manager);
 
 static void
 BRClientSyncManagerConnect(BRClientSyncManager manager);
@@ -302,6 +310,9 @@ BRSyncManagerAsPeerSyncManager(BRSyncManager manager);
 static void
 BRPeerSyncManagerFree(BRPeerSyncManager);
 
+static uint64_t
+BRPeerSyncManagerGetBlockHeight(BRPeerSyncManager manager);
+
 static void
 BRPeerSyncManagerConnect(BRPeerSyncManager manager);
 
@@ -359,11 +370,7 @@ BRSyncManagerNewForMode(BRSyncMode mode,
                                                                          params,
                                                                          wallet,
                                                                          earliestKeyTime,
-                                                                         blockHeight,
-                                                                         blocks,
-                                                                         blocksCount,
-                                                                         peers,
-                                                                         peersCount));
+                                                                         blockHeight));
         case SYNC_MODE_P2P_ONLY:
         return BRPeerSyncManagerAsSyncManager (BRPeerSyncManagerNew (eventContext,
                                                                      eventCallback,
@@ -394,6 +401,23 @@ BRSyncManagerFree(BRSyncManager manager) {
         assert (0);
         break;
     }
+}
+
+extern uint64_t
+BRSyncManagerGetBlockHeight (BRSyncManager manager) {
+    uint64_t blockHeight = 0;
+    switch (manager->mode) {
+        case SYNC_MODE_BRD_ONLY:
+        blockHeight = BRClientSyncManagerGetBlockHeight (BRSyncManagerAsClientSyncManager (manager));
+        break;
+        case SYNC_MODE_P2P_ONLY:
+        blockHeight = BRPeerSyncManagerGetBlockHeight (BRSyncManagerAsPeerSyncManager (manager));
+        break;
+        default:
+        assert (0);
+        break;
+    }
+    return blockHeight;
 }
 
 extern void
@@ -485,7 +509,7 @@ BRSyncManagerAnnounceGetBlockNumber(BRSyncManager manager,
                                                    blockHeight);
         break;
         case SYNC_MODE_P2P_ONLY:
-        // do nothing
+        // this might occur if the owning BRWalletManager changed modes; silently ignore
         break;
         default:
         assert (0);
@@ -510,7 +534,7 @@ BRSyncManagerAnnounceGetTransactionsItem(BRSyncManager manager,
                                                         blockHeight);
         break;
         case SYNC_MODE_P2P_ONLY:
-        // do nothing
+        // this might occur if the owning BRWalletManager changed modes; silently ignore
         break;
         default:
         assert (0);
@@ -529,7 +553,7 @@ BRSyncManagerAnnounceGetTransactionsDone(BRSyncManager manager,
                                                         success);
         break;
         case SYNC_MODE_P2P_ONLY:
-        // do nothing
+        // this might occur if the owning BRWalletManager changed modes; silently ignore
         break;
         default:
         assert (0);
@@ -550,7 +574,7 @@ BRSyncManagerAnnounceSubmitTransaction(BRSyncManager manager,
                                                       error);
         break;
         case SYNC_MODE_P2P_ONLY:
-        // do nothing
+        // this might occur if the owning BRWalletManager changed modes; silently ignore
         break;
         default:
         assert (0);
@@ -568,11 +592,7 @@ BRClientSyncManagerNew(BRSyncManagerEventContext eventContext,
                        OwnershipKept const BRChainParams *params,
                        OwnershipKept BRWallet *wallet,
                        uint32_t earliestKeyTime,
-                       uint64_t blockHeight,
-                       OwnershipKept BRMerkleBlock *blocks[],
-                       size_t blocksCount,
-                       OwnershipKept const BRPeer peers[],
-                       size_t peersCount) {
+                       uint64_t blockHeight) {
     BRClientSyncManager manager = (BRClientSyncManager) calloc (1, sizeof(struct BRClientSyncManagerStruct));
     manager->common.mode = SYNC_MODE_BRD_ONLY;
 
@@ -626,6 +646,16 @@ BRClientSyncManagerFree(BRClientSyncManager manager) {
     pthread_mutex_destroy(&manager->lock);
     memset (manager, 0, sizeof(*manager));
     free (manager);
+}
+
+static uint64_t
+BRClientSyncManagerGetBlockHeight(BRClientSyncManager manager) {
+    uint64_t blockHeight = 0;
+    if (0 == pthread_mutex_lock (&manager->lock)) {
+        blockHeight = manager->networkBlockHeight;
+        pthread_mutex_unlock (&manager->lock);
+    }
+    return blockHeight;
 }
 
 static void
@@ -1274,10 +1304,21 @@ BRSyncManagerAsPeerSyncManager(BRSyncManager manager) {
 static void
 BRPeerSyncManagerFree(BRPeerSyncManager manager) {
     BRPeerManagerDisconnect (manager->peerManager);
+    BRPeerManagerFree (manager->peerManager);
 
     pthread_mutex_destroy(&manager->lock);
     memset (manager, 0, sizeof(*manager));
     free (manager);
+}
+
+static uint64_t
+BRPeerSyncManagerGetBlockHeight(BRPeerSyncManager manager) {
+    uint64_t blockHeight = 0;
+    if (0 == pthread_mutex_lock (&manager->lock)) {
+        blockHeight = manager->networkBlockHeight;
+        pthread_mutex_unlock (&manager->lock);
+    }
+    return blockHeight;
 }
 
 static void
@@ -1288,7 +1329,6 @@ BRPeerSyncManagerConnect(BRPeerSyncManager manager) {
 static void
 BRPeerSyncManagerDisconnect(BRPeerSyncManager manager) {
     BRPeerManagerDisconnect (manager->peerManager);
-
 }
 
 static void

@@ -155,6 +155,9 @@ BRSyncManagerNewForMode(BRSyncMode mode,
 extern void
 BRSyncManagerFree(BRSyncManager manager);
 
+extern uint64_t
+BRSyncManagerGetBlockHeight (BRSyncManager manager);
+
 extern void
 BRSyncManagerConnect(BRSyncManager manager);
 

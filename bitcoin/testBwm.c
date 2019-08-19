@@ -524,6 +524,23 @@ _testBRWalletManagerScanThread (void *context) {
     return NULL;
 }
 
+static void *
+_testBRWalletManagerSwapThread (void *context) {
+    BRRunTestWalletManagerSyncThreadState *state = (BRRunTestWalletManagerSyncThreadState *) context;
+    while (!state->kill) {
+        switch (BRWalletManagerGetMode (state->manager)) {
+            case SYNC_MODE_BRD_ONLY:
+                BRWalletManagerSetMode (state->manager, SYNC_MODE_P2P_ONLY);
+                break;
+            case SYNC_MODE_P2P_ONLY:
+                BRWalletManagerSetMode (state->manager, SYNC_MODE_BRD_ONLY);
+                break;
+
+        }
+    }
+    return NULL;
+}
+
 static void
 BRRunTestWalletManagerSyncTestSetup (BRRunTestWalletManagerSyncState *state, uint64_t blockHeight) {
     state->blockHeight = blockHeight;
@@ -541,7 +558,7 @@ BRRunTestWalletManagerSyncTestVerification (BRRunTestWalletManagerSyncState *sta
 
     // WalletManagerEvent checks
 
-    // check for presence of wallet events
+    // check for presence of manager events
     if (success &&
         array_count(state->managerEvents) == 0) {
         success = 0;
@@ -1054,34 +1071,265 @@ BRRunTestWalletManagerSyncForMode (const char *funcName,
     return success;
 }
 
-extern int BRRunTestWalletManagerSyncP2P (const char *paperKey,
-                                          const char *storagePath,
-                                          uint32_t earliestKeyTime,
-                                          uint64_t blockHeight,
-                                          int isBTC,
-                                          int isMainnet) {
-  return BRRunTestWalletManagerSyncForMode("BRRunTestWalletManagerSyncP2P",
-                                           SYNC_MODE_P2P_ONLY,
-                                           paperKey,
-                                           storagePath,
-                                           earliestKeyTime,
-                                           blockHeight,
-                                           isBTC,
-                                           isMainnet);
+static int
+BRRunTestWalletManagerSyncAllModes (const char *testName,
+                                    BRSyncMode primaryMode,
+                                    BRSyncMode secondaryMode,
+                                    const char *paperKey,
+                                    const char *storagePath,
+                                    uint32_t earliestKeyTime,
+                                    uint64_t blockHeight,
+                                    int isBTC,
+                                    int isMainnet) {
+    int success = 1;
+
+    printf("%s testing BRWalletManager events for %s -> %s modes, %u epoch, %" PRIu64 " height on \"%s:%s\" with %s as storage...\n",
+           testName,
+           _BRSyncModeString (primaryMode),
+           _BRSyncModeString (secondaryMode),
+           earliestKeyTime,
+           blockHeight,
+           isBTC ? "btc": "bch",
+           isMainnet ? "mainnet" : "testnet",
+           storagePath);
+
+    // Test
+    {
+        printf("Testing BRWalletManager mode swap while disconnected...\n");
+
+        // Test setup
+        BRRunTestWalletManagerSyncState state = {0};
+        BRRunTestWalletManagerSyncTestSetup (&state, blockHeight);
+
+        BRWalletManager manager = BRRunTestWalletManagerSyncBwmSetup (primaryMode, &state, paperKey, storagePath, earliestKeyTime, blockHeight, isBTC, isMainnet);
+        BRWalletManagerStart (manager);
+
+        // swap modes while disconnected
+        BRWalletManagerSetMode (manager, primaryMode);
+        sleep (1);
+        BRWalletManagerSetMode (manager, secondaryMode);
+        sleep (1);
+        BRWalletManagerSetMode (manager, primaryMode);
+        sleep (1);
+
+        // Verification
+        success = BRRunTestWalletManagerSyncTestVerification (&state);
+        if (!success) {
+            fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerification failed\n", testName, __LINE__);
+            return success;
+        }
+
+        // Test teardown
+
+        BRWalletManagerStop (manager);
+        BRWalletManagerFree (manager);
+
+        BRRunTestWalletManagerSyncTestTeardown (&state);
+    }
+
+    // Test
+    {
+        printf("Testing BRWalletManager mode swap while connected...\n");
+
+        // Test setup
+        BRRunTestWalletManagerSyncState state = {0};
+        BRRunTestWalletManagerSyncTestSetup (&state, blockHeight);
+
+        BRWalletManager manager = BRRunTestWalletManagerSyncBwmSetup (primaryMode, &state, paperKey, storagePath, earliestKeyTime, blockHeight, isBTC, isMainnet);
+        BRWalletManagerStart (manager);
+
+        // swap modes while connected
+        BRWalletManagerConnect (manager);
+        sleep (1);
+        BRWalletManagerSetMode (manager, primaryMode);
+        BRWalletManagerConnect (manager);
+        sleep (1);
+        BRWalletManagerSetMode (manager, secondaryMode);
+        BRWalletManagerConnect (manager);
+        sleep (1);
+        BRWalletManagerSetMode (manager, primaryMode);
+        BRWalletManagerConnect (manager);
+        sleep (1);
+        BRWalletManagerDisconnect (manager);
+        sleep (1);
+
+        // Verification
+        success = BRRunTestWalletManagerSyncTestVerification (&state);
+        if (!success) {
+            fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerification failed\n", testName, __LINE__);
+            return success;
+        }
+
+        // Test teardown
+
+        BRWalletManagerStop (manager);
+        BRWalletManagerFree (manager);
+
+        BRRunTestWalletManagerSyncTestTeardown (&state);
+    }
+
+    // Test
+    {
+        printf("Testing BRWalletManager mode swap while scanning...\n");
+
+        // Test setup
+        BRRunTestWalletManagerSyncState state = {0};
+        BRRunTestWalletManagerSyncTestSetup (&state, blockHeight);
+
+        BRWalletManager manager = BRRunTestWalletManagerSyncBwmSetup (primaryMode, &state, paperKey, storagePath, earliestKeyTime, blockHeight, isBTC, isMainnet);
+        BRWalletManagerStart (manager);
+
+        // swap modes while scanning
+        BRWalletManagerScan (manager);
+        sleep (1);
+        BRWalletManagerSetMode (manager, primaryMode);
+        BRWalletManagerScan (manager);
+        sleep (1);
+        BRWalletManagerSetMode (manager, secondaryMode);
+        BRWalletManagerScan (manager);
+        sleep (1);
+        BRWalletManagerSetMode (manager, primaryMode);
+        BRWalletManagerScan (manager);
+        sleep (1);
+        BRWalletManagerDisconnect (manager);
+        sleep (1);
+
+        // Verification
+        success = BRRunTestWalletManagerSyncTestVerification (&state);
+        if (!success) {
+            fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerification failed\n", testName, __LINE__);
+            return success;
+        }
+
+        // Test teardown
+
+        BRWalletManagerStop (manager);
+        BRWalletManagerFree (manager);
+
+        BRRunTestWalletManagerSyncTestTeardown (&state);
+    }
+
+    {
+        printf("Testing BRWalletManager mode swap threading...\n");
+
+        // Test setup
+        BRRunTestWalletManagerSyncState state = {0};
+        BRRunTestWalletManagerSyncTestSetup (&state, blockHeight);
+
+        BRWalletManager manager = BRRunTestWalletManagerSyncBwmSetup (primaryMode, &state, paperKey, storagePath, earliestKeyTime, blockHeight, isBTC, isMainnet);
+        BRWalletManagerStart (manager);
+
+        BRRunTestWalletManagerSyncThreadState threadState = {0, manager};
+        pthread_t connectThread = (pthread_t) NULL, disconnectThread = (pthread_t) NULL, scanThread = (pthread_t) NULL, swapThread = (pthread_t) NULL;
+
+        success = (0 == pthread_create (&connectThread, NULL, _testBRWalletManagerConnectThread, (void*) &threadState) &&
+                   0 == pthread_create (&disconnectThread, NULL, _testBRWalletManagerDisconnectThread, (void*) &threadState) &&
+                   0 == pthread_create (&scanThread, NULL, _testBRWalletManagerScanThread, (void*) &threadState) &&
+                   0 == pthread_create (&swapThread, NULL, _testBRWalletManagerSwapThread, (void*) &threadState));
+        if (!success) {
+            fprintf(stderr, "***FAILED*** %s:%d: pthread_creates failed\n", testName, __LINE__);
+            return success;
+        }
+
+        sleep (1);
+
+        threadState.kill = 1;
+        success = (0 == pthread_join (connectThread, NULL) &&
+                   0 == pthread_join (disconnectThread, NULL) &&
+                   0 == pthread_join (scanThread, NULL) &&
+                   0 == pthread_join (swapThread, NULL));
+        if (!success) {
+            fprintf(stderr, "***FAILED*** %s:%d: pthread_joins failed\n", testName, __LINE__);
+            return success;
+        }
+
+        // Verification
+        success = BRRunTestWalletManagerSyncTestVerification (&state);
+        if (!success) {
+            fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerification failed\n", testName, __LINE__);
+            return success;
+        }
+
+        // Test teardown
+
+        BRWalletManagerStop (manager);
+        BRWalletManagerFree (manager);
+
+        BRRunTestWalletManagerSyncTestTeardown (&state);
+    }
+
+    return success;
 }
 
-extern int BRRunTestWalletManagerSyncBRD (const char *paperKey,
-                                          const char *storagePath,
-                                          uint32_t earliestKeyTime,
-                                          uint64_t blockHeight,
-                                          int isBTC,
-                                          int isMainnet) {
-  return BRRunTestWalletManagerSyncForMode("BRRunTestWalletManagerSyncBRD",
-                                           SYNC_MODE_BRD_ONLY,
-                                           paperKey,
-                                           storagePath,
-                                           earliestKeyTime,
-                                           blockHeight,
-                                           isBTC,
-                                           isMainnet);
+extern int BRRunTestWalletManagerSyncStress (const char *paperKey,
+                                             const char *storagePath,
+                                             uint32_t earliestKeyTime,
+                                             uint64_t blockHeight,
+                                             int isBTC,
+                                             int isMainnet) {
+    int success = 1;
+
+    {
+        success = BRRunTestWalletManagerSyncForMode("BRRunTestWalletManagerSyncP2P",
+                                                    SYNC_MODE_P2P_ONLY,
+                                                    paperKey,
+                                                    storagePath,
+                                                    earliestKeyTime,
+                                                    blockHeight,
+                                                    isBTC,
+                                                    isMainnet);
+        if (!success) {
+            fprintf(stderr, "***FAILED*** %s:%d: P2P sync failed\n", __func__, __LINE__);
+            return success;
+        }
+    }
+
+    {
+        success = BRRunTestWalletManagerSyncForMode("BRRunTestWalletManagerSyncBRD",
+                                                    SYNC_MODE_BRD_ONLY,
+                                                    paperKey,
+                                                    storagePath,
+                                                    earliestKeyTime,
+                                                    blockHeight,
+                                                    isBTC,
+                                                    isMainnet);
+        if (!success) {
+            fprintf(stderr, "***FAILED*** %s:%d: API sync failed\n", __func__, __LINE__);
+            return success;
+        }
+    }
+
+    {
+        success = BRRunTestWalletManagerSyncAllModes("BRRunTestWalletManagerSyncP2PtoBRD",
+                                                     SYNC_MODE_P2P_ONLY,
+                                                     SYNC_MODE_BRD_ONLY,
+                                                     paperKey,
+                                                     storagePath,
+                                                     earliestKeyTime,
+                                                     blockHeight,
+                                                     isBTC,
+                                                     isMainnet);
+        if (!success) {
+            fprintf(stderr, "***FAILED*** %s:%d: swapping modes sync failed\n", __func__, __LINE__);
+            return success;
+        }
+    }
+
+    {
+        success = BRRunTestWalletManagerSyncAllModes("BRRunTestWalletManagerSyncBRDtoP2P",
+                                                     SYNC_MODE_BRD_ONLY,
+                                                     SYNC_MODE_P2P_ONLY,
+                                                     paperKey,
+                                                     storagePath,
+                                                     earliestKeyTime,
+                                                     blockHeight,
+                                                     isBTC,
+                                                     isMainnet);
+        if (!success) {
+            fprintf(stderr, "***FAILED*** %s:%d: swapping modes sync failed\n", __func__, __LINE__);
+            return success;
+        }
+    }
+
+    return success;
 }

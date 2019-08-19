@@ -307,6 +307,11 @@ eventHandlerStop (BREventHandler handler) {
 }
 
 extern int
+eventHandlerIsCurrentThread (BREventHandler handler) {
+    return pthread_self() == handler->thread;
+}
+
+extern int
 eventHandlerIsRunning (BREventHandler handler) {
     return PTHREAD_NULL != handler->thread;
 }

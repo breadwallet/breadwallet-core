@@ -288,6 +288,12 @@ BRWalletManagerDisconnect (BRWalletManager manager);
 extern void
 BRWalletManagerScan (BRWalletManager manager);
 
+extern void
+BRWalletManagerSetMode (BRWalletManager manager, BRSyncMode mode);
+
+extern BRSyncMode
+BRWalletManagerGetMode (BRWalletManager manager);
+
 //
 // These should not be needed if the events are sufficient
 //
