@@ -1790,7 +1790,7 @@ clientEWMEventHandler(BREthereumClientContext context,
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jstring errorDescriptionString = ('\0' == event.errorDescription[0]
+    jstring errorDescriptionString = ((SUCCESS == event.status || '\0' == event.errorDescription[0])
                                       ? NULL
                                       : (*env)->NewStringUTF(env, event.errorDescription));
 
@@ -1812,7 +1812,7 @@ clientPeerEventHandler(BREthereumClientContext context,
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jstring errorDescriptionString = ('\0' == event.errorDescription[0]
+    jstring errorDescriptionString = ((SUCCESS == event.status || '\0' == event.errorDescription[0])
                                       ? NULL
                                       : (*env)->NewStringUTF(env, event.errorDescription));
 
@@ -1835,7 +1835,7 @@ clientWalletEventHandler(BREthereumClientContext context,
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jstring errorDescriptionString = ('\0' == event.errorDescription[0]
+    jstring errorDescriptionString = ((SUCCESS == event.status || '\0' == event.errorDescription[0])
                                       ? NULL
                                       : (*env)->NewStringUTF(env, event.errorDescription));
 
@@ -1872,7 +1872,7 @@ clientBlockEventHandler(BREthereumClientContext context,
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jstring errorDescriptionString = ('\0' == event.errorDescription[0]
+    jstring errorDescriptionString = ((SUCCESS == event.status || '\0' == event.errorDescription[0])
                                       ? NULL
                                       : (*env)->NewStringUTF(env, errorDescription));
 
@@ -1897,7 +1897,7 @@ clientTransferEventHandler(BREthereumClientContext context,
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jstring errorDescriptionString = ('\0' == event.errorDescription[0]
+    jstring errorDescriptionString = ((SUCCESS == event.status || '\0' == event.errorDescription[0])
                                       ? NULL
                                       : (*env)->NewStringUTF(env, event.errorDescription));
 
