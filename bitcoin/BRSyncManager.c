@@ -41,6 +41,40 @@
 #endif
 
 /**
+ * The BRSyncManager `class` is designed to wrap the existing BRPeerManager `class`,
+ * in P2P mode, using the BRPeerSyncManager, as well as provide an equivalent manager
+ * when operating in BRD mode, using the BRClientSyncManager.
+ *
+ * There are at least a couple of likely controversial design decisions included in
+ * how the BRSyncManager (and its `child classes`) operates:
+ *
+ *  1) Should a BRSyncManager interact (i.e. add/remove/update txns in) directly
+ *     with a BRWallet or should those interactions be handled externally by its
+ *     owner (i.e. BRWalletManager)?
+ *
+ *     - The existing BRPeerManager, which is long proven, DOES interact with the
+ *       a BRWallet to add/remove/update transactions in response to network events
+ *     - As such, the BRClientSyncManager was designed to do the same. Namely, it
+ *       interacts with the BRWallet to add/remove/update transactions.
+ *     - Going forward, if and when BRClientSyncManager is extracted into a generic
+ *       component, we might want to revisit this and instead have it merely
+ *       announce network events, rather than explicitly act upon them.
+ *
+ *  2) Should a BRSyncManager interact directly with the filesystem or should they be
+ *     handled externally by its owner (i.e. BRWalletManager)?
+ *
+ *     - The existing BRWallet/BRPeerManager design approach was such that
+ *       clients registered transaction callbacks on the BRWallet and network callbacks
+ *       on the BRPeerManager. The BRPeerManager has a pointer to the BRWallet
+ *       and directly adds/removes/updates transactions based on what the network
+ *       is telling it. Interactions with the filesystem are done in the BRWallet
+ *       transaction callbacks, as a result of manipulations done by the BRPeerManager.
+ *     - As such, the BRClientSyncManager is designed to do the same. Namely, it does
+ *       NOT interact directly with the filesystem but instead manipulates the BRWallet
+ *       in response to network events it has received.
+ */
+
+/**
  * `BRSyncManagerStruct` only contains the minimum amount of information needed
  *  to be able to downcast to the appropriate sync manager implementation.
  *

@@ -478,8 +478,6 @@ BRWalletManagerNew (BRWalletManagerClient client,
 
     bwm->mode = mode;
     bwm->client = client;
-    bwm->forkId = params->forkId;
-
     bwm->chainParams = params;
     bwm->earliestKeyTime = earliestKeyTime;
 
@@ -819,7 +817,7 @@ BRWalletManagerSignTransaction (BRWalletManager manager,
     if (NULL != txnWithState &&
         1 == BRWalletSignTransaction (wallet,
                                       BRTransactionWithStateGetOwned (txnWithState),
-                                      manager->forkId,
+                                      manager->chainParams->forkId,
                                       seed,
                                       seedLen)) {
         success = 1;

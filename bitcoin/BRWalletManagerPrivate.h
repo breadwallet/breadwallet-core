@@ -57,11 +57,6 @@ struct BRWalletManagerStruct {
     BRFileService fileService;
 
     /**
-     * The forkId of the chain parameters associated with the wallet
-     */
-    uint8_t forkId;
-
-    /**
      * The chain parameters associated with the wallet
      */
     const BRChainParams * chainParams;
