@@ -111,24 +111,18 @@ clientGetBlocks (BREthereumClientContext context,
 static void
 clientEWMEventHandler (BREthereumClientContext context,
                        BREthereumEWM ewm,
-                       BREthereumEWMEvent event,
-                       BREthereumStatus status,
-                       const char *errorDescription);
+                       BREthereumEWMEvent event);
 
 static void
 clientPeerEventHandler (BREthereumClientContext context,
                         BREthereumEWM ewm,
-                        BREthereumPeerEvent event,
-                        BREthereumStatus status,
-                        const char *errorDescription);
+                        BREthereumPeerEvent event);
 
 static void
 clientWalletEventHandler(BREthereumClientContext context,
                          BREthereumEWM node,
                          BREthereumWallet wid,
-                         BREthereumWalletEvent event,
-                         BREthereumStatus status,
-                         const char *errorDescription);
+                         BREthereumWalletEvent event);
 
 static void
 clientTokenEventHandler(BREthereumClientContext context,
@@ -141,18 +135,14 @@ static void
 clientBlockEventHandler(BREthereumClientContext context,
                         BREthereumEWM node,
                         BREthereumBlock bid,
-                        BREthereumBlockEvent event,
-                        BREthereumStatus status,
-                        const char *errorDescription);
+                        BREthereumBlockEvent event);
 #endif
 static void
 clientTransferEventHandler(BREthereumClientContext context,
                            BREthereumEWM node,
                            BREthereumWallet wid,
                            BREthereumTransfer tid,
-                           BREthereumTransferEvent event,
-                           BREthereumStatus status,
-                           const char *errorDescription);
+                           BREthereumTransferEvent event);
 
 static jstring
 asJniString(JNIEnv *env, char *string) {
@@ -1796,21 +1786,19 @@ clientGetNonce(BREthereumClientContext context,
 static void
 clientEWMEventHandler(BREthereumClientContext context,
                       BREthereumEWM ewm,
-                      BREthereumEWMEvent event,
-                      BREthereumStatus status,
-                      const char *errorDescription) {
+                      BREthereumEWMEvent event) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jstring errorDescriptionString = (NULL == errorDescription
+    jstring errorDescriptionString = ('\0' == event.errorDescription[0]
                                       ? NULL
-                                      : (*env)->NewStringUTF(env, errorDescription));
+                                      : (*env)->NewStringUTF(env, event.errorDescription));
 
     // Callback
     (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineEWMEvent,
                                  (jlong) ewm,
-                                 (jint) event,
-                                 (jint) status,
+                                 (jint) event.type,
+                                 (jint) event.status,
                                  errorDescriptionString);
 
     // Cleanup
@@ -1820,21 +1808,19 @@ clientEWMEventHandler(BREthereumClientContext context,
 static void
 clientPeerEventHandler(BREthereumClientContext context,
                        BREthereumEWM ewm,
-                       BREthereumPeerEvent event,
-                       BREthereumStatus status,
-                       const char *errorDescription) {
+                       BREthereumPeerEvent event) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jstring errorDescriptionString = (NULL == errorDescription
+    jstring errorDescriptionString = ('\0' == event.errorDescription[0]
                                       ? NULL
-                                      : (*env)->NewStringUTF(env, errorDescription));
+                                      : (*env)->NewStringUTF(env, event.errorDescription));
 
     // Callback
     (*env)->CallStaticVoidMethod(env, trampolineClass, trampolinePeerEvent,
                                  (jlong) ewm,
-                                 (jint) event,
-                                 (jint) status,
+                                 (jint) event.type,
+                                 (jint) event.status,
                                  errorDescriptionString);
 
     // Cleanup
@@ -1845,22 +1831,20 @@ static void
 clientWalletEventHandler(BREthereumClientContext context,
                          BREthereumEWM node,
                          BREthereumWallet wid,
-                         BREthereumWalletEvent event,
-                         BREthereumStatus status,
-                         const char *errorDescription) {
+                         BREthereumWalletEvent event) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jstring errorDescriptionString = (NULL == errorDescription
+    jstring errorDescriptionString = ('\0' == event.errorDescription[0]
                                       ? NULL
-                                      : (*env)->NewStringUTF(env, errorDescription));
+                                      : (*env)->NewStringUTF(env, event.errorDescription));
 
-    // (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineWalletEvent,
-    //                              (jlong) node,
-    //                              (jlong) wid,
-    //                              (jint) event,
-    //                              (jint) status,
-    //                              errorDescriptionString);
+    (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineWalletEvent,
+                                 (jlong) node,
+                                 (jlong) wid,
+                                 (jint) event.type,
+                                 (jint) event.status,
+                                 errorDescriptionString);
 
     if (NULL != errorDescriptionString) (*env)->DeleteLocalRef(env, errorDescriptionString);
 }
@@ -1876,7 +1860,7 @@ clientTokenEventHandler(BREthereumClientContext context,
     (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineTokenEvent,
                                  (jlong) ewm,
                                  (jlong) token,
-                                 (jint) event);
+                                 (jint) event.type);
 }
 
 #if 0
@@ -1884,13 +1868,11 @@ static void
 clientBlockEventHandler(BREthereumClientContext context,
                         BREthereumEWM node,
                         BREthereumBlock bid,
-                        BREthereumBlockEvent event,
-                        BREthereumStatus status,
-                        const char *errorDescription) {
+                        BREthereumBlockEvent event) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jstring errorDescriptionString = (NULL == errorDescription
+    jstring errorDescriptionString = ('\0' == event.errorDescription[0]
                                       ? NULL
                                       : (*env)->NewStringUTF(env, errorDescription));
 
@@ -1898,8 +1880,8 @@ clientBlockEventHandler(BREthereumClientContext context,
     (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineBlockEvent,
                                  (jlong) node,
                                  (jint) bid,
-                                 (jint) event,
-                                 (jint) status,
+                                 (jint) event.type,
+                                 (jint) event.status,
                                  errorDescriptionString);
 
     // Cleanup
@@ -1911,23 +1893,21 @@ clientTransferEventHandler(BREthereumClientContext context,
                            BREthereumEWM node,
                            BREthereumWallet wid,
                            BREthereumTransfer tid,
-                           BREthereumTransferEvent event,
-                           BREthereumStatus status,
-                           const char *errorDescription) {
+                           BREthereumTransferEvent event) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jstring errorDescriptionString = (NULL == errorDescription
+    jstring errorDescriptionString = ('\0' == event.errorDescription[0]
                                       ? NULL
-                                      : (*env)->NewStringUTF(env, errorDescription));
+                                      : (*env)->NewStringUTF(env, event.errorDescription));
 
     // Callback
     (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineTransferEvent,
                                  (jlong) node,
                                  (jlong) wid,
                                  (jlong) tid,
-                                 (jint) event,
-                                 (jint) status,
+                                 (jint) event.type,
+                                 (jint) event.status,
                                  errorDescriptionString);
 
     // Cleanup
