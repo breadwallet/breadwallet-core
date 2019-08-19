@@ -196,8 +196,7 @@ public class TransferFeeBasis: Equatable {
     /// The Core representation
     internal let core: BRCryptoFeeBasis
 
-    /// The unit for both the pricePerCostFactor and fee.  This must, of course, have the same
-    /// currency as the feeBasis itself.
+    /// The unit for both the pricePerCostFactor and fee.
     public let unit: Unit
 
     /// The fee basis currency; this should/must be the Network's currency
@@ -218,13 +217,11 @@ public class TransferFeeBasis: Equatable {
     internal init (core: BRCryptoFeeBasis, take: Bool) {
         self.core = take ? cryptoFeeBasisTake (core) : core
 
-        let unit = Unit (core: cryptoFeeBasisGetPricePerCostFactorUnit(core), take: false)
-
-        self.unit = unit
+        self.unit = Unit (core: cryptoFeeBasisGetPricePerCostFactorUnit(core), take: false)
         self.pricePerCostFactor = Amount (core: cryptoFeeBasisGetPricePerCostFactor(core), take: false)
         self.costFactor  = cryptoFeeBasisGetCostFactor (core)
 
-        // The Core fee calculation might overflow.
+        // TODO: The Core fee calculation might overflow.
         guard let fee = cryptoFeeBasisGetFee (core)
             .map ({ Amount (core: $0, take: false) })
             else { print ("Missed Fee"); preconditionFailure () }
@@ -237,9 +234,7 @@ public class TransferFeeBasis: Equatable {
     }
 
     public static func == (lhs: TransferFeeBasis, rhs: TransferFeeBasis) -> Bool {
-        return (lhs.currency == rhs.currency &&
-            lhs.pricePerCostFactor == rhs.pricePerCostFactor &&
-            lhs.costFactor == rhs.costFactor)
+        return CRYPTO_TRUE == cryptoFeeBasisIsIdentical (lhs.core, rhs.core)
     }
 }
 

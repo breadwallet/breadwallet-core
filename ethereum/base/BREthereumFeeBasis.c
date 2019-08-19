@@ -34,3 +34,17 @@ feeBasisGetFee (BREthereumFeeBasis feeBasis, int *overflow) {  // BREthereumBool
     }
 }
 
+extern BREthereumBoolean
+feeBasisEqual (const BREthereumFeeBasis *feeBasis1,
+               const BREthereumFeeBasis *feeBasis2) {
+    if (feeBasis1 == feeBasis2) return ETHEREUM_BOOLEAN_TRUE;
+    if (feeBasis1->type != feeBasis2->type) return ETHEREUM_BOOLEAN_FALSE;
+    switch (feeBasis1->type) {
+        case FEE_BASIS_NONE:
+            return ETHEREUM_BOOLEAN_TRUE;
+
+        case FEE_BASIS_GAS:
+            return AS_ETHEREUM_BOOLEAN (ETHEREUM_COMPARISON_EQ == gasCompare (feeBasis1->u.gas.limit, feeBasis2->u.gas.limit) &&
+                                        ETHEREUM_COMPARISON_EQ == gasPriceCompare(feeBasis1->u.gas.price, feeBasis2->u.gas.price));
+    }
+}
