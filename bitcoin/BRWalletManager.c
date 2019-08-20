@@ -743,6 +743,9 @@ BRWalletManagerSetMode (BRWalletManager manager, BRSyncMode mode) {
             else array_clear(peers);
         }
 
+        // set the new mode
+        manager->mode = mode;
+
         // create the new sync manager
         manager->syncManager = BRSyncManagerNewForMode (mode,
                                                         manager,
