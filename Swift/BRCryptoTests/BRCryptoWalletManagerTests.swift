@@ -262,10 +262,11 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
                                     query: migrateQuery)
 
         // transfers annonced on `configure`
-        migrateListener.transferCount = transfers.count
+        migrateListener.transferCount = transferBlobs.count
         migrateSystem.configure()
         wait (for: [migrateListener.migratedManagerExpectation], timeout: 30)
         wait (for: [migrateListener.transferExpectation], timeout: 30)
+        XCTAssertFalse (migrateListener.migratedFailed)
 
         // Get the transfers from the migratedManager's primary wallet.
         let migratedTransfers = migrateListener.migratedManager.primaryWallet.transfers
@@ -273,6 +274,25 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
         // Compare the count; then compare the hash sets as equal.
         XCTAssertEqual (transfers.count, migratedTransfers.count)
         XCTAssertEqual (Set (transfers.map { $0.hash! }), Set (migratedTransfers.map { $0.hash! }))
+
+        //
+        // Produce an invalid transferBlobs and  check for a failure
+        //
+        let muckedTransferBlobs = [(bytes: [UInt8](arrayLiteral: 0, 1, 2), blockHeight: UInt32(0), timestamp: UInt32(0))]
+        let muckedListener = MigrateSystemListener (transactionBlobs: muckedTransferBlobs)
+        let muckedQuery    = system.query
+        let muckedPath     = system.path + "mucked"
+
+        let muckedSystem = System (listener: muckedListener,
+                                    account: system.account,
+                                    onMainnet: system.onMainnet,
+                                    path: muckedPath,
+                                    query: muckedQuery)
+
+        // transfers annonced on `configure`
+        muckedSystem.configure()
+        wait (for: [muckedListener.migratedManagerExpectation], timeout: 30)
+        XCTAssertTrue (muckedListener.migratedFailed)
     }
 }
 
@@ -287,6 +307,8 @@ class MigrateSystemListener: SystemListener {
         self.transactionBlobs = transactionBlobs
     }
 
+    var migratedFailed = false
+
     func handleSystemEvent(system: System, event: SystemEvent) {
         switch event {
         case .created: break
@@ -300,10 +322,13 @@ class MigrateSystemListener: SystemListener {
 
                 // Migrate
                 if (system.migrateRequired(network: network)) {
-                    try! system.migrateStorage (network: network,
-                                                transactionBlobs: transactionBlobs,
-                                                blockBlobs: [],
-                                                peerBlobs: [])
+                    do {
+                        try system.migrateStorage (network: network,
+                                                   transactionBlobs: transactionBlobs,
+                                                   blockBlobs: [],
+                                                   peerBlobs: [])
+                    }
+                    catch { migratedFailed = true }
                 }
 
                 // Wallet Manager
