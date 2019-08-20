@@ -210,6 +210,9 @@ typedef void
 extern const char *
 BRWalletEventTypeString (BRWalletEventType t);
 
+extern int
+BRWalletEventTypeIsValidPair (BRWalletEventType t1, BRWalletEventType t2);
+
 ///
 /// WalletManager Event
 ///
@@ -245,6 +248,9 @@ typedef void
 
 extern const char *
 BRWalletManagerEventTypeString (BRWalletManagerEventType t);
+
+extern int
+BRWalletManagerEventTypeIsValidPair (BRWalletManagerEventType t1, BRWalletManagerEventType t2);
 
 ///
 /// WalletManager

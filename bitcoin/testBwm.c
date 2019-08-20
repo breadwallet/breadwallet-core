@@ -46,239 +46,6 @@
 #define _va_rest(first, ...) __VA_ARGS__
 #endif
 
-//
-// Helper Routine
-//
-
-static const char *
-_BRSyncModeString (BRSyncMode m) {
-    switch (m) {
-        case SYNC_MODE_BRD_ONLY:
-        return "SYNC_MODE_BRD_ONLY";
-        case SYNC_MODE_BRD_WITH_P2P_SEND:
-        return "SYNC_MODE_BRD_WITH_P2P_SEND";
-        case SYNC_MODE_P2P_WITH_BRD_SYNC:
-        return "SYNC_MODE_P2P_WITH_BRD_SYNC";
-        case SYNC_MODE_P2P_ONLY:
-        return "SYNC_MODE_P2P_ONLY";
-    }
-}
-
-static int
-_isValidWalletManagerEventPair (BRWalletManagerEvent *e1, BRWalletManagerEvent *e2) {
-    int isValid = 0;
-    switch (e1->type) {
-        case BITCOIN_WALLET_MANAGER_CREATED:
-            switch (e2->type) {
-                case BITCOIN_WALLET_MANAGER_CONNECTED:
-                isValid = 1;
-                break;
-
-                case BITCOIN_WALLET_MANAGER_CREATED:
-                case BITCOIN_WALLET_MANAGER_DISCONNECTED:
-                case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
-                case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
-                case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
-                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
-                isValid = 0;
-                break;
-            }
-        break;
-        case BITCOIN_WALLET_MANAGER_CONNECTED:
-            switch (e2->type) {
-                case BITCOIN_WALLET_MANAGER_DISCONNECTED:
-                case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
-                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
-                isValid = 1;
-                break;
-
-                case BITCOIN_WALLET_MANAGER_CREATED:
-                case BITCOIN_WALLET_MANAGER_CONNECTED:
-                case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
-                case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
-                isValid = 0;
-                break;
-            }
-        break;
-        case BITCOIN_WALLET_MANAGER_DISCONNECTED:
-            switch (e2->type) {
-                case BITCOIN_WALLET_MANAGER_CONNECTED:
-                isValid = 1;
-                break;
-
-                case BITCOIN_WALLET_MANAGER_CREATED:
-                case BITCOIN_WALLET_MANAGER_DISCONNECTED:
-                case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
-                case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
-                case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
-                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
-                isValid = 0;
-                break;
-            }
-        break;
-        case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
-            switch (e2->type) {
-                case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
-                case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
-                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
-                isValid = 1;
-                break;
-
-                case BITCOIN_WALLET_MANAGER_CREATED:
-                case BITCOIN_WALLET_MANAGER_CONNECTED:
-                case BITCOIN_WALLET_MANAGER_DISCONNECTED:
-                case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
-                isValid = 0;
-                break;
-            }
-        break;
-        case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
-            switch (e2->type) {
-                case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
-                case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
-                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
-                isValid = 1;
-                break;
-
-                case BITCOIN_WALLET_MANAGER_CREATED:
-                case BITCOIN_WALLET_MANAGER_CONNECTED:
-                case BITCOIN_WALLET_MANAGER_DISCONNECTED:
-                case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
-                isValid = 0;
-                break;
-            }
-        break;
-        case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
-            switch (e2->type) {
-                case BITCOIN_WALLET_MANAGER_DISCONNECTED:
-                case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
-                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
-                isValid = 1;
-                break;
-
-                case BITCOIN_WALLET_MANAGER_CREATED:
-                case BITCOIN_WALLET_MANAGER_CONNECTED:
-                case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
-                case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
-                isValid = 0;
-                break;
-            }
-        break;
-        case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
-            switch (e2->type) {
-                case BITCOIN_WALLET_MANAGER_DISCONNECTED:
-                case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
-                case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
-                case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
-                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
-                isValid = 1;
-                break;
-
-                case BITCOIN_WALLET_MANAGER_CREATED:
-                case BITCOIN_WALLET_MANAGER_CONNECTED:
-                isValid = 0;
-                break;
-            }
-        break;
-    }
-    return isValid;
-}
-
-static int
-_isValidWalletEventPair (BRWalletEvent *e1, BRWalletEvent *e2) {
-    int isValid = 0;
-    switch (e1->type) {
-        case BITCOIN_WALLET_CREATED:
-            switch (e2->type) {
-                case BITCOIN_WALLET_BALANCE_UPDATED:
-                case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
-                case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
-                case BITCOIN_WALLET_FEE_ESTIMATED:
-                case BITCOIN_WALLET_DELETED:
-                isValid = 1;
-                break;
-
-                case BITCOIN_WALLET_CREATED:
-                isValid = 0;
-                break;
-            }
-        break;
-        case BITCOIN_WALLET_BALANCE_UPDATED:
-            switch (e2->type) {
-                case BITCOIN_WALLET_BALANCE_UPDATED:
-                case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
-                case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
-                case BITCOIN_WALLET_FEE_ESTIMATED:
-                case BITCOIN_WALLET_DELETED:
-                isValid = 1;
-                break;
-
-                case BITCOIN_WALLET_CREATED:
-                isValid = 0;
-                break;
-            }
-        break;
-        case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
-            switch (e2->type) {
-                case BITCOIN_WALLET_BALANCE_UPDATED:
-                case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
-                case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
-                case BITCOIN_WALLET_FEE_ESTIMATED:
-                case BITCOIN_WALLET_DELETED:
-                isValid = 1;
-                break;
-
-                case BITCOIN_WALLET_CREATED:
-                isValid = 0;
-                break;
-            }
-        break;
-        case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
-            switch (e2->type) {
-                case BITCOIN_WALLET_BALANCE_UPDATED:
-                case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
-                case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
-                case BITCOIN_WALLET_FEE_ESTIMATED:
-                case BITCOIN_WALLET_DELETED:
-                isValid = 1;
-                break;
-
-                case BITCOIN_WALLET_CREATED:
-                isValid = 0;
-                break;
-            }
-        break;
-        case BITCOIN_WALLET_FEE_ESTIMATED:
-            switch (e2->type) {
-                case BITCOIN_WALLET_BALANCE_UPDATED:
-                case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
-                case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
-                case BITCOIN_WALLET_FEE_ESTIMATED:
-                case BITCOIN_WALLET_DELETED:
-                isValid = 1;
-                break;
-
-                case BITCOIN_WALLET_CREATED:
-                isValid = 0;
-                break;
-            }
-        break;
-        case BITCOIN_WALLET_DELETED:
-            switch (e2->type) {
-                case BITCOIN_WALLET_CREATED:
-                case BITCOIN_WALLET_BALANCE_UPDATED:
-                case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
-                case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
-                case BITCOIN_WALLET_FEE_ESTIMATED:
-                case BITCOIN_WALLET_DELETED:
-                isValid = 0;
-                break;
-            }
-        break;
-    }
-    return isValid;
-}
-
 ///
 ///
 ///
@@ -381,33 +148,80 @@ extern int BRRunTestWalletManagerSync (const char *paperKey,
 /// MARK: BRWalletManager Connect/Disconnect/Scan Tests
 ///
 
-struct BRWalletManagerEventRecord {
-    size_t sequenceId;
-    BRWalletManager manager;
-    BRWalletManagerEvent event;
-};
+typedef enum {
+    SYNC_EVENT_WALLET_MANAGER_TYPE,
+    SYNC_EVENT_WALLET_TYPE,
+    SYNC_EVENT_TXN_TYPE,
+} BRWalletManagerSyncEventType;
 
-struct BRWalletEventRecord {
-    size_t sequenceId;
-    BRWalletManager manager;
-    BRWallet *wallet;
-    BRWalletEvent event;
-};
+typedef struct BRWalletManagerSyncEventRecord {
+    BRWalletManagerSyncEventType type;
+    union {
+        struct {
+            BRWalletManager manager;
+            BRWalletManagerEvent event;
+        } m;
+        struct {
+            BRWalletManager manager;
+            BRWallet *wallet;
+            BRWalletEvent event;
+        } w;
+        struct {
+            BRWalletManager manager;
+            BRWallet *wallet;
+            BRTransaction *transaction;
+            BRTransactionEvent event;
+        } t;
+    } u;
+} BRWalletManagerSyncEvent;
 
-struct BRTransactionEventRecord {
-    size_t sequenceId;
-    BRWalletManager manager;
-    BRWallet *wallet;
-    BRTransaction *transaction;
-    BRTransactionEvent event;
-} ;
+const char *
+BRWalletManagerSyncEventTypeString (BRWalletManagerSyncEventType type) {
+    switch (type) {
+        case SYNC_EVENT_WALLET_MANAGER_TYPE:
+        return "SYNC_EVENT_WALLET_MANAGER_TYPE";
+        case SYNC_EVENT_WALLET_TYPE:
+        return "SYNC_EVENT_WALLET_TYPE";
+        case SYNC_EVENT_TXN_TYPE:
+        return "SYNC_EVENT_TXN_TYPE";
+    }
+}
+
+static BRWalletManagerSyncEvent
+BRWalletManagerSyncEventForWalletManagerType(BRWalletManagerEventType type) {
+    return (BRWalletManagerSyncEvent) {
+        SYNC_EVENT_WALLET_MANAGER_TYPE,
+        {
+            .m = {
+                NULL,
+                (BRWalletManagerEvent) {
+                    type
+                }
+            }
+        }
+    };
+}
+
+static BRWalletManagerSyncEvent
+BRWalletManagerSyncEventForWalletType(BRWalletEventType type) {
+    return (BRWalletManagerSyncEvent) {
+        SYNC_EVENT_WALLET_TYPE,
+        {
+            .w = {
+                NULL,
+                NULL,
+                (BRWalletEvent) {
+                    type
+                }
+            }
+        }
+    };
+}
 
 typedef struct {
     uint64_t blockHeight;
-    size_t sequenceIdGenerator;
-    BRArrayOf(struct BRWalletManagerEventRecord *) managerEvents;
-    BRArrayOf(struct BRWalletEventRecord *) walletEvents;
-    BRArrayOf(struct BRTransactionEventRecord *) transactionEvents;
+    uint8_t silent;
+    BRArrayOf(BRWalletManagerSyncEvent *) events;
     pthread_mutex_t lock;
 } BRRunTestWalletManagerSyncState;
 
@@ -415,8 +229,7 @@ static void
 _testGetBlockNumberNopCallback (BRWalletManagerClientContext context,
                                 BRWalletManager manager,
                                 int rid) {
-    BRRunTestWalletManagerSyncState *state = (BRRunTestWalletManagerSyncState*) context;
-    bwmAnnounceBlockNumber (manager, rid, state->blockHeight);
+    // do nothing
 }
 
 static void
@@ -448,15 +261,16 @@ _testTransactionEventRecordingCallback (BRWalletManagerClientContext context,
                                         BRTransaction *transaction,
                                         BRTransactionEvent event) {
     BRRunTestWalletManagerSyncState *state = (BRRunTestWalletManagerSyncState*) context;
-    struct BRTransactionEventRecord *record = calloc (1, sizeof (struct BRTransactionEventRecord));
-    record->manager= manager;
-    record->wallet= wallet;
-    record->transaction = transaction;
-    record->event = event;
+    BRWalletManagerSyncEvent *record = calloc (1, sizeof (BRWalletManagerSyncEvent));
+    record->type = SYNC_EVENT_TXN_TYPE;
+    record->u.t.manager= manager;
+    record->u.t.wallet= wallet;
+    record->u.t.transaction = transaction;
+    record->u.t.event = event;
 
     pthread_mutex_lock (&state->lock);
-    record->sequenceId = state->sequenceIdGenerator++;
-    array_add (state->transactionEvents, record);
+    array_add (state->events, record);
+    if (!state->silent) printf ("Added TXN event: %s (%zu total)\n", BRTransactionEventTypeString (event.type), array_count (state->events));
     pthread_mutex_unlock (&state->lock);
 }
 
@@ -466,14 +280,15 @@ _testWalletEventRecordingCallback (BRWalletManagerClientContext context,
                                    BRWallet *wallet,
                                    BRWalletEvent event) {
     BRRunTestWalletManagerSyncState *state = (BRRunTestWalletManagerSyncState*) context;
-    struct BRWalletEventRecord *record = calloc (1, sizeof (struct BRWalletEventRecord));
-    record->manager= manager;
-    record->wallet= wallet;
-    record->event = event;
+    BRWalletManagerSyncEvent *record = calloc (1, sizeof (BRWalletManagerSyncEvent));
+    record->type = SYNC_EVENT_WALLET_TYPE;
+    record->u.w.manager= manager;
+    record->u.w.wallet= wallet;
+    record->u.w.event = event;
 
     pthread_mutex_lock (&state->lock);
-    record->sequenceId = state->sequenceIdGenerator++;
-    array_add (state->walletEvents, record);
+    array_add (state->events, record);
+    if (!state->silent) printf ("Added WALLET event: %s (%zu total)\n", BRWalletEventTypeString (event.type), array_count (state->events));
     pthread_mutex_unlock (&state->lock);
 }
 
@@ -482,13 +297,14 @@ _testWalletManagerEventRecordingCallback (BRWalletManagerClientContext context,
                                           BRWalletManager manager,
                                           BRWalletManagerEvent event) {
     BRRunTestWalletManagerSyncState *state = (BRRunTestWalletManagerSyncState*) context;
-    struct BRWalletManagerEventRecord *record = calloc (1, sizeof (struct BRWalletManagerEventRecord));
-    record->manager= manager;
-    record->event = event;
+    BRWalletManagerSyncEvent *record = calloc (1, sizeof (BRWalletManagerSyncEvent));
+    record->type = SYNC_EVENT_WALLET_MANAGER_TYPE;
+    record->u.m.manager= manager;
+    record->u.m.event = event;
 
     pthread_mutex_lock (&state->lock);
-    record->sequenceId = state->sequenceIdGenerator++;
-    array_add (state->managerEvents, record);
+    array_add (state->events, record);
+    if (!state->silent) printf ("Added MANAGER event: %s (%zu total)\n", BRWalletManagerEventTypeString (event.type), array_count (state->events));
     pthread_mutex_unlock (&state->lock);
 }
 
@@ -542,14 +358,107 @@ _testBRWalletManagerSwapThread (void *context) {
     return NULL;
 }
 
+static size_t
+BRRunTestWalletManagerSyncTestGetEventByType(BRRunTestWalletManagerSyncState *state, size_t startIndex, BRWalletManagerSyncEventType type) {
+    for (size_t index = startIndex; index < array_count(state->events); index++) {
+        if (state->events[index]->type == type) {
+            return index;
+        }
+    }
+    return SIZE_MAX;
+}
+
 static void
-BRRunTestWalletManagerSyncTestSetup (BRRunTestWalletManagerSyncState *state, uint64_t blockHeight) {
+BRRunTestWalletManagerSyncTestSetup (BRRunTestWalletManagerSyncState *state, uint64_t blockHeight, uint8_t isSilent) {
     state->blockHeight = blockHeight;
-    state->sequenceIdGenerator = 0;
-    array_new (state->managerEvents, 100);
-    array_new (state->walletEvents, 100);
-    array_new (state->transactionEvents, 100);
+    state->silent = isSilent;
+    array_new (state->events, 100);
     pthread_mutex_init (&state->lock, NULL);
+}
+
+static void
+BRRunTestWalletManagerSyncTestSetupAsDefault (BRRunTestWalletManagerSyncState *state, uint64_t blockHeight) {
+    BRRunTestWalletManagerSyncTestSetup (state, blockHeight, 0);
+}
+
+static int
+BRRunTestWalletManagerSyncTestVerifyEventSequenceAtIndex (BRRunTestWalletManagerSyncState *state, size_t index, BRWalletManagerSyncEvent *expected, size_t count) {
+    int success = 1;
+    pthread_mutex_lock (&state->lock);
+
+    for (; success && index < array_count (state->events) && index < count; index++) {
+        if (expected[index].type != state->events[index]->type) {
+            success = 0;
+            fprintf(stderr,
+                    "***FAILED*** %s: mismatched event types (expected %s, received %s)\n",
+                    __func__,
+                    BRWalletManagerSyncEventTypeString (expected[index].type),
+                    BRWalletManagerSyncEventTypeString (state->events[index]->type));
+            continue;
+        }
+
+        switch (expected[index].type) {
+            case SYNC_EVENT_WALLET_MANAGER_TYPE: {
+                if (expected[index].u.m.event.type != state->events[index]->u.m.event.type) {
+                    success = 0;
+                    fprintf(stderr,
+                            "***FAILED*** %s: mismatched managers types (expected %s, received %s)\n",
+                            __func__,
+                            BRWalletManagerEventTypeString (expected[index].u.m.event.type),
+                            BRWalletManagerEventTypeString (state->events[index]->u.m.event.type));
+                }
+                break;
+            }
+            case SYNC_EVENT_WALLET_TYPE: {
+                if (expected[index].u.w.event.type != state->events[index]->u.w.event.type) {
+                    success = 0;
+                    fprintf(stderr,
+                            "***FAILED*** %s: mismatched managers types (expected %s, received %s)\n",
+                            __func__,
+                            BRWalletEventTypeString (expected[index].u.w.event.type),
+                            BRWalletEventTypeString (state->events[index]->u.w.event.type));
+                }
+                break;
+            }
+            case SYNC_EVENT_TXN_TYPE: {
+                if (expected[index].u.t.event.type != state->events[index]->u.t.event.type) {
+                    success = 0;
+                    fprintf(stderr,
+                            "***FAILED*** %s: mismatched managers types (expected %s, received %s)\n",
+                            __func__,
+                            BRTransactionEventTypeString (expected[index].u.t.event.type),
+                            BRTransactionEventTypeString (state->events[index]->u.t.event.type));
+                }
+                break;
+            }
+        }
+    }
+
+    pthread_mutex_unlock (&state->lock);
+    return success;
+}
+
+static int
+BRRunTestWalletManagerSyncTestVerifyEventSequence (BRRunTestWalletManagerSyncState *state, BRWalletManagerSyncEvent *expected, size_t count) {
+    return BRRunTestWalletManagerSyncTestVerifyEventSequenceAtIndex (state, 0, expected, count);
+}
+
+static int
+BRRunTestWalletManagerSyncTestVerifyEventSequenceExact (BRRunTestWalletManagerSyncState *state, BRWalletManagerSyncEvent *expected, size_t count) {
+    int success = 1;
+
+    pthread_mutex_lock (&state->lock);
+    if (array_count (state->events) != count) {
+        success = 0;
+        fprintf(stderr,
+                    "***FAILED*** %s: expected %zu but received %zu events\n",
+                    __func__,
+                    count,
+                    array_count (state->events));
+    }
+    pthread_mutex_unlock (&state->lock);
+
+    return success && BRRunTestWalletManagerSyncTestVerifyEventSequenceAtIndex (state, 0, expected, count);
 }
 
 static int
@@ -557,91 +466,39 @@ BRRunTestWalletManagerSyncTestVerification (BRRunTestWalletManagerSyncState *sta
     int success = 1;
     pthread_mutex_lock (&state->lock);
 
-    // WalletManagerEvent checks
-
-    // check for presence of manager events
-    if (success &&
-        array_count(state->managerEvents) == 0) {
-        success = 0;
-        fprintf(stderr,
-                "***FAILED*** %s: no manager events\n",
-                __func__);
-    }
-
-    // check that each event pair is allowed
-    for (size_t index = 0; success && array_count(state->managerEvents) > 1 && index < array_count(state->managerEvents) - 1; index++) {
-        if (!_isValidWalletManagerEventPair (&state->managerEvents[index]->event, &state->managerEvents[index+1]->event)) {
-            success = 0;
-            fprintf(stderr,
-                    "***FAILED*** %s: _isValidWalletManagerEventPair(%s, %s) test\n",
-                    __func__,
-                    BRWalletManagerEventTypeString (state->managerEvents[index]->event.type),
-                    BRWalletManagerEventTypeString (state->managerEvents[index+1]->event.type));
-            break;
-        }
-    }
-
-    // WalletEvent checks
-
-    // check for presence of wallet events
-    if (success &&
-        array_count(state->walletEvents) == 0) {
-        success = 0;
-        fprintf(stderr,
-                "***FAILED*** %s: no wallet events\n",
-                __func__);
-    }
-
-    // check that each event pair is allowed
-    for (size_t index = 0; success && array_count(state->walletEvents) > 1 && index < array_count(state->walletEvents) - 1; index++) {
-        if (!_isValidWalletEventPair (&state->walletEvents[index]->event, &state->walletEvents[index+1]->event)) {
-            success = 0;
-            fprintf(stderr,
-                    "***FAILED*** %s: _isValidWalletEventPair(%s, %s) test\n",
-                    __func__,
-                    BRWalletEventTypeString (state->walletEvents[index]->event.type),
-                    BRWalletEventTypeString (state->walletEvents[index+1]->event.type));
-            break;
-        }
-    }
-
-    // Sequencing checks
-
-    // check that second event received is BITCOIN_WALLET_MANAGER_CREATED
+    // check that each manager event pair is allowed
     {
-        if (success &&
-            state->managerEvents[0]->sequenceId != 0) {
-            success = 0;
-            fprintf(stderr,
-                    "***FAILED*** %s: first event is not manager event\n",
-                    __func__);
-        }
-
-        if (success &&
-            state->managerEvents[0]->event.type != BITCOIN_WALLET_MANAGER_CREATED) {
-            success = 0;
-            fprintf(stderr,
-                    "***FAILED*** %s: first manager event is not BITCOIN_WALLET_MANAGER_CREATED\n",
-                    __func__);
+        size_t index = BRRunTestWalletManagerSyncTestGetEventByType (state, 0, SYNC_EVENT_WALLET_MANAGER_TYPE);
+        size_t nextIndex = 0;
+        while (SIZE_MAX != (nextIndex = BRRunTestWalletManagerSyncTestGetEventByType (state, index+1, SYNC_EVENT_WALLET_MANAGER_TYPE))) {
+            if (!BRWalletManagerEventTypeIsValidPair (state->events[index]->u.m.event.type, state->events[nextIndex]->u.m.event.type)) {
+                success = 0;
+                fprintf(stderr,
+                        "***FAILED*** %s: BRWalletManagerEventTypeIsValidPair(%s, %s) test\n",
+                        __func__,
+                        BRWalletManagerEventTypeString (state->events[index]->u.m.event.type),
+                        BRWalletManagerEventTypeString (state->events[nextIndex]->u.m.event.type));
+                break;
+            }
+            index = nextIndex;
         }
     }
 
-    // check that second event received is BITCOIN_WALLET_CREATED
+    // check that each wallet event pair is allowed
     {
-        if (success &&
-            state->walletEvents[0]->sequenceId != 1) {
-            success = 0;
-            fprintf(stderr,
-                    "***FAILED*** %s: second event is not wallet event\n",
-                    __func__);
-        }
-
-        if (success &&
-            state->walletEvents[0]->event.type != BITCOIN_WALLET_CREATED) {
-            success = 0;
-            fprintf(stderr,
-                    "***FAILED*** %s: first wallet event is not BITCOIN_WALLET_CREATED\n",
-                    __func__);
+        size_t index = BRRunTestWalletManagerSyncTestGetEventByType (state, 0, SYNC_EVENT_WALLET_TYPE);
+        size_t nextIndex = 0;
+        while (SIZE_MAX != (nextIndex = BRRunTestWalletManagerSyncTestGetEventByType (state, index+1, SYNC_EVENT_WALLET_TYPE))) {
+            if (!BRWalletEventTypeIsValidPair (state->events[index]->u.w.event.type, state->events[nextIndex]->u.w.event.type)) {
+                success = 0;
+                fprintf(stderr,
+                        "***FAILED*** %s: BRWalletEventTypeIsValidPair(%s, %s) test\n",
+                        __func__,
+                        BRWalletEventTypeString (state->events[index]->u.w.event.type),
+                        BRWalletEventTypeString (state->events[nextIndex]->u.w.event.type));
+                break;
+            }
+            index = nextIndex;
         }
     }
 
@@ -651,17 +508,9 @@ BRRunTestWalletManagerSyncTestVerification (BRRunTestWalletManagerSyncState *sta
 
 static void
 BRRunTestWalletManagerSyncTestTeardown (BRRunTestWalletManagerSyncState *state) {
-    for (size_t index = 0; index < array_count(state->managerEvents); index++)
-        free (state->managerEvents[index]);
-    array_free (state->managerEvents);
-
-    for (size_t index = 0; index < array_count(state->walletEvents); index++)
-        free (state->walletEvents[index]);
-    array_free (state->walletEvents);
-
-    for (size_t index = 0; index < array_count(state->transactionEvents); index++)
-        free (state->transactionEvents[index]);
-    array_free (state->transactionEvents);
+    for (size_t index = 0; index < array_count(state->events); index++)
+        free (state->events[index]);
+    array_free (state->events);
 
     pthread_mutex_destroy (&state->lock);
 }
@@ -705,7 +554,7 @@ BRRunTestWalletManagerSyncForMode (const char *funcName,
 
     printf("%s testing BRWalletManager events for %s mode, %u epoch, %" PRIu64 " height on \"%s:%s\" with %s as storage...\n",
            funcName,
-           _BRSyncModeString (mode),
+           BRSyncModeString (mode),
            earliestKeyTime,
            blockHeight,
            isBTC ? "btc": "bch",
@@ -718,7 +567,7 @@ BRRunTestWalletManagerSyncForMode (const char *funcName,
 
         // Test setup
         BRRunTestWalletManagerSyncState state = {0};
-        BRRunTestWalletManagerSyncTestSetup (&state, blockHeight);
+        BRRunTestWalletManagerSyncTestSetupAsDefault (&state, blockHeight);
 
         BRWalletManager manager = BRRunTestWalletManagerSyncBwmSetup (mode, &state, paperKey, storagePath, earliestKeyTime, blockHeight, isBTC, isMainnet);
         BRWalletManagerStart (manager);
@@ -734,6 +583,27 @@ BRRunTestWalletManagerSyncForMode (const char *funcName,
         sleep(1);
 
         // Verification
+        success = BRRunTestWalletManagerSyncTestVerifyEventSequenceExact(&state,
+                                                                         (BRWalletManagerSyncEvent []) {
+                                                                             BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_CREATED),
+                                                                             BRWalletManagerSyncEventForWalletType(BITCOIN_WALLET_CREATED),
+                                                                             // fast event sequence
+                                                                             BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_CONNECTED),
+                                                                             BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_SYNC_STARTED),
+                                                                             BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_SYNC_STOPPED),
+                                                                             BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_DISCONNECTED),
+                                                                             // slow event sequence
+                                                                             BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_CONNECTED),
+                                                                             BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_SYNC_STARTED),
+                                                                             BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_SYNC_STOPPED),
+                                                                             BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_DISCONNECTED),
+                                                                         },
+                                                                         10);
+        if (!success) {
+            fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerifyEventSequenceExact failed\n", funcName, __LINE__);
+            return success;
+        }
+
         success = BRRunTestWalletManagerSyncTestVerification (&state);
         if (!success) {
             fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerification failed\n", funcName, __LINE__);
@@ -753,7 +623,7 @@ BRRunTestWalletManagerSyncForMode (const char *funcName,
 
         // Test setup
         BRRunTestWalletManagerSyncState state = {0};
-        BRRunTestWalletManagerSyncTestSetup (&state, blockHeight);
+        BRRunTestWalletManagerSyncTestSetupAsDefault (&state, blockHeight);
 
         BRWalletManager manager = BRRunTestWalletManagerSyncBwmSetup (mode, &state, paperKey, storagePath, earliestKeyTime, blockHeight, isBTC, isMainnet);
         BRWalletManagerStart (manager);
@@ -774,6 +644,22 @@ BRRunTestWalletManagerSyncForMode (const char *funcName,
         sleep(1);
 
         // Verification
+        // TODO(fix): Inconsistency between P2P and BRD modes; is that OK?
+        success = BRRunTestWalletManagerSyncTestVerifyEventSequence(&state,
+                                                                    (BRWalletManagerSyncEvent []) {
+                                                                        BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_CREATED),
+                                                                        BRWalletManagerSyncEventForWalletType(BITCOIN_WALLET_CREATED),
+                                                                        BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_CONNECTED),
+                                                                        BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_SYNC_STARTED),
+                                                                        BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_SYNC_STOPPED),
+                                                                        BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_DISCONNECTED),
+                                                                    },
+                                                                    6);
+        if (!success) {
+            fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerifyEventSequence failed\n", funcName, __LINE__);
+            return success;
+        }
+
         success = BRRunTestWalletManagerSyncTestVerification (&state);
         if (!success) {
             fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerification failed\n", funcName, __LINE__);
@@ -793,7 +679,7 @@ BRRunTestWalletManagerSyncForMode (const char *funcName,
 
         // Test setup
         BRRunTestWalletManagerSyncState state = {0};
-        BRRunTestWalletManagerSyncTestSetup (&state, blockHeight);
+        BRRunTestWalletManagerSyncTestSetupAsDefault (&state, blockHeight);
 
         BRWalletManager manager = BRRunTestWalletManagerSyncBwmSetup (mode, &state, paperKey, storagePath, earliestKeyTime, blockHeight, isBTC, isMainnet);
         BRWalletManagerStart (manager);
@@ -812,6 +698,17 @@ BRRunTestWalletManagerSyncForMode (const char *funcName,
         sleep(1);
 
         // Verification
+        success = BRRunTestWalletManagerSyncTestVerifyEventSequenceExact(&state,
+                                                                         (BRWalletManagerSyncEvent []) {
+                                                                             BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_CREATED),
+                                                                             BRWalletManagerSyncEventForWalletType(BITCOIN_WALLET_CREATED)
+                                                                         },
+                                                                         2);
+        if (!success) {
+            fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerifyEventSequenceExact failed\n", funcName, __LINE__);
+            return success;
+        }
+
         success = BRRunTestWalletManagerSyncTestVerification (&state);
         if (!success) {
             fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerification failed\n", funcName, __LINE__);
@@ -831,7 +728,7 @@ BRRunTestWalletManagerSyncForMode (const char *funcName,
 
         // Test setup
         BRRunTestWalletManagerSyncState state = {0};
-        BRRunTestWalletManagerSyncTestSetup (&state, blockHeight);
+        BRRunTestWalletManagerSyncTestSetupAsDefault (&state, blockHeight);
 
         BRWalletManager manager = BRRunTestWalletManagerSyncBwmSetup (mode, &state, paperKey, storagePath, earliestKeyTime, blockHeight, isBTC, isMainnet);
         BRWalletManagerStart (manager);
@@ -850,6 +747,22 @@ BRRunTestWalletManagerSyncForMode (const char *funcName,
         sleep(1);
 
         // Verification
+        // TODO(fix): Inconsistency between P2P and BRD modes; is that OK?
+        success = BRRunTestWalletManagerSyncTestVerifyEventSequence(&state,
+                                                                    (BRWalletManagerSyncEvent []) {
+                                                                        BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_CREATED),
+                                                                        BRWalletManagerSyncEventForWalletType(BITCOIN_WALLET_CREATED),
+                                                                        BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_CONNECTED),
+                                                                        BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_SYNC_STARTED),
+                                                                        BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_SYNC_STOPPED),
+                                                                        BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_DISCONNECTED),
+                                                                    },
+                                                                    6);
+        if (!success) {
+            fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerifyEventSequence failed\n", funcName, __LINE__);
+            return success;
+        }
+
         success = BRRunTestWalletManagerSyncTestVerification (&state);
         if (!success) {
             fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerification failed\n", funcName, __LINE__);
@@ -869,7 +782,7 @@ BRRunTestWalletManagerSyncForMode (const char *funcName,
 
         // Test setup
         BRRunTestWalletManagerSyncState state = {0};
-        BRRunTestWalletManagerSyncTestSetup (&state, blockHeight);
+        BRRunTestWalletManagerSyncTestSetupAsDefault (&state, blockHeight);
 
         BRWalletManager manager = BRRunTestWalletManagerSyncBwmSetup (mode, &state, paperKey, storagePath, earliestKeyTime, blockHeight, isBTC, isMainnet);
         BRWalletManagerStart (manager);
@@ -894,6 +807,22 @@ BRRunTestWalletManagerSyncForMode (const char *funcName,
         sleep(1);
 
         // Verification
+        // TODO(fix): Inconsistency between P2P and BRD modes; is that OK?
+        success = BRRunTestWalletManagerSyncTestVerifyEventSequence(&state,
+                                                                    (BRWalletManagerSyncEvent []) {
+                                                                        BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_CREATED),
+                                                                        BRWalletManagerSyncEventForWalletType(BITCOIN_WALLET_CREATED),
+                                                                        BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_CONNECTED),
+                                                                        BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_SYNC_STARTED),
+                                                                        BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_SYNC_STOPPED),
+                                                                        BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_DISCONNECTED),
+                                                                    },
+                                                                    6);
+        if (!success) {
+            fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerifyEventSequence failed\n", funcName, __LINE__);
+            return success;
+        }
+
         success = BRRunTestWalletManagerSyncTestVerification (&state);
         if (!success) {
             fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerification failed\n", funcName, __LINE__);
@@ -913,7 +842,7 @@ BRRunTestWalletManagerSyncForMode (const char *funcName,
 
         // Test setup
         BRRunTestWalletManagerSyncState state = {0};
-        BRRunTestWalletManagerSyncTestSetup (&state, blockHeight);
+        BRRunTestWalletManagerSyncTestSetupAsDefault (&state, blockHeight);
 
         BRWalletManager manager = BRRunTestWalletManagerSyncBwmSetup (mode, &state, paperKey, storagePath, earliestKeyTime, blockHeight, isBTC, isMainnet);
         BRWalletManagerStart (manager);
@@ -932,6 +861,22 @@ BRRunTestWalletManagerSyncForMode (const char *funcName,
         sleep(1);
 
         // Verification
+        // TODO(fix): Inconsistency between P2P and BRD modes; is that OK?
+        success = BRRunTestWalletManagerSyncTestVerifyEventSequence(&state,
+                                                                    (BRWalletManagerSyncEvent []) {
+                                                                        BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_CREATED),
+                                                                        BRWalletManagerSyncEventForWalletType(BITCOIN_WALLET_CREATED),
+                                                                        BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_CONNECTED),
+                                                                        BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_SYNC_STARTED),
+                                                                        BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_SYNC_STOPPED),
+                                                                        BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_DISCONNECTED),
+                                                                    },
+                                                                    6);
+        if (!success) {
+            fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerifyEventSequence failed\n", funcName, __LINE__);
+            return success;
+        }
+
         success = BRRunTestWalletManagerSyncTestVerification (&state);
         if (!success) {
             fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerification failed\n", funcName, __LINE__);
@@ -951,7 +896,7 @@ BRRunTestWalletManagerSyncForMode (const char *funcName,
 
         // Test setup
         BRRunTestWalletManagerSyncState state = {0};
-        BRRunTestWalletManagerSyncTestSetup (&state, blockHeight);
+        BRRunTestWalletManagerSyncTestSetupAsDefault (&state, blockHeight);
 
         BRWalletManager manager = BRRunTestWalletManagerSyncBwmSetup (mode, &state, paperKey, storagePath, earliestKeyTime, blockHeight, isBTC, isMainnet);
         BRWalletManagerStart (manager);
@@ -973,6 +918,22 @@ BRRunTestWalletManagerSyncForMode (const char *funcName,
         sleep(1);
 
         // Verification
+        // TODO(fix): Inconsistency between P2P and BRD modes; is that OK?
+        success = BRRunTestWalletManagerSyncTestVerifyEventSequence(&state,
+                                                                    (BRWalletManagerSyncEvent []) {
+                                                                        BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_CREATED),
+                                                                        BRWalletManagerSyncEventForWalletType(BITCOIN_WALLET_CREATED),
+                                                                        BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_CONNECTED),
+                                                                        BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_SYNC_STARTED),
+                                                                        BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_SYNC_STOPPED),
+                                                                        BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_DISCONNECTED),
+                                                                    },
+                                                                    6);
+        if (!success) {
+            fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerifyEventSequence failed\n", funcName, __LINE__);
+            return success;
+        }
+
         success = BRRunTestWalletManagerSyncTestVerification (&state);
         if (!success) {
             fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerification failed\n", funcName, __LINE__);
@@ -992,7 +953,7 @@ BRRunTestWalletManagerSyncForMode (const char *funcName,
 
         // Test setup
         BRRunTestWalletManagerSyncState state = {0};
-        BRRunTestWalletManagerSyncTestSetup (&state, blockHeight);
+        BRRunTestWalletManagerSyncTestSetupAsDefault (&state, blockHeight);
 
         BRWalletManager manager = BRRunTestWalletManagerSyncBwmSetup (mode, &state, paperKey, storagePath, earliestKeyTime, blockHeight, isBTC, isMainnet);
         BRWalletManagerStart (manager);
@@ -1008,6 +969,17 @@ BRRunTestWalletManagerSyncForMode (const char *funcName,
         sleep(1);
 
         // Verification
+        success = BRRunTestWalletManagerSyncTestVerifyEventSequenceExact(&state,
+                                                                         (BRWalletManagerSyncEvent []) {
+                                                                             BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_CREATED),
+                                                                             BRWalletManagerSyncEventForWalletType(BITCOIN_WALLET_CREATED),
+                                                                         },
+                                                                         2);
+        if (!success) {
+            fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerifyEventSequence failed\n", funcName, __LINE__);
+            return success;
+        }
+
         success = BRRunTestWalletManagerSyncTestVerification (&state);
         if (!success) {
             fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerification failed\n", funcName, __LINE__);
@@ -1027,7 +999,7 @@ BRRunTestWalletManagerSyncForMode (const char *funcName,
 
         // Test setup
         BRRunTestWalletManagerSyncState state = {0};
-        BRRunTestWalletManagerSyncTestSetup (&state, blockHeight);
+        BRRunTestWalletManagerSyncTestSetup (&state, blockHeight, 1);
 
         BRWalletManager manager = BRRunTestWalletManagerSyncBwmSetup (mode, &state, paperKey, storagePath, earliestKeyTime, blockHeight, isBTC, isMainnet);
         BRWalletManagerStart (manager);
@@ -1055,6 +1027,16 @@ BRRunTestWalletManagerSyncForMode (const char *funcName,
         }
 
         // Verification
+        success = BRRunTestWalletManagerSyncTestVerifyEventSequence(&state,
+                                                                    (BRWalletManagerSyncEvent []) {
+                                                                        BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_CREATED),
+                                                                        BRWalletManagerSyncEventForWalletType(BITCOIN_WALLET_CREATED)},
+                                                                    2);
+        if (!success) {
+            fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerifyEventSequence failed\n", funcName, __LINE__);
+            return success;
+        }
+
         success = BRRunTestWalletManagerSyncTestVerification (&state);
         if (!success) {
             fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerification failed\n", funcName, __LINE__);
@@ -1086,8 +1068,8 @@ BRRunTestWalletManagerSyncAllModes (const char *testName,
 
     printf("%s testing BRWalletManager events for %s -> %s modes, %u epoch, %" PRIu64 " height on \"%s:%s\" with %s as storage...\n",
            testName,
-           _BRSyncModeString (primaryMode),
-           _BRSyncModeString (secondaryMode),
+           BRSyncModeString (primaryMode),
+           BRSyncModeString (secondaryMode),
            earliestKeyTime,
            blockHeight,
            isBTC ? "btc": "bch",
@@ -1100,7 +1082,7 @@ BRRunTestWalletManagerSyncAllModes (const char *testName,
 
         // Test setup
         BRRunTestWalletManagerSyncState state = {0};
-        BRRunTestWalletManagerSyncTestSetup (&state, blockHeight);
+        BRRunTestWalletManagerSyncTestSetupAsDefault (&state, blockHeight);
 
         BRWalletManager manager = BRRunTestWalletManagerSyncBwmSetup (primaryMode, &state, paperKey, storagePath, earliestKeyTime, blockHeight, isBTC, isMainnet);
         BRWalletManagerStart (manager);
@@ -1114,6 +1096,17 @@ BRRunTestWalletManagerSyncAllModes (const char *testName,
         sleep (1);
 
         // Verification
+        success = BRRunTestWalletManagerSyncTestVerifyEventSequenceExact(&state,
+                                                                         (BRWalletManagerSyncEvent []) {
+                                                                             BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_CREATED),
+                                                                             BRWalletManagerSyncEventForWalletType(BITCOIN_WALLET_CREATED)
+                                                                         },
+                                                                         2);
+        if (!success) {
+            fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerifyEventSequenceExact failed\n", testName, __LINE__);
+            return success;
+        }
+
         success = BRRunTestWalletManagerSyncTestVerification (&state);
         if (!success) {
             fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerification failed\n", testName, __LINE__);
@@ -1134,7 +1127,7 @@ BRRunTestWalletManagerSyncAllModes (const char *testName,
 
         // Test setup
         BRRunTestWalletManagerSyncState state = {0};
-        BRRunTestWalletManagerSyncTestSetup (&state, blockHeight);
+        BRRunTestWalletManagerSyncTestSetupAsDefault (&state, blockHeight);
 
         BRWalletManager manager = BRRunTestWalletManagerSyncBwmSetup (primaryMode, &state, paperKey, storagePath, earliestKeyTime, blockHeight, isBTC, isMainnet);
         BRWalletManagerStart (manager);
@@ -1142,19 +1135,32 @@ BRRunTestWalletManagerSyncAllModes (const char *testName,
         // swap modes while connected
         BRWalletManagerConnect (manager);
         sleep (1);
-        BRWalletManagerSetMode (manager, primaryMode);
-        BRWalletManagerConnect (manager);
-        sleep (1);
         BRWalletManagerSetMode (manager, secondaryMode);
-        BRWalletManagerConnect (manager);
-        sleep (1);
-        BRWalletManagerSetMode (manager, primaryMode);
         BRWalletManagerConnect (manager);
         sleep (1);
         BRWalletManagerDisconnect (manager);
         sleep (1);
 
         // Verification
+        success = BRRunTestWalletManagerSyncTestVerifyEventSequenceExact(&state,
+                                                                         (BRWalletManagerSyncEvent []) {
+                                                                             BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_CREATED),
+                                                                             BRWalletManagerSyncEventForWalletType(BITCOIN_WALLET_CREATED),
+                                                                             BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_CONNECTED),
+                                                                             BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_SYNC_STARTED),
+                                                                             BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_SYNC_STOPPED),
+                                                                             BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_DISCONNECTED),
+                                                                             BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_CONNECTED),
+                                                                             BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_SYNC_STARTED),
+                                                                             BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_SYNC_STOPPED),
+                                                                             BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_DISCONNECTED),
+                                                                         },
+                                                                         10);
+        if (!success) {
+            fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerifyEventSequenceExact failed\n", testName, __LINE__);
+            return success;
+        }
+
         success = BRRunTestWalletManagerSyncTestVerification (&state);
         if (!success) {
             fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerification failed\n", testName, __LINE__);
@@ -1175,7 +1181,7 @@ BRRunTestWalletManagerSyncAllModes (const char *testName,
 
         // Test setup
         BRRunTestWalletManagerSyncState state = {0};
-        BRRunTestWalletManagerSyncTestSetup (&state, blockHeight);
+        BRRunTestWalletManagerSyncTestSetupAsDefault (&state, blockHeight);
 
         BRWalletManager manager = BRRunTestWalletManagerSyncBwmSetup (primaryMode, &state, paperKey, storagePath, earliestKeyTime, blockHeight, isBTC, isMainnet);
         BRWalletManagerStart (manager);
@@ -1183,19 +1189,24 @@ BRRunTestWalletManagerSyncAllModes (const char *testName,
         // swap modes while scanning
         BRWalletManagerScan (manager);
         sleep (1);
-        BRWalletManagerSetMode (manager, primaryMode);
-        BRWalletManagerScan (manager);
-        sleep (1);
         BRWalletManagerSetMode (manager, secondaryMode);
-        BRWalletManagerScan (manager);
-        sleep (1);
-        BRWalletManagerSetMode (manager, primaryMode);
         BRWalletManagerScan (manager);
         sleep (1);
         BRWalletManagerDisconnect (manager);
         sleep (1);
 
         // Verification
+        success = BRRunTestWalletManagerSyncTestVerifyEventSequenceExact(&state,
+                                                                         (BRWalletManagerSyncEvent []) {
+                                                                             BRWalletManagerSyncEventForWalletManagerType (BITCOIN_WALLET_MANAGER_CREATED),
+                                                                             BRWalletManagerSyncEventForWalletType(BITCOIN_WALLET_CREATED),
+                                                                         },
+                                                                         2);
+        if (!success) {
+            fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerifyEventSequenceExact failed\n", testName, __LINE__);
+            return success;
+        }
+
         success = BRRunTestWalletManagerSyncTestVerification (&state);
         if (!success) {
             fprintf(stderr, "***FAILED*** %s:%d: BRRunTestWalletManagerSyncTestVerification failed\n", testName, __LINE__);
@@ -1215,7 +1226,7 @@ BRRunTestWalletManagerSyncAllModes (const char *testName,
 
         // Test setup
         BRRunTestWalletManagerSyncState state = {0};
-        BRRunTestWalletManagerSyncTestSetup (&state, blockHeight);
+        BRRunTestWalletManagerSyncTestSetup (&state, blockHeight, 1);
 
         BRWalletManager manager = BRRunTestWalletManagerSyncBwmSetup (primaryMode, &state, paperKey, storagePath, earliestKeyTime, blockHeight, isBTC, isMainnet);
         BRWalletManagerStart (manager);

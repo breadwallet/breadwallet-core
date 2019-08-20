@@ -770,20 +770,21 @@ BRClientSyncManagerScan(BRClientSyncManager manager) {
     uint8_t needSyncEvent       = 0;
 
     if (0 == pthread_mutex_lock (&manager->lock)) {
-        if (!manager->isConnected) {
-            manager->isConnected = 1;
+        // Mirror BRPeerManager's behaviour in that BRPeerManagerRescan only
+        // has an effect if we are connected (i.e. it does not perform a
+        // connect)
+        if (manager->isConnected) {
             needConnectionEvent = 1;
-        } else {
             // We are already connected. Checkf for a full scan in progress
             // and then wipe the current scan state so that a new one will be
             // triggered.
             needSyncEvent = manager->scanState.isFullScan;
             memset(&manager->scanState, 0, sizeof(manager->scanState));
-        }
 
-        // Reset the height that we've synced to to be the initial height.
-        // This will trigger a full sync.
-        manager->syncedBlockHeight = manager->initBlockHeight;
+            // Reset the height that we've synced to to be the initial height.
+            // This will trigger a full sync.
+            manager->syncedBlockHeight = manager->initBlockHeight;
+        }
 
         // Send event while holding the state lock so that event
         // callbacks are ordered to reflect state transitions.
@@ -802,10 +803,15 @@ BRClientSyncManagerScan(BRClientSyncManager manager) {
             manager->eventCallback (manager->eventContext,
                                     BRClientSyncManagerAsSyncManager (manager),
                                     (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_DISCONNECTED
+                                    });
+
+            manager->eventCallback (manager->eventContext,
+                                    BRClientSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
                                         SYNC_MANAGER_CONNECTED
                                     });
         }
-
         pthread_mutex_unlock (&manager->lock);
     } else {
         assert (0);

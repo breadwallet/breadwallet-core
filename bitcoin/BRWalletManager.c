@@ -1348,6 +1348,10 @@ bwmPeriodicDispatcher (BREventHandler handler,
     BRSyncManagerTickTock (bwm->syncManager);
 }
 
+///
+/// Mark: Event Helper Routines
+///
+
 extern const char *
 BRWalletManagerEventTypeString (BRWalletManagerEventType t) {
     switch (t) {
@@ -1375,6 +1379,126 @@ BRWalletManagerEventTypeString (BRWalletManagerEventType t) {
     return "<BITCOIN_WALLET_MANAGER_EVENT_TYPE_UNKNOWN>";
 }
 
+extern int
+BRWalletManagerEventTypeIsValidPair (BRWalletManagerEventType t1, BRWalletManagerEventType t2) {
+    int isValid = 0;
+    switch (t1) {
+        case BITCOIN_WALLET_MANAGER_CREATED:
+            switch (t2) {
+                case BITCOIN_WALLET_MANAGER_CONNECTED:
+                isValid = 1;
+                break;
+
+                case BITCOIN_WALLET_MANAGER_CREATED:
+                case BITCOIN_WALLET_MANAGER_DISCONNECTED:
+                case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
+                case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
+                case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
+                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+                isValid = 0;
+                break;
+            }
+        break;
+        case BITCOIN_WALLET_MANAGER_CONNECTED:
+            switch (t2) {
+                case BITCOIN_WALLET_MANAGER_DISCONNECTED:
+                case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
+                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+                isValid = 1;
+                break;
+
+                case BITCOIN_WALLET_MANAGER_CREATED:
+                case BITCOIN_WALLET_MANAGER_CONNECTED:
+                case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
+                case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
+                isValid = 0;
+                break;
+            }
+        break;
+        case BITCOIN_WALLET_MANAGER_DISCONNECTED:
+            switch (t2) {
+                case BITCOIN_WALLET_MANAGER_CONNECTED:
+                isValid = 1;
+                break;
+
+                case BITCOIN_WALLET_MANAGER_CREATED:
+                case BITCOIN_WALLET_MANAGER_DISCONNECTED:
+                case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
+                case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
+                case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
+                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+                isValid = 0;
+                break;
+            }
+        break;
+        case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
+            switch (t2) {
+                case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
+                case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
+                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+                isValid = 1;
+                break;
+
+                case BITCOIN_WALLET_MANAGER_CREATED:
+                case BITCOIN_WALLET_MANAGER_CONNECTED:
+                case BITCOIN_WALLET_MANAGER_DISCONNECTED:
+                case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
+                isValid = 0;
+                break;
+            }
+        break;
+        case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
+            switch (t2) {
+                case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
+                case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
+                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+                isValid = 1;
+                break;
+
+                case BITCOIN_WALLET_MANAGER_CREATED:
+                case BITCOIN_WALLET_MANAGER_CONNECTED:
+                case BITCOIN_WALLET_MANAGER_DISCONNECTED:
+                case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
+                isValid = 0;
+                break;
+            }
+        break;
+        case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
+            switch (t2) {
+                case BITCOIN_WALLET_MANAGER_DISCONNECTED:
+                case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
+                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+                isValid = 1;
+                break;
+
+                case BITCOIN_WALLET_MANAGER_CREATED:
+                case BITCOIN_WALLET_MANAGER_CONNECTED:
+                case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
+                case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
+                isValid = 0;
+                break;
+            }
+        break;
+        case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+            switch (t2) {
+                case BITCOIN_WALLET_MANAGER_DISCONNECTED:
+                case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
+                case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
+                case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
+                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+                isValid = 1;
+                break;
+
+                case BITCOIN_WALLET_MANAGER_CREATED:
+                case BITCOIN_WALLET_MANAGER_CONNECTED:
+                isValid = 0;
+                break;
+            }
+        break;
+    }
+    return isValid;
+}
+
 extern const char *
 BRWalletEventTypeString (BRWalletEventType t) {
     switch (t) {
@@ -1392,6 +1516,101 @@ BRWalletEventTypeString (BRWalletEventType t) {
         return "BITCOIN_WALLET_DELETED";
     }
     return "<BITCOIN_WALLET_EVENT_TYPE_UNKNOWN>";
+}
+
+extern int
+BRWalletEventTypeIsValidPair (BRWalletEventType t1, BRWalletEventType t2) {
+    int isValid = 0;
+    switch (t1) {
+        case BITCOIN_WALLET_CREATED:
+            switch (t2) {
+                case BITCOIN_WALLET_BALANCE_UPDATED:
+                case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
+                case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
+                case BITCOIN_WALLET_FEE_ESTIMATED:
+                case BITCOIN_WALLET_DELETED:
+                isValid = 1;
+                break;
+
+                case BITCOIN_WALLET_CREATED:
+                isValid = 0;
+                break;
+            }
+        break;
+        case BITCOIN_WALLET_BALANCE_UPDATED:
+            switch (t2) {
+                case BITCOIN_WALLET_BALANCE_UPDATED:
+                case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
+                case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
+                case BITCOIN_WALLET_FEE_ESTIMATED:
+                case BITCOIN_WALLET_DELETED:
+                isValid = 1;
+                break;
+
+                case BITCOIN_WALLET_CREATED:
+                isValid = 0;
+                break;
+            }
+        break;
+        case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
+            switch (t2) {
+                case BITCOIN_WALLET_BALANCE_UPDATED:
+                case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
+                case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
+                case BITCOIN_WALLET_FEE_ESTIMATED:
+                case BITCOIN_WALLET_DELETED:
+                isValid = 1;
+                break;
+
+                case BITCOIN_WALLET_CREATED:
+                isValid = 0;
+                break;
+            }
+        break;
+        case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
+            switch (t2) {
+                case BITCOIN_WALLET_BALANCE_UPDATED:
+                case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
+                case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
+                case BITCOIN_WALLET_FEE_ESTIMATED:
+                case BITCOIN_WALLET_DELETED:
+                isValid = 1;
+                break;
+
+                case BITCOIN_WALLET_CREATED:
+                isValid = 0;
+                break;
+            }
+        break;
+        case BITCOIN_WALLET_FEE_ESTIMATED:
+            switch (t2) {
+                case BITCOIN_WALLET_BALANCE_UPDATED:
+                case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
+                case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
+                case BITCOIN_WALLET_FEE_ESTIMATED:
+                case BITCOIN_WALLET_DELETED:
+                isValid = 1;
+                break;
+
+                case BITCOIN_WALLET_CREATED:
+                isValid = 0;
+                break;
+            }
+        break;
+        case BITCOIN_WALLET_DELETED:
+            switch (t2) {
+                case BITCOIN_WALLET_CREATED:
+                case BITCOIN_WALLET_BALANCE_UPDATED:
+                case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
+                case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
+                case BITCOIN_WALLET_FEE_ESTIMATED:
+                case BITCOIN_WALLET_DELETED:
+                isValid = 0;
+                break;
+            }
+        break;
+    }
+    return isValid;
 }
 
 extern const char *

@@ -25,3 +25,17 @@
 //
 
 #include "BRSyncMode.h"
+
+extern const char *
+BRSyncModeString (BRSyncMode m) {
+    switch (m) {
+        case SYNC_MODE_BRD_ONLY:
+        return "SYNC_MODE_BRD_ONLY";
+        case SYNC_MODE_BRD_WITH_P2P_SEND:
+        return "SYNC_MODE_BRD_WITH_P2P_SEND";
+        case SYNC_MODE_P2P_WITH_BRD_SYNC:
+        return "SYNC_MODE_P2P_WITH_BRD_SYNC";
+        case SYNC_MODE_P2P_ONLY:
+        return "SYNC_MODE_P2P_ONLY";
+    }
+}
