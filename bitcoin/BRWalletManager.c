@@ -688,7 +688,7 @@ BRWalletManagerStart (BRWalletManager manager) {
 
 extern void
 BRWalletManagerStop (BRWalletManager manager) {
-    BRSyncManagerDisconnect (manager->syncManager);
+    BRWalletManagerDisconnect (manager);
     eventHandlerStop (manager->handler);
 }
 
@@ -1389,6 +1389,7 @@ BRWalletManagerEventTypeIsValidPair (BRWalletManagerEventType t1, BRWalletManage
         case BITCOIN_WALLET_MANAGER_CREATED:
             switch (t2) {
                 case BITCOIN_WALLET_MANAGER_CONNECTED:
+                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
                 isValid = 1;
                 break;
 
@@ -1397,7 +1398,6 @@ BRWalletManagerEventTypeIsValidPair (BRWalletManagerEventType t1, BRWalletManage
                 case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
                 case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
                 case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
-                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
                 isValid = 0;
                 break;
             }
@@ -1421,6 +1421,7 @@ BRWalletManagerEventTypeIsValidPair (BRWalletManagerEventType t1, BRWalletManage
         case BITCOIN_WALLET_MANAGER_DISCONNECTED:
             switch (t2) {
                 case BITCOIN_WALLET_MANAGER_CONNECTED:
+                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
                 isValid = 1;
                 break;
 
@@ -1429,7 +1430,6 @@ BRWalletManagerEventTypeIsValidPair (BRWalletManagerEventType t1, BRWalletManage
                 case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
                 case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
                 case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
-                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
                 isValid = 0;
                 break;
             }
@@ -1484,6 +1484,7 @@ BRWalletManagerEventTypeIsValidPair (BRWalletManagerEventType t1, BRWalletManage
         break;
         case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
             switch (t2) {
+                case BITCOIN_WALLET_MANAGER_CONNECTED:
                 case BITCOIN_WALLET_MANAGER_DISCONNECTED:
                 case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
                 case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
@@ -1493,7 +1494,6 @@ BRWalletManagerEventTypeIsValidPair (BRWalletManagerEventType t1, BRWalletManage
                 break;
 
                 case BITCOIN_WALLET_MANAGER_CREATED:
-                case BITCOIN_WALLET_MANAGER_CONNECTED:
                 isValid = 0;
                 break;
             }
