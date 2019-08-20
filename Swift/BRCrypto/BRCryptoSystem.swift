@@ -1169,8 +1169,13 @@ extension System {
 extension System {
     public typealias TransactionBlob = (
         bytes: [UInt8],
-        blockheight: UInt32?,
-        timestamp: UInt32?)
+        blockheight: UInt32,
+        timestamp: UInt32) // time interval since unix epoch (including '0'
+
+    public typealias BlockHash = [UInt8]
+    private func validateBlockHash (_ hash: BlockHash) -> Bool {
+        return 32 == hash.count
+    }
 
     public typealias BlockBlob = (
         height: UInt32,
@@ -1180,13 +1185,30 @@ extension System {
         version: UInt32,
         timestamp: UInt32?,
         flags: [UInt8],
-        hashes: [UInt256],    // Hash
-        merkleRoot: UInt256,  // Hash
-        prevBlock: UInt256    // Hash
+        hashes: [BlockHash],
+        merkleRoot: BlockHash,
+        prevBlock: BlockHash
     )
 
     public typealias PeerBlob = (
     )
+
+    enum MigrateError: Error {
+        /// Migrate does not apply to this network
+        case invalid
+
+        /// Migrate couldn't access the file system
+        case create
+
+        /// Migrate failed to parse or to save a transaction
+        case transaction
+
+        /// Migrate failed to parse or to save a block
+        case block
+
+        /// Migrate failed to parse or to save a peer.
+        case peer
+    }
 
     ///
     /// Migrate the storage for a network given transaction, block and peer blobs.
@@ -1197,38 +1219,67 @@ extension System {
     ///   - blockBlobs:
     ///   - peerBlobs:
     ///
+    /// - Throws: MigrateError
+    ///
     public func migrateStorage (network: Network,
                                 transactionBlobs: [TransactionBlob],
                                 blockBlobs: [BlockBlob],
-                                peerBlobs: [PeerBlob]) {
-        switch network.currency.code.lowercased() {
-            case Currency.codeAsBTC,
-                 Currency.codeAsBCH:
-                break;
-        default:
-            preconditionFailure ("Migration only applies to BTC and BCH")
-        }
+                                peerBlobs: [PeerBlob]) throws {
+        guard migrateRequired (network: network)
+            else { throw MigrateError.invalid }
 
-        let migrator = cryptoWalletMigratorCreate (network.core, path)
+        guard let migrator = cryptoWalletMigratorCreate (network.core, path)
+            else { throw MigrateError.create }
         defer { cryptoWalletMigratorRelease (migrator) }
 
-        transactionBlobs.forEach { (blob: TransactionBlob) in
+        try transactionBlobs.forEach { (blob: TransactionBlob) in
             var bytes = blob.bytes
-            cryptoWalletMigratorHandleTransaction (migrator,
-                                                   &bytes, bytes.count,
-                                                   blob.blockheight ?? 0,
-                                                   blob.timestamp ?? 0)
+            let status = cryptoWalletMigratorHandleTransaction (migrator,
+                                                                &bytes, bytes.count,
+                                                                blob.blockheight,
+                                                                blob.timestamp)
+            if status.type != CRYPTO_WALLET_MIGRATOR_SUCCESS {
+                throw MigrateError.transaction
+            }
         }
 
-        blockBlobs.forEach { (blob: BlockBlob) in
-            cryptoWalletMigratorHandleBlock (migrator,
-                                             blob.height,
-                                             blob.nonce,
-                                             blob.target)
+        try blockBlobs.forEach { (blob: BlockBlob) in
+            guard blob.hashes.allSatisfy (validateBlockHash(_:)),
+                validateBlockHash(blob.merkleRoot),
+                validateBlockHash(blob.prevBlock)
+                else { throw MigrateError.block }
+
+            var flags  = blob.flags
+            var hashes = blob.hashes
+            let hashesCount = blob.hashes.count
+
+            let merkleRoot: UInt256 = blob.merkleRoot.withUnsafeBytes { $0.load (as: UInt256.self) }
+            let prevBlock:  UInt256 = blob.prevBlock.withUnsafeBytes  { $0.load (as: UInt256.self) }
+
+            try hashes.withUnsafeMutableBytes { (hashesBytes: UnsafeMutableRawBufferPointer) -> Void in
+                let hashesAddr = hashesBytes.baseAddress?.assumingMemoryBound(to: UInt256.self)
+                let status = cryptoWalletMigratorHandleBlock (migrator,
+                                                              blob.height,
+                                                              blob.nonce,
+                                                              blob.target,
+                                                              blob.txCount,
+                                                              blob.version,
+                                                              blob.timestamp ?? 0,
+                                                              &flags, flags.count,
+                                                              hashesAddr, hashesCount,
+                                                              merkleRoot,
+                                                              prevBlock)
+                if status.type != CRYPTO_WALLET_MIGRATOR_SUCCESS {
+                    throw MigrateError.block
+                }
+            }
         }
 
-        peerBlobs.forEach { (blob: PeerBlob) in
-            cryptoWalletMigratorHandlePeer (migrator)
+        try peerBlobs.forEach { (blob: PeerBlob) in
+            let status = cryptoWalletMigratorHandlePeer (migrator)
+            if status.type != CRYPTO_WALLET_MIGRATOR_SUCCESS {
+                throw MigrateError.peer
+            }
         }
     }
 
@@ -1241,15 +1292,10 @@ extension System {
     ///
     /// - Returns: The currency code or nil
     ///
-    public func migrateRequired (network: Network) -> String? {
+    public func migrateRequired (network: Network) -> Bool {
         let code = network.currency.code.lowercased()
-        switch code {
-        case Currency.codeAsBTC,
-             Currency.codeAsBCH:
-            return code
-        default:
-            return nil
-        }
+        return code == Currency.codeAsBTC
+            || code == Currency.codeAsBCH
     }
 }
 

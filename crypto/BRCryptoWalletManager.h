@@ -196,29 +196,45 @@ extern "C" {
     
     typedef struct BRCryptoWalletMigratorRecord *BRCryptoWalletMigrator;
 
-    extern BRCryptoWalletMigrator
+    typedef enum {
+        CRYPTO_WALLET_MIGRATOR_SUCCESS,
+        CRYPTO_WALLET_MIGRATOR_ERROR_1,
+        CRYPTO_WALLET_MIGRATOR_ERROR_2,
+    } BRCryptoWalletMigratorStatusType;
+
+    typedef struct {
+        BRCryptoWalletMigratorStatusType type;
+        // union {} u;
+    } BRCryptoWalletMigratorStatus;
+
+    extern BRCryptoWalletMigrator // NULL on error
     cryptoWalletMigratorCreate (BRCryptoNetwork network,
                                 const char *storagePath);
 
     extern void
     cryptoWalletMigratorRelease (BRCryptoWalletMigrator migrator);
 
-    extern void
+    extern BRCryptoWalletMigratorStatus
     cryptoWalletMigratorHandleTransaction (BRCryptoWalletMigrator migrator,
                                            const uint8_t *bytes,
                                            size_t bytesCount,
                                            uint32_t blockHeight,
                                            uint32_t timestamp);
 
-    extern void
+    extern BRCryptoWalletMigratorStatus
     cryptoWalletMigratorHandleBlock (BRCryptoWalletMigrator migrator,
                                      uint32_t height,
                                      uint32_t nonce,
-                                     uint32_t target
-                                     // ...
-    );
+                                     uint32_t target,
+                                     uint32_t txCount,
+                                     uint32_t version,
+                                     uint32_t timestamp,
+                                     uint8_t *flags,  size_t flagsLen,
+                                     UInt256 *hashes, size_t hashesCount,
+                                     UInt256 merkleRoot,
+                                     UInt256 prevBlock);
 
-    extern void
+    extern BRCryptoWalletMigratorStatus
     cryptoWalletMigratorHandlePeer (BRCryptoWalletMigrator migrator /* ... */);
 
 #ifdef __cplusplus
