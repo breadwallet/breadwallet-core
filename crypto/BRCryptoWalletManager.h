@@ -135,6 +135,9 @@ extern "C" {
     extern BRSyncMode
     cryptoWalletManagerGetMode (BRCryptoWalletManager cwm);
 
+    extern void
+    cryptoWalletManagerSetMode (BRCryptoWalletManager cwm, BRSyncMode mode);
+
     extern BRCryptoWalletManagerState
     cryptoWalletManagerGetState (BRCryptoWalletManager cwm);
 

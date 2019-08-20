@@ -37,6 +37,8 @@ public interface WalletManager {
 
     WalletManagerMode getMode();
 
+    void setMode(WalletManagerMode mode);
+
     String getPath();
 
     Currency getCurrency();

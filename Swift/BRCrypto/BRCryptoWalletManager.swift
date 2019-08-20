@@ -43,7 +43,13 @@ public final class WalletManager: Equatable, CustomStringConvertible {
     internal let unit: Unit
 
     /// The mode determines how the manager manages the account and wallets on network
-    public let mode: WalletManagerMode
+    public var mode: WalletManagerMode {
+        get { return WalletManagerMode (core: cryptoWalletManagerGetMode (core)) }
+        set {
+            assert (system.supportsMode(network: network, newValue))
+            cryptoWalletManagerSetMode (core, newValue.core)
+        }
+    }
 
     /// The file-system path to use for persistent storage.
     public let path: String
@@ -166,7 +172,6 @@ public final class WalletManager: Equatable, CustomStringConvertible {
         self.network = network
         self.unit    = network.defaultUnitFor (currency: network.currency)!
         self.path    = asUTF8String (cryptoWalletManagerGetPath(core))
-        self.mode    = WalletManagerMode (core: cryptoWalletManagerGetMode (core))
         self.query   = system.query
 
         self.defaultNetworkFee = network.minimumFee

@@ -38,6 +38,8 @@ public interface CoreBRCryptoWalletManager {
 
     int getMode();
 
+    void setMode(int mode);
+
     String getPath();
 
     int getState();

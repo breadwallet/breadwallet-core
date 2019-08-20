@@ -72,7 +72,6 @@ cryptoWalletManagerCreateInternal (BRCryptoCWMListener listener,
                                    BRCryptoAccount account,
                                    BRCryptoBlockChainType type,
                                    BRCryptoNetwork network,
-                                   BRSyncMode mode,
                                    BRCryptoAddressScheme scheme,
                                    char *path) {
     BRCryptoWalletManager cwm = calloc (1, sizeof (struct BRCryptoWalletManagerRecord));
@@ -83,7 +82,6 @@ cryptoWalletManagerCreateInternal (BRCryptoCWMListener listener,
     cwm->network = cryptoNetworkTake (network);
     cwm->account = cryptoAccountTake (account);
     cwm->state   = CRYPTO_WALLET_MANAGER_STATE_CREATED;
-    cwm->mode = mode;
     cwm->addressScheme = scheme;
     cwm->path = strdup (path);
 
@@ -121,7 +119,6 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                                                      account,
                                                                      cryptoNetworkGetBlockChainType (network),
                                                                      network,
-                                                                     mode,
                                                                      scheme,
                                                                      cwmPath);
 
@@ -323,9 +320,34 @@ cryptoWalletManagerGetAccount (BRCryptoWalletManager cwm) {
     return cryptoAccountTake (cwm->account);
 }
 
+extern void
+cryptoWalletManagerSetMode (BRCryptoWalletManager cwm, BRSyncMode mode) {
+    switch (cwm->type) {
+        case BLOCK_CHAIN_TYPE_BTC:
+            BRWalletManagerSetMode (cwm->u.btc, mode);
+            break;
+        case BLOCK_CHAIN_TYPE_ETH:
+        case BLOCK_CHAIN_TYPE_GEN:
+        default:
+            assert (0);
+            break;
+    }
+}
+
 extern BRSyncMode
 cryptoWalletManagerGetMode (BRCryptoWalletManager cwm) {
-    return cwm->mode;
+    BRSyncMode mode = SYNC_MODE_BRD_ONLY;
+    switch (cwm->type) {
+        case BLOCK_CHAIN_TYPE_BTC:
+            mode = BRWalletManagerGetMode (cwm->u.btc);
+            break;
+        case BLOCK_CHAIN_TYPE_ETH:
+        case BLOCK_CHAIN_TYPE_GEN:
+        default:
+            assert (0);
+            break;
+    }
+    return mode;
 }
 
 extern BRCryptoWalletManagerState
