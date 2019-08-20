@@ -203,4 +203,146 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected, newState: WalletManagerState.disconnected)),
             ]))
     }
+
+    func testWalletManagerMigrateBTC () {
+        isMainnet = false
+        currencyCodesNeeded = ["btc"]
+        modeMap = ["btc":WalletManagerMode.api_only]
+        prepareAccount (AccountSpecification (dict: [
+            "identifier": "ginger",
+            "paperKey":   "ginger settle marine tissue robot crane night number ramp coast roast critic",
+            "timestamp":  "2018-01-01",
+            "network":    (isMainnet ? "mainnet" : "testnet")
+            ]))
+        prepareSystem ()
+
+        let walletManagerDisconnectExpectation = XCTestExpectation (description: "Wallet Manager Disconnect")
+        listener.managerHandlers += [
+            { (system: System, manager:WalletManager, event: WalletManagerEvent) in
+                if case let .changed(_, newState) = event, case .disconnected = newState {
+                    walletManagerDisconnectExpectation.fulfill()
+                }
+            }]
+
+        let network: Network! = system.networks.first { "btc" == $0.currency.code && isMainnet == $0.isMainnet }
+        XCTAssertNotNil (network)
+
+        let manager: WalletManager! = system.managers.first { $0.network == network }
+        XCTAssertNotNil (manager)
+
+        let wallet = manager.primaryWallet
+        XCTAssertNotNil(wallet)
+
+        // Connect
+        listener.transferCount = 25
+        manager.connect()
+        wait (for: [self.listener.transferExpectation], timeout: 120)
+
+        sleep (10) // allow some 'ongoing' syncs to occur; don't want to see events for these.
+        manager.disconnect()
+        wait (for: [walletManagerDisconnectExpectation], timeout: 5)
+
+        let transfers = wallet.transfers
+        XCTAssertTrue (transfers.count >= 25)
+        XCTAssertTrue (transfers.allSatisfy { nil != $0.hash })
+
+        // Get the blobs (for testing)
+        let transferBlobs = transfers.map { system.asBlob(transfer: $0)! }
+
+        // Create a new system with MigrateSystemListener (see below).  This listener will
+        // create a BTC wallet manager with transfers migrated from `TransferBlobs`
+        let migrateListener = MigrateSystemListener (transactionBlobs: transferBlobs)
+        let migrateQuery    = system.query
+        let migratePath     = system.path + "Migrate"
+
+        let migrateSystem = System (listener: migrateListener,
+                                    account: system.account,
+                                    onMainnet: system.onMainnet,
+                                    path: migratePath,
+                                    query: migrateQuery)
+
+        // transfers annonced on `configure`
+        migrateListener.transferCount = transfers.count
+        migrateSystem.configure()
+        wait (for: [migrateListener.migratedManagerExpectation], timeout: 30)
+        wait (for: [migrateListener.transferExpectation], timeout: 30)
+
+        // Get the transfers from the migratedManager's primary wallet.
+        let migratedTransfers = migrateListener.migratedManager.primaryWallet.transfers
+
+        // Compare the count; then compare the hash sets as equal.
+        XCTAssertEqual (transfers.count, migratedTransfers.count)
+        XCTAssertEqual (Set (transfers.map { $0.hash! }), Set (migratedTransfers.map { $0.hash! }))
+    }
+}
+
+class MigrateSystemListener: SystemListener {
+    let transactionBlobs: [System.TransactionBlob]
+
+    var migratedNetwork: Network! = nil
+    var migratedManager: WalletManager! = nil
+
+    var migratedManagerExpectation = XCTestExpectation (description: "Migrated Manager")
+    init (transactionBlobs: [System.TransactionBlob]) {
+        self.transactionBlobs = transactionBlobs
+    }
+
+    func handleSystemEvent(system: System, event: SystemEvent) {
+        switch event {
+        case .created: break
+        case .networkAdded(let network):
+            // Network of interest
+            if system.onMainnet == network.isMainnet
+                && network.currency.code == Currency.codeAsBTC
+                && nil == migratedNetwork {
+
+                migratedNetwork = network
+
+                // Migrate
+                if (system.migrateRequired(network: network)) {
+                    try! system.migrateStorage (network: network,
+                                                transactionBlobs: transactionBlobs,
+                                                blockBlobs: [],
+                                                peerBlobs: [])
+                }
+
+                // Wallet Manager
+                let _ = system.createWalletManager (network: network,
+                                                    mode: system.defaultMode(network: network),
+                                                    addressScheme: system.defaultAddressScheme(network: network))
+            }
+
+        case .managerAdded(let manager):
+            if nil == migratedManager && manager.network == migratedNetwork {
+                migratedManager = manager
+                migratedManagerExpectation.fulfill()
+            }
+        }
+    }
+
+    func handleManagerEvent(system: System, manager: WalletManager, event: WalletManagerEvent) {
+    }
+
+    func handleWalletEvent(system: System, manager: WalletManager, wallet: Wallet, event: WalletEvent) {
+    }
+
+    var transferIncluded: Bool = false
+    var transferCount: Int = 0;
+//    var transferHandlers: [TransferEventHandler] = []
+//    var transferEvents: [TransferEvent] = []
+    var transferExpectation = XCTestExpectation (description: "TransferExpectation")
+
+    func handleTransferEvent(system: System, manager: WalletManager, wallet: Wallet, transfer: Transfer, event: TransferEvent) {
+        if transferIncluded, case .included = transfer.state {
+            if 1 == transferCount { transferExpectation.fulfill()}
+            if 1 <= transferCount { transferCount -= 1 }
+        }
+        else if case .created = transfer.state {
+            if 1 == transferCount { transferExpectation.fulfill()}
+            if 1 <= transferCount { transferCount -= 1 }
+        }
+    }
+
+    func handleNetworkEvent(system: System, network: Network, event: NetworkEvent) {
+    }
 }

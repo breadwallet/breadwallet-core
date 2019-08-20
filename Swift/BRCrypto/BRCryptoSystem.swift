@@ -1169,11 +1169,11 @@ extension System {
 extension System {
     public typealias TransactionBlob = (
         bytes: [UInt8],
-        blockheight: UInt32,
+        blockHeight: UInt32,
         timestamp: UInt32) // time interval since unix epoch (including '0'
 
     public typealias BlockHash = [UInt8]
-    private func validateBlockHash (_ hash: BlockHash) -> Bool {
+    private static func validateBlockHash (_ hash: BlockHash) -> Bool {
         return 32 == hash.count
     }
 
@@ -1236,7 +1236,7 @@ extension System {
             var bytes = blob.bytes
             let status = cryptoWalletMigratorHandleTransaction (migrator,
                                                                 &bytes, bytes.count,
-                                                                blob.blockheight,
+                                                                blob.blockHeight,
                                                                 blob.timestamp)
             if status.type != CRYPTO_WALLET_MIGRATOR_SUCCESS {
                 throw MigrateError.transaction
@@ -1244,9 +1244,9 @@ extension System {
         }
 
         try blockBlobs.forEach { (blob: BlockBlob) in
-            guard blob.hashes.allSatisfy (validateBlockHash(_:)),
-                validateBlockHash(blob.merkleRoot),
-                validateBlockHash(blob.prevBlock)
+            guard blob.hashes.allSatisfy (System.validateBlockHash(_:)),
+                System.validateBlockHash(blob.merkleRoot),
+                System.validateBlockHash(blob.prevBlock)
                 else { throw MigrateError.block }
 
             var flags  = blob.flags
@@ -1297,6 +1297,29 @@ extension System {
         return code == Currency.codeAsBTC
             || code == Currency.codeAsBCH
     }
+
+    /// Testing
+
+    internal func asBlob (transfer: Transfer) -> TransactionBlob? {
+        guard migrateRequired(network: transfer.manager.network)
+            else { return nil }
+
+        var blockHeight: UInt32 = 0
+        var timestamp:   UInt32 = 0
+        var bytesCount:  size_t = 0
+        var bytes: UnsafeMutablePointer<UInt8>? = nil
+        defer { if nil != bytes { free(bytes) }}
+
+        cryptoTransferExtractBlobAsBTC (transfer.core,
+                                        &bytes, &bytesCount,
+                                        &blockHeight,
+                                        &timestamp)
+
+        return (bytes: UnsafeMutableBufferPointer<UInt8> (start: bytes, count: bytesCount).map { $0 },
+                blockHeight: blockHeight,
+                timestamp: timestamp)
+    }
+
 }
 
 extension BRCryptoTransferEventType: CustomStringConvertible {
