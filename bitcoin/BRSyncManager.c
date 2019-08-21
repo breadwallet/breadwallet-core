@@ -875,7 +875,7 @@ BRClientSyncManagerAnnounceGetBlockNumber(BRClientSyncManager manager,
     uint8_t needEvent = 0;
 
     if (0 == pthread_mutex_lock (&manager->lock)) {
-        if (blockHeight > manager->networkBlockHeight && manager->isConnected) {
+        if (blockHeight != manager->networkBlockHeight && manager->isConnected) {
             manager->networkBlockHeight = blockHeight;
             needEvent = 1;
         }
@@ -1403,19 +1403,24 @@ BRPeerSyncManagerTickTock(BRPeerSyncManager manager) {
     if (needSyncEvent) {
         if (0 == pthread_mutex_lock (&manager->lock)) {
             needSyncEvent &= manager->isConnected && manager->isFullScan;
+
+            // Send event while holding the state lock so that we
+            // don't broadcast a progress updated after a disconnected
+            // event, for example.
+
+            if (needSyncEvent) {
+                manager->eventCallback (manager->eventContext,
+                                        BRPeerSyncManagerAsSyncManager (manager),
+                                        (BRSyncManagerEvent) {
+                                            SYNC_MANAGER_SYNC_PROGRESS,
+                                            { .syncProgress = { progress * 100 }}
+                                        });
+            }
+
             pthread_mutex_unlock (&manager->lock);
         } else {
             assert (0);
         }
-    }
-
-    if (needSyncEvent) {
-        manager->eventCallback (manager->eventContext,
-                                BRPeerSyncManagerAsSyncManager (manager),
-                                (BRSyncManagerEvent) {
-                                    SYNC_MANAGER_SYNC_PROGRESS,
-                                    { .syncProgress = { progress * 100 }}
-                                });
     }
 }
 
@@ -1457,124 +1462,178 @@ static void
 _BRPeerSyncManagerSyncStarted (void *info) {
     BRPeerSyncManager manager = (BRPeerSyncManager) info;
 
-    uint8_t isFullScan = 0;
+    // This callback occurs when a sync has started. The behaviour of this function is
+    // defined as:
+    //   - If we are not in a connected state, signal that we are now connected.
+    //   - If we were already in a (full scan) syncing state, signal the termination of that
+    //     sync
+    //   - Always signal the start of a sync
 
-    // can't call BRPeerManagerConnectStatus (manager->peerManager), grabs a non-reentrant lock
-    uint8_t needConnectionEvent = 1;
     if (0 == pthread_mutex_lock (&manager->lock)) {
-        if (!manager->isConnected) {
-            manager->isConnected = 1;
-        } else {
-            needConnectionEvent = 0;
+        uint8_t needConnectionEvent = !manager->isConnected;
+        uint8_t needSyncStartedEvent = 1; // syncStarted callback always indicates a full scan
+        uint8_t needSyncStoppedEvent = manager->isFullScan;
+
+        manager->isConnected = needConnectionEvent ? 1 : manager->isConnected;
+        manager->isFullScan = needSyncStartedEvent ? 1 : manager->isFullScan;
+
+        _peer_log ("syncStarted: needConnect:%"PRIu8", needStart:%"PRIu8", needStop:%"PRIu8"\n",
+                   needConnectionEvent, needSyncStartedEvent, needSyncStoppedEvent);
+
+        // Send event while holding the state lock so that we
+        // don't broadcast a events out of order.
+
+        if (needSyncStoppedEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRPeerSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_SYNC_STOPPED,
+                                        { .syncStopped = { -1 }},
+                                    });
         }
 
-        isFullScan = manager->isFullScan;
-        manager->isFullScan = 1;
+        if (needConnectionEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRPeerSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_CONNECTED,
+                                    });
+        }
+
+        if (needSyncStartedEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRPeerSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_SYNC_STARTED,
+                                    });
+        }
+
         pthread_mutex_unlock (&manager->lock);
     } else {
         assert (0);
     }
-
-    // a full sync was already in progress, so announce its conclusion before
-    // announcing a new sync starting
-    if (isFullScan) {
-        // TODO(fix): What should the error code be?
-        manager->eventCallback (manager->eventContext,
-                                BRPeerSyncManagerAsSyncManager (manager),
-                                (BRSyncManagerEvent) {
-                                    SYNC_MANAGER_SYNC_STOPPED,
-                                    { .syncStopped = { -1 }},
-                                });
-    }
-
-    // if we weren't aware that we were connected, we are now, so announce it!
-    if (needConnectionEvent) {
-        manager->eventCallback (manager->eventContext,
-                                BRPeerSyncManagerAsSyncManager (manager),
-                                (BRSyncManagerEvent) {
-                                    SYNC_MANAGER_CONNECTED,
-                                });
-    };
-
-    // announce that a new sync has begun
-    manager->eventCallback (manager->eventContext,
-                            BRPeerSyncManagerAsSyncManager (manager),
-                            (BRSyncManagerEvent) {
-                                SYNC_MANAGER_SYNC_STARTED,
-                            });
 }
 
 static void
 _BRPeerSyncManagerSyncStopped (void *info, int reason) {
     BRPeerSyncManager manager = (BRPeerSyncManager) info;
 
-    uint8_t isFullScan = 0;
+    // This callback occurs when a sync has stopped. This MAY mean we have disconnected or it
+    // may mean that we have "caught up" to the blockchain. So, we need to first get the connectivity
+    // state of the `BRPeerManager`. The behaviour of this function is defined as:
+    //   - If we were in a (full scan) syncing state, signal the termination of that
+    //     sync
+    //   - If we were connected and are now disconnected, signal that we are now disconnected.
 
-    int8_t disconnected = BRPeerStatusDisconnected == BRPeerManagerConnectStatus (manager->peerManager);
     if (0 == pthread_mutex_lock (&manager->lock)) {
-        if (disconnected && manager->isConnected) {
-            manager->isConnected = 0;
-        } else {
-            disconnected = 0;
+        uint8_t isConnected = BRPeerStatusDisconnected != BRPeerManagerConnectStatus (manager->peerManager);
+
+        uint8_t needSyncStoppedEvent = manager->isFullScan;
+        uint8_t needDisconnectionEvent = !isConnected && manager->isConnected;
+
+        manager->isConnected = needDisconnectionEvent ? 0 : isConnected;
+        manager->isFullScan = needSyncStoppedEvent ? 0 : manager->isFullScan;
+
+        _peer_log ("syncStopped: needStop:%"PRIu8", needDisconnect:%"PRIu8"\n",
+                   needSyncStoppedEvent, needDisconnectionEvent);
+
+        // Send event while holding the state lock so that we
+        // don't broadcast a events out of order.
+
+        if (needSyncStoppedEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRPeerSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_SYNC_STOPPED,
+                                        { .syncStopped = { reason }},
+                                    });
         }
 
-        isFullScan = manager->isFullScan;
-        manager->isFullScan = 0;
+        if (needDisconnectionEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRPeerSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_DISCONNECTED,
+                                    });
+        }
         pthread_mutex_unlock (&manager->lock);
     } else {
         assert (0);
     }
-
-    // if a full sync was in progress, announce its conclusion
-    if (isFullScan) {
-        manager->eventCallback (manager->eventContext,
-                                BRPeerSyncManagerAsSyncManager (manager),
-                                (BRSyncManagerEvent) {
-                                    SYNC_MANAGER_SYNC_STOPPED,
-                                    { .syncStopped = { reason }},
-                                });
-    }
-
-    // if we weren't aware that we were disconnected, we are now, so announce it!
-    if (disconnected) {
-        manager->eventCallback (manager->eventContext,
-                                BRPeerSyncManagerAsSyncManager (manager),
-                                (BRSyncManagerEvent) {
-                                    SYNC_MANAGER_DISCONNECTED,
-                                });
-    };
 }
 
 static void
 _BRPeerSyncManagerTxStatusUpdate (void *info) {
     BRPeerSyncManager manager = (BRPeerSyncManager) info;
 
-    uint8_t needBlockHeightEvent = 0;
-    uint64_t blockHeight = BRPeerManagerLastBlockHeight (manager->peerManager);
-    BRSyncManagerEvent blockHeightEvent = (BRSyncManagerEvent) { SYNC_MANAGER_BLOCK_HEIGHT_UPDATED, { .blockHeightUpdated = { blockHeight }} };
+    // This callback occurs under a number of scenarios.
+    //
+    // One of those scenarios is when a peer has disconnected. Thus, it provides an opportunity
+    // to check if we the `BRPeerManager` is in the disconnected state as it has been observed
+    // that the `syncStopped` callback is not always called by the BRPeerManager` when this happens.
+    //
+    // Another scenario is when a block has been related by the P2P network. Thus, it provides an
+    // opportunity to get the current block height and update accordingly.
+    //
+    // The behaviour of this function is defined as:
+    //   - If we were connected and are now disconnected, signal that we are now disconnected.
+    //   - If we were in a (full scan) syncing state and are now disconnected, signal the termination of that
+    //     sync
+    //   - If the block height has changed, signal the new value
 
     if (0 == pthread_mutex_lock (&manager->lock)) {
-        if (blockHeight != manager->networkBlockHeight) {
-            manager->networkBlockHeight = blockHeight;
-            needBlockHeightEvent = 1;
+        uint8_t isConnected = BRPeerStatusDisconnected != BRPeerManagerConnectStatus (manager->peerManager);
+        uint64_t blockHeight = BRPeerManagerLastBlockHeight (manager->peerManager);
+
+        uint8_t needSyncStoppedEvent = !isConnected && manager->isConnected && manager->isFullScan;
+        uint8_t needDisconnectionEvent = !isConnected && manager->isConnected;
+        uint8_t needBlockHeightEvent = blockHeight != manager->networkBlockHeight;
+
+        manager->isConnected = needDisconnectionEvent ? 0 : manager->isConnected;
+        manager->isFullScan = needSyncStoppedEvent ? 0 : manager->isFullScan;
+        manager->networkBlockHeight = blockHeight;
+
+        _peer_log ("txStatusUpdate: needStop:%"PRIu8", needDisconnect:%"PRIu8"\n",
+                   needSyncStoppedEvent, needDisconnectionEvent);
+
+        // Send event while holding the state lock so that we
+        // don't broadcast a events out of order.
+
+        if (needBlockHeightEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRPeerSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_BLOCK_HEIGHT_UPDATED,
+                                        { .blockHeightUpdated = { blockHeight }}
+                                    });
         }
+
+        if (needSyncStoppedEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRPeerSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_SYNC_STOPPED,
+                                    });
+        }
+
+        if (needDisconnectionEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRPeerSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_DISCONNECTED,
+                                    });
+        }
+
+        manager->eventCallback (manager->eventContext,
+                                BRPeerSyncManagerAsSyncManager (manager),
+                                (BRSyncManagerEvent) {
+                                    SYNC_MANAGER_TXNS_UPDATED
+                                });
 
         pthread_mutex_unlock (&manager->lock);
     } else {
         assert (0);
     }
-
-    if (needBlockHeightEvent) {
-        manager->eventCallback (manager->eventContext,
-                                BRPeerSyncManagerAsSyncManager (manager),
-                                blockHeightEvent);
-    }
-
-    manager->eventCallback (manager->eventContext,
-                            BRPeerSyncManagerAsSyncManager (manager),
-                            (BRSyncManagerEvent) {
-                                SYNC_MANAGER_TXNS_UPDATED
-                            });
 }
 
 static int

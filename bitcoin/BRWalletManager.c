@@ -1348,7 +1348,9 @@ bwmPeriodicDispatcher (BREventHandler handler,
     BRWalletManager bwm = (BRWalletManager) event->context;
 
     assert (eventHandlerIsCurrentThread (bwm->handler));
+    pthread_mutex_lock (&bwm->lock);
     BRSyncManagerTickTock (bwm->syncManager);
+    pthread_mutex_unlock (&bwm->lock);
 }
 
 ///
