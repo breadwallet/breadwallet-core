@@ -1166,33 +1166,68 @@ extension System {
     }
 }
 
+/// Support for Persistent Storage Migration.
+///
+/// Allow prior App version to migrate their SQLite database representations of BTC/BTC
+/// transations, blocks and peers into 'Generic Crypto' - where these entities are persistently
+/// stored in the file system (by BRFileSystem).
+///
 extension System {
-    public typealias TransactionBlob = (
-        bytes: [UInt8],
-        blockHeight: UInt32,
-        timestamp: UInt32) // time interval since unix epoch (including '0'
 
+    ///
+    /// A Blob of Transaction Data
+    ///
+    /// - btc:
+    ///
+    public enum TransactionBlob {
+        case btc (
+            bytes: [UInt8],
+            blockHeight: UInt32,
+            timestamp: UInt32) // time interval since unix epoch (including '0'
+    }
+
+    ///
+    /// A BlockHash is 32-bytes of UInt8 data
+    ///
     public typealias BlockHash = [UInt8]
+
+    /// Validate `BlockHash`
     private static func validateBlockHash (_ hash: BlockHash) -> Bool {
         return 32 == hash.count
     }
 
-    public typealias BlockBlob = (
-        height: UInt32,
-        nonce: UInt32,
-        target: UInt32,
-        txCount: UInt32,
-        version: UInt32,
-        timestamp: UInt32?,
-        flags: [UInt8],
-        hashes: [BlockHash],
-        merkleRoot: BlockHash,
-        prevBlock: BlockHash
-    )
+    ///
+    /// A Blob of Block Data
+    ///
+    /// - btc:
+    ///
+    public enum BlockBlob {
+        case btc (
+            height: UInt32,
+            nonce: UInt32,
+            target: UInt32,
+            txCount: UInt32,
+            version: UInt32,
+            timestamp: UInt32?,
+            flags: [UInt8],
+            hashes: [BlockHash],
+            merkleRoot: BlockHash,
+            prevBlock: BlockHash
+        )
+    }
 
-    public typealias PeerBlob = (
-    )
+    ///
+    /// A Blob of Peer Data
+    ///
+    /// - btc:
+    ///
+    public enum PeerBlob {
+        case btc
+    }
 
+    ///
+    /// Migrate Errors
+    ///
     enum MigrateError: Error {
         /// Migrate does not apply to this network
         case invalid
@@ -1211,7 +1246,9 @@ extension System {
     }
 
     ///
-    /// Migrate the storage for a network given transaction, block and peer blobs.
+    /// Migrate the storage for a network given transaction, block and peer blobs.  The provided
+    /// blobs must be consistent with `network`.  For exmaple, if `network` represents BTC or BCH
+    /// then the blobs must be of type `.btc`; otherwise a MigrateError is thrown.
     ///
     /// - Parameters:
     ///   - network:
@@ -1228,13 +1265,36 @@ extension System {
         guard migrateRequired (network: network)
             else { throw MigrateError.invalid }
 
+        switch network.currency.code.lowercased() {
+        case Currency.codeAsBTC,
+             Currency.codeAsBCH:
+            try migrateStorageAsBTC(network: network,
+                                    transactionBlobs: transactionBlobs,
+                                    blockBlobs: blockBlobs,
+                                    peerBlobs: peerBlobs)
+        default:
+            throw MigrateError.invalid
+        }
+    }
+
+    ///
+    /// Migrate storage for BTC
+    ///
+    private func migrateStorageAsBTC (network: Network,
+                                      transactionBlobs: [TransactionBlob],
+                                      blockBlobs: [BlockBlob],
+                                      peerBlobs: [PeerBlob]) throws {
+
         guard let migrator = cryptoWalletMigratorCreate (network.core, path)
             else { throw MigrateError.create }
         defer { cryptoWalletMigratorRelease (migrator) }
 
         try transactionBlobs.forEach { (blob: TransactionBlob) in
+            guard case let .btc (blob) = blob
+                else { throw MigrateError.transaction }
+
             var bytes = blob.bytes
-            let status = cryptoWalletMigratorHandleTransaction (migrator,
+            let status = cryptoWalletMigratorHandleTransactionAsBTC (migrator,
                                                                 &bytes, bytes.count,
                                                                 blob.blockHeight,
                                                                 blob.timestamp)
@@ -1244,6 +1304,9 @@ extension System {
         }
 
         try blockBlobs.forEach { (blob: BlockBlob) in
+            guard case let .btc (blob) = blob
+                else { throw MigrateError.block }
+
             guard blob.hashes.allSatisfy (System.validateBlockHash(_:)),
                 System.validateBlockHash(blob.merkleRoot),
                 System.validateBlockHash(blob.prevBlock)
@@ -1258,7 +1321,7 @@ extension System {
 
             try hashes.withUnsafeMutableBytes { (hashesBytes: UnsafeMutableRawBufferPointer) -> Void in
                 let hashesAddr = hashesBytes.baseAddress?.assumingMemoryBound(to: UInt256.self)
-                let status = cryptoWalletMigratorHandleBlock (migrator,
+                let status = cryptoWalletMigratorHandleBlockAsBTC (migrator,
                                                               blob.height,
                                                               blob.nonce,
                                                               blob.target,
@@ -1276,7 +1339,10 @@ extension System {
         }
 
         try peerBlobs.forEach { (blob: PeerBlob) in
-            let status = cryptoWalletMigratorHandlePeer (migrator)
+            guard case .btc = blob
+                else { throw MigrateError.peer }
+
+            let status = cryptoWalletMigratorHandlePeerAsBTC (migrator)
             if status.type != CRYPTO_WALLET_MIGRATOR_SUCCESS {
                 throw MigrateError.peer
             }
@@ -1300,24 +1366,39 @@ extension System {
 
     /// Testing
 
+    ///
+    /// Convert `transfer` to a `TransactionBlob`.
+    ///
+    /// - Parameter transfer:
+    ///
+    /// - Returns: A `TransactionBlob` or nil (if the transfer's network does not require
+    ///     migration, such as for an ETH network).
+    ///
     internal func asBlob (transfer: Transfer) -> TransactionBlob? {
-        guard migrateRequired(network: transfer.manager.network)
+        let network = transfer.manager.network
+        guard migrateRequired(network: network)
             else { return nil }
 
-        var blockHeight: UInt32 = 0
-        var timestamp:   UInt32 = 0
-        var bytesCount:  size_t = 0
-        var bytes: UnsafeMutablePointer<UInt8>? = nil
-        defer { if nil != bytes { free(bytes) }}
+        switch network.currency.code.lowercased() {
+            case Currency.codeAsBTC,
+                 Currency.codeAsBCH:
+                var blockHeight: UInt32 = 0
+                var timestamp:   UInt32 = 0
+                var bytesCount:  size_t = 0
+                var bytes: UnsafeMutablePointer<UInt8>? = nil
+                defer { if nil != bytes { free(bytes) }}
 
-        cryptoTransferExtractBlobAsBTC (transfer.core,
-                                        &bytes, &bytesCount,
-                                        &blockHeight,
-                                        &timestamp)
+                cryptoTransferExtractBlobAsBTC (transfer.core,
+                                                &bytes, &bytesCount,
+                                                &blockHeight,
+                                                &timestamp)
 
-        return (bytes: UnsafeMutableBufferPointer<UInt8> (start: bytes, count: bytesCount).map { $0 },
-                blockHeight: blockHeight,
-                timestamp: timestamp)
+                return TransactionBlob.btc (bytes: UnsafeMutableBufferPointer<UInt8> (start: bytes, count: bytesCount).map { $0 },
+                                             blockHeight: blockHeight,
+                                             timestamp: timestamp)
+        default:
+            return nil
+        }
     }
 
 }
