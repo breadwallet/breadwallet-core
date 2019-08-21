@@ -1183,7 +1183,8 @@ extension System {
         case btc (
             bytes: [UInt8],
             blockHeight: UInt32,
-            timestamp: UInt32) // time interval since unix epoch (including '0'
+            timestamp: UInt32 // time interval since unix epoch (including '0'
+        )
     }
 
     ///
@@ -1300,9 +1301,9 @@ extension System {
 
             var bytes = blob.bytes
             let status = cryptoWalletMigratorHandleTransactionAsBTC (migrator,
-                                                                &bytes, bytes.count,
-                                                                blob.blockHeight,
-                                                                blob.timestamp)
+                                                                     &bytes, bytes.count,
+                                                                     blob.blockHeight,
+                                                                     blob.timestamp)
             if status.type != CRYPTO_WALLET_MIGRATOR_SUCCESS {
                 throw MigrateError.transaction
             }
@@ -1311,6 +1312,10 @@ extension System {
         try blockBlobs.forEach { (blob: BlockBlob) in
             guard case let .btc (blob) = blob
                 else { throw MigrateError.block }
+
+            // On a `nil` timestamp, by definition skip out, don't migrate this blob
+            guard nil != blob.timestamp
+                else { return }
 
             guard blob.hashes.allSatisfy (System.validateBlockHash(_:)),
                 System.validateBlockHash(blob.merkleRoot),
@@ -1327,32 +1332,36 @@ extension System {
             try hashes.withUnsafeMutableBytes { (hashesBytes: UnsafeMutableRawBufferPointer) -> Void in
                 let hashesAddr = hashesBytes.baseAddress?.assumingMemoryBound(to: UInt256.self)
                 let status = cryptoWalletMigratorHandleBlockAsBTC (migrator,
-                                                              blob.height,
-                                                              blob.nonce,
-                                                              blob.target,
-                                                              blob.txCount,
-                                                              blob.version,
-                                                              blob.timestamp ?? 0,
-                                                              &flags, flags.count,
-                                                              hashesAddr, hashesCount,
-                                                              merkleRoot,
-                                                              prevBlock)
+                                                                   blob.height,
+                                                                   blob.nonce,
+                                                                   blob.target,
+                                                                   blob.txCount,
+                                                                   blob.version,
+                                                                   blob.timestamp!,
+                                                                   &flags, flags.count,
+                                                                   hashesAddr, hashesCount,
+                                                                   merkleRoot,
+                                                                   prevBlock)
                 if status.type != CRYPTO_WALLET_MIGRATOR_SUCCESS {
                     throw MigrateError.block
                 }
             }
         }
-        
+
         try peerBlobs.forEach { (blob: PeerBlob) in
             guard case let .btc (blob) = blob
                 else { throw MigrateError.peer }
-            
+
+            // On a `nil` timestamp, by definition skip out, don't migrate this blob
+            guard nil != blob.timestamp
+                else { return }
+
             let status = cryptoWalletMigratorHandlePeerAsBTC (migrator,
                                                               blob.address,
                                                               blob.port,
                                                               blob.services,
-                                                              blob.timestamp ?? 0)
-            
+                                                              blob.timestamp!)
+
             if status.type != CRYPTO_WALLET_MIGRATOR_SUCCESS {
                 throw MigrateError.peer
             }
@@ -1390,22 +1399,22 @@ extension System {
             else { return nil }
 
         switch network.currency.code.lowercased() {
-            case Currency.codeAsBTC,
-                 Currency.codeAsBCH:
-                var blockHeight: UInt32 = 0
-                var timestamp:   UInt32 = 0
-                var bytesCount:  size_t = 0
-                var bytes: UnsafeMutablePointer<UInt8>? = nil
-                defer { if nil != bytes { free(bytes) }}
+        case Currency.codeAsBTC,
+             Currency.codeAsBCH:
+            var blockHeight: UInt32 = 0
+            var timestamp:   UInt32 = 0
+            var bytesCount:  size_t = 0
+            var bytes: UnsafeMutablePointer<UInt8>? = nil
+            defer { if nil != bytes { free(bytes) }}
 
-                cryptoTransferExtractBlobAsBTC (transfer.core,
-                                                &bytes, &bytesCount,
-                                                &blockHeight,
-                                                &timestamp)
+            cryptoTransferExtractBlobAsBTC (transfer.core,
+                                            &bytes, &bytesCount,
+                                            &blockHeight,
+                                            &timestamp)
 
-                return TransactionBlob.btc (bytes: UnsafeMutableBufferPointer<UInt8> (start: bytes, count: bytesCount).map { $0 },
-                                             blockHeight: blockHeight,
-                                             timestamp: timestamp)
+            return TransactionBlob.btc (bytes: UnsafeMutableBufferPointer<UInt8> (start: bytes, count: bytesCount).map { $0 },
+                                        blockHeight: blockHeight,
+                                        timestamp: timestamp)
         default:
             return nil
         }
