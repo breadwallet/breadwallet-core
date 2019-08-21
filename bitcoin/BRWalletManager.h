@@ -211,6 +211,9 @@ typedef void
 extern const char *
 BRWalletEventTypeString (BRWalletEventType t);
 
+extern int
+BRWalletEventTypeIsValidPair (BRWalletEventType t1, BRWalletEventType t2);
+
 ///
 /// WalletManager Event
 ///
@@ -246,6 +249,9 @@ typedef void
 
 extern const char *
 BRWalletManagerEventTypeString (BRWalletManagerEventType t);
+
+extern int
+BRWalletManagerEventTypeIsValidPair (BRWalletManagerEventType t1, BRWalletManagerEventType t2);
 
 ///
 /// WalletManager
@@ -288,6 +294,12 @@ BRWalletManagerDisconnect (BRWalletManager manager);
 
 extern void
 BRWalletManagerScan (BRWalletManager manager);
+
+extern void
+BRWalletManagerSetMode (BRWalletManager manager, BRSyncMode mode);
+
+extern BRSyncMode
+BRWalletManagerGetMode (BRWalletManager manager);
 
 //
 // These should not be needed if the events are sufficient
