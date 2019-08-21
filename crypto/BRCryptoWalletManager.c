@@ -706,7 +706,7 @@ cryptoWalletMigratorHandleTransactionAsBTC (BRCryptoWalletMigrator migrator,
     BRTransaction *tx = BRTransactionParse(bytes, bytesCount);
     if (NULL == tx)
         return (BRCryptoWalletMigratorStatus) {
-            CRYPTO_WALLET_MIGRATOR_ERROR_1
+            CRYPTO_WALLET_MIGRATOR_ERROR_TRANSACTION
         };
 
     tx->blockHeight = blockHeight;
@@ -719,7 +719,7 @@ cryptoWalletMigratorHandleTransactionAsBTC (BRCryptoWalletMigrator migrator,
 
     if (migrator->theErrorHackHappened)
         return (BRCryptoWalletMigratorStatus) {
-            CRYPTO_WALLET_MIGRATOR_ERROR_2
+            CRYPTO_WALLET_MIGRATOR_ERROR_TRANSACTION
         };
     else
         return (BRCryptoWalletMigratorStatus) {
@@ -757,7 +757,7 @@ cryptoWalletMigratorHandleBlockAsBTC (BRCryptoWalletMigrator migrator,
     fileServiceSave (migrator->fileService, migrator->fileServiceBlockType, block);
     if (migrator->theErrorHackHappened)
         return (BRCryptoWalletMigratorStatus) {
-            CRYPTO_WALLET_MIGRATOR_ERROR_2
+            CRYPTO_WALLET_MIGRATOR_ERROR_BLOCK
         };
     else
         return (BRCryptoWalletMigratorStatus) {
@@ -766,11 +766,27 @@ cryptoWalletMigratorHandleBlockAsBTC (BRCryptoWalletMigrator migrator,
 }
 
 extern BRCryptoWalletMigratorStatus
-cryptoWalletMigratorHandlePeerAsBTC (BRCryptoWalletMigrator migrator /* ... */) {
-//    BRPeer peer;
-//    memset (&peer, 0, sizeof (BRPeer));
-//    fileServiceSave (migrator->fileService, migrator->fileServicePeerType, &peer);
-    return (BRCryptoWalletMigratorStatus) {
-        CRYPTO_WALLET_MIGRATOR_SUCCESS
-    };
+cryptoWalletMigratorHandlePeerAsBTC (BRCryptoWalletMigrator migrator,
+                                     uint32_t address,
+                                     uint16_t port,
+                                     uint64_t services,
+                                     uint32_t timestamp) {
+    BRPeer peer;
+
+    peer.address = (UInt128) { .u32 = { 0, 0, 0xffff, address }};
+    peer.port = port;
+    peer.services = services;
+    peer.timestamp = timestamp;
+    peer.flags = 0;
+
+    theErrorHackReset(migrator);
+    fileServiceSave (migrator->fileService, migrator->fileServicePeerType, &peer);
+    if (migrator->theErrorHackHappened)
+        return (BRCryptoWalletMigratorStatus) {
+            CRYPTO_WALLET_MIGRATOR_ERROR_PEER
+        };
+    else
+        return (BRCryptoWalletMigratorStatus) {
+            CRYPTO_WALLET_MIGRATOR_SUCCESS
+        };
 }

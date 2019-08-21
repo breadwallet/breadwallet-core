@@ -198,8 +198,9 @@ extern "C" {
 
     typedef enum {
         CRYPTO_WALLET_MIGRATOR_SUCCESS,
-        CRYPTO_WALLET_MIGRATOR_ERROR_1,
-        CRYPTO_WALLET_MIGRATOR_ERROR_2,
+        CRYPTO_WALLET_MIGRATOR_ERROR_TRANSACTION,
+        CRYPTO_WALLET_MIGRATOR_ERROR_BLOCK,
+        CRYPTO_WALLET_MIGRATOR_ERROR_PEER
     } BRCryptoWalletMigratorStatusType;
 
     typedef struct {
@@ -235,7 +236,11 @@ extern "C" {
                                           UInt256 prevBlock);
 
     extern BRCryptoWalletMigratorStatus
-    cryptoWalletMigratorHandlePeerAsBTC (BRCryptoWalletMigrator migrator /* ... */);
+    cryptoWalletMigratorHandlePeerAsBTC (BRCryptoWalletMigrator migrator,
+                                         uint32_t address,
+                                         uint16_t port,
+                                         uint64_t services,
+                                         uint32_t timestamp);
 
 #ifdef __cplusplus
 }

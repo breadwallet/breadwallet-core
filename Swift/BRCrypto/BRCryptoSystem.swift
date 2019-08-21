@@ -1222,7 +1222,12 @@ extension System {
     /// - btc:
     ///
     public enum PeerBlob {
-        case btc
+        case btc (
+            address: UInt32,  // UInt128 { .u32 = { 0, 0, 0xffff, <address> }}
+            port: UInt16,
+            services: UInt64,
+            timestamp: UInt32?
+        )
     }
 
     ///
@@ -1337,12 +1342,17 @@ extension System {
                 }
             }
         }
-
+        
         try peerBlobs.forEach { (blob: PeerBlob) in
-            guard case .btc = blob
+            guard case let .btc (blob) = blob
                 else { throw MigrateError.peer }
-
-            let status = cryptoWalletMigratorHandlePeerAsBTC (migrator)
+            
+            let status = cryptoWalletMigratorHandlePeerAsBTC (migrator,
+                                                              blob.address,
+                                                              blob.port,
+                                                              blob.services,
+                                                              blob.timestamp ?? 0)
+            
             if status.type != CRYPTO_WALLET_MIGRATOR_SUCCESS {
                 throw MigrateError.peer
             }
@@ -1400,7 +1410,6 @@ extension System {
             return nil
         }
     }
-
 }
 
 extension BRCryptoTransferEventType: CustomStringConvertible {
