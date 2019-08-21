@@ -113,12 +113,45 @@ class BRCryptoAccountTests: XCTestCase {
                                associations: [:],
                                fees: [fee])
 
-        let b1 = Address.create (string: "1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj", network: network)
+        XCTAssertEqual(network.addressFor("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj")?.description,
+                       "1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj")
 
-        XCTAssertNotNil (b1)
-        XCTAssertEqual("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj",  b1?.description)
-
+        XCTAssertNil (network.addressFor("qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v"))
+        XCTAssertNil (network.addressFor("bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v"))
     }
+
+    func testAddressBCH () {
+        let bch = Currency (uids: "Bitcoin-Cash",  name: "Bitcoin Cash",  code: "BCH", type: "native", issuer: nil)
+        let BCH_SATOSHI = BRCrypto.Unit (currency: bch, uids: "BCH-SAT",  name: "BCHSatoshi", symbol: "BCHSAT")
+
+        let fee = NetworkFee (timeInternalInMilliseconds: 1000,
+                              pricePerCostFactor: Amount.create(double: 25, unit: BCH_SATOSHI))
+        let network = Network (uids: "bitcoin-cash-mainnet",
+                               name: "bitcoin-cash-name",
+                               isMainnet: true,
+                               currency: bch,
+                               height: 100000,
+                               associations: [:],
+                               fees: [fee])
+
+        XCTAssertEqual (network.addressFor("bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v")?.description,
+                        "bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v")
+
+        XCTAssertEqual (network.addressFor("qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v")?.description,
+                        "bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v")
+
+        XCTAssertNil (network.addressFor("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"))
+        XCTAssertNil (network.addressFor("1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2"))
+    }
+/*
+        let addr1 = bch.addressFor("bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v") // cashaddr with prefix is valid
+        let addr2 = bch.addressFor("qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v") // cashaddr without prefix is valid
+        addr1.description == "qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v” // prefix is not included
+        addr2.description == "qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v”
+        bch.addressFor("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq") == nil  // bech32 not valid for bch
+        bch.addressFor("1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2") == nil  // p2pkh not valid for bch
+        btc.addressFor(“qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v”) == nil // cashaddr not valid for btc
+*/
 
     func testAddressScheme () {
         XCTAssertEqual (AddressScheme.btcLegacy,  AddressScheme(core: AddressScheme.btcLegacy.core))

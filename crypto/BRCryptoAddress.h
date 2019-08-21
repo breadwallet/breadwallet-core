@@ -50,6 +50,14 @@ extern "C" {
     cryptoAddressCreateFromStringAsBTC (BRAddressParams params, const char *address);
 
     /**
+     * Create an addres from a NULL terminated BCH address string.
+     *
+     * @return An address or NULL if the address string is invalid.
+     */
+    extern BRCryptoAddress
+    cryptoAddressCreateFromStringAsBCH (BRAddressParams params, const char *bchAddress);
+
+    /**
      * Create an address from a NULL terminated ETH address string.
      *
      * An addresss string will be of the form "0x8fB4..." (with prefix)

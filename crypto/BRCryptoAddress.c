@@ -26,6 +26,7 @@
 #include "BRCryptoAddress.h"
 #include "BRCryptoBase.h"
 
+#include "bcash/BRBCashAddr.h"
 #include "support/BRAddress.h"
 #include "ethereum/BREthereum.h"
 #include "generic/BRGeneric.h"
@@ -36,7 +37,10 @@ cryptoAddressRelease (BRCryptoAddress address);
 struct BRCryptoAddressRecord {
     BRCryptoBlockChainType type;
     union {
-        BRAddress btc;
+        struct {
+            int isBitcoinCashAddr;
+            BRAddress addr;
+        } btc;
         BREthereumAddress eth;
         struct {
             BRGenericWalletManager gwm;
@@ -74,9 +78,10 @@ cryptoAddressCreateAsETH (BREthereumAddress eth) {
 }
 
 private_extern BRCryptoAddress
-cryptoAddressCreateAsBTC (BRAddress btc) {
+cryptoAddressCreateAsBTC (BRAddress btc, int isBitcoinCashAddr) {
     BRCryptoAddress address = cryptoAddressCreate (BLOCK_CHAIN_TYPE_BTC);
-    address->u.btc = btc;
+    address->u.btc.isBitcoinCashAddr = isBitcoinCashAddr;
+    address->u.btc.addr = btc;
     return address;
 }
 
@@ -105,12 +110,20 @@ cryptoAddressAsGEN (BRCryptoAddress address) {
 extern BRCryptoAddress
 cryptoAddressCreateFromStringAsBTC (BRAddressParams params, const char *btcAddress) {
     assert (btcAddress);
-    BRCryptoAddress address = NULL;
-    if (BRAddressIsValid (params, btcAddress)) {
-        address = cryptoAddressCreate (BLOCK_CHAIN_TYPE_BTC);
-        address->u.btc = BRAddressFill (params, btcAddress);
-    }
-    return address;
+
+    return (BRAddressIsValid (params, btcAddress)
+            ? cryptoAddressCreateAsBTC (BRAddressFill(params, btcAddress), 0)
+            : NULL);
+}
+
+extern BRCryptoAddress
+cryptoAddressCreateFromStringAsBCH (BRAddressParams params, const char *bchAddress) {
+    assert (bchAddress);
+
+    char btcAddr[36];
+    return (0 != BRBCashAddrDecode(btcAddr, bchAddress) && !BRAddressIsValid(params, bchAddress)
+            ? cryptoAddressCreateAsBTC (BRAddressFill(params, btcAddr), 1)
+            : NULL);
 }
 
 extern BRCryptoAddress
@@ -134,7 +147,13 @@ extern char *
 cryptoAddressAsString (BRCryptoAddress address) {
     switch (address->type) {
         case BLOCK_CHAIN_TYPE_BTC:
-            return strdup (address->u.btc.s);
+            if (!address->u.btc.isBitcoinCashAddr)
+                return strdup (address->u.btc.addr.s);
+            else {
+                char *result = malloc (55);
+                BRBCashAddrEncode(result, address->u.btc.addr.s);
+                return result;
+            }
         case BLOCK_CHAIN_TYPE_ETH:
             return addressGetEncodedString(address->u.eth, 1);
         case BLOCK_CHAIN_TYPE_GEN:
@@ -148,7 +167,7 @@ cryptoAddressIsIdentical (BRCryptoAddress a1,
     return AS_CRYPTO_BOOLEAN (a1 == a2 ||
                               (a1->type == a2->type &&
                                (a1->type == BLOCK_CHAIN_TYPE_BTC
-                                ? 0 == strcmp (a1->u.btc.s, a2->u.btc.s)
+                                ? (0 == strcmp (a1->u.btc.addr.s, a2->u.btc.addr.s) && a1->u.btc.isBitcoinCashAddr == a2->u.btc.isBitcoinCashAddr)
                                 : ( a1->type == BLOCK_CHAIN_TYPE_ETH
                                    ? ETHEREUM_BOOLEAN_IS_TRUE (addressEqual (a1->u.eth, a2->u.eth))
                                    : gwmAddressEqual (a1->u.gen.gwm, a1->u.gen.aid, a2->u.gen.aid)))));

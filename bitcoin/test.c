@@ -365,6 +365,25 @@ int BRBCashAddrTests()
     if (l != 0)
         r = 0, fprintf(stderr, "\n***FAILED*** %s: BRBCashAddrDecode() test 1", __func__);
 
+    s = "bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a"; // "bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v";
+    l = BRBCashAddrDecode(addr, s);
+    if (l == 0)
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRBCashAddrDecode() test 2", __func__);
+
+    s = "qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a"; // "bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v";
+    l = BRBCashAddrDecode(addr, s);
+    if (l == 0)
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRBCashAddrDecode() test 3", __func__);
+
+    s = "qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v";
+    l = BRBCashAddrDecode(addr, s);
+    if (l == 0)
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRBCashAddrDecode() test 4", __func__);
+
+    // Expected, not valid
+    if (0 != BRAddressIsValid (BITCOIN_ADDRESS_PARAMS, "qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v"))
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRAddressIsValid() test 5", __func__);
+
     if (! r) fprintf(stderr, "\n                                    ");
     return r;
 }
