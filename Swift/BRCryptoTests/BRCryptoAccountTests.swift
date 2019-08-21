@@ -142,7 +142,40 @@ class BRCryptoAccountTests: XCTestCase {
 
         XCTAssertNil (network.addressFor("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"))
         XCTAssertNil (network.addressFor("1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2"))
+
+        // TODO: Testnet BCH Addresses work as Mainnet BCH Addresses
+        //        XCTAssertNil (network.addressFor("bchtest:pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t"))
+        //        XCTAssertNil (network.addressFor("pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t"))
     }
+
+    func testAddressBCHTestnet () {
+        let bch = Currency (uids: "Bitcoin-Cash",  name: "Bitcoin Cash",  code: "BCH", type: "native", issuer: nil)
+        let BCH_SATOSHI = BRCrypto.Unit (currency: bch, uids: "BCH-SAT",  name: "BCHSatoshi", symbol: "BCHSAT")
+
+        let fee = NetworkFee (timeInternalInMilliseconds: 1000,
+                              pricePerCostFactor: Amount.create(double: 25, unit: BCH_SATOSHI))
+        let network = Network (uids: "bitcoin-cash-mainnet",
+                               name: "bitcoin-cash-name",
+                               isMainnet: false,
+                               currency: bch,
+                               height: 100000,
+                               associations: [:],
+                               fees: [fee])
+
+        XCTAssertEqual (network.addressFor("bchtest:pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t")?.description,
+                        "bchtest:pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t")
+
+        XCTAssertEqual (network.addressFor("pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t")?.description,
+                        "bchtest:pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t")
+
+        XCTAssertNil (network.addressFor("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"))
+
+        // TODO: Testnet BCH Addresses work as Mainnet BCH Addresses
+        //        XCTAssertNil (network.addressFor("1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2"))
+        //        XCTAssertNil (network.addressFor("qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v"))
+        //        XCTAssertNil (network.addressFor("bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v"))
+    }
+
 /*
         let addr1 = bch.addressFor("bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v") // cashaddr with prefix is valid
         let addr2 = bch.addressFor("qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v") // cashaddr without prefix is valid
