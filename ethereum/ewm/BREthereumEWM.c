@@ -348,6 +348,62 @@ ewmCreateErrorHandler (BREthereumEWM ewm, int fileService, const char* reason) {
 static void
 ewmAssertRecovery (BREthereumEWM ewm);
 
+static BREthereumBCSListener
+ewmCreateBCSListener (BREthereumEWM ewm) {
+    return (BREthereumBCSListener) {
+        (BREthereumBCSCallbackContext) ewm,
+        (BREthereumBCSCallbackBlockchain) ewmSignalBlockChain,
+        (BREthereumBCSCallbackAccountState) ewmSignalAccountState,
+        (BREthereumBCSCallbackTransaction) ewmSignalTransaction,
+        (BREthereumBCSCallbackLog) ewmSignalLog,
+        (BREthereumBCSCallbackSaveBlocks) ewmSignalSaveBlocks,
+        (BREthereumBCSCallbackSavePeers) ewmSignalSaveNodes,
+        (BREthereumBCSCallbackSync) ewmSignalSync,
+        (BREthereumBCSCallbackGetBlocks) ewmSignalGetBlocks
+    };
+}
+
+static void
+ewmCreateInitialSets (BREthereumEWM ewm,
+                      BREthereumNetwork network,
+                      BREthereumTimestamp accountTimestamp,
+                      BRSetOf(BREthereumTransaction) *transactions,
+                      BRSetOf(BREthereumLog) *logs,
+                      BRSetOf(BREthereumNodeConfig) *nodes,
+                      BRSetOf(BREthereumBlock) *blocks) {
+
+    *transactions = initialTransactionsLoad(ewm);
+    *logs = initialLogsLoad(ewm);
+    *nodes = initialNodesLoad(ewm);
+    *blocks = initialBlocksLoad(ewm);
+
+    // If any are NULL, then we have an error and a full sync is required.  The sync will be
+    // started automatically, as part of the normal processing, of 'blocks' (we'll use a checkpoint,
+    // before the `accountTimestamp, which will be well in the past and we'll sync up to the
+    // head of the blockchain).
+    if (NULL == *transactions || NULL == *logs || NULL == *nodes || NULL == *blocks) {
+        if (NULL == *transactions) *transactions = BRSetNew(transactionHashValue, transactionHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
+        else BRSetClear(*transactions);
+
+        if (NULL == *logs) *logs = BRSetNew(logHashValue, logHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
+        else BRSetClear(*logs);
+
+        if (NULL == *blocks) *blocks = BRSetNew(blockHashValue, blockHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
+        else BRSetClear(*blocks);
+
+        if (NULL == *nodes) *nodes = BRSetNew(nodeConfigHashValue, nodeConfigHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
+        else BRSetClear(*nodes);
+    }
+
+    // If we have no blocks; then add a checkpoint
+    if (0 == BRSetCount(*blocks)) {
+        const BREthereumBlockCheckpoint *checkpoint = blockCheckpointLookupByTimestamp (network, accountTimestamp);
+        BREthereumBlock block = blockCreate (blockCheckpointCreatePartialBlockHeader (checkpoint));
+        blockSetTotalDifficulty (block, checkpoint->u.td);
+        BRSetAdd (*blocks, block);
+    }
+}
+
 extern BREthereumEWM
 ewmCreate (BREthereumNetwork network,
            BREthereumAccount account,
@@ -362,6 +418,7 @@ ewmCreate (BREthereumNetwork network,
     ewm->mode = mode;
     ewm->network = network;
     ewm->account = account;
+    ewm->accountTimestamp = accountTimestamp;
     ewm->bcs = NULL;
     ewm->blockHeight = blockHeight;
 
@@ -445,36 +502,12 @@ ewmCreate (BREthereumNetwork network,
         return ewmCreateErrorHandler(ewm, 1, fileServiceTypeBlocks);
 
     // Load all the persistent entities
-    BRSetOf(BREthereumTransaction) transactions = initialTransactionsLoad(ewm);
-    BRSetOf(BREthereumLog) logs = initialLogsLoad(ewm);
-    BRSetOf(BREthereumNodeConfig) nodes = initialNodesLoad(ewm);
-    BRSetOf(BREthereumBlock) blocks = initialBlocksLoad(ewm);
+    BRSetOf(BREthereumTransaction) transactions;
+    BRSetOf(BREthereumLog) logs;
+    BRSetOf(BREthereumNodeConfig) nodes;
+    BRSetOf(BREthereumBlock) blocks;
 
-    // If any are NULL, then we have an error and a full sync is required.  The sync will be
-    // started automatically, as part of the normal processing, of 'blocks' (we'll use a checkpoint,
-    // before the `accountTimestamp, which will be well in the past and we'll sync up to the
-    // head of the blockchain).
-    if (NULL == transactions || NULL == logs || NULL == nodes || NULL == blocks) {
-        if (NULL == transactions) transactions = BRSetNew(transactionHashValue, transactionHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
-        else BRSetClear(transactions);
-
-        if (NULL == logs) logs = BRSetNew(logHashValue, logHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
-        else BRSetClear(logs);
-
-        if (NULL == blocks) blocks = BRSetNew(blockHashValue, blockHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
-        else BRSetClear(blocks);
-
-        if (NULL == nodes) nodes = BRSetNew(nodeConfigHashValue, nodeConfigHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
-        else BRSetClear(nodes);
-    }
-
-    // If we have no blocks; then add a checkpoint
-    if (0 == BRSetCount(blocks)) {
-        const BREthereumBlockCheckpoint *checkpoint = blockCheckpointLookupByTimestamp (network, accountTimestamp);
-        BREthereumBlock block = blockCreate (blockCheckpointCreatePartialBlockHeader (checkpoint));
-        blockSetTotalDifficulty (block, checkpoint->u.td);
-        BRSetAdd (blocks, block);
-    }
+    ewmCreateInitialSets (ewm, ewm->network, ewm->accountTimestamp, &transactions, &logs, &nodes, &blocks);
 
     // Create the alarm clock, but don't start it.
     alarmClockCreateIfNecessary(0);
@@ -501,17 +534,7 @@ ewmCreate (BREthereumNetwork network,
     ewmInsertWallet(ewm, ewm->walletHoldingEther);
 
     // Create the BCS listener - allows EWM to handle block, peer, transaction and log events.
-    BREthereumBCSListener listener = {
-        (BREthereumBCSCallbackContext) ewm,
-        (BREthereumBCSCallbackBlockchain) ewmSignalBlockChain,
-        (BREthereumBCSCallbackAccountState) ewmSignalAccountState,
-        (BREthereumBCSCallbackTransaction) ewmSignalTransaction,
-        (BREthereumBCSCallbackLog) ewmSignalLog,
-        (BREthereumBCSCallbackSaveBlocks) ewmSignalSaveBlocks,
-        (BREthereumBCSCallbackSavePeers) ewmSignalSaveNodes,
-        (BREthereumBCSCallbackSync) ewmSignalSync,
-        (BREthereumBCSCallbackGetBlocks) ewmSignalGetBlocks
-    };
+    BREthereumBCSListener listener = ewmCreateBCSListener (ewm);
 
     BRAssertDefineRecovery ((BRAssertRecoveryInfo) ewm,
                             (BRAssertRecoveryHandler) ewmAssertRecovery);
@@ -977,6 +1000,101 @@ ewmLock (BREthereumEWM ewm) {
 
 extern void
 ewmUnlock (BREthereumEWM ewm) {
+    pthread_mutex_unlock (&ewm->lock);
+}
+
+extern BREthereumMode
+emwGetMode (BREthereumEWM ewm) {
+    pthread_mutex_lock (&ewm->lock);
+    BREthereumMode mode = ewm->mode;
+    pthread_mutex_unlock (&ewm->lock);
+    return mode;
+}
+
+extern void
+ewmUpdateMode (BREthereumEWM ewm,
+               BREthereumMode mode) {
+    pthread_mutex_lock (&ewm->lock);
+
+    BREthereumMode oldMode = ewm->mode;
+    BREthereumMode newMode = mode;
+
+    BREthereumBoolean needBCSRestart = 0;
+
+    if (oldMode != newMode) {
+
+        BRSetOf(BREthereumNodeConfig) nodes;
+        BRSetOf(BREthereumBlock) blocks;
+        BRSetOf(BREthereumTransaction) transactions;
+        BRSetOf(BREthereumLog) logs;
+
+        // We have BCS in all modes but in BRD_ONLY mode it is never started.
+
+        needBCSRestart = bcsIsStarted (ewm->bcs);
+
+        //
+        // This `bcsStop()` is going a) to call `lesStop()` and b) then stop *and clear*
+        // the BCS event handler.  When LES stops, the current LES nodes will be saved by
+        // calling `bcsSignalNodes()` which, when handled, will then call
+        // `ewmSignalSaveNodes()`.  Note that `lesStop()` will block until `lesThread()`
+        // actually completes.  Thus upon completion there might be at leasat ONE `bcsSignalNodes()`
+        // event in the BCS event queue...  and then the BCS event handler is stopped
+        // and cleared.
+        //
+        // Will the nodes actually get written?  There is quite a bit of computation that happens
+        // in `lesThread()` after `bcsSignalNodes()` is called - including printing to log and
+        // deactivating TCP/UDP sockets - so it is possible that the ONE event will get dispatched
+        // and nodes written to file.
+        //
+        bcsStop (ewm->bcs);
+
+        // Everything gone at this point.  Should not be any references to BCS still using
+        // BCS at this point.  Surely none.
+        bcsDestroy (ewm->bcs);
+
+        // Get some current state that we'll use when recreating BCS.
+        BREthereumAddress primaryAddress = accountGetPrimaryAddress(ewm->account);
+        BREthereumBCSListener listener   = ewmCreateBCSListener (ewm);
+
+        //
+        // We'll create a node-specific BCS here; this parallels how BCS is created in ewmCreat().
+        // The pimary difference being that in ewmCreate() we announce newly-recovered transactions
+        // and logs (recovered from persistent storage).  We don't need to reannounce those here
+        // as they are already in EWM.
+        //
+
+        switch (newMode) {
+            case BRD_ONLY:
+            case BRD_WITH_P2P_SEND:
+                ewm->bcs = bcsCreate (ewm->network,
+                                      primaryAddress,
+                                      listener,
+                                      newMode,
+                                      NULL,
+                                      NULL,
+                                      NULL,
+                                      NULL);
+                break;
+
+            case P2P_WITH_BRD_SYNC:
+            case P2P_ONLY:
+                ewmCreateInitialSets (ewm, ewm->network, ewm->accountTimestamp, &transactions, &logs, &nodes, &blocks);
+
+                ewm->bcs = bcsCreate (ewm->network,
+                                      primaryAddress,
+                                      listener,
+                                      newMode,
+                                      nodes,
+                                      blocks,
+                                      transactions,
+                                      logs);
+                break;
+         }
+
+        // Reestablish
+        if (ETHEREUM_BOOLEAN_IS_TRUE (needBCSRestart))
+            bcsStart (ewm->bcs);
+    }
     pthread_mutex_unlock (&ewm->lock);
 }
 

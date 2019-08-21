@@ -119,6 +119,13 @@ ewmLock (BREthereumEWM ewm);
 extern void
 ewmUnlock (BREthereumEWM ewm);
 
+extern BREthereumMode
+emwGetMode (BREthereumEWM ewm);
+
+extern void
+ewmUpdateMode (BREthereumEWM ewm,
+               BREthereumMode mode);
+
 extern uint64_t
 ewmGetBlockHeight (BREthereumEWM ewm);
 
