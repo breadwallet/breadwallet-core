@@ -59,6 +59,9 @@ extern "C" {
         CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED,
     } BRCryptoWalletEventType;
 
+    extern const char *
+    BRCryptoWalletEventTypeString (BRCryptoWalletEventType t);
+
     typedef struct {
         BRCryptoWalletEventType type;
         union {

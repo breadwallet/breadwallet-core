@@ -681,3 +681,18 @@ cryptoTransferExtractBlobAsBTC (BRCryptoTransfer transfer,
     if (NULL != blockHeight) *blockHeight = tx->blockHeight;
     if (NULL != timestamp)   *timestamp   = tx->timestamp;
 }
+
+extern const char *
+BRCryptoTransferEventTypeString (BRCryptoTransferEventType t) {
+    switch (t) {
+        case CRYPTO_TRANSFER_EVENT_CREATED:
+        return "CRYPTO_TRANSFER_EVENT_CREATED";
+
+        case CRYPTO_TRANSFER_EVENT_CHANGED:
+        return "CRYPTO_TRANSFER_EVENT_CHANGED";
+
+        case CRYPTO_TRANSFER_EVENT_DELETED:
+        return "CRYPTO_TRANSFER_EVENT_DELETED";
+    }
+    return "<CRYPTO_TRANSFER_EVENT_TYPE_UNKNOWN>";
+}

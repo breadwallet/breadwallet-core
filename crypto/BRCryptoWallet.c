@@ -679,3 +679,39 @@ cryptoWalletEqual (BRCryptoWallet w1, BRCryptoWallet w2) {
                                             (BLOCK_CHAIN_TYPE_ETH == w1->type && cryptoWalletEqualAsETH (w1, w2)) ||
                                             (BLOCK_CHAIN_TYPE_GEN == w1->type && cryptoWalletEqualAsGEN (w1, w2)))));
 }
+
+extern const char *
+BRCryptoWalletEventTypeString (BRCryptoWalletEventType t) {
+    switch (t) {
+        case CRYPTO_WALLET_EVENT_CREATED:
+        return "CRYPTO_WALLET_EVENT_CREATED";
+
+        case CRYPTO_WALLET_EVENT_CHANGED:
+        return "CRYPTO_WALLET_EVENT_CHANGED";
+
+        case CRYPTO_WALLET_EVENT_DELETED:
+        return "CRYPTO_WALLET_EVENT_DELETED";
+
+        case CRYPTO_WALLET_EVENT_TRANSFER_ADDED:
+        return "CRYPTO_WALLET_EVENT_TRANSFER_ADDED";
+
+        case CRYPTO_WALLET_EVENT_TRANSFER_CHANGED:
+        return "CRYPTO_WALLET_EVENT_TRANSFER_CHANGED";
+
+        case CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED:
+        return "CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED";
+
+        case CRYPTO_WALLET_EVENT_TRANSFER_DELETED:
+        return "CRYPTO_WALLET_EVENT_TRANSFER_DELETED";
+
+        case CRYPTO_WALLET_EVENT_BALANCE_UPDATED:
+        return "CRYPTO_WALLET_EVENT_BALANCE_UPDATED";
+
+        case CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED:
+        return "CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED";
+
+        case CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED:
+        return "CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED";
+    }
+    return "<CRYPTO_WALLET_EVENT_TYPE_UNKNOWN>";
+}

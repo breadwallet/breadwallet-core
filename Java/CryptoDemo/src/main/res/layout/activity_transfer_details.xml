@@ -1,11 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     tools:context=".TransferDetailsActivity">
+
+    <android.support.v7.widget.Toolbar
+        android:id="@+id/toolbar_view"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        android:elevation="4dp"
+        android:theme="@style/ThemeOverlay.AppCompat.ActionBar"
+        app:popupTheme="@style/ThemeOverlay.AppCompat.Light"/>
 
     <TextView
         android:layout_width="match_parent"
@@ -14,7 +23,8 @@
         android:layout_marginStart="10dp"
         android:layout_marginEnd="10dp"
         android:layout_marginBottom="5dp"
-        android:text="Identifer:"/>
+        android:text="Identifer"
+        tools:ignore="HardcodedText"/>
 
     <TextView
         android:id="@+id/identifier_view"
@@ -33,7 +43,8 @@
         android:layout_marginStart="10dp"
         android:layout_marginEnd="10dp"
         android:layout_marginBottom="5dp"
-        android:text="Sender:"/>
+        android:text="Sender"
+        tools:ignore="HardcodedText"/>
 
     <TextView
         android:id="@+id/sender_view"
@@ -43,7 +54,8 @@
         android:layout_marginStart="10dp"
         android:layout_marginEnd="10dp"
         android:layout_marginBottom="5dp"
-        tools:text="Sender Goes Here"/>
+        tools:text="Sender Goes Here"
+        tools:ignore="HardcodedText"/>
 
     <TextView
         android:layout_width="match_parent"
@@ -52,7 +64,8 @@
         android:layout_marginStart="10dp"
         android:layout_marginEnd="10dp"
         android:layout_marginBottom="5dp"
-        android:text="Receiver:"/>
+        android:text="Receiver"
+        tools:ignore="HardcodedText"/>
 
     <TextView
         android:id="@+id/receiver_view"
@@ -76,7 +89,8 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="10dp"
             android:layout_marginEnd="10dp"
-            android:text="Amount:"/>
+            android:text="Amount"
+            tools:ignore="HardcodedText"/>
 
         <TextView
             android:id="@+id/amount_view"
@@ -101,7 +115,8 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="10dp"
             android:layout_marginEnd="10dp"
-            android:text="Fee:"/>
+            android:text="Fee"
+            tools:ignore="HardcodedText"/>
 
         <TextView
             android:id="@+id/fee_view"
@@ -127,7 +142,8 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="10dp"
             android:layout_marginEnd="10dp"
-            android:text="Date:"/>
+            android:text="Date"
+            tools:ignore="HardcodedText"/>
 
         <TextView
             android:id="@+id/date_view"
@@ -153,7 +169,8 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="10dp"
             android:layout_marginEnd="10dp"
-            android:text="State:"/>
+            android:text="State"
+            tools:ignore="HardcodedText"/>
 
         <TextView
             android:id="@+id/state_view"
@@ -179,7 +196,8 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="10dp"
             android:layout_marginEnd="10dp"
-            android:text="Direction:"/>
+            android:text="Direction"
+            tools:ignore="HardcodedText"/>
 
         <TextView
             android:id="@+id/direction_view"
@@ -205,7 +223,8 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="10dp"
             android:layout_marginEnd="10dp"
-            android:text="Confirmed:"/>
+            android:text="Confirmed"
+            tools:ignore="HardcodedText"/>
 
         <TextView
             android:id="@+id/confirmation_view"
@@ -232,7 +251,8 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="10dp"
             android:layout_marginEnd="10dp"
-            android:text="Confirmation Count:"/>
+            android:text="Confirmation Count"
+            tools:ignore="HardcodedText"/>
 
         <TextView
             android:id="@+id/confirmation_count_view"

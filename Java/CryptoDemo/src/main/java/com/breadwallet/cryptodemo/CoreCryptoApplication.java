@@ -2,10 +2,6 @@ package com.breadwallet.cryptodemo;
 
 import android.app.Activity;
 import android.app.Application;
-import android.arch.lifecycle.Lifecycle;
-import android.arch.lifecycle.LifecycleObserver;
-import android.arch.lifecycle.OnLifecycleEvent;
-import android.arch.lifecycle.ProcessLifecycleOwner;
 import android.content.Intent;
 import android.os.StrictMode;
 import android.util.Log;
@@ -14,7 +10,6 @@ import com.breadwallet.corecrypto.CryptoApiProvider;
 import com.breadwallet.crypto.Account;
 import com.breadwallet.crypto.CryptoApi;
 import com.breadwallet.crypto.DispatchingSystemListener;
-import com.breadwallet.crypto.WalletManager;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.System;
@@ -60,20 +55,6 @@ public class CoreCryptoApplication extends Application {
 
     private static AtomicBoolean runOnce = new AtomicBoolean(false);
 
-    private static LifecycleObserver observer = new LifecycleObserver() {
-        @OnLifecycleEvent(Lifecycle.Event.ON_START)
-        void onEnterForeground() {
-            for (WalletManager manager: system.getWalletManagers()) {
-                manager.connect();
-            }
-        }
-
-        @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
-        void onEnterBackground() {
-            system.stop();
-        }
-    };
-
     public static void initialize(Activity startingActivity) {
         if (!runOnce.getAndSet(true)) {
             Intent intent = startingActivity.getIntent();
@@ -110,8 +91,6 @@ public class CoreCryptoApplication extends Application {
             blockchainDb = new BlockchainDb(new OkHttpClient(), BDB_BASE_URL, API_BASE_URL);
             system = System.create(Executors.newSingleThreadScheduledExecutor(), systemListener, account, isMainnet, storageFile.getAbsolutePath(), blockchainDb);
             system.configure();
-
-            ProcessLifecycleOwner.get().getLifecycle().addObserver(observer);
         }
     }
 

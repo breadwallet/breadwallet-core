@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
 import android.text.Html;
 import android.text.Spanned;
 import android.view.View;
@@ -70,7 +71,6 @@ public class TransferDetailsActivity extends AppCompatActivity {
     }
 
     private WalletManager walletManager;
-    private Wallet wallet;
     private Transfer transfer;
     private ClipboardManager clipboardManager;
 
@@ -116,7 +116,7 @@ public class TransferDetailsActivity extends AppCompatActivity {
         CoreCryptoApplication.initialize(this);
 
         Intent intent = getIntent();
-        wallet = getWallet(intent);
+        Wallet wallet = getWallet(intent);
         if (null == wallet) {
             finish();
             return;
@@ -143,6 +143,9 @@ public class TransferDetailsActivity extends AppCompatActivity {
         confirmationContainerView = findViewById(R.id.confirmation_count_container_view);
         stateView = findViewById(R.id.state_view);
         directionView = findViewById(R.id.direction_view);
+
+        Toolbar toolbar = findViewById(R.id.toolbar_view);
+        setSupportActionBar(toolbar);
     }
 
     @Override

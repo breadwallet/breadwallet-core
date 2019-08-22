@@ -65,6 +65,9 @@ extern "C" {
         CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED,
     } BRCryptoWalletManagerEventType;
 
+    extern const char *
+    BRCryptoWalletManagerEventTypeString (BRCryptoWalletManagerEventType t);
+
     typedef struct {
         BRCryptoWalletManagerEventType type;
         union {
@@ -134,6 +137,9 @@ extern "C" {
 
     extern BRSyncMode
     cryptoWalletManagerGetMode (BRCryptoWalletManager cwm);
+
+    extern void
+    cryptoWalletManagerSetMode (BRCryptoWalletManager cwm, BRSyncMode mode);
 
     extern BRCryptoWalletManagerState
     cryptoWalletManagerGetState (BRCryptoWalletManager cwm);

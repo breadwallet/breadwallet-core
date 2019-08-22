@@ -677,7 +677,6 @@ BRRunTestWalletManagerSyncForMode (const char *testName,
         sleep(1);
 
         // Verification
-        // TODO(fix): Inconsistency between P2P and BRD modes; is that OK?
         success = BRRunTestWalletManagerSyncTestVerifyEventSequence(&state,
                                                                     1,
                                                                     (BRWalletManagerSyncEvent []) {

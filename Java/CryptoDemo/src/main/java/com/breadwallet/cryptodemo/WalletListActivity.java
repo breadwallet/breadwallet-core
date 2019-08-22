@@ -7,11 +7,13 @@ import android.support.v7.util.SortedList;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.util.SortedListAdapterCallback;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.TextView;
 
 import com.breadwallet.crypto.Amount;
@@ -31,11 +33,7 @@ import java.util.List;
 
 public class WalletListActivity extends AppCompatActivity implements DefaultSystemListener {
 
-    private Button syncView;
-    private Button resetView;
     private Adapter walletsAdapter;
-    private RecyclerView walletsView;
-    private RecyclerView.LayoutManager walletsLayoutManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,25 +42,17 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
 
         CoreCryptoApplication.initialize(this);
 
-        syncView = findViewById(R.id.sync_view);
-        syncView.setOnClickListener(v -> {
-            for (WalletManager wm: CoreCryptoApplication.getSystem().getWalletManagers()) wm.sync();
-        });
-
-        resetView = findViewById(R.id.reset_view);
-        resetView.setOnClickListener(v -> {
-            CoreCryptoApplication.resetSystem();
-            walletsAdapter.clear();
-        });
-
-        walletsView = findViewById(R.id.wallet_recycler_view);
+        RecyclerView walletsView = findViewById(R.id.wallet_recycler_view);
         walletsView.addItemDecoration(new DividerItemDecoration(getApplicationContext(), DividerItemDecoration.VERTICAL));
 
-        walletsLayoutManager = new LinearLayoutManager(this);
+        RecyclerView.LayoutManager walletsLayoutManager = new LinearLayoutManager(this);
         walletsView.setLayoutManager(walletsLayoutManager);
 
         walletsAdapter = new Adapter((wallet) -> TransferListActivity.start(this, wallet));
         walletsView.setAdapter(walletsAdapter);
+
+        Toolbar toolbar = findViewById(R.id.toolbar_view);
+        setSupportActionBar(toolbar);
     }
 
     @Override
@@ -79,6 +69,38 @@ public class WalletListActivity extends AppCompatActivity implements DefaultSyst
         super.onPause();
 
         CoreCryptoApplication.getDispatchingSystemListener().removeSystemListener(this);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_wallet_list, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_connect:
+                for (WalletManager wm: CoreCryptoApplication.getSystem().getWalletManagers()) {
+                    wm.connect();
+                }
+                return true;
+            case R.id.action_sync:
+                for (WalletManager wm: CoreCryptoApplication.getSystem().getWalletManagers()) {
+                    wm.sync();
+                }
+                return true;
+            case R.id.action_disconnect:
+                for (WalletManager wm: CoreCryptoApplication.getSystem().getWalletManagers()) {
+                    wm.disconnect();
+                }
+                return true;
+            case R.id.action_reset:
+                CoreCryptoApplication.resetSystem();
+                walletsAdapter.clear();
+                return true;
+        }
+        return false;
     }
 
     @Override
