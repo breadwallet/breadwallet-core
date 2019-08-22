@@ -61,7 +61,7 @@ struct BREthereumEWMRecord {
     /**
      * The Mode of this EWM
      */
-    BREthereumMode mode;
+    BRSyncMode mode;
 
     /**
      * The network

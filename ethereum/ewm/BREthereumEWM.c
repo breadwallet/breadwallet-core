@@ -408,7 +408,7 @@ extern BREthereumEWM
 ewmCreate (BREthereumNetwork network,
            BREthereumAccount account,
            BREthereumTimestamp accountTimestamp,
-           BREthereumMode mode,
+           BRSyncMode mode,
            BREthereumClient client,
            const char *storagePath,
            uint64_t blockHeight) {
@@ -546,8 +546,8 @@ ewmCreate (BREthereumNetwork network,
 
     // Support the requested mode
     switch (ewm->mode) {
-        case BRD_ONLY:
-        case BRD_WITH_P2P_SEND: {
+        case SYNC_MODE_BRD_ONLY:
+        case SYNC_MODE_BRD_WITH_P2P_SEND: {
             // Note: We'll create BCS even for the mode where we don't use it (BRD_ONLY).
             ewm->bcs = bcsCreate (network,
                                   accountGetPrimaryAddress (account),
@@ -613,8 +613,8 @@ ewmCreate (BREthereumNetwork network,
             break;
         }
 
-        case P2P_WITH_BRD_SYNC:  //
-        case P2P_ONLY: {
+        case SYNC_MODE_P2P_WITH_BRD_SYNC:  //
+        case SYNC_MODE_P2P_ONLY: {
             ewm->bcs = bcsCreate (network,
                                   accountGetPrimaryAddress (account),
                                   listener,
@@ -637,7 +637,7 @@ extern BREthereumEWM
 ewmCreateWithPaperKey (BREthereumNetwork network,
                        const char *paperKey,
                        BREthereumTimestamp accountTimestamp,
-                       BREthereumMode mode,
+                       BRSyncMode mode,
                        BREthereumClient client,
                        const char *storagePath,
                        uint64_t blockHeight) {
@@ -654,7 +654,7 @@ extern BREthereumEWM
 ewmCreateWithPublicKey (BREthereumNetwork network,
                         BRKey publicKey,
                         BREthereumTimestamp accountTimestamp,
-                        BREthereumMode mode,
+                        BRSyncMode mode,
                         BREthereumClient client,
                         const char *storagePath,
                         uint64_t blockHeight) {
@@ -752,11 +752,11 @@ ewmConnect(BREthereumEWM ewm) {
         ewm->state = EWM_STATE_CONNECTED;
 
         switch (ewm->mode) {
-            case BRD_ONLY:
+            case SYNC_MODE_BRD_ONLY:
                 break;
-            case BRD_WITH_P2P_SEND:
-            case P2P_WITH_BRD_SYNC:
-            case P2P_ONLY:
+            case SYNC_MODE_BRD_WITH_P2P_SEND:
+            case SYNC_MODE_P2P_WITH_BRD_SYNC:
+            case SYNC_MODE_P2P_ONLY:
                 bcsStart(ewm->bcs);
                 break;
         }
@@ -797,8 +797,8 @@ ewmDisconnect (BREthereumEWM ewm) {
 
         // Stop an ongoing sync
         switch (ewm->mode) {
-            case BRD_ONLY:
-            case BRD_WITH_P2P_SEND:
+            case SYNC_MODE_BRD_ONLY:
+            case SYNC_MODE_BRD_WITH_P2P_SEND:
                 // If we are in the middle of a sync, the end it.
                 if (!ewm->brdSync.completedTransaction || !ewm->brdSync.completedLog) {
 
@@ -823,11 +823,11 @@ ewmDisconnect (BREthereumEWM ewm) {
 
         // Stop BCS
         switch (ewm->mode) {
-            case BRD_ONLY:
+            case SYNC_MODE_BRD_ONLY:
                 break;
-            case BRD_WITH_P2P_SEND:
-            case P2P_WITH_BRD_SYNC:
-            case P2P_ONLY:
+            case SYNC_MODE_BRD_WITH_P2P_SEND:
+            case SYNC_MODE_P2P_WITH_BRD_SYNC:
+            case SYNC_MODE_P2P_ONLY:
                 bcsStop(ewm->bcs);
                 break;
         }
@@ -855,13 +855,13 @@ ewmIsConnected (BREthereumEWM ewm) {
 
     if (EWM_STATE_CONNECTED == ewm->state || EWM_STATE_SYNCING == ewm->state) {
         switch (ewm->mode) {
-            case BRD_ONLY:
+            case SYNC_MODE_BRD_ONLY:
                 result = ETHEREUM_BOOLEAN_TRUE;
                 break;
 
-            case BRD_WITH_P2P_SEND:
-            case P2P_WITH_BRD_SYNC:
-            case P2P_ONLY:
+            case SYNC_MODE_BRD_WITH_P2P_SEND:
+            case SYNC_MODE_P2P_WITH_BRD_SYNC:
+            case SYNC_MODE_P2P_ONLY:
                 result = bcsIsStarted (ewm->bcs);
                 break;
         }
@@ -960,8 +960,8 @@ ewmSync (BREthereumEWM ewm,
     if (EWM_STATE_CONNECTED != ewm->state) return ETHEREUM_BOOLEAN_FALSE;
 
     switch (ewm->mode) {
-        case BRD_ONLY:
-        case BRD_WITH_P2P_SEND: {
+        case SYNC_MODE_BRD_ONLY:
+        case SYNC_MODE_BRD_WITH_P2P_SEND: {
             pthread_mutex_lock(&ewm->lock);
 
             if (ETHEREUM_BOOLEAN_IS_TRUE (pendExistingTransfers)) {
@@ -986,8 +986,8 @@ ewmSync (BREthereumEWM ewm,
             pthread_mutex_unlock(&ewm->lock);
             return ETHEREUM_BOOLEAN_TRUE;
         }
-        case P2P_WITH_BRD_SYNC:
-        case P2P_ONLY:
+        case SYNC_MODE_P2P_WITH_BRD_SYNC:
+        case SYNC_MODE_P2P_ONLY:
             bcsSync (ewm->bcs, 0);
             return ETHEREUM_BOOLEAN_TRUE;
     }
@@ -1003,21 +1003,21 @@ ewmUnlock (BREthereumEWM ewm) {
     pthread_mutex_unlock (&ewm->lock);
 }
 
-extern BREthereumMode
-emwGetMode (BREthereumEWM ewm) {
+extern BRSyncMode
+ewmGetMode (BREthereumEWM ewm) {
     pthread_mutex_lock (&ewm->lock);
-    BREthereumMode mode = ewm->mode;
+    BRSyncMode mode = ewm->mode;
     pthread_mutex_unlock (&ewm->lock);
     return mode;
 }
 
 extern void
 ewmUpdateMode (BREthereumEWM ewm,
-               BREthereumMode mode) {
+               BRSyncMode mode) {
     pthread_mutex_lock (&ewm->lock);
 
-    BREthereumMode oldMode = ewm->mode;
-    BREthereumMode newMode = mode;
+    BRSyncMode oldMode = ewm->mode;
+    BRSyncMode newMode = mode;
 
     BREthereumBoolean needBCSRestart = 0;
 
@@ -1064,8 +1064,8 @@ ewmUpdateMode (BREthereumEWM ewm,
         //
 
         switch (newMode) {
-            case BRD_ONLY:
-            case BRD_WITH_P2P_SEND:
+            case SYNC_MODE_BRD_ONLY:
+            case SYNC_MODE_BRD_WITH_P2P_SEND:
                 ewm->bcs = bcsCreate (ewm->network,
                                       primaryAddress,
                                       listener,
@@ -1076,8 +1076,8 @@ ewmUpdateMode (BREthereumEWM ewm,
                                       NULL);
                 break;
 
-            case P2P_WITH_BRD_SYNC:
-            case P2P_ONLY:
+            case SYNC_MODE_P2P_WITH_BRD_SYNC:
+            case SYNC_MODE_P2P_ONLY:
                 ewmCreateInitialSets (ewm, ewm->network, ewm->accountTimestamp, &transactions, &logs, &nodes, &blocks);
 
                 ewm->bcs = bcsCreate (ewm->network,
@@ -1800,7 +1800,7 @@ ewmHandleBlockChain (BREthereumEWM ewm,
                      uint64_t headBlockNumber,
                      uint64_t headBlockTimestamp) {
     // Don't report during BCS sync.
-    if (BRD_ONLY == ewm->mode || ETHEREUM_BOOLEAN_IS_FALSE(bcsSyncInProgress (ewm->bcs)))
+    if (SYNC_MODE_BRD_ONLY == ewm->mode || ETHEREUM_BOOLEAN_IS_FALSE(bcsSyncInProgress (ewm->bcs)))
         eth_log ("EWM", "BlockChain: %" PRIu64, headBlockNumber);
 
     // At least this - allows for: ewmGetBlockHeight
@@ -2221,7 +2221,7 @@ ewmHandleSync (BREthereumEWM ewm,
                uint64_t blockNumberStart,
                uint64_t blockNumberCurrent,
                uint64_t blockNumberStop) {
-    assert (P2P_ONLY == ewm->mode || P2P_WITH_BRD_SYNC == ewm->mode);
+    assert (SYNC_MODE_P2P_ONLY == ewm->mode || SYNC_MODE_P2P_WITH_BRD_SYNC == ewm->mode);
 
     double syncCompletePercent = 100.0 * (blockNumberCurrent - blockNumberStart) / (blockNumberStop - blockNumberStart);
 
@@ -2296,8 +2296,8 @@ ewmUpdateWalletBalance(BREthereumEWM ewm,
                              });
     } else {
         switch (ewm->mode) {
-            case BRD_ONLY:
-            case BRD_WITH_P2P_SEND: {
+            case SYNC_MODE_BRD_ONLY:
+            case SYNC_MODE_BRD_WITH_P2P_SEND: {
                 char *address = addressGetEncodedString(walletGetAddress(wallet), 0);
 
                 ewm->client.funcGetBalance (ewm->client.context,
@@ -2310,8 +2310,8 @@ ewmUpdateWalletBalance(BREthereumEWM ewm,
                 break;
             }
 
-            case P2P_WITH_BRD_SYNC:
-            case P2P_ONLY:
+            case SYNC_MODE_P2P_WITH_BRD_SYNC:
+            case SYNC_MODE_P2P_ONLY:
                 // TODO: LES Update Wallet Balance
                 break;
         }
@@ -2322,16 +2322,16 @@ static void
 ewmUpdateBlockNumber (BREthereumEWM ewm) {
     if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) return;
     switch (ewm->mode) {
-        case BRD_ONLY:
-        case BRD_WITH_P2P_SEND: {
+        case SYNC_MODE_BRD_ONLY:
+        case SYNC_MODE_BRD_WITH_P2P_SEND: {
             ewm->client.funcGetBlockNumber (ewm->client.context,
                                             ewm,
                                             ++ewm->requestId);
             break;
         }
 
-        case P2P_WITH_BRD_SYNC:
-        case P2P_ONLY:
+        case SYNC_MODE_P2P_WITH_BRD_SYNC:
+        case SYNC_MODE_P2P_ONLY:
             // TODO: LES Update Wallet Balance
             break;
     }
@@ -2341,8 +2341,8 @@ static void
 ewmUpdateNonce (BREthereumEWM ewm) {
     if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) return;
     switch (ewm->mode) {
-        case BRD_ONLY:
-        case BRD_WITH_P2P_SEND: {
+        case SYNC_MODE_BRD_ONLY:
+        case SYNC_MODE_BRD_WITH_P2P_SEND: {
             char *address = addressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
 
             ewm->client.funcGetNonce (ewm->client.context,
@@ -2354,8 +2354,8 @@ ewmUpdateNonce (BREthereumEWM ewm) {
             break;
         }
 
-        case P2P_WITH_BRD_SYNC:
-        case P2P_ONLY:
+        case SYNC_MODE_P2P_WITH_BRD_SYNC:
+        case SYNC_MODE_P2P_ONLY:
             // TODO: LES Update Wallet Balance
             break;
     }
@@ -2372,8 +2372,8 @@ ewmUpdateTransactions (BREthereumEWM ewm) {
     if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) return;
 
     switch (ewm->mode) {
-        case BRD_ONLY:
-        case BRD_WITH_P2P_SEND: {
+        case SYNC_MODE_BRD_ONLY:
+        case SYNC_MODE_BRD_WITH_P2P_SEND: {
             char *address = addressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
 
             ewm->client.funcGetTransactions (ewm->client.context,
@@ -2387,8 +2387,8 @@ ewmUpdateTransactions (BREthereumEWM ewm) {
             break;
         }
 
-        case P2P_WITH_BRD_SYNC:
-        case P2P_ONLY:
+        case SYNC_MODE_P2P_WITH_BRD_SYNC:
+        case SYNC_MODE_P2P_ONLY:
             // TODO: LES Update Wallet Balance
             break;
     }
@@ -2410,8 +2410,8 @@ ewmUpdateLogs (BREthereumEWM ewm,
     if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) return;
 
     switch (ewm->mode) {
-        case BRD_ONLY:
-        case BRD_WITH_P2P_SEND: {
+        case SYNC_MODE_BRD_ONLY:
+        case SYNC_MODE_BRD_WITH_P2P_SEND: {
             char *address = addressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
             char *encodedAddress =
             eventERC20TransferEncodeAddress (event, address);
@@ -2431,8 +2431,8 @@ ewmUpdateLogs (BREthereumEWM ewm,
             break;
         }
 
-        case P2P_WITH_BRD_SYNC:
-        case P2P_ONLY:
+        case SYNC_MODE_P2P_WITH_BRD_SYNC:
+        case SYNC_MODE_P2P_ONLY:
             // TODO: LES Update Logs
             break;
     }
@@ -2449,7 +2449,7 @@ ewmPeriodicDispatcher (BREventHandler handler,
     BREthereumEWM ewm = (BREthereumEWM) event->context;
 
     if (ewm->state != EWM_STATE_CONNECTED) return;
-    if (P2P_ONLY == ewm->mode || P2P_WITH_BRD_SYNC == ewm->mode) return;
+    if (SYNC_MODE_P2P_ONLY == ewm->mode || SYNC_MODE_P2P_WITH_BRD_SYNC == ewm->mode) return;
 
     ewmUpdateBlockNumber(ewm);
     ewmUpdateNonce(ewm);
