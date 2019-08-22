@@ -57,9 +57,14 @@ struct BRWalletManagerStruct {
     BRFileService fileService;
 
     /**
-     * The forkId of the chain parameters associated with the wallet
+     * The chain parameters associated with the wallet
      */
-    uint8_t forkId;
+    const BRChainParams * chainParams;
+
+    /**
+     * The time, in seconds since UNIX epoch, at which the wallet was first created
+     */
+    uint32_t earliestKeyTime;
 
     /**
      * An EventHandler for Main.  All 'announcements' (via PeerManager (or BRD) hit here.

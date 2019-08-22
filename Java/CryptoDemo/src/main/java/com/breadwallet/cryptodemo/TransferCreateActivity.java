@@ -6,6 +6,7 @@ import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
 import android.text.Editable;
 import android.text.Html;
 import android.text.Spanned;
@@ -64,8 +65,6 @@ public class TransferCreateActivity extends AppCompatActivity {
 
     private EditText receiverView;
     private SeekBar amountView;
-    private TextView amountMinView;
-    private TextView amountMaxView;
     private TextView amountValueView;
     private TextView feeView;
     private Button submitView;
@@ -90,11 +89,11 @@ public class TransferCreateActivity extends AppCompatActivity {
 
         receiverView = findViewById(R.id.receiver_view);
         amountView = findViewById(R.id.amount_view);
-        amountMinView = findViewById(R.id.amount_min_view);
-        amountMaxView = findViewById(R.id.amount_max_view);
         amountValueView = findViewById(R.id.amount_value_view);
         feeView = findViewById(R.id.fee_view);
         submitView = findViewById(R.id.submit_view);
+        TextView amountMinView = findViewById(R.id.amount_min_view);
+        TextView amountMaxView = findViewById(R.id.amount_max_view);
 
         amountMinView.setText(Amount.create(MIN_VALUE, baseUnit).toString());
         amountMaxView.setText(Amount.create(maxValue, baseUnit).toString());
@@ -152,6 +151,9 @@ public class TransferCreateActivity extends AppCompatActivity {
             Amount amount = Amount.create(calculateValue(amountView.getProgress()), baseUnit);
             showConfirmTransfer(target.get(), amount, feeBasis);
         });
+
+        Toolbar toolbar = findViewById(R.id.toolbar_view);
+        setSupportActionBar(toolbar);
 
         updateFee();
         updateView(amountViewProgress, receiverViewText);;

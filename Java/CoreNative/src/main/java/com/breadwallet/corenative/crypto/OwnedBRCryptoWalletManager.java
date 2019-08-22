@@ -63,6 +63,11 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
+    public void setMode(int mode) {
+        core.setMode(mode);
+    }
+
+    @Override
     public String getPath() {
         return core.getPath();
     }

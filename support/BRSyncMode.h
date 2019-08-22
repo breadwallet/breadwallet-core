@@ -40,6 +40,9 @@ typedef enum {
     SYNC_MODE_P2P_ONLY
 } BRSyncMode;
 
+extern const char *
+BRSyncModeString (BRSyncMode m);
+
 #ifdef __cplusplus
 }
 #endif

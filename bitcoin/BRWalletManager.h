@@ -28,6 +28,7 @@
 
 #include <stdio.h>
 #include "BRSyncMode.h"
+#include "BRFileService.h"
 #include "BRBase.h"                 // Ownership
 #include "BRBIP32Sequence.h"        // BRMasterPubKey
 #include "BRChainParams.h"          // BRChainParams (*NOT THE STATIC DECLARATIONS*)
@@ -210,6 +211,9 @@ typedef void
 extern const char *
 BRWalletEventTypeString (BRWalletEventType t);
 
+extern int
+BRWalletEventTypeIsValidPair (BRWalletEventType t1, BRWalletEventType t2);
+
 ///
 /// WalletManager Event
 ///
@@ -245,6 +249,9 @@ typedef void
 
 extern const char *
 BRWalletManagerEventTypeString (BRWalletManagerEventType t);
+
+extern int
+BRWalletManagerEventTypeIsValidPair (BRWalletManagerEventType t1, BRWalletManagerEventType t2);
 
 ///
 /// WalletManager
@@ -288,11 +295,24 @@ BRWalletManagerDisconnect (BRWalletManager manager);
 extern void
 BRWalletManagerScan (BRWalletManager manager);
 
+extern void
+BRWalletManagerSetMode (BRWalletManager manager, BRSyncMode mode);
+
+extern BRSyncMode
+BRWalletManagerGetMode (BRWalletManager manager);
+
 //
 // These should not be needed if the events are sufficient
 //
 extern BRWallet *
 BRWalletManagerGetWallet (BRWalletManager manager);
+
+/**
+ * Return `1` if `manager` handles BTC; otherwise `0` if BCH.  Note: the `BRChainParams` determine
+ * BTC vs BCH.
+ */
+extern int
+BRWalletManagerHandlesBTC (BRWalletManager manager);
 
 /**
  * Creates an unsigned transaction that sends the specified amount from the wallet to the given address.
@@ -336,6 +356,18 @@ BRWalletManagerEstimateFeeForTransfer (BRWalletManager manager,
                                        BRCookie cookie,
                                        uint64_t transferAmount,
                                        uint64_t feePerKb);
+
+extern BRFileService
+BRWalletManagerCreateFileService (const BRChainParams *params,
+                                  const char *storagePath,
+                                  BRFileServiceContext context,
+                                  BRFileServiceErrorHandler handler);
+
+extern void
+BRWalletManagerExtractFileServiceTypes (BRFileService fileService,
+                                        const char **transactions,
+                                        const char **blocks,
+                                        const char **peers);
 
 #ifdef __cplusplus
 }

@@ -532,3 +532,43 @@ fileServiceDefineCurrentVersion (BRFileService fs,
 
     return 1;
 }
+
+extern BRFileService
+fileServiceCreateFromTypeSpecfications (const char *basePath,
+                                        const char *currency,
+                                        const char *network,
+                                        BRFileServiceContext context,
+                                        BRFileServiceErrorHandler handler,
+                                        size_t specificationsCount,
+                                        BRFileServiceTypeSpecification *specfications) {
+    int success = 1;
+
+    BRFileService fileService = fileServiceCreate (basePath,
+                                                   currency,
+                                                   network,
+                                                   context,
+                                                   handler);
+    if (NULL == fileService) return NULL;
+
+    for (size_t index = 0; index < specificationsCount; index++) {
+        BRFileServiceTypeSpecification *specification = &specfications[index];
+        for (size_t vindex = 0; vindex < specification->versionsCount; vindex++) {
+            success &= fileServiceDefineType (fileService,
+                                              specification->type,
+                                              specification->versions[vindex].version,
+                                              context,
+                                              specification->versions[vindex].identifier,
+                                              specification->versions[vindex].reader,
+                                              specification->versions[vindex].writer);
+            if (!success) break;
+        }
+
+        success &= fileServiceDefineCurrentVersion (fileService,
+                                                    specification->type,
+                                                    specification->defaultVersion);
+        if (!success) break;
+    }
+
+    if (success) return fileService;
+    else { fileServiceRelease (fileService); return NULL; }
+}

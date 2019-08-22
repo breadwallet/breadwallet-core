@@ -167,6 +167,40 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
             ]))
     }
 
+    func testWalletBCH() {
+        isMainnet = false
+        currencyCodesNeeded = ["bch"]
+        modeMap = ["bch":WalletManagerMode.p2p_only]
+        prepareAccount (AccountSpecification (dict: [
+            "identifier": "ginger",
+            "paperKey":   "ginger settle marine tissue robot crane night number ramp coast roast critic",
+            "timestamp":  "2018-01-01",
+            "network":    (isMainnet ? "mainnet" : "testnet")
+            ]))
+        prepareSystem ()
+
+        let walletManagerDisconnectExpectation = XCTestExpectation (description: "Wallet Manager Disconnect")
+        listener.managerHandlers += [
+            { (system: System, manager:WalletManager, event: WalletManagerEvent) in
+                if case let .changed(_, newState) = event, case .disconnected = newState {
+                    walletManagerDisconnectExpectation.fulfill()
+                }
+            }]
+
+        let network: Network! = system.networks.first { "bch" == $0.currency.code && isMainnet == $0.isMainnet }
+        XCTAssertNotNil (network)
+
+        let manager: WalletManager! = system.managers.first { $0.network == network }
+        XCTAssertNotNil (manager)
+
+        let wallet = manager.primaryWallet
+        XCTAssertNotNil(wallet)
+
+        // Checking the wallet address as BCHH
+        let walletAddress = wallet.source
+        XCTAssertTrue (walletAddress.description.starts (with: (isMainnet ? "bitcoincash" : "bchtest")))
+    }
+
     func testWalletETH() {
         isMainnet = false
         currencyCodesNeeded = ["eth"]
