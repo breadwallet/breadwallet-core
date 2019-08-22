@@ -117,7 +117,8 @@ extern BRCryptoTransfer
 cryptoTransferCreateAsBTC (BRCryptoUnit unit,
                            BRCryptoUnit unitForFee,
                            BRWallet *wid,
-                           OwnershipKept BRTransaction *tid) {
+                           OwnershipKept BRTransaction *tid,
+                           BRCryptoBoolean isBTC) {
     BRAddressParams  addressParams = BRWalletGetAddressParams (wid);
     BRCryptoTransfer transfer      = cryptoTransferCreateInternal (BLOCK_CHAIN_TYPE_BTC, unit, unitForFee);
     transfer->u.btc.tid = tid;
@@ -141,7 +142,7 @@ cryptoTransferCreateAsBTC (BRCryptoUnit unit,
 
             if (inputsContain == BRWalletContainsAddress(wid, address)) {
                 assert (addressSize < sizeof (BRAddress));
-                transfer->sourceAddress = cryptoAddressCreateAsBTC (BRAddressFill (addressParams, address));
+                transfer->sourceAddress = cryptoAddressCreateAsBTC (BRAddressFill (addressParams, address), isBTC);
                 break;
             }
         }
@@ -164,7 +165,7 @@ cryptoTransferCreateAsBTC (BRCryptoUnit unit,
             // returned by `BRWalletContainsAddress()`
             if (outputsContain == BRWalletContainsAddress(wid, address)) {
                 assert (addressSize < sizeof (BRAddress));
-                transfer->targetAddress = cryptoAddressCreateAsBTC (BRAddressFill (addressParams, address));
+                transfer->targetAddress = cryptoAddressCreateAsBTC (BRAddressFill (addressParams, address), isBTC);
                 break;
             }
         }

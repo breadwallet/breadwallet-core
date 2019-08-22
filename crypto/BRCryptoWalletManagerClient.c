@@ -512,12 +512,14 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
 
             BRCryptoUnit unit         = cryptoWalletGetUnit (wallet);
             BRCryptoUnit unitForFee   = cryptoWalletGetUnitForFee(wallet);
+            BRCryptoBoolean isBTC     = AS_CRYPTO_BOOLEAN (BRWalletManagerHandlesBTC(btcManager));
 
             // The transfer finally - based on the wallet's currency (BTC)
             transfer = cryptoTransferCreateAsBTC (unit,
                                                   unitForFee,
                                                   cryptoWalletAsBTC (wallet),
-                                                  btcTransaction);
+                                                  btcTransaction,
+                                                  isBTC);
 
             // Generate a CRYPTO transfer event for CREATED'...
             cwm->listener.transferEventCallback (cwm->listener.context,
@@ -578,12 +580,14 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
             if (NULL == transfer) {
                 BRCryptoUnit unit         = cryptoWalletGetUnit (wallet);
                 BRCryptoUnit unitForFee   = cryptoWalletGetUnitForFee(wallet);
+                BRCryptoBoolean isBTC     = AS_CRYPTO_BOOLEAN (BRWalletManagerHandlesBTC(btcManager));
 
                 // The transfer finally - based on the wallet's currency (BTC)
                 transfer = cryptoTransferCreateAsBTC (unit,
                                                       unitForFee,
                                                       cryptoWalletAsBTC (wallet),
-                                                      btcTransaction);
+                                                      btcTransaction,
+                                                      isBTC);
 
                 // Generate a CRYPTO transfer event for CREATED'...
                 cwm->listener.transferEventCallback (cwm->listener.context,

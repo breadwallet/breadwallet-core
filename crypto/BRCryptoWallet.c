@@ -350,7 +350,7 @@ cryptoWalletGetAddress (BRCryptoWallet wallet,
             BRAddress btcAddress = (CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT == addressScheme
                                     ? BRWalletReceiveAddress(wid)
                                     : BRWalletLegacyAddress (wid));
-            return cryptoAddressCreateAsBTC (btcAddress);
+            return cryptoAddressCreateAsBTC (btcAddress, AS_CRYPTO_BOOLEAN (BRWalletManagerHandlesBTC(wallet->u.btc.bwm)));
             }
 
         case BLOCK_CHAIN_TYPE_ETH: {
@@ -493,7 +493,8 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
 
             BRTransaction *tid = BRWalletManagerCreateTransaction (bwm, wid, value, addr,
                                                                    cryptoFeeBasisAsBTC(estimatedFeeBasis));
-            transfer = NULL == tid ? NULL : cryptoTransferCreateAsBTC (unit, unitForFee, wid, tid);
+            transfer = NULL == tid ? NULL : cryptoTransferCreateAsBTC (unit, unitForFee, wid, tid,
+                                                                       AS_CRYPTO_BOOLEAN(BRWalletManagerHandlesBTC(bwm)));
             break;
         }
 

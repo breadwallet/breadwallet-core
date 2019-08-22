@@ -38,7 +38,7 @@ struct BRCryptoAddressRecord {
     BRCryptoBlockChainType type;
     union {
         struct {
-            int isBitcoinCashAddr;
+            BRCryptoBoolean isBitcoinAddr; // TRUE if BTC; FALSE if BCH
             BRAddress addr;
         } btc;
         BREthereumAddress eth;
@@ -78,9 +78,9 @@ cryptoAddressCreateAsETH (BREthereumAddress eth) {
 }
 
 private_extern BRCryptoAddress
-cryptoAddressCreateAsBTC (BRAddress btc, int isBitcoinCashAddr) {
+cryptoAddressCreateAsBTC (BRAddress btc, BRCryptoBoolean isBitcoinAddr) {
     BRCryptoAddress address = cryptoAddressCreate (BLOCK_CHAIN_TYPE_BTC);
-    address->u.btc.isBitcoinCashAddr = isBitcoinCashAddr;
+    address->u.btc.isBitcoinAddr = isBitcoinAddr;
     address->u.btc.addr = btc;
     return address;
 }
@@ -112,7 +112,7 @@ cryptoAddressCreateFromStringAsBTC (BRAddressParams params, const char *btcAddre
     assert (btcAddress);
 
     return (BRAddressIsValid (params, btcAddress)
-            ? cryptoAddressCreateAsBTC (BRAddressFill(params, btcAddress), 0)
+            ? cryptoAddressCreateAsBTC (BRAddressFill(params, btcAddress), CRYPTO_TRUE)
             : NULL);
 }
 
@@ -122,7 +122,7 @@ cryptoAddressCreateFromStringAsBCH (BRAddressParams params, const char *bchAddre
 
     char btcAddr[36];
     return (0 != BRBCashAddrDecode(btcAddr, bchAddress) && !BRAddressIsValid(params, bchAddress)
-            ? cryptoAddressCreateAsBTC (BRAddressFill(params, btcAddr), 1)
+            ? cryptoAddressCreateAsBTC (BRAddressFill(params, btcAddr), CRYPTO_FALSE)
             : NULL);
 }
 
@@ -147,7 +147,7 @@ extern char *
 cryptoAddressAsString (BRCryptoAddress address) {
     switch (address->type) {
         case BLOCK_CHAIN_TYPE_BTC:
-            if (!address->u.btc.isBitcoinCashAddr)
+            if (CRYPTO_TRUE == address->u.btc.isBitcoinAddr)
                 return strdup (address->u.btc.addr.s);
             else {
                 char *result = malloc (55);
@@ -167,7 +167,7 @@ cryptoAddressIsIdentical (BRCryptoAddress a1,
     return AS_CRYPTO_BOOLEAN (a1 == a2 ||
                               (a1->type == a2->type &&
                                (a1->type == BLOCK_CHAIN_TYPE_BTC
-                                ? (0 == strcmp (a1->u.btc.addr.s, a2->u.btc.addr.s) && a1->u.btc.isBitcoinCashAddr == a2->u.btc.isBitcoinCashAddr)
+                                ? (0 == strcmp (a1->u.btc.addr.s, a2->u.btc.addr.s) && a1->u.btc.isBitcoinAddr == a2->u.btc.isBitcoinAddr)
                                 : ( a1->type == BLOCK_CHAIN_TYPE_ETH
                                    ? ETHEREUM_BOOLEAN_IS_TRUE (addressEqual (a1->u.eth, a2->u.eth))
                                    : gwmAddressEqual (a1->u.gen.gwm, a1->u.gen.aid, a2->u.gen.aid)))));

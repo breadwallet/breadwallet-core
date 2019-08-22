@@ -187,7 +187,54 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
         runTransferBTCTest()
     }
 
-    /// MARK: - BTC
+    /// MARK: - BCH
+
+    func testTransferBCH_P2P () {
+        isMainnet = true
+        currencyCodesNeeded = ["bch"]
+        modeMap = ["bch":WalletManagerMode.p2p_only]
+        prepareAccount (identifier: "loan")
+        prepareSystem()
+
+        let walletManagerDisconnectExpectation = XCTestExpectation (description: "Wallet Manager Disconnect")
+        listener.managerHandlers += [
+            { (system: System, manager:WalletManager, event: WalletManagerEvent) in
+                if case let .changed(_, newState) = event, case .disconnected = newState {
+                    walletManagerDisconnectExpectation.fulfill()
+                }
+            }]
+
+        let network: Network! = system.networks.first { "bch" == $0.currency.code && isMainnet == $0.isMainnet }
+        XCTAssertNotNil (network)
+
+        let manager: WalletManager! = system.managers.first { $0.network == network }
+        XCTAssertNotNil (manager)
+        manager.addressScheme = AddressScheme.btcLegacy
+
+        let wallet = manager.primaryWallet
+        XCTAssertNotNil(wallet)
+
+        // Connect and wait for a number of transfers
+        listener.transferIncluded = true
+        listener.transferCount = 1
+        manager.connect()
+        wait (for: [listener.transferExpectation], timeout: syncTimeoutInSeconds)
+
+        manager.disconnect()
+        wait (for: [walletManagerDisconnectExpectation], timeout: 5)
+
+        XCTAssertTrue (wallet.transfers.count > 0)
+        let transfer = wallet.transfers[0]
+        XCTAssertTrue (nil != transfer.source || nil != transfer.target)
+        if let source = transfer.source {
+            XCTAssertTrue (source.description.starts (with: (isMainnet ? "bitcoincash" : "bchtest")))
+        }
+        if let target = transfer.target {
+            XCTAssertTrue (target.description.starts (with: (isMainnet ? "bitcoincash" : "bchtest")))
+        }
+    }
+    
+    /// MARK: - ETH
 
     func runTransferETHTest () {
         let network: Network! = system.networks.first { "eth" == $0.currency.code && isMainnet == $0.isMainnet }

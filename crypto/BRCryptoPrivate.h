@@ -126,7 +126,8 @@ extern "C" {
     /// MARK: - Address
 
     private_extern BRCryptoAddress
-    cryptoAddressCreateAsBTC (BRAddress btc);
+    cryptoAddressCreateAsBTC (BRAddress btc,
+                              BRCryptoBoolean isBTC);  // TRUE if BTC; FALSE if BCH
 
     private_extern BRCryptoAddress
     cryptoAddressCreateAsETH (BREthereumAddress eth);
@@ -193,7 +194,8 @@ extern "C" {
     cryptoTransferCreateAsBTC (BRCryptoUnit unit,
                                BRCryptoUnit unitForFee,
                                BRWallet *wid,
-                               OwnershipKept BRTransaction *tid);
+                               OwnershipKept BRTransaction *tid,
+                               BRCryptoBoolean isBTC); // TRUE if BTC; FALSE if BCH
 
     private_extern BRCryptoTransfer
     cryptoTransferCreateAsETH (BRCryptoUnit unit,

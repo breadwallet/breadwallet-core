@@ -51,7 +51,7 @@ class BRCryptoBaseTests: XCTestCase {
 
     var account: Account!
 
-    func prepareAccount (_ spec: AccountSpecification? = nil) {
+    func prepareAccount (_ spec: AccountSpecification? = nil, identifier: String? = nil) {
         let defaultSpecification = AccountSpecification (dict: [
             "identifier": "ginger",
             "paperKey":   "ginger settle marine tissue robot crane night number ramp coast roast critic",
@@ -64,6 +64,10 @@ class BRCryptoBaseTests: XCTestCase {
             : AccountSpecification.loadFrom(configPath: configPath, defaultSpecification: defaultSpecification))
             .filter { $0.network == (isMainnet ? "mainnet" : "testnet") }
 
+        // If there is an identifier, filter
+        if let id = identifier {
+            self.accountSpecifications.removeAll { $0.identifier != id }
+        }
         let specifiction = accountSpecification!
 
         /// Create the account

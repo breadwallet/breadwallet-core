@@ -714,6 +714,11 @@ BRWalletManagerGetWallet (BRWalletManager manager) {
     return manager->wallet;
 }
 
+extern int
+BRWalletManagerHandlesBTC (BRWalletManager manager) {
+    return BRChainParamsIsBitcoin (manager->chainParams);
+}
+
 extern void
 BRWalletManagerConnect (BRWalletManager manager) {
     pthread_mutex_lock (&manager->lock);
