@@ -506,7 +506,9 @@ cryptoNetworkCreateAddressFromString (BRCryptoNetwork network,
     switch (network->type) {
 
         case BLOCK_CHAIN_TYPE_BTC:
-            return cryptoAddressCreateFromStringAsBTC (network->u.btc.params->addrParams, string);
+            return (BRChainParamsIsBitcoin (network->u.btc.params)
+                    ? cryptoAddressCreateFromStringAsBTC (network->u.btc.params->addrParams, string)
+                    : cryptoAddressCreateFromStringAsBCH (network->u.btc.params->addrParams, string));
 
         case BLOCK_CHAIN_TYPE_ETH:
             return cryptoAddressCreateFromStringAsETH (string);

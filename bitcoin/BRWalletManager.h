@@ -308,6 +308,13 @@ extern BRWallet *
 BRWalletManagerGetWallet (BRWalletManager manager);
 
 /**
+ * Return `1` if `manager` handles BTC; otherwise `0` if BCH.  Note: the `BRChainParams` determine
+ * BTC vs BCH.
+ */
+extern int
+BRWalletManagerHandlesBTC (BRWalletManager manager);
+
+/**
  * Creates an unsigned transaction that sends the specified amount from the wallet to the given address.
  *
  * @returns NULL on failure, or a transaction on success; the returned transaction must be freed using BRTransactionFree()
