@@ -1204,6 +1204,7 @@ extension System {
     ///
     public enum BlockBlob {
         case btc (
+            hash: BlockHash,
             height: UInt32,
             nonce: UInt32,
             target: UInt32,
@@ -1318,6 +1319,7 @@ extension System {
                 else { return }
 
             guard blob.hashes.allSatisfy (System.validateBlockHash(_:)),
+                System.validateBlockHash(blob.hash),
                 System.validateBlockHash(blob.merkleRoot),
                 System.validateBlockHash(blob.prevBlock)
                 else { throw MigrateError.block }
@@ -1326,12 +1328,14 @@ extension System {
             var hashes = blob.hashes
             let hashesCount = blob.hashes.count
 
+            let hash: UInt256 = blob.hash.withUnsafeBytes { $0.load (as: UInt256.self) }
             let merkleRoot: UInt256 = blob.merkleRoot.withUnsafeBytes { $0.load (as: UInt256.self) }
             let prevBlock:  UInt256 = blob.prevBlock.withUnsafeBytes  { $0.load (as: UInt256.self) }
 
             try hashes.withUnsafeMutableBytes { (hashesBytes: UnsafeMutableRawBufferPointer) -> Void in
                 let hashesAddr = hashesBytes.baseAddress?.assumingMemoryBound(to: UInt256.self)
                 let status = cryptoWalletMigratorHandleBlockAsBTC (migrator,
+                                                                   hash,
                                                                    blob.height,
                                                                    blob.nonce,
                                                                    blob.target,
