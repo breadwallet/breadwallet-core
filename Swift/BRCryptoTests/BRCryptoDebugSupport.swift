@@ -7,7 +7,6 @@
 //
 
 @testable import BRCrypto
-import BRCryptoC
 
 ///
 /// Event Matching
@@ -169,7 +168,7 @@ extension Array where Element:MatchableEvent {
 
 extension Amount: CustomDebugStringConvertible {
     public var debugDescription: String {
-        let value = cryptoAmountGetValue(core)
+        let value = self.integerRaw
         return "Amount: {\(value.u64.3), \(value.u64.2), \(value.u64.1), \(value.u64.0)}: \(unit.name)"
     }
 }

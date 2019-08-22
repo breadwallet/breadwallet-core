@@ -11,7 +11,6 @@
 
 import XCTest
 @testable import BRCrypto
-import BRCryptoC
 
 struct TransferResult {
     let target: Bool
@@ -27,8 +26,7 @@ struct TransferResult {
         guard let transferHash = transfer.hash?.description, self.hash == transferHash
             else { return false }
 
-        var overflow: BRCryptoBoolean = CRYPTO_FALSE
-        guard amount == cryptoAmountGetIntegerRaw(transfer.amount.core, &overflow)
+        guard let transferInteger = transfer.amount.integerRawSmall, amount == transferInteger
             else { return false }
 
        guard let transferConfirmation = transfer.confirmation // , self.confirmation == transferConfirmation
@@ -273,9 +271,9 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
     }
 
     func testTransferDirection () {
-        XCTAssertEqual(TransferDirection.sent,      TransferDirection (core: BRCryptoTransferDirection (rawValue: 0)))
-        XCTAssertEqual(TransferDirection.received,  TransferDirection (core: BRCryptoTransferDirection (rawValue: 1)))
-        XCTAssertEqual(TransferDirection.recovered, TransferDirection (core: BRCryptoTransferDirection (rawValue: 2)))
+        XCTAssertEqual(TransferDirection.sent,      TransferDirection (core: TransferDirection.sent.core))
+        XCTAssertEqual(TransferDirection.received,  TransferDirection (core: TransferDirection.received.core))
+        XCTAssertEqual(TransferDirection.recovered, TransferDirection (core: TransferDirection.recovered.core))
     }
 
     func testTransferHash () {

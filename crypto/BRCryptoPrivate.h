@@ -233,6 +233,13 @@ extern "C" {
     cryptoTransferHasGEN (BRCryptoTransfer transfer,
                           BRGenericTransfer gen);
 
+    private_extern void
+    cryptoTransferExtractBlobAsBTC (BRCryptoTransfer transfer,
+                                    uint8_t **bytes,
+                                    size_t   *bytesCount,
+                                    uint32_t *blockHeight,
+                                    uint32_t *timestamp);
+
     /// MARK: - Network Fee
     private_extern BRCryptoNetworkFee
     cryptoNetworkFeeCreate (uint64_t confirmationTimeInMilliseconds,

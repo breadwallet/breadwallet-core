@@ -663,6 +663,24 @@ cryptoTransferEqual (BRCryptoTransfer t1, BRCryptoTransfer t2) {
                                             (BLOCK_CHAIN_TYPE_GEN == t1->type && cryptoTransferEqualAsGEN (t1, t2)))));
 }
 
+private_extern void
+cryptoTransferExtractBlobAsBTC (BRCryptoTransfer transfer,
+                                uint8_t **bytes,
+                                size_t   *bytesCount,
+                                uint32_t *blockHeight,
+                                uint32_t *timestamp) {
+    assert (NULL != bytes && NULL != bytesCount);
+
+    BRTransaction *tx = cryptoTransferAsBTC (transfer);
+
+    *bytesCount = BRTransactionSerialize (tx, NULL, 0);
+    *bytes = malloc (*bytesCount);
+    BRTransactionSerialize (tx, *bytes, *bytesCount);
+
+    if (NULL != blockHeight) *blockHeight = tx->blockHeight;
+    if (NULL != timestamp)   *timestamp   = tx->timestamp;
+}
+
 extern const char *
 BRCryptoTransferEventTypeString (BRCryptoTransferEventType t) {
     switch (t) {

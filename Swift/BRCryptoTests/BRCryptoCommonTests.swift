@@ -8,7 +8,7 @@
 import XCTest
 import Foundation
 @testable import BRCrypto
-import BRCryptoC
+import BRCryptoC // UInt256 <==> Secret
 
 class BRCryptoCommonTests: XCTestCase {
 
