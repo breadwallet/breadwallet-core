@@ -73,6 +73,9 @@ extern "C" {
         CRYPTO_TRANSFER_EVENT_DELETED,
     } BRCryptoTransferEventType;
 
+    extern const char *
+    BRCryptoTransferEventTypeString (BRCryptoTransferEventType t);
+
     typedef struct {
         BRCryptoTransferEventType type;
         union {
