@@ -141,6 +141,9 @@ public final class System {
         announceEvent (SystemEvent.networkAdded(network: network))
     }
 
+    internal func networkBy (uids: String) -> Network? {
+        return networks.first { $0.uids == uids }
+    }
 
     /// The system's Wallet Managers, unsorted.  A WalletManager will hold an 'unowned'
     /// reference back to `System`
@@ -249,6 +252,37 @@ public final class System {
                       currencies: Dictionary (uniqueKeysWithValues: currencyKeyValues))
         self.query.updateWallet (wallet) { (res: Result<BlockChainDB.Model.Wallet, BlockChainDB.QueryError>) in
             print ("SYS: SubscribedWallets: \(res)")
+        }
+    }
+
+    internal func updateNetworkFees () {
+        self.query.getBlockchains (mainnet: self.onMainnet) {
+            (blockChainResult: Result<[BlockChainDB.Model.Blockchain],BlockChainDB.QueryError>) in
+
+            // On an error, just skip out; we'll query again later, presumably
+            guard case let .success (blockChainModels) = blockChainResult
+                else { return }
+
+            blockChainModels.forEach { (blockChainModel: BlockChainDB.Model.Blockchain) in
+                if let network = self.networkBy(uids: blockChainModel.id) {
+                    // We always have a feeUnit for network
+                    let feeUnit = network.baseUnitFor(currency: network.currency)!
+
+                    // Get the fees
+                    let fees = blockChainModel.feeEstimates
+                        // Well, quietly ignore a fee if we can't parse the amount.
+                        .compactMap { (fee: BlockChainDB.Model.BlockchainFee) -> NetworkFee? in
+                            let timeInterval  = 1000 * 60 * Int (fee.tier.dropLast())!
+                            return Amount.create (string: fee.amount, unit: feeUnit)
+                                .map { NetworkFee (timeInternalInMilliseconds: UInt64(timeInterval),
+                                                   pricePerCostFactor: $0) }
+                    }
+
+                    // The fees are unlikely to change; we'll announce .feesUpdated anyways.
+                    network.fees = fees
+                    self.listener?.handleNetworkEvent (system: self, network: network, event: .feesUpdated)
+                }
+            }
         }
     }
 
