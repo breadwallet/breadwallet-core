@@ -1019,9 +1019,12 @@ ewmUpdateMode (BREthereumEWM ewm,
     BRSyncMode oldMode = ewm->mode;
     BRSyncMode newMode = mode;
 
-    BREthereumBoolean needBCSRestart = 0;
 
     if (oldMode != newMode) {
+
+        // Disconnect if connected; reconnect if connected.
+         if (ETHEREUM_BOOLEAN_IS_TRUE(ewmIsConnected(ewm)))
+            ewmDisconnect(ewm); // Stops periodic dispatch too.
 
         BRSetOf(BREthereumNodeConfig) nodes;
         BRSetOf(BREthereumBlock) blocks;
@@ -1030,7 +1033,6 @@ ewmUpdateMode (BREthereumEWM ewm,
 
         // We have BCS in all modes but in BRD_ONLY mode it is never started.
 
-        needBCSRestart = bcsIsStarted (ewm->bcs);
 
         //
         // This `bcsStop()` is going a) to call `lesStop()` and b) then stop *and clear*
@@ -1055,6 +1057,9 @@ ewmUpdateMode (BREthereumEWM ewm,
         // Get some current state that we'll use when recreating BCS.
         BREthereumAddress primaryAddress = accountGetPrimaryAddress(ewm->account);
         BREthereumBCSListener listener   = ewmCreateBCSListener (ewm);
+
+        // Set the new mode
+        ewm->mode = newMode;
 
         //
         // We'll create a node-specific BCS here; this parallels how BCS is created in ewmCreat().
@@ -1091,9 +1096,7 @@ ewmUpdateMode (BREthereumEWM ewm,
                 break;
          }
 
-        // Reestablish
-        if (ETHEREUM_BOOLEAN_IS_TRUE (needBCSRestart))
-            bcsStart (ewm->bcs);
+        // Don't reestablish a connection
     }
     pthread_mutex_unlock (&ewm->lock);
 }

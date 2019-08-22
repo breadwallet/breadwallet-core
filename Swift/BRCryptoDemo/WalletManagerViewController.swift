@@ -9,8 +9,7 @@
 import UIKit
 import BRCrypto
 
-class WalletManagerViewController: UIViewController {
-
+class WalletManagerViewController: UIViewController, WalletManagerListener {
     var manager: WalletManager!
     let modes = [WalletManagerMode.api_only,
                  WalletManagerMode.api_with_p2p_submit,
@@ -22,8 +21,22 @@ class WalletManagerViewController: UIViewController {
                           AddressScheme.ethDefault,
                           AddressScheme.genDefault]
 
+    let connectStates = [WalletManagerState.created,
+                         WalletManagerState.disconnected,
+                         WalletManagerState.connected,
+                         WalletManagerState.syncing,
+                         WalletManagerState.disconnected]
+
     override func viewDidLoad() {
         super.viewDidLoad()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
+            listener.remove (managerListener: self)
+        }
+
+        super.viewWillDisappear(animated)
     }
 
     func modeSegmentIsSelected (_ index: Int) -> Bool {
@@ -41,9 +54,33 @@ class WalletManagerViewController: UIViewController {
     func addressSchemeIsEnabled (_ index: Int) -> Bool {
         return UIApplication.sharedSystem.supportsAddressScheme(network: manager.network, addressSchemes[index])
    }
- 
+
+    func connectStateIsSelected (_ index: Int, _ state: WalletManagerState? = nil) -> Bool {
+        let state = state ?? manager.state
+        switch index {
+        case 0: return WalletManagerState.disconnected == state
+        case 1: return WalletManagerState.connected    == state
+        case 2: return WalletManagerState.syncing      == state
+        default: return false
+        }
+    }
+
+    func connectStateIsEnabled (_ index: Int, _ state: WalletManagerState? = nil) -> Bool {
+        switch state ?? manager.state {
+        case .created:      return 1 == index
+        case .disconnected: return 1 == index
+        case .connected:    return 0 == index || 2 == index
+        case .syncing:      return 1 == index
+        default: return false
+        }
+    }
+
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
+            listener.add (managerListener: self)
+        }
+        
         for index in 0..<modes.count {
             modeSegmentedControl.setEnabled (modeSegmentIsEnabled(index), forSegmentAt: index)
             if modeSegmentIsSelected(index) {
@@ -57,6 +94,20 @@ class WalletManagerViewController: UIViewController {
                 addressSchemeSegmentedControl.selectedSegmentIndex = index
             }
         }
+
+        for index in 0..<3 {
+            connectStateSegmentedControl.setEnabled(connectStateIsEnabled(index), forSegmentAt: index)
+            if connectStateIsSelected(index) {
+                connectStateSegmentedControl.selectedSegmentIndex = index
+            }
+        }
+        self.connectStateLabel.text = manager.state.description
+        self.blockHeightLabel.text  = manager.network.height.description
+        self.syncProgressLabel.text = ""
+        updateView ()
+    }
+
+    func updateView () {
     }
 
     /*
@@ -73,10 +124,47 @@ class WalletManagerViewController: UIViewController {
         print ("WMVC: Mode: \(modes[sender.selectedSegmentIndex].description)")
         manager.mode = modes [sender.selectedSegmentIndex]
     }
+    
     @IBOutlet var addressSchemeSegmentedControl: UISegmentedControl!
     @IBAction func selectAddressScheme(_ sender: UISegmentedControl) {
         print ("WMVC: AddressScheme: \(addressSchemes[sender.selectedSegmentIndex].description)")
         manager.addressScheme = addressSchemes[sender.selectedSegmentIndex]
+    }
+    @IBOutlet var connectStateSegmentedControl: UISegmentedControl!
+    @IBAction func selectConnectState(_ sender: UISegmentedControl) {
+        switch sender.selectedSegmentIndex {
+        case 0: manager.disconnect()
+        case 1: manager.connect()
+        case 2: manager.sync()
+        default: break
+        }
+    }
+    @IBOutlet var connectStateLabel: UILabel!
+    @IBOutlet var blockHeightLabel: UILabel!
+    @IBOutlet var syncProgressLabel: UILabel!
+
+    func handleManagerEvent(system: System, manager: WalletManager, event: WalletManagerEvent) {
+        guard manager == self.manager else { return }
+        DispatchQueue.main.async {
+            switch event {
+            case let .changed (_, newState):
+                self.connectStateLabel.text = newState.description
+                for index in 0..<3 {
+                    self.connectStateSegmentedControl.setEnabled(self.connectStateIsEnabled(index, newState), forSegmentAt: index)
+                    if self.connectStateIsSelected(index, newState) {
+                        self.connectStateSegmentedControl.selectedSegmentIndex = index
+                    }
+                }
+            case .syncProgress(let percentComplete):
+                self.syncProgressLabel.text = percentComplete.description
+            case .syncEnded(let error):
+                self.syncProgressLabel.text = error ?? ""
+            case .blockUpdated(let height):
+                self.blockHeightLabel.text = height.description
+            default:
+                break
+            }
+        }
     }
 }
 
@@ -91,6 +179,18 @@ extension WalletManagerMode: CustomStringConvertible {
             return "p2p_with_api_sync"
         case .p2p_only:
             return "p2p_only"
+        }
+    }
+}
+
+extension WalletManagerState: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case .created:      return "Created"
+        case .disconnected: return "Disconnected"
+        case .connected:    return "Connected"
+        case .syncing:      return "Syncing"
+        case .deleted:      return "Deleted"
         }
     }
 }

@@ -621,29 +621,125 @@
                                     <action selector="selectAddressScheme:" destination="eB2-cr-Oxb" eventType="valueChanged" id="xEV-zS-3hH"/>
                                 </connections>
                             </segmentedControl>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Connect State:" textAlignment="right" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="qu7-co-zDc">
+                                <rect key="frame" x="16" y="258" width="167.5" height="21"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="21" id="K4m-If-2xg"/>
+                                </constraints>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Block Height:" textAlignment="right" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="bQH-Yn-otr">
+                                <rect key="frame" x="16" y="348" width="167.5" height="21"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="21" id="FHj-lr-qYH"/>
+                                </constraints>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Sync Progress:" textAlignment="right" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="QjG-mV-nmB">
+                                <rect key="frame" x="16" y="377" width="167.5" height="21"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="21" id="9H4-cn-Mhj"/>
+                                </constraints>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <segmentedControl opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="top" segmentControlStyle="plain" selectedSegmentIndex="0" translatesAutoresizingMaskIntoConstraints="NO" id="i03-zC-8Xu">
+                                <rect key="frame" x="16" y="287" width="343" height="29"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="28" id="Pba-qq-GkK"/>
+                                </constraints>
+                                <segments>
+                                    <segment title="Disconnect"/>
+                                    <segment title="Connect"/>
+                                    <segment title="Sync"/>
+                                </segments>
+                                <connections>
+                                    <action selector="selectConnectState:" destination="eB2-cr-Oxb" eventType="valueChanged" id="SwS-kh-BEV"/>
+                                </connections>
+                            </segmentedControl>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="rHY-dK-3fI">
+                                <rect key="frame" x="191.5" y="258" width="167.5" height="21"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Height" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Ki6-b3-OPr">
+                                <rect key="frame" x="191.5" y="348" width="168" height="21"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="83c-4o-rSE">
+                                <rect key="frame" x="183.5" y="279" width="8" height="0.0"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="8" id="khI-cF-fAf"/>
+                                </constraints>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Progress" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="2Kh-N7-iQd">
+                                <rect key="frame" x="191.5" y="376" width="167.5" height="21"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <constraints>
                             <constraint firstItem="m8f-sp-u5j" firstAttribute="top" secondItem="BJL-OS-MjS" secondAttribute="bottom" constant="33" id="0GQ-yW-ASv"/>
                             <constraint firstItem="BJL-OS-MjS" firstAttribute="top" secondItem="Fwc-Gi-dKy" secondAttribute="bottom" constant="8" id="2J9-Yk-uIC"/>
+                            <constraint firstItem="rHY-dK-3fI" firstAttribute="top" secondItem="QUW-82-OMc" secondAttribute="bottom" constant="33" id="3V1-Fi-waN"/>
                             <constraint firstItem="QUW-82-OMc" firstAttribute="leading" secondItem="Gdc-Bz-B3h" secondAttribute="leading" constant="16" id="4cB-Kq-57X"/>
                             <constraint firstItem="m8f-sp-u5j" firstAttribute="leading" secondItem="Gdc-Bz-B3h" secondAttribute="leading" constant="16" id="5KQ-md-HDf"/>
+                            <constraint firstItem="qu7-co-zDc" firstAttribute="top" secondItem="QUW-82-OMc" secondAttribute="bottom" constant="33" id="6EH-IM-Gd4"/>
                             <constraint firstItem="Gdc-Bz-B3h" firstAttribute="trailing" secondItem="QUW-82-OMc" secondAttribute="trailing" constant="16" id="AjM-sE-eXm"/>
+                            <constraint firstItem="83c-4o-rSE" firstAttribute="centerX" secondItem="Gdc-Bz-B3h" secondAttribute="centerX" id="DUr-Xr-3Y0"/>
+                            <constraint firstItem="Ki6-b3-OPr" firstAttribute="bottom" secondItem="bQH-Yn-otr" secondAttribute="bottom" id="Ekf-hU-Xy5"/>
                             <constraint firstItem="Fwc-Gi-dKy" firstAttribute="leading" secondItem="Gdc-Bz-B3h" secondAttribute="leading" constant="16" id="Eln-V5-lky"/>
                             <constraint firstItem="Gdc-Bz-B3h" firstAttribute="trailing" secondItem="m8f-sp-u5j" secondAttribute="trailing" constant="16" id="JwX-h9-bpj"/>
+                            <constraint firstItem="rHY-dK-3fI" firstAttribute="leading" secondItem="83c-4o-rSE" secondAttribute="trailing" id="KCP-qm-YxO"/>
+                            <constraint firstItem="Gdc-Bz-B3h" firstAttribute="trailing" secondItem="i03-zC-8Xu" secondAttribute="trailing" constant="16" id="L1p-pn-HSi"/>
+                            <constraint firstItem="Ki6-b3-OPr" firstAttribute="leading" secondItem="83c-4o-rSE" secondAttribute="trailing" id="N37-S1-LQV"/>
+                            <constraint firstItem="83c-4o-rSE" firstAttribute="leading" secondItem="bQH-Yn-otr" secondAttribute="trailing" id="PNZ-ue-xyx"/>
                             <constraint firstItem="Gdc-Bz-B3h" firstAttribute="trailing" secondItem="Fwc-Gi-dKy" secondAttribute="trailing" constant="16" id="Pdg-DB-MYD"/>
                             <constraint firstItem="QUW-82-OMc" firstAttribute="top" secondItem="m8f-sp-u5j" secondAttribute="bottom" constant="8" id="TiM-Sa-qOj"/>
+                            <constraint firstItem="bQH-Yn-otr" firstAttribute="leading" secondItem="Gdc-Bz-B3h" secondAttribute="leading" constant="16" id="Tp0-HH-lhc"/>
+                            <constraint firstItem="i03-zC-8Xu" firstAttribute="top" secondItem="qu7-co-zDc" secondAttribute="bottom" constant="8" id="URt-U3-Gh5"/>
+                            <constraint firstItem="QjG-mV-nmB" firstAttribute="leading" secondItem="Gdc-Bz-B3h" secondAttribute="leading" constant="16" id="VSI-IY-dny"/>
+                            <constraint firstItem="bQH-Yn-otr" firstAttribute="top" secondItem="i03-zC-8Xu" secondAttribute="bottom" constant="33" id="XcM-tv-sN8"/>
                             <constraint firstItem="m8f-sp-u5j" firstAttribute="leading" secondItem="Gdc-Bz-B3h" secondAttribute="leading" constant="16" id="Xe7-qk-VAm"/>
+                            <constraint firstItem="Gdc-Bz-B3h" firstAttribute="trailing" secondItem="2Kh-N7-iQd" secondAttribute="trailing" constant="16" id="Y9Y-TI-498"/>
                             <constraint firstItem="Fwc-Gi-dKy" firstAttribute="top" secondItem="Gdc-Bz-B3h" secondAttribute="top" constant="12" id="a5W-aD-fTm"/>
+                            <constraint firstItem="Ki6-b3-OPr" firstAttribute="top" secondItem="i03-zC-8Xu" secondAttribute="bottom" constant="33" id="bI6-e1-Kf9"/>
+                            <constraint firstItem="83c-4o-rSE" firstAttribute="bottom" secondItem="rHY-dK-3fI" secondAttribute="bottom" id="bpv-vU-M3w"/>
+                            <constraint firstItem="2Kh-N7-iQd" firstAttribute="top" secondItem="Ki6-b3-OPr" secondAttribute="bottom" constant="7" id="dbV-bk-d2e"/>
                             <constraint firstItem="BJL-OS-MjS" firstAttribute="leading" secondItem="Gdc-Bz-B3h" secondAttribute="leading" constant="16" id="dha-rt-bes"/>
+                            <constraint firstItem="83c-4o-rSE" firstAttribute="leading" secondItem="QjG-mV-nmB" secondAttribute="trailing" id="f9n-2Z-tnI"/>
+                            <constraint firstItem="QjG-mV-nmB" firstAttribute="top" secondItem="bQH-Yn-otr" secondAttribute="bottom" constant="8" id="gcz-pb-RxB"/>
+                            <constraint firstItem="83c-4o-rSE" firstAttribute="leading" secondItem="qu7-co-zDc" secondAttribute="trailing" id="gov-2k-cY0"/>
+                            <constraint firstItem="2Kh-N7-iQd" firstAttribute="leading" secondItem="83c-4o-rSE" secondAttribute="trailing" id="iGB-Lc-V0f"/>
+                            <constraint firstItem="Gdc-Bz-B3h" firstAttribute="trailing" secondItem="Ki6-b3-OPr" secondAttribute="trailing" constant="15.5" id="sXo-m8-nlP"/>
+                            <constraint firstItem="i03-zC-8Xu" firstAttribute="leading" secondItem="Gdc-Bz-B3h" secondAttribute="leading" constant="16" id="u52-dm-5TP"/>
+                            <constraint firstItem="qu7-co-zDc" firstAttribute="leading" secondItem="Gdc-Bz-B3h" secondAttribute="leading" constant="16" id="vJ1-ZQ-biF"/>
                             <constraint firstItem="Gdc-Bz-B3h" firstAttribute="trailing" secondItem="BJL-OS-MjS" secondAttribute="trailing" constant="16" id="xJb-GA-wen"/>
+                            <constraint firstItem="Gdc-Bz-B3h" firstAttribute="trailing" secondItem="rHY-dK-3fI" secondAttribute="trailing" constant="16" id="yha-CA-Udf"/>
                         </constraints>
                         <viewLayoutGuide key="safeArea" id="Gdc-Bz-B3h"/>
                     </view>
                     <navigationItem key="navigationItem" title="Wallet Manager" id="MhC-j1-FYe"/>
                     <connections>
                         <outlet property="addressSchemeSegmentedControl" destination="QUW-82-OMc" id="4nB-F5-wSc"/>
+                        <outlet property="blockHeightLabel" destination="Ki6-b3-OPr" id="VX0-zI-1y9"/>
+                        <outlet property="connectStateLabel" destination="rHY-dK-3fI" id="Jd6-Ji-ulS"/>
+                        <outlet property="connectStateSegmentedControl" destination="i03-zC-8Xu" id="SeX-Zs-cSu"/>
                         <outlet property="modeSegmentedControl" destination="BJL-OS-MjS" id="MVI-b3-2ZH"/>
+                        <outlet property="syncProgressLabel" destination="2Kh-N7-iQd" id="aO7-LF-awf"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="Ala-Ip-yzF" userLabel="First Responder" sceneMemberID="firstResponder"/>
