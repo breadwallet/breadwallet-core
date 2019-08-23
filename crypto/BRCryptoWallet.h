@@ -28,6 +28,7 @@
 
 #include "BRBase.h"
 #include "BRCryptoFeeBasis.h"
+#include "BRCryptoKey.h"
 #include "BRCryptoNetwork.h"        // NetworkFee
 #include "BRCryptoStatus.h"
 #include "BRCryptoTransfer.h"
@@ -36,7 +37,13 @@
 extern "C" {
 #endif
 
+    /// MARK: Forward Declarations
+
     typedef struct BRCryptoWalletRecord *BRCryptoWallet;
+
+    typedef struct BRCryptoWalletSweeperRecord *BRCryptoWalletSweeper;
+
+    /// MARK: Wallet Event
 
     typedef enum {
         CRYPTO_WALLET_STATE_CREATED,
@@ -176,6 +183,12 @@ extern "C" {
                                 BRCryptoAddress target,
                                 BRCryptoAmount amount,
                                 BRCryptoFeeBasis estimatedFeeBasis);
+
+    extern BRCryptoTransfer
+    cryptoWalletCreateTransferForWalletSweep (BRCryptoWallet  wallet,
+                                              BRCryptoWalletSweeper sweeper,
+                                              BRCryptoFeeBasis estimatedFeeBasis);
+
     /**
      * Estimate the fee to transfer `amount` from `wallet` using the `feeBasis`.  Return an amount
      * represented in the wallet's fee currency.
@@ -193,6 +206,12 @@ extern "C" {
                                   BRCryptoAmount  amount,
                                   BRCryptoNetworkFee fee);
 
+    extern void
+    cryptoWalletEstimateFeeBasisForWalletSweep (BRCryptoWallet  wallet,
+                                                BRCryptoCookie cookie,
+                                                BRCryptoWalletSweeper sweeper,
+                                                BRCryptoNetworkFee fee);
+
     extern BRCryptoFeeBasis
     cryptoWalletCreateFeeBasis (BRCryptoWallet wallet,
                                 BRCryptoAmount pricePerCostFactor,
@@ -202,6 +221,34 @@ extern "C" {
     cryptoWalletEqual (BRCryptoWallet w1, BRCryptoWallet w2);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoWallet, cryptoWallet);
+
+    /// MARK: Wallet Sweeper
+
+    typedef enum {
+        CRYPTO_WALLET_SWEEPER_SUCCESS,
+        CRYPTO_WALLET_SWEEPER_INVALID_OPERATION,
+        CRYPTO_WALLET_SWEEPER_INVALID_HASH
+    } BRCryptoWalletSweeperStatus;
+
+    extern BRCryptoWalletSweeper
+    cryptoWalletSweeperCreateAsBtc (BRCryptoKey key, BRCryptoAddressScheme scheme);
+
+    extern void
+    cryptoWalletSweeperRelease (BRCryptoWalletSweeper sweeper);
+
+    extern BRCryptoKey
+    cryptoWalletSweeperGetKey (BRCryptoWalletSweeper sweeper);
+
+    extern BRCryptoAmount
+    cryptoWalletSweeperGetBalance (BRCryptoWalletSweeper sweeper,
+                                   BRCryptoUnit unit);
+
+    extern BRCryptoWalletSweeperStatus
+    cryptoWalletSweeperHandleTransactionOutputAsBTC (BRCryptoWalletSweeper sweeper,
+                                                     OwnershipKept const char *hash,
+                                                     uint32_t index,
+                                                     OwnershipKept uint8_t *script,  size_t scriptLen,
+                                                     uint64_t satoshis);
 
 #ifdef __cplusplus
 }

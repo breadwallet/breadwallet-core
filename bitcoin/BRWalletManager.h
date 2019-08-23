@@ -40,14 +40,11 @@
 extern "C" {
 #endif
 
-typedef struct BRWalletManagerStruct *BRWalletManager;
+/// MARK: - Forward Declarations
 
-// Likely unneeded.
-typedef enum {
-    WALLET_FORKID_BITCOIN = 0x00,
-    WALLET_FORKID_BITCASH = 0x40,
-    WALLET_FORKID_BITGOLD = 0x4f
-} BRWalletForkId;
+typedef struct BRWalletSweeperStruct *BRWalletSweeper;
+
+typedef struct BRWalletManagerStruct *BRWalletManager;
 
 // Cookies are used as markers to match up an asynchronous operation
 // request with its corresponding event.
@@ -326,6 +323,12 @@ BRWalletManagerCreateTransaction (BRWalletManager manager,
                                   const char *addr,
                                   uint64_t feePerKb);
 
+extern BRTransaction *
+BRWalletManagerCreateTransactionForSweep (BRWalletManager manager,
+                                          BRWallet *wallet,
+                                          BRWalletSweeper sweeper,
+                                          uint64_t feePerKb);
+
 /**
  * Signs any inputs in transaction that can be signed using private keys from the wallet.
  *
@@ -339,6 +342,12 @@ BRWalletManagerSignTransaction (BRWalletManager manager,
                                 OwnershipKept BRTransaction *transaction,
                                 const void *seed,
                                 size_t seedLen);
+
+extern int
+BRWalletManagerSignTransactionForKey (BRWalletManager manager,
+                                      BRWallet *wallet,
+                                      OwnershipKept BRTransaction *transaction,
+                                      BRKey *key);
 
 extern void
 BRWalletManagerSubmitTransaction (BRWalletManager manager,
@@ -357,6 +366,13 @@ BRWalletManagerEstimateFeeForTransfer (BRWalletManager manager,
                                        uint64_t transferAmount,
                                        uint64_t feePerKb);
 
+extern void
+BRWalletManagerEstimateFeeForSweep (BRWalletManager manager,
+                                    BRWallet *wallet,
+                                    BRCookie cookie,
+                                    BRWalletSweeper sweeper,
+                                    uint64_t feePerKb);
+
 extern BRFileService
 BRWalletManagerCreateFileService (const BRChainParams *params,
                                   const char *storagePath,
@@ -368,6 +384,30 @@ BRWalletManagerExtractFileServiceTypes (BRFileService fileService,
                                         const char **transactions,
                                         const char **blocks,
                                         const char **peers);
+
+//
+// Mark: Wallet Sweeper
+//
+
+typedef enum {
+    WALLET_SWEEPER_SUCCESS
+} BRWalletSweeperStatus;
+
+extern BRWalletSweeper // NULL on error
+BRWalletSweeperNew (BRKey *key, uint8_t isSegwit);
+
+extern void
+BRWalletSweeperFree (BRWalletSweeper sweeper);
+
+extern uint64_t
+BRWalletSweeperGetBalance (BRWalletSweeper sweeper);
+
+extern BRWalletSweeperStatus
+BRWalletSweeperHandleTransactionOutput (BRWalletSweeper sweeper,
+                                        UInt256 hash,
+                                        uint32_t index,
+                                        OwnershipKept uint8_t *script,  size_t scriptLen,
+                                        uint64_t satoshis);
 
 #ifdef __cplusplus
 }

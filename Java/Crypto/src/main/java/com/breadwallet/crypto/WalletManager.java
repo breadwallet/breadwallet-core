@@ -9,11 +9,15 @@
  */
 package com.breadwallet.crypto;
 
+import com.breadwallet.crypto.errors.FeeEstimationError;
+import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
 
 import java.util.List;
 
 public interface WalletManager {
+
+    void createSweeper(byte[] forPrivateKeyUt8, CompletionHandler<WalletSweeper, WalletSweeper.WalletSweeperError> completion);
 
     void connect();
 

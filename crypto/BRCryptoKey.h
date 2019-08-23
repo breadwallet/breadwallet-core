@@ -88,9 +88,15 @@ extern "C" {
     extern char *
     cryptoKeyEncodePublic (BRCryptoKey key);
 
+    extern char *
+    cryptoKeyEncodeLegacyAddr (BRCryptoKey key);
+
+    extern char *
+    cryptoKeyEncodeAddr (BRCryptoKey key);
+
     extern UInt256
     cryptoKeyGetSecret (BRCryptoKey key);
-    
+
     extern int
     cryptoKeySecretMatch (BRCryptoKey key1, BRCryptoKey key2);
 
