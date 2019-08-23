@@ -568,7 +568,7 @@
             </objects>
             <point key="canvasLocation" x="673" y="-1606"/>
         </scene>
-        <!--Wallet Manager-->
+        <!--Wallet Manager View Controller-->
         <scene sceneID="Um6-PP-h61">
             <objects>
                 <viewController id="eB2-cr-Oxb" customClass="WalletManagerViewController" customModule="BRCryptoDemo" customModuleProvider="target" sceneMemberID="viewController">
@@ -732,7 +732,7 @@
                         </constraints>
                         <viewLayoutGuide key="safeArea" id="Gdc-Bz-B3h"/>
                     </view>
-                    <navigationItem key="navigationItem" title="Wallet Manager" id="MhC-j1-FYe"/>
+                    <navigationItem key="navigationItem" id="MhC-j1-FYe"/>
                     <connections>
                         <outlet property="addressSchemeSegmentedControl" destination="QUW-82-OMc" id="4nB-F5-wSc"/>
                         <outlet property="blockHeightLabel" destination="Ki6-b3-OPr" id="VX0-zI-1y9"/>

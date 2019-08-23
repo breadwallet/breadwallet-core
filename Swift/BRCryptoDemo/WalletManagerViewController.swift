@@ -77,6 +77,7 @@ class WalletManagerViewController: UIViewController, WalletManagerListener {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        self.navigationItem.title = "\(manager.name.uppercased()) Wallet Manager"
         if let listener = UIApplication.sharedSystem.listener as? CoreDemoListener {
             listener.add (managerListener: self)
         }
