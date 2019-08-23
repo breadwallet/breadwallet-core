@@ -750,6 +750,7 @@ ewmConnect(BREthereumEWM ewm) {
          // Set ewm {client,state} prior to bcs/event start.  Avoid race conditions, particularly
         // with `ewmPeriodicDispatcher`.
         ewm->state = EWM_STATE_CONNECTED;
+        newState = ewm->state;
 
         switch (ewm->mode) {
             case SYNC_MODE_BRD_ONLY:
@@ -794,6 +795,7 @@ ewmDisconnect (BREthereumEWM ewm) {
     if (ETHEREUM_BOOLEAN_IS_TRUE (ewmIsConnected(ewm))) {
         // Set ewm->state thereby stopping handlers (in a race with bcs/event calls).
         ewm->state = EWM_STATE_DISCONNECTED;
+        newState = ewm->state;
 
         // Stop an ongoing sync
         switch (ewm->mode) {
