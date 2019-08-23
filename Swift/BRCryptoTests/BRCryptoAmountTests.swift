@@ -268,6 +268,14 @@ class BRCryptoAmountTests: XCTestCase {
         XCTAssertEqual("1000000000000000000", Amount.create(string: "1", negative: false, unit: ETH_ETHER)!.string (base: 10, preface: ""))
         // String (1000000000000000000, radix:16, uppercase: true) -> DE0B6B3A7640000
         XCTAssertEqual("0xDE0B6B3A7640000".lowercased(), Amount.create(string: "1", negative: false, unit: ETH_ETHER)!.string (base: 16, preface: "0x"))
+
+        let a6 = Amount.create(string: "123000000000000000000.0", negative: false, unit: ETH_WEI)
+        XCTAssertNotNil(a6)
+        XCTAssertEqual("wei123,000,000,000,000,000,000", a6?.string(as: ETH_WEI)!)
+        //
+        //   Expect:   "wei    123,000,000,000,000,000,000"
+        //   Result:    wei 12,300,000,000,000,000,000,000  (100 x result) ??
+        //   String:           123,000,000,000,000,000,000.0
     }
 
     func testAmountBTC () {
