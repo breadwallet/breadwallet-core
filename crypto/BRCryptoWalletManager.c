@@ -787,6 +787,7 @@ cryptoWalletMigratorHandleTransactionAsBTC (BRCryptoWalletMigrator migrator,
 
 extern BRCryptoWalletMigratorStatus
 cryptoWalletMigratorHandleBlockAsBTC (BRCryptoWalletMigrator migrator,
+                                      UInt256 hash,
                                       uint32_t height,
                                       uint32_t nonce,
                                       uint32_t target,
@@ -798,6 +799,7 @@ cryptoWalletMigratorHandleBlockAsBTC (BRCryptoWalletMigrator migrator,
                                       UInt256 merkleRoot,
                                       UInt256 prevBlock) {
     BRMerkleBlock *block = BRMerkleBlockNew();
+    block->blockHash = hash;
     block->height = height;
     block->nonce  = nonce;
     block->target = target;
