@@ -29,6 +29,8 @@
 
 #define BWM_SLEEP_SECONDS       (1 * 60)                  // 5 minutes
 
+#define DEFAULT_TRANSACTION_CAPACITY     20
+
 /* Forward Declarations */
 static void
 bwmPeriodicDispatcher (BREventHandler handler,
@@ -36,7 +38,7 @@ bwmPeriodicDispatcher (BREventHandler handler,
 
 static void _BRWalletManagerGetBlockNumber(void * context, BRSyncManager manager, int rid);
 static void _BRWalletManagerGetTransactions(void * context, BRSyncManager manager, const char **addresses, size_t addressCount, uint64_t begBlockNumber, uint64_t endBlockNumber, int rid);
-static void _BRWalletManagerSubmitTransaction(void * context, BRSyncManager manager, BRTransaction *transaction, int rid);
+static void _BRWalletManagerSubmitTransaction(void * context, BRSyncManager manager, uint8_t *tx, size_t txLength, UInt256 txHash, int rid);
 static void _BRWalletManagerSyncEvent(void * context, BRSyncManager manager, BRSyncManagerEvent event);
 
 static void _BRWalletManagerBalanceChanged (void *info, uint64_t balanceInSatoshi);
@@ -70,9 +72,122 @@ getCurrencyName (const BRChainParams *params) {
     return NULL;
 }
 
+
+/// MARK: - Transaction Tracking
+
+struct BRTransactionWithStateStruct {
+    uint8_t isDeleted;
+    BRTransaction *refedTransaction;
+    BRTransaction *ownedTransaction;
+};
+
+static BRTransactionWithState BRTransactionWithStateNewFromOwned(BRTransaction *transaction) {
+    BRTransactionWithState txnWithState = calloc (1, sizeof(struct BRTransactionWithStateStruct));
+    txnWithState->isDeleted = 0;
+    txnWithState->ownedTransaction = transaction;
+    txnWithState->refedTransaction = NULL;
+    return txnWithState;
+}
+
+static BRTransaction * BRTransactionWithStateGetOwned(BRTransactionWithState txnWithState) {
+    return txnWithState->ownedTransaction;
+}
+
+static BRTransactionWithState BRTransactionWithStateNewFromReference(BRTransaction *transaction) {
+    BRTransactionWithState txnWithState = calloc (1, sizeof(struct BRTransactionWithStateStruct));
+    txnWithState->isDeleted = 0;
+    txnWithState->ownedTransaction = BRTransactionCopy (transaction);
+    txnWithState->refedTransaction = transaction;
+    return txnWithState;
+}
+
+static BRTransactionWithState BRTransactionWithStateSetReferenced(BRTransactionWithState txnWithState, BRTransaction *transaction) {
+    assert (txnWithState->refedTransaction == NULL);
+    txnWithState->refedTransaction = transaction;
+    txnWithState->ownedTransaction->blockHeight = transaction->blockHeight;
+    txnWithState->ownedTransaction->timestamp = transaction->timestamp;
+    return txnWithState;
+}
+
+static BRTransactionWithState BRTransactionWithStateSetBlock(BRTransactionWithState txnWithState, uint32_t height, uint32_t timestamp) {
+    txnWithState->ownedTransaction->blockHeight = height;
+    txnWithState->ownedTransaction->timestamp = timestamp;
+    return txnWithState;
+}
+
+static BRTransactionWithState BRTransactionWithStateSetDeleted(BRTransactionWithState txnWithState) {
+    txnWithState->isDeleted = 1;
+    return txnWithState;
+}
+
+static void BRTransactionWithStateFree(BRTransactionWithState txn) {
+    BRTransactionFree (txn->ownedTransaction);
+    free (txn);
+}
+
+static BRTransactionWithState
+BRWalletManagerAddOwnedTransaction(BRWalletManager manager, BRTransaction *transaction) {
+    BRTransactionWithState txnWithState = BRTransactionWithStateNewFromOwned (transaction);
+    array_add (manager->transactions, txnWithState);
+    return txnWithState;
+}
+
+static BRTransactionWithState
+BRWalletManagerAddReferencedTransaction(BRWalletManager manager, BRTransaction *transaction) {
+    BRTransactionWithState txnWithState = BRTransactionWithStateNewFromReference (transaction);
+    array_add (manager->transactions, txnWithState);
+    return txnWithState;
+}
+
+/**
+ * Find the tracked transaction using the `owned` transaction pointer. Deleted transactions
+ * are not checked (i.e. they are skipped).
+ */
+static BRTransactionWithState
+BRWalletManagerFindTransactionByOwned (BRWalletManager manager, BRTransaction *transaction) {
+    BRTransactionWithState txnWithState = NULL;
+
+    for (size_t index = 0; index < array_count(manager->transactions); index++) {
+        if (!manager->transactions[index]->isDeleted &&
+            manager->transactions[index]->ownedTransaction == transaction) {
+            txnWithState = manager->transactions[index];
+            break;
+        }
+    }
+
+    return txnWithState;
+}
+
+/**
+ * Find the tracked transaction using the `owned` transaction's hash. Deleted transactions
+ * are not checked (i.e. they are skipped).
+ */
+static BRTransactionWithState
+BRWalletManagerFindTransactionByHash (BRWalletManager manager, UInt256 hash) {
+    BRTransactionWithState txnWithState = NULL;
+
+    for (size_t index = 0; index < array_count(manager->transactions); index++) {
+        if (!manager->transactions[index]->isDeleted &&
+            UInt256Eq (manager->transactions[index]->ownedTransaction->txHash, hash)) {
+            txnWithState = manager->transactions[index];
+            break;
+        }
+    }
+
+    return txnWithState;
+}
+
+static void
+BRWalletManagerFreeTransactions(BRWalletManager manager) {
+    for (size_t index = 0; index < array_count(manager->transactions); index++) {
+        BRTransactionWithStateFree (manager->transactions[index]);
+    }
+    array_free(manager->transactions);
+}
+
 /// MARK: - Transaction File Service
 
-static const char *fileServiceTypeTransactions = "transactions";
+#define fileServiceTypeTransactions     "transactions"
 
 enum {
     WALLET_MANAGER_TRANSACTION_VERSION_1
@@ -156,7 +271,7 @@ initialTransactionsLoad (BRWalletManager manager) {
 
 /// MARK: - Block File Service
 
-static const char *fileServiceTypeBlocks = "blocks";
+#define fileServiceTypeBlocks       "blocks"
 enum {
     WALLET_MANAGER_BLOCK_VERSION_1
 };
@@ -238,7 +353,7 @@ initialBlocksLoad (BRWalletManager manager) {
 
 /// MARK: - Peer File Service
 
-static const char *fileServiceTypePeers = "peers";
+#define fileServiceTypePeers        "peers"
 enum {
     WALLET_MANAGER_PEER_VERSION_1
 };
@@ -335,6 +450,51 @@ bwmFileServiceErrorHandler (BRFileServiceContext context,
     //     BRPeerManagerRescan (bwm->peerManager);
 }
 
+#define fileServiceSpecificationsCount      (3)
+static BRFileServiceTypeSpecification fileServiceSpecifications[] = {
+    {
+        fileServiceTypeTransactions,
+        WALLET_MANAGER_TRANSACTION_VERSION_1,
+        1,
+        {
+            {
+                WALLET_MANAGER_TRANSACTION_VERSION_1,
+                fileServiceTypeTransactionV1Identifier,
+                fileServiceTypeTransactionV1Reader,
+                fileServiceTypeTransactionV1Writer
+            }
+        }
+    },
+
+    {
+        fileServiceTypeBlocks,
+        WALLET_MANAGER_BLOCK_VERSION_1,
+        1,
+        {
+            {
+                WALLET_MANAGER_BLOCK_VERSION_1,
+                fileServiceTypeBlockV1Identifier,
+                fileServiceTypeBlockV1Reader,
+                fileServiceTypeBlockV1Writer
+            }
+        }
+    },
+
+    {
+        fileServiceTypePeers,
+        WALLET_MANAGER_PEER_VERSION_1,
+        1,
+        {
+            {
+                WALLET_MANAGER_PEER_VERSION_1,
+                fileServiceTypePeerV1Identifier,
+                fileServiceTypePeerV1Reader,
+                fileServiceTypePeerV1Writer
+            }
+        }
+    }
+};
+
 /// MARK: - Wallet Manager
 
 static BRWalletManager
@@ -363,7 +523,8 @@ BRWalletManagerNew (BRWalletManagerClient client,
 
     bwm->mode = mode;
     bwm->client = client;
-    bwm->forkId = params->forkId;
+    bwm->chainParams = params;
+    bwm->earliestKeyTime = earliestKeyTime;
 
     const char *networkName  = getNetworkName  (params);
     const char *currencyName = getCurrencyName (params);
@@ -396,40 +557,12 @@ BRWalletManagerNew (BRWalletManagerClient client,
     //
     // Create the File Service w/ associated types.
     //
-    bwm->fileService = fileServiceCreate (baseStoragePath, currencyName, networkName,
-                                              bwm,
-                                              bwmFileServiceErrorHandler);
+    bwm->fileService = fileServiceCreateFromTypeSpecfications (baseStoragePath, currencyName, networkName,
+                                                               bwm,
+                                                               bwmFileServiceErrorHandler,
+                                                               fileServiceSpecificationsCount,
+                                                               fileServiceSpecifications);
     if (NULL == bwm->fileService) return bwmCreateErrorHandler (bwm, 1, "create");
-
-    /// Transaction
-    if (1 != fileServiceDefineType (bwm->fileService, fileServiceTypeTransactions, WALLET_MANAGER_TRANSACTION_VERSION_1,
-                                    (BRFileServiceContext) bwm,
-                                    fileServiceTypeTransactionV1Identifier,
-                                    fileServiceTypeTransactionV1Reader,
-                                    fileServiceTypeTransactionV1Writer) ||
-        1 != fileServiceDefineCurrentVersion (bwm->fileService, fileServiceTypeTransactions,
-                                              WALLET_MANAGER_TRANSACTION_VERSION_1))
-        return bwmCreateErrorHandler (bwm, 1, fileServiceTypeTransactions);
-
-    /// Block
-    if (1 != fileServiceDefineType (bwm->fileService, fileServiceTypeBlocks, WALLET_MANAGER_BLOCK_VERSION_1,
-                                    (BRFileServiceContext) bwm,
-                                    fileServiceTypeBlockV1Identifier,
-                                    fileServiceTypeBlockV1Reader,
-                                    fileServiceTypeBlockV1Writer) ||
-        1 != fileServiceDefineCurrentVersion (bwm->fileService, fileServiceTypeBlocks,
-                                              WALLET_MANAGER_BLOCK_VERSION_1))
-        return bwmCreateErrorHandler (bwm, 1, fileServiceTypeBlocks);
-
-    /// Peer
-    if (1 != fileServiceDefineType (bwm->fileService, fileServiceTypePeers, WALLET_MANAGER_PEER_VERSION_1,
-                                    (BRFileServiceContext) bwm,
-                                    fileServiceTypePeerV1Identifier,
-                                    fileServiceTypePeerV1Reader,
-                                    fileServiceTypePeerV1Writer) ||
-        1 != fileServiceDefineCurrentVersion (bwm->fileService, fileServiceTypePeers,
-                                              WALLET_MANAGER_PEER_VERSION_1))
-        return bwmCreateErrorHandler (bwm, 1, fileServiceTypePeers);
 
     /// Load transactions for the wallet manager.
     BRArrayOf(BRTransaction*) transactions = initialTransactionsLoad(bwm);
@@ -473,6 +606,58 @@ BRWalletManagerNew (BRWalletManagerClient client,
                                                 blocks, array_count(blocks),
                                                 peers,  array_count(peers));
 
+    array_new(bwm->transactions, DEFAULT_TRANSACTION_CAPACITY);
+
+    // No longer need the loaded txns/blocks/peers
+    array_free(transactions); array_free(blocks); array_free(peers);
+
+    // Create initial events for wallet manager creation, wallet addition and
+    // events for any transactions loaded from disk.
+
+    bwmSignalWalletManagerEvent(bwm,
+                                (BRWalletManagerEvent) {
+                                    BITCOIN_WALLET_MANAGER_CREATED
+                                });
+
+    bwmSignalWalletEvent (bwm,
+                          bwm->wallet,
+                          (BRWalletEvent) {
+                              BITCOIN_WALLET_CREATED
+                          });
+
+    size_t txCount = BRWalletTransactions (bwm->wallet, NULL, 0);
+    if (txCount) {
+        BRArrayOf(BRTransaction *) txns = calloc (txCount, sizeof(BRTransaction*));
+        BRWalletTransactions (bwm->wallet, txns, txCount);
+
+        for (size_t i = 0; i < txCount; i++) {
+            // Create a new wallet-based transaction. No lock is held here because we
+            // are still in the "ctor" and callbacks are not being made until the
+            // event handler is started in a later call.
+            BRTransactionWithState txnWithState = BRWalletManagerAddReferencedTransaction (bwm,
+                                                                                           txns[i]);
+
+            bwmSignalTransactionEvent (bwm,
+                                    bwm->wallet,
+                                    BRTransactionWithStateGetOwned (txnWithState),
+                                    (BRTransactionEvent) {
+                                        BITCOIN_TRANSACTION_ADDED
+                                    });
+
+            bwmSignalTransactionEvent (bwm,
+                                    bwm->wallet,
+                                    BRTransactionWithStateGetOwned (txnWithState),
+                                    (BRTransactionEvent) {
+                                    BITCOIN_TRANSACTION_UPDATED,
+                                        { .updated = {
+                                            BRTransactionWithStateGetOwned (txnWithState)->blockHeight,
+                                            BRTransactionWithStateGetOwned (txnWithState)->timestamp }}
+                                    });
+        }
+
+        free (txns);
+    }
+
     // Add ewmPeriodicDispatcher to handlerForMain.  Note that a 'timeout' is handled by
     // an OOB (out-of-band) event whereby the event is pushed to the front of the queue.
     // This may not be the right thing to do.  Imagine that EWM is blocked somehow (doing
@@ -488,61 +673,27 @@ BRWalletManagerNew (BRWalletManagerClient client,
                                       (BREventDispatcher) bwmPeriodicDispatcher,
                                       (void*) bwm);
 
-    // TODO(fix): Once transactions are "owned" by the wallet manager, this should be
-    //            changed to bwmSignalXyz. We can't do that now
-    //            because the transaction could be deleted before the event is handled
-    //            and since those are callec back inline, we have to announce the WM
-    //            and wallet first.
-    bwmHandleWalletManagerEvent(bwm,
-                                (BRWalletManagerEvent) {
-                                    BITCOIN_WALLET_MANAGER_CREATED
-                                });
-
-    bwmHandleWalletEvent (bwm,
-                          bwm->wallet,
-                          (BRWalletEvent) {
-                              BITCOIN_WALLET_CREATED
-                          });
-
-    for (size_t i = 0; transactions && i < array_count(transactions); i++) {
-        // TODO(fix): Once transactions are "owned" by the wallet manager, this should be
-        //            changed to bwmSignalTransactionEvent. We can't do that now
-        //            because the transaction could be deleted before the even is handled.
-        bwmHandleTransactionEvent (bwm,
-                                   bwm->wallet,
-                                   transactions[i],
-                                   (BRTransactionEvent) {
-                                       BITCOIN_TRANSACTION_ADDED
-                                   });
-
-        bwmHandleTransactionEvent (bwm,
-                                   bwm->wallet,
-                                   transactions[i],
-                                   (BRTransactionEvent) {
-                                   BITCOIN_TRANSACTION_UPDATED,
-                                       { .updated = { transactions[i]->blockHeight, transactions[i]->timestamp }}
-                                   });
-    }
-
-    array_free(transactions); array_free(blocks); array_free(peers);
-
     return bwm;
 }
 
 extern void
 BRWalletManagerFree (BRWalletManager manager) {
-    BRSyncManagerDisconnect (manager->syncManager);
-    BRSyncManagerFree (manager->syncManager);
+    // holding lock, tear down the manager
+    pthread_mutex_lock (&manager->lock);
+    {
+        // stop, including disconnect.
+        BRWalletManagerStop (manager);
 
-    eventHandlerStop (manager->handler);
-    eventHandlerDestroy (manager->handler);
+        BRSyncManagerFree (manager->syncManager);
+        BRWalletFree (manager->wallet);
 
-    BRWalletFree (manager->wallet);
-
-    fileServiceRelease (manager->fileService);
+        BRWalletManagerFreeTransactions (manager);
+        eventHandlerDestroy (manager->handler);
+        fileServiceRelease (manager->fileService);
+    }
+    pthread_mutex_unlock (&manager->lock);
 
     pthread_mutex_destroy (&manager->lock);
-
     memset (manager, 0, sizeof(*manager));
     free (manager);
 }
@@ -554,6 +705,7 @@ BRWalletManagerStart (BRWalletManager manager) {
 
 extern void
 BRWalletManagerStop (BRWalletManager manager) {
+    BRWalletManagerDisconnect (manager);
     eventHandlerStop (manager->handler);
 }
 
@@ -562,43 +714,110 @@ BRWalletManagerGetWallet (BRWalletManager manager) {
     return manager->wallet;
 }
 
+extern int
+BRWalletManagerHandlesBTC (BRWalletManager manager) {
+    return BRChainParamsIsBitcoin (manager->chainParams);
+}
+
 extern void
 BRWalletManagerConnect (BRWalletManager manager) {
+    pthread_mutex_lock (&manager->lock);
     BRSyncManagerConnect (manager->syncManager);
+    pthread_mutex_unlock (&manager->lock);
 }
 
 extern void
 BRWalletManagerDisconnect (BRWalletManager manager) {
+    pthread_mutex_lock (&manager->lock);
     BRSyncManagerDisconnect (manager->syncManager);
+    pthread_mutex_unlock (&manager->lock);
 }
 
 extern void
 BRWalletManagerScan (BRWalletManager manager) {
+    pthread_mutex_lock (&manager->lock);
     BRSyncManagerScan (manager->syncManager);
+    pthread_mutex_unlock (&manager->lock);
+}
+
+extern void
+BRWalletManagerSetMode (BRWalletManager manager, BRSyncMode mode) {
+    pthread_mutex_lock (&manager->lock);
+    if (mode != manager->mode) {
+        // get the currently known block height
+        uint64_t blockHeight = BRSyncManagerGetBlockHeight (manager->syncManager);
+
+        // kill the sync manager to prevent any additional callbacks from occuring
+        BRSyncManagerDisconnect (manager->syncManager);
+        BRSyncManagerFree (manager->syncManager);
+
+        // load up the blocks/peers saved to disk
+        BRArrayOf(BRMerkleBlock*) blocks = initialBlocksLoad(manager);
+        BRArrayOf(BRPeer) peers = initialPeersLoad(manager);
+
+        // If any of these are NULL, then there was a failure; on a failure they all need to be cleared
+        // which will cause a *FULL SYNC*
+        if (NULL == blocks || NULL == peers) {
+            if (NULL == blocks) array_new (blocks, 1);
+            else array_clear(blocks);
+
+            if (NULL == peers) array_new (peers, 1);
+            else array_clear(peers);
+        }
+
+        // set the new mode
+        manager->mode = mode;
+
+        // create the new sync manager
+        manager->syncManager = BRSyncManagerNewForMode (mode,
+                                                        manager,
+                                                        _BRWalletManagerSyncEvent,
+                                                        manager,
+                                                        (BRSyncManagerClientCallbacks) {
+                                                            _BRWalletManagerGetBlockNumber,
+                                                            _BRWalletManagerGetTransactions,
+                                                            _BRWalletManagerSubmitTransaction,
+                                                        },
+                                                        manager->chainParams,
+                                                        manager->wallet,
+                                                        manager->earliestKeyTime,
+                                                        blockHeight,
+                                                        blocks, array_count (blocks),
+                                                        peers, array_count (peers));
+    }
+    pthread_mutex_unlock (&manager->lock);
+}
+
+extern BRSyncMode
+BRWalletManagerGetMode (BRWalletManager manager) {
+    pthread_mutex_lock (&manager->lock);
+    BRSyncMode mode = manager->mode;
+    pthread_mutex_unlock (&manager->lock);
+    return mode;
 }
 
 extern BRTransaction *
 BRWalletManagerCreateTransaction (BRWalletManager manager,
                                   BRWallet *wallet,
                                   uint64_t amount,
-                                  const char *addr,
+                                  BRAddress addr,
                                   uint64_t feePerKb) {
     assert (wallet == manager->wallet);
 
     pthread_mutex_lock (&manager->lock);
     uint64_t feePerKbSaved = BRWalletFeePerKb (wallet);
+
     BRWalletSetFeePerKb (wallet, feePerKb);
-    BRTransaction *transaction = BRWalletCreateTransaction (wallet, amount, addr);
+    BRTransaction *transaction = BRWalletCreateTransaction (wallet, amount, addr.s);
     BRWalletSetFeePerKb (wallet, feePerKbSaved);
+
+    BRTransactionWithState txnWithState = (NULL != transaction) ? BRWalletManagerAddOwnedTransaction (manager, transaction) : NULL;
     pthread_mutex_unlock (&manager->lock);
 
-    if (NULL != transaction) {
-        // TODO(fix): Once transactions are "owned" by the wallet manager, this should be
-        //            changed to bwmSignalTransactionEvent. We can't do that now
-        //            because the transaction could be deleted before the even is handled.
-        bwmHandleTransactionEvent(manager,
+    if (NULL != txnWithState) {
+        bwmSignalTransactionEvent(manager,
                                   wallet,
-                                  transaction,
+                                  BRTransactionWithStateGetOwned (txnWithState),
                                   (BRTransactionEvent) {
                                       BITCOIN_TRANSACTION_CREATED
                                   });
@@ -615,27 +834,41 @@ BRWalletManagerSignTransaction (BRWalletManager manager,
                                 size_t seedLen) {
     assert (wallet == manager->wallet);
 
-    int r = (1 == BRWalletSignTransaction (wallet, transaction, manager->forkId, seed, seedLen) ? 1 : 0);
-    if (r) {
-        // TODO(fix): Once transactions are "owned" by the wallet manager, this should be
-        //            changed to bwmSignalTransactionEvent. We can't do that now
-        //            because the transaction could be deleted before the even is handled.
-        bwmHandleTransactionEvent(manager,
+    pthread_mutex_lock (&manager->lock);
+    BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByOwned (manager, transaction);
+    pthread_mutex_unlock (&manager->lock);
+
+    int success = 0;
+    if (NULL != txnWithState &&
+        1 == BRWalletSignTransaction (wallet,
+                                      BRTransactionWithStateGetOwned (txnWithState),
+                                      manager->chainParams->forkId,
+                                      seed,
+                                      seedLen)) {
+        success = 1;
+        bwmSignalTransactionEvent(manager,
                                   wallet,
-                                  transaction,
+                                  BRTransactionWithStateGetOwned (txnWithState),
                                   (BRTransactionEvent) {
                                       BITCOIN_TRANSACTION_SIGNED
                                   });
     }
 
-    return r;
+    return success;
 }
 
 extern void
 BRWalletManagerSubmitTransaction (BRWalletManager manager,
                                   BRWallet *wallet,
                                   OwnershipKept BRTransaction *transaction) {
-    BRSyncManagerSubmit (manager->syncManager, BRTransactionCopy (transaction));
+    assert (wallet == manager->wallet);
+
+    pthread_mutex_lock (&manager->lock);
+    BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByOwned (manager, transaction);
+    if (NULL != txnWithState) {
+        BRSyncManagerSubmit (manager->syncManager, BRTransactionWithStateGetOwned (txnWithState));
+    }
+    pthread_mutex_unlock (&manager->lock);
 }
 
 extern void
@@ -661,11 +894,14 @@ BRWalletManagerEstimateFeeForTransfer (BRWalletManager manager,
                                        uint64_t feePerKb) {
     assert (wallet == manager->wallet);
 
+    pthread_mutex_lock (&manager->lock);
     uint64_t feePerKBSaved = BRWalletFeePerKb (wallet);
+
     BRWalletSetFeePerKb (wallet, feePerKb);
     uint64_t fee  = (0 == transferAmount ? 0 : BRWalletFeeForTxAmount (wallet, transferAmount));
     uint32_t sizeInByte = (uint32_t) ((1000 * fee)/ feePerKb);
     BRWalletSetFeePerKb (wallet, feePerKBSaved);
+    pthread_mutex_unlock (&manager->lock);
 
     bwmSignalWalletEvent(manager,
                          wallet,
@@ -696,18 +932,29 @@ _BRWalletManagerBalanceChanged (void *info,
 }
 
 static void
-_BRWalletManagerTxAdded   (void *info,
-                           OwnershipKept BRTransaction *tx) {
+_BRWalletManagerTxAdded (void *info,
+                         OwnershipKept BRTransaction *tx) {
     BRWalletManager manager = (BRWalletManager) info;
+    assert (BRTransactionIsSigned (tx));
 
-    fileServiceSave(manager->fileService, fileServiceTypeTransactions, tx);
+    pthread_mutex_lock (&manager->lock);
+    BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByHash (manager, tx->txHash);
+    if (NULL == txnWithState) {
+        // first we've seen it, so it came from the network; add it to our list
+        txnWithState = BRWalletManagerAddReferencedTransaction (manager, tx);
+    } else {
+        // this is a transaction we've submitted; set the reference transaction from the wallet
+        txnWithState = BRTransactionWithStateSetReferenced(txnWithState, tx);
+    }
+    assert (NULL != txnWithState);
+    pthread_mutex_unlock (&manager->lock);
 
-    // TODO(fix): Once transactions are "owned" by the wallet manager, this should be
-    //            changed to bwmSignalTransactionEvent. We can't do that now
-    //            because the transaction could be deleted before the even is handled.
-    bwmHandleTransactionEvent(manager,
+    // filesystem changes are NOT queued; they are acted upon immediately
+    fileServiceSave(manager->fileService, fileServiceTypeTransactions, BRTransactionWithStateGetOwned (txnWithState));
+
+    bwmSignalTransactionEvent(manager,
                               manager->wallet,
-                              tx,
+                              BRTransactionWithStateGetOwned (txnWithState),
                               (BRTransactionEvent) {
                                   BITCOIN_TRANSACTION_ADDED
                               });
@@ -722,22 +969,24 @@ _BRWalletManagerTxUpdated (void *info,
     BRWalletManager manager = (BRWalletManager) info;
 
     for (size_t index = 0; index < count; index++) {
-        UInt256 hash = hashes[index];
-        BRTransaction *transaction = BRWalletTransactionForHash(manager->wallet, hash);
+        pthread_mutex_lock (&manager->lock);
+        BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByHash (manager, hashes[index]);
+        assert (NULL != txnWithState && BRTransactionIsSigned (BRTransactionWithStateGetOwned (txnWithState)));
+
+        BRTransactionWithStateSetBlock (txnWithState, blockHeight, timestamp);
+        pthread_mutex_unlock (&manager->lock);
 
         // assert timestamp and blockHeight in transaction
-        fileServiceSave (manager->fileService, fileServiceTypeTransactions, transaction);
+        // filesystem changes are NOT queued; they are acted upon immediately
+        fileServiceSave (manager->fileService, fileServiceTypeTransactions, BRTransactionWithStateGetOwned (txnWithState));
 
-        // TODO(fix): Once transactions are "owned" by the wallet manager, this should be
-        //            changed to bwmSignalTransactionEvent. We can't do that now
-        //            because the transaction could be deleted before the even is handled.
-        bwmHandleTransactionEvent(manager,
-                                manager->wallet,
-                                transaction,
-                                (BRTransactionEvent) {
-                                    BITCOIN_TRANSACTION_UPDATED,
-                                    { .updated = { blockHeight, timestamp }}
-                                });
+        bwmSignalTransactionEvent(manager,
+                                  manager->wallet,
+                                  BRTransactionWithStateGetOwned (txnWithState),
+                                  (BRTransactionEvent) {
+                                      BITCOIN_TRANSACTION_UPDATED,
+                                      { .updated = { blockHeight, timestamp }}
+                                  });
     }
 }
 
@@ -747,16 +996,20 @@ _BRWalletManagerTxDeleted (void *info,
                            int notifyUser,
                            int recommendRescan) {
     BRWalletManager manager = (BRWalletManager) info;
+
+    // filesystem changes are NOT queued; they are acted upon immediately
     fileServiceRemove(manager->fileService, fileServiceTypeTransactions, hash);
 
-    BRTransaction *transaction = BRWalletTransactionForHash(manager->wallet, hash);
-    // TODO(fix): Once transactions are "owned" by the wallet manager, this should be
-    //            changed to bwmSignalTransactionEvent. We can't do that now
-    //            because the transaction is being deleted immediately upon
-    //            the return of this callback.
-    bwmHandleTransactionEvent(manager,
+    pthread_mutex_lock (&manager->lock);
+    BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByHash (manager, hash);
+    assert (NULL != txnWithState && BRTransactionIsSigned (BRTransactionWithStateGetOwned (txnWithState)));
+
+    BRTransactionWithStateSetDeleted (txnWithState);
+    pthread_mutex_unlock (&manager->lock);
+
+    bwmSignalTransactionEvent(manager,
                               manager->wallet,
-                              transaction,
+                              BRTransactionWithStateGetOwned (txnWithState),
                               (BRTransactionEvent) {
                                   BITCOIN_TRANSACTION_DELETED
                               });
@@ -780,20 +1033,20 @@ _BRWalletManagerSyncEvent(void * context,
      * event needs to be handled inline or copies of the event data need to be
      * made.
      *
-     * For BLOCKS and PEERS events, we handle them inline, rather than copy them.
+     * For BLOCKS and PEERS events, we handle them inline, rather than copy them
+     * as filesystem changes are acted upon immediately.
      *
      * For CONNECTIVITY/SYNCING/HEIGHT events, we queue them, as they contain no out
      * of band data (i.e. pointers).
      *
-     * For SYNC_MANAGER_TXN_SUBMITTED, we call out immediately to our client listener.
-     * When the wallet manager owns all transactions, we should switch to
-     * `bwmSignalWalletEvent` from `bwmHandleWalletEvent` but that is not possible at
-     * the moment.
+     * For SYNC_MANAGER_TXN_SUBMITTED, we queue them, as all transactions are owned
+     * by this wallet manager.
      */
 
     BRWalletManager bwm = (BRWalletManager) context;
     switch (event.type) {
         case SYNC_MANAGER_SET_BLOCKS: {
+            // filesystem changes are NOT queued; they are acted upon immediately
             fileServiceClear(bwm->fileService, fileServiceTypeBlocks);
 
             // !!!!!!!!!
@@ -801,12 +1054,14 @@ _BRWalletManagerSyncEvent(void * context,
             // !!!!!!!!!
         }
         case SYNC_MANAGER_ADD_BLOCKS: {
+            // filesystem changes are NOT queued; they are acted upon immediately
             for (size_t index = 0; index < event.u.blocks.count; index++)
                 fileServiceSave (bwm->fileService, fileServiceTypeBlocks, event.u.blocks.blocks[index]);
             break;
         }
 
         case SYNC_MANAGER_SET_PEERS: {
+            // filesystem changes are NOT queued; they are acted upon immediately
             fileServiceClear(bwm->fileService, fileServiceTypePeers);
 
             // !!!!!!!!!
@@ -814,6 +1069,7 @@ _BRWalletManagerSyncEvent(void * context,
             // !!!!!!!!!
         }
         case SYNC_MANAGER_ADD_PEERS: {
+            // filesystem changes are NOT queued; they are acted upon immediately
             for (size_t index = 0; index < event.u.peers.count; index++)
                 fileServiceSave (bwm->fileService, fileServiceTypePeers, &event.u.peers.peers[index]);
             break;
@@ -868,15 +1124,16 @@ _BRWalletManagerSyncEvent(void * context,
         }
 
         case SYNC_MANAGER_TXN_SUBMITTED: {
-            // TODO(fix): Once transactions are "owned" by the wallet manager, this should be
-            //            changed to bwmSignalTransactionEvent. We can't do that now
-            //            because the transaction is being deleted immediately upon
-            //            the return of this callback.
-            bwmHandleWalletEvent(bwm,
+            pthread_mutex_lock (&bwm->lock);
+            BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByHash (bwm, event.u.submitted.txHash);
+            assert (NULL != txnWithState);
+            pthread_mutex_unlock (&bwm->lock);
+
+            bwmSignalWalletEvent(bwm,
                                  bwm->wallet,
                                  (BRWalletEvent) {
                                      BITCOIN_WALLET_TRANSACTION_SUBMITTED,
-                                     { .submitted = { event.u.submitted.transaction, event.u.submitted.error }}
+                                     { .submitted = { BRTransactionWithStateGetOwned (txnWithState), event.u.submitted.error }}
                                  });
             break;
         }
@@ -909,7 +1166,7 @@ static void _BRWalletManagerGetBlockNumber(void * context,
 }
 static void _BRWalletManagerGetTransactions(void * context,
                                             BRSyncManager manager,
-                                            OwnershipGiven const char **addresses,
+                                            OwnershipKept const char **addresses,
                                             size_t addressCount,
                                             uint64_t begBlockNumber,
                                             uint64_t endBlockNumber,
@@ -929,7 +1186,9 @@ static void _BRWalletManagerGetTransactions(void * context,
 static void
 _BRWalletManagerSubmitTransaction(void * context,
                                   BRSyncManager manager,
-                                  OwnershipGiven BRTransaction *transaction,
+                                  OwnershipKept uint8_t *transaction,
+                                  size_t transactionLength,
+                                  UInt256 transactionHash,
                                   int rid) {
     BRWalletManager bwm = (BRWalletManager) context;
 
@@ -938,6 +1197,8 @@ _BRWalletManagerSubmitTransaction(void * context,
                                        bwm,
                                        bwm->wallet,
                                        transaction,
+                                       transactionLength,
+                                       transactionHash,
                                        rid);
 }
 
@@ -953,15 +1214,25 @@ extern int
 bwmAnnounceBlockNumber (BRWalletManager manager,
                         int rid,
                         uint64_t blockNumber) {
-    bwmSignalAnnounceBlockNumber (manager, rid, blockNumber);
+    bwmSignalAnnounceBlockNumber (manager,
+                                  rid,
+                                  blockNumber);
     return 1;
 }
 
 extern int
 bwmAnnounceTransaction (BRWalletManager manager,
                         int id,
-                        OwnershipGiven BRTransaction *transaction) {
-    bwmSignalAnnounceTransaction (manager, id, transaction);
+                        OwnershipKept uint8_t *transaction,
+                        size_t transactionLength,
+                        uint64_t timestamp,
+                        uint64_t blockHeight) {
+    bwmSignalAnnounceTransaction (manager,
+                                  id,
+                                  transaction,
+                                  transactionLength,
+                                  timestamp,
+                                  blockHeight);
     return 1;
 }
 
@@ -969,15 +1240,20 @@ extern void
 bwmAnnounceTransactionComplete (BRWalletManager manager,
                                 int rid,
                                 int success) {
-    bwmSignalAnnounceTransactionComplete (manager, rid, success);
+    bwmSignalAnnounceTransactionComplete (manager,
+                                          rid,
+                                          success);
 }
 
 extern void
 bwmAnnounceSubmit (BRWalletManager manager,
                    int rid,
-                   OwnershipGiven BRTransaction *transaction,
+                   UInt256 txHash,
                    int error) {
-    bwmSignalAnnounceSubmit (manager, rid, transaction, error);
+    bwmSignalAnnounceSubmit (manager,
+                             rid,
+                             txHash,
+                             error);
 }
 
 // These handlers are called by the event handler thread.
@@ -986,15 +1262,33 @@ extern int
 bwmHandleAnnounceBlockNumber (BRWalletManager manager,
                               int rid,
                               uint64_t blockNumber) {
-    BRSyncManagerAnnounceGetBlockNumber (manager->syncManager, rid, (int32_t) blockNumber);
+    assert (eventHandlerIsCurrentThread (manager->handler));
+
+    pthread_mutex_lock (&manager->lock);
+    BRSyncManagerAnnounceGetBlockNumber (manager->syncManager,
+                                         rid,
+                                         (int32_t) blockNumber);
+    pthread_mutex_unlock (&manager->lock);
     return 1;
 }
 
 extern int
 bwmHandleAnnounceTransaction (BRWalletManager manager,
                               int id,
-                              OwnershipGiven BRTransaction *transaction) {
-    BRSyncManagerAnnounceGetTransactionsItem (manager->syncManager,id, transaction);
+                              OwnershipKept uint8_t *transaction,
+                              size_t transactionLength,
+                              uint64_t timestamp,
+                              uint64_t blockHeight) {
+    assert (eventHandlerIsCurrentThread (manager->handler));
+
+    pthread_mutex_lock (&manager->lock);
+    BRSyncManagerAnnounceGetTransactionsItem (manager->syncManager,
+                                              id,
+                                              transaction,
+                                              transactionLength,
+                                              timestamp,
+                                              blockHeight);
+    pthread_mutex_unlock (&manager->lock);
     return 1;
 }
 
@@ -1002,30 +1296,40 @@ extern void
 bwmHandleAnnounceTransactionComplete (BRWalletManager manager,
                                       int rid,
                                       int success) {
-    BRSyncManagerAnnounceGetTransactionsDone (manager->syncManager, rid, success);
+    assert (eventHandlerIsCurrentThread (manager->handler));
+
+    pthread_mutex_lock (&manager->lock);
+    BRSyncManagerAnnounceGetTransactionsDone (manager->syncManager,
+                                              rid,
+                                              success);
+    pthread_mutex_unlock (&manager->lock);
 }
 
 extern void
 bwmHandleAnnounceSubmit (BRWalletManager manager,
                          int rid,
-                         OwnershipGiven BRTransaction *transaction,
+                         UInt256 txHash,
                          int error) {
-    BRSyncManagerAnnounceSubmitTransaction (manager->syncManager, rid, transaction, error);
+    assert (eventHandlerIsCurrentThread (manager->handler));
+
+    pthread_mutex_lock (&manager->lock);
+    BRSyncManagerAnnounceSubmitTransaction (manager->syncManager,
+                                            rid,
+                                            txHash,
+                                            error);
+    pthread_mutex_unlock (&manager->lock);
 }
 
 ///
 /// MARK: BRWalletManager Events
 //
 
-// TODO(fix): Update this comment once these handlers are no longer
-//            called directly in the case of transaction ownership
-// These handlers *SHOULD* be called by the event handler thread. Once
-// transaction ownership is sorted out, that should be the case.
+// These handlers are called by the event handler thread.
 
 extern void
 bwmHandleWalletManagerEvent(BRWalletManager bwm,
                             BRWalletManagerEvent event) {
-    assert (NULL != bwm->client.funcWalletManagerEvent);
+    assert (eventHandlerIsCurrentThread (bwm->handler) && NULL != bwm->client.funcWalletManagerEvent);
     bwm->client.funcWalletManagerEvent (bwm->client.context,
                                         bwm,
                                         event);
@@ -1035,7 +1339,7 @@ extern void
 bwmHandleWalletEvent(BRWalletManager bwm,
                      BRWallet *wallet,
                      BRWalletEvent event) {
-    assert (NULL != bwm->client.funcWalletEvent);
+    assert (eventHandlerIsCurrentThread (bwm->handler) && NULL != bwm->client.funcWalletEvent);
     bwm->client.funcWalletEvent (bwm->client.context,
                                  bwm,
                                  wallet,
@@ -1047,7 +1351,7 @@ bwmHandleTransactionEvent(BRWalletManager bwm,
                           BRWallet *wallet,
                           BRTransaction *transaction,
                           BRTransactionEvent event) {
-    assert (NULL != bwm->client.funcTransactionEvent);
+    assert (eventHandlerIsCurrentThread (bwm->handler) && NULL != bwm->client.funcTransactionEvent);
     bwm->client.funcTransactionEvent (bwm->client.context,
                                       bwm,
                                       wallet,
@@ -1064,5 +1368,316 @@ static void
 bwmPeriodicDispatcher (BREventHandler handler,
                        BREventTimeout *event) {
     BRWalletManager bwm = (BRWalletManager) event->context;
+
+    assert (eventHandlerIsCurrentThread (bwm->handler));
+    pthread_mutex_lock (&bwm->lock);
     BRSyncManagerTickTock (bwm->syncManager);
+    pthread_mutex_unlock (&bwm->lock);
+}
+
+extern BRFileService
+BRWalletManagerCreateFileService (const BRChainParams *params,
+                                  const char *storagePath,
+                                  BRFileServiceContext context,
+                                  BRFileServiceErrorHandler handler) {
+    const char *networkName  = getNetworkName  (params);
+    const char *currencyName = getCurrencyName (params);
+
+    return fileServiceCreateFromTypeSpecfications (storagePath, currencyName, networkName,
+                                                   context,
+                                                   handler,
+                                                   fileServiceSpecificationsCount,
+                                                   fileServiceSpecifications);
+}
+
+extern void
+BRWalletManagerExtractFileServiceTypes (BRFileService fileService,
+                                        const char **transactions,
+                                        const char **blocks,
+                                        const char **peers) {
+    if (NULL != transactions) *transactions = fileServiceTypeTransactions;
+    if (NULL != blocks)       *blocks       = fileServiceTypeBlocks;
+    if (NULL != peers)        *peers        = fileServiceTypePeers;
+}
+
+///
+/// Mark: Event Helper Routines
+///
+
+extern const char *
+BRWalletManagerEventTypeString (BRWalletManagerEventType t) {
+    switch (t) {
+        case BITCOIN_WALLET_MANAGER_CONNECTED:
+        return "BITCOIN_WALLET_MANAGER_CONNECTED";
+
+        case BITCOIN_WALLET_MANAGER_CREATED:
+        return "BITCOIN_WALLET_MANAGER_CREATED";
+
+        case BITCOIN_WALLET_MANAGER_DISCONNECTED:
+        return "BITCOIN_WALLET_MANAGER_DISCONNECTED";
+
+        case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
+        return "BITCOIN_WALLET_MANAGER_SYNC_STARTED";
+
+        case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
+        return "BITCOIN_WALLET_MANAGER_SYNC_PROGRESS";
+
+        case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
+        return "BITCOIN_WALLET_MANAGER_SYNC_STOPPED";
+
+        case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+        return "BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED";
+    }
+    return "<BITCOIN_WALLET_MANAGER_EVENT_TYPE_UNKNOWN>";
+}
+
+extern int
+BRWalletManagerEventTypeIsValidPair (BRWalletManagerEventType t1, BRWalletManagerEventType t2) {
+    int isValid = 0;
+    switch (t1) {
+        case BITCOIN_WALLET_MANAGER_CREATED:
+            switch (t2) {
+                case BITCOIN_WALLET_MANAGER_CONNECTED:
+                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+                isValid = 1;
+                break;
+
+                case BITCOIN_WALLET_MANAGER_CREATED:
+                case BITCOIN_WALLET_MANAGER_DISCONNECTED:
+                case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
+                case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
+                case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
+                isValid = 0;
+                break;
+            }
+        break;
+        case BITCOIN_WALLET_MANAGER_CONNECTED:
+            switch (t2) {
+                case BITCOIN_WALLET_MANAGER_DISCONNECTED:
+                case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
+                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+                isValid = 1;
+                break;
+
+                case BITCOIN_WALLET_MANAGER_CREATED:
+                case BITCOIN_WALLET_MANAGER_CONNECTED:
+                case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
+                case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
+                isValid = 0;
+                break;
+            }
+        break;
+        case BITCOIN_WALLET_MANAGER_DISCONNECTED:
+            switch (t2) {
+                case BITCOIN_WALLET_MANAGER_CONNECTED:
+                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+                isValid = 1;
+                break;
+
+                case BITCOIN_WALLET_MANAGER_CREATED:
+                case BITCOIN_WALLET_MANAGER_DISCONNECTED:
+                case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
+                case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
+                case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
+                isValid = 0;
+                break;
+            }
+        break;
+        case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
+            switch (t2) {
+                case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
+                case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
+                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+                isValid = 1;
+                break;
+
+                case BITCOIN_WALLET_MANAGER_CREATED:
+                case BITCOIN_WALLET_MANAGER_CONNECTED:
+                case BITCOIN_WALLET_MANAGER_DISCONNECTED:
+                case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
+                isValid = 0;
+                break;
+            }
+        break;
+        case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
+            switch (t2) {
+                case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
+                case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
+                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+                isValid = 1;
+                break;
+
+                case BITCOIN_WALLET_MANAGER_CREATED:
+                case BITCOIN_WALLET_MANAGER_CONNECTED:
+                case BITCOIN_WALLET_MANAGER_DISCONNECTED:
+                case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
+                isValid = 0;
+                break;
+            }
+        break;
+        case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
+            switch (t2) {
+                case BITCOIN_WALLET_MANAGER_DISCONNECTED:
+                case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
+                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+                isValid = 1;
+                break;
+
+                case BITCOIN_WALLET_MANAGER_CREATED:
+                case BITCOIN_WALLET_MANAGER_CONNECTED:
+                case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
+                case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
+                isValid = 0;
+                break;
+            }
+        break;
+        case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+            switch (t2) {
+                case BITCOIN_WALLET_MANAGER_CONNECTED:
+                case BITCOIN_WALLET_MANAGER_DISCONNECTED:
+                case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
+                case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
+                case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
+                case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED:
+                isValid = 1;
+                break;
+
+                case BITCOIN_WALLET_MANAGER_CREATED:
+                isValid = 0;
+                break;
+            }
+        break;
+    }
+    return isValid;
+}
+
+extern const char *
+BRWalletEventTypeString (BRWalletEventType t) {
+    switch (t) {
+        case BITCOIN_WALLET_CREATED:
+        return "BITCOIN_WALLET_CREATED";
+        case BITCOIN_WALLET_BALANCE_UPDATED:
+        return "BITCOIN_WALLET_BALANCE_UPDATED";
+        case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
+        return "BITCOIN_WALLET_TRANSACTION_SUBMITTED";
+        case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
+        return "BITCOIN_WALLET_FEE_PER_KB_UPDATED";
+        case BITCOIN_WALLET_FEE_ESTIMATED:
+        return "BITCOIN_WALLET_FEE_ESTIMATED";
+        case BITCOIN_WALLET_DELETED:
+        return "BITCOIN_WALLET_DELETED";
+    }
+    return "<BITCOIN_WALLET_EVENT_TYPE_UNKNOWN>";
+}
+
+extern int
+BRWalletEventTypeIsValidPair (BRWalletEventType t1, BRWalletEventType t2) {
+    int isValid = 0;
+    switch (t1) {
+        case BITCOIN_WALLET_CREATED:
+            switch (t2) {
+                case BITCOIN_WALLET_BALANCE_UPDATED:
+                case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
+                case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
+                case BITCOIN_WALLET_FEE_ESTIMATED:
+                case BITCOIN_WALLET_DELETED:
+                isValid = 1;
+                break;
+
+                case BITCOIN_WALLET_CREATED:
+                isValid = 0;
+                break;
+            }
+        break;
+        case BITCOIN_WALLET_BALANCE_UPDATED:
+            switch (t2) {
+                case BITCOIN_WALLET_BALANCE_UPDATED:
+                case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
+                case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
+                case BITCOIN_WALLET_FEE_ESTIMATED:
+                case BITCOIN_WALLET_DELETED:
+                isValid = 1;
+                break;
+
+                case BITCOIN_WALLET_CREATED:
+                isValid = 0;
+                break;
+            }
+        break;
+        case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
+            switch (t2) {
+                case BITCOIN_WALLET_BALANCE_UPDATED:
+                case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
+                case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
+                case BITCOIN_WALLET_FEE_ESTIMATED:
+                case BITCOIN_WALLET_DELETED:
+                isValid = 1;
+                break;
+
+                case BITCOIN_WALLET_CREATED:
+                isValid = 0;
+                break;
+            }
+        break;
+        case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
+            switch (t2) {
+                case BITCOIN_WALLET_BALANCE_UPDATED:
+                case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
+                case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
+                case BITCOIN_WALLET_FEE_ESTIMATED:
+                case BITCOIN_WALLET_DELETED:
+                isValid = 1;
+                break;
+
+                case BITCOIN_WALLET_CREATED:
+                isValid = 0;
+                break;
+            }
+        break;
+        case BITCOIN_WALLET_FEE_ESTIMATED:
+            switch (t2) {
+                case BITCOIN_WALLET_BALANCE_UPDATED:
+                case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
+                case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
+                case BITCOIN_WALLET_FEE_ESTIMATED:
+                case BITCOIN_WALLET_DELETED:
+                isValid = 1;
+                break;
+
+                case BITCOIN_WALLET_CREATED:
+                isValid = 0;
+                break;
+            }
+        break;
+        case BITCOIN_WALLET_DELETED:
+            switch (t2) {
+                case BITCOIN_WALLET_CREATED:
+                case BITCOIN_WALLET_BALANCE_UPDATED:
+                case BITCOIN_WALLET_TRANSACTION_SUBMITTED:
+                case BITCOIN_WALLET_FEE_PER_KB_UPDATED:
+                case BITCOIN_WALLET_FEE_ESTIMATED:
+                case BITCOIN_WALLET_DELETED:
+                isValid = 0;
+                break;
+            }
+        break;
+    }
+    return isValid;
+}
+
+extern const char *
+BRTransactionEventTypeString (BRTransactionEventType t) {
+    switch (t) {
+        case BITCOIN_TRANSACTION_CREATED:
+        return "BITCOIN_TRANSACTION_CREATED";
+        case BITCOIN_TRANSACTION_SIGNED:
+        return "BITCOIN_TRANSACTION_SIGNED";
+        case BITCOIN_TRANSACTION_ADDED:
+        return "BITCOIN_TRANSACTION_ADDED";
+        case BITCOIN_TRANSACTION_UPDATED:
+        return "BITCOIN_TRANSACTION_UPDATED";
+        case BITCOIN_TRANSACTION_DELETED:
+        return "BITCOIN_TRANSACTION_DELETED";
+    }
+    return "<BITCOIN_TRANSACTION_EVENT_TYPE_UNKNOWN>";
 }

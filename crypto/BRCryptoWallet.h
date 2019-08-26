@@ -59,6 +59,9 @@ extern "C" {
         CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED,
     } BRCryptoWalletEventType;
 
+    extern const char *
+    BRCryptoWalletEventTypeString (BRCryptoWalletEventType t);
+
     typedef struct {
         BRCryptoWalletEventType type;
         union {
@@ -157,6 +160,11 @@ extern "C" {
     cryptoWalletGetTransfers (BRCryptoWallet wallet,
                               size_t *count);
 
+    /**
+     * Returns a 'new' adddress from `wallet` according to the provided `addressScheme`.  For BTC
+     * this is a segwit or a bech32 address.  Note that the returned address is not associated with
+     * `wallet` and thus one runs the risk of using a BRCryptoAddress w/ the wrong BRCryptoWallet
+     */
     extern BRCryptoAddress
     cryptoWalletGetAddress (BRCryptoWallet wallet,
                             BRCryptoAddressScheme addressScheme);
@@ -168,6 +176,16 @@ extern "C" {
     cryptoWalletSetDefaultFeeBasis (BRCryptoWallet wallet,
                                     BRCryptoFeeBasis feeBasis);
 
+    /**
+     * Create a transfer.
+     *
+     * @param wallet The wallet providing the amount
+     * @param target The target address; this must be consistent with the provied wallet's address
+     * @param amount the amount to transfer
+     * @param estimatedFeeBasis the fees one is willing to
+     *
+     * @return the transfer or NULL
+     */
     extern BRCryptoTransfer
     cryptoWalletCreateTransfer (BRCryptoWallet wallet,
                                 BRCryptoAddress target,

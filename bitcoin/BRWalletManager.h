@@ -28,6 +28,7 @@
 
 #include <stdio.h>
 #include "BRSyncMode.h"
+#include "BRFileService.h"
 #include "BRBase.h"                 // Ownership
 #include "BRBIP32Sequence.h"        // BRMasterPubKey
 #include "BRChainParams.h"          // BRChainParams (*NOT THE STATIC DECLARATIONS*)
@@ -69,7 +70,7 @@ bwmAnnounceBlockNumber (BRWalletManager manager,
 typedef void
 (*BRGetTransactionsCallback) (BRWalletManagerClientContext context,
                               BRWalletManager manager,
-                              OwnershipGiven const char **addresses,
+                              OwnershipKept const char **addresses,
                               size_t addressCount,
                               uint64_t begBlockNumber,
                               uint64_t endBlockNumber,
@@ -78,7 +79,10 @@ typedef void
 extern int // success - data is valid
 bwmAnnounceTransaction (BRWalletManager manager,
                         int id,
-                        OwnershipGiven BRTransaction *transaction);
+                        OwnershipKept uint8_t *transaction,
+                        size_t transactionLength,
+                        uint64_t timestamp,
+                        uint64_t blockHeight);
 
 extern void
 bwmAnnounceTransactionComplete (BRWalletManager manager,
@@ -89,13 +93,15 @@ typedef void
 (*BRSubmitTransactionCallback) (BRWalletManagerClientContext context,
                                 BRWalletManager manager,
                                 BRWallet *wallet,
-                                OwnershipGiven BRTransaction *transaction,
+                                OwnershipKept uint8_t *transaction,
+                                size_t transactionLength,
+                                UInt256 transactionHash,
                                 int rid);
 
 extern void
 bwmAnnounceSubmit (BRWalletManager manager,
                    int rid,
-                   OwnershipGiven BRTransaction *transaction,
+                   UInt256 txHash,
                    int error);
 
 ///
@@ -157,6 +163,9 @@ typedef void
                                OwnershipKept BRTransaction *transaction,
                                BRTransactionEvent event);
 
+extern const char *
+BRTransactionEventTypeString (BRTransactionEventType t);
+
 ///
 /// Wallet Event
 ///
@@ -199,6 +208,12 @@ typedef void
                           OwnershipKept BRWallet *wallet,
                           BRWalletEvent event);
 
+extern const char *
+BRWalletEventTypeString (BRWalletEventType t);
+
+extern int
+BRWalletEventTypeIsValidPair (BRWalletEventType t1, BRWalletEventType t2);
+
 ///
 /// WalletManager Event
 ///
@@ -232,6 +247,15 @@ typedef void
                                  OwnershipKept BRWalletManager manager,
                                  BRWalletManagerEvent event);
 
+extern const char *
+BRWalletManagerEventTypeString (BRWalletManagerEventType t);
+
+extern int
+BRWalletManagerEventTypeIsValidPair (BRWalletManagerEventType t1, BRWalletManagerEventType t2);
+
+///
+/// WalletManager
+///
 typedef struct {
     BRWalletManagerClientContext context;
 
@@ -271,6 +295,12 @@ BRWalletManagerDisconnect (BRWalletManager manager);
 extern void
 BRWalletManagerScan (BRWalletManager manager);
 
+extern void
+BRWalletManagerSetMode (BRWalletManager manager, BRSyncMode mode);
+
+extern BRSyncMode
+BRWalletManagerGetMode (BRWalletManager manager);
+
 //
 // These should not be needed if the events are sufficient
 //
@@ -278,15 +308,26 @@ extern BRWallet *
 BRWalletManagerGetWallet (BRWalletManager manager);
 
 /**
- * Creates an unsigned transaction that sends the specified amount from the wallet to the given address.
+ * Return `1` if `manager` handles BTC; otherwise `0` if BCH.  Note: the `BRChainParams` determine
+ * BTC vs BCH.
+ */
+extern int
+BRWalletManagerHandlesBTC (BRWalletManager manager);
+
+/**
+ * Creates an unsigned transaction that sends the specified amount from the wallet to the given
+ * address.  The address must satisfy BRAddressIsValid() using the provided BRWalletManager
+ * address parameters.  In particular, a BCH address (either mainnet or testnet) *does not*
+ * satisfy BRAddressIsValid() - the BCH address needs to be decoded into a valid BTC address first.
  *
- * @returns NULL on failure, or a transaction on success; the returned transaction must be freed using BRTransactionFree()
+ * @returns NULL on failure, or a transaction on success; the returned transaction must be freed
+ *     using BRTransactionFree()
  */
 extern BRTransaction *
 BRWalletManagerCreateTransaction (BRWalletManager manager,
                                   BRWallet *wallet,
                                   uint64_t amount,
-                                  const char *addr,
+                                  BRAddress addr,
                                   uint64_t feePerKb);
 
 /**
@@ -319,6 +360,18 @@ BRWalletManagerEstimateFeeForTransfer (BRWalletManager manager,
                                        BRCookie cookie,
                                        uint64_t transferAmount,
                                        uint64_t feePerKb);
+
+extern BRFileService
+BRWalletManagerCreateFileService (const BRChainParams *params,
+                                  const char *storagePath,
+                                  BRFileServiceContext context,
+                                  BRFileServiceErrorHandler handler);
+
+extern void
+BRWalletManagerExtractFileServiceTypes (BRFileService fileService,
+                                        const char **transactions,
+                                        const char **blocks,
+                                        const char **peers);
 
 #ifdef __cplusplus
 }

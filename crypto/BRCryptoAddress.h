@@ -50,6 +50,14 @@ extern "C" {
     cryptoAddressCreateFromStringAsBTC (BRAddressParams params, const char *address);
 
     /**
+     * Create an addres from a NULL terminated BCH address string.
+     *
+     * @return An address or NULL if the address string is invalid.
+     */
+    extern BRCryptoAddress
+    cryptoAddressCreateFromStringAsBCH (BRAddressParams params, const char *bchAddress);
+
+    /**
      * Create an address from a NULL terminated ETH address string.
      *
      * An addresss string will be of the form "0x8fB4..." (with prefix)
@@ -69,11 +77,15 @@ extern "C" {
     cryptoAddressCreateFromStringAsGEN (const char *ethAddress);
 
     /**
-     * Returns the addresses' string representation which is suitable for display.
+     * Returns the address' string representation which is suitable for display.  Note that an
+     * address representing BCH will have a prefix included, typically one of 'bitcoincash' or
+     * 'bchtest'.  And, there is not the reverse function of `cryptoAddressCreateFromString()`
+     * whereby the type (BTC, BCH, ETH, ...) is derived from the string - one must know
+     * beforehand in order to process the string.
      *
      * @param address the addres
      *
-     *@return A string representation which is newly allocated and must be freed.
+     * @return A string representation which is newly allocated and must be freed.
      */
     extern char *
     cryptoAddressAsString (BRCryptoAddress address);

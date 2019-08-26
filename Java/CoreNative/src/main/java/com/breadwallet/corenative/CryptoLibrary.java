@@ -94,6 +94,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoUnit cryptoFeeBasisGetPricePerCostFactorUnit (BRCryptoFeeBasis feeBasis);
     double cryptoFeeBasisGetCostFactor (BRCryptoFeeBasis feeBasis);
     BRCryptoAmount cryptoFeeBasisGetFee (BRCryptoFeeBasis feeBasis);
+    int cryptoFeeBasisIsIdentical(BRCryptoFeeBasis f1, BRCryptoFeeBasis f2);
     BRCryptoFeeBasis cryptoFeeBasisTake(BRCryptoFeeBasis obj);
     void cryptoFeeBasisGive(BRCryptoFeeBasis obj);
 
@@ -199,7 +200,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoFeeBasis cryptoWalletGetDefaultFeeBasis(BRCryptoWallet wallet);
     void cryptoWalletSetDefaultFeeBasis(BRCryptoWallet wallet, BRCryptoFeeBasis feeBasis);
     BRCryptoTransfer cryptoWalletCreateTransfer(BRCryptoWallet wallet, BRCryptoAddress target, BRCryptoAmount amount, BRCryptoFeeBasis feeBasis);
-    BRCryptoFeeBasis cryptoWalletEstimateFeeBasis(BRCryptoWallet wallet, Pointer cookie, BRCryptoAddress target, BRCryptoAmount amount, BRCryptoNetworkFee fee);
+    void cryptoWalletEstimateFeeBasis(BRCryptoWallet wallet, Pointer cookie, BRCryptoAddress target, BRCryptoAmount amount, BRCryptoNetworkFee fee);
     int cryptoWalletEqual(BRCryptoWallet w1, BRCryptoWallet w2);
     BRCryptoWallet cryptoWalletTake(BRCryptoWallet obj);
     void cryptoWalletGive(BRCryptoWallet obj);
@@ -211,6 +212,7 @@ public interface CryptoLibrary extends Library {
     BRCryptoNetwork cryptoWalletManagerGetNetwork(BRCryptoWalletManager cwm);
     BRCryptoAccount cryptoWalletManagerGetAccount(BRCryptoWalletManager cwm);
     int cryptoWalletManagerGetMode(BRCryptoWalletManager cwm);
+    void cryptoWalletManagerSetMode(BRCryptoWalletManager cwm, int mode);
     BRCryptoUnit cryptoWalletGetUnit(BRCryptoWallet wallet);
     BRCryptoUnit cryptoWalletGetUnitForFee(BRCryptoWallet wallet);
     BRCryptoCurrency cryptoWalletGetCurrency(BRCryptoWallet wallet);

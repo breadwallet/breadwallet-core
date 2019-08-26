@@ -4,6 +4,8 @@ import com.breadwallet.corenative.crypto.CoreBRCryptoFeeBasis;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 
+import java.util.Objects;
+
 /* package */
 class TransferFeeBasis implements com.breadwallet.crypto.TransferFeeBasis {
 
@@ -61,6 +63,25 @@ class TransferFeeBasis implements com.breadwallet.crypto.TransferFeeBasis {
     @Override
     public Amount getFee() {
         return feeSupplier.get();
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) {
+            return true;
+        }
+
+        if (!(object instanceof TransferFeeBasis)) {
+            return false;
+        }
+
+        TransferFeeBasis feeBasis = (TransferFeeBasis) object;
+        return core.isIdentical(feeBasis.core);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(core);
     }
 
     /* package */

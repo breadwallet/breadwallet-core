@@ -29,6 +29,7 @@
 #include "BRSyncManager.h"
 #include "ethereum/event/BREvent.h"
 #include "support/BRBase.h"
+#include "support/BRArray.h"
 #include "support/BRFileService.h"
 
 #ifdef __cplusplus
@@ -36,6 +37,8 @@ extern "C" {
 #endif
 
 /// MARK: - BRWalletManager
+
+typedef struct BRTransactionWithStateStruct *BRTransactionWithState;
 
 struct BRWalletManagerStruct {
 
@@ -54,9 +57,14 @@ struct BRWalletManagerStruct {
     BRFileService fileService;
 
     /**
-     * The forkId of the chain parameters associated with the wallet
+     * The chain parameters associated with the wallet
      */
-    uint8_t forkId;
+    const BRChainParams * chainParams;
+
+    /**
+     * The time, in seconds since UNIX epoch, at which the wallet was first created
+     */
+    uint32_t earliestKeyTime;
 
     /**
      * An EventHandler for Main.  All 'announcements' (via PeerManager (or BRD) hit here.
@@ -67,6 +75,12 @@ struct BRWalletManagerStruct {
      * The Lock ensuring single thread access to BWM state.
      */
     pthread_mutex_t lock;
+
+    /*
+     * The collection of all transfers, including those that have been "deleted",
+     * associated with the `wallet`.
+     */
+    BRArrayOf(BRTransactionWithState) transactions;
 };
 
 /// Mark: - WalletManager Events
@@ -118,12 +132,18 @@ bwmSignalAnnounceBlockNumber (BRWalletManager manager,
 extern int
 bwmHandleAnnounceTransaction (BRWalletManager manager,
                               int id,
-                              OwnershipGiven BRTransaction *transaction);
+                              OwnershipKept uint8_t *transaction,
+                              size_t transactionLength,
+                              uint64_t timestamp,
+                              uint64_t blockHeight);
 
 extern void
 bwmSignalAnnounceTransaction (BRWalletManager manager,
                               int id,
-                              OwnershipGiven BRTransaction *transaction);
+                              OwnershipKept uint8_t *transaction,
+                              size_t transactionLength,
+                              uint64_t timestamp,
+                              uint64_t blockHeight);
 
 extern void
 bwmHandleAnnounceTransactionComplete (BRWalletManager manager,
@@ -140,13 +160,13 @@ bwmSignalAnnounceTransactionComplete (BRWalletManager manager,
 extern void
 bwmHandleAnnounceSubmit (BRWalletManager manager,
                          int rid,
-                         OwnershipGiven BRTransaction *transaction,
+                         UInt256 txHash,
                          int error);
 
 extern void
 bwmSignalAnnounceSubmit (BRWalletManager manager,
                         int rid,
-                        OwnershipGiven BRTransaction *transaction,
+                        UInt256 txHash,
                         int error);
 
 extern const BREventType *bwmEventTypes[];

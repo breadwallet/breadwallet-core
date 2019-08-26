@@ -52,6 +52,8 @@ target_sources (crypto
                 src/main/cpp/core/support/BRKeyECIES.h
                 src/main/cpp/core/support/BRSet.c
                 src/main/cpp/core/support/BRSet.h
+                src/main/cpp/core/support/BRSyncMode.c
+                src/main/cpp/core/support/BRSyncMode.h
                 )
 
 # Support Tests
@@ -99,6 +101,7 @@ if (CMAKE_BUILD_TYPE MATCHES Debug)
                     PUBLIC
 
                     src/main/cpp/core/bitcoin/test.c
+                    src/main/cpp/core/bitcoin/testBwm.c
                     )
 endif(CMAKE_BUILD_TYPE MATCHES Debug)
 

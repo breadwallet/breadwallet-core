@@ -56,7 +56,6 @@ struct BRCryptoWalletManagerRecord {
     BRCryptoCWMClient client;
     BRCryptoNetwork network;
     BRCryptoAccount account;
-    BRSyncMode mode;
     BRCryptoAddressScheme addressScheme;
 
     BRCryptoWalletManagerState state;

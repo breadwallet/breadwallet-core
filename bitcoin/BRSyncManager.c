@@ -40,6 +40,49 @@
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #endif
 
+/**
+ * The BRSyncManager `class` is designed to wrap the existing BRPeerManager `class`,
+ * in P2P mode, using the BRPeerSyncManager, as well as provide an equivalent manager
+ * when operating in BRD mode, using the BRClientSyncManager.
+ *
+ * There are at least a couple of likely controversial design decisions included in
+ * how the BRSyncManager (and its `child classes`) operates:
+ *
+ *  1) Should a BRSyncManager interact (i.e. add/remove/update txns in) directly
+ *     with a BRWallet or should those interactions be handled externally by its
+ *     owner (i.e. BRWalletManager)?
+ *
+ *     - The existing BRPeerManager, which is long proven, DOES interact with the
+ *       a BRWallet to add/remove/update transactions in response to network events
+ *     - As such, the BRClientSyncManager was designed to do the same. Namely, it
+ *       interacts with the BRWallet to add/remove/update transactions.
+ *     - Going forward, if and when BRClientSyncManager is extracted into a generic
+ *       component, we might want to revisit this and instead have it merely
+ *       announce network events, rather than explicitly act upon them.
+ *
+ *  2) Should a BRSyncManager interact directly with the filesystem or should they be
+ *     handled externally by its owner (i.e. BRWalletManager)?
+ *
+ *     - The existing BRWallet/BRPeerManager design approach was such that
+ *       clients registered transaction callbacks on the BRWallet and network callbacks
+ *       on the BRPeerManager. The BRPeerManager has a pointer to the BRWallet
+ *       and directly adds/removes/updates transactions based on what the network
+ *       is telling it. Interactions with the filesystem are done in the BRWallet
+ *       transaction callbacks, as a result of manipulations done by the BRPeerManager.
+ *     - As such, the BRClientSyncManager is designed to do the same. Namely, it does
+ *       NOT interact directly with the filesystem but instead manipulates the BRWallet
+ *       in response to network events it has received.
+ */
+
+/**
+ * `BRSyncManagerStruct` only contains the minimum amount of information needed
+ *  to be able to downcast to the appropriate sync manager implementation.
+ *
+ *  Fields that look common (like lock, isConnected, etc.) are not placed in the
+ *  common structure as it is anticipated that `BRClientSyncManagerStruct` will be
+ *  refactored out into a generic component, at some point. If it depended on
+ *  fields in `BRSyncManagerStruct`, that refactoring would become more difficult.
+ */
 struct BRSyncManagerStruct {
     BRSyncMode mode;
 };
@@ -158,17 +201,16 @@ BRClientSyncManagerNew(BRSyncManagerEventContext eventContext,
                        OwnershipKept const BRChainParams *params,
                        OwnershipKept BRWallet *wallet,
                        uint32_t earliestKeyTime,
-                       uint64_t blockHeight,
-                       OwnershipKept BRMerkleBlock *blocks[],
-                       size_t blocksCount,
-                       OwnershipKept const BRPeer peers[],
-                       size_t peersCount);
+                       uint64_t blockHeight);
 
 static BRClientSyncManager
 BRSyncManagerAsClientSyncManager(BRSyncManager manager);
 
 static void
 BRClientSyncManagerFree(BRClientSyncManager manager);
+
+static uint64_t
+BRClientSyncManagerGetBlockHeight(BRClientSyncManager manager);
 
 static void
 BRClientSyncManagerConnect(BRClientSyncManager manager);
@@ -181,7 +223,7 @@ BRClientSyncManagerScan(BRClientSyncManager manager);
 
 static void
 BRClientSyncManagerSubmit(BRClientSyncManager manager,
-                          OwnershipGiven BRTransaction *transaction);
+                          OwnershipKept BRTransaction *transaction);
 
 static void
 BRClientSyncManagerTickTock(BRClientSyncManager manager);
@@ -194,7 +236,10 @@ BRClientSyncManagerAnnounceGetBlockNumber(BRClientSyncManager manager,
 static void
 BRClientSyncManagerAnnounceGetTransactionsItem (BRClientSyncManager manager,
                                                 int rid,
-                                                OwnershipGiven BRTransaction *transaction);
+                                                OwnershipKept uint8_t *transaction,
+                                                size_t transactionLength,
+                                                uint64_t timestamp,
+                                                uint64_t blockHeight);
 
 static void
 BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
@@ -204,7 +249,7 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
 static void
 BRClientSyncManagerAnnounceSubmitTransaction (BRClientSyncManager manager,
                                               int rid,
-                                              OwnershipGiven BRTransaction *transaction,
+                                              UInt256 txHash,
                                               int error);
 
 static void
@@ -299,6 +344,9 @@ BRSyncManagerAsPeerSyncManager(BRSyncManager manager);
 static void
 BRPeerSyncManagerFree(BRPeerSyncManager);
 
+static uint64_t
+BRPeerSyncManagerGetBlockHeight(BRPeerSyncManager manager);
+
 static void
 BRPeerSyncManagerConnect(BRPeerSyncManager manager);
 
@@ -310,7 +358,7 @@ BRPeerSyncManagerScan(BRPeerSyncManager manager);
 
 static void
 BRPeerSyncManagerSubmit(BRPeerSyncManager manager,
-                        OwnershipGiven BRTransaction *transaction);
+                        OwnershipKept BRTransaction *transaction);
 
 static void
 BRPeerSyncManagerTickTock(BRPeerSyncManager manager);
@@ -356,11 +404,7 @@ BRSyncManagerNewForMode(BRSyncMode mode,
                                                                          params,
                                                                          wallet,
                                                                          earliestKeyTime,
-                                                                         blockHeight,
-                                                                         blocks,
-                                                                         blocksCount,
-                                                                         peers,
-                                                                         peersCount));
+                                                                         blockHeight));
         case SYNC_MODE_P2P_ONLY:
         return BRPeerSyncManagerAsSyncManager (BRPeerSyncManagerNew (eventContext,
                                                                      eventCallback,
@@ -391,6 +435,23 @@ BRSyncManagerFree(BRSyncManager manager) {
         assert (0);
         break;
     }
+}
+
+extern uint64_t
+BRSyncManagerGetBlockHeight (BRSyncManager manager) {
+    uint64_t blockHeight = 0;
+    switch (manager->mode) {
+        case SYNC_MODE_BRD_ONLY:
+        blockHeight = BRClientSyncManagerGetBlockHeight (BRSyncManagerAsClientSyncManager (manager));
+        break;
+        case SYNC_MODE_P2P_ONLY:
+        blockHeight = BRPeerSyncManagerGetBlockHeight (BRSyncManagerAsPeerSyncManager (manager));
+        break;
+        default:
+        assert (0);
+        break;
+    }
+    return blockHeight;
 }
 
 extern void
@@ -440,7 +501,7 @@ BRSyncManagerScan(BRSyncManager manager) {
 
 extern void
 BRSyncManagerSubmit(BRSyncManager manager,
-                    OwnershipGiven BRTransaction *transaction) {
+                    OwnershipKept BRTransaction *transaction) {
     switch (manager->mode) {
         case SYNC_MODE_BRD_ONLY:
         BRClientSyncManagerSubmit (BRSyncManagerAsClientSyncManager (manager),
@@ -482,7 +543,7 @@ BRSyncManagerAnnounceGetBlockNumber(BRSyncManager manager,
                                                    blockHeight);
         break;
         case SYNC_MODE_P2P_ONLY:
-        // do nothing
+        // this might occur if the owning BRWalletManager changed modes; silently ignore
         break;
         default:
         assert (0);
@@ -493,16 +554,21 @@ BRSyncManagerAnnounceGetBlockNumber(BRSyncManager manager,
 extern void
 BRSyncManagerAnnounceGetTransactionsItem(BRSyncManager manager,
                                          int rid,
-                                         OwnershipGiven BRTransaction *transaction) {
+                                         OwnershipKept uint8_t *transaction,
+                                         size_t transactionLength,
+                                         uint64_t timestamp,
+                                         uint64_t blockHeight) {
     switch (manager->mode) {
         case SYNC_MODE_BRD_ONLY:
         BRClientSyncManagerAnnounceGetTransactionsItem (BRSyncManagerAsClientSyncManager (manager),
                                                         rid,
-                                                        transaction);
+                                                        transaction,
+                                                        transactionLength,
+                                                        timestamp,
+                                                        blockHeight);
         break;
         case SYNC_MODE_P2P_ONLY:
-        // This case might arise if we swap a BRWalletManager's syncManager
-        BRTransactionFree (transaction);
+        // this might occur if the owning BRWalletManager changed modes; silently ignore
         break;
         default:
         assert (0);
@@ -521,7 +587,7 @@ BRSyncManagerAnnounceGetTransactionsDone(BRSyncManager manager,
                                                         success);
         break;
         case SYNC_MODE_P2P_ONLY:
-        // do nothing
+        // this might occur if the owning BRWalletManager changed modes; silently ignore
         break;
         default:
         assert (0);
@@ -532,18 +598,17 @@ BRSyncManagerAnnounceGetTransactionsDone(BRSyncManager manager,
 extern void
 BRSyncManagerAnnounceSubmitTransaction(BRSyncManager manager,
                                        int rid,
-                                       OwnershipGiven BRTransaction *transaction,
+                                       UInt256 txHash,
                                        int error) {
     switch (manager->mode) {
         case SYNC_MODE_BRD_ONLY:
         BRClientSyncManagerAnnounceSubmitTransaction (BRSyncManagerAsClientSyncManager (manager),
                                                       rid,
-                                                      transaction,
+                                                      txHash,
                                                       error);
         break;
         case SYNC_MODE_P2P_ONLY:
-        // This case might arise if we swap a BRWalletManager's syncManager
-        BRTransactionFree (transaction);
+        // this might occur if the owning BRWalletManager changed modes; silently ignore
         break;
         default:
         assert (0);
@@ -561,11 +626,7 @@ BRClientSyncManagerNew(BRSyncManagerEventContext eventContext,
                        OwnershipKept const BRChainParams *params,
                        OwnershipKept BRWallet *wallet,
                        uint32_t earliestKeyTime,
-                       uint64_t blockHeight,
-                       OwnershipKept BRMerkleBlock *blocks[],
-                       size_t blocksCount,
-                       OwnershipKept const BRPeer peers[],
-                       size_t peersCount) {
+                       uint64_t blockHeight) {
     BRClientSyncManager manager = (BRClientSyncManager) calloc (1, sizeof(struct BRClientSyncManagerStruct));
     manager->common.mode = SYNC_MODE_BRD_ONLY;
 
@@ -621,6 +682,16 @@ BRClientSyncManagerFree(BRClientSyncManager manager) {
     free (manager);
 }
 
+static uint64_t
+BRClientSyncManagerGetBlockHeight(BRClientSyncManager manager) {
+    uint64_t blockHeight = 0;
+    if (0 == pthread_mutex_lock (&manager->lock)) {
+        blockHeight = manager->networkBlockHeight;
+        pthread_mutex_unlock (&manager->lock);
+    }
+    return blockHeight;
+}
+
 static void
 BRClientSyncManagerConnect(BRClientSyncManager manager) {
     uint8_t needEvent = 0;
@@ -630,17 +701,21 @@ BRClientSyncManagerConnect(BRClientSyncManager manager) {
             manager->isConnected = 1;
             needEvent = 1;
         }
+
+        // Send event while holding the state lock so that event
+        // callbacks are ordered to reflect state transitions.
+
+        if (needEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRClientSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_CONNECTED
+                                    });
+        }
+
         pthread_mutex_unlock (&manager->lock);
     } else {
         assert (0);
-    }
-
-    if (needEvent) {
-        manager->eventCallback (manager->eventContext,
-                                BRClientSyncManagerAsSyncManager (manager),
-                                (BRSyncManagerEvent) {
-                                    SYNC_MANAGER_CONNECTED
-                                });
     }
 
     BRClientSyncManagerStartScanIfNeeded (manager);
@@ -653,32 +728,39 @@ BRClientSyncManagerDisconnect(BRClientSyncManager manager) {
 
     if (0 == pthread_mutex_lock (&manager->lock)) {
         if (manager->isConnected) {
+            // We are connected. Check for a full scan in progress
+            // and then wipe the current scan state so that a new one will be
+            // triggered.
             manager->isConnected = 0;
             needConnectionEvent = 1;
             needSyncEvent = manager->scanState.isFullScan;
             memset(&manager->scanState, 0, sizeof(manager->scanState));
         }
+
+        // Send event while holding the state lock so that event
+        // callbacks are ordered to reflect state transitions.
+
+        if (needSyncEvent) {
+            // TODO(fix): What should the error code be?
+            manager->eventCallback (manager->eventContext,
+                                    BRClientSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_SYNC_STOPPED,
+                                        { .syncStopped = { -1 }}
+                                    });
+        }
+
+        if (needConnectionEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRClientSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_DISCONNECTED
+                                    });
+        }
+
         pthread_mutex_unlock (&manager->lock);
     } else {
         assert (0);
-    }
-
-    if (needConnectionEvent) {
-        manager->eventCallback (manager->eventContext,
-                                BRClientSyncManagerAsSyncManager (manager),
-                                (BRSyncManagerEvent) {
-                                    SYNC_MANAGER_DISCONNECTED
-                                });
-    }
-
-    if (needSyncEvent) {
-        // TODO(fix): What should the error code be?
-        manager->eventCallback (manager->eventContext,
-                                BRClientSyncManagerAsSyncManager (manager),
-                                (BRSyncManagerEvent) {
-                                    SYNC_MANAGER_SYNC_STOPPED,
-                                    { .syncStopped = { -1 }}
-                                });
     }
 }
 
@@ -688,36 +770,51 @@ BRClientSyncManagerScan(BRClientSyncManager manager) {
     uint8_t needSyncEvent       = 0;
 
     if (0 == pthread_mutex_lock (&manager->lock)) {
-        if (!manager->isConnected) {
-            manager->isConnected = 1;
+        // Mirror BRPeerManager's behaviour in that BRPeerManagerRescan only
+        // has an effect if we are connected (i.e. it does not perform a
+        // connect)
+        if (manager->isConnected) {
             needConnectionEvent = 1;
-        } else {
+            // We are already connected. Checkf for a full scan in progress
+            // and then wipe the current scan state so that a new one will be
+            // triggered.
             needSyncEvent = manager->scanState.isFullScan;
             memset(&manager->scanState, 0, sizeof(manager->scanState));
+
+            // Reset the height that we've synced to to be the initial height.
+            // This will trigger a full sync.
+            manager->syncedBlockHeight = manager->initBlockHeight;
         }
 
-        manager->syncedBlockHeight = manager->initBlockHeight;
+        // Send event while holding the state lock so that event
+        // callbacks are ordered to reflect state transitions.
+
+        if (needSyncEvent) {
+            // TODO(fix): What should the error code be?
+            manager->eventCallback (manager->eventContext,
+                                    BRClientSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_SYNC_STOPPED,
+                                        { .syncStopped = { -1 }}
+                                    });
+        }
+
+        if (needConnectionEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRClientSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_DISCONNECTED
+                                    });
+
+            manager->eventCallback (manager->eventContext,
+                                    BRClientSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_CONNECTED
+                                    });
+        }
         pthread_mutex_unlock (&manager->lock);
     } else {
         assert (0);
-    }
-
-    if (needConnectionEvent) {
-        manager->eventCallback (manager->eventContext,
-                                BRClientSyncManagerAsSyncManager (manager),
-                                (BRSyncManagerEvent) {
-                                    SYNC_MANAGER_CONNECTED
-                                });
-    }
-
-    if (needSyncEvent) {
-        // TODO(fix): What should the error code be?
-        manager->eventCallback (manager->eventContext,
-                                BRClientSyncManagerAsSyncManager (manager),
-                                (BRSyncManagerEvent) {
-                                    SYNC_MANAGER_SYNC_STOPPED,
-                                    { .syncStopped = { -1 }}
-                                });
     }
 
     BRClientSyncManagerStartScanIfNeeded (manager);
@@ -725,7 +822,7 @@ BRClientSyncManagerScan(BRClientSyncManager manager) {
 
 static void
 BRClientSyncManagerSubmit(BRClientSyncManager manager,
-                          OwnershipGiven BRTransaction *transaction) {
+                          OwnershipKept BRTransaction *transaction) {
     uint8_t needClientCall = 0;
     int rid                = -1;
 
@@ -738,21 +835,30 @@ BRClientSyncManagerSubmit(BRClientSyncManager manager,
         assert (0);
     }
 
+    // Send event WITHOUT holding the state lock as this type of event
+    // has no impact on the sync manager's state.
+
     if (needClientCall) {
+        size_t txLength = BRTransactionSerialize (transaction, NULL, 0);
+        uint8_t *tx = calloc (txLength, sizeof(uint8_t));
+        BRTransactionSerialize(transaction, tx, txLength);
+
         manager->clientCallbacks.funcSubmitTransaction (manager->clientContext,
                                                         BRClientSyncManagerAsSyncManager (manager),
-                                                        transaction,
+                                                        tx,
+                                                        txLength,
+                                                        transaction->txHash,
                                                         rid);
+
+        free (tx);
     } else {
         // TODO(fix): What should the error code be?
         manager->eventCallback (manager->eventContext,
                                 BRClientSyncManagerAsSyncManager (manager),
                                 (BRSyncManagerEvent) {
                                     SYNC_MANAGER_TXN_SUBMITTED,
-                                    { .submitted = {transaction, -1} },
+                                    { .submitted = {transaction->txHash, -1} },
                                 });
-
-        BRTransactionFree (transaction);
     }
 }
 
@@ -769,46 +875,52 @@ BRClientSyncManagerAnnounceGetBlockNumber(BRClientSyncManager manager,
     uint8_t needEvent = 0;
 
     if (0 == pthread_mutex_lock (&manager->lock)) {
-        if (blockHeight > manager->networkBlockHeight) {
+        if (blockHeight != manager->networkBlockHeight && manager->isConnected) {
             manager->networkBlockHeight = blockHeight;
             needEvent = 1;
+        }
+
+        // Send event while holding the state lock so that we
+        // don't broadcast a height updated while disconnected,
+        // for example.
+
+        if (needEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRClientSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_BLOCK_HEIGHT_UPDATED,
+                                        { .blockHeightUpdated = { blockHeight }}
+                                    });
         }
 
         pthread_mutex_unlock (&manager->lock);
     } else {
         assert (0);
     }
-
-    if (needEvent) {
-        manager->eventCallback (manager->eventContext,
-                                BRClientSyncManagerAsSyncManager (manager),
-                                (BRSyncManagerEvent) {
-                                    SYNC_MANAGER_BLOCK_HEIGHT_UPDATED,
-                                    { .blockHeightUpdated = { blockHeight }}
-                                });
-    }
 }
 
 static void
 BRClientSyncManagerAnnounceSubmitTransaction (BRClientSyncManager manager,
                                               int rid,
-                                              OwnershipGiven BRTransaction *transaction,
+                                              UInt256 txHash,
                                               int error) {
     manager->eventCallback (manager->eventContext,
                             BRClientSyncManagerAsSyncManager (manager),
                             (BRSyncManagerEvent) {
                                 SYNC_MANAGER_TXN_SUBMITTED,
-                                { .submitted = {transaction, error} },
+                                { .submitted = {txHash, error} },
                             });
-
-    BRTransactionFree (transaction);
 }
 
 static void
 BRClientSyncManagerAnnounceGetTransactionsItem (BRClientSyncManager manager,
                                                 int rid,
-                                                OwnershipGiven BRTransaction *transaction) {
-    uint8_t needRegistration = BRTransactionIsSigned (transaction);
+                                                OwnershipKept uint8_t *txn,
+                                                size_t txnLength,
+                                                uint64_t timestamp,
+                                                uint64_t blockHeight) {
+    BRTransaction *transaction = BRTransactionParse (txn, txnLength);
+    uint8_t needRegistration = NULL != transaction && BRTransactionIsSigned (transaction);
     if (needRegistration) {
         if (0 == pthread_mutex_lock (&manager->lock)) {
             // confirm completion is for in-progress sync
@@ -820,11 +932,26 @@ BRClientSyncManagerAnnounceGetTransactionsItem (BRClientSyncManager manager,
     }
 
     if (needRegistration) {
-        BRWalletRegisterTransaction (manager->wallet, transaction);
-        if (BRWalletTransactionForHash (manager->wallet, transaction->txHash) != transaction) {
-            BRTransactionFree (transaction);
+        BRTransaction *walletTxn = BRWalletTransactionForHash (manager->wallet, transaction->txHash);
+        if (NULL != walletTxn) {
+            // Wallet already knows about this txn; so just update the block info
+            BRWalletUpdateTransactions (manager->wallet, &transaction->txHash, 1, (uint32_t) blockHeight, (uint32_t) timestamp);
+        } else {
+            // Set the transaction's block info according to what has been announced
+            transaction->timestamp = (uint32_t) timestamp;
+            transaction->blockHeight = (uint32_t) blockHeight;
+
+            // BRWalletRegisterTransaction doesn't reliably report if the txn was added to the wallet.
+            BRWalletRegisterTransaction (manager->wallet, transaction);
+            if (BRWalletTransactionForHash (manager->wallet, transaction->txHash) == transaction) {
+                // If our transaction made it into the wallet, do not deallocate it
+                transaction = NULL;
+            }
         }
-    } else {
+    }
+
+    // Free if ownership hasn't been passed
+    if (NULL != transaction) {
         BRTransactionFree (transaction);
     }
 }
@@ -938,15 +1065,18 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
             }
         }
 
+        // Send event while holding the state lock so that event
+        // callbacks are ordered to reflect state transitions.
+
+        if (needSyncEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRClientSyncManagerAsSyncManager (manager),
+                                    syncEvent);
+        }
+
         pthread_mutex_unlock (&manager->lock);
     } else {
         assert (0);
-    }
-
-    if (needSyncEvent) {
-        manager->eventCallback (manager->eventContext,
-                                BRClientSyncManagerAsSyncManager (manager),
-                                syncEvent);
     }
 
     if (needClientCall) {
@@ -960,7 +1090,9 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
                                                       begBlockNumber,
                                                       endBlockNumber,
                                                       rid);
-    } else if (addressStrings) {
+    }
+
+    if (addressStrings) {
         free (addressStrings);
     }
 
@@ -1029,17 +1161,21 @@ BRClientSyncManagerStartScanIfNeeded (BRClientSyncManager manager) {
             needSyncEvent = manager->scanState.isFullScan;
             needClientCall = 1;
         }
+
+        // Send event while holding the state lock so that event
+        // callbacks are ordered to reflect state transitions.
+
+        if (needSyncEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRClientSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_SYNC_STARTED,
+                                    });
+        }
+
         pthread_mutex_unlock (&manager->lock);
     } else {
         assert (0);
-    }
-
-    if (needSyncEvent) {
-        manager->eventCallback (manager->eventContext,
-                                BRClientSyncManagerAsSyncManager (manager),
-                                (BRSyncManagerEvent) {
-                                    SYNC_MANAGER_SYNC_STARTED,
-                                });
     }
 
     if (needClientCall) {
@@ -1053,7 +1189,9 @@ BRClientSyncManagerStartScanIfNeeded (BRClientSyncManager manager) {
                                                       begBlockNumber,
                                                       endBlockNumber,
                                                       rid);
-    } else if (addressStrings) {
+    }
+
+    if (addressStrings) {
         free (addressStrings);
     }
 
@@ -1206,60 +1344,31 @@ BRSyncManagerAsPeerSyncManager(BRSyncManager manager) {
 static void
 BRPeerSyncManagerFree(BRPeerSyncManager manager) {
     BRPeerManagerDisconnect (manager->peerManager);
+    BRPeerManagerFree (manager->peerManager);
 
     pthread_mutex_destroy(&manager->lock);
     memset (manager, 0, sizeof(*manager));
     free (manager);
 }
 
+static uint64_t
+BRPeerSyncManagerGetBlockHeight(BRPeerSyncManager manager) {
+    uint64_t blockHeight = 0;
+    if (0 == pthread_mutex_lock (&manager->lock)) {
+        blockHeight = manager->networkBlockHeight;
+        pthread_mutex_unlock (&manager->lock);
+    }
+    return blockHeight;
+}
+
 static void
 BRPeerSyncManagerConnect(BRPeerSyncManager manager) {
     BRPeerManagerConnect (manager->peerManager);
-    int8_t connected = BRPeerStatusDisconnected != BRPeerManagerConnectStatus (manager->peerManager);
-    if (0 == pthread_mutex_lock (&manager->lock)) {
-        if (connected && !manager->isConnected) {
-            manager->isConnected = 1;
-        } else {
-            connected = 0;
-        }
-        pthread_mutex_unlock (&manager->lock);
-    } else {
-        assert (0);
-    }
-
-    // send event on transition to connected state
-    if (connected) {
-        manager->eventCallback (manager->eventContext,
-                                BRPeerSyncManagerAsSyncManager (manager),
-                                (BRSyncManagerEvent) {
-                                    SYNC_MANAGER_CONNECTED,
-                                });
-    };
 }
 
 static void
 BRPeerSyncManagerDisconnect(BRPeerSyncManager manager) {
     BRPeerManagerDisconnect (manager->peerManager);
-    int8_t disconnected = BRPeerStatusDisconnected == BRPeerManagerConnectStatus (manager->peerManager);
-    if (0 == pthread_mutex_lock (&manager->lock)) {
-        if (disconnected && manager->isConnected) {
-            manager->isConnected = 0;
-        } else {
-            disconnected = 0;
-        }
-        pthread_mutex_unlock (&manager->lock);
-    } else {
-        assert (0);
-    }
-
-    // send event on transition to disconnected state
-    if (disconnected) {
-        manager->eventCallback (manager->eventContext,
-                                BRPeerSyncManagerAsSyncManager (manager),
-                                (BRSyncManagerEvent) {
-                                    SYNC_MANAGER_DISCONNECTED,
-                                });
-    };
 }
 
 static void
@@ -1269,16 +1378,18 @@ BRPeerSyncManagerScan(BRPeerSyncManager manager) {
 
 typedef struct {
     BRPeerSyncManager manager;
-    BRTransaction *transaction;
+    UInt256 txHash;
 } SubmitTransactionInfo;
 
 static void
 BRPeerSyncManagerSubmit(BRPeerSyncManager manager,
-                        OwnershipGiven BRTransaction *transaction) {
+                        OwnershipKept BRTransaction *transaction) {
     SubmitTransactionInfo *info = malloc (sizeof (SubmitTransactionInfo));
     info->manager = manager;
-    info->transaction = transaction;
+    info->txHash = transaction->txHash;
 
+    // create a copy to hand to the wallet as once that is done, ownership is lost
+    transaction = BRTransactionCopy (transaction);
     BRPeerManagerPublishTx (manager->peerManager,
                             transaction,
                             info,
@@ -1292,19 +1403,24 @@ BRPeerSyncManagerTickTock(BRPeerSyncManager manager) {
     if (needSyncEvent) {
         if (0 == pthread_mutex_lock (&manager->lock)) {
             needSyncEvent &= manager->isConnected && manager->isFullScan;
+
+            // Send event while holding the state lock so that we
+            // don't broadcast a progress updated after a disconnected
+            // event, for example.
+
+            if (needSyncEvent) {
+                manager->eventCallback (manager->eventContext,
+                                        BRPeerSyncManagerAsSyncManager (manager),
+                                        (BRSyncManagerEvent) {
+                                            SYNC_MANAGER_SYNC_PROGRESS,
+                                            { .syncProgress = { progress * 100 }}
+                                        });
+            }
+
             pthread_mutex_unlock (&manager->lock);
         } else {
             assert (0);
         }
-    }
-
-    if (needSyncEvent) {
-        manager->eventCallback (manager->eventContext,
-                                BRPeerSyncManagerAsSyncManager (manager),
-                                (BRSyncManagerEvent) {
-                                    SYNC_MANAGER_SYNC_PROGRESS,
-                                    { .syncProgress = { progress * 100 }}
-                                });
     }
 }
 
@@ -1346,124 +1462,178 @@ static void
 _BRPeerSyncManagerSyncStarted (void *info) {
     BRPeerSyncManager manager = (BRPeerSyncManager) info;
 
-    uint8_t isFullScan = 0;
+    // This callback occurs when a sync has started. The behaviour of this function is
+    // defined as:
+    //   - If we are not in a connected state, signal that we are now connected.
+    //   - If we were already in a (full scan) syncing state, signal the termination of that
+    //     sync
+    //   - Always signal the start of a sync
 
-    // can't call BRPeerManagerConnectStatus (manager->peerManager), grabs a non-reentrant lock
-    uint8_t needConnectionEvent = 1;
     if (0 == pthread_mutex_lock (&manager->lock)) {
-        if (!manager->isConnected) {
-            manager->isConnected = 1;
-        } else {
-            needConnectionEvent = 0;
+        uint8_t needConnectionEvent = !manager->isConnected;
+        uint8_t needSyncStartedEvent = 1; // syncStarted callback always indicates a full scan
+        uint8_t needSyncStoppedEvent = manager->isFullScan;
+
+        manager->isConnected = needConnectionEvent ? 1 : manager->isConnected;
+        manager->isFullScan = needSyncStartedEvent ? 1 : manager->isFullScan;
+
+        _peer_log ("syncStarted: needConnect:%"PRIu8", needStart:%"PRIu8", needStop:%"PRIu8"\n",
+                   needConnectionEvent, needSyncStartedEvent, needSyncStoppedEvent);
+
+        // Send event while holding the state lock so that we
+        // don't broadcast a events out of order.
+
+        if (needSyncStoppedEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRPeerSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_SYNC_STOPPED,
+                                        { .syncStopped = { -1 }},
+                                    });
         }
 
-        isFullScan = manager->isFullScan;
-        manager->isFullScan = 1;
+        if (needConnectionEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRPeerSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_CONNECTED,
+                                    });
+        }
+
+        if (needSyncStartedEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRPeerSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_SYNC_STARTED,
+                                    });
+        }
+
         pthread_mutex_unlock (&manager->lock);
     } else {
         assert (0);
     }
-
-    // if we weren't aware that we were connected, we are now, so announce it!
-    if (needConnectionEvent) {
-        manager->eventCallback (manager->eventContext,
-                                BRPeerSyncManagerAsSyncManager (manager),
-                                (BRSyncManagerEvent) {
-                                    SYNC_MANAGER_CONNECTED,
-                                });
-    };
-
-    // a full sync was already in progress, so announce its conclusion before
-    // announcing a new sync starting
-    if (isFullScan) {
-        // TODO(fix): What should the error code be?
-        manager->eventCallback (manager->eventContext,
-                                BRPeerSyncManagerAsSyncManager (manager),
-                                (BRSyncManagerEvent) {
-                                    SYNC_MANAGER_SYNC_STOPPED,
-                                    { .syncStopped = { -1 }},
-                                });
-    }
-
-    // announce that a new sync has begun
-    manager->eventCallback (manager->eventContext,
-                            BRPeerSyncManagerAsSyncManager (manager),
-                            (BRSyncManagerEvent) {
-                                SYNC_MANAGER_SYNC_STARTED,
-                            });
 }
 
 static void
 _BRPeerSyncManagerSyncStopped (void *info, int reason) {
     BRPeerSyncManager manager = (BRPeerSyncManager) info;
 
-    uint8_t isFullScan = 0;
+    // This callback occurs when a sync has stopped. This MAY mean we have disconnected or it
+    // may mean that we have "caught up" to the blockchain. So, we need to first get the connectivity
+    // state of the `BRPeerManager`. The behaviour of this function is defined as:
+    //   - If we were in a (full scan) syncing state, signal the termination of that
+    //     sync
+    //   - If we were connected and are now disconnected, signal that we are now disconnected.
 
-    int8_t disconnected = BRPeerStatusDisconnected == BRPeerManagerConnectStatus (manager->peerManager);
     if (0 == pthread_mutex_lock (&manager->lock)) {
-        if (disconnected && manager->isConnected) {
-            manager->isConnected = 0;
-        } else {
-            disconnected = 0;
+        uint8_t isConnected = BRPeerStatusDisconnected != BRPeerManagerConnectStatus (manager->peerManager);
+
+        uint8_t needSyncStoppedEvent = manager->isFullScan;
+        uint8_t needDisconnectionEvent = !isConnected && manager->isConnected;
+
+        manager->isConnected = needDisconnectionEvent ? 0 : isConnected;
+        manager->isFullScan = needSyncStoppedEvent ? 0 : manager->isFullScan;
+
+        _peer_log ("syncStopped: needStop:%"PRIu8", needDisconnect:%"PRIu8"\n",
+                   needSyncStoppedEvent, needDisconnectionEvent);
+
+        // Send event while holding the state lock so that we
+        // don't broadcast a events out of order.
+
+        if (needSyncStoppedEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRPeerSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_SYNC_STOPPED,
+                                        { .syncStopped = { reason }},
+                                    });
         }
 
-        isFullScan = manager->isFullScan;
-        manager->isFullScan = 0;
+        if (needDisconnectionEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRPeerSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_DISCONNECTED,
+                                    });
+        }
         pthread_mutex_unlock (&manager->lock);
     } else {
         assert (0);
     }
-
-    // if a full sync was in progress, announce its conclusion
-    if (isFullScan) {
-        manager->eventCallback (manager->eventContext,
-                                BRPeerSyncManagerAsSyncManager (manager),
-                                (BRSyncManagerEvent) {
-                                    SYNC_MANAGER_SYNC_STOPPED,
-                                    { .syncStopped = { reason }},
-                                });
-    }
-
-    // if we weren't aware that we were disconnected, we are now, so announce it!
-    if (disconnected) {
-        manager->eventCallback (manager->eventContext,
-                                BRPeerSyncManagerAsSyncManager (manager),
-                                (BRSyncManagerEvent) {
-                                    SYNC_MANAGER_DISCONNECTED,
-                                });
-    };
 }
 
 static void
 _BRPeerSyncManagerTxStatusUpdate (void *info) {
     BRPeerSyncManager manager = (BRPeerSyncManager) info;
 
-    uint8_t needBlockHeightEvent = 0;
-    uint64_t blockHeight = BRPeerManagerLastBlockHeight (manager->peerManager);
-    BRSyncManagerEvent blockHeightEvent = (BRSyncManagerEvent) { SYNC_MANAGER_BLOCK_HEIGHT_UPDATED, { .blockHeightUpdated = { blockHeight }} };
+    // This callback occurs under a number of scenarios.
+    //
+    // One of those scenarios is when a peer has disconnected. Thus, it provides an opportunity
+    // to check if we the `BRPeerManager` is in the disconnected state as it has been observed
+    // that the `syncStopped` callback is not always called by the BRPeerManager` when this happens.
+    //
+    // Another scenario is when a block has been related by the P2P network. Thus, it provides an
+    // opportunity to get the current block height and update accordingly.
+    //
+    // The behaviour of this function is defined as:
+    //   - If we were connected and are now disconnected, signal that we are now disconnected.
+    //   - If we were in a (full scan) syncing state and are now disconnected, signal the termination of that
+    //     sync
+    //   - If the block height has changed, signal the new value
 
     if (0 == pthread_mutex_lock (&manager->lock)) {
-        if (blockHeight != manager->networkBlockHeight) {
-            manager->networkBlockHeight = blockHeight;
-            needBlockHeightEvent = 1;
+        uint8_t isConnected = BRPeerStatusDisconnected != BRPeerManagerConnectStatus (manager->peerManager);
+        uint64_t blockHeight = BRPeerManagerLastBlockHeight (manager->peerManager);
+
+        uint8_t needSyncStoppedEvent = !isConnected && manager->isConnected && manager->isFullScan;
+        uint8_t needDisconnectionEvent = !isConnected && manager->isConnected;
+        uint8_t needBlockHeightEvent = blockHeight != manager->networkBlockHeight;
+
+        manager->isConnected = needDisconnectionEvent ? 0 : manager->isConnected;
+        manager->isFullScan = needSyncStoppedEvent ? 0 : manager->isFullScan;
+        manager->networkBlockHeight = blockHeight;
+
+        _peer_log ("txStatusUpdate: needStop:%"PRIu8", needDisconnect:%"PRIu8"\n",
+                   needSyncStoppedEvent, needDisconnectionEvent);
+
+        // Send event while holding the state lock so that we
+        // don't broadcast a events out of order.
+
+        if (needBlockHeightEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRPeerSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_BLOCK_HEIGHT_UPDATED,
+                                        { .blockHeightUpdated = { blockHeight }}
+                                    });
         }
+
+        if (needSyncStoppedEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRPeerSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_SYNC_STOPPED,
+                                    });
+        }
+
+        if (needDisconnectionEvent) {
+            manager->eventCallback (manager->eventContext,
+                                    BRPeerSyncManagerAsSyncManager (manager),
+                                    (BRSyncManagerEvent) {
+                                        SYNC_MANAGER_DISCONNECTED,
+                                    });
+        }
+
+        manager->eventCallback (manager->eventContext,
+                                BRPeerSyncManagerAsSyncManager (manager),
+                                (BRSyncManagerEvent) {
+                                    SYNC_MANAGER_TXNS_UPDATED
+                                });
 
         pthread_mutex_unlock (&manager->lock);
     } else {
         assert (0);
     }
-
-    if (needBlockHeightEvent) {
-        manager->eventCallback (manager->eventContext,
-                                BRPeerSyncManagerAsSyncManager (manager),
-                                blockHeightEvent);
-    }
-
-    manager->eventCallback (manager->eventContext,
-                            BRPeerSyncManagerAsSyncManager (manager),
-                            (BRSyncManagerEvent) {
-                                SYNC_MANAGER_TXNS_UPDATED
-                            });
 }
 
 static int
@@ -1479,13 +1649,13 @@ static void
 _BRPeerSyncManagerTxPublished (void *info,
                                int error) {
     BRPeerSyncManager manager    = ((SubmitTransactionInfo*) info)->manager;
-    BRTransaction *transaction = ((SubmitTransactionInfo*) info)->transaction;
+    UInt256 txHash = ((SubmitTransactionInfo*) info)->txHash;
     free (info);
 
     manager->eventCallback (manager->eventContext,
                             BRPeerSyncManagerAsSyncManager (manager),
                             (BRSyncManagerEvent) {
                                 SYNC_MANAGER_TXN_SUBMITTED,
-                                { .submitted = {transaction, error} },
+                                { .submitted = {txHash, error} },
                             });
 }

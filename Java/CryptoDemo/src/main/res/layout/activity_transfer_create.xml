@@ -1,30 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     tools:context=".TransferCreateActivity">
 
+    <android.support.v7.widget.Toolbar
+        android:id="@+id/toolbar_view"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        android:elevation="4dp"
+        android:theme="@style/ThemeOverlay.AppCompat.ActionBar"
+        app:popupTheme="@style/ThemeOverlay.AppCompat.Light"/>
+
     <TextView
+        android:labelFor="@id/receiver_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
         android:layout_marginStart="10dp"
         android:layout_marginEnd="10dp"
         android:layout_marginBottom="5dp"
-        android:text="Receiver:"/>
+        android:text="Receiver"
+        tools:ignore="HardcodedText"/>
 
     <EditText
         android:id="@+id/receiver_view"
+        android:inputType="textNoSuggestions"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="5dp"
         android:layout_marginStart="10dp"
         android:layout_marginEnd="10dp"
         android:layout_marginBottom="5dp"
-        tools:text="Receiver Goes Here"/>
+        tools:text="Receiver Goes Here"
+        tools:ignore="Autofill"/>
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -38,7 +51,8 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Amount:"/>
+            android:text="Amount"
+            tools:ignore="HardcodedText"/>
 
         <TextView
             android:id="@+id/amount_value_view"
@@ -63,7 +77,8 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Estimated Fee:"/>
+            android:text="Estimated Fee"
+            tools:ignore="HardcodedText"/>
 
         <TextView
             android:id="@+id/fee_view"
@@ -100,7 +115,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:textAlignment="viewStart"
-            android:text="Min"/>
+            android:text="Min"
+            tools:ignore="HardcodedText"/>
 
         <TextView
             android:id="@+id/amount_max_view"
@@ -108,7 +124,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:textAlignment="viewEnd"
-            android:text="Max"/>
+            android:text="Max"
+            tools:ignore="HardcodedText"/>
 
     </LinearLayout>
 
@@ -120,6 +137,8 @@
         android:layout_marginStart="10dp"
         android:layout_marginEnd="10dp"
         android:layout_marginBottom="10dp"
-        android:text="Submit"/>
+        android:text="Submit"
+        style="?android:attr/buttonBarButtonStyle"
+        tools:ignore="HardcodedText"/>
 
 </LinearLayout>

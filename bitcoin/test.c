@@ -365,6 +365,25 @@ int BRBCashAddrTests()
     if (l != 0)
         r = 0, fprintf(stderr, "\n***FAILED*** %s: BRBCashAddrDecode() test 1", __func__);
 
+    s = "bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a"; // "bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v";
+    l = BRBCashAddrDecode(addr, s);
+    if (l == 0)
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRBCashAddrDecode() test 2", __func__);
+
+    s = "qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a"; // "bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v";
+    l = BRBCashAddrDecode(addr, s);
+    if (l == 0)
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRBCashAddrDecode() test 3", __func__);
+
+    s = "qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v";
+    l = BRBCashAddrDecode(addr, s);
+    if (l == 0)
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRBCashAddrDecode() test 4", __func__);
+
+    // Expected, not valid
+    if (0 != BRAddressIsValid (BITCOIN_ADDRESS_PARAMS, "qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v"))
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRAddressIsValid() test 5", __func__);
+
     if (! r) fprintf(stderr, "\n                                    ");
     return r;
 }
@@ -3280,105 +3299,6 @@ extern int BRRunTestsSync (const char *paperKey,
     BRPeerManagerFree(pm);
     BRWalletFree(wallet);
     if (needPaperKey) free ((char *) paperKey);
-    return 1;
-}
-
-///
-///
-///
-
-static void
-_testTransactionEventCallback (BRWalletManagerClientContext context,
-                               BRWalletManager manager,
-                               BRWallet *wallet,
-                               BRTransaction *transaction,
-                               BRTransactionEvent event) {
-    printf ("TST: TransactionEvent: %d\n", event.type);
-}
-
-static void
-_testWalletEventCallback (BRWalletManagerClientContext context,
-                          BRWalletManager manager,
-                          BRWallet *wallet,
-                          BRWalletEvent event) {
-    printf ("TST: WalletEvent: %d\n", event.type);
-}
-
-static int syncDone = 0;
-
-static void
-_testWalletManagerEventCallback (BRWalletManagerClientContext context,
-                                 BRWalletManager manager,
-                                 BRWalletManagerEvent event) {
-    printf ("TST: WalletManagerEvent: %d\n", event.type);
-    switch (event.type) {
-            
-        case BITCOIN_WALLET_MANAGER_CONNECTED:
-            break;
-        case BITCOIN_WALLET_MANAGER_SYNC_STARTED:
-            break;
-        case BITCOIN_WALLET_MANAGER_SYNC_STOPPED:
-            syncDone = 1;
-            break;
-        default:
-            break;
-    }
-}
-
-
-extern int BRRunTestWalletManagerSync (const char *paperKey,
-                                       const char *storagePath,
-                                       int isBTC,
-                                       int isMainnet) {
-    const BRChainParams *params = (isBTC & isMainnet ? BRMainNetParams
-                                   : (isBTC & !isMainnet ? BRTestNetParams
-                                      : (isMainnet ? BRBCashParams : BRBCashTestNetParams)));
-
-    uint32_t epoch = 1483228800; // 1/1/17
-    epoch += (365 + 365/2) * 24 * 60 * 60;
-
-    printf ("***\n***\nPaperKey (Start): \"%s\"\n***\n***\n", paperKey);
-    UInt512 seed = UINT512_ZERO;
-    BRBIP39DeriveKey (seed.u8, paperKey, NULL);
-    BRMasterPubKey mpk = BRBIP32MasterPubKey(&seed, sizeof (seed));
-
-    BRWalletManagerClient client = {
-        NULL,
-        (BRGetBlockNumberCallback) NULL,
-        (BRGetTransactionsCallback) NULL,
-        (BRSubmitTransactionCallback) NULL,
-        
-        _testTransactionEventCallback,
-        _testWalletEventCallback,
-        _testWalletManagerEventCallback
-    };
-
-    BRSyncMode mode = SYNC_MODE_P2P_ONLY;
-
-    BRWalletManager manager = BRWalletManagerNew (client, mpk, params, epoch, mode, storagePath, 0);
-
-    BRWalletManagerStart (manager);
-
-    syncDone = 0;
-    BRWalletManagerConnect (manager);
-
-    int err = 0;
-    while (err == 0 && !syncDone) {
-        err = sleep(1);
-    }
-    err = 0;
-
-    int seconds = 120;
-    while (err == 0 && seconds-- > 0) {
-        err = sleep(1);
-    }
-
-    printf ("***\n***\nPaperKey (Done): \"%s\"\n***\n***\n", paperKey);
-    BRWalletManagerDisconnect (manager);
-    sleep (2);
-    BRWalletManagerStop (manager);
-    sleep (2);
-    BRWalletManagerFree (manager);
     return 1;
 }
 

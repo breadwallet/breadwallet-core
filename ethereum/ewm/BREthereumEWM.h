@@ -27,7 +27,7 @@ extern BREthereumEWM
 ewmCreate (BREthereumNetwork network,
            BREthereumAccount account,
            BREthereumTimestamp accountTimestamp,
-           BREthereumMode mode,
+           BRSyncMode mode,
            BREthereumClient client,
            const char *storagePath,
            uint64_t blockHeight);
@@ -36,7 +36,7 @@ extern BREthereumEWM
 ewmCreateWithPaperKey (BREthereumNetwork network,
                        const char *paperKey,
                        BREthereumTimestamp accountTimestamp,
-                       BREthereumMode mode,
+                       BRSyncMode mode,
                        BREthereumClient client,
                        const char *storagePath,
                        uint64_t blockHeight);
@@ -45,7 +45,7 @@ extern BREthereumEWM
 ewmCreateWithPublicKey (BREthereumNetwork network,
                         BRKey publicKey,
                         BREthereumTimestamp accountTimestamp,
-                        BREthereumMode mode,
+                        BRSyncMode mode,
                         BREthereumClient client,
                         const char *storagePath,
                         uint64_t blockHeight);
@@ -118,6 +118,13 @@ ewmLock (BREthereumEWM ewm);
 
 extern void
 ewmUnlock (BREthereumEWM ewm);
+
+extern BRSyncMode
+ewmGetMode (BREthereumEWM ewm);
+
+extern void
+ewmUpdateMode (BREthereumEWM ewm,
+               BRSyncMode mode);
 
 extern uint64_t
 ewmGetBlockHeight (BREthereumEWM ewm);

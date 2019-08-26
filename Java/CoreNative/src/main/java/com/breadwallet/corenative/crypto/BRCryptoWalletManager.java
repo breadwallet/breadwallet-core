@@ -80,6 +80,11 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
+    public void setMode(int mode) {
+        CryptoLibrary.INSTANCE.cryptoWalletManagerSetMode(this, mode);
+    }
+
+    @Override
     public String getPath() {
         return CryptoLibrary.INSTANCE.cryptoWalletManagerGetPath(this).getString(0, "UTF-8");
     }

@@ -184,4 +184,28 @@ fileServiceDefineCurrentVersion (BRFileService fs,
                                  const char *type,
                                  BRFileServiceVersion version);
 
+// Version limit can increase with maximum number of version, historically.
+#define FILE_SERVICE_TYPE_SPECIFICATION_NUMBER_OF_VERSION_LIMIT   (5)
+
+typedef struct {
+    const char *type;
+    BRFileServiceVersion defaultVersion;
+    size_t versionsCount;
+    struct {
+        BRFileServiceVersion version;
+        BRFileServiceIdentifier identifier;
+        BRFileServiceReader reader;
+        BRFileServiceWriter writer;
+    } versions [FILE_SERVICE_TYPE_SPECIFICATION_NUMBER_OF_VERSION_LIMIT];
+} BRFileServiceTypeSpecification;
+
+extern BRFileService
+fileServiceCreateFromTypeSpecfications (const char *basePath,
+                                        const char *currency,
+                                        const char *network,
+                                        BRFileServiceContext context,
+                                        BRFileServiceErrorHandler handler,
+                                        size_t specificationsCount,
+                                        BRFileServiceTypeSpecification *specfications);
+
 #endif /* BRFileService_h */

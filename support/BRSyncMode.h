@@ -34,11 +34,33 @@ extern "C" {
 #endif
 
 typedef enum {
+    /**
+     * Use the BRD backend for all Core blockchain state.  The BRD backend includes a 'submit
+     * transaction' interface.
+     */
     SYNC_MODE_BRD_ONLY,
+
+    /**
+     * Use the BRD backend for everything other than 'submit transaction'
+     */
     SYNC_MODE_BRD_WITH_P2P_SEND,
+
+    /**
+     * Use the BRD backend for an initial sync and then, once complete, use P2P.  If a sync
+     * has not occurred in a while, use the BRD backend again before using P2P (so as to catch-up
+     * quickly)
+     */
     SYNC_MODE_P2P_WITH_BRD_SYNC,
+
+    /**
+     * Use acomplete block chain sync, even starting at block zero (but usually from a block
+     * derived from the accounts `earliestStartTime` (or the BIP-39 introduction block).
+     */
     SYNC_MODE_P2P_ONLY
 } BRSyncMode;
+
+extern const char *
+BRSyncModeString (BRSyncMode m);
 
 #ifdef __cplusplus
 }

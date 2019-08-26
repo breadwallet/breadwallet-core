@@ -43,6 +43,11 @@ public class BRCryptoFeeBasis extends PointerType implements CoreBRCryptoFeeBasi
     }
 
     @Override
+    public boolean isIdentical(CoreBRCryptoFeeBasis other) {
+        return BRCryptoBoolean.CRYPTO_TRUE == CryptoLibrary.INSTANCE.cryptoFeeBasisIsIdentical(this, other.asBRCryptoFeeBasis());
+    }
+
+    @Override
     public BRCryptoFeeBasis asBRCryptoFeeBasis() {
         return this;
     }

@@ -55,7 +55,6 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     private final Unit networkBaseUnit;
     private final Unit networkDefaultUnit;
     private final String path;
-    private final WalletManagerMode mode;
     private final NetworkFee networkFee;
 
     private WalletManager(CoreBRCryptoWalletManager core, System system, SystemCallbackCoordinator callbackCoordinator) {
@@ -66,7 +65,6 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         this.account = Account.create(core.getAccount());
         this.network = Network.create(core.getNetwork());
         this.networkCurrency = network.getCurrency();
-        this.mode =  Utilities.walletManagerModeFromCrypto(core.getMode());
         this.path = core.getPath();
 
         // TODO(fix): Unchecked get here
@@ -136,7 +134,12 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
     @Override
     public WalletManagerMode getMode() {
-        return mode;
+        return Utilities.walletManagerModeFromCrypto(core.getMode());
+    }
+
+    @Override
+    public void setMode(WalletManagerMode mode) {
+        core.setMode(Utilities.walletManagerModeToCrypto(mode));
     }
 
     @Override

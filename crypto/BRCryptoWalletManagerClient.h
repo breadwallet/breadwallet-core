@@ -175,12 +175,12 @@ extern "C" {
     } BRCryptoCWMClientBTC;
 
     /// MARK: GEN Callbacks
-    
+
     typedef void
     (*BRCryptoCWMGenGetBlockNumberCallback) (BRCryptoCWMClientContext context,
                                              OwnershipGiven BRCryptoWalletManager manager,
                                              OwnershipGiven BRCryptoCWMClientCallbackState callbackState);
-    
+
     typedef void
     (*BRCryptoCWMGenGetTransactionsCallback) (BRCryptoCWMClientContext context,
                                               OwnershipGiven BRCryptoWalletManager manager,
@@ -188,7 +188,7 @@ extern "C" {
                                               OwnershipKept const char *address,
                                               uint64_t begBlockNumber,
                                               uint64_t endBlockNumber);
-    
+
     typedef void
     (*BRCryptoCWMGenSubmitTransactionCallback) (BRCryptoCWMClientContext context,
                                                 OwnershipGiven BRCryptoWalletManager manager,
@@ -271,7 +271,7 @@ extern "C" {
                                        size_t transactionLength,
                                        uint64_t timestamp,
                                        uint64_t blockHeight);
-    
+
     extern void
     cwmAnnounceGetTransactionsComplete (OwnershipKept BRCryptoWalletManager cwm,
                                         OwnershipGiven BRCryptoCWMClientCallbackState callbackState,

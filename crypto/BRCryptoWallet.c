@@ -333,10 +333,6 @@ cryptoWalletGetTransfers (BRCryptoWallet wallet, size_t *count) {
     return transfers;
 }
 
-//
-// Returns a 'new' adddress.  For BTC this is a segwit/bech32 address.  Really needs to be a
-// wallet configuration parameters (aka the 'address scheme')
-//
 extern BRCryptoAddress
 cryptoWalletGetAddress (BRCryptoWallet wallet,
                         BRCryptoAddressScheme addressScheme) {
@@ -350,7 +346,7 @@ cryptoWalletGetAddress (BRCryptoWallet wallet,
             BRAddress btcAddress = (CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT == addressScheme
                                     ? BRWalletReceiveAddress(wid)
                                     : BRWalletLegacyAddress (wid));
-            return cryptoAddressCreateAsBTC (btcAddress);
+            return cryptoAddressCreateAsBTC (btcAddress, AS_CRYPTO_BOOLEAN (BRWalletManagerHandlesBTC(wallet->u.btc.bwm)));
             }
 
         case BLOCK_CHAIN_TYPE_ETH: {
@@ -474,44 +470,35 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
                             BRCryptoAddress target,
                             BRCryptoAmount  amount,
                             BRCryptoFeeBasis estimatedFeeBasis) {
-//    assert (cryptoWalletGetType (wallet) == cryptoFeeBasisGetType(feeBasis));
-    char *addr = cryptoAddressAsString(target); // Target address
+    assert (cryptoWalletGetType(wallet) == cryptoAddressGetType(target));
+    assert (cryptoWalletGetType(wallet) == cryptoFeeBasisGetType(estimatedFeeBasis));
 
     BRCryptoTransfer transfer;
 
     BRCryptoUnit unit       = cryptoWalletGetUnit (wallet);
     BRCryptoUnit unitForFee = cryptoWalletGetUnitForFee(wallet);
 
+    BRCryptoCurrency currency = cryptoUnitGetCurrency(unit);
+    assert (cryptoAmountHasCurrency (amount, currency));
+    cryptoCurrencyGive(currency);
+
     switch (wallet->type) {
         case BLOCK_CHAIN_TYPE_BTC: {
             BRWalletManager bwm = wallet->u.btc.bwm;
             BRWallet *wid = wallet->u.btc.wid;
 
+            BRCryptoBoolean isBitcoinAddr = CRYPTO_TRUE;
+            BRAddress address = cryptoAddressAsBTC (target, &isBitcoinAddr);
+            assert (isBitcoinAddr == AS_CRYPTO_BOOLEAN (BRWalletManagerHandlesBTC (bwm)));
+
             BRCryptoBoolean overflow = CRYPTO_FALSE;
             uint64_t value = cryptoAmountGetIntegerRaw (amount, &overflow);
             if (CRYPTO_TRUE == overflow) { return NULL; }
 
-            BRTransaction *tid = BRWalletManagerCreateTransaction (bwm, wid, value, addr,
+            BRTransaction *tid = BRWalletManagerCreateTransaction (bwm, wid, value, address,
                                                                    cryptoFeeBasisAsBTC(estimatedFeeBasis));
-
-            // The above BRWalletManagerCreateTransaction call resulted in a
-            // BITCOIN_TRANSACTION_CREATED event occuring inline, on this same
-            // thread. That resulted in cwmTransactionEventAsBTC being called
-            // where we created the transfer (via cryptoTransferCreateAsBTC) and
-            // added it to the wallet (via cryptoWalletAddTransfer). So, instead
-            // of creating a BRCryptoTransfer here, we find it in the wallet.
-
-            // We do this because `bwm` BRWalletManager does not own the `tid` transaction,
-            // in the same way that the BREthereumEWM owns its transactions. So, we
-            // have the BRCryptoWallet own it. Since the transaction is not signed
-            // we can't do an equality check on a copy, as the txHash is all zeroes. As
-            // a result, the transaction equality check uses identity for BTC transactions that
-            // are unsigned to prevent multiple unsigned transactions from being erroneously
-            // reported as equal. As a consequence of all this, we need to return the wallet's
-            // RCryptoTransfer wrapping `tid` directly, rather than create a new wrapping
-            // instance (like we do in the below ETH case). Thus, cryptoWalletFindTransferAsBTC
-            // instead of cryptoTransferCreateAsBTC.
-            transfer = NULL == tid ? NULL : cryptoWalletFindTransferAsBTC (wallet, tid);
+            transfer = NULL == tid ? NULL : cryptoTransferCreateAsBTC (unit, unitForFee, wid, tid,
+                                                                       AS_CRYPTO_BOOLEAN(BRWalletManagerHandlesBTC(bwm)));
             break;
         }
 
@@ -526,6 +513,8 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
                                           : amountCreateEther (etherCreate (ethValue)));
             BREthereumFeeBasis ethFeeBasis = cryptoFeeBasisAsETH (estimatedFeeBasis);
 
+            char *addr = cryptoAddressAsString(target); // Target address
+
             //
             // We have a race condition here. `ewmWalletCreateTransferWithFeeBasis()` will generate
             // a `TRANSFER_EVENT_CREATED` event; `cwmTransactionEventAsETH()` will eventually get
@@ -538,6 +527,8 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
             //
             BREthereumTransfer tid = ewmWalletCreateTransferWithFeeBasis (ewm, wid, addr, ethAmount, ethFeeBasis);
             transfer = NULL == tid ? NULL : cryptoTransferCreateAsETH (unit, unitForFee, ewm, tid, estimatedFeeBasis);
+
+            free (addr);
             break;
         }
 
@@ -694,4 +685,40 @@ cryptoWalletEqual (BRCryptoWallet w1, BRCryptoWallet w2) {
                                            ((BLOCK_CHAIN_TYPE_BTC == w1->type && cryptoWalletEqualAsBTC (w1, w2)) ||
                                             (BLOCK_CHAIN_TYPE_ETH == w1->type && cryptoWalletEqualAsETH (w1, w2)) ||
                                             (BLOCK_CHAIN_TYPE_GEN == w1->type && cryptoWalletEqualAsGEN (w1, w2)))));
+}
+
+extern const char *
+BRCryptoWalletEventTypeString (BRCryptoWalletEventType t) {
+    switch (t) {
+        case CRYPTO_WALLET_EVENT_CREATED:
+        return "CRYPTO_WALLET_EVENT_CREATED";
+
+        case CRYPTO_WALLET_EVENT_CHANGED:
+        return "CRYPTO_WALLET_EVENT_CHANGED";
+
+        case CRYPTO_WALLET_EVENT_DELETED:
+        return "CRYPTO_WALLET_EVENT_DELETED";
+
+        case CRYPTO_WALLET_EVENT_TRANSFER_ADDED:
+        return "CRYPTO_WALLET_EVENT_TRANSFER_ADDED";
+
+        case CRYPTO_WALLET_EVENT_TRANSFER_CHANGED:
+        return "CRYPTO_WALLET_EVENT_TRANSFER_CHANGED";
+
+        case CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED:
+        return "CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED";
+
+        case CRYPTO_WALLET_EVENT_TRANSFER_DELETED:
+        return "CRYPTO_WALLET_EVENT_TRANSFER_DELETED";
+
+        case CRYPTO_WALLET_EVENT_BALANCE_UPDATED:
+        return "CRYPTO_WALLET_EVENT_BALANCE_UPDATED";
+
+        case CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED:
+        return "CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED";
+
+        case CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED:
+        return "CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED";
+    }
+    return "<CRYPTO_WALLET_EVENT_TYPE_UNKNOWN>";
 }

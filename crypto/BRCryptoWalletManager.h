@@ -65,6 +65,9 @@ extern "C" {
         CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED,
     } BRCryptoWalletManagerEventType;
 
+    extern const char *
+    BRCryptoWalletManagerEventTypeString (BRCryptoWalletManagerEventType t);
+
     typedef struct {
         BRCryptoWalletManagerEventType type;
         union {
@@ -135,6 +138,9 @@ extern "C" {
     extern BRSyncMode
     cryptoWalletManagerGetMode (BRCryptoWalletManager cwm);
 
+    extern void
+    cryptoWalletManagerSetMode (BRCryptoWalletManager cwm, BRSyncMode mode);
+
     extern BRCryptoWalletManagerState
     cryptoWalletManagerGetState (BRCryptoWalletManager cwm);
 
@@ -191,6 +197,57 @@ extern "C" {
                                const char *paperKey);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoWalletManager, cryptoWalletManager);
+
+    /// MARK: Wallet Migrator
+    
+    typedef struct BRCryptoWalletMigratorRecord *BRCryptoWalletMigrator;
+
+    typedef enum {
+        CRYPTO_WALLET_MIGRATOR_SUCCESS,
+        CRYPTO_WALLET_MIGRATOR_ERROR_TRANSACTION,
+        CRYPTO_WALLET_MIGRATOR_ERROR_BLOCK,
+        CRYPTO_WALLET_MIGRATOR_ERROR_PEER
+    } BRCryptoWalletMigratorStatusType;
+
+    typedef struct {
+        BRCryptoWalletMigratorStatusType type;
+        // union {} u;
+    } BRCryptoWalletMigratorStatus;
+
+    extern BRCryptoWalletMigrator // NULL on error
+    cryptoWalletMigratorCreate (BRCryptoNetwork network,
+                                const char *storagePath);
+
+    extern void
+    cryptoWalletMigratorRelease (BRCryptoWalletMigrator migrator);
+
+    extern BRCryptoWalletMigratorStatus
+    cryptoWalletMigratorHandleTransactionAsBTC (BRCryptoWalletMigrator migrator,
+                                                const uint8_t *bytes,
+                                                size_t bytesCount,
+                                                uint32_t blockHeight,
+                                                uint32_t timestamp);
+
+    extern BRCryptoWalletMigratorStatus
+    cryptoWalletMigratorHandleBlockAsBTC (BRCryptoWalletMigrator migrator,
+                                          UInt256 hash,
+                                          uint32_t height,
+                                          uint32_t nonce,
+                                          uint32_t target,
+                                          uint32_t txCount,
+                                          uint32_t version,
+                                          uint32_t timestamp,
+                                          uint8_t *flags,  size_t flagsLen,
+                                          UInt256 *hashes, size_t hashesCount,
+                                          UInt256 merkleRoot,
+                                          UInt256 prevBlock);
+
+    extern BRCryptoWalletMigratorStatus
+    cryptoWalletMigratorHandlePeerAsBTC (BRCryptoWalletMigrator migrator,
+                                         uint32_t address,
+                                         uint16_t port,
+                                         uint64_t services,
+                                         uint32_t timestamp);
 
 #ifdef __cplusplus
 }

@@ -8,8 +8,7 @@
 //  See the LICENSE file at the project root for license information.
 //  See the CONTRIBUTORS file at the project root for a list of contributors.
 //
-import Foundation
-import Darwin.C.stdatomic // atomic_fetch_add
+import Foundation  // Data, DispatchQueue
 import BRCryptoC
 
 ///
@@ -455,6 +454,7 @@ public enum SystemEvent {
     case networkAdded (network: Network)
     case managerAdded (manager: WalletManager)
 }
+
 ///
 /// A SystemListener recieves asynchronous events announcing state changes to Networks, to Managers,
 /// to Wallets and to Transfers.  This is an application's sole mechanism to learn of asynchronous
@@ -538,10 +538,13 @@ extension System {
 
                 switch event.type {
                 case CRYPTO_WALLET_MANAGER_EVENT_CREATED:
-                    // We are only here in response to system.createWalletManager...
-                    break
+                    system.listener?.handleManagerEvent (system: manager.system,
+                                                         manager: manager,
+                                                         event: WalletManagerEvent.created)
 
                 case CRYPTO_WALLET_MANAGER_EVENT_CHANGED:
+                    print ("SYS: Event: Manager (\(manager.name)): \(event.type): {\(WalletManagerState (core: event.u.state.oldValue)) -> \(WalletManagerState (core: event.u.state.newValue))}")
+
                     system.listener?.handleManagerEvent (system: manager.system,
                                                           manager: manager,
                                                           event: WalletManagerEvent.changed (oldState: WalletManagerState (core: event.u.state.oldValue),
@@ -1165,105 +1168,261 @@ extension System {
     }
 }
 
-extension BRWalletManagerEventType: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case BITCOIN_WALLET_MANAGER_CREATED: return "Created"
-        case BITCOIN_WALLET_MANAGER_CONNECTED: return "Connected"
-        case BITCOIN_WALLET_MANAGER_DISCONNECTED: return "Disconnected"
-        case BITCOIN_WALLET_MANAGER_SYNC_STARTED: return "Sync Started"
-        case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS: return "Sync Progress"
-        case BITCOIN_WALLET_MANAGER_SYNC_STOPPED: return "Sync Stopped"
-        case BITCOIN_WALLET_MANAGER_BLOCK_HEIGHT_UPDATED: return "Block Height Updated"
-        default: return "<<unknown>>"
+/// Support for Persistent Storage Migration.
+///
+/// Allow prior App version to migrate their SQLite database representations of BTC/BTC
+/// transations, blocks and peers into 'Generic Crypto' - where these entities are persistently
+/// stored in the file system (by BRFileSystem).
+///
+extension System {
+
+    ///
+    /// A Blob of Transaction Data
+    ///
+    /// - btc:
+    ///
+    public enum TransactionBlob {
+        case btc (
+            bytes: [UInt8],
+            blockHeight: UInt32,
+            timestamp: UInt32 // time interval since unix epoch (including '0'
+        )
+    }
+
+    ///
+    /// A BlockHash is 32-bytes of UInt8 data
+    ///
+    public typealias BlockHash = [UInt8]
+
+    /// Validate `BlockHash`
+    private static func validateBlockHash (_ hash: BlockHash) -> Bool {
+        return 32 == hash.count
+    }
+
+    ///
+    /// A Blob of Block Data
+    ///
+    /// - btc:
+    ///
+    public enum BlockBlob {
+        case btc (
+            hash: BlockHash,
+            height: UInt32,
+            nonce: UInt32,
+            target: UInt32,
+            txCount: UInt32,
+            version: UInt32,
+            timestamp: UInt32?,
+            flags: [UInt8],
+            hashes: [BlockHash],
+            merkleRoot: BlockHash,
+            prevBlock: BlockHash
+        )
+    }
+
+    ///
+    /// A Blob of Peer Data
+    ///
+    /// - btc:
+    ///
+    public enum PeerBlob {
+        case btc (
+            address: UInt32,  // UInt128 { .u32 = { 0, 0, 0xffff, <address> }}
+            port: UInt16,
+            services: UInt64,
+            timestamp: UInt32?
+        )
+    }
+
+    ///
+    /// Migrate Errors
+    ///
+    enum MigrateError: Error {
+        /// Migrate does not apply to this network
+        case invalid
+
+        /// Migrate couldn't access the file system
+        case create
+
+        /// Migrate failed to parse or to save a transaction
+        case transaction
+
+        /// Migrate failed to parse or to save a block
+        case block
+
+        /// Migrate failed to parse or to save a peer.
+        case peer
+    }
+
+    ///
+    /// Migrate the storage for a network given transaction, block and peer blobs.  The provided
+    /// blobs must be consistent with `network`.  For exmaple, if `network` represents BTC or BCH
+    /// then the blobs must be of type `.btc`; otherwise a MigrateError is thrown.
+    ///
+    /// - Parameters:
+    ///   - network:
+    ///   - transactionBlobs:
+    ///   - blockBlobs:
+    ///   - peerBlobs:
+    ///
+    /// - Throws: MigrateError
+    ///
+    public func migrateStorage (network: Network,
+                                transactionBlobs: [TransactionBlob],
+                                blockBlobs: [BlockBlob],
+                                peerBlobs: [PeerBlob]) throws {
+        guard migrateRequired (network: network)
+            else { throw MigrateError.invalid }
+
+        switch network.currency.code.lowercased() {
+        case Currency.codeAsBTC,
+             Currency.codeAsBCH:
+            try migrateStorageAsBTC(network: network,
+                                    transactionBlobs: transactionBlobs,
+                                    blockBlobs: blockBlobs,
+                                    peerBlobs: peerBlobs)
+        default:
+            throw MigrateError.invalid
         }
     }
-}
 
-extension BRWalletEventType: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case BITCOIN_WALLET_CREATED: return "Created"
-        case BITCOIN_WALLET_BALANCE_UPDATED: return "Balance Updated"
-        case BITCOIN_WALLET_TRANSACTION_SUBMITTED: return "Transaction Submitted"
-        case BITCOIN_WALLET_FEE_PER_KB_UPDATED: return "FeePerKB Updated"
-        case BITCOIN_WALLET_DELETED: return "Deleted"
-        default: return "<<unknown>>"
+    ///
+    /// Migrate storage for BTC
+    ///
+    private func migrateStorageAsBTC (network: Network,
+                                      transactionBlobs: [TransactionBlob],
+                                      blockBlobs: [BlockBlob],
+                                      peerBlobs: [PeerBlob]) throws {
+
+        guard let migrator = cryptoWalletMigratorCreate (network.core, path)
+            else { throw MigrateError.create }
+        defer { cryptoWalletMigratorRelease (migrator) }
+
+        try transactionBlobs.forEach { (blob: TransactionBlob) in
+            guard case let .btc (blob) = blob
+                else { throw MigrateError.transaction }
+
+            var bytes = blob.bytes
+            let status = cryptoWalletMigratorHandleTransactionAsBTC (migrator,
+                                                                     &bytes, bytes.count,
+                                                                     blob.blockHeight,
+                                                                     blob.timestamp)
+            if status.type != CRYPTO_WALLET_MIGRATOR_SUCCESS {
+                throw MigrateError.transaction
+            }
+        }
+
+        try blockBlobs.forEach { (blob: BlockBlob) in
+            guard case let .btc (blob) = blob
+                else { throw MigrateError.block }
+
+            // On a `nil` timestamp, by definition skip out, don't migrate this blob
+            guard nil != blob.timestamp
+                else { return }
+
+            guard blob.hashes.allSatisfy (System.validateBlockHash(_:)),
+                System.validateBlockHash(blob.hash),
+                System.validateBlockHash(blob.merkleRoot),
+                System.validateBlockHash(blob.prevBlock)
+                else { throw MigrateError.block }
+
+            var flags  = blob.flags
+            var hashes = blob.hashes
+            let hashesCount = blob.hashes.count
+
+            let hash: UInt256 = blob.hash.withUnsafeBytes { $0.load (as: UInt256.self) }
+            let merkleRoot: UInt256 = blob.merkleRoot.withUnsafeBytes { $0.load (as: UInt256.self) }
+            let prevBlock:  UInt256 = blob.prevBlock.withUnsafeBytes  { $0.load (as: UInt256.self) }
+
+            try hashes.withUnsafeMutableBytes { (hashesBytes: UnsafeMutableRawBufferPointer) -> Void in
+                let hashesAddr = hashesBytes.baseAddress?.assumingMemoryBound(to: UInt256.self)
+                let status = cryptoWalletMigratorHandleBlockAsBTC (migrator,
+                                                                   hash,
+                                                                   blob.height,
+                                                                   blob.nonce,
+                                                                   blob.target,
+                                                                   blob.txCount,
+                                                                   blob.version,
+                                                                   blob.timestamp!,
+                                                                   &flags, flags.count,
+                                                                   hashesAddr, hashesCount,
+                                                                   merkleRoot,
+                                                                   prevBlock)
+                if status.type != CRYPTO_WALLET_MIGRATOR_SUCCESS {
+                    throw MigrateError.block
+                }
+            }
+        }
+
+        try peerBlobs.forEach { (blob: PeerBlob) in
+            guard case let .btc (blob) = blob
+                else { throw MigrateError.peer }
+
+            // On a `nil` timestamp, by definition skip out, don't migrate this blob
+            guard nil != blob.timestamp
+                else { return }
+
+            let status = cryptoWalletMigratorHandlePeerAsBTC (migrator,
+                                                              blob.address,
+                                                              blob.port,
+                                                              blob.services,
+                                                              blob.timestamp!)
+
+            if status.type != CRYPTO_WALLET_MIGRATOR_SUCCESS {
+                throw MigrateError.peer
+            }
         }
     }
-}
 
-extension BRTransactionEventType: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case BITCOIN_TRANSACTION_ADDED: return "Added"
-        case BITCOIN_TRANSACTION_UPDATED: return "Updated"
-        case BITCOIN_TRANSACTION_DELETED: return "Deleted"
-        default: return "<<unknown>>"
-        }
+    ///
+    /// If migration is required, return the currency code; otherwise, return nil.
+    ///
+    /// - Note: it is not an error not to migrate.
+    ///
+    /// - Parameter network:
+    ///
+    /// - Returns: The currency code or nil
+    ///
+    public func migrateRequired (network: Network) -> Bool {
+        let code = network.currency.code.lowercased()
+        return code == Currency.codeAsBTC
+            || code == Currency.codeAsBCH
     }
-}
 
-extension BREthereumTokenEvent: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case TOKEN_EVENT_CREATED: return "Created"
-        case TOKEN_EVENT_DELETED: return "Deleted"
-        default: return "<<unknown>>"
-        }
-    }
-}
+    /// Testing
 
-extension BREthereumPeerEvent: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case PEER_EVENT_CREATED: return "Created"
-        case PEER_EVENT_DELETED: return "Deleted"
-        default: return "<<unknown>>"
-        }
-    }
-}
+    ///
+    /// Convert `transfer` to a `TransactionBlob`.
+    ///
+    /// - Parameter transfer:
+    ///
+    /// - Returns: A `TransactionBlob` or nil (if the transfer's network does not require
+    ///     migration, such as for an ETH network).
+    ///
+    internal func asBlob (transfer: Transfer) -> TransactionBlob? {
+        let network = transfer.manager.network
+        guard migrateRequired(network: network)
+            else { return nil }
 
-extension BREthereumTransferEvent: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case TRANSFER_EVENT_CREATED: return "Created"
-        case TRANSFER_EVENT_SIGNED: return "Signed"
-        case TRANSFER_EVENT_SUBMITTED: return "Submitted"
-        case TRANSFER_EVENT_INCLUDED: return "Included"
-        case TRANSFER_EVENT_ERRORED: return "Errored"
-        case TRANSFER_EVENT_GAS_ESTIMATE_UPDATED: return "Gas Estimate Updated"
-        case TRANSFER_EVENT_DELETED: return "Deleted"
-        default: return "<<unknown>>"
-        }
-    }
-}
+        switch network.currency.code.lowercased() {
+        case Currency.codeAsBTC,
+             Currency.codeAsBCH:
+            var blockHeight: UInt32 = 0
+            var timestamp:   UInt32 = 0
+            var bytesCount:  size_t = 0
+            var bytes: UnsafeMutablePointer<UInt8>? = nil
+            defer { if nil != bytes { free(bytes) }}
 
-extension BREthereumWalletEventType: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case WALLET_EVENT_CREATED: return "Created"
-        case WALLET_EVENT_BALANCE_UPDATED: return "Balance Updated"
-        case WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED: return "Default Gas Limit Updated"
-        case WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED: return "Default Gas Price Updated"
-        case WALLET_EVENT_FEE_ESTIMATED: return "Fee Estimated"
-        case WALLET_EVENT_DELETED: return "Deleted"
-        default: return "<<unknown>>"
-        }
-    }
-}
+            cryptoTransferExtractBlobAsBTC (transfer.core,
+                                            &bytes, &bytesCount,
+                                            &blockHeight,
+                                            &timestamp)
 
-extension BREthereumEWMEvent: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case EWM_EVENT_CREATED: return "Created"
-        case EWM_EVENT_SYNC_STARTED: return "Sync Started"
-        case EWM_EVENT_SYNC_CONTINUES: return "Sync Continues"
-        case EWM_EVENT_SYNC_STOPPED: return "Sync Stopped"
-        case EWM_EVENT_NETWORK_UNAVAILABLE: return "Network Unavailable"
-        case EWM_EVENT_BLOCK_HEIGHT_UPDATED: return "Block Height Updated"
-        case EWM_EVENT_DELETED: return "Deleted"
-        default: return "<<unknown>>"
+            return TransactionBlob.btc (bytes: UnsafeMutableBufferPointer<UInt8> (start: bytes, count: bytesCount).map { $0 },
+                                        blockHeight: blockHeight,
+                                        timestamp: timestamp)
+        default:
+            return nil
         }
     }
 }
@@ -1274,7 +1433,7 @@ extension BRCryptoTransferEventType: CustomStringConvertible {
         case CRYPTO_TRANSFER_EVENT_CREATED: return "Created"
         case CRYPTO_TRANSFER_EVENT_CHANGED: return "Changed"
         case CRYPTO_TRANSFER_EVENT_DELETED: return "Deleted"
-        default: return "<>unknown>>"
+        default: return "<<unknown>>"
         }
     }
 }
@@ -1293,8 +1452,9 @@ extension BRCryptoWalletEventType: CustomStringConvertible {
 
         case CRYPTO_WALLET_EVENT_BALANCE_UPDATED:   return "Balance Updated"
         case CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED: return "FeeBasis Updated"
+        case CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED: return "FeeBasis Estimated"
 
-        default: return "<>unknown>>"
+        default: return "<<unknown>>"
         }
     }
 }
@@ -1316,7 +1476,7 @@ extension BRCryptoWalletManagerEventType: CustomStringConvertible {
         case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED:   return "Sync Stopped"
 
         case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED: return "Block Height Updated"
-        default: return "<>unknown>>"
+        default: return "<<unknown>>"
         }
     }
 }

@@ -212,7 +212,7 @@ class CoreTests: XCTestCase {
     /// - Throws: something
     ///
     func testEthereumSyncStorage () throws {
-        let mode = P2P_ONLY; // BRD_WITH_P2P_SEND; // BRD_ONLY;  P2P_WITH_BRD_SYNC; // P2P_ONLY,  BRD_WITH_P2P_SEND
+        let mode = SYNC_MODE_P2P_ONLY;
         let timestamp : UInt64 = 0
 
         let network = (isMainnet ? ethereumMainnet : ethereumTestnet)

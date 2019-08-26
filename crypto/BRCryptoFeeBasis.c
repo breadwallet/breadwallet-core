@@ -177,6 +177,29 @@ cryptoFeeBasisGetFee (BRCryptoFeeBasis feeBasis) {
     }
 }
 
+extern BRCryptoBoolean
+cryptoFeeBasisIsIdentical (BRCryptoFeeBasis feeBasis1,
+                           BRCryptoFeeBasis feeBasis2) {
+    if (feeBasis1 == feeBasis2) return CRYPTO_TRUE;
+    if (feeBasis1->type != feeBasis2->type) return CRYPTO_FALSE;
+    if (CRYPTO_FALSE == cryptoUnitIsCompatible (feeBasis1->unit, feeBasis2->unit)) return CRYPTO_FALSE;
+
+    switch (feeBasis1->type) {
+        case BLOCK_CHAIN_TYPE_BTC:
+            return AS_CRYPTO_BOOLEAN (feeBasis1->u.btc.feePerKB   == feeBasis2->u.btc.feePerKB &&
+                                      feeBasis1->u.btc.sizeInByte == feeBasis2->u.btc.sizeInByte);
+
+        case BLOCK_CHAIN_TYPE_ETH:
+            return AS_CRYPTO_BOOLEAN (ETHEREUM_BOOLEAN_IS_TRUE (feeBasisEqual (&feeBasis1->u.eth, &feeBasis2->u.eth)));
+
+        case BLOCK_CHAIN_TYPE_GEN:
+            // TODO: Compare GEN fee basis.
+            assert (0);
+            return AS_CRYPTO_BOOLEAN (feeBasis1->u.gen.gwm == feeBasis2->u.gen.gwm &&
+                                      feeBasis1->u.gen.bid == feeBasis2->u.gen.bid);
+    }
+}
+
 private_extern uint64_t // SAT-per-KB
 cryptoFeeBasisAsBTC (BRCryptoFeeBasis feeBasis) {
     assert (BLOCK_CHAIN_TYPE_BTC == feeBasis->type);

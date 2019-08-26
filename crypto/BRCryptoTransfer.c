@@ -117,7 +117,8 @@ extern BRCryptoTransfer
 cryptoTransferCreateAsBTC (BRCryptoUnit unit,
                            BRCryptoUnit unitForFee,
                            BRWallet *wid,
-                           BRTransaction *tid) {
+                           OwnershipKept BRTransaction *tid,
+                           BRCryptoBoolean isBTC) {
     BRAddressParams  addressParams = BRWalletGetAddressParams (wid);
     BRCryptoTransfer transfer      = cryptoTransferCreateInternal (BLOCK_CHAIN_TYPE_BTC, unit, unitForFee);
     transfer->u.btc.tid = tid;
@@ -141,7 +142,7 @@ cryptoTransferCreateAsBTC (BRCryptoUnit unit,
 
             if (inputsContain == BRWalletContainsAddress(wid, address)) {
                 assert (addressSize < sizeof (BRAddress));
-                transfer->sourceAddress = cryptoAddressCreateAsBTC (BRAddressFill (addressParams, address));
+                transfer->sourceAddress = cryptoAddressCreateAsBTC (BRAddressFill (addressParams, address), isBTC);
                 break;
             }
         }
@@ -159,9 +160,12 @@ cryptoTransferCreateAsBTC (BRCryptoUnit unit,
 
             BRTxOutputAddress (&outputs[index], address, addressSize, addressParams);
 
+            // There will be no targetAddress if we send the amount to ourselves.  In that
+            // case `outputsContain = 0` and every output is our own address and thus 1 is always
+            // returned by `BRWalletContainsAddress()`
             if (outputsContain == BRWalletContainsAddress(wid, address)) {
                 assert (addressSize < sizeof (BRAddress));
-                transfer->targetAddress = cryptoAddressCreateAsBTC (BRAddressFill (addressParams, address));
+                transfer->targetAddress = cryptoAddressCreateAsBTC (BRAddressFill (addressParams, address), isBTC);
                 break;
             }
         }
@@ -226,7 +230,6 @@ cryptoTransferCreateAsGEN (BRCryptoUnit unit,
 static void
 cryptoTransferRelease (BRCryptoTransfer transfer) {
     printf ("Transfer: Release\n");
-    if (BLOCK_CHAIN_TYPE_BTC == transfer->type) BRTransactionFree (transfer->u.btc.tid);
     if (NULL != transfer->sourceAddress) cryptoAddressGive (transfer->sourceAddress);
     if (NULL != transfer->targetAddress) cryptoAddressGive (transfer->targetAddress);
     cryptoUnitGive (transfer->unit);
@@ -282,7 +285,7 @@ cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNega
                                                  isNegative,
                                                  createUInt256(recv));
                     break;
-                    
+
                 default: assert(0);
             }
             break;
@@ -490,6 +493,8 @@ cryptoTransferGetDirection (BRCryptoTransfer transfer) {
             int accountIsSource = gwmAddressEqual (gwm, source, address);
             int accountIsTarget = gwmAddressEqual (gwm, target, address);
 
+            // TODO: BRGenericAddress - release source, target, address
+            
             if      ( accountIsSource &&  accountIsTarget) return CRYPTO_TRANSFER_RECOVERED;
             else if ( accountIsSource && !accountIsTarget) return CRYPTO_TRANSFER_SENT;
             else if (!accountIsSource &&  accountIsTarget) return CRYPTO_TRANSFER_RECOVERED;
@@ -639,12 +644,7 @@ cryptoTransferHasGEN (BRCryptoTransfer transfer,
 
 static int
 cryptoTransferEqualAsBTC (BRCryptoTransfer t1, BRCryptoTransfer t2) {
-    // Since BTC transactions that are not yet signed do not have a txHash, only
-    // use the BRTransactionEq check when at least one party is signed. For cases
-    // where that is not true, use an identity check.
-    return (BRTransactionIsSigned (t1->u.btc.tid)
-            ? BRTransactionEq (t1->u.btc.tid, t2->u.btc.tid)
-            : t1->u.btc.tid == t2->u.btc.tid);
+    return t1->u.btc.tid == t2->u.btc.tid;
 }
 
 static int
@@ -666,3 +666,35 @@ cryptoTransferEqual (BRCryptoTransfer t1, BRCryptoTransfer t2) {
                                             (BLOCK_CHAIN_TYPE_GEN == t1->type && cryptoTransferEqualAsGEN (t1, t2)))));
 }
 
+private_extern void
+cryptoTransferExtractBlobAsBTC (BRCryptoTransfer transfer,
+                                uint8_t **bytes,
+                                size_t   *bytesCount,
+                                uint32_t *blockHeight,
+                                uint32_t *timestamp) {
+    assert (NULL != bytes && NULL != bytesCount);
+
+    BRTransaction *tx = cryptoTransferAsBTC (transfer);
+
+    *bytesCount = BRTransactionSerialize (tx, NULL, 0);
+    *bytes = malloc (*bytesCount);
+    BRTransactionSerialize (tx, *bytes, *bytesCount);
+
+    if (NULL != blockHeight) *blockHeight = tx->blockHeight;
+    if (NULL != timestamp)   *timestamp   = tx->timestamp;
+}
+
+extern const char *
+BRCryptoTransferEventTypeString (BRCryptoTransferEventType t) {
+    switch (t) {
+        case CRYPTO_TRANSFER_EVENT_CREATED:
+        return "CRYPTO_TRANSFER_EVENT_CREATED";
+
+        case CRYPTO_TRANSFER_EVENT_CHANGED:
+        return "CRYPTO_TRANSFER_EVENT_CHANGED";
+
+        case CRYPTO_TRANSFER_EVENT_DELETED:
+        return "CRYPTO_TRANSFER_EVENT_DELETED";
+    }
+    return "<CRYPTO_TRANSFER_EVENT_TYPE_UNKNOWN>";
+}
