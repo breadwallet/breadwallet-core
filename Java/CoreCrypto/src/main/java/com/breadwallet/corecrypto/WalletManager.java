@@ -104,8 +104,6 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
                     @Override
                     public void handleData(List<Transaction> data) {
-                        WalletSweeperError error = null;
-
                         for (Transaction txn: data) {
                             Optional<byte[]> maybeRaw = txn.getRaw();
                             if (maybeRaw.isPresent()) {
@@ -113,6 +111,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                                     sweeper.handleTransactionAsBtc(maybeRaw.get());
                                 } catch (WalletSweeperError e) {
                                     completion.handleError(e);
+                                    return;
                                 }
                             }
                         }
