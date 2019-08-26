@@ -158,7 +158,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
             cwm->u.eth = ewmCreate (cryptoNetworkAsETH(network),
                                     cryptoAccountAsETH(account),
                                     (BREthereumTimestamp) cryptoAccountGetTimestamp(account),
-                                    (BREthereumMode) mode,
+                                    mode,
                                     client,
                                     cwmPath,
                                     cryptoNetworkGetHeight(network));
@@ -327,6 +327,8 @@ cryptoWalletManagerSetMode (BRCryptoWalletManager cwm, BRSyncMode mode) {
             BRWalletManagerSetMode (cwm->u.btc, mode);
             break;
         case BLOCK_CHAIN_TYPE_ETH:
+            ewmUpdateMode (cwm->u.eth, mode);
+            break;
         case BLOCK_CHAIN_TYPE_GEN:
         default:
             assert (0);
@@ -342,6 +344,8 @@ cryptoWalletManagerGetMode (BRCryptoWalletManager cwm) {
             mode = BRWalletManagerGetMode (cwm->u.btc);
             break;
         case BLOCK_CHAIN_TYPE_ETH:
+            mode = ewmGetMode (cwm->u.eth);
+            break;
         case BLOCK_CHAIN_TYPE_GEN:
         default:
             assert (0);

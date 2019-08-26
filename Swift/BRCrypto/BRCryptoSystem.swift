@@ -543,6 +543,8 @@ extension System {
                                                          event: WalletManagerEvent.created)
 
                 case CRYPTO_WALLET_MANAGER_EVENT_CHANGED:
+                    print ("SYS: Event: Manager (\(manager.name)): \(event.type): {\(WalletManagerState (core: event.u.state.oldValue)) -> \(WalletManagerState (core: event.u.state.newValue))}")
+
                     system.listener?.handleManagerEvent (system: manager.system,
                                                           manager: manager,
                                                           event: WalletManagerEvent.changed (oldState: WalletManagerState (core: event.u.state.oldValue),
