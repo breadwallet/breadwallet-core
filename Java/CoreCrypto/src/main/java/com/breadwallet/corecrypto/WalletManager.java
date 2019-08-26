@@ -85,52 +85,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     public void createSweeper(com.breadwallet.crypto.Wallet wallet,
                               com.breadwallet.crypto.Key key,
                               CompletionHandler<com.breadwallet.crypto.WalletSweeper, WalletSweeperError> completion) {
-        WalletSweeper sweeper;
-        try {
-            sweeper = WalletSweeper.create(this, Wallet.from(wallet), Key.from(key));
-        } catch (WalletSweeperError e) {
-            completion.handleError(e);
-            return;
-        }
-
-        String address = sweeper.getAddress();
-        system.getBlockchainDb().getTransactions(network.getUids(),
-                Collections.singletonList(address),
-                UnsignedLong.ZERO,
-                network.getHeight(),
-                true,
-                false,
-                new CompletionHandler<List<Transaction>, QueryError>() {
-
-                    @Override
-                    public void handleData(List<Transaction> data) {
-                        for (Transaction txn: data) {
-                            Optional<byte[]> maybeRaw = txn.getRaw();
-                            if (maybeRaw.isPresent()) {
-                                try {
-                                    sweeper.handleTransactionAsBtc(maybeRaw.get());
-                                } catch (WalletSweeperError e) {
-                                    completion.handleError(e);
-                                    return;
-                                }
-                            }
-                        }
-
-                        try {
-                            sweeper.validate();
-                        }  catch (WalletSweeperError e) {
-                            completion.handleError(e);
-                            return;
-                        }
-
-                        completion.handleData(sweeper);
-                    }
-
-                    @Override
-                    public void handleError(QueryError e) {
-                        completion.handleError(new WalletSweeperQueryError(e));
-                    }
-                });
+        WalletSweeper.create(this, Wallet.from(wallet), Key.from(key), system.getBlockchainDb(), completion);
     }
 
     @Override

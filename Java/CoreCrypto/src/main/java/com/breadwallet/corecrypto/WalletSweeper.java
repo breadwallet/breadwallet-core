@@ -7,17 +7,25 @@ import com.breadwallet.corenative.crypto.CoreBRCryptoCurrency;
 import com.breadwallet.corenative.crypto.CoreBRCryptoNetwork;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWallet;
 import com.breadwallet.crypto.NetworkFee;
+import com.breadwallet.crypto.blockchaindb.BlockchainDb;
+import com.breadwallet.crypto.blockchaindb.errors.QueryError;
+import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
 import com.breadwallet.crypto.errors.FeeEstimationError;
 import com.breadwallet.crypto.errors.WalletSweeperError;
 import com.breadwallet.crypto.errors.WalletSweeperInsufficientFundsError;
 import com.breadwallet.crypto.errors.WalletSweeperInvalidKeyError;
 import com.breadwallet.crypto.errors.WalletSweeperInvalidSourceWalletError;
 import com.breadwallet.crypto.errors.WalletSweeperNoTransfersFoundError;
+import com.breadwallet.crypto.errors.WalletSweeperQueryError;
 import com.breadwallet.crypto.errors.WalletSweeperUnableToSweepError;
 import com.breadwallet.crypto.errors.WalletSweeperUnexpectedError;
 import com.breadwallet.crypto.errors.WalletSweeperUnsupportedCurrencyError;
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedLong;
+
+import java.util.Collections;
+import java.util.List;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -44,22 +52,52 @@ final class WalletSweeper implements com.breadwallet.crypto.WalletSweeper {
         return null;
     }
 
-    /* package */
-    static WalletSweeper create(WalletManager manager,
-                                Wallet wallet,
-                                Key key) throws WalletSweeperError {
+    private static WalletSweeperError validateSupported(WalletManager manager,
+                                                        Wallet wallet,
+                                                        Key key) {
+        Network network = manager.getNetwork();
+
         BRCryptoKey coreKey = key.getBRCryptoKey();
         CoreBRCryptoWallet coreWallet = wallet.getCoreBRCryptoWallet();
         CoreBRCryptoCurrency coreCurrency = coreWallet.getCurrency();
-        CoreBRCryptoNetwork coreNetwork = manager.getNetwork().getCoreBRCryptoNetwork();
+        CoreBRCryptoNetwork coreNetwork = network.getCoreBRCryptoNetwork();
 
-        WalletSweeperError error = statusToError(BRCryptoWalletSweeper.validateSupported(coreNetwork, coreCurrency, coreKey, coreWallet));
-        if (null != error) {
-            throw error;
-        }
+        return statusToError(BRCryptoWalletSweeper.validateSupported(coreNetwork, coreCurrency, coreKey, coreWallet));
+    }
+
+    private static WalletSweeper createSweeper(WalletManager manager,
+                                               Wallet wallet,
+                                               Key key) {
+        Network network = manager.getNetwork();
+
+        BRCryptoKey coreKey = key.getBRCryptoKey();
+        CoreBRCryptoWallet coreWallet = wallet.getCoreBRCryptoWallet();
+        CoreBRCryptoCurrency coreCurrency = coreWallet.getCurrency();
+        CoreBRCryptoNetwork coreNetwork = network.getCoreBRCryptoNetwork();
 
         int coreScheme = Utilities.addressSchemeToCrypto(manager.getAddressScheme());
         return new WalletSweeper(BRCryptoWalletSweeper.createAsBtc(coreNetwork, coreCurrency, coreKey, coreScheme), manager, wallet);
+    }
+
+    /* package */
+    static void create(WalletManager manager,
+                       Wallet wallet,
+                       Key key,
+                       BlockchainDb bdb,
+                       CompletionHandler<com.breadwallet.crypto.WalletSweeper, WalletSweeperError> completion) {
+        // check that the requested operation is supported
+        WalletSweeperError e = validateSupported(manager, wallet, key);
+        if (null != e) {
+            completion.handleError(e);
+            return;
+        }
+
+        // construct a sweeper and populate it
+        if (Currency.CODE_AS_BTC.equals(wallet.getCurrency().getCode())) {
+            createSweeper(manager, wallet, key).initAsBtc(bdb, completion);
+        } else {
+            throw new IllegalArgumentException("Unsupported wallet");
+        }
     }
 
     private final BRCryptoWalletSweeper core;
@@ -92,27 +130,59 @@ final class WalletSweeper implements com.breadwallet.crypto.WalletSweeper {
         }
     }
 
-    /* package */
-    String getAddress() {
+    private void initAsBtc(BlockchainDb bdb,
+                           CompletionHandler<com.breadwallet.crypto.WalletSweeper, WalletSweeperError> completion) {
+        Network network = manager.getNetwork();
+        String address = getAddress();
+
+        bdb.getTransactions(network.getUids(),
+                Collections.singletonList(address),
+                UnsignedLong.ZERO,
+                network.getHeight(),
+                true,
+                false,
+                new CompletionHandler<List<Transaction>, QueryError>() {
+
+                    @Override
+                    public void handleData(List<Transaction> data) {
+                        for (Transaction txn: data) {
+                            Optional<byte[]> maybeRaw = txn.getRaw();
+                            if (maybeRaw.isPresent()) {
+                                WalletSweeperError e = handleTransactionAsBtc(maybeRaw.get());
+                                if (null != e) {
+                                    completion.handleError(e);
+                                    return;
+                                }
+                            }
+                        }
+
+                        WalletSweeperError e = validate();
+                        if (null != e) {
+                            completion.handleError(e);
+                            return;
+                        }
+
+                        completion.handleData(WalletSweeper.this);
+                    }
+
+                    @Override
+                    public void handleError(QueryError e) {
+                        completion.handleError(new WalletSweeperQueryError(e));
+                    }
+                });
+    }
+
+    private String getAddress() {
         Optional<String> maybeAddress = core.getAddress();
         checkState(maybeAddress.isPresent());
         return maybeAddress.get();
     }
 
-    /* package */
-    void handleTransactionAsBtc(byte[] transaction) throws WalletSweeperError {
-        // TODO(fix): Implement me!
-        WalletSweeperError error = statusToError(core.handleTransactionAsBtc(transaction));
-        if (null != error) {
-            throw error;
-        }
+    private WalletSweeperError handleTransactionAsBtc(byte[] transaction) {
+        return statusToError(core.handleTransactionAsBtc(transaction));
     }
 
-    /* package */
-    void validate() throws WalletSweeperError {
-        WalletSweeperError error = statusToError(core.validate());
-        if (null != error) {
-            throw error;
-        }
+    private WalletSweeperError validate() {
+        return statusToError(core.validate());
     }
 }
