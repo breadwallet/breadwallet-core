@@ -62,6 +62,17 @@ typedef enum {
 extern const char *
 BRSyncModeString (BRSyncMode m);
 
+/// The Percent Complete (0...100.0) of a sync.
+typedef float BRSyncPercentComplete;
+
+#define AS_SYNC_PERCENT_COMPLETE(number)    ((BRSyncPercentComplete) (number))
+
+/// The Timetamp (in the Unix epoch) of a sync.
+typedef uint32_t BRSyncTimestamp;
+
+#define AS_SYNC_TIMESTAMP(unixSeconds)      ((BRSyncTimestamp) (unixSeconds))
+#define NO_SYNC_TIMESTAMP                   (AS_SYNC_TIMESTAMP (0))
+
 #ifdef __cplusplus
 }
 #endif

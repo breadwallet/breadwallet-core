@@ -102,7 +102,8 @@ typedef struct {
             size_t count;
         } peers;
         struct {
-            uint32_t percentComplete;
+            BRSyncTimestamp timestamp;
+            BRSyncPercentComplete percentComplete;
         } syncProgress;
         struct {
             int reason;

@@ -82,7 +82,8 @@ extern "C" {
             } wallet;
 
             struct {
-                unsigned int percentComplete;
+                BRSyncTimestamp timestamp;
+                BRSyncPercentComplete percentComplete;
             } sync;
 
             struct {
@@ -90,6 +91,8 @@ extern "C" {
             } blockHeight;
         } u;
     } BRCryptoWalletManagerEvent;
+
+#define CRYPTO_NO_SYNC_TIMESTAMP        (NO_SYNC_TIMESTAMP)
 
     /// MARK: Listener
 

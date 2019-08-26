@@ -330,7 +330,7 @@ public enum WalletManagerEvent {
     case walletDeleted (wallet: Wallet)
 
     case syncStarted
-    case syncProgress (percentComplete: Double)
+    case syncProgress (timestamp: Date?, percentComplete: Double)
     case syncEnded (error: String?)
 
     /// An event capturing a change in the block height of the network associated with a

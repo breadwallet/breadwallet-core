@@ -231,7 +231,8 @@ typedef struct {
     BRWalletManagerEventType type;
     union {
         struct {
-            uint32_t percentComplete;
+            BRSyncTimestamp timestamp;
+            BRSyncPercentComplete percentComplete;
         } syncProgress;
         struct {
             int error;
