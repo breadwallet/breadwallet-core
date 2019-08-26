@@ -52,10 +52,6 @@ public interface Key {
 
     byte[] encodeAsPublic();
 
-    byte[] encodeAsLegacyAddress();
-
-    byte[] encodeAsAddress();
-
     byte[] getSecret();
 
     boolean privateKeyMatch(Key other);

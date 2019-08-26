@@ -420,6 +420,11 @@ extern "C" {
     cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
                                           BRGenericTransfer transferGeneric);
 
+    /// MARK: - WalletSweeper
+
+    private_extern BRWalletSweeper
+    cryptoWalletSweeperAsBTC (BRCryptoWalletSweeper sweeper);
+
 #ifdef __cplusplus
 }
 #endif

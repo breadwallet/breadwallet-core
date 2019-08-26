@@ -18,6 +18,9 @@
             android:name=".TransferCreateActivity"
             android:label="Create Transfer"/>
         <activity
+            android:name=".TransferCreateSweepActivity"
+            android:label="Create Sweep Transfer"/>
+        <activity
             android:name=".TransferDetailsActivity"
             android:label="Transfer Details" />
         <activity

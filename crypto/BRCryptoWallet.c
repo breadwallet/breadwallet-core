@@ -544,6 +544,42 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
     return transfer;
 }
 
+extern BRCryptoTransfer
+cryptoWalletCreateTransferForWalletSweep (BRCryptoWallet  wallet,
+                                          BRCryptoWalletSweeper sweeper,
+                                          BRCryptoFeeBasis estimatedFeeBasis) {
+    BRCryptoTransfer transfer = NULL;
+
+    BRCryptoUnit unit       = cryptoWalletGetUnit (wallet);
+    BRCryptoUnit unitForFee = cryptoWalletGetUnitForFee(wallet);
+
+    switch (wallet->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            BRWalletManager bwm = wallet->u.btc.bwm;
+            BRWallet *wid = wallet->u.btc.wid;
+
+            BRTransaction *tid = BRWalletManagerCreateTransactionForSweep (bwm,
+                                                                           wid,
+                                                                           cryptoWalletSweeperAsBTC(sweeper),
+                                                                           cryptoFeeBasisAsBTC(estimatedFeeBasis));
+            transfer = NULL == tid ? NULL : cryptoTransferCreateAsBTC (unit,
+                                                                       unitForFee,
+                                                                       wid,
+                                                                       tid,
+                                                                       AS_CRYPTO_BOOLEAN(BRWalletManagerHandlesBTC(bwm)));
+            break;
+        }
+        default:
+            assert (0);
+            break;
+    }
+
+    cryptoUnitGive (unitForFee);
+    cryptoUnitGive (unit);
+
+    return transfer;
+}
+
 extern void
 cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
                               BRCryptoCookie cookie,
@@ -610,6 +646,30 @@ cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
             //
             //            feeValue = genFee;
         }
+    }
+}
+
+extern void
+    cryptoWalletEstimateFeeBasisForWalletSweep (BRCryptoWallet  wallet,
+                                                BRCryptoCookie cookie,
+                                                BRCryptoWalletSweeper sweeper,
+                                                BRCryptoNetworkFee fee) {
+    switch (wallet->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            BRWalletManager bwm = wallet->u.btc.bwm;
+            BRWallet *wid = wallet->u.btc.wid;
+            uint64_t feePerKB = 1000 * cryptoNetworkFeeAsBTC (fee);
+
+            BRWalletManagerEstimateFeeForSweep (bwm,
+                                                wid,
+                                                cookie,
+                                                cryptoWalletSweeperAsBTC(sweeper),
+                                                feePerKB);
+            break;
+        }
+        default:
+            assert (0);
+            break;
     }
 }
 
@@ -714,4 +774,189 @@ BRCryptoWalletEventTypeString (BRCryptoWalletEventType t) {
         return "CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED";
     }
     return "<CRYPTO_WALLET_EVENT_TYPE_UNKNOWN>";
+}
+
+/// MARK: Wallet Sweeper
+
+struct BRCryptoWalletSweeperRecord {
+    BRCryptoBlockChainType type;
+    BRCryptoKey key;
+    BRCryptoUnit unit;
+    union {
+        struct {
+            BRWalletSweeper sweeper;
+        } btc;
+    } u;
+    ;
+};
+
+static BRCryptoWalletSweeperStatus
+BRWalletSweeperStatusToCrypto (BRWalletSweeperStatus t) {
+    switch (t) {
+        case WALLET_SWEEPER_SUCCESS: return CRYPTO_WALLET_SWEEPER_SUCCESS;
+        case WALLET_SWEEPER_INVALID_TRANSACTION: return CRYPTO_WALLET_SWEEPER_INVALID_TRANSACTION;
+        case WALLET_SWEEPER_INVALID_SOURCE_WALLET: return CRYPTO_WALLET_SWEEPER_INVALID_SOURCE_WALLET;
+        case WALLET_SWEEPER_NO_TRANSACTIONS_FOUND: return CRYPTO_WALLET_SWEEPER_NO_TRANSFERS_FOUND;
+        case WALLET_SWEEPER_INSUFFICIENT_FUNDS: return CRYPTO_WALLET_SWEEPER_INSUFFICIENT_FUNDS;
+        case WALLET_SWEEPER_UNABLE_TO_SWEEP: return CRYPTO_WALLET_SWEEPER_UNABLE_TO_SWEEP;
+    }
+}
+
+extern BRCryptoWalletSweeperStatus
+cryptoWalletSweeperValidateSupported (BRCryptoNetwork network,
+                                      BRCryptoCurrency currency,
+                                      BRCryptoKey key,
+                                      BRCryptoWallet wallet) {
+    if (CRYPTO_FALSE == cryptoNetworkHasCurrency (network, currency)) {
+        return CRYPTO_WALLET_SWEEPER_INVALID_ARGUMENTS;
+    }
+
+    if (cryptoNetworkGetType (network) != cryptoWalletGetType (wallet)) {
+        return CRYPTO_WALLET_SWEEPER_INVALID_ARGUMENTS;
+    }
+
+    if (CRYPTO_FALSE == cryptoCurrencyIsIdentical (currency, cryptoWalletGetCurrency (wallet))) {
+        return CRYPTO_WALLET_SWEEPER_INVALID_ARGUMENTS;
+    }
+
+    if (CRYPTO_FALSE == cryptoKeyHasSecret (key)) {
+        return CRYPTO_WALLET_SWEEPER_INVALID_KEY;
+    }
+
+    switch (cryptoWalletGetType (wallet)) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            BRWallet * wid             = cryptoWalletAsBTC (wallet);
+            BRKey * keyCore            = cryptoKeyGetCore (key);
+            BRAddressParams addrParams = cryptoNetworkAsBTC (network)->addrParams;
+
+            return BRWalletSweeperStatusToCrypto (BRWalletSweeperValidateSupported (keyCore,
+                                                                                    addrParams,
+                                                                                    wid));
+        }
+        default:{
+            break;
+        }
+    }
+
+    return CRYPTO_WALLET_SWEEPER_UNSUPPORTED_CURRENCY;
+}
+
+extern BRCryptoWalletSweeper
+cryptoWalletSweeperCreateAsBtc (BRCryptoNetwork network,
+                                BRCryptoCurrency currency,
+                                BRCryptoKey key,
+                                BRCryptoAddressScheme scheme) {
+    assert (cryptoKeyHasSecret (key));
+    BRCryptoWalletSweeper sweeper = calloc (1, sizeof(struct BRCryptoWalletSweeperRecord));
+    sweeper->type = BLOCK_CHAIN_TYPE_BTC;
+    sweeper->key = cryptoKeyTake (key);
+    sweeper->unit = cryptoNetworkGetUnitAsBase (network, currency);
+    sweeper->u.btc.sweeper = BRWalletSweeperNew(cryptoKeyGetCore (key),
+                                                cryptoNetworkAsBTC (network)->addrParams,
+                                                CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT == scheme);
+    return sweeper;
+}
+
+extern void
+cryptoWalletSweeperRelease (BRCryptoWalletSweeper sweeper) {
+    switch (sweeper->type) {
+        case BLOCK_CHAIN_TYPE_BTC:
+            BRWalletSweeperFree (sweeper->u.btc.sweeper);
+            break;
+        default:
+            assert (0);
+            break;
+    }
+    cryptoKeyGive (sweeper->key);
+    cryptoUnitGive (sweeper->unit);
+
+    memset (sweeper, 0, sizeof(struct BRCryptoWalletSweeperRecord));
+    free (sweeper);
+}
+
+extern BRCryptoWalletSweeperStatus
+cryptoWalletSweeperHandleTransactionAsBTC (BRCryptoWalletSweeper sweeper,
+                                           OwnershipKept uint8_t *transaction,
+                                           size_t transactionLen) {
+    BRCryptoWalletSweeperStatus status = CRYPTO_WALLET_SWEEPER_ILLEGAL_OPERATION;
+
+    switch (sweeper->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            status = BRWalletSweeperStatusToCrypto (
+                BRWalletSweeperHandleTransaction (sweeper->u.btc.sweeper,
+                                                  transaction, transactionLen)
+            );
+            break;
+        }
+        default:
+            assert (0);
+            break;
+    }
+
+    return status;
+}
+
+extern BRCryptoKey
+cryptoWalletSweeperGetKey (BRCryptoWalletSweeper sweeper) {
+    return cryptoKeyTake (sweeper->key);
+}
+
+extern char *
+cryptoWalletSweeperGetAddress (BRCryptoWalletSweeper sweeper) {
+    char * address = NULL;
+
+    switch (sweeper->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            address = BRWalletSweeperGetLegacyAddress (sweeper->u.btc.sweeper);
+            break;
+        }
+        default:
+            assert (0);
+            break;
+    }
+
+    return address;
+}
+
+extern BRCryptoAmount
+cryptoWalletSweeperGetBalance (BRCryptoWalletSweeper sweeper) {
+    BRCryptoAmount amount = NULL;
+
+    switch (sweeper->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            UInt256 value = createUInt256 (BRWalletSweeperGetBalance (sweeper->u.btc.sweeper));
+            amount = cryptoAmountCreate (sweeper->unit, CRYPTO_FALSE, value);
+            break;
+        }
+        default:
+            assert (0);
+            break;
+    }
+
+    return amount;
+}
+
+extern BRCryptoWalletSweeperStatus
+cryptoWalletSweeperValidate (BRCryptoWalletSweeper sweeper) {
+    BRCryptoWalletSweeperStatus status = CRYPTO_WALLET_SWEEPER_ILLEGAL_OPERATION;
+
+    switch (sweeper->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            status = BRWalletSweeperStatusToCrypto (
+                BRWalletSweeperValidate(sweeper->u.btc.sweeper)
+            );
+            break;
+        }
+        default:
+            assert (0);
+            break;
+    }
+
+    return status;
+}
+
+private_extern BRWalletSweeper
+cryptoWalletSweeperAsBTC (BRCryptoWalletSweeper sweeper) {
+    assert (BLOCK_CHAIN_TYPE_BTC == sweeper->type);
+    return sweeper->u.btc.sweeper;
 }

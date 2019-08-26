@@ -390,24 +390,40 @@ BRWalletManagerExtractFileServiceTypes (BRFileService fileService,
 //
 
 typedef enum {
-    WALLET_SWEEPER_SUCCESS
+    WALLET_SWEEPER_SUCCESS,
+    WALLET_SWEEPER_INVALID_TRANSACTION,
+    WALLET_SWEEPER_INVALID_SOURCE_WALLET,
+    WALLET_SWEEPER_NO_TRANSACTIONS_FOUND,
+    WALLET_SWEEPER_INSUFFICIENT_FUNDS,
+    WALLET_SWEEPER_UNABLE_TO_SWEEP,
 } BRWalletSweeperStatus;
 
+extern BRWalletSweeperStatus
+BRWalletSweeperValidateSupported (BRKey *key,
+                                  BRAddressParams addrParams,
+                                  BRWallet *wallet);
+
 extern BRWalletSweeper // NULL on error
-BRWalletSweeperNew (BRKey *key, uint8_t isSegwit);
+BRWalletSweeperNew (BRKey *key,
+                    BRAddressParams addrParams,
+                    uint8_t isSegwit);
 
 extern void
 BRWalletSweeperFree (BRWalletSweeper sweeper);
+
+extern BRWalletSweeperStatus
+BRWalletSweeperHandleTransaction (BRWalletSweeper sweeper,
+                                  OwnershipKept uint8_t *transaction,
+                                  size_t transactionLen);
+
+extern char *
+BRWalletSweeperGetLegacyAddress (BRWalletSweeper sweeper);
 
 extern uint64_t
 BRWalletSweeperGetBalance (BRWalletSweeper sweeper);
 
 extern BRWalletSweeperStatus
-BRWalletSweeperHandleTransactionOutput (BRWalletSweeper sweeper,
-                                        UInt256 hash,
-                                        uint32_t index,
-                                        OwnershipKept uint8_t *script,  size_t scriptLen,
-                                        uint64_t satoshis);
+BRWalletSweeperValidate (BRWalletSweeper sweeper);
 
 #ifdef __cplusplus
 }

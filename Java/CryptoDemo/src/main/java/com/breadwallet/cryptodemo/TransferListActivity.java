@@ -16,6 +16,7 @@ import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.util.SortedListAdapterCallback;
 import android.text.Html;
 import android.text.Spanned;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -25,14 +26,19 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.breadwallet.crypto.Key;
 import com.breadwallet.crypto.Network;
+import com.breadwallet.crypto.NetworkFee;
 import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Transfer;
 import com.breadwallet.crypto.TransferConfirmation;
+import com.breadwallet.crypto.TransferFeeBasis;
 import com.breadwallet.crypto.TransferHash;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
 import com.breadwallet.crypto.WalletManagerMode;
+import com.breadwallet.crypto.WalletSweeper;
+import com.breadwallet.crypto.errors.FeeEstimationError;
 import com.breadwallet.crypto.events.system.DefaultSystemListener;
 import com.breadwallet.crypto.events.system.SystemListener;
 import com.breadwallet.crypto.events.transfer.DefaultTransferEventVisitor;
@@ -40,6 +46,7 @@ import com.breadwallet.crypto.events.transfer.TranferEvent;
 import com.breadwallet.crypto.events.transfer.TransferChangedEvent;
 import com.breadwallet.crypto.events.transfer.TransferCreatedEvent;
 import com.breadwallet.crypto.events.transfer.TransferDeletedEvent;
+import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
 
 import java.text.DateFormat;
@@ -54,7 +61,7 @@ public class TransferListActivity extends AppCompatActivity {
 
     private static final DateFormat DATE_FORMAT = DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG);
 
-    private static final String EXTRA_WALLET_NAME = "com.breadwallet.cryptodemo,TransferListActivity.EXTRA_WALLET_NAME";
+    private static final String EXTRA_WALLET_NAME = "com.breadwallet.cryptodemo.TransferListActivity.EXTRA_WALLET_NAME";
 
     private static final Comparator<Transfer> OLDEST_FIRST_COMPARATOR = (o1, o2) -> {
         Optional<TransferConfirmation> oc1 = o1.getConfirmation();
@@ -162,6 +169,9 @@ public class TransferListActivity extends AppCompatActivity {
 
         Button recvView = findViewById(R.id.receive_view);
         recvView.setOnClickListener(v -> copyReceiveAddress());
+
+        Button sweepView = findViewById(R.id.sweep_view);
+        sweepView .setOnClickListener(v -> TransferCreateSweepActivity.start(TransferListActivity.this, wallet));
 
         RecyclerView transfersView = findViewById(R.id.transfer_recycler_view);
         transfersView.addItemDecoration(new DividerItemDecoration(getApplicationContext(), DividerItemDecoration.VERTICAL));

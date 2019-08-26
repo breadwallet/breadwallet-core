@@ -126,7 +126,7 @@ extern "C" {
 
     extern BRCryptoCurrency
     cryptoWalletGetCurrencyForFee (BRCryptoWallet wallet);
-    
+
     /**
      * Returns the wallet's fee unit.
      *
@@ -226,29 +226,50 @@ extern "C" {
 
     typedef enum {
         CRYPTO_WALLET_SWEEPER_SUCCESS,
-        CRYPTO_WALLET_SWEEPER_INVALID_OPERATION,
-        CRYPTO_WALLET_SWEEPER_INVALID_HASH
+        CRYPTO_WALLET_SWEEPER_UNSUPPORTED_CURRENCY,
+        CRYPTO_WALLET_SWEEPER_INVALID_KEY,
+        CRYPTO_WALLET_SWEEPER_INVALID_ARGUMENTS,
+        CRYPTO_WALLET_SWEEPER_INVALID_TRANSACTION,
+        CRYPTO_WALLET_SWEEPER_INVALID_SOURCE_WALLET,
+        CRYPTO_WALLET_SWEEPER_NO_TRANSFERS_FOUND,
+        CRYPTO_WALLET_SWEEPER_INSUFFICIENT_FUNDS,
+        CRYPTO_WALLET_SWEEPER_UNABLE_TO_SWEEP,
+
+        // calling a sweeper function for the wrong type
+        CRYPTO_WALLET_SWEEPER_ILLEGAL_OPERATION,
     } BRCryptoWalletSweeperStatus;
 
+    extern BRCryptoWalletSweeperStatus
+    cryptoWalletSweeperValidateSupported (BRCryptoNetwork network,
+                                          BRCryptoCurrency currency,
+                                          BRCryptoKey key,
+                                          BRCryptoWallet wallet);
+
     extern BRCryptoWalletSweeper
-    cryptoWalletSweeperCreateAsBtc (BRCryptoKey key, BRCryptoAddressScheme scheme);
+    cryptoWalletSweeperCreateAsBtc (BRCryptoNetwork network,
+                                    BRCryptoCurrency currency,
+                                    BRCryptoKey key,
+                                    BRCryptoAddressScheme scheme);
 
     extern void
     cryptoWalletSweeperRelease (BRCryptoWalletSweeper sweeper);
 
+    extern BRCryptoWalletSweeperStatus
+    cryptoWalletSweeperHandleTransactionAsBTC (BRCryptoWalletSweeper sweeper,
+                                               OwnershipKept uint8_t *transaction,
+                                               size_t transactionLen);
+
     extern BRCryptoKey
     cryptoWalletSweeperGetKey (BRCryptoWalletSweeper sweeper);
 
+    extern char *
+    cryptoWalletSweeperGetAddress (BRCryptoWalletSweeper sweeper);
+
     extern BRCryptoAmount
-    cryptoWalletSweeperGetBalance (BRCryptoWalletSweeper sweeper,
-                                   BRCryptoUnit unit);
+    cryptoWalletSweeperGetBalance (BRCryptoWalletSweeper sweeper);
 
     extern BRCryptoWalletSweeperStatus
-    cryptoWalletSweeperHandleTransactionOutputAsBTC (BRCryptoWalletSweeper sweeper,
-                                                     OwnershipKept const char *hash,
-                                                     uint32_t index,
-                                                     OwnershipKept uint8_t *script,  size_t scriptLen,
-                                                     uint64_t satoshis);
+    cryptoWalletSweeperValidate (BRCryptoWalletSweeper sweeper);
 
 #ifdef __cplusplus
 }
