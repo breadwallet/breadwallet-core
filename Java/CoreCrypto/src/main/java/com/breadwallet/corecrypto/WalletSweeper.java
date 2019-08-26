@@ -45,9 +45,9 @@ final class WalletSweeper implements com.breadwallet.crypto.WalletSweeper {
     }
 
     /* package */
-    static WalletSweeper createAsBtc(WalletManager manager,
-                                     Wallet wallet,
-                                     Key key) throws WalletSweeperError {
+    static WalletSweeper create(WalletManager manager,
+                                Wallet wallet,
+                                Key key) throws WalletSweeperError {
         BRCryptoKey coreKey = key.getBRCryptoKey();
         CoreBRCryptoWallet coreWallet = wallet.getCoreBRCryptoWallet();
         CoreBRCryptoCurrency coreCurrency = coreWallet.getCurrency();
@@ -115,5 +115,4 @@ final class WalletSweeper implements com.breadwallet.crypto.WalletSweeper {
             throw error;
         }
     }
-
 }

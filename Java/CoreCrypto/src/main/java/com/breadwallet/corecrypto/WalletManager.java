@@ -87,7 +87,7 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                               CompletionHandler<com.breadwallet.crypto.WalletSweeper, WalletSweeperError> completion) {
         WalletSweeper sweeper;
         try {
-            sweeper = WalletSweeper.createAsBtc(this, Wallet.from(wallet), Key.from(key));
+            sweeper = WalletSweeper.create(this, Wallet.from(wallet), Key.from(key));
         } catch (WalletSweeperError e) {
             completion.handleError(e);
             return;
