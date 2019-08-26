@@ -136,6 +136,10 @@ extern "C" {
     cryptoAddressCreateAsGEN (BRGenericWalletManager gwm,
                               BRGenericAddress aid);
 
+    private_extern BRAddress
+    cryptoAddressAsBTC (BRCryptoAddress address,
+                        BRCryptoBoolean *isBitcoinAddr);
+    
     private_extern BREthereumAddress
     cryptoAddressAsETH (BRCryptoAddress address);
 

@@ -474,9 +474,6 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
                             BRCryptoAddress target,
                             BRCryptoAmount  amount,
                             BRCryptoFeeBasis estimatedFeeBasis) {
-//    assert (cryptoWalletGetType (wallet) == cryptoFeeBasisGetType(feeBasis));
-    char *addr = cryptoAddressAsString(target); // Target address
-
     BRCryptoTransfer transfer;
 
     BRCryptoUnit unit       = cryptoWalletGetUnit (wallet);
@@ -487,11 +484,15 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
             BRWalletManager bwm = wallet->u.btc.bwm;
             BRWallet *wid = wallet->u.btc.wid;
 
+            BRCryptoBoolean isBitcoinAddr = CRYPTO_TRUE;
+            BRAddress address = cryptoAddressAsBTC (target, &isBitcoinAddr);
+            assert (isBitcoinAddr == AS_CRYPTO_BOOLEAN (BRWalletManagerHandlesBTC (bwm)));
+
             BRCryptoBoolean overflow = CRYPTO_FALSE;
             uint64_t value = cryptoAmountGetIntegerRaw (amount, &overflow);
             if (CRYPTO_TRUE == overflow) { return NULL; }
 
-            BRTransaction *tid = BRWalletManagerCreateTransaction (bwm, wid, value, addr,
+            BRTransaction *tid = BRWalletManagerCreateTransaction (bwm, wid, value, address,
                                                                    cryptoFeeBasisAsBTC(estimatedFeeBasis));
             transfer = NULL == tid ? NULL : cryptoTransferCreateAsBTC (unit, unitForFee, wid, tid,
                                                                        AS_CRYPTO_BOOLEAN(BRWalletManagerHandlesBTC(bwm)));
@@ -509,6 +510,8 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
                                           : amountCreateEther (etherCreate (ethValue)));
             BREthereumFeeBasis ethFeeBasis = cryptoFeeBasisAsETH (estimatedFeeBasis);
 
+            char *addr = cryptoAddressAsString(target); // Target address
+
             //
             // We have a race condition here. `ewmWalletCreateTransferWithFeeBasis()` will generate
             // a `TRANSFER_EVENT_CREATED` event; `cwmTransactionEventAsETH()` will eventually get
@@ -521,6 +524,8 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
             //
             BREthereumTransfer tid = ewmWalletCreateTransferWithFeeBasis (ewm, wid, addr, ethAmount, ethFeeBasis);
             transfer = NULL == tid ? NULL : cryptoTransferCreateAsETH (unit, unitForFee, ewm, tid, estimatedFeeBasis);
+
+            free (addr);
             break;
         }
 
@@ -539,7 +544,6 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
 
     cryptoUnitGive (unitForFee);
     cryptoUnitGive (unit);
-    free (addr);
 
     return transfer;
 }

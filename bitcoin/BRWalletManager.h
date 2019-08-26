@@ -320,13 +320,14 @@ BRWalletManagerHandlesBTC (BRWalletManager manager);
  * address parameters.  In particular, a BCH address (either mainnet or testnet) *does not*
  * satisfy BRAddressIsValid() - the BCH address needs to be decoded into a valid BTC address first.
  *
- * @returns NULL on failure, or a transaction on success; the returned transaction must be freed using BRTransactionFree()
+ * @returns NULL on failure, or a transaction on success; the returned transaction must be freed
+ *     using BRTransactionFree()
  */
 extern BRTransaction *
 BRWalletManagerCreateTransaction (BRWalletManager manager,
                                   BRWallet *wallet,
                                   uint64_t amount,
-                                  const char *addr,
+                                  BRAddress addr,
                                   uint64_t feePerKb);
 
 /**
