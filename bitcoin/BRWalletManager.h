@@ -315,15 +315,19 @@ extern int
 BRWalletManagerHandlesBTC (BRWalletManager manager);
 
 /**
- * Creates an unsigned transaction that sends the specified amount from the wallet to the given address.
+ * Creates an unsigned transaction that sends the specified amount from the wallet to the given
+ * address.  The address must satisfy BRAddressIsValid() using the provided BRWalletManager
+ * address parameters.  In particular, a BCH address (either mainnet or testnet) *does not*
+ * satisfy BRAddressIsValid() - the BCH address needs to be decoded into a valid BTC address first.
  *
- * @returns NULL on failure, or a transaction on success; the returned transaction must be freed using BRTransactionFree()
+ * @returns NULL on failure, or a transaction on success; the returned transaction must be freed
+ *     using BRTransactionFree()
  */
 extern BRTransaction *
 BRWalletManagerCreateTransaction (BRWalletManager manager,
                                   BRWallet *wallet,
                                   uint64_t amount,
-                                  const char *addr,
+                                  BRAddress addr,
                                   uint64_t feePerKb);
 
 /**

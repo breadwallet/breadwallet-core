@@ -182,7 +182,7 @@ gwmWalletSetDefaultFeeBasis (BRGenericWalletManager gwm,
 extern BRGenericTransfer
 gwmWalletCreateTransfer (BRGenericWalletManager gwm,
                          BRGenericWallet wid,
-                         BRGenericAddress target,
+                         BRGenericAddress target, // TODO: BRGenericAddress - ownership given
                          UInt256 amount) {
     return NULL;
 }

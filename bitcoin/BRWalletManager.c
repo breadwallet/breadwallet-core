@@ -800,7 +800,7 @@ extern BRTransaction *
 BRWalletManagerCreateTransaction (BRWalletManager manager,
                                   BRWallet *wallet,
                                   uint64_t amount,
-                                  const char *addr,
+                                  BRAddress addr,
                                   uint64_t feePerKb) {
     assert (wallet == manager->wallet);
 
@@ -808,7 +808,7 @@ BRWalletManagerCreateTransaction (BRWalletManager manager,
     uint64_t feePerKbSaved = BRWalletFeePerKb (wallet);
 
     BRWalletSetFeePerKb (wallet, feePerKb);
-    BRTransaction *transaction = BRWalletCreateTransaction (wallet, amount, addr);
+    BRTransaction *transaction = BRWalletCreateTransaction (wallet, amount, addr.s);
     BRWalletSetFeePerKb (wallet, feePerKbSaved);
 
     BRTransactionWithState txnWithState = (NULL != transaction) ? BRWalletManagerAddOwnedTransaction (manager, transaction) : NULL;
