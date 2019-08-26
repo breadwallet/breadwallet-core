@@ -142,22 +142,31 @@ typedef struct {
 
 inline static size_t BRWalletSweeperUTXOHash(const void *utxo)
 {
-    // (hash xor n)*FNV_PRIME
+    // (hash xor n)*FNV_PRIME, lifted from BRWallet's BRUTXOHash
     return (size_t)((((const BRWalletSweeperUTXO *)utxo)->txHash.u32[0] ^ ((const BRWalletSweeperUTXO *)utxo)->utxoIndex)*0x01000193);
 }
 
 inline static int BRWalletSweeperUTXOEq(const void *utxo, const void *otherUtxo)
 {
+    // lifted from BRWallet's BRUTXOEq
     return (utxo == otherUtxo || (UInt256Eq(((const BRWalletSweeperUTXO *)utxo)->txHash, ((const BRWalletSweeperUTXO *)otherUtxo)->txHash) &&
                                   ((const BRWalletSweeperUTXO *)utxo)->utxoIndex == ((const BRWalletSweeperUTXO *)otherUtxo)->utxoIndex));
 }
 
 inline static uint64_t BRWalletSweeperCalculateFee(uint64_t feePerKb, size_t size)
 {
+    // lifted from BRWallet's _txFee
     uint64_t standardFee = size*TX_FEE_PER_KB/1000,       // standard fee based on tx size
              fee = (((size*feePerKb/1000) + 99)/100)*100; // fee using feePerKb, rounded up to nearest 100 satoshi
 
     return (fee > standardFee) ? fee : standardFee;
+}
+
+inline static uint64_t BRWalletSweeperCalculateMinOutputAmount(uint64_t feePerKb)
+{
+    // lifted from BRWallet's BRWalletMinOutputAmount
+    uint64_t amount = (TX_MIN_OUTPUT_AMOUNT*feePerKb + MIN_FEE_PER_KB - 1)/MIN_FEE_PER_KB;
+    return (amount > TX_MIN_OUTPUT_AMOUNT) ? amount : TX_MIN_OUTPUT_AMOUNT;
 }
 
 inline static int BRWalletSweeperIsSourceInput(BRTxInput *input, BRAddressParams addrParams, char * sourceAddress) {
@@ -244,6 +253,8 @@ BRWalletSweeperBuildTransaction (BRWalletSweeper sweeper,
     uint64_t balanceAmount = 0;
     BRTransaction *transaction = BRTransactionNew ();
 
+    // based on BRWallet's BRWalletCreateTxForOutputs
+
     BRSetOf(BRWalletSweeperUTXO *) outputs = BRWalletSweeperGetUTXOs (sweeper);
     FOR_SET (BRWalletSweeperUTXO *, utxo, outputs) {
         BRTransactionAddInput(transaction,
@@ -279,7 +290,7 @@ BRWalletSweeperBuildTransaction (BRWalletSweeper sweeper,
     }
 
     uint64_t feeAmount = BRWalletSweeperCalculateFee(feePerKb, txnSize);
-    uint64_t minAmount = BRWalletMinOutputAmount(wallet);
+    uint64_t minAmount = BRWalletSweeperCalculateMinOutputAmount(feePerKb);
     if ((feeAmount + minAmount) > balanceAmount) {
         BRTransactionFree (transaction);
         if (transactionOut) *transactionOut = NULL;
