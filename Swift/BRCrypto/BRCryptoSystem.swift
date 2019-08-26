@@ -585,7 +585,7 @@ extension System {
                                                           event: WalletManagerEvent.syncStarted)
 
                 case CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES:
-                    let timestamp: Date? = (CRYPTO_NO_SYNC_TIMESTAMP == event.u.sync.timestamp
+                    let timestamp: Date? = (0 == event.u.sync.timestamp // CRYPTO_NO_SYNC_TIMESTAMP
                         ? nil
                         : Date (timeIntervalSince1970: TimeInterval(event.u.sync.timestamp)))
                     
