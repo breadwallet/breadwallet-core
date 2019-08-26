@@ -16,7 +16,6 @@ import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.util.SortedListAdapterCallback;
 import android.text.Html;
 import android.text.Spanned;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -26,19 +25,14 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.breadwallet.crypto.Key;
 import com.breadwallet.crypto.Network;
-import com.breadwallet.crypto.NetworkFee;
 import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Transfer;
 import com.breadwallet.crypto.TransferConfirmation;
-import com.breadwallet.crypto.TransferFeeBasis;
 import com.breadwallet.crypto.TransferHash;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
 import com.breadwallet.crypto.WalletManagerMode;
-import com.breadwallet.crypto.WalletSweeper;
-import com.breadwallet.crypto.errors.FeeEstimationError;
 import com.breadwallet.crypto.events.system.DefaultSystemListener;
 import com.breadwallet.crypto.events.system.SystemListener;
 import com.breadwallet.crypto.events.transfer.DefaultTransferEventVisitor;
@@ -46,7 +40,6 @@ import com.breadwallet.crypto.events.transfer.TranferEvent;
 import com.breadwallet.crypto.events.transfer.TransferChangedEvent;
 import com.breadwallet.crypto.events.transfer.TransferCreatedEvent;
 import com.breadwallet.crypto.events.transfer.TransferDeletedEvent;
-import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
 
 import java.text.DateFormat;
@@ -165,7 +158,7 @@ public class TransferListActivity extends AppCompatActivity {
         clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
 
         Button sendView = findViewById(R.id.send_view);
-        sendView.setOnClickListener(v -> TransferCreateActivity.start(TransferListActivity.this, wallet));
+        sendView.setOnClickListener(v -> TransferCreateSendActivity.start(TransferListActivity.this, wallet));
 
         Button recvView = findViewById(R.id.receive_view);
         recvView.setOnClickListener(v -> copyReceiveAddress());
