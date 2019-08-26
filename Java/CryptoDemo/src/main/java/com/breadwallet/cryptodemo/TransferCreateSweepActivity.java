@@ -101,7 +101,7 @@ public class TransferCreateSweepActivity extends AppCompatActivity {
             public void onTextChanged(CharSequence s, int start, int before, int count) {
             }
         });
-        keyView.setText("92ihfZg8rvDhyY2siUG5zTB9PvZju6KJQJWkeQPp99NSD93zPS3");
+        keyView.setText("");
 
         submitView.setOnClickListener(v -> {
             TransferFeeBasis feeBasis = this.feeBasis;
