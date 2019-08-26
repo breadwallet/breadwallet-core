@@ -97,6 +97,11 @@ cryptoAddressCreateAsGEN (BRGenericWalletManager gwm,
     return address;
 }
 
+private_extern BRCryptoBlockChainType
+cryptoAddressGetType (BRCryptoAddress address) {
+    return address->type;
+}
+
 private_extern BRAddress
 cryptoAddressAsBTC (BRCryptoAddress address,
                     BRCryptoBoolean *isBitcoinAddr) {
@@ -184,4 +189,3 @@ cryptoAddressIsIdentical (BRCryptoAddress a1,
                                    ? ETHEREUM_BOOLEAN_IS_TRUE (addressEqual (a1->u.eth, a2->u.eth))
                                    : gwmAddressEqual (a1->u.gen.gwm, a1->u.gen.aid, a2->u.gen.aid)))));
 }
-

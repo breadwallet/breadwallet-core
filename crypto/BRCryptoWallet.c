@@ -333,10 +333,6 @@ cryptoWalletGetTransfers (BRCryptoWallet wallet, size_t *count) {
     return transfers;
 }
 
-//
-// Returns a 'new' adddress.  For BTC this is a segwit/bech32 address.  Really needs to be a
-// wallet configuration parameters (aka the 'address scheme')
-//
 extern BRCryptoAddress
 cryptoWalletGetAddress (BRCryptoWallet wallet,
                         BRCryptoAddressScheme addressScheme) {
@@ -474,10 +470,17 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
                             BRCryptoAddress target,
                             BRCryptoAmount  amount,
                             BRCryptoFeeBasis estimatedFeeBasis) {
+    assert (cryptoWalletGetType(wallet) == cryptoAddressGetType(target));
+    assert (cryptoWalletGetType(wallet) == cryptoFeeBasisGetType(estimatedFeeBasis));
+
     BRCryptoTransfer transfer;
 
     BRCryptoUnit unit       = cryptoWalletGetUnit (wallet);
     BRCryptoUnit unitForFee = cryptoWalletGetUnitForFee(wallet);
+
+    BRCryptoCurrency currency = cryptoUnitGetCurrency(unit);
+    assert (cryptoAmountHasCurrency (amount, currency));
+    cryptoCurrencyGive(currency);
 
     switch (wallet->type) {
         case BLOCK_CHAIN_TYPE_BTC: {

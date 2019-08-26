@@ -1427,7 +1427,7 @@ extension BRCryptoTransferEventType: CustomStringConvertible {
         case CRYPTO_TRANSFER_EVENT_CREATED: return "Created"
         case CRYPTO_TRANSFER_EVENT_CHANGED: return "Changed"
         case CRYPTO_TRANSFER_EVENT_DELETED: return "Deleted"
-        default: return "<>unknown>>"
+        default: return "<<unknown>>"
         }
     }
 }
@@ -1446,8 +1446,9 @@ extension BRCryptoWalletEventType: CustomStringConvertible {
 
         case CRYPTO_WALLET_EVENT_BALANCE_UPDATED:   return "Balance Updated"
         case CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED: return "FeeBasis Updated"
+        case CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED: return "FeeBasis Estimated"
 
-        default: return "<>unknown>>"
+        default: return "<<unknown>>"
         }
     }
 }
@@ -1469,7 +1470,7 @@ extension BRCryptoWalletManagerEventType: CustomStringConvertible {
         case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED:   return "Sync Stopped"
 
         case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED: return "Block Height Updated"
-        default: return "<>unknown>>"
+        default: return "<<unknown>>"
         }
     }
 }
