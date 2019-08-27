@@ -15,17 +15,17 @@ import java.util.Date;
 
 public final class WalletManagerSyncProgressEvent implements WalletManagerEvent {
 
-    private final double percentComplete;
+    private final float percentComplete;
 
     @Nullable
     private final Date timestamp;
 
-    public WalletManagerSyncProgressEvent(double percentComplete, @Nullable Date timestamp) {
+    public WalletManagerSyncProgressEvent(float percentComplete, @Nullable Date timestamp) {
         this.percentComplete = percentComplete;
         this.timestamp = timestamp;
     }
 
-    public double getPercentComplete() {
+    public float getPercentComplete() {
         return percentComplete;
     }
 
