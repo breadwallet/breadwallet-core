@@ -94,7 +94,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         print ("APP: Account Timestamp : \(account.timestamp)")
         print ("APP: StoragePath       : \(storagePath)");
         print ("APP: Mainnet           : \(mainnet)")
-        var currencies: [String] = ["btc", "eth", "brd" /*, "xrp"*/]
+        var currencies: [String] = ["btc"] // ["btc", "eth", "brd" /*, "xrp"*/]
 
         if mainnet {
 
@@ -110,10 +110,10 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
                                          isMainnet: mainnet)
 
         // Create the BlockChainDB
-        let query = BlockChainDB (bdbBaseURL: "https://dev-blockchaindb.brd.tools",
+        let query = BlockChainDB (bdbBaseURL: "https://api.blockset.com",
                                   bdbDataTaskFunc: { (session, request, completion) -> URLSessionDataTask in
                                     // this token has no expiration - testing only.
-                                    let token = "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1Njc4NzQxNzYuNzM4MzUwOSwiYnJkOmN0IjoidXNyIiwiYnJkOmNsaSI6ImUzMDZlNjAxLWZiNmEtNGRmOS1hNzU3LTcxNWNkOTNjNTMyNyIsInN1YiI6ImZiMWFlYTJmLTc5NjEtNGRjMC05MDk2LTc1ZTMyNDI3MjkwNCIsImlhdCI6MTU2NTI4MjE3Ni43MzgzNzA5fQ.nTjSqoPcxkqpBkE1HDgSeW-fxR6XeecvelU-BbSm65kqvBifQN9qzYAgcRCy6FO4xzxG2JQmOTLbkXMhbSUE0g"
+                                    let token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkZWI2M2UyOC0wMzQ1LTQ4ZjYtOWQxNy1jZTgwY2JkNjE3Y2IiLCJicmQ6Y3QiOiJjbGkiLCJleHAiOjkyMjMzNzIwMzY4NTQ3NzUsImlhdCI6MTU2Njg2MzY0OX0.FvLLDUSk1p7iFLJfg2kA-vwhDWTDulVjdj8YpFgnlE62OBFCYt4b3KeTND_qAhLynLKbGJ1UDpMMihsxtfvA0A"
                                     var decoratedReq = request
                                     decoratedReq.setValue ("Bearer \(token)", forHTTPHeaderField: "Authorization")
                                     return session.dataTask (with: decoratedReq, completionHandler: completion)
