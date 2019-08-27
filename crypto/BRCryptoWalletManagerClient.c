@@ -243,7 +243,9 @@ cwmWalletManagerEventAsBTC (BRWalletManagerClientContext context,
         case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
             cwmEvent = (BRCryptoWalletManagerEvent) {
                 CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES,
-                { .sync = { event.u.syncProgress.percentComplete }}
+                { .sync = {
+                    event.u.syncProgress.timestamp,
+                    event.u.syncProgress.percentComplete }}
             };
             break;
 
@@ -846,7 +848,9 @@ cwmWalletManagerEventAsETH (BREthereumClientContext context,
         case EWM_EVENT_SYNC_PROGRESS:
             cwmEvent = (BRCryptoWalletManagerEvent) {
                 CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES,
-                { .sync = { round (event.u.syncProgress.percent) }}
+                { .sync = {
+                    event.u.syncProgress.timestamp,
+                    event.u.syncProgress.percentComplete }}
             };
             break;
 

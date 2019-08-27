@@ -1494,7 +1494,9 @@ _BRWalletManagerSyncEvent(void * context,
             bwmSignalWalletManagerEvent(bwm,
                                         (BRWalletManagerEvent) {
                                             BITCOIN_WALLET_MANAGER_SYNC_PROGRESS,
-                                            { .syncProgress = { event.u.syncProgress.percentComplete }}
+                                            { .syncProgress = {
+                                                event.u.syncProgress.timestamp,
+                                                event.u.syncProgress.percentComplete }}
                                         });
             break;
         }

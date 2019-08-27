@@ -651,9 +651,15 @@ extension System {
                                                           event: WalletManagerEvent.syncStarted)
 
                 case CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES:
+                    let timestamp: Date? = (0 == event.u.sync.timestamp // CRYPTO_NO_SYNC_TIMESTAMP
+                        ? nil
+                        : Date (timeIntervalSince1970: TimeInterval(event.u.sync.timestamp)))
+                    
                     system.listener?.handleManagerEvent (system: manager.system,
                                                           manager: manager,
-                                                          event: WalletManagerEvent.syncProgress (percentComplete: Double (event.u.sync.percentComplete)))
+                                                          event: WalletManagerEvent.syncProgress (
+                                                            timestamp: timestamp,
+                                                            percentComplete: event.u.sync.percentComplete))
 
                 case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED:
                     system.listener?.handleManagerEvent (system: manager.system,
