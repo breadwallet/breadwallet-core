@@ -170,6 +170,22 @@ public class BlockChainDB {
     }
 
     ///
+    /// Create a BlockChainDB using a specified Authorization token.  This is declared 'public'
+    /// so that the Crypto Demo can use it.
+    ///
+    public static func createForTest (bdbBaseURL: String = "https://api.blockset.com") -> BlockChainDB {
+        return BlockChainDB (bdbBaseURL: bdbBaseURL,
+                             bdbDataTaskFunc: { (session, request, completion) -> URLSessionDataTask in
+                                // this token has no expiration - testing only.
+                                let token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkZWI2M2UyOC0wMzQ1LTQ4ZjYtOWQxNy1jZTgwY2JkNjE3Y2IiLCJicmQ6Y3QiOiJjbGkiLCJleHAiOjkyMjMzNzIwMzY4NTQ3NzUsImlhdCI6MTU2Njg2MzY0OX0.FvLLDUSk1p7iFLJfg2kA-vwhDWTDulVjdj8YpFgnlE62OBFCYt4b3KeTND_qAhLynLKbGJ1UDpMMihsxtfvA0A"
+
+                                var decoratedReq = request
+                                decoratedReq.setValue ("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                                return session.dataTask (with: decoratedReq, completionHandler: completion)
+        })
+    }
+
+    ///
     /// A QueryError subtype of Error
     ///
     /// - url:
@@ -284,6 +300,7 @@ public class BlockChainDB {
             type: String,
             blockchainID: String,
             address: String?,
+            verified: Bool,
             demoninations: [CurrencyDenomination])
 
        static internal func asCurrencyDenomination (json: JSON) -> Model.CurrencyDenomination? {
@@ -304,14 +321,13 @@ public class BlockChainDB {
         }
 
         static internal func asCurrency (json: JSON) -> Model.Currency? {
-            guard // let id = json.asString (name: "id"),
+            guard let id = json.asString (name: "currency_id"),
                 let name = json.asString (name: "name"),
                 let code = json.asString (name: "code"),
                 let type = json.asString (name: "type"),
-                let bid  = json.asString (name: "blockchain_id")
+                let bid  = json.asString (name: "blockchain_id"),
+                let verified = json.asBool(name: "verified")
                 else { return nil }
-
-            let id = name
 
             // Address is optional
             let address = json.asString(name: "address")
@@ -319,61 +335,74 @@ public class BlockChainDB {
             // All denomincations must parse
             guard let demoninations = json.asArray (name: "denominations")?
                 .map ({ JSON (dict: $0 )})
-                .map ({ asCurrencyDenomination(json: $0)})
+                .map ({ asCurrencyDenomination(json: $0)}) as? [Model.CurrencyDenomination]
                 else { return nil }
             
-            return demoninations.contains (where: { nil == $0 })
-                ? nil
-                : (id: id, name: name, code: code, type: type, blockchainID: bid, address: address, demoninations: (demoninations as! [CurrencyDenomination]))
+            return (id: id, name: name, code: code, type: type,
+                    blockchainID: bid,
+                    address: address,
+                    verified: verified,
+                    demoninations: demoninations)
         }
 
         static public let defaultCurrencies: [Currency] = [
 
             // Mainnet
-            (id: "Bitcoin", name: "Bitcoin", code: "btc", type: "native", blockchainID: "bitcoin-mainnet", address: nil,
+            (id: "Bitcoin", name: "Bitcoin", code: "btc", type: "native", blockchainID: "bitcoin-mainnet",
+             address: nil, verified: true,
              demoninations: [(name: "satoshi", code: "sat", decimals: 0, symbol: lookupSymbol ("sat")),
                              (name: "bitcoin", code: "btc", decimals: 8, symbol: lookupSymbol ("btc"))]),
 
-            (id: "Bitcoin-Cash", name: "Bitcoin Cash", code: "bch", type: "native", blockchainID: "bitcoin-cash-mainnet", address: nil,
+            (id: "Bitcoin-Cash", name: "Bitcoin Cash", code: "bch", type: "native", blockchainID: "bitcoin-cash-mainnet",
+             address: nil, verified: true,
              demoninations: [(name: "satoshi",      code: "sat", decimals: 0, symbol: lookupSymbol ("sat")),
                              (name: "bitcoin cash", code: "bch", decimals: 8, symbol: lookupSymbol ("bch"))]),
 
-            (id: "Ethereum", name: "Ethereum", code: "eth", type: "native", blockchainID: "ethereum-mainnet", address: nil,
+            (id: "Ethereum", name: "Ethereum", code: "eth", type: "native", blockchainID: "ethereum-mainnet",
+             address: nil, verified: true,
              demoninations: [(name: "wei",   code: "wei",  decimals:  0, symbol: lookupSymbol ("wei")),
                              (name: "gwei",  code: "gwei", decimals:  9, symbol: lookupSymbol ("gwei")),
                              (name: "ether", code: "eth",  decimals: 18, symbol: lookupSymbol ("eth"))]),
 
-            (id: "BRD Token", name: "BRD Token", code: "brd", type: "erc20", blockchainID: "ethereum-mainnet", address: addressBRDMainnet,
+            (id: "BRD Token", name: "BRD Token", code: "brd", type: "erc20", blockchainID: "ethereum-mainnet",
+             address: addressBRDMainnet, verified: true,
              demoninations: [(name: "BRD_INTEGER",   code: "BRDI",  decimals:  0, symbol: "brdi"),
                              (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")]),
 
-            (id: "EOS Token", name: "EOS Token", code: "eos", type: "erc20", blockchainID: "ethereum-mainnet", address: "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0",
+            (id: "EOS Token", name: "EOS Token", code: "eos", type: "erc20", blockchainID: "ethereum-mainnet",
+             address: "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0", verified: true,
              demoninations: [(name: "EOS_INTEGER",   code: "EOSI",  decimals:  0, symbol: "eosi"),
                              (name: "EOS",           code: "EOS",   decimals: 18, symbol: "eos")]),
 
-            (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-mainnet", address: nil,
+            (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-mainnet",
+             address: nil, verified: true,
              demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
                              (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
 
             // Testnet
-            (id: "Bitcoin-Testnet", name: "Bitcoin", code: "btc", type: "native", blockchainID: "bitcoin-testnet", address: nil,
+            (id: "Bitcoin-Testnet", name: "Bitcoin", code: "btc", type: "native", blockchainID: "bitcoin-testnet",
+             address: nil, verified: true,
              demoninations: [(name: "satoshi", code: "sat", decimals: 0, symbol: lookupSymbol ("sat")),
                              (name: "bitcoin", code: "btc", decimals: 8, symbol: lookupSymbol ("btc"))]),
 
-            (id: "Bitcoin-Cash-Testnet", name: "Bitcoin Cash Test", code: "bch", type: "native", blockchainID: "bitcoin-cash-testnet", address: nil,
+            (id: "Bitcoin-Cash-Testnet", name: "Bitcoin Cash Test", code: "bch", type: "native", blockchainID: "bitcoin-cash-testnet",
+             address: nil, verified: true,
              demoninations: [(name: "satoshi",           code: "sat", decimals: 0, symbol: lookupSymbol ("sat")),
                              (name: "bitcoin cash test", code: "bch", decimals: 8, symbol: lookupSymbol ("bch"))]),
 
-            (id: "Ethereum-Testnet", name: "Ethereum", code: "eth", type: "native", blockchainID: "ethereum-testnet", address: nil,
+            (id: "Ethereum-Testnet", name: "Ethereum", code: "eth", type: "native", blockchainID: "ethereum-testnet",
+             address: nil, verified: true,
              demoninations: [(name: "wei",   code: "wei",  decimals:  0, symbol: lookupSymbol ("wei")),
                              (name: "gwei",  code: "gwei", decimals:  9, symbol: lookupSymbol ("gwei")),
                              (name: "ether", code: "eth",  decimals: 18, symbol: lookupSymbol ("eth"))]),
 
-            (id: "BRD Token Testnet", name: "BRD Token", code: "brd", type: "erc20", blockchainID: "ethereum-testnet", address: addressBRDTestnet,
+            (id: "BRD Token Testnet", name: "BRD Token", code: "brd", type: "erc20", blockchainID: "ethereum-testnet",
+             address: addressBRDTestnet, verified: true,
              demoninations: [(name: "BRD_INTEGER",   code: "BRDI",  decimals:  0, symbol: "brdi"),
                              (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")]),
 
-            (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-testnet", address: nil,
+            (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-testnet",
+             address: nil, verified: true,
              demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
                              (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
 
@@ -457,9 +486,14 @@ public class BlockChainDB {
 
             let raw = json.asData (name: "raw")
 
-            guard let transfers = json.asArray (name: "transfers")?
-                .map ({ JSON (dict: $0 )})
-                .map ({ asTransfer (json: $0)})
+            // Require "_embedded" : "transfers" as [JSON.Dict]
+            guard let transfersJSON = json.asDict (name: "_embedded")?["transfers"] as? [JSON.Dict]
+                else { return nil }
+
+            // Require asTransfer is not .none
+            guard let transfers = transfersJSON
+                .map ({ JSON (dict: $0) })
+                .map ({ asTransfer (json: $0) }) as? [Model.Transfer]
                 else { return nil }
 
             return (id: id, blockchainId: bid,
@@ -467,7 +501,7 @@ public class BlockChainDB {
                      blockHash: blockHash, blockHeight: blockHeight, index: index, confirmations: confirmations, status: status,
                      size: size, timestamp: timestamp, firstSeen: firstSeen,
                      raw: raw,
-                     transfers: (transfers as! [Transfer]),
+                     transfers: transfers,
                      acknowledgements: acks)
         }
 

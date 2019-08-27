@@ -110,14 +110,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
                                          isMainnet: mainnet)
 
         // Create the BlockChainDB
-        let query = BlockChainDB (bdbBaseURL: "https://api.blockset.com",
-                                  bdbDataTaskFunc: { (session, request, completion) -> URLSessionDataTask in
-                                    // this token has no expiration - testing only.
-                                    let token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkZWI2M2UyOC0wMzQ1LTQ4ZjYtOWQxNy1jZTgwY2JkNjE3Y2IiLCJicmQ6Y3QiOiJjbGkiLCJleHAiOjkyMjMzNzIwMzY4NTQ3NzUsImlhdCI6MTU2Njg2MzY0OX0.FvLLDUSk1p7iFLJfg2kA-vwhDWTDulVjdj8YpFgnlE62OBFCYt4b3KeTND_qAhLynLKbGJ1UDpMMihsxtfvA0A"
-                                    var decoratedReq = request
-                                    decoratedReq.setValue ("Bearer \(token)", forHTTPHeaderField: "Authorization")
-                                    return session.dataTask (with: decoratedReq, completionHandler: completion)
-        })
+        let query = BlockChainDB.createForTest ()
 
         // Create the system
         self.listener = listener

@@ -319,6 +319,7 @@ public final class System {
                         currencyModels
                             // TODO: Only needed if getCurrencies returns the wrong stuff.
                             .filter { $0.blockchainID == blockchainModel.id }
+                            .filter { $0.verified }
                             .forEach { (currencyModel: BlockChainDB.Model.Currency) in
                                 // Create the currency
                                 let currency = Currency (uids: currencyModel.id,

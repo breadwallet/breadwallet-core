@@ -67,7 +67,7 @@ class BRCryptoAccountTests: XCTestCase {
         let eth = Currency (uids: "Ethereum", name: "Ethereum", code: "ETH", type: "native", issuer: nil)
         let eth_wei = BRCrypto.Unit(currency: eth, uids: "eth-wwi", name: "WEI", symbol: "wei")
 
-        let fee = NetworkFee (timeInternalInMilliseconds: 1000,
+        let fee = NetworkFee (timeIntervalInMilliseconds: 1000,
                               pricePerCostFactor: Amount.create(double: 2000000000, unit: eth_wei))
         let network = Network (uids: "ethereum-mainnet",
                                name: "ethereum-name",
@@ -103,7 +103,7 @@ class BRCryptoAccountTests: XCTestCase {
         let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
         let BTC_SATOSHI = BRCrypto.Unit (currency: btc, uids: "BTC-SAT",  name: "Satoshi", symbol: "SAT")
 
-        let fee = NetworkFee (timeInternalInMilliseconds: 1000,
+        let fee = NetworkFee (timeIntervalInMilliseconds: 1000,
                               pricePerCostFactor: Amount.create(double: 25, unit: BTC_SATOSHI))
         let network = Network (uids: "bitcoin-mainnet",
                                name: "bitcoin-name",
@@ -124,7 +124,7 @@ class BRCryptoAccountTests: XCTestCase {
         let bch = Currency (uids: "Bitcoin-Cash",  name: "Bitcoin Cash",  code: "BCH", type: "native", issuer: nil)
         let BCH_SATOSHI = BRCrypto.Unit (currency: bch, uids: "BCH-SAT",  name: "BCHSatoshi", symbol: "BCHSAT")
 
-        let fee = NetworkFee (timeInternalInMilliseconds: 1000,
+        let fee = NetworkFee (timeIntervalInMilliseconds: 1000,
                               pricePerCostFactor: Amount.create(double: 25, unit: BCH_SATOSHI))
         let network = Network (uids: "bitcoin-cash-mainnet",
                                name: "bitcoin-cash-name",
@@ -152,7 +152,7 @@ class BRCryptoAccountTests: XCTestCase {
         let bch = Currency (uids: "Bitcoin-Cash",  name: "Bitcoin Cash",  code: "BCH", type: "native", issuer: nil)
         let BCH_SATOSHI = BRCrypto.Unit (currency: bch, uids: "BCH-SAT",  name: "BCHSatoshi", symbol: "BCHSAT")
 
-        let fee = NetworkFee (timeInternalInMilliseconds: 1000,
+        let fee = NetworkFee (timeIntervalInMilliseconds: 1000,
                               pricePerCostFactor: Amount.create(double: 25, unit: BCH_SATOSHI))
         let network = Network (uids: "bitcoin-cash-mainnet",
                                name: "bitcoin-cash-name",
