@@ -157,6 +157,19 @@ public final class WalletManager: Equatable, CustomStringConvertible {
                                    paperKey)
     }
 
+    internal func submit (transfer: Transfer, key: Key) {
+        cryptoWalletManagerSubmitForKey(core,
+                                        transfer.wallet.core,
+                                        transfer.core,
+                                        key.core)
+    }
+
+    public func createSweeper (wallet: Wallet,
+                               key: Key,
+                               completion: @escaping (Result<WalletSweeper, WalletSweeperError>) -> Void) {
+        WalletSweeper.create(manager: self, wallet: wallet, key: key, bdb: query, completion: completion)
+    }
+
     internal init (core: BRCryptoWalletManager,
                    system: System,
                    callbackCoordinator: SystemCallbackCoordinator,
@@ -251,6 +264,158 @@ extension WalletManager {
     /// A manager `isActive` if connected or syncing
     var isActive: Bool {
         return state == .connected || state == .syncing
+    }
+}
+
+///
+/// The WalletSweeper
+///
+
+public enum WalletSweeperError: Error {
+    case unsupportedCurrency
+    case invalidKey
+    case invalidSourceWallet
+    case insufficientFunds
+    case unableToSweep
+    case noTransfersFound
+    case unexpectedError
+    case queryError(BlockChainDB.QueryError)
+
+    internal init? (_ core: BRCryptoWalletSweeperStatus) {
+        switch core {
+        case CRYPTO_WALLET_SWEEPER_SUCCESS:                 return nil
+        case CRYPTO_WALLET_SWEEPER_UNSUPPORTED_CURRENCY:    self = .unsupportedCurrency
+        case CRYPTO_WALLET_SWEEPER_INVALID_KEY:             self = .invalidKey
+        case CRYPTO_WALLET_SWEEPER_INVALID_SOURCE_WALLET:   self = .invalidSourceWallet
+        case CRYPTO_WALLET_SWEEPER_INSUFFICIENT_FUNDS:      self = .insufficientFunds
+        case CRYPTO_WALLET_SWEEPER_UNABLE_TO_SWEEP:         self = .unableToSweep
+        case CRYPTO_WALLET_SWEEPER_NO_TRANSFERS_FOUND:      self = .noTransfersFound
+        case CRYPTO_WALLET_SWEEPER_INVALID_ARGUMENTS:       self = .unexpectedError
+        case CRYPTO_WALLET_SWEEPER_INVALID_TRANSACTION:     self = .unexpectedError
+        case CRYPTO_WALLET_SWEEPER_ILLEGAL_OPERATION:       self = .unexpectedError
+        default: self = .unexpectedError; precondition(false)
+        }
+    }
+}
+
+public final class WalletSweeper {
+
+    internal static func create(manager: WalletManager,
+                                wallet: Wallet,
+                                key: Key,
+                                bdb: BlockChainDB,
+                                completion: @escaping (Result<WalletSweeper, WalletSweeperError>) -> Void) {
+        // check that requested combination of manager, wallet, key can be used for sweeping
+        if let e = WalletSweeperError(cryptoWalletSweeperValidateSupported(manager.network.core,
+                                                                           wallet.currency.core,
+                                                                           key.core,
+                                                                           wallet.core)) {
+            completion(Result.failure(e))
+            return
+        }
+
+        switch wallet.currency.code {
+        case Currency.codeAsBTC:
+            // handle as BTC, creating the underlying BRCryptoWalletSweeper and initializing it
+            // using the BlockchainDB
+            createAsBtc(manager: manager,
+                        wallet: wallet,
+                        key: key)
+                .initAsBTC(bdb: bdb,
+                           completion: completion)
+        default:
+            precondition(false)
+        }
+    }
+
+    private static func createAsBtc(manager: WalletManager,
+                                    wallet: Wallet,
+                                    key: Key) -> WalletSweeper {
+        return WalletSweeper(core: cryptoWalletSweeperCreateAsBtc(manager.network.core,
+                                                                  wallet.currency.core,
+                                                                  key.core,
+                                                                  manager.addressScheme.core),
+                             manager: manager,
+                             wallet: wallet,
+                             key: key)
+    }
+
+    internal let core: BRCryptoWalletSweeper
+    private let manager: WalletManager
+    private let wallet: Wallet
+    private let key: Key
+
+    private init (core: BRCryptoWalletSweeper,
+                  manager: WalletManager,
+                  wallet: Wallet,
+                  key: Key) {
+        self.core = core
+        self.manager = manager
+        self.wallet = wallet
+        self.key = key
+    }
+
+    public var balance: Amount? {
+        return cryptoWalletSweeperGetBalance (self.core)
+            .map { Amount (core: $0, take: false) }
+    }
+
+    public func estimate(fee: NetworkFee,
+                         completion: @escaping (Result<TransferFeeBasis, Wallet.FeeEstimationError>) -> Void) {
+        wallet.estimateFee(sweeper: self, fee: fee, completion: completion)
+    }
+
+    public func submit(estimatedFeeBasis: TransferFeeBasis) -> Transfer? {
+        guard let transfer = wallet.createTransfer(sweeper: self, estimatedFeeBasis: estimatedFeeBasis)
+            else { return nil }
+
+        manager.submit(transfer: transfer, key: key)
+        return transfer
+    }
+
+    private func initAsBTC(bdb: BlockChainDB,
+                           completion: @escaping (Result<WalletSweeper, WalletSweeperError>) -> Void) {
+        let network = manager.network
+        let address = asUTF8String(cryptoWalletSweeperGetAddress(core)!, true)
+
+        bdb.getTransactions(blockchainId: network.uids,
+                            addresses: [address],
+                            begBlockNumber: 0,
+                            endBlockNumber: network.height,
+                            includeRaw: true) {
+                            (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
+                                res.resolve(
+                                    success: {
+                                        // populate the underlying BRCryptoWalletSweeper with BTC transaction data
+                                        $0.forEach { (model: BlockChainDB.Model.Transaction) in
+                                            if var data = model.raw {
+                                                let bytesCount = data.count
+                                                data.withUnsafeMutableBytes { (bytes: UnsafeMutableRawBufferPointer) -> Void in
+                                                    let bytesAsUInt8 = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+                                                    if let e = WalletSweeperError(cryptoWalletSweeperHandleTransactionAsBTC(self.core,
+                                                                                                                            bytesAsUInt8,
+                                                                                                                            bytesCount)) {
+                                                        completion(Result.failure(e))
+                                                        return
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        // validate that the sweeper has the necessary info
+                                        if let e = WalletSweeperError(cryptoWalletSweeperValidate(self.core)) {
+                                            completion(Result.failure(e))
+                                            return
+                                        }
+
+                                        // return the sweeper for use in estimation/submission
+                                        completion(Result.success(self))},
+                                    failure: { completion(Result.failure(.queryError($0))) })
+        }
+    }
+
+    deinit {
+        cryptoWalletSweeperRelease(core)
     }
 }
 

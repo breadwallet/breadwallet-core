@@ -54,7 +54,7 @@ public class TransferListActivity extends AppCompatActivity {
 
     private static final DateFormat DATE_FORMAT = DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG);
 
-    private static final String EXTRA_WALLET_NAME = "com.breadwallet.cryptodemo,TransferListActivity.EXTRA_WALLET_NAME";
+    private static final String EXTRA_WALLET_NAME = "com.breadwallet.cryptodemo.TransferListActivity.EXTRA_WALLET_NAME";
 
     private static final Comparator<Transfer> OLDEST_FIRST_COMPARATOR = (o1, o2) -> {
         Optional<TransferConfirmation> oc1 = o1.getConfirmation();
@@ -158,10 +158,13 @@ public class TransferListActivity extends AppCompatActivity {
         clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
 
         Button sendView = findViewById(R.id.send_view);
-        sendView.setOnClickListener(v -> TransferCreateActivity.start(TransferListActivity.this, wallet));
+        sendView.setOnClickListener(v -> TransferCreateSendActivity.start(TransferListActivity.this, wallet));
 
         Button recvView = findViewById(R.id.receive_view);
         recvView.setOnClickListener(v -> copyReceiveAddress());
+
+        Button sweepView = findViewById(R.id.sweep_view);
+        sweepView .setOnClickListener(v -> TransferCreateSweepActivity.start(TransferListActivity.this, wallet));
 
         RecyclerView transfersView = findViewById(R.id.transfer_recycler_view);
         transfersView.addItemDecoration(new DividerItemDecoration(getApplicationContext(), DividerItemDecoration.VERTICAL));

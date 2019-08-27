@@ -136,4 +136,9 @@ final class Key implements com.breadwallet.crypto.Key {
     public boolean publicKeyMatch(com.breadwallet.crypto.Key other) {
         return core.publicKeyMatch(from(other).core);
     }
+
+    /* package */
+    BRCryptoKey getBRCryptoKey() {
+        return core;
+    }
 }

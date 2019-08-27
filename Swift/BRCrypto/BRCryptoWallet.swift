@@ -151,19 +151,13 @@ public final class Wallet: Equatable {
         }
     }
 
-    public func createTransferToImportFrom(key: Key,
-                                           estimatedFeeBasis: TransferFeeBasis,
-                                           completion: @escaping (Result<Transfer, CreateTransferError>) -> Void ) {
-        precondition (false)
-    }
-
-    public enum CreateTransferError: Error {
-        case ServiceUnavailable
-        case ServiceError
-        case InsufficientFunds
-        case InvalidAddress
-        case OwnAddress
-        case OutputTooSmall(Amount)
+    internal func createTransfer(sweeper: WalletSweeper,
+                               estimatedFeeBasis: TransferFeeBasis) -> Transfer? {
+        return cryptoWalletCreateTransferForWalletSweep(self.core, sweeper.core, estimatedFeeBasis.core)
+            .map { Transfer (core: $0,
+                             wallet: self,
+                             take: false)
+        }
     }
 
     /// A `WalletEstimateFeeHandler` is a function to handle the result of a Wallet.estimateFee.
@@ -190,10 +184,13 @@ public final class Wallet: Equatable {
                                       fee.core)
     }
 
-    public func estimateFeeToImportFrom (key: Key,
-                                         fee: NetworkFee,
-                                         completion: @escaping (Result<TransferFeeBasis,FeeEstimationError>) -> Void) {
-        precondition (false)
+    internal func estimateFee (sweeper: WalletSweeper,
+                               fee: NetworkFee,
+                               completion: @escaping (Result<TransferFeeBasis,FeeEstimationError>) -> Void) {
+        cryptoWalletEstimateFeeBasisForWalletSweep(self.core,
+                                                   callbackCoordinator.addWalletFeeEstimateHandler(completion),
+                                                   sweeper.core,
+                                                   fee.core)
     }
 
     public enum FeeEstimationError: Error {
