@@ -21,6 +21,22 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
     override func tearDown() {
     }
 
+    func testWalletManagerMode () {
+        let modes = [WalletManagerMode.api_only,
+                     WalletManagerMode.api_with_p2p_submit,
+                     WalletManagerMode.p2p_with_api_sync,
+                     WalletManagerMode.p2p_only]
+
+        for mode in modes {
+            XCTAssertEqual (mode, WalletManagerMode (serialization: mode.serialization))
+            XCTAssertEqual (mode, WalletManagerMode (core: mode.core))
+        }
+
+        for syncModeInteger in 0..<4 {
+            XCTAssertNil (WalletManagerMode (serialization: UInt8 (syncModeInteger)))
+        }
+    }
+
     func testWalletManagerBTC() {
         isMainnet = false
         currencyCodesNeeded = ["btc"]

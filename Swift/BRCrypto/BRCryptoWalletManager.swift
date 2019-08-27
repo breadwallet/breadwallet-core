@@ -460,6 +460,27 @@ public enum WalletManagerMode: Equatable {
     case p2p_with_api_sync
     case p2p_only
 
+    /// Allow WalletMangerMode to be saved
+    public var serialization: UInt8 {
+        switch self {
+        case .api_only:            return 0xf0
+        case .api_with_p2p_submit: return 0xf1
+        case .p2p_with_api_sync:   return 0xf2
+        case .p2p_only:            return 0xf3
+        }
+    }
+
+    /// Initialize WalletMangerMode from serialization
+    public init? (serialization: UInt8) {
+        switch serialization {
+        case 0xf0: self = .api_only
+        case 0xf1: self = .api_with_p2p_submit
+        case 0xf2: self = .p2p_with_api_sync
+        case 0xf3: self = .p2p_only
+        default: return nil
+        }
+    }
+    
     internal init (core: BRSyncMode) {
         switch core {
         case SYNC_MODE_BRD_ONLY: self = .api_only

@@ -310,7 +310,7 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
     BREthereumEWM node = ewmCreateWithPaperKey((BREthereumNetwork) network,
                                         paperKey,
                                         ETHEREUM_TIMESTAMP_UNKNOWN,
-                                        (BREthereumMode) mode,
+                                        (BRSyncMode) mode,
                                         client,
                                         storagePath,
                                         0);
@@ -367,7 +367,7 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM_1PublicKey
     BREthereumEWM node = ewmCreateWithPublicKey((BREthereumNetwork) network,
                                                      key,
                                                      ETHEREUM_TIMESTAMP_UNKNOWN,
-                                                    (BREthereumMode) mode,
+                                                    (BRSyncMode) mode,
                                                      client,
                                                      storagePath,
                                                      0);
