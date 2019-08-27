@@ -208,7 +208,7 @@ public class BlockChainDB {
 
         /// Blockchain
 
-        public typealias BlockchainFee = (amount: String, tier: String, confirmations: String) // currency?
+        public typealias BlockchainFee = (amount: String, tier: String, comfirmationTimeInMilliseconds: UInt64) // currency?
         public typealias Blockchain = (
             id: String,
             name: String,
@@ -219,14 +219,13 @@ public class BlockChainDB {
             feeEstimates: [BlockchainFee])
 
         static internal func asBlockchainFee (json: JSON) -> Model.BlockchainFee? {
-            guard let amount = json.asDict(name: "fee")?["amount"] as? String,
+            guard let confirmationTime = json.asUInt64(name: "estimated_confirmation_in"),
+                let amountValue = json.asDict(name: "fee")?["amount"] as? String,
+                let _ = json.asDict(name: "fee")?["currency_id"] as? String,
                 let tier = json.asString(name: "tier")
                 else { return nil }
 
-            // We've seen 'null' - assign "1" if so.
-            let confirmations = json.asString(name: "estimated_confirmation_in") ?? "1"
-
-            return (amount: amount, tier: tier, confirmations: confirmations)
+            return (amount: amountValue, tier: tier, comfirmationTimeInMilliseconds: confirmationTime)
         }
 
         static internal func asBlockchain (json: JSON) -> Model.Blockchain? {
@@ -253,25 +252,25 @@ public class BlockChainDB {
         static public let defaultBlockchains: [Blockchain] = [
             // Mainnet
             (id: "bitcoin-mainnet",       name: "Bitcoin",       network: "mainnet", isMainnet: true,  currency: "btc", blockHeight:  654321,
-             feeEstimates: [(amount: "30", tier: "10m", confirmations: "")]),
+             feeEstimates: [(amount: "30", tier: "10m", comfirmationTimeInMilliseconds: 10 * 60 * 1000)]),
             (id: "bitcoin-cash-mainnet",  name: "Bitcoin Cash",  network: "mainnet", isMainnet: true,  currency: "bch", blockHeight: 1000000,
-             feeEstimates: [(amount: "30", tier: "10m", confirmations: "")]),
+             feeEstimates: [(amount: "30", tier: "10m", comfirmationTimeInMilliseconds: 10 * 60 * 1000)]),
             (id: "ethereum-mainnet",      name: "Ethereum",      network: "mainnet", isMainnet: true,  currency: "eth", blockHeight: 8000000,
-             feeEstimates: [(amount: "2000000000", tier: "1m", confirmations: "")]),
+             feeEstimates: [(amount: "2000000000", tier: "1m", comfirmationTimeInMilliseconds: 10 * 60 * 1000)]),
             (id: "ripple-mainnet",        name: "Ripple",        network: "mainnet", isMainnet: true,  currency: "xrp", blockHeight: 5000000,
-            feeEstimates: [(amount: "20", tier: "1m", confirmations: "")]),
+            feeEstimates: [(amount: "20", tier: "1m", comfirmationTimeInMilliseconds: 1 * 60 * 1000)]),
 
             // Testnet
             (id: "bitcoin-testnet",       name: "Bitcoin Test",      network: "testnet", isMainnet: false, currency: "btc", blockHeight:  900000,
-             feeEstimates: [(amount: "30", tier: "10m", confirmations: "")]),
+             feeEstimates: [(amount: "30", tier: "10m", comfirmationTimeInMilliseconds: 10 * 60 * 1000)]),
             (id: "bitcoin-cash-testnet",  name: "Bitcoin Cash Test", network: "testnet", isMainnet: false, currency: "bch", blockHeight: 1200000,
-             feeEstimates: [(amount: "30", tier: "10m", confirmations: "")]),
+             feeEstimates: [(amount: "30", tier: "10m", comfirmationTimeInMilliseconds: 10 * 60 * 1000)]),
             (id: "ethereum-testnet",      name: "Ethereum Testnet",  network: "testnet", isMainnet: false, currency: "eth", blockHeight: 1000000,
-             feeEstimates: [(amount: "2000000000", tier: "1m", confirmations: "")]),
+             feeEstimates: [(amount: "2000000000", tier: "1m", comfirmationTimeInMilliseconds: 1 * 60 * 1000)]),
             (id: "ethereum-rinkeby",      name: "Ethereum Rinkeby",  network: "rinkeby", isMainnet: false, currency: "eth", blockHeight: 2000000,
-             feeEstimates: [(amount: "2000000000", tier: "1m", confirmations: "")]),
+             feeEstimates: [(amount: "2000000000", tier: "1m", comfirmationTimeInMilliseconds: 1 * 60 * 1000)]),
             (id: "ripple-testnet",        name: "Ripple Testnet",    network: "testnet", isMainnet: false, currency: "xrp", blockHeight: 25000,
-             feeEstimates: [(amount: "20", tier: "1m", confirmations: "")]),
+             feeEstimates: [(amount: "20", tier: "1m", comfirmationTimeInMilliseconds: 1 * 60 * 1000)]),
         ]
 
         /// Currency & CurrencyDenomination

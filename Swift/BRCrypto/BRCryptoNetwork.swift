@@ -267,9 +267,9 @@ public final class NetworkFee: Equatable {
 
     /// Initialize based on the timeInternal and pricePerCostFactor.  Used by BlockchainDB when
     /// parsing a NetworkFee from BlockchainDB.Model.BlockchainFee
-    internal convenience init (timeInternalInMilliseconds: UInt64,
+    internal convenience init (timeIntervalInMilliseconds: UInt64,
                                pricePerCostFactor: Amount) {
-        self.init (core: cryptoNetworkFeeCreate (timeInternalInMilliseconds,
+        self.init (core: cryptoNetworkFeeCreate (timeIntervalInMilliseconds,
                                                  pricePerCostFactor.core,
                                                  pricePerCostFactor.unit.core),
                    take: false)

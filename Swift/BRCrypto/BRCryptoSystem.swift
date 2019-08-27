@@ -296,6 +296,7 @@ public final class System {
                 }.get()
 
             blockChainModels
+                .filter { self.onMainnet == $0.isMainnet }
                 .forEach { (blockchainModel: BlockChainDB.Model.Blockchain) in
 
                     // query currencies
@@ -354,9 +355,9 @@ public final class System {
                         let fees = blockchainModel.feeEstimates
                             // Well, quietly ignore a fee if we can't parse the amount.
                             .compactMap { (fee: BlockChainDB.Model.BlockchainFee) -> NetworkFee? in
-                                let timeInterval  = 1000 * 60 * Int (fee.tier.dropLast())!
+                                let timeInterval  = fee.comfirmationTimeInMilliseconds
                                 return Amount.create (string: fee.amount, unit: feeUnit)
-                                    .map { NetworkFee (timeInternalInMilliseconds: UInt64(timeInterval),
+                                    .map { NetworkFee (timeIntervalInMilliseconds: timeInterval,
                                                        pricePerCostFactor: $0) }
                         }
 
