@@ -691,7 +691,8 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     private static void handleWalletManagerSyncProgress(Pointer context, CoreBRCryptoWalletManager coreWalletManager, BRCryptoWalletManagerEvent event) {
-        double percent = event.u.sync.percentComplete;
+        float percent = event.u.sync.percentComplete;
+        Date timestamp = 0 == event.u.sync.timestamp ? null : new Date(TimeUnit.SECONDS.toMillis(event.u.sync.timestamp));
 
         Log.d(TAG, String.format("WalletManagerSyncProgress (%s)", percent));
 
@@ -702,7 +703,7 @@ final class System implements com.breadwallet.crypto.System {
             Optional<WalletManager> optWalletManager = system.getWalletManager(coreWalletManager);
             if (optWalletManager.isPresent()) {
                 WalletManager walletManager = optWalletManager.get();
-                system.announceWalletManagerEvent(walletManager, new WalletManagerSyncProgressEvent(percent));
+                system.announceWalletManagerEvent(walletManager, new WalletManagerSyncProgressEvent(percent, timestamp));
 
             } else {
                 Log.e(TAG, "WalletManagerSyncProgress: missed wallet manager");

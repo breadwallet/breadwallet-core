@@ -7,16 +7,30 @@
  */
 package com.breadwallet.crypto.events.walletmanager;
 
+import android.support.annotation.Nullable;
+
+import com.google.common.base.Optional;
+
+import java.util.Date;
+
 public final class WalletManagerSyncProgressEvent implements WalletManagerEvent {
 
     private final double percentComplete;
 
-    public WalletManagerSyncProgressEvent(double percentComplete) {
+    @Nullable
+    private final Date timestamp;
+
+    public WalletManagerSyncProgressEvent(double percentComplete, @Nullable Date timestamp) {
         this.percentComplete = percentComplete;
+        this.timestamp = timestamp;
     }
 
     public double getPercentComplete() {
         return percentComplete;
+    }
+
+    public Optional<Date> getTimestamp() {
+        return Optional.fromNullable(timestamp);
     }
 
     @Override
