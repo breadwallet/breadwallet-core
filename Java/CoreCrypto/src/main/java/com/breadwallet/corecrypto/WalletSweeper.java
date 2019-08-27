@@ -122,12 +122,13 @@ final class WalletSweeper implements com.breadwallet.crypto.WalletSweeper {
     }
 
     @Override
-    public void submit(com.breadwallet.crypto.TransferFeeBasis feeBasis) {
+    public Optional<Transfer> submit(com.breadwallet.crypto.TransferFeeBasis feeBasis) {
         Optional<Transfer> maybeTransfer = wallet.createTransfer(core, feeBasis);
         if (maybeTransfer.isPresent()) {
             Transfer transfer = maybeTransfer.get();
             manager.submit(transfer, core.getKey());
         }
+        return maybeTransfer;
     }
 
     private void initAsBtc(BlockchainDb bdb,

@@ -355,15 +355,22 @@ public final class WalletSweeper {
         self.key = key
     }
 
+    public var balance: Amount? {
+        return cryptoWalletSweeperGetBalance (self.core)
+            .map { Amount (core: $0, take: false) }
+    }
+
     public func estimate(fee: NetworkFee,
                          completion: @escaping (Result<TransferFeeBasis, Wallet.FeeEstimationError>) -> Void) {
         wallet.estimateFee(sweeper: self, fee: fee, completion: completion)
     }
 
-    public func submit(estimatedFeeBasis: TransferFeeBasis) {
-        if let transfer = wallet.createTransfer(sweeper: self, estimatedFeeBasis: estimatedFeeBasis) {
-            manager.submit(transfer: transfer, key: key)
-        }
+    public func submit(estimatedFeeBasis: TransferFeeBasis) -> Transfer? {
+        guard let transfer = wallet.createTransfer(sweeper: self, estimatedFeeBasis: estimatedFeeBasis)
+            else { return nil }
+
+        manager.submit(transfer: transfer, key: key)
+        return transfer
     }
 
     private func initAsBTC(bdb: BlockChainDB,

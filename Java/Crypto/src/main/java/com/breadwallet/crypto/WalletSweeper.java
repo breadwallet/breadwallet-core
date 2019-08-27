@@ -10,5 +10,5 @@ public interface WalletSweeper {
 
     void estimate(NetworkFee fee, CompletionHandler<TransferFeeBasis, FeeEstimationError> completion);
 
-    void submit(TransferFeeBasis feeBasis);
+    Optional<? extends Transfer> submit(TransferFeeBasis feeBasis);
 }
