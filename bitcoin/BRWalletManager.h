@@ -40,14 +40,11 @@
 extern "C" {
 #endif
 
-typedef struct BRWalletManagerStruct *BRWalletManager;
+/// MARK: - Forward Declarations
 
-// Likely unneeded.
-typedef enum {
-    WALLET_FORKID_BITCOIN = 0x00,
-    WALLET_FORKID_BITCASH = 0x40,
-    WALLET_FORKID_BITGOLD = 0x4f
-} BRWalletForkId;
+typedef struct BRWalletSweeperStruct *BRWalletSweeper;
+
+typedef struct BRWalletManagerStruct *BRWalletManager;
 
 // Cookies are used as markers to match up an asynchronous operation
 // request with its corresponding event.
@@ -231,7 +228,8 @@ typedef struct {
     BRWalletManagerEventType type;
     union {
         struct {
-            uint32_t percentComplete;
+            BRSyncTimestamp timestamp;
+            BRSyncPercentComplete percentComplete;
         } syncProgress;
         struct {
             int error;
@@ -330,6 +328,12 @@ BRWalletManagerCreateTransaction (BRWalletManager manager,
                                   BRAddress addr,
                                   uint64_t feePerKb);
 
+extern BRTransaction *
+BRWalletManagerCreateTransactionForSweep (BRWalletManager manager,
+                                          BRWallet *wallet,
+                                          BRWalletSweeper sweeper,
+                                          uint64_t feePerKb);
+
 /**
  * Signs any inputs in transaction that can be signed using private keys from the wallet.
  *
@@ -343,6 +347,12 @@ BRWalletManagerSignTransaction (BRWalletManager manager,
                                 OwnershipKept BRTransaction *transaction,
                                 const void *seed,
                                 size_t seedLen);
+
+extern int
+BRWalletManagerSignTransactionForKey (BRWalletManager manager,
+                                      BRWallet *wallet,
+                                      OwnershipKept BRTransaction *transaction,
+                                      BRKey *key);
 
 extern void
 BRWalletManagerSubmitTransaction (BRWalletManager manager,
@@ -361,6 +371,13 @@ BRWalletManagerEstimateFeeForTransfer (BRWalletManager manager,
                                        uint64_t transferAmount,
                                        uint64_t feePerKb);
 
+extern void
+BRWalletManagerEstimateFeeForSweep (BRWalletManager manager,
+                                    BRWallet *wallet,
+                                    BRCookie cookie,
+                                    BRWalletSweeper sweeper,
+                                    uint64_t feePerKb);
+
 extern BRFileService
 BRWalletManagerCreateFileService (const BRChainParams *params,
                                   const char *storagePath,
@@ -372,6 +389,46 @@ BRWalletManagerExtractFileServiceTypes (BRFileService fileService,
                                         const char **transactions,
                                         const char **blocks,
                                         const char **peers);
+
+//
+// Mark: Wallet Sweeper
+//
+
+typedef enum {
+    WALLET_SWEEPER_SUCCESS,
+    WALLET_SWEEPER_INVALID_TRANSACTION,
+    WALLET_SWEEPER_INVALID_SOURCE_WALLET,
+    WALLET_SWEEPER_NO_TRANSACTIONS_FOUND,
+    WALLET_SWEEPER_INSUFFICIENT_FUNDS,
+    WALLET_SWEEPER_UNABLE_TO_SWEEP,
+} BRWalletSweeperStatus;
+
+extern BRWalletSweeperStatus
+BRWalletSweeperValidateSupported (BRKey *key,
+                                  BRAddressParams addrParams,
+                                  BRWallet *wallet);
+
+extern BRWalletSweeper // NULL on error
+BRWalletSweeperNew (BRKey *key,
+                    BRAddressParams addrParams,
+                    uint8_t isSegwit);
+
+extern void
+BRWalletSweeperFree (BRWalletSweeper sweeper);
+
+extern BRWalletSweeperStatus
+BRWalletSweeperHandleTransaction (BRWalletSweeper sweeper,
+                                  OwnershipKept uint8_t *transaction,
+                                  size_t transactionLen);
+
+extern char *
+BRWalletSweeperGetLegacyAddress (BRWalletSweeper sweeper);
+
+extern uint64_t
+BRWalletSweeperGetBalance (BRWalletSweeper sweeper);
+
+extern BRWalletSweeperStatus
+BRWalletSweeperValidate (BRWalletSweeper sweeper);
 
 #ifdef __cplusplus
 }

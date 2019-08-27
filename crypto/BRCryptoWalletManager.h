@@ -27,6 +27,7 @@
 #define BRCryptoWalletManager_h
 
 #include "BRCryptoBase.h"
+#include "BRCryptoKey.h"
 #include "BRCryptoNetwork.h"
 #include "BRCryptoAccount.h"
 #include "BRCryptoTransfer.h"
@@ -39,6 +40,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+    /// MARK: Wallet Manager Event
 
     typedef enum {
         CRYPTO_WALLET_MANAGER_STATE_CREATED,
@@ -82,7 +85,8 @@ extern "C" {
             } wallet;
 
             struct {
-                unsigned int percentComplete;
+                BRSyncTimestamp timestamp;
+                BRSyncPercentComplete percentComplete;
             } sync;
 
             struct {
@@ -90,6 +94,8 @@ extern "C" {
             } blockHeight;
         } u;
     } BRCryptoWalletManagerEvent;
+
+#define CRYPTO_NO_SYNC_TIMESTAMP        (NO_SYNC_TIMESTAMP)
 
     /// MARK: Listener
 
@@ -195,6 +201,12 @@ extern "C" {
                                BRCryptoWallet wid,
                                BRCryptoTransfer tid,
                                const char *paperKey);
+
+    extern void
+    cryptoWalletManagerSubmitForKey (BRCryptoWalletManager cwm,
+                                     BRCryptoWallet wallet,
+                                     BRCryptoTransfer transfer,
+                                     BRCryptoKey key);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoWalletManager, cryptoWalletManager);
 

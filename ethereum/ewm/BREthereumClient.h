@@ -430,7 +430,8 @@ extern "C" {
                 BREthereumEWMState newState;
             } changed;
             struct {
-                double percent;
+                BRSyncTimestamp timestamp;
+                BRSyncPercentComplete percentComplete;
             } syncProgress;
             struct {
                 uint64_t value;

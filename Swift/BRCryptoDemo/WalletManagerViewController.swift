@@ -156,7 +156,7 @@ class WalletManagerViewController: UIViewController, WalletManagerListener {
                         self.connectStateSegmentedControl.selectedSegmentIndex = index
                     }
                 }
-            case .syncProgress(let percentComplete):
+            case .syncProgress(_, let percentComplete):
                 self.syncProgressLabel.text = percentComplete.description
             case .syncEnded(let error):
                 self.syncProgressLabel.text = error ?? ""

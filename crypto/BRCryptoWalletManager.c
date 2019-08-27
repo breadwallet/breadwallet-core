@@ -26,6 +26,7 @@
 #include <pthread.h>
 
 #include "BRCryptoBase.h"
+#include "BRCryptoKey.h"
 #include "BRCryptoPrivate.h"
 #include "BRCryptoWalletManager.h"
 #include "BRCryptoWalletManagerClient.h"
@@ -546,6 +547,44 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
                                      cryptoWalletAsGEN (wallet),
                                      cryptoTransferAsGEN (transfer),
                                      seed);
+            break;
+        }
+    }
+}
+
+extern void
+cryptoWalletManagerSubmitForKey (BRCryptoWalletManager cwm,
+                                 BRCryptoWallet wallet,
+                                 BRCryptoTransfer transfer,
+                                 BRCryptoKey key) {
+    switch (cwm->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            if (cryptoKeyHasSecret (key) &&
+                BRWalletManagerSignTransactionForKey (cwm->u.btc,
+                                                      cryptoWalletAsBTC (wallet),
+                                                      cryptoTransferAsBTC(transfer),
+                                                      cryptoKeyGetCore (key))) {
+                BRWalletManagerSubmitTransaction (cwm->u.btc,
+                                                  cryptoWalletAsBTC (wallet),
+                                                  cryptoTransferAsBTC(transfer));
+            }
+            break;
+        }
+
+        case BLOCK_CHAIN_TYPE_ETH: {
+            ewmWalletSignTransfer (cwm->u.eth,
+                                   cryptoWalletAsETH (wallet),
+                                   cryptoTransferAsETH (transfer),
+                                   *cryptoKeyGetCore (key));
+
+            ewmWalletSubmitTransfer (cwm->u.eth,
+                                     cryptoWalletAsETH (wallet),
+                                     cryptoTransferAsETH (transfer));
+            break;
+        }
+
+        case BLOCK_CHAIN_TYPE_GEN: {
+            assert (0);
             break;
         }
     }

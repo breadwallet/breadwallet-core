@@ -15,8 +15,11 @@
         android:theme="@style/Theme.AppCompat.Light.NoActionBar"
         tools:ignore="GoogleAppIndexingWarning">
         <activity
-            android:name=".TransferCreateActivity"
+            android:name=".TransferCreateSendActivity"
             android:label="Create Transfer"/>
+        <activity
+            android:name=".TransferCreateSweepActivity"
+            android:label="Create Sweep Transfer"/>
         <activity
             android:name=".TransferDetailsActivity"
             android:label="Transfer Details" />

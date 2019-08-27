@@ -141,6 +141,9 @@ public final class System {
         announceEvent (SystemEvent.networkAdded(network: network))
     }
 
+    internal func networkBy (uids: String) -> Network? {
+        return networks.first { $0.uids == uids }
+    }
 
     /// The system's Wallet Managers, unsorted.  A WalletManager will hold an 'unowned'
     /// reference back to `System`
@@ -249,6 +252,69 @@ public final class System {
                       currencies: Dictionary (uniqueKeysWithValues: currencyKeyValues))
         self.query.updateWallet (wallet) { (res: Result<BlockChainDB.Model.Wallet, BlockChainDB.QueryError>) in
             print ("SYS: SubscribedWallets: \(res)")
+        }
+    }
+
+    /// MARK: - Network Fees
+
+    ////
+    /// A NetworkFeeUpdateError
+    ///
+    public enum NetworkFeeUpdateError: Error {
+        /// The query endpoint for netowrk fees is unresponsive
+        case feesUnavailable
+    }
+
+    ///
+    /// Update the NetworkFees for all known networks.  This will query the `BlockChainDB` to
+    /// acquire the fee information and then update each of system's networks with the new fee
+    /// structure.  Each updated network will generate a NetworkEvent.feesUpdated event (even if
+    /// the actual fees did not change).
+    ///
+    /// And optional completion handler can be provided.  If provided the completion handler is
+    /// invoked with an array of the networks that were updated or with an error.
+    ///
+    /// It is appropriate to call this function anytime a network's fees are to be used, such as
+    /// when a transfer is created and the User can choose among the different fees.
+    ///
+    /// - Parameter completion: An optional completion handler
+    ///
+    public func updateNetworkFees (_ completion: ((Result<[Network],NetworkFeeUpdateError>) -> Void)? = nil) {
+        self.query.getBlockchains (mainnet: self.onMainnet) {
+            (blockChainResult: Result<[BlockChainDB.Model.Blockchain],BlockChainDB.QueryError>) in
+
+            // On an error, just skip out; we'll query again later, presumably
+            guard case let .success (blockChainModels) = blockChainResult
+                else {
+                    completion? (Result.failure (NetworkFeeUpdateError.feesUnavailable))
+                    return
+            }
+
+            let networks = blockChainModels.compactMap { (blockChainModel: BlockChainDB.Model.Blockchain) -> Network? in
+                guard let network = self.networkBy (uids: blockChainModel.id)
+                    else { return nil }
+
+                // We always have a feeUnit for network
+                let feeUnit = network.baseUnitFor(currency: network.currency)!
+
+                // Get the fees
+                let fees = blockChainModel.feeEstimates
+                    // Well, quietly ignore a fee if we can't parse the amount.
+                    .compactMap { (fee: BlockChainDB.Model.BlockchainFee) -> NetworkFee? in
+                        let timeInterval  = 1000 * 60 * Int (fee.tier.dropLast())!
+                        return Amount.create (string: fee.amount, unit: feeUnit)
+                            .map { NetworkFee (timeInternalInMilliseconds: UInt64(timeInterval),
+                                               pricePerCostFactor: $0) }
+                }
+
+                // The fees are unlikely to change; but we'll announce .feesUpdated anyways.
+                network.fees = fees
+                self.listener?.handleNetworkEvent (system: self, network: network, event: .feesUpdated)
+
+                return network
+            }
+
+            completion? (Result.success(networks))
         }
     }
 
@@ -587,9 +653,15 @@ extension System {
                                                           event: WalletManagerEvent.syncStarted)
 
                 case CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES:
+                    let timestamp: Date? = (0 == event.u.sync.timestamp // CRYPTO_NO_SYNC_TIMESTAMP
+                        ? nil
+                        : Date (timeIntervalSince1970: TimeInterval(event.u.sync.timestamp)))
+                    
                     system.listener?.handleManagerEvent (system: manager.system,
                                                           manager: manager,
-                                                          event: WalletManagerEvent.syncProgress (percentComplete: Double (event.u.sync.percentComplete)))
+                                                          event: WalletManagerEvent.syncProgress (
+                                                            timestamp: timestamp,
+                                                            percentComplete: event.u.sync.percentComplete))
 
                 case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED:
                     system.listener?.handleManagerEvent (system: manager.system,

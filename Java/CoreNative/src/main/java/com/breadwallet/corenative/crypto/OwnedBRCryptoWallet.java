@@ -98,8 +98,19 @@ class OwnedBRCryptoWallet implements CoreBRCryptoWallet {
     }
 
     @Override
+    public Optional<CoreBRCryptoTransfer> createTransferForWalletSweep(BRCryptoWalletSweeper sweeper, CoreBRCryptoFeeBasis estimatedFeeBasis) {
+        return core.createTransferForWalletSweep(sweeper, estimatedFeeBasis);
+    }
+
+    @Override
     public void estimateFeeBasis(Pointer cookie, CoreBRCryptoAddress target, CoreBRCryptoAmount amount, CoreBRCryptoNetworkFee fee) {
         core.estimateFeeBasis(cookie, target, amount, fee);
+    }
+
+    @Override
+    public void estimateFeeBasisForWalletSweep(Pointer cookie, BRCryptoWalletSweeper sweeper,
+                                               CoreBRCryptoNetworkFee fee) {
+        core.estimateFeeBasisForWalletSweep(cookie, sweeper, fee);
     }
 
     @Override

@@ -2228,7 +2228,8 @@ ewmHandleSync (BREthereumEWM ewm,
                uint64_t blockNumberStop) {
     assert (SYNC_MODE_P2P_ONLY == ewm->mode || SYNC_MODE_P2P_WITH_BRD_SYNC == ewm->mode);
 
-    double syncCompletePercent = 100.0 * (blockNumberCurrent - blockNumberStart) / (blockNumberStop - blockNumberStart);
+    BRSyncPercentComplete syncCompletePercent = AS_SYNC_PERCENT_COMPLETE (100.0 * (blockNumberCurrent - blockNumberStart) / (blockNumberStop - blockNumberStart));
+    // We do not have blockTimestampCurrent
 
     BREthereumEWMEvent event;
 
@@ -2250,7 +2251,9 @@ ewmHandleSync (BREthereumEWM ewm,
         event = (BREthereumEWMEvent) {
             EWM_EVENT_SYNC_PROGRESS,
             SUCCESS,
-            { .syncProgress = { syncCompletePercent }}
+            { .syncProgress = {
+                NO_SYNC_TIMESTAMP, // We do not have a timestamp
+                syncCompletePercent }}
         };
     }
 
@@ -2510,7 +2513,9 @@ ewmPeriodicDispatcher (BREventHandler handler,
             ewmSignalEWMEvent (ewm, (BREthereumEWMEvent) {
                 EWM_EVENT_SYNC_PROGRESS,
                 SUCCESS,
-                { .syncProgress = { 50.0 }}
+                { .syncProgress = {
+                    NO_SYNC_TIMESTAMP, // We do not have a timestamp
+                    AS_SYNC_PERCENT_COMPLETE(50) }}
             });
 
         // 3b) Similarly, we'll query all logs for this ewm's account.  We'll process these into

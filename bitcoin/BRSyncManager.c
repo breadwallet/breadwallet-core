@@ -1035,8 +1035,10 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
                     needSyncEvent = 1;
                     syncEvent = (BRSyncManagerEvent) {
                         SYNC_MANAGER_SYNC_PROGRESS,
-                        { .syncProgress = { (uint32_t) (((manager->scanState.chunkBegBlockNumber - manager->scanState.begBlockNumber) * 100) /
-                                                        (manager->scanState.endBlockNumber - manager->scanState.begBlockNumber)) }}
+                        { .syncProgress = {
+                            NO_SYNC_TIMESTAMP, // We do not have a timestamp.
+                            AS_SYNC_PERCENT_COMPLETE (100.0 * (manager->scanState.chunkBegBlockNumber - manager->scanState.begBlockNumber) /
+                                                      (manager->scanState.endBlockNumber - manager->scanState.begBlockNumber)) }}
                     };
 
                 } else {
@@ -1398,8 +1400,10 @@ BRPeerSyncManagerSubmit(BRPeerSyncManager manager,
 
 static void
 BRPeerSyncManagerTickTock(BRPeerSyncManager manager) {
-    double progress = BRPeerManagerSyncProgress (manager->peerManager, 0);
-    uint8_t needSyncEvent = progress > 0.0 && progress < 1.0;
+    BRSyncPercentComplete progressComplete  = AS_SYNC_PERCENT_COMPLETE (100.0 * BRPeerManagerSyncProgress (manager->peerManager, 0));
+    BRSyncTimestamp       progressTimestamp = AS_SYNC_TIMESTAMP (BRPeerManagerLastBlockTimestamp(manager->peerManager));
+
+    uint8_t needSyncEvent = progressComplete > 0.0 && progressComplete < 100.0;
     if (needSyncEvent) {
         if (0 == pthread_mutex_lock (&manager->lock)) {
             needSyncEvent &= manager->isConnected && manager->isFullScan;
@@ -1413,7 +1417,9 @@ BRPeerSyncManagerTickTock(BRPeerSyncManager manager) {
                                         BRPeerSyncManagerAsSyncManager (manager),
                                         (BRSyncManagerEvent) {
                                             SYNC_MANAGER_SYNC_PROGRESS,
-                                            { .syncProgress = { progress * 100 }}
+                                            { .syncProgress = {
+                                                progressTimestamp,
+                                                progressComplete }}
                                         });
             }
 
