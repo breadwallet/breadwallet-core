@@ -90,7 +90,7 @@ extern "C" {
 
     extern UInt256
     cryptoKeyGetSecret (BRCryptoKey key);
-    
+
     extern int
     cryptoKeySecretMatch (BRCryptoKey key1, BRCryptoKey key2);
 

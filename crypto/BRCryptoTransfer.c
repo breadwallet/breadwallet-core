@@ -493,6 +493,8 @@ cryptoTransferGetDirection (BRCryptoTransfer transfer) {
             int accountIsSource = gwmAddressEqual (gwm, source, address);
             int accountIsTarget = gwmAddressEqual (gwm, target, address);
 
+            // TODO: BRGenericAddress - release source, target, address
+            
             if      ( accountIsSource &&  accountIsTarget) return CRYPTO_TRANSFER_RECOVERED;
             else if ( accountIsSource && !accountIsTarget) return CRYPTO_TRANSFER_SENT;
             else if (!accountIsSource &&  accountIsTarget) return CRYPTO_TRANSFER_RECOVERED;

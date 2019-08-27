@@ -141,6 +141,9 @@ public final class System {
         announceEvent (SystemEvent.networkAdded(network: network))
     }
 
+    internal func networkBy (uids: String) -> Network? {
+        return networks.first { $0.uids == uids }
+    }
 
     /// The system's Wallet Managers, unsorted.  A WalletManager will hold an 'unowned'
     /// reference back to `System`
@@ -249,6 +252,69 @@ public final class System {
                       currencies: Dictionary (uniqueKeysWithValues: currencyKeyValues))
         self.query.updateWallet (wallet) { (res: Result<BlockChainDB.Model.Wallet, BlockChainDB.QueryError>) in
             print ("SYS: SubscribedWallets: \(res)")
+        }
+    }
+
+    /// MARK: - Network Fees
+
+    ////
+    /// A NetworkFeeUpdateError
+    ///
+    public enum NetworkFeeUpdateError: Error {
+        /// The query endpoint for netowrk fees is unresponsive
+        case feesUnavailable
+    }
+
+    ///
+    /// Update the NetworkFees for all known networks.  This will query the `BlockChainDB` to
+    /// acquire the fee information and then update each of system's networks with the new fee
+    /// structure.  Each updated network will generate a NetworkEvent.feesUpdated event (even if
+    /// the actual fees did not change).
+    ///
+    /// And optional completion handler can be provided.  If provided the completion handler is
+    /// invoked with an array of the networks that were updated or with an error.
+    ///
+    /// It is appropriate to call this function anytime a network's fees are to be used, such as
+    /// when a transfer is created and the User can choose among the different fees.
+    ///
+    /// - Parameter completion: An optional completion handler
+    ///
+    public func updateNetworkFees (_ completion: ((Result<[Network],NetworkFeeUpdateError>) -> Void)? = nil) {
+        self.query.getBlockchains (mainnet: self.onMainnet) {
+            (blockChainResult: Result<[BlockChainDB.Model.Blockchain],BlockChainDB.QueryError>) in
+
+            // On an error, just skip out; we'll query again later, presumably
+            guard case let .success (blockChainModels) = blockChainResult
+                else {
+                    completion? (Result.failure (NetworkFeeUpdateError.feesUnavailable))
+                    return
+            }
+
+            let networks = blockChainModels.compactMap { (blockChainModel: BlockChainDB.Model.Blockchain) -> Network? in
+                guard let network = self.networkBy (uids: blockChainModel.id)
+                    else { return nil }
+
+                // We always have a feeUnit for network
+                let feeUnit = network.baseUnitFor(currency: network.currency)!
+
+                // Get the fees
+                let fees = blockChainModel.feeEstimates
+                    // Well, quietly ignore a fee if we can't parse the amount.
+                    .compactMap { (fee: BlockChainDB.Model.BlockchainFee) -> NetworkFee? in
+                        let timeInterval  = 1000 * 60 * Int (fee.tier.dropLast())!
+                        return Amount.create (string: fee.amount, unit: feeUnit)
+                            .map { NetworkFee (timeInternalInMilliseconds: UInt64(timeInterval),
+                                               pricePerCostFactor: $0) }
+                }
+
+                // The fees are unlikely to change; but we'll announce .feesUpdated anyways.
+                network.fees = fees
+                self.listener?.handleNetworkEvent (system: self, network: network, event: .feesUpdated)
+
+                return network
+            }
+
+            completion? (Result.success(networks))
         }
     }
 
@@ -543,6 +609,8 @@ extension System {
                                                          event: WalletManagerEvent.created)
 
                 case CRYPTO_WALLET_MANAGER_EVENT_CHANGED:
+                    print ("SYS: Event: Manager (\(manager.name)): \(event.type): {\(WalletManagerState (core: event.u.state.oldValue)) -> \(WalletManagerState (core: event.u.state.newValue))}")
+
                     system.listener?.handleManagerEvent (system: manager.system,
                                                           manager: manager,
                                                           event: WalletManagerEvent.changed (oldState: WalletManagerState (core: event.u.state.oldValue),
@@ -1204,6 +1272,7 @@ extension System {
     ///
     public enum BlockBlob {
         case btc (
+            hash: BlockHash,
             height: UInt32,
             nonce: UInt32,
             target: UInt32,
@@ -1318,6 +1387,7 @@ extension System {
                 else { return }
 
             guard blob.hashes.allSatisfy (System.validateBlockHash(_:)),
+                System.validateBlockHash(blob.hash),
                 System.validateBlockHash(blob.merkleRoot),
                 System.validateBlockHash(blob.prevBlock)
                 else { throw MigrateError.block }
@@ -1326,12 +1396,14 @@ extension System {
             var hashes = blob.hashes
             let hashesCount = blob.hashes.count
 
+            let hash: UInt256 = blob.hash.withUnsafeBytes { $0.load (as: UInt256.self) }
             let merkleRoot: UInt256 = blob.merkleRoot.withUnsafeBytes { $0.load (as: UInt256.self) }
             let prevBlock:  UInt256 = blob.prevBlock.withUnsafeBytes  { $0.load (as: UInt256.self) }
 
             try hashes.withUnsafeMutableBytes { (hashesBytes: UnsafeMutableRawBufferPointer) -> Void in
                 let hashesAddr = hashesBytes.baseAddress?.assumingMemoryBound(to: UInt256.self)
                 let status = cryptoWalletMigratorHandleBlockAsBTC (migrator,
+                                                                   hash,
                                                                    blob.height,
                                                                    blob.nonce,
                                                                    blob.target,
@@ -1427,7 +1499,7 @@ extension BRCryptoTransferEventType: CustomStringConvertible {
         case CRYPTO_TRANSFER_EVENT_CREATED: return "Created"
         case CRYPTO_TRANSFER_EVENT_CHANGED: return "Changed"
         case CRYPTO_TRANSFER_EVENT_DELETED: return "Deleted"
-        default: return "<>unknown>>"
+        default: return "<<unknown>>"
         }
     }
 }
@@ -1446,8 +1518,9 @@ extension BRCryptoWalletEventType: CustomStringConvertible {
 
         case CRYPTO_WALLET_EVENT_BALANCE_UPDATED:   return "Balance Updated"
         case CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED: return "FeeBasis Updated"
+        case CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED: return "FeeBasis Estimated"
 
-        default: return "<>unknown>>"
+        default: return "<<unknown>>"
         }
     }
 }
@@ -1469,7 +1542,7 @@ extension BRCryptoWalletManagerEventType: CustomStringConvertible {
         case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED:   return "Sync Stopped"
 
         case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED: return "Block Height Updated"
-        default: return "<>unknown>>"
+        default: return "<<unknown>>"
         }
     }
 }

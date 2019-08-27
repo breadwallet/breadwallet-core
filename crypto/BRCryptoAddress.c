@@ -39,6 +39,9 @@ struct BRCryptoAddressRecord {
     union {
         struct {
             BRCryptoBoolean isBitcoinAddr; // TRUE if BTC; FALSE if BCH
+
+            // This BRAddress always satisfies BRAddressIsValid (given the corresponding
+            // BRAddressParams).
             BRAddress addr;
         } btc;
         BREthereumAddress eth;
@@ -87,13 +90,27 @@ cryptoAddressCreateAsBTC (BRAddress btc, BRCryptoBoolean isBitcoinAddr) {
 
 private_extern BRCryptoAddress
 cryptoAddressCreateAsGEN (BRGenericWalletManager gwm,
-    BRGenericAddress aid) {
+                          BRGenericAddress aid) { // TODO: BRGenericAddress - ownership given?
     BRCryptoAddress address = cryptoAddressCreate (BLOCK_CHAIN_TYPE_GEN);
     address->u.gen.gwm = gwm;
     address->u.gen.aid = aid;
     return address;
 }
 
+private_extern BRCryptoBlockChainType
+cryptoAddressGetType (BRCryptoAddress address) {
+    return address->type;
+}
+
+private_extern BRAddress
+cryptoAddressAsBTC (BRCryptoAddress address,
+                    BRCryptoBoolean *isBitcoinAddr) {
+    assert (BLOCK_CHAIN_TYPE_BTC == address->type);
+    assert (NULL != isBitcoinAddr);
+    *isBitcoinAddr = address->u.btc.isBitcoinAddr;
+    return address->u.btc.addr;
+
+}
 private_extern BREthereumAddress
 cryptoAddressAsETH (BRCryptoAddress address) {
     assert (BLOCK_CHAIN_TYPE_ETH == address->type);
@@ -172,4 +189,3 @@ cryptoAddressIsIdentical (BRCryptoAddress a1,
                                    ? ETHEREUM_BOOLEAN_IS_TRUE (addressEqual (a1->u.eth, a2->u.eth))
                                    : gwmAddressEqual (a1->u.gen.gwm, a1->u.gen.aid, a2->u.gen.aid)))));
 }
-

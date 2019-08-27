@@ -125,6 +125,8 @@
 		3C7BE5AA230EFD36005FD4CD /* BRCryptoWallet.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C97E23A22416AB1003FD88F /* BRCryptoWallet.c */; };
 		3C7BE5AB230EFD37005FD4CD /* BRCryptoWallet.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C97E23A22416AB1003FD88F /* BRCryptoWallet.c */; };
 		3C7BE5AC230EFD43005FD4CD /* BRCryptoWalletManager.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C97E23D22416AB1003FD88F /* BRCryptoWalletManager.c */; };
+		3C7BE5AE230F0BD0005FD4CD /* WalletManagersTableViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C7BE5AD230F0BD0005FD4CD /* WalletManagersTableViewController.swift */; };
+		3C7BE5B0230F0BFB005FD4CD /* WalletManagerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C7BE5AF230F0BFB005FD4CD /* WalletManagerViewController.swift */; };
 		3C812EC22266721E0007D335 /* testRipple.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C812EC12266721E0007D335 /* testRipple.c */; };
 		3C9025EF21063AD200143B69 /* testUtil.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C9025EE21063AD200143B69 /* testUtil.c */; };
 		3C9025F121063BDC00143B69 /* testRlp.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C9025F021063BDC00143B69 /* testRlp.c */; };
@@ -531,6 +533,8 @@
 		3C6B172C2131CB5B003C313B /* CoreExplore */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = CoreExplore; sourceTree = BUILT_PRODUCTS_DIR; };
 		3C6B172E2131CB5B003C313B /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		3C6B17792131CE12003C313B /* libCoreMacOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libCoreMacOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		3C7BE5AD230F0BD0005FD4CD /* WalletManagersTableViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletManagersTableViewController.swift; sourceTree = "<group>"; };
+		3C7BE5AF230F0BFB005FD4CD /* WalletManagerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletManagerViewController.swift; sourceTree = "<group>"; };
 		3C812EBE2266675E0007D335 /* BRRipple.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRRipple.h; sourceTree = "<group>"; };
 		3C812EC12266721E0007D335 /* testRipple.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testRipple.c; sourceTree = "<group>"; };
 		3C9025EE21063AD200143B69 /* testUtil.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testUtil.c; sourceTree = "<group>"; };
@@ -807,6 +811,8 @@
 				3C56C97E22FA27DD0054AD21 /* TransferCreateRecvController.swift */,
 				3C56C98022FA28190054AD21 /* TransferCreatePaymentController.swift */,
 				3C56C98222FA28310054AD21 /* TransferCreateSweepController.swift */,
+				3C7BE5AD230F0BD0005FD4CD /* WalletManagersTableViewController.swift */,
+				3C7BE5AF230F0BFB005FD4CD /* WalletManagerViewController.swift */,
 				3CCD36C321AC92210032637A /* Support.swift */,
 				3C18F8B721950746006F738F /* Main.storyboard */,
 				3C18F8BA21950748006F738F /* Assets.xcassets */,
@@ -1693,8 +1699,10 @@
 			files = (
 				3C18F8CC219507E2006F738F /* CoreDemoListener.swift in Sources */,
 				3CCD36C021AC90860032637A /* SummaryViewController.swift in Sources */,
+				3C7BE5B0230F0BFB005FD4CD /* WalletManagerViewController.swift in Sources */,
 				3C56C97F22FA27DD0054AD21 /* TransferCreateRecvController.swift in Sources */,
 				3C56C98522FA2B630054AD21 /* TransferCreateController.swift in Sources */,
+				3C7BE5AE230F0BD0005FD4CD /* WalletManagersTableViewController.swift in Sources */,
 				3C56C98322FA28310054AD21 /* TransferCreateSweepController.swift in Sources */,
 				3CCD36C221AC90860032637A /* WalletTableViewCell.swift in Sources */,
 				3C25ED382254079400CFB88D /* TransferViewController.swift in Sources */,

@@ -77,11 +77,15 @@ extern "C" {
     cryptoAddressCreateFromStringAsGEN (const char *ethAddress);
 
     /**
-     * Returns the addresses' string representation which is suitable for display.
+     * Returns the address' string representation which is suitable for display.  Note that an
+     * address representing BCH will have a prefix included, typically one of 'bitcoincash' or
+     * 'bchtest'.  And, there is not the reverse function of `cryptoAddressCreateFromString()`
+     * whereby the type (BTC, BCH, ETH, ...) is derived from the string - one must know
+     * beforehand in order to process the string.
      *
      * @param address the addres
      *
-     *@return A string representation which is newly allocated and must be freed.
+     * @return A string representation which is newly allocated and must be freed.
      */
     extern char *
     cryptoAddressAsString (BRCryptoAddress address);

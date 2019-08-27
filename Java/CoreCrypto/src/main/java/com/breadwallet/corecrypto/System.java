@@ -440,6 +440,11 @@ final class System implements com.breadwallet.crypto.System {
         return getSupportedWalletManagerModes(network).contains(mode);
     }
 
+    /* package */
+    BlockchainDb getBlockchainDb() {
+        return query;
+    }
+
     // Event announcements
 
     private void announceSystemEvent(SystemEvent event) {

@@ -26,6 +26,7 @@
 #include <pthread.h>
 
 #include "BRCryptoBase.h"
+#include "BRCryptoKey.h"
 #include "BRCryptoPrivate.h"
 #include "BRCryptoWalletManager.h"
 #include "BRCryptoWalletManagerClient.h"
@@ -158,7 +159,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
             cwm->u.eth = ewmCreate (cryptoNetworkAsETH(network),
                                     cryptoAccountAsETH(account),
                                     (BREthereumTimestamp) cryptoAccountGetTimestamp(account),
-                                    (BREthereumMode) mode,
+                                    mode,
                                     client,
                                     cwmPath,
                                     cryptoNetworkGetHeight(network));
@@ -327,6 +328,8 @@ cryptoWalletManagerSetMode (BRCryptoWalletManager cwm, BRSyncMode mode) {
             BRWalletManagerSetMode (cwm->u.btc, mode);
             break;
         case BLOCK_CHAIN_TYPE_ETH:
+            ewmUpdateMode (cwm->u.eth, mode);
+            break;
         case BLOCK_CHAIN_TYPE_GEN:
         default:
             assert (0);
@@ -342,6 +345,8 @@ cryptoWalletManagerGetMode (BRCryptoWalletManager cwm) {
             mode = BRWalletManagerGetMode (cwm->u.btc);
             break;
         case BLOCK_CHAIN_TYPE_ETH:
+            mode = ewmGetMode (cwm->u.eth);
+            break;
         case BLOCK_CHAIN_TYPE_GEN:
         default:
             assert (0);
@@ -542,6 +547,44 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
                                      cryptoWalletAsGEN (wallet),
                                      cryptoTransferAsGEN (transfer),
                                      seed);
+            break;
+        }
+    }
+}
+
+extern void
+cryptoWalletManagerSubmitForKey (BRCryptoWalletManager cwm,
+                                 BRCryptoWallet wallet,
+                                 BRCryptoTransfer transfer,
+                                 BRCryptoKey key) {
+    switch (cwm->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            if (cryptoKeyHasSecret (key) &&
+                BRWalletManagerSignTransactionForKey (cwm->u.btc,
+                                                      cryptoWalletAsBTC (wallet),
+                                                      cryptoTransferAsBTC(transfer),
+                                                      cryptoKeyGetCore (key))) {
+                BRWalletManagerSubmitTransaction (cwm->u.btc,
+                                                  cryptoWalletAsBTC (wallet),
+                                                  cryptoTransferAsBTC(transfer));
+            }
+            break;
+        }
+
+        case BLOCK_CHAIN_TYPE_ETH: {
+            ewmWalletSignTransfer (cwm->u.eth,
+                                   cryptoWalletAsETH (wallet),
+                                   cryptoTransferAsETH (transfer),
+                                   *cryptoKeyGetCore (key));
+
+            ewmWalletSubmitTransfer (cwm->u.eth,
+                                     cryptoWalletAsETH (wallet),
+                                     cryptoTransferAsETH (transfer));
+            break;
+        }
+
+        case BLOCK_CHAIN_TYPE_GEN: {
+            assert (0);
             break;
         }
     }
@@ -787,6 +830,7 @@ cryptoWalletMigratorHandleTransactionAsBTC (BRCryptoWalletMigrator migrator,
 
 extern BRCryptoWalletMigratorStatus
 cryptoWalletMigratorHandleBlockAsBTC (BRCryptoWalletMigrator migrator,
+                                      UInt256 hash,
                                       uint32_t height,
                                       uint32_t nonce,
                                       uint32_t target,
@@ -798,6 +842,7 @@ cryptoWalletMigratorHandleBlockAsBTC (BRCryptoWalletMigrator migrator,
                                       UInt256 merkleRoot,
                                       UInt256 prevBlock) {
     BRMerkleBlock *block = BRMerkleBlockNew();
+    block->blockHash = hash;
     block->height = height;
     block->nonce  = nonce;
     block->target = target;

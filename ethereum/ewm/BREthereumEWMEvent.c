@@ -320,10 +320,20 @@ ewmHandleSaveNodesEventDispatcher(BREventHandler ignore,
     ewmHandleSaveNodes(event->ewm, event->nodes);
 }
 
+static void
+ewmHandleSaveNodesEventDestroyer (BREthereumHandleSaveNodesEvent *event) {
+    if (NULL != event->nodes) {
+        for (size_t index = 0; index < array_count (event->nodes); index++)
+            nodeConfigRelease (event->nodes[index]);
+        array_free (event->nodes);
+    }
+}
+
 BREventType handleSaveNodesEventType = {
     "EWM: Handle SaveNodes Event",
     sizeof (BREthereumHandleSaveNodesEvent),
-    (BREventDispatcher) ewmHandleSaveNodesEventDispatcher
+    (BREventDispatcher) ewmHandleSaveNodesEventDispatcher,
+    (BREventDestroyer)  ewmHandleSaveNodesEventDestroyer
 };
 
 extern void
@@ -745,7 +755,6 @@ static void
 ewmSignalAnnounceSubmitTransferDestroyer (BREthereumEWMClientAnnounceSubmitTransferEvent *event) {
     if (NULL != event->errorMessage) free (event->errorMessage);
 }
-
 
 static BREventType ewmClientAnnounceSubmitTransferEventType = {
     "EWM: Client Announce SubmitTransfer Event",

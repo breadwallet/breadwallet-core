@@ -140,6 +140,11 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
+    public void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, BRCryptoKey key) {
+        CryptoLibrary.INSTANCE.cryptoWalletManagerSubmitForKey(this, wallet.asBRCryptoWallet(), transfer.asBRCryptoTransfer(), key);
+    }
+
+    @Override
     public void announceGetBlockNumberSuccess(BRCryptoCWMClientCallbackState callbackState, UnsignedLong blockNumber) {
         CryptoLibrary.INSTANCE.cwmAnnounceGetBlockNumberSuccessAsInteger(this, callbackState, blockNumber.longValue());
     }

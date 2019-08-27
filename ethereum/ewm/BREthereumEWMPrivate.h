@@ -61,7 +61,7 @@ struct BREthereumEWMRecord {
     /**
      * The Mode of this EWM
      */
-    BREthereumMode mode;
+    BRSyncMode mode;
 
     /**
      * The network
@@ -77,6 +77,7 @@ struct BREthereumEWMRecord {
      * The account
      */
     BREthereumAccount account;
+    BREthereumTimestamp accountTimestamp;
 
     /**
      * The wallets 'managed/handled' by this ewm.  There can be only one wallet holding ETHER;
