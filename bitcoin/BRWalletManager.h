@@ -326,6 +326,13 @@ BRWalletManagerCreateTransaction (BRWalletManager manager,
                                   const char *addr,
                                   uint64_t feePerKb);
 
+extern BRTransaction *
+BRWalletManagerCreateTransactionForOutputs (BRWalletManager manager,
+                                            BRWallet *wallet,
+                                            BRTxOutput *outputs,
+                                            size_t outputsLen,
+                                            uint64_t feePerKb);
+
 /**
  * Signs any inputs in transaction that can be signed using private keys from the wallet.
  *

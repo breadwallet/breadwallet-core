@@ -544,6 +544,52 @@ cryptoWalletCreateTransfer (BRCryptoWallet  wallet,
     return transfer;
 }
 
+extern BRCryptoTransfer
+cryptoWalletCreateTransferForPaymentProtocolRequest (BRCryptoWallet wallet,
+                                                     BRCryptoPaymentProtocolRequest request,
+                                                     BRCryptoFeeBasis estimatedFeeBasis) {
+    BRCryptoTransfer transfer = NULL;
+
+    BRCryptoUnit unit       = cryptoWalletGetUnit (wallet);
+    BRCryptoUnit unitForFee = cryptoWalletGetUnitForFee(wallet);
+
+    switch (wallet->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            BRWalletManager bwm = wallet->u.btc.bwm;
+            BRWallet *wid = wallet->u.btc.wid;
+
+            switch (cryptoPaymentProtocolRequestGetType (request)) {
+                case CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY:
+                case CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70: {
+                    BRArrayOf(BRTxOutput) outputs = cryptoPaymentProtocolRequestGetOutputsAsBTC (request);
+                    if (NULL != outputs) {
+                        BRTransaction *tid = BRWalletManagerCreateTransactionForOutputs (bwm, wid, outputs, array_count (outputs),
+                                                                                         cryptoFeeBasisAsBTC(estimatedFeeBasis));
+                        transfer = NULL == tid ? NULL : cryptoTransferCreateAsBTC (unit, unitForFee, wid, tid,
+                                                                                   AS_CRYPTO_BOOLEAN(BRWalletManagerHandlesBTC(bwm)));
+                        array_free (outputs);
+                    }
+                    break;
+                }
+                default: {
+                    assert (0);
+                    break;
+                }
+            }
+            break;
+        }
+        default: {
+            assert (0);
+            break;
+        }
+    }
+
+    cryptoUnitGive (unitForFee);
+    cryptoUnitGive (unit);
+
+    return transfer;
+}
+
 extern void
 cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
                               BRCryptoCookie cookie,

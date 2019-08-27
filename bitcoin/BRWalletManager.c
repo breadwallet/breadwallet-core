@@ -826,6 +826,36 @@ BRWalletManagerCreateTransaction (BRWalletManager manager,
     return transaction;
 }
 
+extern BRTransaction *
+BRWalletManagerCreateTransactionForOutputs (BRWalletManager manager,
+                                            BRWallet *wallet,
+                                            BRTxOutput *outputs,
+                                            size_t outputsLen,
+                                            uint64_t feePerKb) {
+    assert (wallet == manager->wallet);
+
+    pthread_mutex_lock (&manager->lock);
+    uint64_t feePerKbSaved = BRWalletFeePerKb (wallet);
+
+    BRWalletSetFeePerKb (wallet, feePerKb);
+    BRTransaction *transaction = BRWalletCreateTxForOutputs (wallet, outputs, outputsLen);
+    BRWalletSetFeePerKb (wallet, feePerKbSaved);
+
+    BRTransactionWithState txnWithState = (NULL != transaction) ? BRWalletManagerAddOwnedTransaction (manager, transaction) : NULL;
+    pthread_mutex_unlock (&manager->lock);
+
+    if (NULL != txnWithState) {
+        bwmSignalTransactionEvent(manager,
+                                  wallet,
+                                  BRTransactionWithStateGetOwned (txnWithState),
+                                  (BRTransactionEvent) {
+                                      BITCOIN_TRANSACTION_CREATED
+                                  });
+    }
+
+    return transaction;
+}
+
 extern int
 BRWalletManagerSignTransaction (BRWalletManager manager,
                                 BRWallet *wallet,
