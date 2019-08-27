@@ -320,6 +320,8 @@ public class BlockChainDB {
             return currencySymbols[code] ?? code
         }
 
+        static private let currencyInternalAddress = "__native__"
+
         static internal func asCurrency (json: JSON) -> Model.Currency? {
             guard let id = json.asString (name: "currency_id"),
                 let name = json.asString (name: "name"),
@@ -340,7 +342,7 @@ public class BlockChainDB {
             
             return (id: id, name: name, code: code, type: type,
                     blockchainID: bid,
-                    address: address,
+                    address: (address == currencyInternalAddress ? nil : address),
                     verified: verified,
                     demoninations: demoninations)
         }
