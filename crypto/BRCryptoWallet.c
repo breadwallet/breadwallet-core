@@ -703,10 +703,10 @@ cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
 }
 
 extern void
-    cryptoWalletEstimateFeeBasisForWalletSweep (BRCryptoWallet  wallet,
-                                                BRCryptoCookie cookie,
-                                                BRCryptoWalletSweeper sweeper,
-                                                BRCryptoNetworkFee fee) {
+cryptoWalletEstimateFeeBasisForWalletSweep (BRCryptoWallet  wallet,
+                                            BRCryptoCookie cookie,
+                                            BRCryptoWalletSweeper sweeper,
+                                            BRCryptoNetworkFee fee) {
     switch (wallet->type) {
         case BLOCK_CHAIN_TYPE_BTC: {
             BRWalletManager bwm = wallet->u.btc.bwm;

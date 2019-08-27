@@ -30,6 +30,7 @@
 #include "BRCryptoFeeBasis.h"
 #include "BRCryptoKey.h"
 #include "BRCryptoNetwork.h"        // NetworkFee
+#include "BRCryptoPayment.h"
 #include "BRCryptoStatus.h"
 #include "BRCryptoTransfer.h"
 
@@ -203,6 +204,11 @@ extern "C" {
     cryptoWalletCreateTransferForWalletSweep (BRCryptoWallet  wallet,
                                               BRCryptoWalletSweeper sweeper,
                                               BRCryptoFeeBasis estimatedFeeBasis);
+
+    extern BRCryptoTransfer
+    cryptoWalletCreateTransferForPaymentProtocolRequest (BRCryptoWallet wallet,
+                                                         BRCryptoPaymentProtocolRequest request,
+                                                         BRCryptoFeeBasis estimatedFeeBasis);
 
     /**
      * Estimate the fee to transfer `amount` from `wallet` using the `feeBasis`.  Return an amount
