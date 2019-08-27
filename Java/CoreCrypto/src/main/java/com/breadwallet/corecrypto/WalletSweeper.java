@@ -65,9 +65,9 @@ final class WalletSweeper implements com.breadwallet.crypto.WalletSweeper {
         return statusToError(BRCryptoWalletSweeper.validateSupported(coreNetwork, coreCurrency, coreKey, coreWallet));
     }
 
-    private static WalletSweeper createSweeper(WalletManager manager,
-                                               Wallet wallet,
-                                               Key key) {
+    private static WalletSweeper createAsBtc(WalletManager manager,
+                                             Wallet wallet,
+                                             Key key) {
         Network network = manager.getNetwork();
 
         BRCryptoKey coreKey = key.getBRCryptoKey();
@@ -94,7 +94,7 @@ final class WalletSweeper implements com.breadwallet.crypto.WalletSweeper {
 
         // construct a sweeper and populate it
         if (Currency.CODE_AS_BTC.equals(wallet.getCurrency().getCode())) {
-            createSweeper(manager, wallet, key).initAsBtc(bdb, completion);
+            createAsBtc(manager, wallet, key).initAsBtc(bdb, completion);
         } else {
             throw new IllegalArgumentException("Unsupported wallet");
         }
