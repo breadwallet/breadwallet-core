@@ -72,6 +72,317 @@ getCurrencyName (const BRChainParams *params) {
     return NULL;
 }
 
+//
+// Mark: Wallet Sweeper
+//
+
+struct BRWalletSweeperStruct {
+    BRAddressParams addrParams;
+    uint8_t isSegwit;
+    char * sourceAddress;
+    BRArrayOf(BRTransaction *) txns;
+};
+
+extern BRWalletSweeperStatus
+BRWalletSweeperValidateSupported (BRKey *key,
+                                  BRAddressParams addrParams,
+                                  BRWallet *wallet) {
+    // encode using legacy format (only supported method for BTC)
+    size_t addrLength = BRKeyLegacyAddr (key, NULL, 0, addrParams);
+    char  *addr = malloc (addrLength + 1);
+    BRKeyLegacyAddr (key, addr, addrLength, addrParams);
+    addr[addrLength] = '\0';
+
+    // check if we are trying to sweep ourselves
+    int containsAddr = BRWalletContainsAddress (wallet, addr);
+    free (addr);
+
+    if (containsAddr) {
+        return WALLET_SWEEPER_INVALID_SOURCE_WALLET;
+    }
+
+    return WALLET_SWEEPER_SUCCESS;
+}
+
+extern BRWalletSweeper // NULL on error
+BRWalletSweeperNew (BRKey *key,
+                    BRAddressParams addrParams,
+                    uint8_t isSegwit) {
+    size_t addressLength = BRKeyLegacyAddr (key, NULL, 0, addrParams);
+    char  *address = malloc (addressLength + 1);
+    BRKeyLegacyAddr (key, address, addressLength, addrParams);
+    address[addressLength] = '\0';
+
+    BRWalletSweeper sweeper = calloc (1, sizeof(struct BRWalletSweeperStruct));
+    sweeper->addrParams = addrParams;
+    sweeper->isSegwit = isSegwit;
+    sweeper->sourceAddress = address;
+    array_new (sweeper->txns, 100);
+    return sweeper;
+}
+
+extern void
+BRWalletSweeperFree (BRWalletSweeper sweeper) {
+    free (sweeper->sourceAddress);
+    for (size_t index = 0; index < array_count(sweeper->txns); index++) {
+        BRTransactionFree (sweeper->txns[index]);
+    }
+    array_free (sweeper->txns);
+    memset (sweeper, 0, sizeof(struct BRWalletSweeperStruct));
+    free (sweeper);
+}
+
+typedef struct {
+    UInt256 txHash;
+    uint32_t utxoIndex;
+    uint8_t *script;
+    size_t scriptLen;
+    uint64_t amount;
+} BRWalletSweeperUTXO;
+
+inline static size_t BRWalletSweeperUTXOHash(const void *utxo)
+{
+    // (hash xor n)*FNV_PRIME, lifted from BRWallet's BRUTXOHash
+    return (size_t)((((const BRWalletSweeperUTXO *)utxo)->txHash.u32[0] ^ ((const BRWalletSweeperUTXO *)utxo)->utxoIndex)*0x01000193);
+}
+
+inline static int BRWalletSweeperUTXOEq(const void *utxo, const void *otherUtxo)
+{
+    // lifted from BRWallet's BRUTXOEq
+    return (utxo == otherUtxo || (UInt256Eq(((const BRWalletSweeperUTXO *)utxo)->txHash, ((const BRWalletSweeperUTXO *)otherUtxo)->txHash) &&
+                                  ((const BRWalletSweeperUTXO *)utxo)->utxoIndex == ((const BRWalletSweeperUTXO *)otherUtxo)->utxoIndex));
+}
+
+inline static uint64_t BRWalletSweeperCalculateFee(uint64_t feePerKb, size_t size)
+{
+    // lifted from BRWallet's _txFee
+    uint64_t standardFee = size*TX_FEE_PER_KB/1000,       // standard fee based on tx size
+             fee = (((size*feePerKb/1000) + 99)/100)*100; // fee using feePerKb, rounded up to nearest 100 satoshi
+
+    return (fee > standardFee) ? fee : standardFee;
+}
+
+inline static uint64_t BRWalletSweeperCalculateMinOutputAmount(uint64_t feePerKb)
+{
+    // lifted from BRWallet's BRWalletMinOutputAmount
+    uint64_t amount = (TX_MIN_OUTPUT_AMOUNT*feePerKb + MIN_FEE_PER_KB - 1)/MIN_FEE_PER_KB;
+    return (amount > TX_MIN_OUTPUT_AMOUNT) ? amount : TX_MIN_OUTPUT_AMOUNT;
+}
+
+inline static int BRWalletSweeperIsSourceInput(BRTxInput *input, BRAddressParams addrParams, char * sourceAddress) {
+    size_t addressLength = BRTxInputAddress (input, NULL, 0, addrParams);
+    char * address = malloc (addressLength + 1);
+    BRTxInputAddress (input, address, addressLength, addrParams);
+    address[addressLength] = '\0';
+
+    int match = 0 == strcmp (sourceAddress, address);
+
+    free (address);
+    return match;
+}
+
+inline static int BRWalletSweeperIsSourceOutput(BRTxOutput *output, BRAddressParams addrParams, char * sourceAddress) {
+    size_t addressLength = BRTxOutputAddress (output, NULL, 0, addrParams);
+    char * address = malloc (addressLength + 1);
+    BRTxOutputAddress (output, address, addressLength, addrParams);
+    address[addressLength] = '\0';
+
+    int match = 0 == strcmp (sourceAddress, address);
+
+    free (address);
+    return match;
+}
+
+static BRSetOf(BRWalletSweeperUTXO *)
+BRWalletSweeperGetUTXOs (BRWalletSweeper sweeper) {
+    BRSet * utxos = BRSetNew(BRWalletSweeperUTXOHash, BRWalletSweeperUTXOEq, 100);
+
+    // TODO(fix): This is horrible; we should be building up this knowledge as transactions are added
+
+    // loop through and add all the unspent outputs
+    for (size_t index = 0; index < array_count (sweeper->txns); index++) {
+        BRTransaction *txn = sweeper->txns[index];
+
+        for (uint32_t i = 0; i < txn->outCount; i++) {
+            if (BRWalletSweeperIsSourceOutput (&txn->outputs[i], sweeper->addrParams, sweeper->sourceAddress)) {
+                BRWalletSweeperUTXO * utxo = malloc (sizeof(BRWalletSweeperUTXO));
+                utxo->txHash = txn->txHash;
+                utxo->utxoIndex = i;
+                utxo->amount = txn->outputs[i].amount;
+                utxo->script = txn->outputs[i].script;
+                utxo->scriptLen = txn->outputs[i].scriptLen;
+
+                utxo = BRSetAdd (utxos, utxo);
+                if (NULL != utxo) {
+                    free (utxo);
+                }
+            }
+        }
+    }
+
+    // loop through and remove all the unspent outputs
+    for (size_t index = 0; index < array_count (sweeper->txns); index++) {
+        BRTransaction *txn = sweeper->txns[index];
+
+        for (uint32_t i = 0; i < txn->inCount; i++) {
+            if (BRWalletSweeperIsSourceInput (&txn->inputs[i], sweeper->addrParams, sweeper->sourceAddress)) {
+                BRWalletSweeperUTXO value = {0};
+                BRWalletSweeperUTXO * utxo = &value;
+                value.txHash = txn->inputs[i].txHash;
+                value.utxoIndex = txn->inputs[i].index;
+                // other values are not used during lookup
+
+                utxo = BRSetRemove (utxos, utxo);
+                if (NULL != utxo) {
+                    free (utxo);
+                }
+            }
+        }
+    }
+
+    return utxos;
+}
+
+static BRWalletSweeperStatus
+BRWalletSweeperBuildTransaction (BRWalletSweeper sweeper,
+                                 BRWallet * wallet,
+                                 uint64_t feePerKb,
+                                 BRTransaction **transactionOut,
+                                 uint64_t *feeAmountOut,
+                                 uint64_t *balanceAmountOut) {
+    uint64_t balanceAmount = 0;
+    BRTransaction *transaction = BRTransactionNew ();
+
+    // based on BRWallet's BRWalletCreateTxForOutputs
+
+    BRSetOf(BRWalletSweeperUTXO *) outputs = BRWalletSweeperGetUTXOs (sweeper);
+    FOR_SET (BRWalletSweeperUTXO *, utxo, outputs) {
+        BRTransactionAddInput(transaction,
+                              utxo->txHash,
+                              utxo->utxoIndex,
+                              utxo->amount,
+                              utxo->script,
+                              utxo->scriptLen,
+                              NULL,
+                              0,
+                              NULL,
+                              0,
+                              TXIN_SEQUENCE);
+        balanceAmount += utxo->amount;
+    }
+    BRSetFreeAll (outputs, free);
+
+    size_t txnSize = BRTransactionVSize(transaction) + TX_OUTPUT_SIZE;
+    if (txnSize > TX_MAX_SIZE) {
+        BRTransactionFree (transaction);
+        if (transactionOut) *transactionOut = NULL;
+        if (feeAmountOut) *feeAmountOut = 0;
+        if (balanceAmountOut) *balanceAmountOut = 0;
+        return WALLET_SWEEPER_UNABLE_TO_SWEEP;
+    }
+
+    if (0 == balanceAmount) {
+        BRTransactionFree (transaction);
+        if (transactionOut) *transactionOut = NULL;
+        if (feeAmountOut) *feeAmountOut = 0;
+        if (balanceAmountOut) *balanceAmountOut = 0;
+        return WALLET_SWEEPER_INSUFFICIENT_FUNDS;
+    }
+
+    uint64_t feeAmount = BRWalletSweeperCalculateFee(feePerKb, txnSize);
+    uint64_t minAmount = BRWalletSweeperCalculateMinOutputAmount(feePerKb);
+    if ((feeAmount + minAmount) > balanceAmount) {
+        BRTransactionFree (transaction);
+        if (transactionOut) *transactionOut = NULL;
+        if (feeAmountOut) *feeAmountOut = 0;
+        if (balanceAmountOut) *balanceAmountOut = 0;
+        return WALLET_SWEEPER_INSUFFICIENT_FUNDS;
+    }
+
+    BRAddress addr = sweeper->isSegwit ? BRWalletReceiveAddress(wallet) : BRWalletLegacyAddress (wallet);
+    BRTxOutput o = BR_TX_OUTPUT_NONE;
+    BRTxOutputSetAddress(&o, sweeper->addrParams, addr.s);
+    BRTransactionAddOutput (transaction, balanceAmount - feeAmount, o.script, o.scriptLen);
+
+    if (transactionOut) {
+        *transactionOut = transaction;
+    } else {
+        BRTransactionFree (transaction);
+    }
+
+    if (feeAmountOut) {
+        *feeAmountOut = feeAmount;
+    }
+
+    if (balanceAmountOut) {
+        *balanceAmountOut = balanceAmount;
+    }
+
+    return WALLET_SWEEPER_SUCCESS;
+}
+
+static BRWalletSweeperStatus
+BRWalletSweeperCreateTransaction (BRWalletSweeper sweeper,
+                                  BRWallet * wallet,
+                                  uint64_t feePerKb,
+                                  BRTransaction **transaction) {
+    return BRWalletSweeperBuildTransaction (sweeper, wallet, feePerKb, transaction, NULL, NULL);
+}
+
+static BRWalletSweeperStatus
+BRWalletSweeperEstimateFee (BRWalletSweeper sweeper,
+                            BRWallet * wallet,
+                            uint64_t feePerKb,
+                            uint64_t *feeEstimate) {
+    return BRWalletSweeperBuildTransaction (sweeper, wallet, feePerKb, NULL, feeEstimate, NULL);
+}
+
+extern BRWalletSweeperStatus
+BRWalletSweeperHandleTransaction (BRWalletSweeper sweeper,
+                                  OwnershipKept uint8_t *transaction,
+                                  size_t transactionLen) {
+    BRWalletSweeperStatus status = WALLET_SWEEPER_SUCCESS;
+
+    BRTransaction * txn = BRTransactionParse (transaction, transactionLen);
+    if (NULL != txn) {
+        array_add (sweeper->txns, txn);
+    } else {
+        status = WALLET_SWEEPER_INVALID_TRANSACTION;
+    }
+
+    return status;
+}
+
+extern char *
+BRWalletSweeperGetLegacyAddress (BRWalletSweeper sweeper) {
+    return strdup (sweeper->sourceAddress);
+}
+
+extern uint64_t
+BRWalletSweeperGetBalance (BRWalletSweeper sweeper) {
+    uint64_t balance = 0;
+
+    BRSetOf(BRWalletSweeperUTXO *) outputs = BRWalletSweeperGetUTXOs (sweeper);
+    FOR_SET (BRWalletSweeperUTXO *, utxo, outputs) {
+        balance += utxo->amount;
+    }
+    BRSetFreeAll (outputs, free);
+
+    return balance;
+}
+
+extern BRWalletSweeperStatus
+BRWalletSweeperValidate (BRWalletSweeper sweeper) {
+    if (0 == array_count (sweeper->txns)) {
+        return WALLET_SWEEPER_NO_TRANSACTIONS_FOUND;
+    }
+
+    if (0 == BRWalletSweeperGetBalance (sweeper)) {
+        return WALLET_SWEEPER_INSUFFICIENT_FUNDS;
+    }
+
+    return WALLET_SWEEPER_SUCCESS;
+}
 
 /// MARK: - Transaction Tracking
 
@@ -826,6 +1137,36 @@ BRWalletManagerCreateTransaction (BRWalletManager manager,
     return transaction;
 }
 
+extern BRTransaction *
+BRWalletManagerCreateTransactionForSweep (BRWalletManager manager,
+                                          BRWallet *wallet,
+                                          BRWalletSweeper sweeper,
+                                          uint64_t feePerKb) {
+    assert (wallet == manager->wallet);
+
+    pthread_mutex_lock (&manager->lock);
+
+    // TODO(fix): We should move this, along with BRWalletManagerCreateTransaction, to
+    //            a model where they return a status code. We are currently providing no
+    //            context to the caller.
+    BRTransaction *transaction = NULL;
+    BRWalletSweeperCreateTransaction (sweeper, wallet, feePerKb, &transaction);
+
+    BRTransactionWithState txnWithState = (NULL != transaction) ? BRWalletManagerAddOwnedTransaction (manager, transaction) : NULL;
+    pthread_mutex_unlock (&manager->lock);
+
+    if (NULL != txnWithState) {
+        bwmSignalTransactionEvent(manager,
+                                  wallet,
+                                  BRTransactionWithStateGetOwned (txnWithState),
+                                  (BRTransactionEvent) {
+                                      BITCOIN_TRANSACTION_CREATED
+                                  });
+    }
+
+    return transaction;
+}
+
 extern int
 BRWalletManagerSignTransaction (BRWalletManager manager,
                                 BRWallet *wallet,
@@ -845,6 +1186,35 @@ BRWalletManagerSignTransaction (BRWalletManager manager,
                                       manager->chainParams->forkId,
                                       seed,
                                       seedLen)) {
+        success = 1;
+        bwmSignalTransactionEvent(manager,
+                                  wallet,
+                                  BRTransactionWithStateGetOwned (txnWithState),
+                                  (BRTransactionEvent) {
+                                      BITCOIN_TRANSACTION_SIGNED
+                                  });
+    }
+
+    return success;
+}
+
+extern int
+BRWalletManagerSignTransactionForKey (BRWalletManager manager,
+                                      BRWallet *wallet,
+                                      OwnershipKept BRTransaction *transaction,
+                                      BRKey *key) {
+    assert (wallet == manager->wallet);
+
+    pthread_mutex_lock (&manager->lock);
+    BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByOwned (manager, transaction);
+    pthread_mutex_unlock (&manager->lock);
+
+    int success = 0;
+    if (NULL != txnWithState &&
+        1 == BRTransactionSign (BRTransactionWithStateGetOwned (txnWithState),
+                                manager->chainParams->forkId,
+                                key,
+                                1)) {
         success = 1;
         bwmSignalTransactionEvent(manager,
                                   wallet,
@@ -902,6 +1272,29 @@ BRWalletManagerEstimateFeeForTransfer (BRWalletManager manager,
     uint32_t sizeInByte = (uint32_t) ((1000 * fee)/ feePerKb);
     BRWalletSetFeePerKb (wallet, feePerKBSaved);
     pthread_mutex_unlock (&manager->lock);
+
+    bwmSignalWalletEvent(manager,
+                         wallet,
+                         (BRWalletEvent) {
+                             BITCOIN_WALLET_FEE_ESTIMATED,
+                                { .feeEstimated = { cookie, feePerKb, sizeInByte }}
+                         });
+}
+
+extern void
+BRWalletManagerEstimateFeeForSweep (BRWalletManager manager,
+                                    BRWallet *wallet,
+                                    BRCookie cookie,
+                                    BRWalletSweeper sweeper,
+                                    uint64_t feePerKb) {
+    assert (wallet == manager->wallet);
+
+    // TODO(fix): We should move this, along with BRWalletManagerEstimateFeeForTransfer, to
+    //            a model where they return a status code. We are currently providing no
+    //            context to the caller.
+    uint64_t fee = 0;
+    BRWalletSweeperEstimateFee (sweeper, wallet, feePerKb, &fee);
+    uint32_t sizeInByte = (uint32_t) ((1000 * fee)/ feePerKb);
 
     bwmSignalWalletEvent(manager,
                          wallet,

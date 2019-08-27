@@ -29,15 +29,15 @@ import com.breadwallet.crypto.errors.FeeEstimationError;
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
 
-public class TransferCreateActivity extends AppCompatActivity {
+public class TransferCreateSendActivity extends AppCompatActivity {
 
     private static final double MIN_VALUE = 0.0;
     private static final double MAX_VALUE = 0.001;
 
-    private static final String EXTRA_WALLET_NAME = "com.breadwallet.cryptodemo,TransferListActivity.EXTRA_WALLET_NAME";
+    private static final String EXTRA_WALLET_NAME = "com.breadwallet.cryptodemo,TransferCreateSendActivity.EXTRA_WALLET_NAME";
 
     public static void start(Activity callerActivity, Wallet wallet) {
-        Intent intent = new Intent(callerActivity, TransferCreateActivity.class);
+        Intent intent = new Intent(callerActivity, TransferCreateSendActivity.class);
         intent.putExtra(EXTRA_WALLET_NAME, wallet.getName());
         callerActivity.startActivity(intent);
     }

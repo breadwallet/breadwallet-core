@@ -36,7 +36,7 @@ public final class Network: CustomStringConvertible {
 
      /// The network fees.  Expect the User to select their preferred fee, based on time-to-confirm,
     /// and then have their preferred fee held in WalletManager.defaultNetworkFee.
-    public let fees: [NetworkFee]
+    public internal(set) var fees: [NetworkFee]
 
     /// Return the minimum fee which should be the fee with the largest confirmation time
     public var minimumFee: NetworkFee {
@@ -211,6 +211,7 @@ extension Network: Hashable {
 
 public enum NetworkEvent {
     case created
+    case feesUpdated
 }
 
 ///

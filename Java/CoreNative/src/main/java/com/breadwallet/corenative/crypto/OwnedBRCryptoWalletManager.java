@@ -108,6 +108,11 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
+    public void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, BRCryptoKey key) {
+        core.submit(wallet, transfer, key);
+    }
+
+    @Override
     public void announceGetBlockNumberSuccess(BRCryptoCWMClientCallbackState callbackState, UnsignedLong blockchainHeight) {
         core.announceGetBlockNumberSuccess(callbackState, blockchainHeight);
     }
