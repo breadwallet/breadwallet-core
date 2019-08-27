@@ -593,7 +593,7 @@ extension System {
                                                           manager: manager,
                                                           event: WalletManagerEvent.syncProgress (
                                                             timestamp: timestamp,
-                                                            percentComplete: Double(event.u.sync.percentComplete)))
+                                                            percentComplete: event.u.sync.percentComplete))
 
                 case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED:
                     system.listener?.handleManagerEvent (system: manager.system,
