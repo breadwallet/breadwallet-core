@@ -17,6 +17,18 @@ public enum PaymentProtocolError: Error {
     case signatureTypeUnsupported
     case signatureVerificationFailed
     case requestExpired
+
+    internal init? (_ core: BRCryptoPaymentProtocolError) {
+        switch core {
+        case CRYPTO_PAYMENT_PROTOCOL_ERROR_NONE:                          return nil
+        case CRYPTO_PAYMENT_PROTOCOL_ERROR_CERT_MISSING:                  self = .certificateMissing
+        case CRYPTO_PAYMENT_PROTOCOL_ERROR_CERT_NOT_TRUSTED:              self = .certificateNotTrusted
+        case CRYPTO_PAYMENT_PROTOCOL_ERROR_SIGNATURE_TYPE_NOT_SUPPORTED:  self = .signatureTypeUnsupported
+        case CRYPTO_PAYMENT_PROTOCOL_ERROR_SIGNATURE_VERIFICATION_FAILED: self = .signatureVerificationFailed
+        case CRYPTO_PAYMENT_PROTOCOL_ERROR_EXPIRED:                       self = .requestExpired
+        default: self = .signatureVerificationFailed; precondition(false)
+        }
+    }
 }
 
 public enum PaymentProtocolRequestType {
@@ -88,6 +100,84 @@ public final class PaymentProtocolRequest {
         }
     }
 
+    private static let nameExtractor: BRCryptoPayProtReqBitPayBip70NameExtractor = {(req, pkiType, certBytes, certLengths, certsSz) in
+        var name: String? = nil
+
+        var certArray = [Data]()
+        for index in 0..<certsSz {
+            certArray.append(Data (bytes: certBytes![index]!, count: certLengths![index]))
+        }
+
+        let pkiType = asUTF8String (pkiType!)
+        if pkiType != "none" {
+
+
+            for c in certArray {
+                if let cert = SecCertificateCreateWithData(nil, c as CFData) {
+                    name = SecCertificateCopySubjectSummary(cert) as String?
+                    break
+                }
+            }
+        } else if 0 != certsSz { // non-standard extention to include an un-certified request name
+            name = String(data: certArray[0], encoding: .utf8)
+        }
+
+        return name.map { strdup ($0) }
+    }
+
+    private static let validator: BRCryptoPayProtReqBitPayBip70Validator = {(req, pkiType, expires, certBytes, certLengths, certsSz, digest, digestLen, signature, signatureLen) in
+        let pkiType = asUTF8String (pkiType!)
+        if pkiType != "none" {
+            var certs = [SecCertificate]()
+            let policies = [SecPolicy](repeating: SecPolicyCreateBasicX509(), count: 1)
+            var trust: SecTrust?
+            var trustResult = SecTrustResultType.invalid
+
+            var certArray = [Data]()
+            for index in 0..<certsSz {
+                certArray.append(Data (bytes: certBytes![index]!, count: certLengths![index]))
+            }
+
+            for c in certArray {
+                if let cert = SecCertificateCreateWithData(nil, c as CFData) { certs.append(cert) }
+            }
+
+            SecTrustCreateWithCertificates(certs as CFTypeRef, policies as CFTypeRef, &trust)
+            if let trust = trust { SecTrustEvaluate(trust, &trustResult) } // verify certificate chain
+
+            // .unspecified indicates a positive result that wasn't decided by the user
+            guard trustResult == .unspecified || trustResult == .proceed else {
+                return certs.isEmpty ? CRYPTO_PAYMENT_PROTOCOL_ERROR_CERT_MISSING : CRYPTO_PAYMENT_PROTOCOL_ERROR_CERT_NOT_TRUSTED
+            }
+
+            var status = errSecUnimplemented
+            var pubKey: SecKey?
+            if let trust = trust { pubKey = SecTrustCopyPublicKey(trust) }
+
+            if let pubKey = pubKey, let signature = signature {
+                if pkiType == "x509+sha256" {
+                    status = SecKeyRawVerify(pubKey, .PKCS1SHA256, digest!, digestLen, signature, signatureLen)
+                } else if pkiType == "x509+sha1" {
+                    status = SecKeyRawVerify(pubKey, .PKCS1SHA1, digest!, digestLen, signature, signatureLen)
+                }
+            }
+
+            guard status == errSecSuccess else {
+                if status == errSecUnimplemented {
+                    return CRYPTO_PAYMENT_PROTOCOL_ERROR_SIGNATURE_TYPE_NOT_SUPPORTED
+                } else {
+                    return CRYPTO_PAYMENT_PROTOCOL_ERROR_SIGNATURE_VERIFICATION_FAILED
+                }
+            }
+        }
+
+        guard expires == 0 || NSDate.timeIntervalSinceReferenceDate <= Double(expires) else {
+            return CRYPTO_PAYMENT_PROTOCOL_ERROR_EXPIRED
+        }
+
+        return CRYPTO_PAYMENT_PROTOCOL_ERROR_NONE
+    }
+
     public var type: PaymentProtocolRequestType {
         return PaymentProtocolRequestType(cryptoPaymentProtocolRequestGetType (core))
     }
@@ -116,10 +206,25 @@ public final class PaymentProtocolRequest {
             .map { Address (core: $0, take: false)  }
     }
 
-    public var primaryTargetName: String? {
-        // TODO(fix): Implement this
-        return nil
-    }
+    public private(set) lazy var primaryTargetName: String? = {
+        switch type {
+        case .bitPay:
+            return cryptoPaymentProtocolRequestGetPrimaryTargetNameBitPay(core, PaymentProtocolRequest.nameExtractor)
+                .map { asUTF8String ($0, true) }
+        case .bip70:
+            return cryptoPaymentProtocolRequestGetPrimaryTargetNameBip70(core, PaymentProtocolRequest.nameExtractor)
+                .map { asUTF8String ($0, true) }
+        }
+    }()
+
+    private lazy var error: PaymentProtocolError? = {
+        switch type {
+        case .bitPay:
+            return PaymentProtocolError(cryptoPaymentProtocolRequestIsValidBitPay(core, PaymentProtocolRequest.validator))
+        case .bip70:
+            return PaymentProtocolError(cryptoPaymentProtocolRequestIsValidBip70(core, PaymentProtocolRequest.validator))
+        }
+    }()
 
     public var requiredNetworkFee: NetworkFee? {
         return cryptoPaymentProtocolRequestGetRequiredNetworkFee (core)
@@ -138,57 +243,7 @@ public final class PaymentProtocolRequest {
     }
 
     public func isValid() -> PaymentProtocolError? {
-        // TODO(fix): Implement this
-//        if self.pkiType != "none" {
-//            var certs = [SecCertificate]()
-//            let policies = [SecPolicy](repeating: SecPolicyCreateBasicX509(), count: 1)
-//            var trust: SecTrust?
-//            var trustResult = SecTrustResultType.invalid
-//
-//            for c in self.certs {
-//                if let cert = SecCertificateCreateWithData(nil, Data(c) as CFData) { certs.append(cert) }
-//            }
-//
-//            if !certs.isEmpty {
-//                self.cName = SecCertificateCopySubjectSummary(certs[0]) as String?
-//            }
-//
-//            SecTrustCreateWithCertificates(certs as CFTypeRef, policies as CFTypeRef, &trust)
-//            if let trust = trust { SecTrustEvaluate(trust, &trustResult) } // verify certificate chain
-//
-//            // .unspecified indicates a positive result that wasn't decided by the user
-//            guard trustResult == .unspecified || trustResult == .proceed else {
-//                return certs.isEmpty ? PaymentProtocolError.certificateMissing : PaymentProtocolError.certificateNotTrusted
-//            }
-//
-//            var status = errSecUnimplemented
-//            var pubKey: SecKey?
-//            if let trust = trust { pubKey = SecTrustCopyPublicKey(trust) }
-//
-//            if let pubKey = pubKey, let signature = self.signature {
-//                if pkiType == "x509+sha256" {
-//                    status = SecKeyRawVerify(pubKey, .PKCS1SHA256, self.digest, self.digest.count, signature, signature.count)
-//                } else if pkiType == "x509+sha1" {
-//                    status = SecKeyRawVerify(pubKey, .PKCS1SHA1, self.digest, self.digest.count, signature, signature.count)
-//                }
-//            }
-//
-//            guard status == errSecSuccess else {
-//                if status == errSecUnimplemented {
-//                    return PaymentProtocolError.signatureTypeUnsupported
-//                } else {
-//                    return PaymentProtocolError.signatureVerificationFailed
-//                }
-//            }
-//        } else if !self.certs.isEmpty { // non-standard extention to include an un-certified request name
-//            self.cName = String(data: Data(self.certs[0]), encoding: .utf8)
-//        }
-//
-//        guard self.details.expires == 0 || NSDate.timeIntervalSinceReferenceDate <= Double(details.expires) else {
-//            return PaymentProtocolError.requestExpired
-//        }
-
-        return nil
+        return self.error
     }
 
     public func estimateFee(fee: NetworkFee,

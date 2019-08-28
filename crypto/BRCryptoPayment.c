@@ -422,6 +422,25 @@ cryptoPaymentProtocolRequestGetTotalAmount (BRCryptoPaymentProtocolRequest proto
     return amount;
 }
 
+extern BRCryptoNetworkFee
+cryptoPaymentProtocolRequestGetRequiredNetworkFee (BRCryptoPaymentProtocolRequest protoReq) {
+    BRCryptoNetworkFee networkFee = NULL;
+    switch (protoReq->type) {
+        case CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY:
+        case CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70: {
+            if (NULL != protoReq->u.btc.requiredFee) {
+                networkFee = cryptoNetworkFeeTake (protoReq->u.btc.requiredFee);
+            }
+            break;
+        }
+        default: {
+            assert (0);
+            break;
+        }
+    }
+    return networkFee;
+}
+
 extern BRCryptoAddress
 cryptoPaymentProtocolRequestGetPrimaryTargetAddress (BRCryptoPaymentProtocolRequest protoReq) {
     BRCryptoAddress address = NULL;
@@ -452,23 +471,126 @@ cryptoPaymentProtocolRequestGetPrimaryTargetAddress (BRCryptoPaymentProtocolRequ
     return address;
 }
 
-extern BRCryptoNetworkFee
-cryptoPaymentProtocolRequestGetRequiredNetworkFee (BRCryptoPaymentProtocolRequest protoReq) {
-    BRCryptoNetworkFee networkFee = NULL;
+static char *
+cryptoPaymentProtocolRequestGetPrimaryTargetNameBitPayBip70(BRCryptoPaymentProtocolRequest protoReq,
+                                                            BRCryptoPayProtReqBitPayBip70NameExtractor extractor) {
+    char * name = NULL;
     switch (protoReq->type) {
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY:
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70: {
-            if (NULL != protoReq->u.btc.requiredFee) {
-                networkFee = cryptoNetworkFeeTake (protoReq->u.btc.requiredFee);
+            BRArrayOf(uint8_t *) certs;
+            BRArrayOf(size_t) certLens;
+
+            array_new (certs, 10);
+            array_new (certLens, 10);
+
+            size_t certLen, index = 0;
+            while (( certLen = BRPaymentProtocolRequestCert (protoReq->u.btc.request, NULL, 0, index)) > 0) {
+                uint8_t *cert = malloc (certLen);
+                BRPaymentProtocolRequestCert (protoReq->u.btc.request, cert, certLen, index);
+
+                array_add (certs, cert);
+                array_add (certLens, certLen);
+
+                index++;
             }
-            break;
+
+            name = extractor (protoReq,
+                              protoReq->u.btc.request->pkiType,
+                              certs, certLens, array_count (certs));
+
+            for (index = 0; index < array_count(certs); index++) {
+                free (certs[index]);
+            }
+            array_free (certs);
+            array_free (certLens);
         }
         default: {
             assert (0);
             break;
         }
     }
-    return networkFee;
+    return name;
+}
+
+extern char *
+cryptoPaymentProtocolRequestGetPrimaryTargetNameBitPay (BRCryptoPaymentProtocolRequest protoReq,
+                                                        BRCryptoPayProtReqBitPayNameExtractor extractor) {
+    return cryptoPaymentProtocolRequestGetPrimaryTargetNameBitPayBip70 (protoReq, extractor);
+}
+
+extern char *
+cryptoPaymentProtocolRequestGetPrimaryTargetNameBip70 (BRCryptoPaymentProtocolRequest protoReq,
+                                                       BRCryptoPayProtReqBip70NameExtractor extractor) {
+    return cryptoPaymentProtocolRequestGetPrimaryTargetNameBitPayBip70 (protoReq, extractor);
+}
+
+static BRCryptoPaymentProtocolError
+cryptoPaymentProtocolRequestIsValidBitPayBip70(BRCryptoPaymentProtocolRequest protoReq,
+                                               BRCryptoPayProtReqBitPayBip70Validator validator) {
+    BRCryptoPaymentProtocolError error = CRYPTO_PAYMENT_PROTOCOL_ERROR_NONE;
+    switch (protoReq->type) {
+        case CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY:
+        case CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70: {
+            uint8_t *digest = NULL;
+            size_t digestLen = BRPaymentProtocolRequestDigest(protoReq->u.btc.request, NULL, 0);
+            if (digestLen) {
+                digest = malloc (digestLen);
+                BRPaymentProtocolRequestDigest(protoReq->u.btc.request, digest, digestLen);
+            }
+
+            BRArrayOf(uint8_t *) certs;
+            BRArrayOf(size_t) certLens;
+
+            array_new (certs, 10);
+            array_new (certLens, 10);
+
+            size_t certLen, index = 0;
+            while (( certLen = BRPaymentProtocolRequestCert (protoReq->u.btc.request, NULL, 0, index)) > 0) {
+                uint8_t *cert = malloc (certLen);
+                BRPaymentProtocolRequestCert (protoReq->u.btc.request, cert, certLen, index);
+
+                array_add (certs, cert);
+                array_add (certLens, certLen);
+
+                index++;
+            }
+
+            error = validator (protoReq,
+                               protoReq->u.btc.request->pkiType,
+                               protoReq->u.btc.request->details->expires,
+                               certs, certLens, array_count (certs),
+                               digest, digestLen,
+                               protoReq->u.btc.request->signature, protoReq->u.btc.request->sigLen);
+
+            for (index = 0; index < array_count(certs); index++) {
+                free (certs[index]);
+            }
+            array_free (certs);
+            array_free (certLens);
+
+            if (digest) {
+                free (digest);
+            }
+        }
+        default: {
+            assert (0);
+            break;
+        }
+    }
+    return error;
+}
+
+extern BRCryptoPaymentProtocolError
+cryptoPaymentProtocolRequestIsValidBitPay(BRCryptoPaymentProtocolRequest protoReq,
+                                          BRCryptoPayProtReqBitPayValidator validator) {
+    return cryptoPaymentProtocolRequestIsValidBitPayBip70 (protoReq, validator);
+}
+
+extern BRCryptoPaymentProtocolError
+cryptoPaymentProtocolRequestIsValidBip70(BRCryptoPaymentProtocolRequest protoReq,
+                                         BRCryptoPayProtReqBip70Validator validator) {
+    return cryptoPaymentProtocolRequestIsValidBitPayBip70 (protoReq, validator);
 }
 
 private_extern BRArrayOf(BRTxOutput)

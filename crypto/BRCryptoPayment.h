@@ -52,6 +52,38 @@ extern "C" {
         CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70,
     } BRCryptoPaymentProtocolType;
 
+    typedef enum {
+        CRYPTO_PAYMENT_PROTOCOL_ERROR_NONE,
+        CRYPTO_PAYMENT_PROTOCOL_ERROR_CERT_MISSING,
+        CRYPTO_PAYMENT_PROTOCOL_ERROR_CERT_NOT_TRUSTED,
+        CRYPTO_PAYMENT_PROTOCOL_ERROR_SIGNATURE_TYPE_NOT_SUPPORTED,
+        CRYPTO_PAYMENT_PROTOCOL_ERROR_SIGNATURE_VERIFICATION_FAILED,
+        CRYPTO_PAYMENT_PROTOCOL_ERROR_EXPIRED
+    } BRCryptoPaymentProtocolError;
+
+    typedef char * (*BRCryptoPayProtReqBitPayBip70NameExtractor) (BRCryptoPaymentProtocolRequest request,
+                                                                  const char *pkiType,
+                                                                  uint8_t *certBytes[],
+                                                                  size_t certLengths[],
+                                                                  size_t certCount);
+
+    typedef BRCryptoPayProtReqBitPayBip70NameExtractor BRCryptoPayProtReqBitPayNameExtractor;
+    typedef BRCryptoPayProtReqBitPayBip70NameExtractor BRCryptoPayProtReqBip70NameExtractor;
+
+    typedef BRCryptoPaymentProtocolError (*BRCryptoPayProtReqBitPayBip70Validator) (BRCryptoPaymentProtocolRequest request,
+                                                                                    const char *pkiType,
+                                                                                    uint64_t expires,
+                                                                                    uint8_t *certBytes[],
+                                                                                    size_t certLengths[],
+                                                                                    size_t certCount,
+                                                                                    const uint8_t *digest,
+                                                                                    size_t digestLength,
+                                                                                    const uint8_t *signature,
+                                                                                    size_t signatureLength);
+
+    typedef BRCryptoPayProtReqBitPayBip70Validator BRCryptoPayProtReqBitPayValidator;
+    typedef BRCryptoPayProtReqBitPayBip70Validator BRCryptoPayProtReqBip70Validator;
+
     /// Mark: BitPay Payment Protocol Request Builder
 
     extern BRCryptoPaymentProtocolRequestBitPayBuilder
@@ -107,11 +139,27 @@ extern "C" {
     extern BRCryptoAmount
     cryptoPaymentProtocolRequestGetTotalAmount (BRCryptoPaymentProtocolRequest protoReq);
 
+    extern BRCryptoNetworkFee
+    cryptoPaymentProtocolRequestGetRequiredNetworkFee (BRCryptoPaymentProtocolRequest protoReq);
+
     extern BRCryptoAddress
     cryptoPaymentProtocolRequestGetPrimaryTargetAddress (BRCryptoPaymentProtocolRequest protoReq);
 
-    extern BRCryptoNetworkFee
-    cryptoPaymentProtocolRequestGetRequiredNetworkFee (BRCryptoPaymentProtocolRequest protoReq);
+    extern char *
+    cryptoPaymentProtocolRequestGetPrimaryTargetNameBitPay (BRCryptoPaymentProtocolRequest protoReq,
+                                                            BRCryptoPayProtReqBitPayNameExtractor extractor);
+
+    extern char *
+    cryptoPaymentProtocolRequestGetPrimaryTargetNameBip70 (BRCryptoPaymentProtocolRequest protoReq,
+                                                           BRCryptoPayProtReqBip70NameExtractor extractor);
+
+    extern BRCryptoPaymentProtocolError
+    cryptoPaymentProtocolRequestIsValidBitPay(BRCryptoPaymentProtocolRequest protoReq,
+                                              BRCryptoPayProtReqBitPayValidator validator);
+
+    extern BRCryptoPaymentProtocolError
+    cryptoPaymentProtocolRequestIsValidBip70(BRCryptoPaymentProtocolRequest protoReq,
+                                             BRCryptoPayProtReqBip70Validator validator);
 
     /// Mark: Payment Protocol Payment
 
