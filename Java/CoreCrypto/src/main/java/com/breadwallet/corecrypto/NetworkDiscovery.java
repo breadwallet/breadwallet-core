@@ -61,7 +61,8 @@ final class NetworkDiscovery {
 
                 getCurrencies(latch, query, blockchainModelId, defaultCurrencies, currencyModels -> {
                     for (com.breadwallet.crypto.blockchaindb.models.bdb.Currency currencyModel : currencyModels) {
-                        if (!blockchainModelId.equals(currencyModel.getBlockchainId())) {
+                        if (!blockchainModelId.equals(currencyModel.getBlockchainId())
+                                || !currencyModel.getVerified()) {
                             continue;
                         }
 

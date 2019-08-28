@@ -33,7 +33,7 @@ public class CoreCryptoApplication extends Application {
     private static final String TAG = CoreCryptoApplication.class.getName();
 
     private static final String BDB_BASE_URL = BuildConfig.BDB_BASE_URL;
-    private static final String BDB_AUTH_TOKEN = BuildConfig.BRD_AUTH_TOKEN;
+    private static final String BDB_AUTH_TOKEN = BuildConfig.BDB_AUTH_TOKEN;
     private static final String API_BASE_URL = BuildConfig.API_BASE_URL;
 
     private static final String EXTRA_WIPE = "WIPE";
