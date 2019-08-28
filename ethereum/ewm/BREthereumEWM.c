@@ -1906,15 +1906,12 @@ ewmReportTransferStatusAsEvent (BREthereumEWM ewm,
     else if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatus (transfer, TRANSFER_STATUS_ERRORED))) {
         char *reason = NULL;
         transferExtractStatusError (transfer, &reason);
-        BREthereumTransferEvent event = { TRANSFER_EVENT_ERRORED,  ERROR_TRANSACTION_SUBMISSION };
-        memset (event.errorDescription, 0, sizeof (event.errorDescription));
-        strncpy (event.errorDescription, reason, sizeof (event.errorDescription) - 1);
+        ewmSignalTransferEvent (ewm, wallet, transfer,
+                                transferEventCreateError (TRANSFER_EVENT_ERRORED,
+                                                          ERROR_TRANSACTION_SUBMISSION,
+                                                          reason));
 
-        ewmSignalTransferEvent(ewm, wallet, transfer, event);
-
-        // TODO: free(reason)?
-        // Note: ewmSignalTransferEvent expects the 'reason' to stick around an never frees it.
-        // If we free here, the string will be gone by the time it is handled.
+        if (NULL != reason) free (reason);
     }
 }
 
@@ -2290,18 +2287,16 @@ ewmUpdateWalletBalance(BREthereumEWM ewm,
                        BREthereumWallet wallet) {
 
     if (NULL == wallet) {
-        ewmSignalWalletEvent(ewm, wallet,
-                             (BREthereumWalletEvent) {
-                                 WALLET_EVENT_BALANCE_UPDATED,
-                                 ERROR_UNKNOWN_WALLET
-                             });
+        ewmSignalWalletEvent (ewm, wallet,
+                              walletEventCreateError (WALLET_EVENT_BALANCE_UPDATED,
+                                                      ERROR_UNKNOWN_WALLET,
+                                                      NULL));
 
     } else if (ETHEREUM_BOOLEAN_IS_FALSE(ewmIsConnected(ewm))) {
         ewmSignalWalletEvent(ewm, wallet,
-                             (BREthereumWalletEvent) {
-                                 WALLET_EVENT_BALANCE_UPDATED,
-                                 ERROR_NODE_NOT_CONNECTED
-                             });
+                             walletEventCreateError (WALLET_EVENT_BALANCE_UPDATED,
+                                                     ERROR_NODE_NOT_CONNECTED,
+                                                     NULL));
     } else {
         switch (ewm->mode) {
             case SYNC_MODE_BRD_ONLY:
