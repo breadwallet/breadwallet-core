@@ -334,6 +334,13 @@ BRWalletManagerCreateTransactionForSweep (BRWalletManager manager,
                                           BRWalletSweeper sweeper,
                                           uint64_t feePerKb);
 
+extern BRTransaction *
+BRWalletManagerCreateTransactionForOutputs (BRWalletManager manager,
+                                            BRWallet *wallet,
+                                            BRTxOutput *outputs,
+                                            size_t outputsLen,
+                                            uint64_t feePerKb);
+
 /**
  * Signs any inputs in transaction that can be signed using private keys from the wallet.
  *
@@ -377,6 +384,14 @@ BRWalletManagerEstimateFeeForSweep (BRWalletManager manager,
                                     BRCookie cookie,
                                     BRWalletSweeper sweeper,
                                     uint64_t feePerKb);
+
+extern void
+BRWalletManagerEstimateFeeForOutputs (BRWalletManager manager,
+                                      BRWallet *wallet,
+                                      BRCookie cookie,
+                                      BRTxOutput *outputs,
+                                      size_t outputsLen,
+                                      uint64_t feePerKb);
 
 extern BRFileService
 BRWalletManagerCreateFileService (const BRChainParams *params,

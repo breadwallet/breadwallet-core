@@ -150,6 +150,13 @@ public final class WalletManager: Equatable, CustomStringConvertible {
         cryptoWalletManagerSync (core)
     }
 
+    internal func sign (transfer: Transfer, paperKey: String) -> Bool {
+        return CRYPTO_TRUE == cryptoWalletManagerSign (core,
+                                                       transfer.wallet.core,
+                                                       transfer.core,
+                                                       paperKey)
+    }
+
     public func submit (transfer: Transfer, paperKey: String) {
         cryptoWalletManagerSubmit (core,
                                    transfer.wallet.core,
@@ -164,10 +171,16 @@ public final class WalletManager: Equatable, CustomStringConvertible {
                                         key.core)
     }
 
+    internal func submit (transfer: Transfer) {
+        cryptoWalletManagerSubmitSigned (core,
+                                         transfer.wallet.core,
+                                         transfer.core)
+    }
+
     public func createSweeper (wallet: Wallet,
                                key: Key,
                                completion: @escaping (Result<WalletSweeper, WalletSweeperError>) -> Void) {
-        WalletSweeper.create(manager: self, wallet: wallet, key: key, bdb: query, completion: completion)
+        WalletSweeper.create(wallet: wallet, key: key, bdb: query, completion: completion)
     }
 
     internal init (core: BRCryptoWalletManager,
@@ -300,13 +313,12 @@ public enum WalletSweeperError: Error {
 
 public final class WalletSweeper {
 
-    internal static func create(manager: WalletManager,
-                                wallet: Wallet,
+    internal static func create(wallet: Wallet,
                                 key: Key,
                                 bdb: BlockChainDB,
                                 completion: @escaping (Result<WalletSweeper, WalletSweeperError>) -> Void) {
         // check that requested combination of manager, wallet, key can be used for sweeping
-        if let e = WalletSweeperError(cryptoWalletSweeperValidateSupported(manager.network.core,
+        if let e = WalletSweeperError(cryptoWalletSweeperValidateSupported(wallet.manager.network.core,
                                                                            wallet.currency.core,
                                                                            key.core,
                                                                            wallet.core)) {
@@ -318,8 +330,7 @@ public final class WalletSweeper {
         case Currency.codeAsBTC:
             // handle as BTC, creating the underlying BRCryptoWalletSweeper and initializing it
             // using the BlockchainDB
-            createAsBtc(manager: manager,
-                        wallet: wallet,
+            createAsBtc(wallet: wallet,
                         key: key)
                 .initAsBTC(bdb: bdb,
                            completion: completion)
@@ -328,14 +339,12 @@ public final class WalletSweeper {
         }
     }
 
-    private static func createAsBtc(manager: WalletManager,
-                                    wallet: Wallet,
+    private static func createAsBtc(wallet: Wallet,
                                     key: Key) -> WalletSweeper {
-        return WalletSweeper(core: cryptoWalletSweeperCreateAsBtc(manager.network.core,
+        return WalletSweeper(core: cryptoWalletSweeperCreateAsBtc(wallet.manager.network.core,
                                                                   wallet.currency.core,
                                                                   key.core,
-                                                                  manager.addressScheme.core),
-                             manager: manager,
+                                                                  wallet.manager.addressScheme.core),
                              wallet: wallet,
                              key: key)
     }
@@ -346,11 +355,10 @@ public final class WalletSweeper {
     private let key: Key
 
     private init (core: BRCryptoWalletSweeper,
-                  manager: WalletManager,
                   wallet: Wallet,
                   key: Key) {
         self.core = core
-        self.manager = manager
+        self.manager = wallet.manager
         self.wallet = wallet
         self.key = key
     }
