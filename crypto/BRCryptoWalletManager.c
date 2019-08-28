@@ -623,6 +623,32 @@ cryptoWalletManagerSubmitForKey (BRCryptoWalletManager cwm,
     }
 }
 
+extern void
+cryptoWalletManagerSubmitSigned (BRCryptoWalletManager cwm,
+                                 BRCryptoWallet wallet,
+                                 BRCryptoTransfer transfer) {
+    switch (cwm->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            BRWalletManagerSubmitTransaction (cwm->u.btc,
+                                              cryptoWalletAsBTC (wallet),
+                                              cryptoTransferAsBTC(transfer));
+            break;
+        }
+
+        case BLOCK_CHAIN_TYPE_ETH: {
+            ewmWalletSubmitTransfer (cwm->u.eth,
+                                     cryptoWalletAsETH (wallet),
+                                     cryptoTransferAsETH (transfer));
+            break;
+        }
+
+        case BLOCK_CHAIN_TYPE_GEN: {
+            assert (0);
+            break;
+        }
+    }
+}
+
 private_extern BRWalletManager
 cryptoWalletManagerAsBTC (BRCryptoWalletManager manager) {
     assert (BLOCK_CHAIN_TYPE_BTC == manager->type);

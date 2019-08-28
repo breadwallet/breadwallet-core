@@ -211,6 +211,11 @@ extern "C" {
                                      BRCryptoTransfer transfer,
                                      BRCryptoKey key);
 
+    extern void
+    cryptoWalletManagerSubmitSigned (BRCryptoWalletManager cwm,
+                                     BRCryptoWallet wallet,
+                                     BRCryptoTransfer transfer);
+
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoWalletManager, cryptoWalletManager);
 
     /// MARK: Wallet Migrator

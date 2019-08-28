@@ -703,7 +703,7 @@ cryptoWalletEstimateFeeBasis (BRCryptoWallet  wallet,
 }
 
 extern void
-cryptoWalletEstimateFeeBasisForWalletSweep (BRCryptoWallet  wallet,
+cryptoWalletEstimateFeeBasisForWalletSweep (BRCryptoWallet wallet,
                                             BRCryptoCookie cookie,
                                             BRCryptoWalletSweeper sweeper,
                                             BRCryptoNetworkFee fee) {
@@ -718,6 +718,41 @@ cryptoWalletEstimateFeeBasisForWalletSweep (BRCryptoWallet  wallet,
                                                 cookie,
                                                 cryptoWalletSweeperAsBTC(sweeper),
                                                 feePerKB);
+            break;
+        }
+        default:
+            assert (0);
+            break;
+    }
+}
+
+extern void
+cryptoWalletEstimateFeeBasisForPaymentProtocolRequest (BRCryptoWallet wallet,
+                                                       BRCryptoCookie cookie,
+                                                       BRCryptoPaymentProtocolRequest request,
+                                                       BRCryptoNetworkFee fee) {
+    switch (wallet->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            BRWalletManager bwm = wallet->u.btc.bwm;
+            BRWallet *wid = wallet->u.btc.wid;
+            uint64_t feePerKB = 1000 * cryptoNetworkFeeAsBTC (fee);
+
+            switch (cryptoPaymentProtocolRequestGetType (request)) {
+                case CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY:
+                case CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70: {
+                    BRArrayOf(BRTxOutput) outputs = cryptoPaymentProtocolRequestGetOutputsAsBTC (request);
+                    if (NULL != outputs) {
+                        BRWalletManagerEstimateFeeForOutputs (bwm, wid, cookie, outputs, array_count (outputs),
+                                                              feePerKB);
+                        array_free (outputs);
+                    }
+                    break;
+                }
+                default: {
+                    assert (0);
+                    break;
+                }
+            }
             break;
         }
         default:

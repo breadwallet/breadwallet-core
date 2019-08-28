@@ -1334,6 +1334,38 @@ BRWalletManagerEstimateFeeForSweep (BRWalletManager manager,
                          });
 }
 
+extern void
+BRWalletManagerEstimateFeeForOutputs (BRWalletManager manager,
+                                      BRWallet *wallet,
+                                      BRCookie cookie,
+                                      BRTxOutput *outputs,
+                                      size_t outputsLen,
+                                      uint64_t feePerKb) {
+    assert (wallet == manager->wallet);
+
+    pthread_mutex_lock (&manager->lock);
+    uint64_t feePerKbSaved = BRWalletFeePerKb (wallet);
+
+    BRWalletSetFeePerKb (wallet, feePerKb);
+    BRTransaction *transaction = BRWalletCreateTxForOutputs (wallet, outputs, outputsLen);
+    BRWalletSetFeePerKb (wallet, feePerKbSaved);
+
+    uint64_t fee = 0;
+    if (NULL != transaction) {
+        fee = BRWalletFeeForTx(wallet, transaction);
+        BRTransactionFree(transaction);
+    }
+    uint32_t sizeInByte = (uint32_t) ((1000 * fee)/ feePerKb);
+    pthread_mutex_unlock (&manager->lock);
+
+    bwmSignalWalletEvent(manager,
+                         wallet,
+                         (BRWalletEvent) {
+                             BITCOIN_WALLET_FEE_ESTIMATED,
+                                { .feeEstimated = { cookie, feePerKb, sizeInByte }}
+                         });
+}
+
 /// MARK: Wallet Callbacks
 
 // This callback comes from the BRWallet. That component has no

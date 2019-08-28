@@ -60,6 +60,7 @@ extern "C" {
                                                      const char *network,
                                                      uint64_t time,
                                                      uint64_t expires,
+                                                     double feePerByte,
                                                      const char *memo,
                                                      const char *paymentURL,
                                                      const uint8_t *merchantData,
@@ -69,13 +70,19 @@ extern "C" {
 
     extern void
     cryptoPaymentProtocolRequestBitPayBuilderAddOutput(BRCryptoPaymentProtocolRequestBitPayBuilder builder,
-                                                       BRCryptoAddress address,
+                                                       const char *address,
                                                        uint64_t amount);
 
     extern BRCryptoPaymentProtocolRequest
     cryptoPaymentProtocolRequestBitPayBuilderBuild(BRCryptoPaymentProtocolRequestBitPayBuilder builder);
 
     /// Mark: Payment Protocol Request
+
+    extern BRCryptoBoolean
+    cryptoPaymentProtocolRequestValidateSupported (BRCryptoPaymentProtocolType type,
+                                                   BRCryptoNetwork network,
+                                                   BRCryptoCurrency currency,
+                                                   BRCryptoWallet wallet);
 
     extern BRCryptoPaymentProtocolRequest
     cryptoPaymentProtocolRequestCreateForBip70 (BRCryptoNetwork cryptoNetwork,
@@ -87,6 +94,9 @@ extern "C" {
 
     extern BRCryptoPaymentProtocolType
     cryptoPaymentProtocolRequestGetType (BRCryptoPaymentProtocolRequest protoReq);
+
+    extern BRCryptoBoolean
+    cryptoPaymentProtocolRequestIsSecure (BRCryptoPaymentProtocolRequest protoReq);
 
     extern const char *
     cryptoPaymentProtocolRequestGetMemo (BRCryptoPaymentProtocolRequest protoReq);
@@ -100,13 +110,15 @@ extern "C" {
     extern BRCryptoAddress
     cryptoPaymentProtocolRequestGetPrimaryTargetAddress (BRCryptoPaymentProtocolRequest protoReq);
 
+    extern BRCryptoNetworkFee
+    cryptoPaymentProtocolRequestGetRequiredNetworkFee (BRCryptoPaymentProtocolRequest protoReq);
+
     /// Mark: Payment Protocol Payment
 
     extern BRCryptoPaymentProtocolPayment
     cryptoPaymentProtocolPaymentCreate (BRCryptoPaymentProtocolRequest protoReq,
                                         BRCryptoTransfer transfer,
-                                        BRCryptoAddress refundAddress,
-                                        BRCryptoAmount refundAmount);
+                                        BRCryptoAddress refundAddress);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoPaymentProtocolPayment, cryptoPaymentProtocolPayment);
 

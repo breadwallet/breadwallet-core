@@ -35,6 +35,7 @@
 #include "BRCryptoPrivate.h"
 #include "BRCryptoNetwork.h"
 
+#include "bcash/BRBCashAddr.h"
 #include "bitcoin/BRPaymentProtocol.h"
 #include "support/BRArray.h"
 
@@ -63,6 +64,7 @@ struct BRCryptoPaymentProtocolRequestBitPayBuilderRecord {
     char *paymentURL;
     uint8_t *merchantData;
     size_t merchantDataLen;
+    double feePerByte;
     BRArrayOf(BRTxOutput) outputs;
 
     BRCryptoRef ref;
@@ -76,6 +78,7 @@ cryptoPaymentProtocolRequestBitPayBuilderCreate (BRCryptoNetwork cryptoNetwork,
                                                  const char *network,
                                                  uint64_t time,
                                                  uint64_t expires,
+                                                 double feePerByte,
                                                  const char *memo,
                                                  const char *paymentURL,
                                                  const uint8_t *merchantData,
@@ -92,6 +95,7 @@ cryptoPaymentProtocolRequestBitPayBuilderCreate (BRCryptoNetwork cryptoNetwork,
 
     builder->time = time;
     builder->expires = expires;
+    builder->feePerByte = feePerByte;
 
     if (network) {
         builder->network = strdup (network);
@@ -148,18 +152,22 @@ cryptoPaymentProtocolRequestBitPayBuilderRelease (BRCryptoPaymentProtocolRequest
 
 extern void
 cryptoPaymentProtocolRequestBitPayBuilderAddOutput(BRCryptoPaymentProtocolRequestBitPayBuilder builder,
-                                                   BRCryptoAddress address,
+                                                   const char *address,
                                                    uint64_t satoshis) {
     if (satoshis) {
         BRTxOutput output = {0};
 
-        output.amount = satoshis;
-
-        // TODO(fix): BCH issue here; refer to original iOS code
-        char * addr = cryptoAddressAsString (address);
         const BRChainParams * chainParams = cryptoNetworkAsBTC (builder->cryptoNetwork);
-        BRTxOutputSetAddress (&output, chainParams->addrParams, addr);
-        free (addr);
+        int isBTC = BRChainParamsIsBitcoin (chainParams);
+
+        if (isBTC) {
+            BRTxOutputSetAddress (&output, chainParams->addrParams, address);
+        } else {
+            char cashAddr[36];
+            BRBCashAddrDecode (cashAddr, address);
+            BRTxOutputSetAddress (&output, chainParams->addrParams, cashAddr);
+        }
+        output.amount = satoshis;
 
         array_add (builder->outputs, output);
     }
@@ -172,6 +180,36 @@ cryptoPaymentProtocolRequestBitPayBuilderBuild(BRCryptoPaymentProtocolRequestBit
 
 /// MARK: - Payment Protocol Request Implementation
 
+extern BRCryptoBoolean
+cryptoPaymentProtocolRequestValidateSupported (BRCryptoPaymentProtocolType type,
+                                               BRCryptoNetwork network,
+                                               BRCryptoCurrency currency,
+                                               BRCryptoWallet wallet) {
+    if (CRYPTO_FALSE == cryptoNetworkHasCurrency (network, currency)) {
+        return CRYPTO_FALSE;
+    }
+
+    if (cryptoNetworkGetType (network) != cryptoWalletGetType (wallet)) {
+        return CRYPTO_FALSE;
+    }
+
+    if (CRYPTO_FALSE == cryptoCurrencyIsIdentical (currency, cryptoWalletGetCurrency (wallet))) {
+        return CRYPTO_FALSE;
+    }
+
+    switch (cryptoWalletGetType (wallet)) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            return AS_CRYPTO_BOOLEAN (CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY == type ||
+                                      CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70 == type);
+        }
+        default: {
+            break;
+        }
+    }
+
+    return CRYPTO_FALSE;
+}
+
 static void
 cryptoPaymentProtocolRequestRelease (BRCryptoPaymentProtocolRequest protoReq);
 
@@ -182,6 +220,7 @@ struct BRCryptoPaymentProtocolRequestRecord {
 
     union {
         struct {
+            BRCryptoNetworkFee requiredFee;
             BRPaymentProtocolRequest *request;
         } btc;
     } u;
@@ -224,6 +263,13 @@ cryptoPaymentProtocolRequestCreateForBitPay (BRCryptoPaymentProtocolRequestBitPa
         protoReq->type = CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY;
         protoReq->cryptoNetwork = cryptoNetworkTake (builder->cryptoNetwork);
         protoReq->cryptoCurrency = cryptoCurrencyTake (builder->cryptoCurrency);
+
+        BRCryptoUnit feeUnit = cryptoNetworkGetUnitAsBase (builder->cryptoNetwork, builder->cryptoCurrency);
+        BRCryptoAmount feeAmount = cryptoAmountCreateDouble (builder->feePerByte, feeUnit);
+        protoReq->u.btc.requiredFee = cryptoNetworkFeeCreate (0, feeAmount, feeUnit);
+        cryptoAmountGive (feeAmount);
+        cryptoUnitGive (feeUnit);
+
         protoReq->u.btc.request = request;
 
     } else {
@@ -253,6 +299,8 @@ cryptoPaymentProtocolRequestCreateForBip70 (BRCryptoNetwork cryptoNetwork,
         protoReq->type = CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70;
         protoReq->cryptoNetwork = cryptoNetworkTake (cryptoNetwork);
         protoReq->cryptoCurrency = cryptoCurrencyTake (cryptoCurrency);
+
+        protoReq->u.btc.requiredFee = NULL;
         protoReq->u.btc.request = request;
     }
 
@@ -266,6 +314,9 @@ cryptoPaymentProtocolRequestRelease (BRCryptoPaymentProtocolRequest protoReq) {
     switch (protoReq->type) {
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY:
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70: {
+            if (NULL != protoReq->u.btc.requiredFee) {
+                cryptoNetworkFeeGive (protoReq->u.btc.requiredFee);
+            }
             BRPaymentProtocolRequestFree (protoReq->u.btc.request);
             break;
         }
@@ -285,6 +336,24 @@ cryptoPaymentProtocolRequestRelease (BRCryptoPaymentProtocolRequest protoReq) {
 extern BRCryptoPaymentProtocolType
 cryptoPaymentProtocolRequestGetType (BRCryptoPaymentProtocolRequest protoReq) {
     return protoReq->type;
+}
+
+extern BRCryptoBoolean
+cryptoPaymentProtocolRequestIsSecure (BRCryptoPaymentProtocolRequest protoReq) {
+    BRCryptoBoolean isSecure = CRYPTO_FALSE;
+    switch (protoReq->type) {
+        case CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY:
+        case CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70: {
+            BRPaymentProtocolRequest *request = protoReq->u.btc.request;
+            isSecure = AS_CRYPTO_BOOLEAN (NULL != request->pkiType && 0 == strcmp (request->pkiType, "none"));
+            break;
+        }
+        default: {
+            assert (0);
+            break;
+        }
+    }
+    return isSecure;
 }
 
 extern const char *
@@ -360,10 +429,18 @@ cryptoPaymentProtocolRequestGetPrimaryTargetAddress (BRCryptoPaymentProtocolRequ
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY:
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70: {
             BRPaymentProtocolRequest *request = protoReq->u.btc.request;
-            for (size_t index = 0; index < request->details->outCount; index++) {
-                // TODO(fix): How are we going to do this???
-                // BRTxOutput *output = &request->details->outputs[index];
-                // return cryptoAddressCreateAsBTC
+            if (request->details->outCount != 0) {
+                // TODO(fix): Does this work for BCH?
+                const BRChainParams * chainParams = cryptoNetworkAsBTC (protoReq->cryptoNetwork);
+                int isBTC = BRChainParamsIsBitcoin (chainParams);
+
+                BRTxOutput *output = &request->details->outputs[0];
+                size_t addressSize = BRTxOutputAddress (output, NULL, 0, chainParams->addrParams);
+                char *addressString = malloc (addressSize);
+                BRTxOutputAddress (output, addressString, addressSize, chainParams->addrParams);
+
+                address = cryptoAddressCreateAsBTC (BRAddressFill (chainParams->addrParams, addressString), isBTC);
+                free (addressString);
             }
             break;
         }
@@ -373,6 +450,22 @@ cryptoPaymentProtocolRequestGetPrimaryTargetAddress (BRCryptoPaymentProtocolRequ
         }
     }
     return address;
+}
+
+extern BRCryptoNetworkFee
+cryptoPaymentProtocolRequestGetRequiredNetworkFee (BRCryptoPaymentProtocolRequest protoReq) {
+    BRCryptoNetworkFee networkFee = NULL;
+    switch (protoReq->type) {
+        case CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY:
+        case CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70: {
+            networkFee = cryptoNetworkFeeTake (protoReq->u.btc.requiredFee);
+        }
+        default: {
+            assert (0);
+            break;
+        }
+    }
+    return networkFee;
 }
 
 private_extern BRArrayOf(BRTxOutput)
@@ -451,8 +544,7 @@ IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoPaymentProtocolPayment, cryptoPaymentProtoco
 extern BRCryptoPaymentProtocolPayment
 cryptoPaymentProtocolPaymentCreate (BRCryptoPaymentProtocolRequest protoReq,
                                     BRCryptoTransfer transfer,
-                                    BRCryptoAddress refundAddress,
-                                    BRCryptoAmount refundAmount) {
+                                    BRCryptoAddress refundAddress) {
     BRCryptoPaymentProtocolPayment protoPay = calloc (1, sizeof (struct BRCryptoPaymentProtocolPaymentRecord));
     protoPay->ref = CRYPTO_REF_ASSIGN (cryptoPaymentProtocolPaymentRelease);
 
@@ -479,6 +571,7 @@ cryptoPaymentProtocolPaymentCreate (BRCryptoPaymentProtocolRequest protoReq,
             size_t merchantDataLen = 0;
             uint8_t *merchantData = cryptoPaymentProtocolRequestGetMerchantData (protoReq, &merchantDataLen);
 
+            BRCryptoAmount refundAmount = cryptoPaymentProtocolRequestGetTotalAmount (protoReq);
             BRCryptoUnit baseUnit = cryptoNetworkGetUnitAsBase (cryptoNetwork, cryptoCurrency);
             BRCryptoAmount baseAmount = cryptoAmountConvertToUnit (refundAmount, baseUnit);
             // TODO(fix): Should this be an assert?
@@ -491,6 +584,7 @@ cryptoPaymentProtocolPaymentCreate (BRCryptoPaymentProtocolRequest protoReq,
 
             cryptoAmountGive (baseAmount);
             cryptoUnitGive (baseUnit);
+            cryptoAmountGive (refundAmount);
 
             // TODO(fix): BCH issue here; refer to original iOS code
             // TODO(fix): Do we need to assert that this is an address for the right blockchain/currency?
@@ -500,12 +594,12 @@ cryptoPaymentProtocolPaymentCreate (BRCryptoPaymentProtocolRequest protoReq,
 
             protoPay->u.btcBip70.transaction = BRTransactionCopy (cryptoTransferAsBTC (transfer));
             protoPay->u.btcBip70.payment     = BRPaymentProtocolPaymentNew (merchantData,
-                                                                             merchantDataLen,
-                                                                             &protoPay->u.btcBip70.transaction, 1,
-                                                                             &refundAmountInt,
-                                                                             chainParams->addrParams,
-                                                                             &reundAddressBtc,
-                                                                             1, NULL);
+                                                                            merchantDataLen,
+                                                                            &protoPay->u.btcBip70.transaction, 1,
+                                                                            &refundAmountInt,
+                                                                            chainParams->addrParams,
+                                                                            &reundAddressBtc,
+                                                                            1, NULL);
             break;
         }
         default: {

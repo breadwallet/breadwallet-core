@@ -40,8 +40,6 @@ extern "C" {
 
     /// MARK: Forward Declarations
 
-    typedef struct BRCryptoWalletRecord *BRCryptoWallet;
-
     typedef struct BRCryptoWalletSweeperRecord *BRCryptoWalletSweeper;
 
     /// MARK: Wallet Event
@@ -232,6 +230,12 @@ extern "C" {
                                                 BRCryptoCookie cookie,
                                                 BRCryptoWalletSweeper sweeper,
                                                 BRCryptoNetworkFee fee);
+
+    extern void
+    cryptoWalletEstimateFeeBasisForPaymentProtocolRequest (BRCryptoWallet wallet,
+                                                           BRCryptoCookie cookie,
+                                                           BRCryptoPaymentProtocolRequest request,
+                                                           BRCryptoNetworkFee fee);
 
     extern BRCryptoFeeBasis
     cryptoWalletCreateFeeBasis (BRCryptoWallet wallet,

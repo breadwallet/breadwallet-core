@@ -384,6 +384,14 @@ BRWalletManagerEstimateFeeForSweep (BRWalletManager manager,
                                     BRWalletSweeper sweeper,
                                     uint64_t feePerKb);
 
+extern void
+BRWalletManagerEstimateFeeForOutputs (BRWalletManager manager,
+                                      BRWallet *wallet,
+                                      BRCookie cookie,
+                                      BRTxOutput *outputs,
+                                      size_t outputsLen,
+                                      uint64_t feePerKb);
+
 extern BRFileService
 BRWalletManagerCreateFileService (const BRChainParams *params,
                                   const char *storagePath,
