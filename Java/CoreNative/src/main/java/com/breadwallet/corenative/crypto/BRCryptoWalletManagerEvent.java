@@ -89,17 +89,19 @@ public class BRCryptoWalletManagerEvent extends Structure {
 
 		public static class sync_struct extends Structure {
 
-			public int percentComplete;
+			public int timestamp;
+			public float percentComplete;
 			public sync_struct() {
 				super();
 			}
 
 			protected List<String> getFieldOrder() {
-				return Arrays.asList("percentComplete");
+				return Arrays.asList("timestamp", "percentComplete");
 			}
 
-			public sync_struct(int percentComplete) {
+			public sync_struct(int timestamp, float percentComplete) {
 				super();
+				this.timestamp = timestamp;
 				this.percentComplete = percentComplete;
 			}
 

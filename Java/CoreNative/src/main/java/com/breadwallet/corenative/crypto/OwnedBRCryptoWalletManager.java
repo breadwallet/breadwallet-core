@@ -63,6 +63,11 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
+    public void setMode(int mode) {
+        core.setMode(mode);
+    }
+
+    @Override
     public String getPath() {
         return core.getPath();
     }
@@ -100,6 +105,11 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     @Override
     public void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, byte[] phraseUtf8) {
         core.submit(wallet, transfer, phraseUtf8);
+    }
+
+    @Override
+    public void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, BRCryptoKey key) {
+        core.submit(wallet, transfer, key);
     }
 
     @Override

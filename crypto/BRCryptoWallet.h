@@ -28,6 +28,7 @@
 
 #include "BRBase.h"
 #include "BRCryptoFeeBasis.h"
+#include "BRCryptoKey.h"
 #include "BRCryptoNetwork.h"        // NetworkFee
 #include "BRCryptoStatus.h"
 #include "BRCryptoTransfer.h"
@@ -36,7 +37,13 @@
 extern "C" {
 #endif
 
+    /// MARK: Forward Declarations
+
     typedef struct BRCryptoWalletRecord *BRCryptoWallet;
+
+    typedef struct BRCryptoWalletSweeperRecord *BRCryptoWalletSweeper;
+
+    /// MARK: Wallet Event
 
     typedef enum {
         CRYPTO_WALLET_STATE_CREATED,
@@ -58,6 +65,9 @@ extern "C" {
 
         CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED,
     } BRCryptoWalletEventType;
+
+    extern const char *
+    BRCryptoWalletEventTypeString (BRCryptoWalletEventType t);
 
     typedef struct {
         BRCryptoWalletEventType type;
@@ -116,7 +126,7 @@ extern "C" {
 
     extern BRCryptoCurrency
     cryptoWalletGetCurrencyForFee (BRCryptoWallet wallet);
-    
+
     /**
      * Returns the wallet's fee unit.
      *
@@ -157,6 +167,11 @@ extern "C" {
     cryptoWalletGetTransfers (BRCryptoWallet wallet,
                               size_t *count);
 
+    /**
+     * Returns a 'new' adddress from `wallet` according to the provided `addressScheme`.  For BTC
+     * this is a segwit or a bech32 address.  Note that the returned address is not associated with
+     * `wallet` and thus one runs the risk of using a BRCryptoAddress w/ the wrong BRCryptoWallet
+     */
     extern BRCryptoAddress
     cryptoWalletGetAddress (BRCryptoWallet wallet,
                             BRCryptoAddressScheme addressScheme);
@@ -168,11 +183,27 @@ extern "C" {
     cryptoWalletSetDefaultFeeBasis (BRCryptoWallet wallet,
                                     BRCryptoFeeBasis feeBasis);
 
+    /**
+     * Create a transfer.
+     *
+     * @param wallet The wallet providing the amount
+     * @param target The target address; this must be consistent with the provied wallet's address
+     * @param amount the amount to transfer
+     * @param estimatedFeeBasis the fees one is willing to
+     *
+     * @return the transfer or NULL
+     */
     extern BRCryptoTransfer
     cryptoWalletCreateTransfer (BRCryptoWallet wallet,
                                 BRCryptoAddress target,
                                 BRCryptoAmount amount,
                                 BRCryptoFeeBasis estimatedFeeBasis);
+
+    extern BRCryptoTransfer
+    cryptoWalletCreateTransferForWalletSweep (BRCryptoWallet  wallet,
+                                              BRCryptoWalletSweeper sweeper,
+                                              BRCryptoFeeBasis estimatedFeeBasis);
+
     /**
      * Estimate the fee to transfer `amount` from `wallet` using the `feeBasis`.  Return an amount
      * represented in the wallet's fee currency.
@@ -190,6 +221,12 @@ extern "C" {
                                   BRCryptoAmount  amount,
                                   BRCryptoNetworkFee fee);
 
+    extern void
+    cryptoWalletEstimateFeeBasisForWalletSweep (BRCryptoWallet  wallet,
+                                                BRCryptoCookie cookie,
+                                                BRCryptoWalletSweeper sweeper,
+                                                BRCryptoNetworkFee fee);
+
     extern BRCryptoFeeBasis
     cryptoWalletCreateFeeBasis (BRCryptoWallet wallet,
                                 BRCryptoAmount pricePerCostFactor,
@@ -199,6 +236,55 @@ extern "C" {
     cryptoWalletEqual (BRCryptoWallet w1, BRCryptoWallet w2);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoWallet, cryptoWallet);
+
+    /// MARK: Wallet Sweeper
+
+    typedef enum {
+        CRYPTO_WALLET_SWEEPER_SUCCESS,
+        CRYPTO_WALLET_SWEEPER_UNSUPPORTED_CURRENCY,
+        CRYPTO_WALLET_SWEEPER_INVALID_KEY,
+        CRYPTO_WALLET_SWEEPER_INVALID_ARGUMENTS,
+        CRYPTO_WALLET_SWEEPER_INVALID_TRANSACTION,
+        CRYPTO_WALLET_SWEEPER_INVALID_SOURCE_WALLET,
+        CRYPTO_WALLET_SWEEPER_NO_TRANSFERS_FOUND,
+        CRYPTO_WALLET_SWEEPER_INSUFFICIENT_FUNDS,
+        CRYPTO_WALLET_SWEEPER_UNABLE_TO_SWEEP,
+
+        // calling a sweeper function for the wrong type
+        CRYPTO_WALLET_SWEEPER_ILLEGAL_OPERATION,
+    } BRCryptoWalletSweeperStatus;
+
+    extern BRCryptoWalletSweeperStatus
+    cryptoWalletSweeperValidateSupported (BRCryptoNetwork network,
+                                          BRCryptoCurrency currency,
+                                          BRCryptoKey key,
+                                          BRCryptoWallet wallet);
+
+    extern BRCryptoWalletSweeper
+    cryptoWalletSweeperCreateAsBtc (BRCryptoNetwork network,
+                                    BRCryptoCurrency currency,
+                                    BRCryptoKey key,
+                                    BRCryptoAddressScheme scheme);
+
+    extern void
+    cryptoWalletSweeperRelease (BRCryptoWalletSweeper sweeper);
+
+    extern BRCryptoWalletSweeperStatus
+    cryptoWalletSweeperHandleTransactionAsBTC (BRCryptoWalletSweeper sweeper,
+                                               OwnershipKept uint8_t *transaction,
+                                               size_t transactionLen);
+
+    extern BRCryptoKey
+    cryptoWalletSweeperGetKey (BRCryptoWalletSweeper sweeper);
+
+    extern char *
+    cryptoWalletSweeperGetAddress (BRCryptoWalletSweeper sweeper);
+
+    extern BRCryptoAmount
+    cryptoWalletSweeperGetBalance (BRCryptoWalletSweeper sweeper);
+
+    extern BRCryptoWalletSweeperStatus
+    cryptoWalletSweeperValidate (BRCryptoWalletSweeper sweeper);
 
 #ifdef __cplusplus
 }

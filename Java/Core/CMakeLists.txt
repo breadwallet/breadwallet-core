@@ -53,6 +53,8 @@ target_sources (core
                 src/main/cpp/core/support/BRKeyECIES.h
                 src/main/cpp/core/support/BRSet.c
                 src/main/cpp/core/support/BRSet.h
+                src/main/cpp/core/support/BRSyncMode.c
+                src/main/cpp/core/support/BRSyncMode.h
 
                 # Bitcoin
                 src/main/cpp/core/bitcoin/BRBIP38Key.c

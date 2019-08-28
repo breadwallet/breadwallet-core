@@ -6,6 +6,7 @@ import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
 import android.text.Editable;
 import android.text.Html;
 import android.text.Spanned;
@@ -28,15 +29,15 @@ import com.breadwallet.crypto.errors.FeeEstimationError;
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
 
-public class TransferCreateActivity extends AppCompatActivity {
+public class TransferCreateSendActivity extends AppCompatActivity {
 
     private static final double MIN_VALUE = 0.0;
     private static final double MAX_VALUE = 0.001;
 
-    private static final String EXTRA_WALLET_NAME = "com.breadwallet.cryptodemo,TransferListActivity.EXTRA_WALLET_NAME";
+    private static final String EXTRA_WALLET_NAME = "com.breadwallet.cryptodemo,TransferCreateSendActivity.EXTRA_WALLET_NAME";
 
     public static void start(Activity callerActivity, Wallet wallet) {
-        Intent intent = new Intent(callerActivity, TransferCreateActivity.class);
+        Intent intent = new Intent(callerActivity, TransferCreateSendActivity.class);
         intent.putExtra(EXTRA_WALLET_NAME, wallet.getName());
         callerActivity.startActivity(intent);
     }
@@ -64,8 +65,6 @@ public class TransferCreateActivity extends AppCompatActivity {
 
     private EditText receiverView;
     private SeekBar amountView;
-    private TextView amountMinView;
-    private TextView amountMaxView;
     private TextView amountValueView;
     private TextView feeView;
     private Button submitView;
@@ -90,11 +89,11 @@ public class TransferCreateActivity extends AppCompatActivity {
 
         receiverView = findViewById(R.id.receiver_view);
         amountView = findViewById(R.id.amount_view);
-        amountMinView = findViewById(R.id.amount_min_view);
-        amountMaxView = findViewById(R.id.amount_max_view);
         amountValueView = findViewById(R.id.amount_value_view);
         feeView = findViewById(R.id.fee_view);
         submitView = findViewById(R.id.submit_view);
+        TextView amountMinView = findViewById(R.id.amount_min_view);
+        TextView amountMaxView = findViewById(R.id.amount_max_view);
 
         amountMinView.setText(Amount.create(MIN_VALUE, baseUnit).toString());
         amountMaxView.setText(Amount.create(maxValue, baseUnit).toString());
@@ -152,6 +151,9 @@ public class TransferCreateActivity extends AppCompatActivity {
             Amount amount = Amount.create(calculateValue(amountView.getProgress()), baseUnit);
             showConfirmTransfer(target.get(), amount, feeBasis);
         });
+
+        Toolbar toolbar = findViewById(R.id.toolbar_view);
+        setSupportActionBar(toolbar);
 
         updateFee();
         updateView(amountViewProgress, receiverViewText);;

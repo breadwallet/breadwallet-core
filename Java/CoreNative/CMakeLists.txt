@@ -52,6 +52,8 @@ target_sources (crypto
                 src/main/cpp/core/support/BRKeyECIES.h
                 src/main/cpp/core/support/BRSet.c
                 src/main/cpp/core/support/BRSet.h
+                src/main/cpp/core/support/BRSyncMode.c
+                src/main/cpp/core/support/BRSyncMode.h
                 )
 
 # Support Tests

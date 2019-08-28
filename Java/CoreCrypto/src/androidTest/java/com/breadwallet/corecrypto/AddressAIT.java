@@ -81,7 +81,39 @@ public class AddressAIT {
         Address b1 = ob1.get();
         assertEquals("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj", b1.toString());
 
-        // TODO: Expand coverage
+        assertFalse(network.addressFor("qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v").isPresent());
+        assertFalse(network.addressFor("bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v").isPresent());
+    }
+
+    @Test
+    public void testAddressCreateAsBchOnMainnet() {
+        Currency bch = Currency.create("Bitcoin-Cash", "Bitcoin Cash", "bch", "native", null);
+
+        Unit satoshi_bch = Unit.create(bch, "BCH-SAT", "Satoshi", "SAT");
+        Unit btc_bch = Unit.create(bch, "BCH-BTC", "Bitcoin", "B", satoshi_bch, UnsignedInteger.valueOf(8));
+
+        NetworkAssociation association = new NetworkAssociation(satoshi_bch, btc_bch, new HashSet<>(Arrays.asList(satoshi_bch, btc_bch)));
+
+        Map<Currency, NetworkAssociation> associations = new HashMap<>();
+        associations.put(bch, association);
+
+        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_bch));
+        List<NetworkFee> fees = Collections.singletonList(fee);
+
+        Network network = Network.create("bitcoin-mainnet", "Bitcoin", true, bch, UnsignedLong.valueOf(100000), associations, fees);
+
+        Optional<Address> ob1 = network.addressFor("bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v");
+        assertTrue(ob1.isPresent());
+        Address b1 = ob1.get();
+        assertEquals("bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v", b1.toString());
+
+        ob1 = network.addressFor("qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v");
+        assertTrue(ob1.isPresent());
+        b1 = ob1.get();
+        assertEquals("bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v", b1.toString());
+
+        assertFalse(network.addressFor("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq").isPresent());
+        assertFalse(network.addressFor("1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2").isPresent());
     }
 
     @Test
@@ -196,6 +228,36 @@ public class AddressAIT {
         assertEquals("mm7DDqVkFd35XcWecFipfTYM5dByBzn7nq", b1.toString());
 
         // TODO: Expand coverage
+    }
+
+    @Test
+    public void testAddressCreateAsBchOnTestnet() {
+        Currency bch = Currency.create("Bitcoin-Cash", "Bitcoin Cash", "bch", "native", null);
+
+        Unit satoshi_bch = Unit.create(bch, "BCH-SAT", "Satoshi", "SAT");
+        Unit btc_bch = Unit.create(bch, "BCH-BTC", "Bitcoin", "B", satoshi_bch, UnsignedInteger.valueOf(8));
+
+        NetworkAssociation association = new NetworkAssociation(satoshi_bch, btc_bch, new HashSet<>(Arrays.asList(satoshi_bch, btc_bch)));
+
+        Map<Currency, NetworkAssociation> associations = new HashMap<>();
+        associations.put(bch, association);
+
+        NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_bch));
+        List<NetworkFee> fees = Collections.singletonList(fee);
+
+        Network network = Network.create("bitcoin-mainnet", "Bitcoin", false, bch, UnsignedLong.valueOf(100000), associations, fees);
+
+        Optional<Address> ob1 = network.addressFor("bchtest:pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t");
+        assertTrue(ob1.isPresent());
+        Address b1 = ob1.get();
+        assertEquals("bchtest:pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t", b1.toString());
+
+        ob1 = network.addressFor("pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t");
+        assertTrue(ob1.isPresent());
+        b1 = ob1.get();
+        assertEquals("bchtest:pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t", b1.toString());
+
+        assertFalse(network.addressFor("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq").isPresent());
     }
 
     @Test

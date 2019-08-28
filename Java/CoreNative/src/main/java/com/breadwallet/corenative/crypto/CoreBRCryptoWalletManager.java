@@ -38,6 +38,8 @@ public interface CoreBRCryptoWalletManager {
 
     int getMode();
 
+    void setMode(int mode);
+
     String getPath();
 
     int getState();
@@ -53,6 +55,8 @@ public interface CoreBRCryptoWalletManager {
     void sync();
 
     void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, byte[] phraseUtf8);
+
+    void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, BRCryptoKey key);
 
     void announceGetBlockNumberSuccess(BRCryptoCWMClientCallbackState callbackState, UnsignedLong blockchainHeight);
 

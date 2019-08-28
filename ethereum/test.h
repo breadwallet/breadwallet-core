@@ -47,7 +47,7 @@ runEWMTests (const char *paperKey,
 extern void
 runSyncTest (BREthereumNetwork network,
              BREthereumAccount account,
-             BREthereumMode mode,
+             BRSyncMode mode,
              BREthereumTimestamp accountTimestamp,
              unsigned int durationInSeconds,
              const char *storagePath);

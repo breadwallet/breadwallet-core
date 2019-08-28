@@ -243,7 +243,9 @@ cwmWalletManagerEventAsBTC (BRWalletManagerClientContext context,
         case BITCOIN_WALLET_MANAGER_SYNC_PROGRESS:
             cwmEvent = (BRCryptoWalletManagerEvent) {
                 CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES,
-                { .sync = { event.u.syncProgress.percentComplete }}
+                { .sync = {
+                    event.u.syncProgress.timestamp,
+                    event.u.syncProgress.percentComplete }}
             };
             break;
 
@@ -512,12 +514,14 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
 
             BRCryptoUnit unit         = cryptoWalletGetUnit (wallet);
             BRCryptoUnit unitForFee   = cryptoWalletGetUnitForFee(wallet);
+            BRCryptoBoolean isBTC     = AS_CRYPTO_BOOLEAN (BRWalletManagerHandlesBTC(btcManager));
 
             // The transfer finally - based on the wallet's currency (BTC)
             transfer = cryptoTransferCreateAsBTC (unit,
                                                   unitForFee,
                                                   cryptoWalletAsBTC (wallet),
-                                                  btcTransaction);
+                                                  btcTransaction,
+                                                  isBTC);
 
             // Generate a CRYPTO transfer event for CREATED'...
             cwm->listener.transferEventCallback (cwm->listener.context,
@@ -578,12 +582,14 @@ cwmTransactionEventAsBTC (BRWalletManagerClientContext context,
             if (NULL == transfer) {
                 BRCryptoUnit unit         = cryptoWalletGetUnit (wallet);
                 BRCryptoUnit unitForFee   = cryptoWalletGetUnitForFee(wallet);
+                BRCryptoBoolean isBTC     = AS_CRYPTO_BOOLEAN (BRWalletManagerHandlesBTC(btcManager));
 
                 // The transfer finally - based on the wallet's currency (BTC)
                 transfer = cryptoTransferCreateAsBTC (unit,
                                                       unitForFee,
                                                       cryptoWalletAsBTC (wallet),
-                                                      btcTransaction);
+                                                      btcTransaction,
+                                                      isBTC);
 
                 // Generate a CRYPTO transfer event for CREATED'...
                 cwm->listener.transferEventCallback (cwm->listener.context,
@@ -842,7 +848,9 @@ cwmWalletManagerEventAsETH (BREthereumClientContext context,
         case EWM_EVENT_SYNC_PROGRESS:
             cwmEvent = (BRCryptoWalletManagerEvent) {
                 CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES,
-                { .sync = { round (event.u.syncProgress.percent) }}
+                { .sync = {
+                    event.u.syncProgress.timestamp,
+                    event.u.syncProgress.percentComplete }}
             };
             break;
 

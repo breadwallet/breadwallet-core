@@ -6,29 +6,33 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.support.annotation.NonNull;
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.util.SortedList;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.util.SortedListAdapterCallback;
 import android.text.Html;
 import android.text.Spanned;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.breadwallet.crypto.Network;
 import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Transfer;
 import com.breadwallet.crypto.TransferConfirmation;
 import com.breadwallet.crypto.TransferHash;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
+import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.events.system.DefaultSystemListener;
 import com.breadwallet.crypto.events.system.SystemListener;
 import com.breadwallet.crypto.events.transfer.DefaultTransferEventVisitor;
@@ -50,7 +54,7 @@ public class TransferListActivity extends AppCompatActivity {
 
     private static final DateFormat DATE_FORMAT = DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG);
 
-    private static final String EXTRA_WALLET_NAME = "com.breadwallet.cryptodemo,TransferListActivity.EXTRA_WALLET_NAME";
+    private static final String EXTRA_WALLET_NAME = "com.breadwallet.cryptodemo.TransferListActivity.EXTRA_WALLET_NAME";
 
     private static final Comparator<Transfer> OLDEST_FIRST_COMPARATOR = (o1, o2) -> {
         Optional<TransferConfirmation> oc1 = o1.getConfirmation();
@@ -94,13 +98,19 @@ public class TransferListActivity extends AppCompatActivity {
         return null;
     }
 
+    private static WalletManagerMode getNextMode(WalletManager wm) {
+        Network net = wm.getNetwork();
+        System sys = wm.getSystem();
+
+        List<WalletManagerMode> modes = sys.getSupportedWalletManagerModes(net);
+        WalletManagerMode mode = wm.getMode();
+        mode = modes.get((modes.indexOf(mode) + 1) % modes.size());
+        return mode;
+    }
+
     private Wallet wallet;
 
-    private Button sendView;
-    private Button recvView;
     private Adapter transferAdapter;
-    private RecyclerView transfersView;
-    private RecyclerView.LayoutManager transferLayoutManager;
 
     private ClipboardManager clipboardManager;
 
@@ -147,23 +157,27 @@ public class TransferListActivity extends AppCompatActivity {
 
         clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
 
-        sendView = findViewById(R.id.send_view);
-        sendView.setOnClickListener(v -> TransferCreateActivity.start(TransferListActivity.this, wallet));
+        Button sendView = findViewById(R.id.send_view);
+        sendView.setOnClickListener(v -> TransferCreateSendActivity.start(TransferListActivity.this, wallet));
 
-        recvView = findViewById(R.id.receive_view);
+        Button recvView = findViewById(R.id.receive_view);
         recvView.setOnClickListener(v -> copyReceiveAddress());
 
-        transfersView = findViewById(R.id.transfer_recycler_view);
+        Button sweepView = findViewById(R.id.sweep_view);
+        sweepView .setOnClickListener(v -> TransferCreateSweepActivity.start(TransferListActivity.this, wallet));
+
+        RecyclerView transfersView = findViewById(R.id.transfer_recycler_view);
         transfersView.addItemDecoration(new DividerItemDecoration(getApplicationContext(), DividerItemDecoration.VERTICAL));
 
-        transferLayoutManager = new LinearLayoutManager(this);
+        RecyclerView.LayoutManager transferLayoutManager = new LinearLayoutManager(this);
         transfersView.setLayoutManager(transferLayoutManager);
 
         transferAdapter = new Adapter(DEFAULT_COMPARATOR, (transfer) -> TransferDetailsActivity.start(this, wallet, transfer));
         transfersView.setAdapter(transferAdapter);
 
-        ActionBar actionBar = getSupportActionBar();
-        actionBar.setTitle(String.format("Wallet: %s", wallet.getName()));
+        Toolbar toolbar = findViewById(R.id.toolbar_view);
+        toolbar.setTitle(String.format("Wallet: %s", wallet.getName()));
+        setSupportActionBar(toolbar);
     }
 
     @Override
@@ -180,6 +194,40 @@ public class TransferListActivity extends AppCompatActivity {
         super.onPause();
 
         CoreCryptoApplication.getDispatchingSystemListener().removeWalletListener(wallet, walletListener);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_transfer_list, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        WalletManager wm = wallet.getWalletManager();
+        menu.findItem(R.id.action_toggle_mode).setTitle("Switch to " + getNextMode(wm).name());
+
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_connect:
+                wallet.getWalletManager().connect();
+                return true;
+            case R.id.action_sync:
+                wallet.getWalletManager().sync();
+                return true;
+            case R.id.action_disconnect:
+                wallet.getWalletManager().disconnect();
+                return true;
+            case R.id.action_toggle_mode:
+                WalletManager wm = wallet.getWalletManager();
+                wm.setMode(getNextMode(wm));
+                return true;
+        }
+        return false;
     }
 
     private void copyReceiveAddress() {

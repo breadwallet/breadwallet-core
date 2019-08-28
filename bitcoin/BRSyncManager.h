@@ -102,7 +102,8 @@ typedef struct {
             size_t count;
         } peers;
         struct {
-            uint32_t percentComplete;
+            BRSyncTimestamp timestamp;
+            BRSyncPercentComplete percentComplete;
         } syncProgress;
         struct {
             int reason;
@@ -154,6 +155,9 @@ BRSyncManagerNewForMode(BRSyncMode mode,
 
 extern void
 BRSyncManagerFree(BRSyncManager manager);
+
+extern uint64_t
+BRSyncManagerGetBlockHeight (BRSyncManager manager);
 
 extern void
 BRSyncManagerConnect(BRSyncManager manager);

@@ -182,6 +182,14 @@ public enum TransferDirection: Equatable {
         default: self = .sent;  precondition(false)
         }
     }
+
+    internal var core: BRCryptoTransferDirection {
+        switch self {
+        case .sent:      return CRYPTO_TRANSFER_SENT
+        case .received:  return CRYPTO_TRANSFER_RECEIVED
+        case .recovered: return CRYPTO_TRANSFER_RECOVERED
+        }
+    }
 }
 
 ///

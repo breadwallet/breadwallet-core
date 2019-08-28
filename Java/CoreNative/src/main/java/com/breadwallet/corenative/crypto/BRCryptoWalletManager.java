@@ -80,6 +80,11 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
+    public void setMode(int mode) {
+        CryptoLibrary.INSTANCE.cryptoWalletManagerSetMode(this, mode);
+    }
+
+    @Override
     public String getPath() {
         return CryptoLibrary.INSTANCE.cryptoWalletManagerGetPath(this).getString(0, "UTF-8");
     }
@@ -132,6 +137,11 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
             // clear out our copy; caller responsible for original array
             Arrays.fill(phraseUtf8, (byte) 0);
         }
+    }
+
+    @Override
+    public void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, BRCryptoKey key) {
+        CryptoLibrary.INSTANCE.cryptoWalletManagerSubmitForKey(this, wallet.asBRCryptoWallet(), transfer.asBRCryptoTransfer(), key);
     }
 
     @Override

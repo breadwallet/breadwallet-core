@@ -117,7 +117,8 @@ extern BRCryptoTransfer
 cryptoTransferCreateAsBTC (BRCryptoUnit unit,
                            BRCryptoUnit unitForFee,
                            BRWallet *wid,
-                           OwnershipKept BRTransaction *tid) {
+                           OwnershipKept BRTransaction *tid,
+                           BRCryptoBoolean isBTC) {
     BRAddressParams  addressParams = BRWalletGetAddressParams (wid);
     BRCryptoTransfer transfer      = cryptoTransferCreateInternal (BLOCK_CHAIN_TYPE_BTC, unit, unitForFee);
     transfer->u.btc.tid = tid;
@@ -141,7 +142,7 @@ cryptoTransferCreateAsBTC (BRCryptoUnit unit,
 
             if (inputsContain == BRWalletContainsAddress(wid, address)) {
                 assert (addressSize < sizeof (BRAddress));
-                transfer->sourceAddress = cryptoAddressCreateAsBTC (BRAddressFill (addressParams, address));
+                transfer->sourceAddress = cryptoAddressCreateAsBTC (BRAddressFill (addressParams, address), isBTC);
                 break;
             }
         }
@@ -164,7 +165,7 @@ cryptoTransferCreateAsBTC (BRCryptoUnit unit,
             // returned by `BRWalletContainsAddress()`
             if (outputsContain == BRWalletContainsAddress(wid, address)) {
                 assert (addressSize < sizeof (BRAddress));
-                transfer->targetAddress = cryptoAddressCreateAsBTC (BRAddressFill (addressParams, address));
+                transfer->targetAddress = cryptoAddressCreateAsBTC (BRAddressFill (addressParams, address), isBTC);
                 break;
             }
         }
@@ -492,6 +493,8 @@ cryptoTransferGetDirection (BRCryptoTransfer transfer) {
             int accountIsSource = gwmAddressEqual (gwm, source, address);
             int accountIsTarget = gwmAddressEqual (gwm, target, address);
 
+            // TODO: BRGenericAddress - release source, target, address
+            
             if      ( accountIsSource &&  accountIsTarget) return CRYPTO_TRANSFER_RECOVERED;
             else if ( accountIsSource && !accountIsTarget) return CRYPTO_TRANSFER_SENT;
             else if (!accountIsSource &&  accountIsTarget) return CRYPTO_TRANSFER_RECOVERED;
@@ -663,3 +666,35 @@ cryptoTransferEqual (BRCryptoTransfer t1, BRCryptoTransfer t2) {
                                             (BLOCK_CHAIN_TYPE_GEN == t1->type && cryptoTransferEqualAsGEN (t1, t2)))));
 }
 
+private_extern void
+cryptoTransferExtractBlobAsBTC (BRCryptoTransfer transfer,
+                                uint8_t **bytes,
+                                size_t   *bytesCount,
+                                uint32_t *blockHeight,
+                                uint32_t *timestamp) {
+    assert (NULL != bytes && NULL != bytesCount);
+
+    BRTransaction *tx = cryptoTransferAsBTC (transfer);
+
+    *bytesCount = BRTransactionSerialize (tx, NULL, 0);
+    *bytes = malloc (*bytesCount);
+    BRTransactionSerialize (tx, *bytes, *bytesCount);
+
+    if (NULL != blockHeight) *blockHeight = tx->blockHeight;
+    if (NULL != timestamp)   *timestamp   = tx->timestamp;
+}
+
+extern const char *
+BRCryptoTransferEventTypeString (BRCryptoTransferEventType t) {
+    switch (t) {
+        case CRYPTO_TRANSFER_EVENT_CREATED:
+        return "CRYPTO_TRANSFER_EVENT_CREATED";
+
+        case CRYPTO_TRANSFER_EVENT_CHANGED:
+        return "CRYPTO_TRANSFER_EVENT_CHANGED";
+
+        case CRYPTO_TRANSFER_EVENT_DELETED:
+        return "CRYPTO_TRANSFER_EVENT_DELETED";
+    }
+    return "<CRYPTO_TRANSFER_EVENT_TYPE_UNKNOWN>";
+}

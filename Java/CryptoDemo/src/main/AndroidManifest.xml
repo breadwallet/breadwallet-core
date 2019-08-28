@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.breadwallet.cryptodemo">
 
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:name=".CoreCryptoApplication"
         android:allowBackup="false"
@@ -10,11 +12,14 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.Light.DarkActionBar"
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar"
         tools:ignore="GoogleAppIndexingWarning">
         <activity
-            android:name=".TransferCreateActivity"
+            android:name=".TransferCreateSendActivity"
             android:label="Create Transfer"/>
+        <activity
+            android:name=".TransferCreateSweepActivity"
+            android:label="Create Sweep Transfer"/>
         <activity
             android:name=".TransferDetailsActivity"
             android:label="Transfer Details" />

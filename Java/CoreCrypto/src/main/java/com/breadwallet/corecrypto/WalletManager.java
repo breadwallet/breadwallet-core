@@ -2,14 +2,22 @@ package com.breadwallet.corecrypto;
 
 import com.breadwallet.corenative.crypto.BRCryptoCWMClient;
 import com.breadwallet.corenative.crypto.BRCryptoCWMListener;
+import com.breadwallet.corenative.crypto.BRCryptoKey;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWallet;
 import com.breadwallet.corenative.crypto.CoreBRCryptoWalletManager;
 import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.WalletManagerState;
+import com.breadwallet.crypto.blockchaindb.errors.QueryError;
+import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
+import com.breadwallet.crypto.errors.WalletSweeperError;
+import com.breadwallet.crypto.errors.WalletSweeperQueryError;
+import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedLong;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -55,7 +63,6 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     private final Unit networkBaseUnit;
     private final Unit networkDefaultUnit;
     private final String path;
-    private final WalletManagerMode mode;
     private final NetworkFee networkFee;
 
     private WalletManager(CoreBRCryptoWalletManager core, System system, SystemCallbackCoordinator callbackCoordinator) {
@@ -66,13 +73,19 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         this.account = Account.create(core.getAccount());
         this.network = Network.create(core.getNetwork());
         this.networkCurrency = network.getCurrency();
-        this.mode =  Utilities.walletManagerModeFromCrypto(core.getMode());
         this.path = core.getPath();
 
         // TODO(fix): Unchecked get here
         this.networkBaseUnit = network.baseUnitFor(networkCurrency).get();
         this.networkDefaultUnit = network.defaultUnitFor(networkCurrency).get();
         this.networkFee = network.getMinimumFee();
+    }
+
+    @Override
+    public void createSweeper(com.breadwallet.crypto.Wallet wallet,
+                              com.breadwallet.crypto.Key key,
+                              CompletionHandler<com.breadwallet.crypto.WalletSweeper, WalletSweeperError> completion) {
+        WalletSweeper.create(this, Wallet.from(wallet), Key.from(key), system.getBlockchainDb(), completion);
     }
 
     @Override
@@ -95,6 +108,13 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         Transfer cryptoTransfer = Transfer.from(transfer);
         Wallet cryptoWallet = cryptoTransfer.getWallet();
         core.submit(cryptoWallet.getCoreBRCryptoWallet(), cryptoTransfer.getCoreBRCryptoTransfer(), phraseUtf8);
+    }
+
+    /* package */
+    void submit(com.breadwallet.crypto.Transfer transfer, BRCryptoKey key) {
+        Transfer cryptoTransfer = Transfer.from(transfer);
+        Wallet cryptoWallet = cryptoTransfer.getWallet();
+        core.submit(cryptoWallet.getCoreBRCryptoWallet(), cryptoTransfer.getCoreBRCryptoTransfer(), key);
     }
 
     @Override
@@ -136,7 +156,12 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
 
     @Override
     public WalletManagerMode getMode() {
-        return mode;
+        return Utilities.walletManagerModeFromCrypto(core.getMode());
+    }
+
+    @Override
+    public void setMode(WalletManagerMode mode) {
+        core.setMode(Utilities.walletManagerModeToCrypto(mode));
     }
 
     @Override
@@ -225,5 +250,10 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
         } else {
             return Optional.of(Wallet.create(wallet, this, callbackCoordinator));
         }
+    }
+
+    /* package */
+    CoreBRCryptoWalletManager getCoreBRCryptoWalletManager() {
+        return core;
     }
 }

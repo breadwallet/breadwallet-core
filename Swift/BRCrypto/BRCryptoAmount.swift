@@ -56,6 +56,17 @@ public final class Amount {
             .string (as: pair.quoteUnit, formatter: formatter)
     }
 
+    /// INTERNAL: Returns the low uint64_t value optionally.
+    internal var integerRawSmall: UInt64? {
+        var overflow: BRCryptoBoolean = CRYPTO_FALSE
+        let value = cryptoAmountGetIntegerRaw (core, &overflow)
+        return CRYPTO_TRUE == overflow ? nil : value
+    }
+
+    internal var integerRaw: UInt256 {
+        return cryptoAmountGetValue(core)
+    }
+
     ///
     /// Return a 'raw string' (as an integer in self's base unit) using `base` and `preface`.
     /// Caution is warranted: this is a string w/o any context (currency in a particular Unit).

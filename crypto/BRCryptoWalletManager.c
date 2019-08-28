@@ -26,6 +26,7 @@
 #include <pthread.h>
 
 #include "BRCryptoBase.h"
+#include "BRCryptoKey.h"
 #include "BRCryptoPrivate.h"
 #include "BRCryptoWalletManager.h"
 #include "BRCryptoWalletManagerClient.h"
@@ -72,7 +73,6 @@ cryptoWalletManagerCreateInternal (BRCryptoCWMListener listener,
                                    BRCryptoAccount account,
                                    BRCryptoBlockChainType type,
                                    BRCryptoNetwork network,
-                                   BRSyncMode mode,
                                    BRCryptoAddressScheme scheme,
                                    char *path) {
     BRCryptoWalletManager cwm = calloc (1, sizeof (struct BRCryptoWalletManagerRecord));
@@ -83,7 +83,6 @@ cryptoWalletManagerCreateInternal (BRCryptoCWMListener listener,
     cwm->network = cryptoNetworkTake (network);
     cwm->account = cryptoAccountTake (account);
     cwm->state   = CRYPTO_WALLET_MANAGER_STATE_CREATED;
-    cwm->mode = mode;
     cwm->addressScheme = scheme;
     cwm->path = strdup (path);
 
@@ -121,7 +120,6 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                                                      account,
                                                                      cryptoNetworkGetBlockChainType (network),
                                                                      network,
-                                                                     mode,
                                                                      scheme,
                                                                      cwmPath);
 
@@ -161,7 +159,7 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
             cwm->u.eth = ewmCreate (cryptoNetworkAsETH(network),
                                     cryptoAccountAsETH(account),
                                     (BREthereumTimestamp) cryptoAccountGetTimestamp(account),
-                                    (BREthereumMode) mode,
+                                    mode,
                                     client,
                                     cwmPath,
                                     cryptoNetworkGetHeight(network));
@@ -323,9 +321,38 @@ cryptoWalletManagerGetAccount (BRCryptoWalletManager cwm) {
     return cryptoAccountTake (cwm->account);
 }
 
+extern void
+cryptoWalletManagerSetMode (BRCryptoWalletManager cwm, BRSyncMode mode) {
+    switch (cwm->type) {
+        case BLOCK_CHAIN_TYPE_BTC:
+            BRWalletManagerSetMode (cwm->u.btc, mode);
+            break;
+        case BLOCK_CHAIN_TYPE_ETH:
+            ewmUpdateMode (cwm->u.eth, mode);
+            break;
+        case BLOCK_CHAIN_TYPE_GEN:
+        default:
+            assert (0);
+            break;
+    }
+}
+
 extern BRSyncMode
 cryptoWalletManagerGetMode (BRCryptoWalletManager cwm) {
-    return cwm->mode;
+    BRSyncMode mode = SYNC_MODE_BRD_ONLY;
+    switch (cwm->type) {
+        case BLOCK_CHAIN_TYPE_BTC:
+            mode = BRWalletManagerGetMode (cwm->u.btc);
+            break;
+        case BLOCK_CHAIN_TYPE_ETH:
+            mode = ewmGetMode (cwm->u.eth);
+            break;
+        case BLOCK_CHAIN_TYPE_GEN:
+        default:
+            assert (0);
+            break;
+    }
+    return mode;
 }
 
 extern BRCryptoWalletManagerState
@@ -525,6 +552,44 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
     }
 }
 
+extern void
+cryptoWalletManagerSubmitForKey (BRCryptoWalletManager cwm,
+                                 BRCryptoWallet wallet,
+                                 BRCryptoTransfer transfer,
+                                 BRCryptoKey key) {
+    switch (cwm->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            if (cryptoKeyHasSecret (key) &&
+                BRWalletManagerSignTransactionForKey (cwm->u.btc,
+                                                      cryptoWalletAsBTC (wallet),
+                                                      cryptoTransferAsBTC(transfer),
+                                                      cryptoKeyGetCore (key))) {
+                BRWalletManagerSubmitTransaction (cwm->u.btc,
+                                                  cryptoWalletAsBTC (wallet),
+                                                  cryptoTransferAsBTC(transfer));
+            }
+            break;
+        }
+
+        case BLOCK_CHAIN_TYPE_ETH: {
+            ewmWalletSignTransfer (cwm->u.eth,
+                                   cryptoWalletAsETH (wallet),
+                                   cryptoTransferAsETH (transfer),
+                                   *cryptoKeyGetCore (key));
+
+            ewmWalletSubmitTransfer (cwm->u.eth,
+                                     cryptoWalletAsETH (wallet),
+                                     cryptoTransferAsETH (transfer));
+            break;
+        }
+
+        case BLOCK_CHAIN_TYPE_GEN: {
+            assert (0);
+            break;
+        }
+    }
+}
+
 private_extern BRWalletManager
 cryptoWalletManagerAsBTC (BRCryptoWalletManager manager) {
     assert (BLOCK_CHAIN_TYPE_BTC == manager->type);
@@ -642,3 +707,189 @@ cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
     cryptoCurrencyGive(currency);
 }
 
+extern const char *
+BRCryptoWalletManagerEventTypeString (BRCryptoWalletManagerEventType t) {
+    switch (t) {
+        case CRYPTO_WALLET_MANAGER_EVENT_CREATED:
+        return "CRYPTO_WALLET_MANAGER_EVENT_CREATED";
+
+        case CRYPTO_WALLET_MANAGER_EVENT_CHANGED:
+        return "CRYPTO_WALLET_MANAGER_EVENT_CHANGED";
+
+        case CRYPTO_WALLET_MANAGER_EVENT_DELETED:
+        return "CRYPTO_WALLET_MANAGER_EVENT_DELETED";
+
+        case CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED:
+        return "CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED";
+
+        case CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED:
+        return "CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED";
+
+        case CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED:
+        return "CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED";
+
+        case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED:
+        return "CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED";
+
+        case CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES:
+        return "CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES";
+
+        case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED:
+        return "CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED";
+
+        case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED:
+        return "CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED";
+    }
+    return "<CRYPTO_WALLET_MANAGER_EVENT_TYPE_UNKNOWN>";
+}
+
+/// MARK: Wallet Migrator
+
+struct BRCryptoWalletMigratorRecord {
+    BRFileService fileService;
+    const char *fileServiceTransactionType;
+    const char *fileServiceBlockType;
+    const char *fileServicePeerType;
+
+    int theErrorHackHappened;
+    BRFileServiceError theErrorHack;
+};
+
+static void theErrorHackReset (BRCryptoWalletMigrator migrator) {
+    migrator->theErrorHackHappened = 0;
+}
+
+static void
+cryptoWalletMigratorErrorHandler (BRFileServiceContext context,
+                                 BRFileService fs,
+                                 BRFileServiceError error) {
+    // TODO: Racy on 'cryptoWalletMigratorRelease'?
+    BRCryptoWalletMigrator migrator = (BRCryptoWalletMigrator) context;
+
+    migrator->theErrorHackHappened = 1;
+    migrator->theErrorHack = error;
+}
+
+extern BRCryptoWalletMigrator
+cryptoWalletMigratorCreate (BRCryptoNetwork network,
+                            const char *storagePath) {
+    BRCryptoWalletMigrator migrator = calloc (1, sizeof (struct BRCryptoWalletMigratorRecord));
+
+    migrator->fileService = BRWalletManagerCreateFileService (cryptoNetworkAsBTC(network),
+                                                              storagePath,
+                                                              migrator,
+                                                              cryptoWalletMigratorErrorHandler);
+    if (NULL == migrator->fileService) {
+        cryptoWalletMigratorRelease(migrator);
+        return NULL;
+    }
+
+    BRWalletManagerExtractFileServiceTypes (migrator->fileService,
+                                            &migrator->fileServiceTransactionType,
+                                            &migrator->fileServiceBlockType,
+                                            &migrator->fileServicePeerType);
+
+    return migrator;
+}
+
+extern void
+cryptoWalletMigratorRelease (BRCryptoWalletMigrator migrator) {
+    if (NULL != migrator->fileService) fileServiceRelease(migrator->fileService);
+    free (migrator);
+}
+
+extern BRCryptoWalletMigratorStatus
+cryptoWalletMigratorHandleTransactionAsBTC (BRCryptoWalletMigrator migrator,
+                                            const uint8_t *bytes,
+                                            size_t bytesCount,
+                                            uint32_t blockHeight,
+                                            uint32_t timestamp) {
+    BRTransaction *tx = BRTransactionParse(bytes, bytesCount);
+    if (NULL == tx)
+        return (BRCryptoWalletMigratorStatus) {
+            CRYPTO_WALLET_MIGRATOR_ERROR_TRANSACTION
+        };
+
+    tx->blockHeight = blockHeight;
+    tx->timestamp   = timestamp;
+
+    // Calls cryptoWalletMigratorErrorHandler on error.
+    theErrorHackReset(migrator);
+    fileServiceSave (migrator->fileService, migrator->fileServiceTransactionType, tx);
+    BRTransactionFree(tx);
+
+    if (migrator->theErrorHackHappened)
+        return (BRCryptoWalletMigratorStatus) {
+            CRYPTO_WALLET_MIGRATOR_ERROR_TRANSACTION
+        };
+    else
+        return (BRCryptoWalletMigratorStatus) {
+            CRYPTO_WALLET_MIGRATOR_SUCCESS
+        };
+}
+
+extern BRCryptoWalletMigratorStatus
+cryptoWalletMigratorHandleBlockAsBTC (BRCryptoWalletMigrator migrator,
+                                      UInt256 hash,
+                                      uint32_t height,
+                                      uint32_t nonce,
+                                      uint32_t target,
+                                      uint32_t txCount,
+                                      uint32_t version,
+                                      uint32_t timestamp,
+                                      uint8_t *flags,  size_t flagsLen,
+                                      UInt256 *hashes, size_t hashesCount,
+                                      UInt256 merkleRoot,
+                                      UInt256 prevBlock) {
+    BRMerkleBlock *block = BRMerkleBlockNew();
+    block->blockHash = hash;
+    block->height = height;
+    block->nonce  = nonce;
+    block->target = target;
+    block->totalTx = txCount;
+    block->version = version;
+    if (0 != timestamp) block->timestamp = timestamp;
+
+    BRMerkleBlockSetTxHashes (block, hashes, hashesCount, flags, flagsLen);
+
+    block->merkleRoot = merkleRoot;
+    block->prevBlock  = prevBlock;
+
+    // ...
+    theErrorHackReset(migrator);
+    fileServiceSave (migrator->fileService, migrator->fileServiceBlockType, block);
+    if (migrator->theErrorHackHappened)
+        return (BRCryptoWalletMigratorStatus) {
+            CRYPTO_WALLET_MIGRATOR_ERROR_BLOCK
+        };
+    else
+        return (BRCryptoWalletMigratorStatus) {
+            CRYPTO_WALLET_MIGRATOR_SUCCESS
+        };
+}
+
+extern BRCryptoWalletMigratorStatus
+cryptoWalletMigratorHandlePeerAsBTC (BRCryptoWalletMigrator migrator,
+                                     uint32_t address,
+                                     uint16_t port,
+                                     uint64_t services,
+                                     uint32_t timestamp) {
+    BRPeer peer;
+
+    peer.address = (UInt128) { .u32 = { 0, 0, 0xffff, address }};
+    peer.port = port;
+    peer.services = services;
+    peer.timestamp = timestamp;
+    peer.flags = 0;
+
+    theErrorHackReset(migrator);
+    fileServiceSave (migrator->fileService, migrator->fileServicePeerType, &peer);
+    if (migrator->theErrorHackHappened)
+        return (BRCryptoWalletMigratorStatus) {
+            CRYPTO_WALLET_MIGRATOR_ERROR_PEER
+        };
+    else
+        return (BRCryptoWalletMigratorStatus) {
+            CRYPTO_WALLET_MIGRATOR_SUCCESS
+        };
+}

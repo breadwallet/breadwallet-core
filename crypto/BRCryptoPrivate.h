@@ -126,7 +126,8 @@ extern "C" {
     /// MARK: - Address
 
     private_extern BRCryptoAddress
-    cryptoAddressCreateAsBTC (BRAddress btc);
+    cryptoAddressCreateAsBTC (BRAddress btc,
+                              BRCryptoBoolean isBTC);  // TRUE if BTC; FALSE if BCH
 
     private_extern BRCryptoAddress
     cryptoAddressCreateAsETH (BREthereumAddress eth);
@@ -135,6 +136,13 @@ extern "C" {
     cryptoAddressCreateAsGEN (BRGenericWalletManager gwm,
                               BRGenericAddress aid);
 
+    private_extern BRCryptoBlockChainType
+    cryptoAddressGetType (BRCryptoAddress address);
+    
+    private_extern BRAddress
+    cryptoAddressAsBTC (BRCryptoAddress address,
+                        BRCryptoBoolean *isBitcoinAddr);
+    
     private_extern BREthereumAddress
     cryptoAddressAsETH (BRCryptoAddress address);
 
@@ -193,7 +201,8 @@ extern "C" {
     cryptoTransferCreateAsBTC (BRCryptoUnit unit,
                                BRCryptoUnit unitForFee,
                                BRWallet *wid,
-                               OwnershipKept BRTransaction *tid);
+                               OwnershipKept BRTransaction *tid,
+                               BRCryptoBoolean isBTC); // TRUE if BTC; FALSE if BCH
 
     private_extern BRCryptoTransfer
     cryptoTransferCreateAsETH (BRCryptoUnit unit,
@@ -232,6 +241,13 @@ extern "C" {
     private_extern BRCryptoBoolean
     cryptoTransferHasGEN (BRCryptoTransfer transfer,
                           BRGenericTransfer gen);
+
+    private_extern void
+    cryptoTransferExtractBlobAsBTC (BRCryptoTransfer transfer,
+                                    uint8_t **bytes,
+                                    size_t   *bytesCount,
+                                    uint32_t *blockHeight,
+                                    uint32_t *timestamp);
 
     /// MARK: - Network Fee
     private_extern BRCryptoNetworkFee
@@ -410,6 +426,11 @@ extern "C" {
     extern void
     cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
                                           BRGenericTransfer transferGeneric);
+
+    /// MARK: - WalletSweeper
+
+    private_extern BRWalletSweeper
+    cryptoWalletSweeperAsBTC (BRCryptoWalletSweeper sweeper);
 
 #ifdef __cplusplus
 }

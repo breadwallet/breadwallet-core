@@ -141,6 +141,9 @@ public final class System {
         announceEvent (SystemEvent.networkAdded(network: network))
     }
 
+    internal func networkBy (uids: String) -> Network? {
+        return networks.first { $0.uids == uids }
+    }
 
     /// The system's Wallet Managers, unsorted.  A WalletManager will hold an 'unowned'
     /// reference back to `System`
@@ -249,6 +252,69 @@ public final class System {
                       currencies: Dictionary (uniqueKeysWithValues: currencyKeyValues))
         self.query.updateWallet (wallet) { (res: Result<BlockChainDB.Model.Wallet, BlockChainDB.QueryError>) in
             print ("SYS: SubscribedWallets: \(res)")
+        }
+    }
+
+    /// MARK: - Network Fees
+
+    ////
+    /// A NetworkFeeUpdateError
+    ///
+    public enum NetworkFeeUpdateError: Error {
+        /// The query endpoint for netowrk fees is unresponsive
+        case feesUnavailable
+    }
+
+    ///
+    /// Update the NetworkFees for all known networks.  This will query the `BlockChainDB` to
+    /// acquire the fee information and then update each of system's networks with the new fee
+    /// structure.  Each updated network will generate a NetworkEvent.feesUpdated event (even if
+    /// the actual fees did not change).
+    ///
+    /// And optional completion handler can be provided.  If provided the completion handler is
+    /// invoked with an array of the networks that were updated or with an error.
+    ///
+    /// It is appropriate to call this function anytime a network's fees are to be used, such as
+    /// when a transfer is created and the User can choose among the different fees.
+    ///
+    /// - Parameter completion: An optional completion handler
+    ///
+    public func updateNetworkFees (_ completion: ((Result<[Network],NetworkFeeUpdateError>) -> Void)? = nil) {
+        self.query.getBlockchains (mainnet: self.onMainnet) {
+            (blockChainResult: Result<[BlockChainDB.Model.Blockchain],BlockChainDB.QueryError>) in
+
+            // On an error, just skip out; we'll query again later, presumably
+            guard case let .success (blockChainModels) = blockChainResult
+                else {
+                    completion? (Result.failure (NetworkFeeUpdateError.feesUnavailable))
+                    return
+            }
+
+            let networks = blockChainModels.compactMap { (blockChainModel: BlockChainDB.Model.Blockchain) -> Network? in
+                guard let network = self.networkBy (uids: blockChainModel.id)
+                    else { return nil }
+
+                // We always have a feeUnit for network
+                let feeUnit = network.baseUnitFor(currency: network.currency)!
+
+                // Get the fees
+                let fees = blockChainModel.feeEstimates
+                    // Well, quietly ignore a fee if we can't parse the amount.
+                    .compactMap { (fee: BlockChainDB.Model.BlockchainFee) -> NetworkFee? in
+                        let timeInterval  = 1000 * 60 * Int (fee.tier.dropLast())!
+                        return Amount.create (string: fee.amount, unit: feeUnit)
+                            .map { NetworkFee (timeInternalInMilliseconds: UInt64(timeInterval),
+                                               pricePerCostFactor: $0) }
+                }
+
+                // The fees are unlikely to change; but we'll announce .feesUpdated anyways.
+                network.fees = fees
+                self.listener?.handleNetworkEvent (system: self, network: network, event: .feesUpdated)
+
+                return network
+            }
+
+            completion? (Result.success(networks))
         }
     }
 
@@ -543,6 +609,8 @@ extension System {
                                                          event: WalletManagerEvent.created)
 
                 case CRYPTO_WALLET_MANAGER_EVENT_CHANGED:
+                    print ("SYS: Event: Manager (\(manager.name)): \(event.type): {\(WalletManagerState (core: event.u.state.oldValue)) -> \(WalletManagerState (core: event.u.state.newValue))}")
+
                     system.listener?.handleManagerEvent (system: manager.system,
                                                           manager: manager,
                                                           event: WalletManagerEvent.changed (oldState: WalletManagerState (core: event.u.state.oldValue),
@@ -583,9 +651,15 @@ extension System {
                                                           event: WalletManagerEvent.syncStarted)
 
                 case CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES:
+                    let timestamp: Date? = (0 == event.u.sync.timestamp // CRYPTO_NO_SYNC_TIMESTAMP
+                        ? nil
+                        : Date (timeIntervalSince1970: TimeInterval(event.u.sync.timestamp)))
+                    
                     system.listener?.handleManagerEvent (system: manager.system,
                                                           manager: manager,
-                                                          event: WalletManagerEvent.syncProgress (percentComplete: Double (event.u.sync.percentComplete)))
+                                                          event: WalletManagerEvent.syncProgress (
+                                                            timestamp: timestamp,
+                                                            percentComplete: event.u.sync.percentComplete))
 
                 case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED:
                     system.listener?.handleManagerEvent (system: manager.system,
@@ -1166,13 +1240,272 @@ extension System {
     }
 }
 
+/// Support for Persistent Storage Migration.
+///
+/// Allow prior App version to migrate their SQLite database representations of BTC/BTC
+/// transations, blocks and peers into 'Generic Crypto' - where these entities are persistently
+/// stored in the file system (by BRFileSystem).
+///
+extension System {
+
+    ///
+    /// A Blob of Transaction Data
+    ///
+    /// - btc:
+    ///
+    public enum TransactionBlob {
+        case btc (
+            bytes: [UInt8],
+            blockHeight: UInt32,
+            timestamp: UInt32 // time interval since unix epoch (including '0'
+        )
+    }
+
+    ///
+    /// A BlockHash is 32-bytes of UInt8 data
+    ///
+    public typealias BlockHash = [UInt8]
+
+    /// Validate `BlockHash`
+    private static func validateBlockHash (_ hash: BlockHash) -> Bool {
+        return 32 == hash.count
+    }
+
+    ///
+    /// A Blob of Block Data
+    ///
+    /// - btc:
+    ///
+    public enum BlockBlob {
+        case btc (
+            hash: BlockHash,
+            height: UInt32,
+            nonce: UInt32,
+            target: UInt32,
+            txCount: UInt32,
+            version: UInt32,
+            timestamp: UInt32?,
+            flags: [UInt8],
+            hashes: [BlockHash],
+            merkleRoot: BlockHash,
+            prevBlock: BlockHash
+        )
+    }
+
+    ///
+    /// A Blob of Peer Data
+    ///
+    /// - btc:
+    ///
+    public enum PeerBlob {
+        case btc (
+            address: UInt32,  // UInt128 { .u32 = { 0, 0, 0xffff, <address> }}
+            port: UInt16,
+            services: UInt64,
+            timestamp: UInt32?
+        )
+    }
+
+    ///
+    /// Migrate Errors
+    ///
+    enum MigrateError: Error {
+        /// Migrate does not apply to this network
+        case invalid
+
+        /// Migrate couldn't access the file system
+        case create
+
+        /// Migrate failed to parse or to save a transaction
+        case transaction
+
+        /// Migrate failed to parse or to save a block
+        case block
+
+        /// Migrate failed to parse or to save a peer.
+        case peer
+    }
+
+    ///
+    /// Migrate the storage for a network given transaction, block and peer blobs.  The provided
+    /// blobs must be consistent with `network`.  For exmaple, if `network` represents BTC or BCH
+    /// then the blobs must be of type `.btc`; otherwise a MigrateError is thrown.
+    ///
+    /// - Parameters:
+    ///   - network:
+    ///   - transactionBlobs:
+    ///   - blockBlobs:
+    ///   - peerBlobs:
+    ///
+    /// - Throws: MigrateError
+    ///
+    public func migrateStorage (network: Network,
+                                transactionBlobs: [TransactionBlob],
+                                blockBlobs: [BlockBlob],
+                                peerBlobs: [PeerBlob]) throws {
+        guard migrateRequired (network: network)
+            else { throw MigrateError.invalid }
+
+        switch network.currency.code.lowercased() {
+        case Currency.codeAsBTC,
+             Currency.codeAsBCH:
+            try migrateStorageAsBTC(network: network,
+                                    transactionBlobs: transactionBlobs,
+                                    blockBlobs: blockBlobs,
+                                    peerBlobs: peerBlobs)
+        default:
+            throw MigrateError.invalid
+        }
+    }
+
+    ///
+    /// Migrate storage for BTC
+    ///
+    private func migrateStorageAsBTC (network: Network,
+                                      transactionBlobs: [TransactionBlob],
+                                      blockBlobs: [BlockBlob],
+                                      peerBlobs: [PeerBlob]) throws {
+
+        guard let migrator = cryptoWalletMigratorCreate (network.core, path)
+            else { throw MigrateError.create }
+        defer { cryptoWalletMigratorRelease (migrator) }
+
+        try transactionBlobs.forEach { (blob: TransactionBlob) in
+            guard case let .btc (blob) = blob
+                else { throw MigrateError.transaction }
+
+            var bytes = blob.bytes
+            let status = cryptoWalletMigratorHandleTransactionAsBTC (migrator,
+                                                                     &bytes, bytes.count,
+                                                                     blob.blockHeight,
+                                                                     blob.timestamp)
+            if status.type != CRYPTO_WALLET_MIGRATOR_SUCCESS {
+                throw MigrateError.transaction
+            }
+        }
+
+        try blockBlobs.forEach { (blob: BlockBlob) in
+            guard case let .btc (blob) = blob
+                else { throw MigrateError.block }
+
+            // On a `nil` timestamp, by definition skip out, don't migrate this blob
+            guard nil != blob.timestamp
+                else { return }
+
+            guard blob.hashes.allSatisfy (System.validateBlockHash(_:)),
+                System.validateBlockHash(blob.hash),
+                System.validateBlockHash(blob.merkleRoot),
+                System.validateBlockHash(blob.prevBlock)
+                else { throw MigrateError.block }
+
+            var flags  = blob.flags
+            var hashes = blob.hashes
+            let hashesCount = blob.hashes.count
+
+            let hash: UInt256 = blob.hash.withUnsafeBytes { $0.load (as: UInt256.self) }
+            let merkleRoot: UInt256 = blob.merkleRoot.withUnsafeBytes { $0.load (as: UInt256.self) }
+            let prevBlock:  UInt256 = blob.prevBlock.withUnsafeBytes  { $0.load (as: UInt256.self) }
+
+            try hashes.withUnsafeMutableBytes { (hashesBytes: UnsafeMutableRawBufferPointer) -> Void in
+                let hashesAddr = hashesBytes.baseAddress?.assumingMemoryBound(to: UInt256.self)
+                let status = cryptoWalletMigratorHandleBlockAsBTC (migrator,
+                                                                   hash,
+                                                                   blob.height,
+                                                                   blob.nonce,
+                                                                   blob.target,
+                                                                   blob.txCount,
+                                                                   blob.version,
+                                                                   blob.timestamp!,
+                                                                   &flags, flags.count,
+                                                                   hashesAddr, hashesCount,
+                                                                   merkleRoot,
+                                                                   prevBlock)
+                if status.type != CRYPTO_WALLET_MIGRATOR_SUCCESS {
+                    throw MigrateError.block
+                }
+            }
+        }
+
+        try peerBlobs.forEach { (blob: PeerBlob) in
+            guard case let .btc (blob) = blob
+                else { throw MigrateError.peer }
+
+            // On a `nil` timestamp, by definition skip out, don't migrate this blob
+            guard nil != blob.timestamp
+                else { return }
+
+            let status = cryptoWalletMigratorHandlePeerAsBTC (migrator,
+                                                              blob.address,
+                                                              blob.port,
+                                                              blob.services,
+                                                              blob.timestamp!)
+
+            if status.type != CRYPTO_WALLET_MIGRATOR_SUCCESS {
+                throw MigrateError.peer
+            }
+        }
+    }
+
+    ///
+    /// If migration is required, return the currency code; otherwise, return nil.
+    ///
+    /// - Note: it is not an error not to migrate.
+    ///
+    /// - Parameter network:
+    ///
+    /// - Returns: The currency code or nil
+    ///
+    public func migrateRequired (network: Network) -> Bool {
+        let code = network.currency.code.lowercased()
+        return code == Currency.codeAsBTC
+            || code == Currency.codeAsBCH
+    }
+
+    /// Testing
+
+    ///
+    /// Convert `transfer` to a `TransactionBlob`.
+    ///
+    /// - Parameter transfer:
+    ///
+    /// - Returns: A `TransactionBlob` or nil (if the transfer's network does not require
+    ///     migration, such as for an ETH network).
+    ///
+    internal func asBlob (transfer: Transfer) -> TransactionBlob? {
+        let network = transfer.manager.network
+        guard migrateRequired(network: network)
+            else { return nil }
+
+        switch network.currency.code.lowercased() {
+        case Currency.codeAsBTC,
+             Currency.codeAsBCH:
+            var blockHeight: UInt32 = 0
+            var timestamp:   UInt32 = 0
+            var bytesCount:  size_t = 0
+            var bytes: UnsafeMutablePointer<UInt8>? = nil
+            defer { if nil != bytes { free(bytes) }}
+
+            cryptoTransferExtractBlobAsBTC (transfer.core,
+                                            &bytes, &bytesCount,
+                                            &blockHeight,
+                                            &timestamp)
+
+            return TransactionBlob.btc (bytes: UnsafeMutableBufferPointer<UInt8> (start: bytes, count: bytesCount).map { $0 },
+                                        blockHeight: blockHeight,
+                                        timestamp: timestamp)
+        default:
+            return nil
+        }
+    }
+}
+
 extension BRCryptoTransferEventType: CustomStringConvertible {
     public var description: String {
         switch self {
         case CRYPTO_TRANSFER_EVENT_CREATED: return "Created"
         case CRYPTO_TRANSFER_EVENT_CHANGED: return "Changed"
         case CRYPTO_TRANSFER_EVENT_DELETED: return "Deleted"
-        default: return "<>unknown>>"
+        default: return "<<unknown>>"
         }
     }
 }
@@ -1191,8 +1524,9 @@ extension BRCryptoWalletEventType: CustomStringConvertible {
 
         case CRYPTO_WALLET_EVENT_BALANCE_UPDATED:   return "Balance Updated"
         case CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED: return "FeeBasis Updated"
+        case CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED: return "FeeBasis Estimated"
 
-        default: return "<>unknown>>"
+        default: return "<<unknown>>"
         }
     }
 }
@@ -1214,7 +1548,7 @@ extension BRCryptoWalletManagerEventType: CustomStringConvertible {
         case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED:   return "Sync Stopped"
 
         case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED: return "Block Height Updated"
-        default: return "<>unknown>>"
+        default: return "<<unknown>>"
         }
     }
 }

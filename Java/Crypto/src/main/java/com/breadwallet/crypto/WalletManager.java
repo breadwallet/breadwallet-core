@@ -9,11 +9,14 @@
  */
 package com.breadwallet.crypto;
 
-import com.google.common.base.Optional;
+import com.breadwallet.crypto.errors.WalletSweeperError;
+import com.breadwallet.crypto.utility.CompletionHandler;
 
 import java.util.List;
 
 public interface WalletManager {
+
+    void createSweeper(Wallet wallet, Key key, CompletionHandler<WalletSweeper, WalletSweeperError> completion);
 
     void connect();
 
@@ -36,6 +39,8 @@ public interface WalletManager {
     List<? extends Wallet> getWallets();
 
     WalletManagerMode getMode();
+
+    void setMode(WalletManagerMode mode);
 
     String getPath();
 
