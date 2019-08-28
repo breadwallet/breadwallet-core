@@ -207,7 +207,39 @@ cryptoTransferCreateAsETH (BRCryptoUnit unit,
     BREthereumAccount account = ewmGetAccount (ewm);
     transfer->u.eth.accountAddress = accountGetPrimaryAddress (account);
 
-    transfer->feeBasisEstimated = (NULL == feeBasisEstimated ? NULL : cryptoFeeBasisTake(feeBasisEstimated));
+    // This function `cryptoTransferCreateAsETH()` includes an argument as
+    // `BRCryptoFeeBasis feeBasisEstimated` whereas the analogous function
+    // `cryptoTransferCreateAsBTC` does not.  Why is that?  For BTC the fee basis can be derived
+    // 100% reliably from the BRTransaction; both the 'estimated' and 'confirmed' fee basises are
+    // identical.  For ETH, the 'estimated' and the 'confirmed' basises may differ.  The difference
+    // being the distinction between ETH `gasLimit` (the 'estimate') and `gasUsed` (the
+    // 'confirmed').
+    //
+    // The EWM interface does not make this distinction clear.  It should.
+    // TODO: In EWM expose 'getEstimatedFeeBasis' and 'getConfirmedFeeBasis' functions.
+    //
+    // Turns out that this function is called in two contexts - when Crypto creates a transfer (in
+    // response to User input) and when EWM has a transfer announced (like when found in a
+    // blockchain).  When Crypto creates the transfer we have the `feeBasisEstimated` and it is used
+    // to create the EWM transfer.  Then EWM finds the transfer (see `cwmTransactionEventAsETH()`)
+    // we don't have the estimated fee - if we did nothing the `transfer->feeBasisEstimated` field
+    // would be NULL.
+    //
+    // Problem is we *require* one of 'estimated' or 'confirmed'.  See Transfer.swift at
+    // `public var fee: Amount { ... guard let feeBasis = confirmedFeeBasis ?? estimatedFeeBasis }`
+    // The 'confirmed' value is *ONLY SET* when a transfer is actually included in the blockchain;
+    // therefore we need an estimated fee basis.
+    //
+    // Thus: if `feeBasisEstimated` is NULL, we'll take the ETH fee basis (as the best we have).
+
+    // Get the ETH feeBasis, in the event that we need it.
+    BREthereumFeeBasis ethFeeBasis = transferGetFeeBasis(tid);
+
+    transfer->feeBasisEstimated = (NULL == feeBasisEstimated
+                                   ? cryptoFeeBasisCreateAsETH (unitForFee,
+                                                                ethFeeBasis.u.gas.limit,
+                                                                ethFeeBasis.u.gas.price)
+                                   : cryptoFeeBasisTake(feeBasisEstimated));
 
     return transfer;
 }
