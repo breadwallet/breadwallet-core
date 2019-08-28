@@ -150,6 +150,13 @@ public final class WalletManager: Equatable, CustomStringConvertible {
         cryptoWalletManagerSync (core)
     }
 
+    internal func sign (transfer: Transfer, paperKey: String) -> Bool {
+        return CRYPTO_TRUE == cryptoWalletManagerSign (core,
+                                                       transfer.wallet.core,
+                                                       transfer.core,
+                                                       paperKey)
+    }
+
     public func submit (transfer: Transfer, paperKey: String) {
         cryptoWalletManagerSubmit (core,
                                    transfer.wallet.core,
@@ -162,6 +169,12 @@ public final class WalletManager: Equatable, CustomStringConvertible {
                                         transfer.wallet.core,
                                         transfer.core,
                                         key.core)
+    }
+
+    internal func submit (transfer: Transfer) {
+        cryptoWalletManagerSubmitSigned (core,
+                                         transfer.wallet.core,
+                                         transfer.core)
     }
 
     public func createSweeper (wallet: Wallet,
@@ -349,6 +362,7 @@ public final class WalletSweeper {
                   manager: WalletManager,
                   wallet: Wallet,
                   key: Key) {
+        precondition(wallet.manager == manager)
         self.core = core
         self.manager = manager
         self.wallet = wallet
