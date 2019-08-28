@@ -58,6 +58,10 @@ public class Currency {
                     ImmutableList.of(CurrencyDenomination.ETH_WEI, CurrencyDenomination.ETH_GWEI,
                             CurrencyDenomination.ETH_ETHER)),
 
+            new Currency("Ethereum-Rinkeby", "Ethereum Rinkeby", "eth", "native", "ethereum-rinkeby", null,
+                    ImmutableList.of(CurrencyDenomination.ETH_WEI, CurrencyDenomination.ETH_GWEI,
+                            CurrencyDenomination.ETH_ETHER)),
+
             new Currency("BRD Token Testnet", "BRD Token Testnet", "brd", "erc20", "ethereum-testnet", ADDRESS_BRD_TESTNET,
                     ImmutableList.of(CurrencyDenomination.BRD_INT, CurrencyDenomination.BRD_BRD)),
 
