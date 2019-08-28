@@ -44,6 +44,7 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
     // from them - no exposed interface.
     //
     let canUseFeeBasis: Bool = true
+    var disableFeeEstimate: Bool = false
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated);
@@ -169,6 +170,11 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
     }
 
     func updateFee () {
+        if self.disableFeeEstimate {
+            precondition(nil != self.feeBasis)
+            return
+        }
+
         guard let target = Address.create (string: self.recvField.text!, network: self.wallet.manager.network)
             else { return }
 
@@ -246,6 +252,8 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
         let costFactor = Double (gasLimit())
 
         if let feeBasis = wallet.createTransferFeeBasis(pricePerCostFactor: pricePerCostFactor, costFactor: costFactor) {
+            self.feeBasis = feeBasis
+            self.disableFeeEstimate = true
             DispatchQueue.main.async {
                 self.feeLabel.text = "  \(feeBasis.fee)"
             }
@@ -277,6 +285,8 @@ UITextViewDelegate, UIPickerViewDelegate, UIPickerViewDataSource {
         let costFactor = Double (1) // sizeInKB
         
         if let feeBasis = wallet.createTransferFeeBasis(pricePerCostFactor: pricePerCostFactor, costFactor: costFactor) {
+            self.feeBasis = feeBasis
+            self.disableFeeEstimate = true
             DispatchQueue.main.async {
                 self.feeLabel.text = "  \(feeBasis.fee)"
             }
