@@ -458,7 +458,10 @@ cryptoPaymentProtocolRequestGetRequiredNetworkFee (BRCryptoPaymentProtocolReques
     switch (protoReq->type) {
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY:
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70: {
-            networkFee = cryptoNetworkFeeTake (protoReq->u.btc.requiredFee);
+            if (NULL != protoReq->u.btc.requiredFee) {
+                networkFee = cryptoNetworkFeeTake (protoReq->u.btc.requiredFee);
+            }
+            break;
         }
         default: {
             assert (0);
