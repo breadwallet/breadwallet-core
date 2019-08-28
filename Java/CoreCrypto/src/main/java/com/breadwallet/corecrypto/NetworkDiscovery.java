@@ -47,6 +47,10 @@ final class NetworkDiscovery {
 
         getBlockChains(latch, query, Blockchain.DEFAULT_BLOCKCHAINS, isMainnet, blockchainModels -> {
             for (Blockchain blockchainModel : blockchainModels) {
+                if (blockchainModel.isMainnet() != isMainnet) {
+                    continue;
+                }
+
                 String blockchainModelId = blockchainModel.getId();
 
                 final List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> defaultCurrencies = new ArrayList<>();
@@ -106,14 +110,9 @@ final class NetworkDiscovery {
 
                     List<NetworkFee> fees = new ArrayList<>();
                     for (BlockchainFee bdbFee: blockchainModel.getFeeEstimates()) {
-                        String tier = bdbFee.getTier();
-                        if (!tier.isEmpty()) {
-                            tier = tier.substring(0, tier.length() - 1); // lop of the last character
-                            UnsignedLong timeInterval = UnsignedLong.valueOf(TimeUnit.MINUTES.toMillis(Long.decode(tier)));
-                            Optional<Amount> amount = Amount.create(bdbFee.getAmount(), false, feeUnit);
-                            if (amount.isPresent()) {
-                                fees.add(NetworkFee.create(timeInterval, amount.get()));
-                            }
+                        Optional<Amount> amount = Amount.create(bdbFee.getAmount(), false, feeUnit);
+                        if (amount.isPresent()) {
+                            fees.add(NetworkFee.create(bdbFee.getConfirmationTimeInMilliseconds(), amount.get()));
                         }
                     }
 

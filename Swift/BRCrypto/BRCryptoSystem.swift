@@ -303,7 +303,7 @@ public final class System {
                     .compactMap { (fee: BlockChainDB.Model.BlockchainFee) -> NetworkFee? in
                         let timeInterval  = 1000 * 60 * Int (fee.tier.dropLast())!
                         return Amount.create (string: fee.amount, unit: feeUnit)
-                            .map { NetworkFee (timeInternalInMilliseconds: UInt64(timeInterval),
+                            .map { NetworkFee (timeIntervalInMilliseconds: UInt64(timeInterval),
                                                pricePerCostFactor: $0) }
                 }
 
