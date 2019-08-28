@@ -34,11 +34,10 @@ public enum PaymentProtocolRequestType {
 
 public final class PaymentProtocolRequest {
 
-    public static func create(manager: WalletManager,
-                              wallet: Wallet,
+    public static func create(wallet: Wallet,
                               forBitPay json: Data) -> PaymentProtocolRequest?  {
         guard CRYPTO_TRUE == cryptoPaymentProtocolRequestValidateSupported (CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY,
-                                                                            manager.network.core,
+                                                                            wallet.manager.network.core,
                                                                             wallet.currency.core,
                                                                             wallet.core) else { return nil }
 
@@ -50,7 +49,7 @@ public final class PaymentProtocolRequest {
 
         guard let req = try? decoder.decode(BitPayRequest.self, from: json) else { return nil }
 
-        let builder = cryptoPaymentProtocolRequestBitPayBuilderCreate (manager.network.core,
+        let builder = cryptoPaymentProtocolRequestBitPayBuilderCreate (wallet.manager.network.core,
                                                                        wallet.currency.core,
                                                                        req.network,
                                                                        UInt64(req.time.timeIntervalSince1970),
@@ -68,26 +67,23 @@ public final class PaymentProtocolRequest {
 
         return cryptoPaymentProtocolRequestBitPayBuilderBuild (builder)
             .map { PaymentProtocolRequest(core: $0,
-                                          manager: manager,
                                           wallet: wallet)
         }
     }
 
-    public static func create(manager: WalletManager,
-                              wallet: Wallet,
+    public static func create(wallet: Wallet,
                               forBip70 serialization: Data) -> PaymentProtocolRequest? {
         guard CRYPTO_TRUE == cryptoPaymentProtocolRequestValidateSupported (CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70,
-                                                                            manager.network.core,
+                                                                            wallet.manager.network.core,
                                                                             wallet.currency.core,
                                                                             wallet.core) else { return nil }
 
         var bytes = [UInt8](serialization)
-        return cryptoPaymentProtocolRequestCreateForBip70 (manager.network.core,
+        return cryptoPaymentProtocolRequestCreateForBip70 (wallet.manager.network.core,
                                                            wallet.currency.core,
                                                            &bytes,
                                                            bytes.count)
             .map { PaymentProtocolRequest(core: $0,
-                                          manager: manager,
                                           wallet: wallet)
         }
     }
@@ -135,11 +131,9 @@ public final class PaymentProtocolRequest {
     private let wallet: Wallet
 
     private init(core: BRCryptoPaymentProtocolRequest,
-                 manager: WalletManager,
                  wallet: Wallet) {
-        precondition(wallet.manager == manager)
         self.core = core
-        self.manager = manager
+        self.manager = wallet.manager
         self.wallet = wallet
     }
 
