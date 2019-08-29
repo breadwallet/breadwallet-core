@@ -39,8 +39,6 @@ public class Blockchain {
                     ImmutableList.of(new BlockchainFee("30", "10m", UnsignedLong.valueOf(10 * 60 * 1000)))),
             new Blockchain("ethereum-testnet",     "Ethereum Testnet",  "testnet", false, "eth", UnsignedLong.valueOf(1000000),
                     ImmutableList.of(new BlockchainFee("2000000000", "1m", UnsignedLong.valueOf(60 * 1000)))),
-            new Blockchain("ethereum-rinkeby",     "Ethereum Rinkeby",  "rinkeby", false, "eth", UnsignedLong.valueOf(2000000),
-                    ImmutableList.of(new BlockchainFee("2000000000", "1m", UnsignedLong.valueOf(60 * 1000)))),
             new Blockchain("ripple-testnet",       "Ripple Testnet",    "mainnet", false, "xrp", UnsignedLong.valueOf(25000),
                     ImmutableList.of(new BlockchainFee("20", "1m", UnsignedLong.valueOf(60 * 1000))))
     );
