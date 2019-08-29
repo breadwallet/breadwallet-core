@@ -252,8 +252,6 @@ public final class PaymentProtocolRequest {
 
                 let pkiType = asUTF8String (pkiType!)
                 if pkiType != "none" {
-
-
                     for c in certArray {
                         if let cert = SecCertificateCreateWithData(nil, c as CFData) {
                             name = SecCertificateCopySubjectSummary(cert) as String?
