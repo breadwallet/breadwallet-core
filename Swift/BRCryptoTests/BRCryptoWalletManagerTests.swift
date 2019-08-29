@@ -123,7 +123,7 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.created,   newState: WalletManagerState.connected)),
              EventMatcher (event: WalletManagerEvent.syncStarted),
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected, newState: WalletManagerState.syncing)),
-             EventMatcher (event: WalletManagerEvent.syncProgress(percentComplete: 0), strict: false),
+             EventMatcher (event: WalletManagerEvent.syncProgress(timestamp: nil, percentComplete: 0), strict: false),
 
              EventMatcher (event: WalletManagerEvent.syncEnded(error: nil), strict: false, scan: true),
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.syncing, newState: WalletManagerState.connected)),
@@ -212,7 +212,7 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
              // wallet changed?
              EventMatcher (event: WalletManagerEvent.syncStarted, strict: true, scan:true),
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected, newState: WalletManagerState.syncing)),
-             EventMatcher (event: WalletManagerEvent.syncProgress(percentComplete: 0), strict: false),
+             EventMatcher (event: WalletManagerEvent.syncProgress(timestamp: nil, percentComplete: 0), strict: false),
 
              EventMatcher (event: WalletManagerEvent.syncEnded(error: nil), strict: false, scan: true),
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.syncing, newState: WalletManagerState.connected)),

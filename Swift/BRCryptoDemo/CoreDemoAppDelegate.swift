@@ -110,7 +110,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
                                          isMainnet: mainnet)
 
         // Create the BlockChainDB
-        let query = BlockChainDB ()
+        let query = BlockChainDB.createForTest ()
 
         // Create the system
         self.listener = listener

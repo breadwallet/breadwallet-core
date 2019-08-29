@@ -44,6 +44,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
 
 public class BlockchainDb {
 
@@ -93,6 +94,16 @@ public class BlockchainDb {
         this.ethGasApi = new EthGasApi(brdClient);
         this.ethTokenApi = new EthTokenApi(brdClient);
         this.ethTransferApi = new EthTransferApi(brdClient, executorService);
+    }
+
+    public static BlockchainDb createForTest (OkHttpClient client, String bdbBaseURL, String bdbAuthToken, String apiBaseURL) {
+        DataTask brdDataTask = (cli, request, callback) -> {
+            Request decoratedRequest = request.newBuilder()
+                    .addHeader("Authorization", "Bearer " + bdbAuthToken)
+                    .build();
+            cli.newCall(decoratedRequest).enqueue(callback);
+        };
+        return new BlockchainDb (client, bdbBaseURL, brdDataTask, apiBaseURL, null);
     }
 
     // Blockchain

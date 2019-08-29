@@ -29,7 +29,7 @@ class BRCryptoNetworkTests: XCTestCase {
                                                 defaultUnit: BTC_BTC,
                                                 units: Set (arrayLiteral: BTC_SATOSHI, BTC_BTC))
 
-        let fee = NetworkFee (timeInternalInMilliseconds: 30 * 1000,
+        let fee = NetworkFee (timeIntervalInMilliseconds: 30 * 1000,
                               pricePerCostFactor: Amount.create(integer: 1000, unit: BTC_SATOSHI))
 
         let _ = NetworkFee (core: fee.core, take: true)
@@ -101,9 +101,9 @@ class BRCryptoNetworkTests: XCTestCase {
 
         let btc = Currency (uids: "Bitcoin",  name: "Bitcoin",  code: "BTC", type: "native", issuer: nil)
 
-        let fee1 = NetworkFee (timeInternalInMilliseconds: 1000,
+        let fee1 = NetworkFee (timeIntervalInMilliseconds: 1000,
                                pricePerCostFactor: Amount.create(double: 2.0, unit: ETH_GWEI))
-        let fee2 = NetworkFee (timeInternalInMilliseconds: 500,
+        let fee2 = NetworkFee (timeIntervalInMilliseconds: 500,
                                pricePerCostFactor: Amount.create(double: 3.0, unit: ETH_GWEI))
 
         let network = Network (uids: "ethereum-mainnet",

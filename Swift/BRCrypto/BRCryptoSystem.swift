@@ -303,7 +303,7 @@ public final class System {
                     .compactMap { (fee: BlockChainDB.Model.BlockchainFee) -> NetworkFee? in
                         let timeInterval  = 1000 * 60 * Int (fee.tier.dropLast())!
                         return Amount.create (string: fee.amount, unit: feeUnit)
-                            .map { NetworkFee (timeInternalInMilliseconds: UInt64(timeInterval),
+                            .map { NetworkFee (timeIntervalInMilliseconds: UInt64(timeInterval),
                                                pricePerCostFactor: $0) }
                 }
 
@@ -362,6 +362,7 @@ public final class System {
                 }.get()
 
             blockChainModels
+                .filter { self.onMainnet == $0.isMainnet }
                 .forEach { (blockchainModel: BlockChainDB.Model.Blockchain) in
 
                     // query currencies
@@ -384,6 +385,7 @@ public final class System {
                         currencyModels
                             // TODO: Only needed if getCurrencies returns the wrong stuff.
                             .filter { $0.blockchainID == blockchainModel.id }
+                            .filter { $0.verified }
                             .forEach { (currencyModel: BlockChainDB.Model.Currency) in
                                 // Create the currency
                                 let currency = Currency (uids: currencyModel.id,
@@ -420,9 +422,9 @@ public final class System {
                         let fees = blockchainModel.feeEstimates
                             // Well, quietly ignore a fee if we can't parse the amount.
                             .compactMap { (fee: BlockChainDB.Model.BlockchainFee) -> NetworkFee? in
-                                let timeInterval  = 1000 * 60 * Int (fee.tier.dropLast())!
+                                let timeInterval  = fee.confirmationTimeInMilliseconds
                                 return Amount.create (string: fee.amount, unit: feeUnit)
-                                    .map { NetworkFee (timeInternalInMilliseconds: UInt64(timeInterval),
+                                    .map { NetworkFee (timeIntervalInMilliseconds: timeInterval,
                                                        pricePerCostFactor: $0) }
                         }
 

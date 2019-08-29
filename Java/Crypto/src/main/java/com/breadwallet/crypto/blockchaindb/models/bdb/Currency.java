@@ -21,6 +21,8 @@ import java.util.List;
 
 public class Currency {
 
+    private static final String ADDRESS_INTERNAL = "__native__";
+
     private static final String ADDRESS_BRD_MAINNET = "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6";
     private static final String ADDRESS_BRD_TESTNET = "0x7108ca7c4718efa810457f228305c9c71390931a";
 
@@ -28,53 +30,55 @@ public class Currency {
 
     public static final List<Currency> DEFAULT_CURRENCIES = ImmutableList.of(
             // Mainnet
-            new Currency("Bitcoin", "Bitcoin", "btc", "native", "bitcoin-mainnet", null,
+            new Currency("Bitcoin", "Bitcoin", "btc", "native", "bitcoin-mainnet", null, true,
                     ImmutableList.of(CurrencyDenomination.BTC_SATOSHI, CurrencyDenomination.BTC_BITCOIN)),
 
-            new Currency("Bitcoin-Cash", "Bitcoin Cash", "bch", "native", "bitcoin-cash-mainnet", null,
+            new Currency("Bitcoin-Cash", "Bitcoin Cash", "bch", "native", "bitcoin-cash-mainnet", null, true,
                     ImmutableList.of(CurrencyDenomination.BTC_SATOSHI, CurrencyDenomination.BCH_BITCOIN)),
 
-            new Currency("Ethereum", "Ethereum", "eth", "native", "ethereum-mainnet", null,
+            new Currency("Ethereum", "Ethereum", "eth", "native", "ethereum-mainnet", null, true,
                     ImmutableList.of(CurrencyDenomination.ETH_WEI, CurrencyDenomination.ETH_GWEI,
                             CurrencyDenomination.ETH_ETHER)),
 
-            new Currency("BRD Token", "BRD Token", "brd", "erc20", "ethereum-mainnet", ADDRESS_BRD_MAINNET,
+            new Currency("BRD Token", "BRD Token", "brd", "erc20", "ethereum-mainnet", ADDRESS_BRD_MAINNET, true,
                     ImmutableList.of(CurrencyDenomination.BRD_INT, CurrencyDenomination.BRD_BRD)),
 
-            new Currency("EOS Token", "EOS Token", "eos", "erc20", "ethereum-mainnet", ADDRESS_EOS_MAINNET,
+            new Currency("EOS Token", "EOS Token", "eos", "erc20", "ethereum-mainnet", ADDRESS_EOS_MAINNET, true,
                     ImmutableList.of(CurrencyDenomination.EOS_INT, CurrencyDenomination.EOS_EOS)),
 
-            new Currency("Ripple", "Ripple", "xrp", "native", "ripple-mainnet", null,
+            new Currency("Ripple", "Ripple", "xrp", "native", "ripple-mainnet", null, true,
                     ImmutableList.of(CurrencyDenomination.XRP_DROP, CurrencyDenomination.XRP_XRP)),
 
             // Testnet
-            new Currency("Bitcoin-Testnet", "Bitcoin Test", "btc", "native", "bitcoin-testnet", null,
+            new Currency("Bitcoin-Testnet", "Bitcoin Test", "btc", "native", "bitcoin-testnet", null, true,
                     ImmutableList.of(CurrencyDenomination.BTC_SATOSHI, CurrencyDenomination.BTC_BITCOIN)),
 
-            new Currency("Bitcoin-Cash-Testnet", "Bitcoin Cash Test", "bch", "native", "bitcoin-cash-testnet", null,
+            new Currency("Bitcoin-Cash-Testnet", "Bitcoin Cash Test", "bch", "native", "bitcoin-cash-testnet", null, true,
                     ImmutableList.of(CurrencyDenomination.BTC_SATOSHI, CurrencyDenomination.BCH_BITCOIN)),
 
-            new Currency("Ethereum-Testnet", "Ethereum Testnet", "eth", "native", "ethereum-testnet", null,
+            new Currency("Ethereum-Testnet", "Ethereum Testnet", "eth", "native", "ethereum-testnet", null, true,
                     ImmutableList.of(CurrencyDenomination.ETH_WEI, CurrencyDenomination.ETH_GWEI,
                             CurrencyDenomination.ETH_ETHER)),
 
-            new Currency("Ethereum-Rinkeby", "Ethereum Rinkeby", "eth", "native", "ethereum-rinkeby", null,
-                    ImmutableList.of(CurrencyDenomination.ETH_WEI, CurrencyDenomination.ETH_GWEI,
-                            CurrencyDenomination.ETH_ETHER)),
-
-            new Currency("BRD Token Testnet", "BRD Token Testnet", "brd", "erc20", "ethereum-testnet", ADDRESS_BRD_TESTNET,
+            new Currency("BRD Token Testnet", "BRD Token Testnet", "brd", "erc20", "ethereum-testnet", ADDRESS_BRD_TESTNET, true,
                     ImmutableList.of(CurrencyDenomination.BRD_INT, CurrencyDenomination.BRD_BRD)),
 
-            new Currency("Ripple", "Ripple", "xrp", "native", "ripple-testnet", null,
+            new Currency("Ethereum-Rinkeby", "Ethereum Rinkeby", "eth", "native", "ethereum-rinkeby", null, true,
+                    ImmutableList.of(CurrencyDenomination.ETH_WEI, CurrencyDenomination.ETH_GWEI,
+                            CurrencyDenomination.ETH_ETHER)),
+
+            new Currency("Ripple", "Ripple", "xrp", "native", "ripple-testnet", null, true,
                          ImmutableList.of(CurrencyDenomination.XRP_DROP, CurrencyDenomination.XRP_XRP))
     );
 
     public static Optional<Currency> asCurrency(JSONObject json) {
         // optional
         String address = json.optString("address", null);
+        if (address.equals(ADDRESS_INTERNAL)) address = null;
 
         // required
         try {
+            String id   = json.getString("currency_id");
             String name = json.getString("name");
             String code = json.getString("code");
             String type = json.getString("type");
@@ -85,7 +89,8 @@ public class Currency {
             if (!optionalDenominations.isPresent()) return Optional.absent();
             List<CurrencyDenomination> denominations = optionalDenominations.get();
 
-            return Optional.of(new Currency(name, name, code, type, blockchainId, address, denominations));
+            boolean verified = json.getBoolean("verified");
+            return Optional.of(new Currency(id, name, code, type, blockchainId, address, verified, denominations));
 
         } catch (JSONException e) {
             return Optional.absent();
@@ -120,7 +125,9 @@ public class Currency {
     @Nullable
     private final String address;
 
-    public Currency(String id, String name, String code, String type, String blockchainID, @Nullable String address,
+    private final boolean verified;
+
+    public Currency(String id, String name, String code, String type, String blockchainID, @Nullable String address, boolean verified,
                     List<CurrencyDenomination> denominations) {
         this.id = id;
         this.name = name;
@@ -128,6 +135,7 @@ public class Currency {
         this.type = type;
         this.blockchainID = blockchainID;
         this.address = address;
+        this.verified = verified;
         this.denominations = denominations;
     }
 
@@ -153,6 +161,10 @@ public class Currency {
 
     public Optional<String> getAddress() {
         return Optional.fromNullable(address);
+    }
+
+    public boolean getVerified() {
+        return verified;
     }
 
     public List<CurrencyDenomination> getDenominations() {

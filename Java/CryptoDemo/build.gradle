@@ -22,13 +22,16 @@ android {
             debuggable true
             jniDebuggable true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            buildConfigField 'String', 'BDB_BASE_URL', '"https://test-blockchaindb-api.brd.tools"'
+            buildConfigField 'String', 'BDB_BASE_URL', '"https://api.blockset.com"'
+            buildConfigField 'String', 'BDB_AUTH_TOKEN', '"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkZWI2M2UyOC0wMzQ1LTQ4ZjYtOWQxNy1jZTgwY2JkNjE3Y2IiLCJicmQ6Y3QiOiJjbGkiLCJleHAiOjkyMjMzNzIwMzY4NTQ3NzUsImlhdCI6MTU2Njg2MzY0OX0.FvLLDUSk1p7iFLJfg2kA-vwhDWTDulVjdj8YpFgnlE62OBFCYt4b3KeTND_qAhLynLKbGJ1UDpMMihsxtfvA0A"'
             buildConfigField 'String', 'API_BASE_URL', '"https://api.breadwallet.com"'
+
         }
         debug {
             debuggable true
             jniDebuggable true
-            buildConfigField 'String', 'BDB_BASE_URL', '"https://test-blockchaindb-api.brd.tools"'
+            buildConfigField 'String', 'BDB_BASE_URL', '"https://api.blockset.com"'
+            buildConfigField 'String', 'BDB_AUTH_TOKEN', '"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkZWI2M2UyOC0wMzQ1LTQ4ZjYtOWQxNy1jZTgwY2JkNjE3Y2IiLCJicmQ6Y3QiOiJjbGkiLCJleHAiOjkyMjMzNzIwMzY4NTQ3NzUsImlhdCI6MTU2Njg2MzY0OX0.FvLLDUSk1p7iFLJfg2kA-vwhDWTDulVjdj8YpFgnlE62OBFCYt4b3KeTND_qAhLynLKbGJ1UDpMMihsxtfvA0A"'
             buildConfigField 'String', 'API_BASE_URL', '"https://stage2.breadwallet.com"'
         }
     }

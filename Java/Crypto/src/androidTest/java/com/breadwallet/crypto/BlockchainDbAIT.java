@@ -24,13 +24,15 @@ import java.util.concurrent.Semaphore;
 
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
 import okhttp3.Response;
 
 import static org.junit.Assert.*;
 
 public class BlockchainDbAIT {
 
-    private static final String BDB_BASE_URL = "https://test-blockchaindb-api.brd.tools";
+    private static final String BDB_BASE_URL = "https://api.blockset.com";
+    private static final String BRD_AUTH_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkZWI2M2UyOC0wMzQ1LTQ4ZjYtOWQxNy1jZTgwY2JkNjE3Y2IiLCJicmQ6Y3QiOiJjbGkiLCJleHAiOjkyMjMzNzIwMzY4NTQ3NzUsImlhdCI6MTU2Njg2MzY0OX0.FvLLDUSk1p7iFLJfg2kA-vwhDWTDulVjdj8YpFgnlE62OBFCYt4b3KeTND_qAhLynLKbGJ1UDpMMihsxtfvA0A";
     private static final String API_BASE_URL = "https://stage2.breadwallet.com";
 
     private static final String ETH_EVENT_ERC20_TRANSFER = "0xa9059cbb";
@@ -39,8 +41,15 @@ public class BlockchainDbAIT {
 
     @Before
     public void setup() {
+        DataTask decoratedSynchronousDataTask = (client, request, callback) -> {
+            Request decoratedRequest = request.newBuilder()
+                    .addHeader("Authorization", "Bearer " + BRD_AUTH_TOKEN)
+                    .build();
+            synchronousDataTask.execute(client, decoratedRequest, callback);
+        };
         blockchainDb = new BlockchainDb(new OkHttpClient(),
-                BDB_BASE_URL, synchronousDataTask, API_BASE_URL, synchronousDataTask);
+                BDB_BASE_URL, decoratedSynchronousDataTask,
+                API_BASE_URL, synchronousDataTask);
     }
 
     // BDB

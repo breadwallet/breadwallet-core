@@ -44,7 +44,8 @@ public class Transaction {
             String status = json.getString("status");
             UnsignedLong size = Utilities.getUnsignedLongFromString(json, "size");
 
-            JSONArray jsonTransfers = json.getJSONArray("transfers");
+
+            JSONArray jsonTransfers = json.getJSONObject("_embedded").getJSONArray("transfers");
             Optional<List<Transfer>> optionalTransfers = Transfer.asTransfers(jsonTransfers);
             if (!optionalTransfers.isPresent()) return Optional.absent();
             List<Transfer> transfers = optionalTransfers.get();

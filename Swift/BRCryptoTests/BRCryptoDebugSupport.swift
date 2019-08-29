@@ -89,6 +89,10 @@ extension NetworkEvent:       MatchableEvent {
         switch (self, that) {
         case (.created, .created):
             return true
+        case (.feesUpdated, .feesUpdated):
+            return true
+        default:
+            return false
         }
     }
 }
