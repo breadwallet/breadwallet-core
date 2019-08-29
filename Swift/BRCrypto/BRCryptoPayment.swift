@@ -61,17 +61,19 @@ public final class PaymentProtocolRequest {
 
         guard let req = try? decoder.decode(BitPayRequest.self, from: json) else { return nil }
 
-        let builder = cryptoPaymentProtocolRequestBitPayBuilderCreate (wallet.manager.network.core,
-                                                                       wallet.currency.core,
-                                                                       PaymentProtocolRequest.bitPayAndBip70Callbacks,
-                                                                       req.network,
-                                                                       UInt64(req.time.timeIntervalSince1970),
-                                                                       UInt64(req.expires.timeIntervalSince1970),
-                                                                       req.requiredFeeRate,
-                                                                       req.memo,
-                                                                       req.paymentUrl.absoluteString,
-                                                                       nil,
-                                                                       0)
+        guard let builder = cryptoPaymentProtocolRequestBitPayBuilderCreate (wallet.manager.network.core,
+                                                                             wallet.currency.core,
+                                                                             PaymentProtocolRequest.bitPayAndBip70Callbacks,
+                                                                             req.network,
+                                                                             UInt64(req.time.timeIntervalSince1970),
+                                                                             UInt64(req.expires.timeIntervalSince1970),
+                                                                             req.requiredFeeRate,
+                                                                             req.memo,
+                                                                             req.paymentUrl.absoluteString,
+                                                                             nil,
+                                                                             0) else { return nil }
+        defer { cryptoPaymentProtocolRequestBitPayBuilderGive (builder) }
+
         for output in req.outputs {
             cryptoPaymentProtocolRequestBitPayBuilderAddOutput (builder,
                                                                 output.address,
@@ -286,8 +288,11 @@ public final class PaymentProtocolPayment {
 
     public func encode() -> Data? {
         var bytesCount: Int = 0
-        return cryptoPaymentProtocolPaymentEncode (core, &bytesCount)
-            .map { Data (bytes: $0, count: bytesCount) }
+        if let bytes = cryptoPaymentProtocolPaymentEncode (core, &bytesCount) {
+            defer { free (bytes) }
+            return Data (bytes: bytes, count: bytesCount)
+        }
+        return nil
     }
 
     deinit {
