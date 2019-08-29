@@ -422,7 +422,7 @@ public final class System {
                         let fees = blockchainModel.feeEstimates
                             // Well, quietly ignore a fee if we can't parse the amount.
                             .compactMap { (fee: BlockChainDB.Model.BlockchainFee) -> NetworkFee? in
-                                let timeInterval  = fee.comfirmationTimeInMilliseconds
+                                let timeInterval  = fee.confirmationTimeInMilliseconds
                                 return Amount.create (string: fee.amount, unit: feeUnit)
                                     .map { NetworkFee (timeIntervalInMilliseconds: timeInterval,
                                                        pricePerCostFactor: $0) }
