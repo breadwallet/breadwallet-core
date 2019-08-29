@@ -506,12 +506,42 @@ cryptoWalletManagerSync (BRCryptoWalletManager cwm) {
     }
 }
 
+extern BRCryptoBoolean
+cryptoWalletManagerSign (BRCryptoWalletManager cwm,
+                         BRCryptoWallet wallet,
+                         BRCryptoTransfer transfer,
+                         const char *paperKey) {
+    BRCryptoBoolean success = CRYPTO_FALSE;
+
+    switch (cwm->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            UInt512 seed = cryptoAccountDeriveSeed(paperKey);
+            success = AS_CRYPTO_BOOLEAN (BRWalletManagerSignTransaction (cwm->u.btc,
+                                                                         cryptoWalletAsBTC (wallet),
+                                                                         cryptoTransferAsBTC(transfer),
+                                                                         &seed,
+                                                                         sizeof (seed)));
+            seed = UINT512_ZERO;
+            break;
+        }
+
+        case BLOCK_CHAIN_TYPE_ETH:
+            // TODO(fix): ewmWalletSignTransferWithPaperKey() doesn't return a status
+        case BLOCK_CHAIN_TYPE_GEN: {
+            // TODO(fix): no gwmWalletSignTransfer() exists; need one
+            assert (0);
+            break;
+        }
+    }
+
+    return success;
+}
+
 extern void
 cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
                            BRCryptoWallet wallet,
                            BRCryptoTransfer transfer,
                            const char *paperKey) {
-
     switch (cwm->type) {
         case BLOCK_CHAIN_TYPE_BTC: {
             UInt512 seed = cryptoAccountDeriveSeed(paperKey);
@@ -525,6 +555,7 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
                                                   cryptoWalletAsBTC (wallet),
                                                   cryptoTransferAsBTC(transfer));
             }
+            seed = UINT512_ZERO;
             break;
         }
 
@@ -547,6 +578,8 @@ cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
                                      cryptoWalletAsGEN (wallet),
                                      cryptoTransferAsGEN (transfer),
                                      seed);
+
+            seed = UINT512_ZERO;
             break;
         }
     }
@@ -577,6 +610,32 @@ cryptoWalletManagerSubmitForKey (BRCryptoWalletManager cwm,
                                    cryptoTransferAsETH (transfer),
                                    *cryptoKeyGetCore (key));
 
+            ewmWalletSubmitTransfer (cwm->u.eth,
+                                     cryptoWalletAsETH (wallet),
+                                     cryptoTransferAsETH (transfer));
+            break;
+        }
+
+        case BLOCK_CHAIN_TYPE_GEN: {
+            assert (0);
+            break;
+        }
+    }
+}
+
+extern void
+cryptoWalletManagerSubmitSigned (BRCryptoWalletManager cwm,
+                                 BRCryptoWallet wallet,
+                                 BRCryptoTransfer transfer) {
+    switch (cwm->type) {
+        case BLOCK_CHAIN_TYPE_BTC: {
+            BRWalletManagerSubmitTransaction (cwm->u.btc,
+                                              cryptoWalletAsBTC (wallet),
+                                              cryptoTransferAsBTC(transfer));
+            break;
+        }
+
+        case BLOCK_CHAIN_TYPE_ETH: {
             ewmWalletSubmitTransfer (cwm->u.eth,
                                      cryptoWalletAsETH (wallet),
                                      cryptoTransferAsETH (transfer));

@@ -30,6 +30,7 @@
 #include "BRCryptoFeeBasis.h"
 #include "BRCryptoKey.h"
 #include "BRCryptoNetwork.h"        // NetworkFee
+#include "BRCryptoPayment.h"
 #include "BRCryptoStatus.h"
 #include "BRCryptoTransfer.h"
 
@@ -38,8 +39,6 @@ extern "C" {
 #endif
 
     /// MARK: Forward Declarations
-
-    typedef struct BRCryptoWalletRecord *BRCryptoWallet;
 
     typedef struct BRCryptoWalletSweeperRecord *BRCryptoWalletSweeper;
 
@@ -204,6 +203,11 @@ extern "C" {
                                               BRCryptoWalletSweeper sweeper,
                                               BRCryptoFeeBasis estimatedFeeBasis);
 
+    extern BRCryptoTransfer
+    cryptoWalletCreateTransferForPaymentProtocolRequest (BRCryptoWallet wallet,
+                                                         BRCryptoPaymentProtocolRequest request,
+                                                         BRCryptoFeeBasis estimatedFeeBasis);
+
     /**
      * Estimate the fee to transfer `amount` from `wallet` using the `feeBasis`.  Return an amount
      * represented in the wallet's fee currency.
@@ -226,6 +230,12 @@ extern "C" {
                                                 BRCryptoCookie cookie,
                                                 BRCryptoWalletSweeper sweeper,
                                                 BRCryptoNetworkFee fee);
+
+    extern void
+    cryptoWalletEstimateFeeBasisForPaymentProtocolRequest (BRCryptoWallet wallet,
+                                                           BRCryptoCookie cookie,
+                                                           BRCryptoPaymentProtocolRequest request,
+                                                           BRCryptoNetworkFee fee);
 
     extern BRCryptoFeeBasis
     cryptoWalletCreateFeeBasis (BRCryptoWallet wallet,

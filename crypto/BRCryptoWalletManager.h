@@ -196,6 +196,12 @@ extern "C" {
     extern void
     cryptoWalletManagerSync (BRCryptoWalletManager cwm);
 
+    extern BRCryptoBoolean
+    cryptoWalletManagerSign (BRCryptoWalletManager cwm,
+                             BRCryptoWallet wallet,
+                             BRCryptoTransfer transfer,
+                             const char *paperKey);
+
     extern void
     cryptoWalletManagerSubmit (BRCryptoWalletManager cwm,
                                BRCryptoWallet wid,
@@ -207,6 +213,11 @@ extern "C" {
                                      BRCryptoWallet wallet,
                                      BRCryptoTransfer transfer,
                                      BRCryptoKey key);
+
+    extern void
+    cryptoWalletManagerSubmitSigned (BRCryptoWalletManager cwm,
+                                     BRCryptoWallet wallet,
+                                     BRCryptoTransfer transfer);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoWalletManager, cryptoWalletManager);
 

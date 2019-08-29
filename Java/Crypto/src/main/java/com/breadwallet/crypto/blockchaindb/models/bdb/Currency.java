@@ -63,6 +63,10 @@ public class Currency {
             new Currency("BRD Token Testnet", "BRD Token Testnet", "brd", "erc20", "ethereum-testnet", ADDRESS_BRD_TESTNET, true,
                     ImmutableList.of(CurrencyDenomination.BRD_INT, CurrencyDenomination.BRD_BRD)),
 
+            new Currency("Ethereum-Rinkeby", "Ethereum Rinkeby", "eth", "native", "ethereum-rinkeby", null, true,
+                    ImmutableList.of(CurrencyDenomination.ETH_WEI, CurrencyDenomination.ETH_GWEI,
+                            CurrencyDenomination.ETH_ETHER)),
+
             new Currency("Ripple", "Ripple", "xrp", "native", "ripple-testnet", null, true,
                          ImmutableList.of(CurrencyDenomination.XRP_DROP, CurrencyDenomination.XRP_XRP))
     );

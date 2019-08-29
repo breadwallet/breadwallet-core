@@ -152,8 +152,17 @@ public final class Wallet: Equatable {
     }
 
     internal func createTransfer(sweeper: WalletSweeper,
-                               estimatedFeeBasis: TransferFeeBasis) -> Transfer? {
+                                 estimatedFeeBasis: TransferFeeBasis) -> Transfer? {
         return cryptoWalletCreateTransferForWalletSweep(self.core, sweeper.core, estimatedFeeBasis.core)
+            .map { Transfer (core: $0,
+                             wallet: self,
+                             take: false)
+        }
+    }
+
+    internal func createTransfer(request: PaymentProtocolRequest,
+                                 estimatedFeeBasis: TransferFeeBasis) -> Transfer? {
+        return cryptoWalletCreateTransferForPaymentProtocolRequest(self.core, request.core, estimatedFeeBasis.core)
             .map { Transfer (core: $0,
                              wallet: self,
                              take: false)
@@ -191,6 +200,15 @@ public final class Wallet: Equatable {
                                                    callbackCoordinator.addWalletFeeEstimateHandler(completion),
                                                    sweeper.core,
                                                    fee.core)
+    }
+
+    internal func estimateFee (request: PaymentProtocolRequest,
+                               fee: NetworkFee,
+                               completion: @escaping (Result<TransferFeeBasis,FeeEstimationError>) -> Void) {
+        cryptoWalletEstimateFeeBasisForPaymentProtocolRequest(self.core,
+                                                              callbackCoordinator.addWalletFeeEstimateHandler(completion),
+                                                              request.core,
+                                                              fee.core)
     }
 
     public enum FeeEstimationError: Error {

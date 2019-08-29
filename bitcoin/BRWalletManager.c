@@ -1167,6 +1167,36 @@ BRWalletManagerCreateTransactionForSweep (BRWalletManager manager,
     return transaction;
 }
 
+extern BRTransaction *
+BRWalletManagerCreateTransactionForOutputs (BRWalletManager manager,
+                                            BRWallet *wallet,
+                                            BRTxOutput *outputs,
+                                            size_t outputsLen,
+                                            uint64_t feePerKb) {
+    assert (wallet == manager->wallet);
+
+    pthread_mutex_lock (&manager->lock);
+    uint64_t feePerKbSaved = BRWalletFeePerKb (wallet);
+
+    BRWalletSetFeePerKb (wallet, feePerKb);
+    BRTransaction *transaction = BRWalletCreateTxForOutputs (wallet, outputs, outputsLen);
+    BRWalletSetFeePerKb (wallet, feePerKbSaved);
+
+    BRTransactionWithState txnWithState = (NULL != transaction) ? BRWalletManagerAddOwnedTransaction (manager, transaction) : NULL;
+    pthread_mutex_unlock (&manager->lock);
+
+    if (NULL != txnWithState) {
+        bwmSignalTransactionEvent(manager,
+                                  wallet,
+                                  BRTransactionWithStateGetOwned (txnWithState),
+                                  (BRTransactionEvent) {
+                                      BITCOIN_TRANSACTION_CREATED
+                                  });
+    }
+
+    return transaction;
+}
+
 extern int
 BRWalletManagerSignTransaction (BRWalletManager manager,
                                 BRWallet *wallet,
@@ -1295,6 +1325,38 @@ BRWalletManagerEstimateFeeForSweep (BRWalletManager manager,
     uint64_t fee = 0;
     BRWalletSweeperEstimateFee (sweeper, wallet, feePerKb, &fee);
     uint32_t sizeInByte = (uint32_t) ((1000 * fee)/ feePerKb);
+
+    bwmSignalWalletEvent(manager,
+                         wallet,
+                         (BRWalletEvent) {
+                             BITCOIN_WALLET_FEE_ESTIMATED,
+                                { .feeEstimated = { cookie, feePerKb, sizeInByte }}
+                         });
+}
+
+extern void
+BRWalletManagerEstimateFeeForOutputs (BRWalletManager manager,
+                                      BRWallet *wallet,
+                                      BRCookie cookie,
+                                      BRTxOutput *outputs,
+                                      size_t outputsLen,
+                                      uint64_t feePerKb) {
+    assert (wallet == manager->wallet);
+
+    pthread_mutex_lock (&manager->lock);
+    uint64_t feePerKbSaved = BRWalletFeePerKb (wallet);
+
+    BRWalletSetFeePerKb (wallet, feePerKb);
+    BRTransaction *transaction = BRWalletCreateTxForOutputs (wallet, outputs, outputsLen);
+    BRWalletSetFeePerKb (wallet, feePerKbSaved);
+
+    uint64_t fee = 0;
+    if (NULL != transaction) {
+        fee = BRWalletFeeForTx(wallet, transaction);
+        BRTransactionFree(transaction);
+    }
+    uint32_t sizeInByte = (uint32_t) ((1000 * fee)/ feePerKb);
+    pthread_mutex_unlock (&manager->lock);
 
     bwmSignalWalletEvent(manager,
                          wallet,

@@ -36,8 +36,9 @@
 #include "BRCryptoAmount.h"
 #include "BRCryptoAddress.h"
 #include "BRCryptoFeeBasis.h"
-#include "BRCryptoTransfer.h"
 #include "BRCryptoNetwork.h"
+#include "BRCryptoPayment.h"
+#include "BRCryptoTransfer.h"
 #include "BRCryptoWallet.h"
 #include "BRCryptoWalletManager.h"
 
@@ -324,6 +325,11 @@ extern "C" {
     private_extern BRCryptoCurrency
     cryptoNetworkGetCurrencyforTokenETH (BRCryptoNetwork network,
                                          BREthereumToken token);
+
+    /// MARK: - Payment
+
+    private_extern BRArrayOf(BRTxOutput)
+    cryptoPaymentProtocolRequestGetOutputsAsBTC (BRCryptoPaymentProtocolRequest request);
 
     /// MARK: - Wallet
 

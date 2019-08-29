@@ -403,6 +403,13 @@ public class BlockChainDB {
              demoninations: [(name: "BRD_INTEGER",   code: "BRDI",  decimals:  0, symbol: "brdi"),
                              (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")]),
 
+            (id: "Ethereum-Rinkeby", name: "Ethereum Rinkeby", code: "eth", type: "native", blockchainID: "ethereum-rinkeby",
+             address: nil, verified: true,
+             demoninations: [(name: "wei",   code: "wei",  decimals:  0, symbol: lookupSymbol ("wei")),
+                             (name: "gwei",  code: "gwei", decimals:  9, symbol: lookupSymbol ("gwei")),
+                             (name: "ether", code: "eth",  decimals: 18, symbol: lookupSymbol ("eth"))]),
+
+
             (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-testnet",
              address: nil, verified: true,
              demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
