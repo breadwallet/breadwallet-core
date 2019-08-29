@@ -167,8 +167,9 @@ class SummaryViewController: UITableViewController, WalletListener {
             case .balanceUpdated:
                 if let index = self.wallets.firstIndex (of: wallet) {
                     let path = IndexPath (row: index, section: 0)
-                    let cell = self.tableView.cellForRow(at: path) as! WalletTableViewCell
-                    cell.updateView ()
+                    if let cell = self.tableView.cellForRow(at: path) as? WalletTableViewCell {
+                        cell.updateView ()
+                    }
                 }
 
             case .deleted:
