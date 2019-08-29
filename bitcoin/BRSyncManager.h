@@ -112,7 +112,7 @@ typedef struct {
             uint64_t value;
         } blockHeightUpdated;
         struct {
-            UInt256 txHash;
+            BRTransaction *transaction;
             int error;
         } submitted;
     } u;
@@ -196,7 +196,7 @@ BRSyncManagerAnnounceGetTransactionsDone(BRSyncManager manager,
 extern void
 BRSyncManagerAnnounceSubmitTransaction(BRSyncManager manager,
                                        int rid,
-                                       UInt256 txHash,
+                                       OwnershipKept BRTransaction *transaction,
                                        int error);
 
 #ifdef __cplusplus
