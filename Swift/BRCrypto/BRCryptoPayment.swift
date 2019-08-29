@@ -63,6 +63,7 @@ public final class PaymentProtocolRequest {
 
         let builder = cryptoPaymentProtocolRequestBitPayBuilderCreate (wallet.manager.network.core,
                                                                        wallet.currency.core,
+                                                                       PaymentProtocolRequest.bitPayAndBip70Callbacks,
                                                                        req.network,
                                                                        UInt64(req.time.timeIntervalSince1970),
                                                                        UInt64(req.expires.timeIntervalSince1970),
@@ -93,89 +94,12 @@ public final class PaymentProtocolRequest {
         var bytes = [UInt8](serialization)
         return cryptoPaymentProtocolRequestCreateForBip70 (wallet.manager.network.core,
                                                            wallet.currency.core,
+                                                           PaymentProtocolRequest.bitPayAndBip70Callbacks,
                                                            &bytes,
                                                            bytes.count)
             .map { PaymentProtocolRequest(core: $0,
                                           wallet: wallet)
         }
-    }
-
-    private static let nameExtractor: BRCryptoPayProtReqBitPayBip70NameExtractor = {(req, pkiType, certBytes, certLengths, certsSz) in
-        var name: String? = nil
-
-        var certArray = [Data]()
-        for index in 0..<certsSz {
-            certArray.append(Data (bytes: certBytes![index]!, count: certLengths![index]))
-        }
-
-        let pkiType = asUTF8String (pkiType!)
-        if pkiType != "none" {
-
-
-            for c in certArray {
-                if let cert = SecCertificateCreateWithData(nil, c as CFData) {
-                    name = SecCertificateCopySubjectSummary(cert) as String?
-                    break
-                }
-            }
-        } else if 0 != certsSz { // non-standard extention to include an un-certified request name
-            name = String(data: certArray[0], encoding: .utf8)
-        }
-
-        return name.map { strdup ($0) }
-    }
-
-    private static let validator: BRCryptoPayProtReqBitPayBip70Validator = {(req, pkiType, expires, certBytes, certLengths, certsSz, digest, digestLen, signature, signatureLen) in
-        let pkiType = asUTF8String (pkiType!)
-        if pkiType != "none" {
-            var certs = [SecCertificate]()
-            let policies = [SecPolicy](repeating: SecPolicyCreateBasicX509(), count: 1)
-            var trust: SecTrust?
-            var trustResult = SecTrustResultType.invalid
-
-            var certArray = [Data]()
-            for index in 0..<certsSz {
-                certArray.append(Data (bytes: certBytes![index]!, count: certLengths![index]))
-            }
-
-            for c in certArray {
-                if let cert = SecCertificateCreateWithData(nil, c as CFData) { certs.append(cert) }
-            }
-
-            SecTrustCreateWithCertificates(certs as CFTypeRef, policies as CFTypeRef, &trust)
-            if let trust = trust { SecTrustEvaluate(trust, &trustResult) } // verify certificate chain
-
-            // .unspecified indicates a positive result that wasn't decided by the user
-            guard trustResult == .unspecified || trustResult == .proceed else {
-                return certs.isEmpty ? CRYPTO_PAYMENT_PROTOCOL_ERROR_CERT_MISSING : CRYPTO_PAYMENT_PROTOCOL_ERROR_CERT_NOT_TRUSTED
-            }
-
-            var status = errSecUnimplemented
-            var pubKey: SecKey?
-            if let trust = trust { pubKey = SecTrustCopyPublicKey(trust) }
-
-            if let pubKey = pubKey, let signature = signature {
-                if pkiType == "x509+sha256" {
-                    status = SecKeyRawVerify(pubKey, .PKCS1SHA256, digest!, digestLen, signature, signatureLen)
-                } else if pkiType == "x509+sha1" {
-                    status = SecKeyRawVerify(pubKey, .PKCS1SHA1, digest!, digestLen, signature, signatureLen)
-                }
-            }
-
-            guard status == errSecSuccess else {
-                if status == errSecUnimplemented {
-                    return CRYPTO_PAYMENT_PROTOCOL_ERROR_SIGNATURE_TYPE_NOT_SUPPORTED
-                } else {
-                    return CRYPTO_PAYMENT_PROTOCOL_ERROR_SIGNATURE_VERIFICATION_FAILED
-                }
-            }
-        }
-
-        guard expires == 0 || NSDate.timeIntervalSinceReferenceDate <= Double(expires) else {
-            return CRYPTO_PAYMENT_PROTOCOL_ERROR_EXPIRED
-        }
-
-        return CRYPTO_PAYMENT_PROTOCOL_ERROR_NONE
     }
 
     public var type: PaymentProtocolRequestType {
@@ -207,23 +131,12 @@ public final class PaymentProtocolRequest {
     }
 
     public private(set) lazy var primaryTargetName: String? = {
-        switch type {
-        case .bitPay:
-            return cryptoPaymentProtocolRequestGetPrimaryTargetNameBitPay(core, PaymentProtocolRequest.nameExtractor)
-                .map { asUTF8String ($0, true) }
-        case .bip70:
-            return cryptoPaymentProtocolRequestGetPrimaryTargetNameBip70(core, PaymentProtocolRequest.nameExtractor)
-                .map { asUTF8String ($0, true) }
-        }
+        return cryptoPaymentProtocolRequestGetPrimaryTargetName(core)
+            .map { asUTF8String ($0, true) }
     }()
 
     private lazy var error: PaymentProtocolError? = {
-        switch type {
-        case .bitPay:
-            return PaymentProtocolError(cryptoPaymentProtocolRequestIsValidBitPay(core, PaymentProtocolRequest.validator))
-        case .bip70:
-            return PaymentProtocolError(cryptoPaymentProtocolRequestIsValidBip70(core, PaymentProtocolRequest.validator))
-        }
+        return PaymentProtocolError(cryptoPaymentProtocolRequestIsValid(core))
     }()
 
     public var requiredNetworkFee: NetworkFee? {
@@ -272,6 +185,86 @@ public final class PaymentProtocolRequest {
     deinit {
         cryptoPaymentProtocolRequestGive (core)
     }
+
+    fileprivate static let bitPayAndBip70Callbacks: BRCryptoPayProtReqBitPayAndBip70Callbacks = BRCryptoPayProtReqBitPayAndBip70Callbacks (
+            context: nil,
+            validator: { (req, ctx, pkiType, expires, certBytes, certLengths, certsSz, digest, digestLen, signature, signatureLen) in
+                let pkiType = asUTF8String (pkiType!)
+                if pkiType != "none" {
+                    var certs = [SecCertificate]()
+                    let policies = [SecPolicy](repeating: SecPolicyCreateBasicX509(), count: 1)
+                    var trust: SecTrust?
+                    var trustResult = SecTrustResultType.invalid
+
+                    var certArray = [Data]()
+                    for index in 0..<certsSz {
+                        certArray.append(Data (bytes: certBytes![index]!, count: certLengths![index]))
+                    }
+
+                    for c in certArray {
+                        if let cert = SecCertificateCreateWithData(nil, c as CFData) { certs.append(cert) }
+                    }
+
+                    SecTrustCreateWithCertificates(certs as CFTypeRef, policies as CFTypeRef, &trust)
+                    if let trust = trust { SecTrustEvaluate(trust, &trustResult) } // verify certificate chain
+
+                    // .unspecified indicates a positive result that wasn't decided by the user
+                    guard trustResult == .unspecified || trustResult == .proceed else {
+                        return certs.isEmpty ? CRYPTO_PAYMENT_PROTOCOL_ERROR_CERT_MISSING : CRYPTO_PAYMENT_PROTOCOL_ERROR_CERT_NOT_TRUSTED
+                    }
+
+                    var status = errSecUnimplemented
+                    var pubKey: SecKey?
+                    if let trust = trust { pubKey = SecTrustCopyPublicKey(trust) }
+
+                    if let pubKey = pubKey, let signature = signature {
+                        if pkiType == "x509+sha256" {
+                            status = SecKeyRawVerify(pubKey, .PKCS1SHA256, digest!, digestLen, signature, signatureLen)
+                        } else if pkiType == "x509+sha1" {
+                            status = SecKeyRawVerify(pubKey, .PKCS1SHA1, digest!, digestLen, signature, signatureLen)
+                        }
+                    }
+
+                    guard status == errSecSuccess else {
+                        if status == errSecUnimplemented {
+                            return CRYPTO_PAYMENT_PROTOCOL_ERROR_SIGNATURE_TYPE_NOT_SUPPORTED
+                        } else {
+                            return CRYPTO_PAYMENT_PROTOCOL_ERROR_SIGNATURE_VERIFICATION_FAILED
+                        }
+                    }
+                }
+
+                guard expires == 0 || NSDate.timeIntervalSinceReferenceDate <= Double(expires) else {
+                    return CRYPTO_PAYMENT_PROTOCOL_ERROR_EXPIRED
+                }
+
+                return CRYPTO_PAYMENT_PROTOCOL_ERROR_NONE
+            },
+            nameExtractor: { (req, ctx, pkiType, certBytes, certLengths, certsSz) in
+                var name: String? = nil
+
+                var certArray = [Data]()
+                for index in 0..<certsSz {
+                    certArray.append(Data (bytes: certBytes![index]!, count: certLengths![index]))
+                }
+
+                let pkiType = asUTF8String (pkiType!)
+                if pkiType != "none" {
+
+
+                    for c in certArray {
+                        if let cert = SecCertificateCreateWithData(nil, c as CFData) {
+                            name = SecCertificateCopySubjectSummary(cert) as String?
+                            break
+                        }
+                    }
+                } else if 0 != certsSz { // non-standard extention to include an un-certified request name
+                    name = String(data: certArray[0], encoding: .utf8)
+                }
+
+                return name.map { strdup ($0) }
+            }
+    )
 }
 
 public final class PaymentProtocolPayment {
@@ -295,6 +288,10 @@ public final class PaymentProtocolPayment {
         var bytesCount: Int = 0
         return cryptoPaymentProtocolPaymentEncode (core, &bytesCount)
             .map { Data (bytes: $0, count: bytesCount) }
+    }
+
+    deinit {
+        cryptoPaymentProtocolPaymentGive(core)
     }
 }
 
@@ -338,6 +335,19 @@ public final class PaymentProtocolPaymentACK {
                 return ack.memo
             }
         }
+
+        fileprivate func give() {
+            switch self {
+            case .core (let core):
+                cryptoPaymentProtocolPaymentACKGive (core)
+            case .bitPay:
+                break
+            }
+        }
+    }
+
+    deinit {
+        impl.give()
     }
 }
 
