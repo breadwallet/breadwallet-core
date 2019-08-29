@@ -284,8 +284,6 @@ public class BlockChainDB {
              feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)]),
             (id: "ethereum-testnet",      name: "Ethereum Testnet",  network: "testnet", isMainnet: false, currency: "eth", blockHeight: 1000000,
              feeEstimates: [(amount: "2000000000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
-            (id: "ethereum-rinkeby",      name: "Ethereum Rinkeby",  network: "rinkeby", isMainnet: false, currency: "eth", blockHeight: 2000000,
-             feeEstimates: [(amount: "2000000000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
             (id: "ripple-testnet",        name: "Ripple Testnet",    network: "testnet", isMainnet: false, currency: "xrp", blockHeight: 25000,
              feeEstimates: [(amount: "20", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
         ]
@@ -403,18 +401,10 @@ public class BlockChainDB {
              demoninations: [(name: "BRD_INTEGER",   code: "BRDI",  decimals:  0, symbol: "brdi"),
                              (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")]),
 
-            (id: "Ethereum-Rinkeby", name: "Ethereum Rinkeby", code: "eth", type: "native", blockchainID: "ethereum-rinkeby",
-             address: nil, verified: true,
-             demoninations: [(name: "wei",   code: "wei",  decimals:  0, symbol: lookupSymbol ("wei")),
-                             (name: "gwei",  code: "gwei", decimals:  9, symbol: lookupSymbol ("gwei")),
-                             (name: "ether", code: "eth",  decimals: 18, symbol: lookupSymbol ("eth"))]),
-
-
             (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-testnet",
              address: nil, verified: true,
              demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
                              (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
-
        ]
 
         static internal let addressBRDTestnet = "0x7108ca7c4718efa810457f228305c9c71390931a" // testnet
