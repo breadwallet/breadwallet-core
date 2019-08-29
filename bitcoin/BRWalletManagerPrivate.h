@@ -72,6 +72,11 @@ struct BRWalletManagerStruct {
     BREventHandler handler;
 
     /**
+     * Number of wakeups since the last BRSyncManagerTickTock
+     */
+    uint32_t sleepWakeupsForSyncTickTock;
+
+    /**
      * The Lock ensuring single thread access to BWM state.
      */
     pthread_mutex_t lock;

@@ -228,6 +228,9 @@ BRClientSyncManagerSubmit(BRClientSyncManager manager,
 static void
 BRClientSyncManagerTickTock(BRClientSyncManager manager);
 
+static int
+BRClientSyncManagerIsInFullScan(BRClientSyncManager manager);
+
 static void
 BRClientSyncManagerAnnounceGetBlockNumber(BRClientSyncManager manager,
                                           int rid,
@@ -359,6 +362,9 @@ BRPeerSyncManagerScan(BRPeerSyncManager manager);
 static void
 BRPeerSyncManagerSubmit(BRPeerSyncManager manager,
                         OwnershipKept BRTransaction *transaction);
+
+static int
+BRPeerSyncManagerIsInFullScan(BRPeerSyncManager manager);
 
 static void
 BRPeerSyncManagerTickTock(BRPeerSyncManager manager);
@@ -529,6 +535,17 @@ BRSyncManagerTickTock(BRSyncManager manager) {
         default:
         assert (0);
         break;
+    }
+}
+
+extern void
+BRSyncManagerP2PFullScanReport(BRSyncManager manager) {
+    switch (manager->mode) {
+        case SYNC_MODE_P2P_ONLY:
+            if (BRPeerSyncManagerIsInFullScan (BRSyncManagerAsPeerSyncManager (manager)))
+                BRPeerSyncManagerTickTock(BRSyncManagerAsPeerSyncManager (manager));
+        default:
+            break;
     }
 }
 
@@ -866,6 +883,19 @@ static void
 BRClientSyncManagerTickTock(BRClientSyncManager manager) {
     BRClientSyncManagerStartScanIfNeeded (manager);
     BRClientSyncManagerUpdateBlockNumber (manager);
+}
+
+static int
+BRClientSyncManagerIsInFullScan(BRClientSyncManager manager) {
+    int isFullScan = 0;
+
+    if (0 == pthread_mutex_lock (&manager->lock)) {
+        isFullScan = manager->scanState.isFullScan;
+        pthread_mutex_unlock (&manager->lock);
+    } else {
+        assert (0);
+    }
+    return isFullScan;
 }
 
 static void
@@ -1441,6 +1471,18 @@ BRPeerSyncManagerTickTock(BRPeerSyncManager manager) {
             assert (0);
         }
     }
+}
+
+static int
+BRPeerSyncManagerIsInFullScan(BRPeerSyncManager manager) {
+    int isInFullScan = 0;
+    if (0 == pthread_mutex_lock (&manager->lock)) {
+        isInFullScan = manager->isFullScan;
+        pthread_mutex_unlock (&manager->lock);
+    } else {
+        assert (0);
+    }
+    return isInFullScan;
 }
 
 /// MARK: - Peer Manager Callbacks
