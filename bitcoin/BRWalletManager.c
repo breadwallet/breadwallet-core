@@ -1581,16 +1581,11 @@ _BRWalletManagerSyncEvent(void * context,
         }
 
         case SYNC_MANAGER_TXN_SUBMITTED: {
-            pthread_mutex_lock (&bwm->lock);
-            BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByHash (bwm, event.u.submitted.txHash);
-            assert (NULL != txnWithState);
-            pthread_mutex_unlock (&bwm->lock);
-
             bwmSignalWalletEvent(bwm,
                                  bwm->wallet,
                                  (BRWalletEvent) {
                                      BITCOIN_WALLET_TRANSACTION_SUBMITTED,
-                                     { .submitted = { BRTransactionWithStateGetOwned (txnWithState), event.u.submitted.error }}
+                                     { .submitted = { event.u.submitted.transaction, event.u.submitted.error }}
                                  });
             break;
         }
@@ -1770,10 +1765,13 @@ bwmHandleAnnounceSubmit (BRWalletManager manager,
     assert (eventHandlerIsCurrentThread (manager->handler));
 
     pthread_mutex_lock (&manager->lock);
-    BRSyncManagerAnnounceSubmitTransaction (manager->syncManager,
-                                            rid,
-                                            txHash,
-                                            error);
+    BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByHash (manager, txHash);
+    if (NULL != txnWithState) {
+        BRSyncManagerAnnounceSubmitTransaction (manager->syncManager,
+                                                rid,
+                                                BRTransactionWithStateGetOwned (txnWithState),
+                                                error);
+    }
     pthread_mutex_unlock (&manager->lock);
 }
 
