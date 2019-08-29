@@ -374,7 +374,9 @@ BRPaymentProtocolDetails *BRPaymentProtocolDetailsNew(const char *network, const
     for (size_t i = 0; i < outCount; i++) {
         array_add(details->outputs, _BRPaymentProtocolOutput(outputs[i].amount, outputs[i].script, outputs[i].scriptLen));
     }
-    
+
+    details->outCount = array_count(details->outputs);
+
     details->time = time;
     details->expires = expires;
     if (memo) _ProtoBufString(&details->memo, memo, strlen(memo));

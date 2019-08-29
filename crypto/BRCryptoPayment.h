@@ -63,12 +63,12 @@ extern "C" {
 
     typedef void * BRCryptoPayProtReqContext;
 
-    typedef char * (*BRCryptoPayProtReqBitPayAndBip70NameExtractor) (BRCryptoPaymentProtocolRequest request,
-                                                                     BRCryptoPayProtReqContext context,
-                                                                     const char *pkiType,
-                                                                     uint8_t *certBytes[],
-                                                                     size_t certLengths[],
-                                                                     size_t certCount);
+    typedef char * (*BRCryptoPayProtReqBitPayAndBip70CommonNameExtractor) (BRCryptoPaymentProtocolRequest request,
+                                                                           BRCryptoPayProtReqContext context,
+                                                                           const char *pkiType,
+                                                                           uint8_t *certBytes[],
+                                                                           size_t certLengths[],
+                                                                           size_t certCount);
 
     typedef BRCryptoPaymentProtocolError (*BRCryptoPayProtReqBitPayAndBip70Validator) (BRCryptoPaymentProtocolRequest request,
                                                                                        BRCryptoPayProtReqContext context,
@@ -86,7 +86,7 @@ extern "C" {
     typedef struct {
         BRCryptoPayProtReqContext context;
         BRCryptoPayProtReqBitPayAndBip70Validator validator;
-        BRCryptoPayProtReqBitPayAndBip70NameExtractor nameExtractor;
+        BRCryptoPayProtReqBitPayAndBip70CommonNameExtractor nameExtractor;
     } BRCryptoPayProtReqBitPayAndBip70Callbacks;
 
     typedef BRCryptoPayProtReqBitPayAndBip70Callbacks BRCryptoPayProtReqBitPayCallbacks;
@@ -155,8 +155,9 @@ extern "C" {
     extern BRCryptoAddress
     cryptoPaymentProtocolRequestGetPrimaryTargetAddress (BRCryptoPaymentProtocolRequest protoReq);
 
+    // If the return value is not NULL, it must be deallocated using free()
     extern char *
-    cryptoPaymentProtocolRequestGetPrimaryTargetName (BRCryptoPaymentProtocolRequest protoReq);
+    cryptoPaymentProtocolRequestGetCommonName (BRCryptoPaymentProtocolRequest protoReq);
 
     extern BRCryptoPaymentProtocolError
     cryptoPaymentProtocolRequestIsValid(BRCryptoPaymentProtocolRequest protoReq);
@@ -182,7 +183,7 @@ extern "C" {
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoPaymentProtocolPaymentACK, cryptoPaymentProtocolPaymentACK);
 
-    extern char *
+    extern const char *
     cryptoPaymentProtocolPaymentACKGetMemo (BRCryptoPaymentProtocolPaymentACK protoAck);
 
 #ifdef __cplusplus

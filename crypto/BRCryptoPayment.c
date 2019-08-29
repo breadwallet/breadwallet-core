@@ -197,9 +197,11 @@ cryptoPaymentProtocolRequestValidateSupported (BRCryptoPaymentProtocolType type,
         return CRYPTO_FALSE;
     }
 
-    if (CRYPTO_FALSE == cryptoCurrencyIsIdentical (currency, cryptoWalletGetCurrency (wallet))) {
+    BRCryptoCurrency walletCurrency = cryptoWalletGetCurrency (wallet);
+    if (CRYPTO_FALSE == cryptoCurrencyIsIdentical (currency, walletCurrency)) {
         return CRYPTO_FALSE;
     }
+    cryptoCurrencyGive (walletCurrency);
 
     switch (cryptoWalletGetType (wallet)) {
         case BLOCK_CHAIN_TYPE_BTC: {
@@ -239,47 +241,49 @@ static BRCryptoPaymentProtocolRequest
 cryptoPaymentProtocolRequestCreateForBitPay (BRCryptoPaymentProtocolRequestBitPayBuilder builder) {
     BRCryptoPaymentProtocolRequest protoReq = NULL;
 
-    // TODO(fix): Do we want these as asserts or fail cases?
     assert (BLOCK_CHAIN_TYPE_BTC == cryptoNetworkGetType (builder->cryptoNetwork));
     assert (cryptoNetworkHasCurrency(builder->cryptoNetwork, builder->cryptoCurrency));
 
-    BRPaymentProtocolDetails *details = BRPaymentProtocolDetailsNew (builder->network,
-                                                                     builder->outputs,
-                                                                     array_count (builder->outputs),
-                                                                     builder->time,
-                                                                     builder->expires,
-                                                                     builder->memo,
-                                                                     builder->paymentURL,
-                                                                     builder->merchantData,
-                                                                     builder->merchantDataLen);
+    if (0 != array_count (builder->outputs) && 0 != builder->outputs[0].amount && 0 != builder->outputs[0].scriptLen) {
 
-    BRPaymentProtocolRequest *request = BRPaymentProtocolRequestNew (1,
-                                                                     "none",
-                                                                     NULL,
-                                                                     0,
-                                                                     details,
-                                                                     NULL,
-                                                                     0);
+        BRPaymentProtocolDetails *details = BRPaymentProtocolDetailsNew (builder->network,
+                                                                         builder->outputs,
+                                                                         array_count (builder->outputs),
+                                                                         builder->time,
+                                                                         builder->expires,
+                                                                         builder->memo,
+                                                                         builder->paymentURL,
+                                                                         builder->merchantData,
+                                                                         builder->merchantDataLen);
 
-    if (request) {
-        protoReq = calloc (1, sizeof (struct BRCryptoPaymentProtocolRequestRecord));
-        protoReq->ref = CRYPTO_REF_ASSIGN(cryptoPaymentProtocolRequestRelease);
+        BRPaymentProtocolRequest *request = BRPaymentProtocolRequestNew (1,
+                                                                        "none",
+                                                                        NULL,
+                                                                        0,
+                                                                        details,
+                                                                        NULL,
+                                                                        0);
 
-        protoReq->type = CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY;
-        protoReq->cryptoNetwork = cryptoNetworkTake (builder->cryptoNetwork);
-        protoReq->cryptoCurrency = cryptoCurrencyTake (builder->cryptoCurrency);
+        if (NULL != request) {
+            protoReq = calloc (1, sizeof (struct BRCryptoPaymentProtocolRequestRecord));
+            protoReq->ref = CRYPTO_REF_ASSIGN(cryptoPaymentProtocolRequestRelease);
 
-        BRCryptoUnit feeUnit = cryptoNetworkGetUnitAsBase (builder->cryptoNetwork, builder->cryptoCurrency);
-        BRCryptoAmount feeAmount = cryptoAmountCreateDouble (builder->feePerByte, feeUnit);
-        protoReq->u.btc.requiredFee = cryptoNetworkFeeCreate (0, feeAmount, feeUnit);
-        cryptoAmountGive (feeAmount);
-        cryptoUnitGive (feeUnit);
+            protoReq->type = CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY;
+            protoReq->cryptoNetwork = cryptoNetworkTake (builder->cryptoNetwork);
+            protoReq->cryptoCurrency = cryptoCurrencyTake (builder->cryptoCurrency);
 
-        protoReq->u.btc.request = request;
-        protoReq->u.btc.callbacks = builder->callbacks;
+            BRCryptoUnit feeUnit = cryptoNetworkGetUnitAsBase (builder->cryptoNetwork, builder->cryptoCurrency);
+            BRCryptoAmount feeAmount = cryptoAmountCreateDouble (builder->feePerByte, feeUnit);
+            protoReq->u.btc.requiredFee = cryptoNetworkFeeCreate (0, feeAmount, feeUnit);
+            cryptoAmountGive (feeAmount);
+            cryptoUnitGive (feeUnit);
 
-    } else {
-        BRPaymentProtocolDetailsFree (details);
+            protoReq->u.btc.request = request;
+            protoReq->u.btc.callbacks = builder->callbacks;
+
+        } else {
+            BRPaymentProtocolDetailsFree (details);
+        }
     }
 
     return protoReq;
@@ -293,13 +297,12 @@ cryptoPaymentProtocolRequestCreateForBip70 (BRCryptoNetwork cryptoNetwork,
                                             size_t serializationLen) {
     BRCryptoPaymentProtocolRequest protoReq = NULL;
 
-    // TODO(fix): Do we want these as asserts or fail cases?
     assert (BLOCK_CHAIN_TYPE_BTC == cryptoNetworkGetType (cryptoNetwork));
     assert (cryptoNetworkHasCurrency(cryptoNetwork, cryptoCurrency));
 
     BRPaymentProtocolRequest *request = BRPaymentProtocolRequestParse (serialization,
                                                                        serializationLen);
-    if (request) {
+    if (NULL != request) {
         protoReq = calloc (1, sizeof (struct BRCryptoPaymentProtocolRequestRecord));
         protoReq->ref = CRYPTO_REF_ASSIGN(cryptoPaymentProtocolRequestRelease);
 
@@ -353,7 +356,7 @@ cryptoPaymentProtocolRequestIsSecure (BRCryptoPaymentProtocolRequest protoReq) {
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY:
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70: {
             BRPaymentProtocolRequest *request = protoReq->u.btc.request;
-            isSecure = AS_CRYPTO_BOOLEAN (NULL != request->pkiType && 0 == strcmp (request->pkiType, "none"));
+            isSecure = AS_CRYPTO_BOOLEAN (NULL != request->pkiType && 0 != strcmp (request->pkiType, "none"));
             break;
         }
         default: {
@@ -370,10 +373,7 @@ cryptoPaymentProtocolRequestGetMemo (BRCryptoPaymentProtocolRequest protoReq) {
     switch (protoReq->type) {
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY:
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70: {
-            BRPaymentProtocolRequest *request = protoReq->u.btc.request;
-            if (request->details->memo ) {
-                memo = request->details->memo;
-            }
+            memo = protoReq->u.btc.request->details->memo;
             break;
         }
         default: {
@@ -390,10 +390,7 @@ cryptoPaymentProtocolRequestGetPaymentURL (BRCryptoPaymentProtocolRequest protoR
     switch (protoReq->type) {
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY:
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70: {
-            BRPaymentProtocolRequest *request = protoReq->u.btc.request;
-            if (request->details->paymentURL ) {
-                paymentURL = request->details->paymentURL;
-            }
+            paymentURL = protoReq->u.btc.request->details->paymentURL;
             break;
         }
         default: {
@@ -456,7 +453,7 @@ cryptoPaymentProtocolRequestGetPrimaryTargetAddress (BRCryptoPaymentProtocolRequ
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY:
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70: {
             BRPaymentProtocolRequest *request = protoReq->u.btc.request;
-            if (request->details->outCount != 0) {
+            if (0 != request->details->outCount) {
                 // TODO(fix): Does this work for BCH?
                 const BRChainParams * chainParams = cryptoNetworkAsBTC (protoReq->cryptoNetwork);
                 int isBTC = BRChainParamsIsBitcoin (chainParams);
@@ -480,15 +477,15 @@ cryptoPaymentProtocolRequestGetPrimaryTargetAddress (BRCryptoPaymentProtocolRequ
 }
 
 extern char *
-cryptoPaymentProtocolRequestGetPrimaryTargetName (BRCryptoPaymentProtocolRequest protoReq) {
+cryptoPaymentProtocolRequestGetCommonName (BRCryptoPaymentProtocolRequest protoReq) {
     char * name = NULL;
     switch (protoReq->type) {
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY:
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70: {
-            BRArrayOf(uint8_t *) certs;
+            BRArrayOf(uint8_t *) certBytes;
             BRArrayOf(size_t) certLens;
 
-            array_new (certs, 10);
+            array_new (certBytes, 10);
             array_new (certLens, 10);
 
             size_t certLen, index = 0;
@@ -496,7 +493,7 @@ cryptoPaymentProtocolRequestGetPrimaryTargetName (BRCryptoPaymentProtocolRequest
                 uint8_t *cert = malloc (certLen);
                 BRPaymentProtocolRequestCert (protoReq->u.btc.request, cert, certLen, index);
 
-                array_add (certs, cert);
+                array_add (certBytes, cert);
                 array_add (certLens, certLen);
 
                 index++;
@@ -505,13 +502,14 @@ cryptoPaymentProtocolRequestGetPrimaryTargetName (BRCryptoPaymentProtocolRequest
             name = protoReq->u.btc.callbacks.nameExtractor (protoReq,
                                                             protoReq->u.btc.callbacks.context,
                                                             protoReq->u.btc.request->pkiType,
-                                                            certs, certLens, array_count (certs));
+                                                            certBytes, certLens, array_count (certBytes));
 
-            for (index = 0; index < array_count(certs); index++) {
-                free (certs[index]);
+            for (index = 0; index < array_count(certBytes); index++) {
+                free (certBytes[index]);
             }
-            array_free (certs);
+            array_free (certBytes);
             array_free (certLens);
+            break;
         }
         default: {
             assert (0);
@@ -568,6 +566,7 @@ cryptoPaymentProtocolRequestIsValid (BRCryptoPaymentProtocolRequest protoReq) {
             if (digest) {
                 free (digest);
             }
+            break;
         }
         default: {
             assert (0);
@@ -579,38 +578,42 @@ cryptoPaymentProtocolRequestIsValid (BRCryptoPaymentProtocolRequest protoReq) {
 
 private_extern BRArrayOf(BRTxOutput)
 cryptoPaymentProtocolRequestGetOutputsAsBTC (BRCryptoPaymentProtocolRequest protoReq) {
+    BRArrayOf(BRTxOutput) outputs = NULL;
     switch (protoReq->type) {
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY:
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70: {
             BRPaymentProtocolRequest *request = protoReq->u.btc.request;
-            BRArrayOf(BRTxOutput) outputs;
-            array_new(outputs, request->details->outCount);
-            array_add_array(outputs, request->details->outputs, request->details->outCount);
-            return outputs;
+            if (0 != request->details->outCount) {
+                array_new(outputs, request->details->outCount);
+                array_add_array(outputs, request->details->outputs, request->details->outCount);
+            }
+            break;
         }
         default: {
             assert (0);
             break;
         }
     }
-    return NULL;
+    return outputs;
 }
 
 static uint8_t*
 cryptoPaymentProtocolRequestGetMerchantData (BRCryptoPaymentProtocolRequest protoReq, size_t *merchantDataLen) {
+    uint8_t *merchantData = NULL;
     switch (protoReq->type) {
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY:
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70: {
             BRPaymentProtocolRequest *request = protoReq->u.btc.request;
+            merchantData = request->details->merchantData;
             *merchantDataLen = request->details->merchDataLen;
-            return request->details->merchantData;
+            break;
         }
         default: {
             assert (0);
             break;
         }
     }
-    return NULL;
+    return merchantData;
 }
 
 static BRCryptoNetwork
@@ -660,11 +663,8 @@ cryptoPaymentProtocolPaymentCreate (BRCryptoPaymentProtocolRequest protoReq,
     protoPay->type = cryptoPaymentProtocolRequestGetType (protoReq);
     protoPay->request = cryptoPaymentProtocolRequestTake (protoReq);
 
-    // TODO(fix): Do we want these as asserts or fail cases?
     BRCryptoNetwork cryptoNetwork = cryptoPaymentProtocolRequestGetNetwork (protoReq);
     BRCryptoCurrency cryptoCurrency = cryptoPaymentProtocolRequestGetCurrency (protoReq);
-    assert (BLOCK_CHAIN_TYPE_BTC == cryptoNetworkGetType (cryptoNetwork));
-    assert (cryptoNetworkHasCurrency(cryptoNetwork, cryptoCurrency));
 
     protoPay->cryptoNetwork = cryptoNetwork;
     protoPay->cryptoCurrency = cryptoCurrency;
@@ -754,6 +754,8 @@ cryptoPaymentProtocolPaymentEncode(BRCryptoPaymentProtocolPayment protoPay,
     assert (NULL != encodedLen);
     switch (protoPay->type) {
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY: {
+            // TODO(fix): Should these be asserts?
+
             BRArrayOf(uint8_t) encodedArray;
             array_new (encodedArray, 512);
             array_add (encodedArray, '{');
@@ -790,7 +792,7 @@ cryptoPaymentProtocolPaymentEncode(BRCryptoPaymentProtocolPayment protoPay,
             char *transactionHex = encodeHexCreate (&transactionHexLen, transactionBuf, transactionBufLen);
             assert (0 != transactionHexLen);
 
-            array_add_array (encodedArray, transactionHex, transactionHexLen);
+            array_add_array (encodedArray, transactionHex, transactionHexLen - 1);
             free (transactionBuf);
             free (transactionHex);
 
@@ -883,13 +885,13 @@ cryptoPaymentProtocolPaymentACKRelease (BRCryptoPaymentProtocolPaymentACK protoA
     free (protoAck);
 }
 
-extern char *
+extern const char *
 cryptoPaymentProtocolPaymentACKGetMemo (BRCryptoPaymentProtocolPaymentACK protoAck) {
-    char * memo = NULL;
+    const char * memo = NULL;
 
     switch (protoAck->type) {
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70: {
-            memo = protoAck->u.btcBip70.ack->memo ? strdup (protoAck->u.btcBip70.ack->memo) : NULL;
+            memo = protoAck->u.btcBip70.ack->memo;
             break;
         }
         default: {

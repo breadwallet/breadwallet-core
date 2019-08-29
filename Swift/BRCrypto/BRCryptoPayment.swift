@@ -125,13 +125,13 @@ public final class PaymentProtocolRequest {
             .map { Amount (core: $0, take: false)  }
     }
 
-    public var primaryTargetAddress: Address? {
+    public var primaryTarget: Address? {
         return cryptoPaymentProtocolRequestGetPrimaryTargetAddress (core)
             .map { Address (core: $0, take: false)  }
     }
 
-    public private(set) lazy var primaryTargetName: String? = {
-        return cryptoPaymentProtocolRequestGetPrimaryTargetName(core)
+    public private(set) lazy var commonName: String? = {
+        return cryptoPaymentProtocolRequestGetCommonName(core)
             .map { asUTF8String ($0, true) }
     }()
 
@@ -217,11 +217,11 @@ public final class PaymentProtocolRequest {
                     var pubKey: SecKey?
                     if let trust = trust { pubKey = SecTrustCopyPublicKey(trust) }
 
-                    if let pubKey = pubKey, let signature = signature {
+                    if let pubKey = pubKey, let digest = digest, let signature = signature {
                         if pkiType == "x509+sha256" {
-                            status = SecKeyRawVerify(pubKey, .PKCS1SHA256, digest!, digestLen, signature, signatureLen)
+                            status = SecKeyRawVerify(pubKey, .PKCS1SHA256, digest, digestLen, signature, signatureLen)
                         } else if pkiType == "x509+sha1" {
-                            status = SecKeyRawVerify(pubKey, .PKCS1SHA1, digest!, digestLen, signature, signatureLen)
+                            status = SecKeyRawVerify(pubKey, .PKCS1SHA1, digest, digestLen, signature, signatureLen)
                         }
                     }
 
@@ -330,7 +330,7 @@ public final class PaymentProtocolPaymentACK {
             switch self {
             case .core (let core):
                 return cryptoPaymentProtocolPaymentACKGetMemo (core)
-                    .map { asUTF8String ($0, true) }
+                    .map { asUTF8String ($0) }
             case .bitPay (let ack):
                 return ack.memo
             }
