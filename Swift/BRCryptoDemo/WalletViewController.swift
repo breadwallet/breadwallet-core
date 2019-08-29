@@ -113,30 +113,37 @@ class WalletViewController: UITableViewController, TransferListener, WalletManag
         }
     }
 
+    func addAlertAction (alert: UIAlertController, _ canDisable: Bool, _ action: UIAlertAction) {
+        if canDisable {
+            action.isEnabled = (Currency.codeAsBTC == wallet.manager.network.currency.code)
+        }
+        alert.addAction(action);
+    }
+
     @IBAction func createTransfer (_ sender: UIBarButtonItem) {
         let alert = UIAlertController (title: "Create Transfer",
                                        message: nil,
                                        preferredStyle: UIAlertController.Style.actionSheet)
 
-        alert.addAction (UIAlertAction (title: "Send", style: UIAlertAction.Style.default) { (action) in
+        addAlertAction(alert: alert, false, UIAlertAction (title: "Send", style: UIAlertAction.Style.default) { (action) in
             print ("APP: WVC: Want to Send")
             self.showCreateTransferController(named: "createTransferSendNC")
             alert.dismiss(animated: true) {}
         })
 
-        alert.addAction (UIAlertAction (title: "Receive", style: UIAlertAction.Style.default) { (action) in
+        addAlertAction(alert: alert, false, UIAlertAction (title: "Receive", style: UIAlertAction.Style.default) { (action) in
             print ("APP: WVC: Want to Receive")
             self.showCreateTransferController(named: "createTransferRecvNC")
            alert.dismiss(animated: true) {}
         })
 
-        alert.addAction (UIAlertAction (title: "Payment", style: UIAlertAction.Style.default) { (action) in
+        addAlertAction(alert: alert, true, UIAlertAction (title: "Payment", style: UIAlertAction.Style.default) { (action) in
             print ("APP: WVC: Want to Pay")
             self.showCreateTransferController(named: "createTransferPayNC")
            alert.dismiss(animated: true) {}
         })
 
-        alert.addAction (UIAlertAction (title: "Sweep", style: UIAlertAction.Style.default) { (action) in
+        addAlertAction(alert: alert, true, UIAlertAction (title: "Sweep", style: UIAlertAction.Style.default) { (action) in
             print ("APP: WVC: Want to Sweep")
             self.showCreateTransferController(named: "createTransferSweepNC")
            alert.dismiss(animated: true) {}

@@ -99,6 +99,7 @@ cryptoPaymentProtocolRequestBitPayBuilderCreate (BRCryptoNetwork cryptoNetwork,
     builder->time = time;
     builder->expires = expires;
     builder->feePerByte = feePerByte;
+    array_new (builder->outputs, 10);
 
     if (network) {
         builder->network = strdup (network);
