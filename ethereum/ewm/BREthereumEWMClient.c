@@ -704,8 +704,10 @@ ewmHandleAnnounceSubmitTransfer (BREthereumEWM ewm,
     transactionSetStatus (transaction, status);
 
     // If we had a `bcs` we might think about `bcsSignalTransaction(ewm->bcs, transaction);`
-    ewmSignalTransaction (ewm, BCS_CALLBACK_TRANSACTION_ADDED, transaction);
 
+    // This `ewmSignalTransation` is `OwnershipGiven` on `transaction`.  As our `transaction`
+    // is the originating transaction, we surely must copy (CORE-508)
+    ewmSignalTransaction (ewm, BCS_CALLBACK_TRANSACTION_ADDED, transactionCopy (transaction));
 }
 
 extern BREthereumStatus
