@@ -161,21 +161,25 @@ cryptoPaymentProtocolRequestBitPayBuilderAddOutput(BRCryptoPaymentProtocolReques
                                                    const char *address,
                                                    uint64_t satoshis) {
     if (satoshis) {
-        BRTxOutput output = {0};
-
         const BRChainParams * chainParams = cryptoNetworkAsBTC (builder->cryptoNetwork);
         int isBTC = BRChainParamsIsBitcoin (chainParams);
 
         if (isBTC) {
-            BRTxOutputSetAddress (&output, chainParams->addrParams, address);
+            if (BRAddressIsValid (chainParams->addrParams, address)) {
+                BRTxOutput output = {0};
+                BRTxOutputSetAddress (&output, chainParams->addrParams, address);
+                output.amount = satoshis;
+                array_add (builder->outputs, output);
+            }
         } else {
             char cashAddr[36];
-            BRBCashAddrDecode (cashAddr, address);
-            BRTxOutputSetAddress (&output, chainParams->addrParams, cashAddr);
+            if (0 != BRBCashAddrDecode (cashAddr, address) && !BRAddressIsValid(chainParams->addrParams, address)) {
+                BRTxOutput output = {0};
+                BRTxOutputSetAddress (&output, chainParams->addrParams, cashAddr);
+                output.amount = satoshis;
+                array_add (builder->outputs, output);
+            }
         }
-        output.amount = satoshis;
-
-        array_add (builder->outputs, output);
     }
 }
 
@@ -201,6 +205,7 @@ cryptoPaymentProtocolRequestValidateSupported (BRCryptoPaymentProtocolType type,
 
     BRCryptoCurrency walletCurrency = cryptoWalletGetCurrency (wallet);
     if (CRYPTO_FALSE == cryptoCurrencyIsIdentical (currency, walletCurrency)) {
+        cryptoCurrencyGive (walletCurrency);
         return CRYPTO_FALSE;
     }
     cryptoCurrencyGive (walletCurrency);
@@ -273,11 +278,13 @@ cryptoPaymentProtocolRequestCreateForBitPay (BRCryptoPaymentProtocolRequestBitPa
             protoReq->cryptoNetwork = cryptoNetworkTake (builder->cryptoNetwork);
             protoReq->cryptoCurrency = cryptoCurrencyTake (builder->cryptoCurrency);
 
-            BRCryptoUnit feeUnit = cryptoNetworkGetUnitAsBase (builder->cryptoNetwork, builder->cryptoCurrency);
-            BRCryptoAmount feeAmount = cryptoAmountCreateDouble (builder->feePerByte, feeUnit);
-            protoReq->u.btc.requiredFee = cryptoNetworkFeeCreate (0, feeAmount, feeUnit);
-            cryptoAmountGive (feeAmount);
-            cryptoUnitGive (feeUnit);
+            if (0 != builder->feePerByte) {
+                BRCryptoUnit feeUnit = cryptoNetworkGetUnitAsBase (builder->cryptoNetwork, builder->cryptoCurrency);
+                BRCryptoAmount feeAmount = cryptoAmountCreateDouble (builder->feePerByte, feeUnit);
+                protoReq->u.btc.requiredFee = cryptoNetworkFeeCreate (0, feeAmount, feeUnit);
+                cryptoAmountGive (feeAmount);
+                cryptoUnitGive (feeUnit);
+            }
 
             protoReq->u.btc.request = request;
             protoReq->u.btc.callbacks = builder->callbacks;
@@ -598,7 +605,7 @@ cryptoPaymentProtocolRequestGetOutputsAsBTC (BRCryptoPaymentProtocolRequest prot
     return outputs;
 }
 
-static uint8_t*
+const static uint8_t*
 cryptoPaymentProtocolRequestGetMerchantData (BRCryptoPaymentProtocolRequest protoReq, size_t *merchantDataLen) {
     uint8_t *merchantData = NULL;
     switch (protoReq->type) {
@@ -692,14 +699,14 @@ cryptoPaymentProtocolPaymentCreate (BRCryptoPaymentProtocolRequest protoReq,
                 uint64_t refundAmountInt = cryptoAmountGetIntegerRaw (baseAmount, &overflow);
 
                 BRCryptoBoolean isAddressBTC = 0;
-                BRAddress reundAddressBtc = cryptoAddressAsBTC (refundAddress, &isAddressBTC);
+                BRAddress refundAddressBtc = cryptoAddressAsBTC (refundAddress, &isAddressBTC);
 
                 const BRChainParams * chainParams = cryptoNetworkAsBTC (cryptoNetwork);
                 BRCryptoBoolean isBTC = AS_CRYPTO_BOOLEAN (BRChainParamsIsBitcoin (chainParams));
 
                 if (isBTC == isAddressBTC && CRYPTO_FALSE == overflow) {
                     size_t merchantDataLen = 0;
-                    uint8_t *merchantData = cryptoPaymentProtocolRequestGetMerchantData (protoReq, &merchantDataLen);
+                    const uint8_t *merchantData = cryptoPaymentProtocolRequestGetMerchantData (protoReq, &merchantDataLen);
 
                     protoPay = cryptoPaymentProtocolPaymentCreateInternal (CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70, protoReq);
                     protoPay->u.btcBip70.transaction = BRTransactionCopy (cryptoTransferAsBTC (transfer));
@@ -708,7 +715,7 @@ cryptoPaymentProtocolPaymentCreate (BRCryptoPaymentProtocolRequest protoReq,
                                                                                     &protoPay->u.btcBip70.transaction, 1,
                                                                                     &refundAmountInt,
                                                                                     chainParams->addrParams,
-                                                                                    &reundAddressBtc,
+                                                                                    &refundAddressBtc,
                                                                                     1, NULL);
                 }
 

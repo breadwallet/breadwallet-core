@@ -905,6 +905,7 @@ cryptoWalletSweeperValidateSupported (BRCryptoNetwork network,
 
     BRCryptoCurrency walletCurrency = cryptoWalletGetCurrency (wallet);
     if (CRYPTO_FALSE == cryptoCurrencyIsIdentical (currency, walletCurrency)) {
+        cryptoCurrencyGive (walletCurrency);
         return CRYPTO_WALLET_SWEEPER_INVALID_ARGUMENTS;
     }
     cryptoCurrencyGive (walletCurrency);
