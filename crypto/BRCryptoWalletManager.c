@@ -343,29 +343,42 @@ cryptoWalletManagerGetMode (BRCryptoWalletManager cwm) {
 
 extern BRCryptoWalletManagerState
 cryptoWalletManagerGetState (BRCryptoWalletManager cwm) {
-    return cwm->state;
+    pthread_mutex_lock (&cwm->lock);
+    BRCryptoWalletManagerState state = cwm->state;
+    pthread_mutex_unlock (&cwm->lock);
+    return state;
 }
 
 private_extern void
 cryptoWalletManagerSetState (BRCryptoWalletManager cwm,
                              BRCryptoWalletManagerState state) {
+    pthread_mutex_lock (&cwm->lock);
     cwm->state = state;
+    pthread_mutex_unlock (&cwm->lock);
 }
 
 extern BRCryptoAddressScheme
 cryptoWalletManagerGetAddressScheme (BRCryptoWalletManager cwm) {
-    return cwm->addressScheme;
+    pthread_mutex_lock (&cwm->lock);
+    BRCryptoAddressScheme scheme = cwm->addressScheme;
+    pthread_mutex_unlock (&cwm->lock);
+    return scheme;
 }
 
 extern void
 cryptoWalletManagerSetAddressScheme (BRCryptoWalletManager cwm,
                                      BRCryptoAddressScheme scheme) {
+    pthread_mutex_lock (&cwm->lock);
     cwm->addressScheme = scheme;
+    pthread_mutex_unlock (&cwm->lock);
 }
 
 extern const char *
 cryptoWalletManagerGetPath (BRCryptoWalletManager cwm) {
-    return cwm->path;
+    pthread_mutex_lock (&cwm->lock);
+    const char *path = cwm->path;
+    pthread_mutex_unlock (&cwm->lock);
+    return path;
 }
 
 extern void
