@@ -176,6 +176,9 @@ extern void
 BRSyncManagerTickTock(BRSyncManager manager);
 
 extern void
+BRSyncManagerP2PFullScanReport(BRSyncManager manager);
+    
+extern void
 BRSyncManagerAnnounceGetBlockNumber(BRSyncManager manager,
                                     int rid,
                                     uint64_t blockHeight);

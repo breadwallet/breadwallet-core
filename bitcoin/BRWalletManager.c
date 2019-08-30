@@ -27,7 +27,8 @@
 #include "ethereum/event/BREvent.h"
 #include "ethereum/event/BREventAlarm.h"
 
-#define BWM_SLEEP_SECONDS       (1 * 60)                  // 5 minutes
+#define BWM_SLEEP_SECONDS                        (1)
+#define BWM_SYNC_AFTER_WAKEUPS                   (60)
 
 #define DEFAULT_TRANSACTION_CAPACITY     20
 
@@ -836,6 +837,7 @@ BRWalletManagerNew (BRWalletManagerClient client,
     bwm->client = client;
     bwm->chainParams = params;
     bwm->earliestKeyTime = earliestKeyTime;
+    bwm->sleepWakeupsForSyncTickTock = 0;
 
     const char *networkName  = getNetworkName  (params);
     const char *currencyName = getCurrencyName (params);
@@ -1826,7 +1828,17 @@ bwmPeriodicDispatcher (BREventHandler handler,
 
     assert (eventHandlerIsCurrentThread (bwm->handler));
     pthread_mutex_lock (&bwm->lock);
-    BRSyncManagerTickTock (bwm->syncManager);
+    if (0 == bwm->sleepWakeupsForSyncTickTock % BWM_SYNC_AFTER_WAKEUPS) {
+        // If BWM_SYNC_AFTER_WAKEUPS have occurred, then 'tick tock'.
+        BRSyncManagerTickTock (bwm->syncManager);
+    }
+    else {
+        // Otherwise, if in P2P mode and in a full scan, report on progress
+        BRSyncManagerP2PFullScanReport(bwm->syncManager);
+    }
+
+    bwm->sleepWakeupsForSyncTickTock += 1;
+    bwm->sleepWakeupsForSyncTickTock %= BWM_SYNC_AFTER_WAKEUPS;
     pthread_mutex_unlock (&bwm->lock);
 }
 
