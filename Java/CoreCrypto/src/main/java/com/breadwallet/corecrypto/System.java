@@ -44,7 +44,6 @@ import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
 import com.breadwallet.crypto.blockchaindb.models.bdb.BlockchainFee;
-import com.breadwallet.crypto.blockchaindb.models.bdb.Currency;
 import com.breadwallet.crypto.blockchaindb.models.bdb.CurrencyDenomination;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthLog;
@@ -97,7 +96,6 @@ import com.sun.jna.Pointer;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -112,8 +110,6 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static com.breadwallet.crypto.blockchaindb.models.bdb.Currency.ADDRESS_BRD_MAINNET;
-import static com.breadwallet.crypto.blockchaindb.models.bdb.Currency.ADDRESS_BRD_TESTNET;
-import static com.breadwallet.crypto.blockchaindb.models.bdb.Currency.ADDRESS_EOS_MAINNET;
 
 /* package */
 final class System implements com.breadwallet.crypto.System {
@@ -129,63 +125,48 @@ final class System implements com.breadwallet.crypto.System {
     /* package */
     static List<Blockchain> DEFAULT_BLOCKCHAINS = ImmutableList.of(
             // Mainnet
-            new Blockchain("bitcoin-mainnet",      "Bitcoin",      "mainnet", true, "btc", UnsignedLong.ZERO,
+            new Blockchain("bitcoin-mainnet",      "Bitcoin",      "mainnet", true, "bitcoin-mainnet:__native__", UnsignedLong.ZERO,
                     ImmutableList.of(new BlockchainFee("30", "10m", UnsignedLong.valueOf(10 * 60 * 1000)))),
-            new Blockchain("bitcoin-cash-mainnet", "Bitcoin Cash", "mainnet", true, "bch", UnsignedLong.ZERO,
+            new Blockchain("bitcoincash-mainnet", "Bitcoin Cash", "mainnet", true, "bitcoincash-mainnet:__native__", UnsignedLong.ZERO,
                     ImmutableList.of(new BlockchainFee("30", "10m", UnsignedLong.valueOf(10 * 60 * 1000)))),
-            new Blockchain("ethereum-mainnet",     "Ethereum",     "mainnet", true, "eth", UnsignedLong.ZERO,
+            new Blockchain("ethereum-mainnet",     "Ethereum",     "mainnet", true, "ethereum-mainnet:__native__", UnsignedLong.ZERO,
                     ImmutableList.of(new BlockchainFee("2000000000", "1m", UnsignedLong.valueOf(60 * 1000)))),
-            new Blockchain("ripple-mainnet",       "Ripple",       "mainnet", true, "xrp", null,
-                    ImmutableList.of(new BlockchainFee("20", "1m", UnsignedLong.valueOf(60 * 1000)))),
 
             // Testnet
-            new Blockchain("bitcoin-testnet",      "Bitcoin Test",      "testnet", false, "btc", UnsignedLong.ZERO,
+            new Blockchain("bitcoin-testnet",      "Bitcoin Testnet",      "testnet", false, "bitcoin-testnet:__native__", UnsignedLong.ZERO,
                     ImmutableList.of(new BlockchainFee("30", "10m", UnsignedLong.valueOf(10 * 60 * 1000)))),
-            new Blockchain("bitcoin-cash-testnet", "Bitcoin Cash Test", "testnet", false, "bch", UnsignedLong.ZERO,
+            new Blockchain("bitcoincash-testnet", "Bitcoin Cash Testnet", "testnet", false, "bitcoincash-testnet:__native__", UnsignedLong.ZERO,
                     ImmutableList.of(new BlockchainFee("30", "10m", UnsignedLong.valueOf(10 * 60 * 1000)))),
-            new Blockchain("ethereum-ropsten",     "Ethereum Testnet",  "testnet", false, "eth", UnsignedLong.ZERO,
-                    ImmutableList.of(new BlockchainFee("2000000000", "1m", UnsignedLong.valueOf(60 * 1000)))),
-            new Blockchain("ripple-testnet",       "Ripple Testnet",    "testnet", false, "xrp", null,
-                    ImmutableList.of(new BlockchainFee("20", "1m", UnsignedLong.valueOf(60 * 1000))))
+            new Blockchain("ethereum-ropsten",     "Ethereum Ropsten",  "testnet", false, "ethereum-ropsten:__native__", UnsignedLong.ZERO,
+                    ImmutableList.of(new BlockchainFee("2000000000", "1m", UnsignedLong.valueOf(60 * 1000))))
     );
 
-    public static final List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> DEFAULT_CURRENCIES = ImmutableList.of(
+    /* package */
+    static final List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> DEFAULT_CURRENCIES = ImmutableList.of(
             // Mainnet
-            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("Bitcoin", "Bitcoin", "btc", "native", "bitcoin-mainnet", null, true,
-                    ImmutableList.of(CurrencyDenomination.BTC_SATOSHI, CurrencyDenomination.BTC_BITCOIN)),
+            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("bitcoin-mainnet:__native__", "Bitcoin", "btc", "native", "bitcoin-mainnet", null, true,
+                    ImmutableList.of(CurrencyDenomination.SATOSHI, CurrencyDenomination.BTC_BITCOIN)),
 
-            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("Bitcoin-Cash", "Bitcoin Cash", "bch", "native", "bitcoin-cash-mainnet", null, true,
-                    ImmutableList.of(CurrencyDenomination.BTC_SATOSHI, CurrencyDenomination.BCH_BITCOIN)),
+            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("bitcoincash-mainnet:__native__", "Bitcoin Cash", "bch", "native", "bitcoincash-mainnet", null, true,
+                    ImmutableList.of(CurrencyDenomination.SATOSHI, CurrencyDenomination.BCH_BITCOIN)),
 
-            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("Ethereum", "Ethereum", "eth", "native", "ethereum-mainnet", null, true,
+            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("ethereum-mainnet:__native__", "Ethereum", "eth", "native", "ethereum-mainnet", null, true,
                     ImmutableList.of(CurrencyDenomination.ETH_WEI, CurrencyDenomination.ETH_GWEI,
                             CurrencyDenomination.ETH_ETHER)),
 
-            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("BRD Token", "BRD Token", "brd", "erc20", "ethereum-mainnet", ADDRESS_BRD_MAINNET, true,
+            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("ethereum-mainnet:0x558ec3152e2eb2174905cd19aea4e34a23de9ad6", "BRD Token", "BRD", "erc20", "ethereum-mainnet", ADDRESS_BRD_MAINNET, true,
                     ImmutableList.of(CurrencyDenomination.BRD_INT, CurrencyDenomination.BRD_BRD)),
-
-            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("EOS Token", "EOS Token", "eos", "erc20", "ethereum-mainnet", ADDRESS_EOS_MAINNET, true,
-                    ImmutableList.of(CurrencyDenomination.EOS_INT, CurrencyDenomination.EOS_EOS)),
-
-            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("Ripple", "Ripple", "xrp", "native", "ripple-mainnet", null, true,
-                    ImmutableList.of(CurrencyDenomination.XRP_DROP, CurrencyDenomination.XRP_XRP)),
 
             // Testnet
-            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("Bitcoin-Testnet", "Bitcoin Test", "btc", "native", "bitcoin-testnet", null, true,
-                    ImmutableList.of(CurrencyDenomination.BTC_SATOSHI, CurrencyDenomination.BTC_BITCOIN)),
+            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("bitcoin-testnet:__native__", "Bitcoin Test", "btc", "native", "bitcoin-testnet", null, true,
+                    ImmutableList.of(CurrencyDenomination.SATOSHI, CurrencyDenomination.BTC_BITCOIN_TESTNET)),
 
-            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("Bitcoin-Cash-Testnet", "Bitcoin Cash Test", "bch", "native", "bitcoin-cash-testnet", null, true,
-                    ImmutableList.of(CurrencyDenomination.BTC_SATOSHI, CurrencyDenomination.BCH_BITCOIN)),
+            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("Bitcoin-Cash-Testnet", "Bitcoin Cash Test", "bch", "native", "bitcoincash-testnet", null, true,
+                    ImmutableList.of(CurrencyDenomination.SATOSHI, CurrencyDenomination.BCH_BITCOIN_TESTNET)),
 
-            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("Ethereum-Testnet", "Ethereum Testnet", "eth", "native", "ethereum-ropsten", null, true,
+            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("ethereum-ropsten:__native__", "Ethereum Testnet", "eth", "native", "ethereum-ropsten", null, true,
                     ImmutableList.of(CurrencyDenomination.ETH_WEI, CurrencyDenomination.ETH_GWEI,
-                            CurrencyDenomination.ETH_ETHER)),
-
-            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("BRD Token Testnet", "BRD Token Testnet", "brd", "erc20", "ethereum-ropsten", ADDRESS_BRD_TESTNET, true,
-                    ImmutableList.of(CurrencyDenomination.BRD_INT, CurrencyDenomination.BRD_BRD)),
-
-            new Currency("Ripple", "Ripple", "xrp", "native", "ripple-testnet", null, true,
-                    ImmutableList.of(CurrencyDenomination.XRP_DROP, CurrencyDenomination.XRP_XRP))
+                            CurrencyDenomination.ETH_ETHER))
     );
 
     ///
@@ -198,13 +179,13 @@ final class System implements com.breadwallet.crypto.System {
         ImmutableMultimap.Builder<String, AddressScheme> builder = new ImmutableMultimap.Builder<>();
         builder.put("bitcoin-mainnet", AddressScheme.BTC_SEGWIT);
         builder.put("bitcoin-mainnet", AddressScheme.BTC_LEGACY);
-        builder.put("bitcoin-cash-mainnet", AddressScheme.BTC_LEGACY);
+        builder.put("bitcoincash-mainnet", AddressScheme.BTC_LEGACY);
         builder.put("ethereum-mainnet", AddressScheme.ETH_DEFAULT);
         builder.put("ripple-mainnet", AddressScheme.GEN_DEFAULT);
 
         builder.put("bitcoin-testnet", AddressScheme.BTC_SEGWIT);
         builder.put("bitcoin-testnet", AddressScheme.BTC_LEGACY);
-        builder.put("bitcoin-cash-testnet", AddressScheme.BTC_LEGACY);
+        builder.put("bitcoincash-testnet", AddressScheme.BTC_LEGACY);
         builder.put("ethereum-ropsten", AddressScheme.ETH_DEFAULT);
         builder.put("ripple-testnet", AddressScheme.GEN_DEFAULT);
         SUPPORTED_ADDRESS_SCHEMES = builder.build();
@@ -215,12 +196,12 @@ final class System implements com.breadwallet.crypto.System {
     static {
         ImmutableMap.Builder<String, AddressScheme> builder = new ImmutableMap.Builder<>();
         builder.put("bitcoin-mainnet", AddressScheme.BTC_SEGWIT);
-        builder.put("bitcoin-cash-mainnet", AddressScheme.BTC_LEGACY);
+        builder.put("bitcoincash-mainnet", AddressScheme.BTC_LEGACY);
         builder.put("ethereum-mainnet", AddressScheme.ETH_DEFAULT);
         builder.put("ripple-mainnet", AddressScheme.GEN_DEFAULT);
 
         builder.put("bitcoin-testnet", AddressScheme.BTC_SEGWIT);
-        builder.put("bitcoin-cash-testnet", AddressScheme.BTC_LEGACY);
+        builder.put("bitcoincash-testnet", AddressScheme.BTC_LEGACY);
         builder.put("ethereum-ropsten", AddressScheme.ETH_DEFAULT);
         builder.put("ripple-testnet", AddressScheme.GEN_DEFAULT);
         DEFAULT_ADDRESS_SCHEMES = builder.build();
@@ -235,13 +216,15 @@ final class System implements com.breadwallet.crypto.System {
     static {
         ImmutableMultimap.Builder<String, WalletManagerMode> builder = new ImmutableMultimap.Builder<>();
         builder.put("bitcoin-mainnet", WalletManagerMode.P2P_ONLY);
-        builder.put("bitcoin-cash-mainnet", WalletManagerMode.P2P_ONLY);
+        builder.put("bitcoin-mainnet", WalletManagerMode.API_ONLY);
+        builder.put("bitcoincash-mainnet", WalletManagerMode.P2P_ONLY);
         builder.put("ethereum-mainnet", WalletManagerMode.API_ONLY);
         builder.put("ethereum-mainnet", WalletManagerMode.API_WITH_P2P_SUBMIT);
         builder.put("ethereum-mainnet", WalletManagerMode.P2P_ONLY);
 
         builder.put("bitcoin-testnet", WalletManagerMode.P2P_ONLY);
-        builder.put("bitcoin-cash-testnet", WalletManagerMode.P2P_ONLY);
+        builder.put("bitcoin-testnet", WalletManagerMode.API_ONLY);
+        builder.put("bitcoincash-testnet", WalletManagerMode.P2P_ONLY);
         builder.put("ethereum-ropsten", WalletManagerMode.API_ONLY);
         builder.put("ethereum-ropsten", WalletManagerMode.API_WITH_P2P_SUBMIT);
         builder.put("ethereum-ropsten", WalletManagerMode.P2P_ONLY);
@@ -1424,9 +1407,15 @@ final class System implements com.breadwallet.crypto.System {
             optSystem.get().query.getBlockchain(coreWalletManager.getNetwork().getUids(), new CompletionHandler<Blockchain, QueryError>() {
                 @Override
                 public void handleData(Blockchain blockchain) {
-                    UnsignedLong blockchainHeight = blockchain.getBlockHeight();
-                    Log.d(TAG, String.format("BRCryptoCWMBtcGetBlockNumberCallback: succeeded (%s)", blockchainHeight));
-                    coreWalletManager.announceGetBlockNumberSuccess(callbackState, blockchainHeight);
+                    Optional<UnsignedLong> maybeBlockHeight = blockchain.getBlockHeight();
+                    if (maybeBlockHeight.isPresent()) {
+                        UnsignedLong blockchainHeight = maybeBlockHeight.get();
+                        Log.d(TAG, String.format("BRCryptoCWMBtcGetBlockNumberCallback: succeeded (%s)", blockchainHeight));
+                        coreWalletManager.announceGetBlockNumberSuccess(callbackState, blockchainHeight);
+                    } else  {
+                        Log.e(TAG, "BRCryptoCWMBtcGetBlockNumberCallback: failed with missing block height");
+                        coreWalletManager.announceGetBlockNumberFailure(callbackState);
+                    }
                 }
 
                 @Override
@@ -1899,9 +1888,15 @@ final class System implements com.breadwallet.crypto.System {
             optSystem.get().query.getBlockchain(coreWalletManager.getNetwork().getUids(), new CompletionHandler<Blockchain, QueryError>() {
                 @Override
                 public void handleData(Blockchain blockchain) {
-                    UnsignedLong blockchainHeight = blockchain.getBlockHeight();
-                    Log.d(TAG, String.format("BRCryptoCWMGenGetBlockNumberCallback: succeeded (%s)", blockchainHeight));
-                    coreWalletManager.announceGetBlockNumberSuccess(callbackState, blockchainHeight);
+                    Optional<UnsignedLong> maybeBlockHeight = blockchain.getBlockHeight();
+                    if (maybeBlockHeight.isPresent()) {
+                        UnsignedLong blockchainHeight = maybeBlockHeight.get();
+                        Log.d(TAG, String.format("BRCryptoCWMGenGetBlockNumberCallback: succeeded (%s)", blockchainHeight));
+                        coreWalletManager.announceGetBlockNumberSuccess(callbackState, blockchainHeight);
+                    } else  {
+                        Log.e(TAG, "BRCryptoCWMGenGetBlockNumberCallback: failed with missing block height");
+                        coreWalletManager.announceGetBlockNumberFailure(callbackState);
+                    }
                 }
 
                 @Override

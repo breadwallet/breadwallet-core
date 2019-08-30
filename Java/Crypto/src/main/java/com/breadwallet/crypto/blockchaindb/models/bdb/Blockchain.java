@@ -7,6 +7,8 @@
  */
 package com.breadwallet.crypto.blockchaindb.models.bdb;
 
+import android.support.annotation.Nullable;
+
 import com.breadwallet.crypto.blockchaindb.models.Utilities;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedLong;
@@ -20,6 +22,8 @@ import java.util.List;
 
 public class Blockchain {
 
+    private static long BLOCK_HEIGHT_INTERNAL = -1;
+
     public static Optional<Blockchain> asBlockchain(JSONObject json) {
         try {
             String id = json.getString("id");
@@ -27,7 +31,10 @@ public class Blockchain {
             String network = json.getString("network");
             boolean isMainnet = json.getBoolean("is_mainnet");
             String currency = json.getString("native_currency_id");
-            UnsignedLong blockHeight = Utilities.getUnsignedLongFromString(json, "block_height");
+
+            long blockHeightLong = json.getLong("block_height");
+            UnsignedLong blockHeight = BLOCK_HEIGHT_INTERNAL == blockHeightLong ?
+                    null : UnsignedLong.valueOf(blockHeightLong);
 
             JSONArray feeEstimatesJson = json.getJSONArray("fee_estimates");
             Optional<List<BlockchainFee>> feeEstimatesOption = BlockchainFee.asBlockchainFees(feeEstimatesJson);
@@ -40,6 +47,7 @@ public class Blockchain {
             return Optional.absent();
         }
     }
+
 
     public static Optional<List<Blockchain>> asBlockchains(JSONArray json) {
         List<Blockchain> blockchains = new ArrayList<>();
@@ -64,10 +72,12 @@ public class Blockchain {
     private final String network;
     private final boolean isMainnet;
     private final String currency;
-    private final UnsignedLong blockHeight;
     private final List<BlockchainFee> feeEstimates;
 
-    public Blockchain(String id, String name, String network, boolean isMainnet, String currency, UnsignedLong blockHeight,
+    @Nullable
+    private final UnsignedLong blockHeight;
+
+    public Blockchain(String id, String name, String network, boolean isMainnet, String currency, @Nullable UnsignedLong blockHeight,
                       List<BlockchainFee> feeEstimates) {
         this.id = id;
         this.name = name;
@@ -98,8 +108,8 @@ public class Blockchain {
         return currency;
     }
 
-    public UnsignedLong getBlockHeight() {
-        return blockHeight;
+    public Optional<UnsignedLong> getBlockHeight() {
+        return Optional.fromNullable(blockHeight);
     }
 
     public List<BlockchainFee> getFeeEstimates() {

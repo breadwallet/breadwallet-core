@@ -26,32 +26,40 @@ public class CurrencyDenomination {
             "eth", "Ξ"
     );
 
-    public static CurrencyDenomination BTC_SATOSHI = new CurrencyDenomination(
-            "satoshi", "sat", UnsignedInteger.valueOf(0), lookupSymbol("sat"));
+
+    public static CurrencyDenomination SATOSHI = new CurrencyDenomination(
+            "Satoshi", "sat", UnsignedInteger.valueOf(0), lookupSymbol("sat"));
+
 
     public static CurrencyDenomination BTC_BITCOIN = new CurrencyDenomination(
-            "bitcoin", "btc", UnsignedInteger.valueOf(8), lookupSymbol("btc"));
+            "Bitcoin", "btc", UnsignedInteger.valueOf(8), lookupSymbol("btc"));
+
+    public static CurrencyDenomination BTC_BITCOIN_TESTNET = new CurrencyDenomination(
+            "Bitcoin Testnet", "btc", UnsignedInteger.valueOf(8), lookupSymbol("btc"));
 
 
     public static CurrencyDenomination BCH_BITCOIN = new CurrencyDenomination(
-            "bitcoin cash", "bch", UnsignedInteger.valueOf(8), lookupSymbol("bch"));
+            "Bitcoin Cash", "bch", UnsignedInteger.valueOf(8), lookupSymbol("bch"));
+
+    public static CurrencyDenomination BCH_BITCOIN_TESTNET = new CurrencyDenomination(
+            "Bitcoin Cash Testnet", "bch", UnsignedInteger.valueOf(8), lookupSymbol("bch"));
 
 
     public static CurrencyDenomination ETH_WEI = new CurrencyDenomination(
-            "wei", "wei", UnsignedInteger.valueOf(0), lookupSymbol("wei"));
+            "Wei", "wei", UnsignedInteger.valueOf(0), lookupSymbol("wei"));
 
     public static CurrencyDenomination ETH_GWEI = new CurrencyDenomination(
-            "gwei", "gwei", UnsignedInteger.valueOf(9), lookupSymbol("gwei"));
+            "Gwei", "gwei", UnsignedInteger.valueOf(9), lookupSymbol("gwei"));
 
     public static CurrencyDenomination ETH_ETHER = new CurrencyDenomination(
-            "ether", "eth", UnsignedInteger.valueOf(18), lookupSymbol("eth"));
+            "Ether", "eth", UnsignedInteger.valueOf(18), lookupSymbol("eth"));
 
 
     public static CurrencyDenomination BRD_INT = new CurrencyDenomination(
-            "BRD_INTEGER", "BRDI", UnsignedInteger.valueOf(0), lookupSymbol("brdi"));
+            "BRD Token INT", "BRDI", UnsignedInteger.valueOf(0), lookupSymbol("brdi"));
 
     public static CurrencyDenomination BRD_BRD = new CurrencyDenomination(
-            "BRD", "BRD", UnsignedInteger.valueOf(18), lookupSymbol("brd"));
+            "BRD Token", "BRD", UnsignedInteger.valueOf(18), lookupSymbol("brd"));
 
 
     public static CurrencyDenomination EOS_INT = new CurrencyDenomination(
