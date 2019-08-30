@@ -903,9 +903,12 @@ cryptoWalletSweeperValidateSupported (BRCryptoNetwork network,
         return CRYPTO_WALLET_SWEEPER_INVALID_ARGUMENTS;
     }
 
-    if (CRYPTO_FALSE == cryptoCurrencyIsIdentical (currency, cryptoWalletGetCurrency (wallet))) {
+    BRCryptoCurrency walletCurrency = cryptoWalletGetCurrency (wallet);
+    if (CRYPTO_FALSE == cryptoCurrencyIsIdentical (currency, walletCurrency)) {
+        cryptoCurrencyGive (walletCurrency);
         return CRYPTO_WALLET_SWEEPER_INVALID_ARGUMENTS;
     }
+    cryptoCurrencyGive (walletCurrency);
 
     if (CRYPTO_FALSE == cryptoKeyHasSecret (key)) {
         return CRYPTO_WALLET_SWEEPER_INVALID_KEY;
