@@ -172,6 +172,13 @@ extension Result {
         case let .failure (error): failure(error)
         }
     }
+
+    public func getWithRecovery (_ transform: (Failure) -> Success) -> Success {
+        switch self {
+        case let .success(success): return success
+        case let .failure(failure): return transform (failure)
+        }
+    }
 }
 
 extension Array {

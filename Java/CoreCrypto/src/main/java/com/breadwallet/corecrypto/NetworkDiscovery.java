@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /* package */
@@ -45,17 +44,18 @@ final class NetworkDiscovery {
         List<Network> networks = new ArrayList<>();
         CountUpAndDownLatch latch = new CountUpAndDownLatch(() -> callback.discovered(networks));
 
-        getBlockChains(latch, query, Blockchain.DEFAULT_BLOCKCHAINS, isMainnet, blockchainModels -> {
+        getBlockChains(latch, query, System.DEFAULT_BLOCKCHAINS, isMainnet, blockchainModels -> {
             for (Blockchain blockchainModel : blockchainModels) {
-                if (blockchainModel.isMainnet() != isMainnet) {
+                if (blockchainModel.isMainnet() != isMainnet || !blockchainModel.getBlockHeight().isPresent()) {
                     continue;
                 }
 
                 String blockchainModelId = blockchainModel.getId();
+                UnsignedLong blockHeight = blockchainModel.getBlockHeight().get();
 
                 final List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> defaultCurrencies = new ArrayList<>();
                 for (com.breadwallet.crypto.blockchaindb.models.bdb.Currency currency :
-                        com.breadwallet.crypto.blockchaindb.models.bdb.Currency.DEFAULT_CURRENCIES) {
+                        System.DEFAULT_CURRENCIES) {
                     if (currency.getBlockchainId().equals(blockchainModelId)) {
                         defaultCurrencies.add(currency);
                     }
@@ -126,7 +126,7 @@ final class NetworkDiscovery {
                             blockchainModel.getName(),
                             blockchainModel.isMainnet(),
                             defaultCurrency,
-                            blockchainModel.getBlockHeight(),
+                            blockHeight,
                             associations,
                             fees));
 
@@ -231,13 +231,13 @@ final class NetworkDiscovery {
     private static Unit currencyToDefaultBaseUnit(Currency currency) {
         String symb = currency.getCode().toUpperCase() + "I";
         String name = currency.getCode().toUpperCase() + "_INTEGER";
-        String uids = String.format("%s-%s", currency.getName(), name);
+        String uids = String.format("%s:%s", currency.getUids(), name);
         return Unit.create(currency, uids, name, symb);
     }
 
     private static Unit currencyDenominationToBaseUnit(Currency currency,
                                                        CurrencyDenomination denomination) {
-        String uids = String.format("%s-%s", currency.getName(), denomination.getCode());
+        String uids = String.format("%s:%s", currency.getUids(), denomination.getCode());
         return Unit.create(currency, uids, denomination.getName(), denomination.getSymbol());
     }
 
@@ -246,7 +246,7 @@ final class NetworkDiscovery {
                                                           Unit base) {
         List<Unit> units = new ArrayList<>();
         for (CurrencyDenomination denomination : denominations) {
-            String uids = String.format("%s-%s", currency.getName(), denomination.getCode());
+            String uids = String.format("%s:%s", currency.getUids(), denomination.getCode());
             units.add(Unit.create(currency, uids, denomination.getName(), denomination.getSymbol(), base,
                       denomination.getDecimals()));
         }
@@ -257,7 +257,7 @@ final class NetworkDiscovery {
             NetworkAssociation> associations, Blockchain blockchainModel) {
         String code = blockchainModel.getCurrency().toLowerCase();
         for (Currency currency : associations.keySet()) {
-            if (code.equals(currency.getCode())) {
+            if (code.equals(currency.getUids())) {
                 return Optional.of(currency);
             }
         }

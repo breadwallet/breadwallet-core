@@ -22,10 +22,8 @@ import java.util.List;
 public class BlockchainFee {
 
     public static Optional<BlockchainFee> asBlockchainFee(JSONObject json) {
-        String value = json.optString("value", "1");
-
         try {
-            json.getString("currency_id");
+            json.getJSONObject("fee").getString("currency_id");
             String amount = json.getJSONObject("fee").getString("amount");
             String tier = json.getString("tier");
             UnsignedLong confirmationTime = Utilities.getUnsignedLongFromString(json, "estimated_confirmation_in");

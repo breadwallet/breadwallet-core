@@ -38,6 +38,118 @@ public final class System {
 
     internal let callbackCoordinator: SystemCallbackCoordinator
 
+    /// We define default blockchains but these are wholly insufficient given that the
+    /// specfication includes `blockHeight` (which can never be correct).
+
+    static let defaultBlockchains: [BlockChainDB.Model.Blockchain] = [
+        // Mainnet
+        (id: "bitcoin-mainnet",       name: "Bitcoin",       network: "mainnet", isMainnet: true,  currency: "btc", blockHeight: 0,
+         feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)]),
+        (id: "bitcoin-cash-mainnet",  name: "Bitcoin Cash",  network: "mainnet", isMainnet: true,  currency: "bch", blockHeight: 0,
+         feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)]),
+        (id: "ethereum-mainnet",      name: "Ethereum",      network: "mainnet", isMainnet: true,  currency: "eth", blockHeight: 0,
+         feeEstimates: [(amount: "2000000000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
+        (id: "ripple-mainnet",        name: "Ripple",        network: "mainnet", isMainnet: true,  currency: "xrp", blockHeight: nil,
+         feeEstimates: [(amount: "20", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
+
+        // Testnet
+        (id: "bitcoin-testnet",       name: "Bitcoin Test",      network: "testnet", isMainnet: false, currency: "btc", blockHeight: 0,
+         feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)]),
+        (id: "bitcoin-cash-testnet",  name: "Bitcoin Cash Test", network: "testnet", isMainnet: false, currency: "bch", blockHeight: 0,
+         feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)]),
+        (id: "ethereum-ropsten",      name: "Ethereum Testnet",  network: "testnet", isMainnet: false, currency: "eth", blockHeight: 0,
+         feeEstimates: [(amount: "2000000000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
+        (id: "ripple-testnet",        name: "Ripple Testnet",    network: "testnet", isMainnet: false, currency: "xrp", blockHeight: nil,
+         feeEstimates: [(amount: "20", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
+    ]
+
+    static let defaultCurrencies: [BlockChainDB.Model.Currency] = [
+        // Mainnet
+        (id: "Bitcoin", name: "Bitcoin", code: "btc", type: "native", blockchainID: "bitcoin-mainnet",
+         address: nil, verified: true,
+         demoninations: [(name: "satoshi", code: "sat", decimals: 0, symbol: BlockChainDB.Model.lookupSymbol ("sat")),
+                         (name: "bitcoin", code: "btc", decimals: 8, symbol: BlockChainDB.Model.lookupSymbol ("btc"))]),
+
+        (id: "Bitcoin-Cash", name: "Bitcoin Cash", code: "bch", type: "native", blockchainID: "bitcoin-cash-mainnet",
+         address: nil, verified: true,
+         demoninations: [(name: "satoshi",      code: "sat", decimals: 0, symbol: BlockChainDB.Model.lookupSymbol ("sat")),
+                         (name: "bitcoin cash", code: "bch", decimals: 8, symbol: BlockChainDB.Model.lookupSymbol ("bch"))]),
+
+        (id: "Ethereum", name: "Ethereum", code: "eth", type: "native", blockchainID: "ethereum-mainnet",
+         address: nil, verified: true,
+         demoninations: [(name: "wei",   code: "wei",  decimals:  0, symbol: BlockChainDB.Model.lookupSymbol ("wei")),
+                         (name: "gwei",  code: "gwei", decimals:  9, symbol: BlockChainDB.Model.lookupSymbol ("gwei")),
+                         (name: "ether", code: "eth",  decimals: 18, symbol: BlockChainDB.Model.lookupSymbol ("eth"))]),
+
+        (id: "BRD Token", name: "BRD Token", code: "brd", type: "erc20", blockchainID: "ethereum-mainnet",
+         address: BlockChainDB.Model.addressBRDMainnet, verified: true,
+         demoninations: [(name: "BRD_INTEGER",   code: "BRDI",  decimals:  0, symbol: "brdi"),
+                         (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")]),
+
+        (id: "EOS Token", name: "EOS Token", code: "eos", type: "erc20", blockchainID: "ethereum-mainnet",
+         address: "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0", verified: true,
+         demoninations: [(name: "EOS_INTEGER",   code: "EOSI",  decimals:  0, symbol: "eosi"),
+                         (name: "EOS",           code: "EOS",   decimals: 18, symbol: "eos")]),
+
+        (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-mainnet",
+         address: nil, verified: true,
+         demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
+                         (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
+
+        // Testnet
+        (id: "Bitcoin-Testnet", name: "Bitcoin", code: "btc", type: "native", blockchainID: "bitcoin-testnet",
+         address: nil, verified: true,
+         demoninations: [(name: "satoshi", code: "sat", decimals: 0, symbol: BlockChainDB.Model.lookupSymbol ("sat")),
+                         (name: "bitcoin", code: "btc", decimals: 8, symbol: BlockChainDB.Model.lookupSymbol ("btc"))]),
+
+        (id: "Bitcoin-Cash-Testnet", name: "Bitcoin Cash Test", code: "bch", type: "native", blockchainID: "bitcoin-cash-testnet",
+         address: nil, verified: true,
+         demoninations: [(name: "satoshi",           code: "sat", decimals: 0, symbol: BlockChainDB.Model.lookupSymbol ("sat")),
+                         (name: "bitcoin cash test", code: "bch", decimals: 8, symbol: BlockChainDB.Model.lookupSymbol ("bch"))]),
+
+        (id: "Ethereum-Testnet", name: "Ethereum", code: "eth", type: "native", blockchainID: "ethereum-ropsten",
+         address: nil, verified: true,
+         demoninations: [(name: "wei",   code: "wei",  decimals:  0, symbol: BlockChainDB.Model.lookupSymbol ("wei")),
+                         (name: "gwei",  code: "gwei", decimals:  9, symbol: BlockChainDB.Model.lookupSymbol ("gwei")),
+                         (name: "ether", code: "eth",  decimals: 18, symbol: BlockChainDB.Model.lookupSymbol ("eth"))]),
+
+        (id: "BRD Token Testnet", name: "BRD Token", code: "brd", type: "erc20", blockchainID: "ethereum-ropsten",
+         address: BlockChainDB.Model.addressBRDTestnet, verified: true,
+         demoninations: [(name: "BRD_INTEGER",   code: "BRDI",  decimals:  0, symbol: "brdi"),
+                         (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")]),
+
+        (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-testnet",
+         address: nil, verified: true,
+         demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
+                         (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
+    ]
+
+    ///
+    /// Address Scheme
+    ///
+
+    var supportedAddressSchemesMap: [String:[AddressScheme]] = [
+        "bitcoin-mainnet":      [.btcSegwit, .btcLegacy],
+        "bitcoin-cash-mainnet": [.btcLegacy],
+        "ethereum-mainnet":     [.ethDefault],
+        "ripple-mainnet":       [.genDefault],
+        "bitcoin-testnet":      [.btcSegwit, .btcLegacy],
+        "bitcoin-cash-testnet": [.btcLegacy],
+        "ethereum-ropsten":     [.ethDefault],
+        "ripple-testnet":       [.genDefault]
+    ]
+
+    var defaultAddressSchemeMap: [String:AddressScheme] = [
+        "bitcoin-mainnet":      .btcSegwit,
+        "bitcoin-cash-mainnet": .btcLegacy,
+        "ethereum-mainnet":     .ethDefault,
+        "ripple-mainnet":       .genDefault,
+        "bitcoin-testnet":      .btcSegwit,
+        "bitcoin-cash-testnet": .btcLegacy,
+        "ethereum-ropsten":     .ethDefault,
+        "ripple-testnet":       .genDefault
+    ]
+
     ///
     /// Return the AddressSchemes support for `network`
     ///
@@ -46,13 +158,7 @@ public final class System {
     /// - Returns: An array of AddressScheme
     ///
     public func supportedAddressSchemes (network: Network) -> [AddressScheme] {
-        switch network.currency.code {
-        case Currency.codeAsBTC: return [AddressScheme (core: CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT),
-                                         AddressScheme (core: CRYPTO_ADDRESS_SCHEME_BTC_LEGACY)]
-        case Currency.codeAsBCH: return [AddressScheme (core: CRYPTO_ADDRESS_SCHEME_BTC_LEGACY)]
-        case Currency.codeAsETH: return [AddressScheme (core: CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT)]
-        default: return [AddressScheme (core: CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT)]
-        }
+        return supportedAddressSchemesMap[network.uids] ?? [.genDefault]
     }
 
     ///
@@ -76,15 +182,36 @@ public final class System {
     /// - Returns: The default AddressScheme
     ///
     public func defaultAddressScheme (network: Network) -> AddressScheme {
-        switch network.currency.code {
-        case Currency.codeAsBTC: return AddressScheme (core: CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT)
-        case Currency.codeAsBCH: return AddressScheme (core: CRYPTO_ADDRESS_SCHEME_BTC_LEGACY)
-        case Currency.codeAsETH: return AddressScheme (core: CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT)
-        default: return AddressScheme (core: CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT)
-        }
+        return defaultAddressSchemeMap[network.uids] ?? .genDefault
     }
 
     ///
+    /// Wallet Manager Modes
+    ///
+
+    var supportedModesMap: [String:[WalletManagerMode]] = [
+        "bitcoin-mainnet":      [.p2p_only],
+        "bitcoin-cash-mainnet": [.p2p_only],
+        "ethereum-mainnet":     [.api_only, .api_with_p2p_submit, .p2p_only],
+//        "ripple-mainnet":       [],
+        "bitcoin-testnet":      [.p2p_only],
+        "bitcoin-cash-testnet": [.p2p_only],
+        "ethereum-ropsten":     [.api_only, .api_with_p2p_submit, .p2p_only],
+//        "ripple-testnet":       []
+    ]
+
+    var defaultModesMap: [String:WalletManagerMode] = [
+        "bitcoin-mainnet":      .p2p_only,
+        "bitcoin-cash-mainnet": .p2p_only,
+        "ethereum-mainnet":     .api_only,
+//        "ripple-mainnet":       [],
+        "bitcoin-testnet":      .p2p_only,
+        "bitcoin-cash-testnet": .p2p_only,
+        "ethereum-ropsten":     .api_only,
+//        "ripple-testnet":       []
+    ]
+
+
     /// Return the WalletManagerModes supported by `network`
     ///
     /// - Parameter network: the network
@@ -92,14 +219,7 @@ public final class System {
     /// - Returns: an aray of WalletManagerMode
     ///
     public func supportedModes (network: Network) -> [WalletManagerMode] {
-        switch network.currency.code {
-        case Currency.codeAsBTC: return [WalletManagerMode.api_only,
-                                         WalletManagerMode.p2p_only]
-        case Currency.codeAsBCH: return [WalletManagerMode.p2p_only]
-        case Currency.codeAsETH: return [WalletManagerMode.api_only,
-                                         WalletManagerMode.api_with_p2p_submit]
-        default: return [WalletManagerMode.api_only]
-        }
+        return supportedModesMap[network.uids] ?? [.api_only]
     }
 
     ///
@@ -123,12 +243,7 @@ public final class System {
     /// - Returns: the default mode
     ///
     public func defaultMode (network: Network) -> WalletManagerMode {
-        switch network.currency.code {
-        case Currency.codeAsBTC: return WalletManagerMode.p2p_only
-        case Currency.codeAsBCH: return WalletManagerMode.p2p_only
-        case Currency.codeAsETH: return WalletManagerMode.api_only
-        default: return WalletManagerMode.api_only
-        }
+        return defaultModesMap[network.uids] ?? .api_only
     }
 
     ///
@@ -325,6 +440,30 @@ public final class System {
         managers.forEach { $0.disconnect() }
     }
 
+    public func configureMergeBlockchains (builtin: [BlockChainDB.Model.Blockchain],
+                                           remote:  [BlockChainDB.Model.Blockchain]) -> [BlockChainDB.Model.Blockchain] {
+        // Both `builtin` and `remote` have a non-null blockHeight -> supported.
+
+        // For existing remotes:
+        remote.forEach { (blockchain: BlockChainDB.Model.Blockchain) in
+            // 1) api_only is a supported mode
+            let modes = supportedModesMap[blockchain.id]
+            supportedModesMap[blockchain.id] = (nil == modes
+                ? [.api_only]
+                : (modes!.contains (.api_only)
+                    ? modes!
+                    : ([.api_only] + modes!)))
+
+            // 2) api_only is a default mode if a default doesn't exist
+            if nil == defaultModesMap[blockchain.id] {
+                defaultModesMap[blockchain.id] = .api_only
+            }
+        }
+
+        // Merge builtin into remote
+        return remote.unionOf(builtin) { $0.id }
+    }
+
     ///
     /// Configure the system.  This will query various BRD services, notably the BlockChainDB, to
     /// establish the available networks (aka blockchains) and their currencies.  For each
@@ -353,22 +492,25 @@ public final class System {
 
         // query blockchains
         self.query.getBlockchains (mainnet: self.onMainnet) { (blockchainResult: Result<[BlockChainDB.Model.Blockchain],BlockChainDB.QueryError>) in
-            let blockChainModels = try! blockchainResult
-                // On success, always merge `defaultBlockchains`
-                .map { $0.unionOf (BlockChainDB.Model.defaultBlockchains) { $0.id } }
-                // On error, use defaultBlockchains
-                .recover { (error: BlockChainDB.QueryError) -> [BlockChainDB.Model.Blockchain] in
-                    return BlockChainDB.Model.defaultBlockchains
-                }.get()
+            // Filter our defaults to be `self.onMainnet` and supported (non-nil blockHeight)
+            let blockChainModelsDefaults = System.defaultBlockchains
+                .filter { $0.isMainnet == self.onMainnet && nil != $0.blockHeight }
 
-            blockChainModels
-                .filter { self.onMainnet == $0.isMainnet }
+            let blockChainModels = blockchainResult
+                // Only supported blockchains, but we'll merge in the defaults to handle
+                // blockchains not supported by BDB.
+                .map { $0.filter { nil != $0.blockHeight } }
+                // On error, return [] - we'll use defaults
+                .getWithRecovery { (ignore) in return [] }
+
+            self.configureMergeBlockchains (builtin: blockChainModelsDefaults,
+                                            remote: blockChainModels)
                 .forEach { (blockchainModel: BlockChainDB.Model.Blockchain) in
 
                     // query currencies
                     self.query.getCurrencies (blockchainId: blockchainModel.id) { (currencyResult: Result<[BlockChainDB.Model.Currency],BlockChainDB.QueryError>) in
                         // Find applicable defaults by `blockchainID`
-                        let defaults = BlockChainDB.Model.defaultCurrencies
+                        let defaults = System.defaultCurrencies
                             .filter { $0.blockchainID == blockchainModel.id }
 
                         let currencyModels = try! currencyResult
@@ -436,7 +578,7 @@ public final class System {
                                                name: blockchainModel.name,
                                                isMainnet: blockchainModel.isMainnet,
                                                currency: currency,
-                                               height: blockchainModel.blockHeight,
+                                               height: blockchainModel.blockHeight!,
                                                associations: associations,
                                                fees: fees)
 
@@ -818,7 +960,7 @@ extension System {
                 manager.query.getBlockchain (blockchainId: manager.network.uids) { (res: Result<BlockChainDB.Model.Blockchain, BlockChainDB.QueryError>) in
                     defer { cryptoWalletManagerGive (cwm!) }
                     res.resolve (
-                        success: { cwmAnnounceGetBlockNumberSuccessAsInteger (manager.core, sid, $0.blockHeight) },
+                        success: { cwmAnnounceGetBlockNumberSuccessAsInteger (manager.core, sid, $0.blockHeight!) },
                         failure: { (_) in cwmAnnounceGetBlockNumberFailure (manager.core, sid) })
                 }},
 
@@ -1172,7 +1314,7 @@ extension System {
                     (res: Result<BlockChainDB.Model.Blockchain, BlockChainDB.QueryError>) in
                     defer { cryptoWalletManagerGive(cwm) }
                     res.resolve (
-                        success: { cwmAnnounceGetBlockNumberSuccessAsInteger (cwm, sid, $0.blockHeight) },
+                        success: { cwmAnnounceGetBlockNumberSuccessAsInteger (cwm, sid, $0.blockHeight!) },
                         failure: { (_) in cwmAnnounceGetBlockNumberFailure (cwm, sid) })
                 }},
 

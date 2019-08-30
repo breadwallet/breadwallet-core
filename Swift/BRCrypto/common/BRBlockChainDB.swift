@@ -232,7 +232,7 @@ public class BlockChainDB {
             network: String,
             isMainnet: Bool,
             currency: String,
-            blockHeight: UInt64,
+            blockHeight: UInt64?,
             feeEstimates: [BlockchainFee])
 
         static internal func asBlockchainFee (json: JSON) -> Model.BlockchainFee? {
@@ -251,7 +251,7 @@ public class BlockChainDB {
                 let network = json.asString (name: "network"),
                 let isMainnet = json.asBool (name: "is_mainnet"),
                 let currency = json.asString (name: "native_currency_id"),
-                let blockHeight = json.asUInt64 (name: "block_height")
+                let blockHeight = json.asInt64 (name: "block_height")
                 else { return nil }
 
             guard let feeEstimates = json.asArray(name: "fee_estimates")?
@@ -260,33 +260,10 @@ public class BlockChainDB {
             else { return nil }
 
             return (id: id, name: name, network: network, isMainnet: isMainnet, currency: currency,
-                    blockHeight: blockHeight,
+                    blockHeight: (-1 == blockHeight ? nil : UInt64 (blockHeight)),
                     feeEstimates: feeEstimates)
         }
 
-        /// We define default blockchains but these are wholly insufficient given that the
-        /// specfication includes `blockHeight` (which can never be correct).
-        static public let defaultBlockchains: [Blockchain] = [
-            // Mainnet
-            (id: "bitcoin-mainnet",       name: "Bitcoin",       network: "mainnet", isMainnet: true,  currency: "btc", blockHeight:  654321,
-             feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)]),
-            (id: "bitcoin-cash-mainnet",  name: "Bitcoin Cash",  network: "mainnet", isMainnet: true,  currency: "bch", blockHeight: 1000000,
-             feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)]),
-            (id: "ethereum-mainnet",      name: "Ethereum",      network: "mainnet", isMainnet: true,  currency: "eth", blockHeight: 8000000,
-             feeEstimates: [(amount: "2000000000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
-            (id: "ripple-mainnet",        name: "Ripple",        network: "mainnet", isMainnet: true,  currency: "xrp", blockHeight: 5000000,
-            feeEstimates: [(amount: "20", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
-
-            // Testnet
-            (id: "bitcoin-testnet",       name: "Bitcoin Test",      network: "testnet", isMainnet: false, currency: "btc", blockHeight:  900000,
-             feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)]),
-            (id: "bitcoin-cash-testnet",  name: "Bitcoin Cash Test", network: "testnet", isMainnet: false, currency: "bch", blockHeight: 1200000,
-             feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)]),
-            (id: "ethereum-testnet",      name: "Ethereum Testnet",  network: "testnet", isMainnet: false, currency: "eth", blockHeight: 1000000,
-             feeEstimates: [(amount: "2000000000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
-            (id: "ripple-testnet",        name: "Ripple Testnet",    network: "testnet", isMainnet: false, currency: "xrp", blockHeight: 25000,
-             feeEstimates: [(amount: "20", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
-        ]
 
         /// Currency & CurrencyDenomination
 
@@ -344,68 +321,6 @@ public class BlockChainDB {
                     verified: verified,
                     demoninations: demoninations)
         }
-
-        static public let defaultCurrencies: [Currency] = [
-
-            // Mainnet
-            (id: "Bitcoin", name: "Bitcoin", code: "btc", type: "native", blockchainID: "bitcoin-mainnet",
-             address: nil, verified: true,
-             demoninations: [(name: "satoshi", code: "sat", decimals: 0, symbol: lookupSymbol ("sat")),
-                             (name: "bitcoin", code: "btc", decimals: 8, symbol: lookupSymbol ("btc"))]),
-
-            (id: "Bitcoin-Cash", name: "Bitcoin Cash", code: "bch", type: "native", blockchainID: "bitcoin-cash-mainnet",
-             address: nil, verified: true,
-             demoninations: [(name: "satoshi",      code: "sat", decimals: 0, symbol: lookupSymbol ("sat")),
-                             (name: "bitcoin cash", code: "bch", decimals: 8, symbol: lookupSymbol ("bch"))]),
-
-            (id: "Ethereum", name: "Ethereum", code: "eth", type: "native", blockchainID: "ethereum-mainnet",
-             address: nil, verified: true,
-             demoninations: [(name: "wei",   code: "wei",  decimals:  0, symbol: lookupSymbol ("wei")),
-                             (name: "gwei",  code: "gwei", decimals:  9, symbol: lookupSymbol ("gwei")),
-                             (name: "ether", code: "eth",  decimals: 18, symbol: lookupSymbol ("eth"))]),
-
-            (id: "BRD Token", name: "BRD Token", code: "brd", type: "erc20", blockchainID: "ethereum-mainnet",
-             address: addressBRDMainnet, verified: true,
-             demoninations: [(name: "BRD_INTEGER",   code: "BRDI",  decimals:  0, symbol: "brdi"),
-                             (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")]),
-
-            (id: "EOS Token", name: "EOS Token", code: "eos", type: "erc20", blockchainID: "ethereum-mainnet",
-             address: "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0", verified: true,
-             demoninations: [(name: "EOS_INTEGER",   code: "EOSI",  decimals:  0, symbol: "eosi"),
-                             (name: "EOS",           code: "EOS",   decimals: 18, symbol: "eos")]),
-
-            (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-mainnet",
-             address: nil, verified: true,
-             demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
-                             (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
-
-            // Testnet
-            (id: "Bitcoin-Testnet", name: "Bitcoin", code: "btc", type: "native", blockchainID: "bitcoin-testnet",
-             address: nil, verified: true,
-             demoninations: [(name: "satoshi", code: "sat", decimals: 0, symbol: lookupSymbol ("sat")),
-                             (name: "bitcoin", code: "btc", decimals: 8, symbol: lookupSymbol ("btc"))]),
-
-            (id: "Bitcoin-Cash-Testnet", name: "Bitcoin Cash Test", code: "bch", type: "native", blockchainID: "bitcoin-cash-testnet",
-             address: nil, verified: true,
-             demoninations: [(name: "satoshi",           code: "sat", decimals: 0, symbol: lookupSymbol ("sat")),
-                             (name: "bitcoin cash test", code: "bch", decimals: 8, symbol: lookupSymbol ("bch"))]),
-
-            (id: "Ethereum-Testnet", name: "Ethereum", code: "eth", type: "native", blockchainID: "ethereum-testnet",
-             address: nil, verified: true,
-             demoninations: [(name: "wei",   code: "wei",  decimals:  0, symbol: lookupSymbol ("wei")),
-                             (name: "gwei",  code: "gwei", decimals:  9, symbol: lookupSymbol ("gwei")),
-                             (name: "ether", code: "eth",  decimals: 18, symbol: lookupSymbol ("eth"))]),
-
-            (id: "BRD Token Testnet", name: "BRD Token", code: "brd", type: "erc20", blockchainID: "ethereum-testnet",
-             address: addressBRDTestnet, verified: true,
-             demoninations: [(name: "BRD_INTEGER",   code: "BRDI",  decimals:  0, symbol: "brdi"),
-                             (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")]),
-
-            (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-testnet",
-             address: nil, verified: true,
-             demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
-                             (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
-       ]
 
         static internal let addressBRDTestnet = "0x7108ca7c4718efa810457f228305c9c71390931a" // testnet
         static internal let addressBRDMainnet = "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6" // mainnet
@@ -1456,6 +1371,11 @@ public class BlockChainDB {
             return dict[name] as? Bool
         }
 
+        internal func asInt64 (name: String) -> Int64? {
+            return (dict[name] as? NSNumber)
+                .flatMap { Int64 (exactly: $0)}
+        }
+
         internal func asUInt64 (name: String) -> UInt64? {
             return (dict[name] as? NSNumber)
                 .flatMap { UInt64 (exactly: $0)}
@@ -1486,6 +1406,10 @@ public class BlockChainDB {
 
         internal func asStringArray (name: String) -> [String]? {
             return dict[name] as? [String]
+        }
+
+        internal func asJSON (name: String) -> JSON? {
+            return asDict(name: name).map { JSON (dict: $0) }
         }
     }
 
