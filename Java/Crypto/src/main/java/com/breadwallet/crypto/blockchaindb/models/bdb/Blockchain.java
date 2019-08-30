@@ -9,7 +9,6 @@ package com.breadwallet.crypto.blockchaindb.models.bdb;
 
 import com.breadwallet.crypto.blockchaindb.models.Utilities;
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.UnsignedLong;
 
 import org.json.JSONArray;
@@ -20,28 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Blockchain {
-
-    public static List<Blockchain> DEFAULT_BLOCKCHAINS = ImmutableList.of(
-            // Mainnet
-            new Blockchain("bitcoin-mainnet",      "Bitcoin",      "mainnet", true, "btc", UnsignedLong.valueOf(654321),
-                    ImmutableList.of(new BlockchainFee("30", "10m", UnsignedLong.valueOf(10 * 60 * 1000)))),
-            new Blockchain("bitcoin-cash-mainnet", "Bitcoin Cash", "mainnet", true, "bch", UnsignedLong.valueOf(1000000),
-                    ImmutableList.of(new BlockchainFee("30", "10m", UnsignedLong.valueOf(10 * 60 * 1000)))),
-            new Blockchain("ethereum-mainnet",     "Ethereum",     "mainnet", true, "eth", UnsignedLong.valueOf(8000000),
-                    ImmutableList.of(new BlockchainFee("2000000000", "1m", UnsignedLong.valueOf(60 * 1000)))),
-            new Blockchain("ripple-mainnet",       "Ripple",       "mainnet", true, "xrp", UnsignedLong.valueOf(5000000),
-                    ImmutableList.of(new BlockchainFee("20", "1m", UnsignedLong.valueOf(60 * 1000)))),
-
-            // Testnet
-            new Blockchain("bitcoin-testnet",      "Bitcoin Test",      "testnet", false, "btc", UnsignedLong.valueOf(900000),
-                    ImmutableList.of(new BlockchainFee("30", "10m", UnsignedLong.valueOf(10 * 60 * 1000)))),
-            new Blockchain("bitcoin-cash-testnet", "Bitcoin Cash Test", "testnet", false, "bch", UnsignedLong.valueOf(1200000),
-                    ImmutableList.of(new BlockchainFee("30", "10m", UnsignedLong.valueOf(10 * 60 * 1000)))),
-            new Blockchain("ethereum-testnet",     "Ethereum Testnet",  "testnet", false, "eth", UnsignedLong.valueOf(1000000),
-                    ImmutableList.of(new BlockchainFee("2000000000", "1m", UnsignedLong.valueOf(60 * 1000)))),
-            new Blockchain("ripple-testnet",       "Ripple Testnet",    "mainnet", false, "xrp", UnsignedLong.valueOf(25000),
-                    ImmutableList.of(new BlockchainFee("20", "1m", UnsignedLong.valueOf(60 * 1000))))
-    );
 
     public static Optional<Blockchain> asBlockchain(JSONObject json) {
         try {

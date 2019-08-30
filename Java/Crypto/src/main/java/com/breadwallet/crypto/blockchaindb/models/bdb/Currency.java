@@ -23,54 +23,15 @@ public class Currency {
 
     private static final String ADDRESS_INTERNAL = "__native__";
 
-    private static final String ADDRESS_BRD_MAINNET = "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6";
-    private static final String ADDRESS_BRD_TESTNET = "0x7108ca7c4718efa810457f228305c9c71390931a";
+    public static final String ADDRESS_BRD_MAINNET = "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6";
+    public static final String ADDRESS_BRD_TESTNET = "0x7108ca7c4718efa810457f228305c9c71390931a";
 
-    private static final String ADDRESS_EOS_MAINNET = "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0";
-
-    public static final List<Currency> DEFAULT_CURRENCIES = ImmutableList.of(
-            // Mainnet
-            new Currency("Bitcoin", "Bitcoin", "btc", "native", "bitcoin-mainnet", null, true,
-                    ImmutableList.of(CurrencyDenomination.BTC_SATOSHI, CurrencyDenomination.BTC_BITCOIN)),
-
-            new Currency("Bitcoin-Cash", "Bitcoin Cash", "bch", "native", "bitcoin-cash-mainnet", null, true,
-                    ImmutableList.of(CurrencyDenomination.BTC_SATOSHI, CurrencyDenomination.BCH_BITCOIN)),
-
-            new Currency("Ethereum", "Ethereum", "eth", "native", "ethereum-mainnet", null, true,
-                    ImmutableList.of(CurrencyDenomination.ETH_WEI, CurrencyDenomination.ETH_GWEI,
-                            CurrencyDenomination.ETH_ETHER)),
-
-            new Currency("BRD Token", "BRD Token", "brd", "erc20", "ethereum-mainnet", ADDRESS_BRD_MAINNET, true,
-                    ImmutableList.of(CurrencyDenomination.BRD_INT, CurrencyDenomination.BRD_BRD)),
-
-            new Currency("EOS Token", "EOS Token", "eos", "erc20", "ethereum-mainnet", ADDRESS_EOS_MAINNET, true,
-                    ImmutableList.of(CurrencyDenomination.EOS_INT, CurrencyDenomination.EOS_EOS)),
-
-            new Currency("Ripple", "Ripple", "xrp", "native", "ripple-mainnet", null, true,
-                    ImmutableList.of(CurrencyDenomination.XRP_DROP, CurrencyDenomination.XRP_XRP)),
-
-            // Testnet
-            new Currency("Bitcoin-Testnet", "Bitcoin Test", "btc", "native", "bitcoin-testnet", null, true,
-                    ImmutableList.of(CurrencyDenomination.BTC_SATOSHI, CurrencyDenomination.BTC_BITCOIN)),
-
-            new Currency("Bitcoin-Cash-Testnet", "Bitcoin Cash Test", "bch", "native", "bitcoin-cash-testnet", null, true,
-                    ImmutableList.of(CurrencyDenomination.BTC_SATOSHI, CurrencyDenomination.BCH_BITCOIN)),
-
-            new Currency("Ethereum-Testnet", "Ethereum Testnet", "eth", "native", "ethereum-testnet", null, true,
-                    ImmutableList.of(CurrencyDenomination.ETH_WEI, CurrencyDenomination.ETH_GWEI,
-                            CurrencyDenomination.ETH_ETHER)),
-
-            new Currency("BRD Token Testnet", "BRD Token Testnet", "brd", "erc20", "ethereum-testnet", ADDRESS_BRD_TESTNET, true,
-                    ImmutableList.of(CurrencyDenomination.BRD_INT, CurrencyDenomination.BRD_BRD)),
-
-            new Currency("Ripple", "Ripple", "xrp", "native", "ripple-testnet", null, true,
-                         ImmutableList.of(CurrencyDenomination.XRP_DROP, CurrencyDenomination.XRP_XRP))
-    );
+    public static final String ADDRESS_EOS_MAINNET = "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0";
 
     public static Optional<Currency> asCurrency(JSONObject json) {
         // optional
         String address = json.optString("address", null);
-        if (address.equals(ADDRESS_INTERNAL)) address = null;
+        if (ADDRESS_INTERNAL.equals(address)) address = null;
 
         // required
         try {

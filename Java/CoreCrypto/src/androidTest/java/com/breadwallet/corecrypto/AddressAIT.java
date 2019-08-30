@@ -180,7 +180,7 @@ public class AddressAIT {
         NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(1000), Amount.create(2.0, gwei_eth));
         List<NetworkFee> fees = Collections.singletonList(fee);
 
-        Network network = Network.create("ethereum-testnet", "Ethereum Testnet", false, eth, UnsignedLong.valueOf(100000), associations, fees);
+        Network network = Network.create("ethereum-ropsten", "Ethereum Testnet", false, eth, UnsignedLong.valueOf(100000), associations, fees);
 
         Optional<Address> oe1 = network.addressFor("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62");
         assertTrue(oe1.isPresent());
@@ -299,7 +299,7 @@ public class AddressAIT {
         fee = NetworkFee.create(UnsignedLong.valueOf(1000), Amount.create(2.0, gwei_eth));
         fees = Collections.singletonList(fee);
 
-        Network network_eth = Network.create("ethereum-testnet", "Ethereum Testnet", false, eth, UnsignedLong.valueOf(100000), associations, fees);
+        Network network_eth = Network.create("ethereum-ropsten", "Ethereum Testnet", false, eth, UnsignedLong.valueOf(100000), associations, fees);
 
         Address e1 = network_eth.addressFor("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62").get();
         Address b1 = network_btc.addressFor("mm7DDqVkFd35XcWecFipfTYM5dByBzn7nq").get();

@@ -18,7 +18,6 @@ import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedInteger;
-import com.google.common.primitives.UnsignedLong;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -27,7 +26,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /* package */
@@ -45,7 +43,7 @@ final class NetworkDiscovery {
         List<Network> networks = new ArrayList<>();
         CountUpAndDownLatch latch = new CountUpAndDownLatch(() -> callback.discovered(networks));
 
-        getBlockChains(latch, query, Blockchain.DEFAULT_BLOCKCHAINS, isMainnet, blockchainModels -> {
+        getBlockChains(latch, query, System.DEFAULT_BLOCKCHAINS, isMainnet, blockchainModels -> {
             for (Blockchain blockchainModel : blockchainModels) {
                 if (blockchainModel.isMainnet() != isMainnet) {
                     continue;
@@ -55,7 +53,7 @@ final class NetworkDiscovery {
 
                 final List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> defaultCurrencies = new ArrayList<>();
                 for (com.breadwallet.crypto.blockchaindb.models.bdb.Currency currency :
-                        com.breadwallet.crypto.blockchaindb.models.bdb.Currency.DEFAULT_CURRENCIES) {
+                        System.DEFAULT_CURRENCIES) {
                     if (currency.getBlockchainId().equals(blockchainModelId)) {
                         defaultCurrencies.add(currency);
                     }
