@@ -961,10 +961,9 @@ public class BlockChainDB {
                         switch res {
                         case .success: completion (Result.success(()))
                         case .failure(let error):
-                            // Consider 301 or 404 errors as success - owing to a 'quirk' in
-                            // transaction submission.
+                            // Consider 302 or 404 errors as success - owing to a 'quirk'
                             if case let QueryError.response (status) = error,
-                                (302 == status || 404 == status) {
+                                (201 == status || 302 == status || 404 == status) {
                                 completion (Result.success(()))
                             }
                             else {
