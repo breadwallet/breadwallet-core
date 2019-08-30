@@ -216,14 +216,12 @@ final class System implements com.breadwallet.crypto.System {
     static {
         ImmutableMultimap.Builder<String, WalletManagerMode> builder = new ImmutableMultimap.Builder<>();
         builder.put("bitcoin-mainnet", WalletManagerMode.P2P_ONLY);
-        builder.put("bitcoin-mainnet", WalletManagerMode.API_ONLY);
         builder.put("bitcoincash-mainnet", WalletManagerMode.P2P_ONLY);
         builder.put("ethereum-mainnet", WalletManagerMode.API_ONLY);
         builder.put("ethereum-mainnet", WalletManagerMode.API_WITH_P2P_SUBMIT);
         builder.put("ethereum-mainnet", WalletManagerMode.P2P_ONLY);
 
         builder.put("bitcoin-testnet", WalletManagerMode.P2P_ONLY);
-        builder.put("bitcoin-testnet", WalletManagerMode.API_ONLY);
         builder.put("bitcoincash-testnet", WalletManagerMode.P2P_ONLY);
         builder.put("ethereum-ropsten", WalletManagerMode.API_ONLY);
         builder.put("ethereum-ropsten", WalletManagerMode.API_WITH_P2P_SUBMIT);
@@ -335,6 +333,9 @@ final class System implements com.breadwallet.crypto.System {
     private final Lock walletManagersWriteLock;
     private final List<WalletManager> walletManagers;
 
+    private ImmutableMultimap<String, WalletManagerMode> supportedModes;
+    private ImmutableMap<String, WalletManagerMode> defaultModes;
+
     private System(ScheduledExecutorService executor,
                    SystemListener listener,
                    com.breadwallet.crypto.Account account,
@@ -363,13 +364,19 @@ final class System implements com.breadwallet.crypto.System {
         this.walletManagersWriteLock = walletManagersRwLock.writeLock();
         this.walletManagers = new ArrayList<>();
 
+        this.supportedModes = SUPPORTED_MODES;
+        this.defaultModes = DEFAULT_MODES;
+
         announceSystemEvent(new SystemCreatedEvent());
     }
 
     @Override
     public void configure() {
-        NetworkDiscovery.discoverNetworks(query, isMainnet, discoveredNetworks -> {
-            for (Network network: discoveredNetworks) {
+        NetworkDiscovery.discoverNetworks(query, isMainnet, supportedModes, defaultModes, (networks, supportedModes, defaultModes) -> {
+            System.this.supportedModes = supportedModes;
+            System.this.defaultModes = defaultModes;
+
+            for (Network network: networks) {
                 if (addNetwork(network)) {
                     announceNetworkEvent(network, new NetworkCreatedEvent());
                     announceSystemEvent(new SystemNetworkAddedEvent(network));
@@ -514,12 +521,12 @@ final class System implements com.breadwallet.crypto.System {
 
     @Override
     public WalletManagerMode getDefaultWalletManagerMode(com.breadwallet.crypto.Network network) {
-        return DEFAULT_MODES.getOrDefault(network.getUids(), WalletManagerMode.API_ONLY);
+        return defaultModes.getOrDefault(network.getUids(), WalletManagerMode.API_ONLY);
     }
 
     @Override
     public List<WalletManagerMode> getSupportedWalletManagerModes(com.breadwallet.crypto.Network network) {
-        ImmutableCollection<WalletManagerMode> supported = SUPPORTED_MODES.get(network.getUids());
+        ImmutableCollection<WalletManagerMode> supported = supportedModes.get(network.getUids());
         return supported.isEmpty() ? Collections.singletonList(WalletManagerMode.API_ONLY) : supported.asList();
     }
 
