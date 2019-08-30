@@ -43,85 +43,85 @@ public final class System {
 
     static let defaultBlockchains: [BlockChainDB.Model.Blockchain] = [
         // Mainnet
-        (id: "bitcoin-mainnet",       name: "Bitcoin",       network: "mainnet", isMainnet: true,  currency: "btc", blockHeight: 0,
+        (id: "bitcoin-mainnet",      name: "Bitcoin",      network: "mainnet", isMainnet: true,  currency: "bitcoin-mainnet:__native__",     blockHeight: 0,
          feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)]),
-        (id: "bitcoin-cash-mainnet",  name: "Bitcoin Cash",  network: "mainnet", isMainnet: true,  currency: "bch", blockHeight: 0,
+        (id: "bitcoincash-mainnet",  name: "Bitcoin Cash", network: "mainnet", isMainnet: true,  currency: "bitcoincash-mainnet:__native__", blockHeight: 0,
          feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)]),
-        (id: "ethereum-mainnet",      name: "Ethereum",      network: "mainnet", isMainnet: true,  currency: "eth", blockHeight: 0,
+        (id: "ethereum-mainnet",     name: "Ethereum",     network: "mainnet", isMainnet: true,  currency: "ethereum-mainnet:__native__",    blockHeight: 0,
          feeEstimates: [(amount: "2000000000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
-        (id: "ripple-mainnet",        name: "Ripple",        network: "mainnet", isMainnet: true,  currency: "xrp", blockHeight: nil,
-         feeEstimates: [(amount: "20", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
+//        (id: "ripple-mainnet",        name: "Ripple",        network: "mainnet", isMainnet: true,  currency: "xrp", blockHeight: nil,
+//         feeEstimates: [(amount: "20", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
 
         // Testnet
-        (id: "bitcoin-testnet",       name: "Bitcoin Test",      network: "testnet", isMainnet: false, currency: "btc", blockHeight: 0,
+        (id: "bitcoin-testnet",      name: "Bitcoin Testnet",      network: "testnet", isMainnet: false, currency: "bitcoin-testnet:__native__",     blockHeight: 0,
          feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)]),
-        (id: "bitcoin-cash-testnet",  name: "Bitcoin Cash Test", network: "testnet", isMainnet: false, currency: "bch", blockHeight: 0,
+        (id: "bitcoincash-testnet",  name: "Bitcoin Cash Testnet", network: "testnet", isMainnet: false, currency: "bitcoincash-testnet:__native__", blockHeight: 0,
          feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)]),
-        (id: "ethereum-ropsten",      name: "Ethereum Testnet",  network: "testnet", isMainnet: false, currency: "eth", blockHeight: 0,
+        (id: "ethereum-ropsten",     name: "Ethereum Ropsten",     network: "testnet", isMainnet: false, currency: "ethereum-ropsten:__native__",    blockHeight: 0,
          feeEstimates: [(amount: "2000000000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
-        (id: "ripple-testnet",        name: "Ripple Testnet",    network: "testnet", isMainnet: false, currency: "xrp", blockHeight: nil,
-         feeEstimates: [(amount: "20", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
+//        (id: "ripple-testnet",        name: "Ripple Testnet",    network: "testnet", isMainnet: false, currency: "xrp", blockHeight: nil,
+//         feeEstimates: [(amount: "20", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
     ]
 
     static let defaultCurrencies: [BlockChainDB.Model.Currency] = [
         // Mainnet
-        (id: "Bitcoin", name: "Bitcoin", code: "btc", type: "native", blockchainID: "bitcoin-mainnet",
+        (id: "bitcoin-mainnet:__native__", name: "Bitcoin", code: "btc", type: "native", blockchainID: "bitcoin-mainnet",
          address: nil, verified: true,
-         demoninations: [(name: "satoshi", code: "sat", decimals: 0, symbol: BlockChainDB.Model.lookupSymbol ("sat")),
-                         (name: "bitcoin", code: "btc", decimals: 8, symbol: BlockChainDB.Model.lookupSymbol ("btc"))]),
+         demoninations: [(name: "Satoshi", code: "sat", decimals: 0, symbol: BlockChainDB.Model.lookupSymbol ("sat")),
+                         (name: "Bitcoin", code: "btc", decimals: 8, symbol: BlockChainDB.Model.lookupSymbol ("btc"))]),
 
-        (id: "Bitcoin-Cash", name: "Bitcoin Cash", code: "bch", type: "native", blockchainID: "bitcoin-cash-mainnet",
+        (id: "bitcoincash-mainnet:__native__", name: "Bitcoin Cash", code: "bch", type: "native", blockchainID: "bitcoincash-mainnet",
          address: nil, verified: true,
-         demoninations: [(name: "satoshi",      code: "sat", decimals: 0, symbol: BlockChainDB.Model.lookupSymbol ("sat")),
-                         (name: "bitcoin cash", code: "bch", decimals: 8, symbol: BlockChainDB.Model.lookupSymbol ("bch"))]),
+         demoninations: [(name: "Satoshi",      code: "sat", decimals: 0, symbol: BlockChainDB.Model.lookupSymbol ("sat")),
+                         (name: "Bitcoin Cash", code: "bch", decimals: 8, symbol: BlockChainDB.Model.lookupSymbol ("bch"))]),
 
-        (id: "Ethereum", name: "Ethereum", code: "eth", type: "native", blockchainID: "ethereum-mainnet",
+        (id: "ethereum-mainnet:__native__", name: "Ethereum", code: "eth", type: "native", blockchainID: "ethereum-mainnet",
          address: nil, verified: true,
-         demoninations: [(name: "wei",   code: "wei",  decimals:  0, symbol: BlockChainDB.Model.lookupSymbol ("wei")),
-                         (name: "gwei",  code: "gwei", decimals:  9, symbol: BlockChainDB.Model.lookupSymbol ("gwei")),
-                         (name: "ether", code: "eth",  decimals: 18, symbol: BlockChainDB.Model.lookupSymbol ("eth"))]),
+         demoninations: [(name: "Wei",   code: "wei",  decimals:  0, symbol: BlockChainDB.Model.lookupSymbol ("wei")),
+                         (name: "Gwei",  code: "gwei", decimals:  9, symbol: BlockChainDB.Model.lookupSymbol ("gwei")),
+                         (name: "Ether", code: "eth",  decimals: 18, symbol: BlockChainDB.Model.lookupSymbol ("eth"))]),
 
-        (id: "BRD Token", name: "BRD Token", code: "brd", type: "erc20", blockchainID: "ethereum-mainnet",
+        (id: "ethereum-mainnet:0x558ec3152e2eb2174905cd19aea4e34a23de9ad6", name: "BRD Token", code: "BRD", type: "erc20", blockchainID: "ethereum-mainnet",
          address: BlockChainDB.Model.addressBRDMainnet, verified: true,
-         demoninations: [(name: "BRD_INTEGER",   code: "BRDI",  decimals:  0, symbol: "brdi"),
-                         (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")]),
+         demoninations: [(name: "BRD Token INT", code: "BRDI",  decimals:  0, symbol: "brdi"),
+                         (name: "BRD Token",     code: "BRD",   decimals: 18, symbol: "brd")]),
 
-        (id: "EOS Token", name: "EOS Token", code: "eos", type: "erc20", blockchainID: "ethereum-mainnet",
-         address: "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0", verified: true,
-         demoninations: [(name: "EOS_INTEGER",   code: "EOSI",  decimals:  0, symbol: "eosi"),
-                         (name: "EOS",           code: "EOS",   decimals: 18, symbol: "eos")]),
+//        (id: "EOS Token", name: "EOS Token", code: "eos", type: "erc20", blockchainID: "ethereum-mainnet",
+//         address: "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0", verified: true,
+//         demoninations: [(name: "EOS_INTEGER",   code: "EOSI",  decimals:  0, symbol: "eosi"),
+//                         (name: "EOS",           code: "EOS",   decimals: 18, symbol: "eos")]),
 
-        (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-mainnet",
-         address: nil, verified: true,
-         demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
-                         (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
+//        (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-mainnet",
+//         address: nil, verified: true,
+//         demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
+//                         (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
 
         // Testnet
-        (id: "Bitcoin-Testnet", name: "Bitcoin", code: "btc", type: "native", blockchainID: "bitcoin-testnet",
+        (id: "bitcoin-testnet:__native__", name: "Bitcoin Testnet", code: "btc", type: "native", blockchainID: "bitcoin-testnet",
          address: nil, verified: true,
-         demoninations: [(name: "satoshi", code: "sat", decimals: 0, symbol: BlockChainDB.Model.lookupSymbol ("sat")),
-                         (name: "bitcoin", code: "btc", decimals: 8, symbol: BlockChainDB.Model.lookupSymbol ("btc"))]),
+         demoninations: [(name: "Satoshi",         code: "sat",         decimals: 0, symbol: BlockChainDB.Model.lookupSymbol ("sat")),
+                         (name: "Bitcoin Testnet", code: "btc", decimals: 8, symbol: BlockChainDB.Model.lookupSymbol ("btc"))]),
 
-        (id: "Bitcoin-Cash-Testnet", name: "Bitcoin Cash Test", code: "bch", type: "native", blockchainID: "bitcoin-cash-testnet",
+        (id: "bitcoincash-testnet:__native__", name: "Bitcoin Cash Testnet", code: "bch", type: "native", blockchainID: "bitcoincash-testnet",
          address: nil, verified: true,
-         demoninations: [(name: "satoshi",           code: "sat", decimals: 0, symbol: BlockChainDB.Model.lookupSymbol ("sat")),
-                         (name: "bitcoin cash test", code: "bch", decimals: 8, symbol: BlockChainDB.Model.lookupSymbol ("bch"))]),
+         demoninations: [(name: "Satoshi",              code: "sat",          decimals: 0, symbol: BlockChainDB.Model.lookupSymbol ("sat")),
+                         (name: "Bitcoin Cash Testnet", code: "bch", decimals: 8, symbol: BlockChainDB.Model.lookupSymbol ("bch"))]),
 
-        (id: "Ethereum-Testnet", name: "Ethereum", code: "eth", type: "native", blockchainID: "ethereum-ropsten",
+        (id: "ethereum-ropsten:__native__", name: "Ethereum Ropsten", code: "eth", type: "native", blockchainID: "ethereum-ropsten",
          address: nil, verified: true,
-         demoninations: [(name: "wei",   code: "wei",  decimals:  0, symbol: BlockChainDB.Model.lookupSymbol ("wei")),
-                         (name: "gwei",  code: "gwei", decimals:  9, symbol: BlockChainDB.Model.lookupSymbol ("gwei")),
-                         (name: "ether", code: "eth",  decimals: 18, symbol: BlockChainDB.Model.lookupSymbol ("eth"))]),
+         demoninations: [(name: "Wei",   code: "wei",  decimals:  0, symbol: BlockChainDB.Model.lookupSymbol ("wei")),
+                         (name: "Gwei",  code: "gwei", decimals:  9, symbol: BlockChainDB.Model.lookupSymbol ("gwei")),
+                         (name: "Ether", code: "eth",  decimals: 18, symbol: BlockChainDB.Model.lookupSymbol ("eth"))]),
 
-        (id: "BRD Token Testnet", name: "BRD Token", code: "brd", type: "erc20", blockchainID: "ethereum-ropsten",
-         address: BlockChainDB.Model.addressBRDTestnet, verified: true,
-         demoninations: [(name: "BRD_INTEGER",   code: "BRDI",  decimals:  0, symbol: "brdi"),
-                         (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")]),
+//        (id: "BRD Token Testnet", name: "BRD Token", code: "brd", type: "erc20", blockchainID: "ethereum-ropsten",
+//         address: BlockChainDB.Model.addressBRDTestnet, verified: true,
+//         demoninations: [(name: "BRD_INTEGER",   code: "BRDI",  decimals:  0, symbol: "brdi"),
+//                         (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")]),
 
-        (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-testnet",
-         address: nil, verified: true,
-         demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
-                         (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
+//        (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-testnet",
+//         address: nil, verified: true,
+//         demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
+//                         (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
     ]
 
     ///
@@ -130,7 +130,7 @@ public final class System {
 
     var supportedAddressSchemesMap: [String:[AddressScheme]] = [
         "bitcoin-mainnet":      [.btcSegwit, .btcLegacy],
-        "bitcoin-cash-mainnet": [.btcLegacy],
+        "bitcoincash-mainnet": [.btcLegacy],
         "ethereum-mainnet":     [.ethDefault],
         "ripple-mainnet":       [.genDefault],
         "bitcoin-testnet":      [.btcSegwit, .btcLegacy],
@@ -141,7 +141,7 @@ public final class System {
 
     var defaultAddressSchemeMap: [String:AddressScheme] = [
         "bitcoin-mainnet":      .btcSegwit,
-        "bitcoin-cash-mainnet": .btcLegacy,
+        "bitcoincash-mainnet": .btcLegacy,
         "ethereum-mainnet":     .ethDefault,
         "ripple-mainnet":       .genDefault,
         "bitcoin-testnet":      .btcSegwit,
@@ -191,22 +191,22 @@ public final class System {
 
     var supportedModesMap: [String:[WalletManagerMode]] = [
         "bitcoin-mainnet":      [.p2p_only],
-        "bitcoin-cash-mainnet": [.p2p_only],
+        "bitcoincash-mainnet":  [.p2p_only],
         "ethereum-mainnet":     [.api_only, .api_with_p2p_submit, .p2p_only],
 //        "ripple-mainnet":       [],
         "bitcoin-testnet":      [.p2p_only],
-        "bitcoin-cash-testnet": [.p2p_only],
+        "bitcoincash-testnet":  [.p2p_only],
         "ethereum-ropsten":     [.api_only, .api_with_p2p_submit, .p2p_only],
 //        "ripple-testnet":       []
     ]
 
     var defaultModesMap: [String:WalletManagerMode] = [
         "bitcoin-mainnet":      .p2p_only,
-        "bitcoin-cash-mainnet": .p2p_only,
+        "bitcoincash-mainnet":  .p2p_only,
         "ethereum-mainnet":     .api_only,
 //        "ripple-mainnet":       [],
         "bitcoin-testnet":      .p2p_only,
-        "bitcoin-cash-testnet": .p2p_only,
+        "bitcoincash-testnet":  .p2p_only,
         "ethereum-ropsten":     .api_only,
 //        "ripple-testnet":       []
     ]
@@ -474,19 +474,19 @@ public final class System {
     ///
     public func configure () {
         func currencyDenominationToBaseUnit (currency: Currency, model: BlockChainDB.Model.CurrencyDenomination) -> Unit {
-            let uids = "\(currency.name)-\(model.code)"
+            let uids = "\(currency.uids):\(model.code)"
             return Unit (currency: currency, uids: uids, name: model.name, symbol: model.symbol)
         }
 
         func currencyToDefaultBaseUnit (currency: Currency) -> Unit {
             let symb = "\(currency.code.uppercased())I"
             let name = "\(currency.code.uppercased())_INTEGER"
-            let uids = "\(currency.name)-\(name)"
+            let uids = "\(currency.uids):\(name)"
             return Unit (currency: currency, uids: uids, name: name, symbol: symb)
         }
 
         func currencyDenominationToUnit (currency: Currency, model: BlockChainDB.Model.CurrencyDenomination, base: Unit) -> Unit {
-            let uids = "\(currency.name)-\(model.code)"
+            let uids = "\(currency.uids):\(model.code)"
             return Unit (currency: currency, uids: uids, name: model.name, symbol: model.symbol, base: base, decimals: model.decimals)
         }
 
@@ -557,7 +557,7 @@ public final class System {
                         }
 
                         // the default currency
-                        guard let currency = associations.keys.first (where: { $0.code == blockchainModel.currency.lowercased() }),
+                        guard let currency = associations.keys.first (where: { $0.uids == blockchainModel.currency.lowercased() }),
                             let feeUnit = associations[currency]?.baseUnit
                             else { print ("SYS: CONFIGURE: Missed Currency (\(blockchainModel.currency)) on '\(blockchainModel.network)': defaultUnit"); return }
 

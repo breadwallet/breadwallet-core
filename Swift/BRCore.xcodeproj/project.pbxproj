@@ -765,17 +765,17 @@
 		3C0EADEC2188D91F000577A6 /* BRCrypto */ = {
 			isa = PBXGroup;
 			children = (
-				3CF66B0D22AAE45400C1E9BB /* BRCryptoAccount.swift */,
-				3CF66B1922AB14E100C1E9BB /* BRCryptoAddress.swift */,
-				3CF66B0C22AAE45400C1E9BB /* BRCryptoAmount.swift */,
 				3CF66B1022AAE45400C1E9BB /* BRCryptoCurrency.swift */,
+				3CF66B0F22AAE45400C1E9BB /* BRCryptoUnit.swift */,
+				3CF66B0C22AAE45400C1E9BB /* BRCryptoAmount.swift */,
+				3CF66B1922AB14E100C1E9BB /* BRCryptoAddress.swift */,
+				3CF66B0D22AAE45400C1E9BB /* BRCryptoAccount.swift */,
 				3CF66B0922AAE45300C1E9BB /* BRCryptoNetwork.swift */,
 				CEF5E0F12315C290009EF3C0 /* BRCryptoPayment.swift */,
-				3CCB1347224D1B1700ADCDB9 /* BRCryptoSystem.swift */,
 				3CF66B0B22AAE45300C1E9BB /* BRCryptoTransfer.swift */,
-				3CF66B0F22AAE45400C1E9BB /* BRCryptoUnit.swift */,
 				3CF66B0A22AAE45300C1E9BB /* BRCryptoWallet.swift */,
 				3CF66B0E22AAE45400C1E9BB /* BRCryptoWalletManager.swift */,
+				3CCB1347224D1B1700ADCDB9 /* BRCryptoSystem.swift */,
 				3CCB135E224D5C7900ADCDB9 /* common */,
 				3C0EADED2188D91F000577A6 /* BRCryptoVersion.h */,
 				3C0EADEE2188D91F000577A6 /* Info.plist */,
