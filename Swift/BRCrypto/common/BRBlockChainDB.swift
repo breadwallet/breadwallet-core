@@ -863,18 +863,9 @@ public class BlockChainDB {
                      data: json,
                      httpMethod: "POST") {
                         (res: Result<JSON.Dict, BlockChainDB.QueryError>) in
-                        switch res {
-                        case .success: completion (Result.success(()))
-                        case .failure(let error):
-                            // Consider 302 or 404 errors as success - owing to a 'quirk'
-                            if case let QueryError.response (status) = error,
-                                (201 == status || 302 == status || 404 == status) {
-                                completion (Result.success(()))
-                            }
-                            else {
-                                completion (Result.failure(error))
-                            }
-                        }}
+                        // The completion expects Void on success; so map to `()` below
+                        completion (res.map { (json) in return () })
+        }
     }
 
     // Blocks
@@ -1421,7 +1412,7 @@ public class BlockChainDB {
         }
     }
 
-    private func sendRequest<T> (_ request: URLRequest, _ dataTaskFunc: DataTaskFunc, completion: @escaping (Result<T, QueryError>) -> Void) {
+    private func sendRequest<T> (_ request: URLRequest, _ dataTaskFunc: DataTaskFunc, _ responseSuccess: [Int], completion: @escaping (Result<T, QueryError>) -> Void) {
         dataTaskFunc (session, request) { (data, res, error) in
             guard nil == error else {
                 completion (Result.failure(QueryError.submission (error!))) // NSURLErrorDomain
@@ -1433,7 +1424,7 @@ public class BlockChainDB {
                 return
             }
 
-            guard 200 == res.statusCode else {
+            guard responseSuccess.contains(res.statusCode) else {
                 completion (Result.failure (QueryError.response(res.statusCode)))
                 return
             }
@@ -1467,6 +1458,56 @@ public class BlockChainDB {
         request.httpMethod = httpMethod
     }
 
+    /// https://tools.ietf.org/html/rfc7231#page-24
+    internal func responseSuccess (_ httpMethod: String) -> [Int] {
+        switch httpMethod {
+        case "GET":
+            //            The 200 (OK) status code indicates that the request has succeeded.
+            return [200]
+
+        case "POST":
+            //            If one or more resources has been created on the origin server as a
+            //            result of successfully processing a POST request, the origin server
+            //            SHOULD send a 201 (Created) response containing a Location header
+            //            field that provides an identifier for the primary resource created
+            //            (Section 7.1.2) and a representation that describes the status of the
+            //            request while referring to the new resource(s).
+            //
+            //            Responses to POST requests are only cacheable when they include
+            //            explicit freshness information (see Section 4.2.1 of [RFC7234]).
+            //            However, POST caching is not widely implemented.  For cases where an
+            //            origin server wishes the client to be able to cache the result of a
+            //            POST in a way that can be reused by a later GET, the origin server
+            //            MAY send a 200 (OK) response containing the result and a
+            //            Content-Location header field that has the same value as the POST's
+            //            effective request URI (Section 3.1.4.2).
+            return [200, 201]
+
+        case "DELETE":
+            //            If a DELETE method is successfully applied, the origin server SHOULD
+            //            send a 202 (Accepted) status code if the action will likely succeed
+            //            but has not yet been enacted, a 204 (No Content) status code if the
+            //            action has been enacted and no further information is to be supplied,
+            //            or a 200 (OK) status code if the action has been enacted and the
+            //            response message includes a representation describing the status.
+            return [200, 202, 204]
+
+        case "PUT":
+            //            If the target resource does not have a current representation and the
+            //            PUT successfully creates one, then the origin server MUST inform the
+            //            user agent by sending a 201 (Created) response.  If the target
+            //            resource does have a current representation and that representation
+            //            is successfully modified in accordance with the state of the enclosed
+            //            representation, then the origin server MUST send either a 200 (OK) or
+            //            a 204 (No Content) response to indicate successful completion of the
+            //            request.
+            return [200, 201, 204]
+
+        default:
+            return [200]
+        }
+    }
+
     /// Make a reqeust but w/o the need to create a URL.  Just create a URLRequest, decorate it,
     /// and then send it off.
     internal func makeRequest<T> (_ dataTaskFunc: DataTaskFunc,
@@ -1475,7 +1516,7 @@ public class BlockChainDB {
                                   completion: @escaping (Result<T, QueryError>) -> Void) {
         var request = URLRequest (url: url)
         decorateRequest(&request, httpMethod: httpMethod)
-        sendRequest (request, dataTaskFunc, completion: completion)
+        sendRequest (request, dataTaskFunc, responseSuccess (httpMethod), completion: completion)
     }
 
     /// Make a request by building a URL request from baseURL, path, query and data.  Once we have
@@ -1511,7 +1552,7 @@ public class BlockChainDB {
             }
         }
 
-        sendRequest (request, dataTaskFunc, completion: completion)
+        sendRequest (request, dataTaskFunc, responseSuccess (httpMethod), completion: completion)
     }
 
     /// We have two flavors of bdbMakeRequest but they both handle their result identically.
