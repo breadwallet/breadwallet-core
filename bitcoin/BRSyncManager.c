@@ -40,6 +40,8 @@
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #endif
 
+#define ONE_WEEK_IN_SECONDS      (7*24*60*60)
+
 /**
  * The BRSyncManager `class` is designed to wrap the existing BRPeerManager `class`,
  * in P2P mode, using the BRPeerSyncManager, as well as provide an equivalent manager
@@ -126,14 +128,6 @@ struct BRClientSyncManagerStruct {
     /// Mark: - Mutable Sction
 
     /**
-     * Contains the height that we have synced to. Initially, this will be the same
-     * as `initBlockHeight`. As we download transactions, this moves forward. It
-     * can be reset when a `Scan` has been initiated, in which case it reverts to
-     * `initBlockHeight`.
-     */
-    uint64_t syncedBlockHeight;
-
-    /**
      * The known height of the blockchain, as reported by the "network".
      */
     uint64_t networkBlockHeight;
@@ -144,6 +138,14 @@ struct BRClientSyncManagerStruct {
     uint8_t isConnected;
 
     /**
+     * Contains the height that we have synced to. Initially, this will be the same
+     * as `initBlockHeight`. As we download transactions, this moves forward. It
+     * can be reset when a `Scan` has been initiated, in which case it reverts to
+     * `initBlockHeight`.
+     */
+    uint64_t syncedBlockHeight;
+
+    /**
      * An identiifer generator for a BRD Request
      */
     int requestIdGenerator;
@@ -151,23 +153,6 @@ struct BRClientSyncManagerStruct {
     /**
      * If we are syncing with BRD, instead of as P2P with PeerManager, then we'll keep a record to
      * ensure we've successfully completed the getTransactions() callbacks to the client.
-     *
-     * We sync, using chunks, through the total range being synced on rather than using the range
-     * in its entirety.
-     *
-     *  The reasons for this are:
-     *
-     * 1) As transactions are announced, the set of addresses that need to be queried for transactions
-     *    will grow. By splitting the range into smaller chunks, we will pick up addresses as we move
-     *    through the range.
-     *
-     * 2) Chunking the sync range allows us to measure progress organically. If the whole range was
-     *    requested, we would need to enhance the client/announceCallback relationship to provide
-     *    additional data points on its progress and add complexity as a byproduct.
-     *
-     * 3) For naive implemenations that announce transactions once all of them have been discovered,
-     *    the use of chunking forces them to announce transactions more frequently. This should
-     *    ultimately lead to a more responsive user experience.
      */
     struct {
         int requestId;
@@ -175,9 +160,6 @@ struct BRClientSyncManagerStruct {
         BRAddress lastInternalAddress;
         uint64_t begBlockNumber;
         uint64_t endBlockNumber;
-        uint64_t chunkSize;
-        uint64_t chunkBegBlockNumber;
-        uint64_t chunkEndBlockNumber;
         uint8_t isFullScan;
     } scanState;
 };
@@ -189,7 +171,6 @@ typedef struct BRClientSyncManagerStruct * BRClientSyncManager;
 #define BWM_MINUTES_PER_BLOCK                   10              // assumed, bitcoin
 #define BWM_BRD_SYNC_DAYS_OFFSET                 1
 #define BWM_BRD_SYNC_START_BLOCK_OFFSET        ((BWM_BRD_SYNC_DAYS_OFFSET * 24 * 60) / BWM_MINUTES_PER_BLOCK)
-#define BWM_BRD_SYNC_CHUNK_SIZE                 50000
 
 #define BRClientSyncManagerAsSyncManager(x)     ((BRSyncManager) (x))
 
@@ -259,7 +240,7 @@ static void
 BRClientSyncManagerUpdateBlockNumber (BRClientSyncManager manager);
 
 static void
-BRClientSyncManagerStartScanIfNeeded (BRClientSyncManager manager);
+BRClientSyncManagerUpdateTransactions (BRClientSyncManager manager);
 
 static int
 BRClientSyncManagerGenerateRid (BRClientSyncManager manager);
@@ -304,6 +285,12 @@ struct BRPeerSyncManagerStruct {
      */
     BRSyncManagerEventContext eventContext;
     BRSyncManagerEventCallback eventCallback;
+
+    /**
+     * The height of the earliest block of interest. Initialized based on the
+     * earliest key time of the account being synced.
+     */
+    uint64_t initBlockHeight;
 
     /// Mark: - Mutable Sction
 
@@ -660,7 +647,6 @@ BRClientSyncManagerNew(BRSyncManagerEventContext eventContext,
     pthread_mutexattr_destroy(&attr);
 
     // Find the BRCheckpoint that is at least one week before earliestKeyTime.
-#define ONE_WEEK_IN_SECONDS      (7*24*60*60)
     const BRCheckPoint *earliestCheckPoint = BRChainParamsGetCheckpointBefore (params, earliestKeyTime - ONE_WEEK_IN_SECONDS);
     assert (NULL != earliestCheckPoint);
 
@@ -673,9 +659,15 @@ BRClientSyncManagerNew(BRSyncManagerEventContext eventContext,
     // an API-based sync to start immediately rather than waiting for a BRClientSyncManagerUpdateBlockNumber()
     // result in period '1' and then starting the sync in period '2' - where each period is
     // BWM_SLEEP_SECONDS and at least 1 minute.
+    //
+    // The initial sync will be from `initBlockHeight` to `networkBlockHeight`, regardless of if we
+    // have synced, in P2P mode for example, to halfway between those two heights. Since API syncs are
+    // "instantaneous", this provides us some safety, and is comparable with how P2P mode operates,
+    // which syncs based on its trusted data (aka the blocks). In API mode, we don't have any trusted
+    // data so sync on the whole range to be safe.
     manager->initBlockHeight    = MIN (earliestCheckPoint->height, blockHeight);
-    manager->syncedBlockHeight  = manager->initBlockHeight;
     manager->networkBlockHeight = MAX (earliestCheckPoint->height, blockHeight);
+    manager->syncedBlockHeight  = manager->initBlockHeight;
     manager->isConnected        = 0;
 
     // The `scanState` struct is zeroed out by the calloc call
@@ -735,7 +727,8 @@ BRClientSyncManagerConnect(BRClientSyncManager manager) {
         assert (0);
     }
 
-    BRClientSyncManagerStartScanIfNeeded (manager);
+    BRClientSyncManagerUpdateBlockNumber (manager);
+    BRClientSyncManagerUpdateTransactions (manager);
 }
 
 static void
@@ -834,7 +827,8 @@ BRClientSyncManagerScan(BRClientSyncManager manager) {
         assert (0);
     }
 
-    BRClientSyncManagerStartScanIfNeeded (manager);
+    BRClientSyncManagerUpdateBlockNumber (manager);
+    BRClientSyncManagerUpdateTransactions (manager);
 }
 
 static void
@@ -881,8 +875,8 @@ BRClientSyncManagerSubmit(BRClientSyncManager manager,
 
 static void
 BRClientSyncManagerTickTock(BRClientSyncManager manager) {
-    BRClientSyncManagerStartScanIfNeeded (manager);
     BRClientSyncManagerUpdateBlockNumber (manager);
+    BRClientSyncManagerUpdateTransactions (manager);
 }
 
 static int
@@ -905,7 +899,9 @@ BRClientSyncManagerAnnounceGetBlockNumber(BRClientSyncManager manager,
     uint8_t needEvent = 0;
 
     if (0 == pthread_mutex_lock (&manager->lock)) {
-        if (blockHeight != manager->networkBlockHeight && manager->isConnected) {
+        // Never move the block height "backwards"; always maintain our knowledge
+        // of the maximum height observed
+        if (blockHeight > manager->networkBlockHeight && manager->isConnected) {
             manager->networkBlockHeight = blockHeight;
             needEvent = 1;
         }
@@ -1044,48 +1040,15 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
                                                              &addressStrings,
                                                              &addressArray);
 
-                    // don't need to alter the range (we haven't found all transactions yet)
-
                     // store sync data for callback outside of lock
-                    begBlockNumber = manager->scanState.chunkBegBlockNumber;
-                    endBlockNumber = manager->scanState.chunkEndBlockNumber;
+                    begBlockNumber = manager->scanState.begBlockNumber;
+                    endBlockNumber = manager->scanState.endBlockNumber;
 
                     // store control flow flags
                     needClientCall = 1;
-
-                } else if (manager->scanState.chunkEndBlockNumber != manager->scanState.endBlockNumber) {
-                    // .. we haven't discovered any new addresses but we haven't gone through the whole range yet
-
-                    // don't need to store the first unused addresses (we just confirmed they are equal)
-
-                    // get the addresses to query the BDB with
-                    BRClientSyncManagerGetAllAddrsAsStrings (manager,
-                                                             &addressCount,
-                                                             &addressStrings,
-                                                             &addressArray);
-
-                    // store the new range
-                    manager->scanState.chunkBegBlockNumber = manager->scanState.chunkEndBlockNumber;
-                    manager->scanState.chunkEndBlockNumber = MIN (manager->scanState.chunkEndBlockNumber + manager->scanState.chunkSize,
-                                                                  manager->scanState.endBlockNumber);
-
-                    // store sync data for callback outside of lock
-                    begBlockNumber = manager->scanState.chunkBegBlockNumber;
-                    endBlockNumber = manager->scanState.chunkEndBlockNumber;
-
-                    // store control flow flags
-                    needClientCall = 1;
-                    needSyncEvent = 1;
-                    syncEvent = (BRSyncManagerEvent) {
-                        SYNC_MANAGER_SYNC_PROGRESS,
-                        { .syncProgress = {
-                            NO_SYNC_TIMESTAMP, // We do not have a timestamp.
-                            AS_SYNC_PERCENT_COMPLETE (100.0 * (manager->scanState.chunkBegBlockNumber - manager->scanState.begBlockNumber) /
-                                                      (manager->scanState.endBlockNumber - manager->scanState.begBlockNumber)) }}
-                    };
 
                 } else {
-                    // .. we haven't discovered any new addresses and we just finished the last chunk
+                    // .. we haven't discovered any new addresses and we just finished the range
 
                     // store synced block height
                     manager->syncedBlockHeight = manager->scanState.endBlockNumber - 1;
@@ -1147,7 +1110,7 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
 }
 
 static void
-BRClientSyncManagerStartScanIfNeeded (BRClientSyncManager manager) {
+BRClientSyncManagerUpdateTransactions (BRClientSyncManager manager) {
     int rid                     = 0;
     uint8_t needSyncEvent       = 0;
     uint8_t needClientCall      = 0;
@@ -1172,11 +1135,8 @@ BRClientSyncManagerStartScanIfNeeded (BRClientSyncManager manager) {
                                                                                   ? manager->scanState.endBlockNumber - BWM_BRD_SYNC_START_BLOCK_OFFSET
                                                                                   : 0));
 
-            // update the chunk range
-            manager->scanState.chunkSize = BWM_BRD_SYNC_CHUNK_SIZE;
-            manager->scanState.chunkBegBlockNumber = manager->scanState.begBlockNumber;
-            manager->scanState.chunkEndBlockNumber = MIN (manager->scanState.begBlockNumber + manager->scanState.chunkSize,
-                                                          manager->scanState.endBlockNumber);
+            // check that we don't have an overflow
+            assert (manager->scanState.endBlockNumber > manager->scanState.begBlockNumber);
 
             // generate addresses
             BRClientSyncManagerGenerateUnusedAddrs (manager);
@@ -1198,8 +1158,8 @@ BRClientSyncManagerStartScanIfNeeded (BRClientSyncManager manager) {
             manager->scanState.isFullScan = (manager->scanState.endBlockNumber - manager->scanState.begBlockNumber) > BWM_BRD_SYNC_START_BLOCK_OFFSET;
 
             // store sync data for callback outside of lock
-            begBlockNumber = manager->scanState.chunkBegBlockNumber;
-            endBlockNumber = manager->scanState.chunkEndBlockNumber;
+            begBlockNumber = manager->scanState.begBlockNumber;
+            endBlockNumber = manager->scanState.endBlockNumber;
             rid = manager->scanState.requestId;
 
             // store control flow flags
@@ -1355,7 +1315,16 @@ BRPeerSyncManagerNew(BRSyncManagerEventContext eventContext,
     pthread_mutex_init(&manager->lock, &attr);
     pthread_mutexattr_destroy(&attr);
 
-    manager->networkBlockHeight = 0;  // TODO(discuss): Should this be initialized to blockHeight?
+    // Find the BRCheckpoint that is at least one week before earliestKeyTime.
+    const BRCheckPoint *earliestCheckPoint = BRChainParamsGetCheckpointBefore (params, earliestKeyTime - ONE_WEEK_IN_SECONDS);
+    assert (NULL != earliestCheckPoint);
+
+    // The initial sync will be based on the `blocks` provided to the peer manager as the starting
+    // point up to the block height advertised on the P2P network, regardless of if we have synced,
+    // in API mode for example, to halfway between those two heights. This is due to how the P2P
+    // verifies data it receives from the network.
+    manager->initBlockHeight    = MIN (earliestCheckPoint->height, blockHeight);
+    manager->networkBlockHeight = MAX (earliestCheckPoint->height, blockHeight);
     manager->isConnected = 0;
 
     manager->peerManager = BRPeerManagerNew (params,
@@ -1648,11 +1617,14 @@ _BRPeerSyncManagerTxStatusUpdate (void *info) {
 
         uint8_t needSyncStoppedEvent = !isConnected && manager->isConnected && manager->isFullScan;
         uint8_t needDisconnectionEvent = !isConnected && manager->isConnected;
-        uint8_t needBlockHeightEvent = blockHeight != manager->networkBlockHeight;
+        uint8_t needBlockHeightEvent = blockHeight > manager->networkBlockHeight;
 
         manager->isConnected = needDisconnectionEvent ? 0 : manager->isConnected;
         manager->isFullScan = needSyncStoppedEvent ? 0 : manager->isFullScan;
-        manager->networkBlockHeight = blockHeight;
+
+        // Never move the block height "backwards"; always maintain our knowledge
+        // of the maximum height observed
+        manager->networkBlockHeight = MAX (blockHeight, manager->networkBlockHeight);
 
         _peer_log ("txStatusUpdate: needStop:%"PRIu8", needDisconnect:%"PRIu8"\n",
                    needSyncStoppedEvent, needDisconnectionEvent);
