@@ -30,9 +30,9 @@
 #include "BRSet.h"
 #include "BRInt.h"
 
-//Both Bitcoin and Ethereum Wallet Managers include the ability to save and load peers, block,
-//transactions and logs (for Ethereum) to the file system.  But, they both implement the file
-//operations independently.  Pull out the implementation into BRFileService.
+// Both Bitcoin and Ethereum Wallet Managers include the ability to save and load peers, block,
+// transactions and logs (for Ethereum) to the file system.  But, they both implement the file
+// operations independently.  Pull out the implementation into BRFileService.
 //
 // Allow each WalletManager (Bitcoin, Bitcash, Ethereum) to create their own BRFileService (storing
 // stuff in a subdirectory specific to the manager+network+whatever for a given base path).  Allow

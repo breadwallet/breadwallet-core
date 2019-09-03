@@ -55,6 +55,7 @@
 		3C56C98522FA2B630054AD21 /* TransferCreateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C56C98422FA2B620054AD21 /* TransferCreateController.swift */; };
 		3C5C02392212035B0052E010 /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CEF5FC9220513FC0010A811 /* libresolv.tbd */; };
 		3C5F5E75212C82310038B732 /* BREthereumMPT.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C5F5E74212C82310038B732 /* BREthereumMPT.c */; };
+		3C6AE124231F013800016196 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 3C6AE123231F013800016196 /* libsqlite3.tbd */; };
 		3C6B172F2131CB5B003C313B /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C6B172E2131CB5B003C313B /* main.c */; };
 		3C6B17392131CE12003C313B /* BREthereumEther.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53B320AF595400C430F6 /* BREthereumEther.c */; };
 		3C6B173A2131CE12003C313B /* BREthereumGas.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53B520AF595400C430F6 /* BREthereumGas.c */; };
@@ -533,6 +534,7 @@
 		3C590F5920950C750005597B /* BRBIP39Mnemonic.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRBIP39Mnemonic.c; sourceTree = "<group>"; };
 		3C5F5E73212C82310038B732 /* BREthereumMPT.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumMPT.h; sourceTree = "<group>"; };
 		3C5F5E74212C82310038B732 /* BREthereumMPT.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumMPT.c; sourceTree = "<group>"; };
+		3C6AE123231F013800016196 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		3C6B172C2131CB5B003C313B /* CoreExplore */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = CoreExplore; sourceTree = BUILT_PRODUCTS_DIR; };
 		3C6B172E2131CB5B003C313B /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		3C6B17792131CE12003C313B /* libCoreMacOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libCoreMacOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -737,6 +739,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3C6AE124231F013800016196 /* libsqlite3.tbd in Frameworks */,
 				3CEF5FD0220521DC0010A811 /* libresolv.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1275,6 +1278,7 @@
 		3CAB610A20AF938E00810CE4 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				3C6AE123231F013800016196 /* libsqlite3.tbd */,
 				3CA15F7F221648D200C84E65 /* libresolv.tbd */,
 				3CEF5FCB220514340010A811 /* libresolv.9.tbd */,
 				3CEF5FC9220513FC0010A811 /* libresolv.tbd */,

@@ -77,18 +77,18 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
             .urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Core").path
 
-        do {
-            if FileManager.default.fileExists(atPath: storagePath) {
-                try FileManager.default.removeItem(atPath: storagePath)
-            }
-
-            try FileManager.default.createDirectory (atPath: storagePath,
-                                                     withIntermediateDirectories: true,
-                                                     attributes: nil)
-        }
-        catch let error as NSError {
-            print("Error: \(error.localizedDescription)")
-        }
+//        do {
+//            if FileManager.default.fileExists(atPath: storagePath) {
+//                try FileManager.default.removeItem(atPath: storagePath)
+//            }
+//
+//            try FileManager.default.createDirectory (atPath: storagePath,
+//                                                     withIntermediateDirectories: true,
+//                                                     attributes: nil)
+//        }
+//        catch let error as NSError {
+//            print("Error: \(error.localizedDescription)")
+//        }
 
         print ("APP: Account PaperKey  : \(accountSpecification.paperKey.components(separatedBy: CharacterSet.whitespaces).first ?? "<missed>") ...")
         print ("APP: Account Timestamp : \(account.timestamp)")
