@@ -7,12 +7,11 @@
  */
 package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
+import com.breadwallet.crypto.blockchaindb.apis.PageInfo;
 import com.breadwallet.crypto.blockchaindb.apis.PagedCompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
-import com.breadwallet.crypto.blockchaindb.errors.QueryResponseError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
 import com.breadwallet.crypto.utility.CompletionHandler;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
@@ -89,7 +88,7 @@ public class TransactionApi {
             jsonClient.sendGetForArrayWithPaging("transactions", params, Transaction::asTransactions,
                     new PagedCompletionHandler<List<Transaction>, QueryError>() {
                         @Override
-                        public void handleData(List<Transaction> transactions, PagedCompletionHandler.PageInfo info) {
+                        public void handleData(List<Transaction> transactions, PageInfo info) {
                             nextUrl[0] = info.nextUrl;
                             allTransactions.addAll(transactions);
                             sema.release();
@@ -108,7 +107,7 @@ public class TransactionApi {
                 jsonClient.sendGetForArrayWithPaging("transactions", nextUrl[0], Transaction::asTransactions,
                         new PagedCompletionHandler<List<Transaction>, QueryError>() {
                             @Override
-                            public void handleData(List<Transaction> transactions, PagedCompletionHandler.PageInfo info) {
+                            public void handleData(List<Transaction> transactions, PageInfo info) {
                                 nextUrl[0] = info.nextUrl;
                                 allTransactions.addAll(transactions);
                                 sema.release();

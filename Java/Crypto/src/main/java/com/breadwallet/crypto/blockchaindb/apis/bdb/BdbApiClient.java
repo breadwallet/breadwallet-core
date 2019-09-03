@@ -14,6 +14,7 @@ import com.breadwallet.crypto.blockchaindb.DataTask;
 import com.breadwallet.crypto.blockchaindb.apis.ArrayResponseParser;
 import com.breadwallet.crypto.blockchaindb.apis.HttpStatusCodes;
 import com.breadwallet.crypto.blockchaindb.apis.ObjectResponseParser;
+import com.breadwallet.crypto.blockchaindb.apis.PageInfo;
 import com.breadwallet.crypto.blockchaindb.apis.PagedCompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryJsonParseError;
@@ -118,7 +119,7 @@ public class BdbApiClient {
                 params,
                 null,
                 "GET",
-                new PagedArrayHandler<>(resource, parser, handler));
+                new EmbeddedPagedArrayResponseHandler<>(resource, parser, handler));
     }
 
     /* package */
@@ -127,7 +128,7 @@ public class BdbApiClient {
         makeAndSendRequest(
                 url,
                 "GET",
-                new PagedArrayHandler<>(resource, parser, handler));
+                new EmbeddedPagedArrayResponseHandler<>(resource, parser, handler));
     }
 
     /* package */
@@ -305,7 +306,7 @@ public class BdbApiClient {
 
         @Override
         public void handleResponse(JSONObject responseData) {
-            PagedCompletionHandler.PageInfo pageInfo = getPageInfo(responseData);
+            PageInfo pageInfo = getPageInfo(responseData);
             checkState(pageInfo.nextUrl == null);
             checkState(pageInfo.prevUrl== null);
 
@@ -345,7 +346,7 @@ public class BdbApiClient {
 
         @Override
         public void handleResponse(JSONObject responseData) {
-            PagedCompletionHandler.PageInfo pageInfo = getPageInfo(responseData);
+            PageInfo pageInfo = getPageInfo(responseData);
             checkState(pageInfo.nextUrl == null);
             checkState(pageInfo.prevUrl== null);
 
@@ -369,14 +370,14 @@ public class BdbApiClient {
         }
     }
 
-    private static class PagedArrayHandler<T> implements ResponseHandler<JSONObject> {
+    private static class EmbeddedPagedArrayResponseHandler<T> implements ResponseHandler<JSONObject> {
 
         private final String path;
         private final ArrayResponseParser<T> parser;
         private final PagedCompletionHandler<T, QueryError> handler;
 
 
-        PagedArrayHandler(String path, ArrayResponseParser<T> parser, PagedCompletionHandler<T, QueryError> handler) {
+        EmbeddedPagedArrayResponseHandler(String path, ArrayResponseParser<T> parser, PagedCompletionHandler<T, QueryError> handler) {
             this.path = path;
             this.parser = parser;
             this.handler = handler;
@@ -389,7 +390,7 @@ public class BdbApiClient {
 
         @Override
         public void handleResponse(JSONObject json) {
-            PagedCompletionHandler.PageInfo pageInfo = getPageInfo(json);
+            PageInfo pageInfo = getPageInfo(json);
 
             JSONObject jsonEmbedded = json.optJSONObject("_embedded");
             JSONArray jsonEmbeddedData = jsonEmbedded == null ? new JSONArray() : jsonEmbedded.optJSONArray(path);
@@ -411,7 +412,7 @@ public class BdbApiClient {
         }
     }
 
-    private static PagedCompletionHandler.PageInfo getPageInfo(JSONObject json) {
+    private static PageInfo getPageInfo(JSONObject json) {
         String nextUrl = null;
         String prevUrl = null;
         String selfUrl = null;
@@ -436,6 +437,6 @@ public class BdbApiClient {
 
         }
 
-        return new PagedCompletionHandler.PageInfo(nextUrl, prevUrl, selfUrl);
+        return new PageInfo(nextUrl, prevUrl, selfUrl);
     }
 }
