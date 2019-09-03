@@ -61,27 +61,7 @@ public class TransactionApi {
                 "blockchain_id", id,
                 "transaction_id", hashAsHex,
                 "data", BaseEncoding.base64().encode(tx)));
-        jsonClient.sendPost("transactions", ImmutableMultimap.of(), json, Optional::of, new CompletionHandler<Object, QueryError>() {
-            @Override
-            public void handleData(Object data) {
-                handler.handleData(null);
-            }
-
-            @Override
-            public void handleError(QueryError error) {
-                if (error instanceof QueryResponseError) {
-                    int statusCode = ((QueryResponseError) error).getStatusCode();
-                    // Consider 302 or 404 errors as success - owing to an issue with transaction submission
-                    if (statusCode == 302 || statusCode == 404) {
-                        handler.handleData(null);
-                    } else {
-                        handler.handleError(error);
-                    }
-                } else {
-                    handler.handleError(error);
-                }
-            }
-        });
+        jsonClient.sendPost("transactions", ImmutableMultimap.of(), json, handler);
     }
 
     private void getTransactionsOnExecutor(String id, List<String> addresses, UnsignedLong beginBlockNumber,
