@@ -99,7 +99,7 @@ public class BlockchainDb {
     public static BlockchainDb createForTest (OkHttpClient client, String bdbBaseURL, String bdbAuthToken, String apiBaseURL) {
         DataTask brdDataTask = (cli, request, callback) -> {
             Request decoratedRequest = request.newBuilder()
-                    .addHeader("Authorization", "Bearer " + bdbAuthToken)
+                    .header("Authorization", "Bearer " + bdbAuthToken)
                     .build();
             cli.newCall(decoratedRequest).enqueue(callback);
         };
