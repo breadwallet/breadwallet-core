@@ -111,7 +111,7 @@ public class BrdApiClient {
 
         Request.Builder requestBuilder = new Request.Builder();
         requestBuilder.url(httpUrl);
-        requestBuilder.addHeader("accept", "application/json");
+        requestBuilder.header("Accept", "application/json");
         requestBuilder.method(httpMethod, json == null ? null : RequestBody.create(MEDIA_TYPE_JSON, json.toString()));
 
         sendRequest(requestBuilder.build(), dataTask, handler);

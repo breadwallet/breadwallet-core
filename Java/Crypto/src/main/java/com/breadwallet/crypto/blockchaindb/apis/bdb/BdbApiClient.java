@@ -14,6 +14,7 @@ import com.breadwallet.crypto.blockchaindb.DataTask;
 import com.breadwallet.crypto.blockchaindb.apis.ArrayResponseParser;
 import com.breadwallet.crypto.blockchaindb.apis.HttpStatusCodes;
 import com.breadwallet.crypto.blockchaindb.apis.ObjectResponseParser;
+import com.breadwallet.crypto.blockchaindb.apis.PagedCompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryJsonParseError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryModelError;
@@ -110,6 +111,26 @@ public class BdbApiClient {
     }
 
     /* package */
+    <T> void sendGetForArrayWithPaging(String resource, Multimap<String, String> params, ArrayResponseParser<T> parser,
+                                       PagedCompletionHandler<T, QueryError> handler) {
+        makeAndSendRequest(
+                Collections.singletonList(resource),
+                params,
+                null,
+                "GET",
+                new PagedArrayHandler<>(resource, parser, handler));
+    }
+
+    /* package */
+    <T> void sendGetForArrayWithPaging(String resource, String url, ArrayResponseParser<T> parser,
+                                       PagedCompletionHandler<T, QueryError> handler) {
+        makeAndSendRequest(
+                url,
+                "GET",
+                new PagedArrayHandler<>(resource, parser, handler));
+    }
+
+    /* package */
     <T> void sendGetWithId(String resource, String id, Multimap<String, String> params, ObjectResponseParser<T> parser,
                            CompletionHandler<T, QueryError> handler) {
         makeAndSendRequest(
@@ -156,6 +177,21 @@ public class BdbApiClient {
                 new RootObjectResponseHandler<>(parser, handler));
     }
 
+    private void makeAndSendRequest(String url,
+                                    String httpMethod,
+                                    ResponseHandler handler) {
+        HttpUrl.Builder urlBuilder = HttpUrl.parse(url).newBuilder();
+        HttpUrl httpUrl = urlBuilder.build();
+        Log.d(TAG, String.format("Request: %s: Method: %s", httpUrl, httpMethod));
+
+        Request.Builder requestBuilder = new Request.Builder();
+        requestBuilder.url(httpUrl);
+        requestBuilder.header("Accept", "application/json");
+        requestBuilder.method(httpMethod, null);
+
+        sendRequest(requestBuilder.build(), dataTask, handler);
+    }
+
     private void makeAndSendRequest(List<String> pathSegments,
                                     Multimap<String, String> params,
                                     @Nullable JSONObject json,
@@ -178,7 +214,7 @@ public class BdbApiClient {
 
         Request.Builder requestBuilder = new Request.Builder();
         requestBuilder.url(httpUrl);
-        requestBuilder.addHeader("accept", "application/json");
+        requestBuilder.header("Accept", "application/json");
         requestBuilder.method(httpMethod, json == null ? null : RequestBody.create(MEDIA_TYPE_JSON, json.toString()));
 
         sendRequest(requestBuilder.build(), dataTask, handler);
@@ -269,6 +305,10 @@ public class BdbApiClient {
 
         @Override
         public void handleResponse(JSONObject responseData) {
+            PagedCompletionHandler.PageInfo pageInfo = getPageInfo(responseData);
+            checkState(pageInfo.nextUrl == null);
+            checkState(pageInfo.prevUrl== null);
+
             Optional<T> data = parser.parse(responseData);
             if (data.isPresent()) {
                 handler.handleData(data.get());
@@ -305,6 +345,10 @@ public class BdbApiClient {
 
         @Override
         public void handleResponse(JSONObject responseData) {
+            PagedCompletionHandler.PageInfo pageInfo = getPageInfo(responseData);
+            checkState(pageInfo.nextUrl == null);
+            checkState(pageInfo.prevUrl== null);
+
             JSONObject jsonEmbedded = responseData.optJSONObject("_embedded");
             JSONArray jsonEmbeddedData = jsonEmbedded == null ? new JSONArray() : jsonEmbedded.optJSONArray(path);
 
@@ -323,5 +367,75 @@ public class BdbApiClient {
         public void handleError(QueryError error) {
             handler.handleError(error);
         }
+    }
+
+    private static class PagedArrayHandler<T> implements ResponseHandler<JSONObject> {
+
+        private final String path;
+        private final ArrayResponseParser<T> parser;
+        private final PagedCompletionHandler<T, QueryError> handler;
+
+
+        PagedArrayHandler(String path, ArrayResponseParser<T> parser, PagedCompletionHandler<T, QueryError> handler) {
+            this.path = path;
+            this.parser = parser;
+            this.handler = handler;
+        }
+
+        @Override
+        public JSONObject parseResponse(String responseRaw) throws JSONException {
+            return new JSONObject(responseRaw);
+        }
+
+        @Override
+        public void handleResponse(JSONObject json) {
+            PagedCompletionHandler.PageInfo pageInfo = getPageInfo(json);
+
+            JSONObject jsonEmbedded = json.optJSONObject("_embedded");
+            JSONArray jsonEmbeddedData = jsonEmbedded == null ? new JSONArray() : jsonEmbedded.optJSONArray(path);
+
+            Optional<T> data = parser.parse(jsonEmbeddedData);
+            if (data.isPresent()) {
+                handler.handleData(data.get(), pageInfo);
+
+            } else {
+                QueryError e = new QueryModelError("Transform error");
+                Log.e(TAG, "parsing error", e);
+                handler.handleError(e);
+            }
+        }
+
+        @Override
+        public void handleError(QueryError error) {
+            handler.handleError(error);
+        }
+    }
+
+    private static PagedCompletionHandler.PageInfo getPageInfo(JSONObject json) {
+        String nextUrl = null;
+        String prevUrl = null;
+        String selfUrl = null;
+
+        JSONObject links = json.optJSONObject("_links");
+        if (null != links) {
+
+            JSONObject next = links.optJSONObject("next");
+            if (next!= null) {
+                nextUrl = next.optString("href");
+            }
+
+            JSONObject prev = links.optJSONObject("prev");
+            if (prev!= null) {
+                prevUrl = prev.optString("href");
+            }
+
+            JSONObject self = links.optJSONObject("self");
+            if (self!= null) {
+                selfUrl = self.optString("href");
+            }
+
+        }
+
+        return new PagedCompletionHandler.PageInfo(nextUrl, prevUrl, selfUrl);
     }
 }
