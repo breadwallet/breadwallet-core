@@ -7,6 +7,7 @@
  */
 package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
+import com.breadwallet.crypto.blockchaindb.apis.PagedCompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryResponseError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
@@ -19,7 +20,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedLong;
-import com.google.common.primitives.UnsignedLongs;
 
 import org.json.JSONObject;
 
@@ -95,24 +95,41 @@ public class TransactionApi {
         for (int i = 0; i < chunkedAddressesList.size() && error[0] == null; i++) {
             List<String> chunkedAddresses = chunkedAddressesList.get(i);
 
-            ImmutableListMultimap.Builder<String, String> baseBuilder = ImmutableListMultimap.builder();
-            baseBuilder.put("blockchain_id", id);
-            baseBuilder.put("include_proof", String.valueOf(includeProof));
-            baseBuilder.put("include_raw", String.valueOf(includeRaw));
-            for (String address : chunkedAddresses) baseBuilder.put("address", address);
-            ImmutableMultimap<String, String> baseParams = baseBuilder.build();
+            ImmutableListMultimap.Builder<String, String> paramsBuilder = ImmutableListMultimap.builder();
+            paramsBuilder.put("blockchain_id", id);
+            paramsBuilder.put("include_proof", String.valueOf(includeProof));
+            paramsBuilder.put("include_raw", String.valueOf(includeRaw));
+            for (String address : chunkedAddresses) paramsBuilder.put("address", address);
+            paramsBuilder.put("start_height", beginBlockNumber.toString());
+            paramsBuilder.put("end_height", endBlockNumber.toString());
+            ImmutableMultimap<String, String> params = paramsBuilder.build();
 
-            for (UnsignedLong j = beginBlockNumber; j.compareTo(endBlockNumber) < 0 && error[0] == null; j = j.plus(PAGINATION_COUNT)) {
-                ImmutableListMultimap.Builder<String, String> paramsBuilder = ImmutableListMultimap.builder();
-                paramsBuilder.putAll(baseParams);
-                paramsBuilder.put("start_height", j.toString());
-                paramsBuilder.put("end_height", UnsignedLongs.toString(UnsignedLongs.min(j.plus(PAGINATION_COUNT).longValue(), endBlockNumber.longValue())));
-                ImmutableMultimap<String, String> params = paramsBuilder.build();
+            final String[] nextUrl = {null};
 
-                jsonClient.sendGetForArray("transactions", params, Transaction::asTransactions,
-                        new CompletionHandler<List<Transaction>, QueryError>() {
+            jsonClient.sendGetForArrayWithPaging("transactions", params, Transaction::asTransactions,
+                    new PagedCompletionHandler<List<Transaction>, QueryError>() {
+                        @Override
+                        public void handleData(List<Transaction> transactions, PagedCompletionHandler.PageInfo info) {
+                            nextUrl[0] = info.nextUrl;
+                            allTransactions.addAll(transactions);
+                            sema.release();
+                        }
+
+                        @Override
+                        public void handleError(QueryError e) {
+                            error[0] = e;
+                            sema.release();
+                        }
+                    });
+
+            sema.acquireUninterruptibly();
+
+            while (nextUrl[0] != null && error[0] == null) {
+                jsonClient.sendGetForArrayWithPaging("transactions", nextUrl[0], Transaction::asTransactions,
+                        new PagedCompletionHandler<List<Transaction>, QueryError>() {
                             @Override
-                            public void handleData(List<Transaction> transactions) {
+                            public void handleData(List<Transaction> transactions, PagedCompletionHandler.PageInfo info) {
+                                nextUrl[0] = info.nextUrl;
                                 allTransactions.addAll(transactions);
                                 sema.release();
                             }

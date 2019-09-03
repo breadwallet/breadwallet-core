@@ -49,8 +49,12 @@ public final class Utilities {
     }
 
     public static Optional<byte[]> getOptionalBase64Bytes(JSONObject json, String name) {
+        String value = json.optString(name, null);
+        if (null == value) {
+            return Optional.absent();
+        }
         try {
-            return Optional.fromNullable(BaseEncoding.base64().decode(json.optString(name, null)));
+            return Optional.fromNullable(BaseEncoding.base64().decode(value));
         } catch (IllegalArgumentException e) {
             return Optional.absent();
         }

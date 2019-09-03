@@ -7,6 +7,7 @@
  */
 package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
+import com.breadwallet.crypto.blockchaindb.apis.PagedCompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Block;
 import com.breadwallet.crypto.utility.CompletionHandler;
@@ -61,35 +62,52 @@ public class BlockApi {
         List<Block> allBlocks = new ArrayList<>();
         Semaphore sema = new Semaphore(0);
 
-        ImmutableListMultimap.Builder<String, String> baseBuilder = ImmutableListMultimap.builder();
-        baseBuilder.put("blockchain_id", id);
-        baseBuilder.put("include_raw", String.valueOf(includeRaw));
-        baseBuilder.put("include_tx", String.valueOf(includeTx));
-        baseBuilder.put("include_tx_raw", String.valueOf(includeTxRaw));
-        baseBuilder.put("include_tx_proof", String.valueOf(includeTxProof));
-        ImmutableMultimap<String, String> baseParams = baseBuilder.build();
+        ImmutableListMultimap.Builder<String, String> paramsBuilder = ImmutableListMultimap.builder();
+        paramsBuilder.put("blockchain_id", id);
+        paramsBuilder.put("include_raw", String.valueOf(includeRaw));
+        paramsBuilder.put("include_tx", String.valueOf(includeTx));
+        paramsBuilder.put("include_tx_raw", String.valueOf(includeTxRaw));
+        paramsBuilder.put("include_tx_proof", String.valueOf(includeTxProof));
+        paramsBuilder.put("start_height", beginBlockNumber.toString());
+        paramsBuilder.put("end_height", endBlockNumber.toString());
+        ImmutableMultimap<String, String> params = paramsBuilder.build();
 
-        for (UnsignedLong i = beginBlockNumber; i.compareTo(endBlockNumber) < 0 && error[0] == null; i = i.plus(PAGINATION_COUNT)) {
-            ImmutableListMultimap.Builder<String, String> paramsBuilder = ImmutableListMultimap.builder();
-            paramsBuilder.putAll(baseParams);
-            paramsBuilder.put("start_height", i.toString());
-            paramsBuilder.put("end_height", UnsignedLongs.toString(UnsignedLongs.min(i.plus(PAGINATION_COUNT).longValue(), endBlockNumber.longValue())));
-            ImmutableMultimap<String, String> params = paramsBuilder.build();
+        final String[] nextUrl = {null};
 
-            jsonClient.sendGetForArray("blocks", params, Block::asBlocks,
-                    new CompletionHandler<List<Block>, QueryError>() {
-                @Override
-                public void handleData(List<Block> blocks) {
-                    allBlocks.addAll(blocks);
-                    sema.release();
-                }
+        jsonClient.sendGetForArrayWithPaging("blocks", params, Block::asBlocks,
+                new PagedCompletionHandler<List<Block>, QueryError>() {
+            @Override
+            public void handleData(List<Block> blocks, PagedCompletionHandler.PageInfo info) {
+                nextUrl[0] = info.nextUrl;
+                allBlocks.addAll(blocks);
+                sema.release();
+            }
 
-                @Override
-                public void handleError(QueryError e) {
-                    error[0] = e;
-                    sema.release();
-                }
-            });
+            @Override
+            public void handleError(QueryError e) {
+                error[0] = e;
+                sema.release();
+            }
+        });
+
+        sema.acquireUninterruptibly();
+
+        while (nextUrl[0] != null && error[0] == null) {
+            jsonClient.sendGetForArrayWithPaging("blocks", nextUrl[0], Block::asBlocks,
+                    new PagedCompletionHandler<List<Block>, QueryError>() {
+                        @Override
+                        public void handleData(List<Block> blocks, PagedCompletionHandler.PageInfo info) {
+                            nextUrl[0] = info.nextUrl;
+                            allBlocks.addAll(blocks);
+                            sema.release();
+                        }
+
+                        @Override
+                        public void handleError(QueryError e) {
+                            error[0] = e;
+                            sema.release();
+                        }
+                    });
 
             sema.acquireUninterruptibly();
         }
