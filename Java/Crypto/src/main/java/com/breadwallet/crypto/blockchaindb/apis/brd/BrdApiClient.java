@@ -12,6 +12,7 @@ import android.util.Log;
 
 import com.breadwallet.crypto.blockchaindb.DataTask;
 import com.breadwallet.crypto.blockchaindb.apis.ArrayResponseParser;
+import com.breadwallet.crypto.blockchaindb.apis.HttpStatusCodes;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryJsonParseError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryModelError;
@@ -120,7 +121,8 @@ public class BrdApiClient {
         dataTask.execute(client, request, new Callback() {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                if (response.isSuccessful()) {
+                int responseCode = response.code();
+                if (HttpStatusCodes.responseSuccess(request.method()).contains(responseCode)) {
                     try (ResponseBody responseBody = response.body()) {
                         if (responseBody == null) {
                             Log.e(TAG, "response failed with null body");
@@ -139,7 +141,6 @@ public class BrdApiClient {
                         }
                     }
                 } else {
-                    int responseCode = response.code();
                     Log.e(TAG, "response failed with status " + responseCode);
                     handler.handleError(new QueryResponseError(responseCode));
                 }
