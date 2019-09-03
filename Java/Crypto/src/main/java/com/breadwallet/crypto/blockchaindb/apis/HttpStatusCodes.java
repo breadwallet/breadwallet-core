@@ -62,4 +62,8 @@ public final class HttpStatusCodes {
                 return SUCCESS_CODES_DEFAULT;
         }
     }
+
+    private HttpStatusCodes() {
+        // don't allow instantiation
+    }
 }
