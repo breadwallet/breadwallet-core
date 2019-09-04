@@ -275,6 +275,10 @@ extern "C" {
                             BRCryptoBlockChainHeight height);
 
     private_extern void
+    cryptoNetworkSetConfirmationsUntilFinal (BRCryptoNetwork network,
+                                             uint32_t confirmationsUntilFinal);
+
+    private_extern void
     cryptoNetworkSetCurrency (BRCryptoNetwork network,
                               BRCryptoCurrency currency);
 

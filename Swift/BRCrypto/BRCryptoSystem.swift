@@ -44,21 +44,27 @@ public final class System {
     static let defaultBlockchains: [BlockChainDB.Model.Blockchain] = [
         // Mainnet
         (id: "bitcoin-mainnet",      name: "Bitcoin",      network: "mainnet", isMainnet: true,  currency: "bitcoin-mainnet:__native__",     blockHeight: 0,
-         feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)]),
+         feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)],
+         confirmationsUntilFinal: 6),
         (id: "bitcoincash-mainnet",  name: "Bitcoin Cash", network: "mainnet", isMainnet: true,  currency: "bitcoincash-mainnet:__native__", blockHeight: 0,
-         feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)]),
+         feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)],
+         confirmationsUntilFinal: 6),
         (id: "ethereum-mainnet",     name: "Ethereum",     network: "mainnet", isMainnet: true,  currency: "ethereum-mainnet:__native__",    blockHeight: 0,
-         feeEstimates: [(amount: "2000000000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
+         feeEstimates: [(amount: "2000000000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
+         confirmationsUntilFinal: 6),
 //        (id: "ripple-mainnet",        name: "Ripple",        network: "mainnet", isMainnet: true,  currency: "xrp", blockHeight: nil,
 //         feeEstimates: [(amount: "20", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
 
         // Testnet
         (id: "bitcoin-testnet",      name: "Bitcoin Testnet",      network: "testnet", isMainnet: false, currency: "bitcoin-testnet:__native__",     blockHeight: 0,
-         feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)]),
+         feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)],
+         confirmationsUntilFinal: 6),
         (id: "bitcoincash-testnet",  name: "Bitcoin Cash Testnet", network: "testnet", isMainnet: false, currency: "bitcoincash-testnet:__native__", blockHeight: 0,
-         feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)]),
+         feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)],
+         confirmationsUntilFinal: 6),
         (id: "ethereum-ropsten",     name: "Ethereum Ropsten",     network: "testnet", isMainnet: false, currency: "ethereum-ropsten:__native__",    blockHeight: 0,
-         feeEstimates: [(amount: "2000000000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
+         feeEstimates: [(amount: "2000000000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
+         confirmationsUntilFinal: 6),
 //        (id: "ripple-testnet",        name: "Ripple Testnet",    network: "testnet", isMainnet: false, currency: "xrp", blockHeight: nil,
 //         feeEstimates: [(amount: "20", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
     ]
@@ -580,7 +586,8 @@ public final class System {
                                                currency: currency,
                                                height: blockchainModel.blockHeight!,
                                                associations: associations,
-                                               fees: fees)
+                                               fees: fees,
+                                               confirmationsUntilFinal: blockchainModel.confirmationsUntilFinal)
 
                         // save the network
                         self.networks.append (network)
