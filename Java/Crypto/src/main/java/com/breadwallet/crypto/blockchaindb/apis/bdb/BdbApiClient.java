@@ -178,9 +178,9 @@ public class BdbApiClient {
                 new RootObjectResponseHandler<>(parser, handler));
     }
 
-    private void makeAndSendRequest(String url,
-                                    String httpMethod,
-                                    ResponseHandler handler) {
+    private <T> void makeAndSendRequest(String url,
+                                        String httpMethod,
+                                        ResponseHandler<T> handler) {
         HttpUrl.Builder urlBuilder = HttpUrl.parse(url).newBuilder();
         HttpUrl httpUrl = urlBuilder.build();
         Log.d(TAG, String.format("Request: %s: Method: %s", httpUrl, httpMethod));
@@ -193,11 +193,11 @@ public class BdbApiClient {
         sendRequest(requestBuilder.build(), dataTask, handler);
     }
 
-    private void makeAndSendRequest(List<String> pathSegments,
-                                    Multimap<String, String> params,
-                                    @Nullable JSONObject json,
-                                    String httpMethod,
-                                    ResponseHandler handler) {
+    private <T> void makeAndSendRequest(List<String> pathSegments,
+                                        Multimap<String, String> params,
+                                        @Nullable JSONObject json,
+                                        String httpMethod,
+                                        ResponseHandler<T> handler) {
         HttpUrl.Builder urlBuilder = HttpUrl.parse(baseUrl).newBuilder();
 
         for (String segment : pathSegments) {

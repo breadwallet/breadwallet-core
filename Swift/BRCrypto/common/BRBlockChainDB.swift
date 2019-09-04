@@ -861,11 +861,9 @@ public class BlockChainDB {
         makeRequest (bdbDataTaskFunc, bdbBaseURL,
                      path: "/transactions",
                      data: json,
-                     httpMethod: "POST") {
-                        (res: Result<JSON.Dict, BlockChainDB.QueryError>) in
-                        // The completion expects Void on success; so map to `()` below
-                        completion (res.map { (json) in return () })
-        }
+                     httpMethod: "POST",
+                     deserializer: { (_) in Result.success(()) },
+                     completion: completion)
     }
 
     // Blocks
@@ -1412,7 +1410,30 @@ public class BlockChainDB {
         }
     }
 
-    private func sendRequest<T> (_ request: URLRequest, _ dataTaskFunc: DataTaskFunc, _ responseSuccess: [Int], completion: @escaping (Result<T, QueryError>) -> Void) {
+    private static func deserializeAsJSON<T> (_ data: Data?) -> Result<T, QueryError> {
+        guard let data = data else {
+            return Result.failure (QueryError.noData);
+        }
+
+        do {
+            guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? T
+                else {
+                    print ("SYS: BDB:API: ERROR: JSON.Dict: '\(data.map { String(format: "%c", $0) }.joined())'")
+                    return Result.failure(QueryError.jsonParse(nil)) }
+
+            return Result.success (json)
+        }
+        catch let jsonError as NSError {
+            print ("SYS: BDB:API: ERROR: JSON.Error: '\(data.map { String(format: "%c", $0) }.joined())'")
+            return Result.failure (QueryError.jsonParse (jsonError))
+        }
+    }
+
+    private func sendRequest<T> (_ request: URLRequest,
+                                 _ dataTaskFunc: DataTaskFunc,
+                                 _ responseSuccess: [Int],
+                                 deserializer: @escaping (_ data: Data?) -> Result<T, QueryError>,
+                                 completion: @escaping (Result<T, QueryError>) -> Void) {
         dataTaskFunc (session, request) { (data, res, error) in
             guard nil == error else {
                 completion (Result.failure(QueryError.submission (error!))) // NSURLErrorDomain
@@ -1429,25 +1450,7 @@ public class BlockChainDB {
                 return
             }
 
-            guard let data = data else {
-                completion (Result.failure (QueryError.noData))
-                return
-            }
-
-            do {
-                guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? T
-                    else {
-                        print ("SYS: BDB:API: ERROR: JSON.Dict: '\(data.map { String(format: "%c", $0) }.joined())'")
-                        completion (Result.failure(QueryError.jsonParse(nil)));
-                        return }
-
-                completion (Result.success (json))
-            }
-            catch let jsonError as NSError {
-                print ("SYS: BDB:API: ERROR: JSON.Error: '\(data.map { String(format: "%c", $0) }.joined())'")
-                completion (Result.failure (QueryError.jsonParse (jsonError)))
-                return
-            }
+            completion (deserializer (data))
             }.resume()
     }
 
@@ -1513,10 +1516,11 @@ public class BlockChainDB {
     internal func makeRequest<T> (_ dataTaskFunc: DataTaskFunc,
                                   url: URL,
                                   httpMethod: String = "POST",
+                                  deserializer: @escaping (_ data: Data?) -> Result<T, QueryError> = deserializeAsJSON,
                                   completion: @escaping (Result<T, QueryError>) -> Void) {
         var request = URLRequest (url: url)
         decorateRequest(&request, httpMethod: httpMethod)
-        sendRequest (request, dataTaskFunc, responseSuccess (httpMethod), completion: completion)
+        sendRequest (request, dataTaskFunc, responseSuccess (httpMethod), deserializer: deserializer, completion: completion)
     }
 
     /// Make a request by building a URL request from baseURL, path, query and data.  Once we have
@@ -1527,6 +1531,7 @@ public class BlockChainDB {
                                   query: Zip2Sequence<[String],[String]>? = nil,
                                   data: JSON.Dict? = nil,
                                   httpMethod: String = "POST",
+                                  deserializer: @escaping (_ data: Data?) -> Result<T, QueryError> = deserializeAsJSON,
                                   completion: @escaping (Result<T, QueryError>) -> Void) {
         guard var urlBuilder = URLComponents (string: baseURL)
             else { completion (Result.failure(QueryError.url("URLComponents"))); return }
@@ -1552,7 +1557,7 @@ public class BlockChainDB {
             }
         }
 
-        sendRequest (request, dataTaskFunc, responseSuccess (httpMethod), completion: completion)
+        sendRequest (request, dataTaskFunc, responseSuccess (httpMethod), deserializer: deserializer, completion: completion)
     }
 
     /// We have two flavors of bdbMakeRequest but they both handle their result identically.
