@@ -12,7 +12,9 @@ import android.util.Log;
 
 import com.breadwallet.crypto.blockchaindb.DataTask;
 import com.breadwallet.crypto.blockchaindb.apis.ArrayResponseParser;
+import com.breadwallet.crypto.blockchaindb.apis.HttpStatusCodes;
 import com.breadwallet.crypto.blockchaindb.apis.ObjectResponseParser;
+import com.breadwallet.crypto.blockchaindb.apis.PageInfo;
 import com.breadwallet.crypto.blockchaindb.apis.PagedCompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryJsonParseError;
@@ -20,7 +22,6 @@ import com.breadwallet.crypto.blockchaindb.errors.QueryModelError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryNoDataError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryResponseError;
 import com.breadwallet.crypto.blockchaindb.errors.QuerySubmissionError;
-import com.breadwallet.crypto.blockchaindb.errors.QueryUrlError;
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
 import com.google.common.collect.Multimap;
@@ -66,6 +67,16 @@ public class BdbApiClient {
 
     // Create (Crud)
 
+    void sendPost(String resource, Multimap<String, String> params, JSONObject json,
+                  CompletionHandler<Void, QueryError> handler) {
+        makeAndSendRequest(
+                Collections.singletonList(resource),
+                params,
+                json,
+                "POST",
+                new EmptyResponseHandler(handler));
+    }
+
     <T> void sendPost(String resource, Multimap<String, String> params, JSONObject json, ObjectResponseParser<T> parser,
                       CompletionHandler<T, QueryError> handler) {
         makeAndSendRequest(
@@ -73,7 +84,7 @@ public class BdbApiClient {
                 params,
                 json,
                 "POST",
-                new ObjectHandler<>(parser, handler));
+                new RootObjectResponseHandler<>(parser, handler));
     }
 
     // Read (cRud)
@@ -86,7 +97,7 @@ public class BdbApiClient {
                 params,
                 null,
                 "GET",
-                new ObjectHandler<>(parser, handler));
+                new RootObjectResponseHandler<>(parser, handler));
     }
 
     /* package */
@@ -97,7 +108,7 @@ public class BdbApiClient {
                 params,
                 null,
                 "GET",
-                new ArrayHandler<>(resource, parser, handler));
+                new EmbeddedArrayResponseHandler<>(resource, parser, handler));
     }
 
     /* package */
@@ -108,7 +119,7 @@ public class BdbApiClient {
                 params,
                 null,
                 "GET",
-                new PagedArrayHandler<>(resource, parser, handler));
+                new EmbeddedPagedArrayResponseHandler<>(resource, parser, handler));
     }
 
     /* package */
@@ -117,7 +128,7 @@ public class BdbApiClient {
         makeAndSendRequest(
                 url,
                 "GET",
-                new PagedArrayHandler<>(resource, parser, handler));
+                new EmbeddedPagedArrayResponseHandler<>(resource, parser, handler));
     }
 
     /* package */
@@ -128,7 +139,7 @@ public class BdbApiClient {
                 params,
                 null,
                 "GET",
-                new ObjectHandler<>(parser, handler));
+                new RootObjectResponseHandler<>(parser, handler));
     }
 
     // Update (crUd)
@@ -140,7 +151,7 @@ public class BdbApiClient {
                 params,
                 json,
                 "PUT",
-                new ObjectHandler<>(parser, handler));
+                new RootObjectResponseHandler<>(parser, handler));
     }
 
     <T> void sendPutWithId(String resource, String id, Multimap<String, String> params, JSONObject json,
@@ -150,7 +161,7 @@ public class BdbApiClient {
                 params,
                 json,
                 "PUT",
-                new ObjectHandler<>(parser, handler));
+                new RootObjectResponseHandler<>(parser, handler));
     }
 
     // Delete (crdD)
@@ -164,12 +175,12 @@ public class BdbApiClient {
                 params,
                 null,
                 "DELETE",
-                new ObjectHandler<>(parser, handler));
+                new RootObjectResponseHandler<>(parser, handler));
     }
 
-    private void makeAndSendRequest(String url,
-                                    String httpMethod,
-                                    ResponseHandler handler) {
+    private <T> void makeAndSendRequest(String url,
+                                        String httpMethod,
+                                        ResponseHandler<T> handler) {
         HttpUrl.Builder urlBuilder = HttpUrl.parse(url).newBuilder();
         HttpUrl httpUrl = urlBuilder.build();
         Log.d(TAG, String.format("Request: %s: Method: %s", httpUrl, httpMethod));
@@ -182,11 +193,11 @@ public class BdbApiClient {
         sendRequest(requestBuilder.build(), dataTask, handler);
     }
 
-    private void makeAndSendRequest(List<String> pathSegments,
-                                    Multimap<String, String> params,
-                                    @Nullable JSONObject json,
-                                    String httpMethod,
-                                    ResponseHandler handler) {
+    private <T> void makeAndSendRequest(List<String> pathSegments,
+                                        Multimap<String, String> params,
+                                        @Nullable JSONObject json,
+                                        String httpMethod,
+                                        ResponseHandler<T> handler) {
         HttpUrl.Builder urlBuilder = HttpUrl.parse(baseUrl).newBuilder();
 
         for (String segment : pathSegments) {
@@ -210,23 +221,27 @@ public class BdbApiClient {
         sendRequest(requestBuilder.build(), dataTask, handler);
     }
 
-    private <T> void sendRequest(Request request, DataTask dataTask, ResponseHandler handler) {
+    private <T> void sendRequest(Request request, DataTask dataTask, ResponseHandler<T> handler) {
         dataTask.execute(client, request, new Callback() {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 int responseCode = response.code();
-                if (responseCode == 200) {
+                if (HttpStatusCodes.responseSuccess(request.method()).contains(responseCode)) {
                     try (ResponseBody responseBody = response.body()) {
                         if (responseBody == null) {
                             Log.e(TAG, "response failed with null body");
                             handler.handleError(new QueryNoDataError());
                         } else {
+                            T data = null;
+
                             try {
-                                handler.handleData(new JSONObject(responseBody.string()));
+                                data = handler.parseResponse(responseBody.string());
                             } catch (JSONException e) {
                                 Log.e(TAG, "response failed parsing json", e);
                                 handler.handleError(new QueryJsonParseError(e.getMessage()));
                             }
+
+                            handler.handleResponse(data);
                         }
                     }
                 } else {
@@ -243,28 +258,59 @@ public class BdbApiClient {
         });
     }
 
-    private interface ResponseHandler {
-        void handleData(JSONObject data);
+    private interface ResponseHandler<R> {
+        R parseResponse(String responseRaw) throws JSONException;
+        void handleResponse(R responseData);
         void handleError(QueryError error);
     }
 
-    private static class ObjectHandler<T> implements ResponseHandler {
+    private static class EmptyResponseHandler implements ResponseHandler<Void> {
+
+        private final CompletionHandler<Void, QueryError> handler;
+
+        EmptyResponseHandler(CompletionHandler<Void, QueryError> handler) {
+            this.handler = handler;
+        }
+
+        @Override
+        public Void parseResponse(String responseRaw) {
+            checkState(responseRaw == null || responseRaw.length() == 0);
+            return null;
+        }
+
+        @Override
+        public void handleResponse(Void response) {
+            handler.handleData(null);
+        }
+
+        @Override
+        public void handleError(QueryError error) {
+            handler.handleError(error);
+        }
+    }
+
+    private static class RootObjectResponseHandler<T> implements ResponseHandler<JSONObject> {
 
         private final ObjectResponseParser<T> parser;
         private final CompletionHandler<T, QueryError> handler;
 
-        ObjectHandler(ObjectResponseParser<T> parser, CompletionHandler<T, QueryError> handler) {
+        RootObjectResponseHandler(ObjectResponseParser<T> parser, CompletionHandler<T, QueryError> handler) {
             this.parser = parser;
             this.handler = handler;
         }
 
         @Override
-        public void handleData(JSONObject json) {
-            PagedCompletionHandler.PageInfo pageInfo = getPageInfo(json);
+        public JSONObject parseResponse(String responseRaw) throws JSONException {
+            return new JSONObject(responseRaw);
+        }
+
+        @Override
+        public void handleResponse(JSONObject responseData) {
+            PageInfo pageInfo = getPageInfo(responseData);
             checkState(pageInfo.nextUrl == null);
             checkState(pageInfo.prevUrl== null);
 
-            Optional<T> data = parser.parse(json);
+            Optional<T> data = parser.parse(responseData);
             if (data.isPresent()) {
                 handler.handleData(data.get());
 
@@ -281,26 +327,30 @@ public class BdbApiClient {
         }
     }
 
-    private static class ArrayHandler<T> implements ResponseHandler {
+    private static class EmbeddedArrayResponseHandler<T> implements ResponseHandler<JSONObject> {
 
         private final String path;
         private final ArrayResponseParser<T> parser;
         private final CompletionHandler<T, QueryError> handler;
 
-
-        ArrayHandler(String path, ArrayResponseParser<T> parser, CompletionHandler<T, QueryError> handler) {
+        EmbeddedArrayResponseHandler(String path, ArrayResponseParser<T> parser, CompletionHandler<T, QueryError> handler) {
             this.path = path;
             this.parser = parser;
             this.handler = handler;
         }
 
         @Override
-        public void handleData(JSONObject json) {
-            PagedCompletionHandler.PageInfo pageInfo = getPageInfo(json);
+        public JSONObject parseResponse(String responseRaw) throws JSONException {
+            return new JSONObject(responseRaw);
+        }
+
+        @Override
+        public void handleResponse(JSONObject responseData) {
+            PageInfo pageInfo = getPageInfo(responseData);
             checkState(pageInfo.nextUrl == null);
             checkState(pageInfo.prevUrl== null);
 
-            JSONObject jsonEmbedded = json.optJSONObject("_embedded");
+            JSONObject jsonEmbedded = responseData.optJSONObject("_embedded");
             JSONArray jsonEmbeddedData = jsonEmbedded == null ? new JSONArray() : jsonEmbedded.optJSONArray(path);
 
             Optional<T> data = parser.parse(jsonEmbeddedData);
@@ -320,22 +370,27 @@ public class BdbApiClient {
         }
     }
 
-    private static class PagedArrayHandler<T> implements ResponseHandler {
+    private static class EmbeddedPagedArrayResponseHandler<T> implements ResponseHandler<JSONObject> {
 
         private final String path;
         private final ArrayResponseParser<T> parser;
         private final PagedCompletionHandler<T, QueryError> handler;
 
 
-        PagedArrayHandler(String path, ArrayResponseParser<T> parser, PagedCompletionHandler<T, QueryError> handler) {
+        EmbeddedPagedArrayResponseHandler(String path, ArrayResponseParser<T> parser, PagedCompletionHandler<T, QueryError> handler) {
             this.path = path;
             this.parser = parser;
             this.handler = handler;
         }
 
         @Override
-        public void handleData(JSONObject json) {
-            PagedCompletionHandler.PageInfo pageInfo = getPageInfo(json);
+        public JSONObject parseResponse(String responseRaw) throws JSONException {
+            return new JSONObject(responseRaw);
+        }
+
+        @Override
+        public void handleResponse(JSONObject json) {
+            PageInfo pageInfo = getPageInfo(json);
 
             JSONObject jsonEmbedded = json.optJSONObject("_embedded");
             JSONArray jsonEmbeddedData = jsonEmbedded == null ? new JSONArray() : jsonEmbedded.optJSONArray(path);
@@ -357,7 +412,7 @@ public class BdbApiClient {
         }
     }
 
-    private static PagedCompletionHandler.PageInfo getPageInfo(JSONObject json) {
+    private static PageInfo getPageInfo(JSONObject json) {
         String nextUrl = null;
         String prevUrl = null;
         String selfUrl = null;
@@ -382,6 +437,6 @@ public class BdbApiClient {
 
         }
 
-        return new PagedCompletionHandler.PageInfo(nextUrl, prevUrl, selfUrl);
+        return new PageInfo(nextUrl, prevUrl, selfUrl);
     }
 }

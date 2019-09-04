@@ -7,12 +7,11 @@
  */
 package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
+import com.breadwallet.crypto.blockchaindb.apis.PageInfo;
 import com.breadwallet.crypto.blockchaindb.apis.PagedCompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
-import com.breadwallet.crypto.blockchaindb.errors.QueryResponseError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
 import com.breadwallet.crypto.utility.CompletionHandler;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
@@ -61,27 +60,7 @@ public class TransactionApi {
                 "blockchain_id", id,
                 "transaction_id", hashAsHex,
                 "data", BaseEncoding.base64().encode(tx)));
-        jsonClient.sendPost("transactions", ImmutableMultimap.of(), json, Optional::of, new CompletionHandler<Object, QueryError>() {
-            @Override
-            public void handleData(Object data) {
-                handler.handleData(null);
-            }
-
-            @Override
-            public void handleError(QueryError error) {
-                if (error instanceof QueryResponseError) {
-                    int statusCode = ((QueryResponseError) error).getStatusCode();
-                    // Consider 302 or 404 errors as success - owing to an issue with transaction submission
-                    if (statusCode == 302 || statusCode == 404) {
-                        handler.handleData(null);
-                    } else {
-                        handler.handleError(error);
-                    }
-                } else {
-                    handler.handleError(error);
-                }
-            }
-        });
+        jsonClient.sendPost("transactions", ImmutableMultimap.of(), json, handler);
     }
 
     private void getTransactionsOnExecutor(String id, List<String> addresses, UnsignedLong beginBlockNumber,
@@ -109,7 +88,7 @@ public class TransactionApi {
             jsonClient.sendGetForArrayWithPaging("transactions", params, Transaction::asTransactions,
                     new PagedCompletionHandler<List<Transaction>, QueryError>() {
                         @Override
-                        public void handleData(List<Transaction> transactions, PagedCompletionHandler.PageInfo info) {
+                        public void handleData(List<Transaction> transactions, PageInfo info) {
                             nextUrl[0] = info.nextUrl;
                             allTransactions.addAll(transactions);
                             sema.release();
@@ -128,7 +107,7 @@ public class TransactionApi {
                 jsonClient.sendGetForArrayWithPaging("transactions", nextUrl[0], Transaction::asTransactions,
                         new PagedCompletionHandler<List<Transaction>, QueryError>() {
                             @Override
-                            public void handleData(List<Transaction> transactions, PagedCompletionHandler.PageInfo info) {
+                            public void handleData(List<Transaction> transactions, PageInfo info) {
                                 nextUrl[0] = info.nextUrl;
                                 allTransactions.addAll(transactions);
                                 sema.release();
