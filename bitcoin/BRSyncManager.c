@@ -91,6 +91,18 @@ struct BRSyncManagerStruct {
 
 /// MARK: - Sync Manager Decls & Defs
 
+struct BRClientSyncManagerScanStateRecord {
+    int requestId;
+    BRAddress lastExternalAddress;
+    BRAddress lastInternalAddress;
+    BRSetOf(BRAddress *) knownAddresses;
+    uint64_t begBlockNumber;
+    uint64_t endBlockNumber;
+    uint8_t isFullScan;
+};
+
+typedef struct BRClientSyncManagerScanStateRecord *BRClientSyncManagerScanState;
+
 struct BRClientSyncManagerStruct {
     // !!! must be first !!!
     struct BRSyncManagerStruct common;
@@ -154,14 +166,7 @@ struct BRClientSyncManagerStruct {
      * If we are syncing with BRD, instead of as P2P with PeerManager, then we'll keep a record to
      * ensure we've successfully completed the getTransactions() callbacks to the client.
      */
-    struct {
-        int requestId;
-        BRAddress lastExternalAddress;
-        BRAddress lastInternalAddress;
-        uint64_t begBlockNumber;
-        uint64_t endBlockNumber;
-        uint8_t isFullScan;
-    } scanState;
+    struct BRClientSyncManagerScanStateRecord scanState;
 };
 
 typedef struct BRClientSyncManagerStruct * BRClientSyncManager;
@@ -246,21 +251,51 @@ static int
 BRClientSyncManagerGenerateRid (BRClientSyncManager manager);
 
 static void
-BRClientSyncManagerAddressToLegacy (BRClientSyncManager manager,
-                                    BRAddress *addr);
+BRClientSyncManagerScanStateInit (BRClientSyncManagerScanState scanState,
+                                  BRWallet *wallet,
+                                  uint64_t syncedBlockHeight,
+                                  uint64_t networkBlockHeight,
+                                  int rid);
 
 static void
-BRClientSyncManagerGenerateUnusedAddrs (BRClientSyncManager manager);
+BRClientSyncManagerScanStateWipe (BRClientSyncManagerScanState scanState);
+
+static int
+BRClientSyncManagerScanStateIsInProgress(BRClientSyncManagerScanState scanState);
+
+static uint8_t
+BRClientSyncManagerScanStateIsFullScan (BRClientSyncManagerScanState scanState);
+
+static int
+BRClientSyncManagerScanStateGetRequestId(BRClientSyncManagerScanState scanState);
+
+static uint64_t
+BRClientSyncManagerScanStateGetStartBlockNumber(BRClientSyncManagerScanState scanState);
+
+static uint64_t
+BRClientSyncManagerScanStateGetEndBlockNumber(BRClientSyncManagerScanState scanState);
+
+static uint64_t
+BRClientSyncManagerScanStateGetSyncedBlockNumber(BRClientSyncManagerScanState scanState);
+
+static BRArrayOf(char *)
+BRClientSyncManagerScanStateGetAddresses(BRClientSyncManagerScanState scanState);
+
+static BRArrayOf(char *)
+BRClientSyncManagerScanStateAdvanceAndGetNewAddresses (BRClientSyncManagerScanState scanState,
+                                                       BRWallet *wallet);
 
 static BRAddress *
-BRClientSyncManagerGetAllAddrs (BRClientSyncManager manager,
-                                size_t *addressCount);
+_getWalletAddresses (BRWallet *wallet,
+                     size_t *addressCount);
 
 static void
-BRClientSyncManagerGetAllAddrsAsStrings (BRClientSyncManager manager,
-                                         size_t *addressCount,
-                                         const char ***addressStrings,
-                                         BRAddress **addressArray);
+_fillWalletAddressSet(BRSetOf(BRAddress *) addresses,
+                      BRWallet *wallet);
+
+static BRArrayOf(char *)
+_updateWalletAddressSet(BRSetOf(BRAddress *) addresses,
+                        BRWallet *wallet);
 
 /// MARK: - Peer Sync Manager Decls & Defs
 
@@ -670,7 +705,9 @@ BRClientSyncManagerNew(BRSyncManagerEventContext eventContext,
     manager->syncedBlockHeight  = manager->initBlockHeight;
     manager->isConnected        = 0;
 
-    // The `scanState` struct is zeroed out by the calloc call
+    // the calloc will have taken care of this, but, better safe than sorry in case future dev
+    // doesn't take that into account
+    BRClientSyncManagerScanStateWipe (&manager->scanState);
 
     return manager;
 }
@@ -686,6 +723,11 @@ BRSyncManagerAsClientSyncManager(BRSyncManager manager) {
 
 static void
 BRClientSyncManagerFree(BRClientSyncManager manager) {
+    if (0 == pthread_mutex_lock (&manager->lock)) {
+        BRClientSyncManagerScanStateWipe (&manager->scanState);
+        pthread_mutex_unlock (&manager->lock);
+    }
+
     pthread_mutex_destroy(&manager->lock);
     memset (manager, 0, sizeof(*manager));
     free (manager);
@@ -743,8 +785,8 @@ BRClientSyncManagerDisconnect(BRClientSyncManager manager) {
             // triggered.
             manager->isConnected = 0;
             needConnectionEvent = 1;
-            needSyncEvent = manager->scanState.isFullScan;
-            memset(&manager->scanState, 0, sizeof(manager->scanState));
+            needSyncEvent = BRClientSyncManagerScanStateIsFullScan (&manager->scanState);
+            BRClientSyncManagerScanStateWipe (&manager->scanState);
         }
 
         // Send event while holding the state lock so that event
@@ -788,8 +830,8 @@ BRClientSyncManagerScan(BRClientSyncManager manager) {
             // We are already connected. Checkf for a full scan in progress
             // and then wipe the current scan state so that a new one will be
             // triggered.
-            needSyncEvent = manager->scanState.isFullScan;
-            memset(&manager->scanState, 0, sizeof(manager->scanState));
+            needSyncEvent = BRClientSyncManagerScanStateIsFullScan (&manager->scanState);
+            BRClientSyncManagerScanStateWipe (&manager->scanState);
 
             // Reset the height that we've synced to to be the initial height.
             // This will trigger a full sync.
@@ -884,7 +926,7 @@ BRClientSyncManagerIsInFullScan(BRClientSyncManager manager) {
     int isFullScan = 0;
 
     if (0 == pthread_mutex_lock (&manager->lock)) {
-        isFullScan = manager->scanState.isFullScan;
+        isFullScan = BRClientSyncManagerScanStateIsFullScan (&manager->scanState);
         pthread_mutex_unlock (&manager->lock);
     } else {
         assert (0);
@@ -963,7 +1005,7 @@ BRClientSyncManagerAnnounceGetTransactionsItem (BRClientSyncManager manager,
     if (needRegistration) {
         if (0 == pthread_mutex_lock (&manager->lock)) {
             // confirm completion is for in-progress sync
-            needRegistration &= (rid == manager->scanState.requestId && manager->isConnected);
+            needRegistration &= (rid == BRClientSyncManagerScanStateGetRequestId (&manager->scanState) && manager->isConnected);
             pthread_mutex_unlock (&manager->lock);
         } else {
             assert (0);
@@ -999,50 +1041,29 @@ static void
 BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
                                                 int rid,
                                                 int success) {
-    size_t addressCount          = 0;
     uint8_t needSyncEvent        = 0;
     uint8_t needClientCall       = 0;
     uint64_t begBlockNumber      = 0;
     uint64_t endBlockNumber      = 0;
-    BRAddress *addressArray      = NULL;
-    const char **addressStrings  = NULL;
+    BRArrayOf(char *) addresses  = NULL;
     BRSyncManagerEvent syncEvent = {0};
 
     if (0 == pthread_mutex_lock (&manager->lock)) {
         // confirm completion is for in-progress sync
-        if (rid == manager->scanState.requestId &&
+        if (rid == BRClientSyncManagerScanStateGetRequestId (&manager->scanState) &&
             manager->isConnected) {
             // check for a successful completion
             if (success) {
-                BRAddress externalAddress = BR_ADDRESS_NONE;
-                BRAddress internalAddress = BR_ADDRESS_NONE;
-
-                // generate addresses
-                BRClientSyncManagerGenerateUnusedAddrs (manager);
-
-                // get the first unused address
-                BRWalletUnusedAddrs (manager->wallet, &externalAddress, 1, 0);
-                BRWalletUnusedAddrs (manager->wallet, &internalAddress, 1, 1);
 
                 // check if the first unused addresses have changed since last completion
-                if (!BRAddressEq (&externalAddress, &manager->scanState.lastExternalAddress) ||
-                    !BRAddressEq (&internalAddress, &manager->scanState.lastInternalAddress)) {
+                addresses = BRClientSyncManagerScanStateAdvanceAndGetNewAddresses (&manager->scanState,
+                                                                                   manager->wallet);
+                if (NULL != addresses && 0 != array_count(addresses)) {
                     // ... we've discovered a new address (i.e. there were transactions announce)
-                    // so we need to requery the same range including the newly derived addresses
-
-                    // store the first unused addresses for comparison in the next complete call
-                    manager->scanState.lastExternalAddress = externalAddress;
-                    manager->scanState.lastInternalAddress = internalAddress;
-
-                    // get the addresses to query the BDB with
-                    BRClientSyncManagerGetAllAddrsAsStrings (manager,
-                                                             &addressCount,
-                                                             &addressStrings,
-                                                             &addressArray);
 
                     // store sync data for callback outside of lock
-                    begBlockNumber = manager->scanState.begBlockNumber;
-                    endBlockNumber = manager->scanState.endBlockNumber;
+                    begBlockNumber = BRClientSyncManagerScanStateGetStartBlockNumber (&manager->scanState);
+                    endBlockNumber = BRClientSyncManagerScanStateGetEndBlockNumber (&manager->scanState);
 
                     // store control flow flags
                     needClientCall = 1;
@@ -1051,25 +1072,25 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
                     // .. we haven't discovered any new addresses and we just finished the range
 
                     // store synced block height
-                    manager->syncedBlockHeight = manager->scanState.endBlockNumber - 1;
+                    manager->syncedBlockHeight = BRClientSyncManagerScanStateGetSyncedBlockNumber (&manager->scanState);;
 
                     // store control flow flags
-                    needSyncEvent = manager->scanState.isFullScan;
+                    needSyncEvent = BRClientSyncManagerScanStateIsFullScan (&manager->scanState);
                     syncEvent = (BRSyncManagerEvent) {SYNC_MANAGER_SYNC_STOPPED, { .syncStopped = { 0 }}};
 
                     // reset sync state
-                    memset(&manager->scanState, 0, sizeof(manager->scanState));
+                    BRClientSyncManagerScanStateWipe (&manager->scanState);
 
                 }
             } else {
                 // store control flow flags
-                needSyncEvent = manager->scanState.isFullScan;
+                needSyncEvent = BRClientSyncManagerScanStateIsFullScan (&manager->scanState);
 
                 // TODO(fix): What should the error code be?
                 syncEvent = (BRSyncManagerEvent) {SYNC_MANAGER_SYNC_STOPPED, { .syncStopped = { -1 }}};
 
                 // reset sync state on failure
-                memset(&manager->scanState, 0, sizeof(manager->scanState));
+                BRClientSyncManagerScanStateWipe (&manager->scanState);
             }
         }
 
@@ -1093,77 +1114,49 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
         // bwmAnnounceTransaction()  (for each one or with all of them).
         manager->clientCallbacks.funcGetTransactions (manager->clientContext,
                                                       BRClientSyncManagerAsSyncManager (manager),
-                                                      addressStrings,
-                                                      addressCount,
+                                                      (const char **) addresses,
+                                                      array_count(addresses),
                                                       begBlockNumber,
                                                       endBlockNumber,
                                                       rid);
     }
 
-    if (addressStrings) {
-        free (addressStrings);
-    }
-
-    if (addressArray) {
-        free (addressArray);
+    if (NULL != addresses) {
+        array_free (addresses);
     }
 }
 
 static void
 BRClientSyncManagerUpdateTransactions (BRClientSyncManager manager) {
-    int rid                     = 0;
-    uint8_t needSyncEvent       = 0;
-    uint8_t needClientCall      = 0;
-    size_t addressCount         = 0;
-    uint64_t begBlockNumber     = 0;
-    uint64_t endBlockNumber     = 0;
-    BRAddress *addressArray     = NULL;
-    const char **addressStrings = NULL;
+    int rid                      = 0;
+    uint8_t needSyncEvent        = 0;
+    uint8_t needClientCall       = 0;
+    uint64_t begBlockNumber      = 0;
+    uint64_t endBlockNumber      = 0;
+    BRArrayOf(char *) addresses  = NULL;
 
     if (0 == pthread_mutex_lock (&manager->lock)) {
         // check if we are connect and the prior sync has completed.
-        if (0 == manager->scanState.requestId &&
+        if (!BRClientSyncManagerScanStateIsInProgress (&manager->scanState) &&
             manager->isConnected) {
-            // update the `endBlockNumber` to the current block height;
-            // since this is exclusive on the end height, we need to increment by
-            // one to make sure we get the last block
-            manager->scanState.endBlockNumber = MAX (manager->syncedBlockHeight, manager->networkBlockHeight) + 1;
 
-            // update the `startBlockNumber` to the last synced height;
-            // provide a bit of buffer and request the last X blocks, regardless
-            manager->scanState.begBlockNumber = MIN (manager->syncedBlockHeight, (manager->scanState.endBlockNumber >=  BWM_BRD_SYNC_START_BLOCK_OFFSET
-                                                                                  ? manager->scanState.endBlockNumber - BWM_BRD_SYNC_START_BLOCK_OFFSET
-                                                                                  : 0));
-
-            // check that we don't have an overflow
-            assert (manager->scanState.endBlockNumber > manager->scanState.begBlockNumber);
-
-            // generate addresses
-            BRClientSyncManagerGenerateUnusedAddrs (manager);
-
-            // save the last known external and internal addresses
-            BRWalletUnusedAddrs(manager->wallet, &manager->scanState.lastExternalAddress, 1, 0);
-            BRWalletUnusedAddrs(manager->wallet, &manager->scanState.lastInternalAddress, 1, 1);
+            BRClientSyncManagerScanStateInit (&manager->scanState,
+                                              manager->wallet,
+                                              manager->syncedBlockHeight,
+                                              manager->networkBlockHeight,
+                                              BRClientSyncManagerGenerateRid (manager));
 
             // get the addresses to query the BDB with
-            BRClientSyncManagerGetAllAddrsAsStrings (manager,
-                                                     &addressCount,
-                                                     &addressStrings,
-                                                     &addressArray);
-
-            // save the current requestId
-            manager->scanState.requestId = BRClientSyncManagerGenerateRid (manager);
-
-            // mark as sync or not
-            manager->scanState.isFullScan = (manager->scanState.endBlockNumber - manager->scanState.begBlockNumber) > BWM_BRD_SYNC_START_BLOCK_OFFSET;
+            addresses = BRClientSyncManagerScanStateGetAddresses (&manager->scanState);
+            assert (NULL != addresses && 0 != array_count (addresses));
 
             // store sync data for callback outside of lock
-            begBlockNumber = manager->scanState.begBlockNumber;
-            endBlockNumber = manager->scanState.endBlockNumber;
-            rid = manager->scanState.requestId;
+            rid = BRClientSyncManagerScanStateGetRequestId (&manager->scanState);
+            begBlockNumber = BRClientSyncManagerScanStateGetStartBlockNumber (&manager->scanState);
+            endBlockNumber = BRClientSyncManagerScanStateGetEndBlockNumber (&manager->scanState);
 
             // store control flow flags
-            needSyncEvent = manager->scanState.isFullScan;
+            needSyncEvent = BRClientSyncManagerScanStateIsFullScan (&manager->scanState);
             needClientCall = 1;
         }
 
@@ -1189,19 +1182,15 @@ BRClientSyncManagerUpdateTransactions (BRClientSyncManager manager) {
         // bwmAnnounceTransaction()  (for each one or with all of them).
         manager->clientCallbacks.funcGetTransactions (manager->clientContext,
                                                       BRClientSyncManagerAsSyncManager (manager),
-                                                      addressStrings,
-                                                      addressCount,
+                                                      (const char **) addresses,
+                                                      array_count (addresses),
                                                       begBlockNumber,
                                                       endBlockNumber,
                                                       rid);
     }
 
-    if (addressStrings) {
-        free (addressStrings);
-    }
-
-    if (addressArray) {
-        free (addressArray);
+    if (NULL != addresses) {
+        array_free (addresses);
     }
 }
 
@@ -1232,62 +1221,178 @@ BRClientSyncManagerGenerateRid (BRClientSyncManager manager) {
 }
 
 static void
-BRClientSyncManagerAddressToLegacy (BRClientSyncManager manager,
-                                    BRAddress *addr) {
-    *addr = BRWalletAddressToLegacy (manager->wallet, addr);
+BRClientSyncManagerScanStateInit (BRClientSyncManagerScanState scanState,
+                                  BRWallet *wallet,
+                                  uint64_t syncedBlockHeight,
+                                  uint64_t networkBlockHeight,
+                                  int rid) {
+    // update the `endBlockNumber` to the current block height;
+    // since this is exclusive on the end height, we need to increment by
+    // one to make sure we get the last block
+    scanState->endBlockNumber = MAX (syncedBlockHeight, networkBlockHeight) + 1;
+
+    // update the `startBlockNumber` to the last synced height;
+    // provide a bit of buffer and request the last X blocks, regardless
+    scanState->begBlockNumber = MIN (syncedBlockHeight, (scanState->endBlockNumber >=  BWM_BRD_SYNC_START_BLOCK_OFFSET
+                                                         ? scanState->endBlockNumber - BWM_BRD_SYNC_START_BLOCK_OFFSET
+                                                         : 0));
+
+    // check that we don't have an overflow
+    assert (scanState->endBlockNumber > scanState->begBlockNumber);
+
+    // generate addresses
+    BRWalletUnusedAddrs (wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL, 0);
+    BRWalletUnusedAddrs (wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL, 1);
+
+    // save the last known external and internal addresses
+    BRWalletUnusedAddrs(wallet, &scanState->lastExternalAddress, 1, 0);
+    BRWalletUnusedAddrs(wallet, &scanState->lastInternalAddress, 1, 1);
+
+    // save the current requestId
+    scanState->requestId = rid;
+
+    // mark as sync or not
+    scanState->isFullScan = ((scanState->endBlockNumber - scanState->begBlockNumber) > BWM_BRD_SYNC_START_BLOCK_OFFSET);
+
+    // build the set of initial wallet addresses
+    assert (NULL == scanState->knownAddresses);
+    scanState->knownAddresses = BRSetNew (BRAddressHash, BRAddressEq, SEQUENCE_GAP_LIMIT_INTERNAL + SEQUENCE_GAP_LIMIT_EXTERNAL);
+    _fillWalletAddressSet (scanState->knownAddresses, wallet);
 }
 
 static void
-BRClientSyncManagerGenerateUnusedAddrs (BRClientSyncManager manager) {
-    BRWalletUnusedAddrs (manager->wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL, 0);
-    BRWalletUnusedAddrs (manager->wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL, 1);
+BRClientSyncManagerScanStateWipe (BRClientSyncManagerScanState scanState) {
+    if (NULL != scanState->knownAddresses) {
+        BRSetFreeAll (scanState->knownAddresses, free);
+    }
+    memset (scanState, 0, sizeof(*scanState));
+}
+
+static int
+BRClientSyncManagerScanStateIsInProgress(BRClientSyncManagerScanState scanState) {
+    return 0 != scanState->requestId;
+}
+
+static uint8_t
+BRClientSyncManagerScanStateIsFullScan (BRClientSyncManagerScanState scanState) {
+    return scanState->isFullScan;
+}
+
+static int
+BRClientSyncManagerScanStateGetRequestId(BRClientSyncManagerScanState scanState) {
+    return scanState->requestId;
+}
+
+static uint64_t
+BRClientSyncManagerScanStateGetStartBlockNumber(BRClientSyncManagerScanState scanState) {
+    return scanState->begBlockNumber;
+}
+
+static uint64_t
+BRClientSyncManagerScanStateGetEndBlockNumber(BRClientSyncManagerScanState scanState) {
+    return scanState->endBlockNumber;
+}
+
+static uint64_t
+BRClientSyncManagerScanStateGetSyncedBlockNumber(BRClientSyncManagerScanState scanState) {
+    return scanState->endBlockNumber - 1;
+}
+
+static BRArrayOf(char *)
+BRClientSyncManagerScanStateGetAddresses(BRClientSyncManagerScanState scanState) {
+    size_t addressCount = BRSetCount(scanState->knownAddresses);
+
+    BRArrayOf(char *) addresses;
+    array_new (addresses, addressCount);
+    array_set_count (addresses, addressCount);
+
+    BRSetAll (scanState->knownAddresses, (void **) addresses, addressCount);
+    return addresses;
+}
+
+static BRArrayOf(char *)
+BRClientSyncManagerScanStateAdvanceAndGetNewAddresses (BRClientSyncManagerScanState scanState,
+                                                       BRWallet *wallet) {
+    BRArrayOf(char *) newAddresses = NULL;
+
+    // generate addresses
+    BRWalletUnusedAddrs (wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL, 0);
+    BRWalletUnusedAddrs (wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL, 1);
+
+    // get the first unused address
+    BRAddress externalAddress = BR_ADDRESS_NONE;
+    BRAddress internalAddress = BR_ADDRESS_NONE;
+    BRWalletUnusedAddrs (wallet, &externalAddress, 1, 0);
+    BRWalletUnusedAddrs (wallet, &internalAddress, 1, 1);
+
+    // check if the first unused addresses have changed since last completion
+    if (!BRAddressEq (&externalAddress, &scanState->lastExternalAddress) ||
+        !BRAddressEq (&internalAddress, &scanState->lastInternalAddress)) {
+        // ... we've discovered a new address (i.e. there were transactions announce)
+        // so we need to requery the same range including the newly derived addresses
+
+        // store the first unused addresses for comparison in the next complete call
+        scanState->lastExternalAddress = externalAddress;
+        scanState->lastInternalAddress = internalAddress;
+
+         newAddresses = _updateWalletAddressSet (scanState->knownAddresses, wallet);
+    }
+
+    return newAddresses;
 }
 
 static BRAddress *
-BRClientSyncManagerGetAllAddrs (BRClientSyncManager manager,
-                                size_t *addressCount) {
+_getWalletAddresses (BRWallet *wallet,size_t *addressCount) {
     assert (addressCount);
 
-    size_t addrCount = BRWalletAllAddrs (manager->wallet, NULL, 0);
+    size_t addrCount = BRWalletAllAddrs (wallet, NULL, 0);
 
     BRAddress *addrs = (BRAddress *) calloc (2 * addrCount, sizeof (BRAddress));
-    BRWalletAllAddrs (manager->wallet, addrs, addrCount);
+    BRWalletAllAddrs (wallet, addrs, addrCount);
 
     memcpy (addrs + addrCount, addrs, addrCount * sizeof(BRAddress));
     for (size_t index = 0; index < addrCount; index++)
-        BRClientSyncManagerAddressToLegacy (manager, &addrs[addrCount + index]);
+        addrs[addrCount + index] = BRWalletAddressToLegacy (wallet, &addrs[index]);
 
     *addressCount = 2 * addrCount;
     return addrs;
 }
 
-/**
- * Return all addresses, used and unused, tracked by the wallet. The addresses
- * are both 'internal' and 'external' ones.
- *
- * The addresses are returned as both a sequential array of BRAddress data, as well
- * as an array of pointers to each address.
- *
- * Note: Both the addressStrings and addressArray arrays must be freed.
- *
- * Note: The addressStrings array contains pointers to data in the addressArray. As such,
- *       elements in addressStrings should not be accessed once addressArray has been freed.
- */
 static void
-BRClientSyncManagerGetAllAddrsAsStrings (BRClientSyncManager manager,
-                                         size_t *addressCount,
-                                         const char ***addressStrings,
-                                         BRAddress **addressArray) {
-    size_t addrCount     = 0;
-    BRAddress *addrArray = BRClientSyncManagerGetAllAddrs (manager, &addrCount);
+_fillWalletAddressSet(BRSetOf(BRAddress *) addresses, BRWallet *wallet) {
+    size_t addressCount = 0;
+    BRAddress *addressArray = _getWalletAddresses (wallet, &addressCount);
 
-    const char **addrsStrings = calloc (addrCount, sizeof(char *));
-    for (size_t index = 0; index < addrCount; index ++)
-        addrsStrings[index] = (char *) &addrArray[index];
+    for (size_t index = 0; index < addressCount; index++) {
+        if (!BRSetContains (addresses, &addressArray[index])) {
+            BRAddress *address = malloc (sizeof(BRAddress));
+            *address = addressArray[index];
+            BRSetAdd (addresses, address);
+        }
+    }
 
-    *addressCount = addrCount;
-    *addressStrings = addrsStrings;
-    *addressArray = addrArray;
+    free (addressArray);
+}
+
+static BRArrayOf(char *)
+_updateWalletAddressSet(BRSetOf(BRAddress *) addresses, BRWallet *wallet) {
+    size_t addressCount = 0;
+    BRAddress *addressArray = _getWalletAddresses (wallet, &addressCount);
+
+    BRArrayOf(char *) newAddresses;
+    array_new (newAddresses, addressCount);
+
+    for (size_t index = 0; index < addressCount; index++) {
+        if (!BRSetContains (addresses, &addressArray[index])) {
+            BRAddress *address = malloc (sizeof(BRAddress));
+            *address = addressArray[index];
+            BRSetAdd (addresses, address);
+            array_add (newAddresses, address->s);
+        }
+    }
+
+    free (addressArray);
+    return newAddresses;
 }
 
 /// MARK: - Peer Sync Manager Implementation

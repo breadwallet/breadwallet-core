@@ -30,7 +30,7 @@ import java.util.concurrent.Semaphore;
 public class TransactionApi {
 
     private static final UnsignedLong PAGINATION_COUNT = UnsignedLong.valueOf(5000);
-    private static final int ADDRESS_COUNT = 100;
+    private static final int ADDRESS_COUNT = 50;
 
     private final BdbApiClient jsonClient;
     private final ExecutorService executorService;
@@ -78,9 +78,9 @@ public class TransactionApi {
             paramsBuilder.put("blockchain_id", id);
             paramsBuilder.put("include_proof", String.valueOf(includeProof));
             paramsBuilder.put("include_raw", String.valueOf(includeRaw));
-            for (String address : chunkedAddresses) paramsBuilder.put("address", address);
             paramsBuilder.put("start_height", beginBlockNumber.toString());
             paramsBuilder.put("end_height", endBlockNumber.toString());
+            for (String address : chunkedAddresses) paramsBuilder.put("address", address);
             ImmutableMultimap<String, String> params = paramsBuilder.build();
 
             final String[] nextUrl = {null};
