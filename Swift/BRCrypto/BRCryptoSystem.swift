@@ -585,12 +585,17 @@ public final class System {
                         // save the network
                         self.networks.append (network)
 
-                        // Invoke callbacks.
+                        // Announce NetworkEvent.created...
                         self.listener?.handleNetworkEvent (system: self, network: network, event: NetworkEvent.created)
+
+                        // Announce SystemEvent.networkAdded - this will likely be handled with
+                        // system.createWalletManager(network:...) which will then announce
+                        // numerous events as wallets are created.
                         self.listener?.handleSystemEvent  (system: self, event: SystemEvent.networkAdded(network: network))
                     }
             }
         }
+        self.listener?.handleSystemEvent(system: self, event: SystemEvent.configured)
     }
 
     //
@@ -663,6 +668,9 @@ public enum SystemEvent {
     case created
     case networkAdded (network: Network)
     case managerAdded (manager: WalletManager)
+
+    /// Invoked possibly multiple times - each time System.configure() completes.
+    case configured
 }
 
 ///
@@ -734,6 +742,7 @@ public final class SystemCallbackCoordinator {
 
 extension System {
     internal var cryptoListener: BRCryptoCWMListener {
+        // These methods are invoked direclty on a BWM, EWM, or GWM thread.
         return BRCryptoCWMListener (
             context: systemContext,
 

@@ -109,6 +109,8 @@ class CoreDemoListener: SystemListener {
             //TODO: Don't connect here. connect on touch...
             manager.connect()
 
+        case .configured:
+            break;
         }
     }
 
