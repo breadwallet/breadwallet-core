@@ -82,6 +82,7 @@ typedef void
 /// This *must* be the same fixed size type forever.  It is uint8_t.
 typedef uint8_t BRFileServiceVersion;
 
+/// TODO: There are limitations on `currency`, `network`, and `type`.
 extern BRFileService
 fileServiceCreate (const char *basePath,
                    const char *currency,
@@ -159,6 +160,8 @@ typedef uint8_t*
                         BRFileService fs,
                         const void* entity,
                         uint32_t *bytesCount);
+
+/// TODO: There is a limitation on `type`.
 
 /**
  * Define a 'type', such as {block, peer, transaction, logs, etc}, that is to be stored in the

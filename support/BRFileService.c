@@ -43,8 +43,9 @@ typedef int sqlite3_status_code;
   Currency  CHAR(64)    NOT NULL,       \n\
   Network   CHAR(64)    NOT NULL,       \n\
   Type      CHAR(64)    NOT NULL,       \n\
-  Hash      TEXT        PRIMARY KEY,    \n\
-  Data      TEXT        NOT NULL);"
+  Hash      CHAR(64)    NOT NULL,       \n\
+  Data      TEXT        NOT NULL,       \n\
+  PRIMARY KEY (Currency, Network, Type, Hash));"
 
 typedef char FileServiceSQL[1024];
 
@@ -615,7 +616,7 @@ fileServiceSave (BRFileService fs,
         return fileServiceFailedSDB (fs, status);
     }
 
-    status = sqlite3_bind_text (fs->sdbInsertStmt, 3, data, -1, SQLITE_TRANSIENT);
+    status = sqlite3_bind_text (fs->sdbInsertStmt, 3, data, -1, SQLITE_STATIC);
     if (SQLITE_OK != status) {
         free (data);
         return fileServiceFailedSDB (fs, status);
