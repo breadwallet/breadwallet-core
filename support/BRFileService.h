@@ -48,6 +48,7 @@ typedef void* BRFileServiceContext;
 typedef enum {
     FILE_SERVICE_IMPL,              // generally a fatal condition
     FILE_SERVICE_UNIX,              // something in the file system (fopen, fwrite, ... errorred)
+    FILE_SERVICE_SDB,               // something in the sqlite3 database
     FILE_SERVICE_ENTITY             // entity read/write (parse/serialize) error
 } BRFileServiceErrorType;
 
@@ -63,6 +64,10 @@ typedef struct {
         } unix;
 
         struct {
+            int code;  // sqlite3_status_code
+        } sdb;
+
+        struct {
             const char *type;
             const char *reason;
         } entity;
@@ -73,7 +78,6 @@ typedef void
 (*BRFileServiceErrorHandler) (BRFileServiceContext context,
                               BRFileService fs,
                               BRFileServiceError error);
-
 
 /// This *must* be the same fixed size type forever.  It is uint8_t.
 typedef uint8_t BRFileServiceVersion;
@@ -111,21 +115,21 @@ fileServiceLoad (BRFileService fs,
                  const char *type,   /* blocks, peers, transactions, logs, ... */
                  int updateVersion);
 
-extern void /* error code? */
+extern int  // 1 -> success, 0 -> failure
 fileServiceSave (BRFileService fs,
                  const char *type,  /* block, peers, transactions, logs, ... */
                  const void *entity);     /* BRMerkleBlock*, BRTransaction, BREthereumTransaction, ... */
 
-extern void
+extern int
 fileServiceRemove (BRFileService fs,
                    const char *type,
                    UInt256 identifier);
 
-extern void
+extern int
 fileServiceClear (BRFileService fs,
                   const char *type);
 
-extern void
+extern int
 fileServiceClearAll (BRFileService fs);
 
 /**
