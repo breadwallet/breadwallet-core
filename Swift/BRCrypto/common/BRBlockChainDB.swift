@@ -764,8 +764,8 @@ public class BlockChainDB {
 
     public func getTransactions (blockchainId: String,
                                  addresses: [String],
-                                 begBlockNumber: UInt64 = 0,
-                                 endBlockNumber: UInt64 = 0,
+                                 begBlockNumber: UInt64,
+                                 endBlockNumber: UInt64,
                                  includeRaw: Bool = false,
                                  includeProof: Bool = false,
                                  completion: @escaping (Result<[Model.Transaction], QueryError>) -> Void) {
