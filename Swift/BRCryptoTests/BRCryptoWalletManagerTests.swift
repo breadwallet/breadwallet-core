@@ -121,9 +121,11 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
             [EventMatcher (event: WalletManagerEvent.created),
              EventMatcher (event: WalletManagerEvent.walletAdded(wallet: wallet)),
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.created,   newState: WalletManagerState.connected)),
+
              EventMatcher (event: WalletManagerEvent.syncStarted),
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected, newState: WalletManagerState.syncing)),
-             EventMatcher (event: WalletManagerEvent.syncProgress(timestamp: nil, percentComplete: 0), strict: false),
+             // We might not see `syncProgress`
+             // EventMatcher (event: WalletManagerEvent.syncProgress(timestamp: nil, percentComplete: 0), strict: false),
 
              EventMatcher (event: WalletManagerEvent.syncEnded(error: nil), strict: false, scan: true),
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.syncing, newState: WalletManagerState.connected)),
@@ -146,7 +148,7 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
         let walletBRDExpectation = XCTestExpectation (description: "BRD Wallet")
         listener.managerHandlers += [
             { (system: System, manager:WalletManager, event: WalletManagerEvent) in
-                if case let .walletAdded(wallet) = event, "brd" == wallet.name {
+                if case let .walletAdded(wallet) = event, "BRD" == wallet.name {
                     walletBRD = wallet
                     walletBRDExpectation.fulfill()
                 }
@@ -180,10 +182,10 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
             ]))
 
         XCTAssertTrue (listener.checkManagerEvents(
-            [WalletManagerEvent.created,
-             WalletManagerEvent.walletAdded(wallet: walletETH),
-             WalletManagerEvent.walletAdded(wallet: walletBRD)],
-            strict: true))
+            [EventMatcher (event: WalletManagerEvent.created),
+             EventMatcher (event: WalletManagerEvent.walletAdded(wallet: walletETH), strict: true, scan: false),
+             EventMatcher (event: WalletManagerEvent.walletAdded(wallet: walletBRD), strict: true, scan: true)
+            ]))
 
         XCTAssertTrue (listener.checkWalletEvents(
             [WalletEvent.created,
@@ -207,16 +209,21 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
         XCTAssertTrue (listener.checkManagerEvents (
             [EventMatcher (event: WalletManagerEvent.created),
              EventMatcher (event: WalletManagerEvent.walletAdded(wallet: walletETH)),
-             EventMatcher (event: WalletManagerEvent.walletAdded(wallet: walletBRD)),
-             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.created,   newState: WalletManagerState.connected)),
+             EventMatcher (event: WalletManagerEvent.walletAdded(wallet: walletBRD), strict: true, scan: true),
+             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.created,   newState: WalletManagerState.connected),
+                           strict: true, scan: true),
              // wallet changed?
-             EventMatcher (event: WalletManagerEvent.syncStarted, strict: true, scan:true),
+             EventMatcher (event: WalletManagerEvent.syncStarted),
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected, newState: WalletManagerState.syncing)),
-             EventMatcher (event: WalletManagerEvent.syncProgress(timestamp: nil, percentComplete: 0), strict: false),
+             // We might not see `syncProgress`
+             // EventMatcher (event: WalletManagerEvent.syncProgress(timestamp: nil, percentComplete: 0), strict: false),
 
              EventMatcher (event: WalletManagerEvent.syncEnded(error: nil), strict: false, scan: true),
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.syncing, newState: WalletManagerState.connected)),
-             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected, newState: WalletManagerState.disconnected)),
+
+             // Can have another sync started here...
+             EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected, newState: WalletManagerState.disconnected),
+                           strict: true, scan: true),
             ]))
     }
 

@@ -113,10 +113,10 @@ public final class System {
                          (name: "Gwei",  code: "gwei", decimals:  9, symbol: BlockChainDB.Model.lookupSymbol ("gwei")),
                          (name: "Ether", code: "eth",  decimals: 18, symbol: BlockChainDB.Model.lookupSymbol ("eth"))]),
 
-//        (id: "BRD Token Testnet", name: "BRD Token", code: "brd", type: "erc20", blockchainID: "ethereum-ropsten",
-//         address: BlockChainDB.Model.addressBRDTestnet, verified: true,
-//         demoninations: [(name: "BRD_INTEGER",   code: "BRDI",  decimals:  0, symbol: "brdi"),
-//                         (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")]),
+        (id: "ethereum-ropsten:0x7108ca7c4718efa810457f228305c9c71390931a", name: "BRD Token Testnet", code: "BRD", type: "erc20", blockchainID: "ethereum-ropsten",
+         address: BlockChainDB.Model.addressBRDTestnet, verified: true,
+         demoninations: [(name: "BRD_INTEGER",   code: "BRDI",  decimals:  0, symbol: "brdi"),
+                         (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")]),
 
 //        (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-testnet",
 //         address: nil, verified: true,
