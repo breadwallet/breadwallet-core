@@ -584,8 +584,8 @@ runEWM_CONNECT_test (const char *paperKey,
 
     // Immediately dispatches callbacks for WalletManager and Wallet events. Notable, wallet
     // create and a wallet update balance events.
-    ewmConnect(ewm);
-    
+    ewmStart(ewm);
+
     printf ("====     Waiting for Balance\n");
 
     // First balance event, from wallet creation, will be 0.  But we cannot guarantee that we won't
@@ -595,6 +595,8 @@ runEWM_CONNECT_test (const char *paperKey,
     assert (AMOUNT_ETHER == balance.type);
     assert (ETHEREUM_BOOLEAN_TRUE == etherIsEQ (amountGetEther(balance), etherCreateZero()) ||
             ETHEREUM_BOOLEAN_TRUE == etherIsEQ (amountGetEther(balance), expectedBalance));
+
+    ewmConnect(ewm);
 
     // the proper approach is to wait on a 'EWM' connected event.
     sleep (2);  // let connect 'take'
@@ -877,7 +879,7 @@ runEWMTests (const char *paperKey,
     // prepareTransaction(NODE_PAPER_KEY, NODE_RECV_ADDR, TEST_TRANS2_GAS_PRICE_VALUE, GAS_LIMIT_DEFAULT, NODE_ETHER_AMOUNT);
     if (NULL == paperKey) paperKey = NODE_PAPER_KEY;
 
-    runEWM_CONNECT_test(paperKey, storagePath);
+//    runEWM_CONNECT_test(paperKey, storagePath);
     runEWM_TOKEN_test (paperKey, storagePath);
     runEWM_PUBLIC_KEY_test (ethereumMainnet, paperKey, storagePath);
 }
