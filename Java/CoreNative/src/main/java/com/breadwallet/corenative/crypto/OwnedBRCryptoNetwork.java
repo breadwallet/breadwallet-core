@@ -9,6 +9,7 @@ package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
 import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 
 import java.util.Objects;
@@ -29,11 +30,6 @@ class OwnedBRCryptoNetwork implements CoreBRCryptoNetwork {
         if (null != core) {
             CryptoLibrary.INSTANCE.cryptoNetworkGive(core);
         }
-    }
-
-    @Override
-    public void setHeight(UnsignedLong height) {
-        core.setHeight(height);
     }
 
     @Override
@@ -87,13 +83,23 @@ class OwnedBRCryptoNetwork implements CoreBRCryptoNetwork {
     }
 
     @Override
-    public String getName() {
-        return core.getName();
+    public void setHeight(UnsignedLong height) {
+        core.setHeight(height);
     }
 
     @Override
-    public int getType() {
-        return core.getType();
+    public UnsignedInteger getConfirmationsUntilFinal() {
+        return core.getConfirmationsUntilFinal();
+    }
+
+    @Override
+    public void setConfirmationsUntilFinal(UnsignedInteger confirmationsUntilFinal) {
+        core.setConfirmationsUntilFinal(confirmationsUntilFinal);
+    }
+
+    @Override
+    public String getName() {
+        return core.getName();
     }
 
     @Override

@@ -12,6 +12,7 @@ import com.breadwallet.crypto.blockchaindb.models.brd.EthLog;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthToken;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthTransaction;
 import com.breadwallet.crypto.utility.CompletionHandler;
+import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 
 import org.junit.Before;
@@ -103,6 +104,7 @@ public class BlockchainDbAIT {
         Blockchain blockchain = handler.dat().get();
         assertNotNull(blockchain);
         assertEquals(blockchain.getId(), "bitcoin-mainnet");
+        assertEquals(blockchain.getConfirmationsUntilFinal(), UnsignedInteger.valueOf(6));
 
         // TODO: Expand these tests
     }
