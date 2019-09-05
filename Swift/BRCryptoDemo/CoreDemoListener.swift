@@ -110,7 +110,9 @@ class CoreDemoListener: SystemListener {
             manager.connect()
 
         case .configured:
-            break;
+            let allCurrencies = system.networks.flatMap { $0.currencies }
+            print ("APP: System: Currencies: ")
+            allCurrencies.forEach { print ("APP: System:    \($0.code)") }
         }
     }
 
