@@ -294,6 +294,9 @@ extern void
 BRWalletManagerScan (BRWalletManager manager);
 
 extern void
+BRWalletManagerScanToDepth (BRWalletManager manager, BRSyncDepth depth);
+
+extern void
 BRWalletManagerSetMode (BRWalletManager manager, BRSyncMode mode);
 
 extern BRSyncMode

@@ -506,6 +506,23 @@ cryptoWalletManagerSync (BRCryptoWalletManager cwm) {
     }
 }
 
+extern void
+cryptoWalletManagerSyncToDepth (BRCryptoWalletManager cwm,
+                                BRSyncDepth depth) {
+    switch (cwm->type) {
+        case BLOCK_CHAIN_TYPE_BTC:
+            BRWalletManagerScanToDepth (cwm->u.btc, depth);
+            break;
+        case BLOCK_CHAIN_TYPE_ETH:
+            // TODO(fix): Implement this
+            break;
+        case BLOCK_CHAIN_TYPE_GEN:
+            // TODO(fix): Implement this
+            assert (0);
+            break;
+    }
+}
+
 extern BRCryptoBoolean
 cryptoWalletManagerSign (BRCryptoWalletManager cwm,
                          BRCryptoWallet wallet,

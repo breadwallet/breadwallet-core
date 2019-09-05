@@ -196,6 +196,10 @@ extern "C" {
     extern void
     cryptoWalletManagerSync (BRCryptoWalletManager cwm);
 
+    extern void
+    cryptoWalletManagerSyncToDepth (BRCryptoWalletManager cwm,
+                                    BRSyncDepth depth);
+
     extern BRCryptoBoolean
     cryptoWalletManagerSign (BRCryptoWalletManager cwm,
                              BRCryptoWallet wallet,

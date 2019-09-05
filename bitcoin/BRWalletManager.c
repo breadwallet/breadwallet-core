@@ -1054,6 +1054,14 @@ BRWalletManagerScan (BRWalletManager manager) {
 }
 
 extern void
+BRWalletManagerScanToDepth (BRWalletManager manager,
+                            BRSyncDepth depth) {
+    pthread_mutex_lock (&manager->lock);
+    BRSyncManagerScanToDepth (manager->syncManager, depth);
+    pthread_mutex_unlock (&manager->lock);
+}
+
+extern void
 BRWalletManagerSetMode (BRWalletManager manager, BRSyncMode mode) {
     pthread_mutex_lock (&manager->lock);
     if (mode != manager->mode) {

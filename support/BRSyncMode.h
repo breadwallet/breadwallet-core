@@ -59,6 +59,13 @@ typedef enum {
     SYNC_MODE_P2P_ONLY
 } BRSyncMode;
 
+// TODO(fix): Determine naming we want to use here
+typedef enum {
+    SYNC_DEPTH_LOW,
+    SYNC_DEPTH_MEDIUM,
+    SYNC_DEPTH_HIGH
+} BRSyncDepth;
+
 extern const char *
 BRSyncModeString (BRSyncMode m);
 

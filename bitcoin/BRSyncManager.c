@@ -89,6 +89,39 @@ struct BRSyncManagerStruct {
     BRSyncMode mode;
 };
 
+#define CONFIRMATION_BLOCK_COUNT 6
+
+static uint32_t
+_getLastConfirmedSendTxHeight(BRWallet *wallet, uint32_t lastBlockHeight) {
+    uint32_t scanHeight = 0;
+
+    size_t transactionCount = BRWalletTransactions (wallet, NULL, 0);
+
+    if (lastBlockHeight >= CONFIRMATION_BLOCK_COUNT && 0 != transactionCount) {
+        BRArrayOf(BRTransaction *) transactions = (BRArrayOf(BRTransaction *) ) calloc (transactionCount, sizeof (BRTransaction *));
+        transactionCount = BRWalletTransactions (wallet, transactions, transactionCount);
+
+        for (size_t index = 0; index < transactionCount; index++) {
+            // ensure:
+            // - tx is valid (i.e. no previous transaction spend any of utxos, and no inputs are invalid)
+            // - AND the transaction was a SEND
+            // - AND the transaction has been confirmed
+            if (BRWalletTransactionIsValid (wallet, transactions[index]) &&
+                0 != BRWalletAmountSentByTx (wallet, transactions[index]) &&
+                TX_UNCONFIRMED != transactions[index]->blockHeight &&
+                transactions[index]->blockHeight < (lastBlockHeight - CONFIRMATION_BLOCK_COUNT)) {
+                scanHeight = (transactions[index]->blockHeight > scanHeight ?
+                                transactions[index]->blockHeight :
+                                scanHeight);
+            }
+        }
+
+        free (transactions);
+    }
+
+    return scanHeight;
+}
+
 /// MARK: - Sync Manager Decls & Defs
 
 struct BRClientSyncManagerStruct {
@@ -118,6 +151,11 @@ struct BRClientSyncManagerStruct {
      */
     BRSyncManagerClientContext clientContext;
     BRSyncManagerClientCallbacks clientCallbacks;
+
+    /*
+     * Chain params
+     */
+    const BRChainParams *chainParams;
 
     /**
      * The height of the earliest block of interest. Initialized based on the
@@ -203,6 +241,9 @@ static void
 BRClientSyncManagerScan(BRClientSyncManager manager);
 
 static void
+BRClientSyncManagerScanToDepth(BRClientSyncManager manager, BRSyncDepth depth);
+
+static void
 BRClientSyncManagerSubmit(BRClientSyncManager manager,
                           OwnershipKept BRTransaction *transaction);
 
@@ -281,16 +322,15 @@ struct BRPeerSyncManagerStruct {
     BRPeerManager *peerManager;
 
     /**
+     * Wallet being synced
+     */
+    BRWallet *wallet;
+
+    /**
      * Event callback info
      */
     BRSyncManagerEventContext eventContext;
     BRSyncManagerEventCallback eventCallback;
-
-    /**
-     * The height of the earliest block of interest. Initialized based on the
-     * earliest key time of the account being synced.
-     */
-    uint64_t initBlockHeight;
 
     /// Mark: - Mutable Sction
 
@@ -345,6 +385,9 @@ BRPeerSyncManagerDisconnect(BRPeerSyncManager manager);
 
 static void
 BRPeerSyncManagerScan(BRPeerSyncManager manager);
+
+static void
+BRPeerSyncManagerScanToDepth(BRPeerSyncManager manager, BRSyncDepth depth);
 
 static void
 BRPeerSyncManagerSubmit(BRPeerSyncManager manager,
@@ -485,6 +528,22 @@ BRSyncManagerScan(BRSyncManager manager) {
         break;
         case SYNC_MODE_P2P_ONLY:
         BRPeerSyncManagerScan (BRSyncManagerAsPeerSyncManager (manager));
+        break;
+        default:
+        assert (0);
+        break;
+    }
+}
+
+extern void
+BRSyncManagerScanToDepth(BRSyncManager manager,
+                         BRSyncDepth depth) {
+    switch (manager->mode) {
+        case SYNC_MODE_BRD_ONLY:
+        BRClientSyncManagerScanToDepth (BRSyncManagerAsClientSyncManager (manager), depth);
+        break;
+        case SYNC_MODE_P2P_ONLY:
+        BRPeerSyncManagerScanToDepth (BRSyncManagerAsPeerSyncManager (manager), depth);
         break;
         default:
         assert (0);
@@ -639,6 +698,7 @@ BRClientSyncManagerNew(BRSyncManagerEventContext eventContext,
     manager->eventCallback = eventCallback;
     manager->clientContext = clientContext;
     manager->clientCallbacks = clientCallbacks;
+    manager->chainParams = params;
 
     pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);
@@ -776,6 +836,11 @@ BRClientSyncManagerDisconnect(BRClientSyncManager manager) {
 
 static void
 BRClientSyncManagerScan(BRClientSyncManager manager) {
+    BRClientSyncManagerScanToDepth (manager, SYNC_DEPTH_HIGH);
+}
+
+static void
+BRClientSyncManagerScanToDepth(BRClientSyncManager manager, BRSyncDepth depth) {
     uint8_t needConnectionEvent = 0;
     uint8_t needSyncEvent       = 0;
 
@@ -793,7 +858,22 @@ BRClientSyncManagerScan(BRClientSyncManager manager) {
 
             // Reset the height that we've synced to to be the initial height.
             // This will trigger a full sync.
-            manager->syncedBlockHeight = manager->initBlockHeight;
+            switch (depth) {
+                case SYNC_DEPTH_LOW: {
+                    uint32_t scanHeight = _getLastConfirmedSendTxHeight (manager->wallet, manager->networkBlockHeight);
+                    manager->syncedBlockHeight = 0 == scanHeight ? manager->initBlockHeight : scanHeight;
+                    break;
+                }
+                case SYNC_DEPTH_MEDIUM: {
+                    const BRCheckPoint *checkpoint = BRChainParamsGetCheckpointBeforeBlockNumber (manager->chainParams, manager->networkBlockHeight);
+                    manager->syncedBlockHeight = NULL == checkpoint ? manager->initBlockHeight : checkpoint->height;
+                    break;
+                }
+                case SYNC_DEPTH_HIGH: {
+                    manager->syncedBlockHeight = manager->initBlockHeight;
+                    break;
+                }
+            }
         }
 
         // Send event while holding the state lock so that event
@@ -1306,6 +1386,7 @@ BRPeerSyncManagerNew(BRSyncManagerEventContext eventContext,
     BRPeerSyncManager manager = (BRPeerSyncManager) calloc (1, sizeof(struct BRPeerSyncManagerStruct));
     manager->common.mode = SYNC_MODE_P2P_ONLY;
 
+    manager->wallet = wallet;
     manager->eventContext = eventContext;
     manager->eventCallback = eventCallback;
 
@@ -1323,7 +1404,6 @@ BRPeerSyncManagerNew(BRSyncManagerEventContext eventContext,
     // point up to the block height advertised on the P2P network, regardless of if we have synced,
     // in API mode for example, to halfway between those two heights. This is due to how the P2P
     // verifies data it receives from the network.
-    manager->initBlockHeight    = MIN (earliestCheckPoint->height, blockHeight);
     manager->networkBlockHeight = MAX (earliestCheckPoint->height, blockHeight);
     manager->isConnected = 0;
 
@@ -1387,7 +1467,30 @@ BRPeerSyncManagerDisconnect(BRPeerSyncManager manager) {
 
 static void
 BRPeerSyncManagerScan(BRPeerSyncManager manager) {
-    BRPeerManagerRescan (manager->peerManager);
+    BRPeerSyncManagerScanToDepth (manager, SYNC_DEPTH_HIGH);
+}
+
+static void
+BRPeerSyncManagerScanToDepth(BRPeerSyncManager manager, BRSyncDepth depth) {
+    switch (depth) {
+        case SYNC_DEPTH_LOW: {
+            uint32_t scanHeight = _getLastConfirmedSendTxHeight (manager->wallet, BRPeerManagerLastBlockHeight (manager->peerManager));
+            if (0 != scanHeight) {
+                BRPeerManagerRescanFromBlockNumber (manager->peerManager, scanHeight);
+            } else {
+                BRPeerManagerRescan (manager->peerManager);
+            }
+            break;
+        }
+        case SYNC_DEPTH_MEDIUM: {
+            BRPeerManagerRescanFromLastHardcodedCheckpoint (manager->peerManager);
+            break;
+        }
+        case SYNC_DEPTH_HIGH: {
+            BRPeerManagerRescan (manager->peerManager);
+            break;
+        }
+    }
 }
 
 typedef struct {
