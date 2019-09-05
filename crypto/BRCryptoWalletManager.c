@@ -514,7 +514,7 @@ cryptoWalletManagerSyncToDepth (BRCryptoWalletManager cwm,
             BRWalletManagerScanToDepth (cwm->u.btc, depth);
             break;
         case BLOCK_CHAIN_TYPE_ETH:
-            // TODO(fix): Implement this
+            ewmSyncToDepth (cwm->u.eth, ETHEREUM_BOOLEAN_FALSE, depth);
             break;
         case BLOCK_CHAIN_TYPE_GEN:
             // TODO(fix): Implement this

@@ -113,6 +113,11 @@ extern BREthereumBoolean
 ewmSync (BREthereumEWM ewm,
          BREthereumBoolean pendExistingTransfers);
 
+extern BREthereumBoolean
+ewmSyncToDepth (BREthereumEWM ewm,
+                BREthereumBoolean pendExistingTransfers,
+                BRSyncDepth depth);
+
 extern void
 ewmLock (BREthereumEWM ewm);
 
