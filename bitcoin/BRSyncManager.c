@@ -293,7 +293,7 @@ static void
 _fillWalletAddressSet(BRSetOf(BRAddress *) addresses,
                       BRWallet *wallet);
 
-static BRArrayOf(char *)
+static BRArrayOf(BRAddress *)
 _updateWalletAddressSet(BRSetOf(BRAddress *) addresses,
                         BRWallet *wallet);
 
@@ -1045,6 +1045,7 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
     uint8_t needClientCall       = 0;
     uint64_t begBlockNumber      = 0;
     uint64_t endBlockNumber      = 0;
+    size_t addressCount          = 0;
     BRArrayOf(char *) addresses  = NULL;
     BRSyncManagerEvent syncEvent = {0};
 
@@ -1058,7 +1059,8 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
                 // check if the first unused addresses have changed since last completion
                 addresses = BRClientSyncManagerScanStateAdvanceAndGetNewAddresses (&manager->scanState,
                                                                                    manager->wallet);
-                if (NULL != addresses && 0 != array_count(addresses)) {
+                addressCount = NULL != addresses ? array_count(addresses) : 0;
+                if (0 != addressCount) {
                     // ... we've discovered a new address (i.e. there were transactions announce)
 
                     // store sync data for callback outside of lock
@@ -1115,13 +1117,16 @@ BRClientSyncManagerAnnounceGetTransactionsDone (BRClientSyncManager manager,
         manager->clientCallbacks.funcGetTransactions (manager->clientContext,
                                                       BRClientSyncManagerAsSyncManager (manager),
                                                       (const char **) addresses,
-                                                      array_count(addresses),
+                                                      addressCount,
                                                       begBlockNumber,
                                                       endBlockNumber,
                                                       rid);
     }
 
     if (NULL != addresses) {
+        for (size_t index = 0; index < addressCount; index++) {
+            free (addresses[index]);
+        }
         array_free (addresses);
     }
 }
@@ -1133,6 +1138,7 @@ BRClientSyncManagerUpdateTransactions (BRClientSyncManager manager) {
     uint8_t needClientCall       = 0;
     uint64_t begBlockNumber      = 0;
     uint64_t endBlockNumber      = 0;
+    size_t addressCount          = 0;
     BRArrayOf(char *) addresses  = NULL;
 
     if (0 == pthread_mutex_lock (&manager->lock)) {
@@ -1148,7 +1154,9 @@ BRClientSyncManagerUpdateTransactions (BRClientSyncManager manager) {
 
             // get the addresses to query the BDB with
             addresses = BRClientSyncManagerScanStateGetAddresses (&manager->scanState);
-            assert (NULL != addresses && 0 != array_count (addresses));
+            assert (NULL != addresses);
+            addressCount = array_count (addresses);
+            assert (0 != addressCount);
 
             // store sync data for callback outside of lock
             rid = BRClientSyncManagerScanStateGetRequestId (&manager->scanState);
@@ -1183,13 +1191,16 @@ BRClientSyncManagerUpdateTransactions (BRClientSyncManager manager) {
         manager->clientCallbacks.funcGetTransactions (manager->clientContext,
                                                       BRClientSyncManagerAsSyncManager (manager),
                                                       (const char **) addresses,
-                                                      array_count (addresses),
+                                                      addressCount,
                                                       begBlockNumber,
                                                       endBlockNumber,
                                                       rid);
     }
 
     if (NULL != addresses) {
+        for (size_t index = 0; index < addressCount; index++) {
+            free (addresses[index]);
+        }
         array_free (addresses);
     }
 }
@@ -1302,12 +1313,18 @@ static BRArrayOf(char *)
 BRClientSyncManagerScanStateGetAddresses(BRClientSyncManagerScanState scanState) {
     size_t addressCount = BRSetCount(scanState->knownAddresses);
 
-    BRArrayOf(char *) addresses;
+    BRArrayOf(BRAddress *) addresses;
     array_new (addresses, addressCount);
     array_set_count (addresses, addressCount);
 
-    BRSetAll (scanState->knownAddresses, (void **) addresses, addressCount);
-    return addresses;
+    size_t index = 0;
+    FOR_SET (BRAddress *, knownAddress, scanState->knownAddresses) {
+        addresses[index] = malloc (sizeof(BRAddress));
+        *addresses[index] = *knownAddress;
+        index++;
+    }
+
+    return (BRArrayOf(char *)) addresses;
 }
 
 static BRArrayOf(char *)
@@ -1335,7 +1352,8 @@ BRClientSyncManagerScanStateAdvanceAndGetNewAddresses (BRClientSyncManagerScanSt
         scanState->lastExternalAddress = externalAddress;
         scanState->lastInternalAddress = internalAddress;
 
-         newAddresses = _updateWalletAddressSet (scanState->knownAddresses, wallet);
+        // get the list of newly discovered addresses
+        newAddresses = (BRArrayOf(char *)) _updateWalletAddressSet (scanState->knownAddresses, wallet);
     }
 
     return newAddresses;
@@ -1374,20 +1392,25 @@ _fillWalletAddressSet(BRSetOf(BRAddress *) addresses, BRWallet *wallet) {
     free (addressArray);
 }
 
-static BRArrayOf(char *)
+static BRArrayOf(BRAddress *)
 _updateWalletAddressSet(BRSetOf(BRAddress *) addresses, BRWallet *wallet) {
     size_t addressCount = 0;
     BRAddress *addressArray = _getWalletAddresses (wallet, &addressCount);
 
-    BRArrayOf(char *) newAddresses;
+    BRArrayOf(BRAddress *) newAddresses;
     array_new (newAddresses, addressCount);
 
     for (size_t index = 0; index < addressCount; index++) {
         if (!BRSetContains (addresses, &addressArray[index])) {
+            // one copy remains owned by the address set
             BRAddress *address = malloc (sizeof(BRAddress));
             *address = addressArray[index];
             BRSetAdd (addresses, address);
-            array_add (newAddresses, address->s);
+
+            // one copy owned by the returned array
+            address = malloc (sizeof(BRAddress));
+            *address = addressArray[index];
+            array_add (newAddresses, address);
         }
     }
 
