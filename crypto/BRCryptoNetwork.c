@@ -140,6 +140,8 @@ struct BRCryptoNetworkRecord {
     BRArrayOf(BRCryptoCurrencyAssociation) associations;
     BRArrayOf(BRCryptoNetworkFee) fees;
 
+    uint32_t confirmationsUntilFinal;
+    
     BRCryptoBlockChainType type;
     union {
         struct {
@@ -301,6 +303,17 @@ private_extern void
 cryptoNetworkSetHeight (BRCryptoNetwork network,
                         BRCryptoBlockChainHeight height) {
     network->height = height;
+}
+
+extern uint32_t
+cryptoNetworkGetConfirmationsUntilFinal (BRCryptoNetwork network) {
+    return network->confirmationsUntilFinal;
+}
+
+private_extern void
+cryptoNetworkSetConfirmationsUntilFinal (BRCryptoNetwork network,
+                                         uint32_t confirmationsUntilFinal) {
+    network->confirmationsUntilFinal = confirmationsUntilFinal;
 }
 
 extern BRCryptoCurrency

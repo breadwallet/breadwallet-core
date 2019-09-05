@@ -10,6 +10,8 @@ package com.breadwallet.corenative.crypto;
 import com.breadwallet.corenative.CryptoLibrary;
 import com.breadwallet.corenative.utility.SizeT;
 import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedBytes;
+import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
@@ -22,11 +24,6 @@ public class BRCryptoNetwork extends PointerType implements CoreBRCryptoNetwork 
 
     public BRCryptoNetwork() {
         super();
-    }
-
-    @Override
-    public void setHeight(UnsignedLong height) {
-        CryptoLibrary.INSTANCE.cryptoNetworkSetHeight(this, height.longValue());
     }
 
     @Override
@@ -82,13 +79,23 @@ public class BRCryptoNetwork extends PointerType implements CoreBRCryptoNetwork 
     }
 
     @Override
-    public String getName() {
-        return CryptoLibrary.INSTANCE.cryptoNetworkGetName(this).getString(0, "UTF-8");
+    public void setHeight(UnsignedLong height) {
+        CryptoLibrary.INSTANCE.cryptoNetworkSetHeight(this, height.longValue());
     }
 
     @Override
-    public int getType() {
-        return CryptoLibrary.INSTANCE.cryptoNetworkGetType(this);
+    public UnsignedInteger getConfirmationsUntilFinal() {
+        return UnsignedInteger.fromIntBits(CryptoLibrary.INSTANCE.cryptoNetworkGetConfirmationsUntilFinal(this));
+    }
+
+    @Override
+    public void setConfirmationsUntilFinal(UnsignedInteger confirmationsUntilFinal) {
+        CryptoLibrary.INSTANCE.cryptoNetworkSetConfirmationsUntilFinal(this, confirmationsUntilFinal.intValue());
+    }
+
+    @Override
+    public String getName() {
+        return CryptoLibrary.INSTANCE.cryptoNetworkGetName(this).getString(0, "UTF-8");
     }
 
     @Override

@@ -33,7 +33,7 @@ public class NetworkAIT {
         NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_btc));
         List<NetworkFee> fees = Collections.singletonList(fee);
 
-        Network network = Network.create("bitcoin-mainnet", "Bitcoin", true, btc, UnsignedLong.valueOf(100000), associations, fees);
+        Network network = Network.create("bitcoin-mainnet", "Bitcoin", true, btc, UnsignedLong.valueOf(100000), associations, fees, UnsignedInteger.valueOf(6));
 
         assertEquals(network.getUids(), "bitcoin-mainnet");
         assertEquals(network.getName(), "Bitcoin");
@@ -95,7 +95,7 @@ public class NetworkAIT {
         NetworkFee fee2 = NetworkFee.create(UnsignedLong.valueOf(500), Amount.create(3.0, gwei_eth));
         List<NetworkFee> fees = Arrays.asList(fee1, fee2);
 
-        Network network = Network.create("ethereum-mainnet", "ethereum-name", true, eth, UnsignedLong.valueOf(100000), associations, fees);
+        Network network = Network.create("ethereum-mainnet", "ethereum-name", true, eth, UnsignedLong.valueOf(100000), associations, fees, UnsignedInteger.valueOf(6));
 
         assertEquals("ethereum-name", network.toString());
         assertTrue(network.hasCurrency(eth));

@@ -148,6 +148,9 @@ extern "C" {
     cryptoNetworkGetHeight (BRCryptoNetwork network);
 
 
+    extern uint32_t
+    cryptoNetworkGetConfirmationsUntilFinal (BRCryptoNetwork network);
+
     /**
      * Returns the number of network currencies.  This is the index exclusive limit to be used
      * in `cryptoNetworkGetCurrencyAt()`.

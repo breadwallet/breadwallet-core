@@ -126,19 +126,19 @@ final class System implements com.breadwallet.crypto.System {
     static List<Blockchain> DEFAULT_BLOCKCHAINS = ImmutableList.of(
             // Mainnet
             new Blockchain("bitcoin-mainnet",      "Bitcoin",      "mainnet", true, "bitcoin-mainnet:__native__", UnsignedLong.ZERO,
-                    ImmutableList.of(new BlockchainFee("30", "10m", UnsignedLong.valueOf(10 * 60 * 1000)))),
+                    ImmutableList.of(new BlockchainFee("30", "10m", UnsignedLong.valueOf(10 * 60 * 1000))), UnsignedInteger.valueOf(6)),
             new Blockchain("bitcoincash-mainnet", "Bitcoin Cash", "mainnet", true, "bitcoincash-mainnet:__native__", UnsignedLong.ZERO,
-                    ImmutableList.of(new BlockchainFee("30", "10m", UnsignedLong.valueOf(10 * 60 * 1000)))),
+                    ImmutableList.of(new BlockchainFee("30", "10m", UnsignedLong.valueOf(10 * 60 * 1000))), UnsignedInteger.valueOf(6)),
             new Blockchain("ethereum-mainnet",     "Ethereum",     "mainnet", true, "ethereum-mainnet:__native__", UnsignedLong.ZERO,
-                    ImmutableList.of(new BlockchainFee("2000000000", "1m", UnsignedLong.valueOf(60 * 1000)))),
+                    ImmutableList.of(new BlockchainFee("2000000000", "1m", UnsignedLong.valueOf(60 * 1000))), UnsignedInteger.valueOf(6)),
 
             // Testnet
             new Blockchain("bitcoin-testnet",      "Bitcoin Testnet",      "testnet", false, "bitcoin-testnet:__native__", UnsignedLong.ZERO,
-                    ImmutableList.of(new BlockchainFee("30", "10m", UnsignedLong.valueOf(10 * 60 * 1000)))),
+                    ImmutableList.of(new BlockchainFee("30", "10m", UnsignedLong.valueOf(10 * 60 * 1000))), UnsignedInteger.valueOf(6)),
             new Blockchain("bitcoincash-testnet", "Bitcoin Cash Testnet", "testnet", false, "bitcoincash-testnet:__native__", UnsignedLong.ZERO,
-                    ImmutableList.of(new BlockchainFee("30", "10m", UnsignedLong.valueOf(10 * 60 * 1000)))),
+                    ImmutableList.of(new BlockchainFee("30", "10m", UnsignedLong.valueOf(10 * 60 * 1000))), UnsignedInteger.valueOf(6)),
             new Blockchain("ethereum-ropsten",     "Ethereum Ropsten",  "testnet", false, "ethereum-ropsten:__native__", UnsignedLong.ZERO,
-                    ImmutableList.of(new BlockchainFee("2000000000", "1m", UnsignedLong.valueOf(60 * 1000))))
+                    ImmutableList.of(new BlockchainFee("2000000000", "1m", UnsignedLong.valueOf(60 * 1000))), UnsignedInteger.valueOf(6))
     );
 
     /* package */

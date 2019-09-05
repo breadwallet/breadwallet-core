@@ -7,6 +7,7 @@
  */
 package com.breadwallet.crypto.blockchaindb.apis.bdb;
 
+import com.breadwallet.crypto.blockchaindb.apis.PageInfo;
 import com.breadwallet.crypto.blockchaindb.apis.PagedCompletionHandler;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Block;
@@ -15,7 +16,6 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.UnsignedLong;
-import com.google.common.primitives.UnsignedLongs;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -77,7 +77,7 @@ public class BlockApi {
         jsonClient.sendGetForArrayWithPaging("blocks", params, Block::asBlocks,
                 new PagedCompletionHandler<List<Block>, QueryError>() {
             @Override
-            public void handleData(List<Block> blocks, PagedCompletionHandler.PageInfo info) {
+            public void handleData(List<Block> blocks, PageInfo info) {
                 nextUrl[0] = info.nextUrl;
                 allBlocks.addAll(blocks);
                 sema.release();
@@ -96,7 +96,7 @@ public class BlockApi {
             jsonClient.sendGetForArrayWithPaging("blocks", nextUrl[0], Block::asBlocks,
                     new PagedCompletionHandler<List<Block>, QueryError>() {
                         @Override
-                        public void handleData(List<Block> blocks, PagedCompletionHandler.PageInfo info) {
+                        public void handleData(List<Block> blocks, PageInfo info) {
                             nextUrl[0] = info.nextUrl;
                             allBlocks.addAll(blocks);
                             sema.release();
