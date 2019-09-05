@@ -149,7 +149,8 @@ final class NetworkDiscovery {
                             defaultCurrency,
                             blockHeight,
                             associations,
-                            fees));
+                            fees,
+                            blockchainModel.getConfirmationsUntilFinal()));
 
                     return null;
                 });
@@ -236,7 +237,7 @@ final class NetworkDiscovery {
                                       Function<Collection<com.breadwallet.crypto.blockchaindb.models.bdb.Currency>, Void> func) {
         Map<String, com.breadwallet.crypto.blockchaindb.models.bdb.Currency> merged = new HashMap<>();
         for (com.breadwallet.crypto.blockchaindb.models.bdb.Currency currency : defaultCurrencies) {
-            if (currency.getId().equals(blockchainId) && currency.getVerified()) {
+            if (currency.getBlockchainId().equals(blockchainId) && currency.getVerified()) {
                 merged.put(currency.getId(), currency);
             }
         }

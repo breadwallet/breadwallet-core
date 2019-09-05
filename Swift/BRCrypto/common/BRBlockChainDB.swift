@@ -233,7 +233,8 @@ public class BlockChainDB {
             isMainnet: Bool,
             currency: String,
             blockHeight: UInt64?,
-            feeEstimates: [BlockchainFee])
+            feeEstimates: [BlockchainFee],
+            confirmationsUntilFinal: UInt32)
 
         static internal func asBlockchainFee (json: JSON) -> Model.BlockchainFee? {
             guard let confirmationTime = json.asUInt64(name: "estimated_confirmation_in"),
@@ -251,7 +252,8 @@ public class BlockChainDB {
                 let network = json.asString (name: "network"),
                 let isMainnet = json.asBool (name: "is_mainnet"),
                 let currency = json.asString (name: "native_currency_id"),
-                let blockHeight = json.asInt64 (name: "block_height")
+                let blockHeight = json.asInt64 (name: "block_height"),
+                let confirmationsUntilFinal = json.asUInt32(name: "confirmations_until_final")
                 else { return nil }
 
             guard let feeEstimates = json.asArray(name: "fee_estimates")?
@@ -261,7 +263,8 @@ public class BlockChainDB {
 
             return (id: id, name: name, network: network, isMainnet: isMainnet, currency: currency,
                     blockHeight: (-1 == blockHeight ? nil : UInt64 (blockHeight)),
-                    feeEstimates: feeEstimates)
+                    feeEstimates: feeEstimates,
+                    confirmationsUntilFinal: confirmationsUntilFinal)
         }
 
 
@@ -1376,6 +1379,11 @@ public class BlockChainDB {
         internal func asUInt64 (name: String) -> UInt64? {
             return (dict[name] as? NSNumber)
                 .flatMap { UInt64 (exactly: $0)}
+        }
+
+        internal func asUInt32 (name: String) -> UInt32? {
+            return (dict[name] as? NSNumber)
+                .flatMap { UInt32 (exactly: $0)}
         }
 
         internal func asUInt8 (name: String) -> UInt8? {

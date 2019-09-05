@@ -43,6 +43,10 @@ public final class Network: CustomStringConvertible {
         return fees.min { $0.timeIntervalInMilliseconds > $1.timeIntervalInMilliseconds }!
     }
 
+    public var confirmationsUntilFinal: UInt32 {
+        return cryptoNetworkGetConfirmationsUntilFinal (core);
+    }
+
     /// The native currency.
     public let currency: Currency
 
@@ -128,7 +132,8 @@ public final class Network: CustomStringConvertible {
                              currency: Currency,
                              height: UInt64,
                              associations: Dictionary<Currency, Association>,
-                             fees: [NetworkFee]) {
+                             fees: [NetworkFee],
+                             confirmationsUntilFinal: UInt32) {
         precondition (!fees.isEmpty)
         
         var core: BRCryptoNetwork!
@@ -181,6 +186,8 @@ public final class Network: CustomStringConvertible {
             cryptoNetworkAddNetworkFee (core, $0.core)
         }
 
+        cryptoNetworkSetConfirmationsUntilFinal (core, confirmationsUntilFinal)
+        
         self.init (core: core, take: false)
     }
 

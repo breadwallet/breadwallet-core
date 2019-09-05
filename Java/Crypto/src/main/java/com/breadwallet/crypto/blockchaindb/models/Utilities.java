@@ -9,6 +9,8 @@ package com.breadwallet.crypto.blockchaindb.models;
 
 import com.google.common.base.Optional;
 import com.google.common.io.BaseEncoding;
+import com.google.common.primitives.UnsignedInteger;
+import com.google.common.primitives.UnsignedInts;
 import com.google.common.primitives.UnsignedLong;
 import com.google.common.primitives.UnsignedLongs;
 
@@ -71,6 +73,22 @@ public final class Utilities {
     public static Optional<Long> getOptionalLongFromString(JSONObject json, String name) {
         try {
             return Optional.of(Long.decode(json.optString(name, null)));
+        } catch (NumberFormatException e) {
+            return Optional.absent();
+        }
+    }
+
+    public static UnsignedInteger getUnsignedIntFromString(JSONObject json, String name) throws JSONException {
+        try {
+            return UnsignedInteger.fromIntBits(UnsignedInts.decode(json.getString(name)));
+        } catch (NumberFormatException e) {
+            throw new JSONException("Invalid unsigned long value for " + name);
+        }
+    }
+
+    public static Optional<UnsignedInteger> getOptionalUnsignedIntFromString(JSONObject json, String name) {
+        try {
+            return Optional.of(UnsignedInteger.fromIntBits(UnsignedInts.decode(json.optString(name, null))));
         } catch (NumberFormatException e) {
             return Optional.absent();
         }

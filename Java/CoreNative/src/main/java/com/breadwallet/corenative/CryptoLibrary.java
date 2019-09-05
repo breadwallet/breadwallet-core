@@ -125,7 +125,6 @@ public interface CryptoLibrary extends Library {
     void cryptoHashGive(BRCryptoHash obj);
 
     // crypto/BRCryptoNetwork.h
-    int cryptoNetworkGetType(BRCryptoNetwork network);
     Pointer cryptoNetworkGetUids(BRCryptoNetwork network);
     Pointer cryptoNetworkGetName(BRCryptoNetwork network);
     int cryptoNetworkIsMainnet(BRCryptoNetwork network);
@@ -133,6 +132,8 @@ public interface CryptoLibrary extends Library {
     BRCryptoUnit cryptoNetworkGetUnitAsDefault(BRCryptoNetwork network, BRCryptoCurrency currency);
     BRCryptoUnit cryptoNetworkGetUnitAsBase(BRCryptoNetwork network, BRCryptoCurrency currency);
     long cryptoNetworkGetHeight(BRCryptoNetwork network);
+    int cryptoNetworkGetConfirmationsUntilFinal(BRCryptoNetwork network);
+    void cryptoNetworkSetConfirmationsUntilFinal(BRCryptoNetwork network, int confirmationsUntilFinal);
     SizeT cryptoNetworkGetCurrencyCount(BRCryptoNetwork network);
     BRCryptoCurrency cryptoNetworkGetCurrencyAt(BRCryptoNetwork network, SizeT index);
     int cryptoNetworkHasCurrency(BRCryptoNetwork network, BRCryptoCurrency currency);
@@ -283,6 +284,5 @@ public interface CryptoLibrary extends Library {
 
 
     // ethereum/util/BRUtilMath.h
-    UInt256.ByValue createUInt256(long value);
     Pointer coerceStringPrefaced(UInt256.ByValue value, int base, String preface);
 }

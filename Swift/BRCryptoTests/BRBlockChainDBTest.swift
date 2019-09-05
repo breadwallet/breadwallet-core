@@ -30,6 +30,7 @@ class BRBlockChainDBTest: XCTestCase {
                 else { XCTAssert(false); return }
 
             XCTAssertEqual (blockchainId, blockchain.id)
+            XCTAssertEqual (6, blockchain.confirmationsUntilFinal)
 
             self.expectation.fulfill()
         }
