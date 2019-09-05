@@ -11,6 +11,7 @@ import com.breadwallet.corenative.crypto.BRCryptoBlockChainType;
 import com.breadwallet.corenative.crypto.CoreBRCryptoCurrency;
 import com.breadwallet.corenative.crypto.CoreBRCryptoNetwork;
 import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 
 import java.util.ArrayList;
@@ -28,7 +29,7 @@ final class Network implements com.breadwallet.crypto.Network {
     /* package */
     static Network create(String uids, String name, boolean isMainnet, Currency currency, UnsignedLong height,
                           Map<Currency, NetworkAssociation> associations,
-                          List<NetworkFee> fees) {
+                          List<NetworkFee> fees, UnsignedInteger confirmationsUntilFinal) {
         CoreBRCryptoNetwork core;
 
         String code = currency.getCode();
@@ -75,6 +76,8 @@ final class Network implements com.breadwallet.crypto.Network {
             core.addFee(fee.getCoreBRCryptoNetworkFee());
         }
 
+        core.setConfirmationsUntilFinal(confirmationsUntilFinal);
+
         return new Network(core);
     }
 
@@ -93,7 +96,6 @@ final class Network implements com.breadwallet.crypto.Network {
 
     private final CoreBRCryptoNetwork core;
 
-    private final int type;
     private final String uids;
     private final String name;
     private final Boolean isMainnet;
@@ -105,7 +107,6 @@ final class Network implements com.breadwallet.crypto.Network {
     private Network(CoreBRCryptoNetwork core) {
         this.core = core;
 
-        type = core.getType();
         uids = core.getUids();
         name = core.getName();
         isMainnet = core.isMainnet();
@@ -149,6 +150,11 @@ final class Network implements com.breadwallet.crypto.Network {
     @Override
     public UnsignedLong getHeight() {
         return core.getHeight();
+    }
+
+    @Override
+    public UnsignedInteger getConfirmationsUntilFinal() {
+        return core.getConfirmationsUntilFinal();
     }
 
     @Override
