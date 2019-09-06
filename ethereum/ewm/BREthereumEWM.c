@@ -1077,7 +1077,10 @@ ewmSyncToDepth (BREthereumEWM ewm,
                 free (wallets);
             }
 
-            ewm->brdSync.begBlockNumber = blockHeight;
+            // don't allow the sync to jump forward so that we don't have a situation where
+            // we miss transfers
+            ewm->brdSync.begBlockNumber = (ewm->brdSync.begBlockNumber < blockHeight ?
+                                           ewm->brdSync.begBlockNumber : blockHeight);
 
             // Try to avoid letting a nearly completed sync from continuing.
             ewm->brdSync.completedTransaction = 0;
