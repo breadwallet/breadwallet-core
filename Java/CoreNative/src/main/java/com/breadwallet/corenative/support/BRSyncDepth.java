@@ -6,21 +6,21 @@ import static com.google.common.base.Preconditions.checkState;
 
 public enum BRSyncDepth {
 
-    SYNC_DEPTH_LOW {
+    SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND {
         @Override
         public int toNative() {
             return 0;
         }
     },
 
-    SYNC_DEPTH_MEDIUM {
+    SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK {
         @Override
         public int toNative() {
             return 1;
         }
     },
 
-    SYNC_DEPTH_HIGH {
+    SYNC_DEPTH_FROM_CREATION {
         @Override
         public int toNative() {
             return 2;
@@ -32,9 +32,9 @@ public enum BRSyncDepth {
     static {
         ImmutableMap.Builder<Integer, BRSyncDepth> b = ImmutableMap.builder();
 
-        b.put(SYNC_DEPTH_LOW.toNative(),    SYNC_DEPTH_LOW);
-        b.put(SYNC_DEPTH_MEDIUM.toNative(), SYNC_DEPTH_MEDIUM);
-        b.put(SYNC_DEPTH_HIGH.toNative(),   SYNC_DEPTH_HIGH);
+        b.put(SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND.toNative(), SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND);
+        b.put(SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK.toNative(),  SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK);
+        b.put(SYNC_DEPTH_FROM_CREATION.toNative(),            SYNC_DEPTH_FROM_CREATION);
 
         LOOKUP = b.build();
     }

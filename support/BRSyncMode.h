@@ -61,9 +61,9 @@ typedef enum {
 
 // TODO(fix): Determine naming we want to use here
 typedef enum {
-    SYNC_DEPTH_LOW,
-    SYNC_DEPTH_MEDIUM,
-    SYNC_DEPTH_HIGH
+    SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND,
+    SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK,
+    SYNC_DEPTH_FROM_CREATION
 } BRSyncDepth;
 
 extern const char *

@@ -220,13 +220,13 @@ public class TransferListActivity extends AppCompatActivity {
                 return true;
             case R.id.action_sync:
                 new AlertDialog.Builder(this)
-                        .setSingleChoiceItems(new String[]{"SYNC_DEPTH_LOW", "SYNC_DEPTH_MEDIUM", "SYNC_DEPTH_HIGH"},
+                        .setSingleChoiceItems(new String[]{"From Last Confirmed Send", "From Last Trusted Block", "From Creation"},
                                 -1,
                                 (dialog, which) -> {
                                     switch (which) {
-                                        case 0: wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.SYNC_DEPTH_LOW); break;
-                                        case 1: wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.SYNC_DEPTH_MEDIUM); break;
-                                        default: wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.SYNC_DEPTH_HIGH); break;
+                                        case 0: wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND); break;
+                                        case 1: wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK); break;
+                                        default: wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.SYNC_DEPTH_FROM_CREATION); break;
                                     }
                                     dialog.dismiss();
                                 })

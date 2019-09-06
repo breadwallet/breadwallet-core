@@ -968,7 +968,7 @@ ewmSyncUpdateTransfer (BREthereumSyncTransferContext *context,
 extern BREthereumBoolean
 ewmSync (BREthereumEWM ewm,
          BREthereumBoolean pendExistingTransfers) {
-    return ewmSyncToDepth (ewm, pendExistingTransfers, SYNC_DEPTH_HIGH);
+    return ewmSyncToDepth (ewm, pendExistingTransfers, SYNC_DEPTH_FROM_CREATION);
 }
 
 typedef struct {
@@ -1015,7 +1015,7 @@ ewmSyncToDepthCalculateBlockHeight (BREthereumEWM ewm,
 
     pthread_mutex_lock(&ewm->lock);
     switch (depth) {
-        case SYNC_DEPTH_LOW: {
+        case SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND: {
             if (ewm->blockHeight >= ewm->confirmationsUntilFinal) {
                 ewmSyncToDepthGetLastConfirmedSendTransferHeightContext context = { ewm, 0, ewm->blockHeight - ewm->confirmationsUntilFinal };
                 BREthereumWallet *wallets = ewmGetWallets(ewm);
@@ -1031,12 +1031,12 @@ ewmSyncToDepthCalculateBlockHeight (BREthereumEWM ewm,
             }
             break;
         }
-        case SYNC_DEPTH_MEDIUM: {
+        case SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK: {
             const BREthereumBlockCheckpoint *checkpoint = blockCheckpointLookupByNumber (ewm->network, ewm->blockHeight);
             blockHeight = NULL == checkpoint ? 0 : checkpoint->number;
             break;
         }
-        case SYNC_DEPTH_HIGH: {
+        case SYNC_DEPTH_FROM_CREATION: {
             // Start a sync from block 0
             blockHeight = 0;
             break;
