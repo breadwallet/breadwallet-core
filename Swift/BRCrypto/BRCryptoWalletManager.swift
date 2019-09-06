@@ -566,6 +566,22 @@ public enum WalletManagerSyncDepth: Equatable {
         }
     }
 
+    var shallower: WalletManagerSyncDepth? {
+        switch self {
+        case .fromCreation: return .fromLastTrustedBlock
+        case .fromLastTrustedBlock: return .fromLastConfirmedSend
+        default: return nil
+        }
+    }
+
+    var deeper: WalletManagerSyncDepth? {
+        switch self {
+        case .fromLastConfirmedSend: return .fromLastTrustedBlock
+        case .fromLastTrustedBlock: return .fromCreation
+        default: return nil
+        }
+    }
+
     // Equatable: [Swift-generated]
 }
 

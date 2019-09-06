@@ -1,5 +1,7 @@
 package com.breadwallet.crypto;
 
+import com.google.common.base.Optional;
+
 public enum WalletManagerSyncDepth {
     /**
      * Sync from the block height of the last confirmed send transaction.
@@ -32,6 +34,22 @@ public enum WalletManagerSyncDepth {
             case 0xb0: return FROM_LAST_TRUSTED_BLOCK;
             case 0xc0: return FROM_CREATION;
             default: return null;
+        }
+    }
+
+    public Optional<WalletManagerSyncDepth> getShallowerValue() {
+        switch (this) {
+            case FROM_CREATION: return Optional.of(FROM_LAST_TRUSTED_BLOCK);
+            case FROM_LAST_TRUSTED_BLOCK: return Optional.of(FROM_LAST_CONFIRMED_SEND);
+            default: return Optional.absent();
+        }
+    }
+
+    public Optional<WalletManagerSyncDepth> getDeeperValue() {
+        switch (this) {
+            case FROM_LAST_CONFIRMED_SEND: return Optional.of(FROM_LAST_TRUSTED_BLOCK);
+            case FROM_LAST_TRUSTED_BLOCK: return Optional.of(FROM_CREATION);
+            default: return Optional.absent();
         }
     }
 }

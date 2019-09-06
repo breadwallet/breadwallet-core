@@ -59,6 +59,9 @@ typedef enum {
     SYNC_MODE_P2P_ONLY
 } BRSyncMode;
 
+extern const char *
+BRSyncModeString (BRSyncMode m);
+
 typedef enum {
     /**
      * Sync from the block height of the last confirmed send transaction.
@@ -76,9 +79,6 @@ typedef enum {
      */
     SYNC_DEPTH_FROM_CREATION
 } BRSyncDepth;
-
-extern const char *
-BRSyncModeString (BRSyncMode m);
 
 /// The Percent Complete (0...100.0) derived from the last block processed relative to the
 /// full block range in a sync.
