@@ -137,15 +137,15 @@ struct BRClientSyncManagerStruct {
     const BRChainParams *chainParams;
 
     /**
+     * The number of blocks required to be mined before until a transaction can be considered final
+     */
+    uint64_t confirmationsUntilFinal;
+
+    /**
      * The height of the earliest block of interest. Initialized based on the
      * earliest key time of the account being synced.
      */
     uint64_t initBlockHeight;
-
-    /**
-     * The number of blocks required to be mined before until a transaction can be considered final
-     */
-    uint64_t confirmationsUntilFinal;
 
     /// Mark: - Mutable Sction
 
@@ -331,6 +331,11 @@ struct BRPeerSyncManagerStruct {
     BRSyncManagerEventContext eventContext;
     BRSyncManagerEventCallback eventCallback;
 
+    /*
+     * Chain params
+     */
+    const BRChainParams *chainParams;
+
     /**
      * The number of blocks required to be mined before until a transaction can be considered final
      */
@@ -432,9 +437,11 @@ _updateWalletAddressSet(BRSetOf(BRAddress *) addresses,
                         BRWallet *wallet);
 
 static uint32_t
-_getLastConfirmedSendTxHeight(BRWallet *wallet,
-                              uint64_t lastBlockHeight,
-                              uint64_t confirmationsUntilFinal);
+_calculateSyncDepthHeight(BRSyncDepth depth,
+                          BRWallet *wallet,
+                          const BRChainParams *chainParams,
+                          uint64_t networkBlockHeight,
+                          uint64_t confirmationsUntilFinal);
 
 /// MARK: - Sync Manager Implementation
 
@@ -918,35 +925,15 @@ BRClientSyncManagerScanToDepth(BRClientSyncManager manager, BRSyncDepth depth) {
             needSyncEvent = BRClientSyncManagerScanStateIsFullScan (&manager->scanState);
             BRClientSyncManagerScanStateWipe (&manager->scanState);
 
-            // Reset the height that we've synced to
-            switch (depth) {
-                case SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND: {
-                    uint32_t scanHeight = _getLastConfirmedSendTxHeight (manager->wallet,
-                                                                         manager->networkBlockHeight,
-                                                                         manager->confirmationsUntilFinal);
-                    // don't allow the sync to jump forward so that we don't have a situation where
-                    // we miss transactions
-                    manager->syncedBlockHeight = (0 == scanHeight ?
-                                                  manager->initBlockHeight :
-                                                  MIN (manager->syncedBlockHeight, scanHeight));
-                    break;
-                }
-                case SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK: {
-                    uint32_t scanHeight = (uint32_t) MIN (manager->networkBlockHeight, UINT32_MAX);
-                    const BRCheckPoint *checkpoint = BRChainParamsGetCheckpointBeforeBlockNumber (manager->chainParams, scanHeight);
-
-                    // don't allow the sync to jump forward so that we don't have a situation where
-                    // we miss transactions
-                    manager->syncedBlockHeight = (NULL == checkpoint ?
-                                                  manager->initBlockHeight :
-                                                  MIN (manager->syncedBlockHeight, checkpoint->height));
-                    break;
-                }
-                case SYNC_DEPTH_FROM_CREATION: {
-                    manager->syncedBlockHeight = manager->initBlockHeight;
-                    break;
-                }
-            }
+            // Reset the height that we've synced to (don't go behind and the initBlockHeight
+            // and don't go past the current sync height so that we don't we miss transactions)
+            manager->syncedBlockHeight = MAX (manager->initBlockHeight,
+                                              MIN (_calculateSyncDepthHeight (depth,
+                                                                              manager->wallet,
+                                                                              manager->chainParams,
+                                                                              manager->networkBlockHeight,
+                                                                              manager->confirmationsUntilFinal),
+                                                   manager->syncedBlockHeight));
         }
 
         // Send event while holding the state lock so that event
@@ -1490,6 +1477,7 @@ BRPeerSyncManagerNew(BRSyncManagerEventContext eventContext,
     manager->wallet = wallet;
     manager->eventContext = eventContext;
     manager->eventCallback = eventCallback;
+    manager->chainParams = params;
 
     pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);
@@ -1580,26 +1568,16 @@ BRPeerSyncManagerScan(BRPeerSyncManager manager) {
 
 static void
 BRPeerSyncManagerScanToDepth(BRPeerSyncManager manager, BRSyncDepth depth) {
-    switch (depth) {
-        case SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND: {
-            uint32_t scanHeight = _getLastConfirmedSendTxHeight (manager->wallet,
-                                                                 manager->networkBlockHeight,
-                                                                 manager->confirmationsUntilFinal);
-            if (0 != scanHeight) {
-                BRPeerManagerRescanFromBlockNumber (manager->peerManager, scanHeight);
-            } else {
-                BRPeerManagerRescan (manager->peerManager);
-            }
-            break;
-        }
-        case SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK: {
-            BRPeerManagerRescanFromLastHardcodedCheckpoint (manager->peerManager);
-            break;
-        }
-        case SYNC_DEPTH_FROM_CREATION: {
-            BRPeerManagerRescan (manager->peerManager);
-            break;
-        }
+    uint32_t scanHeight = MIN (_calculateSyncDepthHeight (depth,
+                                                          manager->wallet,
+                                                          manager->chainParams,
+                                                          manager->networkBlockHeight,
+                                                          manager->confirmationsUntilFinal),
+                               BRPeerManagerLastBlockHeight (manager->peerManager));
+    if (0 != scanHeight) {
+        BRPeerManagerRescanFromBlockNumber (manager->peerManager, scanHeight);
+    } else {
+        BRPeerManagerRescan (manager->peerManager);
     }
 }
 
@@ -1995,6 +1973,36 @@ _getLastConfirmedSendTxHeight(BRWallet *wallet,
         }
 
         free (transactions);
+    }
+
+    return scanHeight;
+}
+
+static uint32_t
+_calculateSyncDepthHeight(BRSyncDepth depth,
+                          BRWallet *wallet,
+                          const BRChainParams *chainParams,
+                          uint64_t networkBlockHeight,
+                          uint64_t confirmationsUntilFinal) {
+    uint32_t scanHeight = 0;
+
+    switch (depth) {
+        case SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND: {
+            scanHeight = _getLastConfirmedSendTxHeight (wallet,
+                                                        networkBlockHeight,
+                                                        confirmationsUntilFinal);
+            break;
+        }
+        case SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK: {
+            const BRCheckPoint *checkpoint = BRChainParamsGetCheckpointBeforeBlockNumber (chainParams,
+                                                                                          (uint32_t) MIN (networkBlockHeight, UINT32_MAX));
+            scanHeight = NULL == checkpoint ? 0 : checkpoint->height;
+            break;
+        }
+        case SYNC_DEPTH_FROM_CREATION: {
+            scanHeight = 0;
+            break;
+        }
     }
 
     return scanHeight;
