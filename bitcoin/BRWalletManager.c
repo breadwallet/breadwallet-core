@@ -851,6 +851,10 @@ BRWalletManagerNew (BRWalletManagerClient client,
         pthread_mutexattr_destroy(&attr);
     }
 
+    {
+        pthread_mutex_init(&bwm->transactionLock, NULL);
+    }
+
     // Create the alarm clock, but don't start it.
     alarmClockCreateIfNecessary(0);
 
@@ -1000,12 +1004,18 @@ BRWalletManagerFree (BRWalletManager manager) {
         BRSyncManagerFree (manager->syncManager);
         BRWalletFree (manager->wallet);
 
-        BRWalletManagerFreeTransactions (manager);
         eventHandlerDestroy (manager->handler);
         fileServiceRelease (manager->fileService);
     }
     pthread_mutex_unlock (&manager->lock);
 
+    pthread_mutex_lock (&manager->transactionLock);
+    {
+        BRWalletManagerFreeTransactions (manager);
+    }
+    pthread_mutex_unlock (&manager->transactionLock);
+
+    pthread_mutex_destroy (&manager->transactionLock);
     pthread_mutex_destroy (&manager->lock);
     memset (manager, 0, sizeof(*manager));
     free (manager);
@@ -1119,13 +1129,14 @@ BRWalletManagerCreateTransaction (BRWalletManager manager,
 
     pthread_mutex_lock (&manager->lock);
     uint64_t feePerKbSaved = BRWalletFeePerKb (wallet);
-
     BRWalletSetFeePerKb (wallet, feePerKb);
     BRTransaction *transaction = BRWalletCreateTransaction (wallet, amount, addr.s);
     BRWalletSetFeePerKb (wallet, feePerKbSaved);
-
-    BRTransactionWithState txnWithState = (NULL != transaction) ? BRWalletManagerAddOwnedTransaction (manager, transaction) : NULL;
     pthread_mutex_unlock (&manager->lock);
+
+    pthread_mutex_lock (&manager->transactionLock);
+    BRTransactionWithState txnWithState = (NULL != transaction) ? BRWalletManagerAddOwnedTransaction (manager, transaction) : NULL;
+    pthread_mutex_unlock (&manager->transactionLock);
 
     if (NULL != txnWithState) {
         bwmSignalTransactionEvent(manager,
@@ -1147,15 +1158,16 @@ BRWalletManagerCreateTransactionForSweep (BRWalletManager manager,
     assert (wallet == manager->wallet);
 
     pthread_mutex_lock (&manager->lock);
-
     // TODO(fix): We should move this, along with BRWalletManagerCreateTransaction, to
     //            a model where they return a status code. We are currently providing no
     //            context to the caller.
     BRTransaction *transaction = NULL;
     BRWalletSweeperCreateTransaction (sweeper, wallet, feePerKb, &transaction);
-
-    BRTransactionWithState txnWithState = (NULL != transaction) ? BRWalletManagerAddOwnedTransaction (manager, transaction) : NULL;
     pthread_mutex_unlock (&manager->lock);
+
+    pthread_mutex_lock (&manager->transactionLock);
+    BRTransactionWithState txnWithState = (NULL != transaction) ? BRWalletManagerAddOwnedTransaction (manager, transaction) : NULL;
+    pthread_mutex_unlock (&manager->transactionLock);
 
     if (NULL != txnWithState) {
         bwmSignalTransactionEvent(manager,
@@ -1179,13 +1191,14 @@ BRWalletManagerCreateTransactionForOutputs (BRWalletManager manager,
 
     pthread_mutex_lock (&manager->lock);
     uint64_t feePerKbSaved = BRWalletFeePerKb (wallet);
-
     BRWalletSetFeePerKb (wallet, feePerKb);
     BRTransaction *transaction = BRWalletCreateTxForOutputs (wallet, outputs, outputsLen);
     BRWalletSetFeePerKb (wallet, feePerKbSaved);
-
-    BRTransactionWithState txnWithState = (NULL != transaction) ? BRWalletManagerAddOwnedTransaction (manager, transaction) : NULL;
     pthread_mutex_unlock (&manager->lock);
+
+    pthread_mutex_lock (&manager->transactionLock);
+    BRTransactionWithState txnWithState = (NULL != transaction) ? BRWalletManagerAddOwnedTransaction (manager, transaction) : NULL;
+    pthread_mutex_unlock (&manager->transactionLock);
 
     if (NULL != txnWithState) {
         bwmSignalTransactionEvent(manager,
@@ -1207,9 +1220,9 @@ BRWalletManagerSignTransaction (BRWalletManager manager,
                                 size_t seedLen) {
     assert (wallet == manager->wallet);
 
-    pthread_mutex_lock (&manager->lock);
+    pthread_mutex_lock (&manager->transactionLock);
     BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByOwned (manager, transaction);
-    pthread_mutex_unlock (&manager->lock);
+    pthread_mutex_unlock (&manager->transactionLock);
 
     int success = 0;
     if (NULL != txnWithState &&
@@ -1237,9 +1250,9 @@ BRWalletManagerSignTransactionForKey (BRWalletManager manager,
                                       BRKey *key) {
     assert (wallet == manager->wallet);
 
-    pthread_mutex_lock (&manager->lock);
+    pthread_mutex_lock (&manager->transactionLock);
     BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByOwned (manager, transaction);
-    pthread_mutex_unlock (&manager->lock);
+    pthread_mutex_unlock (&manager->transactionLock);
 
     int success = 0;
     if (NULL != txnWithState &&
@@ -1265,12 +1278,15 @@ BRWalletManagerSubmitTransaction (BRWalletManager manager,
                                   OwnershipKept BRTransaction *transaction) {
     assert (wallet == manager->wallet);
 
-    pthread_mutex_lock (&manager->lock);
+    pthread_mutex_lock (&manager->transactionLock);
     BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByOwned (manager, transaction);
+    pthread_mutex_unlock (&manager->transactionLock);
+
     if (NULL != txnWithState) {
+        pthread_mutex_lock (&manager->lock);
         BRSyncManagerSubmit (manager->syncManager, BRTransactionWithStateGetOwned (txnWithState));
+        pthread_mutex_unlock (&manager->lock);
     }
-    pthread_mutex_unlock (&manager->lock);
 }
 
 extern void
@@ -1370,10 +1386,23 @@ BRWalletManagerEstimateFeeForOutputs (BRWalletManager manager,
 
 /// MARK: Wallet Callbacks
 
-// This callback comes from the BRWallet. That component has no
-// inherent threading model of its own. As such, these callbacks can
-// occur on any thread (including that of the caller that triggered
-// the callback).
+/**
+ * This callback comes from the BRWallet. That component has no inherent threading model of its own. As
+ * such, these callbacks can occur on any thread (including that of the caller that triggered the
+ * callback).
+ *
+ * Previously, these callbacks acquired the BRWalletManager's `lock` to modify the transaction list.
+ * Now, that collection is guarded using the manager's more granular `transactionLock`.
+ *
+ * This was changed because these callbacks can occur while the BRPeerManager's lock (via BRSyncManager)
+ * is being held. This resulted in a deadlock where:
+ *   - Thread-A: Held BRPeerManager::lock and tried to acquire BRWalletManager::lock
+ *   - Thread-B: Held BRWalletManager::lock and tried to acquire BRPeerManager::lock
+ *
+ * By using the more granular `transactionLock`, we avoid the Thread-A scenario.
+ *
+ * !!!! These callbacks do NOT (and should NEVER) acquire the BRWalletManager::lock. !!!!
+ */
 
 static void
 _BRWalletManagerBalanceChanged (void *info,
@@ -1394,7 +1423,7 @@ _BRWalletManagerTxAdded (void *info,
     BRWalletManager manager = (BRWalletManager) info;
     assert (BRTransactionIsSigned (tx));
 
-    pthread_mutex_lock (&manager->lock);
+    pthread_mutex_lock (&manager->transactionLock);
     BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByHash (manager, tx->txHash);
     if (NULL == txnWithState) {
         // first we've seen it, so it came from the network; add it to our list
@@ -1403,8 +1432,8 @@ _BRWalletManagerTxAdded (void *info,
         // this is a transaction we've submitted; set the reference transaction from the wallet
         txnWithState = BRTransactionWithStateSetReferenced(txnWithState, tx);
     }
+    pthread_mutex_unlock (&manager->transactionLock);
     assert (NULL != txnWithState);
-    pthread_mutex_unlock (&manager->lock);
 
     // filesystem changes are NOT queued; they are acted upon immediately
     fileServiceSave(manager->fileService, fileServiceTypeTransactions, BRTransactionWithStateGetOwned (txnWithState));
@@ -1426,12 +1455,12 @@ _BRWalletManagerTxUpdated (void *info,
     BRWalletManager manager = (BRWalletManager) info;
 
     for (size_t index = 0; index < count; index++) {
-        pthread_mutex_lock (&manager->lock);
+        pthread_mutex_lock (&manager->transactionLock);
         BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByHash (manager, hashes[index]);
         assert (NULL != txnWithState && BRTransactionIsSigned (BRTransactionWithStateGetOwned (txnWithState)));
 
         BRTransactionWithStateSetBlock (txnWithState, blockHeight, timestamp);
-        pthread_mutex_unlock (&manager->lock);
+        pthread_mutex_unlock (&manager->transactionLock);
 
         // assert timestamp and blockHeight in transaction
         // filesystem changes are NOT queued; they are acted upon immediately
@@ -1457,12 +1486,12 @@ _BRWalletManagerTxDeleted (void *info,
     // filesystem changes are NOT queued; they are acted upon immediately
     fileServiceRemove(manager->fileService, fileServiceTypeTransactions, hash);
 
-    pthread_mutex_lock (&manager->lock);
+    pthread_mutex_lock (&manager->transactionLock);
     BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByHash (manager, hash);
     assert (NULL != txnWithState && BRTransactionIsSigned (BRTransactionWithStateGetOwned (txnWithState)));
 
     BRTransactionWithStateSetDeleted (txnWithState);
-    pthread_mutex_unlock (&manager->lock);
+    pthread_mutex_unlock (&manager->transactionLock);
 
     bwmSignalTransactionEvent(manager,
                               manager->wallet,
@@ -1473,13 +1502,16 @@ _BRWalletManagerTxDeleted (void *info,
 }
 
 ///
-/// Mark: SyncManager Events
+/// Mark: SyncManager Event Callback
 ///
 
-// This callback comes from the BRSyncManager. That component has no
-// inherent threading model of its own. As such, these callbacks can
-// occur on any thread (including that of the caller that triggered
-// the event).
+/**
+ * This callback comes from the BRSyncManager. That component has no inherent threading model
+ * of its own. As such, these callbacks can occur on any thread (including that of the caller
+ * that triggered the event).
+ *
+ * !!!! These callbacks do NOT (and should NEVER) acquire the BRWalletManager::lock. !!!!
+ */
 
 static void
 _BRWalletManagerSyncEvent(void * context,
@@ -1603,10 +1635,13 @@ _BRWalletManagerSyncEvent(void * context,
 /// Mark: BRSyncManager Client Callbacks
 ///
 
-// These callbacks come from the BRSyncManager. That component has no
-// inherent threading model of its own. As such, these callbacks can
-// occur on any thread (including that of the caller that triggered
-// the event).
+/**
+ * These callbacks come from the BRSyncManager. That component has no inherent threading model
+ * of its own. As such, these callbacks can occur on any thread (including that of the caller
+ * that triggered the event).
+ *
+ * !!!! These callbacks do NOT (and should NEVER) acquire the BRWalletManager::lock. !!!!
+ */
 
 static void _BRWalletManagerGetBlockNumber(void * context,
                                            BRSyncManager manager,
@@ -1660,9 +1695,10 @@ _BRWalletManagerSubmitTransaction(void * context,
 /// MARK: BRWalletManagerClient Completion Routines
 //
 
-// These announcers are called by a client once it has completed
-// a request. The threading model of a client is unknown. As such,
-// these callbacks can occur on any thread.
+/**
+ * These announcers are called by a client once it has completed a request. The threading
+ * model of a client is unknown. As such, these callbacks can occur on any thread.
+ */
 
 extern int
 bwmAnnounceBlockNumber (BRWalletManager manager,
@@ -1766,22 +1802,27 @@ bwmHandleAnnounceSubmit (BRWalletManager manager,
                          int error) {
     assert (eventHandlerIsCurrentThread (manager->handler));
 
-    pthread_mutex_lock (&manager->lock);
+    pthread_mutex_lock (&manager->transactionLock);
     BRTransactionWithState txnWithState = BRWalletManagerFindTransactionByHash (manager, txHash);
+    pthread_mutex_unlock (&manager->transactionLock);
+
     if (NULL != txnWithState) {
+        pthread_mutex_lock (&manager->lock);
         BRSyncManagerAnnounceSubmitTransaction (manager->syncManager,
                                                 rid,
                                                 BRTransactionWithStateGetOwned (txnWithState),
                                                 error);
+        pthread_mutex_unlock (&manager->lock);
     }
-    pthread_mutex_unlock (&manager->lock);
 }
 
 ///
 /// MARK: BRWalletManager Events
 //
 
-// These handlers are called by the event handler thread.
+/**
+ * These handlers are called by the event handler thread.
+ */
 
 extern void
 bwmHandleWalletManagerEvent(BRWalletManager bwm,
