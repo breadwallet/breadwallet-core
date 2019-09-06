@@ -89,37 +89,6 @@ struct BRSyncManagerStruct {
     BRSyncMode mode;
 };
 
-static uint32_t
-_getLastConfirmedSendTxHeight(BRWallet *wallet, uint64_t lastBlockHeight, uint64_t confirmationsUntilFinal) {
-    uint32_t scanHeight = 0;
-
-    size_t transactionCount = BRWalletTransactions (wallet, NULL, 0);
-
-    if (lastBlockHeight >= confirmationsUntilFinal && 0 != transactionCount) {
-        BRArrayOf(BRTransaction *) transactions = (BRArrayOf(BRTransaction *) ) calloc (transactionCount, sizeof (BRTransaction *));
-        transactionCount = BRWalletTransactions (wallet, transactions, transactionCount);
-
-        for (size_t index = 0; index < transactionCount; index++) {
-            // ensure:
-            // - tx is valid (i.e. no previous transaction spend any of utxos, and no inputs are invalid)
-            // - AND the transaction was a SEND
-            // - AND the transaction has been confirmed
-            if (BRWalletTransactionIsValid (wallet, transactions[index]) &&
-                0 != BRWalletAmountSentByTx (wallet, transactions[index]) &&
-                TX_UNCONFIRMED != transactions[index]->blockHeight &&
-                transactions[index]->blockHeight < (lastBlockHeight - confirmationsUntilFinal)) {
-                scanHeight = (transactions[index]->blockHeight > scanHeight ?
-                                transactions[index]->blockHeight :
-                                scanHeight);
-            }
-        }
-
-        free (transactions);
-    }
-
-    return scanHeight;
-}
-
 /// MARK: - Sync Manager Decls & Defs
 
 struct BRClientSyncManagerScanStateRecord {
@@ -333,18 +302,6 @@ static BRArrayOf(char *)
 BRClientSyncManagerScanStateAdvanceAndGetNewAddresses (BRClientSyncManagerScanState scanState,
                                                        BRWallet *wallet);
 
-static BRAddress *
-_getWalletAddresses (BRWallet *wallet,
-                     size_t *addressCount);
-
-static void
-_fillWalletAddressSet(BRSetOf(BRAddress *) addresses,
-                      BRWallet *wallet);
-
-static BRArrayOf(BRAddress *)
-_updateWalletAddressSet(BRSetOf(BRAddress *) addresses,
-                        BRWallet *wallet);
-
 /// MARK: - Peer Sync Manager Decls & Defs
 
 struct BRPeerSyncManagerStruct {
@@ -459,6 +416,25 @@ static void _BRPeerSyncManagerSavePeers  (void *info, int replace, const BRPeer 
 static int  _BRPeerSyncManagerNetworkIsReachabele (void *info);
 static void _BRPeerSyncManagerThreadCleanup (void *info);
 static void _BRPeerSyncManagerTxPublished (void *info, int error);
+
+/// MARK: - Misc. Helper Declarations
+
+static BRAddress *
+_getWalletAddresses (BRWallet *wallet,
+                     size_t *addressCount);
+
+static void
+_fillWalletAddressSet(BRSetOf(BRAddress *) addresses,
+                      BRWallet *wallet);
+
+static BRArrayOf(BRAddress *)
+_updateWalletAddressSet(BRSetOf(BRAddress *) addresses,
+                        BRWallet *wallet);
+
+static uint32_t
+_getLastConfirmedSendTxHeight(BRWallet *wallet,
+                              uint64_t lastBlockHeight,
+                              uint64_t confirmationsUntilFinal);
 
 /// MARK: - Sync Manager Implementation
 
@@ -1486,65 +1462,6 @@ BRClientSyncManagerScanStateAdvanceAndGetNewAddresses (BRClientSyncManagerScanSt
     return newAddresses;
 }
 
-static BRAddress *
-_getWalletAddresses (BRWallet *wallet,size_t *addressCount) {
-    assert (addressCount);
-
-    size_t addrCount = BRWalletAllAddrs (wallet, NULL, 0);
-
-    BRAddress *addrs = (BRAddress *) calloc (2 * addrCount, sizeof (BRAddress));
-    BRWalletAllAddrs (wallet, addrs, addrCount);
-
-    memcpy (addrs + addrCount, addrs, addrCount * sizeof(BRAddress));
-    for (size_t index = 0; index < addrCount; index++)
-        addrs[addrCount + index] = BRWalletAddressToLegacy (wallet, &addrs[index]);
-
-    *addressCount = 2 * addrCount;
-    return addrs;
-}
-
-static void
-_fillWalletAddressSet(BRSetOf(BRAddress *) addresses, BRWallet *wallet) {
-    size_t addressCount = 0;
-    BRAddress *addressArray = _getWalletAddresses (wallet, &addressCount);
-
-    for (size_t index = 0; index < addressCount; index++) {
-        if (!BRSetContains (addresses, &addressArray[index])) {
-            BRAddress *address = malloc (sizeof(BRAddress));
-            *address = addressArray[index];
-            BRSetAdd (addresses, address);
-        }
-    }
-
-    free (addressArray);
-}
-
-static BRArrayOf(BRAddress *)
-_updateWalletAddressSet(BRSetOf(BRAddress *) addresses, BRWallet *wallet) {
-    size_t addressCount = 0;
-    BRAddress *addressArray = _getWalletAddresses (wallet, &addressCount);
-
-    BRArrayOf(BRAddress *) newAddresses;
-    array_new (newAddresses, addressCount);
-
-    for (size_t index = 0; index < addressCount; index++) {
-        if (!BRSetContains (addresses, &addressArray[index])) {
-            // one copy remains owned by the address set
-            BRAddress *address = malloc (sizeof(BRAddress));
-            *address = addressArray[index];
-            BRSetAdd (addresses, address);
-
-            // one copy owned by the returned array
-            address = malloc (sizeof(BRAddress));
-            *address = addressArray[index];
-            array_add (newAddresses, address);
-        }
-    }
-
-    free (addressArray);
-    return newAddresses;
-}
-
 /// MARK: - Peer Sync Manager Implementation
 
 static BRPeerSyncManager
@@ -1979,4 +1896,98 @@ _BRPeerSyncManagerTxPublished (void *info,
                                 SYNC_MANAGER_TXN_SUBMITTED,
                                 { .submitted = {transaction, error} },
                             });
+}
+
+/// MARK: - Misc. Helper Implementations
+
+static BRAddress *
+_getWalletAddresses (BRWallet *wallet,size_t *addressCount) {
+    assert (addressCount);
+
+    size_t addrCount = BRWalletAllAddrs (wallet, NULL, 0);
+
+    BRAddress *addrs = (BRAddress *) calloc (2 * addrCount, sizeof (BRAddress));
+    BRWalletAllAddrs (wallet, addrs, addrCount);
+
+    memcpy (addrs + addrCount, addrs, addrCount * sizeof(BRAddress));
+    for (size_t index = 0; index < addrCount; index++)
+        addrs[addrCount + index] = BRWalletAddressToLegacy (wallet, &addrs[index]);
+
+    *addressCount = 2 * addrCount;
+    return addrs;
+}
+
+static void
+_fillWalletAddressSet(BRSetOf(BRAddress *) addresses, BRWallet *wallet) {
+    size_t addressCount = 0;
+    BRAddress *addressArray = _getWalletAddresses (wallet, &addressCount);
+
+    for (size_t index = 0; index < addressCount; index++) {
+        if (!BRSetContains (addresses, &addressArray[index])) {
+            BRAddress *address = malloc (sizeof(BRAddress));
+            *address = addressArray[index];
+            BRSetAdd (addresses, address);
+        }
+    }
+
+    free (addressArray);
+}
+
+static BRArrayOf(BRAddress *)
+_updateWalletAddressSet(BRSetOf(BRAddress *) addresses, BRWallet *wallet) {
+    size_t addressCount = 0;
+    BRAddress *addressArray = _getWalletAddresses (wallet, &addressCount);
+
+    BRArrayOf(BRAddress *) newAddresses;
+    array_new (newAddresses, addressCount);
+
+    for (size_t index = 0; index < addressCount; index++) {
+        if (!BRSetContains (addresses, &addressArray[index])) {
+            // one copy remains owned by the address set
+            BRAddress *address = malloc (sizeof(BRAddress));
+            *address = addressArray[index];
+            BRSetAdd (addresses, address);
+
+            // one copy owned by the returned array
+            address = malloc (sizeof(BRAddress));
+            *address = addressArray[index];
+            array_add (newAddresses, address);
+        }
+    }
+
+    free (addressArray);
+    return newAddresses;
+}
+
+static uint32_t
+_getLastConfirmedSendTxHeight(BRWallet *wallet,
+                              uint64_t lastBlockHeight,
+                              uint64_t confirmationsUntilFinal) {
+    uint32_t scanHeight = 0;
+
+    size_t transactionCount = BRWalletTransactions (wallet, NULL, 0);
+
+    if (lastBlockHeight >= confirmationsUntilFinal && 0 != transactionCount) {
+        BRArrayOf(BRTransaction *) transactions = (BRArrayOf(BRTransaction *) ) calloc (transactionCount, sizeof (BRTransaction *));
+        transactionCount = BRWalletTransactions (wallet, transactions, transactionCount);
+
+        for (size_t index = 0; index < transactionCount; index++) {
+            // ensure:
+            // - tx is valid (i.e. no previous transaction spend any of utxos, and no inputs are invalid)
+            // - AND the transaction was a SEND
+            // - AND the transaction has been confirmed
+            if (BRWalletTransactionIsValid (wallet, transactions[index]) &&
+                0 != BRWalletAmountSentByTx (wallet, transactions[index]) &&
+                TX_UNCONFIRMED != transactions[index]->blockHeight &&
+                transactions[index]->blockHeight < (lastBlockHeight - confirmationsUntilFinal)) {
+                scanHeight = (transactions[index]->blockHeight > scanHeight ?
+                                transactions[index]->blockHeight :
+                                scanHeight);
+            }
+        }
+
+        free (transactions);
+    }
+
+    return scanHeight;
 }
