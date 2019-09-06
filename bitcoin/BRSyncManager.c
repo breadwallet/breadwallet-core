@@ -219,10 +219,9 @@ static void
 BRClientSyncManagerDisconnect(BRClientSyncManager manager);
 
 static void
-BRClientSyncManagerScan(BRClientSyncManager manager);
-
-static void
-BRClientSyncManagerScanToDepth(BRClientSyncManager manager, BRSyncDepth depth);
+BRClientSyncManagerScanToDepth(BRClientSyncManager manager,
+                               BRSyncDepth depth,
+                               OwnershipKept BRTransaction *lastConfirmedSendTx);
 
 static void
 BRClientSyncManagerSubmit(BRClientSyncManager manager,
@@ -397,10 +396,9 @@ static void
 BRPeerSyncManagerDisconnect(BRPeerSyncManager manager);
 
 static void
-BRPeerSyncManagerScan(BRPeerSyncManager manager);
-
-static void
-BRPeerSyncManagerScanToDepth(BRPeerSyncManager manager, BRSyncDepth depth);
+BRPeerSyncManagerScanToDepth(BRPeerSyncManager manager,
+                             BRSyncDepth depth,
+                             OwnershipKept BRTransaction *lastConfirmedSendTx);
 
 static void
 BRPeerSyncManagerSubmit(BRPeerSyncManager manager,
@@ -441,7 +439,7 @@ _calculateSyncDepthHeight(BRSyncDepth depth,
                           BRWallet *wallet,
                           const BRChainParams *chainParams,
                           uint64_t networkBlockHeight,
-                          uint64_t confirmationsUntilFinal);
+                          OwnershipKept BRTransaction *lastConfirmedSendTx);
 
 /// MARK: - Sync Manager Implementation
 
@@ -575,29 +573,15 @@ BRSyncManagerDisconnect(BRSyncManager manager) {
 }
 
 extern void
-BRSyncManagerScan(BRSyncManager manager) {
-    switch (manager->mode) {
-        case SYNC_MODE_BRD_ONLY:
-        BRClientSyncManagerScan (BRSyncManagerAsClientSyncManager (manager));
-        break;
-        case SYNC_MODE_P2P_ONLY:
-        BRPeerSyncManagerScan (BRSyncManagerAsPeerSyncManager (manager));
-        break;
-        default:
-        assert (0);
-        break;
-    }
-}
-
-extern void
 BRSyncManagerScanToDepth(BRSyncManager manager,
-                         BRSyncDepth depth) {
+                         BRSyncDepth depth,
+                         OwnershipKept BRTransaction *lastConfirmedSendTx) {
     switch (manager->mode) {
         case SYNC_MODE_BRD_ONLY:
-        BRClientSyncManagerScanToDepth (BRSyncManagerAsClientSyncManager (manager), depth);
+        BRClientSyncManagerScanToDepth (BRSyncManagerAsClientSyncManager (manager), depth, lastConfirmedSendTx);
         break;
         case SYNC_MODE_P2P_ONLY:
-        BRPeerSyncManagerScanToDepth (BRSyncManagerAsPeerSyncManager (manager), depth);
+        BRPeerSyncManagerScanToDepth (BRSyncManagerAsPeerSyncManager (manager), depth, lastConfirmedSendTx);
         break;
         default:
         assert (0);
@@ -904,12 +888,9 @@ BRClientSyncManagerDisconnect(BRClientSyncManager manager) {
 }
 
 static void
-BRClientSyncManagerScan(BRClientSyncManager manager) {
-    BRClientSyncManagerScanToDepth (manager, SYNC_DEPTH_FROM_CREATION);
-}
-
-static void
-BRClientSyncManagerScanToDepth(BRClientSyncManager manager, BRSyncDepth depth) {
+BRClientSyncManagerScanToDepth(BRClientSyncManager manager,
+                               BRSyncDepth depth,
+                               OwnershipKept BRTransaction *lastConfirmedSendTx) {
     uint8_t needConnectionEvent = 0;
     uint8_t needSyncEvent       = 0;
 
@@ -932,7 +913,7 @@ BRClientSyncManagerScanToDepth(BRClientSyncManager manager, BRSyncDepth depth) {
                                                                               manager->wallet,
                                                                               manager->chainParams,
                                                                               manager->networkBlockHeight,
-                                                                              manager->confirmationsUntilFinal),
+                                                                              lastConfirmedSendTx),
                                                    manager->syncedBlockHeight));
         }
 
@@ -1111,8 +1092,7 @@ BRClientSyncManagerAnnounceGetTransactionsItem (BRClientSyncManager manager,
     }
 
     if (needRegistration) {
-        BRTransaction *walletTxn = BRWalletTransactionForHash (manager->wallet, transaction->txHash);
-        if (NULL != walletTxn) {
+        if (NULL != BRWalletTransactionForHash (manager->wallet, transaction->txHash)) {
             // Wallet already knows about this txn; so just update the block info
             BRWalletUpdateTransactions (manager->wallet, &transaction->txHash, 1, (uint32_t) blockHeight, (uint32_t) timestamp);
         } else {
@@ -1562,17 +1542,14 @@ BRPeerSyncManagerDisconnect(BRPeerSyncManager manager) {
 }
 
 static void
-BRPeerSyncManagerScan(BRPeerSyncManager manager) {
-    BRPeerSyncManagerScanToDepth (manager, SYNC_DEPTH_FROM_CREATION);
-}
-
-static void
-BRPeerSyncManagerScanToDepth(BRPeerSyncManager manager, BRSyncDepth depth) {
+BRPeerSyncManagerScanToDepth(BRPeerSyncManager manager,
+                             BRSyncDepth depth,
+                             OwnershipKept BRTransaction *lastConfirmedSendTx) {
     uint32_t scanHeight = MIN (_calculateSyncDepthHeight (depth,
                                                           manager->wallet,
                                                           manager->chainParams,
                                                           manager->networkBlockHeight,
-                                                          manager->confirmationsUntilFinal),
+                                                          lastConfirmedSendTx),
                                BRPeerManagerLastBlockHeight (manager->peerManager));
     if (0 != scanHeight) {
         BRPeerManagerRescanFromBlockNumber (manager->peerManager, scanHeight);
@@ -1946,51 +1923,16 @@ _updateWalletAddressSet(BRSetOf(BRAddress *) addresses, BRWallet *wallet) {
 }
 
 static uint32_t
-_getLastConfirmedSendTxHeight(BRWallet *wallet,
-                              uint64_t lastBlockHeight,
-                              uint64_t confirmationsUntilFinal) {
-    uint32_t scanHeight = 0;
-
-    size_t transactionCount = BRWalletTransactions (wallet, NULL, 0);
-
-    if (lastBlockHeight >= confirmationsUntilFinal && 0 != transactionCount) {
-        BRArrayOf(BRTransaction *) transactions = (BRArrayOf(BRTransaction *) ) calloc (transactionCount, sizeof (BRTransaction *));
-        transactionCount = BRWalletTransactions (wallet, transactions, transactionCount);
-
-        for (size_t index = 0; index < transactionCount; index++) {
-            // ensure:
-            // - tx is valid (i.e. no previous transaction spend any of utxos, and no inputs are invalid)
-            // - AND the transaction was a SEND
-            // - AND the transaction has been confirmed
-            if (BRWalletTransactionIsValid (wallet, transactions[index]) &&
-                0 != BRWalletAmountSentByTx (wallet, transactions[index]) &&
-                TX_UNCONFIRMED != transactions[index]->blockHeight &&
-                transactions[index]->blockHeight < (lastBlockHeight - confirmationsUntilFinal)) {
-                scanHeight = (transactions[index]->blockHeight > scanHeight ?
-                                transactions[index]->blockHeight :
-                                scanHeight);
-            }
-        }
-
-        free (transactions);
-    }
-
-    return scanHeight;
-}
-
-static uint32_t
 _calculateSyncDepthHeight(BRSyncDepth depth,
                           BRWallet *wallet,
                           const BRChainParams *chainParams,
                           uint64_t networkBlockHeight,
-                          uint64_t confirmationsUntilFinal) {
+                          OwnershipKept BRTransaction *lastConfirmedSendTx) {
     uint32_t scanHeight = 0;
 
     switch (depth) {
         case SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND: {
-            scanHeight = _getLastConfirmedSendTxHeight (wallet,
-                                                        networkBlockHeight,
-                                                        confirmationsUntilFinal);
+            scanHeight = NULL == lastConfirmedSendTx ? 0 : lastConfirmedSendTx->blockHeight;
             break;
         }
         case SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK: {

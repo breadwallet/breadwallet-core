@@ -170,11 +170,9 @@ extern void
 BRSyncManagerDisconnect(BRSyncManager manager);
 
 extern void
-BRSyncManagerScan(BRSyncManager manager);
-
-extern void
 BRSyncManagerScanToDepth(BRSyncManager manager,
-                         BRSyncDepth depth);
+                         BRSyncDepth depth,
+                         OwnershipKept BRTransaction *lastConfirmedSend);
 
 extern void
 BRSyncManagerSubmit(BRSyncManager manager,

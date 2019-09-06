@@ -470,6 +470,35 @@ BRWalletManagerFindTransactionByOwned (BRWalletManager manager, BRTransaction *t
     return txnWithState;
 }
 
+static BRTransactionWithState
+BRWalletManagerFindTransactionWithLastConfirmedSend(BRWalletManager manager,
+                                                    uint64_t lastBlockHeight,
+                                                    uint64_t confirmationsUntilFinal) {
+    BRTransactionWithState txnWithState = NULL;
+
+    if (lastBlockHeight >= confirmationsUntilFinal) {
+        for (size_t index = 0; index < array_count (manager->transactions); index++) {
+            // ensure:
+            // - tx is valid (i.e. no previous transaction spend any of utxos, and no inputs are invalid)
+            // - AND the transaction was a SEND
+            // - AND the transaction has been confirmed
+            if (BRTransactionIsSigned (manager->transactions[index]->ownedTransaction) &&
+                BRWalletTransactionIsValid (manager->wallet, manager->transactions[index]->ownedTransaction) &&
+                0 != BRWalletAmountSentByTx (manager->wallet, manager->transactions[index]->ownedTransaction) &&
+                TX_UNCONFIRMED != manager->transactions[index]->ownedTransaction->blockHeight &&
+                manager->transactions[index]->ownedTransaction->blockHeight < (lastBlockHeight - confirmationsUntilFinal)) {
+
+                if (NULL == txnWithState ||
+                    txnWithState->ownedTransaction->blockHeight < manager->transactions[index]->ownedTransaction->blockHeight) {
+                    txnWithState =  manager->transactions[index];
+                }
+            }
+        }
+    }
+
+    return txnWithState;
+}
+
 /**
  * Find the tracked transaction using the `owned` transaction's hash. Deleted transactions
  * are not checked (i.e. they are skipped).
@@ -1050,16 +1079,35 @@ BRWalletManagerDisconnect (BRWalletManager manager) {
 
 extern void
 BRWalletManagerScan (BRWalletManager manager) {
-    pthread_mutex_lock (&manager->lock);
-    BRSyncManagerScan (manager->syncManager);
-    pthread_mutex_unlock (&manager->lock);
+    BRWalletManagerScanToDepth (manager, SYNC_DEPTH_FROM_CREATION);
 }
 
 extern void
 BRWalletManagerScanToDepth (BRWalletManager manager,
                             BRSyncDepth depth) {
+    // The BRSyncManager has no safe way to get transactions (BRWalletTransactions isn't safe as one of
+    // the returned transactions could be deleted at any moment). To work around that fact, and the fact
+    // that the BRWalletManager needs to know the block height of the last confirmed send when the mode
+    // is SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND, get the last transaction up front (if available).
+
+    BRTransaction *lastConfirmedSendTxn = NULL;
+    if (SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND == depth) {
+        pthread_mutex_lock (&manager->lock);
+        uint64_t lastBlockHeight = BRSyncManagerGetBlockHeight (manager->syncManager);
+        uint64_t confirmationsUntilFinal = BRSyncManagerGetConfirmationsUntilFinal (manager->syncManager);
+        pthread_mutex_unlock (&manager->lock);
+
+        pthread_mutex_lock (&manager->transactionLock);
+        BRTransactionWithState txnWithState = BRWalletManagerFindTransactionWithLastConfirmedSend (manager,
+                                                                                                   lastBlockHeight,
+                                                                                                   confirmationsUntilFinal);
+        pthread_mutex_unlock (&manager->transactionLock);
+
+        lastConfirmedSendTxn = NULL == txnWithState ? NULL : BRTransactionWithStateGetOwned (txnWithState);
+    }
+
     pthread_mutex_lock (&manager->lock);
-    BRSyncManagerScanToDepth (manager->syncManager, depth);
+    BRSyncManagerScanToDepth (manager->syncManager, depth, lastConfirmedSendTxn);
     pthread_mutex_unlock (&manager->lock);
 }
 
