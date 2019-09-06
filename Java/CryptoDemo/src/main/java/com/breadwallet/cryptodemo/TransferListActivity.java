@@ -224,9 +224,9 @@ public class TransferListActivity extends AppCompatActivity {
                                 -1,
                                 (dialog, which) -> {
                                     switch (which) {
-                                        case 0: wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND); break;
-                                        case 1: wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK); break;
-                                        default: wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.SYNC_DEPTH_FROM_CREATION); break;
+                                        case 0: wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.FROM_LAST_CONFIRMED_SEND); break;
+                                        case 1: wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.FROM_LAST_TRUSTED_BLOCK); break;
+                                        default: wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.FROM_CREATION); break;
                                     }
                                     dialog.dismiss();
                                 })

@@ -168,9 +168,9 @@ final class Utilities {
     /* package */
     static BRSyncDepth syncDepthToCrypto(WalletManagerSyncDepth depth) {
         switch (depth) {
-            case SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND: return BRSyncDepth.SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND;
-            case SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK:  return BRSyncDepth.SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK;
-            case SYNC_DEPTH_FROM_CREATION:            return BRSyncDepth.SYNC_DEPTH_FROM_CREATION;
+            case FROM_LAST_CONFIRMED_SEND: return BRSyncDepth.SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND;
+            case FROM_LAST_TRUSTED_BLOCK:  return BRSyncDepth.SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK;
+            case FROM_CREATION:            return BRSyncDepth.SYNC_DEPTH_FROM_CREATION;
             default: throw new IllegalArgumentException("Unsupported depth");
         }
     }
