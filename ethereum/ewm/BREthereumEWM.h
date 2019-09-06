@@ -30,7 +30,8 @@ ewmCreate (BREthereumNetwork network,
            BRSyncMode mode,
            BREthereumClient client,
            const char *storagePath,
-           uint64_t blockHeight);
+           uint64_t blockHeight,
+           uint64_t confirmationsUntilFinal);
 
 extern BREthereumEWM
 ewmCreateWithPaperKey (BREthereumNetwork network,
@@ -39,7 +40,8 @@ ewmCreateWithPaperKey (BREthereumNetwork network,
                        BRSyncMode mode,
                        BREthereumClient client,
                        const char *storagePath,
-                       uint64_t blockHeight);
+                       uint64_t blockHeight,
+                       uint64_t confirmationsUntilFinal);
 
 extern BREthereumEWM
 ewmCreateWithPublicKey (BREthereumNetwork network,
@@ -48,7 +50,8 @@ ewmCreateWithPublicKey (BREthereumNetwork network,
                         BRSyncMode mode,
                         BREthereumClient client,
                         const char *storagePath,
-                        uint64_t blockHeight);
+                        uint64_t blockHeight,
+                        uint64_t confirmationsUntilFinal);
 
 extern void
 ewmDestroy (BREthereumEWM ewm);

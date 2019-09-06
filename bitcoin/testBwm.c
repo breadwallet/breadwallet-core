@@ -117,7 +117,7 @@ extern int BRRunTestWalletManagerSync (const char *paperKey,
 
     BRSyncMode mode = SYNC_MODE_P2P_ONLY;
 
-    BRWalletManager manager = BRWalletManagerNew (client, mpk, params, epoch, mode, storagePath, 0);
+    BRWalletManager manager = BRWalletManagerNew (client, mpk, params, epoch, mode, storagePath, 0, 6);
 
     BRWalletManagerStart (manager);
 
@@ -583,7 +583,7 @@ BRRunTestWalletManagerSyncBwmSetup (BRSyncMode mode,
     } else {
         params = isMainnet ? BRBCashParams : BRBCashTestNetParams;
     }
-    return BRWalletManagerNew (client, mpk, params, earliestKeyTime, mode, storagePath, blockHeight);
+    return BRWalletManagerNew (client, mpk, params, earliestKeyTime, mode, storagePath, blockHeight, 6);
 }
 
 static int

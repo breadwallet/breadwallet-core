@@ -89,15 +89,13 @@ struct BRSyncManagerStruct {
     BRSyncMode mode;
 };
 
-#define CONFIRMATION_BLOCK_COUNT 6
-
 static uint32_t
-_getLastConfirmedSendTxHeight(BRWallet *wallet, uint32_t lastBlockHeight) {
+_getLastConfirmedSendTxHeight(BRWallet *wallet, uint32_t lastBlockHeight, uint64_t confirmationsUntilFinal) {
     uint32_t scanHeight = 0;
 
     size_t transactionCount = BRWalletTransactions (wallet, NULL, 0);
 
-    if (lastBlockHeight >= CONFIRMATION_BLOCK_COUNT && 0 != transactionCount) {
+    if (lastBlockHeight >= confirmationsUntilFinal && 0 != transactionCount) {
         BRArrayOf(BRTransaction *) transactions = (BRArrayOf(BRTransaction *) ) calloc (transactionCount, sizeof (BRTransaction *));
         transactionCount = BRWalletTransactions (wallet, transactions, transactionCount);
 
@@ -109,7 +107,7 @@ _getLastConfirmedSendTxHeight(BRWallet *wallet, uint32_t lastBlockHeight) {
             if (BRWalletTransactionIsValid (wallet, transactions[index]) &&
                 0 != BRWalletAmountSentByTx (wallet, transactions[index]) &&
                 TX_UNCONFIRMED != transactions[index]->blockHeight &&
-                transactions[index]->blockHeight < (lastBlockHeight - CONFIRMATION_BLOCK_COUNT)) {
+                transactions[index]->blockHeight < (lastBlockHeight - (uint32_t) confirmationsUntilFinal)) {
                 scanHeight = (transactions[index]->blockHeight > scanHeight ?
                                 transactions[index]->blockHeight :
                                 scanHeight);
@@ -175,6 +173,11 @@ struct BRClientSyncManagerStruct {
      */
     uint64_t initBlockHeight;
 
+    /**
+     * The number of blocks required to be mined before until a transaction can be considered final
+     */
+    uint64_t confirmationsUntilFinal;
+
     /// Mark: - Mutable Sction
 
     /**
@@ -225,7 +228,8 @@ BRClientSyncManagerNew(BRSyncManagerEventContext eventContext,
                        OwnershipKept const BRChainParams *params,
                        OwnershipKept BRWallet *wallet,
                        uint32_t earliestKeyTime,
-                       uint64_t blockHeight);
+                       uint64_t blockHeight,
+                       uint64_t confirmationsUntilFinal);
 
 static BRClientSyncManager
 BRSyncManagerAsClientSyncManager(BRSyncManager manager);
@@ -235,6 +239,9 @@ BRClientSyncManagerFree(BRClientSyncManager manager);
 
 static uint64_t
 BRClientSyncManagerGetBlockHeight(BRClientSyncManager manager);
+
+static uint64_t
+BRClientSyncManagerGetConfirmationsUntilFinal(BRClientSyncManager manager);
 
 static void
 BRClientSyncManagerConnect(BRClientSyncManager manager);
@@ -367,6 +374,11 @@ struct BRPeerSyncManagerStruct {
     BRSyncManagerEventContext eventContext;
     BRSyncManagerEventCallback eventCallback;
 
+    /**
+     * The number of blocks required to be mined before until a transaction can be considered final
+     */
+    uint64_t confirmationsUntilFinal;
+
     /// Mark: - Mutable Sction
 
     /**
@@ -398,6 +410,7 @@ BRPeerSyncManagerNew(BRSyncManagerEventContext eventContext,
                      OwnershipKept BRWallet *wallet,
                      uint32_t earliestKeyTime,
                      uint64_t blockHeight,
+                     uint64_t confirmationsUntilFinal,
                      OwnershipKept BRMerkleBlock *blocks[],
                      size_t blocksCount,
                      OwnershipKept const BRPeer peers[],
@@ -411,6 +424,9 @@ BRPeerSyncManagerFree(BRPeerSyncManager);
 
 static uint64_t
 BRPeerSyncManagerGetBlockHeight(BRPeerSyncManager manager);
+
+static uint64_t
+BRPeerSyncManagerGetConfirmationsUntilFinal(BRPeerSyncManager manager);
 
 static void
 BRPeerSyncManagerConnect(BRPeerSyncManager manager);
@@ -456,6 +472,7 @@ BRSyncManagerNewForMode(BRSyncMode mode,
                         OwnershipKept BRWallet *wallet,
                         uint32_t earliestKeyTime,
                         uint64_t blockHeight,
+                        uint64_t confirmationsUntilFinal,
                         OwnershipKept BRMerkleBlock *blocks[],
                         size_t blocksCount,
                         OwnershipKept const BRPeer peers[],
@@ -475,7 +492,8 @@ BRSyncManagerNewForMode(BRSyncMode mode,
                                                                          params,
                                                                          wallet,
                                                                          earliestKeyTime,
-                                                                         blockHeight));
+                                                                         blockHeight,
+                                                                         confirmationsUntilFinal));
         case SYNC_MODE_P2P_ONLY:
         return BRPeerSyncManagerAsSyncManager (BRPeerSyncManagerNew (eventContext,
                                                                      eventCallback,
@@ -483,6 +501,7 @@ BRSyncManagerNewForMode(BRSyncMode mode,
                                                                      wallet,
                                                                      earliestKeyTime,
                                                                      blockHeight,
+                                                                     confirmationsUntilFinal,
                                                                      blocks,
                                                                      blocksCount,
                                                                      peers,
@@ -517,6 +536,23 @@ BRSyncManagerGetBlockHeight (BRSyncManager manager) {
         break;
         case SYNC_MODE_P2P_ONLY:
         blockHeight = BRPeerSyncManagerGetBlockHeight (BRSyncManagerAsPeerSyncManager (manager));
+        break;
+        default:
+        assert (0);
+        break;
+    }
+    return blockHeight;
+}
+
+extern uint64_t
+BRSyncManagerGetConfirmationsUntilFinal (BRSyncManager manager) {
+    uint64_t blockHeight = 0;
+    switch (manager->mode) {
+        case SYNC_MODE_BRD_ONLY:
+        blockHeight = BRClientSyncManagerGetConfirmationsUntilFinal (BRSyncManagerAsClientSyncManager (manager));
+        break;
+        case SYNC_MODE_P2P_ONLY:
+        blockHeight = BRPeerSyncManagerGetConfirmationsUntilFinal (BRSyncManagerAsPeerSyncManager (manager));
         break;
         default:
         assert (0);
@@ -724,7 +760,8 @@ BRClientSyncManagerNew(BRSyncManagerEventContext eventContext,
                        OwnershipKept const BRChainParams *params,
                        OwnershipKept BRWallet *wallet,
                        uint32_t earliestKeyTime,
-                       uint64_t blockHeight) {
+                       uint64_t blockHeight,
+                       uint64_t confirmationsUntilFinal) {
     BRClientSyncManager manager = (BRClientSyncManager) calloc (1, sizeof(struct BRClientSyncManagerStruct));
     manager->common.mode = SYNC_MODE_BRD_ONLY;
 
@@ -760,10 +797,11 @@ BRClientSyncManagerNew(BRSyncManagerEventContext eventContext,
     // "instantaneous", this provides us some safety, and is comparable with how P2P mode operates,
     // which syncs based on its trusted data (aka the blocks). In API mode, we don't have any trusted
     // data so sync on the whole range to be safe.
-    manager->initBlockHeight    = MIN (earliestCheckPoint->height, blockHeight);
-    manager->networkBlockHeight = MAX (earliestCheckPoint->height, blockHeight);
-    manager->syncedBlockHeight  = manager->initBlockHeight;
-    manager->isConnected        = 0;
+    manager->confirmationsUntilFinal = confirmationsUntilFinal;
+    manager->initBlockHeight         = MIN (earliestCheckPoint->height, blockHeight);
+    manager->networkBlockHeight      = MAX (earliestCheckPoint->height, blockHeight);
+    manager->syncedBlockHeight       = manager->initBlockHeight;
+    manager->isConnected             = 0;
 
     // the calloc will have taken care of this, but, better safe than sorry in case future dev
     // doesn't take that into account
@@ -801,6 +839,12 @@ BRClientSyncManagerGetBlockHeight(BRClientSyncManager manager) {
         pthread_mutex_unlock (&manager->lock);
     }
     return blockHeight;
+}
+
+static uint64_t
+BRClientSyncManagerGetConfirmationsUntilFinal(BRClientSyncManager manager) {
+    // immutable; lock not required
+    return manager->confirmationsUntilFinal;
 }
 
 static void
@@ -902,7 +946,9 @@ BRClientSyncManagerScanToDepth(BRClientSyncManager manager, BRSyncDepth depth) {
             // This will trigger a full sync.
             switch (depth) {
                 case SYNC_DEPTH_LOW: {
-                    uint32_t scanHeight = _getLastConfirmedSendTxHeight (manager->wallet, manager->networkBlockHeight);
+                    uint32_t scanHeight = _getLastConfirmedSendTxHeight (manager->wallet,
+                                                                         manager->networkBlockHeight,
+                                                                         manager->confirmationsUntilFinal);
                     manager->syncedBlockHeight = 0 == scanHeight ? manager->initBlockHeight : scanHeight;
                     break;
                 }
@@ -1507,6 +1553,7 @@ BRPeerSyncManagerNew(BRSyncManagerEventContext eventContext,
                      OwnershipKept BRWallet *wallet,
                      uint32_t earliestKeyTime,
                      uint64_t blockHeight,
+                     uint64_t confirmationsUntilFinal,
                      OwnershipKept BRMerkleBlock *blocks[],
                      size_t blocksCount,
                      OwnershipKept const BRPeer peers[],
@@ -1532,8 +1579,9 @@ BRPeerSyncManagerNew(BRSyncManagerEventContext eventContext,
     // point up to the block height advertised on the P2P network, regardless of if we have synced,
     // in API mode for example, to halfway between those two heights. This is due to how the P2P
     // verifies data it receives from the network.
-    manager->networkBlockHeight = MAX (earliestCheckPoint->height, blockHeight);
-    manager->isConnected = 0;
+    manager->confirmationsUntilFinal = confirmationsUntilFinal;
+    manager->networkBlockHeight      = MAX (earliestCheckPoint->height, blockHeight);
+    manager->isConnected             = 0;
 
     manager->peerManager = BRPeerManagerNew (params,
                                              wallet,
@@ -1583,6 +1631,12 @@ BRPeerSyncManagerGetBlockHeight(BRPeerSyncManager manager) {
     return blockHeight;
 }
 
+static uint64_t
+BRPeerSyncManagerGetConfirmationsUntilFinal(BRPeerSyncManager manager) {
+    // immutable; lock not required
+    return manager->confirmationsUntilFinal;
+}
+
 static void
 BRPeerSyncManagerConnect(BRPeerSyncManager manager) {
     BRPeerManagerConnect (manager->peerManager);
@@ -1602,7 +1656,9 @@ static void
 BRPeerSyncManagerScanToDepth(BRPeerSyncManager manager, BRSyncDepth depth) {
     switch (depth) {
         case SYNC_DEPTH_LOW: {
-            uint32_t scanHeight = _getLastConfirmedSendTxHeight (manager->wallet, BRPeerManagerLastBlockHeight (manager->peerManager));
+            uint32_t scanHeight = _getLastConfirmedSendTxHeight (manager->wallet,
+                                                                 BRPeerManagerLastBlockHeight (manager->peerManager),
+                                                                 manager->confirmationsUntilFinal);
             if (0 != scanHeight) {
                 BRPeerManagerRescanFromBlockNumber (manager->peerManager, scanHeight);
             } else {

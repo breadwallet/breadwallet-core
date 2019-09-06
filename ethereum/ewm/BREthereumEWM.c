@@ -411,7 +411,8 @@ ewmCreate (BREthereumNetwork network,
            BRSyncMode mode,
            BREthereumClient client,
            const char *storagePath,
-           uint64_t blockHeight) {
+           uint64_t blockHeight,
+           uint64_t confirmationsUntilFinal) {
     BREthereumEWM ewm = (BREthereumEWM) calloc (1, sizeof (struct BREthereumEWMRecord));
 
     ewm->state = EWM_STATE_CREATED;
@@ -421,6 +422,7 @@ ewmCreate (BREthereumNetwork network,
     ewm->accountTimestamp = accountTimestamp;
     ewm->bcs = NULL;
     ewm->blockHeight = blockHeight;
+    ewm->confirmationsUntilFinal = confirmationsUntilFinal;
 
     {
         char address [ADDRESS_ENCODED_CHARS];
@@ -643,14 +645,16 @@ ewmCreateWithPaperKey (BREthereumNetwork network,
                        BRSyncMode mode,
                        BREthereumClient client,
                        const char *storagePath,
-                       uint64_t blockHeight) {
+                       uint64_t blockHeight,
+                       uint64_t confirmationsUntilFinal) {
     return ewmCreate (network,
                       createAccount (paperKey),
                       accountTimestamp,
                       mode,
                       client,
                       storagePath,
-                      blockHeight);
+                      blockHeight,
+                      confirmationsUntilFinal);
 }
 
 extern BREthereumEWM
@@ -660,14 +664,16 @@ ewmCreateWithPublicKey (BREthereumNetwork network,
                         BRSyncMode mode,
                         BREthereumClient client,
                         const char *storagePath,
-                        uint64_t blockHeight) {
+                        uint64_t blockHeight,
+                        uint64_t confirmationsUntilFinal) {
     return ewmCreate (network,
                       createAccountWithPublicKey(publicKey),
                       accountTimestamp,
                       mode,
                       client,
                       storagePath,
-                      blockHeight);
+                      blockHeight,
+                      confirmationsUntilFinal);
 }
 
 extern void
@@ -716,7 +722,7 @@ ewmStart (BREthereumEWM ewm) {
 extern void
 ewmStop (BREthereumEWM ewm) {
     // TODO: Check on a current state before stopping.
-    
+
     // Disconnect
     ewmDisconnect(ewm);
     // TODO: Are their disconnect events that we need to process before stopping the handler?
@@ -965,12 +971,10 @@ ewmSync (BREthereumEWM ewm,
     return ewmSyncToDepth (ewm, pendExistingTransfers, SYNC_DEPTH_HIGH);
 }
 
-#define CONFIRMATION_BLOCK_COUNT 6
-
 typedef struct {
     BREthereumEWM ewm;
     uint64_t transferBlockHeight;
-    uint64_t networkBlockHeight;
+    uint64_t confirmedBlockHeight;
 } ewmSyncToDepthGetLastConfirmedSendTransferHeightContext;
 
 static int
@@ -987,9 +991,10 @@ ewmSyncToDepthGetLastConfirmedSendTransferHeightPredicate (ewmSyncToDepthGetLast
     BREthereumBoolean accountIsTarget = addressEqual (target, accountAddress);
 
     uint64_t blockNumber = 0;
+    // check that the transfer has been included, is a send and has been confirmed as final
     return (transferExtractStatusIncluded (transfer, NULL, &blockNumber, NULL, NULL, NULL) &&
             accountIsSource == ETHEREUM_BOOLEAN_TRUE && accountIsTarget == ETHEREUM_BOOLEAN_FALSE &&
-            blockNumber < (context->networkBlockHeight - CONFIRMATION_BLOCK_COUNT));
+            blockNumber < (context->confirmedBlockHeight));
 }
 
 static void
@@ -1004,15 +1009,15 @@ ewmSyncToDepthGetLastConfirmedSendTransferHeightWalker (ewmSyncToDepthGetLastCon
 }
 
 static uint64_t
-ewmSyncDepthToBlockHeight (BREthereumEWM ewm,
-                           BRSyncDepth depth) {
+ewmSyncToDepthCalculateBlockHeight (BREthereumEWM ewm,
+                                    BRSyncDepth depth) {
     uint64_t blockHeight = 0;
 
     pthread_mutex_lock(&ewm->lock);
     switch (depth) {
         case SYNC_DEPTH_LOW: {
-            if (ewm->blockHeight > CONFIRMATION_BLOCK_COUNT) {
-                ewmSyncToDepthGetLastConfirmedSendTransferHeightContext context = { ewm, 0, ewm->blockHeight };
+            if (ewm->blockHeight >= ewm->confirmationsUntilFinal) {
+                ewmSyncToDepthGetLastConfirmedSendTransferHeightContext context = { ewm, 0, ewm->blockHeight - ewm->confirmationsUntilFinal };
                 BREthereumWallet *wallets = ewmGetWallets(ewm);
 
                 for (size_t wid = 0; NULL != wallets[wid]; wid++)
@@ -1048,12 +1053,16 @@ ewmSyncToDepth (BREthereumEWM ewm,
                 BRSyncDepth depth) {
     if (EWM_STATE_CONNECTED != ewm->state) return ETHEREUM_BOOLEAN_FALSE;
 
-    uint64_t blockHeight = ewmSyncDepthToBlockHeight (ewm, depth);
+    uint64_t blockHeight = ewmSyncToDepthCalculateBlockHeight (ewm, depth);
 
     switch (ewm->mode) {
         case SYNC_MODE_BRD_ONLY:
         case SYNC_MODE_BRD_WITH_P2P_SEND: {
             pthread_mutex_lock(&ewm->lock);
+
+            // set the beginning block number to the minimum between the calculated height and
+            // the known block height
+            blockHeight = blockHeight < ewm->blockHeight ? blockHeight : ewm->blockHeight;
 
             if (ETHEREUM_BOOLEAN_IS_TRUE (pendExistingTransfers)) {
                 BREthereumSyncTransferContext context = { ewm, blockHeight, ewm->blockHeight };

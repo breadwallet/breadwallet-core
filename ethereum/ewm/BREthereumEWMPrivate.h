@@ -102,6 +102,11 @@ struct BREthereumEWMRecord {
     uint64_t blockHeight;
 
     /**
+     * The number of blocks required to be mined before until a transfer can be considered final
+     */
+    uint64_t confirmationsUntilFinal;
+
+    /**
      * An identiifer for a LES/BRD Request
      */
     unsigned int requestId;

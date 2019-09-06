@@ -813,9 +813,9 @@ static BRWalletManager
 bwmCreateErrorHandler (BRWalletManager bwm, int fileService, const char* reason) {
     if (NULL != bwm) free (bwm);
     if (fileService)
-        _peer_log ("bread: on ewmCreate: FileService Error: %s", reason);
+        _peer_log ("bread: on bwmCreate: FileService Error: %s", reason);
     else
-        _peer_log ("bread: on ewmCreate: Error: %s", reason);
+        _peer_log ("bread: on bwmCreate: Error: %s", reason);
 
     return NULL;
 }
@@ -827,7 +827,8 @@ BRWalletManagerNew (BRWalletManagerClient client,
                     uint32_t earliestKeyTime,
                     BRSyncMode mode,
                     const char *baseStoragePath,
-                    uint64_t blockHeight) {
+                    uint64_t blockHeight,
+                    uint64_t confirmationsUntilFinal) {
     assert (mode == SYNC_MODE_BRD_ONLY || SYNC_MODE_P2P_ONLY);
 
     BRWalletManager bwm = calloc (1, sizeof (struct BRWalletManagerStruct));
@@ -916,6 +917,7 @@ BRWalletManagerNew (BRWalletManagerClient client,
                                                 bwm->wallet,
                                                 earliestKeyTime,
                                                 blockHeight,
+                                                confirmationsUntilFinal,
                                                 blocks, array_count(blocks),
                                                 peers,  array_count(peers));
 
@@ -1067,6 +1069,7 @@ BRWalletManagerSetMode (BRWalletManager manager, BRSyncMode mode) {
     if (mode != manager->mode) {
         // get the currently known block height
         uint64_t blockHeight = BRSyncManagerGetBlockHeight (manager->syncManager);
+        uint64_t confirmationsUntilFinal = BRSyncManagerGetConfirmationsUntilFinal (manager->syncManager);
 
         // kill the sync manager to prevent any additional callbacks from occuring
         BRSyncManagerDisconnect (manager->syncManager);
@@ -1103,6 +1106,7 @@ BRWalletManagerSetMode (BRWalletManager manager, BRSyncMode mode) {
                                                         manager->wallet,
                                                         manager->earliestKeyTime,
                                                         blockHeight,
+                                                        confirmationsUntilFinal,
                                                         blocks, array_count (blocks),
                                                         peers, array_count (peers));
     }

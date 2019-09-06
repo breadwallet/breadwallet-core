@@ -138,7 +138,8 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                              (uint32_t) cryptoAccountGetTimestamp(account),
                                              mode,
                                              cwmPath,
-                                             cryptoNetworkGetHeight(network));
+                                             cryptoNetworkGetHeight(network),
+                                             cryptoNetworkGetConfirmationsUntilFinal (network));
 
             // ... get the CWM primary wallet in place...
             cwm->wallet = cryptoWalletCreateAsBTC (unit, unit, cwm->u.btc, BRWalletManagerGetWallet (cwm->u.btc));
@@ -162,7 +163,8 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                     mode,
                                     client,
                                     cwmPath,
-                                    cryptoNetworkGetHeight(network));
+                                    cryptoNetworkGetHeight(network),
+                                    cryptoNetworkGetConfirmationsUntilFinal (network));
 
             // ... get the CWM primary wallet in place...
             cwm->wallet = cryptoWalletCreateAsETH (unit, unit, cwm->u.eth, ewmGetWallet(cwm->u.eth));
