@@ -470,6 +470,10 @@ BRWalletManagerFindTransactionByOwned (BRWalletManager manager, BRTransaction *t
     return txnWithState;
 }
 
+/**
+ * Find the tracked transaction that corresponds to the confirmed send with the highest
+ * block height. Deleted transactions are not checked (i.e. they are skipped).
+ */
 static BRTransactionWithState
 BRWalletManagerFindTransactionWithLastConfirmedSend(BRWalletManager manager,
                                                     uint64_t lastBlockHeight,
@@ -479,10 +483,12 @@ BRWalletManagerFindTransactionWithLastConfirmedSend(BRWalletManager manager,
     if (lastBlockHeight >= confirmationsUntilFinal) {
         for (size_t index = 0; index < array_count (manager->transactions); index++) {
             // ensure:
+            // - tx is not deleted
             // - tx is valid (i.e. no previous transaction spend any of utxos, and no inputs are invalid)
             // - AND the transaction was a SEND
             // - AND the transaction has been confirmed
-            if (BRTransactionIsSigned (manager->transactions[index]->ownedTransaction) &&
+            if (!manager->transactions[index]->isDeleted &&
+                BRTransactionIsSigned (manager->transactions[index]->ownedTransaction) &&
                 BRWalletTransactionIsValid (manager->wallet, manager->transactions[index]->ownedTransaction) &&
                 0 != BRWalletAmountSentByTx (manager->wallet, manager->transactions[index]->ownedTransaction) &&
                 TX_UNCONFIRMED != manager->transactions[index]->ownedTransaction->blockHeight &&
