@@ -81,11 +81,6 @@ struct BRWalletManagerStruct {
      */
     pthread_mutex_t lock;
 
-    /**
-     * The Lock ensuring single thread access to the collection of transfers..
-     */
-    pthread_mutex_t transactionLock;
-
     /*
      * The collection of all transfers, including those that have been "deleted",
      * associated with the `wallet`.
