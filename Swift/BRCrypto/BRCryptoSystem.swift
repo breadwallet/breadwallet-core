@@ -352,8 +352,8 @@ public final class System {
         self.onMainnet = onMainnet
         self.path  = path
         self.query = query
-        self.callbackCoordinator = SystemCallbackCoordinator()
         self.listenerQueue = listenerQueue ?? DispatchQueue (label: "Crypto System Listener")
+        self.callbackCoordinator = SystemCallbackCoordinator (queue: self.listenerQueue)
 
         let _ = System.systemExtend(with: self)
         announceEvent(SystemEvent.created)
@@ -742,17 +742,20 @@ public final class SystemCallbackCoordinator {
 
     var index: Int32 = 0;
     var handlers: [Int32: Handler] = [:]
+    let queue: DispatchQueue
 
-    var cookie: UnsafeMutableRawPointer {
+    public typealias Cookie = UnsafeMutableRawPointer
+
+    var cookie: Cookie {
         let index = Int(self.index)
         return UnsafeMutableRawPointer (bitPattern: index)!
     }
 
-    func cookieToIndex (_ cookie: UnsafeMutableRawPointer) -> Int32 {
+    func cookieToIndex (_ cookie: Cookie) -> Int32 {
         return 1 + Int32(UnsafeMutableRawPointer(bitPattern: 1)!.distance(to: cookie))
     }
 
-    public func addWalletFeeEstimateHandler(_ handler: @escaping Wallet.EstimateFeeHandler) -> UnsafeMutableRawPointer {
+    public func addWalletFeeEstimateHandler(_ handler: @escaping Wallet.EstimateFeeHandler) -> Cookie {
         index = OSAtomicIncrement32 (&index)
         handlers[index] = Handler.walletFeeEstimate(handler)
         return cookie
@@ -766,16 +769,25 @@ public final class SystemCallbackCoordinator {
                 }
         }
     }
+
     func handleWalletFeeEstimateSuccess (_ cookie: UnsafeMutableRawPointer, estimate: TransferFeeBasis) {
         if let handler = remWalletFeeEstimateHandler(cookie) {
-            handler (Result.success (estimate))
+            queue.async {
+                handler (Result.success (estimate))
+            }
         }
     }
 
     func handleWalletFeeEstimateFailure (_ cookie: UnsafeMutableRawPointer, error: Wallet.FeeEstimationError) {
         if let handler = remWalletFeeEstimateHandler(cookie) {
-            handler (Result.failure(error))
+            queue.async {
+                handler (Result.failure(error))
+            }
         }
+    }
+
+    init (queue: DispatchQueue) {
+        self.queue = queue
     }
 }
 
