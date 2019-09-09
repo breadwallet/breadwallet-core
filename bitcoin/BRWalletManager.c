@@ -1096,24 +1096,21 @@ BRWalletManagerScanToDepth (BRWalletManager manager,
     // that the BRWalletManager needs to know the block height of the last confirmed send when the mode
     // is SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND, get the last transaction up front (if available).
 
+    pthread_mutex_lock (&manager->lock);
+
     BRTransaction *lastConfirmedSendTxn = NULL;
     if (SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND == depth) {
-        pthread_mutex_lock (&manager->lock);
         uint64_t lastBlockHeight = BRSyncManagerGetBlockHeight (manager->syncManager);
         uint64_t confirmationsUntilFinal = BRSyncManagerGetConfirmationsUntilFinal (manager->syncManager);
-        pthread_mutex_unlock (&manager->lock);
-
-        pthread_mutex_lock (&manager->transactionLock);
         BRTransactionWithState txnWithState = BRWalletManagerFindTransactionWithLastConfirmedSend (manager,
                                                                                                    lastBlockHeight,
                                                                                                    confirmationsUntilFinal);
-        pthread_mutex_unlock (&manager->transactionLock);
 
         lastConfirmedSendTxn = NULL == txnWithState ? NULL : BRTransactionWithStateGetOwned (txnWithState);
     }
 
-    pthread_mutex_lock (&manager->lock);
     BRSyncManagerScanToDepth (manager->syncManager, depth, lastConfirmedSendTxn);
+
     pthread_mutex_unlock (&manager->lock);
 }
 
