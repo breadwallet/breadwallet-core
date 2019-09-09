@@ -477,6 +477,41 @@ BRWalletManagerFindTransactionByOwned (BRWalletManager manager,
 }
 
 /**
+ * Find the tracked transaction that corresponds to the confirmed send with the highest
+ * block height. Deleted transactions are not checked (i.e. they are skipped).
+ */
+static BRTransactionWithState
+BRWalletManagerFindTransactionWithLastConfirmedSend(BRWalletManager manager,
+                                                    uint64_t lastBlockHeight,
+                                                    uint64_t confirmationsUntilFinal) {
+    BRTransactionWithState txnWithState = NULL;
+
+    if (lastBlockHeight >= confirmationsUntilFinal) {
+        for (size_t index = 0; index < array_count (manager->transactions); index++) {
+            // ensure:
+            // - tx is not deleted
+            // - tx is valid (i.e. no previous transaction spend any of utxos, and no inputs are invalid)
+            // - AND the transaction was a SEND
+            // - AND the transaction has been confirmed
+            if (!manager->transactions[index]->isDeleted &&
+                BRTransactionIsSigned (manager->transactions[index]->ownedTransaction) &&
+                BRWalletTransactionIsValid (manager->wallet, manager->transactions[index]->ownedTransaction) &&
+                0 != BRWalletAmountSentByTx (manager->wallet, manager->transactions[index]->ownedTransaction) &&
+                TX_UNCONFIRMED != manager->transactions[index]->ownedTransaction->blockHeight &&
+                manager->transactions[index]->ownedTransaction->blockHeight < (lastBlockHeight - confirmationsUntilFinal)) {
+
+                if (NULL == txnWithState ||
+                    txnWithState->ownedTransaction->blockHeight < manager->transactions[index]->ownedTransaction->blockHeight) {
+                    txnWithState =  manager->transactions[index];
+                }
+            }
+        }
+    }
+
+    return txnWithState;
+}
+
+/**
  * Find the tracked transaction using the `owned` transaction's hash. Deleted transactions
  * are not checked (i.e. they are skipped).
  */
@@ -820,9 +855,9 @@ static BRWalletManager
 bwmCreateErrorHandler (BRWalletManager bwm, int fileService, const char* reason) {
     if (NULL != bwm) free (bwm);
     if (fileService)
-        _peer_log ("bread: on ewmCreate: FileService Error: %s", reason);
+        _peer_log ("bread: on bwmCreate: FileService Error: %s", reason);
     else
-        _peer_log ("bread: on ewmCreate: Error: %s", reason);
+        _peer_log ("bread: on bwmCreate: Error: %s", reason);
 
     return NULL;
 }
@@ -834,7 +869,8 @@ BRWalletManagerNew (BRWalletManagerClient client,
                     uint32_t earliestKeyTime,
                     BRSyncMode mode,
                     const char *baseStoragePath,
-                    uint64_t blockHeight) {
+                    uint64_t blockHeight,
+                    uint64_t confirmationsUntilFinal) {
     assert (mode == SYNC_MODE_BRD_ONLY || SYNC_MODE_P2P_ONLY);
 
     BRWalletManager bwm = calloc (1, sizeof (struct BRWalletManagerStruct));
@@ -923,6 +959,7 @@ BRWalletManagerNew (BRWalletManagerClient client,
                                                 bwm->wallet,
                                                 earliestKeyTime,
                                                 blockHeight,
+                                                confirmationsUntilFinal,
                                                 blocks, array_count(blocks),
                                                 peers,  array_count(peers));
 
@@ -1056,8 +1093,32 @@ BRWalletManagerDisconnect (BRWalletManager manager) {
 
 extern void
 BRWalletManagerScan (BRWalletManager manager) {
+    BRWalletManagerScanToDepth (manager, SYNC_DEPTH_FROM_CREATION);
+}
+
+extern void
+BRWalletManagerScanToDepth (BRWalletManager manager,
+                            BRSyncDepth depth) {
+    // The BRSyncManager has no safe way to get transactions (BRWalletTransactions isn't safe as one of
+    // the returned transactions could be deleted at any moment). To work around that fact, and the fact
+    // that the BRWalletManager needs to know the block height of the last confirmed send when the mode
+    // is SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND, get the last transaction up front (if available).
+
     pthread_mutex_lock (&manager->lock);
-    BRSyncManagerScan (manager->syncManager);
+
+    BRTransaction *lastConfirmedSendTxn = NULL;
+    if (SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND == depth) {
+        uint64_t lastBlockHeight = BRSyncManagerGetBlockHeight (manager->syncManager);
+        uint64_t confirmationsUntilFinal = BRSyncManagerGetConfirmationsUntilFinal (manager->syncManager);
+        BRTransactionWithState txnWithState = BRWalletManagerFindTransactionWithLastConfirmedSend (manager,
+                                                                                                   lastBlockHeight,
+                                                                                                   confirmationsUntilFinal);
+
+        lastConfirmedSendTxn = NULL == txnWithState ? NULL : BRTransactionWithStateGetOwned (txnWithState);
+    }
+
+    BRSyncManagerScanToDepth (manager->syncManager, depth, lastConfirmedSendTxn);
+
     pthread_mutex_unlock (&manager->lock);
 }
 
@@ -1067,6 +1128,7 @@ BRWalletManagerSetMode (BRWalletManager manager, BRSyncMode mode) {
     if (mode != manager->mode) {
         // get the currently known block height
         uint64_t blockHeight = BRSyncManagerGetBlockHeight (manager->syncManager);
+        uint64_t confirmationsUntilFinal = BRSyncManagerGetConfirmationsUntilFinal (manager->syncManager);
 
         // kill the sync manager to prevent any additional callbacks from occuring
         BRSyncManagerDisconnect (manager->syncManager);
@@ -1103,6 +1165,7 @@ BRWalletManagerSetMode (BRWalletManager manager, BRSyncMode mode) {
                                                         manager->wallet,
                                                         manager->earliestKeyTime,
                                                         blockHeight,
+                                                        confirmationsUntilFinal,
                                                         blocks, array_count (blocks),
                                                         peers, array_count (peers));
     }

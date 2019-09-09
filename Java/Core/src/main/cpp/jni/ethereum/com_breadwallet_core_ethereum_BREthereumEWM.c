@@ -313,7 +313,8 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
                                         (BRSyncMode) mode,
                                         client,
                                         storagePath,
-                                        0);
+                                        0,
+                                        6);
 
     (*env)->ReleaseStringUTFChars (env, paperKeyString,    paperKey);
     (*env)->ReleaseStringUTFChars (env, storagePathString, storagePath);
@@ -370,7 +371,8 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM_1PublicKey
                                                     (BRSyncMode) mode,
                                                      client,
                                                      storagePath,
-                                                     0);
+                                                     0,
+                                                     6);
 
 
     (*env)->ReleaseByteArrayElements(env, publicKey, publicKeyBytes, 0);

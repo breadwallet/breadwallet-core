@@ -138,7 +138,8 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                              (uint32_t) cryptoAccountGetTimestamp(account),
                                              mode,
                                              cwmPath,
-                                             cryptoNetworkGetHeight(network));
+                                             cryptoNetworkGetHeight(network),
+                                             cryptoNetworkGetConfirmationsUntilFinal (network));
 
             // ... get the CWM primary wallet in place...
             cwm->wallet = cryptoWalletCreateAsBTC (unit, unit, cwm->u.btc, BRWalletManagerGetWallet (cwm->u.btc));
@@ -162,7 +163,8 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                     mode,
                                     client,
                                     cwmPath,
-                                    cryptoNetworkGetHeight(network));
+                                    cryptoNetworkGetHeight(network),
+                                    cryptoNetworkGetConfirmationsUntilFinal (network));
 
             // ... get the CWM primary wallet in place...
             cwm->wallet = cryptoWalletCreateAsETH (unit, unit, cwm->u.eth, ewmGetWallet(cwm->u.eth));
@@ -502,6 +504,23 @@ cryptoWalletManagerSync (BRCryptoWalletManager cwm) {
             break;
         case BLOCK_CHAIN_TYPE_GEN:
             gwmSync(cwm->u.gen);
+            break;
+    }
+}
+
+extern void
+cryptoWalletManagerSyncToDepth (BRCryptoWalletManager cwm,
+                                BRSyncDepth depth) {
+    switch (cwm->type) {
+        case BLOCK_CHAIN_TYPE_BTC:
+            BRWalletManagerScanToDepth (cwm->u.btc, depth);
+            break;
+        case BLOCK_CHAIN_TYPE_ETH:
+            ewmSyncToDepth (cwm->u.eth, ETHEREUM_BOOLEAN_FALSE, depth);
+            break;
+        case BLOCK_CHAIN_TYPE_GEN:
+            // TODO(fix): Implement this
+            assert (0);
             break;
     }
 }

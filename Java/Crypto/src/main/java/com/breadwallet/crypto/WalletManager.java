@@ -24,6 +24,8 @@ public interface WalletManager {
 
     void sync();
 
+    void syncToDepth(WalletManagerSyncDepth depth);
+
     void submit(Transfer transfer, byte[] phraseUtf8);
 
     boolean isActive();

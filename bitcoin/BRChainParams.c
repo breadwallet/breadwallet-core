@@ -119,6 +119,13 @@ extern const BRCheckPoint *BRChainParamsGetCheckpointBefore (const BRChainParams
    return NULL;
 }
 
+extern const BRCheckPoint *BRChainParamsGetCheckpointBeforeBlockNumber (const BRChainParams *params, uint32_t blockNumber) {
+    for (ssize_t index = params->checkpointsCount - 1; index >= 0; index--)
+        if (params->checkpoints[index].height < blockNumber)
+            return &params->checkpoints[index];
+   return NULL;
+}
+
 static const BRChainParams BRMainNetParamsRecord = {
     BRMainNetDNSSeeds,
     8333,                  // standardPort
