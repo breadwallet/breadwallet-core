@@ -1379,9 +1379,20 @@ BRWalletManagerEstimateFeeForOutputs (BRWalletManager manager,
 /// MARK: Wallet Callbacks
 
 /**
- * These callbacks come from the BRWallet. That component spawns multiple threads of its own. As
- * such, these callbacks can occur on any thread (including that of the caller that triggered the
- * callback).
+ * These callbacks come from the BRWallet. That component has no inherent thread mode of its own. As
+ * such, these callbacks can occur on any thread. That includes that of the caller that
+ * triggered the callback, as well as the threads created for each BRPeer created by the
+ * BRPeerManager (by way of the BRSyncManager).
+ *
+ * As an example, `BRWalletUpdateTransactions` is called by `_peerRelayedBlock`. That
+ * `_peerRelayedBlock` function holds the BRPeerManager's lock and `BRWalletUpdateTransactions`
+ * will call into `_BRWalletManagerTxUpdated`. If we were to acquire the BRWalletManager::lock
+ * in `_BRWalletManagerTxUpdated`, we would have a lock inversion situation (the lock flow
+ * should ONLY be BRWalletManager::lock -> BRPeerManager::lock, NEVER BRPeerManager::lock
+ * -> BRWalletManager::lock).
+ *
+ * It is hypothesized that the other callbacks can occur way, via the BRPeerManager. Thus
+ * these callbacks avoid taking the BRWalletManager::lock, to be safe.
  *
  * !!!! These callbacks do NOT (and should NEVER) acquire the BRWalletManager::lock. !!!!
  */
@@ -1446,10 +1457,11 @@ _BRWalletManagerTxDeleted (void *info,
     bwmSignalTxDeleted (manager, hash);
 }
 
-/// MARK: Wallet Callback Events
+/// MARK: Wallet Callback Event Handlers
 
 /**
- * These handlers are called by the event handler thread.
+ * These handlers are called by the event handler thread. They are free to acquire
+ * locks as needed.
  */
 
 extern void
@@ -1715,7 +1727,7 @@ _BRWalletManagerSubmitTransaction(void * context,
 
 /**
  * These announcers are called by a client once it has completed a request. The threading
- * model of a client is unknown. As such, these callbacks can occur on any thread.
+ * model of a client is unknown. They are free to acquire locks as needed.
  */
 
 extern int
@@ -1764,7 +1776,14 @@ bwmAnnounceSubmit (BRWalletManager manager,
                              error);
 }
 
-// These handlers are called by the event handler thread.
+///
+/// MARK: BRWalletManagerClient Completion Event Handlers
+//
+
+/**
+ * These handlers are called by the event handler thread. They are free to acquire
+ * locks as needed.
+ */
 
 extern int
 bwmHandleAnnounceBlockNumber (BRWalletManager manager,
@@ -1832,11 +1851,12 @@ bwmHandleAnnounceSubmit (BRWalletManager manager,
 }
 
 ///
-/// MARK: BRWalletManager Events
+/// MARK: BRWalletManager Event Handlers
 //
 
 /**
- * These handlers are called by the event handler thread.
+ * These handlers are called by the event handler thread. They are free to acquire
+ * locks as needed.
  */
 
 extern void
