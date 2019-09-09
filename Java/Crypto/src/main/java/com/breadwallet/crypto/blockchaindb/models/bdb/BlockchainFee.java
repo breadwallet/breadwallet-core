@@ -7,8 +7,10 @@
  */
 package com.breadwallet.crypto.blockchaindb.models.bdb;
 
+import com.breadwallet.crypto.blockchaindb.models.Utilities;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.primitives.UnsignedLong;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -20,13 +22,13 @@ import java.util.List;
 public class BlockchainFee {
 
     public static Optional<BlockchainFee> asBlockchainFee(JSONObject json) {
-        String value = json.optString("value", "1");
-
         try {
-            String amoung = json.getJSONObject("fee").getString("amount");
+            json.getJSONObject("fee").getString("currency_id");
+            String amount = json.getJSONObject("fee").getString("amount");
             String tier = json.getString("tier");
+            UnsignedLong confirmationTime = Utilities.getUnsignedLongFromString(json, "estimated_confirmation_in");
 
-            return Optional.of(new BlockchainFee(amoung, tier, value));
+            return Optional.of(new BlockchainFee(amount, tier, confirmationTime));
 
         } catch (JSONException e) {
             return Optional.absent();
@@ -51,21 +53,25 @@ public class BlockchainFee {
         return Optional.of(blockchainFees);
     }
 
-    public static JSONObject asJson(BlockchainFee fee) {
-        return new JSONObject(ImmutableMap.of(
-                "amount", fee.amount,
-                "tier", fee.tier,
-                "confirmations", fee.confirmations
-        ));
-    }
-
     private final String amount;
     private final String tier;
-    private final String confirmations;
+    private final UnsignedLong comfirmationTimeInMilliseconds;
 
-    public BlockchainFee(String amount, String tier, String confirmations) {
+    public BlockchainFee(String amount, String tier, UnsignedLong confirmationTimeInMilliseconds) {
         this.amount = amount;
         this.tier = tier;
-        this.confirmations = confirmations;
+        this.comfirmationTimeInMilliseconds = confirmationTimeInMilliseconds;
+    }
+
+    public String getAmount() {
+        return amount;
+    }
+
+    public String getTier() {
+        return tier;
+    }
+
+    public UnsignedLong getConfirmationTimeInMilliseconds() {
+        return comfirmationTimeInMilliseconds;
     }
 }

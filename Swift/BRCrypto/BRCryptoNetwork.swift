@@ -34,13 +34,17 @@ public final class Network: CustomStringConvertible {
         set { cryptoNetworkSetHeight (core, newValue) }
     }
 
-    /// The network fees.  Expect the User to select their preferred fee, based on time-to-confirm,
+     /// The network fees.  Expect the User to select their preferred fee, based on time-to-confirm,
     /// and then have their preferred fee held in WalletManager.defaultNetworkFee.
-    public let fees: [NetworkFee];
+    public internal(set) var fees: [NetworkFee]
 
     /// Return the minimum fee which should be the fee with the largest confirmation time
-    public var minimumFee: NetworkFee? {
-        return fees.min { $0.timeIntervalInMilliseconds > $1.timeIntervalInMilliseconds }
+    public var minimumFee: NetworkFee {
+        return fees.min { $0.timeIntervalInMilliseconds > $1.timeIntervalInMilliseconds }!
+    }
+
+    public var confirmationsUntilFinal: UInt32 {
+        return cryptoNetworkGetConfirmationsUntilFinal (core);
     }
 
     /// The native currency.
@@ -49,8 +53,16 @@ public final class Network: CustomStringConvertible {
     /// All currencies - at least those we are handling/interested-in.
     public let currencies: Set<Currency>
 
-    func currencyBy (code: String) -> Currency? {
+    public func currencyBy (code: String) -> Currency? {
         return currencies.first { $0.code == code } // sloppily
+    }
+
+    public func currencyBy (issuer: String) -> Currency? {
+        let issuerLowercased = issuer.lowercased()
+        return currencies.first {
+            // Not the best way to compare - but avoid Foundation
+            $0.issuer.map { $0.lowercased() == issuerLowercased } ?? false
+        }
     }
 
     public func hasCurrency(_ currency: Currency) -> Bool {
@@ -120,19 +132,20 @@ public final class Network: CustomStringConvertible {
                              currency: Currency,
                              height: UInt64,
                              associations: Dictionary<Currency, Association>,
-                             fees: [NetworkFee]) {
+                             fees: [NetworkFee],
+                             confirmationsUntilFinal: UInt32) {
+        precondition (!fees.isEmpty)
+        
         var core: BRCryptoNetwork!
 
         switch currency.code.lowercased() {
         case Currency.codeAsBTC:
-            core = cryptoNetworkCreateAsBTC (uids, name,
-                                             (isMainnet ? 0x00 : 0x40),
-                                             (isMainnet ? BRMainNetParams : BRTestNetParams))
+            let chainParams = (isMainnet ? BRMainNetParams : BRTestNetParams)
+            core = cryptoNetworkCreateAsBTC (uids, name, chainParams!.pointee.forkId, chainParams)
 
         case Currency.codeAsBCH:
-            core = cryptoNetworkCreateAsBTC (uids, name,
-                                             (isMainnet ? 0x00 : 0x40),
-                                             (isMainnet ? BRBCashParams : BRBCashTestNetParams))
+            let chainParams = (isMainnet ? BRBCashParams : BRBCashTestNetParams)
+            core = cryptoNetworkCreateAsBTC (uids, name, chainParams!.pointee.forkId, chainParams)
 
         case Currency.codeAsETH:
             if uids.contains("mainnet") {
@@ -149,7 +162,7 @@ public final class Network: CustomStringConvertible {
             }
 
         default:
-            core = cryptoNetworkCreateAsGEN (uids, name)
+            core = cryptoNetworkCreateAsGEN (uids, name, (isMainnet ? 1 : 0))
             break
         }
 
@@ -173,6 +186,8 @@ public final class Network: CustomStringConvertible {
             cryptoNetworkAddNetworkFee (core, $0.core)
         }
 
+        cryptoNetworkSetConfirmationsUntilFinal (core, confirmationsUntilFinal)
+        
         self.init (core: core, take: false)
     }
 
@@ -184,35 +199,10 @@ public final class Network: CustomStringConvertible {
         cryptoNetworkGive (core)
     }
 
-    public var supportedModes: [WalletManagerMode] {
-        switch cryptoNetworkGetType (core) {
-        case BLOCK_CHAIN_TYPE_BTC:
-            return [WalletManagerMode.p2p_only]
-        case BLOCK_CHAIN_TYPE_ETH:
-            return [WalletManagerMode.api_only,
-                    WalletManagerMode.api_with_p2p_submit]
-        case BLOCK_CHAIN_TYPE_GEN:
-            return [WalletManagerMode.api_only]
-        default: precondition (false)
-        }
-    }
-
     /// TODO: Should use the network's/manager's default address scheme
     public func addressFor (_ string: String) -> Address? {
-        switch cryptoNetworkGetType (core) {
-        case BLOCK_CHAIN_TYPE_BTC:
-            return cryptoAddressCreateFromStringAsBTC(string)
-                .map { Address (core: $0, take: false)}
-
-        case BLOCK_CHAIN_TYPE_ETH:
-            return cryptoAddressCreateFromStringAsETH(string)
-                .map { Address (core: $0, take: false) }
-
-        case BLOCK_CHAIN_TYPE_GEN:
-            return nil
-
-        default: precondition (false)
-        }
+        return cryptoNetworkCreateAddressFromString (core, string)
+            .map { Address (core: $0, take: false) }
     }
 }
 
@@ -228,13 +218,13 @@ extension Network: Hashable {
 
 public enum NetworkEvent {
     case created
+    case feesUpdated
 }
 
 ///
 /// Listener for NetworkEvent
 ///
 public protocol NetworkListener: class {
-
     ///
     /// Handle a NetworkEvent
     ///
@@ -246,8 +236,10 @@ public protocol NetworkListener: class {
     func handleNetworkEvent (system: System,
                              network: Network,
                              event: NetworkEvent)
-
 }
+
+/// A Functional Interface for a Handler
+public typealias NetworkEventHandler = (System, Network, NetworkEvent) -> Void
 
 ///
 /// A Network Fee represents the 'amount per cost factor' paid to mine a transfer. For BTC this
@@ -278,15 +270,14 @@ public final class NetworkFee: Equatable {
         self.core = (take ? cryptoNetworkFeeTake(core) : core)
         self.timeIntervalInMilliseconds = cryptoNetworkFeeGetConfirmationTimeInMilliseconds(core)
         self.pricePerCostFactor = Amount (core: cryptoNetworkFeeGetPricePerCostFactor (core),
-                                          unit: Unit (core: cryptoNetworkFeeGetPricePerCostFactorUnit(core), take: false),
                                           take: false)
     }
 
     /// Initialize based on the timeInternal and pricePerCostFactor.  Used by BlockchainDB when
     /// parsing a NetworkFee from BlockchainDB.Model.BlockchainFee
-    internal convenience init (timeInternalInMilliseconds: UInt64,
+    internal convenience init (timeIntervalInMilliseconds: UInt64,
                                pricePerCostFactor: Amount) {
-        self.init (core: cryptoNetworkFeeCreate (timeInternalInMilliseconds,
+        self.init (core: cryptoNetworkFeeCreate (timeIntervalInMilliseconds,
                                                  pricePerCostFactor.core,
                                                  pricePerCostFactor.unit.core),
                    take: false)
@@ -298,6 +289,6 @@ public final class NetworkFee: Equatable {
 
     // Equatable using the Core representation
     public static func == (lhs: NetworkFee, rhs: NetworkFee) -> Bool {
-        return CRYPTO_TRUE == cryptoNetworkEqual (lhs.core, rhs.core)
+        return CRYPTO_TRUE == cryptoNetworkFeeEqual (lhs.core, rhs.core)
     }
 }

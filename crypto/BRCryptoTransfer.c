@@ -87,7 +87,8 @@ struct BRCryptoTransferRecord {
     /// go to the BTC wallet and expect the FeePerKB to be unchanged.
 
     /// Actually this can be derived from { btc.fee / txSize(btc.tid), txSize(btc.tid) }
-    BRCryptoFeeBasis feeBasis;
+    BRCryptoFeeBasis feeBasisEstimated;
+    BRCryptoFeeBasis feeBasisConfirmed;
 
     BRCryptoRef ref;
 };
@@ -104,7 +105,8 @@ cryptoTransferCreateInternal (BRCryptoBlockChainType type,
     transfer->type  = type;
     transfer->unit       = cryptoUnitTake(unit);
     transfer->unitForFee = cryptoUnitTake(unitForFee);
-    transfer->feeBasis = NULL;
+    transfer->feeBasisEstimated = NULL;
+    transfer->feeBasisConfirmed = NULL;
 
     transfer->ref = CRYPTO_REF_ASSIGN (cryptoTransferRelease);
 
@@ -115,8 +117,10 @@ extern BRCryptoTransfer
 cryptoTransferCreateAsBTC (BRCryptoUnit unit,
                            BRCryptoUnit unitForFee,
                            BRWallet *wid,
-                           BRTransaction *tid) {
-    BRCryptoTransfer transfer = cryptoTransferCreateInternal (BLOCK_CHAIN_TYPE_BTC, unit, unitForFee);
+                           OwnershipKept BRTransaction *tid,
+                           BRCryptoBoolean isBTC) {
+    BRAddressParams  addressParams = BRWalletGetAddressParams (wid);
+    BRCryptoTransfer transfer      = cryptoTransferCreateInternal (BLOCK_CHAIN_TYPE_BTC, unit, unitForFee);
     transfer->u.btc.tid = tid;
 
     // cache the values that require the wallet
@@ -131,10 +135,14 @@ cryptoTransferCreateAsBTC (BRCryptoUnit unit,
         int inputsContain = (UINT64_MAX != transfer->u.btc.fee ? 1 : 0);
 
         for (size_t index = 0; index < inputsCount; index++) {
-            if (inputsContain == BRWalletContainsAddress(wid, inputs[index].address)) {
-                BRAddress address;
-                memcpy (address.s, inputs[index].address, sizeof (address.s));
-                transfer->sourceAddress = cryptoAddressCreateAsBTC (address);
+            size_t addressSize = BRTxInputAddress (&inputs[index], NULL, 0, addressParams);
+            char address [addressSize];
+
+            BRTxInputAddress (&inputs[index], address, addressSize, addressParams);
+
+            if (inputsContain == BRWalletContainsAddress(wid, address)) {
+                assert (addressSize < sizeof (BRAddress));
+                transfer->sourceAddress = cryptoAddressCreateAsBTC (BRAddressFill (addressParams, address), isBTC);
                 break;
             }
         }
@@ -147,23 +155,48 @@ cryptoTransferCreateAsBTC (BRCryptoUnit unit,
         int outputsContain = (UINT64_MAX == transfer->u.btc.fee ? 1 : 0);
 
         for (size_t index = 0; index < outputsCount; index++) {
-            if (outputsContain == BRWalletContainsAddress(wid, outputs[index].address)) {
-                BRAddress address;
-                memcpy (address.s, outputs[index].address, sizeof (address.s));
-                transfer->targetAddress = cryptoAddressCreateAsBTC (address);
+            size_t addressSize = BRTxOutputAddress (&outputs[index], NULL, 0, addressParams);
+            char address [addressSize];
+
+            BRTxOutputAddress (&outputs[index], address, addressSize, addressParams);
+
+            // There will be no targetAddress if we send the amount to ourselves.  In that
+            // case `outputsContain = 0` and every output is our own address and thus 1 is always
+            // returned by `BRWalletContainsAddress()`
+            if (outputsContain == BRWalletContainsAddress(wid, address)) {
+                assert (addressSize < sizeof (BRAddress));
+                transfer->targetAddress = cryptoAddressCreateAsBTC (BRAddressFill (addressParams, address), isBTC);
                 break;
             }
         }
     }
 
+    //
+    // Currently this function, cryptoTransferCreateAsBTC(), is only called in various CWM
+    // event handlers based on BTC events.  Thus for a newly created BTC transfer, the
+    // BRCryptoFeeBasis is long gone.  The best we can do is reconstruct the feeBasis from the
+    // BRTransaction itself.
+    //
+    uint64_t fee = transfer->u.btc.fee;
+    uint32_t feePerKB = 0;  // assume not our transaction (fee == UINT64_MAX)
+    uint32_t sizeInByte = (uint32_t) BRTransactionVSize (tid);
+
+    if (UINT64_MAX != fee) {
+        // round to nearest satoshi per kb
+        feePerKB = (uint32_t) (((1000 * fee) + (sizeInByte/2)) / sizeInByte);
+    }
+
+    transfer->feeBasisEstimated = cryptoFeeBasisCreateAsBTC (transfer->unitForFee, feePerKB, sizeInByte);;
+
     return transfer;
 }
 
-extern BRCryptoTransfer
+private_extern BRCryptoTransfer
 cryptoTransferCreateAsETH (BRCryptoUnit unit,
                            BRCryptoUnit unitForFee,
                            BREthereumEWM ewm,
-                           BREthereumTransfer tid) {
+                           BREthereumTransfer tid,
+                           BRCryptoFeeBasis feeBasisEstimated) {
     BRCryptoTransfer transfer = cryptoTransferCreateInternal (BLOCK_CHAIN_TYPE_ETH, unit, unitForFee);
     transfer->u.eth.tid = tid;
 
@@ -173,6 +206,40 @@ cryptoTransferCreateAsETH (BRCryptoUnit unit,
     // cache the values that require the ewm
     BREthereumAccount account = ewmGetAccount (ewm);
     transfer->u.eth.accountAddress = accountGetPrimaryAddress (account);
+
+    // This function `cryptoTransferCreateAsETH()` includes an argument as
+    // `BRCryptoFeeBasis feeBasisEstimated` whereas the analogous function
+    // `cryptoTransferCreateAsBTC` does not.  Why is that?  For BTC the fee basis can be derived
+    // 100% reliably from the BRTransaction; both the 'estimated' and 'confirmed' fee basises are
+    // identical.  For ETH, the 'estimated' and the 'confirmed' basises may differ.  The difference
+    // being the distinction between ETH `gasLimit` (the 'estimate') and `gasUsed` (the
+    // 'confirmed').
+    //
+    // The EWM interface does not make this distinction clear.  It should.
+    // TODO: In EWM expose 'getEstimatedFeeBasis' and 'getConfirmedFeeBasis' functions.
+    //
+    // Turns out that this function is called in two contexts - when Crypto creates a transfer (in
+    // response to User input) and when EWM has a transfer announced (like when found in a
+    // blockchain).  When Crypto creates the transfer we have the `feeBasisEstimated` and it is used
+    // to create the EWM transfer.  Then EWM finds the transfer (see `cwmTransactionEventAsETH()`)
+    // we don't have the estimated fee - if we did nothing the `transfer->feeBasisEstimated` field
+    // would be NULL.
+    //
+    // Problem is we *require* one of 'estimated' or 'confirmed'.  See Transfer.swift at
+    // `public var fee: Amount { ... guard let feeBasis = confirmedFeeBasis ?? estimatedFeeBasis }`
+    // The 'confirmed' value is *ONLY SET* when a transfer is actually included in the blockchain;
+    // therefore we need an estimated fee basis.
+    //
+    // Thus: if `feeBasisEstimated` is NULL, we'll take the ETH fee basis (as the best we have).
+
+    // Get the ETH feeBasis, in the event that we need it.
+    BREthereumFeeBasis ethFeeBasis = transferGetFeeBasis(tid);
+
+    transfer->feeBasisEstimated = (NULL == feeBasisEstimated
+                                   ? cryptoFeeBasisCreateAsETH (unitForFee,
+                                                                ethFeeBasis.u.gas.limit,
+                                                                ethFeeBasis.u.gas.price)
+                                   : cryptoFeeBasisTake(feeBasisEstimated));
 
     return transfer;
 }
@@ -186,17 +253,21 @@ cryptoTransferCreateAsGEN (BRCryptoUnit unit,
     transfer->u.gen.gwm = gwm;
     transfer->u.gen.tid = tid;
 
+    BRGenericFeeBasis gwmFeeBasis = gwmTransferGetFeeBasis (gwm, tid); // Will give ownership
+    transfer->feeBasisEstimated = cryptoFeeBasisCreateAsGEN (transfer->unitForFee, gwm, gwmFeeBasis);
+
     return transfer;
 }
 
 static void
 cryptoTransferRelease (BRCryptoTransfer transfer) {
-    if (BLOCK_CHAIN_TYPE_BTC == transfer->type) BRTransactionFree (transfer->u.btc.tid);
+    printf ("Transfer: Release\n");
     if (NULL != transfer->sourceAddress) cryptoAddressGive (transfer->sourceAddress);
     if (NULL != transfer->targetAddress) cryptoAddressGive (transfer->targetAddress);
     cryptoUnitGive (transfer->unit);
     cryptoUnitGive (transfer->unitForFee);
-    if (NULL != transfer->feeBasis) cryptoFeeBasisGive (transfer->feeBasis);
+    if (NULL != transfer->feeBasisEstimated) cryptoFeeBasisGive (transfer->feeBasisEstimated);
+    if (NULL != transfer->feeBasisConfirmed) cryptoFeeBasisGive (transfer->feeBasisConfirmed);
     memset (transfer, 0, sizeof(*transfer));
     free (transfer);
 }
@@ -219,7 +290,6 @@ cryptoTransferGetTargetAddress (BRCryptoTransfer transfer) {
 static BRCryptoAmount
 cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNegative) {
     BRCryptoAmount   amount;
-    BRCryptoCurrency currency = cryptoUnitGetCurrency (transfer->unit);
 
     switch (transfer->type) {
         case BLOCK_CHAIN_TYPE_BTC: {
@@ -231,23 +301,23 @@ cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNega
 
             switch (cryptoTransferGetDirection(transfer)) {
                 case CRYPTO_TRANSFER_RECOVERED:
-                    amount = cryptoAmountCreate (currency,
-                                               isNegative,
-                                               createUInt256(send));
+                    amount = cryptoAmountCreate (transfer->unit,
+                                                 isNegative,
+                                                 createUInt256(send));
                     break;
 
                 case CRYPTO_TRANSFER_SENT:
-                    amount = cryptoAmountCreate (currency,
-                                               isNegative,
-                                               createUInt256(send - fee - recv));
+                    amount = cryptoAmountCreate (transfer->unit,
+                                                 isNegative,
+                                                 createUInt256(send - fee - recv));
                     break;
 
                 case CRYPTO_TRANSFER_RECEIVED:
-                    amount = cryptoAmountCreate (currency,
-                                               isNegative,
-                                               createUInt256(recv));
+                    amount = cryptoAmountCreate (transfer->unit,
+                                                 isNegative,
+                                                 createUInt256(recv));
                     break;
-                    
+
                 default: assert(0);
             }
             break;
@@ -257,13 +327,13 @@ cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNega
             BREthereumAmount ethAmount = transferGetAmount(transfer->u.eth.tid);
             switch (amountGetType(ethAmount)) {
                 case AMOUNT_ETHER:
-                    amount = cryptoAmountCreate (currency,
-                                               isNegative,
-                                               etherGetValue(amountGetEther(ethAmount), WEI));
+                    amount = cryptoAmountCreate (transfer->unit,
+                                                 isNegative,
+                                                 etherGetValue(amountGetEther(ethAmount), WEI));
                     break;
 
                 case AMOUNT_TOKEN:
-                    amount = cryptoAmountCreate (currency,
+                    amount = cryptoAmountCreate (transfer->unit,
                                                isNegative,
                                                amountGetTokenQuantity(ethAmount).valueAsInteger);
                     break;
@@ -277,14 +347,13 @@ cryptoTransferGetAmountAsSign (BRCryptoTransfer transfer, BRCryptoBoolean isNega
             BRGenericWalletManager gwm = transfer->u.gen.gwm;
             BRGenericTransfer tid = transfer->u.gen.tid;
 
-            amount = cryptoAmountCreate (currency,
-                                       isNegative,
-                                       gwmTransferGetAmount (gwm, tid));
+            amount = cryptoAmountCreate (transfer->unit,
+                                         isNegative,
+                                         gwmTransferGetAmount (gwm, tid));
             break;
         }
     }
 
-    cryptoCurrencyGive (currency);
     return amount;
 }
 
@@ -296,11 +365,10 @@ cryptoTransferGetAmount (BRCryptoTransfer transfer) {
 extern BRCryptoAmount
 cryptoTransferGetAmountDirected (BRCryptoTransfer transfer) {
     BRCryptoAmount   amount;
-    BRCryptoCurrency currency = cryptoUnitGetCurrency (transfer->unit);
 
     switch (cryptoTransferGetDirection(transfer)) {
         case CRYPTO_TRANSFER_RECOVERED: {
-            amount = cryptoAmountCreate (currency,
+            amount = cryptoAmountCreate (transfer->unit,
                                          CRYPTO_FALSE,
                                          UINT256_ZERO);
             break;
@@ -320,7 +388,6 @@ cryptoTransferGetAmountDirected (BRCryptoTransfer transfer) {
         default: assert(0);
     }
 
-    cryptoCurrencyGive (currency);
     return amount;
 }
 
@@ -458,6 +525,8 @@ cryptoTransferGetDirection (BRCryptoTransfer transfer) {
             int accountIsSource = gwmAddressEqual (gwm, source, address);
             int accountIsTarget = gwmAddressEqual (gwm, target, address);
 
+            // TODO: BRGenericAddress - release source, target, address
+            
             if      ( accountIsSource &&  accountIsTarget) return CRYPTO_TRANSFER_RECOVERED;
             else if ( accountIsSource && !accountIsTarget) return CRYPTO_TRANSFER_SENT;
             else if (!accountIsSource &&  accountIsTarget) return CRYPTO_TRANSFER_RECOVERED;
@@ -499,6 +568,7 @@ cryptoTransferGetHash (BRCryptoTransfer transfer) {
     }
 }
 
+/*
 extern BRCryptoFeeBasis
 cryptoTransferGetEstimatedFeeBasis (BRCryptoTransfer transfer) {
     BRCryptoFeeBasis feeBasis;
@@ -543,10 +613,24 @@ cryptoTransferGetEstimatedFeeBasis (BRCryptoTransfer transfer) {
 
     return feeBasis;
 }
+*/
+
+extern BRCryptoFeeBasis
+cryptoTransferGetEstimatedFeeBasis (BRCryptoTransfer transfer) {
+    return (NULL == transfer->feeBasisEstimated ? NULL : cryptoFeeBasisTake (transfer->feeBasisEstimated));
+}
 
 extern BRCryptoFeeBasis
 cryptoTransferGetConfirmedFeeBasis (BRCryptoTransfer transfer) {
-    return NULL;
+    return (NULL == transfer->feeBasisConfirmed ? NULL : cryptoFeeBasisTake (transfer->feeBasisConfirmed));
+}
+
+private_extern void
+cryptoTransferSetConfirmedFeeBasis (BRCryptoTransfer transfer,
+                                    BRCryptoFeeBasis feeBasisConfirmed) {
+    BRCryptoFeeBasis takenFeeBasisConfirmed = (NULL == feeBasisConfirmed ? NULL : cryptoFeeBasisTake(feeBasisConfirmed));
+    if (NULL != transfer->feeBasisConfirmed) cryptoFeeBasisGive (transfer->feeBasisConfirmed);
+    transfer->feeBasisConfirmed = takenFeeBasisConfirmed;
 }
 
 private_extern BRTransaction *
@@ -570,12 +654,7 @@ cryptoTransferAsGEN (BRCryptoTransfer transfer) {
 private_extern BRCryptoBoolean
 cryptoTransferHasBTC (BRCryptoTransfer transfer,
                       BRTransaction *btc) {
-    // Since BTC transactions that are not yet signed do not have a txHash, only
-    // use the BRTransactionEq check when the transfer's transaction is signed.
-    // If it is not signed, use an identity check.
-    return AS_CRYPTO_BOOLEAN (BLOCK_CHAIN_TYPE_BTC == transfer->type && (BRTransactionIsSigned (transfer->u.btc.tid)
-                                                                         ? BRTransactionEq (btc, transfer->u.btc.tid)
-                                                                         : (btc == transfer->u.btc.tid)));
+    return AS_CRYPTO_BOOLEAN (BLOCK_CHAIN_TYPE_BTC == transfer->type && btc == transfer->u.btc.tid);
 }
 
 private_extern BRCryptoBoolean
@@ -592,12 +671,7 @@ cryptoTransferHasGEN (BRCryptoTransfer transfer,
 
 static int
 cryptoTransferEqualAsBTC (BRCryptoTransfer t1, BRCryptoTransfer t2) {
-    // Since BTC transactions that are not yet signed do not have a txHash, only
-    // use the BRTransactionEq check when at least one party is signed. For cases
-    // where that is not true, use an identity check.
-    return (BRTransactionIsSigned (t1->u.btc.tid)
-            ? BRTransactionEq (t1->u.btc.tid, t2->u.btc.tid)
-            : t1->u.btc.tid == t2->u.btc.tid);
+    return t1->u.btc.tid == t2->u.btc.tid;
 }
 
 static int
@@ -619,3 +693,35 @@ cryptoTransferEqual (BRCryptoTransfer t1, BRCryptoTransfer t2) {
                                             (BLOCK_CHAIN_TYPE_GEN == t1->type && cryptoTransferEqualAsGEN (t1, t2)))));
 }
 
+private_extern void
+cryptoTransferExtractBlobAsBTC (BRCryptoTransfer transfer,
+                                uint8_t **bytes,
+                                size_t   *bytesCount,
+                                uint32_t *blockHeight,
+                                uint32_t *timestamp) {
+    assert (NULL != bytes && NULL != bytesCount);
+
+    BRTransaction *tx = cryptoTransferAsBTC (transfer);
+
+    *bytesCount = BRTransactionSerialize (tx, NULL, 0);
+    *bytes = malloc (*bytesCount);
+    BRTransactionSerialize (tx, *bytes, *bytesCount);
+
+    if (NULL != blockHeight) *blockHeight = tx->blockHeight;
+    if (NULL != timestamp)   *timestamp   = tx->timestamp;
+}
+
+extern const char *
+BRCryptoTransferEventTypeString (BRCryptoTransferEventType t) {
+    switch (t) {
+        case CRYPTO_TRANSFER_EVENT_CREATED:
+        return "CRYPTO_TRANSFER_EVENT_CREATED";
+
+        case CRYPTO_TRANSFER_EVENT_CHANGED:
+        return "CRYPTO_TRANSFER_EVENT_CHANGED";
+
+        case CRYPTO_TRANSFER_EVENT_DELETED:
+        return "CRYPTO_TRANSFER_EVENT_DELETED";
+    }
+    return "<CRYPTO_TRANSFER_EVENT_TYPE_UNKNOWN>";
+}

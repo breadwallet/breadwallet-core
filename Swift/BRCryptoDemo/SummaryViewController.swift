@@ -19,6 +19,14 @@ class SummaryViewController: UITableViewController, WalletListener {
 
     var detailViewController: WalletViewController? = nil
 
+    func reset () {
+        DispatchQueue.main.async {
+            self.wallets = []
+            self.detailViewController.map{ $0.reset() }
+            self.tableView.reloadData()
+        }
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -54,7 +62,8 @@ class SummaryViewController: UITableViewController, WalletListener {
     // MARK: - Segues
 
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        if segue.identifier == "showWallet" {
+        switch segue.identifier {
+        case "showWallet":
             if let indexPath = tableView.indexPathForSelectedRow {
                 let wallet = wallets[indexPath.row]
                 let controller = (segue.destination as! UINavigationController).topViewController as! WalletViewController
@@ -63,16 +72,34 @@ class SummaryViewController: UITableViewController, WalletListener {
                 controller.navigationItem.leftBarButtonItem = splitViewController?.displayModeButtonItem
                 controller.navigationItem.leftItemsSupplementBackButton = true
             }
+
+        case "showManagers":
+            let controller = (segue.destination as! UINavigationController).topViewController as! WalletManagersTableViewController
+            controller.managers = UIApplication.sharedSystem.managers
+
+        default:
+            break;
         }
     }
+
 
     @IBAction func doAct (_ sender: Any) {
         let alert = UIAlertController (title: "Act",
                                        message: nil,
                                        preferredStyle: UIAlertController.Style.alert)
 
+        alert.addAction (UIAlertAction (title: "Reset", style: UIAlertAction.Style.default) { (action) in
+            UIApplication.reset()
+            alert.dismiss(animated: true) {}
+        })
+
         alert.addAction (UIAlertAction (title: "Sync", style: UIAlertAction.Style.default) { (action) in
             UIApplication.sync()
+            alert.dismiss(animated: true) {}
+        })
+
+        alert.addAction(UIAlertAction (title: "Show Wallet Managers", style: UIAlertAction.Style.default) { (action) in
+            self.showManagersButton.sendActions (for: .touchUpInside)
             alert.dismiss(animated: true) {}
         })
 
@@ -81,7 +108,7 @@ class SummaryViewController: UITableViewController, WalletListener {
             alert.dismiss(animated: true) {}
         })
 
-        alert.addAction(UIAlertAction (title: "Cancel", style: UIAlertAction.Style.cancel))
+        alert.addAction (UIAlertAction (title: "Cancel", style: UIAlertAction.Style.cancel))
 
         self.present (alert, animated: true) {}
     }
@@ -140,8 +167,9 @@ class SummaryViewController: UITableViewController, WalletListener {
             case .balanceUpdated:
                 if let index = self.wallets.firstIndex (of: wallet) {
                     let path = IndexPath (row: index, section: 0)
-                    let cell = self.tableView.cellForRow(at: path) as! WalletTableViewCell
-                    cell.updateView ()
+                    if let cell = self.tableView.cellForRow(at: path) as? WalletTableViewCell {
+                        cell.updateView ()
+                    }
                 }
 
             case .deleted:
@@ -157,5 +185,7 @@ class SummaryViewController: UITableViewController, WalletListener {
             }
         }
     }
+    
+    @IBOutlet var showManagersButton: UIButton!
 }
 

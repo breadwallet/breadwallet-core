@@ -20,10 +20,12 @@ import BRCryptoC
 /// At least conceptually, a WalletManager is an 'Active Object' (whereas Transfer and Wallet are
 /// 'Passive Objects'
 ///
-public final class WalletManager: Equatable {
+public final class WalletManager: Equatable, CustomStringConvertible {
 
     /// The Core representation
     internal private(set) var core: BRCryptoWalletManager! = nil
+
+    internal let callbackCoordinator: SystemCallbackCoordinator
 
     /// The owning system
     public unowned let system: System
@@ -41,7 +43,13 @@ public final class WalletManager: Equatable {
     internal let unit: Unit
 
     /// The mode determines how the manager manages the account and wallets on network
-    public let mode: WalletManagerMode
+    public var mode: WalletManagerMode {
+        get { return WalletManagerMode (core: cryptoWalletManagerGetMode (core)) }
+        set {
+            assert (system.supportsMode(network: network, newValue))
+            cryptoWalletManagerSetMode (core, newValue.core)
+        }
+    }
 
     /// The file-system path to use for persistent storage.
     public let path: String
@@ -64,6 +72,7 @@ public final class WalletManager: Equatable {
         let coreWallet = cryptoWalletManagerGetWallet(core)!
         return Wallet (core: coreWallet,
                        manager: self,
+                       callbackCoordinator: callbackCoordinator,
                        take: false)
     }()
 
@@ -77,11 +86,12 @@ public final class WalletManager: Equatable {
         
         let wallets: [BRCryptoWallet] = walletsPtr?.withMemoryRebound(to: BRCryptoWallet.self, capacity: walletsCount) {
             Array(UnsafeBufferPointer (start: $0, count: walletsCount))
-        } ?? []
+            } ?? []
         
         return wallets
             .map { Wallet (core: $0,
                            manager: self,
+                           callbackCoordinator: callbackCoordinator,
                            take: false) }
     }
 
@@ -96,6 +106,7 @@ public final class WalletManager: Equatable {
             ? nil
             : Wallet (core: core,
                       manager: self,
+                      callbackCoordinator: callbackCoordinator,
                       take: true))
     }
 
@@ -106,10 +117,21 @@ public final class WalletManager: Equatable {
                 ? nil
                 : Wallet (core: core,
                           manager: self,
+                          callbackCoordinator: callbackCoordinator,
                           take: true))
     }
 
-    public var defaultNetworkFee: NetworkFee? = nil
+    /// The default network fee.
+    public var defaultNetworkFee: NetworkFee
+
+    /// The address scheme to use
+    public var addressScheme: AddressScheme {
+        get { return AddressScheme (core: cryptoWalletManagerGetAddressScheme (core)) }
+        set {
+            assert (system.supportsAddressScheme(network: network, newValue))
+            cryptoWalletManagerSetAddressScheme (core, newValue.core)
+        }
+    }
 
     /// The default WalletFactory for creating wallets.
     //    var walletFactory: WalletFactory { get set }
@@ -128,6 +150,13 @@ public final class WalletManager: Equatable {
         cryptoWalletManagerSync (core)
     }
 
+    internal func sign (transfer: Transfer, paperKey: String) -> Bool {
+        return CRYPTO_TRUE == cryptoWalletManagerSign (core,
+                                                       transfer.wallet.core,
+                                                       transfer.core,
+                                                       paperKey)
+    }
+
     public func submit (transfer: Transfer, paperKey: String) {
         cryptoWalletManagerSubmit (core,
                                    transfer.wallet.core,
@@ -135,12 +164,33 @@ public final class WalletManager: Equatable {
                                    paperKey)
     }
 
+    internal func submit (transfer: Transfer, key: Key) {
+        cryptoWalletManagerSubmitForKey(core,
+                                        transfer.wallet.core,
+                                        transfer.core,
+                                        key.core)
+    }
+
+    internal func submit (transfer: Transfer) {
+        cryptoWalletManagerSubmitSigned (core,
+                                         transfer.wallet.core,
+                                         transfer.core)
+    }
+
+    public func createSweeper (wallet: Wallet,
+                               key: Key,
+                               completion: @escaping (Result<WalletSweeper, WalletSweeperError>) -> Void) {
+        WalletSweeper.create(wallet: wallet, key: key, bdb: query, completion: completion)
+    }
+
     internal init (core: BRCryptoWalletManager,
                    system: System,
+                   callbackCoordinator: SystemCallbackCoordinator,
                    take: Bool) {
 
         self.core   = take ? cryptoWalletManagerTake(core) : core
         self.system = system
+        self.callbackCoordinator = callbackCoordinator
 
         let network = Network (core: cryptoWalletManagerGetNetwork (core), take: false)
 
@@ -148,26 +198,30 @@ public final class WalletManager: Equatable {
         self.network = network
         self.unit    = network.defaultUnitFor (currency: network.currency)!
         self.path    = asUTF8String (cryptoWalletManagerGetPath(core))
-        self.mode    = WalletManagerMode (core: cryptoWalletManagerGetMode (core))
         self.query   = system.query
 
         self.defaultNetworkFee = network.minimumFee
+        self.addressScheme     = AddressScheme (core: cryptoWalletManagerGetAddressScheme (core))
     }
 
-    public convenience  init (system: System,
-                              account: Account,
-                              network: Network,
-                              mode: WalletManagerMode,
-                              storagePath: String,
-                              listener: BRCryptoCWMListener,
-                              client: BRCryptoCWMClient) {
+    public convenience init (system: System,
+                             callbackCoordinator: SystemCallbackCoordinator,
+                             account: Account,
+                             network: Network,
+                             mode: WalletManagerMode,
+                             addressScheme: AddressScheme,
+                             storagePath: String,
+                             listener: BRCryptoCWMListener,
+                             client: BRCryptoCWMClient) {
         self.init (core: cryptoWalletManagerCreate (listener,
                                                     client,
                                                     account.core,
                                                     network.core,
-                                                    mode.asCore,
+                                                    mode.core,
+                                                    addressScheme.core,
                                                     storagePath),
                    system: system,
+                   callbackCoordinator: callbackCoordinator,
                    take: false)
     }
 
@@ -178,6 +232,10 @@ public final class WalletManager: Equatable {
     // Equatable
     public static func == (lhs: WalletManager, rhs: WalletManager) -> Bool {
         return lhs === rhs || lhs.core == rhs.core
+    }
+
+    public var description: String {
+        return name
     }
 }
 
@@ -223,9 +281,156 @@ extension WalletManager {
 }
 
 ///
+/// The WalletSweeper
+///
+
+public enum WalletSweeperError: Error {
+    case unsupportedCurrency
+    case invalidKey
+    case invalidSourceWallet
+    case insufficientFunds
+    case unableToSweep
+    case noTransfersFound
+    case unexpectedError
+    case queryError(BlockChainDB.QueryError)
+
+    internal init? (_ core: BRCryptoWalletSweeperStatus) {
+        switch core {
+        case CRYPTO_WALLET_SWEEPER_SUCCESS:                 return nil
+        case CRYPTO_WALLET_SWEEPER_UNSUPPORTED_CURRENCY:    self = .unsupportedCurrency
+        case CRYPTO_WALLET_SWEEPER_INVALID_KEY:             self = .invalidKey
+        case CRYPTO_WALLET_SWEEPER_INVALID_SOURCE_WALLET:   self = .invalidSourceWallet
+        case CRYPTO_WALLET_SWEEPER_INSUFFICIENT_FUNDS:      self = .insufficientFunds
+        case CRYPTO_WALLET_SWEEPER_UNABLE_TO_SWEEP:         self = .unableToSweep
+        case CRYPTO_WALLET_SWEEPER_NO_TRANSFERS_FOUND:      self = .noTransfersFound
+        case CRYPTO_WALLET_SWEEPER_INVALID_ARGUMENTS:       self = .unexpectedError
+        case CRYPTO_WALLET_SWEEPER_INVALID_TRANSACTION:     self = .unexpectedError
+        case CRYPTO_WALLET_SWEEPER_ILLEGAL_OPERATION:       self = .unexpectedError
+        default: self = .unexpectedError; precondition(false)
+        }
+    }
+}
+
+public final class WalletSweeper {
+
+    internal static func create(wallet: Wallet,
+                                key: Key,
+                                bdb: BlockChainDB,
+                                completion: @escaping (Result<WalletSweeper, WalletSweeperError>) -> Void) {
+        // check that requested combination of manager, wallet, key can be used for sweeping
+        if let e = WalletSweeperError(cryptoWalletSweeperValidateSupported(wallet.manager.network.core,
+                                                                           wallet.currency.core,
+                                                                           key.core,
+                                                                           wallet.core)) {
+            completion(Result.failure(e))
+            return
+        }
+
+        switch wallet.currency.code {
+        case Currency.codeAsBTC:
+            // handle as BTC, creating the underlying BRCryptoWalletSweeper and initializing it
+            // using the BlockchainDB
+            createAsBtc(wallet: wallet,
+                        key: key)
+                .initAsBTC(bdb: bdb,
+                           completion: completion)
+        default:
+            precondition(false)
+        }
+    }
+
+    private static func createAsBtc(wallet: Wallet,
+                                    key: Key) -> WalletSweeper {
+        return WalletSweeper(core: cryptoWalletSweeperCreateAsBtc(wallet.manager.network.core,
+                                                                  wallet.currency.core,
+                                                                  key.core,
+                                                                  wallet.manager.addressScheme.core),
+                             wallet: wallet,
+                             key: key)
+    }
+
+    internal let core: BRCryptoWalletSweeper
+    private let manager: WalletManager
+    private let wallet: Wallet
+    private let key: Key
+
+    private init (core: BRCryptoWalletSweeper,
+                  wallet: Wallet,
+                  key: Key) {
+        self.core = core
+        self.manager = wallet.manager
+        self.wallet = wallet
+        self.key = key
+    }
+
+    public var balance: Amount? {
+        return cryptoWalletSweeperGetBalance (self.core)
+            .map { Amount (core: $0, take: false) }
+    }
+
+    public func estimate(fee: NetworkFee,
+                         completion: @escaping (Result<TransferFeeBasis, Wallet.FeeEstimationError>) -> Void) {
+        wallet.estimateFee(sweeper: self, fee: fee, completion: completion)
+    }
+
+    public func submit(estimatedFeeBasis: TransferFeeBasis) -> Transfer? {
+        guard let transfer = wallet.createTransfer(sweeper: self, estimatedFeeBasis: estimatedFeeBasis)
+            else { return nil }
+
+        manager.submit(transfer: transfer, key: key)
+        return transfer
+    }
+
+    private func initAsBTC(bdb: BlockChainDB,
+                           completion: @escaping (Result<WalletSweeper, WalletSweeperError>) -> Void) {
+        let network = manager.network
+        let address = asUTF8String(cryptoWalletSweeperGetAddress(core)!, true)
+
+        bdb.getTransactions(blockchainId: network.uids,
+                            addresses: [address],
+                            begBlockNumber: 0,
+                            endBlockNumber: network.height,
+                            includeRaw: true) {
+                            (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
+                                res.resolve(
+                                    success: {
+                                        // populate the underlying BRCryptoWalletSweeper with BTC transaction data
+                                        $0.forEach { (model: BlockChainDB.Model.Transaction) in
+                                            if var data = model.raw {
+                                                let bytesCount = data.count
+                                                data.withUnsafeMutableBytes { (bytes: UnsafeMutableRawBufferPointer) -> Void in
+                                                    let bytesAsUInt8 = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+                                                    if let e = WalletSweeperError(cryptoWalletSweeperHandleTransactionAsBTC(self.core,
+                                                                                                                            bytesAsUInt8,
+                                                                                                                            bytesCount)) {
+                                                        completion(Result.failure(e))
+                                                        return
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        // validate that the sweeper has the necessary info
+                                        if let e = WalletSweeperError(cryptoWalletSweeperValidate(self.core)) {
+                                            completion(Result.failure(e))
+                                            return
+                                        }
+
+                                        // return the sweeper for use in estimation/submission
+                                        completion(Result.success(self))},
+                                    failure: { completion(Result.failure(.queryError($0))) })
+        }
+    }
+
+    deinit {
+        cryptoWalletSweeperRelease(core)
+    }
+}
+
+///
 /// The WalletManager state.
 ///
-public enum WalletManagerState {
+public enum WalletManagerState: Equatable {
     case created
     case disconnected
     case connected
@@ -257,12 +462,33 @@ public enum WalletManagerState {
 ///
 /// - p2p_only: Use the network's Peer-to-Peer protocol to synchronize the account's transfers.
 ///
-public enum WalletManagerMode {
+public enum WalletManagerMode: Equatable {
     case api_only
     case api_with_p2p_submit
     case p2p_with_api_sync
     case p2p_only
 
+    /// Allow WalletMangerMode to be saved
+    public var serialization: UInt8 {
+        switch self {
+        case .api_only:            return 0xf0
+        case .api_with_p2p_submit: return 0xf1
+        case .p2p_with_api_sync:   return 0xf2
+        case .p2p_only:            return 0xf3
+        }
+    }
+
+    /// Initialize WalletMangerMode from serialization
+    public init? (serialization: UInt8) {
+        switch serialization {
+        case 0xf0: self = .api_only
+        case 0xf1: self = .api_with_p2p_submit
+        case 0xf2: self = .p2p_with_api_sync
+        case 0xf3: self = .p2p_only
+        default: return nil
+        }
+    }
+    
     internal init (core: BRSyncMode) {
         switch core {
         case SYNC_MODE_BRD_ONLY: self = .api_only
@@ -273,7 +499,7 @@ public enum WalletManagerMode {
         }
     }
 
-    internal var asCore: BRSyncMode {
+    internal var core: BRSyncMode {
         switch self {
         case .api_only: return SYNC_MODE_BRD_ONLY
         case .api_with_p2p_submit: return SYNC_MODE_BRD_WITH_P2P_SEND
@@ -281,6 +507,8 @@ public enum WalletManagerMode {
         case .p2p_only: return SYNC_MODE_P2P_ONLY
         }
     }
+
+    // Equatable: [Swift-generated]
 }
 
 ///
@@ -296,7 +524,7 @@ public enum WalletManagerEvent {
     case walletDeleted (wallet: Wallet)
 
     case syncStarted
-    case syncProgress (percentComplete: Double)
+    case syncProgress (timestamp: Date?, percentComplete: Float)
     case syncEnded (error: String?)
 
     /// An event capturing a change in the block height of the network associated with a
@@ -322,7 +550,9 @@ public protocol WalletManagerListener: class {
     func handleManagerEvent (system: System,
                              manager: WalletManager,
                              event: WalletManagerEvent)
-
 }
+
+/// A Functional Interface for a Handler
+public typealias WalletManagerEventHandler = (System, WalletManager, WalletManagerEvent) -> Void
 
 public protocol WalletManagerFactory { }

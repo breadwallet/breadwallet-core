@@ -8,6 +8,7 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
+import com.google.common.base.Optional;
 
 import java.util.Objects;
 
@@ -27,6 +28,31 @@ class OwnedBRCryptoFeeBasis implements CoreBRCryptoFeeBasis {
         if (null != core) {
             CryptoLibrary.INSTANCE.cryptoFeeBasisGive(core);
         }
+    }
+
+    @Override
+    public double getCostFactor() {
+        return core.getCostFactor();
+    }
+
+    @Override
+    public CoreBRCryptoUnit getPricePerCostFactorUnit() {
+        return core.getPricePerCostFactorUnit();
+    }
+
+    @Override
+    public CoreBRCryptoAmount getPricePerCostFactor() {
+        return core.getPricePerCostFactor();
+    }
+
+    @Override
+    public Optional<CoreBRCryptoAmount> getFee() {
+        return core.getFee();
+    }
+
+    @Override
+    public boolean isIdentical(CoreBRCryptoFeeBasis other) {
+        return core.isIdentical(other);
     }
 
     @Override

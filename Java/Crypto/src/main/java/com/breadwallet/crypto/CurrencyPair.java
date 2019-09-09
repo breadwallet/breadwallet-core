@@ -20,7 +20,7 @@ public final class CurrencyPair {
     private final double exchangeRate;
 
     public CurrencyPair(Unit baseUnit, Unit quoteUnit, double exchangeRate) {
-        checkArgument(exchangeRate == 0);
+        checkArgument(exchangeRate != 0);
         this.baseUnit = baseUnit;
         this.quoteUnit = quoteUnit;
         this.exchangeRate = exchangeRate;
@@ -28,18 +28,12 @@ public final class CurrencyPair {
 
     public Optional<Amount> exchangeAsBase(Amount amount) {
         Optional<Double> doubleAmount = amount.doubleAmount(baseUnit);
-        if (doubleAmount.isPresent()) {
-            return Amount.create(doubleAmount.get() * exchangeRate, quoteUnit);
-        }
-        return Optional.absent();
+        return doubleAmount.transform(a -> Amount.create(doubleAmount.get() * exchangeRate, quoteUnit));
     }
 
     public Optional<Amount> exchangeAsQuote(Amount amount) {
         Optional<Double> doubleAmount = amount.doubleAmount(quoteUnit);
-        if (doubleAmount.isPresent()) {
-            return Amount.create(doubleAmount.get() / exchangeRate, baseUnit);
-        }
-        return Optional.absent();
+        return doubleAmount.transform(a -> Amount.create(doubleAmount.get() / exchangeRate, baseUnit));
     }
 
     public Unit getBaseUnit() {

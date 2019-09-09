@@ -9,6 +9,7 @@ package com.breadwallet.corecrypto;
 
 import android.support.annotation.Nullable;
 
+import com.breadwallet.corenative.crypto.BRCryptoAmount;
 import com.breadwallet.crypto.CurrencyPair;
 import com.breadwallet.corenative.crypto.BRCryptoComparison;
 import com.breadwallet.corenative.crypto.CoreBRCryptoAmount;
@@ -28,26 +29,31 @@ import static com.google.common.base.Preconditions.checkArgument;
 final class Amount implements com.breadwallet.crypto.Amount {
 
     /* package */
-    static Optional<Amount> create(double value, com.breadwallet.crypto.Unit unit) {
+    static Amount create(double value, com.breadwallet.crypto.Unit unit) {
         Unit cryptoUnit = Unit.from(unit);
-        return CoreBRCryptoAmount.create(value, cryptoUnit.getCoreBRCryptoUnit()).transform((amount) -> new Amount(amount, cryptoUnit));
+        return new Amount(CoreBRCryptoAmount.create(value, cryptoUnit.getCoreBRCryptoUnit()));
     }
 
     /* package */
-    static Optional<Amount> create(long value, com.breadwallet.crypto.Unit unit) {
+    static Amount create(long value, com.breadwallet.crypto.Unit unit) {
         Unit cryptoUnit = Unit.from(unit);
-        return CoreBRCryptoAmount.create(value, cryptoUnit.getCoreBRCryptoUnit()).transform((amount) -> new Amount(amount, cryptoUnit));
+        return new Amount(CoreBRCryptoAmount.create(value, cryptoUnit.getCoreBRCryptoUnit()));
     }
 
     /* package */
     static Optional<Amount> create(String value, boolean isNegative, com.breadwallet.crypto.Unit unit) {
         Unit cryptoUnit = Unit.from(unit);
-        return CoreBRCryptoAmount.create(value, isNegative, cryptoUnit.getCoreBRCryptoUnit()).transform((amount) -> new Amount(amount, cryptoUnit));
+        return CoreBRCryptoAmount.create(value, isNegative, cryptoUnit.getCoreBRCryptoUnit()).transform(Amount::new);
     }
 
     /* package */
-    static Amount create(CoreBRCryptoAmount core, Unit unit) {
-        return new Amount(core, unit);
+    static Amount takeAndCreate(BRCryptoAmount core) {
+        return new Amount(CoreBRCryptoAmount.takeAndCreateOwned(core));
+    }
+
+    /* package */
+    static Amount create(CoreBRCryptoAmount core) {
+        return new Amount(core);
     }
 
     /* package */
@@ -80,11 +86,11 @@ final class Amount implements com.breadwallet.crypto.Amount {
     private final Currency currency;
     private final Supplier<String> toStringSupplier;
 
-    private Amount(CoreBRCryptoAmount core, Unit unit) {
+    private Amount(CoreBRCryptoAmount core) {
         this.core = core;
-        this.unit = unit;
 
         this.currency = Currency.create(core.getCurrency());
+        this.unit = Unit.create(core.getUnit());
         this.toStringSupplier = Suppliers.memoize(() -> toStringAsUnit(unit).or("<nan>"));
     }
 
@@ -117,19 +123,24 @@ final class Amount implements com.breadwallet.crypto.Amount {
     public Optional<Amount> add(com.breadwallet.crypto.Amount o) {
         checkArgument(isCompatible(o));
 
-        return core.add(from(o).core).transform(a -> new Amount(a, unit));
+        return core.add(from(o).core).transform(Amount::new);
     }
 
     @Override
     public Optional<Amount> sub(com.breadwallet.crypto.Amount o) {
         checkArgument(isCompatible(o));
 
-        return core.sub(from(o).core).transform(a -> new Amount(a, unit));
+        return core.sub(from(o).core).transform(Amount::new);
     }
 
     @Override
     public Amount negate() {
-        return new Amount(core.negate(), unit);
+        return new Amount(core.negate());
+    }
+
+    @Override
+    public Optional<Amount> convert(com.breadwallet.crypto.Unit toUnit) {
+        return core.convert(Unit.from(toUnit).getCoreBRCryptoUnit()).transform(Amount::new);
     }
 
     @Override

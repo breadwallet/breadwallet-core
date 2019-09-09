@@ -68,7 +68,10 @@ public final class Transfer: Equatable {
     ///
     /// The basis for the estimated fee.  This is only not-nil if we have created the transfer
     /// IN THIS MEMORY INSTANCE (assume this for now).
-    public let estimatedFeeBasis: TransferFeeBasis?
+    public var estimatedFeeBasis: TransferFeeBasis? {
+        return cryptoTransferGetEstimatedFeeBasis (core)
+            .map { TransferFeeBasis (core: $0, take: false) }
+    }
 
     /// The basis for the confirmed fee.
     public var confirmedFeeBasis: TransferFeeBasis? {
@@ -79,7 +82,7 @@ public final class Transfer: Equatable {
     /// The fee paid - before the transfer is confirmed, this is the estimated fee.
     public var fee: Amount {
         guard let feeBasis = confirmedFeeBasis ?? estimatedFeeBasis
-            else { precondition (false, "Missed confirmed+estimated feeBasis") }
+            else { preconditionFailure ("Missed confirmed+estimated feeBasis") }
 
         return feeBasis.fee
     }
@@ -117,12 +120,9 @@ public final class Transfer: Equatable {
         self.unit       = Unit (core: cryptoTransferGetUnitForAmount (core), take: false)
         self.unitForFee = Unit (core: cryptoTransferGetUnitForFee (core),    take: false)
 
-        self.estimatedFeeBasis = cryptoTransferGetEstimatedFeeBasis (core)
-            .map { TransferFeeBasis (core: $0, take: false) }
-
         // Other properties
-        self.amount         = Amount (core: cryptoTransferGetAmount (core),        unit: wallet.unit, take: false)
-        self.amountDirected = Amount (core: cryptoTransferGetAmountDirected(core), unit: wallet.unit, take: false)
+        self.amount         = Amount (core: cryptoTransferGetAmount (core),        take: false)
+        self.amountDirected = Amount (core: cryptoTransferGetAmountDirected(core), take: false)
     }
 
 
@@ -169,7 +169,7 @@ extension Transfer {
     }
 }
 
-public enum TransferDirection {
+public enum TransferDirection: Equatable {
     case sent
     case received
     case recovered
@@ -182,6 +182,14 @@ public enum TransferDirection {
         default: self = .sent;  precondition(false)
         }
     }
+
+    internal var core: BRCryptoTransferDirection {
+        switch self {
+        case .sent:      return CRYPTO_TRANSFER_SENT
+        case .received:  return CRYPTO_TRANSFER_RECEIVED
+        case .recovered: return CRYPTO_TRANSFER_RECOVERED
+        }
+    }
 }
 
 ///
@@ -192,13 +200,11 @@ public enum TransferDirection {
 /// The provided properties allow the App to present detailed information - specifically the
 /// 'cost factor' and the 'price per cost factor'.
 ///
-public class TransferFeeBasis {
-
+public class TransferFeeBasis: Equatable {
     /// The Core representation
     internal let core: BRCryptoFeeBasis
 
-    /// The unit for both the pricePerCostFactor and fee.  This must, of course, have the same
-    /// currency as the feeBasis itself.
+    /// The unit for both the pricePerCostFactor and fee.
     public let unit: Unit
 
     /// The fee basis currency; this should/must be the Network's currency
@@ -219,18 +225,14 @@ public class TransferFeeBasis {
     internal init (core: BRCryptoFeeBasis, take: Bool) {
         self.core = take ? cryptoFeeBasisTake (core) : core
 
-        let unit = Unit (core: cryptoFeeBasisGetPricePerCostFactorUnit(core), take: false)
-
-        self.unit = unit
-        self.pricePerCostFactor = Amount (core: cryptoFeeBasisGetPricePerCostFactor(core),
-                                          unit: unit,
-                                          take: false)
+        self.unit = Unit (core: cryptoFeeBasisGetPricePerCostFactorUnit(core), take: false)
+        self.pricePerCostFactor = Amount (core: cryptoFeeBasisGetPricePerCostFactor(core), take: false)
         self.costFactor  = cryptoFeeBasisGetCostFactor (core)
 
-        // The Core fee calculation might overflow.
+        // TODO: The Core fee calculation might overflow.
         guard let fee = cryptoFeeBasisGetFee (core)
-            .map ({ Amount (core: $0, unit: unit, take: false) })
-            else { print ("Missed Fee"); precondition (false) }
+            .map ({ Amount (core: $0, take: false) })
+            else { print ("Missed Fee"); preconditionFailure () }
 
         self.fee = fee
     }
@@ -238,12 +240,16 @@ public class TransferFeeBasis {
     deinit {
         cryptoFeeBasisGive (core)
     }
+
+    public static func == (lhs: TransferFeeBasis, rhs: TransferFeeBasis) -> Bool {
+        return CRYPTO_TRUE == cryptoFeeBasisIsIdentical (lhs.core, rhs.core)
+    }
 }
 
 ///
 /// A TransferConfirmation holds confirmation information.
 ///
-public struct TransferConfirmation {
+public struct TransferConfirmation: Equatable {
     public let blockNumber: UInt64
     public let transactionIndex: UInt64
     public let timestamp: UInt64
@@ -298,13 +304,15 @@ public enum TransferState {
             confirmation: TransferConfirmation (blockNumber: core.u.included.blockNumber,
                                                 transactionIndex: core.u.included.transactionIndex,
                                                 timestamp: core.u.included.timestamp,
-                                                fee: nil))
+                                                fee: core.u.included.fee.map { Amount (core: $0, take: true) }))
         case CRYPTO_TRANSFER_STATE_ERRORRED:  self = .failed(reason: asUTF8String(cryptoTransferStateGetErrorMessage (core)))
         case CRYPTO_TRANSFER_STATE_DELETED:   self = .deleted
         default: /* ignore this */ self = .pending; precondition(false)
         }
     }
 }
+
+extension TransferState: Equatable {}
 
 extension TransferState: CustomStringConvertible {
     public var description: String {
@@ -349,6 +357,9 @@ public protocol TransferListener: class {
                               transfer: Transfer,
                               event: TransferEvent)
 }
+
+/// A Functional Interface for a Handler
+public typealias TransferEventHandler = (System, WalletManager, Wallet, Transfer, TransferEvent) -> Void
 
 ///
 /// A `TransferFectory` is a customization point for `Transfer` creation.

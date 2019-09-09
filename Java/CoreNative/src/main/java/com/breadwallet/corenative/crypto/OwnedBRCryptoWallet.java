@@ -8,7 +8,8 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
-import com.google.common.primitives.UnsignedLong;
+import com.google.common.base.Optional;
+import com.sun.jna.Pointer;
 
 import java.util.List;
 import java.util.Objects;
@@ -52,8 +53,8 @@ class OwnedBRCryptoWallet implements CoreBRCryptoWallet {
     }
 
     @Override
-    public CoreBRCryptoUnit getFeeUnit() {
-        return core.getFeeUnit();
+    public CoreBRCryptoUnit getUnitForFee() {
+        return core.getUnitForFee();
     }
 
     @Override
@@ -82,23 +83,34 @@ class OwnedBRCryptoWallet implements CoreBRCryptoWallet {
     }
 
     @Override
-    public CoreBRCryptoAddress getSourceAddress() {
-        return core.getSourceAddress();
+    public CoreBRCryptoAddress getSourceAddress(int addressScheme) {
+        return core.getSourceAddress(addressScheme);
     }
 
     @Override
-    public CoreBRCryptoAddress getTargetAddress() {
-        return core.getTargetAddress();
+    public CoreBRCryptoAddress getTargetAddress(int addressScheme) {
+        return core.getTargetAddress(addressScheme);
     }
 
     @Override
-    public CoreBRCryptoTransfer createTransfer(CoreBRCryptoAddress target, CoreBRCryptoAmount amount, CoreBRCryptoFeeBasis feeBasis) {
-        return core.createTransfer(target, amount, feeBasis);
+    public CoreBRCryptoTransfer createTransfer(CoreBRCryptoAddress target, CoreBRCryptoAmount amount, CoreBRCryptoFeeBasis estimatedFeeBasis) {
+        return core.createTransfer(target, amount, estimatedFeeBasis);
     }
 
     @Override
-    public CoreBRCryptoAmount estimateFee(CoreBRCryptoAmount amount, CoreBRCryptoFeeBasis feeBasis) {
-        return core.estimateFee(amount, feeBasis);
+    public Optional<CoreBRCryptoTransfer> createTransferForWalletSweep(BRCryptoWalletSweeper sweeper, CoreBRCryptoFeeBasis estimatedFeeBasis) {
+        return core.createTransferForWalletSweep(sweeper, estimatedFeeBasis);
+    }
+
+    @Override
+    public void estimateFeeBasis(Pointer cookie, CoreBRCryptoAddress target, CoreBRCryptoAmount amount, CoreBRCryptoNetworkFee fee) {
+        core.estimateFeeBasis(cookie, target, amount, fee);
+    }
+
+    @Override
+    public void estimateFeeBasisForWalletSweep(Pointer cookie, BRCryptoWalletSweeper sweeper,
+                                               CoreBRCryptoNetworkFee fee) {
+        core.estimateFeeBasisForWalletSweep(cookie, sweeper, fee);
     }
 
     @Override

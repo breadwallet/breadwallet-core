@@ -53,6 +53,8 @@ target_sources (core
                 src/main/cpp/core/support/BRKeyECIES.h
                 src/main/cpp/core/support/BRSet.c
                 src/main/cpp/core/support/BRSet.h
+                src/main/cpp/core/support/BRSyncMode.c
+                src/main/cpp/core/support/BRSyncMode.h
 
                 # Bitcoin
                 src/main/cpp/core/bitcoin/BRBIP38Key.c
@@ -69,6 +71,8 @@ target_sources (core
                 src/main/cpp/core/bitcoin/BRPeer.h
                 src/main/cpp/core/bitcoin/BRPeerManager.c
                 src/main/cpp/core/bitcoin/BRPeerManager.h
+                src/main/cpp/core/bitcoin/BRSyncManager.c
+                src/main/cpp/core/bitcoin/BRSyncManager.h
                 src/main/cpp/core/bitcoin/BRTransaction.c
                 src/main/cpp/core/bitcoin/BRTransaction.h
                 src/main/cpp/core/bitcoin/BRWallet.c
@@ -158,6 +162,8 @@ target_sources (core
                 src/main/cpp/core/ethereum/base/BREthereumEther.h
                 src/main/cpp/core/ethereum/base/BREthereumGas.c
                 src/main/cpp/core/ethereum/base/BREthereumGas.h
+                src/main/cpp/core/ethereum/base/BREthereumFeeBasis.c
+                src/main/cpp/core/ethereum/base/BREthereumFeeBasis.h
                 src/main/cpp/core/ethereum/base/BREthereumHash.c
                 src/main/cpp/core/ethereum/base/BREthereumHash.h
                 src/main/cpp/core/ethereum/base/BREthereumData.c

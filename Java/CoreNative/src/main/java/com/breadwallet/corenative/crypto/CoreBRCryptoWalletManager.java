@@ -17,9 +17,9 @@ public interface CoreBRCryptoWalletManager {
 
     static CoreBRCryptoWalletManager create(BRCryptoCWMListener.ByValue listener, BRCryptoCWMClient.ByValue client,
                                             CoreBRCryptoAccount account, CoreBRCryptoNetwork network, int mode,
-                                            String path) {
+                                            int scheme, String path) {
         return new OwnedBRCryptoWalletManager(CryptoLibrary.INSTANCE.cryptoWalletManagerCreate(
-                listener, client, account.asBRCryptoAccount(), network.asBRCryptoNetwork(), mode, path));
+                listener, client, account.asBRCryptoAccount(), network.asBRCryptoNetwork(), mode, scheme, path));
     }
 
     static CoreBRCryptoWalletManager createOwned(BRCryptoWalletManager manager) {
@@ -38,9 +38,15 @@ public interface CoreBRCryptoWalletManager {
 
     int getMode();
 
+    void setMode(int mode);
+
     String getPath();
 
     int getState();
+
+    int getAddressScheme();
+
+    void setAddressScheme(int scheme);
 
     void connect();
 
@@ -49,6 +55,8 @@ public interface CoreBRCryptoWalletManager {
     void sync();
 
     void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, byte[] phraseUtf8);
+
+    void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, BRCryptoKey key);
 
     void announceGetBlockNumberSuccess(BRCryptoCWMClientCallbackState callbackState, UnsignedLong blockchainHeight);
 
@@ -66,6 +74,9 @@ public interface CoreBRCryptoWalletManager {
                                         String blockConfirmations, String blockTransacionIndex, String blockTimestamp,
                                         String isError);
 
+    void announceGetTransactionsItemGen(BRCryptoCWMClientCallbackState callbackState, byte[] transaction, UnsignedLong timestamp,
+                                        UnsignedLong blockHeight);
+
     void announceGetTransactionsComplete(BRCryptoCWMClientCallbackState callbackState, boolean success);
 
     void announceSubmitTransferSuccess(BRCryptoCWMClientCallbackState callbackState);
@@ -82,9 +93,9 @@ public interface CoreBRCryptoWalletManager {
 
     void announceGetGasPriceFailure(BRCryptoCWMClientCallbackState callbackState);
 
-    void announceGetGasEstimateSuccess(BRCryptoCWMClientCallbackState callbackState, String gasEstimate);
+    void announceGetGasEstimateSuccess(BRCryptoCWMClientCallbackState callbackState, String gasEstimate, String gasPrice);
 
-    void announceGetGasEstimateFailure(BRCryptoCWMClientCallbackState callbackState);
+    void announceGetGasEstimateFailure(BRCryptoCWMClientCallbackState callbackState, int status);
 
     void announceGetLogsItem(BRCryptoCWMClientCallbackState callbackState, String hash, String contract, List<String> topics,
                              String data, String gasPrice, String gasUsed, String logIndex, String blockNumber,

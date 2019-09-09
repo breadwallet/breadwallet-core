@@ -9,6 +9,7 @@ package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
 import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 
 import java.util.Objects;
@@ -29,11 +30,6 @@ class OwnedBRCryptoNetwork implements CoreBRCryptoNetwork {
         if (null != core) {
             CryptoLibrary.INSTANCE.cryptoNetworkGive(core);
         }
-    }
-
-    @Override
-    public void setHeight(UnsignedLong height) {
-        core.setHeight(height);
     }
 
     @Override
@@ -62,6 +58,16 @@ class OwnedBRCryptoNetwork implements CoreBRCryptoNetwork {
     }
 
     @Override
+    public UnsignedLong getFeeCount() {
+        return core.getFeeCount();
+    }
+
+    @Override
+    public CoreBRCryptoNetworkFee getFee(UnsignedLong i) {
+        return core.getFee(i);
+    }
+
+    @Override
     public String getUids() {
         return core.getUids();
     }
@@ -77,13 +83,28 @@ class OwnedBRCryptoNetwork implements CoreBRCryptoNetwork {
     }
 
     @Override
+    public void setHeight(UnsignedLong height) {
+        core.setHeight(height);
+    }
+
+    @Override
+    public UnsignedInteger getConfirmationsUntilFinal() {
+        return core.getConfirmationsUntilFinal();
+    }
+
+    @Override
+    public void setConfirmationsUntilFinal(UnsignedInteger confirmationsUntilFinal) {
+        core.setConfirmationsUntilFinal(confirmationsUntilFinal);
+    }
+
+    @Override
     public String getName() {
         return core.getName();
     }
 
     @Override
-    public int getType() {
-        return core.getType();
+    public void addFee(CoreBRCryptoNetworkFee fee) {
+        core.addFee(fee);
     }
 
     @Override
@@ -114,6 +135,11 @@ class OwnedBRCryptoNetwork implements CoreBRCryptoNetwork {
     @Override
     public Optional<CoreBRCryptoUnit> getUnitAt(CoreBRCryptoCurrency currency, UnsignedLong index) {
         return core.getUnitAt(currency, index);
+    }
+
+    @Override
+    public Optional<CoreBRCryptoAddress> addressFor(String address) {
+        return core.addressFor(address);
     }
 
     @Override

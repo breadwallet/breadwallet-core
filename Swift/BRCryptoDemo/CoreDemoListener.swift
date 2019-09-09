@@ -20,6 +20,14 @@ class CoreDemoListener: SystemListener {
     private var walletListeners: [WalletListener] = []
     private var transferListeners: [TransferListener] = []
 
+    private let currencyCodesNeeded: [String]
+    private let isMainnet: Bool
+
+    public init (currencyCodesNeeded: [String], isMainnet: Bool) {
+        self.currencyCodesNeeded = currencyCodesNeeded
+        self.isMainnet = isMainnet
+    }
+
     private let currencyCodeToModeMap: [String : WalletManagerMode] = [
         Currency.codeAsBTC : WalletManagerMode.api_only,
         Currency.codeAsBCH : WalletManagerMode.p2p_only,
@@ -81,18 +89,24 @@ class CoreDemoListener: SystemListener {
             break
 
         case .networkAdded(let network):
-
             // A network was created; create the corresponding wallet manager.  Note: an actual
             // App might not be interested in having a wallet manager for every network -
             // specifically, test networks are announced and having a wallet manager for a
             // testnet won't happen in a deployed App.
 
-            let code = network.currency.code.lowercased()
+            if isMainnet == network.isMainnet &&
+                currencyCodesNeeded.contains (where: { nil != network.currencyBy (code: $0) }) {
+                let mode = system.supportsMode (network: network, WalletManagerMode.api_only)
+                    ? WalletManagerMode.api_only
+                    : system.defaultMode(network: network)
+                let scheme = system.defaultAddressScheme(network: network)
 
-            let _ = system.createWalletManager (network: network,
-                                                mode: currencyCodeToModeMap[code] ?? WalletManagerMode.api_only)
-
+                let _ = system.createWalletManager (network: network,
+                                                    mode: mode,
+                                                    addressScheme: scheme)
+            }
         case .managerAdded (let manager):
+            //TODO: Don't connect here. connect on touch...
             manager.connect()
 
         }

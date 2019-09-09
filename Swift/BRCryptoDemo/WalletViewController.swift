@@ -24,7 +24,14 @@ class WalletViewController: UITableViewController, TransferListener, WalletManag
     /// The wallet's transfers
     var transfers : [Transfer] = []
 
-
+    func reset () {
+        DispatchQueue.main.async {
+            self.wallet = nil
+            self.transfers = []
+            self.tableView.reloadData()
+        }
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         self.tableView.rowHeight = 100
@@ -85,19 +92,69 @@ class WalletViewController: UITableViewController, TransferListener, WalletManag
             }
             break
             
-        case "createTransfer":
-            print ("APP: WVC: Want to Create")
-            let controller = (segue.destination as! UINavigationController).topViewController as! TransferCreateController
-            controller.wallet = wallet
-            controller.fee    = wallet.manager.defaultNetworkFee
-            break
+//        case "createTransfer":
+//            print ("APP: WVC: Want to Create")
+//            let controller = (segue.destination as! UINavigationController).topViewController as! TransferCreateController
+//            controller.wallet = wallet
+//            controller.fee    = wallet.manager.defaultNetworkFee
+//            break
 
         default:
             break;
         }
     }
 
-     override func tableView (_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+    func showCreateTransferController (named: String) {
+        if let navigationController = self.storyboard?.instantiateViewController(withIdentifier: named) as? UINavigationController,
+            let controller = navigationController.topViewController as? TransferCreateController {
+            controller.wallet = self.wallet
+            controller.fee    = self.wallet.manager.defaultNetworkFee
+            self.present (navigationController, animated: true, completion: nil)
+        }
+    }
+
+    func addAlertAction (alert: UIAlertController, _ canDisable: Bool, _ action: UIAlertAction) {
+        if canDisable {
+            action.isEnabled = (Currency.codeAsBTC == wallet.manager.network.currency.code)
+        }
+        alert.addAction(action);
+    }
+
+    @IBAction func createTransfer (_ sender: UIBarButtonItem) {
+        let alert = UIAlertController (title: "Create Transfer",
+                                       message: nil,
+                                       preferredStyle: UIAlertController.Style.actionSheet)
+
+        addAlertAction(alert: alert, false, UIAlertAction (title: "Send", style: UIAlertAction.Style.default) { (action) in
+            print ("APP: WVC: Want to Send")
+            self.showCreateTransferController(named: "createTransferSendNC")
+            alert.dismiss(animated: true) {}
+        })
+
+        addAlertAction(alert: alert, false, UIAlertAction (title: "Receive", style: UIAlertAction.Style.default) { (action) in
+            print ("APP: WVC: Want to Receive")
+            self.showCreateTransferController(named: "createTransferRecvNC")
+           alert.dismiss(animated: true) {}
+        })
+
+        addAlertAction(alert: alert, true, UIAlertAction (title: "Payment", style: UIAlertAction.Style.default) { (action) in
+            print ("APP: WVC: Want to Pay")
+            self.showCreateTransferController(named: "createTransferPayNC")
+           alert.dismiss(animated: true) {}
+        })
+
+        addAlertAction(alert: alert, true, UIAlertAction (title: "Sweep", style: UIAlertAction.Style.default) { (action) in
+            print ("APP: WVC: Want to Sweep")
+            self.showCreateTransferController(named: "createTransferSweepNC")
+           alert.dismiss(animated: true) {}
+        })
+
+        alert.addAction (UIAlertAction (title: "Cancel", style: UIAlertAction.Style.cancel))
+
+        self.present (alert, animated: true) {}
+    }
+
+    override func tableView (_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TransferCell", for: indexPath) as! TransferTableViewCell
 
         cell.transfer = transfers[indexPath.row]

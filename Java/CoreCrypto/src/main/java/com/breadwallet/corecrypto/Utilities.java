@@ -7,18 +7,25 @@
  */
 package com.breadwallet.corecrypto;
 
+import com.breadwallet.corenative.crypto.BRCryptoAddressScheme;
+import com.breadwallet.corenative.crypto.BRCryptoStatus;
 import com.breadwallet.corenative.crypto.BRCryptoTransferDirection;
 import com.breadwallet.corenative.crypto.BRCryptoTransferState;
 import com.breadwallet.corenative.crypto.BRCryptoTransferStateType;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerState;
 import com.breadwallet.corenative.crypto.BRCryptoWalletState;
+import com.breadwallet.corenative.crypto.CoreBRCryptoAmount;
 import com.breadwallet.corenative.support.BRSyncMode;
+import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.TransferConfirmation;
 import com.breadwallet.crypto.TransferDirection;
 import com.breadwallet.crypto.TransferState;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.WalletManagerState;
 import com.breadwallet.crypto.WalletState;
+import com.breadwallet.crypto.errors.FeeEstimationError;
+import com.breadwallet.crypto.errors.FeeEstimationServiceFailureError;
+import com.breadwallet.crypto.errors.FeeEstimationServiceUnavailableError;
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedLong;
 
@@ -117,14 +124,43 @@ final class Utilities {
                 }
                 return TransferState.FAILED(message.substring(0, end));
             case BRCryptoTransferStateType.CRYPTO_TRANSFER_STATE_INCLUDED:
-                // TODO(fix): Fill in the fee
                 return TransferState.INCLUDED(new TransferConfirmation(
                         UnsignedLong.fromLongBits(state.u.included.blockNumber),
                         UnsignedLong.fromLongBits(state.u.included.transactionIndex),
                         UnsignedLong.fromLongBits(state.u.included.timestamp),
-                        Optional.absent()
+                        Optional.fromNullable(state.u.included.fee).transform(Amount::takeAndCreate)
                 ));
             default: throw new IllegalArgumentException("Unsupported state");
+        }
+    }
+
+    /* package */
+    static int addressSchemeToCrypto(AddressScheme scheme) {
+        switch (scheme) {
+            case BTC_LEGACY: return BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_BTC_LEGACY;
+            case BTC_SEGWIT: return BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT;
+            case ETH_DEFAULT: return BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT;
+            case GEN_DEFAULT: return BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT;
+            default: throw new IllegalArgumentException("Unsupported scheme");
+        }
+    }
+
+    /* package */
+    static AddressScheme addressSchemeFromCrypto(int scheme) {
+        switch (scheme) {
+            case BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_BTC_LEGACY: return AddressScheme.BTC_LEGACY;
+            case BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT: return AddressScheme.BTC_SEGWIT;
+            case BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT: return AddressScheme.ETH_DEFAULT;
+            case BRCryptoAddressScheme.CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT: return AddressScheme.GEN_DEFAULT;
+            default: throw new IllegalArgumentException("Unsupported scheme");
+        }
+    }
+
+    /* package */
+    static FeeEstimationError feeEstimationErrorFromStatus(int status) {
+        switch (status) {
+            case BRCryptoStatus.CRYPTO_ERROR_NODE_NOT_CONNECTED: return new FeeEstimationServiceUnavailableError();
+            default: return new FeeEstimationServiceFailureError();
         }
     }
 }

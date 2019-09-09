@@ -20,8 +20,8 @@ import java.util.Objects;
 final class Transfer implements com.breadwallet.crypto.Transfer {
 
     /* package */
-    static Transfer create(CoreBRCryptoTransfer transfer, Wallet wallet, Unit unit) {
-        return new Transfer(transfer, wallet, unit);
+    static Transfer create(CoreBRCryptoTransfer transfer, Wallet wallet) {
+        return new Transfer(transfer, wallet);
     }
 
     /* package */
@@ -34,26 +34,29 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
 
     private final CoreBRCryptoTransfer core;
     private final Wallet wallet;
+    private final Unit unit;
 
+    private final Supplier<Unit> unitForFeeSupplier;
+    private final Supplier<Optional<TransferFeeBasis>> estimatedFeeBasisSupplier;
     private final Supplier<Optional<Address>> sourceSupplier;
     private final Supplier<Optional<Address>> targetSupplier;
     private final Supplier<Amount> amountSupplier;
     private final Supplier<Amount> directedSupplier;
-    private final Supplier<Amount> feeSupplier;
-    private final Supplier<TransferFeeBasis> feeBasisSupplier;
     private final Supplier<TransferDirection> directionSupplier;
     private final Supplier<Optional<TransferHash>> hashSupplier;
 
-    private Transfer(CoreBRCryptoTransfer core, Wallet wallet, Unit unit) {
+    private Transfer(CoreBRCryptoTransfer core, Wallet wallet) {
         this.core = core;
         this.wallet = wallet;
 
+        this.unit = Unit.create(core.getUnitForAmount());
+        this.unitForFeeSupplier = Suppliers.memoize(() -> Unit.create(core.getUnitForFee()));
+        this.estimatedFeeBasisSupplier = Suppliers.memoize(() -> core.getEstimatedFeeBasis().transform(TransferFeeBasis::create));
+
         this.sourceSupplier = Suppliers.memoize(() -> core.getSourceAddress().transform(Address::create));
         this.targetSupplier = Suppliers.memoize(() -> core.getTargetAddress().transform(Address::create));
-        this.amountSupplier = Suppliers.memoize(() -> Amount.create(core.getAmount(), unit));
-        this.directedSupplier = Suppliers.memoize(() -> Amount.create(core.getAmountDirected(), unit));
-        this.feeSupplier = Suppliers.memoize(() -> Amount.create(core.getFee(), wallet.getWalletManager().getDefaultUnit()));
-        this.feeBasisSupplier = Suppliers.memoize(() -> TransferFeeBasis.create(core.getFeeBasis()));
+        this.amountSupplier = Suppliers.memoize(() -> Amount.create(core.getAmount()));
+        this.directedSupplier = Suppliers.memoize(() -> Amount.create(core.getAmountDirected()));
         this.directionSupplier = Suppliers.memoize(() -> Utilities.transferDirectionFromCrypto(core.getDirection()));
         this.hashSupplier = Suppliers.memoize(() -> core.getHash().transform(TransferHash::create));
     }
@@ -85,12 +88,18 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
 
     @Override
     public Amount getFee() {
-        return feeSupplier.get();
+        // TODO(fix): Unchecked get here
+        return getConfirmedFeeBasis().or(getEstimatedFeeBasis().get()).getFee();
     }
 
     @Override
-    public TransferFeeBasis getFeeBasis() {
-        return feeBasisSupplier.get();
+    public Optional<TransferFeeBasis> getEstimatedFeeBasis() {
+        return estimatedFeeBasisSupplier.get();
+    }
+
+    @Override
+    public Optional<TransferFeeBasis> getConfirmedFeeBasis() {
+        return core.getConfirmedFeeBasis().transform(TransferFeeBasis::create);
     }
 
     @Override
@@ -101,6 +110,16 @@ final class Transfer implements com.breadwallet.crypto.Transfer {
     @Override
     public Optional<TransferHash> getHash() {
         return hashSupplier.get();
+    }
+
+    @Override
+    public com.breadwallet.crypto.Unit getUnit() {
+        return unit;
+    }
+
+    @Override
+    public com.breadwallet.crypto.Unit getUnitForFee() {
+        return unitForFeeSupplier.get();
     }
 
     @Override

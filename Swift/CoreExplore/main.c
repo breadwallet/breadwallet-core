@@ -288,7 +288,7 @@ handleWalletAddrs (void) {
 
     BRMasterPubKey mpk = BRBIP32MasterPubKey(&seed, sizeof(seed));
 
-    BRWallet *wallet = BRWalletNew (NULL, 0, mpk, 0);
+    BRWallet *wallet = BRWalletNew (BITCOIN_ADDRESS_PARAMS, NULL, 0, mpk);
 
     BRWalletUnusedAddrs (wallet, addrs1, WALLET_GAP, 0);
     BRWalletUnusedAddrs (wallet, addrs2, WALLET_GAP, 0);
@@ -380,6 +380,55 @@ handleAddressFromString (const char *hex, BRRlpCoder coder) {
     rlpShowItem(coder, item, "ADDR");
     rlpReleaseItem(coder, item);
 }
+void handleLogDecode (BRRlpCoder coder) {
+    FILE *foo = fopen ("/Users/ebg/log-item", "r");
+
+    uint8_t bytes[1024];
+    memset (bytes, 0, 1024);
+
+    size_t bytesCount = fread (bytes, 1, 1024, foo);
+
+    BRRlpData data = { bytesCount, bytes };
+
+    BRRlpItem  item  = rlpGetItem (coder, data);
+
+    BREthereumLog log = logRlpDecode(item, RLP_TYPE_ARCHIVE, coder);
+
+    rlpReleaseItem (coder, item);
+
+    logRelease(log);
+}
+
+static void handleHasherShowData (uint8_t *data, size_t dataLen) {
+    printf ("a = Data([");
+    for (size_t index = 0; index < dataLen; index++)
+        printf ("0x%02x%s", data[index], (index + 1 < dataLen ? ", " : ""));
+    printf ("])\n");
+}
+void handleHasherTestGen () {
+    const char *message;
+    uint8_t digest[1024];
+
+    message = "Free online SHA256 Calculator, type text here...";
+    BRSHA256(digest, message, strlen(message));
+    handleHasherShowData (digest, 32);
+
+    message = "Free online SHA224 Calculator, type text here...";
+    BRSHA224 (digest, message, strlen(message));
+    handleHasherShowData (digest, 28);
+
+    message = "Free online SHA256_2 Calculator, type text here...";
+    BRSHA256_2(digest, message, strlen(message));
+    handleHasherShowData (digest, 32);
+
+    message = "Free online SHA384 Calculator, type text here...";
+    BRSHA384(digest, message, strlen(message));
+    handleHasherShowData (digest, 48);
+
+    message = "Free online HASH160 Calculator, type text here...";
+    BRHash160(digest, message, strlen(message));
+    handleHasherShowData (digest, 20);
+}
 
 int main(int argc, const char * argv[]) {
     BRRlpCoder coder = rlpCoderCreate();
@@ -445,10 +494,17 @@ int main(int argc, const char * argv[]) {
     handleRippleAccount();
 #endif
 
-#if 1
+#if 0
     handleBRBCashAddrDecode();
 #endif
 
+#if 0
+    handleLogDecode(coder);
+#endif
+
+#if 1
+    handleHasherTestGen();
+#endif
     rlpCoderRelease(coder);
     return 0;
 }

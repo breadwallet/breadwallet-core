@@ -63,6 +63,11 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
+    public void setMode(int mode) {
+        core.setMode(mode);
+    }
+
+    @Override
     public String getPath() {
         return core.getPath();
     }
@@ -70,6 +75,16 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     @Override
     public int getState() {
         return core.getState();
+    }
+
+    @Override
+    public int getAddressScheme() {
+        return core.getAddressScheme();
+    }
+
+    @Override
+    public void setAddressScheme(int scheme) {
+        core.setAddressScheme(scheme);
     }
 
     @Override
@@ -90,6 +105,11 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     @Override
     public void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, byte[] phraseUtf8) {
         core.submit(wallet, transfer, phraseUtf8);
+    }
+
+    @Override
+    public void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, BRCryptoKey key) {
+        core.submit(wallet, transfer, key);
     }
 
     @Override
@@ -122,6 +142,12 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
         core.announceGetTransactionsItemEth(callbackState,hash, sourceAddr, targetAddr, contractAddr, amount, gasLimit,
                 gasPrice, data, nonce, gasUsed, blockNumber, blockHash, blockConfirmations, blockTransacionIndex,
                 blockTimestamp, isError);
+    }
+
+    @Override
+    public void announceGetTransactionsItemGen(BRCryptoCWMClientCallbackState callbackState, byte[] transaction,
+                                               UnsignedLong timestamp, UnsignedLong blockHeight) {
+        core.announceGetTransactionsItemGen(callbackState, transaction, timestamp, blockHeight);
     }
 
     @Override
@@ -165,13 +191,13 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
-    public void announceGetGasEstimateSuccess(BRCryptoCWMClientCallbackState callbackState, String gasEstimate) {
-        core.announceGetGasEstimateSuccess(callbackState, gasEstimate);
+    public void announceGetGasEstimateSuccess(BRCryptoCWMClientCallbackState callbackState, String gasEstimate, String gasPrice) {
+        core.announceGetGasEstimateSuccess(callbackState, gasEstimate, gasPrice);
     }
 
     @Override
-    public void announceGetGasEstimateFailure(BRCryptoCWMClientCallbackState callbackState) {
-        core.announceGetGasEstimateFailure(callbackState);
+    public void announceGetGasEstimateFailure(BRCryptoCWMClientCallbackState callbackState, int status) {
+        core.announceGetGasEstimateFailure(callbackState, status);
     }
 
     @Override

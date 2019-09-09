@@ -59,8 +59,7 @@ inline static int BRUTXOEq(const void *utxo, const void *otherUtxo)
 typedef struct BRWalletStruct BRWallet;
 
 // allocates and populates a BRWallet struct that must be freed by calling BRWalletFree()
-// forkId is 0 for bitcoin, 0x40 for b-cash
-BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPubKey mpk, int forkId);
+BRWallet *BRWalletNew(BRAddressParams addrParams, BRTransaction *transactions[], size_t txCount, BRMasterPubKey mpk);
 
 // not thread-safe, set callbacks once after BRWalletNew(), before calling other BRWallet functions
 // info is a void pointer that will be passed along with each callback call
@@ -84,11 +83,16 @@ void BRWalletSetCallbacks(BRWallet *wallet, void *info,
 // returns the number addresses written to addrs
 size_t BRWalletUnusedAddrs(BRWallet *wallet, BRAddress addrs[], uint32_t gapLimit, uint32_t internal);
 
+BRAddressParams BRWalletGetAddressParams (BRWallet *wallet);
+
 // returns the first unused external address (bech32 pay-to-witness-pubkey-hash)
 BRAddress BRWalletReceiveAddress(BRWallet *wallet);
 
 // returns the first unused external address (legacy pay-to-pubkey-hash)
 BRAddress BRWalletLegacyAddress(BRWallet *wallet);
+
+// return the legacy address for `addr`
+BRAddress BRWalletAddressToLegacy (BRWallet *wallet, BRAddress *addr);
 
 // writes all addresses previously genereated with BRWalletUnusedAddrs() to addrs
 // returns the number addresses written, or total number available if addrs is NULL
@@ -120,7 +124,7 @@ uint64_t BRWalletTotalReceived(BRWallet *wallet);
 
 // writes unspent outputs to utxos and returns the number of outputs written, or number available if utxos is NULL
 size_t BRWalletUTXOs(BRWallet *wallet, BRUTXO utxos[], size_t utxosCount);
-
+    
 // fee-per-kb of transaction size to use when creating a transaction
 uint64_t BRWalletFeePerKb(BRWallet *wallet);
 void BRWalletSetFeePerKb(BRWallet *wallet, uint64_t feePerKb);
@@ -134,9 +138,10 @@ BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, uint64_t amount, cons
 BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput outputs[], size_t outCount);
 
 // signs any inputs in tx that can be signed using private keys from the wallet
+// forkId is 0 for bitcoin, 0x40 for b-cash
 // seed is the master private key (wallet seed) corresponding to the master public key given when the wallet was created
 // returns true if all inputs were signed, or false if there was an error or not all inputs were able to be signed
-int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const void *seed, size_t seedLen);
+int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, uint8_t forkId, const void *seed, size_t seedLen);
 
 // true if the given transaction is associated with the wallet (even if it hasn't been registered)
 int BRWalletContainsTransaction(BRWallet *wallet, const BRTransaction *tx);

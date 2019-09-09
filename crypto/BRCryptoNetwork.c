@@ -76,7 +76,7 @@ cryptoNetworkFeeGetPricePerCostFactorUnit (BRCryptoNetworkFee networkFee) {
 }
 
 extern BRCryptoBoolean
-cryptoNetworkEqual (BRCryptoNetworkFee nf1, BRCryptoNetworkFee nf2) {
+cryptoNetworkFeeEqual (BRCryptoNetworkFee nf1, BRCryptoNetworkFee nf2) {
     return AS_CRYPTO_BOOLEAN (nf1 == nf2 ||
                               (nf1->confirmationTimeInMilliseconds == nf2->confirmationTimeInMilliseconds) &&
                               CRYPTO_COMPARE_EQ == cryptoAmountCompare (nf1->pricePerCostFactor, nf2->pricePerCostFactor));
@@ -140,6 +140,8 @@ struct BRCryptoNetworkRecord {
     BRArrayOf(BRCryptoCurrencyAssociation) associations;
     BRArrayOf(BRCryptoNetworkFee) fees;
 
+    uint32_t confirmationsUntilFinal;
+    
     BRCryptoBlockChainType type;
     union {
         struct {
@@ -154,6 +156,7 @@ struct BRCryptoNetworkRecord {
 
         struct {
             // TODO: TBD
+            uint8_t mainnet;
         } gen;
     } u;
     BRCryptoRef ref;
@@ -187,6 +190,7 @@ cryptoNetworkCreate (const char *uids,
     return network;
 }
 
+// TODO: Remove forkId; derivable from BRChainParams (after CORE-284)
 private_extern BRCryptoNetwork
 cryptoNetworkCreateAsBTC (const char *uids,
                           const char *name,
@@ -215,9 +219,11 @@ cryptoNetworkCreateAsETH (const char *uids,
 
 private_extern BRCryptoNetwork
 cryptoNetworkCreateAsGEN (const char *uids,
-                          const char *name) {
+                          const char *name,
+                          uint8_t isMainnet) {
     BRCryptoNetwork network = cryptoNetworkCreate (uids, name);
     network->type = BLOCK_CHAIN_TYPE_GEN;
+    network->u.gen.mainnet = isMainnet;
     return network;
 }
 
@@ -234,11 +240,14 @@ cryptoNetworkRelease (BRCryptoNetwork network) {
         cryptoUnitGive (association->baseUnit);
         cryptoUnitGive (association->defaultUnit);
         cryptoUnitGiveAll (association->units);
+        array_free (association->units);
     }
+    array_free (network->associations);
 
     for (size_t index = 0; index < array_count (network->fees); index++) {
         cryptoNetworkFeeGive (network->fees[index]);
     }
+    array_free (network->fees);
 
     // TBD
     switch (network->type){
@@ -251,9 +260,8 @@ cryptoNetworkRelease (BRCryptoNetwork network) {
     }
 
     free (network->name);
-    cryptoCurrencyGive (network->currency);
-    array_free (network->associations);
-    array_free (network->fees);
+    free (network->uids);
+    if (NULL != network->currency) cryptoCurrencyGive (network->currency);
     pthread_mutex_destroy (&network->lock);
     free (network);
 }
@@ -282,8 +290,7 @@ cryptoNetworkIsMainnet (BRCryptoNetwork network) {
         case BLOCK_CHAIN_TYPE_ETH:
             return AS_CRYPTO_BOOLEAN (network->u.eth.net == ethereumMainnet);
         case BLOCK_CHAIN_TYPE_GEN:
-            // TODO:
-            return CRYPTO_TRUE;
+            return AS_CRYPTO_BOOLEAN (network->u.gen.mainnet);
     }
 }
 
@@ -296,6 +303,17 @@ private_extern void
 cryptoNetworkSetHeight (BRCryptoNetwork network,
                         BRCryptoBlockChainHeight height) {
     network->height = height;
+}
+
+extern uint32_t
+cryptoNetworkGetConfirmationsUntilFinal (BRCryptoNetwork network) {
+    return network->confirmationsUntilFinal;
+}
+
+private_extern void
+cryptoNetworkSetConfirmationsUntilFinal (BRCryptoNetwork network,
+                                         uint32_t confirmationsUntilFinal) {
+    network->confirmationsUntilFinal = confirmationsUntilFinal;
 }
 
 extern BRCryptoCurrency
@@ -493,6 +511,24 @@ cryptoNetworkGetNetworkFeeAt (BRCryptoNetwork network,
     BRCryptoNetworkFee fee = cryptoNetworkFeeTake (network->fees[index]);
     pthread_mutex_unlock (&network->lock);
     return fee;
+}
+
+extern BRCryptoAddress
+cryptoNetworkCreateAddressFromString (BRCryptoNetwork network,
+                                      const char *string) {
+    switch (network->type) {
+
+        case BLOCK_CHAIN_TYPE_BTC:
+            return (BRChainParamsIsBitcoin (network->u.btc.params)
+                    ? cryptoAddressCreateFromStringAsBTC (network->u.btc.params->addrParams, string)
+                    : cryptoAddressCreateFromStringAsBCH (network->u.btc.params->addrParams, string));
+
+        case BLOCK_CHAIN_TYPE_ETH:
+            return cryptoAddressCreateFromStringAsETH (string);
+
+        case BLOCK_CHAIN_TYPE_GEN:
+            return cryptoAddressCreateFromStringAsGEN (string);
+    }
 }
 
 // TODO(discuss): Is it safe to give out this pointer?

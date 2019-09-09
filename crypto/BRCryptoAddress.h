@@ -27,12 +27,35 @@
 #define BRCryptoAddress_h
 
 #include "BRCryptoBase.h"
+#include "support/BRAddress.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+    /// MARK: - Address
+
     typedef struct BRCryptoAddressRecord *BRCryptoAddress;
+
+    /**
+     * Create an address from a NULL terminated BTC address string.
+     *
+     * The expected format differs depending on if the address is for mainnet vs
+     * testnet, as well as legacy vs segwit. For example, a testnet segwit
+     * address string will be of the form "tb1...".
+     *
+     * @return An address or NULL if the address string is invalid.
+     */
+    extern BRCryptoAddress
+    cryptoAddressCreateFromStringAsBTC (BRAddressParams params, const char *address);
+
+    /**
+     * Create an addres from a NULL terminated BCH address string.
+     *
+     * @return An address or NULL if the address string is invalid.
+     */
+    extern BRCryptoAddress
+    cryptoAddressCreateFromStringAsBCH (BRAddressParams params, const char *bchAddress);
 
     /**
      * Create an address from a NULL terminated ETH address string.
@@ -46,23 +69,23 @@ extern "C" {
     cryptoAddressCreateFromStringAsETH (const char *address);
 
     /**
-     * Create an address from a NULL terminated BTC address string.
-     *
-     * The expected format differs depending on if the address is for mainnet vs
-     * testnet, as well as legacy vs segwit. For example, a testnet segwit
-     * address string will be of the form "tb1...".
+     * ASSERT currently
      *
      * @return An address or NULL if the address string is invalid.
      */
     extern BRCryptoAddress
-    cryptoAddressCreateFromStringAsBTC (const char *address);
+    cryptoAddressCreateFromStringAsGEN (const char *ethAddress);
 
     /**
-     * Returns the addresses' string representation which is suitable for display.
+     * Returns the address' string representation which is suitable for display.  Note that an
+     * address representing BCH will have a prefix included, typically one of 'bitcoincash' or
+     * 'bchtest'.  And, there is not the reverse function of `cryptoAddressCreateFromString()`
+     * whereby the type (BTC, BCH, ETH, ...) is derived from the string - one must know
+     * beforehand in order to process the string.
      *
      * @param address the addres
      *
-     *@return A string representation which is newly allocated and must be freed.
+     * @return A string representation which is newly allocated and must be freed.
      */
     extern char *
     cryptoAddressAsString (BRCryptoAddress address);
@@ -72,6 +95,15 @@ extern "C" {
                               BRCryptoAddress a2);
     
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoAddress, cryptoAddress);
+
+    /// MARK: - Address Scheme
+
+    typedef enum {
+        CRYPTO_ADDRESS_SCHEME_BTC_LEGACY,
+        CRYPTO_ADDRESS_SCHEME_BTC_SEGWIT,
+        CRYPTO_ADDRESS_SCHEME_ETH_DEFAULT,
+        CRYPTO_ADDRESS_SCHEME_GEN_DEFAULT
+    } BRCryptoAddressScheme;
 
 #ifdef __cplusplus
 }

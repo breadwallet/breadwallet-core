@@ -75,10 +75,6 @@ class CoreTests: XCTestCase {
     override func setUp() {
         super.setUp()
 
-        #if TESTNET
-        isMainnet = false
-        #endif
-
         // Get the paperKey from `configPath`
         if FileManager.default.fileExists(atPath: configPath) {
             let configFile = URL(fileURLWithPath: configPath)
@@ -124,11 +120,7 @@ class CoreTests: XCTestCase {
             let configData = try! Data.init(contentsOf: configFile)
             let configPropertyList = try! PropertyListSerialization.propertyList(from: configData, options: [], format: nil) as! [String: [String]]
 
-            #if TESTNET
-            paperKeys = configPropertyList [CoreTests.PAPER_KEY_TESTNET]!
-            #else
             paperKeys = configPropertyList [CoreTests.PAPER_KEY_MAINNET]!
-            #endif
         }
         else if 0 == isMainnet /* testnet */ {
             // This is a compromised testnet paperkey
@@ -220,7 +212,7 @@ class CoreTests: XCTestCase {
     /// - Throws: something
     ///
     func testEthereumSyncStorage () throws {
-        let mode = P2P_ONLY; // BRD_WITH_P2P_SEND; // BRD_ONLY;  P2P_WITH_BRD_SYNC; // P2P_ONLY,  BRD_WITH_P2P_SEND
+        let mode = SYNC_MODE_P2P_ONLY;
         let timestamp : UInt64 = 0
 
         let network = (isMainnet ? ethereumMainnet : ethereumTestnet)

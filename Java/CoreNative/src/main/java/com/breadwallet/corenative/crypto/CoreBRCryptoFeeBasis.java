@@ -7,11 +7,23 @@
  */
 package com.breadwallet.corenative.crypto;
 
+import com.google.common.base.Optional;
+
 public interface CoreBRCryptoFeeBasis {
 
     static CoreBRCryptoFeeBasis createOwned(BRCryptoFeeBasis basis) {
         return new OwnedBRCryptoFeeBasis(basis);
     }
+
+    double getCostFactor();
+    
+    CoreBRCryptoUnit getPricePerCostFactorUnit();
+
+    CoreBRCryptoAmount getPricePerCostFactor();
+
+    Optional<CoreBRCryptoAmount> getFee();
+
+    boolean isIdentical(CoreBRCryptoFeeBasis core);
 
     BRCryptoFeeBasis asBRCryptoFeeBasis();
 }

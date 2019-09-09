@@ -135,6 +135,9 @@ extern void
 eventHandlerStop (BREventHandler handler);
 
 extern int
+eventHandlerIsCurrentThread (BREventHandler handler);
+
+extern int
 eventHandlerIsRunning (BREventHandler handler);
 
 /**

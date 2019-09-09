@@ -41,6 +41,11 @@ class OwnedBRCryptoAccount implements CoreBRCryptoAccount {
     }
 
     @Override
+    public boolean validate(byte[] serialization) {
+        return core.validate(serialization);
+    }
+
+    @Override
     public BRCryptoAccount asBRCryptoAccount() {
         return core;
     }

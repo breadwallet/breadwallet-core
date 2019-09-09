@@ -27,7 +27,7 @@ extern BREthereumEWM
 ewmCreate (BREthereumNetwork network,
            BREthereumAccount account,
            BREthereumTimestamp accountTimestamp,
-           BREthereumMode mode,
+           BRSyncMode mode,
            BREthereumClient client,
            const char *storagePath,
            uint64_t blockHeight);
@@ -36,7 +36,7 @@ extern BREthereumEWM
 ewmCreateWithPaperKey (BREthereumNetwork network,
                        const char *paperKey,
                        BREthereumTimestamp accountTimestamp,
-                       BREthereumMode mode,
+                       BRSyncMode mode,
                        BREthereumClient client,
                        const char *storagePath,
                        uint64_t blockHeight);
@@ -45,13 +45,31 @@ extern BREthereumEWM
 ewmCreateWithPublicKey (BREthereumNetwork network,
                         BRKey publicKey,
                         BREthereumTimestamp accountTimestamp,
-                        BREthereumMode mode,
+                        BRSyncMode mode,
                         BREthereumClient client,
                         const char *storagePath,
                         uint64_t blockHeight);
 
 extern void
 ewmDestroy (BREthereumEWM ewm);
+
+/// MARK: Start Stop
+
+/**
+ * Starts the EWM event queue.  Must be called after ewmCreate() and ewmStop()
+ *
+ * @param ewm
+ */
+extern void
+ewmStart (BREthereumEWM ewm);
+
+/**
+ * Stops the EWM event queue (but does not purge existing, queued events).
+ *
+ * @param ewm 
+ */
+extern void
+ewmStop (BREthereumEWM ewm);
 
 extern BREthereumNetwork
 ewmGetNetwork (BREthereumEWM ewm);
@@ -92,13 +110,21 @@ extern BREthereumBoolean
 ewmIsConnected (BREthereumEWM ewm);
 
 extern BREthereumBoolean
-ewmSync (BREthereumEWM ewm);
+ewmSync (BREthereumEWM ewm,
+         BREthereumBoolean pendExistingTransfers);
 
 extern void
 ewmLock (BREthereumEWM ewm);
 
 extern void
 ewmUnlock (BREthereumEWM ewm);
+
+extern BRSyncMode
+ewmGetMode (BREthereumEWM ewm);
+
+extern void
+ewmUpdateMode (BREthereumEWM ewm,
+               BRSyncMode mode);
 
 extern uint64_t
 ewmGetBlockHeight (BREthereumEWM ewm);
@@ -132,6 +158,9 @@ extern BREthereumAmount
 ewmWalletGetBalance(BREthereumEWM ewm,
                     BREthereumWallet wallet);
 
+extern void
+ewmUpdateWalletBalance(BREthereumEWM ewm,
+                       BREthereumWallet wallet);
 
 extern BREthereumGas
 ewmWalletGetGasEstimate(BREthereumEWM ewm,
@@ -209,6 +238,16 @@ ewmWalletEstimateTransferFeeForBasis (BREthereumEWM ewm,
                                       BREthereumGasPrice price,
                                       BREthereumGas gas,
                                       int *overflow);
+
+extern void
+ewmWalletEstimateTransferFeeForTransfer (BREthereumEWM ewm,
+                                         BREthereumWallet wallet,
+                                         BREthereumCookie cookie,
+                                         BREthereumAddress source,
+                                         BREthereumAddress target,
+                                         BREthereumAmount amount,
+                                         BREthereumGasPrice gasPrice,
+                                         BREthereumGas gasLimit);
 
 extern void // status, error
 ewmWalletSignTransfer(BREthereumEWM ewm,

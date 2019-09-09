@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
 import android.text.Html;
 import android.text.Spanned;
 import android.view.View;
@@ -20,19 +21,19 @@ import com.breadwallet.crypto.TransferConfirmation;
 import com.breadwallet.crypto.TransferHash;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
+import com.breadwallet.crypto.events.system.DefaultSystemListener;
+import com.breadwallet.crypto.events.system.SystemListener;
 import com.breadwallet.crypto.events.transfer.TranferEvent;
-import com.breadwallet.crypto.events.transfer.TransferListener;
 import com.breadwallet.crypto.events.walletmanager.DefaultWalletManagerEventVisitor;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerBlockUpdatedEvent;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerEvent;
-import com.breadwallet.crypto.events.walletmanager.WalletManagerListener;
 import com.google.common.base.Optional;
 
 import java.text.DateFormat;
 
 import javax.annotation.Nullable;
 
-public class TransferDetailsActivity extends AppCompatActivity implements TransferListener, WalletManagerListener {
+public class TransferDetailsActivity extends AppCompatActivity {
 
     private static final DateFormat DATE_FORMAT = DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG);
 
@@ -69,7 +70,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
         return null;
     }
 
-    private Wallet wallet;
+    private WalletManager walletManager;
     private Transfer transfer;
     private ClipboardManager clipboardManager;
 
@@ -85,6 +86,28 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
     private TextView stateView;
     private TextView directionView;
 
+    private final SystemListener walletManagerListener = new DefaultSystemListener() {
+        @Override
+        public void handleManagerEvent(System system, WalletManager manager, WalletManagerEvent event) {
+            runOnUiThread(() -> {
+                event.accept(new DefaultWalletManagerEventVisitor<Void>() {
+                    @Override
+                    public Void visit(WalletManagerBlockUpdatedEvent event) {
+                        updateView();
+                        return null;
+                    }
+                });
+            });
+        }
+    };
+
+    private final SystemListener transferListener = new DefaultSystemListener() {
+        @Override
+        public void handleTransferEvent(System system, WalletManager manager, Wallet wallet, Transfer transfer, TranferEvent event) {
+            runOnUiThread(TransferDetailsActivity.this::updateView);
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -93,7 +116,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
         CoreCryptoApplication.initialize(this);
 
         Intent intent = getIntent();
-        wallet = getWallet(intent);
+        Wallet wallet = getWallet(intent);
         if (null == wallet) {
             finish();
             return;
@@ -104,6 +127,8 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
             finish();
             return;
         }
+
+        walletManager = wallet.getWalletManager();
 
         clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
 
@@ -118,14 +143,17 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
         confirmationContainerView = findViewById(R.id.confirmation_count_container_view);
         stateView = findViewById(R.id.state_view);
         directionView = findViewById(R.id.direction_view);
+
+        Toolbar toolbar = findViewById(R.id.toolbar_view);
+        setSupportActionBar(toolbar);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
 
-        CoreCryptoApplication.getListener().addListener((WalletManagerListener) this);
-        CoreCryptoApplication.getListener().addListener((TransferListener) this);
+        CoreCryptoApplication.getDispatchingSystemListener().addWalletManagerListener(walletManager, walletManagerListener);
+        CoreCryptoApplication.getDispatchingSystemListener().addTransferListener(transfer, transferListener);
 
         updateView();
     }
@@ -134,8 +162,8 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
     protected void onPause() {
         super.onPause();
 
-        CoreCryptoApplication.getListener().removeListener((TransferListener) this);
-        CoreCryptoApplication.getListener().removeListener((WalletManagerListener) this);
+        CoreCryptoApplication.getDispatchingSystemListener().removeTransferListener(transfer, walletManagerListener);
+        CoreCryptoApplication.getDispatchingSystemListener().removeWalletManagerListener(walletManager, transferListener);
     }
 
     private void updateView() {
@@ -177,30 +205,6 @@ public class TransferDetailsActivity extends AppCompatActivity implements Transf
 
         String directionText = transfer.getDirection().toString();
         directionView.setText(directionText);
-    }
-
-    @Override
-    public void handleManagerEvent(System system, WalletManager manager, WalletManagerEvent event) {
-        runOnUiThread(() -> {
-            if (manager.equals(this.wallet.getWalletManager())) {
-                event.accept(new DefaultWalletManagerEventVisitor<Void>() {
-                    @Override
-                    public Void visit(WalletManagerBlockUpdatedEvent event) {
-                        updateView();
-                        return null;
-                    }
-                });
-            }
-        });
-    }
-
-    @Override
-    public void handleTransferEvent(System system, WalletManager manager, Wallet wallet, Transfer transfer, TranferEvent event) {
-        runOnUiThread(() -> {
-            if (manager.equals(this.wallet.getWalletManager()) && wallet.equals(this.wallet) && transfer.equals(this.transfer)) {
-                updateView();
-            }
-        });
     }
 
     private void copyPlaintext(String label, CharSequence value) {

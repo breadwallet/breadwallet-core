@@ -10,44 +10,50 @@ package com.breadwallet.corecrypto;
 import com.breadwallet.corenative.crypto.BRCryptoBlockChainType;
 import com.breadwallet.corenative.crypto.CoreBRCryptoCurrency;
 import com.breadwallet.corenative.crypto.CoreBRCryptoNetwork;
-import com.breadwallet.crypto.WalletManagerMode;
 import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import static com.google.common.base.Preconditions.checkState;
+
 /* package */
 final class Network implements com.breadwallet.crypto.Network {
 
     /* package */
     static Network create(String uids, String name, boolean isMainnet, Currency currency, UnsignedLong height,
-                          Map<Currency, NetworkAssociation> associations) {
+                          Map<Currency, NetworkAssociation> associations,
+                          List<NetworkFee> fees, UnsignedInteger confirmationsUntilFinal) {
         CoreBRCryptoNetwork core;
 
         String code = currency.getCode();
-        if (code.equals(com.breadwallet.crypto.Currency.CODE_AS_BTC)) {
-            core = CoreBRCryptoNetwork.createAsBtc(uids, name, isMainnet);
+        switch (code) {
+            case com.breadwallet.crypto.Currency.CODE_AS_BTC:
+                core = CoreBRCryptoNetwork.createAsBtc(uids, name, isMainnet);
 
-        } else if (code.equals(com.breadwallet.crypto.Currency.CODE_AS_BCH)) {
-            core = CoreBRCryptoNetwork.createAsBch(uids, name, isMainnet);
+                break;
+            case com.breadwallet.crypto.Currency.CODE_AS_BCH:
+                core = CoreBRCryptoNetwork.createAsBch(uids, name, isMainnet);
 
-        } else if (code.equals(com.breadwallet.crypto.Currency.CODE_AS_ETH)) {
-            Optional<CoreBRCryptoNetwork> optional = CoreBRCryptoNetwork.createAsEth(uids, name, isMainnet);
-            if (optional.isPresent()) {
-                core = optional.get();
-            } else {
-                throw new IllegalArgumentException("Unsupported ETH network");
-            }
+                break;
+            case com.breadwallet.crypto.Currency.CODE_AS_ETH:
+                Optional<CoreBRCryptoNetwork> optional = CoreBRCryptoNetwork.createAsEth(uids, name, isMainnet);
+                if (optional.isPresent()) {
+                    core = optional.get();
+                } else {
+                    throw new IllegalArgumentException("Unsupported ETH network");
+                }
 
-        } else {
-            core = CoreBRCryptoNetwork.createAsGen(uids, name);
+                break;
+            default:
+                core = CoreBRCryptoNetwork.createAsGen(uids, name, isMainnet);
+                break;
         }
 
         core.setHeight(height);
@@ -65,6 +71,12 @@ final class Network implements com.breadwallet.crypto.Network {
                 core.addCurrencyUnit(associationCurrency.getCoreBRCryptoCurrency(), unit.getCoreBRCryptoUnit());
             }
         }
+
+        for (NetworkFee fee: fees) {
+            core.addFee(fee.getCoreBRCryptoNetworkFee());
+        }
+
+        core.setConfirmationsUntilFinal(confirmationsUntilFinal);
 
         return new Network(core);
     }
@@ -84,26 +96,40 @@ final class Network implements com.breadwallet.crypto.Network {
 
     private final CoreBRCryptoNetwork core;
 
-    private final int type;
     private final String uids;
     private final String name;
     private final Boolean isMainnet;
     private final Currency currency;
     private final Set<Currency> currencies;
+    private final List<NetworkFee> fees;
+    private NetworkFee minimumFee;
 
     private Network(CoreBRCryptoNetwork core) {
         this.core = core;
 
-        type = core.getType();
         uids = core.getUids();
         name = core.getName();
         isMainnet = core.isMainnet();
         currency = Currency.create(core.getCurrency());
+
         currencies = new HashSet<>();
         UnsignedLong count = core.getCurrencyCount();
         for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
             currencies.add(Currency.create(core.getCurrency(i)));
         }
+
+        fees = new ArrayList<>();
+        count = core.getFeeCount();
+        for (UnsignedLong i = UnsignedLong.ZERO; i.compareTo(count) < 0; i = i.plus(UnsignedLong.ONE)) {
+            NetworkFee fee = NetworkFee.create(core.getFee(i));
+            if (minimumFee == null || fee.getConfirmationTimeInMilliseconds().compareTo(minimumFee.getConfirmationTimeInMilliseconds()) > 0) {
+                minimumFee = fee;
+            }
+            fees.add(fee);
+        }
+
+        checkState(!fees.isEmpty());
+        checkState(minimumFee != null);
     }
 
     @Override
@@ -127,6 +153,11 @@ final class Network implements com.breadwallet.crypto.Network {
     }
 
     @Override
+    public UnsignedInteger getConfirmationsUntilFinal() {
+        return core.getConfirmationsUntilFinal();
+    }
+
+    @Override
     public Currency getCurrency() {
         return currency;
     }
@@ -144,6 +175,27 @@ final class Network implements com.breadwallet.crypto.Network {
             }
         }
         return Optional.absent();
+    }
+
+    @Override
+    public Optional<Currency> getCurrencyByIssuer(String issuer) {
+        String issuerLowercased = issuer.toLowerCase();
+        for (Currency currency: getCurrencies()) {
+            if (issuerLowercased.equals(currency.getIssuer().orNull())) {
+                return Optional.of(currency);
+            }
+        }
+        return Optional.absent();
+    }
+
+    @Override
+    public List<? extends NetworkFee> getFees() {
+        return fees;
+    }
+
+    @Override
+    public NetworkFee getMinimumFee() {
+        return minimumFee;
     }
 
     @Override
@@ -196,38 +248,8 @@ final class Network implements com.breadwallet.crypto.Network {
     }
 
     @Override
-    public List<WalletManagerMode> getSupportedModes() {
-        switch (type) {
-            case BRCryptoBlockChainType.BLOCK_CHAIN_TYPE_BTC: {
-                return Arrays.asList(WalletManagerMode.P2P_ONLY, WalletManagerMode.API_WITH_P2P_SUBMIT, WalletManagerMode.API_ONLY);
-            }
-            case BRCryptoBlockChainType.BLOCK_CHAIN_TYPE_ETH: {
-                return Arrays.asList(WalletManagerMode.API_ONLY, WalletManagerMode.API_WITH_P2P_SUBMIT);
-            }
-            case BRCryptoBlockChainType.BLOCK_CHAIN_TYPE_GEN: {
-                return Collections.singletonList(WalletManagerMode.API_ONLY);
-            }
-            default:
-                throw new IllegalStateException("Invalid network type");
-        }
-    }
-
-    @Override
     public Optional<Address> addressFor(String address) {
-        switch (type) {
-            case BRCryptoBlockChainType.BLOCK_CHAIN_TYPE_BTC: {
-                return Address.createAsBtc(address);
-            }
-            case BRCryptoBlockChainType.BLOCK_CHAIN_TYPE_ETH: {
-                return Address.createAsEth(address);
-            }
-            case BRCryptoBlockChainType.BLOCK_CHAIN_TYPE_GEN: {
-                // TODO(fix): Implement this
-                return Optional.absent();
-            }
-            default:
-                throw new IllegalStateException("Invalid network type");
-        }
+        return core.addressFor(address).transform(Address::create);
     }
 
     @Override

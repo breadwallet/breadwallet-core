@@ -80,6 +80,11 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
+    public void setMode(int mode) {
+        CryptoLibrary.INSTANCE.cryptoWalletManagerSetMode(this, mode);
+    }
+
+    @Override
     public String getPath() {
         return CryptoLibrary.INSTANCE.cryptoWalletManagerGetPath(this).getString(0, "UTF-8");
     }
@@ -87,6 +92,16 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     @Override
     public int getState() {
         return CryptoLibrary.INSTANCE.cryptoWalletManagerGetState(this);
+    }
+
+    @Override
+    public int getAddressScheme() {
+        return CryptoLibrary.INSTANCE.cryptoWalletManagerGetAddressScheme(this);
+    }
+
+    @Override
+    public void setAddressScheme(int scheme) {
+        CryptoLibrary.INSTANCE.cryptoWalletManagerSetAddressScheme(this, scheme);
     }
 
     @Override
@@ -125,6 +140,11 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
+    public void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, BRCryptoKey key) {
+        CryptoLibrary.INSTANCE.cryptoWalletManagerSubmitForKey(this, wallet.asBRCryptoWallet(), transfer.asBRCryptoTransfer(), key);
+    }
+
+    @Override
     public void announceGetBlockNumberSuccess(BRCryptoCWMClientCallbackState callbackState, UnsignedLong blockNumber) {
         CryptoLibrary.INSTANCE.cwmAnnounceGetBlockNumberSuccessAsInteger(this, callbackState, blockNumber.longValue());
     }
@@ -155,6 +175,13 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
         CryptoLibrary.INSTANCE.cwmAnnounceGetTransactionsItemETH(this, callbackState, hash, sourceAddr, targetAddr, contractAddr,
                 amount, gasLimit, gasPrice, data, nonce, gasUsed, blockNumber, blockHash, blockConfirmations,
                 blockTransacionIndex, blockTimestamp, isError);
+    }
+
+    @Override
+    public void announceGetTransactionsItemGen(BRCryptoCWMClientCallbackState callbackState, byte[] transaction,
+                                               UnsignedLong timestamp, UnsignedLong blockHeight) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetTransactionsItemGEN(this, callbackState, transaction, new SizeT(transaction.length),
+                timestamp.longValue(), blockHeight.longValue());
     }
 
     @Override
@@ -199,13 +226,13 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
-    public void announceGetGasEstimateSuccess(BRCryptoCWMClientCallbackState callbackState, String gasEstimate) {
-        CryptoLibrary.INSTANCE.cwmAnnounceGetGasEstimateSuccess(this, callbackState, gasEstimate);
+    public void announceGetGasEstimateSuccess(BRCryptoCWMClientCallbackState callbackState, String gasEstimate, String gasPrice) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetGasEstimateSuccess(this, callbackState, gasEstimate, gasPrice);
     }
 
     @Override
-    public void announceGetGasEstimateFailure(BRCryptoCWMClientCallbackState callbackState) {
-        CryptoLibrary.INSTANCE.cwmAnnounceGetGasEstimateFailure(this, callbackState);
+    public void announceGetGasEstimateFailure(BRCryptoCWMClientCallbackState callbackState, int status) {
+        CryptoLibrary.INSTANCE.cwmAnnounceGetGasEstimateFailure(this, callbackState, status);
     }
 
     @Override

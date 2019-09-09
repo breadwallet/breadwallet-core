@@ -85,6 +85,10 @@ transferGetAmount (BREthereumTransfer transfer);
 extern BREthereumFeeBasis
 transferGetFeeBasis (BREthereumTransfer transfer);
 
+extern void // Private-ish
+transferSetFeeBasis (BREthereumTransfer transfer,
+                     BREthereumFeeBasis feeBasis);
+
 extern BREthereumGas
 transferGetGasEstimate (BREthereumTransfer transfer);
 
@@ -234,6 +238,19 @@ transferStatusEqual (BREthereumTransferStatus status1,
 
 extern BREthereumTransferStatus
 transferStatusCreate (BREthereumTransactionStatus status);
+
+// Returns Ether appropriate for encoding a transaction.  If the transaction is for a TOKEN,
+// then the returned Ether is zero (because the amount of a TOKEN transfer is encoded in the
+// contract's function call, in the transaction.data field).
+private_extern BREthereumEther
+transferGetEffectiveAmountInEther (BREthereumTransfer transfer);
+
+private_extern BREthereumAddress
+transferGetEffectiveTargetAddress (BREthereumTransfer transfer);
+
+private_extern BREthereumAddress
+transferGetEffectiveSourceAddress (BREthereumTransfer transfer);
+
 
 #ifdef __cplusplus
 }

@@ -14,7 +14,7 @@ class BRBlockChainDBTest: XCTestCase {
     var expectation: XCTestExpectation!
 
     override func setUp() {
-        db = BlockChainDB ()
+        db = BlockChainDB.createForTest()
     }
 
     override func tearDown() {
@@ -24,12 +24,13 @@ class BRBlockChainDBTest: XCTestCase {
     func testBlockchains() {
         expectation = XCTestExpectation (description: "blockchain")
 
-        let blockchainId = "bitcoin-mainnet"
+        let blockchainId = "bitcoin-testnet"
         db.getBlockchain (blockchainId: blockchainId) { (res: Result<BlockChainDB.Model.Blockchain, BlockChainDB.QueryError>) in
             guard case let .success (blockchain) = res
                 else { XCTAssert(false); return }
 
             XCTAssertEqual (blockchainId, blockchain.id)
+            XCTAssertEqual (6, blockchain.confirmationsUntilFinal)
 
             self.expectation.fulfill()
         }
@@ -54,12 +55,12 @@ class BRBlockChainDBTest: XCTestCase {
     func testCurrencies() {
         expectation = XCTestExpectation (description: "currency")
 
-        let currencyId = "btc"
+        let currencyId = "bitcoin-testnet:__native__"
         db.getCurrency (currencyId: currencyId) { (res: Result<BlockChainDB.Model.Currency, BlockChainDB.QueryError>) in
             guard case let .success (currency) = res
                 else { XCTAssert(false); return }
 
-            XCTAssertEqual (currencyId, currency.code)
+            XCTAssertEqual (currencyId, currency.id)
             self.expectation.fulfill()
         }
         wait (for: [expectation], timeout: 60)
@@ -96,24 +97,24 @@ class BRBlockChainDBTest: XCTestCase {
         //
         //
 
-//        expectation = XCTestExpectation (description: "transfers")
-//
-//        let blockchainId = "bitcoin-mainnet"
-//        db.getTransfers (blockchainId: blockchainId, addresses: []) { (res: Result<[BlockChainDB.Model.Transfer], BlockChainDB.QueryError>) in
-//            guard case let .success (transfers) = res
-//                else { XCTAssert(false); return }
-//
-//            XCTAssertFalse (transfers.isEmpty)
-//            self.expectation.fulfill()
-//        }
-//
-//        wait (for: [expectation], timeout: 60)
+        expectation = XCTestExpectation (description: "transfers")
+
+        let blockchainId = "bitcoin-testnet"
+        db.getTransfers (blockchainId: blockchainId, addresses: ["mvnSpXB1Vizfg3uodBx418APVK1jQXScvW"]) { (res: Result<[BlockChainDB.Model.Transfer], BlockChainDB.QueryError>) in
+            guard case let .success (transfers) = res
+                else { XCTAssert(false); return }
+
+            XCTAssertFalse (transfers.isEmpty)
+            self.expectation.fulfill()
+        }
+
+        wait (for: [expectation], timeout: 60)
     }
 
     func testTransactions () {
         expectation = XCTestExpectation (description: "transactions")
 
-        let transactionId = "bitcoin-testnet:ea4ed7efc701b5fdcfc38d4901f75f90c1a5de3e13fa38590289b2244f8887cb"
+        let transactionId = "bitcoin-testnet:d9bdd96426747b769aab74e33e109e73f793a1e309c00bed7732824a2ac85438"
         db.getTransaction (transactionId: transactionId,
                            includeRaw: true) {
                             (res: Result<BlockChainDB.Model.Transaction, BlockChainDB.QueryError>) in
@@ -272,9 +273,4 @@ class BRBlockChainDBTest: XCTestCase {
     func testSubscription () {
 
     }
-
-//    func testPerformanceExample() {
-//        self.measure {
-//        }
-//    }
 }

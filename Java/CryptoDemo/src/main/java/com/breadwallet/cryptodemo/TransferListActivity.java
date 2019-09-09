@@ -6,35 +6,40 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.support.annotation.NonNull;
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.util.SortedList;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.util.SortedListAdapterCallback;
 import android.text.Html;
 import android.text.Spanned;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.breadwallet.crypto.Network;
 import com.breadwallet.crypto.System;
 import com.breadwallet.crypto.Transfer;
 import com.breadwallet.crypto.TransferConfirmation;
 import com.breadwallet.crypto.TransferHash;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
+import com.breadwallet.crypto.WalletManagerMode;
+import com.breadwallet.crypto.events.system.DefaultSystemListener;
+import com.breadwallet.crypto.events.system.SystemListener;
+import com.breadwallet.crypto.events.transfer.DefaultTransferEventVisitor;
 import com.breadwallet.crypto.events.transfer.TranferEvent;
 import com.breadwallet.crypto.events.transfer.TransferChangedEvent;
 import com.breadwallet.crypto.events.transfer.TransferCreatedEvent;
 import com.breadwallet.crypto.events.transfer.TransferDeletedEvent;
-import com.breadwallet.crypto.events.transfer.TransferEventVisitor;
-import com.breadwallet.crypto.events.transfer.TransferListener;
 import com.google.common.base.Optional;
 
 import java.text.DateFormat;
@@ -45,11 +50,11 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-public class TransferListActivity extends AppCompatActivity implements TransferListener {
+public class TransferListActivity extends AppCompatActivity {
 
     private static final DateFormat DATE_FORMAT = DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG);
 
-    private static final String EXTRA_WALLET_NAME = "com.breadwallet.cryptodemo,TransferListActivity.EXTRA_WALLET_NAME";
+    private static final String EXTRA_WALLET_NAME = "com.breadwallet.cryptodemo.TransferListActivity.EXTRA_WALLET_NAME";
 
     private static final Comparator<Transfer> OLDEST_FIRST_COMPARATOR = (o1, o2) -> {
         Optional<TransferConfirmation> oc1 = o1.getConfirmation();
@@ -93,15 +98,49 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
         return null;
     }
 
+    private static WalletManagerMode getNextMode(WalletManager wm) {
+        Network net = wm.getNetwork();
+        System sys = wm.getSystem();
+
+        List<WalletManagerMode> modes = sys.getSupportedWalletManagerModes(net);
+        WalletManagerMode mode = wm.getMode();
+        mode = modes.get((modes.indexOf(mode) + 1) % modes.size());
+        return mode;
+    }
+
     private Wallet wallet;
 
-    private Button sendView;
-    private Button recvView;
     private Adapter transferAdapter;
-    private RecyclerView transfersView;
-    private RecyclerView.LayoutManager transferLayoutManager;
 
     private ClipboardManager clipboardManager;
+
+    private final SystemListener walletListener = new DefaultSystemListener() {
+        @Override
+        public void handleTransferEvent(System system, WalletManager manager, Wallet wallet, Transfer transfer, TranferEvent event) {
+            runOnUiThread(() -> {
+                event.accept(new DefaultTransferEventVisitor<Void>() {
+                    @Override
+                    public Void visit(TransferCreatedEvent event) {
+                        transferAdapter.add(transfer);
+                        return null;
+                    }
+
+                    @Override
+                    public Void visit(TransferChangedEvent event) {
+                        transferAdapter.changed(transfer);
+                        return null;
+                    }
+
+
+                    @Override
+                    public Void visit(TransferDeletedEvent event) {
+                        transferAdapter.remove(transfer);
+                        return null;
+                    }
+                });
+            });
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -118,30 +157,34 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
 
         clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
 
-        sendView = findViewById(R.id.send_view);
-        sendView.setOnClickListener(v -> TransferCreateActivity.start(TransferListActivity.this, wallet));
+        Button sendView = findViewById(R.id.send_view);
+        sendView.setOnClickListener(v -> TransferCreateSendActivity.start(TransferListActivity.this, wallet));
 
-        recvView = findViewById(R.id.receive_view);
+        Button recvView = findViewById(R.id.receive_view);
         recvView.setOnClickListener(v -> copyReceiveAddress());
 
-        transfersView = findViewById(R.id.transfer_recycler_view);
+        Button sweepView = findViewById(R.id.sweep_view);
+        sweepView .setOnClickListener(v -> TransferCreateSweepActivity.start(TransferListActivity.this, wallet));
+
+        RecyclerView transfersView = findViewById(R.id.transfer_recycler_view);
         transfersView.addItemDecoration(new DividerItemDecoration(getApplicationContext(), DividerItemDecoration.VERTICAL));
 
-        transferLayoutManager = new LinearLayoutManager(this);
+        RecyclerView.LayoutManager transferLayoutManager = new LinearLayoutManager(this);
         transfersView.setLayoutManager(transferLayoutManager);
 
         transferAdapter = new Adapter(DEFAULT_COMPARATOR, (transfer) -> TransferDetailsActivity.start(this, wallet, transfer));
         transfersView.setAdapter(transferAdapter);
 
-        ActionBar actionBar = getSupportActionBar();
-        actionBar.setTitle(String.format("Wallet: %s", wallet.getName()));
+        Toolbar toolbar = findViewById(R.id.toolbar_view);
+        toolbar.setTitle(String.format("Wallet: %s", wallet.getName()));
+        setSupportActionBar(toolbar);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
 
-        CoreCryptoApplication.getListener().addListener(this);
+        CoreCryptoApplication.getDispatchingSystemListener().addWalletListener(wallet, walletListener);
 
         transferAdapter.set(new ArrayList<>(wallet.getTransfers()));
     }
@@ -150,34 +193,41 @@ public class TransferListActivity extends AppCompatActivity implements TransferL
     protected void onPause() {
         super.onPause();
 
-        CoreCryptoApplication.getListener().removeListener(this);
+        CoreCryptoApplication.getDispatchingSystemListener().removeWalletListener(wallet, walletListener);
     }
 
     @Override
-    public void handleTransferEvent(System system, WalletManager manager, Wallet wallet, Transfer transfer, TranferEvent event) {
-        runOnUiThread(() -> {
-            if (wallet.equals(this.wallet)) {
-                event.accept(new TransferEventVisitor<Void>() {
-                    @Override
-                    public Void visit(TransferChangedEvent event) {
-                        transferAdapter.changed(transfer);
-                        return null;
-                    }
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_transfer_list, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
 
-                    @Override
-                    public Void visit(TransferCreatedEvent event) {
-                        transferAdapter.add(transfer);
-                        return null;
-                    }
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        WalletManager wm = wallet.getWalletManager();
+        menu.findItem(R.id.action_toggle_mode).setTitle("Switch to " + getNextMode(wm).name());
 
-                    @Override
-                    public Void visit(TransferDeletedEvent event) {
-                        transferAdapter.remove(transfer);
-                        return null;
-                    }
-                });
-            }
-        });
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_connect:
+                wallet.getWalletManager().connect();
+                return true;
+            case R.id.action_sync:
+                wallet.getWalletManager().sync();
+                return true;
+            case R.id.action_disconnect:
+                wallet.getWalletManager().disconnect();
+                return true;
+            case R.id.action_toggle_mode:
+                WalletManager wm = wallet.getWalletManager();
+                wm.setMode(getNextMode(wm));
+                return true;
+        }
+        return false;
     }
 
     private void copyReceiveAddress() {

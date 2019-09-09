@@ -11,35 +11,23 @@ package com.breadwallet.crypto;
 
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.events.system.SystemListener;
-import com.google.common.base.Optional;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
 
 public interface System {
 
-    static System create(ExecutorService listenerExecutor, SystemListener listener, Account account, String path, BlockchainDb query) {
-        return CryptoApi.getProvider().systemProvider().create(listenerExecutor, listener, account, path, query);
+    static System create(ScheduledExecutorService executor, SystemListener listener, Account account, boolean isMainnet, String path, BlockchainDb query) {
+        return CryptoApi.getProvider().systemProvider().create(executor, listener, account, isMainnet,path, query);
     }
 
-    void subscribe(String subscriptionToken);
+    void configure();
 
-    default void initialize(List<String> networksNeeded) {
-        initialize(networksNeeded, true);
-    }
-
-    void initialize(List<String> networksNeeded, boolean isMainnet);
-
-    void start();
+    void createWalletManager(Network network, WalletManagerMode mode, AddressScheme addressScheme);
 
     void stop();
 
-    void sync();
-
-    void createWalletManager(Network network, WalletManagerMode mode);
-
-    Optional<SystemListener> getSystemListener();
+    void subscribe(String subscriptionToken);
 
     Account getAccount();
 
@@ -50,4 +38,16 @@ public interface System {
     List<? extends WalletManager> getWalletManagers();
 
     List<? extends Wallet> getWallets();
+
+    AddressScheme getDefaultAddressScheme(Network network);
+
+    List<AddressScheme> getSupportedAddressSchemes(Network network);
+
+    boolean supportsAddressScheme(Network network, AddressScheme addressScheme);
+
+    WalletManagerMode getDefaultWalletManagerMode(Network network);
+
+    List<WalletManagerMode> getSupportedWalletManagerModes(Network network);
+
+    boolean supportsWalletManagerModes(Network network, WalletManagerMode mode);
 }

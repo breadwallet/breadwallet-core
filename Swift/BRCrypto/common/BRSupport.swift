@@ -33,7 +33,7 @@ struct Weak<T:AnyObject> {
 extension UInt64 {
     func pow (_ y: UInt8) -> UInt64 {
         func recurse (_ x: UInt64, _ y: UInt8, _ r: UInt64) -> UInt64 {
-            return y == 0 ? r : recurse (x, y - 1, x * UInt64(y))
+            return y == 0 ? r : recurse (x, y - 1, x * r)
         }
         return recurse (self, y, 1)
     }
@@ -86,9 +86,19 @@ public struct AsComparable<Value:Comparable, Item> : Comparable {
     public init (item: Item, toValue: (Item) -> Value) {
         self.init (item: item, value: toValue(item))
     }
-    
+
+    ///
+    /// Return a function to build `AsComparable` from a `toValue` function.  For example, given
+    /// a `struct Person { let age:UInt; let name:String }` one can produce a function to produce
+    /// AsComparable<UInt,Person> based on `age` with `AsComparable.builder { $0.age }`
+    ///
+    /// - Parameter toValue: A function as (Item) -> Value
+    ///
+    /// - Returns: A function as (Item) -> AsComparable<Value,Item> that uses `toValue` to derive
+    ///     the Value from Item.
+    ///
     public static func builder<Value:Comparable, Item> (toValue: @escaping (Item) -> Value) -> (Item) -> AsComparable<Value,Item> {
-        return { AsComparable<Value, Item> (item: $0, toValue: toValue) }
+        return { AsComparable<Value,Item> (item: $0, toValue: toValue) }
     }
     
     // Comparable Operators
@@ -162,6 +172,13 @@ extension Result {
         case let .failure (error): failure(error)
         }
     }
+
+    public func getWithRecovery (_ transform: (Failure) -> Success) -> Success {
+        switch self {
+        case let .success(success): return success
+        case let .failure(failure): return transform (failure)
+        }
+    }
 }
 
 extension Array {
@@ -193,3 +210,38 @@ extension Array {
         }
     }
 }
+
+public struct AccountSpecification {
+    public let identifier: String
+    public let network: String
+    public let paperKey: String
+    public let timestamp: Date
+
+    init (dict: [String: String]) {
+        self.identifier = dict["identifier"]! //as! String
+        self.network    = dict["network"]!
+        self.paperKey   = dict["paperKey"]!
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+
+        self.timestamp = dateFormatter.date(from: dict["timestamp"]!)!
+    }
+
+    static public func loadFrom (configPath: String, defaultSpecification: AccountSpecification? = nil) -> [AccountSpecification] {
+        if FileManager.default.fileExists(atPath: configPath) {
+            let configFile = URL(fileURLWithPath: configPath)
+            let configData = try! Data.init(contentsOf: configFile)
+            let json = try! JSONSerialization.jsonObject(with: configData, options: []) as! [[String:String]]
+            return json.map { AccountSpecification (dict: $0) }
+        }
+        else if let defaultSpecification = defaultSpecification {
+            return [defaultSpecification]
+        }
+        else {
+            return []
+        }
+    }
+}
+

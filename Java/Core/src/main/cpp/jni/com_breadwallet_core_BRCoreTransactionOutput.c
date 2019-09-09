@@ -45,14 +45,15 @@ Java_com_breadwallet_core_BRCoreTransactionOutput_createTransactionOutput
 JNIEXPORT jstring JNICALL
 Java_com_breadwallet_core_BRCoreTransactionOutput_getAddress
         (JNIEnv *env, jobject thisObject) {
-    BRTxOutput *output = (BRTxOutput *) getJNIReference (env, thisObject);
-
-    size_t addressLen = sizeof (output->address);
-    char address[1 + addressLen];
-    memcpy (address, output->address, addressLen);
-    address[addressLen] = '\0';
-
-    return (*env)->NewStringUTF (env, address);
+//    BRTxOutput *output = (BRTxOutput *) getJNIReference (env, thisObject);
+//
+//    size_t addressLen = sizeof (output->address);
+//    char address[1 + addressLen];
+//    memcpy (address, output->address, addressLen);
+//    address[addressLen] = '\0';
+//
+//    return (*env)->NewStringUTF (env, address);
+    return NULL;
 }
 
 /*
@@ -63,16 +64,16 @@ Java_com_breadwallet_core_BRCoreTransactionOutput_getAddress
 JNIEXPORT void JNICALL
 Java_com_breadwallet_core_BRCoreTransactionOutput_setAddress
         (JNIEnv *env, jobject thisObject, jstring addressObject) {
-    BRTxOutput *output = (BRTxOutput *) getJNIReference (env, thisObject);
-
-    size_t addressLen = sizeof (output->address);
-
-    size_t addressDataLen = (size_t) (*env)->GetStringLength (env, addressObject);
-    const jchar *addressData = (*env)->GetStringChars (env, addressObject, 0);
-    assert (addressDataLen <= addressLen);
-
-    memset (output->address, '\0', addressLen);
-    memcpy (output->address, addressData, addressDataLen);
+//    BRTxOutput *output = (BRTxOutput *) getJNIReference (env, thisObject);
+//
+//    size_t addressLen = sizeof (output->address);
+//
+//    size_t addressDataLen = (size_t) (*env)->GetStringLength (env, addressObject);
+//    const jchar *addressData = (*env)->GetStringChars (env, addressObject, 0);
+//    assert (addressDataLen <= addressLen);
+//
+//    memset (output->address, '\0', addressLen);
+//    memcpy (output->address, addressData, addressDataLen);
 
 }
 

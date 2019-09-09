@@ -18,16 +18,6 @@ import java.util.Objects;
 final class Address implements com.breadwallet.crypto.Address {
 
     /* package */
-    static Optional<Address> createAsBtc(String address) {
-        return CoreBRCryptoAddress.createFromStringAsBtc(address).transform(Address::new);
-    }
-
-    /* package */
-    static Optional<Address> createAsEth(String address) {
-        return CoreBRCryptoAddress.createFromStringAsEth(address).transform(Address::new);
-    }
-
-    /* package */
     static Address create(CoreBRCryptoAddress core) {
         return new Address(core);
     }

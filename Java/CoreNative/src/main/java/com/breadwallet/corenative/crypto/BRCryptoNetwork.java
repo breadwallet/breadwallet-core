@@ -10,6 +10,8 @@ package com.breadwallet.corenative.crypto;
 import com.breadwallet.corenative.CryptoLibrary;
 import com.breadwallet.corenative.utility.SizeT;
 import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedBytes;
+import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Pointer;
 import com.sun.jna.PointerType;
@@ -22,11 +24,6 @@ public class BRCryptoNetwork extends PointerType implements CoreBRCryptoNetwork 
 
     public BRCryptoNetwork() {
         super();
-    }
-
-    @Override
-    public void setHeight(UnsignedLong height) {
-        CryptoLibrary.INSTANCE.cryptoNetworkSetHeight(this, height.longValue());
     }
 
     @Override
@@ -56,6 +53,17 @@ public class BRCryptoNetwork extends PointerType implements CoreBRCryptoNetwork 
     }
 
     @Override
+    public UnsignedLong getFeeCount() {
+        return UnsignedLong.fromLongBits(CryptoLibrary.INSTANCE.cryptoNetworkGetNetworkFeeCount(this).longValue());
+    }
+
+    @Override
+    public CoreBRCryptoNetworkFee getFee(UnsignedLong index) {
+        return new OwnedBRCryptoNetworkFee(CryptoLibrary.INSTANCE.cryptoNetworkGetNetworkFeeAt(this,
+                new SizeT(index.longValue())));
+    }
+
+    @Override
     public String getUids() {
         return CryptoLibrary.INSTANCE.cryptoNetworkGetUids(this).getString(0, "UTF-8");
     }
@@ -71,13 +79,28 @@ public class BRCryptoNetwork extends PointerType implements CoreBRCryptoNetwork 
     }
 
     @Override
+    public void setHeight(UnsignedLong height) {
+        CryptoLibrary.INSTANCE.cryptoNetworkSetHeight(this, height.longValue());
+    }
+
+    @Override
+    public UnsignedInteger getConfirmationsUntilFinal() {
+        return UnsignedInteger.fromIntBits(CryptoLibrary.INSTANCE.cryptoNetworkGetConfirmationsUntilFinal(this));
+    }
+
+    @Override
+    public void setConfirmationsUntilFinal(UnsignedInteger confirmationsUntilFinal) {
+        CryptoLibrary.INSTANCE.cryptoNetworkSetConfirmationsUntilFinal(this, confirmationsUntilFinal.intValue());
+    }
+
+    @Override
     public String getName() {
         return CryptoLibrary.INSTANCE.cryptoNetworkGetName(this).getString(0, "UTF-8");
     }
 
     @Override
-    public int getType() {
-        return CryptoLibrary.INSTANCE.cryptoNetworkGetType(this);
+    public void addFee(CoreBRCryptoNetworkFee fee) {
+        CryptoLibrary.INSTANCE.cryptoNetworkAddNetworkFee(this, fee.asBRCryptoNetworkFee());
     }
 
     @Override
@@ -108,6 +131,11 @@ public class BRCryptoNetwork extends PointerType implements CoreBRCryptoNetwork 
     @Override
     public Optional<CoreBRCryptoUnit> getUnitAt(CoreBRCryptoCurrency currency, UnsignedLong index) {
         return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoNetworkGetUnitAt(this, currency.asBRCryptoCurrency(), new SizeT(index.longValue())));
+    }
+
+    @Override
+    public Optional<CoreBRCryptoAddress> addressFor(String address) {
+        return Optional.fromNullable(CryptoLibrary.INSTANCE.cryptoNetworkCreateAddressFromString(this, address));
     }
 
     @Override

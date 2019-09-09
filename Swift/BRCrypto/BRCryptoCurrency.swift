@@ -37,6 +37,11 @@ public final class Currency: Hashable {
         return asUTF8String (cryptoCurrencyGetType (core))
     }
 
+    /// The issuer, if present.  This is generally an ERC20 address.
+    public var issuer: String? {
+        return cryptoCurrencyGetIssuer (core).map { asUTF8String($0) }
+    }
+
     internal init (core: BRCryptoCurrency, take: Bool) {
         self.core = take ? cryptoCurrencyTake (core) : core
     }

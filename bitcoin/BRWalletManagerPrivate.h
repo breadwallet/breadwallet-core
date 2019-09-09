@@ -26,8 +26,10 @@
 #ifndef BRWalletManagerPrivate_h
 #define BRWalletManagerPrivate_h
 
+#include "BRSyncManager.h"
 #include "ethereum/event/BREvent.h"
 #include "support/BRBase.h"
+#include "support/BRArray.h"
 #include "support/BRFileService.h"
 
 #ifdef __cplusplus
@@ -35,6 +37,8 @@ extern "C" {
 #endif
 
 /// MARK: - BRWalletManager
+
+typedef struct BRTransactionWithStateStruct *BRTransactionWithState;
 
 struct BRWalletManagerStruct {
 
@@ -44,8 +48,7 @@ struct BRWalletManagerStruct {
     /** The wallet */
     BRWallet *wallet;
 
-    /** The peer manager */
-    BRPeerManager  *peerManager;
+    BRSyncManager syncManager;
 
     /** The client */
     BRWalletManagerClient client;
@@ -54,14 +57,14 @@ struct BRWalletManagerStruct {
     BRFileService fileService;
 
     /**
-     * The BlockHeight is the largest block number seen
+     * The chain parameters associated with the wallet
      */
-    uint32_t blockHeight;
+    const BRChainParams * chainParams;
 
     /**
-     * An identiifer for a BRD Request
+     * The time, in seconds since UNIX epoch, at which the wallet was first created
      */
-    unsigned int requestId;
+    uint32_t earliestKeyTime;
 
     /**
      * An EventHandler for Main.  All 'announcements' (via PeerManager (or BRD) hit here.
@@ -69,44 +72,53 @@ struct BRWalletManagerStruct {
     BREventHandler handler;
 
     /**
+     * Number of wakeups since the last BRSyncManagerTickTock
+     */
+    uint32_t sleepWakeupsForSyncTickTock;
+
+    /**
      * The Lock ensuring single thread access to BWM state.
      */
     pthread_mutex_t lock;
 
-    /**
-     * If we are syncing with BRD, instead of as P2P with PeerManager, then we'll keep a record to
-     * ensure we've successfully completed the getTransactions() callbacks to the client.
-     *
-     * We sync, using chunks, through the total range being synced on rather than using the range
-     * in its entirety.
-     *
-     *  The reasons for this are:
-     *
-     * 1) As transactions are announced, the set of addresses that need to be queried for transactions
-     *    will grow. By splitting the range into smaller chunks, we will pick up addresses as we move
-     *    through the range.
-     *
-     * 2) Chunking the sync range allows us to measure progress organically. If the whole range was
-     *    requested, we would need to enhance the client/announceCallback relationship to provide
-     *    additional data points on its progress and add complexity as a byproduct.
-     *
-     * 3) For naive implemenations that announce transactions once all of them have been discovered,
-     *    the use of chunking forces them to announce transactions more frequently. This should
-     *    ultimately lead to a more responsive user experience.
+    /*
+     * The collection of all transfers, including those that have been "deleted",
+     * associated with the `wallet`.
      */
-    struct {
-        BRAddress lastExternalAddress;
-        BRAddress lastInternalAddress;
-        uint64_t begBlockNumber;
-        uint64_t endBlockNumber;
-        uint64_t chunkBegBlockNumber;
-        uint64_t chunkEndBlockNumber;
-
-        int rid;
-
-        int completed:1;
-    } brdSync;
+    BRArrayOf(BRTransactionWithState) transactions;
 };
+
+/// Mark: - WalletManager Events
+
+extern void
+bwmHandleWalletManagerEvent(BRWalletManager bwm,
+                            BRWalletManagerEvent event);
+
+extern void
+bwmSignalWalletManagerEvent (BRWalletManager manager,
+                             BRWalletManagerEvent event);
+
+extern void
+bwmHandleWalletEvent(BRWalletManager bwm,
+                     BRWallet *wallet,
+                     BRWalletEvent event);
+
+extern void
+bwmSignalWalletEvent (BRWalletManager manager,
+                      BRWallet *wallet,
+                      BRWalletEvent event);
+
+extern void
+bwmHandleTransactionEvent(BRWalletManager bwm,
+                          BRWallet *wallet,
+                          BRTransaction *transaction,
+                          BRTransactionEvent event);
+
+extern void
+bwmSignalTransactionEvent (BRWalletManager manager,
+                           BRWallet *wallet,
+                           BRTransaction *transaction,
+                           BRTransactionEvent event);
 
 /// MARK: - BlockNumber
 
@@ -125,12 +137,18 @@ bwmSignalAnnounceBlockNumber (BRWalletManager manager,
 extern int
 bwmHandleAnnounceTransaction (BRWalletManager manager,
                               int id,
-                              OwnershipGiven BRTransaction *transaction);
+                              OwnershipKept uint8_t *transaction,
+                              size_t transactionLength,
+                              uint64_t timestamp,
+                              uint64_t blockHeight);
 
 extern void
 bwmSignalAnnounceTransaction (BRWalletManager manager,
                               int id,
-                              OwnershipGiven BRTransaction *transaction);
+                              OwnershipKept uint8_t *transaction,
+                              size_t transactionLength,
+                              uint64_t timestamp,
+                              uint64_t blockHeight);
 
 extern void
 bwmHandleAnnounceTransactionComplete (BRWalletManager manager,
@@ -147,13 +165,13 @@ bwmSignalAnnounceTransactionComplete (BRWalletManager manager,
 extern void
 bwmHandleAnnounceSubmit (BRWalletManager manager,
                          int rid,
-                         OwnershipGiven BRTransaction *transaction,
+                         UInt256 txHash,
                          int error);
 
 extern void
 bwmSignalAnnounceSubmit (BRWalletManager manager,
                         int rid,
-                        OwnershipGiven BRTransaction *transaction,
+                        UInt256 txHash,
                         int error);
 
 extern const BREventType *bwmEventTypes[];

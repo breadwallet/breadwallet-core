@@ -26,6 +26,7 @@
 #ifndef BRCryptoNetwork_h
 #define BRCryptoNetwork_h
 
+#include "BRCryptoAddress.h"
 #include "BRCryptoAmount.h"
 
 #include "../support/BRArray.h"
@@ -56,7 +57,7 @@ extern "C" {
     cryptoNetworkFeeGetPricePerCostFactorUnit (BRCryptoNetworkFee networkFee);
 
     extern BRCryptoBoolean
-    cryptoNetworkEqual (BRCryptoNetworkFee nf1, BRCryptoNetworkFee nf2);
+    cryptoNetworkFeeEqual (BRCryptoNetworkFee nf1, BRCryptoNetworkFee nf2);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoNetworkFee, cryptoNetworkFee);
 
@@ -147,6 +148,9 @@ extern "C" {
     cryptoNetworkGetHeight (BRCryptoNetwork network);
 
 
+    extern uint32_t
+    cryptoNetworkGetConfirmationsUntilFinal (BRCryptoNetwork network);
+
     /**
      * Returns the number of network currencies.  This is the index exclusive limit to be used
      * in `cryptoNetworkGetCurrencyAt()`.
@@ -229,6 +233,10 @@ extern "C" {
     extern BRCryptoNetworkFee
     cryptoNetworkGetNetworkFeeAt (BRCryptoNetwork network,
                                   size_t index);
+
+    extern BRCryptoAddress
+    cryptoNetworkCreateAddressFromString (BRCryptoNetwork network,
+                                          const char *string);
 
     DECLARE_CRYPTO_GIVE_TAKE (BRCryptoNetwork, cryptoNetwork);
 

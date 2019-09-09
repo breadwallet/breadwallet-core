@@ -25,6 +25,7 @@
 #ifndef BRKey_h
 #define BRKey_h
 
+#include "BRAddress.h"
 #include "BRInt.h"
 #include <stddef.h>
 #include <inttypes.h>
@@ -33,12 +34,11 @@
 extern "C" {
 #endif
 
-#define BR_RAND_MAX          ((RAND_MAX > 0x7fffffff) ? 0x7fffffff : RAND_MAX)
+#define BR_RAND_MAX ((RAND_MAX > 0x7fffffff) ? 0x7fffffff : RAND_MAX)
 
 // returns a random number less than upperBound (for non-cryptographic use only)
 uint32_t BRRand(uint32_t upperBound);
 
-    
 typedef struct {
     uint8_t p[33];
 } BRECPoint;
@@ -65,7 +65,7 @@ int BRSecp256k1PointMul(BRECPoint *p, const UInt256 *i);
 
 // returns true if privKey is a valid private key
 // supported formats are wallet import format (WIF), mini private key format, or hex string
-int BRPrivKeyIsValid(const char *privKey);
+int BRPrivKeyIsValid(BRAddressParams params, const char *privKey);
 
 typedef struct {
     UInt256 secret;
@@ -78,35 +78,49 @@ int BRKeySetSecret(BRKey *key, const UInt256 *secret, int compressed);
 
 // assigns privKey to key and returns true on success
 // privKey must be wallet import format (WIF), mini private key format, or hex string
-int BRKeySetPrivKey(BRKey *key, const char *privKey);
+int BRKeySetPrivKey(BRKey *key, BRAddressParams params, const char *privKey);
 
 // assigns DER encoded pubKey to key and returns true on success
 int BRKeySetPubKey(BRKey *key, const uint8_t *pubKey, size_t pkLen);
 
+// returns true if key contains a valid private key
+int BRKeyIsPrivKey(const BRKey *key);
+    
 // writes the WIF private key to privKey and returns the number of bytes writen, or pkLen needed if privKey is NULL
 // returns 0 on failure
-size_t BRKeyPrivKey(const BRKey *key, char *privKey, size_t pkLen);
+size_t BRKeyPrivKey(const BRKey *key, char *privKey, size_t pkLen, BRAddressParams params);
 
 // writes the DER encoded public key to pubKey and returns number of bytes written, or pkLen needed if pubKey is NULL
 size_t BRKeyPubKey(BRKey *key, void *pubKey, size_t pkLen);
+
+// compare public keys (generate public keys if needed) and return 1 on match or 0 otherwise
+int BRKeyPubKeyMatch (BRKey *key1, BRKey *key2);
 
 // returns the ripemd160 hash of the sha256 hash of the public key, or UINT160_ZERO on error
 UInt160 BRKeyHash160(BRKey *key);
 
 // writes the bech32 pay-to-witness-pubkey-hash bitcoin address for key to addr
 // returns the number of bytes written, or addrLen needed if addr is NULL
-size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen);
+size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen, BRAddressParams params);
 
 // writes the legacy pay-to-pubkey-hash address for key to addr
 // returns the number of bytes written, or addrLen needed if addr is NULL
-size_t BRKeyLegacyAddr(BRKey *key, char *addr, size_t addrLen);
+size_t BRKeyLegacyAddr(BRKey *key, char *addr, size_t addrLen, BRAddressParams params);
 
-// signs md with key and writes signature to sig
+// signs md with key and writes signature to sig in compact/JOSE format
+// returns the number of bytes written, or sigLen needed if sig is NULL
+// returns 0 on failure
+size_t BRKeySignJOSE(const BRKey *key, void *sig, size_t sigLen, UInt256 md);
+
+// returns true if the compact-serialized signature for md is verified to have been made by key
+int BRKeyVerifyJOSE(BRKey *key, UInt256 md, const void *sig, size_t sigLen);
+    
+// signs md with key and writes signature to sig in DER format
 // returns the number of bytes written, or sigLen needed if sig is NULL
 // returns 0 on failure
 size_t BRKeySign(const BRKey *key, void *sig, size_t sigLen, UInt256 md);
 
-// returns true if the signature for md is verified to have been made by key
+// returns true if the DER-encoded signature for md is verified to have been made by key
 int BRKeyVerify(BRKey *key, UInt256 md, const void *sig, size_t sigLen);
 
 // wipes key material from key
@@ -125,6 +139,9 @@ void BRKeyECDH(const BRKey *privKey, uint8_t *out32, BRKey *pubKey);
 size_t BRKeyCompactSignEthereum(const BRKey *key, void *compactSig, size_t sigLen, UInt256 md);
 int BRKeyRecoverPubKeyEthereum(BRKey *key, UInt256 md, const void *compactSig, size_t sigLen);
 
+// Set the compressed flag in `key`; this will clear the `pubKey` to allow regeneration
+// Returns true (1) if the compress flag changed; false (0) otherwise
+int BRKeySetCompressed (BRKey *key, int compressed);
 
 #ifdef __cplusplus
 }

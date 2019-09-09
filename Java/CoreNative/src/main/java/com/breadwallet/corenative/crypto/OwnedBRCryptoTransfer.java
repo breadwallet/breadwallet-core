@@ -51,16 +51,6 @@ class OwnedBRCryptoTransfer implements CoreBRCryptoTransfer {
     }
 
     @Override
-    public CoreBRCryptoAmount getFee() {
-        return core.getFee();
-    }
-
-    @Override
-    public CoreBRCryptoFeeBasis getFeeBasis() {
-        return core.getFeeBasis();
-    }
-
-    @Override
     public Optional<CoreBRCryptoHash> getHash() {
         return core.getHash();
     }
@@ -73,6 +63,26 @@ class OwnedBRCryptoTransfer implements CoreBRCryptoTransfer {
     @Override
     public BRCryptoTransferState getState() {
         return core.getState();
+    }
+
+    @Override
+    public Optional<BRCryptoFeeBasis> getEstimatedFeeBasis() {
+        return core.getEstimatedFeeBasis();
+    }
+
+    @Override
+    public Optional<BRCryptoFeeBasis> getConfirmedFeeBasis() {
+        return core.getConfirmedFeeBasis();
+    }
+
+    @Override
+    public CoreBRCryptoUnit getUnitForFee() {
+        return core.getUnitForFee();
+    }
+
+    @Override
+    public CoreBRCryptoUnit getUnitForAmount() {
+        return core.getUnitForAmount();
     }
 
     @Override

@@ -368,6 +368,12 @@ transferGetFeeBasis (BREthereumTransfer transfer) {
     return transfer->feeBasis;
 }
 
+extern void
+transferSetFeeBasis (BREthereumTransfer transfer,
+                     BREthereumFeeBasis feeBasis) {
+    transfer->feeBasis = feeBasis;
+}
+
 extern BREthereumGas
 transferGetGasEstimate (BREthereumTransfer transfer) {
     return transfer->gasEstimate;
@@ -752,6 +758,16 @@ transferGetEffectiveAmountInEther(BREthereumTransfer transfer) {
                                         ? transfer->basis.u.transaction
                                         : transfer->originatingTransaction);
     }
+}
+
+private_extern BREthereumAddress
+transferGetEffectiveTargetAddress (BREthereumTransfer transfer) {
+    return transferProvideOriginatingTransactionTargetAddress (transfer);
+}
+
+private_extern BREthereumAddress
+transferGetEffectiveSourceAddress (BREthereumTransfer transfer) {
+    return transfer->sourceAddress;
 }
 
 extern BREthereumComparison

@@ -42,10 +42,11 @@ static void
 clientEstimateGas(BREthereumClientContext context,
                   BREthereumEWM node,
                   BREthereumWallet wid,
-                  BREthereumTransfer tid,
+                  BREthereumCookie cookie,
                   const char *from,
                   const char *to,
                   const char *amount,
+                  const char *gasPrice,
                   const char *data,
                   int id);
 
@@ -110,24 +111,18 @@ clientGetBlocks (BREthereumClientContext context,
 static void
 clientEWMEventHandler (BREthereumClientContext context,
                        BREthereumEWM ewm,
-                       BREthereumEWMEvent event,
-                       BREthereumStatus status,
-                       const char *errorDescription);
+                       BREthereumEWMEvent event);
 
 static void
 clientPeerEventHandler (BREthereumClientContext context,
                         BREthereumEWM ewm,
-                        BREthereumPeerEvent event,
-                        BREthereumStatus status,
-                        const char *errorDescription);
+                        BREthereumPeerEvent event);
 
 static void
 clientWalletEventHandler(BREthereumClientContext context,
                          BREthereumEWM node,
                          BREthereumWallet wid,
-                         BREthereumWalletEvent event,
-                         BREthereumStatus status,
-                         const char *errorDescription);
+                         BREthereumWalletEvent event);
 
 static void
 clientTokenEventHandler(BREthereumClientContext context,
@@ -140,18 +135,14 @@ static void
 clientBlockEventHandler(BREthereumClientContext context,
                         BREthereumEWM node,
                         BREthereumBlock bid,
-                        BREthereumBlockEvent event,
-                        BREthereumStatus status,
-                        const char *errorDescription);
+                        BREthereumBlockEvent event);
 #endif
 static void
 clientTransferEventHandler(BREthereumClientContext context,
                            BREthereumEWM node,
                            BREthereumWallet wid,
                            BREthereumTransfer tid,
-                           BREthereumTransferEvent event,
-                           BREthereumStatus status,
-                           const char *errorDescription);
+                           BREthereumTransferEvent event);
 
 static jstring
 asJniString(JNIEnv *env, char *string) {
@@ -264,12 +255,13 @@ mapToHashDataPair (JNIEnv *env, jobject arrayObject) {
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniCreateEWM
- * Signature: (Lcom/breadwallet/core/ethereum/BREthereumEWM/Client;JLjava/lang/String;Ljava/lang/String;[Ljava/lang/String;)J
+ * Signature: (Lcom/breadwallet/core/ethereum/BREthereumEWM/Client;IJLjava/lang/String;Ljava/lang/String;[Ljava/lang/String;)J
  */
 JNIEXPORT jlong JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
         (JNIEnv *env, jclass thisClass,
          jobject clientObject,
+         jint mode,
          jlong network,
          jstring storagePathString,
          jstring paperKeyString,
@@ -318,9 +310,10 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
     BREthereumEWM node = ewmCreateWithPaperKey((BREthereumNetwork) network,
                                         paperKey,
                                         ETHEREUM_TIMESTAMP_UNKNOWN,
-                                        BRD_WITH_P2P_SEND,
+                                        (BRSyncMode) mode,
                                         client,
-                                        storagePath);
+                                        storagePath,
+                                        0);
 
     (*env)->ReleaseStringUTFChars (env, paperKeyString,    paperKey);
     (*env)->ReleaseStringUTFChars (env, storagePathString, storagePath);
@@ -330,15 +323,16 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniCreateEWM_PublicKey
- * Signature: (Lcom/breadwallet/core/ethereum/BREthereumEWM/Client;JLjava/lang/String;[B)J
+ * Signature: (Lcom/breadwallet/core/ethereum/BREthereumEWM/Client;IJLjava/lang/String;[B)J
  */
 JNIEXPORT jlong JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM_1PublicKey
-    (JNIEnv *env, jclass thisClass,
-     jobject clientObject,
-     jlong network,
-     jstring storagePathString,
-     jbyteArray publicKey) {
+        (JNIEnv *env, jclass thisClass,
+         jobject clientObject,
+         jint mode,
+         jlong network,
+         jstring storagePathString,
+         jbyteArray publicKey) {
 
     assert (65 == (*env)->GetArrayLength(env, publicKey));
 
@@ -373,9 +367,10 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM_1PublicKey
     BREthereumEWM node = ewmCreateWithPublicKey((BREthereumNetwork) network,
                                                      key,
                                                      ETHEREUM_TIMESTAMP_UNKNOWN,
-                                                     BRD_WITH_P2P_SEND,
+                                                    (BRSyncMode) mode,
                                                      client,
-                                                     storagePath);
+                                                     storagePath,
+                                                     0);
 
 
     (*env)->ReleaseByteArrayElements(env, publicKey, publicKeyBytes, 0);
@@ -822,11 +817,11 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnounceGasEstimate
     BREthereumWallet wallet = getWallet (env, wid);
     BREthereumTransfer transfer = getTransfer (env, tid);
     const char *strGasEstimate = (*env)->GetStringUTFChars(env, gasEstimate, 0);
-    ewmAnnounceGasEstimate(node,
-                                 wallet,
-                                 transfer,
-                                 strGasEstimate,
-                                 rid);
+    // ewmAnnounceGasEstimate(node,
+    //                              wallet,
+    //                              transfer,
+    //                              strGasEstimate,
+    //                              rid);
     (*env)->ReleaseStringUTFChars(env, gasEstimate, strGasEstimate);
 }
 
@@ -921,9 +916,9 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnounceToken
                               : (*env)->GetStringUTFChars (env, defaultGasPrice, 0);
 
     ewmAnnounceToken(node,
+                     rid,
                      strAddress, strSymbol, strName, strDescription,
-                     decimals, strGasLimit, strGasPrice,
-                     rid);
+                     decimals, strGasLimit, strGasPrice);
 
     (*env)->ReleaseStringUTFChars (env, address, strAddress);
     (*env)->ReleaseStringUTFChars (env, symbol, strSymbol);
@@ -1203,7 +1198,7 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionEstimateGas
     BREthereumWallet   wallet   = getWallet (env, wid);
     BREthereumTransfer transfer = getTransfer (env, tid);
 
-    ewmUpdateGasEstimate (node, wallet, transfer);
+    // ewmUpdateGasEstimate (node, wallet, transfer);
 }
 
 /*
@@ -1289,6 +1284,19 @@ JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTr
     BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
     BREthereumTransfer transfer = getTransfer (env, tid);
     BREthereumHash hash = ewmTransferGetIdentifier(node, transfer);
+    return asJniString(env, hashAsString(hash));
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumEWM
+ * Method:    jniTransactionOriginatingTransactionHash
+ * Signature: (J)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionOriginatingTransactionHash
+        (JNIEnv *env, jobject thisObject, jlong tid) {
+    BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
+    BREthereumTransfer transfer = getTransfer (env, tid);
+    BREthereumHash hash = ewmTransferGetOriginatingTransactionHash(node, transfer);
     return asJniString(env, hashAsString(hash));
 }
 
@@ -1429,8 +1437,36 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionIsSubmitted
     return (jboolean) (ETHEREUM_BOOLEAN_TRUE == ewmTransferIsSubmitted (node, transfer)
                        ? JNI_TRUE
                        : JNI_FALSE);
-
 }
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumEWM
+ * Method:    jniTransactionIsErrored
+ * Signature: (J)Z
+ */
+JNIEXPORT jboolean JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionIsErrored
+        (JNIEnv *env, jobject thisObject, jlong tid) {
+    BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
+    BREthereumTransfer transfer = getTransfer (env, tid);
+    return (jboolean) (TRANSFER_STATUS_ERRORED == ewmTransferGetStatus (node, transfer)
+                       ? JNI_TRUE
+                       : JNI_FALSE);
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumEWM
+ * Method:    jniTransactionGetErrorDescription
+ * Signature: (J)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniTransactionGetErrorDescription
+        (JNIEnv *env, jobject thisObject, jlong tid) {
+    BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
+    BREthereumTransfer transfer = getTransfer (env, tid);
+    char *errorDescription = ewmTransferStatusGetError(node, transfer);
+    return NULL == errorDescription ? NULL : asJniString(env, errorDescription);
+}
+
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
@@ -1550,12 +1586,14 @@ clientGetGasPrice(BREthereumClientContext context,
 }
 
 static void
-clientEstimateGas(BREthereumClientContext context, BREthereumEWM node,
+clientEstimateGas(BREthereumClientContext context,
+                  BREthereumEWM node,
                   BREthereumWallet wid,
-                  BREthereumTransfer tid,
+                  BREthereumCookie cookie,
                   const char *fromStr,
                   const char *toStr,
                   const char *amountStr,
+                  const char *gasPriceStr,
                   const char *dataStr,
                   int id) {
     JNIEnv *env = getEnv();
@@ -1566,15 +1604,15 @@ clientEstimateGas(BREthereumClientContext context, BREthereumEWM node,
     jobject amount = (*env)->NewStringUTF(env, amountStr);
     jobject data = (*env)->NewStringUTF(env, dataStr);
 
-    (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineGetGasEstimate,
-                                 (jlong) node,
-                                 (jlong) wid,
-                                 (jlong) tid,
-                                 from,
-                                 to,
-                                 amount,
-                                 data,
-                                 (jint) id);
+    // (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineGetGasEstimate,
+    //                              (jlong) node,
+    //                              (jlong) wid,
+    //                              (jlong) tid,
+    //                              from,
+    //                              to,
+    //                              amount,
+    //                              data,
+    //                              (jint) id);
 
     (*env)->DeleteLocalRef(env, data);
     (*env)->DeleteLocalRef(env, amount);
@@ -1748,21 +1786,19 @@ clientGetNonce(BREthereumClientContext context,
 static void
 clientEWMEventHandler(BREthereumClientContext context,
                       BREthereumEWM ewm,
-                      BREthereumEWMEvent event,
-                      BREthereumStatus status,
-                      const char *errorDescription) {
+                      BREthereumEWMEvent event) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jstring errorDescriptionString = (NULL == errorDescription
+    jstring errorDescriptionString = ((SUCCESS == event.status || '\0' == event.errorDescription[0])
                                       ? NULL
-                                      : (*env)->NewStringUTF(env, errorDescription));
+                                      : (*env)->NewStringUTF(env, event.errorDescription));
 
     // Callback
     (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineEWMEvent,
                                  (jlong) ewm,
-                                 (jint) event,
-                                 (jint) status,
+                                 (jint) event.type,
+                                 (jint) event.status,
                                  errorDescriptionString);
 
     // Cleanup
@@ -1772,21 +1808,19 @@ clientEWMEventHandler(BREthereumClientContext context,
 static void
 clientPeerEventHandler(BREthereumClientContext context,
                        BREthereumEWM ewm,
-                       BREthereumPeerEvent event,
-                       BREthereumStatus status,
-                       const char *errorDescription) {
+                       BREthereumPeerEvent event) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jstring errorDescriptionString = (NULL == errorDescription
+    jstring errorDescriptionString = ((SUCCESS == event.status || '\0' == event.errorDescription[0])
                                       ? NULL
-                                      : (*env)->NewStringUTF(env, errorDescription));
+                                      : (*env)->NewStringUTF(env, event.errorDescription));
 
     // Callback
     (*env)->CallStaticVoidMethod(env, trampolineClass, trampolinePeerEvent,
                                  (jlong) ewm,
-                                 (jint) event,
-                                 (jint) status,
+                                 (jint) event.type,
+                                 (jint) event.status,
                                  errorDescriptionString);
 
     // Cleanup
@@ -1797,21 +1831,19 @@ static void
 clientWalletEventHandler(BREthereumClientContext context,
                          BREthereumEWM node,
                          BREthereumWallet wid,
-                         BREthereumWalletEvent event,
-                         BREthereumStatus status,
-                         const char *errorDescription) {
+                         BREthereumWalletEvent event) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jstring errorDescriptionString = (NULL == errorDescription
+    jstring errorDescriptionString = ((SUCCESS == event.status || '\0' == event.errorDescription[0])
                                       ? NULL
-                                      : (*env)->NewStringUTF(env, errorDescription));
+                                      : (*env)->NewStringUTF(env, event.errorDescription));
 
     (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineWalletEvent,
                                  (jlong) node,
                                  (jlong) wid,
-                                 (jint) event,
-                                 (jint) status,
+                                 (jint) event.type,
+                                 (jint) event.status,
                                  errorDescriptionString);
 
     if (NULL != errorDescriptionString) (*env)->DeleteLocalRef(env, errorDescriptionString);
@@ -1828,7 +1860,7 @@ clientTokenEventHandler(BREthereumClientContext context,
     (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineTokenEvent,
                                  (jlong) ewm,
                                  (jlong) token,
-                                 (jint) event);
+                                 (jint) event.type);
 }
 
 #if 0
@@ -1836,13 +1868,11 @@ static void
 clientBlockEventHandler(BREthereumClientContext context,
                         BREthereumEWM node,
                         BREthereumBlock bid,
-                        BREthereumBlockEvent event,
-                        BREthereumStatus status,
-                        const char *errorDescription) {
+                        BREthereumBlockEvent event) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jstring errorDescriptionString = (NULL == errorDescription
+    jstring errorDescriptionString = ((SUCCESS == event.status || '\0' == event.errorDescription[0])
                                       ? NULL
                                       : (*env)->NewStringUTF(env, errorDescription));
 
@@ -1850,8 +1880,8 @@ clientBlockEventHandler(BREthereumClientContext context,
     (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineBlockEvent,
                                  (jlong) node,
                                  (jint) bid,
-                                 (jint) event,
-                                 (jint) status,
+                                 (jint) event.type,
+                                 (jint) event.status,
                                  errorDescriptionString);
 
     // Cleanup
@@ -1863,23 +1893,21 @@ clientTransferEventHandler(BREthereumClientContext context,
                            BREthereumEWM node,
                            BREthereumWallet wid,
                            BREthereumTransfer tid,
-                           BREthereumTransferEvent event,
-                           BREthereumStatus status,
-                           const char *errorDescription) {
+                           BREthereumTransferEvent event) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jstring errorDescriptionString = (NULL == errorDescription
+    jstring errorDescriptionString = ((SUCCESS == event.status || '\0' == event.errorDescription[0])
                                       ? NULL
-                                      : (*env)->NewStringUTF(env, errorDescription));
+                                      : (*env)->NewStringUTF(env, event.errorDescription));
 
     // Callback
     (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineTransferEvent,
                                  (jlong) node,
                                  (jlong) wid,
                                  (jlong) tid,
-                                 (jint) event,
-                                 (jint) status,
+                                 (jint) event.type,
+                                 (jint) event.status,
                                  errorDescriptionString);
 
     // Cleanup

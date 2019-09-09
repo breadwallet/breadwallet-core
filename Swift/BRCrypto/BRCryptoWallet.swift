@@ -27,6 +27,8 @@ public final class Wallet: Equatable {
         return manager.system
     }
 
+    internal var callbackCoordinator: SystemCallbackCoordinator
+    
     /// The unit for display of the wallet's balance
     public let unit: Unit
 
@@ -44,7 +46,7 @@ public final class Wallet: Equatable {
 
     /// The current balance for currency
     public var balance: Amount {
-        return Amount (core: cryptoWalletGetBalance (core), unit: unit, take: false)
+        return Amount (core: cryptoWalletGetBalance (core), take: false)
     }
 
     /// The current state.
@@ -67,13 +69,22 @@ public final class Wallet: Equatable {
 
     /// An address suitable for a transfer target (receiving).  Uses the default Address Scheme
     public var target: Address {
-        return Address (core: cryptoWalletGetAddress (core), take: false)
+        return targetForScheme (manager.addressScheme)
     }
 
+    public func targetForScheme (_ scheme: AddressScheme) -> Address {
+        return Address (core: cryptoWalletGetAddress (core, scheme.core), take: false)
+    }
+
+    /// TODO: `var targets: [Address]`
+
+    /// TODO: Remove `source
     /// An address suitable for a transfer source (sending).  Uses the default AddressScheme
     public var source: Address {
-        return Address (core: cryptoWalletGetAddress (core), take: false)
+        return Address (core: cryptoWalletGetAddress (core, manager.addressScheme.core), take: false)
     }
+
+    /// TODO: `var sources: [Address]`
 
     /// The transfers of currency yielding `balance`
     public var transfers: [Transfer] {
@@ -139,7 +150,28 @@ public final class Wallet: Equatable {
                              take: false)
         }
     }
-    
+
+    internal func createTransfer(sweeper: WalletSweeper,
+                                 estimatedFeeBasis: TransferFeeBasis) -> Transfer? {
+        return cryptoWalletCreateTransferForWalletSweep(self.core, sweeper.core, estimatedFeeBasis.core)
+            .map { Transfer (core: $0,
+                             wallet: self,
+                             take: false)
+        }
+    }
+
+    internal func createTransfer(request: PaymentProtocolRequest,
+                                 estimatedFeeBasis: TransferFeeBasis) -> Transfer? {
+        return cryptoWalletCreateTransferForPaymentProtocolRequest(self.core, request.core, estimatedFeeBasis.core)
+            .map { Transfer (core: $0,
+                             wallet: self,
+                             take: false)
+        }
+    }
+
+    /// A `WalletEstimateFeeHandler` is a function to handle the result of a Wallet.estimateFee.
+    public typealias EstimateFeeHandler = (Result<TransferFeeBasis,FeeEstimationError>) -> Void
+
     ///
     /// Estimate the fee for a transfer with `amount` from `wallet`.  If provided use the `feeBasis`
     /// otherwise use the wallet's `defaultFeeBasis`
@@ -153,21 +185,62 @@ public final class Wallet: Equatable {
     public func estimateFee (target: Address,
                              amount: Amount,
                              fee: NetworkFee,
-                             completion: @escaping (Result<TransferFeeBasis,FeeEstimationError>) -> Void) {
-        system.queue.async {
-            // For now
-            completion (cryptoWalletEstimateFeeBasis (self.core, target.core, amount.core, fee.core)
-                .map { TransferFeeBasis (core: $0, take: false) }
-                .map { Result.success($0)}
-            ?? Result.failure(FeeEstimationError.ServiceError))
-        }
+                             completion: @escaping Wallet.EstimateFeeHandler) {
+        cryptoWalletEstimateFeeBasis (self.core,
+                                      callbackCoordinator.addWalletFeeEstimateHandler(completion),
+                                      target.core,
+                                      amount.core,
+                                      fee.core)
+    }
+
+    internal func estimateFee (sweeper: WalletSweeper,
+                               fee: NetworkFee,
+                               completion: @escaping (Result<TransferFeeBasis,FeeEstimationError>) -> Void) {
+        cryptoWalletEstimateFeeBasisForWalletSweep(self.core,
+                                                   callbackCoordinator.addWalletFeeEstimateHandler(completion),
+                                                   sweeper.core,
+                                                   fee.core)
+    }
+
+    internal func estimateFee (request: PaymentProtocolRequest,
+                               fee: NetworkFee,
+                               completion: @escaping (Result<TransferFeeBasis,FeeEstimationError>) -> Void) {
+        cryptoWalletEstimateFeeBasisForPaymentProtocolRequest(self.core,
+                                                              callbackCoordinator.addWalletFeeEstimateHandler(completion),
+                                                              request.core,
+                                                              fee.core)
     }
 
     public enum FeeEstimationError: Error {
         case ServiceUnavailable
         case ServiceError
         case InsufficientFunds
+
+        static func fromStatus (_ status: BRCryptoStatus) -> FeeEstimationError {
+            switch status {
+            case CRYPTO_ERROR_FAILED: return .ServiceError
+            default: return .ServiceError // preconditionFailure ("Unknown FeeEstimateError")
+            }
+        }
     }
+
+    ///
+    /// Create a `TransferFeeBasis` using a `pricePerCostFactor` and `costFactor`.
+    ///
+    /// - Note: This is 'private' until the parameters are described.  Meant for testing for now.
+    ///
+    /// - Parameters:
+    ///   - pricePerCostFactor:
+    ///   - costFactor:
+    ///
+    /// - Returns: An optional TransferFeeBasis
+    ///
+    public func createTransferFeeBasis (pricePerCostFactor: Amount,
+                                        costFactor: Double) -> TransferFeeBasis? {
+        return cryptoWalletCreateFeeBasis (core, pricePerCostFactor.core, costFactor)
+            .map { TransferFeeBasis (core: $0, take: false) }
+    }
+    
     ///
     /// Create a wallet
     ///
@@ -179,9 +252,11 @@ public final class Wallet: Equatable {
     ///
     internal init (core: BRCryptoWallet,
                    manager: WalletManager,
+                   callbackCoordinator: SystemCallbackCoordinator,
                    take: Bool) {
         self.core = take ? cryptoWalletTake (core) : core
         self.manager = manager
+        self.callbackCoordinator = callbackCoordinator
         self.unit = Unit (core: cryptoWalletGetUnit(core), take: false)
         self.unitForFee = Unit (core: cryptoWalletGetUnitForFee(core), take: false)
     }
@@ -236,7 +311,7 @@ extension Wallet {
 /// - created: The wallet was created (and remains in existence).
 /// - deleted: The wallet was deleted.
 ///
-public enum WalletState {
+public enum WalletState: Equatable {
     case created
     case deleted
 
@@ -262,8 +337,9 @@ public enum WalletEvent {
     case transferDeleted   (transfer: Transfer)
     case transferSubmitted (transfer: Transfer, success: Bool)
 
-    case balanceUpdated  (amount: Amount)
-    case feeBasisUpdated (feeBasis: TransferFeeBasis)
+    case balanceUpdated    (amount: Amount)
+    case feeBasisUpdated   (feeBasis: TransferFeeBasis)
+    case feeBasisEstimated (feeBasis: TransferFeeBasis)
 }
 
 extension WalletEvent: CustomStringConvertible {
@@ -278,6 +354,7 @@ extension WalletEvent: CustomStringConvertible {
         case .transferSubmitted: return "TransferSubmitted"
         case .balanceUpdated:    return "BalanceUpdated"
         case .feeBasisUpdated:   return "FeeBasisUpdated"
+        case .feeBasisEstimated: return "FeeBasisEstimated"
         }
     }
 }
@@ -300,6 +377,9 @@ public protocol WalletListener: class {
                             wallet: Wallet,
                             event: WalletEvent)
 }
+/// A Functional Interface for a Handler
+public typealias WalletEventHandler = (System, WalletManager, Wallet, WalletEvent) -> Void
+
 
 ///
 /// A WalletFactory is a customization point for Wallet creation.

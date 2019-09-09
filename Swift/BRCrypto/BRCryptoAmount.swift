@@ -23,7 +23,9 @@ public final class Amount {
     /// The (default) unit.  Without this there is no reasonable implementation of
     /// CustomeStringConvertable.  This property is only used in the `description` function
     /// and to ascertain the Amount's currency typically for consistency in add/sub functions.
-    public let unit: Unit
+    public var unit: Unit {
+        return Unit (core: cryptoAmountGetUnit (core), take: false)
+    }
 
     /// The currency
     public var currency: Currency {
@@ -52,6 +54,17 @@ public final class Amount {
     public func string (pair: CurrencyPair, formatter: NumberFormatter? = nil) -> String? {
         return pair.exchange (asBase: self)?
             .string (as: pair.quoteUnit, formatter: formatter)
+    }
+
+    /// INTERNAL: Returns the low uint64_t value optionally.
+    internal var integerRawSmall: UInt64? {
+        var overflow: BRCryptoBoolean = CRYPTO_FALSE
+        let value = cryptoAmountGetIntegerRaw (core, &overflow)
+        return CRYPTO_TRUE == overflow ? nil : value
+    }
+
+    internal var integerRaw: UInt256 {
+        return cryptoAmountGetValue(core)
     }
 
     ///
@@ -89,35 +102,36 @@ public final class Amount {
     public func add (_ that: Amount) -> Amount? {
         precondition (isCompatible (with: that))
         return cryptoAmountAdd (self.core, that.core)
-            .map { Amount (core: $0, unit: self.unit, take: false) }
+            .map { Amount (core: $0, take: false) }
     }
 
     public func sub (_ that: Amount) -> Amount? {
         precondition (isCompatible (with: that))
         return cryptoAmountSub (self.core, that.core)
-            .map { Amount (core: $0, unit: self.unit, take: false) }
+            .map { Amount (core: $0, take: false) }
+    }
+
+    public func convert (to unit: Unit) -> Amount? {
+        return cryptoAmountConvertToUnit (self.core, unit.core)
+                .map { Amount (core: $0, take: false) }
     }
 
     public var negate: Amount {
-        return Amount (core: cryptoAmountNegate (core), unit: unit, take: false)
+        return Amount (core: cryptoAmountNegate (core), take: false)
     }
 
     internal init (core: BRCryptoAmount,
-                   unit: Unit,
                    take: Bool) {
         self.core = take ? cryptoAmountTake(core) : core
-        self.unit = unit
     }
 
     public static func create (double: Double, unit: Unit) -> Amount {
         return Amount (core: cryptoAmountCreateDouble (double, unit.core),
-                       unit: unit,
                        take: false)
     }
 
     public static func create (integer: Int64, unit: Unit) -> Amount {
         return Amount (core: cryptoAmountCreateInteger (integer, unit.core),
-                       unit: unit,
                        take: false)
     }
 
@@ -147,7 +161,7 @@ public final class Amount {
     ///
     public static func create (string: String, negative: Bool = false, unit: Unit) -> Amount? {
         return cryptoAmountCreateString (string, (negative ? CRYPTO_TRUE : CRYPTO_FALSE), unit.core)
-            .map { Amount (core: $0, unit: unit, take: false) }
+            .map { Amount (core: $0, take: false) }
     }
 
     ///

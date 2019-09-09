@@ -896,7 +896,9 @@ blockLinkLogsWithTransactions (BREthereumBlock block) {
         BREthereumLog log = block->status.logs[index];
         BREthereumTransactionStatus status = logGetStatus(log);
         uint64_t transactionIndex; size_t logIndex;
-        assert (transactionStatusExtractIncluded(&status, NULL, NULL, &transactionIndex, NULL, NULL));
+
+        int transactionIncluded = transactionStatusExtractIncluded (&status, NULL, NULL, &transactionIndex, NULL, NULL);
+        assert (transactionIncluded);
 
         // Importantly, note that the log has no reference to the transaction itself.  And, if only
         // implicitly, we assume that `block` has the correct transaction at transactionIndex.
@@ -1645,7 +1647,7 @@ ethereumTestnetCheckpoints [] = {
 
 static BREthereumBlockCheckpoint
 ethereumRinkebyCheckpoints [] = {
-    {       0, HASH_INIT("6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177"), { .std = "0x01" },  0x58ee40ba }, //  439 days  6 hrs ago (Apr-12-2017 03:20:50 PM +UTC)
+    {       0, HASH_INIT("6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177"), { .std = "0x01" },  0 }, //  439 days  6 hrs ago (Apr-12-2017 03:20:50 PM +UTC)
 };
 #define CHECKPOINT_RINKEBY_COUNT      (sizeof (ethereumRinkebyCheckpoints) / sizeof (BREthereumBlockCheckpoint))
 

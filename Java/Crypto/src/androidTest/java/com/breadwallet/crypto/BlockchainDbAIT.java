@@ -1,9 +1,9 @@
 package com.breadwallet.crypto;
 
-import com.breadwallet.crypto.blockchaindb.CompletionHandler;
 import com.breadwallet.crypto.blockchaindb.DataTask;
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
+import com.breadwallet.crypto.blockchaindb.models.bdb.Block;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Currency;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
@@ -11,6 +11,8 @@ import com.breadwallet.crypto.blockchaindb.models.bdb.Transfer;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthLog;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthToken;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthTransaction;
+import com.breadwallet.crypto.utility.CompletionHandler;
+import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 
 import org.junit.Before;
@@ -24,13 +26,15 @@ import java.util.concurrent.Semaphore;
 
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
 import okhttp3.Response;
 
 import static org.junit.Assert.*;
 
 public class BlockchainDbAIT {
 
-    private static final String BDB_BASE_URL = "https://test-blockchaindb-api.brd.tools";
+    private static final String BDB_BASE_URL = "https://api.blockset.com";
+    private static final String BRD_AUTH_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkZWI2M2UyOC0wMzQ1LTQ4ZjYtOWQxNy1jZTgwY2JkNjE3Y2IiLCJicmQ6Y3QiOiJjbGkiLCJleHAiOjkyMjMzNzIwMzY4NTQ3NzUsImlhdCI6MTU2Njg2MzY0OX0.FvLLDUSk1p7iFLJfg2kA-vwhDWTDulVjdj8YpFgnlE62OBFCYt4b3KeTND_qAhLynLKbGJ1UDpMMihsxtfvA0A";
     private static final String API_BASE_URL = "https://stage2.breadwallet.com";
 
     private static final String ETH_EVENT_ERC20_TRANSFER = "0xa9059cbb";
@@ -39,11 +43,43 @@ public class BlockchainDbAIT {
 
     @Before
     public void setup() {
+        DataTask decoratedSynchronousDataTask = (client, request, callback) -> {
+            Request decoratedRequest = request.newBuilder()
+                    .header("Authorization", "Bearer " + BRD_AUTH_TOKEN)
+                    .build();
+            synchronousDataTask.execute(client, decoratedRequest, callback);
+        };
         blockchainDb = new BlockchainDb(new OkHttpClient(),
-                BDB_BASE_URL, synchronousDataTask, API_BASE_URL, synchronousDataTask);
+                BDB_BASE_URL, decoratedSynchronousDataTask,
+                API_BASE_URL, synchronousDataTask);
     }
 
     // BDB
+
+    @Test
+    public void testGetBlocks() {
+        SynchronousCompletionHandler<List<Block>> handler = new SynchronousCompletionHandler<>();
+
+        blockchainDb.getBlocks("bitcoin-mainnet", UnsignedLong.ZERO, UnsignedLong.valueOf(1000),
+                false, true, true, true, handler);
+        List<Block> blocks = handler.dat().get();
+        assertNotEquals(0, blocks.size());
+
+        // TODO: Expand these tests
+    }
+
+    @Test
+    public void testGetBlock() {
+        SynchronousCompletionHandler<Block> handler = new SynchronousCompletionHandler<>();
+
+        blockchainDb.getBlock("bitcoin-mainnet:000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
+                false, false, false, false, handler);
+        Block block = handler.dat().get();
+        assertNotNull(block);
+        assertEquals(block.getId(), "bitcoin-mainnet:000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f");
+
+        // TODO: Expand these tests
+    }
 
     @Test
     public void testGetBlockchains() {
@@ -53,7 +89,7 @@ public class BlockchainDbAIT {
         List<Blockchain> blockchains = handler.dat().get();
         assertNotEquals(0, blockchains.size());
 
-        blockchainDb.getBlockchains(true, handler);
+        blockchainDb.getBlockchains(handler);
         blockchains = handler.dat().get();
         assertNotEquals(0, blockchains.size());
 
@@ -68,6 +104,7 @@ public class BlockchainDbAIT {
         Blockchain blockchain = handler.dat().get();
         assertNotNull(blockchain);
         assertEquals(blockchain.getId(), "bitcoin-mainnet");
+        assertEquals(blockchain.getConfirmationsUntilFinal(), UnsignedInteger.valueOf(6));
 
         // TODO: Expand these tests
     }
@@ -92,11 +129,10 @@ public class BlockchainDbAIT {
     public void testGetCurrency() {
         SynchronousCompletionHandler<Currency> handler = new SynchronousCompletionHandler<>();
 
-        // TODO(BAK-241): This fails due to the endpoint not returning anything
-         blockchainDb.getCurrency("bitcoin-mainnet", handler);
-         Currency currency = handler.dat().get();
-         assertNotNull(currency);
-         assertEquals(currency.getCode(), "btc");
+        blockchainDb.getCurrency("bitcoin-mainnet:__native__", handler);
+        Currency currency = handler.dat().get();
+        assertNotNull(currency);
+        assertEquals(currency.getCode(), "btc");
 
         // TODO: Expand these tests
     }
@@ -130,7 +166,7 @@ public class BlockchainDbAIT {
         SynchronousCompletionHandler<List<Transaction>> handler = new SynchronousCompletionHandler<>();
 
         blockchainDb.getTransactions("bitcoin-mainnet", Arrays.asList("1JfbZRwdDHKZmuiZgYArJZhcuuzuw2HuMu"),
-                UnsignedLong.ZERO, UnsignedLong.valueOf(50000),
+                UnsignedLong.ZERO, UnsignedLong.valueOf(500000),
                 true, true, handler);
         List<Transaction> transactions = handler.dat().get();
         assertNotEquals(0, transactions.size());
@@ -251,7 +287,7 @@ public class BlockchainDbAIT {
 
     // Helpers
 
-    private static class SynchronousCompletionHandler<T> implements CompletionHandler<T> {
+    private static class SynchronousCompletionHandler<T> implements CompletionHandler<T, QueryError> {
 
         private final Semaphore sema = new Semaphore(0);
 

@@ -52,7 +52,18 @@ target_sources (crypto
                 src/main/cpp/core/support/BRKeyECIES.h
                 src/main/cpp/core/support/BRSet.c
                 src/main/cpp/core/support/BRSet.h
+                src/main/cpp/core/support/BRSyncMode.c
+                src/main/cpp/core/support/BRSyncMode.h
                 )
+
+# Support Tests
+if (CMAKE_BUILD_TYPE MATCHES Debug)
+    target_sources (crypto
+                    PUBLIC
+
+                    src/main/cpp/core/support/testSup.c
+                    )
+endif(CMAKE_BUILD_TYPE MATCHES Debug)
 
 # Bitcoin
 target_sources (crypto
@@ -72,6 +83,8 @@ target_sources (crypto
                 src/main/cpp/core/bitcoin/BRPeer.h
                 src/main/cpp/core/bitcoin/BRPeerManager.c
                 src/main/cpp/core/bitcoin/BRPeerManager.h
+                src/main/cpp/core/bitcoin/BRSyncManager.c
+                src/main/cpp/core/bitcoin/BRSyncManager.h
                 src/main/cpp/core/bitcoin/BRTransaction.c
                 src/main/cpp/core/bitcoin/BRTransaction.h
                 src/main/cpp/core/bitcoin/BRWallet.c
@@ -81,6 +94,16 @@ target_sources (crypto
                 src/main/cpp/core/bitcoin/BRWalletManagerEvent.c
                 src/main/cpp/core/bitcoin/BRWalletManagerPrivate.h
                 )
+
+# Bitcoin Tests
+if (CMAKE_BUILD_TYPE MATCHES Debug)
+    target_sources (crypto
+                    PUBLIC
+
+                    src/main/cpp/core/bitcoin/test.c
+                    src/main/cpp/core/bitcoin/testBwm.c
+                    )
+endif(CMAKE_BUILD_TYPE MATCHES Debug)
 
 # BCash
 target_sources (crypto
@@ -108,13 +131,11 @@ target_sources (crypto
                 src/main/cpp/core/ethereum/util/BRUtilMath.c
                 src/main/cpp/core/ethereum/util/BRUtilMath.h
                 src/main/cpp/core/ethereum/util/BRUtilMathParse.c
-#                src/main/cpp/core/ethereum/util/testUtil.c
 
                 # RLP
                 src/main/cpp/core/ethereum/rlp/BRRlp.h
                 src/main/cpp/core/ethereum/rlp/BRRlpCoder.c
                 src/main/cpp/core/ethereum/rlp/BRRlpCoder.h
-#                src/main/cpp/core/ethereum/rlp/testRlp.c
 
                 # Event
                 src/main/cpp/core/ethereum/event/BREvent.c
@@ -123,7 +144,6 @@ target_sources (crypto
                 src/main/cpp/core/ethereum/event/BREventAlarm.h
                 src/main/cpp/core/ethereum/event/BREventQueue.c
                 src/main/cpp/core/ethereum/event/BREventQueue.h
-#                src/main/cpp/core/ethereum/event/testEvent.c
 
                 # Base
                 src/main/cpp/core/ethereum/base/BREthereumAddress.c
@@ -133,6 +153,8 @@ target_sources (crypto
                 src/main/cpp/core/ethereum/base/BREthereumEther.h
                 src/main/cpp/core/ethereum/base/BREthereumGas.c
                 src/main/cpp/core/ethereum/base/BREthereumGas.h
+                src/main/cpp/core/ethereum/base/BREthereumFeeBasis.c
+                src/main/cpp/core/ethereum/base/BREthereumFeeBasis.h
                 src/main/cpp/core/ethereum/base/BREthereumHash.c
                 src/main/cpp/core/ethereum/base/BREthereumHash.h
                 src/main/cpp/core/ethereum/base/BREthereumData.c
@@ -140,7 +162,6 @@ target_sources (crypto
                 src/main/cpp/core/ethereum/base/BREthereumLogic.h
                 src/main/cpp/core/ethereum/base/BREthereumSignature.c
                 src/main/cpp/core/ethereum/base/BREthereumSignature.h
-#                src/main/cpp/core/ethereum/base/testBase.c
 
                 # Block Chain
                 src/main/cpp/core/ethereum/blockchain/BREthereumAccountState.c
@@ -161,14 +182,12 @@ target_sources (crypto
                 src/main/cpp/core/ethereum/blockchain/BREthereumTransactionStatus.c
                 src/main/cpp/core/ethereum/blockchain/BREthereumTransactionStatus.h
                 src/main/cpp/core/ethereum/blockchain/BREthereumProofOfWork.c
-#                src/main/cpp/core/ethereum/blockchain/testBc.c
 
                 # Contract
                 src/main/cpp/core/ethereum/contract/BREthereumContract.c
                 src/main/cpp/core/ethereum/contract/BREthereumContract.h
                 src/main/cpp/core/ethereum/contract/BREthereumToken.c
                 src/main/cpp/core/ethereum/contract/BREthereumToken.h
-#                src/main/cpp/core/ethereum/contract/testContract.c
 
                 # MPT
                 src/main/cpp/core/ethereum/mpt/BREthereumMPT.c
@@ -210,8 +229,6 @@ target_sources (crypto
                 src/main/cpp/core/ethereum/les/msg/BREthereumMessageLES.c
                 src/main/cpp/core/ethereum/les/msg/BREthereumMessagePIP.h
                 src/main/cpp/core/ethereum/les/msg/BREthereumMessagePIP.c
-#                src/main/cpp/core/ethereum/les/test-les.c
-#                src/main/cpp/core/ethereum/les/test-les.h
 
                 # BCS
                 src/main/cpp/core/ethereum/bcs/BREthereumBCS.c
@@ -237,7 +254,70 @@ target_sources (crypto
                 src/main/cpp/core/ethereum/ewm/BREthereumEWMClient.c
                 src/main/cpp/core/ethereum/ewm/BREthereumEWMEvent.c
                 src/main/cpp/core/ethereum/ewm/BREthereumEWMPrivate.h
-#                src/main/cpp/core/ethereum/ewm/testEwm.c
+                )
+
+# Ethereum Tests
+if (CMAKE_BUILD_TYPE MATCHES Debug)
+    target_sources (crypto
+                    PUBLIC
+
+                    src/main/cpp/core/ethereum/base/testBase.c
+                    src/main/cpp/core/ethereum/blockchain/testBc.c
+                    src/main/cpp/core/ethereum/contract/testContract.c
+                    src/main/cpp/core/ethereum/event/testEvent.c
+                    src/main/cpp/core/ethereum/ewm/testEwm.c
+                    src/main/cpp/core/ethereum/rlp/testRlp.c
+                    src/main/cpp/core/ethereum/les/testLES.c
+                    src/main/cpp/core/ethereum/util/testUtil.c
+                    src/main/cpp/core/ethereum/test.c
+                    )
+endif(CMAKE_BUILD_TYPE MATCHES Debug)
+
+# Ripple
+target_sources (crypto
+                PUBLIC
+
+                src/main/cpp/core/ripple/BRRipplePrivateStructs.h
+                src/main/cpp/core/ripple/BRRippleBase.h
+                src/main/cpp/core/ripple/BRRipple.h
+                src/main/cpp/core/ripple/BRRippleAccount.c
+                src/main/cpp/core/ripple/BRRippleAccount.h
+                src/main/cpp/core/ripple/BRRippleBase58.c
+                src/main/cpp/core/ripple/BRRippleBase58.h
+                src/main/cpp/core/ripple/BRRippleSerialize.c
+                src/main/cpp/core/ripple/BRRippleSerialize.h
+                src/main/cpp/core/ripple/BRRippleSignature.c
+                src/main/cpp/core/ripple/BRRippleSignature.h
+                src/main/cpp/core/ripple/BRRippleTransaction.c
+                src/main/cpp/core/ripple/BRRippleTransaction.h
+                src/main/cpp/core/ripple/BRRippleWallet.c
+                src/main/cpp/core/ripple/BRRippleWallet.h
+                )
+
+# Ripple Tests
+if (CMAKE_BUILD_TYPE MATCHES Debug)
+    target_sources (crypto
+                    PUBLIC
+
+                    src/main/cpp/core/ripple/testRipple.c
+                    src/main/cpp/core/ripple/testRippleTxList1.h
+                    src/main/cpp/core/ripple/testRippleTxList2.h
+                    )
+endif(CMAKE_BUILD_TYPE MATCHES Debug)
+
+# Generic
+target_sources (crypto
+                PUBLIC
+
+                src/main/cpp/core/generic/BRGenericBase.h
+                src/main/cpp/core/generic/BRGeneric.c
+                src/main/cpp/core/generic/BRGeneric.h
+                src/main/cpp/core/generic/BRGenericHandlers.c
+                src/main/cpp/core/generic/BRGenericHandlers.h
+                src/main/cpp/core/generic/BRGenericWalletManager.c
+                src/main/cpp/core/generic/BRGenericWalletManager.h
+                src/main/cpp/core/generic/BRGenericRipple.h
+                src/main/cpp/core/generic/BRGenericRipple.c
                 )
 
 # Crypto
@@ -257,8 +337,14 @@ target_sources (crypto
                 src/main/cpp/core/crypto/BRCryptoFeeBasis.h
                 src/main/cpp/core/crypto/BRCryptoHash.c
                 src/main/cpp/core/crypto/BRCryptoHash.h
+                src/main/cpp/core/crypto/BRCryptoKey.c
+                src/main/cpp/core/crypto/BRCryptoKey.h
                 src/main/cpp/core/crypto/BRCryptoNetwork.c
                 src/main/cpp/core/crypto/BRCryptoNetwork.h
+                src/main/cpp/core/crypto/BRCryptoStatus.c
+                src/main/cpp/core/crypto/BRCryptoStatus.h
+                src/main/cpp/core/crypto/BRCryptoPayment.c
+                src/main/cpp/core/crypto/BRCryptoPayment.h
                 src/main/cpp/core/crypto/BRCryptoPrivate.h
                 src/main/cpp/core/crypto/BRCryptoTransfer.c
                 src/main/cpp/core/crypto/BRCryptoTransfer.h
@@ -271,8 +357,16 @@ target_sources (crypto
                 src/main/cpp/core/crypto/BRCryptoWalletManagerClient.c
                 src/main/cpp/core/crypto/BRCryptoWalletManagerClient.h
                 src/main/cpp/core/crypto/BRCryptoWalletManagerPrivate.h
-#                src/main/cpp/core/crypto/testCrypto.c
                 )
+
+# Crypto Tests
+if (CMAKE_BUILD_TYPE MATCHES Debug)
+    target_sources (crypto
+                    PUBLIC
+
+                    src/main/cpp/core/crypto/testCrypto.c
+                    )
+endif(CMAKE_BUILD_TYPE MATCHES Debug)
 
 # Crypto JNI
 target_sources (crypto

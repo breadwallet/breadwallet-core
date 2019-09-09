@@ -7,8 +7,9 @@
  */
 package com.breadwallet.crypto.blockchaindb.apis.brd;
 
-import com.breadwallet.crypto.blockchaindb.CompletionHandler;
+import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthToken;
+import com.breadwallet.crypto.utility.CompletionHandler;
 
 import java.util.List;
 
@@ -20,7 +21,7 @@ public class EthTokenApi {
         this.client = client;
     }
 
-    public void getTokensAsEth(int rid, CompletionHandler<List<EthToken>> handler) {
+    public void getTokensAsEth(int rid, CompletionHandler<List<EthToken>, QueryError> handler) {
         client.sendTokenRequest(EthToken::asTokens, handler);
     }
 }

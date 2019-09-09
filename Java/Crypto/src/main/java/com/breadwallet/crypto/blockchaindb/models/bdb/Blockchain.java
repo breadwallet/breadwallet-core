@@ -7,9 +7,11 @@
  */
 package com.breadwallet.crypto.blockchaindb.models.bdb;
 
+import android.support.annotation.Nullable;
+
 import com.breadwallet.crypto.blockchaindb.models.Utilities;
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
+import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 
 import org.json.JSONArray;
@@ -21,18 +23,7 @@ import java.util.List;
 
 public class Blockchain {
 
-    public static List<Blockchain> DEFAULT_BLOCKCHAINS = ImmutableList.of(
-            // Mainnet
-            new Blockchain("bitcoin-mainnet",      "Bitcoin",      "mainnet", true, "btc", UnsignedLong.valueOf(654321),  ImmutableList.of()),
-            new Blockchain("bitcoin-cash-mainnet", "Bitcoin Cash", "mainnet", true, "bch", UnsignedLong.valueOf(1000000), ImmutableList.of()),
-            new Blockchain("ethereum-mainnet",     "Ethereum",     "mainnet", true, "eth", UnsignedLong.valueOf(8000000), ImmutableList.of()),
-
-            // Testnet
-            new Blockchain("bitcoin-testnet",      "Bitcoin Test",      "testnet", false, "btc", UnsignedLong.valueOf(900000),  ImmutableList.of()),
-            new Blockchain("bitcoin-cash-testnet", "Bitcoin Cash Test", "testnet", false, "bch", UnsignedLong.valueOf(1200000), ImmutableList.of()),
-            new Blockchain("ethereum-testnet",     "Ethereum Testnet",  "testnet", false, "eth", UnsignedLong.valueOf(1000000), ImmutableList.of()),
-            new Blockchain("ethereum-rinkeby",     "Ethereum Rinkeby",  "rinkeby", false, "eth", UnsignedLong.valueOf(2000000), ImmutableList.of())
-    );
+    private static long BLOCK_HEIGHT_INTERNAL = -1;
 
     public static Optional<Blockchain> asBlockchain(JSONObject json) {
         try {
@@ -41,19 +32,35 @@ public class Blockchain {
             String network = json.getString("network");
             boolean isMainnet = json.getBoolean("is_mainnet");
             String currency = json.getString("native_currency_id");
-            UnsignedLong blockHeight = Utilities.getUnsignedLongFromString(json, "block_height");
+            UnsignedInteger confirmationsUntilFinal = Utilities.getUnsignedIntFromString(json, "confirmations_until_final");
+
+            long blockHeightLong = json.getLong("block_height");
+            UnsignedLong blockHeight = BLOCK_HEIGHT_INTERNAL == blockHeightLong ?
+                    null : UnsignedLong.valueOf(blockHeightLong);
 
             JSONArray feeEstimatesJson = json.getJSONArray("fee_estimates");
             Optional<List<BlockchainFee>> feeEstimatesOption = BlockchainFee.asBlockchainFees(feeEstimatesJson);
             if (!feeEstimatesOption.isPresent()) return Optional.absent();
             List<BlockchainFee> feeEstimates = feeEstimatesOption.get();
 
-            return Optional.of(new Blockchain(id, name, network, isMainnet, currency, blockHeight, feeEstimates));
+            return Optional.of(
+                    new Blockchain(
+                            id,
+                            name,
+                            network,
+                            isMainnet,
+                            currency,
+                            blockHeight,
+                            feeEstimates,
+                            confirmationsUntilFinal
+                    )
+            );
 
         } catch (JSONException | NumberFormatException e) {
             return Optional.absent();
         }
     }
+
 
     public static Optional<List<Blockchain>> asBlockchains(JSONArray json) {
         List<Blockchain> blockchains = new ArrayList<>();
@@ -78,11 +85,20 @@ public class Blockchain {
     private final String network;
     private final boolean isMainnet;
     private final String currency;
-    private final UnsignedLong blockHeight;
     private final List<BlockchainFee> feeEstimates;
+    private final UnsignedInteger confirmationsUntilFinal;
 
-    public Blockchain(String id, String name, String network, boolean isMainnet, String currency, UnsignedLong blockHeight,
-                      List<BlockchainFee> feeEstimates) {
+    @Nullable
+    private final UnsignedLong blockHeight;
+
+    public Blockchain(String id,
+                      String name,
+                      String network,
+                      boolean isMainnet,
+                      String currency,
+                      @Nullable UnsignedLong blockHeight,
+                      List<BlockchainFee> feeEstimates,
+                      UnsignedInteger confirmationsUntilFinal) {
         this.id = id;
         this.name = name;
         this.network = network;
@@ -90,6 +106,7 @@ public class Blockchain {
         this.currency = currency;
         this.blockHeight = blockHeight;
         this.feeEstimates = feeEstimates;
+        this.confirmationsUntilFinal = confirmationsUntilFinal;
     }
 
     public String getId() {
@@ -112,7 +129,15 @@ public class Blockchain {
         return currency;
     }
 
-    public UnsignedLong getBlockHeight() {
-        return blockHeight;
+    public Optional<UnsignedLong> getBlockHeight() {
+        return Optional.fromNullable(blockHeight);
+    }
+
+    public List<BlockchainFee> getFeeEstimates() {
+        return feeEstimates;
+    }
+
+    public UnsignedInteger getConfirmationsUntilFinal() {
+        return confirmationsUntilFinal;
     }
 }
