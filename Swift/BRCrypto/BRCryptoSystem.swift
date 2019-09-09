@@ -940,10 +940,10 @@ extension System {
 
                 walletEvent.map { (event) in
                     system.listenerQueue.async {
-                    system.listener?.handleWalletEvent (system: manager.system,
-                                                        manager: manager,
-                                                        wallet: wallet,
-                                                        event: event)
+                        system.listener?.handleWalletEvent (system: manager.system,
+                                                            manager: manager,
+                                                            wallet: wallet,
+                                                            event: event)
                     }
                 }
         },
@@ -1202,8 +1202,7 @@ extension System {
                                                                                                        tx.blockTimestamp,
                                                                                                        tx.isError)
                                                                 }
-                                                                cwmAnnounceGetTransactionsComplete(cwm, sid, CRYPTO_TRUE)
-                                                        },
+                                                                cwmAnnounceGetTransactionsComplete(cwm, sid, CRYPTO_TRUE) },
                                                             failure: { (_) in cwmAnnounceGetTransactionsComplete (cwm, sid, CRYPTO_FALSE) })
                 }},
 
@@ -1243,8 +1242,7 @@ extension System {
                                                                                     log.blockNumber,
                                                                                     log.blockTransactionIndex,
                                                                                     log.blockTimestamp) }
-                                                        cwmAnnounceGetLogsComplete(cwm, sid, CRYPTO_TRUE)
-                                                },
+                                                        cwmAnnounceGetLogsComplete(cwm, sid, CRYPTO_TRUE) },
                                                     failure: { (_) in cwmAnnounceGetLogsComplete (cwm, sid, CRYPTO_FALSE) })
                 }},
 
@@ -1295,8 +1293,7 @@ extension System {
                                                           token.decimals,
                                                           token.defaultGasLimit,
                                                           token.defaultGasPrice) }
-                            cwmAnnounceGetTokensComplete (cwm, sid, CRYPTO_TRUE)
-                    },
+                            cwmAnnounceGetTokensComplete (cwm, sid, CRYPTO_TRUE) },
                         failure: { (_) in cwmAnnounceGetTokensComplete (cwm, sid, CRYPTO_FALSE) })
                 }},
 
