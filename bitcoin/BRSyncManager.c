@@ -214,9 +214,6 @@ BRClientSyncManagerSubmit(BRClientSyncManager manager,
 static void
 BRClientSyncManagerTickTock(BRClientSyncManager manager);
 
-static int
-BRClientSyncManagerIsInFullScan(BRClientSyncManager manager);
-
 static void
 BRClientSyncManagerAnnounceGetBlockNumber(BRClientSyncManager manager,
                                           int rid,
@@ -739,6 +736,8 @@ BRClientSyncManagerGetBlockHeight(BRClientSyncManager manager) {
     if (0 == pthread_mutex_lock (&manager->lock)) {
         blockHeight = manager->networkBlockHeight;
         pthread_mutex_unlock (&manager->lock);
+    } else {
+        assert (0);
     }
     return blockHeight;
 }
@@ -919,19 +918,6 @@ static void
 BRClientSyncManagerTickTock(BRClientSyncManager manager) {
     BRClientSyncManagerUpdateBlockNumber (manager);
     BRClientSyncManagerUpdateTransactions (manager);
-}
-
-static int
-BRClientSyncManagerIsInFullScan(BRClientSyncManager manager) {
-    int isFullScan = 0;
-
-    if (0 == pthread_mutex_lock (&manager->lock)) {
-        isFullScan = BRClientSyncManagerScanStateIsFullScan (&manager->scanState);
-        pthread_mutex_unlock (&manager->lock);
-    } else {
-        assert (0);
-    }
-    return isFullScan;
 }
 
 static void
@@ -1499,6 +1485,8 @@ BRPeerSyncManagerGetBlockHeight(BRPeerSyncManager manager) {
     if (0 == pthread_mutex_lock (&manager->lock)) {
         blockHeight = manager->networkBlockHeight;
         pthread_mutex_unlock (&manager->lock);
+    } else {
+        assert (0);
     }
     return blockHeight;
 }
@@ -1590,6 +1578,9 @@ _BRPeerSyncManagerSaveBlocks (void *info,
                               OwnershipKept BRMerkleBlock **blocks,
                               size_t count) {
     BRPeerSyncManager manager = (BRPeerSyncManager) info;
+
+    // events that impact the filesystem are NOT queued; they are acted upon immediately, thus
+    // we call out to the event handler's callback directly.
     manager->eventCallback (manager->eventContext,
                             BRPeerSyncManagerAsSyncManager (manager),
                             (BRSyncManagerEvent) {
@@ -1606,6 +1597,9 @@ _BRPeerSyncManagerSavePeers  (void *info,
                               OwnershipKept const BRPeer *peers,
                               size_t count) {
     BRPeerSyncManager manager = (BRPeerSyncManager) info;
+
+    // events that impact the filesystem are NOT queued; they are acted upon immediately, thus
+    // we call out to the event handler's callback directly.
     manager->eventCallback (manager->eventContext,
                             BRPeerSyncManagerAsSyncManager (manager),
                             (BRSyncManagerEvent) {
