@@ -102,4 +102,53 @@ class BRCryptoSystemTests: BRCryptoSystemBaseTests {
         XCTAssertEqual (0, fooBase.decimals)
         XCTAssertEqual ("FOOI", fooBase.symbol)
     }
+
+    func testSystemModes () {
+        isMainnet = false
+        currencyCodesNeeded = ["btc"]
+        modeMap = ["btc":WalletManagerMode.api_only]
+        prepareAccount()
+        prepareSystem()
+
+        XCTAssertTrue (system.networks.count >= 1)
+        let network: Network! = system.networks.first { "btc" == $0.currency.code && isMainnet == $0.isMainnet }
+        XCTAssertNotNil (network)
+        XCTAssertTrue (system.supportsMode(network: network, system.defaultMode(network: network)))
+
+        system.networks
+            .forEach { (network) in
+                XCTAssertTrue (system.supportsMode(network: network, system.defaultMode(network: network)))
+        }
+
+        system.supportedModesMap
+            .forEach { (argument) in
+                let (bid, modes) = argument
+                XCTAssertTrue (modes.contains (.api_only))
+                XCTAssertTrue (modes.contains (system.defaultModesMap[bid]!))
+        }
+    }
+
+    func testSystemAddressSchemes () {
+        isMainnet = false
+        currencyCodesNeeded = ["btc"]
+        modeMap = ["btc":WalletManagerMode.api_only]
+        prepareAccount()
+        prepareSystem()
+
+        XCTAssertTrue (system.networks.count >= 1)
+        let network: Network! = system.networks.first { "btc" == $0.currency.code && isMainnet == $0.isMainnet }
+        XCTAssertNotNil (network)
+        XCTAssertTrue (system.supportsAddressScheme (network: network, system.defaultAddressScheme(network: network)))
+
+        system.networks
+            .forEach { (network) in
+                XCTAssertTrue (system.supportsAddressScheme (network: network, system.defaultAddressScheme(network: network)))
+        }
+
+        system.supportedAddressSchemesMap
+            .forEach { (argument) in
+                let (bid, schemes) = argument
+                XCTAssertTrue (schemes.contains (system.defaultAddressSchemeMap[bid]!))
+        }
+    }
 }
