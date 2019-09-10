@@ -13,26 +13,20 @@ import com.breadwallet.crypto.WalletManager;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.events.network.NetworkEvent;
 import com.breadwallet.crypto.events.system.DefaultSystemEventVisitor;
+import com.breadwallet.crypto.events.system.SystemDiscoveredNetworksEvent;
 import com.breadwallet.crypto.events.system.SystemEvent;
 import com.breadwallet.crypto.events.system.SystemListener;
 import com.breadwallet.crypto.events.system.SystemManagerAddedEvent;
 import com.breadwallet.crypto.events.system.SystemNetworkAddedEvent;
 import com.breadwallet.crypto.events.transfer.TranferEvent;
-import com.breadwallet.crypto.events.transfer.TransferListener;
 import com.breadwallet.crypto.events.wallet.DefaultWalletEventVisitor;
 import com.breadwallet.crypto.events.wallet.WalletCreatedEvent;
 import com.breadwallet.crypto.events.wallet.WalletEvent;
-import com.breadwallet.crypto.events.wallet.WalletListener;
 import com.breadwallet.crypto.events.walletmanager.WalletManagerEvent;
-import com.breadwallet.crypto.events.walletmanager.WalletManagerListener;
 import com.google.common.base.Optional;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.WeakHashMap;
 
 public class CoreSystemListener implements SystemListener {
 
@@ -80,6 +74,18 @@ public class CoreSystemListener implements SystemListener {
 
                     AddressScheme addressScheme = system.getDefaultAddressScheme(network);
                     system.createWalletManager(event.getNetwork(), wmMode, addressScheme);
+                }
+                return null;
+            }
+
+            @Nullable
+            @Override
+            public Void visit(SystemDiscoveredNetworksEvent event) {
+                Log.d(TAG, String.format("Currencies (Discovered): %s", event));
+                for (Network network: event.getNetworks()) {
+                    for (Currency currency: network.getCurrencies()) {
+                        Log.d(TAG, String.format("    Currency: %s for %s", currency.getCode(), network.getName()));
+                    }
                 }
                 return null;
             }
