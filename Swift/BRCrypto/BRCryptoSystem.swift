@@ -447,8 +447,8 @@ public final class System {
         managers.forEach { $0.disconnect() }
     }
 
-    public func configureMergeBlockchains (builtin: [BlockChainDB.Model.Blockchain],
-                                           remote:  [BlockChainDB.Model.Blockchain]) -> [BlockChainDB.Model.Blockchain] {
+    private func configureMergeBlockchains (builtin: [BlockChainDB.Model.Blockchain],
+                                            remote:  [BlockChainDB.Model.Blockchain]) -> [BlockChainDB.Model.Blockchain] {
         // Both `builtin` and `remote` have a non-null blockHeight -> supported.
 
         // For existing remotes:
@@ -477,9 +477,11 @@ public final class System {
     /// `Network` there will be `SystemEvent` which can be used by the App to create a
     /// `WalletManager`
     ///
-    /// @Note: This should only be called one.
+    /// - Parameter applicationCurrencies: If the BlockChainDB does not return any currencies, then
+    ///     use `applicationCurrencies` merged into the deafults.  Appropriate currencies can be
+    ///     created from `System::asBlockChainDBModelCurrency` (see below)
     ///
-    public func configure () {
+    public func configure (withCurrencyModels applicationCurrencies: [BlockChainDB.Model.Currency]) {
         func currencyDenominationToBaseUnit (currency: Currency, model: BlockChainDB.Model.CurrencyDenomination) -> Unit {
             let uids = "\(currency.uids):\(model.code)"
             return Unit (currency: currency, uids: uids, name: model.name, symbol: model.symbol)
@@ -550,13 +552,20 @@ public final class System {
                             let defaults = System.defaultCurrencies
                                 .filter { $0.blockchainID == blockchainModel.id }
 
-                            let currencyModels = try! currencyResult
-                                // On success, always merge `defaultCurrencies`
+                            // Find applicable application currencies by `blockchainID`
+                            let apps = applicationCurrencies
+                                .filter { $0.blockchainID == blockchainModel.id }
+
+                            // Merge in `defaults` with the result; but, on error, use apps
+                            let currencyModels = currencyResult
+                                // On success, always merge `default` INTO the result.  We merge
+                                // into `result` to always bias to the blockchainDB result.
                                 .map { $0.unionOf (defaults) { $0.id }}
-                                // On error, use `defaults`
-                                .recover { (error: BlockChainDB.QueryError) -> [BlockChainDB.Model.Currency] in
-                                    return defaults
-                                }.get()
+
+                                // On error, use `apps` merged INTO defaults.  We merge into
+                                // `defaults` to ensure that we get BTC, BCH, ETH, BRD and that
+                                // they are correct (don't rely on the App).
+                                .getWithRecovery { (_) in return defaults.unionOf(apps) { $0.id } }
 
                             var associations: [Currency : Network.Association] = [:]
 
@@ -644,6 +653,39 @@ public final class System {
             self.listener?.handleSystemEvent(system: self, event: SystemEvent.configured)
         }
     }
+
+    ///
+    /// Create a BlockChainDB.Model.Currency to be used in the event that the BlockChainDB does
+    /// not provide its own currency model.
+    ///
+    public static func asBlockChainDBModelCurrency (uids: String, name: String, code: String, type: String, decimals: UInt8) -> BlockChainDB.Model.Currency? {
+        guard "ERC20" == type || "NATIVE" == type else { return nil }
+        return uids.firstIndex(of: ":")
+            .map {
+                let code         = code.uppercased()
+                let blockchainID = uids.prefix(upTo: $0).description
+                let address      = uids.suffix(from: $0).description
+
+                return (id:   uids,
+                        name: name,
+                        code: code,
+                        type: type,
+                        blockchainID: blockchainID,
+                        address: (address != "__native__" ? address : nil),
+                        verified: true,
+                        demoninations: [
+                            (name: "\(code)_INTEGER",
+                                code: "\(code)_INTEGER",
+                                decimals: 0,
+                                symbol: "\(code)I"),   // BRDI -> BaseUnit
+
+                            (name: code,
+                             code: code,
+                             decimals: decimals,
+                             symbol: code)])       //  BRD -> DefaultUnit
+        }
+    }
+
 
     //
     // Static Weak System References
