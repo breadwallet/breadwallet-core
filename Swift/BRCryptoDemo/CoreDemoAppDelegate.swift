@@ -125,7 +125,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         let subscription = BlockChainDB.Subscription (id: subscriptionId, endpoint: nil);
         self.system.subscribe (using: subscription)
 
-        self.system.configure()
+        self.system.configure(withCurrencyModels: [])
 
         return true
     }
@@ -211,7 +211,7 @@ extension UIApplication {
         
         // Assign and then configure the new system
         app.system = system
-        app.system.configure()
+        app.system.configure(withCurrencyModels: [])
     }
 }
 
