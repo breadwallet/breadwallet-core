@@ -60,7 +60,7 @@ class BRSupportTests: XCTestCase {
     func testAsComparableInvert () {
         XCTAssertFalse (AsComparableInvert(value: AsComparable (item: p1, value: p1.age)) >  AsComparableInvert (value: AsComparable (item: p2, value: p2.age)))
         XCTAssertTrue  (AsComparableInvert(value: AsComparable (item: p1, value: p1.age)) <= AsComparableInvert (value: AsComparable (item: p2, value: p2.age)))
-        XCTAssertTrue  (AsComparableInvert(value: AsComparable (item: p1, value: p1.age)) == AsComparableInvert (value: AsComparable (item: p2, value: p2.age)))
+        XCTAssertTrue  (AsComparableInvert(value: AsComparable (item: p1, value: p1.age)) == AsComparableInvert (value: AsComparable (item: p3, value: p3.age)))
     }
 
     func testAsHashable () {

@@ -21,17 +21,26 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
     override func tearDown() {
     }
 
-    func testWalletBTC() {
+    func testWalletBTCAsAPI_ONLY() {
+        runWalletBTCTest(mode: WalletManagerMode.api_only)
+    }
+
+    func testWalletBTCAsP2P_ONLY() {
+        runWalletBTCTest(mode: WalletManagerMode.p2p_only)
+    }
+
+    func runWalletBTCTest (mode: WalletManagerMode) {
         isMainnet = false
         currencyCodesNeeded = ["btc"]
-        modeMap = ["btc":WalletManagerMode.api_only]
+        modeMap = ["btc":mode]
         prepareAccount (AccountSpecification (dict: [
             "identifier": "ginger",
             "paperKey":   "ginger settle marine tissue robot crane night number ramp coast roast critic",
             "timestamp":  "2018-01-01",
             "network":    (isMainnet ? "mainnet" : "testnet")
             ]))
-        prepareSystem ()
+
+         prepareSystem ()
 
         let walletManagerDisconnectExpectation = XCTestExpectation (description: "Wallet Manager Disconnect")
         listener.managerHandlers += [
@@ -152,7 +161,8 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
              EventMatcher (event: WalletManagerEvent.syncStarted),
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected, newState: WalletManagerState.syncing)),
 
-             EventMatcher (event: WalletManagerEvent.syncProgress(timestamp: nil, percentComplete: 0), strict: false),
+             // On API_ONLY here is no .syncProgress
+             // EventMatcher (event: WalletManagerEvent.syncProgress(timestamp: nil, percentComplete: 0), strict: false),
              EventMatcher (event: WalletManagerEvent.walletChanged(wallet: wallet), strict: true, scan: true),
              
              EventMatcher (event: WalletManagerEvent.syncEnded(error: nil), strict: false, scan: true),
@@ -160,11 +170,18 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
              EventMatcher (event: WalletManagerEvent.changed(oldState: WalletManagerState.connected, newState: WalletManagerState.disconnected))
             ]))
 
+        // It seems `balanceUpdated` may occur before `transferAdded`
         XCTAssertTrue (listener.checkWalletEvents(
             [EventMatcher (event: WalletEvent.created),
              EventMatcher (event: WalletEvent.transferAdded(transfer: wallet.transfers[0]), strict: true, scan: true),
              EventMatcher (event: WalletEvent.balanceUpdated(amount: wallet.balance), strict: true, scan: true)
-            ]))
+            ])
+            || listener.checkWalletEvents(
+                [EventMatcher (event: WalletEvent.created),
+                 EventMatcher (event: WalletEvent.balanceUpdated(amount: wallet.balance), strict: true, scan: true),
+                 EventMatcher (event: WalletEvent.transferAdded(transfer: wallet.transfers[0]), strict: true, scan: true)
+                ]))
+
     }
 
     func testWalletBCH() {
@@ -249,7 +266,7 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
         XCTAssertNotEqual (w0, w1)
 
         XCTAssertEqual ("eth", w0.name)
-        XCTAssertEqual ("brd", w1.name)
+        XCTAssertEqual ("BRD", w1.name)
 
         let walletETH = manager.primaryWallet
         XCTAssertNotNil(walletETH)

@@ -145,7 +145,7 @@ public final class System {
         "ethereum-mainnet":     [.ethDefault],
         "ripple-mainnet":       [.genDefault],
         "bitcoin-testnet":      [.btcSegwit, .btcLegacy],
-        "bitcoin-cash-testnet": [.btcLegacy],
+        "bitcoincash-testnet":  [.btcLegacy],
         "ethereum-ropsten":     [.ethDefault],
         "ripple-testnet":       [.genDefault]
     ]
@@ -156,7 +156,7 @@ public final class System {
         "ethereum-mainnet":     .ethDefault,
         "ripple-mainnet":       .genDefault,
         "bitcoin-testnet":      .btcSegwit,
-        "bitcoin-cash-testnet": .btcLegacy,
+        "bitcoincash-testnet":  .btcLegacy,
         "ethereum-ropsten":     .ethDefault,
         "ripple-testnet":       .genDefault
     ]
