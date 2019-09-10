@@ -8,6 +8,7 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.support.BRSyncDepth;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 
@@ -53,6 +54,8 @@ public interface CoreBRCryptoWalletManager {
     void disconnect();
 
     void sync();
+
+    void syncToDepth(BRSyncDepth depth);
 
     void submit(CoreBRCryptoWallet wallet, CoreBRCryptoTransfer transfer, byte[] phraseUtf8);
 

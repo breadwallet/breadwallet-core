@@ -123,7 +123,7 @@ final class System implements com.breadwallet.crypto.System {
     /// specfication includes `blockHeight` (which can never be correct).
 
     /* package */
-    static List<Blockchain> DEFAULT_BLOCKCHAINS = ImmutableList.of(
+    static List<Blockchain> SUPPORTED_BLOCKCHAINS = ImmutableList.of(
             // Mainnet
             new Blockchain("bitcoin-mainnet",      "Bitcoin",      "mainnet", true, "bitcoin-mainnet:__native__", UnsignedLong.ZERO,
                     ImmutableList.of(new BlockchainFee("30", "10m", UnsignedLong.valueOf(10 * 60 * 1000))), UnsignedInteger.valueOf(6)),
@@ -1669,7 +1669,7 @@ final class System implements com.breadwallet.crypto.System {
 
     private static void ethGetTransactions(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState,
                                     String networkName, String address, long begBlockNumber, long endBlockNumber) {
-        Log.d(TAG, "BRCryptoCWMEthGetTransactionsCallback");
+        Log.d(TAG, String.format("BRCryptoCWMEthGetTransactionsCallback (%s -> %s)", begBlockNumber, endBlockNumber));
 
         CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
 
@@ -1718,7 +1718,7 @@ final class System implements com.breadwallet.crypto.System {
     private static void ethGetLogs(Pointer context, BRCryptoWalletManager manager, BRCryptoCWMClientCallbackState callbackState,
                             String networkName, String contract, String address, String event, long begBlockNumber,
                             long endBlockNumber) {
-        Log.d(TAG, "BRCryptoCWMEthGetLogsCallback");
+        Log.d(TAG, String.format("BRCryptoCWMEthGetLogsCallback (%s -> %s)", begBlockNumber, endBlockNumber));
 
         CoreBRCryptoWalletManager coreWalletManager = CoreBRCryptoWalletManager.createOwned(manager);
 

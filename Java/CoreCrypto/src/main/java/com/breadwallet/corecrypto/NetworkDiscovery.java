@@ -62,17 +62,17 @@ final class NetworkDiscovery {
 
         getBlockChains(latch, query, isMainnet, blockchainModels -> {
             // Filter our defaults to be `self.onMainnet` and supported (non-nil blockHeight)
-            List<Blockchain> defaultBlockchains = new ArrayList<>();
-            for (Blockchain defaultBlockchain: System.DEFAULT_BLOCKCHAINS) {
-                if (defaultBlockchain.isMainnet() == isMainnet && defaultBlockchain.getBlockHeight().isPresent()) {
-                    defaultBlockchains.add(defaultBlockchain);
+            List<Blockchain> supportedBlockchains = new ArrayList<>();
+            for (Blockchain supportedBlockchain: System.SUPPORTED_BLOCKCHAINS) {
+                if (supportedBlockchain.isMainnet() == isMainnet && supportedBlockchain.getBlockHeight().isPresent()) {
+                    supportedBlockchains.add(supportedBlockchain);
                 }
             }
 
+            blockchainModels = filterBlockchains(supportedBlockchains, blockchainModels);
             updateSupportedModes(blockchainModels, supportedModes, supportedModesBuilder);
             updateDefaultModes(blockchainModels, defaultModes, defaultModesBuilder);
-
-            blockchainModels = mergeBlockchainsById(defaultBlockchains, blockchainModels);
+            blockchainModels = mergeBlockchains(supportedBlockchains, blockchainModels);
 
             for (Blockchain blockchainModel : blockchainModels) {
                 String blockchainModelId = blockchainModel.getId();
@@ -159,18 +159,39 @@ final class NetworkDiscovery {
         });
     }
 
-    private static Collection<Blockchain> mergeBlockchainsById(Collection<Blockchain> builtins,
-                                                               Collection<Blockchain> remotes) {
-        Map<String, Blockchain> merged = new HashMap<>();
-        for (Blockchain b: builtins) {
-            merged.put(b.getId(), b);
+    private static Collection<Blockchain> filterBlockchains(Collection<Blockchain> supported,
+                                                            Collection<Blockchain> remotes) {
+        Map<String, Blockchain> supportedMap = new HashMap<>();
+        for (Blockchain b: supported) {
+            supportedMap.put(b.getId(), b);
+        }
+
+        Map<String, Blockchain> filteredMap = new HashMap<>();
+        for (Blockchain b: remotes) {
+            String id = b.getId();
+            if (supportedMap.containsKey(id)) {
+                filteredMap.put(id, b);
+            }
+        }
+
+        return filteredMap.values();
+    }
+
+    private static Collection<Blockchain> mergeBlockchains(Collection<Blockchain> supported,
+                                                           Collection<Blockchain> remotes) {
+        Map<String, Blockchain> mergedMap = new HashMap<>();
+        for (Blockchain b: supported) {
+            mergedMap.put(b.getId(), b);
         }
 
         for (Blockchain b: remotes) {
-            merged.put(b.getId(), b);
+            String id = b.getId();
+            if (mergedMap.containsKey(id)) {
+                mergedMap.put(id, b);
+            }
         }
 
-        return merged.values();
+        return mergedMap.values();
     }
 
     private static void updateSupportedModes(Collection<Blockchain> remotes,

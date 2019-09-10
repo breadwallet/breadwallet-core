@@ -19,6 +19,9 @@ public final class System {
     /// The listener.  Gets all events for {Network, WalletManger, Wallet, Transfer}
     public private(set) weak var listener: SystemListener?
 
+    /// The listenerQueue where all listener 'handle events' are asynchronously performed.
+    internal let listenerQueue: DispatchQueue
+
     /// The account
     public let account: Account
 
@@ -31,7 +34,8 @@ public final class System {
     /// The 'blockchain DB' to use for BRD Server Assisted queries
     public let query: BlockChainDB
 
-    /// The queue.
+    /// The queue for asynchronous functionality.  Notably this is used in `configure()` to
+    /// gather all of the `query` results as Networks are created and added.
     internal let queue = DispatchQueue (label: "Crypto System")
 
     /// the networks, unsorted.
@@ -42,7 +46,7 @@ public final class System {
     /// We define default blockchains but these are wholly insufficient given that the
     /// specfication includes `blockHeight` (which can never be correct).
 
-    static let defaultBlockchains: [BlockChainDB.Model.Blockchain] = [
+    static let supportedBlockchains: [BlockChainDB.Model.Blockchain] = [
         // Mainnet
         (id: "bitcoin-mainnet",      name: "Bitcoin",      network: "mainnet", isMainnet: true,  currency: "bitcoin-mainnet:__native__",     blockHeight: 0,
          feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)],
@@ -317,26 +321,49 @@ public final class System {
     public var wallets: [Wallet] {
         return managers.flatMap { $0.wallets }
     }
-    
+
+    ///
+    /// Initialize System
+    ///
+    /// - Parameters:
+    ///   - listener: The listener for handlng events.
+    ///
+    ///   - account: The account, derived from the `paperKey`, that will be used for all networks.
+    ///
+    ///   - onMainnet: boolean to indicate if this is for mainnet or for testnet.  As blockchains
+    ///       are announced, we'll filter them to be for mainent or testnet.
+    ///
+    ///   - path: The path to use for persistent storage of data, such as for BTC and ETH blocks,
+    ///       peers, transaction and logs.
+    ///
+    ///   - query: The query for BlockchiainDB interaction.
+    ///
+    ///   - listenerQueue: The queue to use when performing listen event handler callbacks.  If a
+    ///       queue is not specficied (default to `nil`), then one will be provided.
+    ///
     public init (listener: SystemListener,
                  account: Account,
                  onMainnet: Bool,
                  path: String,
-                 query: BlockChainDB) {
+                 query: BlockChainDB,
+                 listenerQueue: DispatchQueue? = nil) {
         self.listener  = listener
         self.account   = account
         self.onMainnet = onMainnet
         self.path  = path
         self.query = query
-        self.callbackCoordinator = SystemCallbackCoordinator()
+        self.listenerQueue = listenerQueue ?? DispatchQueue (label: "Crypto System Listener")
+        self.callbackCoordinator = SystemCallbackCoordinator (queue: self.listenerQueue)
 
         let _ = System.systemExtend(with: self)
-        listener.handleSystemEvent (system: self, event: SystemEvent.created)
+        announceEvent(SystemEvent.created)
     }
 
     internal func announceEvent (_ event: SystemEvent) {
-        listener?.handleSystemEvent (system: self,
-                                     event: event)
+        self.listenerQueue.async {
+            self.listener?.handleSystemEvent (system: self,
+                                              event: event)
+        }
     }
 
     ///
@@ -431,7 +458,9 @@ public final class System {
 
                 // The fees are unlikely to change; but we'll announce .feesUpdated anyways.
                 network.fees = fees
-                self.listener?.handleNetworkEvent (system: self, network: network, event: .feesUpdated)
+                self.listenerQueue.async {
+                    self.listener?.handleNetworkEvent (system: self, network: network, event: .feesUpdated)
+                }
 
                 return network
             }
@@ -451,8 +480,11 @@ public final class System {
                                             remote:  [BlockChainDB.Model.Blockchain]) -> [BlockChainDB.Model.Blockchain] {
         // Both `builtin` and `remote` have a non-null blockHeight -> supported.
 
+        // Filter remotes to only contain entries for builtin blockchains
+        let supportedRemote = remote.filter { item in builtin.contains(where: { $0.id == item.id } ) }
+
         // For existing remotes:
-        remote.forEach { (blockchain: BlockChainDB.Model.Blockchain) in
+        supportedRemote.forEach { (blockchain: BlockChainDB.Model.Blockchain) in
             // 1) api_only is a supported mode
             let modes = supportedModesMap[blockchain.id]
             supportedModesMap[blockchain.id] = (nil == modes
@@ -467,8 +499,8 @@ public final class System {
             }
         }
 
-        // Merge builtin into remote
-        return remote.unionOf(builtin) { $0.id }
+        // Merge builtin into supportedRemote
+        return supportedRemote.unionOf(builtin) { $0.id }
     }
 
     ///
@@ -515,7 +547,7 @@ public final class System {
             // query blockchains
             self.query.getBlockchains (mainnet: self.onMainnet) { (blockchainResult: Result<[BlockChainDB.Model.Blockchain],BlockChainDB.QueryError>) in
                 // Filter our defaults to be `self.onMainnet` and supported (non-nil blockHeight)
-                let blockChainModelsDefaults = System.defaultBlockchains
+                let blockChainModelsSupported = System.supportedBlockchains
                     .filter { $0.isMainnet == self.onMainnet && nil != $0.blockHeight }
 
                 let blockChainModelsRemote = blockchainResult
@@ -526,7 +558,7 @@ public final class System {
                     .getWithRecovery { (ignore) in return [] }
 
                 let blockChainModels =
-                    self.configureMergeBlockchains (builtin: blockChainModelsDefaults,
+                    self.configureMergeBlockchains (builtin: blockChainModelsSupported,
                                                     remote: blockChainModelsRemote)
 
                 // If there are no models, then we are done (and disappointed).
@@ -785,7 +817,13 @@ public enum SystemEvent {
 ///
 /// A SystemListener recieves asynchronous events announcing state changes to Networks, to Managers,
 /// to Wallets and to Transfers.  This is an application's sole mechanism to learn of asynchronous
-/// state changes.
+/// state changes.  The `SystemListener` is built upon other listeners (for WalletManager, etc) and
+/// adds in `func handleSystemEvent(...)`.
+///
+/// All event handlers will be asynchronously performed on a listener-specific queue.  Handler will
+/// be invoked as `queue.async { listener.... (...) }`.  This queue can be serial or parallel as
+/// any listener calls back into System are multi-thread protected.  The queue is provided as part
+/// of the System initalizer - if a queue is not specified a default one will be provided.
 ///
 /// Note: This must be 'class bound' as System holds a 'weak' reference (for GC reasons).
 ///
@@ -804,6 +842,9 @@ public protocol SystemListener : /* class, */ WalletManagerListener, WalletListe
 /// A Functional Interface for a Handler
 public typealias SystemEventHandler = (System, SystemEvent) -> Void
 
+///
+/// A SystemCallbackCoordinator coordinates callbacks for non-event based announcement interfaces.
+///
 public final class SystemCallbackCoordinator {
     enum Handler {
         case walletFeeEstimate (Wallet.EstimateFeeHandler)
@@ -811,17 +852,20 @@ public final class SystemCallbackCoordinator {
 
     var index: Int32 = 0;
     var handlers: [Int32: Handler] = [:]
+    let queue: DispatchQueue
 
-    var cookie: UnsafeMutableRawPointer {
+    public typealias Cookie = UnsafeMutableRawPointer
+
+    var cookie: Cookie {
         let index = Int(self.index)
         return UnsafeMutableRawPointer (bitPattern: index)!
     }
 
-    func cookieToIndex (_ cookie: UnsafeMutableRawPointer) -> Int32 {
+    func cookieToIndex (_ cookie: Cookie) -> Int32 {
         return 1 + Int32(UnsafeMutableRawPointer(bitPattern: 1)!.distance(to: cookie))
     }
 
-    public func addWalletFeeEstimateHandler(_ handler: @escaping Wallet.EstimateFeeHandler) -> UnsafeMutableRawPointer {
+    public func addWalletFeeEstimateHandler(_ handler: @escaping Wallet.EstimateFeeHandler) -> Cookie {
         index = OSAtomicIncrement32 (&index)
         handlers[index] = Handler.walletFeeEstimate(handler)
         return cookie
@@ -835,16 +879,25 @@ public final class SystemCallbackCoordinator {
                 }
         }
     }
+
     func handleWalletFeeEstimateSuccess (_ cookie: UnsafeMutableRawPointer, estimate: TransferFeeBasis) {
         if let handler = remWalletFeeEstimateHandler(cookie) {
-            handler (Result.success (estimate))
+            queue.async {
+                handler (Result.success (estimate))
+            }
         }
     }
 
     func handleWalletFeeEstimateFailure (_ cookie: UnsafeMutableRawPointer, error: Wallet.FeeEstimationError) {
         if let handler = remWalletFeeEstimateHandler(cookie) {
-            handler (Result.failure(error))
+            queue.async {
+                handler (Result.failure(error))
+            }
         }
+    }
+
+    init (queue: DispatchQueue) {
+        self.queue = queue
     }
 }
 
@@ -864,74 +917,66 @@ extension System {
 
                 print ("SYS: Event: Manager (\(manager.name)): \(event.type)")
 
+                var walletManagerEvent: WalletManagerEvent? = nil
+
                 switch event.type {
                 case CRYPTO_WALLET_MANAGER_EVENT_CREATED:
-                    system.listener?.handleManagerEvent (system: manager.system,
-                                                         manager: manager,
-                                                         event: WalletManagerEvent.created)
+                    walletManagerEvent = WalletManagerEvent.created
 
                 case CRYPTO_WALLET_MANAGER_EVENT_CHANGED:
                     print ("SYS: Event: Manager (\(manager.name)): \(event.type): {\(WalletManagerState (core: event.u.state.oldValue)) -> \(WalletManagerState (core: event.u.state.newValue))}")
-
-                    system.listener?.handleManagerEvent (system: manager.system,
-                                                          manager: manager,
-                                                          event: WalletManagerEvent.changed (oldState: WalletManagerState (core: event.u.state.oldValue),
-                                                                                             newState: WalletManagerState (core: event.u.state.newValue)))
+                    walletManagerEvent = WalletManagerEvent.changed (oldState: WalletManagerState (core: event.u.state.oldValue),
+                                                                     newState: WalletManagerState (core: event.u.state.newValue))
 
                 case CRYPTO_WALLET_MANAGER_EVENT_DELETED:
-                    system.listener?.handleManagerEvent (system: manager.system,
-                                                          manager: manager,
-                                                          event: WalletManagerEvent.deleted)
+                    walletManagerEvent = WalletManagerEvent.deleted
 
                 case CRYPTO_WALLET_MANAGER_EVENT_WALLET_ADDED:
                     defer { if let wid = event.u.wallet.value { cryptoWalletGive (wid) }}
                     guard let wallet = manager.walletBy (core: event.u.wallet.value)
                         else { print ("SYS: Event: \(event.type): Missed (wallet)"); return }
-                    system.listener?.handleManagerEvent (system: manager.system,
-                                                          manager: manager,
-                                                          event: WalletManagerEvent.walletAdded (wallet: wallet))
+                    walletManagerEvent = WalletManagerEvent.walletAdded (wallet: wallet)
 
                 case CRYPTO_WALLET_MANAGER_EVENT_WALLET_CHANGED:
                     defer { if let wid = event.u.wallet.value { cryptoWalletGive (wid) }}
                     guard let wallet = manager.walletBy (core: event.u.wallet.value)
                         else { print ("SYS: Event: \(event.type): Missed (wallet)"); return }
-                    system.listener?.handleManagerEvent (system: manager.system,
-                                                          manager: manager,
-                                                          event: WalletManagerEvent.walletChanged(wallet: wallet))
+                    walletManagerEvent = WalletManagerEvent.walletChanged(wallet: wallet)
 
                 case CRYPTO_WALLET_MANAGER_EVENT_WALLET_DELETED:
                     defer { if let wid = event.u.wallet.value { cryptoWalletGive (wid) }}
                     guard let wallet = manager.walletBy (core: event.u.wallet.value)
                         else { print ("SYS: Event: \(event.type): Missed (wallet)"); return }
-                    system.listener?.handleManagerEvent (system: manager.system,
-                                                          manager: manager,
-                                                          event: WalletManagerEvent.walletDeleted(wallet: wallet))
+                    walletManagerEvent = WalletManagerEvent.walletDeleted(wallet: wallet)
 
                 case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STARTED:
-                    system.listener?.handleManagerEvent (system: manager.system,
-                                                          manager: manager,
-                                                          event: WalletManagerEvent.syncStarted)
+                    walletManagerEvent = WalletManagerEvent.syncStarted
 
                 case CRYPTO_WALLET_MANAGER_EVENT_SYNC_CONTINUES:
                     let timestamp: Date? = (0 == event.u.sync.timestamp // CRYPTO_NO_SYNC_TIMESTAMP
                         ? nil
                         : Date (timeIntervalSince1970: TimeInterval(event.u.sync.timestamp)))
-                    
-                    system.listener?.handleManagerEvent (system: manager.system,
-                                                          manager: manager,
-                                                          event: WalletManagerEvent.syncProgress (
-                                                            timestamp: timestamp,
-                                                            percentComplete: event.u.sync.percentComplete))
+
+                    walletManagerEvent = WalletManagerEvent.syncProgress (
+                        timestamp: timestamp,
+                        percentComplete: event.u.sync.percentComplete)
 
                 case CRYPTO_WALLET_MANAGER_EVENT_SYNC_STOPPED:
-                    system.listener?.handleManagerEvent (system: manager.system,
-                                                          manager: manager,
-                                                          event: WalletManagerEvent.syncEnded(error: nil))
+                    walletManagerEvent = WalletManagerEvent.syncEnded(error: nil)
 
                 case CRYPTO_WALLET_MANAGER_EVENT_BLOCK_HEIGHT_UPDATED:
                     manager.network.height = event.u.blockHeight.value
+                    // No event?
 
                 default: precondition(false)
+                }
+
+                walletManagerEvent.map { (event) in
+                    system.listenerQueue.async {
+                        system.listener?.handleManagerEvent (system: system,
+                                                             manager: manager,
+                                                             event: event)
+                    }
                 }
         },
 
@@ -944,74 +989,51 @@ extension System {
 
                 print ("SYS: Event: Wallet (\(wallet.name)): \(event.type)")
 
+                var walletEvent: WalletEvent? = nil
+
                 switch event.type {
                 case CRYPTO_WALLET_EVENT_CREATED:
-                    system.listener?.handleWalletEvent (system: manager.system,
-                                                        manager: manager,
-                                                        wallet: wallet,
-                                                        event:  WalletEvent.created)
+                    walletEvent = WalletEvent.created
 
                 case CRYPTO_WALLET_EVENT_CHANGED:
-                    system.listener?.handleWalletEvent (system: manager.system,
-                                                        manager: manager,
-                                                        wallet: wallet,
-                                                        event: WalletEvent.changed (oldState: WalletState (core: event.u.state.oldState),
-                                                                                    newState: WalletState (core: event.u.state.newState)))
+                    walletEvent = WalletEvent.changed (oldState: WalletState (core: event.u.state.oldState),
+                                                       newState: WalletState (core: event.u.state.newState))
+
                 case CRYPTO_WALLET_EVENT_DELETED:
-                    system.listener?.handleWalletEvent (system: manager.system,
-                                                        manager: manager,
-                                                        wallet: wallet,
-                                                        event: WalletEvent.deleted)
+                    walletEvent = WalletEvent.deleted
 
                 case CRYPTO_WALLET_EVENT_TRANSFER_ADDED:
                     defer { if let tid = event.u.transfer.value { cryptoTransferGive(tid) }}
                     guard let transfer = wallet.transferBy (core: event.u.transfer.value)
                         else { print ("SYS: Event: \(event.type): Missed (transfer)"); return }
-                    system.listener?.handleWalletEvent (system: manager.system,
-                                                        manager: manager,
-                                                        wallet: wallet,
-                                                        event: WalletEvent.transferAdded (transfer: transfer))
+                    walletEvent = WalletEvent.transferAdded (transfer: transfer)
 
                 case CRYPTO_WALLET_EVENT_TRANSFER_CHANGED:
                     defer { if let tid = event.u.transfer.value { cryptoTransferGive(tid) }}
                     guard let transfer = wallet.transferBy (core: event.u.transfer.value)
                         else { print ("SYS: Event: \(event.type): Missed (transfer)"); return }
-                    system.listener?.handleWalletEvent (system: manager.system,
-                                                        manager: manager,
-                                                        wallet: wallet,
-                                                        event: WalletEvent.transferChanged (transfer: transfer))
+                    walletEvent = WalletEvent.transferChanged (transfer: transfer)
+
                 case CRYPTO_WALLET_EVENT_TRANSFER_SUBMITTED:
                     defer { if let tid = event.u.transfer.value { cryptoTransferGive(tid) }}
                     guard let transfer = wallet.transferBy (core: event.u.transfer.value)
                         else { print ("SYS: Event: \(event.type): Missed (transfer)"); return }
-                    system.listener?.handleWalletEvent (system: manager.system,
-                                                        manager: manager,
-                                                        wallet: wallet,
-                                                        event: WalletEvent.transferSubmitted (transfer: transfer, success: true))
+                    walletEvent = WalletEvent.transferSubmitted (transfer: transfer, success: true)
 
                 case CRYPTO_WALLET_EVENT_TRANSFER_DELETED:
                     defer { if let tid = event.u.transfer.value { cryptoTransferGive(tid) }}
                     guard let transfer = wallet.transferBy (core: event.u.transfer.value)
                         else { print ("SYS: Event: \(event.type): Missed (transfer)"); return }
-                    system.listener?.handleWalletEvent (system: manager.system,
-                                                        manager: manager,
-                                                        wallet: wallet,
-                                                        event: WalletEvent.transferDeleted (transfer: transfer))
+                    walletEvent = WalletEvent.transferDeleted (transfer: transfer)
 
                 case CRYPTO_WALLET_EVENT_BALANCE_UPDATED:
                     let amount = Amount (core: event.u.balanceUpdated.amount,
                                          take: false)
-                    system.listener?.handleWalletEvent (system: manager.system,
-                                                        manager: manager,
-                                                        wallet: wallet,
-                                                        event: WalletEvent.balanceUpdated(amount: amount))
+                    walletEvent = WalletEvent.balanceUpdated(amount: amount)
 
                 case CRYPTO_WALLET_EVENT_FEE_BASIS_UPDATED:
                     let feeBasis = TransferFeeBasis (core: event.u.feeBasisUpdated.basis, take: false)
-                    system.listener?.handleWalletEvent (system: manager.system,
-                                                        manager: manager,
-                                                        wallet: wallet,
-                                                        event: WalletEvent.feeBasisUpdated(feeBasis: feeBasis))
+                    walletEvent = WalletEvent.feeBasisUpdated(feeBasis: feeBasis)
 
                 case CRYPTO_WALLET_EVENT_FEE_BASIS_ESTIMATED:
                     let cookie = event.u.feeBasisEstimated.cookie!
@@ -1026,6 +1048,15 @@ extension System {
                     }
                 default: precondition (false)
                 }
+
+                walletEvent.map { (event) in
+                    system.listenerQueue.async {
+                        system.listener?.handleWalletEvent (system: manager.system,
+                                                            manager: manager,
+                                                            wallet: wallet,
+                                                            event: event)
+                    }
+                }
         },
 
             transferEventCallback: { (context, cwm, wid, tid, event) in
@@ -1037,29 +1068,30 @@ extension System {
 
                 print ("SYS: Event: Transfer (\(wallet.name) @ \(transfer.hash?.description ?? "pending")): \(event.type)")
 
+                var transferEvent: TransferEvent? = nil
+
                 switch (event.type) {
                 case CRYPTO_TRANSFER_EVENT_CREATED:
-                    system.listener?.handleTransferEvent (system: manager.system,
-                                                            manager: manager,
-                                                            wallet: wallet,
-                                                            transfer: transfer,
-                                                            event: TransferEvent.created)
+                    transferEvent = TransferEvent.created
 
                 case CRYPTO_TRANSFER_EVENT_CHANGED:
-                    system.listener?.handleTransferEvent (system: manager.system,
-                                                            manager: manager,
-                                                            wallet: wallet,
-                                                            transfer: transfer,
-                                                            event: TransferEvent.changed (old: TransferState.init (core: event.u.state.old),
-                                                                                          new: TransferState.init (core: event.u.state.new)))
+                    transferEvent = TransferEvent.changed (old: TransferState.init (core: event.u.state.old),
+                                                           new: TransferState.init (core: event.u.state.new))
 
                 case CRYPTO_TRANSFER_EVENT_DELETED:
-                    system.listener?.handleTransferEvent (system: manager.system,
-                                                            manager: manager,
-                                                            wallet: wallet,
-                                                            transfer: transfer,
-                                                            event: TransferEvent.deleted)
+                    transferEvent = TransferEvent.deleted
+
                 default: precondition(false)
+                }
+
+                transferEvent.map { (event) in
+                    system.listenerQueue.async {
+                        system.listener?.handleTransferEvent (system: system,
+                                                              manager: manager,
+                                                              wallet: wallet,
+                                                              transfer: transfer,
+                                                              event: event)
+                    }
                 }
         })
     }
@@ -1281,8 +1313,7 @@ extension System {
                                                                                                        tx.blockTimestamp,
                                                                                                        tx.isError)
                                                                 }
-                                                                cwmAnnounceGetTransactionsComplete(cwm, sid, CRYPTO_TRUE)
-                                                        },
+                                                                cwmAnnounceGetTransactionsComplete(cwm, sid, CRYPTO_TRUE) },
                                                             failure: { (_) in cwmAnnounceGetTransactionsComplete (cwm, sid, CRYPTO_FALSE) })
                 }},
 
@@ -1322,8 +1353,7 @@ extension System {
                                                                                     log.blockNumber,
                                                                                     log.blockTransactionIndex,
                                                                                     log.blockTimestamp) }
-                                                        cwmAnnounceGetLogsComplete(cwm, sid, CRYPTO_TRUE)
-                                                },
+                                                        cwmAnnounceGetLogsComplete(cwm, sid, CRYPTO_TRUE) },
                                                     failure: { (_) in cwmAnnounceGetLogsComplete (cwm, sid, CRYPTO_FALSE) })
                 }},
 
@@ -1374,8 +1404,7 @@ extension System {
                                                           token.decimals,
                                                           token.defaultGasLimit,
                                                           token.defaultGasPrice) }
-                            cwmAnnounceGetTokensComplete (cwm, sid, CRYPTO_TRUE)
-                    },
+                            cwmAnnounceGetTokensComplete (cwm, sid, CRYPTO_TRUE) },
                         failure: { (_) in cwmAnnounceGetTokensComplete (cwm, sid, CRYPTO_FALSE) })
                 }},
 

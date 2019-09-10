@@ -54,7 +54,7 @@ runSyncMany (BREthereumNetwork newtork,
 
         clients[i] = runEWM_createClient();
 
-        ewm = ewmCreate (ethereumMainnet, account, timestamp, mode, clients[i], storagePath);
+        ewm = ewmCreate (ethereumMainnet, account, timestamp, mode, clients[i], storagePath, 0, 6);
         ewms[i] = ewm;
 
         char *address = ewmGetAccountPrimaryAddress(ewm);

@@ -155,6 +155,9 @@ void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash);
 // returns the transaction with the given hash if it's been registered in the wallet
 BRTransaction *BRWalletTransactionForHash(BRWallet *wallet, UInt256 txHash);
 
+// returns a copy of the transaction with the given hash if it's been registered in the wallet
+BRTransaction *BRWalletTransactionCopyForHash(BRWallet *wallet, UInt256 txHash);
+
 // true if no previous wallet transaction spends any of the given transaction's inputs, and no inputs are invalid
 int BRWalletTransactionIsValid(BRWallet *wallet, const BRTransaction *tx);
 

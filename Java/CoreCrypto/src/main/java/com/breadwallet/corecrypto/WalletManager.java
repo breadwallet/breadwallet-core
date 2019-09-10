@@ -8,16 +8,12 @@ import com.breadwallet.corenative.crypto.CoreBRCryptoWalletManager;
 import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.WalletManagerState;
-import com.breadwallet.crypto.blockchaindb.errors.QueryError;
-import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
+import com.breadwallet.crypto.WalletManagerSyncDepth;
 import com.breadwallet.crypto.errors.WalletSweeperError;
-import com.breadwallet.crypto.errors.WalletSweeperQueryError;
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
-import com.google.common.primitives.UnsignedLong;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -101,6 +97,11 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     @Override
     public void sync() {
         core.sync();
+    }
+
+    @Override
+    public void syncToDepth(WalletManagerSyncDepth depth) {
+        core.syncToDepth(Utilities.syncDepthToCrypto(depth));
     }
 
     @Override
