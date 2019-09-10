@@ -9,6 +9,7 @@ package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
 import com.google.common.base.Optional;
+import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 import com.sun.jna.Pointer;
 
@@ -46,8 +47,6 @@ public interface CoreBRCryptoNetwork {
         return new OwnedBRCryptoNetwork(CryptoLibrary.INSTANCE.cryptoNetworkCreateAsGEN(uids, name, isMainnet ? (byte) 1 : 0));
     }
 
-    void setHeight(UnsignedLong height);
-
     CoreBRCryptoCurrency getCurrency();
 
     void setCurrency(CoreBRCryptoCurrency currency);
@@ -68,9 +67,13 @@ public interface CoreBRCryptoNetwork {
 
     UnsignedLong getHeight();
 
-    String getName();
+    void setHeight(UnsignedLong height);
 
-    int getType();
+    UnsignedInteger getConfirmationsUntilFinal();
+
+    void setConfirmationsUntilFinal(UnsignedInteger confirmationsUntilFinal);
+
+    String getName();
 
     void addFee(CoreBRCryptoNetworkFee fee);
 

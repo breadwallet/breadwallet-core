@@ -25,4 +25,9 @@ public abstract class DefaultSystemEventVisitor<T> implements SystemEventVisitor
     public T visit(SystemNetworkAddedEvent event) {
         return null;
     }
+
+    @Nullable
+    public T visit(SystemDiscoveredNetworksEvent event) {
+        return null;
+    }
 }

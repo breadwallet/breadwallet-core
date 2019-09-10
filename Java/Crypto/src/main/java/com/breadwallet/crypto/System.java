@@ -10,6 +10,7 @@
 package com.breadwallet.crypto;
 
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
+import com.breadwallet.crypto.blockchaindb.models.bdb.Currency;
 import com.breadwallet.crypto.events.system.SystemListener;
 
 import java.util.List;
@@ -21,7 +22,7 @@ public interface System {
         return CryptoApi.getProvider().systemProvider().create(executor, listener, account, isMainnet,path, query);
     }
 
-    void configure();
+    void configure(List<Currency> appCurrencies);
 
     void createWalletManager(Network network, WalletManagerMode mode, AddressScheme addressScheme);
 

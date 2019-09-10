@@ -62,6 +62,24 @@ typedef enum {
 extern const char *
 BRSyncModeString (BRSyncMode m);
 
+typedef enum {
+    /**
+     * Sync from the block height of the last confirmed send transaction.
+     */
+    SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND,
+
+    /**
+     * Sync from the block height of the last trusted block; this is dependent on the
+     * blockchain and mode as to how it determines trust.
+     */
+    SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK,
+
+    /**
+     * Sync from the block height of the point in time when the account was created.
+     */
+    SYNC_DEPTH_FROM_CREATION
+} BRSyncDepth;
+
 /// The Percent Complete (0...100.0) derived from the last block processed relative to the
 /// full block range in a sync.
 typedef float BRSyncPercentComplete;

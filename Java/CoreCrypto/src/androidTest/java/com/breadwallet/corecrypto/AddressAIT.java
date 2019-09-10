@@ -34,7 +34,7 @@ public class AddressAIT {
         NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(1000), Amount.create(2.0, gwei_eth));
         List<NetworkFee> fees = Collections.singletonList(fee);
 
-        Network network = Network.create("ethereum-mainnet", "Ethereum", true, eth, UnsignedLong.valueOf(100000), associations, fees);
+        Network network = Network.create("ethereum-mainnet", "Ethereum", true, eth, UnsignedLong.valueOf(100000), associations, fees, UnsignedInteger.valueOf(6));
 
         Optional<Address> oe1 = network.addressFor("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62");
         assertTrue(oe1.isPresent());
@@ -74,7 +74,7 @@ public class AddressAIT {
         NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_btc));
         List<NetworkFee> fees = Collections.singletonList(fee);
 
-        Network network = Network.create("bitcoin-mainnet", "Bitcoin", true, btc, UnsignedLong.valueOf(100000), associations, fees);
+        Network network = Network.create("bitcoin-mainnet", "Bitcoin", true, btc, UnsignedLong.valueOf(100000), associations, fees, UnsignedInteger.valueOf(6));
 
         Optional<Address> ob1 = network.addressFor("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj");
         assertTrue(ob1.isPresent());
@@ -100,7 +100,7 @@ public class AddressAIT {
         NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_bch));
         List<NetworkFee> fees = Collections.singletonList(fee);
 
-        Network network = Network.create("bitcoin-mainnet", "Bitcoin", true, bch, UnsignedLong.valueOf(100000), associations, fees);
+        Network network = Network.create("bitcoin-mainnet", "Bitcoin", true, bch, UnsignedLong.valueOf(100000), associations, fees, UnsignedInteger.valueOf(6));
 
         Optional<Address> ob1 = network.addressFor("bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v");
         assertTrue(ob1.isPresent());
@@ -135,7 +135,7 @@ public class AddressAIT {
         NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_btc));
         List<NetworkFee> fees = Collections.singletonList(fee);
 
-        Network network_btc = Network.create("bitcoin-mainnet", "Bitcoin", true, btc, UnsignedLong.valueOf(100000), associations, fees);
+        Network network_btc = Network.create("bitcoin-mainnet", "Bitcoin", true, btc, UnsignedLong.valueOf(100000), associations, fees, UnsignedInteger.valueOf(6));
 
         //
         // ETH
@@ -155,7 +155,7 @@ public class AddressAIT {
         fee = NetworkFee.create(UnsignedLong.valueOf(1000), Amount.create(2.0, gwei_eth));
         fees = Collections.singletonList(fee);
 
-        Network network_eth = Network.create("ethereum-mainnet", "Ethereum", true, eth, UnsignedLong.valueOf(100000), associations, fees);
+        Network network_eth = Network.create("ethereum-mainnet", "Ethereum", true, eth, UnsignedLong.valueOf(100000), associations, fees, UnsignedInteger.valueOf(6));
 
         Address e1 = network_eth.addressFor("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62").get();
         Address b1 = network_btc.addressFor("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj").get();
@@ -180,7 +180,7 @@ public class AddressAIT {
         NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(1000), Amount.create(2.0, gwei_eth));
         List<NetworkFee> fees = Collections.singletonList(fee);
 
-        Network network = Network.create("ethereum-ropsten", "Ethereum Testnet", false, eth, UnsignedLong.valueOf(100000), associations, fees);
+        Network network = Network.create("ethereum-ropsten", "Ethereum Testnet", false, eth, UnsignedLong.valueOf(100000), associations, fees, UnsignedInteger.valueOf(6));
 
         Optional<Address> oe1 = network.addressFor("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62");
         assertTrue(oe1.isPresent());
@@ -220,7 +220,7 @@ public class AddressAIT {
         NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_btc));
         List<NetworkFee> fees = Collections.singletonList(fee);
 
-        Network network = Network.create("bitcoin-testnet", "Bitcoin Testnet", false, btc, UnsignedLong.valueOf(100000), associations, fees);
+        Network network = Network.create("bitcoin-testnet", "Bitcoin Testnet", false, btc, UnsignedLong.valueOf(100000), associations, fees, UnsignedInteger.valueOf(6));
 
         Optional<Address> ob1 = network.addressFor("mm7DDqVkFd35XcWecFipfTYM5dByBzn7nq");
         assertTrue(ob1.isPresent());
@@ -245,7 +245,7 @@ public class AddressAIT {
         NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_bch));
         List<NetworkFee> fees = Collections.singletonList(fee);
 
-        Network network = Network.create("bitcoin-mainnet", "Bitcoin", false, bch, UnsignedLong.valueOf(100000), associations, fees);
+        Network network = Network.create("bitcoin-mainnet", "Bitcoin", false, bch, UnsignedLong.valueOf(100000), associations, fees, UnsignedInteger.valueOf(6));
 
         Optional<Address> ob1 = network.addressFor("bchtest:pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t");
         assertTrue(ob1.isPresent());
@@ -279,7 +279,7 @@ public class AddressAIT {
         NetworkFee fee = NetworkFee.create(UnsignedLong.valueOf(30 * 1000), Amount.create(1000, satoshi_btc));
         List<NetworkFee> fees = Collections.singletonList(fee);
 
-        Network network_btc = Network.create("bitcoin-testnet", "Bitcoin Testnet", false, btc, UnsignedLong.valueOf(100000), associations, fees);
+        Network network_btc = Network.create("bitcoin-testnet", "Bitcoin Testnet", false, btc, UnsignedLong.valueOf(100000), associations, fees, UnsignedInteger.valueOf(6));
 
         //
         // ETH
@@ -299,7 +299,7 @@ public class AddressAIT {
         fee = NetworkFee.create(UnsignedLong.valueOf(1000), Amount.create(2.0, gwei_eth));
         fees = Collections.singletonList(fee);
 
-        Network network_eth = Network.create("ethereum-ropsten", "Ethereum Testnet", false, eth, UnsignedLong.valueOf(100000), associations, fees);
+        Network network_eth = Network.create("ethereum-ropsten", "Ethereum Testnet", false, eth, UnsignedLong.valueOf(100000), associations, fees, UnsignedInteger.valueOf(6));
 
         Address e1 = network_eth.addressFor("0xb0F225defEc7625C6B5E43126bdDE398bD90eF62").get();
         Address b1 = network_btc.addressFor("mm7DDqVkFd35XcWecFipfTYM5dByBzn7nq").get();

@@ -6,6 +6,7 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.support.annotation.NonNull;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.util.SortedList;
@@ -32,6 +33,7 @@ import com.breadwallet.crypto.TransferConfirmation;
 import com.breadwallet.crypto.TransferHash;
 import com.breadwallet.crypto.Wallet;
 import com.breadwallet.crypto.WalletManager;
+import com.breadwallet.crypto.WalletManagerSyncDepth;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.events.system.DefaultSystemListener;
 import com.breadwallet.crypto.events.system.SystemListener;
@@ -217,7 +219,18 @@ public class TransferListActivity extends AppCompatActivity {
                 wallet.getWalletManager().connect();
                 return true;
             case R.id.action_sync:
-                wallet.getWalletManager().sync();
+                new AlertDialog.Builder(this)
+                        .setSingleChoiceItems(new String[]{"From Last Confirmed Send", "From Last Trusted Block", "From Creation"},
+                                -1,
+                                (dialog, which) -> {
+                                    switch (which) {
+                                        case 0: wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.FROM_LAST_CONFIRMED_SEND); break;
+                                        case 1: wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.FROM_LAST_TRUSTED_BLOCK); break;
+                                        default: wallet.getWalletManager().syncToDepth(WalletManagerSyncDepth.FROM_CREATION); break;
+                                    }
+                                    dialog.dismiss();
+                                })
+                        .show();
                 return true;
             case R.id.action_disconnect:
                 wallet.getWalletManager().disconnect();

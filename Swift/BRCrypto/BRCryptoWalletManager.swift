@@ -150,6 +150,10 @@ public final class WalletManager: Equatable, CustomStringConvertible {
         cryptoWalletManagerSync (core)
     }
 
+    public func syncToDepth (depth: WalletManagerSyncDepth) {
+        cryptoWalletManagerSyncToDepth (core, depth.core)
+    }
+
     internal func sign (transfer: Transfer, paperKey: String) -> Bool {
         return CRYPTO_TRUE == cryptoWalletManagerSign (core,
                                                        transfer.wallet.core,
@@ -505,6 +509,76 @@ public enum WalletManagerMode: Equatable {
         case .api_with_p2p_submit: return SYNC_MODE_BRD_WITH_P2P_SEND
         case .p2p_with_api_sync: return SYNC_MODE_P2P_WITH_BRD_SYNC
         case .p2p_only: return SYNC_MODE_P2P_ONLY
+        }
+    }
+
+    // Equatable: [Swift-generated]
+}
+
+///
+/// The WalletManager's sync depth determines the range that a sync is performed on.
+///
+/// - fromLastConfirmedSend: Sync from the block height of the last confirmed send transaction.
+///
+/// - fromLastTrustedBlock: Sync from the block height of the last trusted block; this is
+///      dependent on the blockchain and mode as to how it determines trust.
+///
+/// - fromCreation: Sync from the block height of the point in time when the account was created.
+///
+public enum WalletManagerSyncDepth: Equatable {
+    case fromLastConfirmedSend
+    case fromLastTrustedBlock
+    case fromCreation
+
+    /// Allow WalletMangerMode to be saved
+    public var serialization: UInt8 {
+        switch self {
+        case .fromLastConfirmedSend: return 0xa0
+        case .fromLastTrustedBlock:  return 0xb0
+        case .fromCreation:          return 0xc0
+        }
+    }
+
+    /// Initialize WalletMangerMode from serialization
+    public init? (serialization: UInt8) {
+        switch serialization {
+        case 0xa0: self = .fromLastConfirmedSend
+        case 0xb0: self = .fromLastTrustedBlock
+        case 0xc0: self = .fromCreation
+        default: return nil
+        }
+    }
+
+    internal init (core: BRSyncDepth) {
+        switch core {
+        case SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND: self = .fromLastConfirmedSend
+        case SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK: self = .fromLastTrustedBlock
+        case SYNC_DEPTH_FROM_CREATION: self = .fromCreation
+        default: self = .fromCreation; precondition (false)
+        }
+    }
+
+    internal var core: BRSyncDepth {
+        switch self {
+        case .fromLastConfirmedSend: return SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND
+        case .fromLastTrustedBlock: return SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK
+        case .fromCreation: return SYNC_DEPTH_FROM_CREATION
+        }
+    }
+
+    public var shallower: WalletManagerSyncDepth? {
+        switch self {
+        case .fromCreation: return .fromLastTrustedBlock
+        case .fromLastTrustedBlock: return .fromLastConfirmedSend
+        default: return nil
+        }
+    }
+
+    public var deeper: WalletManagerSyncDepth? {
+        switch self {
+        case .fromLastConfirmedSend: return .fromLastTrustedBlock
+        case .fromLastTrustedBlock: return .fromCreation
+        default: return nil
         }
     }
 

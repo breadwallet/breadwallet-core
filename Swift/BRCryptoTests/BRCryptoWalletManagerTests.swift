@@ -286,7 +286,7 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
 
         // transfers annonced on `configure`
         migrateListener.transferCount = transferBlobs.count
-        migrateSystem.configure()
+        migrateSystem.configure(withCurrencyModels: [])
         wait (for: [migrateListener.migratedManagerExpectation], timeout: 30)
         wait (for: [migrateListener.transferExpectation], timeout: 30)
         XCTAssertFalse (migrateListener.migratedFailed)
@@ -313,7 +313,7 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
                                     query: muckedQuery)
 
         // transfers annonced on `configure`
-        muckedSystem.configure()
+        muckedSystem.configure(withCurrencyModels: [])
         wait (for: [muckedListener.migratedManagerExpectation], timeout: 30)
         XCTAssertTrue (muckedListener.migratedFailed)
     }
@@ -334,7 +334,9 @@ class MigrateSystemListener: SystemListener {
 
     func handleSystemEvent(system: System, event: SystemEvent) {
         switch event {
-        case .created: break
+        case .created:
+            break
+
         case .networkAdded(let network):
             // Network of interest
             if system.onMainnet == network.isMainnet
@@ -365,6 +367,9 @@ class MigrateSystemListener: SystemListener {
                 migratedManager = manager
                 migratedManagerExpectation.fulfill()
             }
+
+        case .discoveredNetworks:
+            break
         }
     }
 

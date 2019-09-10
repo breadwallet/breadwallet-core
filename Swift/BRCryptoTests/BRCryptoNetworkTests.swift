@@ -40,7 +40,8 @@ class BRCryptoNetworkTests: XCTestCase {
                                currency: btc,
                                height: 100000,
                                associations: [btc:associations],
-                               fees: [fee])
+                               fees: [fee],
+                               confirmationsUntilFinal: 6)
 
         XCTAssertEqual (network.uids, "bitcoin-mainnet")
         XCTAssertEqual (network.name, "bitcoin-name")
@@ -112,7 +113,8 @@ class BRCryptoNetworkTests: XCTestCase {
                                currency: eth,
                                height: 100000,
                                associations: [eth:ETH_associations, brd:BRD_associations],
-                               fees: [fee1, fee2])
+                               fees: [fee1, fee2],
+                               confirmationsUntilFinal: 6)
 
         XCTAssertEqual ("ethereum-name", network.description)
         XCTAssertTrue  (network.hasCurrency(eth))

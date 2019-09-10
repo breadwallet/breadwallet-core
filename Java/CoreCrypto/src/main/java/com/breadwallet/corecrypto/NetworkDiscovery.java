@@ -39,46 +39,51 @@ final class NetworkDiscovery {
 
     /* package */
     interface Callback {
-        void discovered(List<Network> networks,
-                        ImmutableMultimap<String, WalletManagerMode> updatedSupportedModes,
-                        ImmutableMap<String, WalletManagerMode> updatedDefaultModes);
+        void update(ImmutableMultimap<String, WalletManagerMode> updatedSupportedModes,
+                    ImmutableMap<String, WalletManagerMode> updatedDefaultModes);
+        void discovered(Network network);
+        void complete(List<com.breadwallet.crypto.Network> networks);
     }
 
     /* package */
     static void discoverNetworks(BlockchainDb query,
                                  boolean isMainnet,
+                                 List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> appCurrencies,
                                  ImmutableMultimap<String, WalletManagerMode> supportedModes,
                                  ImmutableMap<String, WalletManagerMode> defaultModes,
                                  Callback callback) {
-        List<Network> networks = new ArrayList<>();
+        List<com.breadwallet.crypto.Network> networks = new ArrayList<>();
 
-        ImmutableMultimap.Builder<String, WalletManagerMode> supportedModesBuilder = new ImmutableMultimap.Builder<>();
-        supportedModesBuilder.putAll(supportedModes);
-
-        ImmutableMap.Builder<String, WalletManagerMode> defaultModesBuilder = new ImmutableMap.Builder<>();
-        defaultModesBuilder.putAll(defaultModes);
-
-        CountUpAndDownLatch latch = new CountUpAndDownLatch(() -> callback.discovered(networks, supportedModesBuilder.build(), defaultModesBuilder.build()));
+        CountUpAndDownLatch latch = new CountUpAndDownLatch(() -> callback.complete(networks));
 
         getBlockChains(latch, query, isMainnet, blockchainModels -> {
             // Filter our defaults to be `self.onMainnet` and supported (non-nil blockHeight)
-            List<Blockchain> defaultBlockchains = new ArrayList<>();
-            for (Blockchain defaultBlockchain: System.DEFAULT_BLOCKCHAINS) {
-                if (defaultBlockchain.isMainnet() == isMainnet && defaultBlockchain.getBlockHeight().isPresent()) {
-                    defaultBlockchains.add(defaultBlockchain);
+            List<Blockchain> supportedBlockchains = new ArrayList<>();
+            for (Blockchain supportedBlockchain: System.SUPPORTED_BLOCKCHAINS) {
+                if (supportedBlockchain.isMainnet() == isMainnet && supportedBlockchain.getBlockHeight().isPresent()) {
+                    supportedBlockchains.add(supportedBlockchain);
                 }
             }
 
-            updateSupportedModes(blockchainModels, supportedModes, supportedModesBuilder);
-            updateDefaultModes(blockchainModels, defaultModes, defaultModesBuilder);
+            blockchainModels = filterBlockchains(supportedBlockchains, blockchainModels);
+            ImmutableMultimap<String, WalletManagerMode> updatedSupportedModes = getUpdateSupportedModes(blockchainModels, supportedModes);
+            ImmutableMap<String, WalletManagerMode> updatedDefaultModes = getUpdatedDefaultModes(blockchainModels, defaultModes);
+            blockchainModels = mergeBlockchains(supportedBlockchains, blockchainModels);
 
-            blockchainModels = mergeBlockchainsById(defaultBlockchains, blockchainModels);
+            callback.update(updatedSupportedModes, updatedDefaultModes);
 
             for (Blockchain blockchainModel : blockchainModels) {
                 String blockchainModelId = blockchainModel.getId();
 
                 @SuppressWarnings("OptionalGetWithoutIsPresent")
                 UnsignedLong blockHeight = blockchainModel.getBlockHeight().get();
+
+                final List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> applicationCurrencies = new ArrayList<>();
+                for (com.breadwallet.crypto.blockchaindb.models.bdb.Currency currency: appCurrencies) {
+                    if (currency.getBlockchainId().equals(blockchainModelId)) {
+                        applicationCurrencies .add(currency);
+                    }
+                }
 
                 final List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> defaultCurrencies = new ArrayList<>();
                 for (com.breadwallet.crypto.blockchaindb.models.bdb.Currency currency: System.DEFAULT_CURRENCIES) {
@@ -89,7 +94,7 @@ final class NetworkDiscovery {
 
                 Map<Currency, NetworkAssociation> associations = new HashMap<>();
 
-                getCurrencies(latch, query, blockchainModelId, defaultCurrencies, currencyModels -> {
+                getCurrencies(latch, query, blockchainModelId, applicationCurrencies, defaultCurrencies, currencyModels -> {
                     for (com.breadwallet.crypto.blockchaindb.models.bdb.Currency currencyModel : currencyModels) {
                         Currency currency = Currency.create(
                                 currencyModel.getId(),
@@ -142,14 +147,23 @@ final class NetworkDiscovery {
                         return null;
                     }
 
-                    networks.add(Network.create(
+                    // define the network
+                    Network network = Network.create(
                             blockchainModel.getId(),
                             blockchainModel.getName(),
                             blockchainModel.isMainnet(),
                             defaultCurrency,
                             blockHeight,
                             associations,
-                            fees));
+                            fees,
+                            blockchainModel.getConfirmationsUntilFinal()
+                    );
+
+                    // Announce the network
+                    callback.discovered(network);
+
+                    // Keep a running total of discovered networks
+                    networks.add(network);
 
                     return null;
                 });
@@ -158,43 +172,72 @@ final class NetworkDiscovery {
         });
     }
 
-    private static Collection<Blockchain> mergeBlockchainsById(Collection<Blockchain> builtins,
-                                                               Collection<Blockchain> remotes) {
-        Map<String, Blockchain> merged = new HashMap<>();
-        for (Blockchain b: builtins) {
-            merged.put(b.getId(), b);
+    private static Collection<Blockchain> filterBlockchains(Collection<Blockchain> supported,
+                                                            Collection<Blockchain> remotes) {
+        Map<String, Blockchain> supportedMap = new HashMap<>();
+        for (Blockchain b: supported) {
+            supportedMap.put(b.getId(), b);
+        }
+
+        Map<String, Blockchain> filteredMap = new HashMap<>();
+        for (Blockchain b: remotes) {
+            String id = b.getId();
+            if (supportedMap.containsKey(id)) {
+                filteredMap.put(id, b);
+            }
+        }
+
+        return filteredMap.values();
+    }
+
+    private static Collection<Blockchain> mergeBlockchains(Collection<Blockchain> supported,
+                                                           Collection<Blockchain> remotes) {
+        Map<String, Blockchain> mergedMap = new HashMap<>();
+        for (Blockchain b: supported) {
+            mergedMap.put(b.getId(), b);
         }
 
         for (Blockchain b: remotes) {
-            merged.put(b.getId(), b);
+            String id = b.getId();
+            if (mergedMap.containsKey(id)) {
+                mergedMap.put(id, b);
+            }
         }
 
-        return merged.values();
+        return mergedMap.values();
     }
 
-    private static void updateSupportedModes(Collection<Blockchain> remotes,
-                                             ImmutableMultimap<String, WalletManagerMode> supportedModes,
-                                             ImmutableMultimap.Builder<String, WalletManagerMode> supportedModesBuilder) {
+    private static ImmutableMultimap<String, WalletManagerMode> getUpdateSupportedModes(Collection<Blockchain> remotes,
+                                                                                        ImmutableMultimap<String, WalletManagerMode> supportedModes) {
+        ImmutableMultimap.Builder<String, WalletManagerMode> builder = new ImmutableMultimap.Builder<>();
+        builder.putAll(supportedModes);
+
         for (Blockchain b: remotes) {
             Collection<WalletManagerMode> modes = supportedModes.get(b.getId());
             if (null == modes || modes.isEmpty()) {
-                supportedModesBuilder.put(b.getId(), WalletManagerMode.API_ONLY);
+                builder.put(b.getId(), WalletManagerMode.API_ONLY);
 
             } else if (!modes.contains(WalletManagerMode.API_ONLY)) {
-                supportedModesBuilder.put(b.getId(), WalletManagerMode.API_ONLY);
+                builder.put(b.getId(), WalletManagerMode.API_ONLY);
             }
         }
+
+        return builder.build();
     }
 
-    private static void updateDefaultModes(Collection<Blockchain> remotes,
-                                           ImmutableMap<String, WalletManagerMode> defaultModes,
-                                           ImmutableMap.Builder<String, WalletManagerMode> defaultModesBuilder) {
+    private static ImmutableMap<String, WalletManagerMode> getUpdatedDefaultModes(Collection<Blockchain> remotes,
+                                                                                  ImmutableMap<String, WalletManagerMode> defaultModes) {
+        ImmutableMap.Builder<String, WalletManagerMode> builder = new ImmutableMap.Builder<>();
+        builder.putAll(defaultModes);
+
         for (Blockchain b: remotes) {
             WalletManagerMode mode = defaultModes.get(b.getId());
             if (null == mode) {
-                defaultModesBuilder.put(b.getId(), WalletManagerMode.API_ONLY);
+                builder.put(b.getId(), WalletManagerMode.API_ONLY);
             }
         }
+
+        return builder.build();
     }
 
     private static void getBlockChains(CountUpAndDownLatch latch,
@@ -232,20 +275,24 @@ final class NetworkDiscovery {
     private static void getCurrencies(CountUpAndDownLatch latch,
                                       BlockchainDb query,
                                       String blockchainId,
+                                      Collection<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> applicationCurrencies,
                                       Collection<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> defaultCurrencies,
                                       Function<Collection<com.breadwallet.crypto.blockchaindb.models.bdb.Currency>, Void> func) {
-        Map<String, com.breadwallet.crypto.blockchaindb.models.bdb.Currency> merged = new HashMap<>();
-        for (com.breadwallet.crypto.blockchaindb.models.bdb.Currency currency : defaultCurrencies) {
-            if (currency.getId().equals(blockchainId) && currency.getVerified()) {
-                merged.put(currency.getId(), currency);
-            }
-        }
-
         latch.countUp();
         query.getCurrencies(blockchainId, new CompletionHandler<List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency>, QueryError>() {
             @Override
             public void handleData(List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> newCurrencies) {
                 try {
+                    // On success, always merge `default` INTO the result.  We merge defaultUnit
+                    // into `result` to always bias to the blockchainDB result.
+
+                    Map<String, com.breadwallet.crypto.blockchaindb.models.bdb.Currency> merged = new HashMap<>();
+                    for (com.breadwallet.crypto.blockchaindb.models.bdb.Currency currency : defaultCurrencies) {
+                        if (currency.getBlockchainId().equals(blockchainId) && currency.getVerified()) {
+                            merged.put(currency.getId(), currency);
+                        }
+                    }
+
                     for (com.breadwallet.crypto.blockchaindb.models.bdb.Currency currency : newCurrencies) {
                         if (currency.getBlockchainId().equals(blockchainId) && currency.getVerified()) {
                             merged.put(currency.getId(), currency);
@@ -261,6 +308,22 @@ final class NetworkDiscovery {
             @Override
             public void handleError(QueryError error) {
                 try {
+                    // On error, use `apps` merged INTO defaults.  We merge into `defaults` to ensure that we get
+                    // BTC, BCH, ETH, BRD and that they are correct (don't rely on the App).
+
+                    Map<String, com.breadwallet.crypto.blockchaindb.models.bdb.Currency> merged = new HashMap<>();
+                    for (com.breadwallet.crypto.blockchaindb.models.bdb.Currency currency : applicationCurrencies) {
+                        if (currency.getBlockchainId().equals(blockchainId) && currency.getVerified()) {
+                            merged.put(currency.getId(), currency);
+                        }
+                    }
+
+                    for (com.breadwallet.crypto.blockchaindb.models.bdb.Currency currency : defaultCurrencies) {
+                        if (currency.getBlockchainId().equals(blockchainId) && currency.getVerified()) {
+                            merged.put(currency.getId(), currency);
+                        }
+                    }
+
                     func.apply(merged.values());
                 } finally {
                     latch.countDown();
