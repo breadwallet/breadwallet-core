@@ -41,7 +41,7 @@ public final class System {
     /// We define default blockchains but these are wholly insufficient given that the
     /// specfication includes `blockHeight` (which can never be correct).
 
-    static let defaultBlockchains: [BlockChainDB.Model.Blockchain] = [
+    static let supportedBlockchains: [BlockChainDB.Model.Blockchain] = [
         // Mainnet
         (id: "bitcoin-mainnet",      name: "Bitcoin",      network: "mainnet", isMainnet: true,  currency: "bitcoin-mainnet:__native__",     blockHeight: 0,
          feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)],
@@ -450,8 +450,11 @@ public final class System {
                                            remote:  [BlockChainDB.Model.Blockchain]) -> [BlockChainDB.Model.Blockchain] {
         // Both `builtin` and `remote` have a non-null blockHeight -> supported.
 
+        // Filter remotes to only contain entries for builtin blockchains
+        let supportedRemote = remote.filter { item in builtin.contains(where: { $0.id == item.id } ) }
+
         // For existing remotes:
-        remote.forEach { (blockchain: BlockChainDB.Model.Blockchain) in
+        supportedRemote.forEach { (blockchain: BlockChainDB.Model.Blockchain) in
             // 1) api_only is a supported mode
             let modes = supportedModesMap[blockchain.id]
             supportedModesMap[blockchain.id] = (nil == modes
@@ -466,8 +469,8 @@ public final class System {
             }
         }
 
-        // Merge builtin into remote
-        return remote.unionOf(builtin) { $0.id }
+        // Merge builtin into supportedRemote
+        return supportedRemote.unionOf(builtin) { $0.id }
     }
 
     ///
@@ -499,7 +502,7 @@ public final class System {
         // query blockchains
         self.query.getBlockchains (mainnet: self.onMainnet) { (blockchainResult: Result<[BlockChainDB.Model.Blockchain],BlockChainDB.QueryError>) in
             // Filter our defaults to be `self.onMainnet` and supported (non-nil blockHeight)
-            let blockChainModelsDefaults = System.defaultBlockchains
+            let blockChainModelsSupported = System.supportedBlockchains
                 .filter { $0.isMainnet == self.onMainnet && nil != $0.blockHeight }
 
             let blockChainModels = blockchainResult
@@ -509,7 +512,7 @@ public final class System {
                 // On error, return [] - we'll use defaults
                 .getWithRecovery { (ignore) in return [] }
 
-            self.configureMergeBlockchains (builtin: blockChainModelsDefaults,
+            self.configureMergeBlockchains (builtin: blockChainModelsSupported,
                                             remote: blockChainModels)
                 .forEach { (blockchainModel: BlockChainDB.Model.Blockchain) in
 
