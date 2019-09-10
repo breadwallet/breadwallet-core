@@ -199,14 +199,21 @@ public final class System {
     ///
     /// Wallet Manager Modes
     ///
-
+    /// Every blockchain supports `.api_only`; blockchains with built-in P2P support (BTC, BCH,
+    /// and ETH) may support `.p2p_only`.  Intermediate modes (.api_with_p2p_submit,
+    /// .p2p_with_api_sync) are suppored on a case-by-case basis.
+    ///
+    /// It is possible that the `.api_only` mode does not work - for exmaple, the BDB is down.  In
+    /// that case it is an App issue to report and resolve the issue by: waiting out the outage;
+    /// selecting another mode if available.
+    ///
     var supportedModesMap: [String:[WalletManagerMode]] = [
-        "bitcoin-mainnet":      [.p2p_only],
-        "bitcoincash-mainnet":  [.p2p_only],
+        "bitcoin-mainnet":      [.api_only, .p2p_only],
+        "bitcoincash-mainnet":  [.api_only, .p2p_only],
         "ethereum-mainnet":     [.api_only, .api_with_p2p_submit, .p2p_only],
 //        "ripple-mainnet":       [],
-        "bitcoin-testnet":      [.p2p_only],
-        "bitcoincash-testnet":  [.p2p_only],
+        "bitcoin-testnet":      [.api_only, .p2p_only],
+        "bitcoincash-testnet":  [.api_only, .p2p_only],
         "ethereum-ropsten":     [.api_only, .api_with_p2p_submit, .p2p_only],
 //        "ripple-testnet":       []
     ]
@@ -489,7 +496,7 @@ public final class System {
             let modes = supportedModesMap[blockchain.id]
             supportedModesMap[blockchain.id] = (nil == modes
                 ? [.api_only]
-                : (modes!.contains (.api_only)
+                : (modes!.contains (.api_only)   // all modes contain .api_only; but this does no harm.
                     ? modes!
                     : ([.api_only] + modes!)))
 

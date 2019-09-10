@@ -211,18 +211,30 @@ final class System implements com.breadwallet.crypto.System {
     /// Wallet Manager Modes
     ///
 
+    /// Every blockchain supports `API_ONLY`; blockchains with built-in P2P support (BTC, BCH,
+    /// and ETH) may support `P2P_ONLY`.  Intermediate modes (API_WITH_P2P_SUBMIT,
+    /// P2P_WITH_API_SYNC) are suppored on a case-by-case basis.
+    ///
+    /// It is possible that the `API_ONLY` mode does not work - for exmaple, the BDB is down.  In
+    /// that case it is an App issue to report and resolve the issue by: waiting out the outage;
+    /// selecting another mode if available.
+
     private static final ImmutableMultimap<String, WalletManagerMode> SUPPORTED_MODES;
 
     static {
         ImmutableMultimap.Builder<String, WalletManagerMode> builder = new ImmutableMultimap.Builder<>();
         builder.put("bitcoin-mainnet", WalletManagerMode.P2P_ONLY);
+        builder.put("bitcoin-mainnet", WalletManagerMode.API_ONLY);
         builder.put("bitcoincash-mainnet", WalletManagerMode.P2P_ONLY);
+        builder.put("bitcoincash-mainnet", WalletManagerMode.API_ONLY);
         builder.put("ethereum-mainnet", WalletManagerMode.API_ONLY);
         builder.put("ethereum-mainnet", WalletManagerMode.API_WITH_P2P_SUBMIT);
         builder.put("ethereum-mainnet", WalletManagerMode.P2P_ONLY);
 
         builder.put("bitcoin-testnet", WalletManagerMode.P2P_ONLY);
+        builder.put("bitcoin-testnet", WalletManagerMode.API_ONLY);
         builder.put("bitcoincash-testnet", WalletManagerMode.P2P_ONLY);
+        builder.put("bitcoincash-testnet", WalletManagerMode.API_ONLY);
         builder.put("ethereum-ropsten", WalletManagerMode.API_ONLY);
         builder.put("ethereum-ropsten", WalletManagerMode.API_WITH_P2P_SUBMIT);
         builder.put("ethereum-ropsten", WalletManagerMode.P2P_ONLY);
