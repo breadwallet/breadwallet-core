@@ -21,11 +21,11 @@ class BRCryptoWalletTests: BRCryptoSystemBaseTests {
     override func tearDown() {
     }
 
-    func testWalletBTCAsAPI_ONLY() {
+    func testWalletBTC_API() {
         runWalletBTCTest(mode: WalletManagerMode.api_only)
     }
 
-    func testWalletBTCAsP2P_ONLY() {
+    func testWalletBTC_P2P() {
         runWalletBTCTest(mode: WalletManagerMode.p2p_only)
     }
 

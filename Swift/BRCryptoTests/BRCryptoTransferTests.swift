@@ -221,14 +221,16 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
         wait (for: [walletManagerDisconnectExpectation], timeout: 5)
 
         XCTAssertTrue (wallet.transfers.count > 0)
-        let transfer = wallet.transfers[0]
-        XCTAssertTrue (nil != transfer.source || nil != transfer.target)
-        if let source = transfer.source {
-            XCTAssertTrue (source.description.starts (with: (isMainnet ? "bitcoincash" : "bchtest")))
-        }
-        if let target = transfer.target {
-            XCTAssertTrue (target.description.starts (with: (isMainnet ? "bitcoincash" : "bchtest")))
-        }
+        if (wallet.transfers.count > 0) {
+            let transfer = wallet.transfers[0]
+            XCTAssertTrue (nil != transfer.source || nil != transfer.target)
+            if let source = transfer.source {
+                XCTAssertTrue (source.description.starts (with: (isMainnet ? "bitcoincash" : "bchtest")))
+            }
+            if let target = transfer.target {
+                XCTAssertTrue (target.description.starts (with: (isMainnet ? "bitcoincash" : "bchtest")))
+            }
+    }
     }
     
     /// MARK: - ETH
