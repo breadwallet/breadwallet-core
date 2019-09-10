@@ -327,7 +327,9 @@ class MigrateSystemListener: SystemListener {
 
     func handleSystemEvent(system: System, event: SystemEvent) {
         switch event {
-        case .created: break
+        case .created:
+            break
+
         case .networkAdded(let network):
             // Network of interest
             if system.onMainnet == network.isMainnet
@@ -358,7 +360,8 @@ class MigrateSystemListener: SystemListener {
                 migratedManager = manager
                 migratedManagerExpectation.fulfill()
             }
-        case .configured:
+
+        case .discoveredNetworks:
             break
         }
     }

@@ -510,6 +510,8 @@ public final class System {
             // currencies are processed
             let blockchainsGroup = DispatchGroup ()
 
+            var discoveredNetworks:[Network] = []
+
             // query blockchains
             self.query.getBlockchains (mainnet: self.onMainnet) { (blockchainResult: Result<[BlockChainDB.Model.Blockchain],BlockChainDB.QueryError>) in
                 // Filter our defaults to be `self.onMainnet` and supported (non-nil blockHeight)
@@ -607,6 +609,7 @@ public final class System {
                                 let feeUnit = associations[currency]?.baseUnit
                                 else { print ("SYS: CONFIGURE: Missed Currency (\(blockchainModel.currency)) on '\(blockchainModel.network)': defaultUnit"); return }
 
+                            // the network fees
                             let fees = blockchainModel.feeEstimates
                                 // Well, quietly ignore a fee if we can't parse the amount.
                                 .compactMap { (fee: BlockChainDB.Model.BlockchainFee) -> NetworkFee? in
@@ -616,8 +619,13 @@ public final class System {
                                                            pricePerCostFactor: $0) }
                             }
 
+                            // We require fees
                             guard !fees.isEmpty
                                 else { print ("SYS: CONFIGURE: Missed Fees (\(blockchainModel.name)) on '\(blockchainModel.network)'"); return }
+
+                            // Do not add a network that we've added already.
+                            guard nil == self.networkBy (uids: blockchainModel.id)
+                                else { print ("SYS: CONFIGURE: Skipped Duplicate Network: \(blockchainModel.name)"); return }
 
                             // define the network
                             let network = Network (uids: blockchainModel.id,
@@ -629,7 +637,7 @@ public final class System {
                                                    fees: fees,
                                                    confirmationsUntilFinal: blockchainModel.confirmationsUntilFinal)
 
-                            // save the network
+                            // Save the network
                             self.networks.append (network)
 
                             // Announce NetworkEvent.created...
@@ -639,6 +647,9 @@ public final class System {
                             // system.createWalletManager(network:...) which will then announce
                             // numerous events as wallets are created.
                             self.listener?.handleSystemEvent  (system: self, event: SystemEvent.networkAdded(network: network))
+
+                            // Keep a running total of discovered networks
+                            discoveredNetworks.append(network)
                         }
                 }
             }
@@ -650,7 +661,7 @@ public final class System {
             blockchainsGroup.wait()
 
             // Mark the completion.
-            self.listener?.handleSystemEvent(system: self, event: SystemEvent.configured)
+            self.listener?.handleSystemEvent(system: self, event: SystemEvent.discoveredNetworks (networks: discoveredNetworks))
         }
     }
 
@@ -754,12 +765,21 @@ public final class System {
 }
 
 public enum SystemEvent {
+    /// The system has been created.
     case created
-    case networkAdded (network: Network)
-    case managerAdded (manager: WalletManager)
 
-    /// Invoked possibly multiple times - each time System.configure() completes.
-    case configured
+    /// A network has been added to the system.  This event is generated during `configure` as
+    /// each BlockChainDB blockchain is discovered.
+    case networkAdded (network: Network)
+
+    /// During `configure` once all networks have been discovered, this event is generated to
+    /// mark the completion of network discovery.  The provided networks are the newly added ones;
+    /// if all the known networks are required, use `system.networks`.
+    case discoveredNetworks (networks: [Network])
+
+    /// A wallet manager has been added to the system.  WalletMangers are added by the APP
+    /// generally as a subset of the Networks and through a call to System.craeteWalletManager.
+    case managerAdded (manager: WalletManager)
 }
 
 ///
