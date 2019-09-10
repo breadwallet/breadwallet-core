@@ -123,7 +123,7 @@ final class System implements com.breadwallet.crypto.System {
     /// specfication includes `blockHeight` (which can never be correct).
 
     /* package */
-    static List<Blockchain> DEFAULT_BLOCKCHAINS = ImmutableList.of(
+    static List<Blockchain> SUPPORTED_BLOCKCHAINS = ImmutableList.of(
             // Mainnet
             new Blockchain("bitcoin-mainnet",      "Bitcoin",      "mainnet", true, "bitcoin-mainnet:__native__", UnsignedLong.ZERO,
                     ImmutableList.of(new BlockchainFee("30", "10m", UnsignedLong.valueOf(10 * 60 * 1000))), UnsignedInteger.valueOf(6)),
