@@ -566,7 +566,7 @@ public enum WalletManagerSyncDepth: Equatable {
         }
     }
 
-    var shallower: WalletManagerSyncDepth? {
+    public var shallower: WalletManagerSyncDepth? {
         switch self {
         case .fromCreation: return .fromLastTrustedBlock
         case .fromLastTrustedBlock: return .fromLastConfirmedSend
@@ -574,7 +574,7 @@ public enum WalletManagerSyncDepth: Equatable {
         }
     }
 
-    var deeper: WalletManagerSyncDepth? {
+    public var deeper: WalletManagerSyncDepth? {
         switch self {
         case .fromLastConfirmedSend: return .fromLastTrustedBlock
         case .fromLastTrustedBlock: return .fromCreation
