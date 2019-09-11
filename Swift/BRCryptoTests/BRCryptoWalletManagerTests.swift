@@ -284,7 +284,7 @@ class BRCryptoWalletManagerTests: BRCryptoSystemBaseTests {
                                     path: migratePath,
                                     query: migrateQuery)
 
-        // transfers annonced on `configure`
+        // transfers announced on `configure`
         migrateListener.transferCount = transferBlobs.count
         migrateSystem.configure(withCurrencyModels: [])
         wait (for: [migrateListener.migratedManagerExpectation], timeout: 30)
@@ -391,6 +391,11 @@ class MigrateSystemListener: SystemListener {
             if 1 <= transferCount { transferCount -= 1 }
         }
         else if case .created = transfer.state {
+            if 1 == transferCount { transferExpectation.fulfill()}
+            if 1 <= transferCount { transferCount -= 1 }
+        }
+        // TODO: We sometimes see a TransferEvent.created with TransferState.included - Racy?
+        else if case .created = event, case .included = transfer.state {
             if 1 == transferCount { transferExpectation.fulfill()}
             if 1 <= transferCount { transferCount -= 1 }
         }
