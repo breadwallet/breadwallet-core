@@ -351,7 +351,7 @@ fileServiceLoad (BRFileService fs,
             void *entity = handler->reader (handler->context, fs, buffer, bytesCount);
             if (NULL == entity) return fileServiceFailedEntity (fs, buffer, NULL, type, "reader");
 
-            // Update restuls with the newly restored entity
+            // Update results with the newly restored entity
             BRSetAdd (results, entity);
 
             // If the read version is not the current version, update
