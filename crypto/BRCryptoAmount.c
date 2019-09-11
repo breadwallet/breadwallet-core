@@ -126,7 +126,6 @@ cryptoAmountCreateString (const char *value,
 
 static void
 cryptoAmountRelease (BRCryptoAmount amount) {
-//    printf ("Amount: Release\n");
     cryptoUnitGive (amount->unit);
     free (amount);
 }

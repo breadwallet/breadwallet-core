@@ -70,22 +70,28 @@ extern "C" {
         void (*free) (void *);
     } BRCryptoRef;
 
+#if !defined (CRYPTO_REF_DEBUG)
+#define CRYPTO_REF_DEBUG 0
+#endif
+
 #define DECLARE_CRYPTO_GIVE_TAKE(type, preface) \
   extern type preface##Take (type obj);  \
   extern void preface##Give (type obj)
 
 #define IMPLEMENT_CRYPTO_GIVE_TAKE(type, preface) \
   extern type              \
-  preface##Take (type obj) {        \
+  preface##Take (type obj) {   \
     atomic_fetch_add (&obj->ref.count, 1); \
     return obj;            \
   }                        \
   extern void              \
-  preface##Give (type obj) {        \
+  preface##Give (type obj) {  \
     unsigned int __count = atomic_fetch_sub (&obj->ref.count, 1); \
     assert (0 != __count); \
-    if (1 == __count)  \
-      obj->ref.free (obj); \
+    if (1 == __count) {    \
+        if (0 != CRYPTO_REF_DEBUG) { printf ("CRY: Release: %s\n", #type); } \
+        obj->ref.free (obj);  \
+    }                      \
   }
 
 #define CRYPTO_AS_FREE(release)     ((void (*) (void *)) release)

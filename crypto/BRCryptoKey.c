@@ -73,8 +73,6 @@ cryptoKeyCreateInternal (BRKey core, BRAddressParams params) {
 
 static void
 cryptoKeyRelease (BRCryptoKey key) {
-    //    printf ("Key: Release\n");
-
     BRKeyClean (&key->core);
     free (key);
 }

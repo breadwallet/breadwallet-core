@@ -91,7 +91,6 @@ cryptoUnitCreate (BRCryptoCurrency currency,
 
 static void
 cryptoUnitRelease (BRCryptoUnit unit) {
-    printf ("Unit: Release\n");
     if (NULL != unit->base) cryptoUnitGive (unit->base);
     cryptoCurrencyGive (unit->currency);
     free (unit->uids);

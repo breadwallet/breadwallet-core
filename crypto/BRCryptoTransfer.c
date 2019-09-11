@@ -261,7 +261,6 @@ cryptoTransferCreateAsGEN (BRCryptoUnit unit,
 
 static void
 cryptoTransferRelease (BRCryptoTransfer transfer) {
-    printf ("Transfer: Release\n");
     if (NULL != transfer->sourceAddress) cryptoAddressGive (transfer->sourceAddress);
     if (NULL != transfer->targetAddress) cryptoAddressGive (transfer->targetAddress);
     cryptoUnitGive (transfer->unit);
