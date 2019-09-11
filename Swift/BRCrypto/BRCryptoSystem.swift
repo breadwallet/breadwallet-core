@@ -369,7 +369,7 @@ public final class System {
         self.listenerQueue = listenerQueue ?? DispatchQueue (label: "Crypto System Listener")
         self.callbackCoordinator = SystemCallbackCoordinator (queue: self.listenerQueue)
 
-        let _ = System.systemExtend(with: self)
+        System.systemExtend (with: self)
         announceEvent(SystemEvent.created)
     }
 
@@ -759,17 +759,42 @@ public final class System {
     //
     // Static Weak System References
     //
+
+    /// A serial queue to protect `systemIndex` and `systemMapping`
+    static let systemQueue = DispatchQueue (label: "System", attributes: .concurrent)
+
+    /// A index to globally identify systems.
     static var systemIndex: Int32 = 0;
+
+    /// A dictionary mapping an index to a system weakly.
     static var systemMapping: [Int32 : Weak<System>] = [:]
 
+    ///
+    /// Lookup a `System` from an `index
+    ///
+    /// - Parameter index:
+    ///
+    /// - Returns: A System if it is mapped by the index and has not been GCed.
+    ///
     static func systemLookup (index: Int32) -> System? {
-        return systemMapping[index]?.value
+        return systemQueue.sync {
+            return systemMapping[index]?.value
+        }
     }
 
-    static func systemExtend (with system: System) -> Int32 {
-        system.index = OSAtomicIncrement32(&systemIndex)
-        systemMapping[system.index] = Weak (value: system)
-        return system.index
+    ///
+    /// Add a systme to the mapping.  Create a new index in the process and assign as system.index
+    ///
+    /// - Parameter system:
+    ///
+    /// - Returns: the system's index
+    ///
+    static func systemExtend (with system: System) {
+        systemQueue.async (flags: .barrier) {
+            systemIndex += 1
+            system.index = systemIndex // Always 1 or more
+            systemMapping[system.index] = Weak (value: system)
+        }
     }
 
     static func systemExtract (_ context: BRCryptoCWMListenerContext!,
