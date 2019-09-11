@@ -291,6 +291,8 @@ final class System implements com.breadwallet.crypto.System {
     private static final BRCryptoCWMListenerWalletEvent CWM_LISTENER_WALLET_CALLBACK = System::walletEventCallback;
     private static final BRCryptoCWMListenerTransferEvent CWM_LISTENER_TRANSFER_CALLBACK = System::transferEventCallback;
 
+    private static final boolean DEFAULT_IS_NETWORK_REACHABLE = true;
+
     /* package */
     static System create(ScheduledExecutorService executor,
                          SystemListener listener,
@@ -347,6 +349,7 @@ final class System implements com.breadwallet.crypto.System {
     private final Lock walletManagersWriteLock;
     private final List<WalletManager> walletManagers;
 
+    boolean isNetworkReachable;
     private ImmutableMultimap<String, WalletManagerMode> supportedModes;
     private ImmutableMap<String, WalletManagerMode> defaultModes;
 
@@ -378,6 +381,7 @@ final class System implements com.breadwallet.crypto.System {
         this.walletManagersWriteLock = walletManagersRwLock.writeLock();
         this.walletManagers = new ArrayList<>();
 
+        this.isNetworkReachable = DEFAULT_IS_NETWORK_REACHABLE;
         this.supportedModes = SUPPORTED_MODES;
         this.defaultModes = DEFAULT_MODES;
 
@@ -411,7 +415,17 @@ final class System implements com.breadwallet.crypto.System {
 
     @Override
     public void createWalletManager(com.breadwallet.crypto.Network network, WalletManagerMode mode, AddressScheme scheme) {
-        WalletManager walletManager = WalletManager.create(cwmListener, cwmClient, account, Network.from(network), mode, scheme, path, this, callbackCoordinator);
+        WalletManager walletManager = WalletManager.create(
+                cwmListener,
+                cwmClient,
+                account,
+                Network.from(network),
+                mode,
+                scheme,
+                path,
+                this,
+                callbackCoordinator);
+        walletManager.setNetworkReachable(isNetworkReachable);
         addWalletManager(walletManager);
         announceSystemEvent(new SystemManagerAddedEvent(walletManager));
     }
@@ -430,6 +444,7 @@ final class System implements com.breadwallet.crypto.System {
 
     @Override
     public void setNetworkReachable(boolean isNetworkReachable) {
+        this.isNetworkReachable = isNetworkReachable;
         for (WalletManager manager: getWalletManagers()) {
             manager.setNetworkReachable(isNetworkReachable);
         }

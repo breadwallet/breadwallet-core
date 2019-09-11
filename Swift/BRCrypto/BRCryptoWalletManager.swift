@@ -181,7 +181,7 @@ public final class WalletManager: Equatable, CustomStringConvertible {
                                          transfer.core)
     }
 
-    public func setNetworkReachable (_ isNetworkReachable: Bool) {
+    internal func setNetworkReachable (_ isNetworkReachable: Bool) {
         cryptoWalletManagerSetNetworkReachable (core,
                                                 isNetworkReachable ? CRYPTO_TRUE : CRYPTO_FALSE)
     }

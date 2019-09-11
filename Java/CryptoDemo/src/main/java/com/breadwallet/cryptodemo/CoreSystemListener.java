@@ -51,7 +51,6 @@ public class CoreSystemListener implements SystemListener {
             @Override
             public Void visit(SystemManagerAddedEvent event) {
                 WalletManager manager = event.getWalletManager();
-                manager.setNetworkReachable(Utilities.isNetworkReachable(CoreCryptoApplication.getContext()));
                 manager.connect();
                 return null;
             }
