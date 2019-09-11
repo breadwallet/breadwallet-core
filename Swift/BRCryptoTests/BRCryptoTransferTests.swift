@@ -65,17 +65,20 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
         "network":    "testnet"
     ])
 
-    let knownTransferResults: [TransferResult] = [
-        // P2P timestamp is: 1565974068 - will fail.
-        TransferResult (target: true,
-                        address: "mzjmRwzABk67iPSrLys1ACDdGkuLcS6WQ4",
-                        confirmation: TransferConfirmation (blockNumber: 1574853,
-                                                            transactionIndex: 26,
-                                                            timestamp: 1565974410, // 2019-08-16T16:53:30Z
-                            fee: nil),
-                        hash: "f6d9bca3d4346ce75c151d1d8f061d56ff25e41a89553544b80d316f7d9ccedc",
-                        amount: UInt64(1000000))
-    ]
+    func knownTransferResultsByModeStrangely (mode: WalletManagerMode) -> [TransferResult] {
+        return [
+            TransferResult (target: true,
+                            address: "mzjmRwzABk67iPSrLys1ACDdGkuLcS6WQ4",
+                            confirmation: TransferConfirmation (blockNumber: 1574853,
+                                                                transactionIndex: 26,
+                                                                timestamp: (mode == .p2p_only // ?? 2019-08-16T16:53:30Z ??
+                                                                    ? 1565974068
+                                                                    : 1565974410),
+                                                                fee: nil),
+                            hash: "f6d9bca3d4346ce75c151d1d8f061d56ff25e41a89553544b80d316f7d9ccedc",
+                            amount: UInt64(1000000))
+        ]
+    }
 
     override func setUp() {
         super.setUp()
@@ -93,14 +96,22 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
         prepareAccount (knownAccountSpecification)
         prepareSystem()
 
+        let knownTransferResults = knownTransferResultsByModeStrangely(mode: mode)
+
         let walletManagerDisconnectExpectation = XCTestExpectation (description: "Wallet Manager Disconnect")
+        let walletManagerSyncDoneExpectation   = XCTestExpectation (description: "Wallet Manager Sync Done")
         listener.managerHandlers += [
             { (system: System, manager:WalletManager, event: WalletManagerEvent) in
                 if case let .changed(_, newState) = event, case .disconnected = newState {
                     walletManagerDisconnectExpectation.fulfill()
                 }
-            }]
-
+            },
+            { (system: System, manager:WalletManager, event: WalletManagerEvent) in
+                if case .syncEnded = event {
+                    walletManagerSyncDoneExpectation.fulfill()
+                }
+            }
+        ]
 
         let network: Network! = system.networks.first { "btc" == $0.currency.code && isMainnet == $0.isMainnet }
         XCTAssertNotNil (network)
@@ -117,6 +128,11 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
         listener.transferCount = knownTransferResults.count
         manager.connect()
         wait (for: [listener.transferExpectation], timeout: syncTimeoutInSeconds)
+
+        // If a P2P mode, wait for syncDone
+        if (WalletManagerMode.p2p_only == mode) {
+            wait (for: [walletManagerSyncDoneExpectation], timeout: syncTimeoutInSeconds)
+        }
 
         manager.disconnect()
         wait (for: [walletManagerDisconnectExpectation], timeout: 5)
@@ -186,6 +202,7 @@ class BRCryptoTransferTests: BRCryptoSystemBaseTests {
 
     /// MARK: - BCH
 
+    /// TODO: This test fails intermittently
     func testTransferBCH_P2P () {
         isMainnet = true
         currencyCodesNeeded = ["bch"]
