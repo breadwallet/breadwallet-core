@@ -74,6 +74,10 @@ public final class System {
 //         feeEstimates: [(amount: "20", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
     ]
 
+    private static func makeCurrencyIdentifierERC20 (_ blockchainID: String, _ address: String) -> String {
+        return "\(blockchainID):\(address)"
+    }
+
     static let defaultCurrencies: [BlockChainDB.Model.Currency] = [
         // Mainnet
         (id: "bitcoin-mainnet:__native__", name: "Bitcoin", code: "btc", type: "native", blockchainID: "bitcoin-mainnet",
@@ -92,7 +96,7 @@ public final class System {
                          (name: "Gwei",  code: "gwei", decimals:  9, symbol: BlockChainDB.Model.lookupSymbol ("gwei")),
                          (name: "Ether", code: "eth",  decimals: 18, symbol: BlockChainDB.Model.lookupSymbol ("eth"))]),
 
-        (id: "ethereum-mainnet:0x558ec3152e2eb2174905cd19aea4e34a23de9ad6", name: "BRD Token", code: "BRD", type: "erc20", blockchainID: "ethereum-mainnet",
+        (id: System.makeCurrencyIdentifierERC20 ("ethereum-mainnet", BlockChainDB.Model.addressBRDMainnet), name: "BRD Token", code: "BRD", type: "erc20", blockchainID: "ethereum-mainnet",
          address: BlockChainDB.Model.addressBRDMainnet, verified: true,
          demoninations: [(name: "BRD Token INT", code: "BRDI",  decimals:  0, symbol: "brdi"),
                          (name: "BRD Token",     code: "BRD",   decimals: 18, symbol: "brd")]),
@@ -124,7 +128,7 @@ public final class System {
                          (name: "Gwei",  code: "gwei", decimals:  9, symbol: BlockChainDB.Model.lookupSymbol ("gwei")),
                          (name: "Ether", code: "eth",  decimals: 18, symbol: BlockChainDB.Model.lookupSymbol ("eth"))]),
 
-        (id: "ethereum-ropsten:0x7108ca7c4718efa810457f228305c9c71390931a", name: "BRD Token Testnet", code: "BRD", type: "erc20", blockchainID: "ethereum-ropsten",
+        (id: System.makeCurrencyIdentifierERC20 ("ethereum-ropsten", BlockChainDB.Model.addressBRDTestnet), name: "BRD Token Testnet", code: "BRD", type: "erc20", blockchainID: "ethereum-ropsten",
          address: BlockChainDB.Model.addressBRDTestnet, verified: true,
          demoninations: [(name: "BRD_INTEGER",   code: "BRDI",  decimals:  0, symbol: "brdi"),
                          (name: "BRD",           code: "BRD",   decimals: 18, symbol: "brd")]),
