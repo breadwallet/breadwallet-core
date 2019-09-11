@@ -22,6 +22,14 @@ add_library( # Sets the name of the library.
              # Sets the library as a shared library.
              SHARED)
 
+# Sqlite3
+target_sources (crypto
+                PUBLIC
+
+                src/main/cpp/core/vendor/sqlite3/sqlite3.h
+                src/main/cpp/core/vendor/sqlite3/sqlite3.c
+                )
+
 # Support
 target_sources (crypto
                 PUBLIC
@@ -378,6 +386,7 @@ include_directories(src/main/cpp/core/bitcoin)
 include_directories(src/main/cpp/core/bcash)
 include_directories(src/main/cpp/core/ethereum)
 include_directories(src/main/cpp/core/secp256k1)
+include_directories(src/main/cpp/core/vendor/sqlite3)
 include_directories(src/main/cpp/core/crypto)
 
 # Searches for a specified prebuilt library and stores the path as a
