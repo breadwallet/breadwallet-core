@@ -126,6 +126,8 @@ extern "C" {
         BRCryptoCWMListenerTransferEvent transferEventCallback;
     } BRCryptoCWMListener;
 
+    /// MARK: Wallet Manager
+
     extern BRCryptoWalletManager
     cryptoWalletManagerCreate (BRCryptoCWMListener listener,
                                BRCryptoCWMClient client,
@@ -159,6 +161,10 @@ extern "C" {
 
     extern const char *
     cryptoWalletManagerGetPath (BRCryptoWalletManager cwm);
+
+    extern void
+    cryptoWalletManagerSetNetworkReachable (BRCryptoWalletManager cwm,
+                                            BRCryptoBoolean isNetworkReachable);
 
     extern BRCryptoBoolean
     cryptoWalletManagerHasWallet (BRCryptoWalletManager cwm,

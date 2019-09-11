@@ -150,6 +150,11 @@ struct BRClientSyncManagerStruct {
     /// Mark: - Mutable Sction
 
     /**
+     * Flag for whether or not the blockchain network is reachable
+     */
+    int isNetworkReachable;
+
+    /**
      * The known height of the blockchain, as reported by the "network".
      */
     uint64_t networkBlockHeight;
@@ -198,7 +203,8 @@ BRClientSyncManagerNew(BRSyncManagerEventContext eventContext,
                        OwnershipKept BRWallet *wallet,
                        uint32_t earliestKeyTime,
                        uint64_t blockHeight,
-                       uint64_t confirmationsUntilFinal);
+                       uint64_t confirmationsUntilFinal,
+                       int isNetworkReachable);
 
 static BRClientSyncManager
 BRSyncManagerAsClientSyncManager(BRSyncManager manager);
@@ -211,6 +217,13 @@ BRClientSyncManagerGetBlockHeight(BRClientSyncManager manager);
 
 static uint64_t
 BRClientSyncManagerGetConfirmationsUntilFinal(BRClientSyncManager manager);
+
+static int
+BRClientSyncManagerGetNetworkReachable(BRClientSyncManager manager);
+
+static void
+BRClientSyncManagerSetNetworkReachable(BRClientSyncManager manager,
+                                       int isNetworkReachable);
 
 static void
 BRClientSyncManagerConnect(BRClientSyncManager manager);
@@ -340,6 +353,11 @@ struct BRPeerSyncManagerStruct {
     /// Mark: - Mutable Sction
 
     /**
+     * Flag for whether or not the blockchain network is reachable
+     */
+    int isNetworkReachable;
+
+    /**
      * The known height of the blockchain, as reported by the P2P network.
      */
     uint64_t networkBlockHeight;
@@ -369,6 +387,7 @@ BRPeerSyncManagerNew(BRSyncManagerEventContext eventContext,
                      uint32_t earliestKeyTime,
                      uint64_t blockHeight,
                      uint64_t confirmationsUntilFinal,
+                     int isNetworkReachable,
                      OwnershipKept BRMerkleBlock *blocks[],
                      size_t blocksCount,
                      OwnershipKept const BRPeer peers[],
@@ -385,6 +404,13 @@ BRPeerSyncManagerGetBlockHeight(BRPeerSyncManager manager);
 
 static uint64_t
 BRPeerSyncManagerGetConfirmationsUntilFinal(BRPeerSyncManager manager);
+
+static int
+BRPeerSyncManagerGetNetworkReachable(BRPeerSyncManager manager);
+
+static void
+BRPeerSyncManagerSetNetworkReachable(BRPeerSyncManager manager,
+                                     int isNetworkReachable);
 
 static void
 BRPeerSyncManagerConnect(BRPeerSyncManager manager);
@@ -413,7 +439,7 @@ static void _BRPeerSyncManagerSyncStopped (void *info, int reason);
 static void _BRPeerSyncManagerTxStatusUpdate (void *info);
 static void _BRPeerSyncManagerSaveBlocks (void *info, int replace, BRMerkleBlock **blocks, size_t count);
 static void _BRPeerSyncManagerSavePeers  (void *info, int replace, const BRPeer *peers, size_t count);
-static int  _BRPeerSyncManagerNetworkIsReachabele (void *info);
+static int  _BRPeerSyncManagerNetworkIsReachable (void *info);
 static void _BRPeerSyncManagerThreadCleanup (void *info);
 static void _BRPeerSyncManagerTxPublished (void *info, int error);
 
@@ -451,6 +477,7 @@ BRSyncManagerNewForMode(BRSyncMode mode,
                         uint32_t earliestKeyTime,
                         uint64_t blockHeight,
                         uint64_t confirmationsUntilFinal,
+                        int isNetworkReachable,
                         OwnershipKept BRMerkleBlock *blocks[],
                         size_t blocksCount,
                         OwnershipKept const BRPeer peers[],
@@ -471,7 +498,8 @@ BRSyncManagerNewForMode(BRSyncMode mode,
                                                                          wallet,
                                                                          earliestKeyTime,
                                                                          blockHeight,
-                                                                         confirmationsUntilFinal));
+                                                                         confirmationsUntilFinal,
+                                                                         isNetworkReachable));
         case SYNC_MODE_P2P_ONLY:
         return BRPeerSyncManagerAsSyncManager (BRPeerSyncManagerNew (eventContext,
                                                                      eventCallback,
@@ -480,6 +508,7 @@ BRSyncManagerNewForMode(BRSyncMode mode,
                                                                      earliestKeyTime,
                                                                      blockHeight,
                                                                      confirmationsUntilFinal,
+                                                                     isNetworkReachable,
                                                                      blocks,
                                                                      blocksCount,
                                                                      peers,
@@ -537,6 +566,39 @@ BRSyncManagerGetConfirmationsUntilFinal (BRSyncManager manager) {
         break;
     }
     return blockHeight;
+}
+
+extern int
+BRSyncManagerGetNetworkReachable (BRSyncManager manager) {
+    int isNetworkReachable = 1;
+    switch (manager->mode) {
+        case SYNC_MODE_BRD_ONLY:
+        isNetworkReachable = BRClientSyncManagerGetNetworkReachable (BRSyncManagerAsClientSyncManager (manager));
+        break;
+        case SYNC_MODE_P2P_ONLY:
+        isNetworkReachable = BRPeerSyncManagerGetNetworkReachable (BRSyncManagerAsPeerSyncManager (manager));
+        break;
+        default:
+        assert (0);
+        break;
+    }
+    return isNetworkReachable;
+}
+
+extern void
+BRSyncManagerSetNetworkReachable (BRSyncManager manager,
+                                  int isNetworkReachable) {
+    switch (manager->mode) {
+        case SYNC_MODE_BRD_ONLY:
+        BRClientSyncManagerSetNetworkReachable (BRSyncManagerAsClientSyncManager (manager), isNetworkReachable);
+        break;
+        case SYNC_MODE_P2P_ONLY:
+        BRPeerSyncManagerSetNetworkReachable (BRSyncManagerAsPeerSyncManager (manager), isNetworkReachable);
+        break;
+        default:
+        assert (0);
+        break;
+    }
 }
 
 extern void
@@ -725,7 +787,8 @@ BRClientSyncManagerNew(BRSyncManagerEventContext eventContext,
                        OwnershipKept BRWallet *wallet,
                        uint32_t earliestKeyTime,
                        uint64_t blockHeight,
-                       uint64_t confirmationsUntilFinal) {
+                       uint64_t confirmationsUntilFinal,
+                       int isNetworkReachable) {
     BRClientSyncManager manager = (BRClientSyncManager) calloc (1, sizeof(struct BRClientSyncManagerStruct));
     manager->common.mode = SYNC_MODE_BRD_ONLY;
 
@@ -766,6 +829,7 @@ BRClientSyncManagerNew(BRSyncManagerEventContext eventContext,
     manager->networkBlockHeight      = MAX (earliestCheckPoint->height, blockHeight);
     manager->syncedBlockHeight       = manager->initBlockHeight;
     manager->isConnected             = 0;
+    manager->isNetworkReachable      = isNetworkReachable;
 
     // the calloc will have taken care of this, but, better safe than sorry in case future dev
     // doesn't take that into account
@@ -811,6 +875,29 @@ static uint64_t
 BRClientSyncManagerGetConfirmationsUntilFinal(BRClientSyncManager manager) {
     // immutable; lock not required
     return manager->confirmationsUntilFinal;
+}
+
+static int
+BRClientSyncManagerGetNetworkReachable(BRClientSyncManager manager) {
+    int isNetworkReachable = 0;
+    if (0 == pthread_mutex_lock (&manager->lock)) {
+        isNetworkReachable = manager->isNetworkReachable;
+        pthread_mutex_unlock (&manager->lock);
+    } else {
+        assert (0);
+    }
+    return isNetworkReachable;
+}
+
+static void
+BRClientSyncManagerSetNetworkReachable(BRClientSyncManager manager,
+                                       int isNetworkReachable) {
+    if (0 == pthread_mutex_lock (&manager->lock)) {
+        manager->isNetworkReachable = isNetworkReachable;
+        pthread_mutex_unlock (&manager->lock);
+    } else {
+        assert (0);
+    }
 }
 
 static void
@@ -1433,6 +1520,7 @@ BRPeerSyncManagerNew(BRSyncManagerEventContext eventContext,
                      uint32_t earliestKeyTime,
                      uint64_t blockHeight,
                      uint64_t confirmationsUntilFinal,
+                     int isNetworkReachable,
                      OwnershipKept BRMerkleBlock *blocks[],
                      size_t blocksCount,
                      OwnershipKept const BRPeer peers[],
@@ -1462,6 +1550,7 @@ BRPeerSyncManagerNew(BRSyncManagerEventContext eventContext,
     manager->confirmationsUntilFinal = confirmationsUntilFinal;
     manager->networkBlockHeight      = MAX (earliestCheckPoint->height, blockHeight);
     manager->isConnected             = 0;
+    manager->isNetworkReachable      = isNetworkReachable;
 
     manager->peerManager = BRPeerManagerNew (params,
                                              wallet,
@@ -1476,7 +1565,7 @@ BRPeerSyncManagerNew(BRSyncManagerEventContext eventContext,
                                _BRPeerSyncManagerTxStatusUpdate,
                                _BRPeerSyncManagerSaveBlocks,
                                _BRPeerSyncManagerSavePeers,
-                               _BRPeerSyncManagerNetworkIsReachabele,
+                               _BRPeerSyncManagerNetworkIsReachable,
                                _BRPeerSyncManagerThreadCleanup);
 
     return manager;
@@ -1517,6 +1606,29 @@ static uint64_t
 BRPeerSyncManagerGetConfirmationsUntilFinal(BRPeerSyncManager manager) {
     // immutable; lock not required
     return manager->confirmationsUntilFinal;
+}
+
+static int
+BRPeerSyncManagerGetNetworkReachable(BRPeerSyncManager manager) {
+    int isNetworkReachable = 0;
+    if (0 == pthread_mutex_lock (&manager->lock)) {
+        isNetworkReachable = manager->isNetworkReachable;
+        pthread_mutex_unlock (&manager->lock);
+    } else {
+        assert (0);
+    }
+    return isNetworkReachable;
+}
+
+static void
+BRPeerSyncManagerSetNetworkReachable(BRPeerSyncManager manager,
+                                     int isNetworkReachable) {
+    if (0 == pthread_mutex_lock (&manager->lock)) {
+        manager->isNetworkReachable = isNetworkReachable;
+        pthread_mutex_unlock (&manager->lock);
+    } else {
+        assert (0);
+    }
 }
 
 static void
@@ -1832,8 +1944,17 @@ _BRPeerSyncManagerTxStatusUpdate (void *info) {
 }
 
 static int
-_BRPeerSyncManagerNetworkIsReachabele (void *info) {
-    return 1;
+_BRPeerSyncManagerNetworkIsReachable (void *info) {
+    BRPeerSyncManager manager = (BRPeerSyncManager) info;
+
+    int isNetworkReachable = 0;
+    if (0 == pthread_mutex_lock (&manager->lock)) {
+        isNetworkReachable = manager->isNetworkReachable;
+        pthread_mutex_unlock (&manager->lock);
+    } else {
+        assert (0);
+    }
+    return isNetworkReachable;
 }
 
 static void

@@ -76,6 +76,14 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
+    public void setNetworkReachable(boolean isNetworkReachable) {
+        CryptoLibrary.INSTANCE.cryptoWalletManagerSetNetworkReachable(
+                this,
+                isNetworkReachable ? BRCryptoBoolean.CRYPTO_TRUE : BRCryptoBoolean.CRYPTO_FALSE
+        );
+    }
+
+    @Override
     public int getMode() {
         return CryptoLibrary.INSTANCE.cryptoWalletManagerGetMode(this);
     }

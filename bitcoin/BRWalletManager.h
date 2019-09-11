@@ -303,6 +303,10 @@ BRWalletManagerSetMode (BRWalletManager manager, BRSyncMode mode);
 extern BRSyncMode
 BRWalletManagerGetMode (BRWalletManager manager);
 
+extern void
+BRWalletManagerSetNetworkReachable (BRWalletManager manager,
+                                    int isNetworkReachable);
+
 //
 // These should not be needed if the events are sufficient
 //

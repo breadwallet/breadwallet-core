@@ -405,6 +405,13 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     @Override
+    public void setNetworkReachable(boolean isNetworkReachable) {
+        for (WalletManager manager: getWalletManagers()) {
+            manager.setNetworkReachable(isNetworkReachable);
+        }
+    }
+
+    @Override
     public Account getAccount() {
         return account;
     }

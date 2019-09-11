@@ -37,6 +37,8 @@ public interface CoreBRCryptoWalletManager {
 
     boolean containsWallet(CoreBRCryptoWallet wallet);
 
+    void setNetworkReachable(boolean isNetworkReachable);
+
     int getMode();
 
     void setMode(int mode);

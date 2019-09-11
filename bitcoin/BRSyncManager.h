@@ -149,6 +149,7 @@ BRSyncManagerNewForMode(BRSyncMode mode,
                         uint32_t earliestKeyTime,
                         uint64_t blockHeight,
                         uint64_t confirmationUntilFinal,
+                        int isNetworkReachable,
                         OwnershipKept BRMerkleBlock *blocks[],
                         size_t blocksCount,
                         OwnershipKept const BRPeer peers[],
@@ -162,6 +163,13 @@ BRSyncManagerGetBlockHeight (BRSyncManager manager);
 
 extern uint64_t
 BRSyncManagerGetConfirmationsUntilFinal (BRSyncManager manager);
+
+extern int
+BRSyncManagerGetNetworkReachable (BRSyncManager manager);
+
+extern void
+BRSyncManagerSetNetworkReachable (BRSyncManager manager,
+                                  int isNetworkReachable);
 
 extern void
 BRSyncManagerConnect(BRSyncManager manager);

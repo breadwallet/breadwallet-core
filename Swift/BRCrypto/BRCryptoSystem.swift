@@ -476,6 +476,17 @@ public final class System {
         managers.forEach { $0.disconnect() }
     }
 
+    ///
+    /// Set the network reachable flag for all managers. Setting or clearing this flag will
+    /// NOT result in a connect/disconnect operation by a manager. Callers must use the
+    /// `connect`/`disconnect` calls to change a WalletManager's connectivity state. Instead,
+    /// managers MAY consult this flag when performing network operations to determine their
+    /// viability.
+    ///
+    public func setNetworkReachable (_ isNetworkReachable: Bool) {
+        managers.forEach { $0.setNetworkReachable(isNetworkReachable) }
+    }
+
     public func configureMergeBlockchains (builtin: [BlockChainDB.Model.Blockchain],
                                            remote:  [BlockChainDB.Model.Blockchain]) -> [BlockChainDB.Model.Blockchain] {
         // Both `builtin` and `remote` have a non-null blockHeight -> supported.

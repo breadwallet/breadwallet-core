@@ -224,6 +224,7 @@ public interface CryptoLibrary extends Library {
     int cryptoWalletManagerGetAddressScheme (BRCryptoWalletManager cwm);
     void cryptoWalletManagerSetAddressScheme (BRCryptoWalletManager cwm, int scheme);
     Pointer cryptoWalletManagerGetPath(BRCryptoWalletManager cwm);
+    void cryptoWalletManagerSetNetworkReachable(BRCryptoWalletManager manager, int isNetworkReachable);
     BRCryptoWallet cryptoWalletManagerGetWallet(BRCryptoWalletManager cwm);
     Pointer cryptoWalletManagerGetWallets(BRCryptoWalletManager cwm, SizeTByReference count);
     int cryptoWalletManagerHasWallet(BRCryptoWalletManager cwm, BRCryptoWallet wallet);

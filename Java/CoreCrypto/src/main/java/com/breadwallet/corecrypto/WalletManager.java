@@ -212,6 +212,11 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     }
 
     @Override
+    public void setNetworkReachable(boolean isNetworkReachable) {
+        core.setNetworkReachable(isNetworkReachable);
+    }
+
+    @Override
     public boolean equals(Object object) {
         if (this == object) {
             return true;

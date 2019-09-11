@@ -384,6 +384,18 @@ cryptoWalletManagerGetPath (BRCryptoWalletManager cwm) {
     return cwm->path;
 }
 
+extern void
+cryptoWalletManagerSetNetworkReachable (BRCryptoWalletManager cwm,
+                                        BRCryptoBoolean isNetworkReachable) {
+    switch (cwm->type) {
+        case BLOCK_CHAIN_TYPE_BTC:
+            BRWalletManagerSetNetworkReachable (cwm->u.btc, isNetworkReachable);
+            break;
+        default:
+            break;
+    }
+}
+
 extern BRCryptoWallet
 cryptoWalletManagerGetWallet (BRCryptoWalletManager cwm) {
     return cryptoWalletTake (cwm->wallet);
