@@ -30,6 +30,16 @@ public interface System {
 
     void subscribe(String subscriptionToken);
 
+    /**
+     * Set the network reachable flag for all managers.
+     *
+     * Setting or clearing this flag will NOT result in a connect/disconnect attempt by a {@link WalletManager}.
+     * Callers must use the {@link WalletManager#connect()}/{@link WalletManager#disconnect()} methods to
+     * change a WalletManager's connectivity state. Instead, WalletManagers MAY consult this flag when performing
+     * network operations to determine viability.
+     */
+    void setNetworkReachable(boolean isNetworkReachable);
+
     Account getAccount();
 
     String getPath();

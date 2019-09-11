@@ -32,16 +32,19 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                                 String path,
                                 System system,
                                 SystemCallbackCoordinator callbackCoordinator) {
-        CoreBRCryptoWalletManager core = CoreBRCryptoWalletManager.create(
-                listener,
-                client,
-                account.getCoreBRCryptoAccount(),
-                network.getCoreBRCryptoNetwork(),
-                Utilities.walletManagerModeToCrypto(mode),
-                Utilities.addressSchemeToCrypto(addressScheme),
-                path);
-
-        return new WalletManager(core, system, callbackCoordinator);
+        return new WalletManager(
+                CoreBRCryptoWalletManager.create(
+                        listener,
+                        client,
+                        account.getCoreBRCryptoAccount(),
+                        network.getCoreBRCryptoNetwork(),
+                        Utilities.walletManagerModeToCrypto(mode),
+                        Utilities.addressSchemeToCrypto(addressScheme),
+                        path
+                ),
+                system,
+                callbackCoordinator
+        );
     }
 
     /* package */
@@ -233,6 +236,11 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     @Override
     public String toString() {
         return getName();
+    }
+
+    /* package */
+    void setNetworkReachable(boolean isNetworkReachable) {
+        core.setNetworkReachable(isNetworkReachable);
     }
 
     /* package */

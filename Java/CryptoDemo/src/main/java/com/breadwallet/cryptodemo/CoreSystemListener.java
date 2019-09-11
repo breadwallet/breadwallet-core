@@ -36,7 +36,8 @@ public class CoreSystemListener implements SystemListener {
     private final boolean isMainnet;
     private final List<String> currencyCodesNeeded;
 
-    public CoreSystemListener(WalletManagerMode mode, boolean isMainnet, List<String> currencyCodesNeeded) {
+    /* package */
+    CoreSystemListener(WalletManagerMode mode, boolean isMainnet, List<String> currencyCodesNeeded) {
         this.mode = mode;
         this.isMainnet = isMainnet;
         this.currencyCodesNeeded = new ArrayList<>(currencyCodesNeeded);

@@ -181,6 +181,11 @@ public final class WalletManager: Equatable, CustomStringConvertible {
                                          transfer.core)
     }
 
+    internal func setNetworkReachable (_ isNetworkReachable: Bool) {
+        cryptoWalletManagerSetNetworkReachable (core,
+                                                isNetworkReachable ? CRYPTO_TRUE : CRYPTO_FALSE)
+    }
+
     public func createSweeper (wallet: Wallet,
                                key: Key,
                                completion: @escaping (Result<WalletSweeper, WalletSweeperError>) -> Void) {

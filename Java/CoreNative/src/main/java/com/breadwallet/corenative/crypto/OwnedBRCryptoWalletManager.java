@@ -59,6 +59,11 @@ class OwnedBRCryptoWalletManager implements CoreBRCryptoWalletManager {
     }
 
     @Override
+    public void setNetworkReachable(boolean isNetworkReachable) {
+        core.setNetworkReachable(isNetworkReachable);
+    }
+
+    @Override
     public int getMode() {
         return core.getMode();
     }

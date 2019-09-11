@@ -41,6 +41,9 @@ public final class System {
     /// the networks, unsorted.
     public internal(set) var networks: [Network] = []
 
+    /// Flag indicating if the network is reachable; defaults to true
+    internal var isNetworkReachable = true
+
     internal let callbackCoordinator: SystemCallbackCoordinator
 
     /// We define default blockchains but these are wholly insufficient given that the
@@ -320,7 +323,7 @@ public final class System {
                                      storagePath: path,
                                      listener: cryptoListener,
                                      client: cryptoClient)
-
+        manager.setNetworkReachable(isNetworkReachable)
         self.add (manager: manager)
     }
 
@@ -481,6 +484,18 @@ public final class System {
     ///
     public func stop () {
         managers.forEach { $0.disconnect() }
+    }
+
+    ///
+    /// Set the network reachable flag for all managers. Setting or clearing this flag will
+    /// NOT result in a connect/disconnect operation by a manager. Callers must use the
+    /// `connect`/`disconnect` calls to change a WalletManager's connectivity state. Instead,
+    /// managers MAY consult this flag when performing network operations to determine their
+    /// viability.
+    ///
+    public func setNetworkReachable (_ isNetworkReachable: Bool) {
+        self.isNetworkReachable = isNetworkReachable
+        managers.forEach { $0.setNetworkReachable(isNetworkReachable) }
     }
 
     private func configureMergeBlockchains (builtin: [BlockChainDB.Model.Blockchain],
