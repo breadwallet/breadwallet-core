@@ -310,7 +310,7 @@ class BRCryptoSystemBaseTests: BRCryptoBaseTests {
     }
 
     func createDefaultQuery () -> BlockChainDB {
-        return BlockChainDB()
+        return BlockChainDB.createForTest()
     }
 
     func prepareSystem (listener: CryptoTestSystemListener? = nil, query: BlockChainDB? = nil) {

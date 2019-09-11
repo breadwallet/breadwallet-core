@@ -112,6 +112,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static com.breadwallet.crypto.blockchaindb.models.bdb.Currency.ADDRESS_BRD_MAINNET;
+import static com.breadwallet.crypto.blockchaindb.models.bdb.Currency.ADDRESS_BRD_TESTNET;
 
 /* package */
 final class System implements com.breadwallet.crypto.System {
@@ -153,8 +154,7 @@ final class System implements com.breadwallet.crypto.System {
                     ImmutableList.of(CurrencyDenomination.SATOSHI, CurrencyDenomination.BCH_BITCOIN)),
 
             new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("ethereum-mainnet:__native__", "Ethereum", "eth", "native", "ethereum-mainnet", null, true,
-                    ImmutableList.of(CurrencyDenomination.ETH_WEI, CurrencyDenomination.ETH_GWEI,
-                            CurrencyDenomination.ETH_ETHER)),
+                    ImmutableList.of(CurrencyDenomination.ETH_WEI, CurrencyDenomination.ETH_GWEI, CurrencyDenomination.ETH_ETHER)),
 
             new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("ethereum-mainnet:0x558ec3152e2eb2174905cd19aea4e34a23de9ad6", "BRD Token", "BRD", "erc20", "ethereum-mainnet", ADDRESS_BRD_MAINNET, true,
                     ImmutableList.of(CurrencyDenomination.BRD_INT, CurrencyDenomination.BRD_BRD)),
@@ -167,8 +167,10 @@ final class System implements com.breadwallet.crypto.System {
                     ImmutableList.of(CurrencyDenomination.SATOSHI, CurrencyDenomination.BCH_BITCOIN_TESTNET)),
 
             new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("ethereum-ropsten:__native__", "Ethereum Testnet", "eth", "native", "ethereum-ropsten", null, true,
-                    ImmutableList.of(CurrencyDenomination.ETH_WEI, CurrencyDenomination.ETH_GWEI,
-                            CurrencyDenomination.ETH_ETHER))
+                    ImmutableList.of(CurrencyDenomination.ETH_WEI, CurrencyDenomination.ETH_GWEI, CurrencyDenomination.ETH_ETHER)),
+
+            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("ethereum-ropsten:0x7108ca7c4718efa810457f228305c9c71390931a", "BRD Token Testnet", "BRD", "erc20", "ethereum-ropsten", ADDRESS_BRD_TESTNET, true,
+                    ImmutableList.of(CurrencyDenomination.BRD_INT, CurrencyDenomination.BRD_BRD))
     );
 
     ///
@@ -248,11 +250,11 @@ final class System implements com.breadwallet.crypto.System {
     static {
         ImmutableMap.Builder<String, WalletManagerMode> builder = new ImmutableMap.Builder<>();
         builder.put("bitcoin-mainnet", WalletManagerMode.P2P_ONLY);
-        builder.put("bitcoin-cash-mainnet", WalletManagerMode.P2P_ONLY);
+        builder.put("bitcoincash-mainnet", WalletManagerMode.P2P_ONLY);
         builder.put("ethereum-mainnet", WalletManagerMode.API_ONLY);
 
         builder.put("bitcoin-testnet", WalletManagerMode.P2P_ONLY);
-        builder.put("bitcoin-cash-testnet", WalletManagerMode.P2P_ONLY);
+        builder.put("bitcoincash-testnet", WalletManagerMode.P2P_ONLY);
         builder.put("ethereum-ropsten", WalletManagerMode.API_ONLY);
         DEFAULT_MODES = builder.build();
     }
