@@ -216,11 +216,11 @@ public final class System {
     ///
     var supportedModesMap: [String:[WalletManagerMode]] = [
         "bitcoin-mainnet":      [.api_only, .p2p_only],
-        "bitcoincash-mainnet":  [.api_only, .p2p_only],
+        "bitcoincash-mainnet":  [.p2p_only],
         "ethereum-mainnet":     [.api_only, .api_with_p2p_submit, .p2p_only],
 //        "ripple-mainnet":       [],
         "bitcoin-testnet":      [.api_only, .p2p_only],
-        "bitcoincash-testnet":  [.api_only, .p2p_only],
+        "bitcoincash-testnet":  [.p2p_only],
         "ethereum-ropsten":     [.api_only, .api_with_p2p_submit, .p2p_only],
 //        "ripple-testnet":       []
     ]
