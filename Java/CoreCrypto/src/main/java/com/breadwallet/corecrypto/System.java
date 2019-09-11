@@ -44,6 +44,7 @@ import com.breadwallet.crypto.blockchaindb.BlockchainDb;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Blockchain;
 import com.breadwallet.crypto.blockchaindb.models.bdb.BlockchainFee;
+import com.breadwallet.crypto.blockchaindb.models.bdb.Currency;
 import com.breadwallet.crypto.blockchaindb.models.bdb.CurrencyDenomination;
 import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
 import com.breadwallet.crypto.blockchaindb.models.brd.EthLog;
@@ -53,6 +54,7 @@ import com.breadwallet.crypto.errors.FeeEstimationError;
 import com.breadwallet.crypto.events.network.NetworkCreatedEvent;
 import com.breadwallet.crypto.events.network.NetworkEvent;
 import com.breadwallet.crypto.events.system.SystemCreatedEvent;
+import com.breadwallet.crypto.events.system.SystemDiscoveredNetworksEvent;
 import com.breadwallet.crypto.events.system.SystemEvent;
 import com.breadwallet.crypto.events.system.SystemListener;
 import com.breadwallet.crypto.events.system.SystemManagerAddedEvent;
@@ -161,7 +163,7 @@ final class System implements com.breadwallet.crypto.System {
             new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("bitcoin-testnet:__native__", "Bitcoin Test", "btc", "native", "bitcoin-testnet", null, true,
                     ImmutableList.of(CurrencyDenomination.SATOSHI, CurrencyDenomination.BTC_BITCOIN_TESTNET)),
 
-            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("Bitcoin-Cash-Testnet", "Bitcoin Cash Test", "bch", "native", "bitcoincash-testnet", null, true,
+            new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("bitcoincash-testnet:__native__", "Bitcoin Cash Testnet", "bch", "native", "bitcoincash-testnet", null, true,
                     ImmutableList.of(CurrencyDenomination.SATOSHI, CurrencyDenomination.BCH_BITCOIN_TESTNET)),
 
             new com.breadwallet.crypto.blockchaindb.models.bdb.Currency("ethereum-ropsten:__native__", "Ethereum Testnet", "eth", "native", "ethereum-ropsten", null, true,
@@ -211,18 +213,30 @@ final class System implements com.breadwallet.crypto.System {
     /// Wallet Manager Modes
     ///
 
+    /// Every blockchain supports `API_ONLY`; blockchains with built-in P2P support (BTC, BCH,
+    /// and ETH) may support `P2P_ONLY`.  Intermediate modes (API_WITH_P2P_SUBMIT,
+    /// P2P_WITH_API_SYNC) are suppored on a case-by-case basis.
+    ///
+    /// It is possible that the `API_ONLY` mode does not work - for exmaple, the BDB is down.  In
+    /// that case it is an App issue to report and resolve the issue by: waiting out the outage;
+    /// selecting another mode if available.
+
     private static final ImmutableMultimap<String, WalletManagerMode> SUPPORTED_MODES;
 
     static {
         ImmutableMultimap.Builder<String, WalletManagerMode> builder = new ImmutableMultimap.Builder<>();
         builder.put("bitcoin-mainnet", WalletManagerMode.P2P_ONLY);
+        builder.put("bitcoin-mainnet", WalletManagerMode.API_ONLY);
         builder.put("bitcoincash-mainnet", WalletManagerMode.P2P_ONLY);
+        builder.put("bitcoincash-mainnet", WalletManagerMode.API_ONLY);
         builder.put("ethereum-mainnet", WalletManagerMode.API_ONLY);
         builder.put("ethereum-mainnet", WalletManagerMode.API_WITH_P2P_SUBMIT);
         builder.put("ethereum-mainnet", WalletManagerMode.P2P_ONLY);
 
         builder.put("bitcoin-testnet", WalletManagerMode.P2P_ONLY);
+        builder.put("bitcoin-testnet", WalletManagerMode.API_ONLY);
         builder.put("bitcoincash-testnet", WalletManagerMode.P2P_ONLY);
+        builder.put("bitcoincash-testnet", WalletManagerMode.API_ONLY);
         builder.put("ethereum-ropsten", WalletManagerMode.API_ONLY);
         builder.put("ethereum-ropsten", WalletManagerMode.API_WITH_P2P_SUBMIT);
         builder.put("ethereum-ropsten", WalletManagerMode.P2P_ONLY);
@@ -371,16 +385,26 @@ final class System implements com.breadwallet.crypto.System {
     }
 
     @Override
-    public void configure() {
-        NetworkDiscovery.discoverNetworks(query, isMainnet, supportedModes, defaultModes, (networks, supportedModes, defaultModes) -> {
-            System.this.supportedModes = supportedModes;
-            System.this.defaultModes = defaultModes;
+    public void configure(List<Currency> appCurrencies) {
+        NetworkDiscovery.discoverNetworks(query, isMainnet, appCurrencies, supportedModes, defaultModes, new NetworkDiscovery.Callback() {
+            @Override
+            public void update(ImmutableMultimap<String, WalletManagerMode> supportedModes,
+                               ImmutableMap<String, WalletManagerMode> defaultModes) {
+                System.this.supportedModes = supportedModes;
+                System.this.defaultModes = defaultModes;
+            }
 
-            for (Network network: networks) {
+            @Override
+            public void discovered(Network network) {
                 if (addNetwork(network)) {
                     announceNetworkEvent(network, new NetworkCreatedEvent());
                     announceSystemEvent(new SystemNetworkAddedEvent(network));
                 }
+            }
+
+            @Override
+            public void complete(List<com.breadwallet.crypto.Network> networks) {
+                announceSystemEvent(new SystemDiscoveredNetworksEvent(networks));
             }
         });
     }

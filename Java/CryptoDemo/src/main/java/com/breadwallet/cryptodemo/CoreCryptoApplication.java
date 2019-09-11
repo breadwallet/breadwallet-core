@@ -20,6 +20,7 @@ import com.breadwallet.crypto.System;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -137,7 +138,7 @@ public class CoreCryptoApplication extends Application {
 
             CryptoApi.initialize(CryptoApiProvider.getInstance());
 
-            List<String> currencyCodesNeeded = Arrays.asList("btc", "eth", "brd");
+            List<String> currencyCodesNeeded = Arrays.asList("btc", "eth", "bch");
             systemListener = new DispatchingSystemListener();
             systemListener.addSystemListener(new CoreSystemListener(mode, isMainnet, currencyCodesNeeded));
 
@@ -147,7 +148,7 @@ public class CoreCryptoApplication extends Application {
             blockchainDb = BlockchainDb.createForTest (new OkHttpClient(), BDB_BASE_URL, BDB_AUTH_TOKEN, API_BASE_URL);
             system = System.create(Executors.newSingleThreadScheduledExecutor(), systemListener, account,
                     isMainnet, storageFile.getAbsolutePath(), blockchainDb);
-            system.configure();
+            system.configure(Collections.emptyList());
 
             connectivityReceiver = new ConnectivityBroadcastReceiver();
             registerReceiver(connectivityReceiver , new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
@@ -163,6 +164,6 @@ public class CoreCryptoApplication extends Application {
                 isMainnet,
                 system.getPath(),
                 blockchainDb);
-        system.configure();
+        system.configure(Collections.emptyList());
     }
 }

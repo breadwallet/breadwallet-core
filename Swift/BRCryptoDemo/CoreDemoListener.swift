@@ -109,6 +109,10 @@ class CoreDemoListener: SystemListener {
             //TODO: Don't connect here. connect on touch...
             manager.connect()
 
+        case .discoveredNetworks (let networks):
+            let allCurrencies = networks.flatMap { $0.currencies }
+            print ("APP: System: Currencies (Added): ")
+            allCurrencies.forEach { print ("APP: System:    \($0.code)") }
         }
     }
 
