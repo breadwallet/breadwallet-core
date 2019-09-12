@@ -62,7 +62,6 @@ cryptoCurrencyCreate (const char *uids,
 
 static void
 cryptoCurrencyRelease (BRCryptoCurrency currency) {
-    printf ("Currency: Release\n");
     free (currency->type);
     free (currency->code);
     free (currency->name);
