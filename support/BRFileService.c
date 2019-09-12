@@ -31,7 +31,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <pthread.h>
-#include <sqlite3.h>
+#include "../vendor/sqlite3/sqlite3.h"
 typedef int sqlite3_status_code;
 
 #define FILE_SERVICE_INITIAL_TYPE_COUNT    (5)

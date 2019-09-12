@@ -65,7 +65,7 @@
     #define SQLITE_ENABLE_RTREE                         1
     #define SQLITE_ENABLE_SESSION                       1
     #define SQLITE_ENABLE_SNAPSHOT                      1
-    #define SQLITE_ENABLE_SQLLOG                        1
+    #undef  SQLITE_ENABLE_SQLLOG                     /* 1 - Requires external dependency */
     #define SQLITE_ENABLE_UNKNOWN_SQL_FUNCTION          1
     #define SQLITE_ENABLE_UPDATE_DELETE_LIMIT           1
     #define SQLITE_HAS_CODEC_RESTRICTED                 1
