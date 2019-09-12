@@ -44,6 +44,10 @@ public final class System {
     /// Flag indicating if the network is reachable; defaults to true
     internal var isNetworkReachable = true
 
+    /// The wallet managers, unsorted.  A WalletManager will hold an 'unowned'
+    /// reference back to `System`
+    public internal(set) var managers: [WalletManager] = [];
+
     internal let callbackCoordinator: SystemCallbackCoordinator
 
     /// We define default blockchains but these are wholly insufficient given that the
@@ -146,7 +150,7 @@ public final class System {
     /// Address Scheme
     ///
 
-    var supportedAddressSchemesMap: [String:[AddressScheme]] = [
+    static let supportedAddressSchemesMap: [String:[AddressScheme]] = [
         "bitcoin-mainnet":      [.btcSegwit, .btcLegacy],
         "bitcoincash-mainnet": [.btcLegacy],
         "ethereum-mainnet":     [.ethDefault],
@@ -154,10 +158,10 @@ public final class System {
         "bitcoin-testnet":      [.btcSegwit, .btcLegacy],
         "bitcoincash-testnet":  [.btcLegacy],
         "ethereum-ropsten":     [.ethDefault],
-        "ripple-testnet":       [.genDefault]
+//        "ripple-testnet":       [.genDefault]
     ]
 
-    var defaultAddressSchemeMap: [String:AddressScheme] = [
+    static let defaultAddressSchemeMap: [String:AddressScheme] = [
         "bitcoin-mainnet":      .btcSegwit,
         "bitcoincash-mainnet": .btcLegacy,
         "ethereum-mainnet":     .ethDefault,
@@ -165,7 +169,7 @@ public final class System {
         "bitcoin-testnet":      .btcSegwit,
         "bitcoincash-testnet":  .btcLegacy,
         "ethereum-ropsten":     .ethDefault,
-        "ripple-testnet":       .genDefault
+//        "ripple-testnet":       .genDefault
     ]
 
     ///
@@ -176,7 +180,7 @@ public final class System {
     /// - Returns: An array of AddressScheme
     ///
     public func supportedAddressSchemes (network: Network) -> [AddressScheme] {
-        return supportedAddressSchemesMap[network.uids] ?? [.genDefault]
+        return System.supportedAddressSchemesMap[network.uids] ?? [.genDefault]
     }
 
     ///
@@ -200,21 +204,28 @@ public final class System {
     /// - Returns: The default AddressScheme
     ///
     public func defaultAddressScheme (network: Network) -> AddressScheme {
-        return defaultAddressSchemeMap[network.uids] ?? .genDefault
+        return System.defaultAddressSchemeMap[network.uids] ?? .genDefault
     }
 
     ///
     /// Wallet Manager Modes
     ///
-    /// Every blockchain supports `.api_only`; blockchains with built-in P2P support (BTC, BCH,
-    /// and ETH) may support `.p2p_only`.  Intermediate modes (.api_with_p2p_submit,
-    /// .p2p_with_api_sync) are suppored on a case-by-case basis.
+    /// Blockchains with built-in P2P support (BTC, BCH, and ETH) may support `.p2p_only`.
+    /// Intermediate modes (.api_with_p2p_submit, .p2p_with_api_sync) are suppored on a case-by-case
+    /// basis. API mode is supported if BRD infrastructure supports that blockchain (for example,
+    /// BCH is not at the moment)
     ///
     /// It is possible that the `.api_only` mode does not work - for exmaple, the BDB is down.  In
     /// that case it is an App issue to report and resolve the issue by: waiting out the outage;
     /// selecting another mode if available.
     ///
-    var supportedModesMap: [String:[WalletManagerMode]] = [
+    /// These values are updated whenever the BDB support updates.  However, a given WalletKit
+    /// distribution in the wild might be out of date with the current BDB support.  That can mean
+    /// that some API mode is missing here that a new BDB support (like when BCH comes online) or
+    /// that a mode has disappeared (maybe a blockchain is dropped).  These cases are not
+    /// destructive.
+    ///
+    static let supportedModesMap: [String:[WalletManagerMode]] = [
         "bitcoin-mainnet":      [.api_only, .p2p_only],
         "bitcoincash-mainnet":  [.p2p_only],
         "ethereum-mainnet":     [.api_only, .api_with_p2p_submit, .p2p_only],
@@ -225,7 +236,10 @@ public final class System {
 //        "ripple-testnet":       []
     ]
 
-    var defaultModesMap: [String:WalletManagerMode] = [
+    ///
+    /// The default Modes
+    ///
+    static let defaultModesMap: [String:WalletManagerMode] = [
         "bitcoin-mainnet":      .p2p_only,
         "bitcoincash-mainnet":  .p2p_only,
         "ethereum-mainnet":     .api_only,
@@ -244,7 +258,7 @@ public final class System {
     /// - Returns: an aray of WalletManagerMode
     ///
     public func supportedModes (network: Network) -> [WalletManagerMode] {
-        return supportedModesMap[network.uids] ?? [.api_only]
+        return System.supportedModesMap[network.uids] ?? [.api_only]
     }
 
     ///
@@ -268,7 +282,7 @@ public final class System {
     /// - Returns: the default mode
     ///
     public func defaultMode (network: Network) -> WalletManagerMode {
-        return defaultModesMap[network.uids] ?? .api_only
+        return System.defaultModesMap[network.uids] ?? .api_only
     }
 
     ///
@@ -285,11 +299,7 @@ public final class System {
         return networks.first { $0.uids == uids }
     }
 
-    /// The system's Wallet Managers, unsorted.  A WalletManager will hold an 'unowned'
-    /// reference back to `System`
-    public internal(set) var managers: [WalletManager] = [];
-
-    internal func managerBy (core: BRCryptoWalletManager) -> WalletManager? {
+     internal func managerBy (core: BRCryptoWalletManager) -> WalletManager? {
         return managers
             .first { $0.core == core }
     }
@@ -508,22 +518,6 @@ public final class System {
 
         // Filter remotes to only contain entries for builtin blockchains
         let supportedRemote = remote.filter { item in builtin.contains(where: { $0.id == item.id } ) }
-
-        // For existing remotes:
-        supportedRemote.forEach { (blockchain: BlockChainDB.Model.Blockchain) in
-            // 1) api_only is a supported mode
-            let modes = supportedModesMap[blockchain.id]
-            supportedModesMap[blockchain.id] = (nil == modes
-                ? [.api_only]
-                : (modes!.contains (.api_only)   // all modes contain .api_only; but this does no harm.
-                    ? modes!
-                    : ([.api_only] + modes!)))
-
-            // 2) api_only is a default mode if a default doesn't exist
-            if nil == defaultModesMap[blockchain.id] {
-                defaultModesMap[blockchain.id] = .api_only
-            }
-        }
 
         // Merge builtin into supportedRemote
         return supportedRemote.unionOf(builtin) { $0.id }
