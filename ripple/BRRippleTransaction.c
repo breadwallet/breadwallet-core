@@ -306,14 +306,13 @@ rippleTransactionSerializeAndSign(BRRippleTransaction transaction, BRKey * priva
     // Add the public key to the transaction
     transaction->publicKey = *publicKey;
     
-    // Serialize the bytes
+    // Serialize and sign the tx bytes
     BRRippleSerializedTransaction serializedBytes = rippleTransactionSerializeImpl (transaction, 0, 0);
-    
-    // Sign the bytes and get signature
     BRRippleSignature sig = signBytes(privateKey, serializedBytes->buffer, serializedBytes->size);
+    free(serializedBytes); // Free the serialized bytes since we have to reserialize with signature below
 
-    // Re-serialize with signature
     transaction->signedBytes = rippleTransactionSerializeImpl(transaction, sig->signature, sig->sig_length);
+
 
     // If we got a valid result then generate a hash
     if (transaction->signedBytes) {
