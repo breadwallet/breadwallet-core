@@ -214,14 +214,21 @@ final class System implements com.breadwallet.crypto.System {
     ///
     /// Wallet Manager Modes
     ///
-
-    /// Every blockchain supports `API_ONLY`; blockchains with built-in P2P support (BTC, BCH,
-    /// and ETH) may support `P2P_ONLY`.  Intermediate modes (API_WITH_P2P_SUBMIT,
-    /// P2P_WITH_API_SYNC) are suppored on a case-by-case basis.
+    /// Blockchains with built-in P2P support (BTC, BCH, and ETH) may support `.p2p_only`.
+    /// Intermediate modes (.api_with_p2p_submit, .p2p_with_api_sync) are suppored on a case-by-case
+    /// basis. API mode is supported if BRD infrastructure supports that blockchain (for example,
+    /// BCH is not at the moment)
     ///
-    /// It is possible that the `API_ONLY` mode does not work - for exmaple, the BDB is down.  In
+    /// It is possible that the `.api_only` mode does not work - for exmaple, the BDB is down.  In
     /// that case it is an App issue to report and resolve the issue by: waiting out the outage;
     /// selecting another mode if available.
+    ///
+    /// These values are updated whenever the BDB support updates.  However, a given WalletKit
+    /// distribution in the wild might be out of date with the current BDB support.  That can mean
+    /// that some API mode is missing here that a new BDB support (like when BCH comes online) or
+    /// that a mode has disappeared (maybe a blockchain is dropped).  These cases are not
+    /// destructive.
+    ///
 
     private static final ImmutableMultimap<String, WalletManagerMode> SUPPORTED_MODES;
 
@@ -350,8 +357,6 @@ final class System implements com.breadwallet.crypto.System {
     private final List<WalletManager> walletManagers;
 
     boolean isNetworkReachable;
-    private ImmutableMultimap<String, WalletManagerMode> supportedModes;
-    private ImmutableMap<String, WalletManagerMode> defaultModes;
 
     private System(ScheduledExecutorService executor,
                    SystemListener listener,
@@ -382,22 +387,13 @@ final class System implements com.breadwallet.crypto.System {
         this.walletManagers = new ArrayList<>();
 
         this.isNetworkReachable = DEFAULT_IS_NETWORK_REACHABLE;
-        this.supportedModes = SUPPORTED_MODES;
-        this.defaultModes = DEFAULT_MODES;
 
         announceSystemEvent(new SystemCreatedEvent());
     }
 
     @Override
     public void configure(List<Currency> appCurrencies) {
-        NetworkDiscovery.discoverNetworks(query, isMainnet, appCurrencies, supportedModes, defaultModes, new NetworkDiscovery.Callback() {
-            @Override
-            public void update(ImmutableMultimap<String, WalletManagerMode> supportedModes,
-                               ImmutableMap<String, WalletManagerMode> defaultModes) {
-                System.this.supportedModes = supportedModes;
-                System.this.defaultModes = defaultModes;
-            }
-
+        NetworkDiscovery.discoverNetworks(query, isMainnet, appCurrencies, new NetworkDiscovery.Callback() {
             @Override
             public void discovered(Network network) {
                 if (addNetwork(network)) {
@@ -567,12 +563,12 @@ final class System implements com.breadwallet.crypto.System {
 
     @Override
     public WalletManagerMode getDefaultWalletManagerMode(com.breadwallet.crypto.Network network) {
-        return defaultModes.getOrDefault(network.getUids(), WalletManagerMode.API_ONLY);
+        return DEFAULT_MODES.getOrDefault(network.getUids(), WalletManagerMode.API_ONLY);
     }
 
     @Override
     public List<WalletManagerMode> getSupportedWalletManagerModes(com.breadwallet.crypto.Network network) {
-        ImmutableCollection<WalletManagerMode> supported = supportedModes.get(network.getUids());
+        ImmutableCollection<WalletManagerMode> supported = SUPPORTED_MODES.get(network.getUids());
         return supported.isEmpty() ? Collections.singletonList(WalletManagerMode.API_ONLY) : supported.asList();
     }
 
