@@ -607,7 +607,7 @@ fileServiceTypeTransactionV1Reader (BRFileServiceContext context,
 static BRArrayOf(BRTransaction*)
 initialTransactionsLoad (BRWalletManager manager) {
     BRSetOf(BRTransaction*) transactionSet = BRSetNew(BRTransactionHash, BRTransactionEq, 100);
-    if (NULL != transactionSet && 1 != fileServiceLoad (manager->fileService, transactionSet, fileServiceTypeTransactions, 1)) {
+    if (1 != fileServiceLoad (manager->fileService, transactionSet, fileServiceTypeTransactions, 1)) {
         BRSetFreeAll(transactionSet, (void (*) (void*)) BRTransactionFree);
         return NULL;
     }
@@ -689,7 +689,7 @@ fileServiceTypeBlockV1Reader (BRFileServiceContext context,
 static BRArrayOf(BRMerkleBlock*)
 initialBlocksLoad (BRWalletManager manager) {
     BRSetOf(BRMerkleBlock*) blockSet = BRSetNew(BRMerkleBlockHash, BRMerkleBlockEq, 100);
-    if (NULL != blockSet && 1 != fileServiceLoad (manager->fileService, blockSet, fileServiceTypeBlocks, 1)) {
+    if (1 != fileServiceLoad (manager->fileService, blockSet, fileServiceTypeBlocks, 1)) {
         BRSetFreeAll(blockSet, (void (*) (void*)) BRMerkleBlockFree);
         return NULL;
     }
@@ -757,7 +757,7 @@ static BRArrayOf(BRPeer)
 initialPeersLoad (BRWalletManager manager) {
     /// Load peers for the wallet manager.
     BRSetOf(BRPeer*) peerSet = BRSetNew(BRPeerHash, BRPeerEq, 100);
-    if (NULL != peerSet && 1 != fileServiceLoad (manager->fileService, peerSet, fileServiceTypePeers, 1)) {
+    if (1 != fileServiceLoad (manager->fileService, peerSet, fileServiceTypePeers, 1)) {
         BRSetFreeAll(peerSet, free);
         return NULL;
     }
