@@ -588,6 +588,9 @@ extern int rippleDeserialize(uint8_t *buffer, int bufferSize, BRArrayOf(BRRipple
             // We were unable to parse this field - so quit now
             // The caller is expected to check the number of bytes
             // to see if serialization was complete.
+            if (field.memos != 0) {
+                memoListFree(field.memos);
+            }
             return index;
         }
         index += content_length;
