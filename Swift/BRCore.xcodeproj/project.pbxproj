@@ -542,6 +542,7 @@
 		3C6B172C2131CB5B003C313B /* CoreExplore */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = CoreExplore; sourceTree = BUILT_PRODUCTS_DIR; };
 		3C6B172E2131CB5B003C313B /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		3C6B17792131CE12003C313B /* libCoreMacOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libCoreMacOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		3C702C0F232AE39100A2CD5F /* config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
 		3C7BE5AD230F0BD0005FD4CD /* WalletManagersTableViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletManagersTableViewController.swift; sourceTree = "<group>"; };
 		3C7BE5AF230F0BFB005FD4CD /* WalletManagerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletManagerViewController.swift; sourceTree = "<group>"; };
 		3C812EBE2266675E0007D335 /* BRRipple.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRRipple.h; sourceTree = "<group>"; };
@@ -1187,6 +1188,7 @@
 		3C6AE1262329855300016196 /* sqlite3 */ = {
 			isa = PBXGroup;
 			children = (
+				3C702C0F232AE39100A2CD5F /* config.h */,
 				3C6AE1272329855300016196 /* sqlite3.c */,
 				3C6AE1282329855300016196 /* shell.c */,
 				3C6AE1292329855300016196 /* sqlite3.h */,

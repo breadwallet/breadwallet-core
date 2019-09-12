@@ -23,7 +23,7 @@
 
     #define SQLITE_HAVE_ISNAN                           1
     #define SQLITE_DEFAULT_JOURNAL_SIZE_LIMIT           1048576
-    #define SQLITE_THREADSAFE                           2
+    #define SQLITE_THREADSAFE                           1 /* Allow: SQLITE_CONFIG_SERIALIZED */
     #define SQLITE_TEMP_STORE                           3
     #define SQLITE_POWERSAFE_OVERWRITE                  1
     #define SQLITE_DEFAULT_FILE_FORMAT                  4
@@ -40,6 +40,9 @@
     #define SQLITE_ENABLE_BATCH_ATOMIC_WRITE            1
 
 #elif defined (__APPLE__)
+
+    // Derived from 'PRAGMA compile_options;' for Apple SQLite
+    // version 3.24.0
 
     #define SQLITE_BUG_COMPATIBLE_20160819              1
     #define SQLITE_DEFAULT_CACHE_SIZE                   128
@@ -74,7 +77,7 @@
     #define SQLITE_OMIT_LOAD_EXTENSION                  1
     #define SQLITE_STMTJRNL_SPILL                       131072
     #define SQLITE_SUBSTR_COMPATIBILITY                 1
-    #define SQLITE_THREADSAFE                           2
+    #define SQLITE_THREADSAFE                           1 /* Allow: SQLITE_CONFIG_SERIALIZED */
     #define SQLITE_USE_URI                              1
 
 #else
