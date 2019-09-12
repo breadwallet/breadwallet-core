@@ -30,6 +30,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <pthread.h>
 #include <sqlite3.h>
 typedef int sqlite3_status_code;
 
@@ -40,35 +41,33 @@ typedef int sqlite3_status_code;
 
 #define FILE_SERVICE_SDB_ENTITY_TABLE     \
 "CREATE TABLE IF NOT EXISTS Entity(     \n\
-  Currency  CHAR(64)    NOT NULL,       \n\
-  Network   CHAR(64)    NOT NULL,       \n\
   Type      CHAR(64)    NOT NULL,       \n\
   Hash      CHAR(64)    NOT NULL,       \n\
   Data      TEXT        NOT NULL,       \n\
-  PRIMARY KEY (Currency, Network, Type, Hash));"
+  PRIMARY KEY (Type, Hash));"
 
 typedef char FileServiceSQL[1024];
 
-#define FILE_SERVICE_SDB_INSERT_ENTITY_TEMPLATE    \
-"INSERT OR REPLACE INTO Entity (Currency, Network, Type, Hash, Data) VALUES (\"%s\", \"%s\", ?, ?, ?);"
+#define FILE_SERVICE_SDB_INSERT_ENTITY    \
+"INSERT OR REPLACE INTO Entity (Type, Hash, Data) VALUES (?, ?, ?);"
 
-#define FILE_SERVICE_SDB_QUERY_ENTITY_TEMPLATE     \
-"SELECT Data FROM Entity WHERE Currency = \"%c\" AND Network = \"%s\" AND Type = ? AND Hash = ?;"
+#define FILE_SERVICE_SDB_QUERY_ENTITY     \
+"SELECT Data FROM Entity WHERE Type = ? AND Hash = ?;"
 
-#define FILE_SERVICE_SDB_QUERY_ALL_ENTITY_TEMPLATE     \
-"SELECT Hash, Data FROM Entity WHERE Currency = \"%s\" AND Network = \"%s\" AND Type = ?;"
+#define FILE_SERVICE_SDB_QUERY_ALL_ENTITY     \
+"SELECT Hash, Data FROM Entity WHERE Type = ?;"
 
-#define FILE_SERVICE_SDB_UPDATE_ENTITY_TEMPLATE     \
-"UPDATE Entity SET Data = ? WHERE Currency = \"%s\" AND Network = \"%s\" AND Type = ? AND Hash = ?;"
+#define FILE_SERVICE_SDB_UPDATE_ENTITY     \
+"UPDATE Entity SET Data = ? WHERE Type = ? AND Hash = ?;"
 
-#define FILE_SERVICE_SDB_DELETE_ENTITY_TEMPLATE     \
-"DELETE FROM Entity WHERE Currency = \"%s\" AND Network = \"%s\" AND Type = ? AND Hash = ?;"
+#define FILE_SERVICE_SDB_DELETE_ENTITY     \
+"DELETE FROM Entity WHERE Type = ? AND Hash = ?;"
 
-#define FILE_SERVICE_SDB_DELETE_ALL_TYPE_ENTITY_TEMPLATE     \
-"DELETE FROM Entity WHERE Currency = \"%s\" AND Network = \"%s\" AND Type = ?;"
+#define FILE_SERVICE_SDB_DELETE_ALL_TYPE_ENTITY     \
+"DELETE FROM Entity WHERE Type = ?;"
 
-#define FILE_SERVICE_SDB_DELETE_ALL_ENTITY_TEMPLATE     \
-"DELETE FROM Entity WHERE Currency = \"%s\" AND Network = \"%s\";"
+#define FILE_SERVICE_SDB_DELETE_ALL_ENTITY     \
+"DELETE FROM Entity;"
 
 #if defined(DEBUG)
 static int needSQLiteCompileOptions = 1;
@@ -106,6 +105,7 @@ encodeHex (char *target, size_t targetLen, const uint8_t *source, size_t sourceL
 /** Forward Declarations */
 static int
 fileServiceFailedSDB (BRFileService fs,
+                      int releaseLock,
                       sqlite3_status_code code);
 
 /// Return 0 on success, -1 otherwise
@@ -190,20 +190,19 @@ struct BRFileServiceRecord {
     char *currency;
     char *network;
 
+    pthread_mutex_t lock;
+    
     BRArrayOf(BRFileServiceEntityType) entityTypes;
     BRFileServiceContext context;
     BRFileServiceErrorHandler handler;
 };
 
-static void
-fileServiceSQLFill (BRFileService fs, FileServiceSQL sql, const char *templete) {
-    sprintf (sql, templete, fs->currency, fs->network);
-}
-
 static BRFileService
 fileServiceCreateReturnError (BRFileService fs,
+                              int releaseLock,
                               BRFileServiceError error) {
     // Nothing with 'error' at this point; a placeholder for now.
+    if (releaseLock) pthread_mutex_unlock (&fs->lock);
     fileServiceRelease (fs);
     return NULL;
 }
@@ -229,8 +228,22 @@ fileServiceCreate (const char *basePath,
     if (NULL == dir) return NULL;
     closedir(dir);
 
+    // Require SQLite to support 'MULTI_THREADED' or 'SERIALIZED'.  We'll lock our connection.
+    // and thus 'MULTI_THREADED' is appropriate.
+    if (0 == sqlite3_threadsafe()) return NULL;
+
     // Create the file service itself
     BRFileService fs = calloc (1, sizeof (struct BRFileServiceRecord));
+
+    // A recursive lock - fileServiceLoad() will recursively call fileServiceSave()
+    {
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+
+        pthread_mutex_init(&fs->lock, &attr);
+        pthread_mutexattr_destroy(&attr);
+    }
 
     // Set the error handler - early
     fileServiceSetErrorHandler (fs, context, handler);
@@ -243,13 +256,16 @@ fileServiceCreate (const char *basePath,
     fs->network  = strdup (network);
 
     // Locate the SQLITE Database
-    size_t sdbPathLength = strlen (basePath) + 1 + strlen (FILE_SERVICE_SDB_FILENAME) + 1;
+    size_t sdbPathLength = strlen (basePath) + 1 + strlen(currency) + 1 + strlen(network) + 1 + strlen (FILE_SERVICE_SDB_FILENAME) + 1;
     fs->sdbPath = malloc (sdbPathLength);
-    sprintf (fs->sdbPath, "%s/%s", basePath, FILE_SERVICE_SDB_FILENAME);
+    sprintf (fs->sdbPath, "%s/%s-%s-%s", basePath, currency, network, FILE_SERVICE_SDB_FILENAME);
+
+    pthread_mutex_lock (&fs->lock);
 
     // Create/Open the SQLITE Database
     sqlite3_status_code status = sqlite3_open(fs->sdbPath, &fs->sdb);
     if (SQLITE_OK != status) {
+        pthread_mutex_unlock (&fs->lock);
         fileServiceRelease (fs);
         return NULL;
     }
@@ -258,70 +274,64 @@ fileServiceCreate (const char *basePath,
     sqlite3_stmt *sdbCreateTableStmt;
     status = sqlite3_prepare_v2 (fs->sdb, FILE_SERVICE_SDB_ENTITY_TABLE, -1, &sdbCreateTableStmt, NULL);
     if (SQLITE_OK != status)
-        return fileServiceCreateReturnError (fs, (BRFileServiceError) {
+        return fileServiceCreateReturnError (fs, 1, (BRFileServiceError) {
             FILE_SERVICE_SDB,
             { .sdb = { status }}
         });
 
     if (SQLITE_DONE != sqlite3_step(sdbCreateTableStmt))
-        return fileServiceCreateReturnError (fs, (BRFileServiceError) {
+        return fileServiceCreateReturnError (fs, 1, (BRFileServiceError) {
             FILE_SERVICE_SDB,
             { .sdb = { status }}
         });
     sqlite3_finalize(sdbCreateTableStmt);
 
-    FileServiceSQL sql;
-
     // Create the SQLITE 'Insert into Entity' Statement
-    fileServiceSQLFill (fs, sql, FILE_SERVICE_SDB_INSERT_ENTITY_TEMPLATE);
-    status = sqlite3_prepare_v2 (fs->sdb, sql, -1, &fs->sdbInsertStmt, NULL);
+    status = sqlite3_prepare_v2 (fs->sdb, FILE_SERVICE_SDB_INSERT_ENTITY, -1, &fs->sdbInsertStmt, NULL);
     if (SQLITE_OK != status)
-        return fileServiceCreateReturnError (fs, (BRFileServiceError) {
+        return fileServiceCreateReturnError (fs, 1, (BRFileServiceError) {
             FILE_SERVICE_SDB,
             { .sdb = { status }}
         });
 
     // Create the SQLITE "Select Entity By Hash' Statement
-    fileServiceSQLFill (fs, sql, FILE_SERVICE_SDB_QUERY_ENTITY_TEMPLATE);
-    status = sqlite3_prepare_v2 (fs->sdb, sql, -1, &fs->sdbSelectStmt, NULL);
+    status = sqlite3_prepare_v2 (fs->sdb, FILE_SERVICE_SDB_QUERY_ENTITY, -1, &fs->sdbSelectStmt, NULL);
     if (SQLITE_OK != status)
-        return fileServiceCreateReturnError (fs, (BRFileServiceError) {
+        return fileServiceCreateReturnError (fs, 1, (BRFileServiceError) {
             FILE_SERVICE_SDB,
             { .sdb = { status }}
         });
 
     // Create the SQLITE "Select Entity ' Statement
-    fileServiceSQLFill (fs, sql, FILE_SERVICE_SDB_QUERY_ALL_ENTITY_TEMPLATE);
-    status = sqlite3_prepare_v2 (fs->sdb, sql, -1, &fs->sdbSelectAllStmt, NULL);
+    status = sqlite3_prepare_v2 (fs->sdb, FILE_SERVICE_SDB_QUERY_ALL_ENTITY, -1, &fs->sdbSelectAllStmt, NULL);
     if (SQLITE_OK != status)
-        return fileServiceCreateReturnError (fs, (BRFileServiceError) {
+        return fileServiceCreateReturnError (fs, 1, (BRFileServiceError) {
             FILE_SERVICE_SDB,
             { .sdb = { status }}
         });
 
-    fileServiceSQLFill (fs, sql, FILE_SERVICE_SDB_UPDATE_ENTITY_TEMPLATE);
-    status = sqlite3_prepare_v2 (fs->sdb, sql, -1, &fs->sdbUpdateStmt, NULL);
+    status = sqlite3_prepare_v2 (fs->sdb, FILE_SERVICE_SDB_UPDATE_ENTITY, -1, &fs->sdbUpdateStmt, NULL);
     if (SQLITE_OK != status)
-        return fileServiceCreateReturnError (fs, (BRFileServiceError) {
+        return fileServiceCreateReturnError (fs, 1, (BRFileServiceError) {
             FILE_SERVICE_SDB,
             { .sdb = { status }}
         });
 
-    fileServiceSQLFill (fs, sql, FILE_SERVICE_SDB_DELETE_ENTITY_TEMPLATE);
-    status = sqlite3_prepare_v2 (fs->sdb, sql, -1, &fs->sdbDeleteStmt, NULL);
+    status = sqlite3_prepare_v2 (fs->sdb, FILE_SERVICE_SDB_DELETE_ENTITY, -1, &fs->sdbDeleteStmt, NULL);
     if (SQLITE_OK != status)
-        return fileServiceCreateReturnError (fs, (BRFileServiceError) {
+        return fileServiceCreateReturnError (fs, 1, (BRFileServiceError) {
             FILE_SERVICE_SDB,
             { .sdb = { status }}
         });
 
-    fileServiceSQLFill (fs, sql, FILE_SERVICE_SDB_DELETE_ALL_TYPE_ENTITY_TEMPLATE);
-    status = sqlite3_prepare_v2 (fs->sdb, sql, -1, &fs->sdbDeleteAllTypeStmt, NULL);
+    status = sqlite3_prepare_v2 (fs->sdb, FILE_SERVICE_SDB_DELETE_ALL_TYPE_ENTITY, -1, &fs->sdbDeleteAllTypeStmt, NULL);
     if (SQLITE_OK != status)
-        return fileServiceCreateReturnError (fs, (BRFileServiceError) {
+        return fileServiceCreateReturnError (fs, 1, (BRFileServiceError) {
             FILE_SERVICE_SDB,
             { .sdb = { status }}
         });
+
+    pthread_mutex_unlock (&fs->lock);
 
     // Allocate the `entityTypes` array
     array_new (fs->entityTypes, FILE_SERVICE_INITIAL_TYPE_COUNT);
@@ -346,6 +356,7 @@ fileServiceCreate (const char *basePath,
 // careful with fields that might not yet exist.
 extern void
 fileServiceRelease (BRFileService fs) {
+    pthread_mutex_lock (&fs->lock);
     if (NULL != fs->entityTypes) {
         size_t typesCount = array_count(fs->entityTypes);
         for (size_t index = 0; index < typesCount; index++)
@@ -366,6 +377,9 @@ fileServiceRelease (BRFileService fs) {
     if (NULL != fs->sdbDeleteAllStmt)     sqlite3_finalize (fs->sdbDeleteAllStmt);
 
     if (NULL != fs->sdb) sqlite3_close (fs->sdb);
+    pthread_mutex_unlock (&fs->lock);
+    pthread_mutex_destroy(&fs->lock);
+
     free (fs);
 }
 
@@ -414,12 +428,15 @@ fileServiceLookupEntityHandler (const BRFileService fs,
 
 static int
 fileServiceFailedInternal (BRFileService fs,
-                               void* bufferToFree,
-                               FILE* fileToClose,
-                               BRFileServiceError error) {
+                           int releaseLock,
+                           void* bufferToFree,
+                           FILE* fileToClose,
+                           BRFileServiceError error) {
     if (NULL != bufferToFree) free (bufferToFree);
     if (NULL != fileToClose)  fclose (fileToClose);
+    if (releaseLock) pthread_mutex_unlock (&fs->lock);
 
+    // Handler invoked w/o the lock.  Avoid a possible recursive use of FS.
     if (NULL != fs->handler)
         fs->handler (fs->context, fs, error);
 
@@ -428,32 +445,41 @@ fileServiceFailedInternal (BRFileService fs,
 
 static int
 fileServiceFailedImpl(BRFileService fs,
-                          void* bufferToFree,
-                          FILE* fileToClose,
-                          const char *reason) {
-    return fileServiceFailedInternal (fs, bufferToFree, fileToClose,
-                                          (BRFileServiceError) {
-                                              FILE_SERVICE_IMPL,
-                                              { .impl = { reason }}
-                                          });
+                      int releaseLock,
+                      void* bufferToFree,
+                      FILE* fileToClose,
+                      const char *reason) {
+    return fileServiceFailedInternal (fs, releaseLock, bufferToFree, fileToClose,
+                                      (BRFileServiceError) {
+                                          FILE_SERVICE_IMPL,
+                                          { .impl = { reason }}
+                                      });
 }
 
+#pragma clang diagnostic push
+#pragma GCC diagnostic push
+#pragma clang diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wunused-function"
 static int
 fileServiceFailedUnix(BRFileService fs,
-                          void* bufferToFree,
-                          FILE* fileToClose,
-                          int error) {
-    return fileServiceFailedInternal (fs, bufferToFree, fileToClose,
-                                          (BRFileServiceError) {
-                                              FILE_SERVICE_UNIX,
-                                              { .unix = { error }}
-                                          });
+                      int releaseLock,
+                      void* bufferToFree,
+                      FILE* fileToClose,
+                      int error) {
+    return fileServiceFailedInternal (fs, releaseLock, bufferToFree, fileToClose,
+                                      (BRFileServiceError) {
+                                          FILE_SERVICE_UNIX,
+                                          { .unix = { error }}
+                                      });
 }
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
 
 static int
 fileServiceFailedSDB (BRFileService fs,
+                      int releaseLock,
                       sqlite3_status_code code) {
-    return fileServiceFailedInternal (fs, NULL, NULL,
+    return fileServiceFailedInternal (fs, releaseLock, NULL, NULL,
                                       (BRFileServiceError) {
                                           FILE_SERVICE_SDB,
                                           { .sdb = { code }}
@@ -462,15 +488,16 @@ fileServiceFailedSDB (BRFileService fs,
 
 static int
 fileServiceFailedEntity(BRFileService fs,
-                            void* bufferToFree,
-                            FILE* fileToClose,
-                            const char *type,
-                            const char *reason) {
-    return fileServiceFailedInternal (fs, bufferToFree, fileToClose,
-                                          (BRFileServiceError) {
-                                              FILE_SERVICE_ENTITY,
-                                              { .entity = { type, reason }}
-                                          });
+                        int releaseLock,
+                        void* bufferToFree,
+                        FILE* fileToClose,
+                        const char *type,
+                        const char *reason) {
+    return fileServiceFailedInternal (fs, releaseLock, bufferToFree, fileToClose,
+                                      (BRFileServiceError) {
+                                          FILE_SERVICE_ENTITY,
+                                          { .entity = { type, reason }}
+                                      });
 }
 
 /// MARK: - Load
@@ -481,16 +508,18 @@ fileServiceLoad (BRFileService fs,
                  const char *type,
                  int updateVersion) {
     BRFileServiceEntityType *entityType = fileServiceLookupType (fs, type);
-    if (NULL == entityType) return fileServiceFailedImpl (fs, NULL, NULL, "missed type");
+    if (NULL == entityType) return fileServiceFailedImpl (fs, 0, NULL, NULL, "missed type");
 
     BRFileServiceEntityHandler *entityHandlerCurrent = fileServiceEntityTypeLookupHandler(entityType, entityType->currentVersion);
-    if (NULL == entityHandlerCurrent) return fileServiceFailedImpl (fs,  NULL, NULL, "missed type handler");
+    if (NULL == entityHandlerCurrent) return fileServiceFailedImpl (fs,  0, NULL, NULL, "missed type handler");
 
     sqlite3_status_code status;
 
+    pthread_mutex_lock (&fs->lock);
+
     status = sqlite3_bind_text (fs->sdbSelectAllStmt, 1, type, -1, SQLITE_STATIC);
     if (SQLITE_OK != status)
-        return fileServiceFailedSDB (fs, status);
+        return fileServiceFailedSDB (fs, 1, status);
 
     uint8_t  dataBytesBuffer[8196];
     uint8_t *dataBytes = dataBytesBuffer;
@@ -546,13 +575,13 @@ fileServiceLoad (BRFileService fs,
         // Look up the entity handler
         BRFileServiceEntityHandler *handler = fileServiceEntityTypeLookupHandler(entityType, version);
         if (NULL == handler)
-            return fileServiceFailedImpl (fs,  (dataBytes == dataBytesBuffer ? NULL : dataBytes), NULL,
+            return fileServiceFailedImpl (fs, 1, (dataBytes == dataBytesBuffer ? NULL : dataBytes), NULL,
                                           "missed type handler");
 
         // Read the entity from buffer and add to results.
         void *entity = handler->reader (handler->context, fs, entityBytes, entityBytesCount);
         if (NULL == entity)
-            return fileServiceFailedEntity (fs, (dataBytes == dataBytesBuffer ? NULL : dataBytes), NULL,
+            return fileServiceFailedEntity (fs, 1, (dataBytes == dataBytesBuffer ? NULL : dataBytes), NULL,
                                             type, "reader");
 
         // Update restuls with the newly restored entity
@@ -565,6 +594,7 @@ fileServiceLoad (BRFileService fs,
             fileServiceSave (fs, type, entity);
     }
     sqlite3_reset (fs->sdbSelectAllStmt);
+    pthread_mutex_unlock (&fs->lock);
 
     if (dataBytes != dataBytesBuffer) free (dataBytes);
 
@@ -577,11 +607,12 @@ extern int
 fileServiceSave (BRFileService fs,
                  const char *type,  /* block, peers, transactions, logs, ... */
                  const void *entity) {     /* BRMerkleBlock*, BRTransaction, BREthereumTransaction, ... */
+
     BRFileServiceEntityType *entityType = fileServiceLookupType (fs, type);
-    if (NULL == entityType) { fileServiceFailedImpl (fs, NULL, NULL, "missed type"); return 0; };
+    if (NULL == entityType) { fileServiceFailedImpl (fs, 0, NULL, NULL, "missed type"); return 0; };
 
     BRFileServiceEntityHandler *handler = fileServiceEntityTypeLookupHandler(entityType, entityType->currentVersion);
-    if (NULL == handler) { fileServiceFailedImpl (fs,  NULL, NULL, "missed type handler"); return 0; };
+    if (NULL == handler) { fileServiceFailedImpl (fs, 0, NULL, NULL, "missed type handler"); return 0; };
 
     // Get then hex-encode the identifer
     UInt256 identifier = handler->identifier (handler->context, fs, entity);
@@ -620,32 +651,36 @@ fileServiceSave (BRFileService fs,
     // Fill out the SQL statement
     sqlite3_status_code status;
 
+    pthread_mutex_lock (&fs->lock);
+
     status = sqlite3_bind_text (fs->sdbInsertStmt, 1, type, -1, SQLITE_STATIC);
     if (SQLITE_OK != status) {
         free (data);
-        return fileServiceFailedSDB (fs, status);
+        return fileServiceFailedSDB (fs, 1, status);
     }
 
     status = sqlite3_bind_text (fs->sdbInsertStmt, 2, hash, -1, SQLITE_STATIC);
     if (SQLITE_OK != status) {
         free (data);
-        return fileServiceFailedSDB (fs, status);
+        return fileServiceFailedSDB (fs, 1, status);
     }
 
     status = sqlite3_bind_text (fs->sdbInsertStmt, 3, data, -1, SQLITE_STATIC);
     if (SQLITE_OK != status) {
         free (data);
-        return fileServiceFailedSDB (fs, status);
+        return fileServiceFailedSDB (fs, 1, status);
     }
 
     // Execute the Update
     if (SQLITE_DONE != sqlite3_step (fs->sdbInsertStmt)) {
         free (data);
-        return fileServiceFailedSDB (fs, status);
+        return fileServiceFailedSDB (fs, 1, status);
     }
 
     sqlite3_reset (fs->sdbInsertStmt);
     sqlite3_clear_bindings(fs->sdbInsertStmt);
+    pthread_mutex_unlock (&fs->lock);
+
     free (data);
     return 1;
 }
@@ -658,25 +693,29 @@ fileServiceRemove (BRFileService fs,
                    UInt256 identifier) {
     BRFileServiceEntityType *entityType = fileServiceLookupType (fs, type);
     if (NULL == entityType)
-        return fileServiceFailedImpl (fs, NULL, NULL, "missed type");
+        return fileServiceFailedImpl (fs, 0, NULL, NULL, "missed type");
 
     // Hex-Encode identifier
     const char *hash = u256hex(identifier);
 
     sqlite3_status_code status;
 
+    pthread_mutex_lock (&fs->lock);
+
     status = sqlite3_bind_text (fs->sdbDeleteStmt, 1, type, -1, SQLITE_STATIC);
     if (SQLITE_OK != status)
-        return fileServiceFailedSDB (fs, status);
+        return fileServiceFailedSDB (fs, 1, status);
 
     status = sqlite3_bind_text (fs->sdbDeleteStmt, 2, hash, -1, SQLITE_STATIC);
     if (SQLITE_OK != status)
-        return fileServiceFailedSDB (fs, status);
+        return fileServiceFailedSDB (fs, 1, status);
 
     if (SQLITE_DONE != sqlite3_step (fs->sdbDeleteStmt))
-        return fileServiceFailedSDB (fs, status);
+        return fileServiceFailedSDB (fs, 1, status);
 
     sqlite3_reset (fs->sdbDeleteStmt);
+    pthread_mutex_unlock (&fs->lock);
+
     return 1;
 }
 
@@ -687,14 +726,18 @@ fileServiceClearForType (BRFileService fs,
 
     sqlite3_status_code status;
 
+    pthread_mutex_lock (&fs->lock);
+
     status = sqlite3_bind_text (fs->sdbDeleteAllTypeStmt, 1, type, -1, SQLITE_STATIC);
     if (SQLITE_OK != status)
-        return fileServiceFailedSDB (fs, status);
+        return fileServiceFailedSDB (fs, 1, status);
 
     if (SQLITE_DONE != sqlite3_step (fs->sdbDeleteAllTypeStmt))
-        return fileServiceFailedSDB (fs, status);
+        return fileServiceFailedSDB (fs, 1, status);
 
     sqlite3_reset (fs->sdbDeleteAllTypeStmt);
+    pthread_mutex_unlock (&fs->lock);
+
     return 1;
 }
 
@@ -703,7 +746,7 @@ fileServiceClear (BRFileService fs,
                   const char *type) {
     BRFileServiceEntityType *entityType = fileServiceLookupType (fs, type);
     if (NULL == entityType)
-        return fileServiceFailedImpl (fs, NULL, NULL, "missed type");
+        return fileServiceFailedImpl (fs, 0, NULL, NULL, "missed type");
 
     return fileServiceClearForType(fs, entityType);
 }
@@ -762,11 +805,11 @@ fileServiceDefineCurrentVersion (BRFileService fs,
                                  BRFileServiceVersion version) {
     // Find the entityType for `type`
     BRFileServiceEntityType *entityType = fileServiceLookupType (fs, type);
-    if (NULL == entityType) return fileServiceFailedImpl (fs, NULL, NULL, "missed type");
+    if (NULL == entityType) return fileServiceFailedImpl (fs, 0, NULL, NULL, "missed type");
 
     // Find the entityHandler, for version.
     BRFileServiceEntityHandler *entityHandler = fileServiceEntityTypeLookupHandler (entityType, version);
-    if (NULL == entityHandler) return fileServiceFailedImpl (fs,  NULL, NULL, "missed type handler");
+    if (NULL == entityHandler) return fileServiceFailedImpl (fs, 0, NULL, NULL, "missed type handler");
 
     // We have a handler, therefore it can be the current one.
     entityType->currentVersion = version;
