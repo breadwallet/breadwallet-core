@@ -329,6 +329,7 @@ fileServiceCreate (const char *basePath,
 #if defined(DEBUG)
     if (needSQLiteCompileOptions) {
         needSQLiteCompileOptions = 0;
+        printf ("SQLITE ThreadSafe Mutex: %d\n", sqlite3_threadsafe());
         printf ("SQLITE Compile Options:\n");
         const char *option = NULL;
         for (int index = 0;
