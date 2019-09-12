@@ -70,6 +70,9 @@ typedef char FileServiceSQL[1024];
 #define FILE_SERVICE_SDB_DELETE_ALL_ENTITY_TEMPLATE     \
 "DELETE FROM Entity WHERE Currency = \"%s\" AND Network = \"%s\";"
 
+#if defined(DEBUG)
+static int needSQLiteCompileOptions = 1;
+#endif
 // HEX Encode/Decode - Cribbed from ethereum/util/BRUtilHex.c
 
 // Convert a char into uint8_t (decode)
@@ -323,6 +326,18 @@ fileServiceCreate (const char *basePath,
     // Allocate the `entityTypes` array
     array_new (fs->entityTypes, FILE_SERVICE_INITIAL_TYPE_COUNT);
 
+#if defined(DEBUG)
+    if (needSQLiteCompileOptions) {
+        needSQLiteCompileOptions = 0;
+        printf ("SQLITE Compile Options:\n");
+        const char *option = NULL;
+        for (int index = 0;
+             NULL != (option = sqlite3_compileoption_get(index));
+             index++) {
+            printf ("-DSQLITE_%s\n", option);
+        }
+    }
+#endif
     return fs;
 }
 
