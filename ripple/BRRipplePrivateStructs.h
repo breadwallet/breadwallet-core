@@ -103,4 +103,13 @@ inline static BRRippleMemoNode * memoListAdd(BRRippleField * field)
     return newNode;
 }
 
+struct BRRippleTransferRecord {
+    BRRippleAddress sourceAddress;
+    BRRippleAddress targetAddress;
+    BRRippleUnitDrops amount;
+    BRRippleTransactionHash transactionId;
+    uint64_t timestamp;
+    uint64_t blockHeight;
+};
+
 #endif

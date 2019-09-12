@@ -31,6 +31,13 @@
 
 #define WORD_LIST_LENGTH 2048
 
+// A hard-coded representation of the __fee__ address
+uint8_t feeBytes[] = {
+    0x42, 0x52, 0x44, 0x5F, 0x5F, 0x66, 0x65, 0x65,
+    0x5F, 0x5F, 0x42, 0x52, 0x44, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00
+};
+
 struct BRRippleAccountRecord {
     BRRippleAddress raw; // The 20 byte account id
 
@@ -85,23 +92,28 @@ extern char * createRippleAddressString (BRRippleAddress address, int useChecksu
 {
     char *string = calloc (1, 36);
 
-    // The process is this:
-    // 1. Prepend the Ripple address indicator (0) to the 20 bytes
-    // 2. Do a douple sha265 hash on the bytes
-    // 3. Use the first 4 bytes of the hash as checksum and append to the bytes
-    uint8_t input[25];
-    input[0] = 0; // Ripple address type
-    memcpy(&input[1], address.bytes, 20);
-    uint8_t hash[32];
-    BRSHA256_2(hash, input, 21);
-    memcpy(&input[21], hash, 4);
+    // Check for our special case __fee__ address
+    if (memcmp(address.bytes, feeBytes, sizeof(feeBytes)) == 0) {
+        strcpy(string, "__fee__");
+    } else {
+        // The process is this:
+        // 1. Prepend the Ripple address indicator (0) to the 20 bytes
+        // 2. Do a douple sha265 hash on the bytes
+        // 3. Use the first 4 bytes of the hash as checksum and append to the bytes
+        uint8_t input[25];
+        input[0] = 0; // Ripple address type
+        memcpy(&input[1], address.bytes, 20);
+        uint8_t hash[32];
+        BRSHA256_2(hash, input, 21);
+        memcpy(&input[21], hash, 4);
 
-    // Now base58 encode the result
-    rippleEncodeBase58(string, 35, input, 25);
-    // NOTE: once the following function is "approved" we can switch to using it
-    // and remove the base58 function above
-    // static const char rippleAlphabet[] = "rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz";
-    // BRBase58EncodeEx(string, 36, input, 25, rippleAlphabet);
+        // Now base58 encode the result
+        rippleEncodeBase58(string, 35, input, 25);
+        // NOTE: once the following function is "approved" we can switch to using it
+        // and remove the base58 function above
+        // static const char rippleAlphabet[] = "rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz";
+        // BRBase58EncodeEx(string, 36, input, 25, rippleAlphabet);
+    }
     return string;
 }
 
@@ -304,9 +316,14 @@ rippleAddressCreate(const char * rippleAddressString)
 {
     BRRippleAddress address;
     memset(address.bytes, 0x00, sizeof(address.bytes));
-    // Work backwards from this ripple address (string) to what is
-    // known as the acount ID (20 bytes)
-    rippleAddressStringToAddress(rippleAddressString, &address);
+    // 1 special case so far - the __fee__ address
+    if (strcmp(rippleAddressString, "__fee__") == 0) {
+        memcpy(address.bytes, feeBytes, sizeof(feeBytes));
+    } else {
+        // Work backwards from this ripple address (string) to what is
+        // known as the acount ID (20 bytes)
+        rippleAddressStringToAddress(rippleAddressString, &address);
+    }
     return address;
 }
 
