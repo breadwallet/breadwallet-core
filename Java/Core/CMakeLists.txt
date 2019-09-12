@@ -15,6 +15,29 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -DANDROID_STL=gnustl_static -DANDRO
 # -Wint-conversion -Wbool-conversion -Wenum-conversion -Wassign-enum -Wno-shorten-64-to-32 -Wpointer-sign -Wnewline-eof
 # -Wdeprecated-declarations -Wno-sign-conversion
 
+#
+# sqlite3 build
+#
+
+add_library(sqlite3
+            STATIC)
+
+target_sources (sqlite3
+                PRIVATE
+                src/main/cpp/core/vendor/sqlite3/sqlite3.c
+                src/main/cpp/core/vendor/sqlite3/sqlite3.h)
+
+target_include_directories(sqlite3
+                           INTERFACE
+                           ${PROJECT_SOURCE_DIR}/src/main/cpp/core/vendor/sqlite3)
+
+target_compile_definitions (sqlite3
+                            PRIVATE
+                            _HAVE_SQLITE_CONFIG_H=1)
+
+#
+# core build
+#
 
 add_library( # Sets the name of the library.
              core
@@ -292,6 +315,7 @@ include_directories(src/main/cpp/core/bitcoin)
 include_directories(src/main/cpp/core/bcash)
 include_directories(src/main/cpp/core/ethereum/)
 include_directories(src/main/cpp/core/secp256k1/)
+include_directories(src/main/cpp/core/vendor/sqlite3/)
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by
@@ -315,4 +339,5 @@ target_link_libraries( # Specifies the target library.
 
                        # Links the target library to the log library
                        # included in the NDK.
-                       ${log-lib} )
+                       ${log-lib}
+                       sqlite3 )

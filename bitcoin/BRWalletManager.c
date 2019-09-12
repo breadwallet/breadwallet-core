@@ -608,7 +608,7 @@ static BRArrayOf(BRTransaction*)
 initialTransactionsLoad (BRWalletManager manager) {
     BRSetOf(BRTransaction*) transactionSet = BRSetNew(BRTransactionHash, BRTransactionEq, 100);
     if (1 != fileServiceLoad (manager->fileService, transactionSet, fileServiceTypeTransactions, 1)) {
-        BRSetFree(transactionSet);
+        BRSetFreeAll(transactionSet, (void (*) (void*)) BRTransactionFree);
         return NULL;
     }
 
@@ -688,9 +688,9 @@ fileServiceTypeBlockV1Reader (BRFileServiceContext context,
 
 static BRArrayOf(BRMerkleBlock*)
 initialBlocksLoad (BRWalletManager manager) {
-    BRSetOf(BRTransaction*) blockSet = BRSetNew(BRMerkleBlockHash, BRMerkleBlockEq, 100);
+    BRSetOf(BRMerkleBlock*) blockSet = BRSetNew(BRMerkleBlockHash, BRMerkleBlockEq, 100);
     if (1 != fileServiceLoad (manager->fileService, blockSet, fileServiceTypeBlocks, 1)) {
-        BRSetFree (blockSet);
+        BRSetFreeAll(blockSet, (void (*) (void*)) BRMerkleBlockFree);
         return NULL;
     }
 
@@ -758,22 +758,17 @@ initialPeersLoad (BRWalletManager manager) {
     /// Load peers for the wallet manager.
     BRSetOf(BRPeer*) peerSet = BRSetNew(BRPeerHash, BRPeerEq, 100);
     if (1 != fileServiceLoad (manager->fileService, peerSet, fileServiceTypePeers, 1)) {
-        BRSetFree(peerSet);
+        BRSetFreeAll(peerSet, free);
         return NULL;
     }
 
     size_t peersCount = BRSetCount(peerSet);
-    BRPeer *peersRefs[peersCount];
-
-    BRSetAll(peerSet, (void**) peersRefs, peersCount);
-    BRSetClear(peerSet);
-    BRSetFree(peerSet);
 
     BRArrayOf(BRPeer) peers;
     array_new (peers, peersCount);
 
-    for (size_t index = 0; index < peersCount; index++)
-        array_add (peers, *peersRefs[index]);
+    FOR_SET (BRPeer*, peer, peerSet) array_add (peers, *peer);
+    BRSetFreeAll(peerSet, free);
 
     return peers;
 }
@@ -933,14 +928,14 @@ BRWalletManagerNew (BRWalletManagerClient client,
     // If any of these are NULL, then there was a failure; on a failure they all need to be cleared
     // which will cause a *FULL SYNC*
     if (NULL == transactions || NULL == blocks || NULL == peers) {
-        if (NULL == transactions) array_new (transactions, 1);
-        else array_clear(transactions);
+        if (NULL != transactions) array_free_all(transactions, BRTransactionFree);
+        array_new (transactions, 1);
 
-        if (NULL == blocks) array_new (blocks, 1);
-        else array_clear(blocks);
+        if (NULL != blocks) array_free_all(blocks, BRMerkleBlockFree);
+        array_new (blocks, 1);
 
-        if (NULL == peers) array_new (peers, 1);
-        else array_clear(peers);
+        if (NULL != peers) array_free(peers);
+        array_new (peers, 1);
     }
 
     // Create the transaction array with enough initial capacity to hold all the loaded transactions
@@ -1158,11 +1153,11 @@ BRWalletManagerSetMode (BRWalletManager manager, BRSyncMode mode) {
         // If any of these are NULL, then there was a failure; on a failure they all need to be cleared
         // which will cause a *FULL SYNC*
         if (NULL == blocks || NULL == peers) {
-            if (NULL == blocks) array_new (blocks, 1);
-            else array_clear(blocks);
+            if (NULL != blocks) array_free_all(blocks, BRMerkleBlockFree);
+            array_new (blocks, 1);
 
-            if (NULL == peers) array_new (peers, 1);
-            else array_clear(peers);
+            if (NULL != peers) array_free(peers);
+            array_new (peers, 1);
         }
 
         // set the new mode
