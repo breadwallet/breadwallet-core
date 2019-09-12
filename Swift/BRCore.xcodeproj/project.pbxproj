@@ -55,7 +55,7 @@
 		3C56C98522FA2B630054AD21 /* TransferCreateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C56C98422FA2B620054AD21 /* TransferCreateController.swift */; };
 		3C5C02392212035B0052E010 /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CEF5FC9220513FC0010A811 /* libresolv.tbd */; };
 		3C5F5E75212C82310038B732 /* BREthereumMPT.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C5F5E74212C82310038B732 /* BREthereumMPT.c */; };
-		3C6AE12B2329855300016196 /* sqlite3.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C6AE1272329855300016196 /* sqlite3.c */; settings = {COMPILER_FLAGS = "-D_HAVE_SQLITE_CONFIG_H=1"; }; };
+		3C6AE12B2329855300016196 /* sqlite3.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C6AE1272329855300016196 /* sqlite3.c */; settings = {COMPILER_FLAGS = "-D_HAVE_SQLITE_CONFIG_H=1 -Wno-ambiguous-macro -Wno-shorten-64-to-32 -Wno-unreachable-code -Wno-#warnings"; }; };
 		3C6AE12D2329856F00016196 /* sqlite3.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C6AE1272329855300016196 /* sqlite3.c */; };
 		3C6B172F2131CB5B003C313B /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C6B172E2131CB5B003C313B /* main.c */; };
 		3C6B17392131CE12003C313B /* BREthereumEther.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53B320AF595400C430F6 /* BREthereumEther.c */; };
