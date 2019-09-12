@@ -680,10 +680,10 @@ ewmCreateWithPublicKey (BREthereumNetwork network,
 
 extern void
 ewmDestroy (BREthereumEWM ewm) {
-    pthread_mutex_lock(&ewm->lock);
-
-    // Stop, including disconnect.
+    // Stop, including disconnect.  This WILL take `ewm->lock` and it MUST be available.
     ewmStop (ewm);
+
+    pthread_mutex_lock(&ewm->lock);
 
     //
     // Begin destroy

@@ -123,7 +123,6 @@ class BRCryptoSystemTests: BRCryptoSystemBaseTests {
         system.supportedModesMap
             .forEach { (argument) in
                 let (bid, modes) = argument
-                XCTAssertTrue (modes.contains (.api_only))
                 XCTAssertTrue (modes.contains (system.defaultModesMap[bid]!))
         }
     }
