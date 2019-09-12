@@ -529,9 +529,12 @@ fileServiceLoad (BRFileService fs,
         const char *hash = (const char *) sqlite3_column_text (fs->sdbSelectAllStmt, 0);
         const char *data = (const char *) sqlite3_column_text (fs->sdbSelectAllStmt, 1);
 
-        // Hash is unused
-        (void) hash;
+        if (NULL == hash || NULL == data)
+            return fileServiceFailedImpl (fs, 1, (dataBytes == dataBytesBuffer ? NULL : dataBytes), NULL,
+                                          "missed query `hash` or `data`");
 
+        assert (64 == strlen (hash));
+        
         // Ensure `dataBytes` is large enough for hex-decoded `data`
         size_t dataCount = strlen (data);
         assert (0 == dataCount % 2);  // Surely 'even'
