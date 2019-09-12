@@ -9,6 +9,7 @@ package com.breadwallet.crypto.blockchaindb;
 
 import android.support.annotation.Nullable;
 
+import com.breadwallet.crypto.BuildConfig;
 import com.breadwallet.crypto.blockchaindb.apis.bdb.BlockApi;
 import com.breadwallet.crypto.blockchaindb.apis.bdb.BlockchainApi;
 import com.breadwallet.crypto.blockchaindb.apis.bdb.CurrencyApi;
@@ -48,6 +49,10 @@ import okhttp3.Request;
 
 public class BlockchainDb {
 
+    private static final String DEFAULT_BDB_BASE_URL = BuildConfig.BDB_BASE_URL;
+    private static final String DEFAULT_API_BASE_URL = BuildConfig.API_BASE_URL;
+    private static final DataTask DEFAULT_DATA_TASK = (cli, request, callback) -> cli.newCall(request).enqueue(callback);
+
     private final AtomicInteger ridGenerator;
 
     private final BlockApi blockApi;
@@ -64,15 +69,24 @@ public class BlockchainDb {
     private final EthTokenApi ethTokenApi;
     private final EthTransferApi ethTransferApi;
 
+    public BlockchainDb(OkHttpClient client) {
+        this(client, null, null, null, null);
+    }
+
     public BlockchainDb(OkHttpClient client, String bdbBaseURL, String apiBaseURL) {
         this(client, bdbBaseURL, null, apiBaseURL, null);
     }
 
-    public BlockchainDb(OkHttpClient client, String bdbBaseURL, @Nullable DataTask bdbDataTask,
-                        String apiBaseURL, @Nullable DataTask apiDataTask) {
-        DataTask defaultDataTask = (cli, request, callback) -> cli.newCall(request).enqueue(callback);
-        bdbDataTask = bdbDataTask == null ? defaultDataTask : bdbDataTask;
-        apiDataTask = apiDataTask == null ? defaultDataTask : apiDataTask;
+    public BlockchainDb(OkHttpClient client,
+                        @Nullable String bdbBaseURL,
+                        @Nullable DataTask bdbDataTask,
+                        @Nullable String apiBaseURL,
+                        @Nullable DataTask apiDataTask) {
+        bdbBaseURL = bdbBaseURL == null ? DEFAULT_BDB_BASE_URL : bdbBaseURL;
+        apiBaseURL = apiBaseURL == null ? DEFAULT_API_BASE_URL : apiBaseURL;
+
+        bdbDataTask = bdbDataTask == null ? DEFAULT_DATA_TASK : bdbDataTask;
+        apiDataTask = apiDataTask == null ? DEFAULT_DATA_TASK : apiDataTask;
 
         BdbApiClient bdbClient = new BdbApiClient(client, bdbBaseURL, bdbDataTask);
         BrdApiClient brdClient = new BrdApiClient(client, apiBaseURL, apiDataTask);
@@ -96,7 +110,15 @@ public class BlockchainDb {
         this.ethTransferApi = new EthTransferApi(brdClient, executorService);
     }
 
-    public static BlockchainDb createForTest (OkHttpClient client, String bdbBaseURL, String bdbAuthToken, String apiBaseURL) {
+    public static BlockchainDb createForTest (OkHttpClient client,
+                                              String bdbAuthToken) {
+        return createForTest(client, bdbAuthToken, null, null);
+    }
+
+    public static BlockchainDb createForTest (OkHttpClient client,
+                                              String bdbAuthToken,
+                                              @Nullable String bdbBaseURL,
+                                              @Nullable String apiBaseURL) {
         DataTask brdDataTask = (cli, request, callback) -> {
             Request decoratedRequest = request.newBuilder()
                     .header("Authorization", "Bearer " + bdbAuthToken)

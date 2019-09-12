@@ -36,9 +36,7 @@ public class CoreCryptoApplication extends Application {
 
     private static final String TAG = CoreCryptoApplication.class.getName();
 
-    private static final String BDB_BASE_URL = BuildConfig.BDB_BASE_URL;
     private static final String BDB_AUTH_TOKEN = BuildConfig.BDB_AUTH_TOKEN;
-    private static final String API_BASE_URL = BuildConfig.API_BASE_URL;
 
     private static final String EXTRA_WIPE = "WIPE";
     private static final String EXTRA_TIMESTAMP = "TIMESTAMP";
@@ -145,7 +143,7 @@ public class CoreCryptoApplication extends Application {
             String uids = UUID.nameUUIDFromBytes(paperKey).toString();
             Account account = Account.createFromPhrase(paperKey, new Date(TimeUnit.SECONDS.toMillis(timestamp)), uids);
 
-            blockchainDb = BlockchainDb.createForTest (new OkHttpClient(), BDB_BASE_URL, BDB_AUTH_TOKEN, API_BASE_URL);
+            blockchainDb = BlockchainDb.createForTest (new OkHttpClient(), BDB_AUTH_TOKEN);
             system = System.create(Executors.newSingleThreadScheduledExecutor(), systemListener, account,
                     isMainnet, storageFile.getAbsolutePath(), blockchainDb);
             system.configure(Collections.emptyList());
