@@ -44,6 +44,10 @@ public final class System {
     /// Flag indicating if the network is reachable; defaults to true
     internal var isNetworkReachable = true
 
+    /// The wallet managers, unsorted.  A WalletManager will hold an 'unowned'
+    /// reference back to `System`
+    public internal(set) var managers: [WalletManager] = [];
+
     internal let callbackCoordinator: SystemCallbackCoordinator
 
     /// We define default blockchains but these are wholly insufficient given that the
@@ -146,7 +150,7 @@ public final class System {
     /// Address Scheme
     ///
 
-    var supportedAddressSchemesMap: [String:[AddressScheme]] = [
+    static let supportedAddressSchemesMap: [String:[AddressScheme]] = [
         "bitcoin-mainnet":      [.btcSegwit, .btcLegacy],
         "bitcoincash-mainnet": [.btcLegacy],
         "ethereum-mainnet":     [.ethDefault],
@@ -154,10 +158,10 @@ public final class System {
         "bitcoin-testnet":      [.btcSegwit, .btcLegacy],
         "bitcoincash-testnet":  [.btcLegacy],
         "ethereum-ropsten":     [.ethDefault],
-        "ripple-testnet":       [.genDefault]
+//        "ripple-testnet":       [.genDefault]
     ]
 
-    var defaultAddressSchemeMap: [String:AddressScheme] = [
+    static let defaultAddressSchemeMap: [String:AddressScheme] = [
         "bitcoin-mainnet":      .btcSegwit,
         "bitcoincash-mainnet": .btcLegacy,
         "ethereum-mainnet":     .ethDefault,
@@ -165,7 +169,7 @@ public final class System {
         "bitcoin-testnet":      .btcSegwit,
         "bitcoincash-testnet":  .btcLegacy,
         "ethereum-ropsten":     .ethDefault,
-        "ripple-testnet":       .genDefault
+//        "ripple-testnet":       .genDefault
     ]
 
     ///
@@ -176,7 +180,7 @@ public final class System {
     /// - Returns: An array of AddressScheme
     ///
     public func supportedAddressSchemes (network: Network) -> [AddressScheme] {
-        return supportedAddressSchemesMap[network.uids] ?? [.genDefault]
+        return System.supportedAddressSchemesMap[network.uids] ?? [.genDefault]
     }
 
     ///
@@ -200,21 +204,28 @@ public final class System {
     /// - Returns: The default AddressScheme
     ///
     public func defaultAddressScheme (network: Network) -> AddressScheme {
-        return defaultAddressSchemeMap[network.uids] ?? .genDefault
+        return System.defaultAddressSchemeMap[network.uids] ?? .genDefault
     }
 
     ///
     /// Wallet Manager Modes
     ///
-    /// Every blockchain supports `.api_only`; blockchains with built-in P2P support (BTC, BCH,
-    /// and ETH) may support `.p2p_only`.  Intermediate modes (.api_with_p2p_submit,
-    /// .p2p_with_api_sync) are suppored on a case-by-case basis.
+    /// Blockchains with built-in P2P support (BTC, BCH, and ETH) may support `.p2p_only`.
+    /// Intermediate modes (.api_with_p2p_submit, .p2p_with_api_sync) are suppored on a case-by-case
+    /// basis. API mode is supported if BRD infrastructure supports that blockchain (for example,
+    /// BCH is not at the moment)
     ///
     /// It is possible that the `.api_only` mode does not work - for exmaple, the BDB is down.  In
     /// that case it is an App issue to report and resolve the issue by: waiting out the outage;
     /// selecting another mode if available.
     ///
-    var supportedModesMap: [String:[WalletManagerMode]] = [
+    /// These values are updated whenever the BDB support updates.  However, a given WalletKit
+    /// distribution in the wild might be out of date with the current BDB support.  That can mean
+    /// that some API mode is missing here that a new BDB support (like when BCH comes online) or
+    /// that a mode has disappeared (maybe a blockchain is dropped).  These cases are not
+    /// destructive.
+    ///
+    static let supportedModesMap: [String:[WalletManagerMode]] = [
         "bitcoin-mainnet":      [.api_only, .p2p_only],
         "bitcoincash-mainnet":  [.p2p_only],
         "ethereum-mainnet":     [.api_only, .api_with_p2p_submit, .p2p_only],
@@ -225,7 +236,10 @@ public final class System {
 //        "ripple-testnet":       []
     ]
 
-    var defaultModesMap: [String:WalletManagerMode] = [
+    ///
+    /// The default Modes
+    ///
+    static let defaultModesMap: [String:WalletManagerMode] = [
         "bitcoin-mainnet":      .p2p_only,
         "bitcoincash-mainnet":  .p2p_only,
         "ethereum-mainnet":     .api_only,
@@ -244,7 +258,7 @@ public final class System {
     /// - Returns: an aray of WalletManagerMode
     ///
     public func supportedModes (network: Network) -> [WalletManagerMode] {
-        return supportedModesMap[network.uids] ?? [.api_only]
+        return System.supportedModesMap[network.uids] ?? [.api_only]
     }
 
     ///
@@ -268,7 +282,7 @@ public final class System {
     /// - Returns: the default mode
     ///
     public func defaultMode (network: Network) -> WalletManagerMode {
-        return defaultModesMap[network.uids] ?? .api_only
+        return System.defaultModesMap[network.uids] ?? .api_only
     }
 
     ///
@@ -285,11 +299,7 @@ public final class System {
         return networks.first { $0.uids == uids }
     }
 
-    /// The system's Wallet Managers, unsorted.  A WalletManager will hold an 'unowned'
-    /// reference back to `System`
-    public internal(set) var managers: [WalletManager] = [];
-
-    internal func managerBy (core: BRCryptoWalletManager) -> WalletManager? {
+     internal func managerBy (core: BRCryptoWalletManager) -> WalletManager? {
         return managers
             .first { $0.core == core }
     }
@@ -369,7 +379,7 @@ public final class System {
         self.listenerQueue = listenerQueue ?? DispatchQueue (label: "Crypto System Listener")
         self.callbackCoordinator = SystemCallbackCoordinator (queue: self.listenerQueue)
 
-        let _ = System.systemExtend(with: self)
+        System.systemExtend (with: self)
         announceEvent(SystemEvent.created)
     }
 
@@ -508,22 +518,6 @@ public final class System {
 
         // Filter remotes to only contain entries for builtin blockchains
         let supportedRemote = remote.filter { item in builtin.contains(where: { $0.id == item.id } ) }
-
-        // For existing remotes:
-        supportedRemote.forEach { (blockchain: BlockChainDB.Model.Blockchain) in
-            // 1) api_only is a supported mode
-            let modes = supportedModesMap[blockchain.id]
-            supportedModesMap[blockchain.id] = (nil == modes
-                ? [.api_only]
-                : (modes!.contains (.api_only)   // all modes contain .api_only; but this does no harm.
-                    ? modes!
-                    : ([.api_only] + modes!)))
-
-            // 2) api_only is a default mode if a default doesn't exist
-            if nil == defaultModesMap[blockchain.id] {
-                defaultModesMap[blockchain.id] = .api_only
-            }
-        }
 
         // Merge builtin into supportedRemote
         return supportedRemote.unionOf(builtin) { $0.id }
@@ -759,17 +753,42 @@ public final class System {
     //
     // Static Weak System References
     //
+
+    /// A serial queue to protect `systemIndex` and `systemMapping`
+    static let systemQueue = DispatchQueue (label: "System", attributes: .concurrent)
+
+    /// A index to globally identify systems.
     static var systemIndex: Int32 = 0;
+
+    /// A dictionary mapping an index to a system weakly.
     static var systemMapping: [Int32 : Weak<System>] = [:]
 
+    ///
+    /// Lookup a `System` from an `index
+    ///
+    /// - Parameter index:
+    ///
+    /// - Returns: A System if it is mapped by the index and has not been GCed.
+    ///
     static func systemLookup (index: Int32) -> System? {
-        return systemMapping[index]?.value
+        return systemQueue.sync {
+            return systemMapping[index]?.value
+        }
     }
 
-    static func systemExtend (with system: System) -> Int32 {
-        system.index = OSAtomicIncrement32(&systemIndex)
-        systemMapping[system.index] = Weak (value: system)
-        return system.index
+    ///
+    /// Add a systme to the mapping.  Create a new index in the process and assign as system.index
+    ///
+    /// - Parameter system:
+    ///
+    /// - Returns: the system's index
+    ///
+    static func systemExtend (with system: System) {
+        systemQueue.async (flags: .barrier) {
+            systemIndex += 1
+            system.index = systemIndex // Always 1 or more
+            systemMapping[system.index] = Weak (value: system)
+        }
     }
 
     static func systemExtract (_ context: BRCryptoCWMListenerContext!,
@@ -878,13 +897,17 @@ public final class SystemCallbackCoordinator {
 
     var index: Int32 = 0;
     var handlers: [Int32: Handler] = [:]
+
+    // The queue upon which to invoke handlers.
     let queue: DispatchQueue
 
     public typealias Cookie = UnsafeMutableRawPointer
 
     var cookie: Cookie {
-        let index = Int(self.index)
-        return UnsafeMutableRawPointer (bitPattern: index)!
+        return System.systemQueue.sync {
+            let index = Int(self.index)
+            return UnsafeMutableRawPointer (bitPattern: index)!
+        }
     }
 
     func cookieToIndex (_ cookie: Cookie) -> Int32 {
@@ -892,17 +915,22 @@ public final class SystemCallbackCoordinator {
     }
 
     public func addWalletFeeEstimateHandler(_ handler: @escaping Wallet.EstimateFeeHandler) -> Cookie {
-        index = OSAtomicIncrement32 (&index)
-        handlers[index] = Handler.walletFeeEstimate(handler)
-        return cookie
+        return System.systemQueue.sync {
+            index += 1
+            handlers[index] = Handler.walletFeeEstimate(handler)
+            // Recursively on System.systemQueue.sync
+            return cookie
+        }
     }
 
     func remWalletFeeEstimateHandler (_ cookie: UnsafeMutableRawPointer) -> Wallet.EstimateFeeHandler? {
-        return handlers.removeValue (forKey: cookieToIndex(cookie))
-            .flatMap {
-                switch $0 {
-                case .walletFeeEstimate (let handler): return handler
-                }
+        return System.systemQueue.sync {
+            return handlers.removeValue (forKey: cookieToIndex(cookie))
+                .flatMap {
+                    switch $0 {
+                    case .walletFeeEstimate (let handler): return handler
+                    }
+            }
         }
     }
 

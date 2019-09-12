@@ -39,8 +39,6 @@ final class NetworkDiscovery {
 
     /* package */
     interface Callback {
-        void update(ImmutableMultimap<String, WalletManagerMode> updatedSupportedModes,
-                    ImmutableMap<String, WalletManagerMode> updatedDefaultModes);
         void discovered(Network network);
         void complete(List<com.breadwallet.crypto.Network> networks);
     }
@@ -49,8 +47,6 @@ final class NetworkDiscovery {
     static void discoverNetworks(BlockchainDb query,
                                  boolean isMainnet,
                                  List<com.breadwallet.crypto.blockchaindb.models.bdb.Currency> appCurrencies,
-                                 ImmutableMultimap<String, WalletManagerMode> supportedModes,
-                                 ImmutableMap<String, WalletManagerMode> defaultModes,
                                  Callback callback) {
         List<com.breadwallet.crypto.Network> networks = new ArrayList<>();
 
@@ -65,12 +61,13 @@ final class NetworkDiscovery {
                 }
             }
 
+            // filter the returned blockchainModels to only include supported blockchains
             blockchainModels = filterBlockchains(supportedBlockchains, blockchainModels);
-            ImmutableMultimap<String, WalletManagerMode> updatedSupportedModes = getUpdateSupportedModes(blockchainModels, supportedModes);
-            ImmutableMap<String, WalletManagerMode> updatedDefaultModes = getUpdatedDefaultModes(blockchainModels, defaultModes);
-            blockchainModels = mergeBlockchains(supportedBlockchains, blockchainModels);
 
-            callback.update(updatedSupportedModes, updatedDefaultModes);
+            // merge the supported blockchainModels into the supported blockchains (deferring to blockchainModels),
+            // to ensure that if blockchainModels does not include a support blockchain, it is still present after
+            // the merge
+            blockchainModels = mergeBlockchains(supportedBlockchains, blockchainModels);
 
             for (Blockchain blockchainModel : blockchainModels) {
                 String blockchainModelId = blockchainModel.getId();
@@ -205,39 +202,6 @@ final class NetworkDiscovery {
         }
 
         return mergedMap.values();
-    }
-
-    private static ImmutableMultimap<String, WalletManagerMode> getUpdateSupportedModes(Collection<Blockchain> remotes,
-                                                                                        ImmutableMultimap<String, WalletManagerMode> supportedModes) {
-        ImmutableMultimap.Builder<String, WalletManagerMode> builder = new ImmutableMultimap.Builder<>();
-        builder.putAll(supportedModes);
-
-        for (Blockchain b: remotes) {
-            Collection<WalletManagerMode> modes = supportedModes.get(b.getId());
-            if (null == modes || modes.isEmpty()) {
-                builder.put(b.getId(), WalletManagerMode.API_ONLY);
-
-            } else if (!modes.contains(WalletManagerMode.API_ONLY)) {
-                builder.put(b.getId(), WalletManagerMode.API_ONLY);
-            }
-        }
-
-        return builder.build();
-    }
-
-    private static ImmutableMap<String, WalletManagerMode> getUpdatedDefaultModes(Collection<Blockchain> remotes,
-                                                                                  ImmutableMap<String, WalletManagerMode> defaultModes) {
-        ImmutableMap.Builder<String, WalletManagerMode> builder = new ImmutableMap.Builder<>();
-        builder.putAll(defaultModes);
-
-        for (Blockchain b: remotes) {
-            WalletManagerMode mode = defaultModes.get(b.getId());
-            if (null == mode) {
-                builder.put(b.getId(), WalletManagerMode.API_ONLY);
-            }
-        }
-
-        return builder.build();
     }
 
     private static void getBlockChains(CountUpAndDownLatch latch,
