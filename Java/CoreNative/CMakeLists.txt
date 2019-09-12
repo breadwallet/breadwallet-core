@@ -15,17 +15,38 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -DANDROID_STL=gnustl_static -DANDRO
 # -Wint-conversion -Wbool-conversion -Wenum-conversion -Wassign-enum -Wno-shorten-64-to-32 -Wpointer-sign -Wnewline-eof
 # -Wdeprecated-declarations -Wno-sign-conversion
 
+#
+# sqlite3 build
+#
+
+add_library(sqlite3
+            STATIC)
+
+target_sources (sqlite3
+                PRIVATE
+                src/main/cpp/core/vendor/sqlite3/sqlite3.c
+                src/main/cpp/core/vendor/sqlite3/sqlite3.h)
+
+target_include_directories(sqlite3
+                           INTERFACE
+                           ${PROJECT_SOURCE_DIR}/src/main/cpp/core/vendor/sqlite3)
+
+target_compile_definitions (sqlite3
+                            PRIVATE
+                            _HAVE_SQLITE_CONFIG_H=1)
+
+#
+# crypto build
+#
 
 add_library( # Sets the name of the library.
              crypto
-
              # Sets the library as a shared library.
              SHARED)
 
 # Support
 target_sources (crypto
-                PUBLIC
-
+                PRIVATE
                 src/main/cpp/core/support/BRAddress.c
                 src/main/cpp/core/support/BRAddress.h
                 src/main/cpp/core/support/BRAssert.c
@@ -53,22 +74,18 @@ target_sources (crypto
                 src/main/cpp/core/support/BRSet.c
                 src/main/cpp/core/support/BRSet.h
                 src/main/cpp/core/support/BRSyncMode.c
-                src/main/cpp/core/support/BRSyncMode.h
-                )
+                src/main/cpp/core/support/BRSyncMode.h)
 
 # Support Tests
 if (CMAKE_BUILD_TYPE MATCHES Debug)
     target_sources (crypto
-                    PUBLIC
-
-                    src/main/cpp/core/support/testSup.c
-                    )
+                    PRIVATE
+                    src/main/cpp/core/support/testSup.c)
 endif(CMAKE_BUILD_TYPE MATCHES Debug)
 
 # Bitcoin
 target_sources (crypto
-                PUBLIC
-
+                PRIVATE
                 src/main/cpp/core/bitcoin/BRBIP38Key.c
                 src/main/cpp/core/bitcoin/BRBIP38Key.h
                 src/main/cpp/core/bitcoin/BRBloomFilter.c
@@ -92,36 +109,28 @@ target_sources (crypto
                 src/main/cpp/core/bitcoin/BRWalletManager.c
                 src/main/cpp/core/bitcoin/BRWalletManager.h
                 src/main/cpp/core/bitcoin/BRWalletManagerEvent.c
-                src/main/cpp/core/bitcoin/BRWalletManagerPrivate.h
-                )
+                src/main/cpp/core/bitcoin/BRWalletManagerPrivate.h)
 
 # Bitcoin Tests
 if (CMAKE_BUILD_TYPE MATCHES Debug)
     target_sources (crypto
-                    PUBLIC
-
+                    PRIVATE
                     src/main/cpp/core/bitcoin/test.c
-                    src/main/cpp/core/bitcoin/testBwm.c
-                    )
+                    src/main/cpp/core/bitcoin/testBwm.c)
 endif(CMAKE_BUILD_TYPE MATCHES Debug)
 
 # BCash
 target_sources (crypto
-                PUBLIC
-
+                PRIVATE
                 src/main/cpp/core/bcash/BRBCashAddr.c
                 src/main/cpp/core/bcash/BRBCashAddr.h
                 src/main/cpp/core/bcash/BRBCashParams.h
-                src/main/cpp/core/bcash/BRBCashParams.c
-                )
+                src/main/cpp/core/bcash/BRBCashParams.c)
 
 # Ethereum
 target_sources (crypto
-                PUBLIC
-
-                #
+                PRIVATE
                 src/main/cpp/core/ethereum/BREthereum.h
-
                 # Util
                 src/main/cpp/core/ethereum/util/BRKeccak.c
                 src/main/cpp/core/ethereum/util/BRKeccak.h
@@ -131,12 +140,10 @@ target_sources (crypto
                 src/main/cpp/core/ethereum/util/BRUtilMath.c
                 src/main/cpp/core/ethereum/util/BRUtilMath.h
                 src/main/cpp/core/ethereum/util/BRUtilMathParse.c
-
                 # RLP
                 src/main/cpp/core/ethereum/rlp/BRRlp.h
                 src/main/cpp/core/ethereum/rlp/BRRlpCoder.c
                 src/main/cpp/core/ethereum/rlp/BRRlpCoder.h
-
                 # Event
                 src/main/cpp/core/ethereum/event/BREvent.c
                 src/main/cpp/core/ethereum/event/BREvent.h
@@ -144,7 +151,6 @@ target_sources (crypto
                 src/main/cpp/core/ethereum/event/BREventAlarm.h
                 src/main/cpp/core/ethereum/event/BREventQueue.c
                 src/main/cpp/core/ethereum/event/BREventQueue.h
-
                 # Base
                 src/main/cpp/core/ethereum/base/BREthereumAddress.c
                 src/main/cpp/core/ethereum/base/BREthereumAddress.h
@@ -162,7 +168,6 @@ target_sources (crypto
                 src/main/cpp/core/ethereum/base/BREthereumLogic.h
                 src/main/cpp/core/ethereum/base/BREthereumSignature.c
                 src/main/cpp/core/ethereum/base/BREthereumSignature.h
-
                 # Block Chain
                 src/main/cpp/core/ethereum/blockchain/BREthereumAccountState.c
                 src/main/cpp/core/ethereum/blockchain/BREthereumAccountState.h
@@ -182,17 +187,14 @@ target_sources (crypto
                 src/main/cpp/core/ethereum/blockchain/BREthereumTransactionStatus.c
                 src/main/cpp/core/ethereum/blockchain/BREthereumTransactionStatus.h
                 src/main/cpp/core/ethereum/blockchain/BREthereumProofOfWork.c
-
                 # Contract
                 src/main/cpp/core/ethereum/contract/BREthereumContract.c
                 src/main/cpp/core/ethereum/contract/BREthereumContract.h
                 src/main/cpp/core/ethereum/contract/BREthereumToken.c
                 src/main/cpp/core/ethereum/contract/BREthereumToken.h
-
                 # MPT
                 src/main/cpp/core/ethereum/mpt/BREthereumMPT.c
                 src/main/cpp/core/ethereum/mpt/BREthereumMPT.h
-
                 # LES Msg
                 src/main/cpp/core/ethereum/les/msg/BREthereumMessageDIS.c
                 src/main/cpp/core/ethereum/les/msg/BREthereumMessageDIS.h
@@ -203,7 +205,6 @@ target_sources (crypto
                 src/main/cpp/core/ethereum/les/msg/BREthereumMessageP2P.h
                 src/main/cpp/core/ethereum/les/msg/BREthereumMessagePIP.c
                 src/main/cpp/core/ethereum/les/msg/BREthereumMessagePIP.h
-
                 # LES
                 src/main/cpp/core/ethereum/les/BREthereumLES.c
                 src/main/cpp/core/ethereum/les/BREthereumLES.h
@@ -229,7 +230,6 @@ target_sources (crypto
                 src/main/cpp/core/ethereum/les/msg/BREthereumMessageLES.c
                 src/main/cpp/core/ethereum/les/msg/BREthereumMessagePIP.h
                 src/main/cpp/core/ethereum/les/msg/BREthereumMessagePIP.c
-
                 # BCS
                 src/main/cpp/core/ethereum/bcs/BREthereumBCS.c
                 src/main/cpp/core/ethereum/bcs/BREthereumBCS.h
@@ -237,7 +237,6 @@ target_sources (crypto
                 src/main/cpp/core/ethereum/bcs/BREthereumBCSPrivate.h
                 src/main/cpp/core/ethereum/bcs/BREthereumBCSSync.c
                 src/main/cpp/core/ethereum/bcs/BREthereumBlockChainSlice.h
-
                 #EWM
                 src/main/cpp/core/ethereum/ewm/BREthereumBase.h
                 src/main/cpp/core/ethereum/ewm/BREthereumAccount.c
@@ -253,14 +252,12 @@ target_sources (crypto
                 src/main/cpp/core/ethereum/ewm/BREthereumEWM.h
                 src/main/cpp/core/ethereum/ewm/BREthereumEWMClient.c
                 src/main/cpp/core/ethereum/ewm/BREthereumEWMEvent.c
-                src/main/cpp/core/ethereum/ewm/BREthereumEWMPrivate.h
-                )
+                src/main/cpp/core/ethereum/ewm/BREthereumEWMPrivate.h)
 
 # Ethereum Tests
 if (CMAKE_BUILD_TYPE MATCHES Debug)
     target_sources (crypto
-                    PUBLIC
-
+                    PRIVATE
                     src/main/cpp/core/ethereum/base/testBase.c
                     src/main/cpp/core/ethereum/blockchain/testBc.c
                     src/main/cpp/core/ethereum/contract/testContract.c
@@ -269,14 +266,12 @@ if (CMAKE_BUILD_TYPE MATCHES Debug)
                     src/main/cpp/core/ethereum/rlp/testRlp.c
                     src/main/cpp/core/ethereum/les/testLES.c
                     src/main/cpp/core/ethereum/util/testUtil.c
-                    src/main/cpp/core/ethereum/test.c
-                    )
+                    src/main/cpp/core/ethereum/test.c)
 endif(CMAKE_BUILD_TYPE MATCHES Debug)
 
 # Ripple
 target_sources (crypto
-                PUBLIC
-
+                PRIVATE
                 src/main/cpp/core/ripple/BRRipplePrivateStructs.h
                 src/main/cpp/core/ripple/BRRippleBase.h
                 src/main/cpp/core/ripple/BRRipple.h
@@ -291,24 +286,20 @@ target_sources (crypto
                 src/main/cpp/core/ripple/BRRippleTransaction.c
                 src/main/cpp/core/ripple/BRRippleTransaction.h
                 src/main/cpp/core/ripple/BRRippleWallet.c
-                src/main/cpp/core/ripple/BRRippleWallet.h
-                )
+                src/main/cpp/core/ripple/BRRippleWallet.h)
 
 # Ripple Tests
 if (CMAKE_BUILD_TYPE MATCHES Debug)
     target_sources (crypto
-                    PUBLIC
-
+                    PRIVATE
                     src/main/cpp/core/ripple/testRipple.c
                     src/main/cpp/core/ripple/testRippleTxList1.h
-                    src/main/cpp/core/ripple/testRippleTxList2.h
-                    )
+                    src/main/cpp/core/ripple/testRippleTxList2.h)
 endif(CMAKE_BUILD_TYPE MATCHES Debug)
 
 # Generic
 target_sources (crypto
-                PUBLIC
-
+                PRIVATE
                 src/main/cpp/core/generic/BRGenericBase.h
                 src/main/cpp/core/generic/BRGeneric.c
                 src/main/cpp/core/generic/BRGeneric.h
@@ -317,13 +308,11 @@ target_sources (crypto
                 src/main/cpp/core/generic/BRGenericWalletManager.c
                 src/main/cpp/core/generic/BRGenericWalletManager.h
                 src/main/cpp/core/generic/BRGenericRipple.h
-                src/main/cpp/core/generic/BRGenericRipple.c
-                )
+                src/main/cpp/core/generic/BRGenericRipple.c)
 
 # Crypto
 target_sources (crypto
-                PUBLIC
-
+                PRIVATE
                 src/main/cpp/core/crypto/BRCryptoAccount.c
                 src/main/cpp/core/crypto/BRCryptoAccount.h
                 src/main/cpp/core/crypto/BRCryptoAddress.c
@@ -356,50 +345,28 @@ target_sources (crypto
                 src/main/cpp/core/crypto/BRCryptoWalletManager.h
                 src/main/cpp/core/crypto/BRCryptoWalletManagerClient.c
                 src/main/cpp/core/crypto/BRCryptoWalletManagerClient.h
-                src/main/cpp/core/crypto/BRCryptoWalletManagerPrivate.h
-                )
+                src/main/cpp/core/crypto/BRCryptoWalletManagerPrivate.h)
 
 # Crypto Tests
 if (CMAKE_BUILD_TYPE MATCHES Debug)
     target_sources (crypto
-                    PUBLIC
-
-                    src/main/cpp/core/crypto/testCrypto.c
-                    )
+                    PRIVATE
+                    src/main/cpp/core/crypto/testCrypto.c)
 endif(CMAKE_BUILD_TYPE MATCHES Debug)
 
-# Crypto JNI
-target_sources (crypto
-                PUBLIC)
+target_include_directories (crypto
+                            PUBLIC
+                            ${PROJECT_SOURCE_DIR}/src/main/cpp/core
+                            ${PROJECT_SOURCE_DIR}/src/main/cpp/core/support
+                            ${PROJECT_SOURCE_DIR}/src/main/cpp/core/bitcoin
+                            ${PROJECT_SOURCE_DIR}/src/main/cpp/core/bcash
+                            ${PROJECT_SOURCE_DIR}/src/main/cpp/core/ethereum
+                            ${PROJECT_SOURCE_DIR}/src/main/cpp/core/secp256k1
+                            ${PROJECT_SOURCE_DIR}/src/main/cpp/core/crypto)
 
-include_directories(src/main/cpp/core/)
-include_directories(src/main/cpp/core/support)
-include_directories(src/main/cpp/core/bitcoin)
-include_directories(src/main/cpp/core/bcash)
-include_directories(src/main/cpp/core/ethereum)
-include_directories(src/main/cpp/core/secp256k1)
-include_directories(src/main/cpp/core/crypto)
+find_library (log-lib
+              log)
 
-# Searches for a specified prebuilt library and stores the path as a
-# variable. Because CMake includes system libraries in the search path by
-# default, you only need to specify the name of the public NDK library
-# you want to add. CMake verifies that the library exists before
-# completing its build.
-
-find_library( # Sets the name of the path variable.
-              log-lib
-
-              # Specifies the name of the NDK library that
-              # you want CMake to locate.
-              log )
-
-# Specifies libraries CMake should link to your target library. You
-# can link multiple libraries, such as libraries you define in this
-# build script, prebuilt third-party libraries, or system libraries.
-
-target_link_libraries( # Specifies the target library.
-                       crypto
-
-                       # Links the target library to the log library
-                       # included in the NDK.
-                       ${log-lib} )
+target_link_libraries (crypto
+                       ${log-lib}
+                       sqlite3)

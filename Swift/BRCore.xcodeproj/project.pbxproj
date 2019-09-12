@@ -55,6 +55,8 @@
 		3C56C98522FA2B630054AD21 /* TransferCreateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C56C98422FA2B620054AD21 /* TransferCreateController.swift */; };
 		3C5C02392212035B0052E010 /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CEF5FC9220513FC0010A811 /* libresolv.tbd */; };
 		3C5F5E75212C82310038B732 /* BREthereumMPT.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C5F5E74212C82310038B732 /* BREthereumMPT.c */; };
+		3C6AE12B2329855300016196 /* sqlite3.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C6AE1272329855300016196 /* sqlite3.c */; settings = {COMPILER_FLAGS = "-D_HAVE_SQLITE_CONFIG_H=1 -Wno-ambiguous-macro -Wno-shorten-64-to-32 -Wno-unreachable-code -Wno-#warnings"; }; };
+		3C6AE12D2329856F00016196 /* sqlite3.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C6AE1272329855300016196 /* sqlite3.c */; };
 		3C6B172F2131CB5B003C313B /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C6B172E2131CB5B003C313B /* main.c */; };
 		3C6B17392131CE12003C313B /* BREthereumEther.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53B320AF595400C430F6 /* BREthereumEther.c */; };
 		3C6B173A2131CE12003C313B /* BREthereumGas.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53B520AF595400C430F6 /* BREthereumGas.c */; };
@@ -533,9 +535,14 @@
 		3C590F5920950C750005597B /* BRBIP39Mnemonic.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRBIP39Mnemonic.c; sourceTree = "<group>"; };
 		3C5F5E73212C82310038B732 /* BREthereumMPT.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumMPT.h; sourceTree = "<group>"; };
 		3C5F5E74212C82310038B732 /* BREthereumMPT.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumMPT.c; sourceTree = "<group>"; };
+		3C6AE1272329855300016196 /* sqlite3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sqlite3.c; sourceTree = "<group>"; };
+		3C6AE1282329855300016196 /* shell.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = shell.c; sourceTree = "<group>"; };
+		3C6AE1292329855300016196 /* sqlite3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sqlite3.h; sourceTree = "<group>"; };
+		3C6AE12A2329855300016196 /* sqlite3ext.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sqlite3ext.h; sourceTree = "<group>"; };
 		3C6B172C2131CB5B003C313B /* CoreExplore */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = CoreExplore; sourceTree = BUILT_PRODUCTS_DIR; };
 		3C6B172E2131CB5B003C313B /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		3C6B17792131CE12003C313B /* libCoreMacOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libCoreMacOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		3C702C0F232AE39100A2CD5F /* config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
 		3C7BE5AD230F0BD0005FD4CD /* WalletManagersTableViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletManagersTableViewController.swift; sourceTree = "<group>"; };
 		3C7BE5AF230F0BFB005FD4CD /* WalletManagerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletManagerViewController.swift; sourceTree = "<group>"; };
 		3C812EBE2266675E0007D335 /* BRRipple.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRRipple.h; sourceTree = "<group>"; };
@@ -1143,6 +1150,7 @@
 				3C812EBD226666C50007D335 /* ripple */,
 				3C97E231224164ED003FD88F /* generic */,
 				3C97E2322241656B003FD88F /* crypto */,
+				3C6AE1252329855300016196 /* vendor */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -1166,6 +1174,27 @@
 				3C5F5E74212C82310038B732 /* BREthereumMPT.c */,
 			);
 			path = mpt;
+			sourceTree = "<group>";
+		};
+		3C6AE1252329855300016196 /* vendor */ = {
+			isa = PBXGroup;
+			children = (
+				3C6AE1262329855300016196 /* sqlite3 */,
+			);
+			name = vendor;
+			path = ../../vendor;
+			sourceTree = "<group>";
+		};
+		3C6AE1262329855300016196 /* sqlite3 */ = {
+			isa = PBXGroup;
+			children = (
+				3C702C0F232AE39100A2CD5F /* config.h */,
+				3C6AE1272329855300016196 /* sqlite3.c */,
+				3C6AE1282329855300016196 /* shell.c */,
+				3C6AE1292329855300016196 /* sqlite3.h */,
+				3C6AE12A2329855300016196 /* sqlite3ext.h */,
+			);
+			path = sqlite3;
 			sourceTree = "<group>";
 		};
 		3C6B172D2131CB5B003C313B /* CoreExplore */ = {
@@ -1798,6 +1827,7 @@
 				3C6B175C2131CE12003C313B /* BRBech32.c in Sources */,
 				3C7BE5AB230EFD37005FD4CD /* BRCryptoWallet.c in Sources */,
 				3C6B175D2131CE12003C313B /* BRBIP32Sequence.c in Sources */,
+				3C6AE12D2329856F00016196 /* sqlite3.c in Sources */,
 				3C6B175E2131CE12003C313B /* BREthereumMessage.c in Sources */,
 				CE6040C322BD69E40003967B /* BRWalletManagerEvent.c in Sources */,
 				3C9B8DF122BD55CA0060C3A9 /* BRRippleSerialize.c in Sources */,
@@ -1900,6 +1930,7 @@
 				3CAB60D420AF8D1A00810CE4 /* BRUtilHex.c in Sources */,
 				3CAB60D520AF8D1A00810CE4 /* BRBCashAddr.c in Sources */,
 				3CF66AE622A8342200C1E9BB /* BRCryptoWalletManager.c in Sources */,
+				3C6AE12B2329855300016196 /* sqlite3.c in Sources */,
 				3CAB60D620AF8D1A00810CE4 /* BRAddress.c in Sources */,
 				3CEF5FD42208C6E40010A811 /* BRAssert.c in Sources */,
 				3CAB60D720AF8D1A00810CE4 /* BRBase58.c in Sources */,
