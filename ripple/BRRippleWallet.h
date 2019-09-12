@@ -13,6 +13,7 @@
 
 #include "BRRippleBase.h"
 #include "BRRippleAccount.h"
+#include "BRRippleTransfer.h"
 
 //
 // Wallet
@@ -103,5 +104,7 @@ rippleWalletSetDefaultFeeBasis (BRRippleWallet wallet, BRRippleUnitDrops feeBasi
  */
 extern BRRippleUnitDrops
 rippleWalletGetDefaultFeeBasis (BRRippleWallet wallet);
+
+extern void rippleWalletAddTransfer(BRRippleWallet wallet, BRRippleTransfer transfer);
 
 #endif
