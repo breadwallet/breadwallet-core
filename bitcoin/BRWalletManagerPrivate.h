@@ -88,6 +88,38 @@ struct BRWalletManagerStruct {
     BRArrayOf(BRTransactionWithState) transactions;
 };
 
+/// Mark: - Wallet Callbacks
+
+extern void
+bwmHandleTxAdded (BRWalletManager manager,
+                  OwnershipGiven BRTransaction *ownedTransaction,
+                  OwnershipKept BRTransaction *refedTransaction);
+
+extern void
+bwmSignalTxAdded (BRWalletManager manager,
+                  OwnershipGiven BRTransaction *ownedTransaction,
+                  OwnershipKept BRTransaction *refedTransaction);
+
+extern void
+bwmHandleTxUpdated (BRWalletManager manager,
+                    UInt256 hash,
+                    uint32_t blockHeight,
+                    uint32_t timestamp);
+
+extern void
+bwmSignalTxUpdated (BRWalletManager manager,
+                    UInt256 hash,
+                    uint32_t blockHeight,
+                    uint32_t timestamp);
+
+extern void
+bwmHandleTxDeleted (BRWalletManager manager,
+                    UInt256 hash);
+
+extern void
+bwmSignalTxDeleted (BRWalletManager manager,
+                    UInt256 hash);
+
 /// Mark: - WalletManager Events
 
 extern void

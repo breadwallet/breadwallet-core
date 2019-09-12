@@ -30,6 +30,7 @@ class BRBlockChainDBTest: XCTestCase {
                 else { XCTAssert(false); return }
 
             XCTAssertEqual (blockchainId, blockchain.id)
+            XCTAssertEqual (6, blockchain.confirmationsUntilFinal)
 
             self.expectation.fulfill()
         }
@@ -133,6 +134,8 @@ class BRBlockChainDBTest: XCTestCase {
         let blockchainId = "bitcoin-testnet"
         db.getTransactions (blockchainId: blockchainId,
                             addresses: [],
+                            begBlockNumber: 0,
+                            endBlockNumber: 1,
                             includeRaw: true) {
                                 (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
                                 guard case let .success (transactions) = res
@@ -151,6 +154,8 @@ class BRBlockChainDBTest: XCTestCase {
 
         db.getTransactions (blockchainId: blockchainId,
                             addresses: ["abc", "def"],
+                            begBlockNumber: 0,
+                            endBlockNumber: 1500000,
                             includeRaw: true) {
                                 (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
                                 guard case let .success (transactions) = res

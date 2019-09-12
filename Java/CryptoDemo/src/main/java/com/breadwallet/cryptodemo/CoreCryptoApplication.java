@@ -2,7 +2,10 @@ package com.breadwallet.cryptodemo;
 
 import android.app.Activity;
 import android.app.Application;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
 import android.os.StrictMode;
 import android.util.Log;
 
@@ -17,6 +20,7 @@ import com.breadwallet.crypto.System;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -32,9 +36,7 @@ public class CoreCryptoApplication extends Application {
 
     private static final String TAG = CoreCryptoApplication.class.getName();
 
-    private static final String BDB_BASE_URL = BuildConfig.BDB_BASE_URL;
     private static final String BDB_AUTH_TOKEN = BuildConfig.BDB_AUTH_TOKEN;
-    private static final String API_BASE_URL = BuildConfig.API_BASE_URL;
 
     private static final String EXTRA_WIPE = "WIPE";
     private static final String EXTRA_TIMESTAMP = "TIMESTAMP";
@@ -48,18 +50,70 @@ public class CoreCryptoApplication extends Application {
     private static final String DEFAULT_PAPER_KEY = "boring head harsh green empty clip fatal typical found crane dinner timber";
     private static final WalletManagerMode DEFAULT_MODE = WalletManagerMode.API_ONLY;
 
-    private static System system;
-    private static DispatchingSystemListener systemListener;
-    private static boolean isMainnet;
-    private static BlockchainDb blockchainDb;
-    private static byte[] paperKey;
+    private static CoreCryptoApplication instance;
 
-    private static AtomicBoolean runOnce = new AtomicBoolean(false);
+    private System system;
+    private DispatchingSystemListener systemListener;
+    private ConnectivityBroadcastReceiver connectivityReceiver;
+    private boolean isMainnet;
+    private BlockchainDb blockchainDb;
+    private byte[] paperKey;
 
-    public static void initialize(Activity startingActivity) {
+    private AtomicBoolean runOnce = new AtomicBoolean(false);
+
+    public static void initialize(Activity launchingActivity) {
+        instance.initFromLaunchIntent(launchingActivity.getIntent());
+    }
+
+    public static Context getContext() {
+        return instance.getApplicationContext();
+    }
+
+    public static System getSystem() {
+        checkState(null != instance && instance.runOnce.get());
+
+        return instance.system;
+    }
+
+    public static void resetSystem() {
+        checkState(null != instance && instance.runOnce.get());
+
+        instance.resetSystemImpl();
+    }
+
+    public static DispatchingSystemListener getDispatchingSystemListener() {
+        checkState(null != instance && instance.runOnce.get());
+
+        return instance.systemListener;
+    }
+
+    public static byte[] getPaperKey() {
+        checkState(null != instance && instance.runOnce.get());
+
+        return instance.paperKey;
+    }
+
+    private static void deleteRecursively (File file) {
+        if (file.isDirectory()) {
+            for (File child : file.listFiles()) {
+                deleteRecursively(child);
+            }
+        }
+
+        if (file.exists() && !file.delete()) {
+            Log.e(TAG, "Failed to delete " + file.getAbsolutePath());
+        }
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        instance = this;
+        StrictMode.enableDefaults();
+    }
+
+    private void initFromLaunchIntent(Intent intent) {
         if (!runOnce.getAndSet(true)) {
-            Intent intent = startingActivity.getIntent();
-
             String paperKeyString = (intent.hasExtra(EXTRA_PAPER_KEY) ? intent.getStringExtra(EXTRA_PAPER_KEY) : DEFAULT_PAPER_KEY);
             paperKey = paperKeyString.getBytes(StandardCharsets.UTF_8);
 
@@ -69,69 +123,45 @@ public class CoreCryptoApplication extends Application {
             long timestamp = intent.getLongExtra(EXTRA_TIMESTAMP, DEFAULT_TIMESTAMP);
             WalletManagerMode mode = intent.hasExtra(EXTRA_MODE) ? WalletManagerMode.valueOf(intent.getStringExtra(EXTRA_MODE)) : DEFAULT_MODE;
 
-            File storageFile = new File(startingActivity.getFilesDir(), "core");
+            File storageFile = new File(getFilesDir(), "core");
             if (wipe) {
                 if (storageFile.exists()) deleteRecursively(storageFile);
                 checkState(storageFile.mkdirs());
             }
 
-            Log.d(TAG, String.format("Account PaperKey: %s", paperKeyString));
+            Log.d(TAG, String.format("Account PaperKey:  %s", paperKeyString));
             Log.d(TAG, String.format("Account Timestamp: %s", timestamp));
             Log.d(TAG, String.format("StoragePath:       %s", storageFile.getAbsolutePath()));
             Log.d(TAG, String.format("Mainnet:           %s", isMainnet));
 
             CryptoApi.initialize(CryptoApiProvider.getInstance());
 
-            List<String> currencyCodesNeeded = Arrays.asList("btc", "eth", "brd");
+            List<String> currencyCodesNeeded = Arrays.asList("btc", "eth", "bch");
             systemListener = new DispatchingSystemListener();
             systemListener.addSystemListener(new CoreSystemListener(mode, isMainnet, currencyCodesNeeded));
 
             String uids = UUID.nameUUIDFromBytes(paperKey).toString();
             Account account = Account.createFromPhrase(paperKey, new Date(TimeUnit.SECONDS.toMillis(timestamp)), uids);
 
-            blockchainDb = BlockchainDb.createForTest (new OkHttpClient(), BDB_BASE_URL, BDB_AUTH_TOKEN, API_BASE_URL);
-            system = System.create(Executors.newSingleThreadScheduledExecutor(), systemListener, account, isMainnet, storageFile.getAbsolutePath(), blockchainDb);
-            system.configure();
+            blockchainDb = BlockchainDb.createForTest (new OkHttpClient(), BDB_AUTH_TOKEN);
+            system = System.create(Executors.newSingleThreadScheduledExecutor(), systemListener, account,
+                    isMainnet, storageFile.getAbsolutePath(), blockchainDb);
+            system.configure(Collections.emptyList());
+
+            connectivityReceiver = new ConnectivityBroadcastReceiver();
+            registerReceiver(connectivityReceiver , new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
         }
     }
 
-    public static System getSystem() {
-        return system;
-    }
-
-    public static void resetSystem() {
-        CoreCryptoApplication.system.stop();
-        CoreCryptoApplication.system = System.create(
+    private void resetSystemImpl() {
+        system.stop();
+        system = System.create(
                 Executors.newSingleThreadScheduledExecutor(),
                 systemListener,
-                CoreCryptoApplication.system.getAccount(),
+                system.getAccount(),
                 isMainnet,
-                CoreCryptoApplication.system.getPath(),
+                system.getPath(),
                 blockchainDb);
-        CoreCryptoApplication.system.configure();
-    }
-
-    public static DispatchingSystemListener getDispatchingSystemListener() {
-        return systemListener;
-    }
-
-    public static byte[] getPaperKey() {
-        return paperKey;
-    }
-
-    private static void deleteRecursively (File file) {
-        if (file.isDirectory()) {
-            for (File child : file.listFiles()) {
-                deleteRecursively(child);
-            }
-        }
-        file.delete();
-    }
-
-    @Override
-    public void onCreate() {
-        super.onCreate();
-
-        StrictMode.enableDefaults();
+        system.configure(Collections.emptyList());
     }
 }

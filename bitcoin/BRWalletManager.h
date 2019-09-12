@@ -273,7 +273,8 @@ BRWalletManagerNew (BRWalletManagerClient client,
                     uint32_t earliestKeyTime,
                     BRSyncMode mode,
                     const char *storagePath,
-                    uint64_t blockHeight);
+                    uint64_t blockHeight,
+                    uint64_t confirmationsUntilFinal);
 
 extern void
 BRWalletManagerFree (BRWalletManager manager);
@@ -294,10 +295,17 @@ extern void
 BRWalletManagerScan (BRWalletManager manager);
 
 extern void
+BRWalletManagerScanToDepth (BRWalletManager manager, BRSyncDepth depth);
+
+extern void
 BRWalletManagerSetMode (BRWalletManager manager, BRSyncMode mode);
 
 extern BRSyncMode
 BRWalletManagerGetMode (BRWalletManager manager);
+
+extern void
+BRWalletManagerSetNetworkReachable (BRWalletManager manager,
+                                    int isNetworkReachable);
 
 //
 // These should not be needed if the events are sufficient

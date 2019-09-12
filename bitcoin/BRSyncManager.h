@@ -148,6 +148,8 @@ BRSyncManagerNewForMode(BRSyncMode mode,
                         OwnershipKept BRWallet *wallet,
                         uint32_t earliestKeyTime,
                         uint64_t blockHeight,
+                        uint64_t confirmationUntilFinal,
+                        int isNetworkReachable,
                         OwnershipKept BRMerkleBlock *blocks[],
                         size_t blocksCount,
                         OwnershipKept const BRPeer peers[],
@@ -159,6 +161,16 @@ BRSyncManagerFree(BRSyncManager manager);
 extern uint64_t
 BRSyncManagerGetBlockHeight (BRSyncManager manager);
 
+extern uint64_t
+BRSyncManagerGetConfirmationsUntilFinal (BRSyncManager manager);
+
+extern int
+BRSyncManagerGetNetworkReachable (BRSyncManager manager);
+
+extern void
+BRSyncManagerSetNetworkReachable (BRSyncManager manager,
+                                  int isNetworkReachable);
+
 extern void
 BRSyncManagerConnect(BRSyncManager manager);
 
@@ -166,7 +178,9 @@ extern void
 BRSyncManagerDisconnect(BRSyncManager manager);
 
 extern void
-BRSyncManagerScan(BRSyncManager manager);
+BRSyncManagerScanToDepth(BRSyncManager manager,
+                         BRSyncDepth depth,
+                         OwnershipKept BRTransaction *lastConfirmedSend);
 
 extern void
 BRSyncManagerSubmit(BRSyncManager manager,
@@ -177,7 +191,7 @@ BRSyncManagerTickTock(BRSyncManager manager);
 
 extern void
 BRSyncManagerP2PFullScanReport(BRSyncManager manager);
-    
+
 extern void
 BRSyncManagerAnnounceGetBlockNumber(BRSyncManager manager,
                                     int rid,

@@ -14,4 +14,6 @@ public interface SystemEventVisitor<T> {
     T visit(SystemManagerAddedEvent event);
 
     T visit(SystemNetworkAddedEvent event);
+
+    T visit(SystemDiscoveredNetworksEvent event);
 }

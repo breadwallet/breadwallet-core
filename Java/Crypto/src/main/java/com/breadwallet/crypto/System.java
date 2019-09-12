@@ -10,6 +10,7 @@
 package com.breadwallet.crypto;
 
 import com.breadwallet.crypto.blockchaindb.BlockchainDb;
+import com.breadwallet.crypto.blockchaindb.models.bdb.Currency;
 import com.breadwallet.crypto.events.system.SystemListener;
 
 import java.util.List;
@@ -21,13 +22,23 @@ public interface System {
         return CryptoApi.getProvider().systemProvider().create(executor, listener, account, isMainnet,path, query);
     }
 
-    void configure();
+    void configure(List<Currency> appCurrencies);
 
     void createWalletManager(Network network, WalletManagerMode mode, AddressScheme addressScheme);
 
     void stop();
 
     void subscribe(String subscriptionToken);
+
+    /**
+     * Set the network reachable flag for all managers.
+     *
+     * Setting or clearing this flag will NOT result in a connect/disconnect attempt by a {@link WalletManager}.
+     * Callers must use the {@link WalletManager#connect()}/{@link WalletManager#disconnect()} methods to
+     * change a WalletManager's connectivity state. Instead, WalletManagers MAY consult this flag when performing
+     * network operations to determine viability.
+     */
+    void setNetworkReachable(boolean isNetworkReachable);
 
     Account getAccount();
 

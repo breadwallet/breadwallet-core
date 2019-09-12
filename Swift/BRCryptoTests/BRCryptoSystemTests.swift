@@ -65,4 +65,89 @@ class BRCryptoSystemTests: BRCryptoSystemBaseTests {
         XCTAssertTrue (listener.checkWalletEvents(
             [WalletEvent.created], strict: true))
     }
+
+    func testSystemAppCurrencies() {
+        isMainnet = false
+        currencyCodesNeeded = ["eth"]
+        modeMap = ["eth":WalletManagerMode.api_only]
+
+        currencyModels = [System.asBlockChainDBModelCurrency (uids: "ethereum-ropsten:0xffff",
+                                                              name: "FOO Token",
+                                                              code: "FOO",
+                                                              type: "ERC20",
+                                                              decimals: 10)!]
+
+        prepareAccount()
+        // Create a query that fails (no authentication)
+
+        prepareSystem (query: BlockChainDB())
+
+        XCTAssertTrue (system.networks.count >= 1)
+        let network: Network! = system.networks.first { "eth" == $0.currency.code && isMainnet == $0.isMainnet }
+        XCTAssertNotNil (network)
+
+        XCTAssertNotNil (network.currencyBy(code: "eth"))
+        XCTAssertNotNil (network.currencyBy(code: "FOO"))
+
+        let fooCurrency = network.currencyBy(code: "FOO")!
+        XCTAssertEqual("ERC20",  fooCurrency.type)
+        
+        guard let fooDef = network.defaultUnitFor(currency: fooCurrency)
+            else { XCTAssertTrue (false); return }
+        XCTAssertEqual(10, fooDef.decimals)
+        XCTAssertEqual("FOO", fooDef.symbol)
+
+        guard let fooBase = network.baseUnitFor(currency: fooCurrency)
+            else { XCTAssertTrue (false); return }
+        XCTAssertEqual (0, fooBase.decimals)
+        XCTAssertEqual ("FOOI", fooBase.symbol)
+    }
+
+    func testSystemModes () {
+        isMainnet = false
+        currencyCodesNeeded = ["btc"]
+        modeMap = ["btc":WalletManagerMode.api_only]
+        prepareAccount()
+        prepareSystem()
+
+        XCTAssertTrue (system.networks.count >= 1)
+        let network: Network! = system.networks.first { "btc" == $0.currency.code && isMainnet == $0.isMainnet }
+        XCTAssertNotNil (network)
+        XCTAssertTrue (system.supportsMode(network: network, system.defaultMode(network: network)))
+
+        system.networks
+            .forEach { (network) in
+                XCTAssertTrue (system.supportsMode(network: network, system.defaultMode(network: network)))
+        }
+
+        system.supportedModesMap
+            .forEach { (argument) in
+                let (bid, modes) = argument
+                XCTAssertTrue (modes.contains (system.defaultModesMap[bid]!))
+        }
+    }
+
+    func testSystemAddressSchemes () {
+        isMainnet = false
+        currencyCodesNeeded = ["btc"]
+        modeMap = ["btc":WalletManagerMode.api_only]
+        prepareAccount()
+        prepareSystem()
+
+        XCTAssertTrue (system.networks.count >= 1)
+        let network: Network! = system.networks.first { "btc" == $0.currency.code && isMainnet == $0.isMainnet }
+        XCTAssertNotNil (network)
+        XCTAssertTrue (system.supportsAddressScheme (network: network, system.defaultAddressScheme(network: network)))
+
+        system.networks
+            .forEach { (network) in
+                XCTAssertTrue (system.supportsAddressScheme (network: network, system.defaultAddressScheme(network: network)))
+        }
+
+        system.supportedAddressSchemesMap
+            .forEach { (argument) in
+                let (bid, schemes) = argument
+                XCTAssertTrue (schemes.contains (system.defaultAddressSchemeMap[bid]!))
+        }
+    }
 }

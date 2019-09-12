@@ -84,8 +84,6 @@ cryptoNetworkFeeEqual (BRCryptoNetworkFee nf1, BRCryptoNetworkFee nf2) {
 
 static void
 cryptoNetworkFeeRelease (BRCryptoNetworkFee networkFee) {
-    printf ("Network Fee: Release\n");
-
     cryptoAmountGive (networkFee->pricePerCostFactor);
     cryptoUnitGive   (networkFee->pricePerCostFactorUnit);
 
@@ -140,6 +138,8 @@ struct BRCryptoNetworkRecord {
     BRArrayOf(BRCryptoCurrencyAssociation) associations;
     BRArrayOf(BRCryptoNetworkFee) fees;
 
+    uint32_t confirmationsUntilFinal;
+    
     BRCryptoBlockChainType type;
     union {
         struct {
@@ -231,7 +231,6 @@ cryptoNetworkAnnounce (BRCryptoNetwork network) {
 
 static void
 cryptoNetworkRelease (BRCryptoNetwork network) {
-    printf ("Network: Release\n");
     for (size_t index = 0; index < array_count (network->associations); index++) {
         BRCryptoCurrencyAssociation *association = &network->associations[index];
         cryptoCurrencyGive (association->currency);
@@ -301,6 +300,17 @@ private_extern void
 cryptoNetworkSetHeight (BRCryptoNetwork network,
                         BRCryptoBlockChainHeight height) {
     network->height = height;
+}
+
+extern uint32_t
+cryptoNetworkGetConfirmationsUntilFinal (BRCryptoNetwork network) {
+    return network->confirmationsUntilFinal;
+}
+
+private_extern void
+cryptoNetworkSetConfirmationsUntilFinal (BRCryptoNetwork network,
+                                         uint32_t confirmationsUntilFinal) {
+    network->confirmationsUntilFinal = confirmationsUntilFinal;
 }
 
 extern BRCryptoCurrency

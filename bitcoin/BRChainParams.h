@@ -69,6 +69,8 @@ static inline int BRChainParamsIsBitcoin (const BRChainParams *params) {
 
 extern const BRCheckPoint *BRChainParamsGetCheckpointBefore (const BRChainParams *params, uint32_t timestamp);
 
+extern const BRCheckPoint *BRChainParamsGetCheckpointBeforeBlockNumber (const BRChainParams *params, uint32_t blockNumber);
+
 #ifdef __cplusplus
 }
 #endif

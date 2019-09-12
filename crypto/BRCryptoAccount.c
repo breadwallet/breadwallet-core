@@ -228,7 +228,6 @@ if (bytesPtr > bytesEnd) return NULL; /* overkill */ \
 
 static void
 cryptoAccountRelease (BRCryptoAccount account) {
-//    printf ("Account: Release\n");
     accountFree(account->eth);
     gwmAccountRelease(account->xrp);
 

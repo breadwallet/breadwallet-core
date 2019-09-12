@@ -48,7 +48,7 @@ IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoUnit, cryptoUnit)
 static BRCryptoUnit
 cryptoUnitCreateInternal (BRCryptoCurrency currency,
                           const char *uids,
-                         const char *name,
+                          const char *name,
                           const char *symbol) {
     BRCryptoUnit unit = malloc (sizeof (struct BRCryptoUnitRecord));
 
@@ -91,7 +91,6 @@ cryptoUnitCreate (BRCryptoCurrency currency,
 
 static void
 cryptoUnitRelease (BRCryptoUnit unit) {
-    printf ("Unit: Release\n");
     if (NULL != unit->base) cryptoUnitGive (unit->base);
     cryptoCurrencyGive (unit->currency);
     free (unit->uids);

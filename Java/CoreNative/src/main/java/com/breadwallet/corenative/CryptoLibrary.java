@@ -125,7 +125,6 @@ public interface CryptoLibrary extends Library {
     void cryptoHashGive(BRCryptoHash obj);
 
     // crypto/BRCryptoNetwork.h
-    int cryptoNetworkGetType(BRCryptoNetwork network);
     Pointer cryptoNetworkGetUids(BRCryptoNetwork network);
     Pointer cryptoNetworkGetName(BRCryptoNetwork network);
     int cryptoNetworkIsMainnet(BRCryptoNetwork network);
@@ -133,6 +132,8 @@ public interface CryptoLibrary extends Library {
     BRCryptoUnit cryptoNetworkGetUnitAsDefault(BRCryptoNetwork network, BRCryptoCurrency currency);
     BRCryptoUnit cryptoNetworkGetUnitAsBase(BRCryptoNetwork network, BRCryptoCurrency currency);
     long cryptoNetworkGetHeight(BRCryptoNetwork network);
+    int cryptoNetworkGetConfirmationsUntilFinal(BRCryptoNetwork network);
+    void cryptoNetworkSetConfirmationsUntilFinal(BRCryptoNetwork network, int confirmationsUntilFinal);
     SizeT cryptoNetworkGetCurrencyCount(BRCryptoNetwork network);
     BRCryptoCurrency cryptoNetworkGetCurrencyAt(BRCryptoNetwork network, SizeT index);
     int cryptoNetworkHasCurrency(BRCryptoNetwork network, BRCryptoCurrency currency);
@@ -223,12 +224,14 @@ public interface CryptoLibrary extends Library {
     int cryptoWalletManagerGetAddressScheme (BRCryptoWalletManager cwm);
     void cryptoWalletManagerSetAddressScheme (BRCryptoWalletManager cwm, int scheme);
     Pointer cryptoWalletManagerGetPath(BRCryptoWalletManager cwm);
+    void cryptoWalletManagerSetNetworkReachable(BRCryptoWalletManager manager, int isNetworkReachable);
     BRCryptoWallet cryptoWalletManagerGetWallet(BRCryptoWalletManager cwm);
     Pointer cryptoWalletManagerGetWallets(BRCryptoWalletManager cwm, SizeTByReference count);
     int cryptoWalletManagerHasWallet(BRCryptoWalletManager cwm, BRCryptoWallet wallet);
     void cryptoWalletManagerConnect(BRCryptoWalletManager cwm);
     void cryptoWalletManagerDisconnect(BRCryptoWalletManager cwm);
     void cryptoWalletManagerSync(BRCryptoWalletManager cwm);
+    void cryptoWalletManagerSyncToDepth(BRCryptoWalletManager cwm, int depth);
     void cryptoWalletManagerSubmit(BRCryptoWalletManager cwm, BRCryptoWallet wid, BRCryptoTransfer tid, ByteBuffer paperKey);
     void cryptoWalletManagerSubmitForKey(BRCryptoWalletManager cwm, BRCryptoWallet wid, BRCryptoTransfer tid, BRCryptoKey key);
     void cwmAnnounceGetBlockNumberSuccessAsInteger(BRCryptoWalletManager cwm, BRCryptoCWMClientCallbackState callbackState,long blockNumber);
@@ -282,6 +285,5 @@ public interface CryptoLibrary extends Library {
 
 
     // ethereum/util/BRUtilMath.h
-    UInt256.ByValue createUInt256(long value);
     Pointer coerceStringPrefaced(UInt256.ByValue value, int base, String preface);
 }

@@ -20,12 +20,16 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            buildConfigField 'String', 'BDB_BASE_URL', '"https://api.blockset.com"'
+            buildConfigField 'String', 'API_BASE_URL', '"https://api.breadwallet.com"'
         }
 
         debug {
             debuggable true
             jniDebuggable true
             minifyEnabled false
+            buildConfigField 'String', 'BDB_BASE_URL', '"https://api.blockset.com"'
+            buildConfigField 'String', 'API_BASE_URL', '"https://stage2.breadwallet.com"'
         }
     }
 }

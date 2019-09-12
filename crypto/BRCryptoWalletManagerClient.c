@@ -952,6 +952,7 @@ cwmWalletEventAsETH (BREthereumClientContext context,
                 cryptoUnitGive (unit);
                 cryptoCurrencyGive (currency);
 
+                // This is invoked directly on an EWM thread. (as is all this function's code).
                 cwm->listener.walletEventCallback (cwm->listener.context,
                                                    cryptoWalletManagerTake (cwm),
                                                    cryptoWalletTake (wallet),
@@ -1689,6 +1690,7 @@ cryptoWalletManagerClientCreateBTCClient (OwnershipKept BRCryptoWalletManager cw
 
 extern BREthereumClient
 cryptoWalletManagerClientCreateETHClient (OwnershipKept BRCryptoWalletManager cwm) {
+    // All these client callbacks are invoked directly on an ETH thread.
     return (BREthereumClient) {
         cwm,
         cwmGetBalanceAsETH,

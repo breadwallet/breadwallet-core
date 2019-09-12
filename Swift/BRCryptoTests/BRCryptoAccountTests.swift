@@ -75,7 +75,8 @@ class BRCryptoAccountTests: XCTestCase {
                                currency: eth,
                                height: 100000,
                                associations: [:],
-                               fees: [fee])
+                               fees: [fee],
+                               confirmationsUntilFinal: 6)
 
         let e1 = Address.create (string: "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62", network: network)
         let e2 = Address.create (string: "0xd3CFBA03Fc13dc01F0C67B88CBEbE776D8F3DE8f", network: network)
@@ -111,7 +112,8 @@ class BRCryptoAccountTests: XCTestCase {
                                currency: btc,
                                height: 100000,
                                associations: [:],
-                               fees: [fee])
+                               fees: [fee],
+                               confirmationsUntilFinal: 6)
 
         XCTAssertEqual(network.addressFor("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj")?.description,
                        "1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj")
@@ -132,7 +134,8 @@ class BRCryptoAccountTests: XCTestCase {
                                currency: bch,
                                height: 100000,
                                associations: [:],
-                               fees: [fee])
+                               fees: [fee],
+                               confirmationsUntilFinal: 6)
 
         XCTAssertEqual (network.addressFor("bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v")?.description,
                         "bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v")
@@ -160,7 +163,8 @@ class BRCryptoAccountTests: XCTestCase {
                                currency: bch,
                                height: 100000,
                                associations: [:],
-                               fees: [fee])
+                               fees: [fee],
+                               confirmationsUntilFinal: 6)
 
         XCTAssertEqual (network.addressFor("bchtest:pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t")?.description,
                         "bchtest:pr6m7j9njldwwzlg9v7v53unlr4jkmx6eyvwc0uz5t")

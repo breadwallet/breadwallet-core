@@ -14,7 +14,7 @@
         tools:ignore="HardcodedText"/>
 
     <item android:id="@+id/action_sync"
-        android:title="Sync"
+        android:title="Sync To Depth"
         app:showAsAction="never"
         tools:ignore="HardcodedText"/>
 

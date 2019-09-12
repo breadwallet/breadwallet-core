@@ -126,8 +126,6 @@ cryptoPaymentProtocolRequestBitPayBuilderCreate (BRCryptoNetwork cryptoNetwork,
 
 static void
 cryptoPaymentProtocolRequestBitPayBuilderRelease (BRCryptoPaymentProtocolRequestBitPayBuilder builder) {
-    printf ("BitPay Builder: Release\n");
-
     if (builder->network) {
         free (builder->network);
     }
@@ -329,8 +327,6 @@ cryptoPaymentProtocolRequestCreateForBip70 (BRCryptoNetwork cryptoNetwork,
 
 static void
 cryptoPaymentProtocolRequestRelease (BRCryptoPaymentProtocolRequest protoReq) {
-    printf ("Payment Protocol Request: Release\n");
-
     switch (protoReq->type) {
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY:
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70: {
@@ -740,8 +736,6 @@ cryptoPaymentProtocolPaymentCreate (BRCryptoPaymentProtocolRequest protoReq,
 
 static void
 cryptoPaymentProtocolPaymentRelease (BRCryptoPaymentProtocolPayment protoPay) {
-    printf ("Payment Protocol Payment: Release\n");
-
     switch (protoPay->type) {
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BITPAY: {
             BRTransactionFree (protoPay->u.btcBitPay.transaction);
@@ -880,8 +874,6 @@ cryptoPaymentProtocolPaymentACKCreateForBip70 (uint8_t *serialization,
 
 static void
 cryptoPaymentProtocolPaymentACKRelease (BRCryptoPaymentProtocolPaymentACK protoAck) {
-    printf ("Payment Protocol Payment ACK: Release\n");
-
     switch (protoAck->type) {
         case CRYPTO_PAYMENT_PROTOCOL_TYPE_BIP70: {
             BRPaymentProtocolACKFree (protoAck->u.btcBip70.ack);

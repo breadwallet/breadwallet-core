@@ -12,13 +12,13 @@ import android.util.Log;
 
 import com.breadwallet.crypto.blockchaindb.DataTask;
 import com.breadwallet.crypto.blockchaindb.apis.ArrayResponseParser;
+import com.breadwallet.crypto.blockchaindb.apis.HttpStatusCodes;
 import com.breadwallet.crypto.blockchaindb.errors.QueryError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryJsonParseError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryModelError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryNoDataError;
 import com.breadwallet.crypto.blockchaindb.errors.QueryResponseError;
 import com.breadwallet.crypto.blockchaindb.errors.QuerySubmissionError;
-import com.breadwallet.crypto.blockchaindb.errors.QueryUrlError;
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMultimap;
@@ -63,27 +63,27 @@ public class BrdApiClient {
     /* package */
     void sendJsonRequest(String networkName, JSONObject json, CompletionHandler<String, QueryError> handler) {
         makeAndSendRequest(Arrays.asList("ethq", getNetworkName(networkName), "proxy"), ImmutableMultimap.of(), json, "POST",
-                new EmbeddedStringHandler(handler));
+                new EmbeddedStringResponseHandler(handler));
     }
 
     /* package */
     void sendQueryRequest(String networkName, Multimap<String, String> params, JSONObject json,
                           CompletionHandler<String, QueryError> handler) {
         makeAndSendRequest(Arrays.asList("ethq", getNetworkName(networkName), "query"), params, json, "POST",
-                new EmbeddedStringHandler(handler));
+                new EmbeddedStringResponseHandler(handler));
     }
 
     /* package */
     <T> void sendQueryForArrayRequest(String networkName, Multimap<String, String> params, JSONObject json,
                                       ArrayResponseParser<T> parser, CompletionHandler<T, QueryError> handler) {
         makeAndSendRequest(Arrays.asList("ethq", getNetworkName(networkName), "query"), params, json, "POST",
-                new EmbeddedArrayHandler<T>(parser, handler));
+                new EmbeddedArrayResponseHandler<T>(parser, handler));
     }
 
     /* package */
     <T> void sendTokenRequest(ArrayResponseParser<T> parser, CompletionHandler<T, QueryError> handler) {
         makeAndSendRequest(Collections.singletonList("currencies"), ImmutableMultimap.of("type", "erc20"), null, "GET",
-                new RootArrayHandler<T>(parser, handler));
+                new RootArrayResponseHandler<T>(parser, handler));
     }
 
     private String getNetworkName(String networkName) {
@@ -111,7 +111,7 @@ public class BrdApiClient {
 
         Request.Builder requestBuilder = new Request.Builder();
         requestBuilder.url(httpUrl);
-        requestBuilder.addHeader("accept", "application/json");
+        requestBuilder.header("Accept", "application/json");
         requestBuilder.method(httpMethod, json == null ? null : RequestBody.create(MEDIA_TYPE_JSON, json.toString()));
 
         sendRequest(requestBuilder.build(), dataTask, handler);
@@ -122,7 +122,7 @@ public class BrdApiClient {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 int responseCode = response.code();
-                if (responseCode == 200) {
+                if (HttpStatusCodes.responseSuccess(request.method()).contains(responseCode)) {
                     try (ResponseBody responseBody = response.body()) {
                         if (responseBody == null) {
                             Log.e(TAG, "response failed with null body");
@@ -131,15 +131,13 @@ public class BrdApiClient {
                             T data = null;
 
                             try {
-                                data = handler.parseData(responseBody.string());
+                                data = handler.parseResponse(responseBody.string());
                             } catch (JSONException e) {
                                 Log.e(TAG, "response failed parsing json", e);
                                 handler.handleError(new QueryJsonParseError(e.getMessage()));
                             }
 
-                            if (data != null) {
-                                handler.handleData(data);
-                            }
+                            handler.handleResponse(data);
                         }
                     }
                 } else {
@@ -156,30 +154,28 @@ public class BrdApiClient {
         });
     }
 
-    private interface ResponseHandler<T> {
-        T parseData(String data) throws JSONException;
-
-        void handleData(T data);
-
+    private interface ResponseHandler<R> {
+        R parseResponse(String responseRaw) throws JSONException;
+        void handleResponse(R responseData);
         void handleError(QueryError error);
     }
 
-    private static class EmbeddedStringHandler implements ResponseHandler<JSONObject> {
+    private static class EmbeddedStringResponseHandler implements ResponseHandler<JSONObject> {
 
         private final CompletionHandler<String, QueryError> handler;
 
-        EmbeddedStringHandler(CompletionHandler<String, QueryError> handler) {
+        EmbeddedStringResponseHandler(CompletionHandler<String, QueryError> handler) {
             this.handler = handler;
         }
 
         @Override
-        public JSONObject parseData(String data) throws JSONException {
-            return new JSONObject(data);
+        public JSONObject parseResponse(String responseRaw) throws JSONException {
+            return new JSONObject(responseRaw);
         }
 
         @Override
-        public void handleData(JSONObject json) {
-            String result = json.optString("result", null);
+        public void handleResponse(JSONObject responseData) {
+            String result = responseData.optString("result", null);
             if (result == null) {
                 QueryError e = new QueryModelError("'result' expected");
                 Log.e(TAG, "missing 'result' in response", e);
@@ -196,26 +192,26 @@ public class BrdApiClient {
         }
     }
 
-    private static class EmbeddedArrayHandler<T> implements ResponseHandler<JSONObject> {
+    private static class EmbeddedArrayResponseHandler<T> implements ResponseHandler<JSONObject> {
 
         private final ArrayResponseParser<T> parser;
         private final CompletionHandler<T, QueryError> handler;
 
-        EmbeddedArrayHandler(ArrayResponseParser<T> parser, CompletionHandler<T, QueryError> handler) {
+        EmbeddedArrayResponseHandler(ArrayResponseParser<T> parser, CompletionHandler<T, QueryError> handler) {
             this.parser = parser;
             this.handler = handler;
         }
 
         @Override
-        public JSONObject parseData(String data) throws JSONException {
-            return new JSONObject(data);
+        public JSONObject parseResponse(String responseRaw) throws JSONException {
+            return new JSONObject(responseRaw);
         }
 
         @Override
-        public void handleData(JSONObject json) {
-            String status = json.optString("status", null);
-            String message = json.optString("message", null);
-            JSONArray result = json.optJSONArray("result");
+        public void handleResponse(JSONObject responseData) {
+            String status = responseData.optString("status", null);
+            String message = responseData.optString("message", null);
+            JSONArray result = responseData.optJSONArray("result");
 
             if (status == null) {
                 QueryError e = new QueryModelError("'status' expected");
@@ -250,24 +246,24 @@ public class BrdApiClient {
         }
     }
 
-    private static class RootArrayHandler<T> implements ResponseHandler<JSONArray> {
+    private static class RootArrayResponseHandler<T> implements ResponseHandler<JSONArray> {
 
         private final ArrayResponseParser<T> parser;
         private final CompletionHandler<T, QueryError> handler;
 
-        RootArrayHandler(ArrayResponseParser<T> parser, CompletionHandler<T, QueryError> handler) {
+        RootArrayResponseHandler(ArrayResponseParser<T> parser, CompletionHandler<T, QueryError> handler) {
             this.parser = parser;
             this.handler = handler;
         }
 
         @Override
-        public JSONArray parseData(String data) throws JSONException {
-            return new JSONArray(data);
+        public JSONArray parseResponse(String responseRaw) throws JSONException {
+            return new JSONArray(responseRaw);
         }
 
         @Override
-        public void handleData(JSONArray json) {
-            Optional<T> data = parser.parse(json);
+        public void handleResponse(JSONArray responseData) {
+            Optional<T> data = parser.parse(responseData);
             if (data.isPresent()) {
                 handler.handleData(data.get());
 

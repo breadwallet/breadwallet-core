@@ -880,6 +880,19 @@ BRTransaction *BRWalletTransactionForHash(BRWallet *wallet, UInt256 txHash)
     return tx;
 }
 
+// returns a copy of the transaction with the given hash if it's been registered in the wallet
+BRTransaction *BRWalletTransactionCopyForHash(BRWallet *wallet, UInt256 txHash) {
+    BRTransaction *tx;
+
+    assert(wallet != NULL);
+    assert(! UInt256IsZero(txHash));
+    pthread_mutex_lock(&wallet->lock);
+    tx = BRSetGet(wallet->allTx, &txHash);
+    if (tx) tx = BRTransactionCopy (tx);
+    pthread_mutex_unlock(&wallet->lock);
+    return tx;
+}
+
 // true if no previous wallet transaction spends any of the given transaction's inputs, and no inputs are invalid
 int BRWalletTransactionIsValid(BRWallet *wallet, const BRTransaction *tx)
 {

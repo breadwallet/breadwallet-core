@@ -303,12 +303,14 @@ class BRCryptoSystemBaseTests: BRCryptoBaseTests {
     var currencyCodesNeeded = ["btc"]
     var modeMap = ["btc":WalletManagerMode.api_only]
 
+    var currencyModels: [BlockChainDB.Model.Currency] = []
+
     func createDefaultListener() -> CryptoTestSystemListener {
         return CryptoTestSystemListener (currencyCodesNeeded: currencyCodesNeeded, isMainnet: isMainnet, modeMap: modeMap)
     }
 
     func createDefaultQuery () -> BlockChainDB {
-        return BlockChainDB()
+        return BlockChainDB.createForTest()
     }
 
     func prepareSystem (listener: CryptoTestSystemListener? = nil, query: BlockChainDB? = nil) {
@@ -326,7 +328,7 @@ class BRCryptoSystemBaseTests: BRCryptoBaseTests {
         XCTAssertTrue  (self.query === system.query)
         XCTAssertEqual (account.uids, system.account.uids)
 
-        system.configure() // Don't connect
+        system.configure(withCurrencyModels: currencyModels) // Don't connect
         wait (for: [self.listener.networkExpectation], timeout: 5)
         wait (for: [self.listener.managerExpectation], timeout: 5)
         wait (for: [self.listener.walletExpectation ], timeout: 5)

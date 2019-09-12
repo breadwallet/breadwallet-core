@@ -8,6 +8,7 @@
 package com.breadwallet.corenative.crypto;
 
 import com.breadwallet.corenative.CryptoLibrary;
+import com.breadwallet.corenative.support.BRSyncDepth;
 import com.breadwallet.corenative.utility.SizeT;
 import com.breadwallet.corenative.utility.SizeTByReference;
 import com.google.common.primitives.UnsignedInteger;
@@ -75,6 +76,14 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     }
 
     @Override
+    public void setNetworkReachable(boolean isNetworkReachable) {
+        CryptoLibrary.INSTANCE.cryptoWalletManagerSetNetworkReachable(
+                this,
+                isNetworkReachable ? BRCryptoBoolean.CRYPTO_TRUE : BRCryptoBoolean.CRYPTO_FALSE
+        );
+    }
+
+    @Override
     public int getMode() {
         return CryptoLibrary.INSTANCE.cryptoWalletManagerGetMode(this);
     }
@@ -117,6 +126,11 @@ public class BRCryptoWalletManager extends PointerType implements CoreBRCryptoWa
     @Override
     public void sync() {
         CryptoLibrary.INSTANCE.cryptoWalletManagerSync(this);
+    }
+
+    @Override
+    public void syncToDepth(BRSyncDepth depth) {
+        CryptoLibrary.INSTANCE.cryptoWalletManagerSyncToDepth(this, depth.toNative());
     }
 
     @Override

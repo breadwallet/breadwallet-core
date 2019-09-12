@@ -14,12 +14,13 @@ import com.breadwallet.corenative.crypto.BRCryptoTransferState;
 import com.breadwallet.corenative.crypto.BRCryptoTransferStateType;
 import com.breadwallet.corenative.crypto.BRCryptoWalletManagerState;
 import com.breadwallet.corenative.crypto.BRCryptoWalletState;
-import com.breadwallet.corenative.crypto.CoreBRCryptoAmount;
+import com.breadwallet.corenative.support.BRSyncDepth;
 import com.breadwallet.corenative.support.BRSyncMode;
 import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.TransferConfirmation;
 import com.breadwallet.crypto.TransferDirection;
 import com.breadwallet.crypto.TransferState;
+import com.breadwallet.crypto.WalletManagerSyncDepth;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.WalletManagerState;
 import com.breadwallet.crypto.WalletState;
@@ -161,6 +162,16 @@ final class Utilities {
         switch (status) {
             case BRCryptoStatus.CRYPTO_ERROR_NODE_NOT_CONNECTED: return new FeeEstimationServiceUnavailableError();
             default: return new FeeEstimationServiceFailureError();
+        }
+    }
+
+    /* package */
+    static BRSyncDepth syncDepthToCrypto(WalletManagerSyncDepth depth) {
+        switch (depth) {
+            case FROM_LAST_CONFIRMED_SEND: return BRSyncDepth.SYNC_DEPTH_FROM_LAST_CONFIRMED_SEND;
+            case FROM_LAST_TRUSTED_BLOCK:  return BRSyncDepth.SYNC_DEPTH_FROM_LAST_TRUSTED_BLOCK;
+            case FROM_CREATION:            return BRSyncDepth.SYNC_DEPTH_FROM_CREATION;
+            default: throw new IllegalArgumentException("Unsupported depth");
         }
     }
 }

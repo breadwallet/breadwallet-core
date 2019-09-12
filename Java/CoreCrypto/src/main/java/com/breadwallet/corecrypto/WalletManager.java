@@ -8,16 +8,12 @@ import com.breadwallet.corenative.crypto.CoreBRCryptoWalletManager;
 import com.breadwallet.crypto.AddressScheme;
 import com.breadwallet.crypto.WalletManagerMode;
 import com.breadwallet.crypto.WalletManagerState;
-import com.breadwallet.crypto.blockchaindb.errors.QueryError;
-import com.breadwallet.crypto.blockchaindb.models.bdb.Transaction;
+import com.breadwallet.crypto.WalletManagerSyncDepth;
 import com.breadwallet.crypto.errors.WalletSweeperError;
-import com.breadwallet.crypto.errors.WalletSweeperQueryError;
 import com.breadwallet.crypto.utility.CompletionHandler;
 import com.google.common.base.Optional;
-import com.google.common.primitives.UnsignedLong;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -36,16 +32,19 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
                                 String path,
                                 System system,
                                 SystemCallbackCoordinator callbackCoordinator) {
-        CoreBRCryptoWalletManager core = CoreBRCryptoWalletManager.create(
-                listener,
-                client,
-                account.getCoreBRCryptoAccount(),
-                network.getCoreBRCryptoNetwork(),
-                Utilities.walletManagerModeToCrypto(mode),
-                Utilities.addressSchemeToCrypto(addressScheme),
-                path);
-
-        return new WalletManager(core, system, callbackCoordinator);
+        return new WalletManager(
+                CoreBRCryptoWalletManager.create(
+                        listener,
+                        client,
+                        account.getCoreBRCryptoAccount(),
+                        network.getCoreBRCryptoNetwork(),
+                        Utilities.walletManagerModeToCrypto(mode),
+                        Utilities.addressSchemeToCrypto(addressScheme),
+                        path
+                ),
+                system,
+                callbackCoordinator
+        );
     }
 
     /* package */
@@ -101,6 +100,11 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     @Override
     public void sync() {
         core.sync();
+    }
+
+    @Override
+    public void syncToDepth(WalletManagerSyncDepth depth) {
+        core.syncToDepth(Utilities.syncDepthToCrypto(depth));
     }
 
     @Override
@@ -232,6 +236,11 @@ final class WalletManager implements com.breadwallet.crypto.WalletManager {
     @Override
     public String toString() {
         return getName();
+    }
+
+    /* package */
+    void setNetworkReachable(boolean isNetworkReachable) {
+        core.setNetworkReachable(isNetworkReachable);
     }
 
     /* package */
