@@ -375,10 +375,7 @@ cryptoWalletManagerSetAddressScheme (BRCryptoWalletManager cwm,
 
 extern const char *
 cryptoWalletManagerGetPath (BRCryptoWalletManager cwm) {
-    pthread_mutex_lock (&cwm->lock);
-    const char *path = cwm->path;
-    pthread_mutex_unlock (&cwm->lock);
-    return path;
+    return cwm->path;
 }
 
 extern void
