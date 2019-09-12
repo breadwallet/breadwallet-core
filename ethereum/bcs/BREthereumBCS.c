@@ -265,10 +265,11 @@ bcsCreate (BREthereumNetwork network,
         chainHeader = blockCheckpointCreatePartialBlockHeader(checkpoint);
     }
 
+#if defined (LES_DISABLE_DISCOVERY)
+    BREthereumBoolean discoverNodes = ETHEREUM_BOOLEAN_FALSE;
+#else
     // There is no need to discover nodes if we are in BRD_ONLY mode.
     BREthereumBoolean discoverNodes = AS_ETHEREUM_BOOLEAN (mode != SYNC_MODE_BRD_ONLY);
-#if defined (LES_DISABLE_DISCOVERY)
-    discoverNodes = ETHEREUM_BOOLEAN_FALSE;
 #endif
 
     BREthereumBoolean handleSync = AS_ETHEREUM_BOOLEAN (SYNC_MODE_P2P_ONLY == mode ||

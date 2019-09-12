@@ -363,7 +363,8 @@ cryptoWalletGetDefaultFeeBasis (BRCryptoWallet wallet) {
             BRWallet *wid = wallet->u.btc.wid;
 
             assert (0); // TODO: Generic Size not 1000
-            feeBasis = cryptoFeeBasisCreateAsBTC (feeUnit, BRWalletFeePerKb (wid), 1000);
+            feeBasis = cryptoFeeBasisCreateAsBTC (feeUnit, (uint32_t) BRWalletFeePerKb (wid), 1000);
+            break;
         }
         case BLOCK_CHAIN_TYPE_ETH: {
             BREthereumEWM ewm = wallet->u.eth.ewm;
@@ -373,6 +374,7 @@ cryptoWalletGetDefaultFeeBasis (BRCryptoWallet wallet) {
             BREthereumGasPrice gasPrice = ewmWalletGetDefaultGasPrice (ewm, wid);
 
             feeBasis =  cryptoFeeBasisCreateAsETH (feeUnit, gas, gasPrice);
+            break;
         }
         case BLOCK_CHAIN_TYPE_GEN: {
             BRGenericWalletManager gwm = wallet->u.gen.gwm;
@@ -380,6 +382,7 @@ cryptoWalletGetDefaultFeeBasis (BRCryptoWallet wallet) {
 
             BRGenericFeeBasis bid = gwmWalletGetDefaultFeeBasis (gwm, wid);
             feeBasis =  cryptoFeeBasisCreateAsGEN (feeUnit, gwm, bid);
+            break;
         }
     }
 
