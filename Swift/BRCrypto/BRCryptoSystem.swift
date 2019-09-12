@@ -897,13 +897,17 @@ public final class SystemCallbackCoordinator {
 
     var index: Int32 = 0;
     var handlers: [Int32: Handler] = [:]
+
+    // The queue upon which to invoke handlers.
     let queue: DispatchQueue
 
     public typealias Cookie = UnsafeMutableRawPointer
 
     var cookie: Cookie {
-        let index = Int(self.index)
-        return UnsafeMutableRawPointer (bitPattern: index)!
+        return System.systemQueue.sync {
+            let index = Int(self.index)
+            return UnsafeMutableRawPointer (bitPattern: index)!
+        }
     }
 
     func cookieToIndex (_ cookie: Cookie) -> Int32 {
@@ -911,17 +915,22 @@ public final class SystemCallbackCoordinator {
     }
 
     public func addWalletFeeEstimateHandler(_ handler: @escaping Wallet.EstimateFeeHandler) -> Cookie {
-        index = OSAtomicIncrement32 (&index)
-        handlers[index] = Handler.walletFeeEstimate(handler)
-        return cookie
+        return System.systemQueue.sync {
+            index += 1
+            handlers[index] = Handler.walletFeeEstimate(handler)
+            // Recursively on System.systemQueue.sync
+            return cookie
+        }
     }
 
     func remWalletFeeEstimateHandler (_ cookie: UnsafeMutableRawPointer) -> Wallet.EstimateFeeHandler? {
-        return handlers.removeValue (forKey: cookieToIndex(cookie))
-            .flatMap {
-                switch $0 {
-                case .walletFeeEstimate (let handler): return handler
-                }
+        return System.systemQueue.sync {
+            return handlers.removeValue (forKey: cookieToIndex(cookie))
+                .flatMap {
+                    switch $0 {
+                    case .walletFeeEstimate (let handler): return handler
+                    }
+            }
         }
     }
 
