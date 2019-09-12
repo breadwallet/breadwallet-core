@@ -84,8 +84,6 @@ cryptoNetworkFeeEqual (BRCryptoNetworkFee nf1, BRCryptoNetworkFee nf2) {
 
 static void
 cryptoNetworkFeeRelease (BRCryptoNetworkFee networkFee) {
-    printf ("Network Fee: Release\n");
-
     cryptoAmountGive (networkFee->pricePerCostFactor);
     cryptoUnitGive   (networkFee->pricePerCostFactorUnit);
 
@@ -233,7 +231,6 @@ cryptoNetworkAnnounce (BRCryptoNetwork network) {
 
 static void
 cryptoNetworkRelease (BRCryptoNetwork network) {
-    printf ("Network: Release\n");
     for (size_t index = 0; index < array_count (network->associations); index++) {
         BRCryptoCurrencyAssociation *association = &network->associations[index];
         cryptoCurrencyGive (association->currency);

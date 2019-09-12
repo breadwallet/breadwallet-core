@@ -57,8 +57,6 @@ IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoAddress, cryptoAddress);
 
 static void
 cryptoAddressRelease (BRCryptoAddress address) {
-    //    printf ("Address: Release\n");
-
     // TODO: btc, eth, gen ?
     free (address);
 }

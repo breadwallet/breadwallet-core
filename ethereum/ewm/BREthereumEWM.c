@@ -105,8 +105,8 @@ fileServiceTypeTransactionV1Reader (BRFileServiceContext context,
 static BRSetOf(BREthereumTransaction)
 initialTransactionsLoad (BREthereumEWM ewm) {
     BRSetOf(BREthereumTransaction) transactions = BRSetNew(transactionHashValue, transactionHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
-    if (1 != fileServiceLoad (ewm->fs, transactions, fileServiceTypeTransactions, 1)) {
-        BRSetFree(transactions);
+    if (NULL != transactions && 1 != fileServiceLoad (ewm->fs, transactions, fileServiceTypeTransactions, 1)) {
+        BRSetFreeAll (transactions, (void (*) (void*)) transactionRelease);
         return NULL;
     }
     return transactions;
@@ -167,8 +167,8 @@ fileServiceTypeLogV1Reader (BRFileServiceContext context,
 static BRSetOf(BREthereumLog)
 initialLogsLoad (BREthereumEWM ewm) {
     BRSetOf(BREthereumLog) logs = BRSetNew(logHashValue, logHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
-    if (1 != fileServiceLoad (ewm->fs, logs, fileServiceTypeLogs, 1)) {
-        BRSetFree(logs);
+    if (NULL != logs && 1 != fileServiceLoad (ewm->fs, logs, fileServiceTypeLogs, 1)) {
+        BRSetFreeAll (logs, (void (*) (void*)) logRelease);
         return NULL;
     }
     return logs;
@@ -229,8 +229,8 @@ fileServiceTypeBlockV1Reader (BRFileServiceContext context,
 static BRSetOf(BREthereumBlock)
 initialBlocksLoad (BREthereumEWM ewm) {
     BRSetOf(BREthereumBlock) blocks = BRSetNew(blockHashValue, blockHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
-    if (1 != fileServiceLoad (ewm->fs, blocks, fileServiceTypeBlocks, 1)) {
-        BRSetFree(blocks);
+    if (NULL != blocks && 1 != fileServiceLoad (ewm->fs, blocks, fileServiceTypeBlocks, 1)) {
+        BRSetFreeAll (blocks,  (void (*) (void*)) blockRelease);
         return NULL;
     }
     return blocks;
@@ -291,13 +291,12 @@ fileServiceTypeNodeV1Reader (BRFileServiceContext context,
 static BRSetOf(BREthereumNodeConfig)
 initialNodesLoad (BREthereumEWM ewm) {
     BRSetOf(BREthereumNodeConfig) nodes = BRSetNew(nodeConfigHashValue, nodeConfigHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
-    if (1 != fileServiceLoad (ewm->fs, nodes, fileServiceTypeNodes, 1)) {
-        BRSetFree(nodes);
+    if (NULL != nodes && 1 != fileServiceLoad (ewm->fs, nodes, fileServiceTypeNodes, 1)) {
+        BRSetFreeAll (nodes, (void (*) (void*)) nodeConfigRelease);
         return NULL;
     }
     return nodes;
 }
-
 
 /**
  *
@@ -382,17 +381,20 @@ ewmCreateInitialSets (BREthereumEWM ewm,
     // before the `accountTimestamp, which will be well in the past and we'll sync up to the
     // head of the blockchain).
     if (NULL == *transactions || NULL == *logs || NULL == *nodes || NULL == *blocks) {
-        if (NULL == *transactions) *transactions = BRSetNew(transactionHashValue, transactionHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
-        else BRSetClear(*transactions);
+        // If the set exists, clear it out completely and then create another one.  Note, since
+        // we have `BRSetFreeAll()` we'll use that even though it frees the set and then we
+        // create one again, minimally wastefully.
+        if (NULL != *transactions) { BRSetFreeAll (*transactions, (void (*) (void*)) transactionRelease); }
+        *transactions = BRSetNew (transactionHashValue, transactionHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
 
-        if (NULL == *logs) *logs = BRSetNew(logHashValue, logHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
-        else BRSetClear(*logs);
+        if (NULL != *logs) { BRSetFreeAll (*logs, (void (*) (void*)) logRelease); }
+        *logs = BRSetNew (logHashValue, logHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
 
-        if (NULL == *blocks) *blocks = BRSetNew(blockHashValue, blockHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
-        else BRSetClear(*blocks);
+        if (NULL != *blocks) { BRSetFreeAll (*blocks,  (void (*) (void*)) blockRelease); }
+        *blocks = BRSetNew (blockHashValue, blockHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
 
-        if (NULL == *nodes) *nodes = BRSetNew(nodeConfigHashValue, nodeConfigHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
-        else BRSetClear(*nodes);
+        if (NULL != *nodes) { BRSetFreeAll (*nodes, (void (*) (void*)) nodeConfigRelease); }
+        *nodes = BRSetNew (nodeConfigHashValue, nodeConfigHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
     }
 
     // If we have no blocks; then add a checkpoint
@@ -678,10 +680,10 @@ ewmCreateWithPublicKey (BREthereumNetwork network,
 
 extern void
 ewmDestroy (BREthereumEWM ewm) {
-    pthread_mutex_lock(&ewm->lock);
-
-    // Stop, including disconnect.
+    // Stop, including disconnect.  This WILL take `ewm->lock` and it MUST be available.
     ewmStop (ewm);
+
+    pthread_mutex_lock(&ewm->lock);
 
     //
     // Begin destroy

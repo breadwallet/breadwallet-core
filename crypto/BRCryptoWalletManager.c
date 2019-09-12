@@ -267,7 +267,6 @@ cryptoWalletManagerCreate (BRCryptoCWMListener listener,
 
 static void
 cryptoWalletManagerRelease (BRCryptoWalletManager cwm) {
-    printf ("Wallet Manager: Release\n");
     cryptoAccountGive (cwm->account);
     cryptoNetworkGive (cwm->network);
     if (NULL != cwm->wallet) cryptoWalletGive (cwm->wallet);
