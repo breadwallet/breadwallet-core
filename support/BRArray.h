@@ -172,9 +172,27 @@ extern "C" {
     array_count(array) = 0;\
 } while (0)
 
+/**
+ * The `apply_func` signature must be "void applyFunc (array_type_t  item)"
+ */
+#define array_apply(array, apply_func) do {\
+    assert((array) != NULL);\
+    size_t _array_i = (0), _array_cnt = array_count(array);\
+    while (_array_i < _array_cnt)\
+        ((apply_func)((array)[_array_i++]));\
+} while (0)
+
 #define array_free(array) do {\
     assert((array) != NULL);\
     free((size_t *)(array) - 2);\
+} while (0)
+
+/**
+ * The `free_func` signature must be "void freeFunc (array_type_t item)"
+ */
+#define array_free_all(array, free_func) do {\
+    array_apply (array, free_func);\
+    array_free (array);\
 } while (0)
 
 /**
