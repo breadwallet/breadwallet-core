@@ -47,6 +47,14 @@ getTokenTSTAddress (BREthereumNetwork network) {
 }
 #endif
 
+static BRSetOf(BREthereumToken) tokens;
+
+static BREthereumToken
+tokenLookupTestX (const char *address) {
+    BREthereumAddress addr = addressCreate(address);
+    return BRSetGet (tokens, &addr);
+}
+
 extern void
 installTokensForTestOnNetwork (BREthereumNetwork network) {
     static int needInstall = 1;
@@ -55,37 +63,47 @@ installTokensForTestOnNetwork (BREthereumNetwork network) {
 
     BREthereumGas defaultGasLimit = gasCreate(TOKEN_BRD_DEFAULT_GAS_LIMIT);
     BREthereumGasPrice defaultGasPrice = gasPriceCreate(etherCreateNumber(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, WEI));
-    tokenCreateAndInstall (getTokenBRDAddress(network),
-                           "BRD",
-                           "BRD Token",
-                           "",
-                           18,
-                           defaultGasLimit,
-                           defaultGasPrice);
+
+    BREthereumToken token;
+
+    token = tokenCreate (getTokenBRDAddress(network),
+                         "BRD",
+                         "BRD Token",
+                         "",
+                         18,
+                         defaultGasLimit,
+                         defaultGasPrice);
+    BRSetAdd (tokens, token);
+
 #if defined (BITCOIN_DEBUG)
-    tokenCreateAndInstall (getTokenTSTAddress(network),
-                           "TST",
-                           "Test Standard Token",
-                           "TeST Standard Token (TST) for TeSTing (TST)",
-                           18,
-                           defaultGasLimit,
-                           defaultGasPrice);
+    token = tokenCreate (getTokenTSTAddress(network),
+                         "TST",
+                         "Test Standard Token",
+                         "TeST Standard Token (TST) for TeSTing (TST)",
+                         18,
+                         defaultGasLimit,
+                         defaultGasPrice);
+    BRSetAdd (tokens, token);
+
 #endif
-    tokenCreateAndInstall ("0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0",
-                           "EOS",
-                           "EOS Token",
-                           "",
-                           18,
-                           defaultGasLimit,
-                           defaultGasPrice);
-    
-    tokenCreateAndInstall ("0xdd974d5c2e2928dea5f71b9825b8b646686bd200",
-                           "KNC",
-                           "KNC token",
-                           "",
-                           18,
-                           defaultGasLimit,
-                           defaultGasPrice);
+    token = tokenCreate ("0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0",
+                         "EOS",
+                         "EOS Token",
+                         "",
+                         18,
+                         defaultGasLimit,
+                         defaultGasPrice);
+    BRSetAdd (tokens, token);
+
+    token = tokenCreate ("0xdd974d5c2e2928dea5f71b9825b8b646686bd200",
+                         "KNC",
+                         "KNC token",
+                         "",
+                         18,
+                         defaultGasLimit,
+                         defaultGasPrice);
+    BRSetAdd (tokens, token);
+
 }
 
 //
@@ -773,7 +791,7 @@ runEWM_TOKEN_test (const char *paperKey,
     
     BRCoreParseStatus status;
     
-    BREthereumToken token = tokenLookup(getTokenBRDAddress(ethereumMainnet));
+    BREthereumToken token = tokenLookupTestX(getTokenBRDAddress(ethereumMainnet));
     BREthereumEWM ewm = ewmCreateWithPaperKey (ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
                                                SYNC_MODE_P2P_ONLY,
                                                client,
