@@ -89,18 +89,6 @@ tokenUpdate (BREthereumToken token,
              BREthereumGas defaultGasLimit,
              BREthereumGasPrice defaultGasPrice);
 
-//extern void
-//tokenInstall (OwnershipGiven BREthereumToken token);
-//
-//extern void
-//tokenCreateAndInstall (const char *address,
-//                       const char *symbol,
-//                       const char *name,
-//                       const char *description,
-//                       int decimals,
-//                       BREthereumGas defaultGasLimit,
-//                       BREthereumGasPrice defaultGasPrice);
-
 extern BRRlpItem
 tokenEncode (BREthereumToken token,
              BRRlpCoder coder);

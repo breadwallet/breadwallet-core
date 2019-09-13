@@ -694,7 +694,6 @@ ewmCreate (BREthereumNetwork network,
             BRSetFree (transactions);
             BRSetFree (logs);
 
-            
             // Add ewmPeriodicDispatcher to handlerForMain.  Note that a 'timeout' is handled by
             // an OOB (out-of-band) event whereby the event is pushed to the front of the queue.
             // This may not be the right thing to do.  Imagine that EWM is blocked somehow (doing

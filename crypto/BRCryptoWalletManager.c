@@ -487,6 +487,14 @@ cryptoWalletManagerInstallWalletsForCurrencies (BRCryptoWalletManager cwm) {
                         BREthereumGas      ethGasLimit = gasCreate(TOKEN_BRD_DEFAULT_GAS_LIMIT);
                         BREthereumGasPrice ethGasPrice = gasPriceCreate(etherCreate(createUInt256(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64)));
 
+                        // This has the perhaps surprising side-effect of updating the properties
+                        // of an existing token.  That is, `address` is used to locate a token and
+                        // if found it is updated.  Either created or updated the token will be
+                        // persistently saved.
+                        //
+                        // Argubably EWM should create a wallet for the token.  But, it doesn't.
+                        // So we'll call `ewmGetWalletHoldingToken()` to get a wallet.
+
                         BREthereumToken token = ewmCreateToken (cwm->u.eth,
                                                                 address,
                                                                 cryptoCurrencyGetCode (c),
