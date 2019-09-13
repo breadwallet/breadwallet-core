@@ -340,29 +340,35 @@ ewmSignalGetBlocks (BREthereumEWM ewm,
 
 extern void
 ewmHandleAnnounceBalance (BREthereumEWM ewm,
-                                BREthereumWallet wallet,
-                                UInt256 amount,
-                                int rid);
+                          BREthereumWallet wallet,
+                          UInt256 amount,
+                          int rid);
 
 extern void
 ewmSignalAnnounceBalance (BREthereumEWM ewm,
-                                BREthereumWallet wallet,
-                                UInt256 amount,
-                                int rid);
+                          BREthereumWallet wallet,
+                          UInt256 amount,
+                          int rid);
+
+extern void
+ewmHandleUpdateWalletBalances (BREthereumEWM ewm);
+
+extern void
+ewmSignalUpdateWalletBalances (BREthereumEWM ewm);
 
 /// MARK: - GasPrice
 
 extern void
 ewmSignalAnnounceGasPrice (BREthereumEWM ewm,
-                                 BREthereumWallet wallet,
-                                 UInt256 value,
-                                 int rid);
+                           BREthereumWallet wallet,
+                           UInt256 value,
+                           int rid);
 
 extern void
 ewmHandleAnnounceGasPrice (BREthereumEWM ewm,
-                                 BREthereumWallet wallet,
-                                 UInt256 value,
-                                 int rid);
+                           BREthereumWallet wallet,
+                           UInt256 value,
+                           int rid);
 
 /// MARK: - Submit Transaction
 
@@ -531,7 +537,6 @@ ewmSignalAnnounceNonce (BREthereumEWM ewm,
                               BREthereumAddress address,
                               uint64_t nonce,
                               int rid);
-
 
 ///
 // Save Sync (and other) State
