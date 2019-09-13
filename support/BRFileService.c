@@ -263,7 +263,6 @@ fileServiceCreate (const char *basePath,
     // Create/Open the SQLITE Database
     sqlite3_status_code status = sqlite3_open(fs->sdbPath, &fs->sdb);
     if (SQLITE_OK != status) {
-        pthread_mutex_unlock (&fs->lock);
         fileServiceRelease (fs);
         return NULL;
     }
@@ -550,6 +549,9 @@ _fileServiceSave (BRFileService fs,
     if (needLock)
         pthread_mutex_lock (&fs->lock);
 
+    sqlite3_reset (fs->sdbInsertStmt);
+    sqlite3_clear_bindings(fs->sdbInsertStmt);
+
     status = sqlite3_bind_text (fs->sdbInsertStmt, 1, type, -1, SQLITE_STATIC);
     if (SQLITE_OK != status) {
         free (data);
@@ -573,9 +575,6 @@ _fileServiceSave (BRFileService fs,
         free (data);
         return fileServiceFailedSDB (fs, needLock, status);
     }
-
-    sqlite3_reset (fs->sdbInsertStmt);
-    sqlite3_clear_bindings(fs->sdbInsertStmt);
 
     if (needLock)
         pthread_mutex_unlock (&fs->lock);
@@ -607,6 +606,7 @@ fileServiceLoad (BRFileService fs,
     sqlite3_status_code status;
 
     pthread_mutex_lock (&fs->lock);
+    sqlite3_reset (fs->sdbSelectAllStmt);
 
     status = sqlite3_bind_text (fs->sdbSelectAllStmt, 1, type, -1, SQLITE_STATIC);
     if (SQLITE_OK != status)
@@ -691,9 +691,11 @@ fileServiceLoad (BRFileService fs,
         if (updateVersion &&
             (version != entityType->currentVersion ||
              headerVersion != currentHeaderFormatVersion))
+            // This could signal an error.  Perhaps we should test the return result and
+            // if `0` skip out here?  We won't - we couldn't save the entity in the new format
+            // but we'll continue and will try next time we load it.
             _fileServiceSave (fs, type, entity, 0);
     }
-    sqlite3_reset (fs->sdbSelectAllStmt);
     pthread_mutex_unlock (&fs->lock);
 
     if (dataBytes != dataBytesBuffer) free (dataBytes);
@@ -717,6 +719,7 @@ fileServiceRemove (BRFileService fs,
     sqlite3_status_code status;
 
     pthread_mutex_lock (&fs->lock);
+    sqlite3_reset (fs->sdbDeleteStmt);
 
     status = sqlite3_bind_text (fs->sdbDeleteStmt, 1, type, -1, SQLITE_STATIC);
     if (SQLITE_OK != status)
@@ -729,7 +732,6 @@ fileServiceRemove (BRFileService fs,
     if (SQLITE_DONE != sqlite3_step (fs->sdbDeleteStmt))
         return fileServiceFailedSDB (fs, 1, status);
 
-    sqlite3_reset (fs->sdbDeleteStmt);
     pthread_mutex_unlock (&fs->lock);
 
     return 1;
@@ -743,6 +745,7 @@ fileServiceClearForType (BRFileService fs,
     sqlite3_status_code status;
 
     pthread_mutex_lock (&fs->lock);
+    sqlite3_reset (fs->sdbDeleteAllTypeStmt);
 
     status = sqlite3_bind_text (fs->sdbDeleteAllTypeStmt, 1, type, -1, SQLITE_STATIC);
     if (SQLITE_OK != status)
@@ -751,7 +754,6 @@ fileServiceClearForType (BRFileService fs,
     if (SQLITE_DONE != sqlite3_step (fs->sdbDeleteAllTypeStmt))
         return fileServiceFailedSDB (fs, 1, status);
 
-    sqlite3_reset (fs->sdbDeleteAllTypeStmt);
     pthread_mutex_unlock (&fs->lock);
 
     return 1;
