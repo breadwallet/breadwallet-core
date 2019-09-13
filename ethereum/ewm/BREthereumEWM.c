@@ -3068,6 +3068,7 @@ ewmCreateToken (BREthereumEWM ewm,
                 BREthereumGas defaultGasLimit,
                 BREthereumGasPrice defaultGasPrice) {
     if (NULL == address || 0 == strlen(address)) return NULL;
+    if (ETHEREUM_BOOLEAN_FALSE == addressValidateString(address)) return NULL;
 
     BREthereumAddress addr  = addressCreate(address);
     BREthereumToken   token = ewmLookupToken (ewm, addr);
