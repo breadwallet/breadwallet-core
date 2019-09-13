@@ -33,6 +33,8 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
     var mainnet = true
     var accountSpecification: AccountSpecification!
 
+    var clearPersistentData: Bool = true
+
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         let splitViewController = window!.rootViewController as! UISplitViewController
@@ -77,19 +79,21 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
             .urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Core").path
 
-        do {
-            if FileManager.default.fileExists(atPath: storagePath) {
-                try FileManager.default.removeItem(atPath: storagePath)
+        if clearPersistentData {
+            do {
+                if FileManager.default.fileExists(atPath: storagePath) {
+                    try FileManager.default.removeItem(atPath: storagePath)
+                }
+
+                try FileManager.default.createDirectory (atPath: storagePath,
+                                                         withIntermediateDirectories: true,
+                                                         attributes: nil)
             }
-
-            try FileManager.default.createDirectory (atPath: storagePath,
-                                                     withIntermediateDirectories: true,
-                                                     attributes: nil)
+            catch let error as NSError {
+                print("Error: \(error.localizedDescription)")
+            }
         }
-        catch let error as NSError {
-            print("Error: \(error.localizedDescription)")
-        }
-
+        
         print ("APP: Account PaperKey  : \(accountSpecification.paperKey.components(separatedBy: CharacterSet.whitespaces).first ?? "<missed>") ...")
         print ("APP: Account Timestamp : \(account.timestamp)")
         print ("APP: StoragePath       : \(storagePath)");

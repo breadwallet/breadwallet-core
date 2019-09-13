@@ -365,6 +365,54 @@ int BRBCashAddrTests()
     if (l != 0)
         r = 0, fprintf(stderr, "\n***FAILED*** %s: BRBCashAddrDecode() test 1", __func__);
 
+    // bitcoincash:P2PKH addrs
+
+    s = "bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a"; // w/ prefix string
+    l = BRBCashAddrDecode(addr, s);
+    if (l == 0 || strcmp(addr, "1BpEi6DfDAUFd7GtittLSdBeYJvcoaVggu"))
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRBCashAddrDecode() test 2", __func__);
+
+    s = "qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a"; // w/o prefix string
+    l = BRBCashAddrDecode(addr, s);
+    if (l == 0 || strcmp(addr, "1BpEi6DfDAUFd7GtittLSdBeYJvcoaVggu"))
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRBCashAddrDecode() test 3", __func__);
+
+    // bitcoincash P2SH addrs
+
+    s = "bitcoincash:pr95sy3j9xwd2ap32xkykttr4cvcu7as4yc93ky28e"; // w/ prefix string
+    l = BRBCashAddrDecode(addr, s);
+    if (l == 0 || strcmp(addr, "3LDsS579y7sruadqu11beEJoTjdFiFCdX4"))
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRBCashAddrDecode() test 4", __func__);
+
+    s = "pr95sy3j9xwd2ap32xkykttr4cvcu7as4yc93ky28e"; // w/o prefix string
+    l = BRBCashAddrDecode(addr, s);
+    if (l == 0 || strcmp(addr, "3LDsS579y7sruadqu11beEJoTjdFiFCdX4"))
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRBCashAddrDecode() test 5", __func__);
+
+    // bchtest:P2PKH addrs
+
+    s = "bchtest:qpm2qsznhks23z7629mms6s4cwef74vcwvqcw003ap"; // w/ prefix string
+    l = BRBCashAddrDecode(addr, s);
+    if (l == 0 || strcmp(addr, "mrLC19Je2BuWQDkWSTriGYPyQJXKkkBmCx"))
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRBCashAddrDecode() test 6", __func__);
+
+    s = "qpm2qsznhks23z7629mms6s4cwef74vcwvqcw003ap"; // w/o prefix string
+    l = BRBCashAddrDecode(addr, s);
+    if (l == 0 || strcmp(addr, "mrLC19Je2BuWQDkWSTriGYPyQJXKkkBmCx"))
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRBCashAddrDecode() test 7", __func__);
+
+    // bchtest P2SH addrs
+
+    s = "bchtest:pr95sy3j9xwd2ap32xkykttr4cvcu7as4yuh43xaq9"; // w/ prefix string
+    l = BRBCashAddrDecode(addr, s);
+    if (l == 0 || strcmp(addr, "2NBn5Vp3BaaPD7NGPa8dUGBJ4g5qRXq92wG"))
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRBCashAddrDecode() test 8", __func__);
+
+    s = "pr95sy3j9xwd2ap32xkykttr4cvcu7as4yuh43xaq9"; // w/o prefix string
+    l = BRBCashAddrDecode(addr, s);
+    if (l == 0 || strcmp(addr, "2NBn5Vp3BaaPD7NGPa8dUGBJ4g5qRXq92wG"))
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRBCashAddrDecode() test 9", __func__);
+
     s = "bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a"; // "bitcoincash:qp0k6fs6q2hzmpyps3vtwmpx80j9w0r0acmp8l6e9v";
     l = BRBCashAddrDecode(addr, s);
     if (l == 0)

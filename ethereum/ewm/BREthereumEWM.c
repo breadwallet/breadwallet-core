@@ -122,8 +122,8 @@ enum {
 
 static UInt256
 fileServiceTypeLogV1Identifier (BRFileServiceContext context,
-                                        BRFileService fs,
-                                        const void *entity) {
+                                BRFileService fs,
+                                const void *entity) {
     const BREthereumLog log = (BREthereumLog) entity;
     BREthereumHash hash = logGetHash( log);
 
@@ -134,9 +134,9 @@ fileServiceTypeLogV1Identifier (BRFileServiceContext context,
 
 static uint8_t *
 fileServiceTypeLogV1Writer (BRFileServiceContext context,
-                                    BRFileService fs,
-                                    const void* entity,
-                                    uint32_t *bytesCount) {
+                            BRFileService fs,
+                            const void* entity,
+                            uint32_t *bytesCount) {
     BREthereumEWM ewm = context;
     BREthereumLog log = (BREthereumLog) entity;
 
@@ -150,9 +150,9 @@ fileServiceTypeLogV1Writer (BRFileServiceContext context,
 
 static void *
 fileServiceTypeLogV1Reader (BRFileServiceContext context,
-                                    BRFileService fs,
-                                    uint8_t *bytes,
-                                    uint32_t bytesCount) {
+                            BRFileService fs,
+                            uint8_t *bytes,
+                            uint32_t bytesCount) {
     BREthereumEWM ewm = context;
 
     BRRlpData data = { bytesCount, bytes };
@@ -298,6 +298,69 @@ initialNodesLoad (BREthereumEWM ewm) {
     return nodes;
 }
 
+/// MARK: - Token File Service
+
+static const char *fileServiceTypeTokens = "tokens";
+
+enum {
+    EWM_TOKEN_VERSION_1
+};
+
+static UInt256
+fileServiceTypeTokenV1Identifier (BRFileServiceContext context,
+                                        BRFileService fs,
+                                        const void *entity) {
+    BREthereumToken token = (BREthereumToken) entity;
+    BREthereumHash hash = tokenGetHash(token);
+
+    UInt256 result;
+    memcpy (result.u8, hash.bytes, ETHEREUM_HASH_BYTES);
+    return result;
+}
+
+static uint8_t *
+fileServiceTypeTokenV1Writer (BRFileServiceContext context,
+                                    BRFileService fs,
+                                    const void* entity,
+                                    uint32_t *bytesCount) {
+    BREthereumEWM ewm = context;
+    BREthereumToken token = (BREthereumToken) entity;
+
+    BRRlpItem item = tokenEncode(token, ewm->coder);
+    BRRlpData data = rlpGetData (ewm->coder, item);
+    rlpReleaseItem (ewm->coder, item);
+
+    *bytesCount = (uint32_t) data.bytesCount;
+    return data.bytes;
+}
+
+static void *
+fileServiceTypeTokenV1Reader (BRFileServiceContext context,
+                                    BRFileService fs,
+                                    uint8_t *bytes,
+                                    uint32_t bytesCount) {
+    BREthereumEWM ewm = context;
+
+    BRRlpData data = { bytesCount, bytes };
+    BRRlpItem item = rlpGetItem (ewm->coder, data);
+
+    BREthereumToken token = tokenDecode(item, ewm->coder);
+    rlpReleaseItem (ewm->coder, item);
+
+    return token;
+}
+
+static BRSetOf(BREthereumToken)
+initialTokensLoad (BREthereumEWM ewm) {
+    BRSetOf(BREthereumToken) tokens = tokenSetCreate (EWM_INITIAL_SET_SIZE_DEFAULT);
+    if (NULL != tokens && 1 != fileServiceLoad (ewm->fs, tokens, fileServiceTypeTokens, 1)) {
+        BRSetFreeAll (tokens, (void (*) (void*)) tokenRelease);
+        return NULL;
+    }
+    return tokens;
+}
+
+
 /**
  *
  *
@@ -324,6 +387,9 @@ ewmFileServiceErrorHandler (BRFileServiceContext context,
             eth_log ("EWM", "FileService Error: ENTITY (%s): %s",
                      error.u.entity.type,
                      error.u.entity.reason);
+            break;
+        case FILE_SERVICE_SDB:
+            eth_log ("EWM", "FileService Error: SDB: %d", error.u.sdb.code);
             break;
     }
     eth_log ("EWM", "FileService Error: FORCED SYNC%s", "");
@@ -369,18 +435,20 @@ ewmCreateInitialSets (BREthereumEWM ewm,
                       BRSetOf(BREthereumTransaction) *transactions,
                       BRSetOf(BREthereumLog) *logs,
                       BRSetOf(BREthereumNodeConfig) *nodes,
-                      BRSetOf(BREthereumBlock) *blocks) {
+                      BRSetOf(BREthereumBlock) *blocks,
+                      BRSetOf(BRethereumToken) *tokens) {
 
     *transactions = initialTransactionsLoad(ewm);
     *logs = initialLogsLoad(ewm);
     *nodes = initialNodesLoad(ewm);
     *blocks = initialBlocksLoad(ewm);
+    *tokens = initialTokensLoad(ewm);
 
     // If any are NULL, then we have an error and a full sync is required.  The sync will be
     // started automatically, as part of the normal processing, of 'blocks' (we'll use a checkpoint,
     // before the `accountTimestamp, which will be well in the past and we'll sync up to the
     // head of the blockchain).
-    if (NULL == *transactions || NULL == *logs || NULL == *nodes || NULL == *blocks) {
+    if (NULL == *transactions || NULL == *logs || NULL == *nodes || NULL == *blocks || NULL == *tokens) {
         // If the set exists, clear it out completely and then create another one.  Note, since
         // we have `BRSetFreeAll()` we'll use that even though it frees the set and then we
         // create one again, minimally wastefully.
@@ -395,6 +463,9 @@ ewmCreateInitialSets (BREthereumEWM ewm,
 
         if (NULL != *nodes) { BRSetFreeAll (*nodes, (void (*) (void*)) nodeConfigRelease); }
         *nodes = BRSetNew (nodeConfigHashValue, nodeConfigHashEqual, EWM_INITIAL_SET_SIZE_DEFAULT);
+
+        if (NULL != *tokens) { BRSetFreeAll (*tokens, (void (*) (void*)) tokenRelease); }
+        *tokens = tokenSetCreate (EWM_INITIAL_SET_SIZE_DEFAULT);
     }
 
     // If we have no blocks; then add a checkpoint
@@ -505,13 +576,28 @@ ewmCreate (BREthereumNetwork network,
                                               EWM_BLOCK_VERSION_1))
         return ewmCreateErrorHandler(ewm, 1, fileServiceTypeBlocks);
 
+    /// Token
+    if (1 != fileServiceDefineType (ewm->fs, fileServiceTypeTokens, EWM_TOKEN_VERSION_1,
+                                    (BRFileServiceContext) ewm,
+                                    fileServiceTypeTokenV1Identifier,
+                                    fileServiceTypeTokenV1Reader,
+                                    fileServiceTypeTokenV1Writer) ||
+        1 != fileServiceDefineCurrentVersion (ewm->fs, fileServiceTypeTokens,
+                                              EWM_TOKEN_VERSION_1))
+        return ewmCreateErrorHandler(ewm, 1, fileServiceTypeTokens);
+
+
     // Load all the persistent entities
     BRSetOf(BREthereumTransaction) transactions;
     BRSetOf(BREthereumLog) logs;
     BRSetOf(BREthereumNodeConfig) nodes;
     BRSetOf(BREthereumBlock) blocks;
+    BRSetOf(BREthereumToken) tokens;
 
-    ewmCreateInitialSets (ewm, ewm->network, ewm->accountTimestamp, &transactions, &logs, &nodes, &blocks);
+    ewmCreateInitialSets (ewm, ewm->network, ewm->accountTimestamp, &transactions, &logs, &nodes, &blocks, &tokens);
+
+    // Save the recovered tokens
+    ewm->tokens = tokens;
 
     // Create the alarm clock, but don't start it.
     alarmClockCreateIfNecessary(0);
@@ -523,7 +609,7 @@ ewmCreate (BREthereumNetwork network,
                                        ewmEventTypesCount,
                                        &ewm->lock);
 
-    array_new(ewm->wallets, DEFAULT_WALLET_CAPACITY);
+    array_new (ewm->wallets, DEFAULT_WALLET_CAPACITY);
 
     // Queue the CREATED event so that it is the first event delievered to the BREthereumClient
     ewmSignalEWMEvent (ewm, (BREthereumEWMEvent) {
@@ -536,6 +622,15 @@ ewmCreate (BREthereumNetwork network,
     ewm->walletHoldingEther = walletCreate(ewm->account,
                                            ewm->network);
     ewmInsertWallet(ewm, ewm->walletHoldingEther);
+
+    // Create a wallet for each TOK.  This will signal a WALLET_EVENT_CREATED event.
+    FOR_SET(BREthereumToken, token, tokens) {
+        // Add token
+        BREthereumWallet wallet = walletCreateHoldingToken (ewm->account,
+                                                            ewm->network,
+                                                            token);
+        ewmInsertWallet (ewm, wallet);
+    }
 
     // Create the BCS listener - allows EWM to handle block, peer, transaction and log events.
     BREthereumBCSListener listener = ewmCreateBCSListener (ewm);
@@ -709,6 +804,9 @@ ewmDestroy (BREthereumEWM ewm) {
 
     walletsRelease (ewm->wallets);
     ewm->wallets = NULL;
+
+    BRSetFreeAll (ewm->tokens, (void (*) (void*)) tokenRelease);
+    ewm->tokens = NULL;
 
     fileServiceRelease (ewm->fs);
     eventHandlerDestroy(ewm->handler);
@@ -1146,6 +1244,7 @@ ewmUpdateMode (BREthereumEWM ewm,
          if (ETHEREUM_BOOLEAN_IS_TRUE(ewmIsConnected(ewm)))
             ewmDisconnect(ewm); // Stops periodic dispatch too.
 
+        BRSetOf(BREthereumToken) tokens;
         BRSetOf(BREthereumNodeConfig) nodes;
         BRSetOf(BREthereumBlock) blocks;
         BRSetOf(BREthereumTransaction) transactions;
@@ -1203,7 +1302,7 @@ ewmUpdateMode (BREthereumEWM ewm,
 
             case SYNC_MODE_P2P_WITH_BRD_SYNC:
             case SYNC_MODE_P2P_ONLY:
-                ewmCreateInitialSets (ewm, ewm->network, ewm->accountTimestamp, &transactions, &logs, &nodes, &blocks);
+                ewmCreateInitialSets (ewm, ewm->network, ewm->accountTimestamp, &transactions, &logs, &nodes, &blocks, &tokens);
 
                 ewm->bcs = bcsCreate (ewm->network,
                                       primaryAddress,
@@ -2215,7 +2314,7 @@ ewmHandleLog (BREthereumEWM ewm,
              BCS_CALLBACK_TRANSACTION_TYPE_NAME(type),
              logGetStatus(log).type);
 
-    BREthereumToken token = tokenLookupByAddress(logGetAddress(log));
+    BREthereumToken token = ewmLookupToken (ewm, logGetAddress(log));
     if (NULL == token) { logRelease(log); return;}
 
     // TODO: Confirm LogTopic[0] is 'transfer'
@@ -2970,4 +3069,59 @@ ewmTransferDelete (BREthereumEWM ewm,
     }
     // Null the ewm's `tid` - MUST NOT array_rm() as all `tid` holders will be dead.
     transferRelease(transfer);
+}
+
+extern BREthereumToken
+ewmLookupToken (BREthereumEWM ewm,
+                BREthereumAddress address) {
+    pthread_mutex_lock (&ewm->lock);
+    BREthereumToken token = (BREthereumToken) BRSetGet (ewm->tokens, &address);
+    pthread_mutex_unlock (&ewm->lock);
+    return token;
+}
+
+extern BREthereumToken
+ewmCreateToken (BREthereumEWM ewm,
+                const char *address,
+                const char *symbol,
+                const char *name,
+                const char *description,
+                int decimals,
+                BREthereumGas defaultGasLimit,
+                BREthereumGasPrice defaultGasPrice) {
+    if (NULL == address || 0 == strlen(address)) return NULL;
+    if (ETHEREUM_BOOLEAN_FALSE == addressValidateString(address)) return NULL;
+
+    // This function is called in potentially two threads.  One in EWM event handler (on
+    // `ewmHandleAnnounceToken()`) and one in `cryptoWalletManagerInstall...()` (on some App
+    // listener thread).  Such a description, used here, is troubling in and of itself.
+
+    BREthereumAddress addr  = addressCreate(address);
+    BREthereumToken   token = ewmLookupToken (ewm, addr);
+
+    // Lock over BRSetAdd() and tokenUpdate()
+    pthread_mutex_lock (&ewm->lock);
+    if (NULL == token) {
+        token = tokenCreate (address,
+                             symbol,
+                             name,
+                             description,
+                             decimals,
+                             defaultGasLimit,
+                             defaultGasPrice);
+        BRSetAdd (ewm->tokens, token);
+    }
+    else {
+        tokenUpdate (token,
+                     symbol,
+                     name,
+                     description,
+                     decimals,
+                     defaultGasLimit,
+                     defaultGasPrice);
+    }
+    pthread_mutex_unlock (&ewm->lock);
+
+    fileServiceSave (ewm->fs, fileServiceTypeTokens, token);
+    return token;
 }
