@@ -30,9 +30,9 @@
 #include "BRSet.h"
 #include "BRInt.h"
 
-//Both Bitcoin and Ethereum Wallet Managers include the ability to save and load peers, block,
-//transactions and logs (for Ethereum) to the file system.  But, they both implement the file
-//operations independently.  Pull out the implementation into BRFileService.
+// Both Bitcoin and Ethereum Wallet Managers include the ability to save and load peers, block,
+// transactions and logs (for Ethereum) to the file system.  But, they both implement the file
+// operations independently.  Pull out the implementation into BRFileService.
 //
 // Allow each WalletManager (Bitcoin, Bitcash, Ethereum) to create their own BRFileService (storing
 // stuff in a subdirectory specific to the manager+network+whatever for a given base path).  Allow
@@ -48,6 +48,7 @@ typedef void* BRFileServiceContext;
 typedef enum {
     FILE_SERVICE_IMPL,              // generally a fatal condition
     FILE_SERVICE_UNIX,              // something in the file system (fopen, fwrite, ... errorred)
+    FILE_SERVICE_SDB,               // something in the sqlite3 database
     FILE_SERVICE_ENTITY             // entity read/write (parse/serialize) error
 } BRFileServiceErrorType;
 
@@ -63,6 +64,10 @@ typedef struct {
         } unix;
 
         struct {
+            int code;  // sqlite3_status_code
+        } sdb;
+
+        struct {
             const char *type;
             const char *reason;
         } entity;
@@ -74,10 +79,10 @@ typedef void
                               BRFileService fs,
                               BRFileServiceError error);
 
-
 /// This *must* be the same fixed size type forever.  It is uint8_t.
 typedef uint8_t BRFileServiceVersion;
 
+/// TODO: There are limitations on `currency`, `network`, and `type`.
 extern BRFileService
 fileServiceCreate (const char *basePath,
                    const char *currency,
@@ -111,21 +116,21 @@ fileServiceLoad (BRFileService fs,
                  const char *type,   /* blocks, peers, transactions, logs, ... */
                  int updateVersion);
 
-extern void /* error code? */
+extern int  // 1 -> success, 0 -> failure
 fileServiceSave (BRFileService fs,
                  const char *type,  /* block, peers, transactions, logs, ... */
                  const void *entity);     /* BRMerkleBlock*, BRTransaction, BREthereumTransaction, ... */
 
-extern void
+extern int
 fileServiceRemove (BRFileService fs,
                    const char *type,
                    UInt256 identifier);
 
-extern void
+extern int
 fileServiceClear (BRFileService fs,
                   const char *type);
 
-extern void
+extern int
 fileServiceClearAll (BRFileService fs);
 
 /**
@@ -155,6 +160,8 @@ typedef uint8_t*
                         BRFileService fs,
                         const void* entity,
                         uint32_t *bytesCount);
+
+/// TODO: There is a limitation on `type`.
 
 /**
  * Define a 'type', such as {block, peer, transaction, logs, etc}, that is to be stored in the

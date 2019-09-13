@@ -791,6 +791,9 @@ bwmFileServiceErrorHandler (BRFileServiceContext context,
                      error.u.entity.type,
                      error.u.entity.reason);
             break;
+        case FILE_SERVICE_SDB:
+            _peer_log ("bread: FileService Error: SDB: %d", error.u.sdb.code);
+            break;
     }
     _peer_log ("bread: FileService Error: FORCED SYNC%s", "");
 
