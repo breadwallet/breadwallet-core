@@ -566,7 +566,13 @@ ewmCreate (BREthereumNetwork network,
             FOR_SET (BREthereumTransaction, transaction, transactions)
                 ewmSignalTransaction (ewm, BCS_CALLBACK_TRANSACTION_ADDED, transaction);
 
-            // ... as well as the provided logs...
+            // ... as well as the provided logs... however, in handling an announced log we perform
+            //   ```
+            //    BREthereumToken token = tokenLookupByAddress(logGetAddress(log));
+            //    if (NULL == token) { logRelease(log); return;}
+            //   ```
+            // and thus very single log is discared immediately.  They only come back with the
+            // first sync.  We have no choice but to discard (until tokens are persistently stored)
             FOR_SET (BREthereumLog, log, logs)
                 ewmSignalLog (ewm, BCS_CALLBACK_LOG_ADDED, log);
 
