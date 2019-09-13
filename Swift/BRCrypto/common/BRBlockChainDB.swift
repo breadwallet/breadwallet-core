@@ -156,7 +156,18 @@ public class BlockChainDB {
                  apiDataTaskFunc: DataTaskFunc? = nil) {
 
         self.session = session
-
+        let dic = ProcessInfo.processInfo.environment
+        if dic["BDBBASEURL"] != nil {
+            self.bdbBaseURL = dic["BDBBASEURL"] ?? bdbBaseURL
+        } else {
+            self.bdbBaseURL = bdbBaseURL
+        }
+        if dic["APIBASEURL"] != nil {
+            self.apiBaseURL = dic["APIBASEURL"] ?? apiBaseURL
+        } else {
+            self.apiBaseURL = apiBaseURL
+        }
+/*
         #if DEBUG
         self.bdbBaseURL = "https://api.blockset.com" // pending
         self.apiBaseURL = "https://stage2.breadwallet.com"
@@ -164,7 +175,7 @@ public class BlockChainDB {
         self.bdbBaseURL = bdbBaseURL
         self.apiBaseURL = apiBaseURL
         #endif
-
+*/
         self.bdbDataTaskFunc = bdbDataTaskFunc ?? BlockChainDB.defaultDataTaskFunc
         self.apiDataTaskFunc = apiDataTaskFunc ?? BlockChainDB.defaultDataTaskFunc
     }

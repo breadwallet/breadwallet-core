@@ -716,11 +716,39 @@ void rippleTransactionTests()
     testTransactionDeserialize1(tx_two);
 }
 
+static void testWalletTransfers()
+{
+    const char * paper_key = "patient doctor olympic frog force glimpse endless antenna online dragon bargain someone";
+    BRRippleAccount account = rippleAccountCreate(paper_key);
+    BRRippleWallet wallet = rippleWalletCreate(account);
+    assert(wallet);
+
+    // Now add some transfers
+    int num_elements = (int)(sizeof(test_tx_list)/sizeof(char*));
+    int num_transactions = num_elements / 2;
+    for(int i = 0; i <= num_elements - 2; i += 2) {
+        // test_tx_list is an array of char pointers that come in pairs
+        // i.e. hash1, txbytes1, hash2, txbytes2, etc.
+        BRRippleTransaction transaction = transactionDeserialize(test_tx_list[i+1], NULL);
+        BRRippleTransactionHash hash;
+        hex2bin(test_tx_list[i], hash.bytes);
+        BRRippleTransfer transfer = rippleTransferCreate(rippleTransactionGetSource(transaction),
+                                                         rippleTransactionGetTarget(transaction),
+                                                         rippleTransactionGetAmount(transaction),
+                                                         hash,
+                                                         0, 0);
+        rippleWalletAddTransfer(wallet, transfer);
+    }
+    assert(num_transactions == rippleWalletGetTransferCount(wallet));
+    rippleWalletFree(wallet);
+}
+
 static void runWalletTests()
 {
     createAndDeleteWallet();
     testWalletValues();
     testWalletAddress();
+    testWalletTransfers();
 }
 
 static void comparebuffers(const char *input, uint8_t * output, size_t outputSize)

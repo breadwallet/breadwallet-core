@@ -56,15 +56,24 @@ extern "C" {
     typedef UInt256 (*BRGenericWalletGetBalance) (BRGenericWallet wallet);
 
     // MAEK: - Generic Wallet Manager
-
-    typedef BRGenericTransfer (*BRGenericWalletManagerRecoverTransfer) (uint8_t *bytes,
-                                                                        size_t   bytesCount);
+    typedef BRGenericTransfer (*BRGenericWalletManagerRecoverTransaction) (uint8_t *bytes,
+                                                                        size_t bytesCount,
+                                                                        uint64_t timestamp,
+                                                                        uint64_t blockHeight);
+    
+    typedef BRGenericTransfer (*BRGenericWalletManagerRecoverTransfer) (const char *hash,
+                                                                        const char *from,
+                                                                        const char *to,
+                                                                        const char *amount,
+                                                                        uint64_t timestamp,
+                                                                        uint64_t blockHeight);
 
     typedef void (*BRGenericWalletManagerInitializeFileService) (BRFileServiceContext context,
                                                                  BRFileService fileService);
 
     typedef BRArrayOf(BRGenericTransfer) (*BRGenericWalletManagerLoadTransfers) (BRFileServiceContext context,
                                                                                  BRFileService fileService);
+    typedef void (*BRGenericWalletTransferAdded) (BRGenericWallet wallet, BRGenericTransfer transfer);
 
     // MARK: - Generic Handlers
 
@@ -100,14 +109,13 @@ extern "C" {
             BRGenericWalletCreate create;
             BRGenericWalletFree free;
             BRGenericWalletGetBalance balance;
-            // set balance
-
+            BRGenericWalletTransferAdded transferAdded;
             // ...
         } wallet;
 
         struct {
             BRGenericWalletManagerRecoverTransfer transferRecover;
-
+            BRGenericWalletManagerRecoverTransaction transactionRecover;
             BRGenericWalletManagerInitializeFileService fileServiceInit;
             BRGenericWalletManagerLoadTransfers fileServiceLoadTransfers;
         } manager;

@@ -94,7 +94,7 @@ class CoreDemoAppDelegate: UIResponder, UIApplicationDelegate, UISplitViewContro
         print ("APP: Account Timestamp : \(account.timestamp)")
         print ("APP: StoragePath       : \(storagePath)");
         print ("APP: Mainnet           : \(mainnet)")
-        var currencies: [String] = ["btc", "eth", "brd" /*, "xrp"*/]
+        var currencies: [String] = ["btc", "eth", "brd", "xrp"]
 
         if mainnet {
 

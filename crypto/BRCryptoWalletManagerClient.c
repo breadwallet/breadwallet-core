@@ -56,6 +56,7 @@ typedef enum  {
     CWM_CALLBACK_TYPE_GEN_GET_BLOCK_NUMBER,
     CWM_CALLBACK_TYPE_GEN_GET_TRANSACTIONS,
     CWM_CALLBACK_TYPE_GEN_SUBMIT_TRANSACTION,
+    CWM_CALLBACK_TYPE_GEN_GET_TRANSFERS,
 
 } BRCryptoCWMCallbackType;
 
@@ -1673,6 +1674,20 @@ cwmSubmitTransactionAsGEN (BRGenericClientContext context,
     cryptoWalletManagerGive (cwm);
 }
 
+static void
+cwmGetTransfersAsGEN (BRGenericClientContext context,
+                         BRGenericWalletManager manager,
+                         const char *address,
+                         int rid) {
+    BRCryptoWalletManager cwm = cryptoWalletManagerTake (context);
+
+    BRCryptoCWMClientCallbackState callbackState = calloc (1, sizeof(struct BRCryptoCWMClientCallbackStateRecord));
+    callbackState->type = CWM_CALLBACK_TYPE_GEN_GET_TRANSACTIONS;
+    callbackState->rid = rid;
+
+    cwm->client.gen.funcGetTransfers (cwm->client.context, cwm, callbackState, address);
+}
+
 // MARK: - Client Creation Functions
 
 extern BRWalletManagerClient
@@ -1857,11 +1872,46 @@ cwmAnnounceGetTransactionsItemGEN (BRCryptoWalletManager cwm,
                                    size_t transactionLength,
                                    uint64_t timestamp,
                                    uint64_t blockHeight) {
-    assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_BTC_GET_TRANSACTIONS == callbackState->type);
+    assert (cwm); assert (callbackState); assert (CWM_CALLBACK_TYPE_GEN_GET_TRANSACTIONS == callbackState->type);
     cwm = cryptoWalletManagerTake (cwm);
 
     // Fundamentally, the `transfer` must allow for determining the `wallet`
-    BRGenericTransfer transfer = gwmRecoverTransfer (cwm->u.gen, transaction, transactionLength);
+    BRGenericTransfer transfer = gwmRecoverTransaction (cwm->u.gen, transaction, transactionLength,
+                                                        timestamp, blockHeight);
+
+
+    if (transfer) {
+        // Announce to GWM.  Note: the equivalent BTC+ETH announce transaction is going to
+        // create BTC+ETH wallet manager + wallet + transfer events that we'll handle by incorporating
+        // the BTC+ETH transfer into 'crypto'.  However, GEN does not generate similar events.
+        //
+        // gwmAnnounceTransfer (cwm->u.gen, callbackState->rid, transfer);
+        cryptoWalletManagerHandleTransferGEN (cwm, transfer);
+    }
+
+    cryptoWalletManagerGive (cwm);
+    // DON'T free (callbackState);
+}
+
+extern void
+cwmAnnounceGetTransferItemGEN (BRCryptoWalletManager cwm,
+                               BRCryptoCWMClientCallbackState callbackState,
+                               OwnershipKept const char *hash,
+                               OwnershipKept const char *from,
+                               OwnershipKept const char *to,
+                               OwnershipKept const char *amount,
+                               OwnershipKept const char *currency,
+                               uint64_t timestamp,
+                               uint64_t blockHeight) {
+    assert (cwm); assert (callbackState);
+    assert (CWM_CALLBACK_TYPE_GEN_GET_TRANSFERS == callbackState->type
+            || CWM_CALLBACK_TYPE_GEN_GET_TRANSACTIONS == callbackState->type);
+    cwm = cryptoWalletManagerTake (cwm);
+
+    // TOTO - get the wallet for the supplied currency instead of the default wallet
+    BRGenericWallet wallet = cryptoWalletAsGEN(cwm->wallet);
+    BRGenericTransfer transfer = gwmRecoverTransfer (cwm->u.gen, wallet, hash, from, to, amount,
+                                                     timestamp, blockHeight);
 
     // Announce to GWM.  Note: the equivalent BTC+ETH announce transaction is going to
     // create BTC+ETH wallet manager + wallet + transfer events that we'll handle by incorporating
@@ -1874,7 +1924,6 @@ cwmAnnounceGetTransactionsItemGEN (BRCryptoWalletManager cwm,
     cryptoWalletManagerGive (cwm);
     // DON'T free (callbackState);
 }
-
 
 extern void
 cwmAnnounceGetTransactionsComplete (OwnershipKept BRCryptoWalletManager cwm,

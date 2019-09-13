@@ -141,3 +141,9 @@ extern void rippleWalletAddTransfer(BRRippleWallet wallet, BRRippleTransfer tran
     // Now update the balance
 }
 
+extern uint64_t rippleWalletGetTransferCount(BRRippleWallet wallet)
+{
+    assert(wallet);
+    return array_count(wallet->transfers);
+}
+

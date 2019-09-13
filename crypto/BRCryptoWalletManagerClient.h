@@ -197,9 +197,16 @@ extern "C" {
                                                 size_t transactionLength,
                                                 OwnershipKept const char *hashAsHex);
 
+    typedef void
+    (*BRCryptoCWMGenGetTransfersCallback) (BRCryptoCWMClientContext context,
+                                              OwnershipGiven BRCryptoWalletManager manager,
+                                              OwnershipGiven BRCryptoCWMClientCallbackState callbackState,
+                                              OwnershipKept const char *address);
+    
     typedef struct {
         BRCryptoCWMGenGetBlockNumberCallback  funcGetBlockNumber;
         BRCryptoCWMGenGetTransactionsCallback funcGetTransactions;
+        BRCryptoCWMGenGetTransfersCallback funcGetTransfers;
         BRCryptoCWMGenSubmitTransactionCallback funcSubmitTransaction;
     } BRCryptoCWMClientGEN;
 
@@ -272,6 +279,17 @@ extern "C" {
                                        uint64_t timestamp,
                                        uint64_t blockHeight);
 
+    extern void
+    cwmAnnounceGetTransferItemGEN (BRCryptoWalletManager cwm,
+                                   BRCryptoCWMClientCallbackState callbackState,
+                                    OwnershipKept const char *hash,
+                                    OwnershipKept const char *from,
+                                    OwnershipKept const char *to,
+                                    OwnershipKept const char *amount,
+                                    OwnershipKept const char *currency,
+                                    uint64_t timestamp,
+                                    uint64_t blockHeight);
+    
     extern void
     cwmAnnounceGetTransactionsComplete (OwnershipKept BRCryptoWalletManager cwm,
                                         OwnershipGiven BRCryptoCWMClientCallbackState callbackState,

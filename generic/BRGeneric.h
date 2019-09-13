@@ -121,8 +121,15 @@ extern "C" {
     extern BRGenericTransfer
     gwmWalletRecoverTransfer (BRGenericWalletManager gwm,
                               BRGenericWallet wid,
+                              const char *hash,
+                              const char *from,
+                              const char *to,
+                              const char *amount,
+                              const char *fee,
                               uint8_t *bytes,
-                              size_t   bytesCount);
+                              size_t bytesCount,
+                              uint64_t timestamp,
+                              uint64_t blockHeight);
 
     extern BRGenericTransfer
     gwmWalletCreateTransfer (BRGenericWalletManager gwm,

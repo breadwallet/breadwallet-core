@@ -256,6 +256,10 @@ cryptoTransferCreateAsGEN (BRCryptoUnit unit,
     BRGenericFeeBasis gwmFeeBasis = gwmTransferGetFeeBasis (gwm, tid); // Will give ownership
     transfer->feeBasisEstimated = cryptoFeeBasisCreateAsGEN (transfer->unitForFee, gwm, gwmFeeBasis);
 
+    transfer->sourceAddress = cryptoAddressCreateAsGEN(gwm, gwmTransferGetSourceAddress (gwm, tid));
+    transfer->targetAddress = cryptoAddressCreateAsGEN(gwm, gwmTransferGetTargetAddress (gwm, tid));
+    transfer->state = (BRCryptoTransferState) { CRYPTO_TRANSFER_STATE_INCLUDED };
+
     return transfer;
 }
 
@@ -528,7 +532,7 @@ cryptoTransferGetDirection (BRCryptoTransfer transfer) {
             
             if      ( accountIsSource &&  accountIsTarget) return CRYPTO_TRANSFER_RECOVERED;
             else if ( accountIsSource && !accountIsTarget) return CRYPTO_TRANSFER_SENT;
-            else if (!accountIsSource &&  accountIsTarget) return CRYPTO_TRANSFER_RECOVERED;
+            else if (!accountIsSource &&  accountIsTarget) return CRYPTO_TRANSFER_RECEIVED;
 
             assert (0);
         }

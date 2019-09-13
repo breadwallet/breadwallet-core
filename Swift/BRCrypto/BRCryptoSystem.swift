@@ -49,7 +49,7 @@ public final class System {
     /// We define default blockchains but these are wholly insufficient given that the
     /// specfication includes `blockHeight` (which can never be correct).
 
-    static let supportedBlockchains: [BlockChainDB.Model.Blockchain] = [
+    static var supportedBlockchains: [BlockChainDB.Model.Blockchain] = [
         // Mainnet
         (id: "bitcoin-mainnet",      name: "Bitcoin",      network: "mainnet", isMainnet: true,  currency: "bitcoin-mainnet:__native__",     blockHeight: 0,
          feeEstimates: [(amount: "30", tier: "10m", confirmationTimeInMilliseconds: 10 * 60 * 1000)],
@@ -60,8 +60,10 @@ public final class System {
         (id: "ethereum-mainnet",     name: "Ethereum",     network: "mainnet", isMainnet: true,  currency: "ethereum-mainnet:__native__",    blockHeight: 0,
          feeEstimates: [(amount: "2000000000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
          confirmationsUntilFinal: 6),
-//        (id: "ripple-mainnet",        name: "Ripple",        network: "mainnet", isMainnet: true,  currency: "xrp", blockHeight: nil,
-//         feeEstimates: [(amount: "20", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
+
+//        (id: "ripple-mainnet", name: "Ripple", network: "mainnet", isMainnet: true,  currency: "ripple-mainnet:__native__", blockHeight: 0,
+ //        feeEstimates: [(amount: "10", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
+ //        confirmationsUntilFinal: 1),
 
         // Testnet
         (id: "bitcoin-testnet",      name: "Bitcoin Testnet",      network: "testnet", isMainnet: false, currency: "bitcoin-testnet:__native__",     blockHeight: 0,
@@ -73,15 +75,16 @@ public final class System {
         (id: "ethereum-ropsten",     name: "Ethereum Ropsten",     network: "testnet", isMainnet: false, currency: "ethereum-ropsten:__native__",    blockHeight: 0,
          feeEstimates: [(amount: "2000000000", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
          confirmationsUntilFinal: 6),
-//        (id: "ripple-testnet",        name: "Ripple Testnet",    network: "testnet", isMainnet: false, currency: "xrp", blockHeight: nil,
-//         feeEstimates: [(amount: "20", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)]),
+//        (id: "ripple-testnet",        name: "Ripple Testnet",    network: "testnet", isMainnet: false, currency: "ripple-testnet:__native__", blockHeight: 0,
+//         feeEstimates: [(amount: "10", tier: "1m", confirmationTimeInMilliseconds: 1 * 60 * 1000)],
+ //        confirmationsUntilFinal: 1),
     ]
 
     private static func makeCurrencyIdentifierERC20 (_ blockchainID: String, _ address: String) -> String {
         return "\(blockchainID):\(address)"
     }
 
-    static let defaultCurrencies: [BlockChainDB.Model.Currency] = [
+    static var defaultCurrencies: [BlockChainDB.Model.Currency] = [
         // Mainnet
         (id: "bitcoin-mainnet:__native__", name: "Bitcoin", code: "btc", type: "native", blockchainID: "bitcoin-mainnet",
          address: nil, verified: true,
@@ -109,7 +112,7 @@ public final class System {
 //         demoninations: [(name: "EOS_INTEGER",   code: "EOSI",  decimals:  0, symbol: "eosi"),
 //                         (name: "EOS",           code: "EOS",   decimals: 18, symbol: "eos")]),
 
-//        (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-mainnet",
+//       (id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-mainnet",
 //         address: nil, verified: true,
 //         demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
 //                         (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]),
@@ -370,6 +373,31 @@ public final class System {
         self.callbackCoordinator = SystemCallbackCoordinator (queue: self.listenerQueue)
 
         let _ = System.systemExtend(with: self)
+        let envVars = ProcessInfo.processInfo.environment
+        if envVars["ENABLE_GENERIC_BLOCKCHAINS"] != nil {
+            let addGenericInfo = Int(envVars["ENABLE_GENERIC_BLOCKCHAINS"] ?? "0")
+            if addGenericInfo == 1 {
+                // Add the generic blockchain and currency information
+                System.supportedBlockchains.append((id: "ripple-mainnet", name: "Ripple", network: "mainnet", isMainnet: true,  currency: "ripple-mainnet:__native__", blockHeight: 0,
+                    feeEstimates: [(amount: "10", tier: "1m", confirmationTimeInMilliseconds: UInt64(1 * 60 * 1000))],
+                    confirmationsUntilFinal: 1
+                    )
+                )
+                System.supportedBlockchains.append((id: "ripple-testnet", name: "Ripple(T)", network: "testnet", isMainnet: false,  currency: "ripple-testnet:__native__", blockHeight: 0,
+                                                    feeEstimates: [(amount: "10", tier: "1m", confirmationTimeInMilliseconds: UInt64(1 * 60 * 1000))],
+                                                    confirmationsUntilFinal: 1
+                    )
+                )
+                System.defaultCurrencies.append((id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-mainnet",
+                                                 address: nil, verified: true,
+                                                 demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
+                                                                 (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]))
+                System.defaultCurrencies.append((id: "Ripple", name: "Ripple", code: "xrp", type: "native", blockchainID: "ripple-testnet",
+                                                 address: nil, verified: true,
+                                                 demoninations: [(name: "drop", code: "drop", decimals: 0, symbol: "drop"),
+                                                                 (name: "xrp",  code: "xrp",  decimals: 6, symbol: "xrp")]))
+            }
+        }
         announceEvent(SystemEvent.created)
     }
 
@@ -1503,30 +1531,38 @@ extension System {
                                                begBlockNumber: begBlockNumber,
                                                endBlockNumber: endBlockNumber,
                                                includeRaw: true) {
-                                                (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
-                                                defer { cryptoWalletManagerGive(cwm) }
-                                                res.resolve(
-                                                    success: {
-                                                        $0.forEach { (model: BlockChainDB.Model.Transaction) in
-                                                            let timestamp = model.timestamp.map { UInt64 ($0.timeIntervalSince1970) } ?? 0
-                                                            let height    = model.blockHeight ?? 0
+                    (res: Result<[BlockChainDB.Model.Transaction], BlockChainDB.QueryError>) in
+                        defer { cryptoWalletManagerGive(cwm) }
+                        res.resolve( success: { $0.forEach { (tx: BlockChainDB.Model.Transaction) in
+                            let timestamp = tx.timestamp.map { UInt64 ($0.timeIntervalSince1970) } ?? 0
+                            let height    = tx.blockHeight ?? 0
+                            if var data = tx.raw {
+                                let bytesCount = data.count
+                                data.withUnsafeMutableBytes { (bytes: UnsafeMutableRawBufferPointer) -> Void in
+                                    let bytesAsUInt8 = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
+                                    cwmAnnounceGetTransactionsItemGEN (cwm, sid, bytesAsUInt8, bytesCount, timestamp, height)
+                                }
+                            }
+                            for transfer in tx.transfers {
+                                let accountAddress = asUTF8String(address!)
+                                if transfer.source == accountAddress || transfer.target == accountAddress {
+                                    cwmAnnounceGetTransferItemGEN(cwm, sid, tx.hash, transfer.source, transfer.target,
+                                                                  transfer.amountValue, transfer.amountCurrency, timestamp, height)
+                                }
+                            }
+                        }
+                        cwmAnnounceGetTransactionsComplete (cwm, sid, CRYPTO_TRUE) },
+                        failure: { (_) in cwmAnnounceGetTransactionsComplete (cwm, sid, CRYPTO_FALSE) })
+                }
+            },
 
-                                                            if var data = model.raw {
-                                                                let bytesCount = data.count
-                                                                data.withUnsafeMutableBytes { (bytes: UnsafeMutableRawBufferPointer) -> Void in
-                                                                    let bytesAsUInt8 = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self)
-                                                                    cwmAnnounceGetTransactionsItemGEN (cwm, sid,
-                                                                                                       bytesAsUInt8,
-                                                                                                       bytesCount,
-                                                                                                       timestamp,
-                                                                                                       height)
-                                                                }
-                                                            }
-                                                        }
-                                                        cwmAnnounceGetTransactionsComplete (cwm, sid, CRYPTO_TRUE) },
-                                                    failure: { (_) in cwmAnnounceGetTransactionsComplete (cwm, sid, CRYPTO_FALSE) })
+            funcGetTransfers: { (context, cwm, sid, address) in
+                precondition (nil != context  && nil != cwm)
 
-                }},
+                guard let (system, manager) = System.systemExtract (context, cwm)
+                    else { print ("SYS: GEN: GetTransfers: Missed {cwm}"); return }
+                print ("SYS: GEN: GetTransfers")
+            },
 
             funcSubmitTransaction: { (context, cwm, sid, transactionBytes, transactionBytesLength, hashAsHex) in
                 precondition (nil != context  && nil != cwm)

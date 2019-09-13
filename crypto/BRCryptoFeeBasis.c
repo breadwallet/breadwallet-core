@@ -113,7 +113,7 @@ cryptoFeeBasisGetPricePerCostFactorAsUInt256 (BRCryptoFeeBasis feeBasis) {
             return feeBasis->u.eth.u.gas.price.etherPerGas.valueInWEI;
 
         case BLOCK_CHAIN_TYPE_GEN:
-            assert (0);
+            // TODO - ???
             return UINT256_ZERO;
     }
 }
@@ -141,7 +141,7 @@ cryptoFeeBasisGetCostFactor (BRCryptoFeeBasis feeBasis) {
             return feeBasis->u.eth.u.gas.limit.amountOfGas;
 
         case BLOCK_CHAIN_TYPE_GEN:
-            assert (0);
+            // TODO - we need to get this from blockchain
             return 0;
     }
 }

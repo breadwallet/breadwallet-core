@@ -107,4 +107,6 @@ rippleWalletGetDefaultFeeBasis (BRRippleWallet wallet);
 
 extern void rippleWalletAddTransfer(BRRippleWallet wallet, BRRippleTransfer transfer);
 
+extern uint64_t rippleWalletGetTransferCount(BRRippleWallet wallet);
+
 #endif

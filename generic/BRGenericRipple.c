@@ -10,6 +10,9 @@
 
 #include "ripple/BRRippleWallet.h"
 #include "ripple/BRRippleTransaction.h"
+#include "ripple/BRRippleTransfer.h"
+#include "ripple/BRRippleUtils.h"
+#include "ripple/BRRippleTransfer.h"
 
 #include "support/BRSet.h"
 
@@ -71,7 +74,7 @@ static BRGenericAddress
 genericRippleTransferGetSourceAddress (BRGenericTransfer transfer) {
     BRRippleAddress *address = malloc (sizeof (BRRippleAddress));
 
-    *address = rippleTransactionGetSource(transfer);
+    *address = rippleTransferGetSource(transfer);
     return address;
 }
 
@@ -79,27 +82,25 @@ static BRGenericAddress
 genericRippleTransferGetTargetAddress (BRGenericTransfer transfer) {
     BRRippleAddress *address = malloc (sizeof (BRRippleAddress));
 
-    *address = rippleTransactionGetTarget(transfer);
+    *address = rippleTransferGetTarget(transfer);
     return address;
 }
 
 static UInt256
 genericRippleTransferGetAmount (BRGenericTransfer transfer) {
-    BRRippleUnitDrops drops = rippleTransactionGetAmount (transfer);
+    BRRippleUnitDrops drops = rippleTransferGetAmount (transfer);
     return createUInt256(drops);
 }
 
 static UInt256
 genericRippleTransferGetFee (BRGenericTransfer transfer) {
-    BRRippleTransaction ripple = transfer;
-    BRRippleUnitDrops drops = rippleTransactionGetFee (ripple);
+    BRRippleUnitDrops drops = rippleTransferGetFee (transfer);
     return createUInt256(drops);
 }
 
 static BRGenericFeeBasis
 genericRippleTransferGetFeeBasis (BRGenericTransfer transfer) {
-    BRRippleTransaction ripple = transfer;
-    BRRippleFeeBasis rippleFeeBasis = rippleTransactionGetFeeBasis (ripple);
+    BRRippleFeeBasis rippleFeeBasis = 10L;
 
     BRGenericFeeBasis feeBasis = malloc (sizeof (BRRippleFeeBasis));
     memcpy (feeBasis, &rippleFeeBasis, sizeof (BRRippleFeeBasis));
@@ -107,8 +108,7 @@ genericRippleTransferGetFeeBasis (BRGenericTransfer transfer) {
 }
 
 static BRGenericHash genericRippleTransferGetHash (BRGenericTransfer transfer) {
-    BRRippleTransaction ripple = transfer;
-    BRRippleTransactionHash hash = rippleTransactionGetHash(ripple);
+    BRRippleTransactionHash hash = rippleTransferGetTransactionId(transfer);
     UInt256 value;
     memcpy (value.u8, hash.bytes, 32);
     return (BRGenericHash) { value };
@@ -128,16 +128,39 @@ genericRippleWalletFree (BRGenericWallet wallet) {
     rippleWalletFree (ripple);
 }
 
+static void
+genericRippleWalletTransferAdded (BRGenericWallet wallet, BRGenericTransfer transfer) {
+    BRRippleWallet rippleWallet = wallet;
+    BRRippleTransfer rippleTransfer = transfer;
+    rippleWalletAddTransfer(rippleWallet, rippleTransfer);
+}
+
 static UInt256
 genericRippleWalletGetBalance (BRGenericWallet wallet) {
     BRGenericWallet ripple = wallet;
     return createUInt256(rippleWalletGetBalance(ripple));
 }
 
+BRGenericTransfer genericRippleWalletManagerRecoverTransaction (uint8_t *bytes,
+                                                               size_t bytesCount,
+                                                               uint64_t timestamp,
+                                                               uint64_t blockHeight)
+{
+    return NULL;
+}
+
 static BRGenericTransfer
-genericRippleWalletManagerRecoverTransfer (uint8_t *bytes,
-                                           size_t   bytesCount) {
-    return rippleTransactionCreateFromBytes (bytes, (int) bytesCount);
+genericRippleWalletManagerRecoverTransfer (const char *hash,
+                                           const char *from,
+                                           const char *to,
+                                           const char *amount,
+                                           uint64_t timestamp,
+                                           uint64_t blockHeight) {
+    uint64_t amountDrops = rippleCreateDropsFromString(amount);
+    BRRippleAddress toAddress = rippleAddressCreate(to);
+    BRRippleAddress fromAddress = rippleAddressCreate(from);
+    BRRippleTransactionHash txId = rippleCreateTransactionHashFromString(hash);
+    return rippleTransferCreate(fromAddress, toAddress, amountDrops, txId, timestamp, blockHeight);
 }
 
 
@@ -220,7 +243,7 @@ genericRippleWalletManagerLoadTransfers (BRFileServiceContext context,
 }
 
 struct BRGenericHandersRecord genericRippleHandlersRecord = {
-    "xrp",
+    "xrp-testnet",
     {    // Account
         genericRippleAccountCreate,
         genericRippleAccountCreateWithPublicKey,
@@ -248,13 +271,15 @@ struct BRGenericHandersRecord genericRippleHandlersRecord = {
         genericRippleWalletCreate,
         genericRippleWalletFree,
         genericRippleWalletGetBalance,
+        genericRippleWalletTransferAdded,
         // ...
     },
 
     { // Wallet Manager
         genericRippleWalletManagerRecoverTransfer,
+        genericRippleWalletManagerRecoverTransaction,
         genericRippleWalletManagerInitializeFileService,
-        genericRippleWalletManagerLoadTransfers
+        genericRippleWalletManagerLoadTransfers,
     }
 };
 

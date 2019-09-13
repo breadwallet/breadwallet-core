@@ -825,6 +825,14 @@ cryptoWalletManagerHandleTransferGEN (BRCryptoWalletManager cwm,
                                            CRYPTO_WALLET_EVENT_TRANSFER_ADDED,
                                            { .transfer = { transfer }}
                                        });
+    BRCryptoAmount balance = cryptoWalletGetBalance (cwm->wallet);
+    cwm->listener.walletEventCallback (cwm->listener.context,
+                                       cryptoWalletManagerTake (cwm),
+                                       cryptoWalletTake (wallet),
+                                       (BRCryptoWalletEvent) {
+                                           CRYPTO_WALLET_EVENT_BALANCE_UPDATED,
+                                           { .balanceUpdated = { balance }}
+                                       });
 
     cryptoUnitGive(unitForFee);
     cryptoUnitGive(unit);

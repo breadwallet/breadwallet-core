@@ -117,9 +117,15 @@ extern "C" {
     gwmGetAccount (BRGenericWalletManager gwm);
 
     extern BRGenericTransfer
-    gwmRecoverTransfer (BRGenericWalletManager gwm,
-                        uint8_t *bytes,
-                        size_t   bytesCount);
+    gwmRecoverTransaction (BRGenericWalletManager gwm, // TOTO - Need a list of wallets
+                           uint8_t *bytes, size_t bytesCount, uint64_t timestamp, uint64_t blockHeight);
+
+    extern BRGenericTransfer
+    gwmRecoverTransfer (BRGenericWalletManager gwm, BRGenericWallet wallet,
+                        const char *hash, const char *from, const char *to, const char *amount,
+                        uint64_t timestamp, uint64_t blockHeight);
+
+    extern void gwmAnnounceTransferRecovered(BRGenericWalletManager gwm, BRGenericTransfer transfer);
 
 #ifdef __cplusplus
 }

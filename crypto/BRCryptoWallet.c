@@ -24,6 +24,7 @@
 //  THE SOFTWARE.
 
 #include <pthread.h>
+#include <stdio.h>
 
 #include "BRCryptoFeeBasis.h"
 #include "BRCryptoWallet.h"
@@ -82,6 +83,8 @@ struct BRCryptoWalletRecord {
     //
     BRCryptoUnit unitForFee;
     BRCryptoRef ref;
+
+    BRCryptoAmount balance;
 };
 
 IMPLEMENT_CRYPTO_GIVE_TAKE (BRCryptoWallet, cryptoWallet)
@@ -108,6 +111,8 @@ cryptoWalletCreateInternal (BRCryptoBlockChainType type,
         pthread_mutex_init(&wallet->lock, &attr);
         pthread_mutexattr_destroy(&attr);
     }
+
+    wallet->balance = cryptoAmountCreateInteger (0L, unit);
 
     return wallet;
 }
@@ -290,12 +295,15 @@ cryptoWalletFindTransferAsGEN (BRCryptoWallet wallet,
     return transfer;
 }
 
+// TOTO - should this be public so the higher layers
+// can take action if the transfer exists
 private_extern void
 cryptoWalletAddTransfer (BRCryptoWallet wallet,
                          BRCryptoTransfer transfer) {
     pthread_mutex_lock (&wallet->lock);
     if (CRYPTO_FALSE == cryptoWalletHasTransfer (wallet, transfer)) {
         array_add (wallet->transfers, cryptoTransferTake(transfer));
+        printf("Cryto wallet has %lu tranfers\n", array_count(wallet->transfers));
     }
     pthread_mutex_unlock (&wallet->lock);
 }

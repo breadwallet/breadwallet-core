@@ -192,10 +192,25 @@ gwmCreatePrimaryWallet (BRGenericWalletManager gwm) {
 }
 
 extern BRGenericTransfer
-gwmRecoverTransfer (BRGenericWalletManager gwm,
+gwmRecoverTransaction (BRGenericWalletManager gwm,
                     uint8_t *bytes,
-                    size_t   bytesCount) {
-    return gwmGetHandlers(gwm)->manager.transferRecover (bytes, bytesCount);
+                    size_t bytesCount,
+                    uint64_t timestamp,
+                    uint64_t blockHeight) {
+    return 0;
+}
+
+extern BRGenericTransfer
+gwmRecoverTransfer (BRGenericWalletManager gwm, BRGenericWallet wallet,
+                    const char *hash,
+                    const char *from,
+                    const char *to,
+                    const char *amount,
+                    uint64_t timestamp,
+                    uint64_t blockHeight) {
+    BRGenericTransfer transfer = gwmGetHandlers(gwm)->manager.transferRecover (hash, from, to, amount, timestamp, blockHeight);
+    gwmGetHandlers(gwm)->wallet.transferAdded(wallet, transfer);
+    return transfer;
 }
 
 extern BRArrayOf(BRGenericTransfer)
@@ -208,6 +223,7 @@ gwmLoadTransfers (BRGenericWalletManager gwm) {
 static void
 gwmPeriodicDispatcher (BREventHandler handler,
                        BREventTimeout *event) {
+
     BRGenericWalletManager gwm = (BRGenericWalletManager) event->context;
 
     gwm->client.getBlockNumber (gwm->client.context,
