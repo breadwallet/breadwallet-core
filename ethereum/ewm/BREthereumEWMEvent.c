@@ -445,7 +445,7 @@ ewmClientWalletEventDispatcher(BREventHandler ignore,
 }
 
 static BREventType ewmClientWalletEventType = {
-    "EMW: Client Wallet Event",
+    "EWM: Client Wallet Event",
     sizeof (BREthereumEWMClientWalletEvent),
     (BREventDispatcher) ewmClientWalletEventDispatcher
 };
@@ -482,7 +482,7 @@ ewmClientBlockEventDispatcher(BREventHandler ignore,
 }
 
 static BREventType ewmClientBlockEventType = {
-    "EMW: Client Block Event",
+    "EWM: Client Block Event",
     sizeof (BREthereumEWMClientBlockEvent),
     (BREventDispatcher) ewmClientBlockEventDispatcher
 };
@@ -521,7 +521,7 @@ ewmClientTransactionEventDispatcher(BREventHandler ignore,
 }
 
 static BREventType ewmClientTransactionEventType = {
-    "EMW: Client Transaction Event",
+    "EWM: Client Transaction Event",
     sizeof (BREthereumEWMClientTransactionEvent),
     (BREventDispatcher) ewmClientTransactionEventDispatcher
 };
@@ -556,7 +556,7 @@ ewmClientPeerEventDispatcher(BREventHandler ignore,
 }
 
 static BREventType ewmClientPeerEventType = {
-    "EMW: Client Peer Event",
+    "EWM: Client Peer Event",
     sizeof (BREthereumEWMClientPeerEvent),
     (BREventDispatcher) ewmClientPeerEventDispatcher
 };
@@ -588,7 +588,7 @@ ewmClientEWMEventDispatcher(BREventHandler ignore,
 }
 
 static BREventType ewmClientEWMEventType = {
-    "EMW: Client EWM Event",
+    "EWM: Client EWM Event",
     sizeof (BREthereumEWMClientEWMEvent),
     (BREventDispatcher) ewmClientEWMEventDispatcher
 };
