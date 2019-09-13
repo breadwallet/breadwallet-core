@@ -778,14 +778,14 @@ extern void
 ewmHandleAnnounceToken (BREthereumEWM ewm,
                         BREthereumEWMClientAnnounceTokenBundle *bundle,
                         int id) {
-    tokenInstall (bundle->address,
-                  bundle->symbol,
-                  bundle->name,
-                  bundle->description,
-                  bundle->decimals,
-                  bundle->gasLimit,
-                  bundle->gasPrice);
-
+    tokenCreateAndInstall (bundle->address,
+                           bundle->symbol,
+                           bundle->name,
+                           bundle->description,
+                           bundle->decimals,
+                           bundle->gasLimit,
+                           bundle->gasPrice);
+    
     BREthereumToken token = tokenLookup(bundle->address);
     assert (NULL != token);
 

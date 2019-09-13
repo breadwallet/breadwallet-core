@@ -117,6 +117,42 @@ tokenGetContract(BREthereumToken token) {
     return contractERC20;
 }
 
+extern BREthereumHash
+tokenGetHash (BREthereumToken token) {
+    return addressGetHash(token->raw);
+}
+
+extern BREthereumToken
+tokenCreate (const char *address,
+             const char *symbol,
+             const char *name,
+             const char *description,
+             int decimals,
+             BREthereumGas defaultGasLimit,
+             BREthereumGasPrice defaultGasPrice) {
+    BREthereumToken token = malloc (sizeof(struct BREthereumTokenRecord));
+
+    token->address     = strdup (address);
+    token->symbol      = strdup (symbol);
+    token->name        = strdup (name);
+    token->description = strdup (description);
+    token->decimals    = decimals;
+    token->gasLimit    = defaultGasLimit;
+    token->gasPrice    = defaultGasPrice;
+    token->raw         = addressCreate (address);
+
+    return token;
+}
+
+extern void
+tokenRelease (BREthereumToken token) {
+    free (token->address);
+    free (token->symbol);
+    free (token->name);
+    free (token->description);
+    free (token);
+}
+
 static inline size_t
 tokenHashValue (const void *t)
 {
@@ -128,6 +164,46 @@ tokenHashEqual (const void *t1, const void *t2) {
     return t1 == t2 || addressHashEqual (((BREthereumToken) t1)->raw,
                                          ((BREthereumToken) t2)->raw);
 }
+
+extern BRSetOf(BREthereumToken)
+tokenSetCreate (size_t capacity) {
+    return BRSetNew (tokenHashValue, tokenHashEqual, capacity);
+}
+
+extern BRRlpItem
+tokenEncode (BREthereumToken token,
+             BRRlpCoder coder) {
+    return rlpEncodeList (coder, 7,
+                          addressRlpEncode (token->raw, coder),
+                          rlpEncodeString (coder, token->symbol),
+                          rlpEncodeString (coder, token->name),
+                          rlpEncodeString (coder, token->description),
+                          rlpEncodeUInt64 (coder, token->decimals, 0),
+                          gasRlpEncode (token->gasLimit, coder),
+                          gasPriceRlpEncode (token->gasPrice, coder));
+}
+
+extern BREthereumToken
+tokenDecode (BRRlpItem item,
+             BRRlpCoder coder) {
+    BREthereumToken token = malloc (sizeof(struct BREthereumTokenRecord));
+
+    size_t itemsCount = 0;
+    const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
+    assert (7 == itemsCount);
+
+    token->raw = addressRlpDecode (items[0], coder);
+    token->address = addressGetEncodedString(token->raw, 1);
+    token->symbol  = rlpDecodeString (coder, items[1]);
+    token->name    = rlpDecodeString (coder, items[2]);
+    token->description = rlpDecodeString(coder, items[3]);
+    token->decimals    = (unsigned int) rlpDecodeUInt64 (coder, items[4], 0);
+    token->gasLimit    = gasRlpDecode (items[5], coder);
+    token->gasPrice    = gasPriceRlpDecode (items[6], coder);
+
+    return token;
+}
+
 
 //
 // Token Quantity
@@ -256,31 +332,32 @@ tokenGetAll (void) {
 }
 
 extern void
-tokenInstall (const char *address,
-              const char *symbol,
-              const char *name,
-              const char *description,
-              int decimals,
-              BREthereumGas defaultGasLimit,
-              BREthereumGasPrice defaultGasPrice) {
+tokenInstall (OwnershipGiven BREthereumToken token) {
+    if (NULL == tokenLookupByAddress(token->raw)) {
+        BRSetAdd (tokenSet, token);
+    }
+    else {
+        tokenRelease(token);
+    }
+}
+
+extern void
+tokenCreateAndInstall (const char *address,
+                       const char *symbol,
+                       const char *name,
+                       const char *description,
+                       int decimals,
+                       BREthereumGas defaultGasLimit,
+                       BREthereumGasPrice defaultGasPrice) {
     BREthereumAddress raw   = addressCreate (address);
     BREthereumToken   token = tokenLookupByAddress (raw);
 
     if (NULL == token) {
-        token = malloc (sizeof(struct BREthereumTokenRecord));
-
-        token->address     = strdup (address);
-        token->symbol      = strdup (symbol);
-        token->name        = strdup (name);
-        token->description = strdup (description);
-        token->decimals    = decimals;
-        token->gasLimit    = defaultGasLimit;
-        token->gasPrice    = defaultGasPrice;
-
-        token->raw = raw;
-        BRSetAdd (tokenSet, token);
+        token = tokenCreate (address, symbol, name, description, decimals, defaultGasLimit, defaultGasPrice);
+        tokenInstall(token);
     }
 
+    // Update existing token
     else {
         if (0 != strcasecmp (address    , token->address    )) { free (token->address    ); token->address     = strdup (address    ); }
         if (0 != strcasecmp (symbol     , token->symbol     )) { free (token->symbol     ); token->symbol      = strdup (symbol     ); }

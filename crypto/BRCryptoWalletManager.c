@@ -487,13 +487,13 @@ cryptoWalletManagerInstallWalletsForCurrencies (BRCryptoWalletManager cwm) {
                         BREthereumGas      ethGasLimit = gasCreate(TOKEN_BRD_DEFAULT_GAS_LIMIT);
                         BREthereumGasPrice ethGasPrice = gasPriceCreate(etherCreate(createUInt256(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64)));
 
-                        tokenInstall (address,
-                                      cryptoCurrencyGetCode (c),
-                                      cryptoCurrencyGetName(c),
-                                      cryptoCurrencyGetUids(c), // description
-                                      cryptoUnitGetBaseDecimalOffset(unitDefault),
-                                      ethGasLimit,
-                                      ethGasPrice);
+                        tokenCreateAndInstall (address,
+                                               cryptoCurrencyGetCode (c),
+                                               cryptoCurrencyGetName(c),
+                                               cryptoCurrencyGetUids(c), // description
+                                               cryptoUnitGetBaseDecimalOffset(unitDefault),
+                                               ethGasLimit,
+                                               ethGasPrice);
 
                         BREthereumToken ethToken = tokenLookup(cryptoCurrencyGetIssuer(c));
                         if (NULL != ethToken) {
