@@ -120,10 +120,10 @@ class BRCryptoSystemTests: BRCryptoSystemBaseTests {
                 XCTAssertTrue (system.supportsMode(network: network, system.defaultMode(network: network)))
         }
 
-        system.supportedModesMap
+        System.supportedModesMap
             .forEach { (argument) in
                 let (bid, modes) = argument
-                XCTAssertTrue (modes.contains (system.defaultModesMap[bid]!))
+                XCTAssertTrue (modes.contains (System.defaultModesMap[bid]!))
         }
     }
 
@@ -144,10 +144,10 @@ class BRCryptoSystemTests: BRCryptoSystemBaseTests {
                 XCTAssertTrue (system.supportsAddressScheme (network: network, system.defaultAddressScheme(network: network)))
         }
 
-        system.supportedAddressSchemesMap
+        System.supportedAddressSchemesMap
             .forEach { (argument) in
                 let (bid, schemes) = argument
-                XCTAssertTrue (schemes.contains (system.defaultAddressSchemeMap[bid]!))
+                XCTAssertTrue (schemes.contains (System.defaultAddressSchemeMap[bid]!))
         }
     }
 }
