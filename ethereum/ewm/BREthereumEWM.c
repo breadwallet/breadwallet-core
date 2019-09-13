@@ -122,8 +122,8 @@ enum {
 
 static UInt256
 fileServiceTypeLogV1Identifier (BRFileServiceContext context,
-                                        BRFileService fs,
-                                        const void *entity) {
+                                BRFileService fs,
+                                const void *entity) {
     const BREthereumLog log = (BREthereumLog) entity;
     BREthereumHash hash = logGetHash( log);
 
@@ -134,9 +134,9 @@ fileServiceTypeLogV1Identifier (BRFileServiceContext context,
 
 static uint8_t *
 fileServiceTypeLogV1Writer (BRFileServiceContext context,
-                                    BRFileService fs,
-                                    const void* entity,
-                                    uint32_t *bytesCount) {
+                            BRFileService fs,
+                            const void* entity,
+                            uint32_t *bytesCount) {
     BREthereumEWM ewm = context;
     BREthereumLog log = (BREthereumLog) entity;
 
@@ -150,9 +150,9 @@ fileServiceTypeLogV1Writer (BRFileServiceContext context,
 
 static void *
 fileServiceTypeLogV1Reader (BRFileServiceContext context,
-                                    BRFileService fs,
-                                    uint8_t *bytes,
-                                    uint32_t bytesCount) {
+                            BRFileService fs,
+                            uint8_t *bytes,
+                            uint32_t bytesCount) {
     BREthereumEWM ewm = context;
 
     BRRlpData data = { bytesCount, bytes };
@@ -593,6 +593,9 @@ ewmCreate (BREthereumNetwork network,
 
     ewmCreateInitialSets (ewm, ewm->network, ewm->accountTimestamp, &transactions, &logs, &nodes, &blocks, &tokens);
 
+    // Save the recovered tokens
+    ewm->tokens = tokens;
+
     // Create the alarm clock, but don't start it.
     alarmClockCreateIfNecessary(0);
 
@@ -603,7 +606,7 @@ ewmCreate (BREthereumNetwork network,
                                        ewmEventTypesCount,
                                        &ewm->lock);
 
-    array_new(ewm->wallets, DEFAULT_WALLET_CAPACITY);
+    array_new (ewm->wallets, DEFAULT_WALLET_CAPACITY);
 
     // Queue the CREATED event so that it is the first event delievered to the BREthereumClient
     ewmSignalEWMEvent (ewm, (BREthereumEWMEvent) {
@@ -691,6 +694,7 @@ ewmCreate (BREthereumNetwork network,
             BRSetFree (transactions);
             BRSetFree (logs);
 
+            
             // Add ewmPeriodicDispatcher to handlerForMain.  Note that a 'timeout' is handled by
             // an OOB (out-of-band) event whereby the event is pushed to the front of the queue.
             // This may not be the right thing to do.  Imagine that EWM is blocked somehow (doing
@@ -782,6 +786,9 @@ ewmDestroy (BREthereumEWM ewm) {
 
     walletsRelease (ewm->wallets);
     ewm->wallets = NULL;
+
+    BRSetFreeAll (ewm->tokens, (void (*) (void*)) tokenRelease);
+    ewm->tokens = NULL;
 
     fileServiceRelease (ewm->fs);
     eventHandlerDestroy(ewm->handler);
@@ -2289,7 +2296,7 @@ ewmHandleLog (BREthereumEWM ewm,
              BCS_CALLBACK_TRANSACTION_TYPE_NAME(type),
              logGetStatus(log).type);
 
-    BREthereumToken token = tokenLookupByAddress(logGetAddress(log));
+    BREthereumToken token = ewmLookupToken (ewm, logGetAddress(log));
     if (NULL == token) { logRelease(log); return;}
 
     // TODO: Confirm LogTopic[0] is 'transfer'
@@ -3044,4 +3051,48 @@ ewmTransferDelete (BREthereumEWM ewm,
     }
     // Null the ewm's `tid` - MUST NOT array_rm() as all `tid` holders will be dead.
     transferRelease(transfer);
+}
+
+extern BREthereumToken
+ewmLookupToken (BREthereumEWM ewm,
+                BREthereumAddress address) {
+    return (BREthereumToken) BRSetGet (ewm->tokens, &address);
+}
+
+extern BREthereumToken
+ewmCreateToken (BREthereumEWM ewm,
+                const char *address,
+                const char *symbol,
+                const char *name,
+                const char *description,
+                int decimals,
+                BREthereumGas defaultGasLimit,
+                BREthereumGasPrice defaultGasPrice) {
+    if (NULL == address || 0 == strlen(address)) return NULL;
+
+    BREthereumAddress addr  = addressCreate(address);
+    BREthereumToken   token = ewmLookupToken (ewm, addr);
+
+    if (NULL == token) {
+        token = tokenCreate (address,
+                             symbol,
+                             name,
+                             description,
+                             decimals,
+                             defaultGasLimit,
+                             defaultGasPrice);
+        BRSetAdd (ewm->tokens, token);
+    }
+    else {
+        tokenUpdate (token,
+                     symbol,
+                     name,
+                     description,
+                     decimals,
+                     defaultGasLimit,
+                     defaultGasPrice);
+    }
+
+    fileServiceSave (ewm->fs, fileServiceTypeTokens, token);
+    return token;
 }

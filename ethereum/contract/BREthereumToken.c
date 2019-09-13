@@ -153,6 +153,23 @@ tokenRelease (BREthereumToken token) {
     free (token);
 }
 
+extern void
+tokenUpdate (BREthereumToken token,
+             const char *symbol,
+             const char *name,
+             const char *description,
+             int decimals,
+             BREthereumGas defaultGasLimit,
+             BREthereumGasPrice defaultGasPrice) {
+
+    if (0 != strcasecmp (symbol     , token->symbol     )) { free (token->symbol     ); token->symbol      = strdup (symbol     ); }
+    if (0 != strcasecmp (name       , token->name       )) { free (token->name       ); token->name        = strdup (name       ); }
+    if (0 != strcasecmp (description, token->description)) { free (token->description); token->description = strdup (description); }
+    token->decimals = decimals;
+    token->gasLimit = defaultGasLimit;
+    token->gasPrice = defaultGasPrice;
+}
+
 static inline size_t
 tokenHashValue (const void *t)
 {
@@ -192,7 +209,7 @@ tokenDecode (BRRlpItem item,
     const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
     assert (7 == itemsCount);
 
-    token->raw = addressRlpDecode (items[0], coder);
+    token->raw     = addressRlpDecode (items[0], coder);
     token->address = addressGetEncodedString(token->raw, 1);
     token->symbol  = rlpDecodeString (coder, items[1]);
     token->name    = rlpDecodeString (coder, items[2]);
@@ -294,77 +311,3 @@ return "static struct BREthereumTokenRecord tokens[] = \n{" +
 var result = tokensInJSONToC (tokens);
 console.log (result)
 */
-
-static BRSet *tokenSet = NULL;
-
-static void
-tokenInitializeIfAppropriate (void) {
-    if (NULL == tokenSet) {
-        tokenSet = BRSetNew(tokenHashValue, tokenHashEqual, TOKEN_DEFAULT_INITIALIZATION_COUNT);
-    }
-}
-
-extern BREthereumToken
-tokenLookupByAddress (BREthereumAddress address) {
-    tokenInitializeIfAppropriate();
-    return (BREthereumToken) BRSetGet(tokenSet, &address);
-}
-
-extern BREthereumToken
-tokenLookup(const char *address) {
-    return ((NULL == address || '\0' == address[0])
-            ? NULL
-            : tokenLookupByAddress (addressCreate(address)));
-}
-
-extern int
-tokenCount() {
-    tokenInitializeIfAppropriate();
-    return (int) BRSetCount (tokenSet);
-}
-
-extern BREthereumToken *
-tokenGetAll (void) {
-    int tokensCount = tokenCount();
-    BREthereumToken *tokens = calloc (tokensCount, sizeof (BREthereumToken));
-    BRSetAll (tokenSet, (void**) tokens, tokensCount);
-    return tokens;
-}
-
-extern void
-tokenInstall (OwnershipGiven BREthereumToken token) {
-    if (NULL == tokenLookupByAddress(token->raw)) {
-        BRSetAdd (tokenSet, token);
-    }
-    else {
-        tokenRelease(token);
-    }
-}
-
-extern void
-tokenCreateAndInstall (const char *address,
-                       const char *symbol,
-                       const char *name,
-                       const char *description,
-                       int decimals,
-                       BREthereumGas defaultGasLimit,
-                       BREthereumGasPrice defaultGasPrice) {
-    BREthereumAddress raw   = addressCreate (address);
-    BREthereumToken   token = tokenLookupByAddress (raw);
-
-    if (NULL == token) {
-        token = tokenCreate (address, symbol, name, description, decimals, defaultGasLimit, defaultGasPrice);
-        tokenInstall(token);
-    }
-
-    // Update existing token
-    else {
-        if (0 != strcasecmp (address    , token->address    )) { free (token->address    ); token->address     = strdup (address    ); }
-        if (0 != strcasecmp (symbol     , token->symbol     )) { free (token->symbol     ); token->symbol      = strdup (symbol     ); }
-        if (0 != strcasecmp (name       , token->name       )) { free (token->name       ); token->name        = strdup (name       ); }
-        if (0 != strcasecmp (description, token->description)) { free (token->description); token->description = strdup (description); }
-        token->decimals = decimals;
-        token->gasLimit = defaultGasLimit;
-        token->gasPrice = defaultGasPrice;
-    }
-}

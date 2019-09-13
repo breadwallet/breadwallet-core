@@ -69,21 +69,6 @@ extern BREthereumHash
 tokenGetHash (BREthereumToken token);
 
 extern BREthereumToken
-tokenLookupByAddress (BREthereumAddress address);
-    
-extern BREthereumToken
-tokenLookup (const char *address);
-
-extern int
-tokenCount (void);
-
-/**
- * Return a newly allocated array with references to all tokens
- */
-extern BREthereumToken *
-tokenGetAll (void);
-
-extern BREthereumToken
 tokenCreate (const char *address,
              const char *symbol,
              const char *name,
@@ -96,16 +81,25 @@ extern void
 tokenRelease (BREthereumToken token);
 
 extern void
-tokenInstall (OwnershipGiven BREthereumToken token);
+tokenUpdate (BREthereumToken token,
+             const char *symbol,
+             const char *name,
+             const char *description,
+             int decimals,
+             BREthereumGas defaultGasLimit,
+             BREthereumGasPrice defaultGasPrice);
 
-extern void
-tokenCreateAndInstall (const char *address,
-                       const char *symbol,
-                       const char *name,
-                       const char *description,
-                       int decimals,
-                       BREthereumGas defaultGasLimit,
-                       BREthereumGasPrice defaultGasPrice);
+//extern void
+//tokenInstall (OwnershipGiven BREthereumToken token);
+//
+//extern void
+//tokenCreateAndInstall (const char *address,
+//                       const char *symbol,
+//                       const char *name,
+//                       const char *description,
+//                       int decimals,
+//                       BREthereumGas defaultGasLimit,
+//                       BREthereumGasPrice defaultGasPrice);
 
 extern BRRlpItem
 tokenEncode (BREthereumToken token,

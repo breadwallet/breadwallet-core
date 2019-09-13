@@ -61,9 +61,9 @@ ewmEventCreateError (BREthereumEWMEventType type,
  */
 extern void
 ewmHandleAnnounceBalance (BREthereumEWM ewm,
-                                BREthereumWallet wallet,
-                                UInt256 value,
-                                int rid) {
+                          BREthereumWallet wallet,
+                          UInt256 value,
+                          int rid) {
     BREthereumAmount amount =
     (AMOUNT_ETHER == walletGetAmountType(wallet)
      ? amountCreateEther(etherCreate(value))
@@ -74,9 +74,9 @@ ewmHandleAnnounceBalance (BREthereumEWM ewm,
 
 extern BREthereumStatus
 ewmAnnounceWalletBalance (BREthereumEWM ewm,
-                               BREthereumWallet wallet,
-                               const char *balance,
-                               int rid) {
+                          BREthereumWallet wallet,
+                          const char *balance,
+                          int rid) {
     if (NULL == wallet) { return ERROR_UNKNOWN_WALLET; }
 
     // Passed in `balance` can be base 10 or 16.  Let UInt256Prase decide.
@@ -94,7 +94,7 @@ ewmAnnounceWalletBalance (BREthereumEWM ewm,
 //
 extern void
 ewmUpdateGasPrice (BREthereumEWM ewm,
-                                BREthereumWallet wallet) {
+                   BREthereumWallet wallet) {
 
     if (NULL == wallet) {
         ewmSignalWalletEvent(ewm, wallet,
@@ -129,9 +129,9 @@ ewmUpdateGasPrice (BREthereumEWM ewm,
 
 extern void
 ewmHandleAnnounceGasPrice (BREthereumEWM ewm,
-                                 BREthereumWallet wallet,
-                                 UInt256 amount,
-                                 int rid) {
+                           BREthereumWallet wallet,
+                           UInt256 amount,
+                           int rid) {
     ewmSignalGasPrice(ewm, wallet, gasPriceCreate(etherCreate(amount)));
 }
 
@@ -778,15 +778,14 @@ extern void
 ewmHandleAnnounceToken (BREthereumEWM ewm,
                         BREthereumEWMClientAnnounceTokenBundle *bundle,
                         int id) {
-    tokenCreateAndInstall (bundle->address,
-                           bundle->symbol,
-                           bundle->name,
-                           bundle->description,
-                           bundle->decimals,
-                           bundle->gasLimit,
-                           bundle->gasPrice);
-    
-    BREthereumToken token = tokenLookup(bundle->address);
+    BREthereumToken token = ewmCreateToken (ewm,
+                                            bundle->address,
+                                            bundle->symbol,
+                                            bundle->name,
+                                            bundle->description,
+                                            bundle->decimals,
+                                            bundle->gasLimit,
+                                            bundle->gasPrice);
     assert (NULL != token);
 
     ewm->client.funcTokenEvent (ewm->client.context,
